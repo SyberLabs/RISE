@@ -2,7 +2,6 @@ import { STARTER_SEQUENCES } from '../content/starters.js';
 import { MemoryCore } from '../core/memory.js';
 import { VAULT_A_SEQUENCES, VAULT_A_ARCHETYPE } from '../content/personalized/vault-a.js';
 import { escapeHtml } from '../core/sanitize.js';
-import { VISUAL_PRESENCE_DEFAULT_MS } from '../core/visual-presence.js';
 import './Library.css';
 
 // Personalized vault configurations
@@ -16,187 +15,6 @@ const PERSONALIZED_VAULTS = {
   // Add more personalized vaults here as needed
 };
 
-/**
- * Sequence Archetypes - Pre-configured cognitive state inducing profiles
- *
- * TEMPORAL CONTRACT: paceV2. These WPMs were authored under the old
- * hidden 1.4375× slowdown and have been scaled once by that factor, so
- * the delivered reading speed is unchanged — only the label moved.
- * Saved user preferences were migrated when the honest-pacing contract
- * landed; these hardcoded presets were missed and had been running
- * ~44% slower than authored. The Cipher's 430 would have become 618
- * and is clamped to the app's 500 ceiling, which is still the fastest
- * setting available and keeps its "machine rhythm" identity.
- *
- * Anything added here is authored under the honest contract: write the
- * speed you actually want.
- */
-const ARCHETYPES = [
-  {
-    id: 'humanist',
-    name: 'The Humanist',
-    sigil: '❦',
-    focus: 'Interiority and Pathos',
-    description: 'Focuses on the depths of human experience, emotional resonance, and inner contemplation. Draws from the Romantic and existential traditions.',
-    textSeed: 'Rilke / Contemplative Poetry',
-    config: {
-      wpm: 290,
-      curve: 'induction',
-      // Aurora: the just-intoned pad with wandering harmonics — a
-      // soundscape is a finished mix, so the tones rest (exclusive beds)
-      audioPreset: 'silent',
-      soundscape: 'aurora',
-      visualConfig: {
-        visualMode: 'interlocution',
-        interlocution: {
-          sourceFamily: 'blend',
-          procedural: ['turrell'],
-          sourced: ['aic-oldmasters', 'aic-landscapes'],
-          frequency: 0.15,
-          duration: VISUAL_PRESENCE_DEFAULT_MS
-        }
-      }
-    },
-    // Reference sequences from starters
-    sequences: ['the-body', 'the-trust', 'on-attention']
-  },
-  {
-    id: 'monad',
-    name: 'The Monad',
-    sigil: '◉',
-    focus: 'Non-Dual Synthesis',
-    description: 'Dissolves the boundary between observer and observed. Eastern philosophy meets consciousness technology. Designed for unified field awareness.',
-    textSeed: 'The Upanishads / Mystic Texts',
-    config: {
-      wpm: 240,
-      curve: 'wave',
-      audioPreset: 'deep', // Theta entrainment
-      visualConfig: {
-        visualMode: 'interlocution',
-        interlocution: {
-          sourceFamily: 'blend',
-          // The harmonograph draws the same just ratios the audio
-          // plays — for the non-dual archetype, sound made visible
-          procedural: ['fractal', 'harmonograph'],
-          harmonographClimate: 'auto',
-          // Curation-only: the searched 'geometry'/'fractals' categories
-          // are retired, and we already GENERATE fractals — better, and
-          // without asking a remote tree what it holds today.
-          sourced: [],
-          frequency: 0.25,
-          duration: VISUAL_PRESENCE_DEFAULT_MS
-        }
-      }
-    },
-    sequences: ['cosmogonic', 'the-descent', 'the-third-mind']
-  },
-  {
-    id: 'alchemist',
-    name: 'The Alchemist',
-    sigil: '☿',
-    focus: 'Organic Pattern Recognition',
-    description: 'Transmutation of base experience into golden insight. Hermetic principles encoded in biological symmetries and sacred geometries.',
-    textSeed: 'The Hermetica / Esoteric Texts',
-    config: {
-      wpm: 200,
-      curve: 'ascent',
-      audioPreset: 'focus',
-      visualConfig: {
-        visualMode: 'interlocution',
-        interlocution: {
-          sourceFamily: 'blend',
-          procedural: ['klee'],
-          kleePreset: 'harmonic',
-          // The master line carries the organic-form study alone.
-          // Haeckel's plates were genuinely fine, but they came from a
-          // SEARCHED category whose quality was an accident of what the
-          // tree held that week — so they are retired with the rest and
-          // await pinning as chosen plates (SOURCE-CURATION-SPEC).
-          sourced: ['aic-ukiyoe'],
-          frequency: 0.2,
-          duration: VISUAL_PRESENCE_DEFAULT_MS
-        }
-      }
-    },
-    sequences: ['tessellation', 'klee-on-the-line', 'the-creator']
-  },
-  {
-    id: 'cipher',
-    name: 'The Cipher',
-    sigil: '⌘',
-    focus: 'Clinical Dissociation',
-    description: 'Information without sentiment. Data streams parsed at machine rhythm. For those who seek the clarity of pure signal.',
-    textSeed: 'Declassified Documents / Technical Manuals',
-    config: {
-      wpm: 500,
-      curve: 'flat',
-      audioPreset: 'silent',
-      visualConfig: {
-        visualMode: 'interlocution',
-        interlocution: {
-          sourceFamily: 'procedural',
-          procedural: ['klee'],
-          sourced: [],
-          frequency: 0.1,
-          duration: VISUAL_PRESENCE_DEFAULT_MS,
-          kleePreset: 'architectural'
-        }
-      }
-    },
-    sequences: ['meta-session', 'flusser-technical-images']
-  },
-  {
-    id: 'oracle',
-    name: 'The Oracle',
-    sigil: '◇',
-    focus: 'Hypnagogic Reception',
-    description: 'The liminal channel between waking and sleep. Images emerge unbidden. The hand moves before the mind understands.',
-    textSeed: 'Poetic / Stream of Consciousness',
-    config: {
-      wpm: 200,
-      curve: 'induction',
-      // Faded Signal: analog memory — sun-worn harmony, tape drift,
-      // a quiet feedback afterimage. The hypnagogic bed.
-      audioPreset: 'silent',
-      soundscape: 'faded-signal',
-      visualConfig: {
-        // Genesis: a composition grows unbidden around the stream —
-        // "the hand moves before the mind understands"
-        visualMode: 'genesis',
-        genesis: {
-          preset: 'gravitational',
-          glass: true
-        }
-      }
-    },
-    sequences: ['hypnagogic-ode', 'the-descent', 'night-work-affirmations']
-  },
-  {
-    id: 'threshold',
-    name: 'The Threshold',
-    sigil: '⧖',
-    focus: 'Human-AI Synthesis',
-    description: 'The Third Mind emerges at the interface. Neither human nor machine alone, but the collaborative intelligence that arises between.',
-    textSeed: 'Neohumanist / Interface Philosophy',
-    config: {
-      wpm: 330,
-      curve: 'wave',
-      audioPreset: 'focus',
-      visualConfig: {
-        visualMode: 'interlocution',
-        interlocution: {
-          sourceFamily: 'procedural',
-          procedural: ['turrell', 'klee'],
-          sourced: [],
-          frequency: 0.18,
-          duration: VISUAL_PRESENCE_DEFAULT_MS
-        }
-      }
-    },
-    sequences: ['the-interface', 'the-third-mind', 'threshold-affirmations']
-  }
-];
-
 export class Vault {
   constructor(container, options = {}) {
     this.container = container;
@@ -209,9 +27,8 @@ export class Vault {
     this.personalizedVaultId = options.personalizedVault || null;
     this.personalizedVault = this.personalizedVaultId ? PERSONALIZED_VAULTS[this.personalizedVaultId] : null;
 
-    this.currentSection = this.personalizedVault ? 'personalized' : 'archetypes';
+    this.currentSection = this.personalizedVault ? 'personalized' : 'sequences';
     this.blueprints = MemoryCore.getWorkshopBlueprints();
-    this.expandedArchetype = null;
     this._active = false;
     this.boundKeyboardHandler = this.handleKeyboard.bind(this);
 
@@ -234,20 +51,6 @@ export class Vault {
             <h1>${isPersonalized ? 'Your Vault' : 'The Vault'}</h1>
           </div>
 
-          <!-- Apothecary Description. A personalized vault opens straight
-               from the invitation, which has already welcomed the reader
-               by name — repeating it here only pushes the sequences below
-               the fold. -->
-          ${isPersonalized ? '' : `
-            <div class="vault-intro">
-              <p class="vault-intro-title">Sequence Archetypes</p>
-              <p class="vault-intro-text">
-                An apothecary of pre-configured cognitive states. Each Archetype aligns specific textual seeds
-                with precise audio-visual parameters to ensure optimal induction.
-              </p>
-            </div>
-          `}
-
           <!-- JOURNEYS — withdrawn until after 1.0. The room and its
                scores stay in the tree; nothing on this screen points
                there. Restore the button below when a Journey is admitted.
@@ -264,10 +67,8 @@ export class Vault {
           <nav class="library-nav nav" aria-label="Vault sections">
             ${isPersonalized ? `
               <button class="nav-item ${this.currentSection === 'personalized' ? 'active' : ''}" data-section="personalized">For You</button>
-              <button class="nav-item ${this.currentSection === 'archetypes' ? 'active' : ''}" data-section="archetypes">All Archetypes</button>
               <button class="nav-item ${this.currentSection === 'custom' ? 'active' : ''}" data-section="custom">Custom</button>
             ` : `
-              <button class="nav-item ${this.currentSection === 'archetypes' ? 'active' : ''}" data-section="archetypes">Archetypes</button>
               <button class="nav-item ${this.currentSection === 'sequences' ? 'active' : ''}" data-section="sequences">All Sequences</button>
               <button class="nav-item ${this.currentSection === 'custom' ? 'active' : ''}" data-section="custom">Custom</button>
             `}
@@ -286,7 +87,6 @@ export class Vault {
 
   renderSection(section) {
     if (section === 'personalized') return this.renderPersonalizedSection();
-    if (section === 'archetypes') return this.renderArchetypesSection();
     if (section === 'sequences') return this.renderSequencesSection();
     if (section === 'custom') return this.renderCustomSection();
     return '';
@@ -301,15 +101,10 @@ export class Vault {
 
     return `
       <div class="library-section personalized-section">
-        <!-- Personalized Archetype -->
-        <div class="personalized-archetype">
-          ${this.renderArchetypeCard(archetype, sequences)}
-        </div>
-
         <!-- Individual Sequences. The heading alone carries this: the
              invitation and the section title have already said the
              readings were chosen for this reader. -->
-        <div class="section-header" style="margin-top: 1.5rem;">
+        <div class="section-header">
           <h2 class="text-light">Curated Sequences</h2>
         </div>
         <div class="sequences-grid" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 1.5rem; margin-top: 1rem;">
@@ -359,108 +154,11 @@ export class Vault {
     `;
   }
 
-  renderArchetypesSection() {
-    return `
-      <div class="library-section archetypes-section">
-        <div class="archetypes-grid">
-          ${ARCHETYPES.map(arch => this.renderArchetypeCard(arch)).join('')}
-        </div>
-      </div>
-    `;
-  }
-
-  renderArchetypeCard(archetype, customSequences = null) {
-    const isExpanded = this.expandedArchetype === archetype.id;
-    const isPersonalized = !!customSequences;
-
-    // Use custom sequences if provided, otherwise look up from STARTER_SEQUENCES
-    const sequences = customSequences || archetype.sequences
-      .map(id => STARTER_SEQUENCES.find(s => s.id === id))
-      .filter(Boolean);
-
-    return `
-      <div class="archetype-card ${isExpanded ? 'expanded' : ''} ${isPersonalized ? 'personalized' : ''}" data-archetype="${archetype.id}">
-        <div class="archetype-header" data-action="toggle-archetype" data-id="${archetype.id}">
-          <div class="archetype-sigil">${archetype.sigil}</div>
-          <div class="archetype-identity">
-            <h3 class="archetype-name">${archetype.name}</h3>
-            <span class="archetype-focus">${archetype.focus}</span>
-          </div>
-          <span class="archetype-chevron">${isExpanded ? '▲' : '▼'}</span>
-        </div>
-
-        <div class="archetype-body" ${isExpanded ? '' : 'hidden'}>
-          <p class="archetype-description">${archetype.description}</p>
-
-          <div class="archetype-spec">
-            <div class="spec-row">
-              <span class="spec-label">Seed</span>
-              <span class="spec-value">${archetype.textSeed}</span>
-            </div>
-            <div class="spec-row">
-              <span class="spec-label">Pacing</span>
-              <span class="spec-value">${archetype.config.wpm} WPM · ${this.capitalizeFirst(archetype.config.curve)}</span>
-            </div>
-            <div class="spec-row">
-              <span class="spec-label">Audio</span>
-              <span class="spec-value">${this.capitalizeFirst(archetype.config.audioPreset)}</span>
-            </div>
-            <div class="spec-row">
-              <span class="spec-label">Visual</span>
-              <span class="spec-value">${this.getVisualDescription(archetype.config.visualConfig)}</span>
-            </div>
-          </div>
-
-          <div class="archetype-sequences">
-            <span class="sequences-label">${isPersonalized ? 'Curated Sequences' : 'Compatible Sequences'}</span>
-            <div class="sequences-list">
-              ${sequences.map(seq => `
-                <button class="sequence-chip" data-action="${isPersonalized ? 'launch-personalized' : 'launch-with-archetype'}" data-archetype="${archetype.id}" data-seq-id="${seq.id}" data-sequence="${seq.id}">
-                  ${seq.name}
-                </button>
-              `).join('')}
-            </div>
-          </div>
-
-          <div class="archetype-actions">
-            <button class="btn-primary" data-action="${isPersonalized ? 'launch-personalized' : 'launch-archetype'}" data-id="${archetype.id}" data-seq-id="${sequences[0]?.id}">
-              Enter ${archetype.name}
-            </button>
-          </div>
-        </div>
-      </div>
-    `;
-  }
-
-  getVisualDescription(visualConfig) {
-    if (!visualConfig) return 'Off';
-    if (visualConfig.visualMode === 'off') return 'Off';
-    if (visualConfig.visualMode === 'focals') {
-      const glyph = visualConfig.focals?.standardGlyph || 'breath';
-      return `Focal · ${this.capitalizeFirst(glyph)}`;
-    }
-    if (visualConfig.visualMode === 'attractor') {
-      const system = visualConfig.attractor?.system || 'aizawa';
-      return `Attractor · ${this.capitalizeFirst(system)}`;
-    }
-    if (visualConfig.visualMode === 'genesis') {
-      const preset = visualConfig.genesis?.preset || 'random';
-      return `Genesis · ${this.capitalizeFirst(preset)}`;
-    }
-    if (visualConfig.visualMode === 'interlocution') {
-      const proc = visualConfig.interlocution?.procedural || [];
-      const types = proc.map(p => this.capitalizeFirst(p)).join(' + ');
-      return types || 'Rhythmic';
-    }
-    return 'Custom';
-  }
-
   renderSequencesSection() {
     return `
       <div class="library-section">
         <div class="section-header">
           <h2 class="text-light">All Sequences</h2>
-          <p class="text-fog">Pre-configured sessions designed to induce specific cognitive states</p>
         </div>
         <div class="sequences-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1.5rem; margin-top: 1.5rem;">
           ${this.renderSequenceItems()}
@@ -567,11 +265,6 @@ export class Vault {
     return `${minutes}:${seconds.toString().padStart(2, '0')}`;
   }
 
-  capitalizeFirst(str) {
-    if (!str) return '';
-    return str.charAt(0).toUpperCase() + str.slice(1);
-  }
-
   attachEvents() {
     // Back button
     this.container.querySelector('[data-action="back"]')?.addEventListener('click', () => {
@@ -590,7 +283,6 @@ export class Vault {
       item.addEventListener('click', () => {
         window.rise?.audioEngine?.playHiss();
         this.currentSection = item.dataset.section;
-        this.expandedArchetype = null;
         this.updateContent();
         this.updateActiveNav();
       });
@@ -603,27 +295,7 @@ export class Vault {
 
       const action = target.dataset.action;
 
-      if (action === 'toggle-archetype') {
-        window.rise?.audioEngine?.playHiss();
-        const id = target.dataset.id;
-        this.expandedArchetype = this.expandedArchetype === id ? null : id;
-        this.updateContent();
-      } else if (action === 'launch-archetype') {
-        window.rise?.audioEngine?.playClick();
-        const archetype = ARCHETYPES.find(a => a.id === target.dataset.id);
-        if (archetype) {
-          // Launch with first compatible sequence
-          const firstSeqId = archetype.sequences[0];
-          this.launchWithArchetype(archetype, firstSeqId);
-        }
-      } else if (action === 'launch-with-archetype') {
-        window.rise?.audioEngine?.playClick();
-        const archetype = ARCHETYPES.find(a => a.id === target.dataset.archetype);
-        const sequenceId = target.dataset.sequence;
-        if (archetype) {
-          this.launchWithArchetype(archetype, sequenceId);
-        }
-      } else if (action === 'launch-personalized') {
+      if (action === 'launch-personalized') {
         window.rise?.audioEngine?.playClick();
         const seqId = target.dataset.seqId;
         if (this.personalizedVault) {
@@ -650,26 +322,6 @@ export class Vault {
       }
     });
 
-  }
-
-  launchWithArchetype(archetype, sequenceId) {
-    const sequence = STARTER_SEQUENCES.find(s => s.id === sequenceId);
-    if (!sequence) return;
-
-    // Merge archetype config with sequence
-    const mergedConfig = {
-      ...archetype.config,
-      // Override with sequence-specific settings if appropriate
-      wpm: archetype.config.wpm || sequence.wpm,
-      curve: archetype.config.curve || sequence.curve,
-    };
-
-    // Emit combined launch
-    this.onLaunchArchetype({
-      archetype: archetype,
-      sequence: sequence,
-      config: mergedConfig
-    });
   }
 
   launchPersonalizedSequence(sequenceId) {

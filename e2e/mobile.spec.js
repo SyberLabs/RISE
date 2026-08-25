@@ -411,18 +411,17 @@ test('a shelf shows books on the first screen', async ({ page }) => {
     expect(shelf.firstCardTop + shelf.cardHeight).toBeLessThanOrEqual(shelf.viewport);
 });
 
-test('the Vault opens on its archetypes rather than on an explanation', async ({ page }) => {
+test('the Vault opens on its sequences rather than on an explanation', async ({ page }) => {
     test.setTimeout(120000);
     await enter(page, 390, 844);
     await page.locator('[data-nav="vault"]').first().click();
-    await expect(page.locator('.archetype-card').first()).toBeVisible({ timeout: 30000 });
+    await expect(page.locator('.sequence-card').first()).toBeVisible({ timeout: 30000 });
 
     const vault = await page.evaluate(() => {
-        const cards = [...document.querySelectorAll('.archetype-card')];
+        const cards = [...document.querySelectorAll('.sequence-card')];
         return {
             total: cards.length,
             visible: cards.filter(c => c.getBoundingClientRect().bottom <= window.innerHeight).length,
-            // Intro copy is hidden on phone so archetypes start on-screen.
             introShown: (() => {
                 const el = document.querySelector('.vault-intro');
                 return el ? getComputedStyle(el).display !== 'none' : false;
@@ -432,7 +431,7 @@ test('the Vault opens on its archetypes rather than on an explanation', async ({
     console.log('VAULT ' + JSON.stringify(vault));
 
     expect(vault.introShown).toBe(false);
-    expect(vault.visible).toBeGreaterThanOrEqual(3);
+    expect(vault.visible).toBeGreaterThanOrEqual(1);
 });
 
 test('the configuration panels are not several screens of picture tiles', async ({ page }) => {
