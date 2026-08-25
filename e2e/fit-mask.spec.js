@@ -735,9 +735,13 @@ test('material controls explain locked masks, transact Thick + Fit, and preserve
   // suppresses them unless forced. This choice must remain explanatory.
   await page.locator('[data-word-fill="same"]').click({ force: true });
   const dialog = page.locator('[role="dialog"]');
-  await expect(dialog).toContainText('Visual masks require Thick + Fit.');
-  await expect(dialog.getByRole('button', { name: 'Use Thick + Fit' })).toBeVisible();
-  await dialog.getByRole('button', { name: 'Use Thick + Fit' }).click();
+  // The refusal names the condition that is ACTUALLY missing. Fit is already
+  // set and the field is a Gallery (Turrell), so the face is the only thing
+  // standing in the way — and the Gallery must survive the remedy rather than
+  // be cleared to satisfy it.
+  await expect(dialog).toContainText('A mask needs the Thick face.');
+  await expect(dialog.getByRole('button', { name: 'Set it' })).toBeVisible();
+  await dialog.getByRole('button', { name: 'Set it' }).click();
   await expect(dialog).toBeHidden();
   await expect(page.locator('[data-word-fill="same"]')).toHaveClass(/is-selected/);
 

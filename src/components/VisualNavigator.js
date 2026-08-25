@@ -433,27 +433,42 @@ export class VisualNavigator {
     // resolver reports the first failing condition; the reader needs all of
     // them, since they are about to be set in one stroke.
     const settings = this.textMaterialSettings();
+    const needsField = !this._fieldIsGallery();
     const missing = [];
-    if (!this._fieldIsGallery()) missing.push('a Gallery field');
+    if (needsField) missing.push('a Gallery field');
     if (resolveChamberStreamFace(settings.face) !== 'thick') missing.push('the Thick face');
     if (resolveFontSize(settings.fontSize) !== 'fit') missing.push('the Fit size');
-    const held = [...this.selection.enabled].map(id => leafById(id)?.label).filter(Boolean);
+    // Only a field that CANNOT hold imagery is named as being set aside. A
+    // Gallery already behind the reading is kept: it is the thing the mask is
+    // about to be painted from, and discarding it to "fix" a face would throw
+    // away the works the reader chose.
+    const displaced = needsField
+      ? [...this.selection.enabled].map(id => leafById(id)?.label).filter(Boolean)
+      : [];
     const list = missing.length > 1
       ? `${missing.slice(0, -1).join(', ')} and ${missing[missing.length - 1]}`
       : (missing[0] || 'more surface');
 
     this.openDialog({
       title: `A mask needs ${list}.`,
-      body: held.length
-        ? `${held.join(' and ')} holds no imagery behind the reading, so it will be set aside for a Gallery. `
-          + 'Bold, chamber-filling words provide the surface the imagery is painted on.'
-        : 'Bold, chamber-filling words provide enough surface for imagery, and a Gallery is what is painted through them.',
-      primaryLabel: 'Set them',
+      body: displaced.length
+        ? `${displaced.join(' and ')} holds no imagery behind the reading, so it will be set aside `
+          + 'for a Gallery. Bold, chamber-filling words provide the surface the imagery is painted on.'
+        : 'Bold, chamber-filling words provide the surface, and a Gallery is what is painted through them.',
+      primaryLabel: missing.length > 1 ? 'Set them' : 'Set it',
       primaryAction: 'use-thick-fit',
       confirm: () => {
-        this.selection.enabled = new Set();
+        if (needsField) {
+          // The field is the problem: clear it and open an empty Gallery.
+          this.selection.enabled = new Set();
+          this.selection.preserveBaseSelection = false;
+        } else {
+          // The field is already a Gallery — keep the works that are in it.
+          this.selection.preserveBaseSelection = true;
+        }
+        // Ignored by fieldPatch whenever leaves are enabled; it only speaks
+        // for the empty case.
         this.selection.emptyGallery = true;
-        this.selection.preserveBaseSelection = false;
         this.requestTextMaterialTransaction({
           face: 'thick',
           fontSize: 'fit',
