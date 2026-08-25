@@ -82,6 +82,13 @@ import {
 // 4.8% coverage, 48% repeat flashes, and zero of the enrichment pins,
 // because the 12 slots filled from fast AIC draws before the first
 // pin batch landed and then never turned over.)
+/**
+ * Engines whose one still costs so much that drawing it while a reader is
+ * choosing is worse than showing nothing. Measured, not guessed — the figures
+ * are in renderLeafStill.
+ */
+const EXPENSIVE_STILLS = new Set(['fractal', 'ostensoria']);
+
 const INITIAL_POOL_TARGET = 1;
 const BACKGROUND_CATEGORY_TARGET = 6;
 const MAX_CATEGORY_TARGET = 20;
@@ -1670,20 +1677,24 @@ export class VisualCortex {
 
         // A PICTURE SHOWN WHILE CHOOSING IS NOT PAID FOR BY THE READING.
         //
-        // Every engine here draws straight onto its own canvas and costs the
-        // reading nothing — except Fractal, which serves frames from a queue
-        // the reading also draws from. Rendering a preview took one frame off
-        // that queue, and the reading then opened on '[FractalFlame] Cache
-        // miss! Queue empty.' Topping the queue back up afterwards narrowed
-        // the window without closing it: the reading can begin before the
-        // refill lands.
+        // Measured, per still, in the browser:
+        //   rockgarden 50ms · turrell 64ms · klee 66ms · neural 70ms
+        //   harmonograph 77ms · ostensoria 697ms · fractal 1139ms
         //
-        // So the one queued engine is not previewed from the live instance.
-        // It keeps its glyph, which is the same reverent degradation every
-        // other preview makes when it cannot draw. Giving previews their own
-        // fractal instance would restore the picture without the contention,
-        // and is the right way back to it.
-        if (type === 'fractal') return null;
+        // The cheap ones draw onto their own canvas and nobody notices. The
+        // expensive two are a different thing entirely: Fractal serves frames
+        // from a queue the reading also draws from — one preview emptied it,
+        // 0 of 5, and the reading opened on 'Cache miss! Queue empty.' — and
+        // Ostensoria stalls the panel for two thirds of a second while a
+        // reader is clicking through it.
+        //
+        // The line is drawn on cost rather than on a name, so an engine added
+        // later is classified by what it does rather than by whether someone
+        // remembered it. Both keep their glyph, which is the degradation every
+        // preview already makes when it cannot draw. A representative still
+        // shipped as an asset would give these two their picture back without
+        // asking a reader to pay a second for it.
+        if (EXPENSIVE_STILLS.has(type)) return null;
         try {
             if (!this.initialized) this.init();
             return await this._renderContinuousProceduralWork(type);
