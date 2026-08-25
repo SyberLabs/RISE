@@ -2433,6 +2433,10 @@ export class Chamber {
     }
     host.hidden = false;
     this._settingsInstance = new Settings(host, {
+      // A reading cannot be resumed once abandoned, so this door widens the
+      // control bar rather than opening the Portal's whole panel: no lobby
+      // drone, no data export, and nothing that clears a session mid-reading.
+      scope: 'session',
       settings: globalThis.rise?.settings || {},
       onClose: () => this.closeSettings(),
       onNavigate: () => this.closeSettings(),

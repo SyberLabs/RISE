@@ -68,6 +68,10 @@
   --btn-bot-hover: rgba(30, 30, 36, 0.85);
   --btn-bevel: rgba(80, 80, 90, 0.4);
   --btn-ink: var(--color-fog);
+  /* The hero tile inks brighter than its neighbours, and — like theirs — its
+     ink has to be able to flip when a sitting makes the surface light. */
+  --hero-ink: var(--color-cloud);
+  --hero-ink-hover: var(--color-light);
   --btn-ink-hover: var(--color-cloud);
   --btn-glow: rgba(var(--color-accent-rgb), 0.06);
   --hero-top: rgba(46, 46, 54, 0.7);
@@ -174,11 +178,50 @@
   --hero-bevel: rgba(var(--color-accent-rgb), 0.55);
 }
 
+/* Slate is a HUE here, not the ground state. The default keeps the pairing
+   the Portal has always worn — slate tiles under ivory accents — while this
+   sitting swaps the cream for the blue-grey the name actually names. Same
+   tiles, different edge. */
+:root[data-accent="slate"] {
+  --color-accent: #7C8B9E;
+  --color-accent-rgb: 124, 139, 158;
+  --color-threshold: #7C8B9E;
+  --color-on-accent: #0A0A0C;
+}
+
+/* IVORY IS THE ONE SITTING THAT CANNOT BE MADE OF A TINT.
+   Every other sitting dresses the cluster by mixing 12% of its hue into the
+   void, and a saturated hue reads clearly at that strength — cobalt lands 38
+   away from the slate default, sunset 35, garnet 35. A LIGHT hue does not:
+   ivory at 12% resolved to rgb(36, 34, 31), a distance of 20, the least
+   distinguishable of the nine — and DARKER than the slate it was meant to
+   differ from, whose buttons are a hardcoded rgb(42, 42, 48). Mixing a pale
+   colour into near-black gives near-black; the surface it needs is the hue
+   itself, not a whisper of it.
+   So ivory alone carries the surface, and its ink flips to match: white on
+   cream is 1.9:1 and unreadable, while the void on cream is 8.8:1. The
+   contrast test over every sitting is what holds this honest. */
 :root[data-accent="ivory"] {
   --color-accent: #E4D2AE;
   --color-accent-rgb: 228, 210, 174;
   --color-threshold: #E4D2AE;
   --color-on-accent: #0A0A0C;
+
+  --btn-top: color-mix(in srgb, var(--color-accent) 80%, var(--color-void));
+  --btn-bot: color-mix(in srgb, var(--color-accent) 66%, var(--color-void));
+  --btn-top-hover: color-mix(in srgb, var(--color-accent) 90%, var(--color-void));
+  --btn-bot-hover: color-mix(in srgb, var(--color-accent) 76%, var(--color-void));
+  --btn-bevel: rgba(255, 255, 255, 0.34);
+  --btn-ink: var(--color-on-accent);
+  --btn-ink-hover: var(--color-void);
+  --btn-glow: rgba(var(--color-accent-rgb), 0.28);
+  --hero-top: color-mix(in srgb, var(--color-accent) 92%, var(--color-void));
+  --hero-bot: color-mix(in srgb, var(--color-accent) 78%, var(--color-void));
+  --hero-top-hover: color-mix(in srgb, var(--color-accent) 100%, var(--color-void));
+  --hero-bot-hover: color-mix(in srgb, var(--color-accent) 86%, var(--color-void));
+  --hero-ink: var(--color-on-accent);
+  --hero-ink-hover: var(--color-void);
+  --hero-bevel: rgba(255, 255, 255, 0.45);
 }
 
 :root[data-accent="purple"] {
@@ -828,14 +871,6 @@ small {
   border-radius: 50%;
 }
 
-.settings .radio input[type="radio"]:checked {
-  border-color: var(--color-accent);
-}
-
-.settings .radio input[type="radio"]:checked::after {
-  background: var(--color-accent);
-}
-
 /* ─────────────────────────────────────────────────────────────
    UTILITIES
    Spacing, layout, visibility
@@ -941,19 +976,25 @@ small {
 }
 
 /* Skip to content link */
+/* THE ONE CONTROL THAT EXISTS FOR KEYBOARD READERS HAS TO BE READABLE.
+   It inked --color-glow (#FFFFFF) on --color-threshold (cream): 1.4:1 when
+   focused. And `top: -40px` does not hide an element ~49px tall — nine pixels
+   of cream sat in the corner of every screen that carries one. It is moved by
+   its own height instead, so it hides whatever it grows to. */
 .skip-link {
   position: absolute;
-  top: -40px;
+  top: 0;
   left: 0;
+  transform: translateY(-100%);
   background: var(--color-threshold);
-  color: var(--color-glow);
+  color: var(--color-on-accent);
   padding: var(--space-sm) var(--space-md);
   text-decoration: none;
   z-index: 10000;
 }
 
 .skip-link:focus {
-  top: 0;
+  transform: translateY(0);
 }
 
 /* ─────────────────────────────────────────────────────────────
