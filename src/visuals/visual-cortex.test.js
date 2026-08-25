@@ -8,6 +8,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { VisualCortex } from './visual-cortex.js';
 import { KleeFlashes } from './klee-flashes.js';
 import { ContinuousField } from './continuous-field.js';
+import { WorkEngineField } from './work-engine-field.js';
 import { Ostensoria } from './ostensoria.js';
 import { Apparitio } from './apparitio.js';
 import * as flameFillAdapter from './flame-fill-adapter.js';
@@ -1707,6 +1708,274 @@ describe('Continuous Field (Gallery) wiring', () => {
         return { cortex, host };
     }
 
+    it('resolves readiness only after the requested current projection host paints', async () => {
+        const { cortex } = hostedContinuousCortex();
+        seedPool(cortex, 'aic-oldmasters', ['a.jpg']);
+        cortex.updateConfig({
+            enabled: true,
+            presentation: 'continuous',
+            activeTypes: ['aic-oldmasters']
+        });
+        const projection = document.createElement('div');
+        document.body.appendChild(projection);
+
+        const pending = cortex.whenContinuousFieldProjectionReady(projection);
+        cortex.setContinuousFieldProjectionHost(projection);
+        await expect(pending).resolves.toBeUndefined();
+
+        expect([...projection.querySelectorAll('.continuous-field-layer')]
+            .some(layer => layer.style.opacity === '1')).toBe(true);
+        await expect(cortex.whenContinuousFieldProjectionReady(projection))
+            .resolves.toBeUndefined();
+        cortex.destroy();
+    });
+
+    it('rejects a pending readiness promise when its host is replaced or cleared', async () => {
+        const cortex = new VisualCortex();
+        const first = document.createElement('div');
+        const second = document.createElement('div');
+        document.body.append(first, second);
+
+        const firstPending = cortex.whenContinuousFieldProjectionReady(first);
+        expect(cortex.whenContinuousFieldProjectionReady(first)).toBe(firstPending);
+        cortex.setContinuousFieldProjectionHost(first);
+        cortex.setContinuousFieldProjectionHost(second);
+        await expect(firstPending).rejects.toMatchObject({ name: 'AbortError' });
+
+        const secondPending = cortex.whenContinuousFieldProjectionReady(second);
+        let settled = false;
+        secondPending.then(() => { settled = true; });
+        cortex._reportContinuousFieldProjectionPaint(first);
+        await Promise.resolve();
+        expect(settled).toBe(false);
+        cortex._reportContinuousFieldProjectionPaint(second);
+        await expect(secondPending).resolves.toBeUndefined();
+
+        const third = document.createElement('div');
+        cortex.setContinuousFieldProjectionHost(third);
+        const thirdPending = cortex.whenContinuousFieldProjectionReady(third);
+        cortex.setContinuousFieldProjectionHost(null);
+        await expect(thirdPending).rejects.toMatchObject({ name: 'AbortError' });
+        await expect(cortex.whenContinuousFieldProjectionReady(null))
+            .rejects.toMatchObject({ name: 'AbortError' });
+        cortex.destroy();
+    });
+
+    it('remembers painted current host A while a speculative wait for B is pending', async () => {
+        const cortex = new VisualCortex();
+        const first = document.createElement('div');
+        const second = document.createElement('div');
+        document.body.append(first, second);
+        cortex.setContinuousFieldProjectionHost(first);
+        cortex._reportContinuousFieldProjectionPaint(first);
+
+        const secondPending = cortex.whenContinuousFieldProjectionReady(second);
+        const firstAgain = cortex.whenContinuousFieldProjectionReady(first);
+        let firstResolved = false;
+        firstAgain.then(() => { firstResolved = true; });
+        await Promise.resolve();
+
+        expect(firstResolved).toBe(true);
+        await expect(secondPending).rejects.toMatchObject({ name: 'AbortError' });
+        cortex.destroy();
+    });
+
+    it('resolves set-before-wait after the current host has painted', async () => {
+        const cortex = new VisualCortex();
+        const projection = document.createElement('div');
+        document.body.appendChild(projection);
+
+        cortex.setContinuousFieldProjectionHost(projection);
+        cortex._reportContinuousFieldProjectionPaint(projection);
+
+        await expect(cortex.whenContinuousFieldProjectionReady(projection))
+            .resolves.toBeUndefined();
+        cortex.destroy();
+    });
+
+    it('returns one pending original after host-first setup until that field paints', async () => {
+        const cortex = new VisualCortex();
+        const projection = document.createElement('div');
+        document.body.appendChild(projection);
+        cortex.setContinuousFieldProjectionHost(projection);
+
+        const pending = cortex.whenContinuousFieldProjectionReady(projection);
+        expect(cortex.whenContinuousFieldProjectionReady(projection)).toBe(pending);
+        let settled = false;
+        pending.then(() => { settled = true; }, () => {});
+        await Promise.resolve();
+        expect(settled).toBe(false);
+
+        cortex._reportContinuousFieldProjectionPaint(projection);
+
+        await expect(pending).resolves.toBeUndefined();
+        cortex.destroy();
+    });
+
+    it('rejects pending readiness when the cortex is destroyed', async () => {
+        const cortex = new VisualCortex();
+        const projection = document.createElement('div');
+        document.body.appendChild(projection);
+        cortex.setContinuousFieldProjectionHost(projection);
+        const pending = cortex.whenContinuousFieldProjectionReady(projection);
+
+        cortex.destroy();
+
+        await expect(pending).rejects.toMatchObject({ name: 'AbortError' });
+    });
+
+    it('resolves readiness through a WorkEngine-only Gallery on the projection host', async () => {
+        class ReadyWorkEngine {
+            generate() {}
+            render() { return true; }
+        }
+        const load = vi.spyOn(WorkEngineField.prototype, '_loadEngines')
+            .mockImplementation(async function loadEngines() {
+                this._engines = [{
+                    familyId: 'paradise-lost',
+                    id: 'flaming_sword',
+                    engineClass: ReadyWorkEngine
+                }];
+                return this._engines;
+            });
+        const { cortex, host } = hostedContinuousCortex();
+        const projection = document.createElement('div');
+        document.body.appendChild(projection);
+        cortex.setContinuousFieldProjectionHost(projection);
+        const pending = cortex.whenContinuousFieldProjectionReady(projection);
+
+        cortex.updateConfig({
+            enabled: true,
+            presentation: 'continuous',
+            activeTypes: ['paradise-lost'],
+            workEngines: ['flaming_sword'],
+            wordFill: { mode: 'same' }
+        });
+        await Promise.resolve();
+        await Promise.resolve();
+
+        let resolved = false;
+        pending.then(() => { resolved = true; }, () => {});
+        await Promise.resolve();
+        expect(resolved).toBe(true);
+        expect([...projection.querySelectorAll('.work-engine-plane')]
+            .some(canvas => canvas.style.opacity === '1')).toBe(true);
+        expect(host.querySelectorAll('.work-engine-plane')).toHaveLength(2);
+        cortex.destroy();
+        load.mockRestore();
+    });
+
+    it('leaves distinct sourced fill readiness to that fill, not the room WorkEngine', async () => {
+        class ReadyWorkEngine {
+            generate() {}
+            render() { return true; }
+        }
+        const load = vi.spyOn(WorkEngineField.prototype, '_loadEngines')
+            .mockImplementation(async function loadEngines() {
+                this._engines = [{
+                    familyId: 'paradise-lost',
+                    id: 'flaming_sword',
+                    engineClass: ReadyWorkEngine
+                }];
+                return this._engines;
+            });
+        let finishDecode;
+        decodeSpy.mockImplementation(() => new Promise(resolve => { finishDecode = resolve; }));
+        const { cortex } = hostedContinuousCortex();
+        seedPool(cortex, 'aic-oldmasters', ['fill.jpg']);
+        const projection = document.createElement('div');
+        document.body.appendChild(projection);
+        cortex.setContinuousFieldProjectionHost(projection);
+        const pending = cortex.whenContinuousFieldProjectionReady(projection);
+        let settled = false;
+        pending.then(() => { settled = true; }, () => {});
+
+        cortex.updateConfig({
+            enabled: true,
+            presentation: 'continuous',
+            activeTypes: ['paradise-lost'],
+            workEngines: ['flaming_sword'],
+            wordFill: {
+                mode: 'pick',
+                sourceFamily: 'sourced',
+                procedural: [],
+                sourced: ['aic-oldmasters'],
+                border: 'cream'
+            }
+        });
+        await Promise.resolve();
+        await Promise.resolve();
+
+        expect(settled).toBe(false);
+        expect(projection.querySelectorAll('.work-engine-plane')).toHaveLength(0);
+
+        finishDecode(true);
+        await expect(pending).resolves.toBeUndefined();
+        expect([...projection.querySelectorAll('.continuous-field-layer')]
+            .some(layer => layer.style.opacity === '1')).toBe(true);
+        cortex.destroy();
+        load.mockRestore();
+    });
+
+    it('resolves readiness through the Harmonograph living route', async () => {
+        const { cortex } = hostedContinuousCortex();
+        const projection = document.createElement('div');
+        document.body.appendChild(projection);
+        cortex.setContinuousFieldProjectionHost(projection);
+        const pending = cortex.whenContinuousFieldProjectionReady(projection);
+
+        cortex.updateConfig({
+            enabled: true,
+            presentation: 'continuous',
+            activeTypes: ['harmonograph']
+        });
+
+        await expect(pending).resolves.toBeUndefined();
+        expect([...projection.querySelectorAll('.harmonograph-plane')]
+            .some(canvas => canvas.style.opacity === '1')).toBe(true);
+        cortex.destroy();
+    });
+
+    it('resolves readiness through the Plate living route', async () => {
+        stubLivingPlateEngines();
+        const { cortex } = hostedContinuousCortex();
+        const projection = document.createElement('div');
+        document.body.appendChild(projection);
+        cortex.setContinuousFieldProjectionHost(projection);
+        const pending = cortex.whenContinuousFieldProjectionReady(projection);
+
+        cortex.updateConfig({
+            enabled: true,
+            presentation: 'continuous',
+            activeTypes: ['ostensoria']
+        });
+
+        await expect(pending).resolves.toBeUndefined();
+        expect([...projection.querySelectorAll('.plate-plane')]
+            .some(canvas => canvas.style.opacity === '1')).toBe(true);
+        cortex.destroy();
+    });
+
+    it('resolves readiness through the Attractor living route', async () => {
+        window.matchMedia = window.matchMedia || (() => ({ matches: false }));
+        const { cortex } = hostedContinuousCortex();
+        const projection = document.createElement('div');
+        document.body.appendChild(projection);
+        cortex.setContinuousFieldProjectionHost(projection);
+        const pending = cortex.whenContinuousFieldProjectionReady(projection);
+
+        cortex.updateConfig({
+            enabled: true,
+            presentation: 'continuous',
+            activeTypes: ['attractor']
+        });
+        cortex._attractorField.tick(performance.now());
+
+        await expect(pending).resolves.toBeUndefined();
+        expect(projection.querySelector('.attractor-canvas')).toBeTruthy();
+        cortex.destroy();
+    });
+
     it('does NOT start the field until mode, host, and consent all hold', () => {
         const { cortex, host } = hostedContinuousCortex();
         // host present + consent, but not in continuous mode
@@ -2245,6 +2514,7 @@ describe('Continuous Field (Gallery) wiring', () => {
         expect(cortex.config.activeTypes).toEqual(['aic-landscapes']);
         expect(cortex.config.wordFill).toEqual({
             mode: 'pick',
+            border: 'cream',
             sourceFamily: 'procedural',
             procedural: ['fractal'],
             sourced: []

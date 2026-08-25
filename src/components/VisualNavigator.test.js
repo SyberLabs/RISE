@@ -22,12 +22,21 @@ const mount = (visualConfig = {}, options = {}) => {
 };
 const node = id => nav.container.querySelector(`.vnav-node[data-id="${id}"]`);
 const click = el => el.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+const touch = el => {
+  const event = new Event('pointerup', { bubbles: true });
+  Object.defineProperty(event, 'pointerType', { value: 'touch' });
+  el.dispatchEvent(event);
+};
 const descend = (...ids) => ids.forEach(id => click(node(id)));   // re-query each step
 const lastPatch = () => onChange.mock.calls.at(-1)[0];
+const unmount = () => {
+  nav?.destroy();
+  nav?.container.remove();
+  nav = null;
+};
 
 afterEach(() => {
-  nav?.destroy();
-  nav = null;
+  unmount();
   delete window.rise;
   localStorage.removeItem('rise_global_images_v1');
   localStorage.removeItem('rise_workshop_v1');
@@ -74,37 +83,312 @@ describe('the text', () => {
     expect(handleSettingsChange).toHaveBeenCalledWith('chamberFace', 'display');
   });
 
-  it('makes Fit explicit, canonicalises Gallery, and fires the temporal coupling', () => {
-    const onFitRequested = vi.fn();
+  it('makes Fit one canonical text-material transaction', () => {
+    const onTextMaterialTransaction = vi.fn();
     window.rise = {
       settings: { chamberFace: 'literary', fontSize: 'medium' },
       handleSettingsChange: vi.fn()
     };
-    mount({}, { onFitRequested });
+    mount({}, { onTextMaterialTransaction });
     click(node('size'));
     click(nav.container.querySelector('[data-font-size="fit"]'));
-    expect(window.rise.handleSettingsChange).toHaveBeenCalledWith('fontSize', 'fit');
-    expect(onFitRequested).toHaveBeenCalledOnce();
-    expect(lastPatch()).toMatchObject({
-      visualMode: 'interlocution',
-      interlocution: { presentation: 'continuous' }
-    });
+    expect(onTextMaterialTransaction).toHaveBeenCalledOnce();
+    expect(onTextMaterialTransaction).toHaveBeenCalledWith(expect.objectContaining({
+      settings: { chamberFace: 'literary', fontSize: 'fit', chamberMask: false },
+      temporal: { chunkMode: 'word', recitation: false },
+      visualConfig: expect.objectContaining({
+        visualMode: 'interlocution',
+        interlocution: expect.objectContaining({ presentation: 'continuous' })
+      })
+    }));
+    expect(window.rise.handleSettingsChange).not.toHaveBeenCalled();
+    expect(onChange).not.toHaveBeenCalled();
   });
 
-  it('locks Ink until Fit and reuses an engine full style bench when opened', () => {
+  it('keeps Accent available before Fit and opens visual-mask engine benches at Fit', () => {
     window.rise = {
       settings: { chamberFace: 'literary', fontSize: 'medium' },
       handleSettingsChange: vi.fn()
     };
     mount();
     click(node('ink'));
-    expect(nav.container.querySelector('.vnav-text-locked')?.textContent).toContain('Size');
-    expect(nav.container.querySelector('[data-word-fill="procedural:attractor"]')).toBeNull();
+    expect(nav.container.querySelector('[data-word-fill="accent"]')).toBeTruthy();
+    expect(nav.container.querySelector('[data-word-fill="procedural:attractor"]')?.getAttribute('aria-disabled'))
+      .toBe('true');
 
     window.rise.settings.fontSize = 'fit';
     click(node('ink'));
     click(nav.container.querySelector('[data-word-fill="procedural:attractor"]'));
     expect(nav.container.querySelector('[data-sub="system"][data-val="thomas"]')).toBeTruthy();
+  });
+
+  it('keeps Accent available at every Face and Size, and toggles it to Plain in one transaction', () => {
+    const onTextMaterialTransaction = vi.fn();
+    window.rise = {
+      settings: { chamberFace: 'literary', fontSize: 'medium' },
+      handleSettingsChange: vi.fn()
+    };
+    mount({}, { onTextMaterialTransaction });
+
+    for (const chamberFace of ['literary', 'display', 'thick', 'jp']) {
+      for (const fontSize of ['small', 'medium', 'large', 'fit']) {
+        window.rise.settings = { chamberFace, fontSize };
+        nav.render();
+        click(node('ink'));
+        expect(nav.container.querySelector('[data-word-fill="accent"]')).toBeTruthy();
+        expect(nav.container.querySelector('[data-word-fill="plain"]')).toBeNull();
+      }
+    }
+
+    window.rise.settings = { chamberFace: 'literary', fontSize: 'medium' };
+    nav.render();
+    const accent = nav.container.querySelector('[data-word-fill="accent"]');
+    expect(accent?.textContent.trim()).toBe('Accent');
+    click(accent);
+
+    expect(onTextMaterialTransaction).toHaveBeenCalledWith(expect.objectContaining({
+      settings: { chamberFace: 'literary', fontSize: 'medium' },
+      temporal: null,
+      visualConfig: expect.objectContaining({
+        interlocution: expect.objectContaining({ wordFill: { mode: 'accent' } })
+      })
+    }));
+    click(nav.container.querySelector('[data-word-fill="accent"]'));
+    expect(onTextMaterialTransaction).toHaveBeenLastCalledWith(expect.objectContaining({
+      visualConfig: expect.objectContaining({
+        interlocution: expect.objectContaining({ wordFill: { mode: 'plain' } })
+      })
+    }));
+  });
+
+  it('explains a locked mask and activates Thick + Fit as one transaction', () => {
+    const onTextMaterialTransaction = vi.fn();
+    window.rise = {
+      settings: { chamberFace: 'literary', fontSize: 'medium' },
+      handleSettingsChange: vi.fn()
+    };
+    mount({}, { onTextMaterialTransaction });
+    click(node('ink'));
+    const mask = nav.container.querySelector('[data-word-fill="same"]');
+    expect(mask?.getAttribute('aria-disabled')).toBe('true');
+    click(mask);
+    expect(nav.container.querySelector('[role="dialog"]')?.textContent)
+      .toContain('Visual masks require Thick + Fit.');
+    expect(nav.container.querySelector('[data-action="use-thick-fit"]')?.textContent)
+      .toBe('Use Thick + Fit');
+    expect(nav.container.querySelector('.vnav-dialog p')?.textContent)
+      .toBe('Bold, chamber-filling words provide enough surface for imagery.');
+
+    click(nav.container.querySelector('[data-action="use-thick-fit"]'));
+    expect(onTextMaterialTransaction).toHaveBeenCalledOnce();
+    expect(onTextMaterialTransaction).toHaveBeenCalledWith({
+      settings: { chamberFace: 'thick', fontSize: 'fit' },
+      temporal: { chunkMode: 'word', recitation: false },
+      visualConfig: expect.objectContaining({
+        visualMode: 'interlocution',
+        interlocution: expect.objectContaining({
+          presentation: 'continuous',
+          wordFill: { mode: 'same', border: 'cream' }
+        })
+      })
+    });
+  });
+
+  it('confirms before either Face or Size invalidates an active mask', () => {
+    for (const change of [
+      { entry: 'face', selector: '[data-chamber-face="display"]', settings: { chamberFace: 'display', fontSize: 'fit' } },
+      { entry: 'size', selector: '[data-font-size="m"]', settings: { chamberFace: 'thick', fontSize: 'medium' } }
+    ]) {
+      const onTextMaterialTransaction = vi.fn();
+      window.rise = {
+        settings: { chamberFace: 'thick', fontSize: 'fit' },
+        handleSettingsChange: vi.fn()
+      };
+      mount({
+        visualMode: 'interlocution',
+        interlocution: { wordFill: { mode: 'same', border: 'accent' } }
+      }, { onTextMaterialTransaction });
+      click(node(change.entry));
+      click(nav.container.querySelector(change.selector));
+      expect(nav.container.querySelector('[role="dialog"]')?.textContent)
+        .toContain('This change cannot keep the current visual mask. Continue with Accent ink?');
+      click(nav.container.querySelector('[data-action="dialog-cancel"]'));
+      expect(onTextMaterialTransaction).not.toHaveBeenCalled();
+      expect(window.rise.handleSettingsChange).not.toHaveBeenCalled();
+
+      click(nav.container.querySelector(change.selector));
+      click(nav.container.querySelector('[data-action="dialog-confirm"]'));
+      expect(onTextMaterialTransaction).toHaveBeenCalledOnce();
+      expect(onTextMaterialTransaction).toHaveBeenCalledWith(expect.objectContaining({
+        settings: change.settings,
+        temporal: null,
+        visualConfig: expect.objectContaining({
+          interlocution: expect.objectContaining({ wordFill: { mode: 'accent' } })
+        })
+      }));
+      unmount();
+    }
+  });
+
+  it('renders Thick in an even 2x2 Face grid and explains it independently for hover, focus, and touch', () => {
+    const reveal = [
+      control => control.dispatchEvent(new Event('pointerenter')),
+      control => control.focus(),
+      control => touch(control)
+    ];
+
+    for (const interact of reveal) {
+      window.rise = { settings: { chamberFace: 'literary', fontSize: 'medium' } };
+      mount();
+      click(node('face'));
+      const grid = nav.container.querySelector('.vnav-face-grid .vnav-opts');
+      const thick = nav.container.querySelector('[data-chamber-face="thick"]');
+      expect(grid?.children).toHaveLength(4);
+      expect([...grid.children].map(control => control.textContent.trim()))
+        .toEqual(['Literary', 'Display', 'Thick ★', 'Japanese']);
+      expect(thick?.textContent.trim()).toBe('Thick ★');
+      expect(thick?.getAttribute('aria-describedby')).toBe('vnav-thick-explanation');
+      expect(nav.container.querySelector('#vnav-thick-explanation')?.hidden).toBe(true);
+
+      interact(thick);
+
+      const liveThick = nav.container.querySelector('[data-chamber-face="thick"]');
+      expect(nav.container.querySelector(`#${liveThick.getAttribute('aria-describedby')}`)?.hidden)
+        .toBe(false);
+      expect(nav.container.querySelector('#vnav-thick-explanation')?.textContent)
+        .toBe('Thick is the mask-ready face.');
+      unmount();
+    }
+  });
+
+  it('keeps the revealed Thick control stable for keyboard activation', () => {
+    const handleSettingsChange = vi.fn();
+    window.rise = {
+      settings: { chamberFace: 'literary', fontSize: 'medium' },
+      handleSettingsChange
+    };
+    mount();
+    click(node('face'));
+    nav.container.querySelector('[data-chamber-face="thick"]').focus();
+
+    const liveThick = nav.container.querySelector('[data-chamber-face="thick"]');
+    liveThick.focus();
+    expect(nav.container.querySelector('[data-chamber-face="thick"]')).toBe(liveThick);
+    click(liveThick);
+    expect(handleSettingsChange).toHaveBeenCalledWith('chamberFace', 'thick');
+  });
+
+  it('shows mask borders only for a valid mask and preserves the selected border when replacing its source', () => {
+    window.rise = { settings: { chamberFace: 'thick', fontSize: 'fit' } };
+    mount({
+      visualMode: 'interlocution',
+      interlocution: { wordFill: { mode: 'plain' } }
+    });
+    click(node('ink'));
+    expect(nav.container.querySelectorAll('[data-word-fill-border]')).toHaveLength(0);
+    click(nav.container.querySelector('[data-word-fill="accent"]'));
+    expect(nav.container.querySelectorAll('[data-word-fill-border]')).toHaveLength(0);
+    click(nav.container.querySelector('[data-word-fill="same"]'));
+    expect(nav.container.querySelectorAll('[data-word-fill-border]')).toHaveLength(3);
+    expect(nav.container.querySelector('[data-word-fill-border="cream"]')?.classList.contains('is-selected')).toBe(true);
+    click(nav.container.querySelector('[data-word-fill-border="accent"]'));
+    click(nav.container.querySelector('[data-word-fill="procedural:fractal"]'));
+    expect(lastPatch().interlocution.wordFill).toMatchObject({ border: 'accent' });
+  });
+
+  it('keeps program-owned material controls read-only and explains ownership independently for hover, focus, and touch', () => {
+    const explain = [
+      control => control.dispatchEvent(new Event('pointerenter')),
+      control => control.focus(),
+      control => touch(control)
+    ];
+
+    for (const interact of explain) {
+      window.rise = { settings: { chamberFace: 'thick', fontSize: 'fit' } };
+      mount({}, { programInfo: { episodes: 2 } });
+      click(node('ink'));
+      const accent = nav.container.querySelector('[data-word-fill="accent"]');
+      expect(accent?.disabled).toBe(false);
+      expect(accent?.getAttribute('aria-disabled')).toBe('true');
+      expect(nav.container.querySelector('[role="dialog"]')).toBeNull();
+
+      interact(accent);
+
+      expect(nav.container.querySelector('[role="dialog"]')?.textContent).toContain('curated program');
+      unmount();
+    }
+  });
+
+  it('dismisses a keyboard-opened program ownership dialog without reopening on restored focus', async () => {
+    for (const close of ['cancel', 'escape', 'primary']) {
+      window.rise = { settings: { chamberFace: 'thick', fontSize: 'fit' } };
+      mount({}, { programInfo: { episodes: 2 } });
+      click(node('ink'));
+      const trigger = nav.container.querySelector('[data-word-fill="accent"]');
+
+      trigger.focus();
+      await Promise.resolve();
+      const primary = nav.container.querySelector('[data-dialog-primary]');
+      expect(document.activeElement).toBe(primary);
+
+      if (close === 'cancel') {
+        click(nav.container.querySelector('[data-action="dialog-cancel"]'));
+      } else if (close === 'escape') {
+        primary.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+      } else {
+        click(primary);
+      }
+
+      expect(nav.container.querySelector('[role="dialog"]')).toBeNull();
+      const liveTrigger = nav.container.querySelector('[data-word-fill="accent"]');
+      expect(document.activeElement).toBe(liveTrigger);
+
+      node('face').focus();
+      liveTrigger.focus();
+      expect(nav.container.querySelector('[role="dialog"]')).toBeTruthy();
+      unmount();
+    }
+  });
+
+  it('focuses the primary dialog action and restores the live trigger after Cancel, Escape, and primary action', async () => {
+    const onTextMaterialTransaction = vi.fn();
+    window.rise = {
+      settings: { chamberFace: 'literary', fontSize: 'medium' },
+      handleSettingsChange: vi.fn()
+    };
+    mount({}, { onTextMaterialTransaction });
+    click(node('ink'));
+
+    for (const close of ['cancel', 'escape', 'primary']) {
+      const trigger = nav.container.querySelector('[data-word-fill="same"]');
+      trigger.focus();
+      click(trigger);
+      await Promise.resolve();
+
+      const primary = nav.container.querySelector('[data-dialog-primary]');
+      expect(document.activeElement).toBe(primary);
+      if (close === 'cancel') {
+        click(nav.container.querySelector('[data-action="dialog-cancel"]'));
+      } else if (close === 'escape') {
+        primary.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+      } else {
+        click(primary);
+      }
+
+      expect(nav.container.querySelector('[role="dialog"]')).toBeNull();
+      expect(document.activeElement)
+        .toBe(nav.container.querySelector('[data-word-fill="same"]'));
+    }
+    expect(onTextMaterialTransaction).toHaveBeenCalledOnce();
+  });
+
+  it('omits Neural, Rock Garden, and Spectral from visual-mask choices', () => {
+    window.rise = { settings: { chamberFace: 'thick', fontSize: 'fit' } };
+    mount();
+    click(node('ink'));
+    expect(nav.container.textContent).not.toContain('Neural Networks');
+    expect(nav.container.textContent).not.toContain('Rock Garden');
+    expect(nav.container.textContent).not.toContain('Spectral Plates');
   });
 });
 
@@ -196,7 +480,7 @@ describe('reader-facing state', () => {
 
     click(node('ink'));
     expect([...nav.container.querySelectorAll('[data-word-fill]')]
-      .every(control => control.disabled)).toBe(true);
+      .every(control => control.getAttribute('aria-disabled') === 'true')).toBe(true);
 
     nav.setConfig({
       visualMode: 'focals',

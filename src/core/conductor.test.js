@@ -9,6 +9,7 @@ import {
     scoreChunk,
     summarizeTrack
 } from './conductor.js';
+import { CHAMBER_ACCENT_TOKENS } from './chamber-accent.js';
 
 const mkAtoms = (...contents) => contents.map(c => ({ content: c, duration: 300 }));
 
@@ -47,6 +48,48 @@ describe('livingTextAppearance', () => {
             fitSaturation: 1.22,
             fitBrightness: 1.04
         });
+    });
+
+    it('keeps an explicit accent recognisable while moving it toward the semantic pole', () => {
+        const base = [60, 97, 170];
+        const result = livingTextAppearance({ valence: 1, arousal: 1 }, 1, { baseRgb: base });
+
+        expect(result.rgb).not.toEqual(base);
+        expect(result.rgb[2]).toBeGreaterThan(result.rgb[1]);
+        expect(result.rgb[1]).toBeGreaterThan(result.rgb[0]);
+        expect(result.rgb.every((channel, index) => Math.abs(channel - base[index]) <= 48)).toBe(true);
+    });
+
+    it('preserves every shipped Accent dominant channel at both semantic poles', () => {
+        const dominantChannels = rgb => {
+            const max = Math.max(...rgb);
+            return rgb.flatMap((channel, index) => channel === max ? [index] : []);
+        };
+
+        for (const token of Object.values(CHAMBER_ACCENT_TOKENS)) {
+            const base = token['--color-accent-rgb'].split(',').map(Number);
+            const dominant = dominantChannels(base);
+            expect(dominant).toHaveLength(1);
+
+            for (const valence of [-1, 1]) {
+                const result = livingTextAppearance({ valence, arousal: 1 }, 1, { baseRgb: base });
+                expect(result.rgb).not.toEqual(base);
+                expect(dominantChannels(result.rgb)).toEqual(dominant);
+                expect(result.rgb.every((channel, index) => Math.abs(channel - base[index]) <= 48)).toBe(true);
+            }
+        }
+    });
+
+    it('preserves a tied Accent family without inventing a unique dominant channel', () => {
+        const base = [120, 120, 60];
+
+        for (const valence of [-1, 1]) {
+            const result = livingTextAppearance({ valence, arousal: 1 }, 1, { baseRgb: base });
+            expect(result.rgb).not.toEqual(base);
+            expect(result.rgb[0]).toBe(result.rgb[1]);
+            expect(result.rgb[0]).toBeGreaterThan(result.rgb[2]);
+            expect(result.rgb.every((channel, index) => Math.abs(channel - base[index]) <= 48)).toBe(true);
+        }
     });
 });
 

@@ -45,6 +45,16 @@ const REDUCED = Object.freeze({
 const VOID_SLACK = 6;
 const KNEE_START = 0.62;
 const KNEE_STRENGTH = 1.15;
+/**
+ * How far a sparse glyph window may lift density. A whitespace-heavy or off-
+ * aspect Fit word reveals only a little of the flame (a low visibleAreaRatio
+ * from fit-projection.js), so its density is lifted toward the fill ceiling so
+ * the little that shows still reads. The lift multiplies brightness BEFORE the
+ * existing clamp, so it can never exceed the fill safety bounds, and a ratio of
+ * 1 (a full window, or no ratio supplied) lifts nothing — output stays
+ * byte-for-byte identical to today.
+ */
+const DENSITY_LIFT = 0.5;
 /** Occupied channels stay below #fff. Transparent void keeps #0A0A0C RGB. */
 const HIGHLIGHT_CEILING = 220;
 const CHANNEL_FLOOR = 1;
@@ -74,15 +84,20 @@ function numberOr(value, fallback) {
  * Bound fill tone from a room plan or the wrapper default.
  * Only brightness / gamma / vibrancy — the generateImage knobs.
  */
-export function boundFlameFillTone(tone = ROOM_FLAME_TONE, { reducedMotion = false } = {}) {
+export function boundFlameFillTone(tone = ROOM_FLAME_TONE, { reducedMotion = false, visibleAreaRatio = 1 } = {}) {
     const roomGamma = numberOr(tone?.gamma, ROOM_FLAME_TONE.gamma);
     const roomBrightness = numberOr(tone?.brightness, ROOM_FLAME_TONE.brightness);
     const roomVibrancy = numberOr(tone?.vibrancy, ROOM_FLAME_TONE.vibrancy);
     const scale = reducedMotion ? REDUCED : FILL;
+    // A sparse glyph window lifts density toward the ceiling; a full window (or
+    // an unsupplied ratio) lifts nothing. Clamped to [0,1] so a bad value
+    // cannot push past the fill bounds the final clamp already enforces.
+    const ratio = clamp(numberOr(visibleAreaRatio, 1), 0, 1);
+    const densityLift = 1 + (1 - ratio) * DENSITY_LIFT;
 
     return Object.freeze({
         brightness: +clamp(
-            Math.max(roomBrightness * scale.brightnessScale, scale.brightnessMin),
+            Math.max(roomBrightness * scale.brightnessScale * densityLift, scale.brightnessMin),
             scale.brightnessMin,
             scale.brightnessMax
         ).toFixed(1),
@@ -153,7 +168,8 @@ function flameFillLut(tone) {
 
 function resolveTone(options) {
     return options.tone || boundFlameFillTone(options.roomTone || ROOM_FLAME_TONE, {
-        reducedMotion: options.reducedMotion === true
+        reducedMotion: options.reducedMotion === true,
+        visibleAreaRatio: options.visibleAreaRatio
     });
 }
 

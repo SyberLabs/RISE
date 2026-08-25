@@ -59,6 +59,97 @@ function frame(at) {
 }
 
 describe('PlateField', () => {
+    it('reports only the first successful visible projection draw for the current host', () => {
+        const projection = document.createElement('div');
+        document.body.appendChild(projection);
+        const onProjectionPaint = vi.fn();
+        const field = new PlateField(host, {
+            families: ['ostensoria'],
+            dwellMs: 8_000,
+            crossfadeMs: 1_200,
+            onProjectionPaint
+        });
+
+        field.setProjectionHost(projection);
+        expect(onProjectionPaint).not.toHaveBeenCalled();
+        field.start();
+
+        expect(onProjectionPaint).toHaveBeenCalledTimes(1);
+        expect(onProjectionPaint).toHaveBeenCalledWith(projection);
+        expect(onProjectionPaint).not.toHaveBeenCalledWith(host);
+        expect([...projection.querySelectorAll('.plate-plane')]
+            .some(canvas => canvas.style.opacity === '1')).toBe(true);
+        frame(16);
+        frame(32);
+        field.setProjectionHost(projection);
+        expect(onProjectionPaint).toHaveBeenCalledTimes(1);
+        field.setProjectionHost(null);
+        field._rotate(false);
+        expect(onProjectionPaint).toHaveBeenCalledTimes(1);
+        field.destroy();
+        expect(onProjectionPaint).toHaveBeenCalledTimes(1);
+        projection.remove();
+    });
+
+    it('reports replacement B, not A, when replacement happens before start', () => {
+        const first = document.createElement('div');
+        const second = document.createElement('div');
+        document.body.append(first, second);
+        const onProjectionPaint = vi.fn();
+        const field = new PlateField(host, {
+            families: ['ostensoria'],
+            onProjectionPaint
+        });
+
+        field.setProjectionHost(first);
+        field.setProjectionHost(second);
+        field.start();
+
+        expect(onProjectionPaint).toHaveBeenCalledTimes(1);
+        expect(onProjectionPaint).toHaveBeenCalledWith(second);
+        expect(onProjectionPaint).not.toHaveBeenCalledWith(first);
+        field.destroy();
+        first.remove();
+        second.remove();
+    });
+
+    it('does not report when destroyed before its first draw', () => {
+        const projection = document.createElement('div');
+        document.body.appendChild(projection);
+        const onProjectionPaint = vi.fn();
+        const field = new PlateField(host, {
+            families: ['ostensoria'],
+            onProjectionPaint
+        });
+
+        field.setProjectionHost(projection);
+        field.destroy();
+
+        expect(onProjectionPaint).not.toHaveBeenCalled();
+        expect(projection.querySelectorAll('.plate-plane')).toHaveLength(0);
+        projection.remove();
+    });
+
+    it('keeps a failed draw hidden and unready', () => {
+        vi.mocked(Ostensoria.prototype.render).mockReturnValue(false);
+        const projection = document.createElement('div');
+        document.body.appendChild(projection);
+        const onProjectionPaint = vi.fn();
+        const field = new PlateField(host, {
+            families: ['ostensoria'],
+            onProjectionPaint
+        });
+
+        field.setProjectionHost(projection);
+        field.start();
+
+        expect(onProjectionPaint).not.toHaveBeenCalled();
+        expect([...projection.querySelectorAll('.plate-plane')]
+            .some(canvas => canvas.style.opacity === '1')).toBe(false);
+        field.destroy();
+        projection.remove();
+    });
+
     it('starts the plate at the beginning of the dwell', () => {
         const field = new PlateField(host, {
             families: ['ostensoria'],

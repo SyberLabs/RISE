@@ -5,11 +5,11 @@ import {
     fitWordAtomPx,
     isChamberWordFit,
     persistFontSize,
-    resolveFitMaskMode,
     resolveFontSize,
     sizeFitHint,
     threeStepIntent
 } from './chamber-type-size.js';
+import { resolveFitMaskMode } from './chamber-text-material.js';
 
 describe('resolveFontSize', () => {
     it('maps s|m|l|fit to small|medium|large|fit and defaults to medium', () => {
@@ -78,18 +78,19 @@ describe('fitWordAtomPx (Fit only)', () => {
 
 describe('resolveFitMaskMode', () => {
     const canonical = {
+        face: 'thick',
         fontSize: 'fit',
         chunkMode: 'word',
         visualMode: 'interlocution',
-        presentation: 'continuous'
+        presentation: 'continuous',
+        wordFill: { mode: 'same' }
     };
 
-    it('recognizes canonical Fit and the legacy Gallery-in-the-word alias', () => {
+    it('recognizes canonical Fit and its legacy font-size alias', () => {
         expect(resolveFitMaskMode(canonical)).toBe(true);
         expect(resolveFitMaskMode({
             ...canonical,
-            fontSize: 'medium',
-            presentation: 'continuous-word'
+            fontSize: 'continuous-word'
         })).toBe(true);
     });
 
@@ -111,17 +112,16 @@ describe('resolveFitMaskMode', () => {
         })).toBe(true);
     });
 
-    it('keeps the legacy setting scoped to Word atoms', () => {
+    it('preserves legacy mask inference within the Thick Fit contract', () => {
         expect(resolveFitMaskMode({
             ...canonical,
-            fontSize: 'medium',
-            presentation: 'continuous',
+            wordFill: undefined,
             legacyMask: true
         })).toBe(true);
         expect(resolveFitMaskMode({
             ...canonical,
-            fontSize: 'medium',
             chunkMode: 'sentence',
+            wordFill: undefined,
             legacyMask: true
         })).toBe(false);
     });

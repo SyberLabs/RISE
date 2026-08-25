@@ -222,6 +222,16 @@ export class VisualCortex {
         this._continuousField = null;
         this._continuousFieldHost = null;
         this._continuousFieldProjectionHost = null;
+        // How much of the Fractal fill the glyph reveals (fit-projection.js).
+        // 1 = a full window; the adapter lifts density below it. Reset when the
+        // projection host clears so a stale sparse word cannot over-brighten a
+        // later full one.
+        this._fillProjectionVisibleAreaRatio = 1;
+        this._projectionReadyHost = null;
+        this._projectionReadyPromise = null;
+        this._projectionReadyResolve = null;
+        this._projectionReadyReject = null;
+        this._projectionPaintedHost = null;
         // The living layer beneath it, for engines authored FOR a work.
         // They step and redraw every frame rather than being snapshotted,
         // so they share the host but not the gallery's image abstraction.
@@ -1095,9 +1105,87 @@ export class VisualCortex {
      * mask to this host only. Clearing it does not stop the gallery.
      */
     setContinuousFieldProjectionHost(el) {
-        this._continuousFieldProjectionHost = el || null;
+        const host = el || null;
+        if (this._continuousFieldProjectionHost !== host) {
+            if (!host || this._projectionReadyHost !== host) {
+                this._cancelProjectionReadiness('Projection host cleared');
+            }
+            this._continuousFieldProjectionHost = host;
+            this._projectionPaintedHost = null;
+            if (!host) this._fillProjectionVisibleAreaRatio = 1;
+            if (host && this._projectionReadyHost !== host) {
+                this._beginProjectionReadiness(host);
+            }
+        }
         this._continuousField?.setProjectionHost(this._continuousFieldProjectionHost);
         if (this._isContinuousMode()) this._syncLivingLayers(this._livingFieldGateOpen());
+    }
+
+    /**
+     * The glyph's share of its material, from fit-projection.js — the Fractal
+     * fill adapter lifts density when a whitespace-heavy word reveals little.
+     * Clamped to [0,1]; a non-finite value resets to a full window.
+     */
+    setFillProjectionVisibleAreaRatio(ratio) {
+        const value = Number(ratio);
+        this._fillProjectionVisibleAreaRatio = Number.isFinite(value)
+            ? Math.min(1, Math.max(0, value))
+            : 1;
+    }
+
+    whenContinuousFieldProjectionReady(host) {
+        if (!host) {
+            const rejected = Promise.reject(createAbortError('Projection host required'));
+            rejected.catch(() => {});
+            return rejected;
+        }
+        if (host === this._continuousFieldProjectionHost
+            && host === this._projectionPaintedHost) {
+            if (this._projectionReadyHost && this._projectionReadyHost !== host) {
+                this._cancelProjectionReadiness('Projection readiness superseded');
+            }
+            return Promise.resolve();
+        }
+        if (this._projectionReadyHost !== host) this._beginProjectionReadiness(host);
+        return this._projectionReadyPromise;
+    }
+
+    _beginProjectionReadiness(host) {
+        this._cancelProjectionReadiness('Projection host replaced');
+        let resolveReady;
+        let rejectReady;
+        const promise = new Promise((resolve, reject) => {
+            resolveReady = resolve;
+            rejectReady = reject;
+        });
+        // Cancellation is expected when Chamber replaces a glyph host. Keep
+        // that ordinary teardown from becoming an unhandled rejection while
+        // returning this original rejecting promise to callers.
+        promise.catch(() => {});
+        this._projectionReadyHost = host;
+        this._projectionReadyPromise = promise;
+        this._projectionReadyResolve = resolveReady;
+        this._projectionReadyReject = rejectReady;
+    }
+
+    _cancelProjectionReadiness(message) {
+        const reject = this._projectionReadyReject;
+        const pending = typeof reject === 'function';
+        this._projectionReadyHost = null;
+        this._projectionReadyPromise = null;
+        this._projectionReadyResolve = null;
+        this._projectionReadyReject = null;
+        if (pending) reject?.(createAbortError(message));
+    }
+
+    _reportContinuousFieldProjectionPaint(host) {
+        if (!host || host !== this._continuousFieldProjectionHost) return;
+        this._projectionPaintedHost = host;
+        if (host !== this._projectionReadyHost) return;
+        const resolve = this._projectionReadyResolve;
+        this._projectionReadyResolve = null;
+        this._projectionReadyReject = null;
+        resolve?.();
     }
 
     hasContinuousFieldProjectionHost() {
@@ -1295,6 +1383,7 @@ export class VisualCortex {
         const types = this._wordFillTypes();
         return types.includes('harmonograph')
             || types.includes('attractor')
+            || this._wordFillUsesRoomWorkField()
             || PLATE_FAMILIES.some(id => types.includes(id));
     }
 
@@ -1302,6 +1391,21 @@ export class VisualCortex {
     _continuousWorkFamilies() {
         const active = this.config.activeTypes || [];
         return workEngineFamilies().filter(type => active.includes(type));
+    }
+
+    _wordFillWorkFamilies() {
+        if (this.config.renderLanguage === 'ascii') return [];
+        if (!this._wordFillIsDistinct()) return this._continuousWorkFamilies();
+        const types = this._wordFillTypes();
+        return workEngineFamilies().filter(type => types.includes(type));
+    }
+
+    _wordFillUsesRoomWorkField() {
+        const room = this._continuousWorkFamilies();
+        const fill = this._wordFillWorkFamilies();
+        return room.length > 0
+            && room.length === fill.length
+            && room.every((family, index) => family === fill[index]);
     }
 
     _activeSequenceAssets() {
@@ -1601,7 +1705,8 @@ export class VisualCortex {
                 if (rendered && wordFill) {
                     applyFlameFillToCanvas(canvas, {
                         reducedMotion: this._continuousReducedMotion()
-                            || prefersFlameFillReducedMotion()
+                            || prefersFlameFillReducedMotion(),
+                        visibleAreaRatio: this._fillProjectionVisibleAreaRatio
                     });
                 }
             }
@@ -1763,7 +1868,8 @@ export class VisualCortex {
             // works, so this second decode is near-instant and cached.
             reducedMotion: this._continuousReducedMotion(),
             dwellMs: timings.dwellMs,
-            crossfadeMs: timings.crossfadeMs
+            crossfadeMs: timings.crossfadeMs,
+            onProjectionPaint: host => this._reportContinuousFieldProjectionPaint(host)
         });
         if (this._continuousFieldProjectionHost) {
             this._continuousField.setProjectionHost(this._continuousFieldProjectionHost);
@@ -1845,6 +1951,7 @@ export class VisualCortex {
 
         if (!shouldRun) {
             if (this._workEngineField?.running) this._workEngineField.stop();
+            this._workEngineField?.setProjectionHost?.(null);
             return;
         }
         if (!this._workEngineField) {
@@ -1856,10 +1963,17 @@ export class VisualCortex {
                 dwellMs: timings.dwellMs,
                 crossfadeMs: timings.crossfadeMs,
                 reducedMotion: this._continuousReducedMotion(),
-                getSignal: () => this._nextContinuousSignal() || {}
+                getSignal: () => this._nextContinuousSignal() || {},
+                onProjectionPaint: host => this._reportContinuousFieldProjectionPaint(host)
             });
         }
         this._workEngineField.reducedMotion = this._continuousReducedMotion();
+        const projectionHost = this._livingProjectionHost(
+            shouldRun,
+            shouldRun && this._wordFillUsesRoomWorkField(),
+            this._continuousFieldHost
+        );
+        this._workEngineField.setProjectionHost(projectionHost);
         const engines = this.config.workEngines || [];
         if (this._workEngineField.running) {
             this._workEngineField.setFamilies(families, engines);
@@ -1897,7 +2011,8 @@ export class VisualCortex {
                 crossfadeMs: timings.crossfadeMs,
                 reducedMotion: this._continuousReducedMotion(),
                 getSignal: () => this._nextContinuousSignal(),
-                getClimate: () => this.config.harmonographClimate || 'auto'
+                getClimate: () => this.config.harmonographClimate || 'auto',
+                onProjectionPaint: host => this._reportContinuousFieldProjectionPaint(host)
             });
         }
         this._harmonographField.reducedMotion = this._continuousReducedMotion();
@@ -1936,7 +2051,8 @@ export class VisualCortex {
                 dwellMs: timings.dwellMs,
                 crossfadeMs: timings.crossfadeMs,
                 reducedMotion: this._continuousReducedMotion(),
-                getSignal: () => this._nextContinuousSignal()
+                getSignal: () => this._nextContinuousSignal(),
+                onProjectionPaint: host => this._reportContinuousFieldProjectionPaint(host)
             });
         }
         this._plateField.reducedMotion = this._continuousReducedMotion();
@@ -1971,7 +2087,8 @@ export class VisualCortex {
                 this._attractorField = new AttractorField(primaryHost, {
                     system: cfg.system,
                     palette: cfg.palette,
-                    form: cfg.form
+                    form: cfg.form,
+                    onProjectionPaint: host => this._reportContinuousFieldProjectionPaint(host)
                 });
             } catch (error) {
                 this._attractorField = null;
@@ -4044,7 +4161,9 @@ export class VisualCortex {
             this._sequenceVideoField = null;
         }
         this._continuousFieldHost = null;
+        this._cancelProjectionReadiness('Visual Cortex destroyed');
         this._continuousFieldProjectionHost = null;
+        this._projectionPaintedHost = null;
         this._sequenceVideoHost = null;
         this._activeVideoCue = null;
         this._assetAbortController.abort(createAbortError('Visual Cortex destroyed'));

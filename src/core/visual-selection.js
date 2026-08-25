@@ -17,6 +17,10 @@ const PROCEDURAL_ENGINE_IDS = new Set(
     LISTED_PROCEDURAL_PATTERNS.map(pattern => pattern.id)
 );
 
+export function normalizeFitBorder(value, fallback = 'cream') {
+    return value === 'off' || value === 'cream' || value === 'accent' ? value : fallback;
+}
+
 function uniqueStringIds(value) {
     return Array.isArray(value)
         ? [...new Set(value.filter(id => typeof id === 'string' && id.length > 0))]
@@ -136,13 +140,15 @@ export function normalizeWordFill(value) {
     if (!value || typeof value !== 'object' || Array.isArray(value)) {
         return { mode: 'same' };
     }
+    if (value.mode === 'plain') return { mode: 'plain' };
     if (value.mode === 'accent') return { mode: 'accent' };
+    if (value.mode === 'same') return { mode: 'same', border: normalizeFitBorder(value.border) };
     if (value.mode !== 'pick') return { mode: 'same' };
     const selection = normalizeVisualSelection(value);
     if (selection.procedural.length === 0 && selection.sourced.length === 0) {
         return { mode: 'same' };
     }
-    return { mode: 'pick', ...selection };
+    return { mode: 'pick', ...selection, border: normalizeFitBorder(value.border) };
 }
 
 export function wordFillIsDistinct(value) {

@@ -169,6 +169,9 @@ export class AttractorField {
         this.palette = PALETTES[options.palette] ? options.palette : DEFAULT_PALETTE;
         this.form = FORMS.includes(options.form) ? options.form : 'mirror';
         this.intensity = options.intensity ?? 0.65;
+        this.onProjectionPaint = typeof options.onProjectionPaint === 'function'
+            ? options.onProjectionPaint
+            : () => {};
         this.reduced = typeof window.matchMedia === 'function'
             && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
@@ -179,6 +182,9 @@ export class AttractorField {
         this.ctx = this.canvas.getContext('2d');
         this.projectionHost = null;
         this.projectionCanvas = null;
+        this._projectionPainted = false;
+        this._hasPaintedFrame = false;
+        this._projectionHostCleared = false;
 
         this.W = 0;
         this.H = 0;
@@ -443,8 +449,10 @@ export class AttractorField {
         }
 
         ctx.globalCompositeOperation = 'source-over';
+        this._hasPaintedFrame = true;
         this.measureQuality(performance.now() - frameStart);
         this._syncProjection();
+        if (!this.projectionHost) this._reportProjectionPaint();
         this.rafId = requestAnimationFrame(this.tick);
     }
 
@@ -454,8 +462,11 @@ export class AttractorField {
     setProjectionHost(host) {
         if (host === this.host) host = null;
         if (this.projectionHost === host) return;
+        const previousHost = this.projectionHost;
         this._teardownProjection();
         this.projectionHost = host || null;
+        this._projectionPainted = false;
+        this._projectionHostCleared = !!previousHost && !this.projectionHost;
         if (!this.projectionHost) return;
         this.projectionCanvas = document.createElement('canvas');
         this.projectionCanvas.className = 'attractor-canvas';
@@ -479,7 +490,7 @@ export class AttractorField {
     _syncProjection() {
         const src = this.canvas;
         const dst = this.projectionCanvas;
-        if (!src || !dst) return;
+        if (!src || !dst || !this._hasPaintedFrame) return;
         if (dst.width !== src.width || dst.height !== src.height) {
             dst.width = src.width;
             dst.height = src.height;
@@ -489,6 +500,15 @@ export class AttractorField {
         ctx.setTransform(1, 0, 0, 1, 0, 0);
         ctx.clearRect(0, 0, dst.width, dst.height);
         ctx.drawImage(src, 0, 0);
+        this._reportProjectionPaint();
+    }
+
+    _reportProjectionPaint() {
+        if (this._projectionPainted) return;
+        const host = this.projectionHost || this.host;
+        if (!host || (!this.projectionHost && this._projectionHostCleared)) return;
+        this._projectionPainted = true;
+        this.onProjectionPaint(host);
     }
 
     /**

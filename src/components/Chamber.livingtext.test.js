@@ -3,16 +3,20 @@
  * session.visualConfig.livingText → conductor scoring in the Chamber
  * constructor → per-atom color/glow application in displayAtom.
  */
-import { describe, it, expect } from 'vitest';
+import { afterEach, describe, it, expect } from 'vitest';
 import { Chamber } from './Chamber.js';
 
-function makeSession(contents, livingText) {
+function makeSession(contents, livingText, wordFill) {
     return {
         title: 'Living Text Test',
         atoms: contents.map(c => ({ content: c, duration: 500 })),
         totalDuration: contents.length * 500,
         atomCount: contents.length,
-        visualConfig: { visualMode: 'off', livingText }
+        visualConfig: {
+            visualMode: 'off',
+            livingText,
+            ...(wordFill ? { interlocution: { wordFill } } : {})
+        }
     };
 }
 
@@ -26,6 +30,10 @@ function makeChamber(session) {
 const parseRgb = (str) => str.match(/rgb\((\d+),\s*(\d+),\s*(\d+)\)/).slice(1, 4).map(Number);
 
 describe('Chamber Living Text integration', () => {
+    afterEach(() => {
+        document.documentElement.style.removeProperty('--color-accent-rgb');
+    });
+
     it('builds a semantic track when enabled and cools dark text', () => {
         const dark = Array(8).fill('grief death terror sorrow');
         const { chamber, container } = makeChamber(makeSession(dark, { enabled: true }));
@@ -50,6 +58,40 @@ describe('Chamber Living Text integration', () => {
         chamber.displayAtom(chamber.session.atoms[4], 4);
         const [r, , b] = parseRgb(container.querySelector('#atom-display').style.color);
         expect(r).toBeGreaterThan(b + 30); // clearly warm
+
+        chamber.destroy();
+        container.remove();
+    });
+
+    it('keeps explicit Plain ink on the existing cream Living Text path', () => {
+        const { chamber, container } = makeChamber(makeSession(
+            Array(8).fill('love joy light beautiful'),
+            { enabled: true },
+            { mode: 'plain' }
+        ));
+
+        chamber.displayAtom(chamber.session.atoms[4], 4);
+        expect(container.querySelector('#atom-display').style.color).toBe('rgb(254, 209, 133)');
+
+        chamber.destroy();
+        container.remove();
+    });
+
+    it('derives Accent Living Text from the current accent token without losing its dominant hue', () => {
+        const base = [60, 97, 170];
+        document.documentElement.style.setProperty('--color-accent-rgb', base.join(', '));
+        const { chamber, container } = makeChamber(makeSession(
+            Array(8).fill('love joy light beautiful'),
+            { enabled: true },
+            { mode: 'accent' }
+        ));
+
+        chamber.displayAtom(chamber.session.atoms[4], 4);
+        const rgb = parseRgb(container.querySelector('#atom-display').style.color);
+        expect(rgb).not.toEqual(base);
+        expect(rgb[2]).toBeGreaterThan(rgb[1]);
+        expect(rgb[1]).toBeGreaterThan(rgb[0]);
+        expect(rgb.every((channel, index) => Math.abs(channel - base[index]) <= 48)).toBe(true);
 
         chamber.destroy();
         container.remove();

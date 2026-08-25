@@ -77,7 +77,19 @@ describe('Chamber procedural engine hook', () => {
 
     it('Mask still forces glass off while the procedural engine remains mounted', () => {
         armGallery(['fractal']);
-        const { chamber, container } = makeChamber({}, { chamberMask: true });
+        const { chamber, container } = makeChamber({
+            visualConfig: {
+                visualMode: 'interlocution',
+                interlocution: {
+                    presentation: 'continuous',
+                    sourceFamily: 'procedural',
+                    procedural: ['fractal'],
+                    sourced: [],
+                    streamGlass: true,
+                    wordFill: { mode: 'same' }
+                }
+            }
+        }, { chamberMask: true, chamberFace: 'thick', fontSize: 'fit' });
         const atom = container.querySelector('#atom-display');
 
         expect(atom.classList.contains('is-mask')).toBe(true);

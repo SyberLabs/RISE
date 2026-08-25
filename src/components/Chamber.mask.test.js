@@ -6,6 +6,7 @@ import {
     beginNonFlashingVisualSession,
     endVisualInterlocutionSession
 } from '../core/visual-safety.js';
+import { compileSession } from '../core/session-compiler.js';
 
 const STILL = { id: 'still-1', kind: 'image', uri: 'https://example.test/still.jpg', name: 'Still' };
 const MP4 = {
@@ -22,7 +23,7 @@ const MP4 = {
 function makeChamber(sessionExtra = {}, settings = {}) {
     const container = document.createElement('div');
     document.body.appendChild(container);
-    globalThis.rise = { settings };
+    globalThis.rise = { settings: { chamberFace: 'thick', fontSize: 'fit', ...settings } };
     const session = {
         title: 'Mask',
         atoms: [{ content: 'hello', duration: 500 }],
@@ -39,16 +40,38 @@ function fillHost(container) {
     return container.querySelector('.chamber-fill-field');
 }
 
+// The material now projects into a glyph-local viewport child; the mask stays
+// on the stage-aligned .chamber-fill-field.
+function fillViewport(container) {
+    return container.querySelector('.chamber-fill-viewport');
+}
+
 function galleryHost(container) {
     return container.querySelector('#chamber-continuous-field');
 }
 
-function installFillMaskEnv({ fontsReady = Promise.resolve() } = {}) {
+function deferred() {
+    let resolve;
+    let reject;
+    const promise = new Promise((onResolve, onReject) => {
+        resolve = onResolve;
+        reject = onReject;
+    });
+    return { promise, resolve, reject };
+}
+
+function installFillMaskEnv({
+    fontLoad = async () => [{}],
+    projectionReady = async () => {}
+} = {}) {
     const previousFonts = document.fonts;
     const previousSupports = globalThis.CSS?.supports;
+    const previousRequestFrame = globalThis.requestAnimationFrame;
     if (!globalThis.CSS) globalThis.CSS = {};
     globalThis.CSS.supports = () => true;
-    document.fonts = { ready: fontsReady };
+    document.fonts = { load: vi.fn(fontLoad) };
+    const projectionReadySpy = vi.spyOn(visualCortex, 'whenContinuousFieldProjectionReady')
+        .mockImplementation(projectionReady);
 
     const proto = globalThis.HTMLElement?.prototype;
     const previousRect = proto?.getBoundingClientRect;
@@ -69,6 +92,8 @@ function installFillMaskEnv({ fontsReady = Promise.resolve() } = {}) {
     return () => {
         if (previousFonts === undefined) delete document.fonts;
         else document.fonts = previousFonts;
+        globalThis.requestAnimationFrame = previousRequestFrame;
+        projectionReadySpy.mockRestore();
         if (typeof previousSupports === 'function') globalThis.CSS.supports = previousSupports;
         if (previousRect) proto.getBoundingClientRect = previousRect;
         if (previousWidth) Object.defineProperty(proto, 'clientWidth', previousWidth);
@@ -81,6 +106,7 @@ function installFillMaskEnv({ fontsReady = Promise.resolve() } = {}) {
 async function flushFillMask() {
     await Promise.resolve();
     await Promise.resolve();
+    await new Promise(resolve => requestAnimationFrame(() => resolve()));
     await new Promise((resolve) => setTimeout(resolve, 0));
 }
 
@@ -93,7 +119,7 @@ function wordGallerySession(presentation = 'continuous-word') {
         chunkMode: 'word',
         visualConfig: {
             visualMode: 'interlocution',
-            interlocution: { presentation }
+            interlocution: { presentation, wordFill: { mode: 'same' } }
         }
     };
 }
@@ -127,6 +153,7 @@ describe('Chamber Mask', () => {
         );
         const el = atomDisplay(container);
         expect(el.classList.contains('is-mask')).toBe(false);
+        expect(el.dataset.maskState).toBe('inactive');
         chamber.destroy();
     });
 
@@ -153,7 +180,7 @@ describe('Chamber Mask', () => {
                 chunkMode: 'word',
                 visualConfig: {
                     visualMode: 'interlocution',
-                    interlocution: { presentation: 'behind-stream' }
+                    interlocution: { presentation: 'continuous', wordFill: { mode: 'same' } }
                 }
             },
             { chamberMask: true }
@@ -173,6 +200,29 @@ describe('Chamber Mask', () => {
         chamber.destroy();
     });
 
+    it('does not mask an inferred material from a compiled Gallery session', () => {
+        const session = compileSession({
+            text: 'A word.',
+            chunkMode: 'word',
+            visualConfig: {
+                visualMode: 'interlocution',
+                interlocution: {
+                    presentation: 'continuous',
+                    sourced: ['sci-astronomy'],
+                    procedural: ['fractal']
+                }
+            }
+        });
+        expect(session.visualConfig.interlocution.wordFillDeclared).toBe(false);
+
+        const { chamber, container } = makeChamber(
+            session,
+            { chamberFace: 'thick', fontSize: 'fit', chamberMask: false }
+        );
+        expect(atomDisplay(container).classList.contains('is-mask')).toBe(false);
+        chamber.destroy();
+    });
+
     it('leaves the saved chamberFace on the atom when Mask is on', () => {
         const { chamber, container } = makeChamber(
             { chunkMode: 'word' },
@@ -185,10 +235,10 @@ describe('Chamber Mask', () => {
     it('adds is-mask from PREP Gallery-in-the-word without requiring Settings Mask', () => {
         const { chamber, container } = makeChamber(
             wordGallerySession(),
-            { chamberMask: false, chamberFace: 'literary', fontSize: 'medium' }
+            { chamberMask: false }
         );
         expect(atomDisplay(container).classList.contains('is-mask')).toBe(true);
-        expect(atomDisplay(container).dataset.chamberFace).toBe('literary');
+        expect(atomDisplay(container).dataset.chamberFace).toBe('thick');
         chamber.destroy();
     });
 
@@ -237,6 +287,7 @@ describe('Chamber Gallery-in-the-word projection (FM-RISE-28)', () => {
 
     afterEach(() => {
         restoreEnv?.();
+        vi.useRealTimers();
         releaseGalleryField();
         delete globalThis.rise;
         document.body.replaceChildren();
@@ -254,19 +305,24 @@ describe('Chamber Gallery-in-the-word projection (FM-RISE-28)', () => {
 
         const gallery = galleryHost(container);
         const fill = fillHost(container);
+        const viewport = fillViewport(container);
         const field = visualCortex._continuousField;
         expect(gallery).toBeTruthy();
         expect(fill).toBeTruthy();
+        expect(viewport).toBeTruthy();
         expect(fill).not.toBe(gallery);
         expect(field).toBeInstanceOf(ContinuousField);
         expect(field.host).toBe(gallery);
-        expect(field.projectionHost).toBe(fill);
+        // The material projects into the glyph-local viewport; the mask stays
+        // on the stage-aligned field.
+        expect(field.projectionHost).toBe(viewport);
+        expect(viewport.parentElement).toBe(fill);
         expect(chamber.fillField).toBeFalsy();
         expect(chamber._fillFieldDirector).toBeFalsy();
         expect(chamber.fillVideoField).toBeFalsy();
 
         field._ensureLayers();
-        field.setProjectionHost(fill);
+        field.setProjectionHost(viewport);
         field._crossfadeTo({ url: 'https://example.test/a.jpg' }, true);
         field._currentUrl = 'https://example.test/a.jpg';
         field._crossfadeTo({ url: 'https://example.test/b.jpg' }, false);
@@ -276,7 +332,7 @@ describe('Chamber Gallery-in-the-word projection (FM-RISE-28)', () => {
             .map(img => img.getAttribute('src'))
             .filter(Boolean)
             .sort();
-        const fillSrcs = [...fill.querySelectorAll('.continuous-field-artwork')]
+        const fillSrcs = [...viewport.querySelectorAll('.continuous-field-artwork')]
             .map(img => img.getAttribute('src'))
             .filter(Boolean)
             .sort();
@@ -493,58 +549,144 @@ describe('Chamber Gallery-in-the-word projection (FM-RISE-28)', () => {
         chamber.destroy();
     });
 
-    it('clips the projection host to glyph ink after fonts.ready', async () => {
+    it('keeps opaque fallback until Thick font and current projection are ready, then activates both mask classes in one RAF', async () => {
         restoreEnv?.();
-        let releaseFonts;
-        const fontsReady = new Promise((resolve) => { releaseFonts = resolve; });
-        restoreEnv = installFillMaskEnv({ fontsReady });
+        const font = deferred();
+        const projection = deferred();
+        const frames = [];
+        restoreEnv = installFillMaskEnv({
+            fontLoad: () => font.promise,
+            projectionReady: () => projection.promise
+        });
 
         const { chamber, container } = makeChamber(
             wordGallerySession(),
             { chamberMask: true }
         );
-        armGalleryField();
-        chamber.displayAtom({ content: 'O', duration: 500 }, 0);
-        await Promise.resolve();
         const pending = atomDisplay(container);
-        // Cold first load: do not leave the atom as opaque --color-light
-        // (#E8E8EC) while document.fonts.ready is still pending.
-        expect(pending.classList.contains('is-mask-ink')).toBe(true);
-        expect(pending.style.color).toBe('transparent');
+        pending.textContent = 'O';
+        visualCortex._continuousField?.stop();
+        globalThis.requestAnimationFrame = callback => { frames.push(callback); return frames.length; };
+        const activation = chamber.syncFillGlyphMask();
 
-        releaseFonts();
-        await flushFillMask();
+        expect(pending.dataset.maskState).toBe('preparing');
+        expect(pending.classList.contains('is-mask-ink')).toBe(false);
+        expect(pending.classList.contains('is-mask-ready')).toBe(false);
+        expect(pending.style.color).not.toBe('transparent');
+
+        font.resolve([{}]);
+        await Promise.resolve();
+        expect(pending.dataset.maskState).toBe('preparing');
+        expect(pending.classList.contains('is-mask-ink')).toBe(false);
+        expect(frames).toHaveLength(0);
+
+        projection.resolve();
+        await Promise.resolve();
+        await Promise.resolve();
+        expect(pending.dataset.maskState).toBe('preparing');
+        expect(pending.classList.contains('is-mask-ink')).toBe(false);
+        expect(pending.classList.contains('is-mask-ready')).toBe(false);
+        expect(frames).toHaveLength(1);
+
+        frames[0](16);
+        await activation;
         const host = fillHost(container);
-        expect(atomDisplay(container).classList.contains('is-mask-ink')).toBe(true);
+        expect(pending.dataset.maskState).toBe('ready');
+        expect(pending.classList.contains('is-mask-ink')).toBe(true);
+        expect(pending.classList.contains('is-mask-ready')).toBe(true);
         expect(`${host.style.maskImage} ${host.style.webkitMaskImage}`).toMatch(/text/i);
         expect(`${host.style.maskImage} ${host.style.webkitMaskImage}`).not.toMatch(/rect/i);
         expect(galleryHost(container).style.maskImage).toBeFalsy();
+        expect(document.fonts.load).toHaveBeenCalledWith('700 1em "Space Grotesk"', 'O');
         chamber.destroy();
     });
 
-    it('does not leave the glyph as --color-light while fonts.ready is pending', async () => {
+    it('keeps opaque fallback while projection is ready but the Thick font is pending', async () => {
         restoreEnv?.();
-        let releaseFonts;
-        const fontsReady = new Promise((resolve) => { releaseFonts = resolve; });
-        restoreEnv = installFillMaskEnv({ fontsReady });
+        const font = deferred();
+        restoreEnv = installFillMaskEnv({ fontLoad: () => font.promise });
 
         const { chamber, container } = makeChamber(
             wordGallerySession(),
             { chamberMask: true }
         );
-        armGalleryField();
         chamber.displayAtom({ content: 'O', duration: 500 }, 0);
 
         const el = atomDisplay(container);
         expect(el.classList.contains('is-mask')).toBe(true);
-        expect(el.classList.contains('is-mask-ink')).toBe(true);
-        expect(el.style.color).toBe('transparent');
+        expect(el.dataset.maskState).toBe('preparing');
+        expect(el.classList.contains('is-mask-ink')).toBe(false);
+        expect(el.style.color).not.toBe('transparent');
         expect(fillHost(container)?.classList.contains('is-hidden')).toBe(true);
 
-        releaseFonts();
+        font.resolve([{}]);
         await flushFillMask();
         expect(el.classList.contains('is-mask-ink')).toBe(true);
+        expect(el.classList.contains('is-mask-ready')).toBe(true);
+        expect(el.dataset.maskState).toBe('ready');
         expect(fillHost(container)?.classList.contains('is-hidden')).toBe(false);
+        chamber.destroy();
+    });
+
+    for (const [change, applyChange] of [
+        ['atom', ({ atom }) => { atom.textContent = 'Changed'; }],
+        ['material', ({ chamber }) => {
+            chamber.session.visualConfig.interlocution.wordFill = { mode: 'accent' };
+        }],
+        ['projection host', ({ chamber, container }) => {
+            const replacement = document.createElement('div');
+            container.querySelector('#chamber-field').appendChild(replacement);
+            chamber.fillFieldHost = replacement;
+        }]
+    ]) {
+        it(`does not activate a stale generation after the ${change} changes`, async () => {
+            restoreEnv?.();
+            const projection = deferred();
+            const frames = [];
+            restoreEnv = installFillMaskEnv({
+                projectionReady: () => projection.promise
+            });
+            const { chamber, container } = makeChamber(
+                wordGallerySession(),
+                { chamberMask: true }
+            );
+            const atom = atomDisplay(container);
+            atom.textContent = 'O';
+            visualCortex._continuousField?.stop();
+            globalThis.requestAnimationFrame = callback => { frames.push(callback); return frames.length; };
+            const activation = chamber.syncFillGlyphMask();
+
+            applyChange({ chamber, container, atom });
+            projection.resolve();
+            await activation;
+
+            expect(frames).toHaveLength(0);
+            expect(atom.classList.contains('is-mask-ink')).toBe(false);
+            expect(atom.classList.contains('is-mask-ready')).toBe(false);
+            expect(atom.style.color).not.toBe('transparent');
+            chamber.destroy();
+        });
+    }
+
+    it('returns to readable fallback after projection rejection and never retries by timer', async () => {
+        restoreEnv?.();
+        const rejection = new Error('first projection failed');
+        const projectionReady = vi.fn().mockRejectedValue(rejection);
+        restoreEnv = installFillMaskEnv({ projectionReady });
+        const { chamber, container } = makeChamber(
+            wordGallerySession(),
+            { chamberMask: true }
+        );
+        const atom = atomDisplay(container);
+        atom.textContent = 'O';
+        const timer = vi.spyOn(globalThis, 'setTimeout');
+
+        await chamber.syncFillGlyphMask();
+        expect(atom.dataset.maskState).toBe('fallback');
+        expect(atom.classList.contains('is-mask-ink')).toBe(false);
+        expect(atom.classList.contains('is-mask-ready')).toBe(false);
+        expect(atom.style.color).not.toBe('transparent');
+        expect(timer).not.toHaveBeenCalled();
         chamber.destroy();
     });
 
@@ -563,14 +705,18 @@ describe('Chamber Gallery-in-the-word projection (FM-RISE-28)', () => {
         const el = atomDisplay(container);
         expect(el.classList.contains('is-mask')).toBe(true);
         expect(el.classList.contains('is-mask-ink')).toBe(false);
+        expect(el.classList.contains('is-mask-ready')).toBe(false);
+        expect(el.dataset.maskState).toBe('fallback');
         expect(el.style.color).not.toBe('transparent');
         expect(fillHost(container)).toBeNull();
         chamber.destroy();
     });
 
     it('destroys the projection when Mask is turned off', async () => {
+        const session = wordGallerySession('continuous');
+        delete session.visualConfig.interlocution.wordFill;
         const { chamber, container } = makeChamber(
-            wordGallerySession('continuous'),
+            session,
             { chamberMask: true }
         );
         armGalleryField('continuous');
@@ -585,6 +731,8 @@ describe('Chamber Gallery-in-the-word projection (FM-RISE-28)', () => {
         expect(fillHost(container)).toBeNull();
         expect(visualCortex._continuousField?.projectionHost).toBeFalsy();
         expect(atomDisplay(container).classList.contains('is-mask-ink')).toBe(false);
+        expect(atomDisplay(container).classList.contains('is-mask-ready')).toBe(false);
+        expect(atomDisplay(container).dataset.maskState).toBe('inactive');
         chamber.destroy();
     });
 });
@@ -873,11 +1021,33 @@ describe('Chamber semantic Fit compositor', () => {
         expect(Number(field.style.getPropertyValue('--living-fit-mix'))).toBeLessThanOrEqual(0.45);
         expect(Number(field.style.getPropertyValue('--living-fit-saturation'))).toBeGreaterThanOrEqual(1);
         expect(Number(field.style.getPropertyValue('--living-fit-brightness'))).toBeGreaterThan(0);
+        expect(atomDisplay(container).style.color).toBe('transparent');
+        expect(atomDisplay(container).style.textShadow).toBe('');
 
         chamber.destroyFillField();
         expect(field.classList.contains('is-living-fit')).toBe(false);
         expect(field.style.getPropertyValue('--living-fit-color')).toBe('');
         chamber.destroy();
+    });
+
+    it('maps Fit contour borders directly from the visual-mask material', async () => {
+        for (const [border, color] of [
+            ['off', ''],
+            ['cream', 'var(--color-light)'],
+            ['accent', 'var(--color-accent)']
+        ]) {
+            const { chamber, container } = makeChamber(
+                semanticSession({ mode: 'same', border }),
+                { fontSize: 'fit' }
+            );
+
+            chamber.displayAtom(chamber.session.atoms[4], 4);
+            await flushFillMask();
+            expect(atomDisplay(container).style.getPropertyValue('--fit-border-color')).toBe(color);
+
+            chamber.destroy();
+            container.remove();
+        }
     });
 
     it('does not tint collection artwork selected as the Fit source', async () => {

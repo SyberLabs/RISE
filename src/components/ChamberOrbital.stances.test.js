@@ -17,6 +17,7 @@ if (typeof globalThis.indexedDB === 'undefined') {
 
 const { ChamberOrbital, createDefaultConfig } = await import('./ChamberOrbital.js');
 const { STANCES, matchStance } = await import('../core/stances.js');
+const { default: App } = await import('../app.js');
 
 function createOrbital(onBeginSession = vi.fn()) {
     const container = document.createElement('div');
@@ -37,6 +38,7 @@ describe('the stance row', () => {
 
     afterEach(() => {
         document.body.innerHTML = '';
+        delete globalThis.rise;
         vi.restoreAllMocks();
     });
 
@@ -73,6 +75,7 @@ describe('choosing a stance', () => {
 
     afterEach(() => {
         document.body.innerHTML = '';
+        delete globalThis.rise;
         vi.restoreAllMocks();
     });
 
@@ -142,22 +145,117 @@ describe('choosing a stance', () => {
         orbital.destroy();
     });
 
-    it('makes a Fit request authoritative over phrase chunking and Recitation', () => {
+    it('persists a Thick + Fit text-material transaction as one synchronized state change', () => {
         const { container, orbital } = createOrbital();
+        Object.defineProperty(window, 'matchMedia', {
+            configurable: true,
+            value: vi.fn(() => ({ matches: false }))
+        });
+        const app = new App();
+        app.loadSettings();
+        const handleSettingsTransaction = vi.spyOn(app, 'handleSettingsTransaction');
+        globalThis.rise = app;
         orbital.loadText('Begin the morning', 'Meditations');
         orbital.config.chunkMode = 'phrase';
         orbital.config.recitation = { enabled: true };
-        orbital.syncUIWithConfig();
+        const syncSpy = vi.spyOn(orbital, 'syncUIWithConfig');
+        const persistSpy = vi.spyOn(orbital, '_persistPrefs');
 
-        container.querySelector('.vnav-node[data-id="size"]').click();
-        container.querySelector('[data-font-size="fit"]').click();
+        container.querySelector('.vnav-node[data-id="ink"]').click();
+        container.querySelector('[data-word-fill="same"]').click();
+        container.querySelector('[data-action="use-thick-fit"]').click();
 
+        expect(globalThis.rise.settings).toMatchObject({ chamberFace: 'thick', fontSize: 'fit' });
         expect(orbital.config.chunkMode).toBe('word');
         expect(orbital.config.recitation).toEqual({ enabled: false });
+        expect(orbital.config.visualInterlocution.interlocution.wordFill)
+            .toEqual({ mode: 'same', border: 'cream' });
         expect(container.querySelector('[data-chunk="word"]').classList).toContain('active');
         const saved = JSON.parse(localStorage.getItem('rise_orbital_prefs_v1'));
         expect(saved.chunkMode).toBe('word');
+        expect(saved.visualInterlocution.interlocution.wordFill)
+            .toEqual({ mode: 'same', border: 'cream' });
+        expect(handleSettingsTransaction).toHaveBeenCalledOnce();
+        expect(handleSettingsTransaction).toHaveBeenCalledWith({ chamberFace: 'thick', fontSize: 'fit' });
+        const restored = new App();
+        restored.loadSettings();
+        expect(restored.settings).toMatchObject({ chamberFace: 'thick', fontSize: 'fit' });
+        expect(syncSpy).toHaveBeenCalledTimes(1);
+        expect(persistSpy).toHaveBeenCalledTimes(1);
         orbital.destroy();
+    });
+
+    it('cancels or confirms leaving Thick + Fit without splitting text-material domains', () => {
+        for (const change of [
+            {
+                entry: 'face',
+                selector: '[data-chamber-face="display"]',
+                settings: { chamberFace: 'display', fontSize: 'fit' }
+            },
+            {
+                entry: 'size',
+                selector: '[data-font-size="m"]',
+                settings: { chamberFace: 'thick', fontSize: 'medium' }
+            }
+        ]) {
+            const { container, orbital } = createOrbital();
+            globalThis.rise = {
+                settings: { chamberFace: 'thick', fontSize: 'fit' },
+                handleSettingsTransaction: vi.fn(settings => Object.assign(globalThis.rise.settings, settings))
+            };
+            orbital.loadText('Begin the morning', 'Meditations', {
+                visualConfig: {
+                    visualMode: 'interlocution',
+                    interlocution: { wordFill: { mode: 'same', border: 'cream' } }
+                }
+            });
+            const before = structuredClone({
+                settings: globalThis.rise.settings,
+                config: orbital.config
+            });
+            const syncUIWithConfig = orbital.syncUIWithConfig.bind(orbital);
+            const syncSnapshots = [];
+            const syncSpy = vi.spyOn(orbital, 'syncUIWithConfig').mockImplementation(() => {
+                syncSnapshots.push(structuredClone({
+                    settings: globalThis.rise.settings,
+                    temporal: {
+                        chunkMode: orbital.config.chunkMode,
+                        recitation: orbital.config.recitation
+                    },
+                    wordFill: orbital.config.visualInterlocution.interlocution.wordFill
+                }));
+                return syncUIWithConfig();
+            });
+            const persistSpy = vi.spyOn(orbital, '_persistPrefs');
+
+            container.querySelector(`.vnav-node[data-id="${change.entry}"]`).click();
+            container.querySelector(change.selector).click();
+            expect(container.querySelector('[role="dialog"]')).toBeTruthy();
+            container.querySelector('[data-action="dialog-cancel"]').click();
+
+            expect({ settings: globalThis.rise.settings, config: orbital.config }).toEqual(before);
+            expect(syncSpy).not.toHaveBeenCalled();
+            expect(persistSpy).not.toHaveBeenCalled();
+
+            container.querySelector(change.selector).click();
+            container.querySelector('[data-action="dialog-confirm"]').click();
+
+            expect(globalThis.rise.settings).toMatchObject(change.settings);
+            expect(orbital.config.visualInterlocution.interlocution.wordFill)
+                .toEqual({ mode: 'accent' });
+            expect(orbital.visualNavigator.getConfig().interlocution.wordFill)
+                .toEqual({ mode: 'accent' });
+            expect(syncSnapshots).toEqual([{
+                settings: change.settings,
+                temporal: { chunkMode: 'word', recitation: { enabled: false } },
+                wordFill: { mode: 'accent' }
+            }]);
+            expect(syncSpy).toHaveBeenCalledTimes(1);
+            expect(persistSpy).toHaveBeenCalledTimes(1);
+            orbital.destroy();
+            document.body.innerHTML = '';
+            localStorage.clear();
+        }
     });
 
     it('carries the whole slice into the session', () => {

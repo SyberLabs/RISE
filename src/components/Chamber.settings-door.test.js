@@ -24,7 +24,7 @@ function fakePlayer(initialState = 'playing') {
   return player;
 }
 
-function mount(player = fakePlayer()) {
+function mount(player = fakePlayer(), sessionExtra = {}) {
   const container = document.createElement('div');
   document.body.appendChild(container);
   const chamber = new Chamber(container, {
@@ -33,7 +33,8 @@ function mount(player = fakePlayer()) {
       atoms: [{ content: 'hello', duration: 500 }],
       totalDuration: 500,
       atomCount: 1,
-      visualConfig: { visualMode: 'off' }
+      visualConfig: { visualMode: 'off' },
+      ...sessionExtra
     },
     player,
     autoStart: false
@@ -174,6 +175,46 @@ describe('Chamber Settings door', () => {
     expect(sync).toHaveBeenCalled();
     expect(player.state).toBe('paused');
 
+    chamber.destroy();
+  });
+
+  it('removes a Thick Fit material mask when Settings changes Fit to Medium', async () => {
+    globalThis.rise = {
+      settings: { chamberFace: 'thick', fontSize: 'fit' },
+      handleSettingsChange(key, value) { this.settings[key] = value; }
+    };
+    const { chamber, container } = mount(fakePlayer(), {
+      chunkMode: 'word',
+      visualConfig: {
+        visualMode: 'interlocution',
+        interlocution: { presentation: 'continuous', wordFill: { mode: 'same' } }
+      }
+    });
+    expect(container.querySelector('#atom-display').classList.contains('is-mask')).toBe(true);
+
+    await chamber.openSettings();
+    container.querySelector('input[name="font-size"][value="medium"]').click();
+    expect(container.querySelector('#atom-display').classList.contains('is-mask')).toBe(false);
+    chamber.destroy();
+  });
+
+  it('activates a Thick material mask when Settings changes Medium to Fit', async () => {
+    globalThis.rise = {
+      settings: { chamberFace: 'thick', fontSize: 'medium' },
+      handleSettingsChange(key, value) { this.settings[key] = value; }
+    };
+    const { chamber, container } = mount(fakePlayer(), {
+      chunkMode: 'word',
+      visualConfig: {
+        visualMode: 'interlocution',
+        interlocution: { presentation: 'continuous', wordFill: { mode: 'same' } }
+      }
+    });
+    expect(container.querySelector('#atom-display').classList.contains('is-mask')).toBe(false);
+
+    await chamber.openSettings();
+    container.querySelector('input[name="font-size"][value="fit"]').click();
+    expect(container.querySelector('#atom-display').classList.contains('is-mask')).toBe(true);
     chamber.destroy();
   });
 

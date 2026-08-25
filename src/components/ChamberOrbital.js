@@ -1082,17 +1082,7 @@ export class ChamberOrbital {
             : null,
           readingVisualDomain: this.config.readingVisualIdentity?.domain || null,
           onOpenPersonal: () => this.onNavigate('workshop'),
-          onFitRequested: () => {
-            // Fit's text mask has Word atoms as a hard input contract.
-            // Recitation owns phrase recordings, so choosing Fit is also an
-            // explicit choice to leave Recitation rather than produce silence.
-            this.config.chunkMode = 'word';
-            this.config.recitation = { enabled: false };
-            this.syncUIWithConfig();
-            this.updateOrbitStatus('temporal');
-            this._syncStanceRow();
-            this._persistPrefs();
-          },
+          onTextMaterialTransaction: transaction => this.applyTextMaterialTransaction(transaction),
           onChange: (config) => {
             const previouslyHeld = isLaunchHeldFocal(
               this.config.visualInterlocution?.focals
@@ -1123,6 +1113,18 @@ export class ChamberOrbital {
     } catch (err) {
       console.error('[ChamberOrbital] Error initializing VisualNavigator:', err);
     }
+  }
+
+  applyTextMaterialTransaction({ settings = {}, temporal = null, visualConfig }) {
+    globalThis.rise.handleSettingsTransaction(settings);
+    if (temporal?.chunkMode) this.config.chunkMode = temporal.chunkMode;
+    if (temporal?.recitation === false) this.config.recitation = { enabled: false };
+    this.config.visualInterlocution = visualConfig;
+    this.syncUIWithConfig();
+    this.updateOrbitStatus('temporal');
+    this.updateOrbitStatus('visual');
+    this._syncStanceRow();
+    this._persistPrefs();
   }
 
   getVisualPreview() {

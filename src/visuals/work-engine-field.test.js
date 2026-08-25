@@ -21,19 +21,22 @@ class OtherEngine extends FakeEngine {}
 
 class SecondFamilyEngine extends FakeEngine {}
 
+const defaultEngineLoader = async (id) => {
+    if (id === 'fake-work') {
+        return [{ id: 'a', name: 'A', engineClass: FakeEngine },
+                { id: 'b', name: 'B', engineClass: OtherEngine }];
+    }
+    if (id === 'other-work') {
+        return [{ id: 'z', name: 'Z', engineClass: SecondFamilyEngine }];
+    }
+    return [];
+};
+let engineLoader = defaultEngineLoader;
+
 vi.mock('./work-engines.js', () => ({
     isWorkEngineFamily: (id) => id === 'fake-work' || id === 'other-work',
     workEngineFamilies: () => ['fake-work', 'other-work'],
-    loadWorkEngines: async (id) => {
-        if (id === 'fake-work') {
-            return [{ id: 'a', name: 'A', engineClass: FakeEngine },
-                    { id: 'b', name: 'B', engineClass: OtherEngine }];
-        }
-        if (id === 'other-work') {
-            return [{ id: 'z', name: 'Z', engineClass: SecondFamilyEngine }];
-        }
-        return [];
-    }
+    loadWorkEngines: (id) => engineLoader(id)
 }));
 
 const { WorkEngineField, TIME_SCALE } = await import('./work-engine-field.js');
@@ -44,6 +47,7 @@ let rafQueue;
 beforeEach(() => {
     steps.length = 0;
     renders = 0;
+    engineLoader = defaultEngineLoader;
     rafQueue = [];
     vi.stubGlobal('requestAnimationFrame', (cb) => { rafQueue.push(cb); return rafQueue.length; });
     vi.stubGlobal('cancelAnimationFrame', () => {});
@@ -131,6 +135,340 @@ describe('reduced motion is honoured, not approximated', () => {
         expect(rafQueue.length).toBe(0);
         expect(steps.length).toBe(0);
         field.destroy();
+    });
+});
+
+describe('projection readiness', () => {
+    it('reports only the first visible copied frame for the current projection host', async () => {
+        const projection = document.createElement('div');
+        document.body.appendChild(projection);
+        const onProjectionPaint = vi.fn();
+        const field = new WorkEngineField(host, {
+            families: ['fake-work'],
+            onProjectionPaint
+        });
+
+        field.setProjectionHost(projection);
+        expect(onProjectionPaint).not.toHaveBeenCalled();
+        await field.start();
+
+        expect(onProjectionPaint).toHaveBeenCalledTimes(1);
+        expect(onProjectionPaint).toHaveBeenCalledWith(projection);
+        expect(onProjectionPaint.mock.calls[0][0]).toBe(projection);
+        expect(onProjectionPaint.mock.calls[0][0]).not.toBe(host);
+        expect([...projection.querySelectorAll('.work-engine-plane')]
+            .some(canvas => canvas.style.opacity === '1')).toBe(true);
+
+        frame(field, 1000);
+        frame(field, 1016);
+        field.setProjectionHost(projection);
+        expect(onProjectionPaint).toHaveBeenCalledTimes(1);
+        field.setProjectionHost(null);
+        field._rotate(false);
+        expect(onProjectionPaint).toHaveBeenCalledTimes(1);
+        field.destroy();
+        expect(onProjectionPaint).toHaveBeenCalledTimes(1);
+        projection.remove();
+    });
+
+    it('suppresses stale A load, then retries exactly once and paints replacement B', async () => {
+        const finishLoads = [];
+        let markSecondLoadStarted;
+        const secondLoadStarted = new Promise(resolve => { markSecondLoadStarted = resolve; });
+        const load = vi.fn(() => {
+            if (load.mock.calls.length === 2) markSecondLoadStarted();
+            return new Promise(resolve => { finishLoads.push(resolve); });
+        });
+        engineLoader = load;
+        const first = document.createElement('div');
+        const second = document.createElement('div');
+        document.body.append(first, second);
+        const onProjectionPaint = vi.fn();
+        const field = new WorkEngineField(host, {
+            families: ['fake-work'],
+            onProjectionPaint
+        });
+
+        field.setProjectionHost(first);
+        const starting = field.start();
+        field.setProjectionHost(second);
+        finishLoads.shift()([{ id: 'a', name: 'A', engineClass: FakeEngine }]);
+        await secondLoadStarted;
+
+        expect(onProjectionPaint).not.toHaveBeenCalled();
+        expect([...second.querySelectorAll('.work-engine-plane')]
+            .some(canvas => canvas.style.opacity === '1')).toBe(false);
+        expect(load).toHaveBeenCalledTimes(2);
+
+        finishLoads.shift()([{ id: 'a', name: 'A', engineClass: FakeEngine }]);
+        await starting;
+
+        expect(onProjectionPaint).toHaveBeenCalledTimes(1);
+        expect(onProjectionPaint.mock.calls[0][0]).toBe(second);
+        expect([...second.querySelectorAll('.work-engine-plane')]
+            .some(canvas => canvas.style.opacity === '1')).toBe(true);
+        expect(load).toHaveBeenCalledTimes(2);
+        expect(rafQueue).toHaveLength(1);
+        field.destroy();
+        first.remove();
+        second.remove();
+    });
+
+    it('cancels a queued replacement retry when the projection host is cleared', async () => {
+        let finishLoad;
+        const load = vi.fn(() => new Promise(resolve => { finishLoad = resolve; }));
+        engineLoader = load;
+        const first = document.createElement('div');
+        const second = document.createElement('div');
+        document.body.append(first, second);
+        const onProjectionPaint = vi.fn();
+        const field = new WorkEngineField(host, {
+            families: ['fake-work'],
+            onProjectionPaint
+        });
+
+        field.setProjectionHost(first);
+        const starting = field.start();
+        field.setProjectionHost(second);
+        field.setProjectionHost(null);
+        finishLoad([{ id: 'a', name: 'A', engineClass: FakeEngine }]);
+        await starting;
+
+        expect(load).toHaveBeenCalledTimes(1);
+        expect(onProjectionPaint).not.toHaveBeenCalled();
+        field.destroy();
+        first.remove();
+        second.remove();
+    });
+
+    it('cancels a queued replacement retry when stopped', async () => {
+        let finishLoad;
+        const load = vi.fn(() => new Promise(resolve => { finishLoad = resolve; }));
+        engineLoader = load;
+        const first = document.createElement('div');
+        const second = document.createElement('div');
+        document.body.append(first, second);
+        const onProjectionPaint = vi.fn();
+        const field = new WorkEngineField(host, {
+            families: ['fake-work'],
+            onProjectionPaint
+        });
+
+        field.setProjectionHost(first);
+        const starting = field.start();
+        field.setProjectionHost(second);
+        field.stop();
+        finishLoad([{ id: 'a', name: 'A', engineClass: FakeEngine }]);
+        await starting;
+
+        expect(load).toHaveBeenCalledTimes(1);
+        expect(onProjectionPaint).not.toHaveBeenCalled();
+        field.destroy();
+        first.remove();
+        second.remove();
+    });
+
+    it('does not publish a load that finishes after destroy', async () => {
+        let finishLoad;
+        const load = vi.fn(() => new Promise(resolve => { finishLoad = resolve; }));
+        engineLoader = load;
+        const first = document.createElement('div');
+        const second = document.createElement('div');
+        document.body.append(first, second);
+        const onProjectionPaint = vi.fn();
+        const field = new WorkEngineField(host, {
+            families: ['fake-work'],
+            onProjectionPaint
+        });
+
+        field.setProjectionHost(first);
+        const starting = field.start();
+        field.setProjectionHost(second);
+        field.destroy();
+        finishLoad([{ id: 'a', name: 'A', engineClass: FakeEngine }]);
+        await starting;
+
+        expect(load).toHaveBeenCalledTimes(1);
+        expect(onProjectionPaint).not.toHaveBeenCalled();
+        expect(second.querySelectorAll('.work-engine-plane')).toHaveLength(0);
+        first.remove();
+        second.remove();
+    });
+
+    it('keeps a failed draw hidden and unready', async () => {
+        class BlankEngine extends FakeEngine {
+            render() { return false; }
+        }
+        engineLoader = async () => [{ id: 'blank', name: 'Blank', engineClass: BlankEngine }];
+        const projection = document.createElement('div');
+        document.body.appendChild(projection);
+        const onProjectionPaint = vi.fn();
+        const field = new WorkEngineField(host, {
+            families: ['fake-work'],
+            onProjectionPaint
+        });
+
+        field.setProjectionHost(projection);
+        await field.start();
+
+        expect(onProjectionPaint).not.toHaveBeenCalled();
+        expect([...projection.querySelectorAll('.work-engine-plane')]
+            .some(canvas => canvas.style.opacity === '1')).toBe(false);
+        field.destroy();
+        projection.remove();
+    });
+
+    it('stop hides and clears projection planes without duplicating them on restart', async () => {
+        const projection = document.createElement('div');
+        document.body.appendChild(projection);
+        const addListener = vi.spyOn(window, 'addEventListener');
+        const field = new WorkEngineField(host, { families: ['fake-work'] });
+        field.setProjectionHost(projection);
+        await field.start();
+        const planes = [...projection.querySelectorAll('.work-engine-plane')];
+        for (const plane of planes) plane.getContext('2d').clearRect.mockClear();
+
+        field.stop();
+
+        expect(planes.every(plane => plane.style.opacity === '0')).toBe(true);
+        expect(planes.every(plane => plane.getContext('2d').clearRect.mock.calls.length > 0))
+            .toBe(true);
+        await field.start();
+        expect(projection.querySelectorAll('.work-engine-plane')).toHaveLength(2);
+        expect(addListener.mock.calls.filter(([type]) => type === 'resize')).toHaveLength(1);
+        field.destroy();
+        projection.remove();
+    });
+
+    it('resizes and redraws a paused projection immediately', async () => {
+        let width = 320;
+        let height = 180;
+        host.getBoundingClientRect = () => ({ width, height });
+        const projection = document.createElement('div');
+        document.body.appendChild(projection);
+        const field = new WorkEngineField(host, { families: ['fake-work'] });
+        field.setProjectionHost(projection);
+        await field.start();
+        field.pause();
+        const mirror = projection.querySelector('.work-engine-plane[style*="opacity: 1"]');
+        const draw = mirror.getContext('2d').drawImage;
+        draw.mockClear();
+
+        width = 640;
+        height = 360;
+        field._resize();
+
+        expect(mirror.width).toBe(field._planes[field._active].canvas.width);
+        expect(mirror.height).toBe(field._planes[field._active].canvas.height);
+        expect(draw).toHaveBeenCalled();
+        field.destroy();
+        projection.remove();
+    });
+
+    it('resizes and redraws a reduced-motion projection without starting a loop', async () => {
+        let width = 300;
+        let height = 200;
+        host.getBoundingClientRect = () => ({ width, height });
+        const projection = document.createElement('div');
+        document.body.appendChild(projection);
+        const field = new WorkEngineField(host, {
+            families: ['fake-work'],
+            reducedMotion: true
+        });
+        field.setProjectionHost(projection);
+        await field.start();
+        const mirror = projection.querySelector('.work-engine-plane[style*="opacity: 1"]');
+        const draw = mirror.getContext('2d').drawImage;
+        draw.mockClear();
+
+        width = 600;
+        height = 400;
+        field._resize();
+
+        expect(mirror.width).toBe(field._planes[field._active].canvas.width);
+        expect(mirror.height).toBe(field._planes[field._active].canvas.height);
+        expect(draw).toHaveBeenCalled();
+        expect(rafQueue).toHaveLength(0);
+        field.destroy();
+        projection.remove();
+    });
+
+    it('clears and hides a paused mirror when its resize redraw fails', async () => {
+        let width = 320;
+        let height = 180;
+        let fail = false;
+        class ResizeFailureEngine extends FakeEngine {
+            render() { return fail ? false : true; }
+        }
+        engineLoader = async () => [{
+            id: 'resize-failure', name: 'Resize failure', engineClass: ResizeFailureEngine
+        }];
+        host.getBoundingClientRect = () => ({ width, height });
+        const projection = document.createElement('div');
+        document.body.appendChild(projection);
+        const onProjectionPaint = vi.fn();
+        const field = new WorkEngineField(host, { families: ['fake-work'], onProjectionPaint });
+        field.setProjectionHost(projection);
+        await field.start();
+        field.pause();
+        const mirror = projection.querySelector('.work-engine-plane[style*="opacity: 1"]');
+        const clear = mirror.getContext('2d').clearRect;
+        clear.mockClear();
+        onProjectionPaint.mockClear();
+        const scheduledFrames = rafQueue.length;
+
+        fail = true;
+        width = 640;
+        height = 360;
+        field._resize();
+
+        expect(mirror.width).toBe(640);
+        expect(mirror.height).toBe(360);
+        expect(mirror.style.opacity).toBe('0');
+        expect(clear).toHaveBeenCalled();
+        expect(onProjectionPaint).not.toHaveBeenCalled();
+        expect(rafQueue).toHaveLength(scheduledFrames);
+        field.destroy();
+        projection.remove();
+    });
+
+    it('clears and hides a reduced-motion mirror when its resize redraw fails', async () => {
+        let width = 300;
+        let height = 200;
+        let fail = false;
+        class ResizeFailureEngine extends FakeEngine {
+            render() { return fail ? false : true; }
+        }
+        engineLoader = async () => [{
+            id: 'resize-failure', name: 'Resize failure', engineClass: ResizeFailureEngine
+        }];
+        host.getBoundingClientRect = () => ({ width, height });
+        const projection = document.createElement('div');
+        document.body.appendChild(projection);
+        const onProjectionPaint = vi.fn();
+        const field = new WorkEngineField(host, {
+            families: ['fake-work'], reducedMotion: true, onProjectionPaint
+        });
+        field.setProjectionHost(projection);
+        await field.start();
+        const mirror = projection.querySelector('.work-engine-plane[style*="opacity: 1"]');
+        const clear = mirror.getContext('2d').clearRect;
+        clear.mockClear();
+        onProjectionPaint.mockClear();
+
+        fail = true;
+        width = 600;
+        height = 400;
+        field._resize();
+
+        expect(mirror.width).toBe(600);
+        expect(mirror.height).toBe(400);
+        expect(mirror.style.opacity).toBe('0');
+        expect(clear).toHaveBeenCalled();
+        expect(onProjectionPaint).not.toHaveBeenCalled();
+        expect(rafQueue).toHaveLength(0);
+        field.destroy();
+        projection.remove();
     });
 });
 
@@ -288,6 +626,53 @@ describe('one movement never bleeds into the next', () => {
         await field.start();
         expect(field._engines.map(e => e.id)).toEqual(['b']);
         field.destroy();
+    });
+
+    it('never commits a stale family load that resolves after the current family', async () => {
+        const finishLoad = {};
+        const rendered = [];
+        class StaleAEngine extends FakeEngine {
+            render() { rendered.push('A'); return true; }
+        }
+        class CurrentBEngine extends FakeEngine {
+            render() { rendered.push('B'); return false; }
+        }
+        engineLoader = familyId => new Promise((resolve) => {
+            finishLoad[familyId] = resolve;
+        });
+        const projection = document.createElement('div');
+        document.body.appendChild(projection);
+        const onProjectionPaint = vi.fn();
+        const field = new WorkEngineField(host, {
+            families: ['fake-work'],
+            reducedMotion: true,
+            onProjectionPaint
+        });
+        field.setProjectionHost(projection);
+
+        const startingA = field.start();
+        const changingToB = field.setFamilies(['other-work']);
+        finishLoad['other-work']([{
+            id: 'current-b', name: 'Current B', engineClass: CurrentBEngine
+        }]);
+        await changingToB;
+        finishLoad['fake-work']([{
+            id: 'stale-a', name: 'Stale A', engineClass: StaleAEngine
+        }]);
+        await startingA;
+
+        field._rotate(false);
+
+        expect(field.families).toEqual(['other-work']);
+        expect(field._engines.map(entry => `${entry.familyId}/${entry.id}`))
+            .toEqual(['other-work/current-b']);
+        expect(rendered).toEqual(['B', 'B']);
+        expect(field._planes[field._active].entry.familyId).toBe('other-work');
+        expect(onProjectionPaint).not.toHaveBeenCalled();
+        expect([...projection.querySelectorAll('.work-engine-plane')]
+            .some(canvas => canvas.style.opacity === '1')).toBe(false);
+        field.destroy();
+        projection.remove();
     });
 
     it('still caches when nothing changed', async () => {

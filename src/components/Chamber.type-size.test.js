@@ -206,24 +206,46 @@ describe('Chamber type size (FM-RISE-36)', () => {
         chamber.destroy();
     });
 
-    it('rebuilds the glyph mask after a size change and keeps Mask thick-face override', async () => {
+    it('rebuilds the glyph mask after a fit size change is reconciled', async () => {
         const { chamber, container } = makeChamber(
-            { chunkMode: 'word' },
-            { fontSize: 'medium', chamberMask: true, chamberFace: 'jp' }
+            {
+                chunkMode: 'word',
+                visualConfig: {
+                    visualMode: 'interlocution',
+                    interlocution: { presentation: 'continuous', wordFill: { mode: 'same' } }
+                }
+            },
+            { fontSize: 'medium', chamberMask: true, chamberFace: 'thick' }
         );
         const el = container.querySelector('#atom-display');
         chamber.displayAtom({ content: 'Word', duration: 500 }, 0);
-        expect(el.classList.contains('is-mask')).toBe(true);
-        expect(el.dataset.chamberFace).toBe('jp');
+        expect(el.classList.contains('is-mask')).toBe(false);
+        expect(el.dataset.chamberFace).toBe('thick');
 
         const sync = vi.spyOn(chamber, 'syncFillGlyphMask');
         globalThis.rise.settings.fontSize = 'fit';
         chamber.applyChamberTypeSize();
+        chamber.applyChamberMask();
 
         expect(el.dataset.fontSize).toBe('fit');
         expect(el.classList.contains('is-mask')).toBe(true);
-        expect(el.dataset.chamberFace).toBe('jp');
+        expect(el.dataset.chamberFace).toBe('thick');
         expect(sync).toHaveBeenCalled();
         chamber.destroy();
+    });
+
+    it('loads only Thick 700 for the current mask text', async () => {
+        const previousFonts = document.fonts;
+        const load = vi.fn().mockResolvedValue([{}]);
+        document.fonts = { load };
+        const { chamber } = makeChamber();
+
+        await expect(chamber._waitThickFontReady('Word')).resolves.toBe(true);
+        expect(load).toHaveBeenCalledOnce();
+        expect(load).toHaveBeenCalledWith('700 1em "Space Grotesk"', 'Word');
+
+        chamber.destroy();
+        if (previousFonts === undefined) delete document.fonts;
+        else document.fonts = previousFonts;
     });
 });

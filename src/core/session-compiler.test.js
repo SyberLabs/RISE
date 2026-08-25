@@ -10,6 +10,7 @@ import {
 import { compileVisualScoreProgram } from './visual-score-lane.js';
 import { createEditorAsset } from './editor-asset.js';
 import { SEQUENCE_CAPABILITIES } from './sequence-capabilities.js';
+import { resolveTextMaterialCapability } from './chamber-text-material.js';
 
 describe('session compiler', () => {
   it.each([
@@ -399,10 +400,12 @@ describe('session compiler', () => {
     }).interlocution;
     expect(missing.wordFill).toEqual({
       mode: 'pick',
+      border: 'cream',
       sourceFamily: 'procedural',
       procedural: ['fractal'],
       sourced: []
     });
+    expect(missing.wordFillDeclared).toBe(false);
 
     const declared = normalizeVisualConfig({
       visualMode: 'interlocution',
@@ -412,7 +415,130 @@ describe('session compiler', () => {
         wordFill: { mode: 'same' }
       }
     }).interlocution;
-    expect(declared.wordFill).toEqual({ mode: 'same' });
+    expect(declared.wordFill).toEqual({ mode: 'same', border: 'cream' });
+    expect(declared.wordFillDeclared).toBe(true);
+  });
+
+  it('preserves word-fill provenance across a compiled continuation', () => {
+    const visualConfig = {
+      visualMode: 'interlocution',
+      interlocution: {
+        presentation: 'continuous',
+        sourced: ['sci-astronomy'],
+        procedural: ['fractal']
+      }
+    };
+    const initial = compileSession({ text: 'First division.', chunkMode: 'word', visualConfig });
+    const continued = compileSession({
+      text: 'Second division.',
+      chunkMode: 'word',
+      visualConfig: initial.visualConfig
+    });
+    expect(initial.visualConfig.interlocution.wordFillDeclared).toBe(false);
+    expect(continued.visualConfig.interlocution.wordFillDeclared).toBe(false);
+
+    const authored = compileSession({
+      text: 'Authored division.',
+      chunkMode: 'word',
+      visualConfig: {
+        ...visualConfig,
+        interlocution: { ...visualConfig.interlocution, wordFill: { mode: 'same' } }
+      }
+    });
+    const authoredContinuation = compileSession({
+      text: 'Authored continuation.',
+      chunkMode: 'word',
+      visualConfig: authored.visualConfig
+    });
+    expect(authoredContinuation.visualConfig.interlocution.wordFillDeclared).toBe(true);
+
+    const spoofed = normalizeVisualConfig({
+      ...visualConfig,
+      interlocution: {
+        ...visualConfig.interlocution,
+        wordFill: { mode: 'same' },
+        wordFillDeclared: 'false'
+      }
+    });
+    expect(spoofed.interlocution.wordFillDeclared).toBe(true);
+  });
+
+  it('does not declare malformed nested word fill as authored material', () => {
+    for (const wordFill of [null, []]) {
+      const session = compileSession({
+        text: 'Malformed material.',
+        chunkMode: 'word',
+        visualConfig: {
+          visualMode: 'interlocution',
+          interlocution: {
+            presentation: 'continuous',
+            sourced: ['sci-astronomy'],
+            procedural: ['fractal'],
+            wordFill
+          }
+        }
+      });
+      const { interlocution } = session.visualConfig;
+      expect(interlocution.wordFillDeclared).toBe(false);
+      expect(resolveTextMaterialCapability({
+        face: 'thick', fontSize: 'fit', chunkMode: 'word',
+        visualMode: 'interlocution', presentation: 'continuous',
+        wordFill: interlocution.wordFill,
+        wordFillDeclared: interlocution.wordFillDeclared
+      }).maskRequested).toBe(false);
+    }
+  });
+
+  it('does not trust true provenance without valid authored material', () => {
+    for (const wordFill of [undefined, null, []]) {
+      const session = compileSession({
+        text: 'Untrusted provenance.',
+        chunkMode: 'word',
+        visualConfig: {
+          visualMode: 'interlocution',
+          interlocution: {
+            presentation: 'continuous',
+            sourced: ['sci-astronomy'],
+            procedural: ['fractal'],
+            wordFill,
+            wordFillDeclared: true
+          }
+        }
+      });
+      const { interlocution } = session.visualConfig;
+      expect(interlocution.wordFillDeclared).toBe(false);
+      const capability = resolveTextMaterialCapability({
+        face: 'thick', fontSize: 'fit', chunkMode: 'word',
+        visualMode: 'interlocution', presentation: 'continuous',
+        wordFill: interlocution.wordFill,
+        wordFillDeclared: interlocution.wordFillDeclared
+      });
+      expect(capability.maskRequested).toBe(false);
+      expect(capability.maskActive).toBe(false);
+    }
+  });
+
+  it('retains valid root-level legacy word fill as authored material', () => {
+    for (const [wordFill, mode] of [
+      [{ mode: 'same' }, 'same'],
+      [{ mode: 'pick', sourced: [], procedural: ['fractal'] }, 'pick']
+    ]) {
+      const session = compileSession({
+        text: 'Root legacy material.',
+        chunkMode: 'word',
+        visualConfig: {
+          visualMode: 'interlocution',
+          wordFill,
+          interlocution: {
+            presentation: 'continuous',
+            sourced: ['sci-astronomy'],
+            procedural: ['fractal']
+          }
+        }
+      });
+      expect(session.visualConfig.interlocution.wordFill).toMatchObject({ mode });
+      expect(session.visualConfig.interlocution.wordFillDeclared).toBe(true);
+    }
   });
 });
 

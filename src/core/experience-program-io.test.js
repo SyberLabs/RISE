@@ -362,6 +362,7 @@ describe('experience-program-io', () => {
     });
     expect(defaults.visual.config.interlocution.wordFill).toEqual({
       mode: 'pick',
+      border: 'cream',
       sourceFamily: 'procedural',
       procedural: ['fractal'],
       sourced: []
@@ -379,7 +380,7 @@ describe('experience-program-io', () => {
         }
       }
     });
-    expect(declared.visual.config.interlocution.wordFill).toEqual({ mode: 'same' });
+    expect(declared.visual.config.interlocution.wordFill).toEqual({ mode: 'same', border: 'cream' });
   });
 
   it('refuses invalid JSON', () => {
