@@ -37,7 +37,8 @@ import {
   FONT_SIZE_CHIPS,
   SIZE_HINT_FIT,
   persistFontSize,
-  resolveFontSize
+  resolveFontSize,
+  threeStepIntent
 } from '../core/chamber-type-size.js';
 import { resolveTextMaterialCapability } from '../core/chamber-text-material.js';
 import { WORD_FILL_PROCEDURAL_PATTERNS } from '../core/visual-registry.js';
@@ -752,6 +753,7 @@ export class VisualNavigator {
       const panes = [...this.container.querySelectorAll('.vnav-entry, .vnav-col, .vnav-body')];
       for (const [i, top] of scrolls) if (panes[i]) panes[i].scrollTop = top;
     }
+    void this._mountLeafPreview();
     if (focusKey) {
       const again = this.container.querySelector(focusKey);
       // Only take focus back if it is still ours to take — a dialog that
@@ -760,6 +762,113 @@ export class VisualNavigator {
         again.focus({ preventScroll: true });
       }
     }
+  }
+
+  /**
+   * SHOW THE LEAF, DO NOT NAME IT.
+   *
+   * The entry has always reserved a preview slot and filled it with a glyph
+   * and the words 'live preview mounts here'. A reader choosing between Klee
+   * Lines, Turrell Fields and Fractal Flames is choosing between three
+   * pictures, and three captions cannot tell them apart.
+   *
+   * The cortex is a 256KB chunk and this panel is 102KB, so it is imported
+   * ONLY when a reader actually opens a leaf — a preview must not be paid for
+   * by everyone who opens the Orbital. Generation-guarded, because the import
+   * and the render both take time a reader can navigate through, and silent
+   * on failure: an engine that will not draw leaves the glyph exactly where
+   * it was.
+   */
+  async _mountLeafPreview() {
+    const leaf = this.focus;
+    const slot = this.container.querySelector('.vnav-preview');
+
+    // WHAT IS BEING PREVIEWED, NOT HOW MANY TIMES THE PANEL HAS REDRAWN.
+    //
+    // render() replaces the whole panel on every selection, so this runs
+    // again after changes that have nothing to do with the picture. Keyed on
+    // the render, it aborted a fetch in flight and started it over each time
+    // — measured at two requests for one leaf, the first killed by an
+    // unrelated toggle. On a slow connection a reader adjusting anything
+    // could keep a sourced preview from ever arriving.
+    //
+    // Keyed on the subject instead, an unrelated redraw is simply not news:
+    // the request in flight is for the same thing it was for, and is left
+    // alone to finish. Only a change of subject cancels.
+    const key = leaf?.engineId
+      || (leaf?.pool ? this.selection.pool?.[leaf.id] : null);
+
+    if (!key || !slot) {
+      this._cancelPreview();
+      return;
+    }
+
+    const cached = this._previewCache?.get(key);
+    if (cached) {
+      this._previewKey = key;
+      this._paintLeafPreview(slot, cached, key);
+      return;
+    }
+
+    // Already fetching this very thing: the rebuilt slot will be painted by
+    // the request that is already running.
+    if (this._previewKey === key && this._previewAbort) return;
+
+    this._cancelPreview();
+    this._previewKey = key;
+    const controller = typeof AbortController === 'function' ? new AbortController() : null;
+    this._previewAbort = controller;
+
+    try {
+      const { visualCortex } = await import('../visuals/visual-cortex.js');
+      if (this._previewKey !== key) return;
+
+      const url = leaf.engineId
+        ? (await visualCortex.renderLeafStill(leaf.engineId))?.url
+        : await this._sourcedStill(visualCortex, key, controller?.signal);
+
+      if (this._previewKey !== key || !url) return;
+      (this._previewCache ||= new Map()).set(key, url);
+      // The panel may have been rebuilt while this was in flight, so paint
+      // into whatever slot is live now rather than the one we started with.
+      this._paintLeafPreview(this.container.querySelector('.vnav-preview'), url, key);
+    } catch {
+      /* the glyph stays; a preview is never worth an interruption */
+    } finally {
+      if (this._previewAbort === controller) this._previewAbort = null;
+    }
+  }
+
+  /** Stop work for a subject nobody is looking at any more. */
+  _cancelPreview() {
+    this._previewAbort?.abort();
+    this._previewAbort = null;
+    this._previewKey = null;
+  }
+
+  /**
+   * One work from a collection, for a shelf to show what is on it.
+   *
+   * Network-bound, so it takes the abort signal and asks for exactly one:
+   * a preview has no use for a pool and a reader who moves on should not
+   * still be paying for twelve. A collection that will not resolve — a
+   * provider down, a reader offline — yields nothing and the glyph remains,
+   * which is the same reverent degradation the Gallery makes.
+   */
+  async _sourcedStill(visualCortex, collectionId, signal) {
+    const works = await visualCortex.resolveCollectionWorks(collectionId, { limit: 1, signal });
+    const work = Array.isArray(works) ? works[0] : null;
+    return work?.data?.url || work?.url || null;
+  }
+
+  _paintLeafPreview(slot, url, key) {
+    if (!slot || !slot.isConnected || this._previewKey !== key) return;
+    const safe = safeUrl(url);
+    if (!safe) return;
+    slot.classList.add('has-still');
+    slot.style.backgroundImage = `url("${safe}")`;
+    const note = slot.querySelector('.vnav-preview-note');
+    if (note) note.remove();
   }
 
   pathBar() {
@@ -885,8 +994,23 @@ export class VisualNavigator {
       // Controls and prose were sharing one undivided field, so a sentence
       // about Fit sat at the same rank as the buttons that set it. The
       // controls take a surface; the explanation stands outside it.
+      // A SCALE SHOULD BE SEEN AS A SCALE. S, M and L differ by ratios the
+      // Chamber actually uses — 0.82, 1, 1.18 — and were shown as three
+      // identical letters. The sample carries the real ratio, read from the
+      // same function the reading reads, so the preview cannot drift from it.
+      //
+      // Fit is not a fourth ratio. It fills the chamber with ONE word, so the
+      // sample shows one word where the scale shows a phrase: the preview
+      // teaches the difference the row could only assert.
+      const isFit = resolveFontSize(selected) === 'fit';
+      const preview = `<figure class="vnav-preview-type" data-face-sample="${escapeHtml(this.textMaterialSettings().face)}"
+          data-size-sample="${escapeHtml(resolveFontSize(selected))}"
+          style="--preview-intent:${threeStepIntent(selected)}">
+          <span class="vnav-preview-label">${isFit ? 'One Word, filling the chamber' : 'The reading, at this scale'}</span>
+          <p class="vnav-preview-sample">${isFit ? 'Light' : 'Light enters form'}</p>
+        </figure>`;
       return this.renderTextShell('Size', selected === 'fit' ? SIZE_HINT_FIT : 'Choose the scale of the reading.',
-        `<div class="vnav-control-group">${scale}${mode}</div>
+        `<div class="vnav-control-group">${scale}${mode}${preview}</div>
         <p id="vnav-fit-consequence" class="vnav-fit-consequence">Fit scales each
           Word to fill the chamber and paints the gallery through the letters. Words step one at a
           time; Recitation and phrase chunking stand aside.</p>`);
@@ -1255,7 +1379,8 @@ export class VisualNavigator {
     });
   }
 
-  destroy() { this._destroyed = true; this.container.innerHTML = ''; }
+  destroy() {
+    this._cancelPreview(); this._destroyed = true; this.container.innerHTML = ''; }
 }
 
 function glyphFor(node) {
