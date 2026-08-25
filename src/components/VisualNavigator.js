@@ -37,7 +37,8 @@ import {
   FONT_SIZE_CHIPS,
   SIZE_HINT_FIT,
   persistFontSize,
-  resolveFontSize
+  resolveFontSize,
+  threeStepIntent
 } from '../core/chamber-type-size.js';
 import { resolveTextMaterialCapability } from '../core/chamber-text-material.js';
 import { WORD_FILL_PROCEDURAL_PATTERNS } from '../core/visual-registry.js';
@@ -867,8 +868,23 @@ export class VisualNavigator {
       // Controls and prose were sharing one undivided field, so a sentence
       // about Fit sat at the same rank as the buttons that set it. The
       // controls take a surface; the explanation stands outside it.
+      // A SCALE SHOULD BE SEEN AS A SCALE. S, M and L differ by ratios the
+      // Chamber actually uses — 0.82, 1, 1.18 — and were shown as three
+      // identical letters. The sample carries the real ratio, read from the
+      // same function the reading reads, so the preview cannot drift from it.
+      //
+      // Fit is not a fourth ratio. It fills the chamber with ONE word, so the
+      // sample shows one word where the scale shows a phrase: the preview
+      // teaches the difference the row could only assert.
+      const isFit = resolveFontSize(selected) === 'fit';
+      const preview = `<figure class="vnav-preview-type" data-face-sample="${escapeHtml(this.textMaterialSettings().face)}"
+          data-size-sample="${escapeHtml(resolveFontSize(selected))}"
+          style="--preview-intent:${threeStepIntent(selected)}">
+          <span class="vnav-preview-label">${isFit ? 'One Word, filling the chamber' : 'The reading, at this scale'}</span>
+          <p class="vnav-preview-sample">${isFit ? 'Light' : 'Light enters form'}</p>
+        </figure>`;
       return this.renderTextShell('Size', selected === 'fit' ? SIZE_HINT_FIT : 'Choose the scale of the reading.',
-        `<div class="vnav-control-group">${scale}${mode}</div>
+        `<div class="vnav-control-group">${scale}${mode}${preview}</div>
         <p id="vnav-fit-consequence" class="vnav-fit-consequence">Fit scales each
           Word to fill the chamber and paints the gallery through the letters. Words step one at a
           time; Recitation and phrase chunking stand aside.</p>`);

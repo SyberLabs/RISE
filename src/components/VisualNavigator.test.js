@@ -398,6 +398,38 @@ describe('the text', () => {
 });
 
 describe('reader-facing state', () => {
+  it('shows the scale as a scale, and Fit as the different reading it is', () => {
+    // S, M and L differ by a real ratio the Chamber uses (0.82 / 1 / 1.18) and
+    // were shown as three identical letters. Fit is not a fourth ratio at all
+    // — it fills the chamber with ONE word — so the preview shows a phrase for
+    // the scale and a single word for the mode, which is the difference.
+    window.rise = { settings: { chamberFace: 'literary', fontSize: 'small' } };
+    mount({});
+    click(nav.container.querySelector('.vnav-node[data-id="size"]'));
+
+    const preview = nav.container.querySelector('.vnav-preview-type');
+    expect(preview).toBeTruthy();
+    expect(preview.getAttribute('data-size-sample')).toBe('small');
+    const small = Number(preview.style.getPropertyValue('--preview-intent'));
+    expect(small).toBeCloseTo(0.82, 2);
+
+    // large really is larger, by the ratio the reading uses
+    window.rise.settings.fontSize = 'large';
+    nav.render();
+    const large = Number(nav.container.querySelector('.vnav-preview-type')
+      .style.getPropertyValue('--preview-intent'));
+    expect(large).toBeCloseTo(1.18, 2);
+    expect(large).toBeGreaterThan(small);
+
+    // and Fit shows one word, because that is what Fit does to the reading
+    window.rise.settings.fontSize = 'fit';
+    nav.render();
+    const fit = nav.container.querySelector('.vnav-preview-type');
+    expect(fit.getAttribute('data-size-sample')).toBe('fit');
+    expect(fit.querySelector('.vnav-preview-sample').textContent.trim().split(/\s+/))
+      .toHaveLength(1);
+  });
+
   it('shows each face in its own letterform, and the chosen one at reading scale', () => {
     // The difference between these four IS the letterform, so four words set
     // in one another's typeface told a reader nothing about the choice.
