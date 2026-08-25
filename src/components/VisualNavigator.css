@@ -481,3 +481,66 @@
   color: var(--color-light, #E8E8EC);
   text-shadow: 0 2px 12px rgba(0, 0, 0, 0.8);
 }
+
+
+/* ── THE ONE TYPE ───────────────────────────────────────────────────────
+   Face, Size and Ink are three attributes of one word, so they are shown
+   around one word. The rail still offers three doors; each marks the group
+   it opened on, and the others stay legible rather than hidden — the point
+   is to see the three together. */
+.vnav-type-sections {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  margin-top: 16px;
+}
+
+.vnav-type-section {
+  padding-left: 12px;
+  border-left: 1px solid transparent;
+}
+
+.vnav-type-section.is-active {
+  border-left-color: rgba(var(--color-accent-rgb), 0.5);
+}
+
+.vnav-section-title {
+  margin: 0 0 2px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  font-weight: 400;
+  color: var(--color-mist, #6B6B75);
+}
+
+.vnav-type-section.is-active .vnav-section-title {
+  color: var(--color-accent);
+}
+
+/* The specimen is the subject: bigger, quieter, and first. */
+.vnav-specimen {
+  margin-bottom: 4px;
+  padding: 20px 18px;
+}
+
+/* THE INK, THROUGH THE LETTERS. This is the whole promise of Fit shown
+   rather than described — and it appears only when the mask could really be
+   carried, so taking the Thick face away empties the letters in front of
+   the reader instead of being explained underneath them. */
+.vnav-specimen.has-ink .vnav-preview-sample {
+  background-image: var(--specimen-ink);
+  background-size: cover;
+  background-position: center;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+}
+
+@supports not ((-webkit-background-clip: text) or (background-clip: text)) {
+  .vnav-specimen.has-ink .vnav-preview-sample {
+    color: var(--color-light, #E8E8EC);
+    -webkit-text-fill-color: var(--color-light, #E8E8EC);
+  }
+}
