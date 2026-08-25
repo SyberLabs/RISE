@@ -622,6 +622,52 @@ test('glyph local projection keeps the Fractal viewport inside the field and the
   }
 });
 
+test('Fit mask and contour share one glyph geometry (mask shapes with the real font)', async ({ page }) => {
+  await openPrep(page, { width: 1280, height: 800 });
+  await chooseMaskFit(page);
+  await begin(page);
+  await expectAtomicMaskReady(page);
+
+  // The mask carves the material into the letters; the visible contour is the
+  // atom's own -webkit-text-stroke. They coincide only if the mask shapes with
+  // the SAME font the atom renders (Space Grotesk 700). The regression this
+  // guards is a font-ISOLATED mask (a serialized data: URL image cannot see
+  // the page web font) that silently falls back and drifts across letters —
+  // invisible to a centre/inside check, visible as a diverging outline. Same
+  // font at the same size ⇒ the same advance width; a fallback diverges by
+  // several percent.
+  const geom = await page.evaluate(async () => {
+    const results = [];
+    for (let i = 0; i < 6; i += 1) {
+      await new Promise(r => requestAnimationFrame(() => setTimeout(r, 260)));
+      const atom = document.querySelector('#atom-display');
+      const maskText = document.querySelector('.chamber-fit-mask-defs text');
+      if (!atom || !maskText) continue;
+      if (atom.dataset.maskState !== 'ready') continue;
+      const word = (atom.textContent || '').trim();
+      if (!word || /\s/.test(word)) continue;   // single-token Fit atoms only
+      const range = document.createRange();
+      range.selectNodeContents(atom);
+      const atomWidth = range.getBoundingClientRect().width;   // real-font advance
+      let maskWidth = 0;
+      try { maskWidth = maskText.getComputedTextLength(); }
+      catch { try { maskWidth = maskText.getBBox().width; } catch { maskWidth = 0; } }
+      if (atomWidth > 4 && maskWidth > 4) {
+        results.push({ word, atomWidth, maskWidth, ratio: maskWidth / atomWidth });
+      }
+    }
+    return results;
+  });
+
+  expect(geom.length).toBeGreaterThanOrEqual(2);
+  for (const g of geom) {
+    expect(
+      Math.abs(g.ratio - 1),
+      `${g.word}: mask advance ${g.maskWidth.toFixed(1)} vs atom ${g.atomWidth.toFixed(1)}`
+    ).toBeLessThan(0.02);
+  }
+});
+
 test('Old Masters atomic readiness keeps a readable fallback until the first sourced response after hard reload', async ({ page }) => {
   const sourceGate = await installOldMastersSourceGate(page);
   await openPrep(page, { width: 1280, height: 800 });

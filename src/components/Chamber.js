@@ -105,6 +105,10 @@ export class Chamber {
     this._fillMaskGeneration = 0;
     this.fillFieldHost = null;
     this.fillViewport = null;
+    this._fitMaskSvg = null;
+    this._fitMaskMask = null;
+    this._fitMaskText = null;
+    this._fitMaskId = null;
     this.maskGroundPlate = null;
     this._scheduledVisualGeneration = 0;
     // Page Mode (PAGE-MODE-SPEC): the spatial projection, mounted lazily
@@ -746,6 +750,45 @@ export class Chamber {
     return (atomDisplay.textContent || '').trim().length > 0;
   }
 
+  /**
+   * The inline SVG <mask> that carves the material into glyph shapes.
+   * Created once and reused; it lives inside #chamber-field so it shares
+   * the document's font context. A serialized data: URL image cannot —
+   * such an SVG is font-isolated and shapes with a system fallback, which
+   * is what made the material fill drift away from the live contour.
+   * Removed by destroyFillField.
+   */
+  _ensureFitMaskNode() {
+    if (this._fitMaskSvg?.isConnected) return this._fitMaskSvg;
+    const field = this.container.querySelector('#chamber-field');
+    if (!field) return null;
+    const ns = 'http://www.w3.org/2000/svg';
+    const svg = document.createElementNS(ns, 'svg');
+    svg.setAttribute('class', 'chamber-fit-mask-defs');
+    svg.setAttribute('width', '0');
+    svg.setAttribute('height', '0');
+    svg.setAttribute('aria-hidden', 'true');
+    svg.style.position = 'absolute';
+    const mask = document.createElementNS(ns, 'mask');
+    if (!this._fitMaskId) {
+      this._fitMaskId = `chamber-fit-mask-${Math.random().toString(36).slice(2, 9)}`;
+    }
+    mask.setAttribute('id', this._fitMaskId);
+    mask.setAttribute('maskUnits', 'userSpaceOnUse');
+    mask.setAttribute('maskContentUnits', 'userSpaceOnUse');
+    const text = document.createElementNS(ns, 'text');
+    text.setAttribute('text-anchor', 'middle');
+    text.setAttribute('dominant-baseline', 'central');
+    text.setAttribute('fill', '#fff');
+    mask.appendChild(text);
+    svg.appendChild(mask);
+    field.appendChild(svg);
+    this._fitMaskSvg = svg;
+    this._fitMaskMask = mask;
+    this._fitMaskText = text;
+    return svg;
+  }
+
   _clearFillMask() {
     if (!this.fillFieldHost) return;
     this.fillFieldHost.style.maskImage = 'none';
@@ -916,55 +959,46 @@ export class Chamber {
     viewport.style.bottom = 'auto';
     visualCortex.setFillProjectionVisibleAreaRatio(projection.visibleAreaRatio);
 
-    const svgNs = 'http://www.w3.org/2000/svg';
-    const svg = document.createElementNS(svgNs, 'svg');
-    svg.setAttribute('xmlns', svgNs);
-    svg.setAttribute('width', String(fieldWidth));
-    svg.setAttribute('height', String(fieldHeight));
-    svg.setAttribute('viewBox', `0 0 ${fieldWidth} ${fieldHeight}`);
-    const textEl = document.createElementNS(svgNs, 'text');
+    // The glyph mask is an INLINE SVG <mask>, not a serialized data: URL.
+    // An SVG loaded as a data: image is font-isolated: it cannot see the
+    // page's Space Grotesk web font and silently shapes the mask with a
+    // system fallback, so the material fill drifts away from the live
+    // -webkit-text-stroke contour (whose glyphs ARE the real font, and
+    // whose divergence grows across letters as the advances disagree). An
+    // inline <mask> renders in the document, shapes with the same loaded
+    // font at the same metrics and position, and needs no embedded font
+    // bytes — so the mask is a faithful projection of the one authoritative
+    // geometry, the atom's rendered glyphs, that the contour also traces.
+    if (!this._ensureFitMaskNode()) {
+      this._revertFillToOpaqueWord();
+      return;
+    }
+    const maskEl = this._fitMaskMask;
+    const textEl = this._fitMaskText;
+    maskEl.setAttribute('x', '0');
+    maskEl.setAttribute('y', '0');
+    maskEl.setAttribute('width', String(fieldWidth));
+    maskEl.setAttribute('height', String(fieldHeight));
     textEl.setAttribute('x', String(textX));
     textEl.setAttribute('y', String(textY));
-    textEl.setAttribute('text-anchor', 'middle');
-    textEl.setAttribute('dominant-baseline', 'central');
-    textEl.setAttribute('fill', '#fff');
     textEl.setAttribute('font-family', cs.fontFamily || 'sans-serif');
     textEl.setAttribute('font-size', cs.fontSize || '96px');
     textEl.setAttribute('font-weight', cs.fontWeight || '700');
     textEl.setAttribute('font-style', cs.fontStyle || 'normal');
     if (cs.letterSpacing && cs.letterSpacing !== 'normal') {
       textEl.setAttribute('letter-spacing', cs.letterSpacing);
+    } else {
+      textEl.removeAttribute('letter-spacing');
     }
     textEl.textContent = text;
-    svg.appendChild(textEl);
 
-    let markup = '';
-    try {
-      markup = new XMLSerializer().serializeToString(svg);
-    } catch {
-      this._revertFillToOpaqueWord();
-      return;
-    }
-    if (!markup || !/<text[\s>]/i.test(markup)) {
-      this._revertFillToOpaqueWord();
-      return;
-    }
-
-    const url = `url("data:image/svg+xml,${encodeURIComponent(markup)}")`;
+    const url = `url("#${this._fitMaskId}")`;
     if (!contextStillCurrent()) {
       rejectChangedContext();
       return;
     }
     host.style.maskImage = url;
     host.style.webkitMaskImage = url;
-    host.style.maskMode = 'luminance';
-    host.style.webkitMaskMode = 'luminance';
-    host.style.maskRepeat = 'no-repeat';
-    host.style.webkitMaskRepeat = 'no-repeat';
-    host.style.maskSize = '100% 100%';
-    host.style.webkitMaskSize = '100% 100%';
-    host.style.maskPosition = '0 0';
-    host.style.webkitMaskPosition = '0 0';
 
     await new Promise(resolve => {
       requestAnimationFrame(() => {
@@ -995,6 +1029,12 @@ export class Chamber {
     if (this.fillFieldHost) {
       this.fillFieldHost.remove();
       this.fillFieldHost = null;
+    }
+    if (this._fitMaskSvg) {
+      this._fitMaskSvg.remove();
+      this._fitMaskSvg = null;
+      this._fitMaskMask = null;
+      this._fitMaskText = null;
     }
     this._removeMaskGroundPlate();
   }
