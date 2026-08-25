@@ -871,14 +871,6 @@ small {
   border-radius: 50%;
 }
 
-.settings .radio input[type="radio"]:checked {
-  border-color: var(--color-accent);
-}
-
-.settings .radio input[type="radio"]:checked::after {
-  background: var(--color-accent);
-}
-
 /* ─────────────────────────────────────────────────────────────
    UTILITIES
    Spacing, layout, visibility
@@ -984,19 +976,25 @@ small {
 }
 
 /* Skip to content link */
+/* THE ONE CONTROL THAT EXISTS FOR KEYBOARD READERS HAS TO BE READABLE.
+   It inked --color-glow (#FFFFFF) on --color-threshold (cream): 1.4:1 when
+   focused. And `top: -40px` does not hide an element ~49px tall — nine pixels
+   of cream sat in the corner of every screen that carries one. It is moved by
+   its own height instead, so it hides whatever it grows to. */
 .skip-link {
   position: absolute;
-  top: -40px;
+  top: 0;
   left: 0;
+  transform: translateY(-100%);
   background: var(--color-threshold);
-  color: var(--color-glow);
+  color: var(--color-on-accent);
   padding: var(--space-sm) var(--space-md);
   text-decoration: none;
   z-index: 10000;
 }
 
 .skip-link:focus {
-  top: 0;
+  transform: translateY(0);
 }
 
 /* ─────────────────────────────────────────────────────────────

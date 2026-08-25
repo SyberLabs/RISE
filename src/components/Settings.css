@@ -16,11 +16,13 @@
     -webkit-overflow-scrolling: touch;
 }
 
-/* Header */
+/* Header. The way back shares the column it leads out of — it was pinned to
+   the page edge while everything it belongs to sat centred 240px away. */
 .settings-header {
     display: flex;
     align-items: center;
-    margin-bottom: var(--space-2xl);
+    max-width: 560px;
+    margin: 0 auto var(--space-2xl);
 }
 
 /* Content */
@@ -36,24 +38,41 @@
     margin-bottom: var(--space-2xl);
 }
 
-/* Sections */
+/* Sections.
+   Five equal slabs divided by five equal full-width rules said nothing about
+   which of them mattered. The rule now runs FROM the section's name to the
+   edge and fades — the section announces itself and the eye follows the line
+   across, rather than being fenced off by a border that carries no meaning.
+   Space does the dividing. */
 .settings-section {
-    margin-bottom: var(--space-xl);
-    padding-bottom: var(--space-lg);
-    border-bottom: 1px solid var(--color-shadow);
+    margin-bottom: var(--space-2xl);
 }
 
 .settings-section:last-child {
-    border-bottom: none;
+    margin-bottom: 0;
 }
 
-.settings-section-title {
+.settings .settings-section-title {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
     font-family: var(--font-primary);
-    font-size: 12px;
+    font-size: 11px;
     font-weight: var(--font-weight-medium);
     text-transform: uppercase;
-    letter-spacing: 0.1em;
+    letter-spacing: 0.16em;
+    color: var(--color-accent);
     margin-bottom: var(--space-md);
+}
+
+.settings .settings-section-title::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: linear-gradient(90deg,
+        rgba(var(--color-accent-rgb), 0.3),
+        rgba(var(--color-accent-rgb), 0.04) 62%,
+        transparent);
 }
 
 /* Rows */
@@ -63,7 +82,28 @@
     justify-content: space-between;
     gap: var(--space-md);
     min-height: 48px;
-    margin-bottom: var(--space-sm);
+    margin-bottom: var(--space-md);
+}
+
+/* THE THREE CHOICES COMPOSE ALIKE. Size and Face hung off the right edge
+   while Accent, too wide for that gutter, sat on the left — three rows of the
+   same act zigzagging down the section. A choice among chips now always puts
+   its name above and its chips beneath, left, on the one margin the whole
+   panel reads from. The toggles keep the right edge: a switch is not a
+   choice among things, and it is small enough to hang there. */
+.settings-row:has(.settings-control[role="radiogroup"]) {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-sm);
+}
+
+.settings-control[role="radiogroup"] {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-start;
+    gap: 6px;
+    max-width: none;
+    width: 100%;
 }
 
 .settings-row:last-child {
@@ -100,11 +140,78 @@
     max-width: 240px;
 }
 
-.settings-control[aria-labelledby="chamber-accent-label"] {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: var(--space-xs);
+/* ONE CONTROL LANGUAGE. Size, Face, and Accent are the same act — choose one
+   of a few — and were drawn three different ways: circles for two of them and
+   a colour square for the third, so nothing on the screen looked related. All
+   three are chips now, the way the Visual Navigator already draws a choice.
+   The dot goes: a chosen chip lights, which is what the Navigator does and
+   what leaves room for a swatch to carry the only mark that means anything. */
+.settings .radio {
+    gap: 7px;
+    padding: 6px 11px;
+    border: 1px solid var(--color-shadow);
+    border-radius: var(--radius-sm);
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.028), transparent);
+    transition: border-color var(--transition-fast) var(--ease-default),
+        background var(--transition-fast) var(--ease-default);
+}
+
+.settings .radio:hover {
+    border-color: var(--color-fog);
+}
+
+/* Kept in the layout, not in the paint: focus must still land on the input. */
+.settings .radio input[type="radio"] {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: 0;
+    border: none;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.settings .radio:has(input:checked) {
+    border-color: rgba(var(--color-accent-rgb), 0.65);
+    background: linear-gradient(180deg,
+        rgba(var(--color-accent-rgb), 0.13), transparent);
+}
+
+.settings .radio:has(input:checked) .radio-label {
+    color: var(--color-light);
+}
+
+.settings .radio:has(input:focus-visible) {
+    outline: 2px solid var(--color-threshold);
+    outline-offset: 2px;
+}
+
+.settings .radio-label {
+    font-size: 13px;
+    color: var(--color-cloud);
+}
+
+/* THE SWATCH IS THE ARGUMENT. A sitting is a colour, so the chip wears it:
+   the token's own hue, and for the default — which has no token, being the
+   bare :root — both halves of what it really is, slate under ivory, split
+   across the square. The label stays, because a colour still has a name. */
+.settings .radio-swatch {
+    padding-left: 7px;
+}
+
+.settings .radio-swatch input[type="radio"] {
+    position: static;
+    width: 13px;
+    height: 13px;
+    opacity: 1;
+    border-radius: 1px;
+    background: linear-gradient(135deg,
+        var(--swatch) 0 50%, var(--swatch-far) 50% 100%);
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.22);
+}
+
+.settings .radio-swatch input[type="radio"]::after {
+    content: none;
 }
 
 /* Slider in settings */
@@ -133,13 +240,22 @@
     display: none;
 }
 
+/* A MACHINED SWITCH, NOT A BORROWED PILL. The 12px track and its round knob
+   were an iOS component sitting in a system whose tokens read "Sharp corners
+   = intention" and cap the radius at 2px. It is the most repeated control on
+   this screen — seven of them — so it sets the panel's whole texture. It now
+   carries the same recessed track and lit bevel as the Portal's tiles. */
 .toggle-switch {
     position: relative;
-    width: 48px;
-    height: 24px;
-    background: var(--color-shadow);
-    border-radius: 12px;
-    transition: background var(--transition-normal) var(--ease-default);
+    width: 46px;
+    height: 22px;
+    background: linear-gradient(180deg, #131317, #0D0D10);
+    border: 1px solid var(--color-shadow);
+    border-radius: var(--radius-sm);
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.7);
+    transition: background var(--transition-normal) var(--ease-default),
+        border-color var(--transition-normal) var(--ease-default),
+        box-shadow var(--transition-normal) var(--ease-default);
 }
 
 .toggle-switch::after {
@@ -147,20 +263,29 @@
     position: absolute;
     top: 2px;
     left: 2px;
-    width: 20px;
-    height: 20px;
-    background: var(--color-fog);
-    border-radius: 50%;
+    width: 16px;
+    height: 16px;
+    background: linear-gradient(180deg, #5E5E6A, #43434D);
+    border-top: 1px solid rgba(255, 255, 255, 0.16);
+    border-radius: 1px;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
     transition: all var(--transition-normal) var(--ease-default);
 }
 
 .toggle input:checked+.toggle-switch {
-    background: rgba(var(--color-accent-rgb), 0.5);
+    background: linear-gradient(180deg,
+        rgba(var(--color-accent-rgb), 0.46),
+        rgba(var(--color-accent-rgb), 0.24));
+    border-color: rgba(var(--color-accent-rgb), 0.72);
+    box-shadow:
+        inset 0 1px 3px rgba(0, 0, 0, 0.45),
+        0 0 10px rgba(var(--color-accent-rgb), 0.16);
 }
 
 .toggle input:checked+.toggle-switch::after {
     left: 26px;
-    background: var(--color-light);
+    background: linear-gradient(180deg, var(--color-light), #C2C2CB);
+    border-top-color: rgba(255, 255, 255, 0.55);
 }
 
 .toggle input:focus-visible+.toggle-switch {
@@ -170,22 +295,45 @@
 
 /* Buttons in settings */
 .settings-row .btn-secondary {
+    width: auto;
+    min-width: 232px;
+}
+
+/* Clearing every trace of a reader is not the same act as exporting it, and
+   sat in an identical row saying so only in rose text. It keeps its distance
+   and states what it does before it is pressed. */
+.settings-danger {
+    margin-top: var(--space-lg);
+    padding-top: var(--space-md);
+    border-top: 1px solid rgba(212, 127, 139, 0.22);
+}
+
+.settings-danger .settings-label-group {
     width: 100%;
+    gap: var(--space-sm);
+}
+
+.settings-danger .settings-hint {
+    color: var(--color-fog);
+    margin: 0;
+    max-width: 62ch;
+    line-height: 1.6;
 }
 
 .btn-caution {
-    border-color: var(--color-rose);
+    border-color: rgba(212, 127, 139, 0.55);
     color: var(--color-rose);
+    background: rgba(212, 127, 139, 0.05);
 }
 
 .btn-caution:hover {
-    background: rgba(212, 127, 139, 0.1);
+    background: rgba(212, 127, 139, 0.14);
+    border-color: var(--color-rose);
 }
 
 /* About section */
 .settings-about {
-    text-align: center;
-    padding-top: var(--space-lg);
+    padding-top: var(--space-sm);
 }
 
 .about-content {
@@ -221,6 +369,10 @@
 
     .settings-control {
         max-width: 100%;
+        width: 100%;
+    }
+
+    .settings-row .btn-secondary {
         width: 100%;
     }
 }

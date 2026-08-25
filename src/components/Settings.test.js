@@ -77,6 +77,53 @@ describe('Settings display type', () => {
         return { container, settings, onChange };
     }
 
+    // THE TWO PANELS ARE NOT THE SAME PANEL. A reading cannot be resumed once
+    // abandoned, so the door inside one carries only what can rescue it. What
+    // is meaningless there (the LOBBY drone, the About plate) or destructive
+    // there (export, and a clear that wipes the session and reloads) stays in
+    // the Portal, where a reader arrives on purpose and has nothing running.
+    it('withholds the between-sessions controls from the in-session panel', () => {
+        const container = document.createElement('div');
+        document.body.appendChild(container);
+        const session = new Settings(container, {
+            scope: 'session', settings: { fontSize: 'medium' }, onChange: vi.fn()
+        });
+
+        for (const gone of [
+            '[data-setting="enableAmbient"]',
+            '[data-action="export-data"]',
+            '[data-action="clear-history"]',
+            '.settings-about'
+        ]) expect(container.querySelector(gone), gone).toBeNull();
+        expect(container.textContent).not.toContain('Lobby Drone');
+
+        // Everything that can rescue a reading in progress is still here.
+        for (const kept of [
+            'input[name="font-size"]',
+            'input[name="chamber-face"]',
+            'input[name="chamber-accent"]',
+            '[data-setting="chamberMask"]',
+            '[data-setting="showProgress"]',
+            '[data-setting="showArtworkLabels"]',
+            '#master-volume',
+            '[data-setting="enableBinaural"]',
+            '[data-setting="photosensitivityMode"]',
+            '[data-setting="reducedMotion"]'
+        ]) expect(container.querySelector(kept), kept).toBeTruthy();
+        session.destroy();
+    });
+
+    it('keeps the full panel in the Portal, where nothing is running', () => {
+        const { container, settings } = mountSettings();
+        for (const kept of [
+            '[data-setting="enableAmbient"]',
+            '[data-action="export-data"]',
+            '[data-action="clear-history"]',
+            '.settings-about'
+        ]) expect(container.querySelector(kept), kept).toBeTruthy();
+        settings.destroy();
+    });
+
     it('keeps Size on S | M | L | Fit chips and drops the 0–2 slider', () => {
         const { container, settings, onChange } = mountSettings({ fontSize: 'medium' });
         const radios = [...container.querySelectorAll('input[name="font-size"]')];
@@ -197,8 +244,11 @@ describe('Settings display type', () => {
         expect(rule).toMatch(/overflow-y:\s*auto/);
         expect(rule).toMatch(/-webkit-overflow-scrolling:\s*touch/);
         expect(rule).toMatch(/height:\s*100(?:vh|dvh)/);
+        // Eleven accent chips have to wrap rather than run off a phone. They
+        // wrap as every chip group does now — Size and Face included — so the
+        // rule is asserted where all three read it from.
         expect(css).toMatch(
-            /\.settings-control\[aria-labelledby="chamber-accent-label"\]\s*\{[^}]*flex-wrap:\s*wrap/s
+            /\.settings-control\[role="radiogroup"\]\s*\{[^}]*flex-wrap:\s*wrap/s
         );
     });
 

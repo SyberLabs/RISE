@@ -106,7 +106,14 @@ describe('Chamber accent allowlist', () => {
             expect(css).toContain(`[data-accent="${id}"]`);
             expect(css).toContain(CHAMBER_ACCENT_TOKENS[id]['--color-accent']);
         }
-        expect(css).toMatch(/\.settings \.radio input\[type="radio"\]:checked\s*\{[^}]*--color-accent/s);
+        // A chosen setting still shows the sitting rather than a frozen colour;
+        // the chip carries it now, not the dot the chip replaced. Asserted
+        // where it lives — the panel's own stylesheet.
+        const panel = readFileSync(
+            join(dirname(fileURLToPath(import.meta.url)), '..', 'components', 'Settings.css'),
+            'utf8'
+        );
+        expect(panel).toMatch(/\.settings \.radio:has\(input:checked\)\s*\{[^}]*--color-accent-rgb/s);
     });
 
     it('keeps --color-threshold on the same hex as --color-accent for every allowlisted id', () => {
