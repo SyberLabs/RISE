@@ -508,6 +508,57 @@ describe('reader-facing state', () => {
     expect(source).toMatch(/await import\('\.\.\/visuals\/visual-cortex\.js'\)/);
   });
 
+  it('gathers Face, Size and Ink around one specimen', () => {
+    // They are three attributes of one word, and split across three rooms a
+    // reader could never see the thing being configured.
+    window.rise = { settings: { chamberFace: 'thick', fontSize: 'fit' } };
+    mount({});
+    for (const door of ['face', 'size', 'ink']) {
+      click(nav.container.querySelector(`.vnav-node[data-id="${door}"]`));
+      const sections = [...nav.container.querySelectorAll('.vnav-type-section')]
+        .map(el => el.dataset.section);
+      expect(sections, `entered by ${door}`).toEqual(['face', 'size', 'ink']);
+      // the door a reader came through is the one marked
+      expect(nav.container.querySelector('.vnav-type-section.is-active')?.dataset.section)
+        .toBe(door);
+      // one specimen, carrying all three
+      const specimen = nav.container.querySelectorAll('.vnav-specimen');
+      expect(specimen).toHaveLength(1);
+      expect(specimen[0].getAttribute('data-face-sample')).toBe('thick');
+      expect(specimen[0].getAttribute('data-size-sample')).toBe('fit');
+    }
+  });
+
+  it('paints the ink through the letters only when the mask could carry it', async () => {
+    // The coupling that needed a sentence — Ink needs Thick and Fit — is now
+    // a thing a reader watches happen. Take the face away and the imagery
+    // leaves the letters, in the same view, unexplained because unnecessary.
+    const still = 'data:image/png;base64,iVBORw0KGgo=';
+    vi.spyOn(visualCortex, 'renderLeafStill').mockResolvedValue({ url: still });
+
+    window.rise = { settings: { chamberFace: 'thick', fontSize: 'fit' } };
+    mount({
+      visualMode: 'interlocution',
+      interlocution: {
+        presentation: 'continuous', procedural: ['turrell'],
+        wordFill: { mode: 'pick', sourceFamily: 'procedural', procedural: ['klee'], sourced: [] }
+      }
+    });
+    click(nav.container.querySelector('.vnav-node[data-id="ink"]'));
+    await new Promise(r => setTimeout(r, 0));
+    await new Promise(r => setTimeout(r, 0));
+
+    expect(nav.container.querySelector('.vnav-specimen')?.classList.contains('has-ink'))
+      .toBe(true);
+
+    // now take the face away — the mask cannot be carried, so the letters empty
+    window.rise.settings.chamberFace = 'literary';
+    nav.render();
+    await new Promise(r => setTimeout(r, 0));
+    expect(nav.container.querySelector('.vnav-specimen')?.classList.contains('has-ink'))
+      .toBe(false);
+  });
+
   it('shows the scale as a scale, and Fit as the different reading it is', () => {
     // S, M and L differ by a real ratio the Chamber uses (0.82 / 1 / 1.18) and
     // were shown as three identical letters. Fit is not a fourth ratio at all

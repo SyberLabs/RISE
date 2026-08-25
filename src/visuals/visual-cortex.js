@@ -1667,6 +1667,23 @@ export class VisualCortex {
      */
     async renderLeafStill(type) {
         if (typeof type !== 'string' || !type) return null;
+
+        // A PICTURE SHOWN WHILE CHOOSING IS NOT PAID FOR BY THE READING.
+        //
+        // Every engine here draws straight onto its own canvas and costs the
+        // reading nothing — except Fractal, which serves frames from a queue
+        // the reading also draws from. Rendering a preview took one frame off
+        // that queue, and the reading then opened on '[FractalFlame] Cache
+        // miss! Queue empty.' Topping the queue back up afterwards narrowed
+        // the window without closing it: the reading can begin before the
+        // refill lands.
+        //
+        // So the one queued engine is not previewed from the live instance.
+        // It keeps its glyph, which is the same reverent degradation every
+        // other preview makes when it cannot draw. Giving previews their own
+        // fractal instance would restore the picture without the contention,
+        // and is the right way back to it.
+        if (type === 'fractal') return null;
         try {
             if (!this.initialized) this.init();
             return await this._renderContinuousProceduralWork(type);

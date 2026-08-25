@@ -754,6 +754,7 @@ export class VisualNavigator {
       for (const [i, top] of scrolls) if (panes[i]) panes[i].scrollTop = top;
     }
     void this._mountLeafPreview();
+    void this._mountSpecimenInk();
     if (focusKey) {
       const again = this.container.querySelector(focusKey);
       // Only take focus back if it is still ours to take — a dialog that
@@ -837,6 +838,70 @@ export class VisualNavigator {
     } finally {
       if (this._previewAbort === controller) this._previewAbort = null;
     }
+  }
+
+  /**
+   * Draw the chosen ink so the specimen can wear it.
+   *
+   * Keyed on the ink rather than the redraw, for the reason the leaf preview
+   * is: the panel rebuilds constantly and an unrelated change must not throw
+   * away a fetch that is already running for the very same ink.
+   *
+   * Only fetched when the mask could actually be carried. A specimen wearing
+   * imagery the reading cannot wear would be a lie told in the one place a
+   * reader is entitled to trust.
+   */
+  async _mountSpecimenInk() {
+    const value = wordFillValue(this.selection.wordFill);
+    const isEngine = value.startsWith('procedural:');
+    const key = isEngine
+      ? value.slice('procedural:'.length)
+      : (value.startsWith('sourced:') ? value.slice('sourced:'.length) : null);
+
+    if (!key || !this.hasActiveMask()) {
+      this._cancelInk();
+      return;
+    }
+    if (this._previewCache?.has(key)) {
+      this._inkKey = key;
+      this._paintSpecimen(key);
+      return;
+    }
+    if (this._inkKey === key && this._inkAbort) return;
+
+    this._cancelInk();
+    this._inkKey = key;
+    const controller = typeof AbortController === 'function' ? new AbortController() : null;
+    this._inkAbort = controller;
+    try {
+      const { visualCortex } = await import('../visuals/visual-cortex.js');
+      if (this._inkKey !== key) return;
+      const url = isEngine
+        ? (await visualCortex.renderLeafStill(key))?.url
+        : await this._sourcedStill(visualCortex, key, controller?.signal);
+      if (this._inkKey !== key || !url) return;
+      (this._previewCache ||= new Map()).set(key, url);
+      this._paintSpecimen(key);
+    } catch {
+      /* the plain word stays, which is honest */
+    } finally {
+      if (this._inkAbort === controller) this._inkAbort = null;
+    }
+  }
+
+  _paintSpecimen(key) {
+    const figure = this.container.querySelector('.vnav-specimen');
+    if (!figure || this._inkKey !== key) return;
+    const safe = safeUrl(this._previewCache?.get(key) || '');
+    if (!safe) return;
+    figure.classList.add('has-ink');
+    figure.style.setProperty('--specimen-ink', `url('${safe}')`);
+  }
+
+  _cancelInk() {
+    this._inkAbort?.abort();
+    this._inkAbort = null;
+    this._inkKey = null;
   }
 
   /** Stop work for a subject nobody is looking at any more. */
@@ -943,8 +1008,38 @@ export class VisualNavigator {
       ${commit}`;
   }
 
+  /**
+   * ONE SURFACE FOR ONE OBJECT.
+   *
+   * Face, Size and Ink were three rooms, and a reader could never see the
+   * thing they were configuring — because the thing is a word, and a word is
+   * all three at once. Worse, the dependency between them had to be
+   * EXPLAINED: Ink needs the Thick face and the Fit size, and cause and
+   * effect lived in different rooms, so the panel could only assert the
+   * coupling in prose beneath itself.
+   *
+   * Here the specimen is the subject and the controls stand around it. The
+   * coupling stops being a sentence and becomes a thing you watch happen:
+   * take the Thick face away and the imagery leaves the letters, in the same
+   * view, without a word being written about it.
+   *
+   * The rail keeps its three doors. They are not three rooms any more, they
+   * are three ways into one, and each marks the group it opened on.
+   */
   renderTextEntry(id) {
-    if (id === 'face') {
+    const active = ['face', 'size', 'ink'].includes(id) ? id : 'face';
+    return `<div class="vnav-entry-head"><span class="vnav-glyph">${glyphFor({ id: 'ink' })}</span>
+      <div><h3>Type</h3><p class="vnav-kind">Text</p></div></div>
+      ${this._renderSpecimen()}
+      <div class="vnav-type-sections" data-active-section="${escapeHtml(active)}">
+        ${this._faceSection(active === 'face')}
+        ${this._sizeSection(active === 'size')}
+        ${this._inkSection(active === 'ink')}
+      </div>`;
+  }
+
+  _faceSection(isActive) {
+    {
       const selected = this.textMaterialSettings().face;
       // A FACE IS A SHAPE, AND A SHAPE SHOULD BE SHOWN. Four words set in one
       // another's typeface told a reader nothing about the choice they were
@@ -952,8 +1047,7 @@ export class VisualNavigator {
       // chip now wears its own face and a sample line carries the chosen one
       // at reading scale. The family is never named — that is a CSS matter,
       // and Chamber.settings-door.test.js forbids leaking it into the chrome.
-      const sample = 'Light enters form';
-      return this.renderTextShell('Face', 'The letters, not the room.',
+      return this._section('Face', 'The letters, not the room.', isActive,
         `<div class="vnav-control-group">${bench('Face',
           CHAMBER_STREAM_FACES.map(item => ({
             id: item.id, label: item.id === 'thick' ? `${item.label} ★` : item.label,
@@ -962,14 +1056,14 @@ export class VisualNavigator {
             attr: `data-chamber-face="${escapeHtml(item.id)}" data-face-sample="${escapeHtml(item.id)}"`
               + `${item.id === 'thick' ? ' aria-describedby="vnav-thick-explanation"' : ''}`
           })), 'vnav-face-grid')}
-        <figure class="vnav-preview-type" data-face-sample="${escapeHtml(selected)}">
-          <span class="vnav-preview-label">The reading, in this face</span>
-          <p class="vnav-preview-sample">${escapeHtml(sample)}</p>
-        </figure></div>
+        </div>
         <p id="vnav-thick-explanation" class="vnav-control-explanation">Thick
           is the mask-ready face — the other three cannot carry a Visual mask.</p>`);
     }
-    if (id === 'size') {
+  }
+
+  _sizeSection(isActive) {
+    {
       const selected = this.textMaterialSettings().fontSize;
       // A SCALE AND A MODE ARE NOT FOUR SIZES. S, M and L are three points on
       // one continuum; Fit is a different reading — it scales each word to
@@ -1003,18 +1097,15 @@ export class VisualNavigator {
       // sample shows one word where the scale shows a phrase: the preview
       // teaches the difference the row could only assert.
       const isFit = resolveFontSize(selected) === 'fit';
-      const preview = `<figure class="vnav-preview-type" data-face-sample="${escapeHtml(this.textMaterialSettings().face)}"
-          data-size-sample="${escapeHtml(resolveFontSize(selected))}"
-          style="--preview-intent:${threeStepIntent(selected)}">
-          <span class="vnav-preview-label">${isFit ? 'One Word, filling the chamber' : 'The reading, at this scale'}</span>
-          <p class="vnav-preview-sample">${isFit ? 'Light' : 'Light enters form'}</p>
-        </figure>`;
-      return this.renderTextShell('Size', selected === 'fit' ? SIZE_HINT_FIT : 'Choose the scale of the reading.',
-        `<div class="vnav-control-group">${scale}${mode}${preview}</div>
+      return this._section('Size', selected === 'fit' ? SIZE_HINT_FIT : 'Choose the scale of the reading.', isActive,
+        `<div class="vnav-control-group">${scale}${mode}</div>
         <p id="vnav-fit-consequence" class="vnav-fit-consequence">Fit scales each
           Word to fill the chamber and paints the gallery through the letters. Words step one at a
           time; Recitation and phrase chunking stand aside.</p>`);
     }
+  }
+
+  _inkSection(isActive) {
     const value = wordFillValue(this.selection.wordFill);
     const settings = this.textMaterialSettings();
     const fieldLocked = Boolean(this.locked);
@@ -1078,7 +1169,7 @@ export class VisualNavigator {
       }
     ], 'vnav-ink-answers');
 
-    return this.renderTextShell('Ink', 'Paint the gallery through the letters.', `
+    return this._section('Ink', 'Paint the gallery through the letters.', isActive, `
       ${answers}
       ${ownOpen ? `<div class="vnav-ink-own" id="vnav-ink-own">
         <span class="vnav-ink-own-caption">Something of its own</span>
@@ -1107,10 +1198,52 @@ export class VisualNavigator {
     </section></div>`;
   }
 
-  renderTextShell(title, desc, body) {
-    return `<div class="vnav-entry-head"><span class="vnav-glyph">${glyphFor({ id: title.toLowerCase() })}</span>
-      <div><h3>${escapeHtml(title)}</h3><p class="vnav-kind">Text</p></div></div>
-      <p class="vnav-desc">${escapeHtml(desc)}</p>${body}`;
+  /** One group of the type editor. The door a reader came through is marked. */
+  _section(title, desc, isActive, body) {
+    return `<section class="vnav-type-section${isActive ? ' is-active' : ''}"
+      data-section="${escapeHtml(title.toLowerCase())}">
+      <h4 class="vnav-section-title">${escapeHtml(title)}</h4>
+      <p class="vnav-desc">${escapeHtml(desc)}</p>${body}
+    </section>`;
+  }
+
+  /**
+   * THE WORD, AS IT WILL ACTUALLY APPEAR.
+   *
+   * Face, scale and ink on one object, because that is what they are: three
+   * attributes of a single word. The ink is painted THROUGH the letterforms —
+   * which is the whole promise of Fit — but only when the mask could really
+   * be carried. An imagined imagery-through-letters on a face that cannot
+   * hold one would be a lie told in the reader's own specimen, and the plain
+   * word is itself the answer to why Thick and Fit matter.
+   */
+  _renderSpecimen() {
+    const { face, fontSize } = this.textMaterialSettings();
+    const size = resolveFontSize(fontSize);
+    const isFit = size === 'fit';
+    const masked = this.hasActiveMask();
+    const ink = masked ? this._specimenInkUrl() : null;
+    const label = isFit
+      ? 'One Word, filling the chamber'
+      : 'The reading, as it will appear';
+    return `<figure class="vnav-preview-type vnav-specimen${ink ? ' has-ink' : ''}"
+      data-face-sample="${escapeHtml(face)}"
+      data-size-sample="${escapeHtml(size)}"
+      style="--preview-intent:${threeStepIntent(fontSize)}${ink ? `;--specimen-ink:url('${ink}')` : ''}">
+      <span class="vnav-preview-label">${escapeHtml(label)}</span>
+      <p class="vnav-preview-sample">${isFit ? 'Light' : 'Light enters form'}</p>
+    </figure>`;
+  }
+
+  /** The chosen ink's still, if one has been drawn for it. */
+  _specimenInkUrl() {
+    const value = wordFillValue(this.selection.wordFill);
+    const key = value.startsWith('procedural:') ? value.slice('procedural:'.length)
+      : value.startsWith('sourced:') ? value.slice('sourced:'.length)
+        : null;
+    if (!key) return null;
+    const url = this._previewCache?.get(key);
+    return url ? safeUrl(url) : null;
   }
 
   renderStyleBenches(engineId) {
@@ -1380,7 +1513,7 @@ export class VisualNavigator {
   }
 
   destroy() {
-    this._cancelPreview(); this._destroyed = true; this.container.innerHTML = ''; }
+    this._cancelPreview(); this._cancelInk(); this._destroyed = true; this.container.innerHTML = ''; }
 }
 
 function glyphFor(node) {
