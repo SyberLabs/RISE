@@ -477,6 +477,16 @@ export class VisualNavigator {
     this.render();
   }
 
+  /**
+   * Open or close the Ink pane's third answer. State only: browsing what is
+   * on offer is not choosing it, so this never touches the selection and
+   * never emits.
+   */
+  toggleInkBranch() {
+    this._inkBranchOpen = this._inkBranchOpen === false;
+    this.render();
+  }
+
   setStreamGlass(enabled) {
     if (this.locked || this.programInfo) return;
     this.selection.streamGlass = enabled === true;
@@ -697,8 +707,8 @@ export class VisualNavigator {
           id: item.id, label: item.id === 'thick' ? 'Thick ★' : item.label, on: item.id === selected,
           readOnly: Boolean(this.programInfo), special: item.id === 'thick',
           attr: `data-chamber-face="${escapeHtml(item.id)}"${item.id === 'thick' ? ' aria-describedby="vnav-thick-explanation"' : ''}`
-        })), 'vnav-face-grid') + `<p id="vnav-thick-explanation" class="vnav-control-explanation"
-          ${this._faceHint ? '' : 'hidden'}>Thick is the mask-ready face.</p>`);
+        })), 'vnav-face-grid') + `<p id="vnav-thick-explanation" class="vnav-control-explanation">Thick
+          is the mask-ready face — the other three cannot carry a Visual mask.</p>`);
     }
     if (id === 'size') {
       const selected = this.textMaterialSettings().fontSize;
@@ -749,13 +759,45 @@ export class VisualNavigator {
       }))
     )).join('');
     const styles = this.inkFocus ? this.renderStyleBenches(this.inkFocus) : '';
+
+    // ONE QUESTION, NOT THREE HEADINGS.
+    //
+    // Ink, Engines and Pools were drawn as three groups and were one: every
+    // chip in all of them writes `data-word-fill`, and wordFillValue collapses
+    // them to a single value. So Accent, Same as the Field, Klee Lines and Old
+    // Masters were mutually exclusive answers to one question laid out as
+    // twenty peers, and nothing said that choosing Landscapes silently
+    // un-chose Same as the Field. The captions implied accumulation where the
+    // mechanism is replacement.
+    //
+    // The third answer is a DISCLOSURE, not a value. Opening it must not
+    // change the reading — a reader browsing what is available has not yet
+    // chosen anything — so it carries `data-ink-branch`, never
+    // `data-word-fill`.
+    //
+    // It stands OPEN by default. The fault here was never that too much was
+    // on screen; it was that what was on screen claimed a rank it did not
+    // hold. Nesting fixes the rank. Hiding would have bought compactness by
+    // spending discoverability, and every engine and pool that was reachable
+    // before is still reachable at a glance.
+    const chosenOwn = value.startsWith('procedural:') || value.startsWith('sourced:');
+    const ownOpen = chosenOwn || this._inkBranchOpen !== false;
+    const answers = bench('What paints the letters', [
+      { id: 'accent', label: 'Accent', on: value === 'accent', disabled: fieldLocked, readOnly: programLocked, attr: 'data-word-fill="accent"' },
+      { id: 'same', label: 'Same as the Field', on: value === 'same', disabled: fieldLocked, readOnly: programLocked, blocked: !maskAvailable && !programLocked, attr: 'data-word-fill="same"' },
+      {
+        id: 'own', label: `Something of its own ${ownOpen ? '▾' : '▸'}`, on: chosenOwn,
+        disabled: fieldLocked,
+        attr: `data-ink-branch="own" aria-expanded="${ownOpen}" aria-controls="vnav-ink-own"`
+      }
+    ], 'vnav-ink-answers');
+
     return this.renderTextShell('Ink', 'Paint the gallery through the letters.', `
-      ${bench('Ink', [
-        { id: 'accent', label: 'Accent', on: value === 'accent', disabled: fieldLocked, readOnly: programLocked, attr: 'data-word-fill="accent"' },
-        { id: 'same', label: 'Same as the Field', on: value === 'same', disabled: fieldLocked, readOnly: programLocked, blocked: !maskAvailable && !programLocked, attr: 'data-word-fill="same"' }
-      ])}
-      ${bench('Engines', engines)}
-      ${poolBenches}
+      ${answers}
+      ${ownOpen ? `<div class="vnav-ink-own" id="vnav-ink-own">
+        ${bench('A generated field', engines)}
+        ${poolBenches}
+      </div>` : ''}
       ${this.hasActiveMask() ? bench('Border', [
         { id: 'off', label: 'Off', on: normalizeWordFill(this.selection.wordFill).border === 'off', disabled: fieldLocked, readOnly: programLocked, attr: 'data-word-fill-border="off"' },
         { id: 'cream', label: 'Cream', on: normalizeWordFill(this.selection.wordFill).border === 'cream', disabled: fieldLocked, readOnly: programLocked, attr: 'data-word-fill-border="cream"' },
@@ -996,6 +1038,8 @@ export class VisualNavigator {
       b.onclick = () => this.setSize(b.dataset.fontSize, b));
     this.container.querySelectorAll('[data-word-fill]').forEach(b =>
       b.onclick = () => this.setWordFill(b.dataset.wordFill, b));
+    this.container.querySelectorAll('[data-ink-branch]').forEach(b =>
+      b.onclick = () => this.toggleInkBranch());
     this.container.querySelectorAll('[data-word-fill-border]').forEach(b =>
       b.onclick = () => this.setWordFillBorder(b.dataset.wordFillBorder, b));
     if (this.programInfo) {
@@ -1055,16 +1099,36 @@ function glyphFor(node) {
   return glyphs[node.id] || '·';
 }
 
+/**
+ * A chip carries four conditions — chosen, blocked, owned by a program, and
+ * plainly unavailable — and used to render them as near-identical pills. They
+ * are not degrees of one thing: `not chosen`, `unavailable because of
+ * something you chose elsewhere`, and `fixed because this reading came with a
+ * program` are three different messages, and only the last two are worth
+ * acting on. An inert chip with no reason attached reads as a broken one, so
+ * each state now names itself where the cursor already is.
+ */
+const CHIP_REASON = Object.freeze({
+  blocked: 'Needs the Thick face and Fit size — a Visual mask cannot be carried otherwise.',
+  readOnly: 'This reading came with its own visual program, which owns this choice.'
+});
+
 function bench(label, opts, className = '') {
   return `
     <div class="vnav-bench ${className}">
       <span class="vnav-bench-label">${escapeHtml(label)}</span>
       <div class="vnav-opts">
-        ${opts.map(o => `
-          <button type="button" class="vnav-opt ${o.on ? 'on is-selected' : ''} ${o.swatch ? 'swatch' : ''} ${o.blocked ? 'is-blocked' : ''} ${o.special ? 'is-special' : ''}"
+        ${opts.map(o => {
+    const state = o.blocked ? 'blocked' : (o.readOnly ? 'readOnly' : (o.on ? 'chosen' : 'open'));
+    const reason = CHIP_REASON[state];
+    return `
+          <button type="button" class="vnav-opt ${o.on ? 'on is-selected' : ''} ${o.swatch ? 'swatch' : ''} ${o.blocked ? 'is-blocked' : ''} ${o.readOnly ? 'is-owned' : ''} ${o.special ? 'is-special' : ''}"
+            data-state="${state}"
+            ${reason ? `title="${escapeHtml(reason)}"` : ''}
             ${o.disabled ? 'disabled' : ''} ${o.readOnly || o.blocked ? 'aria-disabled="true"' : ''} ${o.attr}>
             ${o.swatch ? `<i style="background:${escapeHtml(o.swatch)}"></i>` : ''}${escapeHtml(String(o.label))}
-          </button>`).join('')}
+          </button>`;
+  }).join('')}
       </div>
     </div>`;
 }
