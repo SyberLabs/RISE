@@ -424,6 +424,50 @@ describe('reader-facing state', () => {
     }
   });
 
+  it('draws a shelf from the collection it would open with', async () => {
+    // An engine draws itself; a pool is a shelf of works, and the slot shows
+    // the one it would open with. The key is the CHOSEN collection, so
+    // changing the collection redraws rather than showing the last one.
+    const url = 'https://example.test/work.jpg';
+    const resolve = vi.spyOn(visualCortex, 'resolveCollectionWorks')
+      .mockResolvedValue([{ data: { url } }]);
+
+    mount({});
+    descend('visual', 'gallery', 'gallery-sourced');
+    const shelf = nav.container.querySelector('.vnav-node[data-id="by-manner"]');
+    expect(shelf, 'the sourced shelf is no longer where this test walks').toBeTruthy();
+    click(shelf);
+    await new Promise(r => setTimeout(r, 0));
+    await new Promise(r => setTimeout(r, 0));
+
+    expect(resolve).toHaveBeenCalled();
+    // exactly one work — a preview has no use for a pool
+    expect(resolve.mock.calls.at(-1)[1]).toMatchObject({ limit: 1 });
+    const slot = nav.container.querySelector('.vnav-preview');
+    expect(slot.classList.contains('has-still')).toBe(true);
+    expect(slot.style.backgroundImage).toContain('example.test');
+  });
+
+  it('stops paying for a preview the reader has navigated past', async () => {
+    // The fetch is network-bound; a reader who moves on should not still be
+    // waiting on it, and a late answer must not paint over the new leaf.
+    let abortedSignal = null;
+    vi.spyOn(visualCortex, 'resolveCollectionWorks')
+      .mockImplementation((id, opts) => new Promise(() => { abortedSignal = opts?.signal; }));
+
+    mount({});
+    descend('visual', 'gallery', 'gallery-sourced');
+    const shelf = nav.container.querySelector('.vnav-node[data-id="by-manner"]');
+    expect(shelf).toBeTruthy();
+    click(shelf);
+    await new Promise(r => setTimeout(r, 0));
+
+    nav.navigateBack();
+    await new Promise(r => setTimeout(r, 0));
+    expect(abortedSignal, 'the fetch never received a signal to abort').toBeTruthy();
+    expect(abortedSignal.aborted).toBe(true);
+  });
+
   it('does not pull the cortex into the panel that opens first', () => {
     // visual-cortex is a 256KB chunk against this panel's 102KB. A preview
     // must not be paid for by every reader who opens the Orbital, so the

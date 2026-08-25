@@ -782,23 +782,58 @@ export class VisualNavigator {
    */
   async _mountLeafPreview() {
     const generation = ++this._previewGeneration;
-    const engineId = this.focus?.engineId;
+    // A fetch a reader has navigated past is work nobody is waiting for.
+    this._previewAbort?.abort();
+    this._previewAbort = null;
+
+    const leaf = this.focus;
     const slot = this.container.querySelector('.vnav-preview');
-    if (!engineId || !slot) return;
-    if (this._previewCache?.has(engineId)) {
-      this._paintLeafPreview(slot, this._previewCache.get(engineId), generation);
+    if (!leaf || !slot) return;
+
+    // Two kinds of leaf, one slot. An engine draws itself; a pool is a
+    // shelf of works and shows the one it would open with. The pool's key
+    // is the CHOSEN collection, so changing the collection redraws — and
+    // the cache is keyed the same way, so it cannot show the last one.
+    const key = leaf.engineId
+      || (leaf.pool ? this.selection.pool?.[leaf.id] : null);
+    if (!key) return;
+
+    if (this._previewCache?.has(key)) {
+      this._paintLeafPreview(slot, this._previewCache.get(key), generation);
       return;
     }
+
+    const controller = typeof AbortController === 'function' ? new AbortController() : null;
+    this._previewAbort = controller;
     try {
       const { visualCortex } = await import('../visuals/visual-cortex.js');
       if (generation !== this._previewGeneration) return;
-      const work = await visualCortex.renderLeafStill(engineId);
-      if (generation !== this._previewGeneration || !work?.url) return;
-      (this._previewCache ||= new Map()).set(engineId, work.url);
-      this._paintLeafPreview(slot, work.url, generation);
+
+      const url = leaf.engineId
+        ? (await visualCortex.renderLeafStill(leaf.engineId))?.url
+        : await this._sourcedStill(visualCortex, key, controller?.signal);
+
+      if (generation !== this._previewGeneration || !url) return;
+      (this._previewCache ||= new Map()).set(key, url);
+      this._paintLeafPreview(slot, url, generation);
     } catch {
       /* the glyph stays; a preview is never worth an interruption */
     }
+  }
+
+  /**
+   * One work from a collection, for a shelf to show what is on it.
+   *
+   * Network-bound, so it takes the abort signal and asks for exactly one:
+   * a preview has no use for a pool and a reader who moves on should not
+   * still be paying for twelve. A collection that will not resolve — a
+   * provider down, a reader offline — yields nothing and the glyph remains,
+   * which is the same reverent degradation the Gallery makes.
+   */
+  async _sourcedStill(visualCortex, collectionId, signal) {
+    const works = await visualCortex.resolveCollectionWorks(collectionId, { limit: 1, signal });
+    const work = Array.isArray(works) ? works[0] : null;
+    return work?.data?.url || work?.url || null;
   }
 
   _paintLeafPreview(slot, url, generation) {
@@ -1319,7 +1354,9 @@ export class VisualNavigator {
     });
   }
 
-  destroy() { this._destroyed = true; this.container.innerHTML = ''; }
+  destroy() {
+    this._previewAbort?.abort();
+    this._previewAbort = null; this._destroyed = true; this.container.innerHTML = ''; }
 }
 
 function glyphFor(node) {
