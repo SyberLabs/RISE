@@ -1075,19 +1075,37 @@ export class Chamber {
    * down — must not lock anyone out of their own reading: the wait expires
    * and the reading opens on the opaque word, which is the same reverent
    * degradation the mask falls back to everywhere else.
+   *
+   * WHAT IS WAITED ON IS THE MATERIAL, NOT A WORD. This asked the atom for
+   * the first word's text and returned early when it found none — and there
+   * IS none: the player writes the first word as it starts, one millisecond
+   * after this gate runs. So the gate held nothing, every time, and the fill
+   * arrived seconds into the reading. It only appeared to work when the
+   * imagery happened to be warm, which is exactly when no gate is needed.
+   * The font face and the first projection paint are what the mask needs;
+   * neither depends on which word arrives first.
    */
   async _awaitFitHydration(timeoutMs = 5000) {
     if (!this.chamberMaskApplies?.()) return;
+    const deadline = Date.now() + timeoutMs;
+
+    // The fill mounts only once the stage has geometry AND the gallery holds
+    // a host, which on a cold start can be after this gate is reached. An
+    // absent viewport is a not-yet, not a no.
+    while (!this.fillViewport && Date.now() < deadline) {
+      await new Promise(resolve => setTimeout(resolve, 50));
+    }
     const viewport = this.fillViewport;
     if (!viewport) return;
-    const atomDisplay = this.container.querySelector('#atom-display');
-    const text = (atomDisplay?.textContent || '').trim();
-    if (!text) return;
 
     let timer = null;
-    const expiry = new Promise(resolve => { timer = setTimeout(resolve, timeoutMs); });
+    const expiry = new Promise(resolve => {
+      timer = setTimeout(resolve, Math.max(0, deadline - Date.now()));
+    });
+    // No text argument: the FACE is what has to be loaded, and asking for
+    // the glyphs of a word that does not exist yet is what broke this.
     const hydrated = Promise.all([
-      this._waitThickFontReady(text),
+      this._waitThickFontReady(),
       visualCortex.whenContinuousFieldProjectionReady(viewport)
     ]).catch(() => {});
     try {
