@@ -1,35 +1,18 @@
 import { describe, expect, it } from 'vitest';
 import { STARTER_SEQUENCES } from './starters.js';
 import { compileSession } from '../core/session-compiler.js';
-import {
-  VISUAL_PRESENCE_MIN_MS,
-  VISUAL_PRESENCE_MAX_MS
-} from '../core/visual-presence.js';
 
 /**
- * Shipped presets — starters and Vault archetypes — are authored values
- * that no migration touches. When the temporal contract was made honest,
- * SAVED user preferences were scaled by 1.4375 to preserve their feel;
- * these hardcoded presets were missed, and every one had been playing
- * ~44% slower than its author intended for months.
+ * Shipped starters are authored values that no migration touches. When
+ * the temporal contract was made honest, SAVED user preferences were
+ * scaled by 1.4375 to preserve their feel; these hardcoded presets were
+ * missed, and every one had been playing ~44% slower than its author
+ * intended for months.
  *
  * Nothing in the app can detect that on its own: an unmigrated preset is
  * a perfectly valid config that simply reads wrong. These tests are the
  * standing check that the two stay in step.
  */
-
-// The archetypes live inside Vault.js as a module-private array, so the
-// file is read as source. That is deliberate: parsing what actually
-// ships beats exporting internals purely to make a test convenient.
-async function archetypeSource() {
-  const { readFileSync } = await import('node:fs');
-  const { resolve } = await import('node:path');
-  const source = readFileSync(resolve('src/components/Vault.js'), 'utf8');
-  const start = source.indexOf('const ARCHETYPES = [');
-  const end = source.indexOf('\n];', start);
-  expect(start, 'ARCHETYPES array not found').toBeGreaterThan(-1);
-  return source.slice(start, end);
-}
 
 describe('Shipped presets honor the temporal contract', () => {
   it('gives every starter a pace inside the app\'s own range', () => {
@@ -68,30 +51,6 @@ describe('Shipped presets honor the temporal contract', () => {
       const seconds = Math.round(session.totalDuration / 1000);
       expect(seconds, `${id} runs ${seconds}s`).toBeGreaterThanOrEqual(min);
       expect(seconds, `${id} runs ${seconds}s`).toBeLessThanOrEqual(max);
-    }
-  });
-
-  it('gives every archetype a pace inside the app\'s own range', async () => {
-    const block = await archetypeSource();
-    const wpms = [...block.matchAll(/wpm: (\d+)/g)].map(m => Number(m[1]));
-    expect(wpms.length, 'no archetype paces found').toBeGreaterThan(0);
-    for (const wpm of wpms) {
-      expect(wpm).toBeGreaterThanOrEqual(100);
-      expect(wpm).toBeLessThanOrEqual(500);
-    }
-    // The orbital clamps saved prefs to this range; a preset outside it
-    // would be silently rewritten the moment a reader touched it.
-  });
-
-  it('never pins an archetype presence to the bare minimum', async () => {
-    // 150ms is the FLOOR, not a default — it was the default when these
-    // were written, and four archetypes were still sitting on it. A
-    // preset should express a choice, not an obsolete constant.
-    const block = await archetypeSource();
-    const literals = [...block.matchAll(/duration: (\d+)/g)].map(m => Number(m[1]));
-    for (const duration of literals) {
-      expect(duration, 'presence pinned to the floor').toBeGreaterThan(VISUAL_PRESENCE_MIN_MS);
-      expect(duration).toBeLessThanOrEqual(VISUAL_PRESENCE_MAX_MS);
     }
   });
 

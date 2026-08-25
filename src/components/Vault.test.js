@@ -38,4 +38,38 @@ describe('Vault room chrome', () => {
         vault.destroy?.();
         container.remove();
     });
+
+    it('presents Sequences and offers no door to a room that is gone', () => {
+        // Sequence Archetypes was a catalog of cognitive states — a machine
+        // acting on a reader. The Vault is a place of Sequences. Asserted
+        // rather than remembered: the next room will do it again.
+        const container = document.createElement('div');
+        document.body.appendChild(container);
+        const vault = new Vault(container);
+
+        expect(container.querySelector('[data-section="sequences"]'),
+            'the Vault must still present Sequences').toBeTruthy();
+        expect(container.querySelector('.sequence-card'),
+            'Sequences must be on the landing screen').toBeTruthy();
+
+        expect(container.querySelector('[data-section="archetypes"]'),
+            'a door still opens onto archetypes').toBeNull();
+        expect(container.querySelector('.archetype-card')).toBeNull();
+        expect(container.querySelector('.vault-intro')).toBeNull();
+        expect(container.textContent).not.toMatch(/Sequence Archetypes/);
+        expect(container.textContent).not.toMatch(/An apothecary of pre-configured cognitive states/);
+
+        vault.destroy?.();
+        container.remove();
+
+        const personal = document.createElement('div');
+        document.body.appendChild(personal);
+        const personalVault = new Vault(personal, { personalizedVault: 'vault-a' });
+        expect(personal.querySelector('.sequence-card'),
+            'a personalized vault must still present Sequences').toBeTruthy();
+        expect(personal.querySelector('[data-section="archetypes"]')).toBeNull();
+        expect(personal.querySelector('.archetype-card')).toBeNull();
+        personalVault.destroy?.();
+        personal.remove();
+    });
 });
