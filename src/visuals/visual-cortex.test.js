@@ -2062,22 +2062,16 @@ describe('Continuous Field (Gallery) wiring', () => {
             generate: vi.fn(() => true),
             render: vi.fn(() => true)
         };
-        cortex.blueprint = {
-            generate: vi.fn(() => true),
-            render: vi.fn(() => true)
-        };
-        cortex.freedom = {
-            generate: vi.fn(() => true),
-            render: vi.fn(() => true)
-        };
         cortex.rockgarden = {
             generateRockGarden: vi.fn(),
             renderRockGarden: vi.fn(() => true)
         };
 
+        // Blueprint and Freedom were the Atrium's, and the Atrium is gone:
+        // no door reaches them, so the contract no longer covers them.
         const types = [
             'klee', 'turrell', 'fractal', 'neural',
-            'rockgarden', 'harmonograph', 'ostensoria', 'apparitio', 'blueprint', 'freedom'
+            'rockgarden', 'harmonograph', 'ostensoria', 'apparitio'
         ];
         const works = await Promise.all(
             types.map(type => cortex._renderContinuousProceduralWork(type))

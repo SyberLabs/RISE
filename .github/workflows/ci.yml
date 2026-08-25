@@ -244,7 +244,10 @@ jobs:
   e2e-full:
     name: Browser matrix ${{ matrix.shard }}/4
     needs: changes
-    if: needs.changes.outputs.code == 'true'
+    # Do not skip this job. A skipped matrix reports the unexpanded name
+    # "Browser matrix ${{ matrix.shard }}/4", and a ruleset that requires
+    # "Browser matrix 1/4" then waits forever. The shards always start;
+    # Playwright runs only when code moved.
     runs-on: ubuntu-latest
     timeout-minutes: 20
     strategy:
@@ -253,13 +256,19 @@ jobs:
       matrix:
         shard: [1, 2, 3, 4]
     steps:
+      - name: Prose does not need the browser
+        if: needs.changes.outputs.code == 'false'
+        run: echo 'Prose only — this shard reports so a required check is not left pending.'
       - uses: actions/checkout@v4
+        if: needs.changes.outputs.code != 'false'
       - uses: ./.github/actions/setup
+        if: needs.changes.outputs.code != 'false'
         with:
           chromium: 'true'
-      - run: npm run test:e2e -- --shard=${{ matrix.shard }}/4
+      - if: needs.changes.outputs.code != 'false'
+        run: npm run test:e2e -- --shard=${{ matrix.shard }}/4
       - uses: actions/upload-artifact@v4
-        if: failure() || cancelled()
+        if: (failure() || cancelled()) && needs.changes.outputs.code != 'false'
         with:
           # upload-artifact@v4 rejects a name a sibling already used.
           name: playwright-report-full-${{ matrix.shard }}

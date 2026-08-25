@@ -16,8 +16,6 @@ import { Harmonograph } from './harmonograph.js';
 import { Ostensoria } from './ostensoria.js';
 import { Apparitio } from './apparitio.js';
 import { createRemoteImage } from './remote-image.js';
-import { Blueprint } from './blueprint.js';
-import { Freedom } from './freedom.js';
 import {
     AsciiCanvasRenderer,
     AsciiFrameCompiler,
@@ -82,6 +80,39 @@ import {
 // 4.8% coverage, 48% repeat flashes, and zero of the enrichment pins,
 // because the 12 slots filled from fast AIC draws before the first
 // pin batch landed and then never turned over.)
+/**
+ * Engines depicted by a shipped still rather than drawn on the spot, each with
+ * the picture that stands for it. Two reasons put an engine here, and both are
+ * about what a reader is charged for a glance:
+ *
+ *   too dear to draw — fractal 1139ms, ostensoria 697ms, apparitio 365ms
+ *     against 50-77ms for the rest, and fractal takes its frames from the
+ *     queue the reading also draws from;
+ *   no still to draw — the attractor integrates continuously and has no
+ *     still branch at all; a live field would have to be stood up for a
+ *     thumbnail, and one frame of a turning thing misrepresents it anyway.
+ *
+ * The register IS the list of shipped pictures, so an engine can never be
+ * withheld from live drawing without something to show in its place. Built by
+ * scripts/build-engine-stills.mjs from the engines' own output.
+ */
+const SHIPPED_STILLS = new Map([
+    ['fractal', 'fractal.webp'],
+    ['ostensoria', 'ostensoria.webp'],
+    ['apparitio', 'apparitio.webp'],
+    ['attractor', 'attractor.webp']
+]);
+
+/** Same-origin and absolute, because safeUrl admits no relative path. */
+function shippedStill(file) {
+    if (typeof location === 'undefined') return null;
+    try {
+        return new URL(`engine-stills/${file}`, location.origin + '/').href;
+    } catch {
+        return null;
+    }
+}
+
 const INITIAL_POOL_TARGET = 1;
 const BACKGROUND_CATEGORY_TARGET = 6;
 const MAX_CATEGORY_TARGET = 20;
@@ -129,9 +160,7 @@ const GALLERY_PROCEDURAL_TYPES = Object.freeze([
     'harmonograph',
     'ostensoria',
     'apparitio',
-    'attractor',
-    'blueprint',
-    'freedom'
+    'attractor'
 ]);
 const GALLERY_PROCEDURAL_TITLES = Object.freeze({
     klee: 'Klee Engine',
@@ -143,8 +172,6 @@ const GALLERY_PROCEDURAL_TITLES = Object.freeze({
     ostensoria: 'Iris Plates',
     apparitio: 'Spectral Plates',
     attractor: 'Attractor',
-    blueprint: 'Blueprint',
-    freedom: 'Freedom Field'
 });
 
 export class VisualCortex {
@@ -158,8 +185,6 @@ export class VisualCortex {
         this.harmonograph = null;
         this.ostensoria = null;
         this.apparitio = null;
-        this.blueprint = null;
-        this.freedom = null;
         this.imageWashEl = null;
         this._activeAdaptiveImage = null;
         this._adaptiveImageHandlers = new Map();
@@ -383,8 +408,6 @@ export class VisualCortex {
             this.harmonograph = new Harmonograph();
             this.ostensoria = new Ostensoria();
             this.apparitio = new Apparitio();
-            this.blueprint = new Blueprint();
-            this.freedom = new Freedom();
         }
 
         // Native sourced imagery uses the same two-plane presentation as
@@ -1667,6 +1690,31 @@ export class VisualCortex {
      */
     async renderLeafStill(type) {
         if (typeof type !== 'string' || !type) return null;
+
+        // A PICTURE SHOWN WHILE CHOOSING IS NOT PAID FOR BY THE READING.
+        //
+        // Measured, per still, in the browser:
+        //   rockgarden 50ms · turrell 64ms · klee 66ms · neural 70ms
+        //   harmonograph 77ms · apparitio 365ms · ostensoria 697ms
+        //   fractal 1139ms
+        //
+        // The cheap ones draw onto their own canvas and nobody notices. The
+        // dear ones are a different matter: Fractal serves frames from a queue
+        // the reading also draws from — one preview emptied it, 0 of 5, and
+        // the reading opened on 'Cache miss! Queue empty.' — while Ostensoria
+        // and Apparitio stall the panel outright while a reader clicks
+        // through it.
+        //
+        // The line is drawn on cost rather than on a name, so an engine added
+        // later is classified by what it does rather than by whether anyone
+        // remembered it. Each of these shows a still rendered ONCE from the
+        // engine itself, so a reader still meets a picture — the engine's own
+        // work, not decoration — and the reading is never charged for it.
+        const shipped = SHIPPED_STILLS.get(type);
+        if (shipped) {
+            const url = shippedStill(shipped);
+            return url ? { url, still: true } : null;
+        }
         try {
             if (!this.initialized) this.init();
             return await this._renderContinuousProceduralWork(type);
@@ -1767,28 +1815,7 @@ export class VisualCortex {
                 rendered = this.apparitio.render(this._kleeCanvas);
                 canvas = this._kleeCanvas;
             }
-        } else if (type === 'blueprint' && this.blueprint && this._kleeCanvas) {
-            this._resizeKleeCanvas();
-            rendered = this.blueprint.generate(signal, undefined, {
-                climate: this.config.blueprintClimate,
-                mechanism: this.config.blueprintMechanism
-            });
-            if (asciiMode && rendered) asciiFrame = this._blueprintAsciiFrame(signal);
-            else if (rendered) {
-                rendered = this.blueprint.render(this._kleeCanvas);
-                canvas = this._kleeCanvas;
-            }
-        } else if (type === 'freedom' && this.freedom && this._kleeCanvas) {
-            this._resizeKleeCanvas();
-            rendered = this.freedom.generate(signal, undefined, {
-                relation: this.config.freedomRelation
-            });
-            if (asciiMode && rendered) asciiFrame = this._freedomAsciiFrame(signal);
-            else if (rendered) {
-                rendered = this.freedom.render(this._kleeCanvas);
-                canvas = this._kleeCanvas;
-            }
-        } else if (type === 'rockgarden' && this.rockgarden && this._kleeCanvas) {
+                } else if (type === 'rockgarden' && this.rockgarden && this._kleeCanvas) {
             this._resizeKleeCanvas();
             this.rockgarden.generateRockGarden({
                 width: this._kleeCanvas.width,
