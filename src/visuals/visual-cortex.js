@@ -1655,6 +1655,26 @@ export class VisualCortex {
      * the fill adapter (existing brightness / gamma / vibrancy as a
      * session-locked 1D LUT). The room still uses the classic engine.
      */
+    /**
+     * One still frame of a procedural engine, for a panel that wants to SHOW
+     * what a leaf is rather than name it.
+     *
+     * Public because the Navigator is not entitled to the private renderer,
+     * and narrow because that is all a preview needs: a type in, a work with
+     * a url out, or null. Never throws — a preview that cannot draw falls
+     * back to its glyph, and an engine that will not render is not an error
+     * worth interrupting a reader for.
+     */
+    async renderLeafStill(type) {
+        if (typeof type !== 'string' || !type) return null;
+        try {
+            if (!this.initialized) this.init();
+            return await this._renderContinuousProceduralWork(type);
+        } catch {
+            return null;
+        }
+    }
+
     async _renderContinuousProceduralWork(type, options = {}) {
         const wordFill = options.wordFill === true;
         if (!GALLERY_PROCEDURAL_TYPES.includes(type)) return null;

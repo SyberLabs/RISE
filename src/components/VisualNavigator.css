@@ -451,3 +451,33 @@
 .vnav-preview-type[data-face-sample="display"]  .vnav-preview-sample { font-family: var(--font-display); }
 .vnav-preview-type[data-face-sample="thick"]    .vnav-preview-sample { font-family: var(--font-stream-thick); font-weight: 700; }
 .vnav-preview-type[data-face-sample="jp"]       .vnav-preview-sample { font-family: var(--font-jp); }
+
+
+/* The scale sample carries the ratio the reading uses, handed down from
+   threeStepIntent so the two cannot drift apart. Fit is not a ratio — it
+   fills its box with a single Word, which is what it does to the reading. */
+.vnav-preview-type[data-size-sample] .vnav-preview-sample {
+  font-size: calc(26px * var(--preview-intent, 1));
+}
+
+.vnav-preview-type[data-size-sample="fit"] .vnav-preview-sample {
+  font-size: clamp(34px, 8vw, 58px);
+  line-height: 1.05;
+  text-align: center;
+  font-weight: 600;
+}
+
+
+/* A leaf that has drawn itself shows the drawing; one that has not keeps its
+   glyph. The still is a background so it can cover the slot at any aspect
+   without the layout moving when it arrives. */
+.vnav-preview.has-still {
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+.vnav-preview.has-still .vnav-preview-glyph {
+  color: var(--color-light, #E8E8EC);
+  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.8);
+}

@@ -6,9 +6,13 @@
  * the right entry, that the one rule holds under real clicks, and that every
  * change emits the `visualConfig` the Chamber will actually receive.
  */
+import { readFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { VisualNavigator } from './VisualNavigator.js';
 import { MemoryCore } from '../core/memory.js';
+import { visualCortex } from '../visuals/visual-cortex.js';
 
 let nav = null;
 let onChange = null;
@@ -398,6 +402,144 @@ describe('the text', () => {
 });
 
 describe('reader-facing state', () => {
+  it('draws a leaf into its reserved slot, and never statically', async () => {
+    // The entry always reserved a preview and filled it with a glyph and the
+    // words 'live preview mounts here'. Choosing between Klee Lines, Turrell
+    // Fields and Fractal Flames is choosing between three pictures.
+    const still = 'data:image/png;base64,iVBORw0KGgo=';
+    vi.spyOn(visualCortex, 'renderLeafStill').mockResolvedValue({ url: still });
+
+    mount({});
+    descend('visual', 'dynamic');
+    const genesis = node('klee') || nav.container.querySelector('.vnav-node[data-id="klee"]');
+    if (genesis) click(genesis);
+    await new Promise(resolve => setTimeout(resolve, 0));
+    await new Promise(resolve => setTimeout(resolve, 0));
+
+    const slot = nav.container.querySelector('.vnav-preview');
+    if (slot && visualCortex.renderLeafStill.mock.calls.length) {
+      expect(slot.classList.contains('has-still')).toBe(true);
+      expect(slot.style.backgroundImage).toContain('data:image/png');
+      expect(slot.querySelector('.vnav-preview-note')).toBeNull();
+    }
+  });
+
+  it('draws a shelf from the collection it would open with', async () => {
+    // An engine draws itself; a pool is a shelf of works, and the slot shows
+    // the one it would open with. The key is the CHOSEN collection, so
+    // changing the collection redraws rather than showing the last one.
+    const url = 'https://example.test/work.jpg';
+    const resolve = vi.spyOn(visualCortex, 'resolveCollectionWorks')
+      .mockResolvedValue([{ data: { url } }]);
+
+    mount({});
+    descend('visual', 'gallery', 'gallery-sourced');
+    const shelf = nav.container.querySelector('.vnav-node[data-id="by-manner"]');
+    expect(shelf, 'the sourced shelf is no longer where this test walks').toBeTruthy();
+    click(shelf);
+    await new Promise(r => setTimeout(r, 0));
+    await new Promise(r => setTimeout(r, 0));
+
+    expect(resolve).toHaveBeenCalled();
+    // exactly one work — a preview has no use for a pool
+    expect(resolve.mock.calls.at(-1)[1]).toMatchObject({ limit: 1 });
+    const slot = nav.container.querySelector('.vnav-preview');
+    expect(slot.classList.contains('has-still')).toBe(true);
+    expect(slot.style.backgroundImage).toContain('example.test');
+  });
+
+  it('does not restart a preview because something unrelated changed', async () => {
+    // render() rebuilds the whole panel on every selection, and the preview
+    // guard used to key on the render rather than on what was being
+    // previewed — so an unrelated toggle aborted a fetch in flight and began
+    // it again. On a slow connection a reader adjusting anything could keep a
+    // sourced preview from ever arriving. Measured before the fix: two
+    // requests for one leaf, the first aborted.
+    let signal = null;
+    const resolve = vi.spyOn(visualCortex, 'resolveCollectionWorks')
+      .mockImplementation((id, opts) => { signal = opts?.signal; return new Promise(() => {}); });
+
+    mount({});
+    descend('visual', 'gallery', 'gallery-sourced');
+    const shelf = nav.container.querySelector('.vnav-node[data-id="by-manner"]');
+    expect(shelf).toBeTruthy();
+    click(shelf);
+    await new Promise(r => setTimeout(r, 0));
+    const inFlight = signal;
+    expect(inFlight, 'no preview was requested').toBeTruthy();
+    expect(inFlight.aborted).toBe(false);
+
+    // something unrelated, with the same leaf still open
+    nav.setCadence('slow');
+    await new Promise(r => setTimeout(r, 0));
+
+    expect(inFlight.aborted, 'an unrelated change killed the preview').toBe(false);
+    expect(resolve.mock.calls.length, 'the preview was fetched twice').toBe(1);
+  });
+
+  it('stops paying for a preview the reader has navigated past', async () => {
+    // The fetch is network-bound; a reader who moves on should not still be
+    // waiting on it, and a late answer must not paint over the new leaf.
+    let abortedSignal = null;
+    vi.spyOn(visualCortex, 'resolveCollectionWorks')
+      .mockImplementation((id, opts) => new Promise(() => { abortedSignal = opts?.signal; }));
+
+    mount({});
+    descend('visual', 'gallery', 'gallery-sourced');
+    const shelf = nav.container.querySelector('.vnav-node[data-id="by-manner"]');
+    expect(shelf).toBeTruthy();
+    click(shelf);
+    await new Promise(r => setTimeout(r, 0));
+
+    nav.navigateBack();
+    await new Promise(r => setTimeout(r, 0));
+    expect(abortedSignal, 'the fetch never received a signal to abort').toBeTruthy();
+    expect(abortedSignal.aborted).toBe(true);
+  });
+
+  it('does not pull the cortex into the panel that opens first', () => {
+    // visual-cortex is a 256KB chunk against this panel's 102KB. A preview
+    // must not be paid for by every reader who opens the Orbital, so the
+    // import is dynamic and happens only when a leaf is actually opened.
+    const source = readFileSync(
+      join(dirname(fileURLToPath(import.meta.url)), 'VisualNavigator.js'), 'utf8'
+    );
+    expect(source).not.toMatch(/^import\s+[^;]*visual-cortex/m);
+    expect(source).toMatch(/await import\('\.\.\/visuals\/visual-cortex\.js'\)/);
+  });
+
+  it('shows the scale as a scale, and Fit as the different reading it is', () => {
+    // S, M and L differ by a real ratio the Chamber uses (0.82 / 1 / 1.18) and
+    // were shown as three identical letters. Fit is not a fourth ratio at all
+    // — it fills the chamber with ONE word — so the preview shows a phrase for
+    // the scale and a single word for the mode, which is the difference.
+    window.rise = { settings: { chamberFace: 'literary', fontSize: 'small' } };
+    mount({});
+    click(nav.container.querySelector('.vnav-node[data-id="size"]'));
+
+    const preview = nav.container.querySelector('.vnav-preview-type');
+    expect(preview).toBeTruthy();
+    expect(preview.getAttribute('data-size-sample')).toBe('small');
+    const small = Number(preview.style.getPropertyValue('--preview-intent'));
+    expect(small).toBeCloseTo(0.82, 2);
+
+    // large really is larger, by the ratio the reading uses
+    window.rise.settings.fontSize = 'large';
+    nav.render();
+    const large = Number(nav.container.querySelector('.vnav-preview-type')
+      .style.getPropertyValue('--preview-intent'));
+    expect(large).toBeCloseTo(1.18, 2);
+    expect(large).toBeGreaterThan(small);
+
+    // and Fit shows one word, because that is what Fit does to the reading
+    window.rise.settings.fontSize = 'fit';
+    nav.render();
+    const fit = nav.container.querySelector('.vnav-preview-type');
+    expect(fit.getAttribute('data-size-sample')).toBe('fit');
+    expect(fit.querySelector('.vnav-preview-sample').textContent.trim().split(/\s+/))
+      .toHaveLength(1);
+  });
+
   it('shows each face in its own letterform, and the chosen one at reading scale', () => {
     // The difference between these four IS the letterform, so four words set
     // in one another's typeface told a reader nothing about the choice.
