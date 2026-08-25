@@ -335,3 +335,16 @@
 .vnav-bench.is-property .vnav-bench-label {
   opacity: 0.8;
 }
+
+
+/* Fit is a mode, not a fourth size, so it does not sit in the scale's row —
+   and what it costs is readable before it is taken, not after. */
+.vnav-mode-bench { margin-top: 10px; }
+
+.vnav-fit-consequence {
+  margin: 8px 0 0;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--color-mist, #6B6B75);
+  max-width: 52ch;
+}

@@ -393,6 +393,56 @@ describe('the text', () => {
 });
 
 describe('reader-facing state', () => {
+  it('keeps its place and keeps focus across a choice', () => {
+    // render() replaces the whole panel's innerHTML on every selection, so
+    // the pane scrolled back to the top and focus fell to the body — a
+    // keyboard reader was ejected from the panel on every single choice.
+    mount({});
+    click(nav.container.querySelector('.vnav-node[data-id="ink"]'));
+
+    const scroller = nav.container.querySelector('.vnav-entry');
+    Object.defineProperty(scroller, 'scrollHeight', { value: 900, configurable: true });
+    Object.defineProperty(scroller, 'clientHeight', { value: 300, configurable: true });
+    scroller.scrollTop = 240;
+
+    const chip = nav.container.querySelector('[data-word-fill="accent"]');
+    chip.focus();
+    click(chip);
+
+    // the same control is focused again, in a freshly built DOM
+    const after = nav.container.querySelector('[data-word-fill="accent"]');
+    expect(after).not.toBe(chip);                       // it really was rebuilt
+    expect(document.activeElement).toBe(after);
+    expect(nav.container.querySelector('.vnav-entry').scrollTop).toBe(240);
+  });
+
+  it('separates the size scale from the reading mode Fit really is', () => {
+    // S, M and L are three points on one continuum. Fit is not a fourth
+    // point: it forces chunking to one word and stands recitation aside.
+    // Its cost also used to appear only once it was already chosen.
+    mount({});
+    click(nav.container.querySelector('.vnav-node[data-id="size"]'));
+
+    const benchFor = name => [...nav.container.querySelectorAll('.vnav-bench')]
+      .find(b => b.querySelector('.vnav-bench-label')?.textContent.trim() === name);
+    const scale = benchFor('Scale');
+    expect(scale).toBeTruthy();
+    expect([...scale.querySelectorAll('.vnav-opt')].map(b => b.dataset.fontSize))
+      .toEqual(['s', 'm', 'l']);
+    expect(scale.querySelector('[data-font-size="fit"]')).toBeNull();
+
+    // Fit stands on its own, still reachable, still the same control.
+    const fit = nav.container.querySelector('[data-font-size="fit"]');
+    expect(fit).toBeTruthy();
+    expect(benchFor('Scale').contains(fit)).toBe(false);
+
+    // and the consequence is legible BEFORE the choice, not after it
+    const explained = nav.container.querySelector('.vnav-fit-consequence');
+    expect(explained).toBeTruthy();
+    expect(explained.hidden).toBe(false);
+    expect(explained.textContent.replace(/\s+/g, ' ')).toMatch(/one at a time/i);
+  });
+
   it('names the ink by what it gives, not by how it is drawn', () => {
     // "Visual Mask" named the mechanism, and did not even distinguish: every
     // option in the group produces a mask. What this one actually means is

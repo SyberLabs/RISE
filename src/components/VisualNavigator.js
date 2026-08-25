@@ -542,8 +542,47 @@ export class VisualNavigator {
   }
 
   /* ── render ───────────────────────────────────────────────────────── */
+  /**
+   * A stable identity for a control, so the same one can be found again in a
+   * DOM that has just been rebuilt underneath it.
+   */
+  _controlKey(el) {
+    if (!el || el === this.container || !this.container.contains(el)) return null;
+    for (const attr of ['data-word-fill', 'data-word-fill-border', 'data-font-size',
+      'data-chamber-face', 'data-gallery-cadence', 'data-action', 'data-id',
+      'data-pool', 'data-sub', 'data-glyph', 'data-focal-type']) {
+      const value = el.getAttribute?.(attr);
+      if (value !== null && value !== undefined) {
+        return `[${attr}="${String(value).replace(/"/g, '\\"')}"]`;
+      }
+    }
+    return null;
+  }
+
   render() {
     if (this._destroyed) return;
+
+    // EVERY CHOICE REBUILT THE WHOLE PANEL, AND THE PANEL FORGOT ITSELF.
+    //
+    // render() replaces the container's innerHTML to change what is usually
+    // one class on one chip. Two things did not survive that and neither was
+    // restored: the scroll offset of the option area — so choosing a pool
+    // near the bottom snapped the pane to the top and carried the new
+    // selection out of sight — and focus, which fell to the document body
+    // because the clicked button no longer existed. A keyboard reader was
+    // ejected from the panel on every single choice and had to tab back in.
+    //
+    // The interruption path already did this properly: opening a dialog
+    // records a selector for what opened it and closing puts focus back. The
+    // rare case was preserved and the ordinary one discarded; this gives the
+    // ordinary one the same care.
+    const focusKey = this._restoringDialogFocus
+      ? null
+      : this._controlKey(this.container.ownerDocument?.activeElement);
+    const scrolls = [...this.container.querySelectorAll('.vnav-entry, .vnav-col, .vnav-body')]
+      .map((el, i) => [i, el.scrollTop])
+      .filter(([, top]) => top > 0);
+
     const cols = this.columns();
     this.container.innerHTML = `
       <div class="vnav">
@@ -563,6 +602,19 @@ export class VisualNavigator {
         ${this.renderDialog()}
       </div>`;
     this.attach();
+
+    if (scrolls.length) {
+      const panes = [...this.container.querySelectorAll('.vnav-entry, .vnav-col, .vnav-body')];
+      for (const [i, top] of scrolls) if (panes[i]) panes[i].scrollTop = top;
+    }
+    if (focusKey) {
+      const again = this.container.querySelector(focusKey);
+      // Only take focus back if it is still ours to take — a dialog that
+      // opened during this render owns it now.
+      if (again && !this.dialog && typeof again.focus === 'function') {
+        again.focus({ preventScroll: true });
+      }
+    }
   }
 
   pathBar() {
@@ -650,12 +702,30 @@ export class VisualNavigator {
     }
     if (id === 'size') {
       const selected = this.textMaterialSettings().fontSize;
+      // A SCALE AND A MODE ARE NOT FOUR SIZES. S, M and L are three points on
+      // one continuum; Fit is a different reading — it scales each word to
+      // fill the chamber, steps one word at a time, and stands recitation and
+      // phrase chunking aside. Offered as a fourth chip it invited the casual,
+      // reversible try that a larger size deserves and it does not. Its cost
+      // is also stated here rather than after the fact: the pane used to read
+      // 'Choose the scale of the reading' until Fit was chosen, and only then
+      // explain what Fit had already done.
+      const chips = FONT_SIZE_CHIPS.filter(item => item.fontSize !== 'fit');
+      const fit = FONT_SIZE_CHIPS.find(item => item.fontSize === 'fit');
+      const scale = bench('Scale', chips.map(item => ({
+        id: item.id, label: item.label, on: item.fontSize === selected,
+        readOnly: Boolean(this.programInfo),
+        attr: `data-font-size="${escapeHtml(item.id)}"`
+      })));
+      const mode = fit ? bench('Or read one word at a time', [{
+        id: fit.id, label: 'Fit', on: selected === 'fit',
+        readOnly: Boolean(this.programInfo), special: true,
+        attr: `data-font-size="${escapeHtml(fit.id)}" aria-describedby="vnav-fit-consequence"`
+      }], 'vnav-mode-bench') : '';
       return this.renderTextShell('Size', selected === 'fit' ? SIZE_HINT_FIT : 'Choose the scale of the reading.',
-        bench('Size', FONT_SIZE_CHIPS.map(item => ({
-          id: item.id, label: item.label, on: item.fontSize === selected,
-          readOnly: Boolean(this.programInfo),
-          attr: `data-font-size="${escapeHtml(item.id)}"`
-        }))));
+        `${scale}${mode}<p id="vnav-fit-consequence" class="vnav-fit-consequence">Fit scales each
+          Word to fill the chamber and paints the gallery through the letters. Words step one at a
+          time; Recitation and phrase chunking stand aside.</p>`);
     }
     const value = wordFillValue(this.selection.wordFill);
     const settings = this.textMaterialSettings();
