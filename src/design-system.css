@@ -1343,7 +1343,7 @@ small {
   padding: var(--space-sm) var(--space-lg);
   background: var(--color-threshold);
   border: 1px solid var(--color-threshold);
-  color: var(--color-glow);
+  color: var(--color-on-accent);
   font-family: var(--font-primary);
   font-size: 14px;
   font-weight: var(--font-weight-medium);
@@ -1355,6 +1355,7 @@ small {
 .btn-primary:hover:not(:disabled) {
   background: color-mix(in srgb, var(--color-accent) 72%, var(--color-light));
   border-color: color-mix(in srgb, var(--color-accent) 72%, var(--color-light));
+  color: var(--color-on-accent);
   transform: translateY(-1px);
 }
 
