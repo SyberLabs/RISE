@@ -823,9 +823,8 @@
   .room-line {
     display: block;
     /* The nav tile sets `text-transform: uppercase` for a one-word
-       label. A sentence is not a label: JOURNEYS AND ARCHETYPES reads
-       as shouting, and small caps at 8.5px are markedly harder to
-       read than lowercase. */
+       label. A sentence is not a label: uppercase small caps at 8.5px
+       are markedly harder to read than lowercase. */
     text-transform: none;
     font-family: var(--font-primary);
     font-size: 8.5px;

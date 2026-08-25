@@ -160,7 +160,7 @@ export class Portal {
           <!-- Room index. Glyph/line are display:none above 640. -->
           <div class="nav-secondary">
             <button class="nav-item" data-nav="vault" role="link">
-              <span class="room-glyph" aria-hidden="true">◈</span><span class="room-name">Vault</span><span class="room-line">Journeys and archetypes</span>
+              <span class="room-glyph" aria-hidden="true">◈</span><span class="room-name">Vault</span><span class="room-line">Sequences</span>
             </button>
             <button class="nav-item" data-nav="library" role="link">
               <span class="room-glyph" aria-hidden="true">▤</span><span class="room-name">Library</span><span class="room-line">The public-domain Archive</span>

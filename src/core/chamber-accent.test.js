@@ -207,6 +207,34 @@ describe('the accent carries a legible ink for full fills', () => {
         }
     });
 
+    it('the filled primary button inks with --color-on-accent, not glow', () => {
+        // .btn-primary fills with --color-threshold (the sitting). White
+        // (--color-glow) on ivory cream is about 1.4:1. --color-on-accent
+        // exists for exactly this pairing.
+        const css = readFileSync(
+            join(dirname(fileURLToPath(import.meta.url)), '..', 'design-system.css'), 'utf8');
+        const filled = [...css.matchAll(/\.btn-primary\s*\{[^}]+\}/g)]
+            .map(match => match[0])
+            .find(block => /background:\s*var\(--color-threshold\)/.test(block));
+        expect(filled, 'the threshold-filled .btn-primary block').toBeTruthy();
+        expect(filled).toMatch(/color:\s*var\(--color-on-accent\)/);
+        expect(filled).not.toMatch(/color:\s*var\(--color-glow\)/);
+    });
+
+    it('every sitting clears AA on that filled button', () => {
+        // Slate is the bare :root, not a stamped colourway. Its fill is the
+        // :root threshold; every other sitting is in CHAMBER_ACCENT_TOKENS.
+        const sittings = {
+            slate: { '--color-threshold': '#E4D2AE', '--color-on-accent': '#0A0A0C' },
+            ...CHAMBER_ACCENT_TOKENS
+        };
+        for (const [id, tokens] of Object.entries(sittings)) {
+            expect(contrast(tokens['--color-on-accent'], tokens['--color-threshold']),
+                `${id}: ${tokens['--color-on-accent']} on ${tokens['--color-threshold']}`)
+                .toBeGreaterThanOrEqual(4.5);
+        }
+    });
+
     it('writes the ink into every design-system block', () => {
         const css = readFileSync(
             join(dirname(fileURLToPath(import.meta.url)), '..', 'design-system.css'), 'utf8');

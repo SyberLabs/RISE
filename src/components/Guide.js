@@ -74,7 +74,7 @@ export class Guide {
                   <span class="step-num">Ⅴ</span>
                   <div class="step-body">
                     <strong>The Vault &amp; Keystones</strong>
-                    <p>Two faster doors. The Vault holds pre-configured archetypes and your saved sequences; Keystones are finished readings, each bound to one exact edition, that you can enter without preparing anything.</p>
+                    <p>Two faster doors. The Vault holds sequences you can enter; Keystones are finished readings, each bound to one exact edition, that you can enter without preparing anything.</p>
                   </div>
                 </div>
                 <div class="step">
