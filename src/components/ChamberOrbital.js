@@ -1194,8 +1194,11 @@ export class ChamberOrbital {
     }
 
     if (mode === 'interlocution') {
+      // The family alone. 'Rhythmic' named the mechanism rather than the
+      // choice, and paired with a family it was the one status long enough
+      // to need two lines on the disc.
       const family = vi.interlocution?.sourceFamily || 'procedural';
-      return `◈ Rhythmic · ${this.capitalizeFirst(family)}`;
+      return `◈ ${this.capitalizeFirst(family)}`;
     }
 
     return `◎ Off`;

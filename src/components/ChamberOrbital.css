@@ -1571,12 +1571,7 @@
   .orbit-status {
     font-size: 10px;
     line-height: 1.15;
-    /* "Rhythmic · Collections" is longer than any disc this size, so it
-       wraps BETWEEN words and stops at two lines. Wrapping anywhere
-       would give Collec/tions, which is the same damage in a new place. */
-    overflow-wrap: normal;
-    word-break: keep-all;
-    hyphens: none;
+    /* Two lines at most on a disc this size; the no-break rule is the base's. */
     display: -webkit-box;
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
@@ -1843,14 +1838,24 @@
 
 
 /* A satellite states its setting, and the setting is sometimes two words —
-   'Rhythmic Procedural' was set at the same size as 'Aurora' and pressed
-   against the rim. The status scales with the node and wraps inside it. */
+   set at the same size as 'Aurora', it pressed against the rim. The status
+   scales with the node and wraps inside it.
+
+   NO WORD IS EVER BROKEN. `overflow-wrap: anywhere` gave Procedu/ral and
+   Collec/tions: a disc reading a word down two lines is not reading a word.
+   The phone breakpoint already knew this and said so in its own comment;
+   the rule it fixed was only ever the phone's. A status too long for its
+   disc wraps BETWEEN its words, and if it still does not fit, the disc is
+   too small or the phrase too long — neither is answered by hyphenating
+   where no hyphen belongs. */
 .orbit-status {
   font-size: clamp(10px, calc(var(--orbit-node) * 0.098), 14px);
   line-height: 1.25;
   max-width: 78%;
   margin: 0 auto;
-  overflow-wrap: anywhere;
+  overflow-wrap: normal;
+  word-break: keep-all;
+  hyphens: none;
 }
 
 .orbit-label {
