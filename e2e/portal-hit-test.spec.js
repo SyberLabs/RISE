@@ -253,9 +253,19 @@ test('every sitting gives the Portal tiles a distinct, legible surface', async (
     const TILE = '.nav-secondary .nav-item';
     const HERO = '.nav-primary .nav-item';
 
-    // The ink comes from the browser's own colour resolution (computed style
-    // can be color-mix or color(srgb …)); the surface comes from the pixels,
-    // so gradient, border, and shadow are all in the number.
+    // TWO QUESTIONS, TWO INSTRUMENTS.
+    //
+    // LEGIBILITY is what a reader's eye receives, so it is measured on pixels:
+    // the composited surface carries gradient, border, and shadow, and no
+    // token can tell you what they add up to.
+    //
+    // DISTINCTNESS is what the sitting declares, and pixels are the wrong
+    // instrument for it. Averaging a crop mixes the page ground and the
+    // antialiased border in with the surface, which compressed real spreads of
+    // 25-38 down to 4-16 AND moved by ±4 between machines — enough, against a
+    // bar of 5, to fail a sitting on one runner and pass it on another. It is
+    // read from the resolved surface token instead: the very thing a sitting
+    // sets, and the same number everywhere.
     // .nav-item transitions `color`, so a read taken in the same task returns
     // the OUTGOING sitting's ink. Dress first, let the transition land, then read.
     const dress = async (sitting) => {
@@ -272,6 +282,17 @@ test('every sitting gives the Portal tiles a distinct, legible surface', async (
         ctx.fillStyle = getComputedStyle(document.querySelector(selector)).color;
         ctx.fillRect(0, 0, 1, 1);
         return [...ctx.getImageData(0, 0, 1, 1).data].slice(0, 3);
+    }, sel);
+
+    // What the sitting declares the surface to be, resolved by the browser
+    // (color-mix and color(srgb ...) both come back as numbers this way).
+    const declaredSurfaceOf = (sel) => page.evaluate((selector) => {
+        const style = getComputedStyle(document.querySelector(selector));
+        const found = (style.backgroundImage || '').match(/(rgba?\([^)]*\)|color\([^)]*\))/);
+        const paint = document.createElement('canvas').getContext('2d');
+        paint.fillStyle = found ? found[1] : style.backgroundColor;
+        paint.fillRect(0, 0, 1, 1);
+        return [...paint.getImageData(0, 0, 1, 1).data].slice(0, 3);
     }, sel);
 
     const surfaceOf = async (sel) => {
@@ -296,7 +317,7 @@ test('every sitting gives the Portal tiles a distinct, legible surface', async (
     };
 
     await dress('default');
-    const groundTile = await surfaceOf(TILE);
+    const groundTile = await declaredSurfaceOf(TILE);
     const seen = [];
 
     for (const sitting of SITTINGS.filter(s => s !== 'default')) {
@@ -313,13 +334,14 @@ test('every sitting gives the Portal tiles a distinct, legible surface', async (
             await page.mouse.move(0, 0);
             await page.waitForTimeout(400);
         }
-        row.apart = Math.round(Math.hypot(...row.tileSurface.map((c, i) => c - groundTile[i])));
+        row.declared = await declaredSurfaceOf(TILE);
+        row.apart = Math.round(Math.hypot(...row.declared.map((c, i) => c - groundTile[i])));
         seen.push(row);
     }
 
     // eslint-disable-next-line no-console
     console.log('default tile rgb(' + groundTile + ')\n' + seen.map(r =>
-        `${r.sitting.padEnd(8)} tile rgb(${r.tileSurface}) ink ${r.tileContrast}:1 · ` +
+        `${r.sitting.padEnd(8)} tile rgb(${r.declared}) ink ${r.tileContrast}:1 · ` +
         `hero ${r.heroContrast}:1 · hover ${r.tileHoverContrast}/${r.heroHoverContrast}:1 · ${r.apart} from default`).join('\n'));
 
     for (const r of seen) {
@@ -327,13 +349,15 @@ test('every sitting gives the Portal tiles a distinct, legible surface', async (
         expect(r.heroContrast, `${r.sitting} hero ink measured ${r.heroContrast}:1`).toBeGreaterThanOrEqual(4.5);
         expect(r.tileHoverContrast, `${r.sitting} tile ink on hover measured ${r.tileHoverContrast}:1`).toBeGreaterThanOrEqual(4.5);
         expect(r.heroHoverContrast, `${r.sitting} hero ink on hover measured ${r.heroHoverContrast}:1`).toBeGreaterThanOrEqual(4.5);
-        // Every sitting has to move the tile off slate at all. Only ivory is
-        // held to a real distance: the others are deliberate whisper-tints
-        // (measured 7-16 from slate), while ivory carries its hue outright.
-        expect(r.apart, `${r.sitting} tile sits only ${r.apart} from the ground state`).toBeGreaterThan(5);
+        // Every sitting genuinely dresses the tile: the family measures 25-38
+        // from the ground state, so 20 fails a sitting that has stopped
+        // carrying its hue without failing one that carries it a little less.
+        expect(r.apart, `${r.sitting} tile sits only ${r.apart} from the ground state`).toBeGreaterThan(20);
         if (r.sitting === 'ivory') {
-            expect(r.apart, `ivory tile sits ${r.apart} from the ground state — it used to be 20, and darker`)
-                .toBeGreaterThan(120);
+            // Ivory is the one sitting whose surface IS its hue. It measured
+            // 20 once, and DARKER than the ground state it was meant to differ
+            // from; it measures 213 now.
+            expect(r.apart, `ivory tile sits ${r.apart} from the ground state`).toBeGreaterThan(120);
         }
     }
 });
