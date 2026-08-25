@@ -12,6 +12,11 @@ import { fileURLToPath } from 'node:url';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { Portal } from './Portal.js';
 
+const portalCss = readFileSync(
+    join(dirname(fileURLToPath(import.meta.url)), 'Portal.css'),
+    'utf8'
+);
+
 // jsdom's media elements can't play; the portal defers video start anyway
 beforeEach(() => {
     localStorage.removeItem('rise_sol_plan_v1');
@@ -85,6 +90,22 @@ describe('Portal', () => {
         expect(container.querySelector('.portal-arch-sol')).toBeNull();
         portal.destroy();
         container.remove();
+    });
+
+    it('scopes a token-driven layered seal to Try RISE', () => {
+        expect(portalCss).toMatch(/\.portal-nav\s+\.nav-secondary\s+\.nav-try\s*\{/);
+        expect(portalCss).toMatch(/\.nav-try::before/);
+        expect(portalCss).toMatch(/\.nav-try::after/);
+        expect(portalCss).toMatch(/pointer-events:\s*none/);
+        expect(portalCss).toMatch(/var\(--color-accent-rgb\)/);
+        expect(portalCss).toMatch(/radial-gradient/);
+        expect(portalCss).toMatch(/inset\s+0/);
+        expect(portalCss).toMatch(/\.nav-try:focus-visible/);
+        // The seal's distinctive texture layer is scoped to Try RISE. (A
+        // blanket `not /nav-item::before/` guard is unsound here: an
+        // unrelated, pre-existing .nav-item::before sheen lives elsewhere in
+        // this stylesheet and is intentionally left untouched.)
+        expect(portalCss).toMatch(/\.nav-try::after[^}]*repeating-radial-gradient/s);
     });
 
 });

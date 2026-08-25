@@ -104,3 +104,44 @@ test.describe('the Portal has no overlay between a cursor and a door', () => {
         expect(reachable, `the Chamber entrance is covered by ${hit} at 390x844`).toBe(true);
     });
 });
+
+test('Try RISE remains a profile-colored reachable seal', async ({ page }) => {
+    await openPortal(page);
+    await page.waitForTimeout(3000);
+    const { reachable, hit } = await hitTest(page, '[data-nav="keystones"]');
+    expect(reachable, `Try RISE is covered by ${hit}`).toBe(true);
+
+    const seal = page.locator('[data-nav="keystones"]');
+    const material = await seal.evaluate(node => ({
+        accent: getComputedStyle(document.documentElement).getPropertyValue('--color-accent-rgb').trim(),
+        background: getComputedStyle(node).backgroundImage,
+        radius: getComputedStyle(node).borderRadius,
+        beforePointerEvents: getComputedStyle(node, '::before').pointerEvents,
+        afterPointerEvents: getComputedStyle(node, '::after').pointerEvents
+    }));
+    expect(material.accent).not.toBe('');
+    expect(material.background).toContain('radial-gradient');
+    expect(material.radius).toBe('50%');
+    expect(material.beforePointerEvents).toBe('none');
+    expect(material.afterPointerEvents).toBe('none');
+
+    await seal.focus();
+    await expect(seal).toBeFocused();
+    await page.keyboard.press('Enter');
+    await expect(page).toHaveURL(/\/try-rise$/);
+    await expect(page.locator('.keystones')).toBeVisible();
+});
+
+test('Try RISE remains wholly reachable on a phone', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await openPortal(page);
+    await page.waitForTimeout(3000);
+    const { reachable, hit } = await hitTest(page, '[data-nav="keystones"]');
+    expect(reachable, `Try RISE is covered by ${hit}`).toBe(true);
+    const box = await page.locator('[data-nav="keystones"]').boundingBox();
+    expect(box).toBeTruthy();
+    expect(box.x).toBeGreaterThanOrEqual(0);
+    expect(box.y).toBeGreaterThanOrEqual(0);
+    expect(box.x + box.width).toBeLessThanOrEqual(390);
+    expect(box.y + box.height).toBeLessThanOrEqual(844);
+});
