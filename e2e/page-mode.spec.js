@@ -12,6 +12,21 @@ test('Page Mode typesets a Gospel chapter in space, and holds the stream', async
     await page.addInitScript((g) => {
         localStorage.setItem('rise-beta-session', JSON.stringify(g.gate));
     }, { gate: GATE });
+
+    // This test is about Page COMPOSITION, pagination, figure accounting,
+    // and Stream suspension — not museum-CDN availability. Make the remote
+    // artwork outcome deterministic: every off-origin image request fails
+    // fast, so each figure reverently terminalizes to `is-absent` instead
+    // of the paginated walk waiting on live network. (Successful network
+    // resolution belongs to a dedicated imagery test.)
+    await page.route('**/*', (route) => {
+        const req = route.request();
+        if (req.resourceType() === 'image' && !req.url().includes('127.0.0.1')) {
+            return route.abort();
+        }
+        return route.continue();
+    });
+
     await page.goto('/');
     await expect(page.locator('[data-nav="library"]').first()).toBeVisible({ timeout: 15_000 });
 
@@ -39,9 +54,10 @@ test('Page Mode typesets a Gospel chapter in space, and holds the stream', async
     await expect(btn).toBeVisible({ timeout: 10_000 });
     await btn.click();
     await expect(page.locator('.page-article')).toBeVisible({ timeout: 10_000 });
-    await page.waitForTimeout(5000);   // figures resolve + decode
 
-    // Walk pages: assert the whole reading, not one DOM snapshot.
+    // Walk pages: assert the whole reading, not one DOM snapshot. The walk
+    // settles each page's figures to a terminal state itself; a fixed wait
+    // here would only pay for a primitive the helper already provides.
     const walked = await collectAcrossPages(page);
     const perPage = await page.evaluate(() => {
         const host = document.querySelector('#chamber-page');
@@ -57,12 +73,12 @@ test('Page Mode typesets a Gospel chapter in space, and holds the stream', async
 
     // The whole chapter is present across the pages.
     expect(stats.texts).toBeGreaterThan(50);
-    expect(stats.texts).toBeGreaterThan(50);
     // One figure per imaged episode (same program as Stream).
     expect(stats.figures).toBe(7);
 
-    // Network imagery may resolve or reverently absent itself; neither may
-    // leave a pending/broken figure frame in the completed page walk.
+    // Every figure reaches a terminal state — shown or absent — and none
+    // is left pending/broken in the completed walk. With off-origin imagery
+    // aborted above, the reverent-degradation path is the one exercised.
     expect(stats.shown + stats.absent).toBe(stats.figures);
     expect(stats.pages).toBeGreaterThan(1);
     expect(stats.playerState).not.toBe('playing');
