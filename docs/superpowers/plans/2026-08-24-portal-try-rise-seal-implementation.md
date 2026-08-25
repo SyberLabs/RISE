@@ -39,7 +39,7 @@
 - Consumes: `.portal-nav .nav-secondary .nav-try`, `--color-accent-rgb`, existing `openPortal(page)` and `hitTest(page, selector)` helpers, and `.keystones` route root.
 - Produces: non-interactive rim/texture layers, tactile states, and pointer/keyboard/mobile/profile regression coverage for `[data-nav="keystones"]`.
 
-- [ ] **Step 1: Write failing component and browser tests**
+- [x] **Step 1: Write failing component and browser tests**
 
 At the top of `Portal.test.js`:
 
@@ -109,7 +109,7 @@ test('Try RISE remains wholly reachable on a phone', async ({ page }) => {
 });
 ```
 
-- [ ] **Step 2: Run both tests to verify failure**
+- [x] **Step 2: Run both tests to verify failure**
 
 ```bash
 npx vitest run src/components/Portal.test.js
@@ -118,7 +118,7 @@ npx playwright test e2e/portal-hit-test.spec.js --grep "Try RISE"
 
 Expected: the new material assertions FAIL while existing navigation and hit testing remain green.
 
-- [ ] **Step 3: Implement the layered seal without changing markup**
+- [x] **Step 3: Implement the layered seal without changing markup**
 
 Retain the existing size and placement, then replace only `.nav-try` material declarations:
 
@@ -167,7 +167,7 @@ Retain the existing size and placement, then replace only `.nav-try` material de
 
 Keep `.try-mark` and `.try-label` at `position: relative; z-index: 1`. Hover raises by at most one pixel, active removes the translation and deepens the inset, and `:focus-visible` uses the current focus token with an offset ring. In the existing reduced-motion query, set this button's transition and transform to none.
 
-- [ ] **Step 4: Run focused and release-relevant checks**
+- [x] **Step 4: Run focused and release-relevant checks**
 
 ```bash
 npx vitest run src/components/Portal.test.js
@@ -180,7 +180,7 @@ git diff --check
 
 Expected: every command exits 0.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/components/Portal.css src/components/Portal.test.js e2e/portal-hit-test.spec.js

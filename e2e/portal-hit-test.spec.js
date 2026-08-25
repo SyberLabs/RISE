@@ -104,3 +104,127 @@ test.describe('the Portal has no overlay between a cursor and a door', () => {
         expect(reachable, `the Chamber entrance is covered by ${hit} at 390x844`).toBe(true);
     });
 });
+
+test('Try RISE remains a profile-colored reachable seal', async ({ page }) => {
+    await openPortal(page);
+    await page.waitForTimeout(3000);
+    const { reachable, hit } = await hitTest(page, '[data-nav="keystones"]');
+    expect(reachable, `Try RISE is covered by ${hit}`).toBe(true);
+
+    const seal = page.locator('[data-nav="keystones"]');
+    const material = await seal.evaluate(node => ({
+        accent: getComputedStyle(document.documentElement).getPropertyValue('--color-accent-rgb').trim(),
+        background: getComputedStyle(node).backgroundImage,
+        radius: getComputedStyle(node).borderRadius,
+        beforePointerEvents: getComputedStyle(node, '::before').pointerEvents,
+        afterPointerEvents: getComputedStyle(node, '::after').pointerEvents
+    }));
+    expect(material.accent).not.toBe('');
+    expect(material.background).toContain('radial-gradient');
+    expect(material.radius).toBe('50%');
+    expect(material.beforePointerEvents).toBe('none');
+    expect(material.afterPointerEvents).toBe('none');
+
+    await seal.focus();
+    await expect(seal).toBeFocused();
+    await page.keyboard.press('Enter');
+    await expect(page).toHaveURL(/\/try-rise$/);
+    await expect(page.locator('.keystones')).toBeVisible();
+});
+
+test('Try RISE remains wholly reachable on a phone', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await openPortal(page);
+    await page.waitForTimeout(3000);
+    const { reachable, hit } = await hitTest(page, '[data-nav="keystones"]');
+    expect(reachable, `Try RISE is covered by ${hit}`).toBe(true);
+    const box = await page.locator('[data-nav="keystones"]').boundingBox();
+    expect(box).toBeTruthy();
+    expect(box.x).toBeGreaterThanOrEqual(0);
+    expect(box.y).toBeGreaterThanOrEqual(0);
+    expect(box.x + box.width).toBeLessThanOrEqual(390);
+    expect(box.y + box.height).toBeLessThanOrEqual(844);
+});
+
+/**
+ * The seal's ink, measured rather than assumed.
+ *
+ * The seal is lit by the sitting's accent over a slate body, so no token
+ * name can promise its label is legible: what a reader sees is a composite
+ * of three gradients, a rim, and an inset shadow, and only the browser
+ * knows the result. This renders it in every sitting and measures the real
+ * contrast against the LIGHTEST pixel beneath the label — the worst case,
+ * not the average.
+ */
+const SITTINGS = ['slate', 'ivory', 'purple', 'cobalt', 'amber',
+    'sunset', 'gecko', 'garnet', 'teal', 'orchid'];
+
+test('the Try RISE seal keeps a legible ink in every sitting', async ({ page }) => {
+    await openPortal(page);
+    await page.waitForTimeout(3000);
+
+    const measured = [];
+    for (const sitting of SITTINGS) {
+        // Hide the ink so the capture is pure seal body, and take the colour
+        // the label actually renders in.
+        const ink = await page.evaluate((id) => {
+            document.documentElement.setAttribute('data-accent', id);
+            const seal = document.querySelector('[data-nav="keystones"]');
+            const colour = getComputedStyle(seal.querySelector('.try-label')).color;
+            seal.querySelectorAll('.try-label, .try-mark')
+                .forEach(node => { node.style.visibility = 'hidden'; });
+            return colour;
+        }, sitting);
+        await page.waitForTimeout(120);
+
+        const box = await page.locator('[data-nav="keystones"]').boundingBox();
+        const shot = (await page.screenshot({ clip: box })).toString('base64');
+
+        const contrast = await page.evaluate(async ({ data, inkColour }) => {
+            const img = new Image();
+            await new Promise(done => { img.onload = done; img.src = 'data:image/png;base64,' + data; });
+            const canvas = document.createElement('canvas');
+            canvas.width = img.naturalWidth;
+            canvas.height = img.naturalHeight;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0);
+            const pixels = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+
+            const channel = v => {
+                v /= 255;
+                return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
+            };
+            const luminance = (r, g, b) =>
+                0.2126 * channel(r) + 0.7152 * channel(g) + 0.0722 * channel(b);
+
+            // Inside the circle, in the band the label occupies.
+            const cx = canvas.width / 2;
+            const cy = canvas.height / 2;
+            const radius = Math.min(cx, cy) * 0.82;
+            let lightest = -1;
+            for (let y = Math.floor(canvas.height * 0.34); y < canvas.height * 0.72; y++) {
+                for (let x = 0; x < canvas.width; x++) {
+                    if ((x - cx) ** 2 + (y - cy) ** 2 > radius * radius) continue;
+                    const i = (y * canvas.width + x) * 4;
+                    lightest = Math.max(lightest, luminance(pixels[i], pixels[i + 1], pixels[i + 2]));
+                }
+            }
+            const [r, g, b] = inkColour.match(/\d+/g).map(Number);
+            const inkLuminance = luminance(r, g, b);
+            const [hi, lo] = [inkLuminance, lightest].sort((a, z) => z - a);
+            return +((hi + 0.05) / (lo + 0.05)).toFixed(2);
+        }, { data: shot, inkColour: ink });
+
+        measured.push({ sitting, contrast });
+
+        await page.evaluate(() => {
+            document.querySelectorAll('.try-label, .try-mark')
+                .forEach(node => { node.style.removeProperty('visibility'); });
+        });
+    }
+
+    for (const { sitting, contrast } of measured) {
+        expect(contrast, `Try RISE ink on ${sitting} measured ${contrast}:1`)
+            .toBeGreaterThanOrEqual(4.5);
+    }
+});

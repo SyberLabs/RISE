@@ -954,9 +954,18 @@
 
 /* Try RISE is a public sample beneath the Library, not a second Chamber.
    The three-column grid preserves the Portal's even horizontal measure. */
+/* The Try RISE entrance is the one seal on the Portal: a slate cabochon
+   lit from within by the active accent profile, not a flat accent disc.
+   Depth is built from token-driven gradients and two NON-INTERACTIVE
+   pseudo-element layers (a bevel rim and a restrained ground texture);
+   the accent travels with the colourway and no profile colour is fixed.
+   Everything here is scoped to .nav-try so the room items are untouched. */
 .portal-nav .nav-secondary .nav-try {
   grid-column: 2;
   justify-self: center;
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
   display: flex;
   box-sizing: border-box;
   width: 96px;
@@ -967,58 +976,102 @@
   justify-content: center;
   flex-direction: column;
   gap: 6px;
-  border-radius: 50%;
   cursor: pointer;
-  color: var(--color-on-accent);
-  background: linear-gradient(
-    180deg,
-    var(--color-accent) 0%,
-    color-mix(in srgb, var(--color-accent) 88%, var(--color-void)) 100%
-  );
-  border: 1px solid var(--accent-bevel);
+  /* Ink is light: the seal body is slate, so on-accent (dark) would sink. */
+  color: var(--color-light);
+  border: 1px solid rgba(var(--color-accent-rgb), 0.58);
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 35% 24%, rgba(255, 255, 255, 0.16), transparent 27%),
+    radial-gradient(circle at 50% 68%, rgba(var(--color-accent-rgb), 0.26), transparent 66%),
+    linear-gradient(155deg, rgba(var(--color-accent-rgb), 0.34), rgba(20, 25, 30, 0.96) 72%);
   box-shadow:
-    0 3px 8px rgba(0, 0, 0, 0.32),
-    0 0 22px var(--accent-halo),
-    inset 0 1px 0 rgba(255, 255, 255, 0.16);
+    0 14px 32px rgba(0, 0, 0, 0.42),
+    0 0 24px rgba(var(--color-accent-rgb), 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.18),
+    inset 0 -8px 16px rgba(0, 0, 0, 0.28);
   transition:
-    transform 80ms var(--ease-out),
-    box-shadow 150ms var(--ease-default),
-    filter 150ms var(--ease-default);
+    transform 120ms var(--ease-out),
+    box-shadow 180ms var(--ease-default);
 }
 
+.portal-nav .nav-secondary .nav-try::before,
+.portal-nav .nav-secondary .nav-try::after {
+  content: '';
+  position: absolute;
+  border-radius: inherit;
+  pointer-events: none;
+}
+
+/* Inner bevel rim — a hairline that lifts the face off the ground. */
+.portal-nav .nav-secondary .nav-try::before {
+  inset: 5px;
+  z-index: 0;
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.22);
+}
+
+/* Ground texture — a faint machined grain, held well back. */
+.portal-nav .nav-secondary .nav-try::after {
+  inset: 0;
+  z-index: 0;
+  opacity: 0.26;
+  background: repeating-radial-gradient(circle at 38% 32%, transparent 0 3px,
+    rgba(255, 255, 255, 0.035) 4px 5px);
+  mix-blend-mode: soft-light;
+}
+
+/* Hover lifts by a single pixel and widens the accent halo. */
 .portal-nav .nav-secondary .nav-try:hover {
-  filter: brightness(1.06);
   transform: translateY(-1px);
   box-shadow:
-    0 5px 12px rgba(0, 0, 0, 0.36),
-    0 0 30px var(--accent-halo),
-    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+    0 18px 38px rgba(0, 0, 0, 0.46),
+    0 0 32px rgba(var(--color-accent-rgb), 0.22),
+    inset 0 1px 0 rgba(255, 255, 255, 0.22),
+    inset 0 -8px 16px rgba(0, 0, 0, 0.28);
 }
 
+/* Pressed sits flush and deepens the well — a real key being pushed. */
 .portal-nav .nav-secondary .nav-try:active {
-  filter: brightness(0.94);
-  transform: translateY(1px);
+  transform: none;
+  box-shadow:
+    0 8px 20px rgba(0, 0, 0, 0.4),
+    inset 0 2px 6px rgba(0, 0, 0, 0.5),
+    inset 0 -4px 10px rgba(0, 0, 0, 0.3);
 }
 
 .portal-nav .nav-secondary .nav-try:focus-visible {
-  outline: 2px solid var(--color-void);
-  outline-offset: 2px;
-  box-shadow:
-    0 0 0 4px var(--color-accent),
-    0 0 26px var(--accent-halo);
+  outline: 2px solid var(--color-accent);
+  outline-offset: 3px;
 }
 
 .nav-try .try-mark {
-  color: currentColor;
+  position: relative;
+  z-index: 1;
+  color: color-mix(in srgb, var(--color-accent) 60%, var(--color-light));
   font-size: 16px;
   line-height: 1;
+  text-shadow: 0 0 10px rgba(var(--color-accent-rgb), 0.45);
 }
 
 .nav-try .try-label {
+  position: relative;
+  z-index: 1;
   font-family: var(--font-display);
   font-size: 10px;
   letter-spacing: 0.13em;
   line-height: 1.2;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.55);
+}
+
+/* Reduced motion keeps the depth and the focus ring, drops the movement. */
+@media (prefers-reduced-motion: reduce) {
+  .portal-nav .nav-secondary .nav-try,
+  .portal-nav .nav-secondary .nav-try:hover,
+  .portal-nav .nav-secondary .nav-try:active {
+    transition: none;
+    transform: none;
+  }
 }
 
 @media (max-width: 768px) {
