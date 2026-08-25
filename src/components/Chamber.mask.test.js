@@ -1018,7 +1018,13 @@ describe('Chamber semantic Fit compositor', () => {
         };
     }
 
-    it('publishes semantic state for a procedural Fit and clears it with the fill field', async () => {
+    it('leaves a masked Word to the mask, and washes nothing', async () => {
+        // Living Text used to lay a flat mood colour over the whole fill —
+        // measured at 33-41% on real readings, against a 13.7% shift in plain
+        // ink. One control, two magnitudes, and applied only to procedural
+        // fills so the same setting did a great deal or nothing depending on a
+        // choice made in another pane. Living Text colours the text now; a
+        // generated field is tinted through its engine's palette, not covered.
         const { chamber, container } = makeChamber(
             semanticSession({ mode: 'pick', sourced: [], procedural: ['fractal'] }),
             { fontSize: 'fit' }
@@ -1027,19 +1033,18 @@ describe('Chamber semantic Fit compositor', () => {
         chamber.displayAtom(chamber.session.atoms[4], 4);
         await flushFillMask();
 
-        const field = container.querySelector('#chamber-field');
-        expect(field.classList.contains('is-living-fit')).toBe(true);
-        expect(field.style.getPropertyValue('--living-fit-color')).toMatch(/^rgb\(/);
-        expect(Number(field.style.getPropertyValue('--living-fit-mix'))).toBeGreaterThan(0);
-        expect(Number(field.style.getPropertyValue('--living-fit-mix'))).toBeLessThanOrEqual(0.45);
-        expect(Number(field.style.getPropertyValue('--living-fit-saturation'))).toBeGreaterThanOrEqual(1);
-        expect(Number(field.style.getPropertyValue('--living-fit-brightness'))).toBeGreaterThan(0);
+        // What survives: the mask carries the Word, so the ink steps aside.
         expect(atomDisplay(container).style.color).toBe('transparent');
         expect(atomDisplay(container).style.textShadow).toBe('');
 
-        chamber.destroyFillField();
+        // What must not come back.
+        const field = container.querySelector('#chamber-field');
         expect(field.classList.contains('is-living-fit')).toBe(false);
-        expect(field.style.getPropertyValue('--living-fit-color')).toBe('');
+        for (const prop of ['--living-fit-color', '--living-fit-mix',
+            '--living-fit-saturation', '--living-fit-brightness']) {
+            expect(field.style.getPropertyValue(prop), prop).toBe('');
+        }
+
         chamber.destroy();
     });
 
@@ -1082,18 +1087,17 @@ describe('Chamber semantic Fit compositor', () => {
         chamber.destroy();
     });
 
-    it('clears semantic Fit state when the mask falls back to opaque text', async () => {
+    it('gives the Word its ink back when the mask falls to opaque text', async () => {
         const { chamber, container } = makeChamber(
             semanticSession({ mode: 'pick', sourced: [], procedural: ['fractal'] }),
             { fontSize: 'fit' }
         );
         chamber.displayAtom(chamber.session.atoms[4], 4);
         await flushFillMask();
-        const field = container.querySelector('#chamber-field');
-        expect(field.classList.contains('is-living-fit')).toBe(true);
+        expect(container.querySelector('#atom-display').style.color).toBe('transparent');
 
+        // The mask can no longer carry the Word, so the Word carries itself.
         chamber._revertFillToOpaqueWord();
-        expect(field.classList.contains('is-living-fit')).toBe(false);
         expect(container.querySelector('#atom-display').style.color).not.toBe('transparent');
         chamber.destroy();
     });

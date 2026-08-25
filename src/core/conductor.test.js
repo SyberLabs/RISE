@@ -14,27 +14,21 @@ import { CHAMBER_ACCENT_TOKENS } from './chamber-accent.js';
 const mkAtoms = (...contents) => contents.map(c => ({ content: c, duration: 300 }));
 
 describe('livingTextAppearance', () => {
-    it('preserves the ordinary warm text palette and publishes bounded Fit modulation', () => {
+    it('preserves the ordinary warm text palette', () => {
         expect(livingTextAppearance({ valence: 1, arousal: 1 }, 1)).toEqual({
             color: 'rgb(255, 208, 131)',
             rgb: [255, 208, 131],
             glowRadius: 48,
-            glowAlpha: 0.6,
-            fitMix: 0.446,
-            fitSaturation: 1.22,
-            fitBrightness: 1.04
+            glowAlpha: 0.6
         });
     });
 
-    it('turns Fit modulation fully off at zero intensity without changing raw text defaults', () => {
+    it('returns the neutral ink at zero intensity', () => {
         expect(livingTextAppearance({ valence: -1, arousal: 1 }, 0)).toEqual({
             color: 'rgb(232, 232, 236)',
             rgb: [232, 232, 236],
             glowRadius: 8,
-            glowAlpha: 0.15,
-            fitMix: 0,
-            fitSaturation: 1,
-            fitBrightness: 1
+            glowAlpha: 0.15
         });
     });
 
@@ -43,21 +37,18 @@ describe('livingTextAppearance', () => {
             color: 'rgb(141, 173, 255)',
             rgb: [141, 173, 255],
             glowRadius: 48,
-            glowAlpha: 0.6,
-            fitMix: 0.446,
-            fitSaturation: 1.22,
-            fitBrightness: 1.04
+            glowAlpha: 0.6
         });
     });
 
-    it('keeps an explicit accent recognisable while moving it toward the semantic pole', () => {
+    it('moves an accent as far as plain ink while keeping it recognisable', () => {
         const base = [60, 97, 170];
         const result = livingTextAppearance({ valence: 1, arousal: 1 }, 1, { baseRgb: base });
 
         expect(result.rgb).not.toEqual(base);
         expect(result.rgb[2]).toBeGreaterThan(result.rgb[1]);
         expect(result.rgb[1]).toBeGreaterThan(result.rgb[0]);
-        expect(result.rgb.every((channel, index) => Math.abs(channel - base[index]) <= 48)).toBe(true);
+        expect(result.rgb.every((channel, index) => Math.abs(channel - base[index]) <= 96)).toBe(true);
     });
 
     it('preserves every shipped Accent dominant channel at both semantic poles', () => {
@@ -75,7 +66,7 @@ describe('livingTextAppearance', () => {
                 const result = livingTextAppearance({ valence, arousal: 1 }, 1, { baseRgb: base });
                 expect(result.rgb).not.toEqual(base);
                 expect(dominantChannels(result.rgb)).toEqual(dominant);
-                expect(result.rgb.every((channel, index) => Math.abs(channel - base[index]) <= 48)).toBe(true);
+                expect(result.rgb.every((channel, index) => Math.abs(channel - base[index]) <= 96)).toBe(true);
             }
         }
     });
@@ -88,7 +79,7 @@ describe('livingTextAppearance', () => {
             expect(result.rgb).not.toEqual(base);
             expect(result.rgb[0]).toBe(result.rgb[1]);
             expect(result.rgb[0]).toBeGreaterThan(result.rgb[2]);
-            expect(result.rgb.every((channel, index) => Math.abs(channel - base[index]) <= 48)).toBe(true);
+            expect(result.rgb.every((channel, index) => Math.abs(channel - base[index]) <= 96)).toBe(true);
         }
     });
 });
