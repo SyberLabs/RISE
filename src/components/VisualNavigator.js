@@ -154,7 +154,35 @@ export class VisualNavigator {
     this.path = this.path.slice(0, colIndex);
     if (node.children) { this.path.push(node); this.focus = null; }
     else { this.focus = node; }
+    // FACE, SIZE AND INK NAME A PLACE IN ONE PANE, SO GOING THERE HAS TO GO
+    // THERE. They marked their section active and left the reader looking at
+    // whatever the pane happened to be scrolled to — a rail entry that
+    // highlights a destination without travelling to it is a broken link.
+    if (node.textControl) this._revealSection = node.id;
     this.render();
+  }
+
+  /**
+   * Put the named section under the pinned specimen.
+   *
+   * render() restores each pane's scroll offset so that choosing a chip near
+   * the bottom does not snap the pane away from it; a rail navigation is the
+   * one case that MUST override that, because the reader asked to be moved.
+   */
+  _revealNamedSection() {
+    const id = this._revealSection;
+    this._revealSection = null;
+    if (!id) return;
+    const pane = this.container.querySelector('.vnav-entry');
+    // Matched rather than selected: the ids are a known set, and jsdom has
+    // no CSS.escape to build a selector with.
+    const section = pane && [...pane.querySelectorAll('[data-section]')]
+        .find(el => el.dataset.section === id);
+    if (!pane || !section) return;
+    const specimen = pane.querySelector('.vnav-specimen');
+    const clearance = (specimen?.offsetHeight || 0) + 8;
+    const delta = section.getBoundingClientRect().top - pane.getBoundingClientRect().top;
+    pane.scrollTop = Math.max(0, pane.scrollTop + delta - clearance);
   }
 
   /* ── mutation ─────────────────────────────────────────────────────── */
@@ -753,6 +781,7 @@ export class VisualNavigator {
       const panes = [...this.container.querySelectorAll('.vnav-entry, .vnav-col, .vnav-body')];
       for (const [i, top] of scrolls) if (panes[i]) panes[i].scrollTop = top;
     }
+    this._revealNamedSection();
     void this._mountLeafPreview();
     void this._mountSpecimenInk();
     if (focusKey) {

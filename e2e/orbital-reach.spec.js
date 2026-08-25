@@ -105,3 +105,79 @@ test('the ring stays an equilateral triangle at every size', async ({ page }) =>
             .toBeLessThan(1.05);
     }
 });
+
+/**
+ * NO WORD RUNS DOWN TWO LINES ON ANY ORB.
+ *
+ * The status a satellite states used to set `overflow-wrap: anywhere`, which
+ * gave Procedu/ral and Collec/tions — a disc reading a word down two lines is
+ * not reading a word. The phone breakpoint had fixed it for itself and left
+ * the base rule alone, so this went unseen on every desktop.
+ *
+ * A stylesheet assertion could only ever check the spelling of the rule that
+ * happens to be in the file. This measures the rendered line boxes: each word
+ * is walked with a Range and asked how many lines its rects occupy.
+ */
+// The longest statuses the orbital can actually state, from getVisualStatus
+// and getAudioStatus: the family names, the roughest glyph, the widest
+// attractor and genesis presets, and the named soundscapes.
+const LONGEST_STATUSES = [
+    '◈ Collections', '◈ Procedural', '◈ Personal',
+    '○ Focals · Rosa Mystica', '∮ Attractor · Halvorsen',
+    '✎ Genesis · Gravitational', 'Faded Signal', 'Gregorian', 'Znamenny'
+];
+
+test('no orb breaks a word across lines, at any size', async ({ page }) => {
+    await page.addInitScript(({ gate, seed }) => {
+        localStorage.setItem('rise-beta-session', JSON.stringify(gate));
+        localStorage.setItem('rise_orbital_text_v1', JSON.stringify(seed));
+    }, { gate: GATE_SESSION, seed: SEED });
+    await page.goto('/');
+    await page.locator('[data-nav="chamber"]').first().click();
+    await expect(page.locator('#begin-btn')).toBeVisible({ timeout: 20_000 });
+
+    const broken = [];
+    for (const viewport of VIEWPORTS) {
+        await page.setViewportSize(viewport);
+        await page.waitForTimeout(300);
+
+        const split = await page.evaluate((phrases) => {
+            const found = [];
+            const statuses = [...document.querySelectorAll('.orbit-node .orbit-status')];
+            const original = statuses.map(n => n.textContent);
+
+            // The rule has to hold for the longest status the app can state,
+            // not merely for whichever one happens to be selected now — that
+            // is how this went unseen. Every orb is made to wear each of them.
+            const trials = [...phrases, ...original];
+            for (const phrase of trials) {
+                statuses.forEach(n => { n.textContent = phrase; });
+                for (const node of document.querySelectorAll('.orbit-node .orbit-status, .orbit-node .orbit-label')) {
+                const text = node.firstChild;
+                if (!text || text.nodeType !== Node.TEXT_NODE) continue;
+                const value = text.textContent;
+                // Walk each run of non-space characters and ask the layout
+                // how many line boxes it was laid across.
+                for (const match of value.matchAll(/\S+/g)) {
+                    if (match[0].length < 2) continue;
+                    const range = document.createRange();
+                    range.setStart(text, match.index);
+                    range.setEnd(text, match.index + match[0].length);
+                    const tops = new Set([...range.getClientRects()]
+                        .filter(r => r.width > 0)
+                        .map(r => Math.round(r.top)));
+                    if (tops.size > 1) found.push({ word: match[0], lines: tops.size, phrase });
+                }
+                }
+            }
+            statuses.forEach((n, i) => { n.textContent = original[i]; });
+            return found;
+        }, LONGEST_STATUSES);
+
+        for (const hit of split) {
+            broken.push(`${viewport.width}x${viewport.height}: "${hit.word}" over ${hit.lines} lines (in "${hit.phrase}")`);
+        }
+    }
+
+    expect(broken, broken.join('; ')).toEqual([]);
+});

@@ -90,14 +90,17 @@
 .vnav-node.on .nm { color: var(--color-accent, #E4D2AE); }
 
 /* ── entry (the Pokédex panel) ────────────────────────────────────────── */
-.vnav-entry { padding: 1rem 1.15rem 1.3rem; overflow-y: auto; max-height: 26rem; }
+/* The top padding belongs to the head, not the scrollport: the specimen
+   pins itself to the top of this pane, and a padded scrollport would let
+   the sections slide visibly through the strip above it. */
+.vnav-entry { padding: 0 1.15rem 1.3rem; overflow-y: auto; max-height: 26rem; }
 .vnav-empty {
   height: 100%; display: grid; place-items: center; text-align: center;
   color: var(--color-mist, #6B6B75); font-size: 0.78rem; letter-spacing: 0.12em; padding: 2rem;
 }
 .vnav-empty span { display: block; font-size: 1.8rem; opacity: 0.5; margin-bottom: 0.6rem; }
 
-.vnav-entry-head { display: flex; align-items: center; gap: 0.8rem; margin-bottom: 0.9rem; }
+.vnav-entry-head { display: flex; align-items: center; gap: 0.8rem; padding-top: 1rem; margin-bottom: 0.9rem; }
 .vnav-glyph { font-size: 1.7rem; color: var(--color-accent, #E4D2AE); }
 .vnav-entry-head h3 { margin: 0; font-family: var(--font-display, 'Marcellus', serif); font-weight: 400;
   color: var(--color-light, #E8E8EC); font-size: 1.4rem; line-height: 1; }
@@ -518,10 +521,22 @@
   color: var(--color-accent);
 }
 
-/* The specimen is the subject: bigger, quieter, and first. */
+/* THE SPECIMEN IS THE SUBJECT, SO IT DOES NOT LEAVE.
+   Face, Size and Ink are three attributes of one word, and the panel shows
+   that word. But the three sections stack down a 26rem scrollport, so by the
+   time a reader reached Large or the mask the word they were changing had
+   scrolled off the top — they were choosing blind, with the evidence of the
+   choice out of the frame. It pins to the top of the pane instead and the
+   sections pass beneath it. */
 .vnav-specimen {
+  position: sticky;
+  top: 0;
+  z-index: 2;
   margin-bottom: 4px;
   padding: 20px 18px;
+  /* Opaque, or the sections would read through it as they pass. */
+  background: var(--vnav-panel, #0A0A0C);
+  box-shadow: 0 8px 12px -8px rgba(0, 0, 0, 0.75);
 }
 
 /* THE INK, THROUGH THE LETTERS. This is the whole promise of Fit shown
