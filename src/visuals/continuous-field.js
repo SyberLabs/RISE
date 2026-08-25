@@ -416,12 +416,29 @@ export class ContinuousField {
             backdrop.draggable = false;
             backdrop.style.objectFit = 'cover';
 
+            // THE PROJECTION IS A STENCIL, NOT A FRAME — SO IT COVERS.
+            //
+            // The gallery layer fits the authored work with `contain` so a
+            // portrait is never cropped to the screen's ratio. The glyph
+            // viewport is the opposite case: it is letter-shaped, and what
+            // it needs is that every pixel inside the letters carries the
+            // material. Contained here, a portrait source (843x1260) in a
+            // wide word (1125x401) draws 268x401 — 24% of the glyph — and
+            // the rest falls through to the darkened blur backdrop, which
+            // reads as black bars swallowing most of the word.
+            //
+            // This is also the contract fit-projection.js already computes:
+            // it derives the projection `scale` from coverScale and the
+            // visibleAreaRatio from the cover-scaled source. The renderer
+            // was the half that disagreed. Reverence is not lost — the
+            // gallery behind the reading shows the same work uncropped at
+            // the same moment.
             const artwork = document.createElement('img');
             artwork.className = 'continuous-field-artwork';
             artwork.decoding = 'async';
             artwork.alt = '';
             artwork.draggable = false;
-            artwork.style.objectFit = 'contain';
+            artwork.style.objectFit = 'cover';
 
             root.append(backdrop, artwork);
             this.projectionHost.appendChild(root);
@@ -454,18 +471,16 @@ export class ContinuousField {
             : (layer.projectionWork?.living ? null : layer.work?.url);
         if (url) {
             if (proj.artwork.getAttribute('src') !== url) proj.artwork.src = url;
-            if (layer.backdrop.hidden) {
-                proj.backdrop.hidden = true;
-                proj.backdrop.removeAttribute('src');
-            } else {
-                proj.backdrop.hidden = false;
-                if (proj.backdrop.getAttribute('src') !== url) proj.backdrop.src = url;
-            }
         } else {
             proj.artwork.removeAttribute('src');
-            proj.backdrop.hidden = true;
-            proj.backdrop.removeAttribute('src');
         }
+        // The projection's artwork covers, so nothing can ever show behind
+        // it: the backdrop exists only to fill the matte that `contain`
+        // leaves, and the projection no longer leaves one. Kept hidden and
+        // sourceless rather than mirroring the gallery's wash — it would
+        // cost a second decode and a 43px blur to paint zero visible pixels.
+        proj.backdrop.hidden = true;
+        proj.backdrop.removeAttribute('src');
         this._reportProjectionPaint();
     }
 

@@ -302,13 +302,19 @@ export class Chamber {
         if (document.documentElement.requestFullscreen) {
           document.documentElement.requestFullscreen().catch(() => { });
         }
-        if (this.player) {
-          this.player.play();
-          if (window.rise?.audioEngine) {
-            console.log('[Chamber] Triggering atmospheric swell (auto-start)');
-            window.rise.audioEngine.fadeInSession(1.2);
+        // Hold the threshold until the Fit material can dress the first word
+        // (bounded); a reading that opens undressed is the cold-start fault.
+        void (async () => {
+          await this._awaitFitHydration();
+          if (this.pageModeActive) return;
+          if (this.player) {
+            this.player.play();
+            if (window.rise?.audioEngine) {
+              console.log('[Chamber] Triggering atmospheric swell (auto-start)');
+              window.rise.audioEngine.fadeInSession(1.2);
+            }
           }
-        }
+        })();
       }, 500); // Relaxed timing for engine stability
     }
   }
@@ -850,14 +856,14 @@ export class Chamber {
     const atomDisplay = this.container.querySelector('#atom-display');
     const context = this._textMaterialCapabilityContext();
     const fallbackState = context.capability.maskActive ? 'fallback' : 'inactive';
-    this._revertFillToOpaqueWord(fallbackState, atomDisplay, { clearLiving: false });
 
-    if (!context.capability.maskActive) return;
-    if (!this._shouldMountFill() || !this._maskImageSupported()) return;
-    if (!field || !atomDisplay || !this.fillFieldHost || !this.fillViewport) return;
-
-    if (!this._atomHasWordInk(atomDisplay)) {
-      this._revertFillToOpaqueWord();
+    const mountable = context.capability.maskActive
+      && this._shouldMountFill()
+      && this._maskImageSupported()
+      && !!field && !!atomDisplay && !!this.fillFieldHost && !!this.fillViewport
+      && this._atomHasWordInk(atomDisplay);
+    if (!mountable) {
+      this._revertFillToOpaqueWord(fallbackState, atomDisplay, { clearLiving: false });
       return;
     }
 
@@ -868,6 +874,33 @@ export class Chamber {
     const viewport = this.fillViewport;
     const text = (atomDisplay.textContent || '').trim();
     const materialKey = context.materialKey;
+
+    // A DRESSED WORD IS NOT UNDRESSED TO BE REDRESSED.
+    //
+    // This ran on EVERY atom and always began by reverting to the opaque
+    // word, then awaited a font promise and a projection promise that were
+    // usually already settled — and an await, followed by the reveal's
+    // requestAnimationFrame, guarantees the browser paints in between. So
+    // every word flashed its opaque self for a frame before the mask
+    // returned: measured at 145 words, 144 of them strobing white for
+    // 15-26ms every ~132ms. That is a ~7.5Hz flash of the whole reading,
+    // which is not a reveal but a fault (and at that rate, a photosensitive
+    // one).
+    //
+    // When the font is loaded and this viewport has already painted, there
+    // is nothing to wait for: paint the mask synchronously, in the same task
+    // that wrote the word, so the two reach the compositor in ONE frame and
+    // the word is never seen undressed. The atomic path below still governs
+    // every case that genuinely must wait — a cold start, a changed
+    // material, a font still loading — and that is what keeps Task 6's
+    // promise that a half-masked word is never shown.
+    if (this._fitMaterialHydrated(viewport, text)
+      && this._paintFitMask({ field, atomDisplay, host, viewport, text })) {
+      this._revealFitMask(atomDisplay, host);
+      return;
+    }
+
+    this._revertFillToOpaqueWord(fallbackState, atomDisplay, { clearLiving: false });
     atomDisplay.dataset.maskState = 'preparing';
 
     try {
@@ -910,13 +943,47 @@ export class Chamber {
       return;
     }
 
+    if (!this._paintFitMask({ field, atomDisplay, host, viewport, text })) {
+      this._revertFillToOpaqueWord();
+      return;
+    }
+
+    await new Promise(resolve => {
+      requestAnimationFrame(() => {
+        if (contextStillCurrent()) this._revealFitMask(atomDisplay, host);
+        resolve();
+      });
+    });
+  }
+
+  /**
+   * Everything the mask needs is already in hand: the Thick font is loaded
+   * for this text, and this viewport has already painted its material.
+   * Answered SYNCHRONOUSLY on purpose — awaiting an already-settled promise
+   * still costs a paint, and that paint is the strobe.
+   */
+  _fitMaterialHydrated(viewport, text) {
+    if (!visualCortex.isContinuousFieldProjectionPainted?.(viewport)) return false;
+    if (typeof document.fonts?.check !== 'function') return false;
+    try {
+      return document.fonts.check('700 1em "Space Grotesk"', text);
+    } catch {
+      return false;
+    }
+  }
+
+  /**
+   * Measure the glyph and point the material and the mask at it. Pure
+   * mechanism, no reveal and no fallback: returns false when the geometry
+   * cannot support a mask, and the caller decides what that means.
+   */
+  _paintFitMask({ field, atomDisplay, host, viewport, text }) {
     const fieldRect = field.getBoundingClientRect();
     const atomRect = atomDisplay.getBoundingClientRect();
     const fieldWidth = field.clientWidth || fieldRect.width;
     const fieldHeight = field.clientHeight || fieldRect.height;
     if (fieldWidth < 2 || fieldHeight < 2 || atomRect.width < 1 || atomRect.height < 1) {
-      this._revertFillToOpaqueWord();
-      return;
+      return false;
     }
 
     const cs = getComputedStyle(atomDisplay);
@@ -946,10 +1013,7 @@ export class Chamber {
       sourceKind: 'procedural',
       devicePixelRatio: window.devicePixelRatio || 1
     });
-    if (!projection) {
-      this._revertFillToOpaqueWord();
-      return;
-    }
+    if (!projection) return false;
     const view = projection.projection;
     viewport.style.left = `${view.left}px`;
     viewport.style.top = `${view.top}px`;
@@ -969,10 +1033,7 @@ export class Chamber {
     // font at the same metrics and position, and needs no embedded font
     // bytes — so the mask is a faithful projection of the one authoritative
     // geometry, the atom's rendered glyphs, that the contour also traces.
-    if (!this._ensureFitMaskNode()) {
-      this._revertFillToOpaqueWord();
-      return;
-    }
+    if (!this._ensureFitMaskNode()) return false;
     const maskEl = this._fitMaskMask;
     const textEl = this._fitMaskText;
     maskEl.setAttribute('x', '0');
@@ -993,26 +1054,57 @@ export class Chamber {
     textEl.textContent = text;
 
     const url = `url("#${this._fitMaskId}")`;
-    if (!contextStillCurrent()) {
-      rejectChangedContext();
-      return;
-    }
     host.style.maskImage = url;
     host.style.webkitMaskImage = url;
+    return true;
+  }
 
-    await new Promise(resolve => {
-      requestAnimationFrame(() => {
-        if (contextStillCurrent()) {
-          host.classList.remove('is-hidden');
-          atomDisplay.classList.add('is-mask-ink', 'is-mask-ready');
-          atomDisplay.dataset.maskState = 'ready';
-          atomDisplay.style.color = 'transparent';
-          atomDisplay.style.removeProperty('text-shadow');
-          this.syncMaskGroundPlate();
-        }
-        resolve();
-      });
-    });
+  /**
+   * Hold the reading at the threshold until the Fit material can dress the
+   * first word.
+   *
+   * A cold start has no material yet: the pool is still being fetched and
+   * decoded, measured at ~2.3s. The reading used to begin anyway, so the
+   * opening seconds streamed undressed words past a reader who had asked
+   * for a masked one — the reading arrived before the thing that makes it
+   * legible. Waiting here costs a pause the reader can see the reason for
+   * (the stage is still fading in) and buys an opening that is correct from
+   * its first frame.
+   *
+   * BOUNDED, always. A pool that will not resolve — offline, a provider
+   * down — must not lock anyone out of their own reading: the wait expires
+   * and the reading opens on the opaque word, which is the same reverent
+   * degradation the mask falls back to everywhere else.
+   */
+  async _awaitFitHydration(timeoutMs = 5000) {
+    if (!this.chamberMaskApplies?.()) return;
+    const viewport = this.fillViewport;
+    if (!viewport) return;
+    const atomDisplay = this.container.querySelector('#atom-display');
+    const text = (atomDisplay?.textContent || '').trim();
+    if (!text) return;
+
+    let timer = null;
+    const expiry = new Promise(resolve => { timer = setTimeout(resolve, timeoutMs); });
+    const hydrated = Promise.all([
+      this._waitThickFontReady(text),
+      visualCortex.whenContinuousFieldProjectionReady(viewport)
+    ]).catch(() => {});
+    try {
+      await Promise.race([hydrated, expiry]);
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+
+  /** Hand the word to the material: ink becomes a hole onto the fill. */
+  _revealFitMask(atomDisplay, host) {
+    host.classList.remove('is-hidden');
+    atomDisplay.classList.add('is-mask-ink', 'is-mask-ready');
+    atomDisplay.dataset.maskState = 'ready';
+    atomDisplay.style.color = 'transparent';
+    atomDisplay.style.removeProperty('text-shadow');
+    this.syncMaskGroundPlate();
   }
 
   destroyFillField() {
@@ -1442,28 +1534,37 @@ export class Chamber {
       display.style.display = 'flex';
       display.style.opacity = '0';
       display.style.transition = 'opacity 400ms var(--ease-out)';
-      setTimeout(() => {
+
+      // The stage has geometry only now that it is displayed, so this is the
+      // first moment the glyph mask can measure anything and the material can
+      // begin hydrating. Mount it, then hold the threshold until it is ready
+      // — the fade-in below IS the wait, so the reading opens already dressed
+      // rather than streaming undressed words while the pool arrives.
+      this.applyChamberMask();
+      void (async () => {
+        await this._awaitFitHydration();
+        if (!display.isConnected) return;
         display.style.opacity = '1';
-      }, 50);
 
-      // Request fullscreen
-      if (document.documentElement.requestFullscreen) {
-        document.documentElement.requestFullscreen().catch(() => {
-          // User declined, continue anyway
-        });
-      }
-
-      if (this.player) {
-        this.player.play();
-        if (window.rise?.audioEngine) {
-          window.rise.audioEngine.fadeInSession(1.2); // Smooth swell at start
+        // Request fullscreen
+        if (document.documentElement.requestFullscreen) {
+          document.documentElement.requestFullscreen().catch(() => {
+            // User declined, continue anyway
+          });
         }
-        // Immediately show pause icon since we are now playing
-        const playIcon = this.container.querySelector('#play-icon');
-        const pauseIcon = this.container.querySelector('#pause-icon');
-        playIcon?.classList.add('hidden');
-        pauseIcon?.classList.remove('hidden');
-      }
+
+        if (this.player) {
+          this.player.play();
+          if (window.rise?.audioEngine) {
+            window.rise.audioEngine.fadeInSession(1.2); // Smooth swell at start
+          }
+          // Immediately show pause icon since we are now playing
+          const playIcon = this.container.querySelector('#play-icon');
+          const pauseIcon = this.container.querySelector('#pause-icon');
+          playIcon?.classList.add('hidden');
+          pauseIcon?.classList.remove('hidden');
+        }
+      })();
     }, 400);
   }
 
