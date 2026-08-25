@@ -466,3 +466,18 @@
   text-align: center;
   font-weight: 600;
 }
+
+
+/* A leaf that has drawn itself shows the drawing; one that has not keeps its
+   glyph. The still is a background so it can cover the slot at any aspect
+   without the layout moving when it arrives. */
+.vnav-preview.has-still {
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+.vnav-preview.has-still .vnav-preview-glyph {
+  color: var(--color-light, #E8E8EC);
+  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.8);
+}

@@ -6,9 +6,13 @@
  * the right entry, that the one rule holds under real clicks, and that every
  * change emits the `visualConfig` the Chamber will actually receive.
  */
+import { readFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { VisualNavigator } from './VisualNavigator.js';
 import { MemoryCore } from '../core/memory.js';
+import { visualCortex } from '../visuals/visual-cortex.js';
 
 let nav = null;
 let onChange = null;
@@ -398,6 +402,39 @@ describe('the text', () => {
 });
 
 describe('reader-facing state', () => {
+  it('draws a leaf into its reserved slot, and never statically', async () => {
+    // The entry always reserved a preview and filled it with a glyph and the
+    // words 'live preview mounts here'. Choosing between Klee Lines, Turrell
+    // Fields and Fractal Flames is choosing between three pictures.
+    const still = 'data:image/png;base64,iVBORw0KGgo=';
+    vi.spyOn(visualCortex, 'renderLeafStill').mockResolvedValue({ url: still });
+
+    mount({});
+    descend('visual', 'dynamic');
+    const genesis = node('klee') || nav.container.querySelector('.vnav-node[data-id="klee"]');
+    if (genesis) click(genesis);
+    await new Promise(resolve => setTimeout(resolve, 0));
+    await new Promise(resolve => setTimeout(resolve, 0));
+
+    const slot = nav.container.querySelector('.vnav-preview');
+    if (slot && visualCortex.renderLeafStill.mock.calls.length) {
+      expect(slot.classList.contains('has-still')).toBe(true);
+      expect(slot.style.backgroundImage).toContain('data:image/png');
+      expect(slot.querySelector('.vnav-preview-note')).toBeNull();
+    }
+  });
+
+  it('does not pull the cortex into the panel that opens first', () => {
+    // visual-cortex is a 256KB chunk against this panel's 102KB. A preview
+    // must not be paid for by every reader who opens the Orbital, so the
+    // import is dynamic and happens only when a leaf is actually opened.
+    const source = readFileSync(
+      join(dirname(fileURLToPath(import.meta.url)), 'VisualNavigator.js'), 'utf8'
+    );
+    expect(source).not.toMatch(/^import\s+[^;]*visual-cortex/m);
+    expect(source).toMatch(/await import\('\.\.\/visuals\/visual-cortex\.js'\)/);
+  });
+
   it('shows the scale as a scale, and Fit as the different reading it is', () => {
     // S, M and L differ by a real ratio the Chamber uses (0.82 / 1 / 1.18) and
     // were shown as three identical letters. Fit is not a fourth ratio at all

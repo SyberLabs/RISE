@@ -689,6 +689,7 @@ export class VisualNavigator {
 
   render() {
     if (this._destroyed) return;
+    this._previewGeneration = (this._previewGeneration || 0);
 
     // EVERY CHOICE REBUILT THE WHOLE PANEL, AND THE PANEL FORGOT ITSELF.
     //
@@ -735,6 +736,7 @@ export class VisualNavigator {
       const panes = [...this.container.querySelectorAll('.vnav-entry, .vnav-col, .vnav-body')];
       for (const [i, top] of scrolls) if (panes[i]) panes[i].scrollTop = top;
     }
+    void this._mountLeafPreview();
     if (focusKey) {
       const again = this.container.querySelector(focusKey);
       // Only take focus back if it is still ours to take — a dialog that
@@ -743,6 +745,52 @@ export class VisualNavigator {
         again.focus({ preventScroll: true });
       }
     }
+  }
+
+  /**
+   * SHOW THE LEAF, DO NOT NAME IT.
+   *
+   * The entry has always reserved a preview slot and filled it with a glyph
+   * and the words 'live preview mounts here'. A reader choosing between Klee
+   * Lines, Turrell Fields and Fractal Flames is choosing between three
+   * pictures, and three captions cannot tell them apart.
+   *
+   * The cortex is a 256KB chunk and this panel is 102KB, so it is imported
+   * ONLY when a reader actually opens a leaf — a preview must not be paid for
+   * by everyone who opens the Orbital. Generation-guarded, because the import
+   * and the render both take time a reader can navigate through, and silent
+   * on failure: an engine that will not draw leaves the glyph exactly where
+   * it was.
+   */
+  async _mountLeafPreview() {
+    const generation = ++this._previewGeneration;
+    const engineId = this.focus?.engineId;
+    const slot = this.container.querySelector('.vnav-preview');
+    if (!engineId || !slot) return;
+    if (this._previewCache?.has(engineId)) {
+      this._paintLeafPreview(slot, this._previewCache.get(engineId), generation);
+      return;
+    }
+    try {
+      const { visualCortex } = await import('../visuals/visual-cortex.js');
+      if (generation !== this._previewGeneration) return;
+      const work = await visualCortex.renderLeafStill(engineId);
+      if (generation !== this._previewGeneration || !work?.url) return;
+      (this._previewCache ||= new Map()).set(engineId, work.url);
+      this._paintLeafPreview(slot, work.url, generation);
+    } catch {
+      /* the glyph stays; a preview is never worth an interruption */
+    }
+  }
+
+  _paintLeafPreview(slot, url, generation) {
+    if (generation !== this._previewGeneration || !slot.isConnected) return;
+    const safe = safeUrl(url);
+    if (!safe) return;
+    slot.classList.add('has-still');
+    slot.style.backgroundImage = `url("${safe}")`;
+    const note = slot.querySelector('.vnav-preview-note');
+    if (note) note.remove();
   }
 
   pathBar() {
