@@ -803,10 +803,8 @@ export class Chamber {
 
   _revertFillToOpaqueWord(
     maskState = 'fallback',
-    atomDisplay = this.container.querySelector('#atom-display'),
-    { clearLiving = true } = {}
+    atomDisplay = this.container.querySelector('#atom-display')
   ) {
-    if (clearLiving) this._clearLivingFit();
     atomDisplay?.classList.remove('is-mask-ink', 'is-mask-ready');
     if (atomDisplay) atomDisplay.dataset.maskState = maskState;
     if (atomDisplay?.style.color === 'transparent') {
@@ -863,7 +861,7 @@ export class Chamber {
       && !!field && !!atomDisplay && !!this.fillFieldHost && !!this.fillViewport
       && this._atomHasWordInk(atomDisplay);
     if (!mountable) {
-      this._revertFillToOpaqueWord(fallbackState, atomDisplay, { clearLiving: false });
+      this._revertFillToOpaqueWord(fallbackState, atomDisplay);
       return;
     }
 
@@ -900,7 +898,7 @@ export class Chamber {
       return;
     }
 
-    this._revertFillToOpaqueWord(fallbackState, atomDisplay, { clearLiving: false });
+    this._revertFillToOpaqueWord(fallbackState, atomDisplay);
     atomDisplay.dataset.maskState = 'preparing';
 
     try {
@@ -1126,7 +1124,6 @@ export class Chamber {
   }
 
   destroyFillField() {
-    this._clearLivingFit();
     this._fillMaskGeneration += 1;
     const atomDisplay = this.container.querySelector('#atom-display');
     atomDisplay?.classList.remove('is-mask-ink', 'is-mask-ready');
@@ -2186,8 +2183,24 @@ export class Chamber {
     return { width: box.width, height: box.height, at };
   }
 
+  /**
+   * LIVING TEXT COLOURS THE TEXT. THAT IS THE WHOLE OF IT.
+   *
+   * It used also to wash the fill: a flat mood colour laid over the whole
+   * generated image at up to 45% opacity, plus saturate and brightness
+   * filters. Measured on real readings that reached 33-41% — so one control
+   * moved the ink by a tenth and covered two fifths of the picture, with
+   * nothing to say it did both. Worse, the wash was applied only to
+   * procedural fills, so the same setting did a great deal, a little, or
+   * nothing depending on a choice made in another pane.
+   *
+   * Tinting a generated field is a real idea and it is not this one. The way
+   * to it is through the engine rather than over it: an Accent option on the
+   * procedurals that hands the engine the colourway's own palette, so the
+   * field is GENERATED in those colours instead of being covered in one.
+   * That leaves the picture intact, which a wash by its nature cannot.
+   */
   applyLivingText(atomDisplay, index) {
-    this._clearLivingFit();
     if (!this.semanticTrack) return;
     const sig = this.semanticTrack[index];
     if (!sig) return;
@@ -2203,13 +2216,6 @@ export class Chamber {
     const appearance = accentRgb
       ? livingTextAppearance(sig, intensity, { baseRgb: accentRgb })
       : livingTextAppearance(sig, intensity);
-    const proceduralFit = atomDisplay?.classList.contains('is-word-fit')
-      && this._shouldMountFill()
-      && maskFillFromConfig(this._maskSourceConfig()).procedural;
-
-    if (proceduralFit) {
-      this._applyLivingFit(appearance);
-    }
     if (atomDisplay?.classList.contains('is-mask-ready')) {
       atomDisplay.style.color = 'transparent';
       atomDisplay.style.removeProperty('text-shadow');
@@ -2218,26 +2224,6 @@ export class Chamber {
     atomDisplay.style.color = appearance.color;
     const [r, g, b] = appearance.rgb;
     atomDisplay.style.textShadow = `0 0 ${appearance.glowRadius.toFixed(0)}px rgba(${r}, ${g}, ${b}, ${appearance.glowAlpha.toFixed(3)})`;
-  }
-
-  _clearLivingFit() {
-    const field = this.container.querySelector('#chamber-field');
-    if (!field) return;
-    field.classList.remove('is-living-fit');
-    field.style.removeProperty('--living-fit-color');
-    field.style.removeProperty('--living-fit-mix');
-    field.style.removeProperty('--living-fit-saturation');
-    field.style.removeProperty('--living-fit-brightness');
-  }
-
-  _applyLivingFit(appearance) {
-    const field = this.container.querySelector('#chamber-field');
-    if (!field) return;
-    field.classList.add('is-living-fit');
-    field.style.setProperty('--living-fit-color', appearance.color);
-    field.style.setProperty('--living-fit-mix', appearance.fitMix.toFixed(3));
-    field.style.setProperty('--living-fit-saturation', appearance.fitSaturation.toFixed(3));
-    field.style.setProperty('--living-fit-brightness', appearance.fitBrightness.toFixed(3));
   }
 
   displayAtom(atom, index, { concealed = false, spoken = null } = {}) {

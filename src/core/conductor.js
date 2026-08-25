@@ -270,9 +270,15 @@ export function scoreChunk(text) {
 
 const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
 
+// How far a channel may travel from the sitting before the sitting stops being
+// itself. Plain ink moves up to 94 of 255 at the strongest signal a real text
+// produces, so a tighter bound here would silently reimpose the damping that
+// was just removed.
+const ACCENT_CHANNEL_TRAVEL = 96;
+
 function preserveAccentDominance(base, rgb) {
-    const lower = base.map(channel => Math.max(0, channel - 48));
-    const upper = base.map(channel => Math.min(255, channel + 48));
+    const lower = base.map(channel => Math.max(0, channel - ACCENT_CHANNEL_TRAVEL));
+    const upper = base.map(channel => Math.min(255, channel + ACCENT_CHANNEL_TRAVEL));
     const bounded = rgb.map((channel, index) => clamp(channel, lower[index], upper[index]));
     const baseMax = Math.max(...base);
     const leaders = base.flatMap((channel, index) => channel === baseMax ? [index] : []);
@@ -308,7 +314,16 @@ export function livingTextAppearance(signal, intensity = 1, options = {}) {
     const base = hasBaseRgb
         ? options.baseRgb.map(channel => clamp(Math.round(Number(channel) || 0), 0, 255))
         : neutral;
-    const t = mood * strength * (hasBaseRgb ? 0.22 : 1);
+    // A COLOURWAY IS SHIFTED AS FAR AS PLAIN INK IS.
+    //
+    // This damped an accent base by 0.22, which measured out at a 1.2% channel
+    // shift on a typical atom against 13.7% for plain ink — so choosing a
+    // colourway all but switched Living Text off, and nothing said so. A
+    // sitting should feel the reading as much as bare ink does. What has to
+    // survive is its IDENTITY, and that is preserveAccentDominance's job
+    // rather than the gain's: it keeps the leading channel leading and bounds
+    // the drift, so a warm sitting stays warm while still moving.
+    const t = mood * strength;
     const rgb = base.map((channel, index) => (
         Math.round(channel + (pole[index] - channel) * t)
     ));
@@ -321,14 +336,10 @@ export function livingTextAppearance(signal, intensity = 1, options = {}) {
         color: `rgb(${rgb[0]}, ${rgb[1]}, ${rgb[2]})`,
         rgb,
         glowRadius: round3(8 + arousal * 40 * strength),
-        glowAlpha: round3(0.15 + arousal * 0.45 * strength),
-        fitMix: round3(clamp(
-            (0.10 + 0.35 * Math.max(mood, arousal * 0.25)) * strength,
-            0,
-            0.45
-        )),
-        fitSaturation: round3(1 + arousal * 0.22 * strength),
-        fitBrightness: round3(1 + (arousal * 0.06 - 0.02) * strength)
+        glowAlpha: round3(0.15 + arousal * 0.45 * strength)
+        // fitMix, fitSaturation and fitBrightness stood here and drove a flat
+        // wash over the fill. Living Text colours the text; a generated field
+        // is tinted through its engine's own palette, never by being covered.
     };
 }
 
