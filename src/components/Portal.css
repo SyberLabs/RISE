@@ -257,8 +257,8 @@
   /* Subtle rounded corners */
   border-radius: 3px;
 
-  /* The tile surface — Slate by default, a dark tint of the sitting when one
-     is chosen. The tokens carry both; the button names no colour of its own. */
+  /* The tile surface — slate in the default sitting, a tint of the chosen
+     one otherwise. The tokens carry both; the button names no colour. */
   background:
     linear-gradient(180deg,
       var(--btn-top) 0%,
@@ -371,14 +371,14 @@
 .portal-nav .nav-primary .nav-item {
   font-size: 18px;
   font-weight: var(--font-weight-regular);
-  color: var(--color-cloud);
+  color: var(--hero-ink);
   letter-spacing: 0.12em;
 
   padding: var(--space-md) var(--space-xl);
   min-width: 180px;
 
   /* The hero surface — a richer tint than the tiles, carrying more of the
-     sitting; Slate keeps it near-neutral. */
+     sitting; the default keeps it near-neutral. */
   background:
     linear-gradient(180deg,
       var(--hero-top) 0%,
@@ -398,7 +398,7 @@
 }
 
 .portal-nav .nav-primary .nav-item:hover {
-  color: var(--color-light);
+  color: var(--hero-ink-hover);
 
   background:
     linear-gradient(180deg,

@@ -7,12 +7,14 @@ import {
     CHAMBER_ACCENT_TOKENS,
     applyChamberAccent,
     persistChamberAccent,
+    migrateChamberAccent,
     resolveChamberAccent
 } from './chamber-accent.js';
 
 describe('Chamber accent allowlist', () => {
-    it('exposes exactly the ten allowlisted ids in chip order', () => {
+    it('exposes exactly the eleven allowlisted ids in chip order', () => {
         expect(CHAMBER_ACCENTS.map((accent) => [accent.id, accent.label])).toEqual([
+            ['default', 'Default'],
             ['slate', 'Slate'],
             ['ivory', 'Ivory'],
             ['purple', 'Amethyst'],
@@ -26,35 +28,39 @@ describe('Chamber accent allowlist', () => {
         ]);
     });
 
-    it('passes through each allowlisted id and defaults unknown to slate', () => {
-        for (const id of ['slate', 'ivory', 'purple', 'cobalt', 'amber', 'sunset', 'gecko', 'garnet', 'teal', 'orchid']) {
+    it('passes through each allowlisted id and defaults unknown to the ground state', () => {
+        for (const id of ['default', 'slate', 'ivory', 'purple', 'cobalt', 'amber', 'sunset', 'gecko', 'garnet', 'teal', 'orchid']) {
             expect(persistChamberAccent(id)).toBe(id);
             expect(resolveChamberAccent(id)).toBe(id);
         }
         expect(persistChamberAccent('violet')).toBeNull();
         for (const bad of [undefined, null, '', 'violet', 'purple ', 0, 'visualMode']) {
-            expect(resolveChamberAccent(bad), String(bad)).toBe('slate');
+            expect(resolveChamberAccent(bad), String(bad)).toBe('default');
         }
     });
 
     it('round-trips persist through resolve', () => {
         expect(resolveChamberAccent(persistChamberAccent('sunset'))).toBe('sunset');
-        expect(resolveChamberAccent(persistChamberAccent('nope'))).toBe('slate');
+        expect(resolveChamberAccent(persistChamberAccent('nope'))).toBe('default');
     });
 
-    it('stamps a colourway but CLEARS the attribute for Slate', () => {
+    it('stamps a colourway but CLEARS the attribute for the ground state', () => {
         const root = document.documentElement;
         delete root.dataset.accent;
 
         expect(applyChamberAccent(root, 'cobalt')).toBe(true);
         expect(root.dataset.accent).toBe('cobalt');
 
-        // Slate is the bare :root — choosing it removes the attribute, so the
-        // full-colourway rule (:root[data-accent]) no longer matches.
-        expect(applyChamberAccent(root, 'slate')).toBe(true);
+        // The default is the bare :root — choosing it removes the attribute,
+        // so the full-colourway rule (:root[data-accent]) no longer matches.
+        expect(applyChamberAccent(root, 'default')).toBe(true);
         expect(root.dataset.accent).toBeUndefined();
 
-        // An unknown id resolves to Slate, and so also clears the attribute.
+        // Slate is now a HUE, so it stamps like any other colourway.
+        expect(applyChamberAccent(root, 'slate')).toBe(true);
+        expect(root.dataset.accent).toBe('slate');
+
+        // An unknown id resolves to the default, and so clears the attribute.
         root.dataset.accent = 'cobalt';
         expect(applyChamberAccent(root, 'papyrus')).toBe(true);
         expect(root.dataset.accent).toBeUndefined();
@@ -62,8 +68,22 @@ describe('Chamber accent allowlist', () => {
         expect(applyChamberAccent(null, 'gecko')).toBe(false);
     });
 
-    it('has no token block for slate — it is the bare :root', () => {
-        expect(CHAMBER_ACCENT_TOKENS.slate).toBeUndefined();
+    it('has no token block for the default — it is the bare :root', () => {
+        expect(CHAMBER_ACCENT_TOKENS.default).toBeUndefined();
+        // Slate does have one: it is a hue now, not the ground state.
+        expect(CHAMBER_ACCENT_TOKENS.slate['--color-accent']).toBe('#7C8B9E');
+    });
+
+    // The ground state answered to 'slate' before Slate became a hue. A blob
+    // saved then means the DEFAULT; one saved since is taken at its word.
+    it('reads a pre-split stored slate as the default, and a named one as the hue', () => {
+        expect(migrateChamberAccent('slate', undefined)).toBe('default');
+        expect(migrateChamberAccent('slate', true)).toBe('slate');
+        // Every other value passes through either way.
+        for (const named of [undefined, true]) {
+            expect(migrateChamberAccent('cobalt', named)).toBe('cobalt');
+            expect(migrateChamberAccent(undefined, named)).toBeUndefined();
+        }
     });
 
     it('maps each id to the chrome token set that replaces --color-threshold', () => {

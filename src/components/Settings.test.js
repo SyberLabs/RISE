@@ -150,7 +150,7 @@ describe('Settings display type', () => {
         settings.destroy();
     });
 
-    it('places Accent after Face/Size with the ten chrome chips and fail copy', () => {
+    it('places Accent after Face/Size with the eleven chrome chips and fail copy', () => {
         const { container, settings, onChange } = mountSettings();
         const radios = [...container.querySelectorAll('input[name="chamber-accent"]')];
         const faceRow = container.querySelector('#chamber-face-label')?.closest('.settings-row');
@@ -164,6 +164,7 @@ describe('Settings display type', () => {
             radio.value,
             radio.closest('label')?.textContent.replace(/\s+/g, ' ').trim()
         ])).toEqual([
+            ['default', 'Default'],
             ['slate', 'Slate'],
             ['ivory', 'Ivory'],
             ['purple', 'Amethyst'],
@@ -175,7 +176,7 @@ describe('Settings display type', () => {
             ['teal', 'Teal'],
             ['orchid', 'Orchid']
         ]);
-        expect(radios.find((radio) => radio.value === 'slate').checked).toBe(true);
+        expect(radios.find((radio) => radio.value === 'default').checked).toBe(true);
         expect(container.querySelector('#chamber-accent-fail')?.textContent.trim())
             .toBe('Accent did not take.');
         expect(container.querySelector('#chamber-accent-fail')?.hidden).toBe(true);
@@ -201,11 +202,11 @@ describe('Settings display type', () => {
         );
     });
 
-    it('coerces an unknown persisted accent to slate and ignores a forged radio value', () => {
+    it('coerces an unknown persisted accent to the default and ignores a forged radio value', () => {
         const { container, settings, onChange } = mountSettings({ chamberAccent: 'violet' });
         const radios = [...container.querySelectorAll('input[name="chamber-accent"]')];
 
-        expect(radios.find((radio) => radio.value === 'slate').checked).toBe(true);
+        expect(radios.find((radio) => radio.value === 'default').checked).toBe(true);
 
         const gecko = radios.find((radio) => radio.value === 'gecko');
         gecko.value = 'chartreuse';

@@ -304,7 +304,7 @@ describe('App safety orchestration', () => {
   it('persists an allowlisted Chamber accent on :root with chamberFace and fontSize', () => {
     const app = new App();
     app.loadSettings();
-    expect(app.settings.chamberAccent).toBe('slate');
+    expect(app.settings.chamberAccent).toBe('default');
     expect(app.settings.chamberFace).toBe('literary');
     expect(app.settings.fontSize).toBe('medium');
 
@@ -331,16 +331,41 @@ describe('App safety orchestration', () => {
     expect(document.documentElement.dataset.accent).toBe('gecko');
   });
 
-  it('coerces an unknown Chamber accent to slate on load and change', () => {
+  it('coerces an unknown Chamber accent to the default on load and change', () => {
     const app = new App();
     localStorage.setItem('rise-settings', JSON.stringify({ chamberAccent: 'violet' }));
     app.loadSettings();
-    expect(app.settings.chamberAccent).toBe('slate');
+    expect(app.settings.chamberAccent).toBe('default');
 
     app.handleSettingsChange('chamberAccent', 'chartreuse');
-    expect(app.settings.chamberAccent).toBe('slate');
-    // Slate is the bare :root — coercing to it clears the attribute entirely.
+    expect(app.settings.chamberAccent).toBe('default');
+    // The default is the bare :root — coercing to it clears the attribute.
     expect(document.documentElement.dataset.accent).toBeUndefined();
+  });
+
+  // The ground state answered to 'slate' until Slate became a hue of its own.
+  // A reader who never touched the setting has that word in localStorage and
+  // means the default by it, so the look they saved is the look they keep.
+  it('keeps a pre-split stored slate on the default, and takes a chosen Slate at its word', () => {
+    const app = new App();
+    localStorage.setItem('rise-settings', JSON.stringify({ chamberAccent: 'slate' }));
+    app.loadSettings();
+    expect(app.settings.chamberAccent).toBe('default');
+    app.applyAccessibilitySettings();
+    expect(document.documentElement.dataset.accent).toBeUndefined();
+
+    // Choosing Slate deliberately saves the marker with it, so the next load
+    // reads it as the hue rather than migrating it away again.
+    app.handleSettingsChange('chamberAccent', 'slate');
+    const saved = JSON.parse(localStorage.getItem('rise-settings'));
+    expect(saved.chamberAccent).toBe('slate');
+    expect(saved.chamberAccentNamed).toBe(true);
+
+    const returning = new App();
+    returning.loadSettings();
+    expect(returning.settings.chamberAccent).toBe('slate');
+    returning.applyAccessibilitySettings();
+    expect(document.documentElement.dataset.accent).toBe('slate');
   });
 });
 
