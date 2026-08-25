@@ -503,13 +503,14 @@ describe('reader-facing state', () => {
   });
 
   it('shows a shipped still for the engines too dear to draw', async () => {
-    // Measured per still: fractal 1139ms, ostensoria 697ms, apparitio 365ms
-    // against 50-77ms for the rest — and fractal draws from the queue the
-    // reading uses, so one preview emptied it. These three are rendered once,
-    // from the engines themselves, and shipped. A reader still meets a
-    // picture; the reading is never charged for it.
+    // Two reasons put an engine here. Measured per still: fractal 1139ms,
+    // ostensoria 697ms, apparitio 365ms against 50-77ms for the rest — and
+    // fractal draws from the queue the reading uses, so one preview emptied
+    // it. The attractor is here for the other reason: it integrates
+    // continuously and has no still branch at all. Each is shipped as a
+    // picture, so a reader meets one and the reading is never charged.
     const { visualCortex } = await import('../visuals/visual-cortex.js');
-    for (const engine of ['fractal', 'ostensoria', 'apparitio']) {
+    for (const engine of ['fractal', 'ostensoria', 'apparitio', 'attractor']) {
       const work = await visualCortex.renderLeafStill(engine);
       expect(work?.url, engine).toBeTruthy();
       expect(work.url, engine).toMatch(/engine-stills\/.+\.webp$/);

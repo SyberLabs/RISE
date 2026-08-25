@@ -39,17 +39,61 @@ const FROM_FILE = {
     attractor: process.env.RISE_STILL_ATTRACTOR
 };
 
+/**
+ * Trim the empty ground, then downscale.
+ *
+ * A plate captured full-frame is mostly ground — the attractor arrived as a
+ * pale figure adrift in 1920x1080 of white — and the preview slot crops to
+ * cover, so an untrimmed capture reads as a blank card at thumbnail size.
+ * The bounding box is taken against the corner colour, which is the ground by
+ * definition, with a small margin left so the figure is not cut to its edge.
+ */
 async function downscale(page, dataUrl) {
     return page.evaluate(async ({ url, edge, quality }) => {
         const img = new Image();
         await new Promise((ok, no) => { img.onload = ok; img.onerror = no; img.src = url; });
-        const scale = Math.min(1, edge / Math.max(img.naturalWidth, img.naturalHeight));
+
+        const full = document.createElement('canvas');
+        full.width = img.naturalWidth;
+        full.height = img.naturalHeight;
+        const fctx = full.getContext('2d', { willReadFrequently: true });
+        fctx.drawImage(img, 0, 0);
+        const { data } = fctx.getImageData(0, 0, full.width, full.height);
+
+        const at = (x, y) => (y * full.width + x) * 4;
+        const ground = [data[0], data[1], data[2]];
+        const TOLERANCE = 14;
+        let minX = full.width, minY = full.height, maxX = -1, maxY = -1;
+        for (let y = 0; y < full.height; y++) {
+            for (let x = 0; x < full.width; x++) {
+                const i = at(x, y);
+                if (Math.abs(data[i] - ground[0]) > TOLERANCE
+                    || Math.abs(data[i + 1] - ground[1]) > TOLERANCE
+                    || Math.abs(data[i + 2] - ground[2]) > TOLERANCE) {
+                    if (x < minX) minX = x;
+                    if (x > maxX) maxX = x;
+                    if (y < minY) minY = y;
+                    if (y > maxY) maxY = y;
+                }
+            }
+        }
+        // Nothing found, or the figure already fills the frame: keep it whole.
+        let sx = 0, sy = 0, sw = full.width, sh = full.height;
+        if (maxX > minX && maxY > minY) {
+            const pad = Math.round(Math.max(maxX - minX, maxY - minY) * 0.06);
+            sx = Math.max(0, minX - pad);
+            sy = Math.max(0, minY - pad);
+            sw = Math.min(full.width - sx, (maxX - minX) + pad * 2);
+            sh = Math.min(full.height - sy, (maxY - minY) + pad * 2);
+        }
+
+        const scale = Math.min(1, edge / Math.max(sw, sh));
         const canvas = document.createElement('canvas');
-        canvas.width = Math.round(img.naturalWidth * scale);
-        canvas.height = Math.round(img.naturalHeight * scale);
+        canvas.width = Math.round(sw * scale);
+        canvas.height = Math.round(sh * scale);
         const ctx = canvas.getContext('2d');
         ctx.imageSmoothingQuality = 'high';
-        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        ctx.drawImage(img, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height);
         return canvas.toDataURL('image/webp', quality);
     }, { url: dataUrl, edge: EDGE, quality: QUALITY });
 }
