@@ -23,6 +23,7 @@ import {
   describeField,
   galleryMembers,
   isBlend,
+  leafById,
   substylesFor,
   toggleField
 } from '../core/visual-taxonomy.js';
@@ -288,13 +289,42 @@ export class VisualNavigator {
     };
   }
 
+  /**
+   * Is the field a continuous Gallery — the one category that can be painted
+   * through letters?
+   *
+   * Off, Focal and Dynamic are the exclusive categories, and none of them
+   * offers a continuous surface behind the reading, so none of them can carry
+   * a mask. `emptyGallery` counts: it emits interlocution + continuous with an
+   * empty pool, which is a Gallery waiting for works.
+   */
+  _fieldIsGallery() {
+    if (this.selection.emptyGallery) return true;
+    const on = [...this.selection.enabled];
+    return on.length > 0 && on.every(id => categoryOf(id) === FIELD.GALLERY);
+  }
+
+  /**
+   * THE PANEL USED TO ASSERT THE FIELD RATHER THAN ASK IT.
+   *
+   * This passed `visualMode: 'interlocution'` and `presentation: 'continuous'`
+   * as constants, so of the resolver's four conditions only two could ever
+   * fail — which is why every refusal in this panel said "requires Thick +
+   * Fit", and why `requires-gallery` was a state the reader could never be
+   * shown. It also explains the silent overwrite in setSize: when a reader
+   * held a Focal and chose Fit, the panel discarded the Focal to make its own
+   * assumption true rather than report that the two do not fit.
+   *
+   * Asking costs nothing and makes the refusals honest.
+   */
   textMaterialCapability(wordFill = this.selection.wordFill, settings = this.textMaterialSettings()) {
+    const gallery = this._fieldIsGallery();
     return resolveTextMaterialCapability({
       face: settings.face,
       fontSize: settings.fontSize,
       chunkMode: 'word',
-      visualMode: 'interlocution',
-      presentation: 'continuous',
+      visualMode: gallery ? 'interlocution' : 'off',
+      presentation: gallery ? 'continuous' : 'full-frame',
       wordFill,
       programOwned: Boolean(this.programInfo)
     });
@@ -352,15 +382,93 @@ export class VisualNavigator {
     }, returnFocus);
   }
 
-  explainBlockedMask(wordFill, returnFocus) {
+  /**
+   * Say which of the four conditions is missing, and offer the remedy for
+   * THAT one.
+   *
+   * One sentence used to answer every refusal — 'Visual masks require Thick +
+   * Fit' — with a single corrective that set the face, the size and the
+   * timing. When the missing condition was the field, that advice was simply
+   * wrong: it changed three things that were not the problem, and the mask
+   * still could not be carried. A remedy that does not address the cause is
+   * worse than no remedy, because it spends the reader's trust.
+   */
+  /**
+   * Fit needs a Gallery; this field is not one. Say what will be lost, name
+   * it, and let the reader decide — rather than discarding it and moving on.
+   */
+  confirmFieldReplacement({ fontSize, settings, returnFocus }) {
+    const held = [...this.selection.enabled]
+      .map(id => leafById(id)?.label)
+      .filter(Boolean);
     this.openDialog({
-      title: 'Visual masks require Thick + Fit.',
-      body: 'Bold, chamber-filling words provide enough surface for imagery.',
-      primaryLabel: 'Use Thick + Fit',
+      title: 'Fit paints through a Gallery.',
+      body: `${held.length ? held.join(' and ') : 'This field'} cannot be painted through the letters, `
+        + 'and will be set aside to make room for one. The reading keeps everything else.',
+      primaryLabel: 'Set it aside',
+      primaryAction: 'replace-field-for-fit',
+      confirm: () => {
+        this.selection.enabled = new Set();
+        this.selection.emptyGallery = true;
+        this.selection.preserveBaseSelection = false;
+        this.requestTextMaterialTransaction({
+          face: settings.face,
+          fontSize,
+          wordFill: this.selection.wordFill,
+          temporal: { chunkMode: 'word', recitation: false },
+          settings: { chamberFace: settings.face, fontSize, chamberMask: false }
+        });
+        this.closeDialog();
+      }
+    }, returnFocus);
+  }
+
+  explainBlockedMask(wordFill, returnFocus) {
+    // NAME EVERYTHING THAT IS MISSING, BECAUSE THE REMEDY FIXES ALL OF IT.
+    //
+    // One sentence used to answer every refusal — 'Visual masks require Thick
+    // + Fit' — while the corrective quietly also opened a Gallery. So the
+    // message undersold what the button did, and when the field was the only
+    // thing missing it named two things that were not the problem. The
+    // resolver reports the first failing condition; the reader needs all of
+    // them, since they are about to be set in one stroke.
+    const settings = this.textMaterialSettings();
+    const needsField = !this._fieldIsGallery();
+    const missing = [];
+    if (needsField) missing.push('a Gallery field');
+    if (resolveChamberStreamFace(settings.face) !== 'thick') missing.push('the Thick face');
+    if (resolveFontSize(settings.fontSize) !== 'fit') missing.push('the Fit size');
+    // Only a field that CANNOT hold imagery is named as being set aside. A
+    // Gallery already behind the reading is kept: it is the thing the mask is
+    // about to be painted from, and discarding it to "fix" a face would throw
+    // away the works the reader chose.
+    const displaced = needsField
+      ? [...this.selection.enabled].map(id => leafById(id)?.label).filter(Boolean)
+      : [];
+    const list = missing.length > 1
+      ? `${missing.slice(0, -1).join(', ')} and ${missing[missing.length - 1]}`
+      : (missing[0] || 'more surface');
+
+    this.openDialog({
+      title: `A mask needs ${list}.`,
+      body: displaced.length
+        ? `${displaced.join(' and ')} holds no imagery behind the reading, so it will be set aside `
+          + 'for a Gallery. Bold, chamber-filling words provide the surface the imagery is painted on.'
+        : 'Bold, chamber-filling words provide the surface, and a Gallery is what is painted through them.',
+      primaryLabel: missing.length > 1 ? 'Set them' : 'Set it',
       primaryAction: 'use-thick-fit',
       confirm: () => {
+        if (needsField) {
+          // The field is the problem: clear it and open an empty Gallery.
+          this.selection.enabled = new Set();
+          this.selection.preserveBaseSelection = false;
+        } else {
+          // The field is already a Gallery — keep the works that are in it.
+          this.selection.preserveBaseSelection = true;
+        }
+        // Ignored by fieldPatch whenever leaves are enabled; it only speaks
+        // for the empty case.
         this.selection.emptyGallery = true;
-        this.selection.preserveBaseSelection = true;
         this.requestTextMaterialTransaction({
           face: 'thick',
           fontSize: 'fit',
@@ -410,8 +518,17 @@ export class VisualNavigator {
     }
     if (persist === 'fit' && this.locked) return;
     if (persist === 'fit') {
-      const gallery = this.selection.enabled.size > 0
-        && [...this.selection.enabled].every(id => categoryOf(id) === FIELD.GALLERY);
+      const gallery = this._fieldIsGallery();
+      // FIT USED TO TAKE THE FIELD WITHOUT ASKING. Choosing Fit while a Focal
+      // was held cleared `enabled` outright — the Chapel rose a reader had
+      // chosen simply vanished, replaced by an empty Gallery, with no dialog
+      // and no way to know it had happened. Fit does need a Gallery, so the
+      // conflict is real; what was missing was the asking. This panel already
+      // knows how to ask — confirmMaskInvalidation does it in the other
+      // direction — so the same courtesy applies here.
+      if (!gallery && this.selection.enabled.size > 0) {
+        return this.confirmFieldReplacement({ fontSize: persist, settings, returnFocus });
+      }
       if (!gallery) this.selection.enabled = new Set();
       this.selection.emptyGallery = !gallery;
       if (!gallery) this.selection.preserveBaseSelection = false;
@@ -477,6 +594,22 @@ export class VisualNavigator {
     this.render();
   }
 
+  /**
+   * Open or close the Ink pane's third answer. State only: browsing what is
+   * on offer is not choosing it, so this never touches the selection and
+   * never emits.
+   */
+  toggleInkBranch() {
+    this._inkBranchOpen = this._inkBranchOpen === false;
+    this.render();
+  }
+
+  setStreamGlass(enabled) {
+    if (this.locked || this.programInfo) return;
+    this.selection.streamGlass = enabled === true;
+    this.emit();
+  }
+
   setLivingText(enabled) {
     if (this.locked || this.programInfo) return;
     this.selection.livingText = {
@@ -536,8 +669,47 @@ export class VisualNavigator {
   }
 
   /* ── render ───────────────────────────────────────────────────────── */
+  /**
+   * A stable identity for a control, so the same one can be found again in a
+   * DOM that has just been rebuilt underneath it.
+   */
+  _controlKey(el) {
+    if (!el || el === this.container || !this.container.contains(el)) return null;
+    for (const attr of ['data-word-fill', 'data-word-fill-border', 'data-font-size',
+      'data-chamber-face', 'data-gallery-cadence', 'data-action', 'data-id',
+      'data-pool', 'data-sub', 'data-glyph', 'data-focal-type']) {
+      const value = el.getAttribute?.(attr);
+      if (value !== null && value !== undefined) {
+        return `[${attr}="${String(value).replace(/"/g, '\\"')}"]`;
+      }
+    }
+    return null;
+  }
+
   render() {
     if (this._destroyed) return;
+
+    // EVERY CHOICE REBUILT THE WHOLE PANEL, AND THE PANEL FORGOT ITSELF.
+    //
+    // render() replaces the container's innerHTML to change what is usually
+    // one class on one chip. Two things did not survive that and neither was
+    // restored: the scroll offset of the option area — so choosing a pool
+    // near the bottom snapped the pane to the top and carried the new
+    // selection out of sight — and focus, which fell to the document body
+    // because the clicked button no longer existed. A keyboard reader was
+    // ejected from the panel on every single choice and had to tab back in.
+    //
+    // The interruption path already did this properly: opening a dialog
+    // records a selector for what opened it and closing puts focus back. The
+    // rare case was preserved and the ordinary one discarded; this gives the
+    // ordinary one the same care.
+    const focusKey = this._restoringDialogFocus
+      ? null
+      : this._controlKey(this.container.ownerDocument?.activeElement);
+    const scrolls = [...this.container.querySelectorAll('.vnav-entry, .vnav-col, .vnav-body')]
+      .map((el, i) => [i, el.scrollTop])
+      .filter(([, top]) => top > 0);
+
     const cols = this.columns();
     this.container.innerHTML = `
       <div class="vnav">
@@ -557,6 +729,19 @@ export class VisualNavigator {
         ${this.renderDialog()}
       </div>`;
     this.attach();
+
+    if (scrolls.length) {
+      const panes = [...this.container.querySelectorAll('.vnav-entry, .vnav-col, .vnav-body')];
+      for (const [i, top] of scrolls) if (panes[i]) panes[i].scrollTop = top;
+    }
+    if (focusKey) {
+      const again = this.container.querySelector(focusKey);
+      // Only take focus back if it is still ours to take — a dialog that
+      // opened during this render owns it now.
+      if (again && !this.dialog && typeof again.focus === 'function') {
+        again.focus({ preventScroll: true });
+      }
+    }
   }
 
   pathBar() {
@@ -639,50 +824,110 @@ export class VisualNavigator {
           id: item.id, label: item.id === 'thick' ? 'Thick ★' : item.label, on: item.id === selected,
           readOnly: Boolean(this.programInfo), special: item.id === 'thick',
           attr: `data-chamber-face="${escapeHtml(item.id)}"${item.id === 'thick' ? ' aria-describedby="vnav-thick-explanation"' : ''}`
-        })), 'vnav-face-grid') + `<p id="vnav-thick-explanation" class="vnav-control-explanation"
-          ${this._faceHint ? '' : 'hidden'}>Thick is the mask-ready face.</p>`);
+        })), 'vnav-face-grid') + `<p id="vnav-thick-explanation" class="vnav-control-explanation">Thick
+          is the mask-ready face — the other three cannot carry a Visual mask.</p>`);
     }
     if (id === 'size') {
       const selected = this.textMaterialSettings().fontSize;
+      // A SCALE AND A MODE ARE NOT FOUR SIZES. S, M and L are three points on
+      // one continuum; Fit is a different reading — it scales each word to
+      // fill the chamber, steps one word at a time, and stands recitation and
+      // phrase chunking aside. Offered as a fourth chip it invited the casual,
+      // reversible try that a larger size deserves and it does not. Its cost
+      // is also stated here rather than after the fact: the pane used to read
+      // 'Choose the scale of the reading' until Fit was chosen, and only then
+      // explain what Fit had already done.
+      const chips = FONT_SIZE_CHIPS.filter(item => item.fontSize !== 'fit');
+      const fit = FONT_SIZE_CHIPS.find(item => item.fontSize === 'fit');
+      const scale = bench('Scale', chips.map(item => ({
+        id: item.id, label: item.label, on: item.fontSize === selected,
+        readOnly: Boolean(this.programInfo),
+        attr: `data-font-size="${escapeHtml(item.id)}"`
+      })));
+      const mode = fit ? bench('Or read one word at a time', [{
+        id: fit.id, label: 'Fit', on: selected === 'fit',
+        readOnly: Boolean(this.programInfo), special: true,
+        attr: `data-font-size="${escapeHtml(fit.id)}" aria-describedby="vnav-fit-consequence"`
+      }], 'vnav-mode-bench') : '';
       return this.renderTextShell('Size', selected === 'fit' ? SIZE_HINT_FIT : 'Choose the scale of the reading.',
-        bench('Size', FONT_SIZE_CHIPS.map(item => ({
-          id: item.id, label: item.label, on: item.fontSize === selected,
-          readOnly: Boolean(this.programInfo),
-          attr: `data-font-size="${escapeHtml(item.id)}"`
-        }))));
+        `${scale}${mode}<p id="vnav-fit-consequence" class="vnav-fit-consequence">Fit scales each
+          Word to fill the chamber and paints the gallery through the letters. Words step one at a
+          time; Recitation and phrase chunking stand aside.</p>`);
     }
     const value = wordFillValue(this.selection.wordFill);
     const settings = this.textMaterialSettings();
     const fieldLocked = Boolean(this.locked);
     const programLocked = Boolean(this.programInfo);
-    const maskAvailable = this.textMaterialCapability({ mode: 'same' }, settings).available;
+    const capability = this.textMaterialCapability({ mode: 'same' }, settings);
+    const maskAvailable = capability.available;
+    // Four causes, four sentences. The panel used to answer every one of them
+    // with 'requires Thick + Fit', which is false whenever the cause is the
+    // field: a reader holding a Focal was told to change a face and a size
+    // that would not have helped.
+    const maskReason = maskAvailable ? null : MASK_REASON[capability.reason];
     const engines = WORD_FILL_PROCEDURAL_PATTERNS.map(item => ({
       id: item.id, label: item.name, on: value === `procedural:${item.id}`,
       disabled: fieldLocked,
       readOnly: programLocked,
       blocked: !maskAvailable && !programLocked,
+      reason: !maskAvailable && !programLocked ? maskReason : null,
       attr: `data-word-fill="procedural:${escapeHtml(item.id)}"`
     }));
-    const pools = inkPoolOptions().map(item => ({
-      id: item.id, label: item.label, on: value === `sourced:${item.id}`,
-      disabled: fieldLocked,
-      readOnly: programLocked,
-      blocked: !maskAvailable && !programLocked,
-      attr: `data-word-fill="sourced:${escapeHtml(item.id)}"`
-    }));
+    const poolBenches = inkPoolFamilies().map(family => bench(family.label,
+      family.options.map(item => ({
+        id: item.id, label: item.label, on: value === `sourced:${item.id}`,
+        disabled: fieldLocked,
+        readOnly: programLocked,
+        blocked: !maskAvailable && !programLocked,
+        reason: !maskAvailable && !programLocked ? maskReason : null,
+        attr: `data-word-fill="sourced:${escapeHtml(item.id)}"`
+      }))
+    )).join('');
     const styles = this.inkFocus ? this.renderStyleBenches(this.inkFocus) : '';
+
+    // ONE QUESTION, NOT THREE HEADINGS.
+    //
+    // Ink, Engines and Pools were drawn as three groups and were one: every
+    // chip in all of them writes `data-word-fill`, and wordFillValue collapses
+    // them to a single value. So Accent, Same as the Field, Klee Lines and Old
+    // Masters were mutually exclusive answers to one question laid out as
+    // twenty peers, and nothing said that choosing Landscapes silently
+    // un-chose Same as the Field. The captions implied accumulation where the
+    // mechanism is replacement.
+    //
+    // The third answer is a DISCLOSURE, not a value. Opening it must not
+    // change the reading — a reader browsing what is available has not yet
+    // chosen anything — so it carries `data-ink-branch`, never
+    // `data-word-fill`.
+    //
+    // It stands OPEN by default. The fault here was never that too much was
+    // on screen; it was that what was on screen claimed a rank it did not
+    // hold. Nesting fixes the rank. Hiding would have bought compactness by
+    // spending discoverability, and every engine and pool that was reachable
+    // before is still reachable at a glance.
+    const chosenOwn = value.startsWith('procedural:') || value.startsWith('sourced:');
+    const ownOpen = chosenOwn || this._inkBranchOpen !== false;
+    const answers = bench('What paints the letters', [
+      { id: 'accent', label: 'Accent', on: value === 'accent', disabled: fieldLocked, readOnly: programLocked, attr: 'data-word-fill="accent"' },
+      { id: 'same', label: 'Same as the Field', on: value === 'same', disabled: fieldLocked, readOnly: programLocked, blocked: !maskAvailable && !programLocked, reason: !maskAvailable && !programLocked ? maskReason : null, attr: 'data-word-fill="same"' },
+      {
+        id: 'own', label: `Something of its own ${ownOpen ? '▾' : '▸'}`, on: chosenOwn,
+        disabled: fieldLocked,
+        attr: `data-ink-branch="own" aria-expanded="${ownOpen}" aria-controls="vnav-ink-own"`
+      }
+    ], 'vnav-ink-answers');
+
     return this.renderTextShell('Ink', 'Paint the gallery through the letters.', `
-      ${bench('Ink', [
-        { id: 'accent', label: 'Accent', on: value === 'accent', disabled: fieldLocked, readOnly: programLocked, attr: 'data-word-fill="accent"' },
-        { id: 'same', label: 'Visual Mask', on: value === 'same', disabled: fieldLocked, readOnly: programLocked, blocked: !maskAvailable && !programLocked, attr: 'data-word-fill="same"' }
-      ])}
-      ${bench('Engines', engines)}
-      ${bench('Pools', pools)}
+      ${answers}
+      ${ownOpen ? `<div class="vnav-ink-own" id="vnav-ink-own">
+        ${bench('A generated field', engines)}
+        ${poolBenches}
+      </div>` : ''}
       ${this.hasActiveMask() ? bench('Border', [
         { id: 'off', label: 'Off', on: normalizeWordFill(this.selection.wordFill).border === 'off', disabled: fieldLocked, readOnly: programLocked, attr: 'data-word-fill-border="off"' },
         { id: 'cream', label: 'Cream', on: normalizeWordFill(this.selection.wordFill).border === 'cream', disabled: fieldLocked, readOnly: programLocked, attr: 'data-word-fill-border="cream"' },
         { id: 'accent', label: 'Accent', on: normalizeWordFill(this.selection.wordFill).border === 'accent', disabled: fieldLocked, readOnly: programLocked, attr: 'data-word-fill-border="accent"' }
-      ]) : ''}
+      ], 'is-property') : ''}
       ${styles}
       <p class="vnav-fit-coupling">Fit paints the gallery through the letters. Words step one at a time; Recitation and phrase chunking stand aside.</p>`);
   }
@@ -723,6 +968,8 @@ export class VisualNavigator {
     return `<div class="vnav-reader-controls">
       <label class="vnav-living"><input type="checkbox" data-action="living-text"
         ${this.selection.livingText.enabled ? 'checked' : ''} ${fieldLocked ? 'disabled' : ''}> <span>Living Text</span></label>
+      <label class="vnav-living"><input type="checkbox" data-action="stream-glass"
+        ${this.selection.streamGlass !== false ? 'checked' : ''} ${fieldLocked ? 'disabled' : ''}> <span>Glass</span></label>
       ${galleryContext ? `<div class="vnav-cadence"><span>Cadence</span>${CADENCE.map(item => `
         <button type="button" class="vnav-opt ${this.selection.galleryCadence === item.value ? 'on' : ''}"
           data-gallery-cadence="${item.value}" ${fieldLocked ? 'disabled' : ''}>${item.label}</button>`).join('')}</div>` : ''}
@@ -894,6 +1141,7 @@ export class VisualNavigator {
     q('[data-action="toggle"]')?.addEventListener('click', () => this.toggleEnabled());
     q('[data-action="glass"]')?.addEventListener('change', e => this.setGlass(e.target.checked));
     q('[data-action="living-text"]')?.addEventListener('change', e => this.setLivingText(e.target.checked));
+    q('[data-action="stream-glass"]')?.addEventListener('change', e => this.setStreamGlass(e.target.checked));
     q('[data-action="open-personal"]')?.addEventListener('click', () => this.onOpenPersonal());
     this.container.querySelectorAll('[data-action="release-to-program"]').forEach(b =>
       b.onclick = () => this.releaseToProgram());
@@ -915,6 +1163,8 @@ export class VisualNavigator {
       b.onclick = () => this.setSize(b.dataset.fontSize, b));
     this.container.querySelectorAll('[data-word-fill]').forEach(b =>
       b.onclick = () => this.setWordFill(b.dataset.wordFill, b));
+    this.container.querySelectorAll('[data-ink-branch]').forEach(b =>
+      b.onclick = () => this.toggleInkBranch());
     this.container.querySelectorAll('[data-word-fill-border]').forEach(b =>
       b.onclick = () => this.setWordFillBorder(b.dataset.wordFillBorder, b));
     if (this.programInfo) {
@@ -974,16 +1224,51 @@ function glyphFor(node) {
   return glyphs[node.id] || '·';
 }
 
+/**
+ * A chip carries four conditions — chosen, blocked, owned by a program, and
+ * plainly unavailable — and used to render them as near-identical pills. They
+ * are not degrees of one thing: `not chosen`, `unavailable because of
+ * something you chose elsewhere`, and `fixed because this reading came with a
+ * program` are three different messages, and only the last two are worth
+ * acting on. An inert chip with no reason attached reads as a broken one, so
+ * each state now names itself where the cursor already is.
+ */
+const CHIP_REASON = Object.freeze({
+  readOnly: 'This reading came with its own visual program, which owns this choice.'
+});
+
+/**
+ * Why a mask cannot be carried, in the reader's terms.
+ *
+ * The capability resolver distinguishes four causes and the panel used to
+ * answer all of them with one sentence about Thick and Fit — which is simply
+ * untrue when the cause is the field. A reader holding a Focal was told to
+ * change their face and size, neither of which would have helped.
+ */
+const MASK_REASON = Object.freeze({
+  'requires-gallery': 'Needs a Gallery field — a Focal or a Dynamic field has no imagery to paint through the letters.',
+  'requires-word': 'Needs one word at a time — phrase chunking leaves no single Word to fill.',
+  'requires-thick': 'Needs the Thick face — the other three are too fine to carry imagery.',
+  'requires-fit': 'Needs the Fit size — a Word must fill the chamber to hold a picture.',
+  'program-owned': 'This reading came with its own visual program, which owns this choice.'
+});
+
 function bench(label, opts, className = '') {
   return `
     <div class="vnav-bench ${className}">
       <span class="vnav-bench-label">${escapeHtml(label)}</span>
       <div class="vnav-opts">
-        ${opts.map(o => `
-          <button type="button" class="vnav-opt ${o.on ? 'on is-selected' : ''} ${o.swatch ? 'swatch' : ''} ${o.blocked ? 'is-blocked' : ''} ${o.special ? 'is-special' : ''}"
+        ${opts.map(o => {
+    const state = o.blocked ? 'blocked' : (o.readOnly ? 'readOnly' : (o.on ? 'chosen' : 'open'));
+    const reason = o.reason || CHIP_REASON[state];
+    return `
+          <button type="button" class="vnav-opt ${o.on ? 'on is-selected' : ''} ${o.swatch ? 'swatch' : ''} ${o.blocked ? 'is-blocked' : ''} ${o.readOnly ? 'is-owned' : ''} ${o.special ? 'is-special' : ''}"
+            data-state="${state}"
+            ${reason ? `title="${escapeHtml(reason)}"` : ''}
             ${o.disabled ? 'disabled' : ''} ${o.readOnly || o.blocked ? 'aria-disabled="true"' : ''} ${o.attr}>
             ${o.swatch ? `<i style="background:${escapeHtml(o.swatch)}"></i>` : ''}${escapeHtml(String(o.label))}
-          </button>`).join('')}
+          </button>`;
+  }).join('')}
       </div>
     </div>`;
 }
@@ -1050,8 +1335,30 @@ function inkFocusFrom(fill) {
   return value.startsWith('procedural:') ? value.slice('procedural:'.length) : null;
 }
 
-function inkPoolOptions() {
-  const all = ['by-manner', 'by-subject', 'science', 'personal']
-    .flatMap(poolOptions);
-  return [...new Map(all.map(item => [item.id, item])).values()];
+/**
+ * The ink pools, in the four families the taxonomy already keeps them in.
+ *
+ * These used to be flatMapped into one row, which threw away a distinction
+ * the config holds and made a reader sort a Ukiyo-e movement, a bird and a
+ * storage scope out of a single undifferentiated pile. A manner of painting,
+ * a subject, a domain and a scope are four kinds of answer; only the last is
+ * about whose pictures rather than which.
+ */
+const INK_POOL_FAMILIES = Object.freeze([
+  Object.freeze({ id: 'by-manner', label: 'By manner' }),
+  Object.freeze({ id: 'by-subject', label: 'By subject' }),
+  Object.freeze({ id: 'science', label: 'Science' }),
+  Object.freeze({ id: 'personal', label: 'Yours' })
+]);
+
+function inkPoolFamilies() {
+  const seen = new Set();
+  return INK_POOL_FAMILIES.map(family => {
+    const options = poolOptions(family.id).filter(item => {
+      if (seen.has(item.id)) return false;
+      seen.add(item.id);
+      return true;
+    });
+    return { ...family, options };
+  }).filter(family => family.options.length > 0);
 }

@@ -317,3 +317,59 @@
     cursor: pointer;
   }
 }
+
+
+/* A BENCH THAT IS A PROPERTY, NOT A PEER.
+   Border is the only row in Ink that does not write `data-word-fill`: it
+   modifies the ink chosen above rather than offering another ink. Drawn as a
+   fourth identical bench it read as a fourth candidate — and its options
+   reuse the first row's vocabulary, so "Accent" appeared twice in one pane
+   meaning two different things. Indenting it against a rule puts it at the
+   rank it actually holds. */
+.vnav-bench.is-property {
+  margin-left: 14px;
+  padding-left: 14px;
+  border-left: 1px solid var(--color-shadow, #2A2A30);
+}
+
+.vnav-bench.is-property .vnav-bench-label {
+  opacity: 0.8;
+}
+
+
+/* Fit is a mode, not a fourth size, so it does not sit in the scale's row —
+   and what it costs is readable before it is taken, not after. */
+.vnav-mode-bench { margin-top: 10px; }
+
+.vnav-fit-consequence {
+  margin: 8px 0 0;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--color-mist, #6B6B75);
+  max-width: 52ch;
+}
+
+
+/* Ink asks one question. Its third answer opens onto the engines and pools
+   rather than standing beside them, so the tree the rail already uses is the
+   tree this pane uses too. */
+.vnav-ink-own {
+  margin: 10px 0 0 14px;
+  padding-left: 14px;
+  border-left: 1px solid var(--color-shadow, #2A2A30);
+}
+
+
+/* Four conditions, four appearances. A chip that cannot be used says so in
+   its own form, not only in a dialog after it is pressed — and a chip a
+   program owns is distinguished from one that is merely unavailable. */
+.vnav-opt.is-blocked {
+  opacity: 0.42;
+  border-style: dashed;
+  cursor: help;
+}
+
+.vnav-opt.is-owned {
+  opacity: 0.62;
+  cursor: not-allowed;
+}

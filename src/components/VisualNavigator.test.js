@@ -172,12 +172,13 @@ describe('the text', () => {
     const mask = nav.container.querySelector('[data-word-fill="same"]');
     expect(mask?.getAttribute('aria-disabled')).toBe('true');
     click(mask);
+    // The refusal names every condition the one remedy is about to set —
+    // the field included, which the old copy set silently while naming two
+    // things that were not always the problem.
     expect(nav.container.querySelector('[role="dialog"]')?.textContent)
-      .toContain('Visual masks require Thick + Fit.');
+      .toContain('A mask needs a Gallery field, the Thick face and the Fit size.');
     expect(nav.container.querySelector('[data-action="use-thick-fit"]')?.textContent)
-      .toBe('Use Thick + Fit');
-    expect(nav.container.querySelector('.vnav-dialog p')?.textContent)
-      .toBe('Bold, chamber-filling words provide enough surface for imagery.');
+      .toBe('Set them');
 
     click(nav.container.querySelector('[data-action="use-thick-fit"]'));
     expect(onTextMaterialTransaction).toHaveBeenCalledOnce();
@@ -230,7 +231,7 @@ describe('the text', () => {
     }
   });
 
-  it('renders Thick in an even 2x2 Face grid and explains it independently for hover, focus, and touch', () => {
+  it('renders Thick in an even 2x2 Face grid and explains it before it is chosen', () => {
     const reveal = [
       control => control.dispatchEvent(new Event('pointerenter')),
       control => control.focus(),
@@ -248,15 +249,19 @@ describe('the text', () => {
         .toEqual(['Literary', 'Display', 'Thick ★', 'Japanese']);
       expect(thick?.textContent.trim()).toBe('Thick ★');
       expect(thick?.getAttribute('aria-describedby')).toBe('vnav-thick-explanation');
-      expect(nav.container.querySelector('#vnav-thick-explanation')?.hidden).toBe(true);
+      // The star used to be unexplained ornament until a hint fired. A
+      // reader choosing a face has to know one of the four is a
+      // prerequisite for masking, so the sentence stands from the start.
+      expect(nav.container.querySelector('#vnav-thick-explanation')?.hidden).toBe(false);
 
       interact(thick);
 
       const liveThick = nav.container.querySelector('[data-chamber-face="thick"]');
       expect(nav.container.querySelector(`#${liveThick.getAttribute('aria-describedby')}`)?.hidden)
         .toBe(false);
-      expect(nav.container.querySelector('#vnav-thick-explanation')?.textContent)
-        .toBe('Thick is the mask-ready face.');
+      expect(nav.container.querySelector('#vnav-thick-explanation')?.textContent
+        .replace(/\s+/g, ' ').trim())
+        .toBe('Thick is the mask-ready face — the other three cannot carry a Visual mask.');
       unmount();
     }
   });
@@ -393,6 +398,213 @@ describe('the text', () => {
 });
 
 describe('reader-facing state', () => {
+  it('says what Thick is for without being asked', () => {
+    // The star was unexplained ornament and the sentence justifying it was
+    // hidden until a hint fired, so a reader choosing a face could not know
+    // one of the four is a prerequisite for masking.
+    mount({});
+    click(nav.container.querySelector('.vnav-node[data-id="face"]'));
+    const explanation = nav.container.querySelector('#vnav-thick-explanation');
+    expect(explanation).toBeTruthy();
+    expect(explanation.hidden).toBe(false);
+  });
+
+  it('names the cause that actually blocked the mask, not a fixed sentence', () => {
+    // The capability resolver distinguishes requires-gallery, requires-word,
+    // requires-thick and requires-fit. The panel answered all four with
+    // 'requires Thick + Fit', which is untrue when the cause is the field:
+    // a reader holding a Focal was told to change a face and a size that
+    // would not have helped.
+    window.rise = { settings: { chamberFace: 'thick', fontSize: 'fit' } };
+    mount({ visualMode: 'focals' });
+    click(nav.container.querySelector('.vnav-node[data-id="ink"]'));
+    const blocked = nav.container.querySelector('.vnav-opt.is-blocked');
+    expect(blocked).toBeTruthy();
+    expect(blocked.getAttribute('title')).toMatch(/Gallery/i);
+    expect(blocked.getAttribute('title')).not.toMatch(/Thick face/i);
+    // and the refusal names the field, since face and size are already right
+    click(blocked);
+    expect(nav.container.querySelector('[role="dialog"]')?.textContent)
+      .toContain('A mask needs a Gallery field.');
+  });
+
+  it('tells a blocked chip apart from an unchosen one', () => {
+    // on / disabled / readOnly / blocked all rendered as near-identical
+    // pills, so an inert chip read as a broken one and the reason lived in
+    // another pane.
+    mount({});
+    click(nav.container.querySelector('.vnav-node[data-id="ink"]'));
+    const blocked = nav.container.querySelector('.vnav-opt.is-blocked');
+    expect(blocked).toBeTruthy();
+    expect(blocked.getAttribute('title')).toBeTruthy();
+    expect(blocked.getAttribute('aria-disabled')).toBe('true');
+    // and it says WHY THIS TIME, not one fixed sentence for four causes
+    expect(blocked.getAttribute('title')).toMatch(/Gallery|Thick|Fit|one word/i);
+  });
+
+  it('asks Ink as one question, with the third answer branching', () => {
+    // Ink / Engines / Pools looked like three groups and were one: every chip
+    // in all of them writes data-word-fill, and the model collapses them to a
+    // single value. The two chips on top were not the parents of the rows
+    // below; they were two of their siblings, promoted by layout.
+    mount({});
+    click(nav.container.querySelector('.vnav-node[data-id="ink"]'));
+
+    const answers = [...nav.container.querySelectorAll('.vnav-ink-answers .vnav-opt')];
+    expect(answers.map(b => b.dataset.inkBranch || b.dataset.wordFill))
+      .toEqual(['accent', 'same', 'own']);
+
+    // It stands open — nothing that was reachable became hidden — and the
+    // engines and pools live INSIDE it rather than beside it.
+    const own = nav.container.querySelector('.vnav-ink-own');
+    expect(own).toBeTruthy();
+    expect(own.querySelector('[data-word-fill^="procedural:"]')).toBeTruthy();
+    expect(own.querySelector('[data-word-fill^="sourced:"]')).toBeTruthy();
+
+    // The branch is a disclosure, not a value: working it must not change
+    // what the reading is set to.
+    const before = onChange.mock.calls.length;
+    click(nav.container.querySelector('[data-ink-branch="own"]'));
+    expect(onChange.mock.calls.length).toBe(before);
+    expect(nav.container.querySelector('.vnav-ink-own')).toBeNull();
+
+    click(nav.container.querySelector('[data-ink-branch="own"]'));
+    expect(onChange.mock.calls.length).toBe(before);
+    expect(nav.container.querySelector('.vnav-ink-own')).toBeTruthy();
+  });
+
+  it('opens the Ink branch it was already standing in', () => {
+    mount({
+      visualMode: 'interlocution',
+      interlocution: { wordFill: { mode: 'pick', procedural: ['klee'], sourced: [] } }
+    });
+    click(nav.container.querySelector('.vnav-node[data-id="ink"]'));
+    const own = nav.container.querySelector('.vnav-ink-own');
+    expect(own).toBeTruthy();
+    expect(own.querySelector('[data-word-fill="procedural:klee"]').classList.contains('on'))
+      .toBe(true);
+  });
+
+  it('keeps its place and keeps focus across a choice', () => {
+    // render() replaces the whole panel's innerHTML on every selection, so
+    // the pane scrolled back to the top and focus fell to the body — a
+    // keyboard reader was ejected from the panel on every single choice.
+    mount({});
+    click(nav.container.querySelector('.vnav-node[data-id="ink"]'));
+
+    const scroller = nav.container.querySelector('.vnav-entry');
+    Object.defineProperty(scroller, 'scrollHeight', { value: 900, configurable: true });
+    Object.defineProperty(scroller, 'clientHeight', { value: 300, configurable: true });
+    scroller.scrollTop = 240;
+
+    const chip = nav.container.querySelector('[data-word-fill="accent"]');
+    chip.focus();
+    click(chip);
+
+    // the same control is focused again, in a freshly built DOM
+    const after = nav.container.querySelector('[data-word-fill="accent"]');
+    expect(after).not.toBe(chip);                       // it really was rebuilt
+    expect(document.activeElement).toBe(after);
+    expect(nav.container.querySelector('.vnav-entry').scrollTop).toBe(240);
+  });
+
+  it('separates the size scale from the reading mode Fit really is', () => {
+    // S, M and L are three points on one continuum. Fit is not a fourth
+    // point: it forces chunking to one word and stands recitation aside.
+    // Its cost also used to appear only once it was already chosen.
+    mount({});
+    click(nav.container.querySelector('.vnav-node[data-id="size"]'));
+
+    const benchFor = name => [...nav.container.querySelectorAll('.vnav-bench')]
+      .find(b => b.querySelector('.vnav-bench-label')?.textContent.trim() === name);
+    const scale = benchFor('Scale');
+    expect(scale).toBeTruthy();
+    expect([...scale.querySelectorAll('.vnav-opt')].map(b => b.dataset.fontSize))
+      .toEqual(['s', 'm', 'l']);
+    expect(scale.querySelector('[data-font-size="fit"]')).toBeNull();
+
+    // Fit stands on its own, still reachable, still the same control.
+    const fit = nav.container.querySelector('[data-font-size="fit"]');
+    expect(fit).toBeTruthy();
+    expect(benchFor('Scale').contains(fit)).toBe(false);
+
+    // and the consequence is legible BEFORE the choice, not after it
+    const explained = nav.container.querySelector('.vnav-fit-consequence');
+    expect(explained).toBeTruthy();
+    expect(explained.hidden).toBe(false);
+    expect(explained.textContent.replace(/\s+/g, ' ')).toMatch(/one at a time/i);
+  });
+
+  it('names the ink by what it gives, not by how it is drawn', () => {
+    // "Visual Mask" named the mechanism, and did not even distinguish: every
+    // option in the group produces a mask. What this one actually means is
+    // "whatever the Field is showing".
+    mount({});
+    click(nav.container.querySelector('.vnav-node[data-id="ink"]'));
+    const same = nav.container.querySelector('[data-word-fill="same"]');
+    expect(same.textContent.trim()).toBe('Same as the Field');
+    expect(nav.container.textContent).not.toContain('Visual Mask');
+  });
+
+  it('subordinates Border to the ink it modifies', () => {
+    // Border is the only row that does not write data-word-fill: it is a
+    // property of the choice above it, not another candidate for it.
+    mount({ visualMode: 'interlocution', interlocution: { wordFill: { mode: 'pick', procedural: ['klee'] } } });
+    click(nav.container.querySelector('.vnav-node[data-id="ink"]'));
+    const border = [...nav.container.querySelectorAll('.vnav-bench')]
+      .find(b => b.querySelector('.vnav-bench-label')?.textContent.trim() === 'Border');
+    if (border) expect(border.classList.contains('is-property')).toBe(true);
+  });
+
+  it('keeps the four pool families apart in Ink', () => {
+    // inkPoolOptions used to flatMap manner, subject, science and personal
+    // into one undifferentiated row — a taxonomy the config already holds,
+    // discarded one line before it reached the screen.
+    mount({});
+    click(nav.container.querySelector('.vnav-node[data-id="ink"]'));
+    const labels = [...nav.container.querySelectorAll('.vnav-bench-label')]
+      .map(el => el.textContent.trim());
+    expect(labels).toEqual(expect.arrayContaining(
+      ['By manner', 'By subject', 'Science', 'Yours']
+    ));
+    expect(labels).not.toContain('Pools');
+
+    // and each family holds its own members, not a shared pile
+    const benchFor = name => [...nav.container.querySelectorAll('.vnav-bench')]
+      .find(b => b.querySelector('.vnav-bench-label')?.textContent.trim() === name);
+    const chips = name => [...benchFor(name).querySelectorAll('.vnav-opt')]
+      .map(b => b.textContent.trim());
+    expect(chips('Yours')).toEqual(['Shared pool', 'This session']);
+    expect(chips('Science')).toEqual(['Astronomy']);
+    expect(chips('By subject')).toContain('Landscapes');
+    expect(chips('By subject')).not.toContain('Shared pool');
+  });
+
+  it('offers the stream glass as a reader control, and emits it', () => {
+    // The glass tile survived the port from VIP; its switch did not. The
+    // renderer still honours interlocution.streamGlass and a Stance still
+    // sets it, so without a control a preset can put the reading behind
+    // glass and no reader can take it away.
+    mount({ interlocution: { streamGlass: true } });
+    const toggle = nav.container.querySelector('[data-action="stream-glass"]');
+    expect(toggle).toBeTruthy();
+    expect(toggle.checked).toBe(true);
+
+    toggle.checked = false;
+    toggle.dispatchEvent(new Event('change', { bubbles: true }));
+    expect(lastPatch().interlocution.streamGlass).toBe(false);
+
+    const back = nav.container.querySelector('[data-action="stream-glass"]');
+    back.checked = true;
+    back.dispatchEvent(new Event('change', { bubbles: true }));
+    expect(lastPatch().interlocution.streamGlass).toBe(true);
+  });
+
+  it('reopens on the glass the reading was saved with', () => {
+    mount({ interlocution: { streamGlass: false } });
+    expect(nav.container.querySelector('[data-action="stream-glass"]').checked).toBe(false);
+  });
+
   it('emits Living Text as an independent visual setting', () => {
     mount({ livingText: { enabled: false } });
     const toggle = nav.container.querySelector('[data-action="living-text"]');
