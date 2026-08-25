@@ -30,7 +30,7 @@ export const LIBRARY_CATEGORIES = [
         name: 'Received',
         icon: '⌂',
         description: 'Inherited works, each in a named edition',
-        orientation: 'Every one of these came from somewhere, and says where: a chosen edition, its translator, and the grounds on which it may be held. Nothing here was written for this system.'
+        orientation: 'Inherited work. Each names its edition and its translator.'
     },
     {
         // Kept distinct because provenance is the Archive's central promise —
@@ -40,7 +40,7 @@ export const LIBRARY_CATEGORIES = [
         name: 'Composed',
         icon: '✎',
         description: 'Written for this system, in its own voice',
-        orientation: 'Sequences composed here rather than inherited — inductions, installations, and the affirmations that carry the house register.'
+        orientation: 'Written here rather than inherited — inductions, installations, affirmations.'
     }
 ];
 
