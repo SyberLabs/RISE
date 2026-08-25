@@ -1133,6 +1133,18 @@ export class VisualCortex {
             : 1;
     }
 
+    /**
+     * Has this host ALREADY painted? A synchronous answer, so a caller that
+     * only needs to know whether it must wait can avoid awaiting a promise
+     * that is already settled — an await costs a paint, and a mask that
+     * drops for one frame per word is a strobe rather than a reveal.
+     */
+    isContinuousFieldProjectionPainted(host) {
+        return !!host
+            && host === this._continuousFieldProjectionHost
+            && host === this._projectionPaintedHost;
+    }
+
     whenContinuousFieldProjectionReady(host) {
         if (!host) {
             const rejected = Promise.reject(createAbortError('Projection host required'));

@@ -768,3 +768,69 @@ test('material controls explain locked masks, transact Thick + Fit, and preserve
   await dialog.getByRole('button', { name: 'Cancel' }).click();
   await expect(dialog).toBeHidden();
 });
+
+test('the Fit material covers the glyph, leaving no matte inside the word', async ({ page }) => {
+  await openPrep(page, { width: 1280, height: 800 });
+  await chooseMaskFit(page);
+  await begin(page);
+  await expectAtomicMaskReady(page);
+
+  // A stencil is not a frame. The gallery fits the authored work with
+  // `contain` so a portrait is never cropped to the screen; inside the
+  // letters the opposite is required, or a portrait source (843x1260) in a
+  // wide word draws a quarter of the glyph and the rest falls through to
+  // the darkened blur backdrop as black bars. Measured at 0.239 of the word
+  // before this was fixed.
+  const material = await page.evaluate(() => {
+    const viewport = document.querySelector('.chamber-fill-viewport');
+    const art = [...(viewport?.querySelectorAll('.continuous-field-artwork') || [])]
+      .filter(node => node.getAttribute('src'));
+    const backdrops = [...(viewport?.querySelectorAll('.continuous-field-backdrop') || [])];
+    return {
+      artworks: art.length,
+      everyArtworkCovers: art.length > 0 && art.every(n => getComputedStyle(n).objectFit === 'cover'),
+      everyBackdropHidden: backdrops.every(n => n.hidden && !n.getAttribute('src'))
+    };
+  });
+
+  expect(material.artworks).toBeGreaterThan(0);
+  expect(material.everyArtworkCovers, 'the projection must cover the glyph').toBe(true);
+  expect(material.everyBackdropHidden, 'a covering projection needs no matte filler').toBe(true);
+});
+
+test('a dressed Fit word is never undressed to be redressed', async ({ page }) => {
+  await openPrep(page, { width: 1280, height: 800 });
+  await chooseMaskFit(page);
+  await begin(page);
+  await expectAtomicMaskReady(page);
+
+  // Every atom re-ran the mask, and every run began by reverting to the
+  // opaque word and awaiting promises that were already settled — an await
+  // plus the reveal's rAF guarantees a paint in between, so each word
+  // flashed white for a frame. Measured at 144 strobes across 145 words:
+  // a ~7.5Hz flash of the whole reading, which at that rate is a
+  // photosensitivity fault and not a reveal.
+  const observed = await page.evaluate(() => new Promise(resolve => {
+    const atom = document.querySelector('#atom-display');
+    const words = new Set();
+    let strobes = 0;
+    const observer = new MutationObserver(() => {
+      const state = atom.dataset.maskState;
+      const text = (atom.textContent || '').trim();
+      if (text) words.add(text);
+      if (state === 'fallback' || state === 'preparing') strobes += 1;
+    });
+    observer.observe(atom, {
+      attributes: true, attributeFilter: ['data-mask-state', 'class'],
+      childList: true, characterData: true, subtree: true
+    });
+    setTimeout(() => {
+      observer.disconnect();
+      resolve({ strobes, words: words.size, finalState: atom.dataset.maskState });
+    }, 4000);
+  }));
+
+  expect(observed.words, 'the reading did not advance').toBeGreaterThanOrEqual(3);
+  expect(observed.strobes, 'the mask dropped mid-reading').toBe(0);
+  expect(observed.finalState).toBe('ready');
+});
