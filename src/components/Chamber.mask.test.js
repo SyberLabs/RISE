@@ -50,6 +50,18 @@ function galleryHost(container) {
     return container.querySelector('#chamber-continuous-field');
 }
 
+// The glyph mask is now an inline SVG <mask> referenced by url(#id) (a
+// serialized data: URL was font-isolated). Resolve the referenced element
+// so tests can assert its shape — a glyph <text>, never a bbox <rect>.
+function fitMask(host) {
+    if (!host) return null;
+    const ref = `${host.style.maskImage || ''} ${host.style.webkitMaskImage || ''}`;
+    const id = ref.match(/#([\w-]+)/)?.[1];
+    if (!id) return null;
+    const root = host.closest('#chamber-field') || host.ownerDocument;
+    return root.querySelector(`mask[id="${id}"]`);
+}
+
 function deferred() {
     let resolve;
     let reject;
@@ -339,7 +351,7 @@ describe('Chamber Gallery-in-the-word projection (FM-RISE-28)', () => {
         expect(fillSrcs).toEqual(gallerySrcs);
         expect(fillSrcs.some(src => src.includes('b.jpg'))).toBe(true);
         expect(field.currentUrl).toBe('https://example.test/b.jpg');
-        expect(fill.style.maskImage + fill.style.webkitMaskImage).toMatch(/text/i);
+        expect(fitMask(fill)?.querySelector('text')).toBeTruthy();
         expect(atomDisplay(container).classList.contains('is-mask-ink')).toBe(true);
         expect(container.querySelectorAll('video')).toHaveLength(0);
         chamber.destroy();
@@ -594,8 +606,9 @@ describe('Chamber Gallery-in-the-word projection (FM-RISE-28)', () => {
         expect(pending.dataset.maskState).toBe('ready');
         expect(pending.classList.contains('is-mask-ink')).toBe(true);
         expect(pending.classList.contains('is-mask-ready')).toBe(true);
-        expect(`${host.style.maskImage} ${host.style.webkitMaskImage}`).toMatch(/text/i);
-        expect(`${host.style.maskImage} ${host.style.webkitMaskImage}`).not.toMatch(/rect/i);
+        const readyMask = fitMask(host);
+        expect(readyMask?.querySelector('text')?.textContent).toBe('O');
+        expect(readyMask?.querySelector('rect')).toBeFalsy();
         expect(galleryHost(container).style.maskImage).toBeFalsy();
         expect(document.fonts.load).toHaveBeenCalledWith('700 1em "Space Grotesk"', 'O');
         chamber.destroy();
@@ -773,7 +786,7 @@ describe('Chamber mask ground plate (FM-RISE-47)', () => {
         expect(layerA.style.maskImage).toBeFalsy();
         expect(wrapper.style.background).toBeFalsy();
         expect(wrapper.style.backgroundColor).toBeFalsy();
-        expect(`${wrapper.style.maskImage} ${wrapper.style.webkitMaskImage}`).toMatch(/text/i);
+        expect(fitMask(wrapper)?.querySelector('text')).toBeTruthy();
         return { layerA, wrapper, understudy };
     }
 
