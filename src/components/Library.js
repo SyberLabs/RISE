@@ -12,7 +12,6 @@ import { LIBRARY_TEXTS, LIBRARY_CATEGORIES, DIVISIONS } from '../content/library
 import { mostlyVerse } from '../content/archive/divisions.js';
 // The shelf says which state a reader is in. It asks per work, so the
 // line shrinks and then disappears as certifications land.
-import { uncertifiedCount } from '../content/archive/index.js';
 import { escapeHtml } from '../core/sanitize.js';
 import { MemoryCore } from '../core/memory.js';
 import { LocalWorks } from '../core/local-work-store.js';
@@ -190,18 +189,22 @@ export class Library {
       <div class="library-section">
         <div class="section-header">
           <h2 class="text-light">The Archive</h2>
-          <p class="text-fog">Sorted by form rather than by period or place, because form is what decides the reading: a verse line is met differently from a paragraph, an aphorism differently from a chapter. Every text here is public domain, and says which edition you are reading.</p>
+          <!-- THREE PARAGRAPHS STOOD BETWEEN A READER AND THE FIRST SHELF.
+               The first described sorting by FORM — a verse line met
+               differently from a paragraph — which stopped being true when the
+               Archive was cut by provenance instead: Received and Composed are
+               where a text came from, not what shape it is. Copy that
+               describes a previous organisation is worse than no copy.
+               The third announced how many editions were 'prepared but not yet
+               certified'. That is a real distinction and a real safeguard, but
+               it is a fact about this project's pipeline wearing a reader's
+               clothes — the certification ledger belongs to whoever runs the
+               import, not to someone choosing what to read.
+               What survives is the promise the Archive actually makes. -->
+          <p class="text-fog">Every text here is public domain, and names the edition you are reading.</p>
           ${shelf?.orientation
             ? `<p class="archive-orientation text-mist">${escapeHtml(shelf.orientation)}</p>`
             : ''}
-          ${this.currentFilter === 'received' && uncertifiedCount() > 0 ? `
-            <p class="archive-review-note text-fog">
-              ${uncertifiedCount()} of these editions are <strong>prepared but not
-              yet certified</strong>. Each was imported from its publisher's own
-              markup and refuses any payload whose word count differs from the
-              source — but the end-to-end comparison a certified edition carries
-              has not been done. You are reading a candidate.
-            </p>` : ''}
         </div>
 
         <!-- ONE QUESTION, ASKED FIRST: did RISE receive this work, or write
