@@ -1753,7 +1753,10 @@ export class VisualCortex {
                     displayHeight: this._asciiCanvas?.height
                 });
             } else {
-                rendered = await this.kleeFlashes.renderFlash(this._kleeCanvas, 160, signal);
+                // Every caller of this path wants ONE finished work — a leaf
+                // preview, a word-fill ink, a collection still — never a
+                // glimpse that a later flash will add to.
+                rendered = await this.kleeFlashes.renderFlash(this._kleeCanvas, 160, signal, { complete: true });
                 canvas = this._kleeCanvas;
             }
         } else if (type === 'turrell' && this.turrell && this._kleeCanvas) {

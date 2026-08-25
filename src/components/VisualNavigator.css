@@ -109,7 +109,7 @@
 .vnav-kind b { color: var(--color-accent, #E4D2AE); }
 
 .vnav-preview {
-  position: relative; width: 100%; aspect-ratio: 16 / 9; margin-bottom: 0.9rem;
+  position: relative; width: 100%; aspect-ratio: 4 / 3; margin-bottom: 0.9rem;
   border: 1px solid var(--vnav-edge); border-radius: 4px;
   background:
     radial-gradient(ellipse at 50% 40%, rgba(var(--color-accent-rgb, 228,210,174), 0.06), transparent 70%),
@@ -352,6 +352,49 @@
   max-width: 52ch;
 }
 
+/* Controls take the width they need; the note takes the width that was
+   standing empty beside them. */
+.vnav-size-group {
+  display: grid;
+  grid-template-columns: minmax(0, auto) minmax(0, 1fr);
+  gap: 20px;
+  align-items: stretch;
+  padding-bottom: 12px;
+}
+
+.vnav-size-note {
+  padding-left: 18px;
+  border-left: 1px solid var(--color-shadow, #2A2A30);
+}
+
+.vnav-size-note .vnav-fit-consequence {
+  margin: 0;
+  max-width: 46ch;
+}
+
+.vnav-size-controls .vnav-border-bench {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--color-shadow, #2A2A30);
+}
+
+/* Side by side needs width. Below it the note goes back under the controls. */
+@media (max-width: 620px) {
+  .vnav-size-group {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 14px;
+  }
+
+  .vnav-size-note {
+    padding-left: 0;
+    padding-top: 12px;
+    border-left: none;
+    border-top: 1px solid var(--color-shadow, #2A2A30);
+  }
+
+  .vnav-size-note .vnav-fit-consequence { max-width: none; }
+}
+
 
 /* Ink asks one question. Its third answer opens onto the engines and pools
    rather than standing beside them, so the tree the rail already uses is the
@@ -474,8 +517,16 @@
 /* A leaf that has drawn itself shows the drawing; one that has not keeps its
    glyph. The still is a background so it can cover the slot at any aspect
    without the layout moving when it arrives. */
+/* THE FRAME FITS THE PICTURE; IT DOES NOT CUT IT TO SHAPE.
+   The slot was 16:9 and filled with `cover`, but not one engine draws a
+   widescreen picture: measured, the shipped stills are 1.34, 1.01, 1.00 and
+   0.93 to 1. So every one of them lost its top and bottom, Attractor about
+   half its height, and Spectral Plates — a tall, symmetric composition —
+   was beheaded. `contain` shows the whole work, and the frame moves to 4:3,
+   near the middle of what these engines and the museum plates actually make,
+   so fitting them wastes as little of it as possible. */
 .vnav-preview.has-still {
-  background-size: cover;
+  background-size: contain;
   background-position: center;
   background-repeat: no-repeat;
 }

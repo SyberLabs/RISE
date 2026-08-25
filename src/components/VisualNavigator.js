@@ -826,7 +826,8 @@ export class VisualNavigator {
     // the request in flight is for the same thing it was for, and is left
     // alone to finish. Only a change of subject cancels.
     const key = leaf?.engineId
-      || (leaf?.pool ? this.selection.pool?.[leaf.id] : null);
+      ? this._engineStillKey(leaf.engineId)
+      : (leaf?.pool ? this.selection.pool?.[leaf.id] : null);
 
     if (!key || !slot) {
       this._cancelPreview();
@@ -856,6 +857,7 @@ export class VisualNavigator {
       const url = leaf.engineId
         ? (await visualCortex.renderLeafStill(leaf.engineId))?.url
         : await this._sourcedStill(visualCortex, key, controller?.signal);
+
 
       if (this._previewKey !== key || !url) return;
       (this._previewCache ||= new Map()).set(key, url);
@@ -955,14 +957,36 @@ export class VisualNavigator {
     return work?.data?.url || work?.url || null;
   }
 
+  /**
+   * WHAT IS BEING PREVIEWED INCLUDES WHICH ONE OF IT.
+   *
+   * The preview was cached under the engine's id alone, so an engine's
+   * substyles all shared one picture: choosing Architectural, then Chaotic,
+   * then Gravitational returned whichever had been drawn first, and Genesis
+   * appeared not to respond to its own presets. The substyle benches are the
+   * things that change the picture, so they are the things in the key. Glass
+   * is deliberately not among them — it is not a substyle and does not change
+   * what the engine draws.
+   */
+  _engineStillKey(engineId) {
+    const style = this.styleOf(engineId);
+    const parts = substylesFor(engineId)
+      .map(b => `${b.key}=${style[b.key] ?? ''}`)
+      .join('&');
+    return parts ? `${engineId}?${parts}` : engineId;
+  }
+
   _paintLeafPreview(slot, url, key) {
     if (!slot || !slot.isConnected || this._previewKey !== key) return;
     const safe = safeUrl(url);
     if (!safe) return;
     slot.classList.add('has-still');
     slot.style.backgroundImage = `url("${safe}")`;
-    const note = slot.querySelector('.vnav-preview-note');
-    if (note) note.remove();
+    // The glyph and the caption were both placeholders for a picture. Once
+    // the picture is here they are not a label on it, they are litter on it.
+    for (const sel of ['.vnav-preview-note', '.vnav-preview-glyph']) {
+      slot.querySelector(sel)?.remove();
+    }
   }
 
   pathBar() {
@@ -1126,12 +1150,47 @@ export class VisualNavigator {
       // sample shows one word where the scale shows a phrase: the preview
       // teaches the difference the row could only assert.
       const isFit = resolveFontSize(selected) === 'fit';
+      // THE BORDER IS A PROPERTY OF THE FIT WORD, SO IT LIVES WHERE FIT IS
+      // CHOSEN. It sat at the foot of Ink, under the generated fields and the
+      // museum pools, as though it were an attribute of the imagery. It is
+      // not: Chamber.applyChamberMask is the only reader of it, and the only
+      // thing it sets is --fit-border-color on the masked word.
+      //
+      // And the panel had the surface for it already. A control group holding
+      // three small chips and a Fit chip left most of its width empty while
+      // the sentence explaining Fit's cost stood outside, beneath it. The
+      // explanation moves in beside the control it explains, which fills the
+      // space and puts the consequence next to the button that causes it.
       return this._section('Size', selected === 'fit' ? SIZE_HINT_FIT : 'Choose the scale of the reading.', isActive,
-        `<div class="vnav-control-group">${scale}${mode}</div>
-        <p id="vnav-fit-consequence" class="vnav-fit-consequence">Fit scales each
-          Word to fill the chamber and paints the gallery through the letters. Words step one at a
-          time; Recitation and phrase chunking stand aside.</p>`);
+        `<div class="vnav-control-group vnav-size-group">
+          <div class="vnav-size-controls">${scale}${mode}${this._borderBench()}</div>
+          <div class="vnav-size-note">
+            <span class="vnav-bench-label">${isFit ? 'What Fit does' : 'What Fit would do'}</span>
+            <p id="vnav-fit-consequence" class="vnav-fit-consequence">Fit scales each
+              Word to fill the chamber and paints the gallery through the letters. Words step one at a
+              time; Recitation and phrase chunking stand aside.</p>
+          </div>
+        </div>`);
     }
+  }
+
+  /**
+   * The edge of the Fit word.
+   *
+   * Shown only where it can do something. Chamber.applyChamberMask is its one
+   * reader and applies it under the mask alone, so Fit is necessary but not
+   * sufficient: the mask also wants the Thick face, word timing, and a
+   * gallery. hasActiveMask asks all four rather than naming one.
+   */
+  _borderBench() {
+    if (!this.hasActiveMask()) return '';
+    const border = normalizeWordFill(this.selection.wordFill).border;
+    const shared = { disabled: Boolean(this.locked), readOnly: Boolean(this.programInfo) };
+    return bench('Border of the word', [
+      { id: 'off', label: 'Off', on: border === 'off', ...shared, attr: 'data-word-fill-border="off"' },
+      { id: 'cream', label: 'Cream', on: border === 'cream', ...shared, attr: 'data-word-fill-border="cream"' },
+      { id: 'accent', label: 'Accent', on: border === 'accent', ...shared, attr: 'data-word-fill-border="accent"' }
+    ], 'is-property vnav-border-bench');
   }
 
   _inkSection(isActive) {
@@ -1205,11 +1264,6 @@ export class VisualNavigator {
         ${bench('A generated field', engines)}
         ${poolBenches}
       </div>` : ''}
-      ${this.hasActiveMask() ? bench('Border', [
-        { id: 'off', label: 'Off', on: normalizeWordFill(this.selection.wordFill).border === 'off', disabled: fieldLocked, readOnly: programLocked, attr: 'data-word-fill-border="off"' },
-        { id: 'cream', label: 'Cream', on: normalizeWordFill(this.selection.wordFill).border === 'cream', disabled: fieldLocked, readOnly: programLocked, attr: 'data-word-fill-border="cream"' },
-        { id: 'accent', label: 'Accent', on: normalizeWordFill(this.selection.wordFill).border === 'accent', disabled: fieldLocked, readOnly: programLocked, attr: 'data-word-fill-border="accent"' }
-      ], 'is-property') : ''}
       ${styles}
       <p class="vnav-fit-coupling">Fit paints the gallery through the letters. Words step one at a time; Recitation and phrase chunking stand aside.</p>`);
   }
