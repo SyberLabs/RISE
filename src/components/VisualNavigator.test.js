@@ -678,29 +678,68 @@ describe('reader-facing state', () => {
     expect(chips('By subject')).not.toContain('Shared pool');
   });
 
-  it('offers the stream glass as a reader control, and emits it', () => {
-    // The glass tile survived the port from VIP; its switch did not. The
-    // renderer still honours interlocution.streamGlass and a Stance still
-    // sets it, so without a control a preset can put the reading behind
-    // glass and no reader can take it away.
+  it('offers ONE glass control, whose scope follows the field', () => {
+    // One class on one element — atomDisplay 'glass-tile' — was governed by
+    // interlocution.streamGlass under a Gallery and genesis.glass under
+    // Genesis, and the panel grew a control for each: a checkbox in the
+    // reader controls and a second one buried in the Klee leaf. To a reader
+    // there is one thing, glass behind the text, and choosing Genesis
+    // silently moved which control owned it.
     mount({ interlocution: { streamGlass: true } });
-    const toggle = nav.container.querySelector('[data-action="stream-glass"]');
-    expect(toggle).toBeTruthy();
+    expect(nav.container.querySelectorAll('[data-action="glass"]')).toHaveLength(1);
+    expect(nav.container.querySelector('[data-action="stream-glass"]')).toBeNull();
+
+    const toggle = nav.container.querySelector('[data-action="glass"]');
+    expect(toggle.checked).toBe(true);
+    toggle.checked = false;
+    toggle.dispatchEvent(new Event('change', { bubbles: true }));
+    expect(lastPatch().interlocution.streamGlass).toBe(false);
+  });
+
+  it('writes the key the mounted field actually reads', () => {
+    // Genesis is a Dynamic field and Dynamic is exclusive, so exactly one
+    // owner can hold the glass at a time. The control writes that one.
+    mount({ visualMode: 'genesis', genesis: { glass: true } });
+    const toggle = nav.container.querySelector('[data-action="glass"]');
     expect(toggle.checked).toBe(true);
 
     toggle.checked = false;
     toggle.dispatchEvent(new Event('change', { bubbles: true }));
-    expect(lastPatch().interlocution.streamGlass).toBe(false);
+    expect(lastPatch().genesis.glass).toBe(false);
 
-    const back = nav.container.querySelector('[data-action="stream-glass"]');
-    back.checked = true;
-    back.dispatchEvent(new Event('change', { bubbles: true }));
-    expect(lastPatch().interlocution.streamGlass).toBe(true);
+    // and the Klee leaf no longer carries a second one of its own
+    expect(nav.container.querySelectorAll('[data-action="glass"]')).toHaveLength(1);
+  });
+
+  it('says the glass is void while a mask is carrying the letters', () => {
+    // Every glass path is gated `&& !chamberMaskApplies()`, so the switch
+    // does nothing at all in the one configuration Fit exists to produce.
+    window.rise = { settings: { chamberFace: 'thick', fontSize: 'fit' } };
+    mount({
+      visualMode: 'interlocution',
+      interlocution: {
+        presentation: 'continuous', procedural: ['turrell'], streamGlass: true,
+        wordFill: { mode: 'same' }
+      }
+    });
+    const toggle = nav.container.querySelector('[data-action="glass"]');
+    expect(toggle.disabled).toBe(true);
+    expect(toggle.closest('label')?.getAttribute('title')).toMatch(/mask/i);
   });
 
   it('reopens on the glass the reading was saved with', () => {
+    // The switch survived the port from VIP only as a capability: the Chamber
+    // honours interlocution.streamGlass and a Stance still sets it, so without
+    // a control a preset could put the reading behind glass and no reader
+    // could take it away. It round-trips on the compiler's own default —
+    // glass unless explicitly false.
     mount({ interlocution: { streamGlass: false } });
-    expect(nav.container.querySelector('[data-action="stream-glass"]').checked).toBe(false);
+    expect(nav.container.querySelector('[data-action="glass"]').checked).toBe(false);
+
+    const on = nav.container.querySelector('[data-action="glass"]');
+    on.checked = true;
+    on.dispatchEvent(new Event('change', { bubbles: true }));
+    expect(lastPatch().interlocution.streamGlass).toBe(true);
   });
 
   it('emits Living Text as an independent visual setting', () => {
