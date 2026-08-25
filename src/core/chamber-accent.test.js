@@ -269,14 +269,32 @@ describe('the colourway dresses the whole cluster', () => {
     expect(tile).not.toMatch(/rgba\(42, 42, 48/);
   });
 
-  it('the actual Try RISE circle carries the sitting accent and its contrast ink', () => {
+  it('the actual Try RISE seal carries the sitting accent and a legible ink', () => {
+    // The seal is LIT BY the accent, not filled with it. It was a solid
+    // --color-accent disc, which is why its ink was --color-on-accent: the
+    // dark ink that token exists to guarantee against a light accent fill.
+    // The seal's body is now slate and the accent enters as rim, glow, and
+    // gradient — so that same dark ink would sink into it, and the ink is
+    // light instead. The invariant the old spelling protected is unchanged
+    // and still asserted here: the circle tracks the sitting, and its ink is
+    // legible on it.
+    //
+    // Legibility is no longer INFERRED from a token name. The seal renders
+    // in all ten sittings in e2e/portal-hit-test.spec.js, where the real
+    // composited contrast is measured against the lightest pixel under the
+    // label (worst case 5.91:1; AA is 4.5). That is a measurement, where
+    // this can only ever be a spelling check.
     const portal = read('components/Portal.css');
     const circle = portal.match(/\.portal-nav \.nav-secondary \.nav-try\s*\{[^}]+\}/)[0];
-    expect(circle).toMatch(/color:\s*var\(--color-on-accent\)/);
-    expect(circle).toMatch(/background:[^;]*var\(--color-accent\)/s);
-    expect(circle).toMatch(/border[^;]*var\(--accent-bevel\)/);
-    expect(circle).toMatch(/box-shadow:[^}]*var\(--accent-halo\)/s);
-    expect(portal).toMatch(/\.nav-try \.try-mark\s*\{[^}]*color:\s*currentColor/s);
+    // Lit by the sitting: illumination, rim, and halo all read the accent.
+    expect(circle).toMatch(/background:[^;]*rgba\(var\(--color-accent-rgb\)/s);
+    expect(circle).toMatch(/border:[^;]*rgba\(var\(--color-accent-rgb\)/s);
+    expect(circle).toMatch(/box-shadow:[^;]*rgba\(var\(--color-accent-rgb\)/s);
+    // Light ink, over a body that really is slate-dominant.
+    expect(circle).toMatch(/color:\s*var\(--color-light\)/);
+    expect(circle).toMatch(/linear-gradient\([^;]*rgba\(20, 25, 30/s);
+    // The mark still carries the sitting rather than a frozen colour.
+    expect(portal).toMatch(/\.nav-try \.try-mark\s*\{[^}]*var\(--color-accent\)/s);
     expect(portal).not.toMatch(/\.nav-try\s*\{[^}]*rgba\(48, 48, 56/s);
   });
 
