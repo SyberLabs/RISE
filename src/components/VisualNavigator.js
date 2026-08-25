@@ -707,7 +707,6 @@ export class VisualNavigator {
 
   render() {
     if (this._destroyed) return;
-    this._previewGeneration = (this._previewGeneration || 0);
 
     // EVERY CHOICE REBUILT THE WHOLE PANEL, AND THE PANEL FORGOT ITSELF.
     //
@@ -781,44 +780,70 @@ export class VisualNavigator {
    * it was.
    */
   async _mountLeafPreview() {
-    const generation = ++this._previewGeneration;
-    // A fetch a reader has navigated past is work nobody is waiting for.
-    this._previewAbort?.abort();
-    this._previewAbort = null;
-
     const leaf = this.focus;
     const slot = this.container.querySelector('.vnav-preview');
-    if (!leaf || !slot) return;
 
-    // Two kinds of leaf, one slot. An engine draws itself; a pool is a
-    // shelf of works and shows the one it would open with. The pool's key
-    // is the CHOSEN collection, so changing the collection redraws — and
-    // the cache is keyed the same way, so it cannot show the last one.
-    const key = leaf.engineId
-      || (leaf.pool ? this.selection.pool?.[leaf.id] : null);
-    if (!key) return;
+    // WHAT IS BEING PREVIEWED, NOT HOW MANY TIMES THE PANEL HAS REDRAWN.
+    //
+    // render() replaces the whole panel on every selection, so this runs
+    // again after changes that have nothing to do with the picture. Keyed on
+    // the render, it aborted a fetch in flight and started it over each time
+    // — measured at two requests for one leaf, the first killed by an
+    // unrelated toggle. On a slow connection a reader adjusting anything
+    // could keep a sourced preview from ever arriving.
+    //
+    // Keyed on the subject instead, an unrelated redraw is simply not news:
+    // the request in flight is for the same thing it was for, and is left
+    // alone to finish. Only a change of subject cancels.
+    const key = leaf?.engineId
+      || (leaf?.pool ? this.selection.pool?.[leaf.id] : null);
 
-    if (this._previewCache?.has(key)) {
-      this._paintLeafPreview(slot, this._previewCache.get(key), generation);
+    if (!key || !slot) {
+      this._cancelPreview();
       return;
     }
 
+    const cached = this._previewCache?.get(key);
+    if (cached) {
+      this._previewKey = key;
+      this._paintLeafPreview(slot, cached, key);
+      return;
+    }
+
+    // Already fetching this very thing: the rebuilt slot will be painted by
+    // the request that is already running.
+    if (this._previewKey === key && this._previewAbort) return;
+
+    this._cancelPreview();
+    this._previewKey = key;
     const controller = typeof AbortController === 'function' ? new AbortController() : null;
     this._previewAbort = controller;
+
     try {
       const { visualCortex } = await import('../visuals/visual-cortex.js');
-      if (generation !== this._previewGeneration) return;
+      if (this._previewKey !== key) return;
 
       const url = leaf.engineId
         ? (await visualCortex.renderLeafStill(leaf.engineId))?.url
         : await this._sourcedStill(visualCortex, key, controller?.signal);
 
-      if (generation !== this._previewGeneration || !url) return;
+      if (this._previewKey !== key || !url) return;
       (this._previewCache ||= new Map()).set(key, url);
-      this._paintLeafPreview(slot, url, generation);
+      // The panel may have been rebuilt while this was in flight, so paint
+      // into whatever slot is live now rather than the one we started with.
+      this._paintLeafPreview(this.container.querySelector('.vnav-preview'), url, key);
     } catch {
       /* the glyph stays; a preview is never worth an interruption */
+    } finally {
+      if (this._previewAbort === controller) this._previewAbort = null;
     }
+  }
+
+  /** Stop work for a subject nobody is looking at any more. */
+  _cancelPreview() {
+    this._previewAbort?.abort();
+    this._previewAbort = null;
+    this._previewKey = null;
   }
 
   /**
@@ -836,8 +861,8 @@ export class VisualNavigator {
     return work?.data?.url || work?.url || null;
   }
 
-  _paintLeafPreview(slot, url, generation) {
-    if (generation !== this._previewGeneration || !slot.isConnected) return;
+  _paintLeafPreview(slot, url, key) {
+    if (!slot || !slot.isConnected || this._previewKey !== key) return;
     const safe = safeUrl(url);
     if (!safe) return;
     slot.classList.add('has-still');
@@ -1355,8 +1380,7 @@ export class VisualNavigator {
   }
 
   destroy() {
-    this._previewAbort?.abort();
-    this._previewAbort = null; this._destroyed = true; this.container.innerHTML = ''; }
+    this._cancelPreview(); this._destroyed = true; this.container.innerHTML = ''; }
 }
 
 function glyphFor(node) {

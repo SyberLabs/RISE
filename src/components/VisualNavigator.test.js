@@ -448,6 +448,35 @@ describe('reader-facing state', () => {
     expect(slot.style.backgroundImage).toContain('example.test');
   });
 
+  it('does not restart a preview because something unrelated changed', async () => {
+    // render() rebuilds the whole panel on every selection, and the preview
+    // guard used to key on the render rather than on what was being
+    // previewed — so an unrelated toggle aborted a fetch in flight and began
+    // it again. On a slow connection a reader adjusting anything could keep a
+    // sourced preview from ever arriving. Measured before the fix: two
+    // requests for one leaf, the first aborted.
+    let signal = null;
+    const resolve = vi.spyOn(visualCortex, 'resolveCollectionWorks')
+      .mockImplementation((id, opts) => { signal = opts?.signal; return new Promise(() => {}); });
+
+    mount({});
+    descend('visual', 'gallery', 'gallery-sourced');
+    const shelf = nav.container.querySelector('.vnav-node[data-id="by-manner"]');
+    expect(shelf).toBeTruthy();
+    click(shelf);
+    await new Promise(r => setTimeout(r, 0));
+    const inFlight = signal;
+    expect(inFlight, 'no preview was requested').toBeTruthy();
+    expect(inFlight.aborted).toBe(false);
+
+    // something unrelated, with the same leaf still open
+    nav.setCadence('slow');
+    await new Promise(r => setTimeout(r, 0));
+
+    expect(inFlight.aborted, 'an unrelated change killed the preview').toBe(false);
+    expect(resolve.mock.calls.length, 'the preview was fetched twice').toBe(1);
+  });
+
   it('stops paying for a preview the reader has navigated past', async () => {
     // The fetch is network-bound; a reader who moves on should not still be
     // waiting on it, and a late answer must not paint over the new leaf.
