@@ -1098,3 +1098,62 @@ describe('Chamber semantic Fit compositor', () => {
         chamber.destroy();
     });
 });
+
+describe('Chamber Fit hydration threshold', () => {
+    it('waits for the material, not for a word that does not exist yet', async () => {
+        // THE GATE USED TO HOLD NOTHING. It read the first word's text to
+        // decide what to wait for and returned early when it found none —
+        // and there IS none at that moment: the player writes the first word
+        // as it starts, one millisecond after this gate runs. So the reading
+        // always opened before its material, and the fill arrived seconds in.
+        // It only looked correct when the imagery happened to be warm, which
+        // is precisely when the gate is not needed.
+        const projection = deferred();
+        const restore = installFillMaskEnv({ projectionReady: () => projection.promise });
+        try {
+            const { chamber, container } = makeChamber(
+                wordGallerySession(),
+                { chamberMask: true }
+            );
+            visualCortex._continuousField?.stop();
+            // The player has not written a word yet — the real cold-start state.
+            atomDisplay(container).textContent = '';
+            expect(chamber.fillViewport).toBeTruthy();
+
+            let opened = false;
+            const threshold = chamber._awaitFitHydration(5000).then(() => { opened = true; });
+            await Promise.resolve();
+            await Promise.resolve();
+            await new Promise(resolve => setTimeout(resolve, 0));
+            expect(opened, 'the threshold opened before the material was ready').toBe(false);
+
+            projection.resolve();
+            await threshold;
+            expect(opened).toBe(true);
+            chamber.destroy();
+        } finally {
+            restore();
+        }
+    });
+
+    it('opens the threshold anyway when the material will not arrive', async () => {
+        // Reverent degradation: a pool that never resolves must not lock a
+        // reader out of their own reading.
+        const restore = installFillMaskEnv({ projectionReady: () => new Promise(() => {}) });
+        try {
+            const { chamber, container } = makeChamber(
+                wordGallerySession(),
+                { chamberMask: true }
+            );
+            visualCortex._continuousField?.stop();
+            atomDisplay(container).textContent = '';
+
+            const started = Date.now();
+            await chamber._awaitFitHydration(60);
+            expect(Date.now() - started).toBeLessThan(3000);
+            chamber.destroy();
+        } finally {
+            restore();
+        }
+    });
+});
