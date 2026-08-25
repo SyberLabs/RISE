@@ -57,7 +57,7 @@ function compiledInterlocutionKeys() {
  * and says why. There is no third answer — that is the point of the file.
  */
 const DISPOSITION = Object.freeze({
-    streamGlass: 'reachable',        // the glass toggle, beside Living Text
+    streamGlass: 'reachable',        // the one glass switch, beside Living Text
     galleryCadence: 'reachable',     // Cadence, on the Gallery
     wordFill: 'reachable',           // the whole Ink pane
     presentation: 'reachable',       // carried by the field leaves
@@ -109,7 +109,9 @@ describe('every honoured visual setting is reachable or recorded', () => {
         // The specific regression: alive everywhere except where a hand could
         // reach it.
         const navigator = read('../components/VisualNavigator.js');
-        expect(navigator).toMatch(/data-action="stream-glass"/);
-        expect(navigator).toMatch(/setStreamGlass/);
+        // One control, whichever field holds the glass — see _glassOwner.
+        expect(navigator).toMatch(/data-action="glass"/);
+        expect(navigator).toMatch(/setGlass/);
+        expect(navigator).toMatch(/_glassOwner/);
     });
 });
