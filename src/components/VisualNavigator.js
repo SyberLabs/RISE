@@ -226,9 +226,33 @@ export class VisualNavigator {
     this.emit();
     this.render();
   }
+  /**
+   * WHO OWNS THE GLASS RIGHT NOW.
+   *
+   * One class on one element — `glass-tile` on the atom — is read from
+   * `genesis.glass` when the Genesis engine is mounted and from
+   * `interlocution.streamGlass` otherwise. Genesis is a Dynamic field and
+   * Dynamic is exclusive, so exactly one owner can hold it at a time; the
+   * reader sees one thing either way, and should have one switch.
+   */
+  _glassOwner() {
+    return this.selection.enabled.has('klee') ? 'genesis' : 'stream';
+  }
+
+  /** Is the glass on, in whichever key the mounted field reads? */
+  glassOn() {
+    return this._glassOwner() === 'genesis'
+      ? this.selection.style.klee.glass !== false
+      : this.selection.streamGlass !== false;
+  }
+
   setGlass(on) {
     if (this.locked || this.programInfo) return;
-    this.selection.style.klee = { ...this.selection.style.klee, glass: on };
+    if (this._glassOwner() === 'genesis') {
+      this.selection.style.klee = { ...this.selection.style.klee, glass: on === true };
+    } else {
+      this.selection.streamGlass = on === true;
+    }
     this.emit();
     this.render();
   }
@@ -604,12 +628,6 @@ export class VisualNavigator {
     this.render();
   }
 
-  setStreamGlass(enabled) {
-    if (this.locked || this.programInfo) return;
-    this.selection.streamGlass = enabled === true;
-    this.emit();
-  }
-
   setLivingText(enabled) {
     if (this.locked || this.programInfo) return;
     this.selection.livingText = {
@@ -982,14 +1000,21 @@ export class VisualNavigator {
 
   renderReaderControls() {
     const fieldLocked = Boolean(this.locked || this.programInfo);
+    // Every glass path in the Chamber is gated `&& !chamberMaskApplies()`, so
+    // while a mask carries the letters this switch cannot act at all. Saying
+    // so is cheaper than letting it look available and do nothing.
+    const maskHoldsLetters = this.hasActiveMask();
     const galleryContext = [...this.selection.enabled].some(id => categoryOf(id) === FIELD.GALLERY)
       || categoryOf(this.focus?.id) === FIELD.GALLERY
       || this.selection.emptyGallery;
     return `<div class="vnav-reader-controls">
       <label class="vnav-living"><input type="checkbox" data-action="living-text"
         ${this.selection.livingText.enabled ? 'checked' : ''} ${fieldLocked ? 'disabled' : ''}> <span>Living Text</span></label>
-      <label class="vnav-living"><input type="checkbox" data-action="stream-glass"
-        ${this.selection.streamGlass !== false ? 'checked' : ''} ${fieldLocked ? 'disabled' : ''}> <span>Glass</span></label>
+      <label class="vnav-living"${maskHoldsLetters
+        ? ' title="A Visual mask is carrying the letters, and glass behind them would swallow the imagery. The glass returns when the mask does not hold."'
+        : ''}><input type="checkbox" data-action="glass"
+        ${this.glassOn() ? 'checked' : ''}
+        ${fieldLocked || maskHoldsLetters ? 'disabled' : ''}> <span>Glass behind the text</span></label>
       ${galleryContext ? `<div class="vnav-cadence"><span>Cadence</span>${CADENCE.map(item => `
         <button type="button" class="vnav-opt ${this.selection.galleryCadence === item.value ? 'on' : ''}"
           data-gallery-cadence="${item.value}" ${fieldLocked ? 'disabled' : ''}>${item.label}</button>`).join('')}</div>` : ''}
@@ -1092,11 +1117,11 @@ export class VisualNavigator {
           attr: `data-sub="${escapeHtml(b.key)}" data-val="${escapeHtml(optId(o))}"`
         })));
       }
-      if (leaf.engineId === 'klee') {
-        html += `<label class="vnav-glass"><input type="checkbox" data-action="glass"
-          ${this.selection.style.klee.glass !== false ? 'checked' : ''}
-          ${this.locked || this.programInfo ? 'disabled' : ''}> Glass tile behind the text</label>`;
-      }
+      // The Klee leaf used to carry its own 'Glass tile behind the text', which
+      // was the same reader-facing thing as the switch in the controls below —
+      // two controls trading ownership invisibly as the field changed. There is
+      // one glass, and it lives with the other reader controls.
+
     }
 
     if (leaf.pool) {
@@ -1161,7 +1186,6 @@ export class VisualNavigator {
     q('[data-action="toggle"]')?.addEventListener('click', () => this.toggleEnabled());
     q('[data-action="glass"]')?.addEventListener('change', e => this.setGlass(e.target.checked));
     q('[data-action="living-text"]')?.addEventListener('change', e => this.setLivingText(e.target.checked));
-    q('[data-action="stream-glass"]')?.addEventListener('change', e => this.setStreamGlass(e.target.checked));
     q('[data-action="open-personal"]')?.addEventListener('click', () => this.onOpenPersonal());
     this.container.querySelectorAll('[data-action="release-to-program"]').forEach(b =>
       b.onclick = () => this.releaseToProgram());
