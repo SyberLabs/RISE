@@ -247,8 +247,33 @@ export class KleeFlashes {
         return artwork;
     }
 
-    async renderFlash(canvas, duration, signal) {
+    /**
+     * A FLASH IS A GLIMPSE; A STILL IS THE FINISHED COMPOSITION.
+     *
+     * prepareFlash advances growth by at most 0.38 in one step, because in a
+     * reading the flashes accumulate across an episode and a composition is
+     * meant to arrive slowly — Genesis unfolds one over ~28 seconds. Asked for
+     * a single still at duration 160 that yields 0.329: a third of a drawing,
+     * which is what the Navigator was showing a reader choosing Genesis. They
+     * were being asked to judge a picture by its first third.
+     *
+     * `complete` renders the composition whole. It changes nothing about the
+     * reading, which never asks for it.
+     */
+    async renderFlash(canvas, duration, signal, options = {}) {
         const artwork = await this.prepareFlash(duration, signal);
+
+        // A COMPLETED STILL LEAVES NO EPISODE BEHIND.
+        //
+        // The episode is the reading's growing composition, and two rules read
+        // its progress: _choosePreset returns `episode.preset` while it is
+        // unfinished, and _prepareArtwork reuses the artwork on the same test.
+        // Drawing a still AT progress 1 while recording 0.329 left a half-grown
+        // episode holding both — so every later still came back with the first
+        // one's preset and the first one's drawing, and Genesis looked like it
+        // ignored its own substyles. Finishing it in the record as well as on
+        // the canvas lets the next still choose again.
+        if (options.complete === true) artwork.progress = 1;
 
         this.engine.render(canvas, {
             background: KLEE_CHAMBER_BACKGROUND,
