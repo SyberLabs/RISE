@@ -1695,6 +1695,9 @@
   gap: var(--space-xs);
 }
 .page-turn[hidden] { display: none; }
+/* Elongate is a Page control. .control-btn { display:flex } would
+   otherwise keep it on the Stream bar after `hidden` is set. */
+.page-elongate[hidden] { display: none; }
 .page-turn-count {
   font-family: var(--font-mono);
   font-size: 10px;
