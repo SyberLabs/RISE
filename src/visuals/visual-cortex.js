@@ -83,11 +83,26 @@ import {
 // because the 12 slots filled from fast AIC draws before the first
 // pin batch landed and then never turned over.)
 /**
- * Engines whose one still costs so much that drawing it while a reader is
- * choosing is worse than showing nothing. Measured, not guessed — the figures
- * are in renderLeafStill.
+ * Engines too expensive to draw while a reader is choosing, each with the
+ * still that stands in for it. The register IS the list of shipped pictures,
+ * so an engine can never be excluded from live drawing without something to
+ * show in its place. Built by scripts/build-engine-stills.mjs.
  */
-const EXPENSIVE_STILLS = new Set(['fractal', 'ostensoria']);
+const EXPENSIVE_STILLS = new Map([
+    ['fractal', 'fractal.webp'],
+    ['ostensoria', 'ostensoria.webp'],
+    ['apparitio', 'apparitio.webp']
+]);
+
+/** Same-origin and absolute, because safeUrl admits no relative path. */
+function shippedStill(file) {
+    if (typeof location === 'undefined') return null;
+    try {
+        return new URL(`engine-stills/${file}`, location.origin + '/').href;
+    } catch {
+        return null;
+    }
+}
 
 const INITIAL_POOL_TARGET = 1;
 const BACKGROUND_CATEGORY_TARGET = 6;
@@ -1679,22 +1694,26 @@ export class VisualCortex {
         //
         // Measured, per still, in the browser:
         //   rockgarden 50ms · turrell 64ms · klee 66ms · neural 70ms
-        //   harmonograph 77ms · ostensoria 697ms · fractal 1139ms
+        //   harmonograph 77ms · apparitio 365ms · ostensoria 697ms
+        //   fractal 1139ms
         //
         // The cheap ones draw onto their own canvas and nobody notices. The
-        // expensive two are a different thing entirely: Fractal serves frames
-        // from a queue the reading also draws from — one preview emptied it,
-        // 0 of 5, and the reading opened on 'Cache miss! Queue empty.' — and
-        // Ostensoria stalls the panel for two thirds of a second while a
-        // reader is clicking through it.
+        // dear ones are a different matter: Fractal serves frames from a queue
+        // the reading also draws from — one preview emptied it, 0 of 5, and
+        // the reading opened on 'Cache miss! Queue empty.' — while Ostensoria
+        // and Apparitio stall the panel outright while a reader clicks
+        // through it.
         //
         // The line is drawn on cost rather than on a name, so an engine added
-        // later is classified by what it does rather than by whether someone
-        // remembered it. Both keep their glyph, which is the degradation every
-        // preview already makes when it cannot draw. A representative still
-        // shipped as an asset would give these two their picture back without
-        // asking a reader to pay a second for it.
-        if (EXPENSIVE_STILLS.has(type)) return null;
+        // later is classified by what it does rather than by whether anyone
+        // remembered it. Each of these shows a still rendered ONCE from the
+        // engine itself, so a reader still meets a picture — the engine's own
+        // work, not decoration — and the reading is never charged for it.
+        const shipped = EXPENSIVE_STILLS.get(type);
+        if (shipped) {
+            const url = shippedStill(shipped);
+            return url ? { url, still: true } : null;
+        }
         try {
             if (!this.initialized) this.init();
             return await this._renderContinuousProceduralWork(type);

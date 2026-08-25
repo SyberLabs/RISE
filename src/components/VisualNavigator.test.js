@@ -12,6 +12,7 @@ import { fileURLToPath } from 'node:url';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { VisualNavigator } from './VisualNavigator.js';
 import { MemoryCore } from '../core/memory.js';
+import { safeUrl } from '../core/sanitize.js';
 import { visualCortex } from '../visuals/visual-cortex.js';
 
 let nav = null;
@@ -41,6 +42,10 @@ const unmount = () => {
 
 afterEach(() => {
   unmount();
+  // Spies here are set on module singletons — the cortex above all — so one
+  // left standing is inherited by every test after it. Restoring is the
+  // difference between a suite and a sequence.
+  vi.restoreAllMocks();
   delete window.rise;
   localStorage.removeItem('rise_global_images_v1');
   localStorage.removeItem('rise_workshop_v1');
@@ -495,6 +500,24 @@ describe('reader-facing state', () => {
     await new Promise(r => setTimeout(r, 0));
     expect(abortedSignal, 'the fetch never received a signal to abort').toBeTruthy();
     expect(abortedSignal.aborted).toBe(true);
+  });
+
+  it('shows a shipped still for the engines too dear to draw', async () => {
+    // Measured per still: fractal 1139ms, ostensoria 697ms, apparitio 365ms
+    // against 50-77ms for the rest — and fractal draws from the queue the
+    // reading uses, so one preview emptied it. These three are rendered once,
+    // from the engines themselves, and shipped. A reader still meets a
+    // picture; the reading is never charged for it.
+    const { visualCortex } = await import('../visuals/visual-cortex.js');
+    for (const engine of ['fractal', 'ostensoria', 'apparitio']) {
+      const work = await visualCortex.renderLeafStill(engine);
+      expect(work?.url, engine).toBeTruthy();
+      expect(work.url, engine).toMatch(/engine-stills\/.+\.webp$/);
+      expect(work.still, engine).toBe(true);
+      // absolute, because safeUrl admits no relative path and the panel
+      // sanitises everything it paints
+      expect(safeUrl(work.url), `${engine} must survive sanitising`).toBeTruthy();
+    }
   });
 
   it('does not pull the cortex into the panel that opens first', () => {
