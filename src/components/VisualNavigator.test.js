@@ -12,6 +12,7 @@ import { fileURLToPath } from 'node:url';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { VisualNavigator } from './VisualNavigator.js';
 import { MemoryCore } from '../core/memory.js';
+import { safeUrl } from '../core/sanitize.js';
 import { visualCortex } from '../visuals/visual-cortex.js';
 
 let nav = null;
@@ -41,6 +42,10 @@ const unmount = () => {
 
 afterEach(() => {
   unmount();
+  // Spies here are set on module singletons — the cortex above all — so one
+  // left standing is inherited by every test after it. Restoring is the
+  // difference between a suite and a sequence.
+  vi.restoreAllMocks();
   delete window.rise;
   localStorage.removeItem('rise_global_images_v1');
   localStorage.removeItem('rise_workshop_v1');
@@ -497,6 +502,25 @@ describe('reader-facing state', () => {
     expect(abortedSignal.aborted).toBe(true);
   });
 
+  it('shows a shipped still for the engines too dear to draw', async () => {
+    // Two reasons put an engine here. Measured per still: fractal 1139ms,
+    // ostensoria 697ms, apparitio 365ms against 50-77ms for the rest — and
+    // fractal draws from the queue the reading uses, so one preview emptied
+    // it. The attractor is here for the other reason: it integrates
+    // continuously and has no still branch at all. Each is shipped as a
+    // picture, so a reader meets one and the reading is never charged.
+    const { visualCortex } = await import('../visuals/visual-cortex.js');
+    for (const engine of ['fractal', 'ostensoria', 'apparitio', 'attractor']) {
+      const work = await visualCortex.renderLeafStill(engine);
+      expect(work?.url, engine).toBeTruthy();
+      expect(work.url, engine).toMatch(/engine-stills\/.+\.webp$/);
+      expect(work.still, engine).toBe(true);
+      // absolute, because safeUrl admits no relative path and the panel
+      // sanitises everything it paints
+      expect(safeUrl(work.url), `${engine} must survive sanitising`).toBeTruthy();
+    }
+  });
+
   it('does not pull the cortex into the panel that opens first', () => {
     // visual-cortex is a 256KB chunk against this panel's 102KB. A preview
     // must not be paid for by every reader who opens the Orbital, so the
@@ -506,6 +530,57 @@ describe('reader-facing state', () => {
     );
     expect(source).not.toMatch(/^import\s+[^;]*visual-cortex/m);
     expect(source).toMatch(/await import\('\.\.\/visuals\/visual-cortex\.js'\)/);
+  });
+
+  it('gathers Face, Size and Ink around one specimen', () => {
+    // They are three attributes of one word, and split across three rooms a
+    // reader could never see the thing being configured.
+    window.rise = { settings: { chamberFace: 'thick', fontSize: 'fit' } };
+    mount({});
+    for (const door of ['face', 'size', 'ink']) {
+      click(nav.container.querySelector(`.vnav-node[data-id="${door}"]`));
+      const sections = [...nav.container.querySelectorAll('.vnav-type-section')]
+        .map(el => el.dataset.section);
+      expect(sections, `entered by ${door}`).toEqual(['face', 'size', 'ink']);
+      // the door a reader came through is the one marked
+      expect(nav.container.querySelector('.vnav-type-section.is-active')?.dataset.section)
+        .toBe(door);
+      // one specimen, carrying all three
+      const specimen = nav.container.querySelectorAll('.vnav-specimen');
+      expect(specimen).toHaveLength(1);
+      expect(specimen[0].getAttribute('data-face-sample')).toBe('thick');
+      expect(specimen[0].getAttribute('data-size-sample')).toBe('fit');
+    }
+  });
+
+  it('paints the ink through the letters only when the mask could carry it', async () => {
+    // The coupling that needed a sentence — Ink needs Thick and Fit — is now
+    // a thing a reader watches happen. Take the face away and the imagery
+    // leaves the letters, in the same view, unexplained because unnecessary.
+    const still = 'data:image/png;base64,iVBORw0KGgo=';
+    vi.spyOn(visualCortex, 'renderLeafStill').mockResolvedValue({ url: still });
+
+    window.rise = { settings: { chamberFace: 'thick', fontSize: 'fit' } };
+    mount({
+      visualMode: 'interlocution',
+      interlocution: {
+        presentation: 'continuous', procedural: ['turrell'],
+        wordFill: { mode: 'pick', sourceFamily: 'procedural', procedural: ['klee'], sourced: [] }
+      }
+    });
+    click(nav.container.querySelector('.vnav-node[data-id="ink"]'));
+    await new Promise(r => setTimeout(r, 0));
+    await new Promise(r => setTimeout(r, 0));
+
+    expect(nav.container.querySelector('.vnav-specimen')?.classList.contains('has-ink'))
+      .toBe(true);
+
+    // now take the face away — the mask cannot be carried, so the letters empty
+    window.rise.settings.chamberFace = 'literary';
+    nav.render();
+    await new Promise(r => setTimeout(r, 0));
+    expect(nav.container.querySelector('.vnav-specimen')?.classList.contains('has-ink'))
+      .toBe(false);
   });
 
   it('shows the scale as a scale, and Fit as the different reading it is', () => {
