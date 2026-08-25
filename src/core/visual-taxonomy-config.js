@@ -84,6 +84,7 @@ const emptySelection = () => ({
   pool: { ...DEFAULT_POOL },
   livingText: { enabled: false },
   galleryCadence: GALLERY_CADENCE_DEFAULT,
+  streamGlass: true,
   wordFill: { mode: 'same' },
   emptyGallery: false,
   preserveBaseSelection: false,
@@ -110,6 +111,10 @@ export function selectionFromConfig(visualConfig = {}) {
   sel.galleryCadence = normalizeGalleryCadence(
     cfg.interlocution?.galleryCadence ?? GALLERY_CADENCE_DEFAULT
   );
+  // The session compiler reads this as "glass unless explicitly false", so
+  // the selection has to carry the same default or reopening a reading would
+  // quietly switch its glass off.
+  sel.streamGlass = cfg.interlocution?.streamGlass !== false;
   sel.wordFill = cloneWordFill(cfg.interlocution?.wordFill);
   const mode = cfg.visualMode || 'off';
 
@@ -269,6 +274,7 @@ export function configPatch(selection) {
       ...(base.interlocution || {}),
       ...(field.interlocution || {}),
       galleryCadence: normalizeGalleryCadence(selection.galleryCadence),
+      streamGlass: selection.streamGlass !== false,
       wordFill: cloneWordFill(selection.wordFill)
     }
   };

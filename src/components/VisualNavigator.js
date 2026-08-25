@@ -477,6 +477,12 @@ export class VisualNavigator {
     this.render();
   }
 
+  setStreamGlass(enabled) {
+    if (this.locked || this.programInfo) return;
+    this.selection.streamGlass = enabled === true;
+    this.emit();
+  }
+
   setLivingText(enabled) {
     if (this.locked || this.programInfo) return;
     this.selection.livingText = {
@@ -663,26 +669,28 @@ export class VisualNavigator {
       blocked: !maskAvailable && !programLocked,
       attr: `data-word-fill="procedural:${escapeHtml(item.id)}"`
     }));
-    const pools = inkPoolOptions().map(item => ({
-      id: item.id, label: item.label, on: value === `sourced:${item.id}`,
-      disabled: fieldLocked,
-      readOnly: programLocked,
-      blocked: !maskAvailable && !programLocked,
-      attr: `data-word-fill="sourced:${escapeHtml(item.id)}"`
-    }));
+    const poolBenches = inkPoolFamilies().map(family => bench(family.label,
+      family.options.map(item => ({
+        id: item.id, label: item.label, on: value === `sourced:${item.id}`,
+        disabled: fieldLocked,
+        readOnly: programLocked,
+        blocked: !maskAvailable && !programLocked,
+        attr: `data-word-fill="sourced:${escapeHtml(item.id)}"`
+      }))
+    )).join('');
     const styles = this.inkFocus ? this.renderStyleBenches(this.inkFocus) : '';
     return this.renderTextShell('Ink', 'Paint the gallery through the letters.', `
       ${bench('Ink', [
         { id: 'accent', label: 'Accent', on: value === 'accent', disabled: fieldLocked, readOnly: programLocked, attr: 'data-word-fill="accent"' },
-        { id: 'same', label: 'Visual Mask', on: value === 'same', disabled: fieldLocked, readOnly: programLocked, blocked: !maskAvailable && !programLocked, attr: 'data-word-fill="same"' }
+        { id: 'same', label: 'Same as the Field', on: value === 'same', disabled: fieldLocked, readOnly: programLocked, blocked: !maskAvailable && !programLocked, attr: 'data-word-fill="same"' }
       ])}
       ${bench('Engines', engines)}
-      ${bench('Pools', pools)}
+      ${poolBenches}
       ${this.hasActiveMask() ? bench('Border', [
         { id: 'off', label: 'Off', on: normalizeWordFill(this.selection.wordFill).border === 'off', disabled: fieldLocked, readOnly: programLocked, attr: 'data-word-fill-border="off"' },
         { id: 'cream', label: 'Cream', on: normalizeWordFill(this.selection.wordFill).border === 'cream', disabled: fieldLocked, readOnly: programLocked, attr: 'data-word-fill-border="cream"' },
         { id: 'accent', label: 'Accent', on: normalizeWordFill(this.selection.wordFill).border === 'accent', disabled: fieldLocked, readOnly: programLocked, attr: 'data-word-fill-border="accent"' }
-      ]) : ''}
+      ], 'is-property') : ''}
       ${styles}
       <p class="vnav-fit-coupling">Fit paints the gallery through the letters. Words step one at a time; Recitation and phrase chunking stand aside.</p>`);
   }
@@ -723,6 +731,8 @@ export class VisualNavigator {
     return `<div class="vnav-reader-controls">
       <label class="vnav-living"><input type="checkbox" data-action="living-text"
         ${this.selection.livingText.enabled ? 'checked' : ''} ${fieldLocked ? 'disabled' : ''}> <span>Living Text</span></label>
+      <label class="vnav-living"><input type="checkbox" data-action="stream-glass"
+        ${this.selection.streamGlass !== false ? 'checked' : ''} ${fieldLocked ? 'disabled' : ''}> <span>Glass</span></label>
       ${galleryContext ? `<div class="vnav-cadence"><span>Cadence</span>${CADENCE.map(item => `
         <button type="button" class="vnav-opt ${this.selection.galleryCadence === item.value ? 'on' : ''}"
           data-gallery-cadence="${item.value}" ${fieldLocked ? 'disabled' : ''}>${item.label}</button>`).join('')}</div>` : ''}
@@ -894,6 +904,7 @@ export class VisualNavigator {
     q('[data-action="toggle"]')?.addEventListener('click', () => this.toggleEnabled());
     q('[data-action="glass"]')?.addEventListener('change', e => this.setGlass(e.target.checked));
     q('[data-action="living-text"]')?.addEventListener('change', e => this.setLivingText(e.target.checked));
+    q('[data-action="stream-glass"]')?.addEventListener('change', e => this.setStreamGlass(e.target.checked));
     q('[data-action="open-personal"]')?.addEventListener('click', () => this.onOpenPersonal());
     this.container.querySelectorAll('[data-action="release-to-program"]').forEach(b =>
       b.onclick = () => this.releaseToProgram());
@@ -1050,8 +1061,30 @@ function inkFocusFrom(fill) {
   return value.startsWith('procedural:') ? value.slice('procedural:'.length) : null;
 }
 
-function inkPoolOptions() {
-  const all = ['by-manner', 'by-subject', 'science', 'personal']
-    .flatMap(poolOptions);
-  return [...new Map(all.map(item => [item.id, item])).values()];
+/**
+ * The ink pools, in the four families the taxonomy already keeps them in.
+ *
+ * These used to be flatMapped into one row, which threw away a distinction
+ * the config holds and made a reader sort a Ukiyo-e movement, a bird and a
+ * storage scope out of a single undifferentiated pile. A manner of painting,
+ * a subject, a domain and a scope are four kinds of answer; only the last is
+ * about whose pictures rather than which.
+ */
+const INK_POOL_FAMILIES = Object.freeze([
+  Object.freeze({ id: 'by-manner', label: 'By manner' }),
+  Object.freeze({ id: 'by-subject', label: 'By subject' }),
+  Object.freeze({ id: 'science', label: 'Science' }),
+  Object.freeze({ id: 'personal', label: 'Yours' })
+]);
+
+function inkPoolFamilies() {
+  const seen = new Set();
+  return INK_POOL_FAMILIES.map(family => {
+    const options = poolOptions(family.id).filter(item => {
+      if (seen.has(item.id)) return false;
+      seen.add(item.id);
+      return true;
+    });
+    return { ...family, options };
+  }).filter(family => family.options.length > 0);
 }

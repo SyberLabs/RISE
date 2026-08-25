@@ -393,6 +393,76 @@ describe('the text', () => {
 });
 
 describe('reader-facing state', () => {
+  it('names the ink by what it gives, not by how it is drawn', () => {
+    // "Visual Mask" named the mechanism, and did not even distinguish: every
+    // option in the group produces a mask. What this one actually means is
+    // "whatever the Field is showing".
+    mount({});
+    click(nav.container.querySelector('.vnav-node[data-id="ink"]'));
+    const same = nav.container.querySelector('[data-word-fill="same"]');
+    expect(same.textContent.trim()).toBe('Same as the Field');
+    expect(nav.container.textContent).not.toContain('Visual Mask');
+  });
+
+  it('subordinates Border to the ink it modifies', () => {
+    // Border is the only row that does not write data-word-fill: it is a
+    // property of the choice above it, not another candidate for it.
+    mount({ visualMode: 'interlocution', interlocution: { wordFill: { mode: 'pick', procedural: ['klee'] } } });
+    click(nav.container.querySelector('.vnav-node[data-id="ink"]'));
+    const border = [...nav.container.querySelectorAll('.vnav-bench')]
+      .find(b => b.querySelector('.vnav-bench-label')?.textContent.trim() === 'Border');
+    if (border) expect(border.classList.contains('is-property')).toBe(true);
+  });
+
+  it('keeps the four pool families apart in Ink', () => {
+    // inkPoolOptions used to flatMap manner, subject, science and personal
+    // into one undifferentiated row — a taxonomy the config already holds,
+    // discarded one line before it reached the screen.
+    mount({});
+    click(nav.container.querySelector('.vnav-node[data-id="ink"]'));
+    const labels = [...nav.container.querySelectorAll('.vnav-bench-label')]
+      .map(el => el.textContent.trim());
+    expect(labels).toEqual(expect.arrayContaining(
+      ['By manner', 'By subject', 'Science', 'Yours']
+    ));
+    expect(labels).not.toContain('Pools');
+
+    // and each family holds its own members, not a shared pile
+    const benchFor = name => [...nav.container.querySelectorAll('.vnav-bench')]
+      .find(b => b.querySelector('.vnav-bench-label')?.textContent.trim() === name);
+    const chips = name => [...benchFor(name).querySelectorAll('.vnav-opt')]
+      .map(b => b.textContent.trim());
+    expect(chips('Yours')).toEqual(['Shared pool', 'This session']);
+    expect(chips('Science')).toEqual(['Astronomy']);
+    expect(chips('By subject')).toContain('Landscapes');
+    expect(chips('By subject')).not.toContain('Shared pool');
+  });
+
+  it('offers the stream glass as a reader control, and emits it', () => {
+    // The glass tile survived the port from VIP; its switch did not. The
+    // renderer still honours interlocution.streamGlass and a Stance still
+    // sets it, so without a control a preset can put the reading behind
+    // glass and no reader can take it away.
+    mount({ interlocution: { streamGlass: true } });
+    const toggle = nav.container.querySelector('[data-action="stream-glass"]');
+    expect(toggle).toBeTruthy();
+    expect(toggle.checked).toBe(true);
+
+    toggle.checked = false;
+    toggle.dispatchEvent(new Event('change', { bubbles: true }));
+    expect(lastPatch().interlocution.streamGlass).toBe(false);
+
+    const back = nav.container.querySelector('[data-action="stream-glass"]');
+    back.checked = true;
+    back.dispatchEvent(new Event('change', { bubbles: true }));
+    expect(lastPatch().interlocution.streamGlass).toBe(true);
+  });
+
+  it('reopens on the glass the reading was saved with', () => {
+    mount({ interlocution: { streamGlass: false } });
+    expect(nav.container.querySelector('[data-action="stream-glass"]').checked).toBe(false);
+  });
+
   it('emits Living Text as an independent visual setting', () => {
     mount({ livingText: { enabled: false } });
     const toggle = nav.container.querySelector('[data-action="living-text"]');

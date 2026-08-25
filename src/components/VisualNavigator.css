@@ -317,3 +317,21 @@
     cursor: pointer;
   }
 }
+
+
+/* A BENCH THAT IS A PROPERTY, NOT A PEER.
+   Border is the only row in Ink that does not write `data-word-fill`: it
+   modifies the ink chosen above rather than offering another ink. Drawn as a
+   fourth identical bench it read as a fourth candidate — and its options
+   reuse the first row's vocabulary, so "Accent" appeared twice in one pane
+   meaning two different things. Indenting it against a rule puts it at the
+   rank it actually holds. */
+.vnav-bench.is-property {
+  margin-left: 14px;
+  padding-left: 14px;
+  border-left: 1px solid var(--color-shadow, #2A2A30);
+}
+
+.vnav-bench.is-property .vnav-bench-label {
+  opacity: 0.8;
+}
