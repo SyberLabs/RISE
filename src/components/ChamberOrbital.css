@@ -7,13 +7,39 @@
    ═══════════════════════════════════════════════════════════ */
 
 .chamber-orbital {
-  min-height: 100vh;
+  /* ONE GEOMETRY, DECLARED ONCE. The ring's proportions used to be six
+     hard-coded pixel figures repeated through the transforms below, and a
+     second full copy of them in the phone breakpoint. Naming them lets the
+     whole ring scale as one system — the 120° separation is preserved by
+     construction at any size, because only the radius changes. */
+  --orbit-stage: 600px;
+  --orbit-node: 140px;
+  --orbit-center: 260px;
+  --orbit-radius: 220px;
+  --orbit-radius-hover: 210px;
+  --orbit-stage-margin: var(--space-2xl);
+
+  /* THE FLOOR IS REACHABLE. This was `min-height: 100vh` with the content
+     centred, and `body` sets `overflow: hidden` — so once the stance row
+     was added the column grew past the viewport and Begin sat below the
+     floor with NOTHING able to scroll to it. Measured at 1223px of content:
+     unreachable on every common laptop, and off by only 6px on a 1080p
+     screen, which is why it survived review.
+     `safe center` is the other half: plain centring overflows BOTH ends, so
+     a scroll container alone would still bury the top of the column where
+     no scrolling can reach. Browsers without safe alignment keep the
+     `center` declared above it. */
+  height: 100vh;
+  height: 100dvh;
+  overflow-y: auto;
+  overscroll-behavior: contain;
   background: var(--color-void);
   padding: var(--space-xl);
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
+  justify-content: safe center;
   position: relative;
 }
 
@@ -170,9 +196,9 @@
 /* ─── Orbital Stage ─── */
 .orbital-stage {
   position: relative;
-  width: 600px;
-  height: 600px;
-  margin: var(--space-2xl) 0;
+  width: var(--orbit-stage);
+  height: var(--orbit-stage);
+  margin: var(--orbit-stage-margin) 0;
 }
 
 /* ─── Orbit Container (optionally rotates, but text stays upright) ─── */
@@ -190,8 +216,8 @@
 /* ─── Orbit Nodes (Sacred Geometry Positioning) ─── */
 .orbit-node {
   position: absolute;
-  width: 140px;
-  height: 140px;
+  width: var(--orbit-node);
+  height: var(--orbit-node);
 
   /* Center all nodes first, then offset via transform */
   top: 50%;
@@ -226,24 +252,22 @@
 
 .orbit-temporal {
   /* Top vertex: 0° (12 o'clock) */
-  transform: translate(-50%, -50%) translateY(-220px);
+  transform: translate(-50%, -50%) translateY(calc(-1 * var(--orbit-radius)));
 }
 
 .orbit-audio {
   /* Bottom-left vertex: 240° */
-  transform: translate(-50%, -50%) translate(calc(-1 * 220px * 0.866),
-      /* -220 * sin(60°) */
-      calc(220px * 0.5)
-      /* 220 * cos(60°) */
+  transform: translate(-50%, -50%) translate(
+      calc(-1 * var(--orbit-radius) * 0.866),   /* -r * sin(60°) */
+      calc(var(--orbit-radius) * 0.5)           /*  r * cos(60°) */
     );
 }
 
 .orbit-visual {
   /* Bottom-right vertex: 120° */
-  transform: translate(-50%, -50%) translate(calc(220px * 0.866),
-      /* 220 * sin(60°) */
-      calc(220px * 0.5)
-      /* 220 * cos(60°) */
+  transform: translate(-50%, -50%) translate(
+      calc(var(--orbit-radius) * 0.866),        /*  r * sin(60°) */
+      calc(var(--orbit-radius) * 0.5)           /*  r * cos(60°) */
     );
 }
 
@@ -256,17 +280,19 @@
 }
 
 .orbit-temporal:hover {
-  transform: translate(-50%, -50%) translateY(-210px);
+  transform: translate(-50%, -50%) translateY(calc(-1 * var(--orbit-radius-hover)));
 }
 
 .orbit-audio:hover {
-  transform: translate(-50%, -50%) translate(calc(-1 * 210px * 0.866),
-      calc(210px * 0.5));
+  transform: translate(-50%, -50%) translate(
+      calc(-1 * var(--orbit-radius-hover) * 0.866),
+      calc(var(--orbit-radius-hover) * 0.5));
 }
 
 .orbit-visual:hover {
-  transform: translate(-50%, -50%) translate(calc(210px * 0.866),
-      calc(210px * 0.5));
+  transform: translate(-50%, -50%) translate(
+      calc(var(--orbit-radius-hover) * 0.866),
+      calc(var(--orbit-radius-hover) * 0.5));
 }
 
 /* Active state: Pulse glow */
@@ -313,8 +339,8 @@
   left: 50%;
   transform: translate(-50%, -50%);
 
-  width: 260px;
-  height: 260px;
+  width: var(--orbit-center);
+  height: var(--orbit-center);
   border-radius: 50%;
 
   /* Lighter tint of the sitting accent — satellites keep the full hue. */
@@ -1345,48 +1371,14 @@
 
 /* ─── Responsive ─── */
 @media (max-width: 768px) {
-  .orbital-stage {
-    width: 400px;
-    height: 400px;
-  }
-
-  .orbit-node {
-    width: 110px;
-    height: 110px;
-  }
-
-  /* Smaller orbit radius for mobile */
-  .orbit-temporal {
-    transform: translate(-50%, -50%) translateY(-160px);
-  }
-
-  .orbit-audio {
-    transform: translate(-50%, -50%) translate(calc(-1 * 160px * 0.866),
-        calc(160px * 0.5));
-  }
-
-  .orbit-visual {
-    transform: translate(-50%, -50%) translate(calc(160px * 0.866),
-        calc(160px * 0.5));
-  }
-
-  .orbit-temporal:hover {
-    transform: translate(-50%, -50%) translateY(-155px);
-  }
-
-  .orbit-audio:hover {
-    transform: translate(-50%, -50%) translate(calc(-1 * 155px * 0.866),
-        calc(155px * 0.5));
-  }
-
-  .orbit-visual:hover {
-    transform: translate(-50%, -50%) translate(calc(155px * 0.866),
-        calc(155px * 0.5));
-  }
-
-  .orbit-center {
-    width: 200px;
-    height: 200px;
+  /* The whole ring, restated as four figures. The transforms above are
+     already written in terms of these. */
+  .chamber-orbital {
+    --orbit-stage: 400px;
+    --orbit-node: 110px;
+    --orbit-center: 200px;
+    --orbit-radius: 160px;
+    --orbit-radius-hover: 155px;
   }
 
   .choose-sigil {
@@ -1744,5 +1736,76 @@
 
   .modal-body {
     padding: var(--space-sm) var(--space-sm);
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   SHORT VIEWPORTS — the floor is not negotiable
+
+   The ring was sized for a tall screen and the stance row was added
+   above it, which put Begin below the floor of every common laptop at
+   100% zoom (measured: 1223px of column against a 768-955px viewport).
+   Scrolling now reaches it in the worst case, but a reader should not
+   have to go looking for the one button the screen exists to offer.
+
+   So the column is measured against the height it actually has. These
+   tiers restate the ring's four figures and tighten the vertical
+   rhythm — nothing here changes the 120° geometry, only its radius.
+   Height-keyed, because the height is the constraint; a wide 768px-tall
+   laptop was missed entirely by the width breakpoints.
+   ═══════════════════════════════════════════════════════════════ */
+@media (max-height: 960px) {
+  .chamber-orbital {
+    --orbit-stage: 460px;
+    --orbit-node: 118px;
+    --orbit-center: 200px;
+    --orbit-radius: 170px;
+    --orbit-radius-hover: 162px;
+    --orbit-stage-margin: var(--space-md);
+    padding: var(--space-md) var(--space-xl);
+  }
+
+  .stance-question {
+    margin-bottom: var(--space-sm);
+  }
+
+  .stance-option {
+    padding: var(--space-sm) var(--space-sm);
+  }
+
+  .stance-note {
+    margin-top: var(--space-xs);
+  }
+
+  .orbital-actions {
+    margin-top: var(--space-sm);
+    padding-bottom: var(--space-md);
+  }
+}
+
+@media (max-height: 830px) {
+  .chamber-orbital {
+    --orbit-stage: 380px;
+    --orbit-node: 104px;
+    --orbit-center: 172px;
+    --orbit-radius: 142px;
+    --orbit-radius-hover: 136px;
+    --orbit-stage-margin: var(--space-sm);
+    padding: var(--space-sm) var(--space-xl);
+  }
+
+  /* The sentence under each posture is what the note below the row
+     already says; on a short screen the names alone carry the choice. */
+  .stance-line {
+    display: none;
+  }
+
+  .stance-note {
+    display: none;
+  }
+
+  .orbital-actions {
+    margin-top: var(--space-xs);
+    padding-bottom: var(--space-sm);
   }
 }
