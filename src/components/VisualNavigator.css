@@ -354,9 +354,27 @@
    rather than standing beside them, so the tree the rail already uses is the
    tree this pane uses too. */
 .vnav-ink-own {
-  margin: 10px 0 0 14px;
-  padding-left: 14px;
-  border-left: 1px solid var(--color-shadow, #2A2A30);
+  /* AN INDENT POINTS AT WHATEVER IS ABOVE ITS LEFT EDGE. Nested against the
+     pane's margin, this panel sat under 'Accent' and read as belonging to it
+     — the opposite of the relation it has. A surface that names its own
+     parent cannot be misread, whichever chip happens to sit above it, and it
+     reuses the caption idiom every other group in this panel already uses. */
+  margin: 8px 0 0;
+  padding: 12px 14px 4px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--color-shadow, #2A2A30);
+  border-top-color: rgba(var(--color-accent-rgb), 0.34);
+  border-radius: 3px;
+}
+
+.vnav-ink-own-caption {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: rgba(var(--color-accent-rgb), 0.75);
+  margin-bottom: 10px;
 }
 
 
@@ -373,3 +391,63 @@
   opacity: 0.62;
   cursor: not-allowed;
 }
+
+
+/* ── CONTROLS SIT ON A SURFACE; PROSE DOES NOT ──────────────────────────
+   Buttons and sentences were sharing one undivided field, so an explanation
+   carried the same weight as the controls it described. The controls take a
+   surface of their own and the prose stands outside it, which is the whole
+   of the division. */
+.vnav-control-group {
+  padding: 12px 14px 4px;
+  background: rgba(255, 255, 255, 0.018);
+  border: 1px solid var(--color-shadow, #2A2A30);
+  border-radius: 3px;
+}
+
+.vnav-control-group + .vnav-control-explanation,
+.vnav-control-group + .vnav-fit-consequence {
+  margin-top: 12px;
+  padding-left: 12px;
+  border-left: 1px solid var(--color-shadow, #2A2A30);
+}
+
+/* ── A FACE IS SHOWN, NOT NAMED ─────────────────────────────────────────
+   Each chip wears the letterform it selects, and the sample carries the
+   chosen one at reading scale. The families are reached through the design
+   tokens, so no family name reaches the markup. */
+.vnav-opt[data-face-sample="literary"] { font-family: var(--font-literary); }
+.vnav-opt[data-face-sample="display"]  { font-family: var(--font-display); }
+.vnav-opt[data-face-sample="thick"]    { font-family: var(--font-stream-thick); font-weight: 700; }
+.vnav-opt[data-face-sample="jp"]       { font-family: var(--font-jp); }
+
+.vnav-preview-type {
+  margin: 12px 0 10px;
+  padding: 14px 16px;
+  background: var(--color-void, #0A0A0C);
+  border: 1px solid var(--color-shadow, #2A2A30);
+  border-radius: 2px;
+}
+
+.vnav-preview-label {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--color-mist, #6B6B75);
+  margin-bottom: 8px;
+}
+
+.vnav-preview-sample {
+  margin: 0;
+  font-size: 26px;
+  line-height: 1.25;
+  color: var(--color-light, #E8E8EC);
+  overflow-wrap: anywhere;
+}
+
+.vnav-preview-type[data-face-sample="literary"] .vnav-preview-sample { font-family: var(--font-literary); }
+.vnav-preview-type[data-face-sample="display"]  .vnav-preview-sample { font-family: var(--font-display); }
+.vnav-preview-type[data-face-sample="thick"]    .vnav-preview-sample { font-family: var(--font-stream-thick); font-weight: 700; }
+.vnav-preview-type[data-face-sample="jp"]       .vnav-preview-sample { font-family: var(--font-jp); }

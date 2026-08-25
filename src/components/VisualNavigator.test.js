@@ -398,6 +398,29 @@ describe('the text', () => {
 });
 
 describe('reader-facing state', () => {
+  it('shows each face in its own letterform, and the chosen one at reading scale', () => {
+    // The difference between these four IS the letterform, so four words set
+    // in one another's typeface told a reader nothing about the choice.
+    window.rise = { settings: { chamberFace: 'display', fontSize: 'medium' } };
+    mount({});
+    click(nav.container.querySelector('.vnav-node[data-id="face"]'));
+
+    for (const id of ['literary', 'display', 'thick', 'jp']) {
+      expect(nav.container.querySelector(`[data-chamber-face="${id}"]`)
+        ?.getAttribute('data-face-sample'), id).toBe(id);
+    }
+    const preview = nav.container.querySelector('.vnav-preview-type');
+    expect(preview).toBeTruthy();
+    expect(preview.getAttribute('data-face-sample')).toBe('display');
+    expect(preview.querySelector('.vnav-preview-sample')?.textContent.trim()).toBeTruthy();
+
+    // The family behind a face is a CSS matter; naming it in the chrome is
+    // what Chamber.settings-door.test.js forbids.
+    for (const family of ['Crimson', 'Marcellus', 'Grotesk', 'Noto']) {
+      expect(nav.container.textContent).not.toContain(family);
+    }
+  });
+
   it('says what Thick is for without being asked', () => {
     // The star was unexplained ornament and the sentence justifying it was
     // hidden until a hint fired, so a reader choosing a face could not know
@@ -565,16 +588,22 @@ describe('reader-facing state', () => {
     const labels = [...nav.container.querySelectorAll('.vnav-bench-label')]
       .map(el => el.textContent.trim());
     expect(labels).toEqual(expect.arrayContaining(
-      ['By manner', 'By subject', 'Science', 'Yours']
+      ['By manner', 'By subject', 'Science']
     ));
     expect(labels).not.toContain('Pools');
+    // 'Yours' is withheld on purpose: setWordFill accepts global-pool and
+    // custom, so the chips looked chosen, but the cortex sorts them into its
+    // core types and the fill resolves to an empty pool. A control that
+    // answers a press with silence is worse than one that is absent.
+    expect(labels).not.toContain('Yours');
+    expect(nav.container.querySelector('[data-word-fill="sourced:global-pool"]')).toBeNull();
+    expect(nav.container.querySelector('[data-word-fill="sourced:custom"]')).toBeNull();
 
     // and each family holds its own members, not a shared pile
     const benchFor = name => [...nav.container.querySelectorAll('.vnav-bench')]
       .find(b => b.querySelector('.vnav-bench-label')?.textContent.trim() === name);
     const chips = name => [...benchFor(name).querySelectorAll('.vnav-opt')]
       .map(b => b.textContent.trim());
-    expect(chips('Yours')).toEqual(['Shared pool', 'This session']);
     expect(chips('Science')).toEqual(['Astronomy']);
     expect(chips('By subject')).toContain('Landscapes');
     expect(chips('By subject')).not.toContain('Shared pool');

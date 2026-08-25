@@ -819,12 +819,27 @@ export class VisualNavigator {
   renderTextEntry(id) {
     if (id === 'face') {
       const selected = this.textMaterialSettings().face;
-      return this.renderTextShell('Face', 'The letters, not the room.', bench('Face',
-        CHAMBER_STREAM_FACES.map(item => ({
-          id: item.id, label: item.id === 'thick' ? 'Thick ★' : item.label, on: item.id === selected,
-          readOnly: Boolean(this.programInfo), special: item.id === 'thick',
-          attr: `data-chamber-face="${escapeHtml(item.id)}"${item.id === 'thick' ? ' aria-describedby="vnav-thick-explanation"' : ''}`
-        })), 'vnav-face-grid') + `<p id="vnav-thick-explanation" class="vnav-control-explanation">Thick
+      // A FACE IS A SHAPE, AND A SHAPE SHOULD BE SHOWN. Four words set in one
+      // another's typeface told a reader nothing about the choice they were
+      // making; the difference between these four IS the letterform. Each
+      // chip now wears its own face and a sample line carries the chosen one
+      // at reading scale. The family is never named — that is a CSS matter,
+      // and Chamber.settings-door.test.js forbids leaking it into the chrome.
+      const sample = 'Light enters form';
+      return this.renderTextShell('Face', 'The letters, not the room.',
+        `<div class="vnav-control-group">${bench('Face',
+          CHAMBER_STREAM_FACES.map(item => ({
+            id: item.id, label: item.id === 'thick' ? `${item.label} ★` : item.label,
+            on: item.id === selected,
+            readOnly: Boolean(this.programInfo), special: item.id === 'thick',
+            attr: `data-chamber-face="${escapeHtml(item.id)}" data-face-sample="${escapeHtml(item.id)}"`
+              + `${item.id === 'thick' ? ' aria-describedby="vnav-thick-explanation"' : ''}`
+          })), 'vnav-face-grid')}
+        <figure class="vnav-preview-type" data-face-sample="${escapeHtml(selected)}">
+          <span class="vnav-preview-label">The reading, in this face</span>
+          <p class="vnav-preview-sample">${escapeHtml(sample)}</p>
+        </figure></div>
+        <p id="vnav-thick-explanation" class="vnav-control-explanation">Thick
           is the mask-ready face — the other three cannot carry a Visual mask.</p>`);
     }
     if (id === 'size') {
@@ -849,8 +864,12 @@ export class VisualNavigator {
         readOnly: Boolean(this.programInfo), special: true,
         attr: `data-font-size="${escapeHtml(fit.id)}" aria-describedby="vnav-fit-consequence"`
       }], 'vnav-mode-bench') : '';
+      // Controls and prose were sharing one undivided field, so a sentence
+      // about Fit sat at the same rank as the buttons that set it. The
+      // controls take a surface; the explanation stands outside it.
       return this.renderTextShell('Size', selected === 'fit' ? SIZE_HINT_FIT : 'Choose the scale of the reading.',
-        `${scale}${mode}<p id="vnav-fit-consequence" class="vnav-fit-consequence">Fit scales each
+        `<div class="vnav-control-group">${scale}${mode}</div>
+        <p id="vnav-fit-consequence" class="vnav-fit-consequence">Fit scales each
           Word to fill the chamber and paints the gallery through the letters. Words step one at a
           time; Recitation and phrase chunking stand aside.</p>`);
     }
@@ -920,6 +939,7 @@ export class VisualNavigator {
     return this.renderTextShell('Ink', 'Paint the gallery through the letters.', `
       ${answers}
       ${ownOpen ? `<div class="vnav-ink-own" id="vnav-ink-own">
+        <span class="vnav-ink-own-caption">Something of its own</span>
         ${bench('A generated field', engines)}
         ${poolBenches}
       </div>` : ''}
@@ -1347,8 +1367,15 @@ function inkFocusFrom(fill) {
 const INK_POOL_FAMILIES = Object.freeze([
   Object.freeze({ id: 'by-manner', label: 'By manner' }),
   Object.freeze({ id: 'by-subject', label: 'By subject' }),
-  Object.freeze({ id: 'science', label: 'Science' }),
-  Object.freeze({ id: 'personal', label: 'Yours' })
+  Object.freeze({ id: 'science', label: 'Science' })
+  // 'personal' — Shared pool and This session — is NOT offered here, and the
+  // omission is deliberate rather than an oversight. setWordFill accepts the
+  // ids, so the chips took a click and looked chosen; but the cortex sorts
+  // 'global-pool' and 'custom' into its core types, so _isExternalCategory
+  // rejects them, _poolCategoriesForTypes returns nothing, and the fill
+  // resolves to an empty pool. A control that answers a press with silence is
+  // worse than one that is absent. Restore this family together with a word
+  // -fill path that can actually resolve personal works.
 ]);
 
 function inkPoolFamilies() {
