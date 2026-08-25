@@ -695,11 +695,28 @@ export class PageReader {
     /**
      * Resolve true once THIS element has decoded (or loaded, where
      * decode() is unavailable); false if it errors. Never rejects.
+     *
+     * Bounded on purpose: a figure reaches exactly one terminal state —
+     * shown or absent — within `timeoutMs`. A remote request that never
+     * loads, errors, or decodes is not allowed to hold Page readiness
+     * open (the paginated walk waits on every figure). On the ceiling the
+     * image is shown only if its bytes actually arrived, else it degrades
+     * to absent; and revoking the activation settles it at once.
      */
-    _settleImage(img) {
+    _settleImage(img, timeoutMs = 6000) {
         return new Promise(resolve => {
             let done = false;
-            const finish = (ok) => { if (!done) { done = true; resolve(ok); } };
+            let timer = null;
+            const finish = (ok) => {
+                if (done) return;
+                done = true;
+                if (timer) clearTimeout(timer);
+                this.signal?.removeEventListener('abort', onAbort);
+                resolve(ok);
+            };
+            const onAbort = () => finish(false);
+            timer = setTimeout(() => finish(img.complete && img.naturalWidth > 0), timeoutMs);
+            if (this.signal) this.signal.addEventListener('abort', onAbort, { once: true });
             img.addEventListener('error', () => finish(false), { once: true });
             if (typeof img.decode === 'function') {
                 img.decode().then(() => finish(true)).catch(() => {
