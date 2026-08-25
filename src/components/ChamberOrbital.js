@@ -50,6 +50,8 @@ import {
   sequenceHasCapability
 } from '../core/sequence-capabilities.js';
 import { STANCES, applyStance, matchStance } from '../core/stances.js';
+
+const STANCE_NOTE_SEEN_KEY = 'rise-stance-note-seen';
 import './VisualNavigator.css';
 import './ChamberOrbital.css';
 
@@ -684,13 +686,24 @@ export class ChamberOrbital {
    */
   renderStances() {
     const standing = matchStance(this.config);
+    // THE ROW COSTS WHAT THE RING CANNOT SPEND.
+    //
+    // Each posture used to carry its sentence permanently, and the note under
+    // the row explained the whole mechanism on every visit. Together they took
+    // roughly a third of the column — which was paid for out of the ring, by
+    // pulling the three orbits in toward the centre until they crowded it. The
+    // sentence is a thing a reader needs once, while deciding; it belongs to
+    // hover and focus, where it is asked for. The note is a thing a reader
+    // needs once ever, and says so below.
     const options = STANCES.map(stance => {
       const chosen = stance.id === standing;
       return `
         <button type="button" class="stance-option${chosen ? ' active' : ''}"
-          data-stance="${escapeHtml(stance.id)}" aria-pressed="${chosen}">
+          data-stance="${escapeHtml(stance.id)}" aria-pressed="${chosen}"
+          aria-describedby="stance-line-${escapeHtml(stance.id)}">
           <span class="stance-name">${escapeHtml(stance.name)}</span>
-          <span class="stance-line">${escapeHtml(stance.line)}</span>
+          <span class="stance-line" id="stance-line-${escapeHtml(stance.id)}"
+            >${escapeHtml(stance.line)}</span>
         </button>
       `;
     }).join('');
@@ -699,12 +712,40 @@ export class ChamberOrbital {
       <section class="orbital-stances" aria-label="Stance">
         <p class="stance-question text-fog">How do you want to read?</p>
         <div class="stance-options">${options}</div>
-        <p class="stance-note text-mist">
+        ${this._stanceNoteDue() ? `<p class="stance-note text-mist" data-stance-note>
           A stance sets the orbits below. It does not lock them — open any
           orbit and change whatever you like.
-        </p>
+        </p>` : ''}
       </section>
     `;
+  }
+
+  /**
+   * The note explains the mechanism once. A reader who has met it does not
+   * need it again on every visit, and the room it takes is room the ring
+   * wants — so it is shown on a first-ever Orbital and then retired, fading
+   * out on its own rather than waiting to be dismissed.
+   */
+  _stanceNoteDue() {
+    if (this._stanceNoteRetired) return false;
+    try {
+      return localStorage.getItem(STANCE_NOTE_SEEN_KEY) !== 'true';
+    } catch {
+      return false;   // no storage: never risk showing it forever
+    }
+  }
+
+  _retireStanceNote() {
+    const note = this.container.querySelector('[data-stance-note]');
+    if (!note) return;
+    this._stanceNoteTimer = setTimeout(() => {
+      note.classList.add('is-retiring');
+      this._stanceNoteTimer = setTimeout(() => {
+        this._stanceNoteRetired = true;
+        try { localStorage.setItem(STANCE_NOTE_SEEN_KEY, 'true'); } catch { /* private mode */ }
+        note.remove();
+      }, 900);
+    }, 7000);
   }
 
   /** Repaint which stance the configuration is standing in. */
@@ -1205,6 +1246,7 @@ export class ChamberOrbital {
   }
 
   attachEvents() {
+    this._retireStanceNote();
     // Full renders replace the controls but not `this.container`. Abort the
     // prior scope before binding the new DOM so delegated listeners cannot
     // multiply across Reset or shared-container reconstruction.
@@ -2088,6 +2130,8 @@ export class ChamberOrbital {
     // (session start destroys this instance; so does navigating away)
     this._persistPrefs();
     this._destroyed = true;
+    clearTimeout(this._stanceNoteTimer);
+    this._stanceNoteTimer = null;
     this._eventController?.abort();
     this._eventController = null;
 

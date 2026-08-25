@@ -178,6 +178,33 @@
   font-size: 11px;
   line-height: 1.5;
   color: var(--color-mist);
+  /* Asked for, not broadcast. The sentence is what a reader wants while
+     deciding between three postures, and clutter once they have decided —
+     so it is given to hover and to focus, and costs the column nothing
+     the rest of the time. */
+  max-height: 0;
+  opacity: 0;
+  overflow: hidden;
+  transition:
+    max-height var(--transition-normal) var(--ease-out),
+    opacity var(--transition-normal) var(--ease-out);
+}
+
+.stance-option:hover .stance-line,
+.stance-option:focus-visible .stance-line,
+.stance-option.active .stance-line {
+  max-height: 4em;
+  opacity: 1;
+}
+
+/* Keyboard and pointer both reach it; reduced motion just shows it. */
+@media (prefers-reduced-motion: reduce) {
+  .stance-line { transition: none; }
+}
+
+.stance-note.is-retiring {
+  opacity: 0;
+  transition: opacity 900ms var(--ease-out);
 }
 
 .stance-option.active .stance-line {
@@ -1756,11 +1783,15 @@
    ═══════════════════════════════════════════════════════════════ */
 @media (max-height: 960px) {
   .chamber-orbital {
-    --orbit-stage: 460px;
-    --orbit-node: 118px;
-    --orbit-center: 200px;
-    --orbit-radius: 170px;
-    --orbit-radius-hover: 162px;
+    /* NOT TOO MUCH, NOT TOO LITTLE. The first pass bought Begin's visibility
+       by pulling the orbits in until they crowded the centre orb. The stance
+       row now spends far less of the column, so the ring keeps a radius that
+       leaves air between each satellite and the middle. */
+    --orbit-stage: 530px;
+    --orbit-node: 128px;
+    --orbit-center: 216px;
+    --orbit-radius: 198px;
+    --orbit-radius-hover: 190px;
     --orbit-stage-margin: var(--space-md);
     padding: var(--space-md) var(--space-xl);
   }
@@ -1785,11 +1816,11 @@
 
 @media (max-height: 830px) {
   .chamber-orbital {
-    --orbit-stage: 380px;
-    --orbit-node: 104px;
-    --orbit-center: 172px;
-    --orbit-radius: 142px;
-    --orbit-radius-hover: 136px;
+    --orbit-stage: 456px;
+    --orbit-node: 116px;
+    --orbit-center: 186px;
+    --orbit-radius: 170px;
+    --orbit-radius-hover: 163px;
     --orbit-stage-margin: var(--space-sm);
     padding: var(--space-sm) var(--space-xl);
   }
@@ -1808,4 +1839,20 @@
     margin-top: var(--space-xs);
     padding-bottom: var(--space-sm);
   }
+}
+
+
+/* A satellite states its setting, and the setting is sometimes two words —
+   'Rhythmic Procedural' was set at the same size as 'Aurora' and pressed
+   against the rim. The status scales with the node and wraps inside it. */
+.orbit-status {
+  font-size: clamp(10px, calc(var(--orbit-node) * 0.098), 14px);
+  line-height: 1.25;
+  max-width: 78%;
+  margin: 0 auto;
+  overflow-wrap: anywhere;
+}
+
+.orbit-label {
+  font-size: clamp(9px, calc(var(--orbit-node) * 0.075), 11px);
 }
