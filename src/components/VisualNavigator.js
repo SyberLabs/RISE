@@ -23,6 +23,7 @@ import {
   describeField,
   galleryMembers,
   isBlend,
+  leafById,
   substylesFor,
   toggleField
 } from '../core/visual-taxonomy.js';
@@ -288,13 +289,42 @@ export class VisualNavigator {
     };
   }
 
+  /**
+   * Is the field a continuous Gallery — the one category that can be painted
+   * through letters?
+   *
+   * Off, Focal and Dynamic are the exclusive categories, and none of them
+   * offers a continuous surface behind the reading, so none of them can carry
+   * a mask. `emptyGallery` counts: it emits interlocution + continuous with an
+   * empty pool, which is a Gallery waiting for works.
+   */
+  _fieldIsGallery() {
+    if (this.selection.emptyGallery) return true;
+    const on = [...this.selection.enabled];
+    return on.length > 0 && on.every(id => categoryOf(id) === FIELD.GALLERY);
+  }
+
+  /**
+   * THE PANEL USED TO ASSERT THE FIELD RATHER THAN ASK IT.
+   *
+   * This passed `visualMode: 'interlocution'` and `presentation: 'continuous'`
+   * as constants, so of the resolver's four conditions only two could ever
+   * fail — which is why every refusal in this panel said "requires Thick +
+   * Fit", and why `requires-gallery` was a state the reader could never be
+   * shown. It also explains the silent overwrite in setSize: when a reader
+   * held a Focal and chose Fit, the panel discarded the Focal to make its own
+   * assumption true rather than report that the two do not fit.
+   *
+   * Asking costs nothing and makes the refusals honest.
+   */
   textMaterialCapability(wordFill = this.selection.wordFill, settings = this.textMaterialSettings()) {
+    const gallery = this._fieldIsGallery();
     return resolveTextMaterialCapability({
       face: settings.face,
       fontSize: settings.fontSize,
       chunkMode: 'word',
-      visualMode: 'interlocution',
-      presentation: 'continuous',
+      visualMode: gallery ? 'interlocution' : 'off',
+      presentation: gallery ? 'continuous' : 'full-frame',
       wordFill,
       programOwned: Boolean(this.programInfo)
     });
@@ -352,15 +382,78 @@ export class VisualNavigator {
     }, returnFocus);
   }
 
-  explainBlockedMask(wordFill, returnFocus) {
+  /**
+   * Say which of the four conditions is missing, and offer the remedy for
+   * THAT one.
+   *
+   * One sentence used to answer every refusal — 'Visual masks require Thick +
+   * Fit' — with a single corrective that set the face, the size and the
+   * timing. When the missing condition was the field, that advice was simply
+   * wrong: it changed three things that were not the problem, and the mask
+   * still could not be carried. A remedy that does not address the cause is
+   * worse than no remedy, because it spends the reader's trust.
+   */
+  /**
+   * Fit needs a Gallery; this field is not one. Say what will be lost, name
+   * it, and let the reader decide — rather than discarding it and moving on.
+   */
+  confirmFieldReplacement({ fontSize, settings, returnFocus }) {
+    const held = [...this.selection.enabled]
+      .map(id => leafById(id)?.label)
+      .filter(Boolean);
     this.openDialog({
-      title: 'Visual masks require Thick + Fit.',
-      body: 'Bold, chamber-filling words provide enough surface for imagery.',
-      primaryLabel: 'Use Thick + Fit',
+      title: 'Fit paints through a Gallery.',
+      body: `${held.length ? held.join(' and ') : 'This field'} cannot be painted through the letters, `
+        + 'and will be set aside to make room for one. The reading keeps everything else.',
+      primaryLabel: 'Set it aside',
+      primaryAction: 'replace-field-for-fit',
+      confirm: () => {
+        this.selection.enabled = new Set();
+        this.selection.emptyGallery = true;
+        this.selection.preserveBaseSelection = false;
+        this.requestTextMaterialTransaction({
+          face: settings.face,
+          fontSize,
+          wordFill: this.selection.wordFill,
+          temporal: { chunkMode: 'word', recitation: false },
+          settings: { chamberFace: settings.face, fontSize, chamberMask: false }
+        });
+        this.closeDialog();
+      }
+    }, returnFocus);
+  }
+
+  explainBlockedMask(wordFill, returnFocus) {
+    // NAME EVERYTHING THAT IS MISSING, BECAUSE THE REMEDY FIXES ALL OF IT.
+    //
+    // One sentence used to answer every refusal — 'Visual masks require Thick
+    // + Fit' — while the corrective quietly also opened a Gallery. So the
+    // message undersold what the button did, and when the field was the only
+    // thing missing it named two things that were not the problem. The
+    // resolver reports the first failing condition; the reader needs all of
+    // them, since they are about to be set in one stroke.
+    const settings = this.textMaterialSettings();
+    const missing = [];
+    if (!this._fieldIsGallery()) missing.push('a Gallery field');
+    if (resolveChamberStreamFace(settings.face) !== 'thick') missing.push('the Thick face');
+    if (resolveFontSize(settings.fontSize) !== 'fit') missing.push('the Fit size');
+    const held = [...this.selection.enabled].map(id => leafById(id)?.label).filter(Boolean);
+    const list = missing.length > 1
+      ? `${missing.slice(0, -1).join(', ')} and ${missing[missing.length - 1]}`
+      : (missing[0] || 'more surface');
+
+    this.openDialog({
+      title: `A mask needs ${list}.`,
+      body: held.length
+        ? `${held.join(' and ')} holds no imagery behind the reading, so it will be set aside for a Gallery. `
+          + 'Bold, chamber-filling words provide the surface the imagery is painted on.'
+        : 'Bold, chamber-filling words provide enough surface for imagery, and a Gallery is what is painted through them.',
+      primaryLabel: 'Set them',
       primaryAction: 'use-thick-fit',
       confirm: () => {
+        this.selection.enabled = new Set();
         this.selection.emptyGallery = true;
-        this.selection.preserveBaseSelection = true;
+        this.selection.preserveBaseSelection = false;
         this.requestTextMaterialTransaction({
           face: 'thick',
           fontSize: 'fit',
@@ -410,8 +503,17 @@ export class VisualNavigator {
     }
     if (persist === 'fit' && this.locked) return;
     if (persist === 'fit') {
-      const gallery = this.selection.enabled.size > 0
-        && [...this.selection.enabled].every(id => categoryOf(id) === FIELD.GALLERY);
+      const gallery = this._fieldIsGallery();
+      // FIT USED TO TAKE THE FIELD WITHOUT ASKING. Choosing Fit while a Focal
+      // was held cleared `enabled` outright — the Chapel rose a reader had
+      // chosen simply vanished, replaced by an empty Gallery, with no dialog
+      // and no way to know it had happened. Fit does need a Gallery, so the
+      // conflict is real; what was missing was the asking. This panel already
+      // knows how to ask — confirmMaskInvalidation does it in the other
+      // direction — so the same courtesy applies here.
+      if (!gallery && this.selection.enabled.size > 0) {
+        return this.confirmFieldReplacement({ fontSize: persist, settings, returnFocus });
+      }
       if (!gallery) this.selection.enabled = new Set();
       this.selection.emptyGallery = !gallery;
       if (!gallery) this.selection.preserveBaseSelection = false;
@@ -741,12 +843,19 @@ export class VisualNavigator {
     const settings = this.textMaterialSettings();
     const fieldLocked = Boolean(this.locked);
     const programLocked = Boolean(this.programInfo);
-    const maskAvailable = this.textMaterialCapability({ mode: 'same' }, settings).available;
+    const capability = this.textMaterialCapability({ mode: 'same' }, settings);
+    const maskAvailable = capability.available;
+    // Four causes, four sentences. The panel used to answer every one of them
+    // with 'requires Thick + Fit', which is false whenever the cause is the
+    // field: a reader holding a Focal was told to change a face and a size
+    // that would not have helped.
+    const maskReason = maskAvailable ? null : MASK_REASON[capability.reason];
     const engines = WORD_FILL_PROCEDURAL_PATTERNS.map(item => ({
       id: item.id, label: item.name, on: value === `procedural:${item.id}`,
       disabled: fieldLocked,
       readOnly: programLocked,
       blocked: !maskAvailable && !programLocked,
+      reason: !maskAvailable && !programLocked ? maskReason : null,
       attr: `data-word-fill="procedural:${escapeHtml(item.id)}"`
     }));
     const poolBenches = inkPoolFamilies().map(family => bench(family.label,
@@ -755,6 +864,7 @@ export class VisualNavigator {
         disabled: fieldLocked,
         readOnly: programLocked,
         blocked: !maskAvailable && !programLocked,
+        reason: !maskAvailable && !programLocked ? maskReason : null,
         attr: `data-word-fill="sourced:${escapeHtml(item.id)}"`
       }))
     )).join('');
@@ -784,7 +894,7 @@ export class VisualNavigator {
     const ownOpen = chosenOwn || this._inkBranchOpen !== false;
     const answers = bench('What paints the letters', [
       { id: 'accent', label: 'Accent', on: value === 'accent', disabled: fieldLocked, readOnly: programLocked, attr: 'data-word-fill="accent"' },
-      { id: 'same', label: 'Same as the Field', on: value === 'same', disabled: fieldLocked, readOnly: programLocked, blocked: !maskAvailable && !programLocked, attr: 'data-word-fill="same"' },
+      { id: 'same', label: 'Same as the Field', on: value === 'same', disabled: fieldLocked, readOnly: programLocked, blocked: !maskAvailable && !programLocked, reason: !maskAvailable && !programLocked ? maskReason : null, attr: 'data-word-fill="same"' },
       {
         id: 'own', label: `Something of its own ${ownOpen ? '▾' : '▸'}`, on: chosenOwn,
         disabled: fieldLocked,
@@ -1109,8 +1219,23 @@ function glyphFor(node) {
  * each state now names itself where the cursor already is.
  */
 const CHIP_REASON = Object.freeze({
-  blocked: 'Needs the Thick face and Fit size — a Visual mask cannot be carried otherwise.',
   readOnly: 'This reading came with its own visual program, which owns this choice.'
+});
+
+/**
+ * Why a mask cannot be carried, in the reader's terms.
+ *
+ * The capability resolver distinguishes four causes and the panel used to
+ * answer all of them with one sentence about Thick and Fit — which is simply
+ * untrue when the cause is the field. A reader holding a Focal was told to
+ * change their face and size, neither of which would have helped.
+ */
+const MASK_REASON = Object.freeze({
+  'requires-gallery': 'Needs a Gallery field — a Focal or a Dynamic field has no imagery to paint through the letters.',
+  'requires-word': 'Needs one word at a time — phrase chunking leaves no single Word to fill.',
+  'requires-thick': 'Needs the Thick face — the other three are too fine to carry imagery.',
+  'requires-fit': 'Needs the Fit size — a Word must fill the chamber to hold a picture.',
+  'program-owned': 'This reading came with its own visual program, which owns this choice.'
 });
 
 function bench(label, opts, className = '') {
@@ -1120,7 +1245,7 @@ function bench(label, opts, className = '') {
       <div class="vnav-opts">
         ${opts.map(o => {
     const state = o.blocked ? 'blocked' : (o.readOnly ? 'readOnly' : (o.on ? 'chosen' : 'open'));
-    const reason = CHIP_REASON[state];
+    const reason = o.reason || CHIP_REASON[state];
     return `
           <button type="button" class="vnav-opt ${o.on ? 'on is-selected' : ''} ${o.swatch ? 'swatch' : ''} ${o.blocked ? 'is-blocked' : ''} ${o.readOnly ? 'is-owned' : ''} ${o.special ? 'is-special' : ''}"
             data-state="${state}"

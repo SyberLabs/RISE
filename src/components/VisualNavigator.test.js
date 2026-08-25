@@ -172,12 +172,13 @@ describe('the text', () => {
     const mask = nav.container.querySelector('[data-word-fill="same"]');
     expect(mask?.getAttribute('aria-disabled')).toBe('true');
     click(mask);
+    // The refusal names every condition the one remedy is about to set —
+    // the field included, which the old copy set silently while naming two
+    // things that were not always the problem.
     expect(nav.container.querySelector('[role="dialog"]')?.textContent)
-      .toContain('Visual masks require Thick + Fit.');
+      .toContain('A mask needs a Gallery field, the Thick face and the Fit size.');
     expect(nav.container.querySelector('[data-action="use-thick-fit"]')?.textContent)
-      .toBe('Use Thick + Fit');
-    expect(nav.container.querySelector('.vnav-dialog p')?.textContent)
-      .toBe('Bold, chamber-filling words provide enough surface for imagery.');
+      .toBe('Set them');
 
     click(nav.container.querySelector('[data-action="use-thick-fit"]'));
     expect(onTextMaterialTransaction).toHaveBeenCalledOnce();
@@ -408,6 +409,25 @@ describe('reader-facing state', () => {
     expect(explanation.hidden).toBe(false);
   });
 
+  it('names the cause that actually blocked the mask, not a fixed sentence', () => {
+    // The capability resolver distinguishes requires-gallery, requires-word,
+    // requires-thick and requires-fit. The panel answered all four with
+    // 'requires Thick + Fit', which is untrue when the cause is the field:
+    // a reader holding a Focal was told to change a face and a size that
+    // would not have helped.
+    window.rise = { settings: { chamberFace: 'thick', fontSize: 'fit' } };
+    mount({ visualMode: 'focals' });
+    click(nav.container.querySelector('.vnav-node[data-id="ink"]'));
+    const blocked = nav.container.querySelector('.vnav-opt.is-blocked');
+    expect(blocked).toBeTruthy();
+    expect(blocked.getAttribute('title')).toMatch(/Gallery/i);
+    expect(blocked.getAttribute('title')).not.toMatch(/Thick face/i);
+    // and the refusal names the field, since face and size are already right
+    click(blocked);
+    expect(nav.container.querySelector('[role="dialog"]')?.textContent)
+      .toContain('A mask needs a Gallery field.');
+  });
+
   it('tells a blocked chip apart from an unchosen one', () => {
     // on / disabled / readOnly / blocked all rendered as near-identical
     // pills, so an inert chip read as a broken one and the reason lived in
@@ -418,8 +438,8 @@ describe('reader-facing state', () => {
     expect(blocked).toBeTruthy();
     expect(blocked.getAttribute('title')).toBeTruthy();
     expect(blocked.getAttribute('aria-disabled')).toBe('true');
-    // and it says WHY, not merely that it cannot be used
-    expect(blocked.getAttribute('title')).toMatch(/Thick|Fit/i);
+    // and it says WHY THIS TIME, not one fixed sentence for four causes
+    expect(blocked.getAttribute('title')).toMatch(/Gallery|Thick|Fit|one word/i);
   });
 
   it('asks Ink as one question, with the third answer branching', () => {
