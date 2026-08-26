@@ -155,9 +155,20 @@ export class Chamber {
     this._spokenCompletion = null;
     // The attractor is a persistent field, so its symmetry can be
     // changed mid-reading — the first in-chamber visual control.
-    this.hasAttractorField = this.session?.visualConfig?.visualMode === 'attractor';
-    this.kaleidoscopeEngaged =
-      this.session?.visualConfig?.attractor?.form === 'kaleido';
+    // ATTRACTOR IS A LISTED PROCEDURAL AGAIN, NOT A MODE OF ITS OWN.
+    //
+    // Asking for `visualMode === 'attractor'` was asking for the sixth mode
+    // PR #33 said not to create; when it went, so would the Kaleidoscope
+    // control, silently. Both spellings are read: a config stored under the
+    // dedicated mode still finds its field.
+    const attractorConfig = this.session?.visualConfig?.visualMode === 'attractor'
+      ? this.session?.visualConfig?.attractor
+      : (this.session?.visualConfig?.interlocution?.procedural || []).includes('attractor')
+        ? this.session?.visualConfig?.interlocution?.attractor
+        : null;
+    this.hasAttractorField = Boolean(attractorConfig)
+      || this.session?.visualConfig?.visualMode === 'attractor';
+    this.kaleidoscopeEngaged = attractorConfig?.form === 'kaleido';
 
     // Semantic conductor track — needed by Living Text and by responsive
     // interlocutions. Scored once per session and stashed on the session

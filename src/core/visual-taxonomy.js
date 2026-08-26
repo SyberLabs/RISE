@@ -74,7 +74,21 @@ const ENGINE_CATEGORY = Object.freeze({
 });
 
 /** Engines that own a dedicated visualMode, not the shared procedural pool. */
-export const DEDICATED_MODE = Object.freeze({ attractor: 'attractor', klee: 'genesis' });
+/**
+ * A leaf that takes over the room with its own visualMode rather than being
+ * listed as a procedural.
+ *
+ * Attractor was listed here and is not any more. PR #33 built it as a LISTED
+ * procedural on purpose — "Attractor is listed as a procedural and mounts the
+ * existing Chamber engine", "Not a sixth visualMode" — so that one instance
+ * could serve the room and the word-fill both. The taxonomy gave it the sixth
+ * visualMode after all, and with it went the mask: the fill hangs off the
+ * continuous field host, and a dedicated mode mounts its own instead.
+ *
+ * Genesis keeps its mode. It is a composition that grows over ~28 seconds and
+ * holds the room as one drawing gesture; it is not a gallery of plates.
+ */
+export const DEDICATED_MODE = Object.freeze({ klee: 'genesis' });
 
 /** Display names that diverge from the registry id (the creator's renames). */
 const DISPLAY_NAME = Object.freeze({
