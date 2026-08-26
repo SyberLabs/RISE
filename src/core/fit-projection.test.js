@@ -35,8 +35,7 @@ describe('refusing activation', () => {
 
   it('clips a glyph that overhangs the stage to the stage', () => {
     const r = resolveFitProjection({
-      fieldRect: field, glyphRect: { left: 900, top: -40, width: 300, height: 200 },
-      sourceKind: 'procedural'
+      fieldRect: field, glyphRect: { left: 900, top: -40, width: 300, height: 200 }
     });
     expect(r.mask).toEqual({ left: 900, top: 0, width: 100, height: 160 });
     expect(inside(r.mask, field)).toBe(true);
@@ -47,7 +46,7 @@ describe('glyph viewport and procedural density', () => {
   it('the projection is the glyph, and density derives from its share of the stage', () => {
     const glyph = { left: 400, top: 250, width: 200, height: 100 };
     const r = resolveFitProjection({
-      fieldRect: field, glyphRect: glyph, sourceKind: 'procedural', devicePixelRatio: 2
+      fieldRect: field, glyphRect: glyph, devicePixelRatio: 2
     });
     expect(r.mask).toMatchObject(glyph);
     expect(r.projection).toMatchObject(glyph);
@@ -65,10 +64,10 @@ describe('glyph viewport and procedural density', () => {
 
   it('a smaller procedural word carries a lower visible ratio than a larger one', () => {
     const small = resolveFitProjection({
-      fieldRect: field, glyphRect: { left: 0, top: 0, width: 120, height: 60 }, sourceKind: 'procedural'
+      fieldRect: field, glyphRect: { left: 0, top: 0, width: 120, height: 60 }
     });
     const large = resolveFitProjection({
-      fieldRect: field, glyphRect: { left: 0, top: 0, width: 800, height: 300 }, sourceKind: 'procedural'
+      fieldRect: field, glyphRect: { left: 0, top: 0, width: 800, height: 300 }
     });
     expect(small.visibleAreaRatio).toBeLessThan(large.visibleAreaRatio);
   });

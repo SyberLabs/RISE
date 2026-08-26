@@ -25,11 +25,18 @@ describe('the exclusive fields map to their modes', () => {
     expect(back.focals.standardGlyph).toBe('lotus');
   });
 
-  it('attractor keeps its whole bench', () => {
+  // A config stored under the retired sixth visualMode still finds its field,
+  // and arrives holding every dial. Attractor is a LISTED procedural again —
+  // PR #33's design, and the only shape in which it can carry a Fit mask,
+  // because the fill hangs off the continuous field host that a dedicated
+  // mode does not mount.
+  it('migrates a stored attractor mode to a listed procedural, bench and all', () => {
     const cfg = { visualMode: 'attractor', attractor: { system: 'thomas', palette: 'gold', form: 'kaleido' } };
     const back = configPatch(selectionFromConfig(cfg));
-    expect(back.visualMode).toBe('attractor');
-    expect(back.attractor).toMatchObject({ system: 'thomas', palette: 'gold', form: 'kaleido' });
+    expect(back.visualMode).toBe('interlocution');
+    expect(back.interlocution.procedural).toEqual(['attractor']);
+    expect(back.interlocution.presentation).toBe('continuous');
+    expect(back.interlocution.attractor).toMatchObject({ system: 'thomas', palette: 'gold', form: 'kaleido' });
   });
 
   it('genesis keeps preset and glass', () => {

@@ -1087,13 +1087,13 @@ export class VisualCortex {
         const host = el || null;
         if (this._continuousFieldProjectionHost !== host) {
             if (!host || this._projectionReadiness.host !== host) {
-                this._cancelProjectionReadiness('Projection host cleared');
+                this._projectionReadiness.cancel('Projection host cleared');
             }
             this._continuousFieldProjectionHost = host;
             this._projectionReadiness.clearPaint();
             if (!host) this._fillProjectionVisibleAreaRatio = 1;
             if (host && this._projectionReadiness.host !== host) {
-                this._beginProjectionReadiness(host);
+                this._projectionReadiness.begin(host);
             }
         }
         this._continuousField?.setProjectionHost(this._continuousFieldProjectionHost);
@@ -1128,19 +1128,11 @@ export class VisualCortex {
         if (host && host === this._continuousFieldProjectionHost
             && this._projectionReadiness.isPainted(host)) {
             if (this._projectionReadiness.host && this._projectionReadiness.host !== host) {
-                this._cancelProjectionReadiness('Projection readiness superseded');
+                this._projectionReadiness.cancel('Projection readiness superseded');
             }
             return Promise.resolve();
         }
         return this._projectionReadiness.whenReady(host);
-    }
-
-    _beginProjectionReadiness(host) {
-        this._projectionReadiness.begin(host);
-    }
-
-    _cancelProjectionReadiness(message) {
-        this._projectionReadiness.cancel(message);
     }
 
     _reportContinuousFieldProjectionPaint(host) {
@@ -4076,7 +4068,7 @@ export class VisualCortex {
             this._sequenceVideoField = null;
         }
         this._continuousFieldHost = null;
-        this._cancelProjectionReadiness('Visual Cortex destroyed');
+        this._projectionReadiness.cancel('Visual Cortex destroyed');
         this._continuousFieldProjectionHost = null;
         this._projectionReadiness.clearPaint();
         this._sequenceVideoHost = null;

@@ -10,11 +10,10 @@ import {
   substylesFor,
   toggleField
 } from '../../core/visual-taxonomy.js';
-import { poolOptions } from '../../core/visual-taxonomy-config.js';
+import { configPatch, poolOptions } from '../../core/visual-taxonomy-config.js';
 import { FOCAL_GLYPHS } from '../../core/visual-style-definitions.js';
 import { MemoryCore } from '../../core/memory.js';
 import { normalizeGlobalPoolSelection } from '../../core/visual-selection.js';
-import { TEXT_CONTROLS as TEXT, ROOT_WITH_TEXT } from '../../core/visual-text-controls.js';
 import {
   ROOT,
   CADENCE,
@@ -24,6 +23,13 @@ import {
   optLabel,
   compressFocalImage
 } from './markup.js';
+
+const TEXT = Object.freeze([
+  Object.freeze({ id: 'face', label: 'Face', textControl: true }),
+  Object.freeze({ id: 'size', label: 'Size', textControl: true }),
+  Object.freeze({ id: 'ink', label: 'Ink', textControl: true })
+]);
+const ROOT_WITH_TEXT = Object.freeze([...ROOT, ...TEXT]);
 
 export const directoryMethods = {
   columns() {
@@ -86,10 +92,16 @@ export const directoryMethods = {
     // opened a dialog, while enabling that Focal while Fit was on landed
     // silently in the very state the dialog exists to prevent. A rule
     // enforced on one road and not the other is not a rule; it is a toll.
-    if (!this.selection.enabled.has(leaf.id)
-      && categoryOf(leaf.id) !== FIELD.GALLERY
-      && this.fitHoldsTheWord()) {
-      return this.confirmFitRelease(leaf, returnFocus);
+    if (!this.selection.enabled.has(leaf.id) && this.fitHoldsTheWord()) {
+      const enabled = toggleField(this.selection.enabled, leaf.id);
+      const probe = {
+        ...this.selection,
+        enabled,
+        emptyKind: enabled.size ? 'leaves' : 'off'
+      };
+      if (!this._fieldPresentsGallery(probe)) {
+        return this.confirmFitRelease(leaf, returnFocus);
+      }
     }
     this.commitField(leaf.id);
   },
@@ -105,9 +117,10 @@ export const directoryMethods = {
   confirmFitRelease(leaf, returnFocus) {
     const settings = this.textMaterialSettings();
     this.openDialog({
-      title: 'Fit paints through a Gallery.',
-      body: `${leaf.label} has no imagery to paint through the letters, so taking it `
-        + 'returns the reading to a fixed size. Everything else is kept.',
+      title: 'Fit paints the letters from a continuous field.',
+      body: `${leaf.label} draws the room in its own mode, which leaves no continuous `
+        + 'field to paint from, so taking it returns the reading to a fixed size. '
+        + 'Everything else is kept.',
       primaryLabel: `Take ${leaf.label}`,
       primaryAction: 'release-fit-for-field',
       confirm: () => {
@@ -253,10 +266,13 @@ export const directoryMethods = {
     }
   },
 
-  _fieldIsGallery() {
-    if (this.selection.emptyKind === 'held-empty') return true;
-    const on = [...this.selection.enabled];
-    return on.length > 0 && on.every(id => categoryOf(id) === FIELD.GALLERY);
+  _fieldPresentsGallery(selection = this.selection) {
+    if (selection.emptyKind === 'held-empty') return true;
+    if (!selection.enabled.size) return false;
+    const patch = configPatch(selection);
+    const presentation = patch.interlocution?.presentation;
+    return patch.visualMode === 'interlocution'
+      && (presentation === 'continuous' || presentation === 'continuous-word');
   },
 
   pathBar() {

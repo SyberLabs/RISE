@@ -48,25 +48,12 @@ export const previewMethods = {
     const controller = typeof AbortController === 'function' ? new AbortController() : null;
     this._previewAbort = controller;
 
-    try {
-        const { visualCortex } = await import('../../visuals/visual-cortex.js');
-      if (this._previewKey !== key) return;
-
-      const url = leaf.engineId
-        ? (await visualCortex.renderLeafStill(leaf.engineId))?.url
-        : await this._sourcedStill(visualCortex, key, controller?.signal);
-
-
-      if (this._previewKey !== key || !url) return;
-      (this._previewCache ||= new Map()).set(key, url);
-      // The panel may have been rebuilt while this was in flight, so paint
-      // into whatever slot is live now rather than the one we started with.
-      this._paintLeafPreview(this.container.querySelector('.vnav-preview'), url, key);
-    } catch {
-      /* the glyph stays; a preview is never worth an interruption */
-    } finally {
-      if (this._previewAbort === controller) this._previewAbort = null;
-    }
+    const url = await this._fetchStill(key, cortex => leaf.engineId
+      ? cortex.renderLeafStill(leaf.engineId).then(still => still?.url)
+      : this._sourcedStill(cortex, key, controller?.signal));
+    if (this._previewAbort === controller) this._previewAbort = null;
+    if (this._previewKey !== key || !url) return;
+    this._paintLeafPreview(this.container.querySelector('.vnav-preview'), url, key);
   },
 
   async _mountSpecimenInk() {
@@ -91,19 +78,23 @@ export const previewMethods = {
     this._inkKey = key;
     const controller = typeof AbortController === 'function' ? new AbortController() : null;
     this._inkAbort = controller;
+    const url = await this._fetchStill(key, cortex => isEngine
+      ? cortex.renderLeafStill(key).then(still => still?.url)
+      : this._sourcedStill(cortex, key, controller?.signal));
+    if (this._inkAbort === controller) this._inkAbort = null;
+    if (this._inkKey !== key || !url) return;
+    this._paintSpecimen(key);
+  },
+
+  async _fetchStill(key, loadUrl) {
     try {
-        const { visualCortex } = await import('../../visuals/visual-cortex.js');
-      if (this._inkKey !== key) return;
-      const url = isEngine
-        ? (await visualCortex.renderLeafStill(key))?.url
-        : await this._sourcedStill(visualCortex, key, controller?.signal);
-      if (this._inkKey !== key || !url) return;
+      const { visualCortex } = await import('../../visuals/visual-cortex.js');
+      const url = await loadUrl(visualCortex);
+      if (!url) return null;
       (this._previewCache ||= new Map()).set(key, url);
-      this._paintSpecimen(key);
+      return url;
     } catch {
-      /* the plain word stays, which is honest */
-    } finally {
-      if (this._inkAbort === controller) this._inkAbort = null;
+      return null;
     }
   },
 

@@ -241,7 +241,7 @@ export class WorkEngineField {
         incoming.canvas.style.opacity = '1';
         if (painted) {
             if (this.projectionHost) this._syncProjectionFor(incoming);
-            else this._reportProjectionPaint();
+            else reportProjectionPaint(this);
         }
         if (outgoing) {
             outgoing.canvas.style.opacity = '0';
@@ -337,11 +337,7 @@ export class WorkEngineField {
         ctx.setTransform(1, 0, 0, 1, 0, 0);
         ctx.clearRect(0, 0, dest.canvas.width, dest.canvas.height);
         ctx.drawImage(plane.canvas, 0, 0);
-        if (dest.canvas.style.opacity === '1') this._reportProjectionPaint();
-    }
-
-    _reportProjectionPaint() {
-        reportProjectionPaint(this);
+        if (dest.canvas.style.opacity === '1') reportProjectionPaint(this);
     }
 
     _tick(timestamp) {

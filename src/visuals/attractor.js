@@ -453,7 +453,7 @@ export class AttractorField {
         this._hasPaintedFrame = true;
         this.measureQuality(performance.now() - frameStart);
         this._syncProjection();
-        if (!this.projectionHost) this._reportProjectionPaint();
+        if (!this.projectionHost) reportProjectionPaint(this);
         this.rafId = requestAnimationFrame(this.tick);
     }
 
@@ -501,10 +501,6 @@ export class AttractorField {
         ctx.setTransform(1, 0, 0, 1, 0, 0);
         ctx.clearRect(0, 0, dst.width, dst.height);
         ctx.drawImage(src, 0, 0);
-        this._reportProjectionPaint();
-    }
-
-    _reportProjectionPaint() {
         reportProjectionPaint(this);
     }
 

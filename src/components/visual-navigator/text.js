@@ -33,7 +33,7 @@ export const textMethods = {
   },
 
   textMaterialCapability(wordFill = this.selection.wordFill, settings = this.textMaterialSettings()) {
-    const gallery = this._fieldIsGallery();
+    const gallery = this._fieldPresentsGallery();
     return resolveTextMaterialCapability({
       face: settings.face,
       fontSize: settings.fontSize,
@@ -102,9 +102,10 @@ export const textMethods = {
       .map(id => leafById(id)?.label)
       .filter(Boolean);
     this.openDialog({
-      title: 'Fit paints through a Gallery.',
-      body: `${held.length ? held.join(' and ') : 'This field'} cannot be painted through the letters, `
-        + 'and will be set aside to make room for one. The reading keeps everything else.',
+      title: 'Fit paints the letters from a continuous field.',
+      body: `${held.length ? held.join(' and ') : 'This field'} draws the room in its own `
+        + 'mode, which leaves no continuous field to paint from — whatever the ink is set to. '
+        + 'Taking Fit sets it aside. The reading keeps everything else.',
       primaryLabel: 'Set it aside',
       primaryAction: 'replace-field-for-fit',
       confirm: () => {
@@ -133,7 +134,7 @@ export const textMethods = {
     // resolver reports the first failing condition; the reader needs all of
     // them, since they are about to be set in one stroke.
     const settings = this.textMaterialSettings();
-    const needsField = !this._fieldIsGallery();
+    const needsField = !this._fieldPresentsGallery();
     const missing = [];
     if (needsField) missing.push('a Gallery field');
     if (resolveChamberStreamFace(settings.face) !== 'thick') missing.push('the Thick face');
@@ -216,7 +217,7 @@ export const textMethods = {
     }
     if (persist === 'fit' && this.locked) return;
     if (persist === 'fit') {
-      const gallery = this._fieldIsGallery();
+      const gallery = this._fieldPresentsGallery();
       // FIT USED TO TAKE THE FIELD WITHOUT ASKING. Choosing Fit while a Focal
       // was held cleared `enabled` outright — the Chapel rose a reader had
       // chosen simply vanished, replaced by an empty Gallery, with no dialog
@@ -334,8 +335,7 @@ export const textMethods = {
   },
 
   _faceSection(isActive) {
-    {
-      const selected = this.textMaterialSettings().face;
+    const selected = this.textMaterialSettings().face;
       // A FACE IS A SHAPE, AND A SHAPE SHOULD BE SHOWN. Four words set in one
       // another's typeface told a reader nothing about the choice they were
       // making; the difference between these four IS the letterform. Each
@@ -354,12 +354,10 @@ export const textMethods = {
         </div>
         <p id="vnav-thick-explanation" class="vnav-control-explanation">Thick
           is the mask-ready face — the other three cannot carry a Visual mask.</p>`);
-    }
   },
 
   _sizeSection(isActive) {
-    {
-      const selected = this.textMaterialSettings().fontSize;
+    const selected = this.textMaterialSettings().fontSize;
       // A SCALE AND A MODE ARE NOT FOUR SIZES. S, M and L are three points on
       // one continuum; Fit is a different reading — it scales each word to
       // fill the chamber, steps one word at a time, and stands recitation and
@@ -413,7 +411,6 @@ export const textMethods = {
               time; Recitation and phrase chunking stand aside.</p>
           </div>
         </div>`);
-    }
   },
 
   _borderBench() {

@@ -318,7 +318,6 @@ export class FitMaskRuntime {
         width: contentWidth,
         height: contentHeight
       },
-      sourceKind: 'procedural',
       devicePixelRatio: window.devicePixelRatio || 1
     });
     if (!projection) return false;

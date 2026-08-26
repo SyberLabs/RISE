@@ -187,7 +187,6 @@ function fieldPatch(selection) {
         : { type: 'standard', standardGlyph: style.focal.glyph }
     };
   }
-  if (enabled.has('attractor')) return { visualMode: 'attractor', attractor: { ...style.attractor } };
   if (enabled.has('klee')) return { visualMode: 'genesis', genesis: { ...style.klee } };
 
   // A single drawn-in-time engine, or a Gallery of held sources.
@@ -200,7 +199,12 @@ function fieldPatch(selection) {
         procedural: [dynamic],
         sourced: [],
         presentation: 'continuous',
-        harmonographClimate: style.harmonograph.climate
+        harmonographClimate: style.harmonograph.climate,
+        // The engine's own dials travel with it. The cortex reads
+        // config.attractor for system, palette and form; without this the
+        // living field would fall back to defaults and a reader's Halvorsen
+        // would quietly become an Aizawa.
+        attractor: { ...style.attractor }
       })
     };
   }

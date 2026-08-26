@@ -9,17 +9,10 @@
  *
  *  - `mask`       — the glyph clip, stage-aligned (the outer coordinate space).
  *  - `projection` — the glyph-local viewport the material mounts into. It is
- *                   the glyph rect: the Continuous Field then draws its cover
- *                   backdrop and contained artwork INSIDE it (spec 7.3), and a
- *                   procedural engine renders at the viewport size. `scale` is
- *                   the source's cover scale into the viewport (sourced) or the
- *                   device pixel ratio (procedural).
- *  - `visibleAreaRatio` — how much of the material the glyph actually reveals.
- *                   For a procedural field it is the glyph's share of the stage;
- *                   for a sourced image it is the fraction of the cover-scaled
- *                   source the viewport shows. Low for a whitespace-heavy or
- *                   off-aspect word — the Fractal adapter lifts density when it
- *                   is low so a sparse window still reads.
+ *                   the glyph rect. `scale` is the device pixel ratio.
+ *  - `visibleAreaRatio` — the glyph's share of the stage. Low for a
+ *                   whitespace-heavy word — the Fractal adapter lifts density
+ *                   so a sparse window still reads.
  *
  * Invalid, empty, or off-stage geometry returns null — the caller keeps the
  * opaque fallback and never activates a mask over nothing.
@@ -61,10 +54,6 @@ export function resolveFitProjection(input = {}) {
 
   const dpr = Number.isFinite(devicePixelRatio) && devicePixelRatio > 0 ? devicePixelRatio : 1;
 
-  // Glyph viewport + procedural density: the engine paints into the glyph at
-  // device pixels, and density is how much of the stage the glyph reveals.
-  // Sourced cover-scale is unused in production (Chamber always passes
-  // procedural and CSS-covers the rest).
   return {
     mask,
     projection: { ...mask, scale: dpr },

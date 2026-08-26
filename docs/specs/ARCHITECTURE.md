@@ -150,12 +150,12 @@ it, and CI fails when the committed copy is not what `src/` produces.
 flowchart LR
     app["app<br/>composition root<br/>1 module"]
     audio["audio<br/>Web Audio, recitation<br/>6 modules"]
-    components["components<br/>routed views<br/>29 modules"]
-    content["content<br/>texts, imagery, journeys<br/>222 modules"]
-    core["core<br/>session, player, router<br/>112 modules"]
+    components["components<br/>routed views<br/>34 modules"]
+    content["content<br/>texts, imagery, journeys<br/>223 modules"]
+    core["core<br/>session, player, router<br/>113 modules"]
     page["page<br/>spatial projection<br/>4 modules"]
     sources["sources<br/>text and visual providers<br/>22 modules"]
-    visuals["visuals<br/>procedural generation<br/>51 modules"]
+    visuals["visuals<br/>procedural generation<br/>54 modules"]
 
     app -.-> |2 lazy| audio
     app --> |1| components
@@ -166,8 +166,8 @@ flowchart LR
     audio --> |1| content
     audio --> |3| core
     components --> |2| audio
-    components --> |19| content
-    components --> |94| core
+    components --> |20| content
+    components --> |118| core
     components -.-> |1 lazy| page
     components --> |4| sources
     components --> |12| visuals
@@ -178,14 +178,14 @@ flowchart LR
     core --> |3| audio
     core --> |9| content
     core --> |3| sources
-    core --> |17| visuals
+    core --> |18| visuals
     page --> |1| core
     page --> |3| visuals
     sources --> |2| content
     sources -.-> |3 lazy| visuals
     visuals -.-> |5 lazy| content
     visuals --> |15| core
-    visuals --> |3| sources
+    visuals --> |4| sources
 ```
 
 Solid is a static import and travels in the first load; dashed is reached

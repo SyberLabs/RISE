@@ -50,6 +50,8 @@ import {
   sequenceHasCapability
 } from '../core/sequence-capabilities.js';
 import { STANCES, applyStance, matchStance } from '../core/stances.js';
+// One engine has a name; the taxonomy is where it is kept.
+import { leafById } from '../core/visual-taxonomy.js';
 
 const STANCE_NOTE_SEEN_KEY = 'rise-stance-note-seen';
 import './VisualNavigator.css';
@@ -1193,10 +1195,20 @@ export class ChamberOrbital {
     }
 
     if (mode === 'interlocution') {
-      // The family alone. 'Rhythmic' named the mechanism rather than the
-      // choice, and paired with a family it was the one status long enough
-      // to need two lines on the disc.
-      const family = vi.interlocution?.sourceFamily || 'procedural';
+      // ONE ENGINE HAS A NAME; A SHELF FULL OF THEM HAS A FAMILY.
+      //
+      // The family alone — 'Rhythmic' named the mechanism rather than the
+      // choice, and paired with a family it was the one status long enough to
+      // need two lines on the disc. But a reader who chose exactly one engine
+      // chose THAT engine, and 'Procedural' tells them less than the disc has
+      // room for. Attractor arrives here now rather than through a mode of its
+      // own, and would otherwise have lost its name on the way.
+      const inter = vi.interlocution || {};
+      const only = (inter.procedural || []).length === 1 && !(inter.sourced || []).length
+        ? leafById(inter.procedural[0])?.label
+        : null;
+      if (only) return `◈ ${only}`;
+      const family = inter.sourceFamily || 'procedural';
       return `◈ ${this.capitalizeFirst(family)}`;
     }
 
