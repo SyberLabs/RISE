@@ -45,8 +45,6 @@ export const FIELD = Object.freeze({
   DYNAMIC: 'dynamic'
 });
 
-export const EXCLUSIVE_CATEGORIES = Object.freeze(new Set([FIELD.OFF, FIELD.FOCAL, FIELD.DYNAMIC]));
-
 /**
  * Which category each registered procedural engine belongs to.
  *

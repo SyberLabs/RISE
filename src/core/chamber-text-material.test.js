@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
   isVisualMaskMaterial,
-  resolveFitMaskMode,
   resolveTextMaterialCapability
 } from './chamber-text-material.js';
 
@@ -16,9 +15,6 @@ describe('text material capability', () => {
     })).toMatchObject({
       available: true, reason: null, canMask: true, maskRequested: true, maskActive: true
     });
-    expect(resolveFitMaskMode({
-      ...maskSurface, face: 'thick', fontSize: 'fit', wordFill: { mode: 'same' }
-    })).toBe(true);
   });
 
   it('explains which Thick Fit requirement blocks a requested material mask', () => {

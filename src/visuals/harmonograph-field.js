@@ -13,6 +13,7 @@
  */
 
 import { Harmonograph } from './harmonograph.js';
+import { reportProjectionPaint } from './projection-paint.js';
 import { KLEE_CHAMBER_BACKGROUND } from './klee-enhanced.js';
 import {
     GALLERY_CADENCE_DEFAULT,
@@ -202,11 +203,7 @@ export class HarmonographField {
     }
 
     _reportProjectionPaint() {
-        if (this._projectionPainted) return;
-        const host = this.projectionHost || this.host;
-        if (!host || (!this.projectionHost && this._projectionHostCleared)) return;
-        this._projectionPainted = true;
-        this.onProjectionPaint(host);
+        reportProjectionPaint(this);
     }
 
     _rotate(first) {

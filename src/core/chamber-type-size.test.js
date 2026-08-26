@@ -9,7 +9,7 @@ import {
     sizeFitHint,
     threeStepIntent
 } from './chamber-type-size.js';
-import { resolveFitMaskMode } from './chamber-text-material.js';
+import { resolveTextMaterialCapability } from './chamber-text-material.js';
 
 describe('resolveFontSize', () => {
     it('maps s|m|l|fit to small|medium|large|fit and defaults to medium', () => {
@@ -76,7 +76,7 @@ describe('fitWordAtomPx (Fit only)', () => {
     });
 });
 
-describe('resolveFitMaskMode', () => {
+describe('text material mask capability', () => {
     const canonical = {
         face: 'thick',
         fontSize: 'fit',
@@ -85,40 +85,41 @@ describe('resolveFitMaskMode', () => {
         presentation: 'continuous',
         wordFill: { mode: 'same' }
     };
+    const maskActive = input => resolveTextMaterialCapability(input).maskActive;
 
     it('recognizes canonical Fit and its legacy font-size alias', () => {
-        expect(resolveFitMaskMode(canonical)).toBe(true);
-        expect(resolveFitMaskMode({
+        expect(maskActive(canonical)).toBe(true);
+        expect(maskActive({
             ...canonical,
             fontSize: 'continuous-word'
         })).toBe(true);
     });
 
     it('refuses incomplete Fit configurations', () => {
-        expect(resolveFitMaskMode({ ...canonical, chunkMode: 'phrase' })).toBe(false);
-        expect(resolveFitMaskMode({ ...canonical, fontSize: 'large' })).toBe(false);
-        expect(resolveFitMaskMode({ ...canonical, visualMode: 'off' })).toBe(false);
-        expect(resolveFitMaskMode({ ...canonical, presentation: 'full-frame' })).toBe(false);
+        expect(maskActive({ ...canonical, chunkMode: 'phrase' })).toBe(false);
+        expect(maskActive({ ...canonical, fontSize: 'large' })).toBe(false);
+        expect(maskActive({ ...canonical, visualMode: 'off' })).toBe(false);
+        expect(maskActive({ ...canonical, presentation: 'full-frame' })).toBe(false);
     });
 
     it('keeps explicit Accent ink as ordinary text instead of opening the mask', () => {
-        expect(resolveFitMaskMode({
+        expect(maskActive({
             ...canonical,
             wordFill: { mode: 'accent' }
         })).toBe(false);
-        expect(resolveFitMaskMode({
+        expect(maskActive({
             ...canonical,
             wordFill: { mode: 'same' }
         })).toBe(true);
     });
 
     it('preserves legacy mask inference within the Thick Fit contract', () => {
-        expect(resolveFitMaskMode({
+        expect(maskActive({
             ...canonical,
             wordFill: undefined,
             legacyMask: true
         })).toBe(true);
-        expect(resolveFitMaskMode({
+        expect(maskActive({
             ...canonical,
             chunkMode: 'sentence',
             wordFill: undefined,

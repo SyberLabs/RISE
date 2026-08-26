@@ -49,9 +49,6 @@ export function resolveFitProjection(input = {}) {
   const {
     fieldRect,
     glyphRect,
-    sourceKind,
-    intrinsicWidth,
-    intrinsicHeight,
     devicePixelRatio = 1
   } = input;
 
@@ -64,33 +61,13 @@ export function resolveFitProjection(input = {}) {
 
   const dpr = Number.isFinite(devicePixelRatio) && devicePixelRatio > 0 ? devicePixelRatio : 1;
 
-  const hasIntrinsic = Number.isFinite(intrinsicWidth) && intrinsicWidth > 0
-    && Number.isFinite(intrinsicHeight) && intrinsicHeight > 0;
-
-  // Procedural, or a source that never declared its size: the engine renders
-  // into the glyph viewport at its own size. Density comes from the glyph's
-  // share of the stage — a small word gets a denser render.
-  if (sourceKind === 'procedural' || !hasIntrinsic) {
-    return {
-      mask,
-      projection: { ...mask, scale: dpr },
-      visibleAreaRatio: area(mask) / area(fieldRect)
-    };
-  }
-
-  // Sourced: the viewport is the glyph; the Continuous Field covers and
-  // contains the source inside it. `scale` is the cover scale of the source
-  // into the viewport, and the visible ratio is how much of that cover-scaled
-  // source the viewport reveals — below 1 exactly when the source aspect
-  // differs from the glyph, which is the whitespace-heavy case.
-  const coverScale = Math.max(mask.width / intrinsicWidth, mask.height / intrinsicHeight);
-  const coveredWidth = intrinsicWidth * coverScale;
-  const coveredHeight = intrinsicHeight * coverScale;
-  const visibleAreaRatio = Math.min(1, area(mask) / (coveredWidth * coveredHeight));
-
+  // Glyph viewport + procedural density: the engine paints into the glyph at
+  // device pixels, and density is how much of the stage the glyph reveals.
+  // Sourced cover-scale is unused in production (Chamber always passes
+  // procedural and CSS-covers the rest).
   return {
     mask,
-    projection: { ...mask, scale: coverScale },
-    visibleAreaRatio
+    projection: { ...mask, scale: dpr },
+    visibleAreaRatio: area(mask) / area(fieldRect)
   };
 }

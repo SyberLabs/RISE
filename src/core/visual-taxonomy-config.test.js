@@ -119,7 +119,7 @@ describe('the Gallery blends, one pool per sourced leaf', () => {
 
     const selection = selectionFromConfig(cfg);
     expect([...selection.enabled]).toEqual([]);
-    expect(selection.preserveBaseSelection).toBe(true);
+    expect(selection.emptyKind).toBe('held-empty');
     expect(configPatch(selection).interlocution).toMatchObject({
       sourced: ['dore:numbers'],
       atriumCollections: ['dore:numbers']
@@ -173,12 +173,14 @@ describe('the adapter emits the complete visual configuration', () => {
     });
   });
 
-  it('preserves Plain word ink without adding a visual-mask border', () => {
-    const patch = configPatch(selectionFromConfig({
-      visualMode: 'interlocution',
-      interlocution: { wordFill: { mode: 'plain' } }
-    }));
-    expect(patch.interlocution.wordFill).toEqual({ mode: 'plain' });
+  it('round-trips Plain and Accent word ink with the Fit border', () => {
+    for (const [mode, border] of [['plain', 'accent'], ['plain', 'off'], ['accent', 'accent'], ['accent', 'off']]) {
+      const patch = configPatch(selectionFromConfig({
+        visualMode: 'interlocution',
+        interlocution: { wordFill: { mode, border } }
+      }));
+      expect(patch.interlocution.wordFill).toEqual({ mode, border });
+    }
   });
 
   it('keeps the rich styles available while another field occupies the room', () => {

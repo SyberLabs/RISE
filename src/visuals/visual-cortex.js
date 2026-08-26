@@ -37,6 +37,8 @@ import { PlateField, PLATE_FAMILIES } from './plate-field.js';
 import { AttractorField } from './attractor.js';
 import { SequenceVideoField } from './sequence-video-field.js';
 import { ShuffleBag } from '../sources/visual/shuffle-bag.js';
+import { shippedStillUrl } from './engine-stills.js';
+import { ProjectionReadiness } from './projection-readiness.js';
 import {
     ContinuousField,
     needsAdaptiveImageWash
@@ -80,40 +82,8 @@ import {
 // 4.8% coverage, 48% repeat flashes, and zero of the enrichment pins,
 // because the 12 slots filled from fast AIC draws before the first
 // pin batch landed and then never turned over.)
-/**
- * Engines depicted by a shipped still rather than drawn on the spot, each with
- * the picture that stands for it. Two reasons put an engine here, and both are
- * about what a reader is charged for a glance:
- *
- *   too dear to draw — fractal 1139ms, ostensoria 697ms, apparitio 365ms
- *     against 50-77ms for the rest, and fractal takes its frames from the
- *     queue the reading also draws from;
- *   no still to draw — the attractor integrates continuously and has no
- *     still branch at all; a live field would have to be stood up for a
- *     thumbnail, and one frame of a turning thing misrepresents it anyway.
- *
- * The register IS the list of shipped pictures, so an engine can never be
- * withheld from live drawing without something to show in its place. Built by
- * scripts/build-engine-stills.mjs from the engines' own output.
- */
-const SHIPPED_STILLS = new Map([
-    ['fractal', 'fractal.webp'],
-    ['ostensoria', 'ostensoria.webp'],
-    ['apparitio', 'apparitio.webp'],
-    ['attractor', 'attractor.webp']
-]);
-
-/** Same-origin and absolute, because safeUrl admits no relative path. */
-function shippedStill(file) {
-    if (typeof location === 'undefined') return null;
-    try {
-        return new URL(`engine-stills/${file}`, location.origin + '/').href;
-    } catch {
-        return null;
-    }
-}
-
 const INITIAL_POOL_TARGET = 1;
+const ANY_POOL = '__any__';
 const BACKGROUND_CATEGORY_TARGET = 6;
 const MAX_CATEGORY_TARGET = 20;
 // Decoded 843px JPEGs run ~1-3MB; 30 ≈ 60-90MB on capable devices.
@@ -135,9 +105,6 @@ const MAX_ADMITTED_CUE_IDENTITIES = 32;
 // after enterMs ensures the overlay is truly opaque before concealed text is
 // replaced behind it.
 const COVER_SETTLE_FRAME_MS = 17;
-// Pool key for bare 'diagram' flashes (no concrete category): a
-// Wikimedia grab-bag, one pool like any other
-const ANY_POOL = '__any__';
 const GALLERY_PROCEDURAL_TYPES = Object.freeze([
     // FAMILIES AUTHORED FOR A WORK COME FIRST, because they are the
     // reason this list stopped being complete. The gallery filters the
@@ -252,11 +219,7 @@ export class VisualCortex {
         // projection host clears so a stale sparse word cannot over-brighten a
         // later full one.
         this._fillProjectionVisibleAreaRatio = 1;
-        this._projectionReadyHost = null;
-        this._projectionReadyPromise = null;
-        this._projectionReadyResolve = null;
-        this._projectionReadyReject = null;
-        this._projectionPaintedHost = null;
+        this._projectionReadiness = new ProjectionReadiness();
         // The living layer beneath it, for engines authored FOR a work.
         // They step and redraw every frame rather than being snapshotted,
         // so they share the host but not the gallery's image abstraction.
@@ -1123,13 +1086,13 @@ export class VisualCortex {
     setContinuousFieldProjectionHost(el) {
         const host = el || null;
         if (this._continuousFieldProjectionHost !== host) {
-            if (!host || this._projectionReadyHost !== host) {
+            if (!host || this._projectionReadiness.host !== host) {
                 this._cancelProjectionReadiness('Projection host cleared');
             }
             this._continuousFieldProjectionHost = host;
-            this._projectionPaintedHost = null;
+            this._projectionReadiness.clearPaint();
             if (!host) this._fillProjectionVisibleAreaRatio = 1;
-            if (host && this._projectionReadyHost !== host) {
+            if (host && this._projectionReadiness.host !== host) {
                 this._beginProjectionReadiness(host);
             }
         }
@@ -1158,62 +1121,31 @@ export class VisualCortex {
     isContinuousFieldProjectionPainted(host) {
         return !!host
             && host === this._continuousFieldProjectionHost
-            && host === this._projectionPaintedHost;
+            && this._projectionReadiness.isPainted(host);
     }
 
     whenContinuousFieldProjectionReady(host) {
-        if (!host) {
-            const rejected = Promise.reject(createAbortError('Projection host required'));
-            rejected.catch(() => {});
-            return rejected;
-        }
-        if (host === this._continuousFieldProjectionHost
-            && host === this._projectionPaintedHost) {
-            if (this._projectionReadyHost && this._projectionReadyHost !== host) {
+        if (host && host === this._continuousFieldProjectionHost
+            && this._projectionReadiness.isPainted(host)) {
+            if (this._projectionReadiness.host && this._projectionReadiness.host !== host) {
                 this._cancelProjectionReadiness('Projection readiness superseded');
             }
             return Promise.resolve();
         }
-        if (this._projectionReadyHost !== host) this._beginProjectionReadiness(host);
-        return this._projectionReadyPromise;
+        return this._projectionReadiness.whenReady(host);
     }
 
     _beginProjectionReadiness(host) {
-        this._cancelProjectionReadiness('Projection host replaced');
-        let resolveReady;
-        let rejectReady;
-        const promise = new Promise((resolve, reject) => {
-            resolveReady = resolve;
-            rejectReady = reject;
-        });
-        // Cancellation is expected when Chamber replaces a glyph host. Keep
-        // that ordinary teardown from becoming an unhandled rejection while
-        // returning this original rejecting promise to callers.
-        promise.catch(() => {});
-        this._projectionReadyHost = host;
-        this._projectionReadyPromise = promise;
-        this._projectionReadyResolve = resolveReady;
-        this._projectionReadyReject = rejectReady;
+        this._projectionReadiness.begin(host);
     }
 
     _cancelProjectionReadiness(message) {
-        const reject = this._projectionReadyReject;
-        const pending = typeof reject === 'function';
-        this._projectionReadyHost = null;
-        this._projectionReadyPromise = null;
-        this._projectionReadyResolve = null;
-        this._projectionReadyReject = null;
-        if (pending) reject?.(createAbortError(message));
+        this._projectionReadiness.cancel(message);
     }
 
     _reportContinuousFieldProjectionPaint(host) {
         if (!host || host !== this._continuousFieldProjectionHost) return;
-        this._projectionPaintedHost = host;
-        if (host !== this._projectionReadyHost) return;
-        const resolve = this._projectionReadyResolve;
-        this._projectionReadyResolve = null;
-        this._projectionReadyReject = null;
-        resolve?.();
+        this._projectionReadiness.reportPaint(host);
     }
 
     hasContinuousFieldProjectionHost() {
@@ -1703,11 +1635,8 @@ export class VisualCortex {
         // remembered it. Each of these shows a still rendered ONCE from the
         // engine itself, so a reader still meets a picture — the engine's own
         // work, not decoration — and the reading is never charged for it.
-        const shipped = SHIPPED_STILLS.get(type);
-        if (shipped) {
-            const url = shippedStill(shipped);
-            return url ? { url, still: true } : null;
-        }
+        const url = shippedStillUrl(type);
+        if (url) return { url, still: true };
         try {
             if (!this.initialized) this.init();
             return await this._renderContinuousProceduralWork(type);
@@ -4149,7 +4078,7 @@ export class VisualCortex {
         this._continuousFieldHost = null;
         this._cancelProjectionReadiness('Visual Cortex destroyed');
         this._continuousFieldProjectionHost = null;
-        this._projectionPaintedHost = null;
+        this._projectionReadiness.clearPaint();
         this._sequenceVideoHost = null;
         this._activeVideoCue = null;
         this._assetAbortController.abort(createAbortError('Visual Cortex destroyed'));

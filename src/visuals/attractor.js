@@ -14,6 +14,7 @@
  * Systems: 'aizawa' | 'thomas' | 'halvorsen'
  */
 
+import { reportProjectionPaint } from './projection-paint.js';
 import {
     ATTRACTOR_FORMS,
     ATTRACTOR_PALETTES,
@@ -504,11 +505,7 @@ export class AttractorField {
     }
 
     _reportProjectionPaint() {
-        if (this._projectionPainted) return;
-        const host = this.projectionHost || this.host;
-        if (!host || (!this.projectionHost && this._projectionHostCleared)) return;
-        this._projectionPainted = true;
-        this.onProjectionPaint(host);
+        reportProjectionPaint(this);
     }
 
     /**

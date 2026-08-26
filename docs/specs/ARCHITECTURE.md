@@ -166,8 +166,8 @@ flowchart LR
     audio --> |1| content
     audio --> |3| core
     components --> |2| audio
-    components --> |18| content
-    components --> |103| core
+    components --> |19| content
+    components --> |94| core
     components -.-> |1 lazy| page
     components --> |4| sources
     components --> |12| visuals
@@ -274,7 +274,10 @@ outliving its room, fails a build.
 Four modules in `src/components/` are deliberately not rooms, because they only
 ever appear inside one: `src/components/Admit.js`,
 `src/components/NamingModal.js`, `src/components/SourceBrowser.js` and
-`src/components/VisualNavigator.js`.
+`src/components/VisualNavigator.js`. The Navigator's columns, text material,
+preview, and Chapel trays live in `src/components/visual-navigator/` so the
+shell stays a mount point. Chamber mounts a Fit-mask runtime from
+`src/core/fit-mask-runtime.js` rather than owning the glyph-mask state machine.
 
 ---
 

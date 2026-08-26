@@ -7,6 +7,7 @@
  */
 
 import { loadWorkEngines, isWorkEngineFamily } from './work-engines.js';
+import { reportProjectionPaint } from './projection-paint.js';
 
 /**
  * Reading pace, not demo pace. Applied to dt, so it slows rotation,
@@ -340,11 +341,7 @@ export class WorkEngineField {
     }
 
     _reportProjectionPaint() {
-        if (this._projectionPainted) return;
-        const host = this.projectionHost || this.host;
-        if (!host || (!this.projectionHost && this._projectionHostCleared)) return;
-        this._projectionPainted = true;
-        this.onProjectionPaint(host);
+        reportProjectionPaint(this);
     }
 
     _tick(timestamp) {

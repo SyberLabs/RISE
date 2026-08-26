@@ -544,7 +544,7 @@ export function compileSession(input = {}) {
                 pieceText,
                 plan.pieces.length === 1 ? (source.chunkProfile ?? null) : null
             );
-            sourceAtoms.push(...chunkText(prepared.text, {
+            const pieceAtoms = chunkText(prepared.text, {
                 mode: piece.mode,
                 wpm: piece.wpm,
                 source: source.name,
@@ -575,7 +575,10 @@ export function compileSession(input = {}) {
                         ? config.phraseFloor
                         : true),
                 verseLines: source.verseLines === true
-            }));
+            });
+            // Concat, never spread: 120k atoms as `push(...)` overflows the
+            // call stack before the budget check below can refuse the session.
+            for (let i = 0; i < pieceAtoms.length; i += 1) sourceAtoms.push(pieceAtoms[i]);
         }
         if (sourceAtoms.length === 0) continue;
         const projectedAtomCount = atoms.length + sourceAtoms.length + (atoms.length > 0 ? 1 : 0);

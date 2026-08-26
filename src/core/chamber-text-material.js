@@ -1,8 +1,6 @@
 import { resolveChamberStreamFace } from './chamber-stream-face.js';
 import { normalizeWordFill } from './visual-selection.js';
 
-export { normalizeFitBorder } from './visual-selection.js';
-
 const FIT_SIZE_ALIASES = new Set(['fit', 'continuous-word']);
 const MASK_MODES = new Set(['same', 'pick']);
 
@@ -38,8 +36,4 @@ export function resolveTextMaterialCapability({
     maskRequested,
     maskActive: canMask && maskRequested,
   };
-}
-
-export function resolveFitMaskMode(input = {}) {
-  return resolveTextMaterialCapability(input).maskActive;
 }

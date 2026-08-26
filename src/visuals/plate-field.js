@@ -13,6 +13,7 @@
  */
 
 import { Ostensoria } from './ostensoria.js';
+import { reportProjectionPaint } from './projection-paint.js';
 import { Apparitio } from './apparitio.js';
 import {
     GALLERY_CADENCE_DEFAULT,
@@ -218,11 +219,7 @@ export class PlateField {
     }
 
     _reportProjectionPaint() {
-        if (this._projectionPainted) return;
-        const host = this.projectionHost || this.host;
-        if (!host || (!this.projectionHost && this._projectionHostCleared)) return;
-        this._projectionPainted = true;
-        this.onProjectionPaint(host);
+        reportProjectionPaint(this);
     }
 
     _rotate(first) {

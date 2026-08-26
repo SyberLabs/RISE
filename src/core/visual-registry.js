@@ -1,9 +1,7 @@
 /**
  * The cortex-general procedural patterns, named once.
  *
- * `blueprint` and `freedom` are deliberately absent: both are
- * Atrium-exclusive and arrive only with the sequence that curated them,
- * never as a generic option.
+ * Unknown ids are dropped. Retired engines are not listed.
  */
 
 /**

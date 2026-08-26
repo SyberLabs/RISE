@@ -242,13 +242,13 @@ describe('choosing a stance', () => {
 
             expect(globalThis.rise.settings).toMatchObject(change.settings);
             expect(orbital.config.visualInterlocution.interlocution.wordFill)
-                .toEqual({ mode: 'accent' });
+                .toEqual({ mode: 'accent', border: 'cream' });
             expect(orbital.visualNavigator.getConfig().interlocution.wordFill)
-                .toEqual({ mode: 'accent' });
+                .toEqual({ mode: 'accent', border: 'cream' });
             expect(syncSnapshots).toEqual([{
                 settings: change.settings,
                 temporal: { chunkMode: 'word', recitation: { enabled: false } },
-                wordFill: { mode: 'accent' }
+                wordFill: { mode: 'accent', border: 'cream' }
             }]);
             expect(syncSpy).toHaveBeenCalledTimes(1);
             expect(persistSpy).toHaveBeenCalledTimes(1);

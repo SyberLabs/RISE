@@ -30,10 +30,9 @@ import { MUSEUM_CATEGORIES } from '../sources/visual/museum.js';
 import {
   DEDICATED_MODE,
   FIELD,
-  categoryOf,
   taxonomyLeaves
 } from './visual-taxonomy.js';
-import { normalizeVisualSelection, normalizeWordFill } from './visual-selection.js';
+import { normalizeVisualSelection, normalizeWordFill, inferVisualSourceFamily, isPersonalVisualSource } from './visual-selection.js';
 import {
   GALLERY_CADENCE_DEFAULT,
   normalizeGalleryCadence
@@ -51,8 +50,6 @@ const DYNAMIC_PROCEDURAL = new Set(
     .map(l => l.engineId)
 );
 
-const PERSONAL_IDS = id => id === 'custom' || id === 'global-pool' || id.startsWith('personal:');
-
 /** A sourced/category id → the leaf that owns it, or null if it maps to none. */
 export function classifySourced(id) {
   if (typeof id !== 'string' || !id) return null;
@@ -61,7 +58,7 @@ export function classifySourced(id) {
     return { leaf: kind === 'subject' ? 'by-subject' : 'by-manner', pool: id };
   }
   if (id.startsWith('sci-')) return { leaf: 'science', pool: id };
-  if (PERSONAL_IDS(id)) return { leaf: 'personal', pool: id };
+  if (isPersonalVisualSource(id)) return { leaf: 'personal', pool: id };
   return null;   // a retired or unknown source: carried in config, not shown
 }
 
@@ -86,10 +83,8 @@ const emptySelection = () => ({
   galleryCadence: GALLERY_CADENCE_DEFAULT,
   streamGlass: true,
   wordFill: { mode: 'same' },
-  emptyGallery: false,
-  preserveBaseSelection: false,
+  emptyKind: 'off',
   focalDirty: false,
-  programLocked: false,
   config: {}
 });
 
@@ -129,7 +124,6 @@ export function selectionFromConfig(visualConfig = {}) {
   if (mode === 'genesis') { sel.enabled.add('klee'); return sel; }
 
   // interlocution — the shared procedural + sourced pool.
-  sel.emptyGallery = true;
   const inter = normalizeVisualSelection(cfg.interlocution || {});
   const procedural = inter.procedural || [];
   const dynamicProc = procedural.filter(id => DYNAMIC_PROCEDURAL.has(id));
@@ -143,7 +137,6 @@ export function selectionFromConfig(visualConfig = {}) {
   // An exclusive Dynamic field: one drawn-in-time engine, nothing else.
   if (dynamicProc.length === 1 && galleryProc.length === 0 && sourced.length === 0) {
     sel.enabled.add(dynamicProc[0]);
-    sel.emptyGallery = false;
     return sel;
   }
 
@@ -154,9 +147,7 @@ export function selectionFromConfig(visualConfig = {}) {
     if (!hit) continue;
     if (!sel.enabled.has(hit.leaf)) { sel.enabled.add(hit.leaf); sel.pool[hit.leaf] = hit.pool; }
   }
-  sel.emptyGallery = sel.enabled.size === 0;
-  sel.preserveBaseSelection = sel.emptyGallery
-    && (procedural.length > 0 || sourced.length > 0);
+  sel.emptyKind = sel.enabled.size === 0 ? 'held-empty' : 'leaves';
   return sel;
 }
 
@@ -173,10 +164,8 @@ function fieldPatch(selection) {
   const on = [...enabled];
 
   if (!on.length) {
-    if (selection.emptyGallery) {
-      const held = selection.programLocked || selection.preserveBaseSelection
-        ? (selection.config?.interlocution || {})
-        : {};
+    if (selection.emptyKind === 'held-empty') {
+      const held = selection.config?.interlocution || {};
       return {
         visualMode: 'interlocution',
         interlocution: withNormalised({
@@ -229,7 +218,7 @@ function fieldPatch(selection) {
   return {
     visualMode: 'interlocution',
     interlocution: withNormalised({
-      sourceFamily: galleryFamily(procedural, sourced),
+      sourceFamily: inferVisualSourceFamily(procedural, sourced),
       procedural,
       sourced,
       presentation: 'continuous'
@@ -280,19 +269,6 @@ export function configPatch(selection) {
   };
 }
 
-/** Blend the moment the pool mixes kinds; otherwise the single kind's family. */
-function galleryFamily(procedural, sourced) {
-  const kinds = [
-    procedural.length > 0,
-    sourced.some(id => !PERSONAL_IDS(id)),
-    sourced.some(PERSONAL_IDS)
-  ].filter(Boolean).length;
-  if (kinds >= 2) return 'blend';
-  if (procedural.length) return 'procedural';
-  if (sourced.some(PERSONAL_IDS)) return 'personal';
-  return 'collections';
-}
-
 function withNormalised(inter) {
   const norm = normalizeVisualSelection(inter);
   return { ...inter, ...norm };
@@ -300,13 +276,14 @@ function withNormalised(inter) {
 
 function cloneWordFill(value) {
   const fill = normalizeWordFill(value);
-  if (fill.mode === 'plain' || fill.mode === 'accent') return { mode: fill.mode };
-  if (fill.mode === 'same') return { mode: 'same', ...(fill.border ? { border: fill.border } : {}) };
-  return {
-    ...fill,
-    procedural: [...fill.procedural],
-    sourced: [...fill.sourced]
-  };
+  if (fill.mode === 'pick') {
+    return {
+      ...fill,
+      procedural: [...fill.procedural],
+      sourced: [...fill.sourced]
+    };
+  }
+  return { mode: fill.mode, border: fill.border };
 }
 
 function cloneVisualConfig(value) {
