@@ -155,7 +155,7 @@ flowchart LR
     core["core<br/>session, player, router<br/>112 modules"]
     page["page<br/>spatial projection<br/>4 modules"]
     sources["sources<br/>text and visual providers<br/>22 modules"]
-    visuals["visuals<br/>procedural generation<br/>53 modules"]
+    visuals["visuals<br/>procedural generation<br/>51 modules"]
 
     app -.-> |2 lazy| audio
     app --> |1| components

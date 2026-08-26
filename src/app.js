@@ -685,17 +685,13 @@ class App {
                                 activeTypes: activeTypes,
                                 kleePreset: interlocution.kleePreset ?? 'random',
                                 harmonographClimate: interlocution.harmonographClimate ?? 'auto',
-                                // An authored pattern carries the reading's own
-                                // subject: WHICH mechanism, WHICH relation.
-                                // Without these the cortex falls back to its
-                                // defaults and the authored relation is lost
-                                // between the compiler and the renderer. Named
-                                // for the Atrium, which is gone; the fields are
-                                // read by the cortex, the panel and the orbital
-                                // and are not going with it.
-                                blueprintClimate: interlocution.blueprintClimate ?? 'auto',
-                                blueprintMechanism: interlocution.blueprintMechanism ?? null,
-                                freedomRelation: interlocution.freedomRelation ?? null,
+                                // EVERY FIELD HERE IS NAMED BY HAND, so one
+                                // left out is silently dropped on the last hop
+                                // between compiler and renderer while surviving
+                                // the whole pipeline before it. That is how an
+                                // authored relation once lost its subject and
+                                // Haiti drew a Union Jack; imagery.test.js
+                                // guards the wiring rather than the modules.
                                 customVisuals: session.customVisuals || [],
                                 sequenceVisualAssets: session.sequenceVisualAssets || [],
                                 // Resolve stable Global Pool IDs once at

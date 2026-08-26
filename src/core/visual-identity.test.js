@@ -29,23 +29,23 @@ describe('launch-scoped visual identity', () => {
       .toBeNull();
   });
 
-  it('clears sourced and source-exclusive engines while preserving ordinary procedural choices', () => {
+  // Blueprint and Freedom were named here by hand. They left with the Atrium,
+  // and normalizeVisualSelection now drops any engine the registry does not
+  // know — so they are still cleared, and the next engine to be retired will
+  // be too without a word said about it.
+  it('clears sourced pools and retired engines while preserving ordinary procedural choices', () => {
     const cleared = clearLaunchVisualSelection({
       sourceFamily: 'blend',
       procedural: ['blueprint', 'klee', 'freedom'],
       sourced: ['dore:numbers', 'aic-oldmasters'],
-      atriumCollections: ['dore:numbers'],
-      blueprintMechanism: 'beam-engine',
-      freedomRelation: 'haiti-france'
+      atriumCollections: ['dore:numbers']
     });
 
     expect(cleared).toMatchObject({
       sourceFamily: 'procedural',
       procedural: ['klee'],
       sourced: [],
-      atriumCollections: [],
-      blueprintMechanism: null,
-      freedomRelation: null
+      atriumCollections: []
     });
   });
 

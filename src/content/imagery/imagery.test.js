@@ -242,12 +242,16 @@ describe('Pinned collections', () => {
 });
 
 describe('App forwards the authored visual fields to the cortex', () => {
-  it('passes blueprint and freedom config in updateConfig', async () => {
+  it('forwards the authored cortex config in updateConfig', async () => {
     // The compiler preserves these fields, but app.js builds the cortex
     // config by naming keys explicitly — so a field can survive the
     // whole pipeline and still be dropped on the last hop. That is the
     // bug that made Haiti draw a Union Jack, and no amount of module
     // testing sees it. Assert on the wiring itself.
+    //
+    // The fields it was written for were Blueprint's and Freedom's, which
+    // left with the Atrium. The hazard did not leave with them: it belongs
+    // to the hand-named block, so the guard follows the block.
     const { readFileSync } = await import('node:fs');
     const { resolve } = await import('node:path');
     const source = readFileSync(resolve('src/app.js'), 'utf8');
@@ -256,7 +260,10 @@ describe('App forwards the authored visual fields to the cortex', () => {
     const anchor = source.indexOf('harmonographClimate: interlocution');
     expect(anchor, 'interlocution cortex config not found').toBeGreaterThan(0);
     const block = source.slice(anchor - 2000, anchor + 2000);
-    for (const field of ['blueprintClimate', 'blueprintMechanism', 'freedomRelation']) {
+    for (const field of [
+      'harmonographClimate', 'kleePreset', 'renderLanguage',
+      'presentation', 'galleryCadence', 'activeTypes'
+    ]) {
       expect(block, `app.js must forward ${field} to the cortex`).toContain(field);
     }
   });
