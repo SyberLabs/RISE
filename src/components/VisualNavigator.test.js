@@ -336,9 +336,10 @@ describe('the text', () => {
     expect(nav.selection.wordFill).toMatchObject({ mode: 'pick', procedural: ['fractal'] });
   });
 
-  // Attractor and Genesis take dedicated visual modes, so the Chamber never
-  // mounts the continuous field host the fill hangs off — _shouldMountFill
-  // asks for it by name. That refusal is structural, and stays.
+  // Genesis takes a dedicated visual mode, so the Chamber never mounts the
+  // continuous field host the fill hangs off — _shouldMountFill asks for it by
+  // name. That refusal is structural, and stays. (Attractor used to be here
+  // and is not any more: it is listed again, and carries a mask.)
   it('still refuses a Fit mask over a field that takes its own visual mode', () => {
     window.rise = {
       settings: { chamberFace: 'thick', fontSize: 'medium' },
@@ -346,7 +347,7 @@ describe('the text', () => {
     };
     mount({ visualMode: 'interlocution', interlocution: { presentation: 'continuous' } });
 
-    descend('visual', 'dynamic', 'attractor');
+    descend('visual', 'dynamic', 'klee');
     click(nav.container.querySelector('[data-action="toggle"]'));
     click(node('size'));
     click(nav.container.querySelector('[data-font-size="fit"]'));
@@ -1105,9 +1106,23 @@ describe('reader-facing state', () => {
 describe('the one rule, under real clicks', () => {
   it('enables an exclusive Dynamic field and emits its mode', () => {
     mount();
+    descend('visual', 'dynamic', 'klee');
+    click(nav.container.querySelector('[data-action="toggle"]'));
+    expect(lastPatch()).toMatchObject({ visualMode: 'genesis' });
+    expect(nav.selection.enabled.has('klee')).toBe(true);
+  });
+
+  // Attractor is exclusive like the rest of Dynamic, but it is LISTED rather
+  // than given a mode of its own — which is what lets one instance serve the
+  // room and the word-fill, and what lets a Fit mask run over it.
+  it('lists Attractor as a procedural instead of a sixth visual mode', () => {
+    mount();
     descend('visual', 'dynamic', 'attractor');
     click(nav.container.querySelector('[data-action="toggle"]'));
-    expect(lastPatch()).toMatchObject({ visualMode: 'attractor' });
+    expect(lastPatch()).toMatchObject({
+      visualMode: 'interlocution',
+      interlocution: { procedural: ['attractor'], presentation: 'continuous' }
+    });
     expect(nav.selection.enabled.has('attractor')).toBe(true);
   });
 

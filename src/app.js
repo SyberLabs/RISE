@@ -685,6 +685,11 @@ class App {
                                 activeTypes: activeTypes,
                                 kleePreset: interlocution.kleePreset ?? 'random',
                                 harmonographClimate: interlocution.harmonographClimate ?? 'auto',
+                                // Attractor is a LISTED procedural, not a mode
+                                // of its own, so its dials arrive here with the
+                                // rest of the interlocution. The cortex reads
+                                // config.attractor for system, palette and form.
+                                attractor: interlocution.attractor ?? null,
                                 // EVERY FIELD HERE IS NAMED BY HAND, so one
                                 // left out is silently dropped on the last hop
                                 // between compiler and renderer while surviving
