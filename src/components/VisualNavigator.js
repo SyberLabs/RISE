@@ -223,9 +223,10 @@ export class VisualNavigator {
   confirmFitRelease(leaf, returnFocus) {
     const settings = this.textMaterialSettings();
     this.openDialog({
-      title: 'Fit paints through a Gallery.',
-      body: `${leaf.label} has no imagery to paint through the letters, so taking it `
-        + 'returns the reading to a fixed size. Everything else is kept.',
+      title: 'Fit paints the letters from a continuous field.',
+      body: `${leaf.label} draws the room in its own mode, which leaves no continuous `
+        + 'field to paint from, so taking it returns the reading to a fixed size. '
+        + 'Everything else is kept.',
       primaryLabel: `Take ${leaf.label}`,
       primaryAction: 'release-fit-for-field',
       confirm: () => {
@@ -395,10 +396,31 @@ export class VisualNavigator {
    * a mask. `emptyGallery` counts: it emits interlocution + continuous with an
    * empty pool, which is a Gallery waiting for works.
    */
-  _fieldIsGallery() {
+  /**
+   * ASK THE FIELD WHAT IT PRESENTS, NOT WHICH DRAWER IT IS FILED IN.
+   *
+   * This read the taxonomy CATEGORY — every enabled leaf must be
+   * FIELD.GALLERY — and a category is a shelf, not a behaviour. Three of the
+   * five leaves shelved under Dynamic emit exactly what Fit needs: measured,
+   * Iris Plates, Spectral Plates and Harmonograph all resolve to
+   * `interlocution` at `continuous`, which is the resolver's whole definition
+   * of a gallery. Only Attractor and Genesis take dedicated visual modes and
+   * genuinely cannot carry a mask.
+   *
+   * So a reader setting Iris Plates as the field and Fractal Flames as the
+   * ink was told the two could not go together, while the Chamber would have
+   * drawn it without complaint. configPatch already computes the answer for
+   * the session; asking it is the same fix this file's own comment describes
+   * one method below — it stopped asserting `gallery: true` and began
+   * asserting a category, which is still an assertion.
+   */
+  _fieldPresentsGallery() {
     if (this.selection.emptyGallery) return true;
-    const on = [...this.selection.enabled];
-    return on.length > 0 && on.every(id => categoryOf(id) === FIELD.GALLERY);
+    if (!this.selection.enabled.size) return false;
+    const patch = configPatch(this.selection);
+    const presentation = patch.interlocution?.presentation;
+    return patch.visualMode === 'interlocution'
+      && (presentation === 'continuous' || presentation === 'continuous-word');
   }
 
   /**
@@ -415,7 +437,7 @@ export class VisualNavigator {
    * Asking costs nothing and makes the refusals honest.
    */
   textMaterialCapability(wordFill = this.selection.wordFill, settings = this.textMaterialSettings()) {
-    const gallery = this._fieldIsGallery();
+    const gallery = this._fieldPresentsGallery();
     return resolveTextMaterialCapability({
       face: settings.face,
       fontSize: settings.fontSize,
@@ -499,9 +521,10 @@ export class VisualNavigator {
       .map(id => leafById(id)?.label)
       .filter(Boolean);
     this.openDialog({
-      title: 'Fit paints through a Gallery.',
-      body: `${held.length ? held.join(' and ') : 'This field'} cannot be painted through the letters, `
-        + 'and will be set aside to make room for one. The reading keeps everything else.',
+      title: 'Fit paints the letters from a continuous field.',
+      body: `${held.length ? held.join(' and ') : 'This field'} draws the room in its own `
+        + 'mode, which leaves no continuous field to paint from — whatever the ink is set to. '
+        + 'Taking Fit sets it aside. The reading keeps everything else.',
       primaryLabel: 'Set it aside',
       primaryAction: 'replace-field-for-fit',
       confirm: () => {
@@ -530,7 +553,7 @@ export class VisualNavigator {
     // resolver reports the first failing condition; the reader needs all of
     // them, since they are about to be set in one stroke.
     const settings = this.textMaterialSettings();
-    const needsField = !this._fieldIsGallery();
+    const needsField = !this._fieldPresentsGallery();
     const missing = [];
     if (needsField) missing.push('a Gallery field');
     if (resolveChamberStreamFace(settings.face) !== 'thick') missing.push('the Thick face');
@@ -615,7 +638,7 @@ export class VisualNavigator {
     }
     if (persist === 'fit' && this.locked) return;
     if (persist === 'fit') {
-      const gallery = this._fieldIsGallery();
+      const gallery = this._fieldPresentsGallery();
       // FIT USED TO TAKE THE FIELD WITHOUT ASKING. Choosing Fit while a Focal
       // was held cleared `enabled` outright — the Chapel rose a reader had
       // chosen simply vanished, replaced by an empty Gallery, with no dialog

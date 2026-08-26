@@ -297,6 +297,63 @@ describe('the text', () => {
   // no border at all — yet a word filling the chamber needs an edge to read
   // against the field whichever way its letters are filled. It sits with Fit
   // now, and appears on the one condition that lets the Chamber apply it.
+  // A FIELD IS WHAT IT PRESENTS, NOT WHICH DRAWER IT IS FILED IN.
+  //
+  // Iris Plates is shelved under Dynamic, and the panel read that shelf to
+  // decide whether Fit could paint through the letters — so setting Iris as
+  // the field and Fractal Flames as the ink was refused with 'Iris Plates
+  // cannot be painted through the letters', which was not even the question:
+  // the ink was Fractal. Measured, Iris resolves to interlocution at
+  // continuous, which is the resolver's whole definition of a gallery, and
+  // the Chamber would have drawn it without complaint.
+  it('lets a Fit mask run over a Dynamic field that still presents a gallery', () => {
+    window.rise = {
+      settings: { chamberFace: 'thick', fontSize: 'medium' },
+      handleSettingsChange(key, value) { this.settings[key] = value; }
+    };
+    // The host applies the transaction; without it Fit is proposed and never
+    // lands, and every assertion after it measures the size that did not change.
+    mount({ visualMode: 'interlocution', interlocution: { presentation: 'continuous' } }, {
+      onTextMaterialTransaction: ({ settings = {} }) => Object.assign(window.rise.settings, settings)
+    });
+
+    descend('visual', 'dynamic', 'ostensoria');
+    click(nav.container.querySelector('[data-action="toggle"]'));
+    expect(nav.selection.enabled.has('ostensoria'), 'Iris Plates is the field').toBe(true);
+
+    // The step that used to refuse: Fit, over a field shelved as Dynamic.
+    click(node('size'));
+    click(nav.container.querySelector('[data-font-size="fit"]'));
+    expect(nav.dialog, nav.dialog?.title).toBeNull();
+    expect(nav.selection.enabled.has('ostensoria'), 'the field is not set aside').toBe(true);
+
+    // And the ink can then be its own engine, painted through the letters
+    // while Iris Plates holds the room behind them.
+    click(node('ink'));
+    click(nav.container.querySelector('[data-word-fill="procedural:fractal"]'));
+    expect(nav.dialog, nav.dialog?.title).toBeNull();
+    expect(nav.hasActiveMask(), 'the mask is carried').toBe(true);
+    expect(nav.selection.wordFill).toMatchObject({ mode: 'pick', procedural: ['fractal'] });
+  });
+
+  // Attractor and Genesis take dedicated visual modes, so the Chamber never
+  // mounts the continuous field host the fill hangs off — _shouldMountFill
+  // asks for it by name. That refusal is structural, and stays.
+  it('still refuses a Fit mask over a field that takes its own visual mode', () => {
+    window.rise = {
+      settings: { chamberFace: 'thick', fontSize: 'medium' },
+      handleSettingsChange(key, value) { this.settings[key] = value; }
+    };
+    mount({ visualMode: 'interlocution', interlocution: { presentation: 'continuous' } });
+
+    descend('visual', 'dynamic', 'attractor');
+    click(nav.container.querySelector('[data-action="toggle"]'));
+    click(node('size'));
+    click(nav.container.querySelector('[data-font-size="fit"]'));
+
+    expect(nav.dialog?.title, 'the reader is asked, not overruled').toBeTruthy();
+  });
+
   it('offers the border wherever Fit can carry it, and keeps it when the ink changes', () => {
     window.rise = { settings: { chamberFace: 'thick', fontSize: 'fit' } };
     mount({
