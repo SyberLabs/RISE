@@ -376,3 +376,127 @@
         width: 100%;
     }
 }
+/* ═══════════════════════════════════════════════════════════
+   THE BAR PANEL
+
+   What the Chamber's door opens: Sound, Size, and the two safety
+   switches, at the size a reading can spare. It is a card beside the
+   control that opened it, not a screen over the reading — so it is
+   built here rather than borrowing the Portal panel's full-page frame.
+   ═══════════════════════════════════════════════════════════ */
+.settings--bar {
+  height: auto;
+  padding: var(--space-md);
+  background: linear-gradient(180deg, #131317, var(--color-void));
+  border: 1px solid var(--color-shadow);
+  border-radius: 3px;
+  box-shadow:
+    0 8px 24px rgba(0, 0, 0, 0.55),
+    0 0 18px rgba(var(--color-accent-rgb), 0.08);
+}
+
+.settings-bar-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-md);
+}
+
+.settings-bar-title {
+  margin: 0;
+  font-family: var(--font-primary);
+  font-size: 11px;
+  font-weight: var(--font-weight-medium);
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  color: var(--color-accent);
+}
+
+.settings-bar-close {
+  background: none;
+  border: none;
+  color: var(--color-fog);
+  font-size: 13px;
+  line-height: 1;
+  padding: 4px 6px;
+  cursor: pointer;
+}
+
+.settings-bar-close:hover {
+  color: var(--color-light);
+}
+
+.settings-bar-group + .settings-bar-group {
+  margin-top: var(--space-md);
+  padding-top: var(--space-md);
+  border-top: 1px solid var(--color-shadow);
+}
+
+.settings-bar-label {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--color-mist);
+  margin-bottom: var(--space-sm);
+}
+
+.settings-bar-sound {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.settings-bar-sound .slider {
+  flex: 1;
+  min-width: 0;
+}
+
+.settings-bar-sound .slider-value {
+  min-width: 44px;
+  text-align: right;
+  font-size: 11px;
+}
+
+.settings-bar-presets {
+  display: flex;
+  gap: 6px;
+  margin-top: var(--space-sm);
+}
+
+.settings-bar-preset {
+  flex: 1;
+  padding: 5px 0;
+  font: inherit;
+  font-size: 11px;
+  color: var(--color-cloud);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.028), transparent);
+  border: 1px solid var(--color-shadow);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: border-color var(--transition-fast) var(--ease-default);
+}
+
+.settings-bar-preset:hover {
+  border-color: var(--color-fog);
+  color: var(--color-light);
+}
+
+.settings--bar .settings-row {
+  min-height: 0;
+  margin-bottom: var(--space-sm);
+  gap: var(--space-sm);
+}
+
+.settings--bar .settings-row:last-child {
+  margin-bottom: 0;
+}
+
+.settings--bar .settings-label {
+  font-size: 13px;
+}
+
+.settings--bar .settings-hint {
+  font-size: 11px;
+}

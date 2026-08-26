@@ -501,13 +501,35 @@
   color: var(--color-fog);
 }
 
+/* A CARD ABOVE THE BAR, NOT A SCREEN OVER THE READING.
+   This was `inset: 0` — the Portal's whole panel laid over the Chamber. Even
+   once its contents were narrowed to what a reading can spare, a full screen
+   for four controls announced a departure the reader was not making. It sits
+   where the control that opened it sits, and the reading stays visible behind
+   it. Still fixed and still topmost: it must clear the field and the bar. */
 .chamber-settings-overlay {
   position: fixed;
-  inset: 0;
+  /* Anchored over the control that opened it — the Chamber measures the
+     button and writes these. The fallbacks are what a missing measurement
+     falls back to, never the intended placement. */
+  left: var(--settings-anchor-left, auto);
+  right: var(--settings-anchor-right, var(--space-lg));
+  bottom: var(--settings-anchor-bottom, calc(var(--space-2xl) + var(--space-lg)));
+  width: min(21rem, calc(100vw - var(--space-lg) * 2));
+  max-height: min(30rem, calc(100dvh - var(--space-3xl)));
   z-index: 150000;
-  overflow: auto;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
+}
+
+/* On a phone it takes the width it needs and sits above the bar. */
+@media (max-width: 600px) {
+  .chamber-settings-overlay {
+    left: var(--space-sm);
+    right: var(--space-sm);
+    width: auto;
+  }
+
 }
 
 .chamber-settings-overlay[hidden] {
@@ -583,93 +605,6 @@
   }
 }
 
-
-/* ─────────────────────────────────────────────────────────────
-   VOLUME MODAL
-   ───────────────────────────────────────────────────────────── */
-
-.volume-modal {
-  z-index: 200;
-  animation: volume-appear 150ms var(--ease-out);
-}
-
-@keyframes volume-appear {
-  from {
-    opacity: 0;
-    transform: translateY(8px);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.volume-modal-content {
-  background: var(--color-abyss);
-  border: 1px solid var(--color-threshold);
-  padding: var(--space-md);
-  min-width: 200px;
-}
-
-.volume-header {
-  display: flex;
-  align-items: center;
-  gap: var(--space-sm);
-  margin-bottom: var(--space-md);
-}
-
-.volume-icon {
-  font-size: 18px;
-  color: var(--color-threshold);
-}
-
-.volume-title {
-  font-size: 12px;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  color: var(--color-fog);
-}
-
-.volume-slider-row {
-  display: flex;
-  align-items: center;
-  gap: var(--space-md);
-  margin-bottom: var(--space-md);
-}
-
-.volume-slider {
-  flex: 1;
-}
-
-.volume-value {
-  min-width: 45px;
-  text-align: right;
-  font-family: var(--font-mono);
-  font-size: 13px;
-  color: var(--color-threshold);
-}
-
-.volume-presets {
-  display: flex;
-  gap: var(--space-xs);
-}
-
-.volume-preset {
-  flex: 1;
-  padding: var(--space-xs) var(--space-sm);
-  background: transparent;
-  border: 1px solid var(--color-shadow);
-  color: var(--color-fog);
-  font-size: 11px;
-  cursor: pointer;
-  transition: all var(--transition-fast) var(--ease-default);
-}
-
-.volume-preset:hover {
-  border-color: var(--color-accent);
-  color: var(--color-light);
-}
 
 /* ─────────────────────────────────────────────────────────────
    FOCALS: Persistent gentle focal point
