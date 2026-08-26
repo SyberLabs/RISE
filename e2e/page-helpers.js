@@ -20,6 +20,41 @@ async function settle(page, ceilingMs) {
 }
 
 /**
+ * Scroll a page's column to its end, letting each figure meet the viewport.
+ *
+ * Figures decode through an IntersectionObserver — correctly, so a reader is
+ * never charged for imagery they have not reached. Walking by goToPage was
+ * enough while the Page always opened paginated; the public Page opens as one
+ * elongated composition, and in one column there is nothing to page to. The
+ * walk that visits the whole reading has to travel the way the reader does.
+ */
+async function scrollThrough(page, ceilingMs) {
+    const host = '#chamber-page';
+    // Travel first and settle once. Settling at every step would spend the
+    // ceiling on each of them and blow the test's own timeout; the observer
+    // only needs each figure to have met the viewport, and the decodes then
+    // finish together.
+    let last = -1;
+    for (let step = 0; step < 40; step += 1) {
+        const at = await page.evaluate((sel) => {
+            const el = document.querySelector(sel);
+            if (!el) return null;
+            el.scrollTop = Math.min(el.scrollHeight, el.scrollTop + el.clientHeight * 0.8);
+            return { top: el.scrollTop, end: el.scrollHeight - el.clientHeight };
+        }, host);
+        if (!at) return;
+        await page.waitForTimeout(120);
+        if (at.top >= at.end || at.top === last) break;
+        last = at.top;
+    }
+    await settle(page, ceilingMs);
+    await page.evaluate((sel) => {
+        const el = document.querySelector(sel);
+        if (el) el.scrollTop = 0;
+    }, host);
+}
+
+/**
  * Walk every page of an open Page Mode reader, accumulating counts.
  *
  * @param {import('@playwright/test').Page} page
@@ -50,6 +85,8 @@ export async function collectAcrossPages(page, options = {}) {
         }
         // Settle page 0 as well — the walk starts there immediately.
         await settle(page, settleMs);
+        // And travel the page itself, for the figures below its fold.
+        await scrollThrough(page, settleMs);
 
         const slice = await page.evaluate(() => ({
             texts: document.querySelectorAll('.page-text').length,

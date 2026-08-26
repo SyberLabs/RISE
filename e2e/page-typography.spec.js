@@ -83,9 +83,26 @@ async function wrappedHeadings(page) {
     });
 }
 
+/**
+ * Enter the paged projection.
+ *
+ * The public Page opens as one elongated composition, so a test about how
+ * PAGES are typeset has to ask for pages rather than assume them. The control
+ * reads 'Paginate' on open and 'Elongate' once pages are cut.
+ */
+async function paginate(page) {
+    await page.locator('#chamber-display').hover();
+    const btn = page.locator('#page-elongate');
+    await expect(btn).toBeVisible({ timeout: 10000 });
+    await btn.click();
+    await expect.poll(() => pageCount(page), { timeout: 10000 }).toBeGreaterThan(1);
+    await page.waitForTimeout(600);
+}
+
 test('no figure stands beside a heading, on any page', async ({ page }) => {
     await page.setViewportSize({ width: 1280, height: 900 });
     await openThePage(page);
+    await paginate(page);
 
     const total = await pageCount(page);
     expect(total, 'the fixture is long enough to paginate').toBeGreaterThan(1);
@@ -111,6 +128,7 @@ test('an inline CHAPTER heading opens its page rather than closing the last one'
     // CHAPTER II must open a page, not close the previous one.
     await page.setViewportSize({ width: 1280, height: 900 });
     await openThePage(page);
+    await paginate(page);
 
     const where = await page.evaluate(() => {
         const r = window.rise?.router?.views?.get('chamber-session')?.instance?.pageReader;
@@ -133,25 +151,27 @@ test('an inline CHAPTER heading opens its page rather than closing the last one'
     }
 });
 
-test('the projection control survives elongating — Elongate is not a one-way door', async ({ page }) => {
+test('the projection control turns both ways — neither is a one-way door', async ({ page }) => {
     await page.setViewportSize({ width: 1280, height: 900 });
     await openThePage(page);
 
     const btn = page.locator('#page-elongate');
     await page.locator('#chamber-display').hover();
     await expect(btn).toBeVisible({ timeout: 10000 });
-    await expect(btn.locator('.control-label')).toHaveText('Elongate');
-
-    await btn.click();
-    await page.waitForTimeout(700);
-    await page.locator('#chamber-display').hover();
-    // Elongate must leave a way back to Paginate.
-    await expect(btn, 'the way back to pages vanished').toBeVisible();
+    // The Page opens elongated, so the control offers the other projection.
     await expect(btn.locator('.control-label')).toHaveText('Paginate');
 
     await btn.click();
     await page.waitForTimeout(700);
     await page.locator('#chamber-display').hover();
+    // Pagination must leave a way back to one column.
+    await expect(btn, 'the way back to one column vanished').toBeVisible();
     await expect(btn.locator('.control-label')).toHaveText('Elongate');
-    expect(await pageCount(page)).toBeGreaterThan(1);
+
+    await btn.click();
+    await page.waitForTimeout(700);
+    await page.locator('#chamber-display').hover();
+    // And back to where it opened: one column, offering pages again.
+    await expect(btn.locator('.control-label')).toHaveText('Paginate');
+    expect(await pageCount(page)).toBe(1);
 });

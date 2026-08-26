@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { collectAcrossPages } from './page-helpers.js';
+import { collectAcrossPages, pageCount } from './page-helpers.js';
 
 const GATE = { code: 'rise2025', name: 'Page Harness', vault: null, timestamp: Date.now() };
 
@@ -80,8 +80,20 @@ test('Page Mode typesets a Gospel chapter in space, and holds the stream', async
     // is left pending/broken in the completed walk. With off-origin imagery
     // aborted above, the reverent-degradation path is the one exercised.
     expect(stats.shown + stats.absent).toBe(stats.figures);
-    expect(stats.pages).toBeGreaterThan(1);
+    // THE PUBLIC PAGE OPENS AS ONE ELONGATED COMPOSITION. It had opened
+    // paginated: the Chamber passes Number.POSITIVE_INFINITY to say "no
+    // threshold", and the reader's guard used Number.isFinite — false for
+    // Infinity — so the value was discarded for the default of 4.
+    expect(stats.pages, 'one column, not pages').toBe(1);
     expect(stats.playerState).not.toBe('playing');
+
+    // And this reading is still long enough for the two projections to
+    // differ, which is what the old page-count assertion was really for.
+    await page.locator('#chamber-display').hover();
+    await page.locator('#page-elongate').click();
+    await expect.poll(() => pageCount(page), { timeout: 10_000 }).toBeGreaterThan(1);
+    await page.locator('#page-elongate').click();
+    await expect.poll(() => pageCount(page), { timeout: 10_000 }).toBe(1);
 
     // Page holds Stream: Space/Play must not start playback underneath.
     const scrollBefore = await page.evaluate(() =>

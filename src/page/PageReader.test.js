@@ -466,6 +466,41 @@ describe('PageReader pagination', () => {
         eager.reader.destroy();
     });
 
+    // The Chamber says "never paginate" with Number.POSITIVE_INFINITY, and the
+    // guard that read it used Number.isFinite — which is false for Infinity —
+    // so the value was discarded for the default 4 and the public Page opened
+    // paginated for every reading over four pages.
+    it('opens as one column when the host asks for no pagination threshold', () => {
+        const { reader } = paged({
+            session: longSession(80),
+            scrollUnderPages: Number.POSITIVE_INFINITY
+        });
+        expect(reader.scrollUnderPages).toBe(Number.POSITIVE_INFINITY);
+        expect(reader.isPaged, 'one continuous column').toBe(false);
+        expect(reader.pages).toHaveLength(1);
+        // And it can still be paginated by hand — elongated is a default,
+        // not a one-way door.
+        reader.setPaged(true);
+        expect(reader.isPaged).toBe(true);
+        reader.destroy();
+    });
+
+    it('still paginates a long reading at the default threshold', () => {
+        const { reader } = paged({ session: longSession(80) });
+        expect(reader.scrollUnderPages).toBe(4);
+        expect(reader.isPaged).toBe(true);
+        reader.destroy();
+    });
+
+    // Junk is still junk: only a real number moves the threshold.
+    it('falls back to the default for a threshold that is not a number', () => {
+        for (const junk of [undefined, null, 'lots', Number.NaN, {}]) {
+            const { reader } = paged({ session: longSession(80), scrollUnderPages: junk });
+            expect(reader.scrollUnderPages, String(junk)).toBe(4);
+            reader.destroy();
+        }
+    });
+
     it('Elongate turns a paged reading into one column, and back', () => {
         const { reader, host } = paged({ session: longSession(80) });
         expect(reader.isPaged).toBe(true);
