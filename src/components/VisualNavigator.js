@@ -186,15 +186,59 @@ export class VisualNavigator {
   }
 
   /* ── mutation ─────────────────────────────────────────────────────── */
-  toggleEnabled() {
+  toggleEnabled(returnFocus) {
     const leaf = this.focus;
     if (!leaf || !categoryOf(leaf.id) || this.locked || this.programInfo) return;
+    // THE SAME QUESTION, ASKED FROM THE OTHER SIDE.
+    //
+    // setSize asks before letting Fit take a field that cannot carry it, and
+    // this asked nothing at all — so choosing Fit while a Focal was held
+    // opened a dialog, while enabling that Focal while Fit was on landed
+    // silently in the very state the dialog exists to prevent. A rule
+    // enforced on one road and not the other is not a rule; it is a toll.
+    if (!this.selection.enabled.has(leaf.id)
+      && categoryOf(leaf.id) !== FIELD.GALLERY
+      && this.fitHoldsTheWord()) {
+      return this.confirmFitRelease(leaf, returnFocus);
+    }
+    this.commitField(leaf.id);
+  }
+
+  commitField(id) {
     // The one rule lives in the model; call it and take the new set.
-    this.selection.enabled = toggleField(this.selection.enabled, leaf.id);
+    this.selection.enabled = toggleField(this.selection.enabled, id);
     this.selection.emptyGallery = false;
     this.selection.preserveBaseSelection = false;
     this.emit();
     this.render();
+  }
+
+  /**
+   * The reader wants a field Fit cannot paint through. Say what it costs.
+   *
+   * The mirror of confirmFieldReplacement: that one keeps Fit and sets the
+   * field aside, this one takes the field and lets Fit go. Same conflict,
+   * same courtesy, whichever side the reader arrives from.
+   */
+  confirmFitRelease(leaf, returnFocus) {
+    const settings = this.textMaterialSettings();
+    this.openDialog({
+      title: 'Fit paints through a Gallery.',
+      body: `${leaf.label} has no imagery to paint through the letters, so taking it `
+        + 'returns the reading to a fixed size. Everything else is kept.',
+      primaryLabel: `Take ${leaf.label}`,
+      primaryAction: 'release-fit-for-field',
+      confirm: () => {
+        this.commitField(leaf.id);
+        this.requestTextMaterialTransaction({
+          face: settings.face,
+          fontSize: 'medium',
+          wordFill: this.selection.wordFill,
+          settings: { chamberFace: settings.face, fontSize: 'medium', chamberMask: false }
+        });
+        this.closeDialog();
+      }
+    }, returnFocus);
   }
 
   setSubstyle(engineId, key, value) {
