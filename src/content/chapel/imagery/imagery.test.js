@@ -1,4 +1,4 @@
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it, vi } from 'vitest';
 import { CHAPEL_PINNED_COLLECTIONS, hasChapelCollection } from './collections.js';
@@ -150,10 +150,13 @@ describe('Chapel provider scoping', () => {
   });
 
   it('never appears in the browsable panel: chapel ids are chip labels only', () => {
-    const panel = readFileSync(resolve('src/components/VisualNavigator.js'), 'utf8');
-    // The chapel case exists for the "From this reading" chips…
-    expect(panel).toContain("id.startsWith('chapel-')");
-    // …and no chapel-* id is offered as a selectable collection option
+    const labels = readFileSync(resolve('src/content/chapel/imagery/labels.js'), 'utf8');
+    const panelDir = resolve('src/components/visual-navigator');
+    const panel = [readFileSync(resolve('src/components/VisualNavigator.js'), 'utf8')]
+      .concat(readdirSync(panelDir).filter(name => name.endsWith('.js'))
+        .map(name => readFileSync(resolve(panelDir, name), 'utf8')))
+      .join('\n');
+    expect(labels).toContain("id.startsWith('chapel-')");
     expect(panel).not.toMatch(/data-(category|collection)="chapel-/);
   });
 });

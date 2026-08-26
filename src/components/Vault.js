@@ -51,18 +51,6 @@ export class Vault {
             <h1>${isPersonalized ? 'Your Vault' : 'The Vault'}</h1>
           </div>
 
-          <!-- JOURNEYS — withdrawn until after 1.0. The room and its
-               scores stay in the tree; nothing on this screen points
-               there. Restore the button below when a Journey is admitted.
-          <button class="vault-journeys-door" data-nav="journeys">
-            <span class="vjd-text">
-              <span class="vjd-name">Journeys</span>
-              <span class="vjd-line">Several works becoming movements in one argument</span>
-            </span>
-            <span class="vjd-chevron" aria-hidden="true">→</span>
-          </button>
-          -->
-
           <!-- Section Navigation -->
           <nav class="library-nav nav" aria-label="Vault sections">
             ${isPersonalized ? `

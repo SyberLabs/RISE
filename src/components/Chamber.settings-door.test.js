@@ -252,4 +252,55 @@ describe('Chamber Settings door', () => {
 
     chamber.destroy();
   });
+
+  it('does not show Accent fail when Default clears data-accent', () => {
+    const { chamber, container } = mount();
+    const fail = document.createElement('p');
+    fail.id = 'chamber-accent-fail';
+    fail.hidden = true;
+    fail.textContent = 'Accent did not take.';
+    container.appendChild(fail);
+    document.documentElement.dataset.accent = 'cobalt';
+    globalThis.rise = { settings: { chamberAccent: 'default' } };
+
+    chamber.applyChamberAccent();
+    chamber._reportAccentApply('default');
+
+    expect(document.documentElement.dataset.accent).toBeUndefined();
+    expect(fail.hidden).toBe(true);
+    chamber.destroy();
+  });
+
+  it('does not auto-start playback after destroy while Fit hydration is in flight', async () => {
+    vi.useFakeTimers();
+    try {
+      const player = fakePlayer('idle');
+      let releaseHydration;
+      const hydration = new Promise(resolve => { releaseHydration = resolve; });
+      const container = document.createElement('div');
+      document.body.appendChild(container);
+      const chamber = new Chamber(container, {
+        session: {
+          title: 'Auto-start',
+          atoms: [{ content: 'hello', duration: 500 }],
+          totalDuration: 500,
+          atomCount: 1,
+          visualConfig: { visualMode: 'off' }
+        },
+        player,
+        autoStart: true
+      });
+      chamber._awaitFitHydration = () => hydration;
+
+      await vi.advanceTimersByTimeAsync(500);
+      chamber.destroy();
+      releaseHydration();
+      await Promise.resolve();
+      await Promise.resolve();
+
+      expect(player.play).not.toHaveBeenCalled();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
 });

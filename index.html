@@ -34,11 +34,11 @@
   <script>
     (function () {
       try {
-        // Colourways only. Slate is the default and is the ABSENCE of the
-        // attribute (neutral :root), so an unknown or unset accent removes it
-        // rather than stamping anything — this runs before the app to beat the
-        // flash. Keep in step with CHAMBER_ACCENTS.
-        var allowed = { ivory: 1, purple: 1, cobalt: 1, amber: 1, sunset: 1, gecko: 1, garnet: 1, teal: 1, orchid: 1 };
+        // Colourways only. Default is the ABSENCE of the attribute (bare
+        // :root). Slate is a stamped hue. Unknown or unset removes it —
+        // this runs before the app to beat the flash. Keep in step with
+        // CHAMBER_ACCENT_TOKENS.
+        var allowed = { slate: 1, ivory: 1, purple: 1, cobalt: 1, amber: 1, sunset: 1, gecko: 1, garnet: 1, teal: 1, orchid: 1 };
         var stored = JSON.parse(localStorage.getItem('rise-settings') || '{}');
         var id = stored && stored.chamberAccent;
         if (allowed[id]) document.documentElement.dataset.accent = id;

@@ -12,7 +12,6 @@ import {
     resolveFontSize,
     sizeFitHint
 } from '../core/chamber-type-size.js';
-import './Settings.css';
 
 /**
  * Settings Component

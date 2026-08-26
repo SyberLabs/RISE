@@ -14,6 +14,7 @@
  * Systems: 'aizawa' | 'thomas' | 'halvorsen'
  */
 
+import { reportProjectionPaint } from './projection-paint.js';
 import {
     ATTRACTOR_FORMS,
     ATTRACTOR_PALETTES,
@@ -452,7 +453,7 @@ export class AttractorField {
         this._hasPaintedFrame = true;
         this.measureQuality(performance.now() - frameStart);
         this._syncProjection();
-        if (!this.projectionHost) this._reportProjectionPaint();
+        if (!this.projectionHost) reportProjectionPaint(this);
         this.rafId = requestAnimationFrame(this.tick);
     }
 
@@ -500,15 +501,7 @@ export class AttractorField {
         ctx.setTransform(1, 0, 0, 1, 0, 0);
         ctx.clearRect(0, 0, dst.width, dst.height);
         ctx.drawImage(src, 0, 0);
-        this._reportProjectionPaint();
-    }
-
-    _reportProjectionPaint() {
-        if (this._projectionPainted) return;
-        const host = this.projectionHost || this.host;
-        if (!host || (!this.projectionHost && this._projectionHostCleared)) return;
-        this._projectionPainted = true;
-        this.onProjectionPaint(host);
+        reportProjectionPaint(this);
     }
 
     /**

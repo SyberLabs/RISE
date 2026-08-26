@@ -16,11 +16,15 @@ import { ShuffleBag } from '../../../sources/visual/shuffle-bag.js';
 
 export function hasDoreBook(categoryId) {
   const bookId = String(categoryId || '').replace(/^dore:/, '');
-  // `dore:all` is the aggregate: the whole 1866 cycle as one voice,
-  // tradeable onto any Chapel reading (e.g. the Apocalypse with the
-  // full Old Testament sweep behind it).
   if (bookId === 'all') return true;
   return DORE_PLATES.some(plate => plate.book === bookId);
+}
+
+export function doreCollectionLabel(id) {
+  if (typeof id !== 'string' || !id.startsWith('dore:')) return null;
+  if (id === 'dore:all') return 'Doré · The Old Testament';
+  const book = id.slice('dore:'.length).replace(/-(\d)/, ' $1').replace(/^./, c => c.toUpperCase());
+  return `Doré · ${book}`;
 }
 
 class DoreCycleProvider {

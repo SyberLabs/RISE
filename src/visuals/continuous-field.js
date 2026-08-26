@@ -26,6 +26,7 @@ import {
     displayedArtworkLabel
 } from './artwork-label.js';
 import { createRemoteImage } from './remote-image.js';
+import { reportProjectionPaint } from './projection-paint.js';
 
 const DEFAULT_TIMINGS = galleryCadenceTimings(GALLERY_CADENCE_DEFAULT);
 
@@ -485,16 +486,15 @@ export class ContinuousField {
     }
 
     _reportProjectionPaint() {
-        if (this._projectionPainted || !this._layers) return;
-        const host = this.projectionHost || this.host;
-        if (!host || (!this.projectionHost && this._projectionHostCleared)) return;
-        const visible = this.projectionHost
-            ? this._layers.some(layer => layer.projection?.root.style.opacity === '1'
-                && !!layer.projection.artwork.getAttribute('src'))
-            : this._layers.some(layer => layer.root.style.opacity === '1' && !!layer.work?.url);
-        if (!visible) return;
-        this._projectionPainted = true;
-        this.onProjectionPaint(host);
+        reportProjectionPaint(this, () => {
+            if (!this._layers) return false;
+            const host = this.projectionHost || this.host;
+            if (!host) return false;
+            return this.projectionHost
+                ? this._layers.some(layer => layer.projection?.root.style.opacity === '1'
+                    && !!layer.projection.artwork.getAttribute('src'))
+                : this._layers.some(layer => layer.root.style.opacity === '1' && !!layer.work?.url);
+        });
     }
 
     /** Mount the two layers (idempotent). */

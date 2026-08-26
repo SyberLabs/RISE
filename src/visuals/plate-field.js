@@ -13,6 +13,7 @@
  */
 
 import { Ostensoria } from './ostensoria.js';
+import { reportProjectionPaint } from './projection-paint.js';
 import { Apparitio } from './apparitio.js';
 import {
     GALLERY_CADENCE_DEFAULT,
@@ -214,15 +215,7 @@ export class PlateField {
         ctx.setTransform(1, 0, 0, 1, 0, 0);
         ctx.clearRect(0, 0, dest.canvas.width, dest.canvas.height);
         ctx.drawImage(plane.canvas, 0, 0);
-        if (dest.canvas.style.opacity === '1') this._reportProjectionPaint();
-    }
-
-    _reportProjectionPaint() {
-        if (this._projectionPainted) return;
-        const host = this.projectionHost || this.host;
-        if (!host || (!this.projectionHost && this._projectionHostCleared)) return;
-        this._projectionPainted = true;
-        this.onProjectionPaint(host);
+        if (dest.canvas.style.opacity === '1') reportProjectionPaint(this);
     }
 
     _rotate(first) {
@@ -251,7 +244,7 @@ export class PlateField {
             : `opacity ${this.crossfadeMs}ms ease-in-out`;
         incoming.canvas.style.opacity = '1';
         if (this.projectionHost) this._syncProjectionFor(incoming);
-        else if (incoming._painted) this._reportProjectionPaint();
+        else if (incoming._painted) reportProjectionPaint(this);
         if (outgoing) {
             outgoing.canvas.style.opacity = '0';
             const retire = outgoing;

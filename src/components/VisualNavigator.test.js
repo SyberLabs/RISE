@@ -159,13 +159,13 @@ describe('the text', () => {
       settings: { chamberFace: 'literary', fontSize: 'medium' },
       temporal: null,
       visualConfig: expect.objectContaining({
-        interlocution: expect.objectContaining({ wordFill: { mode: 'accent' } })
+        interlocution: expect.objectContaining({ wordFill: expect.objectContaining({ mode: 'accent' }) })
       })
     }));
     click(nav.container.querySelector('[data-word-fill="accent"]'));
     expect(onTextMaterialTransaction).toHaveBeenLastCalledWith(expect.objectContaining({
       visualConfig: expect.objectContaining({
-        interlocution: expect.objectContaining({ wordFill: { mode: 'plain' } })
+        interlocution: expect.objectContaining({ wordFill: expect.objectContaining({ mode: 'plain' }) })
       })
     }));
   });
@@ -233,7 +233,7 @@ describe('the text', () => {
         settings: change.settings,
         temporal: null,
         visualConfig: expect.objectContaining({
-          interlocution: expect.objectContaining({ wordFill: { mode: 'accent' } })
+          interlocution: expect.objectContaining({ wordFill: expect.objectContaining({ mode: 'accent' }) })
         })
       }));
       unmount();
@@ -334,6 +334,18 @@ describe('the text', () => {
     expect(nav.dialog, nav.dialog?.title).toBeNull();
     expect(nav.hasActiveMask(), 'the mask is carried').toBe(true);
     expect(nav.selection.wordFill).toMatchObject({ mode: 'pick', procedural: ['fractal'] });
+  });
+
+  it('lets a Dynamic gallery field join an already-Fit reading without a dialog', () => {
+    window.rise = {
+      settings: { chamberFace: 'thick', fontSize: 'fit' },
+      handleSettingsChange(key, value) { this.settings[key] = value; }
+    };
+    mount({ visualMode: 'interlocution', interlocution: { presentation: 'continuous' } });
+    descend('visual', 'dynamic', 'ostensoria');
+    click(nav.container.querySelector('[data-action="toggle"]'));
+    expect(nav.dialog, nav.dialog?.title).toBeNull();
+    expect(nav.selection.enabled.has('ostensoria')).toBe(true);
   });
 
   // Genesis takes a dedicated visual mode, so the Chamber never mounts the
@@ -604,11 +616,11 @@ describe('reader-facing state', () => {
     // visual-cortex is a 256KB chunk against this panel's 102KB. A preview
     // must not be paid for by every reader who opens the Orbital, so the
     // import is dynamic and happens only when a leaf is actually opened.
-    const source = readFileSync(
-      join(dirname(fileURLToPath(import.meta.url)), 'VisualNavigator.js'), 'utf8'
-    );
-    expect(source).not.toMatch(/^import\s+[^;]*visual-cortex/m);
-    expect(source).toMatch(/await import\('\.\.\/visuals\/visual-cortex\.js'\)/);
+    const here = dirname(fileURLToPath(import.meta.url));
+    const shell = readFileSync(join(here, 'VisualNavigator.js'), 'utf8');
+    const preview = readFileSync(join(here, 'visual-navigator/preview.js'), 'utf8');
+    expect(shell).not.toMatch(/^import\s+[^;]*visual-cortex/m);
+    expect(preview).toMatch(/await import\('\.\.\/\.\.\/visuals\/visual-cortex\.js'\)/);
   });
 
   it('gathers Face, Size and Ink around one specimen', () => {

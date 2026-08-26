@@ -359,6 +359,14 @@ export function findChapelCollection(id) {
         : null;
 }
 
+export function chapelCollectionIds() {
+    return Object.keys(CHAPEL_PINNED_COLLECTIONS);
+}
+
+export function chapelCollectionLabel(id) {
+    return findChapelCollection(id)?.name || null;
+}
+
 export function hasChapelCollection(id) {
     return Object.hasOwn(CHAPEL_PINNED_COLLECTIONS, id);
 }

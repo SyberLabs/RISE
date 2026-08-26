@@ -18,7 +18,7 @@
  * reason. Adding a setting to the compiler and no control now fails a test
  * rather than shipping a switch nobody can reach.
  */
-import { readFileSync } from 'node:fs';
+import { readdirSync, readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
@@ -26,6 +26,16 @@ import { selectionFromConfig, configPatch } from './visual-taxonomy-config.js';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const read = rel => readFileSync(join(here, rel), 'utf8');
+
+function navigatorSource() {
+    const shell = read('../components/VisualNavigator.js');
+    const dir = join(here, '../components/visual-navigator');
+    const parts = [shell];
+    for (const file of readdirSync(dir).filter(name => name.endsWith('.js'))) {
+        parts.push(readFileSync(join(dir, file), 'utf8'));
+    }
+    return parts.join('\n');
+}
 
 /**
  * Every `interlocution` key the session compiler writes, read from the
@@ -108,7 +118,7 @@ describe('every honoured visual setting is reachable or recorded', () => {
     it('glass is offered by the Navigator, not merely honoured by the engine', () => {
         // The specific regression: alive everywhere except where a hand could
         // reach it.
-        const navigator = read('../components/VisualNavigator.js');
+        const navigator = navigatorSource();
         // One control, whichever field holds the glass — see _glassOwner.
         expect(navigator).toMatch(/data-action="glass"/);
         expect(navigator).toMatch(/setGlass/);
