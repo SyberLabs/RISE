@@ -297,9 +297,6 @@ export class VisualCortex {
             activeTypes: ['klee', 'turrell'],
             kleePreset: 'random', // 'random' | 'architectural' | 'chaotic' | 'harmonic' | 'gravitational' | 'twittering'
             harmonographClimate: 'auto', // 'auto' | a climate palette name (explicit = veto)
-            blueprintClimate: 'auto',    // 'auto' | cyanotype | graphite | sepia | verdigris
-            blueprintMechanism: null,    // pinned by an Atrium mechanism sequence
-            freedomRelation: null,       // colonial pairing, set by an Atrium launch
             // Presentation surface: 'full-frame' cuts to an opaque overlay;
             // 'behind-stream' keeps the reading text visible and presents the
             // imagery beneath it. Behind-stream never conceals text, so it
@@ -732,8 +729,6 @@ export class VisualCortex {
             sequenceVisualAssets: [],
             globalVisuals: [],
             semanticSignals: null,
-            blueprintMechanism: null,
-            freedomRelation: null
         });
     }
 
@@ -760,8 +755,6 @@ export class VisualCortex {
             sequenceVisualAssets: [],
             globalVisuals: [],
             semanticSignals: null,
-            blueprintMechanism: null,
-            freedomRelation: null,
             ...config
         }, { sessionBoundary: true });
     }
@@ -1045,7 +1038,7 @@ export class VisualCortex {
                 }
             }
             // turrell / neural / harmonograph / apparitio /
-            // blueprint / freedom / rockgarden generate synchronously
+            // rockgarden generate synchronously
             // from their engines and need no queue. Ostensoria preloads
             // like fractal so a ≥95% void plate is discarded before a flash.
         } catch {
@@ -3164,7 +3157,7 @@ export class VisualCortex {
         if (type.startsWith('procedural:')) return false;
         const canonical = canonicalizeProceduralEngineId(type) || type;
         // Core types are internal or handled elsewhere
-        const coreTypes = ['klee', 'turrell', 'fractal', 'neural', 'global', 'custom', 'rockgarden', 'harmonograph', 'ostensoria', 'apparitio', 'attractor', 'blueprint', 'freedom', 'diagram', 'global-pool',
+        const coreTypes = ['klee', 'turrell', 'fractal', 'neural', 'global', 'custom', 'rockgarden', 'harmonograph', 'ostensoria', 'apparitio', 'attractor', 'diagram', 'global-pool',
             // Families authored for one work. Listed so selection does
             // not filter out a type the cortex can genuinely render.
             ...workEngineFamilies()];
@@ -3497,45 +3490,6 @@ export class VisualCortex {
             signal,
             background: ASCII_BACKGROUND,
             metadata: { source: 'rockgarden' }
-        });
-    }
-
-    _blueprintAsciiFrame(signal) {
-        if (!this.blueprint || !this._asciiCanvas) return null;
-        const w = this._asciiCanvas.width;
-        const h = this._asciiCanvas.height;
-        return compilePolylinesToAscii({
-            width: w,
-            height: h,
-            palette: ['#e8e8ec', '#a8a8ae'],
-            polylines: this.blueprint.asciiPolylines(w, h).map((line, index) => ({
-                points: line.points,
-                color: index === 0 ? '#a8a8ae' : '#e8e8ec',
-                delay: Math.min(0.12, index * 0.02)
-            }))
-        }, {
-            signal,
-            background: ASCII_BACKGROUND,
-            metadata: { source: 'blueprint' }
-        });
-    }
-
-    _freedomAsciiFrame(signal) {
-        if (!this.freedom || !this._asciiCanvas) return null;
-        const w = this._asciiCanvas.width;
-        const h = this._asciiCanvas.height;
-        return compilePolylinesToAscii({
-            width: w, height: h,
-            palette: ['#e8e8ec', '#a8a8ae'],
-            polylines: this.freedom.asciiPolylines(w, h).map((line, index) => ({
-                points: line.points,
-                color: index % 2 === 0 ? '#e8e8ec' : '#a8a8ae',
-                delay: Math.min(0.12, index * 0.02)
-            }))
-        }, {
-            signal,
-            background: ASCII_BACKGROUND,
-            metadata: { source: 'freedom' }
         });
     }
 
@@ -4060,36 +4014,6 @@ export class VisualCortex {
             rendered = this.apparitio.generate(signal, undefined);
             if (rendered) rendered = this.apparitio.render(this._kleeCanvas);
             if (rendered && kleeEl) kleeEl.hidden = false;
-        } else if (selectedType === 'blueprint' && this.blueprint && this._kleeCanvas) {
-            // The drafting plate: for passages about mechanism, where a
-            // museum holds portraits of inventors rather than pictures
-            // of inventions (see ATRIUM-IMAGERY-CLASSIFICATION.md).
-            // Still frame, shares the klee canvas like the harmonograph.
-            this._resizeKleeCanvas();
-            this.blueprint.generate(signal, undefined, {
-                climate: this.config.blueprintClimate,
-                mechanism: this.config.blueprintMechanism
-            });
-            if (asciiMode) {
-                asciiFrame = this._blueprintAsciiFrame(signal);
-            } else {
-                rendered = this.blueprint.render(this._kleeCanvas);
-                if (rendered && kleeEl) kleeEl.hidden = false;
-            }
-        } else if (selectedType === 'freedom' && this.freedom && this._kleeCanvas) {
-            // The liberation field: the imperial wash stripped back to
-            // the freed flag beneath. The relation comes from the Atrium
-            // launch that curated it (see freedom.js).
-            this._resizeKleeCanvas();
-            this.freedom.generate(signal, undefined, {
-                relation: this.config.freedomRelation
-            });
-            if (asciiMode) {
-                asciiFrame = this._freedomAsciiFrame(signal);
-            } else {
-                rendered = this.freedom.render(this._kleeCanvas);
-                if (rendered && kleeEl) kleeEl.hidden = false;
-            }
         } else if (selectedType === 'rockgarden' && this.rockgarden && this._kleeCanvas) {
             // Generate Rock Garden (uses same canvas as Klee)
             this.rockgarden.generateRockGarden({

@@ -34,7 +34,7 @@ test('the control bar condenses in Page Mode and restores on return', async ({ p
     };
     return {
       play: vis('#play-pause-btn'), time: vis('#time-display'),
-      visuals: vis('#visuals-toggle-btn'), music: vis('#volume-btn'),
+      visuals: vis('#visuals-toggle-btn'), settings: vis('#chamber-settings-btn'),
       pageBtn: vis('#page-mode-btn'), exit: vis('#exit-btn'),
       elongate: vis('#page-elongate')
     };
@@ -63,11 +63,13 @@ test('the control bar condenses in Page Mode and restores on return', async ({ p
   expect(inStream.visuals).toBe(true);
   expect(inStream.elongate, 'Elongate belongs to the Page').toBe(false);
 
-  // Page: only what a reader needs — page toggle, music, exit.
+  // Page: only what a reader needs — page toggle, sound, exit. Sound used to
+  // be its own button on this bar; it is inside the Settings door now, so the
+  // door is what has to survive the Page.
   expect(inPage.play).toBe(false);
   expect(inPage.time).toBe(false);
   expect(inPage.visuals).toBe(false);
-  expect(inPage.music).toBe(true);
+  expect(inPage.settings, 'Sound is reachable in the Page').toBe(true);
   expect(inPage.pageBtn).toBe(true);
   expect(inPage.exit).toBe(true);
 

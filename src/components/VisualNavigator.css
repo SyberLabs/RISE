@@ -181,7 +181,6 @@
 .vnav-program,
 .vnav-lock,
 .vnav-held,
-.vnav-fit-coupling,
 .vnav-text-locked {
   border-bottom: 1px solid var(--vnav-edge);
   background: rgba(var(--color-accent-rgb, 228,210,174), 0.055);
@@ -207,15 +206,12 @@
 }
 .vnav-lock { padding: 0.65rem 0.9rem; }
 .vnav-held,
-.vnav-fit-coupling,
 .vnav-text-locked {
   border: 1px solid rgba(var(--color-accent-rgb, 228,210,174), 0.22);
   border-radius: 4px;
   padding: 0.7rem 0.8rem;
   margin: 0 0 0.9rem;
 }
-.vnav-fit-coupling { margin-top: 1rem; }
-
 .vnav-reading-collections {
   padding: 0.65rem 0.9rem;
   border-bottom: 1px solid var(--vnav-edge);

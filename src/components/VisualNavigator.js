@@ -1279,8 +1279,7 @@ export class VisualNavigator {
         ${bench('A generated field', engines)}
         ${poolBenches}
       </div>` : ''}
-      ${styles}
-      <p class="vnav-fit-coupling">Fit paints the gallery through the letters. Words step one at a time; Recitation and phrase chunking stand aside.</p>`);
+      ${styles}`);
   }
 
   renderDialog() {

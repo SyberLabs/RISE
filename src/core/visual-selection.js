@@ -37,10 +37,22 @@ export function canonicalizeProceduralEngineId(id) {
     return id.startsWith(PROCEDURAL_PREFIX) ? id.slice(PROCEDURAL_PREFIX.length) : id;
 }
 
+/**
+ * AN ENGINE THE REGISTRY DOES NOT KNOW IS NOT A SELECTION.
+ *
+ * Any non-empty string used to survive as a procedural id, so a stored config
+ * naming a retired engine carried it forward forever — and the cortex, having
+ * no branch that could draw it, answered with a silent blank field. Blueprint
+ * and Freedom left with the Atrium and were exactly that: still selectable
+ * out of localStorage, still unable to appear.
+ *
+ * Filtering here rather than naming the two of them means the next engine to
+ * be retired needs nothing said about it anywhere.
+ */
 function collectProceduralIds(ids) {
     return [...new Set(uniqueStringIds(ids)
         .map(canonicalizeProceduralEngineId)
-        .filter(Boolean))];
+        .filter(id => PROCEDURAL_ENGINE_IDS.has(id)))];
 }
 
 function liftEngineIdsFromSourced(sourcedIds) {

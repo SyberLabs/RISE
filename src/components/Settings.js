@@ -37,11 +37,43 @@ import './Settings.css';
  */
 const SESSION_SCOPE = 'session';
 
+/**
+ * THE BAR IS THE IN-SESSION SETTINGS; THIS DOOR ONLY WIDENS IT.
+ *
+ * The Chamber's door opened the Portal's panel over the whole screen, and
+ * narrowing its CONTENTS still left a full-screen replica for a handful of
+ * controls. The bar scope is the honest size: what a reader can need without
+ * abandoning a reading that cannot be resumed, and nothing they could have
+ * decided before beginning.
+ *
+ *   Sound  — the ONE control the bar already carried, folded in here so the
+ *            bar sheds a button rather than gaining a door beside it.
+ *   Size   — S, M, L. Not Fit: Fit stands recitation and phrase chunking
+ *            aside, so it changes the reading's mechanics rather than its
+ *            scale, and belongs with the projection choices made beforehand.
+ *   Safety — the bar's Visuals button is a blunt kill-all for the rhythmic
+ *            cortex; it does nothing for brightness oscillation or a Gallery.
+ *            A reader who starts feeling unwell needs the graded switch, and
+ *            needs it without ending the reading.
+ *
+ * Face and Accent are the One Type editor's and the Portal's: changing a
+ * typeface mid-sentence is not a rescue, it is a decision made too late.
+ */
+const BAR_SCOPE = 'bar';
+
+const VOLUME_PRESETS = Object.freeze([
+    Object.freeze({ value: 0, label: 'Mute' }),
+    Object.freeze({ value: 50, label: '50%' }),
+    Object.freeze({ value: 100, label: 'Max' })
+]);
+
 export class Settings {
     constructor(container, options = {}) {
         this.container = container;
         this.settings = options.settings || {};
-        this.scope = options.scope === SESSION_SCOPE ? SESSION_SCOPE : 'portal';
+        this.scope = options.scope === SESSION_SCOPE || options.scope === BAR_SCOPE
+            ? options.scope
+            : 'portal';
 
         this.onNavigate = options.onNavigate || (() => { });
         this.onClose = typeof options.onClose === 'function' ? options.onClose : null;
@@ -55,10 +87,15 @@ export class Settings {
     }
 
     get inSession() {
-        return this.scope === SESSION_SCOPE;
+        return this.scope === SESSION_SCOPE || this.scope === BAR_SCOPE;
+    }
+
+    get inBar() {
+        return this.scope === BAR_SCOPE;
     }
 
     render() {
+        if (this.inBar) return this.renderBar();
         const backLabel = this.onClose ? 'Back' : 'Portal';
         const backAria = this.onClose ? 'Back' : 'Back to Portal';
         this.container.innerHTML = `
@@ -309,6 +346,67 @@ export class Settings {
     `;
     }
 
+    /** The reading's own controls, at the size the reading can spare. */
+    renderBar() {
+        const volume = Math.round((this.settings.masterVolume ?? 0.75) * 100);
+        const size = resolveFontSize(this.settings.fontSize);
+        this.container.innerHTML = `
+      <form class="settings settings--bar" role="dialog" aria-labelledby="settings-title">
+        <header class="settings-bar-head">
+          <h1 id="settings-title" class="settings-bar-title">Settings</h1>
+          <button type="button" class="settings-bar-close" data-action="back" aria-label="Close">✕</button>
+        </header>
+
+        <section class="settings-bar-group" aria-labelledby="bar-sound-label">
+          <span class="settings-bar-label" id="bar-sound-label">Sound</span>
+          <div class="settings-bar-sound">
+            <input type="range" id="master-volume" class="slider" min="0" max="100"
+              value="${volume}" aria-valuenow="${volume}" aria-valuemin="0" aria-valuemax="100"
+              aria-labelledby="bar-sound-label" />
+            <span class="slider-value font-mono" id="volume-value">${volume}%</span>
+          </div>
+          <div class="settings-bar-presets">
+            ${VOLUME_PRESETS.map(preset => `
+              <button type="button" class="settings-bar-preset" data-volume="${preset.value}">${preset.label}</button>
+            `).join('')}
+          </div>
+        </section>
+
+        <section class="settings-bar-group" aria-labelledby="bar-size-label">
+          <span class="settings-bar-label" id="bar-size-label">Size</span>
+          <div class="settings-control" role="radiogroup" aria-labelledby="bar-size-label">
+            ${FONT_SIZE_CHIPS.filter(chip => chip.fontSize !== 'fit').map(chip => `
+              <label class="radio">
+                <input type="radio" name="font-size" value="${chip.fontSize}"
+                  data-font-size="${chip.id}" ${chip.fontSize === size ? 'checked' : ''} />
+                <span class="radio-label">${chip.label}</span>
+              </label>
+            `).join('')}
+          </div>
+        </section>
+
+        <section class="settings-bar-group" aria-labelledby="bar-safety-label">
+          <span class="settings-bar-label" id="bar-safety-label">Safety</span>
+          ${[
+                { key: 'photosensitivityMode', label: 'Photosensitivity', hint: 'No brightness oscillation' },
+                { key: 'reducedMotion', label: 'Reduced Motion', hint: 'Fewer animations' }
+            ].map(row => `
+            <div class="settings-row">
+              <div class="settings-label-group">
+                <label class="settings-label">${row.label}</label>
+                <p class="settings-hint text-mist">${row.hint}</p>
+              </div>
+              <label class="toggle">
+                <input type="checkbox" data-setting="${row.key}" ${this.settings[row.key] ? 'checked' : ''} />
+                <span class="toggle-switch"></span>
+              </label>
+            </div>
+          `).join('')}
+        </section>
+      </form>
+    `;
+    }
+
     fontSizeHint() {
         if (resolveFontSize(this.settings.fontSize) !== 'fit') return '';
         const atom = typeof document !== 'undefined'
@@ -430,6 +528,19 @@ export class Settings {
                 if (resolveChamberAccent(requested) !== requested) return;
                 this.settings.chamberAccent = requested;
                 this.onChange('chamberAccent', requested);
+            });
+        });
+
+        this.container.querySelectorAll('[data-volume]').forEach((button) => {
+            button.addEventListener('click', () => {
+                const value = Number(button.dataset.volume);
+                if (!Number.isFinite(value)) return;
+                const slider = this.container.querySelector('#master-volume');
+                const readout = this.container.querySelector('#volume-value');
+                if (slider) slider.value = String(value);
+                if (readout) readout.textContent = `${value}%`;
+                this.settings.masterVolume = value / 100;
+                this.onChange('masterVolume', value / 100);
             });
         });
 

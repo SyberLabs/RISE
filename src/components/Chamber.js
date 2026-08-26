@@ -391,10 +391,6 @@ export class Chamber {
               <span class="icon pause-icon hidden" id="pause-icon">⏸</span>
             </button>
 
-            <button class="control-btn" id="volume-btn" aria-label="Volume">
-              <span class="icon">♪</span>
-            </button>
-
             ${this.offersVisualsToggle ? `
               <button class="control-btn rhythmic-visuals-toggle" id="visuals-toggle-btn"
                 type="button" aria-pressed="true" aria-label="Disable rhythmic visuals"
@@ -1171,7 +1167,6 @@ export class Chamber {
 
     // In-session controls
     const playPauseBtn = this.container.querySelector('#play-pause-btn');
-    const volumeBtn = this.container.querySelector('#volume-btn');
     const visualsToggleBtn = this.container.querySelector('#visuals-toggle-btn');
     const settingsBtn = this.container.querySelector('#chamber-settings-btn');
     const exitBtn = this.container.querySelector('#exit-btn');
@@ -1179,10 +1174,6 @@ export class Chamber {
     playPauseBtn?.addEventListener('click', () => {
       window.rise?.audioEngine?.playHiss();
       this.togglePlayPause();
-    });
-    volumeBtn?.addEventListener('click', () => {
-      window.rise?.audioEngine?.playHiss();
-      this.toggleVolume();
     });
     this.container.querySelector('#page-prev')?.addEventListener('click', () => {
       this.pageReader?.prevPage();
@@ -2468,11 +2459,15 @@ export class Chamber {
       return;
     }
     host.hidden = false;
+    this._anchorSettingsToBar(host);
     this._settingsInstance = new Settings(host, {
       // A reading cannot be resumed once abandoned, so this door widens the
-      // control bar rather than opening the Portal's whole panel: no lobby
-      // drone, no data export, and nothing that clears a session mid-reading.
-      scope: 'session',
+      // control bar rather than opening the Portal's whole panel. Sound, Size
+      // and the two safety switches: what can rescue a reading in progress,
+      // and nothing a reader could have decided before beginning. Sound moved
+      // in from the bar's own volume button, so the bar sheds a control here
+      // rather than gaining a door beside one.
+      scope: 'bar',
       settings: globalThis.rise?.settings || {},
       onClose: () => this.closeSettings(),
       onNavigate: () => this.closeSettings(),
@@ -2523,6 +2518,32 @@ export class Chamber {
       host.replaceChildren();
       host.hidden = true;
     }
+  }
+
+  /**
+   * Put the panel over the control that opened it.
+   *
+   * A card that belongs to the bar has to look like it does; pinned to the
+   * viewport's right edge it read as an unrelated thing that had appeared.
+   * Centred on the button, then clamped so it cannot leave the frame at
+   * either end — a panel half off screen is worse than one slightly off
+   * centre. The phone breakpoint takes the full width and ignores this.
+   */
+  _anchorSettingsToBar(host) {
+    const button = this.container.querySelector('#chamber-settings-btn');
+    if (!button || typeof window === 'undefined') return;
+    const rect = button.getBoundingClientRect();
+    if (!rect.width && !rect.height) return;
+    const margin = 24;
+    const width = Math.min(336, window.innerWidth - margin * 2);
+    const centred = rect.left + rect.width / 2 - width / 2;
+    const left = Math.max(margin, Math.min(centred, window.innerWidth - width - margin));
+    host.style.setProperty('--settings-anchor-left', `${Math.round(left)}px`);
+    host.style.setProperty('--settings-anchor-right', 'auto');
+    host.style.setProperty(
+      '--settings-anchor-bottom',
+      `${Math.round(Math.max(margin, window.innerHeight - rect.top + 12))}px`
+    );
   }
 
   _failSettingsDoor() {
@@ -2908,73 +2929,6 @@ export class Chamber {
     }
     this.showControls();
     return this.kaleidoscopeEngaged;
-  }
-
-  toggleVolume() {
-    const existing = this.container.querySelector('#volume-modal');
-    if (existing) {
-      existing.remove();
-      return;
-    }
-
-    const currentVolume = window.rise?.settings?.masterVolume ?? 0.75;
-
-    const modal = document.createElement('div');
-    modal.id = 'volume-modal';
-    modal.className = 'volume-modal';
-    modal.innerHTML = `
-      <div class="volume-modal-content">
-        <div class="volume-header">
-          <span class="volume-icon">♪</span>
-          <span class="volume-title">Volume</span>
-        </div>
-        <div class="volume-slider-row">
-          <input type="range" class="slider volume-slider" id="volume-slider"
-            min="0" max="100" value="${Math.round(currentVolume * 100)}" />
-          <span class="volume-value font-mono" id="volume-value">${Math.round(currentVolume * 100)}%</span>
-        </div>
-        <div class="volume-presets">
-          <button class="volume-preset" data-volume="0">Mute</button>
-          <button class="volume-preset" data-volume="50">50%</button>
-          <button class="volume-preset" data-volume="100">Max</button>
-        </div>
-      </div>
-    `;
-
-    // Position near volume button
-    const volumeBtn = this.container.querySelector('#volume-btn');
-    const rect = volumeBtn.getBoundingClientRect();
-    modal.style.position = 'fixed';
-    modal.style.bottom = `${window.innerHeight - rect.top + 10}px`;
-    modal.style.left = `${rect.left}px`;
-
-    this.container.appendChild(modal);
-
-    const slider = modal.querySelector('#volume-slider');
-    const valueDisplay = modal.querySelector('#volume-value');
-
-    slider.addEventListener('input', (e) => {
-      const value = parseInt(e.target.value);
-      valueDisplay.textContent = `${value}%`;
-      this.setVolume(value / 100);
-    });
-
-    modal.querySelectorAll('.volume-preset').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const value = parseInt(btn.dataset.volume);
-        slider.value = value;
-        valueDisplay.textContent = `${value}%`;
-        this.setVolume(value / 100);
-      });
-    });
-
-    const closeHandler = (e) => {
-      if (!modal.contains(e.target) && e.target !== volumeBtn) {
-        modal.remove();
-        document.removeEventListener('click', closeHandler);
-      }
-    };
-    setTimeout(() => document.addEventListener('click', closeHandler), 0);
   }
 
   setVolume(volume) {

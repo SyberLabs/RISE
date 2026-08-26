@@ -3,7 +3,6 @@ import {
   normalizeVisualSelection
 } from './visual-selection.js';
 
-const LAUNCH_ONLY_PROCEDURAL_TYPES = new Set(['blueprint', 'freedom']);
 const READING_VISUAL_IDENTITY_VERSION = 1;
 const READING_VISUAL_DOMAINS = new Set(['atrium', 'chapel']);
 const MAX_READING_COLLECTIONS = 64;
@@ -117,20 +116,17 @@ export function releaseLaunchHeldFocal(focals) {
 /**
  * Remove selection/context authored by the reading being left.
  *
- * Sourced pools are launch-scoped. Blueprint/Freedom are likewise
- * source-exclusive procedural identities; ordinary user-selected procedural
- * engines remain available for the next draft.
+ * Sourced pools are launch-scoped; ordinary user-selected procedural engines
+ * remain available for the next draft. This used to also strip Blueprint and
+ * Freedom by name — normalizeVisualSelection drops any engine the registry
+ * does not know, so a retired one needs no mention here.
  */
 export function clearLaunchVisualSelection(interlocution = {}) {
-  const procedural = Array.isArray(interlocution.procedural)
-    ? interlocution.procedural.filter(id => !LAUNCH_ONLY_PROCEDURAL_TYPES.has(id))
-    : [];
+  const procedural = Array.isArray(interlocution.procedural) ? interlocution.procedural : [];
   const sourceFamily = inferVisualSourceFamily(procedural, []);
   return {
     ...interlocution,
     ...normalizeVisualSelection({ sourceFamily, procedural, sourced: [] }),
-    atriumCollections: [],
-    blueprintMechanism: null,
-    freedomRelation: null
+    atriumCollections: []
   };
 }
