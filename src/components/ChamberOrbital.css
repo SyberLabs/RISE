@@ -17,6 +17,11 @@
   --orbit-center: 260px;
   --orbit-radius: 220px;
   --orbit-radius-hover: 210px;
+  /* The stance row and the ring are two different acts — choosing a posture,
+     then adjusting it — and were reading as one crowded column. This margin
+     is spent TWICE, above the stage and below it, so every step costs double
+     from a column that has to keep Begin above the floor. The tiers below
+     are what the measured slack allows. */
   --orbit-stage-margin: var(--space-2xl);
 
   /* THE FLOOR IS REACHABLE. This was `min-height: 100vh` with the content
@@ -1787,7 +1792,7 @@
     --orbit-center: 216px;
     --orbit-radius: 198px;
     --orbit-radius-hover: 190px;
-    --orbit-stage-margin: var(--space-md);
+    --orbit-stage-margin: var(--space-xl);
     padding: var(--space-md) var(--space-xl);
   }
 
@@ -1816,7 +1821,7 @@
     --orbit-center: 186px;
     --orbit-radius: 170px;
     --orbit-radius-hover: 163px;
-    --orbit-stage-margin: var(--space-sm);
+    --orbit-stage-margin: var(--space-lg);
     padding: var(--space-sm) var(--space-xl);
   }
 

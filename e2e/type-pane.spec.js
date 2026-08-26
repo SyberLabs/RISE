@@ -19,11 +19,12 @@ const SEED = {
     origin: null
 };
 
-async function openType(page) {
-    await page.addInitScript(({ gate, seed }) => {
+async function openType(page, settings = null) {
+    await page.addInitScript(({ gate, seed, settings }) => {
         localStorage.setItem('rise-beta-session', JSON.stringify(gate));
         localStorage.setItem('rise_orbital_text_v1', JSON.stringify(seed));
-    }, { gate: GATE, seed: SEED });
+        if (settings) localStorage.setItem('rise-settings', JSON.stringify(settings));
+    }, { gate: GATE, seed: SEED, settings });
     await page.goto('/');
     await page.locator('[data-nav="chamber"]').first().click();
     await expect(page.locator('#begin-btn')).toBeEnabled({ timeout: 20_000 });
@@ -85,4 +86,73 @@ test('naming a section in the rail travels to it', async ({ page }) => {
         expect(offset, `${section} landed ${offset}px ABOVE the specimen`)
             .toBeGreaterThanOrEqual(-24);
     }
+});
+
+/**
+ * THE SPECIMEN SHOWS WHAT THE READING WILL PAINT.
+ *
+ * It carried imagery through the letters and nothing else, so two of the
+ * three things this pane decides were invisible in the one place built to
+ * show them: choosing Accent left the sample unchanged, and setting a border
+ * drew no edge. Both are read from the resolved style rather than from
+ * pixels, because a cream edge on cream letters is real and nearly
+ * invisible — the question is whether the property applies, not whether a
+ * screenshot happens to show it.
+ */
+test('the specimen wears the ink and the edge it is being asked about', async ({ page }) => {
+    await openType(page, { chamberFace: 'thick', fontSize: 'fit' });
+    await page.locator('.vnav-node[data-id="ink"]').click();
+    await page.locator('[data-word-fill="accent"]').first().click();
+    await page.waitForTimeout(300);
+
+    const sample = '.vnav-specimen .vnav-preview-sample';
+    const painted = await page.evaluate((sel) => {
+        const style = getComputedStyle(document.querySelector(sel));
+        const accent = getComputedStyle(document.documentElement)
+            .getPropertyValue('--color-accent').trim();
+        const canvas = document.createElement('canvas').getContext('2d');
+        canvas.fillStyle = accent;
+        canvas.fillRect(0, 0, 1, 1);
+        const [r, g, b] = [...canvas.getImageData(0, 0, 1, 1).data].slice(0, 3);
+        return { ink: style.webkitTextFillColor || style.color, accent: `rgb(${r}, ${g}, ${b})` };
+    }, sample);
+    expect(painted.ink, 'the sample is inked with the accent it was told to use')
+        .toBe(painted.accent);
+
+    // The edge, under the one condition the Chamber draws one.
+    await page.locator('.vnav-node[data-id="size"]').click();
+    await page.waitForTimeout(300);
+    const strokeFor = async (border) => {
+        await page.locator(`[data-word-fill-border="${border}"]`).first().click();
+        await page.waitForTimeout(300);
+        return page.evaluate((sel) => {
+            const style = getComputedStyle(document.querySelector(sel));
+            return { colour: style.webkitTextStrokeColor, width: style.webkitTextStrokeWidth };
+        }, sample);
+    };
+
+    const off = await strokeFor('off');
+    const cream = await strokeFor('cream');
+    const accentEdge = await strokeFor('accent');
+
+    // Off declares no stroke at all, so its COLOUR falls back to currentColor
+    // and says nothing; the width is what tells you whether an edge is drawn.
+    expect(parseFloat(off.width), `Off drew a ${off.width} edge`).toBe(0);
+    expect(parseFloat(cream.width), 'Cream draws one').toBeGreaterThan(0);
+    expect(parseFloat(accentEdge.width), 'Accent draws one').toBeGreaterThan(0);
+    expect(accentEdge.colour, 'and a different colour from Cream').not.toBe(cream.colour);
+});
+
+// Glass is a tile behind the text, and a Fit word leaves no behind: a frosted
+// plate under a word that fills the chamber is the size of the room, and the
+// field the reader chose would be behind it.
+test('Glass stands aside the moment Fit is chosen', async ({ page }) => {
+    await openType(page, { chamberFace: 'literary', fontSize: 'medium' });
+    const glass = page.locator('[data-action="glass"]');
+    expect(await glass.isDisabled(), 'available at a fixed scale').toBe(false);
+
+    await page.locator('.vnav-node[data-id="size"]').click();
+    await page.locator('[data-font-size="fit"]').first().click();
+    await page.waitForTimeout(400);
+    expect(await glass.isDisabled(), 'withdrawn once the word holds the frame').toBe(true);
 });

@@ -63,7 +63,17 @@ export class PageReader {
         // Pagination (§9): opt out for whole-column callers (e.g. print).
         // Otherwise length decides (see render): scrollUnderPages threshold.
         this.paginated = options.paginated !== false;
-        this.scrollUnderPages = Number.isFinite(options.scrollUnderPages)
+        // INFINITY IS THE ANSWER TO "NEVER PAGINATE", AND IT WAS BEING REFUSED.
+        //
+        // The Chamber passes Number.POSITIVE_INFINITY to say the public Page
+        // opens as one elongated composition, and has since that was written.
+        // Number.isFinite(Infinity) is false, so the value was read as junk
+        // and replaced with the default 4 — every reading over four pages
+        // opened paginated, and the stated intent never once took effect.
+        // The guard's job is to reject what is not a number; Infinity is one,
+        // and is the only way to express this threshold's absence.
+        this.scrollUnderPages = typeof options.scrollUnderPages === 'number'
+            && !Number.isNaN(options.scrollUnderPages)
             ? options.scrollUnderPages
             : 4;
         // The Chamber draws the turn in its own control bar, so the

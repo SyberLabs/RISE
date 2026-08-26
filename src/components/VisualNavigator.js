@@ -598,31 +598,45 @@ export class VisualNavigator {
     this.render();
   }
 
+  /**
+   * The word itself is holding the frame.
+   *
+   * Fit scales one word to fill the chamber, which is what gives the border
+   * something to edge and what leaves glass nothing to sit behind. Three
+   * places asked this and all three used to ask about the imagery mask
+   * instead — one of the several ways a reader reaches Fit, not the condition.
+   */
+  fitHoldsTheWord() {
+    return resolveFontSize(this.textMaterialSettings().fontSize) === 'fit';
+  }
+
   setWordFill(value, returnFocus) {
     if (this.locked) return;
     if (this.programInfo) return this.explainProgramOwnership(returnFocus);
     const settings = this.textMaterialSettings();
     let wordFill = null;
+    // The edge survives the ink: it is the Fit word's, not the fill's.
+    const keptBorder = normalizeWordFill(this.selection.wordFill).border || 'cream';
     if (value === 'accent') {
       wordFill = wordFillValue(this.selection.wordFill) === 'accent'
-        ? { mode: 'plain' }
-        : { mode: 'accent' };
+        ? { mode: 'plain', border: keptBorder }
+        : { mode: 'accent', border: keptBorder };
       this.inkFocus = null;
     } else if (value === 'same') {
-      wordFill = { mode: 'same', border: normalizeWordFill(this.selection.wordFill).border || 'cream' };
+      wordFill = { mode: 'same', border: keptBorder };
       this.inkFocus = null;
     } else if (value.startsWith('procedural:')) {
       const engineId = value.slice('procedural:'.length);
       wordFill = {
         mode: 'pick', sourceFamily: 'procedural', procedural: [engineId], sourced: [],
-        border: normalizeWordFill(this.selection.wordFill).border || 'cream'
+        border: keptBorder
       };
       this.inkFocus = engineId;
     } else if (value.startsWith('sourced:')) {
       const sourceId = value.slice('sourced:'.length);
       wordFill = {
         mode: 'pick', sourceFamily: 'collections', procedural: [], sourced: [sourceId],
-        border: normalizeWordFill(this.selection.wordFill).border || 'cream'
+        border: keptBorder
       };
       this.inkFocus = null;
     } else return;
@@ -641,7 +655,7 @@ export class VisualNavigator {
 
   setWordFillBorder(border, returnFocus) {
     if (this.programInfo) return this.explainProgramOwnership(returnFocus);
-    if (!this.hasActiveMask() || !['off', 'cream', 'accent'].includes(border)) return;
+    if (!this.fitHoldsTheWord() || !['off', 'cream', 'accent'].includes(border)) return;
     this.selection.wordFill = normalizeWordFill({ ...this.selection.wordFill, border });
     this.emit();
     this.render();
@@ -1177,13 +1191,14 @@ export class VisualNavigator {
   /**
    * The edge of the Fit word.
    *
-   * Shown only where it can do something. Chamber.applyChamberMask is its one
-   * reader and applies it under the mask alone, so Fit is necessary but not
-   * sufficient: the mask also wants the Thick face, word timing, and a
-   * gallery. hasActiveMask asks all four rather than naming one.
+   * Shown wherever it can act, which is wherever the word is a Fit word. It
+   * used to be gated on the imagery mask, so Fit + Accent offered no border
+   * at all — yet a word filling the chamber needs an edge to read against the
+   * field whether the letters carry a Rembrandt or a flat accent. The Chamber
+   * owns it on the same path that decides the Fit word, so the two agree.
    */
   _borderBench() {
-    if (!this.hasActiveMask()) return '';
+    if (!this.fitHoldsTheWord()) return '';
     const border = normalizeWordFill(this.selection.wordFill).border;
     const shared = { disabled: Boolean(this.locked), readOnly: Boolean(this.programInfo) };
     return bench('Border of the word', [
@@ -1306,13 +1321,32 @@ export class VisualNavigator {
     const isFit = size === 'fit';
     const masked = this.hasActiveMask();
     const ink = masked ? this._specimenInkUrl() : null;
+    // THE SPECIMEN WEARS EVERY ANSWER, NOT ONLY THE PICTURESQUE ONE.
+    //
+    // It carried imagery through the letters and nothing else, so a reader
+    // choosing Accent saw the sample unchanged and a reader setting a border
+    // saw no edge — two of the three things this pane decides were invisible
+    // in the one place built to show them. The accent is a fill like any
+    // other, and the border is drawn the way the Chamber draws it, on the one
+    // condition under which the Chamber draws it at all.
+    const fill = wordFillValue(this.selection.wordFill);
+    const border = isFit ? normalizeWordFill(this.selection.wordFill).border : 'off';
+    const edge = border === 'cream' ? 'var(--color-light)'
+      : border === 'accent' ? 'var(--color-accent)' : null;
     const label = isFit
       ? 'One Word, filling the chamber'
       : 'The reading, as it will appear';
+    const style = [
+      `--preview-intent:${threeStepIntent(fontSize)}`,
+      ink ? `--specimen-ink:url('${ink}')` : '',
+      edge ? `--specimen-edge:${edge}` : ''
+    ].filter(Boolean).join(';');
     return `<figure class="vnav-preview-type vnav-specimen${ink ? ' has-ink' : ''}"
       data-face-sample="${escapeHtml(face)}"
       data-size-sample="${escapeHtml(size)}"
-      style="--preview-intent:${threeStepIntent(fontSize)}${ink ? `;--specimen-ink:url('${ink}')` : ''}">
+      ${fill === 'accent' ? 'data-ink-sample="accent"' : ''}
+      ${edge ? 'data-edge-sample="on"' : ''}
+      style="${style}">
       <span class="vnav-preview-label">${escapeHtml(label)}</span>
       <p class="vnav-preview-sample">${isFit ? 'Light' : 'Light enters form'}</p>
     </figure>`;
@@ -1340,10 +1374,12 @@ export class VisualNavigator {
 
   renderReaderControls() {
     const fieldLocked = Boolean(this.locked || this.programInfo);
-    // Every glass path in the Chamber is gated `&& !chamberMaskApplies()`, so
-    // while a mask carries the letters this switch cannot act at all. Saying
-    // so is cheaper than letting it look available and do nothing.
-    const maskHoldsLetters = this.hasActiveMask();
+    // Every glass path in the Chamber is gated on glassCanApply(), so this
+    // switch cannot act while a mask carries the letters OR while a Fit word
+    // fills the chamber — a frosted plate behind a word that size is the size
+    // of the room, and the field would be behind it. Saying so is cheaper
+    // than letting the switch look available and do nothing.
+    const maskHoldsLetters = this.hasActiveMask() || this.fitHoldsTheWord();
     const galleryContext = [...this.selection.enabled].some(id => categoryOf(id) === FIELD.GALLERY)
       || categoryOf(this.focus?.id) === FIELD.GALLERY
       || this.selection.emptyGallery;
@@ -1351,7 +1387,7 @@ export class VisualNavigator {
       <label class="vnav-living"><input type="checkbox" data-action="living-text"
         ${this.selection.livingText.enabled ? 'checked' : ''} ${fieldLocked ? 'disabled' : ''}> <span>Living Text</span></label>
       <label class="vnav-living"${maskHoldsLetters
-        ? ' title="A Visual mask is carrying the letters, and glass behind them would swallow the imagery. The glass returns when the mask does not hold."'
+        ? ' title="The word itself is holding the frame — a Fit word, or a Visual mask carrying the letters. Glass behind it would swallow the field. It returns at a fixed scale."'
         : ''}><input type="checkbox" data-action="glass"
         ${this.glassOn() ? 'checked' : ''}
         ${fieldLocked || maskHoldsLetters ? 'disabled' : ''}> <span>Glass behind the text</span></label>

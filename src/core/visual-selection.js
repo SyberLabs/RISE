@@ -140,8 +140,13 @@ export function normalizeWordFill(value) {
     if (!value || typeof value !== 'object' || Array.isArray(value)) {
         return { mode: 'same' };
     }
-    if (value.mode === 'plain') return { mode: 'plain' };
-    if (value.mode === 'accent') return { mode: 'accent' };
+    // THE BORDER IS THE FIT WORD'S EDGE, NOT A PROPERTY OF THE INK. It was
+    // carried only by the two mask modes and dropped here, so choosing Accent
+    // silently discarded a border the reader had set and Fit + Accent could
+    // never have one. What fills the letters and what edges them are separate
+    // questions; every mode keeps its answer to the second.
+    if (value.mode === 'plain') return { mode: 'plain', border: normalizeFitBorder(value.border) };
+    if (value.mode === 'accent') return { mode: 'accent', border: normalizeFitBorder(value.border) };
     if (value.mode === 'same') return { mode: 'same', border: normalizeFitBorder(value.border) };
     if (value.mode !== 'pick') return { mode: 'same' };
     const selection = normalizeVisualSelection(value);

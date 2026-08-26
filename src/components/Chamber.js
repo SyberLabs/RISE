@@ -613,6 +613,24 @@ export class Chamber {
     return this._textMaterialCapabilityContext().capability.maskActive;
   }
 
+  /**
+   * GLASS IS A TILE BEHIND THE TEXT, AND A FIT WORD LEAVES NO BEHIND.
+   *
+   * Every glass path was gated on the imagery mask alone, so choosing Fit
+   * with a flat Accent ink kept the glass switch live: a word scaled to fill
+   * the chamber then carried a frosted plate the size of the room, and the
+   * field the reader chose was behind it. Fit is the condition, not the mask
+   * — the mask is only one of the ways a reader reaches Fit.
+   */
+  wordHoldsTheFrame() {
+    const settings = globalThis.rise?.settings || {};
+    return isChamberWordFit(settings.fontSize) && this.session?.chunkMode === 'word';
+  }
+
+  glassCanApply() {
+    return !this.chamberMaskApplies() && !this.wordHoldsTheFrame();
+  }
+
   _textMaterialCapabilityContext() {
     const settings = globalThis.rise?.settings || {};
     const visualConfig = this.session?.visualConfig;
@@ -639,21 +657,12 @@ export class Chamber {
     if (this.chamberMaskApplies()) {
       atomDisplay.classList.add('is-mask');
       atomDisplay.classList.remove('glass-tile');
-      const border = this._maskSourceConfig().wordFill?.border;
-      const borderColor = border === 'cream'
-        ? 'var(--color-light)'
-        : border === 'accent'
-          ? 'var(--color-accent)'
-          : '';
-      if (borderColor) atomDisplay.style.setProperty('--fit-border-color', borderColor);
-      else atomDisplay.style.removeProperty('--fit-border-color');
       this.ensureFillField();
       this.syncMaskGroundPlate();
     } else {
       atomDisplay.classList.remove('is-mask');
       atomDisplay.classList.remove('is-mask-ink', 'is-mask-ready');
       atomDisplay.dataset.maskState = 'inactive';
-      atomDisplay.style.removeProperty('--fit-border-color');
       this.destroyFillField();
     }
   }
@@ -1706,7 +1715,7 @@ export class Chamber {
 
     // Glass tile on by default — the text must stay legible over imagery
     // (the field's whole reason to exist is a presence behind the reading).
-    if (atomDisplay && visualConfig.interlocution?.streamGlass !== false && !this.chamberMaskApplies()) {
+    if (atomDisplay && visualConfig.interlocution?.streamGlass !== false && this.glassCanApply()) {
       atomDisplay.classList.add('glass-tile');
     }
 
@@ -1731,7 +1740,7 @@ export class Chamber {
     field?.classList.add('chamber-field-stream');
 
     const atomDisplay = this.container.querySelector('#atom-display');
-    if (atomDisplay && visualConfig.interlocution?.streamGlass !== false && !this.chamberMaskApplies()) {
+    if (atomDisplay && visualConfig.interlocution?.streamGlass !== false && this.glassCanApply()) {
       atomDisplay.classList.add('glass-tile');
     }
   }
@@ -1748,7 +1757,7 @@ export class Chamber {
     if (cue.renderer === 'genesis') {
       host.className = 'chamber-genesis';
       field.classList.add('chamber-field-genesis');
-      if (atomDisplay && config.glass !== false && !this.chamberMaskApplies()) {
+      if (atomDisplay && config.glass !== false && this.glassCanApply()) {
         atomDisplay.classList.add('glass-tile');
       }
       this._insertBehindReading(field, host);
@@ -2102,6 +2111,7 @@ export class Chamber {
     if (!useFit) {
       atomDisplay.classList.remove('is-word-fit');
       atomDisplay.style.removeProperty('--atom-fit-px');
+      this._applyFitBorder(atomDisplay, false);
       atomDisplay.style.setProperty('--atom-scale', String(sizeAtomScale(content)));
       return;
     }
@@ -2132,12 +2142,38 @@ export class Chamber {
     if (px == null) {
       atomDisplay.classList.remove('is-word-fit');
       atomDisplay.style.removeProperty('--atom-fit-px');
+      this._applyFitBorder(atomDisplay, false);
       atomDisplay.style.setProperty('--atom-scale', String(sizeAtomScale(content)));
       return;
     }
     atomDisplay.classList.add('is-word-fit');
     atomDisplay.style.setProperty('--atom-fit-px', `${px}px`);
+    this._applyFitBorder(atomDisplay, true);
     atomDisplay.style.setProperty('--atom-scale', '1');
+  }
+
+  /**
+   * THE BORDER IS THE FIT WORD'S EDGE, NOT THE MASK'S.
+   *
+   * It was set inside applyChamberMask and so existed only while imagery was
+   * being painted through the letters. But its whole job is to give a word
+   * that fills the chamber an edge to read against a busy field, and a word
+   * filled with the accent needs that as much as one filled with a Rembrandt.
+   * Gating it on the mask meant choosing Fit + Accent offered no border at
+   * all — the panel did not even show the control.
+   *
+   * Owned here, on the one path that already decides whether a word is a Fit
+   * word, so the property can never disagree with the class.
+   */
+  _applyFitBorder(atomDisplay, useFit) {
+    const border = useFit ? this._maskSourceConfig().wordFill?.border : null;
+    const color = border === 'cream'
+      ? 'var(--color-light)'
+      : border === 'accent'
+        ? 'var(--color-accent)'
+        : '';
+    if (color) atomDisplay.style.setProperty('--fit-border-color', color);
+    else atomDisplay.style.removeProperty('--fit-border-color');
   }
 
   _wordFitBox() {
