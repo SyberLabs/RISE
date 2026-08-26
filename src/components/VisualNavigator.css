@@ -594,6 +594,20 @@
    rather than described — and it appears only when the mask could really be
    carried, so taking the Thick face away empties the letters in front of
    the reader instead of being explained underneath them. */
+/* The accent is a fill like any other, so the sample wears it. */
+.vnav-specimen[data-ink-sample="accent"] .vnav-preview-sample {
+  color: var(--color-accent, #E4D2AE);
+  -webkit-text-fill-color: var(--color-accent, #E4D2AE);
+}
+
+/* Drawn the way the Chamber draws it — the same stroke, the same paint
+   order — so the specimen cannot promise an edge the reading paints
+   differently. */
+.vnav-specimen[data-edge-sample] .vnav-preview-sample {
+  -webkit-text-stroke: clamp(0.75px, 0.055em, 2px) var(--specimen-edge, transparent);
+  paint-order: stroke fill;
+}
+
 .vnav-specimen.has-ink .vnav-preview-sample {
   background-image: var(--specimen-ink);
   background-size: cover;

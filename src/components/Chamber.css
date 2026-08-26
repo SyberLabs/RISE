@@ -257,6 +257,14 @@
   text-shadow: none;
 }
 
+/* A word that fills the chamber gets an edge to read against the field, and
+   it needs one whether the letters carry imagery or a flat accent. The stroke
+   is transparent until a border is chosen, so Off costs nothing. */
+.atom-display.is-word-fit {
+  -webkit-text-stroke: clamp(0.75px, 0.1em, 2px) var(--fit-border-color, transparent);
+  paint-order: stroke fill;
+}
+
 .atom-display.is-word-fit.is-mask-ink.is-mask-ready {
   -webkit-text-stroke: clamp(0.75px, 0.1em, 2px) var(--fit-border-color, transparent);
   paint-order: stroke fill;
@@ -264,6 +272,7 @@
 }
 
 @supports not (-webkit-text-stroke: 1px currentColor) {
+  .atom-display.is-word-fit,
   .atom-display.is-word-fit.is-mask-ink.is-mask-ready {
     -webkit-text-stroke: 0;
   }

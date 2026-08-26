@@ -1068,6 +1068,55 @@ describe('Chamber semantic Fit compositor', () => {
         }
     });
 
+    // THE BORDER IS THE FIT WORD'S EDGE, NOT THE MASK'S. It used to be set
+    // inside applyChamberMask, so it existed only while imagery was painted
+    // through the letters: a reader choosing Fit with a flat Accent ink got
+    // no edge, and the panel did not even offer one. Its job is to let a word
+    // that fills the chamber read against the field, which a flat fill needs
+    // as much as a Rembrandt does.
+    it('edges a Fit word whatever fills it, and edges nothing at a fixed scale', async () => {
+        for (const mode of ['accent', 'plain', 'same']) {
+            const { chamber, container } = makeChamber(
+                semanticSession({ mode, border: 'cream' }),
+                { fontSize: 'fit' }
+            );
+            chamber.displayAtom(chamber.session.atoms[4], 4);
+            await flushFillMask();
+            expect(atomDisplay(container).style.getPropertyValue('--fit-border-color'),
+                `${mode} ink`).toBe('var(--color-light)');
+            chamber.destroy();
+            container.remove();
+        }
+
+        // No Fit, no word to edge.
+        const { chamber, container } = makeChamber(
+            semanticSession({ mode: 'same', border: 'cream' }),
+            { fontSize: 'large' }
+        );
+        chamber.displayAtom(chamber.session.atoms[4], 4);
+        await flushFillMask();
+        expect(atomDisplay(container).style.getPropertyValue('--fit-border-color')).toBe('');
+        chamber.destroy();
+        container.remove();
+    });
+
+    // Glass is a tile behind the text, and a Fit word leaves no behind.
+    it('withdraws glass once the word holds the frame', () => {
+        const { chamber, container } = makeChamber(
+            semanticSession({ mode: 'accent' }), { fontSize: 'fit' }
+        );
+        expect(chamber.wordHoldsTheFrame()).toBe(true);
+        expect(chamber.glassCanApply()).toBe(false);
+        chamber.destroy();
+        container.remove();
+
+        const fixed = makeChamber(semanticSession({ mode: 'accent' }), { fontSize: 'large' });
+        expect(fixed.chamber.wordHoldsTheFrame()).toBe(false);
+        expect(fixed.chamber.glassCanApply()).toBe(true);
+        fixed.chamber.destroy();
+        fixed.container.remove();
+    });
+
     it('does not tint collection artwork selected as the Fit source', async () => {
         const session = semanticSession({
             mode: 'pick',

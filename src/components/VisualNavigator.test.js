@@ -292,22 +292,43 @@ describe('the text', () => {
     expect(handleSettingsChange).toHaveBeenCalledWith('chamberFace', 'thick');
   });
 
-  it('shows mask borders only for a valid mask and preserves the selected border when replacing its source', () => {
+  // THE BORDER IS THE FIT WORD'S EDGE, NOT THE MASK'S. It was offered only
+  // while imagery was being painted through the letters, so Fit + Accent got
+  // no border at all — yet a word filling the chamber needs an edge to read
+  // against the field whichever way its letters are filled. It sits with Fit
+  // now, and appears on the one condition that lets the Chamber apply it.
+  it('offers the border wherever Fit can carry it, and keeps it when the ink changes', () => {
     window.rise = { settings: { chamberFace: 'thick', fontSize: 'fit' } };
     mount({
       visualMode: 'interlocution',
       interlocution: { wordFill: { mode: 'plain' } }
     });
-    click(node('ink'));
-    expect(nav.container.querySelectorAll('[data-word-fill-border]')).toHaveLength(0);
-    click(nav.container.querySelector('[data-word-fill="accent"]'));
-    expect(nav.container.querySelectorAll('[data-word-fill-border]')).toHaveLength(0);
-    click(nav.container.querySelector('[data-word-fill="same"]'));
+
+    click(node('size'));
     expect(nav.container.querySelectorAll('[data-word-fill-border]')).toHaveLength(3);
     expect(nav.container.querySelector('[data-word-fill-border="cream"]')?.classList.contains('is-selected')).toBe(true);
+
+    // A flat accent ink is still a Fit word, so the edge is still offered.
+    click(node('ink'));
+    click(nav.container.querySelector('[data-word-fill="accent"]'));
+    click(node('size'));
+    expect(nav.container.querySelectorAll('[data-word-fill-border]')).toHaveLength(3);
+
     click(nav.container.querySelector('[data-word-fill-border="accent"]'));
+    click(node('ink'));
     click(nav.container.querySelector('[data-word-fill="procedural:fractal"]'));
     expect(lastPatch().interlocution.wordFill).toMatchObject({ border: 'accent' });
+  });
+
+  // Without Fit there is no word for it to edge, and the Chamber applies none.
+  it('withholds the border at a fixed scale', () => {
+    window.rise = { settings: { chamberFace: 'thick', fontSize: 'large' } };
+    mount({
+      visualMode: 'interlocution',
+      interlocution: { wordFill: { mode: 'same' } }
+    });
+    click(node('size'));
+    expect(nav.container.querySelectorAll('[data-word-fill-border]')).toHaveLength(0);
   });
 
   it('keeps program-owned material controls read-only and explains ownership independently for hover, focus, and touch', () => {

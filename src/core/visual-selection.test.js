@@ -9,15 +9,21 @@ import {
 } from './visual-selection.js';
 
 describe('normalizeWordFill', () => {
-    it('keeps Plain as explicit ordinary ink', () => {
-        expect(normalizeWordFill({ mode: 'plain' })).toEqual({ mode: 'plain' });
+    // The border edges the Fit word; it does not belong to whatever fills the
+    // letters. Every mode carries one, so choosing an ink never discards it.
+    it('keeps Plain as explicit ordinary ink, and keeps its edge', () => {
+        expect(normalizeWordFill({ mode: 'plain' })).toEqual({ mode: 'plain', border: 'cream' });
+        expect(normalizeWordFill({ mode: 'plain', border: 'off' }))
+            .toEqual({ mode: 'plain', border: 'off' });
     });
 
     it('preserves an explicit accent ink without inventing a visual playlist', () => {
-        expect(normalizeWordFill({ mode: 'accent' })).toEqual({ mode: 'accent' });
+        expect(normalizeWordFill({ mode: 'accent' })).toEqual({ mode: 'accent', border: 'cream' });
+        expect(normalizeWordFill({ mode: 'accent', border: 'accent' }))
+            .toEqual({ mode: 'accent', border: 'accent' });
         expect(wordFillIsDistinct({ mode: 'accent' })).toBe(false);
         expect(resolveSessionWordFill({ wordFill: { mode: 'accent' } }))
-            .toEqual({ mode: 'accent' });
+            .toEqual({ mode: 'accent', border: 'cream' });
     });
 
     it('defaults to same-as-gallery', () => {
