@@ -14,7 +14,7 @@ and comprehension gates fail closed.
 | Ordinary reading | Implemented | Living Text defaults on, Chamber Page opens elongated, and exact-edition Continue/Next Division carries reader-owned configuration. |
 | Interface semantics | Implemented | Gallery / Background Flash / Foreground Flash labels; tone-specific controls are hierarchical. `Gateway` remains pending acoustic judgment. |
 | Progressive Reveal | Implemented | `revealMode` is independent of Recitation; all four voice/reveal combinations compile; reduced motion reveals instantly. |
-| Keystones | In progress | The editorial set is locked to the complete “Tintern Abbey,” *Meditations* Book II, and *Metamorphoses* Book I · “Creation of the World” (invocation and creation, ending before the Four Ages). Exact manifests, stable `/keystone/*` routes, cold reload, browser Back/Forward correspondence, and complete phrase-aligned voice coverage for all 665 phrases are implemented. The byte-bound acoustic review is prepared; listening acceptance and source certification remain human gates. Tintern uses the existing pinned `aic-landscapes` collection. |
+| Keystones | In progress | The editorial set is locked to the complete “Tintern Abbey,” *Meditations* Book II, and *Metamorphoses* Book I · “Creation of the World” (invocation and creation, ending before the Four Ages). Exact manifests, stable `/keystone/*` routes, cold reload, browser Back/Forward correspondence, and complete phrase-aligned voice coverage for all 547 phrases are implemented. The byte-bound acoustic review is prepared; listening acceptance and source certification remain human gates. Tintern uses the existing pinned `aic-landscapes` collection. |
 | Mobile-safe | Browser verified; device evidence required | The complete 88-case browser matrix is green (72 pass, 16 deliberate deferrals). Responsive Keystone threshold, Workshop touch selection, and Page geometry pass in emulation. Real-device matrix remains a witnessed release gate; Workshop is desktop-full/mobile-safe, not phone-equivalent. |
 | Render/distribution | In progress | Workspace-local FFmpeg resolution, real H.264 kernel tests, and a reproducible portrait/representative/landscape Chamber proof matrix are implemented. All three final-scale packages verify with no degradation or unresolved rights. The production build now proves byte-identical inclusion of all 877 same-origin voice assets; Keystone-specific render packages wait on source certification. |
 | Release hardening | Machine corridor green; human gates open | `npm run release:check` is the repository admission report. Unit (2,119 pass / 58 skip), production build, browser (72 pass / 16 deliberate skip), render proofs, 877 source WAVs, and all 877 byte-identical distribution copies are green. Certification, acoustic decisions, witnessed devices, and stranger results still fail closed. The human procedure is `docs/RELEASE-ACCEPTANCE-PROTOCOL.md`. |
@@ -71,8 +71,11 @@ witness attestations, not values the automated suite may generate.
    metamorphosed into a bitch” no longer bears on certification: the Ovid
    Keystone is Book I. Book XIII remains ordinary Archive content and can be
    adjudicated on its own schedule.
-2. Complete the 665-phrase acoustic review and import its exact decision ledger
-   for `sha256:41845f375b47faedc2fe8509286dbf00e9913b05a07d9dba577ccacaed328f21`.
+2. Complete the 547-phrase acoustic review and import its exact decision ledger
+   for `sha256:fc52f2a0bef822fc40941479ffa5482d4f6d0b00e3438be2708a4e81c2edfbf3`.
+   Both figures are the release checker's, regenerated after the Ovid Keystone
+   moved to Book I; the previous 665 phrases and `sha256:41845f375b47faed…`
+   described Book XIII and must not be certified against.
 3. Run the witnessed real-device matrix, then stranger testing. The complete
    automated browser matrix is already green.
 4. Admit the public debut only when the release checker and witnessed gates
@@ -86,14 +89,13 @@ witness attestations, not values the automated suite may generate.
   `aic-landscapes` collection.
 - Locked the release selections to *Meditations* Book II, *Metamorphoses*
   Book I · “Creation of the World,” and the complete “Tintern Abbey.”
-- Built and checkpointed complete exact-atom voice coverage: 267 Meditations,
-  237 Metamorphoses, and 161 Tintern Abbey phrases. **The Metamorphoses figure
-  and the 665-phrase totals below counted Book XIII and are stale.** The voice
-  plan derives its sessions from `KEYSTONE_MANIFESTS`, so `release:voice:plan`
-  and `release:prepare-acoustic-review` re-scope themselves to Book I; the
-  counts here are regenerated evidence and are deliberately not hand-edited.
+- Built and checkpointed complete exact-atom voice coverage. The voice plan
+  derives its sessions from `KEYSTONE_MANIFESTS`, so moving the Ovid Keystone
+  to Book I re-scoped it without hand-editing: `release:check` reports 877
+  source WAVs covering 547 exact Keystone phrases, where Book XIII gave 665.
+  Every figure and identity here is the checker's own output.
 - Added binary asset treatment, source/build byte-integrity admission, and a
-  665-phrase review surface whose human decision ledger is bound to the exact
+  phrase review surface whose human decision ledger is bound to the exact
   voice bytes and invalidated by regeneration.
 - Added explicit FFmpeg resolution, a pinned local environment record, real
   H.264 tests, and three verified final-scale Chamber proof packages (portrait
