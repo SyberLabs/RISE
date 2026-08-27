@@ -315,6 +315,10 @@ export const textMethods = {
       enabled: enabled === true
     };
     this.emit();
+    // Its siblings render; this one did not, and nothing showed it while the
+    // native checkbox WAS the picture. Now the lit state is the row's, so a
+    // missing redraw leaves the switch saying the opposite of the setting.
+    this.render();
   },
 
   setCadence(value) {

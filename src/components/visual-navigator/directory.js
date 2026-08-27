@@ -367,14 +367,40 @@ export const directoryMethods = {
     const galleryContext = [...this.selection.enabled].some(id => categoryOf(id) === FIELD.GALLERY)
       || categoryOf(this.focus?.id) === FIELD.GALLERY
       || this.selection.emptyKind === 'held-empty';
+    // A SWITCH SHOULD SAY WHAT IT DOES, AND WHY IT CANNOT.
+    //
+    // These were bare checkboxes with a word beside them: a boolean, and no
+    // account of what it changes or why a reader might want it. Glass carried
+    // its one explanation in a `title`, which a phone can never show — so on
+    // the surface where it matters most it was disabled and silent.
+    //
+    // The label wraps the input, which is what makes the whole row the
+    // control: a click anywhere on it forwards natively. Nothing is layered
+    // on top of that, because a row handler ADDED to a wrapping label is
+    // exactly how one press becomes two toggles.
+    const glassNote = maskHoldsLetters
+      ? 'The word itself is holding the frame — a Fit word, or a mask carrying the letters. Glass behind it would swallow the field. It returns at a fixed scale.'
+      : 'A blurred pane behind the words, so they hold their edge against the imagery.';
     return `<div class="vnav-reader-controls">
-      <label class="vnav-living"><input type="checkbox" data-action="living-text"
-        ${this.selection.livingText.enabled ? 'checked' : ''} ${fieldLocked ? 'disabled' : ''}> <span>Living Text</span></label>
-      <label class="vnav-living"${maskHoldsLetters
-        ? ' title="The word itself is holding the frame — a Fit word, or a Visual mask carrying the letters. Glass behind it would swallow the field. It returns at a fixed scale."'
-        : ''}><input type="checkbox" data-action="glass"
-        ${this.glassOn() ? 'checked' : ''}
-        ${fieldLocked || maskHoldsLetters ? 'disabled' : ''}> <span>Glass behind the text</span></label>
+      <label class="vnav-switch${this.selection.livingText.enabled ? ' is-on' : ''}${fieldLocked ? ' is-off-limits' : ''}">
+        <input type="checkbox" data-action="living-text" aria-describedby="vnav-living-note"
+          ${this.selection.livingText.enabled ? 'checked' : ''} ${fieldLocked ? 'disabled' : ''}>
+        <span class="vnav-switch-track" aria-hidden="true"><span class="vnav-switch-knob"></span></span>
+        <span class="vnav-switch-copy">
+          <span class="vnav-switch-name">Living Text</span>
+          <span class="vnav-switch-note" id="vnav-living-note">Lets the reading's own feeling colour the words as they pass.</span>
+        </span>
+      </label>
+      <label class="vnav-switch${this.glassOn() ? ' is-on' : ''}${fieldLocked || maskHoldsLetters ? ' is-off-limits' : ''}">
+        <input type="checkbox" data-action="glass" aria-describedby="vnav-glass-note"
+          ${this.glassOn() ? 'checked' : ''}
+          ${fieldLocked || maskHoldsLetters ? 'disabled' : ''}>
+        <span class="vnav-switch-track" aria-hidden="true"><span class="vnav-switch-knob"></span></span>
+        <span class="vnav-switch-copy">
+          <span class="vnav-switch-name">Glass behind the text</span>
+          <span class="vnav-switch-note" id="vnav-glass-note">${escapeHtml(glassNote)}</span>
+        </span>
+      </label>
       ${galleryContext ? `<div class="vnav-cadence"><span>Cadence</span>${CADENCE.map(item => `
         <button type="button" class="vnav-opt ${this.selection.galleryCadence === item.value ? 'on' : ''}"
           data-gallery-cadence="${item.value}" ${fieldLocked ? 'disabled' : ''}>${item.label}</button>`).join('')}</div>` : ''}
