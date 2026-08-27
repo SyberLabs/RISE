@@ -620,3 +620,42 @@
     -webkit-text-fill-color: var(--color-light, #E8E8EC);
   }
 }
+
+/* ─── THE GATE ───────────────────────────────────────────────────────────
+   What stands where the browser would be until a reading exists. It is not
+   a notice above a working panel — that was the defect: the dependency was
+   announced once and contradicted by everything under it, and the refusal
+   arrived at the end as a disabled control with no cause attached. */
+.vnav-is-gated {
+  display: grid;
+  place-items: center;
+  min-height: 16rem;
+  padding: 2rem 1.25rem;
+}
+
+.vnav-gate {
+  max-width: 22rem;
+  text-align: center;
+  color: var(--color-fog, #9B9BA5);
+}
+
+.vnav-gate-mark {
+  display: block;
+  font-size: 1.6rem;
+  color: rgba(var(--color-accent-rgb, 228, 210, 174), 0.55);
+  margin-bottom: 0.7rem;
+}
+
+.vnav-gate h3 {
+  margin: 0 0 0.5rem;
+  font-family: var(--font-display, 'Marcellus', serif);
+  font-weight: 400;
+  font-size: 1.15rem;
+  color: var(--color-light, #E8E8EC);
+}
+
+.vnav-gate p {
+  margin: 0;
+  font-size: 0.8rem;
+  line-height: 1.55;
+}
