@@ -32,8 +32,8 @@ describe('release Keystone manifests', () => {
       { slug: 'meditations', entryId: 1, label: 'Book II' },
       {
         slug: 'metamorphoses',
-        entryId: 116,
-        label: 'Book XIII · Story of Polyxena and Hecuba'
+        entryId: 0,
+        label: 'Book I · Creation of the World'
       },
       {
         slug: 'tintern',
@@ -41,6 +41,35 @@ describe('release Keystone manifests', () => {
         label: 'Volume I · Lines Written a Few Miles Above Tintern Abbey, on Revisiting the Banks of the Wye During a Tour'
       }
     ]);
+  });
+
+  // THE OVID KEYSTONE IS THE OPENING OF BOOK I, NOT A DEATH IN BOOK XIII.
+  //
+  // Structural rather than phrase-matched: the span is a division boundary the
+  // edition already draws, so what is asserted is WHICH division, and that the
+  // Four Ages begin in the next one rather than inside this one.
+  it('opens the Ovid keystone on Book I, and stops before the Four Ages', async () => {
+    const manifest = KEYSTONE_MANIFESTS.find(item => item.slug === 'metamorphoses');
+    expect(manifest.source.expectedLabel).toBe('Book I · Creation of the World');
+
+    const result = await resolveKeystone('metamorphoses', { allowIncomplete: true });
+    expect(result.blockers.map(item => item.code)).not.toContain('KEYSTONE_ENTRY_CHANGED');
+
+    const text = String(result.sessionInput?.text || '');
+    expect(text.length, 'the division resolves to real text').toBeGreaterThan(1000);
+    // Through the creation of humanity, and no further: the Ages are their own
+    // divisions and must not have been swept in.
+    expect(text).toContain('metamorphosed into man');
+    for (const age of ['Golden Age', 'Silver Age', 'Brazen Age', 'Iron Age']) {
+      expect(text, `${age} belongs to the next division`).not.toContain(age);
+    }
+  });
+
+  it('leaves no keystone pointed at Book XIII', () => {
+    for (const manifest of KEYSTONE_MANIFESTS) {
+      expect(manifest.source.expectedLabel).not.toContain('Polyxena');
+      expect(manifest.source.expectedLabel).not.toContain('Book XIII');
+    }
   });
 
   it('pins every composition to the exact expected source division', async () => {
