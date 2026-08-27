@@ -659,3 +659,22 @@
   font-size: 0.8rem;
   line-height: 1.55;
 }
+
+/* THE PLATE THE CHAMBER PUTS BEHIND AN INK, AT SPECIMEN SCALE.
+   mask-ground.js declares Attractor, Klee, Turrell and Harmonograph `dark`,
+   and the Chamber sets a Dark Slate plate inside the glyph so their filaments
+   read. Without it the Attractor still — a thin bright filament on near-black
+   — was clipped to 26px letters over a near-black panel and disappeared, and
+   the specimen documented an effect the Chamber does not have. Same colours
+   as .chamber-mask-ground-plate, because it is the same plate. */
+.vnav-specimen[data-specimen-ground] .vnav-preview-sample {
+  background-color: var(--specimen-ground, transparent);
+}
+
+.vnav-specimen[data-specimen-ground="dark"] .vnav-preview-sample {
+  --specimen-ground: var(--color-dark-slate);
+}
+
+.vnav-specimen[data-specimen-ground="light"] .vnav-preview-sample {
+  --specimen-ground: var(--color-cream);
+}
