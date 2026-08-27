@@ -259,15 +259,107 @@
   border-top: 1px solid var(--vnav-edge);
   background: var(--vnav-panel);
 }
-.vnav-living {
-  display: flex;
-  align-items: center;
-  gap: 0.45rem;
+/* ─── A SETTING ROW, NOT A TICK ─────────────────────────────────────────
+   The whole row is the control: the label wraps the input, so a press
+   anywhere on it forwards natively and lands once. The checkbox stays real
+   and merely stops being the thing that is drawn — keyboard, checked state
+   and screen-reader semantics all come free, and :focus-visible is taken
+   from the input onto the track. 44px is the floor a finger needs. */
+.vnav-switch {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: start;
+  gap: 0.6rem;
+  min-height: 44px;
+  padding: 0.5rem 0.55rem;
+  border: 1px solid transparent;
+  border-radius: 3px;
   color: var(--color-cloud, #C5C5CD);
-  font-size: 0.7rem;
   cursor: pointer;
+  transition: background 120ms, border-color 120ms;
 }
-.vnav-living input { accent-color: var(--color-accent, #E4D2AE); }
+
+.vnav-switch:hover { background: rgba(255, 255, 255, 0.03); }
+.vnav-switch:active { background: rgba(255, 255, 255, 0.055); }
+
+.vnav-switch.is-off-limits {
+  cursor: not-allowed;
+  opacity: 0.62;
+}
+
+/* Present for keyboard and assistive tech; the track is what is seen. */
+.vnav-switch input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  margin: 0;
+  pointer-events: none;
+}
+
+.vnav-switch:has(input:focus-visible) {
+  outline: 2px solid var(--color-accent, #E4D2AE);
+  outline-offset: 2px;
+}
+
+.vnav-switch-track {
+  position: relative;
+  width: 34px;
+  height: 18px;
+  margin-top: 1px;
+  flex: none;
+  background: linear-gradient(180deg, #131317, #0D0D10);
+  border: 1px solid var(--color-shadow, #2A2A30);
+  border-radius: 2px;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.7);
+  transition: background 160ms, border-color 160ms;
+}
+
+.vnav-switch-knob {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 12px;
+  height: 12px;
+  background: linear-gradient(180deg, #5E5E6A, #43434D);
+  border-top: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 1px;
+  transition: left 160ms, background 160ms;
+}
+
+/* The lit state is the row's, not a tick's: track, knob and name together. */
+.vnav-switch.is-on .vnav-switch-track {
+  background: linear-gradient(180deg,
+    rgba(var(--color-accent-rgb, 228, 210, 174), 0.46),
+    rgba(var(--color-accent-rgb, 228, 210, 174), 0.24));
+  border-color: rgba(var(--color-accent-rgb, 228, 210, 174), 0.72);
+}
+
+.vnav-switch.is-on .vnav-switch-knob {
+  left: 18px;
+  background: linear-gradient(180deg, var(--color-light, #E8E8EC), #C2C2CB);
+}
+
+.vnav-switch.is-on .vnav-switch-name { color: var(--color-light, #E8E8EC); }
+
+.vnav-switch-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.vnav-switch-name {
+  font-size: 0.74rem;
+  line-height: 1.2;
+}
+
+/* The explanation lives on the row, because a phone has no hover. */
+.vnav-switch-note {
+  font-size: 0.64rem;
+  line-height: 1.45;
+  color: var(--color-mist, #6B6B75);
+}
 .vnav-cadence {
   margin-left: auto;
   display: flex;
@@ -619,4 +711,62 @@
     color: var(--color-light, #E8E8EC);
     -webkit-text-fill-color: var(--color-light, #E8E8EC);
   }
+}
+
+/* ─── THE GATE ───────────────────────────────────────────────────────────
+   What stands where the browser would be until a reading exists. It is not
+   a notice above a working panel — that was the defect: the dependency was
+   announced once and contradicted by everything under it, and the refusal
+   arrived at the end as a disabled control with no cause attached. */
+.vnav-is-gated {
+  display: grid;
+  place-items: center;
+  min-height: 16rem;
+  padding: 2rem 1.25rem;
+}
+
+.vnav-gate {
+  max-width: 22rem;
+  text-align: center;
+  color: var(--color-fog, #9B9BA5);
+}
+
+.vnav-gate-mark {
+  display: block;
+  font-size: 1.6rem;
+  color: rgba(var(--color-accent-rgb, 228, 210, 174), 0.55);
+  margin-bottom: 0.7rem;
+}
+
+.vnav-gate h3 {
+  margin: 0 0 0.5rem;
+  font-family: var(--font-display, 'Marcellus', serif);
+  font-weight: 400;
+  font-size: 1.15rem;
+  color: var(--color-light, #E8E8EC);
+}
+
+.vnav-gate p {
+  margin: 0;
+  font-size: 0.8rem;
+  line-height: 1.55;
+}
+
+/* THE PLATE THE CHAMBER PUTS BEHIND AN INK, AT SPECIMEN SCALE.
+   mask-ground.js declares Attractor, Klee, Turrell and Harmonograph `dark`,
+   and the Chamber sets a Dark Slate plate inside the glyph so their filaments
+   read. Without it the Attractor still — a thin bright filament on near-black
+   — was clipped to 26px letters over a near-black panel and disappeared, and
+   the specimen documented an effect the Chamber does not have. Same colours
+   as .chamber-mask-ground-plate, because it is the same plate. */
+.vnav-specimen[data-specimen-ground] .vnav-preview-sample {
+  background-color: var(--specimen-ground, transparent);
+}
+
+.vnav-specimen[data-specimen-ground="dark"] .vnav-preview-sample {
+  --specimen-ground: var(--color-dark-slate);
+}
+
+.vnav-specimen[data-specimen-ground="light"] .vnav-preview-sample {
+  --specimen-ground: var(--color-cream);
 }

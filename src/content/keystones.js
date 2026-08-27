@@ -62,8 +62,17 @@ export const KEYSTONE_MANIFESTS = freeze([
       workId: 'metamorphoses',
       editionId: 'standard-ebooks:ovid/metamorphoses_various-translators',
       sourceRevision: 'sha256:6878e143e0db80039364eb328b65a33faf2c1a43a67696d74920c5a17a5bd17a',
-      entryId: 116,
-      expectedLabel: 'Book XIII · Story of Polyxena and Hecuba'
+      // THE OPENING OF THE POEM, NOT A DEATH IN BOOK XIII.
+      //
+      // Invocation and Creation through the making of humanity. The edition
+      // already draws the boundary the reading wants: the Four Ages are the
+      // next four divisions, so this one ends at 'metamorphosed into man'
+      // without a span having to be authored.
+      //
+      // sourceRevision is the EDITION's hash and is unchanged, because the
+      // edition is. Only which division within it is the Keystone has moved.
+      entryId: 0,
+      expectedLabel: 'Book I · Creation of the World'
     },
     visual: { kind: 'procedural', id: 'ostensoria' },
     soundscape: 'aurora',

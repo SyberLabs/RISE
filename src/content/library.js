@@ -101,7 +101,24 @@ function registerStarterTexts() {
             division: seq.category,
             tradition: 'Core System',
             description: seq.description,
-            chapterCount: verses.length,
+            // ONE READING, HOWEVER MANY PIECES BUILT IT.
+            //
+            // The segments above are this composition's own bookkeeping —
+            // paragraphs of one continuous piece, named "Segment N" because
+            // they have no names of their own. chapterCount is the count a
+            // reader is offered: the Library prints it, the Archive decides
+            // canBrowseParts from it, and the card chooses Open or Load Text
+            // by it. Setting it to the segment count offered Creator
+            // Affirmations as sixteen things to enter. There is one.
+            //
+            // The pieces are not lost — segmentCount records how many, and
+            // getSequences still hands the runtime every one.
+            chapterCount: 1,
+            segmentCount: verses.length,
+            // holdingsPhrase falls back to 'verse' for a work that names no
+            // counting word, and a composition is not one verse. It is one
+            // reading — the Archive's own word for a thing a reader enters.
+            chapterNoun: 'reading',
             defaultCurve: seq.curve || 'flat',
             defaultWpm: seq.wpm || 200,
             tags: ['starter', seq.category],

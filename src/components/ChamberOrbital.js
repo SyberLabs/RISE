@@ -1118,7 +1118,7 @@ export class ChamberOrbital {
         this.visualNavigator = new VisualNavigator(container, {
           visualConfig: this.config.visualInterlocution,
           locked: !this.config.text,
-          lockedMessage: 'Please load a text source first to configure Visuals.',
+          lockedMessage: 'Choose a reading before bringing visuals into the Chamber.',
           programInfo: this.config.visualProgram?.segments?.length
             ? { episodes: this.config.visualProgram.segments.length }
             : null,

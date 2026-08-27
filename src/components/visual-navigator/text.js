@@ -14,6 +14,8 @@ import { resolveTextMaterialCapability } from '../../core/chamber-text-material.
 import { WORD_FILL_PROCEDURAL_PATTERNS } from '../../core/visual-registry.js';
 import { normalizeWordFill } from '../../core/visual-selection.js';
 import { configPatch } from '../../core/visual-taxonomy-config.js';
+// The runtime's own rule for what sits behind an ink inside the glyph.
+import { maskGroundFromConfig } from '../../core/mask-ground.js';
 import { leafById } from '../../core/visual-taxonomy.js';
 import { normalizeGalleryCadence } from '../../core/visual-presence.js';
 import {
@@ -313,6 +315,10 @@ export const textMethods = {
       enabled: enabled === true
     };
     this.emit();
+    // Its siblings render; this one did not, and nothing showed it while the
+    // native checkbox WAS the picture. Now the lit state is the row's, so a
+    // missing redraw leaves the switch saying the opposite of the setting.
+    this.render();
   },
 
   setCadence(value) {
@@ -537,6 +543,24 @@ export const textMethods = {
     const border = isFit ? normalizeWordFill(this.selection.wordFill).border : 'off';
     const edge = border === 'cream' ? 'var(--color-light)'
       : border === 'accent' ? 'var(--color-accent)' : null;
+    // A SMALLER SURFACE, NOT A DIFFERENT EFFECT.
+    //
+    // The Chamber paints a Fit word's ink over a ground plate that sits
+    // INSIDE the glyph, behind the engine — mask-ground.js declares
+    // Attractor, Klee, Turrell and Harmonograph `dark` so their filaments
+    // read against Dark Slate rather than against whatever is behind the
+    // reading. The specimen had no plate, so the Attractor still (a thin
+    // bright filament on near-black) was clipped to 26px letters over a
+    // near-black panel and vanished. A reader inspecting it would conclude
+    // the effect makes the word almost invisible. It does not.
+    //
+    // The ground is not chosen here. It is asked of the same function the
+    // runtime asks, so the miniature and the Chamber cannot disagree.
+    // Gated on the MASK, not on whether the still has arrived. The Chamber
+    // sets its plate in applyChamberMask, so the letters have a backing while
+    // the imagery is still loading; a specimen that waited for the picture
+    // would flash the unbacked state the Chamber never shows.
+    const ground = masked ? this._specimenGround() : null;
     const label = isFit
       ? 'One Word, filling the chamber'
       : 'The reading, as it will appear';
@@ -550,10 +574,27 @@ export const textMethods = {
       data-size-sample="${escapeHtml(size)}"
       ${fill === 'accent' ? 'data-ink-sample="accent"' : ''}
       ${edge ? 'data-edge-sample="on"' : ''}
+      ${ground ? `data-specimen-ground="${escapeHtml(ground)}"` : ''}
       style="${style}">
       <span class="vnav-preview-label">${escapeHtml(label)}</span>
       <p class="vnav-preview-sample">${isFit ? 'Light' : 'Light enters form'}</p>
     </figure>`;
+  },
+
+  /**
+   * The plate the Chamber would put behind this ink, from the Chamber's own
+   * rule. `roomOpaque` is false here for the same reason it is in the
+   * reading: a transparent fill over a room that is not opaque still needs a
+   * ground, and combine() is what decides that — not this panel.
+   */
+  _specimenGround() {
+    const patch = configPatch(this.selection);
+    const inter = patch.interlocution || {};
+    return maskGroundFromConfig({
+      procedural: inter.procedural || [],
+      sourced: inter.sourced || [],
+      wordFill: this.selection.wordFill
+    });
   },
 
   _specimenInkUrl() {

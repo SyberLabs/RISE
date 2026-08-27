@@ -963,7 +963,10 @@ describe('reader-facing state', () => {
     });
     const toggle = nav.container.querySelector('[data-action="glass"]');
     expect(toggle.disabled).toBe(true);
-    expect(toggle.closest('label')?.getAttribute('title')).toMatch(/mask/i);
+    // ON THE ROW, NOT IN A TOOLTIP. This read the `title`, which is the one
+    // place a phone can never look — and a phone is where a disabled, silent
+    // switch is worst. The reason is written where the control is.
+    expect(toggle.closest('.vnav-switch')?.textContent).toMatch(/mask|frame|Fit/i);
   });
 
   it('reopens on the glass the reading was saved with', () => {

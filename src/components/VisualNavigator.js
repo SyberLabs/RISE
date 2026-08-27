@@ -33,7 +33,10 @@ export class VisualNavigator {
     this.onTextMaterialTransaction = options.onTextMaterialTransaction || (() => {});
     this.onOpenPersonal = options.onOpenPersonal || (() => {});
     this.locked = options.locked === true;
-    this.lockedMessage = options.lockedMessage || 'Load text to configure visuals.';
+    // The gate's second line. It names the dependency rather than the
+    // machinery: a reader is choosing a reading, not loading a text.
+    this.lockedMessage = options.lockedMessage
+      || 'Choose a reading before bringing visuals into the Chamber.';
     this.programInfo = options.programInfo || null;
     this.selection = selectionFromConfig(options.visualConfig || {});
     this._chapelLaunch = options.readingVisualDomain === 'chapel'
@@ -87,11 +90,31 @@ export class VisualNavigator {
     this.render();
   }
 
+  /**
+   * What stands where the browser would be, until a reading exists.
+   *
+   * A real heading rather than a live region: the panel is not announcing a
+   * change, it is stating a condition. When the state flips while the panel
+   * is open, render() replaces this wholesale and the reader's focus falls to
+   * the panel, which is the honest place for it.
+   */
+  renderGate() {
+    return `<div class="vnav-gate" role="note">
+      <span class="vnav-gate-mark" aria-hidden="true">◈</span>
+      <h3>Pick a text first</h3>
+      <p>${escapeHtml(this.lockedMessage)}</p>
+    </div>`;
+  }
+
   setLocked(locked) {
     this.locked = locked === true;
     if (this.locked) {
       this.selection.enabled = new Set();
       this.selection.emptyKind = 'off';
+      // A question about a reading that has gone cannot be answered. It is
+      // withdrawn rather than left standing over the gate.
+      this.dialog = null;
+      this._dialogReturnFocusSelector = null;
       this.emit();
     }
     this.render();
@@ -148,7 +171,18 @@ export class VisualNavigator {
       .filter(([, top]) => top > 0);
 
     const cols = this.columns();
-    this.container.innerHTML = `
+    // A PANEL THAT CANNOT ACT SHOULD NOT LOOK LIKE ONE THAT CAN.
+    //
+    // With no text, this rendered the whole browser under a one-line notice.
+    // A reader could walk the tree and open a leaf, and met the refusal only
+    // at the end — a disabled "Bring into the room" that said nothing about
+    // why. The dependency was announced once at the top and contradicted by
+    // everything beneath it. The gate stands in the browser's place instead:
+    // nothing to walk into, nothing to tab through, and the reason given
+    // where the work would have been.
+    this.container.innerHTML = this.locked
+      ? `<div class="vnav vnav-is-gated">${this.renderGate()}</div>`
+      : `
       <div class="vnav">
         <div class="vnav-bar">
           ${this.path.length ? '<button type="button" class="vnav-back" data-action="navigator-back">‹ Back</button>' : ''}
@@ -157,7 +191,6 @@ export class VisualNavigator {
         </div>
         ${this.programInfo ? this.renderProgramLock() : ''}
         ${this.renderReadingCollections()}
-        ${this.locked ? `<div class="vnav-lock" role="status">${escapeHtml(this.lockedMessage)}</div>` : ''}
         <div class="vnav-body" style="--vnav-cols:${cols.length}">
           ${cols.map((nodes, i) => this.renderColumn(nodes, i, i === cols.length - 1)).join('')}
           <div class="vnav-entry">${this.renderEntry()}</div>

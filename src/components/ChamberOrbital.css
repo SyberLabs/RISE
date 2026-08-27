@@ -110,8 +110,37 @@
     top: var(--top-control-clearance);
   }
 
+  /* THE HEADER BAND IS RESERVED, NOT SHARED.
+     Back and the origin chip are absolutely positioned in the top corners
+     while everything else sits in a centred column. On a phone that column
+     rises into the corners, and "How do you want to read?" was landing under
+     the Library chip — measured at 375px, overlapping BOTH chips, in the
+     first corridor a reader walks.
+     The answer is space, not smaller type: the column starts below the band
+     the chips occupy, so the two cannot contend for the same pixels at any
+     width. Desktop keeps its composition, where the corners are far from the
+     middle. */
+  .chamber-orbital {
+    /* Named so the height tiers below can honour it instead of resetting it
+       with a padding shorthand. */
+    --orbital-header-band: calc(var(--top-control-clearance) + 44px + var(--space-md));
+    padding-top: var(--orbital-header-band);
+  }
+
+  /* A chip is pressed by a finger here. 44px is the floor, taken as hit area
+     so a chip need not grow visually to be reachable. */
+  .orbital-origin-chip,
+  .orbital-back {
+    min-height: 44px;
+  }
+
+  /* Notched phones inset the corners the chips live in. */
+  .orbital-back {
+    left: max(var(--space-sm), env(safe-area-inset-left));
+  }
+
   .orbital-origin-slot {
-    right: var(--space-sm);
+    right: max(var(--space-sm), env(safe-area-inset-right));
   }
 }
 
@@ -1793,7 +1822,10 @@
     --orbit-radius: 198px;
     --orbit-radius-hover: 190px;
     --orbit-stage-margin: var(--space-xl);
+    /* Sides and bottom only: padding-top is the reserved header band on a
+       phone (see the 700px rule), and a shorthand here would reclaim it. */
     padding: var(--space-md) var(--space-xl);
+    padding-top: var(--orbital-header-band, var(--space-md));
   }
 
   .stance-question {
@@ -1823,6 +1855,7 @@
     --orbit-radius-hover: 163px;
     --orbit-stage-margin: var(--space-lg);
     padding: var(--space-sm) var(--space-xl);
+    padding-top: var(--orbital-header-band, var(--space-sm));
   }
 
   /* The sentence under each posture is what the note below the row
