@@ -2953,7 +2953,16 @@
   }
 }
 
+/* PRINCIPAL IN SIGHT.
+   These tabs are how a reader moves between Visual, Audio and Combined. They
+   sat at the head of a score that runs to 16,000px and scrolled away with it
+   — measured 2,041px above the viewport after an ordinary read down the
+   sequence — so going deeper took the way back out of reach. They hold the
+   top of the studio instead, and the score passes beneath them. */
 .media-score-view-tabs {
+  position: sticky;
+  top: 0;
+  z-index: 20;
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 4px;
@@ -2961,7 +2970,8 @@
   padding: 4px;
   border: 1px solid rgba(255, 255, 255, 0.09);
   border-radius: 10px;
-  background: rgba(4, 7, 13, 0.56);
+  /* Opaque: the score reads through a translucent bar as it passes under. */
+  background: rgb(9, 12, 18);
 }
 
 .media-score-view-tabs button {
