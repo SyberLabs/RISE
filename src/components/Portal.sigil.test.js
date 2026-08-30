@@ -3,6 +3,9 @@
  * Continue strip is the labelled resume affordance when a session exists.
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { readFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { Portal } from './Portal.js';
 
 beforeEach(() => {
@@ -83,6 +86,30 @@ describe('on a phone the sigil is a seal', () => {
         // Decoration announces nothing.
         expect(still.getAttribute('alt')).toBe('');
         expect(container.querySelector('.vessel-video'), 'no player on a phone').toBeNull();
+    });
+
+    // THE SEAL IS IRIDESCENT, AND THAT IS THE POINT OF IT.
+    //
+    // The still inherited the video's grayscale(80%) when it was first
+    // introduced, which flattened blue-violet-gold to silver. The video is
+    // desaturated because it has a hover state to brighten toward; a phone
+    // has no hover, so the still has nothing to hold back for. Asserted in
+    // the stylesheet because jsdom computes no filter of its own.
+    it('shows the seal in colour rather than the video’s silver', () => {
+        const css = readFileSync(
+            join(dirname(fileURLToPath(import.meta.url)), 'Portal.css'),
+            'utf8'
+        );
+        // The still's OWN rule, not the geometry it shares with the video:
+        // the shared selector list names both, so anchor on what only the
+        // still declares.
+        const still = css.match(/\{[^{}]*-webkit-user-drag[^{}]*\}/)[0];
+        expect(still, 'the still declares its own filter').toMatch(/filter:/);
+        expect(still, 'and no grayscale in it').not.toMatch(/grayscale/);
+
+        // The moving vessel keeps its silver, which its hover state needs.
+        const video = css.match(/\.vessel-video \{[^}]+\}/)[0];
+        expect(video).toMatch(/grayscale/);
     });
 
     it('never fetches the video a phone cannot start', () => {

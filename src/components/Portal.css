@@ -121,20 +121,30 @@
   pointer-events: none;
 }
 
-/* The still wears exactly what the video wears, so the vessel looks like
-   itself on either surface. */
+/* The vessel fills its circle the same way whichever element is in it. */
 .portal-sigil-vessel .vessel-video,
 .portal-sigil-vessel .vessel-still {
   width: 100%;
   height: 100%;
   object-fit: cover;
   transition: filter var(--transition-normal) var(--ease-default);
+}
+
+/* The moving vessel stays silver: it brightens on hover, and the desaturation
+   is what gives that a distance to travel. */
+.portal-sigil-vessel .vessel-video {
   filter: grayscale(80%) contrast(1.2) opacity(0.7);
 }
 
-/* Decoration, and a seal is not dragged off the page. */
+/* THE STILL KEEPS ITS COLOUR.
+   The seal is iridescent — blue through violet to gold across the stroke —
+   and grayscale(80%) flattened all of it to silver. The video is desaturated
+   because it has a hover state to travel toward; a phone has no hover, so
+   the still has nothing to hold back for and simply looks like itself.
+   Decoration, and a seal is not dragged off the page. */
 .portal-sigil-vessel .vessel-still {
   display: block;
+  filter: contrast(1.1) opacity(0.88);
   pointer-events: none;
   user-select: none;
   -webkit-user-drag: none;
