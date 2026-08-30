@@ -712,7 +712,36 @@ export class Scriptorium {
     }
     this.status = 'Opening the reading…';
     this.render();
+    this.openOnReadableType();
     await this.onCreateSession(project);
+  }
+
+  /**
+   * A SCORE'S READING OPENS LEGIBLE.
+   *
+   * This room offers no type controls — a score carries its imagery, its
+   * sound and its pace, and that is the room's whole argument for not routing
+   * through the Workshop. But face and size are the READER's settings,
+   * carried in from wherever they were last set. A reader arriving from a Fit
+   * mask brings Thick + Fit with them, the mask engages over imagery the
+   * score never promised for the letters, and the reading opens with no
+   * visible word at all. Measured: an empty atom, is-mask true.
+   *
+   * So the reading opens on the traditional face at a fixed scale. Glass
+   * needs nothing said about it: a score already sets streamGlass, and
+   * glassCanApply refuses only while a mask or a Fit word holds the frame —
+   * both of which leave with the size.
+   */
+  openOnReadableType() {
+    const settings = { chamberFace: 'literary', fontSize: 'medium' };
+    const rise = globalThis.rise;
+    if (typeof rise?.handleSettingsTransaction === 'function') {
+      rise.handleSettingsTransaction(settings);
+      return;
+    }
+    if (typeof rise?.handleSettingsChange === 'function') {
+      for (const [key, value] of Object.entries(settings)) rise.handleSettingsChange(key, value);
+    }
   }
 
   /**
