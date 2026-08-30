@@ -121,12 +121,23 @@
   pointer-events: none;
 }
 
-.portal-sigil-vessel .vessel-video {
+/* The still wears exactly what the video wears, so the vessel looks like
+   itself on either surface. */
+.portal-sigil-vessel .vessel-video,
+.portal-sigil-vessel .vessel-still {
   width: 100%;
   height: 100%;
   object-fit: cover;
   transition: filter var(--transition-normal) var(--ease-default);
   filter: grayscale(80%) contrast(1.2) opacity(0.7);
+}
+
+/* Decoration, and a seal is not dragged off the page. */
+.portal-sigil-vessel .vessel-still {
+  display: block;
+  pointer-events: none;
+  user-select: none;
+  -webkit-user-drag: none;
 }
 
 /* Hide native media controls: iOS draws a play glyph on unstarted
@@ -941,10 +952,6 @@
 .portal-sigil-vessel.is-seal:hover {
   transform: none;
   box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
-}
-
-.portal-sigil-vessel.is-seal:hover .vessel-video {
-  filter: grayscale(80%) contrast(1.2) opacity(0.7);
 }
 
 .portal-sigil-vessel.is-seal:active {

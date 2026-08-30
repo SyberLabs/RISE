@@ -67,10 +67,30 @@ describe('on a phone the sigil is a seal', () => {
         expect(onQuickAccess).not.toHaveBeenCalled();
     });
 
-    it('still shows the vessel video — it is decoration, not absence', () => {
+    // A STILL ON A PHONE, BECAUSE THE VIDEO ASKS TO BE PLAYED.
+    //
+    // iOS paints a play glyph over an unstarted video and Low Power Mode
+    // refuses to autoplay at all, which no amount of `playsinline`, `muted`,
+    // `autoplay` or hidden -webkit-media-controls can defeat. The vessel is
+    // decoration, never a player, so on a phone it is simply a picture.
+    it('shows a still vessel rather than a video', () => {
         atWidth(true);
         const { container } = makePortal();
-        expect(container.querySelector('.portal-sigil-vessel .vessel-video')).not.toBeNull();
+        const still = container.querySelector('.portal-sigil-vessel .vessel-still');
+        expect(still, 'the vessel is not empty').not.toBeNull();
+        expect(still.tagName).toBe('IMG');
+        expect(still.getAttribute('src')).toBe('/rise_mobile_icon.webp');
+        // Decoration announces nothing.
+        expect(still.getAttribute('alt')).toBe('');
+        expect(container.querySelector('.vessel-video'), 'no player on a phone').toBeNull();
+    });
+
+    it('never fetches the video a phone cannot start', () => {
+        atWidth(true);
+        const { container } = makePortal();
+        // The src is assigned during the reveal; with no video element there
+        // is nothing to assign, so the megabytes are never asked for.
+        expect(container.innerHTML).not.toContain('real_icon.mp4');
     });
 
     it('keeps the Continue strip, which is the labelled way back', () => {
@@ -86,6 +106,9 @@ describe('on a pointer the sigil is still the quick way back', () => {
         atWidth(false);
         const { container } = makePortal();
         const vessel = container.querySelector('.portal-sigil-vessel');
+        // A pointer keeps the moving vessel: it autoplays there without asking.
+        expect(vessel.querySelector('.vessel-video'), 'the video stays on a pointer').not.toBeNull();
+        expect(vessel.querySelector('.vessel-still')).toBeNull();
         expect(vessel.tagName).toBe('BUTTON');
         expect(vessel.classList.contains('is-seal')).toBe(false);
         expect(vessel.getAttribute('aria-label')).toBe('Quick access to last session');
