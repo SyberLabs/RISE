@@ -22,6 +22,16 @@
   font-family: "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif;
 }
 
+/* THE ROOM IS A COLUMN, NOT A MONITOR.
+   The room had padding and nothing else, so on a 1600px screen its prose ran
+   the full width of the glass — raw markup rather than a place to read. The
+   scroll stays on the room so the bar sits at the window's edge where a hand
+   expects it; only the content is brought to a column. */
+.scriptorium-column {
+  max-width: 68rem;
+  margin: 0 auto;
+}
+
 .scriptorium-header h1 {
   margin: 0.35rem 0 0.5rem;
   font-weight: 600;
