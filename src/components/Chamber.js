@@ -110,6 +110,9 @@ export class Chamber {
     this._fitMaskMask = null;
     this._fitMaskText = null;
     this._fitMaskId = null;
+    this._fitMaskSeed = null;
+    this._fitMaskTurn = 0;
+    this._fitMaskSignature = null;
     this.maskGroundPlate = null;
     this._scheduledVisualGeneration = 0;
     // Page Mode (PAGE-MODE-SPEC): the spatial projection, mounted lazily

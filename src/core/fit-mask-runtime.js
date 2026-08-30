@@ -126,9 +126,12 @@ export class FitMaskRuntime {
     svg.setAttribute('aria-hidden', 'true');
     svg.style.position = 'absolute';
     const mask = document.createElementNS(ns, 'mask');
-    if (!c._fitMaskId) {
-      c._fitMaskId = `chamber-fit-mask-${Math.random().toString(36).slice(2, 9)}`;
+    // The id is rotated per paint (see below), so creation only needs a
+    // starting one. The random part keeps two Chambers from colliding.
+    if (!c._fitMaskSeed) {
+      c._fitMaskSeed = `chamber-fit-mask-${Math.random().toString(36).slice(2, 9)}`;
     }
+    c._fitMaskId = this.nextMaskId();
     mask.setAttribute('id', c._fitMaskId);
     mask.setAttribute('maskUnits', 'userSpaceOnUse');
     mask.setAttribute('maskContentUnits', 'userSpaceOnUse');
@@ -350,10 +353,54 @@ export class FitMaskRuntime {
     }
     textEl.textContent = text;
 
+    // ...AND ONLY FOR A NEW GLYPH.
+    //
+    // paint() runs on every re-fit and resize, not once per word — measured
+    // at roughly twenty calls per word. Rotating on each of those would
+    // rewrite the rule twenty times to say the same thing. The reference
+    // moves when what it references does.
+    const signature = [
+      text, textX, textY, fieldWidth, fieldHeight,
+      cs.fontFamily, cs.fontSize, cs.fontWeight, cs.fontStyle, cs.letterSpacing
+    ].join('|');
+    if (signature === c._fitMaskSignature && c._fitMaskId) {
+      const held = `url("#${c._fitMaskId}")`;
+      if (host.style.maskImage !== held) {
+        host.style.maskImage = held;
+        host.style.webkitMaskImage = held;
+      }
+      return true;
+    }
+    c._fitMaskSignature = signature;
+
+    // A NEW NAME FOR A NEW GLYPH.
+    //
+    // The id was minted once per Chamber, so `mask-image: url("#id")` was one
+    // unchanging string for a whole reading while the <mask> underneath it
+    // was rewritten every word. Chromium re-rasterises anyway. WebKit is not
+    // obliged to: with no change to the property and no change to the
+    // referenced URL, it may keep the raster it already has — which is a Fit
+    // word frozen on the reading's FIRST glyph, at that glyph's size, while
+    // the atom moves on and shows only its border. Reported from iOS Safari
+    // as a giant "A" over the word "sent".
+    //
+    // Rotating the id changes the property's value with its content, so every
+    // engine must resolve it again. It costs one attribute write on a node
+    // this function is already writing to.
+    c._fitMaskId = this.nextMaskId();
+    c._fitMaskMask.setAttribute('id', c._fitMaskId);
+
     const url = `url("#${c._fitMaskId}")`;
     host.style.maskImage = url;
     host.style.webkitMaskImage = url;
     return true;
+  }
+
+  /** Monotonic, so a test can see the reference move rather than guess. */
+  nextMaskId() {
+    const c = this.chamber;
+    c._fitMaskTurn = (c._fitMaskTurn || 0) + 1;
+    return `${c._fitMaskSeed}-${c._fitMaskTurn}`;
   }
 
   /**
@@ -417,6 +464,10 @@ export class FitMaskRuntime {
       c._fitMaskSvg = null;
       c._fitMaskMask = null;
       c._fitMaskText = null;
+      // The live reference goes with the node it named. The seed and the turn
+      // stay, so a remounted mask cannot reuse an id a stale rule may hold.
+      c._fitMaskId = null;
+      c._fitMaskSignature = null;
     }
     this.removeGroundPlate();
   }
