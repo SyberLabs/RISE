@@ -128,9 +128,18 @@ export class Portal {
             ${sealOnly ? 'aria-hidden="true"' : `aria-label="Quick access to last session"
             title="Return to last session"`}
           >
-            <!-- Video src deferred. Not a player: suppress iOS ▶ overlay;
-                 preload first frame for Low Power Mode. -->
-            <video class="vessel-video" loop muted autoplay playsinline preload="auto" disablePictureInPicture></video>
+            <!-- A PHONE GETS A PICTURE, NOT A PLAYER.
+                 The vessel is decoration — tapping it opens the last session,
+                 it was never a video control. But iOS paints a play glyph over
+                 an unstarted video, and Low Power Mode declines to autoplay at
+                 all, which no combination of muted/autoplay/playsinline and
+                 hidden -webkit-media-controls can overrule. So on a phone the
+                 element is simply an image: nothing to start, nothing to ask,
+                 and the 1.7 MB the video costs is never fetched.
+                 Desktop keeps the moving vessel, where it plays unasked. -->
+            ${sealOnly
+              ? '<img class="vessel-still" src="/rise_mobile_icon.webp" alt="" decoding="async" draggable="false">'
+              : '<video class="vessel-video" loop muted autoplay playsinline preload="auto" disablePictureInPicture></video>'}
           </${sigilTag}>
         </div>
 

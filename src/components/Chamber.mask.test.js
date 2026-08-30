@@ -1048,6 +1048,54 @@ describe('Chamber semantic Fit compositor', () => {
         chamber.destroy();
     });
 
+    // A NEW NAME FOR A NEW GLYPH.
+    //
+    // The mask id was minted once per Chamber, so `mask-image: url("#id")`
+    // was one unchanging string for a whole reading while the <mask> under it
+    // was rewritten every word. Chromium re-rasterises regardless; WebKit is
+    // not obliged to, and iOS Safari was reported holding the reading's FIRST
+    // glyph — a giant "A", at that word's size — while the atom had moved on
+    // to "sent" and showed only its border.
+    //
+    // This cannot assert what Safari rasterises. It asserts the thing that
+    // gave Safari permission to cache: that the reference is now different
+    // for a different glyph, on every engine.
+    it('gives each glyph its own mask reference', async () => {
+        const { chamber, container } = makeChamber(
+            semanticSession({ mode: 'same', border: 'cream' }),
+            { fontSize: 'fit' }
+        );
+
+        const seen = [];
+        for (const [index, word] of [[1, 'love'], [4, 'beautiful'], [6, 'light']].entries()) {
+            chamber.displayAtom({ content: word[1], duration: 500 }, word[0]);
+            await flushFillMask();
+            const host = container.querySelector('.chamber-fill-field');
+            const mask = container.querySelector('.chamber-fit-mask-defs mask');
+            const glyph = container.querySelector('.chamber-fit-mask-defs text');
+            seen.push({
+                index,
+                word: word[1],
+                glyph: (glyph?.textContent || '').trim(),
+                id: mask?.getAttribute('id'),
+                url: host?.style.maskImage || host?.style.webkitMaskImage || ''
+            });
+        }
+
+        for (const row of seen) {
+            expect(row.glyph, `${row.word} is the glyph`).toBe(row.word);
+            // The rule points at the mask that holds THIS word.
+            expect(row.url, `${row.word} references its own mask`).toContain(row.id);
+        }
+        // And no two words share a reference, which is what a cached raster
+        // needs in order to survive the word that replaced it.
+        expect(new Set(seen.map(row => row.id)).size, 'one reference per glyph')
+            .toBe(seen.length);
+
+        chamber.destroy();
+        container.remove();
+    });
+
     it('maps Fit contour borders directly from the visual-mask material', async () => {
         for (const [border, color] of [
             ['off', ''],
