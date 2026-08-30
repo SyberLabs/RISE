@@ -352,6 +352,7 @@ export class FitMaskRuntime {
       textEl.removeAttribute('letter-spacing');
     }
     textEl.textContent = text;
+    this.registerGlyph({ textEl, atomDisplay, fieldRect, textX, textY });
 
     // ...AND ONLY FOR A NEW GLYPH.
     //
@@ -394,6 +395,56 @@ export class FitMaskRuntime {
     host.style.maskImage = url;
     host.style.webkitMaskImage = url;
     return true;
+  }
+
+  /**
+   * PUT THE MASK'S GLYPH EXACTLY WHERE THE WORD'S GLYPH IS.
+   *
+   * The border is a -webkit-text-stroke on the atom; the imagery is a
+   * separate layer clipped by this mask. Two elements, and they line up only
+   * as well as two different centring rules agree. `dominant-baseline:
+   * central` resolves through font metrics an engine picks for itself, so the
+   * mask glyph landed a fraction of a pixel off the text it traces —
+   * measured, up to 0.85px vertically in Chromium and ±0.34 in WebKit.
+   *
+   * A fraction of a pixel is invisible until two composited layers snap to
+   * the device grid independently and round it opposite ways. Then the
+   * outline separates from the fill, which is what iOS Safari was doing at
+   * DPR 3 while every desktop looked clean.
+   *
+   * So the engine's own answer is measured and cancelled rather than
+   * predicted: where did this engine actually put the glyph, and how far is
+   * that from the word? Correct by the difference. It costs one getBBox on a
+   * paint that already changed something, and it is right on an engine
+   * nobody here can run, because it asks that engine rather than assuming it.
+   */
+  registerGlyph({ textEl, atomDisplay, fieldRect, textX, textY }) {
+    if (typeof textEl.getBBox !== 'function' || !atomDisplay.firstChild) return;
+    let box;
+    try {
+      box = textEl.getBBox();
+    } catch {
+      return;
+    }
+    if (!box || !box.width || !box.height) return;
+
+    const range = atomDisplay.ownerDocument.createRange();
+    range.selectNodeContents(atomDisplay);
+    const ink = range.getBoundingClientRect();
+    if (!ink.width || !ink.height) return;
+
+    const dx = (ink.left - fieldRect.left + ink.width / 2) - (box.x + box.width / 2);
+    const dy = (ink.top - fieldRect.top + ink.height / 2) - (box.y + box.height / 2);
+
+    // A correction, not a relocation. Anything larger than a couple of pixels
+    // means the two are not describing the same word — a stale measurement
+    // mid-transition — and moving the glyph on that would be worse than
+    // leaving it where the honest arithmetic put it.
+    if (!Number.isFinite(dx) || !Number.isFinite(dy)) return;
+    if (Math.abs(dx) > 2 || Math.abs(dy) > 2) return;
+
+    textEl.setAttribute('x', String(textX + dx));
+    textEl.setAttribute('y', String(textY + dy));
   }
 
   /** Monotonic, so a test can see the reference move rather than guess. */

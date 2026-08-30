@@ -93,7 +93,10 @@
 /* The top padding belongs to the head, not the scrollport: the specimen
    pins itself to the top of this pane, and a padded scrollport would let
    the sections slide visibly through the strip above it. */
-.vnav-entry { padding: 0 1.15rem 1.3rem; overflow-y: auto; max-height: 26rem; }
+/* The bottom padding belongs to whatever ends the pane, not to the
+   scrollport: the commit pins itself to the bottom, and a padded scrollport
+   would let the benches slide visibly through the strip beneath it. */
+.vnav-entry { padding: 0 1.15rem; overflow-y: auto; max-height: 26rem; }
 .vnav-empty {
   height: 100%; display: grid; place-items: center; text-align: center;
   color: var(--color-mist, #6B6B75); font-size: 0.78rem; letter-spacing: 0.12em; padding: 2rem;
@@ -163,8 +166,32 @@
 .vnav-glass { display: flex; align-items: center; gap: 0.5rem; font-size: 0.76rem; color: var(--color-fog, #9B9BA5);
   margin: 0.2rem 0 0.9rem; cursor: pointer; }
 
-.vnav-commit { display: flex; align-items: center; gap: 0.8rem; padding-top: 0.9rem;
-  border-top: 1px solid var(--vnav-edge); margin-top: 0.4rem; }
+/* PRINCIPAL IN SIGHT.
+   The control that commits a choice is not something a reader should have to
+   go looking for. This was the last child of a 26rem scrollport full of
+   benches, so on a leaf with any depth it sat below the fold — measured at
+   nothing of it visible on Attractor — and the panel offered a decision while
+   hiding the way to make it. It pins to the foot of the pane, the mirror of
+   the specimen pinned at the head, and the benches pass beneath it. */
+.vnav-commit {
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  padding-top: 0.9rem;
+  padding-bottom: 1.3rem;
+  margin-top: 0.4rem;
+  border-top: 1px solid var(--vnav-edge);
+  /* Opaque, or the benches would read through it as they pass. */
+  background: var(--vnav-panel);
+}
+
+/* Panes that end without a commit keep the breathing room the scrollport
+   used to give them. */
+.vnav-type-sections,
+.vnav-empty { padding-bottom: 1.3rem; }
 .vnav-toggle {
   --w: 54px; position: relative; width: var(--w); height: 26px; border-radius: 999px; flex-shrink: 0;
   background: var(--color-void, #0A0A0C); border: 1px solid var(--vnav-edge); cursor: pointer; transition: all 160ms;

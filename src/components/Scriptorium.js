@@ -357,8 +357,18 @@ export class Scriptorium {
     const preview = this.preview;
     const rundown = this.rundown;
     const verdict = this.verdict;
+    // A ROOM KEEPS ITS PLACE WHEN IT IS REDRAWN.
+    //
+    // `.scriptorium` IS the scroll container, and this replaces it wholesale,
+    // so every action tore out the element holding the offset and rebuilt it
+    // at the top: a reader who pressed anything was thrown back to the first
+    // line. Measured at 787px of travel discarded on a single keystroke.
+    const room = this.container.querySelector('.scriptorium');
+    const standing = room ? room.scrollTop : 0;
+
     this.container.innerHTML = `
       <div class="scriptorium" role="main">
+        <div class="scriptorium-column">
         <header class="scriptorium-header">
           <button type="button" class="scriptorium-back" data-action="back">← Portal</button>
           <h1>The Scriptorium</h1>
@@ -486,8 +496,16 @@ export class Scriptorium {
         </section>
 
         ${this.status ? `<p class="scriptorium-status" role="status">${escapeHtml(this.status)}</p>` : ''}
+        </div>
       </div>
     `;
+
+    // Put them back where they were standing. After innerHTML this is a new
+    // element, so the offset has to be carried across rather than kept.
+    if (standing > 0) {
+      const rebuilt = this.container.querySelector('.scriptorium');
+      if (rebuilt) rebuilt.scrollTop = standing;
+    }
     this.bind();
   }
 
@@ -694,7 +712,36 @@ export class Scriptorium {
     }
     this.status = 'Opening the reading…';
     this.render();
+    this.openOnReadableType();
     await this.onCreateSession(project);
+  }
+
+  /**
+   * A SCORE'S READING OPENS LEGIBLE.
+   *
+   * This room offers no type controls — a score carries its imagery, its
+   * sound and its pace, and that is the room's whole argument for not routing
+   * through the Workshop. But face and size are the READER's settings,
+   * carried in from wherever they were last set. A reader arriving from a Fit
+   * mask brings Thick + Fit with them, the mask engages over imagery the
+   * score never promised for the letters, and the reading opens with no
+   * visible word at all. Measured: an empty atom, is-mask true.
+   *
+   * So the reading opens on the traditional face at a fixed scale. Glass
+   * needs nothing said about it: a score already sets streamGlass, and
+   * glassCanApply refuses only while a mask or a Fit word holds the frame —
+   * both of which leave with the size.
+   */
+  openOnReadableType() {
+    const settings = { chamberFace: 'literary', fontSize: 'medium' };
+    const rise = globalThis.rise;
+    if (typeof rise?.handleSettingsTransaction === 'function') {
+      rise.handleSettingsTransaction(settings);
+      return;
+    }
+    if (typeof rise?.handleSettingsChange === 'function') {
+      for (const [key, value] of Object.entries(settings)) rise.handleSettingsChange(key, value);
+    }
   }
 
   /**
