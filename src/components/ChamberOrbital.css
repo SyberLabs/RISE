@@ -255,11 +255,22 @@
 }
 
 /* ─── Orbital Stage ─── */
+/* THE RING IS NOT CENTRED IN ITS OWN BOX, SO THE BOX COMPENSATES.
+   Temporal sits a full radius above the middle; Audio and Visual only half a
+   radius below it. The ring's visual centre is therefore a quarter-radius
+   ABOVE the stage's centre, and equal margins hung it against the stances
+   with a gulf beneath — measured 9px above and 124px below on a laptop, 3
+   and 145 on a larger screen.
+   The correction is a quarter radius, moved from the bottom margin to the
+   top. The column's total height does not change by a pixel, which matters:
+   Begin has to stay above the floor, and that is measured elsewhere. */
 .orbital-stage {
   position: relative;
   width: var(--orbit-stage);
   height: var(--orbit-stage);
-  margin: var(--orbit-stage-margin) 0;
+  --orbit-ring-offset: calc(var(--orbit-radius) * 0.25);
+  margin-top: calc(var(--orbit-stage-margin) + var(--orbit-ring-offset));
+  margin-bottom: max(0px, calc(var(--orbit-stage-margin) - var(--orbit-ring-offset)));
 }
 
 /* ─── Orbit Container (optionally rotates, but text stays upright) ─── */
@@ -1560,6 +1571,9 @@
     /* The stage carried 32px of margin above and below on a screen
        with none to spare. (There were TWO of these rules in this one
        media block, the second silently winning; the second is gone.) */
+    /* A shorthand, and deliberately so: it overrides the ring-centring
+       margins the desktop stage carries. A phone sizes its ring in vw
+       against a tight column, and takes its room under Begin instead. */
     margin: var(--space-xs) auto;
   }
 
@@ -1688,7 +1702,9 @@
      climb into it with a fixed offset (not spacing-scale). Stage is
      position:relative and would steal taps — actions need z-index above. */
   .orbital-actions {
-    /* Cancels empty stage under the ring; do not tie to spacing scale. */
+    /* Cancels empty stage under the ring; do not tie to spacing scale.
+       Note this is overridden by the height tiers below on any screen
+       shorter than 960px, which is most phones. */
     margin-top: -44px;
     padding-bottom: var(--space-md);
     width: 100%;
@@ -1898,4 +1914,21 @@
 
 .orbit-label {
   font-size: clamp(9px, calc(var(--orbit-node) * 0.075), 11px);
+}
+
+/* ─── A PHONE GIVES BEGIN ITS DISTANCE ──────────────────────────────────
+   The desktop answer to the ring sitting off-centre is to shift the stage,
+   because the ring's own centre is a quarter-radius above its box. That is
+   not this surface's answer: a phone sizes its stage in vw against a tight
+   column, so Begin simply stands clear of the lower orbs instead.
+
+   Last in the file on purpose. The height tiers above govern anything under
+   960px tall — which is most phones AND many desktop windows — so writing
+   this into one of them pushed Begin down on a 1280x900 monitor too, where
+   the ring is centred and needs no such thing. Width is the question here,
+   so width is what asks it. */
+@media (max-width: 640px) {
+  .orbital-actions {
+    margin-top: var(--space-xl);
+  }
 }
