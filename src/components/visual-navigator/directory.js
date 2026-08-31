@@ -152,10 +152,20 @@ export const directoryMethods = {
     this.render();
   },
 
+  /**
+   * One press, one level.
+   *
+   * The entry IS a step. On a phone the columns collapse to one and the open
+   * leaf takes the pane, so the list a reader chose from is behind them —
+   * Back has to return to that list before it unwinds any branch. Popping the
+   * path and clearing the focus together skipped a level, and a leaf opened
+   * straight off the root (Face, Size, Ink) left `path` empty, so Back was
+   * not rendered at all and there was no way back to the rail.
+   */
   navigateBack() {
+    if (this.focus) { this.focus = null; this.render(); return; }
     if (!this.path.length) return;
     this.path = this.path.slice(0, -1);
-    this.focus = null;
     this.render();
   },
 
