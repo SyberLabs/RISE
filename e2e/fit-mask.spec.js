@@ -77,14 +77,26 @@ async function openPrep(page, viewport, prefs = PREFS) {
   await expect(page.locator('#begin-btn')).toBeEnabled({ timeout: 15_000 });
   await page.locator('[data-orbit="visual"]').click();
   await expect(page.locator('.vnav')).toBeVisible();
-  const size = page.locator('.vnav-node[data-id="size"]');
-  for (let depth = 0; depth < 4 && !(await size.isVisible()); depth += 1) {
+  await openRootNode(page, 'size');
+  await expect(page.locator('[data-font-size="fit"]')).toBeVisible();
+}
+
+/**
+ * Reach a door in the root rail, from wherever the panel happens to stand.
+ *
+ * A phone shows one pane at a time, so with a leaf open the rail is behind
+ * Back rather than beside the entry — the walk out is the same one openPrep
+ * already made to reach Size, and every root node needs it, not just the
+ * first. On a desktop the rail is always there and the loop does not run.
+ */
+async function openRootNode(page, id) {
+  const node = page.locator(`.vnav-node[data-id="${id}"]`);
+  for (let depth = 0; depth < 4 && !(await node.isVisible()); depth += 1) {
     const back = page.locator('[data-action="navigator-back"]');
     await expect(back).toBeVisible();
     await back.click();
   }
-  await size.click();
-  await expect(page.locator('[data-font-size="fit"]')).toBeVisible();
+  await node.click();
 }
 
 async function hardReloadPrep(page) {
@@ -257,7 +269,7 @@ async function installFirstDataDecodeGate(page) {
 
 async function chooseMaskFit(page) {
   await chooseFit(page);
-  await page.locator('.vnav-node[data-id="face"]').click();
+  await openRootNode(page, 'face');
   await page.locator('.vnav-opt[data-chamber-face="thick"]').click();
   await expect.poll(() => page.evaluate(() => JSON.parse(
     localStorage.getItem('rise-settings') || '{}'
@@ -729,7 +741,7 @@ test('leaving Fit for Medium preserves the Turrell × Fractal Gallery but remove
 test('material controls explain locked masks, transact Thick + Fit, and preserve the selected border', async ({ page }) => {
   await openPrep(page, { width: 1280, height: 800 });
   await chooseFit(page);
-  await page.locator('.vnav-node[data-id="ink"]').click();
+  await openRootNode(page, 'ink');
 
   // Browsers dispatch pointer events to aria-disabled controls; Playwright
   // suppresses them unless forced. This choice must remain explanatory.
@@ -751,12 +763,12 @@ test('material controls explain locked masks, transact Thick + Fit, and preserve
   await accent.click();
   await expect(accent).not.toHaveClass(/is-selected/);
 
-  await page.locator('.vnav-node[data-id="face"]').click();
+  await openRootNode(page, 'face');
   const thick = page.locator('.vnav-opt[data-chamber-face="thick"]');
   await thick.focus();
   await page.keyboard.press('Enter');
   await expect(thick).toHaveClass(/is-selected/);
-  await page.locator('.vnav-node[data-id="ink"]').click();
+  await openRootNode(page, 'ink');
   await page.locator('[data-word-fill="same"]').click();
   await expect(page.locator('[data-word-fill-border="cream"]')).toHaveClass(/is-selected/);
   await page.locator('[data-word-fill-border="accent"]').click();
@@ -766,7 +778,7 @@ test('material controls explain locked masks, transact Thick + Fit, and preserve
   await expect(page.getByText('Rock Garden')).toHaveCount(0);
   await expect(page.getByText('Spectral Plates')).toHaveCount(0);
 
-  await page.locator('.vnav-node[data-id="size"]').click();
+  await openRootNode(page, 'size');
   await page.locator('[data-font-size="m"]').click();
   await expect(dialog).toContainText('This change cannot keep the current visual mask. Continue with Accent ink?');
   await dialog.getByRole('button', { name: 'Cancel' }).click();

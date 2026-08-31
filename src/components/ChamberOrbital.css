@@ -1932,3 +1932,79 @@
     margin-top: var(--space-xl);
   }
 }
+
+
+/* ─── SHORT IS ITS OWN KIND OF SMALL ────────────────────────────────────
+   Every trim these modals make for a small screen is written against WIDTH,
+   so a landscape phone — 844 wide and 390 tall — takes none of them. It is
+   the axis that is not scarce there. Measured, a modal held to 80vh gave
+   312px and spent 264 of them on furniture: a 97px header, 48px of body
+   padding, the panel's own 37px bar and its two reader switches. Forty-four
+   pixels were left for the pane a reader had opened.
+
+   The same compaction, asked by the axis that is actually short. Unlike a
+   spacing tier, this is right wherever it fires: a window with 560px of
+   height wants a smaller header whatever its width. */
+@media (max-height: 560px) {
+  .orbital-modal {
+    padding: var(--space-xs);
+  }
+
+  .orbital-modal .modal-content {
+    max-height: 94dvh;
+  }
+
+  .orbital-modal .modal-header {
+    padding: var(--space-xs) var(--space-md);
+  }
+
+  .orbital-modal .modal-header h2 {
+    font-size: 15px;
+  }
+
+  .orbital-modal .modal-body {
+    padding: var(--space-sm);
+  }
+}
+
+
+/* The panel's own frame, at every width where it shows one pane at a time.
+   VisualNavigator.css collapses the columns below 960; the height it needs
+   in order to scroll inside itself has to arrive at the same width. */
+@media (max-width: 960px) {
+
+  /* ── THE VISUAL PANEL IS A SCREEN, NOT A PAGE THE SCREEN SCROLLS ──
+     The Navigator bounds itself on a desktop by giving its rail and its
+     entry a scrollport each. Below 960 both were released, and nothing
+     replaced them: measured on a 390x844 phone the panel stood 968px on a
+     Klee leaf and 2053px on Size, inside a modal 774px tall. So the modal
+     became the only scroller and everything the panel pins went with it —
+     the specimen that is meant to hold at the head of the pane, the commit
+     that is meant to hold at its foot (measured at y=847, three pixels
+     below the fold, with its toggle wholly off screen), and the two reader
+     switches, a full screen further down again.
+
+     `position: sticky` needs a scrollport to stick inside. Handing the
+     panel the modal's own height gives it one back, and the pinning that
+     already ships starts working on the device that needed it most. Only
+     this modal: it holds a single panel that wants the whole frame, where
+     the others hold stacked sections that should scroll as a page. */
+  #modal-visual .modal-content {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  #modal-visual .modal-body,
+  #modal-visual #orbital-visual-navigator {
+    display: flex;
+    min-height: 0;
+    flex: 1;
+    overflow: hidden;
+  }
+
+  #modal-visual #orbital-visual-navigator > .vnav {
+    flex: 1;
+    min-height: 0;
+  }
+}

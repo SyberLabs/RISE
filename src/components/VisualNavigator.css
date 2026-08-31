@@ -415,13 +415,46 @@
 }
 .vnav-manage:hover { color: var(--color-accent, #E4D2AE); }
 
-/* ── responsive: columns collapse to a single drill-down ──────────────── */
+/* ── ONE PANE AT A TIME, AND ONE THING THAT SCROLLS ────────────────────
+   The columns collapsed to one here, and a Back button appeared — but the
+   ENTRY was never made a step. It stayed glued below the rail, so a phone
+   showed the list a reader had just used AND the pane they opened from it,
+   stacked. Measured at 390x844: opening Size left the root rail occupying
+   the top 279px and the size controls beginning 436px down a panel 2053px
+   tall; a Klee leaf put the sibling list above 513px of entry. Worse, both
+   scrollports were released and nothing took their place, so the modal
+   became the only scroller and everything the panel pins rode away with it
+   — the specimen from the head of the pane, the commit from its foot
+   (y=847 on an 844px screen, its toggle wholly off), and the two reader
+   switches a full screen below that.
+
+   So the drill-down is finished rather than decorated: the open leaf takes
+   the pane, the list is one press of Back behind it, and the entry is a
+   scrollport again inside a panel bounded by the frame it sits in. The
+   pinning that already ships then works on the device it was written for. */
 @media (max-width: 960px) {
-  .vnav-body { grid-template-columns: 1fr; }
-  .vnav-col { display: none; border-right: none; border-bottom: 1px solid var(--vnav-edge); max-height: none; }
+  .vnav-body {
+    grid-template-columns: minmax(0, 1fr);
+    /* The panel is a flex column; the browser takes what the bar and the
+       reader controls leave, and no more. */
+    flex: 1;
+    min-height: 0;
+  }
+
+  .vnav-col,
+  .vnav-entry {
+    min-height: 0;
+    max-height: none;
+  }
+
+  .vnav-col { display: none; border-right: none; }
   .vnav-col.vnav-current { display: block; }
-  .vnav-entry { max-height: none; }
-  .vnav-reader-controls { align-items: flex-start; flex-direction: column; }
+
+  /* Whichever pane is not the subject stands down: the rail while a leaf is
+     open, the entry's "choose a field" placeholder while it is not. */
+  .vnav-at-leaf .vnav-col,
+  .vnav:not(.vnav-at-leaf) .vnav-entry { display: none; }
+
   .vnav-cadence { margin-left: 0; flex-wrap: wrap; }
   .vnav-back {
     display: inline-flex;
@@ -796,4 +829,57 @@
 
 .vnav-specimen[data-specimen-ground="light"] .vnav-preview-sample {
   --specimen-ground: var(--color-cream);
+}
+
+
+/* ── A FINGER, AND AN ARM'S LENGTH ─────────────────────────────────────
+   This panel's type scale was drawn for a pointer a foot from the glass:
+   measured on a phone it rendered eight distinct sizes below 12px, with
+   its section labels at 9px, and its two commonest controls — the option
+   chip and the rail row — at 33px and 39px tall against the 44px floor
+   the switch rows in this same file already keep.
+
+   Nothing is re-drawn here. The micro-labels come up to 11px, the chips
+   and rows out to 44px, and the commit toggle keeps its 54x26 form while
+   its hit area grows to meet a fingertip — a floor, applied where the
+   device makes it a floor, rather than a second design. */
+@media (max-width: 640px) {
+  /* Stacked where the width runs out, and only there. Set at 960 this cost
+     a landscape phone 185px of a 390px screen to say two things it had 844px
+     of room to say side by side. */
+  .vnav-reader-controls { align-items: flex-start; flex-direction: column; }
+
+  .vnav-group,
+  .vnav-bench-label,
+  .vnav-section-title,
+  .vnav-preview-label,
+  .vnav-preview-note,
+  .vnav-ink-own-caption,
+  .vnav-kind,
+  .vnav-switch-note,
+  .vnav-control-explanation,
+  .vnav-cadence > span {
+    font-size: 11px;
+  }
+
+  .vnav-opt,
+  .vnav-switch-name {
+    font-size: 0.8rem;
+  }
+
+  .vnav-node,
+  .vnav-opt,
+  .vnav-back {
+    min-height: 44px;
+  }
+
+  .vnav-cadence .vnav-opt { font-size: 0.75rem; }
+
+  /* The track keeps its size; only what a finger may land on grows, so no
+     pixel of the switch moves and the knob's geometry is untouched. */
+  .vnav-toggle::after {
+    content: '';
+    position: absolute;
+    inset: -9px 0;
+  }
 }

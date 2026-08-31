@@ -270,6 +270,9 @@ test('the visual navigator exposes complete Field and Text roots without a mobil
     await page.locator('.vnav-node[data-id="size"]').click();
     await expect(page.locator('[data-font-size="fit"]')).toBeVisible();
 
+    // One pane at a time: the open pane holds the screen, so reaching another
+    // root door goes back to the rail rather than sideways past it.
+    await page.locator('[data-action="navigator-back"]').click();
     await page.locator('.vnav-node[data-id="visual"]').click();
     await page.locator('.vnav-node[data-id="gallery"]').click();
     await page.locator('.vnav-node[data-id="gallery-sourced"]').click();
@@ -288,12 +291,24 @@ test('the visual navigator exposes complete Field and Text roots without a mobil
             viewport: window.innerWidth
         };
     });
-    expect(phone.visibleColumns).toBe(1);
+    // With a leaf open the entry IS the pane: no rail stacked above it, which
+    // is what left the commit and the reader switches below the fold. The
+    // "one column" this used to assert is the state a reader is in BEFORE
+    // opening something, and it is asserted at the rail below.
+    expect(phone.visibleColumns).toBe(0);
     expect(phone.sideways).toBe(0);
     expect(phone.entryWidth).toBeGreaterThan(250);
     expect(phone.entryRight).toBeLessThanOrEqual(phone.viewport);
 
     await expect(page.locator('[data-action="navigator-back"]')).toBeVisible();
+    // One press, one level: the open leaf is a step of the drill-down now, so
+    // Back returns to the list By Manner was chosen FROM. It used to clear the
+    // focus and pop the path together, which skipped a level.
+    await page.locator('[data-action="navigator-back"]').click();
+    await expect(page.locator('.vnav-node[data-id="by-manner"]')).toBeVisible();
+    // Back at a list, exactly one column stands — the deepest one, alone.
+    expect(await page.evaluate(() => [...document.querySelectorAll('.vnav-col')]
+        .filter(column => getComputedStyle(column).display !== 'none').length)).toBe(1);
     await page.locator('[data-action="navigator-back"]').click();
     await expect(page.locator('.vnav-node[data-id="gallery-sourced"]')).toBeVisible();
 

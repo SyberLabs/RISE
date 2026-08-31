@@ -183,9 +183,9 @@ export class VisualNavigator {
     this.container.innerHTML = this.locked
       ? `<div class="vnav vnav-is-gated">${this.renderGate()}</div>`
       : `
-      <div class="vnav">
+      <div class="vnav${this.focus ? ' vnav-at-leaf' : ''}">
         <div class="vnav-bar">
-          ${this.path.length ? '<button type="button" class="vnav-back" data-action="navigator-back">‹ Back</button>' : ''}
+          ${this.path.length || this.focus ? '<button type="button" class="vnav-back" data-action="navigator-back">‹ Back</button>' : ''}
           <span class="vnav-path">${this.pathBar()}</span>
           <span class="vnav-field">${escapeHtml(describeField(this.selection.enabled))}</span>
         </div>
