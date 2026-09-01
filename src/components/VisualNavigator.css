@@ -278,14 +278,22 @@
 .vnav-global-picker p { margin: 0.5rem 0 0; }
 
 .vnav-reader-controls {
+  border-top: 1px solid var(--vnav-edge);
+  background: var(--vnav-panel);
+}
+
+/* The row these controls have always been. It is the sheet's contents on a
+   phone and the whole of the footer everywhere else. */
+.vnav-reader-sheet {
   min-height: 2.8rem;
   display: flex;
   align-items: center;
   gap: 1rem;
   padding: 0.55rem 0.8rem;
-  border-top: 1px solid var(--vnav-edge);
-  background: var(--vnav-panel);
 }
+
+/* Shown only where the footer has to earn its height. */
+.vnav-reader-summary { display: none; }
 /* ─── A SETTING ROW, NOT A TICK ─────────────────────────────────────────
    The whole row is the control: the label wraps the input, so a press
    anywhere on it forwards natively and lands once. The checkbox stays real
@@ -454,6 +462,72 @@
      open, the entry's "choose a field" placeholder while it is not. */
   .vnav-at-leaf .vnav-col,
   .vnav:not(.vnav-at-leaf) .vnav-entry { display: none; }
+
+  /* ── THE FOOT OF THE PANEL BELONGS TO THE PANE ──
+     Two footers were pinned to the bottom of a phone: the commit, which is
+     the primary action, and beneath it three settings a reader chooses once.
+     Measured at 390x844 with a gallery in play and a mask on the letters —
+     the state of the screenshots — the settings stood 277px and never moved:
+     Living Text 67, Glass 115 (a five-line account of why it cannot act),
+     Cadence 44. On the Visual list that left the rail 151px. The furniture
+     was very nearly twice the room it framed.
+
+     They are not properties of the pane. They are the same on every one of
+     them, which is exactly why they can collapse: the bar states them —
+     `Living Text on · Glass off · Quick` — and opens over the pane when a
+     reader wants them, at full size, with the explanations that a phone
+     could never get from a `title`. The pane keeps its height, the foot
+     belongs to the commit again, and nothing is hidden that was not already
+     said in the bar. */
+  .vnav-reader-summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.8rem;
+    width: 100%;
+    min-height: 44px;
+    padding: 0.5rem 0.8rem;
+    border: 0;
+    background: transparent;
+    color: var(--color-fog, #9B9BA5);
+    font: inherit;
+    font-size: 0.75rem;
+    text-align: left;
+    cursor: pointer;
+  }
+
+  .vnav-reader-summary:focus-visible {
+    outline: 2px solid var(--color-accent, #E4D2AE);
+    outline-offset: -2px;
+  }
+
+  .vnav-reader-controls.is-open .vnav-reader-summary,
+  .vnav-reader-summary:hover { color: var(--color-cloud, #C5C5CD); }
+
+  .vnav-reader-mark {
+    flex: none;
+    color: var(--color-accent, #E4D2AE);
+  }
+
+  /* Over the pane, not instead of it: opening the sheet must not resize what
+     is behind it. `.vnav` is the positioned ancestor the dialog already uses. */
+  .vnav-reader-sheet { display: none; }
+
+  .vnav-reader-controls.is-open .vnav-reader-sheet {
+    display: flex;
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 100%;
+    z-index: 2;
+    max-height: 60vh;
+    overflow-y: auto;
+    border-top: 1px solid var(--vnav-edge);
+    background: var(--vnav-panel);
+    box-shadow: 0 -0.75rem 1.5rem rgba(0, 0, 0, 0.5);
+  }
+
+  .vnav-reader-controls { position: relative; }
 
   .vnav-cadence { margin-left: 0; flex-wrap: wrap; }
   .vnav-back {
@@ -847,7 +921,7 @@
   /* Stacked where the width runs out, and only there. Set at 960 this cost
      a landscape phone 185px of a 390px screen to say two things it had 844px
      of room to say side by side. */
-  .vnav-reader-controls { align-items: flex-start; flex-direction: column; }
+  .vnav-reader-sheet { align-items: flex-start; flex-direction: column; }
 
   .vnav-group,
   .vnav-bench-label,
