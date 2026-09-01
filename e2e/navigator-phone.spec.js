@@ -256,3 +256,213 @@ test('the columns still stand beside the entry on a desktop', async ({ page }) =
     expect(desktop.backShown, 'and reaches its levels by the columns, not a button')
         .toBe(false);
 });
+
+
+/**
+ * THE FOOT OF THE PANEL BELONGS TO THE PANE.
+ *
+ * Two footers were pinned to the bottom of a phone: the commit, which is the
+ * primary action, and beneath it three settings a reader chooses once.
+ * Measured at 390x844 with a gallery in play and a mask on the letters, the
+ * settings stood 277px and never moved — Living Text 67, Glass 115 (a
+ * five-line account of why it cannot act), Cadence 44. On the Visual list
+ * that left the rail 151px: the furniture was very nearly twice the room it
+ * framed, and half the panel was unusable.
+ *
+ * They are not properties of the pane — they are the same on every one of
+ * them, which is exactly why they can collapse. The bar states them and
+ * opens over the pane on request, at full size, keeping the explanations a
+ * tooltip could never give a phone.
+ */
+const SEED = {
+    text: 'Light enters form and returns through measure. '.repeat(80).trim(),
+    textSource: 'Seed', origin: null
+};
+
+/**
+ * A gallery in play, so Cadence is there, and a mask on the letters, so the
+ * Glass note is the long refusal — the worst case, and the screenshots'.
+ */
+const LOADED = {
+    wpm: 360, chunkMode: 'word',
+    visualInterlocution: {
+        visualMode: 'interlocution',
+        livingText: { enabled: true, intensity: 0.8 },
+        interlocution: {
+            sourceFamily: 'procedural', procedural: ['turrell'], sourced: [],
+            presentation: 'continuous', streamGlass: false,
+            wordFill: { mode: 'pick', sourceFamily: 'procedural', procedural: ['fractal'], sourced: [] }
+        }
+    }
+};
+
+async function openLoadedNavigator(page, size = PHONE) {
+    await page.setViewportSize(size);
+    await page.addInitScript(({ gate, seed, prefs }) => {
+        localStorage.setItem('rise-beta-session', JSON.stringify(gate));
+        localStorage.setItem('rise_orbital_text_v1', JSON.stringify(seed));
+        localStorage.setItem('rise_orbital_prefs_v1', JSON.stringify(prefs));
+        localStorage.setItem('rise-settings', JSON.stringify({ chamberFace: 'thick', fontSize: 'fit' }));
+    }, { gate: GATE, seed: SEED, prefs: LOADED });
+    await page.goto('/');
+    await page.locator('[data-nav="chamber"]').first().click();
+    await expect(page.locator('#begin-btn')).toBeEnabled({ timeout: 15000 });
+    await page.locator('[data-orbit="visual"]').click();
+    await expect(page.locator('.vnav')).toBeVisible({ timeout: 15000 });
+}
+
+/** Down to the leaf the second screenshot was taken on. */
+async function openBySubject(page) {
+    const visual = page.locator('.vnav-node[data-id="visual"]');
+    for (let i = 0; i < 4 && !(await visual.isVisible()); i += 1) {
+        await page.locator('[data-action="navigator-back"]').click();
+    }
+    await visual.click();
+    await page.locator('.vnav-node[data-id="gallery"]').click();
+    await page.locator('.vnav-node[data-id="gallery-sourced"]').click();
+    await page.locator('.vnav-node[data-id="by-subject"]').click();
+    await expect(page.locator('.vnav-entry h3')).toBeVisible();
+}
+
+const footer = () => {
+    const nav = document.querySelector('.vnav');
+    const h = el => el ? Math.round(el.getBoundingClientRect().height) : 0;
+    const controls = nav.querySelector('.vnav-reader-controls');
+    return {
+        panel: h(nav),
+        controls: h(controls),
+        entry: h(nav.querySelector('.vnav-entry')),
+        rail: h(nav.querySelector('.vnav-col.vnav-current')),
+        summary: nav.querySelector('.vnav-reader-state')?.textContent.trim() ?? null,
+        open: controls.classList.contains('is-open'),
+        switchesOnScreen: [...nav.querySelectorAll('.vnav-switch')]
+            .filter(el => el.offsetParent !== null).length,
+        cadenceOnScreen: Boolean(nav.querySelector('.vnav-cadence')?.offsetParent)
+    };
+};
+
+test('the settings do not take the room the pane needs', async ({ page }) => {
+    test.setTimeout(180000);
+    await openLoadedNavigator(page);
+    await openBySubject(page);
+
+    const f = await page.evaluate(footer);
+    console.log('FOOTER ' + JSON.stringify(f));
+
+    // 277px of 661 — 42% at a leaf, 56% at a list — is what this replaces.
+    expect(f.controls).toBeLessThan(64);
+    expect(f.controls / f.panel).toBeLessThan(0.15);
+    // And the pane is the larger part of the panel by a wide margin.
+    expect(f.entry).toBeGreaterThan(f.controls * 4);
+    // Collapsed means collapsed: nothing of the switches is on screen.
+    expect(f.switchesOnScreen).toBe(0);
+    expect(f.cadenceOnScreen).toBe(false);
+});
+
+test('the bar says what the switches say', async ({ page }) => {
+    test.setTimeout(180000);
+    await openLoadedNavigator(page);
+    await openBySubject(page);
+
+    // Collapsing may not cost a reader the state — that is the whole reason
+    // these were kept in sight rather than filed under a menu.
+    const f = await page.evaluate(footer);
+    expect(f.summary).toMatch(/Living Text (on|off)/);
+    expect(f.summary).toMatch(/Glass (on|off)/);
+    // A gallery is in play, so its cadence is named too.
+    expect(f.summary).toMatch(/Slow|Measured|Quick/);
+});
+
+test('it opens over the pane, whole, and does not resize it', async ({ page }) => {
+    test.setTimeout(180000);
+    await openLoadedNavigator(page);
+    await openBySubject(page);
+    const before = await page.evaluate(footer);
+
+    await page.locator('[data-action="reader-sheet"]').click();
+    const sheet = await page.evaluate(() => {
+        const box = document.querySelector('.vnav-reader-sheet').getBoundingClientRect();
+        return {
+            notes: [...document.querySelectorAll('.vnav-switch-note')]
+                .filter(el => el.offsetParent !== null)
+                .map(el => el.textContent.trim().length),
+            expanded: document.querySelector('[data-action="reader-sheet"]')
+                .getAttribute('aria-expanded'),
+            sheetTop: Math.round(box.top),
+            sheetBottom: Math.round(box.bottom),
+            viewportHeight: window.innerHeight
+        };
+    });
+    const after = { ...(await page.evaluate(footer)), ...sheet };
+    console.log('SHEET OPEN ' + JSON.stringify(after));
+
+    expect(after.open).toBe(true);
+    expect(after.expanded).toBe('true');
+    expect(after.switchesOnScreen, 'both switches, at full size').toBe(2);
+    expect(after.cadenceOnScreen, 'and the cadence').toBe(true);
+    // The explanations survive the collapse. Glass carries the long refusal
+    // here, which a phone could never have got from a tooltip.
+    expect(Math.max(...after.notes)).toBeGreaterThan(80);
+    // Over, not instead of: the pane behind it is the size it was.
+    expect(after.entry).toBe(before.entry);
+    expect(after.sheetBottom).toBeLessThanOrEqual(after.viewportHeight);
+    expect(after.sheetTop).toBeGreaterThanOrEqual(0);
+});
+
+test('a switch inside the sheet still toggles once, and the bar follows', async ({ page }) => {
+    test.setTimeout(180000);
+    await openLoadedNavigator(page);
+    await openBySubject(page);
+    await page.locator('[data-action="reader-sheet"]').click();
+
+    const before = await page.evaluate(() => ({
+        checked: document.querySelector('[data-action="living-text"]').checked,
+        summary: document.querySelector('.vnav-reader-state').textContent.trim()
+    }));
+    await page.locator('.vnav-switch:has([data-action="living-text"])').click();
+    const after = await page.evaluate(() => ({
+        checked: document.querySelector('[data-action="living-text"]').checked,
+        summary: document.querySelector('.vnav-reader-state').textContent.trim(),
+        stillOpen: document.querySelector('.vnav-reader-controls').classList.contains('is-open')
+    }));
+
+    // One press, one change — the label already forwards to the input, and a
+    // re-render inside an open sheet may not lose the sheet.
+    expect(after.checked).toBe(!before.checked);
+    expect(after.summary).not.toBe(before.summary);
+    expect(after.stillOpen, 'the sheet stays open to be used again').toBe(true);
+});
+
+test('moving in the panel closes it, rather than moving behind it', async ({ page }) => {
+    test.setTimeout(180000);
+    await openLoadedNavigator(page);
+    await openBySubject(page);
+    await page.locator('[data-action="reader-sheet"]').click();
+    expect((await page.evaluate(footer)).open).toBe(true);
+
+    // The sheet covers the pane. Backing out with it open would move a reader
+    // somewhere they cannot see.
+    await page.locator('[data-action="navigator-back"]').click();
+    expect((await page.evaluate(footer)).open).toBe(false);
+});
+
+test('a desktop keeps the settings laid out, and never shows the bar', async ({ page }) => {
+    test.setTimeout(180000);
+    await openLoadedNavigator(page, { width: 1280, height: 800 });
+
+    const desktop = await page.evaluate(() => {
+        const nav = document.querySelector('.vnav');
+        const bar = nav.querySelector('[data-action="reader-sheet"]');
+        return {
+            barShown: Boolean(bar) && getComputedStyle(bar).display !== 'none',
+            switchesOnScreen: [...nav.querySelectorAll('.vnav-switch')]
+                .filter(el => el.offsetParent !== null).length,
+            sheetShown: getComputedStyle(nav.querySelector('.vnav-reader-sheet')).display !== 'none'
+        };
+    });
+    // There is room here, so nothing is collapsed and nothing has to be asked
+    // for. The bar is the phone's answer and stays the phone's.
+    expect(desktop.barShown).toBe(false);
+    expect(desktop.sheetShown).toBe(true);
+    expect(desktop.switchesOnScreen).toBe(2);
+});

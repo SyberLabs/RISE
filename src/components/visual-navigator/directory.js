@@ -55,6 +55,7 @@ export const directoryMethods = {
   },
 
   navigate(colIndex, node) {
+    this._readerSheetOpen = false;
     this.path = this.path.slice(0, colIndex);
     if (node.children) { this.path.push(node); this.focus = null; }
     else { this.focus = node; }
@@ -163,6 +164,7 @@ export const directoryMethods = {
    * not rendered at all and there was no way back to the rail.
    */
   navigateBack() {
+    this._readerSheetOpen = false;
     if (this.focus) { this.focus = null; this.render(); return; }
     if (!this.path.length) return;
     this.path = this.path.slice(0, -1);
@@ -391,7 +393,21 @@ export const directoryMethods = {
     const glassNote = maskHoldsLetters
       ? 'The word itself is holding the frame — a Fit word, or a mask carrying the letters. Glass behind it would swallow the field. It returns at a fixed scale.'
       : 'A blurred pane behind the words, so they hold their edge against the imagery.';
-    return `<div class="vnav-reader-controls">
+    const cadence = CADENCE.find(item => item.value === this.selection.galleryCadence);
+    // What the collapsed bar says on a phone. State first, because that is the
+    // whole reason these switches were kept in sight.
+    const summary = [
+      `Living Text ${this.selection.livingText.enabled ? 'on' : 'off'}`,
+      `Glass ${this.glassOn() ? 'on' : 'off'}`,
+      galleryContext && cadence ? cadence.label : null
+    ].filter(Boolean).join(' · ');
+    return `<div class="vnav-reader-controls${this._readerSheetOpen ? ' is-open' : ''}">
+      <button type="button" class="vnav-reader-summary" data-action="reader-sheet"
+        aria-expanded="${this._readerSheetOpen ? 'true' : 'false'}" aria-controls="vnav-reader-sheet">
+        <span class="vnav-reader-state">${escapeHtml(summary)}</span>
+        <span class="vnav-reader-mark" aria-hidden="true">${this._readerSheetOpen ? '⌄' : '⌃'}</span>
+      </button>
+      <div class="vnav-reader-sheet" id="vnav-reader-sheet">
       <label class="vnav-switch${this.selection.livingText.enabled ? ' is-on' : ''}${fieldLocked ? ' is-off-limits' : ''}">
         <input type="checkbox" data-action="living-text" aria-describedby="vnav-living-note"
           ${this.selection.livingText.enabled ? 'checked' : ''} ${fieldLocked ? 'disabled' : ''}>
@@ -414,6 +430,7 @@ export const directoryMethods = {
       ${galleryContext ? `<div class="vnav-cadence"><span>Cadence</span>${CADENCE.map(item => `
         <button type="button" class="vnav-opt ${this.selection.galleryCadence === item.value ? 'on' : ''}"
           data-gallery-cadence="${item.value}" ${fieldLocked ? 'disabled' : ''}>${item.label}</button>`).join('')}</div>` : ''}
+      </div>
     </div>`;
   },
 

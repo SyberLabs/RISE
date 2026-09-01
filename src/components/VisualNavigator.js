@@ -47,6 +47,10 @@ export class VisualNavigator {
     this._dialogReturnFocusSelector = null;
     this._restoringDialogFocus = false;
     this._faceHint = false;
+    // A phone gives the foot of the panel to the pane, not to three settings
+    // that are chosen once. The switches collapse to a bar that states them
+    // and opens on request; a desktop shows them laid out and never uses it.
+    this._readerSheetOpen = false;
     this.path = [];          // branch nodes descended, under ROOT
     this.focus = null;       // the open leaf, or null
     this._destroyed = false;
@@ -227,6 +231,10 @@ export class VisualNavigator {
     const q = sel => this.container.querySelector(sel);
     q('[data-action="navigator-back"]')?.addEventListener('click', () => this.navigateBack());
     q('[data-action="toggle"]')?.addEventListener('click', () => this.toggleEnabled());
+    q('[data-action="reader-sheet"]')?.addEventListener('click', () => {
+      this._readerSheetOpen = !this._readerSheetOpen;
+      this.render();
+    });
     q('[data-action="glass"]')?.addEventListener('change', e => this.setGlass(e.target.checked));
     q('[data-action="living-text"]')?.addEventListener('change', e => this.setLivingText(e.target.checked));
     q('[data-action="open-personal"]')?.addEventListener('click', () => this.onOpenPersonal());
