@@ -32,7 +32,7 @@ test('a PROCEDURAL reading with no program typesets rendered stills', async ({ p
   await expect(warn).toBeVisible({ timeout: 15000 });
   await warn.locator('#safety-accept').click();
   await expect(page.locator('#chamber-display')).toBeVisible({ timeout: 20000 });
-  await page.waitForFunction(() => window.rise?.router && !window.rise.router.transitioning);
+  await page.waitForFunction(() => window.__RISE_TEST__ && !window.__RISE_TEST__.getRouterState().transitioning);
   await page.waitForTimeout(2000);
 
   await page.locator('#chamber-display').hover();
@@ -43,9 +43,9 @@ test('a PROCEDURAL reading with no program typesets rendered stills', async ({ p
   // The Page is paginated now, so one DOM snapshot is one page's worth.
   // This assertion is about the READING, so it walks the reading.
   const config = await page.evaluate(() => ({
-    hasProgram: !!window.rise?.currentSession?.visualProgram,
-    sourced: window.rise?.currentSession?.visualConfig?.interlocution?.sourced,
-    procedural: window.rise?.currentSession?.visualConfig?.interlocution?.procedural
+    hasProgram: !!window.__RISE_TEST__?.getCurrentSession()?.visualProgram,
+    sourced: window.__RISE_TEST__?.getCurrentSession()?.visualConfig?.interlocution?.sourced,
+    procedural: window.__RISE_TEST__?.getCurrentSession()?.visualConfig?.interlocution?.procedural
   }));
   const stats = { ...config, ...(await collectAcrossPages(page)) };
   console.log('FIDELITY ' + JSON.stringify(stats));

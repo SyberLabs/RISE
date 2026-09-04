@@ -18,7 +18,7 @@ async function openScriptorium(page) {
     }, GATE);
     await page.goto('/');
     await expect(page.locator('[data-nav="library"]').first()).toBeVisible({ timeout: 15_000 });
-    await page.evaluate(() => window.rise?.router?.navigate('scriptorium'));
+    await page.evaluate(() => window.__RISE_TEST__?.navigate('scriptorium'));
     await expect(page.locator('.scriptorium')).toBeVisible({ timeout: 15_000 });
     await page.waitForTimeout(600);
 }
@@ -65,7 +65,7 @@ test('an action leaves the reader where they were standing', async ({ page }) =>
         const field = document.querySelector('#scriptorium-intent');
         field.value = 'A sequence about memory and loss.';
         field.dispatchEvent(new Event('input', { bubbles: true }));
-        window.rise?.router?.views?.get('scriptorium')?.instance?.render?.();
+        window.__RISE_TEST__?.getView('scriptorium')?.render?.();
     });
     await page.waitForTimeout(300);
 

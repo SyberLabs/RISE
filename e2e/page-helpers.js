@@ -66,7 +66,7 @@ export async function collectAcrossPages(page, options = {}) {
     const settleMs = Number.isFinite(options.settleMs) ? options.settleMs : 1200;
 
     const total = await page.evaluate(() => {
-        const r = window.rise?.router?.views?.get('chamber-session')?.instance?.pageReader;
+        const r = window.__RISE_TEST__?.getView('chamber-session')?.pageReader;
         return r?.pages?.length ?? 1;
     });
 
@@ -76,7 +76,7 @@ export async function collectAcrossPages(page, options = {}) {
     for (let i = 0; i < total; i++) {
         if (i > 0) {
             const turned = await page.evaluate((index) => {
-                const r = window.rise?.router?.views?.get('chamber-session')?.instance?.pageReader;
+                const r = window.__RISE_TEST__?.getView('chamber-session')?.pageReader;
                 if (!r) return false;
                 r.goToPage(index);
                 return true;
@@ -109,7 +109,7 @@ export async function collectAcrossPages(page, options = {}) {
     // Restore page 0 so callers that check place are not left on the last page.
     if (total > 1) {
         await page.evaluate(() => {
-            const r = window.rise?.router?.views?.get('chamber-session')?.instance?.pageReader;
+            const r = window.__RISE_TEST__?.getView('chamber-session')?.pageReader;
             r?.goToPage(0);
         });
         await settle(page, settleMs);
@@ -121,7 +121,7 @@ export async function collectAcrossPages(page, options = {}) {
 /** How many pages the open reader cut itself into. */
 export async function pageCount(page) {
     return page.evaluate(() => {
-        const r = window.rise?.router?.views?.get('chamber-session')?.instance?.pageReader;
+        const r = window.__RISE_TEST__?.getView('chamber-session')?.pageReader;
         return r?.pages?.length ?? 0;
     });
 }

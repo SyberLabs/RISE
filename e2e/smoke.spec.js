@@ -46,7 +46,7 @@ async function enterChamber(page) {
 /** Reach into the live engine for ground truth about what sounds. */
 function audioState(page) {
     return page.evaluate(() => {
-        const engine = window.rise?.audioEngine;
+        const engine = window.__RISE_TEST__?.getAudioEngine();
         return {
             sessionActive: !!engine?.sessionActive,
             soundscape: !!engine?.layers?.soundscape,
@@ -63,11 +63,11 @@ async function beginSession(page) {
     // streaming before interacting further (also lets the route
     // transition fully settle so Escape has a rightful owner)
     await expect(page.locator('#chamber-display')).toBeVisible({ timeout: 20_000 });
-    await page.waitForFunction(() => window.rise?.router && !window.rise.router.transitioning);
+    await page.waitForFunction(() => window.__RISE_TEST__ && !window.__RISE_TEST__.getRouterState().transitioning);
 }
 
 async function exitSession(page) {
-    await page.waitForFunction(() => window.rise?.router && !window.rise.router.transitioning);
+    await page.waitForFunction(() => window.__RISE_TEST__ && !window.__RISE_TEST__.getRouterState().transitioning);
     await page.keyboard.press('Escape');
     // The chamber asks before terminating — confirm through its modal
     const confirm = page.locator('#exit-confirm');
@@ -212,7 +212,7 @@ test('7 · restored flashes present an operable warning before loading, every se
     await expect(page.locator('#loading-overlay')).toHaveClass(/hidden/);
     await warning.locator('#safety-accept').click();
     await expect(page.locator('#chamber-display')).toBeVisible({ timeout: 20_000 });
-    await page.waitForFunction(() => window.rise?.router && !window.rise.router.transitioning);
+    await page.waitForFunction(() => window.__RISE_TEST__ && !window.__RISE_TEST__.getRouterState().transitioning);
 
     await exitSession(page);
     await page.locator('#begin-btn').click();
@@ -251,7 +251,7 @@ test('8 · declining the warning enters the session with flashes disabled', asyn
 
     await expect(page.locator('#chamber-display')).toBeVisible({ timeout: 20_000 });
     await expect.poll(() => page.evaluate(() =>
-        window.rise?.currentSession?.visualConfig?.visualMode
+        window.__RISE_TEST__?.getCurrentSession()?.visualConfig?.visualMode
     )).toBe('off');
 });
 
@@ -289,7 +289,7 @@ test('9 - in-session Visuals control kills a live presence and keeps safety laye
     await expect(page.locator('#photosensitivity-modal')).toBeVisible({ timeout: 10_000 });
     await page.locator('#safety-accept').click();
     await expect(page.locator('#chamber-display')).toBeVisible({ timeout: 20_000 });
-    await page.waitForFunction(() => window.rise?.router && !window.rise.router.transitioning);
+    await page.waitForFunction(() => window.__RISE_TEST__ && !window.__RISE_TEST__.getRouterState().transitioning);
 
     const cortex = page.locator('#visual-cortex');
     const toggle = page.locator('#visuals-toggle-btn');
@@ -307,7 +307,7 @@ test('9 - in-session Visuals control kills a live presence and keeps safety laye
     await expect(cortex).toBeHidden();
     await expect(toggle).toHaveAttribute('aria-pressed', 'false');
     await expect.poll(() => page.evaluate(() =>
-        window.rise?.currentSession?.visualConfig?.visualMode
+        window.__RISE_TEST__?.getCurrentSession()?.visualConfig?.visualMode
     )).toBe('off');
 
     // The off state is session-local and suppresses every later opportunity.
@@ -365,7 +365,7 @@ test('12 · Gallery (Continuous Field) mounts behind the reading and degrades re
     // flashes and never goes black, so it opens straight into the reading.
     await expect(page.locator('#photosensitivity-modal')).toBeHidden();
     await expect(page.locator('#chamber-display')).toBeVisible({ timeout: 20_000 });
-    await page.waitForFunction(() => window.rise?.router && !window.rise.router.transitioning);
+    await page.waitForFunction(() => window.__RISE_TEST__ && !window.__RISE_TEST__.getRouterState().transitioning);
 
     // The host mounts behind the text with exactly two crossfade layers.
     const host = page.locator('#chamber-continuous-field');

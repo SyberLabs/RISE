@@ -32,7 +32,7 @@ async function openPage(page, mode) {
   const warn = page.locator('#photosensitivity-modal');
   if (await warn.isVisible({ timeout: 4000 }).catch(() => false)) await warn.locator('#safety-accept').click();
   await expect(page.locator('#chamber-display')).toBeVisible({ timeout: 20000 });
-  await page.waitForFunction(() => window.rise?.router && !window.rise.router.transitioning);
+  await page.waitForFunction(() => window.__RISE_TEST__ && !window.__RISE_TEST__.getRouterState().transitioning);
   await page.waitForTimeout(3000);
   await page.locator('#chamber-display').hover();
   await page.locator('#page-mode-btn').click();
@@ -60,7 +60,7 @@ test('GENESIS samples itself at intervals, and pauses under the page', async ({ 
   // Paginated: figure counts belong to the reading, not to one page.
   const walked = await collectAcrossPages(page);
   const r = await page.evaluate(() => {
-    const ch = window.rise.router.views.get('chamber-session').instance;
+    const ch = window.__RISE_TEST__.getView('chamber-session');
     const imgs = [...document.querySelectorAll('.page-figure.is-shown img')];
     return {
       distinct: new Set(imgs.map(i => i.src)).size,
@@ -86,7 +86,7 @@ test('ATTRACTOR samples itself, and its rAF is halted under the page', async ({ 
   await scrollThrough(page);
   const walked = await collectAcrossPages(page);
   const r = await page.evaluate(() => {
-    const ch = window.rise.router.views.get('chamber-session').instance;
+    const ch = window.__RISE_TEST__.getView('chamber-session');
     const imgs = [...document.querySelectorAll('.page-figure.is-shown img')];
     return {
       distinct: new Set(imgs.map(i => i.src)).size,

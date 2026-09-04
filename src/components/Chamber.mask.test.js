@@ -159,7 +159,6 @@ function releaseGalleryField() {
 
 describe('Chamber Mask', () => {
     afterEach(() => {
-        delete globalThis.rise;
         document.body.replaceChildren();
     });
 
@@ -306,7 +305,6 @@ describe('Chamber Gallery-in-the-word projection (FM-RISE-28)', () => {
         restoreEnv?.();
         vi.useRealTimers();
         releaseGalleryField();
-        delete globalThis.rise;
         document.body.replaceChildren();
         vi.restoreAllMocks();
     });
@@ -766,7 +764,6 @@ describe('Chamber mask ground plate (FM-RISE-47)', () => {
     afterEach(() => {
         restoreEnv?.();
         releaseGalleryField();
-        delete globalThis.rise;
         document.body.replaceChildren();
         vi.restoreAllMocks();
     });
@@ -995,7 +992,6 @@ describe('Chamber semantic Fit compositor', () => {
     afterEach(() => {
         restoreEnv?.();
         releaseGalleryField();
-        delete globalThis.rise;
         document.body.replaceChildren();
         vi.restoreAllMocks();
     });

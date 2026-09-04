@@ -183,6 +183,7 @@ describe('the doorway (seam)', () => {
   const portalSource = readFileSync(resolve('src/components/Portal.js'), 'utf8');
   const chapelCss = readFileSync(resolve('src/components/Chapel.css'), 'utf8');
   const appSource = readFileSync(resolve('src/app.js'), 'utf8');
+  const routeManifestSource = readFileSync(resolve('src/app/route-manifest.js'), 'utf8');
   const indexHtml = readFileSync(resolve('index.html'), 'utf8');
 
   it('the sanctuary lamp is the only entrance: portal has it, the nav row does not', () => {
@@ -202,8 +203,9 @@ describe('the doorway (seam)', () => {
     expect(chapelCss).not.toMatch(/\.portal-chapel-lamp\s*\{/);
   });
 
-  it('app.js registers the chapel view with a lazy handoff and reverent failure copy', () => {
-    expect(appSource).toContain("registerView('chapel'");
+  it('the route manifest registers the chapel lazily and app owns reverent handoff failure', () => {
+    expect(routeManifestSource).toContain("id: 'chapel'");
+    expect(routeManifestSource).toContain("import('../components/Chapel.js')");
     expect(appSource).toContain("import('./content/chapel/handoff.js')");
     expect(appSource).toContain('CHAPEL_PAYLOAD_INTEGRITY');
     expect(indexHtml).toContain('id="view-chapel"');

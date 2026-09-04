@@ -143,7 +143,7 @@ async function begin(page) {
   ]);
   if (await warning.isVisible()) await warning.locator('#safety-accept').click();
   await expect(display).toBeVisible({ timeout: 20_000 });
-  await page.waitForFunction(() => window.rise?.router && !window.rise.router.transitioning);
+  await page.waitForFunction(() => window.__RISE_TEST__ && !window.__RISE_TEST__.getRouterState().transitioning);
 }
 
 async function observeReadablePendingWords(page, minimumWords = 2) {
@@ -496,7 +496,7 @@ async function sampleFittedWords(page) {
           stageHeightDrift,
           maxAtomOverflow,
           maxCentreDrift,
-          chunkMode: window.rise?.currentSession?.chunkMode,
+          chunkMode: window.__RISE_TEST__?.getCurrentSession()?.chunkMode,
           mask: atom.classList.contains('is-mask')
         });
       }

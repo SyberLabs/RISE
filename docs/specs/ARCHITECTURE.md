@@ -86,8 +86,8 @@ else is a recommendation.
 ╔═══════════════════════════════════════════════════════════════════════════════╗
 ║  BROWSER — the entire runtime. No server, no account, no request path.        ║
 ║                                                                               ║
-║   index.html ─▶ src/app.js  — composition root: boots, owns global services,  ║
-║                               registers routes, translates component events   ║
+║   index.html ─▶ src/app.js  — composition root: boots app-scoped services,    ║
+║                               injects operations into the route manifest       ║
 ║        ┌──────────────┬───────────────┬──────────────┬─────────────────┐      ║
 ║        ▼              ▼               ▼              ▼                 ▼      ║
 ║  ┌──────────┐  ┌────────────┐  ┌───────────┐  ┌────────────┐  ┌─────────────┐║
@@ -157,10 +157,10 @@ flowchart LR
     sources["sources<br/>text and visual providers<br/>22 modules"]
     visuals["visuals<br/>procedural generation<br/>54 modules"]
 
-    app -.-> |2 lazy| audio
+    app -.-> |1 lazy| audio
     app --> |1| components
     app -.-> |6 lazy| content
-    app --> |15| core
+    app --> |12| core
     app -.-> |1 lazy| sources
     app -.-> |1 lazy| visuals
     audio --> |1| content
@@ -217,9 +217,17 @@ shelf — are the reason those constraints are properties rather than intentions
 
 ## 5. Boundaries
 
-**`src/app.js`** is the composition root. It owns global services and
-translates component events into navigation or session compilation. It is the
-only module allowed to know every room.
+**`src/app.js`** is the composition root. It owns application-scoped services
+and translates component events into navigation or session compilation.
+`src/app/route-manifest.js` is the only module allowed to know every routed
+room; it lazy-loads each room and passes only named capabilities. The immersive
+session factory is a separate lazy module, so route extraction does not add its
+player or visual machinery to first load.
+
+Production exposes no application singleton on `window`. Development and the
+browser suite may install the frozen seven-operation `window.__RISE_TEST__`
+bridge from `src/app/test-bridge.js`; an ordinary production build does not
+install it.
 
 **`src/core/router.js`** owns crossfade transitions, view activation and
 deactivation, the back stack, and failure restoration. Routed components must
@@ -744,6 +752,21 @@ of `settled`, `open`, `deferred`, or `reversed`.
   posture the reader had adjusted away from, so the row would lie. Deriving it
   cannot. There is no `study` stance yet; it is the entry to Page mode, which
   is sequenced after this step.
+- **Status:** settled.
+
+### 8.27 Application capabilities are injected, not discovered
+
+- **Chosen:** `src/app.js` owns application state, `src/app/route-manifest.js`
+  owns the fixed lazy route table, and rooms receive the exact callbacks or
+  instances they use. Browser automation gets a frozen seven-operation bridge
+  only in development or an explicitly flagged test build.
+- **Rejected:** a production `window.rise` singleton, room code reaching back
+  through `globalThis`, and a generic service bag passed into every room.
+- **Why:** a room that discovers its host through a global hides its inputs,
+  makes isolated tests lie, and lets unrelated code mutate the whole
+  application. Named capabilities make ownership visible at construction. The
+  narrow test bridge preserves observability without making automation access
+  part of the production product surface.
 - **Status:** settled.
 
 ---

@@ -10,14 +10,6 @@
  */
 
 import { Router } from './core/router.js';
-import { Player, estimateInterlocutionCount } from './core/player.js';
-import {
-    GALLERY_CADENCE_DEFAULT,
-    VISUAL_PRESENCE_DEFAULT_MS,
-    normalizeGalleryCadence,
-    normalizePresentation,
-    isContinuousPresentation
-} from './core/visual-presence.js';
 import { compileSession } from './core/session-compiler.js';
 import { resolveNextLibraryDivision } from './core/reading-continuation.js';
 import {
@@ -29,17 +21,15 @@ import { isRosaryDoor } from './core/rosary-door.js';
 
 import { errorBoundary, ErrorCategory, ErrorSeverity } from './core/error-boundary.js';
 import {
-    beginNonFlashingVisualSession,
-    beginVisualInterlocutionSession,
-    endVisualInterlocutionSession,
-    requestVisualInterlocutionConsent
+    endVisualInterlocutionSession
 } from './core/visual-safety.js';
 import { clampBandFraction } from './core/band-offset.js';
 import { resolveChamberStreamFace } from './core/chamber-stream-face.js';
 import { DEFAULT_CHAMBER_ACCENT, applyChamberAccent, migrateChamberAccent, resolveChamberAccent } from './core/chamber-accent.js';
 import { resolveFontSize } from './core/chamber-type-size.js';
 import { clampReadingWpm } from './core/reading-limits.js';
-import { normalizeVisualSelection, resolveSessionWordFill } from './core/visual-selection.js';
+import { createRouteManifest } from './app/route-manifest.js';
+import { installTestBridge } from './app/test-bridge.js';
 
 // THE SHELL'S OWN STYLES, AND ONLY THOSE. app.js used to import sixteen
 // stylesheets — every room's, not the Portal's — which is 220 KB of CSS
@@ -370,625 +360,70 @@ class App {
      * Register all view containers and components
      */
     registerViews() {
-        // Portal
-        this.router.registerView('portal', {
-            container: document.getElementById('view-portal'),
-            init: async (container) => {
-                const { Portal } = await import('./components/Portal.js');
-                return new Portal(container, {
-                    onNavigate: this.handleNavigate,
-                    onQuickAccess: () => this.quickAccess()
-                });
-            }
+        const app = this;
+        const routes = createRouteManifest({
+            handleNavigate: this.handleNavigate,
+            quickAccess: () => this.quickAccess(),
+            launchKeystone: slug => this.launchKeystone(slug),
+            handleSequenceSelection: sequenceId => this.handleSequenceSelection(sequenceId),
+            handleCreateSession: this.handleCreateSession,
+            handleArchetypeLaunch: data => this.handleArchetypeLaunch(data),
+            handleBeginSession: session => this.handleBeginSession(session),
+            getAudioEngine: () => this.audioEngine,
+            getSettings: () => this.settings,
+            handleSettingsChange: this.handleSettingsChange,
+            handleSettingsTransaction: this.handleSettingsTransaction,
+            showToast: (message, duration) => this.showToast(message, duration),
+            chamberSession: {
+                get currentSession() { return app.currentSession; },
+                get audioEngine() { return app.audioEngine; },
+                get settings() { return app.settings; },
+                get _visualCortex() { return app._visualCortex; },
+                router: this.router,
+                ensureVisualCortex: () => this.ensureVisualCortex(),
+                ensureAudioEngine: () => this.ensureAudioEngine(),
+                continueLibraryReading: session => this.continueLibraryReading(session),
+                handleSettingsChange: this.handleSettingsChange,
+                handleDataCleared: this.handleDataCleared,
+                showLoading: title => this.showLoading(title),
+                updateLoadingStatus: status => this.updateLoadingStatus(status),
+                hideLoading: () => this.hideLoading(),
+                showToast: (message, duration) => this.showToast(message, duration)
+            },
+            handleTextSelection: (text, source, config) => this.handleTextSelection(text, source, config),
+            refreshVaultBlueprints: () => this.router.getViewInstance('vault')?.refreshBlueprints?.(),
+            handleDataCleared: this.handleDataCleared,
+            launchRosary: (setId, extras) => this.router.navigate('rosarium', {
+                data: { setId, iconId: extras?.iconId ?? null }
+            }),
+            launchChapelReading: (bookId, chapter, extras) => this.launchChapelReading(bookId, chapter, extras)
         });
 
-        // Public release threshold
-        this.router.registerView('keystones', {
-            container: document.getElementById('view-keystones'),
-            init: async (container, data) => {
-                const { Keystones } = await import('./components/Keystones.js');
-                return new Keystones(container, {
-                    initialSlug: data?.slug || null,
-                    onNavigate: this.handleNavigate,
-                    onLaunch: slug => this.launchKeystone(slug)
-                });
-            }
-        });
+        for (const route of routes) {
+            this.router.registerView(route.id, {
+                container: document.getElementById(route.containerId),
+                init: async (container, data) => route.create(container, data, await route.load())
+            });
+        }
+    }
 
-        // Vault
-        this.router.registerView('vault', {
-            container: document.getElementById('view-vault'),
-            init: async (container, data) => {
-                const { Vault } = await import('./components/Vault.js');
-                return new Vault(container, {
-                    onNavigate: this.handleNavigate,
-                    onSelectSequence: (sequenceId) => this.handleSequenceSelection(sequenceId),
-                    onSelectBlueprint: (blueprint) => this.handleCreateSession(blueprint),
-                    onLaunchArchetype: (data) => this.handleArchetypeLaunch(data),
-                    personalizedVault: data?.personalizedVault || null
-                });
-            }
-        });
-
-        // Chamber (Orbital Interface - Preparation)
-        this.router.registerView('chamber', {
-            container: document.getElementById('view-chamber'),
-            init: async (container, textData) => {
-                const { ChamberOrbital } = await import('./components/ChamberOrbital.js');
-                const orbital = new ChamberOrbital(container, {
-                    onBeginSession: (sessionConfig) => this.handleBeginSession(sessionConfig),
-                    onNavigate: this.handleNavigate,
-                    getAudioEngine: () => this.audioEngine,
-                    getSettings: () => this.settings,
-                    onSettingChange: (key, value) => this.handleSettingsChange(key, value),
-                    onSettingsTransaction: settings => this.handleSettingsTransaction(settings),
-                    notify: (message, duration) => this.showToast(message, duration)
-                });
-
-                // If text data was passed from Library, load it
-                if (textData?.text) {
-                    orbital.loadText(textData.text, textData.source || 'Library', textData.config);
-                }
-
-                return orbital;
-            }
-        });
-
-        // Chamber Session (Immersion - actual playback)
-        this.router.registerView('chamber-session', {
-            container: document.getElementById('view-chamber'),
-            init: async (container, sessionData) => {
-                const session = sessionData || this.currentSession;
-
-                if (!session || !session.atoms || session.atoms.length === 0) {
-                    console.error('[RISE] Cannot start chamber: no session data or atoms');
-                    this.showToast('No content available for session', 3000);
-                    this.router.back();
-                    return { destroy: () => { } };
-                }
-
-                const authoredVisualMode = session.visualConfig?.visualMode || 'off';
-                let visualMode = authoredVisualMode;
-                let activateDeferredVisuals = async () => true;
-                let recitationVoice = null;
-
-                // A SPATIAL reading runs no temporal visual machinery.
-                // Page Mode has no flash economy and no advance clock
-                // (PAGE-MODE-SPEC §4), so a session that opens as a page
-                // must not request interlocution consent, preload a flash
-                // pool, or start Gallery,
-                // attractor, Genesis, or focal engines — all of which
-                // would otherwise run invisibly beneath the page, burning
-                // CPU/GPU/network and contradicting the projection. The
-                // authorial configuration remains immutable across the
-                // projection boundary. PageReader needs it to spatially
-                // lower held fields and the authored program; only temporal
-                // EXECUTION is deferred until the Stream owns the session.
-                const spatialLaunch = session.projection === 'page';
-                if (spatialLaunch) visualMode = 'off';
-
-                try {
-                    // A reading is the first thing that needs either of
-                    // these, so this is where they arrive. Chamber.js
-                    // imports the same cortex singleton, so opening the
-                    // Chamber was always going to pay for it; opening the
-                    // Portal no longer is.
-                    const visualCortex = await this.ensureVisualCortex();
-                    await this.ensureAudioEngine();
-
-                    // Consent is an interaction phase, not a loading task. It
-                    // must resolve before the opaque preparation overlay can
-                    // cover the page, and before audio or Player ownership
-                    // begins. Acceptance becomes a one-session capability.
-                    // GALLERY IS NOT A FLASH, SO IT IS NOT GATED. The
-                    // notice describes brief high-contrast exposures
-                    // between moments of reading; the continuous field
-                    // never flashes and never goes black, so raising the
-                    // photosensitivity warning over it asks a reader to
-                    // accept a risk this surface does not carry. An
-                    // unstated presentation is treated as flashing —
-                    // the cortex's own default is full-frame.
-                    const presentation = session.visualConfig?.interlocution?.presentation;
-                    const flashes = !isContinuousPresentation(presentation);
-                    if (visualMode === 'interlocution' && flashes) {
-                        const consentScope = session.visualConfig?.consentScope;
-                        const consented = await requestVisualInterlocutionConsent(consentScope);
-                        const activated = consented && beginVisualInterlocutionSession(consentScope);
-                        if (!activated) {
-                            visualMode = 'off';
-                            session.visualConfig = { ...session.visualConfig, visualMode: 'off' };
-                            this.showToast('Visual flashes remain off until the safety notice is accepted.', 4000);
-                        }
-                    } else if (visualMode === 'interlocution') {
-                        // Gallery: no notice, but the capability still has
-                        // to be granted or the cortex renders nothing —
-                        // skipping the whole block turned Gallery's imagery
-                        // off, which the browser suite caught.
-                        beginNonFlashingVisualSession(session.visualConfig?.consentScope);
-                    } else {
-                        endVisualInterlocutionSession();
-                    }
-
-                    // Only enter the non-interactive preparation phase after
-                    // the safety decision has completed.
-                    this.showLoading('Preparing Session');
-
-                    // Start the selected neural voice during preparation, not
-                    // after the first atom is already on screen. It builds a
-                    // contiguous eight-phrase lead while the rest of session
-                    // setup proceeds; the Chamber is not shown until that
-                    // lead is ready (or preparation degrades cleanly).
-                    let recitationReady = Promise.resolve(false);
-                    if (session.recitation?.enabled === true) {
-                        this.updateLoadingStatus('Preparing spoken voice...');
-                        const { Voice } = await import('./audio/voice.js');
-                        recitationVoice = new Voice({
-                            audioEngine: this.audioEngine,
-                            voiceId: session.voiceId
-                        });
-                        recitationVoice.enabled = true;
-                        recitationReady = recitationVoice.prepare(session.atoms, 0)
-                            .catch(() => false);
-                    }
-
-                    // Start audio initialization early to minimize lag on chamber entry.
-                    // It belongs inside this failure boundary so blocked Web Audio cannot
-                    // strand the loading overlay or the router transition.
-                    const hasSoundscape = session.soundscape && session.soundscape !== 'none';
-                    const hasAudio = (session.audioPreset && session.audioPreset !== 'silent')
-                        || session.selectedSwellId
-                        || hasSoundscape
-                        // A Journey scores its own audio and never sets
-                        // any of the above. Without this the engine's
-                        // session is never started for one, and the
-                        // schedule's commands arrive at a layer that is
-                        // not listening.
-                        || session.audioProgram?.segments?.length > 0
-                        || session.recitation?.enabled === true;
-
-                    if (hasAudio) {
-                        this.updateLoadingStatus('Stabilizing carrier frequencies...');
-                        this.audioEngine.stopAmbient();
-                        this.audioEngine.sessionActive = true;
-                        const durationSec = (session.totalDuration || 0) / 1000;
-                        await this.audioEngine.startSession({
-                            // Exclusive beds: a soundscape is a finished mix, so
-                            // it displaces the pure-tone preset if both slipped in.
-                            preset: session.audioPreset !== 'silent' && !hasSoundscape ? session.audioPreset : null,
-                            soundscape: hasSoundscape ? session.soundscape : null,
-                            swellId: session.selectedSwellId,
-                            // A scored swell lane owns the swells. Without
-                            // this the entry trigger fires too, and with no
-                            // default chosen it fires a RANDOM one — which is
-                            // how an authored swell came back layered over
-                            // itself, offset by the reading's first atoms.
-                            entrySwell: !(session.audioProgram?.lanes?.swell?.segments?.length),
-                            entrainment: {
-                                mode: session.entrainmentMode || 'binaural',
-                                waveform: session.entrainmentWaveform || 'sine',
-                                curve: session.curve || 'flat',
-                                durationSec,
-                                autoRamp: !!(session.curve && session.curve !== 'flat')
-                            }
-                        });
-                    } else {
-                        this.audioEngine.stopAmbient();
-                        this.audioEngine.sessionActive = true;
-                    }
-
-                    this.updateLoadingStatus('Creating player...');
-                    const player = new Player(session);
-
-                    // The player is the sole clock: entrainment ramps
-                    // follow canonical reading progress, so pauses,
-                    // visual presences, and hidden tabs hold the beat
-                    // instead of letting wall time drift it forward.
-                    if (hasAudio) {
-                        player.on('progress', ({ progress }) => {
-                            this.audioEngine.setEntrainmentPosition(progress);
-                        });
-                    }
-
-                    // Every new reading installs an authoritative cortex
-                    // identity. Persistent/off modes clear it here; Rhythmic
-                    // modes install their complete identity below so an
-                    // interlocution -> interlocution transition cannot depend
-                    // on a diff against the prior reading's singleton state.
-                    const visualSetupMode = spatialLaunch ? authoredVisualMode : visualMode;
-                    if (visualSetupMode !== 'interlocution') {
-                        visualCortex.resetSessionVisualIdentity();
-                    }
-
-                    // Configure visual cortex based on the consented mode.
-                    if (visualSetupMode === 'interlocution') {
-                        this.updateLoadingStatus('Loading visual engine...');
-                        const activeTypes = [];
-                        const rawInterlocution = session.visualConfig.interlocution || {};
-                        const interlocution = {
-                            ...rawInterlocution,
-                            ...normalizeVisualSelection(rawInterlocution),
-                            wordFill: resolveSessionWordFill({
-                                ...rawInterlocution,
-                                wordFill: rawInterlocution.wordFill ?? session.visualConfig?.wordFill
-                            })
-                        };
-                        // Keep the runtime session truthful for diagnostics and
-                        // downstream consumers. Procedural means no sourced art;
-                        // mixed sources survive only under an explicit Blend.
-                        session.visualConfig.interlocution = interlocution;
-
-                        // Flatten all procedural types. No implicit fallback —
-                        // an empty selection is a valid "stillness" choice, and
-                        // visual packages only arrive through explicit configs.
-                        if (interlocution.procedural) {
-                            activeTypes.push(...interlocution.procedural);
-                        }
-
-                        // Flatten all sourced types
-                        if (interlocution.sourced) {
-                            const sourced = interlocution.sourced;
-                            const retiredMetSelected = sourced.some(s =>
-                                typeof s === 'string' && s.startsWith('met-'));
-                            // Specifically add all selected Wikimedia categories
-                            const wikimediaCategories = sourced.filter(s => 
-                                s !== 'global-pool' && 
-                                s !== 'custom' && 
-                                !s.startsWith('personal:') &&
-                                !s.startsWith('met-')
-                            );
-                            activeTypes.push(...wikimediaCategories);
-                            // Add active session assets specifically
-                            if (sourced.includes('custom')) {
-                                activeTypes.push('custom');
-                            }
-                            // Add global pool specifically
-                            if (sourced.includes('global-pool')) {
-                                activeTypes.push('global-pool');
-                            }
-                            // Add all personal sequences specifically
-                            activeTypes.push(...sourced.filter(s => s.startsWith('personal:')));
-
-                            // Met-only saved presets predate the provider's
-                            // retirement. Preserve their documented procedural
-                            // fallback; mixed presets simply discard the stale id.
-                            if (retiredMetSelected && activeTypes.length === 0) {
-                                activeTypes.push('klee');
-                            }
-                        }
-
-                        // Custom visuals from this session are now handled via the 'custom' flag in interlocution.sourced
-                        // which is managed by the Chamber's VisualNavigator
-
-                        // Responsive interlocutions: score the session's timeline
-                        // before preload so the flame queue renders plan-driven
-                        // fractals (palette/variations/tone by signal) that cover
-                        // the text's emotional arc. Null when responsive is off.
-                        let semanticSignals = null;
-                        // MemoryCore reaches workshop-asset-durability and the
-                        // workshop project model; this one call for pinned
-                        // Global Pool URIs is the only thing app.js wants from
-                        // it, and it is on the reading path, not the shell's.
-                        const { MemoryCore } = await import('./core/memory.js');
-                        if (interlocution.responsive && session.atoms?.length) {
-                            const { scoreAtoms, sampleTrackSignals } = await import('./core/conductor.js');
-                            session.semanticTrack = session.semanticTrack || scoreAtoms(session.atoms);
-                            // Flame seeding drives palettes/structure — a mood behavior
-                            if (interlocution.responsiveMood ?? true) {
-                                semanticSignals = sampleTrackSignals(session.semanticTrack, 10);
-                            }
-                            console.log('[RISE] Responsive interlocutions: track scored,',
-                                semanticSignals ? `${semanticSignals.length} flame seed signals sampled` : 'mood off (no flame seeding)');
-                        }
-
-                            visualCortex.beginSessionVisualIdentity({
-                                enabled: true,
-                                frequency: interlocution.frequency ?? 0.2,
-                                duration: interlocution.duration ?? VISUAL_PRESENCE_DEFAULT_MS,
-                                galleryCadence: normalizeGalleryCadence(
-                                    interlocution.galleryCadence ?? GALLERY_CADENCE_DEFAULT
-                                ),
-                                renderLanguage: 'native',   // ASCII retired 2026-08-06
-                                presentation: normalizePresentation(interlocution.presentation),
-                                activeTypes: activeTypes,
-                                kleePreset: interlocution.kleePreset ?? 'random',
-                                harmonographClimate: interlocution.harmonographClimate ?? 'auto',
-                                // Attractor is a LISTED procedural, not a mode
-                                // of its own, so its dials arrive here with the
-                                // rest of the interlocution. The cortex reads
-                                // config.attractor for system, palette and form.
-                                attractor: interlocution.attractor ?? null,
-                                // EVERY FIELD HERE IS NAMED BY HAND, so one
-                                // left out is silently dropped on the last hop
-                                // between compiler and renderer while surviving
-                                // the whole pipeline before it. That is how an
-                                // authored relation once lost its subject and
-                                // Haiti drew a Union Jack; imagery.test.js
-                                // guards the wiring rather than the modules.
-                                customVisuals: session.customVisuals || [],
-                                sequenceVisualAssets: session.sequenceVisualAssets || [],
-                                // Resolve stable Global Pool IDs once at
-                                // session entry. The flash hot path receives a
-                                // pinned URI set and never rereads shared state.
-                                globalVisuals: interlocution.sourced?.includes('global-pool')
-                                    ? MemoryCore.resolveGlobalImageUris(interlocution.globalPool)
-                                    : [],
-                                sourced: interlocution.sourced || [],
-                                wordFill: interlocution.wordFill,
-                                semanticSignals: semanticSignals
-                            });
-
-                        // Preload visuals
-                        const estimatedFlashCount = estimateInterlocutionCount(
-                            session,
-                            interlocution.frequency ?? 0.2
-                        );
-                        if (spatialLaunch) {
-                            // Configuration is inert without a Stream host or
-                            // presentation opportunity. Defer capability and
-                            // asset work until the reader actually leaves Page.
-                            activateDeferredVisuals = async () => {
-                                const directPresentation = session.visualConfig
-                                  ?.interlocution?.presentation;
-                                const directFlashes = !isContinuousPresentation(directPresentation);
-                                const consentScope = session.visualConfig?.consentScope;
-                                const activated = directFlashes
-                                  ? (await requestVisualInterlocutionConsent(consentScope))
-                                    && beginVisualInterlocutionSession(consentScope)
-                                  : beginNonFlashingVisualSession(consentScope);
-                                if (!activated) {
-                                    visualCortex.updateConfig({ enabled: false });
-                                    this.showToast(
-                                      'Visual flashes remain off until the safety notice is accepted.',
-                                      4000
-                                    );
-                                    return false;
-                                }
-                                await visualCortex.preloadProgram(session.visualProgram);
-                                await visualCortex.preload(estimatedFlashCount);
-                                return true;
-                            };
-                        } else {
-                            await visualCortex.preloadProgram(session.visualProgram);
-                            await visualCortex.preload(estimatedFlashCount);
-                        }
-                    } else if (visualSetupMode === 'focals') {
-                        // Focals mode: persistent gentle focal point (handled by Chamber renderer)
-                        // No visual cortex preloading needed - focals are persistent, not probabilistic
-                        console.log('[RISE] Focals mode active:', session.visualConfig.focals);
-                    } else if (visualSetupMode === 'attractor') {
-                        // Attractor mode: persistent strange-attractor field (handled by Chamber renderer)
-                        // No visual cortex preloading needed - the field is continuous, not probabilistic
-                        console.log('[RISE] Attractor mode active:', session.visualConfig.attractor);
-                    } else if (visualSetupMode === 'genesis') {
-                        // Genesis mode: continuously growing Klee field (handled by Chamber renderer)
-                        console.log('[RISE] Genesis mode active:', session.visualConfig.genesis);
-                    }
-
-
-
-                    this.updateLoadingStatus('Entering chamber...');
-
-                    const { Chamber } = await import('./components/Chamber.js');
-
-                    if (recitationVoice) {
-                        this.updateLoadingStatus('Building the spoken lead...');
-                        await recitationReady;
-                    }
-
-                    // Brief delay for smooth transition
-                    await new Promise(resolve => setTimeout(resolve, 300));
-
-                    this.hideLoading();
-
-                    return new Chamber(container, {
-                        session: session,
-                        player: player,
-                        voice: recitationVoice,
-                        autoStart: true,
-                        audioEngine: this.audioEngine,
-                        getSettings: () => this.settings,
-                        onSettingsChange: (key, value) => this.handleSettingsChange(key, value),
-                        onDataCleared: () => this.handleDataCleared(),
-                        onEnterStream: activateDeferredVisuals,
-                        onExit: (reason, data) => {
-                            // Cleanup
-                            player.stop();
-                            endVisualInterlocutionSession();
-                            visualCortex.updateConfig({ enabled: false });
-                            this.audioEngine.stopSession();
-
-                            // Force disposal of the instance so next session starts fresh
-                            const view = this.router.views.get('chamber-session');
-                            if (view && view.instance) {
-                                view.instance.destroy();
-                                view.instance = null;
-                            }
-
-                            if (reason === 'continue') {
-                                void this.continueLibraryReading(session);
-                            } else if (reason === 'workshop' && data && data.text) {
-                                this.router.navigate('workshop', {
-                                    data: { draftIntent: 'new-recursion', text: data.text }
-                                });
-                            } else if (session.isPreview && (reason === 'back' || reason === 'exit' || reason === 'close')) {
-                                this.router.navigate('workshop'); // Isolate previews
-                            } else if (reason === 'back' || reason === 'exit' || reason === 'close') {
-                                this.router.navigate('chamber'); // Back to orbital prep
-                            }
-                        }
-                    });
-                } catch (error) {
-                    console.error('[RISE] Session initialization failed:', error);
-                    recitationVoice?.destroy();
-                    endVisualInterlocutionSession();
-                    // Reached through the catch, so either subsystem may have
-                    // been what failed to arrive. Teardown must not need them.
-                    this._visualCortex?.updateConfig({ enabled: false });
-                    await this.audioEngine?.stopSession({
-                        resumeAmbient: this.settings?.enableAmbient === true,
-                        immediate: true
-                    })?.catch(() => {});
-                    this.hideLoading();
-                    this.showToast('Failed to initialize session', 3000);
-                    this.router.back();
-                    return { destroy: () => { } };
-                }
-            }
-        });
-
-        // Library
-        this.router.registerView('library', {
-            container: document.getElementById('view-library'),
-            init: async (container) => {
-                const { Library } = await import('./components/Library.js');
-                return new Library(container, {
-                    onNavigate: this.handleNavigate,
-                    onSelectText: (text, source, config) => this.handleTextSelection(text, source, config)
-                });
-            }
-        });
-
-        // Journeys — authored transformations across works. Launches
-        // DIRECTLY into the reading rather than through the orbital: a
-        // published Journey's pace and imagery are the author's, not
-        // knobs a reader finds on the way in (JOURNEYS-SPEC §3.3).
-        this.router.registerView('journeys', {
-            container: document.getElementById('view-journeys'),
-            init: async (container) => {
-                const { Journeys } = await import('./components/Journeys.js');
-                return new Journeys(container, {
-                    onNavigate: this.handleNavigate,
-                    onBeginSession: (config) => this.handleBeginSession(config)
-                });
-            }
-        });
-
-        // Workshop
-        this.router.registerView('workshop', {
-            container: document.getElementById('view-workshop'),
-            init: async (container, data) => {
-                const { Workshop } = await import('./components/Workshop.js');
-                const ws = new Workshop(container, {
-                    onNavigate: this.handleNavigate,
-                    onCreateSession: this.handleCreateSession,
-                    audioEngineProvider: () => this.audioEngine,
-                    onBlueprintsChanged: () => {
-                        this.router.getViewInstance('vault')?.refreshBlueprints?.();
-                    }
-                });
-
-                if (data) {
-                    ws.update(data);
-                }
-
-                return ws;
-            }
-        });
-
-        this.router.registerView('settings', {
-            container: document.getElementById('view-settings'),
-            init: async (container) => {
-                const { Settings } = await import('./components/Settings.js');
-                return new Settings(container, {
-                    settings: this.settings,
-                    onNavigate: this.handleNavigate,
-                    onChange: this.handleSettingsChange,
-                    onDataCleared: this.handleDataCleared
-                });
-            }
-        });
-
-        // The Rosarium — the Rosary's own room, entered from the Chapel
-        this.router.registerView('rosarium', {
-            container: document.getElementById('view-rosarium'),
-            init: async (container, data) => {
-                const { Rosarium } = await import('./components/Rosarium.js');
-                return new Rosarium(container, {
-                    onNavigate: this.handleNavigate,
-                    setId: data?.setId,
-                    iconId: data?.iconId,
-                    door: data?.door === true
-                });
-            }
-        });
-
-        // The Curia — the visual canon's curation surface, entered
-        // through the portal's quiet bottom-left door
-        this.router.registerView('curia', {
-            container: document.getElementById('view-curia'),
-            init: async (container) => {
-                const { Curia } = await import('./components/Curia.js');
-                return new Curia(container, { onNavigate: this.handleNavigate });
-            }
-        });
-
-        // The Scriptorium — Live Curator doorway (additive; Workshop
-        // buttons remain until this room is proven).
-        this.router.registerView('scriptorium', {
-            container: document.getElementById('view-scriptorium'),
-            init: async (container) => {
-                const { Scriptorium } = await import('./components/Scriptorium.js');
-                const room = new Scriptorium(container, {
-                    onNavigate: this.handleNavigate,
-                    onCreateSession: this.handleCreateSession,
-                    getSettings: () => this.settings,
-                    onSettingsTransaction: settings => this.handleSettingsTransaction(settings)
-                });
-                room.mount();
-                return room;
-            }
-        });
-
-        // The Via — the Stations of the Cross, entered from the Chapel
-        this.router.registerView('via', {
-            container: document.getElementById('view-via'),
-            init: async (container) => {
-                const { Via } = await import('./components/Via.js');
-                return new Via(container, { onNavigate: this.handleNavigate });
-            }
-        });
-
-        // The Chapel (Scripture — entered only through the portal's
-        // sanctuary lamp; never in the nav row)
-        this.router.registerView('chapel', {
-            container: document.getElementById('view-chapel'),
-            init: async (container, data) => {
-                const { Chapel } = await import('./components/Chapel.js');
-                return new Chapel(container, {
-                    onNavigate: this.handleNavigate,
-                    bookId: data?.bookId,
-                    chapter: data?.chapter,
-                    onLaunchRosary: (setId, extras) => {
-                        // The Rosary has its own room — the Rosarium —
-                        // rather than borrowing the Chamber
-                        this.router.navigate('rosarium', {
-                            data: { setId, iconId: extras?.iconId ?? null }
-                        });
-                    },
-                    onLaunchReading: async (bookId, chapter, extras) => {
-                        try {
-                            const { createChapelHandoff } = await import('./content/chapel/handoff.js');
-                            const chamberData = await createChapelHandoff(bookId, {
-                                ...(chapter == null ? {} : { chapter }),
-                                ...(extras?.iconId ? { iconId: extras.iconId } : {})
-                            });
-                            await this.router.navigate('chamber', { data: chamberData });
-                        } catch (error) {
-                            console.error('[RISE] Chapel handoff failed:', error);
-                            // Reverent degradation: a quiet message, never a
-                            // substituted text and never an error surface
-                            this.showToast(
-                                error?.code === 'CHAPEL_PAYLOAD_INTEGRITY'
-                                    ? 'This book did not verify and will not be read.'
-                                    : 'This book is unavailable right now.',
-                                4000
-                            );
-                        }
-                    }
-                });
-            }
-        });
-
+    async launchChapelReading(bookId, chapter, extras) {
+        try {
+            const { createChapelHandoff } = await import('./content/chapel/handoff.js');
+            const chamberData = await createChapelHandoff(bookId, {
+                ...(chapter == null ? {} : { chapter }),
+                ...(extras?.iconId ? { iconId: extras.iconId } : {})
+            });
+            await this.router.navigate('chamber', { data: chamberData });
+        } catch (error) {
+            console.error('[RISE] Chapel handoff failed:', error);
+            this.showToast(
+                error?.code === 'CHAPEL_PAYLOAD_INTEGRITY'
+                    ? 'This book did not verify and will not be read.'
+                    : 'This book is unavailable right now.',
+                4000
+            );
+        }
     }
 
     /**
@@ -1678,8 +1113,11 @@ class App {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-    window.rise = new App();
-    window.rise.init().catch(err => {
+    const app = new App();
+    installTestBridge(app, window, {
+        enabled: import.meta.env.DEV || import.meta.env.VITE_RISE_TEST_API === '1'
+    });
+    app.init().catch(err => {
         console.error('[RISE] Initialization failed:', err);
     });
 });

@@ -131,7 +131,7 @@ try {
 
 const rendered = !reachable ? {} : await page.evaluate(async () => {
     const out = {};
-    const cortex = await window.rise.ensureVisualCortex();
+    const cortex = await window.__RISE_TEST__.ensureVisualCortex();
     cortex.init();
     // Apparitio draws onto the shared plate canvas like the other plates, so
     // one call is enough. A failure leaves it out rather than shipping a

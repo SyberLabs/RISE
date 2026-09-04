@@ -107,7 +107,6 @@ describe('Chamber type size (FM-RISE-36)', () => {
 
     afterEach(() => {
         restoreField?.();
-        delete globalThis.rise;
         document.body.replaceChildren();
         vi.restoreAllMocks();
     });
