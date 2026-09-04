@@ -80,10 +80,7 @@ function chamberPace(wpm) {
 
 const CLAMPS = [
   ['the shared clamp', wpm => clampReadingWpm(wpm)],
-  ['the reader\'s stored setting', wpm => {
-    globalThis.rise = { settings: { defaultWpm: wpm } };
-    return readerWpm();
-  }],
+  ['the reader\'s stored setting', wpm => readerWpm({ defaultWpm: wpm })],
   ['a Scriptorium session\'s pace override', wpm => createScriptoriumSession({ wpm }).wpm],
   ['a Workshop project\'s reading defaults', projectPace],
   ['the compiled session config', wpm => normalizeSessionConfig({ wpm }).wpm],
@@ -93,10 +90,6 @@ const CLAMPS = [
 ];
 
 describe('READING_PACE is the only pace window', () => {
-  afterEach(() => {
-    delete globalThis.rise;
-  });
-
   describe.each(CLAMPS)('%s', (_name, clamp) => {
     it('floors at READING_PACE.min and nowhere above it', () => {
       expect(clamp(min - 1)).toBe(clamp(min));
@@ -135,10 +128,6 @@ describe('READING_PACE is the only pace window', () => {
 });
 
 describe('an absent pace is not a slow one', () => {
-  afterEach(() => {
-    delete globalThis.rise;
-  });
-
   // `Number(null)`, `Number('')` and `Number([])` are all 0, and 0 is finite,
   // so every one of these used to survive the guard and clamp to the floor.
   it.each([
@@ -154,8 +143,7 @@ describe('an absent pace is not a slow one', () => {
     expect(clampReadingWpm(value, 220)).toBe(220);
     expect(clampReadingWpm(value)).toBe(READING_PACE.default);
 
-    globalThis.rise = { settings: { defaultWpm: value } };
-    expect(readerWpm()).toBe(READING_PACE.default);
+    expect(readerWpm({ defaultWpm: value })).toBe(READING_PACE.default);
 
     expect(projectPace(value)).toBe(READING_PACE.default);
   });
@@ -198,7 +186,6 @@ describe('the door a reader takes to set a pace', () => {
 
   afterEach(() => {
     localStorage.clear();
-    delete globalThis.rise;
     vi.restoreAllMocks();
   });
 
@@ -209,16 +196,15 @@ describe('the door a reader takes to set a pace', () => {
     // the wiring defect a direct call to readerWpm() cannot see.
     localStorage.setItem('rise-settings', JSON.stringify({ defaultWpm: 60 }));
     app.loadSettings();
-    globalThis.rise = app;
 
     expect(app.settings.defaultWpm).toBe(60);
-    expect(readerWpm()).toBe(60);
-    expect(createScriptoriumSession().wpm).toBe(60);
+    expect(readerWpm(app.settings)).toBe(60);
+    expect(createScriptoriumSession({ wpm: readerWpm(app.settings) }).wpm).toBe(60);
 
     // What the room quotes, and what the reading is actually compiled at.
     // Both were 100, and 2,000 words at 100 is 20 minutes rather than 33.
-    expect(describeLength(2_000)).toContain('60 wpm');
-    expect(describeLength(2_000)).toContain('33 min');
+    expect(describeLength(2_000, readerWpm(app.settings))).toContain('60 wpm');
+    expect(describeLength(2_000, readerWpm(app.settings))).toContain('33 min');
 
     const base = emptyWorkshopProject();
     const project = validateWorkshopProject({
@@ -262,8 +248,7 @@ describe('the door a reader takes to set a pace', () => {
     for (const asked of [min - 40, min, 60, 220, max, max + 4_000]) {
       localStorage.setItem('rise-settings', JSON.stringify({ defaultWpm: asked }));
       app.loadSettings();
-      globalThis.rise = app;
-      expect(readerWpm()).toBe(app.settings.defaultWpm);
+      expect(readerWpm(app.settings)).toBe(app.settings.defaultWpm);
       expect(projectPace(app.settings.defaultWpm)).toBe(app.settings.defaultWpm);
     }
   });

@@ -166,6 +166,7 @@ describe('the Scriptorium as the reader meets it', () => {
     let room;
     let onNavigate;
     let onCreateSession;
+    let onSettingsTransaction;
     let created;
 
     const paste = (text) => {
@@ -210,22 +211,34 @@ describe('the Scriptorium as the reader meets it', () => {
         global.URL.createObjectURL = vi.fn(() => `blob:scriptorium/${Math.random()}`);
         global.URL.revokeObjectURL = vi.fn();
         stubWorkshopMedia();
-        globalThis.rise = { settings: { defaultWpm: 220 } };
         created = [];
         onNavigate = vi.fn();
         onCreateSession = vi.fn(project => { created.push(project); });
+        onSettingsTransaction = vi.fn();
         container = document.createElement('div');
-        room = new Scriptorium(container, { onNavigate, onCreateSession });
+        room = new Scriptorium(container, {
+            onNavigate,
+            onCreateSession,
+            getSettings: () => ({ defaultWpm: 220 }),
+            onSettingsTransaction
+        });
         room.mount();
         resolveProgramLibrarySources.mockImplementation(stubResolveProgramLibrarySources);
     });
 
     afterEach(() => {
         vi.restoreAllMocks();
-        delete globalThis.rise;
     });
 
     describe('one click, one action (D8)', () => {
+        it('opens a reading on readable type through the injected settings seam', () => {
+            room.openOnReadableType();
+            expect(onSettingsTransaction).toHaveBeenCalledWith({
+                chamberFace: 'literary',
+                fontSize: 'medium'
+            });
+        });
+
         it('invokes Examine once', () => {
             const examine = vi.spyOn(room, 'examine').mockImplementation(() => {});
             click('examine');

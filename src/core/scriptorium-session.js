@@ -133,8 +133,8 @@ export function holdingRung(words) {
  * must not quote — and READING_PACE is now the window the reading applies,
  * rather than a copy of it that could drift.
  */
-export function readerWpm() {
-  return clampReadingWpm(globalThis.rise?.settings?.defaultWpm);
+export function readerWpm(settings = {}) {
+  return clampReadingWpm(settings?.defaultWpm);
 }
 
 /**

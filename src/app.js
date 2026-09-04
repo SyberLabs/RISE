@@ -930,7 +930,9 @@ class App {
                 const { Scriptorium } = await import('./components/Scriptorium.js');
                 const room = new Scriptorium(container, {
                     onNavigate: this.handleNavigate,
-                    onCreateSession: this.handleCreateSession
+                    onCreateSession: this.handleCreateSession,
+                    getSettings: () => this.settings,
+                    onSettingsTransaction: settings => this.handleSettingsTransaction(settings)
                 });
                 room.mount();
                 return room;
