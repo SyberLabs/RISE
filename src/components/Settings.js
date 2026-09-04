@@ -78,6 +78,7 @@ export class Settings {
         this.onClose = typeof options.onClose === 'function' ? options.onClose : null;
         this.onChange = options.onChange || (() => { });
         this.onDataCleared = options.onDataCleared || (() => { });
+        this.notify = options.notify || ((message) => console.log('[Settings]', message));
         this._active = false;
         this.boundKeyboardHandler = this.handleKeyboard.bind(this);
 
@@ -614,12 +615,7 @@ export class Settings {
     }
 
     showToast(message) {
-        // Use global app toast if available
-        if (window.rise?.showToast) {
-            window.rise.showToast(message);
-        } else {
-            console.log('[Settings]', message);
-        }
+        this.notify(message);
     }
 
     activate() {

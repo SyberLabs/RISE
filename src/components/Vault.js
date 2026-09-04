@@ -22,6 +22,7 @@ export class Vault {
     this.onSelectSequence = options.onSelectSequence || (() => {});
     this.onSelectBlueprint = options.onSelectBlueprint || (() => {});
     this.onLaunchArchetype = options.onLaunchArchetype || (() => {});
+    this.getAudioEngine = options.getAudioEngine || (() => null);
 
     // Check for personalized vault
     this.personalizedVaultId = options.personalizedVault || null;
@@ -256,12 +257,12 @@ export class Vault {
   attachEvents() {
     // Back button
     this.container.querySelector('[data-action="back"]')?.addEventListener('click', () => {
-      window.rise?.audioEngine?.playClick();
+      this.getAudioEngine()?.playClick();
       this.onNavigate('portal');
     });
 
     this.container.querySelector('[data-nav="journeys"]')?.addEventListener('click', () => {
-      window.rise?.audioEngine?.playClick();
+      this.getAudioEngine()?.playClick();
       this.onNavigate('journeys');
     });
 
@@ -269,7 +270,7 @@ export class Vault {
     const navItems = this.container.querySelectorAll('[data-section]');
     navItems.forEach(item => {
       item.addEventListener('click', () => {
-        window.rise?.audioEngine?.playHiss();
+        this.getAudioEngine()?.playHiss();
         this.currentSection = item.dataset.section;
         this.updateContent();
         this.updateActiveNav();
@@ -284,28 +285,28 @@ export class Vault {
       const action = target.dataset.action;
 
       if (action === 'launch-personalized') {
-        window.rise?.audioEngine?.playClick();
+        this.getAudioEngine()?.playClick();
         const seqId = target.dataset.seqId;
         if (this.personalizedVault) {
           this.launchPersonalizedSequence(seqId);
         }
       } else if (action === 'begin-starter') {
-         window.rise?.audioEngine?.playClick();
+         this.getAudioEngine()?.playClick();
          this.onSelectSequence(target.dataset.id);
       } else if (action === 'begin-custom') {
-         window.rise?.audioEngine?.playClick();
+         this.getAudioEngine()?.playClick();
          const bp = this.blueprints.find(b => b.id === target.dataset.id);
          if (bp) this.onSelectBlueprint(bp);
       } else if (action === 'edit-custom') {
-         window.rise?.audioEngine?.playHiss();
+         this.getAudioEngine()?.playHiss();
          this.onNavigate('workshop', { blueprintId: target.dataset.id });
       } else if (action === 'delete-custom') {
-         window.rise?.audioEngine?.playHiss();
+         this.getAudioEngine()?.playHiss();
          MemoryCore.deleteWorkshopBlueprint(target.dataset.id);
          this.blueprints = MemoryCore.getWorkshopBlueprints();
          this.updateContent();
       } else if (action === 'route-workshop') {
-         window.rise?.audioEngine?.playHiss();
+         this.getAudioEngine()?.playHiss();
          this.onNavigate('workshop');
       }
     });

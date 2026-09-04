@@ -33,6 +33,24 @@ function makePortal(options = {}) {
 }
 
 describe('Portal', () => {
+    it('reads session and audio capabilities from its owner', () => {
+        const audio = { playClick: vi.fn() };
+        const { portal, container } = makePortal({
+            getAudioEngine: () => audio,
+            getCurrentSession: () => ({ title: 'Meditations' })
+        });
+
+        const continuation = container.querySelector('.portal-continue');
+        expect(continuation.hidden).toBe(false);
+        expect(continuation.textContent).toContain('Meditations');
+
+        container.querySelector('[data-nav="library"]').click();
+        expect(audio.playClick).toHaveBeenCalledOnce();
+
+        portal.destroy();
+        container.remove();
+    });
+
     it('nav holds the core tools', () => {
         const { portal, container, onNavigate } = makePortal();
 
