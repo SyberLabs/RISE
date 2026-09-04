@@ -50,6 +50,7 @@ export class Rosarium {
   constructor(container, options = {}) {
     this.container = container;
     this.onNavigate = options.onNavigate || (() => {});
+    this.getAudioEngine = options.getAudioEngine || (() => null);
     this.iconId = options.iconId && findChapelIcon(options.iconId)
       ? options.iconId
       : CHAPEL_ICON_DEFAULTS.marian;
@@ -504,7 +505,7 @@ export class Rosarium {
     // not begin after departure. _stopSound invalidates pending starts.
     const generation = (this._soundGeneration = (this._soundGeneration || 0) + 1);
     try {
-      const engine = window.rise?.audioEngine;
+      const engine = this.getAudioEngine();
       if (!engine) return;
       if (!engine.isInitialized) await engine.init?.();
       if (generation !== this._soundGeneration) return;
@@ -526,7 +527,7 @@ export class Rosarium {
 
   _stopSound() {
     this._soundGeneration = (this._soundGeneration || 0) + 1;
-    const engine = window.rise?.audioEngine;
+    const engine = this.getAudioEngine();
     if (engine) engine.onChantTrackChange = null;
     const line = this.container.querySelector('.chant-credit');
     if (line) line.hidden = true;
@@ -549,7 +550,7 @@ export class Rosarium {
   handleClick(event) {
     const target = event.target.closest('[data-action], [data-set], [data-mode], [data-sound], [data-advance]');
     if (!target || !this.container.contains(target)) return;
-    window.rise?.audioEngine?.playClick?.();
+    this.getAudioEngine()?.playClick?.();
 
     if (target.dataset.set) {
       this.setId = target.dataset.set;

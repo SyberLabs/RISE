@@ -62,6 +62,7 @@ export class Chapel {
   constructor(container, options = {}) {
     this.container = container;
     this.onNavigate = options.onNavigate || (() => {});
+    this.getAudioEngine = options.getAudioEngine || (() => null);
     this.onLaunchReading = options.onLaunchReading || options.onLaunchBook || (() => {});
     // Return-from-Chamber wayfinding: the last reading, softly marked;
     // its book arrives already open at its chapters
@@ -305,26 +306,26 @@ export class Chapel {
     if (!button || !this.container.contains(button)) return;
 
     if (button.dataset.action === 'back') {
-      window.rise?.audioEngine?.playClick();
+      this.getAudioEngine()?.playClick();
       this.onNavigate('portal');
       return;
     }
 
     if (button.dataset.mysterySet) {
       // The door to the Rosarium; all choosing happens in the room
-      window.rise?.audioEngine?.playClick();
+      this.getAudioEngine()?.playClick();
       this.onLaunchRosary(button.dataset.mysterySet, { iconId: this.iconId });
       return;
     }
 
     if (button.dataset.viaDoor) {
-      window.rise?.audioEngine?.playClick();
+      this.getAudioEngine()?.playClick();
       this.onNavigate('via');
       return;
     }
 
     if (button.dataset.iconId !== undefined) {
-      window.rise?.audioEngine?.playClick();
+      this.getAudioEngine()?.playClick();
       this.iconId = button.dataset.iconId || null;
       try {
         if (this.iconId) localStorage.setItem(CHAPEL_ICON_PREF_KEY, this.iconId);
@@ -352,7 +353,7 @@ export class Chapel {
     // (or close) their chapter panel
     const book = findChapelBook(bookId);
     if (!book) return;
-    window.rise?.audioEngine?.playClick();
+    this.getAudioEngine()?.playClick();
     if (book.chapters === 1) {
       this.launch(button, bookId, null);
       return;
@@ -370,7 +371,7 @@ export class Chapel {
     if (this._launching) return;
     // One launch at a time — a double-click must not race two handoffs
     this._launching = true;
-    window.rise?.audioEngine?.playClick();
+    this.getAudioEngine()?.playClick();
     button.classList.add('chapel-book-loading');
     // The callback stays synchronous (launch handlers may depend on
     // the click's user-activation), but a synchronous throw must
