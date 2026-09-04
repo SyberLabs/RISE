@@ -1,7 +1,7 @@
 # Explicit application boundaries
 
-**Date:** 2026-09-03  
-**Status:** approved for implementation planning  
+**Date:** 2026-09-03
+**Status:** approved for implementation planning
 **Base:** `main` at `93abca2`
 
 ## Problem

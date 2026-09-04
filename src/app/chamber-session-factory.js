@@ -208,9 +208,9 @@ export async function createChamberSession(operations, container, sessionData) {
                 const retiredMetSelected = sourced.some(s =>
                     typeof s === 'string' && s.startsWith('met-'));
                 // Specifically add all selected Wikimedia categories
-                const wikimediaCategories = sourced.filter(s => 
-                    s !== 'global-pool' && 
-                    s !== 'custom' && 
+                const wikimediaCategories = sourced.filter(s =>
+                    s !== 'global-pool' &&
+                    s !== 'custom' &&
                     !s.startsWith('personal:') &&
                     !s.startsWith('met-')
                 );
