@@ -19,10 +19,10 @@ const { ChamberOrbital, createDefaultConfig } = await import('./ChamberOrbital.j
 const { STANCES, matchStance } = await import('../core/stances.js');
 const { default: App } = await import('../app.js');
 
-function createOrbital(onBeginSession = vi.fn()) {
+function createOrbital(onBeginSession = vi.fn(), options = {}) {
     const container = document.createElement('div');
     document.body.appendChild(container);
-    const orbital = new ChamberOrbital(container, { onBeginSession });
+    const orbital = new ChamberOrbital(container, { onBeginSession, ...options });
     return { container, orbital, onBeginSession };
 }
 
@@ -38,7 +38,6 @@ describe('the stance row', () => {
 
     afterEach(() => {
         document.body.innerHTML = '';
-        delete globalThis.rise;
         vi.restoreAllMocks();
     });
 
@@ -75,7 +74,6 @@ describe('choosing a stance', () => {
 
     afterEach(() => {
         document.body.innerHTML = '';
-        delete globalThis.rise;
         vi.restoreAllMocks();
     });
 
@@ -146,7 +144,6 @@ describe('choosing a stance', () => {
     });
 
     it('persists a Thick + Fit text-material transaction as one synchronized state change', () => {
-        const { container, orbital } = createOrbital();
         Object.defineProperty(window, 'matchMedia', {
             configurable: true,
             value: vi.fn(() => ({ matches: false }))
@@ -154,7 +151,11 @@ describe('choosing a stance', () => {
         const app = new App();
         app.loadSettings();
         const handleSettingsTransaction = vi.spyOn(app, 'handleSettingsTransaction');
-        globalThis.rise = app;
+        const { container, orbital } = createOrbital(undefined, {
+            getSettings: () => app.settings,
+            onSettingChange: (key, value) => app.handleSettingsChange(key, value),
+            onSettingsTransaction: settings => app.handleSettingsTransaction(settings)
+        });
         orbital.loadText('Begin the morning', 'Meditations');
         orbital.config.chunkMode = 'phrase';
         orbital.config.recitation = { enabled: true };
@@ -165,7 +166,7 @@ describe('choosing a stance', () => {
         container.querySelector('[data-word-fill="same"]').click();
         container.querySelector('[data-action="use-thick-fit"]').click();
 
-        expect(globalThis.rise.settings).toMatchObject({ chamberFace: 'thick', fontSize: 'fit' });
+        expect(app.settings).toMatchObject({ chamberFace: 'thick', fontSize: 'fit' });
         expect(orbital.config.chunkMode).toBe('word');
         expect(orbital.config.recitation).toEqual({ enabled: false });
         expect(orbital.config.visualInterlocution.interlocution.wordFill)
@@ -198,11 +199,12 @@ describe('choosing a stance', () => {
                 settings: { chamberFace: 'thick', fontSize: 'medium' }
             }
         ]) {
-            const { container, orbital } = createOrbital();
-            globalThis.rise = {
-                settings: { chamberFace: 'thick', fontSize: 'fit' },
-                handleSettingsTransaction: vi.fn(settings => Object.assign(globalThis.rise.settings, settings))
-            };
+            const settings = { chamberFace: 'thick', fontSize: 'fit' };
+            const { container, orbital } = createOrbital(undefined, {
+                getSettings: () => settings,
+                onSettingChange: (key, value) => { settings[key] = value; },
+                onSettingsTransaction: patch => Object.assign(settings, patch)
+            });
             orbital.loadText('Begin the morning', 'Meditations', {
                 visualConfig: {
                     visualMode: 'interlocution',
@@ -210,14 +212,14 @@ describe('choosing a stance', () => {
                 }
             });
             const before = structuredClone({
-                settings: globalThis.rise.settings,
+                settings,
                 config: orbital.config
             });
             const syncUIWithConfig = orbital.syncUIWithConfig.bind(orbital);
             const syncSnapshots = [];
             const syncSpy = vi.spyOn(orbital, 'syncUIWithConfig').mockImplementation(() => {
                 syncSnapshots.push(structuredClone({
-                    settings: globalThis.rise.settings,
+                    settings,
                     temporal: {
                         chunkMode: orbital.config.chunkMode,
                         recitation: orbital.config.recitation
@@ -233,14 +235,14 @@ describe('choosing a stance', () => {
             expect(container.querySelector('[role="dialog"]')).toBeTruthy();
             container.querySelector('[data-action="dialog-cancel"]').click();
 
-            expect({ settings: globalThis.rise.settings, config: orbital.config }).toEqual(before);
+            expect({ settings, config: orbital.config }).toEqual(before);
             expect(syncSpy).not.toHaveBeenCalled();
             expect(persistSpy).not.toHaveBeenCalled();
 
             container.querySelector(change.selector).click();
             container.querySelector('[data-action="dialog-confirm"]').click();
 
-            expect(globalThis.rise.settings).toMatchObject(change.settings);
+            expect(settings).toMatchObject(change.settings);
             expect(orbital.config.visualInterlocution.interlocution.wordFill)
                 .toEqual({ mode: 'accent', border: 'cream' });
             expect(orbital.visualNavigator.getConfig().interlocution.wordFill)

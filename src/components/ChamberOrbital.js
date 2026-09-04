@@ -196,6 +196,11 @@ export class ChamberOrbital {
     this.container = container;
     this.onBeginSession = options.onBeginSession || (() => { });
     this.onNavigate = options.onNavigate || (() => { });
+    this.getAudioEngine = options.getAudioEngine || (() => null);
+    this.getSettings = options.getSettings || (() => ({}));
+    this.onSettingChange = options.onSettingChange || (() => { });
+    this.onSettingsTransaction = options.onSettingsTransaction || (() => { });
+    this.notify = options.notify || (() => { });
     this.visualConsentScope = crypto.randomUUID();
 
     // Session configuration state (factory defaults; see createDefaultConfig)
@@ -375,16 +380,14 @@ export class ChamberOrbital {
     this.updateOrbitStatus('audio');
     this.updateOrbitStatus('visual');
 
-    if (window.rise?.showToast) {
-      // Name what SURVIVED, not only what changed. Reset clearing every
-      // dial while the text stays put reads as a half-finished reset
-      // unless the boundary is stated at the moment it is crossed.
-      window.rise.showToast(
-        this.config.text
-          ? 'Settings restored — the loaded text stays'
-          : 'Settings restored to defaults'
-      );
-    }
+    // Name what SURVIVED, not only what changed. Reset clearing every
+    // dial while the text stays put reads as a half-finished reset
+    // unless the boundary is stated at the moment it is crossed.
+    this.notify(
+      this.config.text
+        ? 'Settings restored — the loaded text stays'
+        : 'Settings restored to defaults'
+    );
   }
 
   _applySavedText() {
@@ -1124,6 +1127,8 @@ export class ChamberOrbital {
             : null,
           readingVisualDomain: this.config.readingVisualIdentity?.domain || null,
           onOpenPersonal: () => this.onNavigate('workshop'),
+          getSettings: this.getSettings,
+          onSettingChange: this.onSettingChange,
           onTextMaterialTransaction: transaction => this.applyTextMaterialTransaction(transaction),
           onChange: (config) => {
             const previouslyHeld = isLaunchHeldFocal(
@@ -1158,7 +1163,7 @@ export class ChamberOrbital {
   }
 
   applyTextMaterialTransaction({ settings = {}, temporal = null, visualConfig }) {
-    globalThis.rise.handleSettingsTransaction(settings);
+    this.onSettingsTransaction(settings);
     if (temporal?.chunkMode) this.config.chunkMode = temporal.chunkMode;
     if (temporal?.recitation === false) this.config.recitation = { enabled: false };
     this.config.visualInterlocution = visualConfig;
@@ -1270,14 +1275,14 @@ export class ChamberOrbital {
 
     // Back button
     this._listen(this.container.querySelector('[data-action="back"]'), 'click', () => {
-      window.rise?.audioEngine?.playClick();
+      this.getAudioEngine()?.playClick();
       this.onNavigate('portal');
     });
 
     // Origin chip (delegated — the chip re-renders on loadText/clearText)
     this._listen(this.container, 'click', (e) => {
       if (e.target.closest('[data-action="origin-return"]') && this.config.origin?.view) {
-        window.rise?.audioEngine?.playClick();
+        this.getAudioEngine()?.playClick();
         if (this.config.origin.data) {
           this.onNavigate(this.config.origin.view, this.config.origin.data);
         } else {
@@ -1288,7 +1293,7 @@ export class ChamberOrbital {
 
     // Reset settings to factory defaults (keeps the loaded text)
     this._listen(this.container.querySelector('[data-action="reset-prefs"]'), 'click', () => {
-      window.rise?.audioEngine?.playClick();
+      this.getAudioEngine()?.playClick();
       this.resetPrefs();
     });
 
@@ -1304,7 +1309,7 @@ export class ChamberOrbital {
     // Begin button
     this._listen(this.container.querySelector('#begin-btn'), 'click', () => {
       if (this.config.text) {
-        window.rise?.audioEngine?.playClick();
+        this.getAudioEngine()?.playClick();
         this.beginSession();
       }
     });
@@ -1316,12 +1321,12 @@ export class ChamberOrbital {
   attachTextSourceEvents() {
     // Browse library (single entry point)
     this._listen(this.container.querySelector('[data-action="library"]'), 'click', () => {
-      window.rise?.audioEngine?.playHiss();
+      this.getAudioEngine()?.playHiss();
       this.onNavigate('library');
     });
 
     this._listen(this.container.querySelector('[data-action="clear-text"]'), 'click', () => {
-      window.rise?.audioEngine?.playHiss();
+      this.getAudioEngine()?.playHiss();
       this.clearText();
     });
   }
@@ -1329,7 +1334,7 @@ export class ChamberOrbital {
   attachStanceEvents() {
     this.container.querySelectorAll('[data-stance]').forEach(button => {
       this._listen(button, 'click', () => {
-        window.rise?.audioEngine?.playClick();
+        this.getAudioEngine()?.playClick();
         this.chooseStance(button.dataset.stance);
       });
     });
@@ -1339,7 +1344,7 @@ export class ChamberOrbital {
     const nodes = this.container.querySelectorAll('.orbit-node');
     nodes.forEach(node => {
       this._listen(node, 'click', () => {
-        window.rise?.audioEngine?.playClick();
+        this.getAudioEngine()?.playClick();
         const orbit = node.dataset.orbit;
         this.openModal(orbit);
       });
@@ -1351,7 +1356,7 @@ export class ChamberOrbital {
     const closeBtns = this.container.querySelectorAll('.modal-close');
     closeBtns.forEach(btn => {
       this._listen(btn, 'click', () => {
-        window.rise?.audioEngine?.playHiss();
+        this.getAudioEngine()?.playHiss();
         this.closeModal(btn.dataset.close);
       });
     });
@@ -1429,7 +1434,7 @@ export class ChamberOrbital {
           this.config.selectedSwellId = id;
         }
         
-        if (window.rise?.audioEngine) window.rise.audioEngine.playClick();
+        this.getAudioEngine()?.playClick();
         this.renderPersonalPool();
         this.updateOrbitStatus('audio');
       });
@@ -1443,17 +1448,15 @@ export class ChamberOrbital {
         const action = btn.dataset.action;
 
         if (action === 'delete') {
-          if (window.rise?.audioEngine) window.rise.audioEngine.playHiss();
+          this.getAudioEngine()?.playHiss();
           await PersonalSwells.removeSwell(id);
           if (this.config.selectedSwellId === id) this.config.selectedSwellId = null;
-          if (window.rise?.audioEngine) await window.rise.audioEngine.reloadPersonalSwells();
+          await this.getAudioEngine()?.reloadPersonalSwells();
           this.renderPersonalPool();
           this.updateOrbitStatus('audio');
         } else if (action === 'preview') {
-          if (window.rise?.audioEngine) {
-            // Targeted preview!
-            window.rise.audioEngine.playSwell(id);
-          }
+          // Targeted preview!
+          this.getAudioEngine()?.playSwell(id);
         }
       });
     });
@@ -1471,7 +1474,7 @@ export class ChamberOrbital {
 
     soundscapeOptions.forEach(opt => {
       this._listen(opt, 'click', () => {
-        window.rise?.audioEngine?.playHiss();
+        this.getAudioEngine()?.playHiss();
         this.config.soundscape = opt.dataset.soundscape;
         if (opt.dataset.soundscape !== 'none' && this.config.audioPreset !== 'silent') {
           this.config.audioPreset = 'silent';
@@ -1487,7 +1490,7 @@ export class ChamberOrbital {
 
     presetOptions.forEach(opt => {
       this._listen(opt, 'click', () => {
-        window.rise?.audioEngine?.playHiss();
+        this.getAudioEngine()?.playHiss();
         this.config.audioPreset = opt.dataset.audioPreset;
         if (pureToneControls) pureToneControls.hidden = opt.dataset.audioPreset === 'silent';
         if (opt.dataset.audioPreset !== 'silent' && this.config.soundscape !== 'none') {
@@ -1506,7 +1509,7 @@ export class ChamberOrbital {
     const entrainmentOptions = this.container.querySelectorAll('[data-entrainment]');
     entrainmentOptions.forEach(opt => {
       this._listen(opt, 'click', () => {
-        window.rise?.audioEngine?.playHiss();
+        this.getAudioEngine()?.playHiss();
         this.config.entrainmentMode = opt.dataset.entrainment;
         this.updateOrbitStatus('audio');
         entrainmentOptions.forEach(o => o.classList.remove('active'));
@@ -1518,7 +1521,7 @@ export class ChamberOrbital {
     const waveformOptions = this.container.querySelectorAll('[data-waveform]');
     waveformOptions.forEach(opt => {
       this._listen(opt, 'click', () => {
-        window.rise?.audioEngine?.playClick();
+        this.getAudioEngine()?.playClick();
         this.config.entrainmentWaveform = opt.dataset.waveform;
         this.updateOrbitStatus('audio');
         waveformOptions.forEach(o => o.classList.remove('active'));
@@ -1543,7 +1546,7 @@ export class ChamberOrbital {
       const file = e.target.files[0];
       if (!file) return;
 
-      if (window.rise?.audioEngine) window.rise.audioEngine.playHiss();
+      this.getAudioEngine()?.playHiss();
       
       const displayName = await namingModal.show(file.name, 'Name Swell', 'Atmospheric Metadata');
       if (!displayName) {
@@ -1553,9 +1556,7 @@ export class ChamberOrbital {
       
       try {
         await PersonalSwells.addSwell(file, displayName);
-        if (window.rise?.audioEngine) {
-          await window.rise.audioEngine.reloadPersonalSwells();
-        }
+        await this.getAudioEngine()?.reloadPersonalSwells();
         this.renderPersonalPool();
       } catch (err) {
         console.error('[Orbital] Upload failed:', err);
@@ -1582,7 +1583,7 @@ export class ChamberOrbital {
     const curveOptions = this.container.querySelectorAll('[data-curve]');
     curveOptions.forEach(opt => {
       this._listen(opt, 'click', () => {
-        window.rise?.audioEngine?.playHiss();
+        this.getAudioEngine()?.playHiss();
         this.config.curve = opt.dataset.curve;
         curveOptions.forEach(o => o.classList.remove('active'));
         opt.classList.add('active');
@@ -1594,7 +1595,7 @@ export class ChamberOrbital {
     const chunkOptions = this.container.querySelectorAll('[data-chunk]');
     chunkOptions.forEach(opt => {
       this._listen(opt, 'click', () => {
-        window.rise?.audioEngine?.playHiss();
+        this.getAudioEngine()?.playHiss();
         this.config.chunkMode = opt.dataset.chunk;
         chunkOptions.forEach(o => o.classList.remove('active'));
         opt.classList.add('active');
@@ -1604,7 +1605,7 @@ export class ChamberOrbital {
     const revealOptions = this.container.querySelectorAll('[data-reveal]');
     revealOptions.forEach(opt => {
       this._listen(opt, 'click', () => {
-        window.rise?.audioEngine?.playHiss();
+        this.getAudioEngine()?.playHiss();
         this.config.revealMode = opt.dataset.reveal === 'progressive'
           ? 'progressive' : 'instant';
         revealOptions.forEach(candidate => candidate.classList.toggle(
@@ -1621,7 +1622,7 @@ export class ChamberOrbital {
     recitationOptions.forEach(opt => {
       this._listen(opt, 'click', () => {
         if (opt.disabled) return;
-        window.rise?.audioEngine?.playHiss();
+        this.getAudioEngine()?.playHiss();
         const enabled = opt.dataset.recitation === 'on';
         this.config.recitation = { enabled };
         if (enabled) this.config.chunkMode = 'phrase';

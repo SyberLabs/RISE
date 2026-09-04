@@ -415,7 +415,12 @@ class App {
                 const { ChamberOrbital } = await import('./components/ChamberOrbital.js');
                 const orbital = new ChamberOrbital(container, {
                     onBeginSession: (sessionConfig) => this.handleBeginSession(sessionConfig),
-                    onNavigate: this.handleNavigate
+                    onNavigate: this.handleNavigate,
+                    getAudioEngine: () => this.audioEngine,
+                    getSettings: () => this.settings,
+                    onSettingChange: (key, value) => this.handleSettingsChange(key, value),
+                    onSettingsTransaction: settings => this.handleSettingsTransaction(settings),
+                    notify: (message, duration) => this.showToast(message, duration)
                 });
 
                 // If text data was passed from Library, load it

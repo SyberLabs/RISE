@@ -30,6 +30,8 @@ export class VisualNavigator {
   constructor(container, options = {}) {
     this.container = container;
     this.onChange = options.onChange || (() => {});
+    this.getSettings = options.getSettings || (() => ({}));
+    this.onSettingChange = options.onSettingChange || (() => {});
     this.onTextMaterialTransaction = options.onTextMaterialTransaction || (() => {});
     this.onOpenPersonal = options.onOpenPersonal || (() => {});
     this.locked = options.locked === true;

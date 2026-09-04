@@ -19,14 +19,12 @@ import { VisualNavigator } from './VisualNavigator.js';
 import { GROUNDS, maskGroundFromConfig } from '../core/mask-ground.js';
 
 let nav = null;
+let settings = null;
 
 const mount = (visualConfig = {}, options = {}) => {
     const container = document.createElement('div');
     document.body.appendChild(container);
-    window.rise = {
-        settings: { chamberFace: 'thick', fontSize: 'fit' },
-        handleSettingsChange(key, value) { this.settings[key] = value; }
-    };
+    settings = { chamberFace: 'thick', fontSize: 'fit' };
     nav = new VisualNavigator(container, {
         visualConfig: {
             visualMode: 'interlocution',
@@ -34,7 +32,9 @@ const mount = (visualConfig = {}, options = {}) => {
             ...visualConfig
         },
         onChange: vi.fn(),
-        onTextMaterialTransaction: ({ settings = {} }) => Object.assign(window.rise.settings, settings),
+        getSettings: () => settings,
+        onSettingChange: (key, value) => { settings[key] = value; },
+        onTextMaterialTransaction: ({ settings: patch = {} }) => Object.assign(settings, patch),
         ...options
     });
     return nav;
@@ -49,7 +49,7 @@ afterEach(() => {
     nav?.destroy();
     nav?.container.remove();
     nav = null;
-    delete window.rise;
+    settings = null;
     vi.restoreAllMocks();
 });
 

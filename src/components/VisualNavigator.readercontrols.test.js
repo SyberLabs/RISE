@@ -94,13 +94,11 @@ describe('the reader controls are finished controls', () => {
     it('says why Glass cannot act, on the row, where a phone can read it', () => {
         // Under a Fit word the switch is inert — a frosted pane behind a word
         // that size is the size of the room. That was a `title` only.
-        window.rise = { settings: { chamberFace: 'thick', fontSize: 'fit' } };
-        mount();
+        mount({ getSettings: () => ({ chamberFace: 'thick', fontSize: 'fit' }) });
         const control = row('glass');
         const input = nav.container.querySelector('[data-action="glass"]');
         expect(input.disabled).toBe(true);
         expect(control.textContent).toMatch(/frame|Fit|mask/i);
-        delete window.rise;
     });
 
     it('lights the row it is standing on, and unlights it', () => {
