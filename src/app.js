@@ -128,7 +128,9 @@ class App {
         if (this.audioEngine) return this.audioEngine;
         this._audioEngineLoad ||= import('./audio/engine.js')
             .then(({ AudioEngine }) => {
-                this.audioEngine ||= new AudioEngine();
+                this.audioEngine ||= new AudioEngine({
+                    onUnavailable: (message, duration) => this.showToast(message, duration)
+                });
                 this.audioEngine.setMasterVolume(this.settings?.masterVolume ?? 0.75);
                 return this.audioEngine;
             });

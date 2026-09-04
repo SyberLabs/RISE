@@ -4,7 +4,23 @@ import { AudioEngine } from './engine.js';
 describe('AudioEngine lifecycle ownership', () => {
   afterEach(() => {
     vi.useRealTimers();
+    vi.unstubAllGlobals();
     vi.restoreAllMocks();
+  });
+
+  it('reports initialization failure through its injected boundary', async () => {
+    const onUnavailable = vi.fn();
+    vi.stubGlobal('AudioContext', class BlockedAudioContext {
+      constructor() { throw new Error('blocked'); }
+    });
+    const engine = new AudioEngine({ onUnavailable });
+
+    await expect(engine.init()).rejects.toThrow('blocked');
+
+    expect(onUnavailable).toHaveBeenCalledWith(
+      'Audio initialization blocked. Interact to enable.',
+      4000
+    );
   });
 
   it('resolves an interrupted fade instead of leaving its caller pending', async () => {
