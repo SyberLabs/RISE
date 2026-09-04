@@ -785,6 +785,10 @@ class App {
                         player: player,
                         voice: recitationVoice,
                         autoStart: true,
+                        audioEngine: this.audioEngine,
+                        getSettings: () => this.settings,
+                        onSettingsChange: (key, value) => this.handleSettingsChange(key, value),
+                        onDataCleared: () => this.handleDataCleared(),
                         onEnterStream: activateDeferredVisuals,
                         onExit: (reason, data) => {
                             // Cleanup

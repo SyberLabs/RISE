@@ -6,7 +6,6 @@ import { fitWordAtomPx } from '../core/chamber-type-size.js';
 function makeChamber(sessionExtra = {}, settings = {}) {
     const container = document.createElement('div');
     document.body.appendChild(container);
-    globalThis.rise = { settings };
     const session = {
         title: 'Type size',
         atoms: [{ content: 'Word', duration: 500 }],
@@ -15,8 +14,13 @@ function makeChamber(sessionExtra = {}, settings = {}) {
         visualConfig: { visualMode: 'off' },
         ...sessionExtra
     };
-    const chamber = new Chamber(container, { session, player: null, autoStart: false });
-    return { chamber, container };
+    const chamber = new Chamber(container, {
+        session,
+        player: null,
+        autoStart: false,
+        getSettings: () => settings
+    });
+    return { chamber, container, settings };
 }
 
 function installField(width = 390, height = 720, {
@@ -109,12 +113,14 @@ describe('Chamber type size (FM-RISE-36)', () => {
     });
 
     it('applies the persisted fontSize on construct and again when the session starts', () => {
-        globalThis.rise = { settings: { fontSize: 'small' } };
-        const { chamber, container } = makeChamber({ chunkMode: 'word' }, { fontSize: 'small' });
+        const { chamber, container, settings } = makeChamber(
+            { chunkMode: 'word' },
+            { fontSize: 'small' }
+        );
         const el = container.querySelector('#atom-display');
         expect(el.dataset.fontSize).toBe('small');
 
-        globalThis.rise.settings.fontSize = 'fit';
+        settings.fontSize = 'fit';
         chamber.beginSession();
         expect(container.querySelector('#atom-display').dataset.fontSize).toBe('fit');
         chamber.destroy();
@@ -207,7 +213,7 @@ describe('Chamber type size (FM-RISE-36)', () => {
     });
 
     it('rebuilds the glyph mask after a fit size change is reconciled', async () => {
-        const { chamber, container } = makeChamber(
+        const { chamber, container, settings } = makeChamber(
             {
                 chunkMode: 'word',
                 visualConfig: {
@@ -223,7 +229,7 @@ describe('Chamber type size (FM-RISE-36)', () => {
         expect(el.dataset.chamberFace).toBe('thick');
 
         const sync = vi.spyOn(chamber, 'syncFillGlyphMask');
-        globalThis.rise.settings.fontSize = 'fit';
+        settings.fontSize = 'fit';
         chamber.applyChamberTypeSize();
         chamber.applyChamberMask();
 
