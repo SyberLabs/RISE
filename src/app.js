@@ -870,7 +870,11 @@ class App {
                 const { Workshop } = await import('./components/Workshop.js');
                 const ws = new Workshop(container, {
                     onNavigate: this.handleNavigate,
-                    onCreateSession: this.handleCreateSession
+                    onCreateSession: this.handleCreateSession,
+                    audioEngineProvider: () => this.audioEngine,
+                    onBlueprintsChanged: () => {
+                        this.router.getViewInstance('vault')?.refreshBlueprints?.();
+                    }
                 });
 
                 if (data) {
