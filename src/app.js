@@ -360,7 +360,6 @@ class App {
      * Register all view containers and components
      */
     registerViews() {
-        const app = this;
         const routes = createRouteManifest({
             handleNavigate: this.handleNavigate,
             quickAccess: () => this.quickAccess(),
@@ -370,15 +369,16 @@ class App {
             handleArchetypeLaunch: data => this.handleArchetypeLaunch(data),
             handleBeginSession: session => this.handleBeginSession(session),
             getAudioEngine: () => this.audioEngine,
+            getCurrentSession: () => this.currentSession,
             getSettings: () => this.settings,
             handleSettingsChange: this.handleSettingsChange,
             handleSettingsTransaction: this.handleSettingsTransaction,
             showToast: (message, duration) => this.showToast(message, duration),
             chamberSession: {
-                get currentSession() { return app.currentSession; },
-                get audioEngine() { return app.audioEngine; },
-                get settings() { return app.settings; },
-                get _visualCortex() { return app._visualCortex; },
+                getCurrentSession: () => this.currentSession,
+                getAudioEngine: () => this.audioEngine,
+                getSettings: () => this.settings,
+                getVisualCortex: () => this._visualCortex,
                 router: this.router,
                 ensureVisualCortex: () => this.ensureVisualCortex(),
                 ensureAudioEngine: () => this.ensureAudioEngine(),

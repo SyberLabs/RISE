@@ -32,4 +32,41 @@ describe('createRouteManifest', () => {
       expect(route.create).toBeTypeOf('function');
     }
   });
+
+  it('forwards shell capabilities to every room that consumes them', () => {
+    const getAudioEngine = vi.fn();
+    const getCurrentSession = vi.fn();
+    const notify = vi.fn();
+    const routes = createRouteManifest({
+      getAudioEngine,
+      getCurrentSession,
+      getSettings: () => ({}),
+      showToast: notify
+    });
+    const roomOptions = (id, exportName) => {
+      let received;
+      class Room {
+        constructor(_container, options) {
+          received = options;
+        }
+      }
+      routes.find(route => route.id === id).create({}, null, { [exportName]: Room });
+      return received;
+    };
+
+    for (const [id, exportName] of [
+      ['portal', 'Portal'],
+      ['vault', 'Vault'],
+      ['chamber', 'ChamberOrbital'],
+      ['library', 'Library'],
+      ['journeys', 'Journeys'],
+      ['rosarium', 'Rosarium'],
+      ['via', 'Via'],
+      ['chapel', 'Chapel']
+    ]) {
+      expect(roomOptions(id, exportName).getAudioEngine, `${id} audio boundary`).toBe(getAudioEngine);
+    }
+    expect(roomOptions('portal', 'Portal').getCurrentSession).toBe(getCurrentSession);
+    expect(roomOptions('settings', 'Settings').notify).toBe(notify);
+  });
 });

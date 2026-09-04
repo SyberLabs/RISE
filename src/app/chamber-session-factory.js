@@ -15,7 +15,7 @@ import {
 import { normalizeVisualSelection, resolveSessionWordFill } from '../core/visual-selection.js';
 
 export async function createChamberSession(operations, container, sessionData) {
-    const session = sessionData || operations.currentSession;
+    const session = sessionData || operations.getCurrentSession();
 
     if (!session || !session.atoms || session.atoms.length === 0) {
         console.error('[RISE] Cannot start chamber: no session data or atoms');
@@ -52,6 +52,7 @@ export async function createChamberSession(operations, container, sessionData) {
         // Portal no longer is.
         const visualCortex = await operations.ensureVisualCortex();
         await operations.ensureAudioEngine();
+        const audioEngine = operations.getAudioEngine();
 
         // Consent is an interaction phase, not a loading task. It
         // must resolve before the opaque preparation overlay can
@@ -100,7 +101,7 @@ export async function createChamberSession(operations, container, sessionData) {
             operations.updateLoadingStatus('Preparing spoken voice...');
             const { Voice } = await import('../audio/voice.js');
             recitationVoice = new Voice({
-                audioEngine: operations.audioEngine,
+                audioEngine,
                 voiceId: session.voiceId
             });
             recitationVoice.enabled = true;
@@ -125,10 +126,10 @@ export async function createChamberSession(operations, container, sessionData) {
 
         if (hasAudio) {
             operations.updateLoadingStatus('Stabilizing carrier frequencies...');
-            operations.audioEngine.stopAmbient();
-            operations.audioEngine.sessionActive = true;
+            audioEngine.stopAmbient();
+            audioEngine.sessionActive = true;
             const durationSec = (session.totalDuration || 0) / 1000;
-            await operations.audioEngine.startSession({
+            await audioEngine.startSession({
                 // Exclusive beds: a soundscape is a finished mix, so
                 // it displaces the pure-tone preset if both slipped in.
                 preset: session.audioPreset !== 'silent' && !hasSoundscape ? session.audioPreset : null,
@@ -149,8 +150,8 @@ export async function createChamberSession(operations, container, sessionData) {
                 }
             });
         } else {
-            operations.audioEngine.stopAmbient();
-            operations.audioEngine.sessionActive = true;
+            audioEngine.stopAmbient();
+            audioEngine.sessionActive = true;
         }
 
         operations.updateLoadingStatus('Creating player...');
@@ -162,7 +163,7 @@ export async function createChamberSession(operations, container, sessionData) {
         // instead of letting wall time drift it forward.
         if (hasAudio) {
             player.on('progress', ({ progress }) => {
-                operations.audioEngine.setEntrainmentPosition(progress);
+                audioEngine.setEntrainmentPosition(progress);
             });
         }
 
@@ -362,8 +363,8 @@ export async function createChamberSession(operations, container, sessionData) {
             player: player,
             voice: recitationVoice,
             autoStart: true,
-            audioEngine: operations.audioEngine,
-            getSettings: () => operations.settings,
+            audioEngine,
+            getSettings: operations.getSettings,
             onSettingsChange: (key, value) => operations.handleSettingsChange(key, value),
             onDataCleared: () => operations.handleDataCleared(),
             onEnterStream: activateDeferredVisuals,
@@ -372,7 +373,7 @@ export async function createChamberSession(operations, container, sessionData) {
                 player.stop();
                 endVisualInterlocutionSession();
                 visualCortex.updateConfig({ enabled: false });
-                operations.audioEngine.stopSession();
+                audioEngine.stopSession();
 
                 // Force disposal of the instance so next session starts fresh
                 const view = operations.router.views.get('chamber-session');
@@ -400,9 +401,9 @@ export async function createChamberSession(operations, container, sessionData) {
         endVisualInterlocutionSession();
         // Reached through the catch, so either subsystem may have
         // been what failed to arrive. Teardown must not need them.
-        operations._visualCortex?.updateConfig({ enabled: false });
-        await operations.audioEngine?.stopSession({
-            resumeAmbient: operations.settings?.enableAmbient === true,
+        operations.getVisualCortex()?.updateConfig({ enabled: false });
+        await operations.getAudioEngine()?.stopSession({
+            resumeAmbient: operations.getSettings()?.enableAmbient === true,
             immediate: true
         })?.catch(() => {});
         operations.hideLoading();

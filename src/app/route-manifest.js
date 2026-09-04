@@ -2,7 +2,7 @@
  * The fixed application route table. Room modules stay lazy, while their
  * application-level capabilities are explicit at this composition boundary.
  */
-export function createRouteManifest(operations = {}) {
+export function createRouteManifest(operations) {
   return [
     {
       id: 'portal',
@@ -10,7 +10,9 @@ export function createRouteManifest(operations = {}) {
       load: () => import('../components/Portal.js'),
       create: (container, _data, { Portal }) => new Portal(container, {
         onNavigate: operations.handleNavigate,
-        onQuickAccess: operations.quickAccess
+        onQuickAccess: operations.quickAccess,
+        getAudioEngine: operations.getAudioEngine,
+        getCurrentSession: operations.getCurrentSession
       })
     },
     {
@@ -32,6 +34,7 @@ export function createRouteManifest(operations = {}) {
         onSelectSequence: operations.handleSequenceSelection,
         onSelectBlueprint: operations.handleCreateSession,
         onLaunchArchetype: operations.handleArchetypeLaunch,
+        getAudioEngine: operations.getAudioEngine,
         personalizedVault: data?.personalizedVault || null
       })
     },
@@ -71,7 +74,8 @@ export function createRouteManifest(operations = {}) {
       load: () => import('../components/Library.js'),
       create: (container, _data, { Library }) => new Library(container, {
         onNavigate: operations.handleNavigate,
-        onSelectText: operations.handleTextSelection
+        onSelectText: operations.handleTextSelection,
+        getAudioEngine: operations.getAudioEngine
       })
     },
     {
@@ -80,7 +84,8 @@ export function createRouteManifest(operations = {}) {
       load: () => import('../components/Journeys.js'),
       create: (container, _data, { Journeys }) => new Journeys(container, {
         onNavigate: operations.handleNavigate,
-        onBeginSession: operations.handleBeginSession
+        onBeginSession: operations.handleBeginSession,
+        getAudioEngine: operations.getAudioEngine
       })
     },
     {
@@ -106,7 +111,8 @@ export function createRouteManifest(operations = {}) {
         settings: operations.getSettings(),
         onNavigate: operations.handleNavigate,
         onChange: operations.handleSettingsChange,
-        onDataCleared: operations.handleDataCleared
+        onDataCleared: operations.handleDataCleared,
+        notify: operations.showToast
       })
     },
     {
@@ -115,6 +121,7 @@ export function createRouteManifest(operations = {}) {
       load: () => import('../components/Rosarium.js'),
       create: (container, data, { Rosarium }) => new Rosarium(container, {
         onNavigate: operations.handleNavigate,
+        getAudioEngine: operations.getAudioEngine,
         setId: data?.setId,
         iconId: data?.iconId,
         door: data?.door === true
@@ -148,7 +155,8 @@ export function createRouteManifest(operations = {}) {
       containerId: 'view-via',
       load: () => import('../components/Via.js'),
       create: (container, _data, { Via }) => new Via(container, {
-        onNavigate: operations.handleNavigate
+        onNavigate: operations.handleNavigate,
+        getAudioEngine: operations.getAudioEngine
       })
     },
     {
@@ -157,6 +165,7 @@ export function createRouteManifest(operations = {}) {
       load: () => import('../components/Chapel.js'),
       create: (container, data, { Chapel }) => new Chapel(container, {
         onNavigate: operations.handleNavigate,
+        getAudioEngine: operations.getAudioEngine,
         bookId: data?.bookId,
         chapter: data?.chapter,
         onLaunchRosary: operations.launchRosary,
