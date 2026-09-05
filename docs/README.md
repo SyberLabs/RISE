@@ -32,10 +32,10 @@ history, not a distinction; read the status column instead.
 | Document | Status | What it is |
 | --- | --- | --- |
 | [RELEASE-ROADMAP-2026-08-20.md](RELEASE-ROADMAP-2026-08-20.md) | Contract | The current release corridor. Gates checked by `npm run release:check`. |
-| [RELEASE-ACCEPTANCE-PROTOCOL.md](RELEASE-ACCEPTANCE-PROTOCOL.md) | Contract | The human gates — certification, acoustic review, device review — that no script can pass on its own. |
+| [RELEASE-ACCEPTANCE-PROTOCOL.md](RELEASE-ACCEPTANCE-PROTOCOL.md) | Contract | The human gates - certification, acoustic review, device review - that no script can pass on its own. |
 | [RISE-RELEASE-REPORT-2026-08-31.md](RISE-RELEASE-REPORT-2026-08-31.md) | Record | System-wide production sweep of release readiness: machine gates, human gaps, security, state, documentation drift, and public-sharing verdict. |
 
-## The Archive — texts and their editing
+## The Archive - texts and their editing
 
 | Document | Status | What it is |
 | --- | --- | --- |
@@ -49,7 +49,7 @@ history, not a distinction; read the status column instead.
 | [ingest-records/SOL-PD-ACQUISITIONS-DOSSIER-LITERATURE-2026-07-28.md](ingest-records/SOL-PD-ACQUISITIONS-DOSSIER-LITERATURE-2026-07-28.md) | Record | The acquisitions dossier the shelf was assembled from. Read by `scripts/archive-dossier.mjs`. |
 | [ingest-records/](ingest-records/) | Record | Dated ingest and audit artifacts alongside it. Read by `scripts/legacy-ingest.mjs` and `scripts/literature-ingest.mjs`; JSON, not prose. |
 
-## Authoring — scores, rooms, and rendering
+## Authoring - scores, rooms, and rendering
 
 | Document | Status | What it is |
 | --- | --- | --- |
@@ -59,7 +59,7 @@ history, not a distinction; read the status column instead.
 | [vision/AGENT-COMPOSITION-AND-RENDER-SPEC.md](vision/AGENT-COMPOSITION-AND-RENDER-SPEC.md) | Contract | What may be published and rendered, and under what policy. |
 | [vision/NARRATION-LANE-SPEC.md](vision/NARRATION-LANE-SPEC.md) | Contract | The narration lane. Cited by `src/core/narration.js`. |
 | [vision/RECITATION-SPEC.md](vision/RECITATION-SPEC.md) | Contract | Recitation and voice packs. |
-| [vision/SCRIPTORIUM-STRENGTHENING-SPEC.md](vision/SCRIPTORIUM-STRENGTHENING-SPEC.md) | Intent | Design brief. Partly realised — `src/core/partition.js` is its §2.4. |
+| [vision/SCRIPTORIUM-STRENGTHENING-SPEC.md](vision/SCRIPTORIUM-STRENGTHENING-SPEC.md) | Intent | Design brief. Partly realised - `src/core/partition.js` is its §2.4. |
 
 ## Reading surfaces
 
@@ -74,7 +74,7 @@ history, not a distinction; read the status column instead.
 | [vision/SPATIAL-CHAMBER-SPEC.md](vision/SPATIAL-CHAMBER-SPEC.md) | Intent | A separate spatial room. Realised instead as the Stream/Page toggle. |
 | [specs/Premium_Mobile_Chamber.md](specs/Premium_Mobile_Chamber.md) | Intent | Mobile visual grammar. Portal adopts part of it. |
 
-## Imagery — what may be shown, and on whose authority
+## Imagery - what may be shown, and on whose authority
 
 | Document | Status | What it is |
 | --- | --- | --- |
@@ -99,7 +99,7 @@ history, not a distinction; read the status column instead.
 | Document | Status | What it is |
 | --- | --- | --- |
 | [vision/NORTH-STAR.md](vision/NORTH-STAR.md) | Intent | Product philosophy. |
-| [vision/JOURNEYS-SPEC.md](vision/JOURNEYS-SPEC.md) | Intent | Journeys are on ice — their scores quote editions the canon no longer serves. Re-anchoring is an editorial act, not a repair. |
+| [vision/JOURNEYS-SPEC.md](vision/JOURNEYS-SPEC.md) | Intent | Journeys are on ice - their scores quote editions the canon no longer serves. Re-anchoring is an editorial act, not a repair. |
 | [specs/BOOK-VI-PROCEDURAL-WORKS.md](specs/BOOK-VI-PROCEDURAL-WORKS.md) | Record | Milton's Book VI mapped to the engines in `src/visuals/paradise_lost/`, for the withdrawn Journey. |
 | [vision/DREAMS.md](vision/DREAMS.md) | Intent | Unscheduled experiments. Explicitly not a plan. |
 
@@ -127,7 +127,7 @@ project is a vocabulary living in two places where only one learns a new word.
 
 The [GitHub wiki](https://github.com/SyberLabs/RISE/wiki) is generated from
 these files by `.github/workflows/wiki.yml` on every push to `main`. It is a
-published view, never a source — edit the wiki directly and the next push
+published view, never a source - edit the wiki directly and the next push
 overwrites you. To change the wiki, change the Markdown here.
 
 Everything under `docs/` is published and must therefore appear in the tables
