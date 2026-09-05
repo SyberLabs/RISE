@@ -1153,9 +1153,11 @@ describe('Workshop visual selection repair', () => {
         expect(browser._destroyed).toBe(true);
         expect(workshop.sessionData.sources).toHaveLength(1);
         expect(workshop.studioSurface).toBe('score');
-        await new Promise(resolve => setTimeout(resolve, 340));
-        expect(workshop.sourceBrowser).toBeNull();
-        expect(document.activeElement).toBe(container.querySelector('#visual-score-text'));
+        // Closing animates first, then restores focus on the next frame.
+        await vi.waitFor(() => {
+            expect(workshop.sourceBrowser).toBeNull();
+            expect(document.activeElement).toBe(container.querySelector('#visual-score-text'));
+        }, { timeout: 2000 });
 
         workshop.destroy();
         container.remove();
