@@ -45,7 +45,7 @@ test('Page Mode typesets a Gospel chapter in space, and holds the stream', async
     await warn.waitFor({ state: 'visible', timeout: 4000 }).catch(() => {});
     if (await warn.isVisible()) await warn.locator('#safety-accept').click();
     await expect(page.locator('#chamber-display')).toBeVisible({ timeout: 20_000 });
-    await page.waitForFunction(() => window.rise?.router && !window.rise.router.transitioning);
+    await page.waitForFunction(() => window.__RISE_TEST__ && !window.__RISE_TEST__.getRouterState().transitioning);
     await page.waitForTimeout(2500);
 
     // Open the Page through the real control
@@ -66,7 +66,7 @@ test('Page Mode typesets a Gospel chapter in space, and holds the stream', async
             chapters: document.querySelectorAll('.page-chapter').length,
             breaks: document.querySelectorAll('.page-break').length,
             scrollable: host.scrollHeight > host.clientHeight,
-            playerState: window.rise?.router?.views?.get('chamber-session')?.instance?.player?.state
+            playerState: window.__RISE_TEST__?.getView('chamber-session')?.player?.state
         };
     });
     const stats = { ...perPage, ...walked };
@@ -107,7 +107,7 @@ test('Page Mode typesets a Gospel chapter in space, and holds the stream', async
     await page.waitForTimeout(300);
 
     const held = await page.evaluate(() => {
-        const ch = window.rise?.router?.views?.get('chamber-session')?.instance;
+        const ch = window.__RISE_TEST__?.getView('chamber-session');
         const host = document.querySelector('#chamber-page');
         const vis = (sel) => {
             const el = document.querySelector(sel);
@@ -146,6 +146,6 @@ test('Page Mode typesets a Gospel chapter in space, and holds the stream', async
     await page.locator('#play-pause-btn').click();
     await page.waitForTimeout(500);
     const resumed = await page.evaluate(() =>
-        window.rise?.router?.views?.get('chamber-session')?.instance?.player?.state);
+        window.__RISE_TEST__?.getView('chamber-session')?.player?.state);
     expect(['playing', 'interlocuting']).toContain(resumed);
 });

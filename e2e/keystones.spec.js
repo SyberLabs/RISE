@@ -28,18 +28,18 @@ test('Keystone corridor has durable cold, reload, launch, and Back behavior', as
 
   await expect(page).toHaveURL(/\/keystone\/meditations$/u);
   await expect(page.locator('#chamber-display')).toBeVisible({ timeout: 20_000 });
-  await page.waitForFunction(() => window.rise?.router && !window.rise.router.transitioning);
+  await page.waitForFunction(() => window.__RISE_TEST__ && !window.__RISE_TEST__.getRouterState().transitioning);
 
   await page.goBack();
   await expect(page).toHaveURL(/\/try-rise$/u);
-  await expect.poll(() => page.evaluate(() => window.rise?.router?.currentView), {
+  await expect.poll(() => page.evaluate(() => window.__RISE_TEST__?.getRouterState().currentView), {
     timeout: 15_000
   }).toBe('keystones');
   await expect(page.locator('#keystone-meditations')).toBeVisible({ timeout: 15_000 });
 
   await page.goBack();
   await expect(page).toHaveURL(/\/$/u);
-  await expect.poll(() => page.evaluate(() => window.rise?.router?.currentView), {
+  await expect.poll(() => page.evaluate(() => window.__RISE_TEST__?.getRouterState().currentView), {
     timeout: 15_000
   }).toBe('portal');
 

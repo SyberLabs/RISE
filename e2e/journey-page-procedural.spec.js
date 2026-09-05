@@ -32,7 +32,7 @@ test.skip('a Journey pages, and its procedural movements are illustrated', async
     await accept.waitFor({ state: 'visible', timeout: 60000 }).catch(() => {});
     if (await accept.isVisible()) await accept.click();
     await expect(page.locator('#chamber-display')).toBeVisible({ timeout: 90000 });
-    await page.waitForFunction(() => window.rise?.router && !window.rise.router.transitioning);
+    await page.waitForFunction(() => window.__RISE_TEST__ && !window.__RISE_TEST__.getRouterState().transitioning);
     await page.waitForTimeout(2000);
 
     // Into the Page.
@@ -47,7 +47,7 @@ test.skip('a Journey pages, and its procedural movements are illustrated', async
 
     // Collect figure ids from the full reading (DOM is one page at a time).
     const placed = await page.evaluate(() => {
-        const r = window.rise?.router?.views?.get('chamber-session')?.instance?.pageReader;
+        const r = window.__RISE_TEST__?.getView('chamber-session')?.pageReader;
         const items = r?.composition?.items || [];
         const figures = items.filter(i => i.type === 'figure');
         const ids = figures.flatMap(f => f.collections || (f.collection ? [f.collection] : []));
@@ -79,7 +79,7 @@ test.skip('a Journey pages, and its procedural movements are illustrated', async
 
     // Running heads mid-clause must not be typeset as titles.
     const promoted = await page.evaluate(() => {
-        const r = window.rise?.router?.views?.get('chamber-session')?.instance?.pageReader;
+        const r = window.__RISE_TEST__?.getView('chamber-session')?.pageReader;
         const items = r?.composition?.items || [];
         const bad = [];
         items.forEach((item, i) => {

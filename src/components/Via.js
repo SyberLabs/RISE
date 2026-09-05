@@ -36,6 +36,7 @@ export class Via {
   constructor(container, options = {}) {
     this.container = container;
     this.onNavigate = options.onNavigate || (() => {});
+    this.getAudioEngine = options.getAudioEngine || (() => null);
 
     this.autoAdvance = this._pref(ADVANCE_KEY) === 'auto';
     this.sound = SOUNDS.some(([id]) => id === this._pref(SOUND_KEY)) ? this._pref(SOUND_KEY) : 'none';
@@ -214,7 +215,7 @@ export class Via {
     // when the engine finishes initializing — never chant after exit
     const generation = (this._soundGeneration = (this._soundGeneration || 0) + 1);
     try {
-      const engine = window.rise?.audioEngine;
+      const engine = this.getAudioEngine();
       if (!engine) return;
       if (!engine.isInitialized) await engine.init?.();
       if (generation !== this._soundGeneration) return;
@@ -235,7 +236,7 @@ export class Via {
 
   _stopSound() {
     this._soundGeneration = (this._soundGeneration || 0) + 1;
-    const engine = window.rise?.audioEngine;
+    const engine = this.getAudioEngine();
     if (engine) engine.onChantTrackChange = null;
     const line = this.container.querySelector('.chant-credit');
     if (line) line.hidden = true;
@@ -259,7 +260,7 @@ export class Via {
   handleClick(event) {
     const target = event.target.closest('[data-action], [data-sound], [data-advance]');
     if (!target || !this.container.contains(target)) return;
-    window.rise?.audioEngine?.playClick?.();
+    this.getAudioEngine()?.playClick?.();
 
     if (target.dataset.sound) { this.sound = target.dataset.sound; this._setPref(SOUND_KEY, this.sound); this.renderStage(); return; }
     if (target.dataset.advance) {

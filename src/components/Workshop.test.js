@@ -68,6 +68,19 @@ function makeWorkshop(onCreateSession = vi.fn(), options = {}) {
 }
 
 describe('Workshop Composition Studio architecture', () => {
+    it('uses the injected audio provider for shell feedback', () => {
+        const audioEngine = { playClick: vi.fn() };
+        const { workshop, container } = makeWorkshop(vi.fn(), {
+            audioEngineProvider: () => audioEngine
+        });
+
+        container.querySelector('[data-action="back"]').click();
+
+        expect(audioEngine.playClick).toHaveBeenCalledOnce();
+        workshop.destroy();
+        container.remove();
+    });
+
     it('coordinates one asset library, score canvas, and contextual inspector', () => {
         const { workshop, container } = makeWorkshop();
 
@@ -1140,9 +1153,11 @@ describe('Workshop visual selection repair', () => {
         expect(browser._destroyed).toBe(true);
         expect(workshop.sessionData.sources).toHaveLength(1);
         expect(workshop.studioSurface).toBe('score');
-        await new Promise(resolve => setTimeout(resolve, 340));
-        expect(workshop.sourceBrowser).toBeNull();
-        expect(document.activeElement).toBe(container.querySelector('#visual-score-text'));
+        // Closing animates first, then restores focus on the next frame.
+        await vi.waitFor(() => {
+            expect(workshop.sourceBrowser).toBeNull();
+            expect(document.activeElement).toBe(container.querySelector('#visual-score-text'));
+        }, { timeout: 2000 });
 
         workshop.destroy();
         container.remove();
@@ -1479,7 +1494,8 @@ describe('Workshop atmosphere: exclusive beds', () => {
 
     it('the soundscape rides the blueprint into the Vault', async () => {
         localStorage.removeItem('rise_workshop_v1');
-        const { workshop, container } = makeWorkshop();
+        const onBlueprintsChanged = vi.fn();
+        const { workshop, container } = makeWorkshop(vi.fn(), { onBlueprintsChanged });
 
         chooseAudio(container, 'soundscape:aurora');
         workshop.sessionData.title = 'Aurora Session';
@@ -1488,6 +1504,7 @@ describe('Workshop atmosphere: exclusive beds', () => {
         const [saved] = JSON.parse(localStorage.getItem('rise_workshop_v1'));
         expect(saved.schema).toBe('rise.workshop-project.v1');
         expect(saved.defaults.audio.soundscape).toBe('aurora');
+        expect(onBlueprintsChanged).toHaveBeenCalledOnce();
 
         container.remove();
         localStorage.removeItem('rise_workshop_v1');

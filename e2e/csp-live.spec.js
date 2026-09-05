@@ -91,7 +91,7 @@ test('the voice actually loads on the deployed site', async ({ page }) => {
   await page.waitForTimeout(90000);
 
   const voice = await page.evaluate(() => {
-    const ch = window.rise?.router?.views?.get('chamber-session')?.instance;
+    const ch = window.__RISE_TEST__?.getView('chamber-session');
     return { hasVoice: !!ch?.voice, failed: ch?.voice?._failed, cached: ch?.voice?._cache?.size ?? 0 };
   });
   console.log('VOICE ' + JSON.stringify(voice));

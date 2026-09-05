@@ -76,6 +76,7 @@ export class Scriptorium {
     this.container = container;
     this.onNavigate = options.onNavigate || (() => {});
     this.onCreateSession = options.onCreateSession || null;
+    this.onSettingsTransaction = options.onSettingsTransaction || (() => {});
     /**
      * The sequence, which this room renders rather than performs.
      *
@@ -86,6 +87,7 @@ export class Scriptorium {
      * the descriptors as they are.
      */
     this.session = createScriptoriumSession({
+      getWpm: () => readerWpm(options.getSettings?.()),
       prepareAssets: (projectId) => this.durableMaterials(projectId)
     });
     this.materialBlobs = new Map();
@@ -127,6 +129,11 @@ export class Scriptorium {
     // click on Keep left two Vault drafts.
     this.render();
     void this.loadMaterials();
+  }
+
+  update() {
+    // Router reuses this room; estimates must reflect the current settings.
+    this.render();
   }
 
   /**
@@ -207,7 +214,7 @@ export class Scriptorium {
   }
 
   renderRundown(rundown, preview) {
-    const minutes = estimateRundownMinutes(rundown, readerWpm());
+    const minutes = estimateRundownMinutes(rundown, this.session.wpm);
     const lane = (title, rows, empty) => `
       <p class="scriptorium-note"><strong>${title}</strong></p>
       ${rows.length ? `<ul class="scriptorium-track-list">${rows.map(row => `
@@ -734,14 +741,7 @@ export class Scriptorium {
    */
   openOnReadableType() {
     const settings = { chamberFace: 'literary', fontSize: 'medium' };
-    const rise = globalThis.rise;
-    if (typeof rise?.handleSettingsTransaction === 'function') {
-      rise.handleSettingsTransaction(settings);
-      return;
-    }
-    if (typeof rise?.handleSettingsChange === 'function') {
-      for (const [key, value] of Object.entries(settings)) rise.handleSettingsChange(key, value);
-    }
+    this.onSettingsTransaction(settings);
   }
 
   /**

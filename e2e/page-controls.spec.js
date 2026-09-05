@@ -24,7 +24,7 @@ test('the control bar condenses in Page Mode and restores on return', async ({ p
   await expect(warn).toBeVisible({ timeout: 15000 });
   await warn.locator('#safety-accept').click();
   await expect(page.locator('#chamber-display')).toBeVisible({ timeout: 20000 });
-  await page.waitForFunction(() => window.rise?.router && !window.rise.router.transitioning);
+  await page.waitForFunction(() => window.__RISE_TEST__ && !window.__RISE_TEST__.getRouterState().transitioning);
   await page.waitForTimeout(1500);
 
   const shown = async () => page.evaluate(() => {

@@ -48,7 +48,7 @@ async function openThePage(page) {
     await expect(warn).toBeVisible({ timeout: 15000 });
     await warn.locator('#safety-accept').click();
     await expect(page.locator('#chamber-display')).toBeVisible({ timeout: 20000 });
-    await page.waitForFunction(() => window.rise?.router && !window.rise.router.transitioning);
+    await page.waitForFunction(() => window.__RISE_TEST__ && !window.__RISE_TEST__.getRouterState().transitioning);
     await page.waitForTimeout(1200);
     // The bar hides until the reader reaches for it; without this the
     // field intercepts the click.
@@ -111,8 +111,7 @@ test('no figure stands beside a heading, on any page', async ({ page }) => {
     for (let i = 0; i < total; i++) {
         if (i > 0) {
             await page.evaluate((index) => {
-                window.rise?.router?.views?.get('chamber-session')
-                    ?.instance?.pageReader?.goToPage(index);
+                window.__RISE_TEST__?.getView('chamber-session')?.pageReader?.goToPage(index);
             }, i);
             await page.waitForTimeout(900);
         }
@@ -131,7 +130,7 @@ test('an inline CHAPTER heading opens its page rather than closing the last one'
     await paginate(page);
 
     const where = await page.evaluate(() => {
-        const r = window.rise?.router?.views?.get('chamber-session')?.instance?.pageReader;
+        const r = window.__RISE_TEST__?.getView('chamber-session')?.pageReader;
         const pages = r?.pages || [];
         const hit = [];
         pages.forEach((p, i) => {

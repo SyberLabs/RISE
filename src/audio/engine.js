@@ -149,7 +149,8 @@ const MUSICAL_LAYERS = Object.freeze(['binaural', 'harmonics', 'noise', 'drone',
 const BED_LAYERS = Object.freeze(MUSICAL_LAYERS.filter(name => name !== 'swell'));
 
 export class AudioEngine {
-    constructor() {
+    constructor(options = {}) {
+        this.onUnavailable = options.onUnavailable || (() => {});
         this.context = null;
         this.masterGain = null;
         this.isInitialized = false;
@@ -313,9 +314,7 @@ export class AudioEngine {
                 this.context = null;
                 this.masterGain = null;
                 this.isInitialized = false;
-                if (window.rise && typeof window.rise.showToast === 'function') {
-                    window.rise.showToast('Audio initialization blocked. Interact to enable.', 4000);
-                }
+                this.onUnavailable('Audio initialization blocked. Interact to enable.', 4000);
                 throw error;
             }
         })();

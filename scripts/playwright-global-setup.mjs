@@ -8,6 +8,7 @@ import { buildContentPlane } from './lib/content-plane.mjs';
  */
 export default async function prepareCandidate() {
   process.env.VITE_RISE_ARCHIVE_REVIEW = '1';
+  process.env.VITE_RISE_TEST_API = '1';
   // The data plane is a build product, not a source file, and this setup
   // calls Vite's API rather than `npm run build` — so it has to be asked
   // for. Without it `dist` ships a shell with no corpus behind it and every

@@ -825,7 +825,7 @@ test('the threshold fits the phone in its widest state', async ({ page }) => {
     if (await accept.isVisible()) await accept.click();
     await expect(page.locator('#chamber-display')).toBeVisible({ timeout: 90000 });
     await page.waitForTimeout(2000);
-    await page.evaluate(() => window.rise.router.navigate('portal'));
+    await page.evaluate(() => window.__RISE_TEST__.navigate('portal'));
     await page.waitForTimeout(2000);
 
     const warm = await page.evaluate(() => ({

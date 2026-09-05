@@ -113,7 +113,7 @@ withdrawnJourneyTest('Begin enters the reading directly, bypassing the orbital',
   await enterReading(page);
 
   const state = await page.evaluate(() => {
-    const ch = window.rise?.router?.views?.get('chamber-session')?.instance;
+    const ch = window.__RISE_TEST__?.getView('chamber-session');
     const s = ch?.session;
     return {
       // The Chamber holds the session, which is the signal that matters:
@@ -207,7 +207,7 @@ withdrawnJourneyTest('the three reported faults are gone', async ({ page }) => {
     // The cortex is a module singleton, not on window. What is
     // observable from the page is the SESSION it was configured from
     // and whether a canvas has been painted.
-    const ch = window.rise?.router?.views?.get('chamber-session')?.instance;
+    const ch = window.__RISE_TEST__?.getView('chamber-session');
     const cortex = { config: ch?.session?.visualConfig?.interlocution || null };
     const canvas = document.querySelector('canvas.visual-canvas:not([hidden]), #klee-canvas');
     let painted = false;
@@ -260,7 +260,7 @@ withdrawnJourneyTest('the door stays open, and War asks nothing on the way in', 
 
   // The reading runs, and the door it came through is still a door.
   const after = await page.evaluate(() => {
-    const ch = window.rise?.router?.views?.get('chamber-session')?.instance;
+    const ch = window.__RISE_TEST__?.getView('chamber-session');
     const b = document.querySelector('[data-journey="journey-war"] .journey-begin');
     return {
       reading: !!ch?.session,

@@ -24,6 +24,7 @@ import { VisualNavigator } from './VisualNavigator.js';
 import { normalizeWordFill } from '../core/visual-selection.js';
 
 let nav = null;
+let settings = null;
 
 const click = el => el.dispatchEvent(new MouseEvent('click', { bubbles: true }));
 const node = id => nav.container.querySelector(`.vnav-node[data-id="${id}"]`);
@@ -31,22 +32,21 @@ const node = id => nav.container.querySelector(`.vnav-node[data-id="${id}"]`);
 function mount() {
   const container = document.createElement('div');
   document.body.appendChild(container);
-  window.rise = {
-    settings: { chamberFace: 'literary', fontSize: 'medium' },
-    handleSettingsChange(key, value) { this.settings[key] = value; }
-  };
+  settings = { chamberFace: 'literary', fontSize: 'medium' };
   nav = new VisualNavigator(container, {
     visualConfig: {
       visualMode: 'interlocution',
       interlocution: { presentation: 'continuous', sourceFamily: 'procedural', procedural: [] }
     },
     onChange: vi.fn(),
+    getSettings: () => settings,
+    onSettingChange: (key, value) => { settings[key] = value; },
     // The host applies a text-material transaction; without it Fit is
     // proposed and never lands, and every pair naming it measures nothing.
     // This is what ChamberOrbital.applyTextMaterialTransaction does with the
     // settings half.
-    onTextMaterialTransaction: ({ settings = {} }) => {
-      Object.assign(window.rise.settings, settings);
+    onTextMaterialTransaction: ({ settings: patch = {} }) => {
+      Object.assign(settings, patch);
     }
   });
   return nav;
@@ -56,7 +56,7 @@ function unmount() {
   nav?.destroy();
   nav?.container.remove();
   nav = null;
-  delete window.rise;
+  settings = null;
 }
 
 /**
@@ -141,8 +141,8 @@ function snapshot() {
     enabled: [...nav.selection.enabled].sort(),
     wordFill: normalizeWordFill(nav.selection.wordFill),
     glass: nav.glassOn(),
-    fontSize: window.rise.settings.fontSize,
-    chamberFace: window.rise.settings.chamberFace
+    fontSize: settings.fontSize,
+    chamberFace: settings.chamberFace
   });
 }
 

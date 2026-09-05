@@ -243,7 +243,7 @@ describe('Pinned collections', () => {
 
 describe('App forwards the authored visual fields to the cortex', () => {
   it('forwards the authored cortex config in updateConfig', async () => {
-    // The compiler preserves these fields, but app.js builds the cortex
+    // The compiler preserves these fields, but the Chamber session factory builds the cortex
     // config by naming keys explicitly — so a field can survive the
     // whole pipeline and still be dropped on the last hop. That is the
     // bug that made Haiti draw a Union Jack, and no amount of module
@@ -254,7 +254,7 @@ describe('App forwards the authored visual fields to the cortex', () => {
     // to the hand-named block, so the guard follows the block.
     const { readFileSync } = await import('node:fs');
     const { resolve } = await import('node:path');
-    const source = readFileSync(resolve('src/app.js'), 'utf8');
+    const source = readFileSync(resolve('src/app/chamber-session-factory.js'), 'utf8');
     // Anchor on the interlocution config block, not the first
     // updateConfig call (several disable the cortex outright).
     const anchor = source.indexOf('harmonographClimate: interlocution');
@@ -264,7 +264,7 @@ describe('App forwards the authored visual fields to the cortex', () => {
       'harmonographClimate', 'kleePreset', 'renderLanguage',
       'presentation', 'galleryCadence', 'activeTypes'
     ]) {
-      expect(block, `app.js must forward ${field} to the cortex`).toContain(field);
+      expect(block, `the Chamber session factory must forward ${field} to the cortex`).toContain(field);
     }
   });
 });

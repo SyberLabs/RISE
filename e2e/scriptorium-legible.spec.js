@@ -61,12 +61,12 @@ test('a reading opens readable however the reader left the Chamber', async ({ pa
         const cs = getComputedStyle(atom);
         return {
             word: (atom.textContent || '').trim(),
-            face: window.rise?.settings?.chamberFace,
-            size: window.rise?.settings?.fontSize,
+            face: window.__RISE_TEST__?.getSettings()?.chamberFace,
+            size: window.__RISE_TEST__?.getSettings()?.fontSize,
             fill: cs.webkitTextFillColor || cs.color,
             masked: atom.classList.contains('is-mask'),
             glass: atom.classList.contains('glass-tile'),
-            streamGlass: window.rise?.currentSession?.visualConfig?.interlocution?.streamGlass
+            streamGlass: window.__RISE_TEST__?.getCurrentSession()?.visualConfig?.interlocution?.streamGlass
         };
     });
     // eslint-disable-next-line no-console

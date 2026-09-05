@@ -24,7 +24,7 @@ function fakePlayer(initialState = 'playing') {
   return player;
 }
 
-function mount(player = fakePlayer(), sessionExtra = {}) {
+function mount(player = fakePlayer(), sessionExtra = {}, options = {}) {
   const container = document.createElement('div');
   document.body.appendChild(container);
   const chamber = new Chamber(container, {
@@ -37,18 +37,28 @@ function mount(player = fakePlayer(), sessionExtra = {}) {
       ...sessionExtra
     },
     player,
-    autoStart: false
+    autoStart: false,
+    ...options
   });
   return { chamber, container, player };
 }
 
 afterEach(() => {
-  delete globalThis.rise;
   document.body.replaceChildren();
   vi.restoreAllMocks();
 });
 
 describe('Chamber Settings door', () => {
+  it('uses the injected audio engine for chamber feedback', () => {
+    const audioEngine = { playClick: vi.fn() };
+    const { chamber, container } = mount(fakePlayer(), {}, { audioEngine });
+
+    container.querySelector('#chamber-back').click();
+
+    expect(audioEngine.playClick).toHaveBeenCalledOnce();
+    chamber.destroy();
+  });
+
   it('places one Settings text control on the existing bar before Exit', () => {
     const { chamber, container } = mount();
     const bar = container.querySelector('.chamber-controls');
@@ -117,13 +127,11 @@ describe('Chamber Settings door', () => {
   });
 
   it('applies Font Size on the paused frame and rebuilds the mask', async () => {
-    const { chamber, container, player } = mount();
-    globalThis.rise = {
-      settings: { chamberFace: 'literary', fontSize: 'medium' },
-      handleSettingsChange(key, value) {
-        this.settings[key] = value;
-      }
-    };
+    const settings = { chamberFace: 'literary', fontSize: 'medium' };
+    const { chamber, container, player } = mount(fakePlayer(), {}, {
+      getSettings: () => settings,
+      onSettingsChange: (key, value) => { settings[key] = value; }
+    });
     chamber.session.chunkMode = 'word';
     chamber.applyChamberTypeSize();
     const sync = vi.spyOn(chamber, 'syncFillGlyphMask');
@@ -133,7 +141,7 @@ describe('Chamber Settings door', () => {
     expect(container.querySelector('#font-size')).toBeNull();
 
     container.querySelector('input[name="font-size"][value="large"]').click();
-    expect(globalThis.rise.settings.fontSize).toBe('large');
+    expect(settings.fontSize).toBe('large');
     expect(container.querySelector('#atom-display').dataset.fontSize).toBe('large');
     expect(sync).toHaveBeenCalled();
 
@@ -147,16 +155,16 @@ describe('Chamber Settings door', () => {
   });
 
   it('removes a Thick Fit material mask when Settings changes Fit to Medium', async () => {
-    globalThis.rise = {
-      settings: { chamberFace: 'thick', fontSize: 'fit' },
-      handleSettingsChange(key, value) { this.settings[key] = value; }
-    };
+    const settings = { chamberFace: 'thick', fontSize: 'fit' };
     const { chamber, container } = mount(fakePlayer(), {
       chunkMode: 'word',
       visualConfig: {
         visualMode: 'interlocution',
         interlocution: { presentation: 'continuous', wordFill: { mode: 'same' } }
       }
+    }, {
+      getSettings: () => settings,
+      onSettingsChange: (key, value) => { settings[key] = value; }
     });
     expect(container.querySelector('#atom-display').classList.contains('is-mask')).toBe(true);
 
@@ -167,9 +175,7 @@ describe('Chamber Settings door', () => {
   });
 
   it('closes back to the live session without resuming or navigating to Portal', async () => {
-    const onNavigate = vi.fn();
     const { chamber, container, player } = mount();
-    globalThis.rise = { settings: {}, handleNavigate: onNavigate };
 
     await chamber.openSettings();
     expect(container.querySelector('#chamber-settings-overlay .settings')).toBeTruthy();
@@ -180,7 +186,6 @@ describe('Chamber Settings door', () => {
     expect(container.querySelector('#chamber-settings-overlay .settings')).toBeFalsy();
     expect(player.play).not.toHaveBeenCalled();
     expect(player.state).toBe('paused');
-    expect(onNavigate).not.toHaveBeenCalled();
     expect(container.querySelector('#chamber-field')).toBeTruthy();
     expect(container.querySelector('#atom-display')).toBeTruthy();
 
@@ -254,15 +259,15 @@ describe('Chamber Settings door', () => {
   });
 
   it('does not show Accent fail when Default clears data-accent', () => {
-    const { chamber, container } = mount();
+    const { chamber, container } = mount(fakePlayer(), {}, {
+      getSettings: () => ({ chamberAccent: 'default' })
+    });
     const fail = document.createElement('p');
     fail.id = 'chamber-accent-fail';
     fail.hidden = true;
     fail.textContent = 'Accent did not take.';
     container.appendChild(fail);
     document.documentElement.dataset.accent = 'cobalt';
-    globalThis.rise = { settings: { chamberAccent: 'default' } };
-
     chamber.applyChamberAccent();
     chamber._reportAccentApply('default');
 

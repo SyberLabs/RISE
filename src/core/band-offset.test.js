@@ -47,22 +47,15 @@ describe('the preference is read and written like the others', () => {
         expect(readBandOffsetSetting(undefined)).toBe(0);
     });
 
-    it('writes through the app settings path when there is one', () => {
+    it('writes through an explicit settings callback', () => {
         const calls = [];
-        const rise = { settings: {}, handleSettingsChange: (k, v) => calls.push([k, v]) };
-        expect(writeBandOffsetSetting(0.3, rise)).toBe(0.3);
+        expect(writeBandOffsetSetting(0.3, (key, value) => calls.push([key, value]))).toBe(0.3);
         expect(calls).toEqual([['bandOffset', 0.3]]);
     });
 
-    it('falls back to the settings object when no handler exists', () => {
-        const rise = { settings: {} };
-        writeBandOffsetSetting(-0.2, rise);
-        expect(rise.settings.bandOffset).toBe(-0.2);
-    });
-
     it('never persists a value the reader could not have reached', () => {
-        const rise = { settings: {} };
-        writeBandOffsetSetting(12, rise);
-        expect(rise.settings.bandOffset).toBe(BAND_OFFSET_LIMIT);
+        const calls = [];
+        writeBandOffsetSetting(12, (key, value) => calls.push([key, value]));
+        expect(calls).toEqual([['bandOffset', BAND_OFFSET_LIMIT]]);
     });
 });

@@ -91,13 +91,13 @@ test('choosing a chapter reads that chapter, not the book', async ({ page }) => 
   // Navigation into the orbital is async; the sheet closing is not the
   // text arriving.
   await page.waitForFunction(
-    () => !!window.rise?.router?.views?.get('chamber')?.instance?.config?.text,
+    () => !!window.__RISE_TEST__?.getView('chamber')?.config?.text,
     null, { timeout: 15000 });
 
   const loaded = await page.evaluate(() => {
     // The chosen text lands on the orbital's config, which is the
     // state Begin actually reads.
-    const o = window.rise?.router?.views?.get('chamber')?.instance;
+    const o = window.__RISE_TEST__?.getView('chamber');
     return o?.config?.text ? {
       source: o.config.textSource,
       words: o.config.text.split(/\s+/).filter(Boolean).length
@@ -136,12 +136,12 @@ test('a short work goes straight to the Chamber, with no contents to open', asyn
   await openLibrary(page);
   await page.locator('[data-action="select-text"][data-id="oedipus-rex"]').first().click();
   await page.waitForFunction(
-    () => !!window.rise?.router?.views?.get('chamber')?.instance?.config?.text,
+    () => !!window.__RISE_TEST__?.getView('chamber')?.config?.text,
     null, { timeout: 20000 });
   expect(await page.locator('.toc-sheet').count()).toBe(0);
 
   const loaded = await page.evaluate(() => {
-    const o = window.rise?.router?.views?.get('chamber')?.instance;
+    const o = window.__RISE_TEST__?.getView('chamber');
     return o?.config?.textSource || null;
   });
   console.log('WHOLE ' + JSON.stringify(loaded));

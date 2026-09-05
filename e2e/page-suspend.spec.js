@@ -35,7 +35,7 @@ test('opening the Page suspends the Gallery; leaving restores it', async ({ page
   await warn.waitFor({ state: 'visible', timeout: 4000 }).catch(() => {});
   if (await warn.isVisible()) await warn.locator('#safety-accept').click();
   await expect(page.locator('#chamber-display')).toBeVisible({ timeout: 20000 });
-  await page.waitForFunction(() => window.rise?.router && !window.rise.router.transitioning);
+  await page.waitForFunction(() => window.__RISE_TEST__ && !window.__RISE_TEST__.getRouterState().transitioning);
   await page.waitForTimeout(6000);   // let the Gallery mount + reveal
 
   const before = await page.evaluate(() => ({
@@ -69,7 +69,7 @@ test('a spatial launch runs no temporal visual machinery', async ({ page }) => {
   await boot(page);
   // choose the page projection directly on the orbital config
   await page.evaluate(() => {
-    const inst = window.rise.router.views.get('chamber').instance;
+    const inst = window.__RISE_TEST__.getView('chamber');
     inst.config.projection = 'page';
   });
   await page.locator('#begin-btn').click();
@@ -80,11 +80,11 @@ test('a spatial launch runs no temporal visual machinery', async ({ page }) => {
   await page.waitForTimeout(2500);
 
   const state = await page.evaluate(() => {
-    const ch = window.rise.router.views.get('chamber-session').instance;
+    const ch = window.__RISE_TEST__.getView('chamber-session');
     return {
-      projection: window.rise.currentSession?.projection,
-      visualMode: window.rise.currentSession?.visualConfig?.visualMode,
-      suspended: window.rise.currentSession?.visualConfig?.suspendedVisualMode,
+      projection: window.__RISE_TEST__.getCurrentSession()?.projection,
+      visualMode: window.__RISE_TEST__.getCurrentSession()?.visualConfig?.visualMode,
+      suspended: window.__RISE_TEST__.getCurrentSession()?.visualConfig?.suspendedVisualMode,
       galleryLayers: document.querySelectorAll('.continuous-field-layer').length,
       hasRhythmic: ch?.hasRhythmicVisuals,
       playerState: ch?.player?.state
@@ -107,15 +107,15 @@ test('a focal survives a direct Page launch and renders above the reading', asyn
     }
   });
   await page.evaluate(() => {
-    window.rise.router.views.get('chamber').instance.config.projection = 'page';
+    window.__RISE_TEST__.getView('chamber').config.projection = 'page';
   });
   await page.locator('#begin-btn').click();
   await expect(page.locator('.page-article')).toBeVisible({ timeout: 20000 });
   await expect(page.locator('.page-masthead .page-focal')).toHaveText('✦');
 
   const state = await page.evaluate(() => ({
-    visualMode: window.rise.currentSession?.visualConfig?.visualMode,
-    suspended: window.rise.currentSession?.visualConfig?.suspendedVisualMode,
+    visualMode: window.__RISE_TEST__.getCurrentSession()?.visualConfig?.visualMode,
+    suspended: window.__RISE_TEST__.getCurrentSession()?.visualConfig?.suspendedVisualMode,
     hiddenFocal: document.querySelectorAll('#chamber-field .chamber-focal').length
   }));
   expect(state.visualMode).toBe('focals');

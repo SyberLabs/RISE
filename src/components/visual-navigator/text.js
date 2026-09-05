@@ -28,9 +28,10 @@ import {
 
 export const textMethods = {
   textMaterialSettings() {
+    const settings = this.getSettings();
     return {
-      face: resolveChamberStreamFace(globalThis.rise?.settings?.chamberFace),
-      fontSize: resolveFontSize(globalThis.rise?.settings?.fontSize)
+      face: resolveChamberStreamFace(settings?.chamberFace),
+      fontSize: resolveFontSize(settings?.fontSize)
     };
   },
 

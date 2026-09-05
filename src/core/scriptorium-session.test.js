@@ -131,8 +131,6 @@ describe('the sequence, with no room around it', () => {
 });
 
 describe('the length and the pace, in one place', () => {
-  afterEach(() => { delete globalThis.rise; });
-
   it('offers no length the gate would refuse', () => {
     // The property the deleted `max` was protecting: the dial cannot reach a
     // budget the gate would then refuse. Asserted over every rung, because
@@ -175,30 +173,35 @@ describe('the length and the pace, in one place', () => {
   it('reads the setting the app actually stores', () => {
     // The key is `defaultWpm`. A room reading `wpm` quoted every reader the
     // fallback, and told one who had set 220 an hour for an hour and forty.
-    globalThis.rise = { settings: { wpm: 220 } };
-    expect(readerWpm()).toBe(200);
-    globalThis.rise = { settings: { defaultWpm: 220 } };
-    expect(readerWpm()).toBe(220);
+    expect(readerWpm({ wpm: 220 })).toBe(200);
+    expect(readerWpm({ defaultWpm: 220 })).toBe(220);
     // Clamped to READING_PACE, so the figure shown is the figure the reading
     // opens at. Derived, not restated: a second literal here would let the
     // room's ceiling and the engine's drift apart and still pass.
-    globalThis.rise = { settings: { defaultWpm: 9_000 } };
-    expect(readerWpm()).toBe(READING_PACE.max);
+    expect(readerWpm({ defaultWpm: 9_000 })).toBe(READING_PACE.max);
     // A pace the app accepts is a pace the room quotes. This was 100 — the
     // slider's floor, quoted at a reader who had chosen 60.
-    globalThis.rise = { settings: { defaultWpm: 60 } };
-    expect(readerWpm()).toBe(60);
+    expect(readerWpm({ defaultWpm: 60 })).toBe(60);
   });
 
   it('quotes no pace but the one it was handed', () => {
     // `Number(null)` is 0 and 0 is finite, so a surface passing no override
     // was clamped to the window's floor and quoted 100.
-    const session = createScriptoriumSession();
-    globalThis.rise = { settings: { defaultWpm: 220 } };
+    const session = createScriptoriumSession({ wpm: readerWpm({ defaultWpm: 220 }) });
     expect(session.wpm).toBe(220);
     expect(createScriptoriumSession({ wpm: 150 }).wpm).toBe(150);
     expect(describeLength(20_000, 220)).toContain('220 wpm');
     expect(describeLength(20_000, 220)).toContain('1h 31m');
+  });
+
+  it('quotes live reader pace while preserving explicit CLI overrides', () => {
+    let pace = 220;
+    const live = createScriptoriumSession({ getWpm: () => pace });
+    const fixed = createScriptoriumSession({ wpm: 150, getWpm: () => pace });
+    expect(live.describeLength()).toContain('220 wpm');
+    pace = 180;
+    expect(live.describeLength()).toContain('180 wpm');
+    expect(fixed.describeLength()).toContain('150 wpm');
   });
 });
 

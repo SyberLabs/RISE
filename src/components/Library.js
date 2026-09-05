@@ -76,6 +76,7 @@ export class Library {
     this.container = container;
     this.onNavigate = options.onNavigate || (() => { });
     this.onSelectText = options.onSelectText || (() => { });
+    this.getAudioEngine = options.getAudioEngine || (() => null);
 
     this.currentSection = 'archive'; // archive, sequences, personal
     // A SHELF IS ALWAYS CHOSEN. There are two, and "All" over two shelves
@@ -496,9 +497,7 @@ export class Library {
   attachEvents() {
     // Back button
     this.container.querySelector('[data-action="back"]')?.addEventListener('click', () => {
-      if (window.rise?.audioEngine) {
-        window.rise.audioEngine.playClick();
-      }
+      this.getAudioEngine()?.playClick();
       this.onNavigate('portal');
     });
 
@@ -506,9 +505,7 @@ export class Library {
     const navItems = this.container.querySelectorAll('[data-section]');
     navItems.forEach(item => {
       item.addEventListener('click', () => {
-        if (window.rise?.audioEngine) {
-          window.rise.audioEngine.playHiss();
-        }
+        this.getAudioEngine()?.playHiss();
         this.currentSection = item.dataset.section;
         this.updateContent();
         this.updateActiveNav();
@@ -517,14 +514,12 @@ export class Library {
     });
 
     // Category filters (delegated or direct)
-    this.container.addEventListener('click', (e) => {
+    this.container.querySelector('#library-content')?.addEventListener('click', (e) => {
       const filterBtn = e.target.closest('.filter-btn');
       if (filterBtn) {
         // Only trigger update if it's a new filter
         if (this.currentFilter !== filterBtn.dataset.filter) {
-          if (window.rise?.audioEngine) {
-            window.rise.audioEngine.playHiss();
-          }
+          this.getAudioEngine()?.playHiss();
           this.currentFilter = filterBtn.dataset.filter;
           this.updateContent();
 
@@ -542,9 +537,7 @@ export class Library {
       const target = e.target.closest('[data-action]');
       if (!target) return;
 
-      if (window.rise?.audioEngine) {
-        window.rise.audioEngine.playClick();
-      }
+      this.getAudioEngine()?.playClick();
 
       const action = target.dataset.action;
       const id = target.dataset.id;
@@ -887,7 +880,7 @@ export class Library {
       const el = e.target.closest('[data-toc]');
       if (!el) return;
       const what = el.dataset.toc;
-      window.rise?.audioEngine?.playClick?.();
+      this.getAudioEngine()?.playClick?.();
 
       if (what === 'close') return this.closeContents();
       if (what === 'whole') return this.readWhole();

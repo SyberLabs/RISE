@@ -31,7 +31,7 @@ export function bandTravelPx(field, band) {
     return Math.max(0, (fieldHeight - bandHeight) / 2);
 }
 
-export function readBandOffsetSetting(settings = globalThis.rise?.settings) {
+export function readBandOffsetSetting(settings = {}) {
     return clampBandFraction(settings?.[BAND_OFFSET_SETTING] ?? 0);
 }
 
@@ -39,12 +39,8 @@ export function readBandOffsetSetting(settings = globalThis.rise?.settings) {
  * Persist through the app's own settings path when there is one, so the
  * value is validated and written exactly like every other preference.
  */
-export function writeBandOffsetSetting(fraction, rise = globalThis.rise) {
+export function writeBandOffsetSetting(fraction, onSettingsChange = () => {}) {
     const value = clampBandFraction(fraction);
-    if (typeof rise?.handleSettingsChange === 'function') {
-        rise.handleSettingsChange(BAND_OFFSET_SETTING, value);
-    } else if (rise?.settings) {
-        rise.settings[BAND_OFFSET_SETTING] = value;
-    }
+    onSettingsChange(BAND_OFFSET_SETTING, value);
     return value;
 }

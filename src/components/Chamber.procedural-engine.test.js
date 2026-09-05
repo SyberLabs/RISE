@@ -10,7 +10,6 @@ import {
 function makeChamber(sessionExtra = {}, settings = {}) {
     const container = document.createElement('div');
     document.body.appendChild(container);
-    globalThis.rise = { settings };
     const session = {
         title: 'Procedural engines',
         atoms: [{ content: 'hello', duration: 500 }],
@@ -29,7 +28,12 @@ function makeChamber(sessionExtra = {}, settings = {}) {
         },
         ...sessionExtra
     };
-    const chamber = new Chamber(container, { session, player: null, autoStart: false });
+    const chamber = new Chamber(container, {
+        session,
+        player: null,
+        autoStart: false,
+        getSettings: () => settings
+    });
     return { chamber, container };
 }
 
@@ -52,7 +56,6 @@ function releaseGallery() {
 describe('Chamber procedural engine hook', () => {
     afterEach(() => {
         releaseGallery();
-        delete globalThis.rise;
         document.body.replaceChildren();
         vi.restoreAllMocks();
     });

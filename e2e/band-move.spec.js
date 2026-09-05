@@ -24,7 +24,7 @@ async function reading(page, width = 390, height = 844) {
     await warn.waitFor({ state: 'visible', timeout: 4000 }).catch(() => {});
     if (await warn.isVisible()) await warn.locator('#safety-accept').click();
     await expect(page.locator('#chamber-display')).toBeVisible({ timeout: 20_000 });
-    await page.waitForFunction(() => window.rise?.router && !window.rise.router.transitioning);
+    await page.waitForFunction(() => window.__RISE_TEST__ && !window.__RISE_TEST__.getRouterState().transitioning);
     await page.waitForTimeout(1200);
 }
 

@@ -1,6 +1,16 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { readFileSync, readdirSync } from 'node:fs';
+import { extname, join, relative } from 'node:path';
 import App from './app.js';
 import { visualCortex } from './visuals/visual-cortex.js';
+
+function javascriptFiles(root) {
+  return readdirSync(root, { withFileTypes: true }).flatMap(entry => {
+    const path = join(root, entry.name);
+    if (entry.isDirectory()) return javascriptFiles(path);
+    return extname(entry.name) === '.js' && !entry.name.endsWith('.test.js') ? [path] : [];
+  });
+}
 
 describe('App safety orchestration', () => {
   beforeEach(() => {
@@ -366,6 +376,28 @@ describe('App safety orchestration', () => {
     expect(returning.settings.chamberAccent).toBe('slate');
     returning.applyAccessibilitySettings();
     expect(document.documentElement.dataset.accent).toBe('slate');
+  });
+});
+
+describe('application boundary guards', () => {
+  const sourceRoot = join(process.cwd(), 'src');
+
+  it('forbids the production application service locator recursively', () => {
+    const offenders = javascriptFiles(sourceRoot)
+      .filter(path => /(?:window|globalThis)\.rise/u.test(readFileSync(path, 'utf8')))
+      .map(path => relative(sourceRoot, path));
+
+    expect(offenders).toEqual([]);
+  });
+
+  it('confines the browser test bridge to bootstrap and its installer', () => {
+    const allowed = new Set(['app.js', join('app', 'test-bridge.js')]);
+    const offenders = javascriptFiles(sourceRoot)
+      .filter(path => readFileSync(path, 'utf8').includes('__RISE_TEST__'))
+      .map(path => relative(sourceRoot, path))
+      .filter(path => !allowed.has(path));
+
+    expect(offenders).toEqual([]);
   });
 });
 

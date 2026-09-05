@@ -23,7 +23,7 @@ const MP4 = {
 function makeChamber(sessionExtra = {}, settings = {}) {
     const container = document.createElement('div');
     document.body.appendChild(container);
-    globalThis.rise = { settings: { chamberFace: 'thick', fontSize: 'fit', ...settings } };
+    const currentSettings = { chamberFace: 'thick', fontSize: 'fit', ...settings };
     const session = {
         title: 'Mask',
         atoms: [{ content: 'hello', duration: 500 }],
@@ -32,8 +32,13 @@ function makeChamber(sessionExtra = {}, settings = {}) {
         visualConfig: { visualMode: 'off' },
         ...sessionExtra
     };
-    const chamber = new Chamber(container, { session, player: null, autoStart: false });
-    return { chamber, container };
+    const chamber = new Chamber(container, {
+        session,
+        player: null,
+        autoStart: false,
+        getSettings: () => currentSettings
+    });
+    return { chamber, container, settings: currentSettings };
 }
 
 function fillHost(container) {
@@ -154,12 +159,11 @@ function releaseGalleryField() {
 
 describe('Chamber Mask', () => {
     afterEach(() => {
-        delete globalThis.rise;
         document.body.replaceChildren();
     });
 
     it('does not add is-mask when Mask is on and the session is phrase', () => {
-        const { chamber, container } = makeChamber(
+        const { chamber, container, settings } = makeChamber(
             { chunkMode: 'phrase' },
             { chamberMask: true }
         );
@@ -301,7 +305,6 @@ describe('Chamber Gallery-in-the-word projection (FM-RISE-28)', () => {
         restoreEnv?.();
         vi.useRealTimers();
         releaseGalleryField();
-        delete globalThis.rise;
         document.body.replaceChildren();
         vi.restoreAllMocks();
     });
@@ -728,7 +731,7 @@ describe('Chamber Gallery-in-the-word projection (FM-RISE-28)', () => {
     it('destroys the projection when Mask is turned off', async () => {
         const session = wordGallerySession('continuous');
         delete session.visualConfig.interlocution.wordFill;
-        const { chamber, container } = makeChamber(
+        const { chamber, container, settings } = makeChamber(
             session,
             { chamberMask: true }
         );
@@ -737,7 +740,7 @@ describe('Chamber Gallery-in-the-word projection (FM-RISE-28)', () => {
         await flushFillMask();
         expect(fillHost(container)).toBeTruthy();
 
-        globalThis.rise.settings.chamberMask = false;
+        settings.chamberMask = false;
         chamber.session.visualConfig.interlocution.presentation = 'continuous';
         chamber.applyChamberMask();
         await flushFillMask();
@@ -761,7 +764,6 @@ describe('Chamber mask ground plate (FM-RISE-47)', () => {
     afterEach(() => {
         restoreEnv?.();
         releaseGalleryField();
-        delete globalThis.rise;
         document.body.replaceChildren();
         vi.restoreAllMocks();
     });
@@ -990,7 +992,6 @@ describe('Chamber semantic Fit compositor', () => {
     afterEach(() => {
         restoreEnv?.();
         releaseGalleryField();
-        delete globalThis.rise;
         document.body.replaceChildren();
         vi.restoreAllMocks();
     });

@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import { Chamber } from './Chamber.js';
 
-function makeChamber() {
+function makeChamber(settings = {}) {
     const container = document.createElement('div');
     document.body.appendChild(container);
     const session = {
@@ -11,37 +11,38 @@ function makeChamber() {
         atomCount: 1,
         visualConfig: { visualMode: 'off' }
     };
-    const chamber = new Chamber(container, { session, player: null, autoStart: false });
-    return { chamber, container };
+    const chamber = new Chamber(container, {
+        session,
+        player: null,
+        autoStart: false,
+        getSettings: () => settings
+    });
+    return { chamber, container, settings };
 }
 
 describe('Chamber stream face', () => {
     afterEach(() => {
-        delete globalThis.rise;
         document.body.replaceChildren();
     });
 
     it('applies the selected allowlisted face to the live atom display', () => {
-        globalThis.rise = { settings: { chamberFace: 'jp' } };
-        const { chamber, container } = makeChamber();
+        const { chamber, container } = makeChamber({ chamberFace: 'jp' });
         const el = container.querySelector('#atom-display');
         expect(el.dataset.chamberFace).toBe('jp');
         chamber.destroy();
     });
 
     it('falls back to literary when the stored face is unknown', () => {
-        globalThis.rise = { settings: { chamberFace: 'papyrus' } };
-        const { chamber, container } = makeChamber();
+        const { chamber, container } = makeChamber({ chamberFace: 'papyrus' });
         expect(container.querySelector('#atom-display').dataset.chamberFace).toBe('literary');
         chamber.destroy();
     });
 
     it('re-reads the latest persisted chamberFace when the session starts', () => {
-        globalThis.rise = { settings: { chamberFace: 'literary' } };
-        const { chamber, container } = makeChamber();
+        const { chamber, container, settings } = makeChamber({ chamberFace: 'literary' });
         expect(container.querySelector('#atom-display').dataset.chamberFace).toBe('literary');
 
-        globalThis.rise.settings.chamberFace = 'thick';
+        settings.chamberFace = 'thick';
         chamber.beginSession();
         expect(container.querySelector('#atom-display').dataset.chamberFace).toBe('thick');
         chamber.destroy();

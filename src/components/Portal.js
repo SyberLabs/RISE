@@ -17,6 +17,8 @@ export class Portal {
     this.container = container;
     this.onNavigate = options.onNavigate || (() => { });
     this.onQuickAccess = options.onQuickAccess || (() => { });
+    this.getAudioEngine = options.getAudioEngine || (() => null);
+    this.getCurrentSession = options.getCurrentSession || (() => null);
     this._active = false;
     this.boundKeyboardHandler = this.handleKeyboard.bind(this);
 
@@ -37,11 +39,6 @@ export class Portal {
    * Show the Continue strip only when there is genuinely something to
    * continue (Premium_Mobile_Chamber P6).
    *
-   * Read off `window.rise` rather than plumbed through a constructor
-   * option on purpose: the App already publishes itself there, and the
-   * Portal asking a question it can answer for itself is cheaper than
-   * a new prop every caller would have to remember to pass.
-   *
    * The session is IN MEMORY ONLY. A cold load has none, so a first
    * visit shows no strip — which is correct, because a first visit has
    * nothing to resume, and is why the sigil sends that reader to the
@@ -52,7 +49,7 @@ export class Portal {
     if (!strip) return;
 
     // Session label: title || name (Chamber uses title; compiled journeys use name).
-    const session = window.rise?.currentSession;
+    const session = this.getCurrentSession();
     const named = session?.title || session?.name;
     const title = typeof named === 'string' ? named.trim() : '';
     if (!title) {
@@ -225,9 +222,7 @@ export class Portal {
     const navItems = this.container.querySelectorAll('[data-nav]');
     navItems.forEach(item => {
       item.addEventListener('click', () => {
-        if (window.rise?.audioEngine) {
-          window.rise.audioEngine.playClick();
-        }
+        this.getAudioEngine()?.playClick();
         const destination = item.dataset.nav;
         this.onNavigate(destination);
       });
@@ -237,9 +232,7 @@ export class Portal {
     const sigil = this.container.querySelector('button.portal-sigil-vessel');
     if (sigil) {
       sigil.addEventListener('click', () => {
-        if (window.rise?.audioEngine) {
-          window.rise.audioEngine.playClick();
-        }
+        this.getAudioEngine()?.playClick();
         this.onQuickAccess();
       });
     }
@@ -250,7 +243,7 @@ export class Portal {
     const cont = this.container.querySelector('.portal-continue');
     if (cont) {
       cont.addEventListener('click', () => {
-        window.rise?.audioEngine?.playClick();
+        this.getAudioEngine()?.playClick();
         this.onQuickAccess();
       });
     }
@@ -259,9 +252,7 @@ export class Portal {
     const utilLinks = this.container.querySelectorAll('[data-action]');
     utilLinks.forEach(link => {
       link.addEventListener('click', () => {
-        if (window.rise?.audioEngine) {
-          window.rise.audioEngine.playClick();
-        }
+        this.getAudioEngine()?.playClick();
         const action = link.dataset.action;
         if (action === 'guide') {
           // Trigger Guide component (will be implemented in app.js listener or here)

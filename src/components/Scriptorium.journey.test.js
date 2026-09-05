@@ -80,19 +80,18 @@ describe('one reader, one path, real Library', () => {
         global.URL.createObjectURL = vi.fn(file => `blob:staged/${file?.name || 'x'}`);
         global.URL.revokeObjectURL = vi.fn();
         stubWorkshopMedia();
-        globalThis.rise = { settings: { defaultWpm: 220 } };
         created = [];
         container = document.createElement('div');
         room = new Scriptorium(container, {
             onNavigate: vi.fn(),
-            onCreateSession: vi.fn(project => { created.push(project); })
+            onCreateSession: vi.fn(project => { created.push(project); }),
+            getSettings: () => ({ defaultWpm: 220 })
         });
         room.mount();
     });
 
     afterEach(() => {
         vi.restoreAllMocks();
-        delete globalThis.rise;
     });
 
     it('carries an image and two extents from upload to compiled atoms', async () => {

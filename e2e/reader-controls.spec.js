@@ -17,6 +17,10 @@ async function openNavigator(page) {
     }, { gate: GATE, seed: SEED });
     await page.goto('/');
     await page.locator('[data-nav="chamber"]').first().click();
+    await page.waitForFunction(() => {
+        const state = window.__RISE_TEST__?.getRouterState();
+        return state?.currentView === 'chamber' && state.transitioning === false;
+    });
     await expect(page.locator('[data-orbit="visual"]')).toBeVisible({ timeout: 20_000 });
     await page.locator('[data-orbit="visual"]').click();
     await expect(page.locator('.vnav')).toBeVisible({ timeout: 10_000 });
@@ -75,7 +79,7 @@ test('the setting survives leaving the panel and coming back', async ({ page }) 
 
     // Out of the panel and back in: the same answer, from the same key.
     await page.keyboard.press('Escape');
-    await page.waitForTimeout(400);
+    await expect(page.locator('#modal-visual')).toBeHidden();
     await page.locator('[data-orbit="visual"]').click();
     await expect(page.locator('.vnav')).toBeVisible({ timeout: 10_000 });
 

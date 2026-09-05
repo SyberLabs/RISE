@@ -166,6 +166,7 @@ describe('the Scriptorium as the reader meets it', () => {
     let room;
     let onNavigate;
     let onCreateSession;
+    let onSettingsTransaction;
     let created;
 
     const paste = (text) => {
@@ -210,22 +211,34 @@ describe('the Scriptorium as the reader meets it', () => {
         global.URL.createObjectURL = vi.fn(() => `blob:scriptorium/${Math.random()}`);
         global.URL.revokeObjectURL = vi.fn();
         stubWorkshopMedia();
-        globalThis.rise = { settings: { defaultWpm: 220 } };
         created = [];
         onNavigate = vi.fn();
         onCreateSession = vi.fn(project => { created.push(project); });
+        onSettingsTransaction = vi.fn();
         container = document.createElement('div');
-        room = new Scriptorium(container, { onNavigate, onCreateSession });
+        room = new Scriptorium(container, {
+            onNavigate,
+            onCreateSession,
+            getSettings: () => ({ defaultWpm: 220 }),
+            onSettingsTransaction
+        });
         room.mount();
         resolveProgramLibrarySources.mockImplementation(stubResolveProgramLibrarySources);
     });
 
     afterEach(() => {
         vi.restoreAllMocks();
-        delete globalThis.rise;
     });
 
     describe('one click, one action (D8)', () => {
+        it('opens a reading on readable type through the injected settings seam', () => {
+            room.openOnReadableType();
+            expect(onSettingsTransaction).toHaveBeenCalledWith({
+                chamberFace: 'literary',
+                fontSize: 'medium'
+            });
+        });
+
         it('invokes Examine once', () => {
             const examine = vi.spyOn(room, 'examine').mockImplementation(() => {});
             click('examine');
@@ -291,6 +304,20 @@ describe('the Scriptorium as the reader meets it', () => {
             click('begin');
             await vi.waitFor(() => expect(created).toHaveLength(1));
             expect(workshopProjectToSessionConfig(created[0]).wpm).toBe(220);
+        });
+
+        it('uses changed reader settings when the cached room is entered again', () => {
+            let settings = { defaultWpm: 220 };
+            const cached = new Scriptorium(document.createElement('div'), {
+                getSettings: () => settings
+            });
+            cached.render();
+            expect(cached.container.textContent).toContain('220 wpm');
+            settings = { defaultWpm: 150 };
+            // Router calls update on an existing room before revealing it.
+            cached.update?.();
+            expect(cached.container.textContent).toContain('150 wpm');
+            expect(cached.session.wpm).toBe(150);
         });
 
         it('measures the score against the length on the slider', () => {
@@ -468,7 +495,7 @@ describe('the Scriptorium as the reader meets it', () => {
             // A field added to the session and not to this list would be a
             // field nothing below proves anything about.
             const held = Object.getOwnPropertyNames(room.session)
-                .filter(name => !['wpmOverride', 'prepareAssets', 'mintId', 'producer']
+                .filter(name => !['wpmOverride', 'getWpm', 'prepareAssets', 'mintId', 'producer']
                     .includes(name));
             expect([...held].sort()).toEqual([...SEQUENCE_STATE].sort());
         });

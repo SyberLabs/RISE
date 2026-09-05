@@ -56,6 +56,7 @@ export class Journeys {
         this.container = container;
         this.onNavigate = options.onNavigate || (() => {});
         this.onBeginSession = options.onBeginSession || (() => {});
+        this.getAudioEngine = options.getAudioEngine || (() => null);
         this._intros = new Map();
         this._busy = false;
 
@@ -194,7 +195,7 @@ export class Journeys {
             begin.dataset.label = label;
             begin.textContent = 'Preparing…';
             begin.disabled = true;
-            window.rise?.audioEngine?.playClick?.();
+            this.getAudioEngine()?.playClick?.();
 
             try {
                 const handoff = await createJourneyHandoff(entry.journey, entry.passages);

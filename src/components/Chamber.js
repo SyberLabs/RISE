@@ -90,6 +90,10 @@ export class Chamber {
     this.onExit = options.onExit || (() => { });
     this.onEnterStream = typeof options.onEnterStream === 'function'
       ? options.onEnterStream : async () => true;
+    this.audioEngine = options.audioEngine || null;
+    this.getSettings = options.getSettings || (() => ({}));
+    this.onSettingsChange = options.onSettingsChange || (() => {});
+    this.onDataCleared = options.onDataCleared || (() => {});
 
     this.controlsTimeout = null;
     this.controlsVisible = false;
@@ -138,7 +142,7 @@ export class Chamber {
     // passes a prepared instance; this fallback preserves embedded callers.
     this.voice = this.recitationEnabled
       ? (options.voice || new Voice({
-        audioEngine: window.rise?.audioEngine || null,
+        audioEngine: this.audioEngine,
         voiceId: this.session?.voiceId
       }))
       : null;
@@ -255,7 +259,7 @@ export class Chamber {
     if (audioProgram?.segments?.length) {
       this._audioSchedule = new AudioScheduleController(
         audioProgram,
-        window.rise?.audioEngine || null,
+        this.audioEngine,
         // A JOURNEY'S AUDIO AUTHORITY IS ITS PROGRAM, NOT A PRESET.
         //
         // This asked `audioPreset !== 'silent'`, which is a question
@@ -324,9 +328,9 @@ export class Chamber {
           if (this._destroyed || this.pageModeActive || !this.container?.isConnected) return;
           if (this.player) {
             this.player.play();
-            if (window.rise?.audioEngine) {
+            if (this.audioEngine) {
               console.log('[Chamber] Triggering atmospheric swell (auto-start)');
-              window.rise.audioEngine.fadeInSession(1.2);
+              this.audioEngine.fadeInSession(1.2);
             }
           }
         })();
@@ -578,7 +582,7 @@ export class Chamber {
     const atomDisplay = this.container.querySelector('#atom-display');
     if (!atomDisplay) return false;
     atomDisplay.dataset.chamberFace = resolveChamberStreamFace(
-      globalThis.rise?.settings?.chamberFace
+      this.getSettings()?.chamberFace
     );
     if (atomDisplay.classList.contains('is-mask')) {
       void this.syncFillGlyphMask();
@@ -590,7 +594,7 @@ export class Chamber {
     const atomDisplay = this.container.querySelector('#atom-display');
     if (!atomDisplay) return false;
     atomDisplay.dataset.fontSize = resolveFontSize(
-      globalThis.rise?.settings?.fontSize
+      this.getSettings()?.fontSize
     );
     const content = (atomDisplay.textContent || '').trim();
     if (content) this.sizeAtomText(atomDisplay, content);
@@ -609,7 +613,7 @@ export class Chamber {
   applyChamberAccent() {
     return applyChamberAccent(
       document.documentElement,
-      globalThis.rise?.settings?.chamberAccent
+      this.getSettings()?.chamberAccent
     );
   }
 
@@ -634,7 +638,7 @@ export class Chamber {
    * — the mask is only one of the ways a reader reaches Fit.
    */
   wordHoldsTheFrame() {
-    const settings = globalThis.rise?.settings || {};
+    const settings = this.getSettings();
     return isChamberWordFit(settings.fontSize) && this.session?.chunkMode === 'word';
   }
 
@@ -643,7 +647,7 @@ export class Chamber {
   }
 
   _textMaterialCapabilityContext() {
-    const settings = globalThis.rise?.settings || {};
+    const settings = this.getSettings();
     const visualConfig = this.session?.visualConfig;
     const presentation = this.session?.visualConfig?.interlocution?.presentation;
     const input = {
@@ -718,11 +722,11 @@ export class Chamber {
     const beginBtn = this.container.querySelector('#chamber-begin');
 
     backBtn?.addEventListener('click', () => {
-      window.rise?.audioEngine?.playClick();
+      this.audioEngine?.playClick();
       this.onExit('back');
     });
     beginBtn?.addEventListener('click', () => {
-      window.rise?.audioEngine?.playClick();
+      this.audioEngine?.playClick();
       this.beginSession();
     });
 
@@ -733,7 +737,7 @@ export class Chamber {
     const exitBtn = this.container.querySelector('#exit-btn');
 
     playPauseBtn?.addEventListener('click', () => {
-      window.rise?.audioEngine?.playHiss();
+      this.audioEngine?.playHiss();
       this.togglePlayPause();
     });
     this.container.querySelector('#page-prev')?.addEventListener('click', () => {
@@ -749,24 +753,24 @@ export class Chamber {
 
     const pageModeBtn = this.container.querySelector('#page-mode-btn');
     pageModeBtn?.addEventListener('click', () => {
-      window.rise?.audioEngine?.playHiss();
+      this.audioEngine?.playHiss();
       this.togglePageMode();
     });
     const kaleidoscopeBtn = this.container.querySelector('#kaleidoscope-btn');
     kaleidoscopeBtn?.addEventListener('click', () => {
-      window.rise?.audioEngine?.playHiss();
+      this.audioEngine?.playHiss();
       this.toggleKaleidoscope();
     });
     visualsToggleBtn?.addEventListener('click', () => {
-      window.rise?.audioEngine?.playHiss();
+      this.audioEngine?.playHiss();
       this.toggleRhythmicVisuals();
     });
     settingsBtn?.addEventListener('click', () => {
-      window.rise?.audioEngine?.playHiss();
+      this.audioEngine?.playHiss();
       void this.openSettings();
     });
     exitBtn?.addEventListener('click', () => {
-      window.rise?.audioEngine?.playHiss();
+      this.audioEngine?.playHiss();
       this.exitSession();
     });
 
@@ -778,32 +782,30 @@ export class Chamber {
     const closeBtn = this.container.querySelector('#post-close');
 
     continueBtn?.addEventListener('click', () => {
-      window.rise?.audioEngine?.playClick();
+      this.audioEngine?.playClick();
       continueBtn.disabled = true;
       this.onExit('continue');
     });
     returnBtn?.addEventListener('click', () => {
-      window.rise?.audioEngine?.playHiss();
+      this.audioEngine?.playHiss();
       this.onExit('close');
     });
     recursionBtn?.addEventListener('click', () => {
-      window.rise?.audioEngine?.playClick();
+      this.audioEngine?.playClick();
       this.showSynthesisScreen();
     });
     sealBtn?.addEventListener('click', () => {
-      window.rise?.audioEngine?.playClick();
+      this.audioEngine?.playClick();
       this.handleSynthesisSealing();
     });
     closeBtn?.addEventListener('click', () => {
-      window.rise?.audioEngine?.playHiss();
+      this.audioEngine?.playHiss();
       this.onExit('close');
     });
 
     const synthesisInput = this.container.querySelector('#synthesis-input');
     synthesisInput?.addEventListener('keydown', (e) => {
-      if (window.rise?.audioEngine) {
-        window.rise.audioEngine.playKeyPress(e.keyCode);
-      }
+      this.audioEngine?.playKeyPress(e.keyCode);
     });
 
     // Exit Modal specific
@@ -811,12 +813,12 @@ export class Chamber {
     const exitConfirm = this.container.querySelector('#exit-confirm');
 
     exitCancel?.addEventListener('click', () => {
-      window.rise?.audioEngine?.playHiss();
+      this.audioEngine?.playHiss();
       this.hideExitConfirmation();
     });
 
     exitConfirm?.addEventListener('click', () => {
-      window.rise?.audioEngine?.playClick();
+      this.audioEngine?.playClick();
       this.performExit();
     });
 
@@ -1010,9 +1012,7 @@ export class Chamber {
       this.togglePlayPause();
     } else if (isTyping) {
       // Trigger mechanical key sound ONLY while typing in journal/inputs
-      if (window.rise?.audioEngine) {
-        window.rise.audioEngine.playKeyPress(e.keyCode);
-      }
+      this.audioEngine?.playKeyPress(e.keyCode);
     }
 
     // Escape is owned via handleEscape(), dispatched by the router —
@@ -1036,7 +1036,7 @@ export class Chamber {
             this.shuttleStep(-1);
         } else if ((e.key === 'k' || e.key === 'K') && this.hasAttractorField) {
             e.preventDefault();
-            window.rise?.audioEngine?.playHiss();
+            this.audioEngine?.playHiss();
             this.toggleKaleidoscope();
         }
     }
@@ -1065,7 +1065,7 @@ export class Chamber {
    */
   _applyShuttleState(velocity) {
     const suspended = velocity !== 1;
-    try { window.rise?.audioEngine?.setShuttleSuspension?.(suspended); }
+    try { this.audioEngine?.setShuttleSuspension?.(suspended); }
     catch (e) { /* audio is optional */ }
   }
 
@@ -1131,9 +1131,7 @@ export class Chamber {
 
         if (this.player) {
           this.player.play();
-          if (window.rise?.audioEngine) {
-            window.rise.audioEngine.fadeInSession(1.2); // Smooth swell at start
-          }
+          this.audioEngine?.fadeInSession(1.2); // Smooth swell at start
           // Immediately show pause icon since we are now playing
           const playIcon = this.container.querySelector('#play-icon');
           const pauseIcon = this.container.querySelector('#pause-icon');
@@ -1652,7 +1650,7 @@ export class Chamber {
    */
   sizeAtomText(atomDisplay, content) {
     atomDisplay.style.removeProperty('font-size');
-    const fontSize = resolveFontSize(globalThis.rise?.settings?.fontSize);
+    const fontSize = resolveFontSize(this.getSettings()?.fontSize);
     atomDisplay.dataset.fontSize = fontSize;
     atomDisplay.style.setProperty('--font-size-intent', String(threeStepIntent(fontSize)));
 
@@ -1971,16 +1969,12 @@ export class Chamber {
 
     if (this.player.state === 'playing' || this.player.state === 'interlocuting') {
       this.player.pause();
-      if (window.rise?.audioEngine) {
-        window.rise.audioEngine.fadeOutSession(0.4);
-      }
+      this.audioEngine?.fadeOutSession(0.4);
       playIcon?.classList.remove('hidden');
       pauseIcon?.classList.add('hidden');
     } else {
       this.player.play();
-      if (window.rise?.audioEngine) {
-        window.rise.audioEngine.fadeInSession(0.6);
-      }
+      this.audioEngine?.fadeInSession(0.6);
       playIcon?.classList.add('hidden');
       pauseIcon?.classList.remove('hidden');
     }
@@ -2029,31 +2023,12 @@ export class Chamber {
       // in from the bar's own volume button, so the bar sheds a control here
       // rather than gaining a door beside one.
       scope: 'bar',
-      settings: globalThis.rise?.settings || {},
+      settings: this.getSettings(),
       onClose: () => this.closeSettings(),
       onNavigate: () => this.closeSettings(),
-      onDataCleared: () => {
-        if (typeof globalThis.rise?.handleDataCleared === 'function') {
-          globalThis.rise.handleDataCleared();
-          return;
-        }
-        if (globalThis.rise) globalThis.rise.currentSession = null;
-        window.setTimeout(() => window.location.reload(), 300);
-      },
+      onDataCleared: this.onDataCleared,
       onChange: (key, value) => {
-        if (typeof globalThis.rise?.handleSettingsChange === 'function') {
-          globalThis.rise.handleSettingsChange(key, value);
-        } else if (globalThis.rise?.settings) {
-          globalThis.rise.settings[key] = key === 'chamberFace'
-            ? resolveChamberStreamFace(value)
-            : key === 'chamberMask'
-              ? value === true
-              : key === 'fontSize'
-                ? resolveFontSize(value)
-                : key === 'chamberAccent'
-                  ? resolveChamberAccent(value)
-                  : value;
-        }
+        this.onSettingsChange(key, value);
         if (key === 'chamberFace' || key === 'chamberMask') {
           this.applyChamberStreamFace();
           this.applyChamberMask();
@@ -2187,7 +2162,7 @@ export class Chamber {
     // A page is read, not raced: hold the stream while it is open.
     if (this.player?.state === 'playing' || this.player?.state === 'interlocuting') {
       this.player.pause();
-      window.rise?.audioEngine?.fadeOutSession(0.4);
+      this.audioEngine?.fadeOutSession(0.4);
       this.container.querySelector('#play-icon')?.classList.remove('hidden');
       this.container.querySelector('#pause-icon')?.classList.add('hidden');
     }
@@ -2490,16 +2465,8 @@ export class Chamber {
   }
 
   setVolume(volume) {
-    if (window.rise?.audioEngine) {
-      window.rise.audioEngine.setVolume(volume);
-    }
-    if (window.rise?.settings) {
-      if (typeof window.rise.handleSettingsChange === 'function') {
-        window.rise.handleSettingsChange('masterVolume', volume);
-      } else {
-        window.rise.settings.masterVolume = volume;
-      }
-    }
+    this.audioEngine?.setVolume(volume);
+    this.onSettingsChange('masterVolume', volume);
   }
 
   /**
@@ -2527,7 +2494,7 @@ export class Chamber {
     const band = this.container.querySelector('#atom-display');
     if (!field || !band) return;
 
-    this._bandOffsetFraction = readBandOffsetSetting();
+    this._bandOffsetFraction = readBandOffsetSetting(this.getSettings());
     this.applyBandOffset();
 
     const DRAG_THRESHOLD_PX = 4;
@@ -2572,7 +2539,7 @@ export class Chamber {
       band.releasePointerCapture?.(pointerId);
       pointerId = null;
       band.classList.remove('is-band-moving');
-      if (moved) writeBandOffsetSetting(this._bandOffsetFraction);
+      if (moved) writeBandOffsetSetting(this._bandOffsetFraction, this.onSettingsChange);
     };
 
     // Pressing away from the band puts it down again.
@@ -2649,9 +2616,7 @@ export class Chamber {
 
     this.showSpeedHud();
     
-    if (window.rise?.audioEngine) {
-        window.rise.audioEngine.playClick();
-    }
+    this.audioEngine?.playClick();
   }
 
   showSpeedHud() {
@@ -2764,14 +2729,10 @@ export class Chamber {
       if (this.player && (this.player.state === 'playing' || this.player.state === 'interlocuting')) {
         this._wasPlayingOnExitPrompt = true;
         this.player.pause();
-        if (window.rise?.audioEngine) {
-          window.rise.audioEngine.fadeOutSession(0.3);
-        }
+        this.audioEngine?.fadeOutSession(0.3);
       } else {
         this._wasPlayingOnExitPrompt = false;
-        if (window.rise?.audioEngine) {
-          window.rise.audioEngine.fadeOutSession(0.3);
-        }
+        this.audioEngine?.fadeOutSession(0.3);
       }
     } else {
       // Fallback
@@ -2790,9 +2751,7 @@ export class Chamber {
       // Resume if it was playing before
       if (this._wasPlayingOnExitPrompt && this.player) {
         this.player.play();
-        if (window.rise?.audioEngine) {
-          window.rise.audioEngine.fadeInSession(0.3);
-        }
+        this.audioEngine?.fadeInSession(0.3);
       }
     }
   }
@@ -2818,9 +2777,7 @@ export class Chamber {
     display.style.transition = 'opacity 400ms var(--ease-in)';
     display.style.opacity = '0';
 
-    if (window.rise?.audioEngine) {
-      window.rise.audioEngine.fadeOutSession(1.2); // Slower fade for completion
-    }
+    this.audioEngine?.fadeOutSession(1.2); // Slower fade for completion
 
     setTimeout(() => {
       display.style.display = 'none';
@@ -2848,9 +2805,7 @@ export class Chamber {
         postSession.style.opacity = '1';
         
         // Restore UI audio capability by stopping the session (resets master gain volume)
-        if (window.rise?.audioEngine) {
-            window.rise.audioEngine.stopSession();
-        }
+        this.audioEngine?.stopSession();
       }, 50);
     }, 400);
 

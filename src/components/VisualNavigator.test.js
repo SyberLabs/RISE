@@ -17,12 +17,20 @@ import { visualCortex } from '../visuals/visual-cortex.js';
 
 let nav = null;
 let onChange = null;
+let settings = null;
 
 const mount = (visualConfig = {}, options = {}) => {
   const container = document.createElement('div');
   document.body.appendChild(container);
   onChange = vi.fn();
-  nav = new VisualNavigator(container, { visualConfig, onChange, ...options });
+  settings ||= { chamberFace: 'literary', fontSize: 'medium' };
+  nav = new VisualNavigator(container, {
+    visualConfig,
+    onChange,
+    getSettings: () => settings,
+    onSettingChange: (key, value) => { settings[key] = value; },
+    ...options
+  });
   return nav;
 };
 const node = id => nav.container.querySelector(`.vnav-node[data-id="${id}"]`);
@@ -38,6 +46,7 @@ const unmount = () => {
   nav?.destroy();
   nav?.container.remove();
   nav = null;
+  settings = null;
 };
 
 afterEach(() => {
@@ -46,7 +55,6 @@ afterEach(() => {
   // left standing is inherited by every test after it. Restoring is the
   // difference between a suite and a sequence.
   vi.restoreAllMocks();
-  delete window.rise;
   localStorage.removeItem('rise_global_images_v1');
   localStorage.removeItem('rise_workshop_v1');
 });
@@ -80,25 +88,19 @@ describe('walking the tree', () => {
 });
 
 describe('the text', () => {
-  it('writes Face through the app settings seam', () => {
-    const handleSettingsChange = vi.fn();
-    window.rise = {
-      settings: { chamberFace: 'literary', fontSize: 'medium' },
-      handleSettingsChange
-    };
-    mount();
+  it('writes Face through its injected settings seam', () => {
+    const settings = { chamberFace: 'literary', fontSize: 'medium' };
+    const onSettingChange = vi.fn((key, value) => { settings[key] = value; });
+    mount({}, { getSettings: () => settings, onSettingChange });
     click(node('face'));
     click(nav.container.querySelector('[data-chamber-face="display"]'));
-    expect(handleSettingsChange).toHaveBeenCalledWith('chamberFace', 'display');
+    expect(onSettingChange).toHaveBeenCalledWith('chamberFace', 'display');
   });
 
   it('makes Fit one canonical text-material transaction', () => {
     const onTextMaterialTransaction = vi.fn();
-    window.rise = {
-      settings: { chamberFace: 'literary', fontSize: 'medium' },
-      handleSettingsChange: vi.fn()
-    };
-    mount({}, { onTextMaterialTransaction });
+    const onSettingChange = vi.fn();
+    mount({}, { onTextMaterialTransaction, onSettingChange });
     click(node('size'));
     click(nav.container.querySelector('[data-font-size="fit"]'));
     expect(onTextMaterialTransaction).toHaveBeenCalledOnce();
@@ -110,22 +112,18 @@ describe('the text', () => {
         interlocution: expect.objectContaining({ presentation: 'continuous' })
       })
     }));
-    expect(window.rise.handleSettingsChange).not.toHaveBeenCalled();
+    expect(onSettingChange).not.toHaveBeenCalled();
     expect(onChange).not.toHaveBeenCalled();
   });
 
   it('keeps Accent available before Fit and opens visual-mask engine benches at Fit', () => {
-    window.rise = {
-      settings: { chamberFace: 'literary', fontSize: 'medium' },
-      handleSettingsChange: vi.fn()
-    };
     mount();
     click(node('ink'));
     expect(nav.container.querySelector('[data-word-fill="accent"]')).toBeTruthy();
     expect(nav.container.querySelector('[data-word-fill="procedural:attractor"]')?.getAttribute('aria-disabled'))
       .toBe('true');
 
-    window.rise.settings.fontSize = 'fit';
+    settings.fontSize = 'fit';
     click(node('ink'));
     click(nav.container.querySelector('[data-word-fill="procedural:attractor"]'));
     expect(nav.container.querySelector('[data-sub="system"][data-val="thomas"]')).toBeTruthy();
@@ -133,15 +131,11 @@ describe('the text', () => {
 
   it('keeps Accent available at every Face and Size, and toggles it to Plain in one transaction', () => {
     const onTextMaterialTransaction = vi.fn();
-    window.rise = {
-      settings: { chamberFace: 'literary', fontSize: 'medium' },
-      handleSettingsChange: vi.fn()
-    };
     mount({}, { onTextMaterialTransaction });
 
     for (const chamberFace of ['literary', 'display', 'thick', 'jp']) {
       for (const fontSize of ['small', 'medium', 'large', 'fit']) {
-        window.rise.settings = { chamberFace, fontSize };
+        settings = { chamberFace, fontSize };
         nav.render();
         click(node('ink'));
         expect(nav.container.querySelector('[data-word-fill="accent"]')).toBeTruthy();
@@ -149,7 +143,7 @@ describe('the text', () => {
       }
     }
 
-    window.rise.settings = { chamberFace: 'literary', fontSize: 'medium' };
+    settings = { chamberFace: 'literary', fontSize: 'medium' };
     nav.render();
     const accent = nav.container.querySelector('[data-word-fill="accent"]');
     expect(accent?.textContent.trim()).toBe('Accent');
@@ -172,10 +166,6 @@ describe('the text', () => {
 
   it('explains a locked mask and activates Thick + Fit as one transaction', () => {
     const onTextMaterialTransaction = vi.fn();
-    window.rise = {
-      settings: { chamberFace: 'literary', fontSize: 'medium' },
-      handleSettingsChange: vi.fn()
-    };
     mount({}, { onTextMaterialTransaction });
     click(node('ink'));
     const mask = nav.container.querySelector('[data-word-fill="same"]');
@@ -210,21 +200,19 @@ describe('the text', () => {
       { entry: 'size', selector: '[data-font-size="m"]', settings: { chamberFace: 'thick', fontSize: 'medium' } }
     ]) {
       const onTextMaterialTransaction = vi.fn();
-      window.rise = {
-        settings: { chamberFace: 'thick', fontSize: 'fit' },
-        handleSettingsChange: vi.fn()
-      };
+      const onSettingChange = vi.fn();
+      settings = { chamberFace: 'thick', fontSize: 'fit' };
       mount({
         visualMode: 'interlocution',
         interlocution: { wordFill: { mode: 'same', border: 'accent' } }
-      }, { onTextMaterialTransaction });
+      }, { onTextMaterialTransaction, onSettingChange });
       click(node(change.entry));
       click(nav.container.querySelector(change.selector));
       expect(nav.container.querySelector('[role="dialog"]')?.textContent)
         .toContain('This change cannot keep the current visual mask. Continue with Accent ink?');
       click(nav.container.querySelector('[data-action="dialog-cancel"]'));
       expect(onTextMaterialTransaction).not.toHaveBeenCalled();
-      expect(window.rise.handleSettingsChange).not.toHaveBeenCalled();
+      expect(onSettingChange).not.toHaveBeenCalled();
 
       click(nav.container.querySelector(change.selector));
       click(nav.container.querySelector('[data-action="dialog-confirm"]'));
@@ -248,7 +236,7 @@ describe('the text', () => {
     ];
 
     for (const interact of reveal) {
-      window.rise = { settings: { chamberFace: 'literary', fontSize: 'medium' } };
+      settings = { chamberFace: 'literary', fontSize: 'medium' };
       mount();
       click(node('face'));
       const grid = nav.container.querySelector('.vnav-face-grid .vnav-opts');
@@ -276,12 +264,8 @@ describe('the text', () => {
   });
 
   it('keeps the revealed Thick control stable for keyboard activation', () => {
-    const handleSettingsChange = vi.fn();
-    window.rise = {
-      settings: { chamberFace: 'literary', fontSize: 'medium' },
-      handleSettingsChange
-    };
-    mount();
+    const onSettingChange = vi.fn();
+    mount({}, { onSettingChange });
     click(node('face'));
     nav.container.querySelector('[data-chamber-face="thick"]').focus();
 
@@ -289,7 +273,7 @@ describe('the text', () => {
     liveThick.focus();
     expect(nav.container.querySelector('[data-chamber-face="thick"]')).toBe(liveThick);
     click(liveThick);
-    expect(handleSettingsChange).toHaveBeenCalledWith('chamberFace', 'thick');
+    expect(onSettingChange).toHaveBeenCalledWith('chamberFace', 'thick');
   });
 
   // THE BORDER IS THE FIT WORD'S EDGE, NOT THE MASK'S. It was offered only
@@ -307,14 +291,11 @@ describe('the text', () => {
   // continuous, which is the resolver's whole definition of a gallery, and
   // the Chamber would have drawn it without complaint.
   it('lets a Fit mask run over a Dynamic field that still presents a gallery', () => {
-    window.rise = {
-      settings: { chamberFace: 'thick', fontSize: 'medium' },
-      handleSettingsChange(key, value) { this.settings[key] = value; }
-    };
+    settings = { chamberFace: 'thick', fontSize: 'medium' };
     // The host applies the transaction; without it Fit is proposed and never
     // lands, and every assertion after it measures the size that did not change.
     mount({ visualMode: 'interlocution', interlocution: { presentation: 'continuous' } }, {
-      onTextMaterialTransaction: ({ settings = {} }) => Object.assign(window.rise.settings, settings)
+      onTextMaterialTransaction: ({ settings: patch = {} }) => Object.assign(settings, patch)
     });
 
     descend('visual', 'dynamic', 'ostensoria');
@@ -337,10 +318,7 @@ describe('the text', () => {
   });
 
   it('lets a Dynamic gallery field join an already-Fit reading without a dialog', () => {
-    window.rise = {
-      settings: { chamberFace: 'thick', fontSize: 'fit' },
-      handleSettingsChange(key, value) { this.settings[key] = value; }
-    };
+    settings = { chamberFace: 'thick', fontSize: 'fit' };
     mount({ visualMode: 'interlocution', interlocution: { presentation: 'continuous' } });
     descend('visual', 'dynamic', 'ostensoria');
     click(nav.container.querySelector('[data-action="toggle"]'));
@@ -353,10 +331,7 @@ describe('the text', () => {
   // name. That refusal is structural, and stays. (Attractor used to be here
   // and is not any more: it is listed again, and carries a mask.)
   it('still refuses a Fit mask over a field that takes its own visual mode', () => {
-    window.rise = {
-      settings: { chamberFace: 'thick', fontSize: 'medium' },
-      handleSettingsChange(key, value) { this.settings[key] = value; }
-    };
+    settings = { chamberFace: 'thick', fontSize: 'medium' };
     mount({ visualMode: 'interlocution', interlocution: { presentation: 'continuous' } });
 
     descend('visual', 'dynamic', 'klee');
@@ -368,7 +343,7 @@ describe('the text', () => {
   });
 
   it('offers the border wherever Fit can carry it, and keeps it when the ink changes', () => {
-    window.rise = { settings: { chamberFace: 'thick', fontSize: 'fit' } };
+    settings = { chamberFace: 'thick', fontSize: 'fit' };
     mount({
       visualMode: 'interlocution',
       interlocution: { wordFill: { mode: 'plain' } }
@@ -392,7 +367,7 @@ describe('the text', () => {
 
   // Without Fit there is no word for it to edge, and the Chamber applies none.
   it('withholds the border at a fixed scale', () => {
-    window.rise = { settings: { chamberFace: 'thick', fontSize: 'large' } };
+    settings = { chamberFace: 'thick', fontSize: 'large' };
     mount({
       visualMode: 'interlocution',
       interlocution: { wordFill: { mode: 'same' } }
@@ -409,7 +384,7 @@ describe('the text', () => {
     ];
 
     for (const interact of explain) {
-      window.rise = { settings: { chamberFace: 'thick', fontSize: 'fit' } };
+      settings = { chamberFace: 'thick', fontSize: 'fit' };
       mount({}, { programInfo: { episodes: 2 } });
       click(node('ink'));
       const accent = nav.container.querySelector('[data-word-fill="accent"]');
@@ -426,7 +401,7 @@ describe('the text', () => {
 
   it('dismisses a keyboard-opened program ownership dialog without reopening on restored focus', async () => {
     for (const close of ['cancel', 'escape', 'primary']) {
-      window.rise = { settings: { chamberFace: 'thick', fontSize: 'fit' } };
+      settings = { chamberFace: 'thick', fontSize: 'fit' };
       mount({}, { programInfo: { episodes: 2 } });
       click(node('ink'));
       const trigger = nav.container.querySelector('[data-word-fill="accent"]');
@@ -457,10 +432,6 @@ describe('the text', () => {
 
   it('focuses the primary dialog action and restores the live trigger after Cancel, Escape, and primary action', async () => {
     const onTextMaterialTransaction = vi.fn();
-    window.rise = {
-      settings: { chamberFace: 'literary', fontSize: 'medium' },
-      handleSettingsChange: vi.fn()
-    };
     mount({}, { onTextMaterialTransaction });
     click(node('ink'));
 
@@ -488,7 +459,7 @@ describe('the text', () => {
   });
 
   it('omits Neural, Rock Garden, and Spectral from visual-mask choices', () => {
-    window.rise = { settings: { chamberFace: 'thick', fontSize: 'fit' } };
+    settings = { chamberFace: 'thick', fontSize: 'fit' };
     mount();
     click(node('ink'));
     expect(nav.container.textContent).not.toContain('Neural Networks');
@@ -626,7 +597,7 @@ describe('reader-facing state', () => {
   it('gathers Face, Size and Ink around one specimen', () => {
     // They are three attributes of one word, and split across three rooms a
     // reader could never see the thing being configured.
-    window.rise = { settings: { chamberFace: 'thick', fontSize: 'fit' } };
+    settings = { chamberFace: 'thick', fontSize: 'fit' };
     mount({});
     for (const door of ['face', 'size', 'ink']) {
       click(nav.container.querySelector(`.vnav-node[data-id="${door}"]`));
@@ -651,7 +622,7 @@ describe('reader-facing state', () => {
     const still = 'data:image/png;base64,iVBORw0KGgo=';
     vi.spyOn(visualCortex, 'renderLeafStill').mockResolvedValue({ url: still });
 
-    window.rise = { settings: { chamberFace: 'thick', fontSize: 'fit' } };
+    settings = { chamberFace: 'thick', fontSize: 'fit' };
     mount({
       visualMode: 'interlocution',
       interlocution: {
@@ -667,7 +638,7 @@ describe('reader-facing state', () => {
       .toBe(true);
 
     // now take the face away — the mask cannot be carried, so the letters empty
-    window.rise.settings.chamberFace = 'literary';
+    settings.chamberFace = 'literary';
     nav.render();
     await new Promise(r => setTimeout(r, 0));
     expect(nav.container.querySelector('.vnav-specimen')?.classList.contains('has-ink'))
@@ -679,7 +650,7 @@ describe('reader-facing state', () => {
     // were shown as three identical letters. Fit is not a fourth ratio at all
     // — it fills the chamber with ONE word — so the preview shows a phrase for
     // the scale and a single word for the mode, which is the difference.
-    window.rise = { settings: { chamberFace: 'literary', fontSize: 'small' } };
+    settings = { chamberFace: 'literary', fontSize: 'small' };
     mount({});
     click(nav.container.querySelector('.vnav-node[data-id="size"]'));
 
@@ -690,7 +661,7 @@ describe('reader-facing state', () => {
     expect(small).toBeCloseTo(0.82, 2);
 
     // large really is larger, by the ratio the reading uses
-    window.rise.settings.fontSize = 'large';
+    settings.fontSize = 'large';
     nav.render();
     const large = Number(nav.container.querySelector('.vnav-preview-type')
       .style.getPropertyValue('--preview-intent'));
@@ -698,7 +669,7 @@ describe('reader-facing state', () => {
     expect(large).toBeGreaterThan(small);
 
     // and Fit shows one word, because that is what Fit does to the reading
-    window.rise.settings.fontSize = 'fit';
+    settings.fontSize = 'fit';
     nav.render();
     const fit = nav.container.querySelector('.vnav-preview-type');
     expect(fit.getAttribute('data-size-sample')).toBe('fit');
@@ -709,7 +680,7 @@ describe('reader-facing state', () => {
   it('shows each face in its own letterform, and the chosen one at reading scale', () => {
     // The difference between these four IS the letterform, so four words set
     // in one another's typeface told a reader nothing about the choice.
-    window.rise = { settings: { chamberFace: 'display', fontSize: 'medium' } };
+    settings = { chamberFace: 'display', fontSize: 'medium' };
     mount({});
     click(nav.container.querySelector('.vnav-node[data-id="face"]'));
 
@@ -746,7 +717,7 @@ describe('reader-facing state', () => {
     // 'requires Thick + Fit', which is untrue when the cause is the field:
     // a reader holding a Focal was told to change a face and a size that
     // would not have helped.
-    window.rise = { settings: { chamberFace: 'thick', fontSize: 'fit' } };
+    settings = { chamberFace: 'thick', fontSize: 'fit' };
     mount({ visualMode: 'focals' });
     click(nav.container.querySelector('.vnav-node[data-id="ink"]'));
     const blocked = nav.container.querySelector('.vnav-opt.is-blocked');
@@ -953,7 +924,7 @@ describe('reader-facing state', () => {
   it('says the glass is void while a mask is carrying the letters', () => {
     // Every glass path is gated `&& !chamberMaskApplies()`, so the switch
     // does nothing at all in the one configuration Fit exists to produce.
-    window.rise = { settings: { chamberFace: 'thick', fontSize: 'fit' } };
+    settings = { chamberFace: 'thick', fontSize: 'fit' };
     mount({
       visualMode: 'interlocution',
       interlocution: {
@@ -1038,7 +1009,7 @@ describe('reader-facing state', () => {
   });
 
   it('names a curated program and makes every field-owned control read-only', () => {
-    window.rise = { settings: { fontSize: 'fit' } };
+    settings = { chamberFace: 'literary', fontSize: 'fit' };
     mount({
       visualMode: 'interlocution',
       livingText: { enabled: true, intensity: 0.4 },

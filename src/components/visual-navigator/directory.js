@@ -270,12 +270,7 @@ export const directoryMethods = {
   },
 
   writeSetting(key, value) {
-    if (typeof window === 'undefined') return;
-    if (typeof window.rise?.handleSettingsChange === 'function') {
-      window.rise.handleSettingsChange(key, value);
-    } else if (window.rise?.settings) {
-      window.rise.settings[key] = value;
-    }
+    this.onSettingChange(key, value);
   },
 
   _fieldPresentsGallery(selection = this.selection) {

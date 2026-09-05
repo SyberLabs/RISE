@@ -324,6 +324,8 @@ export class Workshop {
     this.container = container;
     this.onNavigate = options.onNavigate || (() => { });
     this.onCreateSession = options.onCreateSession || (() => { });
+    this.getAudioEngine = options.audioEngineProvider || (() => null);
+    this.onBlueprintsChanged = options.onBlueprintsChanged || (() => {});
     this.visualConsentScope = crypto.randomUUID();
 
     this.sessionData = createDefaultSessionData();
@@ -401,7 +403,7 @@ export class Workshop {
     this.selectedAudioAssetId = this.currentAudioAssetId();
     this.audioPreviewState = { state: 'idle', assetId: null };
     this.audioPreview = new WorkshopAudioPreviewController({
-      engineProvider: options.audioEngineProvider || (() => window.rise?.audioEngine || null),
+      engineProvider: this.getAudioEngine,
       durationMs: options.audioPreviewDurationMs || 12000,
       onChange: status => {
         this.audioPreviewState = status;
@@ -4105,7 +4107,7 @@ export class Workshop {
     // Back button
     this.container.querySelector('[data-action="back"]')?.addEventListener('click', () => {
       this.audioPreview.stop();
-      window.rise?.audioEngine?.playClick();
+      this.getAudioEngine()?.playClick();
       this.onNavigate('portal');
     });
 
@@ -4113,7 +4115,7 @@ export class Workshop {
     const form = this.container.querySelector('#workshop-form');
     form?.addEventListener('submit', (e) => {
       e.preventDefault();
-      window.rise?.audioEngine?.playClick();
+      this.getAudioEngine()?.playClick();
       void this.createSession();
     });
     const syncSequenceManager = (event) => {
@@ -4210,7 +4212,7 @@ export class Workshop {
     this.container.addEventListener('change', this.boundVisualAssetInputHandler);
 
     this.container.querySelector('#workshop-sequence-select')?.addEventListener('change', (event) => {
-      window.rise?.audioEngine?.playHiss();
+      this.getAudioEngine()?.playHiss();
       this.handleSequenceSelection(event.target.value);
     });
 
@@ -4225,7 +4227,7 @@ export class Workshop {
     const intentRadios = this.container.querySelectorAll('input[name="intent"]');
     intentRadios.forEach(radio => {
       radio.addEventListener('change', (e) => {
-        window.rise?.audioEngine?.playHiss();
+        this.getAudioEngine()?.playHiss();
         this.sessionData.intent = e.target.value;
       });
     });
@@ -4244,7 +4246,7 @@ export class Workshop {
     // Curve buttons
     this.container.querySelectorAll('[data-curve]').forEach(btn => {
       btn.addEventListener('click', () => {
-        window.rise?.audioEngine?.playHiss();
+        this.getAudioEngine()?.playHiss();
         this.sessionData.curve = btn.dataset.curve;
         this.refreshReadingStudio();
       });
@@ -4253,7 +4255,7 @@ export class Workshop {
     // Chunking buttons
     this.container.querySelectorAll('[data-chunk]').forEach(btn => {
       btn.addEventListener('click', () => {
-        window.rise?.audioEngine?.playHiss();
+        this.getAudioEngine()?.playHiss();
         this.sessionData.chunkMode = btn.dataset.chunk;
         this.refreshReadingStudio();
       });
@@ -4262,7 +4264,7 @@ export class Workshop {
     // Display mode buttons
     this.container.querySelectorAll('[data-mode]').forEach(btn => {
       btn.addEventListener('click', () => {
-        window.rise?.audioEngine?.playHiss();
+        this.getAudioEngine()?.playHiss();
         this.sessionData.displayMode = btn.dataset.mode;
         this.updateActiveButtons('[data-mode]', btn);
       });
@@ -4300,28 +4302,28 @@ export class Workshop {
 
       const action = target.dataset.action;
       if (action === 'open-browser') {
-        window.rise?.audioEngine?.playHiss();
+        this.getAudioEngine()?.playHiss();
         this.openSourceBrowser();
       } else if (action === 'import-file') {
-        window.rise?.audioEngine?.playHiss();
+        this.getAudioEngine()?.playHiss();
         this.fileDialogReturnFocus = target;
         if (fileInput) fileInput.click();
       } else if (action === 'export-experience-program') {
-        window.rise?.audioEngine?.playHiss();
+        this.getAudioEngine()?.playHiss();
         this.exportExperienceProgramFile();
       } else if (action === 'export-mp4') {
-        window.rise?.audioEngine?.playHiss();
+        this.getAudioEngine()?.playHiss();
         void this.exportMp4();
       } else if (action === 'import-experience-program') {
-        window.rise?.audioEngine?.playHiss();
+        this.getAudioEngine()?.playHiss();
         this.fileDialogReturnFocus = target;
         void this.promptImportExperienceProgram(programInput);
       } else if (action === 'upload-image') {
-        window.rise?.audioEngine?.playHiss();
+        this.getAudioEngine()?.playHiss();
         this.fileDialogReturnFocus = target;
         if (imageInput) imageInput.click();
       } else if (action === 'upload-personal-focal') {
-        window.rise?.audioEngine?.playHiss();
+        this.getAudioEngine()?.playHiss();
         this.fileDialogReturnFocus = target;
         this.pendingPersonalFocalUploadTarget = target.dataset.focalTarget
           || this.inferPersonalFocalTarget();
@@ -4346,11 +4348,11 @@ export class Workshop {
       } else if (action === 'remove-personal-focal-default') {
         this.removePersonalFocalDefault();
       } else if (action === 'upload-global-image') {
-        window.rise?.audioEngine?.playHiss();
+        this.getAudioEngine()?.playHiss();
         this.fileDialogReturnFocus = target;
         if (globalInput) globalInput.click();
       } else if (action === 'upload-personal-swell') {
-        window.rise?.audioEngine?.playHiss();
+        this.getAudioEngine()?.playHiss();
         this.fileDialogReturnFocus = target;
         if (personalSwellInput) personalSwellInput.click();
       } else if (action === 'show-studio-surface') {
@@ -4418,11 +4420,11 @@ export class Workshop {
       } else if (action === 'stop-audio-preview') {
         this.audioPreview.stop();
       } else if (action === 'remove-source') {
-        window.rise?.audioEngine?.playHiss();
+        this.getAudioEngine()?.playHiss();
         const index = parseInt(target.dataset.index);
         this.requestSourceRemoval(index, target);
       } else if (action === 'remove-visual') {
-        window.rise?.audioEngine?.playHiss();
+        this.getAudioEngine()?.playHiss();
         const index = parseInt(target.dataset.index);
         this.requestSequenceVisualAssetRemoval(index, target);
       } else if (action === 'filter-visual-assets') {
@@ -4522,37 +4524,37 @@ export class Workshop {
       } else if (action === 'preview-audio-score-asset') {
         void this.previewSelectedAudioDefault();
       } else if (action === 'remove-global') {
-        window.rise?.audioEngine?.playHiss();
+        this.getAudioEngine()?.playHiss();
         MemoryCore.removeGlobalImage(target.dataset.globalId);
         this.refreshVisualLibraryAndInspector();
       } else if (action === 'move-up') {
-        window.rise?.audioEngine?.playHiss();
+        this.getAudioEngine()?.playHiss();
         const index = parseInt(target.dataset.index);
         this.swapSources(index, index - 1);
       } else if (action === 'move-down') {
-        window.rise?.audioEngine?.playHiss();
+        this.getAudioEngine()?.playHiss();
         const index = parseInt(target.dataset.index);
         this.swapSources(index, index + 1);
       } else if (action === 'preview-source') {
-        window.rise?.audioEngine?.playHiss();
+        this.getAudioEngine()?.playHiss();
         const index = parseInt(target.dataset.index);
         this.showSourcePreview(index);
       } else if (action === 'preview-personal-swell') {
         this.selectAudioAsset(`swell:${target.dataset.id}`);
         void this.previewSelectedAudioDefault();
       } else if (action === 'remove-personal-swell') {
-        window.rise?.audioEngine?.playHiss();
+        this.getAudioEngine()?.playHiss();
         const id = target.dataset.id;
         this.removePersonalSwell(id);
       } else if (action === 'save-draft') {
-        window.rise?.audioEngine?.playHiss();
+        this.getAudioEngine()?.playHiss();
         void this.saveSequenceToVault();
       } else if (action === 'reset-workshop') {
-        window.rise?.audioEngine?.playHiss();
+        this.getAudioEngine()?.playHiss();
         this.armOrResetSequence();
       } else if (action === 'preview') {
         this.audioPreview.stop();
-        window.rise?.audioEngine?.playHiss();
+        this.getAudioEngine()?.playHiss();
         try {
           const preview = this.prepareSessionPayload(this.sessionData);
           preview.isPreview = true;
@@ -4749,9 +4751,9 @@ export class Workshop {
         return;
       }
       this.onNavigate('portal');
-    } else if (window.rise?.audioEngine && !e.repeat && e.key && e.key.length === 1) {
+    } else if (!e.repeat && e.key && e.key.length === 1) {
       // Trigger sound for alphanumeric/symbol keys
-      window.rise.audioEngine.playKeyPress(e.keyCode);
+      this.getAudioEngine()?.playKeyPress(e.keyCode);
     }
   }
 
@@ -5010,8 +5012,7 @@ export class Workshop {
     this.pendingMediaBlobs.clear();
     this.savedBlueprints = await MemoryCore.getWorkshopBlueprintsHydrated();
 
-    const vault = window.rise?.router?.getViewInstance('vault');
-    vault?.refreshBlueprints?.();
+    this.onBlueprintsChanged();
     return saved;
   }
 
@@ -5412,7 +5413,7 @@ export class Workshop {
       }
       this.pendingMediaBlobs.clear();
       this.savedBlueprints = await MemoryCore.getWorkshopBlueprintsHydrated();
-      window.rise?.router?.getViewInstance('vault')?.refreshBlueprints?.();
+      this.onBlueprintsChanged();
 
       const view = workshopProjectToBlueprintView(saved);
       this.suspendCurrentDraft();
@@ -5516,9 +5517,7 @@ export class Workshop {
       await PersonalSwells.addSwell(file, displayName);
       await this.updatePersonalSwellList();
       this.showToast('Audio added to your shelf');
-      if (window.rise?.audioEngine) {
-        await window.rise.audioEngine.reloadPersonalSwells();
-      }
+      await this.getAudioEngine()?.reloadPersonalSwells();
     } catch (error) {
       console.error('[Workshop] Failed to upload personal swell:', error);
       this.showToast('Failed to upload audio');
@@ -5542,9 +5541,7 @@ export class Workshop {
       this.refreshAudioStudio();
       this.updateSequencePicker();
       this.showToast('Audio removed');
-      if (window.rise?.audioEngine) {
-        await window.rise.audioEngine.reloadPersonalSwells();
-      }
+      await this.getAudioEngine()?.reloadPersonalSwells();
     } catch (error) {
       console.error('[Workshop] Failed to remove swell:', error);
     }
