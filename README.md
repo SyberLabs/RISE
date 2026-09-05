@@ -12,7 +12,7 @@ A text does not have to appear only as a page.
 
 RISE treats reading as an experience that can unfold across multiple dimensions: words can move through time, inhabit a spatial page, coexist with works of art, enter a changing mathematical field, or be arranged into an authored audiovisual composition.
 
-At its center is the **Chamber** — a reading instrument for combining:
+At its center is the **Chamber** - a reading instrument for combining:
 
 - **Text**
 - **Time**
@@ -75,13 +75,13 @@ Sound is treated as part of the reading environment rather than as background me
 
 RISE currently supports two primary projections of the same reading.
 
-### Stream — reading in time
+### Stream - reading in time
 
 Text arrives sequentially according to a temporal program.
 
 The Stream can range from restrained phrase-by-phrase reading to highly audiovisual compositions in which image and sound change alongside the text.
 
-### Page — reading in space
+### Page - reading in space
 
 The same source can be projected into a bounded typographic composition.
 
@@ -204,7 +204,7 @@ Sources, visual objects, and generated material should remain distinguishable.
 
 Not every audiovisual relationship in RISE is authored in advance.
 
-Chance can produce transient correspondences between language and form — meanings that arise through the encounter between computation and perception rather than through literal illustration.
+Chance can produce transient correspondences between language and form - meanings that arise through the encounter between computation and perception rather than through literal illustration.
 
 ---
 
@@ -232,7 +232,7 @@ Some visual modes retrieve publicly hosted images from external cultural or scie
 
 ## Development
 
-RISE is client-only. There is no backend, database, or service to stand up — the whole product runs from the Vite dev server.
+RISE is client-only. There is no backend, database, or service to stand up - the whole product runs from the Vite dev server.
 
 Engineering overview: [docs/ENGINEERING.md](docs/ENGINEERING.md).
 
@@ -285,11 +285,11 @@ The end-to-end suite builds the app and starts its own preview server, so do not
 
 Two worth reading before changing anything:
 
-- **[docs/PROJECT-KNOWLEDGE.md](docs/PROJECT-KNOWLEDGE.md)** — the defect patterns this project keeps rediscovering, and the reasoning behind decisions that look arbitrary from outside.
-- **[AGENTS.md](AGENTS.md)** — operating principles, followed by humans and coding agents alike.
+- **[docs/PROJECT-KNOWLEDGE.md](docs/PROJECT-KNOWLEDGE.md)** - the defect patterns this project keeps rediscovering, and the reasoning behind decisions that look arbitrary from outside.
+- **[AGENTS.md](AGENTS.md)** - operating principles, followed by humans and coding agents alike.
 
 For a faster loop before pushing, the `gate` project is the corridor a reader
-actually walks — about two minutes rather than eight:
+actually walks - about two minutes rather than eight:
 
 ```bash
 npm run test:e2e:gate
@@ -316,8 +316,8 @@ npx vitest run src/core/system-design.test.js
 npm run scriptorium:ci           # a refusal must arrive as an exit status
 ```
 
-A change that touches only prose — `docs/`, `.agents/`, `.cursor/`, a root
-`*.md`, `LICENSE`, `NOTICE` — skips the unit, build, Scriptorium, and browser
+A change that touches only prose - `docs/`, `.agents/`, `.cursor/`, a root
+`*.md`, `LICENSE`, `NOTICE` - skips the unit, build, Scriptorium, and browser
 jobs, and finishes in under a minute. Hygiene and the system design document
 still run, because they read those files.
 
@@ -347,7 +347,7 @@ scripts/
 ```
 
 The subsystem dependency graph is generated from these directories rather than
-drawn by hand — see the diagram in
+drawn by hand - see the diagram in
 [`docs/specs/ARCHITECTURE.md`](docs/specs/ARCHITECTURE.md).
 
 The project uses **Vitest** for unit and integration testing and **Playwright** for browser-level verification.
@@ -392,7 +392,7 @@ RISE application code is released under the [Apache License 2.0](LICENSE).
 
 The software licence does not cover everything in this repository. The RISE and
 SyberLabs names, authored Journeys and compositions, curated texts, and the
-visual works held by reference each carry their own terms —
+visual works held by reference each carry their own terms -
 [ASSET-LICENSES.md](ASSET-LICENSES.md) sets them out, and [NOTICE](NOTICE)
 travels with any redistribution.
 
