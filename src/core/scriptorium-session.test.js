@@ -193,6 +193,16 @@ describe('the length and the pace, in one place', () => {
     expect(describeLength(20_000, 220)).toContain('220 wpm');
     expect(describeLength(20_000, 220)).toContain('1h 31m');
   });
+
+  it('quotes live reader pace while preserving explicit CLI overrides', () => {
+    let pace = 220;
+    const live = createScriptoriumSession({ getWpm: () => pace });
+    const fixed = createScriptoriumSession({ wpm: 150, getWpm: () => pace });
+    expect(live.describeLength()).toContain('220 wpm');
+    pace = 180;
+    expect(live.describeLength()).toContain('180 wpm');
+    expect(fixed.describeLength()).toContain('150 wpm');
+  });
 });
 
 /**

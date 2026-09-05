@@ -209,6 +209,7 @@ function isRefusal(error) {
  * @param {object} [options]
  * @param {number} [options.wpm] override the reader's setting, which a
  *   surface with no reader (the CLI) has no way to read
+ * @param {() => number} [options.getWpm] current reader pace for a cached room
  * @param {(projectId: string) => Promise<object[]>} [options.prepareAssets]
  *   the reader's own files, made durable, on the way into a project
  * @param {() => string} [options.mintId] one id per composition
@@ -218,12 +219,13 @@ export function createScriptoriumSession(options = {}) {
 }
 
 export class ScriptoriumSession {
-  constructor({ wpm = null, prepareAssets = null, mintId = null } = {}) {
+  constructor({ wpm = null, getWpm = readerWpm, prepareAssets = null, mintId = null } = {}) {
     // NULL IS NOT A PACE. `Number(null)` is 0 and 0 is finite, so a surface
     // that passed no override was clamped to the window's floor and quoted a
     // reader who had set 220 a reading at 100. Absent falls through to
     // readerWpm() via the getter, which is why the fallback here is null.
     this.wpmOverride = clampReadingWpm(wpm, null);
+    this.getWpm = getWpm;
     this.prepareAssets = typeof prepareAssets === 'function' ? prepareAssets : null;
     this.mintId = typeof mintId === 'function'
       ? mintId
@@ -268,7 +270,7 @@ export class ScriptoriumSession {
   }
 
   get wpm() {
-    return this.wpmOverride ?? readerWpm();
+    return this.wpmOverride ?? clampReadingWpm(this.getWpm(), readerWpm());
   }
 
   setIntent(text) {

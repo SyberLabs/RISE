@@ -117,7 +117,9 @@ for (const [engine, file] of Object.entries(FROM_FILE)) {
 }
 
 // 2. The ones rendered from the engines themselves. Needs the app running —
-// `npm run preview`, or any origin via RISE_ORIGIN. Without one this phase is
+// `VITE_RISE_TEST_API=1 npm run build`, then `npm run preview -- --port 4317`,
+// or a DEV server via RISE_ORIGIN (normally http://127.0.0.1:5173/).
+// An ordinary production preview has no test bridge. Without a server this phase is
 // skipped rather than failing: the supplied specimens are still written.
 const origin = process.env.RISE_ORIGIN || 'http://127.0.0.1:4317/';
 let reachable = true;

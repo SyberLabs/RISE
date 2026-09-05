@@ -306,6 +306,20 @@ describe('the Scriptorium as the reader meets it', () => {
             expect(workshopProjectToSessionConfig(created[0]).wpm).toBe(220);
         });
 
+        it('uses changed reader settings when the cached room is entered again', () => {
+            let settings = { defaultWpm: 220 };
+            const cached = new Scriptorium(document.createElement('div'), {
+                getSettings: () => settings
+            });
+            cached.render();
+            expect(cached.container.textContent).toContain('220 wpm');
+            settings = { defaultWpm: 150 };
+            // Router calls update on an existing room before revealing it.
+            cached.update?.();
+            expect(cached.container.textContent).toContain('150 wpm');
+            expect(cached.session.wpm).toBe(150);
+        });
+
         it('measures the score against the length on the slider', () => {
             // A take prepared at one length, then the slider raised — which is
             // exactly what the old refusal advised the reader to do.
@@ -481,7 +495,7 @@ describe('the Scriptorium as the reader meets it', () => {
             // A field added to the session and not to this list would be a
             // field nothing below proves anything about.
             const held = Object.getOwnPropertyNames(room.session)
-                .filter(name => !['wpmOverride', 'prepareAssets', 'mintId', 'producer']
+                .filter(name => !['wpmOverride', 'getWpm', 'prepareAssets', 'mintId', 'producer']
                     .includes(name));
             expect([...held].sort()).toEqual([...SEQUENCE_STATE].sort());
         });

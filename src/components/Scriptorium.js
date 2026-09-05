@@ -87,7 +87,7 @@ export class Scriptorium {
      * the descriptors as they are.
      */
     this.session = createScriptoriumSession({
-      wpm: readerWpm(options.getSettings?.()),
+      getWpm: () => readerWpm(options.getSettings?.()),
       prepareAssets: (projectId) => this.durableMaterials(projectId)
     });
     this.materialBlobs = new Map();
@@ -129,6 +129,11 @@ export class Scriptorium {
     // click on Keep left two Vault drafts.
     this.render();
     void this.loadMaterials();
+  }
+
+  update() {
+    // Router reuses this room; estimates must reflect the current settings.
+    this.render();
   }
 
   /**
