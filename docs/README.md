@@ -33,6 +33,7 @@ history, not a distinction; read the status column instead.
 | --- | --- | --- |
 | [RELEASE-ROADMAP-2026-08-20.md](RELEASE-ROADMAP-2026-08-20.md) | Contract | The current release corridor. Gates checked by `npm run release:check`. |
 | [RELEASE-ACCEPTANCE-PROTOCOL.md](RELEASE-ACCEPTANCE-PROTOCOL.md) | Contract | The human gates — certification, acoustic review, device review — that no script can pass on its own. |
+| [RISE-RELEASE-REPORT-2026-08-31.md](RISE-RELEASE-REPORT-2026-08-31.md) | Record | System-wide production sweep of release readiness: machine gates, human gaps, security, state, documentation drift, and public-sharing verdict. |
 
 ## The Archive — texts and their editing
 
