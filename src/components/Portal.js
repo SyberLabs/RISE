@@ -208,6 +208,11 @@ export class Portal {
           </div>
           
           <div class="footer-right">
+            <!-- Conspicuously posted, which is the standard CalOPPA sets and
+                 the reason these sit on the Portal rather than inside a room.
+                 Generated from PRIVACY.md and TERMS.md by build-legal.mjs. -->
+            <a href="/privacy.html" class="portal-util-link portal-legal-link" title="Privacy Policy">Privacy</a>
+            <a href="/terms.html" class="portal-util-link portal-legal-link" title="Terms of Use">Terms</a>
              <button class="portal-util-link" data-action="settings" title="Interface Settings">
               <span class="util-icon">⚙</span>
             </button>

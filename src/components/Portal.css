@@ -952,6 +952,20 @@
     right: var(--space-md);
   }
 
+  /* Four items now share the footer, and Privacy and Terms have to stay
+     reachable rather than being pushed off the edge — a policy nobody can
+     reach is not conspicuously posted. Tighten the gutters and let the
+     right-hand group wrap before anything leaves the screen. */
+  .footer-right {
+    gap: var(--space-sm);
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+
+  .portal-util-link {
+    padding: var(--space-xs);
+  }
+
 }
 
 /* Seal mode is a div (Portal.prefersSealOnly): strip button affordances. */
