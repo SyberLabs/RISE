@@ -128,29 +128,6 @@ The basic rule is simple:
 
 ---
 
-## Journeys
-
-**Journeys** are authored long-form experiences built from the same primitives available elsewhere in RISE.
-
-A Journey may coordinate:
-
-- multiple texts,
-- movements,
-- passage boundaries,
-- visual programs,
-- procedural figures,
-- sound,
-- transitions,
-- and silence.
-
-Rather than adding a separate playback engine, Journeys compile into the same underlying reading system used by the Chamber.
-
-They are compositions *through* RISE rather than videos exported from it.
-
-**No Journey is currently published.** The compiler and the room are built, but the existing scores quote editions the Library no longer serves, and re-anchoring a composition to a different edition is an editorial act rather than a repair. They are on ice until that work is done properly.
-
----
-
 ## Workshop and Vault
 
 The **Workshop** is the authoring surface.
