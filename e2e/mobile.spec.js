@@ -934,3 +934,33 @@ test('the sigil is still the quick way back on a pointer', async ({ page }) => {
     expect(await vessel.evaluate(el => el.tagName)).toBe('BUTTON');
     expect(await vessel.getAttribute('aria-label')).toBe('Quick access to last session');
 });
+
+/**
+ * The orbs rendered as square tiles on an iPhone and as circles everywhere
+ * else, because iOS Safari does not apply an ancestor's rounded overflow
+ * clip to a descendant it has promoted to its own compositing layer — and
+ * every layer inside a face carries a filter, a blend mode and a running
+ * transform animation.
+ *
+ * The aperture is cut by a mask instead, which the compositor honours. No
+ * engine Playwright can drive reproduces the bug, so this cannot assert the
+ * shape; it asserts the mask is on every face, which is the thing that would
+ * be removed for looking redundant beside the `overflow: hidden` it stands
+ * in for.
+ */
+test('every orb carries the mask that cuts its aperture on iOS', async ({ page }) => {
+    await enter(page, 390, 844);
+    await page.locator('[data-nav="keystones"]').first().click();
+    await expect(page.locator('.keystone-orb.is-selected')).toBeVisible({ timeout: 15000 });
+
+    const faces = await page.locator('.keystone-face').evaluateAll(nodes => nodes.map(el => {
+        const style = getComputedStyle(el);
+        return style.webkitMaskImage || style.maskImage;
+    }));
+
+    expect(faces.length).toBe(3);
+    for (const mask of faces) {
+        expect(mask, 'a face is clipped by overflow alone, which iOS ignores')
+            .toContain('radial-gradient');
+    }
+});

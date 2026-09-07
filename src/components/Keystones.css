@@ -292,6 +292,24 @@
   inset: 0;
   border-radius: 50%;
   overflow: hidden;
+  /* THE APERTURE IS CUT BY A MASK, NOT BY THE ROUNDED OVERFLOW ABOVE.
+
+     iOS Safari does not apply an ancestor's rounded overflow clip to a
+     descendant it has promoted to its own compositing layer, and every layer
+     in this window gives it three reasons to promote one: a filter, a blend
+     mode, and a transform animation that never stops. Desktop Safari, WebKit
+     on a desktop, and Chromium all clip correctly, so the orbs rendered as
+     square tiles on a phone and nowhere else.
+
+     A mask is honoured by the compositor where the clip is not. `closest-side`
+     puts the edge at half the width rather than at the half-diagonal
+     `farthest-corner` would use, and the 1% feather is the antialiasing the
+     clip used to give — under the figure's 1px rim it is not visible.
+
+     The rounded overflow stays: it costs nothing and it is what shapes this
+     element's own background. */
+  -webkit-mask-image: radial-gradient(circle closest-side, #000 99%, transparent 100%);
+  mask-image: radial-gradient(circle closest-side, #000 99%, transparent 100%);
   /* Blending belongs inside the window and must not reach the page. */
   isolation: isolate;
   background: #06070a;
