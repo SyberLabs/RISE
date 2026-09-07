@@ -271,130 +271,208 @@
 
 .is-selected .keystone-figure::after {
   opacity: 1;
-  animation: keystone-drift 84s linear infinite;
+  animation: keystone-turn 84s linear infinite;
 }
 
-/* ─── Faces: three states of one instrument ─── */
+/* ─── Faces: three windows, not three discs ───────────────────────────────
+
+   A face is a WINDOW. The frame never moves — the aperture, its specular and
+   its vignette are glass — and what is behind it drifts. That distinction is
+   the whole of it: a texture turned about the centre of a circle reads as a
+   disc spinning, however slowly it turns, while the SAME texture translated
+   at two different rates behind a fixed aperture reads as depth.
+
+   So each face is a still ground plus three layers, every layer on its own
+   period so no two ever come back into step. Whether a layer drifts or turns
+   is decided by its material, not by consistency: smoke and fog cross a
+   window, and a liquid genuinely churns. */
 
 .keystone-face {
   position: absolute;
   inset: 0;
   border-radius: 50%;
   overflow: hidden;
+  /* Blending belongs inside the window and must not reach the page. */
+  isolation: isolate;
   background: #06070a;
 }
 
-.keystone-face::before,
-.keystone-face::after {
-  content: '';
+.keystone-layer {
   position: absolute;
-  /* Oversized so a drifting field never exposes its own edge. */
-  inset: -24%;
+  /* Generously oversized, so a layer can drift and swell without ever pulling
+     its own edge into the aperture. */
+  inset: -32%;
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: cover;
 }
 
-/* MIND — the flame engine's own still, held back to smoke and silver. */
-.keystone-figure[data-face="fractal"] .keystone-face::before {
-  background-color: #07070a;
-  background-image:
-    var(--keystone-still),
-    radial-gradient(circle at 42% 44%, rgba(216, 224, 232, 0.20), transparent 46%),
-    radial-gradient(circle at 62% 62%, rgba(180, 196, 210, 0.13), transparent 52%);
-  background-size: cover, cover, cover;
-  background-position: center, center, center;
-  filter: grayscale(0.9) contrast(1.32) brightness(1.05);
-  animation: keystone-drift 54s linear infinite var(--face-play);
+/* ── MIND · Meditations ──────────────────────────────────────────────────
+   A dark chamber with luminous matter passing through it. The flame engine's
+   own still is hung twice at different depths and drawn across the aperture
+   in opposite directions: one texture translated is a picture sliding, two at
+   different scales and rates are smoke with something behind it. Neither ever
+   completes a turn, so the eye is never given a rotation to lock onto. */
+
+.keystone-figure[data-face="fractal"] .keystone-face {
+  background: radial-gradient(circle at 50% 48%, #10131a 0%, #07080c 62%, #050609 100%);
 }
 
-.keystone-figure[data-face="fractal"] .keystone-face::after { display: none; }
+.keystone-figure[data-face="fractal"] [data-layer="a"] {
+  background-image: var(--keystone-still);
+  background-size: 116%;
+  filter: grayscale(1) contrast(1.5) brightness(0.88);
+  animation: keystone-veer-near 46s var(--ease-default) infinite alternate var(--face-play);
+}
 
-/* TRANSFORMATION — liquid and refractive. The body of the sphere is fixed
-   (a specular highlight does not travel); two sheets of spectral streaks turn
-   against each other above it, so the surface flows rather than spins. */
+.keystone-figure[data-face="fractal"] [data-layer="b"] {
+  background-image: var(--keystone-still);
+  background-size: 196%;
+  background-position: 38% 62%;
+  filter: grayscale(1) contrast(1.6) brightness(0.8);
+  mix-blend-mode: screen;
+  opacity: 0.42;
+  animation: keystone-veer-far 67s var(--ease-default) infinite alternate var(--face-play);
+}
+
+.keystone-figure[data-face="fractal"] [data-layer="c"] {
+  background:
+    radial-gradient(ellipse 40% 32% at 44% 42%, rgba(206, 220, 236, 0.16), transparent 68%),
+    radial-gradient(ellipse 30% 26% at 64% 62%, rgba(178, 198, 220, 0.12), transparent 70%);
+  mix-blend-mode: screen;
+  animation: keystone-swell 34s var(--ease-default) infinite alternate var(--face-play);
+}
+
 /* One marbling, declared once and used twice. */
 .keystone-figure[data-face="ostensoria"] {
   --keystone-marbling:
     url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='400'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%23eef7f2'/%3E%3Cstop offset='.16' stop-color='%236fcbb0'/%3E%3Cstop offset='.32' stop-color='%23091317'/%3E%3Cstop offset='.48' stop-color='%23a6e1d5'/%3E%3Cstop offset='.62' stop-color='%230f1c26'/%3E%3Cstop offset='.77' stop-color='%23cbe7f5'/%3E%3Cstop offset='.89' stop-color='%230b151b'/%3E%3Cstop offset='1' stop-color='%23e4f3ed'/%3E%3C/linearGradient%3E%3Cfilter id='f' x='-25%25' y='-25%25' width='150%25' height='150%25'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.0055 .009' numOctaves='4' seed='11' result='n'/%3E%3CfeDisplacementMap in='SourceGraphic' in2='n' scale='170' xChannelSelector='R' yChannelSelector='G'/%3E%3CfeGaussianBlur stdDeviation='1.6'/%3E%3C/filter%3E%3C/defs%3E%3Crect width='400' height='400' fill='url(%23g)' filter='url(%23f)'/%3E%3C/svg%3E");
 }
 
+/* ── TRANSFORMATION · Metamorphoses ──────────────────────────────────────
+   The one face that genuinely turns, because a liquid does. Two sheets of the
+   same marbling counter-rotate at periods that do not divide, so what the eye
+   follows is the interference between them — which is why this one already
+   read as matter moving inside rather than as a plate being spun. A third
+   sheet of caustics drifts across without turning, so the surface carries a
+   highlight that slides rather than orbits. */
+
 .keystone-figure[data-face="ostensoria"] .keystone-face {
-  background:
-    radial-gradient(circle at 50% 52%, #0e1a1a 0%, #091114 60%, #05070a 100%);
+  background: radial-gradient(circle at 50% 52%, #0e1a1a 0%, #091114 60%, #05070a 100%);
 }
 
-/* The sheet itself is one striped gradient pushed through fractal noise —
-   a marbling, drawn once by the browser and then only turned. A conic struck
-   from any point converges into a pinwheel; displaced stripes do not
-   converge, which is what makes the surface read as liquid. Colour is fixed
-   here because a face is material, not signal: the accent stays on the ring,
-   the halo and the action. */
-.keystone-figure[data-face="ostensoria"] .keystone-face::before {
+.keystone-figure[data-face="ostensoria"] [data-layer="a"] {
   background-image: var(--keystone-marbling);
-  background-size: cover;
-  background-position: center;
-  /* Deep troughs are what make a marbling read as refraction rather than as
-     cloud: the highlights have to have somewhere dark to sit in. */
-  filter: contrast(1.42) saturate(1.3) brightness(0.72);
-  animation: keystone-drift 62s linear infinite var(--face-play);
+  background-size: 88%;
+  filter: contrast(1.5) saturate(1.32) brightness(0.66);
+  animation: keystone-turn 62s linear infinite var(--face-play);
 }
 
-/* A second pass of the same marbling, turned the other way and held to the
-   highlights, so the surface folds over itself instead of sliding. */
-.keystone-figure[data-face="ostensoria"] .keystone-face::after {
+.keystone-figure[data-face="ostensoria"] [data-layer="b"] {
   background-image: var(--keystone-marbling);
-  background-size: 150%;
+  background-size: 136%;
   background-position: 36% 62%;
+  filter: contrast(1.34) brightness(0.86);
   mix-blend-mode: screen;
-  opacity: 0.24;
-  filter: contrast(1.3) brightness(0.9);
-  animation: keystone-drift-reverse 41s linear infinite var(--face-play);
+  opacity: 0.26;
+  animation: keystone-turn-back 41s linear infinite var(--face-play);
 }
 
-/* WORLD — atmosphere and horizon: light behind a valley, held level, so it
-   reads as depth rather than as a photograph dropped into a circle. */
+.keystone-figure[data-face="ostensoria"] [data-layer="c"] {
+  background:
+    radial-gradient(ellipse 34% 9% at 36% 38%, rgba(214, 246, 238, 0.18), transparent 64%),
+    radial-gradient(ellipse 26% 7% at 68% 60%, rgba(176, 226, 244, 0.13), transparent 68%);
+  mix-blend-mode: screen;
+  animation: keystone-veer-near 37s var(--ease-default) infinite alternate var(--face-play);
+}
+
+/* ── WORLD · Tintern Abbey ───────────────────────────────────────────────
+   Weather over a valley. The land does not move — it is the ground, and a
+   horizon that turns is not a horizon — so every ridge and the water below
+   them is painted into the still background. Only the air moves: two fog
+   banks crossing at different heights and rates, and the light behind the
+   ridge gathering and falling away on a period that matches neither. */
+
 .keystone-figure[data-face="collection"] .keystone-face {
-  background: linear-gradient(180deg,
-    #0c141a 0%,
-    #1b2a33 32%,
-    #2a3d47 45%,
-    #070b0e 50%,
-    #121e25 61%,
-    #05080a 100%);
-}
-
-.keystone-figure[data-face="collection"] .keystone-face::before {
-  inset: 0;
   background:
-    radial-gradient(ellipse 44% 20% at 50% 38%, rgba(232, 244, 246, 0.58), transparent 72%),
-    radial-gradient(ellipse 92% 32% at 50% 12%, rgba(152, 184, 198, 0.3), transparent 80%);
-  animation: keystone-weather 26s var(--ease-default) infinite alternate var(--face-play);
+    radial-gradient(ellipse 44% 20% at 50% 38%, rgba(232, 244, 246, 0.5), transparent 72%),
+    radial-gradient(ellipse 92% 32% at 50% 12%, rgba(152, 184, 198, 0.26), transparent 80%),
+    radial-gradient(ellipse 34% 13% at 14% 47%, rgba(4, 7, 9, 0.99), transparent 62%),
+    radial-gradient(ellipse 32% 16% at 85% 48%, rgba(5, 8, 10, 0.99), transparent 64%),
+    radial-gradient(ellipse 24% 9% at 50% 50%, rgba(6, 9, 11, 0.96), transparent 66%),
+    linear-gradient(180deg, transparent 50.4%, rgba(214, 236, 244, 0.5) 51.2%, transparent 53%),
+    linear-gradient(180deg, transparent 53%, rgba(196, 222, 230, 0.26) 56%, transparent 63%),
+    linear-gradient(180deg, transparent 63%, rgba(146, 180, 194, 0.18) 68%, transparent 82%),
+    linear-gradient(180deg,
+      #0c141a 0%, #1b2a33 32%, #2a3d47 45%,
+      #070b0e 50%, #121e25 61%, #05080a 100%);
 }
 
-.keystone-figure[data-face="collection"] .keystone-face::after {
-  inset: 0;
+/* The near bank: low, slow, and the only fog thick enough to hide anything. */
+.keystone-figure[data-face="collection"] [data-layer="a"] {
   background:
-    radial-gradient(ellipse 40% 16% at 15% 48%, rgba(5, 9, 11, 0.96), transparent 72%),
-    radial-gradient(ellipse 38% 19% at 84% 49%, rgba(6, 10, 12, 0.94), transparent 74%),
-    radial-gradient(ellipse 28% 11% at 50% 51%, rgba(7, 11, 13, 0.9), transparent 76%),
-    linear-gradient(180deg, transparent 51%, rgba(196, 222, 230, 0.3) 55%, transparent 62%),
-    linear-gradient(180deg, transparent 63%, rgba(146, 180, 194, 0.18) 68%, transparent 82%);
+    radial-gradient(ellipse 46% 6% at 30% 57%, rgba(210, 230, 236, 0.46), transparent 70%),
+    radial-gradient(ellipse 34% 4% at 72% 61%, rgba(192, 216, 226, 0.34), transparent 72%);
+  mix-blend-mode: screen;
+  animation: keystone-fog-near 54s var(--ease-default) infinite alternate var(--face-play);
 }
 
-@keyframes keystone-drift {
+/* The far bank: higher, thinner, and running the other way, which is what
+   puts distance between the two. */
+.keystone-figure[data-face="collection"] [data-layer="b"] {
+  background:
+    radial-gradient(ellipse 54% 5% at 58% 45%, rgba(218, 236, 242, 0.4), transparent 72%),
+    radial-gradient(ellipse 32% 3.5% at 22% 42%, rgba(200, 222, 232, 0.28), transparent 74%);
+  mix-blend-mode: screen;
+  animation: keystone-fog-far 79s var(--ease-default) infinite alternate var(--face-play);
+}
+
+.keystone-figure[data-face="collection"] [data-layer="c"] {
+  background: radial-gradient(ellipse 38% 17% at 50% 39%, rgba(236, 246, 248, 0.22), transparent 72%);
+  mix-blend-mode: screen;
+  animation: keystone-swell 31s var(--ease-default) infinite alternate var(--face-play);
+}
+
+/* ── The motions ─────────────────────────────────────────────────────────
+   Everything but the liquid is BOUNDED: it goes out and comes back, and no
+   layer ever completes a revolution. A bounded drift cannot be read as a
+   rotation, which is the whole reason these are windows. */
+
+@keyframes keystone-veer-near {
+  from { transform: translate3d(-2.6%, 1.4%, 0) scale(1.02); }
+  to { transform: translate3d(2.6%, -1.8%, 0) scale(1.09); }
+}
+
+@keyframes keystone-veer-far {
+  from { transform: translate3d(3.2%, 2%, 0) scale(1.08) rotate(3deg); }
+  to { transform: translate3d(-3.2%, -1.6%, 0) scale(1.01) rotate(-5deg); }
+}
+
+@keyframes keystone-fog-near {
+  from { transform: translate3d(-16%, 1.4%, 0) scale(1.02); opacity: 0.95; }
+  to { transform: translate3d(16%, -1.4%, 0) scale(1.14); opacity: 0.5; }
+}
+
+@keyframes keystone-fog-far {
+  from { transform: translate3d(13%, -0.8%, 0) scale(1.1); opacity: 0.55; }
+  to { transform: translate3d(-13%, 1.4%, 0) scale(1.02); opacity: 1; }
+}
+
+/* Light gathering and falling away. Rests on the fuller frame, so a paused
+   layer is the light at full strength rather than a dimmed one. */
+@keyframes keystone-swell {
+  from { transform: scale(1.04); opacity: 1; }
+  to { transform: scale(1); opacity: 0.62; }
+}
+
+@keyframes keystone-turn {
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
 }
 
-@keyframes keystone-drift-reverse {
+@keyframes keystone-turn-back {
   from { transform: rotate(360deg); }
   to { transform: rotate(0deg); }
-}
-
-/* Weather, not rotation: the light swells and fades over the ridge while the
-   land beneath it holds still. Scaling up only, so the layer never pulls its
-   own edge into the circle. */
-@keyframes keystone-weather {
-  from { opacity: 1; transform: scale(1.04); }
-  to { opacity: 0.82; transform: scale(1); }
 }
 
 /* Vignette, rim and grain — the shell every face is fitted into. */

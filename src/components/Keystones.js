@@ -105,7 +105,11 @@ export class Keystones {
         data-slug="${escapeHtml(item.slug)}" data-index="${index}" data-pos="${index - this.selected}">
         <span class="keystone-figure" data-face="${escapeHtml(face)}"
           ${still ? `style="--keystone-still: url('${escapeHtml(still)}')"` : ''}>
-          <span class="keystone-face" aria-hidden="true"></span>
+          <span class="keystone-face" aria-hidden="true">
+            <span class="keystone-layer" data-layer="a"></span>
+            <span class="keystone-layer" data-layer="b"></span>
+            <span class="keystone-layer" data-layer="c"></span>
+          </span>
           <span class="keystone-veil" aria-hidden="true"></span>
         </span>
         <span class="keystone-plaque">
