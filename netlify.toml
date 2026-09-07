@@ -8,6 +8,33 @@
   # Output directory (Vite default)
   publish = "dist"
 
+# Vanity hosts under syberlabs.space. Each 301s onto the one running origin
+# so IndexedDB, audio consent, and the PWA are not split. Listed before the
+# SPA fallback; first match wins. Kept in lockstep with src/content/public-hosts.js.
+[[redirects]]
+  from = "https://try-rise.syberlabs.space/*"
+  to = "https://rise.syberlabs.space/try-rise"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "https://meditations.rise.syberlabs.space/*"
+  to = "https://rise.syberlabs.space/keystone/meditations"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "https://metamorphoses.rise.syberlabs.space/*"
+  to = "https://rise.syberlabs.space/keystone/metamorphoses"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "https://tintern.rise.syberlabs.space/*"
+  to = "https://rise.syberlabs.space/keystone/tintern"
+  status = 301
+  force = true
+
 # SPA routing - redirect all requests to index.html
 [[redirects]]
   from = "/*"

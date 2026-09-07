@@ -6,7 +6,7 @@ A recruiter- and hiring-manager-scannable summary of what this codebase is and w
 
 RISE is a **client-only browser application** — an audiovisual reading environment. Text is compiled into timed atoms, played by a clock-driven engine, and painted in a Chamber over procedural visuals and Web Audio. There is **no backend**: privacy and availability are properties of the topology, not policy flags.
 
-Live demo: [rise-v2-symbolic-experience.netlify.app](https://rise-v2-symbolic-experience.netlify.app/)
+Live demo: [rise.syberlabs.space](https://rise.syberlabs.space/)
 
 **Try in 60 seconds:** Portal → **Try RISE** → **Meditations** → **Begin**. Text streams over generative visuals. Use **Page** for the spatial projection.
 

@@ -4,7 +4,7 @@
 
 **RISE is a browser-based environment for reading text through time, image, sound, and procedural form.**
 
-[Enter RISE →](https://rise-v2-symbolic-experience.netlify.app/)
+[Enter RISE →](https://rise.syberlabs.space/)
 
 ---
 
