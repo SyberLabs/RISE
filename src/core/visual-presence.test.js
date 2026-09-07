@@ -112,9 +112,11 @@ describe('Visual Presence policy', () => {
             expect(isContinuousPresentation(resolved),
                 `${String(unknown)} resolved to the flashing surface ${resolved}`).toBe(true);
         }
-        // A surface that was genuinely chosen is still honoured.
-        expect(normalizePresentation('full-frame')).toBe('full-frame');
-        expect(normalizePresentation('behind-stream')).toBe('behind-stream');
+        // While FLASHING_ENABLED is false a surface that was genuinely
+        // chosen is refused too — see flashing-disabled.test.js, which owns
+        // that guarantee and states what returns when the switch flips.
+        expect(normalizePresentation('full-frame')).toBe('continuous');
+        expect(normalizePresentation('behind-stream')).toBe('continuous');
         expect(isGalleryInTheWord('continuous')).toBe(false);
     });
 

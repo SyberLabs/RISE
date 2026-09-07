@@ -7,6 +7,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { PROCEDURAL_PATTERNS } from '../core/visual-registry.js';
 import { WORKSHOP_AUDIO_ASSETS } from '../core/workshop-audio.js';
 import { PersonalSwells } from '../core/personal-swells.js';
+import { FLASHING_ENABLED } from '../core/visual-presence.js';
 import {
     endVisualInterlocutionSession,
     grantVisualInterlocutionConsent
@@ -166,7 +167,10 @@ describe('Workshop Composition Studio architecture', () => {
         container.querySelector('[data-action="focus-reading-inspector"]')?.click();
 
         expect(container.querySelectorAll('.studio-reading-surface-options > button')).toHaveLength(5);
-        expect(container.querySelectorAll('.studio-presentation-options > button')).toHaveLength(3);
+        // Only surfaces that can actually be rendered are offered. With
+        // FLASHING_ENABLED false, that is Gallery alone.
+        expect(container.querySelectorAll('.studio-presentation-options > button'))
+            .toHaveLength(FLASHING_ENABLED ? 3 : 1);
         expect(container.querySelectorAll('.curve-options.studio-compact-options > button')).toHaveLength(5);
         expect(container.querySelector('#studio-visual-frequency')).toBeNull();
 
@@ -178,6 +182,21 @@ describe('Workshop Composition Studio architecture', () => {
         cadence.dispatchEvent(new Event('input', { bubbles: true }));
         expect(workshop.sessionData.visualConfig.interlocution.galleryCadence).toBe(0.8);
         expect(container.querySelector('[data-gallery-cadence-value]').textContent).toMatch(/≈ \d+ s/);
+
+        workshop.destroy();
+        container.remove();
+    });
+
+    // The Rhythmic controls belong to the flashing surfaces, so they are only
+    // reachable while those are. This returns with FLASHING_ENABLED, and is
+    // skipped rather than deleted so it comes back with the switch.
+    it.skipIf(!FLASHING_ENABLED)('swaps Gallery cadence for the Rhythmic controls', () => {
+        const { workshop, container } = makeWorkshop();
+        workshop.sessionData.visualConfig.visualMode = 'interlocution';
+        workshop.sessionData.visualConfig.interlocution.presentation = 'continuous';
+        workshop.sessionData.visualConfig.interlocution.galleryCadence = 0.8;
+        workshop.refreshVisualLibraryAndInspector();
+        container.querySelector('[data-action="focus-reading-inspector"]')?.click();
 
         container.querySelector('[data-presentation="full-frame"]').click();
         expect(container.querySelector('#studio-gallery-cadence')).toBeNull();

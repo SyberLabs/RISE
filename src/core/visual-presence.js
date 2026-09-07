@@ -23,6 +23,34 @@ const PRESENTATION_SURFACES = Object.freeze([
 ]);
 
 /**
+ * THE PRODUCTION KILL SWITCH FOR FLASHING. One boolean, one place.
+ *
+ * RISE renders moving light, and flashing light is the only thing in this
+ * product that can physically hurt someone. The engineering around it is
+ * careful — an effective ceiling of 2.5 Hz against WCAG's 3 Hz, duty capped at
+ * 45% of any twelve seconds, a fail-closed consent gate — but careful is not
+ * the same as absent, and a risk that cannot be taken is worth more than a
+ * risk that is well managed.
+ *
+ * While this is false, no reachable state can put a flashing surface on the
+ * screen: `normalizePresentation` refuses one whatever it is handed, including
+ * a composition saved when they were offered, a hand-edited import, and any
+ * value nobody has thought of. The surfaces remain in the tree and the engine
+ * still knows how to draw them, so this is one edit to reverse — and
+ * `flashing-disabled.test.js` states, in one place, everything that changes
+ * when somebody does.
+ */
+export const FLASHING_ENABLED = false;
+
+/** What a flashing surface becomes. Gallery never flashes and never blacks. */
+export const SAFE_PRESENTATION = 'continuous';
+
+/** Whether a surface shows brief high-contrast exposures between readings. */
+export function presentationFlashes(value) {
+    return !isContinuousPresentation(value);
+}
+
+/**
  * AN UNRECOGNISED SURFACE RESOLVES TO THE ONE THAT DOES NOT FLASH.
  *
  * This used to fall through to 'full-frame' — the surface that cuts to an
@@ -40,7 +68,10 @@ const PRESENTATION_SURFACES = Object.freeze([
  * through here.
  */
 export function normalizePresentation(value) {
-    return PRESENTATION_SURFACES.includes(value) ? value : 'continuous';
+    const known = PRESENTATION_SURFACES.includes(value) ? value : SAFE_PRESENTATION;
+    // The refusal is here rather than at each caller because this is the one
+    // door every stored, imported and authored value already comes through.
+    return FLASHING_ENABLED || !presentationFlashes(known) ? known : SAFE_PRESENTATION;
 }
 
 export function isContinuousPresentation(value) {

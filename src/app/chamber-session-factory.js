@@ -1,5 +1,6 @@
 import { Player, estimateInterlocutionCount } from '../core/player.js';
 import {
+  FLASHING_ENABLED,
   GALLERY_CADENCE_DEFAULT,
   VISUAL_PRESENCE_DEFAULT_MS,
   normalizeGalleryCadence,
@@ -71,7 +72,11 @@ export async function createChamberSession(operations, container, sessionData) {
         // into a flash; this check stands behind that for any
         // config that never passed through the compiler.
         const presentation = session.visualConfig?.interlocution?.presentation;
-        const flashes = !isContinuousPresentation(presentation);
+        // With flashing disabled nothing reaching here can flash, so the
+        // notice is not raised: asking a reader to accept a risk the build
+        // cannot produce is a false warning, and a false warning teaches
+        // people to click through real ones.
+        const flashes = FLASHING_ENABLED && !isContinuousPresentation(presentation);
         if (visualMode === 'interlocution' && flashes) {
             const consentScope = session.visualConfig?.consentScope;
             const consented = await requestVisualInterlocutionConsent(consentScope);
@@ -311,7 +316,11 @@ export async function createChamberSession(operations, container, sessionData) {
                 activateDeferredVisuals = async () => {
                     const directPresentation = session.visualConfig
                       ?.interlocution?.presentation;
-                    const directFlashes = !isContinuousPresentation(directPresentation);
+                    // The spatial launch has its own gate, and it must
+                    // consult the kill switch for the same reason the
+                    // other one does.
+                    const directFlashes = FLASHING_ENABLED
+                      && !isContinuousPresentation(directPresentation);
                     const consentScope = session.visualConfig?.consentScope;
                     const activated = directFlashes
                       ? (await requestVisualInterlocutionConsent(consentScope))
