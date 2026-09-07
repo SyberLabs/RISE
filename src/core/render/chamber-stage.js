@@ -14,10 +14,9 @@ import { createSeededRandom } from '../../visuals/lib/klee-core.js';
 import { KleeEngine, KLEE_CHAMBER_BACKGROUND, KLEE_PRESET_NAMES } from '../../visuals/klee-enhanced.js';
 import { genesisProgressForRun } from '../../visuals/klee-field.js';
 import {
-  GALLERY_CADENCE_DEFAULT,
-  galleryCadenceTimings,
-  galleryDrawProgress,
-  harmonographDrawProgress
+  figureEpisodeAt,
+  figureEpisodeSeed,
+  scoredFigureProgress
 } from '../visual-presence.js';
 import { Turrell } from '../../visuals/turrell.js';
 import { Harmonograph } from '../../visuals/harmonograph.js';
@@ -68,7 +67,7 @@ function applyCaptionMode(caption, frameWidth) {
   stage.caption = style;
   if (!root) return style;
   if (!style) {
-    root.classList.remove('caption-mode');
+    root.classList.remove('caption-mode', 'caption-no-edge');
     for (const name of CAPTION_VARS) root.style.removeProperty(name);
     return null;
   }
@@ -80,7 +79,13 @@ function applyCaptionMode(caption, frameWidth) {
   root.style.setProperty('--caption-font', style.fontFamily);
   root.style.setProperty('--caption-size', `${captionCssFontSize(style.fontSize, cssWidth)}px`);
   root.style.setProperty('--caption-color', style.color);
-  root.style.setProperty('--caption-edge', style.edgeColor);
+  if (style.edgeColor) {
+    root.classList.remove('caption-no-edge');
+    root.style.setProperty('--caption-edge', style.edgeColor);
+  } else {
+    root.classList.add('caption-no-edge');
+    root.style.setProperty('--caption-edge', 'transparent');
+  }
   return style;
 }
 
@@ -136,6 +141,14 @@ function pick(seed, list) {
 function pinKleePreset(seed, authored) {
   if (KLEE_PRESET_NAMES.includes(authored)) return authored;
   return pick(`${seed}:genesis-preset`, KLEE_PRESET_NAMES);
+}
+
+function isFigureDrawKind(kind) {
+  return kind === 'visual:procedural:klee'
+    || kind === 'visual:field:genesis'
+    || kind === 'visual:procedural:harmonograph'
+    || kind === 'visual:procedural:ostensoria'
+    || kind === 'visual:procedural:apparitio';
 }
 
 function hashSeed(seed) {
@@ -285,13 +298,23 @@ const stage = {
     const cue = state.cue || { kind: 'still' };
     const elapsedMs = Number(state.elapsedMs) || 0;
     const durationMs = Number(state.durationMs) || 0;
+    const drawMs = Number(state.drawMs);
+    const holdMs = Number(state.holdMs);
     const seed = state.seed || this.seed;
-    const progress = genesisProgressForRun(elapsedMs, durationMs);
     const resolved = this.resolveKind(cueKind, cue, seed);
+    const cycle = isFigureDrawKind(resolved.kind)
+      && Number.isFinite(drawMs) && drawMs > 0
+      && Number.isFinite(holdMs) && holdMs >= 0;
+    const episode = figureEpisodeAt(elapsedMs, cycle ? drawMs : 0, holdMs);
+    const paintSeed = cycle ? figureEpisodeSeed(seed, episode.index) : seed;
+    const paintElapsed = cycle ? episode.elapsedMs : elapsedMs;
+    const progress = Number.isFinite(drawMs) && drawMs > 0
+      ? scoredFigureProgress(paintElapsed, durationMs, drawMs)
+      : genesisProgressForRun(paintElapsed, durationMs);
     const showGlass = captionAllowsGlass(this.caption, resolved.glass);
     this.setFieldMode(resolved.mode);
     await this.paintResolved(resolved, {
-      cue, elapsedMs, durationMs, progress, seed,
+      cue, elapsedMs: paintElapsed, durationMs, drawMs, progress, seed: paintSeed,
       stillId: state.stillId,
       incomingStillId: state.incomingStillId,
       dissolve: Number.isFinite(state.dissolve) ? state.dissolve : 1
@@ -401,10 +424,7 @@ const stage = {
     });
     painter.engine.render(this.canvas, {
       backgroundColor: VOID,
-      progress: harmonographDrawProgress(
-        ctx.elapsedMs,
-        ctx.durationMs || galleryCadenceTimings(GALLERY_CADENCE_DEFAULT).dwellMs
-      )
+      progress: scoredFigureProgress(ctx.elapsedMs, ctx.durationMs, ctx.drawMs)
     });
   },
 
@@ -418,10 +438,7 @@ const stage = {
       return { engine, destroy() {} };
     });
     painter.engine.render(this.canvas, {
-      progress: galleryDrawProgress(
-        ctx.elapsedMs,
-        ctx.durationMs || galleryCadenceTimings(GALLERY_CADENCE_DEFAULT).dwellMs
-      )
+      progress: scoredFigureProgress(ctx.elapsedMs, ctx.durationMs, ctx.drawMs)
     });
   },
 
@@ -435,10 +452,7 @@ const stage = {
       return { engine, destroy() {} };
     });
     painter.engine.render(this.canvas, {
-      progress: galleryDrawProgress(
-        ctx.elapsedMs,
-        ctx.durationMs || galleryCadenceTimings(GALLERY_CADENCE_DEFAULT).dwellMs
-      )
+      progress: scoredFigureProgress(ctx.elapsedMs, ctx.durationMs, ctx.drawMs)
     });
   },
 
@@ -674,14 +688,16 @@ const stage = {
     const originX = (box.left + box.width / 2) * dpr;
     const captioning = this.caption && el.id === 'atom-display';
     if (captioning) {
-      ctx.lineJoin = 'round';
-      ctx.miterLimit = 2;
-      ctx.lineWidth = Math.max(2 * dpr, fontSize * dpr * 0.08);
-      ctx.strokeStyle = this.caption.edgeColor;
       ctx.fillStyle = this.caption.color;
+      if (this.caption.edgeColor) {
+        ctx.lineJoin = 'round';
+        ctx.miterLimit = 2;
+        ctx.lineWidth = Math.max(2 * dpr, fontSize * dpr * 0.08);
+        ctx.strokeStyle = this.caption.edgeColor;
+      }
       for (let i = 0; i < lines.length; i += 1) {
         const y = originY + i * lineHeight;
-        ctx.strokeText(lines[i], originX, y);
+        if (this.caption.edgeColor) ctx.strokeText(lines[i], originX, y);
         ctx.fillText(lines[i], originX, y);
       }
       ctx.restore();

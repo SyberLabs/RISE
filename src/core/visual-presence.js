@@ -99,14 +99,58 @@ function galleryDrawMs(dwellMs) {
     return Math.max(1, dwell - spare);
 }
 
-export function galleryDrawProgress(elapsedMs, dwellMs) {
-    const drawMs = galleryDrawMs(dwellMs);
-    const t = Math.min(1, Math.max(0, (Number(elapsedMs) || 0) / drawMs));
+function figureEase(elapsedMs, drawMs) {
+    const span = Math.max(1, Number(drawMs) || 0);
+    const t = Math.min(1, Math.max(0, (Number(elapsedMs) || 0) / span));
     return 1 - ((1 - t) ** 1.8);
+}
+
+export function galleryDrawProgress(elapsedMs, dwellMs) {
+    return figureEase(elapsedMs, galleryDrawMs(dwellMs));
 }
 
 export function harmonographDrawProgress(elapsedMs, dwellMs) {
     return galleryDrawProgress(elapsedMs, dwellMs);
+}
+
+/**
+ * Figure-draw progress at score time. `drawMs` finishes the pen early
+ * and holds; omitted keeps Gallery's dwell (the visual run).
+ */
+export function scoredFigureProgress(elapsedMs, runDurationMs, drawMs) {
+    const draw = Number(drawMs);
+    if (Number.isFinite(draw) && draw > 0) return figureEase(elapsedMs, draw);
+    return galleryDrawProgress(
+        elapsedMs,
+        Number(runDurationMs) > 0
+            ? runDurationMs
+            : galleryCadenceTimings(GALLERY_CADENCE_DEFAULT).dwellMs
+    );
+}
+
+/**
+ * One scored figure: draw, then hold. After the hold, the next episode
+ * starts at local elapsed 0 so a new seed can begin a new pen.
+ */
+export function figureEpisodeAt(elapsedMs, drawMs, holdMs) {
+    const elapsed = Math.max(0, Number(elapsedMs) || 0);
+    const draw = Number(drawMs);
+    const hold = Number(holdMs);
+    if (!(Number.isFinite(draw) && draw > 0) || !(Number.isFinite(hold) && hold >= 0)) {
+        return Object.freeze({ index: 0, elapsedMs: elapsed });
+    }
+    const episodeMs = draw + hold;
+    const index = Math.floor(elapsed / episodeMs);
+    return Object.freeze({
+        index,
+        elapsedMs: elapsed - index * episodeMs
+    });
+}
+
+export function figureEpisodeSeed(seed, episodeIndex) {
+    const index = Math.max(0, episodeIndex | 0);
+    const base = seed == null ? '' : String(seed);
+    return index === 0 ? base : `${base}:figure:${index}`;
 }
 
 // CSS `ease-in-out` is cubic-bezier(0.42, 0, 0.58, 1). Cosine is the same

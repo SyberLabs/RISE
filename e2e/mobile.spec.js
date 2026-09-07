@@ -193,34 +193,66 @@ test('the Portal is one viewport, and does not scroll', async ({ page }) => {
     // Secondary door ink quieter than primary nav; tap targets stay ≥40px.
 });
 
-test('Try RISE owns its mobile scroll instead of clipping stacked readings', async ({ page }) => {
+test('Try RISE keeps its lateral rail on a phone', async ({ page }) => {
     test.setTimeout(120000);
     await enter(page, 390, 844);
     await page.locator('[data-nav="keystones"]').first().click();
     await expect(page).toHaveURL(/\/try-rise$/u);
-    await expect(page.locator('#keystone-tintern')).toBeVisible({ timeout: 30000 });
+    await expect(page.locator('#keystone-metamorphoses')).toBeVisible({ timeout: 30000 });
 
-    const scroll = await page.evaluate(() => {
+    // The carousel survives the phone: the centre holds, the neighbours stay
+    // on the rail beside it, and nothing pushes the document sideways.
+    await expect(page.locator('#keystone-metamorphoses')).toHaveAttribute('data-pos', '0');
+    await expect(page.locator('#keystone-meditations')).toHaveAttribute('data-pos', '-1');
+    await expect(page.locator('#keystone-tintern')).toHaveAttribute('data-pos', '1');
+
+    // The rail is where the lateral geometry is allowed to run past the
+    // edge, and it clips. Neither the document nor the scrolling view may be
+    // pushed sideways by it. (Element bounds are the wrong instrument here:
+    // a clipped orb still reports its uncropped rectangle.)
+    const sideways = await page.evaluate(() => {
         const view = document.querySelector('.keystones');
-        const before = view.scrollTop;
-        view.scrollTop = view.scrollHeight;
-        const lastCard = document.querySelector('#keystone-tintern').getBoundingClientRect();
         return {
-            before,
-            after: view.scrollTop,
+            docScroll: document.documentElement.scrollWidth,
+            docClient: document.documentElement.clientWidth,
+            viewScroll: view.scrollWidth,
+            viewClient: view.clientWidth,
+            railClip: getComputedStyle(document.querySelector('.keystone-rail')).overflowX
+        };
+    });
+    expect(sideways.docScroll).toBeLessThanOrEqual(sideways.docClient + 1);
+    expect(sideways.viewScroll).toBeLessThanOrEqual(sideways.viewClient + 1);
+    expect(['clip', 'hidden']).toContain(sideways.railClip);
+
+    // The centre is centred, and the one action sits under it, on screen.
+    const centre = await page.evaluate(() => {
+        const view = document.querySelector('.keystones');
+        const figure = document.querySelector('#keystone-metamorphoses .keystone-figure');
+        const box = figure.getBoundingClientRect();
+        const cta = document.querySelector('[data-enter]').getBoundingClientRect();
+        return {
+            offset: Math.abs((box.left + box.right) / 2 - window.innerWidth / 2),
+            diameter: Math.round(box.width),
+            side: Math.round(
+                document.querySelector('#keystone-tintern .keystone-figure').getBoundingClientRect().width
+            ),
+            ctaBottom: Math.round(cta.bottom),
+            ctaWidth: Math.round(cta.width),
             clientHeight: view.clientHeight,
-            scrollHeight: view.scrollHeight,
-            viewportHeight: window.innerHeight,
-            overflowY: getComputedStyle(view).overflowY,
-            lastCardBottom: Math.round(lastCard.bottom)
+            viewportHeight: window.innerHeight
         };
     });
 
-    expect(scroll.clientHeight).toBe(scroll.viewportHeight);
-    expect(scroll.scrollHeight).toBeGreaterThan(scroll.clientHeight);
-    expect(scroll.overflowY).toBe('auto');
-    expect(scroll.after).toBeGreaterThan(scroll.before);
-    expect(scroll.lastCardBottom).toBeLessThanOrEqual(scroll.viewportHeight);
+    expect(centre.offset).toBeLessThanOrEqual(1);
+    expect(centre.diameter).toBeGreaterThan(centre.side * 1.4);
+    expect(centre.ctaWidth).toBeGreaterThanOrEqual(44);
+    expect(centre.ctaBottom).toBeLessThanOrEqual(centre.viewportHeight);
+    expect(centre.clientHeight).toBe(centre.viewportHeight);
+
+    // A tap on a neighbour selects it rather than entering it.
+    await page.locator('#keystone-tintern').click();
+    await expect(page.locator('#keystone-tintern')).toHaveAttribute('data-pos', '0');
+    await expect(page).toHaveURL(/\/try-rise$/u);
 });
 
 test('the visual navigator exposes complete Field and Text roots without a mobile dead lane', async ({ page }) => {

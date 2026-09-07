@@ -3,7 +3,8 @@
  *
  * rise.kernel-request.v1 may carry `caption`. Omitted keeps today's
  * Chamber-identical MP4 paint (glass allowed). When present, glass is
- * forced off and the spoken atom is drawn as a stroked caption.
+ * forced off and the spoken atom is drawn as a caption.
+ * `edgeColor: "none"` skips the stroke.
  *
  * Defaults (CSS px at 1080-wide):
  *   fontFamily  "Helvetica Neue", Arial, sans-serif
@@ -67,7 +68,7 @@ export function resolveCaptionStyle(caption) {
       : DEFAULT_CAPTION_FONT_FAMILY,
     fontSize: Number.isFinite(fontSize) && fontSize > 0 ? fontSize : DEFAULT_CAPTION_FONT_SIZE,
     color: normalizeColor(caption.color, DEFAULT_CAPTION_COLOR),
-    edgeColor: normalizeColor(caption.edgeColor, DEFAULT_CAPTION_EDGE_COLOR),
+    edgeColor: resolveEdgeColor(caption.edgeColor),
     position: resolvePosition(caption.position)
   });
 }
@@ -90,6 +91,13 @@ export function captionTextRegion(width, height, caption) {
     width: regionWidth,
     height: regionHeight
   };
+}
+
+function resolveEdgeColor(value) {
+  if (value === 'none' || value === false || value === null) return null;
+  if (typeof value === 'string' && value.trim().toLowerCase() === 'none') return null;
+  if (value === undefined || value === '') return DEFAULT_CAPTION_EDGE_COLOR;
+  return normalizeColor(value, DEFAULT_CAPTION_EDGE_COLOR);
 }
 
 function resolvePosition(position) {

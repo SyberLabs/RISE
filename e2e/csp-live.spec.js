@@ -11,7 +11,8 @@ import { test, expect } from '@playwright/test';
  * therefore reach the model.
  *
  * Skipped when RISE_LIVE is unset, so an offline run does not fail on
- * a network it cannot reach.
+ * a network it cannot reach. The public name is rise.syberlabs.space;
+ * this probe keeps the Netlify origin so it does not depend on DNS.
  */
 const LIVE = 'https://rise-v2-symbolic-experience.netlify.app/';
 

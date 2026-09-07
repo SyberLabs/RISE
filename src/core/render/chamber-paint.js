@@ -149,7 +149,9 @@ export async function openChamberPainter({
   scale = 1,
   inventory = {},
   ffmpegLog = console.log,
-  caption
+  caption,
+  drawMs,
+  holdMs
 } = {}) {
   if (!plan) fail('RENDER_CHAMBER_PLAN', 'Chamber paint needs a compiled plan', '$.plan');
   const view = chamberView(plan, scale);
@@ -280,6 +282,8 @@ export async function openChamberPainter({
         cue: run?.cue || { kind: 'still' },
         elapsedMs: run ? timeMs - run.fromMs : 0,
         durationMs: run ? run.toMs - run.fromMs : 0,
+        drawMs,
+        holdMs,
         seed: currentPlan.seed,
         stillId: stillFrame.stillId,
         incomingStillId: stillFrame.incomingStillId,
