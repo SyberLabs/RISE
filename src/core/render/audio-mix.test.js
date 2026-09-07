@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { mixAudio, peakAmplitude, measureLoudnessLufs } from './audio-mix.js';
+import { mixAudio, peakAmplitude, measureLoudnessLufs, OFFLINE_SOUNDSCAPE_IDS } from './audio-mix.js';
+import { SOUNDSCAPES } from '../../audio/soundscapes.js';
 import { encodeWav } from './wav.js';
 import { RenderError } from './errors.js';
 import { resolveVoicePackEntry, VOICE_PACK_SCHEMA, voiceAssetKey } from '../../audio/voice-pack.js';
@@ -242,5 +243,44 @@ describe('spoken PCM mix', () => {
     const plan = spokenPlan({ text: 'Happy families are all alike' });
     expect(() => mixAudio(plan, { sampleRate: 8_000 }))
       .toThrow(expect.objectContaining({ code: 'RENDER_AUDIO_MISSING' }));
+  });
+});
+
+describe('named soundscape beds', () => {
+  function bedPlan(soundscapeId, durationMs = 2000) {
+    return {
+      durationMs,
+      loudnessLufs: null,
+      audioRuns: [{
+        cueId: 'bed',
+        cueKind: 'audio:soundscape',
+        cue: { kind: 'soundscape', soundscapeId },
+        fromMs: 0,
+        toMs: durationMs,
+        fadeMs: 0,
+        gain: 1
+      }],
+      narrationRuns: []
+    };
+  }
+
+  it('names an offline bed for every soundscape the app offers', () => {
+    expect([...OFFLINE_SOUNDSCAPE_IDS].sort()).toEqual(Object.keys(SOUNDSCAPES).sort());
+  });
+
+  it('gives each soundscape its own bed instead of one shared drone', () => {
+    const aurora = mixAudio(bedPlan('aurora'), { sampleRate: 8_000 });
+    const faded = mixAudio(bedPlan('faded-signal'), { sampleRate: 8_000 });
+    expect(aurora.pcm.length).toBe(faded.pcm.length);
+    let differing = 0;
+    for (let i = 0; i < aurora.pcm.length; i += 1) {
+      if (Math.abs(aurora.pcm[i] - faded.pcm[i]) > 1e-4) differing += 1;
+    }
+    expect(differing / aurora.pcm.length).toBeGreaterThan(0.9);
+  });
+
+  it('refuses a soundscape with no offline bed rather than substituting one', () => {
+    expect(() => mixAudio(bedPlan('sea-organ'), { sampleRate: 8_000 }))
+      .toThrow(expect.objectContaining({ code: 'RENDER_AUDIO_UNSUPPORTED' }));
   });
 });
