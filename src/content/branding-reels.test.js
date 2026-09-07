@@ -2,22 +2,22 @@ import { describe, expect, it } from 'vitest';
 import { CANON_IDS } from './archive/canon.js';
 import DIVISION_INDEX from './archive/division-index.json' with { type: 'json' };
 import {
-  BRANDING_CAPTION,
-  BRANDING_DRAW_MS,
-  BRANDING_HOLD_MS,
+  BRANDING_LIVERIES,
+  BRANDING_LIVERY_IDS,
   BRANDING_MAX_WORDS,
   BRANDING_MIN_WORDS,
+  BRANDING_PLATE_TIMING,
   BRANDING_REELS,
+  BRANDING_SHORT_MAX_WORDS,
+  BRANDING_SHORT_MIN_WORDS,
+  brandingPresentation,
   brandingProgram,
   brandingSource,
+  brandingVisualFamily,
+  brandingWordWindow,
   clipToReadingWindow,
   gatherReading
 } from './branding-reels.js';
-import {
-  figureEpisodeAt,
-  figureEpisodeSeed,
-  scoredFigureProgress
-} from '../core/visual-presence.js';
 import { lowerExperienceProgram } from '../core/experience-program.js';
 import { cueForAtom } from '../core/visual-scheduler.js';
 import { classifyCue } from '../core/render/support.js';
@@ -62,20 +62,28 @@ describe('clipToReadingWindow', () => {
 });
 
 describe('BRANDING_REELS', () => {
-  it('is thirty unique canon pairings, each a different text and a different visual', () => {
-    expect(BRANDING_REELS).toHaveLength(30);
+  it('pairs every reel with a distinct passage and a known livery', () => {
+    expect(BRANDING_REELS.length).toBeGreaterThanOrEqual(36);
     const ids = BRANDING_REELS.map(reel => reel.id);
-    expect(new Set(ids).size).toBe(30);
+    expect(new Set(ids).size).toBe(ids.length);
     const texts = BRANDING_REELS.map(reel => `${reel.workId}::${reel.division}`);
-    expect(new Set(texts).size).toBe(30);
-    const visuals = BRANDING_REELS.map(reel => JSON.stringify(reel.visual));
-    expect(new Set(visuals).size).toBe(30);
+    expect(new Set(texts).size).toBe(texts.length);
     for (const reel of BRANDING_REELS) {
       expect(CANON_IDS.has(reel.workId), reel.workId).toBe(true);
       const labels = DIVISION_INDEX[reel.workId]?.labels || [];
-      expect(labels, reel.division).toContain(reel.division);
+      expect(labels, `${reel.id}: ${reel.division}`).toContain(reel.division);
       expect(['aurora', 'faded-signal']).toContain(reel.soundscape);
+      expect(BRANDING_LIVERY_IDS, reel.id).toContain(reel.livery);
+      expect(['short', 'standard'], reel.id).toContain(reel.length);
     }
+  });
+
+  it('uses all three liveries and both lengths so the batch has range', () => {
+    for (const livery of BRANDING_LIVERY_IDS) {
+      expect(BRANDING_REELS.some(reel => reel.livery === livery), livery).toBe(true);
+    }
+    expect(BRANDING_REELS.some(reel => reel.length === 'short')).toBe(true);
+    expect(BRANDING_REELS.some(reel => reel.length === 'standard')).toBe(true);
   });
 
   it('covers procedural fields, attractors, and CC0 collections', () => {
@@ -86,40 +94,48 @@ describe('BRANDING_REELS', () => {
     expect(BRANDING_REELS.some(reel => reel.visual.collections?.includes('aic-landscapes'))).toBe(true);
     expect(BRANDING_REELS.some(reel => reel.visual.collections?.includes('sci-astronomy'))).toBe(true);
   });
+
+  it('reaches every plate surface, so no engine ships untested by the slate', () => {
+    const families = new Set(BRANDING_REELS.map(reel => brandingVisualFamily(reel.visual)));
+    for (const family of Object.keys(BRANDING_PLATE_TIMING)) {
+      expect(families, family).toContain(family);
+    }
+  });
 });
 
-describe('BRANDING_DRAW_MS', () => {
-  it('finishes the branding figure in two seconds even on a long take', () => {
-    expect(BRANDING_DRAW_MS).toBe(2000);
-    expect(scoredFigureProgress(0, 48_000, BRANDING_DRAW_MS)).toBe(0);
-    expect(scoredFigureProgress(BRANDING_DRAW_MS, 48_000, BRANDING_DRAW_MS)).toBe(1);
-    expect(scoredFigureProgress(1_000, 48_000, BRANDING_DRAW_MS)).toBeLessThan(1);
-    expect(scoredFigureProgress(BRANDING_DRAW_MS, 48_000)).toBeLessThan(0.2);
+describe('brandingPresentation', () => {
+  it('gives every plate surface a cadence, so no take is one frozen still', () => {
+    for (const reel of BRANDING_REELS) {
+      const family = brandingVisualFamily(reel.visual);
+      if (family === 'attractor' || family === 'sourced') continue;
+      const { drawMs, holdMs, dissolveMs } = brandingPresentation(reel);
+      expect(drawMs, reel.id).toBeGreaterThan(0);
+      expect(holdMs, reel.id).toBeGreaterThanOrEqual(0);
+      // A plate must be fully faded in well before its own episode ends.
+      expect(dissolveMs, reel.id).toBeLessThan(drawMs);
+    }
   });
 
-  it('holds the completed figure briefly, then starts a new seed', () => {
-    expect(BRANDING_HOLD_MS).toBe(1200);
-    const episodeMs = BRANDING_DRAW_MS + BRANDING_HOLD_MS;
+  it('carries the reel livery and lets framing override the family default', () => {
+    const covered = BRANDING_REELS.find(reel => reel.framing?.fit === 'cover');
+    expect(brandingPresentation(covered).fit).toBe('cover');
+    expect(BRANDING_PLATE_TIMING.sourced.fit).toBe('plate');
+    const matted = BRANDING_REELS.find(reel =>
+      reel.visual.kind === 'sourced' && !reel.framing);
+    expect(brandingPresentation(matted).fit).toBe('plate');
+    const glass = BRANDING_REELS.find(reel => reel.livery === 'glass');
+    expect(brandingPresentation(glass).caption).toBe(BRANDING_LIVERIES.glass);
+    expect(resolveCaptionStyle(BRANDING_LIVERIES.glass).glass).toBe(true);
+    expect(resolveCaptionStyle(BRANDING_LIVERIES.ink).edgeColor).toBeNull();
+    expect(resolveCaptionStyle(BRANDING_LIVERIES.signal).edgeColor).toBe('#1A140C');
+  });
 
-    const opening = figureEpisodeAt(0, BRANDING_DRAW_MS, BRANDING_HOLD_MS);
-    expect(opening.index).toBe(0);
-    expect(opening.elapsedMs).toBe(0);
-    expect(figureEpisodeSeed('take', opening.index)).toBe('take');
-
-    const justDrawn = figureEpisodeAt(BRANDING_DRAW_MS, BRANDING_DRAW_MS, BRANDING_HOLD_MS);
-    expect(justDrawn.index).toBe(0);
-    expect(scoredFigureProgress(justDrawn.elapsedMs, 48_000, BRANDING_DRAW_MS)).toBe(1);
-
-    const stillHeld = figureEpisodeAt(episodeMs - 1, BRANDING_DRAW_MS, BRANDING_HOLD_MS);
-    expect(stillHeld.index).toBe(0);
-    expect(scoredFigureProgress(stillHeld.elapsedMs, 48_000, BRANDING_DRAW_MS)).toBe(1);
-
-    const next = figureEpisodeAt(episodeMs, BRANDING_DRAW_MS, BRANDING_HOLD_MS);
-    expect(next.index).toBe(1);
-    expect(next.elapsedMs).toBe(0);
-    expect(scoredFigureProgress(next.elapsedMs, 48_000, BRANDING_DRAW_MS)).toBe(0);
-    expect(figureEpisodeSeed('take', next.index)).toBe('take:figure:1');
-    expect(figureEpisodeSeed('take', 2)).toBe('take:figure:2');
+  it('reads a short reel in about twenty seconds and a standard one in about forty-five', () => {
+    expect(brandingWordWindow({ length: 'short' }))
+      .toEqual({ minWords: BRANDING_SHORT_MIN_WORDS, maxWords: BRANDING_SHORT_MAX_WORDS });
+    expect(brandingWordWindow({ length: 'standard' }))
+      .toEqual({ minWords: BRANDING_MIN_WORDS, maxWords: BRANDING_MAX_WORDS });
+    expect(BRANDING_SHORT_MAX_WORDS).toBeLessThan(BRANDING_MIN_WORDS);
   });
 });
 
@@ -133,14 +149,6 @@ describe('brandingProgram', () => {
       .toEqual(reel.visual);
     expect(program.tracks.find(track => track.kind === 'audio').clips[0].cue.soundscapeId)
       .toBe(reel.soundscape);
-    expect(BRANDING_CAPTION).toEqual({
-      fontFamily: '"Helvetica Neue", Arial, sans-serif',
-      fontSize: 64,
-      color: '#F4C430',
-      edgeColor: '#1A140C',
-      position: { x: 0.5, y: 0.76 }
-    });
-    expect(resolveCaptionStyle(BRANDING_CAPTION).edgeColor).toBe('#1A140C');
   });
 
   it('anchors the visual cue to the source id so Chamber does not paint a still', () => {
@@ -153,6 +161,6 @@ describe('brandingProgram', () => {
       sourceProgress: 0.4
     });
     expect(source.id).toBe(`branding-${reel.id}`);
-    expect(classifyCue(hit.cue, 'visual')).toBe('visual:procedural:fractal');
+    expect(classifyCue(hit.cue, 'visual')).toBe('visual:procedural:klee');
   });
 });

@@ -7,7 +7,7 @@
  *   node scripts/render-branding.mjs --id meditations-fractal
  *   node scripts/render-branding.mjs --skip-existing --out out/branding
  */
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { compileSession } from '../src/core/session-compiler.js';
@@ -22,14 +22,14 @@ import { MuseumProvider } from '../src/sources/visual/museum.js';
 import { SCIENCE_PREFIX } from '../src/content/science/imagery/provider.js';
 import { ingestedArchiveTexts } from '../src/content/archive/index.js';
 import {
-  BRANDING_CAPTION,
-  BRANDING_DRAW_MS,
-  BRANDING_HOLD_MS,
+  BRANDING_MAX_BITRATE_KBPS,
   BRANDING_PROFILE_ID,
   BRANDING_REELS,
   BRANDING_WPM,
+  brandingPresentation,
   brandingProgram,
   brandingSource,
+  brandingWordWindow,
   gatherReading
 } from '../src/content/branding-reels.js';
 import { installContentPlaneFetch } from './lib/content-plane-fetch.mjs';
@@ -67,7 +67,7 @@ async function resolveText(reel) {
   if (startIndex < 0) {
     throw new Error(`${reel.workId} has no division “${reel.division}”`);
   }
-  const text = gatherReading(entries, startIndex);
+  const text = gatherReading(entries, startIndex, brandingWordWindow(reel));
   if (!text) throw new Error(`${reel.id} resolved to empty text`);
   return brandingSource(reel, text, {
     metadata: {
@@ -210,6 +210,8 @@ async function admitCollection(collectionId, title) {
 }
 
 async function encodeTake(stage, reel, compiled, outputPath) {
+  // Presentation moves per take; the browser and Vite server do not.
+  await stage.setStyle(brandingPresentation(reel));
   await stage.setPlan(compiled.plan);
   await stage.setStills(compiled.stills);
   const audio = mixAudio(compiled.plan);
@@ -218,6 +220,7 @@ async function encodeTake(stage, reel, compiled, outputPath) {
     frameRate: compiled.plan.frameRate,
     audio,
     outputPath,
+    maxBitrateKbps: BRANDING_MAX_BITRATE_KBPS,
     frames: async (index) => {
       if (index >= compiled.plan.frameCount) return null;
       return stage.capture(index);
@@ -229,6 +232,42 @@ async function stillsFor(reel) {
   if (reel.visual.kind !== 'sourced') return [];
   const collectionId = reel.visual.collections[0];
   return admitCollection(collectionId, reel.title);
+}
+
+/**
+ * Merge this run's results into whatever the directory already records,
+ * keyed by reel id. `--id` and `--skip-existing` exist to render part of
+ * the slate; replacing the manifest wholesale meant a one-reel touch-up
+ * erased the record of the other forty.
+ */
+function writeManifest(dir, results) {
+  const path = join(dir, 'manifest.json');
+  const merged = new Map();
+  if (existsSync(path)) {
+    try {
+      for (const item of JSON.parse(readFileSync(path, 'utf8')).results || []) {
+        if (item?.id) merged.set(item.id, item);
+      }
+    } catch {
+      // An unreadable manifest is replaced, not repaired.
+    }
+  }
+  for (const item of results) merged.set(item.id, item);
+  const all = [...merged.values()];
+  const manifest = {
+    out: dir,
+    scale,
+    caption: true,
+    profile: BRANDING_PROFILE_ID,
+    counts: {
+      wrote: all.filter(item => item.status === 'wrote').length,
+      skipped: all.filter(item => item.status === 'skipped' || item.status === 'exists').length,
+      failed: all.filter(item => item.status === 'failed').length
+    },
+    results: all
+  };
+  writeFileSync(path, `${JSON.stringify(manifest, null, 2)}\n`);
+  return manifest;
 }
 
 async function main() {
@@ -282,9 +321,7 @@ async function main() {
     plan: prepared[0].compiled.plan,
     scale,
     inventory: {},
-    caption: BRANDING_CAPTION,
-    drawMs: BRANDING_DRAW_MS,
-    holdMs: BRANDING_HOLD_MS,
+    ...brandingPresentation(prepared[0].reel),
     ffmpegLog: console.log
   });
   await stage.setStills(prepared[0].compiled.stills);
@@ -299,6 +336,9 @@ async function main() {
           title: item.reel.title,
           status: 'wrote',
           path: item.outputPath,
+          livery: item.reel.livery,
+          length: item.reel.length,
+          bytes: statSync(item.outputPath).size,
           frames: item.compiled.plan.frameCount,
           durationMs: item.compiled.plan.durationMs
         });
@@ -316,19 +356,7 @@ async function main() {
     await stage.close();
   }
 
-  const manifest = {
-    out: outRoot,
-    scale,
-    caption: true,
-    profile: BRANDING_PROFILE_ID,
-    counts: {
-      wrote: results.filter(item => item.status === 'wrote').length,
-      skipped: results.filter(item => item.status === 'skipped' || item.status === 'exists').length,
-      failed: results.filter(item => item.status === 'failed').length
-    },
-    results
-  };
-  writeFileSync(join(outRoot, 'manifest.json'), `${JSON.stringify(manifest, null, 2)}\n`);
+  const manifest = writeManifest(outRoot, results);
   console.log(`\nBranding reels · ${manifest.counts.wrote} wrote · ${manifest.counts.skipped} skipped · ${manifest.counts.failed} failed`);
   console.log(outRoot);
 }

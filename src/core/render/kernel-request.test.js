@@ -75,8 +75,15 @@ describe('kernel request hopper', () => {
     expect(defaults.caption).toEqual({
       fontFamily: '"Helvetica Neue", Arial, sans-serif',
       fontSize: 42,
+      fontWeight: 600,
+      lineHeight: 1.28,
+      letterSpacing: 0,
+      maxWidth: 0.9,
       color: '#FFFFFF',
       edgeColor: '#000000',
+      shadow: null,
+      scrim: null,
+      glass: false,
       position: 'bottom-center'
     });
     const override = buildKernelRequest({
