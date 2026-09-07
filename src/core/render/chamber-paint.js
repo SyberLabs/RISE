@@ -91,14 +91,22 @@ function stillsFromInventory(inventory = {}) {
   return stills;
 }
 
+const STILL_REST = Object.freeze({
+  stillId: null,
+  incomingStillId: null,
+  dissolve: 1,
+  outgoingPhase: 0,
+  incomingPhase: 0
+});
+
 function stillFrameFor(run, stills, timeMs) {
-  if (!stills.length || !run) return { stillId: null, incomingStillId: null, dissolve: 1 };
+  if (!stills.length || !run) return STILL_REST;
   const personalId = run.cue?.config?.personalAssetId;
   if (personalId && stills.some(item => item.id === personalId)) {
-    return { stillId: personalId, incomingStillId: null, dissolve: 1 };
+    return { ...STILL_REST, stillId: personalId };
   }
   if (run.assetId && stills.some(item => item.id === run.assetId)) {
-    return { stillId: run.assetId, incomingStillId: null, dissolve: 1 };
+    return { ...STILL_REST, stillId: run.assetId };
   }
   if (run.cueKind === 'visual:sourced:gallery' || run.cueKind === 'visual:sourced:collection') {
     const elapsedMs = Math.max(0, timeMs - (run.fromMs || 0));
@@ -109,13 +117,20 @@ function stillFrameFor(run, stills, timeMs) {
     });
     const outgoing = wall.outgoingIndex == null ? null : stills[wall.outgoingIndex];
     const incoming = wall.incomingIndex == null ? null : stills[wall.incomingIndex];
+    // How long each work has been on the wall, as a fraction of one dwell.
+    // The outgoing work is always at least one full dwell old, so it holds
+    // at the end of its slow zoom while the incoming work starts its own.
+    const period = Math.max(1, wall.dwellMs);
+    const into = elapsedMs % period;
     return {
       stillId: outgoing?.id || incoming?.id || null,
       incomingStillId: outgoing && incoming && outgoing.id !== incoming.id ? incoming.id : null,
-      dissolve: outgoing ? wall.mix : (incoming ? wall.mix : 1)
+      dissolve: outgoing ? wall.mix : (incoming ? wall.mix : 1),
+      outgoingPhase: 1,
+      incomingPhase: into / period
     };
   }
-  return { stillId: null, incomingStillId: null, dissolve: 1 };
+  return STILL_REST;
 }
 
 function outputSize(plan, scale) {
@@ -151,7 +166,11 @@ export async function openChamberPainter({
   ffmpegLog = console.log,
   caption,
   drawMs,
-  holdMs
+  holdMs,
+  dissolveMs,
+  zoom,
+  drift,
+  fit
 } = {}) {
   if (!plan) fail('RENDER_CHAMBER_PLAN', 'Chamber paint needs a compiled plan', '$.plan');
   const view = chamberView(plan, scale);
@@ -201,6 +220,10 @@ export async function openChamberPainter({
 
   let stills = stillsFromInventory(inventory);
   let currentPlan = plan;
+  // Presentation, not score: how a plate is framed and how the words are
+  // set. One stage serves a whole batch, so these move per take while the
+  // browser and Vite server stay up.
+  let style = { caption, drawMs, holdMs, dissolveMs, zoom, drift, fit };
   let appliedCaption = resolveCaptionStyle(caption);
   const kinds = [...new Set((plan.visualRuns || []).map(run => run.cueKind))].join(', ') || 'visual:still';
 
@@ -261,6 +284,16 @@ export async function openChamberPainter({
     },
     async setPlan(nextPlan) {
       currentPlan = nextPlan;
+      await page.evaluate(() => window.__stage.resetEpisodes());
+    },
+    /** Restyle for the next take without restarting Chromium or Vite. */
+    async setStyle(next = {}) {
+      style = { ...style, ...next };
+      appliedCaption = await page.evaluate(async (caption) => {
+        await window.__stage.applyCaption(caption);
+        return window.__stage.caption || null;
+      }, style.caption);
+      return appliedCaption;
     },
     async setStills(nextStills = []) {
       stills = nextStills;
@@ -282,13 +315,19 @@ export async function openChamberPainter({
         cue: run?.cue || { kind: 'still' },
         elapsedMs: run ? timeMs - run.fromMs : 0,
         durationMs: run ? run.toMs - run.fromMs : 0,
-        drawMs,
-        holdMs,
+        drawMs: style.drawMs,
+        holdMs: style.holdMs,
+        dissolveMs: style.dissolveMs,
+        zoom: style.zoom,
+        drift: style.drift,
+        fit: style.fit,
         seed: currentPlan.seed,
         stillId: stillFrame.stillId,
         incomingStillId: stillFrame.incomingStillId,
         dissolve: stillFrame.dissolve,
-        caption
+        outgoingPhase: stillFrame.outgoingPhase,
+        incomingPhase: stillFrame.incomingPhase,
+        caption: style.caption
       });
       if (frameIndex === 0 || (frameIndex + 1) % 30 === 0) {
         ffmpegLog(`Chamber frame ${frameIndex + 1}/${currentPlan.frameCount}`);

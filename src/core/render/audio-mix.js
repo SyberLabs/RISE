@@ -1,8 +1,8 @@
 /**
  * Offline audio-bed mixer.
  *
- * Named soundscapes lower to a pinned harmonic series (the live halo
- * scheduler is not authority). Silence is zeros. Hold continues the last
+ * Each named soundscape lowers to its own pinned harmonic series (the live
+ * halo scheduler is not authority). Silence is zeros. Hold continues the last
  * generative bed. Missing named audio refuses — it does not invent a bed.
  * Spoken narration mixes recitation / assigned PCM; it never emits a tone.
  */
@@ -13,12 +13,44 @@ import { audioRunAt, narrationRunAt } from './plan.js';
 import { duckGainAt } from '../narration.js';
 import { renderSpokenPcm } from './voice-pcm.js';
 
-const AURORA = Object.freeze({
-  root: 108,
-  ratios: Object.freeze([1, 5 / 4, 3 / 2, 2, 5 / 2]),
-  levels: Object.freeze([0.22, 0.16, 0.13, 0.1, 0.07]),
-  pans: Object.freeze([-0.2, 0.35, -0.5, 0.55, 0.1])
+/**
+ * ONE LOWERING PER NAMED SOUNDSCAPE.
+ *
+ * These are pinned transcriptions of `src/audio/soundscapes.js` — the same
+ * roots, ratios, voice levels and pan positions the live halo uses, plus the
+ * one gesture that gives each its character: Aurora's slow breath across the
+ * partials, Faded Signal's tape drift in cents. The live scheduler is not
+ * authority here and cannot be: it needs an AudioContext.
+ *
+ * Every id in this table must exist in SOUNDSCAPES. An id that is not in this
+ * table refuses rather than borrowing another bed — every export used to be
+ * Aurora regardless of what the score asked for, so a whole slate of clips
+ * shared one drone and nobody could hear that the score was being ignored.
+ */
+const BEDS = Object.freeze({
+  aurora: Object.freeze({
+    root: 108,
+    ratios: Object.freeze([1, 5 / 4, 3 / 2, 2, 5 / 2, 3, 15 / 4, 4]),
+    levels: Object.freeze([0.245, 0.17, 0.145, 0.112, 0.086, 0.068, 0.052, 0.04]),
+    pans: Object.freeze([-0.12, 0.34, -0.46, 0.55, -0.66, 0.73, -0.82, 0.88]),
+    shapes: Object.freeze([0.79, 0.93, 1.07, 1.21, 0.86, 1.14, 0.72, 1.28]),
+    motion: 0.04,
+    breath: 0.22,
+    driftCents: 0
+  }),
+  'faded-signal': Object.freeze({
+    root: 108,
+    ratios: Object.freeze([1, 9 / 8, 4 / 3, 3 / 2, 2, 9 / 4]),
+    levels: Object.freeze([0.25, 0.17, 0.14, 0.105, 0.075, 0.052]),
+    pans: Object.freeze([-0.24, 0.34, -0.48, 0.58, -0.72, 0.8]),
+    shapes: Object.freeze([-1, 1, 1, -1, -1, 1]),
+    motion: 0.035,
+    breath: 0.12,
+    driftCents: 4.5
+  })
 });
+
+export const OFFLINE_SOUNDSCAPE_IDS = Object.freeze(Object.keys(BEDS));
 
 const TONE = Object.freeze({
   focus: 216,
@@ -43,12 +75,20 @@ function fadeGain(ms, run) {
 function sampleBed(kind, cue, timeSec, channel) {
   if (kind === 'audio:silence') return 0;
   if (kind === 'audio:soundscape') {
+    const bed = BEDS[cue?.soundscapeId];
+    if (!bed) return 0;
     let sample = 0;
-    for (let i = 0; i < AURORA.ratios.length; i += 1) {
-      const freq = AURORA.root * AURORA.ratios[i];
-      const pan = AURORA.pans[i];
+    for (let i = 0; i < bed.ratios.length; i += 1) {
+      // The wow LFO both detunes (tape drift, in cents) and breathes the
+      // partial's level, so a long take never settles into a dead stack
+      // of sines. Each partial rides its own shape, one cycle per motion.
+      const wow = Math.sin(2 * Math.PI * bed.motion * timeSec * Math.abs(bed.shapes[i]) + i);
+      const cents = bed.driftCents * Math.sign(bed.shapes[i] || 1) * wow;
+      const freq = bed.root * bed.ratios[i] * (2 ** (cents / 1200));
+      const pan = bed.pans[i];
       const width = channel === 0 ? 1 - Math.max(0, pan) : 1 + Math.min(0, pan);
-      sample += Math.sin(2 * Math.PI * freq * timeSec) * AURORA.levels[i] * width;
+      const level = bed.levels[i] * (1 + bed.breath * wow);
+      sample += Math.sin(2 * Math.PI * freq * timeSec) * level * width;
     }
     return sample;
   }
@@ -126,6 +166,12 @@ export function mixAudio(plan, {
   const pcm = new Float32Array(frames * channels);
   let held = { cueKind: 'audio:silence', cue: { kind: 'silence' }, fadeMs: 0, gain: 1 };
   for (const run of plan.audioRuns) {
+    if (run.cueKind === 'audio:soundscape' && !BEDS[run.cue?.soundscapeId]) {
+      fail('RENDER_AUDIO_UNSUPPORTED',
+        `Soundscape ${run.cue?.soundscapeId || '(unnamed)'} has no offline bed`,
+        '$.audioRuns',
+        { soundscapeId: run.cue?.soundscapeId || null });
+    }
     if (run.toMs <= start && run.cueKind !== 'audio:hold' && run.cueKind !== 'audio:silence') {
       held = run;
     }

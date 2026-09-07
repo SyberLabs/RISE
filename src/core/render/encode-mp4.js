@@ -79,7 +79,8 @@ export async function encodeMp4({
   audio,
   outputPath,
   frameRate,
-  ffmpegPath = null
+  ffmpegPath = null,
+  maxBitrateKbps = null
 } = {}) {
   if (!outputPath || typeof outputPath !== 'string') {
     fail('RENDER_ENCODE_PATH', 'encodeMp4 needs an output path', '$.outputPath');
@@ -118,6 +119,14 @@ export async function encodeMp4({
     '-c:v', 'libx264',
     '-preset', 'veryfast',
     '-crf', '18',
+    // A ceiling, not a target: CRF still decides quality and most takes
+    // never reach it. It exists because a drifting fractal is nearly
+    // unpredictable frame to frame and will spend 20 Mbit/s if allowed —
+    // a master no delivery path wants and no platform will keep.
+    // Omitted (the kernel and archive profiles) encodes exactly as before.
+    ...(maxBitrateKbps
+      ? ['-maxrate', `${maxBitrateKbps}k`, '-bufsize', `${maxBitrateKbps * 2}k`]
+      : []),
     '-pix_fmt', 'yuv420p',
     '-c:a', 'aac',
     '-b:a', '192k',

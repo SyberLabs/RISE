@@ -33,10 +33,10 @@ import {
 } from '../../visuals/work-engines.js';
 import { TIME_SCALE } from '../../visuals/work-engine-field.js';
 import {
-  resolveCaptionStyle,
   captionAllowsGlass,
   captionAnchor,
-  captionCssFontSize
+  captionCssFontSize,
+  resolveCaptionStyle
 } from './caption-style.js';
 
 const VOID = KLEE_CHAMBER_BACKGROUND;
@@ -49,12 +49,51 @@ const CAPTION_VARS = [
   '--caption-edge'
 ];
 
+/**
+ * PLATE KINDS CYCLE. Every one of these draws a complete composition
+ * from one seed and then has nothing further to say, so a take longer
+ * than one plate must start another — otherwise the clip is a single
+ * still stretched over its whole duration, which is what fractal,
+ * neural, Turrell and Rock Garden used to be. Only the first five ever
+ * cycled, because the old gate asked "does a pen draw this?" rather
+ * than "is this one plate?".
+ *
+ * Attractor, focals, work engines and stills are absent deliberately:
+ * each already advances on its own clock.
+ */
+const PLATE_KINDS = new Set([
+  'visual:procedural:klee',
+  'visual:field:genesis',
+  'visual:procedural:harmonograph',
+  'visual:procedural:ostensoria',
+  'visual:procedural:apparitio',
+  'visual:procedural:fractal',
+  'visual:procedural:neural',
+  'visual:procedural:turrell',
+  'visual:procedural:rockgarden'
+]);
+
+/** Kinds whose engine animates across the episode rather than resolving at once. */
+const PEN_KINDS = new Set([
+  'visual:procedural:klee',
+  'visual:field:genesis',
+  'visual:procedural:harmonograph',
+  'visual:procedural:ostensoria',
+  'visual:procedural:apparitio'
+]);
+
+const DEFAULT_DISSOLVE_MS = 700;
+const DEFAULT_DRIFT = 0.06;
+
+/** Where a matted work is centred, leaving the lower frame to the caption. */
+const PLATE_CENTER_Y = 0.37;
+
 function paintAtom(el, text, showGlass) {
   const content = stripEmphasis(text || '');
   el.textContent = content;
   if (stage.caption) {
     el.style.removeProperty('--atom-scale');
-    el.classList.remove('glass-tile');
+    el.classList.toggle('glass-tile', Boolean(showGlass && content));
     return;
   }
   el.style.setProperty('--atom-scale', String(sizeAtomScale(content)));
@@ -143,14 +182,6 @@ function pinKleePreset(seed, authored) {
   return pick(`${seed}:genesis-preset`, KLEE_PRESET_NAMES);
 }
 
-function isFigureDrawKind(kind) {
-  return kind === 'visual:procedural:klee'
-    || kind === 'visual:field:genesis'
-    || kind === 'visual:procedural:harmonograph'
-    || kind === 'visual:procedural:ostensoria'
-    || kind === 'visual:procedural:apparitio';
-}
-
 function hashSeed(seed) {
   const rng = createSeededRandom(String(seed));
   return Math.floor(rng() * 0xffffff);
@@ -166,6 +197,55 @@ function clearVoid(canvas) {
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 }
 
+function clamp01(value) {
+  return Math.max(0, Math.min(1, Number(value) || 0));
+}
+
+function easeInOut(t) {
+  const x = clamp01(t);
+  return x < 0.5 ? 2 * x * x : 1 - ((-2 * x + 2) ** 2) / 2;
+}
+
+function hexToRgb(hex) {
+  const long = /^#([0-9a-fA-F]{6})$/.exec(String(hex || '').trim());
+  if (!long) return { r: 10, g: 10, b: 12 };
+  return {
+    r: parseInt(long[1].slice(0, 2), 16),
+    g: parseInt(long[1].slice(2, 4), 16),
+    b: parseInt(long[1].slice(4, 6), 16)
+  };
+}
+
+function roundRectPath(ctx, x, y, w, h, r) {
+  const radius = Math.min(r, w / 2, h / 2);
+  ctx.beginPath();
+  ctx.moveTo(x + radius, y);
+  ctx.arcTo(x + w, y, x + w, y + h, radius);
+  ctx.arcTo(x + w, y + h, x, y + h, radius);
+  ctx.arcTo(x, y + h, x, y, radius);
+  ctx.arcTo(x, y, x + w, y, radius);
+  ctx.closePath();
+}
+
+/**
+ * Draw `source` to fill `canvas` at `scale`, panned by a fraction of the
+ * overhang the scale creates. Capping the pan at half the overhang is what
+ * keeps a drifting plate from sliding its own edge into frame.
+ */
+function drawScaled(ctx, source, canvasWidth, canvasHeight, scale, panAngle, panAmount, alpha = 1) {
+  if (!source || alpha <= 0) return;
+  const w = canvasWidth * Math.max(1, scale);
+  const h = canvasHeight * Math.max(1, scale);
+  const overhangX = (w - canvasWidth) / 2;
+  const overhangY = (h - canvasHeight) / 2;
+  const dx = Math.cos(panAngle) * overhangX * panAmount;
+  const dy = Math.sin(panAngle) * overhangY * panAmount;
+  ctx.save();
+  ctx.globalAlpha = clamp01(alpha);
+  ctx.drawImage(source, -overhangX + dx, -overhangY + dy, w, h);
+  ctx.restore();
+}
+
 function loadDataUrl(dataUrl) {
   return new Promise((resolve, reject) => {
     const img = new Image();
@@ -175,45 +255,94 @@ function loadDataUrl(dataUrl) {
   });
 }
 
-async function drawCover(canvas, image, alpha = 1) {
-  if (!image || alpha <= 0) return;
-  let source = null;
-  let width = 0;
-  let height = 0;
-  if (image?.dataUrl) {
+async function stillSource(image) {
+  if (!image) return null;
+  if (image.dataUrl) {
     if (!image._img) image._img = await loadDataUrl(image.dataUrl);
     const img = image._img;
-    source = img;
-    width = img.naturalWidth;
-    height = img.naturalHeight;
-  } else if (image?.width && image?.height && image.rgba) {
-    const pixels = new ImageData(
-      new Uint8ClampedArray(image.rgba),
-      image.width,
-      image.height
-    );
-    const off = document.createElement('canvas');
-    off.width = image.width;
-    off.height = image.height;
-    off.getContext('2d').putImageData(pixels, 0, 0);
-    source = off;
-    width = image.width;
-    height = image.height;
+    return { source: img, width: img.naturalWidth, height: img.naturalHeight };
   }
-  if (!source || !width || !height) return;
-  const scale = Math.max(canvas.width / width, canvas.height / height);
-  const tw = width * scale;
-  const th = height * scale;
-  const ctx = canvas.getContext('2d');
-  ctx.save();
-  ctx.globalAlpha = Math.max(0, Math.min(1, alpha));
-  ctx.drawImage(source, (canvas.width - tw) / 2, (canvas.height - th) / 2, tw, th);
-  ctx.restore();
+  if (image.width && image.height && image.rgba) {
+    if (!image._off) {
+      const pixels = new ImageData(new Uint8ClampedArray(image.rgba), image.width, image.height);
+      const off = document.createElement('canvas');
+      off.width = image.width;
+      off.height = image.height;
+      off.getContext('2d').putImageData(pixels, 0, 0);
+      image._off = off;
+    }
+    return { source: image._off, width: image.width, height: image.height };
+  }
+  return null;
 }
 
-async function coverImage(canvas, image) {
-  clearVoid(canvas);
-  await drawCover(canvas, image, 1);
+/**
+ * `cover` crops the work to the frame; `plate` contains the whole work
+ * over a blurred enlargement of itself. A portrait crop of a landscape
+ * painting throws away most of the painting, which is the wrong trade
+ * when the painting is the point.
+ */
+async function drawStill(canvas, image, {
+  alpha = 1,
+  fit = 'cover',
+  zoom = 1,
+  phase = 0,
+  drift = 0
+} = {}) {
+  const resolved = await stillSource(image);
+  if (!resolved || alpha <= 0) return;
+  const { source, width, height } = resolved;
+  if (!width || !height) return;
+  const ctx = canvas.getContext('2d');
+  const scale = zoom * (1 + drift * easeInOut(phase));
+  ctx.save();
+  ctx.globalAlpha = clamp01(alpha);
+  if (fit === 'plate') {
+    // Blurred ONCE per work, not once per frame. A 48px blur over a
+    // 1080×1920 backdrop is milliseconds in isolation and minutes across
+    // a take; the backdrop only changes when the work does.
+    if (!image._backdrop || image._backdropKey !== `${canvas.width}x${canvas.height}`) {
+      const coverScale = Math.max(canvas.width / width, canvas.height / height) * 1.25;
+      const backdrop = document.createElement('canvas');
+      backdrop.width = canvas.width;
+      backdrop.height = canvas.height;
+      const back = backdrop.getContext('2d');
+      back.fillStyle = VOID;
+      back.fillRect(0, 0, backdrop.width, backdrop.height);
+      back.filter = 'blur(48px) saturate(0.7) brightness(0.42)';
+      back.drawImage(
+        source,
+        (canvas.width - width * coverScale) / 2,
+        (canvas.height - height * coverScale) / 2,
+        width * coverScale,
+        height * coverScale
+      );
+      image._backdrop = backdrop;
+      image._backdropKey = `${canvas.width}x${canvas.height}`;
+    }
+    ctx.drawImage(image._backdrop, 0, 0);
+    // The height bound is tighter than the width bound on purpose. Fitting a
+    // portrait work to 88% of BOTH axes made it 88% of the frame's height,
+    // which put the bottom of the painting under the caption — the exact
+    // crowding the matting exists to prevent. 0.66 keeps every orientation
+    // inside the band above the words, drift included.
+    const fitScale = Math.min(
+      (canvas.width * 0.88) / width,
+      (canvas.height * 0.66) / height
+    ) * scale;
+    const tw = width * fitScale;
+    const th = height * fitScale;
+    ctx.shadowColor = 'rgba(0, 0, 0, 0.55)';
+    ctx.shadowBlur = canvas.width * 0.05;
+    ctx.drawImage(source, (canvas.width - tw) / 2, canvas.height * PLATE_CENTER_Y - th / 2, tw, th);
+    ctx.restore();
+    return;
+  }
+  const coverScale = Math.max(canvas.width / width, canvas.height / height) * scale;
+  const tw = width * coverScale;
+  const th = height * coverScale;
+  ctx.drawImage(source, (canvas.width - tw) / 2, (canvas.height - th) / 2, tw, th);
+  ctx.restore();
 }
 
 const stage = {
@@ -223,6 +352,11 @@ const stage = {
   seed: 'chamber-stage',
   caption: null,
   canvas: null,
+  work: null,
+  prev: null,
+  prevReady: false,
+  episodeKey: null,
+  atomText: '',
   host: null,
   field: null,
   stills: new Map(),
@@ -244,13 +378,35 @@ const stage = {
     canvas.setAttribute('aria-hidden', 'true');
     this.host.appendChild(canvas);
     this.canvas = canvas;
+    this.work = this.offscreen(width, height);
+    this.prev = this.offscreen(width, height);
+    this.scratch = this.offscreen(width, height);
+    this.resetEpisodes();
     this.replaceStills(stills);
     await document.fonts.load('400 72px "Crimson Pro"');
+    await document.fonts.load('600 72px "Crimson Pro"');
     await document.fonts.ready;
     this.ready = true;
     await this.teardown();
     clearVoid(canvas);
     paintAtom(document.getElementById('atom-display'), '', false);
+  },
+
+  offscreen(width, height) {
+    const canvas = document.createElement('canvas');
+    canvas.width = width;
+    canvas.height = height;
+    return canvas;
+  },
+
+  applyCaption(caption) {
+    return applyCaptionMode(caption, this.width);
+  },
+
+  /** A new take starts with no plate behind it to dissolve from. */
+  resetEpisodes() {
+    this.prevReady = false;
+    this.episodeKey = null;
   },
 
   cacheStill(still) {
@@ -300,26 +456,92 @@ const stage = {
     const durationMs = Number(state.durationMs) || 0;
     const drawMs = Number(state.drawMs);
     const holdMs = Number(state.holdMs);
+    const dissolveMs = Number.isFinite(Number(state.dissolveMs))
+      ? Number(state.dissolveMs)
+      : DEFAULT_DISSOLVE_MS;
+    const zoom = Math.max(1, Number(state.zoom) || 1);
+    const drift = Number.isFinite(Number(state.drift)) ? Number(state.drift) : DEFAULT_DRIFT;
     const seed = state.seed || this.seed;
     const resolved = this.resolveKind(cueKind, cue, seed);
-    const cycle = isFigureDrawKind(resolved.kind)
+    const plate = PLATE_KINDS.has(resolved.kind);
+    const cycle = plate
       && Number.isFinite(drawMs) && drawMs > 0
       && Number.isFinite(holdMs) && holdMs >= 0;
     const episode = figureEpisodeAt(elapsedMs, cycle ? drawMs : 0, holdMs);
     const paintSeed = cycle ? figureEpisodeSeed(seed, episode.index) : seed;
     const paintElapsed = cycle ? episode.elapsedMs : elapsedMs;
+    const episodeMs = cycle ? drawMs + holdMs : Math.max(1, durationMs);
     const progress = Number.isFinite(drawMs) && drawMs > 0
-      ? scoredFigureProgress(paintElapsed, durationMs, drawMs)
+      ? scoredFigureProgress(
+        PEN_KINDS.has(resolved.kind) ? paintElapsed : episodeMs,
+        durationMs,
+        drawMs
+      )
       : genesisProgressForRun(paintElapsed, durationMs);
     const showGlass = captionAllowsGlass(this.caption, resolved.glass);
     this.setFieldMode(resolved.mode);
+
+    const target = plate ? this.work : this.canvas;
+    const episodeKey = `${resolved.kind}:${episode.index}`;
+    if (plate && this.episodeKey !== null && this.episodeKey !== episodeKey) {
+      this.prev.getContext('2d').drawImage(this.canvas, 0, 0);
+      this.prevReady = true;
+    }
+    if (plate) this.episodeKey = episodeKey;
+
     await this.paintResolved(resolved, {
-      cue, elapsedMs: paintElapsed, durationMs, drawMs, progress, seed: paintSeed,
+      cue,
+      canvas: target,
+      elapsedMs: paintElapsed,
+      durationMs,
+      drawMs,
+      progress,
+      seed: paintSeed,
+      fit: state.fit,
+      zoom,
+      drift,
       stillId: state.stillId,
       incomingStillId: state.incomingStillId,
+      outgoingPhase: clamp01(state.outgoingPhase),
+      incomingPhase: clamp01(state.incomingPhase),
       dissolve: Number.isFinite(state.dissolve) ? state.dissolve : 1
     });
+
+    if (plate) {
+      this.presentPlate({
+        mix: dissolveMs > 0 ? clamp01(paintElapsed / dissolveMs) : 1,
+        zoom,
+        drift,
+        phase: clamp01(paintElapsed / episodeMs),
+        seed: paintSeed
+      });
+    }
+
+    this.atomText = stripEmphasis(text || '');
     paintAtom(document.getElementById('atom-display'), text, showGlass);
+  },
+
+  /** Composite this episode's plate over the last frame of the one before it. */
+  presentPlate({ mix, zoom, drift, phase, seed }) {
+    const ctx = this.canvas.getContext('2d');
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = VOID;
+    ctx.fillRect(0, 0, this.width, this.height);
+    if (this.prevReady && mix < 1) {
+      ctx.drawImage(this.prev, 0, 0);
+    }
+    const angle = createSeededRandom(`${seed}:drift`)() * Math.PI * 2;
+    drawScaled(
+      ctx,
+      this.work,
+      this.width,
+      this.height,
+      zoom * (1 + drift * easeInOut(phase)),
+      angle,
+      0.5 * easeInOut(phase),
+      this.prevReady ? mix : 1
+    );
   },
 
   resolveKind(cueKind, cue, seed) {
@@ -383,7 +605,7 @@ const stage = {
       return this.paintStill(ctx);
     }
     await this.ensure('void', () => ({ destroy() {} }));
-    clearVoid(this.canvas);
+    clearVoid(ctx.canvas || this.canvas);
   },
 
   async paintKlee(ctx, kind) {
@@ -396,7 +618,7 @@ const stage = {
       engine.generateRandom(preset, { seed: `${ctx.seed}:${preset}`, detectForms: false });
       return { engine, destroy() {} };
     });
-    painter.engine.render(this.canvas, {
+    painter.engine.render(ctx.canvas, {
       background: VOID,
       progress: ctx.progress,
       showForms: ctx.progress > 0.7,
@@ -411,7 +633,7 @@ const stage = {
       withSeededRandom(`${ctx.seed}:turrell`, () => engine.generate());
       return { engine, destroy() {} };
     });
-    painter.engine.render(this.canvas, painter.engine.lastPlan);
+    painter.engine.render(ctx.canvas, painter.engine.lastPlan);
   },
 
   async paintHarmonograph(ctx) {
@@ -422,9 +644,9 @@ const stage = {
       engine.generate(null, `${ctx.seed}:harmonograph`, { climate });
       return { engine, destroy() {} };
     });
-    painter.engine.render(this.canvas, {
+    painter.engine.render(ctx.canvas, {
       backgroundColor: VOID,
-      progress: scoredFigureProgress(ctx.elapsedMs, ctx.durationMs, ctx.drawMs)
+      progress: ctx.progress
     });
   },
 
@@ -437,9 +659,7 @@ const stage = {
         palette !== 'auto' ? { palette } : {});
       return { engine, destroy() {} };
     });
-    painter.engine.render(this.canvas, {
-      progress: scoredFigureProgress(ctx.elapsedMs, ctx.durationMs, ctx.drawMs)
-    });
+    painter.engine.render(ctx.canvas, { progress: ctx.progress });
   },
 
   async paintApparitio(ctx) {
@@ -451,9 +671,7 @@ const stage = {
         palette !== 'auto' ? { palette } : {});
       return { engine, destroy() {} };
     });
-    painter.engine.render(this.canvas, {
-      progress: scoredFigureProgress(ctx.elapsedMs, ctx.durationMs, ctx.drawMs)
-    });
+    painter.engine.render(ctx.canvas, { progress: ctx.progress });
   },
 
   async paintRockGarden(ctx) {
@@ -465,7 +683,7 @@ const stage = {
       });
       return { engine, destroy() {} };
     });
-    painter.engine.renderRockGarden(this.canvas, {
+    painter.engine.renderRockGarden(ctx.canvas, {
       backgroundColor: VOID,
       strokeColor: 'rgba(232, 232, 236, 0.8)',
       brushStroke: true
@@ -475,12 +693,12 @@ const stage = {
   async paintNeural(ctx) {
     const key = `neural:${ctx.seed}`;
     const painter = await this.ensure(key, () => {
-      const engine = new NeuralNetwork(this.canvas);
+      const engine = new NeuralNetwork(ctx.canvas);
       withSeededRandom(`${ctx.seed}:neural`, () => engine.generate());
       return { engine, destroy() {} };
     });
-    painter.engine.canvas = this.canvas;
-    painter.engine.ctx = this.canvas.getContext('2d');
+    painter.engine.canvas = ctx.canvas;
+    painter.engine.ctx = ctx.canvas.getContext('2d');
     withSeededRandom(`${ctx.seed}:neural:draw`, () => painter.engine._render());
   },
 
@@ -509,14 +727,14 @@ const stage = {
         destroy() { generator.dispose?.(); }
       };
     });
-    this.canvas.getContext('2d').putImageData(painter.imageData, 0, 0);
+    ctx.canvas.getContext('2d').putImageData(painter.imageData, 0, 0);
   },
 
   async paintWorkEngine(ctx, familyFromShuffle = null) {
     const family = familyFromShuffle
       || (ctx.cue?.collections || []).find(id => isWorkEngineFamily(id));
     if (!family) {
-      clearVoid(this.canvas);
+      clearVoid(ctx.canvas);
       return;
     }
     const engineId = ctx.cue?.engines?.[0] || '';
@@ -531,7 +749,7 @@ const stage = {
       return { engine, elapsed: 0, destroy() {} };
     });
     if (!painter.engine) {
-      clearVoid(this.canvas);
+      clearVoid(ctx.canvas);
       return;
     }
     const seconds = (ctx.elapsedMs / 1000) * TIME_SCALE;
@@ -541,7 +759,7 @@ const stage = {
       painter.engine.step?.(Math.min(step, dt - t), {});
     }
     painter.elapsed = seconds;
-    painter.engine.render(this.canvas, { width: this.width, height: this.height });
+    painter.engine.render(ctx.canvas, { width: this.width, height: this.height });
   },
 
   async paintAttractor(ctx) {
@@ -643,32 +861,155 @@ const stage = {
 
   async paintStill(ctx) {
     await this.ensure('still', () => ({ destroy() {} }));
-    if (!this.canvas) return;
+    const canvas = ctx.canvas || this.canvas;
+    if (!canvas) return;
     this.canvas.style.display = 'block';
     const outgoing = ctx.stillId && this.stills.get(ctx.stillId);
     const incoming = ctx.incomingStillId && this.stills.get(ctx.incomingStillId);
     const dissolve = Number.isFinite(ctx.dissolve) ? ctx.dissolve : 1;
+    const fit = ctx.fit === 'plate' ? 'plate' : 'cover';
+    const common = { fit, zoom: ctx.zoom, drift: ctx.drift };
     try {
+      clearVoid(canvas);
       if (incoming && outgoing && incoming !== outgoing && dissolve < 1) {
-        clearVoid(this.canvas);
-        await drawCover(this.canvas, outgoing, 1);
-        await drawCover(this.canvas, incoming, dissolve);
+        await drawStill(canvas, outgoing, { ...common, alpha: 1, phase: ctx.outgoingPhase });
+        await drawStill(canvas, incoming, { ...common, alpha: dissolve, phase: ctx.incomingPhase });
         return;
       }
       const still = incoming && dissolve >= 1 ? incoming : outgoing || incoming;
-      if (!still) {
-        clearVoid(this.canvas);
-        return;
-      }
-      if (dissolve >= 1 || incoming) {
-        await coverImage(this.canvas, still);
-        return;
-      }
-      clearVoid(this.canvas);
-      await drawCover(this.canvas, still, dissolve);
+      if (!still) return;
+      const phase = still === incoming ? ctx.incomingPhase : ctx.outgoingPhase;
+      await drawStill(canvas, still, { ...common, alpha: dissolve >= 1 ? 1 : dissolve, phase });
     } catch {
-      clearVoid(this.canvas);
+      clearVoid(canvas);
     }
+  },
+
+  /**
+   * Where the burned-in caption sits, computed from the caption style
+   * rather than from the DOM box the browser laid out. The words are the
+   * one element whose placement has to be exact at every frame size, and
+   * a flex box measured at 540 CSS px was never going to give that.
+   *
+   * A caption below the midline grows upward — the last line stays on
+   * its anchor — so the block does not jump as phrases change length.
+   */
+  captionLayout(ctx) {
+    const style = this.caption;
+    if (!style || !this.atomText) return null;
+    const fontPx = captionCssFontSize(style.fontSize, this.width);
+    ctx.font = `${style.fontWeight} ${fontPx}px ${style.fontFamily}`;
+    ctx.letterSpacing = `${style.letterSpacing * fontPx}px`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    const lines = wrapLines(ctx, this.atomText, this.width * style.maxWidth);
+    if (!lines.length) return null;
+    const lineHeight = fontPx * style.lineHeight;
+    const anchor = captionAnchor(style.position);
+    const originX = this.width * anchor.x;
+    const anchorY = this.height * anchor.y;
+    const originY = anchor.y >= 0.5
+      ? anchorY - (lines.length - 1) * lineHeight
+      : anchorY;
+    let widest = 0;
+    for (const line of lines) widest = Math.max(widest, ctx.measureText(line).width);
+    return { style, fontPx, lines, lineHeight, originX, originY, widest };
+  },
+
+  /** Gradient footer under the caption: clear above, full at the anchor. */
+  paintScrim(ctx) {
+    const scrim = this.caption?.scrim;
+    if (!scrim) return;
+    const anchor = captionAnchor(this.caption.position);
+    const top = Math.max(0, (anchor.y - scrim.height) * this.height);
+    const full = Math.min(this.height, (anchor.y + scrim.height * 0.35) * this.height);
+    const { r, g, b } = hexToRgb(scrim.color);
+    const gradient = ctx.createLinearGradient(0, top, 0, full);
+    for (let i = 0; i <= 8; i += 1) {
+      const t = i / 8;
+      gradient.addColorStop(t, `rgba(${r}, ${g}, ${b}, ${scrim.opacity * easeInOut(t)})`);
+    }
+    ctx.save();
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, top, this.width, full - top);
+    ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${scrim.opacity})`;
+    ctx.fillRect(0, full, this.width, this.height - full);
+    ctx.restore();
+  },
+
+  /**
+   * The Chamber's frosted tile, drawn as a real blur of what is behind it.
+   * The old path filled a flat slab because `captureRgba` composites
+   * canvases by hand and never sees the DOM's backdrop-filter.
+   */
+  paintCaptionGlass(ctx, layout) {
+    if (!this.caption?.glass || !layout) return;
+    const padX = layout.fontPx * 1.05;
+    const padY = layout.fontPx * 0.8;
+    const boxW = Math.min(this.width - padX, layout.widest + padX * 2);
+    const boxH = layout.lines.length * layout.lineHeight + padY * 2 - (layout.lineHeight - layout.fontPx);
+    const boxX = layout.originX - boxW / 2;
+    const boxY = layout.originY - layout.fontPx / 2 - padY;
+    const radius = layout.fontPx * 0.42;
+    // Only the pane's own neighbourhood is copied and blurred. Blurring the
+    // whole 1080×1920 frame every frame is the same picture at many times
+    // the cost. The bleed gives the blur real pixels to pull from at the
+    // pane's edges instead of sampling transparent black.
+    const bleed = 64;
+    const sx = Math.max(0, Math.floor(boxX - bleed));
+    const sy = Math.max(0, Math.floor(boxY - bleed));
+    const sw = Math.min(this.width - sx, Math.ceil(boxW + bleed * 2));
+    const sh = Math.min(this.height - sy, Math.ceil(boxH + bleed * 2));
+    const scratch = this.scratch.getContext('2d');
+    scratch.setTransform(1, 0, 0, 1, 0, 0);
+    scratch.filter = 'none';
+    scratch.drawImage(ctx.canvas, sx, sy, sw, sh, 0, 0, sw, sh);
+    ctx.save();
+    roundRectPath(ctx, boxX, boxY, boxW, boxH, radius);
+    ctx.clip();
+    ctx.filter = 'blur(28px) saturate(1.12)';
+    ctx.drawImage(this.scratch, 0, 0, sw, sh, sx, sy, sw, sh);
+    ctx.filter = 'none';
+    ctx.fillStyle = 'rgba(10, 10, 12, 0.36)';
+    ctx.fillRect(boxX, boxY, boxW, boxH);
+    ctx.restore();
+    ctx.save();
+    roundRectPath(ctx, boxX, boxY, boxW, boxH, radius);
+    ctx.strokeStyle = 'rgba(232, 232, 236, 0.10)';
+    ctx.lineWidth = Math.max(1, this.width / 1080);
+    ctx.stroke();
+    ctx.restore();
+  },
+
+  paintCaptionText(ctx, layout) {
+    const { style, fontPx, lines, lineHeight, originX, originY } = layout;
+    ctx.save();
+    ctx.font = `${style.fontWeight} ${fontPx}px ${style.fontFamily}`;
+    ctx.letterSpacing = `${style.letterSpacing * fontPx}px`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    if (style.shadow) {
+      const { r, g, b } = hexToRgb(style.shadow.color);
+      ctx.shadowColor = `rgba(${r}, ${g}, ${b}, ${style.shadow.opacity})`;
+      ctx.shadowBlur = style.shadow.blur * (this.width / 1080);
+    }
+    if (style.edgeColor) {
+      ctx.lineJoin = 'round';
+      ctx.miterLimit = 2;
+      ctx.lineWidth = fontPx * 0.08;
+      ctx.strokeStyle = style.edgeColor;
+      for (let i = 0; i < lines.length; i += 1) {
+        ctx.strokeText(lines[i], originX, originY + i * lineHeight);
+      }
+    }
+    ctx.shadowBlur = style.shadow && !style.edgeColor
+      ? style.shadow.blur * (this.width / 1080)
+      : ctx.shadowBlur;
+    ctx.fillStyle = style.color;
+    for (let i = 0; i < lines.length; i += 1) {
+      ctx.fillText(lines[i], originX, originY + i * lineHeight);
+    }
+    ctx.restore();
   },
 
   paintOverlayText(ctx, el, dpr) {
@@ -686,23 +1027,6 @@ const stage = {
     const lines = wrapLines(ctx, text, Math.max(1, box.width * dpr));
     const originY = (box.top + box.height / 2) * dpr - ((lines.length - 1) * lineHeight) / 2;
     const originX = (box.left + box.width / 2) * dpr;
-    const captioning = this.caption && el.id === 'atom-display';
-    if (captioning) {
-      ctx.fillStyle = this.caption.color;
-      if (this.caption.edgeColor) {
-        ctx.lineJoin = 'round';
-        ctx.miterLimit = 2;
-        ctx.lineWidth = Math.max(2 * dpr, fontSize * dpr * 0.08);
-        ctx.strokeStyle = this.caption.edgeColor;
-      }
-      for (let i = 0; i < lines.length; i += 1) {
-        const y = originY + i * lineHeight;
-        if (this.caption.edgeColor) ctx.strokeText(lines[i], originX, y);
-        ctx.fillText(lines[i], originX, y);
-      }
-      ctx.restore();
-      return;
-    }
     if (el.classList.contains('glass-tile')) {
       const background = style.backgroundColor;
       if (background && background !== 'transparent' && background !== 'rgba(0, 0, 0, 0)') {
@@ -742,6 +1066,8 @@ const stage = {
     }
     const ctx = this._captureCtx;
     ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.filter = 'none';
+    ctx.globalAlpha = 1;
     ctx.fillStyle = VOID;
     ctx.fillRect(0, 0, width, height);
     const dpr = window.devicePixelRatio || 1;
@@ -760,8 +1086,17 @@ const stage = {
         box.height * dpr
       );
     }
-    const atom = document.getElementById('atom-display');
-    if (atom) this.paintOverlayText(ctx, atom, dpr);
+    if (this.caption) {
+      this.paintScrim(ctx);
+      const layout = this.captionLayout(ctx);
+      if (layout) {
+        this.paintCaptionGlass(ctx, layout);
+        this.paintCaptionText(ctx, layout);
+      }
+    } else {
+      const atom = document.getElementById('atom-display');
+      if (atom) this.paintOverlayText(ctx, atom, dpr);
+    }
     for (const icon of root.querySelectorAll('.focal-icon')) {
       this.paintOverlayText(ctx, icon, dpr);
     }
