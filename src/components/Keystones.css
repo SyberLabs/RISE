@@ -308,11 +308,16 @@
 }
 
 /* ── MIND · Meditations ──────────────────────────────────────────────────
-   A dark chamber with luminous matter passing through it. The flame engine's
-   own still is hung twice at different depths and drawn across the aperture
-   in opposite directions: one texture translated is a picture sliding, two at
-   different scales and rates are smoke with something behind it. Neither ever
-   completes a turn, so the eye is never given a rotation to lock onto. */
+   The one face that holds still. Its filaments are fixed — a mind at rest is
+   not a mind in transit — and what changes is the colour of the light coming
+   through them.
+
+   The structure is taken to luminance so the palette is authored here rather
+   than inherited from the still, and a single long ramp of magenta through
+   violet and indigo into blue is laid across the aperture. It is wider than
+   the aperture, so the filaments are never one colour at once, and it is
+   drawn slowly across, so which streak is magenta and which is blue keeps
+   changing. Nothing in the picture moves; only the colour travels. */
 
 .keystone-figure[data-face="fractal"] .keystone-face {
   background: radial-gradient(circle at 50% 48%, #10131a 0%, #07080c 62%, #050609 100%);
@@ -321,26 +326,41 @@
 .keystone-figure[data-face="fractal"] [data-layer="a"] {
   background-image: var(--keystone-still);
   background-size: 116%;
-  filter: grayscale(1) contrast(1.5) brightness(0.88);
-  animation: keystone-veer-near 46s var(--ease-default) infinite alternate var(--face-play);
+  filter: grayscale(1) contrast(1.46) brightness(1.04);
 }
 
+/* `color` takes its hue and saturation from this ramp and its lightness from
+   the filaments underneath, so the dark stays dark and only what is already
+   luminous is coloured. */
 .keystone-figure[data-face="fractal"] [data-layer="b"] {
-  background-image: var(--keystone-still);
-  background-size: 196%;
-  background-position: 38% 62%;
-  filter: grayscale(1) contrast(1.6) brightness(0.8);
-  mix-blend-mode: screen;
-  opacity: 0.42;
-  animation: keystone-veer-far 67s var(--ease-default) infinite alternate var(--face-play);
+  /* The ramp is a PALINDROME — magenta out to blue and back — so it tiles
+     without a seam, and it is smaller than the aperture so a full traverse
+     happens within the distance the layer is allowed to travel. A ramp wider
+     than the window can only ever show one end of itself. */
+  background-image: linear-gradient(112deg,
+    #ff62d6 0%,
+    #d95cf2 12%,
+    #a96eff 25%,
+    #7b86ff 37%,
+    #4f9dff 50%,
+    #7b86ff 63%,
+    #a96eff 75%,
+    #d95cf2 88%,
+    #ff62d6 100%);
+  background-size: 64% 64%;
+  background-repeat: repeat;
+  background-position: center;
+  mix-blend-mode: color;
+  animation: keystone-hue 44s var(--ease-default) infinite alternate var(--face-play);
 }
 
+/* A restrained bloom, so the brightest filaments carry light and not only
+   colour. Still, like everything else in this window. */
 .keystone-figure[data-face="fractal"] [data-layer="c"] {
   background:
-    radial-gradient(ellipse 40% 32% at 44% 42%, rgba(206, 220, 236, 0.16), transparent 68%),
-    radial-gradient(ellipse 30% 26% at 64% 62%, rgba(178, 198, 220, 0.12), transparent 70%);
+    radial-gradient(ellipse 40% 32% at 44% 42%, rgba(214, 226, 240, 0.16), transparent 68%),
+    radial-gradient(ellipse 30% 26% at 64% 62%, rgba(186, 204, 226, 0.11), transparent 70%);
   mix-blend-mode: screen;
-  animation: keystone-swell 34s var(--ease-default) infinite alternate var(--face-play);
 }
 
 /* One marbling, declared once and used twice. */
@@ -443,9 +463,9 @@
   to { transform: translate3d(2.6%, -1.8%, 0) scale(1.09); }
 }
 
-@keyframes keystone-veer-far {
-  from { transform: translate3d(3.2%, 2%, 0) scale(1.08) rotate(3deg); }
-  to { transform: translate3d(-3.2%, -1.6%, 0) scale(1.01) rotate(-5deg); }
+@keyframes keystone-hue {
+  from { transform: translate3d(-17%, -9%, 0); }
+  to { transform: translate3d(17%, 9%, 0); }
 }
 
 @keyframes keystone-fog-near {
