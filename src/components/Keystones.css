@@ -413,10 +413,26 @@
 /* ── TRANSFORMATION · Metamorphoses ──────────────────────────────────────
    The one face that genuinely turns, because a liquid does. Two sheets of the
    same marbling counter-rotate at periods that do not divide, so what the eye
-   follows is the interference between them — which is why this one already
-   read as matter moving inside rather than as a plate being spun. A third
-   sheet of caustics drifts across without turning, so the surface carries a
-   highlight that slides rather than orbits. */
+   follows is the interference between them — which is why this one reads as
+   matter moving inside rather than as a plate being spun. A third sheet of
+   caustics drifts across without turning, so the surface carries a highlight
+   that slides rather than orbits.
+
+   THE PERIODS ARE SET BY TRAVERSE RATE, NOT BY TASTE. What decides whether an
+   orb looks faster than its neighbours is how far its texture carries across
+   the aperture in a given time, so that is the quantity held level: a point at
+   the rim turns through 0.55 aperture-widths a minute, against averages of
+   0.58 for Tintern's near fog bank and 0.76 for the colour travelling over
+   Meditations.
+
+   Those two are averages because every other layer in this component is eased
+   and bounded, so it rests at each end and runs two to three times its own
+   average through the middle. These sheets are linear and never rest, and a
+   coherent turn about a fixed centre is read more readily than a drift at the
+   same speed. Both are reasons to sit at the others' average rather than at
+   their peak, and to make the slower sheet the reference — the fainter one is
+   then allowed to run above it. Rescaling one without the other collapses the
+   interference into a beat that repeats. */
 
 .keystone-figure[data-face="ostensoria"] .keystone-face {
   background: radial-gradient(circle at 50% 52%, #0e1a1a 0%, #091114 60%, #05070a 100%);
@@ -426,7 +442,7 @@
   background-image: var(--keystone-marbling);
   background-size: 88%;
   filter: contrast(1.5) saturate(1.32) brightness(0.66);
-  animation: keystone-turn 62s linear infinite var(--face-play);
+  animation: keystone-turn 340s linear infinite var(--face-play);
 }
 
 .keystone-figure[data-face="ostensoria"] [data-layer="b"] {
@@ -436,7 +452,7 @@
   filter: contrast(1.34) brightness(0.86);
   mix-blend-mode: screen;
   opacity: 0.26;
-  animation: keystone-turn-back 41s linear infinite var(--face-play);
+  animation: keystone-turn-back 227s linear infinite var(--face-play);
 }
 
 .keystone-figure[data-face="ostensoria"] [data-layer="c"] {
