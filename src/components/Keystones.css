@@ -333,23 +333,44 @@
    the filaments underneath, so the dark stays dark and only what is already
    luminous is coloured. */
 .keystone-figure[data-face="fractal"] [data-layer="b"] {
-  /* The ramp is a PALINDROME — magenta out to blue and back — so it tiles
-     without a seam, and it is smaller than the aperture so a full traverse
-     happens within the distance the layer is allowed to travel. A ramp wider
-     than the window can only ever show one end of itself. */
-  background-image: linear-gradient(112deg,
+  /* The ramp is a PALINDROME on a cosine, and it runs straight down.
+
+     Both of those are about seams. A diagonal gradient tiled in two
+     directions only meets itself at 0 and 90 degrees — at any other angle the
+     value at a tile's edge is not the value at its neighbour's, and the grid
+     shows as hard creases across the picture. So the gradient runs down the
+     tile, where vertical repeats meet exactly and horizontal ones are
+     constant, and the LAYER is rotated instead to put the ramp on a diagonal.
+
+     The cosine is the second half: a linear palindrome reverses direction at
+     its turning points, and that change of slope is itself a visible band.
+     Eased on a cosine the slope reaches zero there, so the turn is invisible.
+
+     The tile is narrower than the aperture, so magenta sits at one edge and
+     blue at the other rather than the whole orb resting on one end. */
+  background-image: linear-gradient(
     #ff62d6 0%,
-    #d95cf2 12%,
+    #f863d9 6.25%,
+    #e666e2 12.5%,
+    #ca69ef 18.75%,
     #a96eff 25%,
-    #7b86ff 37%,
+    #8780ff 31.25%,
+    #698fff 37.5%,
+    #5699ff 43.75%,
     #4f9dff 50%,
-    #7b86ff 63%,
+    #5699ff 56.25%,
+    #698fff 62.5%,
+    #8780ff 68.75%,
     #a96eff 75%,
-    #d95cf2 88%,
+    #ca69ef 81.25%,
+    #e666e2 87.5%,
+    #f863d9 93.75%,
     #ff62d6 100%);
-  background-size: 64% 64%;
+  background-size: 100% 44%;
   background-repeat: repeat;
   background-position: center;
+  /* Room to travel a whole traverse without the layer's own edge arriving. */
+  inset: -70%;
   mix-blend-mode: color;
   animation: keystone-hue 44s var(--ease-default) infinite alternate var(--face-play);
 }
@@ -463,9 +484,12 @@
   to { transform: translate3d(2.6%, -1.8%, 0) scale(1.09); }
 }
 
+/* The ramp runs down its own tile; the rotation is what puts it on a
+   diagonal across the aperture, and it is the same in both frames so only the
+   colour travels. */
 @keyframes keystone-hue {
-  from { transform: translate3d(-17%, -9%, 0); }
-  to { transform: translate3d(17%, 9%, 0); }
+  from { transform: rotate(-24deg) translate3d(0, -17%, 0); }
+  to { transform: rotate(-24deg) translate3d(0, 17%, 0); }
 }
 
 @keyframes keystone-fog-near {
