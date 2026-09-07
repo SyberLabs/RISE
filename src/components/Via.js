@@ -22,9 +22,10 @@ import { STATIONS, STATIONS_ATTRIBUTION, stationByNumber } from '../content/chap
 import { escapeHtml } from '../core/sanitize.js';
 import { REMOTE_IMAGE_ATTRS, createRemoteImage } from '../visuals/remote-image.js';
 import './Via.css';
+import { USER_DATA_KEYS } from '../core/user-data-keys.js';
 
-const ADVANCE_KEY = 'rise_via_advance_v1';
-const SOUND_KEY = 'rise_via_sound_v1';
+const ADVANCE_KEY = USER_DATA_KEYS.viaAdvance;
+const SOUND_KEY = USER_DATA_KEYS.viaSound;
 
 const SOUNDS = Object.freeze([
   ['none', 'Silence'],

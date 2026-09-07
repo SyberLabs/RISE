@@ -11,6 +11,10 @@
   "scripts": {
     "dev": "vite",
     "build": "npm run content:build && vite build",
+    "build:fonts": "node scripts/build-fonts.mjs",
+    "verify:fonts": "node scripts/build-fonts.mjs --check",
+    "build:legal": "node scripts/build-legal.mjs",
+    "verify:legal": "node scripts/build-legal.mjs --check",
     "preview": "vite preview",
     "test": "npm run content:build && vitest",
     "test:run": "npm run content:build && vitest run",

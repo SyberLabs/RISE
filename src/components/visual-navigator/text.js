@@ -17,7 +17,7 @@ import { configPatch } from '../../core/visual-taxonomy-config.js';
 // The runtime's own rule for what sits behind an ink inside the glyph.
 import { maskGroundFromConfig } from '../../core/mask-ground.js';
 import { leafById } from '../../core/visual-taxonomy.js';
-import { normalizeGalleryCadence } from '../../core/visual-presence.js';
+import { normalizeGalleryCadence, normalizePresentation } from '../../core/visual-presence.js';
 import {
   MASK_REASON,
   bench,
@@ -42,7 +42,7 @@ export const textMethods = {
       fontSize: settings.fontSize,
       chunkMode: 'word',
       visualMode: gallery ? 'interlocution' : 'off',
-      presentation: gallery ? 'continuous' : 'full-frame',
+      presentation: normalizePresentation(gallery ? 'continuous' : 'full-frame'),
       wordFill,
       programOwned: Boolean(this.programInfo)
     });

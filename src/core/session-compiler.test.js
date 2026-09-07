@@ -8,6 +8,7 @@ import {
   SESSION_LIMITS
 } from './session-compiler.js';
 import { compileVisualScoreProgram } from './visual-score-lane.js';
+import { normalizePresentation } from './visual-presence.js';
 import { createEditorAsset } from './editor-asset.js';
 import { SEQUENCE_CAPABILITIES } from './sequence-capabilities.js';
 import { resolveTextMaterialCapability } from './chamber-text-material.js';
@@ -147,7 +148,11 @@ describe('session compiler', () => {
         experienceProgram,
         visualConfig: { visualMode: 'interlocution', interlocution: { presentation } }
       });
-      expect(session.visualConfig.interlocution.presentation).toBe(presentation);
+      // The surface may be refused — flashing is off in production — but
+      // the program must lower identically either way, which is the
+      // subject of this test.
+      expect(session.visualConfig.interlocution.presentation)
+        .toBe(normalizePresentation(presentation));
       expect(session.visualProgram.segments.map(segment => segment.cue)).toEqual([
         { kind: 'procedural', collections: ['klee'], config: { preset: 'random' } },
         { kind: 'sourced', collections: ['aic-oldmasters'] }

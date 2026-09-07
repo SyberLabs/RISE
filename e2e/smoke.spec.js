@@ -13,6 +13,7 @@
  *   6. The loaded text and settings survive a refresh
  */
 import { test, expect } from '@playwright/test';
+import { FLASHING_ENABLED } from '../src/core/visual-presence.js';
 
 const GATE_SESSION = {
     code: 'rise2025',
@@ -185,6 +186,11 @@ test('6 · text and settings survive a refresh', async ({ page }) => {
 });
 
 test('7 · restored flashes present an operable warning before loading, every session', async ({ page }) => {
+        // The photosensitivity warning exists for the flashing surfaces, so
+        // it cannot appear while they are switched off. Skipped rather than
+        // deleted: this is the browser-level guard on the safety flow, and
+        // it must come back with FLASHING_ENABLED.
+        test.skip(!FLASHING_ENABLED, 'flashing is disabled in production');
     await boot(page, {
         prefs: {
             visualInterlocution: {
@@ -223,6 +229,11 @@ test('7 · restored flashes present an operable warning before loading, every se
 });
 
 test('8 · declining the warning enters the session with flashes disabled', async ({ page }) => {
+        // The photosensitivity warning exists for the flashing surfaces, so
+        // it cannot appear while they are switched off. Skipped rather than
+        // deleted: this is the browser-level guard on the safety flow, and
+        // it must come back with FLASHING_ENABLED.
+        test.skip(!FLASHING_ENABLED, 'flashing is disabled in production');
     await boot(page, {
         prefs: {
             visualInterlocution: {
@@ -256,6 +267,11 @@ test('8 · declining the warning enters the session with flashes disabled', asyn
 });
 
 test('9 - in-session Visuals control kills a live presence and keeps safety layers reachable', async ({ page }) => {
+        // The photosensitivity warning exists for the flashing surfaces, so
+        // it cannot appear while they are switched off. Skipped rather than
+        // deleted: this is the browser-level guard on the safety flow, and
+        // it must come back with FLASHING_ENABLED.
+        test.skip(!FLASHING_ENABLED, 'flashing is disabled in production');
     await boot(page, {
         prefs: {
             paceV2: true,

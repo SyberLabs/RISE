@@ -3,21 +3,9 @@ import { READING_LIMITS } from './reading-limits.js';
 import { SourceCache } from '../sources/cache.js';
 import { WorkshopMedia, blobToDataUrl } from './workshop-media.js';
 import { endVisualInterlocutionSession } from './visual-safety.js';
+import { USER_DATA_KEYS } from './user-data-keys.js';
 
-export const USER_DATA_KEYS = Object.freeze({
-    settings: 'rise-settings',
-    journals: 'rise_recursions_v1',
-    blueprints: 'rise_workshop_v1',
-    globalImages: 'rise_global_images_v1',
-    // OUTLIVES ITS ROOM. The Solarium is deleted and this key is not:
-    // a reader who planned their day there still has one saved, and a
-    // key dropped from this registry is data that export cannot carry
-    // out and erase cannot clear. It is removed when nobody can still
-    // be holding one, which is not the same day the room goes.
-    solPlan: 'rise_sol_plan_v1',
-    orbitalPreferences: 'rise_orbital_prefs_v1',
-    orbitalText: 'rise_orbital_text_v1'
-});
+export { USER_DATA_KEYS } from './user-data-keys.js';
 
 /**
  * JSON export is assembled in browser memory and base64 adds roughly one
@@ -66,7 +54,7 @@ export async function exportUserData(settings = null, options = {}) {
         ? Math.min(USER_DATA_EXPORT_LIMITS.maxInlineBinaryBytes, Math.floor(requestedLimit))
         : USER_DATA_EXPORT_LIMITS.maxInlineBinaryBytes;
     const data = {
-        schemaVersion: 4,
+        schemaVersion: 5,
         exportedAt: new Date().toISOString(),
         stores: {},
         personalSwells: [],

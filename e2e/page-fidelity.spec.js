@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { collectAcrossPages } from './page-helpers.js';
+import { acceptFlashWarningIfShown, collectAcrossPages } from './page-helpers.js';
 const GATE = { code: 'rise2025', name: 'Fidelity', vault: null, timestamp: Date.now() };
 const SEED = {
   text: Array.from({ length: 14 }, (_, i) =>
@@ -28,9 +28,7 @@ test('a PROCEDURAL reading with no program typesets rendered stills', async ({ p
   await page.locator('[data-nav="chamber"]').first().click();
   await expect(page.locator('#begin-btn')).toBeEnabled({ timeout: 15000 });
   await page.locator('#begin-btn').click();
-  const warn = page.locator('#photosensitivity-modal');
-  await expect(warn).toBeVisible({ timeout: 15000 });
-  await warn.locator('#safety-accept').click();
+  await acceptFlashWarningIfShown(page);
   await expect(page.locator('#chamber-display')).toBeVisible({ timeout: 20000 });
   await page.waitForFunction(() => window.__RISE_TEST__ && !window.__RISE_TEST__.getRouterState().transitioning);
   await page.waitForTimeout(2000);

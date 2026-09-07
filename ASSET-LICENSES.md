@@ -153,6 +153,35 @@ and a lender's rights are not the museum's to grant.
 Third-party packages retain their own licences. See `package.json` and the
 installed packages' own licence files.
 
+### Typefaces — SIL Open Font License 1.1, redistributed
+
+The five typefaces the interface sets are **self-hosted**, and the files under
+`public/fonts/` are therefore redistributed by this project rather than merely
+linked. Each is licensed under the
+[SIL Open Font License 1.1](https://openfontlicense.org/), which permits
+redistribution — bundled, modified or sold — provided the fonts are not sold on
+their own and the licence and copyright notice travel with them.
+
+| Typeface | Copyright |
+| --- | --- |
+| Inter | © The Inter Project Authors |
+| Space Grotesk | © The Space Grotesk Project Authors |
+| Crimson Pro | © The Crimson Pro Project Authors |
+| Marcellus | © The Marcellus Project Authors |
+| JetBrains Mono | © The JetBrains Mono Project Authors |
+
+Only the `latin` and `latin-ext` subsets are carried, and only the weights the
+interface actually sets. `scripts/build-fonts.mjs` fetches them and generates
+`src/fonts.css`; `npm run verify:fonts` fails if what is committed is not what
+upstream produces.
+
+**No Japanese webfont is redistributed.** The optional Japanese stream face
+resolves to the CJK serif the reader's own operating system provides.
+
+They were previously loaded from Google's font CDN. Self-hosting removes that
+transfer: no reader's browser announces its IP address to a third party in
+order to render a page of public-domain text.
+
 ---
 
 ## The rule the whole arrangement follows

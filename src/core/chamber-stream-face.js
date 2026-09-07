@@ -9,7 +9,7 @@
  * label and fall back to leaking its family name.
  *
  *   literary → Crimson Pro   display → Marcellus
- *   thick    → Space Grotesk jp      → Noto Serif JP
+ *   thick    → Space Grotesk jp      → the system CJK serif
  */
 export const CHAMBER_STREAM_FACES = Object.freeze([
     Object.freeze({ id: 'literary', label: 'Literary' }),

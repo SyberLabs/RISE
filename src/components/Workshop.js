@@ -21,6 +21,8 @@ import {
   galleryCadenceValueText,
   isContinuousPresentation,
   normalizeGalleryCadence,
+  FLASHING_ENABLED,
+  normalizePresentation,
   VISUAL_PRESENCE_DEFAULT_MS
 } from '../core/visual-presence.js';
 import {
@@ -2461,6 +2463,11 @@ export class Workshop {
     const config = this.sessionData.visualConfig;
     const surface = this.visualSurface();
     const interlocution = config.interlocution || {};
+    // A composition saved when the flashing surfaces were offered still
+    // names one. It will compile to Gallery, so the inspector shows
+    // Gallery: an author must not be given Rhythmic controls for a
+    // surface the reader will never be shown.
+    const shownPresentation = normalizePresentation(interlocution.presentation);
     let controls = '';
     if (surface === 'focal') {
       const personal = this.sessionData.visualConfig?.focals?.type === 'personal'
@@ -2504,17 +2511,30 @@ export class Workshop {
       // depending on which room you are standing in.
       // Persisted ids remain stable; labels state the visual relationship to
       // the reading instead of exposing runtime vocabulary.
-      const presentations = [
-        ['continuous', 'Gallery'],
-        ['behind-stream', 'Background Flash'],
-        ['full-frame', 'Foreground Flash']
-      ];
+      // The flashing surfaces are offered only while they can actually be
+      // rendered. With FLASHING_ENABLED false they normalise to Gallery
+      // anyway, and an author must not be shown a choice the reader will
+      // never receive.
+      const presentations = FLASHING_ENABLED
+        ? [
+          ['continuous', 'Gallery'],
+          ['behind-stream', 'Background Flash'],
+          ['full-frame', 'Foreground Flash']
+        ]
+        : [['continuous', 'Gallery']];
       controls = `<label class="input-label">Presentation</label>
         <div class="studio-surface-options studio-presentation-options">${presentations.map(([id, label]) => `<button type="button"
-          class="btn-secondary btn-compact ${interlocution.presentation === id || (!interlocution.presentation && id === 'continuous') ? 'active' : ''}"
+          class="btn-secondary btn-compact ${shownPresentation === id ? 'active' : ''}"
           data-action="set-scored-presentation" data-presentation="${id}"
-          aria-pressed="${interlocution.presentation === id || (!interlocution.presentation && id === 'continuous')}">${label}</button>`).join('')}</div>
-        ${isContinuousPresentation(interlocution.presentation) ? `
+          aria-pressed="${shownPresentation === id}">${label}</button>`).join('')}</div>
+        ${!FLASHING_ENABLED || isContinuousPresentation(shownPresentation) ? '' : `
+          <p class="studio-note studio-flash-note" role="note">
+            A flashing surface asks something of every reader. They will meet the
+            photosensitivity notice before this piece opens, and anyone reading
+            with photosensitivity mode on will see no imagery at all. Gallery
+            carries the same works without flashing.
+          </p>`}
+        ${isContinuousPresentation(shownPresentation) ? `
           <label class="input-label" for="studio-gallery-cadence">Gallery cadence</label>
           <div class="studio-cadence-control">
             <input type="range" class="slider" id="studio-gallery-cadence" data-visual-setting="gallery-cadence"
