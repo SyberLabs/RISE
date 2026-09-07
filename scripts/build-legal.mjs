@@ -51,7 +51,12 @@ function inline(text) {
 const cell = (row) => row.replace(/^\||\|$/gu, '').split('|').map(part => part.trim());
 
 function toHtml(markdown) {
-    const lines = markdown.split('\n');
+    // CRLF FIRST, OR NOTHING ELSE WORKS. This repository is checked out with
+    // `core.autocrlf`, so on Windows every line arrives ending in \r. A
+    // carriage return is a line terminator, which `.` and `$` will not cross,
+    // so `# Heading\r` matched no heading rule and every heading in both
+    // documents silently became a paragraph reading "# Heading".
+    const lines = markdown.replace(/\r\n?/gu, '\n').split('\n');
     const out = [];
     let index = 0;
 
@@ -282,7 +287,13 @@ for (const document of DOCUMENTS) {
     const target = join(ROOT, 'public', document.out);
 
     if (check) {
-        if (!existsSync(target) || readFileSync(target, 'utf8') !== html) {
+        // Line endings are git's business: `core.autocrlf` makes a committed
+        // LF file CRLF on disk, and comparing raw bytes fails on that alone.
+        const normalise = (text) => text.replace(/\r\n?/gu, '\n');
+        const onDisk = existsSync(target)
+            ? normalise(readFileSync(target, 'utf8'))
+            : null;
+        if (onDisk !== normalise(html)) {
             problems.push(`public/${document.out} is not what ${document.source} produces`);
         }
         continue;

@@ -159,12 +159,21 @@ const faces = await collect();
 const css = cssFor(faces);
 const expected = new Set(faces.map(face => face.file));
 
+/**
+ * Line endings are git's business, not the generator's. This repository is
+ * checked out with `core.autocrlf`, so a committed LF file is CRLF on disk
+ * here — comparing raw bytes failed on the line terminators while every
+ * declaration was identical.
+ */
+const sameContent = (path, expected) => existsSync(path)
+    && readFileSync(path, 'utf8').replace(/\r\n?/gu, '\n') === expected.replace(/\r\n?/gu, '\n');
+
 if (check) {
     const problems = [];
-    if (!existsSync(CSS_OUT) || readFileSync(CSS_OUT, 'utf8') !== css) {
+    if (!sameContent(CSS_OUT, css)) {
         problems.push('src/fonts.css is not what the upstream faces produce');
     }
-    if (!existsSync(PUBLIC_CSS_OUT) || readFileSync(PUBLIC_CSS_OUT, 'utf8') !== css) {
+    if (!sameContent(PUBLIC_CSS_OUT, css)) {
         problems.push('public/fonts/fonts.css is not what the upstream faces produce');
     }
     const present = existsSync(OUT_DIR) ? new Set(readdirSync(OUT_DIR)) : new Set();
