@@ -10,7 +10,12 @@
    Following UX.TXT specification precisely
    ───────────────────────────────────────────────────────────── */
 
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500&family=Space+Grotesk:wght@300;500;700&family=Crimson+Pro:ital,wght@0,400;0,600;1,400&family=Marcellus&family=JetBrains+Mono:wght@400;500&family=Noto+Serif+JP:wght@400;500&display=swap');
+/* Self-hosted. This was an @import from fonts.googleapis.com, which put a
+   request to Google in the critical path of every page load — the reader's IP
+   and user-agent went to a third party before a line of public-domain text
+   rendered. `scripts/build-fonts.mjs` pins the files; `src/fonts.css` is
+   generated. */
+@import url('./fonts.css');
 
 :root {
   /* ═══ FOUNDATIONS (Backgrounds) ═══ */
@@ -97,7 +102,11 @@
   --font-display: 'Marcellus', 'Space Grotesk', -apple-system, BlinkMacSystemFont, sans-serif;
   --font-literary: 'Crimson Pro', Georgia, serif;
   --font-mono: 'JetBrains Mono', 'Courier New', monospace;
-  --font-jp: 'Noto Serif JP', 'Hiragino Mincho ProN', serif;
+  /* System CJK: Noto Serif JP is 248 files upstream for one optional
+     stream face, so it is not self-hosted. Every desktop and mobile OS
+     ships a CJK serif, and these are the names they ship it under. */
+  --font-jp: 'Hiragino Mincho ProN', 'Yu Mincho', 'Noto Serif CJK JP',
+    'Source Han Serif JP', serif;
   --font-stream-thick: 'Space Grotesk', -apple-system, BlinkMacSystemFont, sans-serif;
 
   --font-weight-light: 300;

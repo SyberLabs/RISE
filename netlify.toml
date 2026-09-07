@@ -56,7 +56,7 @@
     # Runtime Recitation is static and same-origin. Kokoro is used only by
     # the local pack builder, so deployed readers need no model host, API,
     # third-party script, or WebAssembly policy exception.
-    Content-Security-Policy = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https:; media-src 'self' blob:; worker-src 'self' blob:; connect-src 'self' https://www.gutenberg.org https://corsproxy.io https://export.arxiv.org https://commons.wikimedia.org https://upload.wikimedia.org https://api.artic.edu https://www.artic.edu https://collectionapi.metmuseum.org https://openaccess-api.clevelandart.org https://id.rijksmuseum.nl; object-src 'none'; base-uri 'self'; frame-ancestors 'none'"
+    Content-Security-Policy = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob: https:; media-src 'self' blob:; worker-src 'self' blob:; connect-src 'self' https://www.gutenberg.org https://corsproxy.io https://export.arxiv.org https://commons.wikimedia.org https://upload.wikimedia.org https://api.artic.edu https://www.artic.edu https://collectionapi.metmuseum.org https://openaccess-api.clevelandart.org https://id.rijksmuseum.nl; object-src 'none'; base-uri 'self'; frame-ancestors 'none'"
 
 # The shell must never be cached: it names the hashed chunks, so a
 # stale index.html sends a browser after files the current deploy has
