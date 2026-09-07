@@ -1367,6 +1367,20 @@
     gap: 6px;
 }
 
+/* What a flashing surface costs the reader, said where the choice is made.
+   "Background Flash" and "Foreground Flash" name the effect but not the
+   consequence: every reader meets the photosensitivity notice before the
+   piece opens, and one reading with photosensitivity mode on sees nothing. */
+.studio-flash-note {
+    margin: 8px 0 0;
+    padding: 8px 10px;
+    border-left: 2px solid rgba(var(--color-accent-rgb), 0.45);
+    background: rgba(var(--color-accent-rgb), 0.06);
+    color: var(--color-fog);
+    font-size: 11px;
+    line-height: 1.55;
+}
+
 .studio-asset-add-actions .btn-compact {
     padding-inline: 7px;
     font-size: 9px;

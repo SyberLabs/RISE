@@ -93,11 +93,28 @@ describe('Visual Presence policy', () => {
     it('keeps Gallery and Gallery-in-the-word as continuous presentations', () => {
         expect(normalizePresentation('continuous')).toBe('continuous');
         expect(normalizePresentation('continuous-word')).toBe('continuous-word');
-        expect(normalizePresentation('gallery-in-the-word')).toBe('full-frame');
+        // The retired alias is someone asking for Gallery. It used to land on
+        // full-frame, turning a choice that never flashes into the one that
+        // flashes most.
+        expect(normalizePresentation('gallery-in-the-word')).toBe('continuous');
         expect(isContinuousPresentation('continuous')).toBe(true);
         expect(isContinuousPresentation('continuous-word')).toBe(true);
         expect(isContinuousPresentation('behind-stream')).toBe(false);
         expect(isGalleryInTheWord('continuous-word')).toBe(true);
+    });
+
+    it('resolves an unknown surface to one that cannot flash', () => {
+        // A typo, a corrupted setting or a renamed value must not become the
+        // surface that cuts to an opaque overlay. Safety here does not depend
+        // on the launch gate noticing.
+        for (const unknown of [undefined, null, '', 'flash', 'strobe', 'FULL-FRAME', 42]) {
+            const resolved = normalizePresentation(unknown);
+            expect(isContinuousPresentation(resolved),
+                `${String(unknown)} resolved to the flashing surface ${resolved}`).toBe(true);
+        }
+        // A surface that was genuinely chosen is still honoured.
+        expect(normalizePresentation('full-frame')).toBe('full-frame');
+        expect(normalizePresentation('behind-stream')).toBe('behind-stream');
         expect(isGalleryInTheWord('continuous')).toBe(false);
     });
 

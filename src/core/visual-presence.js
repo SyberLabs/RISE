@@ -14,15 +14,33 @@ export const VISUAL_PRESENCE_DEFAULT_MS = 200;
 // (CONTINUOUS-FIELD-SPEC). 'continuous-word' is the same field projected
 // into Word ink — one clock, two mounts. Shared here so persisted
 // settings, the session compiler, the panel, and playback cannot drift
-// apart. Any other value normalizes to 'full-frame'.
+// apart.
 const PRESENTATION_SURFACES = Object.freeze([
     'full-frame',
     'behind-stream',
     'continuous',
     'continuous-word'
 ]);
+
+/**
+ * AN UNRECOGNISED SURFACE RESOLVES TO THE ONE THAT DOES NOT FLASH.
+ *
+ * This used to fall through to 'full-frame' — the surface that cuts to an
+ * opaque overlay — so a typo, a corrupted setting or a renamed value became
+ * the MOST flashing presentation the system has. Two things were wrong with
+ * that. Safety rested entirely on the launch gate noticing and raising the
+ * photosensitivity notice, with nothing standing behind it; and the retired
+ * alias `gallery-in-the-word` — someone asking for Gallery, which never
+ * flashes — landed on full-frame, the exact opposite of what they chose.
+ *
+ * Gallery is the safe resolution on both counts: it never flashes and never
+ * goes black, so an unknown value can no longer become a risk the reader did
+ * not ask for. The launch gate still treats an *unstated* presentation as
+ * flashing, and that remains the defence for any config that never passed
+ * through here.
+ */
 export function normalizePresentation(value) {
-    return PRESENTATION_SURFACES.includes(value) ? value : 'full-frame';
+    return PRESENTATION_SURFACES.includes(value) ? value : 'continuous';
 }
 
 export function isContinuousPresentation(value) {

@@ -2514,6 +2514,13 @@ export class Workshop {
           class="btn-secondary btn-compact ${interlocution.presentation === id || (!interlocution.presentation && id === 'continuous') ? 'active' : ''}"
           data-action="set-scored-presentation" data-presentation="${id}"
           aria-pressed="${interlocution.presentation === id || (!interlocution.presentation && id === 'continuous')}">${label}</button>`).join('')}</div>
+        ${isContinuousPresentation(interlocution.presentation) || !interlocution.presentation ? '' : `
+          <p class="studio-note studio-flash-note" role="note">
+            A flashing surface asks something of every reader. They will meet the
+            photosensitivity notice before this piece opens, and anyone reading
+            with photosensitivity mode on will see no imagery at all. Gallery
+            carries the same works without flashing.
+          </p>`}
         ${isContinuousPresentation(interlocution.presentation) ? `
           <label class="input-label" for="studio-gallery-cadence">Gallery cadence</label>
           <div class="studio-cadence-control">
