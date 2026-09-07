@@ -63,6 +63,11 @@ describe('MP4 caption style', () => {
     expect(captionAnchor({ x: -1, y: 2 })).toEqual({ x: 0, y: 1 });
   });
 
+  it('drops the outline when edgeColor is none', () => {
+    expect(resolveCaptionStyle({ edgeColor: 'none' }).edgeColor).toBeNull();
+    expect(resolveCaptionStyle({ color: '#F4C430', edgeColor: 'none' }).color).toBe('#F4C430');
+  });
+
   it('scales 1080-wide CSS px onto the frame and parses hex color', () => {
     expect(captionCssFontSize(42, 1080)).toBe(42);
     expect(captionCssFontSize(42, 540)).toBe(21);

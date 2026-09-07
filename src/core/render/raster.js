@@ -156,7 +156,7 @@ export function renderFrameRgba(plan, frameIndex, { inventory = {}, scale = 1, c
         rgba, width, height, region, atom.text,
         parseCssColor(style.color),
         scale * (style.fontSize / DEFAULT_CAPTION_FONT_SIZE),
-        parseCssColor(style.edgeColor)
+        style.edgeColor ? parseCssColor(style.edgeColor) : null
       );
     } else {
       const region = plan.safeAreas.text;
