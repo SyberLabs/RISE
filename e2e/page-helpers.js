@@ -125,3 +125,28 @@ export async function pageCount(page) {
         return r?.pages?.length ?? 0;
     });
 }
+
+/**
+ * Accept the photosensitivity warning if it is raised, and carry on if it is
+ * not.
+ *
+ * The warning belongs to the flashing surfaces, and RISE ships with
+ * FLASHING_ENABLED false, so it no longer appears for most readings. Specs
+ * whose subject is Page Mode, masks, typography or recitation only ever
+ * clicked through it to reach a session — asserting it appears made them
+ * fail on a feature they were not testing.
+ *
+ * Whichever arrives first wins: the warning, or the Chamber that comes when
+ * there was nothing to warn about.
+ */
+export async function acceptFlashWarningIfShown(page, timeout = 20_000) {
+    const warning = page.locator('#photosensitivity-modal');
+    const display = page.locator('#chamber-display');
+    await Promise.race([
+        warning.waitFor({ state: 'visible', timeout }).catch(() => {}),
+        display.waitFor({ state: 'visible', timeout }).catch(() => {})
+    ]);
+    if (await warning.isVisible().catch(() => false)) {
+        await warning.locator('#safety-accept').click();
+    }
+}

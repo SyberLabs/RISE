@@ -3,7 +3,7 @@
  * Walks real pages (Vitruvius-style inline structure).
  */
 import { test, expect } from '@playwright/test';
-import { pageCount } from './page-helpers.js';
+import { acceptFlashWarningIfShown, pageCount } from './page-helpers.js';
 
 const GATE = { code: 'rise2025', name: 'Typography', vault: null, timestamp: Date.now() };
 
@@ -44,9 +44,7 @@ async function openThePage(page) {
     await page.locator('[data-nav="chamber"]').first().click();
     await expect(page.locator('#begin-btn')).toBeEnabled({ timeout: 15000 });
     await page.locator('#begin-btn').click();
-    const warn = page.locator('#photosensitivity-modal');
-    await expect(warn).toBeVisible({ timeout: 15000 });
-    await warn.locator('#safety-accept').click();
+    await acceptFlashWarningIfShown(page);
     await expect(page.locator('#chamber-display')).toBeVisible({ timeout: 20000 });
     await page.waitForFunction(() => window.__RISE_TEST__ && !window.__RISE_TEST__.getRouterState().transitioning);
     await page.waitForTimeout(1200);

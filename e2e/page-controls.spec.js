@@ -1,4 +1,6 @@
 import { test, expect } from '@playwright/test';
+import { acceptFlashWarningIfShown } from './page-helpers.js';
+import { FLASHING_ENABLED } from '../src/core/visual-presence.js';
 const GATE = { code: 'rise2025', name: 'Controls', vault: null, timestamp: Date.now() };
 const SEED = { text: 'The pendulum draws the chord it hears. '.repeat(60).trim(), textSource: 'Seed', origin: null };
 const PREFS = {
@@ -20,9 +22,7 @@ test('the control bar condenses in Page Mode and restores on return', async ({ p
   await page.locator('[data-nav="chamber"]').first().click();
   await expect(page.locator('#begin-btn')).toBeEnabled({ timeout: 15000 });
   await page.locator('#begin-btn').click();
-  const warn = page.locator('#photosensitivity-modal');
-  await expect(warn).toBeVisible({ timeout: 15000 });
-  await warn.locator('#safety-accept').click();
+  await acceptFlashWarningIfShown(page);
   await expect(page.locator('#chamber-display')).toBeVisible({ timeout: 20000 });
   await page.waitForFunction(() => window.__RISE_TEST__ && !window.__RISE_TEST__.getRouterState().transitioning);
   await page.waitForTimeout(1500);
@@ -60,7 +60,12 @@ test('the control bar condenses in Page Mode and restores on return', async ({ p
   // on this bar just because the hidden attribute lost the cascade.
   expect(inStream.play).toBe(true);
   expect(inStream.time).toBe(true);
-  expect(inStream.visuals).toBe(true);
+  // The Visuals button is the session-local kill switch for FLASHING
+  // interlocution, and the bar only offers it when the presentation
+  // flashes. With flashing disabled in production this seed's saved
+  // 'behind-stream' normalises to Gallery, so there is no flash to kill
+  // and no button — which is the point, not a regression.
+  expect(inStream.visuals).toBe(FLASHING_ENABLED);
   expect(inStream.elongate, 'Elongate belongs to the Page').toBe(false);
 
   // Page: only what a reader needs — page toggle, sound, exit. Sound used to
