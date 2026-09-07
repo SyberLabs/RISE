@@ -52,10 +52,11 @@ import {
 import { STANCES, applyStance, matchStance } from '../core/stances.js';
 // One engine has a name; the taxonomy is where it is kept.
 import { leafById } from '../core/visual-taxonomy.js';
-
-const STANCE_NOTE_SEEN_KEY = 'rise-stance-note-seen';
+import { USER_DATA_KEYS } from '../core/user-data-keys.js';
 import './VisualNavigator.css';
 import './ChamberOrbital.css';
+
+const STANCE_NOTE_SEEN_KEY = USER_DATA_KEYS.stanceNoteSeen;
 
 // Last-used session settings survive across chamber visits (the orbital
 // instance itself is destroyed whenever a session runs in the shared view)

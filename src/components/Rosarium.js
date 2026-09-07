@@ -34,10 +34,11 @@ import { escapeHtml } from '../core/sanitize.js';
 import { createRemoteImage } from '../visuals/remote-image.js';
 import { rosaryDoorHref } from '../core/rosary-door.js';
 import './Rosarium.css';
+import { USER_DATA_KEYS } from '../core/user-data-keys.js';
 
-const MODE_KEY = 'rise_chapel_rosary_mode_v1';
-const SOUND_KEY = 'rise_rosarium_sound_v1';
-const ADVANCE_KEY = 'rise_rosarium_advance_v1';
+const MODE_KEY = USER_DATA_KEYS.rosaryMode;
+const SOUND_KEY = USER_DATA_KEYS.rosarySound;
+const ADVANCE_KEY = USER_DATA_KEYS.rosaryAdvance;
 
 const SOUNDS = Object.freeze([
   ['none', 'Silence'],

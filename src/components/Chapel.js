@@ -28,9 +28,10 @@ import { CHAPEL_ICONS } from '../content/chapel/imagery/icons.js';
 import { REMOTE_IMAGE_ATTRS } from '../visuals/remote-image.js';
 import { MYSTERY_SETS, mysterySetForDate } from '../content/chapel/liturgy/rosary.js';
 import './Chapel.css';
+import { USER_DATA_KEYS } from '../core/user-data-keys.js';
 
 /** The reader's chosen icon focal, kept across visits. */
-export const CHAPEL_ICON_PREF_KEY = 'rise_chapel_icon_v1';
+export const CHAPEL_ICON_PREF_KEY = USER_DATA_KEYS.chapelIcon;
 
 export function loadChapelIconPref() {
   try {
