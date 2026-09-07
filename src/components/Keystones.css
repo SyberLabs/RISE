@@ -325,8 +325,8 @@
 
 .keystone-figure[data-face="fractal"] [data-layer="a"] {
   background-image: var(--keystone-still);
-  background-size: 116%;
-  filter: grayscale(1) contrast(1.46) brightness(1.04);
+  background-size: 90%;
+  filter: grayscale(1) contrast(1.4) brightness(0.95);
 }
 
 /* `color` takes its hue and saturation from this ramp and its lightness from
@@ -372,6 +372,7 @@
   /* Room to travel a whole traverse without the layer's own edge arriving. */
   inset: -70%;
   mix-blend-mode: color;
+  opacity: 0.55;
   animation: keystone-hue 44s var(--ease-default) infinite alternate var(--face-play);
 }
 
@@ -382,6 +383,7 @@
     radial-gradient(ellipse 40% 32% at 44% 42%, rgba(214, 226, 240, 0.16), transparent 68%),
     radial-gradient(ellipse 30% 26% at 64% 62%, rgba(186, 204, 226, 0.11), transparent 70%);
   mix-blend-mode: screen;
+  opacity: 0.8;
 }
 
 /* One marbling, declared once and used twice. */
