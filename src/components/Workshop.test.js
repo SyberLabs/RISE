@@ -35,6 +35,7 @@ if (typeof URL.createObjectURL !== 'function') {
 
 const { Workshop } = await import('./Workshop.js');
 const { WorkshopMedia } = await import('../core/workshop-media.js');
+const { MemoryCore } = await import('../core/memory.js');
 
 beforeEach(() => {
     vi.spyOn(WorkshopMedia, 'put').mockImplementation(async ({ id, projectId, data, mimeType }) => ({
@@ -46,15 +47,28 @@ beforeEach(() => {
         updatedAt: Date.now()
     }));
     vi.spyOn(WorkshopMedia, 'has').mockResolvedValue(true);
+    vi.spyOn(WorkshopMedia, 'getAllIds').mockResolvedValue([]);
     vi.spyOn(WorkshopMedia, 'resolveObjectUrl').mockImplementation(async (id) => `blob:hydrated-${id}`);
     vi.spyOn(WorkshopMedia, 'delete').mockResolvedValue(undefined);
     vi.spyOn(WorkshopMedia, 'deleteByProject').mockResolvedValue(undefined);
     vi.spyOn(WorkshopMedia, 'revokeObjectUrl').mockImplementation(() => {});
 });
 
-afterEach(() => {
+afterEach(async () => {
+    for (let pass = 0; pass < 8; pass += 1) {
+        const tail = MemoryCore._workshopMutationTail;
+        await tail;
+        await Promise.resolve();
+        if (tail === MemoryCore._workshopMutationTail) break;
+    }
     vi.restoreAllMocks();
     localStorage.clear();
+    MemoryCore._stopWorkshopLeaseHeartbeat();
+    MemoryCore._stopWorkshopDeferredAssetRetries();
+    MemoryCore._workshopAssetReferenceProviders = new Set();
+    MemoryCore._workshopLeasePublishPending = null;
+    MemoryCore._workshopDeferredAssetDeletes = new Set();
+    MemoryCore._workshopOrphanSweepStarted = false;
 });
 
 function makeWorkshop(onCreateSession = vi.fn(), options = {}) {
@@ -69,6 +83,27 @@ function makeWorkshop(onCreateSession = vi.fn(), options = {}) {
 }
 
 describe('Workshop Composition Studio architecture', () => {
+    it('leases media referenced by the active and suspended drafts until teardown', async () => {
+        const { workshop, container } = makeWorkshop();
+        workshop.sessionData.sequenceVisualAssets = [{
+            id: 'active-image', name: 'Active', storage: 'idb', mimeType: 'image/png'
+        }];
+        workshop.suspendedDrafts = [{
+            id: 'draft',
+            data: { sequenceVisualAssets: [{ id: 'suspended-image' }] },
+            pendingMediaBlobs: new Map([['pending-image', new Blob(['image'])]])
+        }];
+
+        expect(MemoryCore._isWorkshopAssetReferencedByDraft('active-image')).toBe(true);
+        expect(MemoryCore._isWorkshopAssetReferencedByDraft('suspended-image')).toBe(true);
+        expect(MemoryCore._isWorkshopAssetReferencedByDraft('pending-image')).toBe(true);
+
+        workshop.destroy();
+        await MemoryCore._workshopMutationTail;
+        expect(MemoryCore._isWorkshopAssetReferencedByDraft('active-image')).toBe(false);
+        container.remove();
+    });
+
     it('uses the injected audio provider for shell feedback', () => {
         const audioEngine = { playClick: vi.fn() };
         const { workshop, container } = makeWorkshop(vi.fn(), {
@@ -1841,6 +1876,144 @@ describe('Workshop Export MP4', () => {
         expect(downloaded).toHaveLength(1);
         expect(downloaded[0].schema).toBe('rise.kernel-request.v1');
         expect(downloaded[0].program).toBeTruthy();
+        workshop.destroy();
+        container.remove();
+    });
+});
+
+describe('Workshop asynchronous save boundaries', () => {
+    it('preserves edits and pending images added while a save is underway', async () => {
+        const { MemoryCore } = await import('../core/memory.js');
+        const save = MemoryCore.saveWorkshopBlueprintAsync.bind(MemoryCore);
+        let release;
+        const held = new Promise(resolve => { release = resolve; });
+        vi.spyOn(MemoryCore, 'saveWorkshopBlueprintAsync').mockImplementation(async (...args) => {
+            await held;
+            return save(...args);
+        });
+        const { workshop, container } = makeWorkshop();
+        workshop.sessionData.title = 'Original';
+        workshop.addSource({ id: 'source', name: 'Source', type: 'text/plain', data: 'one two three' }, { id: 'local' });
+        const saving = workshop.saveSequenceToVault();
+        workshop.sessionData.title = 'Later edit';
+        const laterImage = new Blob(['later'], { type: 'image/png' });
+        workshop.pendingMediaBlobs.set('later-image', laterImage);
+        release();
+        const saved = await saving;
+        expect(saved.title).toBe('Original');
+        expect(workshop.sessionData.title).toBe('Later edit');
+        expect(workshop.pendingMediaBlobs.get('later-image')).toBe(laterImage);
+        expect(workshop.activeBlueprintId).toBe(saved.id);
+        workshop.destroy();
+        container.remove();
+    });
+
+    it('does not clear another draft opened before a save finishes', async () => {
+        const { MemoryCore } = await import('../core/memory.js');
+        const save = MemoryCore.saveWorkshopBlueprintAsync.bind(MemoryCore);
+        let release;
+        const held = new Promise(resolve => { release = resolve; });
+        vi.spyOn(MemoryCore, 'saveWorkshopBlueprintAsync').mockImplementation(async (...args) => { await held; return save(...args); });
+        const { workshop, container } = makeWorkshop();
+        workshop.addSource({ id: 'source', name: 'Source', type: 'text/plain', data: 'one two three' }, { id: 'local' });
+        const saving = workshop.saveSequenceToVault();
+        workshop.startNewSequence();
+        workshop.sessionData.title = 'Another draft';
+        release();
+        await saving;
+        expect(workshop.sessionData.title).toBe('Another draft');
+        expect(workshop.activeBlueprintId).toBeNull();
+        workshop.destroy();
+        container.remove();
+    });
+
+    it('prevents overlapping save and launch requests from creating duplicate projects', async () => {
+        const { workshop, container, onCreateSession } = makeWorkshop();
+        workshop.addSource({ id: 'source', name: 'Source', type: 'text/plain', data: 'one two three' }, { id: 'local' });
+        await Promise.all([workshop.saveSequenceToVault(), workshop.createSession()]);
+        expect(JSON.parse(localStorage.getItem('rise_workshop_v1'))).toHaveLength(1);
+        expect(onCreateSession).not.toHaveBeenCalled();
+        workshop.destroy();
+        container.remove();
+    });
+
+    it.each([false, undefined])('retains the editable draft when launch returns %s', async result => {
+        const { workshop, container } = makeWorkshop(async () => result);
+        workshop.addSource({ id: 'source', name: 'Source', type: 'text/plain', data: 'one two three' }, { id: 'local' });
+        await workshop.createSession();
+        expect(workshop.sessionData.sources).toHaveLength(1);
+        workshop.destroy();
+        container.remove();
+    });
+
+    it('waits for successful launch before clearing the editor', async () => {
+        let release;
+        const launched = new Promise(resolve => { release = resolve; });
+        const callback = vi.fn(() => launched);
+        const { workshop, container } = makeWorkshop(callback);
+        workshop.addSource({ id: 'source', name: 'Source', type: 'text/plain', data: 'one two three' }, { id: 'local' });
+        const launching = workshop.createSession();
+        await vi.waitFor(() => expect(callback).toHaveBeenCalled());
+        expect(workshop.sessionData.sources).toHaveLength(1);
+        release(true);
+        await launching;
+        expect(workshop.sessionData.sources).toHaveLength(0);
+        workshop.destroy();
+        container.remove();
+    });
+
+    it('preserves edits made while successful launch navigation is pending', async () => {
+        let release;
+        const launched = new Promise(resolve => { release = resolve; });
+        const { workshop, container } = makeWorkshop(() => launched);
+        workshop.addSource({ id: 'source', name: 'Source', type: 'text/plain', data: 'one two three' }, { id: 'local' });
+        const launching = workshop.createSession();
+        await vi.waitFor(() => expect(workshop.activeBlueprintId).not.toBeNull());
+        workshop.sessionData.title = 'Edit during navigation';
+        release(true);
+        await launching;
+        expect(workshop.sessionData.title).toBe('Edit during navigation');
+        expect(workshop.sessionData.sources).toHaveLength(1);
+        workshop.destroy();
+        container.remove();
+    });
+
+    it('preserves a replacement pending blob added while save metadata is unchanged', async () => {
+        const { MemoryCore } = await import('../core/memory.js');
+        const save = MemoryCore.saveWorkshopBlueprintAsync.bind(MemoryCore);
+        let release;
+        const held = new Promise(resolve => { release = resolve; });
+        vi.spyOn(MemoryCore, 'saveWorkshopBlueprintAsync').mockImplementation(async (...args) => {
+            await held;
+            return save(...args);
+        });
+        const { workshop, container } = makeWorkshop();
+        workshop.addSource({ id: 'source', name: 'Source', type: 'text/plain', data: 'one two three' }, { id: 'local' });
+        const initial = new Blob(['initial'], { type: 'image/png' });
+        const replacement = new Blob(['replacement'], { type: 'image/png' });
+        workshop.pendingMediaBlobs.set('same-image', initial);
+        const saving = workshop.saveSequenceToVault();
+        workshop.pendingMediaBlobs.set('same-image', replacement);
+        release();
+        await saving;
+        expect(workshop.sessionData.sources).toHaveLength(1);
+        expect(workshop.pendingMediaBlobs.get('same-image')).toBe(replacement);
+        workshop.destroy();
+        container.remove();
+    });
+
+    it('keeps a committed save successful when the Vault refresh cannot hydrate media', async () => {
+        vi.spyOn(MemoryCore, 'getWorkshopBlueprintsHydrated')
+            .mockRejectedValue(new Error('temporary IndexedDB read failure'));
+        const { workshop, container } = makeWorkshop();
+        workshop.addSource({
+            id: 'source', name: 'Source', type: 'text/plain', data: 'one two three'
+        }, { id: 'local' });
+
+        const saved = await workshop.saveSequenceToVault();
+
+        expect(saved?.id).toBeTruthy();
+        expect(MemoryCore.getWorkshopBlueprints().map(project => project.id)).toContain(saved.id);
         workshop.destroy();
         container.remove();
     });

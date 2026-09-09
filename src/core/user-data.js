@@ -3,7 +3,7 @@ import { READING_LIMITS } from './reading-limits.js';
 import { SourceCache } from '../sources/cache.js';
 import { WorkshopMedia, blobToDataUrl } from './workshop-media.js';
 import { endVisualInterlocutionSession } from './visual-safety.js';
-import { USER_DATA_KEYS } from './user-data-keys.js';
+import { ERASABLE_LOCAL_KEY_PREFIXES, USER_DATA_KEYS } from './user-data-keys.js';
 
 export { USER_DATA_KEYS } from './user-data-keys.js';
 
@@ -187,6 +187,12 @@ export async function exportUserData(settings = null, options = {}) {
 
 export async function clearUserData() {
     for (const key of Object.values(USER_DATA_KEYS)) localStorage.removeItem(key);
+    for (let index = localStorage.length - 1; index >= 0; index -= 1) {
+        const key = localStorage.key(index);
+        if (ERASABLE_LOCAL_KEY_PREFIXES.some(prefix => key?.startsWith(prefix))) {
+            localStorage.removeItem(key);
+        }
+    }
     endVisualInterlocutionSession();
 
     const results = await Promise.allSettled([

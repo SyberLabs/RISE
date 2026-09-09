@@ -302,6 +302,17 @@ export class WorkshopMediaStore {
     return this._getAll();
   }
 
+  /** Metadata-only orphan scan; avoids materialising up to 256 MB of Blobs. */
+  async getAllIds() {
+    await this.init();
+    return new Promise((resolve, reject) => {
+      const transaction = this.db.transaction([STORE_NAME], 'readonly');
+      const request = transaction.objectStore(STORE_NAME).getAllKeys();
+      request.onsuccess = () => resolve((request.result || []).filter(id => typeof id === 'string'));
+      request.onerror = () => reject(request.error);
+    });
+  }
+
   async _getAll() {
     return new Promise((resolve, reject) => {
       const transaction = this.db.transaction([STORE_NAME], 'readonly');

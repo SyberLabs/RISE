@@ -20,6 +20,7 @@ export const USER_DATA_KEYS = Object.freeze({
     settings: 'rise-settings',
     journals: 'rise_recursions_v1',
     blueprints: 'rise_workshop_v1',
+    workshopMediaLeases: 'rise_workshop_media_leases_v1',
     globalImages: 'rise_global_images_v1',
     // OUTLIVES ITS ROOM. The Solarium is deleted and this key is not:
     // a reader who planned their day there still has one saved, and a
@@ -57,3 +58,8 @@ export const UNREGISTERED_LOCAL_KEYS = Object.freeze({
 
 /** Every key an erase is expected to remove. */
 export const ERASABLE_LOCAL_KEYS = Object.freeze(Object.values(USER_DATA_KEYS));
+
+/** Ephemeral records written once per open browser context. */
+export const ERASABLE_LOCAL_KEY_PREFIXES = Object.freeze([
+    'rise_workshop_media_lease_v2:'
+]);

@@ -278,7 +278,7 @@ export class Vault {
     });
 
     // Global click delegate
-    this.container.addEventListener('click', (e) => {
+    this.container.addEventListener('click', async (e) => {
       const target = e.target.closest('[data-action]');
       if (!target) return;
 
@@ -302,9 +302,10 @@ export class Vault {
          this.onNavigate('workshop', { blueprintId: target.dataset.id });
       } else if (action === 'delete-custom') {
          this.getAudioEngine()?.playHiss();
-         MemoryCore.deleteWorkshopBlueprint(target.dataset.id);
-         this.blueprints = MemoryCore.getWorkshopBlueprints();
-         this.updateContent();
+         if (await MemoryCore.deleteWorkshopBlueprintAsync(target.dataset.id)) {
+           this.blueprints = MemoryCore.getWorkshopBlueprints();
+           this.updateContent();
+         }
       } else if (action === 'route-workshop') {
          this.getAudioEngine()?.playHiss();
          this.onNavigate('workshop');

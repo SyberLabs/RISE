@@ -120,8 +120,14 @@ beforeEach(() => {
     toasts.id = 'toast-container';
     document.body.appendChild(toasts);
 
-    vi.spyOn(WorkshopMedia, 'put').mockResolvedValue({ id: 'x', projectId: 'p', byteLength: 0 });
+    vi.spyOn(WorkshopMedia, 'put').mockImplementation(async input => ({
+        id: input.id,
+        projectId: input.projectId,
+        byteLength: input.data?.size || 0,
+        mimeType: input.mimeType || input.data?.type
+    }));
     vi.spyOn(WorkshopMedia, 'has').mockResolvedValue(true);
+    vi.spyOn(WorkshopMedia, 'getAllIds').mockResolvedValue([]);
     vi.spyOn(WorkshopMedia, 'resolveObjectUrl').mockImplementation(async (id) => `blob:hydrated-${id}`);
     vi.spyOn(WorkshopMedia, 'delete').mockResolvedValue(undefined);
     vi.spyOn(WorkshopMedia, 'deleteByProject').mockResolvedValue(undefined);
@@ -138,13 +144,83 @@ beforeEach(() => {
         });
 });
 
-afterEach(() => {
+afterEach(async () => {
+    for (let pass = 0; pass < 8; pass += 1) {
+        const tail = MemoryCore._workshopMutationTail;
+        await tail;
+        await Promise.resolve();
+        if (tail === MemoryCore._workshopMutationTail) break;
+    }
     vi.restoreAllMocks();
     localStorage.clear();
+    MemoryCore._stopWorkshopLeaseHeartbeat();
+    MemoryCore._stopWorkshopDeferredAssetRetries();
+    MemoryCore._workshopAssetReferenceProviders = new Set();
+    MemoryCore._workshopLeasePublishPending = null;
+    MemoryCore._workshopDeferredAssetDeletes = new Set();
+    MemoryCore._workshopOrphanSweepStarted = false;
     document.body.innerHTML = '';
 });
 
 describe('Import score resolves the Library works it was allowed to name', () => {
+    it('keeps edits and uploads made while the imported project is saving', async () => {
+        const { workshop, container } = makeWorkshop();
+        const save = MemoryCore.saveWorkshopBlueprintAsync.getMockImplementation();
+        let release;
+        const held = new Promise(resolve => { release = resolve; });
+        MemoryCore.saveWorkshopBlueprintAsync.mockImplementationOnce(async (...args) => {
+            await held;
+            return save(...args);
+        });
+
+        const importing = workshop.importExperienceProgramText(scoreNaming(['my-notes']));
+        await waitFor(
+            () => MemoryCore.saveWorkshopBlueprintAsync.mock.calls.length > 0,
+            'the imported project save'
+        );
+        const laterBlob = new Blob(['later'], { type: 'image/png' });
+        workshop.sessionData.title = 'Edited while importing';
+        workshop.sessionData.sequenceVisualAssets.push({
+            id: 'later-image', name: 'Later image', storage: 'idb',
+            mimeType: 'image/png', byteLength: laterBlob.size
+        });
+        workshop.pendingMediaBlobs.set('later-image', laterBlob);
+        workshop.markEditorDirty();
+        release();
+        await importing;
+
+        expect(savedProjects[0].assets.map(asset => asset.id)).not.toContain('later-image');
+        expect(workshop.sessionData.title).toBe('Edited while importing');
+        expect(workshop.pendingMediaBlobs.get('later-image')).toBe(laterBlob);
+        workshop.destroy();
+        container.remove();
+    });
+
+    it('keeps imported and suspended-draft media usable after a successful import', async () => {
+        const { workshop, container } = makeWorkshop();
+        const blob = new Blob(['image'], { type: 'image/png' });
+        workshop.sessionData.sequenceVisualAssets.push({
+            id: 'project-image', name: 'Project image', storage: 'idb',
+            mimeType: 'image/png', byteLength: blob.size, uri: 'blob:local-project-image'
+        });
+        workshop.pendingMediaBlobs.set('project-image', blob);
+        workshop.localObjectUrls.add('blob:local-project-image');
+        workshop.markEditorDirty();
+
+        await workshop.importExperienceProgramText(scoreNaming(['my-notes']));
+
+        expect(workshop.sessionData.sequenceVisualAssets.find(asset => asset.id === 'project-image')?.uri)
+            .toBe('blob:hydrated-project-image');
+        expect(WorkshopMedia.revokeObjectUrl).not.toHaveBeenCalledWith('project-image');
+        const [suspended] = workshop.suspendedDrafts;
+        expect(suspended).toBeDefined();
+        workshop.restoreSuspendedDraft(suspended.id);
+        expect(workshop.sessionData.sequenceVisualAssets.find(asset => asset.id === 'project-image')?.uri)
+            .toBe('blob:local-project-image');
+        workshop.destroy();
+        container.remove();
+    });
+
     it('loads a division the score names and gives the reader its actual words', async () => {
         const { workshop, container } = makeWorkshop();
 
