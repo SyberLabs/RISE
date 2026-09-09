@@ -30,6 +30,7 @@ export class Router {
         this.viewStack = [];
         this.currentView = null;
         this.transitioning = false;
+        this._pendingNav = null;
 
         // Transition timing from design system
         this.transitionDuration = 400; // ms
@@ -65,18 +66,20 @@ export class Router {
         if (this.transitioning) {
             // Don't silently eat clicks that land mid-transition — remember
             // the latest request and honor it once the crossfade completes.
-            this._pendingNav = { viewName, options };
-            return;
+            this._pendingNav?.resolve(false);
+            return new Promise((resolve) => {
+                this._pendingNav = { viewName, options, resolve };
+            });
         }
         // A completed division may hand the same immersive surface a fresh
         // Session. Same-route navigation is normally a no-op; `force` is the
         // explicit remount contract for that bounded continuation case.
-        if (viewName === this.currentView && options.force !== true) return;
+        if (viewName === this.currentView && options.force !== true) return true;
 
         const newView = this.views.get(viewName);
         if (!newView) {
             console.error(`Router: View "${viewName}" not found`);
-            return;
+            return false;
         }
 
         this.transitioning = true;
@@ -119,8 +122,8 @@ export class Router {
                 this.viewStack.push(previousViewName);
             }
             this.currentView = viewName;
-            succeeded = true;
             this.onViewChange(viewName, options.data);
+            succeeded = true;
         } catch (error) {
             console.error(`[Router] Navigation to "${viewName}" failed:`, error);
 
@@ -165,8 +168,12 @@ export class Router {
 
         const pending = this._pendingNav;
         this._pendingNav = null;
-        if (pending && pending.viewName !== this.currentView) {
-            return this.navigate(pending.viewName, pending.options);
+        if (pending) {
+            const pendingSucceeded = pending.viewName === this.currentView
+                && pending.options.force !== true
+                ? true
+                : await this.navigate(pending.viewName, pending.options);
+            pending.resolve(pendingSucceeded === true);
         }
         return succeeded;
     }
@@ -279,6 +286,8 @@ export class Router {
      */
     destroy() {
         document.removeEventListener('keydown', this.handleKeydown);
+        this._pendingNav?.resolve(false);
+        this._pendingNav = null;
 
         // Destroy all view instances
         for (const [name, view] of this.views) {

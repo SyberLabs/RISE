@@ -71,6 +71,7 @@ class App {
         this.audioEngine = null;
         this.settings = null;
         this.currentSession = null;
+        this.sessionLaunchRevision = 0;
         this.guideInstance = null;
         this._audioInteractionController = null;
         this._utilityController = null;
@@ -709,13 +710,13 @@ class App {
             // image no longer reaches here.
             console.error('[RISE] Workshop media hydrate failed:', error);
             this.showToast(error.message || 'Sequence images could not be loaded', 4000);
-            return;
+            return false;
         }
         console.log('[RISE] Compiling Custom Workshop Session:', sessionInput);
 
         if (!sessionInput || !sessionInput.sources || sessionInput.sources.length === 0) {
             this.showToast('Cannot create session without sources', 3000);
-            return;
+            return false;
         }
 
         // The canonical compiler chunks each source independently, retains
@@ -730,20 +731,26 @@ class App {
         } catch (error) {
             console.error('[RISE] Workshop compilation failed:', error);
             this.showToast(error.message || 'Unable to compile sequence', 4000);
-            return;
+            return false;
         }
 
         console.log(`[RISE] Workshop compiler built ${session.atomCount} atoms across ${session.sources.length} sources.`);
 
         // 4. Route to player phase
-        this.currentSession = session;
+        const launchRevision = ++this.sessionLaunchRevision;
 
         // Ensure that preview mode routing flag passes correctly if requested
         if (sessionInput.isPreview) {
             session.isPreview = true;
         }
 
-        this.router.navigate('chamber-session', { data: session });
+        const navigated = await this.router.navigate('chamber-session', {
+            data: session,
+            force: true
+        });
+        if (navigated !== true || launchRevision !== this.sessionLaunchRevision) return false;
+        this.currentSession = session;
+        return true;
     }
 
     /**
