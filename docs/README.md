@@ -45,6 +45,7 @@ history, not a distinction; read the status column instead.
 | [specs/TYPESETTING-CANON.md](specs/TYPESETTING-CANON.md) | Contract | Compositor rules. Matches `src/page/compositor.js`. |
 | [vision/PHRASE-CHUNKING-STUDY.md](vision/PHRASE-CHUNKING-STUDY.md) | Record | Measured, not assumed. Reproduce with `npm run study:chunking`. |
 | [vision/CHUNKER-AWARENESS-STUDY.md](vision/CHUNKER-AWARENESS-STUDY.md) | Record | Reproduce with `npm run study:awareness`. |
+| [investigations/workshop-markdown-alignment.md](investigations/workshop-markdown-alignment.md) | Record | Why a Markdown table's separator row broke source alignment in every chunk mode, and what now stands in the way of the class returning. |
 | [vision/LIBRARY-SPEC.md](vision/LIBRARY-SPEC.md) | Record | The critique that produced the canon. Superseded as policy by ARCHIVE-CANON-SPEC. |
 | [ingest-records/SOL-PD-ACQUISITIONS-DOSSIER-LITERATURE-2026-07-28.md](ingest-records/SOL-PD-ACQUISITIONS-DOSSIER-LITERATURE-2026-07-28.md) | Record | The acquisitions dossier the shelf was assembled from. Read by `scripts/archive-dossier.mjs`. |
 | [ingest-records/](ingest-records/) | Record | Dated ingest and audit artifacts alongside it. Read by `scripts/legacy-ingest.mjs` and `scripts/literature-ingest.mjs`; JSON, not prose. |
