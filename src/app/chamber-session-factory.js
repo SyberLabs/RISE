@@ -14,6 +14,7 @@ import {
   requestVisualInterlocutionConsent
 } from '../core/visual-safety.js';
 import { normalizeVisualSelection, resolveSessionWordFill } from '../core/visual-selection.js';
+import { chamberExitTarget } from './chamber-exit.js';
 
 export async function createChamberSession(operations, container, sessionData) {
     const session = sessionData || operations.getCurrentSession();
@@ -395,16 +396,16 @@ export async function createChamberSession(operations, container, sessionData) {
                     view.instance = null;
                 }
 
-                if (reason === 'continue') {
+                const target = chamberExitTarget(reason, session, data);
+                if (target?.kind === 'continue') {
                     void operations.continueLibraryReading(session);
-                } else if (reason === 'workshop' && data && data.text) {
-                    operations.router.navigate('workshop', {
-                        data: { draftIntent: 'new-recursion', text: data.text }
+                } else if (target?.kind === 'navigate') {
+                    // Through the shell rather than the router, so the rules
+                    // that keep the address bar honest about which surface is
+                    // showing get a chance to run.
+                    operations.handleNavigate(target.view, target.data, {
+                        replaceUrl: target.replaceUrl === true
                     });
-                } else if (session.isPreview && (reason === 'back' || reason === 'exit' || reason === 'close')) {
-                    operations.router.navigate('workshop'); // Isolate previews
-                } else if (reason === 'back' || reason === 'exit' || reason === 'close') {
-                    operations.router.navigate('chamber'); // Back to orbital prep
                 }
             }
         });

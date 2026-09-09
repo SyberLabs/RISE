@@ -51,6 +51,38 @@ test('Keystone corridor has durable cold, reload, launch, and Back behavior', as
   await expect(page.locator('#chamber-display')).toBeVisible({ timeout: 20_000 });
   await page.waitForFunction(() => window.__RISE_TEST__ && !window.__RISE_TEST__.getRouterState().transitioning);
 
+  // Leaving the reading returns to the screen it was opened from, not to
+  // the orbital prep screen the Chamber otherwise falls back to.
+  // The Chamber keeps its controls hidden until the reader moves.
+  await page.locator('#chamber-display').hover();
+  await page.locator('#exit-btn').click();
+  await page.locator('#exit-confirm').click();
+  await expect(page).toHaveURL(/\/try-rise$/u);
+  await expect.poll(() => page.evaluate(() => window.__RISE_TEST__?.getRouterState().currentView), {
+    timeout: 15_000
+  }).toBe('keystones');
+  await expect(page.locator('#keystone-meditations')).toBeVisible({ timeout: 15_000 });
+
+  // The closed reading is not left behind in history: Back reaches the
+  // corridor entry that preceded it, and then the Portal, but never
+  // /keystone/meditations again.
+  await page.goBack();
+  await expect(page).toHaveURL(/\/try-rise$/u);
+  await page.goBack();
+  await expect(page).toHaveURL(/\/$/u);
+  await expect.poll(() => page.evaluate(() => window.__RISE_TEST__?.getRouterState().currentView), {
+    timeout: 15_000
+  }).toBe('portal');
+
+  // Re-enter, so the Back-from-a-live-reading behaviour below is still
+  // exercised from inside a reading.
+  await page.goto('/try-rise');
+  const reenter = page.locator('[data-enter]');
+  await expect(reenter).toBeEnabled({ timeout: 15_000 });
+  await reenter.click();
+  await expect(page.locator('#chamber-display')).toBeVisible({ timeout: 20_000 });
+  await page.waitForFunction(() => window.__RISE_TEST__ && !window.__RISE_TEST__.getRouterState().transitioning);
+
   await page.goBack();
   await expect(page).toHaveURL(/\/try-rise$/u);
   await expect.poll(() => page.evaluate(() => window.__RISE_TEST__?.getRouterState().currentView), {

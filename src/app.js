@@ -18,6 +18,8 @@ import {
 } from './core/workshop-project.js';
 import { BetaGate } from './components/BetaGate.js';
 import { isRosaryDoor } from './core/rosary-door.js';
+import { TRY_RISE_PATH, isTryRisePath } from './core/keystone-paths.js';
+import { KEYSTONE_SESSION_ORIGIN } from './app/chamber-exit.js';
 
 import { errorBoundary, ErrorCategory, ErrorSeverity } from './core/error-boundary.js';
 import {
@@ -238,7 +240,7 @@ class App {
         // Keystone paths are durable public entry points.  They resolve to a
         // threshold view first; admission and launch still happen through the
         // exact manifest gate rather than from URL text alone.
-        const { isTryRisePath, keystoneSlugFromPath } = await import('./content/keystones.js');
+        const { keystoneSlugFromPath } = await import('./content/keystones.js');
         const directKeystone = keystoneSlugFromPath(window.location.pathname);
         const directTryRise = isTryRisePath(window.location.pathname);
 
@@ -381,6 +383,10 @@ class App {
                 getSettings: () => this.settings,
                 getVisualCortex: () => this._visualCortex,
                 router: this.router,
+                // Leaving a reading goes through the shell, not straight to
+                // the router, so the rules that keep the address bar honest
+                // about which surface is showing get to run.
+                handleNavigate: this.handleNavigate,
                 ensureVisualCortex: () => this.ensureVisualCortex(),
                 ensureAudioEngine: () => this.ensureAudioEngine(),
                 continueLibraryReading: session => this.continueLibraryReading(session),
@@ -430,14 +436,19 @@ class App {
     /**
      * Handle navigation requests from components
      */
-    handleNavigate(viewName, data) {
+    handleNavigate(viewName, data, { replaceUrl = false } = {}) {
         // Keystone URLs are real entry points, not a hash painted onto an
         // unrelated view. Leaving the release corridor explicitly returns
         // the browser to the application root so reload and Back agree with
         // the surface the reader can actually see.
-        if (viewName === 'keystones'
-            && !/^\/(?:try-rise|keystone(?:\/|$))/u.test(window.location.pathname)) {
-            window.history.pushState({}, '', '/try-rise');
+        //
+        // The try-rise screen is also where a keystone reading returns to,
+        // and it returns from `/keystone/<slug>` — a path this used to treat
+        // as already correct, which left the address bar naming a reading
+        // that had been closed. The test is now whether the browser is on
+        // try-rise, not whether it is somewhere in the corridor.
+        if (viewName === 'keystones' && !isTryRisePath(window.location.pathname)) {
+            window.history[replaceUrl ? 'replaceState' : 'pushState']({}, '', TRY_RISE_PATH);
         }
         if (viewName === 'portal'
             && /^\/(?:try-rise|keystone(?:\/|$))/u.test(window.location.pathname)) {
@@ -643,6 +654,12 @@ class App {
         console.log('[RISE] Session atoms:', session.atoms);
         console.log('[RISE] Session.atoms[0]:', session.atoms[0]);
 
+        // Where the reading was opened from, so leaving it can return
+        // there rather than to the surface the Chamber sits in front of.
+        if (sessionConfig.origin) {
+            session.origin = sessionConfig.origin;
+        }
+
         // Store and navigate to chamber-session (immersion)
         this.currentSession = session;
         this.router.navigate('chamber-session', { data: session });
@@ -667,7 +684,10 @@ class App {
             if (window.location.pathname !== path) {
                 window.history.pushState({}, '', path);
             }
-            await this.handleBeginSession(result.sessionInput);
+            await this.handleBeginSession({
+                ...result.sessionInput,
+                origin: KEYSTONE_SESSION_ORIGIN
+            });
         } catch (error) {
             console.error('[RISE] Keystone launch refused:', error);
             this.showToast(error.message || 'This Keystone could not be opened.', 5000);
@@ -1046,7 +1066,7 @@ class App {
             // popstate alongside hashchange, and clearing the hash must not
             // pull an in-progress prayer back to the Portal.
             if (isRosaryDoor() || this.router?.getCurrentView() === 'rosarium') return;
-            const { isTryRisePath, keystoneSlugFromPath } = await import('./content/keystones.js');
+            const { keystoneSlugFromPath } = await import('./content/keystones.js');
             const slug = keystoneSlugFromPath(window.location.pathname);
             if (slug || isTryRisePath(window.location.pathname)) {
                 await this.router?.navigate('keystones', {

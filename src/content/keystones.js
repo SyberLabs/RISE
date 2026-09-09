@@ -8,6 +8,12 @@
  * separate publication gate for release artifacts and certified shelf claims.
  */
 
+import {
+  KEYSTONE_ROUTE_PREFIX,
+  TRY_RISE_PATH,
+  isTryRisePath,
+  keystonePath
+} from '../core/keystone-paths.js';
 import { ingestedArchiveTexts } from './archive/index.js';
 import { isArchiveEditionCertified } from './archive/certification.js';
 import { hasPinnedCollection } from './imagery/provider.js';
@@ -20,8 +26,7 @@ import { DEFAULT_VOICE_ID, voicePackManifest } from '../audio/voice-pack.js';
 import { SEQUENCE_CAPABILITIES } from '../core/sequence-capabilities.js';
 
 export const KEYSTONE_SCHEMA = 'rise.keystone.v1';
-export const KEYSTONE_ROUTE_PREFIX = '/keystone/';
-export const TRY_RISE_PATH = '/try-rise';
+export { KEYSTONE_ROUTE_PREFIX, TRY_RISE_PATH, keystonePath, isTryRisePath };
 
 function freeze(value) {
   if (!value || typeof value !== 'object' || Object.isFrozen(value)) return value;
@@ -101,14 +106,6 @@ export const KEYSTONE_MANIFESTS = freeze([
     capabilities: [SEQUENCE_CAPABILITIES.RECITATION_AUDIO]
   }
 ]);
-
-export function keystonePath(slug) {
-  return `${KEYSTONE_ROUTE_PREFIX}${String(slug || '').trim().toLowerCase()}`;
-}
-
-export function isTryRisePath(pathname) {
-  return String(pathname || '').replace(/\/+$/u, '') === TRY_RISE_PATH;
-}
 
 export function keystoneSlugFromPath(pathname) {
   const path = String(pathname || '').replace(/\/+$/u, '');
