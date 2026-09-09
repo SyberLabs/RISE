@@ -65,3 +65,24 @@ describe('compiled atoms align with the text they came from', () => {
         expect(isDroppedWordToken('...')).toBe(false);
     });
 });
+
+
+describe('bars retain source coordinates after display splitting', () => {
+    it.each(MODES)('aligns compact Markdown tables in %s mode', mode => {
+        const text = '| Name | Flag |\n|---|---|\n|alpha|beta|\n\nAfter the table.';
+        const atoms = alignSourceAtoms(text, chunk(text, mode));
+        const after = atoms.find(atom => atom.content.includes('After'));
+        expect(after.sourceCharacterStart).toBe(text.indexOf('After'));
+        expect(after.sourceTokenStart).toBe(7);
+        expect(atoms.filter(atom => atom.content).every(atom =>
+            text.slice(atom.sourceCharacterStart, atom.sourceCharacterEnd)
+                .replace(/\|/g, ' ').replace(/\s+/g, ' ').trim() === atom.content)).toBe(true);
+    });
+
+    it('keeps each phrase inside a compact token at its original character offset', () => {
+        const atoms = alignSourceAtoms('alpha|beta|gamma', ['alpha', 'beta', 'gamma'].map(content => ({ content })));
+        expect(atoms.map(atom => [atom.content, atom.sourceCharacterStart,
+            atom.sourceCharacterEnd, atom.sourceTokenStart, atom.sourceTokenEnd]))
+            .toEqual([['alpha', 0, 5, 0, 1], ['beta', 6, 10, 0, 1], ['gamma', 11, 16, 0, 1]]);
+    });
+});

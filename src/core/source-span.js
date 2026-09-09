@@ -7,12 +7,11 @@
  * are checked after whitespace normalization before any atom is annotated.
  */
 
-import { isDroppedWordToken } from './chunker.js';
+import { isDroppedWordToken, SOURCE_MARKER, SOURCE_SCORE_CUT } from './chunker.js';
+import { prepareChunkText } from './chunk-profiles.js';
 
 const SOURCE_TOKEN = /\S+/gu;
 const STRUCTURAL_MARKER = /^\[(?:PAUSE|FLASH|HOLD)\]$/i;
-const VERSE_SENTINEL_OPEN = /^\[v$/i;
-const VERSE_SENTINEL_CLOSE = /^\d+:\d+\]$/;
 const MAX_COMPILED_SPAN_IDS = 1_536;
 
 export class SourceSpanResolutionError extends Error {
@@ -332,44 +331,62 @@ export function resolveSourceSpan(anchor, text, path = '$.anchor', options = {})
   });
 }
 
-function comparableToken(value) {
-  return String(value ?? '').replace(/\|/gu, '');
-}
-
-function alignmentTokens(text) {
+function alignmentTokens(text, omissions = []) {
   const raw = sourceTokens(text);
   const aligned = [];
-  for (let i = 0; i < raw.length; i += 1) {
-    if (VERSE_SENTINEL_OPEN.test(raw[i].value)
-      && VERSE_SENTINEL_CLOSE.test(raw[i + 1]?.value ?? '')) {
-      i += 1;
-      continue;
+  let omissionIndex = 0;
+  for (const token of raw) {
+    while (omissions[omissionIndex]?.end <= token.start) omissionIndex += 1;
+    if (omissions[omissionIndex]?.start <= token.start
+      && token.start < omissions[omissionIndex].end) continue;
+    // Controls may touch words; bars and score cuts separate display fragments.
+    // Every fragment retains the original token index and UTF-16 coordinates.
+    let offset = token.start;
+    for (const part of token.value.split(new RegExp('(' + SOURCE_MARKER.source + ')', 'gi'))) {
+      for (const match of part.matchAll(new RegExp('[^|' + SOURCE_SCORE_CUT + ']+', 'gu'))) {
+        aligned.push({
+          index: token.index,
+          start: offset + match.index,
+          end: offset + match.index + match[0].length,
+          comparable: match[0]
+        });
+      }
+      offset += part.length;
     }
-    const value = comparableToken(raw[i].value);
-    if (value) aligned.push({ ...raw[i], comparable: value });
   }
   return aligned;
 }
 
 /**
  * Stamp compiled source coordinates onto the atoms produced from one source.
- * The alignment is exact over the source token stream, apart from the two
- * display-only transformations the chunker declares: bars and verse sentinels.
+ * Match the chunker's declared controls and display fragments. A source
+ * profile reports its own omitted ranges; literal lookalikes remain text.
  */
-export function alignSourceAtoms(text, atoms, path = '$.sources') {
-  const tokens = alignmentTokens(text);
+export function alignSourceAtoms(text, atoms, path = '$.sources', { chunkProfile = null } = {}) {
+  const omissions = prepareChunkText(text, chunkProfile).sourceOmissions || [];
+  const tokens = alignmentTokens(text, omissions);
   let cursor = 0;
   let characterCursor = 0;
 
   for (let atomIndex = 0; atomIndex < atoms.length; atomIndex += 1) {
     const atom = atoms[atomIndex];
     const contentTokens = sourceTokens(typeof atom?.content === 'string' ? atom.content : '')
-      .map(token => comparableToken(token.value))
-      .filter(Boolean);
+      .map(token => token.value);
+
+    const marker = contentTokens.length === 0
+      ? atom?.tags?.find(tag => STRUCTURAL_MARKER.test(`[${tag}]`)) : null;
+    const expectedMarker = marker ? `[${marker.toUpperCase()}]` : null;
+    const expected = expectedMarker || contentTokens[0];
+    // Word mode drops standalone punctuation before words AND controls.
+    // Keep it when the current display atom actually carries that mark.
+    while (expected && cursor < tokens.length
+      && tokens[cursor].comparable !== expected
+      && isDroppedWordToken(tokens[cursor].comparable)) {
+      characterCursor = tokens[cursor].end;
+      cursor += 1;
+    }
 
     if (contentTokens.length === 0) {
-      const marker = atom?.tags?.find(tag => STRUCTURAL_MARKER.test(`[${tag}]`));
-      const expectedMarker = marker ? `[${marker.toUpperCase()}]` : null;
       if (expectedMarker && tokens[cursor]?.comparable.toUpperCase() === expectedMarker) {
         const token = tokens[cursor++];
         atom.sourceCharacterStart = token.start;
@@ -387,17 +404,6 @@ export function alignSourceAtoms(text, atoms, path = '$.sources') {
         atom.sourceTokenEnd = tokenPoint;
       }
       continue;
-    }
-
-    // Word chunking discards a mark standing alone; the source stream keeps
-    // it. Skip only what this atom does not expect next, so phrase and
-    // sentence atoms — which carry the mark inside their own text — still
-    // match it directly rather than stepping over it.
-    while (cursor < tokens.length
-      && tokens[cursor].comparable !== contentTokens[0]
-      && isDroppedWordToken(tokens[cursor].comparable)) {
-      characterCursor = tokens[cursor].end;
-      cursor += 1;
     }
 
     const first = tokens[cursor];
@@ -535,7 +541,7 @@ export function compileSourceSpans(program, sources, atoms) {
     }
     const sourceAtoms = atomsBySource.get(sourceId) || [];
     if (!aligned.has(sourceId)) {
-      alignSourceAtoms(source.raw, sourceAtoms, `$.sources[${sourceId}]`);
+      alignSourceAtoms(source.raw, sourceAtoms, `$.sources[${sourceId}]`, source);
       aligned.add(sourceId);
     }
     if (quotationOnly && !normalizedBySource.has(sourceId)) {

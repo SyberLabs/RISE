@@ -21,6 +21,7 @@ const MARKERS = {
 // display character; it merely prevents a linguistic chunk from crossing a
 // score-authority boundary.
 export const SOURCE_SCORE_CUT = '\uE000';
+export const SOURCE_MARKER = /\[(?:PAUSE|FLASH|HOLD)\]/gi;
 
 export function insertSourceScoreCuts(text, offsets = []) {
     if (typeof text !== 'string' || !Array.isArray(offsets) || offsets.length === 0) {
@@ -566,7 +567,8 @@ export function chunkText(text, { mode = 'word', wpm = 220, source = '', sourceI
 
     // Authored markers are choreography — promote each to its own
     // paragraph before linguistic splitting so every mode preserves them.
-    text = text.replace(/[ \t]*\|?[ \t]*(\[(?:PAUSE|FLASH|HOLD)\])[ \t]*\|?[ \t]*/gi, '\n\n$1\n\n');
+    text = text.replace(new RegExp('[ \t]*\\|?[ \t]*(' + SOURCE_MARKER.source
+        + ')[ \t]*\\|?[ \t]*', 'gi'), '\n\n$1\n\n');
 
     const baseDuration = getBaseDuration(wpm);
     const atoms = [];
