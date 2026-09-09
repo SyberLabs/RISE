@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>RISE Composition stage</title>
+  <link rel="stylesheet" href="/src/fonts.css">
+  <style>
+    /* The composition paints entirely into an offscreen canvas and is read
+       back from there, so this document only has to load the typefaces
+       and stay out of the way. */
+    html, body { margin: 0; width: 100%; height: 100%; background: #0A0A0C; overflow: hidden; }
+  </style>
+</head>
+<body>
+  <script type="module" src="/src/core/render/composition-stage.js"></script>
+</body>
+</html>

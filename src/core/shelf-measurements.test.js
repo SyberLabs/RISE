@@ -158,14 +158,18 @@ const NOT_SWEPT = Object.freeze(['src/content/archive/works']);
 /**
  * MODULES THIS ENVIRONMENT CANNOT OPEN, named rather than skipped.
  *
- * `chamber-paint.js` drives a real browser: it imports `vite` and
- * `playwright`, and esbuild will not load under jsdom. A module the sweep
- * cannot import proves nothing about itself, so this one is READ instead —
- * the weaker check applied to a named exception, rather than to everything.
- * The list is asserted to be exactly this long, so it cannot grow quietly
- * into the hiding place the recursion was widened to reach.
+ * EMPTY, AND MEANT TO STAY THAT WAY. `chamber-paint.js` was the one entry:
+ * it drives a real browser, it imported `vite` and `playwright` at the top,
+ * and esbuild will not load under jsdom. Those imports now happen inside
+ * the function that actually starts a browser, so every painter — the
+ * Chamber's, the Composition's, and the host they share — opens under the
+ * sweep like anything else.
+ *
+ * A module the sweep cannot import proves nothing about itself, so an entry
+ * here is a hiding place. The length is asserted, so it cannot grow quietly
+ * into the one the recursion was widened to reach.
  */
-const READ_NOT_IMPORTED = Object.freeze(['src/core/render/chamber-paint.js']);
+const READ_NOT_IMPORTED = Object.freeze([]);
 
 function modulePathsUnder(directory) {
     const found = [];
@@ -667,11 +671,12 @@ describe('one countWords, and it is the chunker\'s', () => {
             .toEqual([]);
     });
 
-    it('reads the one module it cannot import, and no more than that one', () => {
-        // The exception, kept honest in both directions: the list is this
-        // long, every entry is a file that is really there, and none of them
-        // so much as names the word.
-        expect(READ_NOT_IMPORTED).toHaveLength(1);
+    it('needs no exception, because every module in the sweep can be opened', () => {
+        // Kept honest in both directions. Should an entry ever be needed
+        // again it must be a file that is really there and must not so much
+        // as name the word, since a module that cannot be imported cannot be
+        // checked for which countWords it carries.
+        expect(READ_NOT_IMPORTED).toHaveLength(0);
         for (const path of READ_NOT_IMPORTED) {
             expect(statSync(join(ROOT, path)).isFile(), `${path} is not on disk`).toBe(true);
             expect(readFileSync(join(ROOT, path), 'utf8'),
