@@ -107,9 +107,6 @@ import {
   unloadableLibrarySourcesError,
   workshopProjectFromImportedProgram
 } from '../core/experience-program-io.js';
-import {
-  workshopProjectToBlueprintView
-} from '../core/workshop-project.js';
 import { resolveProgramLibrarySources } from '../core/scriptorium-resolve.js';
 import {
   EXPORT_MP4_PATH,
@@ -334,6 +331,7 @@ export class Workshop {
     this.activeBlueprintId = null;
     this.activeDraftKind = 'new';
     this.editorDirty = false;
+    this.saveInProgress = false;
     this.savedBlueprints = MemoryCore.getWorkshopBlueprints();
     /** @type {Map<string, Blob>} */
     this.pendingMediaBlobs = new Map();
@@ -342,6 +340,13 @@ export class Workshop {
     // Unsaved drafts are intentionally memory-only. They survive navigation
     // within this app instance, but are never written to browser storage.
     this.suspendedDrafts = [];
+    this.workshopAssetLeaseHistory = new Set();
+    this.releaseWorkshopAssetReferences = MemoryCore.registerWorkshopAssetReferenceProvider(
+      () => {
+        for (const id of this.liveDraftAssetIds()) this.workshopAssetLeaseHistory.add(id);
+        return this.workshopAssetLeaseHistory;
+      }
+    );
     this.resetArmed = false;
     this.resetTimer = null;
     this.assetRemovalArmedId = null;
@@ -431,6 +436,7 @@ export class Workshop {
 
     if (data.text) {
       const suspended = this.suspendCurrentDraft();
+      this.pendingMediaBlobs.clear();
       const blank = createDefaultSessionData();
       this.replaceEditorData(blank, {
         kind: 'recursion'
@@ -457,6 +463,7 @@ export class Workshop {
 
   markEditorDirty() {
     this.editorDirty = true;
+    MemoryCore.refreshWorkshopAssetReferences();
   }
 
   getDraftLabel(data = this.sessionData) {
@@ -464,6 +471,28 @@ export class Workshop {
     if (title) return title;
     const firstSource = Array.isArray(data.sources) ? data.sources[0]?.name : '';
     return firstSource || 'Untitled sequence';
+  }
+
+  liveDraftAssetIds() {
+    const ids = new Set(this.pendingMediaBlobs.keys());
+    const addAssets = assets => (assets || []).forEach(asset => {
+      if (typeof asset?.id === 'string' && asset.id) ids.add(asset.id);
+    });
+    addAssets(this.sessionData?.sequenceVisualAssets);
+    for (const draft of this.suspendedDrafts) {
+      addAssets(draft.data?.sequenceVisualAssets);
+      for (const id of draft.pendingMediaBlobs?.keys?.() || []) ids.add(id);
+    }
+    return ids;
+  }
+
+  async loadSavedBlueprints() {
+    try {
+      return await MemoryCore.getWorkshopBlueprintsHydrated();
+    } catch (error) {
+      console.warn('[Workshop] Vault media hydration deferred:', error);
+      return MemoryCore.getWorkshopBlueprints();
+    }
   }
 
   suspendCurrentDraft() {
@@ -475,8 +504,10 @@ export class Workshop {
       data: cloneSessionData(this.sessionData),
       kind: this.activeDraftKind,
       blueprintId: this.activeBlueprintId,
+      pendingMediaBlobs: new Map(this.pendingMediaBlobs),
       dirty: true
     });
+    MemoryCore.refreshWorkshopAssetReferences();
     return true;
   }
 
@@ -532,12 +563,15 @@ export class Workshop {
     this.responsiveFocusOrigin = null;
     this.selectedAudioAssetId = this.currentAudioAssetId();
 
+    MemoryCore.refreshWorkshopAssetReferences();
+
     this.render();
     this.attachEvents();
   }
 
   startNewSequence({ preserveCurrent = true, notify = false } = {}) {
     if (preserveCurrent) this.suspendCurrentDraft();
+    this.pendingMediaBlobs.clear();
     const blank = createDefaultSessionData();
     this.replaceEditorData(blank, {
       kind: 'new'
@@ -551,7 +585,7 @@ export class Workshop {
   }
 
   async openSavedBlueprintAsync(blueprintId, { preserveCurrent = true } = {}) {
-    this.savedBlueprints = await MemoryCore.getWorkshopBlueprintsHydrated();
+    this.savedBlueprints = await this.loadSavedBlueprints();
     const blueprint = this.savedBlueprints.find(item => item.id === blueprintId);
     if (!blueprint) {
       this.showToast('That sequence is no longer in the Vault');
@@ -560,7 +594,6 @@ export class Workshop {
     }
 
     if (preserveCurrent) this.suspendCurrentDraft();
-    this.revokeLocalMediaUrls();
     this.pendingMediaBlobs.clear();
     const editable = normalizeSessionData(blueprint);
     // `schema` AND `id` LEAVE TOGETHER. A blueprint view carries
@@ -586,6 +619,7 @@ export class Workshop {
 
     const [draft] = this.suspendedDrafts.splice(index, 1);
     this.suspendCurrentDraft();
+    this.pendingMediaBlobs = new Map(draft.pendingMediaBlobs || []);
     this.replaceEditorData(draft.data, {
       blueprintId: draft.blueprintId,
       kind: draft.kind,
@@ -4786,7 +4820,7 @@ export class Workshop {
     if (selected?.asset.editor.preview.kind === 'sample') {
       void this.ensureCollectionPreview(selected);
     }
-    void MemoryCore.getWorkshopBlueprintsHydrated().then((views) => {
+    void this.loadSavedBlueprints().then((views) => {
       if (!this._active) return;
       this.savedBlueprints = views;
       this.updateSequencePicker?.();
@@ -5011,12 +5045,20 @@ export class Workshop {
       try { URL.revokeObjectURL(url); } catch { /* ignore */ }
     }
     this.localObjectUrls.clear();
-    for (const asset of this.sessionData?.sequenceVisualAssets || []) {
-      if (asset?.id) WorkshopMedia.revokeObjectUrl(asset.id);
+    const assetIds = new Set([
+      ...(this.sessionData?.sequenceVisualAssets || []),
+      ...this.suspendedDrafts.flatMap(draft => draft.data?.sequenceVisualAssets || [])
+    ].map(asset => asset?.id).filter(Boolean));
+    for (const assetId of assetIds) {
+      WorkshopMedia.revokeObjectUrl(assetId);
     }
   }
 
-  async persistSequenceToVault() {
+  async persistSequenceToVault(transaction = null) {
+    const editorData = this.sessionData;
+    const editorSnapshot = JSON.stringify(editorData);
+    const blueprintId = this.activeBlueprintId;
+    const pendingBlobs = new Map(this.pendingMediaBlobs);
     const payload = this.prepareSessionPayload(this.sessionData);
     delete payload.updatedAt;
     if (this.activeBlueprintId) {
@@ -5026,12 +5068,26 @@ export class Workshop {
     }
 
     const saved = await MemoryCore.saveWorkshopBlueprintAsync(payload, {
-      blobs: this.pendingMediaBlobs
+      blobs: pendingBlobs
     });
     if (!saved?.id) return null;
-    this.pendingMediaBlobs.clear();
-    this.savedBlueprints = await MemoryCore.getWorkshopBlueprintsHydrated();
+    for (const [assetId, blob] of pendingBlobs) {
+      if (this.pendingMediaBlobs.get(assetId) === blob) {
+        this.pendingMediaBlobs.delete(assetId);
+      }
+    }
+    this.savedBlueprints = await this.loadSavedBlueprints();
 
+    const sameEditor = this.sessionData === editorData
+      && this.activeBlueprintId === blueprintId;
+    if (sameEditor) this.activeBlueprintId = saved.id;
+    if (transaction) {
+      transaction.sameEditor = sameEditor;
+      transaction.matchesCurrentEditor = () => this.sessionData === editorData
+        && this.activeBlueprintId === saved.id
+        && JSON.stringify(this.sessionData) === editorSnapshot
+        && this.pendingMediaBlobs.size === 0;
+    }
     this.onBlueprintsChanged();
     return saved;
   }
@@ -5362,19 +5418,25 @@ export class Workshop {
     // Loading the works a score names is asynchronous, and two imports racing
     // each other would each build a project from a surface the other is about
     // to replace.
-    if (this.programImportBusy) {
-      this.showToast('An import is already underway');
+    if (this.programImportBusy || this.saveInProgress) {
+      this.showToast('A save, launch, or import is already underway');
       return;
     }
     this.setProgramImportBusy(true);
+    this.saveInProgress = true;
     let context = null;
     try {
       context = this.buildCuratorContextFromSurface();
       const program = parseExperienceProgramJson(text, { context });
 
-      // SNAPSHOT BEFORE THE AWAIT. Everything below is built from this array,
-      // so the project that reaches the Vault is the one the gate measured.
-      const surfaceSources = [...(this.sessionData.sources || [])];
+      // Import one coherent editor snapshot. Later edits remain on the live
+      // surface and are never folded into, or cleared by, this Vault project.
+      const editorData = this.sessionData;
+      const editorSnapshot = JSON.stringify(editorData);
+      const blueprintId = this.activeBlueprintId;
+      const surface = cloneSessionData(editorData);
+      const pendingBlobs = new Map(this.pendingMediaBlobs);
+      const surfaceSources = [...(surface.sources || [])];
 
       this.announce('Loading the works this score names…');
       const sources = await this.resolveImportedProgramSources(
@@ -5398,46 +5460,59 @@ export class Workshop {
         program,
         context,
         sources,
-        assets: this.sessionData.sequenceVisualAssets || [],
+        assets: surface.sequenceVisualAssets || [],
         defaults: {
           reading: {
-            wpm: this.sessionData.wpm,
-            chunkMode: this.sessionData.chunkMode,
-            curve: this.sessionData.curve,
-            displayMode: this.sessionData.displayMode
+            wpm: surface.wpm,
+            chunkMode: surface.chunkMode,
+            curve: surface.curve,
+            displayMode: surface.displayMode
           },
           visual: {
-            surface: this.sessionData.visualConfig?.visualMode === 'interlocution'
+            surface: surface.visualConfig?.visualMode === 'interlocution'
               ? 'scored'
               : undefined,
-            config: this.sessionData.visualConfig
+            config: surface.visualConfig
           },
           audio: {
-            soundscape: this.sessionData.soundscape,
-            audioPreset: this.sessionData.audioPreset,
-            selectedSwellId: this.sessionData.selectedSwellId
+            soundscape: surface.soundscape,
+            audioPreset: surface.audioPreset,
+            selectedSwellId: surface.selectedSwellId
           },
-          projection: this.sessionData.projection
+          projection: surface.projection
         },
-        title: this.sessionData.title || program.id,
-        intent: this.sessionData.intent || 'custom',
+        title: surface.title || program.id,
+        intent: surface.intent || 'custom',
         id: `curator-import-${Date.now()}`
       });
 
       const saved = await MemoryCore.saveWorkshopBlueprintAsync(project, {
-        blobs: this.pendingMediaBlobs
+        blobs: pendingBlobs
       });
       if (!saved?.id) {
         this.showToast('Could not save the imported score to the Vault');
         return;
       }
-      this.pendingMediaBlobs.clear();
-      this.savedBlueprints = await MemoryCore.getWorkshopBlueprintsHydrated();
+      for (const [assetId, blob] of pendingBlobs) {
+        if (this.pendingMediaBlobs.get(assetId) === blob) {
+          this.pendingMediaBlobs.delete(assetId);
+        }
+      }
+      this.savedBlueprints = await this.loadSavedBlueprints();
       this.onBlueprintsChanged();
 
-      const view = workshopProjectToBlueprintView(saved);
+      const editorUnchanged = this.sessionData === editorData
+        && this.activeBlueprintId === blueprintId
+        && JSON.stringify(this.sessionData) === editorSnapshot
+        && this.pendingMediaBlobs.size === 0;
+      if (!editorUnchanged) {
+        this.updateSequencePicker();
+        this.showToast('Imported to Vault · newer edits kept here');
+        return;
+      }
+
+      const view = this.savedBlueprints.find(item => item.id === saved.id) || saved;
       this.suspendCurrentDraft();
-      this.revokeLocalMediaUrls();
       this.pendingMediaBlobs.clear();
       const editable = normalizeSessionData(view);
       delete editable.id;
@@ -5455,16 +5530,25 @@ export class Workshop {
       this.showImportRefusal(this.formatProgramIoError(error, context));
     } finally {
       this.setProgramImportBusy(false);
+      this.saveInProgress = false;
     }
   }
 
   async saveSequenceToVault() {
+    if (this.saveInProgress) {
+      this.showToast('A save or launch is already underway');
+      return null;
+    }
+    this.saveInProgress = true;
+    const transaction = {};
     let saved;
     try {
-      saved = await this.persistSequenceToVault();
+      saved = await this.persistSequenceToVault(transaction);
     } catch (error) {
       this.showToast(error.message || 'Could not save this sequence');
       return null;
+    } finally {
+      this.saveInProgress = false;
     }
     if (!saved) {
       this.showToast('Could not save this sequence');
@@ -5474,21 +5558,33 @@ export class Workshop {
     // Saving completes this editor transaction. Reopening for modification is
     // explicit through Workshop Sequences, so later Recursions cannot merge
     // into a configuration the user already committed to the Vault.
-    this.startNewSequence({ preserveCurrent: false });
-    this.showToast('Saved to Vault · Workshop cleared');
+    if (transaction.matchesCurrentEditor?.()) {
+      this.startNewSequence({ preserveCurrent: false });
+      this.showToast('Saved to Vault · Workshop cleared');
+    } else {
+      this.updateSequencePicker();
+      this.showToast('Saved snapshot to Vault · newer edits kept here');
+    }
     return saved;
   }
 
   async createSession() {
+    if (this.saveInProgress) {
+      this.showToast('A save or launch is already underway');
+      return false;
+    }
+    this.saveInProgress = true;
     this.audioPreview.stop();
+    const transaction = {};
     let saved;
     let session;
     try {
-      saved = await this.persistSequenceToVault();
+      saved = await this.persistSequenceToVault(transaction);
       session = cloneSessionData(saved || this.prepareSessionPayload(this.sessionData));
     } catch (error) {
       this.showToast(error.message || 'Could not compile this visual score');
-      return;
+      this.saveInProgress = false;
+      return false;
     }
     session.visualConfig = {
       ...session.visualConfig,
@@ -5496,10 +5592,18 @@ export class Workshop {
     };
 
     // Compile and navigate before clearing the retained Workshop instance.
-    this.onCreateSession(session);
-    if (saved) {
+    let launched = false;
+    try {
+      launched = await this.onCreateSession(session) === true;
+    } catch (error) {
+      this.showToast(error.message || 'Could not launch this sequence');
+    } finally {
+      this.saveInProgress = false;
+    }
+    if (saved && launched && transaction.matchesCurrentEditor?.()) {
       this.startNewSequence({ preserveCurrent: false });
     }
+    return launched;
   }
 
   handleGlobalUpload(event) {
@@ -5593,6 +5697,8 @@ export class Workshop {
     }
     this.collectionPreviewAbortController.abort();
     this.audioPreview.destroy();
+    void this.releaseWorkshopAssetReferences?.();
+    this.releaseWorkshopAssetReferences = null;
     this.revokeLocalMediaUrls();
     this.pendingMediaBlobs.clear();
     if (this.boundContainerClickHandler) {

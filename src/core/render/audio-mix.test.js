@@ -247,7 +247,7 @@ describe('spoken PCM mix', () => {
 });
 
 describe('named soundscape beds', () => {
-  function bedPlan(soundscapeId, durationMs = 2000) {
+  function bedPlan(soundscapeId, durationMs = 2_000) {
     return {
       durationMs,
       loudnessLufs: null,
@@ -277,6 +277,37 @@ describe('named soundscape beds', () => {
       if (Math.abs(aurora.pcm[i] - faded.pcm[i]) > 1e-4) differing += 1;
     }
     expect(differing / aurora.pcm.length).toBeGreaterThan(0.9);
+  });
+
+  it('moves every sample, rather than holding one per millisecond', () => {
+    // The oscillators once took integer milliseconds as their phase, so at
+    // 48 kHz forty-eight samples in a row were identical and the bed was a
+    // 1 kHz staircase. Every export carried that buzz.
+    const { pcm, channels } = mixAudio(bedPlan('aurora', 1_000), { sampleRate: 48_000 });
+    let held = 0;
+    for (let i = channels; i < pcm.length; i += channels) {
+      if (pcm[i] === pcm[i - channels]) held += 1;
+    }
+    expect(held / (pcm.length / channels)).toBeLessThan(0.01);
+  });
+
+  it('lets a score place the halo so its swell fits inside a short clip', () => {
+    const placed = { restSec: 2, fadeSec: 3, presenceSec: 2 };
+    const plan = bedPlan('aurora', 12_000);
+    plan.audioRuns[0].cue = { ...plan.audioRuns[0].cue, halo: placed };
+    const { pcm, channels } = mixAudio(plan, { sampleRate: 8_000 });
+    const rmsAt = (second) => {
+      let energy = 0;
+      let count = 0;
+      for (let i = second * 8_000; i < (second + 1) * 8_000; i += 1) {
+        energy += pcm[i * channels] ** 2;
+        count += 1;
+      }
+      return Math.sqrt(energy / count);
+    };
+    // Quiet, then risen, then withdrawn again — all inside the clip.
+    expect(rmsAt(6)).toBeGreaterThan(rmsAt(0));
+    expect(rmsAt(6)).toBeGreaterThan(rmsAt(11));
   });
 
   it('refuses a soundscape with no offline bed rather than substituting one', () => {

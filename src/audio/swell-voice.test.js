@@ -60,6 +60,22 @@ describe('one swell at a time', () => {
         expect(engine.layers.swell).toBe(started[1]);
     });
 
+    it('keeps a replacement swell stoppable after the previous fade expires', async () => {
+        vi.useFakeTimers();
+        try {
+            const { engine, started, stopped } = bench();
+            await engine.playSwell('mine');
+            engine.stopSwell(false);
+            await engine.playSwell('mine');
+            vi.advanceTimersByTime(1000);
+
+            engine.stopSwell(true);
+            expect(stopped).toContain(started[1]);
+        } finally {
+            vi.useRealTimers();
+        }
+    });
+
     it('leaves nothing sounding when the pool cannot answer a name', async () => {
         const { engine, started } = bench();
         await engine.playSwell('not-in-the-pool');

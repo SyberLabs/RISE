@@ -3,6 +3,7 @@ import { readFileSync, readdirSync } from 'node:fs';
 import { extname, join, relative } from 'node:path';
 import App from './app.js';
 import { visualCortex } from './visuals/visual-cortex.js';
+import { Router } from './core/router.js';
 
 function javascriptFiles(root) {
   return readdirSync(root, { withFileTypes: true }).flatMap(entry => {
@@ -137,11 +138,121 @@ describe('App safety orchestration', () => {
       4000
     );
 
-    app.handleCreateSession({ sources, title: 'Oversized Workshop session' });
+    expect(await app.handleCreateSession({ sources, title: 'Oversized Workshop session' }))
+      .toBe(false);
     expect(app.showToast).toHaveBeenLastCalledWith(
       expect.stringMatching(/combined character limit/),
       4000
     );
+  });
+
+  it('reports Workshop launch success only after Chamber navigation succeeds', async () => {
+    const app = new App();
+    const prior = { id: 'prior-session' };
+    app.currentSession = prior;
+    app.router = { navigate: vi.fn().mockResolvedValue(false) };
+
+    expect(await app.handleCreateSession({
+      sources: [{ id: 'source', name: 'Source', data: 'one two three' }]
+    })).toBe(false);
+    expect(app.currentSession).toBe(prior);
+
+    app.router.navigate.mockResolvedValue(true);
+    expect(await app.handleCreateSession({
+      sources: [{ id: 'source', name: 'Source', data: 'one two three' }]
+    })).toBe(true);
+    expect(app.currentSession).not.toBe(prior);
+  });
+
+  it('does not let a superseded launch roll the current session back', async () => {
+    const app = new App();
+    const prior = { id: 'prior' };
+    app.currentSession = prior;
+    const navigations = [];
+    app.router = {
+      navigate: vi.fn((_view, { data }) => new Promise(resolve => {
+        navigations.push({ data, resolve });
+      }))
+    };
+    const input = label => ({
+      title: label,
+      sources: [{ id: label, name: label, data: `${label} one two three` }]
+    });
+
+    const launchA = app.handleCreateSession(input('A'));
+    const launchB = app.handleCreateSession(input('B'));
+    const launchC = app.handleCreateSession(input('C'));
+    await vi.waitFor(() => expect(navigations).toHaveLength(3));
+
+    navigations[1].resolve(false);
+    expect(await launchB).toBe(false);
+    expect(app.currentSession).toBe(prior);
+
+    navigations[0].resolve(false);
+    navigations[2].resolve(true);
+    await Promise.all([launchA, launchC]);
+    expect(app.currentSession).toBe(navigations[2].data);
+  });
+
+  it('keeps the last committed session when every newer launch is superseded or fails', async () => {
+    const app = new App();
+    const prior = { id: 'prior' };
+    app.currentSession = prior;
+    const navigations = [];
+    app.router = {
+      navigate: vi.fn((_view, { data }) => new Promise(resolve => {
+        navigations.push({ data, resolve });
+      }))
+    };
+    const input = label => ({
+      title: label,
+      sources: [{ id: label, name: label, data: `${label} one two three` }]
+    });
+
+    const launchA = app.handleCreateSession(input('A'));
+    const launchB = app.handleCreateSession(input('B'));
+    const launchC = app.handleCreateSession(input('C'));
+    await vi.waitFor(() => expect(navigations).toHaveLength(3));
+    navigations[1].resolve(false);
+    navigations[2].resolve(false);
+    navigations[0].resolve(true);
+
+    expect(await Promise.all([launchA, launchB, launchC])).toEqual([false, false, false]);
+    expect(app.currentSession).toBe(prior);
+  });
+
+  it('forces a queued Workshop launch to install its newer Chamber session', async () => {
+    const app = new App();
+    const chamber = document.createElement('main');
+    document.body.appendChild(chamber);
+    const router = new Router();
+    router.transitionDuration = 0;
+    const update = vi.fn();
+    router.registerView('chamber-session', {
+      container: chamber,
+      init: (_container, data) => ({ initialData: data, update })
+    });
+    let release;
+    const held = new Promise(resolve => { release = resolve; });
+    vi.spyOn(router, 'fadeIn').mockImplementationOnce(() => held).mockResolvedValue(undefined);
+    app.router = router;
+    const input = label => ({
+      title: label,
+      sources: [{ id: label, name: label, data: `${label} one two three` }]
+    });
+
+    const launchA = app.handleCreateSession(input('A'));
+    await vi.waitFor(() => expect(router.transitioning).toBe(true));
+    const launchB = app.handleCreateSession(input('B'));
+    await vi.waitFor(() => expect(router._pendingNav).not.toBeNull());
+    release();
+
+    expect(await launchA).toBe(false);
+    expect(await launchB).toBe(true);
+    expect(update).toHaveBeenCalledWith(app.currentSession);
+    expect(app.currentSession.sources[0].id).toBe('B');
+    router.destroy();
+    chamber.remove();
   });
 
   it('persists an allowlisted Chamber face on :root like fontSize', () => {

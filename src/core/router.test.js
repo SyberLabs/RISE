@@ -48,6 +48,70 @@ describe('Router failure containment', () => {
     reset.mockRestore();
     router.destroy();
   });
+
+  it('resolves a queued navigation only after that route finishes', async () => {
+    router.registerView('a', { container: document.querySelector('#a'), init: () => ({}) });
+    router.registerView('b', { container: document.querySelector('#b'), init: () => ({}) });
+    let release;
+    const held = new Promise(resolve => { release = resolve; });
+    vi.spyOn(router, 'fadeIn')
+      .mockImplementationOnce(() => held)
+      .mockResolvedValue(undefined);
+
+    const first = router.navigate('a');
+    await vi.waitFor(() => expect(router.transitioning).toBe(true));
+    const queued = router.navigate('b');
+    let queuedSettled = false;
+    void queued.then(() => { queuedSettled = true; });
+    await Promise.resolve();
+    expect(queuedSettled).toBe(false);
+
+    release();
+    expect(await first).toBe(true);
+    expect(await queued).toBe(true);
+    expect(router.currentView).toBe('b');
+    router.destroy();
+  });
+
+  it('honors a queued forced remount of the route that is currently mounting', async () => {
+    const update = vi.fn();
+    router.registerView('a', {
+      container: document.querySelector('#a'),
+      init: () => ({ update })
+    });
+    let release;
+    const held = new Promise(resolve => { release = resolve; });
+    vi.spyOn(router, 'fadeIn')
+      .mockImplementationOnce(() => held)
+      .mockResolvedValue(undefined);
+
+    const first = router.navigate('a', { data: { session: 'first' } });
+    await vi.waitFor(() => expect(router.transitioning).toBe(true));
+    const forced = router.navigate('a', { force: true, data: { session: 'second' } });
+    release();
+
+    expect(await first).toBe(true);
+    expect(await forced).toBe(true);
+    expect(update).toHaveBeenCalledWith({ session: 'second' });
+    router.destroy();
+  });
+
+  it('reports navigation failure when the route-change observer throws', async () => {
+    router.destroy();
+    router = new Router({
+      onViewChange: () => { throw new Error('observer failed'); }
+    });
+    router.transitionDuration = 0;
+    router.registerView('a', {
+      container: document.querySelector('#a'),
+      init: () => ({ deactivate: vi.fn() })
+    });
+
+    expect(await router.navigate('a')).toBe(false);
+    expect(router.currentView).toBeNull();
+    expect(document.querySelector('#a').hidden).toBe(true);
+    router.destroy();
+  });
 });
 
 describe('Router stale-build recovery', () => {

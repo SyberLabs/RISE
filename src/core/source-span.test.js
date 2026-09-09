@@ -351,3 +351,84 @@ describe('stable source-span compilation', () => {
     expect(assertQuotationAnchorsAgainstSources(missing, [{ id: 's1', data: text }])).toBe(true);
   });
 });
+
+
+describe('Markdown passage selections survive recutting', () => {
+  it.each(['word', 'phrase', 'sentence', 'paragraph'])(
+    'keeps every selectable table token on its cue in %s mode', chunkMode => {
+      const text = 'Opening words.\n\n| Name | Flag |\n|---|:---:|\n|café|🪷|\n\nClosing words.';
+      // Enumerate every contiguous range, including cuts beside compact rows.
+      // This catches drift after a bar even when the selected passage is later.
+      const tokens = [...text.matchAll(/\S+/gu)];
+      for (let from = 0; from < tokens.length; from += 1) {
+        for (let to = from + 1; to <= tokens.length; to += 1) {
+          const fromCharacter = tokens[from].index;
+          const toCharacter = tokens[to - 1].index + tokens[to - 1][0].length;
+          const quote = text.slice(fromCharacter, toCharacter);
+          if (!quote.replace(/\|/g, '').trim()) continue; // No displayed text to score.
+          const session = compile(chunkMode, {
+            sourceIds: ['source-1'], fromCharacter, toCharacter,
+            quoteStart: quote, quoteEnd: quote
+          }, text);
+          for (const atom of session.atoms.filter(atom => atom.content)) {
+            const selected = atom.sourceCharacterEnd > fromCharacter
+              && atom.sourceCharacterStart < toCharacter;
+            expect(cueForAtom(session.visualProgram, atom).id)
+              .toBe(selected ? 'selected' : 'broad');
+            expect(atom.sourceCharacterStart).toBeGreaterThanOrEqual(0);
+            expect(atom.sourceCharacterEnd).toBeLessThanOrEqual(text.length);
+          }
+        }
+      }
+    }
+  );
+});
+
+describe('Workshop control text stays aligned', () => {
+  it.each(['word', 'phrase', 'sentence', 'paragraph'])(
+    'keeps inline controls and literal verse-like text in %s mode', chunkMode => {
+      for (const text of [
+        'alpha[PAUSE]beta[FLASH]gamma[HOLD]omega',
+        'alpha — [PAUSE] beta',
+        'alpha\uE000beta omega',
+        '[v 1:1] alpha beta',
+        'alpha [v 1:1] beta omega'
+      ]) {
+        const session = compile(chunkMode, {
+          sourceIds: ['source-1'], fromCharacter: 0, toCharacter: text.length,
+          quoteStart: text, quoteEnd: text
+        }, text);
+        expect(session.atoms.filter(atom => atom.content).length).toBeGreaterThan(0);
+        expect(session.atoms.filter(atom => atom.content).every(atom =>
+          atom.sourceSpanIds.includes('visual-main:selected'))).toBe(true);
+        const pause = session.atoms.find(atom => atom.tags.includes('PAUSE'));
+        if (text.includes('[PAUSE]')) {
+          expect(pause.sourceCharacterStart).toBe(text.indexOf('[PAUSE]'));
+          expect(pause.sourceCharacterEnd).toBe(text.indexOf('[PAUSE]') + 7);
+          if (!text.includes(' ')) {
+            expect(pause.sourceTokenStart).toBe(0);
+            expect(pause.sourceTokenEnd).toBe(1);
+          }
+        }
+        if (text.includes('[v 1:1]')) {
+          expect(session.atoms.map(atom => atom.content).join(' ')).toContain('[v 1:1]');
+        }
+      }
+    }
+  );
+
+  it('does not strip verse-like text that the scripture profile leaves displayed', () => {
+    const text = '[v 1:1] First words.\n\nA literal [v 9:9] reference remains.';
+    const session = compileSession({
+      sources: [{ id: 'source-1', name: 'Profiled', data: text, chunkProfile: 'scripture' }],
+      experienceProgram: program({
+        sourceIds: ['source-1'], fromCharacter: 0, toCharacter: text.length,
+        quoteStart: text, quoteEnd: text
+      }),
+      chunkMode: 'word'
+    });
+    const literal = session.atoms.find(atom => atom.content === '[v');
+    expect(literal.sourceCharacterStart).toBe(text.indexOf('[v 9:9]'));
+    expect(session.atoms.find(atom => atom.content === 'First').sourceCharacterStart).toBe(8);
+  });
+});

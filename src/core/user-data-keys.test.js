@@ -3,6 +3,7 @@ import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join, relative, resolve } from 'node:path';
 import {
     ERASABLE_LOCAL_KEYS,
+    ERASABLE_LOCAL_KEY_PREFIXES,
     UNREGISTERED_LOCAL_KEYS,
     USER_DATA_KEYS
 } from './user-data-keys.js';
@@ -139,5 +140,9 @@ describe('the localStorage registry is the erase inventory', () => {
         expect(new Set(values).size, 'two labels share one key').toBe(values.length);
         const overlap = values.filter(key => key in UNREGISTERED_LOCAL_KEYS);
         expect(overlap, 'a key is both registered and excepted').toEqual([]);
+    });
+
+    it('registers the per-context Workshop lease prefix for complete erasure', () => {
+        expect(ERASABLE_LOCAL_KEY_PREFIXES).toContain('rise_workshop_media_lease_v2:');
     });
 });

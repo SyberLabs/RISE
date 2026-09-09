@@ -52,14 +52,19 @@ function prepareScripture(rawText) {
     const chapterStarts = [];
     let paragraphOrdinal = 0;
     let lastChapter = null;
+    let sourceOffset = 0;
+    const sourceOmissions = [];
 
     const prepared = parts.map((part, index) => {
+        const partStart = sourceOffset;
+        sourceOffset += part.length;
         const isSeparator = index % 2 === 1;
         if (isSeparator) return part;
         if (part.trim() === '') return part; // chunker skips it; not a paragraph
 
         const match = part.match(VERSE_SENTINEL);
         if (match) {
+            sourceOmissions.push({ start: partStart, end: partStart + match[0].length });
             const chapter = Number(match[1]);
             const verse = Number(match[2]);
             verseAnchors.push({ paragraph: paragraphOrdinal, chapter, verse });
@@ -83,6 +88,7 @@ function prepareScripture(rawText) {
 
     return {
         text: prepared,
+        sourceOmissions,
         hints: {
             scripture: {
                 verseAnchors,

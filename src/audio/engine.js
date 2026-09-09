@@ -1385,7 +1385,7 @@ export class AudioEngine {
             } else {
                 setTimeout(() => {
                     try { source.stop(); } catch (e) { }
-                    this.layers.swell = null;
+                    if (this.layers.swell === source) this.layers.swell = null;
                 }, fadeTime * 1000);
             }
         }

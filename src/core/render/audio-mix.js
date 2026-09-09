@@ -36,7 +36,20 @@ const BEDS = Object.freeze({
     shapes: Object.freeze([0.79, 0.93, 1.07, 1.21, 0.86, 1.14, 0.72, 1.28]),
     motion: 0.04,
     breath: 0.22,
-    driftCents: 0
+    driftCents: 0,
+    // Aurora's halo: a wandering harmonic that arrives, sounds, and
+    // leaves. It is the shape people actually recognise the soundscape
+    // by, and the pad alone is only the ground it arrives over.
+    halo: Object.freeze({
+      tunings: Object.freeze([200, 216]),
+      restSec: 10,
+      fadeSec: 3.5,
+      presenceSec: 8,
+      // Louder than the live 0.05, because that number is a bus gain set
+      // against a pad bus of 0.17, and these partials sum to about 0.9.
+      // This keeps the halo's share of the mix, not its raw number.
+      level: 0.16
+    })
   }),
   'faded-signal': Object.freeze({
     root: 108,
@@ -72,11 +85,40 @@ function fadeGain(ms, run) {
   return Math.max(0, Math.min(1, gain));
 }
 
+/**
+ * One arrival of Aurora's halo: silence, a swell in, a presence, a swell
+ * out — the live scheduler's rest/fade/presence timings, made periodic so
+ * an export is the same every time it is rendered. The tuning alternates
+ * between the two the halo wanders across.
+ */
+function haloSample(halo, timeSec, channel) {
+  if (!(halo.level > 0)) return 0;
+  const cycle = halo.restSec + halo.fadeSec * 2 + halo.presenceSec;
+  const index = Math.floor(timeSec / cycle);
+  const since = timeSec - index * cycle - halo.restSec;
+  if (since <= 0) return 0;
+  let env;
+  if (since < halo.fadeSec) env = since / halo.fadeSec;
+  else if (since < halo.fadeSec + halo.presenceSec) env = 1;
+  else env = 1 - (since - halo.fadeSec - halo.presenceSec) / halo.fadeSec;
+  if (env <= 0) return 0;
+  // Smoothstepped so it swells rather than ramps in a straight line.
+  const shaped = env * env * (3 - 2 * env);
+  const pan = index % 2 ? 0.25 : -0.25;
+  const width = channel === 0 ? 1 - Math.max(0, pan) : 1 + Math.min(0, pan);
+  return Math.sin(2 * Math.PI * halo.tunings[index % halo.tunings.length] * timeSec)
+    * halo.level * shaped * width;
+}
+
 function sampleBed(kind, cue, timeSec, channel) {
   if (kind === 'audio:silence') return 0;
   if (kind === 'audio:soundscape') {
     const bed = BEDS[cue?.soundscapeId];
     if (!bed) return 0;
+    // A score may place the halo's arrival. The defaults are the live
+    // scheduler's, whose cycle is longer than a short clip — so a
+    // twenty-second export would hear the swell arrive and never leave.
+    const halo = bed.halo && (cue.halo ? { ...bed.halo, ...cue.halo } : bed.halo);
     let sample = 0;
     for (let i = 0; i < bed.ratios.length; i += 1) {
       // The wow LFO both detunes (tape drift, in cents) and breathes the
@@ -90,6 +132,7 @@ function sampleBed(kind, cue, timeSec, channel) {
       const level = bed.levels[i] * (1 + bed.breath * wow);
       sample += Math.sin(2 * Math.PI * freq * timeSec) * level * width;
     }
+    if (halo) sample += haloSample(halo, timeSec, channel);
     return sample;
   }
   if (kind === 'audio:tone') {
@@ -206,7 +249,13 @@ export function mixAudio(plan, {
       }
       gain = fadeGain(ms, run) * 0.35 * duckGainAt(narrationRunAt(plan, ms), ms);
     }
-    const t = ms / 1000;
+    // PHASE IS PER-SAMPLE, NOT PER-MILLISECOND. `ms` selects which run is
+    // sounding and how far into its fade we are, and integer milliseconds
+    // are right for that. Feeding the same integer to the oscillators held
+    // every value for a millisecond at a time, so at 48 kHz the bed was a
+    // 1 kHz staircase — forty-eight identical samples, then a step. Every
+    // export this mixer has ever written carried that buzz.
+    const t = start / 1000 + i / sampleRate;
     for (let ch = 0; ch < channels; ch += 1) {
       let sample = active
         ? sampleBed(active.cueKind, active.cue, t, ch) * gain
