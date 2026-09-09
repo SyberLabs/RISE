@@ -667,7 +667,7 @@ export class Chamber {
   }
 
   applyChamberMask() {
-    this.fitMask.apply();
+    this.fitMask?.apply();
   }
 
   /**
@@ -693,11 +693,11 @@ export class Chamber {
   }
 
   syncMaskGroundPlate() {
-    this.fitMask.syncGround();
+    this.fitMask?.syncGround();
   }
 
   syncFillGlyphMask() {
-    return this.fitMask.sync();
+    return this.fitMask?.sync();
   }
 
   async _awaitFitHydration(timeoutMs = 5000) {
