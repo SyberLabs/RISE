@@ -58,6 +58,13 @@ export const SPOKEN_REVEAL_LEAD_MS = 90;
  */
 export const ONSET_MIN_GAP_MS = 55;
 
+/**
+ * How much of a clip is the silence Kokoro leaves after the last word.
+ * Measured over the 321 pack clips whose onset count reaches their word
+ * count, so the final onset can be trusted: median 7% of the spoken span.
+ */
+export const TRAILING_SILENCE_SHARE = 0.07;
+
 /** Two onsets closer together than this were one word, not two. */
 export const ONSET_MIN_SPACING_MS = 110;
 
@@ -154,50 +161,38 @@ export function revealBudget(durationMs, { reducedMotion = false } = {}) {
  *     are spent arriving.
  *   - onsets given → the words anchor to the VOICE. kokoro-js exposes no
  *     per-word timestamps, but its raw samples do expose the silences
- *     between words (see speechOnsets). The first real onset is preserved;
- *     later intervals are compressed slightly so text leads rather than
- *     trails comprehension.
+ *     between words (see speechOnsets). The first onset is preserved so
+ *     nothing appears before the voice; every word after it is a constant
+ *     step ahead of where it is spoken.
  *
- * A mismatch between onset count and word count is expected and
- * tolerated: silence detection is a heuristic, and a phrase with an
- * internal pause or an elided word will not line up. Extra onsets are
- * ignored; missing ones fall back to even spacing for the remainder,
- * so the reveal degrades into the no-speech behaviour rather than
- * stalling or bunching.
+ * A mismatch between onset count and word count is not an edge case — it
+ * is the common case, 60% of the shipped voice pack — so the onsets are
+ * not the schedule. They CORRECT one: words are laid out in proportion to
+ * their length between the first onset and the last, and each is then
+ * moved onto a real boundary if one is close enough to be its own.
  *
- * @param {number} wordCount
+ * @param {string[]|number} words the words themselves, so their lengths
+ *   can carry the rhythm — or merely how many, when they are not to hand
  * @param {number} budgetMs
  * @param {number[]} [onsetsMs] speech onsets, ascending, from t=0
  * @returns {number[]} ms offset at which each word appears
  */
-export function revealSchedule(wordCount, budgetMs, onsetsMs = null) {
+export function revealSchedule(words, budgetMs, onsetsMs = null) {
+    const weights = wordWeights(words);
+    const wordCount = weights.length;
     if (wordCount <= 0) return [];
     if (budgetMs <= 0 && !onsetsMs?.length) return new Array(wordCount).fill(0);
 
     if (onsetsMs?.length) {
-        const out = chooseOnsets(
-            onsetsMs.map(at => Math.max(0, Number(at) || 0)).sort((a, b) => a - b),
-            wordCount
-        );
+        const onsets = [...new Set(onsetsMs
+            .map(at => Math.max(0, Number(at) || 0))
+            .filter(Number.isFinite))].sort((a, b) => a - b);
+        const predicted = predictOnsets(weights, onsets, budgetMs);
+        // Within a word's own predicted length: a boundary further off
+        // than that belongs to some other word.
+        const reach = Math.max(60, (predicted[wordCount - 1] - predicted[0]) / wordCount);
+        const out = snapToOnsets(predicted, onsets, reach);
 
-        if (out.length < wordCount) {
-            // Short words often join into one continuous energy burst, so the
-            // waveform may expose fewer gaps than the sentence has words.
-            // Spread the unmatched tail across the remaining AUDIO duration;
-            // extrapolating from sparse gaps can otherwise run past the WAV.
-            const missing = wordCount - out.length;
-            const last = out[out.length - 1] || 0;
-            const detectedPace = out.length > 1
-                ? (last - out[0]) / (out.length - 1)
-                : 120;
-            const finish = Number.isFinite(budgetMs) && budgetMs > last
-                ? budgetMs
-                : last + (Math.max(1, detectedPace) * missing);
-            const pace = (finish - last) / missing;
-            for (let i = 1; i <= missing; i++) {
-                out.push(last + (pace * i));
-            }
-        }
         // The first word waits for the real voice; every later one is the
         // same step ahead of its own onset, so THE LEAD IS TAKEN OUT OF
         // THE FIRST INTERVAL AND NO OTHER. Every interval after it is the
@@ -221,45 +216,113 @@ export function revealSchedule(wordCount, budgetMs, onsetsMs = null) {
 }
 
 /**
- * Reduce a run of onsets to one per word.
+ * How long a word takes to say, relative to its neighbours.
  *
- * TAKING THE FIRST N IS THE WRONG N. Silence detection can report more
- * boundaries than the sentence has words, and the surplus is not at the
- * end — it is wherever the speaker's mouth happened to close. Truncating
- * therefore kept only onsets from the START of the clip and the whole
- * phrase arrived while the voice was still in its first half. Measured
- * on speech-shaped audio: five words, eight onsets, and the last word
- * shown at 490ms of a 1700ms reading.
- *
- * Which of the surplus are spurious is not knowable from the waveform,
- * so this does not try to know. It spreads the words across the onsets
- * that exist, taking for each word the onset nearest where that word
- * would fall if the voice were even, and never going backwards. Ranking
- * by preceding silence was tried first and is worse: when the gaps are
- * of a size, it keeps the earliest every time and the phrase bunches at
- * the start again — two words ten milliseconds apart, in the case that
- * caught it.
+ * Letters, not syllables. Syllable counting in English needs a
+ * dictionary to be worth anything, and the error it saves is smaller
+ * than the error already in the onsets — whereas "colonies" being four
+ * times "of" is right, and is most of what a rhythm is made of.
  */
-function chooseOnsets(onsets, wordCount) {
-    if (onsets.length <= wordCount) return onsets;
-    if (wordCount === 1) return [onsets[0]];
-
-    const first = onsets[0];
-    const span = onsets[onsets.length - 1] - first;
-    const picked = [];
-    let from = 0;
-    for (let i = 0; i < wordCount; i += 1) {
-        const ideal = first + (span * i) / (wordCount - 1);
-        // Leave enough onsets behind for the words still to be placed.
-        const last = onsets.length - (wordCount - 1 - i);
-        let best = from;
-        for (let j = from; j < last; j += 1) {
-            if (Math.abs(onsets[j] - ideal) < Math.abs(onsets[best] - ideal)) best = j;
-        }
-        picked.push(onsets[best]);
-        from = best + 1;
+function wordWeights(words) {
+    if (Array.isArray(words)) {
+        return words.map(word => Math.max(
+            1,
+            String(word ?? '').replace(/[^\p{L}\p{N}]/gu, '').length
+        ));
     }
-    return picked;
+    return new Array(Math.max(0, Number(words) || 0)).fill(1);
+}
+
+/** Running total of the weight BEFORE each word. */
+function leadingWeights(weights) {
+    const out = [];
+    let sum = 0;
+    for (const weight of weights) {
+        out.push(sum);
+        sum += weight;
+    }
+    return out;
+}
+
+/**
+ * Where each word is spoken, from the boundaries the waveform gave up.
+ *
+ * DETECTION COMES UP SHORT MORE OFTEN THAN NOT. Measured across all 877
+ * clips in the shipped voice pack, 60% have fewer onsets than the phrase
+ * has words: short function words run into their neighbours and leave no
+ * gap to find. So the schedule cannot simply be the onsets — it has to be
+ * a model of the phrase that the onsets correct.
+ *
+ * The model is that a word occupies time in proportion to its length. Two
+ * anchors fix it to the voice: the first onset is where speech begins,
+ * and the last onset is where the LAST WORD begins — so the detected span
+ * covers every word but the final one, and that is what sets the rate.
+ * The final word then lands on its own onset instead of at the end of the
+ * clip, which is where it used to land and why the ends of sentences were
+ * hard to catch: the tail was stretched to `budgetMs`, and for a spoken
+ * atom `budgetMs` is the whole recording, trailing silence included.
+ */
+function predictOnsets(weights, onsets, budgetMs) {
+    const first = onsets[0];
+    const last = onsets[onsets.length - 1];
+    const leading = leadingWeights(weights);
+    const total = leading[leading.length - 1] + weights[weights.length - 1];
+    const beforeLast = total - weights[weights.length - 1];
+
+    const span = Math.max(0, Math.max(0, Number(budgetMs) || 0) - first);
+    // The voice's own pace, from the first onset to the final word.
+    const voiceRate = (last > first && beforeLast > 0) ? (last - first) / beforeLast : 0;
+    // What the recording implies on its own: the words fill it but for
+    // the silence Kokoro leaves at the end, measured across the 321 clips
+    // in the pack whose detection is complete enough to trust — a median
+    // of 7% of the spoken span.
+    const clipRate = (span > 0 && total > 0) ? (span * (1 - TRAILING_SILENCE_SHARE)) / total : 0;
+
+    // Trust the voice when detection found at least as many boundaries as
+    // there are words — the last one is then almost certainly the last
+    // word, and the schedule is the voice's own rhythm exactly.
+    //
+    // Otherwise trust it only as far as it is plausible: if the phrase
+    // would be finished long before the recording is, the last onset was
+    // NOT the last word and the assumption has compressed the phrase. Two
+    // onsets for six words is the case that shows it — taken at face
+    // value it put all six inside the opening third of the clip.
+    const complete = onsets.length >= weights.length;
+    const rate = (voiceRate > 0 && (complete || voiceRate * total >= span * 0.7))
+        ? voiceRate
+        : (clipRate || voiceRate);
+
+    return weights.map((_, i) => first + rate * leading[i]);
+}
+
+/**
+ * Move each predicted time onto a real boundary when one is near enough.
+ *
+ * The prediction carries the shape of the phrase; the onsets carry where
+ * the speaker actually was. Snapping takes both — but only within reach,
+ * or a spurious boundary inside a word drags a word to the wrong place.
+ * Each onset is spent once and time never runs backwards.
+ */
+function snapToOnsets(predicted, onsets, toleranceMs) {
+    const out = [];
+    let from = 0;
+    let floor = -Infinity;
+    for (const at of predicted) {
+        let best = -1;
+        let bestGap = toleranceMs;
+        for (let j = from; j < onsets.length; j += 1) {
+            if (onsets[j] < floor) continue;
+            const gap = Math.abs(onsets[j] - at);
+            if (gap <= bestGap) { bestGap = gap; best = j; }
+            if (onsets[j] > at + toleranceMs) break;
+        }
+        const chosen = best >= 0 ? onsets[best] : at;
+        const placed = Math.max(floor, chosen);
+        out.push(placed);
+        floor = placed;
+        if (best >= 0) from = best + 1;
+    }
+    return out;
 }
 
 /**
