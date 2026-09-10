@@ -132,6 +132,8 @@ export class Chamber {
     this.recitationEnabled = this.session?.recitation?.enabled === true;
     this.progressiveRevealEnabled = this.session?.revealMode === 'progressive';
     this._revealTimers = null;
+    this._revealMotionMedia = null;
+    this._onRevealMotionChange = null;
     // A full-frame interlocution lays the successor out while an opaque
     // presence still owns the screen. Keep its hidden word spans here so the
     // reveal can begin at the later semantic entrance, alongside the WAV,
@@ -297,6 +299,7 @@ export class Chamber {
     this.applyChamberStreamFace();
     this.applyChamberTypeSize();
     this.attachEvents();
+    this.bindProgressiveRevealMotion();
     this.bindVisualViewport();
     this.initializeDisplay();
     this.applyChamberMask();
@@ -1596,11 +1599,151 @@ export class Chamber {
   revealAtomWords(spans, schedule) {
     this.cancelReveal();
     if (!spans?.length) return;
+    this._beginProgressiveGlass(spans);
     this._revealTimers = spans.map((span, i) => {
       const at = schedule[i] ?? 0;
-      if (at <= 0) { span.removeAttribute('data-pending'); return null; }
-      return setTimeout(() => span.removeAttribute('data-pending'), at);
+      if (at <= 0) { this._revealAtomWord(span); return null; }
+      return setTimeout(() => this._revealAtomWord(span), at);
     }).filter(Boolean);
+  }
+
+  _beginProgressiveGlass(spans) {
+    const atomDisplay = spans?.[0]?.parentElement;
+    if (!this._progressiveGlassCanApply(atomDisplay)) return;
+    this._progressiveGlassElement = atomDisplay;
+    this._progressiveGlassBounds = null;
+    atomDisplay.classList.add('is-progressive-glass');
+  }
+
+  _progressiveGlassCanApply(atomDisplay) {
+    return this.progressiveRevealEnabled
+      && atomDisplay?.classList.contains('glass-tile')
+      && !this._prefersReducedMotion()
+      && window.matchMedia?.('(max-width: 640px)').matches !== true;
+  }
+
+  _revealAtomWord(span) {
+    span.removeAttribute('data-pending');
+    this._expandProgressiveGlass(span);
+  }
+
+  _expandProgressiveGlass(span) {
+    const atomDisplay = this._progressiveGlassElement;
+    if (!atomDisplay?.classList.contains('is-progressive-glass')) return;
+
+    const layoutValues = [
+      span.offsetLeft, span.offsetTop, span.offsetWidth, span.offsetHeight,
+      atomDisplay.clientWidth, atomDisplay.clientHeight
+    ];
+    const hasLayoutBox = layoutValues.every(Number.isFinite)
+      && span.offsetWidth > 0 && span.offsetHeight > 0
+      && atomDisplay.clientWidth > 0 && atomDisplay.clientHeight > 0;
+    let wordBox;
+    let displayWidth;
+    let displayHeight;
+
+    if (hasLayoutBox) {
+      // Offset metrics describe layout before the pending word's translateY
+      // transition. A visual client rect here would permanently bake the
+      // entrance transform into the glass position.
+      wordBox = {
+        left: span.offsetLeft,
+        top: span.offsetTop,
+        right: span.offsetLeft + span.offsetWidth,
+        bottom: span.offsetTop + span.offsetHeight
+      };
+      displayWidth = atomDisplay.clientWidth;
+      displayHeight = atomDisplay.clientHeight;
+    } else {
+      const wordRect = span.getBoundingClientRect();
+      const displayRect = atomDisplay.getBoundingClientRect();
+      wordBox = {
+        left: wordRect.left - displayRect.left,
+        top: wordRect.top - displayRect.top,
+        right: wordRect.right - displayRect.left,
+        bottom: wordRect.bottom - displayRect.top
+      };
+      displayWidth = displayRect.width;
+      displayHeight = displayRect.height;
+    }
+
+    const values = [wordBox.left, wordBox.top, wordBox.right, wordBox.bottom,
+      displayWidth, displayHeight];
+    if (values.some(value => !Number.isFinite(value))
+      || wordBox.right <= wordBox.left || wordBox.bottom <= wordBox.top
+      || displayWidth <= 0 || displayHeight <= 0) {
+      this._resetProgressiveGlass();
+      return;
+    }
+
+    const previous = this._progressiveGlassBounds;
+    const bounds = previous
+      ? {
+          left: Math.min(previous.left, wordBox.left),
+          top: Math.min(previous.top, wordBox.top),
+          right: Math.max(previous.right, wordBox.right),
+          bottom: Math.max(previous.bottom, wordBox.bottom)
+        }
+      : {
+          left: wordBox.left,
+          top: wordBox.top,
+          right: wordBox.right,
+          bottom: wordBox.bottom
+        };
+    this._progressiveGlassBounds = bounds;
+
+    const style = getComputedStyle(atomDisplay);
+    const paddingLeft = parseFloat(style.paddingLeft) || 0;
+    const paddingRight = parseFloat(style.paddingRight) || 0;
+    const paddingTop = parseFloat(style.paddingTop) || 0;
+    const paddingBottom = parseFloat(style.paddingBottom) || 0;
+    const left = Math.max(0, bounds.left - paddingLeft);
+    const top = Math.max(0, bounds.top - paddingTop);
+    const right = Math.min(displayWidth, bounds.right + paddingRight);
+    const bottom = Math.min(displayHeight, bounds.bottom + paddingBottom);
+    const width = right - left;
+    const height = bottom - top;
+
+    if (!(width > 0) || !(height > 0)) {
+      this._resetProgressiveGlass();
+      return;
+    }
+
+    atomDisplay.style.setProperty('--progressive-glass-left', `${Math.round(left)}px`);
+    atomDisplay.style.setProperty('--progressive-glass-top', `${Math.round(top)}px`);
+    atomDisplay.style.setProperty('--progressive-glass-width', `${Math.round(width)}px`);
+    atomDisplay.style.setProperty('--progressive-glass-height', `${Math.round(height)}px`);
+    atomDisplay.classList.add('is-progressive-glass-ready');
+  }
+
+  _resetProgressiveGlass() {
+    const atomDisplay = this._progressiveGlassElement
+      || this.container?.querySelector('#atom-display');
+    atomDisplay?.classList.remove('is-progressive-glass', 'is-progressive-glass-ready');
+    for (const property of [
+      '--progressive-glass-left',
+      '--progressive-glass-top',
+      '--progressive-glass-width',
+      '--progressive-glass-height'
+    ]) {
+      atomDisplay?.style.removeProperty(property);
+    }
+    this._progressiveGlassElement = null;
+    this._progressiveGlassBounds = null;
+  }
+
+  _refreshProgressiveGlass() {
+    const atomDisplay = this._progressiveGlassElement
+      || this.container?.querySelector('#atom-display');
+    const spans = [...(atomDisplay?.querySelectorAll('.atom-word') || [])];
+    const hasPendingWords = spans.some(span => span.hasAttribute('data-pending'));
+    const revealed = spans.filter(span => !span.hasAttribute('data-pending'));
+
+    this._resetProgressiveGlass();
+    if (!hasPendingWords || !this._progressiveGlassCanApply(atomDisplay)) return;
+
+    this._beginProgressiveGlass(spans);
+    for (const span of revealed) this._expandProgressiveGlass(span);
   }
 
   /** Stop a reveal in flight. Idempotent. */
@@ -1609,6 +1752,7 @@ export class Chamber {
       for (const t of this._revealTimers) clearTimeout(t);
       this._revealTimers = null;
     }
+    this._resetProgressiveGlass();
   }
 
 
@@ -1832,6 +1976,7 @@ export class Chamber {
     // render nothing and drop opacity so no residue — like the glass tile
     // collapsing into a caret-like slab — ever pulses between tokens.
     if (!atom.content || !atom.content.trim()) {
+      this.cancelReveal();
       // ONE EMPTY ATOM IS NOT LIKE THE OTHERS. A boundary between two pieces
       // carries a seam, and the reader is shown who speaks next — silently,
       // because the voice says nothing here and should not (§8.4). Every
@@ -1929,6 +2074,19 @@ export class Chamber {
    */
   _prefersReducedMotion() {
     return window.matchMedia?.('(prefers-reduced-motion: reduce)').matches === true;
+  }
+
+  bindProgressiveRevealMotion() {
+    const media = window.matchMedia?.('(prefers-reduced-motion: reduce)');
+    if (!media?.addEventListener) return;
+    this._revealMotionMedia = media;
+    this._onRevealMotionChange = ({ matches }) => {
+      if (!matches) return;
+      const pending = this.container?.querySelectorAll('.atom-word[data-pending]') || [];
+      this.cancelReveal();
+      for (const span of pending) span.removeAttribute('data-pending');
+    };
+    media.addEventListener('change', this._onRevealMotionChange);
   }
 
   updateProgress(progress) {
@@ -2566,7 +2724,10 @@ export class Chamber {
     };
 
     // Recomputed on resize: the fraction is stable, the pixels are not.
-    this._bandResize = () => this.applyBandOffset();
+    this._bandResize = () => {
+      this.applyBandOffset();
+      this._refreshProgressiveGlass();
+    };
     window.addEventListener('resize', this._bandResize);
   }
 
@@ -2965,6 +3126,11 @@ export class Chamber {
     if (this._bandResize) {
       window.removeEventListener('resize', this._bandResize);
       this._bandResize = null;
+    }
+    if (this._revealMotionMedia && this._onRevealMotionChange) {
+      this._revealMotionMedia.removeEventListener('change', this._onRevealMotionChange);
+      this._revealMotionMedia = null;
+      this._onRevealMotionChange = null;
     }
     this.deactivate();
     // A reveal in flight would otherwise fire into a torn-down DOM.
