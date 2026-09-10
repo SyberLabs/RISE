@@ -2082,6 +2082,31 @@ export class VisualCortex {
     }
 
     /**
+     * Start fetching a reading's imagery before the reading needs it.
+     *
+     * A READER WHO CONFIGURED THE VISUALS HAS ALREADY PAID THIS COST. The
+     * visual navigator paints a specimen of whatever mask source is
+     * chosen, which fetches a still from that collection and leaves the
+     * provider's cache warm; by the time Begin is pressed the imagery is
+     * decoded and the fit mask hydrates on the first frame.
+     *
+     * A Keystone opens from a URL. Nobody chose anything, nothing was
+     * previewed, and the first fetch begins when the Chamber is already
+     * on screen — so the same reading that hydrates instantly from the
+     * orbital takes seconds from try-rise, on the same machine.
+     *
+     * Best-effort and never awaited by the reading: this only moves the
+     * fetch earlier, it does not make anything wait on it. The mask
+     * already knows how to be patient and how to fall back.
+     */
+    warmImagery(collectionIds) {
+        const ids = [...new Set(collectionIds || [])]
+            .filter(id => typeof id === 'string' && id);
+        if (!ids.length) return Promise.resolve(false);
+        return this._prewarmProviderPools(ids).then(() => true, () => false);
+    }
+
+    /**
      * Fold the attractor this cortex owns, or unfold it.
      *
      * WHICH SUBSYSTEM OWNS AN ATTRACTOR DEPENDS ON WHY IT IS THERE. When

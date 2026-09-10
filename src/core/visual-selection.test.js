@@ -5,7 +5,8 @@ import {
     normalizeFitBorder,
     normalizeWordFill,
     resolveSessionWordFill,
-    wordFillIsDistinct
+    wordFillIsDistinct,
+    sessionImageryCollections
 } from './visual-selection.js';
 
 describe('normalizeWordFill', () => {
@@ -257,3 +258,54 @@ describe('normalizeVisualSelection procedural engine ids', () => {
     });
 });
 
+describe('the imagery a reading will ask for', () => {
+    it('takes the room pool and the word-fill pool, which are often not the same', () => {
+        // A fit word filled from Old Masters over a room of Astronomy
+        // wants both — and the FILL is the one the mask waits on before
+        // it can show anything at all.
+        expect(sessionImageryCollections({
+            interlocution: {
+                sourced: ['astronomy'],
+                wordFill: { mode: 'pick', sourced: ['oldmasters'], procedural: [] }
+            }
+        })).toEqual(['astronomy', 'oldmasters']);
+    });
+
+    it('finds a mask pool even when the room is procedural', () => {
+        // Meditations: a fractal room, so nothing sourced is named at the
+        // top level, and the only collection in the reading is the one
+        // the letters are filled from.
+        expect(sessionImageryCollections({
+            interlocution: {
+                procedural: ['fractal'],
+                sourced: [],
+                wordFill: { mode: 'pick', sourced: ['aic-knights'], procedural: [] }
+            }
+        })).toEqual(['aic-knights']);
+    });
+
+    it('names each pool once', () => {
+        expect(sessionImageryCollections({
+            interlocution: {
+                sourced: ['aic-landscapes'],
+                atriumCollections: ['aic-landscapes'],
+                wordFill: { mode: 'pick', sourced: ['aic-landscapes'], procedural: [] }
+            }
+        })).toEqual(['aic-landscapes']);
+    });
+
+    it('has nothing to warm for a reading that generates its own pictures', () => {
+        // Procedural engines do not fetch; there is nothing to warm.
+        expect(sessionImageryCollections({ interlocution: { procedural: ['fractal', 'ostensoria'] } }))
+            .toEqual([]);
+        expect(sessionImageryCollections({})).toEqual([]);
+        expect(sessionImageryCollections(null)).toEqual([]);
+    });
+
+    it('leaves a reader own uploads alone', () => {
+        // Sequence assets are already local; there is no provider to warm.
+        expect(sessionImageryCollections({
+            interlocution: { sourced: ['sequence-asset:abc', 'aic-knights'] }
+        })).toEqual(['aic-knights']);
+    });
+});
