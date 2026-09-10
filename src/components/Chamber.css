@@ -356,10 +356,26 @@
    so none of this applies to it. */
 
 .atom-word {
-  /* Inline-block so opacity and transform animate per word without the
-     line reflowing as each arrives. */
+  /* Inline-block so opacity and blur animate per word without the line
+     reflowing as each arrives. */
   display: inline-block;
-  transition: opacity 220ms var(--ease-out), transform 220ms var(--ease-out);
+  /* CONDENSING, NOT ARRIVING. A word used to rise 0.12em into place, and
+     a word that travels has a direction, a speed and a moment of landing
+     — which is the same thing the glass beneath it stopped having. It
+     resolves out of the field instead: no movement, only a blur coming
+     into focus. Slower than the old entrance on purpose. A fast fade
+     reads as a switch being thrown; this has to read as something
+     settling. */
+  /* Not --ease-out. Measured on the transition's own clock: that curve
+     spends most of its travel in the first quarter, so a word is 85%
+     present 60ms in and the entrance reads as a switch being thrown
+     however long its nominal duration. This one holds the word soft and
+     half-there through the opening third, then resolves. */
+  transition:
+    opacity 360ms var(--word-condense),
+    filter 360ms var(--word-condense);
+  --word-condense: cubic-bezier(0.45, 0.05, 0.35, 1);
+  filter: blur(0);
 }
 
 /* A word not yet reached by the reveal. Hidden by opacity rather than
@@ -368,7 +384,9 @@
    already occupies. */
 .atom-word[data-pending] {
   opacity: 0;
-  transform: translateY(0.12em);
+  /* Both ends of the transition name the same filter function, so the
+     interpolation is blur-to-blur rather than blur-to-`none`. */
+  filter: blur(6px);
 }
 
 /* Authored emphasis. The cyan is the reference reel's, and it reads as
@@ -388,10 +406,11 @@
 @media (prefers-reduced-motion: reduce) {
   .atom-word {
     transition: none;
+    filter: none;
   }
   .atom-word[data-pending] {
     opacity: 1;
-    transform: none;
+    filter: none;
   }
 }
 

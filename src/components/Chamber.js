@@ -1649,10 +1649,13 @@ export class Chamber {
    * The word's box in the display's own coordinates, or null if the
    * layout cannot be trusted yet.
    *
-   * Offset metrics describe layout BEFORE the pending word's translateY
-   * entrance. A visual client rect here would permanently bake that
-   * transform into the glass position, which is why the offset path is
-   * preferred and the rect path is only a fallback.
+   * Offset metrics describe layout, not paint. The pending word's
+   * entrance used to be a translateY, and a visual client rect taken
+   * mid-entrance baked that transform permanently into the glass
+   * position; the entrance is a blur now and has no transform to bake,
+   * but the offset path stays preferred for the same underlying reason —
+   * the atom box carries its own opacity and transform between atoms, and
+   * layout is the only thing here that is never mid-animation.
    */
   _progressiveGlassWordBox(span, atomDisplay) {
     const layoutValues = [
