@@ -1,14 +1,19 @@
 import { describe, expect, it } from 'vitest';
 import { OSTENSORIA_PALETTES } from '../../core/visual-style-definitions.js';
 import {
+  GARDEN_ANNOUNCEMENT,
   GARDEN_BLOSSOMS,
+  GARDEN_CLOSE,
   GARDEN_BUD_SCALE,
   GARDEN_DURATION_MS,
+  GARDEN_GRAIN,
+  GARDEN_GROUND,
   GARDEN_SCORE,
   GARDEN_STEM,
   GARDEN_WORDMARK,
   blossomAt,
   groundBreathAt,
+  revealAt,
   stemAt,
   wordmarkAt
 } from './garden.js';
@@ -37,10 +42,14 @@ describe('blossomAt', () => {
     expect(done.open).toBe(true);
   });
 
-  it('holds once open rather than continuing to grow', () => {
-    const later = blossomAt(blossom, blossom.startMs + blossom.openMs * 3);
+  it('holds once open, right up until the garden begins to close', () => {
+    const later = blossomAt(blossom, blossom.startMs + blossom.openMs * 2);
     expect(later.progress).toBe(1);
     expect(later.scale).toBe(1);
+    // The hold ends at one known moment now, rather than running forever.
+    const atClose = blossomAt(blossom, GARDEN_CLOSE.fromMs);
+    expect(atClose.openness).toBe(1);
+    expect(atClose.scale).toBe(1);
   });
 });
 
@@ -127,5 +136,131 @@ describe('the garden score', () => {
     expect(Object.isFrozen(GARDEN_SCORE)).toBe(true);
     expect(GARDEN_SCORE.blossoms).toBe(GARDEN_BLOSSOMS);
     expect(GARDEN_SCORE.durationMs).toBe(GARDEN_DURATION_MS);
+  });
+});
+
+describe('the garden closing', () => {
+  const at = ms => GARDEN_BLOSSOMS.map(b => blossomAt(b, ms).openness);
+  const stems = ms => GARDEN_BLOSSOMS.map(b => stemAt(b, ms));
+
+  it('closes every flower on one clock', () => {
+    // The bed fills a flower at a time; it empties as one gesture.
+    for (const fraction of [0, 0.25, 0.5, 0.75, 1]) {
+      const ms = GARDEN_CLOSE.fromMs + GARDEN_CLOSE.foldMs * fraction;
+      expect(new Set(at(ms)).size, `openness at ${ms}`).toBe(1);
+    }
+  });
+
+  it('withdraws every stem on one clock, once all of them have shut', () => {
+    // Nothing recedes while anything is still folding.
+    expect(new Set(stems(GARDEN_CLOSE.fromMs + GARDEN_CLOSE.foldMs))).toEqual(new Set([1]));
+    for (const fraction of [0.25, 0.5, 0.75, 1]) {
+      const ms = GARDEN_CLOSE.fromMs + GARDEN_CLOSE.foldMs + GARDEN_CLOSE.recedeMs * fraction;
+      expect(new Set(stems(ms)).size, `stems at ${ms}`).toBe(1);
+    }
+  });
+
+  it('takes a flower back down the way it came', () => {
+    const blossom = GARDEN_BLOSSOMS[0];
+    expect(blossomAt(blossom, GARDEN_CLOSE.fromMs).openness).toBe(1);
+
+    const half = blossomAt(blossom, GARDEN_CLOSE.fromMs + GARDEN_CLOSE.foldMs / 2);
+    // Eased at both ends, so half the time is half the fold — not the
+    // opening's curve, which had it 87% shut by now.
+    expect(half.openness).toBeCloseTo(0.5, 2);
+    // The plate's reveal follows openness, so the petals un-draw.
+    expect(half.progress).toBe(half.openness);
+
+    const shut = blossomAt(blossom, GARDEN_CLOSE.fromMs + GARDEN_CLOSE.foldMs);
+    expect(shut.openness).toBe(0);
+    expect(shut.closed).toBe(true);
+  });
+
+  it('withdraws a stem at the same measured pace', () => {
+    const blossom = GARDEN_BLOSSOMS[0];
+    const from = GARDEN_CLOSE.fromMs + GARDEN_CLOSE.foldMs;
+    expect(stemAt(blossom, from)).toBe(1);
+    expect(stemAt(blossom, from + GARDEN_CLOSE.recedeMs / 2)).toBeCloseTo(0.5, 2);
+    expect(stemAt(blossom, from + GARDEN_CLOSE.recedeMs)).toBe(0);
+  });
+
+  it('leaves the bed bare before the card has finished arriving', () => {
+    const bare = GARDEN_CLOSE.fromMs + GARDEN_CLOSE.foldMs + GARDEN_CLOSE.recedeMs;
+    expect(bare).toBeLessThan(GARDEN_DURATION_MS);
+    for (const blossom of GARDEN_BLOSSOMS) {
+      expect(blossomAt(blossom, bare).openness, blossom.id).toBe(0);
+      expect(stemAt(blossom, bare), blossom.id).toBe(0);
+    }
+  });
+});
+
+describe('the dark field', () => {
+  const luma = hex => {
+    const n = parseInt(hex.slice(1), 16);
+    return ((n >> 16) & 255) * 0.299 + ((n >> 8) & 255) * 0.587 + (n & 255) * 0.114;
+  };
+
+  it('grains deeply enough to break a contour, lightly enough to stay unseen', () => {
+    // The whole card spans about six 8-bit levels. Under two, the grain
+    // cannot straddle a level boundary and the rings stay; over five it
+    // stops being dither and starts being texture on the flowers.
+    expect(GARDEN_GRAIN.levels).toBeGreaterThanOrEqual(2);
+    expect(GARDEN_GRAIN.levels).toBeLessThanOrEqual(5);
+    expect(GARDEN_SCORE.grain).toBe(GARDEN_GRAIN);
+  });
+
+  it('sinks the pill to the floor, which is where its bands are narrowest', () => {
+    // Counter-intuitive and worth pinning: the FAINTEST pill is the one
+    // that rings, because six levels spread over the feather band every
+    // twenty pixels. Taking the well all the way down crosses three
+    // times as many levels in the same distance, and a five-pixel band
+    // is one the grain can hide.
+    const pill = GARDEN_ANNOUNCEMENT.message.pill;
+    expect(pill.opacity).toBe(1);
+    for (const ground of [GARDEN_GROUND.topColor, GARDEN_GROUND.earthColor]) {
+      expect(luma(pill.color), ground).toBeLessThanOrEqual(luma(ground));
+    }
+  });
+});
+
+describe('the release card', () => {
+  const pieces = () => [
+    GARDEN_ANNOUNCEMENT.message,
+    GARDEN_ANNOUNCEMENT.mark,
+    GARDEN_ANNOUNCEMENT.credit
+  ];
+
+  it('arrives in reading order: the message, then the mark, then whose it is', () => {
+    const [message, mark, credit] = pieces();
+    expect(message.fromMs).toBeLessThan(mark.fromMs);
+    expect(mark.fromMs).toBeLessThan(credit.fromMs);
+  });
+
+  it('waits for the wordmark to have resolved before saying anything', () => {
+    const resolvedAt = GARDEN_WORDMARK.fromMs
+      + GARDEN_WORDMARK.letterStaggerMs * (GARDEN_WORDMARK.text.length - 1)
+      + GARDEN_WORDMARK.letterRevealMs;
+    expect(GARDEN_ANNOUNCEMENT.message.fromMs).toBeGreaterThan(resolvedAt);
+  });
+
+  it('is fully landed and held before the last frame', () => {
+    for (const piece of pieces()) {
+      const landed = piece.fromMs + piece.revealMs;
+      expect(landed).toBeLessThan(GARDEN_DURATION_MS);
+      expect(revealAt(piece, landed)).toBe(1);
+      expect(revealAt(piece, piece.fromMs)).toBe(0);
+      expect(revealAt(piece, GARDEN_DURATION_MS)).toBe(1);
+    }
+    const last = Math.max(...pieces().map(p => p.fromMs + p.revealMs));
+    // Long enough that the closing frame is the card, not its arrival.
+    expect(GARDEN_DURATION_MS - last).toBeGreaterThan(2_000);
+  });
+
+  it('stacks down the frame without colliding with the wordmark', () => {
+    const [message, mark, credit] = pieces();
+    expect(GARDEN_WORDMARK.centerY).toBeLessThan(message.centerY);
+    expect(message.centerY).toBeLessThan(mark.centerY);
+    expect(mark.centerY).toBeLessThan(credit.centerY);
+    expect(credit.centerY).toBeLessThan(1);
   });
 });
