@@ -2082,6 +2082,32 @@ export class VisualCortex {
     }
 
     /**
+     * Fold the attractor this cortex owns, or unfold it.
+     *
+     * WHICH SUBSYSTEM OWNS AN ATTRACTOR DEPENDS ON WHY IT IS THERE. When
+     * the whole reading is an attractor the Chamber mounts it as a field
+     * cue and holds the reference. When the attractor is one engine among
+     * several in an interlocution, it is mounted here instead, in the
+     * continuous field. The bar's kaleidoscope control is drawn from
+     * CONFIGURATION, which says an attractor exists in both cases — so in
+     * the second case the control was offered for a field the Chamber did
+     * not have, and pressing it did nothing at all.
+     *
+     * @returns {{engaged: boolean, form: string}|null} null when no field
+     *   of this cortex's is live, which is how the caller learns to look
+     *   somewhere else.
+     */
+    toggleAttractorKaleidoscope() {
+        if (!this._attractorField) return null;
+        const engaged = this._attractorField.toggleKaleidoscope();
+        // A retarget or a pool change rebuilds the field from config, so
+        // the fold is recorded there as well — otherwise a change of host
+        // the reader never asked for would quietly undo it.
+        if (this.config?.attractor) this.config.attractor.form = this._attractorField.form;
+        return { engaged, form: this._attractorField.form };
+    }
+
+    /**
      * Reconcile the field with a live safety change (photosensitivity or
      * consent toggled mid-session). The flash economy re-checks these on
      * every flash() call; the field runs on its own clock and must be told.
