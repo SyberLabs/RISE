@@ -114,6 +114,10 @@ describe('rise.experience-program.v1', () => {
       .toEqual(['heaven-audio', 'steel-swell']);
     expect(lowered.swellProgram.segments[0].cue)
       .toEqual({ kind: 'swell', swellId: 'pressure-hit' });
+    expect(lowered.audioProgram.lanes.swell.fallback)
+      .toEqual({ kind: 'silence', fadeMs: 250 });
+    expect(lowered.swellProgram.fallback)
+      .toEqual({ kind: 'silence', fadeMs: 250 });
     expect(lowered.sourceBoundaries).toEqual([{
       id: 'descent',
       sourceId: 'journey-boundary:descent',

@@ -59,6 +59,32 @@ describe('Gallery attribution geometry', () => {
         });
     });
 
+    it('publishes the visible aperture only for a loaded contained work', () => {
+        const { field, host } = mount();
+        host.getBoundingClientRect = () => ({ width: 1200, height: 800 });
+        field._ensureLayers();
+        const layer = field._layers[field._front];
+        layer.root.style.opacity = '1';
+        layer.work = { url: 'portrait.jpg' };
+        Object.defineProperties(layer.artwork, {
+            naturalWidth: { configurable: true, value: 600 },
+            naturalHeight: { configurable: true, value: 1200 }
+        });
+
+        expect(field.getCommittedArtworkAperture()).toEqual({
+            left: 400,
+            top: 0,
+            right: 800,
+            bottom: 800,
+            width: 400,
+            height: 800,
+            source: 'collection-artwork'
+        });
+
+        layer.work = { url: 'fractal.webp', sourceType: 'fractal' };
+        expect(field.getCommittedArtworkAperture()).toBeNull();
+    });
+
     it('places a label at the lower-right edge wholly in the right matte beside a portrait', () => {
         const placement = resolveGalleryLabelPlacement({
             frameWidth: 1200,
@@ -518,9 +544,9 @@ describe('ContinuousField', () => {
 });
 
 describe('Continuous Field projection mount', () => {
-    it('reports the first decoded visible projection paint once for each host identity', async () => {
+    it('waits for the actual visible projection image before reporting paint', async () => {
         const onProjectionPaint = vi.fn();
-        const { field, host } = mount({
+        const { field, host, clock } = mount({
             getPool: () => pool('a.jpg', 'b.jpg'),
             onProjectionPaint
         });
@@ -535,6 +561,21 @@ describe('Continuous Field projection mount', () => {
         await Promise.resolve();
         await Promise.resolve();
 
+        const projectedImage = [...projection.querySelectorAll('.continuous-field-layer')]
+            .find(layer => layer.style.opacity === '1')
+            ?.querySelector('.continuous-field-artwork');
+        expect(projectedImage?.getAttribute('src')).toBeTruthy();
+        expect(onProjectionPaint).not.toHaveBeenCalled();
+
+        Object.defineProperties(projectedImage, {
+            naturalWidth: { configurable: true, value: 1200 },
+            naturalHeight: { configurable: true, value: 800 },
+            complete: { configurable: true, value: true }
+        });
+        projectedImage.dispatchEvent(new Event('load'));
+        await Promise.resolve();
+        clock.tick(0);
+
         expect(onProjectionPaint).toHaveBeenCalledTimes(1);
         expect(onProjectionPaint).toHaveBeenLastCalledWith(projection);
         expect([...projection.querySelectorAll('.continuous-field-layer')]
@@ -548,6 +589,18 @@ describe('Continuous Field projection mount', () => {
         expect(onProjectionPaint).toHaveBeenCalledTimes(1);
 
         field.setProjectionHost(replacement);
+        const replacementImage = [...replacement.querySelectorAll('.continuous-field-layer')]
+            .find(layer => layer.style.opacity === '1')
+            ?.querySelector('.continuous-field-artwork');
+        Object.defineProperties(replacementImage, {
+            naturalWidth: { configurable: true, value: 1200 },
+            naturalHeight: { configurable: true, value: 800 },
+            complete: { configurable: true, value: true }
+        });
+        replacementImage.dispatchEvent(new Event('load'));
+        await Promise.resolve();
+        clock.tick(0);
+
         expect(onProjectionPaint).toHaveBeenCalledTimes(2);
         expect(onProjectionPaint).toHaveBeenLastCalledWith(replacement);
         field.setProjectionHost(null);

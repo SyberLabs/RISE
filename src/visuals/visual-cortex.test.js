@@ -1708,6 +1708,25 @@ describe('Continuous Field (Gallery) wiring', () => {
         return { cortex, host };
     }
 
+    async function paintProjectedImage(cortex, projection) {
+        let image = null;
+        await vi.waitFor(() => {
+            image = [...projection.querySelectorAll('.continuous-field-artwork[src]')]
+                .find(candidate => candidate.closest('.continuous-field-layer')?.style.opacity === '1');
+            expect(image).toBeTruthy();
+        });
+        Object.defineProperties(image, {
+            complete: { configurable: true, value: true },
+            naturalWidth: { configurable: true, value: 1200 },
+            naturalHeight: { configurable: true, value: 800 },
+            decode: { configurable: true, value: vi.fn().mockResolvedValue(undefined) }
+        });
+        cortex._continuousField._raf = callback => { callback(); return 1; };
+        image.dispatchEvent(new Event('load'));
+        await Promise.resolve();
+        await Promise.resolve();
+    }
+
     it('resolves readiness only after the requested current projection host paints', async () => {
         const { cortex } = hostedContinuousCortex();
         seedPool(cortex, 'aic-oldmasters', ['a.jpg']);
@@ -1721,6 +1740,7 @@ describe('Continuous Field (Gallery) wiring', () => {
 
         const pending = cortex.whenContinuousFieldProjectionReady(projection);
         cortex.setContinuousFieldProjectionHost(projection);
+        await paintProjectedImage(cortex, projection);
         await expect(pending).resolves.toBeUndefined();
 
         expect([...projection.querySelectorAll('.continuous-field-layer')]
@@ -1910,6 +1930,7 @@ describe('Continuous Field (Gallery) wiring', () => {
         expect(projection.querySelectorAll('.work-engine-plane')).toHaveLength(0);
 
         finishDecode(true);
+        await paintProjectedImage(cortex, projection);
         await expect(pending).resolves.toBeUndefined();
         expect([...projection.querySelectorAll('.continuous-field-layer')]
             .some(layer => layer.style.opacity === '1')).toBe(true);

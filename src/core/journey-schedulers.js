@@ -118,8 +118,14 @@ export class AudioScheduleController {
         this.swellProgram = this.program?.lanes?.swell || (this.program ? {
             coordinateSpace: this.program.coordinateSpace,
             segments: combined.filter(segment => segment.cue?.kind === 'swell'),
-            fallback: { kind: 'hold' }
+            fallback: { kind: 'silence', fadeMs: 250 }
         } : null);
+        if (this.swellProgram?.fallback?.kind === 'hold') {
+            this.swellProgram = {
+                ...this.swellProgram,
+                fallback: { kind: 'silence', fadeMs: 250 }
+            };
+        }
         if (!this.bedProgram?.segments?.length) this.bedProgram = null;
         if (!this.swellProgram?.segments?.length) this.swellProgram = null;
         this.defaultCue = options.defaultCue || null;
@@ -154,7 +160,7 @@ export class AudioScheduleController {
         this._lastAtom = atom;
         const bed = this.bedProgram ? cueForAtom(this.bedProgram, atom) : null;
         const swell = this.swellProgram ? cueForAtom(this.swellProgram, atom) : null;
-        const nextSwellId = this._heldSwellId(swell);
+        const nextSwellId = swell?.id ?? null;
         const changed = bed?.id !== this._activeBedId || nextSwellId !== this._activeSwellId;
         if (!changed) return { bed, swell, syncGroups: this._syncGroups(bed, swell) };
 
@@ -168,21 +174,6 @@ export class AudioScheduleController {
             this._applySwell(swell?.cue, generation);
         }
         return { bed, swell, syncGroups: this._syncGroups(bed, swell) };
-    }
-
-    /**
-     * The id the swell lane is sounding under after resolving `swell`.
-     *
-     * `hold` is the lane's fallback and means the lane KEEPS what it has —
-     * which has to include the id, not only the output. Advancing the id to
-     * `__fallback__` on the way past an authored span made returning to that
-     * span look like a new cue, and the layer was stopped and replayed from
-     * its first second every time the reading crossed the edge. A reader's
-     * own recording under a whole passage restarted every few seconds.
-     */
-    _heldSwellId(swell) {
-        if (!swell || swell.cue?.kind === 'hold') return this._activeSwellId;
-        return swell.id ?? null;
     }
 
     /**
@@ -371,7 +362,7 @@ export class AudioScheduleController {
         // comparison, so it asks what a pause left behind.
         const silenced = !this._activeSwellCue;
         this._activeBedId = bed?.id ?? null;
-        this._activeSwellId = this._heldSwellId(swell);
+        this._activeSwellId = swell?.id ?? null;
         this._applyBed(bed?.cue, generation);
         // The overlay lane comes back with the bed. It used to be left behind
         // on the reasoning that a swell is a momentary event and replaying one
