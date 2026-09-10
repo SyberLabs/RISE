@@ -377,7 +377,17 @@
 /* Orbit content (stays upright when container rotates) */
 .orbit-content {
   text-align: center;
-  padding: var(--space-md);
+  /* Little side padding, because the status sits at the disc's waist,
+     where the chord is the full diameter — 24px a side spent nearly half
+     of it and left a box narrower than the word it had to hold. The rim
+     is kept by the type scaling with the node, not by a clamp. */
+  padding: var(--space-md) var(--space-xs);
+  /* The disc is what bounds the text. Without this the content is a
+     flex item free to shrink-to-fit its widest LINE, and a status that
+     fits on one line takes it: 'Focals · Rosa Mystica' went 28px past
+     the rim on both sides rather than wrapping inside the disc. */
+  width: 100%;
+  box-sizing: border-box;
   pointer-events: none;
 
   /* Counter-rotate to keep text readable */
@@ -1554,6 +1564,13 @@
   .chamber-orbital {
     padding-left: var(--space-sm);
     padding-right: var(--space-sm);
+    /* THE DISC AND THE TYPE HAVE TO AGREE ON HOW BIG THE DISC IS. The
+       node below used to be hard-coded to 96px while this figure stayed
+       at the 128px the height rule set, and the status size is derived
+       from this figure — so the type was scaled for a disc 33% larger
+       than the one it was in, and the longest engine names ran past a
+       line they could otherwise have wrapped inside. */
+    --orbit-node: 96px;
   }
 
   .orbital-stage {
@@ -1579,8 +1596,8 @@
 
 
   .orbit-node {
-    width: 96px;
-    height: 96px;
+    width: var(--orbit-node);
+    height: var(--orbit-node);
   }
 
   /* ── 24px OF PADDING INSIDE AN 84px CIRCLE ──
@@ -1905,11 +1922,23 @@
 .orbit-status {
   font-size: clamp(10px, calc(var(--orbit-node) * 0.098), 14px);
   line-height: 1.25;
-  max-width: 78%;
-  margin: 0 auto;
   overflow-wrap: normal;
   word-break: keep-all;
   hyphens: none;
+
+  /* THE BOX TAKES THE WIDTH OF ITS LONGEST LINE, AND THEN CENTRES.
+     It used to be clamped to 78% of the content box, which cost this
+     disc its centring: a line WIDER than its box is not centred on it.
+     Chrome pins the overflow to the start edge and lets the rest run off
+     the right, so 'Collections' sat 8px right of the orb's middle and
+     'Procedural' 7.5 — the same two words the rule above is about, off
+     centre instead of broken. Every word that fitted was exact, which is
+     why this looked like one status misbehaving rather than a rule.
+     Hugging the content means no line ever overflows, so every line is
+     centred, whatever the phrase turns out to be. */
+  width: max-content;
+  max-width: 100%;
+  margin-inline: auto;
 }
 
 .orbit-label {
