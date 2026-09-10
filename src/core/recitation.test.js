@@ -137,21 +137,62 @@ describe('reveal schedule', () => {
         expect(leads[0]).toBe(SPOKEN_REVEAL_LEAD_MS);
     });
 
-    it('drifts rather than bunching when onsets run short', () => {
-        // Silence detection is a heuristic and will sometimes find
-        // fewer gaps than there are words. The tail should use the remaining
-        // audio span, not dump at once or extrapolate beyond the WAV.
+    it('carries on past the onsets it was given, in order', () => {
+        // Silence detection finds fewer gaps than there are words in 60%
+        // of the shipped pack, so running out of onsets is the ordinary
+        // case rather than an edge one.
         const s = revealSchedule(5, 800, [0, 200, 400]);
-        expect(s.slice(0, 3)).toEqual([0, 110, 310]);
-        expect(s[3]).toBeGreaterThan(s[2]);
-        expect(s[4]).toBeGreaterThan(s[3]);
+        expect(s[0]).toBe(0);
         expect(s).toEqual([...s].sort((a, b) => a - b));
+        expect(new Set(s).size).toBe(s.length);
+        // And it does not run to the end of the recording — see below.
+        expect(s.at(-1)).toBeLessThan(800 * 0.9);
     });
 
-    it('finishes a sparse short-word sentence before its audio ends', () => {
+    it('leaves the last word time to be read, instead of the end of the clip', () => {
+        // THE DEFECT THIS REPLACES, and it was the common case, not a
+        // corner. For a spoken atom `budgetMs` is the WHOLE recording,
+        // trailing silence included, and the unmatched tail was spread
+        // across all of it — so the final word appeared at the very end
+        // and the phrase turned. Measured over the 877 clips in the
+        // shipped voice pack: 529 of them, every single clip whose
+        // detection came up short, showed its last word with 200ms or
+        // less remaining. The median was 90ms, which is the lead, which
+        // is to say the last word landed exactly as the audio stopped.
+        const words = ['Light', 'enters', 'form', 'and', 'returns', 'again'];
+        const clipMs = 3000;
+        const s = revealSchedule(words, clipMs, [300, 700, 1100, 1500]);
+        expect(clipMs - s.at(-1)).toBeGreaterThan(300);
+    });
+
+    it('gives a longer word more of the phrase than a short one', () => {
+        // What keeps the rhythm between detected boundaries: "colonies"
+        // takes four times as long to say as "of", and dividing the time
+        // evenly is the metronome this is trying not to be.
+        // One phrase, so the pace is one number: the time a word is given
+        // is the gap after it, and the long word must be given more.
+        const s = revealSchedule(['aa', 'aaaaaaaaaaaa', 'aa'], 3000, [200]);
+        const afterShort = s[1] - s[0];
+        const afterLong = s[2] - s[1];
+        expect(afterLong).toBeGreaterThan(afterShort * 3);
+    });
+
+    it('does not believe two onsets about where six words go', () => {
+        // Anchoring the last word to the last onset is right when
+        // detection is complete enough to have found it. With two onsets
+        // for six words it is not: taken at face value it put all six
+        // inside the opening third of the clip and left one word standing
+        // for the rest. The recording's own pace overrules it.
         const s = revealSchedule(6, 2000, [300, 650]);
-        expect(s).toEqual([300, 560, 898, 1235, 1573, 1910]);
-        expect(s.at(-1)).toBeLessThan(2000);
+        expect(s.at(-1)).toBeGreaterThan(1200);
+        expect(2000 - s.at(-1)).toBeGreaterThan(300);
+    });
+
+    it('finishes a sparse short-word sentence well before its audio ends', () => {
+        const s = revealSchedule(6, 2000, [300, 650]);
+        expect(s[0]).toBe(300);
+        expect(s.at(-1)).toBeLessThan(2000 * 0.85);
+        expect(s).toEqual([...s].sort((a, b) => a - b));
     });
 
     it('spreads words across surplus onsets instead of taking the first few', () => {

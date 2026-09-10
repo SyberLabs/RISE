@@ -994,8 +994,10 @@ export class Chamber {
       return;
     }
 
+    // The words themselves, not merely how many: their lengths are what
+    // let the schedule keep the voice's rhythm between detected onsets.
     this.revealAtomWords(spans, revealSchedule(
-      spans.length,
+      spans.map(span => span.textContent),
       budget,
       spoken && !reducedMotion ? spoken.onsets : null
     ));
@@ -2091,7 +2093,9 @@ export class Chamber {
       // arrive over a stable frame rather than racing the reflow.
       if (spans) {
         this.revealAtomWords(spans, revealSchedule(
-          spans.length, budget, spoken && !reducedMotion ? spoken.onsets : null));
+          spans.map(span => span.textContent),
+          budget,
+          spoken && !reducedMotion ? spoken.onsets : null));
       } else {
         this.cancelReveal();
       }
