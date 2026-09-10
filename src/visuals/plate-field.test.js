@@ -212,6 +212,78 @@ describe('PlateField', () => {
         field.destroy();
     });
 
+    it('dissolves the FIRST plate out, not just every plate after it', () => {
+        // The first plate enters with `transition: none`, because there is
+        // nothing behind it to dissolve from. That `none` stayed on the
+        // element, so when it became the outgoing plane its opacity was
+        // dropped with no transition still attached and it cut to black —
+        // the one plate in a reading that did, which is why it read as a
+        // first-impression fault rather than a rule.
+        vi.spyOn(performance, 'now').mockReturnValue(0);
+        const field = new PlateField(host, {
+            families: ['ostensoria', 'apparitio'],
+            dwellMs: 8_000,
+            crossfadeMs: 1_200
+        });
+        field.start();
+        const planes = [...host.querySelectorAll('.plate-plane')];
+        expect(planes[0].style.opacity).toBe('1');
+        expect(planes[0].style.transition).toBe('none');
+
+        frame(8_000);
+
+        expect(planes[0].style.opacity).toBe('0');
+        expect(planes[0].style.transition).toBe('opacity 1200ms ease-in-out');
+        field.destroy();
+    });
+
+    it('takes the outgoing projection with it', () => {
+        // A plane only ever synced its projection while it was INCOMING,
+        // so the copy stayed at full opacity for good. From the third
+        // rotation the outgoing copy — later in the DOM, and so on top —
+        // covered the plate that had just arrived.
+        vi.spyOn(performance, 'now').mockReturnValue(0);
+        const projection = document.createElement('div');
+        document.body.appendChild(projection);
+        const field = new PlateField(host, {
+            families: ['ostensoria', 'apparitio'],
+            dwellMs: 8_000,
+            crossfadeMs: 1_200
+        });
+        field.setProjectionHost(projection);
+        field.start();
+        const copies = [...projection.querySelectorAll('.plate-plane')];
+        expect(copies).toHaveLength(2);
+
+        frame(8_000);
+        expect(copies[0].style.opacity).toBe('0');
+        expect(copies[1].style.opacity).toBe('1');
+
+        frame(16_000);
+        expect(copies[1].style.opacity).toBe('0');
+        expect(copies[0].style.opacity).toBe('1');
+
+        field.destroy();
+        projection.remove();
+    });
+
+    it('cuts rather than dissolves when motion is reduced', () => {
+        // Reduced motion holds one still and never rotates, so the plane
+        // that arrived first is the only one that ever carries a style.
+        vi.spyOn(performance, 'now').mockReturnValue(0);
+        const field = new PlateField(host, {
+            families: ['ostensoria', 'apparitio'],
+            dwellMs: 8_000,
+            crossfadeMs: 1_200,
+            reducedMotion: true
+        });
+        field.start();
+        const planes = [...host.querySelectorAll('.plate-plane')];
+        expect(planes[0].style.transition).toBe('none');
+        expect(planes[0].style.opacity).toBe('1');
+        field.destroy();
+    });
+
     it('repaints a finished plate after the canvas is resized', () => {
         const field = new PlateField(host, {
             families: ['apparitio'],
