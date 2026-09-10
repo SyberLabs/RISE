@@ -37,11 +37,29 @@ export const REVEAL_MIN_ATOM_MS = 400;
 
 /**
  * Spoken text should lead comprehension very slightly, not trail speech.
- * Preserve the first measured onset, then compress later onset intervals so
- * the written phrase completes 30% sooner. This especially helps short-word
- * runs whose boundaries merge in waveform analysis.
+ *
+ * A CONSTANT LEAD, NOT A PROPORTIONAL ONE. This used to scale every
+ * interval by 0.7, which does not hold the text slightly ahead of the
+ * voice — it accelerates away from it, because the error compounds with
+ * every word. By the end of a long phrase the reveal had finished while
+ * the voice was still in the middle of it. That scaling was introduced to
+ * paper over waveform boundaries that merge, and the detector below now
+ * handles those directly, so the workaround can go.
  */
-export const SPOKEN_REVEAL_TIME_SCALE = 0.7;
+export const SPOKEN_REVEAL_LEAD_MS = 90;
+
+/**
+ * A stop consonant is silence — /t/, /k/ and /p/ all close the vocal
+ * tract — so a dip in energy is not by itself a word boundary. Measured
+ * on speech-shaped audio: stops run 20-50ms and word gaps 70ms and up.
+ * 55 sits between them with room for the 20ms analysis window to
+ * quantize either way — at 70 a real 70ms gap rounds to three windows
+ * against a four-window threshold and the boundary is lost.
+ */
+export const ONSET_MIN_GAP_MS = 55;
+
+/** Two onsets closer together than this were one word, not two. */
+export const ONSET_MIN_SPACING_MS = 110;
 
 /**
  * Strip emphasis marks. Used for speech and for any consumer that wants
@@ -157,9 +175,10 @@ export function revealSchedule(wordCount, budgetMs, onsetsMs = null) {
     if (budgetMs <= 0 && !onsetsMs?.length) return new Array(wordCount).fill(0);
 
     if (onsetsMs?.length) {
-        const detectedCount = Math.min(wordCount, onsetsMs.length);
-        const out = onsetsMs.slice(0, detectedCount)
-            .map(at => Math.max(0, Number(at) || 0));
+        const out = chooseOnsets(
+            onsetsMs.map(at => Math.max(0, Number(at) || 0)).sort((a, b) => a - b),
+            wordCount
+        );
 
         if (out.length < wordCount) {
             // Short words often join into one continuous energy burst, so the
@@ -179,16 +198,68 @@ export function revealSchedule(wordCount, budgetMs, onsetsMs = null) {
                 out.push(last + (pace * i));
             }
         }
-        const anchor = out[0] || 0;
-        return out.map(at => Math.round(
-            anchor + ((at - anchor) * SPOKEN_REVEAL_TIME_SCALE)
-        ));
+        // The first word waits for the real voice; every later one is the
+        // same step ahead of its own onset, so THE LEAD IS TAKEN OUT OF
+        // THE FIRST INTERVAL AND NO OTHER. Every interval after it is the
+        // voice's own, unaltered, which is the whole point — the rhythm a
+        // reader sees should be the rhythm they hear.
+        //
+        // A voice whose first interval is shorter than the lead cannot
+        // give the whole of it. Take half of what there is rather than
+        // clamping, which folded the first two words onto the same
+        // instant.
+        const anchor = Math.round(out[0] || 0);
+        const firstInterval = out.length > 1 ? out[1] - out[0] : 0;
+        const lead = Math.min(SPOKEN_REVEAL_LEAD_MS, Math.max(0, firstInterval / 2));
+        return out.map((at, i) => (i === 0 ? anchor : Math.round(at - lead)));
     }
 
     // Even division. The LAST word lands at the end of the budget, not
     // past it, so the phrase is whole for the remainder of the atom.
     const step = wordCount > 1 ? budgetMs / (wordCount - 1) : 0;
     return Array.from({ length: wordCount }, (_, i) => Math.round(i * step));
+}
+
+/**
+ * Reduce a run of onsets to one per word.
+ *
+ * TAKING THE FIRST N IS THE WRONG N. Silence detection can report more
+ * boundaries than the sentence has words, and the surplus is not at the
+ * end — it is wherever the speaker's mouth happened to close. Truncating
+ * therefore kept only onsets from the START of the clip and the whole
+ * phrase arrived while the voice was still in its first half. Measured
+ * on speech-shaped audio: five words, eight onsets, and the last word
+ * shown at 490ms of a 1700ms reading.
+ *
+ * Which of the surplus are spurious is not knowable from the waveform,
+ * so this does not try to know. It spreads the words across the onsets
+ * that exist, taking for each word the onset nearest where that word
+ * would fall if the voice were even, and never going backwards. Ranking
+ * by preceding silence was tried first and is worse: when the gaps are
+ * of a size, it keeps the earliest every time and the phrase bunches at
+ * the start again — two words ten milliseconds apart, in the case that
+ * caught it.
+ */
+function chooseOnsets(onsets, wordCount) {
+    if (onsets.length <= wordCount) return onsets;
+    if (wordCount === 1) return [onsets[0]];
+
+    const first = onsets[0];
+    const span = onsets[onsets.length - 1] - first;
+    const picked = [];
+    let from = 0;
+    for (let i = 0; i < wordCount; i += 1) {
+        const ideal = first + (span * i) / (wordCount - 1);
+        // Leave enough onsets behind for the words still to be placed.
+        const last = onsets.length - (wordCount - 1 - i);
+        let best = from;
+        for (let j = from; j < last; j += 1) {
+            if (Math.abs(onsets[j] - ideal) < Math.abs(onsets[best] - ideal)) best = j;
+        }
+        picked.push(onsets[best]);
+        from = best + 1;
+    }
+    return picked;
 }
 
 /**
@@ -207,7 +278,12 @@ export function revealSchedule(wordCount, budgetMs, onsetsMs = null) {
  * @param {{windowMs?: number, floorRatio?: number}} [opts]
  * @returns {number[]} onsets in ms, ascending, starting with 0
  */
-export function speechOnsets(samples, sampleRate, { windowMs = 20, floorRatio = 0.06 } = {}) {
+export function speechOnsets(samples, sampleRate, {
+    windowMs = 20,
+    floorRatio = 0.06,
+    minGapMs = ONSET_MIN_GAP_MS,
+    minSpacingMs = ONSET_MIN_SPACING_MS
+} = {}) {
     if (!samples?.length || !sampleRate) return [];
 
     const win = Math.max(1, Math.floor(sampleRate * (windowMs / 1000)));
@@ -220,20 +296,45 @@ export function speechOnsets(samples, sampleRate, { windowMs = 20, floorRatio = 
     if (!energy.length) return [];
 
     const floor = Math.max(...energy) * floorRatio;
+    // Two thresholds, not one. A single threshold with energy hovering
+    // near it toggles every window and reports a boundary each time.
+    const rise = floor * 1.8;
+    const windowRealMs = (win / sampleRate) * 1000;
+    const minGapWindows = Math.max(1, Math.round(minGapMs / windowRealMs));
+
     const onsets = [];
     // Begin INSIDE a gap so the first burst of energy registers as an
-    // onset. Seeding with 0 instead made the first word appear at the
-    // very start of the clip — but Kokoro opens with roughly 300ms of
-    // silence, so the word arrived a third of a second before it was
-    // spoken, and every later word inherited the offset.
+    // onset, and long enough inside one that it qualifies. Seeding with 0
+    // instead made the first word appear at the very start of the clip —
+    // but Kokoro opens with roughly 300ms of silence, so the word arrived
+    // a third of a second before it was spoken, and every later word
+    // inherited the offset.
     let inGap = true;
+    let gapWindows = minGapWindows;
+
     energy.forEach((e, i) => {
         if (e < floor) {
             inGap = true;
-        } else if (inGap) {
-            inGap = false;
-            onsets.push(Math.round((i * win / sampleRate) * 1000));
+            gapWindows += 1;
+            return;
         }
+        if (e <= rise) {
+            // Between the two thresholds nothing is decided; a gap that
+            // is still running goes on running.
+            if (inGap) gapWindows += 1;
+            return;
+        }
+        // Energy is unambiguously back. Only a gap long enough to have
+        // been a word boundary opens a new word — a stop consonant
+        // inside one does not.
+        if (inGap && gapWindows >= minGapWindows) {
+            const at = Math.round(i * windowRealMs);
+            if (!onsets.length || at - onsets[onsets.length - 1] >= minSpacingMs) {
+                onsets.push(at);
+            }
+        }
+        inGap = false;
+        gapWindows = 0;
     });
     return onsets;
 }
