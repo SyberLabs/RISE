@@ -1020,8 +1020,10 @@
 }
 
 /* Progressive Reveal keeps the complete phrase laid out so wrapping never
-   changes under the reader. Only the glass paint follows the visible prefix:
-   one surface expands around the union of the words that have arrived. */
+   changes under the reader. Only the glass paint follows the visible prefix
+   — and it follows by APPEARING, not by moving: one pane over the whole
+   tile, masked to the words that have arrived, each ramped away at its ends
+   so the fog has no edge to watch. */
 .chamber-field-stream .atom-display.glass-tile.is-progressive-glass,
 .chamber-field-genesis .atom-display.glass-tile.is-progressive-glass {
   background: transparent;
@@ -1039,11 +1041,18 @@
   z-index: 0;
   pointer-events: none;
   box-sizing: border-box;
-  left: var(--progressive-glass-left, 0);
-  top: var(--progressive-glass-top, 0);
-  width: var(--progressive-glass-width, 0);
-  height: var(--progressive-glass-height, 0);
+  /* The pane is the whole tile and never moves. What discloses is the
+     mask: one ramped band per revealed word, summed. */
+  inset: 0;
   border-radius: 14px;
+  -webkit-mask-image: var(--progressive-glass-mask, none);
+  mask-image: var(--progressive-glass-mask, none);
+  -webkit-mask-position: var(--progressive-glass-mask-position, 0 0);
+  mask-position: var(--progressive-glass-mask-position, 0 0);
+  -webkit-mask-size: var(--progressive-glass-mask-size, 100% 100%);
+  mask-size: var(--progressive-glass-mask-size, 100% 100%);
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
   border: 1px solid rgba(232, 232, 236, 0.05);
   background: rgba(10, 10, 12, 0.36);
   backdrop-filter: blur(16px) saturate(1.12);
@@ -1053,12 +1062,9 @@
     0 0 32px rgba(10, 10, 12, 0.45),
     inset 0 1px 0 rgba(232, 232, 236, 0.045);
   opacity: 0;
-  transition:
-    left var(--progressive-glass-motion-ms, 0ms) linear,
-    top var(--progressive-glass-motion-ms, 0ms) linear,
-    width var(--progressive-glass-motion-ms, 0ms) linear,
-    height var(--progressive-glass-motion-ms, 0ms) linear,
-    opacity 100ms var(--ease-out);
+  /* Opacity only. Every geometry transition here was a moving boundary,
+     which is the thing this pane must not have. */
+  transition: opacity 160ms var(--ease-out);
 }
 
 .chamber-field-stream .atom-display.glass-tile.is-progressive-glass-ready::before,
