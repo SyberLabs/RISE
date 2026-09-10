@@ -90,6 +90,37 @@ afterEach(() => {
   document.body.replaceChildren();
 });
 
+describe('the word a phrase ends on', () => {
+  it('is marked so it can arrive sharp rather than condensing', () => {
+    // Every other word has a successor to carry the eye while its blur
+    // resolves, and 360ms of it costs nothing. The last word has none,
+    // and the atom can be replaced before the blur is finished — so the
+    // final word of a phrase was still soft when the phrase turned, and
+    // never came into focus at all.
+    vi.useFakeTimers();
+    stubMotionAndViewport();
+    const { chamber, spans } = makeProgressiveGlassChamber();
+
+    chamber.revealAtomWords(spans, [0, 500]);
+
+    expect(spans[0].hasAttribute('data-final')).toBe(false);
+    expect(spans[1].hasAttribute('data-final')).toBe(true);
+    chamber.destroy();
+  });
+
+  it('marks the only word of a one-word phrase', () => {
+    vi.useFakeTimers();
+    stubMotionAndViewport();
+    const { chamber, atomDisplay } = makeProgressiveGlassChamber();
+    const single = [atomDisplay.querySelector('.atom-word')];
+
+    chamber.revealAtomWords(single, [0]);
+
+    expect(single[0].hasAttribute('data-final')).toBe(true);
+    chamber.destroy();
+  });
+});
+
 describe('Chamber progressive glass envelope', () => {
   it('expands one glass surface with revealed words while preserving final text layout', () => {
     vi.useFakeTimers();

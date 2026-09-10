@@ -1615,6 +1615,13 @@ export class Chamber {
     this.cancelReveal();
     if (!spans?.length) return;
     this._beginProgressiveGlass(spans);
+    // THE WORD THE READER LANDS ON DOES NOT CONDENSE. Every other word
+    // has a successor to draw the eye onward while it finishes resolving,
+    // and 360ms of blur costs it nothing. The last one has none, and an
+    // atom can end before that 360ms is up — so the final word of a
+    // phrase was still soft at the moment the phrase was replaced, and
+    // never came into focus at all. It fades in sharp instead.
+    spans[spans.length - 1].setAttribute('data-final', '');
     // NOTHING TRAVELS. The glass is not a bound that moves to meet each
     // word; it is fog that arrives with the word, where the word is. So a
     // word and its glass share one timer, and neither leads the other.

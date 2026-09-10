@@ -389,6 +389,22 @@
   filter: blur(6px);
 }
 
+/* The last word of a phrase. It fades, but it does not condense: it is
+   the word the reader stops on, there is no next word to carry the eye
+   while it resolves, and the phrase can be replaced before the blur has
+   finished — which left the final word of a sentence permanently soft.
+   It gives up the condensation's slow opening too, and takes the ordinary
+   ease: measured, the settling curve leaves a word 67% present at 180ms,
+   which for the word a phrase ends on is still arriving. Opacity alone
+   keeps it from snapping into being. */
+.atom-word[data-final] {
+  transition: opacity 200ms var(--ease-out);
+}
+
+.atom-word[data-final][data-pending] {
+  filter: blur(0);
+}
+
 /* Authored emphasis. The cyan is the reference reel's, and it reads as
    a different KIND of word rather than a brighter one: stress, not
    volume. Living Text still tints the atom as a whole — that is
