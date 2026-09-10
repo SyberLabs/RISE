@@ -266,9 +266,29 @@
 }
 
 .atom-display.is-word-fit.is-mask-ink.is-mask-ready {
-  -webkit-text-stroke: clamp(0.75px, 0.1em, 2px) var(--fit-border-color, transparent);
+  -webkit-text-stroke: 0 transparent;
   paint-order: stroke fill;
   text-shadow: none;
+}
+
+.chamber-fit-mask-defs {
+  position: absolute;
+  inset: 0;
+  z-index: 9;
+  pointer-events: none;
+  overflow: visible;
+  opacity: 0;
+}
+
+.chamber-fit-mask-defs.is-ready {
+  opacity: 1;
+}
+
+.chamber-fit-glyph-contour {
+  paint-order: stroke;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+  vector-effect: non-scaling-stroke;
 }
 
 @supports not (-webkit-text-stroke: 1px currentColor) {

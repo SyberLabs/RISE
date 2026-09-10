@@ -276,12 +276,10 @@ describe('Chamber Settings door', () => {
     chamber.destroy();
   });
 
-  it('does not auto-start playback after destroy while Fit hydration is in flight', async () => {
+  it('auto-starts at its timer boundary without a hydration gate', async () => {
     vi.useFakeTimers();
     try {
       const player = fakePlayer('idle');
-      let releaseHydration;
-      const hydration = new Promise(resolve => { releaseHydration = resolve; });
       const container = document.createElement('div');
       document.body.appendChild(container);
       const chamber = new Chamber(container, {
@@ -295,15 +293,9 @@ describe('Chamber Settings door', () => {
         player,
         autoStart: true
       });
-      chamber._awaitFitHydration = () => hydration;
-
       await vi.advanceTimersByTimeAsync(500);
+      expect(player.play).toHaveBeenCalledOnce();
       chamber.destroy();
-      releaseHydration();
-      await Promise.resolve();
-      await Promise.resolve();
-
-      expect(player.play).not.toHaveBeenCalled();
     } finally {
       vi.useRealTimers();
     }

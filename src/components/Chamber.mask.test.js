@@ -20,7 +20,7 @@ const MP4 = {
     fps: 24
 };
 
-function makeChamber(sessionExtra = {}, settings = {}) {
+function makeChamber(sessionExtra = {}, settings = {}, options = {}) {
     const container = document.createElement('div');
     document.body.appendChild(container);
     const currentSettings = { chamberFace: 'thick', fontSize: 'fit', ...settings };
@@ -34,8 +34,8 @@ function makeChamber(sessionExtra = {}, settings = {}) {
     };
     const chamber = new Chamber(container, {
         session,
-        player: null,
-        autoStart: false,
+        player: options.player || null,
+        autoStart: options.autoStart === true,
         getSettings: () => currentSettings
     });
     return { chamber, container, settings: currentSettings };
@@ -354,7 +354,7 @@ describe('Chamber Gallery-in-the-word projection (FM-RISE-28)', () => {
         expect(fillSrcs).toEqual(gallerySrcs);
         expect(fillSrcs.some(src => src.includes('b.jpg'))).toBe(true);
         expect(field.currentUrl).toBe('https://example.test/b.jpg');
-        expect(fitMask(fill)?.querySelector('text')).toBeTruthy();
+        expect(fitMask(fill)?.querySelector('.chamber-fit-mask-glyph')).toBeTruthy();
         expect(atomDisplay(container).classList.contains('is-mask-ink')).toBe(true);
         expect(container.querySelectorAll('video')).toHaveLength(0);
         chamber.destroy();
@@ -610,8 +610,15 @@ describe('Chamber Gallery-in-the-word projection (FM-RISE-28)', () => {
         expect(pending.classList.contains('is-mask-ink')).toBe(true);
         expect(pending.classList.contains('is-mask-ready')).toBe(true);
         const readyMask = fitMask(host);
-        expect(readyMask?.querySelector('text')?.textContent).toBe('O');
+        const maskGlyph = readyMask?.querySelector('.chamber-fit-mask-glyph');
         expect(readyMask?.querySelector('rect')).toBeFalsy();
+        const glyph = container.querySelector('.chamber-fit-mask-defs text');
+        const contour = container.querySelector('.chamber-fit-glyph-contour');
+        expect(glyph?.id).toBeTruthy();
+        expect(glyph?.textContent).toBe('O');
+        expect(maskGlyph?.getAttribute('href')).toBe(`#${glyph.id}`);
+        expect(contour?.getAttribute('href')).toBe(`#${glyph.id}`);
+        expect(contour?.closest('svg')?.classList.contains('is-ready')).toBe(true);
         expect(galleryHost(container).style.maskImage).toBeFalsy();
         expect(document.fonts.load).toHaveBeenCalledWith('700 1em "Space Grotesk"', 'O');
         chamber.destroy();
@@ -788,7 +795,7 @@ describe('Chamber mask ground plate (FM-RISE-47)', () => {
         expect(layerA.style.maskImage).toBeFalsy();
         expect(wrapper.style.background).toBeFalsy();
         expect(wrapper.style.backgroundColor).toBeFalsy();
-        expect(fitMask(wrapper)?.querySelector('text')).toBeTruthy();
+        expect(fitMask(wrapper)?.querySelector('.chamber-fit-mask-glyph')).toBeTruthy();
         return { layerA, wrapper, understudy };
     }
 
@@ -1201,61 +1208,38 @@ describe('Chamber semantic Fit compositor', () => {
     });
 });
 
-describe('Chamber Fit hydration threshold', () => {
-    it('waits for the material, not for a word that does not exist yet', async () => {
-        // THE GATE USED TO HOLD NOTHING. It read the first word's text to
-        // decide what to wait for and returned early when it found none —
-        // and there IS none at that moment: the player writes the first word
-        // as it starts, one millisecond after this gate runs. So the reading
-        // always opened before its material, and the fill arrived seconds in.
-        // It only looked correct when the imagery happened to be warm, which
-        // is precisely when the gate is not needed.
+describe('Chamber Fit playback admission', () => {
+    it('starts the reading while a cold material keeps the opaque word visible', async () => {
+        vi.useFakeTimers();
         const projection = deferred();
         const restore = installFillMaskEnv({ projectionReady: () => projection.promise });
         try {
+            const player = {
+                state: 'idle',
+                on: vi.fn(),
+                play: vi.fn(),
+                setInterlocutionHandler: vi.fn()
+            };
             const { chamber, container } = makeChamber(
                 wordGallerySession(),
-                { chamberMask: true }
+                { chamberMask: true },
+                { player }
             );
             visualCortex._continuousField?.stop();
-            // The player has not written a word yet — the real cold-start state.
-            atomDisplay(container).textContent = '';
-            expect(chamber.fillViewport).toBeTruthy();
+            atomDisplay(container).textContent = 'O';
 
-            let opened = false;
-            const threshold = chamber._awaitFitHydration(5000).then(() => { opened = true; });
+            chamber.beginSession();
+            await vi.advanceTimersByTimeAsync(400);
             await Promise.resolve();
-            await Promise.resolve();
-            await new Promise(resolve => setTimeout(resolve, 0));
-            expect(opened, 'the threshold opened before the material was ready').toBe(false);
 
-            projection.resolve();
-            await threshold;
-            expect(opened).toBe(true);
+            expect(player.play).toHaveBeenCalledOnce();
+            expect(container.querySelector('#chamber-display').style.opacity).toBe('1');
+            expect(atomDisplay(container).dataset.maskState).toBe('preparing');
+            expect(atomDisplay(container).style.color).not.toBe('transparent');
             chamber.destroy();
         } finally {
             restore();
-        }
-    });
-
-    it('opens the threshold anyway when the material will not arrive', async () => {
-        // Reverent degradation: a pool that never resolves must not lock a
-        // reader out of their own reading.
-        const restore = installFillMaskEnv({ projectionReady: () => new Promise(() => {}) });
-        try {
-            const { chamber, container } = makeChamber(
-                wordGallerySession(),
-                { chamberMask: true }
-            );
-            visualCortex._continuousField?.stop();
-            atomDisplay(container).textContent = '';
-
-            const started = Date.now();
-            await chamber._awaitFitHydration(60);
-            expect(Date.now() - started).toBeLessThan(3000);
-            chamber.destroy();
-        } finally {
-            restore();
+            vi.useRealTimers();
         }
     });
 });

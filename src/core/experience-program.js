@@ -899,7 +899,7 @@ export function lowerExperienceProgram(value) {
       swell: {
         coordinateSpace: 'source',
         segments: swellSegments,
-        fallback: { kind: 'hold' }
+        fallback: { kind: 'silence', fadeMs: 250 }
       }
     }
   } : null;
@@ -927,7 +927,7 @@ export function lowerExperienceProgram(value) {
     swellProgram: swellSegments.length ? {
       coordinateSpace: 'source',
       segments: swellSegments,
-      fallback: { kind: 'hold' }
+      fallback: { kind: 'silence', fadeMs: 250 }
     } : null,
     boundaries,
     sourceBoundaries: boundaries
