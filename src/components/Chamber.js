@@ -485,7 +485,10 @@ export class Chamber {
             </span>
 
             <button class="control-btn chamber-settings-btn" id="chamber-settings-btn"
-              type="button" aria-label="Settings">Settings</button>
+              type="button" aria-label="Settings" title="Settings"
+              aria-expanded="false" aria-controls="chamber-settings-overlay">
+              <span class="icon" aria-hidden="true">&#9881;</span>
+            </button>
 
             <button class="control-btn" id="exit-btn" aria-label="Exit" title="Escape">
               <span class="icon">✕</span>
@@ -776,7 +779,7 @@ export class Chamber {
     });
     settingsBtn?.addEventListener('click', () => {
       this.audioEngine?.playHiss();
-      void this.openSettings();
+      this.toggleSettings();
     });
     exitBtn?.addEventListener('click', () => {
       this.audioEngine?.playHiss();
@@ -2190,6 +2193,22 @@ export class Chamber {
     }
   }
 
+  /**
+   * The gear opens the panel and the gear closes it.
+   *
+   * It used to only open: the panel had one way out, the × inside it, so
+   * the control that summoned the thing could not dismiss it. A button
+   * that discloses something is expected to undisclose it, which is what
+   * `aria-expanded` on it has been promising.
+   */
+  toggleSettings() {
+    if (this._settingsInstance) {
+      this.closeSettings();
+      return;
+    }
+    void this.openSettings();
+  }
+
   async openSettings() {
     if (this._settingsFailed || this._settingsInstance) return;
     let Settings;
@@ -2218,6 +2237,7 @@ export class Chamber {
     }
     host.hidden = false;
     this._anchorSettingsToBar(host);
+    this._markSettingsExpanded(true);
     this._settingsInstance = new Settings(host, {
       // A reading cannot be resumed once abandoned, so this door widens the
       // control bar rather than opening the Portal's whole panel. Sound, Size
@@ -2254,6 +2274,13 @@ export class Chamber {
       host.replaceChildren();
       host.hidden = true;
     }
+    this._markSettingsExpanded(false);
+  }
+
+  /** The gear says whether the thing it discloses is open. */
+  _markSettingsExpanded(open) {
+    this.container.querySelector('#chamber-settings-btn')
+      ?.setAttribute('aria-expanded', String(Boolean(open)));
   }
 
   /**
@@ -2637,20 +2664,38 @@ export class Chamber {
    * through a different symmetry, so the form appears to fold.
    */
   toggleKaleidoscope(forceEngaged) {
-    if (!this.hasAttractorField || !this.attractorField) return false;
+    if (!this.hasAttractorField) return false;
 
     const engaged = typeof forceEngaged === 'boolean'
       ? forceEngaged
       : !this.kaleidoscopeEngaged;
     if (engaged === this.kaleidoscopeEngaged) return engaged;
 
+    // THE FIELD IS NOT ALWAYS THIS CHAMBER'S. A reading that IS an
+    // attractor mounts one here as a field cue; an interlocution with an
+    // attractor among its engines has it mounted in the continuous field
+    // instead. The control is offered on configuration, which is true of
+    // both, so asking only for our own left the button inert for every
+    // reader who reached the attractor the second way.
+    //
     // The field owns which form to restore, so unfolding returns the
     // reader to the form they were reading in, not a fixed default.
-    this.kaleidoscopeEngaged = this.attractorField.toggleKaleidoscope();
+    let folded;
+    if (this.attractorField) {
+      folded = { engaged: this.attractorField.toggleKaleidoscope(), form: this.attractorField.form };
+    } else {
+      folded = visualCortex.toggleAttractorKaleidoscope();
+    }
+    if (!folded) return false;
+    this.kaleidoscopeEngaged = folded.engaged;
 
-    // Keep the ephemeral session honest for anything that inspects it
+    // Keep the ephemeral session honest for anything that inspects it —
+    // under whichever key the attractor was configured.
     if (this.session?.visualConfig?.attractor) {
-      this.session.visualConfig.attractor.form = this.attractorField.form;
+      this.session.visualConfig.attractor.form = folded.form;
+    }
+    if (this.session?.visualConfig?.interlocution?.attractor) {
+      this.session.visualConfig.interlocution.attractor.form = folded.form;
     }
 
     const button = this.container.querySelector('#kaleidoscope-btn');

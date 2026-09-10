@@ -542,9 +542,13 @@
   color: var(--color-shadow);
 }
 
-.chamber-settings-btn {
-  font-size: 12px;
-  letter-spacing: 0.04em;
+/* The gear sizes itself from .control-btn like every other icon in the
+   bar. The two rules that were here — a smaller face and a little
+   tracking — were for the word "Settings", which the icon replaced: a
+   bar of glyphs with one word in it read as an odd one out, and the word
+   was the longest thing in a row that has to stay out of the way. */
+.chamber-settings-btn[aria-expanded="true"] {
+  color: var(--color-accent);
 }
 
 .chamber-settings-btn.is-failed {
