@@ -81,6 +81,21 @@ function seamOf(atom) {
  * - Hidden controls (appear on movement, fade after 2s)
  */
 
+/**
+ * How far each word's glass pane ramps from nothing to solid, in pixels.
+ * It is also the pane's horizontal padding, so neighbours overlap by two
+ * ramps and sum back to solid between them, while the outermost word
+ * simply dissolves.
+ */
+const PROGRESSIVE_GLASS_FEATHER = 24;
+
+/** One pane: opaque through the middle, ramped away at both ends. */
+const PROGRESSIVE_GLASS_PANE = 'linear-gradient(to right, '
+  + 'rgba(0, 0, 0, 0) 0, '
+  + `rgb(0, 0, 0) ${PROGRESSIVE_GLASS_FEATHER}px, `
+  + `rgb(0, 0, 0) calc(100% - ${PROGRESSIVE_GLASS_FEATHER}px), `
+  + 'rgba(0, 0, 0, 0) 100%)';
+
 export class Chamber {
   constructor(container, options = {}) {
     this.container = container;
@@ -1600,37 +1615,21 @@ export class Chamber {
     this.cancelReveal();
     if (!spans?.length) return;
     this._beginProgressiveGlass(spans);
-    const timers = [];
-    spans.forEach((span, i) => {
+    // NOTHING TRAVELS. The glass is not a bound that moves to meet each
+    // word; it is fog that arrives with the word, where the word is. So a
+    // word and its glass share one timer, and neither leads the other.
+    this._revealTimers = spans.map((span, i) => {
       const at = Math.max(0, Number(schedule[i]) || 0);
-      if (at <= 0) span.removeAttribute('data-pending');
-      else timers.push(setTimeout(() => span.removeAttribute('data-pending'), at));
-    });
-
-    // The glass reaches each word exactly when that word appears. For normal
-    // reading cadence, one linear segment starts where the previous one ends,
-    // producing a continuous glide. Long spoken pauses retain a short rest so
-    // the pane does not crawl through intentional silence.
-    spans.forEach((span, i) => {
-      const at = Math.max(0, Number(schedule[i]) || 0);
-      const previousAt = i > 0
-        ? Math.max(0, Number(schedule[i - 1]) || 0)
-        : at;
-      const motionMs = i > 0 ? Math.min(360, Math.max(0, at - previousAt)) : 0;
-      const startAt = Math.max(0, at - motionMs);
-      const expand = () => this._expandProgressiveGlass(span, motionMs);
-      if (i === 0 && startAt <= 0) expand();
-      else timers.push(setTimeout(expand, startAt));
-    });
-    this._revealTimers = timers;
+      if (at <= 0) { this._revealAtomWord(span); return null; }
+      return setTimeout(() => this._revealAtomWord(span), at);
+    }).filter(Boolean);
   }
 
   _beginProgressiveGlass(spans) {
     const atomDisplay = spans?.[0]?.parentElement;
     if (!this._progressiveGlassCanApply(atomDisplay)) return;
     this._progressiveGlassElement = atomDisplay;
-    this._progressiveGlassBounds = null;
-    this._progressiveGlassLastTarget = null;
+    this._progressiveGlassPanes = [];
     atomDisplay.classList.add('is-progressive-glass');
   }
 
@@ -1641,10 +1640,24 @@ export class Chamber {
       && window.matchMedia?.('(max-width: 640px)').matches !== true;
   }
 
-  _expandProgressiveGlass(span, motionMs = 0) {
-    const atomDisplay = this._progressiveGlassElement;
-    if (!atomDisplay?.classList.contains('is-progressive-glass')) return;
+  _revealAtomWord(span) {
+    span.removeAttribute('data-pending');
+    this._expandProgressiveGlass(span);
+  }
 
+  /**
+   * The word's box in the display's own coordinates, or null if the
+   * layout cannot be trusted yet.
+   *
+   * Offset metrics describe layout, not paint. The pending word's
+   * entrance used to be a translateY, and a visual client rect taken
+   * mid-entrance baked that transform permanently into the glass
+   * position; the entrance is a blur now and has no transform to bake,
+   * but the offset path stays preferred for the same underlying reason —
+   * the atom box carries its own opacity and transform between atoms, and
+   * layout is the only thing here that is never mid-animation.
+   */
+  _progressiveGlassWordBox(span, atomDisplay) {
     const layoutValues = [
       span.offsetLeft, span.offsetTop, span.offsetWidth, span.offsetHeight,
       atomDisplay.clientWidth, atomDisplay.clientHeight
@@ -1652,86 +1665,86 @@ export class Chamber {
     const hasLayoutBox = layoutValues.every(Number.isFinite)
       && span.offsetWidth > 0 && span.offsetHeight > 0
       && atomDisplay.clientWidth > 0 && atomDisplay.clientHeight > 0;
-    let wordBox;
-    let displayWidth;
-    let displayHeight;
 
+    let box;
     if (hasLayoutBox) {
-      // Offset metrics describe layout before the pending word's translateY
-      // transition. A visual client rect here would permanently bake the
-      // entrance transform into the glass position.
-      wordBox = {
+      box = {
         left: span.offsetLeft,
         top: span.offsetTop,
         right: span.offsetLeft + span.offsetWidth,
-        bottom: span.offsetTop + span.offsetHeight
+        bottom: span.offsetTop + span.offsetHeight,
+        displayWidth: atomDisplay.clientWidth,
+        displayHeight: atomDisplay.clientHeight
       };
-      displayWidth = atomDisplay.clientWidth;
-      displayHeight = atomDisplay.clientHeight;
     } else {
       const wordRect = span.getBoundingClientRect();
       const displayRect = atomDisplay.getBoundingClientRect();
-      wordBox = {
+      box = {
         left: wordRect.left - displayRect.left,
         top: wordRect.top - displayRect.top,
         right: wordRect.right - displayRect.left,
-        bottom: wordRect.bottom - displayRect.top
+        bottom: wordRect.bottom - displayRect.top,
+        displayWidth: displayRect.width,
+        displayHeight: displayRect.height
       };
-      displayWidth = displayRect.width;
-      displayHeight = displayRect.height;
     }
 
-    const values = [wordBox.left, wordBox.top, wordBox.right, wordBox.bottom,
-      displayWidth, displayHeight];
-    if (values.some(value => !Number.isFinite(value))
-      || wordBox.right <= wordBox.left || wordBox.bottom <= wordBox.top
-      || displayWidth <= 0 || displayHeight <= 0) {
-      this._resetProgressiveGlass();
-      return;
-    }
+    const finite = [box.left, box.top, box.right, box.bottom,
+      box.displayWidth, box.displayHeight].every(Number.isFinite);
+    if (!finite || box.right <= box.left || box.bottom <= box.top
+      || box.displayWidth <= 0 || box.displayHeight <= 0) return null;
+    return box;
+  }
 
-    const previous = this._progressiveGlassBounds;
-    const bounds = previous
-      ? {
-          left: Math.min(previous.left, wordBox.left),
-          top: Math.min(previous.top, wordBox.top),
-          right: Math.max(previous.right, wordBox.right),
-          bottom: Math.max(previous.bottom, wordBox.bottom)
-        }
-      : {
-          left: wordBox.left,
-          top: wordBox.top,
-          right: wordBox.right,
-          bottom: wordBox.bottom
-        };
-    this._progressiveGlassBounds = bounds;
+  /**
+   * Adds one word's pane to the fog.
+   *
+   * THE GLASS HAS NO EDGE, WHICH IS THE WHOLE POINT. An envelope that
+   * grew to the union of the revealed words had a hard frontier, and a
+   * hard frontier advancing left to right over a known distance is a
+   * progress bar whatever curve it moves on — easing it only changes the
+   * bar's feel, and animating it continuously (the previous attempt) made
+   * it worse, because constant velocity is the one signature no living
+   * thing has. Here each word contributes its own pane, feathered out
+   * horizontally into nothing, and the panes sum. Adjacent words merge
+   * into one band; the last one dissolves rather than stopping. There is
+   * no boundary for the eye to follow and nothing moves at all.
+   */
+  _expandProgressiveGlass(span) {
+    const atomDisplay = this._progressiveGlassElement;
+    if (!atomDisplay?.classList.contains('is-progressive-glass')) return;
+
+    const box = this._progressiveGlassWordBox(span, atomDisplay);
+    if (!box) { this._resetProgressiveGlass(); return; }
 
     const style = getComputedStyle(atomDisplay);
-    const paddingLeft = parseFloat(style.paddingLeft) || 0;
-    const paddingRight = parseFloat(style.paddingRight) || 0;
-    const paddingTop = parseFloat(style.paddingTop) || 0;
-    const paddingBottom = parseFloat(style.paddingBottom) || 0;
-    const left = Math.max(0, bounds.left - paddingLeft);
-    const top = Math.max(0, bounds.top - paddingTop);
-    const right = Math.min(displayWidth, bounds.right + paddingRight);
-    const bottom = Math.min(displayHeight, bounds.bottom + paddingBottom);
-    const width = right - left;
-    const height = bottom - top;
+    const padTop = parseFloat(style.paddingTop) || 0;
+    const padBottom = parseFloat(style.paddingBottom) || 0;
 
-    if (!(width > 0) || !(height > 0)) {
-      this._resetProgressiveGlass();
-      return;
-    }
+    // Horizontal padding is the feather itself, so a word's pane reaches
+    // full strength exactly at the word and neighbours overlap by two
+    // feathers — which is what lets their ramps sum back to solid.
+    const left = box.left - PROGRESSIVE_GLASS_FEATHER;
+    const top = Math.max(0, box.top - padTop);
+    const width = (box.right - box.left) + PROGRESSIVE_GLASS_FEATHER * 2;
+    const height = Math.min(box.displayHeight - top, (box.bottom - box.top) + padTop + padBottom);
+    if (!(width > 0) || !(height > 0)) { this._resetProgressiveGlass(); return; }
 
-    const isFirstBound = !atomDisplay.classList.contains('is-progressive-glass-ready');
-    atomDisplay.style.setProperty('--progressive-glass-motion-ms', `${Math.max(0, Math.round(motionMs))}ms`);
-    atomDisplay.style.setProperty('--progressive-glass-left', `${Math.round(left)}px`);
-    atomDisplay.style.setProperty('--progressive-glass-top', `${Math.round(top)}px`);
-    atomDisplay.style.setProperty('--progressive-glass-width', `${Math.round(width)}px`);
-    atomDisplay.style.setProperty('--progressive-glass-height', `${Math.round(height)}px`);
+    const panes = this._progressiveGlassPanes || (this._progressiveGlassPanes = []);
+    panes.push({
+      left: Math.round(left),
+      top: Math.round(top),
+      width: Math.round(width),
+      height: Math.round(height)
+    });
+
+    atomDisplay.style.setProperty('--progressive-glass-mask',
+      panes.map(() => PROGRESSIVE_GLASS_PANE).join(', '));
+    atomDisplay.style.setProperty('--progressive-glass-mask-position',
+      panes.map(pane => `${pane.left}px ${pane.top}px`).join(', '));
+    atomDisplay.style.setProperty('--progressive-glass-mask-size',
+      panes.map(pane => `${pane.width}px ${pane.height}px`).join(', '));
     atomDisplay.classList.add('is-progressive-glass-ready');
-    this._progressiveGlassLastTarget = span;
-    if (isFirstBound) void atomDisplay.offsetWidth;
   }
 
   _resetProgressiveGlass() {
@@ -1739,17 +1752,14 @@ export class Chamber {
       || this.container?.querySelector('#atom-display');
     atomDisplay?.classList.remove('is-progressive-glass', 'is-progressive-glass-ready');
     for (const property of [
-      '--progressive-glass-left',
-      '--progressive-glass-top',
-      '--progressive-glass-width',
-      '--progressive-glass-height',
-      '--progressive-glass-motion-ms'
+      '--progressive-glass-mask',
+      '--progressive-glass-mask-position',
+      '--progressive-glass-mask-size'
     ]) {
       atomDisplay?.style.removeProperty(property);
     }
     this._progressiveGlassElement = null;
-    this._progressiveGlassBounds = null;
-    this._progressiveGlassLastTarget = null;
+    this._progressiveGlassPanes = null;
   }
 
   _refreshProgressiveGlass() {
@@ -1758,14 +1768,14 @@ export class Chamber {
     const spans = [...(atomDisplay?.querySelectorAll('.atom-word') || [])];
     const hasPendingWords = spans.some(span => span.hasAttribute('data-pending'));
     const revealed = spans.filter(span => !span.hasAttribute('data-pending'));
-    const targetIndex = spans.indexOf(this._progressiveGlassLastTarget);
 
     this._resetProgressiveGlass();
     if (!hasPendingWords || !this._progressiveGlassCanApply(atomDisplay)) return;
 
+    // Re-measured from what is on screen. Nothing is in flight to preserve
+    // now that a pane arrives with its word rather than travelling to it.
     this._beginProgressiveGlass(spans);
-    const measured = targetIndex >= 0 ? spans.slice(0, targetIndex + 1) : revealed;
-    for (const span of measured) this._expandProgressiveGlass(span);
+    for (const span of revealed) this._expandProgressiveGlass(span);
   }
 
   /** Stop a reveal in flight. Idempotent. */
