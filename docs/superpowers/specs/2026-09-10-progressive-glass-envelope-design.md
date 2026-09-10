@@ -13,7 +13,7 @@ When a Chamber phrase uses both Progressive Reveal and glassmorphism, the glass 
 
 ## Behavior
 
-On desktop and tablet, the first revealed word creates a rounded glass envelope around that word. Each later word expands the same envelope to the union of all revealed word rectangles. The union is monotonic during an atom, so the envelope never contracts or jumps backward. Wrapped lines expand the envelope vertically and horizontally as one rectangular pane.
+On desktop and tablet, the first revealed word creates a rounded glass envelope around that word. Each later word expands the same envelope to the union of all revealed word rectangles. The glass begins a linear glide toward the next bound early enough to arrive at that word's scheduled onset, so ordinary reading cadence produces one continuous motion instead of repeated short hops. A glide is capped at 360ms so a long spoken pause remains a pause. The union is monotonic during an atom, so the envelope never contracts or jumps backward. Wrapped lines expand the envelope vertically and horizontally as one rectangular pane.
 
 The existing atom box retains its padding and border geometry, but its glass paint moves to one `::before` pseudo-element while the progressive envelope is active. The text spans remain above the pseudo-element. This preserves phrase wrapping and positioning while changing only the painted bounds.
 

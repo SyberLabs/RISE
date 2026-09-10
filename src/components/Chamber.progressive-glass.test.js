@@ -111,6 +111,27 @@ describe('Chamber progressive glass envelope', () => {
     chamber.destroy();
   });
 
+  it('glides toward the next word and reaches its bound at the reveal onset', () => {
+    vi.useFakeTimers();
+    stubMotionAndViewport();
+    const { chamber, atomDisplay, spans } = makeProgressiveGlassChamber();
+
+    chamber.revealAtomWords(spans, [0, 500]);
+
+    expect(atomDisplay.style.getPropertyValue('--progressive-glass-width')).toBe('108px');
+    vi.advanceTimersByTime(139);
+    expect(atomDisplay.style.getPropertyValue('--progressive-glass-width')).toBe('108px');
+
+    vi.advanceTimersByTime(1);
+    expect(spans[1].hasAttribute('data-pending')).toBe(true);
+    expect(atomDisplay.style.getPropertyValue('--progressive-glass-motion-ms')).toBe('360ms');
+    expect(atomDisplay.style.getPropertyValue('--progressive-glass-width')).toBe('218px');
+
+    vi.advanceTimersByTime(360);
+    expect(spans[1].hasAttribute('data-pending')).toBe(false);
+    chamber.destroy();
+  });
+
   it('clears envelope state and prevents a cancelled onset from mutating it', () => {
     vi.useFakeTimers();
     stubMotionAndViewport();
@@ -143,6 +164,27 @@ describe('Chamber progressive glass envelope', () => {
     expect(atomDisplay.style.getPropertyValue('--progressive-glass-left')).toBe('56px');
     expect(atomDisplay.style.getPropertyValue('--progressive-glass-top')).toBe('24px');
     expect(atomDisplay.style.getPropertyValue('--progressive-glass-width')).toBe('118px');
+    chamber.destroy();
+  });
+
+  it('preserves the in-flight target when layout changes before its word appears', () => {
+    vi.useFakeTimers();
+    stubMotionAndViewport();
+    const { chamber, atomDisplay, spans } = makeProgressiveGlassChamber();
+    chamber.revealAtomWords(spans, [0, 500]);
+    vi.advanceTimersByTime(140);
+
+    Object.defineProperties(spans[1], {
+      offsetLeft: { configurable: true, value: 150 },
+      offsetWidth: { configurable: true, value: 100 }
+    });
+    chamber._refreshProgressiveGlass();
+
+    expect(spans[1].hasAttribute('data-pending')).toBe(true);
+    expect(atomDisplay.style.getPropertyValue('--progressive-glass-width')).toBe('238px');
+    vi.advanceTimersByTime(360);
+    expect(spans[1].hasAttribute('data-pending')).toBe(false);
+    expect(atomDisplay.style.getPropertyValue('--progressive-glass-width')).toBe('238px');
     chamber.destroy();
   });
 

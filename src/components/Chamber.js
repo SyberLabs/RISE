@@ -1600,11 +1600,29 @@ export class Chamber {
     this.cancelReveal();
     if (!spans?.length) return;
     this._beginProgressiveGlass(spans);
-    this._revealTimers = spans.map((span, i) => {
-      const at = schedule[i] ?? 0;
-      if (at <= 0) { this._revealAtomWord(span); return null; }
-      return setTimeout(() => this._revealAtomWord(span), at);
-    }).filter(Boolean);
+    const timers = [];
+    spans.forEach((span, i) => {
+      const at = Math.max(0, Number(schedule[i]) || 0);
+      if (at <= 0) span.removeAttribute('data-pending');
+      else timers.push(setTimeout(() => span.removeAttribute('data-pending'), at));
+    });
+
+    // The glass reaches each word exactly when that word appears. For normal
+    // reading cadence, one linear segment starts where the previous one ends,
+    // producing a continuous glide. Long spoken pauses retain a short rest so
+    // the pane does not crawl through intentional silence.
+    spans.forEach((span, i) => {
+      const at = Math.max(0, Number(schedule[i]) || 0);
+      const previousAt = i > 0
+        ? Math.max(0, Number(schedule[i - 1]) || 0)
+        : at;
+      const motionMs = i > 0 ? Math.min(360, Math.max(0, at - previousAt)) : 0;
+      const startAt = Math.max(0, at - motionMs);
+      const expand = () => this._expandProgressiveGlass(span, motionMs);
+      if (i === 0 && startAt <= 0) expand();
+      else timers.push(setTimeout(expand, startAt));
+    });
+    this._revealTimers = timers;
   }
 
   _beginProgressiveGlass(spans) {
@@ -1612,6 +1630,7 @@ export class Chamber {
     if (!this._progressiveGlassCanApply(atomDisplay)) return;
     this._progressiveGlassElement = atomDisplay;
     this._progressiveGlassBounds = null;
+    this._progressiveGlassLastTarget = null;
     atomDisplay.classList.add('is-progressive-glass');
   }
 
@@ -1622,12 +1641,7 @@ export class Chamber {
       && window.matchMedia?.('(max-width: 640px)').matches !== true;
   }
 
-  _revealAtomWord(span) {
-    span.removeAttribute('data-pending');
-    this._expandProgressiveGlass(span);
-  }
-
-  _expandProgressiveGlass(span) {
+  _expandProgressiveGlass(span, motionMs = 0) {
     const atomDisplay = this._progressiveGlassElement;
     if (!atomDisplay?.classList.contains('is-progressive-glass')) return;
 
@@ -1709,11 +1723,15 @@ export class Chamber {
       return;
     }
 
+    const isFirstBound = !atomDisplay.classList.contains('is-progressive-glass-ready');
+    atomDisplay.style.setProperty('--progressive-glass-motion-ms', `${Math.max(0, Math.round(motionMs))}ms`);
     atomDisplay.style.setProperty('--progressive-glass-left', `${Math.round(left)}px`);
     atomDisplay.style.setProperty('--progressive-glass-top', `${Math.round(top)}px`);
     atomDisplay.style.setProperty('--progressive-glass-width', `${Math.round(width)}px`);
     atomDisplay.style.setProperty('--progressive-glass-height', `${Math.round(height)}px`);
     atomDisplay.classList.add('is-progressive-glass-ready');
+    this._progressiveGlassLastTarget = span;
+    if (isFirstBound) void atomDisplay.offsetWidth;
   }
 
   _resetProgressiveGlass() {
@@ -1724,12 +1742,14 @@ export class Chamber {
       '--progressive-glass-left',
       '--progressive-glass-top',
       '--progressive-glass-width',
-      '--progressive-glass-height'
+      '--progressive-glass-height',
+      '--progressive-glass-motion-ms'
     ]) {
       atomDisplay?.style.removeProperty(property);
     }
     this._progressiveGlassElement = null;
     this._progressiveGlassBounds = null;
+    this._progressiveGlassLastTarget = null;
   }
 
   _refreshProgressiveGlass() {
@@ -1738,12 +1758,14 @@ export class Chamber {
     const spans = [...(atomDisplay?.querySelectorAll('.atom-word') || [])];
     const hasPendingWords = spans.some(span => span.hasAttribute('data-pending'));
     const revealed = spans.filter(span => !span.hasAttribute('data-pending'));
+    const targetIndex = spans.indexOf(this._progressiveGlassLastTarget);
 
     this._resetProgressiveGlass();
     if (!hasPendingWords || !this._progressiveGlassCanApply(atomDisplay)) return;
 
     this._beginProgressiveGlass(spans);
-    for (const span of revealed) this._expandProgressiveGlass(span);
+    const measured = targetIndex >= 0 ? spans.slice(0, targetIndex + 1) : revealed;
+    for (const span of measured) this._expandProgressiveGlass(span);
   }
 
   /** Stop a reveal in flight. Idempotent. */
