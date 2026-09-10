@@ -176,7 +176,7 @@ flowchart LR
     content --> |17| sources
     content --> |1| visuals
     core --> |3| audio
-    core --> |10| content
+    core --> |11| content
     core --> |3| sources
     core --> |21| visuals
     page --> |1| core

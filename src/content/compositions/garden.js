@@ -20,7 +20,7 @@
 export const GARDEN_ID = 'garden';
 export const GARDEN_TITLE = 'RISE · Garden';
 export const GARDEN_SEED = 'rise-composition:garden:1';
-export const GARDEN_DURATION_MS = 22_000;
+export const GARDEN_DURATION_MS = 30_000;
 export const GARDEN_VIEWPORT = Object.freeze({ width: 1080, height: 1920 });
 export const GARDEN_FRAME_RATE = Object.freeze({ numerator: 30, denominator: 1 });
 export const GARDEN_SOUNDSCAPE = 'aurora';
@@ -37,6 +37,11 @@ export const GARDEN_HALO = Object.freeze({
   fadeSec: 5,
   presenceSec: 5
 });
+
+function clamp01(value) {
+  const n = Number(value);
+  return n > 1 ? 1 : n > 0 ? n : 0;
+}
 
 /** Near-black shared by every engine's ground, so layers add cleanly. */
 export const GARDEN_VOID = '#0A0A0C';
@@ -61,6 +66,27 @@ export const GARDEN_GROUND = Object.freeze({
 });
 
 /**
+ * Dither.
+ *
+ * The card's field spans about six 8-bit levels across seven hundred
+ * pixels, so every level boundary lands as a visible contour and the
+ * feathered pill reads as onion rings rather than as a seat. Nothing is
+ * wrong with the gradient; eight bits simply cannot carry it. A grain
+ * two levels deep breaks the boundaries up and the ramp reads smooth.
+ *
+ * Baked ONCE and held still for the whole clip: moving grain would cost
+ * every frame its inter-frame prediction and multiply the file size for
+ * an effect no one can see at this amplitude.
+ */
+export const GARDEN_GRAIN = Object.freeze({
+  tile: 256,
+  // Peak lift in 8-bit levels. Two dissolves a one-level contour; more
+  // starts to be visible as texture on the flowers.
+  levels: 3.6,
+  seed: 0x6A17
+});
+
+/**
  * A stem per blossom, grown before its flower opens so a bud arrives at
  * the tip of something rather than materialising in mid-air. Klee drew
  * the first version and its line is lovely, but its colour comes from a
@@ -71,9 +97,123 @@ export const GARDEN_STEM = Object.freeze({
   seed: `${GARDEN_SEED}:stems`,
   leadMs: 1_800,
   rootY: 1.04,
-  width: 5.5,
-  color: 'rgba(122, 178, 128, 0.62)',
-  sway: 0.10
+  sway: 0.10,
+
+  // Width at the base of the nearest stem. Every other stem is a share of
+  // it, because a stem drawn at one width whatever its distance is a wire.
+  width: 13,
+  // How much thinner the tip is than the base.
+  taper: 0.66,
+  // THE CROSS-SECTION, from the lit edge to the far one, run across the
+  // stem's width rather than along its length. A cylinder is not
+  // brightest at its edge: the specular band sits a little inboard, and
+  // that is the whole of why it reads as round. An earlier version laid a
+  // bright stroke BESIDE the body instead, which at five pixels wide is a
+  // stripe rather than shading, and was invisible at viewing scale.
+  rimColor: '#3E6B48',
+  sheenColor: '#DCEFD2',
+  bodyColor: '#5E9A66',
+  coreColor: '#1B3A24',
+  sheenAt: 0.22,
+  bodyAt: 0.55,
+  // Which side the light comes from: -1 left, 1 right.
+  lightFrom: -1
+});
+
+/**
+ * Distance, read off the size of the flower a stem carries.
+ *
+ * The bed is planted with small blossoms at the back and large ones at the
+ * front, so their size already says how far away each one is. Stems take
+ * their width and their brightness from it, which is the whole of the
+ * depth in this scene.
+ */
+export const GARDEN_DEPTH = Object.freeze({
+  widthNear: 1,
+  widthFar: 0.54,
+  // How far a stem's colour is carried toward the ground it stands in.
+  // Distance used to be drawn as transparency, which cost twice: the
+  // farthest stems dimmed until their own leaves looked unattached, and
+  // every overlapping line-cap composited itself into a bright band, so
+  // the stems came out looking like bamboo.
+  hazeNear: 0,
+  hazeFar: 0.58
+});
+
+export function stemDepthOf(blossom, blossoms = GARDEN_BLOSSOMS) {
+  const sizes = blossoms.map(item => item.size);
+  const min = Math.min(...sizes);
+  const max = Math.max(...sizes);
+  if (max === min) return 1;
+  return (blossom.size - min) / (max - min);
+}
+
+/**
+ * How far a leaf has unfurled, from the growth of the stem carrying it.
+ * Zero until the stem reaches it; one once the stem has grown well past.
+ */
+export function leafOpenAt(grown, along, leaf = GARDEN_LEAF) {
+  return easeInOut(((Number(grown) || 0) - along) / leaf.unfurl);
+}
+
+/** Width and haze for a stem at a given depth, 0 farthest and 1 nearest. */
+export function stemDepthStyle(depth, d = GARDEN_DEPTH) {
+  const t = clamp01(depth);
+  return Object.freeze({
+    width: d.widthFar + (d.widthNear - d.widthFar) * t,
+    haze: d.hazeFar + (d.hazeNear - d.hazeFar) * t
+  });
+}
+
+/**
+ * Leaves, sprouting from the stems.
+ *
+ * The only part of a stem that has a SILHOUETTE. Everything else tried
+ * here — taper, gradient, a lit cross-section — is material, and material
+ * is what disappears when a stem is a few pixels wide in a feed. A leaf
+ * is a shape, and a shape survives being small.
+ *
+ * A leaf unfurls from the growth of the stem carrying it rather than from
+ * a clock of its own, so it opens as the stem passes it and furls again
+ * when the stem withdraws, with nothing to keep in step.
+ */
+export const GARDEN_LEAF = Object.freeze({
+  perStem: 3,
+  // Where along the stem the first and last leaves attach.
+  from: 0.26,
+  to: 0.72,
+  // How much further the stem must grow for a leaf to open completely.
+  unfurl: 0.18,
+  // Multiples of the stem's base width.
+  length: 8.5,
+  bulge: 0.32,
+  // Radians away from the stem's own direction.
+  angle: 0.95,
+  // Near the stem's own body colour, not the shadow under it: a blade
+  // whose base was almost the ground made every leaf look unattached,
+  // because the join was there and simply could not be seen.
+  baseColor: '#558E5B',
+  tipColor: '#7CB179',
+  sheenColor: '#C6E2B8',
+  opacity: 0.88
+});
+
+/**
+ * How the garden un-grows: all at once.
+ *
+ * The bed FILLS in sequence, a flower at a time, because growth is a
+ * thing that happens to each of them. It EMPTIES on one clock, because
+ * the closing is a single gesture the whole garden makes together — and
+ * staggering it read as ten flowers collapsing at different rates rather
+ * than as one breath drawn back in.
+ *
+ * The stems follow the same clock: every flower has shut before any stem
+ * begins to withdraw.
+ */
+export const GARDEN_CLOSE = Object.freeze({
+  fromMs: 16_500,
+  foldMs: 2_600,
+  recedeMs: 2_000
 });
 
 /**
@@ -125,10 +265,70 @@ export const GARDEN_WORDMARK = Object.freeze({
   settleScale: 1.05
 });
 
-function clamp01(value) {
-  const n = Number(value);
-  return n > 1 ? 1 : n > 0 ? n : 0;
-}
+/**
+ * The release card the piece ends on.
+ *
+ * The wordmark stays where it resolved; everything here arrives beneath
+ * it once the bed is bare, so the last frame — the one a feed shows as
+ * the thumbnail — carries the name, the announcement and whose it is.
+ */
+export const GARDEN_ANNOUNCEMENT = Object.freeze({
+  message: Object.freeze({
+    text: 'Out now',
+    fontFamily: "'Marcellus', 'Space Grotesk', Georgia, serif",
+    fontSize: 92,
+    letterSpacing: 0.18,
+    color: '#F0ECE2',
+    opacity: 1,
+    centerX: 0.5,
+    centerY: 0.42,
+    fromMs: 23_000,
+    revealMs: 2_000,
+    // An understated seat for the line: a stadium of deeper ink, blurred
+    // until it has no edge of its own. On a ground this dark it is not
+    // meant to be seen as a shape — only to stop the words floating.
+    pill: Object.freeze({
+      // Full black at full strength, which reads as an odd choice for
+      // something meant to be barely there — but the ground here is only
+      // (10, 13, 17), so even the deepest possible well is a whisper.
+      // Depth is what buys smoothness. A faint pill spreads six 8-bit
+      // levels across the whole feather and lands a contour every twenty
+      // pixels, which is exactly the onion-ring the first render showed;
+      // the full-depth well crosses three times as many levels over the
+      // same distance, and bands that fine disappear into the grain. The
+      // shallower, safer-looking pill is the one that rings.
+      color: '#000000',
+      opacity: 1,
+      // Little padding and a wide feather, so almost none of the well is
+      // flat: at a feed's thumbnail size a boxier pill reads as a black
+      // lozenge laid on the frame rather than as ink around the words.
+      paddingX: 0.82,
+      paddingY: 0.46,
+      featherPx: 48
+    })
+  }),
+  mark: Object.freeze({
+    // A share of frame WIDTH, like everything else placed here.
+    width: 0.17,
+    centerX: 0.5,
+    centerY: 0.76,
+    opacity: 1,
+    fromMs: 25_000,
+    revealMs: 1_600
+  }),
+  credit: Object.freeze({
+    text: 'by SyberLabs',
+    fontFamily: "'Marcellus', 'Space Grotesk', Georgia, serif",
+    fontSize: 38,
+    letterSpacing: 0.14,
+    color: '#F0ECE2',
+    opacity: 0.72,
+    centerX: 0.5,
+    centerY: 0.862,
+    fromMs: 26_200,
+    revealMs: 1_400
+  })
+});
 
 export function easeOutCubic(t) {
   const x = clamp01(t);
@@ -145,23 +345,47 @@ export function easeInOut(t) {
  * far it has grown out of the bud. Both run on the same eased clock, so
  * the opening and the swelling are one gesture.
  */
-export function blossomAt(blossom, elapsedMs) {
+export function blossomAt(blossom, elapsedMs, close = GARDEN_CLOSE) {
   const open = Math.max(1, Number(blossom?.openMs) || 1);
-  const local = (Number(elapsedMs) || 0) - (Number(blossom?.startMs) || 0);
-  if (local <= 0) return Object.freeze({ visible: false, progress: 0, scale: 0 });
-  const eased = easeOutCubic(local / open);
+  const now = Number(elapsedMs) || 0;
+  const local = now - (Number(blossom?.startMs) || 0);
+  if (local <= 0) return Object.freeze({ visible: false, progress: 0, scale: 0, openness: 0 });
+  const opened = easeOutCubic(local / open);
+  // The plate's reveal takes `openness` directly, so the petals un-draw
+  // from the edge back to the dense centre rather than fading out.
+  //
+  // EASED AT BOTH ENDS, unlike the opening. Opening accelerates away and
+  // settles, which is right for something growing. Reusing that curve to
+  // close meant a flower was 87% shut a third of the way through its fold
+  // and then crept to nothing — a lurch, invisible while the flowers were
+  // staggered and impossible to miss once they move together.
+  const folding = now - close.fromMs;
+  const fold = folding > 0 ? easeInOut(folding / close.foldMs) : 0;
+  const openness = opened * (1 - fold);
   return Object.freeze({
     visible: true,
-    progress: eased,
-    scale: GARDEN_BUD_SCALE + (1 - GARDEN_BUD_SCALE) * eased,
-    open: local >= open
+    openness,
+    progress: openness,
+    scale: GARDEN_BUD_SCALE + (1 - GARDEN_BUD_SCALE) * openness,
+    open: local >= open && fold <= 0,
+    closed: fold >= 1
   });
 }
 
-/** A stem finishes exactly as its blossom starts to open. */
-export function stemAt(blossom, elapsedMs, stem = GARDEN_STEM) {
+/**
+ * A stem finishes exactly as its blossom starts to open, and withdraws
+ * once that blossom has finished folding. The flower is drawn at the tip
+ * rather than at a fixed point, so withdrawing pulls the bud into the
+ * earth instead of leaving it hanging where it grew.
+ */
+export function stemAt(blossom, elapsedMs, stem = GARDEN_STEM, close = GARDEN_CLOSE) {
+  const now = Number(elapsedMs) || 0;
   const start = (Number(blossom?.startMs) || 0) - stem.leadMs;
-  return easeOutCubic(((Number(elapsedMs) || 0) - start) / stem.leadMs);
+  const grown = easeOutCubic((now - start) / stem.leadMs);
+  const recedeFrom = close.fromMs + close.foldMs;
+  if (now <= recedeFrom) return grown;
+  // Eased at both ends, for the same reason the fold is.
+  return grown * (1 - easeInOut((now - recedeFrom) / close.recedeMs));
 }
 
 /** A slow rise and fall, so the ground is never quite still. */
@@ -192,6 +416,11 @@ export function wordmarkAt(elapsedMs, mark = GARDEN_WORDMARK) {
   });
 }
 
+/** How far a card element has arrived, 0 before it starts and 1 once landed. */
+export function revealAt(piece, elapsedMs) {
+  return easeOutCubic(((Number(elapsedMs) || 0) - piece.fromMs) / piece.revealMs);
+}
+
 export const GARDEN_SCORE = Object.freeze({
   id: GARDEN_ID,
   title: GARDEN_TITLE,
@@ -202,7 +431,11 @@ export const GARDEN_SCORE = Object.freeze({
   soundscape: GARDEN_SOUNDSCAPE,
   halo: GARDEN_HALO,
   ground: GARDEN_GROUND,
+  grain: GARDEN_GRAIN,
   stem: GARDEN_STEM,
+  leaf: GARDEN_LEAF,
+  close: GARDEN_CLOSE,
+  announcement: GARDEN_ANNOUNCEMENT,
   blossoms: GARDEN_BLOSSOMS,
   wordmark: GARDEN_WORDMARK
 });
