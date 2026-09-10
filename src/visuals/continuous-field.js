@@ -388,6 +388,7 @@ export class ContinuousField {
         if (this._layers) {
             for (const layer of this._layers) {
                 if (!layer.projection) continue;
+                this._cancelProjectionReadiness(layer.projection);
                 try { layer.projection.root.remove(); } catch { /* detached */ }
                 layer.projection = null;
             }
@@ -447,6 +448,88 @@ export class ContinuousField {
         }
     }
 
+    /**
+     * Return the visible rectangle of the committed sourced artwork.
+     * Procedurals own the full stage, while collection and sequence images
+     * retain their complete `contain` rectangle and may leave a matte.
+     */
+    getCommittedArtworkAperture() {
+        const layer = this._layers?.[this._front];
+        if (!layer || !layer.work?.url || layer.work?.sourceType || layer.work?.living
+            || layer.root.style.opacity !== '1') {
+            return null;
+        }
+        const frame = this.host?.getBoundingClientRect?.();
+        const bounds = containedArtworkBounds(
+            frame?.width || this.host?.clientWidth,
+            frame?.height || this.host?.clientHeight,
+            layer.artwork?.naturalWidth,
+            layer.artwork?.naturalHeight
+        );
+        return bounds ? { ...bounds, source: 'collection-artwork' } : null;
+    }
+
+    _cancelProjectionReadiness(projection) {
+        projection?.cancelReadiness?.();
+        if (!projection) return;
+        projection.cancelReadiness = null;
+        projection.pendingUrl = null;
+        projection.readyUrl = null;
+    }
+
+    _watchProjectionReadiness(projection, url) {
+        this._cancelProjectionReadiness(projection);
+        const image = projection.artwork;
+        const host = this.projectionHost;
+        const projectionGeneration = this._projectionGeneration;
+        const readinessGeneration = (projection.readinessGeneration || 0) + 1;
+        projection.readinessGeneration = readinessGeneration;
+        projection.pendingUrl = url;
+        let settled = false;
+
+        const current = () => this.projectionHost === host
+            && this._projectionGeneration === projectionGeneration
+            && projection.readinessGeneration === readinessGeneration
+            && projection.pendingUrl === url
+            && image.getAttribute('src') === url
+            && projection.root.isConnected;
+        const cleanup = () => {
+            image.removeEventListener('load', onLoad);
+            image.removeEventListener('error', onError);
+            if (projection.cancelReadiness === cleanup) projection.cancelReadiness = null;
+        };
+        const confirmDrawable = async () => {
+            if (settled || !current()) return;
+            settled = true;
+            cleanup();
+            if (typeof image.decode === 'function') {
+                try {
+                    await image.decode();
+                } catch {
+                    if (!image.complete) return;
+                }
+            }
+            if (!current() || !(image.naturalWidth > 0) || !(image.naturalHeight > 0)) return;
+            this._raf(() => {
+                if (!current()) return;
+                projection.readyUrl = url;
+                this._reportProjectionPaint();
+            });
+        };
+        const onLoad = () => { void confirmDrawable(); };
+        const onError = () => {
+            settled = true;
+            cleanup();
+        };
+        image.addEventListener('load', onLoad);
+        image.addEventListener('error', onError);
+        projection.cancelReadiness = cleanup;
+        image.src = url;
+        if (image.complete && image.naturalWidth > 0 && image.naturalHeight > 0) {
+            void confirmDrawable();
+        }
+    }
+
     _usesDistinctProjection() {
         return Array.isArray(this.getProjectionPool?.());
     }
@@ -471,8 +554,11 @@ export class ContinuousField {
             ? layer.projectionWork.url
             : (layer.projectionWork?.living ? null : layer.work?.url);
         if (url) {
-            if (proj.artwork.getAttribute('src') !== url) proj.artwork.src = url;
+            if (proj.artwork.getAttribute('src') !== url) {
+                this._watchProjectionReadiness(proj, url);
+            }
         } else {
+            this._cancelProjectionReadiness(proj);
             proj.artwork.removeAttribute('src');
         }
         // The projection's artwork covers, so nothing can ever show behind
@@ -492,7 +578,7 @@ export class ContinuousField {
             if (!host) return false;
             return this.projectionHost
                 ? this._layers.some(layer => layer.projection?.root.style.opacity === '1'
-                    && !!layer.projection.artwork.getAttribute('src'))
+                    && layer.projection.readyUrl === layer.projection.artwork.getAttribute('src'))
                 : this._layers.some(layer => layer.root.style.opacity === '1' && !!layer.work?.url);
         });
     }

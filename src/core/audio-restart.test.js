@@ -21,7 +21,7 @@ const program = () => ({
         swell: { coordinateSpace: 'source', segments: [
             { id: 'layer', match: { sourceIds: ['s'], fromProgress: 0.6, toProgress: 0.8 },
               cue: { kind: 'swell', swellId: 'kanye', fadeMs: 200 } }
-        ], fallback: { kind: 'hold' } }
+        ], fallback: { kind: 'silence', fadeMs: 250 } }
     }
 });
 
@@ -57,17 +57,33 @@ describe('a personal recording must not restart while it plays', () => {
         expect(calls.filter(call => call === 'start:personal:kanye')).toHaveLength(0);
     });
 
-    it('holds the layer instead of stopping and replaying it', () => {
+    it('holds on structural atoms and stops at the first sourced atom after the layer', () => {
         const calls = [];
         const controller = new AudioScheduleController(program(), spyEngine(calls), {});
         controller.observe(atom('s', 0.65));
         expect(calls).toContain('play:kanye');
-        // `hold` is the swell lane's fallback and means the lane keeps what it
-        // is sounding. A structural atom outside the span must not end it, and
-        // returning must not start it over.
-        controller.observe(atom('s', 0.90));
+        calls.length = 0;
+        controller.observe({ content: '' });
+        expect(calls).toEqual([]);
+
         controller.observe(atom('s', 0.70));
-        expect(calls.filter(call => call === 'play:kanye')).toHaveLength(1);
+        expect(calls).toEqual([]);
+        controller.observe(atom('s', 0.80));
+        expect(calls).toEqual(['stop-swell']);
+    });
+
+    it('bounds swells when reading a legacy combined program without lanes', () => {
+        const calls = [];
+        const legacy = program();
+        delete legacy.lanes;
+        const controller = new AudioScheduleController(legacy, spyEngine(calls), {});
+
+        controller.observe(atom('s', 0.65));
+        expect(calls).toContain('play:kanye');
+        calls.length = 0;
+        controller.observe(atom('s', 0.80));
+
+        expect(calls).toEqual(['stop-swell']);
     });
 });
 

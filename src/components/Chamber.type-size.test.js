@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { Chamber } from './Chamber.js';
 import { sizeAtomScale } from '../core/recitation.js';
 import { fitWordAtomPx } from '../core/chamber-type-size.js';
+import { visualCortex } from '../visuals/visual-cortex.js';
 
 function makeChamber(sessionExtra = {}, settings = {}) {
     const container = document.createElement('div');
@@ -192,6 +193,107 @@ describe('Chamber type size (FM-RISE-36)', () => {
 
         expect(before).toEqual({ width: 900, height: 600, source: 'chamber-stage' });
         expect(after).toEqual(before);
+        chamber.destroy();
+    });
+
+    it('fits desktop collection words to the committed artwork aperture', () => {
+        restoreField?.();
+        restoreField = installField(1200, 800);
+        vi.spyOn(visualCortex, 'getContinuousFieldArtworkAperture').mockReturnValue({
+            left: 400,
+            top: 0,
+            right: 800,
+            bottom: 800,
+            width: 400,
+            height: 800,
+            source: 'collection-artwork'
+        });
+        const { chamber } = makeChamber(
+            { chunkMode: 'word' },
+            { fontSize: 'fit' }
+        );
+
+        expect(chamber._wordFitBox()).toEqual({
+            width: 400,
+            height: 800,
+            source: 'collection-artwork'
+        });
+        chamber.destroy();
+    });
+
+    it('holds one artwork aperture for the life of an atom', () => {
+        restoreField?.();
+        restoreField = installField(1200, 800);
+        const aperture = vi.spyOn(visualCortex, 'getContinuousFieldArtworkAperture')
+            .mockReturnValue({ width: 400, height: 800 });
+        const { chamber } = makeChamber(
+            { chunkMode: 'word' },
+            { fontSize: 'fit' }
+        );
+
+        chamber.displayAtom({ content: 'First', duration: 500 }, 0);
+        aperture.mockReturnValue({ width: 900, height: 600 });
+        expect(chamber._wordFitBox()).toEqual({
+            width: 400,
+            height: 800,
+            source: 'collection-artwork'
+        });
+
+        chamber.displayAtom({ content: 'Second', duration: 500 }, 1);
+        expect(chamber._wordFitBox()).toEqual({
+            width: 900,
+            height: 600,
+            source: 'collection-artwork'
+        });
+        chamber.destroy();
+    });
+
+    it('keeps mobile and procedural Fit words on the chamber stage', () => {
+        vi.spyOn(visualCortex, 'getContinuousFieldArtworkAperture').mockReturnValue({
+            width: 200,
+            height: 720,
+            source: 'collection-artwork'
+        });
+        const { chamber } = makeChamber(
+            { chunkMode: 'word' },
+            { fontSize: 'fit' }
+        );
+        expect(chamber._wordFitBox()).toEqual({
+            width: 390,
+            height: 720,
+            source: 'chamber-stage'
+        });
+
+        restoreField?.();
+        restoreField = installField(1200, 800);
+        visualCortex.getContinuousFieldArtworkAperture.mockReturnValue(null);
+        expect(chamber._wordFitBox()).toEqual({
+            width: 1200,
+            height: 800,
+            source: 'chamber-stage'
+        });
+        chamber.destroy();
+    });
+
+    it('keeps a coarse-pointer phone in landscape on the chamber stage', () => {
+        restoreField?.();
+        restoreField = installField(844, 390);
+        vi.spyOn(window, 'matchMedia').mockReturnValue({ matches: true });
+        vi.spyOn(visualCortex, 'getContinuousFieldArtworkAperture').mockReturnValue({
+            width: 260,
+            height: 390,
+            source: 'collection-artwork'
+        });
+        const { chamber } = makeChamber(
+            { chunkMode: 'word' },
+            { fontSize: 'fit' }
+        );
+
+        expect(chamber._wordFitBox()).toEqual({
+            width: 844,
+            height: 390,
+            source: 'chamber-stage'
+        });
         chamber.destroy();
     });
 

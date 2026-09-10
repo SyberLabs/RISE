@@ -100,6 +100,7 @@ export class Chamber {
     this._settingsInstance = null;
     this._settingsFailed = false;
     this._destroyed = false;
+    this._fitBoxSnapshot = null;
     this.fitMask = new FitMaskRuntime(this);
     this.loadSettingsClass = typeof options.loadSettingsClass === 'function'
       ? options.loadSettingsClass
@@ -321,19 +322,13 @@ export class Chamber {
         if (document.documentElement.requestFullscreen) {
           document.documentElement.requestFullscreen().catch(() => { });
         }
-        // Hold the threshold until the Fit material can dress the first word
-        // (bounded); a reading that opens undressed is the cold-start fault.
-        void (async () => {
-          await this._awaitFitHydration();
-          if (this._destroyed || this.pageModeActive || !this.container?.isConnected) return;
-          if (this.player) {
-            this.player.play();
-            if (this.audioEngine) {
-              console.log('[Chamber] Triggering atmospheric swell (auto-start)');
-              this.audioEngine.fadeInSession(1.2);
-            }
+        if (this.player) {
+          this.player.play();
+          if (this.audioEngine) {
+            console.log('[Chamber] Triggering atmospheric swell (auto-start)');
+            this.audioEngine.fadeInSession(1.2);
           }
-        })();
+        }
       }, 500); // Relaxed timing for engine stability
     }
   }
@@ -698,10 +693,6 @@ export class Chamber {
 
   syncFillGlyphMask() {
     return this.fitMask?.sync();
-  }
-
-  async _awaitFitHydration(timeoutMs = 5000) {
-    return this.fitMask?.awaitReady(timeoutMs);
   }
 
   destroyFillField() {
@@ -1111,34 +1102,28 @@ export class Chamber {
       display.style.opacity = '0';
       display.style.transition = 'opacity 400ms var(--ease-out)';
 
-      // The stage has geometry only now that it is displayed, so this is the
-      // first moment the glyph mask can measure anything and the material can
-      // begin hydrating. Mount it, then hold the threshold until it is ready
-      // — the fade-in below IS the wait, so the reading opens already dressed
-      // rather than streaming undressed words while the pool arrives.
+      // The stage has geometry only now that it is displayed. Begin material
+      // hydration here, while the opaque word remains the readable fallback.
       this.applyChamberMask();
-      void (async () => {
-        await this._awaitFitHydration();
-        if (this._destroyed || !display.isConnected) return;
-        display.style.opacity = '1';
+      if (this._destroyed || !display.isConnected) return;
+      display.style.opacity = '1';
 
-        // Request fullscreen
-        if (document.documentElement.requestFullscreen) {
-          document.documentElement.requestFullscreen().catch(() => {
-            // User declined, continue anyway
-          });
-        }
+      // Request fullscreen
+      if (document.documentElement.requestFullscreen) {
+        document.documentElement.requestFullscreen().catch(() => {
+          // User declined, continue anyway
+        });
+      }
 
-        if (this.player) {
-          this.player.play();
-          this.audioEngine?.fadeInSession(1.2); // Smooth swell at start
-          // Immediately show pause icon since we are now playing
-          const playIcon = this.container.querySelector('#play-icon');
-          const pauseIcon = this.container.querySelector('#pause-icon');
-          playIcon?.classList.add('hidden');
-          pauseIcon?.classList.remove('hidden');
-        }
-      })();
+      if (this.player) {
+        this.player.play();
+        this.audioEngine?.fadeInSession(1.2); // Smooth swell at start
+        // Immediately show pause icon since we are now playing
+        const playIcon = this.container.querySelector('#play-icon');
+        const pauseIcon = this.container.querySelector('#pause-icon');
+        playIcon?.classList.add('hidden');
+        pauseIcon?.classList.remove('hidden');
+      }
     }, 400);
   }
 
@@ -1726,7 +1711,7 @@ export class Chamber {
     else atomDisplay.style.removeProperty('--fit-border-color');
   }
 
-  _wordFitBox() {
+  _resolveWordFitBox() {
     const display = this.container.querySelector('#chamber-display');
     const rect = display?.getBoundingClientRect?.();
     const stageWidth = display?.clientWidth || rect?.width || 0;
@@ -1737,11 +1722,25 @@ export class Chamber {
       const positive = values.map(Number).filter(value => value > 1);
       return positive.length ? Math.min(...positive) : 0;
     };
-    return {
+    const stage = {
       width: smallestPositive(stageWidth, viewport?.width, root?.clientWidth),
       height: smallestPositive(stageHeight, viewport?.height, root?.clientHeight),
       source: 'chamber-stage'
     };
+    const mobileSurface = stage.width <= 768
+      || window.matchMedia?.('(pointer: coarse)')?.matches === true;
+    if (mobileSurface) return stage;
+    const aperture = visualCortex.getContinuousFieldArtworkAperture?.();
+    if (!aperture?.width || !aperture?.height) return stage;
+    return {
+      width: Math.min(stage.width, aperture.width),
+      height: Math.min(stage.height, aperture.height),
+      source: 'collection-artwork'
+    };
+  }
+
+  _wordFitBox() {
+    return this._fitBoxSnapshot || this._resolveWordFitBox();
   }
 
   _measureWordGlyph(atomDisplay, text, atPx = 100) {
@@ -1819,6 +1818,9 @@ export class Chamber {
       console.error('[Chamber] No atom-display element found!');
       return;
     }
+    // Commit the aperture once per atom so a Gallery dissolve cannot resize
+    // a word while it is being read. The next atom sees the next artwork.
+    this._fitBoxSnapshot = this._resolveWordFitBox();
     this.applyChamberMask();
 
     // Genesis field follows the passage's mood when Living Text has a track

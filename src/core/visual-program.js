@@ -431,7 +431,7 @@ export function normalizeAudioProgram(value) {
       swell: {
         coordinateSpace: 'source',
         segments: swellSegments,
-        fallback: { kind: 'hold' }
+        fallback: { kind: 'silence', fadeMs: 250 }
       }
     };
   }

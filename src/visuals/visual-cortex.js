@@ -1079,6 +1079,10 @@ export class VisualCortex {
         }
     }
 
+    getContinuousFieldArtworkAperture() {
+        return this._continuousField?.getCommittedArtworkAperture?.() || null;
+    }
+
     /**
      * Second mount of the same ContinuousField. Chamber applies the glyph
      * mask to this host only. Clearing it does not stop the gallery.

@@ -5,8 +5,8 @@ import { resolveSessionWordFill } from './visual-selection.js';
 
 /**
  * Fit-mask runtime the Chamber mounts. Viewport, inline SVG mask, hydration
- * gate, reveal/fallback, and first-paint wait live here. Chamber asks
- * apply / sync / awaitReady; it does not own the state machine.
+ * gate and reveal/fallback live here. Chamber asks apply / sync; it does not
+ * own the state machine.
  */
 export class FitMaskRuntime {
   constructor(chamber) {
@@ -121,10 +121,8 @@ export class FitMaskRuntime {
     const ns = 'http://www.w3.org/2000/svg';
     const svg = document.createElementNS(ns, 'svg');
     svg.setAttribute('class', 'chamber-fit-mask-defs');
-    svg.setAttribute('width', '0');
-    svg.setAttribute('height', '0');
     svg.setAttribute('aria-hidden', 'true');
-    svg.style.position = 'absolute';
+    const defs = document.createElementNS(ns, 'defs');
     const mask = document.createElementNS(ns, 'mask');
     // The id is rotated per paint (see below), so creation only needs a
     // starting one. The random part keeps two Chambers from colliding.
@@ -136,15 +134,28 @@ export class FitMaskRuntime {
     mask.setAttribute('maskUnits', 'userSpaceOnUse');
     mask.setAttribute('maskContentUnits', 'userSpaceOnUse');
     const text = document.createElementNS(ns, 'text');
+    c._fitGlyphId = `${c._fitMaskId}-glyph`;
+    text.setAttribute('id', c._fitGlyphId);
     text.setAttribute('text-anchor', 'middle');
     text.setAttribute('dominant-baseline', 'central');
-    text.setAttribute('fill', '#fff');
-    mask.appendChild(text);
-    svg.appendChild(mask);
+    const maskUse = document.createElementNS(ns, 'use');
+    maskUse.setAttribute('class', 'chamber-fit-mask-glyph');
+    maskUse.setAttribute('href', `#${c._fitGlyphId}`);
+    maskUse.setAttribute('fill', '#fff');
+    const contour = document.createElementNS(ns, 'use');
+    contour.setAttribute('class', 'chamber-fit-glyph-contour');
+    contour.setAttribute('href', `#${c._fitGlyphId}`);
+    contour.setAttribute('fill', 'none');
+    contour.setAttribute('aria-hidden', 'true');
+    defs.appendChild(text);
+    mask.appendChild(maskUse);
+    svg.append(defs, mask, contour);
     field.appendChild(svg);
     c._fitMaskSvg = svg;
     c._fitMaskMask = mask;
     c._fitMaskText = text;
+    c._fitMaskUse = maskUse;
+    c._fitMaskContour = contour;
     return svg;
   }
 
@@ -161,6 +172,7 @@ export class FitMaskRuntime {
   ) {
     const c = this.chamber;
     atomDisplay?.classList.remove('is-mask-ink', 'is-mask-ready');
+    c._fitMaskSvg?.classList.remove('is-ready');
     if (atomDisplay) atomDisplay.dataset.maskState = maskState;
     if (atomDisplay?.style.color === 'transparent') {
       atomDisplay.style.removeProperty('color');
@@ -336,6 +348,10 @@ export class FitMaskRuntime {
     if (!this.ensureFitMaskNode()) return false;
     const maskEl = c._fitMaskMask;
     const textEl = c._fitMaskText;
+    const contour = c._fitMaskContour;
+    c._fitMaskSvg.setAttribute('width', String(fieldWidth));
+    c._fitMaskSvg.setAttribute('height', String(fieldHeight));
+    c._fitMaskSvg.setAttribute('viewBox', `0 0 ${fieldWidth} ${fieldHeight}`);
     maskEl.setAttribute('x', '0');
     maskEl.setAttribute('y', '0');
     maskEl.setAttribute('width', String(fieldWidth));
@@ -352,7 +368,9 @@ export class FitMaskRuntime {
       textEl.removeAttribute('letter-spacing');
     }
     textEl.textContent = text;
-    this.registerGlyph({ textEl, atomDisplay, fieldRect, textX, textY });
+    const borderColor = atomDisplay.style.getPropertyValue('--fit-border-color').trim();
+    contour.setAttribute('stroke', borderColor || 'transparent');
+    contour.setAttribute('stroke-width', String(Math.min(2, Math.max(0.75, (parseFloat(cs.fontSize) || 0) * 0.1))));
 
     // ...AND ONLY FOR A NEW GLYPH.
     //
@@ -390,61 +408,15 @@ export class FitMaskRuntime {
     // this function is already writing to.
     c._fitMaskId = this.nextMaskId();
     c._fitMaskMask.setAttribute('id', c._fitMaskId);
+    c._fitGlyphId = `${c._fitMaskId}-glyph`;
+    c._fitMaskText.setAttribute('id', c._fitGlyphId);
+    c._fitMaskUse.setAttribute('href', `#${c._fitGlyphId}`);
+    c._fitMaskContour.setAttribute('href', `#${c._fitGlyphId}`);
 
     const url = `url("#${c._fitMaskId}")`;
     host.style.maskImage = url;
     host.style.webkitMaskImage = url;
     return true;
-  }
-
-  /**
-   * PUT THE MASK'S GLYPH EXACTLY WHERE THE WORD'S GLYPH IS.
-   *
-   * The border is a -webkit-text-stroke on the atom; the imagery is a
-   * separate layer clipped by this mask. Two elements, and they line up only
-   * as well as two different centring rules agree. `dominant-baseline:
-   * central` resolves through font metrics an engine picks for itself, so the
-   * mask glyph landed a fraction of a pixel off the text it traces —
-   * measured, up to 0.85px vertically in Chromium and ±0.34 in WebKit.
-   *
-   * A fraction of a pixel is invisible until two composited layers snap to
-   * the device grid independently and round it opposite ways. Then the
-   * outline separates from the fill, which is what iOS Safari was doing at
-   * DPR 3 while every desktop looked clean.
-   *
-   * So the engine's own answer is measured and cancelled rather than
-   * predicted: where did this engine actually put the glyph, and how far is
-   * that from the word? Correct by the difference. It costs one getBBox on a
-   * paint that already changed something, and it is right on an engine
-   * nobody here can run, because it asks that engine rather than assuming it.
-   */
-  registerGlyph({ textEl, atomDisplay, fieldRect, textX, textY }) {
-    if (typeof textEl.getBBox !== 'function' || !atomDisplay.firstChild) return;
-    let box;
-    try {
-      box = textEl.getBBox();
-    } catch {
-      return;
-    }
-    if (!box || !box.width || !box.height) return;
-
-    const range = atomDisplay.ownerDocument.createRange();
-    range.selectNodeContents(atomDisplay);
-    const ink = range.getBoundingClientRect();
-    if (!ink.width || !ink.height) return;
-
-    const dx = (ink.left - fieldRect.left + ink.width / 2) - (box.x + box.width / 2);
-    const dy = (ink.top - fieldRect.top + ink.height / 2) - (box.y + box.height / 2);
-
-    // A correction, not a relocation. Anything larger than a couple of pixels
-    // means the two are not describing the same word — a stale measurement
-    // mid-transition — and moving the glyph on that would be worse than
-    // leaving it where the honest arithmetic put it.
-    if (!Number.isFinite(dx) || !Number.isFinite(dy)) return;
-    if (Math.abs(dx) > 2 || Math.abs(dy) > 2) return;
-
-    textEl.setAttribute('x', String(textX + dx));
-    textEl.setAttribute('y', String(textY + dy));
   }
 
   /** Monotonic, so a test can see the reference move rather than guess. */
@@ -454,40 +426,9 @@ export class FitMaskRuntime {
     return `${c._fitMaskSeed}-${c._fitMaskTurn}`;
   }
 
-  /**
-   * Hold until the Fit material can dress the first word, bounded so a
-   * dead pool cannot lock the reading. Abort if Chamber has already left.
-   */
-  async awaitReady(timeoutMs = 5000) {
-    const c = this.chamber;
-    if (!this.applies()) return;
-    const deadline = Date.now() + timeoutMs;
-
-    while (!c.fillViewport && Date.now() < deadline) {
-      if (c._destroyed) return;
-      await new Promise(resolve => setTimeout(resolve, 50));
-    }
-    if (c._destroyed) return;
-    const viewport = c.fillViewport;
-    if (!viewport) return;
-
-    let timer = null;
-    const expiry = new Promise(resolve => {
-      timer = setTimeout(resolve, Math.max(0, deadline - Date.now()));
-    });
-    const hydrated = Promise.all([
-      this.waitThickFontReady(),
-      visualCortex.whenContinuousFieldProjectionReady(viewport)
-    ]).catch(() => {});
-    try {
-      await Promise.race([hydrated, expiry]);
-    } finally {
-      clearTimeout(timer);
-    }
-  }
-
   reveal(atomDisplay, host) {
     host.classList.remove('is-hidden');
+    this.chamber._fitMaskSvg?.classList.add('is-ready');
     atomDisplay.classList.add('is-mask-ink', 'is-mask-ready');
     atomDisplay.dataset.maskState = 'ready';
     atomDisplay.style.color = 'transparent';
@@ -515,6 +456,9 @@ export class FitMaskRuntime {
       c._fitMaskSvg = null;
       c._fitMaskMask = null;
       c._fitMaskText = null;
+      c._fitMaskUse = null;
+      c._fitMaskContour = null;
+      c._fitGlyphId = null;
       // The live reference goes with the node it named. The seed and the turn
       // stay, so a remounted mask cannot reuse an id a stale rule may hold.
       c._fitMaskId = null;
