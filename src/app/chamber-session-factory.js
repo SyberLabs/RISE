@@ -373,7 +373,10 @@ export async function createChamberSession(operations, container, sessionData) {
 
         operations.hideLoading();
 
-        const presentation = createPresentationLens(session, operations.getSettings);
+        // `presentation` already means the VISUAL presentation mode in
+        // this file (line 76). This is the other kind — how the type is
+        // set — so it is named for what it is.
+        const presentationLens = createPresentationLens(session, operations.getSettings);
 
         return new Chamber(container, {
             session: session,
@@ -384,9 +387,9 @@ export async function createChamberSession(operations, container, sessionData) {
             // A composed reading opens in the presentation it was
             // composed for; the reader's own settings answer for
             // everything else, and for anything they reach for.
-            getSettings: presentation.getSettings,
+            getSettings: presentationLens.getSettings,
             onSettingsChange: (key, value) => {
-                presentation.release(key);
+                presentationLens.release(key);
                 operations.handleSettingsChange(key, value);
             },
             onDataCleared: () => operations.handleDataCleared(),
