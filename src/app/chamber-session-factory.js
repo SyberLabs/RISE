@@ -15,6 +15,7 @@ import {
 } from '../core/visual-safety.js';
 import { normalizeVisualSelection, resolveSessionWordFill } from '../core/visual-selection.js';
 import { chamberExitTarget } from './chamber-exit.js';
+import { createPresentationLens } from '../core/session-presentation.js';
 
 export async function createChamberSession(operations, container, sessionData) {
     const session = sessionData || operations.getCurrentSession();
@@ -372,14 +373,22 @@ export async function createChamberSession(operations, container, sessionData) {
 
         operations.hideLoading();
 
+        const presentation = createPresentationLens(session, operations.getSettings);
+
         return new Chamber(container, {
             session: session,
             player: player,
             voice: recitationVoice,
             autoStart: true,
             audioEngine,
-            getSettings: operations.getSettings,
-            onSettingsChange: (key, value) => operations.handleSettingsChange(key, value),
+            // A composed reading opens in the presentation it was
+            // composed for; the reader's own settings answer for
+            // everything else, and for anything they reach for.
+            getSettings: presentation.getSettings,
+            onSettingsChange: (key, value) => {
+                presentation.release(key);
+                operations.handleSettingsChange(key, value);
+            },
             onDataCleared: () => operations.handleDataCleared(),
             onEnterStream: activateDeferredVisuals,
             onExit: (reason, data) => {
