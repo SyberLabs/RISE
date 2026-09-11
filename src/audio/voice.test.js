@@ -118,6 +118,42 @@ describe('session admission and reverent degradation', () => {
         expect(fetchImpl).toHaveBeenCalledTimes(10);
     });
 
+    it('begins on the clip it needs, not on all eight of them', async () => {
+        // ONE SLOW FETCH USED TO SILENCE A WHOLE READING. The lead was
+        // all-or-nothing, and a single miss among the first eight set
+        // _sessionAvailable false — which is not "start a little later",
+        // it is speak() returning null for good, because prime refuses to
+        // run once that flag is down.
+        const texts = Array.from({ length: 10 }, (_, index) => `phrase ${index}`);
+        let call = 0;
+        const fetchImpl = vi.fn(() => {
+            call += 1;
+            // The sixth clip never arrives; every other one does.
+            return call === 6 ? Promise.reject(new Error('stalled')) : Promise.resolve(response());
+        });
+        const voice = new Voice({ manifest: fixtureManifest(texts), fetchImpl });
+        voice.enabled = true;
+        const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+        await expect(voice.prepare(texts.map(content => ({ content })))).resolves.toBe(true);
+        expect(voice._sessionAvailable).toBe(true);
+        warn.mockRestore();
+    });
+
+    it('refuses when the clip it needs first is the one that is missing', async () => {
+        const texts = Array.from({ length: 10 }, (_, index) => `phrase ${index}`);
+        let call = 0;
+        const fetchImpl = vi.fn(() => {
+            call += 1;
+            return call === 1 ? Promise.reject(new Error('stalled')) : Promise.resolve(response());
+        });
+        const voice = new Voice({ manifest: fixtureManifest(texts), fetchImpl });
+        voice.enabled = true;
+
+        await expect(voice.prepare(texts.map(content => ({ content })))).resolves.toBe(false);
+        expect(voice._sessionAvailable).toBe(false);
+    });
+
     it('never waits in speak when an admitted asset is not ready', () => {
         const voice = new Voice({ manifest: fixtureManifest(['phrase']) });
         voice.enabled = true;
@@ -193,6 +229,46 @@ describe('static playback', () => {
         source.onended();
         await expect(spoken.finished).resolves.toMatchObject({ reason: 'ended' });
         expect(audioEngine.setVoiceDucking).not.toHaveBeenCalled();
+    });
+
+    it('asks for the clock back before speaking into a suspended context', () => {
+        // A buffer started against a suspended context neither plays nor
+        // ends — `onended` never fires, the completion promise never
+        // settles, and the reading waiting on it waits for good. It is
+        // why pausing and playing cured the stall: that click is a user
+        // gesture, which is the permission a browser is waiting for.
+        const resume = vi.fn(() => Promise.resolve());
+        const source = { buffer: null, connect: vi.fn(), start: vi.fn(), stop: vi.fn(), onended: null };
+        const voice = new Voice({
+            manifest: fixtureManifest(['phrase']),
+            audioEngine: {
+                context: { state: 'suspended', createBufferSource: () => source },
+                masterGain: {},
+                resume
+            }
+        });
+
+        voice._play({ audioBuffer: {} }, 0);
+
+        expect(resume).toHaveBeenCalledTimes(1);
+        expect(source.start).toHaveBeenCalled();
+    });
+
+    it('does not disturb a context that is already running', () => {
+        const resume = vi.fn(() => Promise.resolve());
+        const source = { buffer: null, connect: vi.fn(), start: vi.fn(), stop: vi.fn(), onended: null };
+        const voice = new Voice({
+            manifest: fixtureManifest(['phrase']),
+            audioEngine: {
+                context: { state: 'running', createBufferSource: () => source },
+                masterGain: {},
+                resume
+            }
+        });
+
+        voice._play({ audioBuffer: {} }, 0);
+
+        expect(resume).not.toHaveBeenCalled();
     });
 
     it('uses the fetched Blob when Web Audio decoding is unavailable', () => {

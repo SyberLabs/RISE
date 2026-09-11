@@ -23,6 +23,44 @@ describe('AudioEngine lifecycle ownership', () => {
     );
   });
 
+  it('does not wait on a browser that never answers a resume', async () => {
+    // Audio needs a user gesture, and `resume()` on a page that has not
+    // had one does not reliably reject — on iOS Safari it commonly does
+    // not settle at all until a gesture arrives. Everything awaiting it
+    // was therefore awaiting a PERSON, and startSession awaits it with
+    // the loading screen in front of the reader: refreshing a keystone
+    // URL, where nothing has been tapped yet, stuck that screen at
+    // 'Stabilizing carrier frequencies'.
+    vi.useFakeTimers();
+    const engine = new AudioEngine();
+    engine.context = { state: 'suspended', resume: () => new Promise(() => {}) };
+
+    let settled = false;
+    const resuming = engine.resume().then(() => { settled = true; });
+
+    await vi.advanceTimersByTimeAsync(100);
+    expect(settled).toBe(false);
+
+    await vi.advanceTimersByTimeAsync(200);
+    await resuming;
+    expect(settled).toBe(true);
+    vi.useRealTimers();
+  });
+
+  it('carries on when a resume is refused outright', async () => {
+    const engine = new AudioEngine();
+    engine.context = { state: 'suspended', resume: () => Promise.reject(new Error('no gesture')) };
+    await expect(engine.resume()).resolves.toBeUndefined();
+  });
+
+  it('asks nothing of a context that is already running', async () => {
+    const resume = vi.fn();
+    const engine = new AudioEngine();
+    engine.context = { state: 'running', resume };
+    await engine.resume();
+    expect(resume).not.toHaveBeenCalled();
+  });
+
   it('resolves an interrupted fade instead of leaving its caller pending', async () => {
     vi.useFakeTimers();
     const engine = new AudioEngine();

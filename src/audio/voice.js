@@ -111,8 +111,32 @@ export class Voice {
         const entries = await Promise.all(
             targets.map(index => this._ensureIndex(index))
         );
-        const ready = targets.length > 0 && entries.every(Boolean);
+
+        // READINESS IS THE CLIP ABOUT TO BE SPOKEN, NOT ALL EIGHT OF THEM.
+        //
+        // This required every clip in the opening lead, and any one of
+        // them missing set _sessionAvailable false — which is not "start
+        // a little later", it is speak() returning null for the whole
+        // reading, for good, because prime() refuses to run once that
+        // flag is down. One slow fetch at position six and a reading
+        // entirely present in the pack went silent from its first word.
+        //
+        // Whether a reading is speakable at all is already decided above,
+        // by coverage, and that check is unchanged. This one is only
+        // about whether the audio has arrived yet, so it asks about the
+        // clip that is needed now. The rest of the lead is warmth: prime
+        // keeps fetching it, and speak degrades one atom at a time if it
+        // is ever outrun.
+        const ready = targets.length > 0 && Boolean(entries[0]);
+        const arrived = entries.filter(Boolean).length;
         if (!ready) this._sessionAvailable = false;
+        else if (arrived < targets.length) {
+            this._warnOnce(
+                'lead-partial',
+                `opening lead arrived ${arrived} of ${targets.length}; `
+                + 'the reading begins and the rest follows'
+            );
+        }
         if (ready) this.prime(atoms, fromIndex);
         return ready;
     }
@@ -308,6 +332,24 @@ export class Voice {
 
     _play(entry, index) {
         const context = this.audioEngine?.context;
+
+        // A SUSPENDED CONTEXT IS A CLOCK THAT IS NOT RUNNING, and a buffer
+        // started against one neither plays nor ends: `onended` does not
+        // fire, so the promise below never settles, and the reading that
+        // is waiting on it waits for good. That is the shape of the stall
+        // that was reported — and of its cure, because pausing and
+        // playing is a user gesture, which is the one thing a browser
+        // accepts as permission to start audio.
+        //
+        // Asking for the context back costs nothing when it is already
+        // running and fixes the case where entry outran the gesture. A
+        // source started here begins the moment the clock does. Where the
+        // browser refuses outright the Player's watchdog carries the
+        // reading on without it.
+        if (context?.state === 'suspended') {
+            void Promise.resolve(this.audioEngine?.resume?.()).catch(() => {});
+        }
+
         if (context && context.state !== 'closed' && entry.audioBuffer) {
             try {
                 const source = context.createBufferSource();
