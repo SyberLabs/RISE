@@ -250,6 +250,22 @@ describe('reveal schedule', () => {
         expect(new Set(s).size).toBe(s.length);
     });
 
+    it('keeps words apart when the prediction lands a fraction of a ms away', () => {
+        // Measured on the whole pack: one clip in 868. Two predicted
+        // times came out 5e-13 apart - the ordinary residue of dividing a
+        // span by a weight - which passed a guard that compared the
+        // unrounded values, and the rounding on the way out then put both
+        // words on the same millisecond anyway. The guard works in whole
+        // milliseconds now, which is what the reader gets.
+        const words = ['all', 'these', 'things', 'equally', 'happen',
+            'to', 'good', 'men', 'and', 'bad,'];
+        const s = revealSchedule(
+            words, 3600, [340, 780, 1280, 1420, 1820, 2060, 2640, 2780, 3080]);
+
+        expect(new Set(s).size, JSON.stringify(s)).toBe(s.length);
+        expect(s).toEqual([...s].sort((a, b) => a - b));
+    });
+
     it('never reveals two words together when a prediction is clamped', () => {
         // snapToOnsets keeps time from running backwards by clamping a
         // word onto the one before it, which leaves the two sharing a
