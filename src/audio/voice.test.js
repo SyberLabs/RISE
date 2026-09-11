@@ -284,6 +284,7 @@ describe('static playback', () => {
             masterGain: {},
             setVoiceDucking: vi.fn()
         };
+        audioEngine.voiceGain = { id: 'voiceGain' };
         const voice = admittedVoice(audioEngine);
         const audioBuffer = { duration: 1, sampleRate: 24000 };
         voice._cache.set(0, {
@@ -300,7 +301,10 @@ describe('static playback', () => {
             onsets: [125, 500]
         });
         expect(source.buffer).toBe(audioBuffer);
-        expect(source.connect).toHaveBeenCalledWith(audioEngine.masterGain);
+        // voiceGain, not masterGain: the session reveal lives on
+        // sessionGain and the voice is deliberately not on it, so the
+        // first phrase is not multiplied by a ramp that is still rising.
+        expect(source.connect).toHaveBeenCalledWith(audioEngine.voiceGain);
         expect(source.start).toHaveBeenCalledOnce();
         expect(audioEngine.setVoiceDucking).not.toHaveBeenCalled();
 

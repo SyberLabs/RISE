@@ -141,8 +141,9 @@ import { createChantBed, isChantBedId, CHANT_BED_IDS } from './chant.js';
  * Handles ambient audio, binaural beats, and synchronized triggers
  */
 /* `ui` and `typing` never duck: a keystroke or a click is feedback and must
-   still be heard. Recitation connects straight to masterGain, outside these
-   named gains, so ducking cannot attenuate the voice it makes room for.
+   still be heard. Recitation runs through its own voiceGain, outside these
+   named gains and outside the session reveal, so neither ducking nor a
+   transition can attenuate the voice they make room for.
    BED_LAYERS omits `swell` — a layer is what the bed steps back FOR. */
 const MUSICAL_LAYERS = Object.freeze(['binaural', 'harmonics', 'noise', 'drone',
     'ambient', 'swell', 'soundscape']);
@@ -160,6 +161,10 @@ export class AudioEngine {
         this.onUnavailable = options.onUnavailable || (() => {});
         this.context = null;
         this.masterGain = null;
+        // The session reveal and the global volume are two different
+        // jobs, and masterGain was doing both. See _buildGraph.
+        this.sessionGain = null;
+        this.voiceGain = null;
         this.isInitialized = false;
         this.initPromise = null;
         this.isPlaying = false;
@@ -307,15 +312,44 @@ export class AudioEngine {
             try {
                 this.context = new (window.AudioContext || window.webkitAudioContext)();
 
+                // ONE GAIN WAS DOING THREE JOBS.
+                //
+                // masterGain was the global volume control AND the
+                // Chamber's cinematic reveal AND the bus the spoken voice
+                // ran through. Those are not the same job, and the
+                // collision was audible: startSession zeroes the bus,
+                // Chamber calls player.play() before fadeInSession, and
+                // play() emits the first atom synchronously - so the
+                // opening phrase started into a bus at zero and then rode
+                // a 1.2s ramp up from it. Every unpause did it again.
+                //
+                //   musical layers -> sessionGain -> masterGain -> out
+                //   voice ------------> voiceGain -> masterGain -> out
+                //   ui, typing --------------------> masterGain -> out
+                //
+                // sessionGain owns the reveal. masterGain means only "how
+                // loud is RISE" and is never animated by a transition.
+                // The voice bypasses the reveal deliberately: the reader
+                // should hear the first word at full level while the
+                // atmosphere rises around it, not through it. ui and
+                // typing are feedback and belong to no session at all.
                 this.masterGain = this.context.createGain();
                 this.masterGain.gain.value = this.config.masterVolume;
                 this.masterGain.connect(this.context.destination);
+
+                this.sessionGain = this.context.createGain();
+                this.sessionGain.gain.value = 1;
+                this.sessionGain.connect(this.masterGain);
+
+                this.voiceGain = this.context.createGain();
+                this.voiceGain.gain.value = 1;
+                this.voiceGain.connect(this.masterGain);
 
                 for (const layer of Object.keys(this.layerGains)) {
                     if (!this.layerGains[layer]) {
                         this.layerGains[layer] = this.context.createGain();
                         this.layerGains[layer].gain.value = 0;
-                        this.layerGains[layer].connect(this.masterGain);
+                        this.layerGains[layer].connect(this._busFor(layer));
                     }
                 }
 
@@ -334,6 +368,8 @@ export class AudioEngine {
                 this.initPromise = null;
                 this.context = null;
                 this.masterGain = null;
+                this.sessionGain = null;
+                this.voiceGain = null;
                 this.isInitialized = false;
                 this.onUnavailable('Audio initialization blocked. Interact to enable.', 4000);
                 throw error;
@@ -341,6 +377,15 @@ export class AudioEngine {
         })();
 
         return this.initPromise;
+    }
+
+    /**
+     * Which bus a layer belongs on. A musical layer is part of the
+     * session and rides its reveal; `ui` and `typing` are feedback and
+     * must be heard whether a session is running, fading or absent.
+     */
+    _busFor(layer) {
+        return MUSICAL_LAYERS.includes(layer) ? this.sessionGain : this.masterGain;
     }
 
     /**
@@ -444,6 +489,8 @@ export class AudioEngine {
             const dying = this.context;
             this.context = null;
             this.masterGain = null;
+            this.sessionGain = null;
+            this.voiceGain = null;
             for (const layer of Object.keys(this.layerGains)) {
                 this.layerGains[layer] = null;
             }
@@ -1480,7 +1527,7 @@ export class AudioEngine {
 
             if (!this.layerGains.swell) {
                 this.layerGains.swell = this.context.createGain();
-                this.layerGains.swell.connect(this.masterGain);
+                this.layerGains.swell.connect(this._busFor('swell'));
             }
 
             source.connect(this.layerGains.swell);
@@ -2048,13 +2095,14 @@ export class AudioEngine {
      * @param {number} duration
      */
     fadeOutSession(duration = 0.5) {
-        if (!this.masterGain) return Promise.resolve();
+        if (!this.sessionGain) return Promise.resolve();
         this._cancelFade();
 
         this._isFading = true;
-        this.masterGain.gain.cancelScheduledValues(this.context.currentTime);
-        this.masterGain.gain.setValueAtTime(this.masterGain.gain.value, this.context.currentTime);
-        this.masterGain.gain.linearRampToValueAtTime(0, this.context.currentTime + duration);
+        this.sessionGain.gain.cancelScheduledValues(this.context.currentTime);
+        this.sessionGain.gain.setValueAtTime(
+            this.sessionGain.gain.value, this.context.currentTime);
+        this.sessionGain.gain.linearRampToValueAtTime(0, this.context.currentTime + duration);
 
         return new Promise(resolve => {
             this.fadeTimeoutId = setTimeout(() => {
@@ -2072,16 +2120,18 @@ export class AudioEngine {
      * @param {number} duration
      */
     fadeInSession(duration = 0.5) {
-        if (!this.masterGain) return Promise.resolve();
+        if (!this.sessionGain) return Promise.resolve();
         this._cancelFade();
 
         this._isFading = true;
         const now = this.context.currentTime;
-        const targetVolume = this.config.masterVolume;
+        // Full, not masterVolume: the reader's volume already lives on
+        // masterGain downstream, and applying it here too would square it.
+        const targetVolume = 1;
 
-        this.masterGain.gain.cancelScheduledValues(now);
-        this.masterGain.gain.setValueAtTime(0, now);
-        this.masterGain.gain.linearRampToValueAtTime(targetVolume, now + duration);
+        this.sessionGain.gain.cancelScheduledValues(now);
+        this.sessionGain.gain.setValueAtTime(0, now);
+        this.sessionGain.gain.linearRampToValueAtTime(targetVolume, now + duration);
 
         return new Promise(resolve => {
             this.fadeTimeoutId = setTimeout(() => {
@@ -2132,9 +2182,9 @@ export class AudioEngine {
         await this.init();
         if (generation !== this._sessionGeneration || this._destroyed) return { cancelled: true };
 
-        if (this.masterGain) {
-            this.masterGain.gain.cancelScheduledValues(this.context.currentTime);
-            this.masterGain.gain.setValueAtTime(0, this.context.currentTime);
+        if (this.sessionGain) {
+            this.sessionGain.gain.cancelScheduledValues(this.context.currentTime);
+            this.sessionGain.gain.setValueAtTime(0, this.context.currentTime);
         }
         this._isFading = false;
 
@@ -2301,6 +2351,8 @@ export class AudioEngine {
         // nothing, and every caller went on believing audio was ready.
         this.initPromise = null;
         this.masterGain = null;
+        this.sessionGain = null;
+        this.voiceGain = null;
     }
 
     /**
