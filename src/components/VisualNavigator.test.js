@@ -67,14 +67,23 @@ describe('walking the tree', () => {
     expect(nav.container.querySelector('.vnav-empty')).toBeTruthy();
   });
 
-  it('descends Visual → Dynamic → Attractor and opens its bench', () => {
+  it('descends Visual → Dynamic → Attractor, which has nothing to choose', () => {
     mount();
     descend('visual', 'dynamic', 'attractor');
     const entry = nav.container.querySelector('.vnav-entry');
     expect(entry.querySelector('h3').textContent).toBe('Attractor');
-    // Its three benches, from the shared definitions.
-    const labels = [...entry.querySelectorAll('.vnav-bench-label')].map(l => l.textContent);
-    expect(labels).toEqual(['System', 'Filament', 'Form']);
+    // System, Filament and Form are withdrawn: they reached the Chamber's
+    // attractor and not the cortex's, so on a word fill they did nothing.
+    // The leaf is still reachable and still selects the engine.
+    expect([...entry.querySelectorAll('.vnav-bench-label')]).toEqual([]);
+  });
+
+  it('still opens a bench for an engine that has one', () => {
+    // The withdrawal is Attractor's alone — Genesis keeps its presets.
+    mount();
+    descend('visual', 'dynamic', 'harmonograph');
+    const labels = [...nav.container.querySelectorAll('.vnav-bench-label')].map(l => l.textContent);
+    expect(labels).toContain('Climate');
   });
 
   it('keeps Field and Text as two named groups in the root column', () => {
@@ -125,8 +134,11 @@ describe('the text', () => {
 
     settings.fontSize = 'fit';
     click(node('ink'));
-    click(nav.container.querySelector('[data-word-fill="procedural:attractor"]'));
-    expect(nav.container.querySelector('[data-sub="system"][data-val="thomas"]')).toBeTruthy();
+    // A mask engine's own bench opens inline at Fit. This was Attractor's
+    // System bench, which is withdrawn; Genesis still has its Preset and
+    // proves the same thing.
+    click(nav.container.querySelector('[data-word-fill="procedural:klee"]'));
+    expect(nav.container.querySelector('[data-sub="preset"]')).toBeTruthy();
   });
 
   it('keeps Accent available at every Face and Size, and toggles it to Plain in one transaction', () => {
@@ -1135,13 +1147,15 @@ describe('the one rule, under real clicks', () => {
 });
 
 describe('substyles reach the config', () => {
-  it('changes a filament and emits it', () => {
-    mount({ visualMode: 'attractor', attractor: { system: 'aizawa', palette: 'white', form: 'mirror' } });
-    // Boot opened Attractor because it was enabled.
-    const gold = nav.container.querySelector('[data-sub="palette"][data-val="gold"]');
-    expect(gold).toBeTruthy();
-    click(gold);
-    expect(lastPatch().attractor.palette).toBe('gold');
+  it('changes a preset and emits it', () => {
+    // Was a filament on Attractor, whose bench is withdrawn. The contract
+    // under test is the bench reaching the config, and Genesis still has
+    // one to prove it with.
+    mount({ visualMode: 'genesis', genesis: { preset: 'random', glass: true } });
+    const chaotic = nav.container.querySelector('[data-sub="preset"][data-val="chaotic"]');
+    expect(chaotic).toBeTruthy();
+    click(chaotic);
+    expect(lastPatch().genesis.preset).toBe('chaotic');
   });
 
   it('toggles the Genesis glass tile', () => {

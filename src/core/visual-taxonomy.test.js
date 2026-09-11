@@ -80,10 +80,13 @@ describe('every engine is placed', () => {
 });
 
 describe('substyles are linked, not copied', () => {
-  it('gives Attractor its three benches from the shared definitions', () => {
-    const benches = substylesFor('attractor').map(b => b.key);
-    expect(benches).toEqual(['system', 'palette', 'form']);
-    expect(substylesFor('attractor')[0].options.length).toBeGreaterThan(0);
+  it('offers nothing to choose on Attractor, for now', () => {
+    // System, Filament and Form reached the attractor the Chamber mounts
+    // and not the one the cortex mounts for a word fill, so setting them
+    // on a mask did nothing at all — withdrawn rather than repaired
+    // before a release. The ENGINE still takes all three and every
+    // reading still gets the default; only the offer is gone.
+    expect(substylesFor('attractor')).toEqual([]);
   });
   it('gives Genesis its presets and Harmonograph its climates', () => {
     expect(substylesFor('klee')[0].key).toBe('preset');

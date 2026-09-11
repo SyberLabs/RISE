@@ -21,8 +21,6 @@
  */
 
 import {
-  ATTRACTOR_SYSTEMS,
-  ATTRACTOR_PALETTES,
   FOCAL_GLYPHS,
   HARMONOGRAPH_CLIMATES,
   KLEE_PRESETS
@@ -105,12 +103,23 @@ const engineName = id => DISPLAY_NAME[id] || engine(id)?.name || id;
  */
 export function substylesFor(engineId) {
   switch (engineId) {
+    // ATTRACTOR OFFERS NOTHING TO CHOOSE, FOR NOW.
+    //
+    // System, Filament and Form reached the attractor the Chamber mounts
+    // and not the one the cortex mounts for a word fill — so a reader who
+    // set them on a mask watched nothing happen, which is the worst thing
+    // a control can do. The bench also read poorly and, on a phone, left
+    // its panel at the foot of the screen after a choice.
+    //
+    // Withdrawn rather than repaired before a release: the repair is
+    // probably the same two-subsystem split the kaleidoscope had, but it
+    // wants a bench worth looking at as well, and neither is a thing to
+    // rush. NOTHING ELSE IS REMOVED — the engine still takes a system, a
+    // filament and a form, the config still carries them, and every
+    // reading gets the default. Restoring the choice is restoring these
+    // three lines.
     case 'attractor':
-      return [
-        { key: 'system', label: 'System', options: ATTRACTOR_SYSTEMS },
-        { key: 'palette', label: 'Filament', options: ATTRACTOR_PALETTES },
-        { key: 'form', label: 'Form', options: ['mirror', 'kaleido', 'bilateral'] }
-      ];
+      return [];
     case 'klee':
       return [{ key: 'preset', label: 'Preset', options: KLEE_PRESETS }];
     case 'harmonograph':
