@@ -231,6 +231,46 @@ describe('static playback', () => {
         expect(audioEngine.setVoiceDucking).not.toHaveBeenCalled();
     });
 
+    it('asks for the clock back before speaking into a suspended context', () => {
+        // A buffer started against a suspended context neither plays nor
+        // ends — `onended` never fires, the completion promise never
+        // settles, and the reading waiting on it waits for good. It is
+        // why pausing and playing cured the stall: that click is a user
+        // gesture, which is the permission a browser is waiting for.
+        const resume = vi.fn(() => Promise.resolve());
+        const source = { buffer: null, connect: vi.fn(), start: vi.fn(), stop: vi.fn(), onended: null };
+        const voice = new Voice({
+            manifest: fixtureManifest(['phrase']),
+            audioEngine: {
+                context: { state: 'suspended', createBufferSource: () => source },
+                masterGain: {},
+                resume
+            }
+        });
+
+        voice._play({ audioBuffer: {} }, 0);
+
+        expect(resume).toHaveBeenCalledTimes(1);
+        expect(source.start).toHaveBeenCalled();
+    });
+
+    it('does not disturb a context that is already running', () => {
+        const resume = vi.fn(() => Promise.resolve());
+        const source = { buffer: null, connect: vi.fn(), start: vi.fn(), stop: vi.fn(), onended: null };
+        const voice = new Voice({
+            manifest: fixtureManifest(['phrase']),
+            audioEngine: {
+                context: { state: 'running', createBufferSource: () => source },
+                masterGain: {},
+                resume
+            }
+        });
+
+        voice._play({ audioBuffer: {} }, 0);
+
+        expect(resume).not.toHaveBeenCalled();
+    });
+
     it('uses the fetched Blob when Web Audio decoding is unavailable', () => {
         const createObjectURL = vi.fn(() => 'blob:voice');
         vi.stubGlobal('URL', {

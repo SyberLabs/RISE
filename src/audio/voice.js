@@ -332,6 +332,24 @@ export class Voice {
 
     _play(entry, index) {
         const context = this.audioEngine?.context;
+
+        // A SUSPENDED CONTEXT IS A CLOCK THAT IS NOT RUNNING, and a buffer
+        // started against one neither plays nor ends: `onended` does not
+        // fire, so the promise below never settles, and the reading that
+        // is waiting on it waits for good. That is the shape of the stall
+        // that was reported — and of its cure, because pausing and
+        // playing is a user gesture, which is the one thing a browser
+        // accepts as permission to start audio.
+        //
+        // Asking for the context back costs nothing when it is already
+        // running and fixes the case where entry outran the gesture. A
+        // source started here begins the moment the clock does. Where the
+        // browser refuses outright the Player's watchdog carries the
+        // reading on without it.
+        if (context?.state === 'suspended') {
+            void Promise.resolve(this.audioEngine?.resume?.()).catch(() => {});
+        }
+
         if (context && context.state !== 'closed' && entry.audioBuffer) {
             try {
                 const source = context.createBufferSource();
