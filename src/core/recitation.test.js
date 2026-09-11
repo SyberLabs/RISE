@@ -227,6 +227,45 @@ describe('reveal schedule', () => {
         expect(shown).toEqual(spoken);
     });
 
+    it('uses the onsets as they are when there is one for every word', () => {
+        // THE DEFECT THIS REPLACES. One boundary per word is the detector
+        // reporting that it found the whole phrase, and there is then
+        // nothing left to model - but this predicted a rhythm from letter
+        // counts anyway and only then snapped that prediction onto the
+        // boundaries, and a prediction that had drifted further than its
+        // own tolerance could not snap back.
+        //
+        // Measured on a real pack phrase, ten words and ten onsets: the
+        // fifth word is spoken at 1920ms and was revealed at 2610ms, and
+        // two pairs of words landed on the same instant because
+        // monotonicity clamped the later of each pair onto the earlier.
+        const onsets = [320, 700, 980, 1640, 1920, 2700, 3240, 3440, 4080, 4420];
+        const s = revealSchedule(onsets.length, 4975, onsets);
+
+        // Every word but the first sits its own lead ahead of its onset,
+        // and nothing else moves.
+        expect(s[0]).toBe(320);
+        expect(s.slice(1)).toEqual(
+            onsets.slice(1).map(at => at - SPOKEN_REVEAL_LEAD_MS));
+        expect(new Set(s).size).toBe(s.length);
+    });
+
+    it('never reveals two words together when a prediction is clamped', () => {
+        // snapToOnsets keeps time from running backwards by clamping a
+        // word onto the one before it, which leaves the two sharing a
+        // timestamp - and two words appearing at once reads as a stutter
+        // rather than as speech.
+        for (const onsets of [[100, 105, 110], [0, 5], [900, 901, 902, 903]]) {
+            for (const count of [3, 5, 8]) {
+                const s = revealSchedule(count, 2000, onsets);
+                expect(new Set(s).size, JSON.stringify({ onsets, count, s }))
+                    .toBe(s.length);
+                expect(s, JSON.stringify({ onsets, count, s }))
+                    .toEqual([...s].sort((a, b) => a - b));
+            }
+        }
+    });
+
     it('returns nothing for no words', () => {
         expect(revealSchedule(0, 800)).toEqual([]);
     });

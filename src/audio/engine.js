@@ -235,6 +235,27 @@ export class AudioEngine {
                 soundscape: 0.85
             },
 
+            /**
+             * THE VOICE IS NOT A LAYER, BUT IT STILL NEEDS A LEVEL.
+             *
+             * Recitation runs on its own bus, outside the named layers and
+             * outside the session reveal, and until now that bus sat at
+             * unity - so the spoken voice reached the output at the full
+             * master volume while the bed arrived at its own level beneath
+             * it. Measured: voice 0.700 against a soundscape at 0.595, and
+             * that is the flattering reading, because the numbers are raw
+             * amplitude. Speech is dense, dry and mid-forward where a
+             * soundscape is diffuse and quiet-moving, so a voice merely
+             * level with the bed still buries it.
+             *
+             * Lowered until the two sit together rather than one in front
+             * of the other. It is the voice that moves, not the bed: the
+             * layers are summed and raising them to meet the voice courts
+             * clipping, while the reader's own volume control lives
+             * downstream of both and is unaffected either way.
+             */
+            voiceVolume: 0.8,
+
             // Asset paths
             paths: {
                 typingConfig: '/audio/typing-config.json',
@@ -342,7 +363,7 @@ export class AudioEngine {
                 this.sessionGain.connect(this.masterGain);
 
                 this.voiceGain = this.context.createGain();
-                this.voiceGain.gain.value = 1;
+                this.voiceGain.gain.value = this.config.voiceVolume;
                 this.voiceGain.connect(this.masterGain);
 
                 for (const layer of Object.keys(this.layerGains)) {
@@ -919,6 +940,21 @@ export class AudioEngine {
             // anything and the next duck reads its baseline afresh.
             if (multiplier === 1) this._duckBaseline.delete(name);
         }
+    }
+
+    /**
+     * Set the spoken voice's level against the bed.
+     *
+     * Separate from the master volume, which moves both together. This is
+     * the balance between them.
+     */
+    setVoiceVolume(volume) {
+        this.config.voiceVolume = Math.max(0, Math.min(1, Number(volume) || 0));
+        if (!this.voiceGain || !this.context) return;
+        const now = this.context.currentTime;
+        this.voiceGain.gain.cancelScheduledValues(now);
+        this.voiceGain.gain.setValueAtTime(this.voiceGain.gain.value, now);
+        this.voiceGain.gain.linearRampToValueAtTime(this.config.voiceVolume, now + 0.1);
     }
 
     setShuttleSuspension(suspended) {
