@@ -18,6 +18,54 @@ import {
   splitWords, stripEmphasis, sizeAtomScale, revealBudget, revealSchedule
 } from '../core/recitation.js';
 import { Voice } from '../audio/voice.js';
+
+/**
+ * The bar's icons, drawn rather than typed.
+ *
+ * These were text glyphs — U+2699 for the gear, U+25B6 and U+23F8 for
+ * transport, U+2715 for the exit. On a desktop the system resolves them
+ * from a text font and they read as line art; on iOS the emoji font
+ * claims them first, so the same bar arrives as a row of small colour
+ * cartoons. There is no font stack that reliably prevents that, because
+ * the character genuinely has an emoji presentation and the platform is
+ * entitled to prefer it.
+ *
+ * So the bar no longer asks for a character. Each icon is a path on a
+ * 24-unit grid, stroked in currentColor so hover, the engaged state and
+ * every theme keep working exactly as they did for the glyphs.
+ */
+const ICON_STROKE = 'fill="none" stroke="currentColor" stroke-width="1.6" '
+  + 'stroke-linecap="round" stroke-linejoin="round"';
+
+const svg = (body, extra = '') => `<svg viewBox="0 0 24 24" ${extra || ICON_STROKE} `
+  + `aria-hidden="true" focusable="false">${body}</svg>`;
+
+/** Eight teeth on a ring. A gear reads at 18px only if the teeth are heavier than the ring. */
+const GEAR_TEETH = [
+  [18.5, 12, 21, 12], [16.6, 16.6, 18.36, 18.36],
+  [12, 18.5, 12, 21], [7.4, 16.6, 5.64, 18.36],
+  [5.5, 12, 3, 12], [7.4, 7.4, 5.64, 5.64],
+  [12, 5.5, 12, 3], [16.6, 7.4, 18.36, 5.64]
+].map(([x1, y1, x2, y2]) =>
+  `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke-width="2.1"/>`).join('');
+
+export const ICONS = Object.freeze({
+  play: svg('<path d="M9 6.4 18.2 12 9 17.6Z"/>',
+    'fill="currentColor" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"'),
+  pause: svg('<rect x="8.6" y="6.4" width="2.6" height="11.2" rx="1.3"/>'
+    + '<rect x="12.8" y="6.4" width="2.6" height="11.2" rx="1.3"/>',
+    'fill="currentColor" stroke="none"'),
+  gear: svg(`<circle cx="12" cy="12" r="6.5"/><circle cx="12" cy="12" r="2.6"/>${GEAR_TEETH}`),
+  exit: svg('<path d="M7 7 17 17M17 7 7 17"/>'),
+  page: svg('<rect x="4.5" y="4" width="15" height="16" rx="1.6"/>'
+    + '<path d="M8 9h8M8 12.5h8M8 16h5"/>'),
+  elongate: svg('<path d="M12 4.5v15M12 4.5 8.8 7.7M12 4.5l3.2 3.2'
+    + 'M12 19.5l-3.2-3.2M12 19.5l3.2-3.2"/>'),
+  kaleidoscope: svg('<path d="M12 3.5v17M4.64 7.75l14.72 8.5M4.64 16.25l14.72-8.5"/>'
+    + '<circle cx="12" cy="12" r="2.2"/>'),
+  visuals: svg('<path d="M12 4.6 19.4 12 12 19.4 4.6 12Z"/>')
+});
+
 import { livingTextAppearance, scoreAtoms, planInterlocution } from '../core/conductor.js';
 import { VisualScheduleController } from '../core/visual-scheduler.js';
 import {
@@ -380,7 +428,7 @@ export class Chamber {
 
           <button class="chamber-begin btn-primary" id="chamber-begin">
             <span>Begin</span>
-            <span class="icon">▶</span>
+            <span class="icon">${ICONS.play}</span>
           </button>
         </div>
 
@@ -419,15 +467,15 @@ export class Chamber {
           <!-- Hidden controls - appear on mouse movement -->
           <div class="chamber-controls" id="chamber-controls" style="opacity: 0;">
             <button class="control-btn" id="play-pause-btn" aria-label="Play/Pause" title="Spacebar">
-              <span class="icon play-icon" id="play-icon">▶</span>
-              <span class="icon pause-icon hidden" id="pause-icon">⏸</span>
+              <span class="icon play-icon" id="play-icon">${ICONS.play}</span>
+              <span class="icon pause-icon hidden" id="pause-icon">${ICONS.pause}</span>
             </button>
 
             ${this.offersVisualsToggle ? `
               <button class="control-btn rhythmic-visuals-toggle" id="visuals-toggle-btn"
                 type="button" aria-pressed="true" aria-label="Disable rhythmic visuals"
                 title="Disable rhythmic visuals">
-                <span class="icon" aria-hidden="true">&#9670;</span>
+                <span class="icon" aria-hidden="true">${ICONS.visuals}</span>
                 <span class="control-label">Visuals</span>
               </button>
             ` : ''}
@@ -456,7 +504,7 @@ export class Chamber {
             <button class="control-btn page-elongate" id="page-elongate" type="button" hidden
               aria-pressed="false" aria-label="Elongate into one column"
               title="Elongate — read as one continuous column">
-              <span class="icon" aria-hidden="true">&#8597;</span>
+              <span class="icon" aria-hidden="true">${ICONS.elongate}</span>
               <span class="control-label">Elongate</span>
             </button>
 
@@ -464,7 +512,7 @@ export class Chamber {
             <button class="control-btn page-mode-toggle" id="page-mode-btn"
               type="button" aria-pressed="false" aria-label="Read as a page"
               title="Read as a page (the spatial projection)">
-              <span class="icon" aria-hidden="true">&#9638;</span>
+              <span class="icon" aria-hidden="true">${ICONS.page}</span>
               <span class="control-label">Page</span>
             </button>
 
@@ -472,26 +520,27 @@ export class Chamber {
               <button class="control-btn kaleidoscope-toggle" id="kaleidoscope-btn"
                 type="button" aria-pressed="false" aria-label="Fold the field into a kaleidoscope"
                 title="Kaleidoscope (K)">
-                <span class="icon" aria-hidden="true">&#10052;</span>
+                <span class="icon" aria-hidden="true">${ICONS.kaleidoscope}</span>
                 <span class="control-label">Kaleidoscope</span>
               </button>
             ` : ''}
 
-            <span class="time-display font-mono text-fog" id="time-display">
-              <span id="time-current">0:00</span>
-              <span class="time-separator" style="opacity: 0.3;">/</span>
-              <span id="time-total" style="font-size: 0.9em; opacity: 0.6;">0:00</span>
-              
-            </span>
+            <!-- No whitespace between these: a newline in the source is a
+                 space in the bar, and with one on each side of the slash the
+                 two halves of the clock read as three separate things. -->
+            <span class="time-display font-mono text-fog" id="time-display"><span
+              id="time-current">0:00</span><span
+              class="time-separator" style="opacity: 0.3;">/</span><span
+              id="time-total" style="font-size: 0.9em; opacity: 0.6;">0:00</span></span>
 
             <button class="control-btn chamber-settings-btn" id="chamber-settings-btn"
               type="button" aria-label="Settings" title="Settings"
               aria-expanded="false" aria-controls="chamber-settings-overlay">
-              <span class="icon" aria-hidden="true">&#9881;</span>
+              <span class="icon" aria-hidden="true">${ICONS.gear}</span>
             </button>
 
             <button class="control-btn" id="exit-btn" aria-label="Exit" title="Escape">
-              <span class="icon">✕</span>
+              <span class="icon">${ICONS.exit}</span>
             </button>
             <span class="chamber-settings-fail" id="chamber-settings-fail" hidden>Settings will not open.</span>
           </div>
