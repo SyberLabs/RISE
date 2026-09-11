@@ -81,6 +81,60 @@ describe('event-governed atom completion', () => {
         raf.mockRestore();
     });
 
+    it('does not wait forever for an end that never comes', () => {
+        // THE THIRD WAY THIS PROMISE CAN GO WRONG. A completion that
+        // resolves badly degrades to the timer, and one that rejects
+        // degrades to the timer — but one that never settles at all left
+        // the reading stopped on the phrase it was showing, with no timer
+        // scheduled and nothing to recover it. An audio element that
+        // fires neither `ended` nor `error` is not exotic: playback
+        // interrupted by the OS, a context suspended on a backgrounded
+        // tab, a stalled media fetch. It was reported as a reading that
+        // stopped after its first phrase and needed a pause and a play.
+        vi.useFakeTimers();
+        const player = new Player(session());
+        player.sessionState.state = 'playing';
+        player.atomDurationOverride = () => 2000;
+        player.atomCompletionOverride = () => new Promise(() => {});
+        const onward = vi.spyOn(player, 'scheduleNextAtom');
+
+        player.scheduleNextAtom();
+        onward.mockClear();
+
+        // Its own audio is still running: nothing must interrupt it.
+        vi.advanceTimersByTime(2000);
+        expect(onward).not.toHaveBeenCalled();
+
+        // Past its length plus the grace, the reading carries on.
+        vi.advanceTimersByTime(2500);
+        expect(onward).toHaveBeenCalledTimes(1);
+        vi.useRealTimers();
+    });
+
+    it('lets a spoken atom that does end keep its own clock', () => {
+        // The watchdog must never be the thing that advances a reading
+        // whose audio is behaving.
+        vi.useFakeTimers();
+        const player = new Player(session());
+        player.sessionState.state = 'playing';
+        player.atomDurationOverride = () => 2000;
+        let finish;
+        player.atomCompletionOverride = () => new Promise(resolve => { finish = resolve; });
+        player.processNextNode = vi.fn();
+        const onward = vi.spyOn(player, 'scheduleNextAtom');
+
+        player.scheduleNextAtom();
+        onward.mockClear();
+        finish({ reason: 'ended' });
+
+        return Promise.resolve().then(() => Promise.resolve()).then(() => {
+            vi.advanceTimersByTime(10_000);
+            expect(onward).not.toHaveBeenCalled();
+            expect(player.speechWatchdogId).toBeNull();
+            vi.useRealTimers();
+        });
+    });
+
     it('refreshes duration after a lazy completion governor starts', () => {
         const player = new Player(session());
         player.sessionState.state = 'playing';
