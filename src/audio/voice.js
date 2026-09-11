@@ -473,6 +473,14 @@ export class Voice {
             index,
             context: context ? context.state : 'none',
             buffered: Boolean(entry.audioBuffer),
+            // The bus this source is about to feed. A phrase can decode,
+            // start, and end on schedule while every sample it produced
+            // was multiplied by zero, so the gain at the instant of
+            // start() is as much a part of "did it play" as the state is.
+            gain: this.audioEngine?.masterGain
+                ? this.audioEngine.masterGain.gain.value.toFixed(3)
+                : 'none',
+            ctxTime: context ? context.currentTime.toFixed(3) : 'none',
             path: (context && context.state !== 'closed' && entry.audioBuffer)
                 ? 'webaudio'
                 : (entry.blob ? 'element' : 'none')

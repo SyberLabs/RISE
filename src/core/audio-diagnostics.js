@@ -22,9 +22,30 @@ let panel = null;
 let list = null;
 const records = [];
 
+/**
+ * THE FLAG HAS TO OUTLIVE THE URL THAT CARRIED IT. A reading is several
+ * routes away from wherever `?diag=1` was typed, and the router rewrites
+ * the address on the way — so reading `location.search` at the moment the
+ * first clip plays can find the flag already gone. Once seen it is
+ * remembered for the tab, which is also what lets the reader open
+ * `/try-rise?diag=1`, press Begin, and still be recording.
+ */
+const MEMO = 'rise:audio-diag';
+
 export function audioDiagEnabled() {
-  if (enabled === null) {
-    enabled = typeof location !== 'undefined' && FLAG.test(location.search || '');
+  if (enabled !== null) return enabled;
+  if (typeof location === 'undefined') {
+    enabled = false;
+    return enabled;
+  }
+  const url = `${location.search || ''}${location.hash || ''}`;
+  enabled = FLAG.test(url);
+  try {
+    if (enabled) sessionStorage.setItem(MEMO, '1');
+    else enabled = sessionStorage.getItem(MEMO) === '1';
+  } catch {
+    // Private browsing can refuse storage. The flag then lasts as long
+    // as the query string does, which is still the common case.
   }
   return enabled;
 }
