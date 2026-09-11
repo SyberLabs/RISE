@@ -118,6 +118,39 @@ describe('session admission and reverent degradation', () => {
         expect(fetchImpl).toHaveBeenCalledTimes(10);
     });
 
+    it('waits for an audio context before it decodes anything', async () => {
+        // A clip decoded with no context caches with a null buffer and
+        // keeps it, because _ensureIndex serves the cache and never
+        // decodes twice. The lead is fetched while the engine is still
+        // starting, so this was a race that a FAST network lost: on a
+        // warm reload the fetches returned before the context existed and
+        // the reading opened silent, while a cold first load was slow
+        // enough that everything worked.
+        const texts = ['phrase 0', 'phrase 1'];
+        let context = null;
+        const audioEngine = {
+            get context() { return context; },
+            init: vi.fn(async () => {
+                context = {
+                    state: 'suspended',
+                    decodeAudioData: async () => ({ sampleRate: 24000, duration: 1, getChannelData: () => new Float32Array(8) })
+                };
+            })
+        };
+        const voice = new Voice({
+            manifest: fixtureManifest(texts),
+            fetchImpl: vi.fn(() => Promise.resolve(response())),
+            audioEngine
+        });
+        voice.enabled = true;
+
+        await voice.prepare(texts.map(content => ({ content })));
+
+        expect(audioEngine.init).toHaveBeenCalled();
+        // The clip it opens on carries real audio, not a null buffer.
+        expect(voice._cache.get(0)?.audioBuffer).toBeTruthy();
+    });
+
     it('begins on the clip it needs, not on all eight of them', async () => {
         // ONE SLOW FETCH USED TO SILENCE A WHOLE READING. The lead was
         // all-or-nothing, and a single miss among the first eight set

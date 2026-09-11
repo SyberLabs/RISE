@@ -93,6 +93,28 @@ export class Voice {
         const loaded = await this.load();
         if (!loaded) return false;
 
+        // THE CONTEXT MUST EXIST BEFORE A SINGLE CLIP IS FETCHED.
+        //
+        // _decode returns null when there is no AudioContext, and the
+        // entry is then cached in that state — permanently, because
+        // _ensureIndex serves it from cache and never decodes it again.
+        // The opening lead is fetched here while the engine is still
+        // being started elsewhere, so this was a race, and which side won
+        // it depended on how fast the network was:
+        //
+        //   a warm reload    fetches return at once, before the context
+        //                    exists — the whole lead caches with null
+        //                    buffers and the reading opens silent
+        //   a cold first load fetches are slow, the context is up by the
+        //                    time they land, and everything speaks
+        //
+        // Which is exactly backwards from what one would guess, and
+        // exactly what was reported: near-certain on reload, rare on a
+        // fresh window. Decoding does not need the context RUNNING — a
+        // suspended one decodes perfectly well — it only needs it to
+        // exist, and init() is idempotent, so asking costs nothing.
+        await this.audioEngine?.init?.();
+
         this._atoms = atoms;
         this._readerIndex = fromIndex;
         const coverage = this.coverage(atoms);
