@@ -173,7 +173,13 @@ describe('session admission and reverent degradation', () => {
         warn.mockRestore();
     });
 
-    it('refuses when the clip it needs first is the one that is missing', async () => {
+    it('reports a late first clip without silencing the rest of the reading', async () => {
+        // It used to write this into _sessionAvailable, which is the flag
+        // that says whether the reading is in the pack at all. One slow
+        // request at entry therefore silenced every phrase that followed
+        // it, permanently - nothing sets that flag back, and prime()
+        // will not run once it is down. A late first clip should cost the
+        // first clip.
         const texts = Array.from({ length: 10 }, (_, index) => `phrase ${index}`);
         let call = 0;
         const fetchImpl = vi.fn(() => {
@@ -184,7 +190,46 @@ describe('session admission and reverent degradation', () => {
         voice.enabled = true;
 
         await expect(voice.prepare(texts.map(content => ({ content })))).resolves.toBe(false);
-        expect(voice._sessionAvailable).toBe(false);
+        expect(voice._sessionAvailable).toBe(true);
+    });
+
+    it('gives a dropped request one more chance before calling it missing', async () => {
+        // Any failure went straight into _missing, which _ensureIndex
+        // treats as final - so one flaky response on a phone moving
+        // between cells removed that phrase's audio for the session.
+        const texts = ['phrase 0'];
+        let call = 0;
+        const fetchImpl = vi.fn(() => {
+            call += 1;
+            return call === 1 ? Promise.reject(new Error('flaky')) : Promise.resolve(response());
+        });
+        const voice = new Voice({ manifest: fixtureManifest(texts), fetchImpl });
+        voice.enabled = true;
+        await voice.load();
+        voice._atoms = texts.map(content => ({ content }));
+
+        expect(await voice._ensureIndex(0)).toBeNull();
+        expect(voice._missing.has(0)).toBe(false);
+
+        const second = await voice._ensureIndex(0);
+        expect(second).toBeTruthy();
+    });
+
+    it('stops retrying a request that keeps failing', async () => {
+        const texts = ['phrase 0'];
+        const fetchImpl = vi.fn(() => Promise.reject(new Error('gone')));
+        const voice = new Voice({ manifest: fixtureManifest(texts), fetchImpl });
+        voice.enabled = true;
+        await voice.load();
+        voice._atoms = texts.map(content => ({ content }));
+
+        await voice._ensureIndex(0);
+        await voice._ensureIndex(0);
+
+        expect(voice._missing.has(0)).toBe(true);
+        const calls = fetchImpl.mock.calls.length;
+        await voice._ensureIndex(0);
+        expect(fetchImpl.mock.calls.length).toBe(calls);
     });
 
     it('never waits in speak when an admitted asset is not ready', () => {
@@ -266,6 +311,78 @@ describe('static playback', () => {
         source.onended();
         await expect(spoken.finished).resolves.toMatchObject({ reason: 'ended' });
         expect(audioEngine.setVoiceDucking).not.toHaveBeenCalled();
+    });
+
+    it('plays the media fallback at the volume the reader set', () => {
+        // A media element is outside the graph: it never touches
+        // masterGain, so nothing was setting its level and a reading that
+        // landed here spoke at full system volume over a bed that was
+        // obeying the slider.
+        const played = [];
+        class FakeAudio {
+            constructor() { this.volume = 1; played.push(this); }
+            play() { return Promise.resolve(); }
+            pause() {}
+        }
+        vi.stubGlobal('Audio', FakeAudio);
+        vi.stubGlobal('URL', {
+            createObjectURL: () => 'blob:x',
+            revokeObjectURL: () => {}
+        });
+
+        const voice = new Voice({
+            manifest: fixtureManifest(['phrase']),
+            audioEngine: { context: null, config: { masterVolume: 0.4 } }
+        });
+
+        voice._play({ audioBuffer: null, blob: new Blob() }, 0);
+
+        expect(played).toHaveLength(1);
+        expect(played[0].volume).toBeCloseTo(0.4);
+    });
+
+    it('decodes a clip that was cached before any context existed', async () => {
+        // _decode returns null with no AudioContext, and the entry was
+        // cached in that state and served from cache ever after - so the
+        // clip played through the media fallback for the rest of the
+        // reading even once Web Audio was available.
+        const audioBuffer = { duration: 1, sampleRate: 24000 };
+        const decodeAudioData = vi.fn(() => Promise.resolve(audioBuffer));
+        const voice = new Voice({
+            manifest: fixtureManifest(['phrase']),
+            audioEngine: { context: { state: 'running', decodeAudioData } }
+        });
+        const entry = {
+            audioBuffer: null,
+            blob: { arrayBuffer: () => Promise.resolve(new ArrayBuffer(16)) },
+            durationMs: 1000,
+            onsets: [],
+            sampleRate: 24000
+        };
+        voice._cache.set(0, entry);
+
+        await voice._ensureIndex(0);
+        // The repair is deliberately fire-and-forget, so the reading is
+        // never held up by it. A macrotask drains every microtask the
+        // chain is waiting on; counting ticks would depend on how many
+        // awaits deep it happens to be.
+        await new Promise(resolve => setTimeout(resolve, 0));
+
+        expect(decodeAudioData).toHaveBeenCalledTimes(1);
+        expect(entry.audioBuffer).toBe(audioBuffer);
+    });
+
+    it('does not try to repair a clip while no context exists', async () => {
+        const voice = new Voice({
+            manifest: fixtureManifest(['phrase']),
+            audioEngine: { context: null }
+        });
+        const arrayBuffer = vi.fn();
+        voice._cache.set(0, { audioBuffer: null, blob: { arrayBuffer } });
+
+        await voice._ensureIndex(0);
+
+        expect(arrayBuffer).not.toHaveBeenCalled();
     });
 
     it('asks for the clock back before speaking into a suspended context', () => {

@@ -16,6 +16,9 @@ import {
     voicePackManifest
 } from './voice-pack.js';
 
+/** One retry. A second failure is treated as the phrase being unavailable. */
+const LOAD_ATTEMPTS = 2;
+
 const LEAD = 12;
 const LEAD_TO_BEGIN = 8;
 const STARVED = 1;
@@ -43,6 +46,10 @@ export class Voice {
         this._cache = new Map();
         this._loads = new Map();
         this._missing = new Set();
+        // A fetch that failed is not the same fact as a phrase the pack
+        // does not have. Counted, so the first is retried and the second
+        // is not.
+        this._failures = new Map();
         this._controllers = new Map();
         this._current = null;
         this._queue = Promise.resolve();
@@ -149,17 +156,25 @@ export class Voice {
         // clip that is needed now. The rest of the lead is warmth: prime
         // keeps fetching it, and speak degrades one atom at a time if it
         // is ever outrun.
+        //
+        // AND IT DOES NOT TURN SPEECH OFF. Whether this reading is
+        // speakable was settled above by coverage, against the manifest,
+        // and that answer cannot change during the session. Whether the
+        // first clip has ARRIVED is a different and temporary fact, and
+        // writing it into the same flag made one slow request at entry
+        // silence every phrase that followed it - permanently, because
+        // nothing sets the flag back and prime() will not run once it is
+        // down. A late first clip should cost the first clip.
         const ready = targets.length > 0 && Boolean(entries[0]);
         const arrived = entries.filter(Boolean).length;
-        if (!ready) this._sessionAvailable = false;
-        else if (arrived < targets.length) {
+        if (arrived < targets.length) {
             this._warnOnce(
                 'lead-partial',
                 `opening lead arrived ${arrived} of ${targets.length}; `
                 + 'the reading begins and the rest follows'
             );
         }
-        if (ready) this.prime(atoms, fromIndex);
+        this.prime(atoms, fromIndex);
         return ready;
     }
 
@@ -264,7 +279,23 @@ export class Voice {
     }
 
     async _ensureIndex(index) {
-        if (this._cache.has(index)) return this._cache.get(index);
+        if (this._cache.has(index)) {
+            const cached = this._cache.get(index);
+            // A CLIP DECODED WITHOUT A CONTEXT STAYS UNDECODED FOREVER.
+            // _decode returns null when no AudioContext exists yet, and
+            // the entry was cached in that state and served from cache
+            // ever after - so a clip that arrived while the engine was
+            // not up never reached Web Audio again, and played through
+            // the media fallback for the rest of the reading. prepare()
+            // waits for the context now, but prime() fetches the rest of
+            // the reading without waiting for anything, so the window is
+            // still open for every clip after the opening lead. Repair it
+            // the moment a context exists.
+            if (!cached.audioBuffer && cached.blob && this._decodable()) {
+                void this._repair(index, cached);
+            }
+            return cached;
+        }
         if (this._missing.has(index)) return null;
         if (this._loads.has(index)) return this._loads.get(index);
 
@@ -325,7 +356,17 @@ export class Voice {
                 return entry;
             } catch (error) {
                 if (error?.name !== 'AbortError') {
-                    this._missing.add(index);
+                    // A DROPPED REQUEST IS NOT A MISSING PHRASE. Any
+                    // failure here was written straight into _missing,
+                    // which _ensureIndex treats as final - so one flaky
+                    // response, on a phone moving between cells, removed
+                    // that phrase's audio for the rest of the session
+                    // with no way back. The pack is still the authority
+                    // on what exists; this only records that a request
+                    // did not arrive, and gives it one more chance.
+                    const failed = (this._failures.get(index) || 0) + 1;
+                    this._failures.set(index, failed);
+                    if (failed >= LOAD_ATTEMPTS) this._missing.add(index);
                     this._warnOnce(
                         `asset:${manifestEntry.asset}`,
                         `${manifestEntry.asset} could not be loaded: `
@@ -341,6 +382,33 @@ export class Voice {
 
         this._loads.set(index, load);
         return load;
+    }
+
+    /** Whether an AudioContext exists that could decode a clip right now. */
+    _decodable() {
+        const context = this.audioEngine?.context;
+        return Boolean(context) && context.state !== 'closed'
+            && typeof context.decodeAudioData === 'function';
+    }
+
+    /**
+     * Give a cached entry the Web Audio buffer it was denied at fetch
+     * time. Runs at most once per entry: a second miss means decoding is
+     * genuinely unavailable, and the media fallback is the answer.
+     */
+    async _repair(index, entry) {
+        if (entry._repairing) return;
+        entry._repairing = true;
+        try {
+            const bytes = await entry.blob.arrayBuffer();
+            const audioBuffer = await this._decode(bytes);
+            if (audioBuffer && this._cache.get(index) === entry) {
+                entry.audioBuffer = audioBuffer;
+                entry.sampleRate = audioBuffer.sampleRate || entry.sampleRate;
+            }
+        } catch (_) {
+            /* The fallback still plays it. */
+        }
     }
 
     async _decode(bytes) {
@@ -414,6 +482,18 @@ export class Voice {
         try {
             const url = URL.createObjectURL(entry.blob);
             const element = new Audio(url);
+            // THE FALLBACK IS OUTSIDE THE GRAPH, SO NOTHING WAS SETTING
+            // ITS LEVEL. A media element plays at the system volume and
+            // never touches masterGain, so a reading that landed here
+            // ignored the reader's volume entirely and spoke at full
+            // level over a bed that was obeying it. It cannot be routed
+            // into the graph - this path exists precisely for when Web
+            // Audio is unavailable, and a MediaElementSource would go
+            // silent with it - so the level is copied across instead.
+            const master = Number(this.audioEngine?.config?.masterVolume);
+            if (Number.isFinite(master)) {
+                element.volume = Math.max(0, Math.min(1, master));
+            }
             let settle;
             const finished = new Promise(resolve => { settle = resolve; });
             const playback = {
