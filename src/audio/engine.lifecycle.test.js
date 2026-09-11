@@ -239,11 +239,115 @@ describe('AudioEngine lifecycle ownership', () => {
     expect(resume).not.toHaveBeenCalled();
   });
 
+  /**
+   * masterGain was the global volume control AND the Chamber's reveal AND
+   * the bus the spoken voice ran through. The collision was audible:
+   * startSession zeroes the bus, Chamber calls player.play() before
+   * fadeInSession, and play() emits the first atom synchronously - so the
+   * opening phrase started into a bus at zero and rode the ramp up from
+   * it, and every unpause did it again.
+   */
+  describe('the session reveal and the global volume are different buses', () => {
+    const graph = () => {
+      const made = [];
+      vi.stubGlobal('document', {
+        addEventListener: () => {},
+        removeEventListener: () => {},
+        get visibilityState() { return 'visible'; }
+      });
+      vi.stubGlobal('AudioContext', class FakeContext {
+        constructor() {
+          this.state = 'running';
+          this.currentTime = 0;
+          this.destination = { name: 'destination' };
+        }
+        createGain() {
+          const node = {
+            gain: {
+              value: 0,
+              cancelScheduledValues: vi.fn(),
+              setValueAtTime: vi.fn(),
+              linearRampToValueAtTime: vi.fn()
+            },
+            connectedTo: null,
+            connect(target) { node.connectedTo = target; }
+          };
+          made.push(node);
+          return node;
+        }
+        addEventListener() {}
+        removeEventListener() {}
+        close() { return Promise.resolve(); }
+      });
+      return made;
+    };
+
+    it('routes music through the session bus and feedback straight to master', async () => {
+      graph();
+      const engine = new AudioEngine();
+      vi.spyOn(engine, 'loadAssets').mockResolvedValue(undefined);
+      await engine.init();
+
+      expect(engine.masterGain.connectedTo).toBe(engine.context.destination);
+      expect(engine.sessionGain.connectedTo).toBe(engine.masterGain);
+      expect(engine.voiceGain.connectedTo).toBe(engine.masterGain);
+
+      // Musical: part of the session, rides its reveal.
+      for (const layer of ['binaural', 'harmonics', 'noise', 'drone',
+        'ambient', 'swell', 'soundscape']) {
+        expect(engine.layerGains[layer].connectedTo).toBe(engine.sessionGain);
+      }
+      // Feedback: heard whether a session is running, fading or absent.
+      for (const layer of ['ui', 'typing']) {
+        expect(engine.layerGains[layer].connectedTo).toBe(engine.masterGain);
+      }
+    });
+
+    it('opens a session without touching the volume or the voice', async () => {
+      graph();
+      const engine = new AudioEngine();
+      vi.spyOn(engine, 'loadAssets').mockResolvedValue(undefined);
+      await engine.init();
+
+      engine.fadeInSession(1.2);
+
+      expect(engine.sessionGain.gain.setValueAtTime)
+        .toHaveBeenCalledWith(0, 0);
+      // Full, not masterVolume: the reader's volume already lives on
+      // masterGain downstream, and applying it here too would square it.
+      expect(engine.sessionGain.gain.linearRampToValueAtTime)
+        .toHaveBeenCalledWith(1, 1.2);
+
+      // The two that must not move. A phrase starting during the reveal
+      // used to be multiplied by whatever this ramp had reached.
+      expect(engine.masterGain.gain.setValueAtTime).not.toHaveBeenCalled();
+      expect(engine.masterGain.gain.linearRampToValueAtTime).not.toHaveBeenCalled();
+      expect(engine.voiceGain.gain.setValueAtTime).not.toHaveBeenCalled();
+      expect(engine.voiceGain.gain.linearRampToValueAtTime).not.toHaveBeenCalled();
+      expect(engine.voiceGain.gain.value).toBe(1);
+    });
+
+    it('keeps the reader volume on master, where a transition cannot reach it', async () => {
+      graph();
+      const engine = new AudioEngine();
+      vi.spyOn(engine, 'loadAssets').mockResolvedValue(undefined);
+      await engine.init();
+
+      engine.setVolume(0.3);
+
+      expect(engine.masterGain.gain.linearRampToValueAtTime)
+        .toHaveBeenCalledWith(0.3, 0.1);
+      expect(engine.sessionGain.gain.linearRampToValueAtTime).not.toHaveBeenCalled();
+    });
+  });
+
   it('resolves an interrupted fade instead of leaving its caller pending', async () => {
     vi.useFakeTimers();
     const engine = new AudioEngine();
     engine.context = { currentTime: 0 };
-    engine.masterGain = { gain: {
+    // The session reveal lives on sessionGain now; masterGain means only
+    // how loud RISE is, and is never animated by a transition.
+    engine.sessionGain = { gain: {
       value: 0.5,
       cancelScheduledValues: vi.fn(),
       setValueAtTime: vi.fn(),
