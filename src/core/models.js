@@ -277,7 +277,13 @@ export class Session {
     // Which MEDIUM renders this reading (SPATIAL-CHAMBER-SPEC §3):
     // 'stream' (RSVP, through time) or 'page' (typeset, in space).
     // Anything unknown is the Stream — the reading as it has always been.
-    projection = 'stream'
+    projection = 'stream',
+    // How a COMPOSED reading is set: face, size, where the band sits.
+    // A Keystone is a piece, and part of what is composed is the setting
+    // of the type. Opaque here — see core/session-presentation.js, which
+    // normalizes it and holds it to a closed list of keys. Absent for
+    // every ordinary reading, whose presentation is the reader's alone.
+    presentation = null
   }) {
     const safeWpm = Number(wpm);
     const chunkModes = new Set(['word', 'phrase', 'sentence', 'paragraph']);
@@ -342,6 +348,10 @@ export class Session {
     this.movementProgram = normalizeMovementProgram(lowered?.movementProgram ?? movementProgram);
     this.audioProgram = normalizeAudioProgram(lowered?.audioProgram ?? audioProgram);
     this.projection = projection === 'page' ? 'page' : 'stream';
+    this.presentation = presentation && typeof presentation === 'object'
+      && !Array.isArray(presentation)
+      ? presentation
+      : null;
     this.createdAt = new Date();
   }
 

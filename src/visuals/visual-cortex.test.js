@@ -2705,6 +2705,38 @@ describe('Continuous Field (Gallery) wiring', () => {
         cortex.destroy();
     });
 
+    it('folds the attractor it owns, and says so was not its field to fold', () => {
+        // The bar's kaleidoscope control is drawn from configuration, and
+        // configuration cannot say WHICH subsystem mounted the field. A
+        // reading that is entirely an attractor has it on the Chamber; an
+        // interlocution with an attractor among its engines has it here.
+        // The control was only ever asking the Chamber, so for every
+        // reader who arrived the second way it did nothing at all.
+        const { cortex } = hostedContinuousCortex();
+        expect(cortex.toggleAttractorKaleidoscope()).toBeNull();
+
+        cortex.updateConfig({
+            enabled: true,
+            presentation: 'continuous',
+            activeTypes: ['attractor'],
+            attractor: { system: 'aizawa', palette: 'white', form: 'mirror' }
+        });
+        expect(cortex._attractorField).toBeTruthy();
+
+        const folded = cortex.toggleAttractorKaleidoscope();
+        expect(folded).toEqual({ engaged: true, form: 'kaleido' });
+        expect(cortex._attractorField.form).toBe('kaleido');
+        // Recorded in config, so a retarget or a pool change rebuilds the
+        // field folded rather than quietly undoing the reader.
+        expect(cortex.config.attractor.form).toBe('kaleido');
+
+        const unfolded = cortex.toggleAttractorKaleidoscope();
+        expect(unfolded.engaged).toBe(false);
+        expect(unfolded.form).toBe('mirror');
+        expect(cortex.config.attractor.form).toBe('mirror');
+        cortex.destroy();
+    });
+
     it('word-fill Attractor mounts the existing engine in the glyph host', async () => {
         window.matchMedia = window.matchMedia || (() => ({ matches: false }));
         vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockImplementation(() => ({

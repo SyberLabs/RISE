@@ -2082,6 +2082,57 @@ export class VisualCortex {
     }
 
     /**
+     * Start fetching a reading's imagery before the reading needs it.
+     *
+     * A READER WHO CONFIGURED THE VISUALS HAS ALREADY PAID THIS COST. The
+     * visual navigator paints a specimen of whatever mask source is
+     * chosen, which fetches a still from that collection and leaves the
+     * provider's cache warm; by the time Begin is pressed the imagery is
+     * decoded and the fit mask hydrates on the first frame.
+     *
+     * A Keystone opens from a URL. Nobody chose anything, nothing was
+     * previewed, and the first fetch begins when the Chamber is already
+     * on screen — so the same reading that hydrates instantly from the
+     * orbital takes seconds from try-rise, on the same machine.
+     *
+     * Best-effort and never awaited by the reading: this only moves the
+     * fetch earlier, it does not make anything wait on it. The mask
+     * already knows how to be patient and how to fall back.
+     */
+    warmImagery(collectionIds) {
+        const ids = [...new Set(collectionIds || [])]
+            .filter(id => typeof id === 'string' && id);
+        if (!ids.length) return Promise.resolve(false);
+        return this._prewarmProviderPools(ids).then(() => true, () => false);
+    }
+
+    /**
+     * Fold the attractor this cortex owns, or unfold it.
+     *
+     * WHICH SUBSYSTEM OWNS AN ATTRACTOR DEPENDS ON WHY IT IS THERE. When
+     * the whole reading is an attractor the Chamber mounts it as a field
+     * cue and holds the reference. When the attractor is one engine among
+     * several in an interlocution, it is mounted here instead, in the
+     * continuous field. The bar's kaleidoscope control is drawn from
+     * CONFIGURATION, which says an attractor exists in both cases — so in
+     * the second case the control was offered for a field the Chamber did
+     * not have, and pressing it did nothing at all.
+     *
+     * @returns {{engaged: boolean, form: string}|null} null when no field
+     *   of this cortex's is live, which is how the caller learns to look
+     *   somewhere else.
+     */
+    toggleAttractorKaleidoscope() {
+        if (!this._attractorField) return null;
+        const engaged = this._attractorField.toggleKaleidoscope();
+        // A retarget or a pool change rebuilds the field from config, so
+        // the fold is recorded there as well — otherwise a change of host
+        // the reader never asked for would quietly undo it.
+        if (this.config?.attractor) this.config.attractor.form = this._attractorField.form;
+        return { engaged, form: this._attractorField.form };
+    }
+
+    /**
      * Reconcile the field with a live safety change (photosensitivity or
      * consent toggled mid-session). The flash economy re-checks these on
      * every flash() call; the field runs on its own clock and must be told.

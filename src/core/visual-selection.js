@@ -168,6 +168,27 @@ export function normalizeWordFill(value) {
     return { mode: 'pick', ...selection, border: normalizeFitBorder(value.border) };
 }
 
+/**
+ * Every sourced collection a reading is going to ask for.
+ *
+ * The room's own pool and the word-fill's, which are often different —
+ * a fit word filled from Knights over a room of Astronomy asks for both,
+ * and the fill is the one the MASK waits on before it can show anything.
+ *
+ * Procedural engines are not here: they generate, they do not fetch, and
+ * there is nothing to warm.
+ */
+export function sessionImageryCollections(visualConfig) {
+    const interlocution = visualConfig?.interlocution;
+    if (!interlocution) return [];
+    const wordFill = normalizeWordFill(interlocution.wordFill);
+    return [...new Set([
+        ...(Array.isArray(interlocution.sourced) ? interlocution.sourced : []),
+        ...(Array.isArray(interlocution.atriumCollections) ? interlocution.atriumCollections : []),
+        ...(wordFill.mode === 'pick' && Array.isArray(wordFill.sourced) ? wordFill.sourced : [])
+    ])].filter(id => typeof id === 'string' && id && !id.startsWith('sequence-asset:'));
+}
+
 export function wordFillIsDistinct(value) {
     return normalizeWordFill(value).mode === 'pick';
 }

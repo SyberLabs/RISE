@@ -59,18 +59,46 @@ describe('Chamber Settings door', () => {
     chamber.destroy();
   });
 
-  it('places one Settings text control on the existing bar before Exit', () => {
+  it('places one Settings control on the existing bar before Exit', () => {
     const { chamber, container } = mount();
     const bar = container.querySelector('.chamber-controls');
     const settings = bar.querySelector('#chamber-settings-btn');
     const exit = bar.querySelector('#exit-btn');
 
     expect(settings).toBeTruthy();
-    expect(settings.textContent.trim()).toBe('Settings');
-    expect(settings.querySelector('.icon')).toBeNull();
+    // A gear, like every other control in this bar. The word "Settings"
+    // was the longest thing in a row that has to stay out of the way, and
+    // the one word among glyphs.
+    expect(settings.querySelector('.icon')).toBeTruthy();
+    expect(settings.textContent.trim()).toBe('⚙');
+    expect(settings.getAttribute('aria-label')).toBe('Settings');
     expect(container.querySelector('#chamber-field #chamber-settings-btn')).toBeNull();
     expect(bar.contains(settings)).toBe(true);
     expect(settings.nextElementSibling).toBe(exit);
+
+    chamber.destroy();
+  });
+
+  it('closes on a second press of the control that opened it', async () => {
+    // The panel had one way out, the x inside it, so the control that
+    // summoned the thing could not dismiss it.
+    const { chamber, container } = mount();
+    const button = container.querySelector('#chamber-settings-btn');
+    const host = container.querySelector('#chamber-settings-overlay');
+
+    expect(button.getAttribute('aria-expanded')).toBe('false');
+
+    button.click();
+    await vi.waitFor(() => {
+      expect(container.querySelector('#chamber-settings-overlay .settings')).toBeTruthy();
+    });
+    expect(host.hidden).toBe(false);
+    expect(button.getAttribute('aria-expanded')).toBe('true');
+
+    button.click();
+    expect(host.hidden).toBe(true);
+    expect(host.querySelector('.settings')).toBeNull();
+    expect(button.getAttribute('aria-expanded')).toBe('false');
 
     chamber.destroy();
   });

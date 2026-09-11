@@ -246,7 +246,23 @@ export class PlateField {
         if (this.projectionHost) this._syncProjectionFor(incoming);
         else if (incoming._painted) reportProjectionPaint(this);
         if (outgoing) {
+            // NAME THE DISSOLVE AT THE MOMENT OF USING IT, rather than
+            // trusting whatever the entrance left behind. The first plate
+            // enters with `transition: none` — correctly, since there is
+            // nothing for it to dissolve from — and that `none` was still
+            // on the element when it became the outgoing plane, so the
+            // very first plate of a reading cut to black while every
+            // later one dissolved.
+            outgoing.canvas.style.transition = this.reducedMotion
+                ? 'none'
+                : `opacity ${this.crossfadeMs}ms ease-in-out`;
             outgoing.canvas.style.opacity = '0';
+            // The projection is told to leave too. It never was: a plane
+            // only synced while it was INCOMING, so its copy stayed at
+            // full opacity for good, and from the third rotation on the
+            // outgoing copy — later in the DOM, and therefore on top —
+            // covered the plate that had just arrived.
+            if (this.projectionHost) this._syncProjectionFor(outgoing);
             const retire = outgoing;
             setTimeout(() => {
                 if (retire.canvas.style.opacity === '0') {

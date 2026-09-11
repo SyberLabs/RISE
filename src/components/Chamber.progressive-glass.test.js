@@ -77,11 +77,48 @@ function makeProgressiveGlassChamber() {
   return { chamber, container, atomDisplay, spans };
 }
 
+/** How many word panes the mask is currently made of. */
+const panes = atomDisplay => {
+  const mask = atomDisplay.style.getPropertyValue('--progressive-glass-mask');
+  return mask ? mask.split('linear-gradient').length - 1 : 0;
+};
+
 afterEach(() => {
   vi.useRealTimers();
   vi.restoreAllMocks();
   vi.unstubAllGlobals();
   document.body.replaceChildren();
+});
+
+describe('the word a phrase ends on', () => {
+  it('is marked so it can arrive sharp rather than condensing', () => {
+    // Every other word has a successor to carry the eye while its blur
+    // resolves, and 360ms of it costs nothing. The last word has none,
+    // and the atom can be replaced before the blur is finished — so the
+    // final word of a phrase was still soft when the phrase turned, and
+    // never came into focus at all.
+    vi.useFakeTimers();
+    stubMotionAndViewport();
+    const { chamber, spans } = makeProgressiveGlassChamber();
+
+    chamber.revealAtomWords(spans, [0, 500]);
+
+    expect(spans[0].hasAttribute('data-final')).toBe(false);
+    expect(spans[1].hasAttribute('data-final')).toBe(true);
+    chamber.destroy();
+  });
+
+  it('marks the only word of a one-word phrase', () => {
+    vi.useFakeTimers();
+    stubMotionAndViewport();
+    const { chamber, atomDisplay } = makeProgressiveGlassChamber();
+    const single = [atomDisplay.querySelector('.atom-word')];
+
+    chamber.revealAtomWords(single, [0]);
+
+    expect(single[0].hasAttribute('data-final')).toBe(true);
+    chamber.destroy();
+  });
 });
 
 describe('Chamber progressive glass envelope', () => {
@@ -97,17 +134,52 @@ describe('Chamber progressive glass envelope', () => {
     expect(spans[1].hasAttribute('data-pending')).toBe(true);
     expect(atomDisplay.classList.contains('is-progressive-glass')).toBe(true);
     expect(atomDisplay.classList.contains('is-progressive-glass-ready')).toBe(true);
-    expect(atomDisplay.style.getPropertyValue('--progressive-glass-left')).toBe('36px');
-    expect(atomDisplay.style.getPropertyValue('--progressive-glass-top')).toBe('14px');
-    expect(atomDisplay.style.getPropertyValue('--progressive-glass-width')).toBe('108px');
-    expect(atomDisplay.style.getPropertyValue('--progressive-glass-height')).toBe('72px');
+    // One pane, over the first word, feathered 24px past it each side.
+    expect(panes(atomDisplay)).toBe(1);
+    expect(atomDisplay.style.getPropertyValue('--progressive-glass-mask-position'))
+      .toBe('36px 14px');
+    expect(atomDisplay.style.getPropertyValue('--progressive-glass-mask-size'))
+      .toBe('108px 72px');
 
     vi.advanceTimersByTime(500);
 
     expect(spans[1].hasAttribute('data-pending')).toBe(false);
     expect(atomDisplay.querySelectorAll('.atom-word')).toHaveLength(2);
-    expect(atomDisplay.style.getPropertyValue('--progressive-glass-left')).toBe('36px');
-    expect(atomDisplay.style.getPropertyValue('--progressive-glass-width')).toBe('218px');
+    // The second word ADDS a pane; the first one is untouched, rather
+    // than both being replaced by one wider union.
+    expect(panes(atomDisplay)).toBe(2);
+    expect(atomDisplay.style.getPropertyValue('--progressive-glass-mask-position'))
+      .toBe('36px 14px, 106px 14px');
+    expect(atomDisplay.style.getPropertyValue('--progressive-glass-mask-size'))
+      .toBe('108px 72px, 148px 72px');
+    chamber.destroy();
+  });
+
+  it('changes nothing at all between one word and the next', () => {
+    // THE POINT OF THE WHOLE DESIGN. An envelope that moved toward the
+    // next word — however it was eased, and continuously most of all —
+    // gave the reader a frontier advancing over a known distance, which
+    // is a progress bar and reads as one. Between onsets the glass is
+    // now completely still; at an onset a pane appears where its word
+    // is. Nothing is ever in transit.
+    vi.useFakeTimers();
+    stubMotionAndViewport();
+    const { chamber, atomDisplay, spans } = makeProgressiveGlassChamber();
+
+    chamber.revealAtomWords(spans, [0, 500]);
+    const atOnset = atomDisplay.style.getPropertyValue('--progressive-glass-mask-size');
+
+    for (const step of [139, 200, 160]) {
+      vi.advanceTimersByTime(step);
+      expect(spans[1].hasAttribute('data-pending'), 'pending after ' + step).toBe(true);
+      expect(atomDisplay.style.getPropertyValue('--progressive-glass-mask-size'))
+        .toBe(atOnset);
+      expect(panes(atomDisplay)).toBe(1);
+    }
+
+    vi.advanceTimersByTime(1);
+    expect(spans[1].hasAttribute('data-pending')).toBe(false);
+    expect(panes(atomDisplay)).toBe(2);
     chamber.destroy();
   });
 
@@ -123,7 +195,7 @@ describe('Chamber progressive glass envelope', () => {
     expect(spans[1].hasAttribute('data-pending')).toBe(true);
     expect(atomDisplay.classList.contains('is-progressive-glass')).toBe(false);
     expect(atomDisplay.classList.contains('is-progressive-glass-ready')).toBe(false);
-    expect(atomDisplay.style.getPropertyValue('--progressive-glass-width')).toBe('');
+    expect(atomDisplay.style.getPropertyValue('--progressive-glass-mask')).toBe('');
     chamber.destroy();
   });
 
@@ -140,9 +212,41 @@ describe('Chamber progressive glass envelope', () => {
     });
     chamber._refreshProgressiveGlass();
 
-    expect(atomDisplay.style.getPropertyValue('--progressive-glass-left')).toBe('56px');
-    expect(atomDisplay.style.getPropertyValue('--progressive-glass-top')).toBe('24px');
-    expect(atomDisplay.style.getPropertyValue('--progressive-glass-width')).toBe('118px');
+    expect(atomDisplay.style.getPropertyValue('--progressive-glass-mask-position'))
+      .toBe('56px 24px');
+    expect(atomDisplay.style.getPropertyValue('--progressive-glass-mask-size'))
+      .toBe('118px 72px');
+    chamber.destroy();
+  });
+
+  it('gives a word that has not arrived yet no glass, through a reflow', () => {
+    // The previous design had to carry an in-flight target across a
+    // reflow, because the pane was already travelling toward a word that
+    // had not appeared. Nothing travels now, so a reflow has only what is
+    // on screen to re-measure — and an unrevealed word must not be on it.
+    vi.useFakeTimers();
+    stubMotionAndViewport();
+    const { chamber, atomDisplay, spans } = makeProgressiveGlassChamber();
+    chamber.revealAtomWords(spans, [0, 500]);
+    vi.advanceTimersByTime(140);
+
+    Object.defineProperties(spans[1], {
+      offsetLeft: { configurable: true, value: 150 },
+      offsetWidth: { configurable: true, value: 100 }
+    });
+    chamber._refreshProgressiveGlass();
+
+    expect(spans[1].hasAttribute('data-pending')).toBe(true);
+    expect(panes(atomDisplay)).toBe(1);
+    expect(atomDisplay.style.getPropertyValue('--progressive-glass-mask-position'))
+      .toBe('36px 14px');
+
+    vi.advanceTimersByTime(360);
+    expect(spans[1].hasAttribute('data-pending')).toBe(false);
+    // Its pane arrives at the place the reflow moved it to.
+    expect(panes(atomDisplay)).toBe(2);
+    expect(atomDisplay.style.getPropertyValue('--progressive-glass-mask-position'))
+      .toBe('36px 14px, 126px 14px');
     chamber.destroy();
   });
 
@@ -163,7 +267,7 @@ describe('Chamber progressive glass envelope', () => {
 
     expect(spans.every(span => !span.hasAttribute('data-pending'))).toBe(true);
     expect(atomDisplay.classList.contains('is-progressive-glass')).toBe(false);
-    expect(atomDisplay.style.getPropertyValue('--progressive-glass-width')).toBe('');
+    expect(atomDisplay.style.getPropertyValue('--progressive-glass-mask')).toBe('');
     chamber.destroy();
   });
 
@@ -193,7 +297,7 @@ describe('Chamber progressive glass envelope', () => {
 
     expect(atomDisplay.classList.contains('glass-tile')).toBe(true);
     expect(atomDisplay.classList.contains('is-progressive-glass')).toBe(false);
-    expect(atomDisplay.style.getPropertyValue('--progressive-glass-width')).toBe('');
+    expect(atomDisplay.style.getPropertyValue('--progressive-glass-mask')).toBe('');
     chamber.destroy();
   });
 });

@@ -529,6 +529,27 @@
 
   .vnav-reader-controls { position: relative; }
 
+  /* AND IT HAS TO FIT THE PANE IT OPENS OVER.
+     The sheet grows upward from a bar at the foot of the pane, and its
+     containing block was that bar — so `max-height: 60vh` was measured
+     against the screen rather than against the room above it. In the
+     orbital's Visual Configuration the modal is deliberately a fixed
+     frame with the pane scrolling inside it, so a sheet taller than the
+     pane went off the TOP of the frame, where nothing can scroll to:
+     measured on a 390px phone, 224px of it gone and no way to reach it.
+
+     Anchoring to `.vnav` instead gives the percentage something true to
+     resolve against. The sheet can now be at most the pane less its bar,
+     and scrolls inside itself for the rest. */
+  #modal-visual .vnav-reader-controls {
+    position: static;
+  }
+
+  #modal-visual .vnav-reader-controls.is-open .vnav-reader-sheet {
+    bottom: var(--vnav-reader-bar, 44px);
+    max-height: calc(100% - var(--vnav-reader-bar, 44px));
+  }
+
   .vnav-cadence { margin-left: 0; flex-wrap: wrap; }
   .vnav-back {
     display: inline-flex;

@@ -448,6 +448,13 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  /* A ROW OF THREE THAT CAN BECOME A COLUMN OF THREE. It could not: with
+     no wrap the three shares of a 390px phone came to 70px each, and a
+     70px box cannot hold RECURSION set at 12px with 0.12em of tracking —
+     measured, it wants 103px. The label overran the box and ran across
+     the button beside it, which is what the end of a reading looked
+     like on a phone. */
+  flex-wrap: wrap;
   gap: 1.25rem;
   margin-bottom: 2.5rem;
   z-index: 1;
@@ -456,9 +463,11 @@
 }
 
 .post-complete-actions > button {
-  flex: 1 1 0;
+  /* Never narrower than its own label. `min-width: 0` is what let a
+     button shrink under its text rather than the row wrapping. */
+  flex: 1 1 auto;
   justify-content: center;
-  min-width: 0;
+  min-width: max-content;
 }
 
 .post-btn-continue {
@@ -784,3 +793,22 @@
   .vault-journeys-door .vjd-line { font-size: 0.75rem; }
 }
 
+/* THE END OF A READING, ON A PHONE.
+   Three actions side by side is a desktop composition. Stacked, each one
+   is a full-width target and the labels are simply read rather than
+   fitted — and the order still reads as it should, the way onward first
+   and the way back beneath it. */
+@media (max-width: 640px) {
+  .post-complete-actions {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.75rem;
+    max-width: 300px;
+    margin-inline: auto;
+  }
+
+  .post-complete-actions > button {
+    flex: 0 0 auto;
+    width: 100%;
+  }
+}

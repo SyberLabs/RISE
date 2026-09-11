@@ -356,10 +356,26 @@
    so none of this applies to it. */
 
 .atom-word {
-  /* Inline-block so opacity and transform animate per word without the
-     line reflowing as each arrives. */
+  /* Inline-block so opacity and blur animate per word without the line
+     reflowing as each arrives. */
   display: inline-block;
-  transition: opacity 220ms var(--ease-out), transform 220ms var(--ease-out);
+  /* CONDENSING, NOT ARRIVING. A word used to rise 0.12em into place, and
+     a word that travels has a direction, a speed and a moment of landing
+     — which is the same thing the glass beneath it stopped having. It
+     resolves out of the field instead: no movement, only a blur coming
+     into focus. Slower than the old entrance on purpose. A fast fade
+     reads as a switch being thrown; this has to read as something
+     settling. */
+  /* Not --ease-out. Measured on the transition's own clock: that curve
+     spends most of its travel in the first quarter, so a word is 85%
+     present 60ms in and the entrance reads as a switch being thrown
+     however long its nominal duration. This one holds the word soft and
+     half-there through the opening third, then resolves. */
+  transition:
+    opacity 360ms var(--word-condense),
+    filter 360ms var(--word-condense);
+  --word-condense: cubic-bezier(0.45, 0.05, 0.35, 1);
+  filter: blur(0);
 }
 
 /* A word not yet reached by the reveal. Hidden by opacity rather than
@@ -368,7 +384,25 @@
    already occupies. */
 .atom-word[data-pending] {
   opacity: 0;
-  transform: translateY(0.12em);
+  /* Both ends of the transition name the same filter function, so the
+     interpolation is blur-to-blur rather than blur-to-`none`. */
+  filter: blur(6px);
+}
+
+/* The last word of a phrase. It fades, but it does not condense: it is
+   the word the reader stops on, there is no next word to carry the eye
+   while it resolves, and the phrase can be replaced before the blur has
+   finished — which left the final word of a sentence permanently soft.
+   It gives up the condensation's slow opening too, and takes the ordinary
+   ease: measured, the settling curve leaves a word 67% present at 180ms,
+   which for the word a phrase ends on is still arriving. Opacity alone
+   keeps it from snapping into being. */
+.atom-word[data-final] {
+  transition: opacity 200ms var(--ease-out);
+}
+
+.atom-word[data-final][data-pending] {
+  filter: blur(0);
 }
 
 /* Authored emphasis. The cyan is the reference reel's, and it reads as
@@ -388,10 +422,11 @@
 @media (prefers-reduced-motion: reduce) {
   .atom-word {
     transition: none;
+    filter: none;
   }
   .atom-word[data-pending] {
     opacity: 1;
-    transform: none;
+    filter: none;
   }
 }
 
@@ -507,9 +542,13 @@
   color: var(--color-shadow);
 }
 
-.chamber-settings-btn {
-  font-size: 12px;
-  letter-spacing: 0.04em;
+/* The gear sizes itself from .control-btn like every other icon in the
+   bar. The two rules that were here — a smaller face and a little
+   tracking — were for the word "Settings", which the icon replaced: a
+   bar of glyphs with one word in it read as an odd one out, and the word
+   was the longest thing in a row that has to stay out of the way. */
+.chamber-settings-btn[aria-expanded="true"] {
+  color: var(--color-accent);
 }
 
 .chamber-settings-btn.is-failed {
@@ -1020,8 +1059,10 @@
 }
 
 /* Progressive Reveal keeps the complete phrase laid out so wrapping never
-   changes under the reader. Only the glass paint follows the visible prefix:
-   one surface expands around the union of the words that have arrived. */
+   changes under the reader. Only the glass paint follows the visible prefix
+   — and it follows by APPEARING, not by moving: one pane over the whole
+   tile, masked to the words that have arrived, each ramped away at its ends
+   so the fog has no edge to watch. */
 .chamber-field-stream .atom-display.glass-tile.is-progressive-glass,
 .chamber-field-genesis .atom-display.glass-tile.is-progressive-glass {
   background: transparent;
@@ -1039,11 +1080,18 @@
   z-index: 0;
   pointer-events: none;
   box-sizing: border-box;
-  left: var(--progressive-glass-left, 0);
-  top: var(--progressive-glass-top, 0);
-  width: var(--progressive-glass-width, 0);
-  height: var(--progressive-glass-height, 0);
+  /* The pane is the whole tile and never moves. What discloses is the
+     mask: one ramped band per revealed word, summed. */
+  inset: 0;
   border-radius: 14px;
+  -webkit-mask-image: var(--progressive-glass-mask, none);
+  mask-image: var(--progressive-glass-mask, none);
+  -webkit-mask-position: var(--progressive-glass-mask-position, 0 0);
+  mask-position: var(--progressive-glass-mask-position, 0 0);
+  -webkit-mask-size: var(--progressive-glass-mask-size, 100% 100%);
+  mask-size: var(--progressive-glass-mask-size, 100% 100%);
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
   border: 1px solid rgba(232, 232, 236, 0.05);
   background: rgba(10, 10, 12, 0.36);
   backdrop-filter: blur(16px) saturate(1.12);
@@ -1053,12 +1101,9 @@
     0 0 32px rgba(10, 10, 12, 0.45),
     inset 0 1px 0 rgba(232, 232, 236, 0.045);
   opacity: 0;
-  transition:
-    left 140ms var(--ease-out),
-    top 140ms var(--ease-out),
-    width 140ms var(--ease-out),
-    height 140ms var(--ease-out),
-    opacity 100ms var(--ease-out);
+  /* Opacity only. Every geometry transition here was a moving boundary,
+     which is the thing this pane must not have. */
+  transition: opacity 160ms var(--ease-out);
 }
 
 .chamber-field-stream .atom-display.glass-tile.is-progressive-glass-ready::before,
@@ -1635,9 +1680,21 @@
     gap: 0;
   }
 
+  /* TEXT NEEDS MORE AIR THAN AN ICON DOES. Every control in this bar sat
+     one --space-xs from its neighbour, which is right between two 24px
+     glyphs and too tight around a run of digits: measured on a 390px
+     phone, the clock had 6px between it and the gear and read as though
+     it were touching it. The room it takes comes back off the icons,
+     which have their tap target from their own size rather than from the
+     space between them — the bar's total width is unchanged. */
   .chamber-controls .time-display {
     font-size: 11px;
     min-width: 0;
+    margin-inline: var(--space-xs);
+  }
+
+  .chamber-controls .control-btn {
+    padding-inline: 3px;
   }
 
   /* Page Mode: fewer controls — shrink-wrap and centre; keep the same
