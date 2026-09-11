@@ -372,7 +372,20 @@ export async function createChamberSession(operations, container, sessionData) {
 
         if (recitationVoice) {
             operations.updateLoadingStatus('Building the spoken lead...');
-            await recitationReady;
+            // THE ANSWER WAS AWAITED AND THROWN AWAY. A reading whose
+            // voice could not be prepared entered anyway, with the voice
+            // attached and enabled, and every phrase then came up silent
+            // with nothing said about it — the reader is left wondering
+            // whether they have the wrong setting or a broken build. It
+            // is a legitimate outcome, the pack can be unreachable; it is
+            // not a legitimate SILENT outcome.
+            const spokenReady = await recitationReady;
+            if (!spokenReady) {
+                operations.showToast(
+                    'The spoken voice could not be prepared. The reading continues at its own pace.',
+                    5000
+                );
+            }
         }
 
         // Brief delay for smooth transition

@@ -111,8 +111,32 @@ export class Voice {
         const entries = await Promise.all(
             targets.map(index => this._ensureIndex(index))
         );
-        const ready = targets.length > 0 && entries.every(Boolean);
+
+        // READINESS IS THE CLIP ABOUT TO BE SPOKEN, NOT ALL EIGHT OF THEM.
+        //
+        // This required every clip in the opening lead, and any one of
+        // them missing set _sessionAvailable false — which is not "start
+        // a little later", it is speak() returning null for the whole
+        // reading, for good, because prime() refuses to run once that
+        // flag is down. One slow fetch at position six and a reading
+        // entirely present in the pack went silent from its first word.
+        //
+        // Whether a reading is speakable at all is already decided above,
+        // by coverage, and that check is unchanged. This one is only
+        // about whether the audio has arrived yet, so it asks about the
+        // clip that is needed now. The rest of the lead is warmth: prime
+        // keeps fetching it, and speak degrades one atom at a time if it
+        // is ever outrun.
+        const ready = targets.length > 0 && Boolean(entries[0]);
+        const arrived = entries.filter(Boolean).length;
         if (!ready) this._sessionAvailable = false;
+        else if (arrived < targets.length) {
+            this._warnOnce(
+                'lead-partial',
+                `opening lead arrived ${arrived} of ${targets.length}; `
+                + 'the reading begins and the rest follows'
+            );
+        }
         if (ready) this.prime(atoms, fromIndex);
         return ready;
     }
