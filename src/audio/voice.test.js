@@ -358,8 +358,11 @@ describe('static playback', () => {
         voice._cache.set(0, entry);
 
         await voice._ensureIndex(0);
-        await Promise.resolve();
-        await Promise.resolve();
+        // The repair is deliberately fire-and-forget, so the reading is
+        // never held up by it. A macrotask drains every microtask the
+        // chain is waiting on; counting ticks would depend on how many
+        // awaits deep it happens to be.
+        await new Promise(resolve => setTimeout(resolve, 0));
 
         expect(decodeAudioData).toHaveBeenCalledTimes(1);
         expect(entry.audioBuffer).toBe(audioBuffer);
