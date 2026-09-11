@@ -68,11 +68,18 @@ function ensurePanel() {
   if (panel?.isConnected) return;
   panel = document.createElement('div');
   panel.setAttribute('data-audio-diag', '');
+  // THE BOTTOM OF AN IPHONE IS NOT ON SCREEN. Safari parks its toolbar
+  // there and paints over anything fixed to bottom:0, so the first
+  // build of this panel was reported as simply never appearing. It
+  // lives at the top now, below the notch, where no browser chrome
+  // overlaps it.
   panel.style.cssText = [
-    'position:fixed', 'left:0', 'right:0', 'bottom:0', 'z-index:2147483647',
-    'max-height:42vh', 'overflow:auto', 'background:rgba(8,8,10,0.94)',
+    'position:fixed', 'left:0', 'right:0',
+    'top:env(safe-area-inset-top,0px)', 'z-index:2147483647',
+    'max-height:42vh', 'overflow:auto', 'background:rgba(8,8,10,0.96)',
     'color:#C5C5CD', 'font:11px/1.35 ui-monospace,Menlo,monospace',
-    'padding:8px 10px 10px', 'border-top:1px solid #2A2A30'
+    'padding:8px 10px 10px', 'border-bottom:1px solid #2A2A30',
+    'box-shadow:0 2px 12px rgba(0,0,0,0.6)'
   ].join(';');
 
   const bar = document.createElement('div');
@@ -127,4 +134,7 @@ function render() {
     })
     .join('\n');
   panel.scrollTop = panel.scrollHeight;
+  // The app rebuilds the page on navigation; if that took the panel
+  // with it, the next record puts it back.
+  if (!panel.isConnected) document.body.appendChild(panel);
 }
