@@ -1680,9 +1680,21 @@
     gap: 0;
   }
 
+  /* TEXT NEEDS MORE AIR THAN AN ICON DOES. Every control in this bar sat
+     one --space-xs from its neighbour, which is right between two 24px
+     glyphs and too tight around a run of digits: measured on a 390px
+     phone, the clock had 6px between it and the gear and read as though
+     it were touching it. The room it takes comes back off the icons,
+     which have their tap target from their own size rather than from the
+     space between them — the bar's total width is unchanged. */
   .chamber-controls .time-display {
     font-size: 11px;
     min-width: 0;
+    margin-inline: var(--space-xs);
+  }
+
+  .chamber-controls .control-btn {
+    padding-inline: 3px;
   }
 
   /* Page Mode: fewer controls — shrink-wrap and centre; keep the same
