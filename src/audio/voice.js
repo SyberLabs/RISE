@@ -477,10 +477,14 @@ export class Voice {
             // start, and end on schedule while every sample it produced
             // was multiplied by zero, so the gain at the instant of
             // start() is as much a part of "did it play" as the state is.
-            gain: this.audioEngine?.masterGain
+            // Read totally. A diagnostic that can throw is a diagnostic
+            // that breaks the path it was added to observe.
+            gain: typeof this.audioEngine?.masterGain?.gain?.value === 'number'
                 ? this.audioEngine.masterGain.gain.value.toFixed(3)
                 : 'none',
-            ctxTime: context ? context.currentTime.toFixed(3) : 'none',
+            ctxTime: typeof context?.currentTime === 'number'
+                ? context.currentTime.toFixed(3)
+                : 'none',
             path: (context && context.state !== 'closed' && entry.audioBuffer)
                 ? 'webaudio'
                 : (entry.blob ? 'element' : 'none')
