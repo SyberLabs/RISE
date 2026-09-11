@@ -141,6 +141,14 @@ export function estimateInterlocutionCount(session, frequency = 0.2) {
  * The Player controls the temporal flow of atoms during a session.
  * It handles timing, pausing, and emits events for the display layer.
  */
+/**
+ * How long after a spoken atom's own audio should have finished before
+ * the reading stops waiting for an end that is not coming. Long enough
+ * that a late start or a slow decode is never cut off; short enough that
+ * a reader is not left looking at a phrase that will never move.
+ */
+const SPEECH_WATCHDOG_GRACE_MS = 2500;
+
 export class Player {
     /**
      * @param {import('./models.js').Session} session 
@@ -173,6 +181,7 @@ export class Player {
         // spec §8) via session.shuttleExempt.
         this.shuttle = new Shuttle();
         this.speechSyncId = 0; // Guard against late callbacks from old speech requests
+        this.speechWatchdogId = null; // A spoken atom that never reports its end
         this.sessionWallStartTime = null;
         this.interlocutionStats = createInterlocutionStats();
         this._playbackEpoch = 0;
@@ -352,7 +361,16 @@ export class Player {
     /**
      * Start or resume playback
      */
+    /** Drop the watchdog on a spoken atom. Idempotent. */
+    _clearSpeechWatchdog() {
+        if (this.speechWatchdogId !== null) {
+            clearTimeout(this.speechWatchdogId);
+            this.speechWatchdogId = null;
+        }
+    }
+
     play() {
+        this._clearSpeechWatchdog();
         if (this.sessionState.state === 'playing' || this.sessionState.state === 'interlocuting') return;
         if (this.sessionState.isComplete) return;
 
@@ -846,9 +864,23 @@ export class Player {
         // utterance's actual end — not an estimated duration — to advance
         // the reading. The atom listener has already started playback and
         // exposed its completion promise through this override.
-        const completion = !isResuming && this.shuttle.atHome
-            ? this.atomCompletionOverride?.(atom, this.sessionState.currentIndex)
-            : null;
+        //
+        // AND IT IS ASKED FOR BEHIND A GUARD. What this override does is
+        // not small: for Recitation it starts the audio AND lays out the
+        // word reveal, synchronously, before it hands back a promise. A
+        // throw anywhere in there used to leave this method without
+        // having scheduled anything — the reading stopped on the phrase
+        // it was showing and only a pause and a play could move it, which
+        // is the same end as a promise that never settles and the same
+        // report. The clock is allowed to fail; the reading is not.
+        let completion = null;
+        if (!isResuming && this.shuttle.atHome) {
+            try {
+                completion = this.atomCompletionOverride?.(atom, this.sessionState.currentIndex);
+            } catch {
+                completion = null;
+            }
+        }
         if (completion && typeof completion.then === 'function') {
             // A completion governor may begin lazily here. Full-frame
             // Recitation does exactly that: the next phrase is laid out while
@@ -859,8 +891,38 @@ export class Player {
             this.currentAtomDisplayTime = this.currentAtomRemainingTime;
             this.atomStartTime = performance.now();
             const currentSyncId = ++this.speechSyncId;
+
+            // A CLOCK THAT STOPS MUST NOT STOP THE READING.
+            //
+            // The two ways this promise can go wrong are handled just
+            // below: it resolves with something other than 'ended', or it
+            // rejects, and both degrade to the ordinary timer. There is a
+            // third way, and it was not handled — it never settles at all.
+            // An audio element that fires neither `ended` nor `error` is
+            // not exotic: playback interrupted by the OS, a context
+            // suspended on a backgrounded tab, a stalled media fetch. When
+            // that happened the reading stopped dead on the phrase it was
+            // showing, with no timer scheduled and nothing to recover it,
+            // and the only way on was to pause and play — which is exactly
+            // what it was reported as.
+            //
+            // So the utterance keeps the clock, but not past its own
+            // length: if it has not reported an end by the time its audio
+            // was going to be over, plus a margin for a late start, the
+            // reading degrades to the timer and carries on.
+            this._clearSpeechWatchdog();
+            const spokenBudget = Number(this.currentAtomRemainingTime);
+            this.speechWatchdogId = setTimeout(() => {
+                this.speechWatchdogId = null;
+                if (this.speechSyncId !== currentSyncId) return;
+                if (this.sessionState.state !== 'playing') return;
+                this.scheduleNextAtom(true);
+            }, (Number.isFinite(spokenBudget) && spokenBudget > 0 ? spokenBudget : 0)
+                + SPEECH_WATCHDOG_GRACE_MS);
+
             Promise.resolve(completion)
                 .then(result => {
+                    this._clearSpeechWatchdog();
                     if (this.speechSyncId !== currentSyncId) return;
                     if (this.sessionState.state !== 'playing') return;
                     if (result?.reason !== 'ended') {
@@ -877,6 +939,7 @@ export class Player {
                     void this.processNextNode();
                 })
                 .catch(() => {
+                    this._clearSpeechWatchdog();
                     if (this.speechSyncId !== currentSyncId) return;
                     if (this.sessionState.state !== 'playing') return;
                     this.scheduleNextAtom(true);
