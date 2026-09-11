@@ -324,7 +324,11 @@ describe('AudioEngine lifecycle ownership', () => {
       expect(engine.masterGain.gain.linearRampToValueAtTime).not.toHaveBeenCalled();
       expect(engine.voiceGain.gain.setValueAtTime).not.toHaveBeenCalled();
       expect(engine.voiceGain.gain.linearRampToValueAtTime).not.toHaveBeenCalled();
-      expect(engine.voiceGain.gain.value).toBe(1);
+      // The level itself is the balance against the bed, set once at
+      // build time. What matters here is that the reveal does not move
+      // it: a phrase starting during the fade is not multiplied by
+      // whatever the ramp had reached.
+      expect(engine.voiceGain.gain.value).toBe(engine.config.voiceVolume);
     });
 
     it('keeps the reader volume on master, where a transition cannot reach it', async () => {
