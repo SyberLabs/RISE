@@ -2,6 +2,42 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { AudioEngine } from './engine.js';
 
 describe('AudioEngine lifecycle ownership', () => {
+  it('can build another context after being destroyed', async () => {
+    // init() returns initPromise before it looks at anything else, so
+    // leaving it set meant a destroyed engine could never build another
+    // context: init() resolved instantly, having done nothing, and every
+    // caller went on believing audio was ready.
+    vi.stubGlobal('document', {
+      addEventListener: () => {},
+      removeEventListener: () => {},
+      get visibilityState() { return 'visible'; }
+    });
+    let built = 0;
+    vi.stubGlobal('AudioContext', class FakeContext {
+      constructor() {
+        built += 1;
+        this.state = 'running';
+        this.destination = {};
+      }
+      createGain() { return { gain: { value: 0 }, connect: () => {} }; }
+      addEventListener() {}
+      removeEventListener() {}
+      close() { this.state = 'closed'; return Promise.resolve(); }
+    });
+
+    const engine = new AudioEngine();
+    vi.spyOn(engine, 'loadAssets').mockResolvedValue(undefined);
+    await engine.init();
+    expect(built).toBe(1);
+
+    engine.destroy();
+    expect(engine.initPromise).toBeNull();
+
+    engine._destroyed = false;
+    await engine.init();
+    expect(built).toBe(2);
+  });
+
   afterEach(() => {
     vi.useRealTimers();
     vi.unstubAllGlobals();
@@ -21,6 +57,148 @@ describe('AudioEngine lifecycle ownership', () => {
       'Audio initialization blocked. Interact to enable.',
       4000
     );
+  });
+
+  /**
+   * iOS takes the audio session away when the phone locks, a call
+   * arrives, or the reader leaves the browser, and it puts the
+   * AudioContext into a fourth state that is neither running nor
+   * suspended. Everything below is about the reading coming back when
+   * the reader does, rather than staying silent until the tab is closed.
+   */
+  describe('an interrupted audio session', () => {
+    it('resumes a context WebKit marked interrupted, not only a suspended one', async () => {
+      // The guard asked `state !== 'suspended'` and returned. An
+      // interrupted context therefore never had resume() called on it
+      // at all, for the whole life of the page.
+      const resume = vi.fn().mockResolvedValue(undefined);
+      const engine = new AudioEngine();
+      engine.context = { state: 'interrupted', resume };
+
+      await engine.resume();
+
+      expect(resume).toHaveBeenCalledTimes(1);
+    });
+
+    it('leaves a running context alone', async () => {
+      const resume = vi.fn().mockResolvedValue(undefined);
+      const engine = new AudioEngine();
+      engine.context = { state: 'running', resume };
+
+      await engine.resume();
+
+      expect(resume).not.toHaveBeenCalled();
+    });
+
+    it('does not try to revive a closed context', async () => {
+      // A closed context cannot be resumed, only rebuilt. Asking throws.
+      const resume = vi.fn().mockRejectedValue(new Error('closed'));
+      const engine = new AudioEngine();
+      engine.context = { state: 'closed', resume };
+
+      await engine.resume();
+
+      expect(resume).not.toHaveBeenCalled();
+    });
+
+    it('asks for the session back when the page returns to screen', async () => {
+      // iOS does not resume a context on its own after an interruption.
+      // It waits to be asked, and before this nothing asked — which is
+      // why the sound did not return when the reader did.
+      const listeners = {};
+      vi.stubGlobal('document', {
+        addEventListener: (type, fn) => { listeners[type] = fn; },
+        removeEventListener: () => {},
+        get visibilityState() { return 'visible'; }
+      });
+      const resume = vi.fn().mockResolvedValue(undefined);
+      const engine = new AudioEngine();
+      engine.context = {
+        state: 'interrupted',
+        resume,
+        addEventListener: () => {},
+        removeEventListener: () => {}
+      };
+
+      engine._bindContextLifecycle();
+      expect(typeof listeners.visibilitychange).toBe('function');
+
+      listeners.visibilitychange();
+      await Promise.resolve();
+
+      expect(resume).toHaveBeenCalled();
+    });
+
+    it('rebuilds a context that closed, because resume cannot revive one', async () => {
+      // A closed AudioContext is final: resume() throws on one and every
+      // node built from it is inert, so the only way back is a new one.
+      // Safari closes contexts under memory pressure, and this used to
+      // leave the page silent with a reload as the only cure.
+      const built = [];
+      vi.stubGlobal('document', {
+        addEventListener: () => {},
+        removeEventListener: () => {},
+        get visibilityState() { return 'visible'; }
+      });
+      vi.stubGlobal('AudioContext', class FakeContext {
+        constructor() {
+          built.push(this);
+          this.state = 'running';
+          this.destination = {};
+        }
+        createGain() {
+          return { gain: { value: 0 }, connect: () => {} };
+        }
+        addEventListener() {}
+        removeEventListener() {}
+        close() { this.state = 'closed'; return Promise.resolve(); }
+      });
+
+      const engine = new AudioEngine();
+      vi.spyOn(engine, 'loadAssets').mockResolvedValue(undefined);
+      await engine.init();
+      expect(built).toHaveLength(1);
+
+      engine.context.state = 'closed';
+      await engine.resume();
+
+      expect(built).toHaveLength(2);
+      expect(engine.context).toBe(built[1]);
+      expect(engine.isInitialized).toBe(true);
+    });
+
+    it('does not rebuild twice at once', async () => {
+      const engine = new AudioEngine();
+      engine._rebuilding = true;
+      const init = vi.spyOn(engine, 'init');
+
+      await engine.rebuild();
+
+      expect(init).not.toHaveBeenCalled();
+    });
+
+    it('tells the app the audio stopped, so the next tap can recover it', () => {
+      const listeners = {};
+      vi.stubGlobal('document', {
+        addEventListener: () => {},
+        removeEventListener: () => {},
+        get visibilityState() { return 'visible'; }
+      });
+      const onInterrupted = vi.fn();
+      const engine = new AudioEngine();
+      engine.onInterrupted = onInterrupted;
+      engine.context = {
+        state: 'interrupted',
+        resume: vi.fn(),
+        addEventListener: (type, fn) => { listeners[type] = fn; },
+        removeEventListener: () => {}
+      };
+
+      engine._bindContextLifecycle();
+      listeners.statechange();
+
+      expect(onInterrupted).toHaveBeenCalledWith('interrupted');
+    });
   });
 
   it('does not wait on a browser that never answers a resume', async () => {

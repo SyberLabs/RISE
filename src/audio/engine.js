@@ -285,6 +285,14 @@ export class AudioEngine {
         // steered by the player's canonical progress (never wall time)
         this._positionRamp = null;
         this._positionRampSteeredAt = null;
+
+        // Set by the app: called when the context stops running, so a
+        // reader who comes back to an interrupted page can recover it
+        // with the next thing they touch.
+        this.onInterrupted = null;
+        this._rebuilding = false;
+        this._onContextStateChange = null;
+        this._onVisibilityChange = null;
     }
 
     /**
@@ -311,12 +319,18 @@ export class AudioEngine {
                     }
                 }
 
+                this._bindContextLifecycle();
+
                 await this.loadAssets();
 
                 this.isInitialized = true;
                 console.log('[AudioEngine] Initialized with 432Hz support');
             } catch (error) {
                 console.error('[AudioEngine] Failed to initialize:', error);
+                // Bound before loadAssets, so a failure there leaves a
+                // visibilitychange handler behind pointing at a context
+                // this is about to drop.
+                this._unbindContextLifecycle();
                 this.initPromise = null;
                 this.context = null;
                 this.masterGain = null;
@@ -347,11 +361,117 @@ export class AudioEngine {
      * before each utterance.
      */
     async resume() {
-        if (!this.context || this.context.state !== 'suspended') return;
+        // SUSPENDED IS NOT THE ONLY WAY A CLOCK STOPS. WebKit has a
+        // fourth state this guard did not know about: `interrupted`,
+        // which is where an AudioContext goes when iOS takes the audio
+        // session away — the phone locks, a call arrives, the reader
+        // switches apps. Asking only about `suspended` meant resume()
+        // returned having done nothing for precisely that case, so the
+        // context stayed interrupted for the life of the page. Nothing
+        // else ever called it back, which is why the sound did not
+        // return when the reader did, why a reload did not help (the new
+        // context is created into the same interrupted audio session),
+        // and why only closing the tab worked — that is what finally
+        // releases the session.
+        //
+        // Anything that is not running is a candidate for resuming. A
+        // closed context is the exception: resume() cannot revive one, so
+        // it is rebuilt instead.
+        if (!this.context) return;
+        const state = this.context.state;
+        if (state === 'running') return;
+        if (state === 'closed') {
+            await this.rebuild();
+            return;
+        }
         await Promise.race([
             Promise.resolve(this.context.resume()).catch(() => {}),
             new Promise(resolve => setTimeout(resolve, RESUME_WAIT_MS))
         ]);
+    }
+
+    /**
+     * Watch for the audio session being taken away and handed back.
+     *
+     * Bound once per context. Two signals matter: the context telling us
+     * its state changed, and the page telling us it is on screen again.
+     * The second is the one that recovers an interruption, because iOS
+     * does not resume a context on its own — it waits to be asked, and
+     * before this nothing asked.
+     */
+    _bindContextLifecycle() {
+        this._unbindContextLifecycle();
+        if (!this.context || typeof document === 'undefined') return;
+
+        this._onContextStateChange = () => {
+            const state = this.context?.state;
+            if (state === 'running') return;
+            // Tell the app its audio is gone, so the next tap can be
+            // spent getting it back.
+            this.onInterrupted?.(state);
+        };
+        this.context.addEventListener?.('statechange', this._onContextStateChange);
+
+        this._onVisibilityChange = () => {
+            if (document.visibilityState !== 'visible') return;
+            // resume() rebuilds if the context closed while we were away.
+            void this.resume();
+        };
+        document.addEventListener('visibilitychange', this._onVisibilityChange);
+    }
+
+    /**
+     * Build a new context after the old one closed.
+     *
+     * A closed AudioContext is final - resume() throws on one, and every
+     * node built from it is inert - so the only way back is a new one.
+     * Safari closes contexts under memory pressure, and until this
+     * existed that left the page permanently silent with a reload as the
+     * only cure, which is the same dead end the interrupted state used
+     * to be.
+     *
+     * What this restores is the GRAPH, not the performance: gains and
+     * buffers come back, the bed and the entrainment do not, because
+     * those belong to a session and the session is what knows whether it
+     * is still running. The reading's next utterance has somewhere to go,
+     * which is the part that was lost.
+     */
+    async rebuild() {
+        if (this._destroyed || this._rebuilding) return;
+        this._rebuilding = true;
+        try {
+            this._unbindContextLifecycle();
+            const dying = this.context;
+            this.context = null;
+            this.masterGain = null;
+            for (const layer of Object.keys(this.layerGains)) {
+                this.layerGains[layer] = null;
+            }
+            for (const layer of Object.keys(this.layers)) {
+                this.layers[layer] = null;
+            }
+            this.isInitialized = false;
+            this.initPromise = null;
+            if (dying && dying.state !== 'closed') {
+                try { await dying.close(); } catch (_) { /* already gone */ }
+            }
+            await this.init();
+        } catch (_) {
+            /* init reports its own failure through onUnavailable */
+        } finally {
+            this._rebuilding = false;
+        }
+    }
+
+    _unbindContextLifecycle() {
+        if (this._onContextStateChange) {
+            this.context?.removeEventListener?.('statechange', this._onContextStateChange);
+            this._onContextStateChange = null;
+        }
+        if (this._onVisibilityChange && typeof document !== 'undefined') {
+            document.removeEventListener('visibilitychange', this._onVisibilityChange);
+            this._onVisibilityChange = null;
+        }
     }
 
     /**
@@ -2151,21 +2271,6 @@ export class AudioEngine {
     }
 
     /**
-     * Pause/resume (for session pause)
-     */
-    async pause() {
-        if (this.context && this.context.state === 'running') {
-            await this.context.suspend();
-        }
-    }
-
-    async unpause() {
-        if (this.context && this.context.state === 'suspended') {
-            await this.context.resume();
-        }
-    }
-
-    /**
      * Cleanup
      */
     destroy() {
@@ -2184,11 +2289,18 @@ export class AudioEngine {
         this.stopSoundscape(true);
         this.stopAmbient(true);
         this.stopSpeaking();
+        this._unbindContextLifecycle();
         if (this.context) {
             this.context.close().catch(() => {});
             this.context = null;
         }
         this.isInitialized = false;
+        // init() returns this promise before it looks at anything else,
+        // so leaving it set meant a destroyed engine could never build
+        // another context: init() resolved instantly, having done
+        // nothing, and every caller went on believing audio was ready.
+        this.initPromise = null;
+        this.masterGain = null;
     }
 
     /**

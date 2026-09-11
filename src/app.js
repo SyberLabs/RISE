@@ -326,6 +326,23 @@ class App {
                 if (engine?.context?.state === 'running') {
                     this._audioInteractionController?.abort();
                 }
+
+                // AND IT HAS TO BE ABLE TO COME BACK. Standing down is
+                // right while the audio is running, but iOS can take the
+                // session away afterwards — the phone locks, a call
+                // arrives, the reader leaves the browser — and the
+                // context lands in `interrupted` with nothing listening
+                // any more. The engine asks for it back when the page
+                // returns to screen; where the browser wants a gesture
+                // for that, this puts the listeners back so the reader's
+                // next tap is spent on it.
+                if (engine && !engine.onInterrupted) {
+                    engine.onInterrupted = () => {
+                        if (this._audioInteractionController?.signal.aborted) {
+                            this.setupAudioInteraction();
+                        }
+                    };
+                }
             }
         };
 
