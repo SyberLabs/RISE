@@ -359,6 +359,21 @@
   animation: textLineReveal 0.8s ease-out forwards;
 }
 
+/* THE SECOND PARAGRAPH IS A FOOTNOTE, NOT A SECOND CLAIM. It answers a
+   question the first paragraph raises rather than making its own case,
+   and at the same size and weight the two competed for the same
+   attention. Smaller and italic reads as an aside, which is what it is.
+   Opacity is left alone: the reveal animation owns it. */
+.beta-welcome-text p.beta-welcome-note {
+  font-size: 0.8rem;
+  font-style: italic;
+  line-height: 1.7;
+  /* Fog, not mist. Smaller and italic is already the whole of the
+     de-emphasis; mist at this size measured 3.8:1 against the ground,
+     under the 4.5:1 a reader needs for text this small. */
+  color: var(--color-fog);
+}
+
 .beta-welcome-text p:nth-child(1) { animation-delay: 0.3s; }
 .beta-welcome-text p:nth-child(2) { animation-delay: 0.5s; }
 .beta-welcome-text p:nth-child(3) { animation-delay: 0.7s; }

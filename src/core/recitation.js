@@ -187,11 +187,33 @@ export function revealSchedule(words, budgetMs, onsetsMs = null) {
         const onsets = [...new Set(onsetsMs
             .map(at => Math.max(0, Number(at) || 0))
             .filter(Number.isFinite))].sort((a, b) => a - b);
-        const predicted = predictOnsets(weights, onsets, budgetMs);
-        // Within a word's own predicted length: a boundary further off
-        // than that belongs to some other word.
-        const reach = Math.max(60, (predicted[wordCount - 1] - predicted[0]) / wordCount);
-        const out = snapToOnsets(predicted, onsets, reach);
+        // WHEN THE VOICE HAS ALREADY SAID WHERE EVERY WORD IS, DO NOT
+        // GUESS AT IT.
+        //
+        // One boundary per word is the detector reporting that it found
+        // the whole phrase, and there is then nothing left to model: word
+        // i begins at onset i. This used to predict a rhythm from letter
+        // counts anyway and only then snap that prediction onto the
+        // boundaries - and a prediction that had drifted further than its
+        // own tolerance could not snap back. Measured on a ten-word
+        // phrase with ten onsets: the fifth word was spoken at 1920ms and
+        // revealed at 2610ms, 690ms behind the voice, and two pairs of
+        // words landed on the same instant because monotonicity clamped
+        // the later of each pair onto the earlier.
+        //
+        // More onsets than words means the detector split something;
+        // fewer means it merged something. Both still need the model.
+        let out;
+        if (onsets.length === wordCount) {
+            out = onsets.slice();
+        } else {
+            const predicted = predictOnsets(weights, onsets, budgetMs);
+            // Within a word's own predicted length: a boundary further
+            // off than that belongs to some other word.
+            const reach = Math.max(
+                60, (predicted[wordCount - 1] - predicted[0]) / wordCount);
+            out = spaceReveals(snapToOnsets(predicted, onsets, reach), budgetMs);
+        }
 
         // The first word waits for the real voice; every later one is the
         // same step ahead of its own onset, so THE LEAD IS TAKEN OUT OF
@@ -213,6 +235,29 @@ export function revealSchedule(words, budgetMs, onsetsMs = null) {
     // past it, so the phrase is whole for the remainder of the atom.
     const step = wordCount > 1 ? budgetMs / (wordCount - 1) : 0;
     return Array.from({ length: wordCount }, (_, i) => Math.round(i * step));
+}
+
+/**
+ * NO TWO WORDS MAY ARRIVE AT THE SAME INSTANT.
+ *
+ * snapToOnsets keeps time from running backwards by clamping a word onto
+ * the one before it, which leaves the two sharing a timestamp - and two
+ * words appearing together reads as a stutter rather than as speech. A
+ * clamped word steps forward instead, by the smallest interval a reader
+ * sees as separate, and never past the end of the clip it belongs to.
+ */
+function spaceReveals(times, budgetMs) {
+    const ceiling = Math.max(0, Number(budgetMs) || 0);
+    const out = [];
+    let floor = -Infinity;
+    for (const at of times) {
+        let placed = at;
+        if (placed <= floor) placed = floor + ONSET_MIN_SPACING_MS;
+        if (ceiling > 0 && placed > ceiling) placed = Math.max(floor, ceiling);
+        out.push(placed);
+        floor = placed;
+    }
+    return out;
 }
 
 /**
