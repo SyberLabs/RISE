@@ -1569,7 +1569,17 @@
        at the 128px the height rule set, and the status size is derived
        from this figure — so the type was scaled for a disc 33% larger
        than the one it was in, and the longest engine names ran past a
-       line they could otherwise have wrapped inside. */
+       line they could otherwise have wrapped inside.
+
+       THE DOUBLED CLASS IS LOAD-BEARING. Two later tranches are keyed on
+       HEIGHT, for the short laptop the width breakpoints missed, and a
+       phone is short as well as narrow — so they also match here and,
+       being later at equal specificity, they won. While the node's size
+       was a literal that cost nothing; the moment it followed this
+       figure, phone discs grew from 96 to 128 and the ring closed on
+       both the stance row above it and the anchor at its middle.
+       Measured on four phones: 13px, -2px, 0px and 29px of air under
+       the stances, where the desktop guard requires 35. */
     --orbit-node: 96px;
   }
 
@@ -1594,6 +1604,10 @@
     margin: var(--space-xs) auto;
   }
 
+
+  .chamber-orbital.chamber-orbital {
+    --orbit-node: 96px;
+  }
 
   .orbit-node {
     width: var(--orbit-node);
