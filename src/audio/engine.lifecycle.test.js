@@ -2,6 +2,42 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { AudioEngine } from './engine.js';
 
 describe('AudioEngine lifecycle ownership', () => {
+  it('can build another context after being destroyed', async () => {
+    // init() returns initPromise before it looks at anything else, so
+    // leaving it set meant a destroyed engine could never build another
+    // context: init() resolved instantly, having done nothing, and every
+    // caller went on believing audio was ready.
+    vi.stubGlobal('document', {
+      addEventListener: () => {},
+      removeEventListener: () => {},
+      get visibilityState() { return 'visible'; }
+    });
+    let built = 0;
+    vi.stubGlobal('AudioContext', class FakeContext {
+      constructor() {
+        built += 1;
+        this.state = 'running';
+        this.destination = {};
+      }
+      createGain() { return { gain: { value: 0 }, connect: () => {} }; }
+      addEventListener() {}
+      removeEventListener() {}
+      close() { this.state = 'closed'; return Promise.resolve(); }
+    });
+
+    const engine = new AudioEngine();
+    vi.spyOn(engine, 'loadAssets').mockResolvedValue(undefined);
+    await engine.init();
+    expect(built).toBe(1);
+
+    engine.destroy();
+    expect(engine.initPromise).toBeNull();
+
+    engine._destroyed = false;
+    await engine.init();
+    expect(built).toBe(2);
+  });
+
   afterEach(() => {
     vi.useRealTimers();
     vi.unstubAllGlobals();
@@ -91,6 +127,54 @@ describe('AudioEngine lifecycle ownership', () => {
       await Promise.resolve();
 
       expect(resume).toHaveBeenCalled();
+    });
+
+    it('rebuilds a context that closed, because resume cannot revive one', async () => {
+      // A closed AudioContext is final: resume() throws on one and every
+      // node built from it is inert, so the only way back is a new one.
+      // Safari closes contexts under memory pressure, and this used to
+      // leave the page silent with a reload as the only cure.
+      const built = [];
+      vi.stubGlobal('document', {
+        addEventListener: () => {},
+        removeEventListener: () => {},
+        get visibilityState() { return 'visible'; }
+      });
+      vi.stubGlobal('AudioContext', class FakeContext {
+        constructor() {
+          built.push(this);
+          this.state = 'running';
+          this.destination = {};
+        }
+        createGain() {
+          return { gain: { value: 0 }, connect: () => {} };
+        }
+        addEventListener() {}
+        removeEventListener() {}
+        close() { this.state = 'closed'; return Promise.resolve(); }
+      });
+
+      const engine = new AudioEngine();
+      vi.spyOn(engine, 'loadAssets').mockResolvedValue(undefined);
+      await engine.init();
+      expect(built).toHaveLength(1);
+
+      engine.context.state = 'closed';
+      await engine.resume();
+
+      expect(built).toHaveLength(2);
+      expect(engine.context).toBe(built[1]);
+      expect(engine.isInitialized).toBe(true);
+    });
+
+    it('does not rebuild twice at once', async () => {
+      const engine = new AudioEngine();
+      engine._rebuilding = true;
+      const init = vi.spyOn(engine, 'init');
+
+      await engine.rebuild();
+
+      expect(init).not.toHaveBeenCalled();
     });
 
     it('tells the app the audio stopped, so the next tap can recover it', () => {
