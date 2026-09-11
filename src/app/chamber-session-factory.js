@@ -15,6 +15,8 @@ import {
 } from '../core/visual-safety.js';
 import { normalizeVisualSelection, resolveSessionWordFill } from '../core/visual-selection.js';
 import { chamberExitTarget } from './chamber-exit.js';
+import { createPresentationLens } from '../core/session-presentation.js';
+import { sessionImageryCollections } from '../core/visual-selection.js';
 
 export async function createChamberSession(operations, container, sessionData) {
     const session = sessionData || operations.getCurrentSession();
@@ -72,6 +74,12 @@ export async function createChamberSession(operations, container, sessionData) {
         // compiled session no longer arrives here defaulted
         // into a flash; this check stands behind that for any
         // config that never passed through the compiler.
+        // Imagery is slow and the Chamber is not up yet, so the fetch
+        // starts here rather than when something first needs a picture.
+        // Deliberately not awaited: it moves the cost earlier, it does
+        // not make the reading wait on it.
+        void visualCortex.warmImagery(sessionImageryCollections(session.visualConfig));
+
         const presentation = session.visualConfig?.interlocution?.presentation;
         // With flashing disabled nothing reaching here can flash, so the
         // notice is not raised: asking a reader to accept a risk the build
@@ -372,14 +380,25 @@ export async function createChamberSession(operations, container, sessionData) {
 
         operations.hideLoading();
 
+        // `presentation` already means the VISUAL presentation mode in
+        // this file (line 76). This is the other kind — how the type is
+        // set — so it is named for what it is.
+        const presentationLens = createPresentationLens(session, operations.getSettings);
+
         return new Chamber(container, {
             session: session,
             player: player,
             voice: recitationVoice,
             autoStart: true,
             audioEngine,
-            getSettings: operations.getSettings,
-            onSettingsChange: (key, value) => operations.handleSettingsChange(key, value),
+            // A composed reading opens in the presentation it was
+            // composed for; the reader's own settings answer for
+            // everything else, and for anything they reach for.
+            getSettings: presentationLens.getSettings,
+            onSettingsChange: (key, value) => {
+                presentationLens.release(key);
+                operations.handleSettingsChange(key, value);
+            },
             onDataCleared: () => operations.handleDataCleared(),
             onEnterStream: activateDeferredVisuals,
             onExit: (reason, data) => {
