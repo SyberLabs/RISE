@@ -376,7 +376,13 @@ export class Voice {
             try {
                 const source = context.createBufferSource();
                 source.buffer = entry.audioBuffer;
-                source.connect(this.audioEngine.masterGain || context.destination);
+                // voiceGain, not masterGain: the session reveal lives
+                // on sessionGain now, and the voice is deliberately not
+                // on it. Falls back through the old route for an engine
+                // that has not built the newer graph.
+                source.connect(this.audioEngine.voiceGain
+                    || this.audioEngine.masterGain
+                    || context.destination);
 
                 let settle;
                 const finished = new Promise(resolve => { settle = resolve; });
