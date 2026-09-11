@@ -285,6 +285,13 @@ export class AudioEngine {
         // steered by the player's canonical progress (never wall time)
         this._positionRamp = null;
         this._positionRampSteeredAt = null;
+
+        // Set by the app: called when the context stops running, so a
+        // reader who comes back to an interrupted page can recover it
+        // with the next thing they touch.
+        this.onInterrupted = null;
+        this._onContextStateChange = null;
+        this._onVisibilityChange = null;
     }
 
     /**
@@ -310,6 +317,8 @@ export class AudioEngine {
                         this.layerGains[layer].connect(this.masterGain);
                     }
                 }
+
+                this._bindContextLifecycle();
 
                 await this.loadAssets();
 
@@ -347,11 +356,69 @@ export class AudioEngine {
      * before each utterance.
      */
     async resume() {
-        if (!this.context || this.context.state !== 'suspended') return;
+        // SUSPENDED IS NOT THE ONLY WAY A CLOCK STOPS. WebKit has a
+        // fourth state this guard did not know about: `interrupted`,
+        // which is where an AudioContext goes when iOS takes the audio
+        // session away — the phone locks, a call arrives, the reader
+        // switches apps. Asking only about `suspended` meant resume()
+        // returned having done nothing for precisely that case, so the
+        // context stayed interrupted for the life of the page. Nothing
+        // else ever called it back, which is why the sound did not
+        // return when the reader did, why a reload did not help (the new
+        // context is created into the same interrupted audio session),
+        // and why only closing the tab worked — that is what finally
+        // releases the session.
+        //
+        // Anything that is not running is a candidate for resuming. A
+        // closed context is the exception: it cannot be revived, only
+        // rebuilt.
+        if (!this.context) return;
+        const state = this.context.state;
+        if (state === 'running' || state === 'closed') return;
         await Promise.race([
             Promise.resolve(this.context.resume()).catch(() => {}),
             new Promise(resolve => setTimeout(resolve, RESUME_WAIT_MS))
         ]);
+    }
+
+    /**
+     * Watch for the audio session being taken away and handed back.
+     *
+     * Bound once per context. Two signals matter: the context telling us
+     * its state changed, and the page telling us it is on screen again.
+     * The second is the one that recovers an interruption, because iOS
+     * does not resume a context on its own — it waits to be asked, and
+     * before this nothing asked.
+     */
+    _bindContextLifecycle() {
+        this._unbindContextLifecycle();
+        if (!this.context || typeof document === 'undefined') return;
+
+        this._onContextStateChange = () => {
+            const state = this.context?.state;
+            if (state === 'running') return;
+            // Tell the app its audio is gone, so the next tap can be
+            // spent getting it back.
+            this.onInterrupted?.(state);
+        };
+        this.context.addEventListener?.('statechange', this._onContextStateChange);
+
+        this._onVisibilityChange = () => {
+            if (document.visibilityState !== 'visible') return;
+            void this.resume();
+        };
+        document.addEventListener('visibilitychange', this._onVisibilityChange);
+    }
+
+    _unbindContextLifecycle() {
+        if (this._onContextStateChange) {
+            this.context?.removeEventListener?.('statechange', this._onContextStateChange);
+            this._onContextStateChange = null;
+        }
+        if (this._onVisibilityChange && typeof document !== 'undefined') {
+            document.removeEventListener('visibilitychange', this._onVisibilityChange);
+            this._onVisibilityChange = null;
+        }
     }
 
     /**
@@ -2184,6 +2251,7 @@ export class AudioEngine {
         this.stopSoundscape(true);
         this.stopAmbient(true);
         this.stopSpeaking();
+        this._unbindContextLifecycle();
         if (this.context) {
             this.context.close().catch(() => {});
             this.context = null;
