@@ -23,6 +23,100 @@ describe('AudioEngine lifecycle ownership', () => {
     );
   });
 
+  /**
+   * iOS takes the audio session away when the phone locks, a call
+   * arrives, or the reader leaves the browser, and it puts the
+   * AudioContext into a fourth state that is neither running nor
+   * suspended. Everything below is about the reading coming back when
+   * the reader does, rather than staying silent until the tab is closed.
+   */
+  describe('an interrupted audio session', () => {
+    it('resumes a context WebKit marked interrupted, not only a suspended one', async () => {
+      // The guard asked `state !== 'suspended'` and returned. An
+      // interrupted context therefore never had resume() called on it
+      // at all, for the whole life of the page.
+      const resume = vi.fn().mockResolvedValue(undefined);
+      const engine = new AudioEngine();
+      engine.context = { state: 'interrupted', resume };
+
+      await engine.resume();
+
+      expect(resume).toHaveBeenCalledTimes(1);
+    });
+
+    it('leaves a running context alone', async () => {
+      const resume = vi.fn().mockResolvedValue(undefined);
+      const engine = new AudioEngine();
+      engine.context = { state: 'running', resume };
+
+      await engine.resume();
+
+      expect(resume).not.toHaveBeenCalled();
+    });
+
+    it('does not try to revive a closed context', async () => {
+      // A closed context cannot be resumed, only rebuilt. Asking throws.
+      const resume = vi.fn().mockRejectedValue(new Error('closed'));
+      const engine = new AudioEngine();
+      engine.context = { state: 'closed', resume };
+
+      await engine.resume();
+
+      expect(resume).not.toHaveBeenCalled();
+    });
+
+    it('asks for the session back when the page returns to screen', async () => {
+      // iOS does not resume a context on its own after an interruption.
+      // It waits to be asked, and before this nothing asked — which is
+      // why the sound did not return when the reader did.
+      const listeners = {};
+      vi.stubGlobal('document', {
+        addEventListener: (type, fn) => { listeners[type] = fn; },
+        removeEventListener: () => {},
+        get visibilityState() { return 'visible'; }
+      });
+      const resume = vi.fn().mockResolvedValue(undefined);
+      const engine = new AudioEngine();
+      engine.context = {
+        state: 'interrupted',
+        resume,
+        addEventListener: () => {},
+        removeEventListener: () => {}
+      };
+
+      engine._bindContextLifecycle();
+      expect(typeof listeners.visibilitychange).toBe('function');
+
+      listeners.visibilitychange();
+      await Promise.resolve();
+
+      expect(resume).toHaveBeenCalled();
+    });
+
+    it('tells the app the audio stopped, so the next tap can recover it', () => {
+      const listeners = {};
+      vi.stubGlobal('document', {
+        addEventListener: () => {},
+        removeEventListener: () => {},
+        get visibilityState() { return 'visible'; }
+      });
+      const onInterrupted = vi.fn();
+      const engine = new AudioEngine();
+      engine.onInterrupted = onInterrupted;
+      engine.context = {
+        state: 'interrupted',
+        resume: vi.fn(),
+        addEventListener: (type, fn) => { listeners[type] = fn; },
+        removeEventListener: () => {}
+      };
+
+      engine._bindContextLifecycle();
+      listeners.statechange();
+
+      expect(onInterrupted).toHaveBeenCalledWith('interrupted');
+    });
+  });
+
   it('does not wait on a browser that never answers a resume', async () => {
     // Audio needs a user gesture, and `resume()` on a page that has not
     // had one does not reliably reject — on iOS Safari it commonly does
