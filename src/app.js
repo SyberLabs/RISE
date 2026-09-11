@@ -32,6 +32,7 @@ import { resolveFontSize } from './core/chamber-type-size.js';
 import { clampReadingWpm } from './core/reading-limits.js';
 import { createRouteManifest } from './app/route-manifest.js';
 import { installTestBridge } from './app/test-bridge.js';
+import { watchTabFreshness } from './core/tab-freshness.js';
 
 // THE SHELL'S OWN STYLES, AND ONLY THOSE. app.js used to import sixteen
 // stylesheets — every room's, not the Portal's — which is 220 KB of CSS
@@ -281,6 +282,7 @@ class App {
         }
 
         this.setupUtilityListeners();
+        this.watchTabFreshness();
 
         // Audio interaction listener is already set up in init()
 
@@ -1068,6 +1070,38 @@ class App {
     /**
      * Setup listeners for global utility events (Guide, Settings)
      */
+    /**
+     * Reload a tab that did not survive being away.
+     *
+     * iOS Safari reclaims memory from backgrounded tabs, and a reader who
+     * opens RISE the next morning gets the slate it paints on and nothing
+     * else. The reflex is to reload; this does it for them. It reuses the
+     * stale-build recovery payload, so the reload comes back to the view
+     * they left rather than the portal.
+     */
+    watchTabFreshness() {
+        watchTabFreshness({
+            router: this.router,
+            isReading: () => {
+                const state = this.router?.views?.get('chamber')?.instance
+                    ?.player?.sessionState?.state;
+                return state === 'playing' || state === 'interlocuting';
+            },
+            reload: () => {
+                const viewName = this.router?.currentView;
+                try {
+                    if (viewName) {
+                        sessionStorage.setItem(
+                            'rise_stale_reload', JSON.stringify({ viewName }));
+                    }
+                } catch (e) { /* private mode: reload to the portal */ }
+                console.warn('[RISE] Tab went stale while away — reloading.');
+                window.location.reload();
+            },
+            signal: this._utilityController?.signal
+        });
+    }
+
     setupUtilityListeners() {
         this._utilityController?.abort();
         this._utilityController = new AbortController();
