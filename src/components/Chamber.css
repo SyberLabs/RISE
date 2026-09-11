@@ -528,6 +528,24 @@
   justify-content: center;
 }
 
+/* The drawn icons sit inside the 24px slot the glyphs used, at the size
+   the glyphs optically occupied — a 24px box of line art next to 11px
+   digits would make the bar top-heavy. currentColor does the rest: the
+   hover, the engaged kaleidoscope and every theme already colour the
+   button, and the path follows. */
+.control-btn .icon svg,
+.chamber-begin .icon svg {
+  width: 18px;
+  height: 18px;
+  display: block;
+  overflow: visible;
+}
+
+.chamber-begin .icon svg {
+  width: 13px;
+  height: 13px;
+}
+
 .time-display {
   font-family: var(--font-mono);
   font-size: 12px;
@@ -538,7 +556,7 @@
 }
 
 .time-separator {
-  margin: 0 4px;
+  margin: 0 3px;
   color: var(--color-shadow);
 }
 
@@ -1000,13 +1018,22 @@
 .kaleidoscope-toggle.is-engaged {
   color: var(--color-light);
   opacity: 1;
+  /* The halo was a text-shadow, which a drawn icon does not have: it
+     shades glyphs, and there is no glyph here any more. drop-shadow
+     follows the path itself, which is what the glow was always meant
+     to trace. */
   text-shadow: 0 0 12px rgba(199, 210, 255, 0.45);
+}
+
+.kaleidoscope-toggle.is-engaged .icon svg {
+  filter: drop-shadow(0 0 5px rgba(199, 210, 255, 0.55));
 }
 
 .kaleidoscope-toggle.is-engaged .icon {
   /* A slow turn, never a spin: it echoes the rosette without
-     competing with the reading for attention. */
-  display: inline-block;
+     competing with the reading for attention. Kept `flex` — the rule
+     said `inline-block` for a glyph that centred itself on its
+     baseline, and the drawn icon centres on the box instead. */
   animation: kaleidoscope-turn 24s linear infinite;
 }
 
@@ -1687,10 +1714,17 @@
      it were touching it. The room it takes comes back off the icons,
      which have their tap target from their own size rather than from the
      space between them — the bar's total width is unchanged. */
+  /* THE CLOCK IS ONE THING, AND THE GEAR IS THE NEXT ONE. Equal margins
+     put as much room inside the reading of "0:43 / 4:38" as between it
+     and the control beside it, so the elapsed and total times read as two
+     separate items and the gear read as though it belonged to them. The
+     air belongs on the outside edge: the pair closes up, and the gear
+     steps away from it. */
   .chamber-controls .time-display {
     font-size: 11px;
     min-width: 0;
-    margin-inline: var(--space-xs);
+    margin-inline-start: var(--space-xs);
+    margin-inline-end: var(--space-sm);
   }
 
   .chamber-controls .control-btn {
@@ -1778,4 +1812,5 @@
   .page-turn { gap: 0; }
   .chamber-display.page-mode-on .control-btn { padding: 4px; }
   .chamber-display.page-mode-on .control-btn .icon { width: 20px; height: 20px; }
+  .chamber-display.page-mode-on .control-btn .icon svg { width: 16px; height: 16px; }
 }

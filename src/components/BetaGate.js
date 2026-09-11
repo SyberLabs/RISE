@@ -162,7 +162,7 @@ export class BetaGate {
       <div class="beta-welcome">
         <div class="beta-welcome-text">
           <p>An audiovisual reader: curated texts, paced to be entered rather than skimmed, with museum imagery and sound arranged around the words.</p>
-          <p>It runs entirely in your browser. Nothing you read is sent anywhere.</p>
+          <p>RISE is a fully client-side application. The reading happens on your device — there is nothing to sign into, and nothing leaves the browser.</p>
         </div>
 
         <button id="beta-enter" class="beta-enter-btn">
