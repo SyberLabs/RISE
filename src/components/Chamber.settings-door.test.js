@@ -68,9 +68,15 @@ describe('Chamber Settings door', () => {
     expect(settings).toBeTruthy();
     // A gear, like every other control in this bar. The word "Settings"
     // was the longest thing in a row that has to stay out of the way, and
-    // the one word among glyphs.
+    // the one word among icons.
     expect(settings.querySelector('.icon')).toBeTruthy();
-    expect(settings.textContent.trim()).toBe('⚙');
+    // DRAWN, NOT TYPED. This asked for the character U+2699, which a
+    // desktop resolves from a text font and iOS hands to the emoji font
+    // instead - so the bar that passed this test on a laptop arrived on
+    // a phone as a row of small colour cartoons. The control carries a
+    // path now, and holds no text at all.
+    expect(settings.querySelector('.icon svg')).toBeTruthy();
+    expect(settings.textContent.trim()).toBe('');
     expect(settings.getAttribute('aria-label')).toBe('Settings');
     expect(container.querySelector('#chamber-field #chamber-settings-btn')).toBeNull();
     expect(bar.contains(settings)).toBe(true);
