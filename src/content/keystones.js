@@ -51,10 +51,27 @@ export const KEYSTONE_MANIFESTS = freeze([
       expectedLabel: 'Book II'
     },
     visual: { kind: 'procedural', id: 'fractal' },
+    // THE ONE KEYSTONE THAT READS A WORD AT A TIME.
+    //
+    // Fit needs all four of thick face, `fit` size, word timing and a
+    // gallery presentation, and word timing is why this piece and not
+    // another: an aphorism is already read one thought at a time, so a
+    // single word holding the frame is how the text works rather than a
+    // trick played on it. Ovid is narrative and Wordsworth is lyric;
+    // word timing fights the sentence in one and the line in the other.
+    //
+    // AND WHY IT CANNOT BE SPOKEN. The voice pack is one recording per
+    // PHRASE, so a reading cut by word has nothing to play — the orbital
+    // locks Word and Sentence whenever Recitation is on, for that reason
+    // and says so. Dropping the capability is what turns the voice off;
+    // it is not a judgement about the reading, it is the pack's shape.
+    presentation: { chamberFace: 'thick', fontSize: 'fit' },
+    chunkMode: 'word',
+    mask: { kind: 'collection', id: 'aic-knights' },
     soundscape: 'faded-signal',
     galleryCadence: 0.5,
     admitted: true,
-    capabilities: [SEQUENCE_CAPABILITIES.RECITATION_AUDIO]
+    capabilities: []
   },
   {
     schema: KEYSTONE_SCHEMA,
@@ -80,6 +97,9 @@ export const KEYSTONE_MANIFESTS = freeze([
       expectedLabel: 'Book I · Creation of the World'
     },
     visual: { kind: 'procedural', id: 'ostensoria' },
+    // Stated rather than left to the reader's default, so the piece is
+    // the same piece for someone who reads everything else in Thick.
+    presentation: { chamberFace: 'literary' },
     soundscape: 'aurora',
     galleryCadence: 0.5,
     admitted: true,
@@ -100,6 +120,9 @@ export const KEYSTONE_MANIFESTS = freeze([
       expectedLabel: 'Volume I · Lines Written a Few Miles Above Tintern Abbey, on Revisiting the Banks of the Wye During a Tour'
     },
     visual: { kind: 'collection', id: 'aic-landscapes' },
+    // Stated rather than left to the reader's default, so the piece is
+    // the same piece for someone who reads everything else in Thick.
+    presentation: { chamberFace: 'literary' },
     soundscape: 'aurora',
     galleryCadence: 0.15,
     admitted: true,
@@ -160,6 +183,17 @@ function visualAvailable(visual) {
 function visualConfig(manifest) {
   const procedural = manifest.visual.kind === 'procedural' ? [manifest.visual.id] : [];
   const sourced = manifest.visual.kind === 'collection' ? [manifest.visual.id] : [];
+  // A mask is a SECOND playlist, inside the room rather than beside it:
+  // the room keeps its own imagery and the fit word is filled from this.
+  // Declaring it as an object is also what tells the capability resolver
+  // the mask was asked for, rather than inherited from a legacy switch.
+  const mask = manifest.mask
+    ? {
+        mode: 'pick',
+        procedural: manifest.mask.kind === 'procedural' ? [manifest.mask.id] : [],
+        sourced: manifest.mask.kind === 'collection' ? [manifest.mask.id] : []
+      }
+    : null;
   return {
     consentScope: globalThis.crypto?.randomUUID?.() || `keystone:${manifest.slug}`,
     visualMode: 'interlocution',
@@ -171,7 +205,8 @@ function visualConfig(manifest) {
       atriumCollections: sourced,
       presentation: 'continuous',
       galleryCadence: manifest.galleryCadence,
-      responsive: false
+      responsive: false,
+      ...(mask ? { wordFill: mask, wordFillDeclared: true } : {})
     }
   };
 }
@@ -184,7 +219,9 @@ function sessionInput(manifest, work, entry, recitationEnabled) {
     textSource: `${manifest.title} · ${entry.label}`,
     sourceId: `keystone:${manifest.slug}`,
     wpm: 200,
-    chunkMode: 'phrase',
+    // Phrase unless the piece is composed otherwise — see Meditations,
+    // whose Fit setting is only reachable a word at a time.
+    chunkMode: manifest.chunkMode || 'phrase',
     curve: 'flat',
     revealMode: 'progressive',
     verseLines: entry.verse === true,
@@ -195,6 +232,7 @@ function sessionInput(manifest, work, entry, recitationEnabled) {
     recitation: { enabled: recitationEnabled },
     voiceId: DEFAULT_VOICE_ID,
     visualConfig: visualConfig(manifest),
+    presentation: manifest.presentation || null,
     origin: { view: 'keystones', icon: '✦', name: 'Keystones' },
     provenance: {
       kind: 'keystone',
@@ -239,28 +277,40 @@ export async function resolveKeystone(slug, { allowIncomplete = false } = {}) {
 
   let input = null;
   let coverage = Object.freeze({ speakable: 0, missing: 0, complete: false });
+  // A PIECE COMPOSED TO BE READ SILENTLY IS NOT MISSING ITS RECORDINGS.
+  // The pack holds one clip per PHRASE, so a Keystone cut by word could
+  // never be covered by it — measuring it would raise a blocker on every
+  // release for a recitation the composition does not want. Coverage is
+  // evidence only where the piece claims the capability.
+  const speaks = (manifest.capabilities || [])
+    .includes(SEQUENCE_CAPABILITIES.RECITATION_AUDIO);
   // Voice coverage is independent evidence. Report it even when the visual
   // collection is absent, otherwise one early blocker hides another and the
   // release report becomes sequential whack-a-mole.
   if (resolved.work && resolved.entry) {
-    const silentInput = sessionInput(manifest, resolved.work, resolved.entry, false);
-    const silentSession = compileSession(silentInput);
-    coverage = Object.freeze(new Voice({
-      voiceId: DEFAULT_VOICE_ID,
-      manifest: voicePackManifest
-    }).coverage(silentSession.atoms));
-    if (!coverage.complete) {
-      blockers.push(sourceBlocker(
-        'KEYSTONE_RECITATION_INCOMPLETE',
-        `Complete recitation is unavailable (${coverage.missing} of ${coverage.speakable} phrases missing).`
-      ));
+    if (speaks) {
+      const silentInput = sessionInput(manifest, resolved.work, resolved.entry, false);
+      const silentSession = compileSession(silentInput);
+      coverage = Object.freeze(new Voice({
+        voiceId: DEFAULT_VOICE_ID,
+        manifest: voicePackManifest
+      }).coverage(silentSession.atoms));
+      if (!coverage.complete) {
+        blockers.push(sourceBlocker(
+          'KEYSTONE_RECITATION_INCOMPLETE',
+          `Complete recitation is unavailable (${coverage.missing} of ${coverage.speakable} phrases missing).`
+        ));
+      }
+    } else {
+      // Nothing was required, so nothing is missing.
+      coverage = Object.freeze({ speakable: 0, missing: 0, complete: true });
     }
     const admitted = manifest.admitted === true && blockers.every(
       blocker => blocker.code === 'KEYSTONE_SOURCE_UNCERTIFIED'
     );
     if (visualAvailable(manifest.visual)
       && (blockers.length === 0 || admitted || allowIncomplete)) {
-      input = sessionInput(manifest, resolved.work, resolved.entry, coverage.complete);
+      input = sessionInput(manifest, resolved.work, resolved.entry, speaks && coverage.complete);
     }
   }
 
