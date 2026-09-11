@@ -148,6 +148,13 @@ const MUSICAL_LAYERS = Object.freeze(['binaural', 'harmonics', 'noise', 'drone',
     'ambient', 'swell', 'soundscape']);
 const BED_LAYERS = Object.freeze(MUSICAL_LAYERS.filter(name => name !== 'swell'));
 
+/**
+ * How long anything on a loading path will wait for a suspended context
+ * to come back before carrying on without it. Long enough for a resume
+ * that is going to happen; short enough that a reader never sees it.
+ */
+const RESUME_WAIT_MS = 250;
+
 export class AudioEngine {
     constructor(options = {}) {
         this.onUnavailable = options.onUnavailable || (() => {});
@@ -323,12 +330,28 @@ export class AudioEngine {
     }
 
     /**
-     * Resume audio context if suspended
+     * Resume audio context if suspended.
+     *
+     * BOUNDED, BECAUSE A BROWSER MAY SIMPLY NOT ANSWER. Audio needs a
+     * user gesture, and `resume()` on a page that has not had one does
+     * not reliably reject — on iOS Safari the promise commonly does not
+     * settle at all until a gesture arrives. Everything that awaited this
+     * therefore awaited a person, and startSession awaits it with the
+     * loading screen in front of the reader: refreshing a keystone URL,
+     * where the reader has tapped nothing yet, stuck that screen at
+     * 'Stabilizing carrier frequencies' until something else gave way.
+     *
+     * The reading is not allowed to depend on it. We ask, we wait a
+     * moment in case the answer is quick, and then we carry on either
+     * way — the context is asked again at the next gesture, and again
+     * before each utterance.
      */
     async resume() {
-        if (this.context && this.context.state === 'suspended') {
-            await this.context.resume();
-        }
+        if (!this.context || this.context.state !== 'suspended') return;
+        await Promise.race([
+            Promise.resolve(this.context.resume()).catch(() => {}),
+            new Promise(resolve => setTimeout(resolve, RESUME_WAIT_MS))
+        ]);
     }
 
     /**

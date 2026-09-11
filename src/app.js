@@ -301,9 +301,10 @@ class App {
         this._audioInteractionController = new AbortController();
         const listenerOptions = { signal: this._audioInteractionController.signal };
         const initAudio = async () => {
+            let engine = null;
             try {
                 console.log('[RISE] First interaction - Initializing audio context');
-                const engine = await this.ensureAudioEngine();
+                engine = await this.ensureAudioEngine();
                 await engine.init();
                 await engine.resume();
                 if (this.settings?.enableAmbient) {
@@ -312,7 +313,19 @@ class App {
             } catch (error) {
                 console.warn('[RISE] Audio initialization unavailable:', error);
             } finally {
-                this._audioInteractionController?.abort();
+                // STAND DOWN ONLY ONCE THE CONTEXT IS ACTUALLY RUNNING.
+                // This disarmed on the first interaction whatever came of
+                // it, and an attempt can come to nothing for reasons that
+                // have nothing to do with the reader: a resume that races
+                // the gesture, or one a browser declines because the
+                // event it arrived on did not count as activation. When
+                // that happened there was nothing left listening, and
+                // audio stayed off until something else happened to
+                // resume it — which, for a reading, was the reader
+                // pausing and playing.
+                if (engine?.context?.state === 'running') {
+                    this._audioInteractionController?.abort();
+                }
             }
         };
 
