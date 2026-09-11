@@ -422,6 +422,7 @@ export class Player {
      */
     pause() {
         if (this.sessionState.state !== 'playing' && this.sessionState.state !== 'interlocuting') return;
+        this._clearSpeechWatchdog();
 
         const wasInterlocuting = this.sessionState.state === 'interlocuting';
         this.sessionState.state = 'paused';
@@ -487,6 +488,11 @@ export class Player {
      */
     stop() {
         this._playbackEpoch++;
+        // The utterance this was guarding is over either way. Leaving it
+        // running keeps a timer alive past the reading; it could only
+        // ever fire into a state check that turns it away, but a timer
+        // nobody is waiting on should not outlive its atom.
+        this._clearSpeechWatchdog();
         try {
             this.interlocutionCancelHandler?.('aborted');
         } catch (error) {
