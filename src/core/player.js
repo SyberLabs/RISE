@@ -864,9 +864,23 @@ export class Player {
         // utterance's actual end — not an estimated duration — to advance
         // the reading. The atom listener has already started playback and
         // exposed its completion promise through this override.
-        const completion = !isResuming && this.shuttle.atHome
-            ? this.atomCompletionOverride?.(atom, this.sessionState.currentIndex)
-            : null;
+        //
+        // AND IT IS ASKED FOR BEHIND A GUARD. What this override does is
+        // not small: for Recitation it starts the audio AND lays out the
+        // word reveal, synchronously, before it hands back a promise. A
+        // throw anywhere in there used to leave this method without
+        // having scheduled anything — the reading stopped on the phrase
+        // it was showing and only a pause and a play could move it, which
+        // is the same end as a promise that never settles and the same
+        // report. The clock is allowed to fail; the reading is not.
+        let completion = null;
+        if (!isResuming && this.shuttle.atHome) {
+            try {
+                completion = this.atomCompletionOverride?.(atom, this.sessionState.currentIndex);
+            } catch {
+                completion = null;
+            }
+        }
         if (completion && typeof completion.then === 'function') {
             // A completion governor may begin lazily here. Full-frame
             // Recitation does exactly that: the next phrase is laid out while

@@ -81,6 +81,23 @@ describe('event-governed atom completion', () => {
         raf.mockRestore();
     });
 
+    it('carries on when starting the utterance throws', () => {
+        // The override does not merely hand back a promise: for Recitation
+        // it starts the audio AND lays out the word reveal, synchronously,
+        // before returning. A throw anywhere in there left this method
+        // having scheduled nothing at all — the same dead stop as a
+        // promise that never settles, from a different direction.
+        const player = new Player(session());
+        player.sessionState.state = 'playing';
+        player.atomCompletionOverride = () => { throw new Error('speak failed'); };
+        const raf = vi.spyOn(globalThis, 'requestAnimationFrame');
+
+        expect(() => player.scheduleNextAtom()).not.toThrow();
+        // It fell back to the ordinary timer rather than stopping.
+        expect(raf).toHaveBeenCalled();
+        raf.mockRestore();
+    });
+
     it('does not wait forever for an end that never comes', () => {
         // THE THIRD WAY THIS PROMISE CAN GO WRONG. A completion that
         // resolves badly degrades to the timer, and one that rejects
