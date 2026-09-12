@@ -251,7 +251,14 @@ function spaceReveals(times, budgetMs) {
     const out = [];
     let floor = -Infinity;
     for (const at of times) {
-        let placed = at;
+        // WHOLE MILLISECONDS, BECAUSE THAT IS WHAT THE READER GETS. The
+        // schedule is rounded on its way out, so two times that differ by
+        // less than a millisecond are one time as far as the reveal is
+        // concerned. Comparing the unrounded values let a pair 5e-13
+        // apart - the ordinary residue of dividing a span by a weight -
+        // pass a guard whose whole purpose was to keep them apart, and
+        // the rounding then put them back on the same instant.
+        let placed = Math.round(at);
         if (placed <= floor) placed = floor + ONSET_MIN_SPACING_MS;
         if (ceiling > 0 && placed > ceiling) placed = Math.max(floor, ceiling);
         out.push(placed);
