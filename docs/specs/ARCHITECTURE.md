@@ -157,7 +157,7 @@ flowchart LR
     sources["sources<br/>text and visual providers<br/>22 modules"]
     visuals["visuals<br/>procedural generation<br/>54 modules"]
 
-    app -.-> |2 lazy| audio
+    app -.-> |3 lazy| audio
     app --> |1| components
     app -.-> |6 lazy| content
     app --> |21| core

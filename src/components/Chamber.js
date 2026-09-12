@@ -404,10 +404,17 @@ export class Chamber {
         // it does not, do not open a silent reading - show the threshold
         // this session already has, whose Begin is a real gesture, and
         // let the reader start it themselves.
-        if (this._sessionWantsAudio()) {
-          await this.audioEngine?.resume?.();
+        // ONLY WHEN THERE IS A CONTEXT AND IT WILL NOT RUN. A missing
+        // context is not evidence of a refused one - the engine may
+        // simply not have been asked yet, and stalling a reading that
+        // would have played is worse than the silence this exists to
+        // prevent. So this defers on the one state it can actually read:
+        // a context that exists, has been asked for the clock, and did
+        // not get it.
+        if (this._sessionWantsAudio() && this.audioEngine?.context) {
+          await this.audioEngine.resume();
           if (this._destroyed || this.pageModeActive) return;
-          const state = this.audioEngine?.context?.state ?? 'none';
+          const state = this.audioEngine.context?.state ?? 'none';
           if (state !== 'running' && this._deferToGesture()) {
             audioDiag('autostart:deferred', { context: state });
             console.warn('[Chamber] No audio clock yet — waiting for the reader.');
