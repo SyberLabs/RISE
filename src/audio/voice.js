@@ -470,7 +470,13 @@ export class Voice {
         // source started here begins the moment the clock does. Where the
         // browser refuses outright the Player's watchdog carries the
         // reading on without it.
-        if (context?.state === 'suspended') {
+        // ANY STATE THAT IS NOT RUNNING, not only `suspended`. The engine
+        // learned about WebKit's `interrupted` and about rebuilding a
+        // closed context; this call site did not, so the narration layer
+        // held a narrower idea of "needs waking" than the engine it was
+        // asking. A context iOS had interrupted was never asked to come
+        // back from here at all.
+        if (context && context.state !== 'running') {
             void Promise.resolve(this.audioEngine?.resume?.()).catch(() => {});
         }
 

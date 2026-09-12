@@ -18,6 +18,7 @@ import {
   splitWords, stripEmphasis, sizeAtomScale, revealBudget, revealSchedule
 } from '../core/recitation.js';
 import { Voice } from '../audio/voice.js';
+import { audioDiag } from '../core/audio-diagnostics.js';
 
 /**
  * The bar's icons, drawn rather than typed.
@@ -381,9 +382,40 @@ export class Chamber {
       // Auto-start if requested (skip pre-session screen). Tracked and
       // Page-aware: a reader who opens the Page inside this delay must
       // not have a stream start underneath them when it fires.
-      this._autoStartTimer = setTimeout(() => {
+      this._autoStartTimer = setTimeout(async () => {
         this._autoStartTimer = null;
         if (this._destroyed || this.pageModeActive) return;
+
+        // A READING MUST NOT BEGIN INTO A CONTEXT THAT IS NOT RUNNING.
+        //
+        // Browsers will not start audio without a gesture, and RISE has a
+        // path that reaches a reading without ever collecting one: the
+        // threshold gate grants access immediately when localStorage
+        // already holds a session, so a returning reader is admitted with
+        // no click at all. The AudioContext is then created suspended,
+        // resume() is refused because nothing was tapped, and the reading
+        // opens in silence - the whole reading, not the first phrase,
+        // because the clock never starts. It looks intermittent only
+        // because any incidental tap before this fires cures it, and a
+        // first-time visitor never sees it: the gate's own button IS the
+        // gesture, which is why a fresh origin cannot reproduce it.
+        //
+        // Ask for the clock. If the browser gives it, begin as before. If
+        // it does not, do not open a silent reading - show the threshold
+        // this session already has, whose Begin is a real gesture, and
+        // let the reader start it themselves.
+        if (this._sessionWantsAudio()) {
+          await this.audioEngine?.resume?.();
+          if (this._destroyed || this.pageModeActive) return;
+          const state = this.audioEngine?.context?.state ?? 'none';
+          if (state !== 'running' && this._deferToGesture()) {
+            audioDiag('autostart:deferred', { context: state });
+            console.warn('[Chamber] No audio clock yet — waiting for the reader.');
+            return;
+          }
+          audioDiag('autostart', { context: state });
+        }
+
         console.log('[Chamber] Auto-starting session...');
         if (document.documentElement.requestFullscreen) {
           document.documentElement.requestFullscreen().catch(() => { });
@@ -1156,6 +1188,36 @@ export class Chamber {
       if (this.player?.shuttle?.atHome) hud.classList.add('hidden');
       else this.showShuttleHud(this.player?.shuttle?.velocity ?? 1);
     }, 1600);
+  }
+
+  /** Whether this reading has anything to say or play. */
+  _sessionWantsAudio() {
+    const session = this.session;
+    if (!session || !this.audioEngine) return false;
+    return session.recitation?.enabled === true
+      || Boolean(session.selectedSwellId)
+      || (session.soundscape && session.soundscape !== 'none')
+      || (session.audioPreset && session.audioPreset !== 'silent')
+      || session.audioProgram?.segments?.length > 0;
+  }
+
+  /**
+   * Hand the opening back to the reader.
+   *
+   * The threshold this session already renders is the affordance: its
+   * Begin runs the same beginSession() an ordinary launch does, and the
+   * tap that reaches it is the gesture the audio was missing. Returns
+   * false if there is no threshold to show, in which case a silent
+   * reading is still better than no reading.
+   */
+  _deferToGesture() {
+    const pre = this.container.querySelector('#chamber-pre');
+    const display = this.container.querySelector('#chamber-display');
+    if (!pre || !display) return false;
+    display.style.display = 'none';
+    pre.style.display = '';
+    pre.style.opacity = '1';
+    return true;
   }
 
   beginSession() {
