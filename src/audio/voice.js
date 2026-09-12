@@ -17,6 +17,11 @@ import {
 } from './voice-pack.js';
 import { audioDiag } from '../core/audio-diagnostics.js';
 
+/** A gain node's current value, or why there isn't one. */
+const level = node => (typeof node?.gain?.value === 'number'
+    ? node.gain.value.toFixed(3)
+    : (node ? 'nogain' : 'none'));
+
 /** One retry. A second failure is treated as the phrase being unavailable. */
 const LOAD_ATTEMPTS = 2;
 
@@ -479,9 +484,15 @@ export class Voice {
             // start() is as much a part of "did it play" as the state is.
             // Read totally. A diagnostic that can throw is a diagnostic
             // that breaks the path it was added to observe.
-            gain: typeof this.audioEngine?.masterGain?.gain?.value === 'number'
-                ? this.audioEngine.masterGain.gain.value.toFixed(3)
-                : 'none',
+            //
+            // THREE BUSES NOW, AND SILENCE CAN COME FROM ANY OF THEM. The
+            // voice runs through voiceGain into masterGain; the bed runs
+            // through sessionGain into the same master. A zero anywhere
+            // on that chain is a phrase that decoded, started and ended
+            // with every sample multiplied by nothing.
+            voiceGain: level(this.audioEngine?.voiceGain),
+            sessionGain: level(this.audioEngine?.sessionGain),
+            masterGain: level(this.audioEngine?.masterGain),
             ctxTime: typeof context?.currentTime === 'number'
                 ? context.currentTime.toFixed(3)
                 : 'none',
