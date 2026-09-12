@@ -57,6 +57,30 @@ import './premium-additions.css';
  * index. Reloading ONCE per session, guarded by a sentinel, because a
  * genuine network failure would otherwise reload forever.
  */
+/**
+ * THE FLAG HAS TO BE READ BEFORE THE ROUTER REWRITES THE ADDRESS.
+ *
+ * `?diag=1` turns on the audio diagnostic panel, and the panel reads it
+ * the first time anything asks it to record something - which is inside
+ * the audio engine, long after boot. By then the router has called
+ * history.pushState with a bare path, and the query the reader typed is
+ * gone: the panel concludes it was never asked for and never appears.
+ * That is why it could not be seen on the deployed site while working
+ * perfectly on a preview, where the flag was still in the URL at the
+ * moment the first clip played.
+ *
+ * Read here instead, at module scope, before a route has been resolved
+ * or an address rewritten, and leave the answer where the panel looks
+ * for it. Costs three lines in the entry and no import.
+ *
+ * Goes when the panel goes.
+ */
+try {
+    if (/(?:^|[?&])diag=1(?:&|$)/u.test(window.location.search || '')) {
+        sessionStorage.setItem('rise:audio-diag', '1');
+    }
+} catch (e) { /* private mode: the flag lasts as long as the URL does */ }
+
 export const STALE_BUILD_SENTINEL = 'rise_reloaded_for_stale_build';
 
 window.addEventListener('vite:preloadError', (event) => {
