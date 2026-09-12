@@ -106,6 +106,24 @@ class App {
         // starts, it is simply also the moment the engine is fetched.
         this.setupAudioInteraction();
 
+        // AND FETCH THE ENGINE BEFORE THE GESTURE, NOT BECAUSE OF IT.
+        //
+        // The listener above used to reach the AudioContext through a
+        // dynamic import: the tap arrived, `import('./audio/engine.js')`
+        // went to the network, and only when that resolved did anything
+        // construct a context. A browser grants audio to a gesture, not
+        // to whatever happens to run some hundreds of milliseconds after
+        // one, and Safari is strictest about it - so the tap meant to
+        // unlock audio could find its privilege already spent by the time
+        // there was a context to unlock.
+        //
+        // Starting the fetch here costs nothing that was not going to be
+        // paid anyway, and opens no context: ensureAudioEngine builds the
+        // engine object, and only init() creates an AudioContext. By the
+        // time a reader touches anything the module is resident, and the
+        // gesture reaches the context without crossing the network.
+        void this.ensureAudioEngine().catch(() => { /* audio stays off */ });
+
         // Check beta access - this will call initializeApp when access is granted
         // (either immediately if already authenticated, or after user enters code)
         await this.checkBetaAccess();
