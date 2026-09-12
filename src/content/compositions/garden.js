@@ -207,13 +207,31 @@ export const GARDEN_LEAF = Object.freeze({
  * staggering it read as ten flowers collapsing at different rates rather
  * than as one breath drawn back in.
  *
- * The stems follow the same clock: every flower has shut before any stem
- * begins to withdraw.
+ * The stems follow the same clock, and OVERLAP it: the ground begins
+ * taking them back halfway through the fold, so the closing and the
+ * withdrawal are two halves of one movement rather than two movements
+ * with a pause between them.
  */
 export const GARDEN_CLOSE = Object.freeze({
-  fromMs: 16_500,
+  // Overlapping the recession with the fold below took 1.3s out of the
+  // closing, and that time did not disappear — it reappeared as a longer
+  // stretch of bare bed before the card, which is the same held beat in
+  // a different place. It goes back to the flowers instead: the bed is
+  // bare at the moment it always was, every beat after this is untouched,
+  // and the blooms stand a second and a third longer.
+  fromMs: 17_800,
   foldMs: 2_600,
-  recedeMs: 2_000
+  recedeMs: 2_000,
+  // WHERE IN THE FOLD THE GROUND TAKES THE STEMS BACK.
+  //
+  // Nothing receded until every flower had shut, and the seam showed: a
+  // held beat with the bed full of closed buds on stems that had not yet
+  // moved. A garden does not pause between two halves of one gesture.
+  // Starting the withdrawal at the fold's midpoint runs the second half
+  // of the closing into the first half of the receding, and the two read
+  // as one movement. Nothing before the midpoint moves, so the flowers
+  // still visibly close BEFORE they are carried down.
+  recedeAtFold: 0.5
 });
 
 /**
@@ -252,7 +270,16 @@ export const GARDEN_BUD_SCALE = 0.16;
  */
 export const GARDEN_WORDMARK = Object.freeze({
   text: 'RISE',
-  seed: `${GARDEN_SEED}:wordmark`,
+  // CHOSEN, NOT DERIVED. Every other seed in this piece hangs off
+  // GARDEN_SEED, because what it selects is arbitrary and only has to be
+  // repeatable. This one selects the flame the name is filled with, and
+  // it was picked by auditioning twenty-nine of them through the letter
+  // strokes — which is the only place a wordmark flame can be judged,
+  // since a stroke shows perhaps a tenth of the image. This attractor
+  // carries a colour arc across the word: violet through the R, cyan at
+  // the I and S, mint at the E, which is the garden's own green arriving
+  // in the name. Changing this string changes the artwork.
+  seed: 'rise-flame-25',
   fontFamily: "'Marcellus', 'Space Grotesk', Georgia, serif",
   fontWeight: 400,
   fontSize: 250,
@@ -262,7 +289,32 @@ export const GARDEN_WORDMARK = Object.freeze({
   fromMs: 11_000,
   letterStaggerMs: 300,
   letterRevealMs: 3_800,
-  settleScale: 1.05
+  settleScale: 1.05,
+  /**
+   * How the fill is rendered, rather than how it is shaped.
+   *
+   * These belong to the score because they are choices about the piece,
+   * and because a flame can only be judged through the strokes that show
+   * it — auditioning one means swapping these, not editing the painter.
+   *
+   * ITERATIONS ARE THE WHOLE GAME. A chaos game resolves out of noise as
+   * samples accumulate; the first version drew 900_000 of them over
+   * 583_200 pixels, which is one and a half samples each, and one and a
+   * half samples is confetti. That is what the name was filled with. The
+   * count below is a hundred times the density, and brightness comes
+   * down to meet it — the two are inverse, and raising one without
+   * lowering the other only clips the letters to white.
+   */
+  flame: Object.freeze({
+    // 45 million over 583_200 pixels: seventy-seven samples each, against
+    // the one and a half it started with. Ninety million was measured too
+    // and is not better — it costs fourteen seconds more and, at the
+    // brightness it then needs, reads duller.
+    iterations: 45_000_000,
+    gamma: 2.2,
+    brightness: 1.2,
+    vibrancy: 1.35
+  })
 });
 
 /**
@@ -382,7 +434,7 @@ export function stemAt(blossom, elapsedMs, stem = GARDEN_STEM, close = GARDEN_CL
   const now = Number(elapsedMs) || 0;
   const start = (Number(blossom?.startMs) || 0) - stem.leadMs;
   const grown = easeOutCubic((now - start) / stem.leadMs);
-  const recedeFrom = close.fromMs + close.foldMs;
+  const recedeFrom = close.fromMs + close.foldMs * close.recedeAtFold;
   if (now <= recedeFrom) return grown;
   // Eased at both ends, for the same reason the fold is.
   return grown * (1 - easeInOut((now - recedeFrom) / close.recedeMs));

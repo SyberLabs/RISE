@@ -8,6 +8,7 @@ import {
   GARDEN_DURATION_MS,
   GARDEN_GRAIN,
   GARDEN_GROUND,
+  GARDEN_SEED,
   GARDEN_SCORE,
   GARDEN_STEM,
   GARDEN_WORDMARK,
@@ -151,13 +152,41 @@ describe('the garden closing', () => {
     }
   });
 
-  it('withdraws every stem on one clock, once all of them have shut', () => {
-    // Nothing recedes while anything is still folding.
-    expect(new Set(stems(GARDEN_CLOSE.fromMs + GARDEN_CLOSE.foldMs))).toEqual(new Set([1]));
+  it('withdraws every stem on one clock, from the middle of the fold', () => {
+    const { fromMs, foldMs, recedeMs, recedeAtFold } = GARDEN_CLOSE;
+    const recedeFrom = fromMs + foldMs * recedeAtFold;
+    // Nothing moves early: the flowers are seen to close before the
+    // ground begins taking them.
+    expect(new Set(stems(recedeFrom))).toEqual(new Set([1]));
     for (const fraction of [0.25, 0.5, 0.75, 1]) {
-      const ms = GARDEN_CLOSE.fromMs + GARDEN_CLOSE.foldMs + GARDEN_CLOSE.recedeMs * fraction;
+      const ms = recedeFrom + recedeMs * fraction;
       expect(new Set(stems(ms)).size, `stems at ${ms}`).toBe(1);
     }
+  });
+
+  it('runs the end of the fold into the start of the recession', () => {
+    // THE TWO HALVES OF ONE GESTURE, NOT TWO GESTURES. Waiting for the
+    // last flower to shut before moving a stem left a held beat with the
+    // bed full of closed buds standing still.
+    const { fromMs, foldMs, recedeAtFold } = GARDEN_CLOSE;
+    const blossom = GARDEN_BLOSSOMS[0];
+    const overlapFrom = fromMs + foldMs * recedeAtFold;
+
+    // Through the first half of the fold, only the flowers move.
+    expect(stemAt(blossom, overlapFrom)).toBe(1);
+    expect(blossomAt(blossom, overlapFrom).openness).toBeCloseTo(0.5, 2);
+
+    // Through the second half, both do.
+    const mid = overlapFrom + (foldMs * (1 - recedeAtFold)) / 2;
+    expect(blossomAt(blossom, mid).openness).toBeGreaterThan(0);
+    expect(stemAt(blossom, mid)).toBeLessThan(1);
+
+    // The stem is still on its way down when the last petal shuts, so
+    // there is no moment of stillness between the two.
+    const shut = fromMs + foldMs;
+    expect(blossomAt(blossom, shut).openness).toBe(0);
+    expect(stemAt(blossom, shut)).toBeGreaterThan(0);
+    expect(stemAt(blossom, shut)).toBeLessThan(1);
   });
 
   it('takes a flower back down the way it came', () => {
@@ -178,14 +207,15 @@ describe('the garden closing', () => {
 
   it('withdraws a stem at the same measured pace', () => {
     const blossom = GARDEN_BLOSSOMS[0];
-    const from = GARDEN_CLOSE.fromMs + GARDEN_CLOSE.foldMs;
+    const from = GARDEN_CLOSE.fromMs + GARDEN_CLOSE.foldMs * GARDEN_CLOSE.recedeAtFold;
     expect(stemAt(blossom, from)).toBe(1);
     expect(stemAt(blossom, from + GARDEN_CLOSE.recedeMs / 2)).toBeCloseTo(0.5, 2);
     expect(stemAt(blossom, from + GARDEN_CLOSE.recedeMs)).toBe(0);
   });
 
   it('leaves the bed bare before the card has finished arriving', () => {
-    const bare = GARDEN_CLOSE.fromMs + GARDEN_CLOSE.foldMs + GARDEN_CLOSE.recedeMs;
+    const bare = GARDEN_CLOSE.fromMs
+      + Math.max(GARDEN_CLOSE.foldMs, GARDEN_CLOSE.foldMs * GARDEN_CLOSE.recedeAtFold + GARDEN_CLOSE.recedeMs);
     expect(bare).toBeLessThan(GARDEN_DURATION_MS);
     for (const blossom of GARDEN_BLOSSOMS) {
       expect(blossomAt(blossom, bare).openness, blossom.id).toBe(0);
@@ -220,6 +250,36 @@ describe('the dark field', () => {
     for (const ground of [GARDEN_GROUND.topColor, GARDEN_GROUND.earthColor]) {
       expect(luma(pill.color), ground).toBeLessThanOrEqual(luma(ground));
     }
+  });
+});
+
+describe('the wordmark flame', () => {
+  // The fill is drawn at half the frame's width in height.
+  const pixels = GARDEN_SCORE.viewport.width * Math.round(GARDEN_SCORE.viewport.width * 0.5);
+
+  it('draws enough samples for the chaos game to resolve', () => {
+    // THE DEFECT THIS PINS. The first version drew 900_000 samples over
+    // 583_200 pixels — one and a half each — and a chaos game at that
+    // density is not a flame, it is confetti, which is what the letters
+    // were filled with. Density is the whole difference between the two.
+    const perPixel = GARDEN_WORDMARK.flame.iterations / pixels;
+    expect(perPixel).toBeGreaterThan(40);
+  });
+
+  it('holds a brightness that suits that density', () => {
+    // The two are inverse: samples pile up in the same bins, so raising
+    // the count without lowering the gain only clips the letters white.
+    expect(GARDEN_WORDMARK.flame.brightness).toBeLessThan(4);
+    expect(GARDEN_WORDMARK.flame.brightness).toBeGreaterThan(0);
+  });
+
+  it('names the flame it was auditioned into, and not a derived seed', () => {
+    // Every other seed here hangs off GARDEN_SEED because what it picks
+    // is arbitrary. This one picks the artwork, so it is a constant and
+    // changing it is a change to the piece — including, deliberately,
+    // that it does NOT follow GARDEN_SEED if that is ever retuned.
+    expect(GARDEN_WORDMARK.seed).toBe('rise-flame-25');
+    expect(GARDEN_WORDMARK.seed.includes(GARDEN_SEED)).toBe(false);
   });
 });
 
