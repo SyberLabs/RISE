@@ -282,6 +282,7 @@ describe('static playback', () => {
         const audioEngine = {
             context,
             masterGain: {},
+            audible: true,
             setVoiceDucking: vi.fn()
         };
         audioEngine.voiceGain = { id: 'voiceGain' };
@@ -385,19 +386,25 @@ describe('static playback', () => {
         expect(arrayBuffer).not.toHaveBeenCalled();
     });
 
-    it('asks for the clock back before speaking into a suspended context', () => {
-        // A buffer started against a suspended context neither plays nor
-        // ends — `onended` never fires, the completion promise never
-        // settles, and the reading waiting on it waits for good. It is
-        // why pausing and playing cured the stall: that click is a user
-        // gesture, which is the permission a browser is waiting for.
-        const resume = vi.fn(() => Promise.resolve());
+    it('will not start a source into a context that is not running', () => {
+        // THIS TEST USED TO ASSERT THE BUG. It required resume() to be
+        // called AND the source to start anyway, which is exactly the
+        // race: a buffer started against a suspended context is scheduled
+        // on a frozen clock, so it makes no sound, its onended never
+        // fires, and the next phrase's stop() discards it. The reading
+        // looks perfect and says nothing, and the suite called that
+        // correct.
+        //
+        // Asking is still right - a later phrase may be admitted. Acting
+        // on the answer is the part that was missing.
+        const resume = vi.fn(() => Promise.resolve({ state: 'suspended', audible: false }));
         const source = { buffer: null, connect: vi.fn(), start: vi.fn(), stop: vi.fn(), onended: null };
         const voice = new Voice({
             manifest: fixtureManifest(['phrase']),
             audioEngine: {
                 context: { state: 'suspended', createBufferSource: () => source },
                 masterGain: {},
+                audible: false,
                 resume
             }
         });
@@ -405,7 +412,35 @@ describe('static playback', () => {
         voice._play({ audioBuffer: {} }, 0);
 
         expect(resume).toHaveBeenCalledTimes(1);
-        expect(source.start).toHaveBeenCalled();
+        expect(source.start).not.toHaveBeenCalled();
+    });
+
+    it('falls to the media element when Web Audio is shut', () => {
+        // A media element is a separate admission decision under its own
+        // policy, so it is worth attempting when the context is not
+        // running. That is what a fallback is for.
+        const played = [];
+        class FakeAudio {
+            constructor() { this.volume = 1; played.push(this); }
+            play() { return Promise.resolve(); }
+            pause() {}
+        }
+        vi.stubGlobal('Audio', FakeAudio);
+        vi.stubGlobal('URL', { createObjectURL: () => 'blob:x', revokeObjectURL: () => {} });
+
+        const voice = new Voice({
+            manifest: fixtureManifest(['phrase']),
+            audioEngine: {
+                context: { state: 'suspended', createBufferSource: () => ({}) },
+                audible: false,
+                config: { masterVolume: 0.5 },
+                resume: () => Promise.resolve({ state: 'suspended', audible: false })
+            }
+        });
+
+        voice._play({ audioBuffer: {}, blob: new Blob() }, 0);
+
+        expect(played).toHaveLength(1);
     });
 
     it('does not disturb a context that is already running', () => {
@@ -416,6 +451,7 @@ describe('static playback', () => {
             audioEngine: {
                 context: { state: 'running', createBufferSource: () => source },
                 masterGain: {},
+                audible: true,
                 resume
             }
         });

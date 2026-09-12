@@ -433,8 +433,38 @@ export class AudioEngine {
      * way — the context is asked again at the next gesture, and again
      * before each utterance.
      */
+    /**
+     * MAY THIS DOCUMENT MAKE A SOUND RIGHT NOW.
+     *
+     * The one question the rest of the app kept asking in pieces.
+     * `isInitialized`, `sessionActive`, `spokenReady` and `isPlaying` can
+     * all be true of a context that is not running, and every one of them
+     * was at some point read as though it meant audio. Only this means
+     * audio.
+     */
+    get audible() {
+        return this.context?.state === 'running';
+    }
+
+    /**
+     * Ask for the clock, and SAY WHETHER WE GOT IT.
+     *
+     * This used to return undefined, which made "I asked" and "audio
+     * runs" the same sentence to every caller. They are not: the ask is
+     * bounded at 250ms precisely because a browser may never answer, so
+     * returning nothing left every caller free to carry on as though it
+     * had said yes. It says which now.
+     */
     async resume() {
-        audioDiag('resume:asked', { context: this.context?.state ?? 'none' });
+        audioDiag('resume:asked', {
+            context: this.context?.state ?? 'none',
+            // Whether the browser still considers a gesture in force. The
+            // whole question is whether admission survives the work
+            // between the tap and the context.
+            activation: typeof navigator !== 'undefined' && navigator.userActivation
+                ? `${navigator.userActivation.isActive}/${navigator.userActivation.hasBeenActive}`
+                : 'unknown'
+        });
         // SUSPENDED IS NOT THE ONLY WAY A CLOCK STOPS. WebKit has a
         // fourth state this guard did not know about: `interrupted`,
         // which is where an AudioContext goes when iOS takes the audio
@@ -451,17 +481,18 @@ export class AudioEngine {
         // Anything that is not running is a candidate for resuming. A
         // closed context is the exception: resume() cannot revive one, so
         // it is rebuilt instead.
-        if (!this.context) return;
+        if (!this.context) return { state: 'none', audible: false };
         const state = this.context.state;
-        if (state === 'running') return;
+        if (state === 'running') return { state, audible: true };
         if (state === 'closed') {
             await this.rebuild();
-            return;
+            return { state: this.context?.state ?? 'none', audible: this.audible };
         }
         await Promise.race([
             Promise.resolve(this.context.resume()).catch(() => {}),
             new Promise(resolve => setTimeout(resolve, RESUME_WAIT_MS))
         ]);
+        return { state: this.context?.state ?? 'none', audible: this.audible };
     }
 
     /**

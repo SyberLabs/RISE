@@ -470,9 +470,25 @@ export class Voice {
         // source started here begins the moment the clock does. Where the
         // browser refuses outright the Player's watchdog carries the
         // reading on without it.
-        if (context?.state === 'suspended') {
+        // THE VOICE DOES NOT KNOW HOW TO UNLOCK A BROWSER AND SHOULD NOT
+        // PRETEND TO.
+        //
+        // This asked for the clock back and then started a source
+        // regardless. A buffer started against a context that is not
+        // running is scheduled on a frozen clock: it makes no sound, its
+        // onended never fires, and the next phrase's stop() discards it,
+        // so the reading looks perfect and says nothing. The ask was also
+        // narrower than the engine's - `suspended` only - which is how
+        // the interrupted-state bug grew a second copy one layer down.
+        //
+        // The engine owns the state machine. Ask it to try, then believe
+        // what it says is true NOW. A media element is a separate
+        // admission decision under its own policy, so it is still worth
+        // attempting when Web Audio is shut: that is what a fallback is.
+        if (context && context.state !== 'running') {
             void Promise.resolve(this.audioEngine?.resume?.()).catch(() => {});
         }
+        const admitted = this.audioEngine?.audible === true;
 
         audioDiag('play', {
             index,
@@ -496,12 +512,13 @@ export class Voice {
             ctxTime: typeof context?.currentTime === 'number'
                 ? context.currentTime.toFixed(3)
                 : 'none',
-            path: (context && context.state !== 'closed' && entry.audioBuffer)
+            admitted,
+            path: (admitted && entry.audioBuffer)
                 ? 'webaudio'
                 : (entry.blob ? 'element' : 'none')
         });
 
-        if (context && context.state !== 'closed' && entry.audioBuffer) {
+        if (admitted && entry.audioBuffer) {
             try {
                 const source = context.createBufferSource();
                 source.buffer = entry.audioBuffer;
