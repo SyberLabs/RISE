@@ -15,6 +15,12 @@ import {
     speakableText,
     voicePackManifest
 } from './voice-pack.js';
+import { audioDiag } from '../core/audio-diagnostics.js';
+
+/** A gain node's current value, or why there isn't one. */
+const level = node => (typeof node?.gain?.value === 'number'
+    ? node.gain.value.toFixed(3)
+    : (node ? 'nogain' : 'none'));
 
 /** One retry. A second failure is treated as the phrase being unavailable. */
 const LOAD_ATTEMPTS = 2;
@@ -167,6 +173,13 @@ export class Voice {
         // down. A late first clip should cost the first clip.
         const ready = targets.length > 0 && Boolean(entries[0]);
         const arrived = entries.filter(Boolean).length;
+        audioDiag('prepare', {
+            ready,
+            arrived,
+            wanted: targets.length,
+            firstBuffered: Boolean(entries[0]?.audioBuffer),
+            firstBlob: Boolean(entries[0]?.blob)
+        });
         if (arrived < targets.length) {
             this._warnOnce(
                 'lead-partial',
@@ -218,7 +231,14 @@ export class Voice {
      * @returns {{onsets: number[], durationMs: number, finished: Promise}|null}
      */
     speak(index) {
-        if (!this.available || !this._sessionAvailable) return null;
+        if (!this.available || !this._sessionAvailable) {
+            audioDiag('speak:refused', {
+                index,
+                available: this.available,
+                sessionAvailable: this._sessionAvailable
+            });
+            return null;
+        }
         if (Array.isArray(this._atoms) && !this._speakable(this._atoms[index])) {
             return null;
         }
@@ -415,9 +435,23 @@ export class Voice {
         const context = this.audioEngine?.context;
         if (!context || context.state === 'closed'
             || typeof context.decodeAudioData !== 'function') {
+            audioDiag('decode:skipped', {
+                context: context ? context.state : 'none',
+                decodable: typeof context?.decodeAudioData === 'function'
+            });
             return null;
         }
-        return context.decodeAudioData(bytes.slice(0));
+        try {
+            const buffer = await context.decodeAudioData(bytes.slice(0));
+            audioDiag('decode:ok', { context: context.state });
+            return buffer;
+        } catch (error) {
+            audioDiag('decode:failed', {
+                context: context.state,
+                why: String(error?.message || error).slice(0, 60)
+            });
+            throw error;
+        }
     }
 
     _play(entry, index) {
@@ -439,6 +473,33 @@ export class Voice {
         if (context?.state === 'suspended') {
             void Promise.resolve(this.audioEngine?.resume?.()).catch(() => {});
         }
+
+        audioDiag('play', {
+            index,
+            context: context ? context.state : 'none',
+            buffered: Boolean(entry.audioBuffer),
+            // The bus this source is about to feed. A phrase can decode,
+            // start, and end on schedule while every sample it produced
+            // was multiplied by zero, so the gain at the instant of
+            // start() is as much a part of "did it play" as the state is.
+            // Read totally. A diagnostic that can throw is a diagnostic
+            // that breaks the path it was added to observe.
+            //
+            // THREE BUSES NOW, AND SILENCE CAN COME FROM ANY OF THEM. The
+            // voice runs through voiceGain into masterGain; the bed runs
+            // through sessionGain into the same master. A zero anywhere
+            // on that chain is a phrase that decoded, started and ended
+            // with every sample multiplied by nothing.
+            voiceGain: level(this.audioEngine?.voiceGain),
+            sessionGain: level(this.audioEngine?.sessionGain),
+            masterGain: level(this.audioEngine?.masterGain),
+            ctxTime: typeof context?.currentTime === 'number'
+                ? context.currentTime.toFixed(3)
+                : 'none',
+            path: (context && context.state !== 'closed' && entry.audioBuffer)
+                ? 'webaudio'
+                : (entry.blob ? 'element' : 'none')
+        });
 
         if (context && context.state !== 'closed' && entry.audioBuffer) {
             try {
@@ -532,6 +593,10 @@ export class Voice {
     }
 
     _warnPlayback(index, error) {
+        audioDiag('playback:failed', {
+            index,
+            why: String(error?.message || error).slice(0, 60)
+        });
         this._warnOnce(
             `playback:${String(error?.message || error)}`,
             `atom ${index} playback failed: ${String(error?.message || error)}`

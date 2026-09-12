@@ -17,6 +17,7 @@ import { normalizeVisualSelection, resolveSessionWordFill } from '../core/visual
 import { chamberExitTarget } from './chamber-exit.js';
 import { createPresentationLens } from '../core/session-presentation.js';
 import { sessionImageryCollections } from '../core/visual-selection.js';
+import { audioDiag } from '../core/audio-diagnostics.js';
 
 export async function createChamberSession(operations, container, sessionData) {
     const session = sessionData || operations.getCurrentSession();
@@ -380,6 +381,10 @@ export async function createChamberSession(operations, container, sessionData) {
             // is a legitimate outcome, the pack can be unreachable; it is
             // not a legitimate SILENT outcome.
             const spokenReady = await recitationReady;
+            audioDiag('entry', {
+                spokenReady,
+                context: audioEngine?.context ? audioEngine.context.state : 'none'
+            });
             if (!spokenReady) {
                 operations.showToast(
                     'The spoken voice could not be prepared. The reading continues at its own pace.',

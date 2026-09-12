@@ -134,6 +134,7 @@ import { PersonalSwells } from '../core/personal-swells.js';
 import { PERSONAL_BED_PREFIX } from '../core/workshop-audio.js';
 import { createSoundscape } from './soundscapes.js';
 import { createChantBed, isChantBedId, CHANT_BED_IDS } from './chant.js';
+import { audioDiag } from '../core/audio-diagnostics.js';
 
 
 /**
@@ -375,6 +376,12 @@ export class AudioEngine {
                 }
 
                 this._bindContextLifecycle();
+                audioDiag('engine:init', {
+                    context: this.context.state,
+                    master: this.masterGain.gain.value.toFixed(3),
+                    session: this.sessionGain.gain.value.toFixed(3),
+                    voice: this.voiceGain.gain.value.toFixed(3)
+                });
 
                 await this.loadAssets();
 
@@ -427,6 +434,7 @@ export class AudioEngine {
      * before each utterance.
      */
     async resume() {
+        audioDiag('resume:asked', { context: this.context?.state ?? 'none' });
         // SUSPENDED IS NOT THE ONLY WAY A CLOCK STOPS. WebKit has a
         // fourth state this guard did not know about: `interrupted`,
         // which is where an AudioContext goes when iOS takes the audio
@@ -2168,6 +2176,12 @@ export class AudioEngine {
         this.sessionGain.gain.cancelScheduledValues(now);
         this.sessionGain.gain.setValueAtTime(0, now);
         this.sessionGain.gain.linearRampToValueAtTime(targetVolume, now + duration);
+        audioDiag('fadeIn', {
+            context: this.context?.state,
+            now: now.toFixed(3),
+            to: targetVolume,
+            over: duration
+        });
 
         return new Promise(resolve => {
             this.fadeTimeoutId = setTimeout(() => {
@@ -2222,6 +2236,10 @@ export class AudioEngine {
             this.sessionGain.gain.cancelScheduledValues(this.context.currentTime);
             this.sessionGain.gain.setValueAtTime(0, this.context.currentTime);
         }
+        audioDiag('startSession', {
+            context: this.context?.state,
+            now: this.context ? this.context.currentTime.toFixed(3) : 'none'
+        });
         this._isFading = false;
 
         await this.resume();
