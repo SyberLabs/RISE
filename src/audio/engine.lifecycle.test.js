@@ -225,10 +225,29 @@ describe('AudioEngine lifecycle ownership', () => {
     vi.useRealTimers();
   });
 
-  it('carries on when a resume is refused outright', async () => {
+  it('carries on when a resume is refused outright, and says it was', async () => {
+    // It resolved to undefined, which made "I asked" and "audio runs"
+    // the same sentence to every caller - and the ask is bounded at
+    // 250ms precisely because a browser may never answer. Returning
+    // nothing left every caller free to proceed as though it had
+    // said yes, which is what a silent reading is made of.
     const engine = new AudioEngine();
     engine.context = { state: 'suspended', resume: () => Promise.reject(new Error('no gesture')) };
-    await expect(engine.resume()).resolves.toBeUndefined();
+
+    await expect(engine.resume()).resolves.toEqual({ state: 'suspended', audible: false });
+    expect(engine.audible).toBe(false);
+  });
+
+  it('reports a running context as audible', async () => {
+    const engine = new AudioEngine();
+    engine.context = { state: 'running', resume: vi.fn() };
+
+    await expect(engine.resume()).resolves.toEqual({ state: 'running', audible: true });
+    expect(engine.audible).toBe(true);
+  });
+
+  it('is not audible without a context at all', () => {
+    expect(new AudioEngine().audible).toBe(false);
   });
 
   it('asks nothing of a context that is already running', async () => {

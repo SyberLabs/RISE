@@ -43,6 +43,9 @@ import { defineConfig } from '@playwright/test';
  * argument — which is what each CI shard invokes — is still exactly one
  * run of everything.
  */
+/** Runs without the autoplay override; see the `admission` project. */
+const ADMISSION = '**/audio-admission.spec.js';
+
 const GATE = [
     '**/csp-live.spec.js',
     '**/curation.spec.js',
@@ -77,7 +80,21 @@ export default defineConfig({
     // everything — the split costs the full run nothing.
     projects: [
         { name: 'gate', testMatch: GATE },
-        { name: 'full', testIgnore: GATE }
+        { name: 'full', testIgnore: [...GATE, ADMISSION] },
+        // THE ONE PROJECT THAT PLAYS BY THE BROWSER'S RULES. Every other
+        // spec runs with autoplay forced on, because a hundred tests
+        // about text and layout should not each stage a click to get a
+        // clock. The cost is that the suite removed the exact rule
+        // production enforces, so a reading could open into a suspended
+        // context, say nothing, and stay green for months. This project
+        // drops the flag and asserts the invariant instead: a reading
+        // may not begin until the context is running, and a gesture is
+        // what makes it run.
+        {
+            name: 'admission',
+            testMatch: ADMISSION,
+            use: { launchOptions: { args: [] } }
+        }
     ]
     // globalSetup owns the production build and preview server transactionally.
 });
