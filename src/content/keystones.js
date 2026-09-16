@@ -108,7 +108,23 @@ export const KEYSTONE_MANIFESTS = freeze([
     // beneath it, and still leaves 228px of sky above a three-line
     // phrase. The fraction is of the travel available rather than
     // pixels, so it holds its meaning on a monitor too.
-    presentation: { chamberFace: 'literary', bandOffset: -0.35 },
+    presentation: {
+      chamberFace: 'literary',
+      // AND THE PHONE IS NOT THE MONITOR. The attractor is drawn into
+      // the field it is given. On a monitor that field is wide, the form
+      // is broad and shallow, and a centred band has always sat
+      // correctly against it - which is the composition this piece was
+      // made in and should keep. On a phone the same form is tall:
+      // measured at 390x844, its luminous core fills 46-59% of the
+      // height and a centred band covers 45-55% of it, so the one moment
+      // the field is doing something, the reading is on top of it.
+      //
+      // A phone therefore lifts the band to about a sixth from the top,
+      // which leaves the whole form below it with room to breathe. That
+      // is far too high for a monitor, where it would strand the words
+      // at the ceiling above a form that was never in their way.
+      bandOffset: { phone: -0.75, default: 0 }
+    },
     soundscape: 'aurora',
     galleryCadence: 0.5,
     admitted: true,
@@ -144,6 +160,11 @@ export const KEYSTONE_MANIFESTS = freeze([
     // Less lift than Metamorphoses on purpose. Going further would take
     // the band off the top edge of the painting and leave it floating in
     // the dark above it, which reads as two pictures rather than one.
+    //
+    // One number for every screen, unlike Metamorphoses. A painting is
+    // letterboxed into whatever field it is given rather than drawn to
+    // fill it, so its sky stays its sky at any width, and the quarter
+    // that finds it on a phone finds it on a monitor.
     presentation: { chamberFace: 'literary', bandOffset: -0.25 },
     soundscape: 'aurora',
     galleryCadence: 0.15,

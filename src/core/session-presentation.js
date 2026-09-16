@@ -44,6 +44,45 @@ export const PRESENTATION_KEYS = Object.freeze([
 ]);
 
 /**
+ * The width below which a reading is being held in one hand.
+ *
+ * The same query the stylesheets use for a phone, so a composition that
+ * says "here on a phone" means the same screen the CSS means.
+ */
+const PHONE = '(max-width: 640px)';
+
+/**
+ * A BAND POSITION MAY DIFFER BY SCREEN, BECAUSE THE PICTURE DOES.
+ *
+ * The offset is a fraction of the travel available, which is what lets
+ * "a third of the way up" survive a change of device — but it only
+ * survives while the composition is the same shape on both. It is not:
+ * a phone is tall and narrow, so a field's procedural form fills far
+ * more of the height than the same form does on a monitor, and a band
+ * that clears it on one screen is either sitting on it or marooned near
+ * the ceiling on the other.
+ *
+ * So a composition may state one number, which every screen uses, or an
+ * object naming the screens it wants to differ on. Anything it does not
+ * name falls to `default`, and a reading that names nothing usable
+ * claims nothing at all.
+ */
+function resolveBandOffset(declared) {
+  if (declared == null) return null;
+  if (typeof declared === 'number') return clampBandFraction(declared);
+  if (typeof declared !== 'object' || Array.isArray(declared)) return null;
+
+  // No matchMedia is not a phone: a renderer without one is a build
+  // tool or a test, and neither is being held in a hand.
+  const phone = typeof window !== 'undefined'
+    && typeof window.matchMedia === 'function'
+    && window.matchMedia(PHONE).matches;
+
+  const chosen = (phone && declared.phone != null) ? declared.phone : declared.default;
+  return chosen == null ? null : clampBandFraction(chosen);
+}
+
+/**
  * What a session actually claims, normalized, or null for the ordinary
  * case of a reading that claims nothing.
  *
@@ -63,9 +102,8 @@ export function sessionPresentation(session) {
     const size = persistFontSize(declared.fontSize);
     if (size) claimed.fontSize = size;
   }
-  if (declared[BAND_OFFSET_SETTING] != null) {
-    claimed[BAND_OFFSET_SETTING] = clampBandFraction(declared[BAND_OFFSET_SETTING]);
-  }
+  const band = resolveBandOffset(declared[BAND_OFFSET_SETTING]);
+  if (band != null) claimed[BAND_OFFSET_SETTING] = band;
   return Object.keys(claimed).length ? Object.freeze(claimed) : null;
 }
 
