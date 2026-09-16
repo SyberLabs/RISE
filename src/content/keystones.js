@@ -99,7 +99,16 @@ export const KEYSTONE_MANIFESTS = freeze([
     visual: { kind: 'procedural', id: 'ostensoria' },
     // Stated rather than left to the reader's default, so the piece is
     // the same piece for someone who reads everything else in Thick.
-    presentation: { chamberFace: 'literary' },
+    //
+    // THE BAND SAT ON THE FIGURE. Measured on a 390x844 phone: the
+    // attractor's luminous core occupies 46-59% of the height, and a
+    // centred band covers 45-55% of it - so the one moment the field is
+    // doing something, the reading is on top of it. A third of the way
+    // up puts the band's underside at 39% with the form entirely clear
+    // beneath it, and still leaves 228px of sky above a three-line
+    // phrase. The fraction is of the travel available rather than
+    // pixels, so it holds its meaning on a monitor too.
+    presentation: { chamberFace: 'literary', bandOffset: -0.35 },
     soundscape: 'aurora',
     galleryCadence: 0.5,
     admitted: true,
@@ -122,7 +131,20 @@ export const KEYSTONE_MANIFESTS = freeze([
     visual: { kind: 'collection', id: 'aic-landscapes' },
     // Stated rather than left to the reader's default, so the piece is
     // the same piece for someone who reads everything else in Thick.
-    presentation: { chamberFace: 'literary' },
+    //
+    // A LANDSCAPE HAS A QUIET REGISTER, AND IT IS THE SKY. Measured on a
+    // 390x844 phone against Waldmuller's Prater Landscape: the painting
+    // occupies 31-68% of the height, its sky and treetops the first
+    // third of that and the grove, grass and seated figure the rest. A
+    // centred band lands across the tree line, which is the picture's
+    // subject and its busiest reading ground. A quarter up sits the band
+    // inside the sky, where the paint is flat and the text is easiest to
+    // read, and leaves everything that is worth looking at uncovered.
+    //
+    // Less lift than Metamorphoses on purpose. Going further would take
+    // the band off the top edge of the painting and leave it floating in
+    // the dark above it, which reads as two pictures rather than one.
+    presentation: { chamberFace: 'literary', bandOffset: -0.25 },
     soundscape: 'aurora',
     galleryCadence: 0.15,
     admitted: true,
