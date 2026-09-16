@@ -2228,6 +2228,21 @@ export class Chamber {
         this.cancelReveal();
       }
     }
+    // THE OFFSET IS PIXELS DERIVED FROM A LAYOUT THAT KEEPS CHANGING.
+    //
+    // It was computed once when the listeners were attached, and after
+    // that only on drag and on window resize. Two things were therefore
+    // wrong. At attach time the stage may have no geometry yet - a band
+    // with no text in it has no height, and a field that has not been
+    // shown has none either - so travel came out zero and an authored
+    // offset became 0px and stayed there. And travel is
+    // (fieldHeight - bandHeight) / 2, which moves with every phrase: one
+    // line and three lines are different bands, so a figure computed for
+    // the first was already stale for the second.
+    //
+    // The fraction is the stable thing. Turn it into pixels here, where
+    // the band has just been laid out and its height is finally known.
+    this.applyBandOffset();
     void this.syncFillGlyphMask();
   }
 
@@ -2925,6 +2940,10 @@ export class Chamber {
     document.addEventListener('keydown', onKey);
 
     this._bandMoveCleanup = () => {
+      if (this._bandOffsetRetry != null) {
+        cancelAnimationFrame(this._bandOffsetRetry);
+        this._bandOffsetRetry = null;
+      }
       this.container.removeEventListener('pointerdown', onDismiss, true);
       document.removeEventListener('keydown', onKey);
     };
@@ -2949,6 +2968,22 @@ export class Chamber {
     const band = this.container.querySelector('#atom-display');
     if (!field || !band) return;
     const travel = bandTravelPx(field, band);
+
+    // NO ROOM IS NOT THE SAME FACT AS NO OFFSET. A stage that has not
+    // been laid out reports zero travel, and multiplying the fraction by
+    // it writes 0px - which is indistinguishable from a reader who
+    // wanted the band centred, and is what a reading that opens before
+    // its own first paint used to settle on. Wait for a frame instead
+    // and ask again; the fraction has not gone anywhere.
+    if (travel <= 0) {
+      if (this._bandOffsetRetry != null) return;
+      this._bandOffsetRetry = requestAnimationFrame(() => {
+        this._bandOffsetRetry = null;
+        if (!this._destroyed) this.applyBandOffset();
+      });
+      return;
+    }
+
     const px = clampBandFraction(this._bandOffsetFraction ?? 0) * travel;
     field.style.setProperty('--band-offset', `${Math.round(px)}px`);
     void this.syncFillGlyphMask();
