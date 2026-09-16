@@ -31,7 +31,13 @@ describe('what a reading may claim', () => {
       .toEqual({ chamberFace: 'literary' });
     expect(sessionPresentation({ presentation: { fontSize: 'enormous' } })).toBeNull();
     expect(sessionPresentation({ presentation: { bandOffset: 9 } })).toEqual({ bandOffset: 1 });
-    expect(sessionPresentation({ presentation: { bandOffset: 'x' } })).toEqual({ bandOffset: 0 });
+    // A number out of range is still a request, and is clamped. A value
+    // that is not a position at all is not a request: this used to read
+    // as zero and claim the band centred, which is a real instruction
+    // and overrode the reader's own. Claiming nothing leaves the setting
+    // where they put it, which is what an unreadable fontSize already
+    // does two lines above.
+    expect(sessionPresentation({ presentation: { bandOffset: 'x' } })).toBeNull();
   });
 
   it('takes the three presentation keys and no others', () => {
