@@ -1034,7 +1034,7 @@ describe('reader-facing state', () => {
     expect(nav.container.querySelector('[data-program-lock]')?.textContent)
       .toContain('Special Collection · 4 episodes');
     descend('visual', 'gallery', 'gallery-sourced', 'by-manner');
-    expect(nav.container.querySelector('[data-pool="aic-ukiyoe"]')?.disabled).toBe(true);
+    expect(nav.container.querySelector('[data-pool="aic-postimpressionism"]')?.disabled).toBe(true);
     expect([...nav.container.querySelectorAll('[data-gallery-cadence]')]
       .every(control => control.disabled)).toBe(true);
     expect(nav.container.querySelector('[data-action="living-text"]')?.disabled).toBe(true);
@@ -1171,10 +1171,10 @@ describe('substyles reach the config', () => {
     mount();
     descend('visual', 'gallery', 'gallery-sourced', 'by-manner');
     click(nav.container.querySelector('[data-action="toggle"]'));    // enable the leaf
-    const pool = nav.container.querySelector('[data-pool="aic-ukiyoe"]');
+    const pool = nav.container.querySelector('[data-pool="aic-postimpressionism"]');
     expect(pool).toBeTruthy();
     click(pool);
-    expect(lastPatch().interlocution.sourced).toContain('aic-ukiyoe');
+    expect(lastPatch().interlocution.sourced).toContain('aic-postimpressionism');
   });
 });
 

@@ -495,11 +495,17 @@ export const BRANDING_REELS = freeze([
     length: 'standard'
   },
   {
-    id: 'analects-ukiyoe',
-    title: 'Analects · Ukiyo-e',
+    // Ukiyo-e was withdrawn when the Art Institute began answering
+    // image requests with a Cloudflare challenge; this reel would have
+    // rendered whatever the retirement resolved to, under a name that
+    // promised Japanese prints. Landscapes is where the living East
+    // Asian work is, and Chinese literati ink suits the Analects
+    // better than Edo woodblock did.
+    id: 'analects-ink-landscape',
+    title: 'Analects · Ink Landscape',
     workId: 'confucius-analects',
     division: 'Book I: Hsio R',
-    visual: collection('aic-ukiyoe'),
+    visual: collection('aic-landscapes'),
     soundscape: 'faded-signal',
     livery: 'ink',
     length: 'short'

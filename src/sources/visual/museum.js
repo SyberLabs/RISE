@@ -77,23 +77,6 @@ export const MUSEUM_CATEGORIES = {
         description: 'Van Gogh, Cezanne, Gauguin and after: saturated non-naturalistic colour and emphatic structure. More agitated than Impressionism.',
         tags: ['color', 'structure', 'cinematic']
     },
-    'ukiyoe': {
-        name: 'Masters of Ukiyo-e',
-        kind: 'style',
-        clauses: [
-            { term: { artwork_type_id: TYPE_PRINT } },
-            {
-                terms: {
-                    'artist_title.keyword': [
-                        'Utagawa Hiroshige', 'Katsushika Hokusai', 'Kitagawa Utamaro',
-                        'Suzuki Harunobu', 'Torii Kiyonaga', 'Tōshūsai Sharaku'
-                    ]
-                }
-            }
-        ],
-        description: 'Japanese woodblock prints — flat colour, strong outline, asymmetric composition. Linear and quiet, unlike any of the painting categories.',
-        tags: ['japanese', 'contemplative', 'linear']
-    },
     // AIC's subject vocabulary is uncontrolled (MUSEUM-ATLAS.md §1):
     // 'portrait' and 'portraits' are separate, largely disjoint tag
     // populations (200 vs 262 PD paintings, only 161 shared). A terms
@@ -158,9 +141,35 @@ export const MUSEUM_CATEGORIES = {
 // is still in copyright, its PD query was noise. Photography read as
 // drab. Romantic/Natural landscapes were the same pool as Landscapes.
 // Renaissance grew into the wider Old Masters range.)
-const RETIRED_CATEGORIES = {
+//
+// UKIYO-E IS RETIRED FOR A DIFFERENT REASON THAN THE REST, and the
+// difference matters if it is ever to come back. Every other id above
+// was withdrawn on judgement — the art was thin, or duplicated a
+// better pool. This one was judged excellent and is withdrawn because
+// its pictures stopped arriving: all 100 of its pins are Art Institute
+// works, and the Art Institute has put Cloudflare bot mitigation in
+// front of its IIIF endpoint. Image requests now answer 403 with
+// `Cf-Mitigated: challenge` and a challenge page carrying
+// `Cross-Origin-Resource-Policy: same-origin`, which is what a browser
+// reports as ERR_BLOCKED_BY_RESPONSE.NotSameOrigin. An <img> cannot
+// solve a JavaScript challenge, so no header, referer or agent gets
+// through. 621 of 1340 pins are Art Institute works and this is the
+// one category that was entirely theirs.
+//
+// The pins stay in museum-pins.js untouched. If the Art Institute
+// lifts the challenge, restoring this category is deleting two lines.
+//
+// It lands in Landscapes because that is where the living East Asian
+// work is — Sōami, Bada Shanren, Yosa Buson, Wang Yuanqi, Yi Sumun and
+// seven more, all Cleveland, all still serving. A different tradition
+// answering the same reader intent, which is the reasoning the pin
+// file already gives for keeping them there. Photography retired into
+// Ukiyo-e once and would now resolve into a category that no longer
+// exists — a single hop finds nothing — so it moves with it.
+export const RETIRED_CATEGORIES = {
     'surrealism': 'postimpressionism',
-    'photography': 'ukiyoe',
+    'ukiyoe': 'landscapes',
+    'photography': 'landscapes',
     'romantic': 'landscapes',
     'renaissance': 'oldmasters'
 };

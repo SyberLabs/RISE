@@ -151,7 +151,12 @@ describe('every named capability says what it looks like', () => {
     it('describes every museum category it offers', () => {
         const museum = Object.entries(context.catalog.collections)
             .filter(([, entry]) => entry.kind === 'museum-category');
-        expect(museum.length).toBeGreaterThanOrEqual(10);
+        // A floor, not a count: it catches an extraction that returned
+        // nothing, and must not become a reason to keep offering a
+        // collection whose pictures stopped arriving. Ukiyo-e was
+        // withdrawn when the Art Institute began answering image
+        // requests with a Cloudflare challenge; nine is what remains.
+        expect(museum.length).toBeGreaterThanOrEqual(9);
         for (const [id, entry] of museum) {
             expect(entry.description, id).toBeTruthy();
         }

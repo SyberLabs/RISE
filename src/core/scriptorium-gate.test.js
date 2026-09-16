@@ -1135,7 +1135,13 @@ describe('no field of an operation can name a capability unread', () => {
  * spelling that failed was the only spelling a model was taught.
  */
 describe('a museum collection is scored as a collection', () => {
-  const MUSEUM = 'aic-ukiyoe';
+  // Ukiyo-e was the id this bug was found with, and the prose above
+  // keeps its name because that is what happened. The live example has
+  // to be a collection the context still offers: Ukiyo-e was withdrawn
+  // when the Art Institute began answering image requests with a
+  // Cloudflare challenge, and a test that names an unoffered collection
+  // refuses at the gate for the wrong reason.
+  const MUSEUM = 'aic-postimpressionism';
   const source = {
     id: `${TAO}#40`,
     name: 'Chapter XL',

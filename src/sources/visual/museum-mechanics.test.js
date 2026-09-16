@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { MuseumProvider, MUSEUM_CATEGORIES } from './museum.js';
+import { MuseumProvider, MUSEUM_CATEGORIES, RETIRED_CATEGORIES } from './museum.js';
 
 /**
  * Pool + persistence mechanics for the museum provider.
@@ -141,11 +141,32 @@ describe('museum pool mechanics', () => {
         expect(CATEGORY_EXCLUSIONS.impressionism?.length).toBeGreaterThanOrEqual(3);
     });
 
-    it('every declared pin category exists in MUSEUM_CATEGORIES', async () => {
+    it('every declared pin category is offered, or deliberately retired', async () => {
+        // Unreachable pins are normally a mistake — a typo in a key, a
+        // category renamed without its pins. The one legitimate reason
+        // to keep pins nothing can reach is a category withdrawn on
+        // purpose, where the curation is sound and only the delivery
+        // failed: Ukiyo-e, whose works are all Art Institute and whose
+        // images now answer a Cloudflare challenge instead of a
+        // picture. Retirement is the record of that decision, so it is
+        // what this checks against.
         const { MUSEUM_CATEGORY_PINS } = await import('./museum-pins.js');
         for (const catId of Object.keys(MUSEUM_CATEGORY_PINS)) {
-            expect(MUSEUM_CATEGORIES[catId],
-                `pins declare '${catId}' but no such category exists — those pins would never surface`
+            const reachable = Boolean(MUSEUM_CATEGORIES[catId])
+                || Boolean(RETIRED_CATEGORIES[catId]);
+            expect(reachable,
+                `pins declare '${catId}' but it is neither offered nor retired — those pins would never surface`
+            ).toBe(true);
+        }
+    });
+
+    it('retires every id onto a category that exists', async () => {
+        // Resolution is a single hop: an id that retires onto another
+        // retired id finds nothing. Photography pointed at Ukiyo-e and
+        // had to move when Ukiyo-e was withdrawn.
+        for (const [from, to] of Object.entries(RETIRED_CATEGORIES)) {
+            expect(MUSEUM_CATEGORIES[to],
+                `'${from}' retires onto '${to}', which is not an offered category`
             ).toBeDefined();
         }
     });

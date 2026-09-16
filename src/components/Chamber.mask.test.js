@@ -372,7 +372,7 @@ describe('Chamber Gallery-in-the-word projection (FM-RISE-28)', () => {
                     visualMode: 'interlocution',
                     interlocution: {
                         presentation: 'continuous',
-                        wordFill: { mode: 'pick', sourced: ['aic-ukiyoe'], procedural: [] }
+                        wordFill: { mode: 'pick', sourced: ['aic-postimpressionism'], procedural: [] }
                     }
                 }
             },
@@ -382,7 +382,7 @@ describe('Chamber Gallery-in-the-word projection (FM-RISE-28)', () => {
             { url: 'https://example.test/room-a.jpg', name: 'room-a' },
             { url: 'https://example.test/room-b.jpg', name: 'room-b' }
         ];
-        visualCortex._poolFor('aic-ukiyoe').images = [
+        visualCortex._poolFor('aic-postimpressionism').images = [
             { url: 'https://example.test/fill-x.jpg', name: 'fill-x' },
             { url: 'https://example.test/fill-y.jpg', name: 'fill-y' }
         ];
@@ -390,7 +390,7 @@ describe('Chamber Gallery-in-the-word projection (FM-RISE-28)', () => {
             enabled: true,
             presentation: 'continuous',
             activeTypes: ['aic-landscapes'],
-            wordFill: { mode: 'pick', sourced: ['aic-ukiyoe'], procedural: [] }
+            wordFill: { mode: 'pick', sourced: ['aic-postimpressionism'], procedural: [] }
         });
         chamber.displayAtom({ content: 'O', duration: 500 }, 0);
         await flushFillMask();
@@ -478,13 +478,13 @@ describe('Chamber Gallery-in-the-word projection (FM-RISE-28)', () => {
                     visualMode: 'interlocution',
                     interlocution: {
                         presentation: 'continuous',
-                        wordFill: { mode: 'pick', sourced: ['aic-ukiyoe'], procedural: [] }
+                        wordFill: { mode: 'pick', sourced: ['aic-postimpressionism'], procedural: [] }
                     }
                 }
             },
             { chamberMask: true }
         );
-        visualCortex._poolFor('aic-ukiyoe').images = [
+        visualCortex._poolFor('aic-postimpressionism').images = [
             { url: 'https://example.test/fill-x.jpg', name: 'fill-x' },
             { url: 'https://example.test/fill-y.jpg', name: 'fill-y' }
         ];
@@ -492,7 +492,7 @@ describe('Chamber Gallery-in-the-word projection (FM-RISE-28)', () => {
             enabled: true,
             presentation: 'continuous',
             activeTypes: ['fractal'],
-            wordFill: { mode: 'pick', sourced: ['aic-ukiyoe'], procedural: [] }
+            wordFill: { mode: 'pick', sourced: ['aic-postimpressionism'], procedural: [] }
         });
         chamber.displayAtom({ content: 'O', duration: 500 }, 0);
         await flushFillMask();
@@ -956,7 +956,7 @@ describe('Chamber mask ground plate (FM-RISE-47)', () => {
                     interlocution: {
                         presentation: 'continuous',
                         sourced: ['aic-landscapes'],
-                        wordFill: { mode: 'pick', sourced: ['aic-ukiyoe'], procedural: [] }
+                        wordFill: { mode: 'pick', sourced: ['aic-postimpressionism'], procedural: [] }
                     }
                 }
             },
@@ -965,14 +965,14 @@ describe('Chamber mask ground plate (FM-RISE-47)', () => {
         visualCortex._poolFor('aic-landscapes').images = [
             { url: 'https://example.test/room-a.jpg', name: 'room-a' }
         ];
-        visualCortex._poolFor('aic-ukiyoe').images = [
+        visualCortex._poolFor('aic-postimpressionism').images = [
             { url: 'https://example.test/fill-x.jpg', name: 'fill-x' }
         ];
         visualCortex.updateConfig({
             enabled: true,
             presentation: 'continuous',
             activeTypes: ['aic-landscapes'],
-            wordFill: { mode: 'pick', sourced: ['aic-ukiyoe'], procedural: [] }
+            wordFill: { mode: 'pick', sourced: ['aic-postimpressionism'], procedural: [] }
         });
         chamber.displayAtom({ content: 'O', duration: 500 }, 0);
         await flushFillMask();
@@ -1176,7 +1176,7 @@ describe('Chamber semantic Fit compositor', () => {
     it('does not tint collection artwork selected as the Fit source', async () => {
         const session = semanticSession({
             mode: 'pick',
-            sourced: ['aic-ukiyoe'],
+            sourced: ['aic-postimpressionism'],
             procedural: []
         });
         session.visualConfig.interlocution.sourced = ['aic-oldmasters'];
