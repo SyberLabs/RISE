@@ -415,6 +415,40 @@ describe('static playback', () => {
         expect(source.start).not.toHaveBeenCalled();
     });
 
+    it('speaks through neither path while the document is hidden', () => {
+        // Suspending an AudioContext says nothing to a media element.
+        // Without this, a phrase could go on sounding into a page the
+        // reader is not looking at, through the very fallback that
+        // exists for when Web Audio will not play.
+        const played = [];
+        class FakeAudio {
+            constructor() { played.push(this); }
+            play() { return Promise.resolve(); }
+            pause() {}
+        }
+        vi.stubGlobal('Audio', FakeAudio);
+        vi.stubGlobal('URL', { createObjectURL: () => 'blob:x', revokeObjectURL: () => {} });
+        const source = { buffer: null, connect: vi.fn(), start: vi.fn(), stop: vi.fn(), onended: null };
+
+        const voice = new Voice({
+            manifest: fixtureManifest(['phrase']),
+            audioEngine: {
+                context: { state: 'running', createBufferSource: () => source },
+                masterGain: {},
+                audible: false,
+                visible: false,
+                config: { masterVolume: 0.5 },
+                resume: () => Promise.resolve({ state: 'running', audible: false })
+            }
+        });
+
+        const playback = voice._play({ audioBuffer: {}, blob: new Blob() }, 0);
+
+        expect(playback, 'no playback at all').toBeNull();
+        expect(source.start, 'no Web Audio source').not.toHaveBeenCalled();
+        expect(played, 'no media element either').toHaveLength(0);
+    });
+
     it('falls to the media element when Web Audio is shut', () => {
         // A media element is a separate admission decision under its own
         // policy, so it is worth attempting when the context is not

@@ -318,6 +318,16 @@ export class AudioEngine {
         // with the next thing they touch.
         this.onInterrupted = null;
         this._rebuilding = false;
+        // WHY a context is suspended, not merely that it is. A context
+        // RISE yielded because the page went away is recovered on
+        // return; one that was never admitted is left alone, because
+        // showing a page is not permission to start making noise.
+        this._yieldedToVisibility = false;
+        // The last visibility transition wins. Every await below
+        // re-checks this before acting on what it learned.
+        this._visibilityEpoch = 0;
+        this._ambientAwaitingVisibility = false;
+        this._resumeAmbient = null;
         this._onContextStateChange = null;
         this._onVisibilityChange = null;
     }
@@ -443,7 +453,23 @@ export class AudioEngine {
      * audio.
      */
     get audible() {
-        return this.context?.state === 'running';
+        return this.context?.state === 'running' && this.visible;
+    }
+
+    /**
+     * Whether this document is the one the reader is looking at.
+     *
+     * A renderer with no document is a build tool or a test, and is
+     * treated as visible so nothing in the offline paths goes quiet.
+     */
+    get visible() {
+        return typeof document === 'undefined'
+            || document.visibilityState !== 'hidden';
+    }
+
+    /** Whether the current suspension is one RISE asked for. */
+    get yieldedToVisibility() {
+        return this._yieldedToVisibility;
     }
 
     /**
@@ -511,6 +537,12 @@ export class AudioEngine {
         this._onContextStateChange = () => {
             const state = this.context?.state;
             if (state === 'running') return;
+            // A SUSPENSION RISE ASKED FOR IS NOT AN INTERRUPTION. The
+            // app spends the reader's next tap recovering from one of
+            // these, and re-arming that listener every time the page is
+            // backgrounded would make an ordinary tab switch look like a
+            // failure.
+            if (this._yieldedToVisibility) return;
             // Tell the app its audio is gone, so the next tap can be
             // spent getting it back.
             this.onInterrupted?.(state);
@@ -518,11 +550,114 @@ export class AudioEngine {
         this.context.addEventListener?.('statechange', this._onContextStateChange);
 
         this._onVisibilityChange = () => {
-            if (document.visibilityState !== 'visible') return;
-            // resume() rebuilds if the context closed while we were away.
-            void this.resume();
+            this._visibilityEpoch += 1;
+            if (document.visibilityState === 'hidden') {
+                void this._onVisibilityHidden();
+            } else {
+                void this._onVisibilityVisible();
+            }
         };
         document.addEventListener('visibilitychange', this._onVisibilityChange);
+    }
+
+    /**
+     * Wait on a browser call, but never on the browser.
+     *
+     * Safari can leave suspend() and resume() pending indefinitely, and
+     * a visibility transition that waits forever is a page that never
+     * finishes going away.
+     */
+    async _bounded(work) {
+        await Promise.race([
+            Promise.resolve(work).catch(() => {}),
+            new Promise(resolve => setTimeout(resolve, RESUME_WAIT_MS))
+        ]);
+    }
+
+    /**
+     * HIDDEN MEANS SILENT, AND RISE SAYS SO RATHER THAN HOPING.
+     *
+     * iOS does not reliably mute a hidden page, and it does not stop
+     * calling source.onended for one either — which is how a lobby drone
+     * that re-arms itself from that callback came back behind a
+     * different tab. Yielding here makes the guarantee ours instead of
+     * the platform's.
+     *
+     * It also buys the cure for the other failure. WebKit 276016 and
+     * 291892 both report a context that reads "running" after a return
+     * from background while nothing is audible, and both name an
+     * explicit suspend/resume cycle as what restores it. A page that
+     * yielded on the way out performs exactly that cycle on the way
+     * back, without a special case for it.
+     */
+    async _onVisibilityHidden() {
+        const epoch = this._visibilityEpoch;
+        if (!this.context || this.context.state !== 'running') return;
+        this._yieldedToVisibility = true;
+        audioDiag('visibility:hidden', { context: this.context.state, epoch });
+        await this._bounded(this.context.suspend());
+        audioDiag('visibility:yielded', {
+            context: this.context?.state ?? 'none',
+            stale: epoch !== this._visibilityEpoch
+        });
+    }
+
+    /**
+     * Take back exactly what visibility took, and nothing else.
+     *
+     * A context that was suspended before the page hid was suspended for
+     * some other reason - most often that audio was never admitted at
+     * all - and returning to the page is not the gesture that admits it.
+     */
+    async _onVisibilityVisible() {
+        const epoch = this._visibilityEpoch;
+        audioDiag('visibility:visible', {
+            context: this.context?.state ?? 'none',
+            yielded: this._yieldedToVisibility
+        });
+        // SUSPENDED IS NOT INTERRUPTED, AND ONLY ONE OF THEM IS OURS TO
+        // LEAVE ALONE.
+        //
+        // A context suspended before the page hid was suspended for some
+        // other reason - most often that audio was never admitted at all
+        // - and returning to a page is not the gesture that admits it.
+        // An INTERRUPTED context is the opposite case: iOS took the
+        // session from an app the reader had already allowed to speak,
+        // during a call or an alarm, and asking for it back is restoring
+        // what they had rather than starting something they did not ask
+        // for. That recovery predates this ownership work and is what
+        // returning to screen was originally for.
+        const interrupted = this.context?.state === 'interrupted';
+        if (!this._yieldedToVisibility && !interrupted) return;
+        this._yieldedToVisibility = false;
+        if (this.context && this.context.state !== 'closed') {
+            await this._bounded(this.context.resume());
+        } else {
+            await this.resume();
+        }
+        // A page hidden again while that was in flight must not come
+        // back audible on a promise from the previous epoch.
+        if (epoch !== this._visibilityEpoch) {
+            audioDiag('visibility:recover-stale', { epoch });
+            if (!this.visible) void this._onVisibilityHidden();
+            return;
+        }
+        audioDiag('visibility:recovered', { context: this.context?.state ?? 'none' });
+        this._restoreAmbienceAfterVisibility();
+    }
+
+    /**
+     * The drone the reader left running, back once and only once.
+     *
+     * `ambienceActive` is INTENT and survives the yield untouched;
+     * what stopped was the scheduling, which refuses to start a source
+     * the reader cannot hear.
+     */
+    _restoreAmbienceAfterVisibility() {
+        if (!this._ambientAwaitingVisibility) return;
+        if (!this.ambienceActive || this.sessionActive) return;
+        this._ambientAwaitingVisibility = false;
+        this._resumeAmbient?.();
     }
 
     /**
@@ -571,6 +706,8 @@ export class AudioEngine {
     }
 
     _unbindContextLifecycle() {
+        this._yieldedToVisibility = false;
+        this._ambientAwaitingVisibility = false;
         if (this._onContextStateChange) {
             this.context?.removeEventListener?.('statechange', this._onContextStateChange);
             this._onContextStateChange = null;
@@ -1756,6 +1893,16 @@ export class AudioEngine {
 
         const playNext = () => {
             if (!this.ambienceActive || this.sessionActive) return;
+            // NOT WHILE THE PAGE IS HIDDEN. This loop re-arms itself from
+            // source.onended, and WebKit goes on firing that callback for
+            // a backgrounded page - so without this the lobby could start
+            // a fresh drone behind another tab. The intent above stays
+            // true; only the sound waits.
+            if (!this.visible) {
+                this._ambientAwaitingVisibility = true;
+                audioDiag('ambience:withheld', { reason: 'hidden' });
+                return;
+            }
 
             const buffer = this.buffers.drones[Math.floor(Math.random() * this.buffers.drones.length)];
             const source = this.context.createBufferSource();
@@ -1772,6 +1919,7 @@ export class AudioEngine {
             this.layers.ambient = source;
         };
 
+        this._resumeAmbient = playNext;
         playNext();
     }
 

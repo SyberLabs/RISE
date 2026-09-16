@@ -490,6 +490,17 @@ export class Voice {
         }
         const admitted = this.audioEngine?.audible === true;
 
+        // AND THE FALLBACK IS NOT EXEMPT. Suspending an AudioContext
+        // says nothing to a media element, which would go on playing
+        // into a page the reader is not looking at. Where the engine is
+        // shut because the document is hidden, neither path may sound;
+        // where it is shut for any other reason, the element is still
+        // the fallback it was.
+        if (this.audioEngine && this.audioEngine.visible === false) {
+            audioDiag('play:withheld', { index, reason: 'hidden' });
+            return null;
+        }
+
         audioDiag('play', {
             index,
             context: context ? context.state : 'none',
