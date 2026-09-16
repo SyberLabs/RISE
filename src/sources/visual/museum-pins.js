@@ -901,6 +901,12 @@ export const MUSEUM_CATEGORY_PINS = Object.freeze({
         { source: "aic", id: 153797 },  // Still Life: Wood Tankard and Metal Pitcher
         { source: "aic", id: 204686 },  // At the Circus: The Bareback Rider (Au Cirque: Écuyèr
     ],
+    // WITHDRAWN, NOT DELETED. The category is retired in museum.js
+    // because the Art Institute now answers image requests with a
+    // Cloudflare challenge rather than a picture, and every pin below
+    // is theirs. The curation is sound and costs nothing to keep; if
+    // the challenge is lifted these become reachable again by removing
+    // one line from RETIRED_CATEGORIES.
     "ukiyoe": [
         { source: "aic", id: 89503 },  // Under the Wave off Kanagawa (Kanagawa oki nami ura),
         { source: "aic", id: 88977 },  // Evening Snow on a Floss Shaper (Nurioke no bosetsu),
