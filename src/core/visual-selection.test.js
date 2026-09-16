@@ -37,11 +37,11 @@ describe('normalizeWordFill', () => {
     it('keeps a pick in the same shape as a sourced/procedural selection', () => {
         const fill = normalizeWordFill({
             mode: 'pick',
-            sourced: ['aic-ukiyoe'],
+            sourced: ['aic-postimpressionism'],
             procedural: []
         });
         expect(fill.mode).toBe('pick');
-        expect(fill.sourced).toEqual(['aic-ukiyoe']);
+        expect(fill.sourced).toEqual(['aic-postimpressionism']);
         expect(fill.procedural).toEqual([]);
         expect(fill.sourceFamily).toBe('collections');
         expect(wordFillIsDistinct(fill)).toBe(true);
