@@ -4,6 +4,37 @@ import { GROUNDS, maskGroundFromConfig } from './mask-ground.js';
 import { resolveSessionWordFill } from './visual-selection.js';
 
 /**
+ * How long a word waits to be dressed before plain type beats nothing.
+ *
+ * A fallback is for a wait the reader would otherwise spend looking at an
+ * empty stage. A word replaced faster than this was never a fallback, it
+ * was a flash — and at Fit size that is most of the screen going light and
+ * back. Measured latency from the mask applying to the reveal: 454ms on a
+ * desktop, 2.1s at six times CPU throttling. The grace sits in the gap, so
+ * the fast path is never interrupted and a real wait still gets type.
+ */
+const DRESSING_GRACE_MS = 600;
+
+/**
+ * Once plain type is out, how long it stays before the dressed word takes
+ * its place.
+ *
+ * The grace above has a boundary, and the boundary is reachable: measured
+ * at 56ms and 79ms of a 405px word on two consecutive throttled runs, a
+ * reveal landing just after plain type was released swapped it out in two
+ * frames. That is the flash this mechanism exists to remove, arriving by
+ * the mechanism's own back door. A word the reader has been given stays
+ * long enough to read.
+ *
+ * Counted from when a word was actually on screen, not from when the hold
+ * was released: the grace routinely expires on an empty atom, because the
+ * mask is applied before the first word arrives, and a dwell started there
+ * is half over before there is anything to dwell on. Measured at 452ms of
+ * visible word against a 600ms dwell for exactly that reason.
+ */
+const PLAIN_DWELL_MS = 750;
+
+/**
  * Fit-mask runtime the Chamber mounts. Viewport, inline SVG mask, hydration
  * gate and reveal/fallback live here. Chamber asks apply / sync; it does not
  * own the state machine.
@@ -11,6 +42,78 @@ import { resolveSessionWordFill } from './visual-selection.js';
 export class FitMaskRuntime {
   constructor(chamber) {
     this.chamber = chamber;
+    /** Pending release of the hold below. Cleared on reveal and teardown. */
+    this._holdTimer = null;
+    /** Pending re-run of sync() once plain type has had its dwell. */
+    this._dwellTimer = null;
+    /** Whether the grace has expired and plain type is allowed to show. */
+    this._plainReleased = false;
+    /** When a plain WORD first reached the screen, or 0 if none has. */
+    this._plainSince = 0;
+    /**
+     * Whether this reading has ever been dressed. After the first time the
+     * mask holds ready for the rest of the reading — `fit-mask.spec.js`
+     * measures 0 drops across 145 words — so everything below is a cold
+     * start mechanism and costs a reading in progress nothing.
+     */
+    this._dressedOnce = false;
+  }
+
+  /**
+   * HOLD THE WORD BACK RATHER THAN SHOW ONE IT IS ABOUT TO REPLACE.
+   *
+   * Every state but `ready` paints the atom in --color-light at full Fit
+   * size, which is a near-white word the size of the screen. That is the
+   * right thing after a wait long enough to notice and the wrong thing for
+   * the three frames before the mask dresses it — measured at 97ms of a
+   * 405px word on a cold start, and reported as a flash of white.
+   *
+   * Opacity is the lever, not colour: `observeReadablePendingWords` holds
+   * a pending word to being opaque and readable, and that contract is
+   * correct — a reading must not go blank because a museum is slow. This
+   * defers the same word by a bounded grace rather than changing what it
+   * is, and releases it to full opacity if the wait turns out to be real.
+   */
+  holdForDressing(atomDisplay) {
+    if (!atomDisplay || this._holdTimer) return;
+    // Nothing is waited on once the reading is dressed, and plain type
+    // that has already been committed to is never taken back.
+    if (this._dressedOnce || this._plainReleased) return;
+    if (atomDisplay.classList.contains('is-mask-ready')) return;
+    atomDisplay.classList.add('is-mask-settling');
+    this._holdTimer = setTimeout(() => {
+      this._holdTimer = null;
+      // The wait was real. Plain type now beats an empty stage. When the
+      // word itself arrives is a separate question, and the one the dwell
+      // is counted from.
+      this._plainReleased = true;
+      this.chamber?.container?.querySelector('#atom-display')
+        ?.classList.remove('is-mask-settling');
+    }, DRESSING_GRACE_MS);
+  }
+
+  /**
+   * Start the dwell at the first plain word the reader can actually see.
+   *
+   * The mask is applied before the reading has produced anything, so the
+   * grace above usually expires against an empty atom. Stamping the clock
+   * there measures a dwell nobody spent looking at a word.
+   */
+  markPlainWordShown(atomDisplay) {
+    if (!this._plainReleased || this._plainSince || this._dressedOnce) return;
+    if (!(atomDisplay?.textContent || '').trim()) return;
+    this._plainSince = performance.now();
+  }
+
+  /** Let the word be seen, dressed or plain, and stop waiting on it. */
+  releaseHold(atomDisplay = this.chamber?.container?.querySelector('#atom-display')) {
+    clearTimeout(this._holdTimer);
+    clearTimeout(this._dwellTimer);
+    this._holdTimer = null;
+    this._dwellTimer = null;
+    this._plainReleased = false;
+    this._plainSince = 0;
+    atomDisplay?.classList.remove('is-mask-settling');
   }
 
   applies() {
@@ -34,6 +137,7 @@ export class FitMaskRuntime {
       atomDisplay.classList.remove('is-mask');
       atomDisplay.classList.remove('is-mask-ink', 'is-mask-ready');
       atomDisplay.dataset.maskState = 'inactive';
+      this.releaseHold(atomDisplay);
       this.destroyField();
     }
   }
@@ -174,6 +278,14 @@ export class FitMaskRuntime {
     atomDisplay?.classList.remove('is-mask-ink', 'is-mask-ready');
     c._fitMaskSvg?.classList.remove('is-ready');
     if (atomDisplay) atomDisplay.dataset.maskState = maskState;
+    // `inactive` means no mask is coming, so there is nothing to wait for
+    // and the word shows at once.
+    if (maskState === 'inactive') {
+      this.releaseHold(atomDisplay);
+    } else {
+      this.holdForDressing(atomDisplay);
+      this.markPlainWordShown(atomDisplay);
+    }
     if (atomDisplay?.style.color === 'transparent') {
       atomDisplay.style.removeProperty('color');
     }
@@ -427,6 +539,22 @@ export class FitMaskRuntime {
   }
 
   reveal(atomDisplay, host) {
+    const waited = this._plainSince
+      ? performance.now() - this._plainSince
+      : PLAIN_DWELL_MS;
+    if (waited < PLAIN_DWELL_MS) {
+      clearTimeout(this._dwellTimer);
+      // Back through sync() rather than straight here, so currency is
+      // re-checked and the mask repainted. A reading that moved on in the
+      // meantime is never dressed in the previous word's stencil.
+      this._dwellTimer = setTimeout(() => {
+        this._dwellTimer = null;
+        void this.sync();
+      }, PLAIN_DWELL_MS - waited);
+      return;
+    }
+    this._dressedOnce = true;
+    this.releaseHold(atomDisplay);
     host.classList.remove('is-hidden');
     this.chamber._fitMaskSvg?.classList.add('is-ready');
     atomDisplay.classList.add('is-mask-ink', 'is-mask-ready');
@@ -440,6 +568,9 @@ export class FitMaskRuntime {
     const c = this.chamber;
     c._fillMaskGeneration += 1;
     const atomDisplay = c.container.querySelector('#atom-display');
+    // A pending hold would otherwise fire into a torn-down Chamber, or
+    // leave the last word invisible in one that is merely paused.
+    this.releaseHold(atomDisplay);
     atomDisplay?.classList.remove('is-mask-ink', 'is-mask-ready');
     if (atomDisplay) atomDisplay.dataset.maskState = 'inactive';
     if (atomDisplay?.style.color === 'transparent') {
