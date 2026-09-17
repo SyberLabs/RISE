@@ -98,6 +98,36 @@ describe('soundscapes', () => {
         aurora.stop(true);
     });
 
+    it('halo holds its phase while the audio clock is not running', () => {
+        // A PHASE MACHINE MUST NOT RUN ON A CLOCK ITS OUTPUT HAS STOPPED.
+        // Every phase writes automation against ctx.currentTime while
+        // the scheduler runs on setTimeout. Hidden or stalled, the
+        // second keeps moving and the first does not — so a run of
+        // phases collapses onto one audio timestamp, each cancelling the
+        // last, and a slow fade arrives as a step. That is the shape of
+        // the harsh transient reported on leaving the browser.
+        const { ctx, oscillators } = makeMockContext();
+        let mayAdvance = false;
+        const aurora = createSoundscape('aurora', ctx, makeNode(), {
+            mayAdvance: () => mayAdvance
+        });
+        aurora.start();
+
+        const haloOscs = oscillators.slice(18);
+        const retunes = () => haloOscs[0].frequency.setTargetAtTime.mock.calls.length;
+        const atStart = retunes();
+
+        vi.advanceTimersByTime(120000);      // two minutes of held phases
+        expect(retunes(), 'no phase may advance while held').toBe(atStart);
+
+        mayAdvance = true;
+        vi.advanceTimersByTime(120000);
+        expect(retunes(), 'and it resumes wandering when let go')
+            .toBeGreaterThan(atStart);
+
+        aurora.stop(true);
+    });
+
     it('halo wanders: scheduler retunes the five partials to 200 or 216', () => {
         const { ctx, oscillators } = makeMockContext();
         const aurora = createSoundscape('aurora', ctx, makeNode());
