@@ -24,8 +24,11 @@
      overflowing composition above the scrollable area, where it cannot be
      reached. Short viewports fall back to the top and scroll. */
   justify-content: safe center;
+  /* `svh`, not `vh` or `dvh`: the small viewport is the only height this app
+     is ever shown at, and the only one that cannot go stale when iOS returns
+     a tab. The reasoning is on `body` in design-system.css. */
   height: 100vh;
-  height: 100dvh;
+  height: 100svh;
   overflow-y: auto;
   overflow-x: hidden;
   overscroll-behavior-y: contain;

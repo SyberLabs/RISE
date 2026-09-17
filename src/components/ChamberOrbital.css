@@ -34,8 +34,11 @@
      a scroll container alone would still bury the top of the column where
      no scrolling can reach. Browsers without safe alignment keep the
      `center` declared above it. */
+  /* `svh`, not `vh` or `dvh`: the small viewport is the only height this app
+     is ever shown at, and the only one that cannot go stale when iOS returns
+     a tab. The reasoning is on `body` in design-system.css. */
   height: 100vh;
-  height: 100dvh;
+  height: 100svh;
   overflow-y: auto;
   overscroll-behavior: contain;
   background: var(--color-void);
@@ -1599,9 +1602,25 @@
        with none to spare. (There were TWO of these rules in this one
        media block, the second silently winning; the second is gone.) */
     /* A shorthand, and deliberately so: it overrides the ring-centring
-       margins the desktop stage carries. A phone sizes its ring in vw
-       against a tight column, and takes its room under Begin instead. */
-    margin: var(--space-xs) auto;
+       margins the desktop stage carries, which are computed from
+       `--orbit-radius` -- a figure a phone does not use, because it rides
+       its ring on `--orb-r` instead.
+
+       THE QUARTER RADIUS IS OWED HERE TOO. Temporal rides a full radius
+       above the middle and the other two only half a radius below it, so
+       the ring's visual centre sits a quarter radius ABOVE its own box's
+       centre and equal margins hang it against the stance row: measured 8,
+       16, 29 and 39px of air above against 98 to 127 below, on the four
+       phones. The desktop stage moves that quarter out of the bottom
+       margin so the column's height does not change; there is only
+       `--space-xs` in the bottom margin here, so it is added to the top
+       instead and the column grows by it. What that spends is the room
+       under Begin, which orbital-reach.spec.js measures: 122px of it at
+       390x844 before, 106 after. The shortest phone measured, 375x667,
+       ends 2px past its own floor -- this container is a scroller with
+       `safe center` precisely so a short screen can scroll, and Begin
+       still stands 53px clear of the bottom there. */
+    margin: calc(var(--space-xs) + var(--orb-r) * 0.25) auto var(--space-xs);
   }
 
 
