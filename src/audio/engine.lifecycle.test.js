@@ -307,7 +307,13 @@ describe('AudioEngine lifecycle ownership', () => {
       vi.spyOn(engine, 'loadAssets').mockResolvedValue(undefined);
       await engine.init();
 
-      expect(engine.masterGain.connectedTo).toBe(engine.context.destination);
+      // Every bus meets at master, and master reaches the speakers only
+      // through the one node RISE can close without asking iOS for
+      // anything. It starts open: a fresh session must not wait on a
+      // clock probe to make its first sound.
+      expect(engine.masterGain.connectedTo).toBe(engine.lifecycleGate);
+      expect(engine.lifecycleGate.connectedTo).toBe(engine.context.destination);
+      expect(engine.lifecycleGate.gain.value).toBe(1);
       expect(engine.sessionGain.connectedTo).toBe(engine.masterGain);
       expect(engine.voiceGain.connectedTo).toBe(engine.masterGain);
 

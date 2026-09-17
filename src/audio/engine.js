@@ -167,6 +167,9 @@ export class AudioEngine {
         // jobs, and masterGain was doing both. See _buildGraph.
         this.sessionGain = null;
         this.voiceGain = null;
+        // Downstream of every bus, so RISE can go silent without waiting
+        // on a browser call to land. See _setOutputGate.
+        this.lifecycleGate = null;
         this.isInitialized = false;
         this.initPromise = null;
         this.isPlaying = false;
@@ -363,9 +366,28 @@ export class AudioEngine {
                 // should hear the first word at full level while the
                 // atmosphere rises around it, not through it. ui and
                 // typing are feedback and belong to no session at all.
+                // THE ONLY SILENCE RISE CAN GUARANTEE BY ITSELF.
+                //
+                // suspend() is an uncancellable asynchronous actuator.
+                // Bounding it bounds how long RISE waits, not how long
+                // the browser takes: the trace asked for a yield at
+                // 31.088 and the context was still running at 31.341,
+                // suspended somewhere before 35.914. For those seconds
+                // RISE had asked for silence and had no way to enforce
+                // it, because everything it owned was upstream of a
+                // decision iOS had not made yet.
+                //
+                //   ... -> masterGain -> lifecycleGate -> destination
+                //
+                // This gate is downstream of every bus and needs nobody's
+                // cooperation. It opens and closes on exactly one rule:
+                // it is open when the lifecycle admits playback.
                 this.masterGain = this.context.createGain();
                 this.masterGain.gain.value = this.config.masterVolume;
-                this.masterGain.connect(this.context.destination);
+                this.lifecycleGate = this.context.createGain();
+                this.lifecycleGate.gain.value = 1;
+                this.lifecycleGate.connect(this.context.destination);
+                this.masterGain.connect(this.lifecycleGate);
 
                 this.sessionGain = this.context.createGain();
                 this.sessionGain.gain.value = 1;
@@ -404,6 +426,7 @@ export class AudioEngine {
                 this.initPromise = null;
                 this.context = null;
                 this.masterGain = null;
+                this.lifecycleGate = null;
                 this.sessionGain = null;
                 this.voiceGain = null;
                 this.isInitialized = false;
@@ -451,7 +474,28 @@ export class AudioEngine {
      * audio.
      */
     get audible() {
+        // ONE ANSWER, AND IT IS NOT `context.state`. The trace is what
+        // two answers cost: `state` read running for sixteen seconds
+        // against a render clock frozen at 25.941, and every phrase
+        // admitted on that reading was scheduled into nothing.
+        //
+        // Offline paths - builds, tests, anything with no document -
+        // have no lifecycle to ask, and fall back to the raw report.
+        if (this.lifecycle) return this.lifecycle.admitted;
         return this.context?.state === 'running' && this.visible;
+    }
+
+    /** Open or close the gate RISE owns, without a click. */
+    _setOutputGate(open) {
+        const gate = this.lifecycleGate;
+        const context = this.context;
+        if (!gate || !context) return;
+        const now = context.currentTime;
+        gate.gain.cancelScheduledValues(now);
+        gate.gain.setValueAtTime(gate.gain.value, now);
+        // Short enough to be immediate, long enough not to be a step.
+        gate.gain.setTargetAtTime(open ? 1 : 0, now, open ? 0.01 : 0.004);
+        audioDiag(open ? 'gate:open' : 'gate:close', { ctxTime: now.toFixed(3) });
     }
 
     /**
@@ -492,8 +536,12 @@ export class AudioEngine {
      * lands on one frozen timestamp - which is a step, not a fade.
      */
     get mayScheduleAudio() {
+        // NOT "is it not known to be broken" - "is it known to be
+        // working". A scheduler that advances on anything weaker writes
+        // a run of ramps onto one frozen audio timestamp, each
+        // cancelling the last, and a slow fade arrives as a step.
         return this.visible
-            && this.lifecycle?.status !== AUDIO_STATUS.CLOCK_STALLED;
+            && this.lifecycle?.status === AUDIO_STATUS.RUNNING_LIVE;
     }
 
     /**
@@ -533,7 +581,13 @@ export class AudioEngine {
         // it is rebuilt instead.
         if (!this.context) return { state: 'none', audible: false };
         const state = this.context.state;
-        if (state === 'running') return { state, audible: true };
+        if (state === 'running') {
+            // Not `audible: true`. A running context already caught
+            // rendering nothing is refused here, and one that is merely
+            // unproven is admitted while it is being checked.
+            void this.lifecycle?.observeStateChange();
+            return { state, audible: this.audible };
+        }
         if (state === 'closed') {
             await this.rebuild();
             return { state: this.context?.state ?? 'none', audible: this.audible };
@@ -542,6 +596,7 @@ export class AudioEngine {
             Promise.resolve(this.context.resume()).catch(() => {}),
             new Promise(resolve => setTimeout(resolve, RESUME_WAIT_MS))
         ]);
+        void this.lifecycle?.observeStateChange();
         return { state: this.context?.state ?? 'none', audible: this.audible };
     }
 
@@ -560,6 +615,12 @@ export class AudioEngine {
 
         this._onContextStateChange = () => {
             const state = this.context?.state;
+            // EVERY CHANGE IS RECONCILED, INCLUDING A LATE `running`.
+            // The trace's context became running on its own at 37.421,
+            // two seconds after recovery had given up, with its clock
+            // still dead - and nothing looked at it again. Returning
+            // early on `running` is exactly how that happened.
+            void this.lifecycle?.observeStateChange();
             if (state === 'running') return;
             // A SUSPENSION RISE ASKED FOR IS NOT AN INTERRUPTION. The
             // app spends the reader's next tap recovering from one of
@@ -582,9 +643,15 @@ export class AudioEngine {
             // first-gesture listener on this, which is the only thing
             // left that can help.
             onNeedsGesture: () => this.onInterrupted?.('needs-gesture'),
-            onVisibleSettled: () => this._restoreAmbienceAfterVisibility()
+            onVisibleSettled: () => this._restoreAmbienceAfterVisibility(),
+            openOutput: () => this._setOutputGate(true),
+            closeOutput: () => this._setOutputGate(false)
         });
         this.lifecycle.attach(document);
+        // The context exists and can be asked about now. Without this the
+        // machine sits at NO_CONTEXT - refusing everything - until the
+        // first visibility event happens to arrive.
+        void this.lifecycle.observeStateChange();
     }
 
 
@@ -654,6 +721,7 @@ export class AudioEngine {
             const dying = this.context;
             this.context = null;
             this.masterGain = null;
+            this.lifecycleGate = null;
             this.sessionGain = null;
             this.voiceGain = null;
             for (const layer of Object.keys(this.layerGains)) {
@@ -2554,6 +2622,7 @@ export class AudioEngine {
         // nothing, and every caller went on believing audio was ready.
         this.initPromise = null;
         this.masterGain = null;
+        this.lifecycleGate = null;
         this.sessionGain = null;
         this.voiceGain = null;
     }
