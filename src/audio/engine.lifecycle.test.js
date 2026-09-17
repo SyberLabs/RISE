@@ -17,9 +17,30 @@ describe('AudioEngine lifecycle ownership', () => {
       constructor() {
         built += 1;
         this.state = 'running';
+        this.currentTime = 0;
         this.destination = {};
       }
-      createGain() { return { gain: { value: 0 }, connect: () => {} }; }
+      // A REAL `GainNode.gain` IS AN AudioParam, SO THIS ONE HAS TO BE.
+      // With only `value` on it, init()'s `observeStateChange()` — which is
+      // fire-and-forget — reached `_setOutputGate` on a context this mock
+      // reports as already `running`, threw on the first scheduling call it
+      // made, and had nobody to reject to. Two init() calls below, two
+      // unhandled errors, and a suite where every test passed and the run
+      // failed anyway. It landed only when the continuation lost the race
+      // with the end of the file, which is why CI saw it and a single-file
+      // run does not.
+      createGain() {
+        return {
+          gain: {
+            value: 0,
+            cancelScheduledValues: vi.fn(),
+            setValueAtTime: vi.fn(),
+            setTargetAtTime: vi.fn(),
+            linearRampToValueAtTime: vi.fn()
+          },
+          connect: () => {}
+        };
+      }
       addEventListener() {}
       removeEventListener() {}
       close() { this.state = 'closed'; return Promise.resolve(); }
