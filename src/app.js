@@ -351,6 +351,14 @@ class App {
                 engine = await this.ensureAudioEngine();
                 await engine.init();
                 await engine.resume();
+                // A GESTURE IS THE ONLY THING LEFT WHEN RECOVERY HAS RUN
+                // OUT OF RUNGS, so spend it on establishing the
+                // postcondition rather than on another resume. This runs
+                // only when RISE is not already admitted: a healthy
+                // context is never disturbed, and never pays for a probe.
+                if (engine.lifecycle && !engine.audible) {
+                    await engine.lifecycle.ensureLive();
+                }
                 if (this.settings?.enableAmbient) {
                     engine.startAmbientPlaylist();
                 }
@@ -367,7 +375,10 @@ class App {
                 // audio stayed off until something else happened to
                 // resume it — which, for a reading, was the reader
                 // pausing and playing.
-                if (engine?.context?.state === 'running') {
+                // AND STANDING DOWN IS A CLAIM ABOUT RENDERING, NOT
+                // ABOUT AN OBJECT'S `state` FIELD. In the trace the two
+                // disagreed for sixteen seconds.
+                if (engine?.audible) {
                     this._audioInteractionController?.abort();
                 }
 
