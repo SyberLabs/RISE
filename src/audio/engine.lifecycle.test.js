@@ -606,26 +606,45 @@ describe('a named swell fails closed', () => {
     // false execution — the runtime sounding something the score never
     // asked for, with nothing to say so.
     //
-    // The observation is whether a buffer source was CREATED. playSwell
-    // wraps its body in try/catch, so a throwing stub proves nothing:
-    // the throw is swallowed and the test passes either way.
+    // The observation is whether a buffer source was CREATED AND STARTED.
+    // playSwell wraps its body in try/catch, so a throwing stub proves
+    // nothing — and this stub used to throw. Its gain carried no
+    // `cancelScheduledValues`, and `config` was missing entirely, so
+    // playSwell died two lines after `source.buffer = buffer` and never
+    // reached `source.start()`. `created[0].buffer` was set by then, so
+    // the test read as green while asserting that a swell was PLAYED on a
+    // path where nothing ever sounded.
     const engineWithPool = (pool) => {
         const created = [];
         const engine = Object.create(AudioEngine.prototype);
         engine.isInitialized = true;
         engine.isMuted = false;
+        engine.config = { layerVolumes: { swell: 0.5 } };
         engine.buffers = { swells: [{ id: 'a' }, { id: 'b' }], personalSwells: [{ id: 'c' }] };
         engine.personalPool = pool;
-        engine.masterGain = {};
+        engine.layers = {};
+        // A REAL AudioParam CARRIES ITS SCHEDULING METHODS, so these
+        // doubles have to as well; the engine is right to call them.
+        const param = () => ({
+            value: 1,
+            cancelScheduledValues() {},
+            setValueAtTime() {},
+            setTargetAtTime() {},
+            linearRampToValueAtTime() {}
+        });
+        engine.masterGain = { gain: param(), connect() {} };
         engine.layerGains = {};
         engine.context = {
             currentTime: 0,
             createBufferSource: () => {
-                const node = { buffer: null, connect() {}, start() {}, stop() {}, onended: null };
+                const node = {
+                    buffer: null, started: false, connect() {},
+                    start() { node.started = true; }, stop() {}, onended: null
+                };
                 created.push(node);
                 return node;
             },
-            createGain: () => ({ gain: { value: 1, setValueAtTime() {}, linearRampToValueAtTime() {} }, connect() {} })
+            createGain: () => ({ gain: param(), connect() {} })
         };
         return { engine, created };
     };
@@ -642,6 +661,7 @@ describe('a named swell fails closed', () => {
         await engine.playSwell('funeral-bell');
         expect(created).toHaveLength(1);
         expect(created[0].buffer, 'the swell asked for is the swell played').toBe(bell);
+        expect(created[0].started, 'and it actually reached the speakers').toBe(true);
     });
 
     it('an unnamed request still takes any swell', async () => {

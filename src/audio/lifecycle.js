@@ -179,6 +179,32 @@ export class AudioLifecycle {
     }
 
     /**
+     * ASKING THIS MACHINE TO RECONCILE CAN NEVER THROW AT YOU.
+     *
+     * Its entry points are called with `void` from a statechange listener,
+     * a visibilitychange listener and four places in the engine - none of
+     * which has anywhere to catch. In Node that surfaces as an unhandled
+     * rejection inside whatever happened to run next, which is how a suite
+     * where every test passed still failed (#162). In a browser it
+     * surfaces as nothing at all, which is worse: the lifecycle quietly
+     * stops reconciling and no trace says why.
+     *
+     * So a failure becomes a diagnostic, in a file whose whole argument is
+     * that RISE should say what it observed.
+     */
+    async _settled(where, work) {
+        try {
+            return await work();
+        } catch (error) {
+            this._diag('lifecycle:threw', {
+                where,
+                error: String(error?.message || error)
+            });
+            return undefined;
+        }
+    }
+
+    /**
      * Ask the browser for something, and report only what was observed.
      *
      * A TIMEOUT IS NOT A RESULT. Promise.race stops RISE waiting; it
@@ -225,7 +251,11 @@ export class AudioLifecycle {
      * Whether RISE was meaning to make a sound is RISE's own fact, and
      * it is true across that race.
      */
-    async onHidden() {
+    onHidden() {
+        return this._settled('hidden', () => this._onHidden());
+    }
+
+    async _onHidden() {
         const epoch = this._epoch;
         // Before anything is asked of the browser, and synchronously.
         // This is the only part of going silent that RISE can guarantee
@@ -274,7 +304,11 @@ export class AudioLifecycle {
      * it back restores what they had rather than starting what they did
      * not ask for.
      */
-    async onVisible() {
+    onVisible() {
+        return this._settled('visible', () => this._onVisible());
+    }
+
+    async _onVisible() {
         const context = this._getContext();
         const interrupted = context?.state === 'interrupted';
         this._diag('visibility:visible', {
@@ -325,7 +359,8 @@ export class AudioLifecycle {
     async recover() {
         this._recovering = true;
         try {
-            return await this._recover();
+            return await this._settled('recover', () => this._recover())
+                || { ok: false, status: this._status };
         } finally {
             this._recovering = false;
         }
@@ -421,7 +456,11 @@ export class AudioLifecycle {
      * now, and a context already caught rendering nothing has to prove
      * itself before it is admitted again.
      */
-    async observeStateChange() {
+    observeStateChange() {
+        return this._settled('statechange', () => this._observeStateChange());
+    }
+
+    async _observeStateChange() {
         const context = this._getContext();
         const state = context?.state ?? 'none';
         this._diag('context:statechange', { context: state, status: this._status });
@@ -454,7 +493,12 @@ export class AudioLifecycle {
      * trace shows to be worthless. This establishes the postcondition:
      * visible, usable, and a clock that was seen to move.
      */
-    async ensureLive() {
+    ensureLive() {
+        return this._settled('ensure-live', () => this._ensureLive())
+            .then(verdict => verdict || { ok: false, status: this._status });
+    }
+
+    async _ensureLive() {
         if (!this._isVisible()) return { ok: false, status: this._status };
         if (this._status === AUDIO_STATUS.RUNNING_LIVE) {
             return { ok: true, status: this._status };
