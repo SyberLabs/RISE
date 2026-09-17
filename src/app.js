@@ -539,7 +539,9 @@ class App {
             && /^\/(?:try-rise|keystone(?:\/|$))/u.test(window.location.pathname)) {
             window.history.pushState({}, '', '/');
         }
-        this.router.navigate(viewName, { data });
+        // Returned so a caller can wait for the outgoing view to have
+        // faded out before disposing of it. See chamber-session-factory.
+        return this.router.navigate(viewName, { data });
     }
 
     /**

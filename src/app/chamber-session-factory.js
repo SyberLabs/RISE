@@ -426,23 +426,45 @@ export async function createChamberSession(operations, container, sessionData) {
                 visualCortex.updateConfig({ enabled: false });
                 audioEngine.stopSession();
 
-                // Force disposal of the instance so next session starts fresh
+                // A VIEW IS DISPOSED ONCE IT IS OFF SCREEN, NOT BEFORE.
+                //
+                // The router already gets this order right: deactivate,
+                // fade the outgoing container out, hide it, and only then
+                // dispose whatever owned it. Destroying here first took
+                // that away — Chamber.destroy() does not remove its own
+                // DOM, so the Fit word was undressed while still in front
+                // of the reader and stayed that way for the whole
+                // transition. Measured at 369ms of a 503px near-white word
+                // on the way back to try-rise.
+                //
+                // Disposal is still forced rather than left to the router,
+                // because the router only disposes views that share the
+                // INCOMING container, and try-rise does not share
+                // view-chamber.
                 const view = operations.router.views.get('chamber-session');
-                if (view && view.instance) {
-                    view.instance.destroy();
-                    view.instance = null;
-                }
+                const dying = view?.instance || null;
+                const dispose = () => {
+                    if (!dying) return;
+                    dying.destroy();
+                    // Only if nothing has taken the slot in the meantime.
+                    if (view.instance === dying) view.instance = null;
+                };
 
                 const target = chamberExitTarget(reason, session, data);
                 if (target?.kind === 'continue') {
+                    // The container is reused immediately here, so the old
+                    // owner has to go before the new one mounts into it.
+                    dispose();
                     void operations.continueLibraryReading(session);
                 } else if (target?.kind === 'navigate') {
                     // Through the shell rather than the router, so the rules
                     // that keep the address bar honest about which surface is
                     // showing get a chance to run.
-                    operations.handleNavigate(target.view, target.data, {
+                    void Promise.resolve(operations.handleNavigate(target.view, target.data, {
                         replaceUrl: target.replaceUrl === true
-                    });
+                    })).catch(() => {}).then(dispose);
+                } else {
+                    dispose();
                 }
             }
         });
