@@ -135,6 +135,7 @@ import { PERSONAL_BED_PREFIX } from '../core/workshop-audio.js';
 import { createSoundscape } from './soundscapes.js';
 import { createChantBed, isChantBedId, CHANT_BED_IDS } from './chant.js';
 import { audioDiag } from '../core/audio-diagnostics.js';
+import { AudioLifecycle, AUDIO_STATUS } from './lifecycle.js';
 
 
 /**
@@ -318,14 +319,11 @@ export class AudioEngine {
         // with the next thing they touch.
         this.onInterrupted = null;
         this._rebuilding = false;
-        // WHY a context is suspended, not merely that it is. A context
-        // RISE yielded because the page went away is recovered on
-        // return; one that was never admitted is left alone, because
-        // showing a page is not permission to start making noise.
-        this._yieldedToVisibility = false;
-        // The last visibility transition wins. Every await below
-        // re-checks this before acting on what it learned.
-        this._visibilityEpoch = 0;
+        // Browser ownership, clock liveness and recovery policy live in
+        // their own object: the engine builds and plays a graph, and
+        // asks this whether it is allowed to be heard. Built alongside
+        // the context, in _bindContextLifecycle.
+        this.lifecycle = null;
         this._ambientAwaitingVisibility = false;
         this._resumeAmbient = null;
         this._onContextStateChange = null;
@@ -469,7 +467,33 @@ export class AudioEngine {
 
     /** Whether the current suspension is one RISE asked for. */
     get yieldedToVisibility() {
-        return this._yieldedToVisibility;
+        return this.lifecycle?.yieldedToVisibility === true;
+    }
+
+    /**
+     * Was RISE meaning to make a sound when the page went away?
+     *
+     * This is the fact ownership turns on, and it is RISE's own rather
+     * than the browser's - true across the race where iOS moves a
+     * context to `interrupted` before visibilitychange arrives.
+     */
+    get audioIntent() {
+        return this.ambienceActive === true
+            || this.sessionActive === true
+            || this.isPlaying === true;
+    }
+
+    /**
+     * Whether an autonomous scheduler may take its next step.
+     *
+     * A procedural soundscape advances on a wall clock while its output
+     * is written against the audio clock. When the second stops and the
+     * first does not, a phase machine runs on and every ramp it writes
+     * lands on one frozen timestamp - which is a step, not a fade.
+     */
+    get mayScheduleAudio() {
+        return this.visible
+            && this.lifecycle?.status !== AUDIO_STATUS.CLOCK_STALLED;
     }
 
     /**
@@ -542,107 +566,53 @@ export class AudioEngine {
             // these, and re-arming that listener every time the page is
             // backgrounded would make an ordinary tab switch look like a
             // failure.
-            if (this._yieldedToVisibility) return;
+            if (this.yieldedToVisibility) return;
             // Tell the app its audio is gone, so the next tap can be
             // spent getting it back.
             this.onInterrupted?.(state);
         };
         this.context.addEventListener?.('statechange', this._onContextStateChange);
 
-        this._onVisibilityChange = () => {
-            this._visibilityEpoch += 1;
-            if (document.visibilityState === 'hidden') {
-                void this._onVisibilityHidden();
-            } else {
-                void this._onVisibilityVisible();
-            }
-        };
-        document.addEventListener('visibilitychange', this._onVisibilityChange);
+        this.lifecycle = new AudioLifecycle({
+            getContext: () => this.context,
+            isVisible: () => this.visible,
+            hasIntent: () => this.audioIntent,
+            diag: audioDiag,
+            // Recovery has run out of rungs. The app re-arms its
+            // first-gesture listener on this, which is the only thing
+            // left that can help.
+            onNeedsGesture: () => this.onInterrupted?.('needs-gesture'),
+            onVisibleSettled: () => this._restoreAmbienceAfterVisibility()
+        });
+        this.lifecycle.attach(document);
     }
 
-    /**
-     * Wait on a browser call, but never on the browser.
-     *
-     * Safari can leave suspend() and resume() pending indefinitely, and
-     * a visibility transition that waits forever is a page that never
-     * finishes going away.
-     */
-    async _bounded(work) {
-        await Promise.race([
-            Promise.resolve(work).catch(() => {}),
-            new Promise(resolve => setTimeout(resolve, RESUME_WAIT_MS))
-        ]);
-    }
 
     /**
      * HIDDEN MEANS SILENT, AND RISE SAYS SO RATHER THAN HOPING.
      *
      * iOS does not reliably mute a hidden page, and it does not stop
-     * calling source.onended for one either — which is how a lobby drone
+     * calling source.onended for one either - which is how a lobby drone
      * that re-arms itself from that callback came back behind a
-     * different tab. Yielding here makes the guarantee ours instead of
-     * the platform's.
+     * different tab. Yielding makes the guarantee ours.
      *
-     * It also buys the cure for the other failure. WebKit 276016 and
-     * 291892 both report a context that reads "running" after a return
-     * from background while nothing is audible, and both name an
-     * explicit suspend/resume cycle as what restores it. A page that
-     * yielded on the way out performs exactly that cycle on the way
-     * back, without a special case for it.
+     * The decision of whether anything is owed belongs to the lifecycle
+     * controller, because it turns on intent rather than on whatever the
+     * context happens to report at this instant.
      */
     async _onVisibilityHidden() {
-        const epoch = this._visibilityEpoch;
-        if (!this.context || this.context.state !== 'running') return;
-        this._yieldedToVisibility = true;
-        audioDiag('visibility:hidden', { context: this.context.state, epoch });
-        await this._bounded(this.context.suspend());
-        audioDiag('visibility:yielded', {
-            context: this.context?.state ?? 'none',
-            stale: epoch !== this._visibilityEpoch
-        });
+        await this.lifecycle?.onHidden();
     }
 
     /**
-     * Take back exactly what visibility took, and nothing else.
+     * Take back only what visibility took, and prove it before saying so.
      *
-     * A context that was suspended before the page hid was suspended for
-     * some other reason - most often that audio was never admitted at
-     * all - and returning to the page is not the gesture that admits it.
+     * The controller runs a bounded ladder with a stated postcondition:
+     * a context is not recovered because resume() returned, it is
+     * recovered because its clock was seen to move.
      */
     async _onVisibilityVisible() {
-        const epoch = this._visibilityEpoch;
-        audioDiag('visibility:visible', {
-            context: this.context?.state ?? 'none',
-            yielded: this._yieldedToVisibility
-        });
-        // SUSPENDED IS NOT INTERRUPTED, AND ONLY ONE OF THEM IS OURS TO
-        // LEAVE ALONE.
-        //
-        // A context suspended before the page hid was suspended for some
-        // other reason - most often that audio was never admitted at all
-        // - and returning to a page is not the gesture that admits it.
-        // An INTERRUPTED context is the opposite case: iOS took the
-        // session from an app the reader had already allowed to speak,
-        // during a call or an alarm, and asking for it back is restoring
-        // what they had rather than starting something they did not ask
-        // for. That recovery predates this ownership work and is what
-        // returning to screen was originally for.
-        const interrupted = this.context?.state === 'interrupted';
-        if (!this._yieldedToVisibility && !interrupted) return;
-        this._yieldedToVisibility = false;
-        if (this.context && this.context.state !== 'closed') {
-            await this._bounded(this.context.resume());
-        } else {
-            await this.resume();
-        }
-        // A page hidden again while that was in flight must not come
-        // back audible on a promise from the previous epoch.
-        if (epoch !== this._visibilityEpoch) {
-            audioDiag('visibility:recover-stale', { epoch });
-            if (!this.visible) void this._onVisibilityHidden();
-            return;
-        }
-        audioDiag('visibility:recovered', { context: this.context?.state ?? 'none' });
+        await this.lifecycle?.onVisible();
         this._restoreAmbienceAfterVisibility();
     }
 
@@ -706,16 +676,14 @@ export class AudioEngine {
     }
 
     _unbindContextLifecycle() {
-        this._yieldedToVisibility = false;
+        this.lifecycle?.detach();
+        this.lifecycle = null;
         this._ambientAwaitingVisibility = false;
         if (this._onContextStateChange) {
             this.context?.removeEventListener?.('statechange', this._onContextStateChange);
             this._onContextStateChange = null;
         }
-        if (this._onVisibilityChange && typeof document !== 'undefined') {
-            document.removeEventListener('visibilitychange', this._onVisibilityChange);
-            this._onVisibilityChange = null;
-        }
+
     }
 
     /**
@@ -1416,7 +1384,9 @@ export class AudioEngine {
                     try { this.onChantTrackChange?.(chant); } catch (e) { /* display optional */ }
                 }
             })
-            : createSoundscape(id, this.context, this.layerGains.soundscape);
+            : createSoundscape(id, this.context, this.layerGains.soundscape, {
+                mayAdvance: () => this.mayScheduleAudio
+            });
         if (!handle) {
             console.warn('[AudioEngine] Unknown soundscape:', id);
             return;

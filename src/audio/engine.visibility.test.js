@@ -39,16 +39,23 @@ const fakeDocument = () => ({
 const setVisibility = async (state) => {
     visibility = state;
     for (const fn of listeners.visibilitychange || []) fn();
-    // The handlers are async and bounded; a macrotask drains whatever
-    // depth of microtasks they happen to be, which counting ticks does
-    // not.
-    await new Promise(resolve => setTimeout(resolve, 0));
+    // The recovery ladder measures the audio clock over a real window
+    // before it will call anything recovered, so this waits past that
+    // rather than counting microtasks.
+    await new Promise(resolve => setTimeout(resolve, 450));
 };
 
 const fakeContext = (state = 'running', hooks = {}) => {
     const ctx = {
         state,
-        currentTime: 0,
+        // A LIVE RENDERER HAS A MOVING CLOCK. The lifecycle proves
+        // recovery by watching currentTime rather than trusting `state`,
+        // so a fake whose clock never moves models the WebKit pathology,
+        // not a working context. This one advances while running.
+        _t0: Date.now(),
+        get currentTime() {
+            return ctx.state === 'running' ? (Date.now() - ctx._t0) / 1000 : ctx._frozen ?? 0;
+        },
         destination: { name: 'destination' },
         suspend: hooks.suspend || vi.fn(function () { ctx.state = 'suspended'; return Promise.resolve(); }),
         resume: hooks.resume || vi.fn(function () { ctx.state = 'running'; return Promise.resolve(); }),

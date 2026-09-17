@@ -29,6 +29,9 @@
  * (the engine's soundscape layer gain) and ramp every transition.
  */
 
+/** How long a held phase waits before asking again. */
+const HOLD_MS = 250;
+
 function rampIn(ctx, gainParam, level, seconds = 1.2) {
     const t = ctx.currentTime;
     gainParam.cancelScheduledValues(t);
@@ -218,7 +221,7 @@ const HALO_AMPS = [0.5, 0.25, 0.125, 0.0625, 0.03125];
 // avg seconds → randomized 0.6×–1.5× milliseconds
 const jitter = (avg) => avg * (0.6 + Math.random() * 0.9) * 1000;
 
-function buildHalo(ctx, destination, nodes) {
+function buildHalo(ctx, destination, nodes, mayAdvance = () => true) {
     const A = AURORA;
 
     const out = ctx.createGain();
@@ -259,8 +262,23 @@ function buildHalo(ctx, destination, nodes) {
             ?? A.haloTunings[0];
     }
 
+    /**
+     * A PHASE MACHINE MUST NOT RUN ON A CLOCK ITS OUTPUT HAS STOPPED.
+     *
+     * Every phase below writes automation against ctx.currentTime while
+     * this timer runs on the wall clock. When the page is hidden or the
+     * renderer has stalled, the second keeps moving and the first does
+     * not - so a run of phases collapses onto a single audio timestamp,
+     * each one cancelling the last, and what should have been a slow
+     * fade arrives as a step. Holding is cheap; a discontinuity in a
+     * six-oscillator pad is not.
+     */
     function wait(ms, next) {
-        timer = setTimeout(() => { if (alive) next(); }, ms);
+        timer = setTimeout(() => {
+            if (!alive) return;
+            if (!mayAdvance()) { wait(HOLD_MS, next); return; }
+            next();
+        }, ms);
     }
 
     function restPhase() {
@@ -512,7 +530,7 @@ function buildFadedSignal(ctx, destination, nodes) {
     return out;
 }
 
-function createFadedSignal(ctx, destination) {
+function createFadedSignal(ctx, destination, options = {}) {
     let nodes = [];
     let mainOut = null;
 
@@ -547,7 +565,7 @@ function createFadedSignal(ctx, destination) {
 // Registry
 // ═══════════════════════════════════════════════════════════
 
-function createAurora(ctx, destination) {
+function createAurora(ctx, destination, options = {}) {
     let nodes = [];
     let halo = null;
     let padOut = null;
@@ -555,7 +573,8 @@ function createAurora(ctx, destination) {
     return {
         start() {
             padOut = buildAurorePad(ctx, destination, nodes);
-            halo = buildHalo(ctx, destination, nodes);
+            halo = buildHalo(ctx, destination, nodes,
+                options.mayAdvance || (() => true));
             rampIn(ctx, padOut.gain, AURORA.padLevel, 2.4);
             rampIn(ctx, halo.out.gain, AURORA.haloLevel, 2.4);
             halo.begin();
@@ -604,8 +623,8 @@ export const SOUNDSCAPES = {
  * @param {string} id - soundscape id (e.g. 'aurora')
  * @returns {{start: Function, stop: Function} | null}
  */
-export function createSoundscape(id, ctx, destination) {
+export function createSoundscape(id, ctx, destination, options = {}) {
     const entry = SOUNDSCAPES[id];
     if (!entry) return null;
-    return entry.create(ctx, destination);
+    return entry.create(ctx, destination, options);
 }
