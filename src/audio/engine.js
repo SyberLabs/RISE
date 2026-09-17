@@ -137,6 +137,18 @@ import { createChantBed, isChantBedId, CHANT_BED_IDS } from './chant.js';
 import { audioDiag } from '../core/audio-diagnostics.js';
 import { AudioLifecycle, AUDIO_STATUS } from './lifecycle.js';
 
+/**
+ * How long the lifecycle gate takes to reach silence.
+ *
+ * Long enough to outlast a cycle of the lowest drone RISE plays, so the
+ * waveform ends on a zero rather than a step; short enough that going
+ * quiet still reads as immediate.
+ */
+const GATE_FADE_MS = 30;
+
+/** Coming back is allowed to be gentler than going away. */
+const GATE_OPEN_MS = 60;
+
 
 /**
  * Audio Engine for RISE
@@ -485,17 +497,42 @@ export class AudioEngine {
         return this.context?.state === 'running' && this.visible;
     }
 
-    /** Open or close the gate RISE owns, without a click. */
+    /**
+     * Open or close the gate RISE owns, and DO NOT CLICK DOING IT.
+     *
+     * This closed over a 4ms time constant, which is not a fade, it is a
+     * cut with a slope. An amplitude step that fast spreads energy across
+     * the spectrum and arrives as a transient - reported from an iPhone
+     * as a sharp unplugging sound every time the screen locked, and the
+     * trace puts it on this line: gate:close at 27949ms, iOS's own
+     * suspension not until 28335ms. The gate was first, so the click was
+     * ours.
+     *
+     * A fade needs to outlast one cycle of the lowest thing in it or the
+     * waveform still ends on a step, and RISE runs drones down to about
+     * 60Hz - a 17ms period. GATE_FADE_MS is several of those.
+     *
+     * Linear, and to exactly zero: `setTargetAtTime` is asymptotic and
+     * never arrives, and "hidden means silent" is a guarantee about
+     * silence rather than about getting close to it. 30ms against the
+     * 386ms iOS took to suspend in that same trace still makes this the
+     * fast path by an order of magnitude.
+     */
     _setOutputGate(open) {
         const gate = this.lifecycleGate;
         const context = this.context;
         if (!gate || !context) return;
         const now = context.currentTime;
+        const seconds = (open ? GATE_OPEN_MS : GATE_FADE_MS) / 1000;
         gate.gain.cancelScheduledValues(now);
+        // The ramp needs a start it can be measured from, and it has to be
+        // where the gain actually IS - mid-fade if a fade is running.
         gate.gain.setValueAtTime(gate.gain.value, now);
-        // Short enough to be immediate, long enough not to be a step.
-        gate.gain.setTargetAtTime(open ? 1 : 0, now, open ? 0.01 : 0.004);
-        audioDiag(open ? 'gate:open' : 'gate:close', { ctxTime: now.toFixed(3) });
+        gate.gain.linearRampToValueAtTime(open ? 1 : 0, now + seconds);
+        audioDiag(open ? 'gate:open' : 'gate:close', {
+            ctxTime: now.toFixed(3),
+            overMs: open ? GATE_OPEN_MS : GATE_FADE_MS
+        });
     }
 
     /**

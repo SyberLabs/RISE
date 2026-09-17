@@ -265,3 +265,66 @@ describe('a measured clock always has a verdict', () => {
         expect(gate.open, 'and the output comes back with it').toBe(1);
     });
 });
+
+describe('a command distinguishes no answer from a useless one', () => {
+    it('calls a settled call that changed nothing ineffective, not timed out', async () => {
+        // FROM AN IPHONE TRACE: `resume:timeout settled:true` eight
+        // milliseconds after the request. The call answered, promptly, and
+        // the context did not move. Reporting that as a timeout pending an
+        // answer claims RISE is still waiting on something that already
+        // came back — the exact class of untruth this machine exists to
+        // stop telling.
+        const context = fakeContext('suspended', {
+            resume: vi.fn(() => Promise.resolve())   // settles; changes nothing
+        });
+        // The budget has to outlast the call, as a real 250ms timer does
+        // against a resume that answered in eight milliseconds. A wait
+        // that resolves in one microtask wins the race against the call's
+        // own continuation and reports a timeout that never happened.
+        const { machine, names, events } = build({
+            context,
+            wait: () => new Promise(resolve => setTimeout(resolve, 0))
+        });
+
+        await machine.recover();
+
+        expect(names(), 'it answered, so nothing is pending').not.toContain('resume:timeout');
+        expect(names()).toContain('resume:ineffective');
+        expect(events.find(e => e.event === 'resume:ineffective').outcome).toBe('no-effect');
+    });
+
+    it('still calls it a timeout when the browser never answers', async () => {
+        const context = fakeContext('suspended', { resume: vi.fn(() => new Promise(() => {})) });
+        const { machine, names, events } = build({ context });
+
+        await machine.recover();
+
+        expect(names()).toContain('resume:timeout');
+        expect(events.find(e => e.event === 'resume:timeout').outcome).toBe('pending');
+    });
+});
+
+describe('one probe, however many ask', () => {
+    it('shares a clock probe rather than running five of them', async () => {
+        // An iPhone trace logged five `clock:advancing` inside a single
+        // millisecond: every statechange and every resume had started its
+        // own 120ms probe of the same clock. They agreed, so nothing broke
+        // — but the trace is the only instrument RISE has here, and five
+        // copies of one answer is not a reading.
+        const context = fakeContext('running');
+        let waits = 0;
+        const { machine, names } = build({
+            context,
+            wait: () => { waits += 1; context.currentTime += 0.12; return Promise.resolve(); }
+        });
+
+        await Promise.all([
+            machine.observeStateChange(),
+            machine.observeStateChange(),
+            machine.observeStateChange()
+        ]);
+
+        expect(names().filter(n => n === 'clock:advancing')).toHaveLength(1);
+        expect(waits, 'one probe window, not three').toBe(1);
+    });
+});

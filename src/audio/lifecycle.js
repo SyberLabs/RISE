@@ -99,6 +99,8 @@ export class AudioLifecycle {
         this._outputOpen = true;
         /** A recovery in flight owns the probe; nothing else re-enters. */
         this._recovering = false;
+        /** The probe currently in flight, so concurrent askers share one. */
+        this._probe = null;
         this._yieldedToVisibility = false;
         /** A newer visibility event always supersedes an older recovery. */
         this._epoch = 0;
@@ -214,7 +216,7 @@ export class AudioLifecycle {
      * four seconds later. So the outcome of a timeout is UNKNOWN, and is
      * named that way.
      *
-     * @returns {'observed'|'timeout'|'unavailable'}
+     * @returns {'observed'|'ineffective'|'timeout'|'unavailable'}
      */
     async _command(verb, invoke, satisfied) {
         const before = this._getContext()?.state ?? 'none';
@@ -231,10 +233,21 @@ export class AudioLifecycle {
             this._diag(`${verb}:observed`, { context: after });
             return 'observed';
         }
-        // `timeout` is what RISE did; `pending` is what is known about
-        // the operation, which is nothing. It has not failed and it has
-        // not been cancelled - it is still out there, and the trace's
-        // suspension landed four seconds after this line.
+        // TWO DIFFERENT FACTS, AND THEY WERE WEARING THE SAME NAME.
+        //
+        // An iPhone trace read `resume:timeout settled:true` eight
+        // milliseconds after the request - a call that answered, promptly,
+        // and did not move the context. Reporting that as a timeout
+        // pending an answer is exactly the kind of claim this file exists
+        // to refuse. It is not waiting on anything; it tried and it did
+        // nothing.
+        //
+        // Still out there, outcome genuinely unknown -> timeout/pending.
+        // Answered and the state did not follow -> ineffective/no-effect.
+        if (settled) {
+            this._diag(`${verb}:ineffective`, { context: after, settled, outcome: 'no-effect' });
+            return 'ineffective';
+        }
         this._diag(`${verb}:timeout`, { context: after, settled, outcome: 'pending' });
         return 'timeout';
     }
@@ -416,8 +429,24 @@ export class AudioLifecycle {
         return { ok: false, status: this._status };
     }
 
-    /** Did that leave us rendering? The postcondition, checked. */
+    /**
+     * Did that leave us rendering? The postcondition, checked.
+     *
+     * ONE PROBE AT A TIME. Every statechange and every resume asks, and
+     * on a device they arrive together: an iPhone trace logged five
+     * `clock:advancing` inside one millisecond and two `clock:stalled`
+     * inside another, five concurrent 120ms probes all reading the same
+     * clock and all reaching the same verdict. Harmless, and it made the
+     * one instrument RISE has for this unreadable. Callers that arrive
+     * during a probe wait for its answer instead of starting another.
+     */
     async _settle(epoch) {
+        if (this._probe) return this._probe;
+        this._probe = this._settleOnce(epoch).finally(() => { this._probe = null; });
+        return this._probe;
+    }
+
+    async _settleOnce(epoch) {
         const verdict = await this.probeClock();
         if (epoch !== this._epoch || !this._isVisible()) return false;
         if (verdict === 'advancing') {

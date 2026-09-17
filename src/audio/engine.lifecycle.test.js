@@ -672,3 +672,72 @@ describe('a named swell fails closed', () => {
         expect(created).toHaveLength(1);
     });
 });
+
+describe('the lifecycle gate goes quiet without a click', () => {
+    /**
+     * REPORTED FROM AN IPHONE: a sharp unplugging sound every time the
+     * screen locked. The trace put it on this line — gate:close at
+     * 27949ms, iOS's own suspension not until 28335ms — so the gate was
+     * first and the click was ours.
+     *
+     * It closed over a 4ms time constant, which is a cut with a slope
+     * rather than a fade. An amplitude step that fast spreads energy
+     * across the spectrum and arrives as a transient, and a fade has to
+     * outlast one cycle of the lowest thing in the mix or the waveform
+     * still ends on a step. RISE runs drones near 60Hz: a 17ms period.
+     */
+    const gateFor = () => {
+        const calls = [];
+        const engine = Object.create(AudioEngine.prototype);
+        engine.context = { currentTime: 10 };
+        engine.lifecycleGate = {
+            gain: {
+                value: 1,
+                cancelScheduledValues: (...a) => calls.push(['cancel', ...a]),
+                setValueAtTime: (...a) => calls.push(['set', ...a]),
+                setTargetAtTime: (...a) => calls.push(['target', ...a]),
+                linearRampToValueAtTime: (...a) => calls.push(['ramp', ...a])
+            }
+        };
+        return { engine, calls };
+    };
+
+    it('fades to silence over long enough not to be heard as an edge', () => {
+        const { engine, calls } = gateFor();
+
+        engine._setOutputGate(false);
+
+        const ramp = calls.find(c => c[0] === 'ramp');
+        expect(ramp, 'a ramp, not a jump').toBeTruthy();
+        expect(ramp[1], 'all the way to silence').toBe(0);
+        const overMs = (ramp[2] - 10) * 1000;
+        expect(overMs, 'longer than one cycle of the lowest drone')
+            .toBeGreaterThanOrEqual(20);
+        expect(overMs, 'still immediate to a reader').toBeLessThanOrEqual(80);
+    });
+
+    it('reaches exactly zero, because silence is the guarantee', () => {
+        // setTargetAtTime is asymptotic and never arrives. "Hidden means
+        // silent" is a claim about silence, not about approaching it.
+        const { engine, calls } = gateFor();
+
+        engine._setOutputGate(false);
+
+        expect(calls.some(c => c[0] === 'target'), 'no asymptote').toBe(false);
+        expect(calls.find(c => c[0] === 'ramp')[1]).toBe(0);
+    });
+
+    it('starts the ramp from where the gain actually is', () => {
+        // Mid-fade the value is not 1 or 0, and a ramp with no anchor
+        // would jump to the last scheduled value before starting.
+        const { engine, calls } = gateFor();
+        engine.lifecycleGate.gain.value = 0.42;
+
+        engine._setOutputGate(true);
+
+        expect(calls[0][0]).toBe('cancel');
+        expect(calls[1]).toEqual(['set', 0.42, 10]);
+        expect(calls[2][0]).toBe('ramp');
+        expect(calls[2][1]).toBe(1);
+    });
+});
