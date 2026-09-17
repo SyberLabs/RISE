@@ -248,6 +248,15 @@
   box-shadow: none;
 }
 
+/* Held back while the mask decides whether it can dress this word, so the
+   reader is never shown a full-screen word that is replaced three frames
+   later. `.atom-display` already carries `transition: opacity 150ms`, so
+   releasing the hold fades plain type in rather than snapping it on.
+   FitMaskRuntime owns the class and always releases it. */
+.atom-display.is-mask.is-mask-settling {
+  opacity: 0;
+}
+
 /* Ink is a hole onto Layer B (the fill). Counters stay empty so Layer A
    (the background field) shows through — not a bbox-shaped window. */
 .atom-display.is-mask.is-mask-ink.is-mask-ready {
