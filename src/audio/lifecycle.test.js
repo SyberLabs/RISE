@@ -270,3 +270,61 @@ describe('a newer lifecycle event supersedes an older recovery', () => {
         expect(machine.audible).toBe(false);
     });
 });
+
+describe('a failure inside the machine is reported, never dropped', () => {
+    /** A context whose clock refuses to be read at all. */
+    const hostileClock = (state = 'running') => {
+        const ctx = {
+            state,
+            suspend: vi.fn(() => { ctx.state = 'suspended'; return Promise.resolve(); }),
+            resume: vi.fn(() => { ctx.state = 'running'; return Promise.resolve(); })
+        };
+        Object.defineProperty(ctx, 'currentTime', {
+            get() { throw new TypeError('currentTime is not available'); }
+        });
+        return ctx;
+    };
+
+    it('does not reject from an entry point nobody is awaiting', async () => {
+        // Every caller of this reaches it through `void`: a statechange
+        // listener, a visibilitychange listener, and four places in the
+        // engine. None of them has anywhere to catch. In Node the
+        // rejection lands inside whatever ran next — that is how a suite
+        // where every test passed still failed the run — and in a browser
+        // it lands nowhere at all, which is worse: reconciliation stops
+        // and no trace says why.
+        const context = hostileClock();
+        const { machine, names, events } = lifecycleFor({ context });
+
+        await expect(machine.observeStateChange()).resolves.toBeUndefined();
+
+        expect(names(), 'silence is the one unacceptable answer').toContain('lifecycle:threw');
+        const thrown = events.find(e => e.event === 'lifecycle:threw');
+        expect(thrown.where).toBe('statechange');
+        expect(thrown.error).toContain('currentTime');
+    });
+
+    it('does not reject from a visibility handler either', async () => {
+        // Interrupted, so returning to the page actually runs the recovery
+        // ladder rather than finding nothing owed and stopping. The ladder
+        // is where the clock gets read, and reading it is what fails.
+        const context = hostileClock('interrupted');
+        const { machine, names } = lifecycleFor({ context });
+
+        await expect(machine.onVisible()).resolves.toBeUndefined();
+
+        expect(names()).toContain('lifecycle:threw');
+    });
+
+    it('still answers a gesture with a verdict when it fails', async () => {
+        // ensureLive IS awaited, and its caller reads the answer. A
+        // rejection there would take the app's first-gesture path with it.
+        const context = hostileClock();
+        const { machine } = lifecycleFor({ context });
+
+        const verdict = await machine.ensureLive();
+
+        expect(verdict.ok).toBe(false);
+        expect(typeof verdict.status).toBe('string');
+    });
+});
