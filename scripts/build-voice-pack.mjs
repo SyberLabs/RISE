@@ -287,11 +287,31 @@ async function main() {
     }
 
     pack.entries = sortObject(pack.entries);
+    if (generated > 0 && manifest.alignment) {
+        // THE ONSETS THIS SCRIPT WRITES ARE PROVISIONAL.
+        //
+        // `speechOnsets` finds silences, and connected speech does not
+        // leave one between every word: measured over this pack, 83% of
+        // clips came back with an onset count that disagreed with the
+        // phrase, and the reveal then interpolates rather than follows.
+        // A real alignment is a separate pass, and a pack that has been
+        // regenerated no longer has one.
+        delete manifest.alignment;
+    }
     await persistManifest(manifest);
     console.log(
         `[voice-pack] Complete: ${generated} generated, ${retained} retained; `
         + `${Object.keys(pack.entries).length} total manifest entries`
     );
+    if (generated > 0) {
+        console.log(
+            '[voice-pack] NOT YET ALIGNED. The onsets above are silence '
+            + 'detection, which is a guess at where words begin.\n'
+            + '[voice-pack] Run `npm run align:voice-pack` before shipping, '
+            + 'or the reveal drifts from the voice (measured: p50 346ms, '
+            + 'p90 1523ms).'
+        );
+    }
 }
 
 main().catch(error => {
