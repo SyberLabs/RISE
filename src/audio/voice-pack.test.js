@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { existsSync, statSync } from 'node:fs';
 import { resolve } from 'node:path';
 import heartBeta from '../../scripts/voice-packs/heart-beta.mjs';
+import { splitWords } from '../core/recitation.js';
 import {
     availableVoicePacks,
     resolveVoicePackEntry,
@@ -60,6 +61,25 @@ describe('shipped Recitation pack', () => {
             text: 'Of five long winters! and again I hear',
             spokenText: 'Of five long winters! And again, I hear.'
         });
-        expect(entry.onsetsMs.at(-1)).toBeGreaterThan(2400);
+        // THE REPAIR IS AUDIBLE, AND THE ALIGNMENT SHOWS IT.
+        //
+        // This used to assert that the last onset fell past 2400ms, which
+        // held only because the energy detector bunched its boundaries
+        // toward the end of a clip — an artefact of looking for silences,
+        // not a fact about the recording. Aligned, the line reads
+        // Of@342 five@462 long@764 winters!@1005 And@1769 ... hear.@2351.
+        //
+        // What the repair actually buys is the full stop after "winters":
+        // the voice takes a breath there instead of running the line on.
+        // That pause is the thing worth holding, so hold it directly.
+        const words = splitWords(entry.spokenText).map(word => word.text);
+        expect(entry.onsetsMs).toHaveLength(words.length);
+        const after = word => entry.onsetsMs[words.indexOf(word) + 1]
+            - entry.onsetsMs[words.indexOf(word)];
+        const gaps = words.slice(0, -1).map(word => after(word));
+        const median = [...gaps].sort((a, b) => a - b)[Math.floor(gaps.length / 2)];
+        expect(after('winters!'), 'the sentence break is a real pause')
+            .toBeGreaterThan(median * 2);
+        expect(entry.onsetsMs.at(-1)).toBeLessThan(entry.durationMs);
     });
 });

@@ -378,15 +378,28 @@ function snapToOnsets(predicted, onsets, toleranceMs) {
 }
 
 /**
- * Find where words begin in generated speech.
+ * Find where words begin in generated speech — approximately, and only
+ * when nothing better is available.
  *
  * kokoro-js returns raw Float32Array samples and no timestamps, but the
  * silences between words are real signal. RMS over short windows finds
  * them: a run below the floor is a gap, and the sample where energy
  * returns is the next word's onset.
  *
- * This is a heuristic and is treated as one — revealSchedule tolerates
- * a count that disagrees with the word count.
+ * THIS IS NOT WHERE THE SHIPPED PACK'S ONSETS COME FROM, and the reason
+ * is worth keeping. A silence is not a word boundary: connected speech
+ * runs "of the" and "in a" together with no gap to find, and puts gaps
+ * inside words at every stop consonant. Measured over the 877-clip pack,
+ * 60% of clips yielded FEWER onsets than the phrase has words and 23%
+ * more, and checked against a forced alignment the boundaries it did
+ * report were not the word starts — one clip placed "trivial" at 2020ms
+ * and "influence" at 2060ms, forty milliseconds apart.
+ *
+ * `scripts/align-voice-pack.mjs` derives the real thing from the audio and
+ * the transcript together, and the pack ships that. What is left here is
+ * the fallback for audio that arrives with no alignment at all, and
+ * revealSchedule goes on tolerating a count that disagrees with the word
+ * count because this is the source that produces one.
  *
  * @param {Float32Array} samples
  * @param {number} sampleRate
