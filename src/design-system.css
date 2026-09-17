@@ -335,7 +335,26 @@ body {
   font-weight: var(--font-weight-regular);
   color: var(--color-cloud);
   background: var(--color-void);
+  /* `svh` IS THE ONLY SAFE VIEWPORT UNIT ON THIS ELEMENT.
+
+     On iOS, `100vh` is the LARGE viewport -- the height the screen would
+     have if both Safari toolbars were hidden -- so this box stood about
+     110px taller than anything the reader could actually see. Paired with
+     the `overflow: hidden` below it, that is a box which can be scrolled
+     but never scrolled back: Safari restores a scroll offset when a tab is
+     returned to, and with no scrollbar and no scrollable overflow the
+     reader has no way to undo it. The page came back with its head cut off
+     and dead space along the bottom.
+
+     The toolbars are never hidden here anyway, precisely because
+     `overflow: hidden` means the document does not scroll and it is
+     document scrolling that collapses them. So the small viewport is the
+     only viewport this app is ever shown in, and asking for any other one
+     was asking for a height that does not exist. Every viewport unit is
+     the same number where there is no dynamic toolbar, so desktop is
+     untouched. */
   min-height: 100vh;
+  min-height: 100svh;
   overflow: hidden;
   line-height: 1.5;
 }

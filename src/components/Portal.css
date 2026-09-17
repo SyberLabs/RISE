@@ -8,10 +8,11 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  /* Prefer dvh: on iOS Safari, 100vh is the large viewport and chrome
-     overlays the bottom, so a vh-centred column sits too low. */
+  /* `svh`, not `vh` or `dvh`: the small viewport is the only height this app
+     is ever shown at, and the only one that cannot go stale when iOS returns
+     a tab. The reasoning is on `body` in design-system.css. */
   min-height: 100vh;
-  min-height: 100dvh;
+  min-height: 100svh;
   padding: var(--space-xl);
   background: var(--color-void);
   position: relative;
