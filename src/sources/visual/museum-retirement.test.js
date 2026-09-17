@@ -18,9 +18,16 @@ describe('a category whose pictures stopped arriving', () => {
         expect(MUSEUM_CATEGORIES.ukiyoe).toBeUndefined();
     });
 
-    it('keeps its pins, so restoring it is deleting a line', () => {
-        // The curation was sound; only the delivery failed.
-        expect(MUSEUM_CATEGORY_PINS.ukiyoe?.length).toBeGreaterThan(50);
+    it('no longer keeps pins that cannot become pictures', () => {
+        // THIS USED TO SAY THE OPPOSITE, and it was right at the time:
+        // the pins were kept so that restoring the category would be
+        // deleting one line. Measuring them ended that argument — all 100
+        // were the Art Institute's and all 100 are blocked, so the line
+        // would have restored a category with nothing in it.
+        //
+        // The curation was sound and it is in the history. Bringing
+        // Ukiyo-e back now means re-pinning it from a museum that serves.
+        expect(MUSEUM_CATEGORY_PINS.ukiyoe).toBeUndefined();
     });
 
     it('leaves every offered category with pictures that can still arrive', () => {
@@ -33,6 +40,25 @@ describe('a category whose pictures stopped arriving', () => {
             if (!pins.some(p => p.source !== 'aic')) dead.push(id);
         }
         expect(dead, 'offered but reachable only through the Art Institute').toEqual([]);
+    });
+
+    it('keeps no Art Institute pin anywhere, in any category', () => {
+        // The stronger statement, and the one worth holding: not "every
+        // category has something else too" but "nothing here points at a
+        // host that refuses us". Measured in Chromium over all 460 unique
+        // ids that were pinned — every one resolved its metadata through
+        // api.artic.edu and 0 of 460 images loaded.
+        //
+        // A dead pin is not free. resolveCollection degrades a miss to an
+        // omission, so it costs a request, a wait, and one fewer picture
+        // than the curation promised, every session, forever.
+        const strays = [];
+        for (const [id, pins] of Object.entries(MUSEUM_CATEGORY_PINS)) {
+            for (const pin of pins) {
+                if (pin?.source === 'aic') strays.push(`${id}:${pin.id}`);
+            }
+        }
+        expect(strays, 'www.artic.edu/iiif refuses a cross-origin image').toEqual([]);
     });
 });
 
