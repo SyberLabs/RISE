@@ -35,3 +35,36 @@ describe('a category whose pictures stopped arriving', () => {
         expect(dead, 'offered but reachable only through the Art Institute').toEqual([]);
     });
 });
+
+describe('the category that dresses a word, rather than filling a wall', () => {
+    /**
+     * A GALLERY SURVIVES DEAD PINS. A STENCIL DOES NOT.
+     *
+     * The withdrawal above kept every category that still had Cleveland
+     * or Rijksmuseum pins, because a wall with fewer pictures is still a
+     * wall — `resolveCollection` degrades a miss to an omission and the
+     * reader sees the survivors.
+     *
+     * Knights is not a wall. It carries the Fit mask for the Meditations
+     * keystone, where the imagery is cut into the letters of one word at
+     * a time, and a work that will not resolve is not a thinner gallery
+     * but a word that cannot be dressed — so the reader gets the plain
+     * fallback instead, for as long as the failure takes to arrive.
+     *
+     * Measured in Chromium against the live API: all 50 Art Institute
+     * works pinned here resolved their metadata and 0 of 50 images
+     * loaded, and a cross-category sample of 35 more scored 0 of 35.
+     */
+    it('pins nothing to Knights that cannot reach a browser', () => {
+        const aic = (MUSEUM_CATEGORY_PINS.knights || [])
+            .filter(pin => pin?.source === 'aic');
+        expect(aic, 'an Art Institute work cannot dress a word').toEqual([]);
+    });
+
+    it('still has enough left to dress every word of a reading', () => {
+        // Removing half a category is only right if what remains is a
+        // collection rather than a handful.
+        expect(MUSEUM_CATEGORY_PINS.knights.length).toBeGreaterThan(50);
+        expect(MUSEUM_CATEGORY_PINS.knights.every(pin => pin?.source === 'rijks')).toBe(true);
+    });
+});

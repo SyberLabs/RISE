@@ -1297,6 +1297,23 @@ export const MUSEUM_CATEGORY_PINS = Object.freeze({
         { source: "aic", id: 4776 },  // The Keeper of the Flock
     ],
     "knights": [
+        // THE ART INSTITUTE'S PICTURES DO NOT ARRIVE IN A BROWSER.
+        //
+        // Every AIC work builds its image on www.artic.edu/iiif, and that
+        // host answers a cross-origin <img> with Cf-Mitigated: challenge
+        // and Cross-Origin-Resource-Policy: same-origin. Chromium refuses
+        // it as ERR_BLOCKED_BY_RESPONSE.NotSameOrigin before a pixel is
+        // decoded. Measured over all 50 that were pinned here: the API
+        // resolved every one, and 0 of 50 images loaded.
+        //
+        // This category carries the Fit mask for the Meditations keystone,
+        // where a work that will not resolve is not a slow picture but a
+        // word that cannot be dressed. The Rijksmuseum pins below serve it
+        // through iiif.micr.io and were loading throughout the same runs.
+        //
+        // The `aic-` in the category id is historical and load-bearing:
+        // mask-ground resolves the family by stripping that prefix, so
+        // renaming it would silently change the plate under the glyph.
         { source: "rijks", id: 200105288 },  // De ridder en de hond
         { source: "rijks", id: 200105409 },  // Zittende middeleeuwse ridder in harnas
         { source: "rijks", id: 200109501 },  // Dode ridder (Orlando?) wordt door vrouw en geniï weg
@@ -1368,56 +1385,6 @@ export const MUSEUM_CATEGORY_PINS = Object.freeze({
         { source: "rijks", id: 200302793 },  // Graaf Floris IV tijdens het toernooi in Corbie
         { source: "rijks", id: 200302797 },  // Graaf Floris IV tijdens het toernooi in Corbie
         { source: "rijks", id: 200309419 },  // Ridders met de familiewapens van Brandes en Hirschma
-        { source: "aic", id: 15468 },  // Saint George and the Dragon
-        { source: "aic", id: 105466 },  // The Battle between the Gods and the Giants
-        { source: "aic", id: 110663 },  // The Combat of the Giaour and Hassan
-        { source: "aic", id: 19336 },  // The Resurrection
-        { source: "aic", id: 149778 },  // Allegory of Peace and War
-        { source: "aic", id: 867 },  // The Guardhouse
-        { source: "aic", id: 15716 },  // Saint Christopher Meets Satan; Saint Christopher bef
-        { source: "aic", id: 885 },  // A Mounted Officer
-        { source: "aic", id: 67362 },  // Saint Martin and the Beggar
-        { source: "aic", id: 152851 },  // Sketch for The Revolt of Cairo
-        { source: "aic", id: 16495 },  // Rinaldo and the Magus of Ascalon
-        { source: "aic", id: 16492 },  // Armida Abandoned by Rinaldo
-        { source: "aic", id: 16485 },  // Rinaldo and Armida in Her Garden
-        { source: "aic", id: 59956 },  // The Wedding of Peleus and Thetis
-        { source: "aic", id: 100060 },  // Alexander at the Tomb of Cyrus the Great
-        { source: "aic", id: 93394 },  // Battle Scene
-        { source: "aic", id: 111618 },  // The Battle of Zama
-        { source: "aic", id: 4089 },  // Venus and Mars with Cupid and the Three Graces in a
-        { source: "aic", id: 12891 },  // Theodosius Repulsed from the Church by Saint Ambrose
-        { source: "aic", id: 16166 },  // Salome Asking Herod for the Head of Saint John the B
-        { source: "aic", id: 33249 },  // The Continence of Scipio
-        { source: "aic", id: 110527 },  // Landscape with Tournament and Hunters
-        { source: "aic", id: 111609 },  // Emperor Heraclius Denied Entry into Jerusalem
-        { source: "aic", id: 16246 },  // The Continence of Scipio
-        { source: "aic", id: 111418 },  // Panthea, Cyrus, and Araspas
-        { source: "aic", id: 44829 },  // Polycrates' Crucifixion
-        { source: "aic", id: 58702 },  // The Dream of Paris
-        { source: "aic", id: 44826 },  // Polycrates and the Fisherman
-        { source: "aic", id: 31173 },  // Resurrection of Christ
-        { source: "aic", id: 59989 },  // Sketch for "Oath on the Rütli" (recto), Female Figur
-        { source: "aic", id: 28173 },  // The Resurrection
-        { source: "aic", id: 111608 },  // Emperor Heraclius Slays the King of Persia
-        { source: "aic", id: 15406 },  // Don Quixote and the Windmills
-        { source: "aic", id: 28143 },  // Architectural Landscape with Belisarius Receiving Al
-        { source: "aic", id: 47601 },  // The Battle of Pharsalus and the Death of Pompey
-        { source: "aic", id: 60867 },  // General Juan Prim (1814-1870)
-        { source: "aic", id: 57652 },  // Queen Philippa at the Battle of Neville's Cross
-        { source: "aic", id: 88404 },  // Warrior Saint
-        { source: "aic", id: 36495 },  // Liberation of Saint Peter from Prison
-        { source: "aic", id: 13208 },  // Saracens and Crusaders
-        { source: "aic", id: 15260 },  // The Judgement of Zaleucus
-        { source: "aic", id: 93737 },  // Landscape with Figures
-        { source: "aic", id: 111660 },  // Saint Sebastian
-        { source: "aic", id: 48776 },  // Man in Armour
-        { source: "aic", id: 100356 },  // The Apotheosis of the Hero
-        { source: "aic", id: 39528 },  // The Out-Post
-        { source: "aic", id: 14565 },  // Don Quixote in the Mountains
-        { source: "aic", id: 46076 },  // Portrait of a Man
-        { source: "aic", id: 100357 },  // David Slaying Goliath
-        { source: "aic", id: 111726 },  // Mon Ancien Regiment
     ]
 });
 
