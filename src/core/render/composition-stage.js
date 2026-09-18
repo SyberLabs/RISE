@@ -59,6 +59,28 @@ function withSeededRandom(seed, fn) {
   }
 }
 
+/**
+ * The async sibling of withSeededRandom.
+ *
+ * `finally` runs when the synchronous body returns, so wrapping an
+ * awaited call in the plain version hands the real Math.random back
+ * before the work has happened — which is exactly how the wordmark flame
+ * came to be seeded in its SHAPE and unseeded in its PAINTING. Holding
+ * the swap across the await is safe here because a bake is the only
+ * thing running on this page: the stage is prepared before any frame is
+ * asked for, and nothing else in it draws on Math.random meanwhile.
+ */
+async function withSeededRandomAsync(seed, fn) {
+  const rng = createSeededRandom(String(seed));
+  const original = Math.random;
+  Math.random = rng;
+  try {
+    return await fn();
+  } finally {
+    Math.random = original;
+  }
+}
+
 function hexToRgb(hex) {
   const value = String(hex).replace('#', '');
   return [0, 2, 4].map(i => parseInt(value.slice(i, i + 2), 16));
@@ -286,23 +308,27 @@ const stage = {
     const generator = new FractalFlameGenerator();
     generator.useWorkers = false;
     generator.backgroundColor = [10, 10, 12];
-    withSeededRandom(this.score.wordmark.seed, () => {
-      generator.palette = generator.generateDefaultPalette();
-      generator.generateRandomFlame();
-    });
     const width = this.width;
     const height = Math.round(this.width * 0.5);
-    const imageData = await generator.generateImage({
-      iterations: 900_000,
-      width,
-      height,
-      gamma: 2.2,
-      // Brighter than a full-frame flame: this one is seen only through
-      // letter strokes, so most of what it draws is thrown away.
-      brightness: 26,
-      vibrancy: 1.35,
-      oversample: 1,
-      useWorkers: false
+    const flame = this.score.wordmark.flame;
+    // THE CHAOS GAME IS INSIDE THE SEED, not just the flame's shape. It
+    // was outside, and the attractor was therefore identical every render
+    // while the samples that drew it were not: 59% of the lit pixels in
+    // the name changed between two bakes of the same score. A flame
+    // chosen by auditioning has to be the flame that renders.
+    const imageData = await withSeededRandomAsync(this.score.wordmark.seed, () => {
+      generator.palette = generator.generateDefaultPalette();
+      generator.generateRandomFlame();
+      return generator.generateImage({
+        iterations: flame.iterations,
+        width,
+        height,
+        gamma: flame.gamma,
+        brightness: flame.brightness,
+        vibrancy: flame.vibrancy,
+        oversample: 1,
+        useWorkers: false
+      });
     });
     this.wordmarkFill = offscreen(width, height);
     this.wordmarkFill.getContext('2d').putImageData(imageData, 0, 0);
