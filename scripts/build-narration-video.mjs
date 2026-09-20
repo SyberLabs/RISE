@@ -26,6 +26,7 @@ import { execFileSync } from 'node:child_process';
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { SEQUENCE_ASSET_PREFIX } from '../src/core/visual-score-lane.js';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -38,17 +39,26 @@ const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
  * storyboard is mostly transcription rather than invention.
  */
 /**
- * The Astronomy plates, when the project carries them.
+ * The Astronomy plates: one named work per section.
  *
- * A `sourced` cue names a collection, and preflight refuses one whose works
- * are not admitted into the job — correctly, since the renderer cannot go
- * and fetch pictures mid-render. Until those bytes are admitted this stands
- * in with the procedural whose figures read closest: slow, circular, and
- * old-looking.
+ * A `sourced` cue naming the COLLECTION leaves the choice to the gallery
+ * wall, and the wall restarts at index 0 on every run — three sections
+ * would show the same opening plate, and the credit block would have to
+ * name all 216 works in case any of them appeared. A cue naming
+ * `sequence-asset:<id>` pins exactly one, so what is admitted, what is
+ * seen and what is credited are the same three works.
+ *
+ * The storyboard is the only list: registering the cue is what puts a
+ * work up for admission, so a plate cannot be shown without being
+ * credited, or credited without being shown.
  */
-const ASTRONOMY = process.env.RISE_ASTRONOMY === '1'
-    ? { kind: 'sourced', collections: ['sci-astronomy'] }
-    : { kind: 'procedural', collections: ['ostensoria'] };
+const assetIdFor = workId => `astro-${String(workId).replace(/[^a-z0-9]+/gi, '-')}`;
+
+const astronomyWorkIds = new Map();
+const astronomyCue = (workId) => {
+    astronomyWorkIds.set(assetIdFor(workId), workId);
+    return { kind: 'sourced', collections: [`${SEQUENCE_ASSET_PREFIX}${assetIdFor(workId)}`] };
+};
 
 /**
  * ATTRACTOR AND GENESIS ARE FIELDS, NOT COLLECTIONS. `VISUAL_FIELD_RENDERERS`
@@ -73,7 +83,7 @@ const TURRELL = { kind: 'procedural', collections: ['turrell'] };
  */
 const STORYBOARD = [
     { atWord: 0, title: 'This is RISE', visual: TURRELL },
-    { atWord: 37, title: 'Omnia mutantur', visual: ASTRONOMY },
+    { atWord: 37, title: 'Omnia mutantur', visual: astronomyCue('esahubble:heic1501a') },
     { atWord: 71, title: 'Neural networks', visual: { kind: 'procedural', collections: ['neural'] } },
     { atWord: 75, title: 'Fractal flames', visual: { kind: 'procedural', collections: ['fractal'] } },
     { atWord: 84, title: 'A Japanese rock garden', visual: { kind: 'procedural', collections: ['rockgarden'] } },
@@ -85,8 +95,8 @@ const STORYBOARD = [
     { atWord: 400, title: 'You can change the geometry', visual: ATTRACTOR },
     { atWord: 465, title: 'There is no streak', visual: ATTRACTOR },
     { atWord: 510, title: 'You give them rules', visual: ATTRACTOR },
-    { atWord: 549, title: 'Several thousand years later', visual: ASTRONOMY },
-    { atWord: 593, title: 'So if something here affects you', visual: ASTRONOMY },
+    { atWord: 549, title: 'Several thousand years later', visual: astronomyCue('esahubble:heic0406a') },
+    { atWord: 593, title: 'So if something here affects you', visual: astronomyCue('esahubble:potw1345a') },
     { atWord: 641, title: 'A garden, or a laboratory', visual: TURRELL }
 ];
 
@@ -124,6 +134,76 @@ function cutAudio(audioPath, fromMs, toMs, outPath) {
         outPath
     ], { stdio: ['ignore', 'ignore', 'pipe'] });
     return readFileSync(outPath);
+}
+
+/**
+ * Fetch each pinned plate and admit it as inventory bytes.
+ *
+ * The renderer cannot go and fetch pictures mid-render — that is the whole
+ * reason preflight refuses an unpinned collection — so the bytes have to
+ * be in hand before the job is built. This is a build script on a
+ * workstation, so fetching here is fine; nothing about it reaches the
+ * browser bundle.
+ *
+ * THE CREDIT COMES FROM THE CATALOG, NOT FROM HERE. `requiredCredit` was
+ * composed once at harvest by the same function the chip uses. Recomposing
+ * it would put a second author of credit lines in the codebase.
+ */
+async function admitAstronomy() {
+    const { contentHashOfBytes } = await import('../src/core/render/hash.js');
+    const catalog = JSON.parse(readFileSync(
+        resolve(ROOT, 'src/sources/visual/science-catalog.generated.json'), 'utf8'));
+    const byId = new Map(catalog.works.map(work => [work.id, work]));
+
+    const assets = [];
+    const declared = [];
+    const credits = [];
+    for (const [assetId, workId] of astronomyWorkIds) {
+        const work = byId.get(workId);
+        if (!work) throw new Error(`${workId} is not in the science catalog`);
+        if (!work.requiredCredit) throw new Error(`${workId} carries no requiredCredit`);
+
+        const response = await fetch(work.image);
+        if (!response.ok) throw new Error(`${work.image} -> HTTP ${response.status}`);
+        const bytes = new Uint8Array(await response.arrayBuffer());
+
+        assets.push({
+            assetId,
+            contentHash: await contentHashOfBytes(bytes),
+            kind: 'image',
+            mimeType: 'image/jpeg',
+            byteLength: bytes.length,
+            // `dataUrl`, not `bytes`: preflight's inventory schema is
+            // closed, and it re-decodes this to check the length and hash
+            // admitted above against the actual pixels. The three have to
+            // agree or the render refuses, which is the point.
+            dataUrl: `data:image/jpeg;base64,${Buffer.from(bytes).toString('base64')}`,
+            // Rights were settled at harvest and the licence is CC BY 4.0 or
+            // public domain with credit; both allow distribution once the
+            // credit travels. Where it travels is the caller's problem, and
+            // the credit block below is what it travels as.
+            rights: { status: 'verified', distributionAllowed: true, credit: work.requiredCredit }
+        });
+        // The session validates a `sequence-asset:` cue against what the
+        // reading declares it carries, separately from what the render
+        // job admits. Both lists are built from the same fetch, so they
+        // cannot disagree about a plate's id, type or size.
+        declared.push({
+            id: assetId,
+            kind: 'image',
+            name: work.title,
+            storage: 'idb',
+            mimeType: 'image/jpeg',
+            byteLength: bytes.length
+        });
+        // The title is quoted because a title may itself contain the dash
+        // this line separates on — "…Pillars of Creation — visible" read as
+        // two works joined by one credit.
+        credits.push(`"${work.title}" — ${work.requiredCredit}`);
+        console.log(`[video] admitted ${assetId} `
+            + `${(bytes.length / 1024).toFixed(0)}KB  ${work.title}`);
+    }
+    return { assets, declared, credits };
 }
 
 function buildSections(words, startedAtMs, durationMs) {
@@ -290,12 +370,13 @@ function buildProgram(sections) {
  * against the recording, a printed proof that the retimer covered
  * everything. Deleting it would cost both.
  */
-async function calibrate(sections, program, sources, passes = 3) {
+async function calibrate(sections, program, sources, declared, passes = 3) {
     const { compileSession } = await import('../src/core/session-compiler.js');
     for (let pass = 0; pass < passes; pass++) {
         const compiled = compileSession({
             wpm: 160, chunkMode: 'phrase', curve: 'flat',
-            experienceProgram: program, sources
+            experienceProgram: program, sources,
+            sequenceVisualAssets: declared
         });
         const actual = new Map();
         for (const atom of compiled.atoms) {
@@ -341,6 +422,12 @@ async function main() {
             + `${String(section.words.length).padStart(4)}w ${String(section.wpm).padStart(4)}wpm  ${section.title}`);
     }
 
+    // Before anything compiles or renders: a compile validates every
+    // `sequence-asset:` cue against what the reading declares it carries,
+    // and an unreachable plate should fail here rather than after the audio
+    // is cut and Chromium is up.
+    const astronomy = await admitAstronomy();
+
     const voiceBytes = {};
     for (const section of sections) {
         const wav = join(args.out, `${section.id}.wav`);
@@ -351,7 +438,7 @@ async function main() {
     const sources = sections.map(section => ({
         id: section.id, name: section.title, data: section.text
     }));
-    program = await calibrate(sections, program, sources);
+    program = await calibrate(sections, program, sources, astronomy.declared);
     for (const section of sections) {
         console.log(`  ${section.id} paced at ${section.wpm}wpm`);
     }
@@ -363,7 +450,7 @@ async function main() {
     const request = buildKernelRequest({
         program,
         sources,
-        sessionInput: { chunkMode: 'phrase' },
+        sessionInput: { chunkMode: 'phrase', sequenceVisualAssets: astronomy.declared },
         // WITHOUT THIS THE CHAMBER'S FROSTED TILE COMES ALONG. Omitting
         // `caption` asks for Chamber-identical paint, where glass follows
         // the visual — and the Chamber tile is a `backdrop-filter` pane
@@ -399,6 +486,7 @@ async function main() {
     const { contentHashOf } = await import('../src/core/render/hash.js');
     request.inventory = {
         voiceBytes,
+        assets: astronomy.assets,
         sources: await Promise.all(sections.map(async section => ({
             sourceId: section.id,
             contentHash: await contentHashOf(section.text),
@@ -412,6 +500,19 @@ async function main() {
     console.log(`[video] ${artifact.mp4Path}`);
     console.log(`[video] ${artifact.encoded?.width}x${artifact.encoded?.height} `
         + `${artifact.encoded?.codec}`);
+
+    // THE VIDEO CANNOT BE POSTED WITHOUT THIS. CC BY 4.0 s3(a) is satisfied
+    // by the credit travelling with the work in a manner reasonable to the
+    // medium, and an MP4 has no Curia for a reader to reach, so the post
+    // that carries the file is what carries the credit.
+    const creditPath = join(args.out, 'CREDIT.txt');
+    const block = ['Imagery', ...astronomy.credits.map(line => `  ${line}`), ''].join('\n');
+    writeFileSync(creditPath, block);
+    console.log('');
+    console.log('[video] paste into the post — the file cannot be published without it:');
+    console.log('');
+    console.log(block);
+    console.log(`[video] also at ${creditPath}`);
 }
 
 main().catch(error => {
