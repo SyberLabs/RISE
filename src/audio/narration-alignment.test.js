@@ -61,3 +61,35 @@ describe('a narration word names the source it came from', () => {
         }
     });
 });
+
+describe('words the model alphabet cannot carry', () => {
+    /**
+     * THE BUG THIS EXISTS FOR desynchronised a five-minute recording on one
+     * character. The model's vocabulary is A-Z and an apostrophe, so "4" in
+     * "a 4 AM Walk in the Park" normalises to nothing and has no frame to
+     * report — and the window loop read "cannot be placed" as "the audio
+     * stopped matching the text". It stalled, hopped past twenty-four
+     * seconds of speech, and never re-synchronised: 694 words compressed
+     * into the first 66 seconds of a 295-second reading.
+     *
+     * Every lane check still passed. The count matched, the spans matched,
+     * the durations were legal. Only a coverage number caught it.
+     */
+    it('still gives a numeral a span in the source', () => {
+        const text = 'Music for a 4 AM Walk in the Park and 14% more productive';
+        const words = wordsWithOffsets(text);
+        for (const word of words) {
+            expect(text.slice(word.fromCharacter, word.toCharacter)).toBe(word.text);
+        }
+        expect(words.map(word => word.text)).toContain('4');
+        expect(words.map(word => word.text)).toContain('14%');
+    });
+
+    it('counts them, so the reveal and the recording still agree', () => {
+        // A carried word is still a word. If these ever diverged, a reading
+        // would run out of timings before it ran out of text.
+        const text = 'a 4 AM walk, 14% quieter';
+        expect(wordsWithOffsets(text).map(word => word.text))
+            .toEqual(splitWords(text).map(word => word.text));
+    });
+});

@@ -64,6 +64,21 @@ const WORD_WINDOW = 240;
 /** A word may not be shorter than the lane allows, or start where the last did. */
 const MIN_WORD_MS = 1;
 
+/**
+ * How much of a recording the text must actually reach.
+ *
+ * THE FAILURE THIS CATCHES IS SILENT. When the windows lose the text, every
+ * word still gets a timing, the count still matches, every lane check still
+ * passes — and the whole reading sits inside the first minute. Nothing
+ * downstream notices; the video is simply wrong. A digit in "a 4 AM Walk in
+ * the Park" did exactly that, compressing 694 words into 66 seconds of a
+ * 295-second recording, and the only symptom was a number nobody was
+ * printing.
+ *
+ * Below this, the alignment is refused rather than written.
+ */
+const MIN_COVERAGE = 0.7;
+
 function parseArgs(argv) {
     const args = { audio: null, text: null, out: null, voiceAssetId: 'narration' };
     for (let i = 0; i < argv.length; i++) {
@@ -161,13 +176,32 @@ export async function alignNarration(samples, rate, text, aligner) {
         const acceptBeforeMs = finalWindow ? Infinity : HOP_S * 1000;
 
         let accepted = 0;
-        for (const [index, word] of candidates.entries()) {
+        let lastTimed = -1;
+        for (const [index] of candidates.entries()) {
             const tokenIndex = wordStart[index];
-            const frame = tokenIndex >= 0 ? firstFrame[tokenIndex] : -1;
+            if (tokenIndex < 0) {
+                // A WORD THIS ALPHABET CANNOT CARRY IS NOT A MISSING WORD.
+                //
+                // "4" in "a 4 AM Walk in the Park", or "14%" — the model's
+                // vocabulary is A-Z and an apostrophe, so these normalise to
+                // nothing and have no frame to report. Treating that as the
+                // audio having stopped matching is what broke a five-minute
+                // recording: the window stalled on a digit, the stall
+                // triggered a full hop past twenty-four seconds of speech,
+                // and the text never re-synchronised — 694 words compressed
+                // into the first 66 seconds of a 295-second reading.
+                //
+                // It is carried instead, and its time comes from the words
+                // either side of it.
+                accepted = index + 1;
+                continue;
+            }
+            const frame = firstFrame[tokenIndex];
             if (frame < 0) break;                       // the audio stopped supporting the text
             const withinMs = frame * FRAME_MS;
             if (withinMs >= acceptBeforeMs) break;
             startedAtMs[cursor + index] = windowStartMs + withinMs;
+            lastTimed = index;
             accepted = index + 1;
         }
         // No progress means another identical window would make none either.
@@ -190,15 +224,23 @@ export async function alignNarration(samples, rate, text, aligner) {
         // So the next window starts where the last accepted word starts,
         // and that word is aligned again with its whole self inside. One
         // word is realigned per window; nothing is placed from a fragment.
-        const redo = cursor + accepted - 1;
-        if (accepted > 1 && startedAtMs[redo] != null) {
+        // Back to the last word the AUDIO placed — a carried word has no
+        // time of its own to restart from.
+        const redo = cursor + lastTimed;
+        if (lastTimed > 0 && startedAtMs[redo] != null) {
             cursor = redo;
             offset = Math.round((startedAtMs[redo] / 1000) * rate);
         } else {
+            // Almost nothing matched here. Step by the hop rather than by a
+            // word, because there is no word to step by.
             cursor += accepted;
             offset += hopSamples;
         }
     }
+
+    const placedByAudio = startedAtMs
+        .map((at, index) => (at == null ? -1 : index))
+        .filter(index => index >= 0);
 
     // A word the windows never reached — the reader dropped it, or the
     // recording ended early — is carried rather than dropped: the lane
@@ -221,10 +263,20 @@ export async function alignNarration(samples, rate, text, aligner) {
         };
     });
 
+    const lastPlaced = placedByAudio.length
+        ? startedAtMs[placedByAudio[placedByAudio.length - 1]]
+        : 0;
     return {
         words,
         durationMs,
-        alignedWords: startedAtMs.filter(at => at != null).length,
+        alignedWords: placedByAudio.length,
+        // HOW MUCH OF THE RECORDING THE TEXT ACTUALLY REACHED.
+        //
+        // The failure mode that matters here is silent: the words all get a
+        // timing, the count matches, every lane check passes, and the whole
+        // reading sits inside the first minute. Nothing downstream would
+        // notice. This is the number that does.
+        coverage: durationMs ? lastPlaced / durationMs : 0,
         startedAtMs
     };
 }
@@ -268,6 +320,13 @@ async function main() {
     assertWordsInsideSpan(result.words, 0, text.length, text);
     const cues = Math.ceil(result.words.length / NARRATION_LIMITS.maxWords);
 
+    if (result.coverage < MIN_COVERAGE) {
+        throw new Error(
+            `the text only reaches ${(result.coverage * 100).toFixed(1)}% of the recording. `
+            + 'The windows lost the text rather than the reading being short: check that this '
+            + 'script is what was actually read, in the order it was read.');
+    }
+
     const payload = JSON.stringify({
         durationMs: result.durationMs,
         voiceAssetId: args.voiceAssetId,
@@ -283,7 +342,10 @@ async function main() {
     } else {
         console.log(payload);
     }
+    const lastMs = Math.round(result.coverage * result.durationMs);
     console.log(`[narration] ${result.alignedWords}/${result.words.length} words placed by audio`);
+    console.log(`[narration] text reaches ${(lastMs / 1000).toFixed(1)}s of `
+        + `${(result.durationMs / 1000).toFixed(1)}s (${(result.coverage * 100).toFixed(1)}%)`);
     if (cues > 1) {
         console.log(`[narration] ${result.words.length} words needs at least ${cues} spoken `
             + `clips (a cue carries ${NARRATION_LIMITS.maxWords})`);
