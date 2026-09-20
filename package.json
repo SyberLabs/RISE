@@ -53,7 +53,9 @@
     "test:e2e:gate": "playwright test --project=gate",
     "wiki:build": "node scripts/build-wiki.mjs",
     "align:voice-pack": "node scripts/align-voice-pack.mjs",
-    "mint:qr": "node scripts/mint-program-qr.mjs"
+    "mint:qr": "node scripts/mint-program-qr.mjs",
+    "align:narration": "node scripts/align-narration.mjs",
+    "verify:narration": "node scripts/verify-narration-alignment.mjs"
   },
   "devDependencies": {
     "@huggingface/transformers": "^3.8.1",
