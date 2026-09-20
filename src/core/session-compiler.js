@@ -23,6 +23,7 @@ import { READING_LIMITS, READING_PACE } from './reading-limits.js';
 import { parseLibraryExtent } from './library-extent.js';
 import { compileSourceSpans, sourceSpanCutPoints } from './source-span.js';
 import {
+    applyNarrationTiming,
     applyProgressPace,
     assertChunkProfileAllowsRecut,
     buildReadingPlan
@@ -201,7 +202,11 @@ export function normalizeSessionConfig(input = {}) {
             movementProgram: lowered.movementProgram,
             visualProgram: lowered.visualProgram,
             audioProgram: lowered.audioProgram,
-            readingProgram: lowered.readingProgram
+            readingProgram: lowered.readingProgram,
+            // Lowered and then dropped until now, so nothing compiled has
+            // ever seen a spoken cue's word timings. Carrying it is what
+            // lets the voice be the clock rather than a pace to guess at.
+            narrationProgram: lowered.narrationProgram
         } : {}),
         sourceBoundaries: normalizeSourceBoundaries(
             lowered?.sourceBoundaries ?? input.sourceBoundaries
@@ -627,6 +632,13 @@ export function compileSession(input = {}) {
         previousSource = source;
     }
     if (atoms.length === 0) throw new TypeError('The supplied sources produced no playable content');
+
+    // AFTER every source, because a spoken cue is measured against the whole
+    // reading, and after `applyProgressPace`, because a pace cue is a default
+    // and a recording is a fact. Inert unless a cue actually carries words:
+    // the only narration RISE ships today names a voice and a duck, and is
+    // left exactly as it was.
+    applyNarrationTiming(atoms, config.narrationProgram);
 
     // Durable source spans are verified only after the exact edition text is
     // present and atomization is complete. This stamps source coordinates on

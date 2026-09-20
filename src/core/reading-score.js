@@ -167,3 +167,76 @@ export function applyProgressPace(atoms, progressPace, pieceWpmAt) {
   }
   return retimed;
 }
+
+/**
+ * Count words the way the narration lane counts them.
+ *
+ * Whitespace runs, because that is what `wordsWithOffsets` splits on when
+ * an alignment is produced and what `splitWords` agrees with. A second
+ * definition here would be a second grammar, and the two lanes have to
+ * agree on how many words a passage has or the mapping below is a guess.
+ */
+const wordCount = text => String(text ?? '').split(/\s+/u).filter(Boolean).length;
+
+/**
+ * Retime atoms onto the voice that is actually speaking them.
+ *
+ * A reading cue asks for a PACE; it cannot state a duration. The chunker
+ * gives every phrase a floor and a weight for its punctuation, so what
+ * comes out reliably overruns words-divided-by-wpm — measured at 5.5% to
+ * 12.3% across sixteen sections of one narration. That is a rate error
+ * rather than an offset, so inside a section it accumulates: a minute in,
+ * the text ran eight seconds behind the voice reading it.
+ *
+ * A spoken cue that carries `words` has already said how long each one
+ * takes, measured off the recording by forced alignment. Where that exists
+ * it is not a hint to pace against — it is the answer, and an atom's
+ * duration is the sum of the words it shows.
+ *
+ * THE ATOMS MUST ACCOUNT FOR EXACTLY THE WORDS THE CUE CARRIES. Atoms are
+ * walked in reading order and consume their own word count, which is only
+ * a sound mapping while the two agree on the total; a chunker that merged
+ * or dropped a token would silently shift every duration after it. So a
+ * source whose counts disagree is left alone rather than mis-timed.
+ *
+ * `timingLocked` is set because the duration was then chosen rather than
+ * computed, which is what that flag has always meant — `computeDuration`
+ * returns it unchanged and `applyProgressPace` leaves it alone.
+ *
+ * @returns {number} how many atoms were retimed
+ */
+export function applyNarrationTiming(atoms, narrationProgram) {
+  if (!Array.isArray(atoms) || !narrationProgram?.segments?.length) return 0;
+
+  const bySource = new Map();
+  for (const atom of atoms) {
+    if (!atom?.sourceId) continue;
+    if (!bySource.has(atom.sourceId)) bySource.set(atom.sourceId, []);
+    bySource.get(atom.sourceId).push(atom);
+  }
+
+  let retimed = 0;
+  for (const [sourceId, sourceAtoms] of bySource) {
+    const segment = narrationProgram.segments.find(item =>
+      item?.match?.sourceIds?.includes(sourceId) && item.cue?.words?.length);
+    if (!segment) continue;
+
+    const words = segment.cue.words;
+    const counts = sourceAtoms.map(atom => wordCount(atom.content));
+    if (counts.reduce((sum, n) => sum + n, 0) !== words.length) continue;
+
+    let cursor = 0;
+    for (const [index, atom] of sourceAtoms.entries()) {
+      const take = counts[index];
+      if (!take) continue;
+      let span = 0;
+      for (let i = 0; i < take; i += 1) span += Number(words[cursor + i]?.durationMs) || 0;
+      cursor += take;
+      if (span <= 0) continue;
+      atom.duration = Math.round(span);
+      atom.timingLocked = true;
+      retimed += 1;
+    }
+  }
+  return retimed;
+}
