@@ -150,16 +150,16 @@ it, and CI fails when the committed copy is not what `src/` produces.
 flowchart LR
     app["app<br/>composition root<br/>5 modules"]
     audio["audio<br/>Web Audio, recitation<br/>7 modules"]
-    components["components<br/>routed views<br/>34 modules"]
-    content["content<br/>texts, imagery, journeys<br/>226 modules"]
-    core["core<br/>session, player, router<br/>121 modules"]
+    components["components<br/>routed views<br/>35 modules"]
+    content["content<br/>texts, imagery, journeys<br/>227 modules"]
+    core["core<br/>session, player, router<br/>122 modules"]
     page["page<br/>spatial projection<br/>4 modules"]
     sources["sources<br/>text and visual providers<br/>22 modules"]
     visuals["visuals<br/>procedural generation<br/>54 modules"]
 
     app -.-> |3 lazy| audio
     app --> |1| components
-    app -.-> |6 lazy| content
+    app -.-> |8 lazy| content
     app --> |21| core
     app -.-> |1 lazy| sources
     app -.-> |1 lazy| visuals
@@ -167,12 +167,12 @@ flowchart LR
     audio --> |5| core
     components --> |2| audio
     components --> |20| content
-    components --> |124| core
+    components --> |125| core
     components -.-> |1 lazy| page
     components --> |4| sources
     components --> |13| visuals
     content --> |3| audio
-    content --> |15| core
+    content --> |16| core
     content --> |17| sources
     content --> |1| visuals
     core --> |3| audio
@@ -264,6 +264,7 @@ outliving its room, fails a build.
 |---|---|---|
 | Portal | `src/components/Portal.js` | the hub, and the first screen |
 | Keystones | `src/components/Keystones.js` | the public entry corridor |
+| Mint | `src/components/Mint.js` | the door a minted sequence opens onto |
 | Chamber | `src/components/Chamber.js` | a reading, in time |
 | ChamberOrbital | `src/components/ChamberOrbital.js` | tuning a reading before it starts |
 | Library | `src/components/Library.js` | the prepared editions |
@@ -545,14 +546,26 @@ of `settled`, `open`, `deferred`, or `reversed`.
 
 ### 8.12 In-memory routing; almost nothing has a URL
 
-- **Chosen:** a view registry with a back stack. Only the Keystone corridor and
-  the rosary door have real addresses.
+- **Chosen:** a view registry with a back stack. Three things have real
+  addresses: the Keystone corridor, the rosary door, and `/p/<slug>` for a
+  minted sequence.
 - **Rejected so far:** URL-addressable rooms.
 - **Why:** no reason recorded in the tree — the router was built for
   transitions, and addresses were never required. The cost is that most of RISE
   cannot be linked to, browser Back does not meaningfully work inside a room,
   and a reload lands on the Portal. `handleNavigate` already pushes history for
   one corridor, so the mechanism exists.
+- **A MINTED SEQUENCE IS AN ADDRESS BECAUSE IT HAS TO BE.** It exists to be
+  printed on a card and scanned, which is a URL and nothing else. It is a
+  third narrow case rather than the general regime this entry still rejects:
+  the register in `src/content/programs/` is an allowlist, so the address
+  names a mint rather than naming a file.
+- **AND IT RESOLVES TO A THRESHOLD, NOT TO A READING.** The same rule the
+  Keystone corridor follows, for a reason worth stating: a reading begun from
+  a cold address bar begins with no user activation, so the browser refuses
+  the audio and the first phrase is silent, and every safety notice is stepped
+  over on the way. The button on the threshold is the gesture the audio
+  lifecycle is waiting for.
 - **Status:** open.
 
 ### 8.13 jsdom for the suite; real browsers for what jsdom cannot see

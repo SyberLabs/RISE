@@ -286,6 +286,15 @@ class App {
         const { keystoneSlugFromPath } = await import('./content/keystones.js');
         const directKeystone = keystoneSlugFromPath(window.location.pathname);
         const directTryRise = isTryRisePath(window.location.pathname);
+        // A minted sequence is the same kind of public entry point. TWO
+        // QUESTIONS, NOT ONE: whether this is a mint URL at all, and which
+        // mint it names. A printed code outlives the sequence it names, so
+        // a valid address naming nothing has to reach the threshold and be
+        // told — collapsing both to "no" drops that reader on the Portal
+        // with no idea why.
+        const { houseProgram } = await import('./content/programs/index.js');
+        const { programSlugShape } = await import('./core/program-paths.js');
+        const mintedSlug = programSlugShape(window.location.pathname);
 
         // A reload triggered by a stale build carries the destination
         // the reader was trying to reach, so recovery is invisible to
@@ -316,6 +325,8 @@ class App {
             await this.router.navigate('keystones', { data: { slug: directKeystone } });
         } else if (directTryRise) {
             await this.router.navigate('keystones');
+        } else if (mintedSlug) {
+            await this.router.navigate('mint', { data: { entry: houseProgram(mintedSlug) } });
         } else if (options.personalizedVault) {
             console.log('[RISE] Navigating directly to personalized vault:', options.personalizedVault);
             await this.router.navigate('vault', { data: { personalizedVault: options.personalizedVault } });
@@ -452,6 +463,7 @@ class App {
             handleNavigate: this.handleNavigate,
             quickAccess: () => this.quickAccess(),
             launchKeystone: slug => this.launchKeystone(slug),
+            openMintedProgram: slug => this.openMintedProgram(slug),
             handleSequenceSelection: sequenceId => this.handleSequenceSelection(sequenceId),
             handleCreateSession: this.handleCreateSession,
             handleArchetypeLaunch: data => this.handleArchetypeLaunch(data),
@@ -778,6 +790,61 @@ class App {
         } catch (error) {
             console.error('[RISE] Keystone launch refused:', error);
             this.showToast(error.message || 'This Keystone could not be opened.', 5000);
+        }
+    }
+
+    /**
+     * Open a minted sequence, from the threshold and never from the URL.
+     *
+     * THROUGH THE SAME DOORWAY A PASTE GOES THROUGH. A minted program is a
+     * file in the repository rather than a file a reader wrote, and that
+     * earns it a short URL — not a different gate and not a different
+     * authority. `parseExperienceProgramJson` lands it `proposed` exactly
+     * as it would a paste, which is the rule that keeps `published`
+     * meaning "one of RISE's own Journeys" and nothing else.
+     *
+     * The register is consulted rather than the path: a slug that is not
+     * in it has no asset, so nothing here ever builds a fetch path out of
+     * what the address bar said.
+     */
+    async openMintedProgram(slug) {
+        try {
+            const { houseProgram } = await import('./content/programs/index.js');
+            const entry = houseProgram(slug);
+            if (!entry) {
+                this.showToast('That sequence is not one RISE has minted.', 5000);
+                return;
+            }
+
+            const response = await fetch(entry.asset, { headers: { Accept: 'application/json' } });
+            if (!response.ok) throw new Error(`${entry.title} could not be loaded.`);
+
+            const [io, resolver] = await Promise.all([
+                import('./core/experience-program-io.js'),
+                import('./core/scriptorium-resolve.js')
+            ]);
+            const program = io.parseExperienceProgramJson(await response.text());
+            const { sources } = await resolver.resolveProgramLibrarySources(program);
+            if (!sources.length) throw new Error(`${entry.title} names no work this build carries.`);
+            resolver.assertResolvedProgramQuotations(program, sources);
+
+            const project = io.workshopProjectFromImportedProgram({
+                program,
+                sources,
+                title: entry.title,
+                id: `mint:${slug}`,
+                provenance: { kind: 'minted-program', slug }
+            });
+
+            const { programPath } = await import('./core/program-paths.js');
+            const path = programPath(slug);
+            if (window.location.pathname !== path) {
+                window.history.replaceState({}, '', path);
+            }
+            await this.handleCreateSession(project);
+        } catch (error) {
+            console.error('[RISE] Minted sequence refused:', error);
+            this.showToast(error.message || 'This sequence could not be opened.', 5000);
         }
     }
 
