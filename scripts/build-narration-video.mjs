@@ -170,15 +170,56 @@ function buildSections(words, startedAtMs, durationMs) {
     });
 }
 
+/**
+ * A SEAM BETWEEN WORKS IS NOT A SEAM INSIDE A SENTENCE.
+ *
+ * `createSourceBreak` puts three words of silence between every pair of
+ * sources — `(60000/wpm)*3`, 1125ms at the default — and it is right to:
+ * crossing from one book to another should be felt. But these sources are
+ * one continuous narration cut into sections so the clock can re-sync, and
+ * the reader never left the sentence. Fifteen boundaries added 16.9
+ * seconds of dead air that the recording does not contain, each one a
+ * black frame with no text, no source and therefore no visual either.
+ *
+ * The compiler says how to say otherwise: an authored boundary REPLACES
+ * the generic break. It also carries a synthetic sourceId —
+ * `journey-boundary:<id>` — which is what lets the visual keep rendering
+ * across the seam instead of falling to the still fallback.
+ *
+ * 200ms is the floor the program allows, and a beat between sentences is
+ * what the recording has anyway.
+ */
+const BOUNDARY_MS = 200;
+const boundaryId = index => `t${index + 1}`;
+// A transition names a source of its own: the validator refuses one that a
+// movement already owns, and it carries no text for anything to load.
+const boundarySource = index => `seam-${String(index + 1).padStart(2, '0')}`;
+
 function buildProgram(sections) {
     const movements = sections.map((section, index) => ({
         id: `m${index + 1}`,
         anchor: { sourceIds: [section.id] },
         data: { index, title: section.title }
     }));
+    const transitions = sections.slice(0, -1).map((section, index) => ({
+        id: boundaryId(index),
+        anchor: {
+            sourceIds: [boundarySource(index)],
+            afterSourceId: section.id,
+            beforeSourceId: sections[index + 1].id
+        },
+        data: { fromMovementId: `m${index + 1}`, toMovementId: `m${index + 2}` },
+        durationMs: BOUNDARY_MS
+    }));
+    // The outgoing picture holds through the seam, so nothing goes dark
+    // while the reading crosses.
     const visuals = sections.map((section, index) => ({
         id: `v${index + 1}`,
-        anchor: { sourceIds: [section.id] },
+        anchor: {
+            sourceIds: index < sections.length - 1
+                ? [section.id, boundarySource(index)]
+                : [section.id]
+        },
         cue: section.visual
     }));
     const readings = sections.map((section, index) => ({
@@ -203,6 +244,7 @@ function buildProgram(sections) {
         editable: true,
         tracks: [
             { id: 'movements', kind: 'movement', clips: movements },
+            { id: 'seams', kind: 'transition', clips: transitions },
             // A visual track declares what it shows where no clip reaches.
             // Nothing here is unanchored, but the track has to say so.
             { id: 'visuals', kind: 'visual', fallback: { kind: 'still' }, clips: visuals },
