@@ -145,14 +145,22 @@ function buildSections(words, startedAtMs, durationMs) {
         // each section is its own source.
         let cursor = 0;
         const text = slice.map(word => word.text).join(' ');
-        const cueWords = slice.map(word => {
+        const cueWords = slice.map((word, at) => {
             const fromCharacter = cursor;
             cursor += word.text.length + 1;
             return {
                 text: word.text,
                 fromCharacter,
                 toCharacter: fromCharacter + word.text.length,
-                durationMs: word.durationMs
+                // THE CUE HAS TO DESCRIBE THE AUDIO THAT WAS CUT, not the
+                // recording it came from. The last word of the last section
+                // absorbs everything to the end of the file, and that tail
+                // is trimmed out of the audio above; a cue still claiming
+                // the untrimmed length says the voice is speaking through
+                // fifteen seconds that are not in the clip.
+                durationMs: at === slice.length - 1
+                    ? Math.max(1, endMs - (startedAtMs[from + at] ?? startMs))
+                    : word.durationMs
             };
         });
 
@@ -272,6 +280,15 @@ function buildProgram(sections) {
  * So the pace is solved for rather than derived. Compile, measure what
  * each section actually took, scale its wpm by the miss, and repeat. Three
  * passes is enough; the residual is what one phrase's rounding is worth.
+ *
+ * NO LONGER THE MECHANISM. The compiler now retimes atoms directly from a
+ * spoken cue's word timings, so a section that carries one lands exact
+ * whatever pace it was given, and pass 1 reports 0.0%. What is left here
+ * is the fallback for a section the retimer declines — its atom word
+ * counts have to sum to its cue's, and a section that does not add up is
+ * left entirely alone — and, because it measures the compiled result
+ * against the recording, a printed proof that the retimer covered
+ * everything. Deleting it would cost both.
  */
 async function calibrate(sections, program, sources, passes = 3) {
     const { compileSession } = await import('../src/core/session-compiler.js');
@@ -347,6 +364,27 @@ async function main() {
         program,
         sources,
         sessionInput: { chunkMode: 'phrase' },
+        // WITHOUT THIS THE CHAMBER'S FROSTED TILE COMES ALONG. Omitting
+        // `caption` asks for Chamber-identical paint, where glass follows
+        // the visual — and the Chamber tile is a `backdrop-filter` pane
+        // sized to the words. Over full-bleed imagery it reads as frosted
+        // glass; over these mostly-black procedural fields it has nothing
+        // to frost and reads as a hard grey rectangle parked behind every
+        // line. Caption mode draws the words as a burn-in and leaves the
+        // field alone.
+        //
+        // Centre, not the movie-standard bottom, because that is where
+        // this piece already puts its words; the box is the defect, not
+        // the composition. A soft shadow carries legibility instead, and
+        // no stroke, which a serif at this size cannot wear.
+        caption: {
+            fontFamily: '"Crimson Pro", Georgia, serif',
+            fontSize: 46,
+            fontWeight: 400,
+            edgeColor: 'none',
+            shadow: true,
+            position: 'center'
+        },
         // The social profiles cap a job at 90 seconds, which is a social
         // post rather than a piece. Cinema allows ten minutes at 1080p,
         // which is what a narration of this length needs.
