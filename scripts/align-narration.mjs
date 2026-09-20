@@ -40,6 +40,7 @@ import {
 } from './lib/ctc-align.mjs';
 import {
     assertWordsInsideSpan,
+    NARRATION_LIMITS,
     validateNarrationWords
 } from '../src/core/narration.js';
 
@@ -247,16 +248,35 @@ async function main() {
     const result = await alignNarration(samples, rate, text, aligner);
 
     // PROVED AGAINST THE LANE, not against this script's own opinion. These
-    // are the same two checks the score runs when a program is imported.
-    validateNarrationWords(result.words);
+    // are the same checks the score runs when a program is imported.
+    //
+    // A RECORDING IS NOT A CUE. `NARRATION_LIMITS.maxWords` caps a spoken
+    // CLIP at 512 words, because a clip is one unit of speech bound to one
+    // source span — not a whole reading. A five-minute narration is 709
+    // words and has to arrive as several clips, one per movement, which is
+    // what the lane is shaped for. Validating the whole recording as a
+    // single cue was a category error on this script's part, and the cap
+    // refusing it is the lane working.
+    //
+    // So the word SHAPE is checked in groups no larger than a cue may be,
+    // and the partition into actual cues is left to whoever knows the
+    // movement structure. Every word is checked against the source either
+    // way, which is the proof that matters here.
+    for (let at = 0; at < result.words.length; at += NARRATION_LIMITS.maxWords) {
+        validateNarrationWords(result.words.slice(at, at + NARRATION_LIMITS.maxWords));
+    }
     assertWordsInsideSpan(result.words, 0, text.length, text);
+    const cues = Math.ceil(result.words.length / NARRATION_LIMITS.maxWords);
 
-    const cue = {
-        kind: 'spoken',
+    const payload = JSON.stringify({
+        durationMs: result.durationMs,
         voiceAssetId: args.voiceAssetId,
+        // Not wrapped in a cue: a cue names a source span, and which span
+        // each of these belongs to is the score's business, not this
+        // script's. At least `cues` of them will be needed.
+        cues,
         words: result.words
-    };
-    const payload = JSON.stringify({ durationMs: result.durationMs, cue }, null, 2);
+    }, null, 2);
     if (args.out) {
         writeFileSync(resolve(args.out), `${payload}\n`);
         console.log(`[narration] wrote ${resolve(args.out)}`);
@@ -264,6 +284,10 @@ async function main() {
         console.log(payload);
     }
     console.log(`[narration] ${result.alignedWords}/${result.words.length} words placed by audio`);
+    if (cues > 1) {
+        console.log(`[narration] ${result.words.length} words needs at least ${cues} spoken `
+            + `clips (a cue carries ${NARRATION_LIMITS.maxWords})`);
+    }
 }
 
 // Only when run, so the alignment can be imported and measured. Compared as
