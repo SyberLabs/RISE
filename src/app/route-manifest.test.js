@@ -4,6 +4,7 @@ import { createRouteManifest } from './route-manifest.js';
 const ROUTE_IDS = [
   'portal',
   'keystones',
+  'mint',
   'vault',
   'chamber',
   'chamber-session',
