@@ -75,7 +75,8 @@ export function buildKernelRequest({
   tier,
   ffmpegPath,
   job,
-  caption
+  caption,
+  motion
 } = {}) {
   return defined({
     schema: KERNEL_REQUEST_SCHEMA,
@@ -95,7 +96,8 @@ export function buildKernelRequest({
     tier,
     ffmpegPath,
     job,
-    caption: caption == null ? undefined : (resolveCaptionStyle(caption) || undefined)
+    caption: caption == null ? undefined : (resolveCaptionStyle(caption) || undefined),
+    motion
   });
 }
 

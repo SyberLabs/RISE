@@ -26,6 +26,16 @@ export function createRouteManifest(operations) {
       })
     },
     {
+      id: 'mint',
+      containerId: 'view-mint',
+      load: () => import('../components/Mint.js'),
+      create: (container, data, { Mint }) => new Mint(container, {
+        entry: data?.entry || null,
+        onNavigate: operations.handleNavigate,
+        onOpen: operations.openMintedProgram
+      })
+    },
+    {
       id: 'vault',
       containerId: 'view-vault',
       load: () => import('../components/Vault.js'),

@@ -11,7 +11,7 @@ import {
     lowerExperienceProgram,
     validateExperienceProgram
 } from './experience-program.js';
-import { buildReadingPlan, paceFactor } from './reading-score.js';
+import { applyNarrationTiming, applyProgressPace, buildReadingPlan, paceFactor } from './reading-score.js';
 import { compileSession, estimateCompiledDuration } from './session-compiler.js';
 import {
     describeImportFailure,
@@ -397,5 +397,95 @@ describe('the reader stays above the score', () => {
         for (const bad of [0, -1, NaN, Infinity, undefined]) {
             expect(paceFactor(320, bad), String(bad)).toBe(1);
         }
+    });
+});
+
+describe('the voice is the clock when the voice has said so', () => {
+    const atom = (content, duration, sourceId = 's1') => ({
+        content, duration, sourceId, timingLocked: false
+    });
+    const spoken = (sourceIds, words) => ({
+        coordinateSpace: 'source',
+        segments: [{ id: 'n1', match: { sourceIds }, cue: { kind: 'spoken', words } }]
+    });
+    const word = (text, durationMs) => ({ text, durationMs, fromCharacter: 0, toCharacter: 1 });
+
+    it('gives an atom the sum of the words it shows', () => {
+        // A reading cue asks for a pace and cannot state a duration, so the
+        // chunker's phrase floors overrun words-divided-by-wpm — 5.5% to
+        // 12.3% measured across one narration, which accumulates into eight
+        // seconds of lag a minute in. An aligned cue already knows.
+        const atoms = [atom('This is RISE.', 9999), atom('My place for experimenting', 9999)];
+        const program = spoken(['s1'], [
+            word('This', 200), word('is', 150), word('RISE.', 450),
+            word('My', 180), word('place', 300), word('for', 120), word('experimenting', 700)
+        ]);
+
+        expect(applyNarrationTiming(atoms, program)).toBe(2);
+        expect(atoms[0].duration).toBe(800);
+        expect(atoms[1].duration).toBe(1300);
+    });
+
+    it('locks what it retimes, so nothing paces it afterwards', () => {
+        // `timingLocked` has always meant the duration was chosen rather
+        // than computed. computeDuration returns it unchanged and
+        // applyProgressPace skips it.
+        const atoms = [atom('one two', 9999)];
+        applyNarrationTiming(atoms, spoken(['s1'], [word('one', 300), word('two', 400)]));
+
+        expect(atoms[0].timingLocked).toBe(true);
+        expect(applyProgressPace(atoms, [
+            { fromProgress: 0, toProgress: 1, wpm: 400 }
+        ], () => 160)).toBe(0);
+        expect(atoms[0].duration).toBe(700);
+    });
+
+    it('leaves a source alone when the counts disagree', () => {
+        // Atoms are walked in reading order and consume their own word
+        // count, which is a sound mapping only while the totals agree. A
+        // merged or dropped token would shift every duration after it, so a
+        // source that does not add up is not timed at all.
+        const atoms = [atom('one two three', 5000)];
+        const program = spoken(['s1'], [word('one', 300), word('two', 400)]);
+
+        expect(applyNarrationTiming(atoms, program)).toBe(0);
+        expect(atoms[0].duration).toBe(5000);
+        expect(atoms[0].timingLocked).toBe(false);
+    });
+
+    it('does nothing for a spoken cue that carries no words', () => {
+        // THE REGRESSION GUARD, and it names the real surface. The only
+        // narration RISE ships is `content/keystone-render.js`, whose cue
+        // is a voiceId and a duck — it has never carried word timings, and
+        // this must leave every Keystone render exactly as it was.
+        const atoms = [atom('one two', 4242)];
+        const program = {
+            coordinateSpace: 'source',
+            segments: [{
+                id: 'voice-1',
+                match: { sourceIds: ['s1'] },
+                cue: { kind: 'spoken', voiceId: 'af_heart', duck: { target: 'bed' } }
+            }]
+        };
+
+        expect(applyNarrationTiming(atoms, program)).toBe(0);
+        expect(atoms[0].duration).toBe(4242);
+        expect(atoms[0].timingLocked).toBe(false);
+    });
+
+    it('touches nothing when there is no narration at all', () => {
+        const atoms = [atom('one two', 1234)];
+        expect(applyNarrationTiming(atoms, null)).toBe(0);
+        expect(applyNarrationTiming(atoms, { segments: [] })).toBe(0);
+        expect(atoms[0].duration).toBe(1234);
+    });
+
+    it('leaves an atom that belongs to no narrated source', () => {
+        // An authored boundary carries a synthetic sourceId no cue names.
+        const atoms = [atom('one', 300, 'seam-01'), atom('two three', 9999, 's1')];
+        applyNarrationTiming(atoms, spoken(['s1'], [word('two', 250), word('three', 350)]));
+
+        expect(atoms[0].duration).toBe(300);
+        expect(atoms[1].duration).toBe(600);
     });
 });

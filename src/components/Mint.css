@@ -1,0 +1,90 @@
+/**
+ * The minted-sequence threshold.
+ *
+ * One reading, one action. Nothing here scrolls and nothing here is a
+ * list — a reader arrives from a printed code with one question, and the
+ * page answers it and gets out of the way.
+ */
+
+.mint {
+  min-height: 100svh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  /* 100svh is the small viewport: the only height this app is ever shown
+     at, since the document never scrolls. See #161. */
+  padding: 0 24px;
+  gap: 16px;
+  background: var(--color-void);
+  color: var(--color-light);
+}
+
+.mint-eyebrow {
+  margin: 0;
+  font-family: var(--font-primary);
+  font-size: 0.75rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--color-mist);
+}
+
+.mint-title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: clamp(2rem, 8vw, 3.25rem);
+  line-height: 1.1;
+  text-wrap: balance;
+  max-width: 16ch;
+  color: var(--color-threshold);
+}
+
+.mint-summary {
+  margin: 0 0 16px;
+  font-family: var(--font-literary);
+  font-size: clamp(1rem, 4vw, 1.2rem);
+  line-height: 1.5;
+  text-wrap: balance;
+  max-width: 34ch;
+  color: var(--color-cloud);
+}
+
+.mint-open {
+  min-width: 12rem;
+  /* A thumb target, and the gesture the audio lifecycle is waiting for. */
+  min-height: 48px;
+  padding: 12px 32px;
+  font-family: var(--font-primary);
+  font-size: 1rem;
+  letter-spacing: 0.08em;
+  color: var(--color-on-accent);
+  background: var(--color-accent);
+  border: none;
+  border-radius: 2px;
+  cursor: pointer;
+  transition: opacity 150ms var(--ease-out, ease-out);
+}
+
+.mint-open:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.mint-elsewhere {
+  min-height: 44px;
+  padding: 8px 16px;
+  font-family: var(--font-primary);
+  font-size: 0.875rem;
+  color: var(--color-fog);
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+.mint-open:focus-visible,
+.mint-elsewhere:focus-visible {
+  outline: 2px solid var(--color-threshold);
+  outline-offset: 3px;
+}

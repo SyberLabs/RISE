@@ -1,0 +1,34 @@
+{
+  "schema": "rise.experience-program.v1",
+  "id": "the-uncarved-block",
+  "authority": "proposed",
+  "editable": true,
+  "tracks": [
+    {
+      "id": "movements",
+      "kind": "movement",
+      "clips": [
+        {
+          "id": "m1",
+          "anchor": { "sourceIds": ["sacred-tao-te-ching#1"] },
+          "data": { "index": 0, "title": "Chapter I" }
+        },
+        {
+          "id": "m2",
+          "anchor": { "sourceIds": ["sacred-tao-te-ching#11"] },
+          "data": { "index": 1, "title": "Chapter XI" }
+        },
+        {
+          "id": "m3",
+          "anchor": { "sourceIds": ["sacred-tao-te-ching#40"] },
+          "data": { "index": 2, "title": "Chapter XL" }
+        },
+        {
+          "id": "m4",
+          "anchor": { "sourceIds": ["sacred-tao-te-ching#78"] },
+          "data": { "index": 3, "title": "Chapter LXXVIII" }
+        }
+      ]
+    }
+  ]
+}

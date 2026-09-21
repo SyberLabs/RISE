@@ -62,14 +62,30 @@ const STILL_REST = Object.freeze({
   incomingPhase: 0
 });
 
+/**
+ * How far through its run a pinned still is, which is what moves it.
+ *
+ * `paintStill` pans and zooms by `phase`, and a gallery wall feeds it one
+ * from the dwell. A PINNED still had no wall to ask, so it took
+ * `STILL_REST` and its phase stayed 0 for the whole run: `drawStill`
+ * computes `zoom * (1 + drift * easeInOut(phase))`, which at a constant
+ * phase is a constant scale. The work was drawn once and then held, dead
+ * still, for as long as the section lasted.
+ */
+function runPhase(run, timeMs) {
+  const span = Number(run?.toMs) - Number(run?.fromMs);
+  if (!Number.isFinite(span) || span <= 0) return 0;
+  return Math.max(0, Math.min(1, (Number(timeMs) - Number(run.fromMs)) / span));
+}
+
 function stillFrameFor(run, stills, timeMs) {
   if (!stills.length || !run) return STILL_REST;
   const personalId = run.cue?.config?.personalAssetId;
   if (personalId && stills.some(item => item.id === personalId)) {
-    return { ...STILL_REST, stillId: personalId };
+    return { ...STILL_REST, stillId: personalId, outgoingPhase: runPhase(run, timeMs) };
   }
   if (run.assetId && stills.some(item => item.id === run.assetId)) {
-    return { ...STILL_REST, stillId: run.assetId };
+    return { ...STILL_REST, stillId: run.assetId, outgoingPhase: runPhase(run, timeMs) };
   }
   if (run.cueKind === 'visual:sourced:gallery' || run.cueKind === 'visual:sourced:collection') {
     const elapsedMs = Math.max(0, timeMs - (run.fromMs || 0));
