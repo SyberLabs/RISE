@@ -27,6 +27,7 @@ import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { SEQUENCE_ASSET_PREFIX } from '../src/core/visual-score-lane.js';
+import { validateExperienceProgram } from '../src/core/experience-program.js';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -70,30 +71,44 @@ const astronomyCue = (workId) => {
 const ATTRACTOR = { kind: 'field', renderer: 'attractor', config: {} };
 const HARMONOGRAPH = { kind: 'procedural', collections: ['harmonograph'] };
 const TURRELL = { kind: 'procedural', collections: ['turrell'] };
+const FRACTAL = { kind: 'procedural', collections: ['fractal'] };
+const ROCKGARDEN = { kind: 'procedural', collections: ['rockgarden'] };
+const NEURAL = { kind: 'procedural', collections: ['neural'] };
+const GENESIS = { kind: 'field', renderer: 'genesis', config: {} };
+
+/** Iris Plates. `ostensoria` is the engine id; Verdant is one of its ramps. */
+const IRIS_VERDANT = { kind: 'procedural', collections: ['ostensoria'], config: { palette: 'verdant' } };
+
+/** Spectral Plates: an upright apparition on a mirror axis. */
+const SPECTRAL = { kind: 'procedural', collections: ['apparitio'] };
 
 /**
- * SIXTEEN, BECAUSE THAT IS THE BUDGET AND SHORTER SECTIONS DRIFT LESS.
+ * SIXTEEN MOVEMENTS IS THE BUDGET; A SECTION IS NOW A PICTURE, NOT A CLOCK.
  *
- * Audio is dropped at each run's start, so voice and text agree at a
- * boundary and diverge until the next one. Calibration fixes the RATE, but
- * a phrase's rounding still accumulates inside a section — measured at
- * about two seconds sixty seconds into an eighty-four second one. The
- * movement cap is 16, so the long themes are split into several sections
- * that share a visual: the picture does not change, the clock re-syncs.
+ * These used to be cut short because a section drifted: audio drops at each
+ * run's start, so voice and text agreed at a boundary and diverged until
+ * the next, and long themes had to be split into several sections sharing
+ * one visual purely so the clock could re-sync. Retiming atoms from the
+ * recording's own word timings ended that - drift is 0ms whatever the
+ * length - so the splits that bought nothing but a re-sync are gone, and
+ * the movements they were spending now buy different pictures instead.
  */
 const STORYBOARD = [
-    { atWord: 0, title: 'This is RISE', visual: TURRELL },
+    { atWord: 0, title: 'This is RISE', visual: FRACTAL },
     { atWord: 37, title: 'Omnia mutantur', visual: astronomyCue('esahubble:heic1501a') },
-    { atWord: 71, title: 'Neural networks', visual: { kind: 'procedural', collections: ['neural'] } },
-    { atWord: 75, title: 'Fractal flames', visual: { kind: 'procedural', collections: ['fractal'] } },
-    { atWord: 84, title: 'A Japanese rock garden', visual: { kind: 'procedural', collections: ['rockgarden'] } },
+    { atWord: 67, title: 'Some of these are neural networks', visual: NEURAL },
+    { atWord: 73, title: 'Some are fractal flames', visual: FRACTAL },
+    // The rock garden has to be ON SCREEN for the sentence that names it,
+    // not arrive on the words "rock garden" three phrases later — and then
+    // give way, because it is the sparsest surface here and the script has
+    // already moved on by "Liberally suggestive."
+    { atWord: 77, title: 'Inspired by a Japanese rock garden', visual: ROCKGARDEN },
+    { atWord: 88, title: 'Not in any particular way', visual: IRIS_VERDANT },
     { atWord: 142, title: 'Ten-hour playlists', visual: HARMONOGRAPH },
-    { atWord: 200, title: 'One of the chosen ones', visual: HARMONOGRAPH },
-    { atWord: 265, title: 'Where cybernetics never died', visual: HARMONOGRAPH },
-    { atWord: 323, title: 'Equations pretending to be landscapes', visual: { kind: 'field', renderer: 'genesis', config: {} } },
+    { atWord: 226, title: 'A little place on the internet', visual: HARMONOGRAPH },
+    { atWord: 323, title: 'Equations pretending to be landscapes', visual: GENESIS },
     { atWord: 337, title: 'There are attractors', visual: ATTRACTOR },
-    { atWord: 400, title: 'You can change the geometry', visual: ATTRACTOR },
-    { atWord: 465, title: 'There is no streak', visual: ATTRACTOR },
+    { atWord: 480, title: 'Maybe you read differently', visual: SPECTRAL },
     { atWord: 510, title: 'You give them rules', visual: ATTRACTOR },
     { atWord: 549, title: 'Several thousand years later', visual: astronomyCue('esahubble:heic0406a') },
     { atWord: 593, title: 'So if something here affects you', visual: astronomyCue('esahubble:potw1345a') },
@@ -439,6 +454,15 @@ async function main() {
         id: section.id, name: section.title, data: section.text
     }));
     program = await calibrate(sections, program, sources, astronomy.declared);
+
+    // HAND OVER WHAT THE VALIDATOR PRODUCES, NOT WHAT I WROTE. The job
+    // hashes the program it admits and preflight re-hashes the program it
+    // is given; any field the validator rewrites on the way through makes
+    // those two disagree and the render is refused. A procedural `config`
+    // that normalises to empty is dropped, and an apparitio cue with no
+    // palette gains `auto` - so the program that gets hashed has to be the
+    // normalised one, rather than one I kept in step by hand.
+    program = validateExperienceProgram(program);
     for (const section of sections) {
         console.log(`  ${section.id} paced at ${section.wpm}wpm`);
     }
@@ -470,12 +494,23 @@ async function main() {
             fontWeight: 400,
             edgeColor: 'none',
             shadow: true,
-            position: 'center'
+            position: 'center',
+            // Caption mode draws no pane unless the caption asks for one.
+            // Now that the fields behind are photographs and lit Turrell
+            // rather than near-black, the tile has something to frost.
+            glass: true
         },
         // The social profiles cap a job at 90 seconds, which is a social
         // post rather than a piece. Cinema allows ten minutes at 1080p,
         // which is what a narration of this length needs.
         profileId: 'cinema-landscape-1080',
+        // A PLATE HAS TO MOVE MORE THAN THE 8-BIT FLOOR. The default 0.06
+        // drift is about a twentieth of a pixel per frame over a run this
+        // long: measured across the whole background of a section, the
+        // largest frame-to-frame difference it produced was ONE least
+        // significant bit, so the picture sat dead still and the only
+        // motion in the frame was the caption changing line.
+        motion: { drift: 0.18 },
         projectId: 'rise-narration-video'
     });
     // PREFLIGHT CHECKS THE JOB AGAINST WHAT IS ACTUALLY LOADED. The job

@@ -167,7 +167,8 @@ export async function renderArtifact(request = {}) {
     fromMs,
     toMs,
     audio,
-    caption: req.caption
+    caption: req.caption,
+    motion: req.motion || null
   });
   const posterFrame = req.fromMs
     ? Math.min(plan.frameCount - 1, Math.max(0, frameIndexAt(fromMs, plan.frameRate)))

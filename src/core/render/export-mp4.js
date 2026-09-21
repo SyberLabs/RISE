@@ -39,7 +39,12 @@ export async function exportRenderMp4({
   fromMs = 0,
   toMs = null,
   audio = null,
-  caption
+  caption,
+  // HOW A PLATE MOVES. `openChamberPainter` has always taken these; nothing
+  // reached them, so every rendered plate ran on the defaults - a 6% drift
+  // over the whole run, which is roughly a twentieth of a pixel per frame
+  // and rounds away to nothing in 8-bit video.
+  motion = null
 } = {}) {
   if (!outputPath) fail('RENDER_ENCODE_PATH', 'exportRenderMp4 needs an output path', '$.outputPath');
   const compiled = plan || compileRenderPlan({
@@ -67,7 +72,7 @@ export async function exportRenderMp4({
   }
 
   const { openChamberPainter } = await import('./chamber-paint.js');
-  const stage = await openChamberPainter({ plan: compiled, scale, inventory, caption });
+  const stage = await openChamberPainter({ plan: compiled, scale, inventory, caption, ...(motion || {}) });
   try {
     return await encodeMp4({
       frameRate: compiled.frameRate,
