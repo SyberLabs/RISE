@@ -192,7 +192,7 @@ export class Admit {
 
       const action = event.target.closest('[data-action]')?.dataset.action;
       if (action === 'cancel') this.close(() => this.onCancel());
-      if (action === 'read') this.close(() => this.onReadNow(this.record.text, this.record.title));
+      if (action === 'read') this.close(() => this.onReadNow(this.record.text, this.record.title, this.record));
       if (action === 'admit') this.close(() => this.onAdmit(this.record));
     });
 

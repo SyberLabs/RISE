@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   SceneError,
   cueForPick,
+  editorAssetIdToLeaf,
   leafToEditorAssetId,
   moveScene,
   rewriteWrittenScene,
@@ -167,6 +168,14 @@ describe('from the navigator to the Workshop registry', () => {
     expect(leafToEditorAssetId('personal', 'global-pool')).toBe('collection:global-pool');
     expect(leafToEditorAssetId('personal', 'custom')).toBeNull();
     expect(leafToEditorAssetId('science', 'sci-astronomy')).toBeNull();
+  });
+
+  it('and back again, so the picker opens on the scene\'s visual', () => {
+    for (const [leaf, pool] of [['off'], ['focal'], ['attractor'], ['klee'], ['fractal'],
+      ['by-manner', 'aic-impressionism'], ['personal', 'global-pool']]) {
+      expect(editorAssetIdToLeaf(leafToEditorAssetId(leaf, pool))).toEqual({ leafId: leaf, pool: pool || null });
+    }
+    expect(editorAssetIdToLeaf('project-image:abc')).toBeNull();
   });
 
   it('every id it names exists in the Workshop registry', () => {

@@ -14,6 +14,10 @@ async function openWorkshopWithSource(page) {
     }, GATE);
     await page.goto('/');
     await page.locator('[data-nav="workshop"]').first().click();
+    // A phone opens on the Scene Stack; passage scoring is Full studio.
+    await expect(page.locator('.scenes')).toBeVisible({ timeout: 30_000 });
+    await page.locator('[data-sa="more"]').first().click();
+    await page.getByRole('button', { name: /Full studio/ }).click();
     await expect(page.locator('.workshop-studio')).toBeVisible({ timeout: 30_000 });
 
     await page.getByRole('button', { name: 'Sources', exact: true }).click();

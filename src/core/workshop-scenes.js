@@ -16,6 +16,7 @@ import { snapCharacterRangeToTokens } from './source-span.js';
 import { assignVisualSpan } from './visual-score-lane.js';
 import { assignAudioSpan } from './audio-score-lane.js';
 import { normalizeReaderText } from './local-works.js';
+import { MUSEUM_CATEGORIES } from '../sources/visual/museum.js';
 import {
   normalizeConfigurableVisualCue,
   normalizeFieldStyle,
@@ -231,6 +232,23 @@ export function leafToEditorAssetId(leafId, pool = null) {
     return `collection:${pool}`;
   }
   if (leafId === 'personal' && pool === 'global-pool') return 'collection:global-pool';
+  return null;
+}
+
+/** The inverse of `leafToEditorAssetId`, or null for an asset the navigator does not offer. */
+export function editorAssetIdToLeaf(assetId) {
+  if (typeof assetId !== 'string') return null;
+  const surface = Object.entries(SURFACE_OF).find(([, value]) => assetId === `surface:${value}`);
+  if (surface) return { leafId: surface[0], pool: null };
+  if (assetId.startsWith('procedural:') && PROCEDURAL.has(assetId.slice(11))) {
+    return { leafId: assetId.slice(11), pool: null };
+  }
+  if (assetId === 'collection:global-pool') return { leafId: 'personal', pool: 'global-pool' };
+  if (assetId.startsWith('collection:aic-')) {
+    const pool = assetId.slice(11);
+    const kind = MUSEUM_CATEGORIES[pool.slice(4)]?.kind;
+    return { leafId: kind === 'subject' ? 'by-subject' : 'by-manner', pool };
+  }
   return null;
 }
 
