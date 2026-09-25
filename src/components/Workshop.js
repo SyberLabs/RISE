@@ -2100,13 +2100,15 @@ export class Workshop {
   }
 
   addSource(item, provider) {
-    // Normalize array payloads (e.g. ArXiv search results returning multiple structured objects)
+    // A whole Library work arrives as its parts. They are parted by a blank
+    // line, which the reading already treats as a paragraph break; a printed
+    // divider was read aloud and shown to the reader as if it were the text.
     let normalizedData = item.data;
     if (Array.isArray(item.data)) {
         normalizedData = item.data.map(d => {
             if (typeof d === 'string') return d;
             return d.content || d.data || JSON.stringify(d);
-        }).join('\n\n--- ◈ SOURCE DIVIDER ◈ ---\n\n');
+        }).join('\n\n');
     }
 
     // Persist as pure string representation

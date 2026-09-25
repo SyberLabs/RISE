@@ -183,6 +183,15 @@ describe('the phone Workshop', () => {
     expect(workshop.sessionData.sources).toHaveLength(1);
   });
 
+  it('a whole Library work arrives as one text, its parts parted by a blank line', () => {
+    const { workshop } = phone();
+    workshop.addSource({
+      id: 'starter-creator-affirmations', name: 'Creator Affirmations', type: 'text/plain',
+      data: ['I am a creator.', 'Creation flows through me.']
+    }, { id: 'library-archive', name: 'Archive' });
+    expect(workshop.sessionData.sources[0].data).toBe('I am a creator.\n\nCreation flows through me.');
+  });
+
   it('keys pressed in the stack stay in the stack', () => {
     const { container, onNavigate } = phone();
     container.querySelector('[data-sa="add"]').click();
