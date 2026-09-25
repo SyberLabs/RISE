@@ -2,6 +2,7 @@
  * Face, Size, Ink, specimen, and the dialogs that gate text-material changes.
  */
 import { escapeHtml, safeUrl } from '../../core/sanitize.js';
+import { stillQueue } from './preview.js';
 import { CHAMBER_STREAM_FACES, resolveChamberStreamFace } from '../../core/chamber-stream-face.js';
 import {
   FONT_SIZE_CHIPS,
@@ -604,7 +605,7 @@ export const textMethods = {
       : value.startsWith('sourced:') ? value.slice('sourced:'.length)
         : null;
     if (!key) return null;
-    const url = this._previewCache?.get(key);
+    const url = stillQueue.cached(key);
     return url ? safeUrl(url) : null;
   },
 };
