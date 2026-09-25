@@ -255,9 +255,9 @@ test('Try RISE keeps its lateral rail on a phone', async ({ page }) => {
     await expect(page).toHaveURL(/\/try-rise$/u);
 });
 
-test('the visual navigator exposes complete Field and Text roots without a mobile dead lane', async ({ page }) => {
-    // The retired five-mode strip is now an explicit two-root hierarchy.
-    // Every root must be populated, stay inside the viewport, and lead to its entry.
+test('the visual navigator holds every visual and all of Text, on a phone and on a desk', async ({ page }) => {
+    // A phone gets the stage: one rail holds every visual, and Letters holds
+    // Face, Size and Ink. A desk gets the directory's two roots and columns.
     test.setTimeout(240000);
     await enter(page, 390, 844);
     await page.locator('[data-nav="library"]').first().click();
@@ -266,85 +266,33 @@ test('the visual navigator exposes complete Field and Text roots without a mobil
     await page.waitForTimeout(2000);
     const toc = page.locator('.toc-entry').first();
     if (await toc.isVisible().catch(() => false)) { await toc.click(); }
-    // Wait for stage, then panel visibility (conditions, not sleeps).
     await expect(page.locator('.orbital-stage')).toBeVisible({ timeout: 30000 });
     await page.locator('.orbit-visual').click();
-    await expect(page.locator('#modal-visual')).toBeVisible({ timeout: 15000 });
-    await expect(page.locator('.vnav')).toBeVisible({ timeout: 15000 });
+    await expect(page.locator('.vstage')).toBeVisible({ timeout: 15000 });
 
-    const roots = await page.evaluate(() => {
-        const el = document.querySelector('.vnav');
-        const first = el?.querySelector('.vnav-col');
-        if (!el || !first) return null;
-        const groups = [...first.querySelectorAll('.vnav-group')];
-        return {
-            groups: groups.map(group => group.textContent.trim()),
-            nodes: [...first.querySelectorAll('.vnav-node')].map(node => node.dataset.id),
-            sideways: Math.max(0, el.scrollWidth - el.clientWidth),
-            emptyGroups: groups.filter(group => {
-                let sibling = group.nextElementSibling;
-                while (sibling && !sibling.classList.contains('vnav-group')) {
-                    if (sibling.classList.contains('vnav-node')) return false;
-                    sibling = sibling.nextElementSibling;
-                }
-                return true;
-            }).map(group => group.textContent.trim())
-        };
-    });
-    console.log('NAVIGATOR ' + JSON.stringify(roots));
-
-    expect(roots, 'no visual navigator found').not.toBeNull();
-    expect(roots.groups).toEqual(['Field', 'Text']);
-    expect(roots.nodes).toEqual(['off', 'visual', 'face', 'size', 'ink']);
-    expect(roots.emptyGroups).toEqual([]);
-    expect(roots.sideways).toBe(0);
-
-    await page.locator('.vnav-node[data-id="size"]').click();
+    const rail = await page.evaluate(() => [...document.querySelectorAll('.vstage-tile')].map(tile => tile.dataset.world));
+    expect(rail).toEqual(expect.arrayContaining([
+        'off', 'focal', 'attractor', 'klee', 'harmonograph', 'fractal', 'turrell', 'by-manner', 'personal'
+    ]));
+    await page.locator('[data-stage="text"]').click();
+    for (const section of ['face', 'size', 'ink']) {
+        await expect(page.locator(`.vstage-sheet [data-section="${section}"]`)).toBeVisible();
+    }
     await expect(page.locator('[data-font-size="fit"]')).toBeVisible();
 
-    // One pane at a time: the open pane holds the screen, so reaching another
-    // root door goes back to the rail rather than sideways past it.
-    await page.locator('[data-action="navigator-back"]').click();
-    await page.locator('.vnav-node[data-id="visual"]').click();
-    await page.locator('.vnav-node[data-id="gallery"]').click();
-    await page.locator('.vnav-node[data-id="gallery-sourced"]').click();
-    await page.locator('.vnav-node[data-id="by-manner"]').click();
-    await expect(page.locator('.vnav-entry h3')).toHaveText('By Manner');
-
-    const phone = await page.evaluate(() => {
-        const nav = document.querySelector('.vnav');
-        const entry = nav.querySelector('.vnav-entry').getBoundingClientRect();
+    await page.setViewportSize({ width: 1280, height: 800 });
+    await expect(page.locator('.vnav')).toBeVisible();
+    const roots = await page.evaluate(() => {
+        const first = document.querySelector('.vnav .vnav-col');
         return {
-            visibleColumns: [...nav.querySelectorAll('.vnav-col')]
-                .filter(column => getComputedStyle(column).display !== 'none').length,
-            sideways: Math.max(0, nav.scrollWidth - nav.clientWidth),
-            entryWidth: Math.round(entry.width),
-            entryRight: Math.round(entry.right),
-            viewport: window.innerWidth
+            groups: [...first.querySelectorAll('.vnav-group')].map(group => group.textContent.trim()),
+            nodes: [...first.querySelectorAll('.vnav-node')].map(node => node.dataset.id)
         };
     });
-    // With a leaf open the entry IS the pane: no rail stacked above it, which
-    // is what left the commit and the reader switches below the fold. The
-    // "one column" this used to assert is the state a reader is in BEFORE
-    // opening something, and it is asserted at the rail below.
-    expect(phone.visibleColumns).toBe(0);
-    expect(phone.sideways).toBe(0);
-    expect(phone.entryWidth).toBeGreaterThan(250);
-    expect(phone.entryRight).toBeLessThanOrEqual(phone.viewport);
-
-    await expect(page.locator('[data-action="navigator-back"]')).toBeVisible();
-    // One press, one level: the open leaf is a step of the drill-down now, so
-    // Back returns to the list By Manner was chosen FROM. It used to clear the
-    // focus and pop the path together, which skipped a level.
-    await page.locator('[data-action="navigator-back"]').click();
-    await expect(page.locator('.vnav-node[data-id="by-manner"]')).toBeVisible();
-    // Back at a list, exactly one column stands — the deepest one, alone.
-    expect(await page.evaluate(() => [...document.querySelectorAll('.vnav-col')]
-        .filter(column => getComputedStyle(column).display !== 'none').length)).toBe(1);
-    await page.locator('[data-action="navigator-back"]').click();
-    await expect(page.locator('.vnav-node[data-id="gallery-sourced"]')).toBeVisible();
-
-    await page.setViewportSize({ width: 1280, height: 800 });
+    expect(roots.groups).toEqual(['Field', 'Text']);
+    expect(roots.nodes).toEqual(['off', 'visual', 'face', 'size', 'ink']);
+    await page.locator('.vnav-node[data-id="visual"]').click();
+    await page.locator('.vnav-node[data-id="gallery"]').click();
     await page.locator('.vnav-node[data-id="gallery-sourced"]').click();
     await page.locator('.vnav-node[data-id="by-manner"]').click();
     const desktop = await page.evaluate(() => {
@@ -522,7 +470,10 @@ test('the configuration panels are not several screens of picture tiles', async 
             expect(m.tallestOption, `${m.id} tallest option`).toBeLessThanOrEqual(56);
         }
         // Close via the panel control; wait until hidden before the next orb.
-        await page.locator(`${modal} [data-close]`).click();
+        // The visual panel is a stage on a phone, and closes from its own ✕.
+        const stageClose = page.locator(`${modal} .vstage [data-stage="close"]`);
+        if (await stageClose.isVisible()) await stageClose.click();
+        else await page.locator(`${modal} [data-close]`).click();
         await expect(page.locator(modal)).toBeHidden({ timeout: 15000 });
     }
 });
