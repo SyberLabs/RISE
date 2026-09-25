@@ -1,6 +1,6 @@
 # Mobile Visual Navigator and Mobile Workshop
 
-**Design, 2026-09-25. Status: APPROVED 2026-09-25 (Scene Stack, all six phases). Implementation in progress.**
+**Design, 2026-09-25. Status: APPROVED and IMPLEMENTED 2026-09-25 (Scene Stack, all six phases). Physical iOS/Android testing is still to do.**
 
 Scope: the phone (below 768 px wide, coarse pointer) presentation of the Visual
 Navigator and of the Workshop. Desktop and tablet keep their current
@@ -12,6 +12,32 @@ Companion documents: `docs/vision/WORKSHOP-COMPOSITION-STUDIO-SPEC.md`,
 `docs/specs/Premium_Mobile_Chamber.md`.
 
 ---
+
+## As built — where the implementation departs from this design
+
+Each of these was decided during implementation, for the reason given.
+
+- **Share is deleted.** An Experience Program anchors scenes by source id and
+  carries no text, so a shared file moves Library scenes but not words
+  written on the phone. A Share button would imply a written draft can
+  continue on a desk; it cannot. Export stays, and its row says what travels.
+  *Follow-up:* a `rise.workshop-project.v1` file export/import would make
+  "continue elsewhere" true.
+- **Personal recordings are not a scene sound.** They are overlay layers (the
+  `swell` lane), not beds. Uploading and placing them is Full studio.
+- **Only Attractor draws live on the stage.** Genesis grows from an empty page
+  over ~28 s; mounted live, it replaced a finished still with a nearly black
+  canvas. It keeps its still.
+- **The DPR cap is the engines' own (2), not 1.5.** Both engines already cap
+  it, and patching them for the stage was not worth a second rule.
+- **Still rendering: only engine renders are serialized.** Network stills
+  (collections) are deduplicated but never queued, because one hung fetch
+  would otherwise hold every picture. A serial render that never answers is
+  abandoned after 8 s. An aborted request is withdrawn.
+- **Art visuals are named by their collection** ("Monet & the
+  Impressionists"), with "By Manner" as the kind beneath it.
+- **The no-text-under-11 px, no-control-under-44 px floor** from the retired
+  phone directory spec now guards the stage.
 
 ## 0. Decisions this document asks for
 
@@ -339,7 +365,7 @@ Sequence  (the stack)
  │    └─ Sound   → Sound sheet
  ├─ Pace          → Pace sheet
  ├─ Play          → Chamber preview of the whole sequence
- └─ ⋯             → Save · Rename · Open another · Share · Export ·
+ └─ ⋯             → Save · Rename · Open another · Export ·
                     Import · Full studio · Reset
 ```
 
@@ -411,8 +437,8 @@ secondary lines: *From the Library* and *From a file*. Nothing else.
 | Preview one part | ▶ on a card, or ▶ Play scene inside a scene |
 | Preview the whole work | **▶ Play** in the thumb bar |
 | Save | ⋯ → Save (Vault). The title-bar dot clears. |
-| Export / share | ⋯ → Share (Web Share with the `.rise.json` file when `navigator.canShare({ files })`, otherwise a download). ⋯ → Export also works. |
-| Continue elsewhere | Share or Export JSON, then Import on desktop. Or Save to the Vault on the same device. |
+| Export | ⋯ → Export the score. Library scenes travel with it; words written on the phone do not (see As built). |
+| Continue elsewhere | Save to the Vault on the same device. Across devices, only Library-sourced scenes travel today (see As built). |
 | Advanced | ⋯ → **Full studio** → today's phone studio surfaces (Score / Sources / Assets / Inspector) on the same draft. **Scenes** returns. |
 
 ### 4.5 Editing written text
@@ -436,7 +462,7 @@ the same scene.
 
 ### 4.7 The ⋯ sheet
 
-Save · Rename · Open another sequence · Share · Export JSON · Import JSON ·
+Save · Rename · Open another sequence · Export JSON · Import JSON ·
 Full studio · Reset. Export MP4 stays desktop-only: it is dev middleware and
 long-running.
 
@@ -465,7 +491,7 @@ whether Full studio is used on phones. If it is not, delete it.
 | Pace curve | | ● | | |
 | Play sequence / Play scene | ● | | | ● (Chamber preview) |
 | Save to Vault · rename · open sequence | ● | | | |
-| Export / import JSON · Share | ● | | | ● (program IO) |
+| Export / import JSON | ● | | | ● (program IO) |
 | Visual variation (preset, pool, glyph, cadence) | ● (Vary) | | | |
 | Passage visual / audio clips (text selection) | | ● | | |
 | Combined score view, sync groups | | ● | | |
@@ -473,7 +499,7 @@ whether Full studio is used on phones. If it is not, delete it.
 | Project media upload (image / MP4) | | ● | | |
 | Shared (global) pool management | | ● | | |
 | Personal Focal upload | ● (Vary) | | | |
-| Personal audio upload | ● (Sound) | | | |
+| Personal audio upload | | ● | | |
 | Undo / redo of score commands | | ● | | |
 | Sequence category / details | | ● | | |
 | Asset search and filters | | | ● | |
