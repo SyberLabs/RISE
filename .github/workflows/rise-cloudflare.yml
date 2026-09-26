@@ -117,6 +117,7 @@ jobs:
           current=$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/main" --jq '.object.sha')
           test "$TESTED_SHA" = "$current"
       - name: Deploy staging
+        id: deploy_staging
         working-directory: release
         env:
           GH_TOKEN: ${{ github.token }}
@@ -125,6 +126,31 @@ jobs:
           current=$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/main" --jq '.object.sha')
           test "$TESTED_SHA" = "$current"
           npx --yes wrangler@4.141.0 deploy --config wrangler.staging.jsonc --message "RISE $TESTED_SHA"
+      - name: Diagnose scoped Cloudflare metadata access after deploy failure
+        if: ${{ failure() && steps.deploy_staging.outcome == 'failure' }}
+        run: |
+          set -euo pipefail
+          paths=(
+            "bindings /accounts/$CLOUDFLARE_ACCOUNT_ID/workers/services/rise-jev-preview/environments/production/bindings"
+            "routes /accounts/$CLOUDFLARE_ACCOUNT_ID/workers/services/rise-jev-preview/environments/production/routes?show_zonename=true"
+            "domains /accounts/$CLOUDFLARE_ACCOUNT_ID/workers/domains/records?page=0&per_page=5&service=rise-jev-preview&environment=production"
+            "subdomain /accounts/$CLOUDFLARE_ACCOUNT_ID/workers/services/rise-jev-preview/environments/production/subdomain"
+            "environment /accounts/$CLOUDFLARE_ACCOUNT_ID/workers/services/rise-jev-preview/environments/production"
+            "schedules /accounts/$CLOUDFLARE_ACCOUNT_ID/workers/scripts/rise-jev-preview/schedules"
+          )
+          for item in "${paths[@]}"; do
+            label=${item%% *}
+            path=${item#* }
+            if ! status=$(curl -sS --max-time 20 -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
+              -o "$RUNNER_TEMP/cloudflare-metadata.json" -w '%{http_code}' \
+              "https://api.cloudflare.com/client/v4$path"); then
+              echo "Cloudflare metadata $label: transport failure"
+              continue
+            fi
+            code=$(jq -r 'if .success == true then "ok" else ([.errors[]?.code | tostring] | join(",")) end' \
+              "$RUNNER_TEMP/cloudflare-metadata.json" 2>/dev/null || echo non-json)
+            echo "Cloudflare metadata $label: HTTP $status, code ${code:-unknown}"
+          done
       - name: Confirm unauthenticated staging stays behind Access
         run: |
           set -euo pipefail
@@ -233,26 +259,19 @@ jobs:
           current=$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/main" --jq '.object.sha')
           test "$TESTED_SHA" = "$current"
           npx --yes wrangler@4.141.0 deploy --config wrangler.production.jsonc --message "RISE $TESTED_SHA"
-      - name: Verify HTTPS, exact release, and API refusal
+      - name: Verify production remains behind Access until public cutover
         run: |
           set -euo pipefail
-          root=$(curl -fsS --retry 5 --retry-delay 3 --retry-all-errors \
-            -D "$RUNNER_TEMP/root-headers" -o "$RUNNER_TEMP/root-body" \
-            -w '%{http_code}' https://rise.syberlabs.io/)
-          test "$root" = 200
-          grep -Eiq '^x-content-type-options: nosniff' "$RUNNER_TEMP/root-headers"
-          curl -fsS --retry 5 --retry-delay 3 --retry-all-errors \
-            -o "$RUNNER_TEMP/deep-link-body" https://rise.syberlabs.io/try-rise
-          grep -Eiq '<!doctype html' "$RUNNER_TEMP/deep-link-body"
-          marker=$(curl -fsS --retry 5 --retry-delay 3 --retry-all-errors \
-            "https://rise.syberlabs.io/release-$TESTED_SHA.txt")
-          test "$marker" = "$TESTED_SHA"
-          api=$(curl -sS --retry 5 --retry-delay 3 --retry-all-errors \
-            -D "$RUNNER_TEMP/api-headers" -o "$RUNNER_TEMP/api-body" \
-            -w '%{http_code}' https://rise.syberlabs.io/api/not-a-route)
-          test "$api" = 404
-          grep -Eiq '^content-type: application/json' "$RUNNER_TEMP/api-headers"
+          for path in / /try-rise "/release-$TESTED_SHA.txt" /api/not-a-route; do
+            status=$(curl -sS --max-time 20 --retry 5 --retry-delay 3 --retry-all-errors \
+              -D "$RUNNER_TEMP/access-headers" -o "$RUNNER_TEMP/access-body" \
+              -w '%{http_code}' "https://rise.syberlabs.io$path")
+            case "$status" in 302|303|307) ;; *) echo "Expected Access at $path; got HTTP $status"; exit 1 ;; esac
+            grep -i '^location:' "$RUNNER_TEMP/access-headers" \
+              | grep -Eiq 'cloudflareaccess\.com|/cdn-cgi/access/'
+          done
           {
-            echo "Verified production release $TESTED_SHA over HTTPS."
-            echo 'Owner follow-up: click once at https://rise.syberlabs.io/jev-preview.html, confirm OpenRouter usage, and verify Relay still requires Access.'
+            echo "Deployed production artifact $TESTED_SHA; public host remains protected by Access."
+            echo 'Owner acceptance before public cutover: sign in at https://rise.syberlabs.io/, check the exact release marker, a deep link, JSON 404 for an unknown API path, and one Jev preview decision.'
+            echo 'After owner-approved Access cutover: verify public HTTP 200 at / and /try-rise, exact release marker, JSON 404 at /api/not-a-route, one live Jev decision, and Relay Access protection.'
           } >> "$GITHUB_STEP_SUMMARY"
