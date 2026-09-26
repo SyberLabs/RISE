@@ -117,6 +117,7 @@ jobs:
           current=$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/main" --jq '.object.sha')
           test "$TESTED_SHA" = "$current"
       - name: Deploy staging
+        id: deploy_staging
         working-directory: release
         env:
           GH_TOKEN: ${{ github.token }}
@@ -125,6 +126,31 @@ jobs:
           current=$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/main" --jq '.object.sha')
           test "$TESTED_SHA" = "$current"
           npx --yes wrangler@4.141.0 deploy --config wrangler.staging.jsonc --message "RISE $TESTED_SHA"
+      - name: Diagnose scoped Cloudflare metadata access after deploy failure
+        if: ${{ failure() && steps.deploy_staging.outcome == 'failure' }}
+        run: |
+          set -euo pipefail
+          paths=(
+            "bindings /accounts/$CLOUDFLARE_ACCOUNT_ID/workers/services/rise-jev-preview/environments/production/bindings"
+            "routes /accounts/$CLOUDFLARE_ACCOUNT_ID/workers/services/rise-jev-preview/environments/production/routes?show_zonename=true"
+            "domains /accounts/$CLOUDFLARE_ACCOUNT_ID/workers/domains/records?page=0&per_page=5&service=rise-jev-preview&environment=production"
+            "subdomain /accounts/$CLOUDFLARE_ACCOUNT_ID/workers/services/rise-jev-preview/environments/production/subdomain"
+            "environment /accounts/$CLOUDFLARE_ACCOUNT_ID/workers/services/rise-jev-preview/environments/production"
+            "schedules /accounts/$CLOUDFLARE_ACCOUNT_ID/workers/scripts/rise-jev-preview/schedules"
+          )
+          for item in "${paths[@]}"; do
+            label=${item%% *}
+            path=${item#* }
+            if ! status=$(curl -sS --max-time 20 -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
+              -o "$RUNNER_TEMP/cloudflare-metadata.json" -w '%{http_code}' \
+              "https://api.cloudflare.com/client/v4$path"); then
+              echo "Cloudflare metadata $label: transport failure"
+              continue
+            fi
+            code=$(jq -r 'if .success == true then "ok" else ([.errors[]?.code | tostring] | join(",")) end' \
+              "$RUNNER_TEMP/cloudflare-metadata.json" 2>/dev/null || echo non-json)
+            echo "Cloudflare metadata $label: HTTP $status, code ${code:-unknown}"
+          done
       - name: Confirm unauthenticated staging stays behind Access
         run: |
           set -euo pipefail
