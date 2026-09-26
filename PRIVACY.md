@@ -10,16 +10,14 @@
 
 ## The short version
 
-RISE stores your projects, journals, and settings in your browser. Reading
-sessions require the OpenRouter reading decision service. Before a session starts, RISE asks
-for permission to send your reading intent and bounded text excerpts through
-our Netlify function to OpenRouter and the selected model provider. If you decline, the reading does not start;
-you can still leave and access your saved work.
+RISE stores your projects, journals, and settings in your browser. Text you
+bring to a Chamber reading is presented and paced locally; reading does not
+send text excerpts or reading context to a model service.
 
 We do not use cookies. We do not use analytics. We do not track you across
 sites or across visits. We have no accounts, so we do not know who you are. We
-do not sell personal information. The processing described below includes
-sending consented reading excerpts to OpenRouter and the selected model provider.
+do not sell personal information. Network processing occurs for hosting,
+external resources you request, and optional Scriptorium routing described below.
 
 Scriptorium also has a separate optional **Route with JEV** action. It sends the typed composition intent and target word count through RISE to TypeSafe using a key you supply for that action. **Prepare locally without JEV** remains available.
 
@@ -55,8 +53,8 @@ There is no sign-up, no login and no user account of any kind.
 
 The following is written to your browser's own storage, on your own computer or
 phone. RISE does not synchronize this storage to a server, and we cannot recover
-it for you. Text selected for a reading can be included in the consented reading
-requests described below.
+it for you. Text selected for a reading stays in the browser as the Chamber
+presents it.
 
 ### Local storage
 
@@ -102,33 +100,12 @@ Session storage is discarded when you close the tab.
 ### Text you paste or upload
 
 Text you bring to RISE is processed in your browser and stored in the same
-local storage above. After you consent to a reading session, excerpts of up
-to 2,000 characters per decision are sent to the reading service. Over a session,
-multiple excerpts can be sent; the limit is per request, not per book. Do not
-start a session with text you do not want OpenRouter and the selected model provider to process.
+local storage above. Chamber playback does not send excerpts, intent, feedback,
+mode, or pace to a reading service or model provider.
 
 ---
 
 ## 4. What our own server sees
-
-### Required reading decisions
-
-RISE sends requests to its own `/api/jev-decision` endpoint on Netlify. The
-function forwards your reading intent (up to 500 characters), feedback when
-provided (up to 500 characters), a text excerpt (up to 2,000 characters),
-reading mode, and pace to OpenRouter at `openrouter.ai`, which forwards the
-request to the selected model provider. A temporary request
-identifier lets the browser reject a response for the wrong request. The
-provider key stays on the server.
-
-The function does not deliberately store or log these request bodies and does
-not add them to a RISE database. This does not establish a retention or training
-policy for Netlify or OpenRouter and the selected model provider. OpenRouter's privacy information is
-available from <https://openrouter.ai/privacy>. RISE has not verified account-specific
-provider retention settings. A failed or unavailable reading decision pauses
-reading. RISE requests the configured model; OpenRouter may route it among
-eligible model providers. RISE does not substitute a different model after a
-failed decision.
 
 ### Optional Scriptorium routing
 
@@ -140,7 +117,7 @@ held only in the mounted interface, not saved in browser storage. RISE applicati
 code does not deliberately log or persist the key or routing request. Saved
 texts, Library entries, source text, media, reading history, and proposals are
 not part of this routing request. **Prepare locally without JEV** does not call
-TypeSafe. This is separate from the required OpenRouter reading decisions above.
+TypeSafe. This optional authoring route is separate from local Chamber reading.
 
 ### Hosting requests
 
@@ -213,8 +190,8 @@ We state these plainly because the absence is the point.
 - **No cross-site or cross-visit tracking.** Nothing stored on your device is
   an identifier for you; it is your own work and your own settings.
 - **No sale or sharing of personal information**, as those terms are used in
-  the California Consumer Privacy Act. The consented reading processing described
-  in section 4 is for reading decisions, not advertising.
+  the California Consumer Privacy Act. Optional Scriptorium routing is for the
+  action you choose, not advertising.
 - **No camera, microphone or location access.** The application is served with
   a `Permissions-Policy` header that denies all three at the browser level,
   regardless of what any code might ask for.
@@ -271,7 +248,7 @@ its processing or retention.
 ## 9. California residents
 
 RISE is published from California. Our server processing includes hosting
-request logs, consented reading requests, and optional Scriptorium routing requests, as described in section 4.
+request logs and optional Scriptorium routing requests, as described in section 4.
 
 **We do not sell personal information**, as that term is defined in the
 California Consumer Privacy Act. The optional JEV route is disclosed in

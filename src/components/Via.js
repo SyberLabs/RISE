@@ -36,7 +36,6 @@ const SOUNDS = Object.freeze([
 export class Via {
   constructor(container, options = {}) {
     this.container = container;
-    this.jev = options.jev || null;
     this.onNavigate = options.onNavigate || (() => {});
     this.getAudioEngine = options.getAudioEngine || (() => null);
 
@@ -152,7 +151,7 @@ export class Via {
           </div>
         ` : ''}
         <p class="via-text via-text-${escapeHtml(state.phase)}">${escapeHtml(step.text).replace(/\n/g, '<br/>')}</p>
-        ${this.autoAdvance ? '' : `<span class="via-hint">${this._jevSlower ? 'Take a little more time here · ' : ''}${isSilence ? 'be still · then walk on ›' : 'walk on ›'}</span>`}
+        ${this.autoAdvance ? '' : `<span class="via-hint">${isSilence ? 'be still · then walk on ›' : 'walk on ›'}</span>`}
       </div>
     `;
   }
@@ -188,39 +187,23 @@ export class Via {
   // ── The walk ──────────────────────────────────────────────
 
   start() {
-    this._jevGeneration = (this._jevGeneration || 0) + 1;
-    this.jev?.destroy();
     this.compiled = compileLiturgy(buildStationsDefinition());
     this.stepIndex = -1;
     this.phase = 'walking';
-    if (!this.jev) this._startSound();
+    this._startSound();
     this.advance();
   }
 
-  async advance() {
+  advance() {
     if (this.phase !== 'walking' || !this.compiled) return;
     clearTimeout(this._timer);
-    const nextIndex = this.stepIndex + 1;
-    const generation = this._jevGeneration;
-    const nextStep = this.compiled.steps[nextIndex];
-    let decision = 'continue';
-    if (nextStep && this.jev) {
-      if (this._jevPending) return;
-      this._jevPending = true;
-      try { decision = await this.jev.allow(nextStep.text); }
-      finally { this._jevPending = false; }
-      if (generation !== this._jevGeneration || this.phase !== 'walking' || this.stepIndex + 1 !== nextIndex) return;
-      if (!decision) { this._exitToChapel(); return; }
-      if (nextIndex === 0) this._startSound();
-    }
-    this._jevSlower = decision === 'slower';
     this.stepIndex += 1;
     const step = this.compiled.steps[this.stepIndex];
     if (!step) { this.finish(); return; }
     this.phase = 'walking';
     this.renderStage();
     if (this.autoAdvance) {
-      this._timer = setTimeout(() => this.advance(), step.durationMs * (decision === 'slower' ? 1.25 : 1));
+      this._timer = setTimeout(() => this.advance(), step.durationMs);
     }
   }
 
@@ -307,8 +290,6 @@ export class Via {
   /** Escape: walking → choosing → Chapel. */
   handleEscape() {
     if (this.phase === 'walking' || this.phase === 'complete') {
-      this._jevGeneration = (this._jevGeneration || 0) + 1;
-      this.jev?.destroy();
       clearTimeout(this._timer);
       this._stopSound();
       this.phase = 'choosing';
@@ -320,8 +301,6 @@ export class Via {
   }
 
   _exitToChapel() {
-    this._jevGeneration = (this._jevGeneration || 0) + 1;
-    this.jev?.destroy();
     clearTimeout(this._timer);
     this._stopSound();
     this.onNavigate('chapel');
@@ -329,8 +308,6 @@ export class Via {
 
   activate() { document.addEventListener('keydown', this._keyHandler); }
   deactivate() {
-    this._jevGeneration = (this._jevGeneration || 0) + 1;
-    this.jev?.destroy();
     clearTimeout(this._timer);
     this._stopSound();
     document.removeEventListener('keydown', this._keyHandler);
