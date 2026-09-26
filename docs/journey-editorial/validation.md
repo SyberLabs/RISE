@@ -32,4 +32,3 @@ The source report and authored passage records are tracked separately in [source
 The tests exercise source resolution, compilation, handoff, and the canonical session timeline. They do not exercise Chamber playback, browser interaction, or human editorial approval. No browser or live playback test has been run. The manifest is not in the Journey catalog, and this validation makes no publication or certification claim.
 
 No claim of playback, archive certification, or publication follows from compiler structure or hash matching alone.
-
