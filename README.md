@@ -335,8 +335,9 @@ active, and the RISE production Worker alone must have a public Access bypass;
 Relay must remain protected.
 
 The production job records the prior Worker deployments and their version IDs
-in its GitHub run summary before changing traffic. To restore the known-good
-version from a checkout with this configuration and Cloudflare credentials:
+in its GitHub run summary before changing traffic. Verify a prior version is
+known-good before restoring its ID from a checkout with this configuration and
+Cloudflare credentials:
 
 ```bash
 npx --yes wrangler@4.141.0 rollback <VERSION_ID> --config wrangler.production.jsonc --message "RISE rollback"
