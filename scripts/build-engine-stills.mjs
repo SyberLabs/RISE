@@ -23,8 +23,9 @@ import { fileURLToPath } from 'node:url';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const OUT = join(HERE, '..', 'public', 'engine-stills');
-// The phone navigator shows a still full-bleed, and a 390px-wide phone at 3x
-// has ~1200 device pixels across: 512 was a thumbnail blown up to a screen.
+// The phone navigator shows a still full-bleed. The engines draw a reading at
+// CSS pixels (a Fractal reading on a 390x844 phone is a 390x844 canvas), so a
+// still of 1000-1440px is at least as sharp as the reading it stands for.
 const EDGE = 1440;
 const QUALITY = 0.82;
 // Square, so a cover crop keeps the figure on a tall phone and a wide one.
@@ -136,10 +137,12 @@ try {
     console.log(`no app at ${origin} — skipping the rendered stills`);
 }
 
-// Apparitio is always rendered. Fractal and Ostensoria are rendered too when
-// no hand-picked specimen was supplied for them, so a rebuild never falls
-// back to an old small file.
-const toRender = ['apparitio', ...['fractal', 'ostensoria'].filter(engine => !FROM_FILE[engine])];
+// Apparitio is always rendered, and Ostensoria unless a specimen is supplied.
+// Both draw a new figure each run, so look at them before committing.
+// Fractal is never rendered here: a flame is a random draw, most draws are sparse wisps,
+// and an unattended one would replace the picked specimen with a worse one.
+// Without RISE_STILL_FRACTAL the committed fractal.webp stands.
+const toRender = ['apparitio', ...(FROM_FILE.ostensoria ? [] : ['ostensoria'])];
 const rendered = !reachable ? {} : await page.evaluate(async engines => {
     const out = {};
     const cortex = await window.__RISE_TEST__.ensureVisualCortex();
