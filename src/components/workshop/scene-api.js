@@ -22,6 +22,7 @@ import {
 import { taxonomyLeaves } from '../../core/visual-taxonomy.js';
 import { poolOptions } from '../../core/visual-taxonomy-config.js';
 import { localWorkParts } from '../../core/local-works.js';
+import { visualFallbackCueFromConfig } from '../../core/visual-program.js';
 import { Admit } from '../Admit.js';
 
 const ok = () => ({ ok: true });
@@ -81,6 +82,14 @@ export function createSceneApi(ws) {
         : scene)),
     sceneText: id => ws.sessionData.sources[sourceIndex(id)]?.data || '',
     title: () => ws.sessionData.title || '',
+    sequence: () => {
+      const data = ws.sessionData;
+      return {
+        visual: visualFallbackCueFromConfig(data.visualConfig).kind !== 'still',
+        sound: (data.soundscape && data.soundscape !== 'none')
+          || (data.audioPreset && data.audioPreset !== 'silent')
+      };
+    },
     dirty: () => ws.isCurrentDraftDirty(),
     pace: () => ({ wpm: ws.sessionData.wpm, chunkMode: ws.sessionData.chunkMode }),
     sequences: () => (ws.savedBlueprints || [])

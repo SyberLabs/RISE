@@ -3751,7 +3751,18 @@
   }
   .workshop-studio[data-studio-viewport="phone"] .studio-brand,
   .workshop-studio[data-studio-viewport="phone"] .studio-project-switcher { display: none; }
-  .workshop-studio[data-studio-viewport="phone"] .studio-show-scenes { display: inline-flex; }
+  /* The way back to the stack must read as a way back: a pill, in the accent. */
+  .workshop-studio[data-studio-viewport="phone"] .studio-header-primary .studio-show-scenes {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 44px;
+    padding: 0 14px 0 10px;
+    border: 1px solid rgba(var(--color-accent-rgb, 228, 210, 174), 0.55);
+    border-radius: 22px;
+    color: var(--color-accent, #E4D2AE);
+  }
+  .workshop-studio[data-studio-viewport="phone"] .studio-show-scenes span { font-size: 1.1rem; line-height: 1; }
   .workshop-studio[data-studio-viewport="phone"] .studio-conductor {
     display: flex;
     flex: 0 1 auto;

@@ -134,9 +134,50 @@ describe('a stack of scenes', () => {
     expect(cards).toHaveLength(2);
     expect(cards[0].textContent).toContain('Words of a.');
     expect(cards[0].textContent).toContain('Fractal Flames');
-    expect(cards[0].textContent).toContain('Same as the sequence');
+    expect(cards[0].textContent).toContain('Choose a sound');
     expect(cards[1].textContent).toContain('Aurora');
     expect(cards[0].querySelector('.scene-card-open').getAttribute('aria-label')).toBe('Scene 1 of 2: Scene a');
+  });
+
+  it('a scene with no picture is a text card, not an empty frame', () => {
+    mount({ scenes: two() });
+    expect($('.scene-card[data-scene-id="a"] .scene-card-art')).toBeTruthy();
+    expect($('.scene-card[data-scene-id="b"]').classList.contains('is-bare')).toBe(true);
+    expect($('.scene-card[data-scene-id="b"] .scene-card-art')).toBeNull();
+  });
+
+  it('with nothing set anywhere, a card invites rather than claims a sequence', () => {
+    mount({ scenes: [scene('a', 0)] });
+    expect($('.scene-card-invite').textContent).toBe('Tap to set visual & sound');
+    expect($('.scene-card').textContent).not.toContain('Same as the sequence');
+    click($('.scene-card-open'));
+    expect($('[data-sa="visual"]').textContent).toContain('Choose a visual');
+    expect($('[data-sa="sound"]').textContent).toContain('Choose a sound');
+    click($('[data-sa="sound"]'));
+    expect($('[data-sa="choose-sound"]').textContent).toContain('No sound');
+  });
+
+  it('when the sequence has a visual and sound, a scene can share them', () => {
+    mount({ scenes: [scene('a', 0)], sequence: () => ({ visual: true, sound: true }) });
+    expect($('.scene-card-invite')).toBeNull();
+    expect($('.scene-card').textContent).toContain('Same as the sequence');
+  });
+
+  it('a tap on the handle opens the scene to edit', () => {
+    mount({ scenes: two() });
+    click($('.scene-card[data-scene-id="b"] [data-sa="drag"]'));
+    expect($('.scene-view').getAttribute('aria-label')).toBe('Scene 2: Scene b');
+  });
+
+  it('the click that ends a hold is not a tap', () => {
+    vi.useFakeTimers();
+    mount({ scenes: two() });
+    const handle = $('.scene-card[data-scene-id="a"] [data-sa="drag"]');
+    handle.dispatchEvent(new MouseEvent('pointerdown', { bubbles: true, clientY: 100 }));
+    vi.advanceTimersByTime(260);
+    window.dispatchEvent(new MouseEvent('pointerup', { clientY: 100 }));
+    click(handle);
+    expect($('.scene-view')).toBeNull();
   });
 
   it('▶ plays one scene; Play plays them all', () => {
@@ -215,7 +256,8 @@ describe('a stack of scenes', () => {
     click($('.scene-card[data-scene-id="b"] .scene-card-open'));
     click($('[data-sa="sound"]'));
     const rows = [...stack.host.querySelectorAll('[data-sa="choose-sound"]')];
-    expect(rows.map(r => r.querySelector('strong').textContent)).toEqual(['Same as the sequence', 'Aurora', 'Deep']);
+    // With no sound of its own, the sequence has nothing to share: the first row is silence.
+    expect(rows.map(r => r.querySelector('strong').textContent)).toEqual(['No sound', 'Aurora', 'Deep']);
     expect(rows[1].getAttribute('aria-pressed')).toBe('true');
     click(rows[0]);
     expect(api.setSceneSound).toHaveBeenCalledWith('b', null);

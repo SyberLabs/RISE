@@ -234,25 +234,35 @@ export class SceneStack {
     </section>`;
   }
 
+  /** What the sequence itself shows and plays, where a scene sets nothing. */
+  sequenceDefaults() {
+    return this.api.sequence?.() || { visual: false, sound: false };
+  }
+
   renderCard(scene, total) {
     const number = String(scene.index + 1).padStart(2, '0');
     const label = `Scene ${scene.index + 1} of ${total}`;
-    return `<article class="scene-card" data-scene-id="${escapeHtml(scene.id)}">
+    const sequence = this.sequenceDefaults();
+    // A scene with no picture of its own is a text card, not an empty frame.
+    const bare = !scene.visual;
+    const unset = !scene.visual && !scene.sound && !sequence.visual && !sequence.sound;
+    return `<article class="scene-card${bare ? ' is-bare' : ''}" data-scene-id="${escapeHtml(scene.id)}">
       <button type="button" class="scene-card-open" data-sa="open-scene" data-scene-id="${escapeHtml(scene.id)}"
         aria-label="${escapeHtml(`${label}: ${scene.name}`)}">
-        <span class="scene-card-art" data-still-for="${escapeHtml(scene.visual?.assetId || '')}" aria-hidden="true">
-          <span class="scene-card-glyph">${escapeHtml(GLYPH_OF_ASSET[scene.visual?.assetId] || '')}</span>
-        </span>
+        ${bare ? '' : `<span class="scene-card-art" data-still-for="${escapeHtml(scene.visual.assetId || '')}" aria-hidden="true">
+          <span class="scene-card-glyph">${escapeHtml(GLYPH_OF_ASSET[scene.visual.assetId] || '')}</span>
+        </span>`}
         <span class="scene-card-num" aria-hidden="true">${number}</span>
         <span class="scene-card-text">${escapeHtml(scene.excerpt)}</span>
+        ${unset ? '<span class="scene-card-invite">Tap to set visual &amp; sound</span>' : ''}
       </button>
       <div class="scene-card-meta">
         <span class="scene-card-lanes">
-          <span>◈ ${escapeHtml(describeVisual(scene))}</span>
-          <span>♪ ${escapeHtml(describeSound(scene))}</span>
+          ${unset ? '' : `<span>◈ ${escapeHtml(describeVisual(scene, sequence))}</span>
+          <span>♪ ${escapeHtml(describeSound(scene, sequence))}</span>`}
         </span>
         <button type="button" class="scene-card-btn scene-card-handle" data-sa="drag" data-scene-id="${escapeHtml(scene.id)}"
-          aria-label="${escapeHtml(`Reorder ${label}`)}">≡</button>
+          aria-label="${escapeHtml(`Edit ${label}. Hold to reorder.`)}">≡</button>
         <button type="button" class="scene-card-btn" data-sa="card-more" data-scene-id="${escapeHtml(scene.id)}"
           aria-label="${escapeHtml(`More for ${label}`)}" aria-haspopup="dialog">⋯</button>
         <button type="button" class="scene-card-btn scene-card-play" data-sa="play-scene" data-scene-id="${escapeHtml(scene.id)}"
@@ -296,9 +306,9 @@ export class SceneStack {
         ${this.error ? `<p class="scene-error" role="alert">${escapeHtml(this.error)}</p>` : ''}</div>
       <footer class="scene-view-foot">
         <button type="button" class="scene-lane" data-sa="visual" data-scene-id="${escapeHtml(scene.id)}" aria-haspopup="dialog">
-          <span class="scene-lane-kicker">Visual</span><strong>${escapeHtml(describeVisual(scene))}</strong></button>
+          <span class="scene-lane-kicker">Visual</span><strong>${escapeHtml(describeVisual(scene, this.sequenceDefaults()))}</strong></button>
         <button type="button" class="scene-lane" data-sa="sound" data-scene-id="${escapeHtml(scene.id)}" aria-haspopup="dialog">
-          <span class="scene-lane-kicker">Sound</span><strong>${escapeHtml(describeSound(scene))}</strong></button>
+          <span class="scene-lane-kicker">Sound</span><strong>${escapeHtml(describeSound(scene, this.sequenceDefaults()))}</strong></button>
         <button type="button" class="scenes-play scene-view-play" data-sa="play-scene" data-scene-id="${escapeHtml(scene.id)}">▶ Play</button>
       </footer>
     </section>`;
@@ -362,7 +372,9 @@ export class SceneStack {
     return `<h2 class="scene-sheet-title">Sound</h2>
       ${scene?.sound && !scene.sound.whole ? `<p class="scene-sheet-note">This scene has ${scene.sound.passages} passage sounds from the full studio. Choosing here replaces them.</p>` : ''}
       <div class="scene-sheet-list">
-        ${row(null, 'Same as the sequence', 'Whatever plays under the whole reading.')}
+        ${this.sequenceDefaults().sound
+          ? row(null, 'Same as the sequence', 'Whatever plays under the whole reading.')
+          : row(null, 'No sound', 'This scene is read in silence.')}
         ${options.map(option => row(option.id, option.name, option.detail)).join('')}
       </div>`;
   }
@@ -512,6 +524,11 @@ export class SceneStack {
       case 'write-done': return this.finishWriting();
       case 'write-divide': return this.divideWriting();
       case 'open-scene': return this.openScene(sceneId);
+      case 'drag':
+        // A tap on the handle edits; a hold on it reorders, and the click
+        // that ends a hold is not a tap.
+        if (this._liftedAt && Date.now() - this._liftedAt < 600) return undefined;
+        return this.openScene(sceneId);
       case 'close-scene': return this.closeScene();
       case 'play-scene':
         if (!this.commitSceneDraft()) return undefined;
@@ -669,6 +686,7 @@ export class SceneStack {
     const up = () => {
       const { lifted, to } = drag;
       cancel();
+      if (lifted) this._liftedAt = Date.now();
       if (lifted && to !== from) this.api.moveScene(from, to);
     };
     this._drag = drag;
@@ -699,14 +717,15 @@ const SHEET_LABEL = Object.freeze({
   confirm: 'Confirm'
 });
 
-function describeVisual(scene) {
-  if (!scene.visual) return 'Same as the sequence';
+// "Same as the sequence" is only true when the sequence has one to share.
+function describeVisual(scene, sequence = {}) {
+  if (!scene.visual) return sequence.visual ? 'Same as the sequence' : 'Choose a visual';
   if (!scene.visual.whole) return `${scene.visual.passages} passage visuals`;
   return scene.visual.name || 'A visual';
 }
 
-function describeSound(scene) {
-  if (!scene.sound) return 'Same as the sequence';
+function describeSound(scene, sequence = {}) {
+  if (!scene.sound) return sequence.sound ? 'Same as the sequence' : 'Choose a sound';
   if (!scene.sound.whole) return `${scene.sound.passages} passage sounds`;
   return scene.sound.name || 'A sound';
 }
