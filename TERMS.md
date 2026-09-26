@@ -63,11 +63,12 @@ Anything you bring to RISE or make in it — text you paste, journals you write,
 compositions you build, media you attach — remains yours. We claim no ownership
 or licence in it.
 
-Your saved work is stored **in your browser, on your device**. If you consent
-to a reading session, bounded excerpts and reading context pass through our
-server through OpenRouter to the selected model provider for required reading decisions, as described in the Privacy
-Policy. This processing does not create a backup of your saved work. Two
-consequences follow:
+Your saved work is stored **in your browser, on your device**. Chamber reading
+and pacing run locally; text excerpts are not sent to a model service. Choosing
+the optional Scriptorium JEV route sends the typed composition intent and target
+word count through our server to TypeSafe, as described in the Privacy Policy.
+This processing does not create a backup of your saved work. Two consequences
+follow:
 
 - **We cannot recover it.** If you clear your browser storage, use private
   browsing, switch device or browser, or your device fails, your work is gone

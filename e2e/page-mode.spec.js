@@ -39,8 +39,7 @@ test('Page Mode typesets a Gospel chapter in space, and holds the stream', async
     await expect(page.locator('#begin-btn')).toBeEnabled({ timeout: 20_000 });
     await page.locator('#begin-btn').click();
     // The notice appears only for a flashing presentation; Gallery opens
-    // straight into the reading. This test is not about the gate, so it
-    // accepts one if offered and proceeds if not.
+    // straight into the reading. Accept it only if offered.
     const warn = page.locator('#photosensitivity-modal');
     await warn.waitFor({ state: 'visible', timeout: 4000 }).catch(() => {});
     if (await warn.isVisible()) await warn.locator('#safety-accept').click();
@@ -55,9 +54,14 @@ test('Page Mode typesets a Gospel chapter in space, and holds the stream', async
     await btn.click();
     await expect(page.locator('.page-article')).toBeVisible({ timeout: 10_000 });
 
+    // The Page starts elongated; the reader can choose pagination when useful.
+    expect(await pageCount(page)).toBe(1);
+    await page.locator('#chamber-display').hover();
+    await page.locator('#page-elongate').click();
+    await expect.poll(() => pageCount(page), { timeout: 10_000 }).toBeGreaterThan(1);
+
     // Walk pages: assert the whole reading, not one DOM snapshot. The walk
-    // settles each page's figures to a terminal state itself; a fixed wait
-    // here would only pay for a primitive the helper already provides.
+    // settles each page's figures to a terminal state itself.
     const walked = await collectAcrossPages(page);
     const perPage = await page.evaluate(() => {
         const host = document.querySelector('#chamber-page');
@@ -80,16 +84,15 @@ test('Page Mode typesets a Gospel chapter in space, and holds the stream', async
     // is left pending/broken in the completed walk. With off-origin imagery
     // aborted above, the reverent-degradation path is the one exercised.
     expect(stats.shown + stats.absent).toBe(stats.figures);
-    // Jev authorizes bounded excerpts before reveal, so Page stays paginated
-    // rather than sending the whole reading for an elongated composition.
-    expect(stats.pages, 'Jev keeps the Page in bounded passages').toBeGreaterThan(1);
+    expect(stats.pages).toBeGreaterThan(1);
     expect(stats.playerState).not.toBe('playing');
 
-    // Elongation would reveal unread text in one request, so the Page keeps
-    // its bounded pagination when that projection is requested.
+    // The reader can switch back to a single continuous column and paginate
+    // again without changing the reading or its place.
     await page.locator('#chamber-display').hover();
     await page.locator('#page-elongate').click();
-    await expect(page.locator('#jev-status')).toContainText('Elongated reading is unavailable');
+    await expect.poll(() => pageCount(page), { timeout: 10_000 }).toBe(1);
+    await page.locator('#page-elongate').click();
     await expect.poll(() => pageCount(page), { timeout: 10_000 }).toBeGreaterThan(1);
 
     // Page holds Stream: Space/Play must not start playback underneath.

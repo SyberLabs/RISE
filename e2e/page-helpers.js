@@ -65,12 +65,10 @@ async function scrollThrough(page, ceilingMs) {
 export async function collectAcrossPages(page, options = {}) {
     const settleMs = Number.isFinite(options.settleMs) ? options.settleMs : 1200;
 
-    // The reader can appear before Jev has approved the initial page. Do not
-    // count figures or page text from that transient state.
     await page.locator('.page-article').first().waitFor({ state: 'visible' });
     await page.waitForFunction(() => {
         const reader = window.__RISE_TEST__?.getView('chamber-session')?.pageReader;
-        return reader?.pageIndex === 0 && reader?._jevPendingPage == null;
+        return reader?.pageIndex === 0;
     });
 
     const total = await page.evaluate(() => {
@@ -92,7 +90,7 @@ export async function collectAcrossPages(page, options = {}) {
             if (!turned) break;
             await page.waitForFunction((index) => {
                 const reader = window.__RISE_TEST__?.getView('chamber-session')?.pageReader;
-                return reader?.pageIndex === index && reader?._jevPendingPage == null;
+                return reader?.pageIndex === index;
             }, i);
         }
         // Settle page 0 as well — the walk starts there immediately.
@@ -126,7 +124,7 @@ export async function collectAcrossPages(page, options = {}) {
         });
         await page.waitForFunction(() => {
             const reader = window.__RISE_TEST__?.getView('chamber-session')?.pageReader;
-            return reader?.pageIndex === 0 && reader?._jevPendingPage == null;
+            return reader?.pageIndex === 0;
         });
         await settle(page, settleMs);
     }

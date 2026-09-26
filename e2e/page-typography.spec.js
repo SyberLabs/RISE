@@ -81,15 +81,21 @@ async function wrappedHeadings(page) {
     });
 }
 
-/** Jev only authorizes rendered pages, so its Page projection stays paginated. */
-async function expectJevPagination(page) {
+/** Select the paginated projection for checks that inspect individual pages. */
+async function ensurePaginated(page) {
+    const button = page.locator('#page-elongate');
+    await page.locator('#chamber-display').hover();
+    await expect(button).toBeVisible({ timeout: 10000 });
+    if (await button.locator('.control-label').textContent() === 'Paginate') {
+        await button.click();
+    }
     await expect.poll(() => pageCount(page), { timeout: 10000 }).toBeGreaterThan(1);
 }
 
 test('no figure stands beside a heading, on any page', async ({ page }) => {
     await page.setViewportSize({ width: 1280, height: 900 });
     await openThePage(page);
-    await expectJevPagination(page);
+    await ensurePaginated(page);
 
     const total = await pageCount(page);
     expect(total, 'the fixture is long enough to paginate').toBeGreaterThan(1);
@@ -114,7 +120,7 @@ test('an inline CHAPTER heading opens its page rather than closing the last one'
     // CHAPTER II must open a page, not close the previous one.
     await page.setViewportSize({ width: 1280, height: 900 });
     await openThePage(page);
-    await expectJevPagination(page);
+    await ensurePaginated(page);
 
     const where = await page.evaluate(() => {
         const r = window.__RISE_TEST__?.getView('chamber-session')?.pageReader;
@@ -137,23 +143,20 @@ test('an inline CHAPTER heading opens its page rather than closing the last one'
     }
 });
 
-test('Jev keeps the projection paginated and blocks elongation', async ({ page }) => {
+test('the reader can switch between paginated and elongated projections', async ({ page }) => {
     await page.setViewportSize({ width: 1280, height: 900 });
     await openThePage(page);
 
     const btn = page.locator('#page-elongate');
     await page.locator('#chamber-display').hover();
     await expect(btn).toBeVisible({ timeout: 10000 });
-    // Page opens paginated because approving the whole composition would
-    // disclose every unread passage at once.
+    await expect(btn.locator('.control-label')).toHaveText('Paginate');
+    expect(await pageCount(page)).toBe(1);
+    await btn.click();
     await expect(btn.locator('.control-label')).toHaveText('Elongate');
     await expect.poll(() => pageCount(page)).toBeGreaterThan(1);
 
     await btn.click();
-    await page.waitForTimeout(700);
-    await page.locator('#chamber-display').hover();
-    // An elongation request is refused while passage approval is active.
-    await expect(btn, 'the blocked projection control vanished').toBeVisible();
-    await expect(btn.locator('.control-label')).toHaveText('Elongate');
-    expect(await pageCount(page)).toBeGreaterThan(1);
+    await expect(btn.locator('.control-label')).toHaveText('Paginate');
+    await expect.poll(() => pageCount(page)).toBe(1);
 });

@@ -39,15 +39,6 @@ function prayerText() {
   return document.querySelector('.rosarium-prayer-text')?.textContent ?? null;
 }
 
-async function consentToJev() {
-  await vi.waitFor(() => expect(document.querySelector('.jev-session-dialog')).toBeTruthy());
-  expect(prayerText()).toBeNull();
-  const consent = document.querySelector('.jev-session-dialog [name="consent"]');
-  consent.click();
-  document.querySelector('.jev-session-dialog [type="submit"]').click();
-  await vi.waitFor(() => expect(prayerText()).toBe(ROSARY_PRAYERS.signOfTheCross));
-}
-
 function stubMedia() {
   HTMLImageElement.prototype.decode = vi.fn().mockRejectedValue(new Error('stillness'));
   HTMLMediaElement.prototype.play = vi.fn().mockResolvedValue(undefined);
@@ -59,11 +50,6 @@ describe('Chapel Rosary door (#rosary)', () => {
   let app;
 
   beforeEach(() => {
-    vi.spyOn(globalThis, 'fetch').mockImplementation(async (url, options) => {
-      if (url !== '/api/jev-decision') throw new Error('Unexpected test request');
-      const { requestId } = JSON.parse(options.body);
-      return new Response(JSON.stringify({ requestId, action: 'continue', model: 'openai/gpt-4.1-mini' }), { status: 200 });
-    });
     document.body.replaceChildren();
     localStorage.clear();
     window.location.hash = '';
@@ -97,7 +83,7 @@ describe('Chapel Rosary door (#rosary)', () => {
     stubMedia();
   });
 
-  it('gate-then-prayer: ENTER THE SPACE then the Sign of the Cross', async () => {
+  it('ENTER THE SPACE opens the Rosary directly at the Sign of the Cross', async () => {
     window.location.hash = ROSARY_DOOR_HASH;
     app = new App();
     const opened = app.checkBetaAccess();
@@ -112,7 +98,6 @@ describe('Chapel Rosary door (#rosary)', () => {
     await opened;
 
     expect(JSON.parse(localStorage.getItem('rise-beta-session')).code).toBe('open');
-    await consentToJev();
     expect(app.router.getCurrentView()).toBe('rosarium');
     expect(prayerText()).toBe(ROSARY_PRAYERS.signOfTheCross);
     expect(document.querySelector('.rosarium-panel')).toBeNull();
@@ -122,7 +107,7 @@ describe('Chapel Rosary door (#rosary)', () => {
     expect(window.location.hash).toBe(ROSARY_DOOR_HASH);
   });
 
-  it('an existing session still needs Jev consent before the first prayer', async () => {
+  it('an existing session opens the first prayer locally', async () => {
     localStorage.setItem('rise-beta-session', JSON.stringify(openSession()));
     window.location.hash = ROSARY_DOOR_HASH;
     app = new App();
@@ -131,7 +116,6 @@ describe('Chapel Rosary door (#rosary)', () => {
     expect(document.querySelector('#beta-enter')).toBeNull();
     expect(document.querySelector('.beta-gate')).toBeNull();
     expect(app.router.getCurrentView()).toBe('rosarium');
-    await consentToJev();
     expect(prayerText()).toBe(ROSARY_PRAYERS.signOfTheCross);
     expect(document.querySelector('.rosarium-panel')).toBeNull();
   });
@@ -158,8 +142,6 @@ describe('Chapel Rosary door (#rosary)', () => {
     window.location.hash = ROSARY_DOOR_HASH;
     app = new App();
     await app.checkBetaAccess();
-    await consentToJev();
-
     const room = app.router.getViewInstance('rosarium');
     expect(room.phase).toBe('prayer');
     expect(window.location.hash).toBe(ROSARY_DOOR_HASH);
@@ -220,8 +202,6 @@ describe('Chapel Rosary door (#rosary)', () => {
     const navigate = vi.spyOn(app.router, 'navigate');
     window.location.hash = ROSARY_DOOR_HASH;
     window.dispatchEvent(new HashChangeEvent('hashchange'));
-    await consentToJev();
-
     await vi.waitFor(() => {
       expect(app.router.getCurrentView()).toBe('rosarium');
       expect(prayerText()).toBe(ROSARY_PRAYERS.signOfTheCross);

@@ -2,7 +2,6 @@
  * The fixed application route table. Room modules stay lazy, while their
  * application-level capabilities are explicit at this composition boundary.
  */
-import { createDevotionalJev } from './jev-devotional.js';
 
 export function createRouteManifest(operations) {
   return [
@@ -132,7 +131,6 @@ export function createRouteManifest(operations) {
       containerId: 'view-rosarium',
       load: () => import('../components/Rosarium.js'),
       create: (container, data, { Rosarium }) => new Rosarium(container, {
-        jev: createDevotionalJev(),
         onNavigate: operations.handleNavigate,
         getAudioEngine: operations.getAudioEngine,
         setId: data?.setId,
@@ -168,7 +166,6 @@ export function createRouteManifest(operations) {
       containerId: 'view-via',
       load: () => import('../components/Via.js'),
       create: (container, _data, { Via }) => new Via(container, {
-        jev: createDevotionalJev(),
         onNavigate: operations.handleNavigate,
         getAudioEngine: operations.getAudioEngine
       })
