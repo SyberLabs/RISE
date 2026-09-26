@@ -76,7 +76,7 @@ export class SourceBrowser {
                     <!-- Sidebar: Provider list -->
                     <aside class="sb-sidebar">
                         <div class="sb-search">
-                            <label class="sr-only" for="sb-source-search">Search the selected source</label>
+                            <label class="sr-only" for="sb-source-search">Search the source library</label>
                             <input type="search" id="sb-source-search" class="sb-search-input"
                                    placeholder="Search the selected source…">
                         </div>
