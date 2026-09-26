@@ -184,8 +184,9 @@
 /* P1 — the sigil's stage */
 .sigil-stage { display: none; }
 
-/* P2 — the act's mark and direction */
+/* P2 — the act's mark, verb and direction */
 .act-mark,
+.act-verb,
 .act-go { display: none; }
 
 /* P4/P5 — a room's glyph and its supporting line. The NAME is not
@@ -735,6 +736,7 @@
   }
 
   .act-mark,
+  .act-verb,
   .act-go {
     display: inline;
   }

@@ -155,11 +155,11 @@ export class Portal {
           style="opacity: 0;"
           aria-label="Main navigation"
         >
-          <!-- Primary act: start reading in the Chamber. Try RISE opens
-               three canonical sample readings. -->
+          <!-- Primary act: Chamber. Phone-only mark/verb/arrow are
+               display:none above 640. Try RISE is the Keystones door. -->
           <div class="nav-primary">
             <button class="nav-item nav-act" data-nav="chamber">
-              <span class="act-mark" aria-hidden="true">✦</span><span class="act-label">Start reading</span><span class="act-go" aria-hidden="true">→</span>
+              <span class="act-mark" aria-hidden="true">✦</span><span class="act-label"><span class="act-verb">Enter </span>Chamber</span><span class="act-go" aria-hidden="true">→</span>
             </button>
           </div>
 
@@ -176,7 +176,7 @@ export class Portal {
             </button>
             <button class="nav-try" type="button" data-nav="keystones"
                     aria-label="Explore three canonical sample readings" title="Three canonical sample readings">
-              <span class="try-mark" aria-hidden="true">✦</span><span class="try-label">3 readings</span>
+              <span class="try-mark" aria-hidden="true">✦</span><span class="try-label">Try RISE</span>
             </button>
           </div>
         </nav>
