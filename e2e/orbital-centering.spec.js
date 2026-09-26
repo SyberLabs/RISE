@@ -11,7 +11,7 @@
  * so the column's total height does not change by a pixel. That matters:
  * Begin has to stay above the floor, which orbital-reach.spec.js measures.
  */
-import { test, expect } from '@playwright/test';
+import { test, expect } from './fixtures.js';
 
 const GATE = { code: 'rise2025', name: 'Centring', vault: null, timestamp: Date.now() };
 const SEED = { text: 'Light enters form. '.repeat(60).trim(), textSource: 'Metamorphoses', origin: null };

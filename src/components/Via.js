@@ -147,7 +147,7 @@ export class Via {
           </div>
         ` : ''}
         <p class="via-text via-text-${escapeHtml(state.phase)}">${escapeHtml(step.text).replace(/\n/g, '<br/>')}</p>
-        ${this.autoAdvance ? '' : `<span class="via-hint">${isSilence ? 'be still · then walk on ›' : 'walk on ›'}</span>`}
+        ${this.autoAdvance ? '' : `<span class="via-hint">${this._jevSlower ? 'Take a little more time here · ' : ''}${isSilence ? 'be still · then walk on ›' : 'walk on ›'}</span>`}
       </div>
     `;
   }
@@ -208,6 +208,7 @@ export class Via {
       if (!decision) { this._exitToChapel(); return; }
       if (nextIndex === 0) this._startSound();
     }
+    this._jevSlower = decision === 'slower';
     this.stepIndex += 1;
     const step = this.compiled.steps[this.stepIndex];
     if (!step) { this.finish(); return; }
@@ -298,6 +299,8 @@ export class Via {
   /** Escape: walking → choosing → Chapel. */
   handleEscape() {
     if (this.phase === 'walking' || this.phase === 'complete') {
+      this._jevGeneration = (this._jevGeneration || 0) + 1;
+      this.jev?.destroy();
       clearTimeout(this._timer);
       this._stopSound();
       this.phase = 'choosing';

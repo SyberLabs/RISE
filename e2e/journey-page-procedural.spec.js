@@ -2,7 +2,7 @@
  * Journey Page Mode: authored procedural figures per segment, plus
  * museum path; unresolved engines yield is-absent, never a broken frame.
  */
-import { test, expect } from '@playwright/test';
+import { test, expect } from './fixtures.js';
 import { collectAcrossPages, pageCount } from './page-helpers.js';
 
 test.skip(true, 'JOURNEYS = []; those sits are not shipped');

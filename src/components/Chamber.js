@@ -2539,8 +2539,12 @@ export class Chamber {
     this.voice?.stop();
 
     // A page is read, not raced: hold the stream while it is open.
-    if (this.player?.state === 'playing' || this.player?.state === 'interlocuting') {
-      this.player.pause();
+    const streamWasActive = this.player?.state === 'playing' || this.player?.state === 'interlocuting';
+    // Even while Jev holds the Stream in `paused`, pause() revokes its
+    // outstanding approval request. A projection switch must not leave
+    // that hidden request alive behind the Page.
+    this.player?.pause?.();
+    if (streamWasActive) {
       this.audioEngine?.fadeOutSession(0.4);
       this.container.querySelector('#play-icon')?.classList.remove('hidden');
       this.container.querySelector('#pause-icon')?.classList.add('hidden');
@@ -3319,23 +3323,31 @@ export class Chamber {
     const panel = this.container?.querySelector('#jev-status');
     const message = this.container?.querySelector('#jev-status-message');
     const feedback = this.container?.querySelector('#jev-feedback');
+    const feedbackLabel = this.container?.querySelector('label[for="jev-feedback"]');
     const retry = this.container?.querySelector('#jev-retry');
     const state = ['waiting', 'blocked', 'ready'].includes(data.state) ? data.state : 'blocked';
     if (!panel || !message) return;
     if (state === 'ready') {
-      panel.hidden = true;
-      message.textContent = '';
       if (feedback) feedback.value = '';
+      const slower = data.action === 'slower';
+      panel.hidden = !slower;
+      panel.classList.toggle('is-suggestion', slower);
+      message.textContent = slower ? 'Take a little more time with this passage.' : '';
+      if (feedback) feedback.hidden = true;
+      if (feedbackLabel) feedbackLabel.hidden = true;
       if (retry) retry.hidden = true;
       return;
     }
 
     panel.hidden = false;
+    panel.classList.remove('is-suggestion');
     message.textContent = data.message || (state === 'waiting'
       ? 'Checking this passage with Jev…'
       : 'Jev could not approve this passage. You can share feedback and try again.');
-    if (feedback) feedback.hidden = state !== 'blocked';
-    if (retry) retry.hidden = state !== 'blocked';
+    const canRetry = state === 'blocked' && data.retryable !== false;
+    if (feedback) feedback.hidden = !canRetry;
+    if (feedbackLabel) feedbackLabel.hidden = !canRetry;
+    if (retry) retry.hidden = !canRetry;
   }
 
   handleSynthesisSealing() {

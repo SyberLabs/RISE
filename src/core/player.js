@@ -936,7 +936,7 @@ export class Player {
                 return;
             }
             if (result.action === 'slower') this._applyJevSlower();
-            this.emit('jev', { state: 'ready', passageId: passage.id, message: result.action === 'slower' ? 'Approved at a slower pace.' : 'Passage approved.' });
+            this.emit('jev', { state: 'ready', passageId: passage.id, action: result.action, message: result.action === 'slower' ? 'Approved at a slower pace.' : 'Passage approved.' });
             onContinue();
         } catch (error) {
             if (epoch !== this._jevEpoch || controller.signal.aborted || this._destroyed) return;

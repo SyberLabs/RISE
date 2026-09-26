@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './fixtures.js';
 import { acceptFlashWarningIfShown } from './page-helpers.js';
 import { FLASHING_ENABLED } from '../src/core/visual-presence.js';
 const GATE = { code: 'rise2025', name: 'Controls', vault: null, timestamp: Date.now() };

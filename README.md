@@ -44,7 +44,7 @@ A reading begins by tuning four elements.
 
 Bring your own `.txt` or `.md` file, paste text directly, or enter through RISE's built-in Library and curated collections.
 
-Local text is processed in the browser. It is not uploaded to a RISE backend.
+Local text is prepared in the browser. Reading requires explicit consent to send bounded excerpts through RISE's server to TypeSafe AI for Jev decisions.
 
 ### Time
 
@@ -230,7 +230,7 @@ RISE is an experimental reading and creative-technology project. It makes no med
 
 RISE is browser-native.
 
-User-provided text files are read locally in the browser and are not uploaded to a RISE server.
+User-provided files and saved work remain in browser storage. After session consent, bounded reading excerpts, intent, feedback, mode, and pace are sent through RISE's server to TypeSafe AI. See [Privacy](PRIVACY.md) for the exact fields and limits.
 
 Some visual modes retrieve publicly hosted images from external cultural or scientific institutions. Remote-image requests are deliberately configured to avoid sending the reader's RISE page as a referrer.
 

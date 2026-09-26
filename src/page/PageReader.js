@@ -147,40 +147,42 @@ export class PageReader {
         return this.composition;
     }
 
-    async _gatePassages(items) {
+    async _gatePage(items, pageIndex) {
         if (!this.jevConductor) return true;
-        const passages = [];
-        for (const item of items || []) {
-            if (item?.type !== 'text' || !item.text?.trim()) continue;
-            const id = item.passageId || `${item.sourceId || 'session'}:${item.text.slice(0, 48)}`;
-            const last = passages[passages.length - 1];
-            if (last?.id === id) last.text = `${last.text} ${item.text}`.slice(0, 2000);
-            else passages.push({ id, text: item.text.slice(0, 2000) });
-        }
+        const excerpt = (items || [])
+            .filter(item => item?.type === 'text' && item.text?.trim())
+            .map(item => item.text)
+            .join('\n\n')
+            .slice(0, 2000);
+        if (!excerpt) return true;
+        const approvalId = `${pageIndex}:${excerpt}`;
+        if (approvalId === this._jevLastPassage) return true;
         const epoch = ++this._jevEpoch;
         this._jevController?.abort();
         const controller = new AbortController();
         this._jevController = controller;
-        for (const passage of passages) {
-            if (passage.id === this._jevLastPassage) continue;
-            this.onJevState?.({ state: 'waiting', passageId: passage.id, message: 'Waiting for passage approval.' });
-            try {
-                const result = await this.jevConductor.decide({ excerpt: passage.text, signal: controller.signal });
-                if (this._destroyed || controller.signal.aborted || epoch !== this._jevEpoch) return false;
-                if (!result || !['continue', 'slower', 'pause'].includes(result.action)) {
-                    throw new Error('Jev returned an invalid decision.');
-                }
-                if (result.action === 'pause') {
-                    this.onJevState?.({ state: 'blocked', passageId: passage.id, message: 'Jev asked to pause before this passage.' });
-                    return false;
-                }
-                this._jevLastPassage = passage.id;
-                this.onJevState?.({ state: 'ready', passageId: passage.id, message: result.action === 'slower' ? 'Approved at a slower pace.' : 'Passage approved.' });
-            } catch {
-                if (this._destroyed || controller.signal.aborted || epoch !== this._jevEpoch) return false;
-                this.onJevState?.({ state: 'blocked', passageId: passage.id, message: 'Passage approval failed. Retry by returning to this page.' });
+        this.onJevState?.({ state: 'waiting', passageId: approvalId, message: 'Waiting for passage approval.' });
+        try {
+            const result = await this.jevConductor.decide({ excerpt, signal: controller.signal });
+            if (this._destroyed || controller.signal.aborted || epoch !== this._jevEpoch) return false;
+            if (!result || !['continue', 'slower', 'pause'].includes(result.action)) {
+                throw new Error('Jev returned an invalid decision.');
+            }
+            if (result.action === 'pause') {
+                this.onJevState?.({ state: 'blocked', passageId: approvalId, message: 'Jev asked to pause before this page.' });
                 return false;
             }
+            this._jevLastPassage = approvalId;
+            this.onJevState?.({
+                state: 'ready',
+                passageId: approvalId,
+                action: result.action,
+                message: result.action === 'slower' ? 'Approved at a slower pace.' : 'Passage approved.'
+            });
+        } catch {
+            if (this._destroyed || controller.signal.aborted || epoch !== this._jevEpoch) return false;
+            this.onJevState?.({ state: 'blocked', passageId: approvalId, message: 'Passage approval failed. Retry by returning to this page.' });
+            return false;
         }
         if (this._jevController === controller) this._jevController = null;
         return epoch === this._jevEpoch && !this._destroyed;
@@ -194,7 +196,7 @@ export class PageReader {
         }
         const page = this.pages[clamped];
         this._jevPendingPage = clamped;
-        const gate = this._gatePassages(page?.items || []);
+        const gate = this._gatePage(page?.items || [], clamped);
         const requestEpoch = this._jevEpoch;
         if (!await gate) return false;
         if (this._destroyed || requestEpoch !== this._jevEpoch || this._jevPendingPage !== clamped) return false;

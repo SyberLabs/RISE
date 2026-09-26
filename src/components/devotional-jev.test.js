@@ -15,7 +15,7 @@ for (const [Room, phase] of [[Rosarium, 'strand'], [Via, 'walking']]) {
                     { text: 'First fixed prayer', durationMs: 1000, state: { bead: 0 } },
                     { text: 'Second fixed prayer', durationMs: 1000, state: { bead: 1 } }
                 ] },
-                strand: { setBead: vi.fn() },
+                strand: { setBead: vi.fn(), reset: vi.fn() },
                 renderOverlay: vi.fn(), renderStage: vi.fn(), _mountPrayerArt: vi.fn(),
                 _startSound: vi.fn(), _stopSound: vi.fn(), _beginVisualGeneration: vi.fn(),
                 onNavigate: vi.fn()
@@ -56,6 +56,19 @@ for (const [Room, phase] of [[Rosarium, 'strand'], [Via, 'walking']]) {
             await room.advance();
             expect(room.stepIndex).toBe(-1);
             expect(room.onNavigate).toHaveBeenCalledWith('chapel');
+        });
+
+        it('cancels a pending decision when Escape returns to the chooser', async () => {
+            let resolve;
+            const room = fixture(() => new Promise(done => { resolve = done; }));
+            const pending = room.advance();
+            room.handleEscape();
+            expect(room.jev.destroy).toHaveBeenCalledOnce();
+            resolve('continue');
+            await pending;
+            expect(room.phase).toBe('choosing');
+            expect(room.stepIndex).toBe(-1);
+            expect(room._startSound).not.toHaveBeenCalled();
         });
 
         it('slows the fixed duration without changing the authored prayer', async () => {

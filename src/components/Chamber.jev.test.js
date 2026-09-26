@@ -5,7 +5,7 @@ function makeChamber() {
     const container = document.createElement('div');
     document.body.appendChild(container);
     const player = {
-        on: vi.fn(), play: vi.fn(), setInterlocutionHandler: vi.fn(),
+        on: vi.fn(), play: vi.fn(), pause: vi.fn(), setInterlocutionHandler: vi.fn(),
         jevConductor: { setFeedback: vi.fn(), destroy: vi.fn() }
     };
     const chamber = new Chamber(container, {
@@ -53,6 +53,42 @@ describe('Chamber Jev gate state', () => {
         chamber.onJevState({ state: 'waiting', message: 'Waiting.' });
         chamber.onJevState({ state: 'ready', message: '' });
         expect(container.querySelector('#jev-status').hidden).toBe(true);
+        chamber.destroy();
+    });
+
+    it('shows Jev’s slower cue without exposing feedback or retry controls', () => {
+        const { chamber, container } = makeChamber();
+        chamber.onJevState({ state: 'ready', action: 'slower' });
+        expect(container.querySelector('#jev-status').hidden).toBe(false);
+        expect(container.querySelector('#jev-status').classList.contains('is-suggestion')).toBe(true);
+        expect(container.querySelector('#jev-status-message').textContent)
+            .toBe('Take a little more time with this passage.');
+        expect(container.querySelector('#jev-feedback').hidden).toBe(true);
+        expect(container.querySelector('#jev-retry').hidden).toBe(true);
+        chamber.onJevState({ state: 'ready', action: 'continue' });
+        expect(container.querySelector('#jev-status').hidden).toBe(true);
+        expect(container.querySelector('#jev-status').classList.contains('is-suggestion')).toBe(false);
+        chamber.destroy();
+    });
+
+    it('does not offer retry for a permanent Page limitation', () => {
+        const { chamber, container } = makeChamber();
+        chamber.onJevState({ state: 'blocked', retryable: false, message: 'Printing is unavailable.' });
+        expect(container.querySelector('#jev-status').textContent).toContain('Printing is unavailable.');
+        expect(container.querySelector('#jev-feedback').hidden).toBe(true);
+        expect(container.querySelector('label[for="jev-feedback"]').hidden).toBe(true);
+        expect(container.querySelector('#jev-retry').hidden).toBe(true);
+        chamber.destroy();
+    });
+
+    it('cancels an outstanding Jev decision when switching from a paused Stream to Page', async () => {
+        const { chamber, player } = makeChamber();
+        player.state = 'paused';
+        chamber.onJevState({ state: 'waiting', message: 'Waiting for passage approval.' });
+
+        await chamber.togglePageMode(true);
+
+        expect(player.pause).toHaveBeenCalledOnce();
         chamber.destroy();
     });
 });

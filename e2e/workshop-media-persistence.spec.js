@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './fixtures.js';
 
 const GATE = { code: 'rise2025', name: 'M', vault: null, timestamp: Date.now() };
 const PNG = Buffer.from(

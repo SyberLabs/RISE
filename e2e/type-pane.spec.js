@@ -10,7 +10,7 @@
  * silently when an ancestor scrolls instead, and only the rendered rectangle
  * can tell you which happened.
  */
-import { test, expect } from '@playwright/test';
+import { test, expect } from './fixtures.js';
 
 const GATE = { code: 'rise2025', name: 'Type Pane', vault: null, timestamp: Date.now() };
 const SEED = {

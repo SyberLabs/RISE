@@ -14,7 +14,7 @@
  * style definitions themselves. A new engine whose name does not fit its
  * disc fails here rather than shipping off-centre.
  */
-import { test, expect } from '@playwright/test';
+import { test, expect } from './fixtures.js';
 import { taxonomyLeaves } from '../src/core/visual-taxonomy.js';
 import { ATTRACTOR_SYSTEMS, FOCAL_GLYPHS, KLEE_PRESETS } from '../src/core/visual-style-definitions.js';
 

@@ -5,7 +5,7 @@
  * walk the tree, open a leaf, and meet the refusal only at the end, at a
  * disabled "Bring into the room" with no cause attached.
  */
-import { test, expect } from '@playwright/test';
+import { test, expect } from './fixtures.js';
 
 const GATE = { code: 'rise2025', name: 'Nav Gate', vault: null, timestamp: Date.now() };
 const SEED = { text: 'Light enters form and returns through measure. '.repeat(30).trim(), textSource: 'Gate', origin: null };

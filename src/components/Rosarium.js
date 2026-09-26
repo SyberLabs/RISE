@@ -272,7 +272,7 @@ export class Rosarium {
       <div class="rosarium-prayer${this.autoAdvance ? '' : ' rosarium-prayer-unhurried'}" data-action="${this.autoAdvance ? '' : 'prayer-done'}">
         ${artSlot}
         <p class="rosarium-prayer-text">${escapeHtml(step.text)}</p>
-        ${this.autoAdvance ? '' : '<span class="rosarium-prayer-hint">click when prayed ›</span>'}
+        ${this.autoAdvance ? '' : `<span class="rosarium-prayer-hint">${this._jevSlower ? 'Take a little more time here · ' : ''}click when prayed ›</span>`}
       </div>
     `;
   }
@@ -414,6 +414,7 @@ export class Rosarium {
       if (!decision) { this._exitToChapel(); return; }
       if (nextIndex === 0) this._startSound();
     }
+    this._jevSlower = decision === 'slower';
     this.stepIndex += 1;
     const step = this.compiled.steps[this.stepIndex];
     if (!step) { this.finish(); return; }
@@ -638,6 +639,8 @@ export class Rosarium {
   handleEscape() {
     if (this.phase === 'prayer') { this.returnToStrand(); return true; }
     if (this.phase === 'strand' || this.phase === 'complete') {
+      this._jevGeneration = (this._jevGeneration || 0) + 1;
+      this.jev?.destroy();
       if (this.door) {
         this._exitToChapel();
         return true;

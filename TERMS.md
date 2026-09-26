@@ -1,6 +1,6 @@
 # Terms of Use
 
-**Last updated: 6 September 2026**
+**Last updated: 25 September 2026**
 
 > **This document has not been reviewed by a lawyer.** Sections 3, 11 and 12
 > in particular carry real legal consequence and are worth settling with
@@ -57,14 +57,17 @@ doing anything else that requires your attention.
 
 ---
 
-## 4. Your content stays yours — and stays with you
+## 4. Your content stays yours
 
 Anything you bring to RISE or make in it — text you paste, journals you write,
 compositions you build, media you attach — remains yours. We claim no ownership
 or licence in it.
 
-It is stored **in your browser, on your device**. We never receive it. Two
-consequences follow, and they matter:
+Your saved work is stored **in your browser, on your device**. If you consent
+to a reading session, bounded excerpts and reading context pass through our
+server to TypeSafe AI for required Jev decisions, as described in the Privacy
+Policy. This processing does not create a backup of your saved work. Two
+consequences follow:
 
 - **We cannot recover it.** If you clear your browser storage, use private
   browsing, switch device or browser, or your device fails, your work is gone

@@ -20,7 +20,7 @@
  * retrying until it cleared; `elementFromPoint` is the same test the
  * browser runs for a human, with no retry and no synthetic events.
  */
-import { test, expect } from '@playwright/test';
+import { test, expect } from './fixtures.js';
 
 const GATE_SESSION = {
     code: 'rise2025',

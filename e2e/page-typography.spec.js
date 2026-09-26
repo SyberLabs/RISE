@@ -2,7 +2,7 @@
  * Page Mode geometry: figures must not float beside headings.
  * Walks real pages (Vitruvius-style inline structure).
  */
-import { test, expect } from '@playwright/test';
+import { test, expect } from './fixtures.js';
 import { acceptFlashWarningIfShown, pageCount } from './page-helpers.js';
 
 const GATE = { code: 'rise2025', name: 'Typography', vault: null, timestamp: Date.now() };
@@ -81,26 +81,15 @@ async function wrappedHeadings(page) {
     });
 }
 
-/**
- * Enter the paged projection.
- *
- * The public Page opens as one elongated composition, so a test about how
- * PAGES are typeset has to ask for pages rather than assume them. The control
- * reads 'Paginate' on open and 'Elongate' once pages are cut.
- */
-async function paginate(page) {
-    await page.locator('#chamber-display').hover();
-    const btn = page.locator('#page-elongate');
-    await expect(btn).toBeVisible({ timeout: 10000 });
-    await btn.click();
+/** Jev only authorizes rendered pages, so its Page projection stays paginated. */
+async function expectJevPagination(page) {
     await expect.poll(() => pageCount(page), { timeout: 10000 }).toBeGreaterThan(1);
-    await page.waitForTimeout(600);
 }
 
 test('no figure stands beside a heading, on any page', async ({ page }) => {
     await page.setViewportSize({ width: 1280, height: 900 });
     await openThePage(page);
-    await paginate(page);
+    await expectJevPagination(page);
 
     const total = await pageCount(page);
     expect(total, 'the fixture is long enough to paginate').toBeGreaterThan(1);
@@ -125,7 +114,7 @@ test('an inline CHAPTER heading opens its page rather than closing the last one'
     // CHAPTER II must open a page, not close the previous one.
     await page.setViewportSize({ width: 1280, height: 900 });
     await openThePage(page);
-    await paginate(page);
+    await expectJevPagination(page);
 
     const where = await page.evaluate(() => {
         const r = window.__RISE_TEST__?.getView('chamber-session')?.pageReader;
@@ -148,27 +137,23 @@ test('an inline CHAPTER heading opens its page rather than closing the last one'
     }
 });
 
-test('the projection control turns both ways — neither is a one-way door', async ({ page }) => {
+test('Jev keeps the projection paginated and blocks elongation', async ({ page }) => {
     await page.setViewportSize({ width: 1280, height: 900 });
     await openThePage(page);
 
     const btn = page.locator('#page-elongate');
     await page.locator('#chamber-display').hover();
     await expect(btn).toBeVisible({ timeout: 10000 });
-    // The Page opens elongated, so the control offers the other projection.
-    await expect(btn.locator('.control-label')).toHaveText('Paginate');
-
-    await btn.click();
-    await page.waitForTimeout(700);
-    await page.locator('#chamber-display').hover();
-    // Pagination must leave a way back to one column.
-    await expect(btn, 'the way back to one column vanished').toBeVisible();
+    // Page opens paginated because approving the whole composition would
+    // disclose every unread passage at once.
     await expect(btn.locator('.control-label')).toHaveText('Elongate');
+    await expect.poll(() => pageCount(page)).toBeGreaterThan(1);
 
     await btn.click();
     await page.waitForTimeout(700);
     await page.locator('#chamber-display').hover();
-    // And back to where it opened: one column, offering pages again.
-    await expect(btn.locator('.control-label')).toHaveText('Paginate');
-    expect(await pageCount(page)).toBe(1);
+    // An elongation request is refused while passage approval is active.
+    await expect(btn, 'the blocked projection control vanished').toBeVisible();
+    await expect(btn.locator('.control-label')).toHaveText('Elongate');
+    expect(await pageCount(page)).toBeGreaterThan(1);
 });

@@ -364,8 +364,6 @@ export function compose(flow, options = {}) {
                 weight: block.weight ?? 0,
                 tags: block.tags || [],
                 episodeId: block.episodeId ?? null,
-                sourceId: block.sourceId || '',
-                passageId: block.passageId || '',
                 rhythm: tightToFigure ? RHYTHM.TIGHT
                     : stillPending ? RHYTHM.STILL
                         : RHYTHM.NORMAL

@@ -19,7 +19,6 @@ import { createPresentationLens } from '../core/session-presentation.js';
 import { sessionImageryCollections } from '../core/visual-selection.js';
 import { audioDiag } from '../core/audio-diagnostics.js';
 import { requestJevSession } from '../components/JevGate.js';
-import '../jev.css';
 
 export async function createChamberSession(operations, container, sessionData) {
     const session = sessionData || operations.getCurrentSession();

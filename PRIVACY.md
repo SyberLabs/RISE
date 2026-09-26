@@ -189,8 +189,8 @@ We state these plainly because the absence is the point.
 - **No cross-site or cross-visit tracking.** Nothing stored on your device is
   an identifier for you; it is your own work and your own settings.
 - **No sale or sharing of personal information**, as those terms are used in
-  the California Consumer Privacy Act. There is no personal information in our
-  possession to sell.
+  the California Consumer Privacy Act. The consented Jev processing described
+  in section 4 is for reading decisions, not advertising.
 - **No camera, microphone or location access.** The application is served with
   a `Permissions-Policy` header that denies all three at the browser level,
   regardless of what any code might ask for.
@@ -231,7 +231,7 @@ Because your data is on your device, you hold it directly.
 
 If you are in the UK, EU or another jurisdiction granting data-subject rights,
 those rights — access, rectification, erasure, restriction, portability,
-objection — apply to the request-log data described in section 4. Write to
+objection — concern the server processing described in section 4. Write to
 **syberlabs.software@gmail.com**. You also have the right to complain to your
 supervisory authority; in the UK that is the Information Commissioner's Office.
 
@@ -243,9 +243,8 @@ you the same outcome immediately.
 
 ## 9. California residents
 
-RISE is published from California, and the same answer applies wherever you
-are: we hold no personal information about you beyond the hosting request logs
-in section 4.
+RISE is published from California. Our server processing includes hosting
+request logs and consented Jev reading requests, as described in section 4.
 
 **We do not sell or share personal information**, and never have, as those
 terms are defined in the California Consumer Privacy Act. We do not use or

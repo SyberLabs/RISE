@@ -61,5 +61,14 @@
     line-height: 1.5;
 }
 #jev-status[hidden] { display: none; }
+#jev-status.is-suggestion {
+    top: auto;
+    bottom: 1rem;
+    width: max-content;
+    max-width: calc(100% - 2rem);
+    padding: .5rem .75rem;
+    font-size: .875rem;
+    pointer-events: none;
+}
 #jev-status label { display: block; margin: .75rem 0; }
 [data-jev-devotional] [data-feedback-label]:not([hidden]) { display: block; margin-bottom: .75rem; }

@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './fixtures.js';
 import { acceptFlashWarningIfShown, collectAcrossPages } from './page-helpers.js';
 const GATE = { code: 'rise2025', name: 'Fidelity', vault: null, timestamp: Date.now() };
 const SEED = {

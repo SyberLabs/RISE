@@ -8,15 +8,17 @@ describe('PageReader Jev gate', () => {
   it('keeps the first passage out of the DOM until approval', async () => {
     let resolve;
     const jevConductor = { decide: vi.fn(() => new Promise(r => { resolve = r; })) };
+    const onJevState = vi.fn();
     const host = document.createElement('div');
-    const reader = new PageReader(host, { session, jevConductor });
+    const reader = new PageReader(host, { session, jevConductor, onJevState });
 
     reader.render();
     expect(host.textContent).not.toContain('The first passage.');
     expect(jevConductor.decide).toHaveBeenCalledWith(expect.objectContaining({ excerpt: 'The first passage.' }));
 
-    resolve(continueDecision);
+    resolve({ ...continueDecision, action: 'slower' });
     await vi.waitFor(() => expect(host.textContent).toContain('The first passage.'));
+    expect(onJevState).toHaveBeenCalledWith(expect.objectContaining({ state: 'ready', action: 'slower' }));
     reader.destroy();
   });
 
@@ -98,6 +100,57 @@ describe('PageReader Jev gate', () => {
     reader.destroy();
   });
 
+  it('requests approval again when one source passage continues onto a new page', async () => {
+    const jevConductor = { decide: vi.fn()
+      .mockResolvedValueOnce(continueDecision)
+      .mockResolvedValueOnce({ ...continueDecision, action: 'pause' }) };
+    const host = document.createElement('div');
+    const reader = new PageReader(host, { session, jevConductor });
+    reader.render();
+    await vi.waitFor(() => expect(host.textContent).toContain('The first passage.'));
+
+    const first = reader.pages[0].items.find(item => item.type === 'text');
+    const second = { ...first, text: 'Second-page continuation.', passageId: first.passageId };
+    reader.pages = [
+      { index: 0, items: [first], weight: 1 },
+      { index: 1, items: [second], weight: 1 }
+    ];
+    reader.goToPage(1);
+    await vi.waitFor(() => expect(jevConductor.decide).toHaveBeenCalledTimes(2));
+    await new Promise(resolve => setTimeout(resolve, 0));
+
+    expect(reader.pageIndex).toBe(0);
+    expect(host.textContent).toContain('The first passage.');
+    expect(host.textContent).not.toContain('Second-page continuation.');
+    reader.destroy();
+  });
+
+  it('sends one bounded excerpt for a page and retries that same target', async () => {
+    const jevConductor = { decide: vi.fn()
+      .mockResolvedValueOnce(continueDecision)
+      .mockResolvedValueOnce({ ...continueDecision, action: 'pause' })
+      .mockResolvedValueOnce(continueDecision) };
+    const host = document.createElement('div');
+    const reader = new PageReader(host, { session, jevConductor });
+    reader.render();
+    await vi.waitFor(() => expect(host.textContent).toContain('The first passage.'));
+
+    const first = reader.pages[0].items.find(item => item.type === 'text');
+    reader.pages = [{ index: 0, items: [first, { ...first, text: 'A second paragraph.' }], weight: 1 }];
+    reader.goToPage(0);
+    await vi.waitFor(() => expect(jevConductor.decide).toHaveBeenCalledTimes(2));
+    expect(jevConductor.decide.mock.calls[1][0].excerpt)
+      .toBe('The first passage.\n\nA second paragraph.');
+    expect(host.textContent).not.toContain('A second paragraph.');
+
+    await reader.retry();
+    expect(jevConductor.decide).toHaveBeenCalledTimes(3);
+    expect(jevConductor.decide.mock.calls[2][0].excerpt)
+      .toBe('The first passage.\n\nA second paragraph.');
+    await vi.waitFor(() => expect(host.textContent).toContain('A second paragraph.'));
+    reader.destroy();
+  });
+
   it('does not let an already-approved page render after a newer navigation starts', async () => {
     let resolveTarget;
     const jevConductor = { decide: vi.fn()
@@ -111,10 +164,10 @@ describe('PageReader Jev gate', () => {
     const template = reader.composition.items.find(item => item.type === 'text');
     reader.pages = [
       { index: 0, items: [template] },
-      { index: 1, items: [{ ...template, text: 'stale passage', passageId: 'approved-scope' }] },
-      { index: 2, items: [{ ...template, text: 'latest passage', passageId: 'pending-scope' }] }
+      { index: 1, items: [{ ...template, text: 'stale passage' }] },
+      { index: 2, items: [{ ...template, text: 'latest passage' }] }
     ];
-    reader._jevLastPassage = 'approved-scope';
+    reader._jevLastPassage = '1:stale passage';
     reader.goToPage(1); // This scope is cached, so its gate resolves immediately.
     reader.goToPage(2); // A newer request supersedes it before its continuation runs.
     await vi.waitFor(() => expect(resolveTarget).toBeTypeOf('function'));

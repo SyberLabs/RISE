@@ -10,7 +10,7 @@
  *
  * Measured rather than eyeballed, because "nearly invisible" is a number.
  */
-import { test, expect } from '@playwright/test';
+import { test, expect } from './fixtures.js';
 
 const GATE = { code: 'rise2025', name: 'Specimen', vault: null, timestamp: Date.now() };
 const SEED = { text: 'Light enters form. '.repeat(40).trim(), textSource: 'Specimen', origin: null };

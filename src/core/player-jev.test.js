@@ -94,8 +94,11 @@ describe('Player Jev passage gate', () => {
     const ordinary = new Player(new Session({ atoms: [text('first')] }), {
       jevConductor: { decide: vi.fn().mockResolvedValue(decision('slower')) }
     });
+    const jevEvents = vi.fn();
+    ordinary.on('jev', jevEvents);
     ordinary.play();
     await vi.waitFor(() => expect(ordinary.state).toBe('playing'));
+    expect(jevEvents).toHaveBeenCalledWith(expect.objectContaining({ state: 'ready', action: 'slower' }));
     expect(ordinary.speedFactor).toBe(1.25);
     expect(ordinary._atomDisplayMs(ordinary.sessionState.currentAtom)).toBeGreaterThan(100);
     ordinary.speedFactor = 1.9;

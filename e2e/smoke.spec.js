@@ -12,7 +12,7 @@
  *      (the additive-arrays regression)
  *   6. The loaded text and settings survive a refresh
  */
-import { test, expect } from '@playwright/test';
+import { test, expect } from './fixtures.js';
 import { FLASHING_ENABLED } from '../src/core/visual-presence.js';
 
 const GATE_SESSION = {
