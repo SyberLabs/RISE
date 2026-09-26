@@ -2,7 +2,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
-const output = resolve('dist/_headers');
+const output = resolve('public/_headers');
 const netlify = readFileSync(resolve('netlify.toml'), 'utf8');
 
 function rule(path, headers) {
@@ -18,7 +18,7 @@ function rule(path, headers) {
     return values;
 }
 
-describe('built Cloudflare static headers', () => {
+describe('Cloudflare static headers', () => {
     it('copies the Netlify browser security policy onto static responses', () => {
         expect(existsSync(output)).toBe(true);
         const common = rule('/*', readFileSync(output, 'utf8'));
