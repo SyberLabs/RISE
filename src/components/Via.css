@@ -144,7 +144,7 @@
 /* ── Walking ── */
 
 .via-quiet-exit {
-  position: absolute;
+  position: fixed;
   top: var(--space-lg);
   right: var(--space-lg);
   z-index: 5;
@@ -162,6 +162,10 @@
 }
 
 .via-quiet-exit:hover, .via-quiet-exit:focus-visible { opacity: 1; color: var(--color-ember); }
+
+@media (max-width: 700px) {
+  .via-quiet-exit { top: var(--top-control-clearance); }
+}
 
 /* The nave strip: where you are on the way */
 .via-strip {

@@ -281,7 +281,7 @@
 
 /* The quiet exit — present, never loud */
 .rosarium-quiet-exit {
-  position: absolute;
+  position: fixed;
   top: var(--space-lg);
   right: var(--space-lg);
   z-index: 5;
@@ -316,6 +316,10 @@
    it was one screenshot away from the same complaint. */
 @media (max-width: 700px) {
   .rosarium-back {
+    top: var(--top-control-clearance);
+  }
+
+  .rosarium-quiet-exit {
     top: var(--top-control-clearance);
   }
 }
