@@ -1,6 +1,6 @@
 # Journey editorial validation
 
-Status: draft source audit; runtime validation is pending.
+Status: focused draft validation passed; the draft remains unpublished and unapproved.
 
 ## Scope and boundary
 
@@ -17,21 +17,19 @@ The committed release inventory identifies the two candidate editions as:
 
 These identities were read from `src/content/archive/release-inventory.json`; `src/content/archive/certifications.json` currently contains `{}`. `RELEASE_SERVES_UNCERTIFIED` is `true`, so the default reader-facing archive includes these candidates. A certified-only archive selection would currently contain no works. Do not describe candidate status as certification.
 
-The source report and authored passage records are tracked separately in [sources.md](sources.md). Resolution must demonstrate that each locator and excerpt maps to the intended material in these exact editions; a work ID or compiler result alone does not establish that.
+The source report and authored passage records are tracked separately in [sources.md](sources.md). The committed-content resolver confirms each locator against these editions. Milton's excerpt begins at a sentence start and ends at a period. The Bryant route begins with Andromache's speech and closes Hector's reply at “I hear thy cries as thou art borne away!” The following lines begin a new beat in which he embraces his son and leaves; the selected excerpt therefore does not end at the earlier comma boundary.
 
 ## Checks completed so far
 
 - Read the Journey handoff and compiler paths. Handoff resolves passages, checks supplied expected checksums, compiles again with text-derived passage metrics, and carries source edition, revision, and checksum into provenance.
 - Read archive certification and release selection code. The underlying works are present in the admitted archive; candidate text is available on the default reader path, while the certified-only set is empty.
-- Read the authored Journey's new test file. It currently describes real passage resolution, checksum pinning, compiler source membership, and refusal to launch a draft.
+- Ran the focused test file with `node_modules/.bin/vitest.cmd run src/content/journeys/heaven-and-household.test.js`: 1 file and all 5 tests passed. It confirms both current excerpts resolve, their authored SHA-256 pins match, the source edition IDs and revisions match the archive inventory, both sources survive compilation, the movement boundary survives handoff and session compilation, drift is refused, and the actual `draft` manifest is unlaunchable.
+- Read the full Bryant excerpt in its surrounding source context and checked the current source packet at [sources.md](sources.md).
+- The parent ran the focused draft test alongside `system-design`, Journey compiler, scheduler, and Journey session tests: 77 tests passed in total. The parent also reported a successful production build, first-load size of 58.4 KB Brotli against a 64 KB budget, and successful `security:compat` check. The 77-test combined run was repeated after the final manifest wording changes. Build and first-load checks cover the unchanged public app; this draft is not imported by its catalog.
 
 ## Checks not yet run
 
-The manifest file is not present yet, so its locators, quotations, exact resolved words, pinned hashes, edition assertions, and draft status cannot be verified. No test command has been run. Once the manifest lands, the bounded validation is the new Journey test only; it should prove:
+The tests exercise source resolution, compilation, handoff, and the canonical session timeline. They do not exercise Chamber playback, browser interaction, or human editorial approval. No browser or live playback test has been run. The manifest is not in the Journey catalog, and this validation makes no publication or certification claim.
 
-1. Both passages resolve against the committed archive bytes with the stated edition identities and exact excerpt bounds.
-2. Each resolved excerpt checksum matches the authored pin; changing the expected checksum makes handoff refuse for drift.
-3. The compiler and handoff preserve source order and both movement/source identities, including the authored boundary between the movements.
-4. The `draft` manifest remains unlaunchable through the public handoff function.
+No claim of playback, archive certification, or publication follows from compiler structure or hash matching alone.
 
-This note records inspection only until those checks actually run. No claim of playback, archive certification, or publication follows from compiler structure or hash matching alone.
