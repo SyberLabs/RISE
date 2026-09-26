@@ -219,7 +219,7 @@ export class Vault {
        const duration = Math.floor((words / (bp.wpm || 200)) * 60 * 1000);
 
        return `
-        <div class="sequence-card card card-interactive" data-id="${bp.id}" style="position: relative;">
+        <div class="sequence-card card card-interactive" data-id="${escapeHtml(bp.id)}" style="position: relative;">
           <div class="sequence-header" style="justify-content: space-between;">
             <h3 class="sequence-title text-light">${escapeHtml(bp.title) || 'Untitled Sequence'}</h3>
             <span class="sequence-intent text-threshold text-uppercase">${escapeHtml(bp.intent) || 'Custom'}</span>
@@ -230,14 +230,14 @@ export class Vault {
             <span class="meta-separator">·</span>
             <span>${bp.wpm || 200} WPM</span>
             <span class="meta-separator">·</span>
-            <span style="text-transform: capitalize;">${bp.curve || 'Flat'}</span>
+            <span style="text-transform: capitalize;">${escapeHtml(bp.curve || 'Flat')}</span>
           </div>
           <div class="sequence-actions" style="margin-top: 1.5rem; display: flex; justify-content: space-between; align-items: center;">
             <div style="display: flex; gap: 0.5rem; align-items: center;">
-              <button class="btn-primary" data-action="begin-custom" data-id="${bp.id}">Launch</button>
-              <button class="btn-secondary" data-action="edit-custom" data-id="${bp.id}">Edit</button>
+              <button class="btn-primary" data-action="begin-custom" data-id="${escapeHtml(bp.id)}">Launch</button>
+              <button class="btn-secondary" data-action="edit-custom" data-id="${escapeHtml(bp.id)}">Edit</button>
             </div>
-            <button class="btn-icon" data-action="delete-custom" data-id="${bp.id}" aria-label="Delete Blueprint">
+            <button class="btn-icon" data-action="delete-custom" data-id="${escapeHtml(bp.id)}" aria-label="Delete Blueprint">
                <span class="icon text-error">✕</span>
             </button>
           </div>

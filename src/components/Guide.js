@@ -9,8 +9,6 @@
  */
 import './Guide.css';
 
-import './Guide.css';
-
 export class Guide {
   constructor(container, options = {}) {
     this.container = container;

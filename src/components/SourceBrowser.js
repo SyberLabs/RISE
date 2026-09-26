@@ -78,7 +78,7 @@ export class SourceBrowser {
                         <div class="sb-search">
                             <label class="sr-only" for="sb-source-search">Search the source library</label>
                             <input type="search" id="sb-source-search" class="sb-search-input"
-                                   placeholder="Search titles, authors, ideasâ€¦">
+                                   placeholder="Search titles, authors, ideas…">
                         </div>
                         <nav class="sb-providers">
                             <div class="sb-provider-group">

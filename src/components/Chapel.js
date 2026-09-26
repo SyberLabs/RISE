@@ -384,7 +384,10 @@ export class Chapel {
     };
     try {
       Promise.resolve(this.onLaunchReading(bookId, chapter, { iconId: this.iconId }))
-        .finally(release);
+        .then(release, error => {
+          release();
+          console.error('[Chapel] Failed to launch reading:', error);
+        });
     } catch (error) {
       release();
       throw error;

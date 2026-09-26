@@ -88,7 +88,9 @@ export class Journeys {
         </p>
 
         <div class="journeys-list">
-          ${JOURNEYS.map(({ journey }) => this.renderCard(journey)).join('')}
+          ${JOURNEYS.length
+            ? JOURNEYS.map(({ journey }) => this.renderCard(journey)).join('')
+            : '<p class="journey-blocked text-mist">No Journeys are currently available. Their source passages are being re-anchored to supported editions.</p>'}
         </div>
       </div>`;
     }

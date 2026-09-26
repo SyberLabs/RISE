@@ -184,9 +184,8 @@
 /* P1 — the sigil's stage */
 .sigil-stage { display: none; }
 
-/* P2 — the act's mark, verb and direction */
+/* P2 — the act's mark and direction */
 .act-mark,
-.act-verb,
 .act-go { display: none; }
 
 /* P4/P5 — a room's glyph and its supporting line. The NAME is not
@@ -736,7 +735,6 @@
   }
 
   .act-mark,
-  .act-verb,
   .act-go {
     display: inline;
   }
@@ -1093,6 +1091,16 @@
   letter-spacing: 0.13em;
   line-height: 1.2;
   text-shadow: 0 1px 3px rgba(0, 0, 0, 0.55);
+}
+
+.nav-try .try-detail {
+  position: relative;
+  z-index: 1;
+  color: var(--color-cloud);
+  font-family: var(--font-primary);
+  font-size: 8px;
+  letter-spacing: 0.02em;
+  line-height: 1.2;
 }
 
 /* Reduced motion keeps the depth and the focus ring, drops the movement. */

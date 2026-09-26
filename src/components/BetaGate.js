@@ -97,8 +97,12 @@ export class BetaGate {
   }
 
   clearSession() {
-    localStorage.removeItem(BETA_SESSION_KEY);
     this.session = null;
+    try {
+      localStorage.removeItem(BETA_SESSION_KEY);
+    } catch (e) {
+      console.error('[BetaGate] Failed to clear session:', e);
+    }
   }
 
   validateCode(code) {
