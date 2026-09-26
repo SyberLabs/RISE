@@ -24,6 +24,7 @@
 
 import { CuratorContextValidationError, exportCuratorContext } from './curator-context.js';
 import { buildCuratorPrompt } from './curator-prompt.js';
+import { requestJevRoute } from './jev-client.js';
 import { describeProgramRundown } from './program-rundown.js';
 import { clampReadingWpm, MAX_SAFE_TARGET_WORDS } from './reading-limits.js';
 import {
@@ -233,6 +234,8 @@ export class ScriptoriumSession {
 
     this.intent = '';
     this.targetWords = SCRIPTORIUM_LENGTH.default;
+    this.jevRoute = null;
+    this.jevRouteRequestId = 0;
     // False until the reader (or a door that speaks for them) moves the
     // dial. An unmoved dial is not a chosen budget: a pasted score that
     // only fails because it is longer than the default sitting is sized
@@ -274,14 +277,60 @@ export class ScriptoriumSession {
   }
 
   setIntent(text) {
-    this.intent = String(text ?? '').slice(0, 2000);
+    const intent = String(text ?? '').slice(0, 2000);
+    if (intent !== this.intent) {
+      const hadRoute = this.invalidateJevRoute();
+      this.intent = intent;
+      if (hadRoute && this.context) this.take();
+    }
     return this.intent;
   }
 
   setTargetWords(value) {
-    this.targetWords = clampTargetWords(value);
+    const targetWords = clampTargetWords(value);
+    if (targetWords !== this.targetWords) {
+      const hadRoute = this.invalidateJevRoute();
+      this.targetWords = targetWords;
+      if (hadRoute && this.context) this.take();
+    }
     this.lengthChosen = true;
     return this.targetWords;
+  }
+
+  invalidateJevRoute() {
+    this.jevRouteRequestId += 1;
+    const hadRoute = this.jevRoute !== null;
+    this.jevRoute = null;
+    return hadRoute;
+  }
+
+  /**
+   * Ask JEV to select one existing output schema for the current request.
+   * The response is a prompt-routing recommendation, never an approval.
+   */
+  async routeWithJev(apiKey) {
+    const intent = this.intent;
+    const targetWords = this.targetWords;
+    const requestId = ++this.jevRouteRequestId;
+    const hadRoute = this.jevRoute !== null;
+    this.jevRoute = null;
+    if (hadRoute && this.context) this.take();
+
+    let result;
+    try {
+      result = await requestJevRoute(apiKey, { intent, targetWords });
+    } catch {
+      return { ok: false, message: 'JEV routing could not be completed.' };
+    }
+    if (requestId !== this.jevRouteRequestId
+      || intent !== this.intent
+      || targetWords !== this.targetWords) {
+      return { ok: false, stale: true, message: 'The request changed before JEV returned.' };
+    }
+
+    this.jevRoute = result;
+    if (this.context) this.take();
+    return { ok: true, ...result };
   }
 
   setSwells(swells) {
@@ -362,7 +411,8 @@ export class ScriptoriumSession {
     });
     this.promptText = buildCuratorPrompt({
       intent: this.intent,
-      context: this.context
+      context: this.context,
+      jevRoute: this.jevRoute
     });
     return { context: this.context, promptText: this.promptText };
   }
@@ -411,6 +461,7 @@ export class ScriptoriumSession {
       if (!_budgetRetry && !this.lengthChosen && error?.code === 'PROGRAM_IO_BUDGET_EXCEEDED') {
         const rung = holdingRung(error.details?.total);
         if (rung) {
+          this.invalidateJevRoute();
           this.targetWords = rung;
           this.take();
           return this.examine(text, { _budgetRetry: true });

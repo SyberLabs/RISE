@@ -27,7 +27,9 @@ appears when.
 Around that engine sit rooms: Portal, Library, Chapel and Rosarium, Workshop,
 Vault, Scriptorium, Curia, Journeys, Via, Keystones, Settings.
 
-It ships as static files to a CDN. There is no backend.
+The app shell ships as static files to a CDN. A small Netlify Function now
+provides the Scriptorium's central JEV decision route; the app's proposal
+validation and reading pipeline remain in the browser.
 
 ---
 
@@ -36,9 +38,11 @@ It ships as static files to a CDN. There is no backend.
 Every decision in §8 is downstream of these. They are the axioms; everything
 else is a recommendation.
 
-1. **Nothing leaves.** A reader's text, reading history and personal media stay
-   in their browser. This is enforced by there being nowhere to send them, not
-   by a policy promise.
+1. **Reader material stays local by default.** Source text, reading history and
+   personal media stay in the browser. When the reader explicitly routes a
+   Scriptorium request with JEV, only the intent they entered and target word
+   count are sent to the RISE function and TypeSafe. The reader supplies the
+   TypeSafe key for that request; RISE does not persist it.
 2. **Reverent degradation.** A work, image or sound that will not resolve is
    *absent* — never a broken frame, never a substitute. Silence outranks
    approximation.
@@ -781,6 +785,30 @@ of `settled`, `open`, `deferred`, or `reversed`.
   narrow test bridge preserves observability without making automation access
   part of the production product surface.
 - **Status:** settled.
+
+### 8.28 JEV routes the Scriptorium's proposal format
+
+- **Chosen:** the Scriptorium's primary preparation path asks JEV to choose
+  between the two proposal formats RISE already accepts:
+  `rise.experience-program.v1` and `rise.agent-operation-set.v1`. The core
+  session puts that choice into the curator prompt. A same-origin Netlify
+  Function forwards only the reader's intent and target word count to
+  TypeSafe's JEV API; the reader supplies the API key for the request.
+- **Rejected:** putting the TypeSafe key in browser code, adding a second
+  proposal format, or letting JEV accept or execute the proposal.
+- **Why:** proposal format is a real next-operation choice already understood
+  by the Scriptorium parser and producer. This places JEV in the central
+  authoring flow while keeping its decision bounded by RISE's existing schemas
+  and validation. JEV's choice is a routing recommendation; deterministic
+  parsing, source resolution, producer checks and the reader's Begin action
+  retain their existing authority.
+- **Data boundary:** no source text, Library records, personal media, reading
+  history or generated proposal is sent to JEV by this route. The user-entered
+  intent may itself contain personal information and is sent only after the
+  reader presses **Route with JEV**. The TypeSafe key is held in page memory
+  and forwarded in the authorization header; RISE does not store it.
+- **Status:** implemented as a Netlify Function; the deploy must provide the
+  route, and each reader must have a TypeSafe API key.
 
 ---
 
