@@ -187,16 +187,42 @@ jobs:
         working-directory: release
         run: |
           set -euo pipefail
-          npx --yes wrangler@4.141.0 deployments list --json --config wrangler.production.jsonc \
-            > "$RUNNER_TEMP/prior-production-deployments.json"
+          # A new production Worker has no deployment history. Only Cloudflare's
+          # specific script-not-found error (10007) means an empty history;
+          # permission, network, and other API errors must stop the release.
+          status=$(curl -sS --max-time 20 --retry 3 --retry-delay 2 \
+            -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
+            -o "$RUNNER_TEMP/deployment-history-response.json" -w '%{http_code}' \
+            "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/workers/scripts/rise-production/deployments")
+          case "$status" in
+            200)
+              jq -e '.success == true and (.result.deployments | type == "array")' \
+                "$RUNNER_TEMP/deployment-history-response.json" > /dev/null
+              jq '.result.deployments' "$RUNNER_TEMP/deployment-history-response.json" \
+                > "$RUNNER_TEMP/prior-production-deployments.json"
+              ;;
+            404)
+              jq -e '.success == false and any(.errors[]?; .code == 10007)' \
+                "$RUNNER_TEMP/deployment-history-response.json" > /dev/null
+              printf '[]\n' > "$RUNNER_TEMP/prior-production-deployments.json"
+              ;;
+            *)
+              echo "Could not verify prior production deployments (Cloudflare HTTP $status)."
+              exit 1
+              ;;
+          esac
           {
             echo '### Production rollback record (before deployment)'
             echo 'Prior deployments and version IDs:'
             echo '```json'
             cat "$RUNNER_TEMP/prior-production-deployments.json"
             echo '```'
-            echo 'Restore the known-good prior **version ID** with:'
-            echo '`npx --yes wrangler@4.141.0 rollback <VERSION_ID> --config wrangler.production.jsonc --message "RISE rollback"`'
+            if [ "$(jq length "$RUNNER_TEMP/prior-production-deployments.json")" -eq 0 ]; then
+              echo 'No prior production deployment exists; this first release has no Worker rollback version.'
+            else
+              echo 'Restore the known-good prior **version ID** with:'
+              echo '`npx --yes wrangler@4.141.0 rollback <VERSION_ID> --config wrangler.production.jsonc --message "RISE rollback"`'
+            fi
           } >> "$GITHUB_STEP_SUMMARY"
       - name: Deploy production from the verified artifact
         working-directory: release
