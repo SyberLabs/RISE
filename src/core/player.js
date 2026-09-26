@@ -153,8 +153,13 @@ export class Player {
     /**
      * @param {import('./models.js').Session} session 
      */
-    constructor(session) {
+    constructor(session, { jevConductor = null } = {}) {
         this.sessionState = new SessionState(session);
+        this.jevConductor = jevConductor;
+        this._jevApprovedPassage = null;
+        this._jevEpoch = 0;
+        this._jevController = null;
+        this._jevPassages = jevConductor ? this._compileJevPassages(session) : null;
         this.listeners = new Map();
         this.timerId = null;
         // Optional: a consumer that governs how long an atom lasts.
@@ -173,6 +178,7 @@ export class Player {
         // so it cannot also define how far through the atom we are.
         this.currentAtomDisplayTime = null;
         this.speedFactor = 1.0; // Dynamic multiplier (1.0 = normal, 0.5 = 2x speed)
+        this._jevSlowerCap = null;
 
         // THE SHUTTLE (LATERAL-TRAVERSAL-SPEC): signed traversal
         // velocity on a discrete ladder, orthogonal to pace
@@ -374,6 +380,15 @@ export class Player {
         if (this.sessionState.state === 'playing' || this.sessionState.state === 'interlocuting') return;
         if (this.sessionState.isComplete) return;
 
+        const passage = this._jevPassageAt(this.sessionState.currentIndex);
+        if (this.jevConductor && passage && passage.id !== this._jevApprovedPassage) {
+            void this._requestJev(passage, () => {
+                this._jevApprovedPassage = passage.id;
+                this.play();
+            });
+            return;
+        }
+
         // Clear any pending timer from previous state
         if (this.timerId) {
             cancelAnimationFrame(this.timerId);
@@ -421,7 +436,21 @@ export class Player {
      * Pause playback
      */
     pause() {
-        if (this.sessionState.state !== 'playing' && this.sessionState.state !== 'interlocuting') return;
+        if (this.sessionState.state !== 'playing' && this.sessionState.state !== 'interlocuting') {
+            if (this._jevController) {
+                this._jevEpoch++;
+                this._jevController.abort();
+                this._jevController = null;
+                this.sessionState.state = 'paused';
+                this.sessionState.pausedAt = Date.now();
+                this.emit('jev', { state: 'blocked', message: 'Reading paused before the passage was approved.' });
+                this.emit('state', { state: 'paused' });
+            }
+            return;
+        }
+        this._jevEpoch++;
+        this._jevController?.abort();
+        this._jevController = null;
         this._clearSpeechWatchdog();
 
         const wasInterlocuting = this.sessionState.state === 'interlocuting';
@@ -488,6 +517,10 @@ export class Player {
      */
     stop() {
         this._playbackEpoch++;
+        this._jevEpoch++;
+        this._jevController?.abort();
+        this._jevController = null;
+        this._jevApprovedPassage = null;
         // The utterance this was guarding is over either way. Leaving it
         // running keeps a timer alive past the reading; it could only
         // ever fire into a state check that turns it away, but a timer
@@ -548,6 +581,7 @@ export class Player {
         this.speedFactor = Number.isFinite(parsed)
             ? Math.max(0.1, Math.min(5.0, parsed))
             : 1.0;
+        this._jevSlowerCap = null;
         console.log(`[Player] Speed factor set to: ${this.speedFactor}`);
     }
 
@@ -758,7 +792,7 @@ export class Player {
                 this.shuttle.reset();
                 this.emit('shuttle', { velocity: 1, reason: 'start-of-text' });
             }
-            this._prepareCurrentAtom();
+            if (!this._prepareCurrentAtom()) return;
             this.scheduleNextAtom(false, { alreadyPrepared: true });
             return;
         }
@@ -776,8 +810,7 @@ export class Player {
                     if (preparedNextAtom || playbackEpoch !== this._playbackEpoch) return;
                     if (!['interlocuting', 'paused'].includes(this.sessionState.state)) return;
                     this.sessionState.advance();
-                    preparedNextAtom = true;
-                    this._prepareCurrentAtom({ concealed: true });
+                    preparedNextAtom = this._prepareCurrentAtom({ concealed: true });
                 }
             });
             if (this.sessionState.state !== 'playing') return;
@@ -790,12 +823,149 @@ export class Player {
         }
 
         this.sessionState.advance();
+        const nextPassage = this._jevPassageAt(this.sessionState.currentIndex);
+        if (this.jevConductor && nextPassage && nextPassage.id !== this._jevApprovedPassage) {
+            this.sessionState.state = 'paused';
+            this._readingPause();
+            this.sessionState.pausedAt = Date.now();
+            this.emit('state', { state: 'paused' });
+            void this._requestJev(nextPassage, () => {
+                this._jevApprovedPassage = nextPassage.id;
+                this.play();
+            });
+            return;
+        }
         this.scheduleNextAtom();
+    }
+
+    _jevPassageAt(index) {
+        return this._jevPassages?.[index] || null;
+    }
+
+    _compileJevPassages(session) {
+        const atoms = session?.atoms || [];
+        const sources = session?.sources || [];
+        const sourceById = new Map(sources.map(source => [source.id, source]));
+        let sourceId = '';
+        let boundary = 0;
+        let previousText = null;
+        let activePassage = null;
+        const passages = new Array(atoms.length).fill(null);
+        for (let at = 0; at < atoms.length; at++) {
+            const atom = atoms[at];
+            const tags = Array.isArray(atom?.tags) ? atom.tags : [];
+            if (tags.some(tag => ['paragraph-break', 'source-break', 'authored-boundary'].includes(tag))) {
+                boundary++;
+                activePassage = null;
+            }
+            if (atom?.modality === 'text' && typeof atom.content === 'string' && atom.content.trim()) {
+                if (previousText && this._jevHasParagraphGap(previousText, atom, sourceById)) boundary++;
+                const atomSourceId = atom.sourceId || 'session';
+                if (atomSourceId !== sourceId) {
+                    sourceId = atomSourceId;
+                    if (previousText) boundary++;
+                }
+                const id = `${sourceId}:${boundary}`;
+                if (activePassage?.id !== id) activePassage = { id, excerpt: '' };
+                const remaining = 2000 - activePassage.excerpt.length;
+                if (remaining > 0) {
+                    const part = atom.content.trim().slice(0, remaining);
+                    activePassage.excerpt = `${activePassage.excerpt}${activePassage.excerpt ? ' ' : ''}${part}`.slice(0, 2000);
+                }
+                passages[at] = activePassage;
+                previousText = atom;
+            }
+        }
+        return passages;
+    }
+
+    _jevHasParagraphGap(previous, current, sourceById) {
+        if (!previous || !current || previous.sourceId !== current.sourceId) return false;
+        const end = previous.sourceCharacterEnd;
+        const start = current.sourceCharacterStart;
+        if (!Number.isInteger(end) || !Number.isInteger(start) || start <= end) return false;
+        const raw = sourceById.get(current.sourceId)?.raw;
+        if (typeof raw !== 'string') return false;
+        return /(?:\r?\n)[\t \f\v]*(?:\r?\n)/.test(raw.slice(end, start));
+    }
+
+    _blockForJev(passage) {
+        if (this.sessionState.state === 'playing' || this.sessionState.state === 'interlocuting') {
+            const wasInterlocuting = this.sessionState.state === 'interlocuting';
+            this.sessionState.state = 'paused';
+            this._readingPause();
+            this.sessionState.pausedAt = Date.now();
+            if (this.timerId) cancelAnimationFrame(this.timerId);
+            this.timerId = null;
+            this.stopProgressAnimation();
+            this._clearSpeechWatchdog();
+            if (wasInterlocuting) {
+                try { this.interlocutionCancelHandler?.('jev-pending'); } catch { /* best effort */ }
+            }
+            if (this.voiceSyncEnabled && this.speakFn) this.speakFn(null, { stop: true });
+            if (!this.shuttle.atHome) {
+                this.shuttle.reset();
+                this.emit('shuttle', { velocity: 1, reason: 'jev-pending' });
+            }
+            this.emit('state', { state: 'paused' });
+        }
+        void this._requestJev(passage, () => {
+            this._jevApprovedPassage = passage.id;
+            this.play();
+        });
+    }
+
+    async _requestJev(passage, onContinue) {
+        const epoch = ++this._jevEpoch;
+        const controller = new AbortController();
+        this._jevController?.abort();
+        this._jevController = controller;
+        this.emit('jev', { state: 'waiting', passageId: passage.id, message: 'Waiting for passage approval.' });
+        try {
+            const result = await this.jevConductor.decide({ excerpt: passage.excerpt, signal: controller.signal });
+            if (epoch !== this._jevEpoch || controller.signal.aborted || this._destroyed) return;
+            if (!result || !['continue', 'slower', 'pause'].includes(result.action)) {
+                throw new Error('Jev returned an invalid decision.');
+            }
+            this._jevController = null;
+            if (result.action === 'pause') {
+                this.sessionState.state = 'paused';
+                this.sessionState.pausedAt = Date.now();
+                this.emit('jev', { state: 'blocked', passageId: passage.id, message: 'Jev asked to pause before this passage.' });
+                this.emit('state', { state: 'paused' });
+                return;
+            }
+            if (result.action === 'slower') this._applyJevSlower();
+            this.emit('jev', { state: 'ready', passageId: passage.id, message: result.action === 'slower' ? 'Approved at a slower pace.' : 'Passage approved.' });
+            onContinue();
+        } catch (error) {
+            if (epoch !== this._jevEpoch || controller.signal.aborted || this._destroyed) return;
+            this._jevController = null;
+            this.sessionState.state = 'paused';
+            this.sessionState.pausedAt = Date.now();
+            this.emit('jev', { state: 'blocked', passageId: passage.id, message: 'Passage approval failed. Retry to request approval again.' });
+            this.emit('state', { state: 'paused' });
+        }
+    }
+
+    _applyJevSlower() {
+        if (this.sessionState.session?.shuttleExempt === true
+            || this.sessionState.session?.experienceProgram
+            || this.sessionState.currentAtom?.timingLocked) return;
+        this._jevSlowerCap ??= this.speedFactor * 2;
+        if (this.speedFactor < this._jevSlowerCap) {
+            this.speedFactor = Math.min(this._jevSlowerCap, this.speedFactor * 1.25);
+        }
     }
 
     _prepareCurrentAtom({ concealed = false } = {}) {
         const atom = this.sessionState.currentAtom;
         if (!atom) return false;
+        const passage = this._jevPassageAt(this.sessionState.currentIndex);
+        if (this.jevConductor && passage && passage.id !== this._jevApprovedPassage) {
+            this._blockForJev(passage);
+            return false;
+        }
         // The high-water mark rises with every atom shown (spec §6):
         // rewound positions are below it; it never falls.
         this.shuttle.markPosition(this.sessionState.currentIndex);
@@ -820,6 +990,12 @@ export class Player {
     scheduleNextAtom(isResuming = false, { alreadyPrepared = false } = {}) {
         // Guard: only schedule if actually playing
         if (this.sessionState.state !== 'playing') return;
+
+        const passage = this._jevPassageAt(this.sessionState.currentIndex);
+        if (this.jevConductor && passage && passage.id !== this._jevApprovedPassage) {
+            this._blockForJev(passage);
+            return;
+        }
 
         // Clear any pending timer to prevent race conditions
         if (this.timerId) {
@@ -863,7 +1039,7 @@ export class Player {
 
         // Emit current atom only if we're not just safely resuming
         if (!isResuming && !alreadyPrepared) {
-            this._prepareCurrentAtom();
+            if (!this._prepareCurrentAtom()) return;
         }
 
         // Event-governed completion. RECITATION-SPEC §2 requires the

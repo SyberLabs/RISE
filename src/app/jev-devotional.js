@@ -26,6 +26,7 @@ export function createDevotionalJev({ requestSession } = {}) {
         try {
             if (!conductor) {
                 const request = requestSession || (await import('../components/JevGate.js')).requestJevSession;
+                if (generation !== revision) return null;
                 const candidate = await request(document.body, { mode: 'devotional', signal: controller.signal });
                 if (generation !== revision) { candidate?.destroy(); return null; }
                 conductor = candidate;

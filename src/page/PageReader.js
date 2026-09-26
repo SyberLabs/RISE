@@ -37,6 +37,12 @@ export class PageReader {
     constructor(host, options = {}) {
         this.host = host;
         this.session = options.session || null;
+        this.jevConductor = options.jevConductor || null;
+        this.onJevState = typeof options.onJevState === 'function' ? options.onJevState : null;
+        this._jevLastPassage = null;
+        this._jevPendingPage = null;
+        this._jevEpoch = 0;
+        this._jevController = null;
         this.resolveCollection = typeof options.resolveCollection === 'function'
             ? options.resolveCollection
             : async () => [];
@@ -62,7 +68,9 @@ export class PageReader {
 
         // Pagination (§9): opt out for whole-column callers (e.g. print).
         // Otherwise length decides (see render): scrollUnderPages threshold.
-        this.paginated = options.paginated !== false;
+        // Jev authorizes excerpts before reveal. A whole-book projection
+        // would request every passage at once, so gated readers stay paged.
+        this.paginated = this.jevConductor ? true : options.paginated !== false;
         // INFINITY IS THE ANSWER TO "NEVER PAGINATE", AND IT WAS BEING REFUSED.
         //
         // The Chamber passes Number.POSITIVE_INFINITY to say the public Page
@@ -76,6 +84,7 @@ export class PageReader {
             && !Number.isNaN(options.scrollUnderPages)
             ? options.scrollUnderPages
             : 4;
+        if (this.jevConductor) this.scrollUnderPages = 0;
         // The Chamber draws the turn in its own control bar, so the
         // reader does not float a second one. Standalone callers keep it.
         this.showPager = options.showPager !== false;
@@ -133,8 +142,70 @@ export class PageReader {
             : [{ index: 0, items: [], weight: 0 }];
 
         this._bindKeys();
-        this._renderPage(0);
+        if (this.jevConductor && this.host) this.host.replaceChildren();
+        void this._showPage(0);
         return this.composition;
+    }
+
+    async _gatePassages(items) {
+        if (!this.jevConductor) return true;
+        const passages = [];
+        for (const item of items || []) {
+            if (item?.type !== 'text' || !item.text?.trim()) continue;
+            const id = item.passageId || `${item.sourceId || 'session'}:${item.text.slice(0, 48)}`;
+            const last = passages[passages.length - 1];
+            if (last?.id === id) last.text = `${last.text} ${item.text}`.slice(0, 2000);
+            else passages.push({ id, text: item.text.slice(0, 2000) });
+        }
+        const epoch = ++this._jevEpoch;
+        this._jevController?.abort();
+        const controller = new AbortController();
+        this._jevController = controller;
+        for (const passage of passages) {
+            if (passage.id === this._jevLastPassage) continue;
+            this.onJevState?.({ state: 'waiting', passageId: passage.id, message: 'Waiting for passage approval.' });
+            try {
+                const result = await this.jevConductor.decide({ excerpt: passage.text, signal: controller.signal });
+                if (this._destroyed || controller.signal.aborted || epoch !== this._jevEpoch) return false;
+                if (!result || !['continue', 'slower', 'pause'].includes(result.action)) {
+                    throw new Error('Jev returned an invalid decision.');
+                }
+                if (result.action === 'pause') {
+                    this.onJevState?.({ state: 'blocked', passageId: passage.id, message: 'Jev asked to pause before this passage.' });
+                    return false;
+                }
+                this._jevLastPassage = passage.id;
+                this.onJevState?.({ state: 'ready', passageId: passage.id, message: result.action === 'slower' ? 'Approved at a slower pace.' : 'Passage approved.' });
+            } catch {
+                if (this._destroyed || controller.signal.aborted || epoch !== this._jevEpoch) return false;
+                this.onJevState?.({ state: 'blocked', passageId: passage.id, message: 'Passage approval failed. Retry by returning to this page.' });
+                return false;
+            }
+        }
+        if (this._jevController === controller) this._jevController = null;
+        return epoch === this._jevEpoch && !this._destroyed;
+    }
+
+    async _showPage(index) {
+        const clamped = Math.max(0, Math.min(this.pages.length - 1, index | 0));
+        if (!this.jevConductor) {
+            this._renderPage(clamped);
+            return true;
+        }
+        const page = this.pages[clamped];
+        this._jevPendingPage = clamped;
+        const gate = this._gatePassages(page?.items || []);
+        const requestEpoch = this._jevEpoch;
+        if (!await gate) return false;
+        if (this._destroyed || requestEpoch !== this._jevEpoch || this._jevPendingPage !== clamped) return false;
+        this._jevPendingPage = null;
+        this._renderPage(clamped);
+        return true;
+    }
+
+    /** Retry approval for the page that failed, even if another page stays visible. */
+    retry() {
+        return this._showPage(this._jevPendingPage ?? this.pageIndex);
     }
 
     /**
@@ -275,6 +346,10 @@ export class PageReader {
      * Preserves place by composition item, not scroll offset.
      */
     setPaged(next) {
+        if (this.jevConductor && !next) {
+            this.onJevState?.({ state: 'blocked', retryable: false, message: 'Elongated reading is unavailable while passages require approval.' });
+            return this.isPaged;
+        }
         const wanted = !!next && this.canPage;
         if (wanted === this.isPaged) return this.isPaged;
         const anchor = this._visibleItem();
@@ -283,7 +358,7 @@ export class PageReader {
         this.pages = chosen.pages.length
             ? chosen.pages
             : [{ index: 0, items: [], weight: 0 }];
-        this._renderPage(wanted ? pageOfItem(this.pages, anchor) : 0);
+        void this._showPage(wanted ? pageOfItem(this.pages, anchor) : 0);
         if (!wanted) this._scrollToItem(anchor);
         return this.isPaged;
     }
@@ -321,9 +396,12 @@ export class PageReader {
 
     /** Move by pages. Out-of-range is a no-op, not an error. */
     goToPage(index) {
-        if (index === this.pageIndex) return this.pageIndex;
+        if (index === this.pageIndex) {
+            if (this.jevConductor) void this._showPage(index);
+            return this.pageIndex;
+        }
         if (index < 0 || index >= this.pages.length) return this.pageIndex;
-        this._renderPage(index);
+        void this._showPage(index);
         return this.pageIndex;
     }
 
@@ -779,6 +857,14 @@ export class PageReader {
             return Promise.resolve(false);
         }
         if (this._printPreparation) return this._printPreparation;
+        if (this.jevConductor) {
+            this.onJevState?.({ state: 'blocked', retryable: false, message: 'Full-document printing is unavailable while passages require approval.' });
+            return Promise.resolve(false);
+        }
+        return this._prepareApprovedPrint();
+    }
+
+    _prepareApprovedPrint() {
 
         if (!this._printState) {
             this._printState = {
@@ -813,7 +899,7 @@ export class PageReader {
         this.host.classList.remove('is-print-ready');
         this.isPaged = state.isPaged;
         this.pages = state.pages;
-        this._renderPage(state.pageIndex);
+        void this._showPage(state.pageIndex);
         if (!state.isPaged) {
             try { this.host.scrollTop = state.scrollTop; } catch { /* detached */ }
         }
@@ -822,6 +908,9 @@ export class PageReader {
 
     destroy() {
         this._destroyed = true;
+        this._jevEpoch++;
+        this._jevController?.abort();
+        this._jevController = null;
         this._disarmObserver();
         if (this._onKey) {
             try { document.removeEventListener('keydown', this._onKey); } catch { /* detached */ }

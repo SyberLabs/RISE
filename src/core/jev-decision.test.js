@@ -75,6 +75,7 @@ describe('Jev decision Netlify function', () => {
 
     it('sends the bounded state in the TypeSafe schema and returns only the validated decision', async () => {
         const fetchMock = mockFetch();
+        const timeout = vi.spyOn(AbortSignal, 'timeout');
         const response = await jevDecision(request());
 
         expect(response.status).toBe(200);
@@ -95,6 +96,8 @@ describe('Jev decision Netlify function', () => {
             Accept: 'application/json'
         });
         expect(options.signal).toBeInstanceOf(AbortSignal);
+        expect(timeout).toHaveBeenCalledOnce();
+        expect(timeout).toHaveBeenCalledWith(8000);
         expect(JSON.parse(options.body)).toEqual({
             model: 'jev-test-model',
             state: {

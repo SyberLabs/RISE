@@ -18,6 +18,8 @@ import { chamberExitTarget } from './chamber-exit.js';
 import { createPresentationLens } from '../core/session-presentation.js';
 import { sessionImageryCollections } from '../core/visual-selection.js';
 import { audioDiag } from '../core/audio-diagnostics.js';
+import { requestJevSession } from '../components/JevGate.js';
+import '../jev.css';
 
 export async function createChamberSession(operations, container, sessionData) {
     const session = sessionData || operations.getCurrentSession();
@@ -33,6 +35,7 @@ export async function createChamberSession(operations, container, sessionData) {
     let visualMode = authoredVisualMode;
     let activateDeferredVisuals = async () => true;
     let recitationVoice = null;
+    let jevConductor = null;
 
     // A SPATIAL reading runs no temporal visual machinery.
     // Page Mode has no flash economy and no advance clock
@@ -50,6 +53,23 @@ export async function createChamberSession(operations, container, sessionData) {
     if (spatialLaunch) visualMode = 'off';
 
     try {
+        // Jev consent comes before engines, player creation, loading overlays,
+        // or any reading content. A decline exits this route without fallback.
+        const requestedPace = Number.isFinite(session.wpm) ? session.wpm : 200;
+        const jevPace = Number.isFinite(requestedPace)
+            ? Math.max(100, Math.min(500, Math.round(requestedPace)))
+            : 200;
+        jevConductor = await requestJevSession(container, {
+            mode: 'reading',
+            pace: jevPace,
+            onExit: () => operations.router.back()
+        });
+        if (!jevConductor) return { destroy: () => { } };
+        if (!container?.isConnected) {
+            jevConductor.destroy();
+            return { destroy: () => { } };
+        }
+
         // A reading is the first thing that needs either of
         // these, so this is where they arrive. Chamber.js
         // imports the same cortex singleton, so opening the
@@ -174,7 +194,7 @@ export async function createChamberSession(operations, container, sessionData) {
         }
 
         operations.updateLoadingStatus('Creating player...');
-        const player = new Player(session);
+        const player = new Player(session, { jevConductor });
 
         // The player is the sole clock: entrainment ramps
         // follow canonical reading progress, so pauses,
@@ -470,6 +490,7 @@ export async function createChamberSession(operations, container, sessionData) {
         });
     } catch (error) {
         console.error('[RISE] Session initialization failed:', error);
+        jevConductor?.destroy();
         recitationVoice?.destroy();
         endVisualInterlocutionSession();
         // Reached through the catch, so either subsystem may have

@@ -222,6 +222,9 @@ export function compileFlow(session, options = {}) {
     let episodeCount = 0;
     let lastChapter = null;
     let pendingPause = false;
+    let passageSequence = 0;
+    let lastTextAtom = null;
+    const sourceById = new Map((session?.sources || []).map(source => [source.id, source]));
 
     // A run accumulates consecutive text atoms sharing one coordinate,
     // so a verse reads as one typeset paragraph rather than word confetti.
@@ -238,7 +241,9 @@ export function compileFlow(session, options = {}) {
                 verse: run.verse,
                 weight: run.weightMax,
                 tags: run.tags.length ? [...new Set(run.tags)] : [],
-                episodeId: run.episodeId
+                episodeId: run.episodeId,
+                sourceId: run.sourceId,
+                passageId: `${run.sourceId || 'session'}:${run.passageSequence}`
             });
         }
         run = null;
@@ -249,6 +254,11 @@ export function compileFlow(session, options = {}) {
         if (isStructuralSilence(atom)) {
             flushRun();
             pendingPause = true;
+            const tags = Array.isArray(atom?.tags) ? atom.tags : [];
+            if (tags.some(tag => ['paragraph-break', 'source-break', 'authored-boundary'].includes(tag))) {
+                passageSequence++;
+                lastTextAtom = null;
+            }
             continue;
         }
 
@@ -341,11 +351,28 @@ export function compileFlow(session, options = {}) {
             pendingPause = false;
         }
 
+        const previousEnd = lastTextAtom?.sourceCharacterEnd;
+        const currentStart = atom.sourceCharacterStart;
+        const sourceText = sourceById.get(atom.sourceId)?.raw;
+        const paragraphGap = lastTextAtom?.sourceId === atom.sourceId
+            && Number.isInteger(previousEnd)
+            && Number.isInteger(currentStart)
+            && currentStart > previousEnd
+            && typeof sourceText === 'string'
+            && /(?:\r?\n)[\t \f\v]*(?:\r?\n)/.test(sourceText.slice(previousEnd, currentStart));
+        if (paragraphGap) {
+            flushRun();
+            if (blocks.length) blocks.push({ kind: BLOCK.MARK, mark: MARK.PAUSE });
+            passageSequence++;
+        }
+
         // Start or extend the current run. A new verse starts a new run
         // so each verse becomes its own typeset unit.
         const sameCoord = run
             && run.chapter === (coord?.chapter ?? null)
-            && run.verse === (coord?.verse ?? null);
+            && run.verse === (coord?.verse ?? null)
+            && run.sourceId === (atom.sourceId || '')
+            && !paragraphGap;
         if (!sameCoord) {
             flushRun();
             run = {
@@ -354,10 +381,13 @@ export function compileFlow(session, options = {}) {
                 verse: includeVerseMarks ? (coord?.verse ?? null) : null,
                 weightMax: 0,
                 tags: [],
-                episodeId: activeCueId
+                episodeId: activeCueId,
+                sourceId: atom.sourceId || '',
+                passageSequence
             };
         }
         run.parts.push(atom.content.trim());
+        lastTextAtom = atom;
         if (Number.isFinite(atom.weight)) run.weightMax = Math.max(run.weightMax, atom.weight);
         if (Array.isArray(atom.tags) && atom.tags.length) run.tags.push(...atom.tags);
     }
