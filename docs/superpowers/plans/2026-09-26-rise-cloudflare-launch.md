@@ -60,7 +60,7 @@
 
 ### Task 3: Preserve browser security and public host behavior
 
-**Files:** Create `public/_headers`; modify only host references needed by `src/content/public-hosts.js`, `public/site.webmanifest`, `README.md`, `PRIVACY.md`, `TERMS.md`, `public/privacy.html`, `public/terms.html`, and tests that guard those references.
+**Files:** Create `public/_headers`; modify only host references needed by `index.html`, `scripts/mint-program-qr.mjs`, `src/content/public-hosts.js`, `public/site.webmanifest`, `README.md`, `PRIVACY.md`, `TERMS.md`, `public/privacy.html`, `public/terms.html`, and tests that guard those references.
 
 **Interfaces:** Static responses inherit `_headers`; API responses keep their handler-owned JSON headers.
 
