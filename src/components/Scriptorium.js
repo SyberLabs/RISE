@@ -92,6 +92,10 @@ export class Scriptorium {
     });
     this.materialBlobs = new Map();
     this.objectUrls = new Set();
+    // JEV credentials live only as long as this mounted component. They are
+    // never written to browser storage, the session, or the reading prompt.
+    this.jevApiKey = '';
+    this.jevRouting = false;
     // Said where the reader is standing. A refusal about a file belongs beside
     // the panel that took it, not in a status line six sections further down a
     // page that scrolls.
@@ -400,6 +404,7 @@ export class Scriptorium {
           <h2 id="scriptorium-intent-title">1. Intent</h2>
           <label class="scriptorium-label" for="scriptorium-intent">What should the reading be about?</label>
           <textarea id="scriptorium-intent" class="scriptorium-intent" rows="3"
+            maxlength="2000"
             placeholder="A sequence about memory and loss.">${escapeHtml(this.intent)}</textarea>
 
           <label class="scriptorium-label" for="scriptorium-length">How long should it be?</label>
@@ -419,6 +424,35 @@ export class Scriptorium {
             opening — whichever is the largest that fits. A score longer than
             this is refused, not trimmed.
           </p>
+          <div class="scriptorium-jev" aria-labelledby="scriptorium-jev-title">
+            <h3 id="scriptorium-jev-title">Route the composition with JEV</h3>
+            <label class="scriptorium-label" for="scriptorium-jev-key">JEV API key</label>
+            <input id="scriptorium-jev-key" class="scriptorium-jev-key" type="password"
+              autocomplete="off" spellcheck="false" value="${escapeHtml(this.jevApiKey)}"
+              aria-describedby="scriptorium-jev-privacy">
+            <p class="scriptorium-note" id="scriptorium-jev-privacy">
+              With your key, RISE sends only this typed intent (up to 2,000 characters)
+              and the target word count to its same-origin routing function, which
+              forwards those fields and your key to TypeSafe SystemOne. Saved texts, Library entries,
+              media, and reading history are not sent. RISE does not store your key.
+            </p>
+            <div class="scriptorium-actions">
+              <button type="button" class="btn-primary" data-action="route-jev"
+                ${this.jevRouting || !this.jevApiKey.trim() ? 'disabled' : ''}>
+                ${this.jevRouting ? 'Routing with JEV…' : 'Route with JEV'}
+              </button>
+            </div>
+            ${this.session.jevRoute ? `
+              <p class="scriptorium-jev-result" role="status">
+                JEV selected <strong>${this.session.jevRoute.route === 'experience_program'
+                  ? 'Experience Program' : 'Agent Operation Set'}</strong>
+                with ${(this.session.jevRoute.confidence * 100).toFixed(0)}% confidence.
+                This selects a prompt format; RISE still examines the result before
+                it can become a reading.
+              </p>
+            ` : ''}
+            <p class="scriptorium-note">Prefer to work locally? You can prepare the prompt without JEV below.</p>
+          </div>
           ${this.renderOwnTexts()}
         </section>
 
@@ -458,9 +492,9 @@ export class Scriptorium {
 
         <section class="scriptorium-step" aria-labelledby="scriptorium-take-title">
           <h2 id="scriptorium-take-title">2. Take</h2>
-          <p class="scriptorium-note">Copy the prompt; download or copy context.json. No network leaves RISE.</p>
+          <p class="scriptorium-note">Prepare a prompt locally, then copy or download it and context.json.</p>
           <div class="scriptorium-actions">
-            <button type="button" class="btn-primary" data-action="prepare-take">Prepare prompt &amp; context</button>
+            <button type="button" class="btn-secondary" data-action="prepare-take">Prepare locally without JEV</button>
             <button type="button" class="btn-secondary" data-action="copy-prompt" ${this.promptText ? '' : 'disabled'}>Copy prompt</button>
             <button type="button" class="btn-secondary" data-action="download-prompt" ${this.promptText ? '' : 'disabled'}>Download prompt</button>
             <button type="button" class="btn-secondary" data-action="copy-context" ${this.context ? '' : 'disabled'}>Copy context.json</button>
@@ -545,6 +579,37 @@ export class Scriptorium {
     this.container.querySelector('#scriptorium-intent')
       ?.addEventListener('input', (event) => {
         this.session.setIntent(event.target.value);
+        const route = this.container.querySelector('.scriptorium-jev-result');
+        if (route) route.remove();
+      });
+
+    this.container.querySelector('#scriptorium-jev-key')
+      ?.addEventListener('input', (event) => {
+        this.jevApiKey = event.target.value;
+        const button = this.container.querySelector('[data-action="route-jev"]');
+        if (button) button.disabled = this.jevRouting || !this.jevApiKey.trim();
+      });
+
+    this.container.querySelector('[data-action="route-jev"]')
+      ?.addEventListener('click', async () => {
+        if (this.jevRouting || !this.jevApiKey.trim()) return;
+        this.jevRouting = true;
+        this.status = 'Routing this intent with JEV…';
+        this.render();
+        try {
+          const result = await this.session.routeWithJev(this.jevApiKey);
+          this.status = result.ok
+            ? 'JEV selected a prompt route.'
+            : result.stale
+              ? 'The intent changed while JEV was routing. Route the current intent again.'
+              : (result.message || 'JEV could not select a route.');
+        } catch (error) {
+          this.status = error?.message || 'JEV routing failed.';
+        } finally {
+          this.jevApiKey = '';
+          this.jevRouting = false;
+          this.render();
+        }
       });
 
     this.container.querySelector('#scriptorium-length')
@@ -558,6 +623,7 @@ export class Scriptorium {
         // A range reads its value aloud as a bare number, and the number here
         // is an index into a ladder — "3" tells a screen reader nothing.
         event.target.setAttribute('aria-valuetext', this.session.describeLength());
+        this.container.querySelector('.scriptorium-jev-result')?.remove();
       });
 
     // COMMIT, NOT DRAG. The budget the gate measures against lives in the
@@ -573,6 +639,7 @@ export class Scriptorium {
 
     this.container.querySelector('[data-action="prepare-take"]')
       ?.addEventListener('click', () => {
+        this.session.invalidateJevRoute();
         this.session.take();
         this.status = 'Prompt and context ready.';
         this.render();

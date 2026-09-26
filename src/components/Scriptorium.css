@@ -122,6 +122,46 @@
   line-height: 1.45;
 }
 
+.scriptorium-jev {
+  max-width: 52rem;
+  margin: 1rem 0 1.1rem;
+  padding: 0.8rem 0.95rem 0.25rem;
+  border: 1px solid var(--scriptorium-rule);
+  border-left: 2px solid var(--scriptorium-accent);
+  background: rgba(196, 165, 116, 0.04);
+}
+
+.scriptorium-jev h3 {
+  margin: 0 0 0.65rem;
+  color: var(--scriptorium-ink);
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.scriptorium-jev-key {
+  box-sizing: border-box;
+  width: min(100%, 32rem);
+  margin-bottom: 0.65rem;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid var(--scriptorium-rule);
+  border-radius: 2px;
+  background: var(--scriptorium-panel);
+  color: var(--scriptorium-ink);
+  font: inherit;
+}
+
+.scriptorium-jev-key:focus-visible {
+  outline: 2px solid var(--scriptorium-accent);
+  outline-offset: 2px;
+}
+
+.scriptorium-jev-result {
+  max-width: 62ch;
+  margin: 0 0 0.75rem;
+  color: var(--scriptorium-ink);
+  line-height: 1.45;
+}
+
 .scriptorium-actions {
   display: flex;
   flex-wrap: wrap;

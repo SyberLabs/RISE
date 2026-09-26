@@ -1,6 +1,6 @@
 # Privacy Policy
 
-**Last updated: 6 September 2026**
+**Last updated: 25 September 2026**
 
 > **This document has not been reviewed by a lawyer.** Every factual claim in
 > it was checked against the RISE source code, but whether those facts satisfy
@@ -10,14 +10,20 @@
 
 ## The short version
 
-RISE runs entirely in your browser. Your reading, your writing, your journals,
-your saved projects and your settings are stored on your own device and are
-never sent to us. We have no server that receives them, because we have no
-server at all beyond the one that hands your browser the application files.
+RISE's reading and authoring workflows run in your browser, and saved projects,
+journals and settings stay in your browser storage. If you choose **Route with
+JEV** in the Scriptorium, RISE sends only the intent you typed there (up to
+2,000 characters) and the target word count to a same-origin server function.
+That function forwards those fields and your reader-provided JEV API key to
+TypeSafe SystemOne. Saved texts, Library entries, media, reading history and
+proposals are not part of this request. RISE does not store the API key or
+persist the routing request in application code. TypeSafe's handling is
+governed by its own policies.
 
 We do not use cookies. We do not use analytics. We do not track you across
-sites or across visits. We have no accounts, so we do not know who you are. We
-have never sold or shared personal information, and there is nothing to sell.
+sites or across visits. RISE has no user accounts. We do not sell personal
+information. The JEV request to TypeSafe is described above; it is not
+advertising or cross-site tracking.
 
 The rest of this document is the detail behind those sentences.
 
@@ -32,8 +38,8 @@ For any question about this policy or your data, contact
 **syberlabs.software@gmail.com**.
 
 Under the UK GDPR and EU GDPR we are the *controller* for the limited
-processing described in sections 4 and 5. For everything in section 3 there is
-no controller relationship at all, because the data never reaches us.
+processing described in sections 4 and 5. The Scriptorium's optional JEV route
+also involves TypeSafe as the external service provider described in section 4.
 
 ---
 
@@ -50,8 +56,9 @@ There is no sign-up, no login and no user account of any kind.
 ## 3. What stays on your device
 
 The following is written to your browser's own storage, on your own computer or
-phone. **None of it is transmitted to us.** We cannot read it, we cannot
-recover it for you, and we do not know it exists.
+phone. RISE does not transmit these stored values as part of JEV routing. The
+optional routing request uses only the currently typed Scriptorium intent and
+target word count; it does not read or send these storage entries.
 
 ### Local storage
 
@@ -96,25 +103,41 @@ Session storage is discarded when you close the tab.
 
 ### Text you paste or upload
 
-Text you bring to RISE is processed in your browser and stored in the same
-local storage above. It is never uploaded. This is a property of how the
-application is built, not a promise about how we behave: there is no endpoint
-that accepts it.
+Text you bring to RISE is processed in the browser and may be stored in the
+browser storage described above. It is not included in a JEV routing request.
+The Scriptorium has a separate, optional JEV action: when you enter a key and
+choose **Route with JEV**, the typed intent in that field (maximum 2,000
+characters) and target word count are sent to RISE's same-origin function.
+Saved texts, Library entries, source text, media, reading history and proposals
+are excluded. You can instead choose **Prepare locally without JEV**.
 
 ---
 
 ## 4. What our own server sees
 
-The application files are served by **Netlify**, which acts as our hosting
-processor. Like any web server, Netlify's infrastructure records ordinary
-request data, which typically includes your IP address, the time of the
-request, the file requested, and your browser's user-agent string.
+The application and same-origin function are hosted by **Netlify**, which acts
+as our hosting processor. Like any web server, Netlify's infrastructure may
+record ordinary request data, which typically includes your IP address, the
+time of the request, the file or function requested, and your browser's
+user-agent string. When you invoke JEV routing, the function receives the
+typed Scriptorium intent (up to 2,000 characters), target word count, and the
+API key in the authorization header. The function forwards the request to
+TypeSafe SystemOne at `api.typesafe.ai` and does not log or persist the key or
+routing payload in RISE application code. Netlify processes the request as the
+hosting and function provider.
 
 We use these logs only to serve the site and to understand faults. We do not
 build profiles from them, and we do not combine them with anything else.
 
 Netlify's own handling of this data is governed by
 <https://www.netlify.com/privacy/>.
+
+TypeSafe SystemOne receives the routing fields and the reader-provided API key
+through the function request. TypeSafe's use, security, and retention of that
+information are governed by TypeSafe's own terms and privacy policy; this
+policy does not make claims about provider-side retention. JEV routing is an
+explicit user action and is not called when you choose **Prepare locally
+without JEV**.
 
 ---
 
@@ -166,9 +189,9 @@ We state these plainly because the absence is the point.
 - **No advertising, no pixels, no fingerprinting.**
 - **No cross-site or cross-visit tracking.** Nothing stored on your device is
   an identifier for you; it is your own work and your own settings.
-- **No sale or sharing of personal information**, as those terms are used in
-  the California Consumer Privacy Act. There is no personal information in our
-  possession to sell.
+- **No sale of personal information.** We do not sell personal information.
+  The optional JEV routing disclosure above describes the limited request to
+  TypeSafe and the processing by Netlify as our hosting/function provider.
 - **No camera, microphone or location access.** The application is served with
   a `Permissions-Policy` header that denies all three at the browser level,
   regardless of what any code might ask for.
@@ -187,11 +210,12 @@ for a Do Not Track signal to switch off, so RISE does not act on the signal
 differently: the behaviour the signal asks a site to stop is behaviour RISE
 never performs.
 
-**No third party collects personally identifiable information about your
-activity across websites through RISE.** We run no third-party scripts. The
-museums and archives in section 5 receive a request for a text or an artwork,
-as any website you visit receives a request; none of them is given an
-identifier for you, and none is placed here to observe you.
+**RISE runs no third-party tracking scripts.** The museums and archives in
+section 5 receive direct requests for texts or artworks as described there.
+Separately, if you choose JEV routing, TypeSafe receives the typed intent,
+target word count and your API key through RISE's function. This is a routing
+request, not cross-site tracking; consult TypeSafe's own policy for its handling
+of that request.
 
 ---
 
@@ -209,26 +233,30 @@ Because your data is on your device, you hold it directly.
 
 If you are in the UK, EU or another jurisdiction granting data-subject rights,
 those rights — access, rectification, erasure, restriction, portability,
-objection — apply to the request-log data described in section 4. Write to
+objection — apply to the request-log and optional JEV request processing
+described in section 4. Write to
 **syberlabs.software@gmail.com**. You also have the right to complain to your
 supervisory authority; in the UK that is the Information Commissioner's Office.
 
 For the on-device data in section 3 we cannot action such a request, because we
 have no copy to access, correct or delete. The export and erase controls give
-you the same outcome immediately.
+you the same outcome immediately. For a JEV request, TypeSafe may also process
+the request under its own policy; contact the provider for requests concerning
+its processing or retention.
 
 ---
 
 ## 9. California residents
 
-RISE is published from California, and the same answer applies wherever you
-are: we hold no personal information about you beyond the hosting request logs
-in section 4.
+RISE is published from California. We may hold ordinary hosting request logs
+and receive the bounded routing request described in section 4 when you choose
+JEV routing.
 
-**We do not sell or share personal information**, and never have, as those
-terms are defined in the California Consumer Privacy Act. We do not use or
-disclose sensitive personal information for any purpose that would require an
-opt-out. We do not offer financial incentives for data.
+**We do not sell personal information**, as that term is defined in the
+California Consumer Privacy Act. The optional JEV route is disclosed in
+section 4. We do not use or disclose sensitive personal information for any
+purpose that would require an opt-out. We do not offer financial incentives
+for data.
 
 The CCPA's obligations attach to businesses above thresholds — annual gross
 revenue over roughly $26.6 million, or buying, selling or sharing the personal
@@ -245,8 +273,10 @@ We do not, and never have.
 
 ## 10. Legal basis (UK/EU GDPR)
 
-- **Serving the site**, including the request logs in section 4: our legitimate
-  interest in delivering and securing the application (Article 6(1)(f)).
+- **Serving the site and processing an expressly requested JEV route**, including
+  the request logs and bounded routing request in section 4: our legitimate
+  interest in delivering and securing the application and fulfilling the
+  routing action you chose (Article 6(1)(f)).
 - **Storing your work on your device**, in section 3: necessary to provide the
   service you have asked for. It holds your reading and your writing, carries no
   identifier, and is not used to observe you.
@@ -259,8 +289,10 @@ ask first.
 
 ## 11. Retention
 
-We retain nothing of yours, so there is nothing for us to expire. Hosting
-request logs are retained by Netlify under its own schedule.
+RISE application code does not persist JEV routing requests or API keys.
+Hosting and function request logs are handled by Netlify under its own
+schedule. TypeSafe's retention of routing requests or keys is governed by its
+own policy; see section 4.
 
 Data on your device persists until you erase it or clear your browser storage.
 
@@ -269,19 +301,24 @@ Data on your device persists until you erase it or clear your browser storage.
 ## 12. International transfers
 
 The third parties in section 5 are located in various countries, including the
-United States. Your browser contacts them directly; we do not transfer anything
-to them, because we hold nothing to transfer.
+United States. Your browser contacts the listed reading and image sources
+directly. For JEV routing, RISE's function sends the bounded request and key to
+TypeSafe SystemOne; consult TypeSafe's policies for information about its
+processing locations and any transfers it makes.
 
 ---
 
 ## 13. Children
 
 RISE is not directed at children and is not intended for anyone under 13. We do
-not knowingly collect personal information from children, and we hold no
-personal information about any reader beyond the request logs in section 4.
+not knowingly collect personal information from children. A reader who
+chooses JEV routing may include personal information in the intent sent as
+described in section 4.
 There is no account system, so we hold no age information about anybody. If you
 believe a child has provided us with personal information, write to
-syberlabs.software@gmail.com and we will delete anything we hold.
+syberlabs.software@gmail.com. We will review data held by RISE and explain the
+available deletion steps; contact TypeSafe about any request concerning its
+processing of a JEV request.
 
 Some readings are drawn from adult literary and philosophical works. RISE also
 presents moving light and generative visuals, and carries a photosensitivity

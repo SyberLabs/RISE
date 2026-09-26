@@ -30,6 +30,25 @@ standard the rest of the codebase is measured against.
 
 ---
 
+## Current technical priority: JEV integration
+
+JEV integration is the RISE team's current top technical priority. The
+Scriptorium uses JEV to route a composition request to one of RISE's existing
+output formats, and the selected route shapes the prompt prepared for the
+composer. JEV recommends a route; RISE's deterministic examination still
+decides whether a returned score can be admitted as a reading.
+
+To route with JEV, enter your own JEV API key in the Scriptorium and choose
+**Route with JEV**. RISE holds the key only in the mounted interface and sends
+it in the authorization header of the same-origin routing request; the key is
+not saved in browser storage. The request contains only the typed intent (up
+to 2,000 characters) and target word count; RISE's function forwards those
+fields and your key to TypeSafe SystemOne. Saved texts, Library entries, media, reading
+history, and proposals are not sent. **Prepare locally without JEV** remains
+available when you prefer not to route through JEV.
+
+---
+
 ## The Chamber
 
 A reading begins by tuning four elements.
@@ -224,7 +243,11 @@ RISE is an experimental reading and creative-technology project. It makes no med
 
 RISE is browser-native.
 
-User-provided text files are read locally in the browser and are not uploaded to a RISE server.
+User-provided source texts and media stay in RISE's browser workflows. If you
+explicitly route a Scriptorium request with JEV, RISE's same-origin function
+sends the typed intent and target word count to TypeSafe SystemOne; it does not
+send the source text, saved texts, Library entries, media, history, or proposals.
+See [PRIVACY.md](PRIVACY.md) for the full disclosure.
 
 Some visual modes retrieve publicly hosted images from external cultural or scientific institutions. Remote-image requests are deliberately configured to avoid sending the reader's RISE page as a referrer.
 
@@ -232,7 +255,10 @@ Some visual modes retrieve publicly hosted images from external cultural or scie
 
 ## Development
 
-RISE is client-only. There is no backend, database, or service to stand up - the whole product runs from the Vite dev server.
+RISE keeps reading and authoring in the browser. The opt-in Scriptorium JEV
+route is served by a same-origin Netlify Function at `/api/jev/route`, which
+forwards the bounded request to TypeSafe SystemOne. Local development still
+runs through the Vite dev server.
 
 Engineering overview: [docs/ENGINEERING.md](docs/ENGINEERING.md).
 
