@@ -12,6 +12,8 @@ Deploy one Cloudflare Worker with Static Assets for the Vite build and a Worker 
 
 This follows the draft Jev integration in PR #178. Reconcile that branch with current `main`, including the later removal of the reading path gate in #181, before releasing. Port the functions and their focused tests without changing the reading decision schema, user consent checks, input bounds, fixed model, or fail-closed behavior.
 
+Because #181 removed the prior reading gate, add a small, explicitly user-triggered Jev preview page within the RISE build. It sends one bounded sample reading state from the browser to the same-origin endpoint and displays the validated action, model, and request ID. It must not change playback, route a reader automatically, retain an excerpt, or require a personal OpenRouter key. This provides an observable frontend-to-provider test without restoring the removed gate.
+
 Cloudflare Pages plus a separate API Worker adds another deployment and routing boundary. Hosting RISE under `syberlabs.io/rise` requires rebasing root-relative paths, the manifest, and API routes. Neither extra layer earns its cost for the first release.
 
 ## Runtime and security
@@ -26,7 +28,7 @@ The `/api/jev/route` bring-your-own-key flow must preserve its existing browser 
 
 The GitHub deployment workflow builds the exact commit that passed the repository's required `CI` check, then deploys staging. After staging checks pass, a protected production job deploys that same artifact. Keep Cloudflare deployment credentials scoped to the needed account and Worker resources, in GitHub environment secrets. Declare required Worker secrets so a deploy fails when the key is absent. Keep a known-good deployment available for rollback.
 
-Staging verification covers root and deep links, static media, PWA manifest, cache and security headers, both API routes, API error responses, the rate limit, and the RISE reading flow. A live test selects a reading in the frontend and confirms one paid Jev decision in OpenRouter usage and bounded Cloudflare logs. Production verification repeats the frontend decision and HTTPS checks on `rise.syberlabs.io` after the custom domain is active. No Go server or Kafka queue is in this release path.
+Staging verification covers root and deep links, static media, PWA manifest, cache and security headers, both API routes, API error responses, the rate limit, and the Jev preview page. A live test submits one sample reading state from that page and confirms one paid Jev decision in OpenRouter usage and bounded Cloudflare logs. Production verification repeats the frontend preview decision and HTTPS checks on `rise.syberlabs.io` after the custom domain is active. No Go server or Kafka queue is in this release path.
 
 Before launch, update canonical and public-host references, QR/link defaults, privacy and terms copy, and any deployment documentation that names Netlify as the new production host. Announce the new origin as a fresh browser storage location. The current export is incomplete and there is no full import, so it is not a verified migration mechanism.
 

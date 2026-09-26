@@ -28,6 +28,7 @@
 - `wrangler.staging.jsonc`, `wrangler.production.jsonc`: explicit Worker bindings and routing.
 - `public/_headers`: Cloudflare static asset security and cache headers.
 - `src/core/jev-decision.test.js`, `worker/index.test.js`: provider and routing behavior.
+- `public/jev-preview.html`, `public/jev-preview.js`: explicit browser test of the server-owned Jev decision without changing playback.
 - `.github/workflows/rise-cloudflare.yml`: checked-source staging and protected production deployment.
 - `docs/jev-core/service.md`, `README.md`, public host configuration: launch instructions and canonical links.
 
@@ -69,7 +70,18 @@
 - [ ] **Step 4: Change only new-host references.** Make `rise.syberlabs.io` canonical for new links and QR defaults while preserving the `.space` old origin and its stored data. Do not redirect the old hostname.
 - [ ] **Step 5: Build, inspect headers and paths, run focused tests, commit.** Check root and deep link behavior in local Wrangler preview before committing.
 
-### Task 4: Gate the deployment and verify the exact artifact
+### Task 4: Add an explicit RISE browser-to-Jev preview
+
+**Files:** Create `public/jev-preview.html`, `public/jev-preview.js`, and a focused browser behavior test; update only the navigation or documentation needed to let the owner find the preview.
+
+**Interfaces:** The page POSTs to same-origin `/api/jev-decision` with a bounded sample `intent`, `feedback`, `excerpt`, `mode`, `pace`, and random `requestId`; it displays only the validated `continue`, `slower`, or `pause` action, model, and matching request ID.
+
+- [ ] **Step 1: Write a failing browser behavior test.** It must show that the decision is only requested after a deliberate button click, uses the same-origin API without a browser API key, and displays a safe error on failure.
+- [ ] **Step 2: Implement the minimal preview screen.** Use a short default sample passage and clear copy that one click sends that sample to OpenRouter through RISE. Bound editable fields to the API limits; do not store or log submitted text or the provider response.
+- [ ] **Step 3: Keep the reading path independent.** Do not restore `JevGate`, intercept playback, or automatically call the provider from the reading flow removed in #181.
+- [ ] **Step 4: Verify and commit.** Run the focused test, build, and confirm the page is served as a real static page by the local Worker preview.
+
+### Task 5: Gate the deployment and verify the exact artifact
 
 **Files:** Create `.github/workflows/rise-cloudflare.yml`; update deployment section of `README.md`.
 
@@ -83,6 +95,6 @@
 
 ## Plan self-review
 
-- Every spec section maps to a task or the explicit account-side launch checks in Task 4.
+- Every spec section maps to a task or the explicit account-side launch checks in Task 5.
 - No Go, Kafka, database, generic AI routing, or origin-data migration is added.
 - API tests exercise the paid-request boundary; the browser live test is separate from local mocks.
