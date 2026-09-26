@@ -487,6 +487,7 @@ describe('the Scriptorium as the reader meets it', () => {
         /** Exactly the state ScriptoriumSession owns. */
         const SEQUENCE_STATE = Object.freeze([
             'intent', 'targetWords', 'lengthChosen', 'materials', 'swells', 'localWorks',
+            'jevRoute', 'jevRouteRequestId',
             'context', 'promptText', 'pasted', 'program', 'operationSet',
             'proposalRows', 'preview', 'rundown', 'verdict', 'projectId', 'status'
         ]);
