@@ -10,7 +10,8 @@
 decision before reading progresses, with explicit consent to send bounded
 excerpts through OpenRouter to the selected model provider. Follow the [implementation and agent evidence](docs/jev-core/README.md).
 Live verification requires a server-side `OPENROUTER_API_KEY`; tests using simulated
-responses do not establish a working live deployment.
+responses do not establish a working live deployment. Production publishing stops
+if that key is missing; configure both Netlify Builds and Functions scopes before activation.
 
 ---
 

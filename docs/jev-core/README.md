@@ -28,7 +28,7 @@ Page remains paginated so only the requested page is evaluated. Whole-book print
 
 See [service setup](service.md), [provider decision](provider-decision.md), and [OpenRouter review](openrouter-review.md). The older [Jev review](review.md) and [runtime review](runtime-review.md) are historical checkpoints, not proof that OpenRouter works.
 
-Set `OPENROUTER_API_KEY` in the Netlify site's environment variables with Functions scope, including deploy previews. Obtain a key at [OpenRouter](https://openrouter.ai/settings/keys). Do not paste it into Git, browser configuration, or a PR comment. Redeploy after changing environment variables. A missing key returns `503 DECISION_NOT_CONFIGURED`; the application does not silently continue.
+Set `OPENROUTER_API_KEY` in the Netlify site's environment variables with both Builds and Functions scopes, including deploy previews. Obtain a key at [OpenRouter](https://openrouter.ai/settings/keys). Do not paste it into Git, browser configuration, or a PR comment. Redeploy after changing environment variables. A missing key returns `503 DECISION_NOT_CONFIGURED` on previews; the application does not silently continue. Production builds run `scripts/check-openrouter-config.mjs` first and stop publication if the key is missing or blank. The existing live deployment remains in place while configuration is pending. This checks key presence, not key validity; real preview decisions must still be verified before activation.
 
 [Deploy preview](https://deploy-preview-175--rise-v2-symbolic-experience.netlify.app). A successful static deployment alone does not establish a working model request.
 
@@ -43,6 +43,8 @@ Netlify deployed code checkpoint `6b9b041` successfully. A real preview request 
 ## Main-branch integration
 
 Integrated main at `093316e`, preserving its UI refinements and separate optional Scriptorium TypeSafe route. The policy and README now distinguish that authoring route from the required OpenRouter reading guide. Integration testing exposed two missing live Scriptorium getters; those were restored without changing the assertions. The affected room/session/prompt and Rosary-door run passed **89 tests** after the fix.
+
+The final merged UI passed the dedicated reading browser checks **4/4** and broader gate **33 passed / 14 skipped**. Those browser builds preceded the two getter-only Scriptorium repairs, which are covered by the 89-test focused run. The production-only key guard and service checks passed **24 tests**. The guard blocks publication without a configured key so the code can be merged without replacing the existing live site with an unusable reading flow.
 
 ## Next seven days
 

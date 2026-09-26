@@ -8,6 +8,9 @@
   # Output directory (Vite default)
   publish = "dist"
 
+[context.production]
+  command = "node scripts/check-openrouter-config.mjs && npm run build"
+
 # Vanity hosts under syberlabs.space. Each 301s onto the one running origin
 # so IndexedDB, audio consent, and the PWA are not split. Listed before the
 # SPA fallback; first match wins. Kept in lockstep with src/content/public-hosts.js.

@@ -6,7 +6,7 @@ The model returns only `{ "action": "continue" | "slower" | "pause" }`. RISE req
 
 ## Configuration
 
-Set `OPENROUTER_API_KEY` in the Netlify site's environment-variable settings with Functions scope, including deploy previews. Get a key from [OpenRouter](https://openrouter.ai/settings/keys). Redeploy after setting it. Never put the key in browser variables, source control, or PR comments.
+Set `OPENROUTER_API_KEY` in the Netlify site's environment-variable settings with both Builds and Functions scopes, including deploy previews. Get a key from [OpenRouter](https://openrouter.ai/settings/keys). Production builds stop before publishing when the key is missing or blank. This configuration check verifies presence only, not provider access or the Functions scope; configure both scopes and verify a real preview response before activating production. Redeploy after setting it. Never put the key in browser variables, source control, or PR comments.
 
 `OPENROUTER_MODEL` is optional; the default is `openai/gpt-4.1-mini`. This compact non-reasoning model supports structured outputs and avoids allocating a reasoning budget for a three-way choice. Model support was checked in the official catalog on 25 September 2026; live RISE decision quality remains to be measured. A replacement model must support all requested parameters and be checked on RISE's evaluation set.
 
