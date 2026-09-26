@@ -4,7 +4,11 @@
 
 **RISE is a browser-based environment for reading text through time, image, sound, and procedural form.**
 
-[Enter RISE →](https://rise.syberlabs.space/)
+[Enter RISE →](https://rise.syberlabs.io/)
+
+The earlier site at [rise.syberlabs.space](https://rise.syberlabs.space/) remains
+available for work saved in that browser origin. The new `.io` address has
+separate browser storage; RISE does not have a complete import path between them.
 
 Text presentation and pacing run in the browser. The Chamber does not depend
 on a remote model decision or provider key.
@@ -249,16 +253,21 @@ User-provided files and saved work remain in browser storage. Chamber reading do
 
 Separately, choosing **Route with JEV** in Scriptorium sends the typed intent and target word count through RISE to TypeSafe using a reader-provided key. That optional routing request excludes saved texts, media, reading history, and proposals.
 
+The optional Jev preview sends a fixed sample reading state through the `.io`
+site's same-origin API to OpenRouter when you choose it. It does not send your
+active reading or change playback.
+
 Some visual modes retrieve publicly hosted images from external cultural or scientific institutions. Remote-image requests are deliberately configured to avoid sending the reader's RISE page as a referrer.
 
 ---
 
 ## Development
 
-RISE keeps reading and authoring in the browser. The optional Scriptorium JEV
-route is served by a same-origin Netlify Function at `/api/jev/route`, which
-forwards the bounded request to TypeSafe SystemOne. Local development runs
-through the Vite dev server.
+RISE keeps reading and authoring in the browser. On the new `.io` host,
+Cloudflare serves the app and its same-origin JEV API. The still-available
+`.space` host remains on Netlify. The optional Scriptorium route at
+`/api/jev/route` forwards its bounded request to TypeSafe SystemOne. Local
+development runs through the Vite dev server.
 
 Engineering overview: [docs/ENGINEERING.md](docs/ENGINEERING.md).
 

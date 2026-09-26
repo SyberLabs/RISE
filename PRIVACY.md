@@ -1,6 +1,6 @@
 # Privacy Policy
 
-**Last updated: 25 September 2026**
+**Last updated: 26 September 2026**
 
 > **This document has not been reviewed by a lawyer.** Every factual claim in
 > it was checked against the RISE source code, but whether those facts satisfy
@@ -11,13 +11,14 @@
 ## The short version
 
 RISE stores your projects, journals, and settings in your browser. Text you
-bring to a Chamber reading is presented and paced locally; reading does not
-send text excerpts or reading context to a model service.
+bring to a Chamber reading is presented and paced locally. Chamber playback
+does not send your reading to a model service. A separate, optional Jev preview
+sends a fixed sample reading state to OpenRouter only when you choose it.
 
 We do not use cookies. We do not use analytics. We do not track you across
 sites or across visits. We have no accounts, so we do not know who you are. We
 do not sell personal information. Network processing occurs for hosting,
-external resources you request, and optional Scriptorium routing described below.
+external resources you request, and the optional Jev actions described below.
 
 Scriptorium also has a separate optional **Route with JEV** action. It sends the typed composition intent and target word count through RISE to TypeSafe using a key you supply for that action. **Prepare locally without JEV** remains available.
 
@@ -34,8 +35,7 @@ For any question about this policy or your data, contact
 **syberlabs.software@gmail.com**.
 
 Under the UK GDPR and EU GDPR we are the *controller* for the limited
-processing described in sections 4 and 5, including the reading excerpts
-described in section 4.
+processing described in sections 4 and 5.
 
 ---
 
@@ -54,7 +54,8 @@ There is no sign-up, no login and no user account of any kind.
 The following is written to your browser's own storage, on your own computer or
 phone. RISE does not synchronize this storage to a server, and we cannot recover
 it for you. Text selected for a reading stays in the browser as the Chamber
-presents it.
+presents it. Browser storage belongs to its exact site origin: saved work at
+`rise.syberlabs.space` does not appear at `rise.syberlabs.io`.
 
 ### Local storage
 
@@ -101,39 +102,53 @@ Session storage is discarded when you close the tab.
 
 Text you bring to RISE is processed in your browser and stored in the same
 local storage above. Chamber playback does not send excerpts, intent, feedback,
-mode, or pace to a reading service or model provider.
+mode, or pace to a reading service or model provider. The optional Jev preview
+uses a fixed sample, not the reading or saved work in your browser.
 
 ---
 
-## 4. What our own server sees
+## 4. What hosting and Jev services receive
 
 ### Optional Scriptorium routing
 
 Choosing **Route with JEV** sends only the typed Scriptorium intent (up to
 2,000 characters) and target word count to `/api/jev/route`. The browser sends
-your supplied JEV key in the authorization header; the Netlify function forwards
-these fields and the key to TypeSafe SystemOne at `api.typesafe.ai`. The key is
+your supplied JEV key in the authorization header; the same-origin API forwards
+these fields and the key to TypeSafe SystemOne at `api.typesafe.ai`. On `.io`
+the API runs in a Cloudflare Worker; on `.space` it runs as a Netlify function.
+The key is
 held only in the mounted interface, not saved in browser storage. RISE application
 code does not deliberately log or persist the key or routing request. Saved
 texts, Library entries, source text, media, reading history, and proposals are
 not part of this routing request. **Prepare locally without JEV** does not call
 TypeSafe. This optional authoring route is separate from local Chamber reading.
 
+### Optional Jev preview
+
+Choosing the Jev preview sends a fixed sample reading state through the
+same-origin `/api/jev-decision` endpoint to **OpenRouter**, which routes it to
+the fixed TypeSafe Jev model. The sample contains bounded intent, feedback,
+excerpt, reading mode, pace, and a request ID. It does not include your active
+reading, saved texts, journal, media, or a personal API key. The response shows
+the selected reading action, model, and request ID. The preview does not change
+playback and is not called during ordinary reading. OpenRouter's handling of
+the request is described at <https://openrouter.ai/privacy>; the model provider
+may also process it under its own policy. We do not promise provider-side
+retention periods.
+
 ### Hosting requests
 
-The application files are served by **Netlify**, which acts as our hosting
-processor. Like any web server, Netlify's infrastructure records ordinary
-request data, which typically includes your IP address, the time of the
-request, the file requested, and your browser's user-agent string.
-
-We use these logs only to serve the site and to understand faults. We do not
-build profiles from them, and we do not combine them with anything else.
-
-Netlify's own handling of this data is governed by
+**Cloudflare** serves `rise.syberlabs.io` and its API. **Netlify** still serves
+`rise.syberlabs.space`, where existing browser-local work remains available.
+These hosting providers process ordinary request data such as IP address,
+request time, requested path, and browser user-agent to deliver and secure the
+sites. We use hosting data to diagnose faults, not to build visitor profiles.
+The providers' handling is described at
+<https://www.cloudflare.com/privacypolicy/> and
 <https://www.netlify.com/privacy/>.
 
 TypeSafe SystemOne receives the routing fields and the reader-provided API key
-through the function request. TypeSafe's use, security, and retention of that
+through the API request. TypeSafe's use, security, and retention of that
 information are governed by TypeSafe's own terms and privacy policy; this
 policy does not make claims about provider-side retention. JEV routing is an
 explicit user action and is not called when you choose **Prepare locally
@@ -191,7 +206,8 @@ We state these plainly because the absence is the point.
   an identifier for you; it is your own work and your own settings.
 - **No sale or sharing of personal information**, as those terms are used in
   the California Consumer Privacy Act. Optional Scriptorium routing is for the
-  action you choose, not advertising.
+  action you choose, not advertising. The optional Jev preview sends its fixed
+  sample to OpenRouter for the decision you request.
 - **No camera, microphone or location access.** The application is served with
   a `Permissions-Policy` header that denies all three at the browser level,
   regardless of what any code might ask for.
@@ -213,9 +229,10 @@ never performs.
 **RISE runs no third-party tracking scripts.** The museums and archives in
 section 5 receive direct requests for texts or artworks as described there.
 Separately, if you choose JEV routing, TypeSafe receives the typed intent,
-target word count and your API key through RISE's function. This is a routing
+target word count and your API key through RISE's API. This is a routing
 request, not cross-site tracking; consult TypeSafe's own policy for its handling
-of that request.
+of that request. The separate Jev preview sends a fixed sample through
+OpenRouter only when you choose it.
 
 ---
 
@@ -223,8 +240,9 @@ of that request.
 
 Because your data is on your device, you hold it directly.
 
-- **Export.** Settings offers an export that assembles everything RISE has
-  stored — settings, journals, projects and media — into a single file you keep.
+- **Export.** Settings offers an export of some saved data. It is incomplete
+  and there is no complete import path, so it cannot transfer all work from
+  `.space` to `.io` or serve as a complete backup.
 - **Erase.** Settings also offers an erase that clears that storage. It
   covers every key and database listed in section 3; an automated check
   fails the build if a new one is ever added without being registered.
@@ -238,17 +256,18 @@ objection — concern the server processing described in section 4. Write to
 supervisory authority; in the UK that is the Information Commissioner's Office.
 
 For the on-device data in section 3 we cannot action such a request, because we
-have no copy to access, correct or delete. The export and erase controls give
-you the same outcome immediately. For a JEV request, TypeSafe may also process
+have no copy to access, correct or delete. The local erase control can delete
+that copy immediately. For a JEV request, TypeSafe may also process
 the request under its own policy; contact the provider for requests concerning
-its processing or retention.
+its processing or retention. OpenRouter and the model provider may process an
+optional preview request under their own policies.
 
 ---
 
 ## 9. California residents
 
 RISE is published from California. Our server processing includes hosting
-request logs and optional Scriptorium routing requests, as described in section 4.
+request data and optional Jev requests, as described in section 4.
 
 **We do not sell personal information**, as that term is defined in the
 California Consumer Privacy Act. The optional JEV route is disclosed in
@@ -271,10 +290,10 @@ We do not, and never have.
 
 ## 10. Legal basis (UK/EU GDPR)
 
-- **Serving the site and processing an expressly requested JEV route**, including
-  the request logs and bounded routing request in section 4: our legitimate
-  interest in delivering and securing the application and fulfilling the
-  routing action you chose (Article 6(1)(f)).
+- **Serving the sites and processing expressly requested Jev actions**, including
+  request data and bounded requests in section 4: our legitimate interest in
+  delivering and securing the application and fulfilling the action you chose
+  (Article 6(1)(f)).
 - **Storing your work on your device**, in section 3: necessary to provide the
   service you have asked for. It holds your reading and your writing, carries no
   identifier, and is not used to observe you.
@@ -287,10 +306,10 @@ ask first.
 
 ## 11. Retention
 
-RISE application code does not persist JEV routing requests or API keys.
-Hosting and function request logs are handled by Netlify under its own
-schedule. TypeSafe's retention of routing requests or keys is governed by its
-own policy; see section 4.
+RISE application code does not persist JEV routing requests, preview sample
+requests, or API keys. Cloudflare and Netlify handle hosting and API request
+data under their own policies. OpenRouter and TypeSafe handle optional Jev
+requests under their own policies; see section 4.
 
 Data on your device persists until you erase it or clear your browser storage.
 
@@ -300,9 +319,11 @@ Data on your device persists until you erase it or clear your browser storage.
 
 The third parties in section 5 are located in various countries, including the
 United States. Your browser contacts the listed reading and image sources
-directly. For JEV routing, RISE's function sends the bounded request and key to
+directly. For JEV routing, RISE's API sends the bounded request and key to
 TypeSafe SystemOne; consult TypeSafe's policies for information about its
-processing locations and any transfers it makes.
+processing locations and any transfers it makes. An optional Jev preview sends
+the fixed sample through OpenRouter to TypeSafe; consult their policies for
+their processing locations and transfers.
 
 ---
 
@@ -315,8 +336,8 @@ described in section 4.
 There is no account system, so we hold no age information about anybody. If you
 believe a child has provided us with personal information, write to
 syberlabs.software@gmail.com. We will review data held by RISE and explain the
-available deletion steps; contact TypeSafe about any request concerning its
-processing of a JEV request.
+available deletion steps; contact TypeSafe or OpenRouter about any request
+concerning their processing of a JEV request.
 
 Some readings are drawn from adult literary and philosophical works. RISE also
 presents moving light and generative visuals, and carries a photosensitivity
@@ -336,4 +357,4 @@ after a change means the revised policy applies.
 
 **Mateo Robles**, doing business as **SyberLabs**
 **syberlabs.software@gmail.com**
-<https://rise.syberlabs.space/>
+<https://rise.syberlabs.io/>
