@@ -143,7 +143,7 @@ function validUpstreamResult(value) {
     return { model: value.model, action: answer.choice };
 }
 
-export default async function jevDecision(request) {
+export async function handleJevDecision(request, apiKey) {
     if (request.method !== 'POST') {
         return errorReply(405, 'METHOD_NOT_ALLOWED', 'Use POST for this endpoint.');
     }
@@ -167,7 +167,6 @@ export default async function jevDecision(request) {
         return errorReply(400, 'INVALID_JSON', 'Request body must be valid JSON.');
     }
 
-    const apiKey = process.env.OPENROUTER_API_KEY;
     if (!apiKey) {
         return errorReply(503, 'DECISION_NOT_CONFIGURED', 'Decision service is unavailable.');
     }
@@ -217,6 +216,10 @@ export default async function jevDecision(request) {
     }
 
     return reply(200, { requestId: input.requestId, ...decision });
+}
+
+export default function jevDecision(request) {
+    return handleJevDecision(request, process.env.OPENROUTER_API_KEY);
 }
 
 export const config = {

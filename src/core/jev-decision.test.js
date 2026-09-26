@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import jevDecision, { config } from '../../netlify/functions/jev-decision.mjs';
+import jevDecision, { config, handleJevDecision } from '../../netlify/functions/jev-decision.mjs';
 
 const SITE = 'https://rise.example';
 const VALID_INPUT = Object.freeze({
@@ -64,6 +64,22 @@ describe('OpenRouter decision Netlify function', () => {
             method: ['POST'],
             rateLimit: { windowLimit: 30, windowSize: 60, aggregateBy: 'ip' }
         });
+    });
+
+    it('uses the supplied server secret without a Netlify environment key', async () => {
+        vi.stubEnv('OPENROUTER_API_KEY', undefined);
+        const fetchMock = mockFetch();
+
+        const response = await handleJevDecision(request(), 'server-secret');
+
+        expect(response.status).toBe(200);
+        expect(await json(response)).toEqual({
+            requestId: 'request-123',
+            action: 'slower',
+            model: 'typesafe/jev-1.13-20260917'
+        });
+        expect(fetchMock).toHaveBeenCalledOnce();
+        expect(fetchMock.mock.calls[0][1].headers.Authorization).toBe('Bearer server-secret');
     });
 
     it('sends a Jev choice and returns the validated reading action', async () => {
