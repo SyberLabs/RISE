@@ -807,8 +807,8 @@ of `settled`, `open`, `deferred`, or `reversed`.
   intent may itself contain personal information and is sent only after the
   reader presses **Route with JEV**. The TypeSafe key is held in page memory
   and forwarded in the authorization header; RISE does not store it.
-- **Status:** implemented as a Netlify Function; the deploy must provide the
-  route, and each reader must have a TypeSafe API key.
+- **Status:** open. The Netlify Function is implemented; deployment must expose
+  the route, and each reader must supply a TypeSafe API key.
 
 ---
 
