@@ -13,7 +13,7 @@ This replaces the previous Jev-specific requirement. There is one provider integ
 - [x] Server: OpenRouter chat completions with strict action schema, bounded input, timeout, safe errors, and server-only credentials.
 - [x] Client: accept only request-correlated action and model; remove Jev confidence claims.
 - [x] Consent and policies: disclose OpenRouter and the selected model provider.
-- [ ] Verification: focused unit tests, required project checks, browser consent/failure tests, and preview deployment.
+- [x] Verification: focused unit tests, required project checks, browser consent/failure tests, and preview deployment.
 - [ ] Activation: configure an OpenRouter key and validate real decisions before production promotion.
 
 ## Contract and boundaries
@@ -35,6 +35,10 @@ Set `OPENROUTER_API_KEY` in the Netlify site's environment variables with Functi
 ## Local verification
 
 The full unit run passed **3,484 tests**, with **63 skipped** (282 test files passed, five skipped). The service suite passed **20/20**, and the final consent component rerun passed **6/6**. The dedicated consent, outage/retry, devotional hold, and Page browser checks passed **4/4** with simulated service responses. Production build first load is **59.4 KB Brotli**, within the 64 KB budget. Hygiene, dependency compatibility, architecture guard, and generated-policy consistency checks passed. These checks do not establish live OpenRouter behavior.
+
+The broader browser gate passed **33 tests**, with **14 skipped** and no failures. The documentation index now includes every integration document; the wiki builder passed **55 pages plus sidebar**, including a small Windows path correction needed for local verification. The high-severity dependency audit passed with three existing moderate development advisories; dependencies are unchanged.
+
+Netlify deployed code checkpoint `6b9b041` successfully. A real preview request returned **503 DECISION_NOT_CONFIGURED** with **Cache-Control: no-store**. This verifies the deployed OpenRouter configuration boundary, but confirms that this preview still needs `OPENROUTER_API_KEY`. No authenticated model decision or production activation is claimed.
 
 ## Next seven days
 
