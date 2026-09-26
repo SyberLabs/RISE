@@ -174,6 +174,7 @@ export class NamingModal {
 
     return new Promise((resolve) => {
       this.resolve = resolve;
+      this.previousFocus = document.activeElement;
       this._createModal(defaultValue, title, subtitle);
     });
   }
@@ -183,17 +184,17 @@ export class NamingModal {
     this.container.className = 'naming-modal-overlay';
     
     this.container.innerHTML = `
-      <div class="naming-modal">
+      <div class="naming-modal" role="dialog" aria-modal="true" aria-labelledby="naming-modal-title">
         <div class="naming-modal-header">
           <span class="naming-modal-subtitle"></span>
-          <h2 class="naming-modal-title"></h2>
+          <h2 class="naming-modal-title" id="naming-modal-title"></h2>
         </div>
         <div class="naming-modal-body">
           <input type="text" class="naming-modal-input" placeholder="Enter identifier..." spellcheck="false" autocomplete="off">
         </div>
         <div class="naming-modal-actions">
-          <button class="naming-btn naming-btn-cancel" data-action="cancel">Discard</button>
-          <button class="naming-btn naming-btn-submit" data-action="submit">Record</button>
+          <button type="button" class="naming-btn naming-btn-cancel" data-action="cancel">Discard</button>
+          <button type="button" class="naming-btn naming-btn-submit" data-action="submit">Record</button>
         </div>
       </div>
     `;
@@ -222,6 +223,20 @@ export class NamingModal {
       if (e.key === 'Escape') this._cancel();
     });
 
+    this.container.addEventListener('keydown', (e) => {
+      if (e.key !== 'Tab') return;
+      const controls = [...this.container.querySelectorAll('input, button')];
+      const first = controls[0];
+      const last = controls[controls.length - 1];
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    });
+
     this.container.addEventListener('click', (e) => {
       if (e.target === this.container) this._cancel();
     });
@@ -244,6 +259,8 @@ export class NamingModal {
       this.container.remove();
       this.container = null;
     }
+    if (this.previousFocus?.isConnected) this.previousFocus.focus();
+    this.previousFocus = null;
   }
 }
 

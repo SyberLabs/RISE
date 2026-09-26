@@ -39,7 +39,7 @@ export class Mint {
           <p class="mint-eyebrow">Not found</p>
           <h1 class="mint-title">This sequence is not one RISE has minted</h1>
           <p class="mint-summary">The code may be older than the reading it names.</p>
-          <button class="mint-open" data-action="portal">Go to RISE</button>
+          <button type="button" class="mint-open" data-action="portal">Go to RISE</button>
         </div>`;
       return;
     }
@@ -48,8 +48,8 @@ export class Mint {
         <p class="mint-eyebrow">A minted sequence</p>
         <h1 class="mint-title">${escapeHtml(entry.title)}</h1>
         <p class="mint-summary">${escapeHtml(entry.summary || '')}</p>
-        <button class="mint-open" data-action="open">Begin</button>
-        <button class="mint-elsewhere" data-action="portal">Somewhere else</button>
+        <button type="button" class="mint-open" data-action="open">Begin</button>
+        <button type="button" class="mint-elsewhere" data-action="portal">Somewhere else</button>
       </div>`;
   }
 

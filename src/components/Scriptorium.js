@@ -372,6 +372,15 @@ export class Scriptorium {
     // line. Measured at 787px of travel discarded on a single keystroke.
     const room = this.container.querySelector('.scriptorium');
     const standing = room ? room.scrollTop : 0;
+    const active = this.container.ownerDocument?.activeElement;
+    const focusedButton = room?.contains(active) && active.tagName === 'BUTTON'
+      && (active.id || active.dataset.action)
+      ? {
+        id: active.id,
+        action: active.dataset.action,
+        dataId: active.dataset.id
+      }
+      : null;
 
     this.container.innerHTML = `
       <div class="scriptorium" role="main">
@@ -514,6 +523,19 @@ export class Scriptorium {
       if (rebuilt) rebuilt.scrollTop = standing;
     }
     this.bind();
+
+    // Rebuilds after button actions used to leave keyboard focus on body. Find
+    // the same action and, for repeated per-file controls, the same file; only
+    // restore when that exact button survived the state change and is usable.
+    if (focusedButton) {
+      const replacement = [...this.container.querySelectorAll('button')].find(button =>
+        button.id === focusedButton.id
+        && button.dataset.action === focusedButton.action
+        && button.dataset.id === focusedButton.dataId);
+      if (replacement && !replacement.disabled) {
+        replacement.focus({ preventScroll: true });
+      }
+    }
   }
 
   bind() {
