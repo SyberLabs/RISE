@@ -176,7 +176,7 @@ export class Portal {
             </button>
             <button class="nav-try" type="button" data-nav="keystones"
                     aria-label="Explore three canonical sample readings" title="Three canonical sample readings">
-              <span class="try-mark" aria-hidden="true">✦</span><span class="try-label">Samples</span><span class="try-detail">3 readings</span>
+              <span class="try-mark" aria-hidden="true">✦</span><span class="try-label">3 readings</span>
             </button>
           </div>
         </nav>
