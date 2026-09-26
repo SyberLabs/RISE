@@ -66,7 +66,6 @@ export class Admit {
     this.element = null;
     this.drag = null;
     this._destroyed = false;
-    this._abort = new AbortController();
 
     this.create();
   }
@@ -181,7 +180,6 @@ export class Admit {
   }
 
   attachEvents() {
-    const { signal } = this._abort;
     this.element.addEventListener('click', event => {
       const place = event.target.closest('[data-place]');
       if (place) return this.apply(placeJoint(this.record, Number(place.dataset.place)));
@@ -196,19 +194,19 @@ export class Admit {
       if (action === 'cancel') this.close(() => this.onCancel());
       if (action === 'read') this.close(() => this.onReadNow(this.record.text, this.record.title));
       if (action === 'admit') this.close(() => this.onAdmit(this.record));
-    }, { signal });
+    });
 
     // A typed name is authorship, and the record must never overwrite one.
     this.element.addEventListener('change', event => {
       const label = event.target.closest('[data-label]');
       if (label) return this.apply(relabel(this.record, Number(label.dataset.label), label.value));
       if (event.target.id === 'admit-title') this.retitle(event.target.value);
-    }, { signal });
+    });
 
-    this.element.addEventListener('pointerdown', event => this.beginDrag(event), { signal });
-    this.element.addEventListener('pointermove', event => this.moveDrag(event), { signal });
-    this.element.addEventListener('pointerup', event => this.endDrag(event), { signal });
-    this.element.addEventListener('pointercancel', () => this.cancelDrag(), { signal });
+    this.element.addEventListener('pointerdown', event => this.beginDrag(event));
+    this.element.addEventListener('pointermove', event => this.moveDrag(event));
+    this.element.addEventListener('pointerup', event => this.endDrag(event));
+    this.element.addEventListener('pointercancel', () => this.cancelDrag());
   }
 
   retitle(value) {
@@ -265,7 +263,6 @@ export class Admit {
   close(then) {
     if (this._destroyed) return;
     this._destroyed = true;
-    this._abort.abort();
     this.cancelDrag();
     this.element?.remove();
     this.element = null;

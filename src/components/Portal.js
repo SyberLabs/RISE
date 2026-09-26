@@ -331,12 +331,5 @@ export class Portal {
 
   destroy() {
     this.deactivate();
-    // Deferred media work must die with the view.
-    (this._mediaTimers || []).forEach(id => clearTimeout(id));
-    this._mediaTimers = [];
-    if (this._idleHandle != null) {
-      window.cancelIdleCallback?.(this._idleHandle);
-      this._idleHandle = null;
-    }
   }
 }

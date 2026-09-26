@@ -113,9 +113,9 @@ export class Library {
 
           <!-- Section Navigation -->
           <nav class="library-nav nav" aria-label="Library sections">
-            <button class="nav-item ${this.currentSection === 'archive' ? 'active' : ''}" data-section="archive" ${this.currentSection === 'archive' ? 'aria-current="page"' : ''}>The Archive</button>
-            <button class="nav-item ${this.currentSection === 'personal' ? 'active' : ''}" data-section="personal" ${this.currentSection === 'personal' ? 'aria-current="page"' : ''}>Local Files</button>
-            <button class="nav-item ${this.currentSection === 'history' ? 'active' : ''}" data-section="history" ${this.currentSection === 'history' ? 'aria-current="page"' : ''}>Reflections</button>
+            <button class="nav-item" data-section="archive">The Archive</button>
+            <button class="nav-item" data-section="personal">Local Files</button>
+            <button class="nav-item" data-section="history">Reflections</button>
           </nav>
         </header>
 
@@ -521,20 +521,6 @@ export class Library {
           this.getAudioEngine()?.playHiss();
           this.currentFilter = filterBtn.dataset.filter;
           this.updateContent();
-
-          // Must re-query since DOM was just replaced by updateContent
-          const parent = this.container.querySelector('.section-filters');
-          if (parent) {
-            parent.querySelectorAll('.filter-btn').forEach(b => {
-              b.classList.remove('active');
-              b.setAttribute('aria-pressed', 'false');
-            });
-            const newActive = parent.querySelector(`[data-filter="${this.currentFilter}"]`);
-            if (newActive) {
-              newActive.classList.add('active');
-              newActive.setAttribute('aria-pressed', 'true');
-            }
-          }
         }
         return;
       }

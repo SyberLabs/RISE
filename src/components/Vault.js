@@ -55,11 +55,11 @@ export class Vault {
           <!-- Section Navigation -->
           <nav class="library-nav nav" aria-label="Vault sections">
             ${isPersonalized ? `
-              <button class="nav-item ${this.currentSection === 'personalized' ? 'active' : ''}" data-section="personalized" ${this.currentSection === 'personalized' ? 'aria-current="page"' : ''}>For You</button>
-              <button class="nav-item ${this.currentSection === 'custom' ? 'active' : ''}" data-section="custom" ${this.currentSection === 'custom' ? 'aria-current="page"' : ''}>Custom</button>
+              <button class="nav-item" data-section="personalized">For You</button>
+              <button class="nav-item" data-section="custom">Custom</button>
             ` : `
-              <button class="nav-item ${this.currentSection === 'sequences' ? 'active' : ''}" data-section="sequences" ${this.currentSection === 'sequences' ? 'aria-current="page"' : ''}>All Sequences</button>
-              <button class="nav-item ${this.currentSection === 'custom' ? 'active' : ''}" data-section="custom" ${this.currentSection === 'custom' ? 'aria-current="page"' : ''}>Custom</button>
+              <button class="nav-item" data-section="sequences">All Sequences</button>
+              <button class="nav-item" data-section="custom">Custom</button>
             `}
           </nav>
         </header>
