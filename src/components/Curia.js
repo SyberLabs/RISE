@@ -266,6 +266,8 @@ export class Curia {
             });
         this.container.querySelector('.curia-detail')
             .addEventListener('click', (e) => this._onDetailClick(e));
+        this.container.querySelector('.curia-detail')
+            .addEventListener('change', (e) => this._onDetailChange(e));
     }
 
     renderBoard() {
@@ -428,7 +430,6 @@ export class Curia {
             detail.hidden = true;
             this.container.querySelector('.curia-board').hidden = false;
         });
-        detail.addEventListener('change', (e) => this._onDetailChange(e), { once: false });
     }
 
     _onDetailClick(e) {

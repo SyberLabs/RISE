@@ -62,7 +62,7 @@ describe('Chapel Rosary door (#rosary)', () => {
     vi.spyOn(globalThis, 'fetch').mockImplementation(async (url, options) => {
       if (url !== '/api/jev-decision') throw new Error('Unexpected test request');
       const { requestId } = JSON.parse(options.body);
-      return new Response(JSON.stringify({ requestId, action: 'continue', model: 'jev-test', confidence: 1 }), { status: 200 });
+      return new Response(JSON.stringify({ requestId, action: 'continue', model: 'openai/gpt-4.1-mini' }), { status: 200 });
     });
     document.body.replaceChildren();
     localStorage.clear();

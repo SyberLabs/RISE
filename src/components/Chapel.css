@@ -10,6 +10,7 @@
      lives inside the view, same pattern as the Atrium: fixed-height
      shell, scrolling interior. */
   height: 100vh;
+  height: 100dvh;
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -51,6 +52,7 @@
   gap: var(--space-xs);
   color: var(--color-fog);
   margin-top: 4px;
+  min-height: 44px;
 }
 
 .chapel-back:hover {
@@ -472,6 +474,7 @@
   font-family: var(--font-mono);
   font-size: 12px;
   padding: 7px 0;
+  min-height: 44px;
   cursor: pointer;
   text-align: center;
   transition: border-color 250ms var(--ease-out), background 250ms var(--ease-out), color 250ms var(--ease-out);

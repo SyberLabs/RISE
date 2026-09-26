@@ -769,7 +769,7 @@ function extentExample(ctx) {
  * @param {object} [options.context] validated or raw curator context
  * @returns {string} plain text for the clipboard / a .txt download
  */
-export function buildCuratorPrompt({ intent = '', context = null } = {}) {
+export function buildCuratorPrompt({ intent = '', context = null, jevRoute = null } = {}) {
   const wish = typeof intent === 'string' ? intent.trim().slice(0, MAX_INTENT) : '';
   const ctx = context
     ? (context.schema === CURATOR_CONTEXT_SCHEMA
@@ -803,12 +803,59 @@ export function buildCuratorPrompt({ intent = '', context = null } = {}) {
   const soundscape = soundscapes[0] || 'a-soundscape-id';
   const secondSoundscape = soundscapes[1] || soundscape;
   const extent = extentExample(ctx);
+  const selectedRoute = jevRoute
+    && ['experience_program', 'agent_operation_set'].includes(jevRoute.route)
+    && typeof jevRoute.confidence === 'number'
+    && Number.isFinite(jevRoute.confidence)
+    && jevRoute.confidence >= 0
+    && jevRoute.confidence <= 1
+    ? jevRoute.route
+    : null;
+
+  if (selectedRoute === 'agent_operation_set') {
+    const lines = [
+      'You are proposing a bounded operation set for RISE.',
+      'JEV supplied a routing recommendation, not approval or authorization.',
+      'Return ONLY one JSON object using the selected existing schema below.',
+      'Do not return an Experience Program or any other schema.',
+      `Schema: "${AGENT_OPERATION_SET_SCHEMA}"`,
+      `Routing recommendation confidence: ${jevRoute.confidence}.`,
+      'The confidence is not evidence, approval, or a validation result.',
+      'No operation may publish, approve, deliver, withdraw, or acquire over the network.',
+      '',
+      '{',
+      '  "schema": "rise.agent-operation-set.v1",',
+      '  "id": "ops-memory-1",',
+      '  "projectId": "project-memory",',
+      '  "baseRevision": 0,',
+      '  "generationId": "run-1",',
+      `  "intent": ${JSON.stringify(wish || 'Build a coherent reading.')},`,
+      '  "operations": [',
+      `    { "op": "add-source", "id": "op-source", "sourceId": "${first.id}" }`,
+      '  ]',
+      '}',
+      '',
+      'Use only operations this room supports: add-source, reorder-source,',
+      'assign-visual, assign-audio, and set-pace. This room applies operations',
+      'to an empty project at revision 0. The deterministic RISE gate validates',
+      'the returned set; this recommendation does not bypass that gate.'
+    ];
+    return `${lines.join('\n')}\n`;
+  }
 
   const lines = [
     'You are arranging an audiovisual reading score for RISE.',
     'Return ONLY a single JSON object. No markdown fences, no commentary.',
     '',
-    `Schema: "${EXPERIENCE_PROGRAM_SCHEMA}" or "${AGENT_OPERATION_SET_SCHEMA}"`,
+    selectedRoute
+      ? `Schema: "${EXPERIENCE_PROGRAM_SCHEMA}". Do not return any other schema.`
+      : `Schema: "${EXPERIENCE_PROGRAM_SCHEMA}" or "${AGENT_OPERATION_SET_SCHEMA}"`,
+    ...(selectedRoute
+      ? [
+        `JEV routing recommendation confidence: ${jevRoute.confidence}.`,
+        'This is a routing recommendation, not approval or authorization.'
+      ]
+      : []),
     'Authority: omit it, or use "proposed" / "user". Never "published".',
     'editable: true',
     ...capabilityLines(ctx),
@@ -944,7 +991,7 @@ export function buildCuratorPrompt({ intent = '', context = null } = {}) {
     lines.push('', 'Reader intent: (none supplied — choose a coherent audiovisual reading.)');
   }
 
-  lines.push(
+  if (!selectedRoute) lines.push(
     '',
     'ALTERNATIVE — instead of a complete score you may return a bounded',
     'operation list. Same ids. No network acquisition. Every op is a command a',

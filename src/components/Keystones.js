@@ -289,12 +289,13 @@ export class Keystones {
     }
 
     if (enter) {
-      enter.textContent = result?.ready || result?.admitted
+      const label = result?.ready || result?.admitted
         ? 'Enter reading'
         : launchable ? 'Review without missing media' : 'Not yet admitted';
+      enter.textContent = label;
       enter.disabled = !launchable;
       enter.dataset.keystone = manifest.slug;
-      enter.setAttribute('aria-label', `Enter ${manifest.title}`);
+      enter.setAttribute('aria-label', `${label}: ${manifest.title}`);
     }
 
     const mp4 = this.publishedMp4s.get(manifest.slug);

@@ -21,6 +21,8 @@ sites or across visits. We have no accounts, so we do not know who you are. We
 do not sell personal information. The processing described below includes
 sending consented reading excerpts to OpenRouter and the selected model provider.
 
+Scriptorium also has a separate optional **Route with JEV** action. It sends the typed composition intent and target word count through RISE to TypeSafe using a key you supply for that action. **Prepare locally without JEV** remains available.
+
 The rest of this document is the detail behind those sentences.
 
 ---
@@ -128,6 +130,18 @@ reading. RISE requests the configured model; OpenRouter may route it among
 eligible model providers. RISE does not substitute a different model after a
 failed decision.
 
+### Optional Scriptorium routing
+
+Choosing **Route with JEV** sends only the typed Scriptorium intent (up to
+2,000 characters) and target word count to `/api/jev/route`. The browser sends
+your supplied JEV key in the authorization header; the Netlify function forwards
+these fields and the key to TypeSafe SystemOne at `api.typesafe.ai`. The key is
+held only in the mounted interface, not saved in browser storage. RISE application
+code does not deliberately log or persist the key or routing request. Saved
+texts, Library entries, source text, media, reading history, and proposals are
+not part of this routing request. **Prepare locally without JEV** does not call
+TypeSafe. This is separate from the required OpenRouter reading decisions above.
+
 ### Hosting requests
 
 The application files are served by **Netlify**, which acts as our hosting
@@ -140,6 +154,13 @@ build profiles from them, and we do not combine them with anything else.
 
 Netlify's own handling of this data is governed by
 <https://www.netlify.com/privacy/>.
+
+TypeSafe SystemOne receives the routing fields and the reader-provided API key
+through the function request. TypeSafe's use, security, and retention of that
+information are governed by TypeSafe's own terms and privacy policy; this
+policy does not make claims about provider-side retention. JEV routing is an
+explicit user action and is not called when you choose **Prepare locally
+without JEV**.
 
 ---
 
@@ -212,11 +233,12 @@ for a Do Not Track signal to switch off, so RISE does not act on the signal
 differently: the behaviour the signal asks a site to stop is behaviour RISE
 never performs.
 
-**No third party collects personally identifiable information about your
-activity across websites through RISE.** We run no third-party scripts. The
-museums and archives in section 5 receive a request for a text or an artwork,
-as any website you visit receives a request; none of them is given an
-identifier for you, and none is placed here to observe you.
+**RISE runs no third-party tracking scripts.** The museums and archives in
+section 5 receive direct requests for texts or artworks as described there.
+Separately, if you choose JEV routing, TypeSafe receives the typed intent,
+target word count and your API key through RISE's function. This is a routing
+request, not cross-site tracking; consult TypeSafe's own policy for its handling
+of that request.
 
 ---
 
@@ -240,19 +262,22 @@ supervisory authority; in the UK that is the Information Commissioner's Office.
 
 For the on-device data in section 3 we cannot action such a request, because we
 have no copy to access, correct or delete. The export and erase controls give
-you the same outcome immediately.
+you the same outcome immediately. For a JEV request, TypeSafe may also process
+the request under its own policy; contact the provider for requests concerning
+its processing or retention.
 
 ---
 
 ## 9. California residents
 
 RISE is published from California. Our server processing includes hosting
-request logs and consented reading requests, as described in section 4.
+request logs, consented reading requests, and optional Scriptorium routing requests, as described in section 4.
 
-**We do not sell or share personal information**, and never have, as those
-terms are defined in the California Consumer Privacy Act. We do not use or
-disclose sensitive personal information for any purpose that would require an
-opt-out. We do not offer financial incentives for data.
+**We do not sell personal information**, as that term is defined in the
+California Consumer Privacy Act. The optional JEV route is disclosed in
+section 4. We do not use or disclose sensitive personal information for any
+purpose that would require an opt-out. We do not offer financial incentives
+for data.
 
 The CCPA's obligations attach to businesses above thresholds — annual gross
 revenue over roughly $26.6 million, or buying, selling or sharing the personal
@@ -269,8 +294,10 @@ We do not, and never have.
 
 ## 10. Legal basis (UK/EU GDPR)
 
-- **Serving the site**, including the request logs in section 4: our legitimate
-  interest in delivering and securing the application (Article 6(1)(f)).
+- **Serving the site and processing an expressly requested JEV route**, including
+  the request logs and bounded routing request in section 4: our legitimate
+  interest in delivering and securing the application and fulfilling the
+  routing action you chose (Article 6(1)(f)).
 - **Storing your work on your device**, in section 3: necessary to provide the
   service you have asked for. It holds your reading and your writing, carries no
   identifier, and is not used to observe you.
@@ -283,8 +310,10 @@ ask first.
 
 ## 11. Retention
 
-We retain nothing of yours, so there is nothing for us to expire. Hosting
-request logs are retained by Netlify under its own schedule.
+RISE application code does not persist JEV routing requests or API keys.
+Hosting and function request logs are handled by Netlify under its own
+schedule. TypeSafe's retention of routing requests or keys is governed by its
+own policy; see section 4.
 
 Data on your device persists until you erase it or clear your browser storage.
 
@@ -293,19 +322,24 @@ Data on your device persists until you erase it or clear your browser storage.
 ## 12. International transfers
 
 The third parties in section 5 are located in various countries, including the
-United States. Your browser contacts them directly; we do not transfer anything
-to them, because we hold nothing to transfer.
+United States. Your browser contacts the listed reading and image sources
+directly. For JEV routing, RISE's function sends the bounded request and key to
+TypeSafe SystemOne; consult TypeSafe's policies for information about its
+processing locations and any transfers it makes.
 
 ---
 
 ## 13. Children
 
 RISE is not directed at children and is not intended for anyone under 13. We do
-not knowingly collect personal information from children, and we hold no
-personal information about any reader beyond the request logs in section 4.
+not knowingly collect personal information from children. A reader who
+chooses JEV routing may include personal information in the intent sent as
+described in section 4.
 There is no account system, so we hold no age information about anybody. If you
 believe a child has provided us with personal information, write to
-syberlabs.software@gmail.com and we will delete anything we hold.
+syberlabs.software@gmail.com. We will review data held by RISE and explain the
+available deletion steps; contact TypeSafe about any request concerning its
+processing of a JEV request.
 
 Some readings are drawn from adult literary and philosophical works. RISE also
 presents moving light and generative visuals, and carries a photosensitivity

@@ -36,6 +36,24 @@ standard the rest of the codebase is measured against.
 
 ---
 
+## Optional Scriptorium routing
+
+The Scriptorium uses JEV to route a composition request to one of RISE's existing
+output formats, and the selected route shapes the prompt prepared for the
+composer. JEV recommends a route; RISE's deterministic examination still
+decides whether a returned score can be admitted as a reading.
+
+To route with JEV, enter your own JEV API key in the Scriptorium and choose
+**Route with JEV**. RISE holds the key only in the mounted interface and sends
+it in the authorization header of the same-origin routing request; the key is
+not saved in browser storage. The request contains only the typed intent (up
+to 2,000 characters) and target word count; RISE's function forwards those
+fields and your key to TypeSafe SystemOne. Saved texts, Library entries, media, reading
+history, and proposals are not sent. **Prepare locally without JEV** remains
+available when you prefer not to route through JEV.
+
+---
+
 ## The Chamber
 
 A reading begins by tuning four elements.
@@ -232,13 +250,17 @@ RISE is browser-native.
 
 User-provided files and saved work remain in browser storage. After session consent, bounded reading excerpts, intent, feedback, mode, and pace are sent through RISE's server and OpenRouter to the selected model provider. See [Privacy](PRIVACY.md) for the exact fields and limits.
 
+Separately, choosing **Route with JEV** in Scriptorium sends the typed intent and target word count through RISE to TypeSafe using a reader-provided key. That optional routing request excludes saved texts, media, reading history, and proposals.
+
 Some visual modes retrieve publicly hosted images from external cultural or scientific institutions. Remote-image requests are deliberately configured to avoid sending the reader's RISE page as a referrer.
 
 ---
 
 ## Development
 
-RISE is client-only. There is no backend, database, or service to stand up - the whole product runs from the Vite dev server.
+RISE keeps reading and authoring in the browser. The opt-in Scriptorium JEV
+route is served by a same-origin Netlify Function at `/api/jev/route`, which
+forwards the bounded request to TypeSafe SystemOne. Required reading decisions use `/api/jev-decision`, a separate Netlify Function backed by OpenRouter with a server-side key. Local development runs through the Vite dev server.
 
 Engineering overview: [docs/ENGINEERING.md](docs/ENGINEERING.md).
 

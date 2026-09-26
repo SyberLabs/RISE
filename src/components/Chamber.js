@@ -1117,6 +1117,9 @@ export class Chamber {
     // Don't let spacebar trigger play/pause while user is typing in a field
     const tag = document.activeElement?.tagName;
     const isTyping = tag === 'TEXTAREA' || tag === 'INPUT' || document.activeElement?.isContentEditable;
+    const isInteractive = document.activeElement?.closest?.(
+      'button, a[href], input, select, textarea, summary, [contenteditable="true"], [role="button"]'
+    );
 
     // While the Page holds the reading, the keyboard belongs to the page:
     // Space scrolls (its native behaviour) instead of driving a hidden
@@ -1124,8 +1127,9 @@ export class Chamber {
     // always leave. (PAGE-MODE-SPEC §4 — page authority.)
     if (this.pageModeActive && e.code !== 'Escape') return;
 
-    // Spacebar: play/pause (only when NOT typing)
-    if (e.code === 'Space' && !isTyping) {
+    // Spacebar: play/pause only from the reading surface. Focused controls
+    // keep their native Space activation (for example, buttons and selects).
+    if (e.code === 'Space' && !isTyping && !isInteractive) {
       e.preventDefault();
       this.togglePlayPause();
     } else if (isTyping) {

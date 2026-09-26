@@ -6,7 +6,7 @@ Status: the user approved replacing Jev with OpenRouter on 25 September 2026. Im
 
 Every reading session obtains a live reading decision before progression. The selected OpenRouter model chooses continue, slower, or pause from the reader's intent, optional feedback, current excerpt, mode, and pace. Source text and devotional order remain fixed. An unavailable or invalid decision blocks progression with retry and exit available.
 
-This replaces the previous Jev-specific requirement. There is one provider integration, no Jev fallback, no local substitute decision, and no new SDK dependency.
+This replaces the previous Jev-specific reading requirement. Reading uses OpenRouter with no Jev fallback or local substitute decision and no new SDK dependency. Main also contains a separate optional, reader-keyed Scriptorium route through TypeSafe; that existing authoring feature is preserved and is not required for reading.
 
 ## Implementation checklist
 
@@ -39,6 +39,10 @@ The full unit run passed **3,484 tests**, with **63 skipped** (282 test files pa
 The broader browser gate passed **33 tests**, with **14 skipped** and no failures. The documentation index now includes every integration document; the wiki builder passed **55 pages plus sidebar**, including a small Windows path correction needed for local verification. The high-severity dependency audit passed with three existing moderate development advisories; dependencies are unchanged.
 
 Netlify deployed code checkpoint `6b9b041` successfully. A real preview request returned **503 DECISION_NOT_CONFIGURED** with **Cache-Control: no-store**. This verifies the deployed OpenRouter configuration boundary, but confirms that this preview still needs `OPENROUTER_API_KEY`. No authenticated model decision or production activation is claimed.
+
+## Main-branch integration
+
+Integrated main at `093316e`, preserving its UI refinements and separate optional Scriptorium TypeSafe route. The policy and README now distinguish that authoring route from the required OpenRouter reading guide. Integration testing exposed two missing live Scriptorium getters; those were restored without changing the assertions. The affected room/session/prompt and Rosary-door run passed **89 tests** after the fix.
 
 ## Next seven days
 

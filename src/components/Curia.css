@@ -5,6 +5,7 @@
     /* The app body is overflow:hidden (the Chamber's design);
        scrolling lives inside the view — Chapel/Atrium pattern. */
     height: 100vh;
+    height: 100dvh;
     display: flex;
     flex-direction: column;
     overflow: hidden;
@@ -108,7 +109,7 @@
     position: fixed; left: 0; right: 0; bottom: 0;
     background: rgba(8, 8, 10, .94); border-top: 1px solid #26262e;
     display: flex; align-items: center; gap: 16px;
-    padding: 12px 32px; backdrop-filter: blur(6px);
+    padding: 12px 32px calc(12px + env(safe-area-inset-bottom, 0px)); backdrop-filter: blur(6px);
 }
 .curia-count { color: #e8c66b; }
 .curia-apply, .curia-copy {
@@ -162,3 +163,28 @@
 .curia-lic-cc-by-sa { color: #c98fb0; }
 .curia-lic-public-domain-credit { color: #7fa8d4; }
 .curia-lic-undeclared { color: #d47f8b; }
+
+/* Keep the fixed change bar inside a phone's width and home-indicator inset. */
+@media (max-width: 640px) {
+    .curia-scroll { padding: 20px 16px 150px; }
+    .curia-bar {
+        gap: 8px 12px;
+        flex-wrap: wrap;
+        padding-left: max(16px, env(safe-area-inset-left, 0px));
+        padding-right: max(16px, env(safe-area-inset-right, 0px));
+    }
+    .curia-count { flex: 1 1 auto; min-width: 8ch; }
+    .curia-apply, .curia-copy { min-height: 44px; padding-inline: 12px; }
+    .curia-status { flex: 1 0 100%; min-width: 0; }
+    .curia-detail-head { align-items: flex-start; flex-direction: column; gap: 6px; }
+    .curia-grid-records { grid-template-columns: minmax(0, 1fr); }
+    .curia-work-record img { width: 88px; height: 88px; flex-basis: 88px; }
+}
+
+.curia button:focus-visible,
+.curia a:focus-visible,
+.curia select:focus-visible,
+.curia summary:focus-visible {
+    outline: 2px solid #d4a574;
+    outline-offset: 3px;
+}
