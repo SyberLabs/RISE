@@ -4,7 +4,11 @@
 
 **RISE is a browser-based environment for reading text through time, image, sound, and procedural form.**
 
-[Enter RISE →](https://rise.syberlabs.space/)
+[Enter RISE →](https://rise.syberlabs.io/)
+
+The earlier site at [rise.syberlabs.space](https://rise.syberlabs.space/) remains
+available for work saved in that browser origin. The new `.io` address has
+separate browser storage; RISE does not have a complete import path between them.
 
 Text presentation and pacing run in the browser. The Chamber does not depend
 on a remote model decision or provider key.
@@ -249,16 +253,22 @@ User-provided files and saved work remain in browser storage. Chamber reading do
 
 Separately, choosing **Route with JEV** in Scriptorium sends the typed intent and target word count through RISE to TypeSafe using a reader-provided key. That optional routing request excludes saved texts, media, reading history, and proposals.
 
+The optional [Jev preview](https://rise.syberlabs.io/jev-preview.html) sends
+the displayed sample reading state through the `.io` site's same-origin API to
+OpenRouter only after you click the button. It does not send your active
+reading or change playback. Use sample text only; avoid private information.
+
 Some visual modes retrieve publicly hosted images from external cultural or scientific institutions. Remote-image requests are deliberately configured to avoid sending the reader's RISE page as a referrer.
 
 ---
 
 ## Development
 
-RISE keeps reading and authoring in the browser. The optional Scriptorium JEV
-route is served by a same-origin Netlify Function at `/api/jev/route`, which
-forwards the bounded request to TypeSafe SystemOne. Local development runs
-through the Vite dev server.
+RISE keeps reading and authoring in the browser. On the new `.io` host,
+Cloudflare serves the app and its same-origin JEV API. The still-available
+`.space` host remains on Netlify. The optional Scriptorium route at
+`/api/jev/route` forwards its bounded request to TypeSafe SystemOne. Local
+development runs through the Vite dev server.
 
 Engineering overview: [docs/ENGINEERING.md](docs/ENGINEERING.md).
 
@@ -288,6 +298,54 @@ Build:
 ```bash
 npm run build
 ```
+
+### Cloudflare release
+
+The [RISE Cloudflare workflow](.github/workflows/rise-cloudflare.yml) starts
+only when the repository's `CI` workflow passes for a push to the current
+`main` commit. It builds once, records that commit in a release marker, and
+uploads one artifact. The staging and production jobs verify and deploy the
+same artifact; production does not rebuild it. The workflow must be merged to
+`main` before GitHub can trigger it from `CI`.
+
+The GitHub `staging` and `production` environments restrict deployment to
+`main`. Production requires approval from `@sdcarlson`; owner self-review is
+enabled and administrator bypass is disabled. Set these environment values
+before a release:
+
+| Environment | Values |
+| --- | --- |
+| `staging` | Secret `CLOUDFLARE_API_TOKEN`; variables `CLOUDFLARE_ACCOUNT_ID` and `STAGING_URL` (the protected `rise-jev-preview.*.workers.dev` URL). |
+| `production` | A separate secret `CLOUDFLARE_API_TOKEN`; variable `CLOUDFLARE_ACCOUNT_ID`. |
+
+Scope each Cloudflare token to only the account and deployment permissions it
+needs. Keep `OPENROUTER_API_KEY` in each Worker as a Cloudflare Secret, with a
+separate spend-capped production key. It never belongs in GitHub, the browser,
+or the build artifact. The declared required secret makes Wrangler refuse a
+deployment when the Worker lacks it.
+
+Staging stays behind Cloudflare Access. After a green staging deploy, sign in
+to its URL and check the home page, `/try-rise`, the release marker named in
+the workflow summary, security headers, and a JSON 404 for an unknown
+`/api/*` route. At `/jev-preview.html`, one deliberate click should show an
+action, model, and matching request ID; compare the corresponding OpenRouter
+usage and bounded Cloudflare logs. Only then approve the protected production
+job. The `syberlabs.io` zone and `rise.syberlabs.io` custom domain must be
+active, and the RISE production Worker alone must have a public Access bypass;
+Relay must remain protected.
+
+The production job records the prior Worker deployments and their version IDs
+in its GitHub run summary before changing traffic. Verify a prior version is
+known-good before restoring its ID from a checkout with this configuration and
+Cloudflare credentials:
+
+```bash
+npx --yes wrangler@4.141.0 rollback <VERSION_ID> --config wrangler.production.jsonc --message "RISE rollback"
+```
+
+The previous [`.space` site](https://rise.syberlabs.space/) remains available
+for browser-local work there. A first production release may have no
+known-good prior production version to restore.
 
 ### Testing
 

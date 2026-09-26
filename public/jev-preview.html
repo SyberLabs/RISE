@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Jev preview · RISE</title>
+  <link rel="icon" href="/favicon.ico" sizes="any">
+  <link rel="stylesheet" href="/fonts/fonts.css">
+  <style>
+    :root { color-scheme: dark; font-family: 'Inter', system-ui, sans-serif; }
+    * { box-sizing: border-box; }
+    body { margin: 0; padding: 2rem 1rem 4rem; background: #09090d; color: #e8e8ec; }
+    main { max-width: 42rem; margin: 0 auto; }
+    a { color: #9ecbad; }
+    .back { display: inline-block; margin-bottom: 2.5rem; font-size: .85rem; }
+    h1 { margin: 0 0 .6rem; font: 300 clamp(2rem, 7vw, 3.2rem)/1.1 'Marcellus', Georgia, serif; }
+    p { color: #bcbcc7; line-height: 1.6; }
+    .sample { margin: 2rem 0 1.5rem; padding: 1rem 1.25rem; border: 1px solid #393943; border-radius: .5rem; background: #15151b; }
+    dt { margin-top: .9rem; font-size: .8rem; color: #aeb0b9; }
+    dt:first-child { margin-top: 0; }
+    dd { margin: .25rem 0 0; line-height: 1.5; }
+    button { width: 100%; border: 0; border-radius: .5rem; padding: .85rem 1rem; background: #9ecbad; color: #101410; font: inherit; font-weight: 700; cursor: pointer; }
+    button:focus-visible, a:focus-visible { outline: 2px solid #9ecbad; outline-offset: 2px; }
+    button:disabled { opacity: .6; cursor: wait; }
+    output { display: block; min-height: 4rem; margin-top: 1.5rem; padding: 1rem; border: 1px solid #393943; border-radius: .5rem; white-space: pre-line; line-height: 1.7; }
+  </style>
+</head>
+<body>
+  <main>
+    <a class="back" href="/">← Back to RISE</a>
+    <h1>Try Jev with RISE</h1>
+    <p>This is a one-decision preview. Clicking the button sends only the fixed sample below through RISE to OpenRouter Jev. It does not send your reading or change the RISE reading experience.</p>
+    <dl class="sample">
+      <dt>Reading intent</dt><dd id="jev-intent">Help me stay with this passage.</dd>
+      <dt>Reader feedback</dt><dd id="jev-feedback">I would like a little more time to read.</dd>
+      <dt>Short passage</dt><dd id="jev-excerpt">The light moved slowly across the room, and the reader paused to notice it.</dd>
+      <dt>Mode</dt><dd id="jev-mode">reading</dd>
+      <dt>Current pace</dt><dd><span id="jev-pace">220</span> words per minute</dd>
+    </dl>
+    <form id="jev-form">
+      <button id="jev-submit" type="submit">Ask Jev for one decision</button>
+    </form>
+    <output id="jev-result" role="status" aria-live="polite">No request sent yet.</output>
+    <p><a href="/privacy.html">Privacy policy</a></p>
+  </main>
+  <script type="module" src="/jev-preview.js"></script>
+</body>
+</html>
