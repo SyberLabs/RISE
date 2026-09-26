@@ -7,6 +7,8 @@ export function renderStudioTransport(view) {
         <button class="btn-ghost" type="button" data-action="back">
           <span class="icon">←</span><span>Portal</span>
         </button>
+        <button class="btn-ghost studio-show-scenes" type="button" data-action="show-scenes"
+                aria-label="Back to scenes"><span aria-hidden="true">‹</span> Scenes</button>
         <div class="studio-brand">
           <span class="studio-eyebrow">Workshop</span>
           <h1>Composition Studio</h1>

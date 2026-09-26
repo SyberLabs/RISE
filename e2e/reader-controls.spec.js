@@ -23,7 +23,7 @@ async function openNavigator(page) {
     });
     await expect(page.locator('[data-orbit="visual"]')).toBeVisible({ timeout: 20_000 });
     await page.locator('[data-orbit="visual"]').click();
-    await expect(page.locator('.vnav')).toBeVisible({ timeout: 10_000 });
+    await expect(page.locator('.vnav, .vstage').first()).toBeVisible({ timeout: 10_000 });
 }
 
 const stateOf = (page, action) => page.evaluate((name) =>
@@ -50,11 +50,10 @@ test('each row explains itself where a phone can read it', async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await openNavigator(page);
 
-    // A phone collapses these to a bar that states them, because at full size
-    // they stood 277px on every pane and left the rail 151. The reason still
-    // has to be ON THE ROW rather than in a tooltip — that is what this
+    // On a phone these rows live in the stage's Letters sheet. The reason
+    // still has to be ON THE ROW rather than in a tooltip — that is what this
     // guards — so it is read where the row now lives.
-    await page.locator('[data-action="reader-sheet"]').click();
+    await page.locator('[data-stage="text"]').click();
 
     for (const action of ['living-text', 'glass']) {
         const row = page.locator(`[data-action="${action}"]`).locator('xpath=ancestor::label[1]');

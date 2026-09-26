@@ -1,0 +1,451 @@
+/* The phone navigator. The visual is the surface; controls sit on a scrim in
+   the bottom band a thumb reaches, and leave when a choice is made. */
+
+/* The Orbital's modal frame stays in the DOM under the stage. Its heading and
+   close would be a second, invisible dialog to a screen reader, and its blur,
+   padding and slide-in transform each make it the box a fixed stage is laid
+   out in — measured at 372px of a 390px phone in the production build. While
+   the stage is up, the frame is no frame at all. */
+#modal-visual:has(.vstage) .modal-header { display: none; }
+#modal-visual:has(.vstage) {
+  padding: 0;
+  backdrop-filter: none;
+  animation: none;
+}
+#modal-visual:has(.vstage) .modal-content {
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  max-height: none;
+  border: 0;
+  overflow: visible;
+  transform: none;
+  animation: none;
+}
+#modal-visual:has(.vstage) .modal-body,
+#modal-visual:has(.vstage) .config-section { padding: 0; margin: 0; }
+
+.vstage {
+  --vstage-ease: cubic-bezier(.2, .8, .2, 1);
+  --vstage-gutter: 20px;
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  height: 100svh;
+  overflow: hidden;
+  background: var(--color-void, #0A0A0C);
+  color: var(--color-light, #E8E8EC);
+  font-family: var(--font-primary, 'Inter', system-ui, sans-serif);
+  touch-action: pan-y;
+  overscroll-behavior: contain;
+}
+
+.vstage-still,
+.vstage-live-slot {
+  position: absolute;
+  inset: 0;
+  background-size: cover;
+  background-position: center;
+  display: grid;
+  place-items: center;
+}
+.vstage-still { transition: background-image 320ms var(--vstage-ease); }
+.vstage-still-glyph {
+  font-size: clamp(4rem, 28vw, 9rem);
+  color: var(--color-shadow, #2A2A30);
+  line-height: 1;
+}
+.vstage-still.has-still .vstage-still-glyph { display: none; }
+.vstage-missing {
+  position: absolute;
+  top: 38%;
+  left: var(--vstage-gutter);
+  right: var(--vstage-gutter);
+  margin: 0;
+  text-align: center;
+  font-size: .85rem;
+  color: var(--color-fog, #9B9BA5);
+}
+.vstage-live-slot { pointer-events: none; }
+.vstage-live {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  background: var(--color-void, #0A0A0C);
+  transition: opacity 400ms var(--vstage-ease);
+}
+.vstage-live.is-live { opacity: 1; }
+.vstage-live canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.vstage-scrim {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(to bottom, rgba(10, 10, 12, .62) 0, rgba(10, 10, 12, 0) 96px),
+    linear-gradient(to top, rgba(10, 10, 12, .9) 0, rgba(10, 10, 12, .72) 30%, rgba(10, 10, 12, 0) 52%);
+}
+
+.vstage-top {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: space-between;
+  padding: max(16px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) 0 max(16px, env(safe-area-inset-left));
+}
+/* Round, edged and frosted, so both read as buttons over any picture. */
+.vstage-icon {
+  display: inline-grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 1px solid rgba(232, 232, 236, .32);
+  border-radius: 50%;
+  background: rgba(10, 10, 12, .5);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, .35);
+  color: var(--color-light, #E8E8EC);
+  font: 500 1.05rem/1 var(--font-primary, system-ui);
+  cursor: pointer;
+}
+.vstage-aa { font: 500 1.05rem/1 var(--font-literary, Georgia, serif); letter-spacing: .02em; }
+.vstage-icon[aria-expanded="true"] { background: var(--color-accent, #E4D2AE); color: var(--color-on-accent, #0A0A0C); }
+
+.vstage-sample {
+  position: absolute;
+  top: 30%;
+  left: var(--vstage-gutter);
+  right: var(--vstage-gutter);
+  margin: 0;
+  text-align: center;
+  font-family: var(--font-literary, Georgia, serif);
+  font-size: clamp(1.15rem, 5.4vw, 1.6rem);
+  line-height: 1.35;
+  color: var(--color-glow, #fff);
+  text-shadow: 0 1px 14px rgba(0, 0, 0, .75);
+  pointer-events: none;
+}
+/* Glass is on unless the reader turned it off, so the sample wears the same
+   frosted pane the reading will: the Chamber's own values, not a likeness. */
+.vstage-sample.has-glass {
+  left: 50%;
+  right: auto;
+  width: max-content;
+  max-width: calc(100% - 2 * var(--vstage-gutter));
+  transform: translateX(-50%);
+  padding: 14px 20px;
+  border: 1px solid rgba(232, 232, 236, 0.05);
+  border-radius: 14px;
+  background: rgba(10, 10, 12, 0.36);
+  backdrop-filter: blur(16px) saturate(1.12);
+  -webkit-backdrop-filter: blur(16px) saturate(1.12);
+  box-shadow:
+    0 10px 44px rgba(0, 0, 0, 0.30),
+    0 0 32px rgba(10, 10, 12, 0.45),
+    inset 0 1px 0 rgba(232, 232, 236, 0.045);
+  text-shadow: none;
+}
+.vstage-sample[data-face-sample="thick"] { font-family: var(--font-stream-thick, system-ui); font-weight: 600; }
+.vstage-sample[data-face-sample="mono"] { font-family: var(--font-mono, monospace); font-size: 1rem; }
+
+.vstage-foot {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 0 0 max(20px, env(safe-area-inset-bottom));
+  transition: opacity 360ms var(--vstage-ease), transform 360ms var(--vstage-ease);
+}
+.vstage-caption { padding: 0 var(--vstage-gutter); }
+.vstage-name {
+  margin: 0;
+  font: 400 clamp(1.7rem, 8vw, 2.3rem)/1.1 var(--font-display, serif);
+  letter-spacing: .01em;
+  color: var(--color-glow, #fff);
+}
+.vstage-family {
+  margin: 4px 0 0;
+  min-height: 1.2em;
+  font: 500 .72rem/1.2 var(--font-mono, monospace);
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: var(--color-cloud, #C5C5CD);
+}
+.vstage-program {
+  margin: 0 var(--vstage-gutter);
+  font-size: .85rem;
+  color: var(--color-cloud, #C5C5CD);
+}
+.vstage-program button { margin-left: 8px; min-height: 36px; }
+
+.vstage-rail {
+  display: flex;
+  gap: 18px;
+  overflow-x: auto;
+  scroll-snap-type: x proximity;
+  scroll-padding: 0 var(--vstage-gutter);
+  padding: 0 var(--vstage-gutter) 2px;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+  /* The rail runs under the screen's edge; it fades there instead of
+     being cut by it. */
+  -webkit-mask-image: linear-gradient(to right, transparent 0, #000 var(--vstage-gutter), #000 calc(100% - var(--vstage-gutter)), transparent 100%);
+  mask-image: linear-gradient(to right, transparent 0, #000 var(--vstage-gutter), #000 calc(100% - var(--vstage-gutter)), transparent 100%);
+}
+.vstage-rail::-webkit-scrollbar { display: none; }
+.vstage-family-group { display: flex; flex-direction: column; gap: 6px; flex: none; }
+.vstage-family-label {
+  font: 500 .6875rem/1 var(--font-mono, monospace);
+  letter-spacing: .16em;
+  text-transform: uppercase;
+  color: var(--color-fog, #9B9BA5);
+}
+.vstage-family-tiles { display: flex; gap: 8px; }
+.vstage-tile {
+  flex: none;
+  width: 64px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--color-cloud, #C5C5CD);
+  scroll-snap-align: start;
+  cursor: pointer;
+}
+.vstage-tile-art {
+  width: 64px;
+  height: 64px;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  font-size: 1.5rem;
+  color: var(--color-fog, #9B9BA5);
+  background-color: var(--color-depth, #1A1A1E);
+  background-size: cover;
+  background-position: center;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .08);
+  transition: box-shadow 160ms ease, transform 160ms ease;
+}
+.vstage-tile-art.has-still { color: transparent; }
+.vstage-tile-name {
+  max-width: 64px;
+  font-size: .6875rem;
+  line-height: 1.2;
+  text-align: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.vstage-tile.is-focused .vstage-tile-art {
+  box-shadow: 0 0 0 2px var(--color-accent, #E4D2AE);
+  transform: translateY(-2px);
+}
+.vstage-tile.is-focused .vstage-tile-name { color: var(--color-glow, #fff); }
+.vstage-tile.is-in-room .vstage-tile-name::before {
+  content: '';
+  display: inline-block;
+  width: 5px;
+  height: 5px;
+  margin-right: 4px;
+  border-radius: 50%;
+  background: var(--color-accent, #E4D2AE);
+  vertical-align: middle;
+}
+.vstage-tile:focus-visible { outline: none; }
+.vstage-tile:focus-visible .vstage-tile-art { box-shadow: 0 0 0 2px var(--color-glow, #fff); }
+
+.vstage-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 0 var(--vstage-gutter);
+}
+.vstage-commit { display: flex; gap: 8px; margin-left: auto; }
+.vstage-vary,
+.vstage-blend,
+.vstage-choose {
+  min-height: 52px;
+  padding: 0 20px;
+  border-radius: 26px;
+  font: 500 .95rem/1 var(--font-primary, system-ui);
+  cursor: pointer;
+}
+.vstage-vary,
+.vstage-blend {
+  border: 1px solid rgba(232, 232, 236, .28);
+  background: rgba(10, 10, 12, .4);
+  color: var(--color-light, #E8E8EC);
+}
+.vstage-vary[aria-expanded="true"] { border-color: var(--color-accent, #E4D2AE); }
+.vstage-choose {
+  min-width: 124px;
+  border: 0;
+  background: var(--color-accent, #E4D2AE);
+  color: var(--color-on-accent, #0A0A0C);
+  font-weight: 600;
+}
+.vstage-choose:disabled { opacity: .4; cursor: not-allowed; }
+
+.vstage-rail,
+.vstage-actions,
+.vstage-top,
+.vstage-sample,
+.vstage-family { transition: opacity 360ms var(--vstage-ease), transform 360ms var(--vstage-ease); }
+.vstage.is-committed .vstage-rail,
+.vstage.is-committed .vstage-actions,
+.vstage.is-committed .vstage-top,
+.vstage.is-committed .vstage-sample,
+.vstage.is-committed .vstage-family { opacity: 0; transform: translateY(12px); pointer-events: none; }
+
+.vstage-sheet {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  max-height: 58svh;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 4px var(--vstage-gutter) max(20px, env(safe-area-inset-bottom));
+  border-radius: 18px 18px 0 0;
+  background: rgba(18, 18, 20, .96);
+  box-shadow: 0 -12px 40px rgba(0, 0, 0, .5);
+  animation: vstage-sheet-in 280ms var(--vstage-ease);
+}
+.vstage-sheet-text { max-height: 82svh; }
+.vstage.has-sheet-vary .vstage-foot,
+.vstage.has-sheet-text .vstage-foot { visibility: hidden; }
+.vstage-sheet-handle {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+  min-height: 44px;
+  border: 0;
+  background: none;
+  cursor: pointer;
+}
+.vstage-sheet-handle span {
+  width: 40px;
+  height: 4px;
+  margin-top: 10px;
+  border-radius: 2px;
+  background: var(--color-shadow, #2A2A30);
+}
+.vstage-sheet-title {
+  margin: 4px 0 14px;
+  font: 400 1.3rem/1.2 var(--font-display, serif);
+  color: var(--color-glow, #fff);
+}
+.vstage-bench { margin-bottom: 18px; }
+.vstage-bench-label {
+  display: block;
+  margin-bottom: 8px;
+  font: 500 .6875rem/1 var(--font-mono, monospace);
+  letter-spacing: .16em;
+  text-transform: uppercase;
+  color: var(--color-fog, #9B9BA5);
+}
+.vstage-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.vstage-chip,
+.vstage-manage {
+  min-height: 44px;
+  min-width: 44px;
+  padding: 0 16px;
+  border: 1px solid var(--color-shadow, #2A2A30);
+  border-radius: 22px;
+  background: var(--color-depth, #1A1A1E);
+  color: var(--color-cloud, #C5C5CD);
+  font: 500 .88rem/1 var(--font-primary, system-ui);
+  cursor: pointer;
+}
+.vstage-chip.is-on {
+  border-color: var(--color-accent, #E4D2AE);
+  color: var(--color-glow, #fff);
+  background: rgba(var(--color-accent-rgb, 228, 210, 174), .14);
+}
+.vstage-sheet-text .vnav-type-section { margin-bottom: 18px; }
+/* Inside the sheet the switches are simply the last section: the bar that
+   summarises them on the old panel, and the pane-anchored overlay it opens,
+   both belong to a layout this sheet replaces. */
+.vstage-sheet-text .vnav-reader-controls { position: static; border: 0; background: none; }
+.vstage-sheet-text .vnav-reader-summary { display: none; }
+.vstage-sheet-text .vnav-reader-controls .vnav-reader-sheet,
+.vstage-sheet-text .vnav-reader-controls.is-open .vnav-reader-sheet {
+  display: flex;
+  position: static;
+  flex-direction: column;
+  align-items: stretch;
+  max-height: none;
+  padding: 0;
+  border: 0;
+  background: none;
+  box-shadow: none;
+}
+.vstage-sheet-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.vstage-sheet-done {
+  min-height: 44px;
+  padding: 0 4px 0 16px;
+  border: 0;
+  background: none;
+  color: var(--color-accent, #E4D2AE);
+  font: 500 .95rem/1 var(--font-primary, system-ui);
+  cursor: pointer;
+}
+
+.vstage-gated { display: grid; place-items: center; padding: var(--vstage-gutter); }
+
+@keyframes vstage-sheet-in {
+  from { transform: translateY(24px); opacity: 0; }
+  to { transform: none; opacity: 1; }
+}
+
+/* A phone on its side: the picture keeps the screen, the rail becomes a
+   column under the right thumb, the commit sits at its foot. */
+@media (orientation: landscape) and (max-height: 500px) {
+  .vstage-foot {
+    top: 0;
+    left: auto;
+    width: min(44vw, 340px);
+    padding: max(16px, env(safe-area-inset-top)) max(20px, env(safe-area-inset-right)) max(16px, env(safe-area-inset-bottom)) 0;
+    justify-content: flex-end;
+  }
+  .vstage-scrim {
+    background:
+      linear-gradient(to left, rgba(10, 10, 12, .9) 0, rgba(10, 10, 12, .6) 34%, rgba(10, 10, 12, 0) 56%),
+      linear-gradient(to bottom, rgba(10, 10, 12, .5) 0, rgba(10, 10, 12, 0) 80px);
+  }
+  .vstage-top { right: auto; gap: 8px; }
+  .vstage-rail { overflow-x: auto; max-height: none; }
+  .vstage-sample { right: calc(min(44vw, 340px) + 16px); top: 40%; }
+  .vstage-name { font-size: 1.6rem; }
+  .vstage-sheet { left: auto; width: min(60vw, 460px); max-height: 100svh; border-radius: 18px 0 0 18px; }
+  .vstage.has-sheet-vary .vstage-sample,
+  .vstage.has-sheet-text .vstage-sample { opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .vstage-still,
+  .vstage-foot,
+  .vstage-tile-art { transition: none; }
+  .vstage-sheet { animation: none; }
+}

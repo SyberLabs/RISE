@@ -76,8 +76,14 @@ async function openPrep(page, viewport, prefs = PREFS) {
   await page.locator('[data-nav="chamber"]').first().click();
   await expect(page.locator('#begin-btn')).toBeEnabled({ timeout: 15_000 });
   await page.locator('[data-orbit="visual"]').click();
-  await expect(page.locator('.vnav')).toBeVisible();
-  await openRootNode(page, 'size');
+  // A phone opens the stage, whose Letters sheet holds Face, Size and Ink;
+  // a desk opens the directory and walks to Size.
+  await expect(page.locator('.vnav, .vstage').first()).toBeVisible();
+  if (await page.locator('.vstage').isVisible()) {
+    await page.locator('[data-stage="text"]').click();
+  } else {
+    await openRootNode(page, 'size');
+  }
   await expect(page.locator('[data-font-size="fit"]')).toBeVisible();
 }
 
@@ -90,6 +96,14 @@ async function openPrep(page, viewport, prefs = PREFS) {
  * first. On a desktop the rail is always there and the loop does not run.
  */
 async function openRootNode(page, id) {
+  // On a phone Face, Size and Ink are one Letters sheet over the stage.
+  if (await page.locator('.vstage').isVisible()) {
+    if (!await page.locator('.vstage-sheet-text').isVisible()) {
+      await page.locator('[data-stage="text"]').click();
+    }
+    await expect(page.locator(`.vstage-sheet-text [data-section="${id}"]`)).toBeVisible();
+    return;
+  }
   const node = page.locator(`.vnav-node[data-id="${id}"]`);
   for (let depth = 0; depth < 4 && !(await node.isVisible()); depth += 1) {
     const back = page.locator('[data-action="navigator-back"]');
@@ -132,8 +146,10 @@ async function chooseFit(page) {
 }
 
 async function begin(page) {
+  const closeStage = page.locator('.vstage [data-stage="close"]');
   const closeVisual = page.locator('#modal-visual [data-close="visual"]');
-  if (await closeVisual.isVisible()) await closeVisual.click();
+  if (await closeStage.isVisible()) await closeStage.click();
+  else if (await closeVisual.isVisible()) await closeVisual.click();
   await page.locator('#begin-btn').click();
   const warning = page.locator('#photosensitivity-modal');
   const display = page.locator('#chamber-display');

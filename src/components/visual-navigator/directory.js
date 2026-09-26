@@ -133,6 +133,7 @@ export const directoryMethods = {
           settings: { chamberFace: settings.face, fontSize: 'medium', chamberMask: false }
         });
         this.closeDialog();
+        this._onFieldCommitted?.();
       }
     }, returnFocus);
   },
@@ -346,7 +347,6 @@ export const directoryMethods = {
       </div>
       <div class="vnav-preview" aria-hidden="true">
         <span class="vnav-preview-glyph">${glyphFor(leaf)}</span>
-        <span class="vnav-preview-note">live preview mounts here</span>
       </div>
       ${leaf.desc ? `<p class="vnav-desc">${escapeHtml(leaf.desc)}</p>` : ''}
       ${leaf.id === 'focal' ? this.renderHeldFocal() : ''}

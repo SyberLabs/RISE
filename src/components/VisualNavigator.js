@@ -24,6 +24,7 @@ import { directoryMethods } from './visual-navigator/directory.js';
 import { textMethods } from './visual-navigator/text.js';
 import { previewMethods } from './visual-navigator/preview.js';
 import { chapelMethods } from './visual-navigator/chapel.js';
+import { PHONE_QUERY, phonePresentation, stageMethods } from './visual-navigator/world-stage.js';
 import './VisualNavigator.css';
 
 export class VisualNavigator {
@@ -56,6 +57,23 @@ export class VisualNavigator {
     this.path = [];          // branch nodes descended, under ROOT
     this.focus = null;       // the open leaf, or null
     this._destroyed = false;
+
+    // A phone gets the stage; a pointer with room gets the directory. The
+    // Workshop's picker asks for the stage outright.
+    this.presentation = options.presentation
+      || (options.mode === 'pick' ? 'stage' : phonePresentation());
+    this.initStage(options);
+    if (!options.presentation && options.mode !== 'pick' && typeof window.matchMedia === 'function') {
+      this._presentationQuery = window.matchMedia(PHONE_QUERY);
+      this._onPresentationChange = () => {
+        const next = phonePresentation();
+        if (next === this.presentation) return;
+        this.presentation = next;
+        this.stage = this._freshStage();
+        this.render();
+      };
+      this._presentationQuery.addEventListener?.('change', this._onPresentationChange);
+    }
 
     // Arrive on whatever is already enabled, so reopening shows the reading.
     const first = [...this.selection.enabled][0];
@@ -154,6 +172,16 @@ export class VisualNavigator {
 
   render() {
     if (this._destroyed) return;
+    if (this.presentation === 'stage') {
+      this.container.innerHTML = this.locked ? this.renderStageGate() : this.renderStage();
+      this.attach();
+      this.attachStage();
+      if (!this.locked) {
+        this._stageObserveTiles();
+        this._syncLive();
+      }
+      return;
+    }
 
     // EVERY CHOICE REBUILT THE WHOLE PANEL, AND THE PANEL FORGOT ITSELF.
     //
@@ -309,7 +337,15 @@ export class VisualNavigator {
   }
 
   destroy() {
-    this._cancelPreview(); this._cancelInk(); this._destroyed = true; this.container.innerHTML = ''; }
+    this._cancelPreview();
+    this._cancelInk();
+    clearTimeout(this._stageHoldTimer);
+    this._stageObserver?.disconnect();
+    this._liveStage?.destroy?.();
+    this._presentationQuery?.removeEventListener?.('change', this._onPresentationChange);
+    this._destroyed = true;
+    this.container.innerHTML = '';
+  }
 }
 
 Object.assign(
@@ -317,5 +353,6 @@ Object.assign(
   directoryMethods,
   textMethods,
   previewMethods,
-  chapelMethods
+  chapelMethods,
+  stageMethods
 );

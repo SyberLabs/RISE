@@ -3723,3 +3723,93 @@
     animation-iteration-count: 1 !important;
   }
 }
+
+/* Full studio on a phone: the escape from the Scene Stack, reached on purpose.
+   Its header is one row: the sequence switcher lives in the Scenes view, the
+   conductor shrinks to its summary, and the Save / Preview / Run bar is pinned
+   to the thumb. */
+.studio-show-scenes { display: none; }
+
+@media (max-width: 767px) {
+  .workshop-studio[data-studio-viewport="phone"] .studio-header {
+    display: flex;
+    flex-wrap: nowrap;
+    align-items: center;
+    gap: 4px;
+    min-height: 52px;
+    padding: max(4px, env(safe-area-inset-top)) 8px 4px;
+    /* A backdrop filter makes the header the containing block of every fixed
+       child, which pinned the thumb bar to the header instead of the screen. */
+    backdrop-filter: none;
+  }
+  .workshop-studio[data-studio-viewport="phone"] .studio-header-primary {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    width: auto;
+    min-height: 0;
+  }
+  .workshop-studio[data-studio-viewport="phone"] .studio-brand,
+  .workshop-studio[data-studio-viewport="phone"] .studio-project-switcher { display: none; }
+  /* The way back to the stack must read as a way back: a pill, in the accent. */
+  .workshop-studio[data-studio-viewport="phone"] .studio-header-primary .studio-show-scenes {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 44px;
+    padding: 0 14px 0 10px;
+    border: 1px solid rgba(var(--color-accent-rgb, 228, 210, 174), 0.55);
+    border-radius: 22px;
+    color: var(--color-accent, #E4D2AE);
+  }
+  .workshop-studio[data-studio-viewport="phone"] .studio-show-scenes span { font-size: 1.1rem; line-height: 1; }
+  .workshop-studio[data-studio-viewport="phone"] .studio-conductor {
+    display: flex;
+    flex: 0 1 auto;
+    align-items: center;
+    width: auto;
+    min-width: 0;
+    min-height: 44px;
+    padding: 0 10px;
+  }
+  .workshop-studio[data-studio-viewport="phone"] .studio-conductor .studio-kicker,
+  .workshop-studio[data-studio-viewport="phone"] .studio-conductor small { display: none; }
+  .workshop-studio[data-studio-viewport="phone"] .studio-conductor strong {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 11px;
+  }
+  .workshop-studio[data-studio-viewport="phone"] .studio-header-primary .btn-ghost { min-height: 44px; }
+  .workshop-studio[data-studio-viewport="phone"] [data-action="back"] { min-width: 44px; padding: 0 10px; }
+  .workshop-studio[data-studio-viewport="phone"] [data-action="back"] span:not(.icon) {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+  .workshop-studio[data-studio-viewport="phone"] .studio-command-cluster {
+    flex: none;
+    width: auto;
+    margin-left: auto;
+  }
+  .workshop-studio[data-studio-viewport="phone"] .studio-project-menu > summary { min-height: 44px; }
+  .workshop-studio[data-studio-viewport="phone"] .studio-command-cluster .studio-primary-actions {
+    position: fixed;
+    z-index: 95;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    display: grid;
+    width: auto;
+    margin: 0;
+    padding: 8px 10px calc(8px + env(safe-area-inset-bottom));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+    border-top: 1px solid rgba(255, 255, 255, 0.12);
+    background: color-mix(in srgb, var(--color-void) 96%, transparent);
+  }
+  .workshop-studio[data-studio-viewport="phone"] .studio-primary-actions > * { min-height: 44px; }
+}

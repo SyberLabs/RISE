@@ -1128,6 +1128,8 @@ export class ChamberOrbital {
             : null,
           readingVisualDomain: this.config.readingVisualIdentity?.domain || null,
           onOpenPersonal: () => this.onNavigate('workshop'),
+          onClose: () => this.closeModal('visual'),
+          getSampleText: () => this.config.text || '',
           getSettings: this.getSettings,
           onSettingChange: this.onSettingChange,
           onTextMaterialTransaction: transaction => this.applyTextMaterialTransaction(transaction),
@@ -1686,6 +1688,7 @@ export class ChamberOrbital {
     if (modal) {
       modal.hidden = false;
       this.activeModal = orbit;
+      if (orbit === 'visual') this.visualNavigator?.enterStage();
     }
   }
 
@@ -1694,6 +1697,7 @@ export class ChamberOrbital {
     if (modal) {
       modal.hidden = true;
       this.activeModal = null;
+      if (orbit === 'visual') this.visualNavigator?.leaveStage();
     }
   }
 

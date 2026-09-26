@@ -6,6 +6,98 @@ import { safeUrl } from '../../core/sanitize.js';
 import { substylesFor } from '../../core/visual-taxonomy.js';
 import { wordFillValue } from './markup.js';
 
+/**
+ * One still in flight, for every navigator on the page.
+ *
+ * The cortex draws continuous procedural stills on canvases the reading also
+ * uses, and a preview once drained the Fractal frame queue the reading opens
+ * on. A rail asks for a dozen stills at once, so the rule has to live below
+ * any one panel: a single line, the cache shared, a failure costing only
+ * itself. The cache outlives a navigator so reopening the panel is free.
+ *
+ * ONLY ENGINE RENDERS WAIT IN THE LINE. A sourced still is a network fetch
+ * that shares no canvas; put in the line, one hung request would hold every
+ * picture behind it. It is deduplicated and cached, and nothing more. An
+ * engine render that never answers is abandoned after SERIAL_LIMIT_MS for
+ * the same reason.
+ */
+const SERIAL_LIMIT_MS = 8000;
+
+export const stillQueue = (() => {
+  const cache = new Map();
+  const waiting = [];
+  const pending = new Map();
+  let running = false;
+
+  const settle = (key, url) => {
+    if (url) cache.set(key, url);
+    pending.delete(key);
+    return url;
+  };
+
+  const attempt = async loader => {
+    try {
+      return (await loader()) || null;
+    } catch {
+      return null;
+    }
+  };
+
+  const pump = async () => {
+    if (running) return;
+    running = true;
+    while (waiting.length) {
+      const job = waiting.shift();
+      let timer = null;
+      const limit = new Promise(resolve => { timer = setTimeout(() => resolve(null), SERIAL_LIMIT_MS); });
+      const url = await Promise.race([attempt(job.loader), limit]);
+      clearTimeout(timer);
+      job.resolve(settle(job.key, url));
+    }
+    running = false;
+  };
+
+  return {
+    SERIAL_LIMIT_MS,
+    request(key, loader, { serial = true, signal = null } = {}) {
+      if (cache.has(key)) return Promise.resolve(cache.get(key));
+      if (pending.has(key)) return pending.get(key);
+      let job = null;
+      const promise = serial
+        ? new Promise(resolve => {
+          job = { key, loader, resolve };
+          waiting.push(job);
+          void pump();
+        })
+        : attempt(loader).then(url => settle(key, url));
+      pending.set(key, promise);
+      // An abandoned request is withdrawn, or the subject would stay "in
+      // flight" and a reader returning to it would never see its picture.
+      signal?.addEventListener('abort', () => {
+        if (pending.get(key) === promise) pending.delete(key);
+        const at = job ? waiting.indexOf(job) : -1;
+        if (at >= 0) {
+          waiting.splice(at, 1);
+          job.resolve(null);
+        }
+      }, { once: true });
+      return promise;
+    },
+    cached(key) {
+      return cache.get(key) ?? null;
+    },
+    prioritize(key) {
+      const at = waiting.findIndex(job => job.key === key);
+      if (at > 0) waiting.unshift(...waiting.splice(at, 1));
+    },
+    _reset() {
+      cache.clear();
+      waiting.length = 0;
+      pending.clear();
+    }
+  };
+})();
+
 export const previewMethods = {
   async _mountLeafPreview() {
     const leaf = this.focus;
@@ -32,7 +124,7 @@ export const previewMethods = {
       return;
     }
 
-    const cached = this._previewCache?.get(key);
+    const cached = stillQueue.cached(key);
     if (cached) {
       this._previewKey = key;
       this._paintLeafPreview(slot, cached, key);
@@ -50,7 +142,8 @@ export const previewMethods = {
 
     const url = await this._fetchStill(key, cortex => leaf.engineId
       ? cortex.renderLeafStill(leaf.engineId).then(still => still?.url)
-      : this._sourcedStill(cortex, key, controller?.signal));
+      : this._sourcedStill(cortex, key, controller?.signal),
+    { serial: Boolean(leaf.engineId), signal: controller?.signal });
     if (this._previewAbort === controller) this._previewAbort = null;
     if (this._previewKey !== key || !url) return;
     this._paintLeafPreview(this.container.querySelector('.vnav-preview'), url, key);
@@ -67,7 +160,7 @@ export const previewMethods = {
       this._cancelInk();
       return;
     }
-    if (this._previewCache?.has(key)) {
+    if (stillQueue.cached(key)) {
       this._inkKey = key;
       this._paintSpecimen(key);
       return;
@@ -80,28 +173,24 @@ export const previewMethods = {
     this._inkAbort = controller;
     const url = await this._fetchStill(key, cortex => isEngine
       ? cortex.renderLeafStill(key).then(still => still?.url)
-      : this._sourcedStill(cortex, key, controller?.signal));
+      : this._sourcedStill(cortex, key, controller?.signal),
+    { serial: isEngine, signal: controller?.signal });
     if (this._inkAbort === controller) this._inkAbort = null;
     if (this._inkKey !== key || !url) return;
     this._paintSpecimen(key);
   },
 
-  async _fetchStill(key, loadUrl) {
-    try {
+  _fetchStill(key, loadUrl, options = {}) {
+    return stillQueue.request(key, async () => {
       const { visualCortex } = await import('../../visuals/visual-cortex.js');
-      const url = await loadUrl(visualCortex);
-      if (!url) return null;
-      (this._previewCache ||= new Map()).set(key, url);
-      return url;
-    } catch {
-      return null;
-    }
+      return loadUrl(visualCortex);
+    }, options);
   },
 
   _paintSpecimen(key) {
     const figure = this.container.querySelector('.vnav-specimen');
     if (!figure || this._inkKey !== key) return;
-    const safe = safeUrl(this._previewCache?.get(key) || '');
+    const safe = safeUrl(stillQueue.cached(key) || '');
     if (!safe) return;
     figure.classList.add('has-ink');
     figure.style.setProperty('--specimen-ink', `url('${safe}')`);

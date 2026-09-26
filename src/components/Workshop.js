@@ -70,6 +70,8 @@ import {
 import { renderWorkshopStudioShell } from './workshop/WorkshopStudioShell.js';
 import { renderCombinedPassageAssignment } from './workshop/PassageAssignmentCard.js';
 import { buildSequenceMapGroups } from './workshop/sequence-map.js';
+import { SceneStack } from './workshop/SceneStack.js';
+import { createSceneApi } from './workshop/scene-api.js';
 import {
   inspectorContextLabel,
   normalizeInspectorContext
@@ -417,6 +419,10 @@ export class Workshop {
         if (this.container.isConnected) this.refreshAudioStudio();
       }
     });
+    this.phoneMode = 'scenes';
+    this.sceneStack = null;
+    this.sceneStackHost = null;
+    this.sceneApi = createSceneApi(this);
 
     this.render();
     this.attachEvents();
@@ -464,6 +470,7 @@ export class Workshop {
   markEditorDirty() {
     this.editorDirty = true;
     MemoryCore.refreshWorkshopAssetReferences();
+    this.scheduleSceneRefresh();
   }
 
   getDraftLabel(data = this.sessionData) {
@@ -680,6 +687,88 @@ export class Workshop {
     const status = this.container.querySelector('#workshop-sequence-status');
     if (picker) picker.innerHTML = this.renderSequenceOptions();
     if (status) status.textContent = this.getEditorStatus();
+    this.scheduleSceneRefresh();
+  }
+
+  /* ─── The phone's Scene Stack: a second view of this one draft ───────── */
+
+  usesSceneStack() {
+    return this.studioViewport === 'phone' && this.phoneMode === 'scenes';
+  }
+
+  setPhoneMode(mode) {
+    this.phoneMode = mode === 'studio' ? 'studio' : 'scenes';
+    this.syncSceneStack();
+    if (this.phoneMode === 'studio') this.setStudioSurface('score', { focus: true });
+  }
+
+  /**
+   * The stack's host survives the studio's full renders: it is re-attached,
+   * not rebuilt, so an open scene or sheet is still open afterwards.
+   */
+  syncSceneStack() {
+    const studio = this.container.querySelector('.workshop-studio');
+    if (studio) studio.dataset.phoneMode = this.studioViewport === 'phone' ? this.phoneMode : '';
+    if (!this.usesSceneStack()) {
+      this.sceneStack?.destroy();
+      this.sceneStack = null;
+      this.sceneStackHost?.remove();
+      this.sceneStackHost = null;
+      return;
+    }
+    if (!this.sceneStackHost) {
+      this.sceneStackHost = document.createElement('div');
+      this.sceneStackHost.className = 'scene-stack-host';
+      // Scene keys and clicks are the stack's alone. The studio delegates
+      // both on this container and Escape on the document sends the reader
+      // to the Portal, so nothing pressed in a sheet may reach either.
+      const contain = event => {
+        const leaving = event.type === 'keydown' && event.key === 'Escape'
+          && !this.sceneStack?.sheet && this.sceneStack?.view === 'stack';
+        if (!leaving) event.stopPropagation();
+      };
+      this.sceneStackHost.addEventListener('keydown', contain);
+      this.sceneStackHost.addEventListener('click', contain);
+      this.sceneStack = new SceneStack(this.sceneStackHost, this.sceneApi);
+    }
+    if (!this.sceneStackHost.isConnected) this.container.appendChild(this.sceneStackHost);
+    this.sceneStack.refresh();
+  }
+
+  scheduleSceneRefresh() {
+    if (!this.sceneStack || this._sceneRefreshQueued) return;
+    this._sceneRefreshQueued = true;
+    queueMicrotask(() => {
+      this._sceneRefreshQueued = false;
+      this.sceneStack?.refresh();
+    });
+  }
+
+  leaveForPortal() {
+    this.audioPreview.stop();
+    this.getAudioEngine()?.playClick();
+    this.onNavigate('portal');
+  }
+
+  /** Preview compiles the draft it is given and enters the Chamber the launch path uses. */
+  previewSession(data = this.sessionData) {
+    this.audioPreview.stop();
+    this.getAudioEngine()?.playHiss();
+    try {
+      const preview = this.prepareSessionPayload(data);
+      preview.isPreview = true;
+      preview.visualConfig = {
+        ...preview.visualConfig,
+        consentScope: this.visualConsentScope
+      };
+      this.workshopIssue = null;
+      this.onCreateSession(preview);
+    } catch (error) {
+      this.showToast(error.message || 'Unable to compile the visual score');
+      this.setWorkshopIssue(error.code || 'PREVIEW_COMPILE_FAILED', error.message || 'Unable to compile the media score', {
+        action: 'show-project-inspector', label: 'Review project'
+      });
+    }
   }
 
   handleSequenceSelection(value) {
@@ -767,6 +856,7 @@ export class Workshop {
 
     this.updateCreateButton();
     this.updatePersonalSwellList();
+    this.syncSceneStack();
   }
 
   setInspectorContext(context, { navigate = false, focus = false } = {}) {
@@ -1594,6 +1684,7 @@ export class Workshop {
     this.studioViewport = next;
     if (next === 'desktop') this.studioSurface = 'score';
     this.syncStudioSurface();
+    this.syncSceneStack();
     return true;
   }
 
@@ -1982,18 +2073,20 @@ export class Workshop {
       sourceName,
       directLabel: 'Use here only',
       onReadNow: (body, title) => this.acceptText(body, title, `imported-${Date.now()}`),
-      onAdmit: async record => {
-        try {
-          await LocalWorks.save(record);
-        } catch (error) {
-          // Unshelvable is not unusable. The reader asked for the text in
-          // this project, and that part can still happen.
-          console.warn('[Workshop] Could not shelve this work:', error);
-          this.showToast('Kept in this project; the Library shelf is full or unavailable');
-        }
-        this.acceptText(record.text, record.title, record.id);
-      }
+      onAdmit: record => this.openAdmitRecord(record)
     });
+  }
+
+  async openAdmitRecord(record) {
+    try {
+      await LocalWorks.save(record);
+    } catch (error) {
+      // Unshelvable is not unusable. The reader asked for the text in
+      // this project, and that part can still happen.
+      console.warn('[Workshop] Could not shelve this work:', error);
+      this.showToast('Kept in this project; the Library shelf is full or unavailable');
+    }
+    this.acceptText(record.text, record.title, record.id);
   }
 
   /** One source, whichever door it came through. */
@@ -2007,13 +2100,15 @@ export class Workshop {
   }
 
   addSource(item, provider) {
-    // Normalize array payloads (e.g. ArXiv search results returning multiple structured objects)
+    // A whole Library work arrives as its parts. They are parted by a blank
+    // line, which the reading already treats as a paragraph break; a printed
+    // divider was read aloud and shown to the reader as if it were the text.
     let normalizedData = item.data;
     if (Array.isArray(item.data)) {
         normalizedData = item.data.map(d => {
             if (typeof d === 'string') return d;
             return d.content || d.data || JSON.stringify(d);
-        }).join('\n\n--- ◈ SOURCE DIVIDER ◈ ---\n\n');
+        }).join('\n\n');
     }
 
     // Persist as pure string representation
@@ -4607,23 +4702,9 @@ export class Workshop {
         this.getAudioEngine()?.playHiss();
         this.armOrResetSequence();
       } else if (action === 'preview') {
-        this.audioPreview.stop();
-        this.getAudioEngine()?.playHiss();
-        try {
-          const preview = this.prepareSessionPayload(this.sessionData);
-          preview.isPreview = true;
-          preview.visualConfig = {
-            ...preview.visualConfig,
-            consentScope: this.visualConsentScope
-          };
-          this.workshopIssue = null;
-          this.onCreateSession(preview);
-        } catch (error) {
-          this.showToast(error.message || 'Unable to compile the visual score');
-          this.setWorkshopIssue(error.code || 'PREVIEW_COMPILE_FAILED', error.message || 'Unable to compile the media score', {
-            action: 'show-project-inspector', label: 'Review project'
-          });
-        }
+        this.previewSession(this.sessionData);
+      } else if (action === 'show-scenes') {
+        this.setPhoneMode('scenes');
       } else if (action === 'focus-reading-inspector') {
         this.setInspectorContext({ kind: 'pacing' }, { navigate: true, focus: true });
       }
@@ -5715,6 +5796,10 @@ export class Workshop {
       this.boundContainerKeydownHandler = null;
     }
     window.removeEventListener('resize', this.boundResizeHandler);
+    this.sceneStack?.destroy();
+    this.sceneStack = null;
+    this.sceneStackHost?.remove();
+    this.sceneStackHost = null;
     this.deactivate();
   }
 }

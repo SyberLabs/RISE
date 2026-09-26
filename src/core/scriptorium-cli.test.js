@@ -787,7 +787,10 @@ describe('every refusal the session can phrase has a status', () => {
       'render/project-asset.js resolves bytes for an encode, and the '
       + 'Scriptorium runs the producer with render: false',
     RenderError:
-      'the same: nothing in this sequence renders'
+      'the same: nothing in this sequence renders',
+    SceneError:
+      'scenes are the phone Workshop\'s; only workshop/scene-api.js calls '
+      + 'workshop-scenes.js, and it catches every throw into { ok: false, message }'
   });
 
   it('names every error class under src/core, or excuses it here', () => {
