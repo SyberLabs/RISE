@@ -60,14 +60,14 @@
 
 ### Task 3: Preserve browser security and public host behavior
 
-**Files:** Create `public/_headers`; modify only host references needed by `src/content/public-hosts.js`, `public/site.webmanifest`, `README.md`, and tests that guard those references.
+**Files:** Create `public/_headers`; modify only host references needed by `src/content/public-hosts.js`, `public/site.webmanifest`, `README.md`, `PRIVACY.md`, `TERMS.md`, `public/privacy.html`, `public/terms.html`, and tests that guard those references.
 
 **Interfaces:** Static responses inherit `_headers`; API responses keep their handler-owned JSON headers.
 
 - [ ] **Step 1: Write or extend a focused assertion.** Verify the built `dist/_headers` contains the current `netlify.toml` CSP, frame, nosniff, referrer, and permissions policies; verify `/index.html` revalidates and content-addressed assets retain immutable caching.
 - [ ] **Step 2: Run the focused test and expect failure.** The Cloudflare headers file does not exist yet.
 - [ ] **Step 3: Copy the effective Netlify header policy into `public/_headers`.** Use `/*` for common security headers, then exact rules for `/index.html`, `/site.webmanifest`, `/assets/*`, `/audio/recitation/*`, `/content/works/*`, and `/content/manifest.json`. Keep each header line under Cloudflare's 2,000-character limit.
-- [ ] **Step 4: Change only new-host references.** Make `rise.syberlabs.io` canonical for new links and QR defaults while preserving the `.space` old origin and its stored data. Do not redirect the old hostname.
+- [ ] **Step 4: Change only new-host and processor references.** Make `rise.syberlabs.io` canonical for new links and QR defaults while preserving the `.space` old origin and its stored data. In privacy and terms, distinguish Cloudflare hosting of `.io` from Netlify hosting of the still-available `.space` site, and disclose the optional Jev preview transfer through OpenRouter. Preserve the named operator; do not invent a transfer of legal ownership. Do not redirect the old hostname.
 - [ ] **Step 5: Build, inspect headers and paths, run focused tests, commit.** Check root and deep link behavior in local Wrangler preview before committing.
 
 ### Task 4: Add an explicit RISE browser-to-Jev preview
