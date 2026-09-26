@@ -46,7 +46,7 @@ export class Vault {
         <header class="library-header">
           <div class="library-title-section">
             <button class="btn-ghost" data-action="back">
-              <span class="icon">←</span>
+              <span class="icon" aria-hidden="true">←</span>
               <span>Portal</span>
             </button>
             <h1>${isPersonalized ? 'Your Vault' : 'The Vault'}</h1>
@@ -55,11 +55,11 @@ export class Vault {
           <!-- Section Navigation -->
           <nav class="library-nav nav" aria-label="Vault sections">
             ${isPersonalized ? `
-              <button class="nav-item ${this.currentSection === 'personalized' ? 'active' : ''}" data-section="personalized">For You</button>
-              <button class="nav-item ${this.currentSection === 'custom' ? 'active' : ''}" data-section="custom">Custom</button>
+              <button class="nav-item ${this.currentSection === 'personalized' ? 'active' : ''}" data-section="personalized" ${this.currentSection === 'personalized' ? 'aria-current="page"' : ''}>For You</button>
+              <button class="nav-item ${this.currentSection === 'custom' ? 'active' : ''}" data-section="custom" ${this.currentSection === 'custom' ? 'aria-current="page"' : ''}>Custom</button>
             ` : `
-              <button class="nav-item ${this.currentSection === 'sequences' ? 'active' : ''}" data-section="sequences">All Sequences</button>
-              <button class="nav-item ${this.currentSection === 'custom' ? 'active' : ''}" data-section="custom">Custom</button>
+              <button class="nav-item ${this.currentSection === 'sequences' ? 'active' : ''}" data-section="sequences" ${this.currentSection === 'sequences' ? 'aria-current="page"' : ''}>All Sequences</button>
+              <button class="nav-item ${this.currentSection === 'custom' ? 'active' : ''}" data-section="custom" ${this.currentSection === 'custom' ? 'aria-current="page"' : ''}>Custom</button>
             `}
           </nav>
         </header>
@@ -363,8 +363,10 @@ export class Vault {
     navItems.forEach(item => {
       if (item.dataset.section === this.currentSection) {
         item.classList.add('active');
+        item.setAttribute('aria-current', 'page');
       } else {
         item.classList.remove('active');
+        item.removeAttribute('aria-current');
       }
     });
   }

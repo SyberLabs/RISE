@@ -166,7 +166,7 @@ export class BetaGate {
       <div class="beta-welcome">
         <div class="beta-welcome-text">
           <p>An audiovisual reader: curated texts, paced to be entered rather than skimmed, with museum imagery and sound arranged around the words.</p>
-          <p class="beta-welcome-note">A fully client-side application. Nothing leaves your device.</p>
+          <p class="beta-welcome-note">Your writing and saved reading state stay in this browser. RISE may fetch public texts and images from their providers.</p>
         </div>
 
         <button id="beta-enter" class="beta-enter-btn">

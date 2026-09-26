@@ -147,7 +147,8 @@ export class Rosarium {
     `).join('');
 
     const sounds = SOUNDS.map(([id, label]) => `
-      <button class="rosarium-pill${this.sound === id ? ' rosarium-pill-selected' : ''}" data-sound="${id}">${label}</button>
+      <button type="button" class="rosarium-pill${this.sound === id ? ' rosarium-pill-selected' : ''}"
+        data-sound="${id}" aria-pressed="${this.sound === id}">${label}</button>
     `).join('');
 
     return `
@@ -162,8 +163,12 @@ export class Rosarium {
 
         <div class="rosarium-row">
           <span class="rosarium-row-label font-mono">Imagery</span>
-          <button class="rosarium-pill${this.mode === 'plain' ? ' rosarium-pill-selected' : ''}" data-mode="plain" title="The icon holds the center through every prayer">Plain</button>
-          <button class="rosarium-pill${this.mode === 'imagistic' ? ' rosarium-pill-selected' : ''}" data-mode="imagistic" title="Each mystery brings its painting">Imagistic</button>
+          <button type="button" class="rosarium-pill${this.mode === 'plain' ? ' rosarium-pill-selected' : ''}"
+            data-mode="plain" aria-pressed="${this.mode === 'plain'}"
+            title="The icon holds the center through every prayer">Plain</button>
+          <button type="button" class="rosarium-pill${this.mode === 'imagistic' ? ' rosarium-pill-selected' : ''}"
+            data-mode="imagistic" aria-pressed="${this.mode === 'imagistic'}"
+            title="Each mystery brings its painting">Imagistic</button>
           <button class="rosarium-gallery-link" data-action="gallery">view the mysteries</button>
         </div>
 
@@ -177,8 +182,12 @@ export class Rosarium {
           <input type="range" class="rosarium-pace" min="0.6" max="1.6" step="0.1" value="${this.pace}" aria-label="Prayer pace" />
           <span class="rosarium-pace-value font-mono">${this.pace.toFixed(1)}×</span>
           <span class="rosarium-row-label font-mono" style="margin-left:auto">Carried</span>
-          <button class="rosarium-pill${this.autoAdvance ? ' rosarium-pill-selected' : ''}" data-advance="auto" title="The rosary carries you: the strand shows briefly, then the next prayer begins">Auto</button>
-          <button class="rosarium-pill${!this.autoAdvance ? ' rosarium-pill-selected' : ''}" data-advance="manual" title="You advance from bead to bead yourself">By hand</button>
+          <button type="button" class="rosarium-pill${this.autoAdvance ? ' rosarium-pill-selected' : ''}"
+            data-advance="auto" aria-pressed="${this.autoAdvance}"
+            title="The rosary carries you: the strand shows briefly, then the next prayer begins">Auto</button>
+          <button type="button" class="rosarium-pill${!this.autoAdvance ? ' rosarium-pill-selected' : ''}"
+            data-advance="manual" aria-pressed="${!this.autoAdvance}"
+            title="You advance from bead to bead yourself">By hand</button>
         </div>
 
         <button class="rosarium-start" data-action="start">Begin the ${escapeHtml(MYSTERY_SETS[this.setId].name)}</button>
@@ -541,6 +550,9 @@ export class Rosarium {
     const { signal } = this._abort;
     this.container.addEventListener('click', event => this.handleClick(event), { signal });
     this._keyHandler = event => {
+      // Focused controls own Space. In particular, the Chapel exit must not
+      // advance a prayer just because the global shortcut saw the key first.
+      if (event.target.closest?.('button, a, input, select, textarea, [contenteditable="true"]')) return;
       if (event.code === 'Space' || event.key === 'ArrowRight') {
         if (this.phase === 'strand') { event.preventDefault(); this.advance(); }
         else if (this.phase === 'prayer' && !this.autoAdvance) { event.preventDefault(); this.prayerDone(); }

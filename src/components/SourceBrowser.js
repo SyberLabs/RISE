@@ -68,7 +68,7 @@ export class SourceBrowser {
         this.element.innerHTML = `
             <div class="source-browser" role="dialog" aria-modal="true" aria-labelledby="source-browser-title">
                 <header class="sb-header">
-                    <h2 class="sb-title" id="source-browser-title">Source Library</h2>
+                    <h2 class="sb-title" id="source-browser-title">Choose a source</h2>
                     <button class="sb-close" type="button" aria-label="Close">✕</button>
                 </header>
 
@@ -78,7 +78,7 @@ export class SourceBrowser {
                         <div class="sb-search">
                             <label class="sr-only" for="sb-source-search">Search the source library</label>
                             <input type="search" id="sb-source-search" class="sb-search-input"
-                                   placeholder="Search titles, authors, ideas…">
+                                   placeholder="Search the selected source…">
                         </div>
                         <nav class="sb-providers">
                             <div class="sb-provider-group">
@@ -97,9 +97,11 @@ export class SourceBrowser {
                     <main class="sb-content">
                         <div class="sb-content-header">
                             <button class="sb-back-btn" hidden>← Back</button>
-                            <span class="sb-content-title">Select a provider</span>
+                            <span class="sb-content-title">Choose a source</span>
                         </div>
-                        <div class="sb-content-list"></div>
+                        <div class="sb-content-list">
+                            <p class="sb-empty">Choose a source on the left to browse and add its available items.</p>
+                        </div>
                     </main>
                 </div>
             </div>

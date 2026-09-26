@@ -107,16 +107,15 @@ export class Library {
           </div>
 
           <!-- Top Explanatory Panel -->
-          <div class="library-intro-panel text-fog">
-            The Library contains foundational texts, historical literature, and modular content blocks. 
-            Choose a source text to configure its playback parameters in the Chamber.
-          </div>
+          <p class="library-intro-panel text-fog">
+            Browse received works, RISE compositions, and files on this device. Choose a work to read it whole or select a section.
+          </p>
 
           <!-- Section Navigation -->
           <nav class="library-nav nav" aria-label="Library sections">
-            <button class="nav-item ${this.currentSection === 'archive' ? 'active' : ''}" data-section="archive">The Archive</button>
-            <button class="nav-item ${this.currentSection === 'personal' ? 'active' : ''}" data-section="personal">Local Files</button>
-            <button class="nav-item ${this.currentSection === 'history' ? 'active' : ''}" data-section="history">Reflections</button>
+            <button class="nav-item ${this.currentSection === 'archive' ? 'active' : ''}" data-section="archive" ${this.currentSection === 'archive' ? 'aria-current="page"' : ''}>The Archive</button>
+            <button class="nav-item ${this.currentSection === 'personal' ? 'active' : ''}" data-section="personal" ${this.currentSection === 'personal' ? 'aria-current="page"' : ''}>Local Files</button>
+            <button class="nav-item ${this.currentSection === 'history' ? 'active' : ''}" data-section="history" ${this.currentSection === 'history' ? 'aria-current="page"' : ''}>Reflections</button>
           </nav>
         </header>
 
@@ -155,7 +154,7 @@ export class Library {
         <div class="reflections-empty">
           <span class="reflections-empty-sigil" aria-hidden="true">◌</span>
           <p class="text-fog">The archive of reflections is empty.</p>
-          <p class="text-mist">Complete a session and seal a reflection in the Synthesis stage — it will be kept here.</p>
+          <p class="text-mist">Save a reflection after a reading, and it will appear here.</p>
         </div>
       `
       : entries.map(entry => `
@@ -173,7 +172,7 @@ export class Library {
       <div class="library-section">
         <div class="section-header">
           <h2 class="text-light">Reflections</h2>
-          <p class="text-fog">What you wrote after each session. Output becomes input; the spiral continues.</p>
+          <p class="text-fog">Reflections you chose to save after a reading.</p>
         </div>
         <div class="reflections-list">
           ${body}
@@ -202,7 +201,7 @@ export class Library {
                clothes — the certification ledger belongs to whoever runs the
                import, not to someone choosing what to read.
                What survives is the promise the Archive actually makes. -->
-          <p class="text-fog">Every text here is public domain, and names the edition you are reading.</p>
+          <p class="text-fog">Received works show their edition; composed texts were written for RISE.</p>
           ${shelf?.orientation
             ? `<p class="archive-orientation text-mist">${escapeHtml(shelf.orientation)}</p>`
             : ''}
@@ -216,7 +215,7 @@ export class Library {
             <div class="section-filters">
               ${LIBRARY_CATEGORIES.map(c => `
                 <button class="filter-btn ${this.currentFilter === c.id ? 'active' : ''}"
-                  data-filter="${c.id}" title="${escapeHtml(c.description)}">${escapeHtml(c.name)}</button>
+                  data-filter="${c.id}" aria-pressed="${this.currentFilter === c.id}" title="${escapeHtml(c.description)}">${escapeHtml(c.name)}</button>
               `).join('')}
             </div>
           </div>
@@ -526,9 +525,15 @@ export class Library {
           // Must re-query since DOM was just replaced by updateContent
           const parent = this.container.querySelector('.section-filters');
           if (parent) {
-            parent.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+            parent.querySelectorAll('.filter-btn').forEach(b => {
+              b.classList.remove('active');
+              b.setAttribute('aria-pressed', 'false');
+            });
             const newActive = parent.querySelector(`[data-filter="${this.currentFilter}"]`);
-            if (newActive) newActive.classList.add('active');
+            if (newActive) {
+              newActive.classList.add('active');
+              newActive.setAttribute('aria-pressed', 'true');
+            }
           }
         }
         return;
@@ -607,8 +612,10 @@ export class Library {
     navItems.forEach(item => {
       if (item.dataset.section === this.currentSection) {
         item.classList.add('active');
+        item.setAttribute('aria-current', 'page');
       } else {
         item.classList.remove('active');
+        item.removeAttribute('aria-current');
       }
     });
   }
@@ -827,13 +834,13 @@ export class Library {
             ${query ? `<span class="toc-search-count font-mono text-mist">${entries.length} of ${divisions.entries.length}</span>` : ''}
           </div>` : ''}
 
-        <div class="toc-list" role="list">
+        <div class="toc-list">
           ${entries.length === 0
             ? `<p class="toc-empty text-fog">Nothing here matches “${escapeHtml(query)}”.</p>`
             : entries.map(e => {
               const min = this.contentsMinutes(e.words, text.defaultWpm || 200);
               return `
-              <button class="toc-entry" role="listitem" data-toc="read" data-entry="${e.id}">
+              <button class="toc-entry" type="button" data-toc="read" data-entry="${e.id}">
                 <span class="toc-entry-mark font-mono" aria-hidden="true">${escapeHtml(this.contentsMark(e, divisions))}</span>
                 <span class="toc-entry-body">
                   <span class="toc-entry-label">${escapeHtml(e.label)}</span>
