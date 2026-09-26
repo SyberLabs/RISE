@@ -23,8 +23,13 @@ import { fileURLToPath } from 'node:url';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const OUT = join(HERE, '..', 'public', 'engine-stills');
-const EDGE = 512;            // the slot is small; more than this is waste
+// The phone navigator shows a still full-bleed, and a 390px-wide phone at 3x
+// has ~1200 device pixels across: 512 was a thumbnail blown up to a screen.
+const EDGE = 1440;
 const QUALITY = 0.82;
+// Square, so a cover crop keeps the figure on a tall phone and a wide one.
+const RENDER_VIEWPORT = { width: 1000, height: 1000 };
+const RENDER_DPR = 1.44;
 
 /**
  * Hand-picked specimens: the engine's own output, chosen by eye rather than
@@ -101,7 +106,7 @@ async function downscale(page, dataUrl) {
 const toBuffer = dataUrl => Buffer.from(dataUrl.split(',')[1], 'base64');
 
 const browser = await chromium.launch();
-const page = await browser.newPage({ viewport: { width: 1280, height: 900 } });
+const page = await browser.newPage({ viewport: RENDER_VIEWPORT, deviceScaleFactor: RENDER_DPR });
 await mkdir(OUT, { recursive: true });
 const written = [];
 
@@ -131,19 +136,24 @@ try {
     console.log(`no app at ${origin} — skipping the rendered stills`);
 }
 
-const rendered = !reachable ? {} : await page.evaluate(async () => {
+// Apparitio is always rendered. Fractal and Ostensoria are rendered too when
+// no hand-picked specimen was supplied for them, so a rebuild never falls
+// back to an old small file.
+const toRender = ['apparitio', ...['fractal', 'ostensoria'].filter(engine => !FROM_FILE[engine])];
+const rendered = !reachable ? {} : await page.evaluate(async engines => {
     const out = {};
     const cortex = await window.__RISE_TEST__.ensureVisualCortex();
     cortex.init();
-    // Apparitio draws onto the shared plate canvas like the other plates, so
-    // one call is enough. A failure leaves it out rather than shipping a
-    // broken picture.
-    try {
-        const work = await cortex._renderContinuousProceduralWork('apparitio');
-        if (work?.url) out.apparitio = work.url;
-    } catch { /* omitted */ }
+    // Each draws onto the shared plate canvas, so one call apiece is enough.
+    // A failure leaves the engine out rather than shipping a broken picture.
+    for (const engine of engines) {
+        try {
+            const work = await cortex._renderContinuousProceduralWork(engine);
+            if (work?.url) out[engine] = work.url;
+        } catch { /* omitted */ }
+    }
     return out;
-});
+}, toRender);
 
 for (const [engine, url] of Object.entries(rendered)) {
     const shrunk = await downscale(page, url);
