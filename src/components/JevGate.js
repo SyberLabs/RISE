@@ -2,7 +2,7 @@ import { createJevConductor } from '../core/jev-conductor.js';
 
 const DEFAULT_INTENT = 'Read attentively';
 
-/** A clear consent gate. It does not send text or contact Jev. */
+/** A clear consent gate. It does not send text or contact the decision service. */
 export class JevGate {
     constructor(container, { onReady, onExit, mode = 'reading', pace = 200 } = {}) {
         if (!container?.replaceChildren) throw new TypeError('JevGate needs a DOM container.');
@@ -20,20 +20,20 @@ export class JevGate {
 
         container.innerHTML = `
             <section class="jev-gate" aria-labelledby="jev-gate-title">
-                <h2 id="jev-gate-title">Start with Jev</h2>
-                <p id="jev-gate-description">Jev is required for this ${mode} session. It can recommend continuing, slowing down, or pausing.</p>
-                <p id="jev-gate-privacy">For this ${mode} session, Jev receives the excerpt being read (up to 2,000 characters), your intent, any feedback you enter (up to 500 characters), and the current pace (starting at ${pace} WPM; Jev accepts 100–500 WPM). This information is sent to TypeSafe for a decision. Nothing is sent before you agree.</p>
+                <h2 id="jev-gate-title">Start a guided reading</h2>
+                <p id="jev-gate-description">A reading guide is required for this ${mode} session. It can recommend continuing, slowing down, or pausing.</p>
+                <p id="jev-gate-privacy">For this ${mode} session, the excerpt being read (up to 2,000 characters), your intent, any feedback you enter (up to 500 characters), and the current pace (starting at ${pace} WPM; accepted range 100–500 WPM) are sent through OpenRouter to the selected model provider for processing. Nothing is sent before you agree.</p>
                 <form>
                     <label for="jev-intent">What would you like from this reading? <span>(optional)</span></label>
                     <input id="jev-intent" name="intent" type="text" maxlength="500" value="${DEFAULT_INTENT}" autocomplete="off" autofocus>
                     <label class="jev-consent">
                         <input name="consent" type="checkbox" required>
-                        I agree to send each excerpt I read, my intent, and any feedback to TypeSafe’s Jev service during this session.
+                        I agree to send each excerpt I read, my intent, and any feedback through OpenRouter to its selected model provider during this session.
                     </label>
                     <p class="jev-gate-status" role="status" aria-live="polite" hidden></p>
                     <div class="jev-gate-actions">
                         <button type="button" data-action="exit">Exit</button>
-                        <button type="submit" data-action="continue" disabled>Continue with Jev</button>
+                        <button type="submit" data-action="continue" disabled>Continue with reading guide</button>
                     </div>
                 </form>
             </section>`;
@@ -56,7 +56,7 @@ export class JevGate {
             } catch (error) {
                 this.finished = false;
                 this.continueButton.disabled = false;
-                this.setStatus(error?.message || 'Could not start a Jev session. Try again.');
+                this.setStatus(error?.message || 'Could not start the reading guide. Try again.');
             }
         };
         this.handleExit = () => {

@@ -1,23 +1,11 @@
-# Provider access and alternatives
+# Provider decision: OpenRouter
 
-Checked 25 September 2026. Recommendation: try the official TypeSafe console first; use OpenRouter as the fastest hosted alternative if account access is actually blocked. Evaluate Laya separately before making it responsible for reading progression. No provider change has been approved or implemented.
+On 25 September 2026 the user reported Jev was not working and explicitly approved moving forward with OpenRouter. This supersedes the earlier recommendation to try TypeSafe first.
 
-## TypeSafe / Jev
+The useful requirement is a reliable decision before reading progression. The implementation preserves that boundary while replacing the provider-specific request and response. One native server-side fetch is sufficient; an SDK and a multi-provider framework add no needed behavior here.
 
-The [official quickstart](https://docs.typesafe.ai/introduction/quickstart) directs users to obtain an API key from the [console](https://console.typesafe.ai/) and call `/v1/systemone`. This documents an available signup path; it does not establish that this user's signed-in account can issue a key. The current RISE integration is already built for this API. A real provider response remains unverified.
+The [OpenRouter structured-output API](https://openrouter.ai/docs/guides/features/structured-outputs) accepts JSON Schema on compatible provider endpoints. RISE requests one configured model and validates the returned action locally. It does not turn a self-reported number into confidence and does not use response healing to accept malformed decisions.
 
-## OpenRouter
+Routing requires support for the requested parameters and excludes endpoints whose policy allows data collection. These routing settings do not themselves establish zero retention by OpenRouter or every processor. See [provider routing](https://openrouter.ai/docs/guides/routing/provider-selection) and RISE's [privacy policy](../../PRIVACY.md).
 
-The [structured-output API](https://openrouter.ai/docs/guides/features/structured-outputs) supports JSON Schema on compatible models. A selected model could return the same `continue`, `slower`, or `pause` choice. OpenRouter still requires a key and model selection. The SDK is a client library, not a decision model; one server-side HTTP call does not need another dependency.
-
-Switching requires updating server response validation, consent and privacy disclosures, and evaluation evidence. Do not manufacture Jev-style confidence from a model's self-reported number. Keep the reading decision boundary mandatory and retain failure blocking, timeouts, bounded excerpts, and stale-response protection.
-
-## Laya
-
-[Laya's model card](https://huggingface.co/convaiinnovations/laya) publishes Apache-2.0 weights and a Jev-compatible serving interface. However, it describes its base checkpoint as a model to specialize, not a zero-shot decision engine; its reported typed-decision performance improves after task-specific fine-tuning. Its context and confidence semantics also need evaluation against RISE's actual requests.
-
-Self-hosting would remove the TypeSafe-key dependency, but requires a model-serving deployment plus a small, held-out RISE evaluation before promotion. Similar response shapes do not prove equivalent decisions. Compare quality, latency, interruptions, and serving cost before selecting it.
-
-## First-principles requirement
-
-The useful requirement is a reliable, evaluated decision before reading progression. Requiring a particular vendor is the user's current product choice, not a technical necessity. Preserve that choice until explicitly changed; do not hide outages with an unapproved alternative model.
+Laya remains a possible later self-hosted evaluation. Its [model card](https://huggingface.co/convaiinnovations/laya) cautions that the base checkpoint needs specialization; similar response shapes do not prove equivalent reading decisions. There is no Laya runtime or silent fallback in this change.

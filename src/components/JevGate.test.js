@@ -18,7 +18,11 @@ describe('JevGate', () => {
 
         expect(consent.checked).toBe(false);
         expect(continueButton.disabled).toBe(true);
-        expect(container.textContent).toContain('TypeSafe');
+        expect(continueButton.textContent).toBe('Continue with reading guide');
+        expect(container.textContent).toContain('OpenRouter');
+        expect(container.textContent).toContain('selected model provider');
+        expect(container.textContent).not.toContain('TypeSafe');
+        expect(container.textContent).not.toContain('Qwen');
         expect(container.textContent).toContain('2,000 characters');
         expect(container.textContent).toContain('reading session');
         expect(container.textContent).toContain('200 WPM');
@@ -63,7 +67,7 @@ describe('requestJevSession', () => {
             ok: true,
             json: async () => ({
                 requestId: JSON.parse(request.body).requestId,
-                action: 'continue', model: 'jev-model', confidence: 0.9
+                action: 'continue', model: 'openai/gpt-4.1-mini'
             })
         }));
         vi.stubGlobal('fetch', fetchImpl);
@@ -73,6 +77,11 @@ describe('requestJevSession', () => {
         expect(dialog.open).toBe(true);
         expect(fetchImpl).not.toHaveBeenCalled();
         expect(dialog.textContent).toContain('devotional session');
+        expect(dialog.textContent).toContain('OpenRouter');
+        expect(dialog.textContent).toContain('selected model provider');
+        expect(dialog.textContent).not.toContain('TypeSafe');
+        expect(dialog.textContent).not.toContain('Jev');
+        expect(dialog.textContent).toContain('Continue with reading guide');
         expect(dialog.textContent).toContain('240 WPM');
 
         dialog.querySelector('input[type="checkbox"]').click();

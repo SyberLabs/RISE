@@ -32,7 +32,7 @@ describe('Chamber Jev gate state', () => {
         expect(status.getAttribute('aria-live')).toBe('polite');
         expect(status.textContent).toContain('Waiting for passage approval.');
 
-        chamber.onJevState({ state: 'blocked', message: 'Jev asked to pause.' });
+        chamber.onJevState({ state: 'blocked', message: 'The reading guide recommends a pause.' });
         expect(status.querySelector('#jev-feedback').maxLength).toBe(500);
         status.querySelector('#jev-feedback').value = 'I am ready to continue.';
         const retry = status.querySelector('button');

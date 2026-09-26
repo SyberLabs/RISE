@@ -925,13 +925,13 @@ export class Player {
             const result = await this.jevConductor.decide({ excerpt: passage.excerpt, signal: controller.signal });
             if (epoch !== this._jevEpoch || controller.signal.aborted || this._destroyed) return;
             if (!result || !['continue', 'slower', 'pause'].includes(result.action)) {
-                throw new Error('Jev returned an invalid decision.');
+                throw new Error('The reading decision service returned an invalid response.');
             }
             this._jevController = null;
             if (result.action === 'pause') {
                 this.sessionState.state = 'paused';
                 this.sessionState.pausedAt = Date.now();
-                this.emit('jev', { state: 'blocked', passageId: passage.id, message: 'Jev asked to pause before this passage.' });
+                this.emit('jev', { state: 'blocked', passageId: passage.id, message: 'The reading guide recommends a pause before this passage.' });
                 this.emit('state', { state: 'paused' });
                 return;
             }
@@ -943,7 +943,7 @@ export class Player {
             this._jevController = null;
             this.sessionState.state = 'paused';
             this.sessionState.pausedAt = Date.now();
-            this.emit('jev', { state: 'blocked', passageId: passage.id, message: 'Passage approval failed. Retry to request approval again.' });
+            this.emit('jev', { state: 'blocked', passageId: passage.id, message: 'The reading decision failed. Retry to request it again.' });
             this.emit('state', { state: 'paused' });
         }
     }

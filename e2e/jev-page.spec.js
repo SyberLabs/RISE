@@ -20,13 +20,13 @@ test('Page waits, blocks the next page, retries that page, and leaves no stale g
             openingPage.resolve(body);
             await releaseOpeningPage.promise;
             await route.fulfill({ contentType: 'application/json', body: JSON.stringify({
-                requestId: body.requestId, action: 'continue', model: 'jev-test', confidence: 1
+                requestId: body.requestId, action: 'continue', model: 'openai/gpt-4.1-mini'
             }) });
             return;
         }
         const action = phase === 'next-page' ? 'pause' : 'continue';
         await route.fulfill({ contentType: 'application/json', body: JSON.stringify({
-            requestId: body.requestId, action, model: 'jev-test', confidence: 1
+            requestId: body.requestId, action, model: 'openai/gpt-4.1-mini'
         }) });
     });
 
@@ -47,7 +47,7 @@ test('Page waits, blocks the next page, retries that page, and leaves no stale g
     const dialog = page.locator('.jev-session-dialog');
     await expect(dialog).toBeVisible();
     await dialog.locator('[name="consent"]').check();
-    await dialog.getByRole('button', { name: 'Continue with Jev' }).click();
+    await dialog.getByRole('button', { name: 'Continue with reading guide' }).click();
     await expect(page.locator('#chamber-display')).toBeVisible();
     await expect.poll(() => requests.length).toBe(1);
     await expect(page.locator('#atom-display')).toContainText('PAGE');

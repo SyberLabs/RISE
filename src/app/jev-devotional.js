@@ -1,6 +1,6 @@
 import '../jev.css';
 
-/** Jev may hold a fixed prayer, never rewrite or reorder it. */
+/** The reading guide may hold a fixed prayer, never rewrite or reorder it. */
 export function createDevotionalJev({ requestSession } = {}) {
     let conductor;
     let generation = 0;
@@ -34,8 +34,8 @@ export function createDevotionalJev({ requestSession } = {}) {
             if (!conductor) return null;
             dialog = document.createElement('dialog');
             dialog.dataset.jevDevotional = '';
-            dialog.setAttribute('aria-label', 'Jev reading decision');
-            dialog.innerHTML = '<p role="status">Jev is preparing the next prayer…</p><label data-feedback-label hidden>What would help you continue? <input data-feedback maxlength="500" placeholder="For example: give me more time"></label><button type="button" data-retry hidden>Continue / retry</button> <button type="button" data-cancel>Leave this prayer</button>';
+            dialog.setAttribute('aria-label', 'Reading decision');
+            dialog.innerHTML = '<p role="status">Checking the next prayer…</p><label data-feedback-label hidden>What would help you continue? <input data-feedback maxlength="500" placeholder="For example: give me more time"></label><button type="button" data-retry hidden>Continue / retry</button> <button type="button" data-cancel>Leave this prayer</button>';
             document.body.append(dialog);
             if (dialog.showModal) dialog.showModal(); else dialog.setAttribute('open', '');
             return await new Promise(resolve => {
@@ -58,10 +58,10 @@ export function createDevotionalJev({ requestSession } = {}) {
                             finish(decision.action);
                             return;
                         }
-                        dialog.querySelector('[role="status"]').textContent = 'Jev paused here. Retry when you are ready, or leave.';
+                        dialog.querySelector('[role="status"]').textContent = 'The reading guide recommends a pause here. Retry when you are ready, or leave.';
                     } catch {
                         if (settled || generation !== revision) { finish(null); return; }
-                        dialog.querySelector('[role="status"]').textContent = 'Jev is unavailable. Reading is paused.';
+                        dialog.querySelector('[role="status"]').textContent = 'The reading decision is unavailable. Reading is paused.';
                     }
                     retry.hidden = false;
                     dialog.querySelector('[data-feedback-label]').hidden = false;

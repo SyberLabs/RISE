@@ -11,15 +11,15 @@
 ## The short version
 
 RISE stores your projects, journals, and settings in your browser. Reading
-sessions require the Jev decision service. Before a session starts, RISE asks
+sessions require the OpenRouter reading decision service. Before a session starts, RISE asks
 for permission to send your reading intent and bounded text excerpts through
-our Netlify function to TypeSafe AI. If you decline, the reading does not start;
+our Netlify function to OpenRouter and the selected model provider. If you decline, the reading does not start;
 you can still leave and access your saved work.
 
 We do not use cookies. We do not use analytics. We do not track you across
 sites or across visits. We have no accounts, so we do not know who you are. We
 do not sell personal information. The processing described below includes
-sending consented reading excerpts to TypeSafe AI.
+sending consented reading excerpts to OpenRouter and the selected model provider.
 
 The rest of this document is the detail behind those sentences.
 
@@ -53,7 +53,7 @@ There is no sign-up, no login and no user account of any kind.
 
 The following is written to your browser's own storage, on your own computer or
 phone. RISE does not synchronize this storage to a server, and we cannot recover
-it for you. Text selected for a reading can be included in the consented Jev
+it for you. Text selected for a reading can be included in the consented reading
 requests described below.
 
 ### Local storage
@@ -101,9 +101,9 @@ Session storage is discarded when you close the tab.
 
 Text you bring to RISE is processed in your browser and stored in the same
 local storage above. After you consent to a reading session, excerpts of up
-to 2,000 characters per decision are sent to the Jev service. Over a session,
+to 2,000 characters per decision are sent to the reading service. Over a session,
 multiple excerpts can be sent; the limit is per request, not per book. Do not
-start a session with text you do not want TypeSafe AI to process.
+start a session with text you do not want OpenRouter and the selected model provider to process.
 
 ---
 
@@ -114,16 +114,19 @@ start a session with text you do not want TypeSafe AI to process.
 RISE sends requests to its own `/api/jev-decision` endpoint on Netlify. The
 function forwards your reading intent (up to 500 characters), feedback when
 provided (up to 500 characters), a text excerpt (up to 2,000 characters),
-reading mode, and pace to TypeSafe AI at `api.typesafe.ai`. A temporary request
+reading mode, and pace to OpenRouter at `openrouter.ai`, which forwards the
+request to the selected model provider. A temporary request
 identifier lets the browser reject a response for the wrong request. The
 provider key stays on the server.
 
 The function does not deliberately store or log these request bodies and does
 not add them to a RISE database. This does not establish a retention or training
-policy for Netlify or TypeSafe AI. TypeSafe's terms and privacy information are
-available from <https://typesafe.ai/>. RISE has not verified account-specific
-provider retention settings. A failed or unavailable Jev decision pauses
-reading; RISE does not send the text to an alternative model.
+policy for Netlify or OpenRouter and the selected model provider. OpenRouter's privacy information is
+available from <https://openrouter.ai/privacy>. RISE has not verified account-specific
+provider retention settings. A failed or unavailable reading decision pauses
+reading. RISE requests the configured model; OpenRouter may route it among
+eligible model providers. RISE does not substitute a different model after a
+failed decision.
 
 ### Hosting requests
 
@@ -189,7 +192,7 @@ We state these plainly because the absence is the point.
 - **No cross-site or cross-visit tracking.** Nothing stored on your device is
   an identifier for you; it is your own work and your own settings.
 - **No sale or sharing of personal information**, as those terms are used in
-  the California Consumer Privacy Act. The consented Jev processing described
+  the California Consumer Privacy Act. The consented reading processing described
   in section 4 is for reading decisions, not advertising.
 - **No camera, microphone or location access.** The application is served with
   a `Permissions-Policy` header that denies all three at the browser level,
@@ -244,7 +247,7 @@ you the same outcome immediately.
 ## 9. California residents
 
 RISE is published from California. Our server processing includes hosting
-request logs and consented Jev reading requests, as described in section 4.
+request logs and consented reading requests, as described in section 4.
 
 **We do not sell or share personal information**, and never have, as those
 terms are defined in the California Consumer Privacy Act. We do not use or

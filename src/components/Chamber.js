@@ -488,7 +488,7 @@ export class Chamber {
             <p id="jev-status-message"></p>
             <label for="jev-feedback">What would help? <span>(optional)</span></label>
             <textarea id="jev-feedback" maxlength="500" rows="2"></textarea>
-            <button id="jev-retry" type="button" hidden>Ask Jev again</button>
+            <button id="jev-retry" type="button" hidden>Retry reading decision</button>
           </div>
 
           <!-- PAGE MODE (PAGE-MODE-SPEC): the SPATIAL projection of this
@@ -3342,8 +3342,8 @@ export class Chamber {
     panel.hidden = false;
     panel.classList.remove('is-suggestion');
     message.textContent = data.message || (state === 'waiting'
-      ? 'Checking this passage with Jev…'
-      : 'Jev could not approve this passage. You can share feedback and try again.');
+      ? 'Checking this passage…'
+      : 'A reading decision is unavailable for this passage. Share feedback and try again.');
     const canRetry = state === 'blocked' && data.retryable !== false;
     if (feedback) feedback.hidden = !canRetry;
     if (feedbackLabel) feedbackLabel.hidden = !canRetry;

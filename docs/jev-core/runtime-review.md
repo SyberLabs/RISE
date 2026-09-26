@@ -1,3 +1,5 @@
+> Historical Jev checkpoint review. Superseded for provider integration by [the OpenRouter review](openrouter-review.md); these test counts and TypeSafe statements describe the earlier implementation.
+
 # Runtime integration review
 
 ## Findings

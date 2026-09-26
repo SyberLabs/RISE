@@ -1,4 +1,6 @@
-# Jev passage approval in playback
+> Provider update: the existing internal `jev` events and conductor names now carry OpenRouter reading decisions. The playback boundary is unchanged.
+
+# Required reading decisions in playback
 
 `Player(session, { jevConductor })` is the Stream gate. The first readable text atom waits for `jevConductor.decide({ excerpt, signal })`; each later source or authored paragraph boundary waits before the next text atom is prepared or emitted. Paragraph breaks come from explicit `paragraph-break` / `source-break` tags, and paragraph-mode compilations use source character spans to recognize blank-line boundaries. Word or phrase chunks inside one authored passage do not request separate decisions. Excerpts are capped at 2,000 characters.
 
@@ -6,4 +8,4 @@ While a decision is pending, Player emits `jev` with `state: 'waiting'`. A valid
 
 `PageReader` accepts the same `jevConductor` and an `onJevState` callback. It combines a requested page's text into one excerpt capped at 2,000 characters, requests one decision, then renders only that page. Each newly requested page gets a fresh decision even when the same source paragraph continues across the page boundary. A rejected navigation keeps the prior page visible and stores the target; UI retry calls `reader.retry()` so it resubmits the same page excerpt with any queued feedback. Jev-enabled readers remain paginated: elongation and full-document print are refused with a `blocked` status because they would expose unauthorised text or request excerpts for the entire book. Existing non-Jev PageReader callers keep their scroll, print, and synchronous render behavior.
 
-The Chamber/session factory supplies a live conductor for production launches. These classes retain their no-conductor behavior for existing isolated core/page tests and non-production callers; that compatibility is not a production bypass. Unit tests cover gating and cancellation, but browser playback was not exercised in this validation pass. The deployed decision endpoint returned 503 because its server-side TypeSafe key is not configured; live decisions therefore remain unverified.
+The Chamber/session factory supplies a live conductor for production launches. These classes retain their no-conductor behavior for existing isolated core/page tests and non-production callers; that compatibility is not a production bypass. Unit tests cover gating and cancellation, but browser playback was not exercised in this validation pass. The deployed decision endpoint returned 503 because its server-side OpenRouter key is not configured; live decisions therefore remain unverified.

@@ -27,29 +27,24 @@ function requestId() {
 
 function validateDecision(value, expectedId) {
     if (!value || typeof value !== 'object' || Array.isArray(value)) {
-        throw new Error('Jev returned an invalid decision.');
+        throw new Error('The reading decision service returned an invalid response.');
     }
-    if (value.requestId !== expectedId) throw new Error('Jev returned a mismatched request ID.');
+    if (value.requestId !== expectedId) throw new Error('The reading decision response did not match this request.');
     if (!['continue', 'slower', 'pause'].includes(value.action)) {
-        throw new Error('Jev returned an unsupported action.');
+        throw new Error('The reading decision service returned an unsupported action.');
     }
     if (typeof value.model !== 'string' || value.model.trim().length === 0
         || value.model.length > LIMITS.model) {
-        throw new Error('Jev returned an invalid model name.');
-    }
-    if (typeof value.confidence !== 'number' || !Number.isFinite(value.confidence)
-        || value.confidence < 0 || value.confidence > 1) {
-        throw new Error('Jev returned invalid confidence.');
+        throw new Error('The reading decision service returned an invalid model identifier.');
     }
     return {
         requestId: value.requestId,
         action: value.action,
         model: value.model,
-        confidence: value.confidence
     };
 }
 
-/** A same-origin, abortable client for the required Jev decision service. */
+/** A same-origin, abortable client for the required reading decision service. */
 export function createJevConductor({
     intent = 'Read attentively',
     mode = 'reading',
@@ -71,12 +66,12 @@ export function createJevConductor({
     let activePace = pace;
 
     function setFeedback(feedback) {
-        if (destroyed) throw new Error('Jev conductor is destroyed.');
+        if (destroyed) throw new Error('The reading decision session has ended.');
         queuedFeedback = boundedText(feedback, 'feedback', LIMITS.feedback);
     }
 
     function setPace(nextPace) {
-        if (destroyed) throw new Error('Jev conductor is destroyed.');
+        if (destroyed) throw new Error('The reading decision session has ended.');
         if (typeof nextPace !== 'number' || !Number.isFinite(nextPace)
             || nextPace < PACE_RANGE.min || nextPace > PACE_RANGE.max) {
             throw new TypeError(`pace must be between ${PACE_RANGE.min} and ${PACE_RANGE.max} WPM.`);
@@ -85,7 +80,7 @@ export function createJevConductor({
     }
 
     async function decide({ excerpt, feedback = '', signal } = {}) {
-        if (destroyed) throw new Error('Jev conductor is destroyed.');
+        if (destroyed) throw new Error('The reading decision session has ended.');
         boundedText(excerpt, 'excerpt', LIMITS.excerpt);
         const decisionFeedback = feedback || queuedFeedback;
         boundedText(decisionFeedback, 'feedback', LIMITS.feedback);
@@ -105,7 +100,7 @@ export function createJevConductor({
         let rejectAborted;
         const aborted = new Promise((_, reject) => { rejectAborted = reject; });
         const failAsAborted = () => rejectAborted(abortError(
-            request.timedOut ? 'Jev request timed out.' : 'Jev request aborted.'
+            request.timedOut ? 'Reading decision request timed out.' : 'Reading decision request was cancelled.'
         ));
         const onAbort = () => {
             request.externallyAborted = true;
@@ -138,7 +133,7 @@ export function createJevConductor({
                 signal: controller.signal
             }));
             const response = await Promise.race([responsePromise, aborted]);
-            if (!response?.ok) throw new Error(`Jev request failed${response?.status ? ` (${response.status})` : ''}.`);
+            if (!response?.ok) throw new Error('The reading decision service is unavailable.');
             const payload = await Promise.race([response.json(), aborted]);
             if (destroyed || currentGeneration !== generation || request.timedOut || request.externallyAborted) {
                 throw abortError();

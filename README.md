@@ -6,10 +6,10 @@
 
 [Enter RISE →](https://rise.syberlabs.space/)
 
-**Jev integration in development:** the `codex/jev-core` branch adds a required
+**OpenRouter reading guide in development:** the `codex/jev-core` branch adds a required
 decision before reading progresses, with explicit consent to send bounded
-excerpts to TypeSafe. Follow the [implementation and agent evidence](docs/jev-core/README.md).
-Live verification requires a server-side `TYPESAFE_API_KEY`; tests using simulated
+excerpts through OpenRouter to the selected model provider. Follow the [implementation and agent evidence](docs/jev-core/README.md).
+Live verification requires a server-side `OPENROUTER_API_KEY`; tests using simulated
 responses do not establish a working live deployment.
 
 ---
@@ -44,7 +44,7 @@ A reading begins by tuning four elements.
 
 Bring your own `.txt` or `.md` file, paste text directly, or enter through RISE's built-in Library and curated collections.
 
-Local text is prepared in the browser. Reading requires explicit consent to send bounded excerpts through RISE's server to TypeSafe AI for Jev decisions.
+Local text is prepared in the browser. Reading requires explicit consent to send bounded excerpts through RISE's server and OpenRouter to the selected model provider for reading decisions.
 
 ### Time
 
@@ -230,7 +230,7 @@ RISE is an experimental reading and creative-technology project. It makes no med
 
 RISE is browser-native.
 
-User-provided files and saved work remain in browser storage. After session consent, bounded reading excerpts, intent, feedback, mode, and pace are sent through RISE's server to TypeSafe AI. See [Privacy](PRIVACY.md) for the exact fields and limits.
+User-provided files and saved work remain in browser storage. After session consent, bounded reading excerpts, intent, feedback, mode, and pace are sent through RISE's server and OpenRouter to the selected model provider. See [Privacy](PRIVACY.md) for the exact fields and limits.
 
 Some visual modes retrieve publicly hosted images from external cultural or scientific institutions. Remote-image requests are deliberately configured to avoid sending the reader's RISE page as a referrer.
 

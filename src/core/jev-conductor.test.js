@@ -4,8 +4,7 @@ import { createJevConductor } from './jev-conductor.js';
 const answer = (overrides = {}) => ({
     requestId: 'request-1',
     action: 'continue',
-    model: 'jev-model',
-    confidence: 0.8,
+    model: 'openai/gpt-4.1-mini',
     ...overrides
 });
 
@@ -45,8 +44,7 @@ describe('createJevConductor', () => {
     it.each([
         ['wrong request id', { requestId: 'other' }],
         ['unknown action', { action: 'skip' }],
-        ['missing model', { model: '' }],
-        ['invalid confidence', { confidence: 1.1 }]
+        ['missing model', { model: '' }]
     ])('rejects a response with %s', async (_label, payload) => {
         const jev = createJevConductor({ fetchImpl: async (_url, request) => response(answer({
             requestId: JSON.parse(request.body).requestId,
@@ -57,8 +55,8 @@ describe('createJevConductor', () => {
     });
 
     it('rejects a service error without accepting its body as a decision', async () => {
-        const jev = createJevConductor({ fetchImpl: async () => response({ action: 'continue' }, false) });
-        await expect(jev.decide({ excerpt: 'text' })).rejects.toThrow(/Jev/);
+        const jev = createJevConductor({ fetchImpl: async () => response({ error: { code: 'DECISION_NOT_CONFIGURED', message: 'Private server details' } }, false) });
+        await expect(jev.decide({ excerpt: 'text' })).rejects.toThrow(/reading decision/i);
         jev.destroy();
     });
 
@@ -144,7 +142,7 @@ describe('createJevConductor', () => {
         const fetchImpl = vi.fn();
         const jev = createJevConductor({ fetchImpl });
         jev.destroy();
-        await expect(jev.decide({ excerpt: 'text' })).rejects.toThrow(/destroyed/);
+        await expect(jev.decide({ excerpt: 'text' })).rejects.toThrow(/session has ended/);
         expect(fetchImpl).not.toHaveBeenCalled();
     });
 });

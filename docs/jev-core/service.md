@@ -1,29 +1,28 @@
-# Jev decision service
+# OpenRouter reading decision service
 
-`POST /api/jev-decision` is the same-origin server boundary for one Jev choice. The browser sends JSON with `intent` (up to 500 characters), `feedback` (500), `excerpt` (2,000), `requestId` (100), `mode` (`reading` or `devotional`), and `pace` (100–500 words per minute). The function sends only those fields needed as TypeSafe `state`, asks one `choice` question, and returns `{ requestId, action, model, confidence }` for a validated `continue`, `slower`, or `pause` decision. The decision criteria consider passage density and unfamiliar or specialized concepts in relation to the stated intent and pace; the instructions forbid rewriting, summarizing, reordering, skipping, or adding to the source passage.
+`POST /api/jev-decision` is the existing same-origin server boundary. Its internal name is retained; it no longer calls TypeSafe. It accepts bounded intent, feedback, excerpt, request ID, reading/devotional mode, and pace. The server calls `https://openrouter.ai/api/v1/chat/completions` with a system instruction and reader context serialized separately as user data.
 
-The route accepts same-origin JSON POSTs only, caps the complete request at 32 KiB, times out the upstream request after 8 seconds, and applies Netlify’s function rate limit at 30 requests per IP per 60 seconds. Provider errors, timeouts, malformed answers, and missing credentials return safe errors; there is no local decision fallback. The TypeSafe API key and reader text stay out of logs and client code. The intent, optional feedback, current excerpt, mode, and configured pace are sent to TypeSafe as request state after consent.
+The model returns only `{ "action": "continue" | "slower" | "pause" }`. RISE requests strict JSON Schema with additional properties forbidden, then validates the response locally before returning `{ requestId, action, model }`. It does not manufacture or forward confidence. Invalid, refused, truncated, or unavailable decisions block reading progression.
 
-## Netlify environment
+## Configuration
 
-Set `TYPESAFE_API_KEY` in the Netlify project’s environment-variable settings with the Functions scope. Do not put it in `netlify.toml` or browser configuration. `JEV_MODEL` is optional and defaults to `jev-latest`. Netlify applies environment changes on the next deploy.
+Set `OPENROUTER_API_KEY` in the Netlify site's environment-variable settings with Functions scope, including deploy previews. Get a key from [OpenRouter](https://openrouter.ai/settings/keys). Redeploy after setting it. Never put the key in browser variables, source control, or PR comments.
 
-No TypeSafe API key is currently available in this workspace, so a live request or deployment check has not been performed. Create an account/key in the [TypeSafe console](https://console.typesafe.ai/login), then set it in Netlify and redeploy. The function does not substitute another provider when this key is missing.
+`OPENROUTER_MODEL` is optional; the default is `openai/gpt-4.1-mini`. This compact non-reasoning model supports structured outputs and avoids allocating a reasoning budget for a three-way choice. Model support was checked in the official catalog on 25 September 2026; live RISE decision quality remains to be measured. A replacement model must support all requested parameters and be checked on RISE's evaluation set.
 
-## Verification
+The request uses `provider.require_parameters: true` and `provider.data_collection: 'deny'`. These require compatible endpoints and exclude provider routes marked as allowing data collection. They are not a promise of zero retention by every processor. No second model, Jev fallback, or local decision is substituted if routing fails.
 
-Verified locally with:
+The output token limit is 32, temperature is 0, and upstream timeout is eight seconds. The client times out after ten seconds. Changes to a reasoning model may require different output-budget settings; don't assume every model is interchangeable.
 
-```powershell
-node_modules/.bin/vitest.cmd run src/core/jev-decision.test.js
-```
+## Boundary controls
 
-Result: 1 test file, 14 tests passed. The suite mocks TypeSafe and covers the exact request shape and decision criteria, valid decision, model default, origin/content-type/method restrictions, body and field limits, missing key, upstream outage and non-success response, timeout, malformed JSON/answers, secret-safe errors, and rate-limit config. It does not make a live TypeSafe request or exercise Netlify deploy-time rate limiting.
+Same-origin JSON POSTs only; 32 KiB complete-body limit; intent and feedback at most 500 characters each; excerpt at most 2,000; request ID at most 100; pace 100–500. Netlify is configured for 30 requests per IP per 60 seconds. Responses are no-store. Provider response bodies and credentials are not returned in errors, and RISE's function does not deliberately log request contents.
 
-## Contract references
+Missing credentials return `503 DECISION_NOT_CONFIGURED`. Provider errors, timeout, malformed JSON, invalid actions, and incomplete outputs produce safe errors. Local tests simulate provider responses; only an authenticated preview call establishes a live integration.
 
-- [TypeSafe API reference](https://api.typesafe.ai/docs) documents bearer authentication, `/v1/systemone`, typed choices, and the response model/answer/usage structure. Its [OpenAPI schema](https://api.typesafe.ai/openapi.json) confirms `SystemOneRequest.state` accepts an object and `SystemOneResponse` requires model, answers, and usage.
-- [Netlify Functions quickstart](https://docs.netlify.com/build/functions/get-started/) documents JavaScript `.mjs` handlers and exported function configuration.
-- [Netlify function configuration](https://docs.netlify.com/build/functions/api/) documents route, method, and rate-limit config.
-- [Netlify rate limiting](https://docs.netlify.com/manage/security/secure-access-to-sites/rate-limiting/) says function rate limits are exported from the function config, not `netlify.toml`.
-- [Netlify function environment variables](https://docs.netlify.com/build/functions/environment-variables/) documents runtime scope and redeploy behavior.
+## References
+
+- [Structured outputs](https://openrouter.ai/docs/guides/features/structured-outputs)
+- [Provider routing](https://openrouter.ai/docs/guides/routing/provider-selection)
+- [Default model](https://openrouter.ai/openai/gpt-4.1-mini)
+- [Current implementation evidence](README.md)

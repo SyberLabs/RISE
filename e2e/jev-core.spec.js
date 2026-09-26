@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 
-// Transport simulations test browser wiring, not live TypeSafe quality/access.
+// Transport simulations test browser wiring, not live provider quality/access.
 async function seed(page) {
     await page.addInitScript(() => {
         localStorage.setItem('rise-beta-session', JSON.stringify({ code: 'open', name: 'Jev test', timestamp: Date.now() }));
@@ -15,9 +15,9 @@ async function seed(page) {
 async function consent(page) {
     const dialog = page.locator('.jev-session-dialog');
     await expect(dialog).toBeVisible();
-    await expect(dialog.getByRole('button', { name: 'Continue with Jev' })).toBeDisabled();
+    await expect(dialog.getByRole('button', { name: 'Continue with reading guide' })).toBeDisabled();
     await dialog.locator('[name="consent"]').check();
-    await dialog.getByRole('button', { name: 'Continue with Jev' }).click();
+    await dialog.getByRole('button', { name: 'Continue with reading guide' }).click();
 }
 
 test('normal reading waits for consent, fails closed, and retries a real client request', async ({ page }) => {
@@ -27,8 +27,8 @@ test('normal reading waits for consent, fails closed, and retries a real client 
         const body = route.request().postDataJSON();
         requests.push(body);
         await route.fulfill({ status: unavailable ? 503 : 200, contentType: 'application/json', body: JSON.stringify(unavailable
-            ? { error: { code: 'JEV_NOT_CONFIGURED' } }
-            : { requestId: body.requestId, action: 'continue', model: 'jev-test', confidence: 1 }) });
+            ? { error: { code: 'DECISION_NOT_CONFIGURED', message: 'Reading decision unavailable.' } }
+            : { requestId: body.requestId, action: 'continue', model: 'openai/gpt-4.1-mini' }) });
     });
     await seed(page);
     await page.goto('/');
@@ -57,7 +57,7 @@ test('rosary door requires consent and keeps the first prayer hidden until appro
         requestCount++;
         const body = route.request().postDataJSON();
         await held;
-        await route.fulfill({ contentType: 'application/json', body: JSON.stringify({ requestId: body.requestId, action: 'continue', model: 'jev-test', confidence: 1 }) });
+        await route.fulfill({ contentType: 'application/json', body: JSON.stringify({ requestId: body.requestId, action: 'continue', model: 'openai/gpt-4.1-mini' }) });
     });
     await seed(page);
     await page.goto('/#rosary');

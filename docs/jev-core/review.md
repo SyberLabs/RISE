@@ -1,3 +1,5 @@
+> Historical Jev checkpoint review. Superseded for provider integration by [the OpenRouter review](openrouter-review.md); these test counts and TypeSafe statements describe the earlier implementation.
+
 # Independent Jev review
 
 Review by Luna on `codex/jev-core`, focused on the protected decision service, Netlify routing, browser-test fixture, and reading integration boundaries. This is a review record, not approval to merge or deploy.

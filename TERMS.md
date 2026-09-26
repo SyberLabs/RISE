@@ -65,7 +65,7 @@ or licence in it.
 
 Your saved work is stored **in your browser, on your device**. If you consent
 to a reading session, bounded excerpts and reading context pass through our
-server to TypeSafe AI for required Jev decisions, as described in the Privacy
+server through OpenRouter to the selected model provider for required reading decisions, as described in the Privacy
 Policy. This processing does not create a backup of your saved work. Two
 consequences follow:
 

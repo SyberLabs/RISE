@@ -7,7 +7,7 @@ function text(content, { sourceId = 'work', tags = [] } = {}) {
 }
 
 function decision(action = 'continue') {
-  return { action, model: 'test-model', confidence: 0.9 };
+  return { action, model: 'openai/gpt-4.1-mini' };
 }
 
 describe('Player Jev passage gate', () => {

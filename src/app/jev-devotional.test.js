@@ -45,6 +45,21 @@ it('holds on pause and sends fresh feedback when the reader retries', async () =
     gate.destroy();
 });
 
+it('uses a neutral reading-decision dialog and pause message', async () => {
+    const decide = vi.fn().mockResolvedValue({ action: 'pause' });
+    const gate = createDevotionalJev({ requestSession: async () => ({ decide, destroy() {} }) });
+    const pending = gate.allow('Fixed prayer');
+    await vi.waitFor(() => expect(document.querySelector('[data-jev-devotional]')).toBeTruthy());
+    const dialog = document.querySelector('[data-jev-devotional]');
+    expect(dialog.getAttribute('aria-label')).toBe('Reading decision');
+    await vi.waitFor(() => expect(dialog.querySelector('[role="status"]').textContent)
+        .toContain('reading guide recommends a pause'));
+    expect(dialog.textContent).not.toContain('Jev');
+    dialog.querySelector('[data-cancel]').click();
+    expect(await pending).toBe(null);
+    gate.destroy();
+});
+
 it('aborts a pending consent dialog when the room exits', async () => {
     let consentSignal;
     const gate = createDevotionalJev({ requestSession: (_container, { signal }) => {

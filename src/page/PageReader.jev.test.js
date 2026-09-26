@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { PageReader } from './PageReader.js';
 
 const session = { atoms: [{ content: 'The first passage.', modality: 'text', sourceId: 'work', tags: [] }] };
-const continueDecision = { action: 'continue', model: 'test-model', confidence: 0.9 };
+const continueDecision = { action: 'continue', model: 'openai/gpt-4.1-mini' };
 
 describe('PageReader Jev gate', () => {
   it('keeps the first passage out of the DOM until approval', async () => {

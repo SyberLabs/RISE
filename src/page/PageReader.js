@@ -166,10 +166,10 @@ export class PageReader {
             const result = await this.jevConductor.decide({ excerpt, signal: controller.signal });
             if (this._destroyed || controller.signal.aborted || epoch !== this._jevEpoch) return false;
             if (!result || !['continue', 'slower', 'pause'].includes(result.action)) {
-                throw new Error('Jev returned an invalid decision.');
+                throw new Error('The reading decision service returned an invalid response.');
             }
             if (result.action === 'pause') {
-                this.onJevState?.({ state: 'blocked', passageId: approvalId, message: 'Jev asked to pause before this page.' });
+                this.onJevState?.({ state: 'blocked', passageId: approvalId, message: 'The reading guide recommends a pause before this page.' });
                 return false;
             }
             this._jevLastPassage = approvalId;
@@ -181,7 +181,7 @@ export class PageReader {
             });
         } catch {
             if (this._destroyed || controller.signal.aborted || epoch !== this._jevEpoch) return false;
-            this.onJevState?.({ state: 'blocked', passageId: approvalId, message: 'Passage approval failed. Retry by returning to this page.' });
+            this.onJevState?.({ state: 'blocked', passageId: approvalId, message: 'The reading decision failed. Retry by returning to this page.' });
             return false;
         }
         if (this._jevController === controller) this._jevController = null;

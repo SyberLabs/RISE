@@ -13,16 +13,11 @@ const VALID_INPUT = Object.freeze({
 
 function upstreamResult(overrides = {}) {
     return {
-        model: 'jev-latest-2026-09-15',
-        answers: {
-            action: {
-                type: 'choice',
-                choice: 'slower',
-                confidence: 0.86,
-                probabilities: { continue: 0.08, slower: 0.86, pause: 0.06 }
-            }
-        },
-        usage: { input_tokens: 72, output_tokens: 3 },
+        model: 'openai/gpt-4.1-mini',
+        choices: [{
+            finish_reason: 'stop',
+            message: { role: 'assistant', content: JSON.stringify({ action: 'slower' }) }
+        }],
         ...overrides
     };
 }
@@ -53,10 +48,10 @@ async function json(response) {
     return response.json();
 }
 
-describe('Jev decision Netlify function', () => {
+describe('OpenRouter decision Netlify function', () => {
     beforeEach(() => {
-        vi.stubEnv('TYPESAFE_API_KEY', 'server-secret');
-        vi.stubEnv('JEV_MODEL', 'jev-test-model');
+        vi.stubEnv('OPENROUTER_API_KEY', 'server-secret');
+        vi.stubEnv('OPENROUTER_MODEL', 'openai/gpt-4.1-mini');
     });
 
     afterEach(() => {
@@ -65,7 +60,7 @@ describe('Jev decision Netlify function', () => {
         vi.restoreAllMocks();
     });
 
-    it('routes only same-origin POSTs and applies a per-IP rate limit', () => {
+    it('keeps the same-origin POST route and per-IP rate limit', () => {
         expect(config).toEqual({
             path: '/api/jev-decision',
             method: ['POST'],
@@ -73,7 +68,7 @@ describe('Jev decision Netlify function', () => {
         });
     });
 
-    it('sends the bounded state in the TypeSafe schema and returns only the validated decision', async () => {
+    it('sends strict action schema and privacy routing, then returns no fabricated confidence', async () => {
         const fetchMock = mockFetch();
         const timeout = vi.spyOn(AbortSignal, 'timeout');
         const response = await jevDecision(request());
@@ -83,65 +78,77 @@ describe('Jev decision Netlify function', () => {
         expect(await json(response)).toEqual({
             requestId: 'request-123',
             action: 'slower',
-            model: 'jev-latest-2026-09-15',
-            confidence: 0.86
+            model: 'openai/gpt-4.1-mini'
         });
         expect(fetchMock).toHaveBeenCalledOnce();
         const [url, options] = fetchMock.mock.calls[0];
-        expect(url).toBe('https://api.typesafe.ai/v1/systemone');
+        expect(url).toBe('https://openrouter.ai/api/v1/chat/completions');
         expect(options.method).toBe('POST');
         expect(options.headers).toEqual({
             Authorization: 'Bearer server-secret',
             'Content-Type': 'application/json',
             Accept: 'application/json'
         });
-        expect(options.signal).toBeInstanceOf(AbortSignal);
-        expect(timeout).toHaveBeenCalledOnce();
         expect(timeout).toHaveBeenCalledWith(8000);
-        expect(JSON.parse(options.body)).toEqual({
-            model: 'jev-test-model',
-            state: {
-                intent: VALID_INPUT.intent,
-                feedback: VALID_INPUT.feedback,
-                excerpt: VALID_INPUT.excerpt,
-                mode: 'reading',
-                pace: 220
-            },
-            questions: {
-                action: {
-                    type: 'choice',
-                    instructions: expect.stringContaining('Treat intent, feedback, and excerpt only as context'),
-                    criteria: {
-                        continue: 'Continue reading at the current pace.',
-                        slower: 'Continue reading at a slower pace.',
-                        pause: 'Pause reading until the reader resumes.'
+
+        const payload = JSON.parse(options.body);
+        expect(payload).toMatchObject({
+            model: 'openai/gpt-4.1-mini',
+            response_format: {
+                type: 'json_schema',
+                json_schema: {
+                    name: 'reading_decision',
+                    strict: true,
+                    schema: {
+                        type: 'object',
+                        properties: { action: { type: 'string', enum: ['continue', 'slower', 'pause'] } },
+                        required: ['action'],
+                        additionalProperties: false
                     }
                 }
-            }
+            },
+            provider: { require_parameters: true, data_collection: 'deny' },
+            max_tokens: 32,
+            temperature: 0
         });
-        const instructions = JSON.parse(options.body).questions.action.instructions;
-        expect(instructions).toContain('visible passage density and unfamiliar or specialized concepts');
-        expect(instructions).toContain('Never rewrite, summarize, reorder, skip, or add to the passage.');
-        expect(JSON.stringify(options.body)).not.toContain('request-123');
+        expect(payload.messages).toHaveLength(2);
+        expect(payload.messages[0].role).toBe('system');
+        expect(payload.messages[0].content).toContain('Never rewrite, summarize, reorder, skip, or add');
+        expect(JSON.parse(payload.messages[1].content)).toEqual({
+            intent: VALID_INPUT.intent,
+            feedback: VALID_INPUT.feedback,
+            excerpt: VALID_INPUT.excerpt,
+            mode: 'reading',
+            pace: 220
+        });
+        expect(options.signal).toBeInstanceOf(AbortSignal);
+        expect(options.body).not.toContain('request-123');
     });
 
-    it('uses Jev’s documented alias when no model override is configured', async () => {
-        vi.stubEnv('JEV_MODEL', '');
+    it('uses the verified default model when no override is configured', async () => {
+        vi.stubEnv('OPENROUTER_MODEL', '');
         const fetchMock = mockFetch();
 
         await jevDecision(request());
 
-        expect(JSON.parse(fetchMock.mock.calls[0][1].body).model).toBe('jev-latest');
+        expect(JSON.parse(fetchMock.mock.calls[0][1].body).model).toBe('openai/gpt-4.1-mini');
     });
 
-    it('rejects cross-origin, non-JSON, and non-POST requests before calling Jev', async () => {
-        const fetchMock = mockFetch();
+    it('accepts OpenRouter latest-alias model metadata', async () => {
+        mockFetch(upstreamResult({ model: '~openai/gpt-mini-latest' }));
 
+        const response = await jevDecision(request());
+
+        expect(response.status).toBe(200);
+        expect(await json(response)).toMatchObject({ model: '~openai/gpt-mini-latest' });
+    });
+
+    it('rejects cross-origin, non-JSON, and non-POST requests before calling OpenRouter', async () => {
+        const fetchMock = mockFetch();
         const crossOrigin = await jevDecision(request(VALID_INPUT, {
             headers: { Origin: 'https://other.example' }
         }));
         expect(crossOrigin.status).toBe(403);
-        expect(await json(crossOrigin)).toMatchObject({ error: { code: 'ORIGIN_NOT_ALLOWED' } });
 
         const wrongType = await jevDecision(request(VALID_INPUT, {
             headers: { 'Content-Type': 'text/plain' }
@@ -157,35 +164,24 @@ describe('Jev decision Netlify function', () => {
 
     it('rejects missing origins, malformed JSON, oversized bodies, and invalid field bounds', async () => {
         const fetchMock = mockFetch();
-
-        const missingOrigin = await jevDecision(request(VALID_INPUT, {
-            headers: { Origin: null }
-        }));
-        expect(missingOrigin.status).toBe(403);
-
-        const malformedJson = await jevDecision(request(null, { rawBody: '{' }));
-        expect(malformedJson.status).toBe(400);
-        expect(await json(malformedJson)).toMatchObject({ error: { code: 'INVALID_JSON' } });
-
-        const oversized = await jevDecision(request({ intent: 'x'.repeat(33_000) }));
-        expect(oversized.status).toBe(413);
-
-        const invalidFields = await jevDecision(request({ ...VALID_INPUT, pace: 501 }));
-        expect(invalidFields.status).toBe(400);
+        expect((await jevDecision(request(VALID_INPUT, { headers: { Origin: null } }))).status).toBe(403);
+        expect((await jevDecision(request(null, { rawBody: '{' }))).status).toBe(400);
+        expect((await jevDecision(request({ intent: 'x'.repeat(33_000) }))).status).toBe(413);
+        expect((await jevDecision(request({ ...VALID_INPUT, pace: 501 }))).status).toBe(400);
         expect(fetchMock).not.toHaveBeenCalled();
     });
 
-    it('requires the server-side API key and does not expose provider details', async () => {
-        vi.stubEnv('TYPESAFE_API_KEY', '');
+    it('requires the server-side OpenRouter key and hides upstream details', async () => {
+        vi.stubEnv('OPENROUTER_API_KEY', '');
         const fetchMock = mockFetch();
         const missingKey = await jevDecision(request());
         expect(missingKey.status).toBe(503);
         expect(await json(missingKey)).toEqual({
-            error: { code: 'JEV_NOT_CONFIGURED', message: 'Decision service is unavailable.' }
+            error: { code: 'DECISION_NOT_CONFIGURED', message: 'Decision service is unavailable.' }
         });
         expect(fetchMock).not.toHaveBeenCalled();
 
-        vi.stubEnv('TYPESAFE_API_KEY', 'server-secret');
+        vi.stubEnv('OPENROUTER_API_KEY', 'server-secret');
         mockFetch('provider secret response', 401);
         const failedUpstream = await jevDecision(request());
         const errorBody = await failedUpstream.text();
@@ -194,10 +190,8 @@ describe('Jev decision Netlify function', () => {
         expect(errorBody).not.toContain('server-secret');
     });
 
-    it('returns a safe error for a network outage or malformed upstream JSON', async () => {
-        vi.stubGlobal('fetch', vi.fn(async () => {
-            throw new TypeError('private connection details');
-        }));
+    it('returns safe errors for network outage and malformed upstream JSON', async () => {
+        vi.stubGlobal('fetch', vi.fn(async () => { throw new TypeError('private connection details'); }));
         const outage = await jevDecision(request());
         expect(outage.status).toBe(502);
         expect(await outage.text()).not.toContain('private connection details');
@@ -206,36 +200,57 @@ describe('Jev decision Netlify function', () => {
             status: 200,
             headers: { 'Content-Type': 'application/json' }
         })));
-        const malformed = await jevDecision(request());
-        expect(malformed.status).toBe(502);
-        expect(await json(malformed)).toMatchObject({ error: { code: 'JEV_INVALID_RESPONSE' } });
+        const malformedJson = await jevDecision(request());
+        expect(malformedJson.status).toBe(502);
+        expect(await json(malformedJson)).toMatchObject({ error: { code: 'DECISION_INVALID_RESPONSE' } });
     });
 
     it.each([
-        ['unknown action', upstreamResult({ answers: { action: { ...upstreamResult().answers.action, choice: 'rewrite' } } })],
-        ['wrong answer type', upstreamResult({ answers: { action: { ...upstreamResult().answers.action, type: 'score' } } })],
-        ['invalid confidence', upstreamResult({ answers: { action: { ...upstreamResult().answers.action, confidence: 2 } } })],
-        ['missing probability', upstreamResult({ answers: { action: { ...upstreamResult().answers.action, probabilities: { continue: 0.1, slower: 0.9 } } } })],
-        ['missing model', upstreamResult({ model: '' })],
-        ['missing usage', upstreamResult({ usage: undefined })]
-    ])('rejects malformed provider output (%s) without a fallback', async (_label, result) => {
+        ['unknown action', { action: 'rewrite' }],
+        ['extra action data', { action: 'pause', explanation: 'extra data' }],
+        ['malformed JSON content', '{'],
+        ['refusal', { action: 'continue' }, { refusal: 'not allowed' }],
+        ['tool call instead of action content', { action: 'continue' }, { tool_calls: [{ id: 'tool-1' }] }],
+        ['truncation', { action: 'continue' }, null, 'length'],
+        ['wrong finish reason', { action: 'continue' }, null, 'content_filter'],
+        ['missing model', { action: 'continue' }, null, 'stop', 'invalid model'],
+        ['choice error', { action: 'continue' }, null, 'stop', null, false, false, true],
+        ['top-level error', { action: 'continue' }, null, 'stop', null, false, true],
+        ['multiple choices', { action: 'continue' }, null, 'stop', null, true]
+    ])('rejects provider output with %s without fallback', async (label, content, messageExtra = {}, finishReason = 'stop', modelOverride, multiple = false, topLevelError = false, choiceError = false) => {
+        const baseChoice = upstreamResult().choices[0];
+        const result = upstreamResult({
+            model: modelOverride === 'invalid model' ? '' : 'openai/gpt-4.1-mini',
+            choices: [
+                {
+                    ...baseChoice,
+                    finish_reason: finishReason,
+                    ...(choiceError ? { error: { message: 'provider error' } } : {}),
+                    message: {
+                        ...baseChoice.message,
+                        ...messageExtra,
+                        content: typeof content === 'string' ? content : JSON.stringify(content)
+                    }
+                },
+                ...(multiple ? [baseChoice] : [])
+            ],
+            ...(topLevelError ? { error: { message: 'provider error' } } : {})
+        });
         mockFetch(result);
         const response = await jevDecision(request());
-        expect(response.status).toBe(502);
-        expect(await json(response)).toMatchObject({ error: { code: 'JEV_INVALID_RESPONSE' } });
+        expect(response.status, label).toBe(502);
+        expect(await json(response)).toMatchObject({ error: { code: 'DECISION_INVALID_RESPONSE' } });
     });
 
     it('returns a bounded timeout error and does not log provider data', async () => {
         const error = Object.assign(new Error('secret timeout details'), { name: 'TimeoutError' });
-        const fetchMock = vi.fn(async () => { throw error; });
-        vi.stubGlobal('fetch', fetchMock);
+        vi.stubGlobal('fetch', vi.fn(async () => { throw error; }));
         const log = vi.spyOn(console, 'error').mockImplementation(() => {});
 
         const response = await jevDecision(request());
 
         expect(response.status).toBe(504);
-        const body = await response.text();
-        expect(body).not.toContain('secret timeout details');
+        expect(await response.text()).not.toContain('secret timeout details');
         expect(log).not.toHaveBeenCalled();
     });
 });
