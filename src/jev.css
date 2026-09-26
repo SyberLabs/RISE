@@ -1,0 +1,65 @@
+.jev-session-dialog,
+[data-jev-devotional] {
+    width: min(36rem, calc(100vw - 2rem));
+    max-height: calc(100dvh - 2rem);
+    overflow: auto;
+    margin: auto;
+    padding: clamp(1.25rem, 4vw, 2rem);
+    border: 1px solid var(--color-shadow, #2a2a30);
+    border-radius: 1rem;
+    background: var(--color-abyss, #121214);
+    color: var(--color-light, #e8e8ec);
+    line-height: 1.6;
+    box-shadow: 0 1rem 4rem #0008;
+}
+.jev-session-dialog::backdrop,
+[data-jev-devotional]::backdrop { background: #000b; }
+.jev-gate form { display: grid; gap: 1rem; margin-top: 1rem; }
+.jev-gate h2 { margin: 0 0 .75rem; font-size: 1.6rem; }
+.jev-gate p { margin: .75rem 0; }
+.jev-gate input[type="text"], [data-jev-devotional] input, #jev-feedback {
+    box-sizing: border-box;
+    display: block;
+    width: 100%;
+    padding: .65rem;
+    border: 1px solid var(--color-fog, #9b9ba5);
+    border-radius: .4rem;
+    background: var(--color-void, #0a0a0c);
+    color: var(--color-light, #e8e8ec);
+    font: inherit;
+}
+.jev-consent { display: flex; gap: .65rem; align-items: start; }
+.jev-consent input { margin-top: .45rem; min-width: 1rem; accent-color: var(--color-accent); }
+.jev-gate-actions { display: flex; flex-wrap: wrap; justify-content: end; gap: .75rem; }
+.jev-gate button, [data-jev-devotional] button, #jev-status button {
+    min-height: 44px;
+    padding: .6rem 1rem;
+    border: 1px solid var(--color-fog, #9b9ba5);
+    border-radius: .4rem;
+    background: var(--color-depth, #1a1a1e);
+    color: var(--color-light, #e8e8ec);
+    font: inherit;
+    cursor: pointer;
+}
+.jev-gate button:disabled { opacity: .5; cursor: default; }
+.jev-gate :focus-visible, [data-jev-devotional] :focus-visible, #jev-status :focus-visible {
+    outline: 2px solid var(--color-accent, #e4d2ae);
+    outline-offset: 3px;
+}
+#jev-status {
+    position: absolute;
+    z-index: 100;
+    top: 5rem;
+    left: 50%;
+    transform: translateX(-50%);
+    width: min(32rem, calc(100% - 2rem));
+    padding: 1rem;
+    border: 1px solid var(--color-shadow, #2a2a30);
+    border-radius: .6rem;
+    background: var(--color-abyss, #121214);
+    color: var(--color-light, #e8e8ec);
+    line-height: 1.5;
+}
+#jev-status[hidden] { display: none; }
+#jev-status label { display: block; margin: .75rem 0; }
+[data-jev-devotional] [data-feedback-label]:not([hidden]) { display: block; margin-bottom: .75rem; }

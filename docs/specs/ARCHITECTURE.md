@@ -158,7 +158,7 @@ flowchart LR
     visuals["visuals<br/>procedural generation<br/>54 modules"]
 
     app -.-> |3 lazy| audio
-    app --> |1| components
+    app --> |2| components
     app -.-> |8 lazy| content
     app --> |21| core
     app -.-> |1 lazy| sources
@@ -267,6 +267,7 @@ outliving its room, fails a build.
 | Mint | `src/components/Mint.js` | the door a minted sequence opens onto |
 | Chamber | `src/components/Chamber.js` | a reading, in time |
 | ChamberOrbital | `src/components/ChamberOrbital.js` | tuning a reading before it starts |
+| JevGate | `src/components/JevGate.js` | explicit consent and intent before required Jev decisions |
 | Library | `src/components/Library.js` | the prepared editions |
 | Chapel | `src/components/Chapel.js` | the scripture corpus |
 | Rosarium | `src/components/Rosarium.js` | the Rosary, on the liturgy engine |
