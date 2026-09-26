@@ -241,14 +241,13 @@ export class Portal {
       });
     }
 
-    // The Continue strip is the sigil's hidden behaviour, made visible;
-    // it must therefore do the identical thing rather than a second
-    // implementation of it that can drift.
+    // Continue resumes the compiled reading. The sigil remains quick access
+    // to the editable Chamber setup.
     const cont = this.container.querySelector('.portal-continue');
     if (cont) {
       cont.addEventListener('click', () => {
         this.getAudioEngine()?.playClick();
-        this.onQuickAccess();
+        this.onNavigate('chamber-session', this.getCurrentSession());
       });
     }
 
