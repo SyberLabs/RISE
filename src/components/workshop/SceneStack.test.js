@@ -212,6 +212,20 @@ describe('a stack of scenes', () => {
     expect($('.scene-view').getAttribute('aria-label')).toBe('Scene 1: Scene a');
   });
 
+  it('a tap straight after a drag is a tap', () => {
+    vi.useFakeTimers();
+    mount({ scenes: two() });
+    const handle = $('.scene-card[data-scene-id="a"] [data-sa="drag"]');
+    handle.dispatchEvent(new MouseEvent('pointerdown', { bubbles: true, clientY: 100 }));
+    vi.advanceTimersByTime(260);
+    window.dispatchEvent(new MouseEvent('pointerup', { clientY: 100 }));
+    vi.advanceTimersByTime(100);
+    handle.dispatchEvent(new MouseEvent('pointerdown', { bubbles: true, clientY: 100 }));
+    window.dispatchEvent(new MouseEvent('pointerup', { clientY: 100 }));
+    click(handle);
+    expect($('.scene-view')).toBeTruthy();
+  });
+
   it('a tap some time after a drag is a tap again', () => {
     vi.useFakeTimers();
     mount({ scenes: two() });

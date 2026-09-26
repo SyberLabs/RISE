@@ -21,7 +21,8 @@ export const PACE_SNAPS = Object.freeze([160, 200, 260, 320]);
 export const DIVIDE_OFFER_WORDS = 400;
 const SNAP_WITHIN = 8;
 const LONG_PRESS_MS = 250;
-// The click a browser sends when a held handle is let go arrives within this.
+// The click a browser sends when a held handle is let go arrives within this;
+// a new press ends the wait sooner.
 const HOLD_CLICK_MS = 600;
 const SCENE_VIEW_CHARS = 6000;
 
@@ -531,7 +532,10 @@ export class SceneStack {
       case 'drag':
         // A tap on the handle edits; a hold on it reorders, and the click
         // that ends a hold is not a tap.
-        if (this._liftedAt && Date.now() - this._liftedAt < HOLD_CLICK_MS) return undefined;
+        if (this._liftedAt && Date.now() - this._liftedAt < HOLD_CLICK_MS) {
+          this._liftedAt = 0;
+          return undefined;
+        }
         return this.openScene(sceneId);
       case 'close-scene': return this.closeScene();
       case 'play-scene':
@@ -654,6 +658,7 @@ export class SceneStack {
   /* ─── reorder by dragging the handle ────────────────────────────────── */
 
   handlePointerDown(event) {
+    this._liftedAt = 0;
     const handle = event.target.closest('[data-sa="drag"]');
     if (!handle || this.view !== 'stack') return;
     const card = handle.closest('.scene-card');
