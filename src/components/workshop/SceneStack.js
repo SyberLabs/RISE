@@ -21,6 +21,8 @@ export const PACE_SNAPS = Object.freeze([160, 200, 260, 320]);
 export const DIVIDE_OFFER_WORDS = 400;
 const SNAP_WITHIN = 8;
 const LONG_PRESS_MS = 250;
+// The click a browser sends when a held handle is let go arrives within this.
+const HOLD_CLICK_MS = 600;
 const SCENE_VIEW_CHARS = 6000;
 
 export function snapPace(value) {
@@ -92,10 +94,13 @@ export class SceneStack {
     this._onKey = event => this.handleKey(event);
     this._onInput = event => this.handleInput(event);
     this._onPointerDown = event => this.handlePointerDown(event);
+    // A hold on the handle is a drag, never the system's long-press menu.
+    this._onContextMenu = event => { if (event.target.closest?.('[data-sa="drag"]')) event.preventDefault(); };
     host.addEventListener('click', this._onClick);
     host.addEventListener('keydown', this._onKey);
     host.addEventListener('input', this._onInput);
     host.addEventListener('pointerdown', this._onPointerDown);
+    host.addEventListener('contextmenu', this._onContextMenu);
     this.render();
   }
 
@@ -287,6 +292,7 @@ export class SceneStack {
     if (!scene) return '';
     const text = this.api.sceneText(scene.id);
     const words = this.sceneDraft ?? text;
+    const sequence = this.sequenceDefaults();
     const body = scene.editable
       ? `<textarea class="scene-view-editor" data-scene-editor aria-label="Words of this scene"
           spellcheck="true">${escapeHtml(words)}</textarea>`
@@ -305,10 +311,8 @@ export class SceneStack {
       <div class="scene-view-words">${body}
         ${this.error ? `<p class="scene-error" role="alert">${escapeHtml(this.error)}</p>` : ''}</div>
       <footer class="scene-view-foot">
-        <button type="button" class="scene-lane" data-sa="visual" data-scene-id="${escapeHtml(scene.id)}" aria-haspopup="dialog">
-          <span class="scene-lane-kicker">Visual</span><strong>${escapeHtml(describeVisual(scene, this.sequenceDefaults()))}</strong></button>
-        <button type="button" class="scene-lane" data-sa="sound" data-scene-id="${escapeHtml(scene.id)}" aria-haspopup="dialog">
-          <span class="scene-lane-kicker">Sound</span><strong>${escapeHtml(describeSound(scene, this.sequenceDefaults()))}</strong></button>
+        ${lane('visual', 'Visual', scene, sequence.visual, describeVisual(scene, sequence))}
+        ${lane('sound', 'Sound', scene, sequence.sound, describeSound(scene, sequence))}
         <button type="button" class="scenes-play scene-view-play" data-sa="play-scene" data-scene-id="${escapeHtml(scene.id)}">▶ Play</button>
       </footer>
     </section>`;
@@ -527,7 +531,7 @@ export class SceneStack {
       case 'drag':
         // A tap on the handle edits; a hold on it reorders, and the click
         // that ends a hold is not a tap.
-        if (this._liftedAt && Date.now() - this._liftedAt < 600) return undefined;
+        if (this._liftedAt && Date.now() - this._liftedAt < HOLD_CLICK_MS) return undefined;
         return this.openScene(sceneId);
       case 'close-scene': return this.closeScene();
       case 'play-scene':
@@ -702,6 +706,7 @@ export class SceneStack {
     this.host.removeEventListener('keydown', this._onKey);
     this.host.removeEventListener('input', this._onInput);
     this.host.removeEventListener('pointerdown', this._onPointerDown);
+    this.host.removeEventListener('contextmenu', this._onContextMenu);
     this.host.innerHTML = '';
   }
 }
@@ -716,6 +721,15 @@ const SHEET_LABEL = Object.freeze({
   'card-more': 'Scene',
   confirm: 'Confirm'
 });
+
+// A lane with nothing to show, here or on the sequence, is an ask: marked to
+// be tapped, and short enough to fit a phone's third of the foot.
+function lane(kind, kicker, scene, fromSequence, value) {
+  const unset = !scene[kind] && !fromSequence;
+  return `<button type="button" class="scene-lane${unset ? ' is-unset' : ''}" data-sa="${kind}"
+    data-scene-id="${escapeHtml(scene.id)}" aria-haspopup="dialog"${unset ? ` aria-label="Choose a ${kind} for this scene"` : ''}>
+    <span class="scene-lane-kicker">${kicker}</span><strong>${unset ? '+ Choose' : escapeHtml(value)}</strong></button>`;
+}
 
 // "Same as the sequence" is only true when the sequence has one to share.
 function describeVisual(scene, sequence = {}) {

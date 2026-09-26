@@ -151,8 +151,11 @@ describe('a stack of scenes', () => {
     expect($('.scene-card-invite').textContent).toBe('Tap to set visual & sound');
     expect($('.scene-card').textContent).not.toContain('Same as the sequence');
     click($('.scene-card-open'));
-    expect($('[data-sa="visual"]').textContent).toContain('Choose a visual');
-    expect($('[data-sa="sound"]').textContent).toContain('Choose a sound');
+    // Unset lanes are asks, not values: short enough to fit, marked to be tapped.
+    for (const lane of [$('[data-sa="visual"]'), $('[data-sa="sound"]')]) {
+      expect(lane.classList.contains('is-unset')).toBe(true);
+      expect(lane.querySelector('strong').textContent).toBe('+ Choose');
+    }
     click($('[data-sa="sound"]'));
     expect($('[data-sa="choose-sound"]').textContent).toContain('No sound');
   });
@@ -161,6 +164,8 @@ describe('a stack of scenes', () => {
     mount({ scenes: [scene('a', 0)], sequence: () => ({ visual: true, sound: true }) });
     expect($('.scene-card-invite')).toBeNull();
     expect($('.scene-card').textContent).toContain('Same as the sequence');
+    click($('.scene-card-open'));
+    expect($('[data-sa="visual"]').classList.contains('is-unset')).toBe(false);
   });
 
   it('a tap on the handle opens the scene to edit', () => {
@@ -178,6 +183,52 @@ describe('a stack of scenes', () => {
     window.dispatchEvent(new MouseEvent('pointerup', { clientY: 100 }));
     click(handle);
     expect($('.scene-view')).toBeNull();
+  });
+
+  it('the click that ends a drag moves the scene and opens nothing', () => {
+    vi.useFakeTimers();
+    const { api } = mount({ scenes: two() });
+    const handle = $('.scene-card[data-scene-id="a"] [data-sa="drag"]');
+    handle.dispatchEvent(new MouseEvent('pointerdown', { bubbles: true, clientY: 100 }));
+    vi.advanceTimersByTime(260);
+    window.dispatchEvent(new MouseEvent('pointermove', { clientY: 190 }));
+    window.dispatchEvent(new MouseEvent('pointerup', { clientY: 190 }));
+    click(handle);
+    expect(api.moveScene).toHaveBeenCalledWith(0, 1);
+    expect($('.scene-view')).toBeNull();
+  });
+
+  it('a press released before the hold is a tap: it opens, and lifts nothing', () => {
+    vi.useFakeTimers();
+    const { api } = mount({ scenes: two() });
+    const handle = $('.scene-card[data-scene-id="a"] [data-sa="drag"]');
+    handle.dispatchEvent(new MouseEvent('pointerdown', { bubbles: true, clientY: 100 }));
+    vi.advanceTimersByTime(120);
+    window.dispatchEvent(new MouseEvent('pointerup', { clientY: 100 }));
+    vi.advanceTimersByTime(500);
+    expect($('.scene-card[data-scene-id="a"]').classList.contains('is-lifted')).toBe(false);
+    click(handle);
+    expect(api.moveScene).not.toHaveBeenCalled();
+    expect($('.scene-view').getAttribute('aria-label')).toBe('Scene 1: Scene a');
+  });
+
+  it('a tap some time after a drag is a tap again', () => {
+    vi.useFakeTimers();
+    mount({ scenes: two() });
+    const handle = $('.scene-card[data-scene-id="a"] [data-sa="drag"]');
+    handle.dispatchEvent(new MouseEvent('pointerdown', { bubbles: true, clientY: 100 }));
+    vi.advanceTimersByTime(260);
+    window.dispatchEvent(new MouseEvent('pointerup', { clientY: 100 }));
+    vi.advanceTimersByTime(1000);
+    click(handle);
+    expect($('.scene-view')).toBeTruthy();
+  });
+
+  it('holding the handle does not raise the system menu', () => {
+    mount({ scenes: two() });
+    const menu = new MouseEvent('contextmenu', { bubbles: true, cancelable: true });
+    $('.scene-card[data-scene-id="a"] [data-sa="drag"]').dispatchEvent(menu);
+    expect(menu.defaultPrevented).toBe(true);
   });
 
   it('▶ plays one scene; Play plays them all', () => {

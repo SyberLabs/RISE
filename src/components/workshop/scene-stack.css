@@ -195,7 +195,13 @@
   font-size: 1.05rem;
   cursor: pointer;
 }
-.scene-card-handle { touch-action: none; cursor: grab; }
+.scene-card-handle {
+  touch-action: none;
+  cursor: grab;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
 .scene-card-play { color: var(--color-accent, #E4D2AE); }
 
 .scenes-empty {
@@ -390,6 +396,12 @@
   font-weight: 500;
   font-size: .9rem;
 }
+/* Unset, a lane wears the card's invite: dashed, in the accent. */
+.scene-lane.is-unset {
+  border: 1px dashed rgba(var(--color-accent-rgb, 228, 210, 174), .6);
+  background: rgba(var(--color-accent-rgb, 228, 210, 174), .06);
+}
+.scene-lane.is-unset strong { color: var(--color-accent, #E4D2AE); }
 .scene-view-play { padding: 0 20px; }
 
 /* Sheets. */
