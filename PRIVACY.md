@@ -1,6 +1,6 @@
 # Privacy Policy
 
-**Last updated: 6 September 2026**
+**Last updated: 25 September 2026**
 
 > **This document has not been reviewed by a lawyer.** Every factual claim in
 > it was checked against the RISE source code, but whether those facts satisfy
@@ -10,14 +10,16 @@
 
 ## The short version
 
-RISE runs entirely in your browser. Your reading, your writing, your journals,
-your saved projects and your settings are stored on your own device and are
-never sent to us. We have no server that receives them, because we have no
-server at all beyond the one that hands your browser the application files.
+RISE stores your projects, journals, and settings in your browser. Reading
+sessions require the Jev decision service. Before a session starts, RISE asks
+for permission to send your reading intent and bounded text excerpts through
+our Netlify function to TypeSafe AI. If you decline, the reading does not start;
+you can still leave and access your saved work.
 
 We do not use cookies. We do not use analytics. We do not track you across
 sites or across visits. We have no accounts, so we do not know who you are. We
-have never sold or shared personal information, and there is nothing to sell.
+do not sell personal information. The processing described below includes
+sending consented reading excerpts to TypeSafe AI.
 
 The rest of this document is the detail behind those sentences.
 
@@ -32,8 +34,8 @@ For any question about this policy or your data, contact
 **syberlabs.software@gmail.com**.
 
 Under the UK GDPR and EU GDPR we are the *controller* for the limited
-processing described in sections 4 and 5. For everything in section 3 there is
-no controller relationship at all, because the data never reaches us.
+processing described in sections 4 and 5, including the reading excerpts
+described in section 4.
 
 ---
 
@@ -50,8 +52,9 @@ There is no sign-up, no login and no user account of any kind.
 ## 3. What stays on your device
 
 The following is written to your browser's own storage, on your own computer or
-phone. **None of it is transmitted to us.** We cannot read it, we cannot
-recover it for you, and we do not know it exists.
+phone. RISE does not synchronize this storage to a server, and we cannot recover
+it for you. Text selected for a reading can be included in the consented Jev
+requests described below.
 
 ### Local storage
 
@@ -97,13 +100,32 @@ Session storage is discarded when you close the tab.
 ### Text you paste or upload
 
 Text you bring to RISE is processed in your browser and stored in the same
-local storage above. It is never uploaded. This is a property of how the
-application is built, not a promise about how we behave: there is no endpoint
-that accepts it.
+local storage above. After you consent to a reading session, excerpts of up
+to 2,000 characters per decision are sent to the Jev service. Over a session,
+multiple excerpts can be sent; the limit is per request, not per book. Do not
+start a session with text you do not want TypeSafe AI to process.
 
 ---
 
 ## 4. What our own server sees
+
+### Required reading decisions
+
+RISE sends requests to its own `/api/jev-decision` endpoint on Netlify. The
+function forwards your reading intent (up to 500 characters), feedback when
+provided (up to 500 characters), a text excerpt (up to 2,000 characters),
+reading mode, and pace to TypeSafe AI at `api.typesafe.ai`. A temporary request
+identifier lets the browser reject a response for the wrong request. The
+provider key stays on the server.
+
+The function does not deliberately store or log these request bodies and does
+not add them to a RISE database. This does not establish a retention or training
+policy for Netlify or TypeSafe AI. TypeSafe's terms and privacy information are
+available from <https://typesafe.ai/>. RISE has not verified account-specific
+provider retention settings. A failed or unavailable Jev decision pauses
+reading; RISE does not send the text to an alternative model.
+
+### Hosting requests
 
 The application files are served by **Netlify**, which acts as our hosting
 processor. Like any web server, Netlify's infrastructure records ordinary

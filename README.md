@@ -6,6 +6,12 @@
 
 [Enter RISE →](https://rise.syberlabs.space/)
 
+**Jev integration in development:** the `codex/jev-core` branch adds a required
+decision before reading progresses, with explicit consent to send bounded
+excerpts to TypeSafe. Follow the [implementation and agent evidence](docs/jev-core/README.md).
+Live verification requires a server-side `TYPESAFE_API_KEY`; tests using simulated
+responses do not establish a working live deployment.
+
 ---
 
 A text does not have to appear only as a page.
