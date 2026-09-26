@@ -149,6 +149,8 @@ They are compositions *through* RISE rather than videos exported from it.
 
 **No Journey is currently published.** The compiler and the room are built, but the existing scores quote editions the Library no longer serves, and re-anchoring a composition to a different edition is an editorial act rather than a repair. They are on ice until that work is done properly.
 
+An unpublished editorial draft, **Heaven and Household**, is being prepared against the current Milton and Bryant editions. Follow the [draft, source evidence, and reviews](docs/journey-editorial/README.md). It reuses the existing Journey machinery; it does not replace *War* or appear in the public catalog.
+
 ---
 
 ## Workshop and Vault
