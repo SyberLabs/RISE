@@ -175,7 +175,7 @@ export class Portal {
               <span class="room-glyph" aria-hidden="true">✚</span><span class="room-name">Workshop</span><span class="room-line">Readings you compose</span>
             </button>
             <button class="nav-try" type="button" data-nav="keystones"
-                    aria-label="Explore three canonical sample readings" title="Three canonical sample readings">
+                    aria-label="Try RISE: explore three canonical sample readings" title="Three canonical sample readings">
               <span class="try-mark" aria-hidden="true">✦</span><span class="try-label">Try RISE</span>
             </button>
           </div>
