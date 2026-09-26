@@ -263,6 +263,7 @@ export class Admit {
   close(then) {
     if (this._destroyed) return;
     this._destroyed = true;
+    this.cancelDrag();
     this.element?.remove();
     this.element = null;
     then?.();

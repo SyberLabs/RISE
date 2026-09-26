@@ -9,8 +9,6 @@
  */
 import './Guide.css';
 
-import './Guide.css';
-
 export class Guide {
   constructor(container, options = {}) {
     this.container = container;
@@ -28,8 +26,8 @@ export class Guide {
           
           <header class="guide-header">
             <div class="guide-sigil rise-mark" aria-hidden="true"></div>
-            <h1 id="guide-title" class="guide-title">User Protocol</h1>
-            <p class="guide-subtitle">RISE Operational Framework</p>
+            <h1 id="guide-title" class="guide-title">Guide</h1>
+            <p class="guide-subtitle">How to use RISE</p>
           </header>
           
           <div class="guide-content">
@@ -46,42 +44,42 @@ export class Guide {
                   <span class="step-num">Ⅰ</span>
                   <div class="step-body">
                     <strong>The Portal</strong>
-                    <p>The entry point. Stillness before engagement. Use the sigil for quick access to your last state.</p>
+                    <p>Choose a room or sample reading. Continue resumes your last reading when available.</p>
                   </div>
                 </div>
                 <div class="step">
                   <span class="step-num">Ⅱ</span>
                   <div class="step-body">
                     <strong>The Library</strong>
-                    <p>The repository of source material. Browse curated texts and external archives to find your focus.</p>
+                    <p>Browse received works in named editions, texts composed for RISE, or files you keep on this device.</p>
                   </div>
                 </div>
                 <div class="step">
                   <span class="step-num">Ⅲ</span>
                   <div class="step-body">
                     <strong>The Workshop</strong>
-                    <p>Where content is transformed. Synthesize multiple sources into a unified sequence. Configure pacing and curves.</p>
+                    <p>Combine text sources, set the reading pace and visuals, then save your composition.</p>
                   </div>
                 </div>
                 <div class="step">
                   <span class="step-num">Ⅳ</span>
                   <div class="step-body">
                     <strong>The Chamber</strong>
-                    <p>The space of the session. Fine-tune the preparation (Orbital) before descending into the reading (Immersion). A chip in the corner returns you to wherever you launched from.</p>
+                    <p>Readings open here. Some start right away; others let you adjust pace and visuals first. Exit returns you to where you opened the reading.</p>
                   </div>
                 </div>
                 <div class="step">
                   <span class="step-num">Ⅴ</span>
                   <div class="step-body">
                     <strong>The Vault &amp; Keystones</strong>
-                    <p>Two faster doors. The Vault holds sequences you can enter; Keystones are finished readings, each bound to one exact edition, that you can enter without preparing anything.</p>
+                    <p>The Vault holds sequences. Try RISE opens three sample readings without a setup step.</p>
                   </div>
                 </div>
                 <div class="step">
                   <span class="step-num">Ⅵ</span>
                   <div class="step-body">
                     <strong>The Chapel</strong>
-                    <p>Scripture, read as an act. The Douay-Rheims in seventy-three books, with the Rosary and the Stations of the Cross prayed at a measured pace alongside sacred art shown under verified rights.</p>
+                    <p>Read the Douay-Rheims Bible, or follow a Rosary or Stations session with sacred art.</p>
                   </div>
                 </div>
               </div>
@@ -99,7 +97,7 @@ export class Guide {
             </section>
             
             <section class="guide-section">
-              <h2 class="section-title">04 / Keyboard Protocols</h2>
+              <h2 class="section-title">04 / Keyboard shortcuts</h2>
               <div class="shortcuts-grid">
                 <div class="shortcut"><kbd>ESC</kbd> <span>Return to safety (Portal)</span></div>
                 <div class="shortcut"><kbd>SPACE</kbd> <span>Pause / Resume session</span></div>

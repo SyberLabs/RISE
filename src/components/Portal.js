@@ -5,7 +5,7 @@
  * Design principles:
  * - Darkness first, light emerges
  * - Stillness as default
- * - Sequential fade-in (sigil → title → navigation)
+ * - Navigation is ready at first paint; decorative media may wait
  * - The interface IS the first session
  */
 
@@ -24,7 +24,6 @@ export class Portal {
 
     this.render();
     this.attachEvents();
-    this.sequentialReveal();
     this.syncContinue();
   }
 
@@ -111,7 +110,7 @@ export class Portal {
              the vessel is flanked by marble and needs no help — never
              renders or paints it. Static by rule: the vessel's own
              loop is the only motion the Portal is allowed. -->
-        <div class="portal-sigil-container" style="opacity: 0;">
+        <div class="portal-sigil-container">
           <span class="sigil-stage" aria-hidden="true">
             <span class="sigil-ring sigil-ring-outer"></span>
             <span class="sigil-ring sigil-ring-inner"></span>
@@ -141,7 +140,7 @@ export class Portal {
         </div>
 
         <!-- Title -->
-        <div class="portal-title-container" style="opacity: 0;">
+        <div class="portal-title-container">
           <h1 class="portal-title">RISE</h1>
           <p class="portal-subtitle text-fog">
             Audiovisual Reader
@@ -152,29 +151,29 @@ export class Portal {
         <nav
           id="main-content"
           class="portal-nav nav"
-          style="opacity: 0;"
           aria-label="Main navigation"
         >
           <!-- Primary act: Chamber. Phone-only mark/verb/arrow are
                display:none above 640. Try RISE is the Keystones door. -->
           <div class="nav-primary">
-            <button class="nav-item nav-act" data-nav="chamber" role="link">
+            <button class="nav-item nav-act" data-nav="chamber">
               <span class="act-mark" aria-hidden="true">✦</span><span class="act-label"><span class="act-verb">Enter </span>Chamber</span><span class="act-go" aria-hidden="true">→</span>
             </button>
           </div>
 
           <!-- Room index. Glyph/line are display:none above 640. -->
           <div class="nav-secondary">
-            <button class="nav-item" data-nav="vault" role="link">
+            <button class="nav-item" data-nav="vault">
               <span class="room-glyph" aria-hidden="true">◈</span><span class="room-name">Vault</span><span class="room-line">Sequences</span>
             </button>
-            <button class="nav-item" data-nav="library" role="link">
+            <button class="nav-item" data-nav="library">
               <span class="room-glyph" aria-hidden="true">▤</span><span class="room-name">Library</span><span class="room-line">The public-domain Archive</span>
             </button>
-            <button class="nav-item" data-nav="workshop" role="link">
+            <button class="nav-item" data-nav="workshop">
               <span class="room-glyph" aria-hidden="true">✚</span><span class="room-name">Workshop</span><span class="room-line">Readings you compose</span>
             </button>
-            <button class="nav-try" type="button" role="link" data-nav="keystones">
+            <button class="nav-try" type="button" data-nav="keystones"
+                    aria-label="Try RISE: explore three canonical sample readings" title="Three canonical sample readings">
               <span class="try-mark" aria-hidden="true">✦</span><span class="try-label">Try RISE</span>
             </button>
           </div>
@@ -197,7 +196,7 @@ export class Portal {
         </button>
 
         <!-- Portal Footer - Heritage & Onboarding -->
-        <div class="portal-footer" style="opacity: 0;">
+        <div class="portal-footer">
           <div class="footer-left">
             <a href="/liminal_archive.html" class="portal-util-link" target="_blank" rel="noopener" title="The Oracular Archive">
               <span class="util-icon">◊</span> Archive
@@ -213,7 +212,7 @@ export class Portal {
                  Generated from PRIVACY.md and TERMS.md by build-legal.mjs. -->
             <a href="/privacy.html" class="portal-util-link portal-legal-link" title="Privacy Policy">Privacy</a>
             <a href="/terms.html" class="portal-util-link portal-legal-link" title="Terms of Use">Terms</a>
-             <button class="portal-util-link" data-action="settings" title="Interface Settings">
+            <button class="portal-util-link" data-action="settings" aria-label="Settings" title="Settings">
               <span class="util-icon">⚙</span>
             </button>
           </div>
@@ -242,14 +241,13 @@ export class Portal {
       });
     }
 
-    // The Continue strip is the sigil's hidden behaviour, made visible;
-    // it must therefore do the identical thing rather than a second
-    // implementation of it that can drift.
+    // Continue resumes the compiled reading. The sigil remains quick access
+    // to the editable Chamber setup.
     const cont = this.container.querySelector('.portal-continue');
     if (cont) {
       cont.addEventListener('click', () => {
         this.getAudioEngine()?.playClick();
-        this.onQuickAccess();
+        this.onNavigate('chamber-session', this.getCurrentSession());
       });
     }
 
@@ -279,84 +277,58 @@ export class Portal {
     }
   }
 
-  sequentialReveal() {
-    this._revealTimers = this._revealTimers || [];
-    const revealTimeout = (fn, ms) => this._revealTimers.push(setTimeout(fn, ms));
-    // Sequential fade-in: sigil → title → navigation (~1.5s total)
-    const sigilContainer = this.container.querySelector('.portal-sigil-container');
-    const title = this.container.querySelector('.portal-title-container');
-    const nav = this.container.querySelector('.portal-nav');
+  startVesselMedia() {
+    this._mediaTimers = this._mediaTimers || [];
     const video = this.container.querySelector('.vessel-video');
 
-    revealTimeout(() => {
-      sigilContainer.style.transition = 'opacity 400ms var(--ease-out)';
-      sigilContainer.style.opacity = '1';
-      
-      // Defer video fetch and playback
-      if (video) {
-        // Use requestIdleCallback if available to avoid blocking main thread
-        const startVideo = () => {
-            // PLAY WHEN IT CAN PLAY, NOT WHEN THE SRC IS SET.
-            //
-            // iOS permits a muted, inline video to start without a
-            // gesture — but not before it has data, and `play()` issued
-            // the instant `src` is assigned rejects with an AbortError
-            // that was being swallowed by the catch below. On desktop
-            // the file is cached fast enough that the race is invisible;
-            // on a phone it is the ordinary case, and the vessel simply
-            // never moved.
-            const attempt = () => video.play().catch(() => {});
-            video.addEventListener('canplay', attempt, { once: true });
-            video.addEventListener('loadeddata', attempt, { once: true });
-            video.src = "/real_icon.mp4";
-            video.load();
-            attempt();
-        };
-        
-        if ('requestIdleCallback' in window) {
-            window.requestIdleCallback(startVideo, { timeout: 1000 });
-        } else {
-            revealTimeout(startVideo, 200);
-        }
+    // The controls are ready at first paint; only decorative media waits.
+    if (!video || !this._active) return;
+    const startVideo = () => {
+      // The idle callback may outlive cancellation. Never fetch or play
+      // media after the route has become inactive or its node was removed.
+      if (!this._active || !video.isConnected) return;
+      // PLAY WHEN IT CAN PLAY, NOT WHEN THE SRC IS SET.
+      const attempt = () => video.play().catch(() => {});
+      if (!video.hasAttribute('src')) {
+        video.addEventListener('canplay', attempt, { once: true });
+        video.addEventListener('loadeddata', attempt, { once: true });
+        video.src = '/real_icon.mp4';
+        video.load();
       }
-    }, 100);
+      attempt();
+    };
 
-    revealTimeout(() => {
-      title.style.transition = 'opacity 400ms var(--ease-out)';
-      title.style.opacity = '1';
-    }, 600);
-
-    revealTimeout(() => {
-      nav.style.transition = 'opacity 400ms var(--ease-out)';
-      nav.style.opacity = '1';
-    }, 1100);
-
-
-    const footer = this.container.querySelector('.portal-footer');
-    revealTimeout(() => {
-      footer.style.transition = 'opacity 600ms var(--ease-out)';
-      footer.style.opacity = '1';
-    }, 1750);
+    if ('requestIdleCallback' in window) {
+      this._idleHandle = window.requestIdleCallback(() => {
+        this._idleHandle = null;
+        startVideo();
+      }, { timeout: 1000 });
+    } else {
+      this._mediaTimers.push(setTimeout(startVideo, 200));
+    }
   }
 
   activate() {
     if (this._active) return;
     this._active = true;
     document.addEventListener('keydown', this.boundKeyboardHandler);
+    this.startVesselMedia();
   }
 
   deactivate() {
     if (!this._active) return;
     this._active = false;
     document.removeEventListener('keydown', this.boundKeyboardHandler);
+    (this._mediaTimers || []).forEach(id => clearTimeout(id));
+    this._mediaTimers = [];
+    if (this._idleHandle != null) {
+      window.cancelIdleCallback?.(this._idleHandle);
+      this._idleHandle = null;
+    }
+    this.container.querySelector('.vessel-video')?.pause();
   }
 
   destroy() {
     this.deactivate();
-    // Reveal choreography must die with the view — surviving timers
-    // fired after teardown (post-suite "window is not defined") and
-    // could start media work after navigation
-    (this._revealTimers || []).forEach(id => clearTimeout(id));
-    this._revealTimers = [];
   }
 }
