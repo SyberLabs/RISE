@@ -14,8 +14,9 @@ Review by Luna on `codex/jev-core`, focused on the protected decision service, N
 
 - Parent reports the final focused endpoint suite passed 14 tests; the endpoint syntax check passed. The endpoint tests cover request shape/criteria, malformed responses, outages, timeout, missing credentials, bounds, and safe errors.
 - Parent reports the dedicated Jev browser checks passed 2/2, covering normal-reading consent/failure/retry and devotional consent with a held prayer until approval.
-- The browser gate discovered 47 tests. Its first run built the site and completed 32 passed, 14 skipped, and one failure from the now-fixed route collision. The repaired full gate result was not available during this review, so that run is not claimed as passing.
-- Parent reports 77 combined unit tests passed before the final Page-level request-scope adjustment. The adjustment should be covered by the focused PageReader suite in the final gate evidence.
+- The final browser gate built the site and completed **33 passed, 14 skipped, 0 failed** (47 discovered); the skips follow the suite's configured conditions.
+- After the final Chamber pause change landed later than the full-gate build, the updated production build and affected Jev Page browser check passed **1/1**. The dedicated Page/core browser group passed **8/8** before that Chamber change.
+- Runtime reports the final focused Jev suite passed **47 tests across six files**; parent reports the final endpoint suite passed 14 tests and endpoint syntax check passed. These cover Page-level approval/retry behavior and the service contract, respectively.
 
 ## Evidence boundary
 

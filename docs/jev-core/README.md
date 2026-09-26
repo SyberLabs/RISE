@@ -33,6 +33,8 @@ Coordinator verification: the full unit run passed **3,477 tests**, with **63 sk
 
 The dedicated Jev/Page/control/typography browser group passed **8/8** with simulated decisions. The subsequent paused-Stream-to-Page cancellation fix passed **5/5** focused Chamber tests. The production build measured **59.5 KB Brotli** for first load, within the 64 KB budget. See [independent review](review.md) for the broader browser gate and [runtime review](runtime-review.md) for runtime findings.
 
+The final broader browser gate passed **33 tests**, with **14 skipped** and no failures. After the cancellation fix, a fresh production build and the dedicated Jev Page browser check passed **1/1**.
+
 Netlify successfully deployed checkpoint `0af77fa`. A real request to its preview endpoint returned HTTP **503**, code **JEV_NOT_CONFIGURED**, with **Cache-Control: no-store**. This verifies deployed routing and the missing-key failure path, not a working provider decision. [Deploy preview](https://deploy-preview-175--rise-v2-symbolic-experience.netlify.app).
 
 ## Current scope and tradeoffs
