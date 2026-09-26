@@ -273,7 +273,8 @@ export const stageMethods = {
           ${this.mode === 'pick' ? '' : `<button type="button" class="vstage-icon vstage-aa" data-stage="text"
             aria-label="Letters" aria-expanded="${sheet === 'text'}">Aa</button>`}
         </div>
-        ${sample && this.mode !== 'pick' ? `<p class="vstage-sample" data-face-sample="${escapeHtml(face)}">${escapeHtml(sample)}</p>` : ''}
+        ${sample && this.mode !== 'pick' ? `<p class="vstage-sample${this.glassOn() ? ' has-glass' : ''}"
+          data-face-sample="${escapeHtml(face)}">${escapeHtml(sample)}</p>` : ''}
         <div class="vstage-foot">
           <div class="vstage-caption" aria-live="polite">
             <h2 class="vstage-name">${escapeHtml(this._stageName(world))}</h2>

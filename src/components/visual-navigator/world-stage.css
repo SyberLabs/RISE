@@ -27,7 +27,7 @@
 
 .vstage {
   --vstage-ease: cubic-bezier(.2, .8, .2, 1);
-  --vstage-gutter: 16px;
+  --vstage-gutter: 20px;
   position: fixed;
   inset: 0;
   z-index: 1200;
@@ -98,19 +98,26 @@
   right: 0;
   display: flex;
   justify-content: space-between;
-  padding: max(10px, env(safe-area-inset-top)) max(10px, env(safe-area-inset-right)) 0 max(10px, env(safe-area-inset-left));
+  padding: max(16px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) 0 max(16px, env(safe-area-inset-left));
 }
+/* Round, edged and frosted, so both read as buttons over any picture. */
 .vstage-icon {
-  min-width: 44px;
-  min-height: 44px;
-  border: 0;
-  border-radius: 22px;
-  background: rgba(10, 10, 12, .38);
+  display: inline-grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 1px solid rgba(232, 232, 236, .32);
+  border-radius: 50%;
+  background: rgba(10, 10, 12, .5);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, .35);
   color: var(--color-light, #E8E8EC);
   font: 500 1.05rem/1 var(--font-primary, system-ui);
   cursor: pointer;
 }
-.vstage-aa { font-family: var(--font-literary, Georgia, serif); font-size: 1.2rem; }
+.vstage-aa { font: 500 1.05rem/1 var(--font-literary, Georgia, serif); letter-spacing: .02em; }
 .vstage-icon[aria-expanded="true"] { background: var(--color-accent, #E4D2AE); color: var(--color-on-accent, #0A0A0C); }
 
 .vstage-sample {
@@ -127,6 +134,26 @@
   text-shadow: 0 1px 14px rgba(0, 0, 0, .75);
   pointer-events: none;
 }
+/* Glass is on unless the reader turned it off, so the sample wears the same
+   frosted pane the reading will: the Chamber's own values, not a likeness. */
+.vstage-sample.has-glass {
+  left: 50%;
+  right: auto;
+  width: max-content;
+  max-width: calc(100% - 2 * var(--vstage-gutter));
+  transform: translateX(-50%);
+  padding: 14px 20px;
+  border: 1px solid rgba(232, 232, 236, 0.05);
+  border-radius: 14px;
+  background: rgba(10, 10, 12, 0.36);
+  backdrop-filter: blur(16px) saturate(1.12);
+  -webkit-backdrop-filter: blur(16px) saturate(1.12);
+  box-shadow:
+    0 10px 44px rgba(0, 0, 0, 0.30),
+    0 0 32px rgba(10, 10, 12, 0.45),
+    inset 0 1px 0 rgba(232, 232, 236, 0.045);
+  text-shadow: none;
+}
 .vstage-sample[data-face-sample="thick"] { font-family: var(--font-stream-thick, system-ui); font-weight: 600; }
 .vstage-sample[data-face-sample="mono"] { font-family: var(--font-mono, monospace); font-size: 1rem; }
 
@@ -138,7 +165,7 @@
   display: flex;
   flex-direction: column;
   gap: 12px;
-  padding: 0 0 max(12px, env(safe-area-inset-bottom));
+  padding: 0 0 max(20px, env(safe-area-inset-bottom));
   transition: opacity 360ms var(--vstage-ease), transform 360ms var(--vstage-ease);
 }
 .vstage-caption { padding: 0 var(--vstage-gutter); }
@@ -172,6 +199,10 @@
   padding: 0 var(--vstage-gutter) 2px;
   scrollbar-width: none;
   -webkit-overflow-scrolling: touch;
+  /* The rail runs under the screen's edge; it fades there instead of
+     being cut by it. */
+  -webkit-mask-image: linear-gradient(to right, transparent 0, #000 var(--vstage-gutter), #000 calc(100% - var(--vstage-gutter)), transparent 100%);
+  mask-image: linear-gradient(to right, transparent 0, #000 var(--vstage-gutter), #000 calc(100% - var(--vstage-gutter)), transparent 100%);
 }
 .vstage-rail::-webkit-scrollbar { display: none; }
 .vstage-family-group { display: flex; flex-direction: column; gap: 6px; flex: none; }
@@ -395,7 +426,7 @@
     top: 0;
     left: auto;
     width: min(44vw, 340px);
-    padding: max(10px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right)) max(10px, env(safe-area-inset-bottom)) 0;
+    padding: max(16px, env(safe-area-inset-top)) max(20px, env(safe-area-inset-right)) max(16px, env(safe-area-inset-bottom)) 0;
     justify-content: flex-end;
   }
   .vstage-scrim {
