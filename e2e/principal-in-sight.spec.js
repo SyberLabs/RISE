@@ -6,7 +6,7 @@
  * full of benches, so on a leaf with any depth it sat below the fold: the
  * panel offered a decision and hid the way to make it.
  */
-import { test, expect } from '@playwright/test';
+import { test, expect } from './fixtures.js';
 
 const GATE = { code: 'rise2025', name: 'In Sight', vault: null, timestamp: Date.now() };
 const SEED = { text: 'Light enters form. '.repeat(30).trim(), textSource: 'In Sight', origin: null };

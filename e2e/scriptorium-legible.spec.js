@@ -8,7 +8,7 @@
  * Fit arrives here with a word that is a hole onto imagery a score may never
  * provide, and the reading opens invisible.
  */
-import { test, expect } from '@playwright/test';
+import { test, expect } from './fixtures.js';
 
 const GATE = { code: 'rise2025', name: 'Scriptorium', vault: null, timestamp: Date.now() };
 const SCORE = JSON.stringify({

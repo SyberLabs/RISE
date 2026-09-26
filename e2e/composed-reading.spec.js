@@ -6,7 +6,7 @@
  * starter registrar had split its prose into. The pieces are the
  * composition's bookkeeping; the reader meets one continuous reading.
  */
-import { test, expect } from '@playwright/test';
+import { test, expect } from './fixtures.js';
 
 const GATE = { code: 'rise2025', name: 'Composed', vault: null, timestamp: Date.now() };
 

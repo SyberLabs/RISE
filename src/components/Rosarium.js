@@ -50,6 +50,7 @@ const SOUNDS = Object.freeze([
 export class Rosarium {
   constructor(container, options = {}) {
     this.container = container;
+    this.jev = options.jev || null;
     this.onNavigate = options.onNavigate || (() => {});
     this.getAudioEngine = options.getAudioEngine || (() => null);
     this.iconId = options.iconId && findChapelIcon(options.iconId)
@@ -280,7 +281,7 @@ export class Rosarium {
       <div class="rosarium-prayer${this.autoAdvance ? '' : ' rosarium-prayer-unhurried'}" data-action="${this.autoAdvance ? '' : 'prayer-done'}">
         ${artSlot}
         <p class="rosarium-prayer-text">${escapeHtml(step.text)}</p>
-        ${this.autoAdvance ? '' : '<span class="rosarium-prayer-hint">click when prayed ›</span>'}
+        ${this.autoAdvance ? '' : `<span class="rosarium-prayer-hint">${this._jevSlower ? 'Take a little more time here · ' : ''}click when prayed ›</span>`}
       </div>
     `;
   }
@@ -335,13 +336,15 @@ export class Rosarium {
   // ── Prayer flow ────────────────────────────────────────────
 
   start() {
+    this._jevGeneration = (this._jevGeneration || 0) + 1;
+    this.jev?.destroy();
     this._beginVisualGeneration();
     this.compiled = compileLiturgy(buildRosaryDefinition(this.setId), { paceMultiplier: this.pace });
     this.stepIndex = -1;
     this.strand.reset();
     this.phase = 'strand';
     this.renderOverlay();
-    this._startSound();
+    if (!this.jev) this._startSound();
     // Imagistic: warm every mystery painting now, so no decade waits
     // on a museum API mid-prayer
     if (this.mode === 'imagistic') this._prewarmMysteryWorks();
@@ -404,9 +407,23 @@ export class Rosarium {
     }
   }
 
-  advance() {
+  async advance() {
     if (this.phase !== 'strand') return;
     clearTimeout(this._strandTimer);
+    const nextIndex = this.stepIndex + 1;
+    const generation = this._jevGeneration;
+    const nextStep = this.compiled.steps[nextIndex];
+    let decision = 'continue';
+    if (nextStep && this.jev) {
+      if (this._jevPending) return;
+      this._jevPending = true;
+      try { decision = await this.jev.allow(nextStep.text); }
+      finally { this._jevPending = false; }
+      if (generation !== this._jevGeneration || this.phase !== 'strand' || this.stepIndex + 1 !== nextIndex) return;
+      if (!decision) { this._exitToChapel(); return; }
+      if (nextIndex === 0) this._startSound();
+    }
+    this._jevSlower = decision === 'slower';
     this.stepIndex += 1;
     const step = this.compiled.steps[this.stepIndex];
     if (!step) { this.finish(); return; }
@@ -422,7 +439,7 @@ export class Rosarium {
     clearTimeout(this._prayerTimer);
     this._prayerOpenedAt = Date.now();
     if (this.autoAdvance) {
-      this._prayerTimer = setTimeout(() => this.returnToStrand(), step.durationMs);
+      this._prayerTimer = setTimeout(() => this.returnToStrand(), step.durationMs * (decision === 'slower' ? 1.25 : 1));
     }
   }
 
@@ -634,6 +651,8 @@ export class Rosarium {
   handleEscape() {
     if (this.phase === 'prayer') { this.returnToStrand(); return true; }
     if (this.phase === 'strand' || this.phase === 'complete') {
+      this._jevGeneration = (this._jevGeneration || 0) + 1;
+      this.jev?.destroy();
       if (this.door) {
         this._exitToChapel();
         return true;
@@ -654,6 +673,8 @@ export class Rosarium {
   }
 
   _exitToChapel() {
+    this._jevGeneration = (this._jevGeneration || 0) + 1;
+    this.jev?.destroy();
     clearTimeout(this._strandTimer);
     clearTimeout(this._prayerTimer);
     this._beginVisualGeneration(); // departure invalidates all pending work
@@ -672,6 +693,11 @@ export class Rosarium {
   }
 
   deactivate() {
+    this._jevGeneration = (this._jevGeneration || 0) + 1;
+    this.jev?.destroy();
+    clearTimeout(this._strandTimer);
+    clearTimeout(this._prayerTimer);
+    this._stopSound();
     document.removeEventListener('keydown', this._keyHandler);
   }
 

@@ -13,7 +13,7 @@
  * read. A value read after the thing that writes it is not a memory,
  * and nothing in the suite would have noticed.
  */
-import { test, expect } from '@playwright/test';
+import { test, expect } from './fixtures.js';
 const GATE = { code: 'rise2025', name: 'M', vault: null, timestamp: Date.now() };
 
 test.skip(true, 'JOURNEYS = []; those sits are not shipped');

@@ -8,7 +8,7 @@
  * element holding the scroll offset and rebuilt it at the top. A reader who
  * pressed anything was thrown back to the first line.
  */
-import { test, expect } from '@playwright/test';
+import { test, expect } from './fixtures.js';
 
 const GATE = { code: 'rise2025', name: 'Scriptorium', vault: null, timestamp: Date.now() };
 

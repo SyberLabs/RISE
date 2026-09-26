@@ -484,6 +484,13 @@ export class Chamber {
             </div>
           </div>
 
+          <div id="jev-status" class="chamber-jev-status" role="status" aria-live="polite" hidden>
+            <p id="jev-status-message"></p>
+            <label for="jev-feedback">What would help? <span>(optional)</span></label>
+            <textarea id="jev-feedback" maxlength="500" rows="2"></textarea>
+            <button id="jev-retry" type="button" hidden>Retry reading decision</button>
+          </div>
+
           <!-- PAGE MODE (PAGE-MODE-SPEC): the SPATIAL projection of this
                same reading. Empty and hidden until engaged; the Stream
                above is never modified, only paused while the reader
@@ -829,6 +836,14 @@ export class Chamber {
       this.audioEngine?.playClick();
       this.beginSession();
     });
+    const jevRetry = this.container.querySelector('#jev-retry');
+    this._jevRetryHandler = () => {
+      const feedback = this.container.querySelector('#jev-feedback')?.value?.trim().slice(0, 500);
+      this.player?.jevConductor?.setFeedback(feedback || 'I am ready to continue; please reassess this passage.');
+      if (this.pageModeActive) this.pageReader?.retry();
+      else this.player?.play();
+    };
+    jevRetry?.addEventListener('click', this._jevRetryHandler);
 
     // In-session controls
     const playPauseBtn = this.container.querySelector('#play-pause-btn');
@@ -1023,6 +1038,7 @@ export class Chamber {
       this.player.on('progress', (progress) => this.updateProgress(progress));
       this.player.on('complete', () => this.onSessionComplete());
       this.player.on('state', (state) => this.onStateChange(state));
+      this.player.on('jev', (state) => this.onJevState(state));
       // Shuttle transitions the Player makes on its own (pause drops
       // home; rewind clamps home at atom 0) carry the same subsystem
       // contract and HUD as key-initiated steps
@@ -2527,8 +2543,12 @@ export class Chamber {
     this.voice?.stop();
 
     // A page is read, not raced: hold the stream while it is open.
-    if (this.player?.state === 'playing' || this.player?.state === 'interlocuting') {
-      this.player.pause();
+    const streamWasActive = this.player?.state === 'playing' || this.player?.state === 'interlocuting';
+    // Even while Jev holds the Stream in `paused`, pause() revokes its
+    // outstanding approval request. A projection switch must not leave
+    // that hidden request alive behind the Page.
+    this.player?.pause?.();
+    if (streamWasActive) {
       this.audioEngine?.fadeOutSession(0.4);
       this.container.querySelector('#play-icon')?.classList.remove('hidden');
       this.container.querySelector('#pause-icon')?.classList.add('hidden');
@@ -2569,6 +2589,8 @@ export class Chamber {
         title: this.session?.name || this.session?.title || '',
         source: this.session?.sources?.[0]?.name || '',
         signal: abort.signal,
+        jevConductor: this.player?.jevConductor,
+        onJevState: state => this.onJevState(state),
         // One preference, every presenter: the reader's artwork-label
         // setting governs the Page exactly as it governs the flash
         // economy and the Gallery. Required credits are never optional.
@@ -3019,6 +3041,7 @@ export class Chamber {
       READING_PACE.min,
       Math.min(READING_PACE.max, this.currentWpm + delta)
     );
+    this.player.jevConductor?.setPace(Math.max(100, Math.min(500, this.currentWpm)));
     const factor = this.baseWpm / this.currentWpm;
     this.player.setSpeedFactor(factor);
 
@@ -3300,6 +3323,37 @@ export class Chamber {
     }
   }
 
+  onJevState(data = {}) {
+    const panel = this.container?.querySelector('#jev-status');
+    const message = this.container?.querySelector('#jev-status-message');
+    const feedback = this.container?.querySelector('#jev-feedback');
+    const feedbackLabel = this.container?.querySelector('label[for="jev-feedback"]');
+    const retry = this.container?.querySelector('#jev-retry');
+    const state = ['waiting', 'blocked', 'ready'].includes(data.state) ? data.state : 'blocked';
+    if (!panel || !message) return;
+    if (state === 'ready') {
+      if (feedback) feedback.value = '';
+      const slower = data.action === 'slower';
+      panel.hidden = !slower;
+      panel.classList.toggle('is-suggestion', slower);
+      message.textContent = slower ? 'Take a little more time with this passage.' : '';
+      if (feedback) feedback.hidden = true;
+      if (feedbackLabel) feedbackLabel.hidden = true;
+      if (retry) retry.hidden = true;
+      return;
+    }
+
+    panel.hidden = false;
+    panel.classList.remove('is-suggestion');
+    message.textContent = data.message || (state === 'waiting'
+      ? 'Checking this passage…'
+      : 'A reading decision is unavailable for this passage. Share feedback and try again.');
+    const canRetry = state === 'blocked' && data.retryable !== false;
+    if (feedback) feedback.hidden = !canRetry;
+    if (feedbackLabel) feedbackLabel.hidden = !canRetry;
+    if (retry) retry.hidden = !canRetry;
+  }
+
   handleSynthesisSealing() {
     const input = this.container.querySelector('#synthesis-input');
     const text = input ? input.value.trim() : '';
@@ -3364,6 +3418,8 @@ export class Chamber {
 
   destroy() {
     this._destroyed = true;
+    this.container?.querySelector('#jev-retry')?.removeEventListener('click', this._jevRetryHandler);
+    this.player?.jevConductor?.destroy();
     this.closeSettings();
     this.unbindVisualViewport();
     this._bandMoveCleanup?.();

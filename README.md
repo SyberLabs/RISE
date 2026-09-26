@@ -10,6 +10,13 @@
 
 [Enter RISE →](https://rise.syberlabs.space/)
 
+**OpenRouter reading guide in development:** the `codex/jev-core` branch adds a required
+decision before reading progresses, with explicit consent to send bounded
+excerpts through OpenRouter to the selected model provider. Follow the [implementation and agent evidence](docs/jev-core/README.md).
+Live verification requires a server-side `OPENROUTER_API_KEY`; tests using simulated
+responses do not establish a working live deployment. Production publishing stops
+if that key is missing; configure both Netlify Builds and Functions scopes before activation.
+
 ---
 
 A text does not have to appear only as a page.
@@ -34,10 +41,9 @@ standard the rest of the codebase is measured against.
 
 ---
 
-## Current technical priority: JEV integration
+## Optional Scriptorium routing
 
-JEV integration is the RISE team's current top technical priority. The
-Scriptorium uses JEV to route a composition request to one of RISE's existing
+The Scriptorium uses JEV to route a composition request to one of RISE's existing
 output formats, and the selected route shapes the prompt prepared for the
 composer. JEV recommends a route; RISE's deterministic examination still
 decides whether a returned score can be admitted as a reading.
@@ -61,7 +67,7 @@ A reading begins by tuning four elements.
 
 Bring your own `.txt` or `.md` file, paste text directly, or enter through RISE's built-in Library and curated collections.
 
-Local text is processed in the browser. It is not uploaded to a RISE backend.
+Local text is prepared in the browser. Reading requires explicit consent to send bounded excerpts through RISE's server and OpenRouter to the selected model provider for reading decisions.
 
 ### Time
 
@@ -247,11 +253,9 @@ RISE is an experimental reading and creative-technology project. It makes no med
 
 RISE is browser-native.
 
-User-provided source texts and media stay in RISE's browser workflows. If you
-explicitly route a Scriptorium request with JEV, RISE's same-origin function
-sends the typed intent and target word count to TypeSafe SystemOne; it does not
-send the source text, saved texts, Library entries, media, history, or proposals.
-See [PRIVACY.md](PRIVACY.md) for the full disclosure.
+User-provided files and saved work remain in browser storage. After session consent, bounded reading excerpts, intent, feedback, mode, and pace are sent through RISE's server and OpenRouter to the selected model provider. See [Privacy](PRIVACY.md) for the exact fields and limits.
+
+Separately, choosing **Route with JEV** in Scriptorium sends the typed intent and target word count through RISE to TypeSafe using a reader-provided key. That optional routing request excludes saved texts, media, reading history, and proposals.
 
 Some visual modes retrieve publicly hosted images from external cultural or scientific institutions. Remote-image requests are deliberately configured to avoid sending the reader's RISE page as a referrer.
 
@@ -261,8 +265,7 @@ Some visual modes retrieve publicly hosted images from external cultural or scie
 
 RISE keeps reading and authoring in the browser. The opt-in Scriptorium JEV
 route is served by a same-origin Netlify Function at `/api/jev/route`, which
-forwards the bounded request to TypeSafe SystemOne. Local development still
-runs through the Vite dev server.
+forwards the bounded request to TypeSafe SystemOne. Required reading decisions use `/api/jev-decision`, a separate Netlify Function backed by OpenRouter with a server-side key. Local development runs through the Vite dev server.
 
 Engineering overview: [docs/ENGINEERING.md](docs/ENGINEERING.md).
 

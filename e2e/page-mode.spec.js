@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './fixtures.js';
 import { collectAcrossPages, pageCount } from './page-helpers.js';
 
 const GATE = { code: 'rise2025', name: 'Page Harness', vault: null, timestamp: Date.now() };
@@ -24,7 +24,7 @@ test('Page Mode typesets a Gospel chapter in space, and holds the stream', async
         if (req.resourceType() === 'image' && !req.url().includes('127.0.0.1')) {
             return route.abort();
         }
-        return route.continue();
+        return route.fallback();
     });
 
     await page.goto('/');
@@ -80,20 +80,17 @@ test('Page Mode typesets a Gospel chapter in space, and holds the stream', async
     // is left pending/broken in the completed walk. With off-origin imagery
     // aborted above, the reverent-degradation path is the one exercised.
     expect(stats.shown + stats.absent).toBe(stats.figures);
-    // THE PUBLIC PAGE OPENS AS ONE ELONGATED COMPOSITION. It had opened
-    // paginated: the Chamber passes Number.POSITIVE_INFINITY to say "no
-    // threshold", and the reader's guard used Number.isFinite — false for
-    // Infinity — so the value was discarded for the default of 4.
-    expect(stats.pages, 'one column, not pages').toBe(1);
+    // Jev authorizes bounded excerpts before reveal, so Page stays paginated
+    // rather than sending the whole reading for an elongated composition.
+    expect(stats.pages, 'Jev keeps the Page in bounded passages').toBeGreaterThan(1);
     expect(stats.playerState).not.toBe('playing');
 
-    // And this reading is still long enough for the two projections to
-    // differ, which is what the old page-count assertion was really for.
+    // Elongation would reveal unread text in one request, so the Page keeps
+    // its bounded pagination when that projection is requested.
     await page.locator('#chamber-display').hover();
     await page.locator('#page-elongate').click();
+    await expect(page.locator('#jev-status')).toContainText('Elongated reading is unavailable');
     await expect.poll(() => pageCount(page), { timeout: 10_000 }).toBeGreaterThan(1);
-    await page.locator('#page-elongate').click();
-    await expect.poll(() => pageCount(page), { timeout: 10_000 }).toBe(1);
 
     // Page holds Stream: Space/Play must not start playback underneath.
     const scrollBefore = await page.evaluate(() =>

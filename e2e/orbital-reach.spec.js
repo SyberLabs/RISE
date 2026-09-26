@@ -10,7 +10,7 @@
  * Height is the constraint, so height is what this asserts, and it asserts
  * the thing a reader actually does: put a cursor on the button and press.
  */
-import { test, expect } from '@playwright/test';
+import { test, expect } from './fixtures.js';
 
 const GATE_SESSION = {
     code: 'rise2025',

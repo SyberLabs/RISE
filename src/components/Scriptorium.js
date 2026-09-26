@@ -112,6 +112,8 @@ export class Scriptorium {
   get materials() { return this.session.materials; }
   get swells() { return this.session.swells; }
   get localWorks() { return this.session.localWorks; }
+  get jevRoute() { return this.session.jevRoute; }
+  get jevRouteRequestId() { return this.session.jevRouteRequestId; }
   get context() { return this.session.context; }
   get promptText() { return this.session.promptText; }
   get pasted() { return this.session.pasted; }

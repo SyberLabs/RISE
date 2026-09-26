@@ -106,6 +106,19 @@ history, not a distinction; read the status column instead.
 
 ---
 
+## Reading guide integration
+
+| Document | Status | What it is |
+| --- | --- | --- |
+| [jev-core/README.md](jev-core/README.md) | Contract | Required OpenRouter reading decisions, setup, evidence, and implementation plan. |
+| [jev-core/service.md](jev-core/service.md) | Contract | Server request/response contract, model configuration, and failure handling. |
+| [jev-core/client.md](jev-core/client.md) | Contract | Explicit consent, bounded client requests, and cancellation. |
+| [jev-core/playback.md](jev-core/playback.md) | Contract | Stream, Page, and devotional progression boundaries. |
+| [jev-core/provider-decision.md](jev-core/provider-decision.md) | Record | Approved switch from TypeSafe to OpenRouter. |
+| [jev-core/openrouter-review.md](jev-core/openrouter-review.md) | Record | Independent review of the OpenRouter implementation. |
+| [jev-core/review.md](jev-core/review.md) | Record | Historical Jev implementation review, superseded for the provider boundary. |
+| [jev-core/runtime-review.md](jev-core/runtime-review.md) | Record | Historical runtime review and corrected passage/cancellation findings. |
+
 ## Conventions
 
 **Say what a document is at the top of it.** A spec headed "not implemented"

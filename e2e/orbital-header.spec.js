@@ -9,7 +9,7 @@
  * Measured as geometry rather than inspected: two rectangles either intersect
  * or they do not, and no amount of shrinking type is an answer to overlap.
  */
-import { test, expect } from '@playwright/test';
+import { test, expect } from './fixtures.js';
 
 const GATE = { code: 'rise2025', name: 'Header', vault: null, timestamp: Date.now() };
 const SEED = {

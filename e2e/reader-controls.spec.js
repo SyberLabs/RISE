@@ -5,7 +5,7 @@
  * trap in fixing that is the double toggle: a label wrapping an input already
  * forwards a click, so a row handler added on top makes one press two.
  */
-import { test, expect } from '@playwright/test';
+import { test, expect } from './fixtures.js';
 
 const GATE = { code: 'rise2025', name: 'Controls', vault: null, timestamp: Date.now() };
 const SEED = { text: 'Light enters form. '.repeat(30).trim(), textSource: 'Controls', origin: null };

@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './fixtures.js';
 import { collectAcrossPages } from './page-helpers.js';
 const GATE = { code: 'rise2025', name: 'Fields', vault: null, timestamp: Date.now() };
 const SEED = {

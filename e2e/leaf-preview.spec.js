@@ -17,7 +17,7 @@
  * Measured on the painted pixels, because both faults were invisible to any
  * assertion about state: the panel was doing exactly what it was told.
  */
-import { test, expect } from '@playwright/test';
+import { test, expect } from './fixtures.js';
 
 const GATE = { code: 'rise2025', name: 'Leaf Preview', vault: null, timestamp: Date.now() };
 const SEED = { text: 'Light enters form. '.repeat(40).trim(), textSource: 'Leaf Preview', origin: null };
