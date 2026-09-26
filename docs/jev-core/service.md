@@ -1,18 +1,18 @@
 # OpenRouter reading decision service
 
-`POST /api/jev-decision` is the existing same-origin server boundary. Its internal name is retained; it no longer calls TypeSafe. It accepts bounded intent, feedback, excerpt, request ID, reading/devotional mode, and pace. The server calls `https://openrouter.ai/api/v1/chat/completions` with a system instruction and reader context serialized separately as user data.
+`POST /api/jev-decision` is the existing same-origin server boundary. It accepts bounded intent, feedback, excerpt, request ID, reading/devotional mode, and pace. The server calls OpenRouter's `https://openrouter.ai/api/alpha/decisions` with `typesafe/jev-1.13`, the reading context as `state`, and one typed `reading_action` Choice question.
 
-The model returns only `{ "action": "continue" | "slower" | "pause" }`. RISE requests strict JSON Schema with additional properties forbidden, then validates the response locally before returning `{ requestId, action, model }`. It does not manufacture or forward confidence. Invalid, refused, truncated, or unavailable decisions block reading progression.
+Jev chooses `continue`, `slower`, or `pause`. RISE validates the returned Choice, provider, and model before returning `{ requestId, action, model }`. It does not manufacture or forward confidence. Invalid or unavailable decisions block reading progression.
 
 ## Configuration
 
 Set `OPENROUTER_API_KEY` in the Netlify site's environment-variable settings with both Builds and Functions scopes, including deploy previews. Get a key from [OpenRouter](https://openrouter.ai/settings/keys). Production builds stop before publishing when the key is missing or blank. This configuration check verifies presence only, not provider access or the Functions scope; configure both scopes and verify a real preview response before activating production. Redeploy after setting it. Never put the key in browser variables, source control, or PR comments.
 
-`OPENROUTER_MODEL` is optional; the default is `openai/gpt-4.1-mini`. This compact non-reasoning model supports structured outputs and avoids allocating a reasoning budget for a three-way choice. Model support was checked in the official catalog on 25 September 2026; live RISE decision quality remains to be measured. A replacement model must support all requested parameters and be checked on RISE's evaluation set.
+The reading function fixes the model to `typesafe/jev-1.13` for this preview test. A stale `OPENROUTER_MODEL` setting cannot silently switch it back to the earlier chat model. Live RISE decision quality remains to be measured.
 
-The request uses `provider.require_parameters: true` and `provider.data_collection: 'deny'`. These require compatible endpoints and exclude provider routes marked as allowing data collection. They are not a promise of zero retention by every processor. No second model, Jev fallback, or local decision is substituted if routing fails.
+This request goes through OpenRouter to TypeSafe. The function does not deliberately store the request or response. This does not establish zero retention by Netlify, OpenRouter, or TypeSafe; review their policies before sending sensitive texts. No second model or local decision is substituted if Jev fails.
 
-The output token limit is 32, temperature is 0, and upstream timeout is eight seconds. The client times out after ten seconds. Changes to a reasoning model may require different output-budget settings; don't assume every model is interchangeable.
+The upstream timeout is eight seconds; the client times out after ten seconds.
 
 ## Boundary controls
 
@@ -22,7 +22,6 @@ Missing credentials return `503 DECISION_NOT_CONFIGURED`. Provider errors, timeo
 
 ## References
 
-- [Structured outputs](https://openrouter.ai/docs/guides/features/structured-outputs)
-- [Provider routing](https://openrouter.ai/docs/guides/routing/provider-selection)
-- [Default model](https://openrouter.ai/openai/gpt-4.1-mini)
+- [Jev on OpenRouter](https://openrouter.ai/docs/guides/community/jev)
+- [Decisions API](https://openrouter.ai/docs/api/api-reference/alphadecisions/submit-a-decisions-request)
 - [Current implementation evidence](README.md)

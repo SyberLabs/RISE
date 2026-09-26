@@ -13,11 +13,9 @@ const VALID_INPUT = Object.freeze({
 
 function upstreamResult(overrides = {}) {
     return {
-        model: 'openai/gpt-4.1-mini',
-        choices: [{
-            finish_reason: 'stop',
-            message: { role: 'assistant', content: JSON.stringify({ action: 'slower' }) }
-        }],
+        model: 'typesafe/jev-1.13-20260917',
+        provider: 'TypeSafe',
+        answers: { reading_action: { type: 'choice', choice: 'slower' } },
         ...overrides
     };
 }
@@ -68,7 +66,7 @@ describe('OpenRouter decision Netlify function', () => {
         });
     });
 
-    it('sends strict action schema and privacy routing, then returns no fabricated confidence', async () => {
+    it('sends a Jev choice and returns the validated reading action', async () => {
         const fetchMock = mockFetch();
         const timeout = vi.spyOn(AbortSignal, 'timeout');
         const response = await jevDecision(request());
@@ -78,11 +76,11 @@ describe('OpenRouter decision Netlify function', () => {
         expect(await json(response)).toEqual({
             requestId: 'request-123',
             action: 'slower',
-            model: 'openai/gpt-4.1-mini'
+            model: 'typesafe/jev-1.13-20260917'
         });
         expect(fetchMock).toHaveBeenCalledOnce();
         const [url, options] = fetchMock.mock.calls[0];
-        expect(url).toBe('https://openrouter.ai/api/v1/chat/completions');
+        expect(url).toBe('https://openrouter.ai/api/alpha/decisions');
         expect(options.method).toBe('POST');
         expect(options.headers).toEqual({
             Authorization: 'Bearer server-secret',
@@ -92,55 +90,46 @@ describe('OpenRouter decision Netlify function', () => {
         expect(timeout).toHaveBeenCalledWith(8000);
 
         const payload = JSON.parse(options.body);
-        expect(payload).toMatchObject({
-            model: 'openai/gpt-4.1-mini',
-            response_format: {
-                type: 'json_schema',
-                json_schema: {
-                    name: 'reading_decision',
-                    strict: true,
-                    schema: {
-                        type: 'object',
-                        properties: { action: { type: 'string', enum: ['continue', 'slower', 'pause'] } },
-                        required: ['action'],
-                        additionalProperties: false
+        expect(payload).toEqual({
+            model: 'typesafe/jev-1.13',
+            questions: {
+                reading_action: {
+                    type: 'choice',
+                    instructions: expect.any(String),
+                    criteria: {
+                        continue: expect.any(String),
+                        slower: expect.any(String),
+                        pause: expect.any(String)
                     }
                 }
             },
-            provider: { require_parameters: true, data_collection: 'deny' },
-            max_tokens: 32,
-            temperature: 0
-        });
-        expect(payload.messages).toHaveLength(2);
-        expect(payload.messages[0].role).toBe('system');
-        expect(payload.messages[0].content).toContain('Never rewrite, summarize, reorder, skip, or add');
-        expect(JSON.parse(payload.messages[1].content)).toEqual({
-            intent: VALID_INPUT.intent,
-            feedback: VALID_INPUT.feedback,
-            excerpt: VALID_INPUT.excerpt,
-            mode: 'reading',
-            pace: 220
+            state: {
+                intent: VALID_INPUT.intent,
+                feedback: VALID_INPUT.feedback,
+                excerpt: VALID_INPUT.excerpt,
+                mode: 'reading',
+                pace: 220
+            }
         });
         expect(options.signal).toBeInstanceOf(AbortSignal);
         expect(options.body).not.toContain('request-123');
     });
 
-    it('uses the verified default model when no override is configured', async () => {
-        vi.stubEnv('OPENROUTER_MODEL', '');
+    it('uses Jev even if a stale chat-model override remains configured', async () => {
         const fetchMock = mockFetch();
 
         await jevDecision(request());
 
-        expect(JSON.parse(fetchMock.mock.calls[0][1].body).model).toBe('openai/gpt-4.1-mini');
+        expect(JSON.parse(fetchMock.mock.calls[0][1].body).model).toBe('typesafe/jev-1.13');
     });
 
-    it('accepts OpenRouter latest-alias model metadata', async () => {
-        mockFetch(upstreamResult({ model: '~openai/gpt-mini-latest' }));
+    it('accepts the dated Jev model identifier returned by OpenRouter', async () => {
+        mockFetch();
 
         const response = await jevDecision(request());
 
         expect(response.status).toBe(200);
-        expect(await json(response)).toMatchObject({ model: '~openai/gpt-mini-latest' });
+        expect(await json(response)).toMatchObject({ model: 'typesafe/jev-1.13-20260917' });
     });
 
     it('rejects cross-origin, non-JSON, and non-POST requests before calling OpenRouter', async () => {
@@ -206,37 +195,15 @@ describe('OpenRouter decision Netlify function', () => {
     });
 
     it.each([
-        ['unknown action', { action: 'rewrite' }],
-        ['extra action data', { action: 'pause', explanation: 'extra data' }],
-        ['malformed JSON content', '{'],
-        ['refusal', { action: 'continue' }, { refusal: 'not allowed' }],
-        ['tool call instead of action content', { action: 'continue' }, { tool_calls: [{ id: 'tool-1' }] }],
-        ['truncation', { action: 'continue' }, null, 'length'],
-        ['wrong finish reason', { action: 'continue' }, null, 'content_filter'],
-        ['missing model', { action: 'continue' }, null, 'stop', 'invalid model'],
-        ['choice error', { action: 'continue' }, null, 'stop', null, false, false, true],
-        ['top-level error', { action: 'continue' }, null, 'stop', null, false, true],
-        ['multiple choices', { action: 'continue' }, null, 'stop', null, true]
-    ])('rejects provider output with %s without fallback', async (label, content, messageExtra = {}, finishReason = 'stop', modelOverride, multiple = false, topLevelError = false, choiceError = false) => {
-        const baseChoice = upstreamResult().choices[0];
-        const result = upstreamResult({
-            model: modelOverride === 'invalid model' ? '' : 'openai/gpt-4.1-mini',
-            choices: [
-                {
-                    ...baseChoice,
-                    finish_reason: finishReason,
-                    ...(choiceError ? { error: { message: 'provider error' } } : {}),
-                    message: {
-                        ...baseChoice.message,
-                        ...messageExtra,
-                        content: typeof content === 'string' ? content : JSON.stringify(content)
-                    }
-                },
-                ...(multiple ? [baseChoice] : [])
-            ],
-            ...(topLevelError ? { error: { message: 'provider error' } } : {})
-        });
-        mockFetch(result);
+        ['unknown action', { answers: { reading_action: { type: 'choice', choice: 'rewrite' } } }],
+        ['wrong answer type', { answers: { reading_action: { type: 'score', choice: 'slower' } } }],
+        ['missing answer', { answers: {} }],
+        ['different model', { model: 'openai/gpt-4.1-mini' }],
+        ['missing model', { model: '' }],
+        ['different provider', { provider: 'Other' }],
+        ['top-level error', { error: { message: 'provider error' } }]
+    ])('rejects Jev output with %s without fallback', async (label, override) => {
+        mockFetch(upstreamResult(override));
         const response = await jevDecision(request());
         expect(response.status, label).toBe(502);
         expect(await json(response)).toMatchObject({ error: { code: 'DECISION_INVALID_RESPONSE' } });

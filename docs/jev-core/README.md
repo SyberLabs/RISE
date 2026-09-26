@@ -1,26 +1,27 @@
 # Required reading guide powered by OpenRouter
 
-Status: the user approved replacing Jev with OpenRouter on 25 September 2026. Implementation is on `codex/jev-core` in [PR #175](https://github.com/SyberLabs/RISE/pull/175). The branch and internal `jev` names are retained to keep the provider switch narrow; they no longer imply a TypeSafe dependency.
+Status: PR [#175](https://github.com/SyberLabs/RISE/pull/175) added an OpenRouter chat-model reading guide. This branch changes that existing Netlify function to call TypeSafe Jev through OpenRouter. Live Jev behavior has not yet been verified.
 
 ## Current requirement
 
-Every reading session obtains a live reading decision before progression. The selected OpenRouter model chooses continue, slower, or pause from the reader's intent, optional feedback, current excerpt, mode, and pace. Source text and devotional order remain fixed. An unavailable or invalid decision blocks progression with retry and exit available.
+Every reading session obtains a live reading decision before progression. Jev chooses continue, slower, or pause from the reader's intent, optional feedback, current excerpt, mode, and pace. Source text and devotional order remain fixed. An unavailable or invalid decision blocks progression with retry and exit available.
 
-This replaces the previous Jev-specific reading requirement. Reading uses OpenRouter with no Jev fallback or local substitute decision and no new SDK dependency. Main also contains a separate optional, reader-keyed Scriptorium route through TypeSafe; that existing authoring feature is preserved and is not required for reading.
+Reading calls Jev through OpenRouter with no fallback decision and no new SDK dependency. Main also contains a separate optional, reader-keyed Scriptorium route through TypeSafe; that existing authoring feature is preserved and is not required for reading.
 
 ## Implementation checklist
 
-- [x] Server: OpenRouter chat completions with strict action schema, bounded input, timeout, safe errors, and server-only credentials.
+- [x] Server: OpenRouter Decisions API with a typed Jev Choice, bounded input, timeout, safe errors, and server-only credentials.
 - [x] Client: accept only request-correlated action and model; remove Jev confidence claims.
 - [x] Consent and policies: disclose OpenRouter and the selected model provider.
-- [x] Verification: focused unit tests, required project checks, browser consent/failure tests, and preview deployment.
-- [ ] Activation: configure an OpenRouter key and validate real decisions before production promotion.
+- [x] Verification: focused function tests with simulated Jev responses.
+- [ ] Live preview: configure an OpenRouter key and validate a real Jev decision from the RISE frontend.
+- [ ] Production promotion: review live evidence and privacy before enabling the new function on the main site.
 
 ## Contract and boundaries
 
 `POST /api/jev-decision` remains the internal same-origin route. Input fields are `requestId`, `intent`, `feedback`, `excerpt`, `mode`, and `pace`. Intent and feedback are at most 500 characters each; excerpts are at most 2,000 characters. The response is `{ requestId, action, model }`, with action limited to `continue`, `slower`, or `pause`. It contains no claimed probability or confidence.
 
-The server uses `OPENROUTER_API_KEY` and optional `OPENROUTER_MODEL`. The browser never receives these credentials. Reading consent remains explicit for each session. Old or aborted responses cannot reveal a superseded passage or restart an exited session.
+The server uses `OPENROUTER_API_KEY` and fixes the reading model to `typesafe/jev-1.13`. The browser never receives the credential. Reading consent remains explicit for each session. Old or aborted responses cannot reveal a superseded passage or restart an exited session.
 
 Page remains paginated so only the requested page is evaluated. Whole-book print and elongated Page remain unavailable during guided sessions. Automatic library selection and a Hugging Face runtime are outside this change.
 
