@@ -83,11 +83,10 @@ describe('Jev browser preview', () => {
         expect(document.querySelector('#jev-result').textContent).not.toContain('untrusted/model');
     });
 
-    it('keeps out-of-range edits local and does not send them', async () => {
+    it('shows the sample without editable fields for private text', async () => {
         await openPreview();
-        document.querySelector('#jev-intent').value = 'x'.repeat(501);
-        document.querySelector('#jev-submit').click();
+        expect(document.querySelectorAll('input, textarea, select, [contenteditable]')).toHaveLength(0);
+        expect(document.querySelector('#jev-excerpt').textContent).toContain('light moved slowly');
         expect(fetch).not.toHaveBeenCalled();
-        expect(document.querySelector('#jev-result').textContent).toContain('shorten');
     });
 });

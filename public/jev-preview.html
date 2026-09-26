@@ -16,42 +16,29 @@
     .back { display: inline-block; margin-bottom: 2.5rem; font-size: .85rem; }
     h1 { margin: 0 0 .6rem; font: 300 clamp(2rem, 7vw, 3.2rem)/1.1 'Marcellus', Georgia, serif; }
     p { color: #bcbcc7; line-height: 1.6; }
-    form { display: grid; gap: 1rem; margin-top: 2rem; }
-    label { display: grid; gap: .4rem; font-size: .9rem; }
-    input, textarea, select, button { width: 100%; font: inherit; border-radius: .5rem; }
-    input, textarea, select { border: 1px solid #4b4b55; padding: .75rem; background: #15151b; color: #f4f4f5; }
-    textarea { min-height: 6rem; resize: vertical; }
-    input:focus-visible, textarea:focus-visible, select:focus-visible, button:focus-visible, a:focus-visible { outline: 2px solid #9ecbad; outline-offset: 2px; }
-    .row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
-    button { border: 0; padding: .85rem 1rem; background: #9ecbad; color: #101410; font-weight: 700; cursor: pointer; }
+    .sample { margin: 2rem 0 1.5rem; padding: 1rem 1.25rem; border: 1px solid #393943; border-radius: .5rem; background: #15151b; }
+    dt { margin-top: .9rem; font-size: .8rem; color: #aeb0b9; }
+    dt:first-child { margin-top: 0; }
+    dd { margin: .25rem 0 0; line-height: 1.5; }
+    button { width: 100%; border: 0; border-radius: .5rem; padding: .85rem 1rem; background: #9ecbad; color: #101410; font: inherit; font-weight: 700; cursor: pointer; }
+    button:focus-visible, a:focus-visible { outline: 2px solid #9ecbad; outline-offset: 2px; }
     button:disabled { opacity: .6; cursor: wait; }
     output { display: block; min-height: 4rem; margin-top: 1.5rem; padding: 1rem; border: 1px solid #393943; border-radius: .5rem; white-space: pre-line; line-height: 1.7; }
-    @media (max-width: 32rem) { .row { grid-template-columns: 1fr; } }
   </style>
 </head>
 <body>
   <main>
     <a class="back" href="/">← Back to RISE</a>
     <h1>Try Jev with RISE</h1>
-    <p>This is a one-decision preview. Clicking the button sends the sample below through RISE to OpenRouter Jev. It does not change the RISE reading experience. Use sample text only; do not enter private information.</p>
-    <form id="jev-form" novalidate>
-      <label for="jev-intent">Reading intent
-        <input id="jev-intent" name="intent" maxlength="500" required value="Help me stay with this passage.">
-      </label>
-      <label for="jev-feedback">Reader feedback
-        <textarea id="jev-feedback" name="feedback" maxlength="500">I would like a little more time to read.</textarea>
-      </label>
-      <label for="jev-excerpt">Short passage
-        <textarea id="jev-excerpt" name="excerpt" maxlength="2000">The light moved slowly across the room, and the reader paused to notice it.</textarea>
-      </label>
-      <div class="row">
-        <label for="jev-mode">Mode
-          <select id="jev-mode" name="mode"><option value="reading">Reading</option><option value="devotional">Devotional</option></select>
-        </label>
-        <label for="jev-pace">Current pace (words per minute)
-          <input id="jev-pace" name="pace" type="number" min="100" max="500" value="220" required>
-        </label>
-      </div>
+    <p>This is a one-decision preview. Clicking the button sends only the fixed sample below through RISE to OpenRouter Jev. It does not send your reading or change the RISE reading experience.</p>
+    <dl class="sample">
+      <dt>Reading intent</dt><dd id="jev-intent">Help me stay with this passage.</dd>
+      <dt>Reader feedback</dt><dd id="jev-feedback">I would like a little more time to read.</dd>
+      <dt>Short passage</dt><dd id="jev-excerpt">The light moved slowly across the room, and the reader paused to notice it.</dd>
+      <dt>Mode</dt><dd id="jev-mode">reading</dd>
+      <dt>Current pace</dt><dd><span id="jev-pace">220</span> words per minute</dd>
+    </dl>
+    <form id="jev-form">
       <button id="jev-submit" type="submit">Ask Jev for one decision</button>
     </form>
     <output id="jev-result" role="status" aria-live="polite">No request sent yet.</output>

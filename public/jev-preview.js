@@ -8,15 +8,15 @@ form.addEventListener('submit', async (event) => {
     event.preventDefault();
     if (button.disabled) return;
 
-    const intent = form.elements.intent.value.trim();
-    const feedback = form.elements.feedback.value;
-    const excerpt = form.elements.excerpt.value;
-    const mode = form.elements.mode.value;
-    const pace = Number(form.elements.pace.value);
+    const intent = document.querySelector('#jev-intent').textContent.trim();
+    const feedback = document.querySelector('#jev-feedback').textContent.trim();
+    const excerpt = document.querySelector('#jev-excerpt').textContent.trim();
+    const mode = document.querySelector('#jev-mode').textContent.trim();
+    const pace = Number(document.querySelector('#jev-pace').textContent.trim());
     if (!intent || intent.length > 500 || feedback.length > 500 || excerpt.length > 2000
         || !['reading', 'devotional'].includes(mode)
         || !Number.isFinite(pace) || pace < 100 || pace > 500) {
-        result.textContent = 'Please shorten the text or enter a pace from 100 to 500.';
+        result.textContent = 'The fixed sample is unavailable.';
         return;
     }
 
