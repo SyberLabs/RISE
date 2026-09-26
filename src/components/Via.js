@@ -106,7 +106,8 @@ export class Via {
       </div>
     `).join('');
     const sounds = SOUNDS.map(([id, label]) => `
-      <button class="via-pill${this.sound === id ? ' via-pill-selected' : ''}" data-sound="${id}">${label}</button>
+      <button type="button" class="via-pill${this.sound === id ? ' via-pill-selected' : ''}"
+        data-sound="${id}" aria-pressed="${this.sound === id}">${label}</button>
     `).join('');
     return `
       <button class="btn-ghost via-back" data-action="back"><span aria-hidden="true">←</span> Chapel</button>
@@ -120,8 +121,12 @@ export class Via {
           <span class="via-row-label font-mono">Sound</span>
           ${sounds}
           <span class="via-row-label font-mono" style="margin-left:auto">Walked</span>
-          <button class="via-pill${!this.autoAdvance ? ' via-pill-selected' : ''}" data-advance="manual" title="You move between phases and stations yourself">By hand</button>
-          <button class="via-pill${this.autoAdvance ? ' via-pill-selected' : ''}" data-advance="auto" title="The way carries you at meditation pace">Carried</button>
+          <button type="button" class="via-pill${!this.autoAdvance ? ' via-pill-selected' : ''}"
+            data-advance="manual" aria-pressed="${!this.autoAdvance}"
+            title="You move between phases and stations yourself">By hand</button>
+          <button type="button" class="via-pill${this.autoAdvance ? ' via-pill-selected' : ''}"
+            data-advance="auto" aria-pressed="${this.autoAdvance}"
+            title="The way carries you at meditation pace">Carried</button>
         </div>
         <button class="via-start" data-action="start">Begin the Way of the Cross</button>
         <p class="via-attribution font-mono">${escapeHtml(STATIONS_ATTRIBUTION)}</p>
@@ -250,6 +255,9 @@ export class Via {
     const { signal } = this._abort;
     this.container.addEventListener('click', event => this.handleClick(event), { signal });
     this._keyHandler = event => {
+      // Let focused controls keep their native Space behavior. Otherwise
+      // Space on the Chapel exit was interpreted as “walk on” instead.
+      if (event.target.closest?.('button, a, input, select, textarea, [contenteditable="true"]')) return;
       if ((event.code === 'Space' || event.key === 'ArrowRight')
         && this.phase === 'walking' && !this.autoAdvance) {
         event.preventDefault();

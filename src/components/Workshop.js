@@ -835,8 +835,8 @@ export class Workshop {
           <label class="input-label" for="session-title">Sequence title</label>
           <input type="text" id="session-title" class="input" placeholder="Untitled Sequence" value="${this.escapeHtml(this.sessionData.title)}" />
         </div>
-        <div class="input-group"><span class="input-label">Category</span>
-          <div class="intent-options studio-choice-grid studio-choice-grid-5">
+        <div class="input-group"><span class="input-label" id="workshop-intent-label">Category</span>
+          <div class="intent-options studio-choice-grid studio-choice-grid-5" role="radiogroup" aria-labelledby="workshop-intent-label">
             ${['focus', 'learning', 'exploration', 'reflection', 'custom'].map(intent => `<label class="radio">
               <input type="radio" name="intent" value="${intent}" ${this.sessionData.intent === intent ? 'checked' : ''} />
               <span class="radio-label text-capitalize">${intent}</span></label>`).join('')}

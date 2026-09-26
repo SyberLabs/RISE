@@ -80,15 +80,17 @@ export class Journeys {
           <h1 class="journeys-title text-light">Journeys</h1>
         </header>
 
-        <p class="journeys-intro text-fog">
+        ${JOURNEYS.length ? `<p class="journeys-intro text-fog">
           A Journey is several works becoming movements in one argument.
           Not a theme and not an anthology: each movement revises the one
           before it, and the sources are allowed to resist the claim being
           made of them.
-        </p>
+        </p>` : ''}
 
         <div class="journeys-list">
-          ${JOURNEYS.map(({ journey }) => this.renderCard(journey)).join('')}
+          ${JOURNEYS.length
+            ? JOURNEYS.map(({ journey }) => this.renderCard(journey)).join('')
+            : '<div class="journeys-empty"><h2>No Journeys are available</h2><p>Browse Sequences in the Vault instead.</p></div>'}
         </div>
       </div>`;
     }

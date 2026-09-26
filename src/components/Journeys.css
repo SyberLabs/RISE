@@ -168,6 +168,20 @@
   margin: 0;
 }
 
+.journeys-empty {
+  max-width: 42rem;
+  margin: var(--space-2xl) auto;
+  padding: var(--space-xl);
+  border: 1px solid var(--color-shadow);
+  border-left: 2px solid var(--color-threshold);
+}
+.journeys-empty h2 {
+  margin: 0 0 var(--space-xs);
+  color: var(--color-light);
+  font: 400 1.1rem/1.4 var(--font-display);
+}
+.journeys-empty p { margin: 0; color: var(--color-fog); }
+
 @media (max-width: 600px) {
   .journeys { padding: var(--space-xl) var(--space-md); }
   .journey-card { padding: var(--space-lg); }
