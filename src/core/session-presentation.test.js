@@ -5,8 +5,10 @@ import { describe, expect, it } from 'vitest';
 import {
   PRESENTATION_KEYS,
   createPresentationLens,
+  sessionColorTheme,
   sessionPresentation
 } from './session-presentation.js';
+import { jevPalette } from './jev-palette.js';
 
 const reader = () => ({
   chamberFace: 'literary',
@@ -17,6 +19,14 @@ const reader = () => ({
 });
 
 describe('what a reading may claim', () => {
+  it('accepts only exact shipped session colors', () => {
+    const colors = jevPalette('prism');
+    expect(sessionColorTheme({ presentation: { colorTheme: 'prism', colors } })).toEqual(colors);
+    expect(sessionColorTheme({ presentation: {
+      colorTheme: 'prism', colors: { ...colors, text: '#000000' }
+    } })).toBeNull();
+    expect(sessionColorTheme({ presentation: { colorTheme: 'unknown', colors } })).toBeNull();
+  });
   it('claims nothing at all unless it says so', () => {
     expect(sessionPresentation({})).toBeNull();
     expect(sessionPresentation({ presentation: {} })).toBeNull();
