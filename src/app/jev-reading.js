@@ -6,7 +6,10 @@ import { CHAMBER_STREAM_FACES } from '../core/chamber-stream-face.js';
 import { FONT_SIZE_CHIPS } from '../core/chamber-type-size.js';
 import { resolveJevChamberConfig } from '../core/jev-config.js';
 import { jevPalette } from '../core/jev-palette.js';
-import { compileJevVisualProgram } from '../core/jev-sequence.js';
+import {
+  compileJevAudioProgram,
+  compileJevVisualProgram
+} from '../core/jev-sequence.js';
 import {
   ATTRACTOR_PALETTES,
   KLEE_PRESETS
@@ -41,6 +44,8 @@ function assertPlan(decision) {
     || !WORD_FILLS.has(config.wordFill) || !STYLES.has(config.visualStyle)
     || !VISUAL_ARCS.has(config.visualArc) || !ARC_SPLITS.has(config.arcSplit)
     || !ENGINES.has(config.middleEngine) || !ENGINES.has(config.finaleEngine)
+    || !AUDIO.has(config.middleAudio) || !AUDIO.has(config.finaleAudio)
+    || !jevPalette(config.middleTheme) || !jevPalette(config.finaleTheme)
     || !jevPalette(config.colorTheme)
     || !config.colors || Object.keys(config.colors).length !== 3
     || Object.entries(jevPalette(config.colorTheme)).some(([key, value]) => config.colors[key] !== value)
@@ -57,7 +62,11 @@ function assertPlan(decision) {
   if (JSON.stringify(config.visualProgram) !== JSON.stringify(visualProgram)) {
     throw new TypeError('Jev returned an invalid reading plan.');
   }
-  return { plan: config, resolved, visualProgram };
+  const audioProgram = compileJevAudioProgram(config);
+  if (JSON.stringify(config.audioProgram) !== JSON.stringify(audioProgram)) {
+    throw new TypeError('Jev returned an invalid reading plan.');
+  }
+  return { plan: config, resolved, visualProgram, audioProgram };
 }
 
 /** Select from the edition's actual divisions, never from model-supplied text. */
@@ -82,7 +91,7 @@ export function selectJevDivision(divisions, section) {
 
 /** Resolve an exact released edition into the existing Chamber session input. */
 export async function resolveJevReading(decision) {
-  const { plan, resolved, visualProgram } = assertPlan(decision);
+  const { plan, resolved, visualProgram, audioProgram } = assertPlan(decision);
   const released = releaseInventory[decision.workId];
   const work = getTextById(decision.workId);
   if (!released || !released.editionId?.startsWith('standard-ebooks:')
@@ -109,6 +118,7 @@ export async function resolveJevReading(decision) {
     revealMode: plan.revealMode,
     ...resolved,
     visualProgram,
+    audioProgram,
     verseLines: entry.verse === true,
     provenance: work.provenance,
     origin: { view: 'portal', icon: '✧', name: 'Home' },
