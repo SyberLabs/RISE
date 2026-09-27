@@ -1,4 +1,4 @@
-import { test, expect } from './fixtures.js';
+import { test, expect, openHomeRoom } from './fixtures.js';
 import { readFileSync } from 'node:fs';
 
 /**
@@ -16,7 +16,7 @@ async function openRoom(page, width, height) {
     await page.addInitScript(g => localStorage.setItem('rise-beta-session', JSON.stringify(g)), GATE);
     await page.goto('/');
     await expect(page.locator('.portal .portal-title').first()).toBeVisible({ timeout: 15_000 });
-    await page.locator('[data-nav="scriptorium"]').first().click();
+    await openHomeRoom(page, 'scriptorium');
     await expect(page.locator('.scriptorium')).toBeVisible({ timeout: 15_000 });
 }
 

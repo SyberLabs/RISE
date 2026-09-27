@@ -75,7 +75,8 @@
   margin-right: -12px;
 }
 
-.portal-nav-settings-label {
+.portal-nav-settings-label,
+.portal-nav-home {
   display: none;
 }
 
@@ -185,9 +186,11 @@
   border-color: var(--sy-danger);
 }
 
+/* Loading: the request stays readable (text-2, not a fade); only the button
+   says busy. */
 .portal-jev-form textarea:read-only {
-  opacity: 0.4;
-  cursor: not-allowed;
+  color: var(--sy-text-2);
+  cursor: progress;
 }
 
 .portal-help {
@@ -335,8 +338,47 @@
   color: var(--sy-text);
 }
 
+.portal-alert-details {
+  margin-top: var(--sy-space-1);
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--sy-text-3);
+}
+
+.portal-alert-details[hidden] {
+  display: none;
+}
+
+.portal-alert-details summary {
+  width: max-content;
+  display: flex;
+  align-items: center;
+  gap: var(--sy-space-1);
+  list-style: none;
+  cursor: pointer;
+  border-radius: var(--sy-radius-sm);
+}
+
+.portal-alert-details summary::-webkit-details-marker {
+  display: none;
+}
+
+.portal-alert-details[open] summary svg {
+  transform: rotate(180deg);
+}
+
+.portal-alert-details summary:hover {
+  color: var(--sy-text);
+}
+
+.portal-alert-details summary:focus-visible {
+  outline: var(--sy-focus);
+  outline-offset: 2px;
+}
+
 .portal-alert-message {
-  margin: 0;
+  margin: var(--sy-space-1) 0 0;
+  overflow-wrap: anywhere;
   font-size: 14px;
   line-height: 20px;
   color: var(--sy-text-2);
@@ -477,11 +519,15 @@
   padding: var(--sy-space-5) 0 var(--sy-space-6);
   display: flex;
   flex-wrap: wrap;
-  gap: var(--sy-space-2) var(--sy-space-5);
+  align-items: center;
+  gap: var(--sy-space-2) var(--sy-space-6);
   border-top: 1px solid var(--sy-line);
 }
 
 .portal-footer-link {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sy-space-1);
   font-size: 14px;
   line-height: 20px;
   color: var(--sy-text-3);
@@ -489,8 +535,61 @@
   transition: color var(--sy-dur-hover) var(--sy-ease);
 }
 
-.portal-footer-link:hover {
+.portal-footer-link:hover,
+.portal-more-toggle[aria-expanded="true"] {
   color: var(--sy-text);
+}
+
+.portal-more {
+  position: relative;
+}
+
+.portal-more-toggle svg {
+  transition: transform var(--sy-dur-hover) var(--sy-ease);
+}
+
+.portal-more-toggle[aria-expanded="true"] svg {
+  transform: rotate(180deg);
+}
+
+/* Opens upward: the footer is the bottom of the page. */
+.portal-more-list {
+  position: absolute;
+  bottom: calc(100% + var(--sy-space-3));
+  left: calc(-1 * var(--sy-space-4));
+  z-index: 10;
+  min-width: 200px;
+  margin: 0;
+  padding: var(--sy-space-2) 0;
+  list-style: none;
+  background: var(--sy-surface-2);
+  border: 1px solid var(--sy-line);
+  border-radius: var(--sy-radius);
+  box-shadow: var(--sy-shadow-overlay);
+  animation: portal-enter var(--sy-dur-enter) var(--sy-ease) both;
+}
+
+.portal-more-list[hidden] {
+  display: none;
+}
+
+.portal-more-list .portal-footer-link {
+  width: 100%;
+  min-height: var(--sy-control-height);
+  padding: 0 var(--sy-space-4);
+  color: var(--sy-text-2);
+  text-align: left;
+}
+
+.portal-more-list .portal-footer-link:hover {
+  color: var(--sy-text);
+  background: var(--sy-surface);
+}
+
+.portal-legal {
+  margin-left: auto;
+  display: flex;
+  gap: var(--sy-space-6);
 }
 
 /* ─── Focus: always visible on keyboard focus ─── */
@@ -525,20 +624,43 @@
     display: inline-flex;
   }
 
+  /* An overlay sheet under the header: it covers the page (nothing bleeds
+     through), keeps the 16px gutter and carries the overlay shadow. */
   .portal-nav {
     display: none;
-    position: absolute;
+    position: fixed;
     top: var(--sy-header-height);
     left: 0;
     right: 0;
+    bottom: 0;
+    z-index: 30;
     flex-direction: column;
     align-items: stretch;
     gap: 0;
-    padding: var(--sy-space-2) 0 var(--sy-space-4);
-    background: var(--sy-bg);
-    border-bottom: 1px solid var(--sy-line);
+    padding: var(--sy-space-2) var(--sy-space-4) var(--sy-space-6);
+    overflow-y: auto;
+    background: var(--sy-surface);
+    border-top: 1px solid var(--sy-line);
     box-shadow: var(--sy-shadow-overlay);
     animation: portal-enter var(--sy-dur-enter) var(--sy-ease) both;
+  }
+
+  .portal.is-menu-open {
+    overflow: hidden;
+  }
+
+  .portal-nav-home {
+    display: flex;
+    align-items: center;
+  }
+
+  .portal-nav-home[aria-current="page"]::after {
+    content: "";
+    width: 8px;
+    height: 8px;
+    margin-left: auto;
+    border-radius: var(--sy-radius-full);
+    background: var(--sy-brand);
   }
 
   .sl-header.is-open .portal-nav {
@@ -550,7 +672,7 @@
     width: auto;
     height: 56px;
     margin: 0;
-    padding: 0 var(--sy-space-4);
+    padding: 0;
     justify-content: flex-start;
     gap: var(--sy-space-3);
     font-size: 16px;
@@ -586,6 +708,28 @@
 
   .portal-footer {
     width: calc(100% - 2 * var(--sy-space-4));
+    gap: var(--sy-space-3) var(--sy-space-5);
+  }
+
+  /* On a phone the list spans the footer instead of hanging off "More",
+     which can wrap to the right edge. */
+  .portal-footer {
+    position: relative;
+  }
+
+  .portal-more {
+    position: static;
+  }
+
+  .portal-more-list {
+    left: 0;
+    right: 0;
+    bottom: calc(100% - var(--sy-space-3));
+  }
+
+  .portal-legal {
+    margin-left: 0;
+    width: 100%;
   }
 }
 
@@ -613,8 +757,13 @@
   }
 
   .portal-alert,
-  .portal-nav {
+  .portal-nav,
+  .portal-more-list {
     animation: none;
+  }
+
+  .portal-more-toggle svg {
+    transition: none;
   }
 
   .portal-continue:hover .continue-go {
