@@ -916,7 +916,7 @@
   overflow: hidden;
   background: var(--sy-surface);
   border: 1px solid var(--sy-line);
-  border-radius: var(--sy-radius);
+  border-radius: var(--sy-radius-panel);
   box-shadow: var(--sy-shadow-overlay);
   color: var(--sy-text);
   transform: translateY(8px);
@@ -1149,7 +1149,7 @@
     max-height: calc(100vh - 48px);
     max-height: calc(100dvh - 48px);
     border-bottom: none;
-    border-radius: var(--sy-radius) var(--sy-radius) 0 0;
+    border-radius: var(--sy-radius-panel) var(--sy-radius-panel) 0 0;
   }
   .toc-head { grid-template-columns: minmax(0, 1fr); padding: var(--sy-space-2) var(--sy-space-4) var(--sy-space-4); }
   .toc-note, .toc-search { padding-inline: var(--sy-space-4); }
