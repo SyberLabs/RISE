@@ -43,6 +43,9 @@ history, not a distinction; read the status column instead.
 | [pilot/SEQUENCE-PILOT.md](pilot/SEQUENCE-PILOT.md) | Intent | Seven-day, invited sequence discovery protocol, manual evidence rules, rights and consent gates, and pass thresholds. |
 | [pilot/JEV-STEERING.md](pilot/JEV-STEERING.md) | Intent | Six-reader private usability gate for one optional Jev scene shift. |
 | [pilot/FIRST-READ.md](pilot/FIRST-READ.md) | Intent | Five-reader comparison of the existing and new Meditations entrances, with consent, timing, retention, and a fixed 10× decision rule. |
+| [personal-readings.md](personal-readings.md) | Contract | Create: the hosted writer boundary, quotas, persistence and import rules, and the activation evidence that keeps generation off. |
+| [personal-readings-review.md](personal-readings-review.md) | Record | The independent review of Create, what was repaired, and the decisions retained. |
+| [plans/personal-readings-plan.md](plans/personal-readings-plan.md) | Record | The implementation plan the Create slice was built from. |
 
 ## The Archive - texts and their editing
 

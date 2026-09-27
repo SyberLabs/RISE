@@ -369,9 +369,6 @@ export class Chamber {
       );
     }
 
-    console.log('[Chamber] Constructor - session:', this.session);
-    console.log('[Chamber] Session atoms:', this.session?.atoms);
-    console.log('[Chamber] First atom:', this.session?.atoms?.[0]);
     console.log('[Chamber] Auto-start:', this.autoStart);
 
     this.render();
@@ -2386,7 +2383,6 @@ export class Chamber {
   }
 
   displayAtom(atom, index, { concealed = false, spoken = null } = {}) {
-    console.log('[Chamber] displayAtom called with:', atom);
     const atomDisplay = this.container.querySelector('#atom-display');
     if (!atomDisplay) {
       console.error('[Chamber] No atom-display element found!');

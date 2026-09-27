@@ -85,7 +85,8 @@ test('1 · Home presents Library, Sequences and Compose', async ({ page }) => {
     // the centre — the Atrium and the Solarium — are gone with their rooms,
     // so the entrance is the nav and nothing beside it.
     const nav = page.locator('.portal-nav [data-nav]');
-    await expect(nav).toHaveCount(3);
+    await expect(nav).toHaveCount(4);
+    await expect(page.locator('.portal-nav [data-nav="create"]')).toContainText('Create');
     for (const gone of ['atrium', 'sol']) {
         await expect(page.locator(`[data-nav="${gone}"]`)).toHaveCount(0);
     }

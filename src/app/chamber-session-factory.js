@@ -21,6 +21,11 @@ import { audioDiag } from '../core/audio-diagnostics.js';
 
 export async function createChamberSession(operations, container, sessionData) {
     const session = sessionData || operations.getCurrentSession();
+    const revision = operations.router.navigationRevision;
+    const assertCurrent = () => {
+        if (revision !== operations.router.navigationRevision) throw new DOMException('Launch cancelled', 'AbortError');
+    };
+    let preparedPlayer = null;
 
     if (!session || !session.atoms || session.atoms.length === 0) {
         console.error('[RISE] Cannot start chamber: no session data or atoms');
@@ -56,7 +61,9 @@ export async function createChamberSession(operations, container, sessionData) {
         // Chamber was always going to pay for it; opening the
         // Portal no longer is.
         const visualCortex = await operations.ensureVisualCortex();
+        assertCurrent();
         await operations.ensureAudioEngine();
+        assertCurrent();
         const audioEngine = operations.getAudioEngine();
 
         // Consent is an interaction phase, not a loading task. It
@@ -90,6 +97,7 @@ export async function createChamberSession(operations, container, sessionData) {
         if (visualMode === 'interlocution' && flashes) {
             const consentScope = session.visualConfig?.consentScope;
             const consented = await requestVisualInterlocutionConsent(consentScope);
+            assertCurrent();
             const activated = consented && beginVisualInterlocutionSession(consentScope);
             if (!activated) {
                 visualMode = 'off';
@@ -119,6 +127,7 @@ export async function createChamberSession(operations, container, sessionData) {
         if (session.recitation?.enabled === true) {
             operations.updateLoadingStatus('Preparing spoken voice...');
             const { Voice } = await import('../audio/voice.js');
+            assertCurrent();
             recitationVoice = new Voice({
                 audioEngine,
                 voiceId: session.voiceId
@@ -168,6 +177,7 @@ export async function createChamberSession(operations, container, sessionData) {
                     autoRamp: !!(session.curve && session.curve !== 'flat')
                 }
             });
+            assertCurrent();
         } else {
             audioEngine.stopAmbient();
             audioEngine.sessionActive = true;
@@ -175,6 +185,7 @@ export async function createChamberSession(operations, container, sessionData) {
 
         operations.updateLoadingStatus('Creating player...');
         const player = new Player(session);
+        preparedPlayer = player;
 
         // The player is the sole clock: entrainment ramps
         // follow canonical reading progress, so pauses,
@@ -266,8 +277,10 @@ export async function createChamberSession(operations, container, sessionData) {
             // Global Pool URIs is the only thing app.js wants from
             // it, and it is on the reading path, not the shell's.
             const { MemoryCore } = await import('../core/memory.js');
+            assertCurrent();
             if (interlocution.responsive && session.atoms?.length) {
                 const { scoreAtoms, sampleTrackSignals } = await import('../core/conductor.js');
+                assertCurrent();
                 session.semanticTrack = session.semanticTrack || scoreAtoms(session.atoms);
                 // Flame seeding drives palettes/structure — a mood behavior
                 if (interlocution.responsiveMood ?? true) {
@@ -353,7 +366,9 @@ export async function createChamberSession(operations, container, sessionData) {
                 };
             } else {
                 await visualCortex.preloadProgram(session.visualProgram);
+                assertCurrent();
                 await visualCortex.preload(estimatedFlashCount);
+                assertCurrent();
             }
         } else if (visualSetupMode === 'focals') {
             // Focals mode: persistent gentle focal point (handled by Chamber renderer)
@@ -373,6 +388,7 @@ export async function createChamberSession(operations, container, sessionData) {
         operations.updateLoadingStatus('Entering chamber...');
 
         const { Chamber } = await import('../components/Chamber.js');
+        assertCurrent();
 
         if (recitationVoice) {
             operations.updateLoadingStatus('Building the spoken lead...');
@@ -384,6 +400,7 @@ export async function createChamberSession(operations, container, sessionData) {
             // is a legitimate outcome, the pack can be unreachable; it is
             // not a legitimate SILENT outcome.
             const spokenReady = await recitationReady;
+            assertCurrent();
             audioDiag('entry', {
                 spokenReady,
                 context: audioEngine?.context ? audioEngine.context.state : 'none'
@@ -398,6 +415,7 @@ export async function createChamberSession(operations, container, sessionData) {
 
         // Brief delay for smooth transition
         await new Promise(resolve => setTimeout(resolve, 300));
+        assertCurrent();
 
         operations.hideLoading();
 
@@ -472,7 +490,8 @@ export async function createChamberSession(operations, container, sessionData) {
             }
         });
     } catch (error) {
-        console.error('[RISE] Session initialization failed:', error);
+        if (error?.name !== 'AbortError') console.error('[RISE] Session initialization failed:', error);
+        preparedPlayer?.stop();
         recitationVoice?.destroy();
         endVisualInterlocutionSession();
         // Reached through the catch, so either subsystem may have
@@ -483,6 +502,10 @@ export async function createChamberSession(operations, container, sessionData) {
             immediate: true
         })?.catch(() => {});
         operations.hideLoading();
+        if (error?.name === 'AbortError') throw error;
+        // A missing optional chunk must not trigger the router's reload recovery:
+        // the personal draft may not have been kept yet.
+        if (session.provenance?.kind === 'personal-generated') throw new Error('Personal reading playback unavailable.');
         operations.showToast('Failed to initialize session', 3000);
         operations.router.back();
         return { destroy: () => { } };
