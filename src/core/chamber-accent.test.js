@@ -180,7 +180,8 @@ describe('Chamber accent allowlist', () => {
         const root = join(dirname(fileURLToPath(import.meta.url)), '..');
         const files = [
             'design-system.css',
-            'premium-additions.css',
+            'core/visual-safety.css',
+            'page/page.css',
             'components/Chamber.css',
             'components/ChamberOrbital.css',
             'components/Library.css',

@@ -47,7 +47,13 @@ it('does not launch a reading when Jev returns an error', async () => {
   const alert = container.querySelector('#portal-jev-error');
   await vi.waitFor(() => expect(alert.hidden).toBe(false));
   expect(alert.textContent).toContain('The reading could not be prepared. Try again.');
+  // The raw cause is never the message; it waits behind a closed "Details".
+  const details = alert.querySelector('.portal-alert-details');
+  expect(details.hidden).toBe(false);
+  expect(details.open).toBe(false);
+  expect(details.querySelector('summary').textContent.trim()).toBe('Details');
   expect(alert.querySelector('.portal-alert-message').textContent).toBe('Unavailable');
+  expect(alert.querySelector('.portal-alert-title').textContent).toBe('The reading could not be prepared. Try again.');
   // The request survives the failure, and the form is usable again.
   expect(container.querySelector('#portal-jev-intent').value).toBe('A reflective classic');
   expect(container.querySelector('.portal-jev-submit').disabled).toBe(false);

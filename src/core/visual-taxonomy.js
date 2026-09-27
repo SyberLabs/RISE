@@ -258,10 +258,10 @@ export function isBlend(enabled) {
   return galleryMembers(enabled).length >= 2;
 }
 
-/** One line for the status bar: "— off —", a leaf's name, or "Blend · N". */
+/** One line for the status bar: "Off", a leaf's name, or "Blend · N". */
 export function describeField(enabled) {
   const on = [...enabled];
-  if (!on.length) return '— off —';
+  if (!on.length) return 'Off';
   const gallery = galleryMembers(enabled);
   if (gallery.length >= 2) return `Blend · ${gallery.length} in gallery`;
   return LEAF_BY_ID[on[0]]?.label || '—';

@@ -35,7 +35,7 @@ import { audioDiag } from '../core/audio-diagnostics.js';
  * 24-unit grid, stroked in currentColor so hover, the engaged state and
  * every theme keep working exactly as they did for the glyphs.
  */
-const ICON_STROKE = 'fill="none" stroke="currentColor" stroke-width="1.6" '
+const ICON_STROKE = 'fill="none" stroke="currentColor" stroke-width="1.5" '
   + 'stroke-linecap="round" stroke-linejoin="round"';
 
 const svg = (body, extra = '') => `<svg viewBox="0 0 24 24" ${extra || ICON_STROKE} `
@@ -64,7 +64,11 @@ export const ICONS = Object.freeze({
     + 'M12 19.5l-3.2-3.2M12 19.5l3.2-3.2"/>'),
   kaleidoscope: svg('<path d="M12 3.5v17M4.64 7.75l14.72 8.5M4.64 16.25l14.72-8.5"/>'
     + '<circle cx="12" cy="12" r="2.2"/>'),
-  visuals: svg('<path d="M12 4.6 19.4 12 12 19.4 4.6 12Z"/>')
+  visuals: svg('<path d="M12 4.6 19.4 12 12 19.4 4.6 12Z"/>'),
+  spark: svg('<path d="M12 4v4M12 16v4M4 12h4M16 12h4M7.1 7.1l2.1 2.1M14.8 14.8l2.1 2.1'
+    + 'M16.9 7.1l-2.1 2.1M9.2 14.8l-2.1 2.1"/>'),
+  check: svg('<circle cx="12" cy="12" r="9"/><path d="m8 12 3 3 5-6"/>'),
+  arrow: svg('<path d="M5 12h14M13 6l6 6-6 6"/>')
 });
 
 import { livingTextAppearance, scoreAtoms, planInterlocution } from '../core/conductor.js';
@@ -508,9 +512,9 @@ export class Chamber {
 
           <!-- Speed HUD - briefly appears on WPM change -->
           <div id="chamber-speed-hud" class="speed-hud hidden">
-            <span class="speed-hud-label">PACE</span>
+            <span class="speed-hud-label">Speed</span>
             <span id="speed-hud-value" class="speed-hud-value">300</span>
-            <span class="speed-hud-unit">WPM</span>
+            <span class="speed-hud-unit">words per minute</span>
           </div>
 
           <!-- Progress indicator - bottom, subtle, thin -->
@@ -529,7 +533,7 @@ export class Chamber {
 
           <!-- Hidden controls - appear on mouse movement -->
           <div class="chamber-controls" id="chamber-controls" style="opacity: 0;">
-            <button class="control-btn" id="play-pause-btn" aria-label="Play/Pause" title="Spacebar">
+            <button class="control-btn" id="play-pause-btn" type="button" aria-label="Play or pause" title="Play or pause (Space)">
               <span class="icon play-icon" id="play-icon">${ICONS.play}</span>
               <span class="icon pause-icon hidden" id="pause-icon">${ICONS.pause}</span>
             </button>
@@ -551,8 +555,8 @@ export class Chamber {
               <button class="control-btn jev-next-scene" id="jev-next-scene" type="button" disabled
                 aria-label="Bring the next visual scene forward"
                 title="Bring the next visual scene forward">
-                <span class="icon" aria-hidden="true">✦</span>
-                <span class="control-label">Shift scene</span>
+                <span class="icon" aria-hidden="true">${ICONS.spark}</span>
+                <span class="control-label">Next scene</span>
               </button>
               <span class="jev-scene-status" id="jev-scene-status" role="status"></span>
             ` : ''}
@@ -566,12 +570,12 @@ export class Chamber {
             <span class="page-turn" id="page-turn" hidden>
               <button class="control-btn" id="page-prev" type="button"
                 aria-label="Previous page" title="Previous page">
-                <span class="icon" aria-hidden="true">&#8592;</span>
+                <span class="icon icon-flip" aria-hidden="true">${ICONS.arrow}</span>
               </button>
               <span class="page-turn-count" id="page-turn-count" aria-live="polite"></span>
               <button class="control-btn" id="page-next" type="button"
                 aria-label="Next page" title="Next page">
-                <span class="icon" aria-hidden="true">&#8594;</span>
+                <span class="icon" aria-hidden="true">${ICONS.arrow}</span>
               </button>
             </span>
 
@@ -605,15 +609,15 @@ export class Chamber {
             <!-- No whitespace between these: a newline in the source is a
                  space in the bar, and with one on each side of the slash the
                  two halves of the clock read as three separate things. -->
-            <span class="time-display font-mono text-fog" id="time-display"><span
+            <span class="time-display" id="time-display"><span
               id="time-current">0:00</span><span
-              class="time-separator" style="opacity: 0.3;">/</span><span
-              id="time-total" style="font-size: 0.9em; opacity: 0.6;">0:00</span></span>
+              class="time-separator" aria-hidden="true">/</span><span
+              id="time-total">0:00</span></span>
 
             ${['jev', 'jev-sample'].includes(this.session?.origin?.experience) ? `
               <button class="control-btn jev-look-btn" id="jev-look-btn" type="button"
                 aria-label="Change Jev look and sound" aria-expanded="false" aria-controls="jev-look-panel">
-                <span class="icon" aria-hidden="true">✦</span><span class="control-label">Look</span>
+                <span class="icon" aria-hidden="true">${ICONS.spark}</span><span class="control-label">Look</span>
               </button>
             ` : ''}
 
@@ -623,8 +627,8 @@ export class Chamber {
               <span class="icon" aria-hidden="true">${ICONS.gear}</span>
             </button>
 
-            <button class="control-btn" id="exit-btn" aria-label="Exit" title="Escape">
-              <span class="icon">${ICONS.exit}</span>
+            <button class="control-btn" id="exit-btn" type="button" aria-label="End reading" title="End reading (Esc)">
+              <span class="icon" aria-hidden="true">${ICONS.exit}</span>
             </button>
             <span class="chamber-settings-fail" id="chamber-settings-fail" hidden>Settings will not open.</span>
           </div>
@@ -634,94 +638,65 @@ export class Chamber {
         <div class="chamber-post-session" id="chamber-post" style="display: none;">
           <!-- Choice Screen -->
           <div id="post-choice-screen" class="post-complete-screen">
-
-            <!-- Atmospheric glow halo behind sigil -->
-            <div class="post-halo"></div>
-
-            <!-- Sigil -->
-            <div class="post-sigil-wrap">
-              <div class="post-sigil-ring"></div>
-              <div class="post-sigil-char">◊</div>
-            </div>
-
-            <!-- Eyebrow + Title -->
-            <p class="post-eyebrow">Session Closed</p>
-            <h2 class="post-complete-title">Complete</h2>
-
-            <div class="post-stats">
-              <div class="post-stat">
-                <span class="post-stat-value" id="post-atoms">0</span>
-                <span class="post-stat-label">Atoms</span>
-              </div>
-            </div>
-
-            <!-- Separator line -->
-            <div class="post-separator"></div>
+            <p class="post-status">
+              <span class="post-status-icon" aria-hidden="true">${ICONS.check}</span>
+              Reading complete
+            </p>
+            <h2 class="post-complete-title">${escapeHtml(title)}</h2>
 
             ${pilotNext ? `
               <section class="post-pilot" aria-label="Next reading">
                 <p class="post-pilot-label">Continue the sequence</p>
                 <p id="post-pilot-reason">${escapeHtml(pilotNext.promise)}</p>
-                <button class="post-btn-continue" id="post-pilot-next" type="button">
-                  Explore ${escapeHtml(pilotNext.title)} <span aria-hidden="true">→</span>
+                <button class="btn-primary post-btn-continue" id="post-pilot-next" type="button">
+                  Explore ${escapeHtml(pilotNext.title)}
+                  <span class="post-btn-icon" aria-hidden="true">${ICONS.arrow}</span>
                 </button>
                 <div class="post-pilot-feedback">
-                  <p>Was this worth your time?</p>
-                  <label><input type="checkbox" id="post-pilot-consent">
+                  <p class="post-pilot-question">Was this worth your time?</p>
+                  <label class="post-pilot-consent"><input type="checkbox" id="post-pilot-consent">
                     Save my answer on this device. Nothing is sent.</label>
-                  <p class="post-pilot-data-note">After reading, Settings has Export Personal Data and Clear All Personal Data.</p>
                   <div class="post-pilot-feedback-answers" role="group" aria-label="Was this worth your time?">
-                    <button type="button" data-pilot-feedback="yes" disabled>Yes</button>
-                    <button type="button" data-pilot-feedback="somewhat" disabled>Somewhat</button>
-                    <button type="button" data-pilot-feedback="no" disabled>No</button>
+                    <button class="btn-secondary" type="button" data-pilot-feedback="yes" disabled>Yes</button>
+                    <button class="btn-secondary" type="button" data-pilot-feedback="somewhat" disabled>Somewhat</button>
+                    <button class="btn-secondary" type="button" data-pilot-feedback="no" disabled>No</button>
                   </div>
+                  <p class="post-pilot-data-note">After reading, Settings has Export Personal Data and Clear All Personal Data.</p>
                   <p id="post-pilot-feedback-status" role="status"></p>
                 </div>
               </section>` : ''}
 
-            <!-- Actions -->
             <div class="post-complete-actions">
               ${hasNextLibraryDivision(this.session?.continuation) ? `
-              <button class="post-btn-continue" id="post-continue">
+              <button class="btn-primary post-btn-continue" id="post-continue" type="button">
                 Next ${escapeHtml(this.session.continuation.noun)}
-                <span class="post-btn-icon" aria-hidden="true">→</span>
+                <span class="post-btn-icon" aria-hidden="true">${ICONS.arrow}</span>
               </button>` : ''}
-              <button class="post-btn-return" id="post-return-chamber">
-                <span class="post-btn-icon" aria-hidden="true">←</span>
-                Return
+              <button class="btn-secondary post-btn-recursion" id="post-recursion" type="button">
+                Write a reflection
               </button>
-              <button class="post-btn-recursion" id="post-recursion">
-                <span class="post-btn-icon-recursion" aria-hidden="true">↻</span>
-                Recursion
+              <button class="btn-ghost post-btn-return" id="post-return-chamber" type="button">
+                Back
               </button>
             </div>
-
-            <!-- Subtle bottom inscription -->
-            <p class="post-inscription">The pattern persists. Begin again or carry it forward.</p>
-
           </div>
-          
-          <!-- Synthesis Phase -->
-          <div id="synthesis-screen" class="synthesis-container" style="display: none; width: 100%; max-width: 800px; margin: 0 auto; text-align: left;">
-            <p class="synthesis-eyebrow">Post-Session</p>
-            <h2 class="synthesis-title">Synthesis</h2>
-            <p class="synthesis-subtitle">Threads weave. Connections form. Understanding emerges.</p>
-            <div class="synthesis-context">
-              <span class="synthesis-context-label">Session Completed</span>
-              <span class="synthesis-context-value">${escapeHtml(title)}</span>
-            </div>
+
+          <div id="synthesis-screen" class="synthesis-container" style="display: none;">
+            <h2 class="synthesis-title">Write a reflection</h2>
+            <p class="synthesis-subtitle">It is saved on this device and opened in Compose.</p>
+            <label class="synthesis-label" for="synthesis-input">Reflection on ${escapeHtml(title)}</label>
             <textarea
               id="synthesis-input"
               class="journal-input"
-              placeholder="Record your insights, resonances, observations..."
+              placeholder="What stayed with you?"
             ></textarea>
 
             <div class="journal-actions">
-              <button class="btn-ghost" id="post-close">
-                Discard &amp; Return
+              <button class="btn-ghost" id="post-close" type="button">
+                Discard
               </button>
-              <button class="btn-primary" id="post-seal">
-                Seal &amp; Workshop
+              <button class="btn-primary" id="post-seal" type="button">
+                Save and open in Compose
               </button>
             </div>
           </div>
@@ -780,16 +755,13 @@ export class Chamber {
 
         <!-- Custom Exit Confirmation Overlay -->
         <div id="exit-confirm-overlay" class="exit-overlay hidden" style="display: none;">
-          <div class="exit-modal">
-            <div class="exit-sigil" aria-hidden="true">✕</div>
-            <h2 class="exit-title">Terminate?</h2>
-            <p class="exit-message">
-              The current sequence will be abandoned. 
-              
-            </p>
+          <div class="exit-modal" role="alertdialog" aria-modal="true"
+            aria-labelledby="exit-title" aria-describedby="exit-message">
+            <h2 class="exit-title" id="exit-title">End this reading?</h2>
+            <p class="exit-message" id="exit-message">The reading stops here.</p>
             <div class="exit-actions">
-              <button class="btn-ghost" id="exit-cancel">Stay</button>
-              <button class="btn-primary" id="exit-confirm">Terminate</button>
+              <button class="btn-secondary" id="exit-cancel" type="button">Keep reading</button>
+              <button class="btn-primary" id="exit-confirm" type="button">End reading</button>
             </div>
           </div>
         </div>
@@ -1399,11 +1371,11 @@ export class Chamber {
     const unit = hud?.querySelector('.speed-hud-unit');
     if (!hud || !value) return;
     if (velocity === 1) {
-      if (label) label.textContent = 'PACE';
+      if (label) label.textContent = 'Speed';
       value.textContent = String(this.currentWpm);
-      if (unit) unit.textContent = 'WPM';
+      if (unit) unit.textContent = 'words per minute';
     } else {
-      if (label) label.textContent = velocity < 0 ? '‹‹ REWIND' : 'FORWARD ››';
+      if (label) label.textContent = velocity < 0 ? 'Rewind' : 'Forward';
       value.textContent = `${Math.abs(velocity)}×`;
       if (unit) unit.textContent = '';
     }
@@ -3595,18 +3567,11 @@ export class Chamber {
     setTimeout(() => {
       display.style.display = 'none';
 
-      // Determine sequence length
-      const atoms = this.container.querySelector('#post-atoms');
-
-      if (atoms && this.session) {
-        atoms.textContent = `${this.session.atoms?.length || 0}`;
-      }
-
       // Reset nested screens
       const choiceScreen = this.container.querySelector('#post-choice-screen');
       const synthesisScreen = this.container.querySelector('#synthesis-screen');
       if (choiceScreen && synthesisScreen) {
-        choiceScreen.style.display = 'block';
+        choiceScreen.style.display = '';
         synthesisScreen.style.display = 'none';
       }
 

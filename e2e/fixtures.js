@@ -11,3 +11,13 @@ export async function openHomeNav(page, destination) {
   if (!(await link.isVisible()) && await toggle.isVisible()) await toggle.click();
   await link.click();
 }
+
+/**
+ * Open a Home footer room that sits behind "More" (chapel, scriptorium, curia).
+ */
+export async function openHomeRoom(page, destination) {
+  const link = page.locator(`.portal-footer [data-nav="${destination}"]`);
+  await link.waitFor({ state: 'attached' });
+  if (!(await link.isVisible())) await page.locator('.portal-more-toggle').click();
+  await link.click();
+}
