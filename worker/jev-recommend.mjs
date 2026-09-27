@@ -3,17 +3,27 @@ import { Redis } from '@upstash/redis/cloudflare';
 import releaseInventory from '../src/content/archive/release-inventory.json' with { type: 'json' };
 import { jevColors, jevPalette } from '../src/core/jev-palette.js';
 import { JEV_AUDIO_IDS, resolveJevChamberConfig } from '../src/core/jev-config.js';
-import { compileJevVisualProgram } from '../src/core/jev-sequence.js';
+import { compileJevAudioProgram, compileJevVisualProgram } from '../src/core/jev-sequence.js';
 import { buildJevVarianceHints, VARIATION_COUNT } from './jev-variance.mjs';
 
 const API_URL = 'https://openrouter.ai/api/alpha/decisions';
 const MODEL = 'typesafe/jev-1.13';
+const AUDIO_CHOICES = Object.freeze({ silent: 'Silence.',
+  ...Object.fromEntries(JEV_AUDIO_IDS.map(id => [id, `${id} soundscape.`])) });
+const COLOR_THEME_CHOICES = Object.freeze({
+  classic: 'Warm bronze accent; restrained literary mood.',
+  amethyst: 'Lilac-violet accent; dreamy mood.',
+  prism: 'Neon magenta accent; psychedelic or prismatic mood.',
+  ember: 'Fiery orange accent; warm dramatic mood.',
+  cobalt: 'Electric blue accent; cool luminous mood.',
+  jade: 'Luminous jade accent; organic calm mood.'
+});
 const CHOICES = Object.freeze({
   section: { first: 'First section.', middle: 'Middle section.', last: 'Final section.', shortest: 'Shortest section.', longest: 'Longest section.' },
   pace: { '100': 'Very slow.', '150': 'Slow.', '200': 'Moderate.', '250': 'Brisk.', '300': 'Fast.', '400': 'Very fast.', '500': 'Fastest offered.' },
   curve: { flat: 'Steady pace.', induction: 'Begin slowly.', ascent: 'Gradually accelerate.', wave: 'Rise and fall.', climax: 'Build toward a fast finish.' },
   chunk: { word: 'One word.', phrase: 'Short phrases.', sentence: 'Sentences.', paragraph: 'Paragraphs.' },
-  audio: { silent: 'Silence.', ...Object.fromEntries(JEV_AUDIO_IDS.map(id => [id, id])) },
+  audio: AUDIO_CHOICES,
   visual: {
     off: 'No visual field.',
     focals: 'A single quiet focal figure.',
@@ -75,20 +85,20 @@ const CHOICES = Object.freeze({
   chamberFace: {
     literary: 'Literary serif text.', display: 'Display serif text.',
     thick: 'Bold geometric text; strong for vivid readings.', jp: 'Japanese serif text.',
-    mono: 'Monospaced JetBrains Mono text; choose for code, technical, or typewritten atmosphere.'
+    mono: 'Monospaced JetBrains Mono text; choose for code, technical, or typewritten atmosphere.',
+    sans: 'Clean regular sans text for modern or minimal reading.',
+    book: 'Stronger book serif text for readable emphasis without a geometric face.'
   },
   fontSize: {
     small: 'Small text.', medium: 'Medium text.', large: 'Large text.',
+    xlarge: 'Extra large text for strong emphasis or easier reading at a distance.',
     fit: 'Fit each word to the Chamber; effective with word chunking.'
   },
-  colorTheme: {
-    classic: 'Warm bronze accent; restrained literary mood.',
-    amethyst: 'Lilac-violet accent; dreamy mood.',
-    prism: 'Neon magenta accent; psychedelic or prismatic mood.',
-    ember: 'Fiery orange accent; warm dramatic mood.',
-    cobalt: 'Electric blue accent; cool luminous mood.',
-    jade: 'Luminous jade accent; organic calm mood.'
-  },
+  colorTheme: COLOR_THEME_CHOICES,
+  middleTheme: COLOR_THEME_CHOICES,
+  finaleTheme: COLOR_THEME_CHOICES,
+  middleAudio: AUDIO_CHOICES,
+  finaleAudio: AUDIO_CHOICES,
   textColor: {
     classic: 'Warm ivory text.', amethyst: 'Clear lilac text.',
     prism: 'Bright rose pink text.', ember: 'Warm gold text.',
@@ -117,8 +127,8 @@ const QUESTION_INSTRUCTIONS = Object.freeze({
   visual: 'Choose the visual field. Honor darkness and minimalism; use continuous visuals only when the reader wants visual motion or atmosphere.',
   visualStyle: 'Choose visual energy. Reserve psychedelic for explicit vivid, trippy, or kaleidoscopic requests; keep quiet prompts quiet.',
   galleryCadence: 'Choose the speed of visual transitions. Calm requests should transition slowly; energetic requests can be lively.',
-  chamberFace: 'Choose the text font. Match literary, expressive display, bold graphic, monospaced, or Japanese typography requested by the reader.',
-  fontSize: 'Choose text size. Honor small or large text requests; fit works best with one-word chunks.',
+  chamberFace: 'Choose the text font. Match literary, book serif, modern sans, display, bold graphic, monospaced, or Japanese requests.',
+  fontSize: 'Choose text size. Honor small, large, or extra large requests; fit works best with one-word chunks.',
   colorTheme: 'Choose the accent and overall color mood. Text ink and background are selected by their own questions.',
   textColor: 'Choose the text ink color. Honor explicit reader requests for warm, cool, lilac, or mint text.',
   backgroundColor: 'Choose the background color independently from the text and accent. Honor explicit reader color requests.',
@@ -126,6 +136,12 @@ const QUESTION_INSTRUCTIONS = Object.freeze({
 });
 const DECISION_CACHE_TTL_SECONDS = 3600;
 const SOUND_CACHE_KEY = 'rise:sounds:v1';
+const SOUND_CATALOG_LIMIT = 64;
+const SOUND_SHORTLIST_SIZE = 9;
+const IGNORED_SOUND_WORDS = new Set([
+  'and', 'are', 'for', 'from', 'give', 'have', 'into', 'like', 'me', 'please', 'read', 'reading',
+  'sound', 'sounds', 'that', 'the', 'this', 'with', 'you'
+]);
 const MAX_BODY_BYTES = 1024;
 const JSON_HEADERS = {
   'Content-Type': 'application/json; charset=utf-8',
@@ -230,6 +246,33 @@ function validSoundCatalog(rows) {
   return rows;
 }
 
+function soundWords(value) {
+  return (value.toLowerCase().match(/[a-z0-9]+/gu) || [])
+    .filter(word => !IGNORED_SOUND_WORDS.has(word));
+}
+
+function shortlistSounds(sounds, intent, turn) {
+  const intentWords = new Set(soundWords(intent));
+  const normalizedIntent = ` ${soundWords(intent).join(' ')} `;
+  const offset = sounds.length ? turn % sounds.length : 0;
+  const catalogRows = sounds.map((row, catalogIndex) => ({ row, catalogIndex }));
+  const rotated = [...catalogRows.slice(offset), ...catalogRows.slice(0, offset)];
+  const ranked = rotated.map(({ row, catalogIndex }, index) => {
+    const idWords = soundWords(row.sound_id.replaceAll('-', ' '));
+    const criterionWords = new Set(soundWords(row.decision_criterion));
+    const explicit = normalizedIntent.includes(` ${idWords.join(' ')} `);
+    const score = idWords.reduce((total, word) => total + (intentWords.has(word) ? 3 : 0), 0)
+      + [...criterionWords].reduce((total, word) => total + (intentWords.has(word) ? 1 : 0), 0);
+    return { row, explicit, score, index, catalogIndex };
+  });
+  ranked.sort((left, right) => Number(right.explicit) - Number(left.explicit)
+    || right.score - left.score || left.index - right.index);
+  return ranked.slice(0, SOUND_SHORTLIST_SIZE)
+    .sort((left, right) => Number(right.explicit) - Number(left.explicit)
+      || right.score - left.score || left.catalogIndex - right.catalogIndex)
+    .map(item => item.row);
+}
+
 function choiceMenu(rows) {
   if (!Array.isArray(rows) || rows.length < OPTION_KINDS.length
     || rows.length > OPTION_KINDS.reduce((total, kind) => total + Object.keys(CHOICES[kind]).length, 0)) return null;
@@ -253,7 +296,7 @@ async function activeChoices(redis, env, sounds) {
   const audio = { silent: 'Silence.', ...Object.fromEntries(sounds.map(row =>
     [row.sound_id, row.decision_criterion])) };
   const cached = choiceMenu(await redis.get(OPTION_CACHE_KEY));
-  if (cached) return { ...cached, audio };
+  if (cached) return { ...cached, audio, middleAudio: audio, finaleAudio: audio };
   let rows;
   try {
     const sql = neon(env.NEON_DATABASE_URL);
@@ -261,13 +304,13 @@ async function activeChoices(redis, env, sounds) {
       WHERE active = TRUE AND kind IN ('chamberFace', 'fontSize')`;
   } catch (cause) {
     // An unmigrated table is optional; an outage must not reactivate disabled choices.
-    if (cause?.code === '42P01') return { ...CHOICES, audio };
+    if (cause?.code === '42P01') return { ...CHOICES, audio, middleAudio: audio, finaleAudio: audio };
     throw cause;
   }
   const menu = choiceMenu(rows);
   if (!menu) return null;
   await redis.set(OPTION_CACHE_KEY, rows, { ex: 30 });
-  return { ...menu, audio };
+  return { ...menu, audio, middleAudio: audio, finaleAudio: audio };
 }
 
 async function catalogCacheKey() {
@@ -283,17 +326,18 @@ async function decisionCacheKey(intent, books, sounds, choices, apiKey) {
   const menu = Object.fromEntries(OPTION_KINDS.map(kind => [kind, Object.keys(choices[kind])]));
   const input = JSON.stringify({ model: MODEL, intent, books, sounds, menu });
   const signature = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(input));
-  return `rise:jev-decision:v11:${Array.from(new Uint8Array(signature),
+  return `rise:jev-decision:v12:${Array.from(new Uint8Array(signature),
     byte => byte.toString(16).padStart(2, '0')).join('')}`;
 }
 
 function validConfig(config, choices) {
   if (!config || typeof config !== 'object' || Array.isArray(config)
-    || Object.keys(config).length !== 33
+    || Object.keys(config).length !== 38
     || !Number.isInteger(config.wpm) || !Object.hasOwn(choices.pace, String(config.wpm))) return null;
   const fields = { section: 'section', curve: 'curve', chunkMode: 'chunk', audio: 'audio',
     visualMode: 'visual', visualStyle: 'visualStyle', visualEngine: 'visualEngine',
     visualArc: 'visualArc', arcSplit: 'arcSplit', middleEngine: 'middleEngine', finaleEngine: 'finaleEngine',
+    middleTheme: 'middleTheme', finaleTheme: 'finaleTheme', middleAudio: 'middleAudio', finaleAudio: 'finaleAudio',
     visualPalette: 'visualPalette',
     kleePreset: 'kleePreset', galleryCadence: 'galleryCadence',
     chamberFace: 'chamberFace', fontSize: 'fontSize',
@@ -317,6 +361,7 @@ function validConfig(config, choices) {
   if (config.fontSize === 'fit' && config.chunkMode !== 'word') return null;
   const resolved = resolveJevChamberConfig(config);
   const visualProgram = compileJevVisualProgram(config);
+  const audioProgram = compileJevAudioProgram(config);
   if (config.visualArc !== 'single' && !visualProgram) return null;
   if (config.audioPreset !== resolved.audioPreset
     || config.soundscape !== resolved.soundscape
@@ -327,8 +372,21 @@ function validConfig(config, choices) {
     || config.projection !== resolved.projection
     || JSON.stringify(config.visualConfig) !== JSON.stringify(resolved.visualConfig)
     || JSON.stringify(config.presentation) !== JSON.stringify(resolved.presentation)
-    || JSON.stringify(config.visualProgram) !== JSON.stringify(visualProgram)) return null;
+    || JSON.stringify(config.visualProgram) !== JSON.stringify(visualProgram)
+    || JSON.stringify(config.audioProgram) !== JSON.stringify(audioProgram)) return null;
   return config;
+}
+
+function explicitVisualTiming(intent) {
+  const normalized = String(intent || '').normalize('NFKC').toLocaleLowerCase('en');
+  const split = normalized.match(/\b(30|50|70)\s*(?:%|percent\b)/u)?.[1];
+  if (!split) return null;
+  const hasVisualWord = /\bvisuals?\b/u.test(normalized);
+  const hasPhaseWord = /\b(?:opening|middle|finale|phase|arc)\b/u.test(normalized);
+  const hasChangeWord = /\b(?:change|switch|shift|transition|transform|transformation|different|another)\b/u.test(normalized);
+  const hasStyleSplit = /\b(?:one|another|different|new)\s+styles?\b/u.test(normalized);
+  return (hasVisualWord && hasChangeWord) || (hasPhaseWord && hasChangeWord)
+    || hasStyleSplit ? split : null;
 }
 
 function requestsNoVisualMotion(intent) {
@@ -353,6 +411,10 @@ function choiceConfig(answers, intent, choices) {
     arcSplit: answers.arcSplit.choice,
     middleEngine: answers.middleEngine.choice,
     finaleEngine: answers.finaleEngine.choice,
+    middleTheme: answers.middleTheme.choice,
+    finaleTheme: answers.finaleTheme.choice,
+    middleAudio: answers.middleAudio.choice,
+    finaleAudio: answers.finaleAudio.choice,
     visualPalette: answers.visualPalette.choice,
     kleePreset: answers.kleePreset.choice,
     galleryCadence: answers.galleryCadence.choice,
@@ -383,18 +445,27 @@ function choiceConfig(answers, intent, choices) {
     config.visualMode = 'interlocution';
     config.projection = 'stream';
   }
-  if (requestsNoVisualMotion(intent)) {
-    config.visualMode = 'off';
-    config.visualStyle = 'quiet';
-    config.visualArc = 'single';
-  }
   if (config.wordFill === 'same' && (config.visualMode !== 'interlocution'
     || config.chamberFace !== 'thick' || config.fontSize !== 'fit'
     || config.chunkMode !== 'word')) config.wordFill = 'accent';
   if (config.fontSize === 'fit' && config.chunkMode !== 'word') config.fontSize = 'large';
+  const explicitNoVisual = requestsNoVisualMotion(intent)
+    || /\b(?:no|without|skip|avoid|disable|turn off)\s+(?:any\s+)?visuals?\b|\bvisuals?\s+(?:off|disabled?)\b|\b(?:text|reading)\s+only\b/iu.test(intent);
+  const timing = explicitVisualTiming(intent);
+  if (explicitNoVisual) {
+    config.visualStyle = 'quiet';
+    config.visualMode = 'off';
+    config.visualArc = 'single';
+  } else if (timing) {
+    config.visualArc = 'dual';
+    config.arcSplit = timing;
+    config.visualMode = 'interlocution';
+    config.projection = 'stream';
+  }
   config.colors = jevColors(config.colorTheme, config.textColor, config.backgroundColor);
   Object.assign(config, resolveJevChamberConfig(config));
   config.visualProgram = compileJevVisualProgram(config);
+  config.audioProgram = compileJevAudioProgram(config);
   return validConfig(config, choices);
 }
 
@@ -497,7 +568,7 @@ export async function handleJevRecommend(request, env) {
     if (!sounds) {
       const sql = neon(env.NEON_DATABASE_URL);
       sounds = validSoundCatalog(await sql`SELECT sound_id, decision_criterion, active
-        FROM rise_sounds WHERE active = true ORDER BY sound_id LIMIT 16`);
+        FROM rise_sounds WHERE active = true ORDER BY sound_id LIMIT ${SOUND_CATALOG_LIMIT}`);
       if (!sounds) return error(503, 'CATALOG_UNAVAILABLE', 'The sound catalog is unavailable.');
       await redis.set(SOUND_CACHE_KEY, sounds, { ex: 30 });
     }
@@ -509,15 +580,25 @@ export async function handleJevRecommend(request, env) {
   let hints;
   let choices;
   try {
-    choices = await activeChoices(redis, env, sounds);
-    if (!choices) return error(503, 'OPTIONS_UNAVAILABLE', 'The presentation menu is unavailable.');
-    const baseKey = await decisionCacheKey(intent, books, sounds, choices, env.OPENROUTER_API_KEY);
-    const turnKey = baseKey.replace('rise:jev-decision:v11:', 'rise:jev-turn:v4:');
+    const catalogChoices = await activeChoices(redis, env, sounds);
+    if (!catalogChoices) return error(503, 'OPTIONS_UNAVAILABLE', 'The presentation menu is unavailable.');
+    const turnBaseKey = await decisionCacheKey(intent, books, sounds, catalogChoices, env.OPENROUTER_API_KEY);
+    const turnKey = turnBaseKey.replace('rise:jev-decision:v12:', 'rise:jev-turn:v4:');
     const nextTurn = await redis.incr(turnKey);
     if (!Number.isSafeInteger(nextTurn) || nextTurn < 1) throw new Error('Invalid Jev turn');
     if (nextTurn === 1) await redis.expire(turnKey, 86400);
     hints = buildJevVarianceHints({ books, intent, turn: nextTurn - 1 });
-    decisionKey = `${baseKey}:${hints.variation.cohort === null ? 0 : (nextTurn - 1) % VARIATION_COUNT}`;
+    const shortlistedSounds = shortlistSounds(sounds, intent, nextTurn - 1);
+    const audioChoices = { silent: 'Silence.', ...Object.fromEntries(shortlistedSounds.map(row =>
+      [row.sound_id, row.decision_criterion])) };
+    choices = {
+      ...catalogChoices,
+      audio: audioChoices,
+      middleAudio: audioChoices,
+      finaleAudio: audioChoices
+    };
+    const decisionBaseKey = await decisionCacheKey(intent, books, shortlistedSounds, choices, env.OPENROUTER_API_KEY);
+    decisionKey = `${decisionBaseKey}:${hints.variation.cohort === null ? 0 : (nextTurn - 1) % VARIATION_COUNT}`;
     const cached = validCachedDecision(await redis.get(decisionKey), hints.eligibleBooks, choices);
     if (cached) return reply(200, {
       ...responseForVersion(cached, schemaVersion), cacheStatus, decisionCacheStatus: 'hit'

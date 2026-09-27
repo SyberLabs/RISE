@@ -1,8 +1,8 @@
 {
   "pace": ["100", "150", "200", "250", "300", "400", "500"],
-  "audio": ["silent", "aurora", "faded-signal", "soft-rain", "sad", "angry", "happy", "excited", "thrilling", "scary"],
+  "audio": ["silent", "aurora", "faded-signal", "soft-rain", "sad", "angry", "happy", "excited", "thrilling", "scary", "piano", "jazz", "lullaby", "nocturne", "waltz", "blues", "bossa", "ragtime", "wonder", "mystery", "chase", "triumph", "haunted", "starlight"],
   "visualMode": ["off", "focals", "genesis", "attractor", "interlocution"],
   "visualStyle": ["quiet", "gentle", "immersive", "psychedelic"],
-  "chamberFace": ["literary", "display", "thick", "jp", "mono"],
-  "fontSize": ["small", "medium", "large", "fit"]
+  "chamberFace": ["literary", "display", "thick", "jp", "mono", "sans", "book"],
+  "fontSize": ["small", "medium", "large", "fit", "xlarge"]
 }

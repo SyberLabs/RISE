@@ -261,6 +261,28 @@ describe('Gallery pause authority', () => {
 });
 
 describe('scheduled field authority', () => {
+    it('applies a bounded phase color theme with the scheduled cue', () => {
+        const chamber = Object.create(Chamber.prototype);
+        chamber.container = document.createElement('div');
+        chamber.session = {
+            presentation: {
+                colorTheme: 'classic',
+                colors: { background: '#08090F', text: '#F4EEE4', accent: '#C8AE83' }
+            }
+        };
+        chamber._visualFieldDirector = { applyCue: vi.fn() };
+        vi.spyOn(visualCortex, 'applyCue').mockImplementation(() => {});
+
+        chamber.applyScheduledVisualCue({
+            kind: 'field', renderer: 'attractor', colorTheme: 'prism',
+            config: { system: 'thomas', palette: 'gold' }
+        });
+
+        expect(chamber.session.presentation.colorTheme).toBe('prism');
+        expect(chamber.container.style.getPropertyValue('--color-accent')).toBe('#E84BFF');
+        vi.restoreAllMocks();
+    });
+
     it('routes one cue to the field lifecycle and the generic cortex', () => {
         const chamber = Object.create(Chamber.prototype);
         chamber._visualFieldDirector = { applyCue: vi.fn() };

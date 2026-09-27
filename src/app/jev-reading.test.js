@@ -2,7 +2,10 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { getTextById } from '../content/library.js';
 import releaseInventory from '../content/archive/release-inventory.json' with { type: 'json' };
 import { jevColors, jevPalette } from '../core/jev-palette.js';
-import { compileJevVisualProgram } from '../core/jev-sequence.js';
+import {
+  compileJevAudioProgram,
+  compileJevVisualProgram
+} from '../core/jev-sequence.js';
 import { resolveJevChamberConfig } from '../core/jev-config.js';
 import { resolveJevReading, selectJevDivision } from './jev-reading.js';
 
@@ -25,11 +28,12 @@ function decision(config = {}) {
     audio: 'aurora', visualMode: 'focals', projection: 'stream',
     revealMode: 'instant', visualEngine: 'fractal', visualPalette: 'purple',
     visualArc: 'single', arcSplit: '50', middleEngine: 'harmonograph',
-    finaleEngine: 'ostensoria',
+    finaleEngine: 'ostensoria', middleAudio: 'aurora', finaleAudio: 'faded-signal',
     kleePreset: 'chaotic', galleryCadence: 'balanced',
     visualStyle: 'gentle', chamberFace: 'literary', fontSize: 'medium',
     wordFill: 'plain', colorTheme: 'classic', textColor: 'classic',
-    backgroundColor: 'classic', ...config
+    backgroundColor: 'classic', middleTheme: 'amethyst',
+    finaleTheme: 'prism', ...config
   };
   return {
     schemaVersion: 2,
@@ -44,7 +48,8 @@ function decision(config = {}) {
       ...selectors,
       colors: jevColors(selectors.colorTheme, selectors.textColor, selectors.backgroundColor),
       ...resolveJevChamberConfig(selectors),
-      visualProgram: compileJevVisualProgram(selectors)
+      visualProgram: compileJevVisualProgram(selectors),
+      audioProgram: compileJevAudioProgram(selectors)
     }
   };
 }
@@ -113,6 +118,14 @@ describe('Jev reading handoff', () => {
       await expect(resolveJevReading(decision({ [engineKey]: 'unknown' })))
         .rejects.toThrow('invalid reading plan');
     }
+    for (const audioKey of ['middleAudio', 'finaleAudio']) {
+      await expect(resolveJevReading(decision({ [audioKey]: 'unknown' })))
+        .rejects.toThrow('invalid reading plan');
+    }
+    for (const themeKey of ['middleTheme', 'finaleTheme']) {
+      await expect(resolveJevReading(decision({ [themeKey]: 'unknown' })))
+        .rejects.toThrow('invalid reading plan');
+    }
     await expect(resolveJevReading({ ...decision(), sourceRevision: 'other' }))
       .rejects.toThrow('not available');
     const tampered = decision();
@@ -148,6 +161,7 @@ describe('Jev reading handoff', () => {
     const input = await resolveJevReading(decision({ visualArc: 'triple', arcSplit: '70' }));
     const expected = decision({ visualArc: 'triple', arcSplit: '70' }).config;
     expect(input.visualProgram).toEqual(compileJevVisualProgram(expected));
+    expect(input.audioProgram).toEqual(compileJevAudioProgram(expected));
     expect((await resolveJevReading(decision())).visualProgram).toBeNull();
 
     const dual = await resolveJevReading(decision({ visualArc: 'dual', arcSplit: '70' }));
@@ -157,6 +171,10 @@ describe('Jev reading handoff', () => {
     const missing = decision();
     delete missing.config.visualProgram;
     await expect(resolveJevReading(missing)).rejects.toThrow('invalid reading plan');
+
+    const missingAudio = decision({ visualArc: 'triple', arcSplit: '70' });
+    delete missingAudio.config.audioProgram;
+    await expect(resolveJevReading(missingAudio)).rejects.toThrow('invalid reading plan');
   });
 
   it('chooses a real division using the section enum', () => {

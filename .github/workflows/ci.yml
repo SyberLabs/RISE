@@ -134,10 +134,11 @@ jobs:
           JEV_RESPONSE_FILE="$RUNNER_TEMP/jev-recommend-body" node --input-type=module -e '
             import { readFileSync } from "node:fs";
             import { resolveJevChamberConfig } from "./src/core/jev-config.js";
-            import { compileJevVisualProgram } from "./src/core/jev-sequence.js";
+            import { compileJevAudioProgram, compileJevVisualProgram } from "./src/core/jev-sequence.js";
             const config = JSON.parse(readFileSync(process.env.JEV_RESPONSE_FILE, "utf8")).config;
             console.log(JSON.stringify({ ...resolveJevChamberConfig(config),
-              visualProgram: compileJevVisualProgram(config) }));
+              visualProgram: compileJevVisualProgram(config),
+              audioProgram: compileJevAudioProgram(config) }));
           ' > "$RUNNER_TEMP/jev-resolved.json"
           jq -e --slurpfile editions src/content/archive/release-inventory.json \
             --slurpfile palettes "$RUNNER_TEMP/jev-palettes.json" \
@@ -152,14 +153,17 @@ jobs:
               and ($result.config | keys | sort) ==
                 (["section", "wpm", "curve", "chunkMode", "audio", "visualMode", "visualStyle",
                   "visualEngine", "visualArc", "arcSplit", "middleEngine", "finaleEngine",
+                  "middleTheme", "finaleTheme", "middleAudio", "finaleAudio",
                   "visualPalette", "kleePreset", "galleryCadence", "chamberFace",
                   "fontSize", "colorTheme", "colors", "wordFill", "projection", "revealMode",
                   "audioPreset", "soundscape", "entrainmentMode", "entrainmentWaveform",
-                  "recitation", "voiceId", "visualConfig", "presentation", "visualProgram"] | sort)
+                  "recitation", "voiceId", "visualConfig", "presentation", "visualProgram", "audioProgram"] | sort)
               and ([100, 150, 200, 250, 300, 400, 500] | index($result.config.wpm)) != null
               and (["flat", "induction", "ascent", "wave", "climax"] | index($result.config.curve)) != null
               and (["word", "phrase", "sentence", "paragraph"] | index($result.config.chunkMode)) != null
-              and (["silent", "aurora", "faded-signal", "sad", "angry", "happy", "excited", "thrilling", "scary", "soft-rain", "piano", "jazz"] | index($result.config.audio)) != null
+              and (["silent", "aurora", "faded-signal", "sad", "angry", "happy", "excited", "thrilling", "scary", "soft-rain", "piano", "jazz", "lullaby", "nocturne", "waltz", "blues", "bossa", "ragtime", "wonder", "mystery", "chase", "triumph", "haunted", "starlight"] | index($result.config.audio)) != null
+              and (["silent", "aurora", "faded-signal", "sad", "angry", "happy", "excited", "thrilling", "scary", "soft-rain", "piano", "jazz", "lullaby", "nocturne", "waltz", "blues", "bossa", "ragtime", "wonder", "mystery", "chase", "triumph", "haunted", "starlight"] | index($result.config.middleAudio)) != null
+              and (["silent", "aurora", "faded-signal", "sad", "angry", "happy", "excited", "thrilling", "scary", "soft-rain", "piano", "jazz", "lullaby", "nocturne", "waltz", "blues", "bossa", "ragtime", "wonder", "mystery", "chase", "triumph", "haunted", "starlight"] | index($result.config.finaleAudio)) != null
               and (["off", "focals", "genesis", "attractor", "interlocution"] | index($result.config.visualMode)) != null
               and (["quiet", "gentle", "immersive", "psychedelic"] | index($result.config.visualStyle)) != null
               and (["klee", "turrell", "fractal", "harmonograph", "ostensoria", "apparitio"] | index($result.config.visualEngine)) != null
@@ -170,10 +174,12 @@ jobs:
               and (["white", "red", "blue", "gold", "purple"] | index($result.config.visualPalette)) != null
               and (["random", "architectural", "chaotic", "harmonic", "gravitational", "twittering"] | index($result.config.kleePreset)) != null
               and (["slow", "balanced", "lively"] | index($result.config.galleryCadence)) != null
-              and (["literary", "display", "thick", "jp", "mono"] | index($result.config.chamberFace)) != null
-              and (["small", "medium", "large", "fit"] | index($result.config.fontSize)) != null
+              and (["literary", "display", "thick", "jp", "mono", "sans", "book"] | index($result.config.chamberFace)) != null
+              and (["small", "medium", "large", "xlarge", "fit"] | index($result.config.fontSize)) != null
               and (["plain", "accent", "same"] | index($result.config.wordFill)) != null
               and ($result.config.colors == $palettes[0][$result.config.colorTheme])
+              and ($palettes[0][$result.config.middleTheme] != null)
+              and ($palettes[0][$result.config.finaleTheme] != null)
               and (["stream", "page"] | index($result.config.projection)) != null
               and (["instant", "progressive"] | index($result.config.revealMode)) != null
               and (["first", "middle", "last", "shortest", "longest"] | index($result.config.section)) != null
@@ -185,9 +191,10 @@ jobs:
               and ($result.config.voiceId == $resolved[0].voiceId)
               and ($result.config.visualConfig == $resolved[0].visualConfig)
               and ($result.config.visualProgram == $resolved[0].visualProgram)
+              and ($result.config.audioProgram == $resolved[0].audioProgram)
               and (if $result.config.visualArc == "single" then
-                $result.config.visualProgram == null
-              else $result.config.visualProgram != null end)
+                $result.config.visualProgram == null and $result.config.audioProgram == null
+              else $result.config.visualProgram != null and $result.config.audioProgram != null end)
               and ($result.config.presentation == $resolved[0].presentation)
               and ($result.config.projection == $resolved[0].projection)
               and (if $result.config.visualStyle == "psychedelic" then

@@ -96,6 +96,7 @@ import { resolveTextMaterialCapability } from '../core/chamber-text-material.js'
 import { FitMaskRuntime } from '../core/fit-mask-runtime.js';
 import { resolveSessionWordFill } from '../core/visual-selection.js';
 import { sessionColorTheme } from '../core/session-presentation.js';
+import { jevPalette } from '../core/jev-palette.js';
 import { SEQUENCE_PILOT, nextSequencePilot } from '../content/sequence-pilot.js';
 import { saveSequencePilotFeedback } from '../core/sequence-pilot-feedback.js';
 import { advanceJevVisualArc } from '../core/jev-sequence.js';
@@ -823,6 +824,19 @@ export class Chamber {
         atom.style.removeProperty('text-shadow');
       }
     }
+  }
+
+  applyScheduledColorTheme(colorTheme) {
+    const colors = jevPalette(colorTheme);
+    if (!colors) return false;
+    if (!this.session) this.session = {};
+    this.session.presentation = {
+      ...(this.session?.presentation || {}),
+      colorTheme,
+      colors
+    };
+    this.applySessionColors();
+    return true;
   }
 
   applyChamberTypeSize() {
@@ -1578,6 +1592,7 @@ export class Chamber {
 
   /** One scheduled cue owns the complete visual presentation transition. */
   applyScheduledVisualCue(cue, meta = {}) {
+    this.applyScheduledColorTheme(cue?.colorTheme);
     const fieldCue = cue?.kind === 'focal'
       ? { kind: 'field', renderer: 'focal', config: cue.focal || {} }
       : cue;

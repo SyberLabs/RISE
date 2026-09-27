@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { compileJevAudioProgram } from './jev-sequence.js';
 import { AudioScheduleController } from './journey-schedulers.js';
 
 const atom = (sourceId, progress = 0) => ({ sourceId, sourceProgress: progress });
@@ -84,6 +85,26 @@ describe('a personal recording must not restart while it plays', () => {
         controller.observe(atom('s', 0.80));
 
         expect(calls).toEqual(['stop-swell']);
+    });
+});
+
+describe('a Jev phase boundary keeps an unchanged soundscape running', () => {
+    it('does not restart a duplicate consecutive soundscape cue', () => {
+        const calls = [];
+        const controller = new AudioScheduleController(
+            compileJevAudioProgram({
+                visualArc: 'dual', arcSplit: 50,
+                audio: 'aurora', finaleAudio: 'aurora'
+            }),
+            spyEngine(calls)
+        );
+
+        controller.observe(atom('primary', 0.25));
+        expect(calls).toContain('start:aurora');
+        calls.length = 0;
+        controller.observe(atom('primary', 0.75));
+
+        expect(calls).toEqual([]);
     });
 });
 

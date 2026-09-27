@@ -3,7 +3,7 @@ import { LIBRARY_TEXTS } from '../content/library.js';
 import { Library } from './Library.js';
 import { jevColors } from '../core/jev-palette.js';
 import { resolveJevChamberConfig } from '../core/jev-config.js';
-import { compileJevVisualProgram } from '../core/jev-sequence.js';
+import { compileJevAudioProgram, compileJevVisualProgram } from '../core/jev-sequence.js';
 
 const book = LIBRARY_TEXTS.find(text => text.id === 'literary-meditations');
 let library;
@@ -29,6 +29,8 @@ function response(overrides = {}) {
     audio: 'aurora', visualMode: 'focals', visualStyle: 'gentle',
     visualEngine: 'klee', visualArc: 'single', arcSplit: '50',
     middleEngine: 'turrell', finaleEngine: 'fractal',
+    middleTheme: 'classic', finaleTheme: 'classic',
+    middleAudio: 'silent', finaleAudio: 'silent',
     visualPalette: 'white', kleePreset: 'random', galleryCadence: 'balanced',
     chamberFace: 'literary', fontSize: 'medium', colorTheme: 'classic',
     textColor: 'classic', backgroundColor: 'classic',
@@ -44,7 +46,8 @@ function response(overrides = {}) {
     reason: 'A reflective classical work.',
     config: { ...selectors, colors: jevColors(selectors.colorTheme, selectors.textColor, selectors.backgroundColor),
       ...resolveJevChamberConfig(selectors),
-      visualProgram: compileJevVisualProgram(selectors) },
+      visualProgram: compileJevVisualProgram(selectors),
+      audioProgram: compileJevAudioProgram(selectors) },
     cacheStatus: 'miss',
     ...overrides
   };
