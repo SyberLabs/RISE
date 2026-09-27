@@ -197,12 +197,12 @@ from the Vite dev server.
  builds the app and starts `vite preview` on `127.0.0.1:4317` itself, with
  `VITE_RISE_ARCHIVE_REVIEW=1`. Do **not** start a server manually. It runs
  Chromium only, single worker, with autoplay forced on (Web Audio).
-- Every pull request runs the **whole** browser suite, sharded four ways
- (`Browser matrix N/4`, `--shard=N/4`), behind a `Browser gate` job that runs
- the ~134s `gate` project first as a faster no. Playwright shards by file, and
- `e2e/mobile.spec.js` alone is ~200s of the ~500s suite, so four is the smallest
- count that reaches the floor. More shards buy nothing. `npm run test:e2e:gate`
- is the same corridor to run locally before pushing.
+- Pull requests run the unit suite except the two tests that install system
+ tools, plus build, hygiene, docs, and Scriptorium checks. Browser checks run
+ after merge on main or through `workflow_dispatch`; the four `Browser matrix`
+ check names still report on pull requests because repository rules may require
+ them. Their pull-request result explicitly says browser coverage was deferred.
+ `npm run test:e2e:gate` runs the browser corridor locally before pushing.
 - There is **no lint script**. The gates a pull request has to pass are:
  `node scripts/ci-hygiene.mjs`, `npm run security:audit`, and
  `npm run security:compat`
