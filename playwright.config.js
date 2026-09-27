@@ -53,6 +53,7 @@ const GATE = [
     '**/page-mode.spec.js',
     '**/portal-hit-test.spec.js',
     '**/recitation.spec.js',
+    '**/request-preview.spec.js',
     '**/scriptorium.spec.js',
     '**/smoke.spec.js'
 ];

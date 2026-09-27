@@ -83,18 +83,13 @@ describe('Chapel Rosary door (#rosary)', () => {
     stubMedia();
   });
 
-  it('ENTER THE SPACE opens the Rosary directly at the Sign of the Cross', async () => {
+  it('a first visit opens the Rosary directly at the Sign of the Cross, with no intro screen', async () => {
     window.location.hash = ROSARY_DOOR_HASH;
     app = new App();
     const opened = app.checkBetaAccess();
 
-    const enter = document.querySelector('#beta-enter');
-    expect(enter).toBeTruthy();
-    expect(enter.textContent).toMatch(/Enter RISE/);
-    expect(prayerText()).toBeNull();
-    expect(app.router).toBeNull();
-
-    enter.click();
+    // The open door is not a step: no "Enter the Space" click stands first.
+    expect(document.querySelector('#beta-enter')).toBeNull();
     await opened;
 
     expect(JSON.parse(localStorage.getItem('rise-beta-session')).code).toBe('open');
@@ -163,13 +158,12 @@ describe('Chapel Rosary door (#rosary)', () => {
     expect(window.location.hash).toBe(ROSARY_DOOR_HASH);
   });
 
-  it('bare / unchanged: gate then Portal, never the Rosary', async () => {
+  it('bare / opens the Portal directly, never the Rosary', async () => {
     window.location.hash = '';
     app = new App();
     const opened = app.checkBetaAccess();
 
-    expect(document.querySelector('#beta-enter')).toBeTruthy();
-    document.querySelector('#beta-enter').click();
+    expect(document.querySelector('#beta-enter')).toBeNull();
     await opened;
 
     expect(app.router.getCurrentView()).toBe('portal');
