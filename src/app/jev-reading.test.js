@@ -147,5 +147,14 @@ describe('Jev reading handoff', () => {
   it('chooses a real division using the section enum', () => {
     expect(selectJevDivision(divisions, 'shortest').entry.id).toBe(1);
     expect(selectJevDivision(divisions, 'longest').entry.id).toBe(2);
+    expect(selectJevDivision(divisions, 'middle').entry.id).toBe(1);
+    expect(selectJevDivision(divisions, 'last').entry.id).toBe(2);
+  });
+
+  it('hands a mood sound and a real later chapter to the Chamber', async () => {
+    const input = await resolveJevReading(decision({ section: 'last', audio: 'scary' }));
+    expect(input.text).toBe('The longest existing passage.');
+    expect(input.soundscape).toBe('scary');
+    expect(input.continuation.entryId).toBe('2');
   });
 });

@@ -4,7 +4,7 @@ import { firstBodyOrdinal } from '../content/archive/divisions.js';
 import { READING_LIMITS } from '../core/reading-limits.js';
 import { CHAMBER_STREAM_FACES } from '../core/chamber-stream-face.js';
 import { FONT_SIZE_CHIPS } from '../core/chamber-type-size.js';
-import { resolveJevChamberConfig } from '../core/jev-config.js';
+import { JEV_AUDIO_IDS, resolveJevChamberConfig } from '../core/jev-config.js';
 import { jevPalette } from '../core/jev-palette.js';
 import { compileJevVisualProgram } from '../core/jev-sequence.js';
 import {
@@ -15,7 +15,7 @@ import {
 const CHUNKS = new Set(['word', 'phrase', 'sentence', 'paragraph']);
 const CURVES = new Set(['flat', 'induction', 'ascent', 'wave', 'climax']);
 const PACES = new Set([100, 150, 200, 250, 300, 400, 500]);
-const AUDIO = new Set(['silent', 'aurora', 'faded-signal']);
+const AUDIO = new Set(['silent', ...JEV_AUDIO_IDS]);
 const VISUALS = new Set(['off', 'focals', 'genesis', 'attractor', 'interlocution']);
 const ENGINES = new Set(['klee', 'turrell', 'fractal', 'harmonograph', 'ostensoria', 'apparitio']);
 const PALETTES = new Set(ATTRACTOR_PALETTES.map(item => item.id));
@@ -25,7 +25,7 @@ const SIZES = new Set(FONT_SIZE_CHIPS.map(item => item.fontSize));
 const CADENCES = new Set(['slow', 'balanced', 'lively']);
 const WORD_FILLS = new Set(['plain', 'accent', 'same']);
 const STYLES = new Set(['quiet', 'gentle', 'immersive', 'psychedelic']);
-const SECTIONS = new Set(['first', 'shortest', 'longest']);
+const SECTIONS = new Set(['first', 'middle', 'last', 'shortest', 'longest']);
 const VISUAL_ARCS = new Set(['single', 'dual', 'triple']);
 const ARC_SPLITS = new Set(['30', '50', '70']);
 
@@ -73,6 +73,8 @@ export function selectJevDivision(divisions, section) {
       && entry.content.trim() && entry.content.length <= READING_LIMITS.maxTextCharacters);
   if (!candidates.length) throw new TypeError('The selected reading has no playable division.');
   if (section === 'first') return candidates[0];
+  if (section === 'middle') return candidates[Math.floor((candidates.length - 1) / 2)];
+  if (section === 'last') return candidates.at(-1);
   return candidates.reduce((chosen, candidate) => {
     const words = Number(candidate.entry.words) || 0;
     const prior = Number(chosen.entry.words) || 0;
