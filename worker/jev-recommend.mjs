@@ -228,18 +228,22 @@ function shortlistSounds(sounds, intent, turn) {
   const intentWords = new Set(soundWords(intent));
   const normalizedIntent = ` ${soundWords(intent).join(' ')} `;
   const offset = sounds.length ? turn % sounds.length : 0;
-  const rotated = [...sounds.slice(offset), ...sounds.slice(0, offset)];
-  const ranked = rotated.map((row, index) => {
+  const catalogRows = sounds.map((row, catalogIndex) => ({ row, catalogIndex }));
+  const rotated = [...catalogRows.slice(offset), ...catalogRows.slice(0, offset)];
+  const ranked = rotated.map(({ row, catalogIndex }, index) => {
     const idWords = soundWords(row.sound_id.replaceAll('-', ' '));
     const criterionWords = new Set(soundWords(row.decision_criterion));
     const explicit = normalizedIntent.includes(` ${idWords.join(' ')} `);
     const score = idWords.reduce((total, word) => total + (intentWords.has(word) ? 3 : 0), 0)
       + [...criterionWords].reduce((total, word) => total + (intentWords.has(word) ? 1 : 0), 0);
-    return { row, explicit, score, index };
+    return { row, explicit, score, index, catalogIndex };
   });
   ranked.sort((left, right) => Number(right.explicit) - Number(left.explicit)
     || right.score - left.score || left.index - right.index);
-  return ranked.slice(0, SOUND_SHORTLIST_SIZE).map(item => item.row);
+  return ranked.slice(0, SOUND_SHORTLIST_SIZE)
+    .sort((left, right) => Number(right.explicit) - Number(left.explicit)
+      || right.score - left.score || left.catalogIndex - right.catalogIndex)
+    .map(item => item.row);
 }
 
 function choiceMenu(rows) {
@@ -295,7 +299,7 @@ async function decisionCacheKey(intent, books, sounds, choices, apiKey) {
   const menu = Object.fromEntries(OPTION_KINDS.map(kind => [kind, Object.keys(choices[kind])]));
   const input = JSON.stringify({ model: MODEL, intent, books, sounds, menu });
   const signature = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(input));
-  return `rise:jev-decision:v10:${Array.from(new Uint8Array(signature),
+  return `rise:jev-decision:v11:${Array.from(new Uint8Array(signature),
     byte => byte.toString(16).padStart(2, '0')).join('')}`;
 }
 
@@ -506,7 +510,7 @@ export async function handleJevRecommend(request, env) {
     const catalogChoices = await activeChoices(redis, env, sounds);
     if (!catalogChoices) return error(503, 'OPTIONS_UNAVAILABLE', 'The presentation menu is unavailable.');
     const turnBaseKey = await decisionCacheKey(intent, books, sounds, catalogChoices, env.OPENROUTER_API_KEY);
-    const turnKey = turnBaseKey.replace('rise:jev-decision:v10:', 'rise:jev-turn:v4:');
+    const turnKey = turnBaseKey.replace('rise:jev-decision:v11:', 'rise:jev-turn:v4:');
     const nextTurn = await redis.incr(turnKey);
     if (!Number.isSafeInteger(nextTurn) || nextTurn < 1) throw new Error('Invalid Jev turn');
     if (nextTurn === 1) await redis.expire(turnKey, 86400);
@@ -517,7 +521,8 @@ export async function handleJevRecommend(request, env) {
       audio: { silent: 'Silence.', ...Object.fromEntries(shortlistedSounds.map(row =>
         [row.sound_id, row.decision_criterion])) }
     };
-    decisionKey = `${turnBaseKey}:${hints.variation.cohort === null ? 0 : (nextTurn - 1) % VARIATION_COUNT}`;
+    const decisionBaseKey = await decisionCacheKey(intent, books, shortlistedSounds, choices, env.OPENROUTER_API_KEY);
+    decisionKey = `${decisionBaseKey}:${hints.variation.cohort === null ? 0 : (nextTurn - 1) % VARIATION_COUNT}`;
     const cached = validCachedDecision(await redis.get(decisionKey), hints.eligibleBooks, choices);
     if (cached) return reply(200, { ...cached, cacheStatus, decisionCacheStatus: 'hit' });
   } catch {

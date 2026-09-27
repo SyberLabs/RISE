@@ -248,6 +248,31 @@ describe('Jev reading recommendation', () => {
     expect(menus[1]).toHaveLength(9);
   });
 
+  it('uses distinct decision cache keys when a later turn rotates the sound shortlist', async () => {
+    let turn = 0;
+    mocks.incr.mockImplementation(async () => ++turn);
+    const provider = vi.fn(async () => Response.json({
+      id: `sound-cache-${turn}`, model: 'typesafe/jev-1.13', provider: 'TypeSafe',
+      answers: answers('literary-walden')
+    }));
+    vi.stubGlobal('fetch', provider);
+    const body = { intent: 'Give me an unexpected reading atmosphere.' };
+
+    for (let requestTurn = 0; requestTurn < 9; requestTurn++) {
+      await handleJevRecommend(request(body), env);
+    }
+
+    const turnKeys = mocks.incr.mock.calls.map(([key]) => key);
+    const decisionKeys = mocks.get.mock.calls.map(([key]) => key)
+      .filter(key => key.startsWith('rise:jev-decision:'));
+    const menus = [0, 8].map(index => Object.keys(JSON.parse(provider.mock.calls[index][1].body)
+      .questions.audio.criteria).slice(1));
+    expect(new Set(turnKeys).size).toBe(1);
+    expect(menus[0]).not.toEqual(menus[1]);
+    expect(decisionKeys[0]).not.toBe(decisionKeys[8]);
+    expect(decisionKeys[0].split(':').at(-1)).toBe(decisionKeys[8].split(':').at(-1));
+  });
+
   it('loads PostgreSQL on a Redis catalog miss and sends only admitted books to Jev', async () => {
     const provider = vi.fn(async () => Response.json({
       id: 'gen-dec-live-1', model: 'typesafe/jev-1.13-20260917', provider: 'TypeSafe',
@@ -493,7 +518,7 @@ describe('Jev reading recommendation', () => {
     });
     expect(provider).toHaveBeenCalledTimes(1);
     const decisionKey = [...cache.keys()].find(key => key.startsWith('rise:jev-decision:'));
-    expect(decisionKey).toMatch(/^rise:jev-decision:v10:[0-9a-f]{64}:0$/u);
+    expect(decisionKey).toMatch(/^rise:jev-decision:v11:[0-9a-f]{64}:0$/u);
     expect(decisionKey).not.toContain('Nature and quiet.');
     expect(mocks.set).toHaveBeenCalledWith(decisionKey, expect.objectContaining({
       workId: 'literary-walden'
@@ -534,6 +559,8 @@ describe('Jev reading recommendation', () => {
 
   it('rotates distinct released books for an open discovery request in one Jev call per new variant', async () => {
     const cache = new Map();
+    mocks.query.mockImplementation(strings => Promise.resolve(strings.join('').includes('FROM rise_sounds')
+      ? sounds.slice(0, 9) : books));
     mocks.get.mockImplementation(async key => key.startsWith('rise:books:') ? books : cache.get(key));
     mocks.set.mockImplementation(async (key, value) => { cache.set(key, value); return 'OK'; });
     mocks.incr.mockImplementation(async () => mocks.incr.mock.calls.length);
