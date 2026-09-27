@@ -29,6 +29,8 @@ fills the editable request field and never submits it automatically.
 The Chamber Look panel keeps face, text size, text ink, backdrop, visual
 strength, sound bed, and listening volume in one place. The size and color
 overrides stay local to the reading; volume follows the reader's saved setting.
+When Jev changes visual phase, the accent follows the new phase while its
+independent text ink and backdrop remain legible and valid.
 
 This describes the candidate source. Live provider quality and public release
 acceptance require separate verification.

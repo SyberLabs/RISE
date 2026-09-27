@@ -97,11 +97,10 @@ import { resolveTextMaterialCapability } from '../core/chamber-text-material.js'
 import { FitMaskRuntime } from '../core/fit-mask-runtime.js';
 import { resolveSessionWordFill } from '../core/visual-selection.js';
 import { sessionColorTheme } from '../core/session-presentation.js';
-import { jevPalette } from '../core/jev-palette.js';
 import { SEQUENCE_PILOT, nextSequencePilot } from '../content/sequence-pilot.js';
 import { saveSequencePilotFeedback } from '../core/sequence-pilot-feedback.js';
 import { advanceJevVisualArc } from '../core/jev-sequence.js';
-import { JEV_INKS, JEV_PALETTES } from '../core/jev-palette.js';
+import { JEV_INKS, JEV_PALETTES, jevColors } from '../core/jev-palette.js';
 import { JEV_AUDIO_IDS } from '../core/jev-config.js';
 import { CHAMBER_STREAM_FACES } from '../core/chamber-stream-face.js';
 import './Chamber.css';
@@ -843,7 +842,9 @@ export class Chamber {
   }
 
   applyScheduledColorTheme(colorTheme) {
-    const colors = jevPalette(colorTheme);
+    const presentation = this.session?.presentation;
+    const colors = jevColors(colorTheme, presentation?.textColor,
+      presentation?.backgroundColor ?? colorTheme);
     if (!colors) return false;
     if (!this.session) this.session = {};
     this.session.presentation = {

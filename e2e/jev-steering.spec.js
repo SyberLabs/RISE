@@ -141,6 +141,9 @@ test('reader shifts Jev’s next visual scene without moving the text or pace', 
   });
   await expect.poll(() => visualCues.some(message =>
     message.includes('jev-finale') && message.includes('ostensoria'))).toBe(true);
+  await expect(page.locator('.chamber')).toHaveCSS('--color-accent', '#E84BFF');
+  await expect(page.locator('.chamber')).toHaveCSS('--color-light', '#F4EEE4');
+  await expect(page.locator('.chamber')).toHaveCSS('--color-void', '#08090F');
   await expect.poll(() => page.evaluate(() => {
     return [...document.querySelectorAll('#chamber-continuous-field .plate-plane')]
       .some(canvas => {

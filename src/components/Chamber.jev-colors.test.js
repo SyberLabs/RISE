@@ -1,5 +1,6 @@
 import { expect, it } from 'vitest';
-import { jevPalette } from '../core/jev-palette.js';
+import { JEV_INKS, JEV_PALETTES, jevColors, jevPalette } from '../core/jev-palette.js';
+import { sessionColorTheme } from '../core/session-presentation.js';
 import { Chamber } from './Chamber.js';
 
 it('scopes Jev palette colors to the active Chamber container', () => {
@@ -14,4 +15,33 @@ it('scopes Jev palette colors to the active Chamber container', () => {
   expect(container.style.getPropertyValue('--color-light')).toBe(colors.text);
   expect(container.style.getPropertyValue('--color-accent')).toBe(colors.accent);
   expect(document.documentElement.style.getPropertyValue('--color-void')).toBe('');
+});
+
+it('keeps independent Jev ink and ground valid as a generated phase changes accent', () => {
+  const container = document.createElement('div');
+  const session = { presentation: {
+    colorTheme: 'classic', textColor: 'jade', backgroundColor: 'ember',
+    colors: jevColors('classic', 'jade', 'ember')
+  } };
+  const chamber = {
+    container, session, _jevLook: {},
+    applySessionColors() { Chamber.prototype.applySessionColors.call(this); }
+  };
+  expect(Chamber.prototype.applyScheduledColorTheme.call(chamber, 'prism')).toBe(true);
+  expect(sessionColorTheme(session)).toEqual(jevColors('prism', 'jade', 'ember'));
+  expect(container.style.getPropertyValue('--color-light')).toBe(JEV_INKS.jade);
+  expect(container.style.getPropertyValue('--color-void')).toBe(JEV_PALETTES.ember.background);
+  expect(container.style.getPropertyValue('--color-accent')).toBe(JEV_PALETTES.prism.accent);
+});
+
+it('continues to move the whole palette for older visual programs', () => {
+  const container = document.createElement('div');
+  const session = { presentation: { colorTheme: 'classic', colors: jevPalette('classic') } };
+  const chamber = {
+    container, session, _jevLook: {},
+    applySessionColors() { Chamber.prototype.applySessionColors.call(this); }
+  };
+  expect(Chamber.prototype.applyScheduledColorTheme.call(chamber, 'prism')).toBe(true);
+  expect(sessionColorTheme(session)).toEqual(jevPalette('prism'));
+  expect(container.style.getPropertyValue('--color-void')).toBe(JEV_PALETTES.prism.background);
 });
