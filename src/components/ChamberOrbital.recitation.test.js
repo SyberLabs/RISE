@@ -54,6 +54,28 @@ describe('ChamberOrbital static Recitation controls', () => {
         orbital.destroy();
     });
 
+    it('draws the chunking lock as a labelled SVG, not an emoji, and removes it on release', () => {
+        const { container, orbital } = createOrbital();
+        orbital.loadText('Begin the morning', 'Meditations', {
+            capabilities: [SEQUENCE_CAPABILITIES.RECITATION_AUDIO]
+        });
+        container.querySelector('[data-recitation="on"]').click();
+
+        const word = container.querySelector('[data-chunk="word"]');
+        const lock = word.querySelector('svg.chunk-lock');
+        expect(lock).not.toBeNull();
+        expect(lock.getAttribute('aria-label')).toBe('Locked');
+        expect(word.textContent).not.toContain('\u{1F512}');
+        expect(word.textContent.trim()).toBe('Word');
+        expect(container.querySelector('[data-chunk="phrase"] .chunk-lock')).toBeNull();
+
+        container.querySelector('[data-recitation="off"]').click();
+        expect(word.querySelector('.chunk-lock')).toBeNull();
+        expect(word.textContent.trim()).toBe('Word');
+
+        orbital.destroy();
+    });
+
     it('does not let a stale Recitation preference grant capability to ordinary text', () => {
         localStorage.setItem('rise_orbital_prefs_v1', JSON.stringify({
             paceV2: true,

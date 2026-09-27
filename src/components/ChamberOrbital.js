@@ -76,7 +76,7 @@ const AUDIO_PRESET_IDS = new Set([
 /* The padlock drawn on a chunking mode Recitation has taken. Declared
    once so the first render and the runtime toggle cannot disagree —
    the gap after it is CSS, never a text node (see the toggle). */
-const LOCK_MARK = '<span class="chunk-lock" aria-hidden="true">🔒</span>';
+const LOCK_MARK = '<svg class="chunk-lock" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="Locked" focusable="false"><rect x="5" y="11" width="14" height="10" rx="2"></rect><path d="M8 11V7a4 4 0 0 1 8 0v4"></path></svg>';
 
 const svgIcon = paths => `<svg class="reader-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">${paths}</svg>`;
 const ICON_BACK = svgIcon('<path d="M19 12H5"></path><path d="m11 18-6-6 6-6"></path>');
@@ -969,19 +969,15 @@ export class ChamberOrbital {
               </p>
               <div class="audio-preset-options soundscape-options">
                 <button class="audio-preset-option ${this.config.soundscape === 'none' ? 'active' : ''}" data-soundscape="none">
-                  <span class="preset-icon">○</span>
                   <span class="preset-label">None</span>
                 </button>
                 <button class="audio-preset-option ${this.config.soundscape === 'aurora' ? 'active' : ''}" data-soundscape="aurora">
-                  <span class="preset-icon">✧</span>
                   <span class="preset-label">Aurora</span>
                 </button>
                 <button class="audio-preset-option ${this.config.soundscape === 'faded-signal' ? 'active' : ''}" data-soundscape="faded-signal">
-                  <span class="preset-icon">◌</span>
                   <span class="preset-label">Faded Signal</span>
                 </button>
                 <button class="audio-preset-option ${this.config.soundscape === 'soft-rain' ? 'active' : ''}" data-soundscape="soft-rain">
-                  <span class="preset-icon">≋</span>
                   <span class="preset-label">Soft Rain</span>
                 </button>
                 <!-- Chant is Chapel-exclusive: recorded sacred music
@@ -994,13 +990,11 @@ export class ChamberOrbital {
                 <button class="audio-preset-option chant-only ${this.config.soundscape === 'chant-gregorian' ? 'active' : ''}" data-soundscape="chant-gregorian"
                   ${this.isChapelSession() ? '' : 'hidden'}
                   title="Recorded Gregorian chant with long breaths of silence between pieces">
-                  <span class="preset-icon">✛</span>
                   <span class="preset-label">Gregorian</span>
                 </button>
                 <button class="audio-preset-option chant-only ${this.config.soundscape === 'chant-znamenny' ? 'active' : ''}" data-soundscape="chant-znamenny"
                   ${this.isChapelSession() ? '' : 'hidden'}
                   title="Znamenny chant of the Moscow Patriarchate choir — long breaths of silence between pieces">
-                  <span class="preset-icon">☦</span>
                   <span class="preset-label">Znamenny</span>
                 </button>
               </div>
@@ -1014,19 +1008,15 @@ export class ChamberOrbital {
               </div>
               <div class="audio-preset-options">
                 <button class="audio-preset-option ${this.config.audioPreset === 'silent' ? 'active' : ''}" data-audio-preset="silent">
-                  <span class="preset-icon">○</span>
                   <span class="preset-label">Silent</span>
                 </button>
                 <button class="audio-preset-option ${this.config.audioPreset === 'focus' ? 'active' : ''}" data-audio-preset="focus">
-                  <span class="preset-icon">◇</span>
                   <span class="preset-label">Focus</span>
                 </button>
                 <button class="audio-preset-option ${this.config.audioPreset === 'deep' ? 'active' : ''}" data-audio-preset="deep">
-                  <span class="preset-icon">◈</span>
                   <span class="preset-label">Deep</span>
                 </button>
                 <button class="audio-preset-option ${this.config.audioPreset === 'gateway' ? 'active' : ''}" data-audio-preset="gateway">
-                  <span class="preset-icon">⬡</span>
                   <span class="preset-label">Gateway</span>
                 </button>
               </div>
@@ -1136,23 +1126,23 @@ export class ChamberOrbital {
               <label class="config-label">Pacing Curve</label>
               <div class="curve-options">
                 <button class="curve-option ${this.config.curve === 'flat' ? 'active' : ''}" data-curve="flat">
-                  <span class="curve-icon">─</span>
+                  <span class="curve-icon">${svgIcon('<path d="M3 12h18"></path>')}</span>
                   <span>Flat</span>
                 </button>
                 <button class="curve-option ${this.config.curve === 'induction' ? 'active' : ''}" data-curve="induction">
-                  <span class="curve-icon">╲</span>
+                  <span class="curve-icon">${svgIcon('<path d="M4 6l16 12"></path>')}</span>
                   <span>Induction</span>
                 </button>
                 <button class="curve-option ${this.config.curve === 'ascent' ? 'active' : ''}" data-curve="ascent">
-                  <span class="curve-icon">╱</span>
+                  <span class="curve-icon">${svgIcon('<path d="M4 18L20 6"></path>')}</span>
                   <span>Ascent</span>
                 </button>
                 <button class="curve-option ${this.config.curve === 'wave' ? 'active' : ''}" data-curve="wave">
-                  <span class="curve-icon">∿</span>
+                  <span class="curve-icon">${svgIcon('<path d="M3 12c3-6 6-6 9 0s6 6 9 0"></path>')}</span>
                   <span>Wave</span>
                 </button>
                 <button class="curve-option ${this.config.curve === 'climax' ? 'active' : ''}" data-curve="climax">
-                  <span class="curve-icon">∧</span>
+                  <span class="curve-icon">${svgIcon('<path d="M4 18l8-12 8 12"></path>')}</span>
                   <span>Climax</span>
                 </button>
               </div>
@@ -1752,11 +1742,7 @@ export class ChamberOrbital {
           // taken the label with it.
           const mark = chunk.querySelector('.chunk-lock');
           if (locked && !mark) {
-            const lock = document.createElement('span');
-            lock.className = 'chunk-lock';
-            lock.setAttribute('aria-hidden', 'true');
-            lock.textContent = '🔒';
-            chunk.prepend(lock);
+            chunk.insertAdjacentHTML('afterbegin', LOCK_MARK);
           } else if (!locked && mark) {
             mark.remove();
           }
