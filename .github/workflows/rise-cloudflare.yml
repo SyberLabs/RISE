@@ -184,7 +184,7 @@ jobs:
           - Sign in at $STAGING_URL and check the home page, a deep link, and security headers.
           - Confirm \`/release-$TESTED_SHA.txt\` returns this exact commit and an unknown \`/api/*\` returns a JSON 404.
           - At \`/jev-preview.html\`, explicitly click once for a paid Jev decision, then compare OpenRouter usage and bounded Cloudflare logs.
-          - Approve the protected production environment only after these checks pass and the production domain and Worker-level public Access rule are ready.
+          - Approve production only after these checks pass and the public domain is ready.
           EOF
 
   production:
@@ -278,19 +278,25 @@ jobs:
           current=$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/main" --jq '.object.sha')
           test "$TESTED_SHA" = "$current"
           npx --yes wrangler@4.141.0 deploy --config wrangler.production.jsonc --message "RISE $TESTED_SHA"
-      - name: Verify production remains behind Access until public cutover
+      - name: Verify public production serves the exact release
         run: |
           set -euo pipefail
-          for path in / /try-rise "/release-$TESTED_SHA.txt" /api/not-a-route; do
+          for path in / /try-rise /jev-preview "/release-$TESTED_SHA.txt"; do
             status=$(curl -sS --max-time 20 --retry 5 --retry-delay 3 --retry-all-errors \
-              -D "$RUNNER_TEMP/access-headers" -o "$RUNNER_TEMP/access-body" \
+              -D "$RUNNER_TEMP/public-headers" -o "$RUNNER_TEMP/public-body" \
               -w '%{http_code}' "https://rise.syberlabs.io$path")
-            case "$status" in 302|303|307) ;; *) echo "Expected Access at $path; got HTTP $status"; exit 1 ;; esac
-            grep -i '^location:' "$RUNNER_TEMP/access-headers" \
-              | grep -Eiq 'cloudflareaccess\.com|/cdn-cgi/access/'
+            test "$status" = 200 || { echo "Expected public HTTP 200 at $path; got HTTP $status"; exit 1; }
+            if [ "$path" = "/release-$TESTED_SHA.txt" ]; then
+              test "$(cat "$RUNNER_TEMP/public-body")" = "$TESTED_SHA"
+            fi
           done
+          status=$(curl -sS --max-time 20 --retry 5 --retry-delay 3 --retry-all-errors \
+            -D "$RUNNER_TEMP/public-headers" -o "$RUNNER_TEMP/public-body" \
+            -w '%{http_code}' 'https://rise.syberlabs.io/api/not-a-route')
+          test "$status" = 404 || { echo "Expected JSON 404 for unknown API; got HTTP $status"; exit 1; }
+          grep -Eiq '^content-type: application/json' "$RUNNER_TEMP/public-headers"
+          jq -e '.error.code == "NOT_FOUND"' "$RUNNER_TEMP/public-body" > /dev/null
           {
-            echo "Deployed production artifact $TESTED_SHA; public host remains protected by Access."
-            echo 'Owner acceptance before public cutover: sign in at https://rise.syberlabs.io/, check the exact release marker, a deep link, JSON 404 for an unknown API path, and one Jev preview decision.'
-            echo 'After owner-approved Access cutover: verify public HTTP 200 at / and /try-rise, exact release marker, JSON 404 at /api/not-a-route, one live Jev decision, and Relay Access protection.'
+            echo "Deployed production artifact $TESTED_SHA; public pages, exact release marker, and JSON API 404 verified."
+            echo 'Owner acceptance: make one live Jev preview decision at https://rise.syberlabs.io/jev-preview and confirm Relay remains behind Access.'
           } >> "$GITHUB_STEP_SUMMARY"

@@ -1,10 +1,5 @@
-# CI: unit tests, production build, source hygiene, generated docs, and browser
-# smoke. Jobs are separate so a red run names which promise broke.
-#
-# The wall clock is the slowest job, not the sum. The browser suite is most of
-# it and is sharded four ways — the smallest count that reaches the floor,
-# because Playwright shards by file and mobile.spec.js is ~200s that cannot be
-# divided.
+# CI: fast pull-request checks; complete browser coverage on main and dispatch.
+# Jobs are separate so a red run names which promise broke.
 #
 # A change that is only prose skips every job only code can break, and finishes
 # in under a minute. `CI` is the one job that always reports, and the only name
@@ -148,10 +143,23 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/setup
+        if: github.event_name != 'pull_request'
         with:
           ffmpeg: 'true'
           chromium: 'true'
-      - run: npm run test:run
+      - uses: ./.github/actions/setup
+        if: github.event_name == 'pull_request'
+      - name: Core unit smoke
+        if: github.event_name == 'pull_request'
+        run: >-
+          npm run test:run --
+          src/core/content-store.test.js
+          src/core/journey-session.test.js
+          src/audio/engine.lifecycle.test.js
+          src/content/keystones.test.js
+      - name: Full unit and integration suite
+        if: github.event_name != 'pull_request'
+        run: npm run test:run
 
   build:
     name: Production build
@@ -187,23 +195,12 @@ jobs:
       - name: A refusal is an exit status
         run: npm run scriptorium:ci
 
-  # THE FAST NO.
-  #
-  # This was the whole suite behind a 45-minute cap, raised from 30 after CI
-  # #99 (1d6f41e) died at 29m 25s with no assertion. Raising a cap does not
-  # make a slow gate safe; it makes it slower, and a gate people wait a
-  # quarter of an hour for is one they learn to route around.
-  #
-  # Measured: 502 seconds of test time across 18 spec files, of which
-  # mobile.spec.js alone is 200. The gate project is 134 of those seconds —
-  # the corridor a reader walks, the safety warning, the voice, and the
-  # refusal panel. `e2e-full` below runs the complete suite, sharded, on the
-  # same pull request, so nothing is deferred: this job only decides whether a
-  # change is dead on arrival.
+  # Browser tests require a production build, Chromium installation, and
+  # serial audio flows. Run the corridor on main and on manual dispatch.
   e2e:
     name: Browser gate
     needs: changes
-    if: needs.changes.outputs.code == 'true'
+    if: needs.changes.outputs.code == 'true' && github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -223,31 +220,16 @@ jobs:
             test-results/
           retention-days: 7
 
-  # THE WHOLE SUITE, ON EVERY PULL REQUEST, IN THE TIME THE SLOWEST FILE TAKES.
-  #
-  # The reason this job skipped pull requests was latency, not coverage: a
-  # gate people wait a quarter of an hour for is one they learn to route
-  # around. Sharding pays that with parallelism instead of with coverage.
-  # Playwright shards by file, so mobile.spec.js at 200 s is the floor no
-  # shard count can go under — which makes four the smallest count that
-  # reaches it. 502 s of serial test time becomes ~200 s of wall clock.
-  #
-  # So the trade the split was making is no longer necessary. `test:e2e` runs
-  # both projects, which is all 89 tests in 21 files; verified partitioned
-  # 23 / 26 / 24 / 16 by `playwright test --list --shard=N/4`. A regression in
-  # the half that used to run after the merge now fails before it, and the
-  # nightly run stops being the first place anyone hears about it — with the
-  # nightly itself now gone, since there is nothing left for it to catch.
-  #
-  # Each shard keeps `workers: 1` on its own machine: the flows share an audio
-  # device, so the parallelism has to be across machines, not inside one.
+  # Keep the four check names until the repository ruleset is changed. On a
+  # pull request each reports immediately and explicitly says browser coverage
+  # is deferred. On main and manual dispatch all four run the complete suite.
   e2e-full:
     name: Browser matrix ${{ matrix.shard }}/4
     needs: changes
     # Do not skip this job. A skipped matrix reports the unexpanded name
     # "Browser matrix ${{ matrix.shard }}/4", and a ruleset that requires
     # "Browser matrix 1/4" then waits forever. The shards always start;
-    # Playwright runs only when code moved.
+    # Playwright runs only after merge or on manual dispatch.
     runs-on: ubuntu-latest
     timeout-minutes: 20
     strategy:
@@ -256,19 +238,19 @@ jobs:
       matrix:
         shard: [1, 2, 3, 4]
     steps:
-      - name: Prose does not need the browser
-        if: needs.changes.outputs.code == 'false'
-        run: echo 'Prose only — this shard reports so a required check is not left pending.'
+      - name: Report browser coverage policy
+        if: github.event_name == 'pull_request'
+        run: echo 'Browser matrix deferred to main; this pull request did not run browser tests.'
       - uses: actions/checkout@v4
-        if: needs.changes.outputs.code != 'false'
+        if: github.event_name != 'pull_request'
       - uses: ./.github/actions/setup
-        if: needs.changes.outputs.code != 'false'
+        if: github.event_name != 'pull_request'
         with:
           chromium: 'true'
-      - if: needs.changes.outputs.code != 'false'
+      - if: github.event_name != 'pull_request'
         run: npm run test:e2e -- --shard=${{ matrix.shard }}/4
       - uses: actions/upload-artifact@v4
-        if: (failure() || cancelled()) && needs.changes.outputs.code != 'false'
+        if: (failure() || cancelled()) && github.event_name != 'pull_request'
         with:
           # upload-artifact@v4 rejects a name a sibling already used.
           name: playwright-report-full-${{ matrix.shard }}

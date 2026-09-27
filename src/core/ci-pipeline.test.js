@@ -25,10 +25,9 @@ describe('the browser matrix reports its four names even when it does not run Pl
         expect(header).not.toMatch(/outputs\.code/);
     });
 
-    it('names each shard, and only plays Playwright when code moved', () => {
+    it('names each shard, and only plays Playwright outside pull requests', () => {
         const e2eFull = job('e2e-full');
         expect(e2eFull).toContain('name: Browser matrix ${{ matrix.shard }}/4');
-        expect(e2eFull).toContain('npm run test:e2e -- --shard=${{ matrix.shard }}/4');
-        expect(e2eFull).toMatch(/if:\s*needs\.changes\.outputs\.code != 'false'/);
+        expect(e2eFull).toMatch(/- if: github\.event_name != 'pull_request'\s*\r?\n\s*run: npm run test:e2e -- --shard=\$\{\{ matrix\.shard \}\}\/4/);
     });
 });
