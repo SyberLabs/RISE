@@ -89,30 +89,36 @@ function addRecord(sequence, selectedBy, decision = null) {
   show('read-screen', sequence.title);
 }
 
+const ARROW = '<svg class="icon row-arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14"/><path d="m13 6 6 6-6 6"/></svg>';
+
 function renderCards() {
   const container = byId('sequence-cards');
   container.replaceChildren();
   approved.forEach((sequence, index) => {
+    const item = document.createElement('li');
     const button = document.createElement('button');
-    button.className = 'sequence-card';
+    button.className = 'sequence-row';
     button.type = 'button';
     const number = document.createElement('span');
-    number.className = 'card-index';
-    number.textContent = `SEQUENCE ${String(index + 1).padStart(2, '0')}`;
-    const title = document.createElement('h2');
+    number.className = 'label';
+    number.textContent = String(index + 1).padStart(2, '0');
+    const text = document.createElement('span');
+    text.className = 'row-text';
+    const title = document.createElement('span');
+    title.className = 'row-title';
     title.textContent = sequence.title;
-    const promise = document.createElement('p');
+    const promise = document.createElement('span');
+    promise.className = 'row-promise';
     promise.textContent = sequence.promise;
-    const bottom = document.createElement('div');
-    bottom.className = 'card-bottom';
+    text.append(title, promise);
     const time = document.createElement('span');
+    time.className = 'row-time';
     time.textContent = `About ${sequence.estimatedMinutes} min`;
-    const action = document.createElement('span');
-    action.textContent = 'Read →';
-    bottom.append(time, action);
-    button.append(number, title, promise, bottom);
+    button.append(number, text, time);
+    button.insertAdjacentHTML('beforeend', ARROW);
     button.addEventListener('click', () => addRecord(sequence, 'reader-choice'));
-    container.append(button);
+    item.append(button);
+    container.append(item);
   });
 }
 
@@ -150,7 +156,7 @@ function completedIds() {
 function renderSummary() {
   const last = records.at(-1);
   const completed = records.filter((record) => record.completed).length;
-  byId('record-summary').textContent = `${completed} completed · route: ${last.requestedRoute === 'bounded-jev' ? 'interest match (local simulation)' : 'curated order'} · provider calls: 0 · provider cost: $0`;
+  byId('record-summary').textContent = `${completed} completed · next chosen by: ${last.requestedRoute === 'bounded-jev' ? 'match my interest (a rule on this device)' : 'curated order'} · AI service calls: 0 · cost: $0`;
 }
 
 function finishSequence() {
@@ -166,8 +172,8 @@ function finishSequence() {
     byId('next-title').textContent = result.selected.title;
     byId('next-promise').textContent = result.selected.promise;
     byId('next-reason').textContent = result.decision.mode === 'bounded-jev-simulation'
-      ? 'A local rule matched your stated interest to one approved alternative. No live Jev call was made.'
-      : 'This follows the finite editorial order. No live Jev call was made.';
+      ? 'A simple rule on this device matched your interest to another sequence in this set. Jev was not called.'
+      : 'This is next in the curated order. Jev was not called.';
   }
   for (const button of document.querySelectorAll('[data-worth]')) button.setAttribute('aria-pressed', 'false');
   byId('feedback-status').textContent = 'You can leave this unanswered.';
@@ -187,7 +193,7 @@ function exportRecord() {
   link.click();
   link.remove();
   setTimeout(() => URL.revokeObjectURL(url), 0);
-  byId('storage-status').textContent = 'Feedback JSON downloaded by your request.';
+  byId('storage-status').textContent = 'Your record was downloaded because you asked for it.';
 }
 
 function start() {
@@ -248,7 +254,7 @@ function start() {
       const removed = removeStored();
       byId('resume-panel').hidden = true;
       byId('storage-status').textContent = removed
-        ? 'Saved pilot data erased from this device. This open page still holds the session until you close or erase it.'
+        ? 'Saved data erased from this device. This open page still holds the session until you close it or erase it.'
         : 'The browser could not erase its saved copy. Clear this site’s storage in your browser settings.';
     }
   });
@@ -262,7 +268,7 @@ function start() {
     nextSuggestion = null;
     byId('resume-panel').hidden = removed;
     byId('resume-status').textContent = removed ? '' : 'This page’s record is cleared, but the browser could not erase its saved copy. Clear this site’s storage in browser settings.';
-    byId('storage-status').textContent = removed ? 'Pilot data erased.' : 'This page’s record is cleared, but the saved copy could not be erased.';
+    byId('storage-status').textContent = removed ? 'Data erased.' : 'This page’s record is cleared, but the saved copy could not be erased.';
     show('choice-screen', 'Choose a sequence');
   });
 
