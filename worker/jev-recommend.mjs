@@ -1,6 +1,7 @@
 import { neon } from '@neondatabase/serverless';
 import { Redis } from '@upstash/redis/cloudflare';
 import releaseInventory from '../src/content/archive/release-inventory.json' with { type: 'json' };
+import { jevPalette } from '../src/core/jev-palette.js';
 
 const API_URL = 'https://openrouter.ai/api/alpha/decisions';
 const MODEL = 'typesafe/jev-1.13';
@@ -10,7 +11,60 @@ const CHOICES = Object.freeze({
   curve: { flat: 'Steady pace.', induction: 'Begin slowly.', ascent: 'Gradually accelerate.', wave: 'Rise and fall.', climax: 'Build toward a fast finish.' },
   chunk: { word: 'One word.', phrase: 'Short phrases.', sentence: 'Sentences.', paragraph: 'Paragraphs.' },
   audio: { silent: 'Silence.', aurora: 'Aurora soundscape.', 'faded-signal': 'Faded Signal soundscape.', focus: 'Focus tones.', deep: 'Deep tones.', gateway: 'Gateway tones.' },
-  visual: { off: 'No visuals.', focals: 'Gentle focal visuals.' },
+  visual: {
+    off: 'No visual field.',
+    focals: 'A single quiet focal figure.',
+    genesis: 'Continuous growing Klee line art; colorful and lively with a chaotic preset.',
+    attractor: 'A continuous luminous strange-attractor field; purple and kaleidoscopic for psychedelic color.',
+    interlocution: 'A colorful, continuously crossfading Gallery behind the reading. Choose this for psychedelic, kaleidoscopic, trippy, or vivid visual requests; it never flashes.'
+  },
+  visualStyle: {
+    quiet: 'Minimal visual energy; choose for still, spare, or meditative requests.',
+    gentle: 'A soft visual presence; choose for calm atmosphere.',
+    immersive: 'A strong continuous visual field with color and motion.',
+    psychedelic: 'Explicit psychedelic, kaleidoscopic, trippy, prismatic, neon, or highly colorful visual experience. This choice opens Fractal Flames in the continuous Chamber Gallery.'
+  },
+  visualEngine: {
+    klee: 'Graphic Klee line art.', turrell: 'Soft atmospheric light.',
+    fractal: 'Dense colorful fractal flames; the most psychedelic Gallery engine.',
+    harmonograph: 'Fine harmonic line lattice.', ostensoria: 'Iridescent radial iris plate.',
+    apparitio: 'Prismatic spectral apparition.'
+  },
+  visualPalette: {
+    white: 'White attractor light.', red: 'Warm red attractor light.',
+    blue: 'Cool blue attractor light.', gold: 'Golden attractor light.',
+    purple: 'Purple attractor light; choose for psychedelic color.'
+  },
+  kleePreset: {
+    random: 'Varied Klee forms.', architectural: 'Structured geometry.',
+    chaotic: 'Energetic, unpredictable Klee forms.', harmonic: 'Balanced Klee forms.',
+    gravitational: 'Dense inward curves.', twittering: 'Lively small marks.'
+  },
+  galleryCadence: {
+    slow: 'Calm transitions about 24 seconds apart.',
+    balanced: 'Balanced transitions about 15 seconds apart.',
+    lively: 'Lively transitions about 10 seconds apart; choose for psychedelic energy.'
+  },
+  chamberFace: {
+    literary: 'Literary serif text.', display: 'Display serif text.',
+    thick: 'Bold geometric text; strong for vivid readings.', jp: 'Japanese serif text.'
+  },
+  fontSize: {
+    small: 'Small text.', medium: 'Medium text.', large: 'Large text.',
+    fit: 'Fit each word to the Chamber; effective with word chunking.'
+  },
+  colorTheme: {
+    classic: 'Warm ivory text on a near-black ground.',
+    amethyst: 'Violet ground with lilac accents.',
+    prism: 'Deep violet ground, bright text, and neon magenta; choose for psychedelic or prismatic requests.',
+    ember: 'Dark red-brown ground with fiery orange accents.',
+    cobalt: 'Deep blue ground with electric blue accents.',
+    jade: 'Dark green ground with luminous jade accents.'
+  },
+  wordFill: {
+    plain: 'Plain text ink.', accent: 'Fill text with the chosen accent color.',
+    same: 'Fill text with the Gallery visual when supported.'
+  },
   projection: { stream: 'Timed text stream.', page: 'Spatial text page.' },
   reveal: { instant: 'Show chunks immediately.', progressive: 'Reveal chunks progressively.' }
 });
@@ -116,19 +170,32 @@ async function decisionCacheKey(intent, books, apiKey) {
     { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
   const input = JSON.stringify({ model: MODEL, intent, books });
   const signature = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(input));
-  return `rise:jev-decision:v2:${Array.from(new Uint8Array(signature),
+  return `rise:jev-decision:v4:${Array.from(new Uint8Array(signature),
     byte => byte.toString(16).padStart(2, '0')).join('')}`;
 }
 
 function validConfig(config) {
   if (!config || typeof config !== 'object' || Array.isArray(config)
-    || Object.keys(config).length !== 8
+    || Object.keys(config).length !== 18
     || !Number.isInteger(config.wpm) || !Object.hasOwn(CHOICES.pace, String(config.wpm))) return null;
   const fields = { section: 'section', curve: 'curve', chunkMode: 'chunk', audio: 'audio',
-    visualMode: 'visual', projection: 'projection', revealMode: 'reveal' };
+    visualMode: 'visual', visualStyle: 'visualStyle', visualEngine: 'visualEngine', visualPalette: 'visualPalette',
+    kleePreset: 'kleePreset', galleryCadence: 'galleryCadence',
+    chamberFace: 'chamberFace', fontSize: 'fontSize',
+    colorTheme: 'colorTheme', wordFill: 'wordFill',
+    projection: 'projection', revealMode: 'reveal' };
   for (const [field, question] of Object.entries(fields)) {
     if (typeof config[field] !== 'string' || !Object.hasOwn(CHOICES[question], config[field])) return null;
   }
+  const palette = jevPalette(config.colorTheme);
+  if (!palette || !config.colors || Object.keys(config.colors).length !== 3
+    || Object.keys(palette).some(key => config.colors[key] !== palette[key])) return null;
+  if (config.visualStyle === 'psychedelic' && (config.visualMode !== 'interlocution'
+    || config.visualEngine !== 'fractal' || config.projection !== 'stream'
+    || config.colorTheme !== 'prism' || config.galleryCadence !== 'lively')) return null;
+  if (config.visualStyle === 'immersive' && config.projection !== 'stream') return null;
+  if (['genesis', 'attractor', 'interlocution'].includes(config.visualMode)
+    && config.projection !== 'stream') return null;
   return config;
 }
 
@@ -139,12 +206,38 @@ function choiceConfig(answers) {
     if (answer?.type !== 'choice' || typeof answer.choice !== 'string'
       || !Object.hasOwn(CHOICES[question], answer.choice)) return null;
   }
-  return {
+  const config = {
     section: answers.section.choice, wpm: Number(answers.pace.choice),
     curve: answers.curve.choice, chunkMode: answers.chunk.choice,
     audio: answers.audio.choice, visualMode: answers.visual.choice,
+    visualStyle: answers.visualStyle.choice,
+    visualEngine: answers.visualEngine.choice,
+    visualPalette: answers.visualPalette.choice,
+    kleePreset: answers.kleePreset.choice,
+    galleryCadence: answers.galleryCadence.choice,
+    chamberFace: answers.chamberFace.choice,
+    fontSize: answers.fontSize.choice,
+    colorTheme: answers.colorTheme.choice,
+    wordFill: answers.wordFill.choice,
     projection: answers.projection.choice, revealMode: answers.reveal.choice
   };
+  // One Jev answer determines one coherent plan. A psychedelic request cannot
+  // accidentally open a page, where temporal visual fields are hidden.
+  if (config.visualStyle === 'psychedelic') {
+    config.visualMode = 'interlocution';
+    config.visualEngine = 'fractal';
+    config.projection = 'stream';
+    config.colorTheme = 'prism';
+    config.galleryCadence = 'lively';
+  } else if (config.visualStyle === 'immersive'
+    || ['genesis', 'attractor', 'interlocution'].includes(config.visualMode)) {
+    config.projection = 'stream';
+  }
+  if (config.wordFill === 'same' && (config.visualMode !== 'interlocution'
+    || config.chamberFace !== 'thick' || config.fontSize !== 'fit'
+    || config.chunkMode !== 'word')) config.wordFill = 'accent';
+  config.colors = jevPalette(config.colorTheme);
+  return config;
 }
 
 function validCachedDecision(value, books) {

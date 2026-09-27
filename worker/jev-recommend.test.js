@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import releaseInventory from '../src/content/archive/release-inventory.json';
+import { JEV_PALETTES } from '../src/core/jev-palette.js';
 
 const mocks = vi.hoisted(() => ({
   query: vi.fn(),
@@ -53,7 +54,11 @@ const books = Object.keys(releaseInventory).map(workId => book(workId));
 
 const chosenConfig = Object.freeze({
   section: 'first', wpm: 200, curve: 'flat', chunkMode: 'word',
-  audio: 'silent', visualMode: 'off', projection: 'stream', revealMode: 'instant'
+  audio: 'silent', visualMode: 'off', visualStyle: 'quiet',
+  visualEngine: 'klee', visualPalette: 'white',
+  kleePreset: 'harmonic', galleryCadence: 'balanced', chamberFace: 'literary',
+  fontSize: 'medium', colorTheme: 'classic', colors: JEV_PALETTES.classic, wordFill: 'plain',
+  projection: 'stream', revealMode: 'instant'
 });
 
 function answers(workId, overrides = {}) {
@@ -65,6 +70,15 @@ function answers(workId, overrides = {}) {
     chunk: { type: 'choice', choice: 'word' },
     audio: { type: 'choice', choice: 'silent' },
     visual: { type: 'choice', choice: 'off' },
+    visualStyle: { type: 'choice', choice: 'quiet' },
+    visualEngine: { type: 'choice', choice: 'klee' },
+    visualPalette: { type: 'choice', choice: 'white' },
+    kleePreset: { type: 'choice', choice: 'harmonic' },
+    galleryCadence: { type: 'choice', choice: 'balanced' },
+    chamberFace: { type: 'choice', choice: 'literary' },
+    fontSize: { type: 'choice', choice: 'medium' },
+    colorTheme: { type: 'choice', choice: 'classic' },
+    wordFill: { type: 'choice', choice: 'plain' },
     projection: { type: 'choice', choice: 'stream' },
     reveal: { type: 'choice', choice: 'instant' },
     ...overrides
@@ -129,8 +143,12 @@ describe('Jev reading recommendation', () => {
     expect(Object.keys(body.questions.book.criteria)).toContain('literary-walden');
     expect(body.state).toEqual({ reader_intent: 'I want a thoughtful novel.' });
     expect(Object.keys(body.questions)).toEqual([
-      'book', 'section', 'pace', 'curve', 'chunk', 'audio', 'visual', 'projection', 'reveal'
+      'book', 'section', 'pace', 'curve', 'chunk', 'audio', 'visual', 'visualStyle',
+      'visualEngine', 'visualPalette', 'kleePreset', 'galleryCadence',
+      'chamberFace', 'fontSize', 'colorTheme', 'wordFill', 'projection', 'reveal'
     ]);
+    expect(body.questions.visual.criteria.interlocution).toContain('psychedelic');
+    expect(body.questions.visualEngine.criteria.fractal).toContain('psychedelic');
     expect(body.questions.audio.criteria).toHaveProperty('aurora');
     expect(body.questions.section.criteria).toHaveProperty('shortest');
     expect(provider.mock.calls[0][1].headers.Authorization).toBe('Bearer openrouter-server-secret');
@@ -160,7 +178,16 @@ describe('Jev reading recommendation', () => {
         curve: { type: 'choice', choice: 'wave' },
         chunk: { type: 'choice', choice: 'phrase' },
         audio: { type: 'choice', choice: 'aurora' },
-        visual: { type: 'choice', choice: 'focals' },
+        visual: { type: 'choice', choice: 'interlocution' },
+        visualStyle: { type: 'choice', choice: 'psychedelic' },
+        visualEngine: { type: 'choice', choice: 'fractal' },
+        visualPalette: { type: 'choice', choice: 'purple' },
+        kleePreset: { type: 'choice', choice: 'chaotic' },
+        galleryCadence: { type: 'choice', choice: 'lively' },
+        chamberFace: { type: 'choice', choice: 'thick' },
+        fontSize: { type: 'choice', choice: 'fit' },
+        colorTheme: { type: 'choice', choice: 'prism' },
+        wordFill: { type: 'choice', choice: 'accent' },
         projection: { type: 'choice', choice: 'page' },
         reveal: { type: 'choice', choice: 'progressive' }
       })
@@ -169,9 +196,34 @@ describe('Jev reading recommendation', () => {
     expect(response.status).toBe(200);
     expect((await response.json()).config).toEqual({
       section: 'shortest', wpm: 150, curve: 'wave', chunkMode: 'phrase',
-      audio: 'aurora', visualMode: 'focals', projection: 'page', revealMode: 'progressive'
+      audio: 'aurora', visualMode: 'interlocution', visualEngine: 'fractal',
+      visualStyle: 'psychedelic', visualPalette: 'purple', kleePreset: 'chaotic',
+      galleryCadence: 'lively', chamberFace: 'thick', fontSize: 'fit',
+      colorTheme: 'prism', colors: JEV_PALETTES.prism,
+      wordFill: 'accent', projection: 'stream', revealMode: 'progressive'
     });
     expect(fetch).toHaveBeenCalledOnce();
+  });
+
+  it('makes a psychedelic choice visibly colorful even when other answers conflict', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => Response.json({
+      model: 'typesafe/jev-1.13', provider: 'TypeSafe',
+      answers: answers('middlemarch', {
+        visualStyle: { type: 'choice', choice: 'psychedelic' },
+        visual: { type: 'choice', choice: 'off' },
+        visualEngine: { type: 'choice', choice: 'turrell' },
+        galleryCadence: { type: 'choice', choice: 'slow' },
+        colorTheme: { type: 'choice', choice: 'classic' },
+        projection: { type: 'choice', choice: 'page' }
+      })
+    })));
+    const response = await handleJevRecommend(request({ intent: 'A psychedelic reading.' }), env);
+    expect(response.status).toBe(200);
+    expect((await response.json()).config).toMatchObject({
+      visualStyle: 'psychedelic', visualMode: 'interlocution',
+      visualEngine: 'fractal', galleryCadence: 'lively',
+      projection: 'stream', colorTheme: 'prism', colors: JEV_PALETTES.prism
+    });
   });
 
   it('reuses a validated Jev decision for the same intent within the Redis TTL', async () => {
@@ -195,7 +247,7 @@ describe('Jev reading recommendation', () => {
     });
     expect(provider).toHaveBeenCalledTimes(1);
     const decisionKey = [...cache.keys()].find(key => key.startsWith('rise:jev-decision:'));
-    expect(decisionKey).toMatch(/^rise:jev-decision:v2:[0-9a-f]{64}$/u);
+    expect(decisionKey).toMatch(/^rise:jev-decision:v4:[0-9a-f]{64}$/u);
     expect(decisionKey).not.toContain('Nature and quiet.');
     expect(mocks.set).toHaveBeenCalledWith(decisionKey, expect.objectContaining({
       workId: 'literary-walden'
