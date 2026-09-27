@@ -405,6 +405,8 @@ describe('Jev reading recommendation', () => {
     expect(activeConfig.visualMode).toBe('interlocution');
     expect(activeConfig.visualProgram.segments.map(segment => segment.match.toProgress))
       .toEqual([0.7, 1]);
+    expect(activeConfig.visualProgram.segments.map(segment => segment.cue.collections[0]))
+      .toEqual(['klee', 'fractal']);
 
     provider.mockImplementationOnce(async () => Response.json({
       id: 'dark-decision', model: 'typesafe/jev-1.13', provider: 'TypeSafe',

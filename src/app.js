@@ -19,6 +19,7 @@ import {
 import { BetaGate } from './components/BetaGate.js';
 import { isRosaryDoor } from './core/rosary-door.js';
 import { TRY_RISE_PATH, isTryRisePath } from './core/keystone-paths.js';
+import { isJevSceneDemoPath } from './core/jev-demo-path.js';
 import { KEYSTONE_SESSION_ORIGIN } from './app/chamber-exit.js';
 
 import { errorBoundary, ErrorCategory, ErrorSeverity } from './core/error-boundary.js';
@@ -286,6 +287,7 @@ class App {
         const { keystoneSlugFromPath } = await import('./content/keystones.js');
         const directKeystone = keystoneSlugFromPath(window.location.pathname);
         const directTryRise = isTryRisePath(window.location.pathname);
+        const directJevSceneDemo = isJevSceneDemoPath(window.location.pathname);
         // A minted sequence is the same kind of public entry point. TWO
         // QUESTIONS, NOT ONE: whether this is a mint URL at all, and which
         // mint it names. A printed code outlives the sequence it names, so
@@ -325,6 +327,8 @@ class App {
             await this.router.navigate('keystones', { data: { slug: directKeystone } });
         } else if (directTryRise) {
             await this.router.navigate('keystones');
+        } else if (directJevSceneDemo) {
+            await this.router.navigate('portal', { data: { demoMode: true } });
         } else if (mintedSlug) {
             await this.router.navigate('mint', { data: { entry: houseProgram(mintedSlug) } });
         } else if (options.personalizedVault) {
@@ -463,6 +467,7 @@ class App {
             handleNavigate: this.handleNavigate,
             quickAccess: () => this.quickAccess(),
             launchJevReading: decision => this.launchJevReading(decision),
+            launchJevSample: () => this.launchJevSample(),
             launchKeystone: slug => this.launchKeystone(slug),
             openMintedProgram: slug => this.openMintedProgram(slug),
             handleSequenceSelection: sequenceId => this.handleSequenceSelection(sequenceId),
@@ -550,6 +555,9 @@ class App {
         }
         if (viewName === 'portal'
             && /^\/(?:try-rise|keystone(?:\/|$))/u.test(window.location.pathname)) {
+            window.history.pushState({}, '', '/');
+        }
+        if (viewName !== 'portal' && isJevSceneDemoPath(window.location.pathname)) {
             window.history.pushState({}, '', '/');
         }
         // Returned so a caller can wait for the outgoing view to have
@@ -771,6 +779,18 @@ class App {
         const sessionConfig = await resolveJevReading(decision);
         if (!await this.handleBeginSession(sessionConfig)) {
             throw new Error('The selected reading could not be opened. Please try again.');
+        }
+    }
+
+    /** Launch a fixed sample through the released-edition gate, without a provider call. */
+    async launchJevSample() {
+        const [{ sampleJevSceneDecision }, { resolveJevReading }] = await Promise.all([
+            import('./app/jev-scene-demo.js'), import('./app/jev-reading.js')
+        ]);
+        const sessionConfig = await resolveJevReading(sampleJevSceneDecision());
+        sessionConfig.origin = { ...sessionConfig.origin, experience: 'jev-sample' };
+        if (!await this.handleBeginSession(sessionConfig)) {
+            throw new Error('The sample reading could not be opened. Please try again.');
         }
     }
 
@@ -1273,6 +1293,7 @@ class App {
                 return;
             }
             await this.router?.navigate('portal', {
+                data: { demoMode: isJevSceneDemoPath(window.location.pathname) },
                 replace: true,
                 skipStack: true
              });

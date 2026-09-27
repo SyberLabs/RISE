@@ -13,6 +13,22 @@ const LEAVING = ['back', 'exit', 'close'];
 const fromTryRise = { origin: KEYSTONE_SESSION_ORIGIN };
 
 describe('leaving a reading opened from try-rise', () => {
+    it('opens the chosen next Keystone in its selection screen only for a finished Keystone', () => {
+        expect(chamberExitTarget('pilot-next', {
+            provenance: { kind: 'keystone', keystone: 'meditations' }
+        }, { slug: 'metamorphoses' })).toEqual({
+            kind: 'navigate', view: 'keystones', data: { slug: 'metamorphoses' }, replaceUrl: true
+        });
+        expect(chamberExitTarget('pilot-next', {}, { slug: 'metamorphoses' })).toBeNull();
+        expect(chamberExitTarget('pilot-next', { provenance: { kind: 'keystone' } },
+            { slug: 'meditations' })).toBeNull();
+        expect(chamberExitTarget('pilot-next', {
+            provenance: { kind: 'keystone', keystone: 'meditations' }
+        }, { slug: '../other' })).toBeNull();
+        expect(chamberExitTarget('pilot-next', {
+            provenance: { kind: 'keystone', keystone: 'meditations' }
+        }, { slug: 'meditations' })).toBeNull();
+    });
     it('returns to the try-rise screen however the reader left', () => {
         for (const reason of LEAVING) {
             expect(chamberExitTarget(reason, fromTryRise), reason).toEqual({
@@ -31,6 +47,13 @@ describe('leaving a reading opened from try-rise', () => {
 });
 
 describe('every other surface leaves exactly as it did', () => {
+    it('returns a disclosed Jev sample to its threshold on every leave action', () => {
+        for (const reason of LEAVING) {
+            expect(chamberExitTarget(reason, {
+                origin: { view: 'portal', experience: 'jev-sample' }
+            })).toEqual({ kind: 'navigate', view: 'portal' });
+        }
+    });
     it('sends a Library reading back to the orbital prep screen', () => {
         for (const reason of LEAVING) {
             expect(chamberExitTarget(reason, {}), reason)

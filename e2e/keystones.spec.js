@@ -29,11 +29,13 @@ test('Keystone corridor has durable cold, reload, launch, and Back behavior', as
   await expect(metamorphoses).toHaveAttribute('data-pos', '0');
   await expect(page.locator('#keystone-meditations')).toHaveAttribute('data-pos', '-1');
   await expect(page.locator('#keystone-tintern')).toHaveAttribute('data-pos', '1');
+  await expect(page.locator('[data-pilot-promise]')).toContainText('Ovid');
 
   // A press on a side reading centres it. It does not enter it.
   await page.locator('#keystone-meditations').click();
   await expect(page.locator('#keystone-meditations')).toHaveAttribute('data-pos', '0');
   await expect(page.locator('#keystone-meditations')).toHaveClass(/is-selected/u);
+  await expect(page.locator('[data-pilot-promise]')).toContainText('Marcus Aurelius');
   await expect(page).toHaveURL(/\/try-rise$/u);
 
   // Arrow keys move the centre, and the one action follows it.
@@ -123,4 +125,27 @@ test('Keystone corridor has durable cold, reload, launch, and Back behavior', as
   await page.reload();
   await expect(page.locator('#keystone-tintern')).toHaveClass(/is-selected/u, { timeout: 15_000 });
   await expect(page.locator('[data-enter]')).toHaveAttribute('data-keystone', 'tintern');
+});
+
+test('pilot completion offers a consented answer and one next reading', async ({ page }) => {
+  await authorize(page);
+  await page.goto('/keystone/meditations');
+  await expect(page.locator('[data-enter]')).toBeEnabled({ timeout: 15_000 });
+  await page.locator('[data-enter]').click();
+  await expect(page.locator('#chamber-display')).toBeVisible({ timeout: 20_000 });
+
+  // Exercise the real completion UI without waiting for the full timed reading.
+  await page.evaluate(() => window.__RISE_TEST__.getView('chamber-session').onSessionComplete());
+  const answer = page.locator('[data-pilot-feedback="yes"]');
+  await expect(answer).toBeVisible();
+  await expect(answer).toBeDisabled();
+  await page.locator('#post-pilot-consent').check();
+  await answer.click();
+  await expect(page.locator('#post-pilot-feedback-status'))
+    .toHaveText('Saved on this device. Export or erase it in Settings after reading.');
+
+  await page.locator('#post-pilot-next').click();
+  await expect(page).toHaveURL(/\/try-rise$/u);
+  await expect(page.locator('#keystone-metamorphoses')).toHaveAttribute('aria-checked', 'true');
+  await expect(page.locator('[data-pilot-promise]')).toContainText('Ovid');
 });

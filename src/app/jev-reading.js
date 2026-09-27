@@ -125,7 +125,7 @@ export async function resolveJevReading(decision) {
     visualProgram,
     verseLines: entry.verse === true,
     provenance: work.provenance,
-    origin: { view: 'portal', icon: '✧', name: 'Home' },
+    origin: { view: 'portal', icon: '✧', name: 'Home', experience: 'jev' },
     ...(divisions.divided && divisions.entries.length > 1 ? { continuation: {
       kind: 'library-division',
       workId: work.workId || work.id,

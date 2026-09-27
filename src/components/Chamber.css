@@ -13,6 +13,28 @@
   --chamber-controls-clearance: var(--space-xl);
 }
 
+.post-pilot {
+  position: relative;
+  z-index: 1;
+  width: min(100%, 32rem);
+  margin: 0 auto 2rem;
+  text-align: center;
+  color: var(--color-fog);
+}
+
+.post-pilot-label {
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  font-size: 0.7rem;
+}
+
+.post-pilot > button { margin-top: 0.75rem; }
+.post-pilot-feedback { margin-top: 1.75rem; font-size: 0.85rem; }
+.post-pilot-feedback label { display: block; margin: 0.75rem auto; }
+.post-pilot-feedback-answers { display: flex; justify-content: center; flex-wrap: wrap; gap: 0.5rem; }
+.post-pilot-feedback-answers button { padding: 0.4rem 0.8rem; cursor: pointer; }
+.post-pilot-feedback-answers button:disabled { opacity: 0.45; cursor: default; }
+
 /* ─────────────────────────────────────────────────────────────
    PRE-SESSION STATE
    ───────────────────────────────────────────────────────────── */
@@ -537,6 +559,38 @@
 
 .control-btn:hover {
   color: var(--color-accent);
+}
+
+.jev-next-scene {
+  gap: 0.35rem;
+}
+
+.jev-next-scene .control-label {
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.jev-next-scene:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.jev-scene-status:not(:empty) {
+  max-width: 11rem;
+  color: var(--color-fog);
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
+  line-height: 1.3;
+}
+
+.chamber-display.page-mode-on .jev-next-scene {
+  display: none;
+}
+
+.chamber-display.page-mode-on .jev-scene-status {
+  display: none;
 }
 
 .control-btn .icon {
