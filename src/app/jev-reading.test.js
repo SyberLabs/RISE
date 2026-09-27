@@ -1,6 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { getTextById } from '../content/library.js';
 import releaseInventory from '../content/archive/release-inventory.json' with { type: 'json' };
+import { jevPalette } from '../core/jev-palette.js';
+import { resolveJevChamberConfig } from '../core/jev-config.js';
 import { resolveJevReading, selectJevDivision } from './jev-reading.js';
 
 vi.mock('../content/library.js', () => ({ getTextById: vi.fn() }));
@@ -17,15 +19,23 @@ const divisions = {
 };
 
 function decision(config = {}) {
+  const selectors = {
+    section: 'first', wpm: 200, curve: 'flat', chunkMode: 'phrase',
+    audio: 'aurora', visualMode: 'focals', projection: 'stream',
+    revealMode: 'instant', visualEngine: 'fractal', visualPalette: 'purple',
+    kleePreset: 'chaotic', galleryCadence: 'balanced',
+    visualStyle: 'gentle', chamberFace: 'literary', fontSize: 'medium',
+    wordFill: 'plain', colorTheme: 'classic', ...config
+  };
   return {
     workId: released.workId,
     editionId: released.editionId,
     sourceRevision: released.sourceRevision,
     text: 'Model-supplied prose must never reach the reading.',
     config: {
-      section: 'first', wpm: 200, curve: 'flat', chunkMode: 'phrase',
-      audio: 'aurora', visualMode: 'focals', projection: 'stream',
-      revealMode: 'instant', ...config
+      ...selectors,
+      colors: jevPalette(selectors.colorTheme),
+      ...resolveJevChamberConfig(selectors)
     }
   };
 }
@@ -54,6 +64,10 @@ describe('Jev reading handoff', () => {
       audioPreset: 'silent', soundscape: 'aurora',
       projection: 'stream', revealMode: 'instant',
       visualConfig: { visualMode: 'focals' },
+      presentation: {
+        chamberFace: 'literary', fontSize: 'medium',
+        colorTheme: 'classic', colors: jevPalette('classic')
+      },
       continuation: {
         workId: released.workId, editionId: released.editionId,
         sourceRevision: released.sourceRevision, entryId: '0',
@@ -67,6 +81,32 @@ describe('Jev reading handoff', () => {
       .rejects.toThrow('invalid reading plan');
     await expect(resolveJevReading({ ...decision(), sourceRevision: 'other' }))
       .rejects.toThrow('not available');
+    const tampered = decision();
+    tampered.config.colors = { ...jevPalette('classic'), accent: '#000000' };
+    await expect(resolveJevReading(tampered))
+      .rejects.toThrow('invalid reading plan');
+    const tamperedVisual = decision();
+    tamperedVisual.config.visualConfig = { visualMode: 'off' };
+    await expect(resolveJevReading(tamperedVisual))
+      .rejects.toThrow('invalid reading plan');
+  });
+
+  it('opens a vivid nonflashing Gallery in Stream', async () => {
+    const input = await resolveJevReading(decision({
+      visualStyle: 'psychedelic', visualMode: 'interlocution', visualEngine: 'fractal',
+      galleryCadence: 'lively', colorTheme: 'prism',
+      projection: 'stream', wordFill: 'accent', chamberFace: 'thick'
+    }));
+    expect(input.projection).toBe('stream');
+    expect(input.visualConfig).toMatchObject({
+      visualMode: 'interlocution',
+      interlocution: {
+        sourceFamily: 'procedural', procedural: ['fractal'], sourced: [],
+        presentation: 'continuous', galleryCadence: 0.85,
+        wordFill: { mode: 'accent' }
+      }
+    });
+    expect(input.presentation.colors).toEqual(jevPalette('prism'));
   });
 
   it('chooses a real division using the section enum', () => {

@@ -95,6 +95,7 @@ import {
 import { resolveTextMaterialCapability } from '../core/chamber-text-material.js';
 import { FitMaskRuntime } from '../core/fit-mask-runtime.js';
 import { resolveSessionWordFill } from '../core/visual-selection.js';
+import { sessionColorTheme } from '../core/session-presentation.js';
 import './Chamber.css';
 
 /**
@@ -360,6 +361,7 @@ export class Chamber {
     console.log('[Chamber] Auto-start:', this.autoStart);
 
     this.render();
+    this.applySessionColors();
     this.applyChamberStreamFace();
     this.applyChamberTypeSize();
     this.attachEvents();
@@ -692,6 +694,21 @@ export class Chamber {
       void this.syncFillGlyphMask();
     }
     return true;
+  }
+
+  applySessionColors() {
+    const colors = sessionColorTheme(this.session);
+    if (!colors) return;
+    const hex = colors.accent.slice(1);
+    const rgb = [0, 2, 4].map(offset => parseInt(hex.slice(offset, offset + 2), 16)).join(', ');
+    for (const [name, value] of Object.entries({
+      '--color-void': colors.background,
+      '--color-light': colors.text,
+      '--color-cloud': colors.text,
+      '--color-accent': colors.accent,
+      '--color-accent-rgb': rgb,
+      '--color-threshold': colors.accent
+    })) this.container.style.setProperty(name, value);
   }
 
   applyChamberTypeSize() {
@@ -3365,6 +3382,10 @@ export class Chamber {
 
   destroy() {
     this._destroyed = true;
+    for (const name of ['--color-void', '--color-light', '--color-cloud',
+      '--color-accent', '--color-accent-rgb', '--color-threshold']) {
+      this.container.style.removeProperty(name);
+    }
     this.closeSettings();
     this.unbindVisualViewport();
     this._bandMoveCleanup?.();

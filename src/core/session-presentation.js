@@ -35,6 +35,7 @@
 import { clampBandFraction, BAND_OFFSET_SETTING } from './band-offset.js';
 import { resolveChamberStreamFace } from './chamber-stream-face.js';
 import { persistFontSize } from './chamber-type-size.js';
+import { jevPalette } from './jev-palette.js';
 
 /** The only settings a composed reading may open with. */
 export const PRESENTATION_KEYS = Object.freeze([
@@ -105,6 +106,16 @@ export function sessionPresentation(session) {
   const band = resolveBandOffset(declared[BAND_OFFSET_SETTING]);
   if (band != null) claimed[BAND_OFFSET_SETTING] = band;
   return Object.keys(claimed).length ? Object.freeze(claimed) : null;
+}
+
+/** Exact colors chosen from a shipped palette; never trust arbitrary model CSS. */
+export function sessionColorTheme(session) {
+  const declared = session?.presentation;
+  const palette = jevPalette(declared?.colorTheme);
+  const colors = declared?.colors;
+  if (!palette || !colors || typeof colors !== 'object'
+    || ['background', 'text', 'accent'].some(key => colors[key] !== palette[key])) return null;
+  return palette;
 }
 
 /**
