@@ -2,6 +2,7 @@ import { neon } from '@neondatabase/serverless';
 import { Redis } from '@upstash/redis/cloudflare';
 import releaseInventory from '../src/content/archive/release-inventory.json' with { type: 'json' };
 import { jevPalette } from '../src/core/jev-palette.js';
+import { resolveJevChamberConfig } from '../src/core/jev-config.js';
 
 const API_URL = 'https://openrouter.ai/api/alpha/decisions';
 const MODEL = 'typesafe/jev-1.13';
@@ -170,13 +171,13 @@ async function decisionCacheKey(intent, books, apiKey) {
     { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
   const input = JSON.stringify({ model: MODEL, intent, books });
   const signature = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(input));
-  return `rise:jev-decision:v4:${Array.from(new Uint8Array(signature),
+  return `rise:jev-decision:v5:${Array.from(new Uint8Array(signature),
     byte => byte.toString(16).padStart(2, '0')).join('')}`;
 }
 
 function validConfig(config) {
   if (!config || typeof config !== 'object' || Array.isArray(config)
-    || Object.keys(config).length !== 18
+    || Object.keys(config).length !== 26
     || !Number.isInteger(config.wpm) || !Object.hasOwn(CHOICES.pace, String(config.wpm))) return null;
   const fields = { section: 'section', curve: 'curve', chunkMode: 'chunk', audio: 'audio',
     visualMode: 'visual', visualStyle: 'visualStyle', visualEngine: 'visualEngine', visualPalette: 'visualPalette',
@@ -196,6 +197,16 @@ function validConfig(config) {
   if (config.visualStyle === 'immersive' && config.projection !== 'stream') return null;
   if (['genesis', 'attractor', 'interlocution'].includes(config.visualMode)
     && config.projection !== 'stream') return null;
+  const resolved = resolveJevChamberConfig(config);
+  if (config.audioPreset !== resolved.audioPreset
+    || config.soundscape !== resolved.soundscape
+    || config.entrainmentMode !== resolved.entrainmentMode
+    || config.entrainmentWaveform !== resolved.entrainmentWaveform
+    || JSON.stringify(config.recitation) !== JSON.stringify(resolved.recitation)
+    || config.voiceId !== resolved.voiceId
+    || config.projection !== resolved.projection
+    || JSON.stringify(config.visualConfig) !== JSON.stringify(resolved.visualConfig)
+    || JSON.stringify(config.presentation) !== JSON.stringify(resolved.presentation)) return null;
   return config;
 }
 
@@ -237,6 +248,7 @@ function choiceConfig(answers) {
     || config.chamberFace !== 'thick' || config.fontSize !== 'fit'
     || config.chunkMode !== 'word')) config.wordFill = 'accent';
   config.colors = jevPalette(config.colorTheme);
+  Object.assign(config, resolveJevChamberConfig(config));
   return config;
 }
 

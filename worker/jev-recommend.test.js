@@ -58,7 +58,15 @@ const chosenConfig = Object.freeze({
   visualEngine: 'klee', visualPalette: 'white',
   kleePreset: 'harmonic', galleryCadence: 'balanced', chamberFace: 'literary',
   fontSize: 'medium', colorTheme: 'classic', colors: JEV_PALETTES.classic, wordFill: 'plain',
-  projection: 'stream', revealMode: 'instant'
+  projection: 'stream', revealMode: 'instant',
+  audioPreset: 'silent', soundscape: 'none',
+  entrainmentMode: 'binaural', entrainmentWaveform: 'sine',
+  recitation: { enabled: false }, voiceId: null,
+  visualConfig: { visualMode: 'off' },
+  presentation: {
+    chamberFace: 'literary', fontSize: 'medium',
+    colorTheme: 'classic', colors: JEV_PALETTES.classic
+  }
 });
 
 function answers(workId, overrides = {}) {
@@ -200,7 +208,22 @@ describe('Jev reading recommendation', () => {
       visualStyle: 'psychedelic', visualPalette: 'purple', kleePreset: 'chaotic',
       galleryCadence: 'lively', chamberFace: 'thick', fontSize: 'fit',
       colorTheme: 'prism', colors: JEV_PALETTES.prism,
-      wordFill: 'accent', projection: 'stream', revealMode: 'progressive'
+      wordFill: 'accent', projection: 'stream', revealMode: 'progressive',
+      audioPreset: 'silent', soundscape: 'aurora',
+      entrainmentMode: 'binaural', entrainmentWaveform: 'sine',
+      recitation: { enabled: false }, voiceId: null,
+      visualConfig: {
+        visualMode: 'interlocution', livingText: { enabled: true },
+        interlocution: {
+          sourceFamily: 'procedural', procedural: ['fractal'], sourced: [],
+          presentation: 'continuous', galleryCadence: 0.85,
+          kleePreset: 'chaotic', wordFill: { mode: 'accent' }
+        }
+      },
+      presentation: {
+        chamberFace: 'thick', fontSize: 'fit',
+        colorTheme: 'prism', colors: JEV_PALETTES.prism
+      }
     });
     expect(fetch).toHaveBeenCalledOnce();
   });
@@ -222,7 +245,11 @@ describe('Jev reading recommendation', () => {
     expect((await response.json()).config).toMatchObject({
       visualStyle: 'psychedelic', visualMode: 'interlocution',
       visualEngine: 'fractal', galleryCadence: 'lively',
-      projection: 'stream', colorTheme: 'prism', colors: JEV_PALETTES.prism
+      projection: 'stream', colorTheme: 'prism', colors: JEV_PALETTES.prism,
+      visualConfig: { visualMode: 'interlocution', interlocution: {
+        presentation: 'continuous', procedural: ['fractal'], galleryCadence: 0.85
+      } },
+      presentation: { colorTheme: 'prism', colors: JEV_PALETTES.prism }
     });
   });
 
@@ -247,7 +274,7 @@ describe('Jev reading recommendation', () => {
     });
     expect(provider).toHaveBeenCalledTimes(1);
     const decisionKey = [...cache.keys()].find(key => key.startsWith('rise:jev-decision:'));
-    expect(decisionKey).toMatch(/^rise:jev-decision:v4:[0-9a-f]{64}$/u);
+    expect(decisionKey).toMatch(/^rise:jev-decision:v5:[0-9a-f]{64}$/u);
     expect(decisionKey).not.toContain('Nature and quiet.');
     expect(mocks.set).toHaveBeenCalledWith(decisionKey, expect.objectContaining({
       workId: 'literary-walden'
