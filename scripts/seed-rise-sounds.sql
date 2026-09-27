@@ -15,7 +15,9 @@ INSERT INTO rise_sounds (sound_id, decision_criterion, active) VALUES
   ('happy', 'Warm major harmony for joy, ease, or celebration.', TRUE),
   ('excited', 'Bright moving harmony for anticipation and high energy.', TRUE),
   ('thrilling', 'Driving low pulse for suspense, pursuit, or dramatic momentum.', TRUE),
-  ('scary', 'Uneasy low dissonance for dread, fear, or ominous scenes.', TRUE)
+  ('scary', 'Uneasy low dissonance for dread, fear, or ominous scenes.', TRUE),
+  ('piano', 'Gentle piano melody for intimate, tender, or reflective reading.', TRUE),
+  ('jazz', 'Swung jazz piano and walking bass for lively or sophisticated reading.', TRUE)
 ON CONFLICT (sound_id) DO UPDATE SET
   decision_criterion = EXCLUDED.decision_criterion,
   active = EXCLUDED.active;
