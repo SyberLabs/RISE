@@ -276,6 +276,7 @@ outliving its room, fails a build.
 |---|---|---|
 | Portal | `src/components/Portal.js` | the hub, and the first screen |
 | Keystones | `src/components/Keystones.js` | the public entry corridor |
+| ShortSequences | `src/components/ShortSequences.js` | short readings that enter the Chamber and return to a private next step |
 | Mint | `src/components/Mint.js` | the door a minted sequence opens onto |
 | Chamber | `src/components/Chamber.js` | a reading, in time |
 | ChamberOrbital | `src/components/ChamberOrbital.js` | tuning a reading before it starts |
