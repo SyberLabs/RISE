@@ -1680,7 +1680,7 @@
   .chamber-field .atom-display {
     /* ~22px at 390px (~26 chars/line); clamp for 320px–tablet. Scale
        floor via max() so long phrases gain lines instead of shrinking. */
-    font-size: calc(clamp(20px, 6.1vw, 27px) * max(0.88, var(--atom-scale, 1)));
+    font-size: calc(clamp(20px, 6.1vw, 27px) * max(0.88, var(--atom-scale, 1)) * var(--font-size-intent, 1));
     line-height: 1.45;
     max-width: 100%;
     width: 100%;
@@ -1691,7 +1691,7 @@
   }
 
   .chamber-field .atom-display.is-mask {
-    font-size: calc(clamp(20px, 6.1vw, 27px) * max(0.88, var(--atom-scale, 1)));
+    font-size: calc(clamp(20px, 6.1vw, 27px) * max(0.88, var(--atom-scale, 1)) * var(--font-size-intent, 1));
   }
 
   .chamber-field .atom-display.is-word-fit,

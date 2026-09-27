@@ -141,6 +141,24 @@ describe('Chamber type size (FM-RISE-36)', () => {
         chamber.destroy();
     });
 
+    it.each(['word', 'phrase', 'sentence', 'paragraph'])(
+        'applies fixed XL at the larger scale for %s without invoking Fit',
+        (chunkMode) => {
+            const { chamber, container } = makeChamber(
+                { chunkMode },
+                { fontSize: 'xlarge' }
+            );
+            chamber.displayAtom({ content: 'A readable passage', duration: 500 }, 0);
+            const el = container.querySelector('#atom-display');
+
+            expect(el.dataset.fontSize).toBe('xlarge');
+            expect(el.classList.contains('is-word-fit')).toBe(false);
+            expect(el.style.getPropertyValue('--atom-fit-px')).toBe('');
+            expect(Number(el.style.getPropertyValue('--font-size-intent'))).toBeCloseTo(1.36, 5);
+            chamber.destroy();
+        }
+    );
+
     it('fits a short Word only when Fit is selected', () => {
         const { chamber, container } = makeChamber(
             { chunkMode: 'word' },

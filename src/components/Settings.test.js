@@ -124,7 +124,7 @@ describe('Settings display type', () => {
         settings.destroy();
     });
 
-    it('keeps Size on S | M | L | Fit chips and drops the 0–2 slider', () => {
+    it('keeps Size on S | M | L | XL | Fit chips and drops the 0–2 slider', () => {
         const { container, settings, onChange } = mountSettings({ fontSize: 'medium' });
         const radios = [...container.querySelectorAll('input[name="font-size"]')];
 
@@ -137,6 +137,7 @@ describe('Settings display type', () => {
             ['s', 'small', 'S'],
             ['m', 'medium', 'M'],
             ['l', 'large', 'L'],
+            ['xl', 'xlarge', 'XL'],
             ['fit', 'fit', 'Fit']
         ]);
         expect(radios.find((radio) => radio.value === 'medium').checked).toBe(true);
@@ -144,6 +145,9 @@ describe('Settings display type', () => {
 
         radios.find((radio) => radio.value === 'large').click();
         expect(onChange).toHaveBeenCalledWith('fontSize', 'large');
+
+        radios.find((radio) => radio.value === 'xlarge').click();
+        expect(onChange).toHaveBeenCalledWith('fontSize', 'xlarge');
 
         radios.find((radio) => radio.value === 'fit').click();
         expect(onChange).toHaveBeenCalledWith('fontSize', 'fit');
