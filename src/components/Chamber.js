@@ -1217,7 +1217,11 @@ export class Chamber {
         // Admission first: entering a block freezes its treatment, so the
         // cue the scheduler emits next is the one this reader will keep.
         if (this._directedSchedule && this._visualSchedule === this._directedSchedule) {
-          this._direction.director.observe(data.atom);
+          const entered = this._direction.director.observe(data.atom);
+          if (entered) {
+            this._direction.currentBlock = entered.index;
+            this._direction.scoring?.observe(entered.index);
+          }
         }
 
         // The visual schedule follows the reading (PERICOPE-IMAGERY-
@@ -1654,7 +1658,77 @@ export class Chamber {
     // The reading's own Gallery engine must not flash up before the first
     // directed cue arrives with the first atom.
     visualCortex.applyCue({ kind: 'still' }, { cueId: 'passage-direction' });
+    void this._startVisualScoring();
     return true;
+  }
+
+  /**
+   * Lazily attach Jev lookahead. Catalog readings verified against the
+   * released archive may be scored automatically; any other text is sent
+   * only after the reader's explicit consent for this exact source.
+   */
+  async _startVisualScoring() {
+    const state = this._direction;
+    if (!state?.director) return;
+    try {
+      if (!state.scoring) {
+        const [{ VisualScoreCoordinator, VisualScoreCache }, { verifyCatalogReading }] = await Promise.all([
+          import('../core/passage-visuals/scoring-client.js'),
+          import('../core/passage-visuals/catalog-identity.js')
+        ]);
+        if (state.scoring) return this._startVisualScoring();
+        let storage = null;
+        try { storage = window.localStorage; } catch { storage = null; }
+        state.scoring = new VisualScoreCoordinator({
+          director: state.director,
+          sources: state.director.sources.map(source => ({ id: source.id, text: source.text })),
+          cache: new VisualScoreCache({ storage }),
+          onEvent: event => state.onScoringEvent?.(event)
+        });
+        state.scoringReady = state.scoring.prepare();
+        state.catalogCheck = verifyCatalogReading(this.session).catch(() => false);
+      }
+      await state.scoringReady;
+      state.catalogVerified = await state.catalogCheck;
+    } catch (error) {
+      console.warn('[Chamber] Jev visual direction unavailable:', error?.message || error);
+      return;
+    }
+    if (this._destroyed) return;
+    state.onScoringEvent = event => this._onScoringEvent(event);
+    this._syncScoringPermission();
+    this._syncScoringActivity();
+    const current = this._direction.director.blockIndexForAtom(this._jevCurrentAtom || this.session?.atoms?.[0]);
+    if (current >= 0) state.scoring.observe(current);
+  }
+
+  /** Transmission permission: verified catalog text, or explicit consent. */
+  _syncScoringPermission() {
+    const state = this._direction;
+    if (!state?.scoring?.prepared) return;
+    const digests = state.scoring.sourceDigests;
+    const permitted = state.catalogVerified
+      ? digests
+      : digests.filter(digest => state.consent?.sourceDigest === digest);
+    state.scoring.setPermission(permitted);
+  }
+
+  /** No new request while paused, hidden, outside the Chamber, Hold, or Off. */
+  _syncScoringActivity() {
+    const state = this._direction;
+    state?.scoring?.setActivity({
+      playing: this.player?.state === 'playing',
+      visible: typeof document === 'undefined' || !document.hidden,
+      inChamber: !this._destroyed && this._active !== false && !this.pageModeActive && !this._labOpen,
+      mode: state.mode
+    });
+  }
+
+  _onScoringEvent(event) {
+    if (event?.kind === 'scored' || event?.kind === 'cached' || event?.kind === 'failed') {
+      this._direction.lastScoring = event;
+      this._refreshVisualDrawer?.();
+    }
   }
 
   /**
@@ -3874,6 +3948,7 @@ export class Chamber {
 
     if (state === 'paused') this._visualFieldDirector?.pause();
     else if (state === 'playing') this._visualFieldDirector?.resume();
+    this._syncScoringActivity();
 
     // Authored imagery is bound to the reading clock: pause holds the exact
     // Gallery frame and living-engine state. An unscored ambient Gallery is
@@ -3921,6 +3996,9 @@ export class Chamber {
     if (this._active) return;
     this._active = true;
     document.addEventListener('keydown', this.boundKeyboardHandler);
+    this._onVisualVisibility ||= () => this._syncScoringActivity();
+    document.addEventListener('visibilitychange', this._onVisualVisibility);
+    this._syncScoringActivity();
 
     // App normally completed the initial static lead during session
     // preparation. prepare() is idempotent, and is required here for direct
@@ -3937,6 +4015,8 @@ export class Chamber {
     if (!this._active) return;
     this._active = false;
     document.removeEventListener('keydown', this.boundKeyboardHandler);
+    if (this._onVisualVisibility) document.removeEventListener('visibilitychange', this._onVisualVisibility);
+    this._syncScoringActivity();
   }
 
   bindVisualViewport() {
@@ -3981,6 +4061,10 @@ export class Chamber {
       this._onRevealMotionChange = null;
     }
     this.deactivate();
+    // Outside the Chamber no new scoring request starts; a valid reply
+    // already in flight may still land in the local cache.
+    this._syncScoringActivity();
+    if (this._direction) this._direction.onScoringEvent = null;
     // A reveal in flight would otherwise fire into a torn-down DOM.
     this.cancelReveal();
     // A Journey's score must not outlive its Chamber (§8.3). The

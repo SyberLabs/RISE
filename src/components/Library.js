@@ -812,7 +812,10 @@ export class Library {
       // Call the callback with full text and source
       this.onSelectText(fullText, text.title, {
         wpm: text.defaultWpm,
-        curve: text.defaultCurve
+        curve: text.defaultCurve,
+        // Where to look, not a claim: visual direction verifies the exact
+        // text against the released work before treating it as catalog.
+        provenance: { kind: 'library-work', workId: text.workId || text.id }
       });
 
     } catch (error) {
@@ -1077,6 +1080,7 @@ export class Library {
     this.onSelectText(full, text.title, {
       wpm: text.defaultWpm,
       curve: text.defaultCurve,
+      provenance: { kind: 'library-work', workId: text.workId || text.id },
       // Weighed in words: a work is rarely all one thing, and the line
       // splitter costs a prose paragraph nothing — one long line is handed
       // straight back to the punctuation splitter.

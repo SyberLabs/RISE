@@ -1,6 +1,7 @@
 import { handleJevDecision } from '../netlify/functions/jev-decision.mjs';
 import handleJevRoute from '../netlify/functions/jev-route.mjs';
 import { handleJevRecommend } from './jev-recommend.mjs';
+import { handleJevVisualScore } from './jev-visual-score.mjs';
 
 const JSON_HEADERS = {
   'Content-Type': 'application/json; charset=utf-8',
@@ -37,6 +38,12 @@ export default {
       return path === '/api/jev-recommend'
         ? handleJevRecommend(request, env)
         : handleJevDecision(request, env.OPENROUTER_API_KEY);
+    }
+
+    // Passage-directed visuals have their own limiter so a long reading can
+    // never spend the recommendation budget, and vice versa.
+    if (path === '/api/jev-visual-score') {
+      return handleJevVisualScore(request, env);
     }
 
     if (path === '/api/jev/route') {
