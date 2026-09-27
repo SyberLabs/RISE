@@ -89,6 +89,25 @@ describe('cinematic soundscapes', () => {
         expect(oscillators).toHaveLength(stoppedAt);
     });
 
+    it('keeps the Wonder melody inside a major pentatonic scale', () => {
+        vi.useFakeTimers();
+        const { ctx, oscillators } = mockContext();
+        const sound = CINEMATIC_SOUNDSCAPES.wonder.create(ctx, ctx.destination);
+        sound.start();
+
+        for (let bar = 1; bar < 9; bar += 1) {
+            ctx.currentTime = bar * 2.6;
+            vi.advanceTimersByTime(2600);
+        }
+
+        const melody = oscillators.slice(3).map(osc => {
+            const semitones = 12 * Math.log2(osc.frequency.value / 130.81);
+            return ((Math.round(semitones) % 12) + 12) % 12;
+        });
+        expect(melody).toEqual([0, 2, 4, 7, 9, 7, 4, 2, 0]);
+        sound.stop(true);
+    });
+
     it('makes stop idempotent and prevents later scheduling', () => {
         vi.useFakeTimers();
         const { ctx, oscillators, nodes } = mockContext();

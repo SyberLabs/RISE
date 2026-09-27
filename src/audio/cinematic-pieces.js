@@ -3,7 +3,8 @@ const DEFINITIONS = {
         name: 'Wonder',
         description: 'An open, slowly breathing major-pentatonic horizon with soft, bell-like answers.',
         root: 130.81, type: 'sine', partials: [1, 1.25, 1.5], filter: 1800,
-        notes: [2, 3, 4, 2, 1], interval: 2600, duration: 1.9, noteType: 'sine', pan: 0.48
+        notes: [2, 2.2449240966, 2.5198420998, 3, 3.363585661, 3, 2.5198420998, 2.2449240966, 2],
+        interval: 2600, duration: 1.9, noteType: 'sine', pan: 0.48
     },
     mystery: {
         name: 'Mystery',
