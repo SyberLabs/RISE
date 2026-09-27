@@ -22,10 +22,10 @@ export function renderAssetLibrary(view) {
 
       <section class="studio-library-section studio-visual-library" aria-labelledby="studio-assets-title">
         <div class="studio-section-heading">
-          <div><span class="studio-kicker">Unified registry</span><h2 id="studio-assets-title">Assets</h2></div>
+          <div><span class="studio-kicker">Media</span><h2 id="studio-assets-title">Assets</h2></div>
           <div class="studio-asset-add-actions studio-choice-grid studio-choice-grid-2" ${view.activeAssetLane === 'visual' ? '' : 'hidden'}>
-            <button type="button" class="btn-secondary btn-compact" data-action="upload-image">+ Project media</button>
-            <button type="button" class="btn-secondary btn-compact" data-action="upload-global-image">+ Shared</button>
+            <button type="button" class="btn-secondary btn-compact" data-action="upload-image">Add media</button>
+            <button type="button" class="btn-secondary btn-compact" data-action="upload-global-image">Add shared</button>
           </div>
         </div>
         <div class="studio-library-tabs studio-choice-grid studio-choice-grid-2" role="tablist" aria-label="Asset library">
@@ -54,7 +54,7 @@ export function renderAssetLibrary(view) {
         <div id="studio-audio-library-panel" class="studio-library-lane-panel" role="tabpanel" ${view.activeAssetLane === 'audio' ? '' : 'hidden'}>
           <div class="studio-audio-library-heading">
             <p class="input-note text-fog">Passage clips score selected text. Atmosphere remains the whole-reading default.</p>
-            <button type="button" class="btn-secondary btn-compact" data-action="upload-personal-swell">+ Personal audio</button>
+            <button type="button" class="btn-secondary btn-compact" data-action="upload-personal-swell">Add audio</button>
           </div>
           <div class="studio-asset-registry-scroll">
             <div class="studio-audio-registry" id="audio-assets-list" role="listbox" aria-label="Audio assets">${view.audioAssetsHtml}</div>
