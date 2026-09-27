@@ -197,8 +197,9 @@ from the Vite dev server.
  builds the app and starts `vite preview` on `127.0.0.1:4317` itself, with
  `VITE_RISE_ARCHIVE_REVIEW=1`. Do **not** start a server manually. It runs
  Chromium only, single worker, with autoplay forced on (Web Audio).
-- Pull requests run four core unit smoke files, plus build, hygiene, docs,
- and Scriptorium checks. The complete unit and browser suites run after merge
+- Pull requests run five core and CI policy smoke files, plus build, hygiene,
+ docs, and Scriptorium checks in one `CI` job with one dependency install.
+ The complete unit and browser suites run after merge
  on main. Browser checks also run through `workflow_dispatch`; the four
  `Browser matrix` check names still report on pull requests because repository
  rules may require them. Their pull-request result explicitly says browser
@@ -207,11 +208,11 @@ from the Vite dev server.
 - There is **no lint script**. The gates a pull request has to pass are:
  `node scripts/ci-hygiene.mjs`, `npm run security:audit`, and
  `npm run security:compat`
- (`hygiene` job); `npm run measure:first-load`, which holds what
+ (`CI` on pull requests, `hygiene` on main); `npm run measure:first-load`, which holds what
  `dist/index.html` fetches to a ratcheting brotli budget declared in the script
- (`build` job); and `npx vitest run src/core/system-design.test.js` plus
+ (`CI` on pull requests, `build` on main); and `npx vitest run src/core/system-design.test.js` plus
  `npm run docs:diagram`, which must leave `docs/specs/ARCHITECTURE.md` unchanged
- (`docs` job).
+ (`CI` on pull requests, `docs` on main).
 - `docs/specs/ARCHITECTURE.md` §3 carries a **generated** import graph between
  `<!-- BEGIN GENERATED DIAGRAM -->` markers. Edit
  `scripts/build-architecture-diagram.mjs`, never the diagram. The rest of that
@@ -219,8 +220,8 @@ from the Vite dev server.
 - A change touching only `docs/`, `.agents/`, `.cursor/`, a root `*.md`,
  `LICENSE`, or `NOTICE` skips the unit, build, Scriptorium, and browser jobs.
  Anything else runs everything. The system-design guard lives in the unit suite
- but is **also** run by the `docs` job, because editing that document is exactly
- when it has to run.
+ but is **also** run by PR `CI` and the main `docs` job, because editing that
+ document is exactly when it has to run.
 - `CI` is the one job that always reports and the only name a branch ruleset
  should require. A required check that never reports blocks a merge forever.
 

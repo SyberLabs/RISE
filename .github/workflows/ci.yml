@@ -88,6 +88,7 @@ jobs:
 
   hygiene:
     name: Source hygiene
+    if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -108,6 +109,7 @@ jobs:
 
   docs:
     name: System design document
+    if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -137,35 +139,22 @@ jobs:
   test:
     name: Unit tests
     needs: changes
-    if: needs.changes.outputs.code == 'true'
+    if: needs.changes.outputs.code == 'true' && github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/setup
-        if: github.event_name != 'pull_request'
         with:
           ffmpeg: 'true'
           chromium: 'true'
-      - uses: ./.github/actions/setup
-        if: github.event_name == 'pull_request'
-      - name: Core unit smoke
-        if: github.event_name == 'pull_request'
-        run: >-
-          npm run test:run --
-          src/core/content-store.test.js
-          src/core/journey-session.test.js
-          src/core/ci-pipeline.test.js
-          src/audio/engine.lifecycle.test.js
-          src/content/keystones.test.js
       - name: Full unit and integration suite
-        if: github.event_name != 'pull_request'
         run: npm run test:run
 
   build:
     name: Production build
     needs: changes
-    if: needs.changes.outputs.code == 'true'
+    if: needs.changes.outputs.code == 'true' && github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -181,7 +170,7 @@ jobs:
   scriptorium:
     name: Scriptorium CLI
     needs: changes
-    if: needs.changes.outputs.code == 'true'
+    if: needs.changes.outputs.code == 'true' && github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -271,9 +260,39 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
+      - uses: actions/checkout@v4
+        if: github.event_name == 'pull_request'
+      - uses: ./.github/actions/setup
+        if: github.event_name == 'pull_request'
+      - name: Pull request checks with one dependency install
+        if: github.event_name == 'pull_request'
+        env:
+          CHANGES_RESULT: ${{ needs.changes.result }}
+          CODE_CHANGED: ${{ needs.changes.outputs.code }}
+        run: |
+          set -euo pipefail
+          test "$CHANGES_RESULT" = success
+          node scripts/ci-hygiene.mjs
+          npm run security:audit
+          npm run security:compat
+          npx vitest run src/core/system-design.test.js
+          npm run docs:diagram
+          git diff --exit-code -- docs/specs/ARCHITECTURE.md
+          if [ "$CODE_CHANGED" = true ]; then
+            npm run test:run -- \
+              src/core/content-store.test.js \
+              src/core/journey-session.test.js \
+              src/core/ci-pipeline.test.js \
+              src/audio/engine.lifecycle.test.js \
+              src/content/keystones.test.js
+            npm run scriptorium:ci
+            npm run build
+            npm run measure:first-load
+          fi
       # Skipped is allowed — skipping is what the change filter is for. Failed
       # and cancelled are not.
       - name: Every job that ran, passed
+        if: github.event_name != 'pull_request'
         env:
           RESULTS: ${{ toJSON(needs) }}
         run: |
