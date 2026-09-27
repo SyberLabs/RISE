@@ -4,12 +4,12 @@ export function renderStudioTransport(view) {
   return `
     <header class="workshop-header studio-header">
       <div class="studio-header-primary">
-        <button class="btn-ghost" type="button" data-action="back">
-          <span class="icon">←</span><span>Home</span>
+        <button class="btn-ghost studio-back" type="button" data-action="back">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5"></path><path d="m11 18-6-6 6-6"></path></svg><span>Home</span>
         </button>
         <div class="studio-brand">
-          <span class="studio-eyebrow">Compose</span>
-          <h1>Composition Studio</h1>
+          <span class="studio-eyebrow"><span class="studio-dot" aria-hidden="true"></span>RISE</span>
+          <h1>Compose</h1>
         </div>
       </div>
 
