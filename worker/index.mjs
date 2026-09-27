@@ -2,6 +2,7 @@ import { handleJevDecision } from '../netlify/functions/jev-decision.mjs';
 import handleJevRoute from '../netlify/functions/jev-route.mjs';
 import { handleJevRecommend } from './jev-recommend.mjs';
 import { handleJevVisualScore } from './jev-visual-score.mjs';
+import { handlePersonalPiece } from './personal-piece.mjs';
 
 const JSON_HEADERS = {
   'Content-Type': 'application/json; charset=utf-8',
@@ -19,6 +20,8 @@ function error(status, code, message) {
 export default {
   async fetch(request, env) {
     const path = new URL(request.url).pathname;
+
+    if (path === '/api/personal-piece') return handlePersonalPiece(request, env);
 
     if (path === '/api/jev-decision' || path === '/api/jev-recommend') {
       const ip = request.headers.get('CF-Connecting-IP')?.trim();

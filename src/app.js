@@ -36,6 +36,7 @@ import { installTestBridge } from './app/test-bridge.js';
 
 const VISUAL_LAB_PATH = '/visual-lab';
 import { watchTabFreshness } from './core/tab-freshness.js';
+import { hasPersonalWorkInPage } from './core/personal-identity.js';
 
 // THE SHELL'S OWN STYLES, AND ONLY THOSE. app.js used to import sixteen
 // stylesheets — every room's, not the Portal's — which is 220 KB of CSS
@@ -87,6 +88,9 @@ try {
 export const STALE_BUILD_SENTINEL = 'rise_reloaded_for_stale_build';
 
 window.addEventListener('vite:preloadError', (event) => {
+    // Let the rejected import restore the previous view; a reload would erase
+    // a personal draft or the thought being composed before Keep.
+    if (hasPersonalWorkInPage()) return;
     if (sessionStorage.getItem(STALE_BUILD_SENTINEL)) return;  // not a deploy: a real failure
     sessionStorage.setItem(STALE_BUILD_SENTINEL, '1');
     event.preventDefault();
@@ -275,8 +279,14 @@ class App {
         // shows reads any of them.
 
         this.router = new Router({
+            onNavigationIntent: (view, options) => this.handleNavigationIntent(view, options),
             onViewChange: (view, data) => {
                 console.log(`[RISE] View: ${view}`);
+                if (view === 'create' && window.location.pathname !== '/create') {
+                    window.history.pushState({}, '', '/create');
+                } else if (view !== 'create' && view !== 'chamber-session' && /^\/create\/?$/u.test(window.location.pathname)) {
+                    window.history.pushState({}, '', '/');
+                }
             }
         });
 
@@ -325,6 +335,8 @@ class App {
             await this.router.navigate(staleTarget, { data: staleData });
         } else if (isRosaryDoor()) {
             await this.router.navigate('rosarium', { data: { door: true } });
+        } else if (/^\/create\/?$/u.test(window.location.pathname)) {
+            await this.router.navigate('create');
         } else if (directKeystone) {
             await this.router.navigate('keystones', { data: { slug: directKeystone } });
         } else if (directTryRise) {
@@ -551,6 +563,12 @@ class App {
     /**
      * Handle navigation requests from components
      */
+    handleNavigationIntent(viewName, options = {}) {
+        if (viewName === 'chamber-session' && options.launchRevision === this.sessionLaunchRevision) return;
+        ++this.sessionLaunchRevision;
+        this.router.getViewInstance(this.router.getCurrentView())?.navigationIntent?.();
+    }
+
     handleNavigate(viewName, data, { replaceUrl = false } = {}) {
         // Keystone URLs are real entry points, not a hash painted onto an
         // unrelated view. Leaving the release corridor explicitly returns
@@ -914,12 +932,22 @@ class App {
      * Hydrates durable sequence images before compileSession.
      */
     async handleCreateSession(sessionData) {
-        let sessionInput = isWorkshopProject(sessionData)
-            ? workshopProjectToSessionConfig(sessionData)
-            : sessionData;
+        const launchRevision = ++this.sessionLaunchRevision;
+        const isCurrent = () => launchRevision === this.sessionLaunchRevision;
+        let sessionInput;
         try {
+            if (sessionData?.provenance?.kind === 'personal-generated') {
+                const { personalSession } = await import('./core/personal-project.js');
+                if (!isCurrent()) return false;
+                sessionInput = personalSession(sessionData);
+                sessionInput.origin = { view: this.router.getCurrentView?.() === 'vault' ? 'vault' : 'create' };
+            } else {
+                sessionInput = isWorkshopProject(sessionData) ? workshopProjectToSessionConfig(sessionData) : sessionData;
+            }
             const { hydrateSessionSequenceAssets } = await import('./core/workshop-asset-durability.js');
+            if (!isCurrent()) return false;
             sessionInput = await hydrateSessionSequenceAssets(sessionInput);
+            if (!isCurrent()) return false;
             // A MISSING IMAGE IS NOT A REASON TO WITHHOLD THE TEXT. The
             // reading opens; the reader is told what is not in it. This
             // path used to return here, so one evicted blob cancelled the
@@ -941,13 +969,14 @@ class App {
                 );
             }
         } catch (error) {
+            if (!isCurrent()) return false;
             // Reserved for a payload that cannot be read at all. A missing
             // image no longer reaches here.
             console.error('[RISE] Workshop media hydrate failed:', error);
             this.showToast(error.message || 'Sequence images could not be loaded', 4000);
             return false;
         }
-        console.log('[RISE] Compiling Custom Workshop Session:', sessionInput);
+
 
         if (!sessionInput || !sessionInput.sources || sessionInput.sources.length === 0) {
             this.showToast('Cannot create session without sources', 3000);
@@ -971,8 +1000,8 @@ class App {
 
         console.log(`[RISE] Workshop compiler built ${session.atomCount} atoms across ${session.sources.length} sources.`);
 
-        // 4. Route to player phase
-        const launchRevision = ++this.sessionLaunchRevision;
+        // Route only while this preparation still owns the launch.
+        if (!isCurrent()) return false;
 
         // Ensure that preview mode routing flag passes correctly if requested
         if (sessionInput.isPreview) {
@@ -981,7 +1010,8 @@ class App {
 
         const navigated = await this.router.navigate('chamber-session', {
             data: session,
-            force: true
+            force: true,
+            launchRevision
         });
         if (navigated !== true || launchRevision !== this.sessionLaunchRevision) return false;
         this.currentSession = session;
@@ -1253,6 +1283,7 @@ class App {
         watchTabFreshness({
             router: this.router,
             isReading: () => {
+                if (hasPersonalWorkInPage()) return true;
                 const state = this.router?.views?.get('chamber')?.instance
                     ?.player?.sessionState?.state;
                 return state === 'playing' || state === 'interlocuting';
@@ -1300,6 +1331,11 @@ class App {
             // popstate alongside hashchange, and clearing the hash must not
             // pull an in-progress prayer back to the Portal.
             if (isRosaryDoor() || this.router?.getCurrentView() === 'rosarium') return;
+            this.handleNavigationIntent('history');
+            if (/^\/create\/?$/u.test(window.location.pathname)) {
+                await this.router?.navigate('create', { replace: true, skipStack: true });
+                return;
+            }
             const { keystoneSlugFromPath } = await import('./content/keystones.js');
             if (window.location.pathname === VISUAL_LAB_PATH) {
                 await this.router?.navigate('visual-lab', { replace: true, skipStack: true });

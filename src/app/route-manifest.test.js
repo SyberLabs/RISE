@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { createRouteManifest } from './route-manifest.js';
 
 const ROUTE_IDS = [
+  'create',
   'portal',
   'keystones',
   'mint',

@@ -2,6 +2,9 @@ import { STARTER_SEQUENCES } from '../content/starters.js';
 import { MemoryCore } from '../core/memory.js';
 import { VAULT_A_SEQUENCES, VAULT_A_ARCHETYPE } from '../content/personalized/vault-a.js';
 import { escapeHtml } from '../core/sanitize.js';
+import { isPersonalProject } from '../core/personal-identity.js';
+import { personalSession } from '../core/personal-project.js';
+import { compileSession } from '../core/session-compiler.js';
 import './Library.css';
 
 // Personalized vault configurations
@@ -28,7 +31,7 @@ export class Vault {
     this.personalizedVaultId = options.personalizedVault || null;
     this.personalizedVault = this.personalizedVaultId ? PERSONALIZED_VAULTS[this.personalizedVaultId] : null;
 
-    this.currentSection = this.personalizedVault ? 'personalized' : 'sequences';
+    this.currentSection = options.initialSection === 'custom' ? 'custom' : this.personalizedVault ? 'personalized' : 'sequences';
     this.blueprints = MemoryCore.getWorkshopBlueprints();
     this._active = false;
     this.boundKeyboardHandler = this.handleKeyboard.bind(this);
@@ -189,8 +192,8 @@ export class Vault {
     return `
       <div class="library-section">
         <div class="section-header">
-          <h2 class="text-light">Custom Sequences</h2>
-          <p class="text-fog">Workshops you have compiled and saved</p>
+          <h2 class="text-light">Kept work</h2>
+          <p class="text-fog">Your personal readings and saved sequences</p>
         </div>
         <div class="sequences-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1.5rem; margin-top: 1.5rem;">
           ${this.blueprints.length > 0 ? this.renderCustomItems() : this.renderEmptyCustomState()}
@@ -211,6 +214,23 @@ export class Vault {
 
   renderCustomItems() {
     return this.blueprints.map(bp => {
+       if (isPersonalProject(bp.project || bp)) {
+         let duration = 'Unavailable';
+         try { duration = this.formatDuration(compileSession(personalSession(bp.project || bp)).totalDuration); } catch { /* Refuse invalid saved data at launch. */ }
+         return `<div class="sequence-card card" data-id="${escapeHtml(bp.id)}">
+           <h3 class="sequence-title text-light">${escapeHtml(bp.title)}</h3>
+           <p>Personal reading · Revision ${Number(bp.revision)} · Kept in this browser</p>
+           <p>${duration} · 160 WPM · Sound off</p>
+           <p>Writer provenance is declared, not independently verified.</p>
+           <div class="sequence-actions">
+             <button class="btn-primary" data-action="begin-custom" data-id="${escapeHtml(bp.id)}">Launch</button>
+             <button class="btn-secondary" data-action="revise-personal" data-id="${escapeHtml(bp.id)}">Revise</button>
+             <button class="btn-secondary" data-action="export-personal-json" data-id="${escapeHtml(bp.id)}">Export JSON</button>
+             <button class="btn-secondary" data-action="export-personal-text" data-id="${escapeHtml(bp.id)}">Export text</button>
+             <button class="btn-secondary" data-action="delete-custom" data-id="${escapeHtml(bp.id)}">Delete</button>
+           </div><p role="status" data-personal-status></p>
+         </div>`;
+       }
        let words = 0;
        if (bp.sources) {
           words = bp.sources.reduce((acc, src) => acc + (src.words || 0), 0);
@@ -296,10 +316,24 @@ export class Vault {
       } else if (action === 'begin-custom') {
          this.getAudioEngine()?.playClick();
          const bp = this.blueprints.find(b => b.id === target.dataset.id);
-         if (bp) this.onSelectBlueprint(bp);
+         if (bp) this.onSelectBlueprint(isPersonalProject(bp.project || bp) ? (bp.project || bp) : bp);
+      } else if (action === 'revise-personal') {
+         const bp = this.blueprints.find(b => b.id === target.dataset.id);
+         if (bp) this.onNavigate('create', { project: bp.project || bp });
+      } else if (action === 'export-personal-json' || action === 'export-personal-text') {
+         const bp = this.blueprints.find(b => b.id === target.dataset.id);
+         try {
+           const { exportPersonalProject } = await import('../core/personal-project.js');
+           if (bp) await exportPersonalProject(bp.project || bp, action.endsWith('text') ? 'text' : 'json');
+         } catch (error) {
+           const status = target.closest('.sequence-card')?.querySelector('[data-personal-status]');
+           if (status) status.textContent = error.message || 'Export failed.';
+         }
       } else if (action === 'edit-custom') {
          this.getAudioEngine()?.playHiss();
-         this.onNavigate('workshop', { blueprintId: target.dataset.id });
+         const bp = this.blueprints.find(b => b.id === target.dataset.id);
+         if (isPersonalProject(bp?.project || bp)) this.onNavigate('create', { project: bp.project || bp });
+         else this.onNavigate('workshop', { blueprintId: target.dataset.id });
       } else if (action === 'delete-custom') {
          this.getAudioEngine()?.playHiss();
          if (await MemoryCore.deleteWorkshopBlueprintAsync(target.dataset.id)) {
@@ -389,7 +423,14 @@ export class Vault {
   activate() {
     if (this._active) return;
     this._active = true;
+    this.refreshBlueprints();
     document.addEventListener('keydown', this.boundKeyboardHandler);
+  }
+
+  update(data) {
+    if (data?.section === 'custom') this.currentSection = 'custom';
+    this.refreshBlueprints();
+    this.updateActiveNav();
   }
 
   deactivate() {

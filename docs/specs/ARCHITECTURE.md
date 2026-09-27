@@ -161,9 +161,9 @@ it, and CI fails when the committed copy is not what `src/` produces.
 flowchart LR
     app["app<br/>composition root<br/>7 modules"]
     audio["audio<br/>Web Audio, recitation<br/>9 modules"]
-    components["components<br/>routed views<br/>38 modules"]
+    components["components<br/>routed views<br/>39 modules"]
     content["content<br/>texts, imagery, journeys<br/>228 modules"]
-    core["core<br/>session, player, router<br/>141 modules"]
+    core["core<br/>session, player, router<br/>145 modules"]
     page["page<br/>spatial projection<br/>4 modules"]
     sources["sources<br/>text and visual providers<br/>22 modules"]
     visuals["visuals<br/>procedural generation<br/>60 modules"]
@@ -171,7 +171,7 @@ flowchart LR
     app -.-> |3 lazy| audio
     app --> |1| components
     app --> |4| content
-    app --> |33| core
+    app --> |34| core
     app -.-> |1 lazy| sources
     app -.-> |1 lazy| visuals
     audio --> |1| content
@@ -179,7 +179,7 @@ flowchart LR
     components -.-> |1 lazy| app
     components --> |2| audio
     components --> |23| content
-    components --> |140| core
+    components --> |148| core
     components -.-> |1 lazy| page
     components --> |4| sources
     components --> |17| visuals
@@ -275,6 +275,7 @@ outliving its room, fails a build.
 | Room | Module | What it is |
 |---|---|---|
 | Portal | `src/components/Portal.js` | the hub, and the first screen |
+| Create | `src/components/Create.js` | original personal readings, private revisions, and portable text |
 | Keystones | `src/components/Keystones.js` | the public entry corridor |
 | Mint | `src/components/Mint.js` | the door a minted sequence opens onto |
 | Chamber | `src/components/Chamber.js` | a reading, in time |
