@@ -401,8 +401,8 @@ describe('Jev reading recommendation', () => {
     for (let index = 1; index < responses.length; index++) {
       expect(responses[index].workId).not.toBe(responses[index - 1].workId);
     }
-    expect(provider).toHaveBeenCalledTimes(5);
-    expect(responses[4].decisionCacheStatus).toBe('miss');
+    expect(provider).toHaveBeenCalledTimes(4);
+    expect(responses[4].decisionCacheStatus).toBe('hit');
     const first = Object.keys(JSON.parse(provider.mock.calls[0][1].body).questions.book.criteria);
     const second = Object.keys(JSON.parse(provider.mock.calls[1][1].body).questions.book.criteria);
     expect(first.filter(id => second.includes(id))).toEqual([]);
@@ -474,7 +474,7 @@ describe('Jev reading recommendation', () => {
   });
 
   it('uses compiled options if the optional menu table is unavailable', async () => {
-    mocks.optionsQuery.mockRejectedValue(new Error('Table not yet deployed'));
+    mocks.optionsQuery.mockRejectedValue(Object.assign(new Error('Table not yet deployed'), { code: '42P01' }));
     const provider = vi.fn(async () => Response.json({
       model: 'typesafe/jev-1.13', provider: 'TypeSafe', answers: answers('literary-walden')
     }));
@@ -482,6 +482,14 @@ describe('Jev reading recommendation', () => {
     const response = await handleJevRecommend(request(), env);
     expect(response.status).toBe(200);
     expect(JSON.parse(provider.mock.calls[0][1].body).questions.audio.criteria).toHaveProperty('soft-rain');
+  });
+
+  it('does not re-enable disabled menu options during a later database outage', async () => {
+    mocks.optionsQuery.mockRejectedValue(Object.assign(new Error('Database unavailable'), { code: '08006' }));
+    vi.stubGlobal('fetch', vi.fn());
+    const response = await handleJevRecommend(request(), env);
+    expect(response.status).toBe(503);
+    expect(globalThis.fetch).not.toHaveBeenCalled();
   });
 
   it('rejects malformed menu rows before calling Jev', async () => {
@@ -519,6 +527,20 @@ describe('Jev reading recommendation', () => {
     expect((await response.json()).config).toMatchObject({
       visualMode: 'off', visualStyle: 'quiet', visualArc: 'single', visualProgram: null
     });
+  });
+
+  it('honors natural language requests against moving imagery', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => Response.json({
+      model: 'typesafe/jev-1.13', provider: 'TypeSafe',
+      answers: answers('literary-walden', {
+        visual: { type: 'choice', choice: 'interlocution' },
+        visualStyle: { type: 'choice', choice: 'psychedelic' }
+      })
+    })));
+    for (const intent of ["I don't want moving visuals", 'Read with no motion']) {
+      const response = await handleJevRecommend(request({ intent }), env);
+      expect((await response.json()).config.visualMode).toBe('off');
+    }
   });
 
   it('does not serve a cached result with an unsupported schema version', async () => {

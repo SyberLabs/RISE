@@ -12,6 +12,8 @@ The [case set](../../scripts/jev-eval-cases.json) contains 16 synthetic reader p
 
 A larger distinct-value count alone does not prove better personalization: the explicit-match and contrast results must improve as well. The fixture does not judge book relevance, reading quality, accessibility, or visual safety. It is a small regression set, not a reader study.
 
+The candidate reuses one 5-minute decision cache slot for a specific intent. Exact open discovery requests rotate four slots. That caps fresh Jev calls for the same intent and menu in that window at one or four respectively, subject to the existing rate limit. The current route does not expose provider tokens or price, so this is a call-count bound, not a measured dollar cost.
+
 ## Current production baseline
 
 On 2026-09-26, six prompts from the set were sent once each to `https://rise.syberlabs.io/api/jev-recommend` with the same-origin header. All six returned HTTP 200 from `typesafe/jev-1.13-20260917`. The [sanitized record](../../scripts/jev-eval-production-baseline-2026-09-26.json) retains only prompt IDs and the six selected fields; it contains no user input, request identifiers, or credentials.
@@ -53,3 +55,7 @@ Reproduce (model download is about 23 MB for the q8 file, plus tokenizer files):
 node scripts/jev-eval-local-hf.mjs scripts/jev-eval-cases.json scripts/jev-eval-options-candidate.json local-hf-eval.json
 node scripts/jev-eval.mjs --cases scripts/jev-eval-cases.json --options scripts/jev-eval-options-candidate.json --input local-hf-eval.json
 ```
+
+## Local reader handoff
+
+A production build was opened in Chromium on a separate local preview port. A synthetic, valid version-1 Worker JSON decision selected `soft-rain`, `mono`, large text, and a released Standard Ebooks division. The Portal opened a playable Chamber session; the live word element reported the `mono` face and the compiled session reported `soft-rain`. This verifies the JSON-to-reader path with a mocked decision, not the candidate Worker against live Jev. Soft Rain's graph and stop lifecycle passed unit tests, but its sound has not had a listening review. The Postgres seed has not been applied to the live database.

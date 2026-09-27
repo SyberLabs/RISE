@@ -213,7 +213,7 @@ function choiceMenu(rows) {
     if (!row || !OPTION_KINDS.includes(row.kind) || typeof row.id !== 'string'
       || !Object.hasOwn(CHOICES[row.kind], row.id) || ids[row.kind].has(row.id)
       || typeof row.description !== 'string' || row.description.length < 1
-      || row.description.length > 180) return null;
+      || row.description.length > 240) return null;
     ids[row.kind].add(row.id);
   }
   if (OPTION_KINDS.some(kind => ids[kind].size === 0)) return null;
@@ -231,9 +231,10 @@ async function activeChoices(redis, env) {
   try {
     const sql = neon(env.NEON_DATABASE_URL);
     rows = await sql`SELECT kind, id, description FROM rise_jev_options WHERE active = TRUE`;
-  } catch {
-    // The optional menu may not have been migrated yet. Compiled options are still vetted.
-    return CHOICES;
+  } catch (cause) {
+    // An unmigrated table is optional; an outage must not reactivate disabled choices.
+    if (cause?.code === '42P01') return CHOICES;
+    throw cause;
   }
   const menu = choiceMenu(rows);
   if (!menu) return null;
@@ -303,7 +304,7 @@ function validConfig(config, choices) {
 
 function requestsNoVisualMotion(intent) {
   const text = intent.normalize('NFKC').toLowerCase();
-  return /\b(?:no|without)\s+(?:moving\s+visuals?|visual\s+motion|visuals?|animation)\b|\b(?:dark|black)\s+screen\b|\btext\s+only\b/u.test(text);
+  return /\b(?:no|without)\s+(?:moving\s+visuals?|visual\s+motion|motion|visuals?|animation)\b|\b(?:don['’]?t|do\s+not)\s+want\s+(?:any\s+)?moving\s+visuals?\b|\b(?:dark|black)\s+screen\b|\btext\s+only\b/u.test(text);
 }
 
 function choiceConfig(answers, intent, choices) {
@@ -458,7 +459,7 @@ export async function handleJevRecommend(request, env) {
     if (!Number.isSafeInteger(nextTurn) || nextTurn < 1) throw new Error('Invalid Jev turn');
     if (nextTurn === 1) await redis.expire(turnKey, 86400);
     hints = buildJevVarianceHints({ books, intent, turn: nextTurn - 1 });
-    decisionKey = `${baseKey}:${(nextTurn - 1) % VARIATION_COUNT}`;
+    decisionKey = `${baseKey}:${hints.variation.cohort === null ? 0 : (nextTurn - 1) % VARIATION_COUNT}`;
     const cached = validCachedDecision(await redis.get(decisionKey), hints.eligibleBooks, choices);
     if (cached) return reply(200, { ...cached, cacheStatus, decisionCacheStatus: 'hit' });
   } catch {

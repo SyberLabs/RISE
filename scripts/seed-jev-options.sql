@@ -1,5 +1,6 @@
 -- Run after deploying the matching renderer and Worker allowlists.
--- This menu can disable or describe supported choices; it cannot create a new renderer feature.
+-- This menu can disable supported choices; descriptions are reviewed metadata,
+-- not model instructions. It cannot create a new renderer feature.
 CREATE TABLE IF NOT EXISTS rise_jev_options (
   kind TEXT NOT NULL CHECK (kind IN ('audio', 'chamberFace', 'fontSize')),
   id TEXT NOT NULL,

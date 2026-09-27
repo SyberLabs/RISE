@@ -69,8 +69,7 @@ export function validateJevRecommendation(decision) {
     || typeof decision.sourceRevision !== 'string' || typeof decision.reason !== 'string') {
     throw new TypeError('Jev returned an invalid reading plan.');
   }
-  assertPlan(decision);
-  return decision;
+  return assertPlan(decision);
 }
 
 /** Select from the edition's actual divisions, never from model-supplied text. */
@@ -95,7 +94,7 @@ export function selectJevDivision(divisions, section) {
 
 /** Resolve an exact released edition into the existing Chamber session input. */
 export async function resolveJevReading(decision) {
-  const { plan, resolved, visualProgram } = assertPlan(decision);
+  const { plan, resolved, visualProgram } = validateJevRecommendation(decision);
   const released = releaseInventory[decision.workId];
   const work = getTextById(decision.workId);
   if (!released || !released.editionId?.startsWith('standard-ebooks:')

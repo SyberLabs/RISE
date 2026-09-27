@@ -11,10 +11,10 @@ describe('Jev variance hints', () => {
   it('rotates every admitted reading and creative direction across persisted turns', () => {
     const hints = Array.from({ length: 21 }, (_, index) =>
       buildJevVarianceHints({ books, intent: 'Surprise me', turn: index }));
-    expect(VARIATION_COUNT).toBe(7);
+    expect(VARIATION_COUNT).toBe(4);
     expect(new Set(hints.map(hint => hint.variation.focusWorkId))).toEqual(new Set(books.map(book => book.work_id)));
-    expect(new Set(hints.map(hint => hint.variation.directionIndex)).size).toBe(7);
-    expect(new Set(hints.map(hint => hint.configHint)).size).toBe(7);
+    expect(new Set(hints.map(hint => hint.variation.directionIndex)).size).toBe(4);
+    expect(new Set(hints.map(hint => hint.configHint)).size).toBe(4);
     expect(new Set(hints.map(hint => hint.configHint.match(/pace=(\d+)/u)?.[1])).size).toBeGreaterThan(1);
     expect(new Set(hints.map(hint => hint.configHint.match(/audio=([\w-]+)/u)?.[1])).size).toBeGreaterThan(1);
     expect(new Set(hints.map(hint => hint.configHint.match(/chamberFace=(\w+)/u)?.[1])).size).toBeGreaterThan(1);

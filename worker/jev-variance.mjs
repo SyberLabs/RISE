@@ -3,10 +3,7 @@
 const DIRECTIONS = Object.freeze([
   'a prismatic Gallery (visualStyle=psychedelic, visualEngine=fractal, colorTheme=prism, pace=250, chunk=word, audio=faded-signal, chamberFace=thick, fontSize=fit)',
   'energetic line art (visual=genesis, kleePreset=chaotic, colorTheme=ember, pace=300, chunk=phrase, audio=faded-signal, chamberFace=thick, fontSize=large)',
-  'a luminous attractor (visual=attractor, visualPalette=purple, colorTheme=amethyst, pace=200, chunk=word, audio=aurora, chamberFace=display, fontSize=fit)',
-  'a spectral Gallery (visual=interlocution, visualEngine=apparitio, colorTheme=cobalt, pace=250, chunk=sentence, audio=faded-signal, chamberFace=display, fontSize=medium)',
   'soft atmospheric light (visual=interlocution, visualEngine=turrell, colorTheme=jade, pace=150, chunk=phrase, audio=aurora, chamberFace=literary, fontSize=large)',
-  'an iridescent radial Gallery (visual=interlocution, visualEngine=ostensoria, colorTheme=ember, pace=200, chunk=sentence, audio=aurora, chamberFace=display, fontSize=large)',
   'fine harmonic line work (visual=interlocution, visualEngine=harmonograph, colorTheme=amethyst, pace=100, chunk=paragraph, audio=silent, chamberFace=literary, fontSize=medium)'
 ]);
 

@@ -31,6 +31,10 @@ function decision(config = {}) {
     wordFill: 'plain', colorTheme: 'classic', ...config
   };
   return {
+    schemaVersion: 1,
+    requestId: 'test-decision',
+    model: 'typesafe/jev-1.13',
+    reason: 'A reviewed catalog description.',
     workId: released.workId,
     editionId: released.editionId,
     sourceRevision: released.sourceRevision,
@@ -87,6 +91,8 @@ describe('Jev reading handoff', () => {
   });
 
   it('rejects unknown options and changed edition identity', async () => {
+    await expect(resolveJevReading({ ...decision(), schemaVersion: 2 }))
+      .rejects.toThrow('invalid reading plan');
     await expect(resolveJevReading(decision({ chunkMode: 'script' })))
       .rejects.toThrow('invalid reading plan');
     for (const audio of ['focus', 'deep', 'gateway']) {
