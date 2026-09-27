@@ -5,10 +5,10 @@ export function renderStudioTransport(view) {
     <header class="workshop-header studio-header">
       <div class="studio-header-primary">
         <button class="btn-ghost" type="button" data-action="back">
-          <span class="icon">←</span><span>Portal</span>
+          <span class="icon">←</span><span>Home</span>
         </button>
         <div class="studio-brand">
-          <span class="studio-eyebrow">Workshop</span>
+          <span class="studio-eyebrow">Compose</span>
           <h1>Composition Studio</h1>
         </div>
       </div>

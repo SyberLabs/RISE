@@ -100,8 +100,8 @@ export class Settings {
 
     render() {
         if (this.inBar) return this.renderBar();
-        const backLabel = this.onClose ? 'Back' : 'Portal';
-        const backAria = this.onClose ? 'Back' : 'Back to Portal';
+        const backLabel = this.onClose ? 'Back' : 'Home';
+        const backAria = this.onClose ? 'Back' : 'Back to Home';
         this.container.innerHTML = `
       <form class="settings" role="main" aria-labelledby="settings-title">
         <a href="#settings-content" class="skip-link">Skip to settings</a>

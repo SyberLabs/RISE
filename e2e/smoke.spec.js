@@ -36,7 +36,7 @@ async function boot(page, { text = true, prefs = null } = {}) {
         if (seedPrefs) localStorage.setItem('rise_orbital_prefs_v1', JSON.stringify(seedPrefs));
     }, { gate: GATE_SESSION, seedText: text ? SEED_TEXT : null, seedPrefs: prefs });
     await page.goto('/');
-    await expect(page.locator('[data-nav="library"]').first()).toBeVisible({ timeout: 15_000 });
+    await expect(page.locator('.portal .portal-title').first()).toBeVisible({ timeout: 15_000 });
 }
 
 async function enterChamber(page) {
@@ -79,12 +79,12 @@ async function exitSession(page) {
     await expect(page.locator('#begin-btn')).toBeVisible({ timeout: 20_000 });
 }
 
-test('1 · portal presents the four tools and the living entries', async ({ page }) => {
+test('1 · Home presents Library, Sequences and Compose', async ({ page }) => {
     await boot(page, { text: false });
     // The nav row is the tools you own. The two pavilions that used to flank
     // the centre — the Atrium and the Solarium — are gone with their rooms,
     // so the entrance is the nav and nothing beside it.
-    const nav = page.locator('.nav-secondary .nav-item');
+    const nav = page.locator('.portal-nav [data-nav]');
     await expect(nav).toHaveCount(3);
     for (const gone of ['atrium', 'sol']) {
         await expect(page.locator(`[data-nav="${gone}"]`)).toHaveCount(0);
@@ -175,7 +175,7 @@ test('6 · text and settings survive a refresh', async ({ page }) => {
     await expect(page.locator('.chamber-orbital')).toContainText('Smoke Seed');
 
     await page.reload();
-    await expect(page.locator('[data-nav="library"]').first()).toBeVisible({ timeout: 15_000 });
+    await expect(page.locator('.portal .portal-title').first()).toBeVisible({ timeout: 15_000 });
     await enterChamber(page);
 
     await expect(page.locator('.chamber-orbital')).toContainText('Smoke Seed');

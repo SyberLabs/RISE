@@ -1,7 +1,16 @@
-/** Browser speech input for a Jev request. Dictation never submits the form. */
+const svg = body => `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${body}</svg>`;
+const MIC_ICON = svg('<rect x="9" y="3" width="6" height="11" rx="3"></rect><path d="M5 11a7 7 0 0 0 14 0"></path><path d="M12 18v3"></path>');
+const STOP_ICON = svg('<rect x="7" y="7" width="10" height="10" rx="1.5"></rect>');
+
+/**
+ * Browser speech input for a Jev request. Dictation never submits the form.
+ * A button marked data-jev-dictate="icon" is a 44px icon button (its
+ * aria-label carries the words); any other button carries a text label.
+ */
 export function attachJevDictation(form) {
   const input = form.elements.namedItem('intent');
   const button = form.querySelector('[data-jev-dictate]');
+  const iconOnly = button.dataset.jevDictate === 'icon';
   const status = form.querySelector('[data-jev-dictation-status]');
   const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
   if (!SpeechRecognition) {
@@ -21,7 +30,8 @@ export function attachJevDictation(form) {
     button.setAttribute('aria-pressed', String(active));
     button.setAttribute('aria-label', active ? 'Stop voice input' : 'Speak your Jev request');
     button.title = active ? 'Stop listening' : 'Speak your Jev request';
-    button.textContent = active ? '■ Stop' : '🎙 Speak';
+    if (iconOnly) button.innerHTML = active ? STOP_ICON : MIC_ICON;
+    else button.textContent = active ? 'Stop' : 'Speak';
   };
   setListening(false);
   const click = () => {

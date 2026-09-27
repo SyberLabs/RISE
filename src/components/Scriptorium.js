@@ -427,7 +427,7 @@ export class Scriptorium {
       <div class="scriptorium" role="main">
         <div class="scriptorium-column">
         <header class="scriptorium-header">
-          <button type="button" class="scriptorium-back" data-action="back">← Portal</button>
+          <button type="button" class="scriptorium-back" data-action="back">← Home</button>
           <h1>The Scriptorium</h1>
           <p class="scriptorium-sub">
             You state an intent and a length. A hand outside the building writes

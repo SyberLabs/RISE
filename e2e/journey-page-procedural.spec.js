@@ -2,7 +2,7 @@
  * Journey Page Mode: authored procedural figures per segment, plus
  * museum path; unresolved engines yield is-absent, never a broken frame.
  */
-import { test, expect } from './fixtures.js';
+import { test, expect, openHomeNav } from './fixtures.js';
 import { collectAcrossPages, pageCount } from './page-helpers.js';
 
 test.skip(true, 'JOURNEYS = []; those sits are not shipped');
@@ -23,7 +23,7 @@ test.skip('a Journey pages, and its procedural movements are illustrated', async
         localStorage.setItem('rise-beta-session', JSON.stringify(g));
     }, GATE);
     await page.goto('/');
-    await page.locator('[data-nav="vault"]').first().click();
+    await openHomeNav(page, 'vault');
     await page.locator('[data-nav="journeys"]').first().click();
     await expect(page.locator('.journeys-title')).toBeVisible({ timeout: 20000 });
 

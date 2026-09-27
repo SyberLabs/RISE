@@ -604,8 +604,8 @@
     opacity var(--keystone-move) var(--keystone-ease);
 }
 
-.keystone-index { color: rgba(var(--color-accent-rgb), 0.5); font-size: 11px; }
-.keystone-axis { color: var(--color-threshold); font-size: 10px; }
+.keystone-index { color: rgba(var(--color-accent-rgb), 0.5); font-size: 12px; }
+.keystone-axis { color: var(--color-threshold); font-size: 12px; }
 
 .keystone-title {
   margin-top: 2px;
@@ -625,7 +625,7 @@
   min-height: 15px;
   margin-top: 4px;
   color: var(--color-mist);
-  font-size: 10px;
+  font-size: 12px;
   opacity: 0;
   transform: translateY(4px);
   transition:
@@ -705,7 +705,7 @@
 .keystone-state {
   max-width: 420px;
   color: var(--color-fog);
-  font-size: 9px;
+  font-size: 12px;
   line-height: 1.7;
 }
 

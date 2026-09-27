@@ -465,7 +465,6 @@ class App {
     registerViews() {
         const routes = createRouteManifest({
             handleNavigate: this.handleNavigate,
-            quickAccess: () => this.quickAccess(),
             launchJevReading: decision => this.launchJevReading(decision),
             launchJevSample: () => this.launchJevSample(),
             launchKeystone: slug => this.launchKeystone(slug),
@@ -960,19 +959,6 @@ class App {
         if (navigated !== true || launchRevision !== this.sessionLaunchRevision) return false;
         this.currentSession = session;
         return true;
-    }
-
-    /**
-     * Quick access to last session type (from Portal sigil)
-     */
-    quickAccess() {
-        // If we have a recent session, go to Chamber
-        // Otherwise go to Vault
-        if (this.currentSession) {
-            this.router.navigate('chamber', { data: this.currentSession });
-        } else {
-            this.router.navigate('vault');
-        }
     }
 
     /**

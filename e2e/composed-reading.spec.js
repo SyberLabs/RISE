@@ -6,7 +6,7 @@
  * starter registrar had split its prose into. The pieces are the
  * composition's bookkeeping; the reader meets one continuous reading.
  */
-import { test, expect } from './fixtures.js';
+import { test, expect, openHomeNav } from './fixtures.js';
 
 const GATE = { code: 'rise2025', name: 'Composed', vault: null, timestamp: Date.now() };
 
@@ -15,8 +15,8 @@ async function openLibrary(page) {
         localStorage.setItem('rise-beta-session', JSON.stringify(gate));
     }, GATE);
     await page.goto('/');
-    await expect(page.locator('[data-nav="library"]').first()).toBeVisible({ timeout: 15_000 });
-    await page.locator('[data-nav="library"]').first().click();
+    await expect(page.locator('.portal .portal-title').first()).toBeVisible({ timeout: 15_000 });
+    await openHomeNav(page, 'library');
     await expect(page.locator('.archive-card, .library-card').first())
         .toBeVisible({ timeout: 15_000 });
 }

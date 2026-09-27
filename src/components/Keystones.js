@@ -127,7 +127,7 @@ export class Keystones {
     const orbs = KEYSTONE_MANIFESTS.map((item, index) => this.orbMarkup(item, index)).join('');
     this.container.innerHTML = `
       <main class="keystones" id="main-content">
-        <button class="keystone-back" data-nav="portal" aria-label="Return to Portal">← Portal</button>
+        <button class="keystone-back" data-nav="portal" aria-label="Return to Home">← Home</button>
         <header class="keystone-header">
           <h1>Three canonical readings</h1>
           <p class="keystone-intro">One instrument, composed three ways: mind, transformation, and world.</p>
