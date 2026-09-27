@@ -1,5 +1,5 @@
 /** Original, locally synthesized keyboard miniatures for Jev sound choices. */
-const PIECES = {
+export const ACOUSTIC_PIECES = {
   lullaby: {
     name: 'Lullaby', description: 'A soft rocking cradle song with open fifths and a descending, warm melody.',
     bpm: 66, partials: [[1, 1], [2, 0.16], [3, 0.035]], attack: 0.04, level: 0.025,
@@ -171,7 +171,7 @@ function makePiece(score, ctx, destination, options) {
 }
 
 export const ACOUSTIC_SOUNDSCAPES = Object.fromEntries(
-  Object.entries(PIECES).map(([id, score]) => [id, {
+  Object.entries(ACOUSTIC_PIECES).map(([id, score]) => [id, {
     name: score.name,
     description: score.description,
     create: (ctx, destination, options = {}) => makePiece(score, ctx, destination, options)
