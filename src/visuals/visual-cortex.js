@@ -692,6 +692,7 @@ export class VisualCortex {
             sequenceVisualAssets: [],
             globalVisuals: [],
             semanticSignals: null,
+            flameColors: null,
         });
     }
 
@@ -718,6 +719,7 @@ export class VisualCortex {
             sequenceVisualAssets: [],
             globalVisuals: [],
             semanticSignals: null,
+            flameColors: null,
             ...config
         }, { sessionBoundary: true });
     }
@@ -2303,6 +2305,10 @@ export class VisualCortex {
         // sessions); explicitly passing null clears it for raw sessions.
         if ('semanticSignals' in nextConfig && this.fractal) {
             this.fractal.setSignalPool(nextConfig.semanticSignals);
+        }
+        // A reading's chosen colors reach the flame (null = mood palettes).
+        if ('flameColors' in nextConfig && this.fractal) {
+            this.fractal.setColorTheme(nextConfig.flameColors);
         }
 
         console.log('[Visual Cortex] Config updated:', {

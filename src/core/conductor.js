@@ -587,6 +587,37 @@ function buildPalette(anchors, rng) {
 }
 
 /**
+ * A 256-color flame palette built from a reading's chosen colors, so the
+ * flame speaks the palette the reader was promised (a Neon night reading
+ * burns magenta and cyan, not the mood palette's yellow-green). Every entry
+ * is a bright tone of the accent and ink: a flame lands anywhere on the
+ * palette, so a dark entry is a strand nobody sees.
+ *
+ * @param {{background: string, text: string, accent: string}} colors
+ * @returns {number[][]|null}
+ */
+export function buildAccentFlamePalette(colors) {
+    const hex = value => {
+        const match = /^#([0-9a-f]{6})$/i.exec(String(value || ''));
+        if (!match) return null;
+        const n = parseInt(match[1], 16);
+        return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+    };
+    const ground = hex(colors?.background);
+    const accent = hex(colors?.accent);
+    const ink = hex(colors?.text);
+    if (!ground || !accent || !ink) return null;
+    const mix = (a, b, t) => a.map((channel, i) => Math.round(channel + (b[i] - channel) * t));
+    return buildPalette([
+        mix(accent, ground, 0.2),
+        accent,
+        mix(accent, ink, 0.5),
+        ink,
+        mix(accent, ink, 0.25)
+    ], () => 0.5);
+}
+
+/**
  * Plan a fractal flame for a semantic signal: palette, variation pool,
  * structure, and tone mapping. Pure given an injected rng.
  *
