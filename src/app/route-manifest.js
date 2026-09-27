@@ -9,10 +9,13 @@ export function createRouteManifest(operations) {
       id: 'portal',
       containerId: 'view-portal',
       load: () => import('../components/Portal.js'),
-      create: (container, _data, { Portal }) => new Portal(container, {
+      create: (container, data, { Portal }) => new Portal(container, {
+        demoMode: data?.demoMode === true,
         onNavigate: operations.handleNavigate,
         onQuickAccess: operations.quickAccess,
         onLaunchJevReading: operations.launchJevReading,
+        onLaunchJevSample: operations.launchJevSample,
+        onLaunchFirstRead: operations.launchFirstRead,
         getAudioEngine: operations.getAudioEngine,
         getCurrentSession: operations.getCurrentSession
       })

@@ -21,6 +21,8 @@ it('opens an existing playable division for every released book and section choi
         projection: 'stream', revealMode: 'instant'
       };
       const input = await resolveJevReading({
+        schemaVersion: 1, requestId: 'integration-decision',
+        model: 'typesafe/jev-1.13', reason: 'A reviewed catalog description.',
         workId: released.workId,
         editionId: released.editionId,
         sourceRevision: released.sourceRevision,
@@ -48,6 +50,8 @@ it('compiles a psychedelic Jev plan into a visible, scoped Chamber session', asy
     projection: 'stream', revealMode: 'progressive'
   };
   const input = await resolveJevReading({
+    schemaVersion: 1, requestId: 'integration-decision',
+    model: 'typesafe/jev-1.13', reason: 'A reviewed catalog description.',
     workId: released.workId,
     editionId: released.editionId,
     sourceRevision: released.sourceRevision,

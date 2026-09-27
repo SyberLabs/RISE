@@ -1,4 +1,5 @@
 import { KEYSTONE_MANIFESTS, resolveKeystone } from '../content/keystones.js';
+import { SEQUENCE_PILOT } from '../content/sequence-pilot.js';
 import { archiveReviewEnabled } from '../content/archive/index.js';
 import { countWords } from '../core/chunker.js';
 import { escapeHtml } from '../core/sanitize.js';
@@ -145,6 +146,7 @@ export class Keystones {
           </button>
         </section>
         <div class="keystone-console">
+          <p class="keystone-promise" data-pilot-promise></p>
           <button class="btn-primary keystone-enter" data-enter>Enter reading</button>
           <a class="btn-ghost keystone-mp4" data-mp4 href="#" hidden>Watch full MP4</a>
           <p class="keystone-state" data-state="pending" hidden></p>
@@ -268,6 +270,9 @@ export class Keystones {
     const manifest = this.manifest;
     const result = this.result;
     if (!manifest) return;
+
+    const promise = this.container.querySelector('[data-pilot-promise]');
+    if (promise) promise.textContent = SEQUENCE_PILOT.find(item => item.slug === manifest.slug)?.promise || '';
 
     const state = this.container.querySelector('.keystone-state');
     const enter = this.container.querySelector('[data-enter]');

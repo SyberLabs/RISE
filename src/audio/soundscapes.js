@@ -561,6 +561,74 @@ function createFadedSignal(ctx, destination, options = {}) {
     };
 }
 
+// A locally synthesized, unpitched rain texture. Each channel uses a
+// different deterministic noise stream; no recording or network asset.
+function makeSoftRainBuffer(ctx) {
+    const length = Math.max(2, Math.floor(ctx.sampleRate * 12));
+    const buffer = ctx.createBuffer(2, length, ctx.sampleRate);
+    const edge = Math.max(1, Math.floor(ctx.sampleRate * 0.15));
+    for (let channel = 0; channel < 2; channel += 1) {
+        const data = buffer.getChannelData(channel);
+        let seed = channel ? 0x3f6a528d : 0x7d4b3c29;
+        let softened = 0;
+        for (let i = 0; i < length; i += 1) {
+            seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0;
+            const white = (seed / 0xffffffff) * 2 - 1;
+            softened += (white - softened) * 0.16;
+            const edgeGain = Math.min(1, i / edge, (length - 1 - i) / edge);
+            data[i] = (softened * 0.8 + white * 0.2) * Math.max(0, edgeGain);
+        }
+    }
+    return buffer;
+}
+
+function createSoftRain(ctx, destination) {
+    let nodes = [];
+    let out = null;
+
+    return {
+        start() {
+            out = ctx.createGain();
+            out.gain.value = 0;
+            out.connect(destination);
+            const highpass = ctx.createBiquadFilter();
+            highpass.type = 'highpass';
+            highpass.frequency.value = 180;
+            highpass.Q.value = 0.6;
+            const lowpass = ctx.createBiquadFilter();
+            lowpass.type = 'lowpass';
+            lowpass.frequency.value = 4200;
+            lowpass.Q.value = 0.6;
+            const rain = ctx.createBufferSource();
+            rain.buffer = makeSoftRainBuffer(ctx);
+            rain.loop = true;
+            rain.connect(highpass).connect(lowpass).connect(out);
+            rain.start();
+            nodes = [rain, highpass, lowpass, out];
+            rampIn(ctx, out.gain, 0.3, 2.4);
+        },
+        stop(instant = false) {
+            if (out) {
+                if (instant) {
+                    out.gain.cancelScheduledValues(ctx.currentTime);
+                    out.gain.setValueAtTime(0, ctx.currentTime);
+                } else {
+                    rampOut(ctx, out.gain);
+                }
+            }
+            const held = nodes;
+            nodes = [];
+            out = null;
+            setTimeout(() => held.forEach(node => {
+                try {
+                    if (node.stop) node.stop();
+                    node.disconnect();
+                } catch (e) { /* already released */ }
+            }), instant ? 0 : 1400);
+        }
+    };
+}
+
 // ═══════════════════════════════════════════════════════════
 // Registry
 // ═══════════════════════════════════════════════════════════
@@ -675,6 +743,135 @@ function createMoodBed(profile, ctx, destination) {
     };
 }
 
+// Short, original keyboard phrases. Each note has a fast attack and decaying
+// partials; scheduling against the audio clock keeps the rhythm stable.
+const MUSIC = {
+    piano: {
+        bpm: 72,
+        bars: [
+            { chord: [60, 64, 67, 71], melody: [76, 79, 83, 79] },
+            { chord: [57, 60, 64, 67], melody: [72, 71, 69, 76] },
+            { chord: [53, 57, 60, 64], melody: [69, 72, 76, 72] },
+            { chord: [55, 59, 62, 65], melody: [71, 74, 77, 74] }
+        ]
+    },
+    jazz: {
+        bpm: 108,
+        bars: [
+            { chord: [62, 65, 69, 72, 76], bass: 38, melody: [76, 72] },
+            { chord: [59, 65, 69, 76], bass: 31, melody: [79, 76] },
+            { chord: [60, 64, 67, 71, 74], bass: 36, melody: [76, 74] },
+            { chord: [61, 67, 70, 76], bass: 33, melody: [70, 73] }
+        ]
+    }
+};
+
+function createKeyboardMusic(style, ctx, destination, options = {}) {
+    const score = MUSIC[style];
+    const out = ctx.createGain();
+    out.gain.value = 0;
+    out.connect(destination);
+    const voices = new Set();
+    const beat = 60 / score.bpm;
+    const barLength = beat * 4;
+    let active = false;
+    let timer;
+    let nextBar = 0;
+    let barIndex = 0;
+
+    function note(midi, at, length, volume) {
+        const frequency = 440 * 2 ** ((midi - 69) / 12);
+        const gain = ctx.createGain();
+        gain.gain.setValueAtTime(0.0001, at);
+        gain.gain.linearRampToValueAtTime(volume, at + 0.015);
+        gain.gain.linearRampToValueAtTime(volume * 0.28, at + Math.min(0.18, length / 2));
+        gain.gain.linearRampToValueAtTime(0.0001, at + length);
+        gain.connect(out);
+        const partials = [];
+        for (const [harmonic, level] of [[1, 1], [2, 0.28], [3, 0.09]]) {
+            const osc = ctx.createOscillator();
+            osc.type = 'sine';
+            osc.frequency.value = frequency * harmonic;
+            const partial = ctx.createGain();
+            partial.gain.value = level;
+            osc.connect(partial).connect(gain);
+            osc.start(at);
+            osc.stop(at + length + 0.02);
+            partials.push({ osc, partial });
+        }
+        const voice = { gain, partials };
+        voices.add(voice);
+        partials[0].osc.onended = () => {
+            for (const { osc, partial } of partials) {
+                osc.disconnect();
+                partial.disconnect();
+            }
+            gain.disconnect();
+            voices.delete(voice);
+        };
+    }
+
+    function scheduleBar(at) {
+        const bar = score.bars[barIndex++ % score.bars.length];
+        if (style === 'piano') {
+            bar.chord.forEach((pitch, i) => note(pitch, at + i * 0.035, beat * 2.7, 0.016));
+            bar.melody.forEach((pitch, i) => note(pitch, at + (i + 0.5) * beat, beat * 0.8, 0.035));
+        } else {
+            note(bar.bass, at, beat * 1.5, 0.065);
+            note(bar.bass + 7, at + 2 * beat, beat * 1.4, 0.05);
+            [0.75, 2.75].forEach(offset => bar.chord.forEach(pitch =>
+                note(pitch, at + offset * beat, beat * 1.1, 0.011)));
+            bar.melody.forEach((pitch, i) => note(pitch,
+                at + (i * 2 + 1.75) * beat, beat * 0.7, 0.025));
+        }
+    }
+
+    function tick() {
+        if (!active) return;
+        if (options.mayAdvance?.() === false || ctx.currentTime + 0.25 < nextBar) {
+            timer = setTimeout(tick, 250);
+            return;
+        }
+        if (ctx.currentTime > nextBar + barLength) nextBar = ctx.currentTime + 0.08;
+        scheduleBar(nextBar);
+        nextBar += barLength;
+        timer = setTimeout(tick, Math.max(150, (nextBar - ctx.currentTime - 0.2) * 1000));
+    }
+
+    function release() {
+        for (const { gain, partials } of voices) {
+            for (const { osc, partial } of partials) {
+                try { osc.stop(); } catch (e) { /* note already ended */ }
+                osc.disconnect();
+                partial.disconnect();
+            }
+            gain.disconnect();
+        }
+        voices.clear();
+        out.disconnect();
+    }
+
+    return {
+        start() {
+            if (active) return;
+            active = true;
+            nextBar = ctx.currentTime + 0.08;
+            rampIn(ctx, out.gain, 0.8, 1.5);
+            tick();
+        },
+        stop(instant = false) {
+            if (!active) return;
+            active = false;
+            clearTimeout(timer);
+            if (instant) release();
+            else {
+                rampOut(ctx, out.gain, 1.2);
+                setTimeout(release, 1400);
+            }
+        }
+    };
+}
+
 export const SOUNDSCAPES = {
     aurora: {
         name: 'Aurora',
@@ -685,6 +882,21 @@ export const SOUNDSCAPES = {
         name: 'Faded Signal',
         description: 'Sun-worn suspended harmony with slow tape drift, softened bandwidth, and a quiet feedback afterimage.',
         create: createFadedSignal
+    },
+    'soft-rain': {
+        name: 'Soft Rain',
+        description: 'A quiet unpitched rain texture synthesized locally, without melody or a recording.',
+        create: createSoftRain
+    },
+    piano: {
+        name: 'Piano',
+        description: 'A gentle, slowly turning original piano melody.',
+        create: (ctx, destination, options) => createKeyboardMusic('piano', ctx, destination, options)
+    },
+    jazz: {
+        name: 'Jazz Piano',
+        description: 'Swung piano chords and a walking bass phrase.',
+        create: (ctx, destination, options) => createKeyboardMusic('jazz', ctx, destination, options)
     },
     ...Object.fromEntries(Object.entries(MOOD_BEDS).map(([id, profile]) => [id, {
         name: id[0].toUpperCase() + id.slice(1),

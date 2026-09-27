@@ -19,6 +19,7 @@ import {
 import { BetaGate } from './components/BetaGate.js';
 import { isRosaryDoor } from './core/rosary-door.js';
 import { TRY_RISE_PATH, isTryRisePath } from './core/keystone-paths.js';
+import { isJevSceneDemoPath } from './core/jev-demo-path.js';
 import { KEYSTONE_SESSION_ORIGIN } from './app/chamber-exit.js';
 
 import { errorBoundary, ErrorCategory, ErrorSeverity } from './core/error-boundary.js';
@@ -287,6 +288,7 @@ class App {
         const directKeystone = keystoneSlugFromPath(window.location.pathname);
         const directTryRise = isTryRisePath(window.location.pathname);
         const directShortSequences = /^\/short-sequences\/?$/u.test(window.location.pathname);
+        const directJevSceneDemo = isJevSceneDemoPath(window.location.pathname);
         // A minted sequence is the same kind of public entry point. TWO
         // QUESTIONS, NOT ONE: whether this is a mint URL at all, and which
         // mint it names. A printed code outlives the sequence it names, so
@@ -328,6 +330,8 @@ class App {
             await this.router.navigate('keystones');
         } else if (directShortSequences) {
             await this.router.navigate('short-sequences');
+        } else if (directJevSceneDemo) {
+            await this.router.navigate('portal', { data: { demoMode: true } });
         } else if (mintedSlug) {
             await this.router.navigate('mint', { data: { entry: houseProgram(mintedSlug) } });
         } else if (options.personalizedVault) {
@@ -466,7 +470,9 @@ class App {
             handleNavigate: this.handleNavigate,
             quickAccess: () => this.quickAccess(),
             launchJevReading: decision => this.launchJevReading(decision),
+            launchJevSample: () => this.launchJevSample(),
             launchKeystone: slug => this.launchKeystone(slug),
+            launchFirstRead: () => this.launchKeystone('meditations', { firstReadPreview: true }),
             openMintedProgram: slug => this.openMintedProgram(slug),
             handleSequenceSelection: sequenceId => this.handleSequenceSelection(sequenceId),
             handleCreateSession: this.handleCreateSession,
@@ -559,6 +565,9 @@ class App {
             window.history[replaceUrl ? 'replaceState' : 'pushState']({}, '', '/short-sequences/');
         }
         if (viewName === 'portal' && /^\/short-sequences\/?$/u.test(window.location.pathname)) {
+            window.history.pushState({}, '', '/');
+        }
+        if (viewName !== 'portal' && isJevSceneDemoPath(window.location.pathname)) {
             window.history.pushState({}, '', '/');
         }
         // Returned so a caller can wait for the outgoing view to have
@@ -768,6 +777,9 @@ class App {
         if (sessionConfig.origin) {
             session.origin = sessionConfig.origin;
         }
+        if (sessionConfig.firstReadPreview === true) {
+            session.firstReadPreview = true;
+        }
 
         // Store and navigate to chamber-session (immersion)
         this.currentSession = session;
@@ -783,8 +795,20 @@ class App {
         }
     }
 
+    /** Launch a fixed sample through the released-edition gate, without a provider call. */
+    async launchJevSample() {
+        const [{ sampleJevSceneDecision }, { resolveJevReading }] = await Promise.all([
+            import('./app/jev-scene-demo.js'), import('./app/jev-reading.js')
+        ]);
+        const sessionConfig = await resolveJevReading(sampleJevSceneDecision());
+        sessionConfig.origin = { ...sessionConfig.origin, experience: 'jev-sample' };
+        if (!await this.handleBeginSession(sessionConfig)) {
+            throw new Error('The sample reading could not be opened. Please try again.');
+        }
+    }
+
     /** Resolve, compile, and launch an exact canonical composition. */
-    async launchKeystone(slug) {
+    async launchKeystone(slug, { firstReadPreview = false } = {}) {
         try {
             const [keystones, archive] = await Promise.all([
                 import('./content/keystones.js'),
@@ -804,7 +828,8 @@ class App {
             }
             await this.handleBeginSession({
                 ...result.sessionInput,
-                origin: KEYSTONE_SESSION_ORIGIN
+                origin: KEYSTONE_SESSION_ORIGIN,
+                firstReadPreview
             });
         } catch (error) {
             console.error('[RISE] Keystone launch refused:', error);
@@ -1282,6 +1307,7 @@ class App {
                 return;
             }
             await this.router?.navigate('portal', {
+                data: { demoMode: isJevSceneDemoPath(window.location.pathname) },
                 replace: true,
                 skipStack: true
              });
