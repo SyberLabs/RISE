@@ -14,6 +14,16 @@ This is a staging procedure. The committed files do not deploy a service, create
 
 The Kev checkpoint's [provenance.json](https://huggingface.co/jaredpalmer/kev-4b/blob/139fdd94f1b6a6ad80cc15e08fcb99cac885a101/provenance.json) records the full Qwen base revision above. The Kev loader uses `head.pt` metadata to request that base revision; `modal_app.py` checks it before loading the model. The Kev model API reports the pinned adapter run and base name, but it does **not** expose `base_revision`, so the smoke script checks what the API can attest and startup enforces the remaining pin. The Python package graph is resolved by the upstream package declaration at image build time; it is not a lockfile-reproduced environment. Preserve the built Modal image ID for any measured release and review dependency updates before rebuilding.
 
+## Automated deploy
+
+`.github/workflows/kev-deploy.yml` (Actions → **Deploy Kev** → Run workflow, from `main`) does the production path in one run. It needs repository secrets `MODAL_TOKEN_ID` and `MODAL_TOKEN_SECRET`, from a Modal workspace with billing enabled. The run:
+1. Generates a fresh bearer key and writes it to the Modal Secret `rise-kev-api-key` in Modal environment `rise-kev`.
+2. Deploys `modal_app.py` and waits for the warm container.
+3. Runs `smoke.py`, which blocks the run on failure, and `probe.py`, which only reports.
+4. Sets the production Worker secrets `KEV_API_KEY`, `KEV_BASE_URL` and `KEV_REVISION`.
+
+Production traffic still stays on Jev until the repository variables `KEV_REVISION` and `KEV_PRODUCTION_VERIFIED=true` are set and a release runs. Re-running the workflow rotates the key, and requests to Kev fail between the Modal deploy and the Worker secret update. The manual staging procedure below remains the way to run the 39-case comparison.
+
 ## Stage and inspect
 
 From the RISE repository root in PowerShell, use a local virtual environment for Modal. The Python path below is the Codex bundled runtime on this workstation; another host may use Python 3.12 or 3.13. These commands prepare the CLI only.

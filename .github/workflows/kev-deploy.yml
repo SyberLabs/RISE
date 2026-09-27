@@ -1,0 +1,92 @@
+# Deploys the pinned Kev-4B service to Modal and hands its address and key to the
+# production Worker. Traffic still stays on Jev until KEV_PRODUCTION_VERIFIED=true;
+# see docs/KEV-DEPLOYMENT.md. Run it from Actions → Deploy Kev → Run workflow.
+#
+# Needs repository secrets MODAL_TOKEN_ID and MODAL_TOKEN_SECRET, plus the existing
+# CLOUDFLARE_API_TOKEN and vars.CLOUDFLARE_ACCOUNT_ID. The bearer key is generated
+# here each run and written only to the Modal Secret and the Worker secret.
+
+name: Deploy Kev
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: kev-deploy
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    environment:
+      name: production
+    env:
+      MODAL_TOKEN_ID: ${{ secrets.MODAL_TOKEN_ID }}
+      MODAL_TOKEN_SECRET: ${{ secrets.MODAL_TOKEN_SECRET }}
+      MODAL_ENVIRONMENT: rise-kev
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+      KEV_MODEL: kev-latest
+      KEV_REVISION: 139fdd94f1b6a6ad80cc15e08fcb99cac885a101
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - name: Install the Modal client
+        run: |
+          set -euo pipefail
+          test -n "$MODAL_TOKEN_ID" && test -n "$MODAL_TOKEN_SECRET" || { echo "Add MODAL_TOKEN_ID and MODAL_TOKEN_SECRET repository secrets."; exit 1; }
+          pip install --quiet 'modal==1.5.5'
+      - name: Write a fresh bearer key to Modal
+        run: |
+          set -euo pipefail
+          key=$(python -c 'import secrets; print(secrets.token_urlsafe(48))')
+          echo "::add-mask::$key"
+          echo "KEV_API_KEY=$key" >> "$GITHUB_ENV"
+          modal environment create "$MODAL_ENVIRONMENT" 2>/dev/null || true
+          modal secret create rise-kev-api-key "KEV_API_KEY=$key" -e "$MODAL_ENVIRONMENT" --force >/dev/null
+      - name: Deploy the pinned service
+        run: |
+          set -euo pipefail
+          modal deploy -e "$MODAL_ENVIRONMENT" deploy/kev/modal_app.py | tee "$RUNNER_TEMP/deploy.log"
+          url=$(grep -oE 'https://[a-z0-9-]+\.modal\.run' "$RUNNER_TEMP/deploy.log" | tail -1)
+          test -n "$url" || { echo "Modal did not print a web endpoint URL."; exit 1; }
+          echo "KEV_BASE_URL=$url" >> "$GITHUB_ENV"
+          echo "Kev endpoint: $url" >> "$GITHUB_STEP_SUMMARY"
+      - name: Wait for the warm container
+        run: |
+          set -euo pipefail
+          # First start downloads the pinned weights and compiles kernels.
+          for i in $(seq 1 60); do
+            code=$(curl -sS -o /dev/null -w '%{http_code}' --max-time 60 \
+              -H "Authorization: Bearer $KEV_API_KEY" "$KEV_BASE_URL/v1/models" || true)
+            [ "$code" = 200 ] && { echo "Kev is serving."; exit 0; }
+            echo "Attempt $i: HTTP $code"; sleep 20
+          done
+          echo "Kev did not become ready in 20 minutes; see: modal app logs -e $MODAL_ENVIRONMENT rise-kev-pinned"; exit 1
+      - name: Smoke test (auth, pinned revision, answer shapes)
+        run: python deploy/kev/smoke.py
+      - name: Synthetic reader-preference probes
+        # A quality report, not a gate: the release gate is KEV_PRODUCTION_VERIFIED.
+        continue-on-error: true
+        working-directory: deploy/kev
+        run: python probe.py | tee -a "$GITHUB_STEP_SUMMARY"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Hand the endpoint to the production Worker
+        run: |
+          set -euo pipefail
+          npm ci --no-audit --ignore-scripts
+          for name in KEV_API_KEY KEV_BASE_URL KEV_REVISION; do
+            printf '%s' "${!name}" | ./node_modules/.bin/wrangler secret put "$name" --config wrangler.production.jsonc
+          done
+          echo "Worker secrets set. Set KEV_PRODUCTION_VERIFIED=true and KEV_REVISION=$KEV_REVISION as repository variables, then release, to switch production to Kev." >> "$GITHUB_STEP_SUMMARY"
