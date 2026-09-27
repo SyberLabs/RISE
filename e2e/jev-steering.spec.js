@@ -220,8 +220,15 @@ test('spoken Jev request opens a reading whose look can be changed live', async 
     input.dispatchEvent(new Event('input', { bubbles: true }));
   });
   await expect(page.locator('#jev-volume-value')).toHaveText('30%');
+  await expect.poll(() => page.evaluate(() => window.__RISE_TEST__
+    ?.getAudioEngine()?.config?.masterVolume)).toBe(0.3);
+  await page.locator('[name="jev-soundscape"]').selectOption('aurora');
+  await expect.poll(() => page.evaluate(() => Boolean(window.__RISE_TEST__
+    ?.getAudioEngine()?.layers?.soundscape))).toBe(true);
   await page.locator('[name="jev-soundscape"]').selectOption('none');
   await expect(page.locator('[name="jev-soundscape"]')).toHaveValue('none');
+  await expect.poll(() => page.evaluate(() => Boolean(window.__RISE_TEST__
+    ?.getAudioEngine()?.layers?.soundscape))).toBe(false);
 });
 
 test.describe('touch reader', () => {
