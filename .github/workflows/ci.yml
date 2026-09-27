@@ -16,6 +16,7 @@ concurrency:
 jobs:
   ci:
     name: CI
+    if: github.event_name != 'push'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -43,38 +44,11 @@ jobs:
             src/content/keystones.test.js
           npx vite build
           npm run measure:first-load
-      - name: Mark the tested release
-        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
-        env:
-          TESTED_SHA: ${{ github.sha }}
-        run: |
-          set -euo pipefail
-          [[ "$TESTED_SHA" =~ ^[0-9a-f]{40}$ ]]
-          printf '%s\n' "$TESTED_SHA" > "dist/release-$TESTED_SHA.txt"
-      - uses: actions/upload-artifact@v4
-        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
-        with:
-          name: rise-${{ github.sha }}
-          path: |
-            dist/
-            worker/index.mjs
-            worker/jev-recommend.mjs
-            src/content/archive/release-inventory.json
-            netlify/functions/jev-decision.mjs
-            netlify/functions/jev-route.mjs
-            package.json
-            package-lock.json
-            wrangler.production.jsonc
-          if-no-files-found: error
-          compression-level: 1
-          retention-days: 14
   production:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    needs: ci
     runs-on: ubuntu-latest
     timeout-minutes: 20
-    # GitHub restricts this environment to main, requires @sdcarlson review,
-    # permits owner self-review, and disables administrator bypass.
+    # GitHub restricts this environment to main. Required PR checks gate merges.
     environment:
       name: production
       url: https://rise.syberlabs.io
@@ -83,23 +57,18 @@ jobs:
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
       CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/checkout@v4
         with:
-          name: rise-${{ github.sha }}
-          path: release
-      - name: Verify the same release artifact
+          persist-credentials: false
+      - uses: ./.github/actions/setup
+      - name: Build production
+        run: npm run build
+      - name: Mark the tested release
         run: |
           set -euo pipefail
-          test "$(cat "$GITHUB_WORKSPACE/release/dist/release-$TESTED_SHA.txt")" = "$TESTED_SHA"
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '22.12.0'
-      - name: Install production dependencies
-        working-directory: release
-        run: |
-          set -euo pipefail
-          npm ci --omit=dev --ignore-scripts --no-audit --no-fund
-      - name: Recheck main after owner approval
+          [[ "$TESTED_SHA" =~ ^[0-9a-f]{40}$ ]]
+          printf '%s\n' "$TESTED_SHA" > "dist/release-$TESTED_SHA.txt"
+      - name: Recheck main before deployment
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -109,7 +78,6 @@ jobs:
           current=$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/main" --jq '.object.sha')
           test "$TESTED_SHA" = "$current"
       - name: Record prior production versions and rollback command
-        working-directory: release
         run: |
           set -euo pipefail
           # A new production Worker has no deployment history. Only Cloudflare's
@@ -149,8 +117,7 @@ jobs:
               echo '`npx --yes wrangler@4.141.0 rollback <VERSION_ID> --config wrangler.production.jsonc --message "RISE rollback"`'
             fi
           } >> "$GITHUB_STEP_SUMMARY"
-      - name: Deploy production from the verified artifact
-        working-directory: release
+      - name: Deploy production
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
