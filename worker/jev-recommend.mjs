@@ -98,7 +98,7 @@ const CHOICES = Object.freeze({
 });
 const CONFIG_ANSWERS = Object.keys(CHOICES);
 const OPTION_KINDS = ['chamberFace', 'fontSize'];
-const OPTION_CACHE_KEY = 'rise:jev-options:v1';
+const OPTION_CACHE_KEY = 'rise:jev-options:v2';
 const QUESTION_INSTRUCTIONS = Object.freeze({
   pace: 'Choose the reading speed in words per minute. Honor explicit slow, fast, brief, or sustained requests; use the reading mood when speed is unstated.',
   curve: 'Choose how speed changes through the reading. Use flat for a requested steady pace; use an arc only when it adds to the requested experience.',
@@ -240,7 +240,8 @@ async function activeChoices(redis, env, sounds) {
   let rows;
   try {
     const sql = neon(env.NEON_DATABASE_URL);
-    rows = await sql`SELECT kind, id, description FROM rise_jev_options WHERE active = TRUE`;
+    rows = await sql`SELECT kind, id, description FROM rise_jev_options
+      WHERE active = TRUE AND kind IN ('chamberFace', 'fontSize')`;
   } catch (cause) {
     // An unmigrated table is optional; an outage must not reactivate disabled choices.
     if (cause?.code === '42P01') return { ...CHOICES, audio };

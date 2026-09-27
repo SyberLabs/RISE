@@ -508,6 +508,7 @@ describe('Jev reading recommendation', () => {
     expect((await handleJevRecommend(request({ intent: 'Quiet and reflective.' }), env)).status).toBe(200);
 
     expect(provider).toHaveBeenCalledTimes(2);
+    expect(mocks.optionsQuery.mock.calls[0][0].join('')).toContain("kind IN ('chamberFace', 'fontSize')");
     const first = JSON.parse(provider.mock.calls[0][1].body).questions;
     const second = JSON.parse(provider.mock.calls[1][1].body).questions;
     expect(first.chamberFace.criteria).toHaveProperty('mono');
