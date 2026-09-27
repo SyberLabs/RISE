@@ -323,7 +323,7 @@ or the build artifact. The declared required secret makes Wrangler refuse a
 deployment when the Worker lacks it.
 
 The production job checks the current main commit again after approval, verifies
-the artifact checksum and release marker, and checks public pages and API errors
+the artifact digest and release marker, and checks public pages and API errors
 after deployment. The `syberlabs.io` zone and `rise.syberlabs.io` custom domain must be
 active, and the RISE production Worker alone must have a public Access bypass;
 Relay must remain protected.
