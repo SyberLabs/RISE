@@ -100,6 +100,8 @@ def check():
     probs = choice.get("probabilities", {})
     if (choice.get("type") != "choice"
             or choice.get("choice") not in {"returns", "shipping"}
+            or not isinstance(choice.get("confidence"), (int, float))
+            or not 0 <= choice["confidence"] <= 1
             or set(probs) != {"returns", "shipping"}
             or not all(isinstance(p, (int, float)) and 0 <= p <= 1 for p in probs.values())
             or abs(sum(probs.values()) - 1) > 0.01):

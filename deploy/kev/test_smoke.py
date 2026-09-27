@@ -42,6 +42,7 @@ class SmokeConfigurationTests(unittest.TestCase):
                             "base": "Qwen/Qwen3.5-4B-Base"}]}
         result = {"model": "kev-latest", "answers": {
             "department": {"type": "choice", "choice": "returns",
+                           "confidence": 0.6,
                            "probabilities": {"returns": 0.8, "shipping": 0.2}},
             "escalate": {"type": "noul", "noul": 0.1}}}
         responses = [(401, None, {"X-Kev-Revision": EXPECTED_REVISION}),

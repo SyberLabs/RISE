@@ -72,12 +72,17 @@ describe('Kev migration', () => {
   });
   it('rate limits Scriptorium and never forwards the reader key', async () => {
     const fetcher = vi.fn(async () => Response.json({ model: 'kev-latest',
-      answers: { route: { type: 'choice', choice: 'experience_program', confidence: 0.7 } } }, { headers: { 'x-kev-revision': env.KEV_REVISION } }));
+      // Pinned kev/api.py to_answers emits confidence separately from probabilities.
+      answers: { route: { type: 'choice', choice: 'experience_program', confidence: 0.7,
+        probabilities: { experience_program: 0.85, agent_operation_set: 0.15 } } } },
+    { headers: { 'x-kev-revision': env.KEV_REVISION } }));
     vi.stubGlobal('fetch', fetcher);
     const req = () => request('/api/jev/route', { intent: 'Read', targetWords: 800 });
     expect((await worker.fetch(req(), { ...env, DECISION_LIMITER: { limit: async () => ({ success: false }) } })).status).toBe(429);
     expect(fetcher).not.toHaveBeenCalled();
-    expect((await worker.fetch(req(), env)).status).toBe(200);
+    const response = await worker.fetch(req(), env);
+    expect(response.status).toBe(200);
+    expect(await response.json()).toMatchObject({ route: 'experience_program', confidence: 0.7 });
     expect(fetcher.mock.calls[0][1].headers.Authorization).toBe('Bearer server-kev-secret');
   });
 });

@@ -97,3 +97,5 @@ The fixed cases also do not establish privacy approval for real reading data. Ke
 
 Merging this migration does not deploy RISE. The production job requires the repository variable KEV_PRODUCTION_VERIFIED=true. Leave it unset until the authenticated warm host, required secrets, privacy review, and live baseline comparison above are complete. Then set the variable and push a reviewed release commit to main; workflow_dispatch runs validation only. Clear the variable to pause later automated releases. Existing production remains on its previously deployed version until this gate is enabled.
 
+Before enabling that gate, set repository variables `DECISION_PROVIDER`, `KEV_MODEL`, and `KEV_REVISION` to match the production Worker's configuration. The post-deployment checks require both response versions to identify `Kev`, `kev-latest`, and that exact revision. For an explicit Jev rollback, set `DECISION_PROVIDER=jev` in both the Worker and repository variables; the checks then require the Jev model family. These repository variables are verification expectations and do not configure the Worker's secrets.
+
