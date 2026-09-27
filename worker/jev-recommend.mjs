@@ -197,6 +197,7 @@ function validConfig(config) {
   if (config.visualStyle === 'immersive' && config.projection !== 'stream') return null;
   if (['genesis', 'attractor', 'interlocution'].includes(config.visualMode)
     && config.projection !== 'stream') return null;
+  if (config.fontSize === 'fit' && config.chunkMode !== 'word') return null;
   const resolved = resolveJevChamberConfig(config);
   if (config.audioPreset !== resolved.audioPreset
     || config.soundscape !== resolved.soundscape
@@ -247,6 +248,7 @@ function choiceConfig(answers) {
   if (config.wordFill === 'same' && (config.visualMode !== 'interlocution'
     || config.chamberFace !== 'thick' || config.fontSize !== 'fit'
     || config.chunkMode !== 'word')) config.wordFill = 'accent';
+  if (config.fontSize === 'fit' && config.chunkMode !== 'word') config.fontSize = 'large';
   config.colors = jevPalette(config.colorTheme);
   Object.assign(config, resolveJevChamberConfig(config));
   return config;

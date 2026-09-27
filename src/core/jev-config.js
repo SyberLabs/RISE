@@ -4,6 +4,10 @@ const CADENCES = Object.freeze({ slow: 0.15, balanced: 0.5, lively: 0.85 });
 
 /** Expand one Jev Choice decision into the exact existing Chamber controls. */
 export function resolveJevChamberConfig(plan) {
+  // Fit only paints word chunks. A larger ordinary size is the honest
+  // presentation for phrase, sentence, and paragraph readings.
+  const fontSize = plan.fontSize === 'fit' && plan.chunkMode !== 'word'
+    ? 'large' : plan.fontSize;
   const psychedelic = plan.visualStyle === 'psychedelic';
   const visualMode = psychedelic ? 'interlocution' : plan.visualMode;
   const visualEngine = psychedelic ? 'fractal' : plan.visualEngine;
@@ -12,7 +16,7 @@ export function resolveJevChamberConfig(plan) {
   const wordFill = plan.wordFill === 'same'
     && visualMode === 'interlocution'
     && plan.chamberFace === 'thick'
-    && plan.fontSize === 'fit'
+    && fontSize === 'fit'
     && plan.chunkMode === 'word'
     ? 'same' : plan.wordFill === 'same' ? 'accent' : plan.wordFill;
 
@@ -42,7 +46,7 @@ export function resolveJevChamberConfig(plan) {
     visualConfig,
     presentation: {
       chamberFace: plan.chamberFace,
-      fontSize: plan.fontSize,
+      fontSize,
       colorTheme,
       colors: jevPalette(colorTheme)
     },

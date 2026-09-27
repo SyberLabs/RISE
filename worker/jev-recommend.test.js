@@ -206,7 +206,7 @@ describe('Jev reading recommendation', () => {
       section: 'shortest', wpm: 150, curve: 'wave', chunkMode: 'phrase',
       audio: 'aurora', visualMode: 'interlocution', visualEngine: 'fractal',
       visualStyle: 'psychedelic', visualPalette: 'purple', kleePreset: 'chaotic',
-      galleryCadence: 'lively', chamberFace: 'thick', fontSize: 'fit',
+      galleryCadence: 'lively', chamberFace: 'thick', fontSize: 'large',
       colorTheme: 'prism', colors: JEV_PALETTES.prism,
       wordFill: 'accent', projection: 'stream', revealMode: 'progressive',
       audioPreset: 'silent', soundscape: 'aurora',
@@ -221,7 +221,7 @@ describe('Jev reading recommendation', () => {
         }
       },
       presentation: {
-        chamberFace: 'thick', fontSize: 'fit',
+        chamberFace: 'thick', fontSize: 'large',
         colorTheme: 'prism', colors: JEV_PALETTES.prism
       }
     });
@@ -251,6 +251,22 @@ describe('Jev reading recommendation', () => {
       } },
       presentation: { colorTheme: 'prism', colors: JEV_PALETTES.prism }
     });
+  });
+
+  it('returns a visible large size when Jev chooses Fit for phrase chunks', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => Response.json({
+      model: 'typesafe/jev-1.13', provider: 'TypeSafe',
+      answers: answers('middlemarch', {
+        chunk: { type: 'choice', choice: 'phrase' },
+        fontSize: { type: 'choice', choice: 'fit' }
+      })
+    })));
+    const response = await handleJevRecommend(request({ intent: 'A large phrase reading.' }), env);
+    expect(response.status).toBe(200);
+    const { config } = await response.json();
+    expect(config.chunkMode).toBe('phrase');
+    expect(config.fontSize).toBe('large');
+    expect(config.presentation.fontSize).toBe('large');
   });
 
   it('reuses a validated Jev decision for the same intent within the Redis TTL', async () => {
