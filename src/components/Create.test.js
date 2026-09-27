@@ -79,6 +79,15 @@ describe('Create', () => {
     expect(container.dataset.unkept).toBe('true');
     await view.act('previous'); expect(view.draft).toBe(first);
   });
+  it('records a Keep that commits after Copy supersedes its status', async () => {
+    let finish;
+    vi.spyOn(MemoryCore, 'saveWorkshopBlueprintAsync').mockImplementation(project => new Promise(r => { finish = () => { MemoryCore.saveWorkshopBlueprint(project); r({ id: project.id }); }; }));
+    Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText: vi.fn().mockResolvedValue() } });
+    const view = new Create(container); view.setDraft(createPersonalProject(piece));
+    const keeping = view.act('keep'); await view.act('copy'); finish(); await keeping;
+    expect(container.dataset.unkept).toBe('false');
+    expect(container.querySelector('[data-action="keep"]').textContent).toBe('Kept');
+  });
   it('restores unsaved parent, never saves implicitly, and preserves parent on storage failure', async () => {
     const request = vi.fn().mockResolvedValueOnce(piece).mockResolvedValueOnce({ ...piece, title: 'Revision' });
     const view = new Create(container, { request }); fill('thought', 'a'); await view.generate(false);

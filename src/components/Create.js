@@ -195,9 +195,14 @@ export class Create {
       if (action === 'keep') {
         let saved;
         try { saved = await MemoryCore.saveWorkshopBlueprintAsync(project); } catch { /* Show recovery actions below. */ }
-        if (operation !== this.actionOperation || this.draft !== project) return;
+        // A committed save is recorded even when a later action owns the status.
+        if (saved) this.kept.add(project.id);
+        if (operation !== this.actionOperation || this.draft !== project) {
+          if (saved && this.draft) this.showDraft();
+          return;
+        }
         if (!saved) throw new Error('This browser could not keep the piece. You can still copy or export it.');
-        this.kept.add(project.id); this.showDraft(); this.status('Kept in this browser’s Vault.');
+        this.showDraft(); this.status('Kept in this browser’s Vault.');
       } else if (action === 'start') {
         const started = await this.onCreateSession(project);
         // Navigation owns cancellation; returning false keeps the original text visible.
