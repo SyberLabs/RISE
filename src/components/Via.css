@@ -1,13 +1,16 @@
 /**
- * The Via — the painting is the room. Tiepolo's canvas held large,
- * the phases passing beneath, the nave strip marking the walk.
+ * The Via — the painting is the room, inside the SyberLabs frame.
+ * Tiepolo's canvas held large, the phases passing beneath, the nave
+ * strip marking the walk. Chrome appears only while choosing.
  */
 
 .via {
   height: 100vh;
   height: 100dvh;
   overflow: hidden;
-  background: var(--color-void);
+  background: var(--sy-bg);
+  color: var(--sy-text);
+  font-family: var(--sy-font-sans);
   position: relative;
 }
 
@@ -20,211 +23,259 @@
   justify-content: center;
   justify-content: safe center;
   overflow-y: auto;
-  animation: via-fade 1.1s var(--ease-default);
+  animation: via-fade 1.1s var(--sy-ease);
+}
+
+.via-stage[data-phase="choosing"] {
+  justify-content: flex-start;
+  align-items: stretch;
 }
 
 @keyframes via-fade { from { opacity: 0; } to { opacity: 1; } }
-@media (prefers-reduced-motion: reduce) { .via-stage { animation: none; } }
 
 /* ── Choosing ── */
 
-.via-back {
-  position: absolute;
-  top: var(--space-lg);
-  left: var(--space-lg);
-  color: var(--color-fog);
+.via-choose {
+  width: 100%;
+  max-width: 880px;
+  margin: 0 auto;
+  padding: var(--sy-space-8) var(--sy-space-6);
+  box-sizing: border-box;
 }
 
-.via-heading { text-align: center; margin-bottom: var(--space-lg); }
-
-.via-kicker {
-  font-size: 11px;
-  letter-spacing: 0.16em;
-  color: var(--color-ember);
-  opacity: 0.85;
-  margin: 0 0 6px;
+.via-heading {
+  margin-bottom: var(--sy-space-6);
 }
 
-.via-deck { color: var(--color-fog); font-size: 13.5px; margin: 0; }
-
-/* The nave preview: fourteen small frames in a row */
+/* The nave preview: fourteen small frames in two rows */
 .via-nave {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
-  gap: var(--space-sm);
-  width: min(920px, calc(100vw - 2 * var(--space-xl)));
-  margin-bottom: var(--space-lg);
+  gap: var(--sy-space-2);
+  margin-bottom: var(--sy-space-6);
 }
 
 .via-nave-frame {
   aspect-ratio: 5 / 6;
   overflow: hidden;
-  border: 1px solid rgba(212, 165, 116, 0.2);
-  padding: 2px;
-  background: rgba(212, 165, 116, 0.03);
+  background: var(--sy-surface);
+  border: 1px solid var(--sy-line);
+  border-radius: var(--sy-radius-sm);
 }
 
 .via-nave-frame img {
+  display: block;
   width: 100%;
   height: 100%;
   object-fit: cover;
-  opacity: 0.8;
 }
 
 .via-panel {
-  width: min(680px, calc(100vw - 2 * var(--space-lg)));
   display: flex;
   flex-direction: column;
-  gap: var(--space-md);
+  gap: var(--sy-space-4);
+  padding-top: var(--sy-space-5);
+  border-top: 1px solid var(--sy-line);
 }
 
-.via-row { display: flex; align-items: center; gap: var(--space-sm); flex-wrap: wrap; }
+.via-row {
+  display: flex;
+  align-items: center;
+  gap: var(--sy-space-2);
+  flex-wrap: wrap;
+}
 
 .via-row-label {
-  font-size: 10px;
-  letter-spacing: 0.1em;
+  min-width: 88px;
+  font-family: var(--sy-font-mono);
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--color-mist);
+  color: var(--sy-text-3);
 }
 
 .via-pill {
+  min-height: var(--sy-control-height);
+  padding: 0 var(--sy-space-4);
   background: transparent;
-  border: 1px solid var(--color-shadow);
-  border-radius: 12px;
-  color: var(--color-cloud);
-  font-size: 12px;
-  padding: 3px 12px;
-  min-height: 44px;
+  border: 1px solid var(--sy-line-strong);
+  border-radius: var(--sy-radius);
+  color: var(--sy-text-2);
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 500;
   cursor: pointer;
-  transition: border-color 250ms var(--ease-out), background 250ms var(--ease-out);
+  transition: background var(--sy-dur-hover) var(--sy-ease), color var(--sy-dur-hover) var(--sy-ease);
 }
 
-.via-pill:hover { border-color: rgba(212, 165, 116, 0.45); }
-
-.via-pill:focus-visible,
-.via-start:focus-visible,
-.via-back:focus-visible,
-.via-quiet-exit:focus-visible {
-  outline: 2px solid var(--color-ember);
-  outline-offset: 3px;
+.via-pill:hover {
+  background: var(--sy-surface-2);
+  color: var(--sy-text);
 }
 
-.via-pill-selected {
-  border-color: var(--color-ember);
-  background: rgba(212, 165, 116, 0.08);
-  color: var(--color-light);
+.via-pill-selected,
+.via-pill-selected:hover {
+  border-color: var(--sy-brand);
+  box-shadow: inset 0 0 0 1px var(--sy-brand);
+  color: var(--sy-text);
 }
 
+/* Secondary by default; the one act of each screen is .via-primary */
 .via-start {
-  background: rgba(212, 165, 116, 0.10);
-  border: 1px solid var(--color-ember);
-  border-radius: 4px;
-  color: var(--color-light);
-  font-size: 14.5px;
-  letter-spacing: 0.03em;
-  padding: var(--space-md);
-  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: var(--sy-control-height);
+  padding: 0 var(--sy-space-5);
+  background: transparent;
+  border: 1px solid var(--sy-line-strong);
+  border-radius: var(--sy-radius);
+  color: var(--sy-text);
+  font-family: inherit;
+  font-size: 16px;
+  font-weight: 500;
   cursor: pointer;
-  transition: background 300ms var(--ease-out), box-shadow 300ms var(--ease-out);
+  transition: background var(--sy-dur-hover) var(--sy-ease);
 }
 
 .via-start:hover {
-  background: rgba(212, 165, 116, 0.16);
-  box-shadow: 0 0 30px rgba(212, 165, 116, 0.12);
+  background: var(--sy-surface-2);
+}
+
+.via-primary {
+  background: var(--sy-text);
+  border-color: var(--sy-text);
+  color: var(--sy-on-primary);
+}
+
+.via-primary:hover {
+  background: #FFFFFF;
+}
+
+.via-panel > .via-start {
+  margin-top: var(--sy-space-2);
+  width: 100%;
 }
 
 .via-attribution {
-  color: var(--color-mist);
-  font-size: 9.5px;
-  letter-spacing: 0.04em;
-  line-height: 1.7;
   margin: 0;
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--sy-text-3);
 }
 
 /* ── Walking ── */
 
 .via-quiet-exit {
   position: fixed;
-  top: var(--space-lg);
-  right: var(--space-lg);
+  top: var(--sy-space-3);
+  right: var(--sy-space-6);
   z-index: 5;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sy-space-2);
+  min-height: var(--sy-control-height);
+  padding: 0 var(--sy-space-3);
   background: transparent;
-  border: none;
+  border: 0;
+  border-radius: var(--sy-radius);
+  color: var(--sy-text-3);
+  font-family: var(--sy-font-sans);
+  font-size: 14px;
+  font-weight: 500;
   cursor: pointer;
-  color: var(--color-mist);
-  font-family: var(--font-mono);
-  font-size: 10.5px;
-  min-height: 44px;
-  padding: 0 8px;
-  letter-spacing: 0.1em;
-  opacity: 0.55;
-  transition: opacity 300ms var(--ease-out), color 300ms var(--ease-out);
+  transition: color var(--sy-dur-hover) var(--sy-ease);
 }
 
-.via-quiet-exit:hover, .via-quiet-exit:focus-visible { opacity: 1; color: var(--color-ember); }
-
-@media (max-width: 700px) {
-  .via-quiet-exit { top: var(--top-control-clearance); }
+.via-quiet-exit:hover,
+.via-quiet-exit:focus-visible {
+  color: var(--sy-text);
 }
 
-/* The nave strip: where you are on the way */
+/* The nave strip: where you are on the way (fourteen marks) */
 .via-strip {
   position: absolute;
-  top: var(--space-lg);
+  top: var(--sy-space-6);
   left: 50%;
   transform: translateX(-50%);
   display: flex;
-  gap: 10px;
-  font-family: var(--font-mono);
-  font-size: 11px;
+  align-items: center;
+  gap: var(--sy-space-2);
 }
 
-.via-strip-mark { color: rgba(190, 198, 214, 0.25); transition: color 600ms var(--ease-default); }
-.via-strip-walked { color: rgba(212, 165, 116, 0.4); }
-.via-strip-here { color: var(--color-ember); }
+.via-strip-mark {
+  width: 4px;
+  height: 4px;
+  border-radius: var(--sy-radius-full);
+  background: var(--sy-line-strong);
+  transition: background 600ms var(--sy-ease);
+}
+
+.via-strip-walked {
+  background: var(--sy-text-3);
+}
+
+.via-strip-here {
+  width: 8px;
+  height: 8px;
+  background: var(--sy-accent-rise);
+}
 
 .via-station {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: var(--space-lg);
-  max-width: min(880px, calc(100vw - 2 * var(--space-xl)));
+  gap: var(--sy-space-5);
+  max-width: min(880px, calc(100vw - 2 * var(--sy-space-6)));
+  padding-top: var(--sy-space-7);
   text-align: center;
-  padding-top: var(--space-lg);
 }
 
-.via-station-byhand { cursor: pointer; }
+.via-station-byhand {
+  cursor: pointer;
+}
 
 .via-art img {
   max-height: 52vh;
   max-width: min(560px, 74vw);
   object-fit: contain;
-  border: 1px solid rgba(212, 165, 116, 0.28);
-  padding: 3px;
-  background: rgba(212, 165, 116, 0.03);
-  transition: opacity 1.4s var(--ease-default);
+  border: 1px solid var(--sy-line);
+  border-radius: var(--sy-radius-sm);
+  transition: opacity 1.4s var(--sy-ease);
 }
 
-.via-art-dimmed img { opacity: 0.35; }
+.via-art-dimmed img {
+  opacity: 0.35;
+}
 
 .via-text {
-  font-family: var(--font-literary);
-  color: var(--color-light);
-  font-size: clamp(16px, 1.9vw, 22px);
-  line-height: 1.8;
   margin: 0;
   max-width: 62ch;
+  font-family: var(--sy-font-reading);
+  font-size: clamp(20px, 1.9vw, 22px);
+  line-height: 1.6;
+  color: var(--sy-text);
 }
 
-.via-text-announce { font-size: clamp(19px, 2.3vw, 26px); }
-.via-text-versicle { color: var(--color-ember); }
-.via-text-silence { color: var(--color-mist); font-size: 28px; }
+.via-text-announce { font-size: clamp(22px, 2.3vw, 26px); }
+.via-text-versicle { color: var(--sy-text-2); font-style: italic; }
+.via-text-silence { color: var(--sy-text-3); font-size: 28px; }
 
 .via-hint {
-  color: var(--color-mist);
-  font-size: 11.5px;
-  letter-spacing: 0.08em;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sy-space-2);
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 500;
+  color: var(--sy-text-3);
+}
+
+.via-station-byhand:hover .via-hint {
+  color: var(--sy-text);
 }
 
 /* ── Complete ── */
@@ -233,12 +284,9 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: var(--space-lg);
-}
-
-@media (max-width: 760px) {
-  .via-nave { grid-template-columns: repeat(7, 1fr); gap: 4px; }
-  .via-art img { max-height: 40vh; }
+  gap: var(--sy-space-5);
+  padding: 0 var(--sy-space-4);
+  text-align: center;
 }
 
 /* The chant credit — the provenance contract made visible: each
@@ -246,17 +294,48 @@
    while its track sounds. Shared by the Rosarium and the Via. */
 .chant-credit {
   position: fixed;
-  bottom: 10px;
+  bottom: var(--sy-space-3);
   left: 50%;
   transform: translateX(-50%);
   margin: 0;
-  font-size: 10px;
-  letter-spacing: 0.06em;
-  color: rgba(200, 195, 210, 0.4);
-  pointer-events: none;
   max-width: 84vw;
+  font-family: var(--sy-font-sans);
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--sy-text-3);
+  pointer-events: none;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
+
 .chant-credit[hidden] { display: none; }
+
+@media (max-width: 760px) {
+  .via-nave { gap: var(--sy-space-1); }
+  .via-art img { max-height: 40vh; }
+}
+
+@media (max-width: 640px) {
+  .via-choose {
+    padding: var(--sy-space-6) var(--sy-space-4) var(--sy-space-7);
+  }
+
+  .via-row-label {
+    flex-basis: 100%;
+  }
+
+  .via-quiet-exit {
+    right: var(--sy-space-2);
+    top: calc(var(--sy-space-2) + env(safe-area-inset-top, 0px));
+  }
+
+  .via-strip {
+    top: calc(var(--sy-space-8) + env(safe-area-inset-top, 0px));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .via-stage { animation: none; }
+  .via-art img, .via-strip-mark { transition: none; }
+}

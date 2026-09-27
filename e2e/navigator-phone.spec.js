@@ -1,4 +1,4 @@
-import { test, expect } from './fixtures.js';
+import { test, expect, openHomeNav } from './fixtures.js';
 
 /**
  * THE VISUAL NAVIGATOR, ON A PHONE.
@@ -30,13 +30,14 @@ async function openNavigator(page, size) {
     await page.setViewportSize(size);
     await page.addInitScript(g => localStorage.setItem('rise-beta-session', JSON.stringify(g)), GATE);
     await page.goto('/');
-    await page.locator('[data-nav="library"]').first().click();
+    await openHomeNav(page, 'library');
     await expect(page.locator('.archive-card').first()).toBeVisible({ timeout: 40000 });
     await page.locator('[data-text-id="literary-meditations"] [data-action="select-text"]').click();
     await page.waitForTimeout(2000);
     const toc = page.locator('.toc-entry').first();
     if (await toc.isVisible().catch(() => false)) { await toc.click(); }
     await expect(page.locator('.orbital-stage')).toBeVisible({ timeout: 30000 });
+    { const adjust = page.locator('[data-action="toggle-adjust"]'); if (await adjust.getAttribute('aria-expanded') === 'false') await adjust.click(); }
     await page.locator('.orbit-visual').click();
     await expect(page.locator('.vnav')).toBeVisible({ timeout: 15000 });
 }
@@ -307,6 +308,7 @@ async function openLoadedNavigator(page, size = PHONE) {
     await page.goto('/');
     await page.locator('[data-nav="chamber"]').first().click();
     await expect(page.locator('#begin-btn')).toBeEnabled({ timeout: 15000 });
+    { const adjust = page.locator('[data-action="toggle-adjust"]'); if (await adjust.getAttribute('aria-expanded') === 'false') await adjust.click(); }
     await page.locator('[data-orbit="visual"]').click();
     await expect(page.locator('.vnav')).toBeVisible({ timeout: 15000 });
 }

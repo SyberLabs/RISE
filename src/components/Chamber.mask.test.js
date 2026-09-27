@@ -240,12 +240,14 @@ describe('Chamber Mask', () => {
     });
 
     it('leaves the saved chamberFace on the atom when Mask is on', () => {
-        const { chamber, container } = makeChamber(
-            { chunkMode: 'word' },
-            { chamberMask: true, chamberFace: 'jp' }
-        );
-        expect(atomDisplay(container).dataset.chamberFace).toBe('jp');
-        chamber.destroy();
+        for (const chamberFace of ['jp', 'sans', 'book']) {
+            const { chamber, container } = makeChamber(
+                { chunkMode: 'word' },
+                { chamberMask: true, chamberFace }
+            );
+            expect(atomDisplay(container).dataset.chamberFace).toBe(chamberFace);
+            chamber.destroy();
+        }
     });
 
     it('adds is-mask from PREP Gallery-in-the-word without requiring Settings Mask', () => {

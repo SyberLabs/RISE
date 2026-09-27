@@ -17,7 +17,7 @@ async function openScriptorium(page) {
         localStorage.setItem('rise-beta-session', JSON.stringify(gate));
     }, GATE);
     await page.goto('/');
-    await expect(page.locator('[data-nav="library"]').first()).toBeVisible({ timeout: 15_000 });
+    await expect(page.locator('.portal .portal-title').first()).toBeVisible({ timeout: 15_000 });
     await page.evaluate(() => window.__RISE_TEST__?.navigate('scriptorium'));
     await expect(page.locator('.scriptorium')).toBeVisible({ timeout: 15_000 });
     await page.waitForTimeout(600);

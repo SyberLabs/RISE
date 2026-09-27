@@ -1,11 +1,13 @@
-/* The Scriptorium — quiet specialist room, Curia-adjacent. */
+/* The Scriptorium — a quiet specialist room inside the SyberLabs frame.
+   One reading column, numbered steps separated by hairlines, system
+   fields and buttons. The room's local names map onto the --sy tokens. */
 
 .scriptorium {
-  --scriptorium-ink: #e8e4dc;
-  --scriptorium-fog: #9a958c;
-  --scriptorium-rule: #2a2824;
-  --scriptorium-panel: #141311;
-  --scriptorium-accent: #c4a574;
+  --scriptorium-ink: var(--sy-text);
+  --scriptorium-fog: var(--sy-text-2);
+  --scriptorium-rule: var(--sy-line);
+  --scriptorium-panel: var(--sy-surface);
+  --scriptorium-accent: var(--sy-brand);
   /* A viewport height, not a percentage: `body` is `overflow: hidden` and
      `.view-container` sets no height, so `height: 100%` resolves against
      an auto-height parent and establishes no scroll context at all. `dvh`
@@ -13,209 +15,239 @@
   height: 100dvh;
   overflow-y: auto;
   scrollbar-width: thin;
-  scrollbar-color: var(--scriptorium-rule) transparent;
-  padding: 1.5rem 1.25rem 4rem;
-  color: var(--scriptorium-ink);
-  background:
-    radial-gradient(ellipse at 20% 0%, rgba(196, 165, 116, 0.08), transparent 45%),
-    linear-gradient(180deg, #0c0b0a 0%, #121110 40%, #0a0908 100%);
-  font-family: "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif;
+  scrollbar-color: var(--sy-line) transparent;
+  color: var(--sy-text);
+  background: var(--sy-bg);
+  font-family: var(--sy-font-sans);
+  font-size: 16px;
+  line-height: 24px;
 }
 
 /* THE ROOM IS A COLUMN, NOT A MONITOR.
-   The room had padding and nothing else, so on a 1600px screen its prose ran
-   the full width of the glass — raw markup rather than a place to read. The
-   scroll stays on the room so the bar sits at the window's edge where a hand
-   expects it; only the content is brought to a column. */
+   The scroll stays on the room so the bar sits at the window's edge where a
+   hand expects it; only the content is brought to a column. */
 .scriptorium-column {
-  max-width: 68rem;
+  max-width: 880px;
   margin: 0 auto;
+  padding: var(--sy-space-8) var(--sy-space-8) var(--sy-space-9);
 }
 
-.scriptorium-header h1 {
-  margin: 0.35rem 0 0.5rem;
-  font-weight: 600;
-  letter-spacing: 0.02em;
-  font-size: clamp(1.6rem, 3vw, 2.1rem);
-}
-
-.scriptorium-sub {
-  max-width: 62ch;
-  color: var(--scriptorium-fog);
-  line-height: 1.55;
-  margin: 0 0 1.75rem;
-}
-
-.scriptorium-back {
-  background: none;
-  border: none;
-  color: var(--scriptorium-fog);
-  cursor: pointer;
-  padding: 0;
-  font: inherit;
-}
-
-.scriptorium-back:hover {
-  color: var(--scriptorium-ink);
+.scriptorium-header {
+  margin-bottom: var(--sy-space-7);
 }
 
 .scriptorium-step {
-  border-top: 1px solid var(--scriptorium-rule);
-  padding: 1.15rem 0 0.4rem;
-  max-width: 52rem;
+  border-top: 1px solid var(--sy-line);
+  padding: var(--sy-space-6) 0 var(--sy-space-5);
 }
 
 .scriptorium-step h2 {
-  margin: 0 0 0.55rem;
-  font-size: 1rem;
+  margin: 0 0 var(--sy-space-4);
+  font-family: var(--sy-font-sans);
+  letter-spacing: 0;
+  font-size: 18px;
+  line-height: 28px;
   font-weight: 600;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: var(--scriptorium-accent);
+  color: var(--sy-text);
 }
 
 .scriptorium-label {
   display: block;
-  margin-bottom: 0.35rem;
-  color: var(--scriptorium-fog);
-  font-size: 0.92rem;
+  margin: var(--sy-space-4) 0 var(--sy-space-2);
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 500;
+  color: var(--sy-text);
+}
+
+.scriptorium-step > .scriptorium-label:first-of-type {
+  margin-top: 0;
+}
+
+.scriptorium-intent,
+.scriptorium-paste,
+.scriptorium-jev-key {
+  width: 100%;
+  box-sizing: border-box;
+  min-height: var(--sy-control-height);
+  padding: 12px 16px;
+  background: var(--sy-surface);
+  color: var(--sy-text);
+  border: 1px solid var(--sy-line-strong);
+  border-radius: var(--sy-radius);
+  font: inherit;
+  font-size: 16px;
+  line-height: 24px;
+  transition: border-color var(--sy-dur-hover) var(--sy-ease);
 }
 
 .scriptorium-intent,
 .scriptorium-paste {
-  width: 100%;
-  box-sizing: border-box;
-  background: var(--scriptorium-panel);
-  color: var(--scriptorium-ink);
-  border: 1px solid var(--scriptorium-rule);
-  border-radius: 2px;
-  padding: 0.75rem 0.85rem;
-  font: inherit;
-  line-height: 1.45;
+  min-height: 112px;
   resize: vertical;
 }
 
+.scriptorium-intent::placeholder,
+.scriptorium-paste::placeholder {
+  color: var(--sy-text-3);
+}
+
+.scriptorium-intent:focus,
+.scriptorium-paste:focus,
+.scriptorium-jev-key:focus {
+  border-color: var(--sy-brand);
+}
+
 .scriptorium-paste {
-  font-family: ui-monospace, "Cascadia Code", Consolas, monospace;
-  font-size: 0.82rem;
+  font-family: var(--sy-font-mono);
+  font-size: 14px;
+  line-height: 20px;
 }
 
 .scriptorium-length {
   width: 100%;
-  max-width: 32rem;
-  margin: 0.15rem 0 0.5rem;
-  accent-color: var(--scriptorium-accent);
-  /* A thumb small enough to miss on a phone makes the one control in this
-     step the hardest thing in the room to use. */
-  height: 1.75rem;
+  max-width: 480px;
+  min-height: var(--sy-control-height);
+  margin: 0;
+  accent-color: var(--sy-brand);
 }
 
 #scriptorium-length-readout {
-  color: var(--scriptorium-ink);
-  margin-bottom: 0.35rem;
+  color: var(--sy-text);
+  font-weight: 500;
+  margin-bottom: var(--sy-space-2);
 }
 
 .scriptorium-note {
-  color: var(--scriptorium-fog);
-  margin: 0 0 0.75rem;
   max-width: 62ch;
-  line-height: 1.45;
+  margin: 0 0 var(--sy-space-3);
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--sy-text-2);
 }
 
-.scriptorium-jev {
-  max-width: 52rem;
-  margin: 1rem 0 1.1rem;
-  padding: 0.8rem 0.95rem 0.25rem;
-  border: 1px solid var(--scriptorium-rule);
-  border-left: 2px solid var(--scriptorium-accent);
-  background: rgba(196, 165, 116, 0.04);
-}
-
-.scriptorium-jev h3 {
-  margin: 0 0 0.65rem;
-  color: var(--scriptorium-ink);
-  font-size: 1rem;
+.scriptorium-note strong {
+  color: var(--sy-text);
   font-weight: 600;
 }
 
-.scriptorium-jev-key {
-  box-sizing: border-box;
-  width: min(100%, 32rem);
-  margin-bottom: 0.65rem;
-  padding: 0.65rem 0.75rem;
-  border: 1px solid var(--scriptorium-rule);
-  border-radius: 2px;
-  background: var(--scriptorium-panel);
-  color: var(--scriptorium-ink);
-  font: inherit;
+/* Jev routing: a section of its own, set off by a hairline, not a box */
+.scriptorium-jev {
+  margin: var(--sy-space-6) 0 var(--sy-space-2);
+  padding-top: var(--sy-space-5);
+  border-top: 1px solid var(--sy-line);
 }
 
-.scriptorium-jev-key:focus-visible {
-  outline: 2px solid var(--scriptorium-accent);
-  outline-offset: 2px;
+.scriptorium-jev h3 {
+  margin: 0 0 var(--sy-space-3);
+  font-family: var(--sy-font-sans);
+  letter-spacing: 0;
+  font-size: 16px;
+  line-height: 24px;
+  font-weight: 600;
+  color: var(--sy-text);
+}
+
+.scriptorium-jev-key {
+  width: min(100%, 480px);
+  margin-bottom: var(--sy-space-2);
 }
 
 .scriptorium-jev-result {
   max-width: 62ch;
-  margin: 0 0 0.75rem;
-  color: var(--scriptorium-ink);
-  line-height: 1.45;
+  margin: 0 0 var(--sy-space-3);
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--sy-text);
 }
 
 .scriptorium-actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.55rem;
-  margin: 0.75rem 0 1rem;
+  gap: var(--sy-space-2);
+  margin: var(--sy-space-4) 0;
 }
 
-.scriptorium-ok {
-  color: #8fbf8f;
+.scriptorium-ok,
+.scriptorium-refused {
+  max-width: 62ch;
+  margin-bottom: var(--sy-space-3);
 }
 
 .scriptorium-refusal {
-  background: var(--scriptorium-panel);
-  border: 1px solid var(--scriptorium-rule);
-  padding: 0.85rem 1rem;
-  white-space: pre-wrap;
-  font-family: ui-monospace, Consolas, monospace;
-  font-size: 0.82rem;
-  line-height: 1.45;
   max-width: 100%;
+  margin: 0 0 var(--sy-space-3);
+  padding: var(--sy-space-4);
   overflow: auto;
+  background: var(--sy-surface);
+  border: 1px solid var(--sy-line);
+  border-radius: var(--sy-radius);
+  color: var(--sy-text-2);
+  white-space: pre-wrap;
+  font-family: var(--sy-font-mono);
+  font-size: 13px;
+  line-height: 20px;
 }
 
 .scriptorium-source-list,
 .scriptorium-track-list {
-  margin: 0 0 1rem;
-  padding-left: 1.1rem;
-  color: var(--scriptorium-ink);
+  margin: 0 0 var(--sy-space-4);
+  padding-left: var(--sy-space-5);
+  color: var(--sy-text);
+}
+
+.scriptorium-source-list li,
+.scriptorium-track-list li {
+  margin-bottom: var(--sy-space-2);
 }
 
 .scriptorium-meta {
   display: block;
-  color: var(--scriptorium-fog);
-  font-size: 0.85rem;
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--sy-text-3);
 }
 
 .scriptorium-status {
-  margin-top: 1.25rem;
-  color: var(--scriptorium-accent);
+  max-width: 62ch;
+  margin-top: var(--sy-space-5);
+  padding-top: var(--sy-space-4);
+  border-top: 1px solid var(--sy-line);
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--sy-text);
+}
+
+@media (max-width: 1023px) {
+  .scriptorium-column {
+    padding: var(--sy-space-7) var(--sy-space-6) var(--sy-space-8);
+  }
+}
+
+@media (max-width: 640px) {
+  .scriptorium-column {
+    padding: var(--sy-space-6) var(--sy-space-4) var(--sy-space-8);
+  }
 }
 
 /* Materials — what the reader brought, folded away until asked for. A reader
    composing from the Library alone should not have to decline an upload panel
    on the way past. */
 .scriptorium-materials {
-  border: 1px solid var(--scriptorium-rule);
-  border-radius: 3px;
-  padding: 0.35rem 0.9rem;
-  max-width: 52rem;
+  border: 1px solid var(--sy-line);
+  border-radius: var(--sy-radius);
+  padding: 0 var(--sy-space-4);
+}
+
+.scriptorium-materials[open] {
+  padding-bottom: var(--sy-space-4);
 }
 
 .scriptorium-materials > summary {
   cursor: pointer;
-  padding: 0.55rem 0;
+  min-height: var(--sy-control-height);
+  padding: var(--sy-space-2) 0;
+  font-weight: 500;
   display: flex;
   gap: 0.9rem;
   align-items: baseline;
@@ -224,9 +256,8 @@
   color: var(--scriptorium-ink);
 }
 
-.scriptorium-materials > summary:focus-visible {
-  outline: 1px solid rgba(196, 165, 116, 0.75);
-  outline-offset: 3px;
+.scriptorium-materials > summary {
+  align-items: center;
 }
 
 .scriptorium-materials > summary .scriptorium-meta {
@@ -254,9 +285,12 @@
   gap: 0.3rem;
   margin: 0.9rem 0;
   padding: 0.6rem 0.85rem;
-  border-left: 2px solid var(--scriptorium-accent);
-  background: rgba(196, 165, 116, 0.08);
-  color: var(--scriptorium-ink);
+  border: 1px solid var(--sy-line);
+  border-radius: var(--sy-radius);
+  background: transparent;
+  color: var(--sy-text);
+  font-size: 14px;
+  line-height: 20px;
 }
 
 .scriptorium-material-line {
@@ -272,7 +306,7 @@
    reader so in the same colour. Warm rather than alarm-red: nothing here has
    gone wrong with RISE, one file was not taken. */
 .scriptorium-material-refused {
-  color: #e2a79c;
+  color: var(--sy-danger);
 }
 
 /* What the reader brought, with a picture of it. */
@@ -304,7 +338,7 @@
 .scriptorium-material-thumb {
   width: 4.5rem;
   height: 4.5rem;
-  border-radius: 2px;
+  border-radius: var(--sy-radius-sm);
   border: 1px solid var(--scriptorium-rule);
   background: var(--scriptorium-panel);
   object-fit: cover;
@@ -331,11 +365,11 @@
   bottom: 0;
   right: 0;
   padding: 0.1rem 0.3rem;
-  font-size: 0.65rem;
+  font-size: 12px;
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--scriptorium-ink);
-  background: rgba(10, 9, 8, 0.72);
+  background: var(--sy-bg);
   text-align: center;
 }
 
@@ -344,7 +378,7 @@
 .scriptorium-material-thumb-absent {
   display: grid;
   place-items: center;
-  font-size: 0.65rem;
+  font-size: 12px;
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--scriptorium-fog);
@@ -368,7 +402,7 @@
 
 .scriptorium-material-id code {
   font-family: ui-monospace, "Cascadia Code", Consolas, monospace;
-  font-size: 0.78rem;
+  font-size: 12px;
   color: var(--scriptorium-fog);
   overflow-wrap: anywhere;
   user-select: all;
@@ -379,15 +413,15 @@
 .scriptorium-material-describe {
   display: block;
   margin: 0.5rem 0 0.2rem;
-  font-size: 0.85rem;
+  font-size: 14px;
   color: var(--scriptorium-fog);
 }
 
 .scriptorium-material-optional {
-  font-size: 0.75rem;
+  font-size: 12px;
   letter-spacing: 0.05em;
   text-transform: uppercase;
-  opacity: 0.7;
+  color: var(--sy-text-3);
 }
 
 .scriptorium-material-description {
@@ -395,21 +429,20 @@
   box-sizing: border-box;
   background: var(--scriptorium-panel);
   color: var(--scriptorium-ink);
-  border: 1px solid var(--scriptorium-rule);
-  border-radius: 2px;
-  padding: 0.4rem 0.55rem;
+  border: 1px solid var(--sy-line-strong);
+  border-radius: var(--sy-radius);
+  min-height: var(--sy-control-height);
+  padding: 0 var(--sy-space-3);
   font: inherit;
-  font-size: 0.9rem;
+  font-size: 16px;
 }
 
-.scriptorium-material-description:focus-visible {
-  outline: 1px solid rgba(196, 165, 116, 0.75);
-  outline-offset: 1px;
+.scriptorium-material-description:focus {
+  border-color: var(--sy-brand);
 }
 
 .scriptorium-material-description::placeholder {
-  color: rgba(154, 149, 140, 0.6);
-  font-style: italic;
+  color: var(--sy-text-3);
 }
 
 @media (max-width: 34rem) {

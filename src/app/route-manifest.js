@@ -6,12 +6,25 @@
 export function createRouteManifest(operations) {
   return [
     {
+      id: 'create',
+      containerId: 'view-create',
+      load: () => import('../components/Create.js'),
+      create: (container, data, { Create }) => new Create(container, {
+        data,
+        onNavigate: operations.handleNavigate,
+        onCreateSession: operations.handleCreateSession
+      })
+    },
+    {
       id: 'portal',
       containerId: 'view-portal',
       load: () => import('../components/Portal.js'),
-      create: (container, _data, { Portal }) => new Portal(container, {
+      create: (container, data, { Portal }) => new Portal(container, {
+        demoMode: data?.demoMode === true,
         onNavigate: operations.handleNavigate,
-        onQuickAccess: operations.quickAccess,
+        onLaunchJevReading: operations.launchJevReading,
+        onLaunchJevSample: operations.launchJevSample,
+        onLaunchFirstRead: operations.launchFirstRead,
         getAudioEngine: operations.getAudioEngine,
         getCurrentSession: operations.getCurrentSession
       })
@@ -46,7 +59,8 @@ export function createRouteManifest(operations) {
         onSelectBlueprint: operations.handleCreateSession,
         onLaunchArchetype: operations.handleArchetypeLaunch,
         getAudioEngine: operations.getAudioEngine,
-        personalizedVault: data?.personalizedVault || null
+        personalizedVault: data?.personalizedVault || null,
+        initialSection: data?.section
       })
     },
     {
@@ -83,10 +97,12 @@ export function createRouteManifest(operations) {
       id: 'library',
       containerId: 'view-library',
       load: () => import('../components/Library.js'),
-      create: (container, _data, { Library }) => new Library(container, {
+      create: (container, data, { Library }) => new Library(container, {
         onNavigate: operations.handleNavigate,
         onSelectText: operations.handleTextSelection,
-        getAudioEngine: operations.getAudioEngine
+        getAudioEngine: operations.getAudioEngine,
+        initialIntent: data?.jevIntent,
+        readingPreferences: data?.readingPreferences
       })
     },
     {
@@ -150,12 +166,15 @@ export function createRouteManifest(operations) {
       id: 'scriptorium',
       containerId: 'view-scriptorium',
       load: () => import('../components/Scriptorium.js'),
-      create: (container, _data, { Scriptorium }) => {
+      create: (container, data, { Scriptorium }) => {
         const room = new Scriptorium(container, {
           onNavigate: operations.handleNavigate,
           onCreateSession: operations.handleCreateSession,
           getSettings: operations.getSettings,
-          onSettingsTransaction: operations.handleSettingsTransaction
+          onSettingsTransaction: operations.handleSettingsTransaction,
+          initialIntent: data?.intent,
+          initialTargetWords: data?.targetWords,
+          readingPreferences: data?.readingPreferences
         });
         room.mount();
         return room;

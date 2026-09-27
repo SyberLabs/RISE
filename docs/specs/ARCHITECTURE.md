@@ -27,9 +27,11 @@ appears when.
 Around that engine sit rooms: Portal, Library, Chapel and Rosarium, Workshop,
 Vault, Scriptorium, Curia, Journeys, Via, Keystones, Settings.
 
-The app shell ships as static files to a CDN. A small Netlify Function now
-provides the Scriptorium's central JEV decision route; the app's proposal
-validation and reading pipeline remain in the browser.
+Cloudflare serves the app shell and same-origin decision routes. The Library's
+optional recommendation route reads a curated Standard Ebooks catalog from
+PostgreSQL, caches that public catalog and short-lived decisions in Redis,
+and asks JEV to choose one book on a decision-cache miss. The reader's
+source text, proposal validation, and reading pipeline remain in the browser.
 
 ---
 
@@ -42,7 +44,12 @@ else is a recommendation.
    personal media stay in the browser. When the reader explicitly routes a
    Scriptorium request with JEV, only the intent they entered and target word
    count are sent to the RISE function and TypeSafe. The reader supplies the
-   TypeSafe key for that request; RISE does not persist it.
+   TypeSafe key for that request; RISE does not persist it. When the reader
+   asks for a Library recommendation, only their entered intent is sent to
+   the RISE Worker and, on a decision-cache miss, OpenRouter. PostgreSQL holds
+   public catalog metadata. Redis holds that catalog and validated choices for
+   five minutes; its decision key is a keyed digest of the intent and catalog,
+   and it does not store the raw intent.
 2. **Reverent degradation.** A work, image or sound that will not resolve is
    *absent* — never a broken frame, never a substitute. Silence outranks
    approximation.
@@ -82,13 +89,13 @@ else is a recommendation.
                             └────────┬─────────┘
                                      ▼
   DELIVERY   ┌──────────────────────────────────────────────────────────┐
-             │  CDN (Netlify) · SPA rewrite · /assets/* immutable        │
+             │  Cloudflare Worker · SPA rewrite · /assets/* immutable   │
              │  index.html no-cache — it names the hashed chunks         │
              │  CSP: self + named museum/text origins; no third-party JS │
              └────────────────────────┬─────────────────────────────────┘
                                       ▼
 ╔═══════════════════════════════════════════════════════════════════════════════╗
-║  BROWSER — the entire runtime. No server, no account, no request path.        ║
+║  BROWSER — reading runtime; optional same-origin decision requests.           ║
 ║                                                                               ║
 ║   index.html ─▶ src/app.js  — composition root: boots app-scoped services,    ║
 ║                               injects operations into the route manifest       ║
@@ -152,26 +159,27 @@ it, and CI fails when the committed copy is not what `src/` produces.
 
 ```mermaid
 flowchart LR
-    app["app<br/>composition root<br/>5 modules"]
-    audio["audio<br/>Web Audio, recitation<br/>7 modules"]
-    components["components<br/>routed views<br/>35 modules"]
-    content["content<br/>texts, imagery, journeys<br/>227 modules"]
-    core["core<br/>session, player, router<br/>123 modules"]
+    app["app<br/>composition root<br/>7 modules"]
+    audio["audio<br/>Web Audio, recitation<br/>9 modules"]
+    components["components<br/>routed views<br/>38 modules"]
+    content["content<br/>texts, imagery, journeys<br/>228 modules"]
+    core["core<br/>session, player, router<br/>135 modules"]
     page["page<br/>spatial projection<br/>4 modules"]
     sources["sources<br/>text and visual providers<br/>22 modules"]
     visuals["visuals<br/>procedural generation<br/>54 modules"]
 
     app -.-> |3 lazy| audio
     app --> |1| components
-    app -.-> |8 lazy| content
-    app --> |21| core
+    app --> |4| content
+    app --> |34| core
     app -.-> |1 lazy| sources
     app -.-> |1 lazy| visuals
     audio --> |1| content
     audio --> |5| core
+    components -.-> |1 lazy| app
     components --> |2| audio
-    components --> |20| content
-    components --> |125| core
+    components --> |23| content
+    components --> |140| core
     components -.-> |1 lazy| page
     components --> |4| sources
     components --> |13| visuals
@@ -179,7 +187,7 @@ flowchart LR
     content --> |16| core
     content --> |17| sources
     content --> |1| visuals
-    core --> |3| audio
+    core --> |5| audio
     core --> |11| content
     core --> |3| sources
     core --> |21| visuals
@@ -267,6 +275,7 @@ outliving its room, fails a build.
 | Room | Module | What it is |
 |---|---|---|
 | Portal | `src/components/Portal.js` | the hub, and the first screen |
+| Create | `src/components/Create.js` | original personal readings, private revisions, and portable text |
 | Keystones | `src/components/Keystones.js` | the public entry corridor |
 | Mint | `src/components/Mint.js` | the door a minted sequence opens onto |
 | Chamber | `src/components/Chamber.js` | a reading, in time |
@@ -284,10 +293,11 @@ outliving its room, fails a build.
 | Guide | `src/components/Guide.js` | onboarding, as an overlay rather than a route |
 | BetaGate | `src/components/BetaGate.js` | invitation UX; **not** a security boundary (§7) |
 
-Four modules in `src/components/` are deliberately not rooms, because they only
-ever appear inside one: `src/components/Admit.js`,
+Five modules in `src/components/` are deliberately not rooms; they support
+routed rooms: `src/components/Admit.js`,
 `src/components/NamingModal.js`, `src/components/SourceBrowser.js` and
-`src/components/VisualNavigator.js`. The Navigator's columns, text material,
+`src/components/VisualNavigator.js`, plus the Jev voice input helper
+`src/components/jev-dictation.js`. The Navigator's columns, text material,
 preview, and Chapel trays live in `src/components/visual-navigator/` so the
 shell stays a mount point. Chamber mounts a Fit-mask runtime from
 `src/core/fit-mask-runtime.js` rather than owning the glyph-mask state machine.
@@ -524,7 +534,8 @@ of `settled`, `open`, `deferred`, or `reversed`.
 ### 8.10 Vanilla DOM, no UI framework
 
 - **Chosen:** direct DOM construction and template strings, one bespoke module
-  per room, one production dependency in the whole project.
+  per room, three production dependencies: `sql.js` for browser-local work,
+  `@neondatabase/serverless` and `@upstash/redis` for the Worker catalog path.
 - **Rejected:** React, Vue, Svelte or any virtual-DOM library.
 - **Why:** the tradeoff is real in both directions. A framework would give
   declarative rendering, diffing, and would largely remove the `innerHTML`
@@ -791,8 +802,8 @@ of `settled`, `open`, `deferred`, or `reversed`.
 - **Chosen:** the Scriptorium offers an optional JEV route to choose between
   the two proposal formats RISE already accepts:
   `rise.experience-program.v1` and `rise.agent-operation-set.v1`. The core
-  session puts that choice into the curator prompt. A same-origin Netlify
-  Function forwards only the reader's intent and target word count to
+  session puts that choice into the curator prompt. A same-origin Cloudflare
+  Worker route forwards only the reader's intent and target word count to
   TypeSafe's JEV API; the reader supplies the API key for the request.
 - **Rejected:** putting the TypeSafe key in browser code, adding a second
   proposal format, or letting JEV accept or execute the proposal.
@@ -807,8 +818,29 @@ of `settled`, `open`, `deferred`, or `reversed`.
   intent may itself contain personal information and is sent only after the
   reader presses **Route with JEV**. The TypeSafe key is held in page memory
   and forwarded in the authorization header; RISE does not store it.
-- **Status:** open. The Netlify Function is implemented; deployment must expose
-  the route, and each reader must supply a TypeSafe API key.
+- **Status:** open. The route exists in the Worker; each reader must supply a
+  TypeSafe API key, and the production path still needs direct verification.
+
+### 8.29 JEV chooses a held Standard Ebooks reading
+
+- **Chosen:** an optional Library form sends the reader's intent to the
+  same-origin Cloudflare Worker. The Worker reads an exact-edition Standard
+  Ebooks catalog from PostgreSQL, caches that public catalog in Redis
+  for 30 seconds, and asks JEV through OpenRouter to choose one work ID on a
+  decision-cache miss. Redis caches the validated decision for five minutes
+  under a keyed digest of the intent and catalog, without storing raw intent.
+  The browser opens that held edition through the existing Library path.
+- **Rejected:** sending book text or personal reading history to JEV, storing
+  raw intents or decisions in PostgreSQL, inventing a recommendation from local
+  heuristics when JEV fails, and accepting a model-selected unheld edition.
+- **Why:** a recommendation is useful only when it leads to a book the reader
+  can actually open. PostgreSQL owns the catalog, Redis reduces repeat reads,
+  and JEV makes a bounded choice on the first matching request. Exact edition
+  and source revision checks keep the model inside the release inventory. The brief
+  description shown after the decision is curated catalog copy; JEV does not
+  generate prose.
+- **Status:** open. The same-origin production request and book opening were
+  verified; the five-minute decision cache still requires production verification.
 
 ---
 

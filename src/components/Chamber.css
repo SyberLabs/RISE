@@ -196,9 +196,24 @@
   --font-stream-weight: var(--font-weight-bold);
 }
 
+:root[data-chamber-face="mono"] {
+  --font-stream-face: var(--font-mono);
+  --font-stream-weight: var(--font-weight-regular);
+}
+
 :root[data-chamber-face="jp"] {
   --font-stream-face: var(--font-jp);
   --font-stream-weight: var(--font-weight-regular);
+}
+
+:root[data-chamber-face="sans"] {
+  --font-stream-face: var(--font-primary);
+  --font-stream-weight: var(--font-weight-regular);
+}
+
+:root[data-chamber-face="book"] {
+  --font-stream-face: var(--font-literary);
+  --font-stream-weight: var(--font-weight-semibold);
 }
 
 .atom-display[data-chamber-face="literary"] {
@@ -216,9 +231,24 @@
   --font-stream-weight: var(--font-weight-bold);
 }
 
+.atom-display[data-chamber-face="mono"] {
+  --font-stream-face: var(--font-mono);
+  --font-stream-weight: var(--font-weight-regular);
+}
+
 .atom-display[data-chamber-face="jp"] {
   --font-stream-face: var(--font-jp);
   --font-stream-weight: var(--font-weight-regular);
+}
+
+.atom-display[data-chamber-face="sans"] {
+  --font-stream-face: var(--font-primary);
+  --font-stream-weight: var(--font-weight-regular);
+}
+
+.atom-display[data-chamber-face="book"] {
+  --font-stream-face: var(--font-literary);
+  --font-stream-weight: var(--font-weight-semibold);
 }
 
 /* Mask is a live overlay: thick Word, large, glass off. It does not
@@ -462,14 +492,14 @@
   bottom: 0;
   left: 0;
   right: 0;
-  height: 2px;
-  background: var(--color-shadow);
+  height: 1px;
+  background: var(--sy-line);
   z-index: 100000;
 }
 
 .chamber-progress-fill {
   height: 100%;
-  background: var(--color-threshold);
+  background: var(--sy-text-2);
   transform: scaleX(0);
   transform-origin: left center;
   will-change: transform;
@@ -495,14 +525,17 @@
 
   display: flex;
   align-items: center;
-  gap: var(--space-md);
-  padding: var(--space-sm) var(--space-md);
+  gap: var(--sy-space-1);
+  padding: var(--sy-space-1);
 
-  background: rgba(18, 18, 20, 0.9);
-  border: 1px solid var(--color-shadow);
-  border-radius: 24px;
+  /* Quiet by default: the surface, one hairline, no glow. It appears on
+     interaction and never competes with the text for the eye. */
+  background: var(--sy-surface);
+  border: 1px solid var(--sy-line);
+  border-radius: var(--sy-radius);
+  font-family: var(--sy-font-sans);
 
-  transition: opacity 200ms var(--ease-out);
+  transition: opacity var(--sy-dur-enter) var(--sy-ease);
   pointer-events: all;
   /* Safety z-order: cortex (9999) < chamber controls (100000) < exit (200000). */
   z-index: 100000;
@@ -512,26 +545,96 @@
   pointer-events: none;
 }
 
+.first-read-choice {
+  position: fixed;
+  top: max(24px, env(safe-area-inset-top));
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 100001;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--sy-space-2);
+  width: max-content;
+  max-width: calc(100vw - 32px);
+  padding: var(--sy-space-2);
+  background: var(--sy-surface);
+  border: 1px solid var(--sy-line);
+  border-radius: var(--sy-radius);
+}
+
+.first-read-choice[hidden] { display: none; }
+
+.first-read-choice button {
+  min-height: var(--sy-control-height);
+  padding: 0 var(--sy-space-4);
+  color: var(--sy-text);
+  font: 500 14px/20px var(--sy-font-sans);
+  background: transparent;
+  border: 1px solid var(--sy-line-strong);
+  border-radius: var(--sy-radius);
+  cursor: pointer;
+  transition: background-color var(--sy-dur-hover) var(--sy-ease);
+}
+
+.first-read-choice button:hover {
+  background: var(--sy-surface-2);
+}
+
+/* Every control in the bar is a 44px target; the icon is 20px inside it. */
 .control-btn {
+  min-width: var(--sy-control-height);
+  min-height: var(--sy-control-height);
+  gap: var(--sy-space-2);
+  padding: 0 var(--sy-space-3);
   background: transparent;
   border: none;
-  color: var(--color-fog);
-  font-size: 18px;
-  padding: var(--space-xs);
+  border-radius: var(--sy-radius);
+  color: var(--sy-text-2);
+  font: 500 14px/20px var(--sy-font-sans);
   cursor: pointer;
-  transition: color var(--transition-fast) var(--ease-default);
+  transition: color var(--sy-dur-hover) var(--sy-ease),
+    background-color var(--sy-dur-hover) var(--sy-ease);
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
-.control-btn:hover {
-  color: var(--color-accent);
+.control-btn:hover:not(:disabled) {
+  color: var(--sy-text);
+  background: var(--sy-surface-2);
+}
+
+/* A label beside an icon is plain words in the bar's own voice. */
+.control-btn .control-label {
+  font: 500 14px/20px var(--sy-font-sans);
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.jev-next-scene:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.jev-scene-status:not(:empty) {
+  max-width: 11rem;
+  padding: 0 var(--sy-space-2);
+  color: var(--sy-text-3);
+  font: 400 12px/16px var(--sy-font-sans);
+}
+
+.chamber-display.page-mode-on .jev-next-scene {
+  display: none;
+}
+
+.chamber-display.page-mode-on .jev-scene-status {
+  display: none;
 }
 
 .control-btn .icon {
-  width: 24px;
-  height: 24px;
+  width: 20px;
+  height: 20px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -544,8 +647,8 @@
    button, and the path follows. */
 .control-btn .icon svg,
 .chamber-begin .icon svg {
-  width: 18px;
-  height: 18px;
+  width: 20px;
+  height: 20px;
   display: block;
   overflow: visible;
 }
@@ -556,17 +659,26 @@
 }
 
 .time-display {
-  font-family: var(--font-mono);
-  font-size: 12px;
-  color: var(--color-fog);
-  min-width: 100px;
+  padding: 0 var(--sy-space-3);
+  font: 500 12px/16px var(--sy-font-mono);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.04em;
+  color: var(--sy-text-2);
+  white-space: nowrap;
   text-align: center;
-  letter-spacing: 0.05em;
 }
 
 .time-separator {
-  margin: 0 3px;
-  color: var(--color-shadow);
+  margin: 0 var(--sy-space-1);
+  color: var(--sy-text-3);
+}
+
+#time-total {
+  color: var(--sy-text-3);
+}
+
+.icon-flip svg {
+  transform: scaleX(-1);
 }
 
 /* The gear sizes itself from .control-btn like every other icon in the
@@ -575,7 +687,8 @@
    bar of glyphs with one word in it read as an odd one out, and the word
    was the longest thing in a row that has to stay out of the way. */
 .chamber-settings-btn[aria-expanded="true"] {
-  color: var(--color-accent);
+  color: var(--sy-text);
+  background: var(--sy-surface-2);
 }
 
 .chamber-settings-btn.is-failed {
@@ -583,8 +696,9 @@
 }
 
 .chamber-settings-fail {
-  font-size: 11px;
-  color: var(--color-fog);
+  padding: 0 var(--sy-space-2);
+  font: 400 12px/16px var(--sy-font-sans);
+  color: var(--sy-danger);
 }
 
 /* A CARD ABOVE THE BAR, NOT A SCREEN OVER THE READING.
@@ -622,6 +736,100 @@
   display: none !important;
 }
 
+.jev-look-btn[aria-expanded="true"] {
+  color: var(--sy-text);
+  background: var(--sy-surface-2);
+}
+
+.jev-look-panel {
+  position: fixed;
+  right: max(1rem, env(safe-area-inset-right));
+  bottom: calc(6rem + env(safe-area-inset-bottom));
+  z-index: 150000;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+  width: min(23rem, calc(100vw - 2rem));
+  max-height: calc(100dvh - 8rem);
+  overflow-y: auto;
+  padding: 1rem;
+  color: var(--color-light);
+  background: color-mix(in srgb, var(--color-void) 94%, black);
+  border: 1px solid var(--color-accent);
+  border-radius: 1rem;
+  box-shadow: 0 1rem 3rem rgba(0, 0, 0, 0.55);
+}
+
+.jev-look-panel[hidden] { display: none; }
+
+.jev-look-panel label {
+  display: grid;
+  gap: 0.3rem;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+}
+
+.jev-look-choice {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.jev-look-choice select { flex: 1; }
+
+.jev-look-swatch {
+  flex: none;
+  width: 1.1rem;
+  height: 1.1rem;
+  border: 1px solid var(--color-light);
+  border-radius: 50%;
+}
+
+.jev-look-panel select {
+  min-width: 0;
+  min-height: 2.5rem;
+  padding: 0.4rem;
+  color: var(--color-light);
+  background: var(--color-void);
+  border: 1px solid var(--color-accent);
+  border-radius: 0.4rem;
+}
+
+.jev-look-panel input[type="range"] {
+  width: 100%;
+  accent-color: var(--color-accent);
+}
+
+.jev-look-panel output {
+  font-variant-numeric: tabular-nums;
+}
+
+.jev-look-panel select:focus-visible,
+.jev-look-panel input:focus-visible,
+.jev-look-btn:focus-visible {
+  outline: 2px solid var(--color-light);
+  outline-offset: 2px;
+}
+
+[data-jev-visual-strength="soft"] .chamber .chamber-continuous-field .continuous-field-layer > :not(.continuous-field-label) {
+  opacity: 0.45;
+}
+
+[data-jev-visual-strength="soft"] .chamber :is(
+  .chamber-genesis, .chamber-attractor,
+  .chamber-focal, .sequence-video-field
+) {
+  opacity: 0.45;
+}
+
+@media (max-width: 640px) {
+  .jev-look-panel {
+    left: 1rem;
+    right: 1rem;
+    width: auto;
+  }
+}
+
 /* ─────────────────────────────────────────────────────────────
    POST-SESSION STATE
    ───────────────────────────────────────────────────────────── */
@@ -632,33 +840,359 @@
   align-items: center;
   justify-content: center;
   min-height: 100vh;
-  padding: var(--space-xl);
-  gap: var(--space-xl);
+  min-height: 100dvh;
+  padding: var(--sy-space-8) var(--sy-space-4);
+  background: var(--sy-bg);
 }
 
-.post-sigil {
-  font-size: 72px;
-  margin-bottom: var(--space-md);
+/* The end of a reading: one status line with its icon, the title that
+   was read, and the ways on. One primary action at most. */
+.post-complete-screen {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--sy-space-5);
+  width: min(100%, 560px);
+  text-align: center;
+  animation: post-enter var(--sy-dur-enter) var(--sy-ease) both;
 }
 
-.post-title {
-  font-family: var(--font-display);
-  font-size: 32px;
-  font-weight: var(--font-weight-light);
-  margin-bottom: var(--space-sm);
+@keyframes post-enter {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: none; }
 }
 
-.post-meta {
+.post-status {
   display: flex;
   align-items: center;
-  gap: var(--space-sm);
-  font-size: 14px;
-  margin-bottom: var(--space-xl);
+  gap: var(--sy-space-2);
+  margin: 0;
+  font: 400 16px/24px var(--sy-font-sans);
+  color: var(--sy-success);
 }
 
-.post-actions {
+.post-status-icon,
+.post-status-icon svg {
+  display: block;
+  width: 20px;
+  height: 20px;
+}
+
+.post-complete-title {
+  margin: 0;
+  font-family: var(--sy-font-serif);
+  font-size: 40px;
+  line-height: 44px;
+  font-weight: 400;
+  letter-spacing: -0.01em;
+  color: var(--sy-text);
+  text-wrap: balance;
+}
+
+.post-complete-actions {
   display: flex;
-  gap: var(--space-md);
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--sy-space-3);
+  margin-top: var(--sy-space-3);
+}
+
+.post-btn-icon,
+.post-btn-icon svg {
+  display: block;
+  width: 20px;
+  height: 20px;
+  transition: transform var(--sy-dur-hover) var(--sy-ease);
+}
+
+.post-btn-continue:hover:not(:disabled) .post-btn-icon {
+  transform: translateX(4px);
+}
+
+.post-btn-continue:disabled {
+  cursor: wait;
+}
+
+/* A keystone's next reading: lines, not a box. */
+.post-pilot {
+  width: 100%;
+  padding-top: var(--sy-space-5);
+  border-top: 1px solid var(--sy-line);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--sy-space-3);
+  font: 400 14px/20px var(--sy-font-sans);
+  color: var(--sy-text-2);
+}
+
+.post-pilot p {
+  margin: 0;
+}
+
+.post-pilot-label {
+  font: 500 12px/16px var(--sy-font-mono);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--sy-text-3);
+}
+
+#post-pilot-reason {
+  font-size: 16px;
+  line-height: 24px;
+  max-width: 44ch;
+}
+
+.post-pilot-feedback {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--sy-space-3);
+  width: 100%;
+  margin-top: var(--sy-space-3);
+  padding-top: var(--sy-space-5);
+  border-top: 1px solid var(--sy-line);
+}
+
+.post-pilot-question {
+  color: var(--sy-text);
+  font-weight: 500;
+}
+
+.post-pilot-consent {
+  display: flex;
+  align-items: center;
+  gap: var(--sy-space-2);
+  cursor: pointer;
+}
+
+.post-pilot-consent input {
+  width: 20px;
+  height: 20px;
+  margin: 0;
+  accent-color: var(--sy-brand);
+  color-scheme: dark;
+}
+
+.post-pilot-feedback-answers {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: var(--sy-space-2);
+}
+
+.post-pilot-feedback-answers button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.post-pilot-data-note,
+#post-pilot-feedback-status {
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--sy-text-3);
+}
+
+#post-pilot-feedback-status:empty {
+  display: none;
+}
+
+/* The reflection: a heading, one field with its label, two actions. */
+.synthesis-container {
+  width: min(100%, 640px);
+  text-align: left;
+  animation: post-enter var(--sy-dur-enter) var(--sy-ease) both;
+}
+
+.synthesis-title {
+  margin: 0 0 var(--sy-space-2);
+  font-family: var(--sy-font-serif);
+  font-size: 40px;
+  line-height: 44px;
+  font-weight: 400;
+  letter-spacing: -0.01em;
+  color: var(--sy-text);
+}
+
+.synthesis-subtitle {
+  margin: 0 0 var(--sy-space-6);
+  font: 400 16px/24px var(--sy-font-sans);
+  color: var(--sy-text-2);
+}
+
+.synthesis-label {
+  display: block;
+  margin-bottom: var(--sy-space-2);
+  font: 500 14px/20px var(--sy-font-sans);
+  color: var(--sy-text);
+}
+
+.journal-input {
+  display: block;
+  width: 100%;
+  min-height: 224px;
+  padding: var(--sy-space-3) var(--sy-space-4);
+  background: var(--sy-surface);
+  border: 1px solid var(--sy-line-strong);
+  border-radius: var(--sy-radius);
+  color: var(--sy-text);
+  /* The reader's own words, set in the reading face. */
+  font-family: var(--sy-font-reading);
+  font-size: 22px;
+  line-height: 34px;
+  resize: vertical;
+  transition: border-color var(--sy-dur-hover) var(--sy-ease);
+}
+
+.journal-input::placeholder {
+  color: var(--sy-text-3);
+}
+
+.journal-input:focus {
+  border-color: var(--sy-brand);
+}
+
+.journal-actions {
+  display: flex;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: var(--sy-space-3);
+  margin-top: var(--sy-space-5);
+}
+
+/* Ending a reading asks once, plainly. Above the bar (100000) and the
+   cortex (9999); the photosensitivity notice alone sits higher. */
+.exit-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--sy-space-4);
+  background: rgba(5, 6, 10, 0.8);
+  z-index: 200000;
+  opacity: 1;
+  transition: opacity var(--sy-dur-enter) var(--sy-ease);
+  pointer-events: all;
+}
+
+.exit-overlay.hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.exit-modal {
+  width: min(100%, 420px);
+  padding: var(--sy-space-6);
+  background: var(--sy-surface);
+  border: 1px solid var(--sy-line);
+  border-radius: var(--sy-radius);
+  box-shadow: var(--sy-shadow-overlay);
+  text-align: left;
+  transform: none;
+  transition: transform var(--sy-dur-enter) var(--sy-ease);
+}
+
+.exit-overlay.hidden .exit-modal {
+  transform: translateY(8px);
+}
+
+.exit-title {
+  margin: 0 0 var(--sy-space-2);
+  font: 600 24px/32px var(--sy-font-sans);
+  letter-spacing: -0.01em;
+  color: var(--sy-text);
+}
+
+.exit-message {
+  margin: 0 0 var(--sy-space-6);
+  font: 400 16px/24px var(--sy-font-sans);
+  color: var(--sy-text-2);
+}
+
+.exit-actions {
+  display: flex;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: var(--sy-space-3);
+}
+
+/* Speed: a brief readout when the reader changes pace, then gone. */
+.speed-hud {
+  position: absolute;
+  top: var(--sy-space-7);
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--sy-space-1);
+  padding: var(--sy-space-3) var(--sy-space-5);
+  background: var(--sy-surface);
+  border: 1px solid var(--sy-line);
+  border-radius: var(--sy-radius);
+  pointer-events: none;
+  z-index: 1000;
+  transition: opacity var(--sy-dur-enter) var(--sy-ease);
+}
+
+.speed-hud.hidden {
+  display: none;
+  opacity: 0;
+}
+
+.speed-hud-label,
+.speed-hud-unit {
+  font: 500 12px/16px var(--sy-font-mono);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--sy-text-3);
+}
+
+.speed-hud-unit:empty {
+  display: none;
+}
+
+.speed-hud-value {
+  font: 600 24px/32px var(--sy-font-sans);
+  font-variant-numeric: tabular-nums;
+  color: var(--sy-text);
+}
+
+@media (max-width: 640px) {
+  .post-complete-title,
+  .synthesis-title {
+    font-size: 32px;
+    line-height: 36px;
+  }
+
+  .post-complete-actions,
+  .journal-actions,
+  .exit-actions {
+    flex-direction: column-reverse;
+    align-items: stretch;
+    width: 100%;
+  }
+
+  .post-complete-actions {
+    flex-direction: column;
+    max-width: 320px;
+  }
+
+  .exit-modal {
+    padding: var(--sy-space-5);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .post-complete-screen,
+  .synthesis-container {
+    animation: none;
+  }
+  .exit-modal,
+  .exit-overlay.hidden .exit-modal {
+    transform: none;
+  }
 }
 
 /* ─────────────────────────────────────────────────────────────
@@ -686,9 +1220,6 @@
     font-size: 28px;
   }
 
-  .chamber-controls {
-    gap: var(--space-sm);
-  }
 }
 
 
@@ -979,70 +1510,20 @@
   z-index: 10;
 }
 
-.rhythmic-visuals-toggle {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-  min-width: 5.75rem;
-}
-
-.rhythmic-visuals-toggle .control-label {
-  font-family: var(--font-mono);
-  font-size: 0.625rem;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
 .rhythmic-visuals-toggle.is-off {
-  color: var(--color-fog);
-  opacity: 0.72;
+  color: var(--sy-text-3);
 }
 
 /* Kaleidoscope: the first control that applies and un-applies mid-read.
-   Dim until engaged, then lit — the button reports the field's state. */
-.kaleidoscope-toggle {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-  min-width: 7.5rem;
-  color: var(--color-fog);
-  opacity: 0.72;
-  transition: color var(--transition-fast) var(--ease-default),
-    opacity var(--transition-fast) var(--ease-default),
-    text-shadow var(--transition-normal) var(--ease-default);
-}
-
-.kaleidoscope-toggle .control-label {
-  font-family: var(--font-mono);
-  font-size: 0.625rem;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
-.kaleidoscope-toggle:hover {
-  color: var(--color-cloud);
-  opacity: 1;
-}
-
+   Quiet until engaged, then plain text colour — the button reports the
+   field's state without a glow. */
 .kaleidoscope-toggle.is-engaged {
-  color: var(--color-light);
-  opacity: 1;
-  /* The halo was a text-shadow, which a drawn icon does not have: it
-     shades glyphs, and there is no glyph here any more. drop-shadow
-     follows the path itself, which is what the glow was always meant
-     to trace. */
-  text-shadow: 0 0 12px rgba(199, 210, 255, 0.45);
-}
-
-.kaleidoscope-toggle.is-engaged .icon svg {
-  filter: drop-shadow(0 0 5px rgba(199, 210, 255, 0.55));
+  color: var(--sy-text);
 }
 
 .kaleidoscope-toggle.is-engaged .icon {
   /* A slow turn, never a spin: it echoes the rosette without
-     competing with the reading for attention. Kept `flex` — the rule
-     said `inline-block` for a glyph that centred itself on its
-     baseline, and the drawn icon centres on the box instead. */
+     competing with the reading for attention. */
   animation: kaleidoscope-turn 24s linear infinite;
 }
 
@@ -1415,13 +1896,12 @@
 }
 
 /* With fewer controls the bar closes up rather than leaving gaps. */
-.chamber-display.page-mode-on .chamber-controls {
-  gap: var(--space-lg);
-}
+
 
 /* The toggle reads as engaged */
-.control-btn.page-mode-toggle.is-on {
-  color: var(--color-light);
+.control-btn.page-mode-toggle.is-on,
+.control-btn.page-elongate.is-on {
+  color: var(--sy-text);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -1450,7 +1930,7 @@
   max-width: 80%;
 
   font-family: var(--font-mono);
-  font-size: 0.7rem;
+  font-size: 0.75rem;
   letter-spacing: 0.14em;
   text-transform: uppercase;
   color: var(--color-mist);
@@ -1582,7 +2062,7 @@
   .chamber-field .atom-display {
     /* ~22px at 390px (~26 chars/line); clamp for 320px–tablet. Scale
        floor via max() so long phrases gain lines instead of shrinking. */
-    font-size: calc(clamp(20px, 6.1vw, 27px) * max(0.88, var(--atom-scale, 1)));
+    font-size: calc(clamp(20px, 6.1vw, 27px) * max(0.88, var(--atom-scale, 1)) * var(--font-size-intent, 1));
     line-height: 1.45;
     max-width: 100%;
     width: 100%;
@@ -1593,7 +2073,7 @@
   }
 
   .chamber-field .atom-display.is-mask {
-    font-size: calc(clamp(20px, 6.1vw, 27px) * max(0.88, var(--atom-scale, 1)));
+    font-size: calc(clamp(20px, 6.1vw, 27px) * max(0.88, var(--atom-scale, 1)) * var(--font-size-intent, 1));
   }
 
   .chamber-field .atom-display.is-word-fit,
@@ -1693,51 +2173,27 @@
 
   /* Icon-only controls (aria-label/title remain); wrap rather than
      overflow. Pin left+right: fixed+transform shrink-to-fit wraps
-     into a narrow column instead of using available width. */
+     into a narrow column instead of using available width. Every
+     control keeps its 44px target; only the words go. */
   .chamber-controls {
-    left: var(--space-xs);
-    right: var(--space-xs);
+    left: var(--sy-space-4);
+    right: var(--sy-space-4);
     transform: none;
     flex-wrap: wrap;
     justify-content: center;
-    gap: var(--space-xs);
-    padding-left: var(--space-xs);
-    padding-right: var(--space-xs);
+    gap: 0;
   }
 
   .chamber-controls .control-label {
     display: none;
   }
 
-  /* Drop min-widths that reserved room for the now-hidden labels. */
-  .chamber-controls .rhythmic-visuals-toggle,
-  .chamber-controls .kaleidoscope-toggle {
-    min-width: 0;
-    gap: 0;
-  }
-
-  /* TEXT NEEDS MORE AIR THAN AN ICON DOES. Every control in this bar sat
-     one --space-xs from its neighbour, which is right between two 24px
-     glyphs and too tight around a run of digits: measured on a 390px
-     phone, the clock had 6px between it and the gear and read as though
-     it were touching it. The room it takes comes back off the icons,
-     which have their tap target from their own size rather than from the
-     space between them — the bar's total width is unchanged. */
-  /* THE CLOCK IS ONE THING, AND THE GEAR IS THE NEXT ONE. Equal margins
-     put as much room inside the reading of "0:43 / 4:38" as between it
-     and the control beside it, so the elapsed and total times read as two
-     separate items and the gear read as though it belonged to them. The
-     air belongs on the outside edge: the pair closes up, and the gear
-     steps away from it. */
-  .chamber-controls .time-display {
-    font-size: 11px;
-    min-width: 0;
-    margin-inline-start: var(--space-xs);
-    margin-inline-end: var(--space-sm);
-  }
-
   .chamber-controls .control-btn {
-    padding-inline: 3px;
+    padding: 0;
+  }
+
+  .chamber-controls .time-display {
+    padding: 0 var(--sy-space-2);
   }
 
   /* Page Mode: fewer controls — shrink-wrap and centre; keep the same
@@ -1748,11 +2204,8 @@
     right: auto;
     transform: translateX(-50%);
     width: auto;
-    max-width: calc(100% - 2 * var(--space-md));
+    max-width: calc(100% - 2 * var(--sy-space-4));
     flex-wrap: nowrap;
-    gap: var(--space-xs);
-    padding-left: var(--space-sm);
-    padding-right: var(--space-sm);
   }
 }
 
@@ -1795,31 +2248,33 @@
 .page-turn {
   display: inline-flex;
   align-items: center;
-  gap: var(--space-xs);
+  gap: 0;
 }
 .page-turn[hidden] { display: none; }
 /* Elongate is a Page control. .control-btn { display:flex } would
    otherwise keep it on the Stream bar after `hidden` is set. */
 .page-elongate[hidden] { display: none; }
 .page-turn-count {
-  font-family: var(--font-mono);
-  font-size: 10px;
-  letter-spacing: 0.1em;
-  color: var(--color-fog);
-  min-width: 4.5ch;
+  font: 500 12px/16px var(--sy-font-mono);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.04em;
+  color: var(--sy-text-2);
+  min-width: 6ch;
   text-align: center;
 }
 .page-turn .control-btn:disabled {
-  opacity: 0.25;
-  cursor: default;
+  opacity: 0.4;
+  cursor: not-allowed;
 }
 
 @media (max-width: 640px) {
   /* The count is the widest non-button in the bar; it needs only
      enough for "10 / 16". */
-  .page-turn-count { min-width: 3.6ch; font-size: 9px; letter-spacing: 0.04em; }
-  .page-turn { gap: 0; }
-  .chamber-display.page-mode-on .control-btn { padding: 4px; }
-  .chamber-display.page-mode-on .control-btn .icon { width: 20px; height: 20px; }
-  .chamber-display.page-mode-on .control-btn .icon svg { width: 16px; height: 16px; }
+  .page-turn-count { min-width: 5ch; letter-spacing: 0; }
+}
+
+/* Keyboard focus is always visible in the reader (SyberLabs DS v1). */
+.chamber :focus-visible {
+  outline: 2px solid #4890F0;
+  outline-offset: 2px;
 }

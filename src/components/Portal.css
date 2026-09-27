@@ -1,1132 +1,833 @@
 /* ═══════════════════════════════════════════════════════════
-   Portal Component Styles
-   The launch screen - darkness, stillness, intention
+   RISE Home (Portal) — SyberLabs design system
+   One primary action (Ask Jev), one secondary text link, lines not boxes.
+   Tokens live in design-system.css (--sy-*).
    ═══════════════════════════════════════════════════════════ */
 
 .portal {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  justify-content: center;
   /* `svh`, not `vh` or `dvh`: the small viewport is the only height this app
      is ever shown at, and the only one that cannot go stale when iOS returns
      a tab. The reasoning is on `body` in design-system.css. */
-  min-height: 100vh;
-  min-height: 100svh;
-  padding: var(--space-xl);
-  background: var(--color-void);
-  position: relative;
+  height: 100vh;
+  height: 100svh;
+  overflow-y: auto;
+  background: var(--sy-bg);
+  color: var(--sy-text);
+  font-family: var(--sy-font-sans);
 }
 
-/* Quiet room doors: Curia + Scriptorium top-left, Chapel top-right.
-   Styled here so they paint on first Portal load — the room stylesheets
-   never ride this view. */
-.portal-orbs-start {
-  position: absolute;
-  top: calc(38px + var(--space-sm));
-  left: var(--space-md);
-  z-index: 4;
+/* ─── SyberLabs header: 64px, page ground, one hairline.
+   Lockup: mark + SYBERLABS / RISE (Instrument Sans 600, 13px, .14em). ─── */
+.sl-header {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  flex: none;
+  height: var(--sy-header-height);
+  padding: 0 var(--sy-space-8);
+  background: var(--sy-bg);
+  border-bottom: 1px solid var(--sy-line);
+}
+
+.sl-header-inner {
+  height: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
   display: flex;
-  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.sl-lockup {
+  display: flex;
+  align-items: center;
   gap: 10px;
+  color: var(--sy-text);
 }
 
-.portal-orb {
-  appearance: none;
-  -webkit-appearance: none;
-  width: 36px;
-  height: 36px;
-  padding: 0;
-  display: grid;
-  place-items: center;
-  border-radius: 50%;
-  border: 1px solid color-mix(in srgb, var(--color-accent) 48%, var(--color-light));
-  background:
-    radial-gradient(circle at 35% 30%, rgba(var(--color-accent-rgb), 0.16), transparent 62%),
-    var(--color-abyss);
-  color: var(--color-accent);
-  font-size: 14px;
-  line-height: 1;
-  cursor: pointer;
-  box-shadow: 0 0 14px rgba(var(--color-accent-rgb), 0.14);
-  transition:
-    transform var(--transition-fast) var(--ease-out),
-    box-shadow var(--transition-normal) var(--ease-default),
-    border-color var(--transition-normal) var(--ease-default);
+.sl-mark {
+  display: block;
+  height: 20px;
+  width: auto;
 }
 
-.portal-orb:hover,
-.portal-orb:focus-visible {
-  outline: none;
-  transform: translateY(-1px);
-  border-color: var(--color-accent);
-  box-shadow: 0 0 22px rgba(var(--color-accent-rgb), 0.42);
+.sl-wordmark {
+  font-family: var(--sy-font-sans);
+  font-size: 13px;
+  line-height: 20px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  color: var(--sy-text);
+  white-space: nowrap;
 }
 
-.portal-orb.portal-chapel-lamp {
-  position: absolute;
-  top: calc(38px + var(--space-sm));
-  right: var(--space-md);
-  z-index: 4;
+.sl-divider {
+  color: var(--sy-text-3);
+}
+
+@media (max-width: 1100px) {
+  .sl-header {
+    padding: 0 var(--sy-space-6);
+  }
 }
 
 @media (max-width: 640px) {
-  .portal-orbs-start {
-    left: var(--space-xs);
-    gap: 8px;
-  }
-
-  .portal-orb {
-    width: 32px;
-    height: 32px;
-    font-size: 13px;
-  }
-
-  .portal-orb.portal-chapel-lamp {
-    right: var(--space-xs);
+  .sl-header {
+    padding: 0 var(--sy-space-4);
   }
 }
 
-/* ─── The Sigil (Vessel Video) ─── */
-.portal-sigil-container {
-  margin-bottom: var(--space-xl);
-}
+/* ─── Header nav ─── */
 
-.portal-sigil-vessel {
-  background: transparent;
-  border: none;
-  cursor: pointer;
-  padding: 0;
-  width: 180px;
-  height: 180px;
-  border-radius: 50%;
-  overflow: hidden;
-  transition: transform var(--transition-normal) var(--ease-default), box-shadow var(--transition-normal) var(--ease-default);
-  user-select: none;
-  position: relative;
+.portal-nav {
   display: flex;
   align-items: center;
+  gap: var(--sy-space-6);
+}
+
+.portal-nav-link,
+.portal-nav-settings,
+.portal-menu-toggle,
+.portal-icon-btn,
+.portal-link,
+.portal-footer-link,
+.portal-continue {
+  font-family: inherit;
+  background: transparent;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.portal-nav-link {
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 500;
+  color: var(--sy-text-2);
+  min-height: var(--sy-control-height);
+  transition: color var(--sy-dur-hover) var(--sy-ease);
+}
+
+.portal-nav-link:hover,
+.portal-nav-settings:hover,
+.portal-icon-btn:hover,
+.portal-menu-toggle:hover {
+  color: var(--sy-text);
+}
+
+.portal-nav-settings,
+.portal-icon-btn,
+.portal-menu-toggle {
+  width: var(--sy-control-height);
+  height: var(--sy-control-height);
+  display: inline-flex;
+  align-items: center;
   justify-content: center;
-  box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+  flex: none;
+  border-radius: var(--sy-radius);
+  color: var(--sy-text-2);
+  transition: color var(--sy-dur-hover) var(--sy-ease);
 }
 
-.portal-sigil-vessel::after {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  border-radius: 50%;
-  box-shadow: inset 0 0 20px rgba(12, 12, 14, 0.8), inset 0 0 0 1px rgba(255, 255, 255, 0.05);
-  pointer-events: none;
+.portal-nav-settings {
+  margin-right: -12px;
 }
 
-/* The vessel fills its circle the same way whichever element is in it. */
-.portal-sigil-vessel .vessel-video,
-.portal-sigil-vessel .vessel-still {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  transition: filter var(--transition-normal) var(--ease-default);
+.portal-nav-settings-label,
+.portal-nav-home {
+  display: none;
 }
 
-/* The moving vessel stays silver: it brightens on hover, and the desaturation
-   is what gives that a distance to travel. */
-.portal-sigil-vessel .vessel-video {
-  filter: grayscale(80%) contrast(1.2) opacity(0.7);
+.portal-menu-toggle {
+  display: none;
+  margin-right: -12px;
+  color: var(--sy-text);
 }
 
-/* THE STILL KEEPS ITS COLOUR.
-   The seal is iridescent — blue through violet to gold across the stroke —
-   and grayscale(80%) flattened all of it to silver. The video is desaturated
-   because it has a hover state to travel toward; a phone has no hover, so
-   the still has nothing to hold back for and simply looks like itself.
-   Decoration, and a seal is not dragged off the page. */
-.portal-sigil-vessel .vessel-still {
+.portal-menu-toggle .icon-close,
+.sl-header.is-open .portal-menu-toggle .icon-menu {
+  display: none;
+}
+
+.sl-header.is-open .portal-menu-toggle .icon-close {
   display: block;
-  filter: contrast(1.1) opacity(0.88);
-  pointer-events: none;
-  user-select: none;
-  -webkit-user-drag: none;
 }
 
-/* Hide native media controls: iOS draws a play glyph on unstarted
-   video; this vessel is not a player (tap opens the last session). */
-.portal-sigil-vessel .vessel-video::-webkit-media-controls,
-.portal-sigil-vessel .vessel-video::-webkit-media-controls-start-playback-button,
-.portal-sigil-vessel .vessel-video::-webkit-media-controls-panel {
-  display: none !important;
-  -webkit-appearance: none;
-  opacity: 0;
+/* ─── Main: ask on the left, the reading lands on the right ─── */
+
+.portal-main {
+  flex: 1 0 auto;
+  width: 100%;
+  max-width: calc(1200px + 2 * var(--sy-space-8));
+  margin: 0 auto;
+  padding: var(--sy-space-10) var(--sy-space-8) var(--sy-space-9);
+  display: grid;
+  grid-template-columns: minmax(0, 560px) minmax(0, 1fr);
+  gap: var(--sy-space-10);
+  align-items: start;
 }
 
-.portal-sigil-vessel:hover {
-  transform: scale(1.05);
-  box-shadow: 0 0 30px rgba(var(--color-accent-rgb), 0.3);
+.portal-ask {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
 }
 
-.portal-sigil-vessel:hover .vessel-video {
-  filter: grayscale(20%) contrast(1.1) opacity(1);
+.portal-eyebrow {
+  margin: 0 0 var(--sy-space-4);
+  display: flex;
+  align-items: center;
+  gap: var(--sy-space-3);
+  font-family: var(--sy-font-mono);
+  font-weight: 500;
+  font-size: 12px;
+  line-height: 16px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--sy-text-3);
 }
 
-.portal-sigil-vessel:active {
-  transform: scale(0.95);
-}
-
-.portal-sigil-vessel:focus-visible {
-  outline: 2px solid var(--color-accent);
-  outline-offset: 8px;
-}
-
-/* Phone-only Portal parts: hidden by default so they cannot leak to desktop. */
-
-/* P1 — the sigil's stage */
-.sigil-stage { display: none; }
-
-/* P2 — the act's mark, verb and direction */
-.act-mark,
-.act-verb,
-.act-go { display: none; }
-
-/* P4/P5 — a room's glyph and its supporting line. The NAME is not
-   listed: it is the word the desktop tile has always shown, and it
-   stays an ordinary inline span there. */
-.room-glyph,
-.room-line { display: none; }
-
-/* P6 — the Continue strip. Two conditions, both required: the phone,
-   AND a session that actually exists. The `hidden` attribute carries
-   the second; this carries the first. */
-.portal-continue { display: none; }
-
-/* ─── Title ─── */
-.portal-title-container {
-  text-align: center;
-  margin-bottom: var(--space-xl);
+.portal-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: var(--sy-radius-full);
+  background: var(--sy-accent-rise);
+  flex: none;
 }
 
 .portal-title {
-  font-family: var(--font-display);
-  font-size: 72px;
-  font-weight: var(--font-weight-light);
-  /* Letter-spacing (not spaced characters) keeps one word for a11y /
-     indexing; text-indent recentres. Keep tracking and indent on the
-     same variable so breakpoints cannot desync them. */
-  --title-tracking: 0.32em;
-  letter-spacing: var(--title-tracking);
-  text-indent: var(--title-tracking);
-  color: var(--color-accent);
-  margin-bottom: var(--space-sm);
-  text-transform: uppercase;
+  margin: 0 0 var(--sy-space-5);
+  font-family: var(--sy-font-serif);
+  font-weight: 400;
+  font-size: 40px;
+  line-height: 44px;
+  letter-spacing: -0.01em;
+  color: var(--sy-text);
 }
 
-.portal-subtitle {
-  font-family: var(--font-literary);
-  font-size: 16px;
-  font-style: italic;
-  font-weight: var(--font-weight-regular);
-  letter-spacing: 0.02em;
-  color: var(--color-fog);
-  opacity: 0.8;
+.portal-title label {
+  cursor: inherit;
 }
 
-/* ─── Navigation ─── */
-.portal-nav {
+.portal-jev-form {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: var(--space-xl);
-  margin-bottom: var(--space-xl);
 }
 
-.portal-nav .nav-primary {
+.portal-jev-form textarea {
+  display: block;
+  width: 100%;
+  min-height: 112px;
+  resize: vertical;
+  background: var(--sy-surface);
+  border: 1px solid var(--sy-line-strong);
+  border-radius: var(--sy-radius);
+  padding: 12px 16px;
+  font-family: var(--sy-font-sans);
+  font-size: 16px;
+  line-height: 24px;
+  color: var(--sy-text);
+  transition: border-color var(--sy-dur-hover) var(--sy-ease);
+}
+
+.portal-jev-form textarea::placeholder {
+  color: var(--sy-text-3);
+}
+
+.portal-jev-form textarea:focus {
+  outline: var(--sy-focus);
+  outline-offset: 2px;
+  border-color: var(--sy-brand);
+}
+
+.portal-jev-form textarea[aria-invalid="true"] {
+  border-color: var(--sy-danger);
+}
+
+/* Loading: the request stays readable (text-2, not a fade); only the button
+   says busy. */
+.portal-jev-form textarea:read-only {
+  color: var(--sy-text-2);
+  cursor: progress;
+}
+
+.portal-help {
+  margin: var(--sy-space-2) 0 0;
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--sy-text-3);
+}
+
+#portal-jev-demo .portal-help:first-child {
+  margin-top: 0;
+  font-size: 16px;
+  line-height: 24px;
+  color: var(--sy-text-2);
+}
+
+.portal-help.is-error {
   display: flex;
-  gap: var(--space-lg);
-  justify-content: center;
+  align-items: center;
+  gap: var(--sy-space-2);
+  color: var(--sy-danger);
 }
 
-.portal-nav .nav-secondary {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(140px, 1fr));
-  gap: var(--space-lg);
-  justify-content: center;
+.portal-help svg {
+  flex: none;
 }
 
-/* ═══════════════════════════════════════════════════════════
-   Slate Tile Buttons
-   Tactile, bezeled tiles with satisfying push interaction
-   ═══════════════════════════════════════════════════════════ */
+.portal-actions {
+  margin-top: var(--sy-space-5);
+  display: flex;
+  align-items: center;
+  gap: var(--sy-space-3);
+  flex-wrap: wrap;
+}
 
-.portal-nav .nav-item {
-  /* Reset */
-  background: transparent;
-  border: none;
+.portal-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sy-space-3);
+  height: var(--sy-control-height);
+  padding: 0 20px;
+  border: 0;
+  border-radius: var(--sy-radius);
+  background: var(--sy-text);
+  color: var(--sy-on-primary);
+  font-family: inherit;
+  font-size: 16px;
+  line-height: 24px;
+  font-weight: 500;
   cursor: pointer;
-
-  /* Typography */
-  font-family: var(--font-literary);
-  font-size: 15px;
-  font-weight: var(--font-weight-regular);
-  color: var(--btn-ink);
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-
-  /* Tile dimensions */
-  padding: var(--space-sm) var(--space-lg);
-  min-width: 140px;
-
-  /* Subtle rounded corners */
-  border-radius: 3px;
-
-  /* The tile surface — slate in the default sitting, a tint of the chosen
-     one otherwise. The tokens carry both; the button names no colour. */
-  background:
-    linear-gradient(180deg,
-      var(--btn-top) 0%,
-      var(--btn-bot) 100%);
-
-  /* Beveled edge illusion - light top/left, dark bottom/right */
-  border: 1px solid transparent;
-  border-top-color: var(--btn-bevel);
-  border-left-color: rgba(70, 70, 80, 0.3);
-  border-bottom-color: rgba(10, 10, 12, 0.8);
-  border-right-color: rgba(15, 15, 18, 0.6);
-
-  /* Outer shadow for depth, with a breath of the sitting's glow */
-  box-shadow:
-    0 2px 4px rgba(0, 0, 0, 0.3),
-    0 4px 8px rgba(0, 0, 0, 0.2),
-    0 0 14px var(--btn-glow),
-    inset 0 1px 0 rgba(255, 255, 255, 0.03);
-
-  /* Micro-texture via very subtle noise */
-  position: relative;
-
-  /* Smooth transitions */
-  transition:
-    transform 80ms var(--ease-out),
-    box-shadow 150ms var(--ease-default),
-    color 150ms var(--ease-default),
-    background 150ms var(--ease-default);
+  transition: background-color var(--sy-dur-hover) var(--sy-ease);
 }
 
-/* Surface texture overlay */
-.portal-nav .nav-item::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background:
-    radial-gradient(ellipse 100% 100% at 30% 20%,
-      rgba(255, 255, 255, 0.02) 0%,
-      transparent 50%);
-  pointer-events: none;
+.portal-primary:hover:not(:disabled) {
+  background: #FFFFFF;
+}
+
+.portal-primary:disabled {
+  cursor: not-allowed;
+}
+
+/* Loading keeps the label legible: the spinner says busy, not a fade. */
+.portal-primary[aria-busy] {
   opacity: 1;
-  transition: opacity 150ms var(--ease-default);
 }
 
-/* Hover - subtle lift and highlight */
-.portal-nav .nav-item:hover {
-  color: var(--btn-ink-hover);
-
-  background:
-    linear-gradient(180deg,
-      var(--btn-top-hover) 0%,
-      var(--btn-bot-hover) 100%);
-
-  /* Stronger bevel on hover, its top edge lit by the sitting accent so the
-     tiles belong to the same palette as the hero. */
-  border-top-color: rgba(var(--color-accent-rgb), 0.32);
-  border-left-color: rgba(90, 90, 100, 0.4);
-
-  /* Lift shadow, with a stronger breath of the sitting's glow */
-  box-shadow:
-    0 3px 6px rgba(0, 0, 0, 0.35),
-    0 6px 12px rgba(0, 0, 0, 0.25),
-    0 0 18px var(--btn-glow),
-    inset 0 1px 0 rgba(255, 255, 255, 0.04);
-
-  transform: translateY(-1px);
+.portal-spinner {
+  display: none;
+  animation: portal-spin 800ms linear infinite;
 }
 
-/* Active/Pressed - the satisfying push */
-.portal-nav .nav-item:active {
-  color: var(--color-light);
-
-  /* Pressed surface - inverted bevel */
-  background:
-    linear-gradient(180deg,
-      rgba(20, 20, 24, 0.9) 0%,
-      rgba(30, 30, 36, 0.8) 100%);
-
-  /* Inverted bevel - dark top, light bottom (pressed in) */
-  border-top-color: rgba(10, 10, 12, 0.9);
-  border-left-color: rgba(15, 15, 18, 0.7);
-  border-bottom-color: rgba(60, 60, 70, 0.3);
-  border-right-color: rgba(50, 50, 60, 0.2);
-
-  /* Compressed shadow */
-  box-shadow:
-    0 1px 2px rgba(0, 0, 0, 0.4),
-    inset 0 2px 4px rgba(0, 0, 0, 0.3),
-    inset 0 1px 0 rgba(0, 0, 0, 0.2);
-
-  /* Push down */
-  transform: translateY(1px);
+.portal-primary[aria-busy] .portal-spinner {
+  display: block;
 }
 
-/* Focus - threshold accent glow */
-.portal-nav .nav-item:focus-visible {
-  color: var(--color-light);
-  outline: none;
-
-  /* Accent glow ring */
-  box-shadow:
-    0 2px 4px rgba(0, 0, 0, 0.3),
-    0 4px 8px rgba(0, 0, 0, 0.2),
-    0 0 0 2px var(--color-void),
-    0 0 0 4px rgba(var(--color-accent-rgb), 0.5),
-    inset 0 1px 0 rgba(255, 255, 255, 0.03);
+.portal-status {
+  margin: 0;
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--sy-text-2);
 }
 
-/* Primary nav item - The Chamber (hero button) */
-.portal-nav .nav-primary .nav-item {
-  font-size: 18px;
-  font-weight: var(--font-weight-regular);
-  color: var(--hero-ink);
-  letter-spacing: 0.12em;
-
-  padding: var(--space-md) var(--space-xl);
-  min-width: 180px;
-
-  /* The hero surface — a richer tint than the tiles, carrying more of the
-     sitting; the default keeps it near-neutral. */
-  background:
-    linear-gradient(180deg,
-      var(--hero-top) 0%,
-      var(--hero-bot) 100%);
-
-  /* Bevel lit by the sitting accent, stronger than the tiles' */
-  border-top-color: var(--hero-bevel);
-  border-left-color: rgba(var(--color-accent-rgb), 0.2);
-  border-bottom-color: rgba(10, 10, 14, 0.9);
-  border-right-color: rgba(15, 15, 20, 0.7);
-
-  box-shadow:
-    0 3px 6px rgba(0, 0, 0, 0.35),
-    0 6px 12px rgba(0, 0, 0, 0.2),
-    0 0 22px var(--btn-glow),
-    inset 0 1px 0 rgba(255, 255, 255, 0.04);
+.portal-status:empty {
+  display: none;
 }
 
-.portal-nav .nav-primary .nav-item:hover {
-  color: var(--hero-ink-hover);
-
-  background:
-    linear-gradient(180deg,
-      var(--hero-top-hover) 0%,
-      var(--hero-bot-hover) 100%);
-
-  border-top-color: rgba(var(--color-accent-rgb), 0.6);
-  border-left-color: rgba(var(--color-accent-rgb), 0.28);
-
-  box-shadow:
-    0 4px 8px rgba(0, 0, 0, 0.4),
-    0 8px 16px rgba(0, 0, 0, 0.25),
-    0 0 32px var(--btn-glow),
-    inset 0 1px 0 rgba(255, 255, 255, 0.05);
-
-  transform: translateY(-2px);
+.portal-icon-btn[aria-pressed="true"] {
+  color: var(--sy-danger);
 }
 
-.portal-nav .nav-primary .nav-item:active {
-  background:
-    linear-gradient(180deg,
-      rgba(25, 23, 32, 0.95) 0%,
-      rgba(35, 32, 45, 0.85) 100%);
-
-  border-top-color: rgba(10, 10, 14, 0.95);
-  border-left-color: rgba(15, 15, 20, 0.8);
-  border-bottom-color: rgba(var(--color-accent-rgb), 0.2);
-  border-right-color: rgba(var(--color-accent-rgb), 0.15);
-
-  box-shadow:
-    0 1px 2px rgba(0, 0, 0, 0.5),
-    inset 0 3px 6px rgba(0, 0, 0, 0.35),
-    inset 0 1px 0 rgba(0, 0, 0, 0.25),
-    0 0 15px rgba(var(--color-accent-rgb), 0.08);
-
-  transform: translateY(2px);
+.portal-icon-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
 }
 
-/* ─── Portal Footer & Utils ─── */
-.portal-footer {
-  position: absolute;
-  bottom: var(--space-xl);
-  left: var(--space-xl);
-  right: var(--space-xl);
+.portal-voice {
+  margin: var(--sy-space-3) 0 0;
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--sy-text-3);
+}
+
+/* A live dictation message replaces the standing disclosure. */
+.portal-voice [data-jev-dictation-status]:not(:empty) + .portal-voice-note {
+  display: none;
+}
+
+.portal-voice [data-jev-dictation-status]:not(:empty) {
+  color: var(--sy-text-2);
+}
+
+.portal-alert {
+  margin-top: var(--sy-space-6);
+  display: flex;
+  gap: var(--sy-space-3);
+  align-items: flex-start;
+  border: 1px solid var(--sy-danger);
+  border-radius: var(--sy-radius);
+  padding: var(--sy-space-4);
+  animation: portal-enter var(--sy-dur-enter) var(--sy-ease) both;
+}
+
+.portal-alert[hidden] {
+  display: none;
+}
+
+.portal-alert > svg {
+  flex: none;
+  color: var(--sy-danger);
+}
+
+.portal-alert-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sy-space-1);
+  min-width: 0;
+}
+
+.portal-alert-title {
+  margin: 0;
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 600;
+  color: var(--sy-text);
+}
+
+.portal-alert-details {
+  margin-top: var(--sy-space-1);
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--sy-text-3);
+}
+
+.portal-alert-details[hidden] {
+  display: none;
+}
+
+.portal-alert-details summary {
+  width: max-content;
+  display: flex;
+  align-items: center;
+  gap: var(--sy-space-1);
+  list-style: none;
+  cursor: pointer;
+  border-radius: var(--sy-radius-sm);
+}
+
+.portal-alert-details summary::-webkit-details-marker {
+  display: none;
+}
+
+.portal-alert-details[open] summary svg {
+  transform: rotate(180deg);
+}
+
+.portal-alert-details summary:hover {
+  color: var(--sy-text);
+}
+
+.portal-alert-details summary:focus-visible {
+  outline: var(--sy-focus);
+  outline-offset: 2px;
+}
+
+.portal-alert-message {
+  margin: var(--sy-space-1) 0 0;
+  overflow-wrap: anywhere;
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--sy-text-2);
+}
+
+.portal-link {
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 500;
+  color: var(--sy-brand);
+  text-decoration: none;
+}
+
+.portal-link:hover {
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+}
+
+.portal-link:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  text-decoration: none;
+}
+
+.portal-alert-retry {
+  flex: none;
+}
+
+.portal-alt {
+  margin: var(--sy-space-7) 0 0;
+  padding-top: var(--sy-space-5);
+  border-top: 1px solid var(--sy-line);
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--sy-text-3);
+}
+
+/* ─── Aside: skeleton while Jev chooses, Continue when there is one ─── */
+
+.portal-aside {
+  min-width: 0;
+}
+
+.portal-skeleton {
+  border-top: 1px solid var(--sy-line);
+  padding-top: var(--sy-space-5);
+  display: flex;
+  flex-direction: column;
+}
+
+.portal-skeleton[hidden] {
+  display: none;
+}
+
+.portal-skeleton .sk {
+  display: block;
+  max-width: 100%;
+  border-radius: var(--sy-radius-sm);
+  background: var(--sy-surface-2);
+  animation: portal-pulse 1.2s ease-in-out infinite;
+}
+
+.portal-skeleton .sk-row {
   display: flex;
   justify-content: space-between;
-  align-items: flex-end;
-  pointer-events: none;
-  /* Let clicks pass through to links */
+  border-top: 1px solid var(--sy-line);
+  padding: var(--sy-space-4) 0;
 }
 
-.footer-left,
-.footer-right {
-  display: flex;
-  gap: var(--space-lg);
-  pointer-events: auto;
+.portal-skeleton .sk-row:first-of-type {
+  margin-top: var(--sy-space-6);
 }
 
-.portal-util-link {
-  background: transparent;
-  border: none;
-  cursor: pointer;
-  color: var(--color-fog);
-  font-family: var(--font-mono);
-  font-size: 11px;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-  display: flex;
+.portal-continue {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  grid-template-areas: "label go" "title go";
   align-items: center;
-  gap: var(--space-xs);
-  padding: var(--space-xs) var(--space-sm);
-  transition: color var(--transition-normal) var(--ease-default), transform var(--transition-fast) var(--ease-out);
-  text-decoration: none;
-  opacity: 0.7;
+  row-gap: var(--sy-space-2);
+  text-align: left;
+  border-top: 1px solid var(--sy-line);
+  border-bottom: 1px solid var(--sy-line);
+  padding: var(--sy-space-5) 0;
+  color: var(--sy-text);
+  transition: background-color var(--sy-dur-hover) var(--sy-ease);
 }
 
-.portal-util-link:hover {
-  color: var(--color-light);
-  opacity: 1;
-  transform: translateY(-1px);
+.portal-continue[hidden] {
+  display: none;
 }
 
-.portal-util-link:active {
-  transform: translateY(0);
+.portal-continue:hover {
+  background: var(--sy-surface-2);
 }
 
-.portal-util-link .util-icon {
+.continue-label {
+  grid-area: label;
+  font-family: var(--sy-font-mono);
+  font-weight: 500;
+  font-size: 12px;
+  line-height: 16px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--sy-text-3);
+}
+
+.continue-title {
+  grid-area: title;
+  font-size: 24px;
+  line-height: 32px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.continue-go {
+  grid-area: go;
+  color: var(--sy-text-2);
+  transition: transform var(--sy-dur-hover) var(--sy-ease);
+}
+
+.portal-continue:hover .continue-go {
+  transform: translateX(4px);
+}
+
+.portal-skeleton:not([hidden]) ~ .portal-continue {
+  display: none;
+}
+
+/* ─── Footer ─── */
+
+.portal-footer {
+  flex: none;
+  width: calc(100% - 2 * var(--sy-space-8));
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: var(--sy-space-5) 0 var(--sy-space-6);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sy-space-2) var(--sy-space-6);
+  border-top: 1px solid var(--sy-line);
+}
+
+.portal-footer-link {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sy-space-1);
   font-size: 14px;
-  color: var(--color-accent);
-  margin-right: 2px;
+  line-height: 20px;
+  color: var(--sy-text-3);
+  text-decoration: none;
+  transition: color var(--sy-dur-hover) var(--sy-ease);
 }
 
-.portal-util-link[data-action="settings"] {
-  font-size: 20px;
+.portal-footer-link:hover,
+.portal-more-toggle[aria-expanded="true"] {
+  color: var(--sy-text);
 }
 
-/* ─── Responsive ─── */
-@media (max-width: 768px) {
-  .portal-title {
-    font-size: 48px;
+.portal-more {
+  position: relative;
+}
+
+.portal-more-toggle svg {
+  transition: transform var(--sy-dur-hover) var(--sy-ease);
+}
+
+.portal-more-toggle[aria-expanded="true"] svg {
+  transform: rotate(180deg);
+}
+
+/* Opens upward: the footer is the bottom of the page. */
+.portal-more-list {
+  position: absolute;
+  bottom: calc(100% + var(--sy-space-3));
+  left: calc(-1 * var(--sy-space-4));
+  z-index: 10;
+  min-width: 200px;
+  margin: 0;
+  padding: var(--sy-space-2) 0;
+  list-style: none;
+  background: var(--sy-surface-2);
+  border: 1px solid var(--sy-line);
+  border-radius: var(--sy-radius);
+  box-shadow: var(--sy-shadow-overlay);
+  animation: portal-enter var(--sy-dur-enter) var(--sy-ease) both;
+}
+
+.portal-more-list[hidden] {
+  display: none;
+}
+
+.portal-more-list .portal-footer-link {
+  width: 100%;
+  min-height: var(--sy-control-height);
+  padding: 0 var(--sy-space-4);
+  color: var(--sy-text-2);
+  text-align: left;
+}
+
+.portal-more-list .portal-footer-link:hover {
+  color: var(--sy-text);
+  background: var(--sy-surface);
+}
+
+.portal-legal {
+  margin-left: auto;
+  display: flex;
+  gap: var(--sy-space-6);
+}
+
+/* ─── Focus: always visible on keyboard focus ─── */
+
+.portal button:focus-visible,
+.portal a:focus-visible {
+  outline: var(--sy-focus);
+  outline-offset: 2px;
+  border-radius: var(--sy-radius-sm);
+}
+
+/* ─── Tablet ─── */
+
+@media (max-width: 1100px) {
+  .portal-main {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--sy-space-7);
+    max-width: calc(560px + 2 * var(--sy-space-6));
+    padding: var(--sy-space-9) var(--sy-space-6) var(--sy-space-8);
   }
 
-  .portal-nav {
-    flex-direction: column;
-    gap: var(--space-lg);
-    align-items: center;
-  }
-
-  .portal-nav .nav-secondary {
-    flex-direction: column;
-    gap: var(--space-md);
-    width: 100%;
-    max-width: 280px;
-  }
-
-  .portal-nav .nav-item {
-    width: 100%;
-    min-width: auto;
-    text-align: center;
-  }
-
-  .portal-nav .nav-primary .nav-item {
-    min-width: auto;
-    width: 100%;
-    max-width: 280px;
-  }
-
-  .portal-sigil-vessel {
-    width: 100px;
-    height: 100px;
+  .portal-footer {
+    width: calc(100% - 2 * var(--sy-space-6));
+    max-width: 560px;
   }
 }
 
-/* Smaller screens - tighter spacing */
-@media (max-width: 480px) {
-  .portal-title {
-    font-size: 36px;
-    /* Set a little tighter than the desktop 0.32em because the word has
-       to sit inside a phone's width, but still OPEN — this is the same
-       title, not a different one. The indent follows automatically. */
-    --title-tracking: 0.24em;
-  }
-
-  .portal-subtitle {
-    font-size: 12px;
-  }
-
-  .portal-nav .nav-item {
-    font-size: 12px;
-    padding: var(--space-sm) var(--space-md);
-  }
-
-  .portal-nav .nav-primary .nav-item {
-    font-size: 14px;
-    padding: var(--space-sm) var(--space-lg);
-  }
-}
-/* One primary act: the instrument itself. */
-.portal-nav .nav-primary {
-  gap: var(--space-2xl);
-}
-
-/* Phone Portal: one viewport, no scroll. Stacks become rows.
-   Flanking pavilion doors (Atrium + Solarium) are gone. */
+/* ─── Phone: Menu button discloses the nav ─── */
 
 @media (max-width: 640px) {
-  /* One lit act (Chamber), then an index of rooms. Composition ~320px. */
-
-  .portal {
-    padding: var(--space-md) var(--space-md) var(--space-lg);
-    justify-content: center;
+  .portal-menu-toggle {
+    display: inline-flex;
   }
 
-  /* P1: staged sigil — sized (not transform-scaled); rings add no layout height. */
-  .portal-sigil-container {
-    --sigil: 96px;
-    position: relative;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: var(--sigil);
-    height: var(--sigil);
-    margin-bottom: var(--space-lg);
-  }
-
-  .portal-sigil-vessel {
-    width: var(--sigil);
-    height: var(--sigil);
-  }
-
-  .sigil-stage {
-    display: block;
-    position: absolute;
-    inset: 0;
-    pointer-events: none;
-  }
-
-  .sigil-ring {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    border-radius: 50%;
-  }
-
-  .sigil-ring-inner {
-    width: calc(var(--sigil) * 1.34);
-    height: calc(var(--sigil) * 1.34);
-    border: 1px solid rgba(var(--color-accent-rgb), 0.14);
-  }
-
-  .sigil-ring-outer {
-    width: calc(var(--sigil) * 1.72);
-    height: calc(var(--sigil) * 1.72);
-    border: 1px solid rgba(var(--color-accent-rgb), 0.07);
-  }
-
-  /* A soft lift so the vessel is not a cut-out on flat black. */
-  .sigil-stage::after {
-    content: '';
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    width: calc(var(--sigil) * 2.1);
-    height: calc(var(--sigil) * 2.1);
-    transform: translate(-50%, -50%);
-    border-radius: 50%;
-    background: radial-gradient(
-      circle,
-      rgba(var(--color-accent-rgb), 0.05) 0%,
-      rgba(var(--color-accent-rgb), 0.02) 45%,
-      transparent 70%
-    );
-    z-index: -1;
-  }
-
-  /* Set ON the inner ring, at the compass points. */
-  .sigil-mark {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    font-size: 9px;
-    line-height: 1;
-    color: var(--color-ember);
-    opacity: 0.45;
-    --r: calc(var(--sigil) * 0.67);
-  }
-
-  .sigil-mark-n { transform: translate(-50%, -50%) translateY(calc(-1 * var(--r))); }
-  .sigil-mark-s { transform: translate(-50%, -50%) translateY(var(--r)); }
-  .sigil-mark-e { transform: translate(-50%, -50%) translateX(var(--r)); }
-  .sigil-mark-w { transform: translate(-50%, -50%) translateX(calc(-1 * var(--r))); }
-
-  .portal-title {
-    font-size: 32px;
-  }
-
-  .portal-title-container {
-    margin-bottom: var(--space-lg);
-  }
-
-  .portal-subtitle {
-    font-size: 11px;
-  }
-
-  /* ── The act ── */
+  /* An overlay sheet under the header: it covers the page (nothing bleeds
+     through), keeps the 16px gutter and carries the overlay shadow. */
   .portal-nav {
-    width: 100%;
-    max-width: 320px;
-    gap: var(--space-md);
-    margin-bottom: 0;
+    display: none;
+    position: fixed;
+    top: var(--sy-header-height);
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 30;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0;
+    padding: var(--sy-space-2) var(--sy-space-4) var(--sy-space-6);
+    overflow-y: auto;
+    background: var(--sy-surface);
+    border-top: 1px solid var(--sy-line);
+    box-shadow: var(--sy-shadow-overlay);
+    animation: portal-enter var(--sy-dur-enter) var(--sy-ease) both;
   }
 
-  .portal-nav .nav-primary {
-    width: 100%;
-    gap: var(--space-xs);
+  .portal.is-menu-open {
+    overflow: hidden;
   }
 
-  /* P2: the act is the only lit control. */
-  .portal-nav .nav-primary .nav-item {
+  .portal-nav-home {
     display: flex;
     align-items: center;
-    justify-content: center;
-    gap: 0;
-    flex: 1 1 auto;
-    width: 100%;
-    max-width: none;
-    min-width: 0;
-    min-height: 56px;
-    font-family: var(--font-display);
-    font-size: 14px;
-    letter-spacing: 0.22em;
-    color: var(--color-light);
-    padding: var(--space-sm) var(--space-lg);
-    background: linear-gradient(
-      180deg,
-      rgba(var(--color-accent-rgb), 0.16) 0%,
-      rgba(var(--color-accent-rgb), 0.06) 100%
-    );
-    border: 1px solid rgba(var(--color-accent-rgb), 0.42);
-    box-shadow:
-      0 0 28px rgba(var(--color-accent-rgb), 0.14),
-      inset 0 1px 0 rgba(255, 255, 255, 0.06);
   }
 
-  /* The glow contracts; the tile does not drop. A threshold does not
-     bounce. */
-  .portal-nav .nav-primary .nav-item:active {
-    transform: none;
-    box-shadow:
-      0 0 10px rgba(var(--color-accent-rgb), 0.10),
-      inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  .portal-nav-home[aria-current="page"]::after {
+    content: "";
+    width: 8px;
+    height: 8px;
+    margin-left: auto;
+    border-radius: var(--sy-radius-full);
+    background: var(--sy-brand);
   }
 
-  .act-mark,
-  .act-verb,
-  .act-go {
+  .sl-header.is-open .portal-nav {
+    display: flex;
+  }
+
+  .portal-nav-link,
+  .portal-nav-settings {
+    width: auto;
+    height: 56px;
+    margin: 0;
+    padding: 0;
+    justify-content: flex-start;
+    gap: var(--sy-space-3);
+    font-size: 16px;
+    line-height: 24px;
+    font-weight: 500;
+    color: var(--sy-text);
+    text-align: left;
+    border-radius: 0;
+  }
+
+  .portal-nav > * + * {
+    border-top: 1px solid var(--sy-line);
+  }
+
+  .portal-nav-settings {
+    display: flex;
+    align-items: center;
+    color: var(--sy-text-2);
+  }
+
+  .portal-nav-settings-label {
     display: inline;
   }
 
-  /* Single flex child: whitespace between flex items is discarded, so
-     split label nodes would collapse to ENTERCHAMBER. */
-  .act-label {
-    white-space: nowrap;
+  .portal-main {
+    padding: var(--sy-space-7) var(--sy-space-4) var(--sy-space-8);
   }
 
-  .act-mark {
-    color: var(--color-accent);
-    font-size: 13px;
-    margin-right: auto;
-    padding-right: var(--space-sm);
+  .portal-title {
+    font-size: 32px;
+    line-height: 36px;
   }
 
-  .act-go {
-    color: var(--color-accent);
-    font-size: 13px;
-    margin-left: auto;
-    padding-left: var(--space-sm);
-    letter-spacing: 0;
+  .portal-footer {
+    width: calc(100% - 2 * var(--sy-space-4));
+    gap: var(--sy-space-3) var(--sy-space-5);
   }
 
-  /* P3: marked seam between act and room index. */
-  .portal-nav .nav-secondary {
+  /* On a phone the list spans the footer instead of hanging off "More",
+     which can wrap to the right edge. */
+  .portal-footer {
     position: relative;
   }
 
-  .portal-nav .nav-secondary::before {
-    content: '◊';
-    position: absolute;
-    top: 0;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    padding: 0 10px;
-    background: var(--color-void);
-    font-size: 9px;
-    line-height: 1;
-    color: var(--color-accent);
-    opacity: 0.5;
+  .portal-more {
+    position: static;
   }
 
-  /* ── The index: first line ── */
-  .portal-nav .nav-secondary {
-    flex-direction: row;
-    justify-content: space-between;
-    gap: 0;
+  .portal-more-list {
+    left: 0;
+    right: 0;
+    bottom: calc(100% - var(--sy-space-3));
+  }
+
+  .portal-legal {
+    margin-left: 0;
     width: 100%;
-    max-width: none;
-    padding-top: var(--space-md);
-    border-top: 1px solid var(--color-shadow);
   }
-
-  /* P4: room card — mark, name, line, enterable surface. */
-  .portal-nav .nav-secondary .nav-item {
-    flex: 1 1 0;
-    min-width: 0;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: flex-start;
-    gap: 5px;
-    padding: 11px 6px 12px;
-    min-height: 0;
-    text-align: center;
-    text-decoration: none;
-    background: rgba(18, 18, 20, 0.55);
-    border: 1px solid rgba(42, 42, 48, 0.9);
-    border-radius: var(--radius-sm);
-    box-shadow: none;
-    color: var(--color-fog);
-    letter-spacing: 0;
-    font-size: inherit;
-  }
-
-  .portal-nav .nav-secondary .nav-item::before {
-    content: none;
-  }
-
-  .portal-nav .nav-secondary .nav-item:active {
-    border-color: rgba(var(--color-accent-rgb), 0.4);
-    background: rgba(18, 18, 20, 0.8);
-    transform: none;
-    box-shadow: none;
-  }
-
-  .room-glyph {
-    display: block;
-    font-size: 17px;
-    line-height: 1;
-  }
-
-  .room-name {
-    display: block;
-    font-family: var(--font-display);
-    font-size: 10px;
-    letter-spacing: 0.14em;
-    text-transform: uppercase;
-    color: var(--color-light);
-    border-bottom: 0;
-    padding-bottom: 0;
-  }
-
-  .room-line {
-    display: block;
-    /* The nav tile sets `text-transform: uppercase` for a one-word
-       label. A sentence is not a label: uppercase small caps at 8.5px
-       are markedly harder to read than lowercase. */
-    text-transform: none;
-    font-family: var(--font-primary);
-    font-size: 8.5px;
-    line-height: 1.35;
-    letter-spacing: 0.01em;
-    color: var(--color-mist);
-    /* Two lines, and it wraps between words. A room's description is
-       never broken mid-word — the same rule the orb labels learned. */
-    overflow-wrap: normal;
-    word-break: keep-all;
-    hyphens: none;
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-  }
-
-  /* P5: hue only in marks — names/borders/fills stay monochrome. */
-  [data-nav="vault"] .room-glyph    { color: var(--color-accent); }
-  [data-nav="library"] .room-glyph  { color: rgba(var(--color-accent-rgb), 0.6); }
-  [data-nav="workshop"] .room-glyph { color: var(--color-ember); }
-
-    /* P6: continue strip — resume last session, quieter than the act. */
-  .portal-continue:not([hidden]) {
-    display: flex;
-    align-items: center;
-    gap: var(--space-sm);
-    width: 100%;
-    max-width: 320px;
-    margin-top: var(--space-md);
-    padding: 9px var(--space-sm);
-    text-align: left;
-    cursor: pointer;
-    background: rgba(18, 18, 20, 0.4);
-    border: 1px solid rgba(42, 42, 48, 0.7);
-    border-left: 2px solid rgba(var(--color-accent-rgb), 0.45);
-    border-radius: var(--radius-sm);
-  }
-
-  .portal-continue:active {
-    background: rgba(18, 18, 20, 0.75);
-  }
-
-  .continue-mark {
-    flex: 0 0 auto;
-    font-size: 12px;
-    line-height: 1;
-    color: var(--color-accent);
-  }
-
-  .continue-text {
-    display: flex;
-    flex-direction: column;
-    gap: 1px;
-    min-width: 0;
-    flex: 1 1 auto;
-  }
-
-  .continue-label {
-    font-family: var(--font-primary);
-    font-size: 8px;
-    letter-spacing: 0.18em;
-    text-transform: uppercase;
-    color: var(--color-mist);
-  }
-
-  /* One line, ellipsised. A reading's title is authored text and can
-     be any length; the strip is a pointer to it, not a place to read
-     it. */
-  .continue-title {
-    font-family: var(--font-literary);
-    font-size: 11px;
-    line-height: 1.25;
-    color: var(--color-light);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-
-  .continue-go {
-    flex: 0 0 auto;
-    font-size: 11px;
-    color: var(--color-accent);
-  }
-
-  /* P7: utilities as colophon — smaller than the room index. */
-  .portal-util-link {
-    font-size: 9px;
-    letter-spacing: 0.14em;
-    color: var(--color-mist);
-  }
-
-  .portal-util-link .util-icon {
-    font-size: 9px;
-  }
-
-  /* Clear of the bottom edge.
-     No safe-area inset: without viewport-fit=cover, env(safe-area-*)
-     is always 0, so adding it only looks protective. Revisit if the
-     document opts into cover. */
-  .portal-footer {
-    bottom: var(--space-lg);
-    left: var(--space-md);
-    right: var(--space-md);
-  }
-
-  /* Four items now share the footer, and Privacy and Terms have to stay
-     reachable rather than being pushed off the edge — a policy nobody can
-     reach is not conspicuously posted. Tighten the gutters and let the
-     right-hand group wrap before anything leaves the screen. */
-  .footer-right {
-    gap: var(--space-sm);
-    flex-wrap: wrap;
-    justify-content: flex-end;
-  }
-
-  .portal-util-link {
-    padding: var(--space-xs);
-  }
-
 }
 
-/* Seal mode is a div (Portal.prefersSealOnly): strip button affordances. */
-.portal-sigil-vessel.is-seal {
-  cursor: default;
+@keyframes portal-spin {
+  to { transform: rotate(360deg); }
 }
 
-.portal-sigil-vessel.is-seal:hover {
-  transform: none;
-  box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+@keyframes portal-pulse {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 1; }
 }
 
-.portal-sigil-vessel.is-seal:active {
-  transform: none;
+@keyframes portal-enter {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: none; }
 }
 
-/* Try RISE is a public sample beneath the Library, not a second Chamber.
-   The three-column grid preserves the Portal's even horizontal measure. */
-/* The Try RISE entrance is the one seal on the Portal: a slate cabochon
-   lit from within by the active accent profile, not a flat accent disc.
-   Depth is built from token-driven gradients and two NON-INTERACTIVE
-   pseudo-element layers (a bevel rim and a restrained ground texture);
-   the accent travels with the colourway and no profile colour is fixed.
-   Everything here is scoped to .nav-try so the room items are untouched. */
-.portal-nav .nav-secondary .nav-try {
-  grid-column: 2;
-  justify-self: center;
-  position: relative;
-  isolation: isolate;
-  overflow: hidden;
-  display: flex;
-  box-sizing: border-box;
-  width: 96px;
-  height: 96px;
-  min-width: 96px;
-  padding: 10px;
-  align-items: center;
-  justify-content: center;
-  flex-direction: column;
-  gap: 6px;
-  cursor: pointer;
-  /* Ink is light: the seal body is slate, so on-accent (dark) would sink. */
-  color: var(--color-light);
-  border: 1px solid rgba(var(--color-accent-rgb), 0.58);
-  border-radius: 50%;
-  background:
-    radial-gradient(circle at 35% 24%, rgba(255, 255, 255, 0.16), transparent 27%),
-    radial-gradient(circle at 50% 68%, rgba(var(--color-accent-rgb), 0.26), transparent 66%),
-    linear-gradient(155deg, rgba(var(--color-accent-rgb), 0.34), rgba(20, 25, 30, 0.96) 72%);
-  box-shadow:
-    0 14px 32px rgba(0, 0, 0, 0.42),
-    0 0 24px rgba(var(--color-accent-rgb), 0.12),
-    inset 0 1px 0 rgba(255, 255, 255, 0.18),
-    inset 0 -8px 16px rgba(0, 0, 0, 0.28);
-  transition:
-    transform 120ms var(--ease-out),
-    box-shadow 180ms var(--ease-default);
-}
-
-.portal-nav .nav-secondary .nav-try::before,
-.portal-nav .nav-secondary .nav-try::after {
-  content: '';
-  position: absolute;
-  border-radius: inherit;
-  pointer-events: none;
-}
-
-/* Inner bevel rim — a hairline that lifts the face off the ground. */
-.portal-nav .nav-secondary .nav-try::before {
-  inset: 5px;
-  z-index: 0;
-  border: 1px solid rgba(255, 255, 255, 0.09);
-  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.22);
-}
-
-/* Ground texture — a faint machined grain, held well back. */
-.portal-nav .nav-secondary .nav-try::after {
-  inset: 0;
-  z-index: 0;
-  opacity: 0.26;
-  background: repeating-radial-gradient(circle at 38% 32%, transparent 0 3px,
-    rgba(255, 255, 255, 0.035) 4px 5px);
-  mix-blend-mode: soft-light;
-}
-
-/* Hover lifts by a single pixel and widens the accent halo. */
-.portal-nav .nav-secondary .nav-try:hover {
-  transform: translateY(-1px);
-  box-shadow:
-    0 18px 38px rgba(0, 0, 0, 0.46),
-    0 0 32px rgba(var(--color-accent-rgb), 0.22),
-    inset 0 1px 0 rgba(255, 255, 255, 0.22),
-    inset 0 -8px 16px rgba(0, 0, 0, 0.28);
-}
-
-/* Pressed sits flush and deepens the well — a real key being pushed. */
-.portal-nav .nav-secondary .nav-try:active {
-  transform: none;
-  box-shadow:
-    0 8px 20px rgba(0, 0, 0, 0.4),
-    inset 0 2px 6px rgba(0, 0, 0, 0.5),
-    inset 0 -4px 10px rgba(0, 0, 0, 0.3);
-}
-
-.portal-nav .nav-secondary .nav-try:focus-visible {
-  outline: 2px solid var(--color-accent);
-  outline-offset: 3px;
-}
-
-.nav-try .try-mark {
-  position: relative;
-  z-index: 1;
-  color: color-mix(in srgb, var(--color-accent) 60%, var(--color-light));
-  font-size: 16px;
-  line-height: 1;
-  text-shadow: 0 0 10px rgba(var(--color-accent-rgb), 0.45);
-}
-
-.nav-try .try-label {
-  position: relative;
-  z-index: 1;
-  font-family: var(--font-display);
-  font-size: 10px;
-  letter-spacing: 0.13em;
-  line-height: 1.2;
-  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.55);
-}
-
-/* Reduced motion keeps the depth and the focus ring, drops the movement. */
 @media (prefers-reduced-motion: reduce) {
-  .portal-nav .nav-secondary .nav-try,
-  .portal-nav .nav-secondary .nav-try:hover,
-  .portal-nav .nav-secondary .nav-try:active {
+  .portal-spinner {
+    animation: portal-pulse 1.2s ease-in-out infinite;
+  }
+
+  .portal-skeleton .sk {
+    animation: none;
+  }
+
+  .portal-alert,
+  .portal-nav,
+  .portal-more-list {
+    animation: none;
+  }
+
+  .portal-more-toggle svg {
     transition: none;
+  }
+
+  .portal-continue:hover .continue-go {
     transform: none;
-  }
-}
-
-@media (max-width: 768px) {
-  .portal-nav .nav-secondary {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    max-width: 460px;
-  }
-}
-
-@media (max-width: 640px) {
-  .portal-nav .nav-secondary {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    column-gap: 0;
-    row-gap: var(--space-md);
-  }
-
-  .portal-nav .nav-secondary .nav-try {
-    grid-column: 2;
-    width: 76px;
-    height: 76px;
-    min-width: 76px;
-    padding: 8px;
-    justify-content: center;
-    border-radius: 50%;
   }
 }

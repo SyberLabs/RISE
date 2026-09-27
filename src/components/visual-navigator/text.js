@@ -21,7 +21,6 @@ import { normalizeGalleryCadence, normalizePresentation } from '../../core/visua
 import {
   MASK_REASON,
   bench,
-  glyphFor,
   wordFillValue,
   inkPoolFamilies
 } from './markup.js';
@@ -331,7 +330,7 @@ export const textMethods = {
 
   renderTextEntry(id) {
     const active = ['face', 'size', 'ink'].includes(id) ? id : 'face';
-    return `<div class="vnav-entry-head"><span class="vnav-glyph">${glyphFor({ id: 'ink' })}</span>
+    return `<div class="vnav-entry-head">
       <div><h3>Type</h3><p class="vnav-kind">Text</p></div></div>
       ${this._renderSpecimen()}
       <div class="vnav-type-sections" data-active-section="${escapeHtml(active)}">
@@ -360,7 +359,7 @@ export const textMethods = {
           })), 'vnav-face-grid')}
         </div>
         <p id="vnav-thick-explanation" class="vnav-control-explanation">Thick
-          is the mask-ready face — the other three cannot carry a Visual mask.</p>`);
+          is the mask-ready face — the other six cannot carry a Visual mask.</p>`);
   },
 
   _sizeSection(isActive) {

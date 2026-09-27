@@ -279,6 +279,28 @@ describe('named soundscape beds', () => {
     expect(differing / aurora.pcm.length).toBeGreaterThan(0.9);
   });
 
+  it('renders every shipped bed as audible, deterministic, and distinct audio', () => {
+    const mixes = Object.fromEntries([...OFFLINE_SOUNDSCAPE_IDS].map(id => [
+      id,
+      mixAudio(bedPlan(id), { sampleRate: 8_000 })
+    ]));
+    for (const id of OFFLINE_SOUNDSCAPE_IDS) {
+      expect(peakAmplitude(mixes[id].pcm), id).toBeGreaterThan(1e-4);
+      expect(mixes[id].pcm).toEqual(mixAudio(bedPlan(id), { sampleRate: 8_000 }).pcm);
+    }
+    for (let i = 0; i < OFFLINE_SOUNDSCAPE_IDS.length; i += 1) {
+      for (let j = i + 1; j < OFFLINE_SOUNDSCAPE_IDS.length; j += 1) {
+        const left = mixes[OFFLINE_SOUNDSCAPE_IDS[i]].pcm;
+        const right = mixes[OFFLINE_SOUNDSCAPE_IDS[j]].pcm;
+        let differing = 0;
+        for (let sample = 0; sample < left.length; sample += 1) {
+          if (Math.abs(left[sample] - right[sample]) > 1e-4) differing += 1;
+        }
+        expect(differing / left.length).toBeGreaterThan(0.5);
+      }
+    }
+  });
+
   it('moves every sample, rather than holding one per millisecond', () => {
     // The oscillators once took integer milliseconds as their phase, so at
     // 48 kHz forty-eight samples in a row were identical and the bed was a

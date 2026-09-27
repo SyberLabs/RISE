@@ -5,15 +5,14 @@ import {
 } from './chamber-stream-face.js';
 
 describe('Chamber stream face allowlist', () => {
-    it('exposes exactly the four allowlisted ids', () => {
+    it('exposes only renderable Chamber faces including the shipped mono face', () => {
         const ids = CHAMBER_STREAM_FACES.map((face) => face.id);
-        expect(ids).toEqual(['literary', 'display', 'thick', 'jp']);
+        expect(ids).toEqual(['literary', 'display', 'thick', 'mono', 'jp', 'sans', 'book']);
         expect(ids).not.toContain('inter');
-        expect(ids).not.toContain('mono');
     });
 
     it('passes through each allowlisted id', () => {
-        for (const id of ['literary', 'display', 'thick', 'jp']) {
+        for (const id of ['literary', 'display', 'thick', 'mono', 'jp', 'sans', 'book']) {
             expect(resolveChamberStreamFace(id)).toBe(id);
         }
     });

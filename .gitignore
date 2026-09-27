@@ -2,6 +2,7 @@
 node_modules/
 dist/
 dist-ssr/
+public/audio/recitation/
 .vite/
 coverage/
 *.local

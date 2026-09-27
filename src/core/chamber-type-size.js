@@ -1,25 +1,27 @@
 /**
  * Chamber type size.
  *
- * S | M | L persist as small | medium | large — the old three steps.
+ * S | M | L | XL persist as fixed font sizes on the existing scale.
  * Fit persists as fontSize: 'fit'. Only Word paint uses adaptive fit.
- * Phrase / sentence / paragraph ignore Fit and stay on the three steps.
+ * Phrase / sentence / paragraph ignore Fit and stay on the fixed steps.
  */
 
 export const FONT_SIZE_CHIPS = Object.freeze([
     Object.freeze({ id: 's', fontSize: 'small', label: 'S' }),
     Object.freeze({ id: 'm', fontSize: 'medium', label: 'M' }),
     Object.freeze({ id: 'l', fontSize: 'large', label: 'L' }),
+    Object.freeze({ id: 'xl', fontSize: 'xlarge', label: 'XL' }),
     Object.freeze({ id: 'fit', fontSize: 'fit', label: 'Fit' })
 ]);
 
 const DEFAULT_FONT_SIZE = 'medium';
 
-/** Old Settings steps on the 72px / 96px base. Not a chamber fill. */
+/** Fixed Settings steps on the 72px / 96px base. Not a chamber fill. */
 const THREE_STEP_INTENT = Object.freeze({
     small: 0.82,
     medium: 1,
-    large: 1.18
+    large: 1.18,
+    xlarge: 1.36
 });
 
 /** Fit uses this fraction of the usable chamber/band box. */
@@ -53,7 +55,7 @@ export function isChamberWordFit(id) {
     return persistFontSize(id) === 'fit';
 }
 
-/** Three-step multiplier. Fit is ignored (medium). */
+/** Fixed-size multiplier. Fit is ignored (medium). */
 export function threeStepIntent(id) {
     const size = resolveFontSize(id);
     return size === 'fit' ? THREE_STEP_INTENT.medium : THREE_STEP_INTENT[size];
