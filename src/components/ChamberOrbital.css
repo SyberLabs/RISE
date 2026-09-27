@@ -1,672 +1,815 @@
 /* ═══════════════════════════════════════════════════════════
-   Chamber Orbital Component
-   Consciousness Configuration Interface
-
-   Sacred Geometry: Equilateral triangle orbit around TEXT center
-   120° separation | Perfect rotational symmetry | Grounded stability
+   Reader setup (ChamberOrbital)
+   SyberLabs Design System v1: ink on near-black, hairlines not boxes,
+   one primary action. Values are the spec's literal tokens.
    ═══════════════════════════════════════════════════════════ */
 
 .chamber-orbital {
-  /* ONE GEOMETRY, DECLARED ONCE. The ring's proportions used to be six
-     hard-coded pixel figures repeated through the transforms below, and a
-     second full copy of them in the phone breakpoint. Naming them lets the
-     whole ring scale as one system — the 120° separation is preserved by
-     construction at any size, because only the radius changes. */
-  --orbit-stage: 600px;
-  --orbit-node: 140px;
-  --orbit-center: 260px;
-  --orbit-radius: 220px;
-  --orbit-radius-hover: 210px;
-  /* The stance row and the ring are two different acts — choosing a posture,
-     then adjusting it — and were reading as one crowded column. This margin
-     is spent TWICE, above the stage and below it, so every step costs double
-     from a column that has to keep Begin above the floor. The tiers below
-     are what the measured slack allows. */
-  --orbit-stage-margin: var(--space-2xl);
+  --rs-bg: #05060A;
+  --rs-surface: #0B0D14;
+  --rs-surface-2: #121521;
+  --rs-line: #1F2433;
+  --rs-line-strong: #5E6980;
+  --rs-text: #F2F5FB;
+  --rs-text-2: #AEB8CC;
+  --rs-text-3: #7F8AA3;
+  --rs-brand: #4890F0;
+  --rs-accent: #E4D2AE;
+  --rs-sans: 'Instrument Sans', var(--font-primary);
+  --rs-serif: 'Instrument Serif', var(--font-literary);
+  --rs-mono: 'JetBrains Mono', var(--font-mono);
+  --rs-ease: cubic-bezier(.2, .8, .2, 1);
+  --rs-gutter: 64px;
 
-  /* THE FLOOR IS REACHABLE. This was `min-height: 100vh` with the content
-     centred, and `body` sets `overflow: hidden` — so once the stance row
-     was added the column grew past the viewport and Begin sat below the
-     floor with NOTHING able to scroll to it. Measured at 1223px of content:
-     unreachable on every common laptop, and off by only 6px on a 1080p
-     screen, which is why it survived review.
-     `safe center` is the other half: plain centring overflows BOTH ends, so
-     a scroll container alone would still bury the top of the column where
-     no scrolling can reach. Browsers without safe alignment keep the
-     `center` declared above it. */
-  /* `svh`, not `vh` or `dvh`: the small viewport is the only height this app
-     is ever shown at, and the only one that cannot go stale when iOS returns
-     a tab. The reasoning is on `body` in design-system.css. */
+  /* THE FLOOR IS REACHABLE. `body` sets `overflow: hidden`, so the setup
+     owns its own scroll: header and action bar stay put, the middle scrolls.
+     `svh`: the small viewport is the only height this app is shown at. */
   height: 100vh;
   height: 100svh;
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  background: var(--color-void);
-  padding: var(--space-xl);
   display: flex;
   flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  justify-content: safe center;
+  background: var(--rs-bg);
+  color: var(--rs-text);
+  font-family: var(--rs-sans);
   position: relative;
 }
 
-/* ─── Back Button ─── */
-.orbital-back {
-  position: absolute;
-  top: var(--space-xl);
-  left: var(--space-xl);
-  z-index: 10;
+.chamber-orbital :focus-visible {
+  outline: 2px solid var(--rs-brand);
+  outline-offset: 2px;
 }
 
-/* ─── Origin Chip (wayfinding back to SOL / Vault / Library) ─── */
-.orbital-origin-slot {
-  position: absolute;
-  top: var(--space-xl);
-  right: var(--space-xl);
-  z-index: 10;
+.reader-icon {
+  flex: none;
+  display: block;
 }
 
+/* ─── Header ─── */
+.reader-header {
+  flex: none;
+  height: 64px;
+  box-sizing: border-box;
+  border-bottom: 1px solid var(--rs-line);
+  padding: 0 var(--rs-gutter);
+  padding-top: env(safe-area-inset-top);
+  display: flex;
+  align-items: center;
+}
+
+.reader-header-inner {
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.reader-lockup {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-family: var(--rs-sans);
+  font-weight: 600;
+  font-size: 13px;
+  line-height: 20px;
+  letter-spacing: .14em;
+  color: var(--rs-text);
+  white-space: nowrap;
+}
+
+.reader-mark {
+  height: 20px;
+  width: auto;
+  display: block;
+}
+
+.reader-lockup-sep {
+  color: var(--rs-text-3);
+}
+
+.reader-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.orbital-back,
 .orbital-origin-chip {
   display: inline-flex;
   align-items: center;
-  gap: var(--space-xs);
-  padding: 6px 14px;
-  background: var(--color-abyss);
-  border: 1px solid var(--color-shadow);
-  color: var(--color-fog);
-  font-family: var(--font-mono);
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.12em;
-  cursor: pointer;
-  transition: all var(--transition-normal) var(--ease-default);
-}
-
-.orbital-origin-chip:hover {
-  border-color: var(--color-ember);
-  color: var(--color-ember);
-  background: rgba(212, 165, 116, 0.06);
-}
-
-.origin-chip-icon {
-  font-size: 13px;
-  line-height: 1;
-}
-
-.origin-chip-arrow {
-  color: var(--color-mist);
-  font-size: 13px;
-  line-height: 1;
-  transition: transform var(--transition-normal) var(--ease-default);
-}
-
-.orbital-origin-chip:hover .origin-chip-arrow {
-  transform: translateX(-2px);
-  color: var(--color-ember);
-}
-
-/* Share --top-control-clearance so back and origin chip align. */
-@media (max-width: 700px) {
-  .orbital-back,
-  .orbital-origin-slot {
-    top: var(--top-control-clearance);
-  }
-
-  /* THE HEADER BAND IS RESERVED, NOT SHARED.
-     Back and the origin chip are absolutely positioned in the top corners
-     while everything else sits in a centred column. On a phone that column
-     rises into the corners, and "How do you want to read?" was landing under
-     the Library chip — measured at 375px, overlapping BOTH chips, in the
-     first corridor a reader walks.
-     The answer is space, not smaller type: the column starts below the band
-     the chips occupy, so the two cannot contend for the same pixels at any
-     width. Desktop keeps its composition, where the corners are far from the
-     middle. */
-  .chamber-orbital {
-    /* Named so the height tiers below can honour it instead of resetting it
-       with a padding shorthand. */
-    --orbital-header-band: calc(var(--top-control-clearance) + 44px + var(--space-md));
-    padding-top: var(--orbital-header-band);
-  }
-
-  /* A chip is pressed by a finger here. 44px is the floor, taken as hit area
-     so a chip need not grow visually to be reachable. */
-  .orbital-origin-chip,
-  .orbital-back {
-    min-height: 44px;
-  }
-
-  /* Notched phones inset the corners the chips live in. */
-  .orbital-back {
-    left: max(var(--space-sm), env(safe-area-inset-left));
-  }
-
-  .orbital-origin-slot {
-    right: max(var(--space-sm), env(safe-area-inset-right));
-  }
-}
-
-/* ═══════════════════════════════════════════════════════════════
-   THE STANCE ROW — intentions, above the parameters
-
-   A visitor used to meet four orbits at once and read them as knobs.
-   This row is what they meet first now: three named postures, each one
-   tap, each setting a coherent slice of the ring below it. The ring is
-   unchanged and still holds every control — so this is a floor added
-   under a new reader, not a ceiling lowered on anyone.
-   ═══════════════════════════════════════════════════════════════ */
-.orbital-stances {
-  width: 100%;
-  max-width: 720px;
-  text-align: center;
-}
-
-.stance-question {
-  font-family: var(--font-mono);
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.16em;
-  margin-bottom: var(--space-md);
-}
-
-.stance-options {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: var(--space-sm);
-}
-
-.stance-option {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  padding: var(--space-md) var(--space-sm);
-  background: var(--color-abyss);
-  border: 1px solid var(--color-shadow);
-  color: var(--color-fog);
-  text-align: left;
-  cursor: pointer;
-  transition:
-    border-color var(--transition-normal) var(--ease-default),
-    color var(--transition-normal) var(--ease-default),
-    background var(--transition-normal) var(--ease-default);
-}
-
-.stance-option:hover {
-  border-color: var(--color-accent);
-  color: var(--color-light);
-}
-
-/* The chosen posture is the only lit thing in the row, so a reader can
-   see at a glance which one they are standing in — and see it go dark
-   the moment they adjust a dial past it. */
-.stance-option.active {
-  border-color: var(--color-accent);
-  color: var(--color-light);
-  background: rgba(var(--color-accent-rgb), 0.08);
-}
-
-.stance-name {
-  font-size: 14px;
-  letter-spacing: 0.02em;
-}
-
-.stance-line {
-  font-size: 11px;
-  line-height: 1.5;
-  color: var(--color-mist);
-  /* Asked for, not broadcast. The sentence is what a reader wants while
-     deciding between three postures, and clutter once they have decided —
-     so it is given to hover and to focus, and costs the column nothing
-     the rest of the time. */
-  max-height: 0;
-  opacity: 0;
-  overflow: hidden;
-  transition:
-    max-height var(--transition-normal) var(--ease-out),
-    opacity var(--transition-normal) var(--ease-out);
-}
-
-.stance-option:hover .stance-line,
-.stance-option:focus-visible .stance-line,
-.stance-option.active .stance-line {
-  max-height: 4em;
-  opacity: 1;
-}
-
-/* Keyboard and pointer both reach it; reduced motion just shows it. */
-@media (prefers-reduced-motion: reduce) {
-  .stance-line { transition: none; }
-}
-
-.stance-note.is-retiring {
-  opacity: 0;
-  transition: opacity 900ms var(--ease-out);
-}
-
-.stance-option.active .stance-line {
-  color: var(--color-fog);
-}
-
-.stance-note {
-  font-size: 11px;
-  line-height: 1.6;
-  margin-top: var(--space-sm);
-  max-width: 46ch;
-  margin-left: auto;
-  margin-right: auto;
-}
-
-/* ─── Orbital Stage ─── */
-/* THE RING IS NOT CENTRED IN ITS OWN BOX, SO THE BOX COMPENSATES.
-   Temporal sits a full radius above the middle; Audio and Visual only half a
-   radius below it. The ring's visual centre is therefore a quarter-radius
-   ABOVE the stage's centre, and equal margins hung it against the stances
-   with a gulf beneath — measured 9px above and 124px below on a laptop, 3
-   and 145 on a larger screen.
-   The correction is a quarter radius, moved from the bottom margin to the
-   top. The column's total height does not change by a pixel, which matters:
-   Begin has to stay above the floor, and that is measured elsewhere. */
-.orbital-stage {
-  position: relative;
-  width: var(--orbit-stage);
-  height: var(--orbit-stage);
-  --orbit-ring-offset: calc(var(--orbit-radius) * 0.25);
-  margin-top: calc(var(--orbit-stage-margin) + var(--orbit-ring-offset));
-  margin-bottom: max(0px, calc(var(--orbit-stage-margin) - var(--orbit-ring-offset)));
-}
-
-/* ─── Orbit Container (optionally rotates, but text stays upright) ─── */
-.orbit-container {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  transition: transform 0.6s var(--ease-out);
-  /* Slower, more meditative rotation */
-}
-
-
-/* ─── Orbit Nodes (Sacred Geometry Positioning) ─── */
-.orbit-node {
-  position: absolute;
-  width: var(--orbit-node);
-  height: var(--orbit-node);
-
-  /* Center all nodes first, then offset via transform */
-  top: 50%;
-  left: 50%;
-
-  border-radius: 50%;
-  border: 2px solid var(--color-accent);
-  background: var(--color-abyss);
-  cursor: pointer;
-
-  /* Subtle glow at rest */
-  box-shadow: 0 0 0 rgba(var(--color-accent-rgb), 0);
-
-  transition:
-    border-color var(--transition-normal) var(--ease-default),
-    box-shadow var(--transition-normal) var(--ease-default);
-
-  display: flex;
-  align-items: center;
-  justify-content: center;
-
-  /* Orbit nodes sit below center orb */
-  z-index: 3;
-}
-
-/* Perfect equilateral triangle: 120° spacing, 220px orbit radius
-   Inverted triangle (▽) for grounding energy:
-   - Temporal at top (master dimension)
-   - Audio at bottom-left (left-hemisphere linguistic processing)
-   - Visual at bottom-right (right-hemisphere visual processing)
-*/
-
-.orbit-temporal {
-  /* Top vertex: 0° (12 o'clock) */
-  transform: translate(-50%, -50%) translateY(calc(-1 * var(--orbit-radius)));
-}
-
-.orbit-audio {
-  /* Bottom-left vertex: 240° */
-  transform: translate(-50%, -50%) translate(
-      calc(-1 * var(--orbit-radius) * 0.866),   /* -r * sin(60°) */
-      calc(var(--orbit-radius) * 0.5)           /*  r * cos(60°) */
-    );
-}
-
-.orbit-visual {
-  /* Bottom-right vertex: 120° */
-  transform: translate(-50%, -50%) translate(
-      calc(var(--orbit-radius) * 0.866),        /*  r * sin(60°) */
-      calc(var(--orbit-radius) * 0.5)           /*  r * cos(60°) */
-    );
-}
-
-/* Hover: Expand toward center with glow (no scale, no transform conflict) */
-.orbit-node:hover {
-  border-color: var(--color-light);
-  box-shadow:
-    0 0 32px rgba(var(--color-accent-rgb), 0.4),
-    inset 0 0 24px rgba(var(--color-accent-rgb), 0.1);
-}
-
-.orbit-temporal:hover {
-  transform: translate(-50%, -50%) translateY(calc(-1 * var(--orbit-radius-hover)));
-}
-
-.orbit-audio:hover {
-  transform: translate(-50%, -50%) translate(
-      calc(-1 * var(--orbit-radius-hover) * 0.866),
-      calc(var(--orbit-radius-hover) * 0.5));
-}
-
-.orbit-visual:hover {
-  transform: translate(-50%, -50%) translate(
-      calc(var(--orbit-radius-hover) * 0.866),
-      calc(var(--orbit-radius-hover) * 0.5));
-}
-
-/* Active state: Pulse glow */
-.orbit-node:active {
-  box-shadow:
-    0 0 48px rgba(var(--color-accent-rgb), 0.6),
-    inset 0 0 32px rgba(var(--color-accent-rgb), 0.2);
-}
-
-/* Orbit content (stays upright when container rotates) */
-.orbit-content {
-  text-align: center;
-  /* Little side padding, because the status sits at the disc's waist,
-     where the chord is the full diameter — 24px a side spent nearly half
-     of it and left a box narrower than the word it had to hold. The rim
-     is kept by the type scaling with the node, not by a clamp. */
-  padding: var(--space-md) var(--space-xs);
-  /* The disc is what bounds the text. Without this the content is a
-     flex item free to shrink-to-fit its widest LINE, and a status that
-     fits on one line takes it: 'Focals · Rosa Mystica' went 28px past
-     the rim on both sides rather than wrapping inside the disc. */
-  width: 100%;
-  box-sizing: border-box;
-  pointer-events: none;
-
-  /* Counter-rotate to keep text readable */
-  transition: transform 0.6s var(--ease-out);
-}
-
-.orbit-label {
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.15em;
-  margin-bottom: var(--space-xs);
-  font-weight: var(--font-weight-medium);
-}
-
-.orbit-status {
-  font-size: 14px;
-  font-weight: var(--font-weight-regular);
-  font-family: var(--font-mono);
-}
-
-/* Orbit handle (removed - rotation is now optional aesthetic, not core UX) */
-.orbit-handle {
-  display: none;
-  /* If rotation is desired, implement as global control, not per-node handle */
-}
-
-/* ─── Center: TEXT (The Anchor) ─── */
-.orbit-center {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-
-  width: var(--orbit-center);
-  height: var(--orbit-center);
-  border-radius: 50%;
-
-  /* Lighter tint of the sitting accent — satellites keep the full hue. */
-  border: 3px solid color-mix(in srgb, var(--color-accent) 48%, var(--color-light));
-  background: var(--color-depth);
-  box-shadow:
-    0 0 0 8px color-mix(in srgb, var(--color-accent) 10%, transparent),
-    0 0 64px color-mix(in srgb, var(--color-accent) 18%, transparent);
-
-  display: flex;
-  align-items: center;
-  justify-content: center;
-
-  /* Center orb above orbit nodes */
-  z-index: 5;
-}
-
-.text-source {
-  width: 100%;
-  height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: var(--space-lg);
-}
-
-/* Text empty state */
-.text-empty {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
-  height: 100%;
-}
-
-/* Single elegant button - diamond + text */
-.text-choose-btn {
+  gap: 8px;
+  height: 44px;
+  padding: 0 12px;
   background: transparent;
-  border: none;
-  color: var(--color-light);
-  padding: 0;
+  border: 0;
+  border-radius: 8px;
+  color: var(--rs-text-2);
+  font-family: var(--rs-sans);
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 500;
   cursor: pointer;
-
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: var(--space-sm);
-
-  transition: all var(--transition-normal) var(--ease-default);
+  transition: color 120ms var(--rs-ease);
 }
 
-.text-choose-btn:hover {
-  transform: translateY(-2px);
+.orbital-back:hover,
+.orbital-origin-chip:hover {
+  color: var(--rs-text);
 }
 
-.text-choose-btn:hover .choose-sigil {
-  color: var(--color-light);
-  text-shadow: 0 0 24px rgba(var(--color-accent-rgb), 0.6);
-}
-
-.text-choose-btn:hover .choose-label {
-  color: var(--color-light);
-  letter-spacing: 0.15em;
-}
-
-.text-choose-btn:active {
-  transform: translateY(0);
-}
-
-.choose-sigil {
-  font-size: 64px;
-  line-height: 1;
-  color: var(--color-threshold);
-  transition: all var(--transition-normal) var(--ease-default);
-
-  /* Japanese typography for 無 (Mu) */
-  font-family: 'Noto Serif JP', 'Hiragino Mincho ProN', 'Yu Mincho', 'MS Mincho', serif;
-  font-weight: 500;
-  font-feature-settings: 'palt' 1;
-  /* Proportional alternates for better spacing */
-}
-
-.choose-label {
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.12em;
-  font-weight: var(--font-weight-medium);
-  color: var(--color-cloud);
-  transition: all var(--transition-normal) var(--ease-default);
-}
-
-/* Text loaded state */
-.text-loaded {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: var(--space-xs);
-  text-align: center;
-  width: 100%;
-  max-width: 200px;
-  position: relative;
-}
-
-.text-sigil {
-  font-size: 48px;
-  color: var(--color-threshold);
-  margin-bottom: var(--space-xs);
-  line-height: 1;
-
-  /* Japanese typography for 無 (Mu) */
-  font-family: 'Noto Serif JP', 'Hiragino Mincho ProN', 'Yu Mincho', 'MS Mincho', serif;
-  font-weight: 500;
-  font-feature-settings: 'palt' 1;
-
-  /* Subtle pulse animation */
-  animation: text-pulse 3s ease-in-out infinite;
-}
-
-@keyframes text-pulse {
-
-  0%,
-  100% {
-    opacity: 1;
-  }
-
-  50% {
-    opacity: 0.7;
-  }
-}
-
-.text-info {
-  width: 100%;
-}
-
-.text-name {
-  font-family: var(--font-literary);
-  font-size: 15px;
-  font-weight: var(--font-weight-regular);
-  margin-bottom: 4px;
-  color: var(--color-light);
-
-  /* Truncate long filenames */
-  max-width: 100%;
+.orbital-origin-chip .origin-chip-label {
+  max-width: 24ch;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.text-meta {
-  font-size: 11px;
-  font-family: var(--font-mono);
-  color: var(--color-fog);
-  letter-spacing: 0.02em;
+.orbital-origin-chip::before {
+  content: 'Back to';
+  color: var(--rs-text-3);
 }
 
-.text-clear {
-  margin-top: var(--space-sm);
-  padding: 4px 12px;
-  font-size: 10px;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  background: transparent;
-  border: 1px solid var(--color-shadow);
-  color: var(--color-fog);
-  cursor: pointer;
-  transition: all var(--transition-fast) var(--ease-default);
-  border-radius: var(--radius-sm);
-  font-weight: var(--font-weight-medium);
+/* ─── Body ─── */
+.reader-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 0 var(--rs-gutter);
 }
 
-.text-clear:hover {
-  border-color: var(--color-rose);
-  color: var(--color-rose);
-  background: rgba(212, 127, 139, 0.1);
+.reader-grid {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: 360px minmax(0, 1fr);
+  gap: 96px;
+  align-items: start;
 }
 
-/* ─── Actions ─── */
-/* Tighter top margin lifts Begin off the fold at 100% zoom, and the
-   bottom padding guarantees the Reset beneath it is never clipped */
-.orbital-actions {
-  margin-top: var(--space-lg);
+/* ─── Your text ─── */
+.reader-text {
+  padding-top: 64px;
+  position: sticky;
+  top: 0;
+}
+
+.text-loaded,
+.text-empty {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  /* Reset sits snug beneath Begin — one gesture group — with real
-     clearance from the bottom edge of the screen */
-  gap: var(--space-xs);
-  padding-bottom: var(--space-2xl);
 }
 
-/* Reset: quiet counterweight to persistence — restores default dials,
-   keeps the loaded text */
-.orbital-reset {
-  background: none;
-  border: none;
-  color: var(--color-mist);
-  font-family: var(--font-mono);
-  font-size: 10px;
+.reader-eyebrow,
+.reader-label,
+.text-facts dt {
+  margin: 0;
+  font-family: var(--rs-mono);
+  font-weight: 500;
+  font-size: 12px;
+  line-height: 16px;
+  letter-spacing: .08em;
   text-transform: uppercase;
-  letter-spacing: 0.15em;
-  padding: var(--space-xs) var(--space-sm);
+  color: var(--rs-text-3);
+}
+
+.reader-eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.reader-dot {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--rs-accent);
+  display: inline-block;
+}
+
+.text-name {
+  margin: 24px 0 0;
+  font-family: var(--rs-serif);
+  font-weight: 400;
+  font-size: 40px;
+  line-height: 44px;
+  letter-spacing: -0.01em;
+  color: var(--rs-text);
+  overflow-wrap: anywhere;
+}
+
+.text-facts {
+  margin: 32px 0 0;
+  padding: 0;
+}
+
+.text-facts > div {
+  border-top: 1px solid var(--rs-line);
+  border-bottom: 1px solid var(--rs-line);
+  padding: 16px 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.text-facts dd {
+  margin: 0;
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--rs-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.text-actions {
+  margin-top: 24px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 24px;
+}
+
+.reader-link {
+  min-height: 44px;
+  padding: 0;
+  background: none;
+  border: 0;
+  font-family: var(--rs-sans);
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 500;
+  color: var(--rs-brand);
   cursor: pointer;
-  transition: color var(--transition-fast) var(--ease-default);
+  text-align: left;
+}
+
+.reader-link:hover {
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+}
+
+.reader-link-quiet {
+  color: var(--rs-text-2);
+}
+
+.reader-link-quiet:hover {
+  color: var(--rs-text);
+}
+
+.text-empty .reader-help {
+  margin-top: 8px;
+}
+
+.reader-secondary {
+  align-self: flex-start;
+  margin-top: 24px;
+  height: 44px;
+  padding: 0 20px;
+  background: transparent;
+  border: 1px solid var(--rs-line-strong);
+  border-radius: 8px;
+  color: var(--rs-text);
+  font-family: var(--rs-sans);
+  font-size: 16px;
+  line-height: 24px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 120ms var(--rs-ease);
+}
+
+.reader-secondary:hover {
+  background: var(--rs-surface-2);
+}
+
+/* ─── Main column ─── */
+.reader-main {
+  padding: 64px 0;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.reader-help {
+  margin: 0;
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--rs-text-3);
+}
+
+/* ─── THE STANCE ROW — intentions, above the parameters ───
+   A real radio group. The chosen posture carries the product's accent
+   dot; nothing else on the screen is lit. */
+.orbital-stances {
+  display: flex;
+  flex-direction: column;
+}
+
+.stance-question {
+  margin: 0;
+  font-family: var(--rs-serif);
+  font-weight: 400;
+  font-size: 40px;
+  line-height: 44px;
+  letter-spacing: -0.01em;
+  color: var(--rs-text);
+}
+
+.reader-lede {
+  margin: 12px 0 0;
+  font-size: 18px;
+  line-height: 28px;
+  color: var(--rs-text-2);
+}
+
+/* Hairline containers bleed 16px past the column so row hover fills
+   reach the edge while text stays aligned with the heading. */
+.stance-options {
+  margin: 32px -16px 0;
+  border-bottom: 1px solid var(--rs-line);
+}
+
+.stance-option {
+  position: relative;
+  display: grid;
+  grid-template-columns: 20px minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+  padding: 24px 16px;
+  border-top: 1px solid var(--rs-line);
+  cursor: pointer;
+  transition: background 120ms var(--rs-ease);
+}
+
+.stance-option:hover {
+  background: var(--rs-surface-2);
+}
+
+.stance-option:has(.stance-input:focus-visible) {
+  outline: 2px solid var(--rs-brand);
+  outline-offset: -2px;
+}
+
+/* Rows that bleed to the scroller's edge draw their ring inside. */
+.chamber-orbital .reader-disclosure:focus-visible,
+.chamber-orbital .orbit-node:focus-visible {
+  outline-offset: -2px;
+}
+
+.stance-input {
+  position: absolute;
+  opacity: 0;
+  width: 1px;
+  height: 1px;
+  margin: 0;
+}
+
+.stance-mark {
+  margin-top: 4px;
+  width: 20px;
+  height: 20px;
+  box-sizing: border-box;
+  border: 1px solid var(--rs-line-strong);
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.stance-option.active .stance-mark {
+  border-color: var(--rs-accent);
+}
+
+.stance-option.active .stance-mark::after {
+  content: '';
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--rs-accent);
+}
+
+.stance-text {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.stance-name {
+  font-size: 18px;
+  line-height: 28px;
+  font-weight: 600;
+  color: var(--rs-text-2);
+}
+
+.stance-line {
+  font-size: 16px;
+  line-height: 24px;
+  color: var(--rs-text-3);
+}
+
+.stance-option.active .stance-name {
+  color: var(--rs-text);
+}
+
+.stance-option.active .stance-line {
+  color: var(--rs-text-2);
+}
+
+.stance-note {
+  margin: 16px 0 0;
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--rs-text-3);
+  transition: opacity 900ms var(--rs-ease);
+}
+
+.stance-note.is-retiring {
+  opacity: 0;
+}
+
+/* ─── Adjust: one disclosure over the three settings panels ─── */
+.reader-adjust {
+  margin: 48px -16px 0;
+  border-top: 1px solid var(--rs-line);
+  border-bottom: 1px solid var(--rs-line);
+}
+
+.reader-disclosure {
+  width: 100%;
+  padding: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  background: transparent;
+  border: 0;
+  color: var(--rs-text-2);
+  font-family: var(--rs-sans);
+  cursor: pointer;
+  text-align: left;
+  transition: background 120ms var(--rs-ease);
+}
+
+.reader-disclosure:hover {
+  background: var(--rs-surface-2);
+}
+
+.reader-disclosure .reader-icon {
+  transition: transform 200ms var(--rs-ease);
+}
+
+.reader-disclosure[aria-expanded="true"] {
+  color: var(--rs-text);
+}
+
+.reader-disclosure[aria-expanded="true"] .reader-icon {
+  transform: rotate(180deg);
+}
+
+.reader-disclosure-text {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.reader-disclosure-title {
+  font-size: 16px;
+  line-height: 24px;
+  font-weight: 500;
+  color: var(--rs-text);
+}
+
+.reader-disclosure-summary {
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--rs-text-3);
+}
+
+.reader-adjust-panel {
+  padding-top: 8px;
+  animation: reader-enter 200ms var(--rs-ease) both;
+}
+
+.reader-adjust-panel > .reader-help {
+  padding: 0 16px;
+}
+
+.reader-adjust-panel[hidden] {
+  display: none;
+}
+
+.orbit-container {
+  margin-top: 16px;
+}
+
+.orbit-node {
+  width: 100%;
+  min-height: 64px;
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  background: transparent;
+  border: 0;
+  border-top: 1px solid var(--rs-line);
+  color: var(--rs-text-2);
+  font-family: var(--rs-sans);
+  text-align: left;
+  cursor: pointer;
+  transition: background 120ms var(--rs-ease), color 120ms var(--rs-ease);
+}
+
+.orbit-node:hover {
+  background: var(--rs-surface-2);
+  color: var(--rs-text);
+}
+
+.orbit-content {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  flex: 1;
+  min-width: 0;
+}
+
+.orbit-label {
+  font-size: 16px;
+  line-height: 24px;
+  font-weight: 500;
+  color: var(--rs-text);
+}
+
+.orbit-status {
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--rs-text-2);
+  text-align: right;
+  overflow-wrap: normal;
+  word-break: keep-all;
+}
+
+/* ─── Stream / Page ─── */
+.reader-mode {
+  margin-top: 48px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.reader-segmented {
+  display: inline-flex;
+  align-self: flex-start;
+  border: 1px solid var(--rs-line-strong);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.reader-segmented button {
+  height: 42px;
+  padding: 0 20px;
+  background: transparent;
+  border: 0;
+  color: var(--rs-text-2);
+  font-family: var(--rs-sans);
+  font-size: 16px;
+  line-height: 24px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: color 120ms var(--rs-ease);
+}
+
+.reader-segmented button + button {
+  border-left: 1px solid var(--rs-line-strong);
+}
+
+.reader-segmented button:hover {
+  color: var(--rs-text);
+}
+
+.reader-segmented button[aria-pressed="true"] {
+  background: var(--rs-surface-2);
+  color: var(--rs-text);
+}
+
+.reader-segmented button:focus-visible {
+  outline-offset: -2px;
+}
+
+.reader-mode .reader-help {
+  color: var(--rs-text-2);
+}
+
+/* ─── Action bar ─── */
+.orbital-actions {
+  flex: none;
+  border-top: 1px solid var(--rs-line);
+  padding: 24px var(--rs-gutter);
+  padding-bottom: max(24px, env(safe-area-inset-bottom));
+  background: var(--rs-bg);
+}
+
+.reader-actions-inner {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+}
+
+.reader-summary {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--rs-text-3);
+}
+
+.reader-buttons {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: none;
+}
+
+/* Reset: ghost — restores default dials, keeps the loaded text */
+.orbital-reset {
+  height: 44px;
+  padding: 0 20px;
+  background: transparent;
+  border: 0;
+  border-radius: 8px;
+  color: var(--rs-text-2);
+  font-family: var(--rs-sans);
+  font-size: 16px;
+  line-height: 24px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: color 120ms var(--rs-ease);
 }
 
 .orbital-reset:hover {
-  color: var(--color-ember);
+  color: var(--rs-text);
 }
 
+/* Begin reading: the one primary action */
 .btn-large {
-  padding: var(--space-md) var(--space-2xl);
+  height: 44px;
+  padding: 0 20px;
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--rs-text);
+  color: var(--rs-bg);
+  border: 0;
+  border-radius: 8px;
+  font-family: var(--rs-sans);
   font-size: 16px;
-  font-weight: var(--font-weight-medium);
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  min-width: 280px;
-
-  background: var(--color-threshold);
-  color: var(--color-void);
-  border: none;
+  line-height: 24px;
+  font-weight: 500;
   cursor: pointer;
-
-  transition: all var(--transition-normal) var(--ease-default);
-  box-shadow: 0 0 24px rgba(var(--color-accent-rgb), 0.4);
+  transition: background 120ms var(--rs-ease);
 }
 
-.btn-large:hover {
-  background: color-mix(in srgb, var(--color-accent) 72%, var(--color-light));
-  box-shadow: 0 0 32px rgba(var(--color-accent-rgb), 0.55);
-  transform: translateY(-2px);
+.btn-large:hover:not(:disabled) {
+  background: #FFFFFF;
 }
 
-.btn-large:active {
-  transform: translateY(0);
+.btn-large .reader-icon {
+  transition: transform 120ms var(--rs-ease);
+}
+
+.btn-large:hover:not(:disabled) .reader-icon {
+  transform: translateX(4px);
 }
 
 .btn-large:disabled {
-  background: var(--color-shadow);
-  color: var(--color-mist);
+  opacity: .4;
   cursor: not-allowed;
-  box-shadow: none;
+}
+
+@keyframes reader-enter {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: none; }
+}
+
+/* ─── Tablet and phone ─── */
+@media (max-width: 1023px) {
+  .chamber-orbital {
+    --rs-gutter: 32px;
+  }
+
+  .reader-grid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0;
+  }
+
+  .reader-text {
+    position: static;
+    padding-top: 32px;
+    padding-bottom: 32px;
+    border-bottom: 1px solid var(--rs-line);
+  }
+
+  .reader-main {
+    padding: 32px 0 48px;
+  }
+}
+
+@media (max-width: 640px) {
+  .chamber-orbital {
+    --rs-gutter: 16px;
+  }
+
+  .text-name {
+    margin-top: 16px;
+    font-size: 32px;
+    line-height: 36px;
+  }
+
+  .text-facts {
+    margin-top: 24px;
+  }
+
+  .stance-question {
+    font-size: 32px;
+    line-height: 36px;
+  }
+
+  .reader-lede {
+    font-size: 16px;
+    line-height: 24px;
+  }
+
+  .reader-adjust,
+  .reader-mode {
+    margin-top: 32px;
+  }
+
+  .stance-option {
+    padding: 16px;
+  }
+
+  .orbital-actions {
+    padding-top: 16px;
+  }
+
+  .reader-summary {
+    display: none;
+  }
+
+  .reader-buttons {
+    width: 100%;
+  }
+
+  .btn-large {
+    flex: 1;
+    justify-content: center;
+  }
+
+  .orbital-origin-chip::before {
+    content: none;
+  }
+
+  .orbital-origin-chip .origin-chip-label {
+    max-width: 12ch;
+  }
+}
+
+/* The narrowest phones keep the mark and give the words to the way back. */
+@media (max-width: 420px) {
+  .reader-lockup > span {
+    display: none;
+  }
+
+  .orbital-back,
+  .orbital-origin-chip {
+    padding: 0 8px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reader-adjust-panel {
+    animation: none;
+  }
+
+  .btn-large:hover:not(:disabled) .reader-icon,
+  .reader-disclosure .reader-icon {
+    transition: none;
+    transform: none;
+  }
+
+  .reader-disclosure[aria-expanded="true"] .reader-icon {
+    transform: rotate(180deg);
+  }
 }
 
 /* ─── Modals ─── */
@@ -702,9 +845,10 @@
 }
 
 .orbital-modal .modal-content {
-  background: var(--color-abyss);
-  border: 1px solid var(--color-threshold);
-  border-radius: var(--radius-none);
+  background: #0B0D14;
+  border: 1px solid #1F2433;
+  border-radius: 8px;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.55);
   max-width: 600px;
   width: 100%;
   max-height: 80vh;
@@ -735,30 +879,40 @@
   align-items: center;
   justify-content: space-between;
   padding: var(--space-md) var(--space-lg);
-  border-bottom: 1px solid var(--color-shadow);
+  border-bottom: 1px solid #1F2433;
 }
 
 .orbital-modal .modal-header h2 {
-  font-family: var(--font-display);
-  font-size: 20px;
-  font-weight: var(--font-weight-light);
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  color: var(--color-light);
+  margin: 0;
+  font-family: 'Instrument Sans', var(--font-primary);
+  font-size: 18px;
+  line-height: 28px;
+  font-weight: 600;
+  color: #F2F5FB;
 }
 
 .orbital-modal .modal-close {
+  width: 44px;
+  height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   background: none;
   border: none;
-  color: var(--color-fog);
-  font-size: 24px;
+  border-radius: 8px;
+  color: #AEB8CC;
   cursor: pointer;
-  padding: var(--space-xs);
+  padding: 0;
   transition: color var(--transition-fast) var(--ease-default);
 }
 
 .orbital-modal .modal-close:hover {
-  color: var(--color-light);
+  color: #F2F5FB;
+}
+
+.orbital-modal :focus-visible {
+  outline: 2px solid #4890F0;
+  outline-offset: 2px;
 }
 
 .orbital-modal .modal-body {
@@ -793,7 +947,7 @@
 
 .config-label {
   display: block;
-  font-size: 11px;
+  font-size: 12px;
   text-transform: uppercase;
   letter-spacing: 0.15em;
   color: var(--color-fog);
@@ -820,7 +974,7 @@
   justify-content: center;
   width: 16px;
   height: 16px;
-  font-size: 10px;
+  font-size: 12px;
   font-weight: var(--font-weight-medium);
   color: var(--color-mist);
   background: transparent;
@@ -891,12 +1045,14 @@
   filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
 }
 
-.config-info:hover::after {
+.config-info:hover::after,
+.config-info:focus-visible::after {
   opacity: 1;
   visibility: visible;
 }
 
-.config-info:hover::before {
+.config-info:hover::before,
+.config-info:focus-visible::before {
   opacity: 1;
   visibility: visible;
 }
@@ -1210,7 +1366,7 @@
   align-items: center;
   gap: var(--space-xs);
   color: var(--color-cloud);
-  font-size: 11px;
+  font-size: 12px;
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
@@ -1406,7 +1562,7 @@
   cursor: pointer;
   border-radius: var(--radius-sm);
   transition: all var(--transition-fast) var(--ease-default);
-  font-size: 11px;
+  font-size: 12px;
 }
 
 .preview-btn:hover {
@@ -1420,7 +1576,7 @@
 }
 
 .config-note {
-  font-size: 11px;
+  font-size: 12px;
   color: var(--color-mist);
   line-height: 1.4;
   margin-top: var(--space-sm);
@@ -1454,39 +1610,8 @@
   opacity: 0.8;
 }
 
-/* ─── Responsive ─── */
+
 @media (max-width: 768px) {
-  /* The whole ring, restated as four figures. The transforms above are
-     already written in terms of these. */
-  .chamber-orbital {
-    --orbit-stage: 400px;
-    --orbit-node: 110px;
-    --orbit-center: 200px;
-    --orbit-radius: 160px;
-    --orbit-radius-hover: 155px;
-  }
-
-  .choose-sigil {
-    font-size: 54px;
-  }
-
-  .choose-label {
-    font-size: 10px;
-    letter-spacing: 0.1em;
-  }
-
-  .text-loaded {
-    max-width: 160px;
-  }
-
-  .text-name {
-    font-size: 12px;
-  }
-
-  .text-meta {
-    font-size: 10px;
-  }
-
   .mode-options,
   .audio-preset-options,
   .audio-mode-options,
@@ -1505,32 +1630,9 @@
   .curve-options {
     grid-template-columns: repeat(2, 1fr);
   }
-
-  /* Three names still read as one choice on a phone; the sentence under
-     each name does not fit beside two others, and the note below the row
-     already says the thing a reader has to know. */
-  .stance-option {
-    align-items: center;
-    padding: var(--space-sm) 6px;
-  }
-
-  .stance-name {
-    font-size: 12px;
-    text-align: center;
-  }
-
-  .stance-line,
-  .stance-note {
-    display: none;
-  }
 }
 
-/* ─── Accessibility ─── */
 @media (prefers-reduced-motion: reduce) {
-
-  .orbit-container,
-  .orbit-content,
-  .orbit-node,
   .orbital-modal,
   .modal-content {
     animation: none;
@@ -1538,240 +1640,7 @@
   }
 }
 
-/* ═══════════════════════════════════════════════════════════════
-   THE ORBIT FITS THE PHONE, RATHER THAN THE PHONE CROPPING THE ORBIT
-   ═══════════════════════════════════════════════════════════════
-
-   At 768 the stage drops from 600px to a FIXED 400, and a fixed 400 on
-   a 390px screen sits at left:-5 and right:395 — five pixels off each
-   edge. The Audio node landed at x=1 and the Visual node at x=389, so
-   one appeared to touch the frame while the other looked padded, and
-   the whole structure read as slightly too big and slightly off centre.
-   It was both, and for the same reason: nothing here was expressed in
-   terms of the viewport.
-
-   So below 640 the stage is `min(94vw, …)` and the orbit radius is a
-   vw, which makes the geometry proportional and the centring exact.
-   The node diameter comes down with it — the ring has to hold three
-   discs plus their labels inside a circle 24px narrower than the
-   screen, and that is an arithmetic constraint rather than a taste.
-   ─────────────────────────────────────────────────────────────── */
-
 @media (max-width: 640px) {
-  /* The room the ring stands in. At 48px of padding a side there were
-     only 294px left, so a stage sized against the VIEWPORT overflowed
-     its own container — and an overflowing flex child with
-     `align-items: center` does not centre, it pins to the start edge.
-     That, and not the stage width, is why the left orb touched the
-     frame while the right looked padded. */
-  .chamber-orbital {
-    padding-left: var(--space-sm);
-    padding-right: var(--space-sm);
-    /* THE DISC AND THE TYPE HAVE TO AGREE ON HOW BIG THE DISC IS. The
-       node below used to be hard-coded to 96px while this figure stayed
-       at the 128px the height rule set, and the status size is derived
-       from this figure — so the type was scaled for a disc 33% larger
-       than the one it was in, and the longest engine names ran past a
-       line they could otherwise have wrapped inside.
-
-       THE DOUBLED CLASS IS LOAD-BEARING. Two later tranches are keyed on
-       HEIGHT, for the short laptop the width breakpoints missed, and a
-       phone is short as well as narrow — so they also match here and,
-       being later at equal specificity, they won. While the node's size
-       was a literal that cost nothing; the moment it followed this
-       figure, phone discs grew from 96 to 128 and the ring closed on
-       both the stance row above it and the anchor at its middle.
-       Measured on four phones: 13px, -2px, 0px and 29px of air under
-       the stances, where the desktop guard requires 35. */
-    --orbit-node: 96px;
-  }
-
-  .orbital-stage {
-    /* The radius the three nodes ride on. Everything below is derived
-       from it, so the ring can be retuned by changing one number. */
-    /* 33 rather than 30: the anchor carries a ring and an outer
-       glow well past its 108px box, so a gap computed from the boxes
-       alone still read as two discs touching. */
-    --orb-r: 33vw;
-    /* Against the CONTAINER, not the viewport: it can then never be
-       wider than the box it is being centred in. */
-    width: min(100%, 400px);
-    height: min(100%, 400px);
-    aspect-ratio: 1;
-    /* The stage carried 32px of margin above and below on a screen
-       with none to spare. (There were TWO of these rules in this one
-       media block, the second silently winning; the second is gone.) */
-    /* A shorthand, and deliberately so: it overrides the ring-centring
-       margins the desktop stage carries, which are computed from
-       `--orbit-radius` -- a figure a phone does not use, because it rides
-       its ring on `--orb-r` instead.
-
-       THE QUARTER RADIUS IS OWED HERE TOO. Temporal rides a full radius
-       above the middle and the other two only half a radius below it, so
-       the ring's visual centre sits a quarter radius ABOVE its own box's
-       centre and equal margins hang it against the stance row: measured 8,
-       16, 29 and 39px of air above against 98 to 127 below, on the four
-       phones. The desktop stage moves that quarter out of the bottom
-       margin so the column's height does not change; there is only
-       `--space-xs` in the bottom margin here, so it is added to the top
-       instead and the column grows by it. What that spends is the room
-       under Begin, which orbital-reach.spec.js measures: 122px of it at
-       390x844 before, 106 after. The shortest phone measured, 375x667,
-       ends 2px past its own floor -- this container is a scroller with
-       `safe center` precisely so a short screen can scroll, and Begin
-       still stands 53px clear of the bottom there. */
-    margin: calc(var(--space-xs) + var(--orb-r) * 0.25) auto var(--space-xs);
-  }
-
-
-  .chamber-orbital.chamber-orbital {
-    --orbit-node: 96px;
-  }
-
-  .orbit-node {
-    width: var(--orbit-node);
-    height: var(--orbit-node);
-  }
-
-  /* ── 24px OF PADDING INSIDE AN 84px CIRCLE ──
-     Which left 36px for the word TEMPORAL, set at 11px with 0.15em of
-     tracking. It did not overflow — it BROKE, into TEM / POR / AL, and
-     VISUAL into VIS / UAL, and the status line spilled out of the disc
-     and into the centre orb beneath it.
-     A circle is not a box: its usable width at the text's height is
-     less than its diameter, so the padding has to be small and the
-     type smaller. */
-  .orbit-content {
-    padding: 4px;
-    max-width: 100%;
-  }
-
-  .orbit-label {
-    font-size: 8px;
-    letter-spacing: 0.04em;
-    margin-bottom: 2px;
-    /* A control's name is never broken mid-word. */
-    white-space: nowrap;
-  }
-
-  /* The anchor's own text. "The Iliad · Front matter" truncated to
-     "The Il…" in a 108px disc; a little more room and a little less
-     type gives it a readable fragment instead of two words. */
-  .text-name {
-    font-size: 11px;
-    line-height: 1.2;
-  }
-
-  .text-meta {
-    font-size: 9px;
-  }
-
-  .orbit-status {
-    font-size: 10px;
-    line-height: 1.15;
-    /* Two lines at most on a disc this size; the no-break rule is the base's. */
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-  }
-
-  /* 0.866 and 0.5 are cos30 and sin30: the two lower nodes sit at the
-     base angles of an equilateral triangle whose apex is Temporal. */
-  .orbit-temporal,
-  .orbit-temporal:hover {
-    transform: translate(-50%, -50%) translateY(calc(-1 * var(--orb-r)));
-  }
-
-  .orbit-audio,
-  .orbit-audio:hover {
-    transform: translate(-50%, -50%)
-      translate(calc(-0.866 * var(--orb-r)), calc(0.5 * var(--orb-r)));
-  }
-
-  .orbit-visual,
-  .orbit-visual:hover {
-    transform: translate(-50%, -50%)
-      translate(calc(0.866 * var(--orb-r)), calc(0.5 * var(--orb-r)));
-  }
-
-  /* The anchor was 150px against 84px satellites — nearly twice their
-     diameter — and its top edge met the Temporal node's bottom edge.
-     Two discs that touch read as one broken shape. 108 leaves fifteen
-     pixels of air and restores the hierarchy: a centre, and three
-     things in orbit around it. */
-  .orbit-center {
-    width: 128px;
-    height: 128px;
-  }
-
-  /* ── WHAT IS IN THE DISC HAS TO FIT THE DISC ──
-     The anchor's column is a 48px sigil, a title, a word count and a
-     clear button, authored for a 150px+ desktop circle. At phone size
-     that column was taller than the circle containing it, so 文 rode
-     up over the top edge and the ✕ hung out of the bottom — a shape
-     with two things falling out of it.
-     A circle is also narrower than its diameter everywhere but the
-     middle, so the column is held to 96px and the sigil comes down to
-     a mark rather than a display character: the title is what the
-     reader is here to read. */
-  /* 32px of padding a side inside a 128px circle leaves 64px, and the
-     circle itself only offers its full width at the equator. */
-  .text-source {
-    padding: var(--space-xs);
-  }
-
-  .text-loaded {
-    gap: 2px;
-    max-width: 88px;
-  }
-
-  .text-sigil {
-    font-size: 19px;
-    margin-bottom: 0;
-  }
-
-  .text-clear {
-    margin-top: 3px;
-    padding: 1px 7px;
-    font-size: 9px;
-    line-height: 1.4;
-  }
-
-  .choose-sigil {
-    font-size: 24px;
-  }
-
-  /* `top` belongs to the pair rule at the 700px breakpoint — it lived
-     here at 8px, which put the control inside the status bar. */
-  .orbital-back {
-    left: var(--space-sm);
-  }
-
-  /* Square stage leaves empty band under triangular ring; actions
-     climb into it with a fixed offset (not spacing-scale). Stage is
-     position:relative and would steal taps — actions need z-index above. */
-  .orbital-actions {
-    /* Cancels empty stage under the ring; do not tie to spacing scale.
-       Note this is overridden by the height tiers below on any screen
-       shorter than 960px, which is most phones. */
-    margin-top: -44px;
-    padding-bottom: var(--space-md);
-    width: 100%;
-
-    /* Above .orbital-stage so Begin/Reset remain hittable. */
-    position: relative;
-    z-index: 6;
-  }
-
-  .orbital-actions .btn-large {
-    width: auto;
-    min-width: 0;
-    padding: 12px var(--space-lg);
-    font-size: 13px;
-    letter-spacing: 0.1em;
-  }
-
   /* Phone panels: list-style options (row), not picture tiles. */
 
   /* Compact grids so mode/preset choices fit a phone panel. */
@@ -1804,7 +1673,7 @@
     gap: 7px;
     padding: 9px 8px;
     min-height: 40px;
-    font-size: 10px;
+    font-size: 12px;
     line-height: 1.2;
   }
 
@@ -1816,7 +1685,7 @@
   }
 
   .orbital-modal .preset-label {
-    font-size: 10px;
+    font-size: 12px;
   }
 
   /* Seven sections at 20px of tail and 16px under each label is 250px
@@ -1860,141 +1729,6 @@
     padding: var(--space-sm) var(--space-sm);
   }
 }
-
-/* ═══════════════════════════════════════════════════════════════
-   SHORT VIEWPORTS — the floor is not negotiable
-
-   The ring was sized for a tall screen and the stance row was added
-   above it, which put Begin below the floor of every common laptop at
-   100% zoom (measured: 1223px of column against a 768-955px viewport).
-   Scrolling now reaches it in the worst case, but a reader should not
-   have to go looking for the one button the screen exists to offer.
-
-   So the column is measured against the height it actually has. These
-   tiers restate the ring's four figures and tighten the vertical
-   rhythm — nothing here changes the 120° geometry, only its radius.
-   Height-keyed, because the height is the constraint; a wide 768px-tall
-   laptop was missed entirely by the width breakpoints.
-   ═══════════════════════════════════════════════════════════════ */
-@media (max-height: 960px) {
-  .chamber-orbital {
-    /* NOT TOO MUCH, NOT TOO LITTLE. The first pass bought Begin's visibility
-       by pulling the orbits in until they crowded the centre orb. The stance
-       row now spends far less of the column, so the ring keeps a radius that
-       leaves air between each satellite and the middle. */
-    --orbit-stage: 530px;
-    --orbit-node: 128px;
-    --orbit-center: 216px;
-    --orbit-radius: 198px;
-    --orbit-radius-hover: 190px;
-    --orbit-stage-margin: var(--space-xl);
-    /* Sides and bottom only: padding-top is the reserved header band on a
-       phone (see the 700px rule), and a shorthand here would reclaim it. */
-    padding: var(--space-md) var(--space-xl);
-    padding-top: var(--orbital-header-band, var(--space-md));
-  }
-
-  .stance-question {
-    margin-bottom: var(--space-sm);
-  }
-
-  .stance-option {
-    padding: var(--space-sm) var(--space-sm);
-  }
-
-  .stance-note {
-    margin-top: var(--space-xs);
-  }
-
-  .orbital-actions {
-    margin-top: var(--space-sm);
-    padding-bottom: var(--space-md);
-  }
-}
-
-@media (max-height: 830px) {
-  .chamber-orbital {
-    --orbit-stage: 456px;
-    --orbit-node: 116px;
-    --orbit-center: 186px;
-    --orbit-radius: 170px;
-    --orbit-radius-hover: 163px;
-    --orbit-stage-margin: var(--space-lg);
-    padding: var(--space-sm) var(--space-xl);
-    padding-top: var(--orbital-header-band, var(--space-sm));
-  }
-
-  /* The sentence under each posture is what the note below the row
-     already says; on a short screen the names alone carry the choice. */
-  .stance-line {
-    display: none;
-  }
-
-  .stance-note {
-    display: none;
-  }
-
-  .orbital-actions {
-    margin-top: var(--space-xs);
-    padding-bottom: var(--space-sm);
-  }
-}
-
-
-/* A satellite states its setting, and the setting is sometimes two words —
-   set at the same size as 'Aurora', it pressed against the rim. The status
-   scales with the node and wraps inside it.
-
-   NO WORD IS EVER BROKEN. `overflow-wrap: anywhere` gave Procedu/ral and
-   Collec/tions: a disc reading a word down two lines is not reading a word.
-   The phone breakpoint already knew this and said so in its own comment;
-   the rule it fixed was only ever the phone's. A status too long for its
-   disc wraps BETWEEN its words, and if it still does not fit, the disc is
-   too small or the phrase too long — neither is answered by hyphenating
-   where no hyphen belongs. */
-.orbit-status {
-  font-size: clamp(10px, calc(var(--orbit-node) * 0.098), 14px);
-  line-height: 1.25;
-  overflow-wrap: normal;
-  word-break: keep-all;
-  hyphens: none;
-
-  /* THE BOX TAKES THE WIDTH OF ITS LONGEST LINE, AND THEN CENTRES.
-     It used to be clamped to 78% of the content box, which cost this
-     disc its centring: a line WIDER than its box is not centred on it.
-     Chrome pins the overflow to the start edge and lets the rest run off
-     the right, so 'Collections' sat 8px right of the orb's middle and
-     'Procedural' 7.5 — the same two words the rule above is about, off
-     centre instead of broken. Every word that fitted was exact, which is
-     why this looked like one status misbehaving rather than a rule.
-     Hugging the content means no line ever overflows, so every line is
-     centred, whatever the phrase turns out to be. */
-  width: max-content;
-  max-width: 100%;
-  margin-inline: auto;
-}
-
-.orbit-label {
-  font-size: clamp(9px, calc(var(--orbit-node) * 0.075), 11px);
-}
-
-/* ─── A PHONE GIVES BEGIN ITS DISTANCE ──────────────────────────────────
-   The desktop answer to the ring sitting off-centre is to shift the stage,
-   because the ring's own centre is a quarter-radius above its box. That is
-   not this surface's answer: a phone sizes its stage in vw against a tight
-   column, so Begin simply stands clear of the lower orbs instead.
-
-   Last in the file on purpose. The height tiers above govern anything under
-   960px tall — which is most phones AND many desktop windows — so writing
-   this into one of them pushed Begin down on a 1280x900 monitor too, where
-   the ring is centred and needs no such thing. Width is the question here,
-   so width is what asks it. */
-@media (max-width: 640px) {
-  .orbital-actions {
-    margin-top: var(--space-xl);
-  }
-}
-
 
 /* ─── SHORT IS ITS OWN KIND OF SMALL ────────────────────────────────────
    Every trim these modals make for a small screen is written against WIDTH,

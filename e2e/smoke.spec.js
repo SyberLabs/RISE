@@ -155,6 +155,7 @@ test('5 · procedural-only selection shows no painting categories', async ({ pag
         return JSON.parse(raw)?.visualInterlocution?.interlocution ?? null;
     });
     // Wait for the orbital to persist its normalized view at least once
+    { const adjust = page.locator('[data-action="toggle-adjust"]'); if (await adjust.getAttribute('aria-expanded') === 'false') await adjust.click(); }
     await page.locator('[data-orbit="visual"]').click();
     await page.waitForTimeout(300);
 

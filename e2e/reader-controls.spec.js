@@ -21,7 +21,8 @@ async function openNavigator(page) {
         const state = window.__RISE_TEST__?.getRouterState();
         return state?.currentView === 'chamber' && state.transitioning === false;
     });
-    await expect(page.locator('[data-orbit="visual"]')).toBeVisible({ timeout: 20_000 });
+    await expect(page.locator('[data-action="toggle-adjust"]')).toBeVisible({ timeout: 20_000 });
+    { const adjust = page.locator('[data-action="toggle-adjust"]'); if (await adjust.getAttribute('aria-expanded') === 'false') await adjust.click(); }
     await page.locator('[data-orbit="visual"]').click();
     await expect(page.locator('.vnav')).toBeVisible({ timeout: 10_000 });
 }
@@ -80,6 +81,7 @@ test('the setting survives leaving the panel and coming back', async ({ page }) 
     // Out of the panel and back in: the same answer, from the same key.
     await page.keyboard.press('Escape');
     await expect(page.locator('#modal-visual')).toBeHidden();
+    { const adjust = page.locator('[data-action="toggle-adjust"]'); if (await adjust.getAttribute('aria-expanded') === 'false') await adjust.click(); }
     await page.locator('[data-orbit="visual"]').click();
     await expect(page.locator('.vnav')).toBeVisible({ timeout: 10_000 });
 

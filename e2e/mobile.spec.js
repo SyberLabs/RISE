@@ -243,6 +243,7 @@ test('the visual navigator exposes complete Field and Text roots without a mobil
     if (await toc.isVisible().catch(() => false)) { await toc.click(); }
     // Wait for stage, then panel visibility (conditions, not sleeps).
     await expect(page.locator('.orbital-stage')).toBeVisible({ timeout: 30000 });
+    { const adjust = page.locator('[data-action="toggle-adjust"]'); if (await adjust.getAttribute('aria-expanded') === 'false') await adjust.click(); }
     await page.locator('.orbit-visual').click();
     await expect(page.locator('#modal-visual')).toBeVisible({ timeout: 15000 });
     await expect(page.locator('.vnav')).toBeVisible({ timeout: 15000 });
@@ -339,36 +340,6 @@ test('the visual navigator exposes complete Field and Text roots without a mobil
     expect(desktop.sideways).toBe(0);
     expect(desktop.entryWidth).toBeGreaterThan(250);
     expect(desktop.entryRight).toBeLessThanOrEqual(desktop.modalRight);
-});
-
-test('the orbit is centred in the phone rather than cropped by it', async ({ page }) => {
-    // Orbital stage centred and symmetric in the phone viewport.
-    test.setTimeout(180000);
-    await enter(page, 390, 844);
-    await page.locator('[data-nav="library"]').first().click();
-    await expect(page.locator('.archive-card').first()).toBeVisible({ timeout: 40000 });
-    await page.locator('[data-text-id="literary-meditations"] [data-action="select-text"]').click();
-    await page.waitForTimeout(2000);
-    const toc = page.locator('.toc-entry').first();
-    if (await toc.isVisible().catch(() => false)) { await toc.click(); }
-    await expect(page.locator('.orbital-stage')).toBeVisible({ timeout: 30000 });
-
-    const ring = await page.evaluate(() => {
-        const stage = document.querySelector('.orbital-stage').getBoundingClientRect();
-        const nodes = [...document.querySelectorAll('.orbit-node')]
-            .map(n => n.getBoundingClientRect());
-        return {
-            stageMid: Math.round(stage.left + stage.width / 2),
-            screenMid: Math.round(window.innerWidth / 2),
-            leftGap: Math.round(Math.min(...nodes.map(n => n.left))),
-            rightGap: Math.round(window.innerWidth - Math.max(...nodes.map(n => n.right)))
-        };
-    });
-    console.log('RING ' + JSON.stringify(ring));
-
-    expect(Math.abs(ring.stageMid - ring.screenMid)).toBeLessThanOrEqual(2);
-    expect(ring.leftGap).toBeGreaterThan(8);
-    expect(Math.abs(ring.leftGap - ring.rightGap)).toBeLessThanOrEqual(3);
 });
 
 withdrawnJourneyTest('the Chamber control bar stays on the screen', async ({ page }) => {
@@ -475,6 +446,7 @@ test('the configuration panels are not several screens of picture tiles', async 
     ];
 
     for (const [node, modal] of panels) {
+        { const adjust = page.locator('[data-action="toggle-adjust"]'); if (await adjust.getAttribute('aria-expanded') === 'false') await adjust.click(); }
         await page.locator(node).click();
         await expect(page.locator(modal)).toBeVisible({ timeout: 15000 });
         const m = await page.evaluate((sel) => {
@@ -502,7 +474,7 @@ test('the configuration panels are not several screens of picture tiles', async 
     }
 });
 
-test('Begin Session can actually be pressed on a phone', async ({ page }) => {
+test('Begin reading can actually be pressed on a phone', async ({ page }) => {
     // Begin/Reset must receive taps (not be covered by .orbital-stage).
     test.setTimeout(180000);
     await enter(page, 390, 844);
@@ -534,9 +506,9 @@ test('Begin Session can actually be pressed on a phone', async ({ page }) => {
     expect(reach.begin.found).toBe(true);
     expect(reach.begin.disabled).toBe(false);
     expect(reach.begin.reachable,
-        `Begin Session is covered by ${reach.begin.intercepted}`).toBe(true);
+        `Begin reading is covered by ${reach.begin.intercepted}`).toBe(true);
     expect(reach.reset.reachable,
-        `Reset Settings is covered by ${reach.reset.intercepted}`).toBe(true);
+        `Reset is covered by ${reach.reset.intercepted}`).toBe(true);
 
     await page.locator('#begin-btn').click({ timeout: 10000 });
     const accept = page.locator('#safety-accept');
