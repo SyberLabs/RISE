@@ -64,10 +64,20 @@ describe('Create', () => {
     await view.generate(false); resolve({ ...piece, title: 'Old' }); await pending;
     expect(view.draft.title).toBe(piece.title);
   });
-  it('does not put an unrelated Vault composition into revision history', () => {
+  it('does not put a kept, unrelated Vault composition into revision history', () => {
     const view = new Create(container); const a = createPersonalProject(piece); const b = createPersonalProject(piece);
+    MemoryCore.saveWorkshopBlueprint(a);
     view.setDraft(a); view.update({ project: b });
     expect(view.history).toEqual([]);
+  });
+  it.each(['a new piece', 'a Vault revision'])('keeps an unkept paid draft recoverable when %s replaces it', async source => {
+    const view = new Create(container, { request: vi.fn().mockResolvedValue({ ...piece, title: 'Second' }) });
+    const first = createPersonalProject(piece); view.setDraft(first);
+    if (source === 'a new piece') { fill('thought', 'another'); await view.generate(false); }
+    else { const kept = createPersonalProject(piece); MemoryCore.saveWorkshopBlueprint(kept); view.update({ project: kept }); }
+    expect(view.draft).not.toBe(first);
+    expect(container.dataset.unkept).toBe('true');
+    await view.act('previous'); expect(view.draft).toBe(first);
   });
   it('restores unsaved parent, never saves implicitly, and preserves parent on storage failure', async () => {
     const request = vi.fn().mockResolvedValueOnce(piece).mockResolvedValueOnce({ ...piece, title: 'Revision' });

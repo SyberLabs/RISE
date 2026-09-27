@@ -103,8 +103,15 @@ export function serializePersonalProject(project) { return JSON.stringify(valida
 export function personalSession(project) { return workshopProjectToSessionConfig(validatePersonalProject(project)); }
 export function readablePersonalText(project) { return `${project.title}\n\n${project.sources[0].data}\n`; }
 
+// Inline so an unkept draft never depends on a chunk a deploy may remove.
+function download(filename, text, type) {
+  const url = URL.createObjectURL(new Blob([text], { type }));
+  const anchor = Object.assign(document.createElement('a'), { href: url, download: filename, rel: 'noopener' });
+  document.body.append(anchor); anchor.click(); anchor.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 0);
+}
+
 export async function exportPersonalProject(project, format = 'json') {
-  const { downloadJsonFile, downloadTextFile } = await import('./experience-program-io.js');
-  if (format === 'text') downloadTextFile(`${project.id}.txt`, readablePersonalText(project));
-  else downloadJsonFile(`${project.id}.personal.json`, serializePersonalProject(project));
+  if (format === 'text') download(`${project.id}.txt`, readablePersonalText(project), 'text/plain;charset=utf-8');
+  else download(`${project.id}.personal.json`, serializePersonalProject(project), 'application/json;charset=utf-8');
 }

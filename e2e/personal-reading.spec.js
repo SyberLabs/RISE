@@ -124,3 +124,22 @@ test('missing Vault chunk cannot reload away an unkept draft', async ({ page }) 
   await expect(page.locator('[data-status]')).toContainText('Kept');
   expect(documents).toBe(1);
 });
+
+test('after a deploy removes unloaded chunks, an unkept draft can still be kept and exported', async ({ page }) => {
+  await admit(page);
+  await page.route('**/api/personal-piece', route => route.fulfill({ json: {
+    requestId: route.request().postDataJSON().requestId, title: 'Before deploy', paragraphs,
+    writerModel: 'qwen/qwen3.5-9b', promptVersion: 'personal-v1'
+  } }));
+  await page.goto('/create');
+  await page.getByLabel('Your thought', { exact: true }).fill('One thought');
+  await page.getByRole('button', { name: 'Write a piece', exact: true }).click();
+  await expect(page.locator('[data-title]')).toHaveText('Before deploy');
+  // A deploy replaces every hashed chunk this page has not loaded yet.
+  await page.route('**/assets/*.js', route => route.abort());
+  await page.getByRole('button', { name: 'Keep', exact: true }).click();
+  await expect(page.locator('[data-status]')).toContainText('Kept');
+  const download = page.waitForEvent('download');
+  await page.getByRole('button', { name: 'Export text', exact: true }).click();
+  expect((await download).suggestedFilename()).toMatch(/^personal-.*\.txt$/);
+});

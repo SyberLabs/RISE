@@ -539,18 +539,18 @@ export class MemoryCore {
       if (!blueprint || typeof blueprint !== 'object') return null;
       const identical = guardPersonalOverwrite(this._readWorkshopStore().stored, blueprint);
       if (identical) return workshopProjectToBlueprintView(identical);
-      const { ensureWorkshopAssetsDurable, hydrateWorkshopProjectView } = await workshopDurability();
       const id = blueprint.id || `blueprint_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
       const updatedAt = isPersonalProject(blueprint) ? blueprint.updatedAt : Date.now();
       const draft = isWorkshopProject(blueprint) && !Object.hasOwn(blueprint, 'wpm')
         ? validateWorkshopProject({ ...blueprint, id, updatedAt })
         : workshopEditorDataToProject(blueprint, { id, updatedAt });
 
-      const durableAssets = await ensureWorkshopAssetsDurable(
-        id,
-        draft.assets,
-        options.blobs || null
-      );
+      // A text-only save has no media to make durable. Skipping the media
+      // layer keeps it working when a deploy has removed that lazy chunk.
+      const media = draft.assets.length ? await workshopDurability() : null;
+      const durableAssets = media
+        ? await media.ensureWorkshopAssetsDurable(id, draft.assets, options.blobs || null)
+        : draft.assets;
       const project = validateWorkshopProject({
         ...draft,
         assets: durableAssets,
@@ -573,7 +573,7 @@ export class MemoryCore {
       await this._deleteUnreferencedWorkshopAssets(previousIds);
       console.log('[Memory] Workshop Project saved (durable):', project.id);
       try {
-        return await hydrateWorkshopProjectView(project);
+        return media ? await media.hydrateWorkshopProjectView(project) : workshopProjectToBlueprintView(project);
       } catch (error) {
         // Metadata is already committed. A temporary IndexedDB/object-URL read
         // failure must not turn that successful save into an apparent failure.

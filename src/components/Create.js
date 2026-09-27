@@ -88,8 +88,14 @@ export class Create {
   }
 
   setDraft(project) {
-    if (this.draft?.provenance.compositionId !== project.provenance.compositionId) this.history = [];
-    else if (this.draft.id !== project.id) this.history.push(this.draft);
+    if (this.draft && this.draft.id !== project.id) {
+      // Another composition drops only work that is already kept; an unkept
+      // paid draft stays reachable through Return to previous version.
+      if (this.draft.provenance.compositionId !== project.provenance.compositionId) {
+        const saved = this.savedPieces();
+        this.history = [...this.history, this.draft].filter(p => saved.get(p.id) !== canonicalPersonal(p));
+      } else this.history.push(this.draft);
+    }
     this.draft = project;
     this.showDraft();
   }
@@ -111,8 +117,12 @@ export class Create {
     this.refreshUnkept();
   }
 
+  savedPieces() {
+    return new Map(MemoryCore.getWorkshopBlueprints().map(p => [p.id, canonicalPersonal(p.project || p)]));
+  }
+
   refreshUnkept() {
-    const saved = new Map(MemoryCore.getWorkshopBlueprints().map(p => [p.id, canonicalPersonal(p.project || p)]));
+    const saved = this.savedPieces();
     this.container.dataset.unkept = String([...this.history, this.draft].filter(Boolean)
       .some(p => saved.get(p.id) !== canonicalPersonal(p)));
   }
