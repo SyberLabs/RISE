@@ -191,7 +191,7 @@ export class VisualNavigator {
       : `
       <div class="vnav${this.focus ? ' vnav-at-leaf' : ''}">
         <div class="vnav-bar">
-          ${this.path.length || this.focus ? '<button type="button" class="vnav-back" data-action="navigator-back">‹ Back</button>' : ''}
+          ${this.path.length || this.focus ? '<button type="button" class="vnav-back" data-action="navigator-back"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m15 6-6 6 6 6"/></svg>Back</button>' : ''}
           <span class="vnav-path">${this.pathBar()}</span>
           <span class="vnav-field">${escapeHtml(describeField(this.selection.enabled))}</span>
         </div>

@@ -76,17 +76,15 @@
   transition: background 120ms, border-color 120ms, color 120ms;
 }
 .vnav-node:hover { background: var(--vnav-raise); color: var(--color-cloud, #C5C5CD); }
-.vnav-node .g { width: 1.2rem; text-align: center; color: var(--color-accent, #E4D2AE); flex-shrink: 0; }
 .vnav-node .nm { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.vnav-node .arw { color: var(--color-mist, #6B6B75); font-size: 0.7rem; }
+.vnav-node .arw { color: var(--color-mist, #6B6B75); flex-shrink: 0; }
 .vnav-node .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--color-accent, #E4D2AE);
-  box-shadow: 0 0 7px var(--color-accent, #E4D2AE); flex-shrink: 0; }
+  flex-shrink: 0; }
 .vnav-node.sel {
   background: linear-gradient(90deg, rgba(var(--color-accent-rgb, 228,210,174), 0.16), rgba(var(--color-accent-rgb, 228,210,174), 0.03));
   border-color: rgba(var(--color-accent-rgb, 228,210,174), 0.5);
   color: var(--color-light, #E8E8EC);
 }
-.vnav-node.sel .g { color: var(--color-light, #E8E8EC); }
 .vnav-node.on .nm { color: var(--color-accent, #E4D2AE); }
 
 /* ── entry (the Pokédex panel) ────────────────────────────────────────── */
@@ -101,10 +99,8 @@
   height: 100%; display: grid; place-items: center; text-align: center;
   color: var(--color-mist, #6B6B75); font-size: 0.78rem; letter-spacing: 0.12em; padding: 2rem;
 }
-.vnav-empty span { display: block; font-size: 1.8rem; opacity: 0.5; margin-bottom: 0.6rem; }
 
 .vnav-entry-head { display: flex; align-items: center; gap: 0.8rem; padding-top: 1rem; margin-bottom: 0.9rem; }
-.vnav-glyph { font-size: 1.7rem; color: var(--color-accent, #E4D2AE); }
 .vnav-entry-head h3 { margin: 0; font-family: var(--font-display, 'Marcellus', serif); font-weight: 400;
   color: var(--color-light, #E8E8EC); font-size: 1.4rem; line-height: 1; }
 .vnav-kind { margin: 0.35rem 0 0; font-size: 0.62rem; letter-spacing: 0.16em; text-transform: uppercase;
@@ -119,7 +115,6 @@
     var(--color-void, #0A0A0C);
   display: grid; place-items: center; gap: 0.5rem;
 }
-.vnav-preview-glyph { font-size: 2.4rem; color: rgba(var(--color-accent-rgb, 228,210,174), 0.5); }
 .vnav-preview-note { font-size: 0.58rem; letter-spacing: 0.16em; text-transform: uppercase; color: var(--color-mist, #6B6B75); }
 
 .vnav-desc { font-family: var(--font-literary, 'Crimson Pro', serif); font-size: 1rem; line-height: 1.5;
@@ -216,7 +211,7 @@
   line-height: 1.55;
 }
 .vnav-program { display: flex; gap: 0.7rem; padding: 0.7rem 0.9rem; }
-.vnav-program > span:first-child,
+.vnav-program b,
 .vnav-held b { color: var(--color-accent, #E4D2AE); }
 .vnav-program-release {
   margin-left: auto;
@@ -553,13 +548,17 @@
   .vnav-cadence { margin-left: 0; flex-wrap: wrap; }
   .vnav-back {
     display: inline-flex;
+    align-items: center;
+    gap: var(--sy-space-1);
+    flex: none;
     border: 0;
-    padding: 0;
+    padding: 0 var(--sy-space-2) 0 0;
     background: transparent;
-    color: var(--color-accent, #E4D2AE);
+    color: var(--sy-text);
     font: inherit;
     text-transform: uppercase;
-    letter-spacing: 0.1em;
+    letter-spacing: 0.08em;
+    white-space: nowrap;
     cursor: pointer;
   }
 }
@@ -778,11 +777,6 @@
   background-size: contain;
   background-position: center;
   background-repeat: no-repeat;
-}
-
-.vnav-preview.has-still .vnav-preview-glyph {
-  color: var(--color-light, #E8E8EC);
-  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.8);
 }
 
 
