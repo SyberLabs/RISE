@@ -53,7 +53,7 @@ export const CHIP_REASON = Object.freeze({
 export const MASK_REASON = Object.freeze({
   'requires-gallery': 'Needs a Gallery field — a Focal or a Dynamic field has no imagery to paint through the letters.',
   'requires-word': 'Needs one word at a time — phrase chunking leaves no single Word to fill.',
-  'requires-thick': 'Needs the Thick face — the other three are too fine to carry imagery.',
+  'requires-thick': 'Needs the Thick face — the other six are too fine to carry imagery.',
   'requires-fit': 'Needs the Fit size — a Word must fill the chamber to hold a picture.',
   'program-owned': 'This reading came with its own visual program, which owns this choice.'
 });

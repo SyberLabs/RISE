@@ -360,7 +360,7 @@ export const textMethods = {
           })), 'vnav-face-grid')}
         </div>
         <p id="vnav-thick-explanation" class="vnav-control-explanation">Thick
-          is the mask-ready face — the other three cannot carry a Visual mask.</p>`);
+          is the mask-ready face — the other six cannot carry a Visual mask.</p>`);
   },
 
   _sizeSection(isActive) {

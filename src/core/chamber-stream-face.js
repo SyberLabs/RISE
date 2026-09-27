@@ -9,14 +9,17 @@
  *
  *   literary → Crimson Pro   display → Marcellus
  *   thick    → Space Grotesk mono    → JetBrains Mono
- *   jp       → the system CJK serif
+ *   jp       → the system CJK serif  sans → Inter
+ *   book     → semibold Crimson Pro
  */
 export const CHAMBER_STREAM_FACES = Object.freeze([
     Object.freeze({ id: 'literary', label: 'Literary' }),
     Object.freeze({ id: 'display', label: 'Display' }),
     Object.freeze({ id: 'thick', label: 'Thick' }),
     Object.freeze({ id: 'mono', label: 'Monospace' }),
-    Object.freeze({ id: 'jp', label: 'Japanese' })
+    Object.freeze({ id: 'jp', label: 'Japanese' }),
+    Object.freeze({ id: 'sans', label: 'Sans' }),
+    Object.freeze({ id: 'book', label: 'Book' })
 ]);
 
 const ALLOWED = new Set(CHAMBER_STREAM_FACES.map((face) => face.id));

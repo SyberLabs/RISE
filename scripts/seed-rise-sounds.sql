@@ -17,7 +17,19 @@ INSERT INTO rise_sounds (sound_id, decision_criterion, active) VALUES
   ('thrilling', 'Driving low pulse for suspense, pursuit, or dramatic momentum.', TRUE),
   ('scary', 'Uneasy low dissonance for dread, fear, or ominous scenes.', TRUE),
   ('piano', 'Gentle piano melody for intimate, tender, or reflective reading.', TRUE),
-  ('jazz', 'Swung jazz piano and walking bass for lively or sophisticated reading.', TRUE)
+  ('jazz', 'Swung jazz piano and walking bass for lively or sophisticated reading.', TRUE),
+  ('lullaby', 'A soft, rocking keyboard lullaby for comfort, bedtime, and gentle care.', TRUE),
+  ('nocturne', 'A quiet night piece for solitude, longing, and inward reflection.', TRUE),
+  ('waltz', 'A lilting three-beat keyboard waltz for romance, grace, or nostalgia.', TRUE),
+  ('blues', 'A relaxed blues keyboard groove for resilience, wit, or bittersweet warmth.', TRUE),
+  ('bossa', 'A light syncopated bossa keyboard rhythm for warmth, travel, or ease.', TRUE),
+  ('ragtime', 'A brisk, playful ragtime keyboard piece for mischief and buoyant energy.', TRUE),
+  ('wonder', 'A spacious rising synth theme for discovery, awe, and possibility.', TRUE),
+  ('mystery', 'A sparse, questioning synth theme for secrets and investigation.', TRUE),
+  ('chase', 'A driving electronic pulse for pursuit, urgency, and action.', TRUE),
+  ('triumph', 'A bold resolving synth theme for victory and earned celebration.', TRUE),
+  ('haunted', 'A fragile dissonant theme for eerie, ghostly, or uncanny scenes.', TRUE),
+  ('starlight', 'A slow shimmering synth theme for cosmic calm and night skies.', TRUE)
 ON CONFLICT (sound_id) DO UPDATE SET
   decision_criterion = EXCLUDED.decision_criterion,
   active = EXCLUDED.active;
