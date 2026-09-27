@@ -37,8 +37,11 @@ The [four-prompt phase baseline](../../scripts/jev-eval-production-phase-baselin
 
 The [post-release phase record](../../scripts/jev-eval-production-phase-post-2026-09-27.json) captured four HTTP 200 responses on release `d0cbece17b2038bd28fc0c424d4785b8e22174ea`: 12 of 12 explicit choices matched, and 2 of 2 contrast pairs differed. A separate live request for “Start in silence, then make the ending triumphant with no visuals” returned `visualMode: off`, `visualArc: dual`, a null visual program, and a timed silence-to-`triumph` audio program; the Chamber opened in Chromium. This is a small one-pass preference check, not a listening test or a measure of reader enjoyment.
 
+The [full post-fix live record](../../scripts/jev-eval-production-broad-post-2026-09-27.json) reran all 39 cases after release `789cd63b86c9c437ed48325347dd5c954efe4b14` reached production. All 39 responses were valid; 48 of 49 explicit choices matched, and all 19 paired contrasts differed. Jev selected `haunted` for the mixed request for fast phrases, bold large type, an atmospheric soundscape, and vivid psychedelic visuals; the case accepts ambient or excited sound beds. This is the one remaining miss. The run was split into three batches of at most 16 to stay within the Worker's rate limit. The record contains only IDs and decisions, and the route did not report token usage. A single pass still cannot establish consistency or reader enjoyment.
+
 ```powershell
 node scripts/jev-eval.mjs --cases scripts/jev-eval-cases.json --options scripts/jev-eval-options-candidate.json --input scripts/jev-eval-production-broad-baseline-2026-09-26.json
+node scripts/jev-eval.mjs --cases scripts/jev-eval-cases.json --options scripts/jev-eval-options-candidate.json --input scripts/jev-eval-production-broad-post-2026-09-27.json
 node scripts/jev-eval.mjs --cases scripts/jev-eval-phase-cases.json --options scripts/jev-eval-phase-options.json --input scripts/jev-eval-production-phase-baseline-2026-09-26.json
 node scripts/jev-eval.mjs --cases scripts/jev-eval-phase-cases.json --options scripts/jev-eval-phase-options.json --input scripts/jev-eval-production-phase-post-2026-09-27.json
 ```
