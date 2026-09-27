@@ -10,7 +10,7 @@
 
 import './Portal.css';
 import { drawRiseSigil, mountAtmosphere } from './atlas.js';
-import { isJevSceneDemoPath } from '../core/jev-demo-path.js';
+import { isJevSceneDemoPath, sceneSampleFromPath } from '../core/jev-demo-path.js';
 import { attachJevDictation } from './jev-dictation.js';
 
 const ICON_ATTRS = 'width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"';
@@ -79,6 +79,7 @@ export class Portal {
   render() {
     this.stopJevDictation?.();
     const demo = this.demoMode;
+    const nightDrive = demo && sceneSampleFromPath(window.location.pathname) === 'night-drive';
     this.container.innerHTML = `
       <div class="portal">
         <header class="sl-header">
@@ -108,8 +109,18 @@ export class Portal {
 
         <main class="portal-main">
           <section class="portal-ask" aria-labelledby="portal-ask-title">
-            <p class="portal-eyebrow"><span class="portal-dot" aria-hidden="true"></span>${demo ? 'Jev scene sample' : 'Read with Jev'}</p>
-            ${demo ? `<h1 class="portal-title" id="portal-ask-title">Make the scene respond.</h1>
+            <p class="portal-eyebrow"><span class="portal-dot" aria-hidden="true"></span>${nightDrive ? 'Night Drive sample' : demo ? 'Jev scene sample' : 'Read with Jev'}</p>
+            ${nightDrive ? `<h1 class="portal-title" id="portal-ask-title">Neon, at speed.</h1>
+            <div class="portal-jev-form" id="portal-jev-demo">
+              <p class="portal-help">Neon light, rushing light streaks and a driving electronic beat, over Walt Whitman’s “Song of the Open Road”. About 25 seconds.</p>
+              <p class="portal-help">This is the fixed look Jev chooses for night-drive, racing, drifting or neon requests. No live Jev request is made here. RISE makes its own visuals and music; it uses no film footage or soundtrack.</p>
+              <p class="portal-help">Sound starts when you press Start. If your device asks for reduced motion, the scene holds one still frame.</p>
+              <div class="portal-actions">
+                <button class="portal-primary" id="jev-scene-demo-start" type="button">Start Night Drive</button>
+                <p class="portal-status" id="jev-scene-demo-status" role="status" aria-live="polite"></p>
+              </div>
+              <p class="portal-alt"><a class="portal-link portal-jev-demo-live" href="/">Ask Jev live for a personal reading</a></p>
+            </div>` : demo ? `<h1 class="portal-title" id="portal-ask-title">Make the scene respond.</h1>
             <div class="portal-jev-form" id="portal-jev-demo">
               <p class="portal-help">Read a released passage from Middlemarch, then bring its next visual scene forward while the words keep moving.</p>
               <p class="portal-help">This is a fixed sample preset of choices Jev may make. No live Jev request is made here.</p>
@@ -303,7 +314,7 @@ export class Portal {
         const response = await fetch('/api/jev-recommend', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ intent, schemaVersion: 2 })
+          body: JSON.stringify({ intent, schemaVersion: 3 })
         });
         const decision = await response.json();
         if (!response.ok) throw new Error(decision.error?.message || 'Jev is unavailable.');
@@ -320,7 +331,7 @@ export class Portal {
       if (sample.disabled) return;
       sample.disabled = true;
       const status = this.container.querySelector('#jev-scene-demo-status');
-      status.textContent = 'Preparing the released reading…';
+      status.textContent = 'Preparing the reading…';
       try {
         await this.onLaunchJevSample();
       } catch (error) {

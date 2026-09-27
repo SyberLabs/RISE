@@ -19,7 +19,7 @@ import {
 import { BetaGate } from './components/BetaGate.js';
 import { isRosaryDoor } from './core/rosary-door.js';
 import { TRY_RISE_PATH, isTryRisePath } from './core/keystone-paths.js';
-import { isJevSceneDemoPath } from './core/jev-demo-path.js';
+import { isJevSceneDemoPath, sceneSampleFromPath } from './core/jev-demo-path.js';
 import { KEYSTONE_SESSION_ORIGIN } from './app/chamber-exit.js';
 
 import { errorBoundary, ErrorCategory, ErrorSeverity } from './core/error-boundary.js';
@@ -805,6 +805,13 @@ class App {
 
     /** Launch a fixed sample through the released-edition gate, without a provider call. */
     async launchJevSample() {
+        if (sceneSampleFromPath(window.location.pathname) === 'night-drive') {
+            const { nightDriveSessionInput } = await import('./app/night-drive-sample.js');
+            if (!await this.handleBeginSession(nightDriveSessionInput())) {
+                throw new Error('The sample reading could not be opened. Please try again.');
+            }
+            return;
+        }
         const [{ sampleJevSceneDecision }, { resolveJevReading }] = await Promise.all([
             import('./app/jev-scene-demo.js'), import('./app/jev-reading.js')
         ]);

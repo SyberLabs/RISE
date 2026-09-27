@@ -74,7 +74,7 @@ describe('Jev recommendation in the reader-facing Library', () => {
     });
 
     await vi.waitFor(() => expect(fetch).toHaveBeenCalledWith('/api/jev-recommend',
-      expect.objectContaining({ body: JSON.stringify({ intent: 'A reflective classic', schemaVersion: 2 }) })));
+      expect.objectContaining({ body: JSON.stringify({ intent: 'A reflective classic', schemaVersion: 3 }) })));
     await vi.waitFor(() => expect(container.querySelector('.library-jev-choice h3')?.textContent)
       .toBe(book.title));
     library.onSelectText('A selected passage', book.title, { wpm: 200, verseLines: true });
@@ -95,7 +95,7 @@ describe('Jev recommendation in the reader-facing Library', () => {
 
     expect(fetch).toHaveBeenCalledWith('/api/jev-recommend', expect.objectContaining({
       method: 'POST',
-      body: JSON.stringify({ intent: 'I want a reflective classic', schemaVersion: 2 })
+      body: JSON.stringify({ intent: 'I want a reflective classic', schemaVersion: 3 })
     }));
     expect(container.querySelector('.library-jev-choice h3').textContent).toBe(book.title);
     container.querySelector('[data-action="open-jev"]').click();
