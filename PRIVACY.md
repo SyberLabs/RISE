@@ -13,7 +13,9 @@
 RISE stores your projects, journals, and settings in your browser. Text you
 bring to a Chamber reading is presented and paced locally. Chamber playback
 does not send your reading to a model service. If you ask Jev for a reading,
-RISE sends the short request you type to OpenRouter for a bounded choice.
+RISE sends the short request you submit to OpenRouter for a bounded choice.
+If you press **Speak**, your browser may use its speech service to turn your
+voice into editable text. RISE does not receive the microphone audio.
 
 We do not use cookies. We do not use analytics. We do not track you across
 sites or across visits. We have no accounts, so we do not know who you are. We
@@ -103,8 +105,8 @@ Session storage is discarded when you close the tab.
 Text you bring to RISE is processed in your browser and stored in the same
 local storage above. Chamber playback does not send excerpts, intent, feedback,
 mode, or pace to a reading service or model provider. A Jev reading request
-sends the short preference you type, not the reading or saved work in your
-browser.
+sends the short preference you submit, whether typed or dictated, not the
+reading or saved work in your browser.
 
 ---
 
@@ -124,10 +126,20 @@ texts, Library entries, source text, media, reading history, and proposals are
 not part of this routing request. **Prepare locally without JEV** does not call
 TypeSafe. This optional authoring route is separate from local Chamber reading.
 
+### Optional voice dictation
+
+Pressing **Speak** on a Jev request asks your browser to use the microphone.
+The browser may process speech on your device or send audio to its own speech
+service, depending on the browser. That provider's privacy policy governs its
+processing. RISE application code receives only the resulting text in the
+editable request field; it does not upload, save, or log microphone audio.
+You can edit or discard the text. It is sent to Jev only if you submit the
+request. Denying microphone permission leaves typed requests available.
+
 ### Optional Jev reading request
 
 When you submit a reading preference on the RISE home or in the Library, RISE
-sends that intent through its same-origin Cloudflare Worker. On a cache miss, the Worker sends
+sends that text through its same-origin Cloudflare Worker. On a cache miss, the Worker sends
 the intent and the public catalog criteria to OpenRouter for a TypeSafe Jev
 choice. It does not send your book text, reading history, saved work, or media.
 PostgreSQL holds the public Standard Ebooks catalog. Redis holds the catalog
@@ -169,7 +181,7 @@ yours is attached, and remote images are loaded with a `no-referrer` policy so
 the receiving host is not told which page you were on. If a source is
 unreachable, RISE degrades quietly rather than failing.
 
-The hosts your browser may contact are:
+The content hosts your browser may contact are:
 
 - **Project Gutenberg** — `www.gutenberg.org`
 - **arXiv** — `export.arxiv.org`
@@ -208,9 +220,9 @@ We state these plainly because the absence is the point.
   the California Consumer Privacy Act. Optional Scriptorium routing is for the
   action you choose, not advertising. A Jev reading request sends your typed
   preference to OpenRouter for the decision you request.
-- **No camera, microphone or location access.** The application is served with
-  a `Permissions-Policy` header that denies all three at the browser level,
-  regardless of what any code might ask for.
+- **No camera or location access.** The browser security policy denies both.
+  It permits the microphone only on RISE's own origin, for optional Jev voice
+  dictation. RISE asks for microphone access only after you press **Speak**.
 
 ---
 
@@ -231,7 +243,7 @@ section 5 receive direct requests for texts or artworks as described there.
 Separately, if you choose JEV routing, TypeSafe receives the typed intent,
 target word count and your API key through RISE's API. This is a routing
 request, not cross-site tracking; consult TypeSafe's own policy for its handling
-of that request. A Jev reading request sends the typed preference through
+of that request. A Jev reading request sends the submitted text through
 OpenRouter only when you submit it.
 
 ---

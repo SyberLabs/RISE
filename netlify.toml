@@ -55,7 +55,7 @@
     X-Frame-Options = "DENY"
     X-Content-Type-Options = "nosniff"
     Referrer-Policy = "strict-origin-when-cross-origin"
-    Permissions-Policy = "camera=(), microphone=(), geolocation=()"
+    Permissions-Policy = "camera=(), microphone=(self), geolocation=()"
     # CSP: self-hosted scripts only; APIs limited to the content providers the app
     # actually calls (Gutenberg, arXiv, Wikimedia Commons, Met, Art Institute, corsproxy).
     # img-src allows any https CDN because museum APIs return varied image hosts.
