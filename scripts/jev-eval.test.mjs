@@ -36,8 +36,8 @@ test('counts malformed, missing, and disallowed answers as failures without inve
 
 test('evaluation set has paired, valid, explicit choices on every requested axis', () => {
   const fixtures = JSON.parse(readFileSync(new URL('./jev-eval-cases.json', import.meta.url)));
-  const options = JSON.parse(readFileSync(new URL('./jev-eval-options.json', import.meta.url)));
-  assert.equal(fixtures.length, 12);
+  const options = JSON.parse(readFileSync(new URL('./jev-eval-options-candidate.json', import.meta.url)));
+  assert.equal(fixtures.length, 16);
   const groups = new Map();
   const axes = new Set();
   for (const fixture of fixtures) {

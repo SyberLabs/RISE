@@ -2,7 +2,7 @@
 
 ## What is measured
 
-The [case set](../../scripts/jev-eval-cases.json) contains 12 synthetic reader prompts in six contrast pairs. Each pair changes one or several explicit requests for pace, sound, moving visuals, visual energy, typeface, or type size. The [option snapshot](../../scripts/jev-eval-options.json) is the six relevant fields from `worker/jev-recommend.mjs` on 2026-09-26; update it when the Worker menu changes. The scorer reports:
+The [case set](../../scripts/jev-eval-cases.json) contains 16 synthetic reader prompts in eight contrast pairs. Each pair changes one or several explicit requests for pace, sound, moving visuals, visual energy, typeface, or type size. The [production option snapshot](../../scripts/jev-eval-options.json) is the six relevant fields from `worker/jev-recommend.mjs` on 2026-09-26. The [candidate snapshot](../../scripts/jev-eval-options-candidate.json) adds `soft-rain` sound and `mono` type. Keep both snapshots so the original production baseline remains reproducible. The scorer reports:
 
 - Exact offered-choice validity (all six fields, no extra keys)
 - Explicit preference matches, counted by field
@@ -24,7 +24,7 @@ Reproduce the score:
 node scripts/jev-eval.mjs --cases scripts/jev-eval-cases.json --options scripts/jev-eval-options.json --input scripts/jev-eval-production-baseline-2026-09-26.json --only-recorded
 ```
 
-For a full pre/post comparison, collect one decision for each of the 12 prompts on the candidate build, use the same option snapshot, and omit `--only-recorded`. A `--input` file accepts `{ "model": "...", "rows": [{ "id": "...", "decision": { ... }, "usage": { "prompt_tokens": 0, "completion_tokens": 0 } }] }`. Omit `usage` when the route does not expose it; the scorer marks it unreported.
+For a full pre/post comparison, collect one decision for each of the 16 prompts on the candidate build, score with the candidate option snapshot, and omit `--only-recorded`. A `--input` file accepts `{ "model": "...", "rows": [{ "id": "...", "decision": { ... }, "usage": { "prompt_tokens": 0, "completion_tokens": 0 } }] }`. Omit `usage` when the route does not expose it; the scorer marks it unreported. The two new-option cases have no old-production result, so compare shared cases separately when attributing a change to the harness.
 
 ## Bounded Hugging Face comparison
 
@@ -33,10 +33,23 @@ The runner can ask a Hugging Face hosted chat model to choose the same six prese
 With a Hugging Face token in `HF_TOKEN`, run one model per invocation:
 
 ```powershell
-node scripts/jev-eval.mjs --cases scripts/jev-eval-cases.json --options scripts/jev-eval-options.json --hf-model Qwen/Qwen3-4B-Instruct-2507 --max-calls 12 --output qwen-eval.json
-node scripts/jev-eval.mjs --cases scripts/jev-eval-cases.json --options scripts/jev-eval-options.json --hf-model openai/gpt-oss-20b --max-calls 12 --output gpt-oss-eval.json
+node scripts/jev-eval.mjs --cases scripts/jev-eval-cases.json --options scripts/jev-eval-options-candidate.json --hf-model Qwen/Qwen3-4B-Instruct-2507 --max-calls 16 --output qwen-eval.json
+node scripts/jev-eval.mjs --cases scripts/jev-eval-cases.json --options scripts/jev-eval-options-candidate.json --hf-model openai/gpt-oss-20b --max-calls 16 --output gpt-oss-eval.json
 ```
 
-The runner makes at most 12 requests per invocation, never retries, limits each completion to 200 tokens, and uses a 15-second request timeout. The `--max-calls` argument has an absolute ceiling of 16 and must cover every case. It records provider usage when returned, but it cannot enforce a dollar limit because provider billing varies; check the [Hugging Face model listing and provider pricing](https://huggingface.co/docs/inference-providers/index) before a run and the [billing page](https://huggingface.co/docs/inference-providers/pricing) after it. The two candidate model IDs come from the [Qwen model card](https://huggingface.co/Qwen/Qwen3-4B-Instruct-2507) and [Hugging Face's gpt-oss guide](https://huggingface.co/docs/inference-providers/guides/gpt-oss). Hugging Face also documents [JSON schema constrained output](https://huggingface.co/docs/inference-providers/guides/structured-output); this raw-JSON run intentionally measures format failures instead of hiding them behind provider constraints.
+The runner makes at most 16 requests per invocation, never retries, limits each completion to 200 tokens, and uses a 15-second request timeout. The `--max-calls` argument has an absolute ceiling of 16 and must cover every case. It records provider usage when returned, but it cannot enforce a dollar limit because provider billing varies; check the [Hugging Face model listing and provider pricing](https://huggingface.co/docs/inference-providers/index) before a run and the [billing page](https://huggingface.co/docs/inference-providers/pricing) after it. The two candidate model IDs come from the [Qwen model card](https://huggingface.co/Qwen/Qwen3-4B-Instruct-2507) and [Hugging Face's gpt-oss guide](https://huggingface.co/docs/inference-providers/guides/gpt-oss). Hugging Face also documents [JSON schema constrained output](https://huggingface.co/docs/inference-providers/guides/structured-output); this raw-JSON run intentionally measures format failures instead of hiding them behind provider constraints.
 
-No Hugging Face inference was run on 2026-09-26: this workspace had neither `HF_TOKEN` nor a cached local Hugging Face model. There are no Hugging Face quality or cost results yet.
+No **hosted chat model** inference was run on 2026-09-26: this workspace had no `HF_TOKEN`. There are no hosted-model quality or cost results yet.
+
+## Local Hugging Face model sanity check
+
+The repository's existing `@huggingface/transformers` dependency loaded the [Xenova/all-MiniLM-L6-v2](https://huggingface.co/Xenova/all-MiniLM-L6-v2) q8 feature-extraction model locally. The [local selector](../../scripts/jev-eval-local-hf.mjs) chooses each field by cosine similarity between the prompt and short, human-authored option descriptions. This is a cheap semantic baseline and has no JSON generation, cross-field constraint handling, or Jev book selection. It is not a drop-in production alternative.
+
+With the candidate options, the [captured 16-prompt run](../../scripts/jev-eval-local-hf-2026-09-26.json) had 23/26 explicit-field matches, 7/8 complete contrast pairs, and no invalid choices by construction. Its misses were large text selected as medium, and the combined vivid/fast request selected slow pace and graphic line art. The model selected all four sound values at least once, and four of five typefaces. Local inference elapsed 177 ms after the model was cached; model download time, electricity, and dollar cost were not measured. These scores cannot be directly compared with the six-prompt production Jev baseline because both the sample and the task differ.
+
+Reproduce (model download is about 23 MB for the q8 file, plus tokenizer files):
+
+```powershell
+node scripts/jev-eval-local-hf.mjs scripts/jev-eval-cases.json scripts/jev-eval-options-candidate.json local-hf-eval.json
+node scripts/jev-eval.mjs --cases scripts/jev-eval-cases.json --options scripts/jev-eval-options-candidate.json --input local-hf-eval.json
+```
