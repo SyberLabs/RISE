@@ -19,16 +19,6 @@ const FOCAL_PASSTHROUGH_BYTES = 150 * 1024;
 export const optId = o => (typeof o === 'string' ? o : o.id);
 export const optLabel = o => (typeof o === 'string' ? o[0].toUpperCase() + o.slice(1) : (o.name || o.label || o.id));
 
-export function glyphFor(node) {
-  const glyphs = { off: '○', visual: '❖', focal: '◯', gallery: '▦',
-    'gallery-procedural': '❋', 'gallery-sourced': '▤', personal: '◈', dynamic: '∮',
-    attractor: '∮', klee: '✎', harmonograph: '∿', ostensoria: '✷', apparitio: '❂',
-    fractal: '❋', turrell: '◗', rockgarden: '⬡', neural: '⧉',
-    'by-manner': '◐', 'by-subject': '◑', science: '◉',
-    face: 'A', size: '⤢', ink: '◑' };
-  return glyphs[node.id] || '·';
-}
-
 /**
  * A chip carries four conditions — chosen, blocked, owned by a program, and
  * plainly unavailable — and used to render them as near-identical pills. They

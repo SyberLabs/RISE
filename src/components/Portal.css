@@ -18,7 +18,68 @@
   font-family: var(--sy-font-sans);
 }
 
-/* ─── Header nav (the lockup itself is in premium-additions.css) ─── */
+/* ─── SyberLabs header: 64px, page ground, one hairline.
+   Lockup: mark + SYBERLABS / RISE (Instrument Sans 600, 13px, .14em). ─── */
+.sl-header {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  flex: none;
+  height: var(--sy-header-height);
+  padding: 0 var(--sy-space-8);
+  background: var(--sy-bg);
+  border-bottom: 1px solid var(--sy-line);
+}
+
+.sl-header-inner {
+  height: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.sl-lockup {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--sy-text);
+}
+
+.sl-mark {
+  display: block;
+  height: 20px;
+  width: auto;
+}
+
+.sl-wordmark {
+  font-family: var(--sy-font-sans);
+  font-size: 13px;
+  line-height: 20px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  color: var(--sy-text);
+  white-space: nowrap;
+}
+
+.sl-divider {
+  color: var(--sy-text-3);
+}
+
+@media (max-width: 1100px) {
+  .sl-header {
+    padding: 0 var(--sy-space-6);
+  }
+}
+
+@media (max-width: 640px) {
+  .sl-header {
+    padding: 0 var(--sy-space-4);
+  }
+}
+
+/* ─── Header nav ─── */
 
 .portal-nav {
   display: flex;

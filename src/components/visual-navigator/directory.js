@@ -17,7 +17,6 @@ import { normalizeGlobalPoolSelection } from '../../core/visual-selection.js';
 import {
   ROOT,
   CADENCE,
-  glyphFor,
   bench,
   optId,
   optLabel,
@@ -295,10 +294,9 @@ export const directoryMethods = {
       return `
         <button type="button" class="vnav-node ${selected ? 'sel' : ''} ${on ? 'on' : ''}"
           data-col="${colIndex}" data-id="${escapeHtml(n.id)}">
-          <span class="g">${glyphFor(n)}</span>
           <span class="nm">${escapeHtml(n.label)}</span>
-          ${on ? '<span class="dot" aria-label="in the room"></span>' : ''}
-          ${n.children ? '<span class="arw">›</span>' : ''}
+          ${on ? '<span class="dot" role="img" aria-label="on"></span>' : ''}
+          ${n.children ? '<svg class="arw" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m9 6 6 6-6 6"/></svg>' : ''}
         </button>`;
     };
     const rows = colIndex === 0
@@ -314,7 +312,7 @@ export const directoryMethods = {
     const leaf = this.focus;
     if (leaf?.textControl) return this.renderTextEntry(leaf.id);
     if (!leaf || !categoryOf(leaf.id)) {
-      return `<div class="vnav-empty"><span>◈</span>Choose a field to open its entry</div>`;
+      return `<div class="vnav-empty">Choose a field to open its entry</div>`;
     }
     const cat = categoryOf(leaf.id);
     const enabled = this.selection.enabled.has(leaf.id);
@@ -326,27 +324,26 @@ export const directoryMethods = {
     const commit = `
       <div class="vnav-commit">
         <button type="button" class="vnav-toggle ${enabled ? 'on' : ''}" data-action="toggle"
-          role="switch" aria-checked="${enabled}" ${this.locked || this.programInfo ? 'disabled' : ''}>
+          role="switch" aria-checked="${enabled}" aria-labelledby="vnav-commit-label"
+          ${this.locked || this.programInfo ? 'disabled' : ''}>
           <span class="knob"></span>
         </button>
-        <span class="vnav-commit-label">${
+        <span class="vnav-commit-label" id="vnav-commit-label">${
           blend ? `In the blend · ${galleryMembers(this.selection.enabled).length} in gallery`
           : this.programInfo ? 'Owned by the curated program'
-          : enabled ? 'In the room' : 'Bring into the room'
+          : 'Show in the reading'
         }</span>
       </div>`;
 
     return `
       <div class="vnav-entry-head">
-        <span class="vnav-glyph">${glyphFor(leaf)}</span>
         <div>
           <h3>${escapeHtml(leaf.label)}</h3>
           <p class="vnav-kind">${kind}${blend ? ' · <b>Blend</b>' : ''}</p>
         </div>
       </div>
       <div class="vnav-preview" aria-hidden="true">
-        <span class="vnav-preview-glyph">${glyphFor(leaf)}</span>
-        <span class="vnav-preview-note">live preview mounts here</span>
+        <span class="vnav-preview-note">Preview</span>
       </div>
       ${leaf.desc ? `<p class="vnav-desc">${escapeHtml(leaf.desc)}</p>` : ''}
       ${leaf.id === 'focal' ? this.renderHeldFocal() : ''}
@@ -400,7 +397,9 @@ export const directoryMethods = {
       <button type="button" class="vnav-reader-summary" data-action="reader-sheet"
         aria-expanded="${this._readerSheetOpen ? 'true' : 'false'}" aria-controls="vnav-reader-sheet">
         <span class="vnav-reader-state">${escapeHtml(summary)}</span>
-        <span class="vnav-reader-mark" aria-hidden="true">${this._readerSheetOpen ? '⌄' : '⌃'}</span>
+        <svg class="vnav-reader-mark" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor"
+          stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path
+          d="${this._readerSheetOpen ? 'm6 9 6 6 6-6' : 'm6 15 6-6 6 6'}"/></svg>
       </button>
       <div class="vnav-reader-sheet" id="vnav-reader-sheet">
       <label class="vnav-switch${this.selection.livingText.enabled ? ' is-on' : ''}${fieldLocked ? ' is-off-limits' : ''}">
@@ -432,7 +431,7 @@ export const directoryMethods = {
   renderProgramLock() {
     const episodes = Math.max(0, Number(this.programInfo?.episodes) || 0);
     return `<div class="vnav-program" data-program-lock role="status">
-      <span>✦</span><span><b>Special Collection · ${episodes} episodes</b><br>
+      <span><b>Special Collection · ${episodes} episodes</b><br>
       The imagery follows this passage scene by scene. Its field is read-only.</span>
       ${this.selection.enabled.has('focal')
         ? '<button type="button" class="vnav-program-release" data-action="release-to-program">Release focal</button>'
