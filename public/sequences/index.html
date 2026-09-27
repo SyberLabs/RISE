@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="color-scheme" content="light">
+    <title>Short sequences · RISE</title>
+    <link rel="stylesheet" href="./style.css">
+    <script type="module" src="./app.js"></script>
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Skip to content</a>
+    <div class="shell">
+      <header class="site-header">
+        <a class="brand" href="/"><span class="brand-mark" aria-hidden="true">✦</span> RISE <span class="brand-sub">/ short sequences</span></a>
+        <div class="pilot-label">PUBLIC PREVIEW · LOCAL FEEDBACK</div>
+      </header>
+
+      <main id="main" tabindex="-1">
+        <section id="choice-screen" class="screen" aria-labelledby="choice-title">
+          <div class="eyebrow">A few minutes, on purpose</div>
+          <h1 id="choice-title">What would be useful to read right now?</h1>
+          <p class="lead">Choose one short sequence of original preview text. The words and their order are curated; your reading controls only change how they appear.</p>
+          <div id="resume-panel" class="resume-status" hidden><p id="resume-status" role="status"></p><button id="resume-next" class="text-button" type="button" hidden></button></div>
+          <div id="sequence-cards" class="cards" aria-label="Available sequences"></div>
+
+          <div class="options-panel">
+            <div>
+              <h2>How should we choose what comes next?</h2>
+              <p>Pick a route for this preview. You can still choose your first sequence yourself.</p>
+            </div>
+            <fieldset class="route-options">
+              <legend class="visually-hidden">Next sequence route</legend>
+              <label><input type="radio" name="route" value="curated" checked> Curated order <span>Editorial baseline</span></label>
+              <label><input type="radio" name="route" value="bounded-jev"> Interest match <span>Local bounded Jev simulation</span></label>
+            </fieldset>
+            <label class="field" for="interest">Interest for the next sequence
+              <select id="interest"><option value="any">No preference</option></select>
+            </label>
+            <button id="suggest-first" class="text-button" type="button">Or let the curated order choose my first sequence <span aria-hidden="true">↗</span></button>
+          </div>
+        </section>
+
+        <section id="read-screen" class="screen" aria-labelledby="read-title" hidden>
+          <div class="reader-topline"><button id="back-choice" type="button" class="text-button">← All sequences</button><span id="step-count" aria-live="polite"></span></div>
+          <div class="reader-layout">
+            <article class="reading-card">
+              <div class="eyebrow">A RISE sequence</div>
+              <h1 id="read-title"></h1>
+              <p id="read-promise" class="reading-promise"></p>
+              <div id="steps" class="steps"></div>
+              <div class="reader-actions"><button id="previous-step" class="secondary" type="button">Previous</button><button id="next-step" class="primary" type="button">Continue</button><button id="finish" class="primary" type="button" hidden>Finish sequence</button></div>
+            </article>
+            <aside class="reader-aside" aria-label="Reading controls and source">
+              <h2>Your reading controls</h2>
+              <fieldset class="control-group"><legend>Pace</legend><label><input name="pace" type="radio" value="steady" checked> One part at a time</label><label><input name="pace" type="radio" value="brief"> Full sequence</label></fieldset>
+              <fieldset class="control-group"><legend>Spacing</legend><label><input name="presentation" type="radio" value="spacious" checked> Spacious</label><label><input name="presentation" type="radio" value="plain"> Compact</label></fieldset>
+              <div class="source-note"><strong>Source</strong><p id="source-credit"></p></div>
+            </aside>
+          </div>
+        </section>
+
+        <section id="finish-screen" class="screen" aria-labelledby="finish-title" hidden>
+          <div class="eyebrow">Sequence complete</div>
+          <h1 id="finish-title">Was that worth your time?</h1>
+          <p class="lead">One optional answer helps us decide whether to keep this small experiment.</p>
+          <fieldset class="worth-options"><legend class="visually-hidden">Was this sequence worth your time?</legend><button type="button" data-worth="yes">Yes</button><button type="button" data-worth="unsure">Not sure</button><button type="button" data-worth="no">No</button></fieldset>
+          <p id="feedback-status" role="status" class="muted">You can leave this unanswered.</p>
+          <div class="next-card" id="next-card">
+            <div class="eyebrow">One next invitation</div>
+            <h2 id="next-title"></h2>
+            <p id="next-promise"></p>
+            <p id="next-reason" class="muted"></p>
+            <button id="start-next" type="button" class="primary">Read this next <span aria-hidden="true">→</span></button>
+          </div>
+          <div id="no-next" class="next-card" hidden><h2>That is the whole small set.</h2><p>There are no more sequences in this preview.</p></div>
+          <div class="record-panel">
+            <h2>Your local preview record</h2>
+            <p id="record-summary"></p>
+            <p class="muted">Nothing is sent or tracked in the background. Downloading a record is your explicit choice. It includes your route, selection, completion, feedback, next start, and the selector’s zero-provider cost.</p>
+            <label class="save-toggle"><input id="save-local" type="checkbox"> Keep this session on this device</label>
+            <div class="record-actions"><button id="export-record" class="secondary" type="button">Download feedback JSON</button><button id="clear-record" class="text-button" type="button">Erase local preview data</button></div>
+            <p id="storage-status" role="status" class="muted"></p>
+          </div>
+        </section>
+      </main>
+      <footer><span>Original preview text · feedback stays on this device · no account</span><a href="/">Return to RISE</a></footer>
+    </div>
+  </body>
+</html>
