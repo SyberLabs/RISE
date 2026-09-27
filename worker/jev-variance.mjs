@@ -7,10 +7,12 @@ const DIRECTIONS = Object.freeze([
   'a spectral Gallery (visual=interlocution, visualEngine=apparitio, colorTheme=cobalt)',
   'soft atmospheric light (visual=interlocution, visualEngine=turrell, colorTheme=jade)',
   'an iridescent radial Gallery (visual=interlocution, visualEngine=ostensoria, colorTheme=ember)',
-  'fine harmonic line work (visual=interlocution, visualEngine=harmonograph, colorTheme=amethyst)'
+  'fine harmonic line work (visual=interlocution, visualEngine=harmonograph, colorTheme=amethyst)',
+  'a single still focal figure (visual=focals, visualStyle=quiet, colorTheme=classic)'
 ]);
 
-export const VARIATION_COUNT = 4;
+export const VARIATION_COUNT = DIRECTIONS.length;
+const TEXT_SECTIONS = Object.freeze(['first', 'middle', 'last', 'shortest', 'longest']);
 
 function words(value) {
   return String(value || '').normalize('NFKC').toLocaleLowerCase('en')
@@ -32,19 +34,22 @@ function isOpenEnded(intent, books) {
 
 export function buildJevVarianceHints({ books, intent = '', turn }) {
   const index = Number.isSafeInteger(turn) && turn >= 0 ? turn : 0;
+  const slot = index % VARIATION_COUNT;
   const catalog = Array.isArray(books) ? [...books].sort((a, b) => a.work_id.localeCompare(b.work_id)) : [];
-  const cohort = index % 2;
+  const cohort = slot % 2;
   const narrow = catalog.length > 1 && isOpenEnded(intent, catalog);
   const eligibleBooks = narrow ? catalog.filter((_, position) => position % 2 === cohort) : catalog;
-  const focusWorkId = eligibleBooks.length ? eligibleBooks[Math.floor(index / 2) % eligibleBooks.length].work_id : null;
-  const direction = DIRECTIONS[index % DIRECTIONS.length];
+  const focusWorkId = eligibleBooks.length ? eligibleBooks[Math.floor(slot / 2) % eligibleBooks.length].work_id : null;
+  const direction = DIRECTIONS[slot];
+  const sectionHint = narrow ? TEXT_SECTIONS[slot % TEXT_SECTIONS.length] : null;
 
   return {
     eligibleBooks,
     bookHint: focusWorkId
       ? `When several readings fit the reader equally well, consider ${focusWorkId} on this turn. A named or clearly requested work and the reader's intent always take priority.`
       : 'Choose the reading that best fits the reader intent.',
-    configHint: `When the reader leaves the aesthetic open, consider ${direction} as a coherent direction this turn. Vary the rest of the offered settings to suit the reading. Explicit reader preferences always take priority; select only offered values.`,
-    variation: { turn: index, focusWorkId, directionIndex: index % DIRECTIONS.length, cohort: narrow ? cohort : null }
+    configHint: `If unspecified, consider ${direction}${sectionHint ? ` and section=${sectionHint}` : ''}. Explicit reader preferences always take priority; select only offered values.`,
+    variation: { turn: index, focusWorkId, directionIndex: slot,
+      sectionHint, cohort: narrow ? cohort : null }
   };
 }

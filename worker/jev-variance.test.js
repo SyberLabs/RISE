@@ -11,10 +11,12 @@ describe('Jev variance hints', () => {
   it('rotates every admitted reading and creative direction across persisted turns', () => {
     const hints = Array.from({ length: 21 }, (_, index) =>
       buildJevVarianceHints({ books, intent: 'Surprise me', turn: index }));
-    expect(VARIATION_COUNT).toBe(4);
+    expect(VARIATION_COUNT).toBe(8);
     expect(new Set(hints.map(hint => hint.variation.focusWorkId))).toEqual(new Set(books.map(book => book.work_id)));
-    expect(new Set(hints.map(hint => hint.variation.directionIndex)).size).toBe(7);
-    expect(new Set(hints.map(hint => hint.configHint)).size).toBe(7);
+    expect(new Set(hints.map(hint => hint.variation.directionIndex)).size).toBe(8);
+    expect(new Set(hints.map(hint => hint.configHint)).size).toBe(8);
+    expect(new Set(hints.map(hint => hint.variation.sectionHint)))
+      .toEqual(new Set(['first', 'middle', 'last', 'shortest', 'longest']));
   });
 
   it('keeps the same hint for the same turn and does not mutate the catalog', () => {

@@ -606,6 +606,75 @@ function createAurora(ctx, destination, options = {}) {
     };
 }
 
+// Small original tone beds. Frequencies, intervals, motion, and timbre differ
+// by mood; levels stay below the existing soundscape layer's headroom.
+const MOOD_BEDS = Object.freeze({
+    sad:       { notes: [110, 130.81, 164.81], wave: 'sine',     color: 620,  motion: 0.09, level: 0.075 },
+    angry:     { notes: [82.41, 87.31, 123.47], wave: 'sawtooth', color: 850,  motion: 3.2,  level: 0.035 },
+    happy:     { notes: [130.81, 164.81, 196], wave: 'triangle', color: 1800, motion: 0.9,  level: 0.065 },
+    excited:   { notes: [146.83, 185, 220], wave: 'triangle', color: 2300, motion: 2.4,  level: 0.055 },
+    thrilling: { notes: [73.42, 110, 155.56], wave: 'sawtooth', color: 780,  motion: 1.5,  level: 0.035 },
+    scary:     { notes: [65.41, 69.3, 92.5], wave: 'sine',       color: 480,  motion: 0.27, level: 0.07 }
+});
+
+function createMoodBed(profile, ctx, destination) {
+    const output = ctx.createGain();
+    output.gain.value = 0;
+    output.connect(destination);
+    const filter = ctx.createBiquadFilter();
+    filter.type = 'lowpass';
+    filter.frequency.value = profile.color;
+    filter.connect(output);
+    const voices = profile.notes.map((frequency, index) => {
+        const osc = ctx.createOscillator();
+        osc.type = profile.wave;
+        osc.frequency.value = frequency;
+        const level = ctx.createGain();
+        level.gain.value = index === 0 ? 0.5 : 0.25;
+        osc.connect(level).connect(filter);
+        return { osc, level };
+    });
+    const pulse = ctx.createOscillator();
+    pulse.type = 'sine';
+    pulse.frequency.value = profile.motion;
+    const depth = ctx.createGain();
+    depth.gain.value = profile.level * 0.18;
+    pulse.connect(depth).connect(output.gain);
+    let active = false;
+    let timer;
+    const release = () => {
+        for (const { osc, level } of voices) {
+            osc.stop();
+            osc.disconnect();
+            level.disconnect();
+        }
+        pulse.stop();
+        pulse.disconnect();
+        depth.disconnect();
+        filter.disconnect();
+        output.disconnect();
+    };
+    return {
+        start() {
+            if (active) return;
+            active = true;
+            voices.forEach(({ osc }) => osc.start());
+            pulse.start();
+            rampIn(ctx, output.gain, profile.level, 2);
+        },
+        stop(instant = false) {
+            if (!active) return;
+            active = false;
+            if (timer) clearTimeout(timer);
+            if (instant) release();
+            else {
+                rampOut(ctx, output.gain, 1.2);
+                timer = setTimeout(release, 1400);
+            }
+        }
+    };
+}
+
 export const SOUNDSCAPES = {
     aurora: {
         name: 'Aurora',
@@ -616,7 +685,12 @@ export const SOUNDSCAPES = {
         name: 'Faded Signal',
         description: 'Sun-worn suspended harmony with slow tape drift, softened bandwidth, and a quiet feedback afterimage.',
         create: createFadedSignal
-    }
+    },
+    ...Object.fromEntries(Object.entries(MOOD_BEDS).map(([id, profile]) => [id, {
+        name: id[0].toUpperCase() + id.slice(1),
+        description: `${id} procedural tone bed`,
+        create: (ctx, destination) => createMoodBed(profile, ctx, destination)
+    }]))
 };
 
 /**
