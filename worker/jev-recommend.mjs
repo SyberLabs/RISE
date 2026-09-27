@@ -102,6 +102,8 @@ const CHOICES = Object.freeze({
   reveal: { instant: 'Show chunks immediately.', progressive: 'Reveal chunks progressively.' }
 });
 const CONFIG_ANSWERS = Object.keys(CHOICES);
+const OPTION_KINDS = ['audio', 'chamberFace', 'fontSize'];
+const OPTION_CACHE_KEY = 'rise:jev-options:v1';
 const QUESTION_INSTRUCTIONS = Object.freeze({
   pace: 'Choose the reading speed in words per minute. Honor explicit slow, fast, brief, or sustained requests; use the reading mood when speed is unstated.',
   curve: 'Choose how speed changes through the reading. Use flat for a requested steady pace; use an arc only when it adds to the requested experience.',
@@ -203,6 +205,42 @@ function validCatalog(rows) {
   return new Set(ids).size === ids.length ? rows : null;
 }
 
+function choiceMenu(rows) {
+  if (!Array.isArray(rows) || rows.length < OPTION_KINDS.length
+    || rows.length > OPTION_KINDS.reduce((total, kind) => total + Object.keys(CHOICES[kind]).length, 0)) return null;
+  const ids = Object.fromEntries(OPTION_KINDS.map(kind => [kind, new Set()]));
+  for (const row of rows) {
+    if (!row || !OPTION_KINDS.includes(row.kind) || typeof row.id !== 'string'
+      || !Object.hasOwn(CHOICES[row.kind], row.id) || ids[row.kind].has(row.id)
+      || typeof row.description !== 'string' || row.description.length < 1
+      || row.description.length > 180) return null;
+    ids[row.kind].add(row.id);
+  }
+  if (OPTION_KINDS.some(kind => ids[kind].size === 0)) return null;
+  return {
+    ...CHOICES,
+    ...Object.fromEntries(OPTION_KINDS.map(kind => [kind,
+      Object.fromEntries(Object.entries(CHOICES[kind]).filter(([id]) => ids[kind].has(id)))]))
+  };
+}
+
+async function activeChoices(redis, env) {
+  const cached = choiceMenu(await redis.get(OPTION_CACHE_KEY));
+  if (cached) return cached;
+  let rows;
+  try {
+    const sql = neon(env.NEON_DATABASE_URL);
+    rows = await sql`SELECT kind, id, description FROM rise_jev_options WHERE active = TRUE`;
+  } catch {
+    // The optional menu may not have been migrated yet. Compiled options are still vetted.
+    return CHOICES;
+  }
+  const menu = choiceMenu(rows);
+  if (!menu) return null;
+  await redis.set(OPTION_CACHE_KEY, rows, { ex: 30 });
+  return menu;
+}
+
 async function catalogCacheKey() {
   const revisions = Object.values(RELEASE_EDITIONS)
     .map(item => `${item.workId}:${item.sourceRevision}`).sort().join('|');
@@ -210,19 +248,20 @@ async function catalogCacheKey() {
   return `rise:books:v1:${Array.from(new Uint8Array(digest), byte => byte.toString(16).padStart(2, '0')).join('')}`;
 }
 
-async function decisionCacheKey(intent, books, apiKey) {
+async function decisionCacheKey(intent, books, choices, apiKey) {
   const key = await crypto.subtle.importKey('raw', new TextEncoder().encode(apiKey),
     { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
-  const input = JSON.stringify({ model: MODEL, intent, books });
+  const menu = Object.fromEntries(OPTION_KINDS.map(kind => [kind, Object.keys(choices[kind])]));
+  const input = JSON.stringify({ model: MODEL, intent, books, menu });
   const signature = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(input));
-  return `rise:jev-decision:v8:${Array.from(new Uint8Array(signature),
+  return `rise:jev-decision:v9:${Array.from(new Uint8Array(signature),
     byte => byte.toString(16).padStart(2, '0')).join('')}`;
 }
 
-function validConfig(config) {
+function validConfig(config, choices) {
   if (!config || typeof config !== 'object' || Array.isArray(config)
     || Object.keys(config).length !== 31
-    || !Number.isInteger(config.wpm) || !Object.hasOwn(CHOICES.pace, String(config.wpm))) return null;
+    || !Number.isInteger(config.wpm) || !Object.hasOwn(choices.pace, String(config.wpm))) return null;
   const fields = { section: 'section', curve: 'curve', chunkMode: 'chunk', audio: 'audio',
     visualMode: 'visual', visualStyle: 'visualStyle', visualEngine: 'visualEngine',
     visualArc: 'visualArc', arcSplit: 'arcSplit', middleEngine: 'middleEngine', finaleEngine: 'finaleEngine',
@@ -232,7 +271,7 @@ function validConfig(config) {
     colorTheme: 'colorTheme', wordFill: 'wordFill',
     projection: 'projection', revealMode: 'reveal' };
   for (const [field, question] of Object.entries(fields)) {
-    if (typeof config[field] !== 'string' || !Object.hasOwn(CHOICES[question], config[field])) return null;
+    if (typeof config[field] !== 'string' || !Object.hasOwn(choices[question], config[field])) return null;
   }
   const palette = jevPalette(config.colorTheme);
   if (!palette || !config.colors || Object.keys(config.colors).length !== 3
@@ -267,12 +306,12 @@ function requestsNoVisualMotion(intent) {
   return /\b(?:no|without)\s+(?:moving\s+visuals?|visual\s+motion|visuals?|animation)\b|\b(?:dark|black)\s+screen\b|\btext\s+only\b/u.test(text);
 }
 
-function choiceConfig(answers, intent) {
+function choiceConfig(answers, intent, choices) {
   if (!answers || typeof answers !== 'object' || Array.isArray(answers)) return null;
   for (const question of CONFIG_ANSWERS) {
     const answer = answers[question];
     if (answer?.type !== 'choice' || typeof answer.choice !== 'string'
-      || !Object.hasOwn(CHOICES[question], answer.choice)) return null;
+      || !Object.hasOwn(choices[question], answer.choice)) return null;
   }
   const config = {
     section: answers.section.choice, wpm: Number(answers.pace.choice),
@@ -324,16 +363,16 @@ function choiceConfig(answers, intent) {
   config.colors = jevPalette(config.colorTheme);
   Object.assign(config, resolveJevChamberConfig(config));
   config.visualProgram = compileJevVisualProgram(config);
-  return validConfig(config);
+  return validConfig(config, choices);
 }
 
-function validCachedDecision(value, books) {
+function validCachedDecision(value, books, choices) {
   if (!value || typeof value !== 'object' || value.schemaVersion !== 1
     || typeof value.requestId !== 'string'
     || value.requestId.length < 1 || value.requestId.length > 100
     || (value.model !== MODEL && !/^typesafe\/jev-1\.13-\d{8}$/u.test(value.model))) return null;
   const book = books.find(row => row.work_id === value.workId);
-  const config = validConfig(value.config);
+  const config = validConfig(value.config, choices);
   if (!book || !config || value.editionId !== book.edition_id
     || value.sourceRevision !== book.source_revision || value.reason !== book.fit_description) return null;
   return {
@@ -348,12 +387,12 @@ function validCachedDecision(value, books) {
   };
 }
 
-function validDecision(value, books, intent) {
+function validDecision(value, books, intent, choices) {
   if (!value || typeof value !== 'object' || value.error || value.provider !== 'TypeSafe'
     || (value.model !== MODEL && !/^typesafe\/jev-1\.13-\d{8}$/u.test(value.model))) return null;
   const answer = value.answers?.book;
   const selected = books.find(book => book.work_id === answer?.choice);
-  const config = choiceConfig(value.answers, intent);
+  const config = choiceConfig(value.answers, intent, choices);
   if (answer?.type !== 'choice' || !selected || !config) return null;
   return {
     schemaVersion: 1,
@@ -409,15 +448,18 @@ export async function handleJevRecommend(request, env) {
 
   let decisionKey;
   let hints;
+  let choices;
   try {
-    const baseKey = await decisionCacheKey(intent, books, env.OPENROUTER_API_KEY);
-    const turnKey = baseKey.replace('rise:jev-decision:v8:', 'rise:jev-turn:v2:');
+    choices = await activeChoices(redis, env);
+    if (!choices) return error(503, 'OPTIONS_UNAVAILABLE', 'The presentation menu is unavailable.');
+    const baseKey = await decisionCacheKey(intent, books, choices, env.OPENROUTER_API_KEY);
+    const turnKey = baseKey.replace('rise:jev-decision:v9:', 'rise:jev-turn:v3:');
     const nextTurn = await redis.incr(turnKey);
     if (!Number.isSafeInteger(nextTurn) || nextTurn < 1) throw new Error('Invalid Jev turn');
     if (nextTurn === 1) await redis.expire(turnKey, 86400);
     hints = buildJevVarianceHints({ books, intent, turn: nextTurn - 1 });
     decisionKey = `${baseKey}:${(nextTurn - 1) % VARIATION_COUNT}`;
-    const cached = validCachedDecision(await redis.get(decisionKey), hints.eligibleBooks);
+    const cached = validCachedDecision(await redis.get(decisionKey), hints.eligibleBooks, choices);
     if (cached) return reply(200, { ...cached, cacheStatus, decisionCacheStatus: 'hit' });
   } catch {
     return error(503, 'DECISION_CACHE_UNAVAILABLE', 'Reading suggestions are unavailable.');
@@ -445,7 +487,7 @@ export async function handleJevRecommend(request, env) {
           ...Object.fromEntries(CONFIG_ANSWERS.map(question => [question, {
             type: 'choice',
             instructions: `${QUESTION_INSTRUCTIONS[question] || `Choose the ${question} that best fits the reader intent.`} Consider the experience hint only where the reader leaves that choice open. Only select an offered value.`,
-            criteria: CHOICES[question]
+            criteria: choices[question]
           }]))
         }
       }),
@@ -460,7 +502,7 @@ export async function handleJevRecommend(request, env) {
     return error(502, 'DECISION_UNAVAILABLE', 'Jev could not be reached.');
   }
 
-  const decision = validDecision(provider, hints.eligibleBooks, intent);
+  const decision = validDecision(provider, hints.eligibleBooks, intent, choices);
   if (!decision) return error(502, 'DECISION_INVALID_RESPONSE', 'Jev returned an invalid choice.');
   try {
     await redis.set(decisionKey, decision, { ex: DECISION_CACHE_TTL_SECONDS });

@@ -4,6 +4,7 @@ import { JEV_PALETTES } from '../src/core/jev-palette.js';
 
 const mocks = vi.hoisted(() => ({
   query: vi.fn(),
+  optionsQuery: vi.fn(),
   neon: vi.fn(),
   get: vi.fn(),
   set: vi.fn(),
@@ -15,7 +16,8 @@ const mocks = vi.hoisted(() => ({
 vi.mock('@neondatabase/serverless', () => ({
   neon: (url) => {
     mocks.neon(url);
-    return mocks.query;
+    return (strings, ...values) => String(strings[0]).includes('rise_jev_options')
+      ? mocks.optionsQuery(strings, ...values) : mocks.query(strings, ...values);
   }
 }));
 vi.mock('@upstash/redis/cloudflare', () => ({
@@ -55,6 +57,11 @@ function book(workId, extras = {}) {
 }
 
 const books = Object.keys(releaseInventory).map(workId => book(workId));
+const options = [
+  ...['silent', 'aurora', 'faded-signal', 'soft-rain'].map(id => ({ kind: 'audio', id, description: 'Reviewed sound.' })),
+  ...['literary', 'display', 'thick', 'jp', 'mono'].map(id => ({ kind: 'chamberFace', id, description: 'Reviewed font.' })),
+  ...['small', 'medium', 'large', 'fit'].map(id => ({ kind: 'fontSize', id, description: 'Reviewed size.' }))
+];
 
 const chosenConfig = Object.freeze({
   section: 'first', wpm: 200, curve: 'flat', chunkMode: 'word',
@@ -113,6 +120,7 @@ function request(body = { intent: 'I want a thoughtful novel.' }, headers = {}) 
 
 beforeEach(() => {
   mocks.query.mockResolvedValue(books);
+  mocks.optionsQuery.mockResolvedValue(options);
   mocks.get.mockResolvedValue(null);
   mocks.set.mockResolvedValue('OK');
   mocks.incr.mockResolvedValue(1);
@@ -330,7 +338,7 @@ describe('Jev reading recommendation', () => {
     });
     expect(provider).toHaveBeenCalledTimes(1);
     const decisionKey = [...cache.keys()].find(key => key.startsWith('rise:jev-decision:'));
-    expect(decisionKey).toMatch(/^rise:jev-decision:v8:[0-9a-f]{64}:0$/u);
+    expect(decisionKey).toMatch(/^rise:jev-decision:v9:[0-9a-f]{64}:0$/u);
     expect(decisionKey).not.toContain('Nature and quiet.');
     expect(mocks.set).toHaveBeenCalledWith(decisionKey, expect.objectContaining({
       workId: 'literary-walden'
@@ -440,6 +448,61 @@ describe('Jev reading recommendation', () => {
     expect(response.status).toBe(200);
     expect(await response.json()).toMatchObject({ requestId: 'gen-dec-fresh', decisionCacheStatus: 'miss' });
     expect(provider).toHaveBeenCalledOnce();
+  });
+
+  it('offers only active approved menu IDs and keys cached decisions by that menu', async () => {
+    const cache = new Map();
+    mocks.get.mockImplementation(async key => key.startsWith('rise:books:') ? books : cache.get(key));
+    mocks.set.mockImplementation(async (key, value) => { if (!key.startsWith('rise:jev-options:')) cache.set(key, value); return 'OK'; });
+    const provider = vi.fn(async () => Response.json({
+      model: 'typesafe/jev-1.13', provider: 'TypeSafe',
+      answers: answers('literary-walden')
+    }));
+    vi.stubGlobal('fetch', provider);
+
+    expect((await handleJevRecommend(request({ intent: 'Quiet and reflective.' }), env)).status).toBe(200);
+    mocks.optionsQuery.mockResolvedValue(options.filter(row => row.id !== 'soft-rain' && row.id !== 'mono'));
+    expect((await handleJevRecommend(request({ intent: 'Quiet and reflective.' }), env)).status).toBe(200);
+
+    expect(provider).toHaveBeenCalledTimes(2);
+    const first = JSON.parse(provider.mock.calls[0][1].body).questions;
+    const second = JSON.parse(provider.mock.calls[1][1].body).questions;
+    expect(first.audio.criteria).toHaveProperty('soft-rain');
+    expect(second.audio.criteria).not.toHaveProperty('soft-rain');
+    expect(first.chamberFace.criteria).toHaveProperty('mono');
+    expect(second.chamberFace.criteria).not.toHaveProperty('mono');
+  });
+
+  it('uses compiled options if the optional menu table is unavailable', async () => {
+    mocks.optionsQuery.mockRejectedValue(new Error('Table not yet deployed'));
+    const provider = vi.fn(async () => Response.json({
+      model: 'typesafe/jev-1.13', provider: 'TypeSafe', answers: answers('literary-walden')
+    }));
+    vi.stubGlobal('fetch', provider);
+    const response = await handleJevRecommend(request(), env);
+    expect(response.status).toBe(200);
+    expect(JSON.parse(provider.mock.calls[0][1].body).questions.audio.criteria).toHaveProperty('soft-rain');
+  });
+
+  it('rejects malformed menu rows before calling Jev', async () => {
+    mocks.optionsQuery.mockResolvedValue([...options, { kind: 'audio', id: 'external-file', description: 'Unsafe.' }]);
+    const provider = vi.fn();
+    vi.stubGlobal('fetch', provider);
+    const response = await handleJevRecommend(request(), env);
+    expect(response.status).toBe(503);
+    expect((await response.json()).error.code).toBe('OPTIONS_UNAVAILABLE');
+    expect(provider).not.toHaveBeenCalled();
+  });
+
+  it('rejects a Jev choice that the active menu has disabled', async () => {
+    mocks.optionsQuery.mockResolvedValue(options.filter(row => row.id !== 'aurora'));
+    vi.stubGlobal('fetch', vi.fn(async () => Response.json({
+      model: 'typesafe/jev-1.13', provider: 'TypeSafe',
+      answers: answers('literary-walden', { audio: { type: 'choice', choice: 'aurora' } })
+    })));
+    const response = await handleJevRecommend(request(), env);
+    expect(response.status).toBe(502);
+    expect((await response.json()).error.code).toBe('DECISION_INVALID_RESPONSE');
   });
 
   it('honors an explicit no-motion request even when Jev picks psychedelic visuals', async () => {
