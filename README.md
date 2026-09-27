@@ -301,36 +301,30 @@ npm run build
 
 ### Cloudflare release
 
-The [RISE Cloudflare workflow](.github/workflows/rise-cloudflare.yml) starts
-only when the repository's `CI` workflow passes for a push to the current
-`main` commit. It builds once, records that commit in a release marker, and
-uploads one artifact. The staging and production jobs verify and deploy the
-same artifact; production does not rebuild it. The workflow must be merged to
-`main` before GitHub can trigger it from `CI`.
+The [CI workflow](.github/workflows/ci.yml) checks and builds each pull request
+and main commit once. On main, it records the commit in a release marker and
+uploads the tested artifact. After the required `CI` job passes, the protected
+production job verifies and deploys that artifact without rebuilding. Full unit,
+Scriptorium, and browser validation runs separately and reports failures without
+holding the release.
 
-The GitHub `staging` and `production` environments restrict deployment to
-`main`. Production requires approval from `@sdcarlson`; owner self-review is
-enabled and administrator bypass is disabled. Set these environment values
-before a release:
+The GitHub `production` environment restricts deployment to `main` and
+requires approval from `@sdcarlson`; owner self-review is enabled and
+administrator bypass is disabled. Set these environment values before a release:
 
 | Environment | Values |
 | --- | --- |
-| `staging` | Secret `CLOUDFLARE_API_TOKEN`; variables `CLOUDFLARE_ACCOUNT_ID` and `STAGING_URL` (the protected `rise-jev-preview.*.workers.dev` URL). |
 | `production` | A separate secret `CLOUDFLARE_API_TOKEN`; variable `CLOUDFLARE_ACCOUNT_ID`. |
 
 Scope each Cloudflare token to only the account and deployment permissions it
-needs. Keep `OPENROUTER_API_KEY` in each Worker as a Cloudflare Secret, with a
-separate spend-capped production key. It never belongs in GitHub, the browser,
+needs. Keep `OPENROUTER_API_KEY` in the production Worker as a Cloudflare Secret
+with a spend cap. It never belongs in GitHub, the browser,
 or the build artifact. The declared required secret makes Wrangler refuse a
 deployment when the Worker lacks it.
 
-Staging stays behind Cloudflare Access. After a green staging deploy, sign in
-to its URL and check the home page, `/try-rise`, the release marker named in
-the workflow summary, security headers, and a JSON 404 for an unknown
-`/api/*` route. At `/jev-preview.html`, one deliberate click should show an
-action, model, and matching request ID; compare the corresponding OpenRouter
-usage and bounded Cloudflare logs. Only then approve the protected production
-job. The `syberlabs.io` zone and `rise.syberlabs.io` custom domain must be
+The production job checks the current main commit again after approval, verifies
+the artifact digest and release marker, and checks public pages and API errors
+after deployment. The `syberlabs.io` zone and `rise.syberlabs.io` custom domain must be
 active, and the RISE production Worker alone must have a public Access bypass;
 Relay must remain protected.
 

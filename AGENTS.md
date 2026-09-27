@@ -170,11 +170,12 @@ Guidance for anyone (human or agent) working on RISE. Standard commands live in
 
 ## Architecture at a glance
 
-RISE is a **client-only browser app** (vanilla-JS SPA built with Vite). There is
-**no backend, database, or external service to stand up** — user text is
-processed in the browser, and remote content (museum/text APIs) is fetched
-anonymously and degrades gracefully when unreachable. The whole product runs
-from the Vite dev server.
+RISE is a vanilla-JS SPA built with Vite. Reading and browser-local work stay
+client-side. Its production Cloudflare Worker serves the app and same-origin
+Jev decision routes. Optional book recommendations read a held Standard Ebooks
+catalog in Neon PostgreSQL, cache public catalog rows in Upstash Redis, and
+ask Jev through OpenRouter to choose a book. The Vite dev server runs the UI;
+the Worker and managed services are required for live recommendations.
 
 ## Environment / setup
 
@@ -197,30 +198,28 @@ from the Vite dev server.
  builds the app and starts `vite preview` on `127.0.0.1:4317` itself, with
  `VITE_RISE_ARCHIVE_REVIEW=1`. Do **not** start a server manually. It runs
  Chromium only, single worker, with autoplay forced on (Web Audio).
-- Pull requests run four core unit smoke files, plus build, hygiene, docs,
- and Scriptorium checks. The complete unit and browser suites run after merge
- on main. Browser checks also run through `workflow_dispatch`; the four
- `Browser matrix` check names still report on pull requests because repository
- rules may require them. Their pull-request result explicitly says browser
- coverage was deferred. `npm run test:e2e:gate` runs the browser corridor
- locally before pushing.
+- Pull requests and main run core smoke, build, hygiene, security,
+ and docs in one `CI` job with one dependency install. Main's `CI` uploads
+ the tested build for its protected production job. Full unit, Scriptorium, and sharded browser
+ suites run separately on main and manual dispatch. They report failures but
+ do not hold deployment. The ruleset requires `CI`. Run
+ `npm run test:e2e:gate` locally before pushing.
 - There is **no lint script**. The gates a pull request has to pass are:
  `node scripts/ci-hygiene.mjs`, `npm run security:audit`, and
  `npm run security:compat`
- (`hygiene` job); `npm run measure:first-load`, which holds what
+ (`CI` on pull requests and main); `npm run measure:first-load`, which holds what
  `dist/index.html` fetches to a ratcheting brotli budget declared in the script
- (`build` job); and `npx vitest run src/core/system-design.test.js` plus
+ (`CI` on pull requests and main); and `npx vitest run src/core/system-design.test.js` plus
  `npm run docs:diagram`, which must leave `docs/specs/ARCHITECTURE.md` unchanged
- (`docs` job).
+ (`CI` on pull requests and main).
 - `docs/specs/ARCHITECTURE.md` §3 carries a **generated** import graph between
  `<!-- BEGIN GENERATED DIAGRAM -->` markers. Edit
  `scripts/build-architecture-diagram.mjs`, never the diagram. The rest of that
  file is hand-written and guarded by `src/core/system-design.test.js`.
-- A change touching only `docs/`, `.agents/`, `.cursor/`, a root `*.md`,
- `LICENSE`, or `NOTICE` skips the unit, build, Scriptorium, and browser jobs.
- Anything else runs everything. The system-design guard lives in the unit suite
- but is **also** run by the `docs` job, because editing that document is exactly
- when it has to run.
+- Fast `CI` runs for every pull request and main commit, including prose-only
+ changes. Full validation runs for every main commit. The system-design guard lives in the unit suite
+ but is **also** run by `CI`, because editing that
+ document is exactly when it has to run.
 - `CI` is the one job that always reports and the only name a branch ruleset
  should require. A required check that never reports blocks a merge forever.
 

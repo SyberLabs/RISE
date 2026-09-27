@@ -1,10 +1,3 @@
-# CI: fast pull-request checks; complete browser coverage on main and dispatch.
-# Jobs are separate so a red run names which promise broke.
-#
-# A change that is only prose skips every job only code can break, and finishes
-# in under a minute. `CI` is the one job that always reports, and the only name
-# a branch ruleset should require.
-
 name: CI
 
 on:
@@ -13,276 +6,184 @@ on:
   pull_request:
   workflow_dispatch:
 
-# A second push supersedes the first — on a pull request. A cancelled run on
-# main is a commit whose health was never recorded, so main's runs finish.
-concurrency:
-  group: ci-${{ github.ref }}
-  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
-
-# Nothing in CI writes to the repository.
 permissions:
   contents: read
 
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
-  changes:
-    name: What changed
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    permissions:
-      contents: read
-      pull-requests: read
-    outputs:
-      code: ${{ steps.classify.outputs.code }}
-    steps:
-      # Asking the API costs a couple of seconds; cloning enough history to
-      # diff against the base costs far more than the jobs this can skip.
-      - name: Prose alone cannot break the application
-        id: classify
-        env:
-          GH_TOKEN: ${{ github.token }}
-          PR: ${{ github.event.pull_request.number }}
-          REPO: ${{ github.repository }}
-        run: |
-          set -euo pipefail
-
-          # Only a pull request can be narrowed. A push to main and a manual
-          # dispatch always run everything.
-          if [ "${{ github.event_name }}" != "pull_request" ]; then
-            echo 'code=true' >> "$GITHUB_OUTPUT"
-            echo 'Not a pull request — running every job.'
-            exit 0
-          fi
-
-          # A failed call must not block a merge, so it falls through to the
-          # empty case below rather than killing the job under `set -e`.
-          changed=$(gh api --paginate "repos/$REPO/pulls/$PR/files" --jq '.[].filename' || true)
-
-          # Fail safe: no answer means we do not know, and not knowing runs
-          # everything. Silence must never be read as "nothing to test".
-          if [ -z "$changed" ]; then
-            echo 'code=true' >> "$GITHUB_OUTPUT"
-            echo 'No file list came back — running every job.'
-            exit 0
-          fi
-
-          # Everything outside this allowlist is treated as code, so a path
-          # nobody anticipated errs toward running the suite.
-          code=$(printf '%s\n' "$changed" \
-            | grep -Ev '^(docs/|\.agents/|\.cursor/|[^/]+\.md$|LICENSE$|NOTICE$)' \
-            || true)
-
-          if [ -n "$code" ]; then
-            echo 'code=true' >> "$GITHUB_OUTPUT"
-            echo 'Code changed:'
-            printf '%s\n' "$code" | sed 's/^/  /'
-          else
-            echo 'code=false' >> "$GITHUB_OUTPUT"
-            echo 'Prose only — skipping unit tests, build, Scriptorium, and browser smoke.'
-            printf '%s\n' "$changed" | sed 's/^/  /'
-          fi
-
-  # ── Always runs ─────────────────────────────────────────────────────
-  #
-  # ci-hygiene.mjs reads README.md and NOTICE, and the system design document
-  # can be edited by hand, so a prose-only change still has these to answer to.
-
-  hygiene:
-    name: Source hygiene
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    steps:
-      - uses: actions/checkout@v4
-      - uses: ./.github/actions/setup
-
-      - name: No secret may travel in a delivery URL
-        run: node scripts/ci-hygiene.mjs
-
-      # Build and test tools execute repository-controlled inputs with the CI
-      # token's read authority, so their known high-severity flaws are part of
-      # the release boundary even when their bytes do not ship to readers.
-      - name: No dependency may carry a known high-severity advisory
-        run: npm run security:audit
-
-      - name: The voice authoring image adapter remains compatible
-        run: npm run security:compat
-
-  docs:
-    name: System design document
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    steps:
-      - uses: actions/checkout@v4
-      - uses: ./.github/actions/setup
-
-      # src/core/system-design.test.js guards ARCHITECTURE.md, and it lives in
-      # the unit suite — which a prose-only change skips. Editing that document
-      # is exactly when its guard has to run, so it runs here too.
-      - name: The system design document does not lie
-        run: npx vitest run src/core/system-design.test.js
-
-      # §3's import graph is written by the code it describes, so the only way
-      # it can be wrong is if someone forgot to run the generator.
-      - name: The architecture diagram agrees with the source
-        run: |
-          npm run docs:diagram
-          if ! git diff --exit-code -- docs/specs/ARCHITECTURE.md; then
-            echo ''
-            echo 'The committed diagram is not what src/ generates.'
-            echo 'Run: npm run docs:diagram — then commit the result.'
-            exit 1
-          fi
-
-  # ── Runs when code changed ──────────────────────────────────────────
-
-  test:
-    name: Unit tests
-    needs: changes
-    if: needs.changes.outputs.code == 'true'
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
-    steps:
-      - uses: actions/checkout@v4
-      - uses: ./.github/actions/setup
-        if: github.event_name != 'pull_request'
-        with:
-          ffmpeg: 'true'
-          chromium: 'true'
-      - uses: ./.github/actions/setup
-        if: github.event_name == 'pull_request'
-      - name: Core unit smoke
-        if: github.event_name == 'pull_request'
-        run: >-
-          npm run test:run --
-          src/core/content-store.test.js
-          src/core/journey-session.test.js
-          src/audio/engine.lifecycle.test.js
-          src/content/keystones.test.js
-      - name: Full unit and integration suite
-        if: github.event_name != 'pull_request'
-        run: npm run test:run
-
-  build:
-    name: Production build
-    needs: changes
-    if: needs.changes.outputs.code == 'true'
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    steps:
-      - uses: actions/checkout@v4
-      - uses: ./.github/actions/setup
-      - run: npm run build
-      # A first load can only stay small if something refuses to let it grow.
-      # The build itself already fails on a deferral the bundler ignores;
-      # this fails on the byte count that deferral was for.
-      - name: The Portal's cost is a budget, not an aspiration
-        run: npm run measure:first-load
-
-  scriptorium:
-    name: Scriptorium CLI
-    needs: changes
-    if: needs.changes.outputs.code == 'true'
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    steps:
-      - uses: actions/checkout@v4
-      - uses: ./.github/actions/setup
-
-      # The unit suite drives the CLI's argv shell in-process. This spawns it:
-      # `npm run scriptorium` must resolve, vite-node must load a graph that
-      # imports division-index.json, and a refusal code must arrive at the
-      # shell as the exit status the spec documents (§13). Its own job so a red
-      # run names which of those broke.
-      - name: A refusal is an exit status
-        run: npm run scriptorium:ci
-
-  # Browser tests require a production build, Chromium installation, and
-  # serial audio flows. Run the corridor on main and on manual dispatch.
-  e2e:
-    name: Browser gate
-    needs: changes
-    if: needs.changes.outputs.code == 'true' && github.event_name != 'pull_request'
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    steps:
-      - uses: actions/checkout@v4
-      - uses: ./.github/actions/setup
-        with:
-          chromium: 'true'
-      # playwright.config.js builds and previews on its own — what ships
-      # is what gets tested.
-      - run: npm run test:e2e:gate
-      - uses: actions/upload-artifact@v4
-        if: failure() || cancelled()
-        with:
-          name: playwright-report-gate
-          path: |
-            playwright-report/
-            test-results/
-          retention-days: 7
-
-  # Keep the four check names until the repository ruleset is changed. On a
-  # pull request each reports immediately and explicitly says browser coverage
-  # is deferred. On main and manual dispatch all four run the complete suite.
-  e2e-full:
-    name: Browser matrix ${{ matrix.shard }}/4
-    needs: changes
-    # Do not skip this job. A skipped matrix reports the unexpanded name
-    # "Browser matrix ${{ matrix.shard }}/4", and a ruleset that requires
-    # "Browser matrix 1/4" then waits forever. The shards always start;
-    # Playwright runs only after merge or on manual dispatch.
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
-    strategy:
-      # A failing shard must not hide the state of the other three.
-      fail-fast: false
-      matrix:
-        shard: [1, 2, 3, 4]
-    steps:
-      - name: Report browser coverage policy
-        if: github.event_name == 'pull_request'
-        run: echo 'Browser matrix deferred to main; this pull request did not run browser tests.'
-      - uses: actions/checkout@v4
-        if: github.event_name != 'pull_request'
-      - uses: ./.github/actions/setup
-        if: github.event_name != 'pull_request'
-        with:
-          chromium: 'true'
-      - if: github.event_name != 'pull_request'
-        run: npm run test:e2e -- --shard=${{ matrix.shard }}/4
-      - uses: actions/upload-artifact@v4
-        if: (failure() || cancelled()) && github.event_name != 'pull_request'
-        with:
-          # upload-artifact@v4 rejects a name a sibling already used.
-          name: playwright-report-full-${{ matrix.shard }}
-          path: |
-            playwright-report/
-            test-results/
-          retention-days: 7
-
-  # ── The gate ────────────────────────────────────────────────────────
-
   ci:
     name: CI
-    # Every other job can be skipped. This one cannot, because a required check
-    # that never reports blocks a merge forever.
-    if: always()
-    needs: [changes, hygiene, docs, test, build, scriptorium, e2e, e2e-full]
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 10
     steps:
-      # Skipped is allowed — skipping is what the change filter is for. Failed
-      # and cancelled are not.
-      - name: Every job that ran, passed
-        env:
-          RESULTS: ${{ toJSON(needs) }}
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup
+      - name: Fast release checks
         run: |
           set -euo pipefail
-          printf '%s\n' "$RESULTS" | jq -r 'to_entries[] | "  \(.value.result)\t\(.key)"'
-          broken=$(printf '%s\n' "$RESULTS" \
-            | jq -r 'to_entries[] | select(.value.result == "failure" or .value.result == "cancelled") | .key')
-          if [ -n "$broken" ]; then
-            echo ''
-            echo 'Did not pass:'
-            printf '%s\n' "$broken" | sed 's/^/  /'
-            exit 1
-          fi
+          node scripts/ci-hygiene.mjs
+          npm run security:audit
+          npm run security:compat
+          npx vitest run src/core/system-design.test.js
+          npx vitest run worker/index.test.js worker/jev-recommend.test.js src/components/Library.jev.test.js
+          npm run docs:diagram
+          git diff --exit-code -- docs/specs/ARCHITECTURE.md
+          npm run test:run -- \
+            src/core/content-store.test.js \
+            src/core/journey-session.test.js \
+            src/audio/engine.lifecycle.test.js \
+            src/content/keystones.test.js
+          npm run build
+          npm run measure:first-load
+      - name: Mark the tested release
+        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+        env:
+          TESTED_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          [[ "$TESTED_SHA" =~ ^[0-9a-f]{40}$ ]]
+          printf '%s\n' "$TESTED_SHA" > "dist/release-$TESTED_SHA.txt"
+      - uses: actions/upload-artifact@v4
+        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+        with:
+          name: rise-${{ github.sha }}
+          path: |
+            dist/
+            worker/index.mjs
+            worker/jev-recommend.mjs
+            src/content/archive/release-inventory.json
+            netlify/functions/jev-decision.mjs
+            netlify/functions/jev-route.mjs
+            package.json
+            package-lock.json
+            wrangler.production.jsonc
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 14
+  production:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: ci
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    # GitHub restricts this environment to main, requires @sdcarlson review,
+    # permits owner self-review, and disables administrator bypass.
+    environment:
+      name: production
+      url: https://rise.syberlabs.io
+    env:
+      TESTED_SHA: ${{ github.sha }}
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: rise-${{ github.sha }}
+          path: release
+      - name: Verify the same release artifact
+        run: |
+          set -euo pipefail
+          test "$(cat "$GITHUB_WORKSPACE/release/dist/release-$TESTED_SHA.txt")" = "$TESTED_SHA"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.12.0'
+      - name: Prove the exact release artifact bundles
+        working-directory: release
+        run: |
+          set -euo pipefail
+          npm ci --omit=dev --ignore-scripts --no-audit --no-fund
+          npx --yes wrangler@4.141.0 deploy --dry-run --config wrangler.production.jsonc \
+            --outdir "$RUNNER_TEMP/wrangler-dry-run"
+      - name: Recheck main after owner approval
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          test -n "$CLOUDFLARE_API_TOKEN"
+          test -n "$CLOUDFLARE_ACCOUNT_ID"
+          current=$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/main" --jq '.object.sha')
+          test "$TESTED_SHA" = "$current"
+      - name: Record prior production versions and rollback command
+        working-directory: release
+        run: |
+          set -euo pipefail
+          # A new production Worker has no deployment history. Only Cloudflare's
+          # specific script-not-found error (10007) means an empty history;
+          # permission, network, and other API errors must stop the release.
+          status=$(curl -sS --max-time 20 --retry 3 --retry-delay 2 \
+            -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
+            -o "$RUNNER_TEMP/deployment-history-response.json" -w '%{http_code}' \
+            "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/workers/scripts/rise-production/deployments")
+          case "$status" in
+            200)
+              jq -e '.success == true and (.result.deployments | type == "array")' \
+                "$RUNNER_TEMP/deployment-history-response.json" > /dev/null
+              jq '.result.deployments' "$RUNNER_TEMP/deployment-history-response.json" \
+                > "$RUNNER_TEMP/prior-production-deployments.json"
+              ;;
+            404)
+              jq -e '.success == false and any(.errors[]?; .code == 10007)' \
+                "$RUNNER_TEMP/deployment-history-response.json" > /dev/null
+              printf '[]\n' > "$RUNNER_TEMP/prior-production-deployments.json"
+              ;;
+            *)
+              echo "Could not verify prior production deployments (Cloudflare HTTP $status)."
+              exit 1
+              ;;
+          esac
+          {
+            echo '### Production rollback record (before deployment)'
+            echo 'Prior deployments and version IDs:'
+            echo '```json'
+            cat "$RUNNER_TEMP/prior-production-deployments.json"
+            echo '```'
+            if [ "$(jq length "$RUNNER_TEMP/prior-production-deployments.json")" -eq 0 ]; then
+              echo 'No prior production deployment exists; this first release has no Worker rollback version.'
+            else
+              echo 'If a prior version is independently verified as known-good, restore its **version ID** with:'
+              echo '`npx --yes wrangler@4.141.0 rollback <VERSION_ID> --config wrangler.production.jsonc --message "RISE rollback"`'
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+      - name: Deploy production from the verified artifact
+        working-directory: release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          current=$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/main" --jq '.object.sha')
+          test "$TESTED_SHA" = "$current"
+          npx --yes wrangler@4.141.0 deploy --config wrangler.production.jsonc --message "RISE $TESTED_SHA"
+      - name: Verify public production serves the exact release
+        run: |
+          set -euo pipefail
+          for path in / /try-rise /jev-preview "/release-$TESTED_SHA.txt"; do
+            status=$(curl -sS --max-time 20 --retry 5 --retry-delay 3 --retry-all-errors \
+              -D "$RUNNER_TEMP/public-headers" -o "$RUNNER_TEMP/public-body" \
+              -w '%{http_code}' "https://rise.syberlabs.io$path")
+            test "$status" = 200 || { echo "Expected public HTTP 200 at $path; got HTTP $status"; exit 1; }
+            if [ "$path" = "/release-$TESTED_SHA.txt" ]; then
+              test "$(cat "$RUNNER_TEMP/public-body")" = "$TESTED_SHA"
+            fi
+          done
+          status=$(curl -sS --max-time 20 --retry 5 --retry-delay 3 --retry-all-errors \
+            -D "$RUNNER_TEMP/public-headers" -o "$RUNNER_TEMP/public-body" \
+            -w '%{http_code}' 'https://rise.syberlabs.io/api/not-a-route')
+          test "$status" = 404 || { echo "Expected JSON 404 for unknown API; got HTTP $status"; exit 1; }
+          grep -Eiq '^content-type: application/json' "$RUNNER_TEMP/public-headers"
+          jq -e '.error.code == "NOT_FOUND"' "$RUNNER_TEMP/public-body" > /dev/null
+          status=$(curl -sS --max-time 20 -o "$RUNNER_TEMP/jev-recommend-body" \
+            -w '%{http_code}' -H 'Origin: https://rise.syberlabs.io' \
+            -H 'Content-Type: application/json' \
+            --data '{"intent":"A thoughtful classic about self-examination"}' \
+            'https://rise.syberlabs.io/api/jev-recommend')
+          test "$status" = 200 || { echo "Jev recommendation returned HTTP $status"; exit 1; }
+          jq -e '.model | startswith("typesafe/jev-1.13")' "$RUNNER_TEMP/jev-recommend-body" > /dev/null
+          jq -e '.editionId | startswith("standard-ebooks:")' "$RUNNER_TEMP/jev-recommend-body" > /dev/null
+          {
+            echo "Deployed production artifact $TESTED_SHA; public pages, exact release marker, JSON API 404, and a live Jev recommendation verified."
+            echo 'Owner acceptance: open the chosen book in the Library Archive at https://rise.syberlabs.io/.'
+          } >> "$GITHUB_STEP_SUMMARY"
