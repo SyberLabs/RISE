@@ -166,6 +166,7 @@ flowchart LR
     core["core<br/>session, player, router<br/>135 modules"]
     page["page<br/>spatial projection<br/>4 modules"]
     sources["sources<br/>text and visual providers<br/>22 modules"]
+    vendor["vendor<br/>SyberLabs design kit<br/>2 modules"]
     visuals["visuals<br/>procedural generation<br/>54 modules"]
 
     app -.-> |3 lazy| audio
@@ -182,6 +183,7 @@ flowchart LR
     components --> |140| core
     components -.-> |1 lazy| page
     components --> |4| sources
+    components -.-> |2 lazy| vendor
     components --> |13| visuals
     content --> |3| audio
     content --> |16| core
