@@ -1,12 +1,14 @@
 # First-read entrance pilot
 
-**Status: protocol prepared; comparison variants and reader observations are not yet available.** This is a five-reader formative check of the first-read entrance, not evidence of a tenfold result. Name one owner, freeze two comparable variants, and record the session dates before inviting anyone. Keep observations in a restricted private ledger, never in this repository.
+**Status: protocol and local comparison builds prepared; comparable hosted variants and reader observations are not yet available.** This is a five-reader formative check of the first-read entrance, not evidence of a tenfold result. Name one owner, freeze two comparable hosted variants, and record the session dates before inviting anyone. Keep observations in a restricted private ledger, never in this repository.
 
 ## Question and frozen comparison
 
 Does **Experience 30 seconds** get a new visitor to the first legible word of *Meditations* faster than the shortest pre-existing public path, without fewer readers staying for thirty seconds?
 
 Use two comparable, version-pinned deployments under the same hosting conditions. The proposed baseline is the last main commit before the new entrance, `4c27f1d`, and the proposed treatment is its merged release, `9c5e693`. Verify that the only material difference for this comparison is the entrance and choice, including the same admitted *Meditations* text and assets. If these variants cannot be served and verified side by side, do not run or claim a comparative timing result. Before each session, record both release commits, device, browser, network, and admitted reading version. Stop the pilot if either deployed version changes during collection. Use the same device and network for both paths within a reader's session.
+
+Local readiness check (2026-09-26): detached builds are pinned to `4c27f1dee4e4ebd6c9876b781db71203d5ffae1d` and `9c5e693e650f5293bf212a11164073034ac189f7`. Their source content and public trees are identical, including the admitted *Meditations* edition. The built `audio/` (884 files), `fonts/` (13), `programs/` (1), `sequences/` (5), `engine-stills/` (4), and `chapel/` (9) files have matching SHA-256 hashes. Of 89 built `content/` files, 88 match byte for byte; `content/manifest.json` differs only in its generated timestamp, with the same revision and works. Both local routes opened readable *Meditations* text in smoke checks. This establishes local build comparability only; the required side-by-side hosted check and human observations remain open.
 
 - **Existing path:** Portal → Try RISE → Meditations → first legible reading word.
 - **New path:** Portal → Experience 30 seconds → first legible reading word.
