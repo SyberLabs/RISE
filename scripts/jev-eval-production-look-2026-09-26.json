@@ -1,0 +1,109 @@
+{
+  "model": "typesafe/jev-1.13-20260917",
+  "rows": [
+    {
+      "id": "mint-ink",
+      "decision": {
+        "textColor": "jade",
+        "backgroundColor": "classic",
+        "colorTheme": "jade",
+        "chamberFace": "sans",
+        "fontSize": "large",
+        "audio": "silent",
+        "visualStyle": "gentle",
+        "visualMode": "off"
+      }
+    },
+    {
+      "id": "lilac-ink",
+      "decision": {
+        "textColor": "amethyst",
+        "backgroundColor": "classic",
+        "colorTheme": "amethyst",
+        "chamberFace": "sans",
+        "fontSize": "large",
+        "audio": "silent",
+        "visualStyle": "gentle",
+        "visualMode": "off"
+      }
+    },
+    {
+      "id": "forest-ground",
+      "decision": {
+        "textColor": "classic",
+        "backgroundColor": "jade",
+        "colorTheme": "jade",
+        "chamberFace": "sans",
+        "fontSize": "large",
+        "audio": "silent",
+        "visualStyle": "quiet",
+        "visualMode": "off"
+      }
+    },
+    {
+      "id": "navy-ground",
+      "decision": {
+        "textColor": "cobalt",
+        "backgroundColor": "cobalt",
+        "colorTheme": "cobalt",
+        "chamberFace": "sans",
+        "fontSize": "large",
+        "audio": "silent",
+        "visualStyle": "quiet",
+        "visualMode": "off"
+      }
+    },
+    {
+      "id": "small-serif",
+      "decision": {
+        "textColor": "classic",
+        "backgroundColor": "classic",
+        "colorTheme": "classic",
+        "chamberFace": "literary",
+        "fontSize": "small",
+        "audio": "silent",
+        "visualStyle": "quiet",
+        "visualMode": "off"
+      }
+    },
+    {
+      "id": "large-mono",
+      "decision": {
+        "textColor": "classic",
+        "backgroundColor": "classic",
+        "colorTheme": "classic",
+        "chamberFace": "mono",
+        "fontSize": "large",
+        "audio": "silent",
+        "visualStyle": "quiet",
+        "visualMode": "off"
+      }
+    },
+    {
+      "id": "silent-still",
+      "decision": {
+        "textColor": "classic",
+        "backgroundColor": "classic",
+        "colorTheme": "classic",
+        "chamberFace": "sans",
+        "fontSize": "fit",
+        "audio": "silent",
+        "visualStyle": "quiet",
+        "visualMode": "off"
+      }
+    },
+    {
+      "id": "rain-psychedelic",
+      "decision": {
+        "textColor": "cobalt",
+        "backgroundColor": "classic",
+        "colorTheme": "prism",
+        "chamberFace": "sans",
+        "fontSize": "large",
+        "audio": "soft-rain",
+        "visualStyle": "psychedelic",
+        "visualMode": "interlocution"
+      }
+    }
+  ]
+}

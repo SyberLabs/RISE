@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { scoreDecisions } from './jev-eval.mjs';
 import { JEV_AUDIO_IDS } from '../src/core/jev-config.js';
+import { JEV_INKS, JEV_PALETTES } from '../src/core/jev-palette.js';
 
 const cases = [
   { id: 'quiet', intent: 'Quiet reading', group: 'energy', expect: { pace: ['100', '150'], audio: ['silent'] } },
@@ -79,6 +80,11 @@ test('look evaluation covers independent colors, type, audio, and visuals in con
   const fixtures = JSON.parse(readFileSync(new URL('./jev-eval-look-cases.json', import.meta.url)));
   const options = JSON.parse(readFileSync(new URL('./jev-eval-look-options.json', import.meta.url)));
   assert.equal(fixtures.length, 8);
+  assert.deepEqual(options.audio, ['silent', ...JEV_AUDIO_IDS]);
+  assert.deepEqual(options.textColor, Object.keys(JEV_INKS));
+  assert.deepEqual(options.backgroundColor, Object.keys(JEV_PALETTES));
+  assert.deepEqual(options.chamberFace, ['literary', 'display', 'thick', 'jp', 'mono', 'sans', 'book']);
+  assert.deepEqual(options.fontSize, ['small', 'medium', 'large', 'xlarge', 'fit']);
   assert.deepEqual(fixtures.map(item => item.group),
     ['ink', 'ink', 'ground', 'ground', 'type', 'type', 'senses', 'senses']);
   for (const item of fixtures) {
