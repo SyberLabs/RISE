@@ -2119,7 +2119,7 @@ export class Chamber {
     const intensity = this.session?.visualConfig?.livingText?.intensity ?? 1;
     const wordFill = this.session?.visualConfig?.interlocution?.wordFill;
     const accentRgb = wordFill?.mode === 'accent'
-      ? getComputedStyle(document.documentElement)
+      ? getComputedStyle(this.container)
         .getPropertyValue('--color-accent-rgb')
         .split(',')
         .map(channel => Number(channel.trim()))
