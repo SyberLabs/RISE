@@ -4,8 +4,8 @@
   "description": "An audiovisual reader. Curated texts, paced reading, and museum imagery arranged around the words.",
   "start_url": "/",
   "display": "standalone",
-  "theme_color": "#0A0A0C",
-  "background_color": "#0A0A0C",
+  "theme_color": "#06051A",
+  "background_color": "#06051A",
   "icons": [
     {
       "src": "/android-chrome-192x192.png",

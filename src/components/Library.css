@@ -1,12 +1,16 @@
 /* ═══════════════════════════════════════════════════════════
-   Library Component Styles
-   Browsing, discovery, metadata-rich presentation
+   Library Component Styles (Library and Sequences)
+   Browsing, discovery, metadata-rich presentation.
+   SyberLabs v2: ink with the starfield, a glass header, pill controls,
+   and the Ask Jev request on a plate.
    ═══════════════════════════════════════════════════════════ */
 
 .library {
   height: 100vh;
   overflow: hidden;
-  background: var(--color-void);
+  background-color: var(--color-void);
+  background-image: var(--sy-starfield);
+  background-size: var(--sy-starfield-size);
   display: flex;
   flex-direction: column;
 }
@@ -16,8 +20,11 @@
    ───────────────────────────────────────────────────────────── */
 
 .library-header {
-  padding: var(--space-lg);
-  border-bottom: 1px solid var(--color-shadow);
+  padding: var(--space-lg) clamp(16px, 4vw, 56px);
+  background: var(--sy-glass);
+  -webkit-backdrop-filter: blur(14px) saturate(1.3);
+  backdrop-filter: blur(14px) saturate(1.3);
+  border-bottom: 1px solid var(--sy-line);
   display: flex;
   flex-direction: column;
   gap: var(--space-lg);
@@ -31,8 +38,8 @@
 
 .library-title-section h1 {
   font-family: var(--font-display);
-  font-size: 32px;
-  line-height: 36px;
+  font-size: 40px;
+  line-height: 44px;
   font-weight: var(--font-weight-regular);
   color: var(--color-light);
   letter-spacing: -0.01em;
@@ -267,7 +274,8 @@
 /* The Sequences room on a phone (shared chrome, kept as it was): the
    title and preamble shrink so the first sequence is on the first screen. */
 @media (max-width: 640px) {
-  .library-title-section h1 { font-size: 21px; }
+  /* Serif is never set below 32px: at phone density this is the sans heading. */
+  .library-title-section h1 { font-family: var(--font-primary); font-weight: var(--font-weight-semibold); font-size: 20px; line-height: 28px; }
   .library-header { padding: var(--space-sm) var(--space-md); gap: var(--space-sm); }
   .section-header h2 { font-size: 17px; }
   .section-header { margin-bottom: var(--space-sm); }
@@ -312,7 +320,7 @@
   min-height: var(--sy-control-height);
   padding: 0;
   border: none;
-  border-radius: var(--sy-radius);
+  border-radius: var(--sy-radius-full);
   background: transparent;
   color: var(--sy-text-2);
   font: 500 14px/20px var(--sy-font-sans);
@@ -395,7 +403,7 @@
   margin: 0 0 var(--sy-space-5);
   padding: var(--sy-space-4);
   border: 1px solid var(--sy-danger);
-  border-radius: var(--sy-radius);
+  border-radius: var(--sy-radius-panel);
   color: var(--sy-text);
 }
 .library-alert svg { flex: none; color: var(--sy-danger); }
@@ -434,7 +442,7 @@
   height: var(--sy-control-height);
   padding: 0;
   border: none;
-  border-radius: var(--sy-radius);
+  border-radius: var(--sy-radius-full);
   background: transparent;
   color: var(--sy-text-3);
   cursor: pointer;
@@ -447,13 +455,41 @@
 
 /* ── Jev ─────────────────────────────────────────────────── */
 
+/* Ask Jev: the featured request, on a plate — a rule-2 frame, a second
+   rule inset, and RISE-accent registration ticks. */
 .library-jev {
+  position: relative;
   max-width: 760px;
-  margin: 0 0 var(--sy-space-7);
+  margin: 6px 6px var(--sy-space-7);
   padding: var(--sy-space-5);
-  border: 1px solid var(--sy-line);
-  border-radius: var(--sy-radius);
+  border: 1px solid var(--sy-line-strong);
+  outline: 1px solid var(--sy-line);
+  outline-offset: -5px;
+  border-radius: 0;
   background: var(--sy-surface);
+}
+
+.library-jev::before,
+.library-jev::after {
+  content: '';
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  border: solid var(--sy-accent-rise);
+  opacity: 0.8;
+  pointer-events: none;
+}
+
+.library-jev::before {
+  top: -6px;
+  left: -6px;
+  border-width: 1px 0 0 1px;
+}
+
+.library-jev::after {
+  bottom: -6px;
+  right: -6px;
+  border-width: 0 1px 1px 0;
 }
 
 .library-jev h2,
@@ -464,8 +500,8 @@
   font-weight: 600;
   letter-spacing: 0;
 }
-.library-jev h2 { font-size: 18px; line-height: 28px; }
-.library-jev h3 { font-size: 24px; line-height: 32px; letter-spacing: -0.01em; }
+.library-jev h2 { font-size: 22px; line-height: 30px; letter-spacing: -0.01em; }
+.library-jev h3 { font-family: var(--sy-font-serif); font-weight: 400; font-size: 40px; line-height: 44px; letter-spacing: -0.01em; }
 .library-jev p {
   margin: var(--sy-space-1) 0 0;
   font: 400 14px/20px var(--sy-font-sans);
@@ -486,12 +522,18 @@
   padding: 0 var(--sy-space-4);
   border: 1px solid var(--sy-line-strong);
   border-radius: var(--sy-radius);
-  background: var(--sy-bg);
+  background: var(--sy-surface);
   color: var(--sy-text);
   font: 400 16px/24px var(--sy-font-sans);
+  transition: border-color var(--sy-dur-hover) var(--sy-ease),
+    box-shadow var(--sy-dur-hover) var(--sy-ease);
 }
 .library-jev input::placeholder { color: var(--sy-text-3); }
-.library-jev input:focus { border-color: var(--sy-brand); }
+.library-jev input:focus {
+  outline: none;
+  border-color: var(--sy-ice);
+  box-shadow: 0 0 0 3px rgba(144, 216, 240, 0.25);
+}
 .library-jev button:disabled { opacity: 0.4; cursor: not-allowed; }
 .library-jev-dictate {
   display: inline-flex;
@@ -502,16 +544,17 @@
   min-height: var(--sy-control-height);
   padding: 0;
   border: 1px solid var(--sy-line-strong);
-  border-radius: var(--sy-radius);
-  background: transparent;
+  border-radius: var(--sy-radius-full);
+  background: rgba(6, 5, 26, 0.4);
   color: var(--sy-text);
   font: 500 16px/24px var(--sy-font-sans);
   cursor: pointer;
   white-space: nowrap;
-  transition: background-color var(--sy-dur-hover) var(--sy-ease);
+  transition: border-color var(--sy-dur-hover) var(--sy-ease),
+    box-shadow var(--sy-dur-enter) var(--sy-ease);
 }
-.library-jev-dictate:hover { background: var(--sy-surface-2); }
-.library-jev-dictate[aria-pressed="true"] { border-color: var(--sy-brand); background: var(--sy-surface-2); }
+.library-jev-dictate:hover { border-color: var(--sy-ice); box-shadow: 0 0 24px -6px var(--sy-brand); }
+.library-jev-dictate[aria-pressed="true"] { border-color: var(--sy-danger); color: var(--sy-danger); }
 .library-jev-dictate:disabled { cursor: not-allowed; }
 .library-jev .library-jev-voice-note,
 .library-jev [data-jev-dictation-status] {
@@ -525,9 +568,9 @@
 .library-jev-choice { display: grid; gap: var(--sy-space-1); }
 .library-jev-kicker {
   font: 500 12px/16px var(--sy-font-mono);
-  color: var(--sy-text-3);
+  color: var(--sy-text-2);
   text-transform: uppercase;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.14em;
 }
 .library-jev-choice .library-jev-author { margin: 0; }
 .library-jev-choice button { justify-self: start; margin-top: var(--sy-space-3); }
@@ -555,9 +598,9 @@
 .filter-btn {
   min-height: 36px;
   padding: 0 var(--sy-space-4);
-  background: transparent;
+  background: rgba(6, 5, 26, 0.4);
   border: 1px solid var(--sy-line-strong);
-  border-radius: var(--sy-radius);
+  border-radius: var(--sy-radius-full);
   color: var(--sy-text-2);
   font: 500 14px/20px var(--sy-font-sans);
   cursor: pointer;
@@ -567,10 +610,10 @@
 @media (hover: hover) {
   .filter-btn:hover { background: var(--sy-surface-2); color: var(--sy-text); }
 }
-/* Selected is the brand signal, never the product accent. */
+/* Selected is the ice signal, never the product accent. */
 .filter-btn.active {
   background: var(--sy-surface-2);
-  border-color: var(--sy-brand);
+  border-color: var(--sy-ice);
   color: var(--sy-text);
 }
 
@@ -732,7 +775,7 @@
   margin-bottom: var(--sy-space-5);
   padding: var(--sy-space-5);
   border: 1px solid var(--sy-line-strong);
-  border-radius: var(--sy-radius);
+  border-radius: var(--sy-radius-panel);
   transition: background-color var(--sy-dur-hover) var(--sy-ease),
     border-color var(--sy-dur-hover) var(--sy-ease);
 }
@@ -847,7 +890,7 @@
  * can tell a two-minute lyric from an hour of Montaigne before
  * committing to it.
  *
- * Panel on surface (#0B0D14), never on the hairline colour: text-3 on the
+ * Panel on surface (ink-2), never on the hairline colour: text-3 on the
  * hairline fell to 4.46:1 and the minutes to 2.9:1.
  */
 .toc-scrim {
@@ -944,7 +987,7 @@
   font: 400 16px/24px var(--sy-font-sans);
 }
 .toc-search-input::placeholder { color: var(--sy-text-3); }
-.toc-search-input:focus { border-color: var(--sy-brand); }
+.toc-search-input:focus { outline: none; border-color: var(--sy-ice); box-shadow: 0 0 0 3px rgba(144, 216, 240, 0.25); }
 .toc-search-count {
   font: 500 12px/16px var(--sy-font-mono);
   letter-spacing: 0.08em;

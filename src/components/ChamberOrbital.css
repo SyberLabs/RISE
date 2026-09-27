@@ -1,24 +1,25 @@
 /* ═══════════════════════════════════════════════════════════
    Reader setup (ChamberOrbital)
-   SyberLabs Design System v1: ink on near-black, hairlines not boxes,
-   one primary action. Values are the spec's literal tokens.
+   SyberLabs Design System v2: the setup's --rs-* names alias the system's
+   --sy-* tokens (design-system.css), so the room follows the Atlas ink,
+   vellum and rules. The RISE accent stays its own literal.
    ═══════════════════════════════════════════════════════════ */
 
 .chamber-orbital {
-  --rs-bg: #05060A;
-  --rs-surface: #0B0D14;
-  --rs-surface-2: #121521;
-  --rs-line: #1F2433;
-  --rs-line-strong: #5E6980;
-  --rs-text: #F2F5FB;
-  --rs-text-2: #AEB8CC;
-  --rs-text-3: #7F8AA3;
-  --rs-brand: #4890F0;
+  --rs-bg: var(--sy-bg);
+  --rs-surface: var(--sy-surface);
+  --rs-surface-2: var(--sy-surface-2);
+  --rs-line: var(--sy-line);
+  --rs-line-strong: var(--sy-line-strong);
+  --rs-text: var(--sy-text);
+  --rs-text-2: var(--sy-text-2);
+  --rs-text-3: var(--sy-text-3);
+  --rs-brand: var(--sy-brand);
   --rs-accent: #E4D2AE;
-  --rs-sans: 'Instrument Sans', var(--font-primary);
-  --rs-serif: 'Instrument Serif', var(--font-literary);
-  --rs-mono: 'JetBrains Mono', var(--font-mono);
-  --rs-ease: cubic-bezier(.2, .8, .2, 1);
+  --rs-sans: var(--sy-font-sans);
+  --rs-serif: var(--sy-font-serif);
+  --rs-mono: var(--sy-font-mono);
+  --rs-ease: var(--sy-ease);
   --rs-gutter: 64px;
 
   /* THE FLOOR IS REACHABLE. `body` sets `overflow: hidden`, so the setup
