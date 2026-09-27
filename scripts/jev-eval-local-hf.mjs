@@ -22,7 +22,19 @@ const descriptions = {
     thrilling: 'Driving low pulse for suspense, pursuit, or dramatic momentum.',
     scary: 'Uneasy low dissonance for dread, fear, or ominous scenes.',
     piano: 'Solo piano music behind the reading.',
-    jazz: 'Jazz music behind the reading.'
+    jazz: 'Jazz music behind the reading.',
+    lullaby: 'A gentle lullaby for winding down.',
+    nocturne: 'Reflective nocturne music for late-night reading.',
+    waltz: 'A graceful waltz rhythm.',
+    blues: 'A slow blues musical bed.',
+    bossa: 'Soft bossa nova music.',
+    ragtime: 'Playful ragtime accompaniment.',
+    wonder: 'A wondrous, curious atmosphere.',
+    mystery: 'A quiet, mysterious atmosphere.',
+    chase: 'A tense chase pulse.',
+    triumph: 'Triumphant, victorious music.',
+    haunted: 'Haunted and uneasy atmosphere.',
+    starlight: 'Calm starlight atmosphere.'
   },
   visualMode: {
     off: 'No moving visuals, blank still background.',
@@ -42,11 +54,14 @@ const descriptions = {
     display: 'Expressive display serif typography.',
     thick: 'Bold geometric lettering.',
     jp: 'Japanese serif typography.',
-    mono: 'Monospaced type like code or a typewriter.'
+    mono: 'Monospaced type like code or a typewriter.',
+    sans: 'Clean modern sans-serif lettering.',
+    book: 'Warm, readable book serif typography.'
   },
   fontSize: {
     small: 'Small, unobtrusive text.', medium: 'Medium sized text.',
-    large: 'Large, easy-to-read text.', fit: 'Huge word filling the screen.'
+    large: 'Large, easy-to-read text.', xlarge: 'Extra large text for distant reading.',
+    fit: 'Huge word filling the screen.'
   },
   colorTheme: {
     classic: 'Warm ivory and near-black color theme.',

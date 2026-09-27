@@ -4,11 +4,15 @@
 
 The [eight look prompts](../../scripts/jev-eval-look-cases.json) test independently requested text ink and background colors, typeface, size, sound, and visual motion against the [current offered choices](../../scripts/jev-eval-look-options.json). The local MiniLM semantic selector returned valid choices for all eight prompts, matched 11 of 14 explicitly requested fields, and made all requested opposite fields differ in 3 of 4 prompt pairs. Those contrast pairs measure **intent differentiation**, not color readability. The separate palette test checks all 36 ink and background pairings and found a minimum 10.85:1 text contrast ratio.
 
-This local selector is not TypeSafe Jev. No live Jev look evaluation was run because this workspace had no provider token. The eight prompts and option snapshot are ready for a provider run, but no production preference-match result is claimed.
+On 2026-09-26, the [sanitized live schema-v2 record](../../scripts/jev-eval-production-look-2026-09-26.json) captured eight HTTP 200 responses from `rise.syberlabs.io` while the site served release `467721cae7e1a1c76ed88a7864db11b4fb3d094a`. All eight offered-choice decisions were valid; 14 of 14 explicit preferences matched, and 4 of 4 contrast pairs changed the requested choice. The response model was `typesafe/jev-1.13-20260917`. The route does not report provider token usage, and a single pass does not measure repeatability or reader enjoyment. Live speech recognition also needs a reader with a microphone.
+
+The local selector is an independent semantic baseline, not TypeSafe Jev. The live record excludes prompts, request IDs, and credentials; the case file supplies the synthetic prompts for reproduction.
 
 ```powershell
 node scripts/jev-eval-local-hf.mjs scripts/jev-eval-look-cases.json scripts/jev-eval-look-options.json local-look-eval.json
 node scripts/jev-eval.mjs --cases scripts/jev-eval-look-cases.json --options scripts/jev-eval-look-options.json --input local-look-eval.json
+node scripts/jev-eval-live.mjs scripts/jev-eval-look-cases.json scripts/jev-eval-look-options.json live-look-eval.json
+node scripts/jev-eval.mjs --cases scripts/jev-eval-look-cases.json --options scripts/jev-eval-look-options.json --input live-look-eval.json
 ```
 
 ## What is measured
