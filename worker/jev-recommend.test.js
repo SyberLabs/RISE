@@ -147,6 +147,7 @@ describe('Jev reading recommendation', () => {
     const response = await handleJevRecommend(request(), env);
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual({
+      schemaVersion: 1,
       requestId: 'gen-dec-live-1', model: 'typesafe/jev-1.13-20260917',
       workId: 'middlemarch', editionId: books[0].edition_id,
       sourceRevision: books[0].source_revision,
@@ -173,8 +174,15 @@ describe('Jev reading recommendation', () => {
     ]);
     expect(body.questions.visual.criteria.interlocution).toContain('psychedelic');
     expect(body.questions.visualEngine.criteria.fractal).toContain('psychedelic');
-    expect(Object.keys(body.questions.audio.criteria)).toEqual(['silent', 'aurora', 'faded-signal']);
+    expect(Object.keys(body.questions.audio.criteria)).toEqual(['silent', 'aurora', 'faded-signal', 'soft-rain']);
+    expect(body.questions.chamberFace.criteria).toHaveProperty('mono');
     expect(body.questions.section.criteria).toHaveProperty('shortest');
+    expect(body.questions.pace.instructions).toContain('speed');
+    expect(body.questions.audio.instructions).toContain('sound');
+    expect(body.questions.chamberFace.instructions).toContain('font');
+    expect(body.questions.fontSize.instructions).toContain('size');
+    expect(body.questions.visualStyle.instructions).toContain('visual energy');
+    expect(body.questions.projection.instructions).toContain('continuous visual');
     expect(provider.mock.calls[0][1].headers.Authorization).toBe('Bearer openrouter-server-secret');
   });
 
@@ -322,7 +330,7 @@ describe('Jev reading recommendation', () => {
     });
     expect(provider).toHaveBeenCalledTimes(1);
     const decisionKey = [...cache.keys()].find(key => key.startsWith('rise:jev-decision:'));
-    expect(decisionKey).toMatch(/^rise:jev-decision:v7:[0-9a-f]{64}:0$/u);
+    expect(decisionKey).toMatch(/^rise:jev-decision:v8:[0-9a-f]{64}:0$/u);
     expect(decisionKey).not.toContain('Nature and quiet.');
     expect(mocks.set).toHaveBeenCalledWith(decisionKey, expect.objectContaining({
       workId: 'literary-walden'
@@ -385,9 +393,8 @@ describe('Jev reading recommendation', () => {
     for (let index = 1; index < responses.length; index++) {
       expect(responses[index].workId).not.toBe(responses[index - 1].workId);
     }
-    expect(provider).toHaveBeenCalledTimes(4);
-    expect(responses[4].decisionCacheStatus).toBe('hit');
-    expect(responses[4].workId).toBe(responses[0].workId);
+    expect(provider).toHaveBeenCalledTimes(5);
+    expect(responses[4].decisionCacheStatus).toBe('miss');
     const first = Object.keys(JSON.parse(provider.mock.calls[0][1].body).questions.book.criteria);
     const second = Object.keys(JSON.parse(provider.mock.calls[1][1].body).questions.book.criteria);
     expect(first.filter(id => second.includes(id))).toEqual([]);
@@ -432,6 +439,41 @@ describe('Jev reading recommendation', () => {
 
     expect(response.status).toBe(200);
     expect(await response.json()).toMatchObject({ requestId: 'gen-dec-fresh', decisionCacheStatus: 'miss' });
+    expect(provider).toHaveBeenCalledOnce();
+  });
+
+  it('honors an explicit no-motion request even when Jev picks psychedelic visuals', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => Response.json({
+      model: 'typesafe/jev-1.13', provider: 'TypeSafe',
+      answers: answers('literary-walden', {
+        visual: { type: 'choice', choice: 'interlocution' },
+        visualStyle: { type: 'choice', choice: 'psychedelic' },
+        visualArc: { type: 'choice', choice: 'triple' }
+      })
+    })));
+    const response = await handleJevRecommend(request({ intent: 'A quiet reading with no moving visuals.' }), env);
+    expect(response.status).toBe(200);
+    expect((await response.json()).config).toMatchObject({
+      visualMode: 'off', visualStyle: 'quiet', visualArc: 'single', visualProgram: null
+    });
+  });
+
+  it('does not serve a cached result with an unsupported schema version', async () => {
+    mocks.get.mockImplementation(async key => key.startsWith('rise:books:') ? books : {
+      schemaVersion: 2, requestId: 'future', model: 'typesafe/jev-1.13',
+      workId: 'literary-walden', editionId: book('literary-walden').edition_id,
+      sourceRevision: book('literary-walden').source_revision,
+      reason: book('literary-walden').fit_description, config: chosenConfig
+    });
+    const provider = vi.fn(async () => Response.json({
+      id: 'gen-dec-fresh', model: 'typesafe/jev-1.13', provider: 'TypeSafe',
+      answers: answers('literary-walden')
+    }));
+    vi.stubGlobal('fetch', provider);
+
+    const response = await handleJevRecommend(request(), env);
+    expect(response.status).toBe(200);
+    expect(await response.json()).toMatchObject({ schemaVersion: 1, requestId: 'gen-dec-fresh' });
     expect(provider).toHaveBeenCalledOnce();
   });
 

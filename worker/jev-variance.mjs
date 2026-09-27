@@ -1,16 +1,16 @@
 // Rotating hints diversify Jev's single decision without replacing its judgment.
 // The caller supplies a persisted, atomic turn number; no reader text is stored here.
 const DIRECTIONS = Object.freeze([
-  'a prismatic continuous Gallery (visualStyle=psychedelic, visualEngine=fractal, colorTheme=prism)',
-  'energetic growing line art (visual=genesis, kleePreset=chaotic, colorTheme=ember)',
-  'a luminous strange attractor (visual=attractor, visualPalette=purple, colorTheme=amethyst)',
-  'a spectral Gallery (visual=interlocution, visualEngine=apparitio, colorTheme=cobalt)',
-  'soft atmospheric light (visual=interlocution, visualEngine=turrell, colorTheme=jade)',
-  'an iridescent radial Gallery (visual=interlocution, visualEngine=ostensoria, colorTheme=ember)',
-  'fine harmonic line work (visual=interlocution, visualEngine=harmonograph, colorTheme=amethyst)'
+  'a prismatic Gallery (visualStyle=psychedelic, visualEngine=fractal, colorTheme=prism, pace=250, chunk=word, audio=faded-signal, chamberFace=thick, fontSize=fit)',
+  'energetic line art (visual=genesis, kleePreset=chaotic, colorTheme=ember, pace=300, chunk=phrase, audio=faded-signal, chamberFace=thick, fontSize=large)',
+  'a luminous attractor (visual=attractor, visualPalette=purple, colorTheme=amethyst, pace=200, chunk=word, audio=aurora, chamberFace=display, fontSize=fit)',
+  'a spectral Gallery (visual=interlocution, visualEngine=apparitio, colorTheme=cobalt, pace=250, chunk=sentence, audio=faded-signal, chamberFace=display, fontSize=medium)',
+  'soft atmospheric light (visual=interlocution, visualEngine=turrell, colorTheme=jade, pace=150, chunk=phrase, audio=aurora, chamberFace=literary, fontSize=large)',
+  'an iridescent radial Gallery (visual=interlocution, visualEngine=ostensoria, colorTheme=ember, pace=200, chunk=sentence, audio=aurora, chamberFace=display, fontSize=large)',
+  'fine harmonic line work (visual=interlocution, visualEngine=harmonograph, colorTheme=amethyst, pace=100, chunk=paragraph, audio=silent, chamberFace=literary, fontSize=medium)'
 ]);
 
-export const VARIATION_COUNT = 4;
+export const VARIATION_COUNT = DIRECTIONS.length;
 
 function words(value) {
   return String(value || '').normalize('NFKC').toLocaleLowerCase('en')
@@ -44,7 +44,9 @@ export function buildJevVarianceHints({ books, intent = '', turn }) {
     bookHint: focusWorkId
       ? `When several readings fit the reader equally well, consider ${focusWorkId} on this turn. A named or clearly requested work and the reader's intent always take priority.`
       : 'Choose the reading that best fits the reader intent.',
-    configHint: `When the reader leaves the aesthetic open, consider ${direction} as a coherent direction this turn. Vary the rest of the offered settings to suit the reading. Explicit reader preferences always take priority; select only offered values.`,
+    configHint: narrow
+      ? `For this open discovery request, consider ${direction} as a coherent direction this turn. Explicit reader preferences always take priority; select only offered values.`
+      : 'Choose every presentation setting to fit the reader intent. Explicit reader preferences always take priority; select only offered values.',
     variation: { turn: index, focusWorkId, directionIndex: index % DIRECTIONS.length, cohort: narrow ? cohort : null }
   };
 }

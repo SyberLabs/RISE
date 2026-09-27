@@ -13,7 +13,12 @@ const CHOICES = Object.freeze({
   pace: { '100': 'Very slow.', '150': 'Slow.', '200': 'Moderate.', '250': 'Brisk.', '300': 'Fast.', '400': 'Very fast.', '500': 'Fastest offered.' },
   curve: { flat: 'Steady pace.', induction: 'Begin slowly.', ascent: 'Gradually accelerate.', wave: 'Rise and fall.', climax: 'Build toward a fast finish.' },
   chunk: { word: 'One word.', phrase: 'Short phrases.', sentence: 'Sentences.', paragraph: 'Paragraphs.' },
-  audio: { silent: 'Silence.', aurora: 'Aurora soundscape.', 'faded-signal': 'Faded Signal soundscape.' },
+  audio: {
+    silent: 'Silence; choose when the reader asks for quiet or no sound.',
+    aurora: 'A slow, deep harmonic pad with occasional drifting overtones; choose for serene, spacious atmosphere.',
+    'faded-signal': 'A warm, weathered analog bed with subtle pitch drift; choose for nostalgic or imperfect atmosphere.',
+    'soft-rain': 'Gentle, steady rain texture; choose for a natural rainy or sheltered atmosphere.'
+  },
   visual: {
     off: 'No visual field.',
     focals: 'A single quiet focal figure.',
@@ -74,7 +79,8 @@ const CHOICES = Object.freeze({
   },
   chamberFace: {
     literary: 'Literary serif text.', display: 'Display serif text.',
-    thick: 'Bold geometric text; strong for vivid readings.', jp: 'Japanese serif text.'
+    thick: 'Bold geometric text; strong for vivid readings.', jp: 'Japanese serif text.',
+    mono: 'Monospaced JetBrains Mono text; choose for code, technical, or typewritten atmosphere.'
   },
   fontSize: {
     small: 'Small text.', medium: 'Medium text.', large: 'Large text.',
@@ -96,6 +102,18 @@ const CHOICES = Object.freeze({
   reveal: { instant: 'Show chunks immediately.', progressive: 'Reveal chunks progressively.' }
 });
 const CONFIG_ANSWERS = Object.keys(CHOICES);
+const QUESTION_INSTRUCTIONS = Object.freeze({
+  pace: 'Choose the reading speed in words per minute. Honor explicit slow, fast, brief, or sustained requests; use the reading mood when speed is unstated.',
+  curve: 'Choose how speed changes through the reading. Use flat for a requested steady pace; use an arc only when it adds to the requested experience.',
+  chunk: 'Choose how much text appears at once. Match requests for one-word focus, short phrases, sentences, or paragraphs.',
+  audio: 'Choose the sound bed. Honor silence or no-sound requests; otherwise match the requested sonic mood to an offered soundscape.',
+  visual: 'Choose the visual field. Honor darkness and minimalism; use continuous visuals only when the reader wants visual motion or atmosphere.',
+  visualStyle: 'Choose visual energy. Reserve psychedelic for explicit vivid, trippy, or kaleidoscopic requests; keep quiet prompts quiet.',
+  galleryCadence: 'Choose the speed of visual transitions. Calm requests should transition slowly; energetic requests can be lively.',
+  chamberFace: 'Choose the text font. Match literary, expressive display, bold graphic, monospaced, or Japanese typography requested by the reader.',
+  fontSize: 'Choose text size. Honor small or large text requests; fit works best with one-word chunks.',
+  projection: 'Choose timed streaming or a spatial page. Continuous visual motion needs stream because page hides the continuous visual field.'
+});
 const DECISION_CACHE_TTL_SECONDS = 300;
 const MAX_BODY_BYTES = 1024;
 const JSON_HEADERS = {
@@ -197,7 +215,7 @@ async function decisionCacheKey(intent, books, apiKey) {
     { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
   const input = JSON.stringify({ model: MODEL, intent, books });
   const signature = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(input));
-  return `rise:jev-decision:v7:${Array.from(new Uint8Array(signature),
+  return `rise:jev-decision:v8:${Array.from(new Uint8Array(signature),
     byte => byte.toString(16).padStart(2, '0')).join('')}`;
 }
 
@@ -244,7 +262,12 @@ function validConfig(config) {
   return config;
 }
 
-function choiceConfig(answers) {
+function requestsNoVisualMotion(intent) {
+  const text = intent.normalize('NFKC').toLowerCase();
+  return /\b(?:no|without)\s+(?:moving\s+visuals?|visual\s+motion|visuals?|animation)\b|\b(?:dark|black)\s+screen\b|\btext\s+only\b/u.test(text);
+}
+
+function choiceConfig(answers, intent) {
   if (!answers || typeof answers !== 'object' || Array.isArray(answers)) return null;
   for (const question of CONFIG_ANSWERS) {
     const answer = answers[question];
@@ -289,6 +312,11 @@ function choiceConfig(answers) {
     config.visualMode = 'interlocution';
     config.projection = 'stream';
   }
+  if (requestsNoVisualMotion(intent)) {
+    config.visualMode = 'off';
+    config.visualStyle = 'quiet';
+    config.visualArc = 'single';
+  }
   if (config.wordFill === 'same' && (config.visualMode !== 'interlocution'
     || config.chamberFace !== 'thick' || config.fontSize !== 'fit'
     || config.chunkMode !== 'word')) config.wordFill = 'accent';
@@ -300,7 +328,8 @@ function choiceConfig(answers) {
 }
 
 function validCachedDecision(value, books) {
-  if (!value || typeof value !== 'object' || typeof value.requestId !== 'string'
+  if (!value || typeof value !== 'object' || value.schemaVersion !== 1
+    || typeof value.requestId !== 'string'
     || value.requestId.length < 1 || value.requestId.length > 100
     || (value.model !== MODEL && !/^typesafe\/jev-1\.13-\d{8}$/u.test(value.model))) return null;
   const book = books.find(row => row.work_id === value.workId);
@@ -308,6 +337,7 @@ function validCachedDecision(value, books) {
   if (!book || !config || value.editionId !== book.edition_id
     || value.sourceRevision !== book.source_revision || value.reason !== book.fit_description) return null;
   return {
+    schemaVersion: 1,
     requestId: value.requestId,
     model: value.model,
     workId: book.work_id,
@@ -318,14 +348,15 @@ function validCachedDecision(value, books) {
   };
 }
 
-function validDecision(value, books) {
+function validDecision(value, books, intent) {
   if (!value || typeof value !== 'object' || value.error || value.provider !== 'TypeSafe'
     || (value.model !== MODEL && !/^typesafe\/jev-1\.13-\d{8}$/u.test(value.model))) return null;
   const answer = value.answers?.book;
   const selected = books.find(book => book.work_id === answer?.choice);
-  const config = choiceConfig(value.answers);
+  const config = choiceConfig(value.answers, intent);
   if (answer?.type !== 'choice' || !selected || !config) return null;
   return {
+    schemaVersion: 1,
     requestId: typeof value.id === 'string' && value.id.length <= 100 ? value.id : crypto.randomUUID(),
     model: value.model,
     workId: selected.work_id,
@@ -380,7 +411,7 @@ export async function handleJevRecommend(request, env) {
   let hints;
   try {
     const baseKey = await decisionCacheKey(intent, books, env.OPENROUTER_API_KEY);
-    const turnKey = baseKey.replace('rise:jev-decision:v7:', 'rise:jev-turn:v1:');
+    const turnKey = baseKey.replace('rise:jev-decision:v8:', 'rise:jev-turn:v2:');
     const nextTurn = await redis.incr(turnKey);
     if (!Number.isSafeInteger(nextTurn) || nextTurn < 1) throw new Error('Invalid Jev turn');
     if (nextTurn === 1) await redis.expire(turnKey, 86400);
@@ -413,7 +444,7 @@ export async function handleJevRecommend(request, env) {
           },
           ...Object.fromEntries(CONFIG_ANSWERS.map(question => [question, {
             type: 'choice',
-            instructions: `Choose the ${question} that best fits the reader intent and experience hint. Only select an offered value.`,
+            instructions: `${QUESTION_INSTRUCTIONS[question] || `Choose the ${question} that best fits the reader intent.`} Consider the experience hint only where the reader leaves that choice open. Only select an offered value.`,
             criteria: CHOICES[question]
           }]))
         }
@@ -429,7 +460,7 @@ export async function handleJevRecommend(request, env) {
     return error(502, 'DECISION_UNAVAILABLE', 'Jev could not be reached.');
   }
 
-  const decision = validDecision(provider, hints.eligibleBooks);
+  const decision = validDecision(provider, hints.eligibleBooks, intent);
   if (!decision) return error(502, 'DECISION_INVALID_RESPONSE', 'Jev returned an invalid choice.');
   try {
     await redis.set(decisionKey, decision, { ex: DECISION_CACHE_TTL_SECONDS });
