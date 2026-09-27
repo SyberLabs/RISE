@@ -332,13 +332,6 @@
   color: var(--sy-text-3);
 }
 
-.portal-voice-note {
-  font-family: var(--sy-font-mono);
-  font-size: 12px;
-  line-height: 18px;
-  letter-spacing: 0.02em;
-}
-
 /* A live dictation message replaces the standing disclosure. */
 .portal-voice [data-jev-dictation-status]:not(:empty) + .portal-voice-note {
   display: none;
