@@ -1138,7 +1138,7 @@
   }
 }
 
-/* Jev is the first action; the vessel and room index now frame the request. */
+/* The fixed reading is the first action; Jev remains directly below it. */
 .portal {
   justify-content: flex-start;
   gap: 0;
@@ -1156,6 +1156,37 @@
   width: 96px;
   height: 96px;
 }
+
+.portal-first-read {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  width: min(100%, 760px);
+  min-height: 72px;
+  margin: 0 0 24px;
+  padding: 15px 22px;
+  border: 1px solid var(--color-accent);
+  border-radius: 8px;
+  background: linear-gradient(110deg, rgba(var(--color-accent-rgb), 0.34), rgba(var(--color-accent-rgb), 0.12));
+  color: var(--color-light);
+  text-align: left;
+  cursor: pointer;
+  box-shadow: 0 12px 32px rgba(var(--color-accent-rgb), 0.14);
+}
+
+.portal-first-read-title {
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+  font: 18px var(--font-display);
+}
+
+.portal-first-read-title span { color: var(--color-accent); }
+.portal-first-read-source { color: var(--color-mist); font: 13px var(--font-primary); }
+.portal-first-read:hover { background: rgba(var(--color-accent-rgb), 0.38); }
+.portal-first-read:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 3px; }
+.portal-first-read:disabled { cursor: wait; opacity: 0.65; }
 
 .portal-title-container {
   width: min(100%, 760px);
@@ -1285,8 +1316,10 @@
 @media (max-width: 640px) {
   .portal { justify-content: flex-start; padding: 82px 18px 24px; }
   .portal-sigil-container { display: none; }
+  .portal-first-read { min-height: 68px; margin: 55px 0 20px; padding: 14px 18px; }
+  .portal-first-read-title { font-size: 16px; }
   .portal-orbs-start { flex-direction: row; }
-  .portal-title-container { margin-top: 55px; margin-bottom: 20px; }
+  .portal-title-container { margin-top: 0; margin-bottom: 20px; }
   .portal-title { font-size: clamp(31px, 8vw, 42px); }
   .portal-subtitle { font-size: 14px; line-height: 1.45; }
   .portal-jev-form { padding: 18px; gap: 12px; }

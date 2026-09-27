@@ -47,6 +47,26 @@ describe('Portal', () => {
         portal.destroy();
     });
 
+    it('starts one first reading while the launch is pending and keeps the Jev request available', async () => {
+        let finishLaunch;
+        const onLaunchFirstRead = vi.fn(() => new Promise(resolve => { finishLaunch = resolve; }));
+        const { portal, container } = makePortal({ onLaunchFirstRead });
+
+        const buttons = container.querySelectorAll('button.portal-first-read');
+        expect(buttons).toHaveLength(1);
+        expect(buttons[0].textContent).toContain('Experience 30 seconds');
+        expect(container.querySelector('#portal-jev-form')).not.toBeNull();
+        buttons[0].click();
+        buttons[0].click();
+        expect(onLaunchFirstRead).toHaveBeenCalledTimes(1);
+        expect(buttons[0].disabled).toBe(true);
+
+        finishLaunch();
+        await vi.waitFor(() => expect(buttons[0].disabled).toBe(false));
+        portal.destroy();
+        container.remove();
+    });
+
     it('asks what to read and keeps the home request to one action', () => {
         const { portal, container, onNavigate } = makePortal();
         expect(container.querySelector('h1').textContent).toBe('What would you like to read?');

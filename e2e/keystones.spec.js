@@ -13,6 +13,36 @@ async function authorize(page) {
   }, GATE_SESSION);
 }
 
+for (const [device, viewport] of [
+  ['desktop', { width: 1280, height: 800 }],
+  ['phone', { width: 390, height: 844 }]
+]) test(`Portal first read opens Meditations and returns through Try RISE to Portal on ${device}`, async ({ page }) => {
+  await page.setViewportSize(viewport);
+  await authorize(page);
+  await page.goto('/');
+  const firstRead = page.locator('.portal-first-read');
+  await expect(firstRead).toBeVisible({ timeout: 15_000 });
+  await firstRead.click();
+
+  await expect(page).toHaveURL(/\/keystone\/meditations$/u);
+  await expect(page.locator('#chamber-display')).toBeVisible({ timeout: 20_000 });
+  await expect.poll(() => page.evaluate(() => window.__RISE_TEST__?.getCurrentSession()?.firstReadPreview))
+    .toBe(true);
+
+  await page.locator('#chamber-display').hover();
+  await page.locator('#exit-btn').click();
+  await page.locator('#exit-confirm').click();
+  await expect(page).toHaveURL(/\/try-rise$/u);
+  await expect(page.locator('#keystone-meditations')).toBeVisible({ timeout: 15_000 });
+  await page.waitForFunction(() => window.__RISE_TEST__ && !window.__RISE_TEST__.getRouterState().transitioning);
+  await page.goBack();
+  await expect(page).toHaveURL(/\/$/u);
+  await expect.poll(() => page.evaluate(() => window.__RISE_TEST__?.getRouterState().currentView), {
+    timeout: 15_000
+  }).toBe('portal');
+  await expect(firstRead).toBeVisible({ timeout: 15_000 });
+});
+
 test('Keystone corridor has durable cold, reload, launch, and Back behavior', async ({ page }) => {
   await authorize(page);
   await page.goto('/');
@@ -51,6 +81,8 @@ test('Keystone corridor has durable cold, reload, launch, and Back behavior', as
 
   await expect(page).toHaveURL(/\/keystone\/meditations$/u);
   await expect(page.locator('#chamber-display')).toBeVisible({ timeout: 20_000 });
+  await expect.poll(() => page.evaluate(() => window.__RISE_TEST__?.getCurrentSession()?.firstReadPreview))
+    .toBeUndefined();
   await page.waitForFunction(() => window.__RISE_TEST__ && !window.__RISE_TEST__.getRouterState().transitioning);
 
   // Leaving the reading returns to the screen it was opened from, not to
