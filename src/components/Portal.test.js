@@ -130,6 +130,10 @@ describe('Portal', () => {
         expect(opened).toHaveBeenCalledOnce();
         links[1].click();
         expect(onNavigate).toHaveBeenCalledWith('vault');
+        const create = container.querySelector('.portal-footer [data-nav="create"]');
+        expect(create.textContent.trim()).toBe('Create');
+        create.click();
+        expect(onNavigate).toHaveBeenCalledWith('create');
         portal.destroy();
         container.remove();
     });

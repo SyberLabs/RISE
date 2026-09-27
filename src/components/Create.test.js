@@ -1,0 +1,63 @@
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { Create } from './Create.js';
+import { MemoryCore } from '../core/memory.js';
+import { createPersonalProject, serializePersonalProject } from '../core/personal-project.js';
+const piece = { title: '<img src=x onerror=alert(1)>', paragraphs: ['A quiet word. '.repeat(20).trim(), 'Another moment. '.repeat(20).trim()], writerModel: 'qwen/qwen3.5-9b', promptVersion: 'personal-v1' };
+let container;
+beforeEach(() => { localStorage.clear(); container = document.createElement('div'); document.body.replaceChildren(container); });
+afterEach(() => vi.restoreAllMocks());
+const fill = (name, value) => { container.querySelector(`[name="${name}"]`).value = value; };
+describe('Create', () => {
+  it('shows all text as strings without autoplay, keeps before Start, and preserves text on media failure', async () => {
+    const onCreateSession = vi.fn().mockResolvedValue(false);
+    const view = new Create(container, { request: vi.fn().mockResolvedValue(piece), onCreateSession });
+    fill('thought', 'PRIVATE'); fill('detail', 'PRIVATE DETAIL');
+    await view.generate(false);
+    expect(container.querySelector('[data-title]').textContent).toBe(piece.title);
+    expect(container.querySelector('img')).toBeNull();
+    expect(onCreateSession).not.toHaveBeenCalled();
+    expect(container.querySelector('[data-text]').textContent).toContain(piece.paragraphs[1]);
+    await view.act('keep');
+    expect(localStorage.getItem('rise_workshop_v1')).not.toContain('PRIVATE');
+    await view.act('start');
+    expect(onCreateSession).toHaveBeenCalledTimes(1);
+    expect(container.querySelector('[data-draft]').hidden).toBe(false);
+    expect(container.querySelector('[data-status]').textContent).toMatch(/full text/);
+  });
+  it.each(['cancel','navigation','new request'])('ignores late responses after %s even when transport ignores abort', async reason => {
+    let resolve;
+    const request = vi.fn().mockImplementationOnce(() => new Promise(r => { resolve = r; })).mockResolvedValue({ ...piece, title: 'New' });
+    const view = new Create(container, { request }); fill('thought', 'a');
+    const pending = view.generate(false);
+    if (reason === 'cancel') await view.act('cancel');
+    else if (reason === 'navigation') view.navigationIntent();
+    else await view.generate(false);
+    resolve(piece); await pending;
+    expect(view.draft?.title).toBe(reason === 'new request' ? 'New' : undefined);
+  });
+  it('restores unsaved parent, never saves implicitly, and preserves parent on storage failure', async () => {
+    const request = vi.fn().mockResolvedValueOnce(piece).mockResolvedValueOnce({ ...piece, title: 'Revision' });
+    const view = new Create(container, { request }); fill('thought', 'a'); await view.generate(false);
+    const parent = view.draft;
+    fill('instruction', 'Change title'); await view.generate(true);
+    expect(request.mock.calls[1][0]).toMatchObject({ mode: 'revise', parent: { title: parent.title }, instruction: 'Change title' });
+    expect(view.draft.provenance.parentRevisionId).toBe(parent.id);
+    expect(localStorage.getItem('rise_workshop_v1')).toBeNull();
+    vi.spyOn(MemoryCore, 'saveWorkshopBlueprintAsync').mockRejectedValue(new Error('Storage full'));
+    await view.act('keep');
+    expect(view.history[0]).toBe(parent);
+    await view.act('previous'); expect(view.draft).toBe(parent);
+    expect(container.querySelector('[data-title]').textContent).toBe(parent.title);
+  });
+  it('bounds import before file read and refuses collisions before changing the draft', async () => {
+    const view = new Create(container);
+    const text = vi.fn(); await view.importFile({ size: 65537, text }); expect(text).not.toHaveBeenCalled();
+    const p = createPersonalProject(piece); MemoryCore.saveWorkshopBlueprint(p);
+    const changed = JSON.parse(serializePersonalProject(p)); changed.updatedAt++;
+    await view.importFile({ size: 1000, text: async () => JSON.stringify(changed) });
+    expect(view.draft).toBeUndefined();
+    expect(container.querySelector('[data-status]').textContent).toMatch(/different content/);
+    await view.importFile({ size: 1000, text: async () => serializePersonalProject(p) });
+    expect(view.draft).toEqual(p);
+  });
+});

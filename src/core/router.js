@@ -31,11 +31,13 @@ export class Router {
         this.currentView = null;
         this.transitioning = false;
         this._pendingNav = null;
+        this.navigationRevision = 0;
 
         // Transition timing from design system
         this.transitionDuration = 400; // ms
 
         // Callbacks
+        this.onNavigationIntent = options.onNavigationIntent || (() => {});
         this.onViewChange = options.onViewChange || (() => { });
 
         this.handleKeydown = this.handleKeydown.bind(this);
@@ -61,14 +63,16 @@ export class Router {
      * @param {string} viewName - Target view
      * @param {object} options - { data, replace, skipStack }
      */
-    async navigate(viewName, options = {}) {
-        console.log(`[Router] Navigate to: ${viewName}, from: ${this.currentView}`, options);
+    async navigate(viewName, options = {}, queuedRevision) {
+        const revision = queuedRevision ?? ++this.navigationRevision;
+        if (queuedRevision === undefined) this.onNavigationIntent(viewName, options);
+        console.log(`[Router] Navigate to: ${viewName}, from: ${this.currentView}`);
         if (this.transitioning) {
             // Don't silently eat clicks that land mid-transition — remember
             // the latest request and honor it once the crossfade completes.
             this._pendingNav?.resolve(false);
             return new Promise((resolve) => {
-                this._pendingNav = { viewName, options, resolve };
+                this._pendingNav = { viewName, options, resolve, revision };
             });
         }
         // A completed division may hand the same immersive surface a fresh
@@ -86,6 +90,11 @@ export class Router {
         const previousViewName = this.currentView;
         const previousView = previousViewName ? this.views.get(previousViewName) : null;
         let succeeded = false;
+        const assertCurrentLaunch = () => {
+            if (viewName === 'chamber-session' && revision !== this.navigationRevision) {
+                throw new DOMException('Launch cancelled', 'AbortError');
+            }
+        };
 
         try {
             previousView?.instance?.deactivate?.();
@@ -93,6 +102,8 @@ export class Router {
                 await this.fadeOut(previousView.container);
                 previousView.container.hidden = true;
             }
+
+            assertCurrentLaunch();
 
             // Views sharing a container cannot coexist. Dispose the old owner
             // only after it has been deactivated and visually removed.
@@ -113,8 +124,10 @@ export class Router {
                 await newView.instance.update?.(options.data);
             }
 
+            assertCurrentLaunch();
             newView.container.hidden = false;
             await this.fadeIn(newView.container);
+            assertCurrentLaunch();
             newView.instance?.activate?.();
 
             if (!options.replace && !options.skipStack && previousViewName
@@ -125,14 +138,19 @@ export class Router {
             this.onViewChange(viewName, options.data);
             succeeded = true;
         } catch (error) {
-            console.error(`[Router] Navigation to "${viewName}" failed:`, error);
+            if (error?.name !== 'AbortError') console.error(`[Router] Navigation to "${viewName}" failed:`, error);
+            if (viewName === 'chamber-session') {
+                newView.instance?.destroy?.();
+                newView.instance = null;
+            }
 
             // A missing chunk cannot be recovered from in this session:
             // the shell itself is out of date. Reload once to pick up
             // the current build, preserving the destination so the
             // reader lands where they were going. The guard prevents a
             // reload loop if something else produces the same error.
-            if (isStaleChunkError(error) && !this._reloadedForStaleChunk) {
+            if (isStaleChunkError(error) && !this._reloadedForStaleChunk
+                && options.data?.provenance?.kind !== 'personal-generated') {
                 this._reloadedForStaleChunk = true;
                 try {
                     // Carry the route DATA too, not just the view name:
@@ -172,7 +190,7 @@ export class Router {
             const pendingSucceeded = pending.viewName === this.currentView
                 && pending.options.force !== true
                 ? true
-                : await this.navigate(pending.viewName, pending.options);
+                : await this.navigate(pending.viewName, pending.options, pending.revision);
             pending.resolve(pendingSucceeded === true);
         }
         return succeeded;
@@ -229,7 +247,7 @@ export class Router {
      * Handle keyboard events
      */
     handleKeydown(e) {
-        if (e.key !== 'Escape' || this.currentView === 'portal') return;
+        if (e.key !== 'Escape' || (this.currentView === 'portal' && !this.transitioning)) return;
 
         // Mid-transition Escape has no rightful owner: the incoming
         // view's instance isn't mounted yet, so falling through would
@@ -238,6 +256,8 @@ export class Router {
         // view owns the next one. (Caught by the E2E smoke harness.)
         if (this.transitioning) {
             e.preventDefault();
+            ++this.navigationRevision;
+            this.onNavigationIntent('escape', {});
             return;
         }
 

@@ -163,6 +163,7 @@ export class Portal {
         <footer class="portal-footer">
           <!-- Rooms without a header slot keep a quiet, labelled door here:
                the header holds at most four destinations. -->
+          <button class="portal-footer-link" type="button" data-nav="create">Create</button>
           <button class="portal-footer-link" type="button" data-nav="chamber">Reader setup</button>
           <button class="portal-footer-link" type="button" data-nav="chapel">Chapel</button>
           <button class="portal-footer-link" type="button" data-nav="scriptorium">Scriptorium</button>
