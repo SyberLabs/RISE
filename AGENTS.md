@@ -200,11 +200,9 @@ from the Vite dev server.
 - Pull requests run four core smoke files and the CI policy test, plus build, hygiene,
  and docs checks in one `CI` job with one dependency install. Scriptorium runs
  on main, where its full CLI contract is checked before release.
- The complete unit and browser suites run after merge
- on main. Browser checks also run through `workflow_dispatch`; the four
- `Browser matrix` check names still report on pull requests because repository
- rules may require them. Their pull-request result explicitly says browser
- coverage was deferred. `npm run test:e2e:gate` runs the browser corridor
+ The complete unit and browser suites run after merge on main. Browser checks
+ also run through `workflow_dispatch`. The repository ruleset requires the
+ substantive `CI` check. `npm run test:e2e:gate` runs the browser corridor
  locally before pushing.
 - There is **no lint script**. The gates a pull request has to pass are:
  `node scripts/ci-hygiene.mjs`, `npm run security:audit`, and

@@ -15,19 +15,15 @@ function job(name) {
     return rest.slice(0, next === -1 ? undefined : next);
 }
 
-describe('the browser matrix reports its four names even when it does not run Playwright', () => {
-    it('does not skip the job when the change is prose', () => {
-        // A skipped matrix job reports the unexpanded name
-        // "Browser matrix ${{ matrix.shard }}/4". A ruleset that requires
-        // "Browser matrix 1/4" then waits forever, which is how a
-        // one-line diagram pull request becomes unmergeable.
+describe('the browser matrix runs after merge', () => {
+    it('skips browser shards on pull requests and prose changes', () => {
         const header = job('e2e-full').split(/\r?\n    steps:/)[0];
-        expect(header).not.toMatch(/outputs\.code/);
+        expect(header).toContain("if: needs.changes.outputs.code == 'true' && github.event_name != 'pull_request'");
     });
 
-    it('names each shard, and only plays Playwright outside pull requests', () => {
+    it('names each shard and runs Playwright', () => {
         const e2eFull = job('e2e-full');
         expect(e2eFull).toContain('name: Browser matrix ${{ matrix.shard }}/4');
-        expect(e2eFull).toMatch(/- if: github\.event_name != 'pull_request'\s*\r?\n\s*run: npm run test:e2e -- --shard=\$\{\{ matrix\.shard \}\}\/4/);
+        expect(e2eFull).toContain('run: npm run test:e2e -- --shard=${{ matrix.shard }}/4');
     });
 });
