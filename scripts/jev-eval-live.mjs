@@ -35,7 +35,7 @@ for (const item of cases) {
     }
     if (typeof result.model === 'string') models.add(result.model);
     rows.push({ id: item.id, decision: Object.fromEntries(fields.map(field =>
-      [field, result.config[field]])) });
+      [field, field === 'pace' ? String(result.config.wpm) : result.config[field]])) });
   } catch (cause) {
     rows.push({ id: item.id, error: cause?.name || 'request failure' });
   }

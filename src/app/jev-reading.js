@@ -44,6 +44,7 @@ function assertPlan(decision) {
     || !FACES.has(config.chamberFace) || !SIZES.has(config.fontSize)
     || !WORD_FILLS.has(config.wordFill) || !STYLES.has(config.visualStyle)
     || !VISUAL_ARCS.has(config.visualArc) || !ARC_SPLITS.has(config.arcSplit)
+    || (config.visualArc !== 'single' && config.projection !== 'stream')
     || !ENGINES.has(config.middleEngine) || !ENGINES.has(config.finaleEngine)
     || !COLORS.has(config.colorTheme) || !COLORS.has(config.textColor)
     || !COLORS.has(config.backgroundColor)

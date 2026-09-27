@@ -93,3 +93,18 @@ test('look evaluation covers independent colors, type, audio, and visuals in con
     }
   }
 });
+
+test('phase evaluation contrasts opening and ending sound and accent choices', () => {
+  const fixtures = JSON.parse(readFileSync(new URL('./jev-eval-phase-cases.json', import.meta.url)));
+  const options = JSON.parse(readFileSync(new URL('./jev-eval-phase-options.json', import.meta.url)));
+  assert.deepEqual(options.audio, ['silent', ...JEV_AUDIO_IDS]);
+  assert.deepEqual(options.finaleAudio, options.audio);
+  assert.deepEqual(options.colorTheme, Object.keys(JEV_PALETTES));
+  assert.deepEqual(options.finaleTheme, options.colorTheme);
+  assert.equal(fixtures.length, 4);
+  for (const item of fixtures) for (const [axis, expected] of Object.entries(item.expect)) {
+    assert.ok(expected.every(value => options[axis]?.includes(value)));
+  }
+  assert.deepEqual(fixtures.map(item => item.group),
+    ['phase-audio', 'phase-audio', 'phase-color', 'phase-color']);
+});

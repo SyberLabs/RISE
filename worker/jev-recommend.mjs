@@ -123,13 +123,20 @@ const QUESTION_INSTRUCTIONS = Object.freeze({
   pace: 'Choose the reading speed in words per minute. Honor explicit slow, fast, brief, or sustained requests; use the reading mood when speed is unstated.',
   curve: 'Choose how speed changes through the reading. Use flat for a requested steady pace; use an arc only when it adds to the requested experience.',
   chunk: 'Choose how much text appears at once. Match requests for one-word focus, short phrases, sentences, or paragraphs.',
-  audio: 'Choose the sound bed. Honor silence or no-sound requests; otherwise match the requested sonic mood to an offered soundscape.',
+  audio: 'Opening sound: honor requested sound or silence. Ignore text speed and visual motion.',
+  middleAudio: 'Middle sound: honor middle-specific requests; otherwise continue the opening mood.',
+  finaleAudio: 'Ending sound: honor ending-specific requests. A triumphant ending calls for triumph when offered.',
   visual: 'Choose the visual field. Honor darkness and minimalism; use continuous visuals only when the reader wants visual motion or atmosphere.',
   visualStyle: 'Choose visual energy. Reserve psychedelic for explicit vivid, trippy, or kaleidoscopic requests; keep quiet prompts quiet.',
+  visualArc: 'Use dual or triple for requested visual or sound phase changes.',
+  middleEngine: 'Middle visual: honor middle-specific requests; otherwise continue the opening mood.',
+  finaleEngine: 'Ending visual: honor ending-specific requests; otherwise resolve the mood.',
+  middleTheme: 'Middle accent: honor a requested middle color; otherwise continue the opening accent.',
+  finaleTheme: 'Ending accent: honor a requested ending color; otherwise resolve the mood.',
   galleryCadence: 'Choose the speed of visual transitions. Calm requests should transition slowly; energetic requests can be lively.',
   chamberFace: 'Choose the text font. Match literary, book serif, modern sans, display, bold graphic, monospaced, or Japanese requests.',
   fontSize: 'Choose text size. Honor small, large, or extra large requests; fit works best with one-word chunks.',
-  colorTheme: 'Choose the accent and overall color mood. Text ink and background are selected by their own questions.',
+  colorTheme: 'Opening accent: honor a requested opening color. Text ink and background have their own questions.',
   textColor: 'Choose the text ink color. Honor explicit reader requests for warm, cool, lilac, or mint text.',
   backgroundColor: 'Choose the background color independently from the text and accent. Honor explicit reader color requests.',
   projection: 'Choose timed streaming or a spatial page. Continuous visual motion needs stream because page hides the continuous visual field.'
@@ -141,6 +148,12 @@ const SOUND_SHORTLIST_SIZE = 9;
 const IGNORED_SOUND_WORDS = new Set([
   'and', 'are', 'for', 'from', 'give', 'have', 'into', 'like', 'me', 'please', 'read', 'reading',
   'sound', 'sounds', 'that', 'the', 'this', 'with', 'you'
+]);
+const SOUND_ALIASES = Object.freeze({ triumph: ['triumphant'] });
+const SOUND_PHASE_WORDS = new Set([
+  'audio', 'music', 'song', 'sound', 'soundscape', 'synth', 'silent', 'silence',
+  ...JEV_AUDIO_IDS.flatMap(id => soundWords(id.replaceAll('-', ' '))),
+  ...Object.values(SOUND_ALIASES).flat()
 ]);
 const MAX_BODY_BYTES = 1024;
 const JSON_HEADERS = {
@@ -260,7 +273,9 @@ function shortlistSounds(sounds, intent, turn) {
   const ranked = rotated.map(({ row, catalogIndex }, index) => {
     const idWords = soundWords(row.sound_id.replaceAll('-', ' '));
     const criterionWords = new Set(soundWords(row.decision_criterion));
-    const explicit = normalizedIntent.includes(` ${idWords.join(' ')} `);
+    const explicit = normalizedIntent.includes(` ${idWords.join(' ')} `)
+      || (SOUND_ALIASES[row.sound_id] || []).some(alias =>
+        normalizedIntent.includes(` ${alias} `));
     const score = idWords.reduce((total, word) => total + (intentWords.has(word) ? 3 : 0), 0)
       + [...criterionWords].reduce((total, word) => total + (intentWords.has(word) ? 1 : 0), 0);
     return { row, explicit, score, index, catalogIndex };
@@ -326,7 +341,7 @@ async function decisionCacheKey(intent, books, sounds, choices, apiKey) {
   const menu = Object.fromEntries(OPTION_KINDS.map(kind => [kind, Object.keys(choices[kind])]));
   const input = JSON.stringify({ model: MODEL, intent, books, sounds, menu });
   const signature = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(input));
-  return `rise:jev-decision:v12:${Array.from(new Uint8Array(signature),
+  return `rise:jev-decision:v13:${Array.from(new Uint8Array(signature),
     byte => byte.toString(16).padStart(2, '0')).join('')}`;
 }
 
@@ -354,15 +369,17 @@ function validConfig(config, choices) {
     || config.visualEngine !== 'fractal' || config.projection !== 'stream'
     || config.colorTheme !== 'prism' || config.galleryCadence !== 'lively')) return null;
   if (config.visualStyle === 'immersive' && config.projection !== 'stream') return null;
-  if (config.visualMode === 'off' && config.visualArc !== 'single') return null;
-  if (config.visualArc !== 'single' && config.visualMode !== 'interlocution') return null;
+  if (config.visualArc !== 'single'
+    && config.visualMode !== 'interlocution' && config.visualMode !== 'off') return null;
+  if (config.visualArc !== 'single' && config.projection !== 'stream') return null;
   if (['genesis', 'attractor', 'interlocution'].includes(config.visualMode)
     && config.projection !== 'stream') return null;
   if (config.fontSize === 'fit' && config.chunkMode !== 'word') return null;
   const resolved = resolveJevChamberConfig(config);
   const visualProgram = compileJevVisualProgram(config);
   const audioProgram = compileJevAudioProgram(config);
-  if (config.visualArc !== 'single' && !visualProgram) return null;
+  if (config.visualArc !== 'single'
+    && (!audioProgram || (config.visualMode !== 'off' && !visualProgram))) return null;
   if (config.audioPreset !== resolved.audioPreset
     || config.soundscape !== resolved.soundscape
     || config.entrainmentMode !== resolved.entrainmentMode
@@ -392,6 +409,25 @@ function explicitVisualTiming(intent) {
 function requestsNoVisualMotion(intent) {
   const text = intent.normalize('NFKC').toLowerCase();
   return /\b(?:no|without)\s+(?:moving\s+visuals?|visual\s+motion|motion|visuals?|animation)\b|\b(?:don['’]?t|do\s+not)\s+want\s+(?:any\s+)?moving\s+visuals?\b|\b(?:dark|black)\s+screen\b|\btext\s+only\b/u.test(text);
+}
+
+function requestsEndingSoundChange(intent, openingSound, finaleSound) {
+  if (openingSound === finaleSound) return false;
+  const words = new Set(soundWords(intent.normalize('NFKC')));
+  return ['end', 'ending', 'finale', 'finish'].some(word => words.has(word))
+    && [...SOUND_PHASE_WORDS].some(word => words.has(word));
+}
+
+function requestsTriumphantEnding(intent) {
+  const text = intent.normalize('NFKC').toLowerCase();
+  if (/\b(?:no|not|never|avoid|without)\b.{0,35}\btriumphant\b|\b(?:no|without)\s+(?:any\s+)?(?:audio|music|sound|soundscape)\b/u.test(text)) return false;
+  const ending = /\b(?:end|ending|finale|finish)\b/u.exec(text);
+  const triumph = /\b(?:triumphant|triumph)\b/u.exec(text);
+  if (!ending || !triumph || Math.abs(ending.index - triumph.index) > 60) return false;
+  const between = text.slice(Math.min(ending.index, triumph.index),
+    Math.max(ending.index, triumph.index));
+  return !/\bthen\b/u.test(between)
+    && !/\b(?:end|ending|finale|finish)\b.{0,35}\b(?:silent|silence)\b/u.test(text);
 }
 
 function choiceConfig(answers, intent, choices) {
@@ -426,6 +462,11 @@ function choiceConfig(answers, intent, choices) {
     wordFill: answers.wordFill.choice,
     projection: answers.projection.choice, revealMode: answers.reveal.choice
   };
+  if (requestsTriumphantEnding(intent) && Object.hasOwn(choices.finaleAudio, 'triumph')) {
+    config.finaleAudio = 'triumph';
+  }
+  const soundArc = requestsEndingSoundChange(intent, config.audio, config.finaleAudio);
+  if (soundArc) config.projection = 'stream';
   // One Jev answer determines one coherent plan. A psychedelic request cannot
   // accidentally open a page, where temporal visual fields are hidden.
   if (config.visualStyle === 'psychedelic') {
@@ -440,7 +481,7 @@ function choiceConfig(answers, intent, choices) {
   }
   // A sequence needs the continuous Gallery host. An explicit no-visual
   // choice stays dark even if an independent arc answer requested phases.
-  if (config.visualMode === 'off') config.visualArc = 'single';
+  if (config.visualMode === 'off') config.visualArc = soundArc ? 'dual' : 'single';
   else if (config.visualArc !== 'single') {
     config.visualMode = 'interlocution';
     config.projection = 'stream';
@@ -455,7 +496,7 @@ function choiceConfig(answers, intent, choices) {
   if (explicitNoVisual) {
     config.visualStyle = 'quiet';
     config.visualMode = 'off';
-    config.visualArc = 'single';
+    config.visualArc = soundArc ? 'dual' : 'single';
   } else if (timing) {
     config.visualArc = 'dual';
     config.arcSplit = timing;
@@ -514,6 +555,11 @@ function responseForVersion(decision, schemaVersion) {
   if (schemaVersion === 2) return decision;
   const config = { ...decision.config };
   const presentation = { ...config.presentation };
+  // Old tabs know visual arcs only. Preserve their original dark, single-arc shape.
+  if (config.visualMode === 'off' && config.visualArc !== 'single') {
+    config.visualArc = 'single';
+    config.audioProgram = null;
+  }
   delete config.textColor;
   delete config.backgroundColor;
   delete presentation.textColor;
@@ -583,7 +629,7 @@ export async function handleJevRecommend(request, env) {
     const catalogChoices = await activeChoices(redis, env, sounds);
     if (!catalogChoices) return error(503, 'OPTIONS_UNAVAILABLE', 'The presentation menu is unavailable.');
     const turnBaseKey = await decisionCacheKey(intent, books, sounds, catalogChoices, env.OPENROUTER_API_KEY);
-    const turnKey = turnBaseKey.replace('rise:jev-decision:v12:', 'rise:jev-turn:v4:');
+    const turnKey = turnBaseKey.replace('rise:jev-decision:v13:', 'rise:jev-turn:v4:');
     const nextTurn = await redis.incr(turnKey);
     if (!Number.isSafeInteger(nextTurn) || nextTurn < 1) throw new Error('Invalid Jev turn');
     if (nextTurn === 1) await redis.expire(turnKey, 86400);

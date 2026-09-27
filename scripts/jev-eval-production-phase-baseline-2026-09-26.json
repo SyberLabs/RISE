@@ -1,0 +1,45 @@
+{
+  "model": "typesafe/jev-1.13-20260917",
+  "rows": [
+    {
+      "id": "triumph-to-silence",
+      "decision": {
+        "audio": "triumph",
+        "finaleAudio": "silent",
+        "colorTheme": "cobalt",
+        "finaleTheme": "cobalt",
+        "visualArc": "single"
+      }
+    },
+    {
+      "id": "silence-to-triumph",
+      "decision": {
+        "audio": "silent",
+        "finaleAudio": "happy",
+        "colorTheme": "ember",
+        "finaleTheme": "ember",
+        "visualArc": "single"
+      }
+    },
+    {
+      "id": "violet-to-blue",
+      "decision": {
+        "audio": "aurora",
+        "finaleAudio": "blues",
+        "colorTheme": "cobalt",
+        "finaleTheme": "cobalt",
+        "visualArc": "dual"
+      }
+    },
+    {
+      "id": "blue-to-violet",
+      "decision": {
+        "audio": "aurora",
+        "finaleAudio": "aurora",
+        "colorTheme": "cobalt",
+        "finaleTheme": "amethyst",
+        "visualArc": "dual"
+      }
+    }
+  ]
+}

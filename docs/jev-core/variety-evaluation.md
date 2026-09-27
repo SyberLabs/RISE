@@ -17,7 +17,7 @@ node scripts/jev-eval.mjs --cases scripts/jev-eval-look-cases.json --options scr
 
 ## What is measured
 
-The [case set](../../scripts/jev-eval-cases.json) contains 16 synthetic reader prompts in eight contrast pairs. Each pair changes one or several explicit requests for pace, sound, moving visuals, visual energy, typeface, or type size. The [production option snapshot](../../scripts/jev-eval-options.json) is the six relevant fields from `worker/jev-recommend.mjs` on 2026-09-26. The [merged candidate snapshot](../../scripts/jev-eval-options-candidate.json) contains `soft-rain`, the six mood sounds (`sad`, `angry`, `happy`, `excited`, `thrilling`, `scary`), and `mono` type. Keep both snapshots so the original production baseline remains reproducible. The scorer reports:
+The [case set](../../scripts/jev-eval-cases.json) now contains 39 synthetic reader prompts, including 19 contrast pairs, across pace, sound, moving visuals, visual energy, typeface, and type size. The [original production option snapshot](../../scripts/jev-eval-options.json) preserves the smaller menu used for the first six-prompt baseline. The [current candidate snapshot](../../scripts/jev-eval-options-candidate.json) includes all 23 sound beds, seven text faces, and five sizes. Keep both snapshots so the original production baseline remains reproducible. The scorer reports:
 
 - Exact offered-choice validity (all six fields, no extra keys)
 - Explicit preference matches, counted by field
@@ -31,6 +31,17 @@ The candidate reuses one 1-hour decision cache slot for a specific intent. Exact
 
 ## Current production baseline
 
+The [full live v2 baseline](../../scripts/jev-eval-production-broad-baseline-2026-09-26.json) captured all 39 cases in three batches of at most 16, below the Worker's 30-per-minute per-IP limit. All 39 responses had valid offered choices; 47 of 49 explicit preferences matched, and all 19 paired contrasts differed. The two misses were sound: a combined fast/psychedelic prompt requested an atmospheric bed but got `chase`, and “Let the ending feel triumphant” got `happy` for the opening sound and the finale. Repeating the latter request three times again returned `happy` for the opening sound. These observations motivated phase-specific sound instructions and an alias for “triumphant” in the sound shortlist. The record was captured on release `e32bd26a280653a331d0743f661b0ff7d1300bb2`; it contains no prompts, request IDs, or secrets. The route reports no token usage.
+
+The [four-prompt phase baseline](../../scripts/jev-eval-production-phase-baseline-2026-09-26.json) matched 8 of 12 explicit opening/finale choices and 1 of 2 contrast pairs on the same release. In both audio-phase prompts Jev chose a `single` arc, so the requested ending sound would not play even when its `finaleAudio` answer differed. The harness now permits an audio program with visuals off and a null visual program; it also makes opening and ending questions explicit. These new rules still require a post-deploy live check.
+
+```powershell
+node scripts/jev-eval.mjs --cases scripts/jev-eval-cases.json --options scripts/jev-eval-options-candidate.json --input scripts/jev-eval-production-broad-baseline-2026-09-26.json
+node scripts/jev-eval.mjs --cases scripts/jev-eval-phase-cases.json --options scripts/jev-eval-phase-options.json --input scripts/jev-eval-production-phase-baseline-2026-09-26.json
+```
+
+### Historical six-prompt baseline
+
 On 2026-09-26, six prompts from the set were sent once each to `https://rise.syberlabs.io/api/jev-recommend` with the same-origin header. All six returned HTTP 200 from `typesafe/jev-1.13-20260917`. The [sanitized record](../../scripts/jev-eval-production-baseline-2026-09-26.json) retains only prompt IDs and the six selected fields; it contains no user input, request identifiers, or credentials.
 
 For this **six-prompt partial baseline**, 7 of 8 explicitly requested fields matched, and 0 of 1 complete contrast pair differed on all requested opposite fields. `visualMode` was `interlocution` in all six; `visualStyle` was `psychedelic` in five. The "no moving visuals" prompt still selected `interlocution`, accounting for the explicit miss. The route did not return token usage or a price, so actual Jev cost is unknown. A single result per prompt does not measure run-to-run variance.
@@ -41,11 +52,11 @@ Reproduce the score:
 node scripts/jev-eval.mjs --cases scripts/jev-eval-cases.json --options scripts/jev-eval-options.json --input scripts/jev-eval-production-baseline-2026-09-26.json --only-recorded
 ```
 
-For a full pre/post comparison, collect one decision for each of the 16 prompts on the candidate build, score with the candidate option snapshot, and omit `--only-recorded`. A `--input` file accepts `{ "model": "...", "rows": [{ "id": "...", "decision": { ... }, "usage": { "prompt_tokens": 0, "completion_tokens": 0 } }] }`. Omit `usage` when the route does not expose it; the scorer marks it unreported. The two new-option cases have no old-production result, so compare shared cases separately when attributing a change to the harness.
+For a new comparison, collect decisions against the current candidate snapshot and score all recorded cases. A `--input` file accepts `{ "model": "...", "rows": [{ "id": "...", "decision": { ... }, "usage": { "prompt_tokens": 0, "completion_tokens": 0 } }] }`. Omit `usage` when the route does not expose it; the scorer marks it unreported. Compare only shared cases when attributing a change to the harness.
 
 ## Bounded Hugging Face comparison
 
-The runner can ask a Hugging Face hosted chat model to choose the same six presentation fields. This is **exploratory**: a chat completion is not TypeSafe Jev's 22-question decision API, and it cannot establish that switching production models would improve the actual reader journey. It can reveal whether an available model follows explicit choice constraints and returns parseable JSON on these prompts. Model availability and provider price must be checked at run time.
+The runner can ask a Hugging Face hosted chat model to choose the same six presentation fields. This is **exploratory**: a chat completion is not TypeSafe Jev's multi-question decision API, and it cannot establish that switching production models would improve the actual reader journey. It can reveal whether an available model follows explicit choice constraints and returns parseable JSON on these prompts. Model availability and provider price must be checked at run time.
 
 With a Hugging Face token in `HF_TOKEN`, run one model per invocation:
 
@@ -73,4 +84,4 @@ node scripts/jev-eval.mjs --cases scripts/jev-eval-cases.json --options scripts/
 
 ## Local reader handoff
 
-A production build was opened in Chromium on a separate local preview port. A synthetic, valid version-1 Worker JSON decision selected `soft-rain`, `mono`, large text, and a released Standard Ebooks division. The Portal opened a playable Chamber session; the live word element reported the `mono` face and the compiled session reported `soft-rain`. This verifies the JSON-to-reader path with a mocked decision, not the candidate Worker against live Jev. Soft Rain's graph and stop lifecycle passed unit tests, but its sound has not had a listening review. The Postgres seed has not been applied to the live database.
+A production build was opened in Chromium on a separate local preview port. A synthetic, valid version-1 Worker JSON decision selected `soft-rain`, `mono`, large text, and a released Standard Ebooks division. The Portal opened a playable Chamber session; the live word element reported the `mono` face and the compiled session reported `soft-rain`. This historical check used a mocked decision. A later live browser request did open a Chamber reading from a real schema-v2 Jev choice. Soft Rain's graph and stop lifecycle passed unit tests, but its sound has not had a listening review.
