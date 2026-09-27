@@ -95,7 +95,7 @@ describe('Settings display type', () => {
             '[data-action="clear-history"]',
             '.settings-about'
         ]) expect(container.querySelector(gone), gone).toBeNull();
-        expect(container.textContent).not.toContain('Lobby Drone');
+        expect(container.textContent).not.toContain('Lobby drone');
 
         // Everything that can rescue a reading in progress is still here.
         for (const kept of [
