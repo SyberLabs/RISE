@@ -1,7 +1,7 @@
 import { neon } from '@neondatabase/serverless';
 import { Redis } from '@upstash/redis/cloudflare';
 import releaseInventory from '../src/content/archive/release-inventory.json' with { type: 'json' };
-import { jevPalette } from '../src/core/jev-palette.js';
+import { jevColors, jevPalette } from '../src/core/jev-palette.js';
 import { JEV_AUDIO_IDS, resolveJevChamberConfig } from '../src/core/jev-config.js';
 import { compileJevAudioProgram, compileJevVisualProgram } from '../src/core/jev-sequence.js';
 import { buildJevVarianceHints, VARIATION_COUNT } from './jev-variance.mjs';
@@ -11,12 +11,12 @@ const MODEL = 'typesafe/jev-1.13';
 const AUDIO_CHOICES = Object.freeze({ silent: 'Silence.',
   ...Object.fromEntries(JEV_AUDIO_IDS.map(id => [id, `${id} soundscape.`])) });
 const COLOR_THEME_CHOICES = Object.freeze({
-  classic: 'Warm ivory text on a near-black ground.',
-  amethyst: 'Violet ground with lilac accents.',
-  prism: 'Deep violet ground, bright text, and neon magenta; choose for psychedelic or prismatic requests.',
-  ember: 'Dark red-brown ground with fiery orange accents.',
-  cobalt: 'Deep blue ground with electric blue accents.',
-  jade: 'Dark green ground with luminous jade accents.'
+  classic: 'Warm bronze accent; restrained literary mood.',
+  amethyst: 'Lilac-violet accent; dreamy mood.',
+  prism: 'Neon magenta accent; psychedelic or prismatic mood.',
+  ember: 'Fiery orange accent; warm dramatic mood.',
+  cobalt: 'Electric blue accent; cool luminous mood.',
+  jade: 'Luminous jade accent; organic calm mood.'
 });
 const CHOICES = Object.freeze({
   section: { first: 'First section.', middle: 'Middle section.', last: 'Final section.', shortest: 'Shortest section.', longest: 'Longest section.' },
@@ -99,6 +99,16 @@ const CHOICES = Object.freeze({
   finaleTheme: COLOR_THEME_CHOICES,
   middleAudio: AUDIO_CHOICES,
   finaleAudio: AUDIO_CHOICES,
+  textColor: {
+    classic: 'Warm ivory text.', amethyst: 'Clear lilac text.',
+    prism: 'Bright rose pink text.', ember: 'Warm gold text.',
+    cobalt: 'Cool cyan text.', jade: 'Fresh mint green text.'
+  },
+  backgroundColor: {
+    classic: 'Near-black background.', amethyst: 'Deep violet background.',
+    prism: 'Dark prismatic purple background.', ember: 'Dark red-brown background.',
+    cobalt: 'Deep navy blue background.', jade: 'Dark forest green background.'
+  },
   wordFill: {
     plain: 'Plain text ink.', accent: 'Fill text with the chosen accent color.',
     same: 'Fill text with the Gallery visual when supported.'
@@ -119,6 +129,9 @@ const QUESTION_INSTRUCTIONS = Object.freeze({
   galleryCadence: 'Choose the speed of visual transitions. Calm requests should transition slowly; energetic requests can be lively.',
   chamberFace: 'Choose the text font. Match literary, book serif, modern sans, display, bold graphic, monospaced, or Japanese requests.',
   fontSize: 'Choose text size. Honor small, large, or extra large requests; fit works best with one-word chunks.',
+  colorTheme: 'Choose the accent and overall color mood. Text ink and background are selected by their own questions.',
+  textColor: 'Choose the text ink color. Honor explicit reader requests for warm, cool, lilac, or mint text.',
+  backgroundColor: 'Choose the background color independently from the text and accent. Honor explicit reader color requests.',
   projection: 'Choose timed streaming or a spatial page. Continuous visual motion needs stream because page hides the continuous visual field.'
 });
 const DECISION_CACHE_TTL_SECONDS = 3600;
@@ -188,9 +201,13 @@ async function readIntent(request) {
   try {
     const body = JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(bytes));
     if (!body || Array.isArray(body) || typeof body !== 'object'
-      || Object.keys(body).length !== 1 || typeof body.intent !== 'string') return null;
+      || typeof body.intent !== 'string'
+      || (body.schemaVersion === undefined && Object.keys(body).length !== 1)
+      || (body.schemaVersion !== undefined
+        && (body.schemaVersion !== 2 || Object.keys(body).length !== 2))) return null;
     const intent = body.intent.trim();
-    return intent.length >= 3 && intent.length <= 240 ? intent : null;
+    return intent.length >= 3 && intent.length <= 240
+      ? { intent, schemaVersion: body.schemaVersion === 2 ? 2 : 1 } : null;
   } catch {
     return null;
   }
@@ -309,13 +326,13 @@ async function decisionCacheKey(intent, books, sounds, choices, apiKey) {
   const menu = Object.fromEntries(OPTION_KINDS.map(kind => [kind, Object.keys(choices[kind])]));
   const input = JSON.stringify({ model: MODEL, intent, books, sounds, menu });
   const signature = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(input));
-  return `rise:jev-decision:v11:${Array.from(new Uint8Array(signature),
+  return `rise:jev-decision:v12:${Array.from(new Uint8Array(signature),
     byte => byte.toString(16).padStart(2, '0')).join('')}`;
 }
 
 function validConfig(config, choices) {
   if (!config || typeof config !== 'object' || Array.isArray(config)
-    || Object.keys(config).length !== 36
+    || Object.keys(config).length !== 38
     || !Number.isInteger(config.wpm) || !Object.hasOwn(choices.pace, String(config.wpm))) return null;
   const fields = { section: 'section', curve: 'curve', chunkMode: 'chunk', audio: 'audio',
     visualMode: 'visual', visualStyle: 'visualStyle', visualEngine: 'visualEngine',
@@ -324,12 +341,13 @@ function validConfig(config, choices) {
     visualPalette: 'visualPalette',
     kleePreset: 'kleePreset', galleryCadence: 'galleryCadence',
     chamberFace: 'chamberFace', fontSize: 'fontSize',
-    colorTheme: 'colorTheme', wordFill: 'wordFill',
+    colorTheme: 'colorTheme', textColor: 'textColor', backgroundColor: 'backgroundColor',
+    wordFill: 'wordFill',
     projection: 'projection', revealMode: 'reveal' };
   for (const [field, question] of Object.entries(fields)) {
     if (typeof config[field] !== 'string' || !Object.hasOwn(choices[question], config[field])) return null;
   }
-  const palette = jevPalette(config.colorTheme);
+  const palette = jevColors(config.colorTheme, config.textColor, config.backgroundColor);
   if (!palette || !config.colors || Object.keys(config.colors).length !== 3
     || Object.keys(palette).some(key => config.colors[key] !== palette[key])) return null;
   if (config.visualStyle === 'psychedelic' && (config.visualMode !== 'interlocution'
@@ -403,6 +421,8 @@ function choiceConfig(answers, intent, choices) {
     chamberFace: answers.chamberFace.choice,
     fontSize: answers.fontSize.choice,
     colorTheme: answers.colorTheme.choice,
+    textColor: answers.textColor.choice,
+    backgroundColor: answers.backgroundColor.choice,
     wordFill: answers.wordFill.choice,
     projection: answers.projection.choice, revealMode: answers.reveal.choice
   };
@@ -429,7 +449,6 @@ function choiceConfig(answers, intent, choices) {
     || config.chamberFace !== 'thick' || config.fontSize !== 'fit'
     || config.chunkMode !== 'word')) config.wordFill = 'accent';
   if (config.fontSize === 'fit' && config.chunkMode !== 'word') config.fontSize = 'large';
-  config.colors = jevPalette(config.colorTheme);
   const explicitNoVisual = requestsNoVisualMotion(intent)
     || /\b(?:no|without|skip|avoid|disable|turn off)\s+(?:any\s+)?visuals?\b|\bvisuals?\s+(?:off|disabled?)\b|\b(?:text|reading)\s+only\b/iu.test(intent);
   const timing = explicitVisualTiming(intent);
@@ -443,6 +462,7 @@ function choiceConfig(answers, intent, choices) {
     config.visualMode = 'interlocution';
     config.projection = 'stream';
   }
+  config.colors = jevColors(config.colorTheme, config.textColor, config.backgroundColor);
   Object.assign(config, resolveJevChamberConfig(config));
   config.visualProgram = compileJevVisualProgram(config);
   config.audioProgram = compileJevAudioProgram(config);
@@ -450,7 +470,7 @@ function choiceConfig(answers, intent, choices) {
 }
 
 function validCachedDecision(value, books, choices) {
-  if (!value || typeof value !== 'object' || value.schemaVersion !== 1
+  if (!value || typeof value !== 'object' || value.schemaVersion !== 2
     || typeof value.requestId !== 'string'
     || value.requestId.length < 1 || value.requestId.length > 100
     || (value.model !== MODEL && !/^typesafe\/jev-1\.13-\d{8}$/u.test(value.model))) return null;
@@ -459,7 +479,7 @@ function validCachedDecision(value, books, choices) {
   if (!book || !config || value.editionId !== book.edition_id
     || value.sourceRevision !== book.source_revision || value.reason !== book.fit_description) return null;
   return {
-    schemaVersion: 1,
+    schemaVersion: 2,
     requestId: value.requestId,
     model: value.model,
     workId: book.work_id,
@@ -478,7 +498,7 @@ function validDecision(value, books, intent, choices) {
   const config = choiceConfig(value.answers, intent, choices);
   if (answer?.type !== 'choice' || !selected || !config) return null;
   return {
-    schemaVersion: 1,
+    schemaVersion: 2,
     requestId: typeof value.id === 'string' && value.id.length <= 100 ? value.id : crypto.randomUUID(),
     model: value.model,
     workId: selected.work_id,
@@ -490,14 +510,29 @@ function validDecision(value, books, intent, choices) {
   };
 }
 
+function responseForVersion(decision, schemaVersion) {
+  if (schemaVersion === 2) return decision;
+  const config = { ...decision.config };
+  const presentation = { ...config.presentation };
+  delete config.textColor;
+  delete config.backgroundColor;
+  delete presentation.textColor;
+  delete presentation.backgroundColor;
+  const colors = jevPalette(config.colorTheme);
+  return { ...decision, schemaVersion: 1, config: {
+    ...config, colors, presentation: { ...presentation, colors }
+  } };
+}
+
 export async function handleJevRecommend(request, env) {
   if (request.method !== 'POST') return error(405, 'METHOD_NOT_ALLOWED', 'Use POST for this endpoint.');
   if (!sameOrigin(request)) return error(403, 'ORIGIN_NOT_ALLOWED', 'Request must come from this site.');
   if ((request.headers.get('content-type') || '').split(';', 1)[0].trim().toLowerCase() !== 'application/json') {
     return error(415, 'UNSUPPORTED_MEDIA_TYPE', 'Content-Type must be application/json.');
   }
-  const intent = await readIntent(request);
-  if (!intent) return error(400, 'INVALID_REQUEST', 'Enter a reading intent of 3 to 240 characters.');
+  const input = await readIntent(request);
+  if (!input) return error(400, 'INVALID_REQUEST', 'Enter a reading intent of 3 to 240 characters.');
+  const { intent, schemaVersion } = input;
   if (!env?.OPENROUTER_API_KEY?.trim() || !env?.NEON_DATABASE_URL?.trim()
     || !env?.UPSTASH_REDIS_REST_URL?.trim() || !env?.UPSTASH_REDIS_REST_TOKEN?.trim()) {
     return error(503, 'RECOMMENDATION_NOT_CONFIGURED', 'Reading suggestions are unavailable.');
@@ -548,7 +583,7 @@ export async function handleJevRecommend(request, env) {
     const catalogChoices = await activeChoices(redis, env, sounds);
     if (!catalogChoices) return error(503, 'OPTIONS_UNAVAILABLE', 'The presentation menu is unavailable.');
     const turnBaseKey = await decisionCacheKey(intent, books, sounds, catalogChoices, env.OPENROUTER_API_KEY);
-    const turnKey = turnBaseKey.replace('rise:jev-decision:v11:', 'rise:jev-turn:v4:');
+    const turnKey = turnBaseKey.replace('rise:jev-decision:v12:', 'rise:jev-turn:v4:');
     const nextTurn = await redis.incr(turnKey);
     if (!Number.isSafeInteger(nextTurn) || nextTurn < 1) throw new Error('Invalid Jev turn');
     if (nextTurn === 1) await redis.expire(turnKey, 86400);
@@ -565,7 +600,9 @@ export async function handleJevRecommend(request, env) {
     const decisionBaseKey = await decisionCacheKey(intent, books, shortlistedSounds, choices, env.OPENROUTER_API_KEY);
     decisionKey = `${decisionBaseKey}:${hints.variation.cohort === null ? 0 : (nextTurn - 1) % VARIATION_COUNT}`;
     const cached = validCachedDecision(await redis.get(decisionKey), hints.eligibleBooks, choices);
-    if (cached) return reply(200, { ...cached, cacheStatus, decisionCacheStatus: 'hit' });
+    if (cached) return reply(200, {
+      ...responseForVersion(cached, schemaVersion), cacheStatus, decisionCacheStatus: 'hit'
+    });
   } catch {
     return error(503, 'DECISION_CACHE_UNAVAILABLE', 'Reading suggestions are unavailable.');
   }
@@ -614,5 +651,7 @@ export async function handleJevRecommend(request, env) {
   } catch {
     return error(503, 'DECISION_CACHE_UNAVAILABLE', 'Reading suggestions are unavailable.');
   }
-  return reply(200, { ...decision, cacheStatus, decisionCacheStatus: 'miss' });
+  return reply(200, {
+    ...responseForVersion(decision, schemaVersion), cacheStatus, decisionCacheStatus: 'miss'
+  });
 }

@@ -12,6 +12,7 @@
 
 import './Portal.css';
 import { isJevSceneDemoPath } from '../core/jev-demo-path.js';
+import { attachJevDictation } from './jev-dictation.js';
 
 export class Portal {
   constructor(container, options = {}) {
@@ -84,6 +85,7 @@ export class Portal {
   }
 
   render() {
+    this.stopJevDictation?.();
     const sealOnly = this.prefersSealOnly();
     const sigilTag = sealOnly ? 'div' : 'button';
     this.container.innerHTML = `
@@ -175,6 +177,11 @@ export class Portal {
           <label class="portal-jev-label" for="portal-jev-intent">Your reading request</label>
           <textarea id="portal-jev-intent" name="intent" rows="2" maxlength="240" required
             placeholder="I want something reflective, slow, quiet, with gentle visuals…"></textarea>
+          <div class="portal-jev-voice-row">
+            <button class="portal-jev-dictate" data-jev-dictate type="button" aria-label="Speak your Jev request" aria-pressed="false">🎙 Speak</button>
+            <span data-jev-dictation-status role="status" aria-live="polite"></span>
+          </div>
+          <p class="portal-jev-voice-note">Voice input may use your browser’s speech service. Review the text before asking Jev.</p>
           <button class="portal-jev-submit" type="submit">Ask Jev and read <span aria-hidden="true">→</span></button>
           <p class="portal-jev-hint" id="portal-jev-hint" role="status" aria-live="polite">Jev chooses from the released Library and sets the Chamber in one request.</p>
         </form>`}
@@ -272,6 +279,7 @@ export class Portal {
     });
 
     const form = this.container.querySelector('#portal-jev-form');
+    if (form) this.stopJevDictation = attachJevDictation(form);
     form?.addEventListener('submit', async event => {
       event.preventDefault();
       const intent = form.querySelector('#portal-jev-intent').value.trim();
@@ -289,7 +297,7 @@ export class Portal {
         const response = await fetch('/api/jev-recommend', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ intent })
+          body: JSON.stringify({ intent, schemaVersion: 2 })
         });
         const decision = await response.json();
         if (!response.ok) throw new Error(decision.error?.message || 'Jev is unavailable.');
@@ -405,6 +413,10 @@ export class Portal {
   activate() {
     if (this._active) return;
     this._active = true;
+    if (!this.stopJevDictation) {
+      const form = this.container.querySelector('#portal-jev-form');
+      if (form) this.stopJevDictation = attachJevDictation(form);
+    }
     document.addEventListener('keydown', this.boundKeyboardHandler);
     this.startVesselMedia();
   }
@@ -412,6 +424,8 @@ export class Portal {
   deactivate() {
     if (!this._active) return;
     this._active = false;
+    this.stopJevDictation?.();
+    this.stopJevDictation = null;
     document.removeEventListener('keydown', this.boundKeyboardHandler);
     (this._mediaTimers || []).forEach(id => clearTimeout(id));
     this._mediaTimers = [];
@@ -423,6 +437,7 @@ export class Portal {
   }
 
   destroy() {
+    this.stopJevDictation?.();
     this.deactivate();
   }
 }

@@ -161,7 +161,7 @@ it, and CI fails when the committed copy is not what `src/` produces.
 flowchart LR
     app["app<br/>composition root<br/>7 modules"]
     audio["audio<br/>Web Audio, recitation<br/>9 modules"]
-    components["components<br/>routed views<br/>35 modules"]
+    components["components<br/>routed views<br/>36 modules"]
     content["content<br/>texts, imagery, journeys<br/>228 modules"]
     core["core<br/>session, player, router<br/>131 modules"]
     page["page<br/>spatial projection<br/>4 modules"]
@@ -179,7 +179,7 @@ flowchart LR
     components -.-> |1 lazy| app
     components --> |2| audio
     components --> |22| content
-    components --> |130| core
+    components --> |132| core
     components -.-> |1 lazy| page
     components --> |4| sources
     components --> |13| visuals
@@ -292,10 +292,11 @@ outliving its room, fails a build.
 | Guide | `src/components/Guide.js` | onboarding, as an overlay rather than a route |
 | BetaGate | `src/components/BetaGate.js` | invitation UX; **not** a security boundary (§7) |
 
-Four modules in `src/components/` are deliberately not rooms, because they only
-ever appear inside one: `src/components/Admit.js`,
+Five modules in `src/components/` are deliberately not rooms; they support
+routed rooms: `src/components/Admit.js`,
 `src/components/NamingModal.js`, `src/components/SourceBrowser.js` and
-`src/components/VisualNavigator.js`. The Navigator's columns, text material,
+`src/components/VisualNavigator.js`, plus the Jev voice input helper
+`src/components/jev-dictation.js`. The Navigator's columns, text material,
 preview, and Chapel trays live in `src/components/visual-navigator/` so the
 shell stays a mount point. Chamber mounts a Fit-mask runtime from
 `src/core/fit-mask-runtime.js` rather than owning the glyph-mask state machine.

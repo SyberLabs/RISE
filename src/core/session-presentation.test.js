@@ -8,7 +8,7 @@ import {
   sessionColorTheme,
   sessionPresentation
 } from './session-presentation.js';
-import { jevPalette } from './jev-palette.js';
+import { JEV_INKS, jevPalette } from './jev-palette.js';
 
 const reader = () => ({
   chamberFace: 'literary',
@@ -26,6 +26,15 @@ describe('what a reading may claim', () => {
       colorTheme: 'prism', colors: { ...colors, text: '#000000' }
     } })).toBeNull();
     expect(sessionColorTheme({ presentation: { colorTheme: 'unknown', colors } })).toBeNull();
+  });
+  it('admits independent named text and background colors but rejects forged hex', () => {
+    const colors = { background: jevPalette('ember').background,
+      text: JEV_INKS.jade, accent: jevPalette('classic').accent };
+    const presentation = { colorTheme: 'classic', textColor: 'jade', backgroundColor: 'ember', colors };
+    expect(sessionColorTheme({ presentation })).toEqual(colors);
+    expect(sessionColorTheme({ presentation: { ...presentation,
+      colors: { ...colors, text: '#000000' } } })).toBeNull();
+    expect(sessionColorTheme({ presentation: { ...presentation, textColor: 'script' } })).toBeNull();
   });
   it('claims nothing at all unless it says so', () => {
     expect(sessionPresentation({})).toBeNull();

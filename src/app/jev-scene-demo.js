@@ -14,11 +14,12 @@ export function sampleJevSceneDecision() {
     visualPalette: 'white', visualArc: 'dual', arcSplit: '50',
     kleePreset: 'harmonic', galleryCadence: 'balanced',
     chamberFace: 'literary', fontSize: 'medium', colorTheme: 'classic',
+    textColor: 'classic', backgroundColor: 'classic',
     middleTheme: 'amethyst', finaleTheme: 'prism',
     wordFill: 'plain', projection: 'stream', revealMode: 'instant'
   };
   return {
-    schemaVersion: 1,
+    schemaVersion: 2,
     requestId: 'jev-scene-sample',
     model: 'typesafe/jev-1.13',
     reason: 'A disclosed sample of a released Middlemarch reading.',

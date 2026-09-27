@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import releaseInventory from '../src/content/archive/release-inventory.json';
-import { JEV_PALETTES } from '../src/core/jev-palette.js';
+import { JEV_INKS, JEV_PALETTES, jevColors } from '../src/core/jev-palette.js';
 import { JEV_AUDIO_IDS } from '../src/core/jev-config.js';
 import * as jevSequence from '../src/core/jev-sequence.js';
 
@@ -73,7 +73,8 @@ const chosenConfig = Object.freeze({
   visualArc: 'single', arcSplit: '50', middleEngine: 'klee', finaleEngine: 'klee',
   middleTheme: 'classic', finaleTheme: 'classic', middleAudio: 'silent', finaleAudio: 'silent',
   kleePreset: 'harmonic', galleryCadence: 'balanced', chamberFace: 'literary',
-  fontSize: 'medium', colorTheme: 'classic', colors: JEV_PALETTES.classic, wordFill: 'plain',
+  fontSize: 'medium', colorTheme: 'classic', textColor: 'classic', backgroundColor: 'classic',
+  colors: JEV_PALETTES.classic, wordFill: 'plain',
   projection: 'stream', revealMode: 'instant',
   audioPreset: 'silent', soundscape: 'none',
   entrainmentMode: 'binaural', entrainmentWaveform: 'sine',
@@ -83,7 +84,8 @@ const chosenConfig = Object.freeze({
   audioProgram: null,
   presentation: {
     chamberFace: 'literary', fontSize: 'medium',
-    colorTheme: 'classic', colors: JEV_PALETTES.classic
+    colorTheme: 'classic', textColor: 'classic', backgroundColor: 'classic',
+    colors: JEV_PALETTES.classic
   }
 });
 
@@ -112,6 +114,8 @@ function answers(workId, overrides = {}) {
     chamberFace: { type: 'choice', choice: 'literary' },
     fontSize: { type: 'choice', choice: 'medium' },
     colorTheme: { type: 'choice', choice: 'classic' },
+    textColor: { type: 'choice', choice: 'classic' },
+    backgroundColor: { type: 'choice', choice: 'classic' },
     wordFill: { type: 'choice', choice: 'plain' },
     projection: { type: 'choice', choice: 'stream' },
     reveal: { type: 'choice', choice: 'instant' },
@@ -119,11 +123,11 @@ function answers(workId, overrides = {}) {
   };
 }
 
-function request(body = { intent: 'I want a thoughtful novel.' }, headers = {}) {
+function request(body = { intent: 'I want a thoughtful novel.' }, headers = {}, legacy = false) {
   return new Request(`${SITE}/api/jev-recommend`, {
     method: 'POST',
     headers: { Origin: SITE, 'Content-Type': 'application/json', ...headers },
-    body: JSON.stringify(body)
+    body: JSON.stringify(legacy ? body : { schemaVersion: 2, ...body })
   });
 }
 
@@ -143,6 +147,43 @@ afterEach(() => {
 });
 
 describe('Jev reading recommendation', () => {
+  it('serves the original v1 shape to an old tab and the expressive v2 shape to a new tab', async () => {
+    const cache = new Map();
+    mocks.get.mockImplementation(async key => cache.get(key) ?? null);
+    mocks.set.mockImplementation(async (key, value) => { cache.set(key, value); return 'OK'; });
+    const provider = vi.fn(async () => Response.json({
+      id: 'mixed-version', model: 'typesafe/jev-1.13', provider: 'TypeSafe',
+      answers: answers('middlemarch', {
+        textColor: { type: 'choice', choice: 'jade' },
+        backgroundColor: { type: 'choice', choice: 'ember' }
+      })
+    }));
+    vi.stubGlobal('fetch', provider);
+    const oldResponse = await handleJevRecommend(request({ intent: 'A colorful reading.' }, {}, true), env);
+    const oldDecision = await oldResponse.json();
+    expect(oldResponse.status).toBe(200);
+    expect(oldDecision.schemaVersion).toBe(1);
+    expect(Object.keys(oldDecision.config)).toHaveLength(36);
+    expect(oldDecision.config).not.toHaveProperty('textColor');
+    expect(oldDecision.config.presentation).toEqual({
+      chamberFace: 'literary', fontSize: 'medium', colorTheme: 'classic',
+      colors: JEV_PALETTES.classic
+    });
+
+    const newResponse = await handleJevRecommend(request({ intent: 'A colorful reading.', schemaVersion: 2 }), env);
+    const newDecision = await newResponse.json();
+    expect(newResponse.status).toBe(200);
+    expect(newDecision.schemaVersion).toBe(2);
+    expect(newDecision.config).toMatchObject({ textColor: 'jade', backgroundColor: 'ember',
+      presentation: { textColor: 'jade', backgroundColor: 'ember' } });
+    expect(newDecision.decisionCacheStatus).toBe('hit');
+    expect(provider).toHaveBeenCalledOnce();
+  });
+
+  it('rejects unsupported request schema versions before touching services', async () => {
+    expect((await handleJevRecommend(request({ intent: 'A reading.', schemaVersion: 3 }), env)).status).toBe(400);
+    expect(mocks.query).not.toHaveBeenCalled();
+  });
   it('offers new text faces and extra large type when active in Postgres', async () => {
     mocks.optionsQuery.mockResolvedValue([
       ...options,
@@ -322,7 +363,7 @@ describe('Jev reading recommendation', () => {
     const response = await handleJevRecommend(request(), env);
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual({
-      schemaVersion: 1,
+      schemaVersion: 2,
       requestId: 'gen-dec-live-1', model: 'typesafe/jev-1.13-20260917',
       workId: 'middlemarch', editionId: books[0].edition_id,
       sourceRevision: books[0].source_revision,
@@ -346,7 +387,8 @@ describe('Jev reading recommendation', () => {
       'book', 'section', 'pace', 'curve', 'chunk', 'audio', 'visual', 'visualStyle',
       'visualEngine', 'visualArc', 'arcSplit', 'middleEngine', 'finaleEngine',
       'visualPalette', 'kleePreset', 'galleryCadence', 'chamberFace', 'fontSize', 'colorTheme',
-      'middleTheme', 'finaleTheme', 'middleAudio', 'finaleAudio', 'wordFill', 'projection', 'reveal'
+      'middleTheme', 'finaleTheme', 'middleAudio', 'finaleAudio',
+      'textColor', 'backgroundColor', 'wordFill', 'projection', 'reveal'
     ]);
     expect(body.questions.visual.criteria.interlocution).toContain('psychedelic');
     expect(body.questions.visualEngine.criteria.fractal).toContain('psychedelic');
@@ -360,9 +402,39 @@ describe('Jev reading recommendation', () => {
     expect(body.questions.audio.instructions).toContain('sound');
     expect(body.questions.chamberFace.instructions).toContain('font');
     expect(body.questions.fontSize.instructions).toContain('size');
+    expect(body.questions.colorTheme.instructions).toContain('accent');
+    expect(body.questions.colorTheme.criteria.classic).not.toMatch(/text|ground|background/iu);
+    expect(body.questions.textColor.instructions).toContain('text');
+    expect(body.questions.backgroundColor.instructions).toContain('background');
     expect(body.questions.visualStyle.instructions).toContain('visual energy');
     expect(body.questions.projection.instructions).toContain('continuous visual');
     expect(provider.mock.calls[0][1].headers.Authorization).toBe('Bearer openrouter-server-secret');
+  });
+
+  it('resolves independent named text and background choices into bounded colors', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => Response.json({
+      model: 'typesafe/jev-1.13', provider: 'TypeSafe',
+      answers: answers('middlemarch', {
+        textColor: { type: 'choice', choice: 'jade' },
+        backgroundColor: { type: 'choice', choice: 'ember' }
+      })
+    })));
+    const response = await handleJevRecommend(request({ intent: 'Mint green words on a red-brown background.' }), env);
+    expect(response.status).toBe(200);
+    const { config } = await response.json();
+    expect(config).toMatchObject({ textColor: 'jade', backgroundColor: 'ember',
+      colors: { background: JEV_PALETTES.ember.background, text: JEV_INKS.jade,
+        accent: JEV_PALETTES.classic.accent },
+      presentation: { colors: { background: JEV_PALETTES.ember.background,
+        text: JEV_INKS.jade, accent: JEV_PALETTES.classic.accent } } });
+  });
+
+  it('rejects an unknown color choice from Jev', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => Response.json({
+      model: 'typesafe/jev-1.13', provider: 'TypeSafe',
+      answers: answers('middlemarch', { textColor: { type: 'choice', choice: 'transparent' } })
+    })));
+    expect((await handleJevRecommend(request(), env)).status).toBe(502);
   });
 
   it('uses public catalog metadata from Redis but still calls Jev for the reader intent', async () => {
@@ -450,6 +522,8 @@ describe('Jev reading recommendation', () => {
         chamberFace: { type: 'choice', choice: 'thick' },
         fontSize: { type: 'choice', choice: 'fit' },
         colorTheme: { type: 'choice', choice: 'prism' },
+        textColor: { type: 'choice', choice: 'prism' },
+        backgroundColor: { type: 'choice', choice: 'prism' },
         wordFill: { type: 'choice', choice: 'accent' },
         projection: { type: 'choice', choice: 'page' },
         reveal: { type: 'choice', choice: 'progressive' }
@@ -466,7 +540,8 @@ describe('Jev reading recommendation', () => {
       middleTheme: 'classic', finaleTheme: 'classic', middleAudio: 'silent', finaleAudio: 'silent',
       kleePreset: 'chaotic',
       galleryCadence: 'lively', chamberFace: 'thick', fontSize: 'large',
-      colorTheme: 'prism', colors: JEV_PALETTES.prism,
+      colorTheme: 'prism', textColor: 'prism', backgroundColor: 'prism',
+      colors: jevColors('prism', 'prism', 'prism'),
       wordFill: 'accent', projection: 'stream', revealMode: 'progressive',
       audioPreset: 'silent', soundscape: 'aurora',
       entrainmentMode: 'binaural', entrainmentWaveform: 'sine',
@@ -481,7 +556,8 @@ describe('Jev reading recommendation', () => {
       },
       presentation: {
         chamberFace: 'thick', fontSize: 'large',
-        colorTheme: 'prism', colors: JEV_PALETTES.prism
+        colorTheme: 'prism', textColor: 'prism', backgroundColor: 'prism',
+        colors: jevColors('prism', 'prism', 'prism')
       }
     });
     expect(config.visualProgram).toMatchObject({
@@ -520,6 +596,8 @@ describe('Jev reading recommendation', () => {
         visualEngine: { type: 'choice', choice: 'turrell' },
         galleryCadence: { type: 'choice', choice: 'slow' },
         colorTheme: { type: 'choice', choice: 'classic' },
+        textColor: { type: 'choice', choice: 'prism' },
+        backgroundColor: { type: 'choice', choice: 'prism' },
         projection: { type: 'choice', choice: 'page' }
       })
     })));
@@ -529,11 +607,11 @@ describe('Jev reading recommendation', () => {
       visualStyle: 'psychedelic', visualMode: 'interlocution',
       visualEngine: 'fractal', galleryCadence: 'lively',
       visualArc: 'single', arcSplit: '50', middleEngine: 'klee', finaleEngine: 'klee',
-      projection: 'stream', colorTheme: 'prism', colors: JEV_PALETTES.prism,
+      projection: 'stream', colorTheme: 'prism', colors: jevColors('prism', 'prism', 'prism'),
       visualConfig: { visualMode: 'interlocution', interlocution: {
         presentation: 'continuous', procedural: ['fractal'], galleryCadence: 0.85
       } },
-      presentation: { colorTheme: 'prism', colors: JEV_PALETTES.prism }
+      presentation: { colorTheme: 'prism', colors: jevColors('prism', 'prism', 'prism') }
     });
   });
 
@@ -600,7 +678,7 @@ describe('Jev reading recommendation', () => {
     });
     expect(provider).toHaveBeenCalledTimes(1);
     const decisionKey = [...cache.keys()].find(key => key.startsWith('rise:jev-decision:'));
-    expect(decisionKey).toMatch(/^rise:jev-decision:v11:[0-9a-f]{64}:0$/u);
+    expect(decisionKey).toMatch(/^rise:jev-decision:v12:[0-9a-f]{64}:0$/u);
     expect(decisionKey).not.toContain('Nature and quiet.');
     expect(mocks.set).toHaveBeenCalledWith(decisionKey, expect.objectContaining({
       workId: 'literary-walden'
@@ -860,7 +938,7 @@ describe('Jev reading recommendation', () => {
 
   it('does not serve a cached result with an unsupported schema version', async () => {
     mocks.get.mockImplementation(async key => key.startsWith('rise:books:') ? books : {
-      schemaVersion: 2, requestId: 'future', model: 'typesafe/jev-1.13',
+      schemaVersion: 3, requestId: 'future', model: 'typesafe/jev-1.13',
       workId: 'literary-walden', editionId: book('literary-walden').edition_id,
       sourceRevision: book('literary-walden').source_revision,
       reason: book('literary-walden').fit_description, config: chosenConfig
@@ -873,7 +951,7 @@ describe('Jev reading recommendation', () => {
 
     const response = await handleJevRecommend(request(), env);
     expect(response.status).toBe(200);
-    expect(await response.json()).toMatchObject({ schemaVersion: 1, requestId: 'gen-dec-fresh' });
+    expect(await response.json()).toMatchObject({ schemaVersion: 2, requestId: 'gen-dec-fresh' });
     expect(provider).toHaveBeenCalledOnce();
   });
 

@@ -88,6 +88,7 @@ import { applyChamberAccent, resolveChamberAccent } from '../core/chamber-accent
 import {
   estimateGlyphBox,
   fitWordAtomPx,
+  FONT_SIZE_CHIPS,
   isChamberWordFit,
   resolveFontSize,
   threeStepIntent
@@ -96,10 +97,12 @@ import { resolveTextMaterialCapability } from '../core/chamber-text-material.js'
 import { FitMaskRuntime } from '../core/fit-mask-runtime.js';
 import { resolveSessionWordFill } from '../core/visual-selection.js';
 import { sessionColorTheme } from '../core/session-presentation.js';
-import { jevPalette } from '../core/jev-palette.js';
 import { SEQUENCE_PILOT, nextSequencePilot } from '../content/sequence-pilot.js';
 import { saveSequencePilotFeedback } from '../core/sequence-pilot-feedback.js';
 import { advanceJevVisualArc } from '../core/jev-sequence.js';
+import { JEV_INKS, JEV_PALETTES, jevColors } from '../core/jev-palette.js';
+import { JEV_AUDIO_IDS } from '../core/jev-config.js';
+import { CHAMBER_STREAM_FACES } from '../core/chamber-stream-face.js';
 import './Chamber.css';
 
 /**
@@ -168,6 +171,7 @@ export class Chamber {
     this.controlsVisible = false;
     this._settingsInstance = null;
     this._settingsFailed = false;
+    this._jevLook = {};
     this._destroyed = false;
     this._firstReadChoiceSeen = false;
     this._fitBoxSnapshot = null;
@@ -606,6 +610,13 @@ export class Chamber {
               class="time-separator" style="opacity: 0.3;">/</span><span
               id="time-total" style="font-size: 0.9em; opacity: 0.6;">0:00</span></span>
 
+            ${['jev', 'jev-sample'].includes(this.session?.origin?.experience) ? `
+              <button class="control-btn jev-look-btn" id="jev-look-btn" type="button"
+                aria-label="Change Jev look and sound" aria-expanded="false" aria-controls="jev-look-panel">
+                <span class="icon" aria-hidden="true">✦</span><span class="control-label">Look</span>
+              </button>
+            ` : ''}
+
             <button class="control-btn chamber-settings-btn" id="chamber-settings-btn"
               type="button" aria-label="Settings" title="Settings"
               aria-expanded="false" aria-controls="chamber-settings-overlay">
@@ -717,6 +728,55 @@ export class Chamber {
         </div>
 
         <div class="chamber-settings-overlay" id="chamber-settings-overlay" hidden></div>
+        ${['jev', 'jev-sample'].includes(this.session?.origin?.experience) ? `
+          <div class="jev-look-panel" id="jev-look-panel" role="group" aria-label="Jev look and sound" hidden>
+            <label>Stream face
+              <select name="jev-face">
+                <option value="authored">Generated</option>
+                ${CHAMBER_STREAM_FACES.map(face => `<option value="${face.id}">${face.label}</option>`).join('')}
+              </select>
+            </label>
+            <label>Text size
+              <select name="jev-font-size">
+                <option value="authored">Generated</option>
+                ${FONT_SIZE_CHIPS.filter(chip => chip.fontSize !== 'fit' || session?.chunkMode === 'word')
+                  .map(chip => `<option value="${chip.fontSize}">${chip.label}</option>`).join('')}
+              </select>
+            </label>
+            <label>Text
+              <span class="jev-look-choice"><span class="jev-look-swatch" id="jev-text-swatch"
+                style="background: ${sessionColorTheme(session)?.text || JEV_INKS.classic}"></span>
+                <select name="jev-text-color"><option value="authored">Generated</option>
+                  ${Object.keys(JEV_INKS).map((id, index) => `<option value="${id}">${['Ivory', 'Lilac', 'Rose', 'Gold', 'Cyan', 'Mint'][index]}</option>`).join('')}
+                </select>
+              </span>
+            </label>
+            <label>Backdrop
+              <span class="jev-look-choice"><span class="jev-look-swatch" id="jev-background-swatch"
+                style="background: ${sessionColorTheme(session)?.background || JEV_PALETTES.classic.background}"></span>
+                <select name="jev-background-color"><option value="authored">Generated</option>
+                  ${Object.keys(JEV_PALETTES).map((id, index) => `<option value="${id}">${['Night', 'Violet', 'Prism', 'Ember', 'Cobalt', 'Jade'][index]}</option>`).join('')}
+                </select>
+              </span>
+            </label>
+            <label>Visuals
+              <select name="jev-visual-strength">
+                <option value="authored">Generated</option><option value="soft">Soft</option>
+              </select>
+            </label>
+            <label>Sound
+              <select name="jev-soundscape">
+                <option value="authored">Generated</option><option value="none">Silence</option>
+                ${JEV_AUDIO_IDS.map(id => `<option value="${id}">${id.split('-').map(word => word[0].toUpperCase() + word.slice(1)).join(' ')}</option>`).join('')}
+              </select>
+            </label>
+            <label>Volume <output id="jev-volume-value">${Math.round((this.getSettings()?.masterVolume ?? 0.75) * 100)}%</output>
+              <input name="jev-volume" type="range" min="0" max="100" step="1"
+                value="${Math.round((this.getSettings()?.masterVolume ?? 0.75) * 100)}"
+                aria-label="Reading volume" />
+            </label>
+          </div>
+        ` : ''}
 
         <!-- Custom Exit Confirmation Overlay -->
         <div id="exit-confirm-overlay" class="exit-overlay hidden" style="display: none;">
@@ -741,7 +801,7 @@ export class Chamber {
     const atomDisplay = this.container.querySelector('#atom-display');
     if (!atomDisplay) return false;
     atomDisplay.dataset.chamberFace = resolveChamberStreamFace(
-      this.getSettings()?.chamberFace
+      this._jevLook?.face || this.getSettings()?.chamberFace
     );
     if (atomDisplay.classList.contains('is-mask')) {
       void this.syncFillGlyphMask();
@@ -749,23 +809,42 @@ export class Chamber {
     return true;
   }
 
+  effectiveFontSize() {
+    return this._jevLook?.fontSize || this.getSettings()?.fontSize;
+  }
+
   applySessionColors() {
     const colors = sessionColorTheme(this.session);
-    if (!colors) return;
-    const hex = colors.accent.slice(1);
+    if (!colors && !this._jevLook?.textColor && !this._jevLook?.backgroundColor) return;
+    const accent = colors?.accent || JEV_PALETTES.classic.accent;
+    const hex = accent.slice(1);
     const rgb = [0, 2, 4].map(offset => parseInt(hex.slice(offset, offset + 2), 16)).join(', ');
     for (const [name, value] of Object.entries({
-      '--color-void': colors.background,
-      '--color-light': colors.text,
-      '--color-cloud': colors.text,
-      '--color-accent': colors.accent,
+      '--color-void': this._jevLook?.backgroundColor
+        ? JEV_PALETTES[this._jevLook.backgroundColor].background : colors?.background,
+      '--color-light': this._jevLook?.textColor
+        ? JEV_INKS[this._jevLook.textColor] : colors?.text,
+      '--color-cloud': this._jevLook?.textColor
+        ? JEV_INKS[this._jevLook.textColor] : colors?.text,
+      '--color-accent': accent,
       '--color-accent-rgb': rgb,
-      '--color-threshold': colors.accent
-    })) this.container.style.setProperty(name, value);
+      '--color-threshold': accent
+    })) {
+      if (value) this.container.style.setProperty(name, value);
+    }
+    if (['jev', 'jev-sample'].includes(this.session?.origin?.experience)) {
+      const atom = this.container.querySelector('#atom-display');
+      if (atom && !atom.classList.contains('is-mask-ready')) {
+        atom.style.color = 'var(--color-light)';
+        atom.style.removeProperty('text-shadow');
+      }
+    }
   }
 
   applyScheduledColorTheme(colorTheme) {
-    const colors = jevPalette(colorTheme);
+    const presentation = this.session?.presentation;
+    const colors = jevColors(colorTheme, presentation?.textColor,
+      presentation?.backgroundColor ?? colorTheme);
     if (!colors) return false;
     if (!this.session) this.session = {};
     this.session.presentation = {
@@ -780,9 +859,7 @@ export class Chamber {
   applyChamberTypeSize() {
     const atomDisplay = this.container.querySelector('#atom-display');
     if (!atomDisplay) return false;
-    atomDisplay.dataset.fontSize = resolveFontSize(
-      this.getSettings()?.fontSize
-    );
+    atomDisplay.dataset.fontSize = resolveFontSize(this.effectiveFontSize());
     const content = (atomDisplay.textContent || '').trim();
     if (content) this.sizeAtomText(atomDisplay, content);
     void this.syncFillGlyphMask();
@@ -825,8 +902,7 @@ export class Chamber {
    * — the mask is only one of the ways a reader reaches Fit.
    */
   wordHoldsTheFrame() {
-    const settings = this.getSettings();
-    return isChamberWordFit(settings.fontSize) && this.session?.chunkMode === 'word';
+    return isChamberWordFit(this.effectiveFontSize()) && this.session?.chunkMode === 'word';
   }
 
   glassCanApply() {
@@ -838,8 +914,8 @@ export class Chamber {
     const visualConfig = this.session?.visualConfig;
     const presentation = this.session?.visualConfig?.interlocution?.presentation;
     const input = {
-      face: settings.chamberFace,
-      fontSize: settings.fontSize,
+      face: this._jevLook?.face || settings.chamberFace,
+      fontSize: this.effectiveFontSize(),
       chunkMode: this.session?.chunkMode,
       visualMode: visualConfig?.visualMode,
       presentation,
@@ -962,8 +1038,23 @@ export class Chamber {
       this.toggleRhythmicVisuals();
     });
     settingsBtn?.addEventListener('click', () => {
+      this.closeJevLook();
       this.audioEngine?.playHiss();
       this.toggleSettings();
+    });
+    this.container.querySelector('#jev-look-btn')?.addEventListener('click', () => {
+      this.closeSettings();
+      this.toggleJevLook();
+    });
+    this.container.querySelectorAll('#jev-look-panel select').forEach(select => {
+      select.addEventListener('change', () => this.changeJevLook(select.name, select.value));
+    });
+    this.container.querySelector('[name="jev-volume"]')?.addEventListener('input', event => {
+      const volume = Number(event.target.value);
+      if (!Number.isInteger(volume) || volume < 0 || volume > 100) return;
+      this.setVolume(volume / 100);
+      const output = this.container.querySelector('#jev-volume-value');
+      if (output) output.textContent = `${volume}%`;
     });
     exitBtn?.addEventListener('click', () => {
       this.audioEngine?.playHiss();
@@ -2140,7 +2231,7 @@ export class Chamber {
    */
   sizeAtomText(atomDisplay, content) {
     atomDisplay.style.removeProperty('font-size');
-    const fontSize = resolveFontSize(this.getSettings()?.fontSize);
+    const fontSize = resolveFontSize(this.effectiveFontSize());
     atomDisplay.dataset.fontSize = fontSize;
     atomDisplay.style.setProperty('--font-size-intent', String(threeStepIntent(fontSize)));
 
@@ -2308,6 +2399,12 @@ export class Chamber {
       : livingTextAppearance(sig, intensity);
     if (atomDisplay?.classList.contains('is-mask-ready')) {
       atomDisplay.style.color = 'transparent';
+      atomDisplay.style.removeProperty('text-shadow');
+      return;
+    }
+    if (['jev', 'jev-sample'].includes(this.session?.origin?.experience)
+      && sessionColorTheme(this.session)) {
+      atomDisplay.style.color = 'var(--color-light)';
       atomDisplay.style.removeProperty('text-shadow');
       return;
     }
@@ -2585,12 +2682,9 @@ export class Chamber {
     this._anchorSettingsToBar(host);
     this._markSettingsExpanded(true);
     this._settingsInstance = new Settings(host, {
-      // A reading cannot be resumed once abandoned, so this door widens the
-      // control bar rather than opening the Portal's whole panel. Sound, Size
-      // and the two safety switches: what can rescue a reading in progress,
-      // and nothing a reader could have decided before beginning. Sound moved
-      // in from the bar's own volume button, so the bar sheds a control here
-      // rather than gaining a door beside one.
+      // This door holds persistent preferences and safety switches. Jev's
+      // Look panel also offers immediate size and volume controls while the
+      // reading is active.
       scope: 'bar',
       settings: this.getSettings(),
       onClose: () => this.closeSettings(),
@@ -2603,6 +2697,9 @@ export class Chamber {
           this.applyChamberMask();
         }
         if (key === 'fontSize') {
+          this._jevLook.fontSize = null;
+          const jevSize = this.container.querySelector('[name="jev-font-size"]');
+          if (jevSize) jevSize.value = 'authored';
           this.applyChamberTypeSize();
           this.applyChamberMask();
         }
@@ -2621,6 +2718,91 @@ export class Chamber {
       host.hidden = true;
     }
     this._markSettingsExpanded(false);
+  }
+
+  toggleJevLook() {
+    const panel = this.container.querySelector('#jev-look-panel');
+    const button = this.container.querySelector('#jev-look-btn');
+    if (!panel || !button) return;
+    panel.hidden = !panel.hidden;
+    button.setAttribute('aria-expanded', String(!panel.hidden));
+    this.showControls();
+  }
+
+  closeJevLook() {
+    const panel = this.container.querySelector('#jev-look-panel');
+    if (panel) panel.hidden = true;
+    this.container.querySelector('#jev-look-btn')?.setAttribute('aria-expanded', 'false');
+  }
+
+  changeJevLook(name, value) {
+    if (name === 'jev-face') {
+      if (value !== 'authored' && !CHAMBER_STREAM_FACES.some(face => face.id === value)) return;
+      this._jevLook.face = value === 'authored' ? null : value;
+      this.applyChamberStreamFace();
+      this.applyChamberMask();
+    } else if (name === 'jev-font-size') {
+      if (value !== 'authored' && !FONT_SIZE_CHIPS.some(chip => chip.fontSize === value
+          && (value !== 'fit' || this.session?.chunkMode === 'word'))) return;
+      this._jevLook.fontSize = value === 'authored' ? null : value;
+      this.applyChamberTypeSize();
+      this.applyChamberMask();
+    } else if (name === 'jev-text-color' || name === 'jev-background-color') {
+      const text = name === 'jev-text-color';
+      if (value !== 'authored' && !Object.hasOwn(text ? JEV_INKS : JEV_PALETTES, value)) return;
+      this._jevLook[name === 'jev-text-color' ? 'textColor' : 'backgroundColor'] =
+        value === 'authored' ? null : value;
+      this.applySessionColors();
+      const swatch = this.container.querySelector(text ? '#jev-text-swatch' : '#jev-background-swatch');
+      const colors = sessionColorTheme(this.session);
+      if (swatch) swatch.style.backgroundColor = text
+        ? (value === 'authored' ? colors?.text || JEV_INKS.classic : JEV_INKS[value])
+        : (value === 'authored' ? colors?.background || JEV_PALETTES.classic.background
+          : JEV_PALETTES[value].background);
+    } else if (name === 'jev-visual-strength') {
+      if (!['authored', 'soft'].includes(value)) return;
+      if (value === 'authored') delete this.container.dataset.jevVisualStrength;
+      else this.container.dataset.jevVisualStrength = value;
+    } else if (name === 'jev-soundscape') {
+      if (value !== 'authored' && value !== 'none' && !JEV_AUDIO_IDS.includes(value)) return;
+      if (!this.audioEngine) return;
+      this._jevSoundChoice = value;
+      this._audioSchedule?.setEnabled(false);
+      this.audioEngine.stopSoundscape?.();
+      this.audioEngine.applyPreset?.('silent');
+      if (this.player?.state === 'paused' || this.pageModeActive) {
+        this._jevSoundPending = value;
+        return;
+      }
+      this._jevSoundPending = null;
+      if (value !== 'authored' && value !== 'none'
+          && (this.audioEngine.sessionActive === false
+            || this.audioEngine.isInitialized === false)
+          && typeof this.audioEngine.startSession === 'function') {
+        void this.audioEngine.startSession({ soundscape: value, entrySwell: false })
+          .then(result => {
+            if (result?.cancelled || this._destroyed) return;
+            if (this._jevSoundChoice === value) this.audioEngine.fadeInSession?.(0.6);
+            else {
+              this.changeJevLook('jev-soundscape', this._jevSoundChoice);
+              if (this._jevSoundChoice !== 'none' && !this._jevSoundPending
+                  && (this._jevSoundChoice !== 'authored' || this._sessionWantsAudio())) {
+                this.audioEngine.fadeInSession?.(0.6);
+              }
+            }
+          })
+          .catch(error => console.warn('[Chamber] Jev sound could not start:', error));
+        return;
+      }
+      if (value === 'authored') {
+        if (this._audioSchedule) this._audioSchedule.setEnabled(true);
+        else if (this.session?.soundscape && this.session.soundscape !== 'none') {
+          this.audioEngine.startSoundscape?.(this.session.soundscape);
+        } else if (this.session?.audioPreset && this.session.audioPreset !== 'silent') {
+          this.audioEngine.applyPreset?.(this.session.audioPreset);
+        }
+      } else if (value !== 'none') this.audioEngine.startSoundscape?.(value);
+    }
   }
 
   /** The gear says whether the thing it discloses is open. */
@@ -2684,6 +2866,10 @@ export class Chamber {
     if (next === this.pageModeActive) return next;
     if (next && this.session?.firstReadPreview === true) this.dismissFirstReadChoice();
     this.pageModeActive = next;
+    const jevFace = this.container.querySelector('[name="jev-face"]');
+    if (jevFace) jevFace.disabled = next;
+    const jevSize = this.container.querySelector('[name="jev-font-size"]');
+    if (jevSize) jevSize.disabled = next;
     this._updateJevSceneControl(this._jevCurrentAtom);
     if (!next) this._syncPageTurn();
 
@@ -2811,6 +2997,10 @@ export class Chamber {
       if (generation !== this._pageGeneration) return this.pageModeActive;
       host.hidden = true;
       this.pageModeActive = false;
+      const jevFace = this.container.querySelector('[name="jev-face"]');
+      if (jevFace) jevFace.disabled = false;
+      const jevSize = this.container.querySelector('[name="jev-font-size"]');
+      if (jevSize) jevSize.disabled = false;
       btn?.setAttribute('aria-pressed', 'false');
       btn?.classList.remove('is-on');
       display?.classList.remove('page-mode-on');
@@ -3481,6 +3671,9 @@ export class Chamber {
     if (state === 'paused') this._audioSchedule?.pause();
     else if (state === 'idle' || state === 'complete') this._audioSchedule?.stop();
     else if (state === 'playing') this._audioSchedule?.resume();
+    if (state === 'playing' && this._jevSoundPending && !this.pageModeActive) {
+      this.changeJevLook('jev-soundscape', this._jevSoundPending);
+    }
 
     // The Genesis field breathes with the session: pausing the text
     // pauses the pen

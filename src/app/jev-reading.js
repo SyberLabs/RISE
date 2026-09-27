@@ -5,7 +5,7 @@ import { READING_LIMITS } from '../core/reading-limits.js';
 import { CHAMBER_STREAM_FACES } from '../core/chamber-stream-face.js';
 import { FONT_SIZE_CHIPS } from '../core/chamber-type-size.js';
 import { JEV_AUDIO_IDS, resolveJevChamberConfig } from '../core/jev-config.js';
-import { jevPalette } from '../core/jev-palette.js';
+import { jevColors } from '../core/jev-palette.js';
 import {
   compileJevAudioProgram,
   compileJevVisualProgram
@@ -31,6 +31,7 @@ const STYLES = new Set(['quiet', 'gentle', 'immersive', 'psychedelic']);
 const SECTIONS = new Set(['first', 'middle', 'last', 'shortest', 'longest']);
 const VISUAL_ARCS = new Set(['single', 'dual', 'triple']);
 const ARC_SPLITS = new Set(['30', '50', '70']);
+const COLORS = new Set(['classic', 'amethyst', 'prism', 'ember', 'cobalt', 'jade']);
 
 function assertPlan(decision) {
   const config = decision?.config;
@@ -44,11 +45,13 @@ function assertPlan(decision) {
     || !WORD_FILLS.has(config.wordFill) || !STYLES.has(config.visualStyle)
     || !VISUAL_ARCS.has(config.visualArc) || !ARC_SPLITS.has(config.arcSplit)
     || !ENGINES.has(config.middleEngine) || !ENGINES.has(config.finaleEngine)
+    || !COLORS.has(config.colorTheme) || !COLORS.has(config.textColor)
+    || !COLORS.has(config.backgroundColor)
     || !AUDIO.has(config.middleAudio) || !AUDIO.has(config.finaleAudio)
-    || !jevPalette(config.middleTheme) || !jevPalette(config.finaleTheme)
-    || !jevPalette(config.colorTheme)
+    || !COLORS.has(config.middleTheme) || !COLORS.has(config.finaleTheme)
     || !config.colors || Object.keys(config.colors).length !== 3
-    || Object.entries(jevPalette(config.colorTheme)).some(([key, value]) => config.colors[key] !== value)
+    || Object.entries(jevColors(config.colorTheme, config.textColor, config.backgroundColor))
+      .some(([key, value]) => config.colors[key] !== value)
     || !['stream', 'page'].includes(config.projection)
     || !['instant', 'progressive'].includes(config.revealMode)) {
     throw new TypeError('Jev returned an invalid reading plan.');
@@ -71,7 +74,7 @@ function assertPlan(decision) {
 
 /** Admit the versioned Worker JSON before offering a reading to the reader. */
 export function validateJevRecommendation(decision) {
-  if (!decision || decision.schemaVersion !== 1
+  if (!decision || decision.schemaVersion !== 2
     || typeof decision.requestId !== 'string' || !decision.requestId || decision.requestId.length > 100
     || typeof decision.model !== 'string' || !/^typesafe\/jev-1\.13(?:-\d{8})?$/.test(decision.model)
     || typeof decision.workId !== 'string' || typeof decision.editionId !== 'string'

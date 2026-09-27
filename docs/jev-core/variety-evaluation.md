@@ -1,5 +1,16 @@
 # Jev presentation variety evaluation
 
+## Expressive look check
+
+The [eight look prompts](../../scripts/jev-eval-look-cases.json) test independently requested text ink and background colors, typeface, size, sound, and visual motion against the [current offered choices](../../scripts/jev-eval-look-options.json). The local MiniLM semantic selector returned valid choices for all eight prompts, matched 11 of 14 explicitly requested fields, and made all requested opposite fields differ in 3 of 4 prompt pairs. Those contrast pairs measure **intent differentiation**, not color readability. The separate palette test checks all 36 ink and background pairings and found a minimum 10.85:1 text contrast ratio.
+
+This local selector is not TypeSafe Jev. No live Jev look evaluation was run because this workspace had no provider token. The eight prompts and option snapshot are ready for a provider run, but no production preference-match result is claimed.
+
+```powershell
+node scripts/jev-eval-local-hf.mjs scripts/jev-eval-look-cases.json scripts/jev-eval-look-options.json local-look-eval.json
+node scripts/jev-eval.mjs --cases scripts/jev-eval-look-cases.json --options scripts/jev-eval-look-options.json --input local-look-eval.json
+```
+
 ## What is measured
 
 The [case set](../../scripts/jev-eval-cases.json) contains 16 synthetic reader prompts in eight contrast pairs. Each pair changes one or several explicit requests for pace, sound, moving visuals, visual energy, typeface, or type size. The [production option snapshot](../../scripts/jev-eval-options.json) is the six relevant fields from `worker/jev-recommend.mjs` on 2026-09-26. The [merged candidate snapshot](../../scripts/jev-eval-options-candidate.json) contains `soft-rain`, the six mood sounds (`sad`, `angry`, `happy`, `excited`, `thrilling`, `scary`), and `mono` type. Keep both snapshots so the original production baseline remains reproducible. The scorer reports:

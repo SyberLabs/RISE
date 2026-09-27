@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { getTextById } from '../content/library.js';
 import releaseInventory from '../content/archive/release-inventory.json' with { type: 'json' };
-import { jevPalette } from '../core/jev-palette.js';
+import { jevColors, jevPalette } from '../core/jev-palette.js';
 import {
   compileJevAudioProgram,
   compileJevVisualProgram
@@ -31,11 +31,12 @@ function decision(config = {}) {
     finaleEngine: 'ostensoria', middleAudio: 'aurora', finaleAudio: 'faded-signal',
     kleePreset: 'chaotic', galleryCadence: 'balanced',
     visualStyle: 'gentle', chamberFace: 'literary', fontSize: 'medium',
-    wordFill: 'plain', colorTheme: 'classic', middleTheme: 'amethyst',
+    wordFill: 'plain', colorTheme: 'classic', textColor: 'classic',
+    backgroundColor: 'classic', middleTheme: 'amethyst',
     finaleTheme: 'prism', ...config
   };
   return {
-    schemaVersion: 1,
+    schemaVersion: 2,
     requestId: 'test-decision',
     model: 'typesafe/jev-1.13',
     reason: 'A reviewed catalog description.',
@@ -45,7 +46,7 @@ function decision(config = {}) {
     text: 'Model-supplied prose must never reach the reading.',
     config: {
       ...selectors,
-      colors: jevPalette(selectors.colorTheme),
+      colors: jevColors(selectors.colorTheme, selectors.textColor, selectors.backgroundColor),
       ...resolveJevChamberConfig(selectors),
       visualProgram: compileJevVisualProgram(selectors),
       audioProgram: compileJevAudioProgram(selectors)
@@ -97,7 +98,7 @@ describe('Jev reading handoff', () => {
   });
 
   it('rejects unknown options and changed edition identity', async () => {
-    await expect(resolveJevReading({ ...decision(), schemaVersion: 2 }))
+    await expect(resolveJevReading({ ...decision(), schemaVersion: 1 }))
       .rejects.toThrow('invalid reading plan');
     await expect(resolveJevReading(decision({ chunkMode: 'script' })))
       .rejects.toThrow('invalid reading plan');
@@ -140,7 +141,8 @@ describe('Jev reading handoff', () => {
   it('opens a vivid nonflashing Gallery in Stream', async () => {
     const input = await resolveJevReading(decision({
       visualStyle: 'psychedelic', visualMode: 'interlocution', visualEngine: 'fractal',
-      galleryCadence: 'lively', colorTheme: 'prism',
+      galleryCadence: 'lively', colorTheme: 'prism', textColor: 'prism',
+      backgroundColor: 'prism',
       projection: 'stream', wordFill: 'accent', chamberFace: 'thick'
     }));
     expect(input.projection).toBe('stream');
@@ -152,7 +154,7 @@ describe('Jev reading handoff', () => {
         wordFill: { mode: 'accent' }
       }
     });
-    expect(input.presentation.colors).toEqual(jevPalette('prism'));
+    expect(input.presentation.colors).toEqual(jevColors('prism', 'prism', 'prism'));
   });
 
   it('attaches the validated helper-derived visual program', async () => {

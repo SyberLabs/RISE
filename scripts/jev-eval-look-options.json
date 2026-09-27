@@ -1,0 +1,10 @@
+{
+  "textColor": ["classic", "amethyst", "prism", "ember", "cobalt", "jade"],
+  "backgroundColor": ["classic", "amethyst", "prism", "ember", "cobalt", "jade"],
+  "colorTheme": ["classic", "amethyst", "prism", "ember", "cobalt", "jade"],
+  "chamberFace": ["literary", "display", "thick", "jp", "mono"],
+  "fontSize": ["small", "medium", "large", "fit"],
+  "audio": ["silent", "aurora", "faded-signal", "soft-rain", "sad", "angry", "happy", "excited", "thrilling", "scary", "piano", "jazz"],
+  "visualStyle": ["quiet", "gentle", "immersive", "psychedelic"],
+  "visualMode": ["off", "focals", "genesis", "attractor", "interlocution"]
+}

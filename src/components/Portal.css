@@ -1253,6 +1253,23 @@
 
 .portal-jev-form textarea::placeholder { color: var(--color-fog); }
 
+.portal-jev-voice-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.portal-jev-dictate {
+  min-height: 40px;
+  padding: 7px 14px;
+  border: 1px solid rgba(var(--color-accent-rgb), 0.55);
+  border-radius: 6px;
+  background: rgba(var(--color-accent-rgb), 0.09);
+  color: var(--color-light);
+  cursor: pointer;
+  font: 14px var(--font-primary);
+}
+.portal-jev-dictate[aria-pressed="true"] { background: rgba(var(--color-accent-rgb), 0.28); }
+.portal-jev-dictate:disabled { opacity: 0.5; cursor: not-allowed; }
+.portal-jev-voice-row [role="status"],
+.portal-jev-voice-note { color: var(--color-fog); font: 12px/1.5 var(--font-primary); }
+.portal-jev-voice-note { margin: -8px 0 0; }
+
 .portal-jev-form :is(textarea, button):focus-visible {
   outline: 2px solid var(--color-accent);
   outline-offset: 3px;

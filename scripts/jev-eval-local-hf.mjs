@@ -20,7 +20,9 @@ const descriptions = {
     happy: 'Warm major harmony for joy, ease, or celebration.',
     excited: 'Bright moving harmony for anticipation and high energy.',
     thrilling: 'Driving low pulse for suspense, pursuit, or dramatic momentum.',
-    scary: 'Uneasy low dissonance for dread, fear, or ominous scenes.'
+    scary: 'Uneasy low dissonance for dread, fear, or ominous scenes.',
+    piano: 'Solo piano music behind the reading.',
+    jazz: 'Jazz music behind the reading.'
   },
   visualMode: {
     off: 'No moving visuals, blank still background.',
@@ -45,6 +47,24 @@ const descriptions = {
   fontSize: {
     small: 'Small, unobtrusive text.', medium: 'Medium sized text.',
     large: 'Large, easy-to-read text.', fit: 'Huge word filling the screen.'
+  },
+  colorTheme: {
+    classic: 'Warm ivory and near-black color theme.',
+    amethyst: 'Purple and lilac color theme.',
+    prism: 'Neon magenta prismatic color theme.',
+    ember: 'Fiery orange and dark red color theme.',
+    cobalt: 'Electric blue color theme.',
+    jade: 'Luminous green jade color theme.'
+  },
+  textColor: {
+    classic: 'Warm ivory text color.', amethyst: 'Lilac text color.',
+    prism: 'Bright rose pink text color.', ember: 'Warm gold text color.',
+    cobalt: 'Cool cyan text color.', jade: 'Fresh mint green text color.'
+  },
+  backgroundColor: {
+    classic: 'Near-black background color.', amethyst: 'Deep violet background color.',
+    prism: 'Dark prismatic purple background color.', ember: 'Dark red-brown background color.',
+    cobalt: 'Deep navy blue background color.', jade: 'Dark forest green background color.'
   }
 };
 

@@ -8,6 +8,27 @@ export const JEV_PALETTES = Object.freeze({
   jade: Object.freeze({ background: '#061912', text: '#E8FFF4', accent: '#4CE6A4' })
 });
 
+/** Distinct light inks that remain readable over every offered dark ground. */
+export const JEV_INKS = Object.freeze({
+  classic: '#F4EEE4',
+  amethyst: '#DDBAFF',
+  prism: '#FFC4F2',
+  ember: '#FFE095',
+  cobalt: '#A8F1FF',
+  jade: '#AFFFCE'
+});
+
 export function jevPalette(id) {
   return Object.hasOwn(JEV_PALETTES, id) ? JEV_PALETTES[id] : null;
+}
+
+/** Resolve named choices to shipped ink, ground, and accent colors. */
+export function jevColors(colorTheme, textColor, backgroundColor = colorTheme) {
+  const theme = jevPalette(colorTheme);
+  const ink = textColor == null ? theme?.text
+    : Object.hasOwn(JEV_INKS, textColor) ? JEV_INKS[textColor] : null;
+  const ground = jevPalette(backgroundColor);
+  return theme && ink && ground
+    ? { background: ground.background, text: ink, accent: theme.accent }
+    : null;
 }

@@ -1,6 +1,6 @@
 import { expect, it } from 'vitest';
 import releaseInventory from '../content/archive/release-inventory.json' with { type: 'json' };
-import { jevPalette } from '../core/jev-palette.js';
+import { jevColors, jevPalette } from '../core/jev-palette.js';
 import { resolveJevChamberConfig } from '../core/jev-config.js';
 import {
   compileJevAudioProgram,
@@ -20,12 +20,14 @@ it('opens an existing playable division for every released book and section choi
         visualArc: 'single', arcSplit: '50', middleEngine: 'harmonograph',
         finaleEngine: 'ostensoria', middleAudio: 'aurora', finaleAudio: 'faded-signal',
         galleryCadence: 'balanced', chamberFace: 'literary', fontSize: 'medium',
-        wordFill: 'plain', colorTheme: 'classic', middleTheme: 'amethyst',
+        wordFill: 'plain', colorTheme: 'classic', textColor: 'classic',
+        backgroundColor: 'classic',
+        middleTheme: 'amethyst',
         finaleTheme: 'prism',
         projection: 'stream', revealMode: 'instant'
       };
       const input = await resolveJevReading({
-        schemaVersion: 1, requestId: 'integration-decision',
+        schemaVersion: 2, requestId: 'integration-decision',
         model: 'typesafe/jev-1.13', reason: 'A reviewed catalog description.',
         workId: released.workId,
         editionId: released.editionId,
@@ -51,16 +53,18 @@ it('compiles a psychedelic Jev plan into a visible, scoped Chamber session', asy
     visualArc: 'triple', arcSplit: '70', middleEngine: 'harmonograph',
     finaleEngine: 'ostensoria', middleAudio: 'faded-signal', finaleAudio: 'silent',
     galleryCadence: 'lively', chamberFace: 'thick', fontSize: 'fit',
-    wordFill: 'same', colorTheme: 'prism', middleTheme: 'ember', finaleTheme: 'cobalt',
+    wordFill: 'same', colorTheme: 'prism', textColor: 'prism',
+    backgroundColor: 'prism',
+    middleTheme: 'ember', finaleTheme: 'cobalt',
     projection: 'stream', revealMode: 'progressive'
   };
   const input = await resolveJevReading({
-    schemaVersion: 1, requestId: 'integration-decision',
+    schemaVersion: 2, requestId: 'integration-decision',
     model: 'typesafe/jev-1.13', reason: 'A reviewed catalog description.',
     workId: released.workId,
     editionId: released.editionId,
     sourceRevision: released.sourceRevision,
-    config: { ...selectors, colors: jevPalette('prism'),
+    config: { ...selectors, colors: jevColors('prism', 'prism', 'prism'),
       ...resolveJevChamberConfig(selectors),
       visualProgram: compileJevVisualProgram(selectors),
       audioProgram: compileJevAudioProgram(selectors) }
@@ -77,7 +81,7 @@ it('compiles a psychedelic Jev plan into a visible, scoped Chamber session', asy
   });
   expect(session.presentation).toMatchObject({
     chamberFace: 'thick', fontSize: 'fit', colorTheme: 'prism',
-    colors: jevPalette('prism')
+    colors: jevColors('prism', 'prism', 'prism')
   });
   expect(session.soundscape).toBe('aurora');
   expect(session.visualProgram.segments.map(segment => segment.match.toProgress))
