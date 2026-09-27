@@ -350,8 +350,10 @@
 
 /* Responsive */
 @media (max-width: 600px) {
+    /* The system header runs edge to edge; .settings-content carries the
+       phone gutter itself. */
     .settings {
-        padding: var(--space-md);
+        padding: 0;
     }
 
     .settings-row {
