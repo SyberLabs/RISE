@@ -18,8 +18,8 @@ describe('livingTextAppearance', () => {
         expect(livingTextAppearance({ valence: 1, arousal: 1 }, 1)).toEqual({
             color: 'rgb(255, 208, 131)',
             rgb: [255, 208, 131],
-            glowRadius: 48,
-            glowAlpha: 0.6
+            glowRadius: 0,
+            glowAlpha: 0
         });
     });
 
@@ -27,8 +27,8 @@ describe('livingTextAppearance', () => {
         expect(livingTextAppearance({ valence: -1, arousal: 1 }, 0)).toEqual({
             color: 'rgb(232, 232, 236)',
             rgb: [232, 232, 236],
-            glowRadius: 8,
-            glowAlpha: 0.15
+            glowRadius: 0,
+            glowAlpha: 0
         });
     });
 
@@ -36,8 +36,8 @@ describe('livingTextAppearance', () => {
         expect(livingTextAppearance({ valence: -4, arousal: 5 }, 2)).toEqual({
             color: 'rgb(141, 173, 255)',
             rgb: [141, 173, 255],
-            glowRadius: 48,
-            glowAlpha: 0.6
+            glowRadius: 0,
+            glowAlpha: 0
         });
     });
 

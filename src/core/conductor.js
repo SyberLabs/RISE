@@ -306,7 +306,6 @@ function preserveAccentDominance(base, rgb) {
 export function livingTextAppearance(signal, intensity = 1, options = {}) {
     const strength = clamp(Number(intensity) || 0, 0, 1);
     const valence = clamp(Number(signal?.valence) || 0, -1, 1);
-    const arousal = clamp(Number(signal?.arousal ?? 0.3) || 0, 0, 1);
     const neutral = [232, 232, 236];
     const pole = valence >= 0 ? [255, 208, 130] : [140, 172, 255];
     const mood = Math.tanh(Math.abs(valence) * 2.6);
@@ -335,8 +334,15 @@ export function livingTextAppearance(signal, intensity = 1, options = {}) {
     return {
         color: `rgb(${rgb[0]}, ${rgb[1]}, ${rgb[2]})`,
         rgb,
-        glowRadius: round3(8 + arousal * 40 * strength),
-        glowAlpha: round3(0.15 + arousal * 0.45 * strength)
+        // NO HALO. Arousal used to widen a glow of the word's own colour
+        // behind it, up to 48px at 60% alpha. A glow of the ink's own hue
+        // adds no contrast, it only blurs the letterforms and lays a
+        // coloured cloud behind "Read plainly", whose promise is nothing
+        // behind the words. The colour shift above carries the signal;
+        // legibility over imagery is the scrim's job, not the glyph's.
+        // Kept as zeroes so every caller still writes a well-formed value.
+        glowRadius: 0,
+        glowAlpha: 0
         // fitMix, fitSaturation and fitBrightness stood here and drove a flat
         // wash over the fill. Living Text colours the text; a generated field
         // is tinted through its engine's own palette, never by being covered.
