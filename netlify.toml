@@ -35,6 +35,13 @@
   status = 301
   force = true
 
+# Preview audio stays same-origin while production serves the pinned WAVs.
+[[redirects]]
+  from = "/audio/recitation/*"
+  to = "https://rise.syberlabs.io/audio/recitation/:splat"
+  status = 200
+  force = true
+
 # SPA routing - redirect all requests to index.html
 [[redirects]]
   from = "/*"

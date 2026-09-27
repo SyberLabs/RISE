@@ -182,6 +182,8 @@ the Worker and managed services are required for live recommendations.
 - Node: repo pins `20.19.0` (`.nvmrc`/`.node-version`); `engines` also allows
   `>=22.12`.
 - Install deps with `npm ci`.
+- Run `npm run audio:hydrate` before local recitation, full unit tests, or
+ browser tests. It restores ignored WAVs from the pinned audio branch.
 - The full test suite needs two system tools: **`ffmpeg`** and a **Playwright
   Chromium** browser (`npx playwright install chromium`, or
   `npx playwright install --with-deps chromium` if Chromium can't launch due to

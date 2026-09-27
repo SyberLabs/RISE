@@ -65,12 +65,15 @@ jobs:
         with:
           persist-credentials: false
       - uses: ./.github/actions/setup
+        with:
+          audio: 'true'
       - name: Build production
         run: npm run build
       - name: Mark the tested release
         run: |
           set -euo pipefail
           [[ "$TESTED_SHA" =~ ^[0-9a-f]{40}$ ]]
+          test "$(find dist/audio/recitation -type f -name '*.wav' | wc -l)" -eq 877
           printf '%s\n' "$TESTED_SHA" > "dist/release-$TESTED_SHA.txt"
       - name: Deploy production
         env:
