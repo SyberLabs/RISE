@@ -23,6 +23,7 @@ export class Portal {
     this.onLaunchJevReading = options.onLaunchJevReading || (async () => {});
     this.onLaunchJevSample = options.onLaunchJevSample || (async () => {});
     this.demoMode = options.demoMode === true;
+    this.onLaunchFirstRead = options.onLaunchFirstRead || (async () => {});
     this._active = false;
     this.boundKeyboardHandler = this.handleKeyboard.bind(this);
 
@@ -149,8 +150,12 @@ export class Portal {
           </${sigilTag}>
         </div>
 
-        <!-- The reading request is the first action. The existing rooms remain
-             available below it for readers who already know where to go. -->
+        <button class="portal-first-read" type="button">
+          <span class="portal-first-read-title">Experience 30 seconds <span aria-hidden="true">→</span></span>
+          <span class="portal-first-read-source">Meditations · Marcus Aurelius</span>
+        </button>
+
+        <!-- The reading request and existing rooms remain available below. -->
         <div class="portal-title-container">
           <p class="portal-jev-eyebrow">${this.demoMode ? 'JEV SCENE SAMPLE' : 'READ WITH JEV'}</p>
           <h1 class="portal-title">${this.demoMode ? 'Make the scene respond.' : 'What would you like to read?'}</h1>
@@ -254,6 +259,18 @@ export class Portal {
   }
 
   attachEvents() {
+    const firstRead = this.container.querySelector('.portal-first-read');
+    firstRead.addEventListener('click', async () => {
+      if (firstRead.disabled) return;
+      firstRead.disabled = true;
+      this.getAudioEngine()?.playClick();
+      try {
+        await this.onLaunchFirstRead();
+      } finally {
+        firstRead.disabled = false;
+      }
+    });
+
     const form = this.container.querySelector('#portal-jev-form');
     form?.addEventListener('submit', async event => {
       event.preventDefault();

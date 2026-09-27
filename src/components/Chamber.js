@@ -168,6 +168,7 @@ export class Chamber {
     this._settingsInstance = null;
     this._settingsFailed = false;
     this._destroyed = false;
+    this._firstReadChoiceSeen = false;
     this._fitBoxSnapshot = null;
     this.fitMask = new FitMaskRuntime(this);
     this.loadSettingsClass = typeof options.loadSettingsClass === 'function'
@@ -511,6 +512,15 @@ export class Chamber {
           <div class="chamber-progress">
             <div class="chamber-progress-fill" id="progress-fill"></div>
           </div>
+
+          ${this.session?.firstReadPreview === true ? `
+            <div class="first-read-choice" id="first-read-choice" role="group"
+              aria-label="How would you like to continue reading?" hidden>
+              <button type="button" id="first-read-continue">Continue in Stream</button>
+              <button type="button" id="first-read-page">Read as Page</button>
+              <button type="button" id="first-read-pause">Pause</button>
+            </div>
+          ` : ''}
 
           <!-- Hidden controls - appear on mouse movement -->
           <div class="chamber-controls" id="chamber-controls" style="opacity: 0;">
@@ -916,6 +926,17 @@ export class Chamber {
     pageModeBtn?.addEventListener('click', () => {
       this.audioEngine?.playHiss();
       this.togglePageMode();
+    });
+    this.container.querySelector('#first-read-continue')?.addEventListener('click', () => {
+      this.dismissFirstReadChoice();
+    });
+    this.container.querySelector('#first-read-page')?.addEventListener('click', () => {
+      this.dismissFirstReadChoice();
+      this.togglePageMode(true);
+    });
+    this.container.querySelector('#first-read-pause')?.addEventListener('click', () => {
+      this.dismissFirstReadChoice();
+      this._pauseLikePlay(true);
     });
     const kaleidoscopeBtn = this.container.querySelector('#kaleidoscope-btn');
     kaleidoscopeBtn?.addEventListener('click', () => {
@@ -2453,9 +2474,23 @@ export class Chamber {
     if (timeTotal && progress.total) {
       timeTotal.textContent = this.formatDuration(progress.total);
     }
+
+    if (this.session?.firstReadPreview === true && !this._firstReadChoiceSeen
+        && !this._destroyed && !this.pageModeActive && this.player?.state !== 'complete'
+        && progress.elapsed >= 30000) {
+      this._firstReadChoiceSeen = true;
+      const choice = this.container.querySelector('#first-read-choice');
+      if (choice) choice.hidden = false;
+    }
   }
 
-  togglePlayPause() {
+  dismissFirstReadChoice() {
+    this._firstReadChoiceSeen = true;
+    const choice = this.container.querySelector('#first-read-choice');
+    if (choice) choice.hidden = true;
+  }
+
+  togglePlayPause(ignoreDebounce = false) {
     if (!this.player) return;
 
     // Page authority (PAGE-MODE-SPEC §4): while Page is open, do not start Stream.
@@ -2463,7 +2498,7 @@ export class Chamber {
 
     // Debounce to prevent double-click issues (hardware or accidental)
     const now = Date.now();
-    if (this._lastToggleTime && now - this._lastToggleTime < 200) return;
+    if (!ignoreDebounce && this._lastToggleTime && now - this._lastToggleTime < 200) return;
     this._lastToggleTime = now;
 
     const playIcon = this.container.querySelector('#play-icon');
@@ -2482,10 +2517,10 @@ export class Chamber {
     }
   }
 
-  _pauseLikePlay() {
+  _pauseLikePlay(ignoreDebounce = false) {
     if (!this.player) return;
     if (this.player.state === 'playing' || this.player.state === 'interlocuting') {
-      this.togglePlayPause();
+      this.togglePlayPause(ignoreDebounce);
     }
   }
 
@@ -2632,6 +2667,7 @@ export class Chamber {
 
     const next = typeof forceOn === 'boolean' ? forceOn : !this.pageModeActive;
     if (next === this.pageModeActive) return next;
+    if (next && this.session?.firstReadPreview === true) this.dismissFirstReadChoice();
     this.pageModeActive = next;
     this._updateJevSceneControl(this._jevCurrentAtom);
     if (!next) this._syncPageTurn();
@@ -3341,6 +3377,7 @@ export class Chamber {
   }
 
   onSessionComplete() {
+    if (this.session?.firstReadPreview === true) this.dismissFirstReadChoice();
     const display = this.container.querySelector('#chamber-display');
     const postSession = this.container.querySelector('#chamber-post');
 
@@ -3528,6 +3565,7 @@ export class Chamber {
 
   destroy() {
     this._destroyed = true;
+    if (this.session?.firstReadPreview === true) this.dismissFirstReadChoice();
     for (const name of ['--color-void', '--color-light', '--color-cloud',
       '--color-accent', '--color-accent-rgb', '--color-threshold']) {
       this.container.style.removeProperty(name);
