@@ -136,7 +136,11 @@ jobs:
             import { resolveJevChamberConfig } from "./src/core/jev-config.js";
             import { compileJevAudioProgram, compileJevVisualProgram } from "./src/core/jev-sequence.js";
             const config = JSON.parse(readFileSync(process.env.JEV_RESPONSE_FILE, "utf8")).config;
-            console.log(JSON.stringify({ ...resolveJevChamberConfig(config),
+            const resolved = resolveJevChamberConfig(config);
+            // The original response shape omits the independent v2 color choices.
+            delete resolved.presentation.textColor;
+            delete resolved.presentation.backgroundColor;
+            console.log(JSON.stringify({ ...resolved,
               visualProgram: compileJevVisualProgram(config),
               audioProgram: compileJevAudioProgram(config) }));
           ' > "$RUNNER_TEMP/jev-resolved.json"
@@ -218,6 +222,30 @@ jobs:
               and ($result | has("text") | not)
               and ($result | has("reading") | not)
           ' "$RUNNER_TEMP/jev-recommend-body" > /dev/null
+          status=$(curl -sS --max-time 20 -o "$RUNNER_TEMP/jev-recommend-v2-body" \
+            -w '%{http_code}' -H 'Origin: https://rise.syberlabs.io' \
+            -H 'Content-Type: application/json' \
+            --data '{"intent":"A warm gold reading on a dark forest background with large text and gentle piano","schemaVersion":2}' \
+            'https://rise.syberlabs.io/api/jev-recommend')
+          test "$status" = 200 || { echo "Jev v2 recommendation returned HTTP $status"; exit 1; }
+          JEV_RESPONSE_FILE="$RUNNER_TEMP/jev-recommend-v2-body" node --input-type=module -e '
+            import { readFileSync } from "node:fs";
+            import { JEV_INKS, JEV_PALETTES, jevColors } from "./src/core/jev-palette.js";
+            import { resolveJevChamberConfig } from "./src/core/jev-config.js";
+            const result = JSON.parse(readFileSync(process.env.JEV_RESPONSE_FILE, "utf8"));
+            const config = result.config;
+            const colors = config && jevColors(config.colorTheme, config.textColor, config.backgroundColor);
+            const expected = config && resolveJevChamberConfig(config).presentation;
+            if (result.schemaVersion !== 2 || !result.model?.startsWith("typesafe/jev-1.13")
+              || !result.requestId || !colors || !expected
+              || !Object.hasOwn(JEV_INKS, config.textColor)
+              || !Object.hasOwn(JEV_PALETTES, config.backgroundColor)
+              || JSON.stringify(config.colors) !== JSON.stringify(colors)
+              || JSON.stringify(config.presentation) !== JSON.stringify(expected)) {
+              console.error("Live Jev v2 visual and audio choices did not match the request contract.");
+              process.exit(1);
+            }
+          '
           status=$(curl -sS --max-time 20 -o "$RUNNER_TEMP/release-after-jev" \
             -w '%{http_code}' "https://rise.syberlabs.io/release-$TESTED_SHA.txt")
           test "$status" = 200 && test "$(cat "$RUNNER_TEMP/release-after-jev")" = "$TESTED_SHA" || {
