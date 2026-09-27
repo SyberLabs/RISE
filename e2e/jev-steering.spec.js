@@ -203,6 +203,8 @@ test('spoken Jev request opens a reading whose look can be changed live', async 
   await expect(page.locator('#chamber-display')).toBeVisible({ timeout: 20_000 });
   await page.locator('#chamber-display').hover();
   await page.locator('#jev-look-btn').click();
+  await page.locator('[name="jev-font-size"]').selectOption('xlarge');
+  await expect(page.locator('#atom-display')).toHaveAttribute('data-font-size', 'xlarge');
   const text = page.locator('[name="jev-text-color"]');
   await text.selectOption('jade');
   await page.locator('[name="jev-background-color"]').selectOption('ember');
@@ -212,6 +214,12 @@ test('spoken Jev request opens a reading whose look can be changed live', async 
   const currentWord = await page.locator('#atom-display').textContent();
   await expect.poll(() => page.locator('#atom-display').textContent()).not.toBe(currentWord);
   await expect(page.locator('#atom-display')).toHaveCSS('color', 'rgb(175, 255, 206)');
+  await expect(page.locator('#atom-display')).toHaveAttribute('data-font-size', 'xlarge');
+  await page.locator('[name="jev-volume"]').evaluate(input => {
+    input.value = '30';
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+  });
+  await expect(page.locator('#jev-volume-value')).toHaveText('30%');
   await page.locator('[name="jev-soundscape"]').selectOption('none');
   await expect(page.locator('[name="jev-soundscape"]')).toHaveValue('none');
 });

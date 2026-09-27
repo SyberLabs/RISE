@@ -88,6 +88,7 @@ import { applyChamberAccent, resolveChamberAccent } from '../core/chamber-accent
 import {
   estimateGlyphBox,
   fitWordAtomPx,
+  FONT_SIZE_CHIPS,
   isChamberWordFit,
   resolveFontSize,
   threeStepIntent
@@ -736,6 +737,13 @@ export class Chamber {
                 ${CHAMBER_STREAM_FACES.map(face => `<option value="${face.id}">${face.label}</option>`).join('')}
               </select>
             </label>
+            <label>Text size
+              <select name="jev-font-size">
+                <option value="authored">Generated</option>
+                ${FONT_SIZE_CHIPS.filter(chip => chip.fontSize !== 'fit' || session?.chunkMode === 'word')
+                  .map(chip => `<option value="${chip.fontSize}">${chip.label}</option>`).join('')}
+              </select>
+            </label>
             <label>Text
               <span class="jev-look-choice"><span class="jev-look-swatch" id="jev-text-swatch"
                 style="background: ${sessionColorTheme(session)?.text || JEV_INKS.classic}"></span>
@@ -763,7 +771,11 @@ export class Chamber {
                 ${JEV_AUDIO_IDS.map(id => `<option value="${id}">${id.split('-').map(word => word[0].toUpperCase() + word.slice(1)).join(' ')}</option>`).join('')}
               </select>
             </label>
-            <span class="jev-look-hint">Size and volume are in Settings.</span>
+            <label>Volume <output id="jev-volume-value">${Math.round((this.getSettings()?.masterVolume ?? 0.75) * 100)}%</output>
+              <input name="jev-volume" type="range" min="0" max="100" step="1"
+                value="${Math.round((this.getSettings()?.masterVolume ?? 0.75) * 100)}"
+                aria-label="Reading volume" />
+            </label>
           </div>
         ` : ''}
 
@@ -796,6 +808,10 @@ export class Chamber {
       void this.syncFillGlyphMask();
     }
     return true;
+  }
+
+  effectiveFontSize() {
+    return this._jevLook?.fontSize || this.getSettings()?.fontSize;
   }
 
   applySessionColors() {
@@ -842,9 +858,7 @@ export class Chamber {
   applyChamberTypeSize() {
     const atomDisplay = this.container.querySelector('#atom-display');
     if (!atomDisplay) return false;
-    atomDisplay.dataset.fontSize = resolveFontSize(
-      this.getSettings()?.fontSize
-    );
+    atomDisplay.dataset.fontSize = resolveFontSize(this.effectiveFontSize());
     const content = (atomDisplay.textContent || '').trim();
     if (content) this.sizeAtomText(atomDisplay, content);
     void this.syncFillGlyphMask();
@@ -887,8 +901,7 @@ export class Chamber {
    * — the mask is only one of the ways a reader reaches Fit.
    */
   wordHoldsTheFrame() {
-    const settings = this.getSettings();
-    return isChamberWordFit(settings.fontSize) && this.session?.chunkMode === 'word';
+    return isChamberWordFit(this.effectiveFontSize()) && this.session?.chunkMode === 'word';
   }
 
   glassCanApply() {
@@ -900,8 +913,8 @@ export class Chamber {
     const visualConfig = this.session?.visualConfig;
     const presentation = this.session?.visualConfig?.interlocution?.presentation;
     const input = {
-      face: settings.chamberFace,
-      fontSize: settings.fontSize,
+      face: this._jevLook?.face || settings.chamberFace,
+      fontSize: this.effectiveFontSize(),
       chunkMode: this.session?.chunkMode,
       visualMode: visualConfig?.visualMode,
       presentation,
@@ -1034,6 +1047,13 @@ export class Chamber {
     });
     this.container.querySelectorAll('#jev-look-panel select').forEach(select => {
       select.addEventListener('change', () => this.changeJevLook(select.name, select.value));
+    });
+    this.container.querySelector('[name="jev-volume"]')?.addEventListener('input', event => {
+      const volume = Number(event.target.value);
+      if (!Number.isInteger(volume) || volume < 0 || volume > 100) return;
+      this.setVolume(volume / 100);
+      const output = this.container.querySelector('#jev-volume-value');
+      if (output) output.textContent = `${volume}%`;
     });
     exitBtn?.addEventListener('click', () => {
       this.audioEngine?.playHiss();
@@ -2210,7 +2230,7 @@ export class Chamber {
    */
   sizeAtomText(atomDisplay, content) {
     atomDisplay.style.removeProperty('font-size');
-    const fontSize = resolveFontSize(this.getSettings()?.fontSize);
+    const fontSize = resolveFontSize(this.effectiveFontSize());
     atomDisplay.dataset.fontSize = fontSize;
     atomDisplay.style.setProperty('--font-size-intent', String(threeStepIntent(fontSize)));
 
@@ -2661,12 +2681,9 @@ export class Chamber {
     this._anchorSettingsToBar(host);
     this._markSettingsExpanded(true);
     this._settingsInstance = new Settings(host, {
-      // A reading cannot be resumed once abandoned, so this door widens the
-      // control bar rather than opening the Portal's whole panel. Sound, Size
-      // and the two safety switches: what can rescue a reading in progress,
-      // and nothing a reader could have decided before beginning. Sound moved
-      // in from the bar's own volume button, so the bar sheds a control here
-      // rather than gaining a door beside one.
+      // This door holds persistent preferences and safety switches. Jev's
+      // Look panel also offers immediate size and volume controls while the
+      // reading is active.
       scope: 'bar',
       settings: this.getSettings(),
       onClose: () => this.closeSettings(),
@@ -2679,6 +2696,9 @@ export class Chamber {
           this.applyChamberMask();
         }
         if (key === 'fontSize') {
+          this._jevLook.fontSize = null;
+          const jevSize = this.container.querySelector('[name="jev-font-size"]');
+          if (jevSize) jevSize.value = 'authored';
           this.applyChamberTypeSize();
           this.applyChamberMask();
         }
@@ -2719,6 +2739,12 @@ export class Chamber {
       if (value !== 'authored' && !CHAMBER_STREAM_FACES.some(face => face.id === value)) return;
       this._jevLook.face = value === 'authored' ? null : value;
       this.applyChamberStreamFace();
+      this.applyChamberMask();
+    } else if (name === 'jev-font-size') {
+      if (value !== 'authored' && !FONT_SIZE_CHIPS.some(chip => chip.fontSize === value
+          && (value !== 'fit' || this.session?.chunkMode === 'word'))) return;
+      this._jevLook.fontSize = value === 'authored' ? null : value;
+      this.applyChamberTypeSize();
       this.applyChamberMask();
     } else if (name === 'jev-text-color' || name === 'jev-background-color') {
       const text = name === 'jev-text-color';
@@ -2841,6 +2867,8 @@ export class Chamber {
     this.pageModeActive = next;
     const jevFace = this.container.querySelector('[name="jev-face"]');
     if (jevFace) jevFace.disabled = next;
+    const jevSize = this.container.querySelector('[name="jev-font-size"]');
+    if (jevSize) jevSize.disabled = next;
     this._updateJevSceneControl(this._jevCurrentAtom);
     if (!next) this._syncPageTurn();
 
@@ -2968,6 +2996,10 @@ export class Chamber {
       if (generation !== this._pageGeneration) return this.pageModeActive;
       host.hidden = true;
       this.pageModeActive = false;
+      const jevFace = this.container.querySelector('[name="jev-face"]');
+      if (jevFace) jevFace.disabled = false;
+      const jevSize = this.container.querySelector('[name="jev-font-size"]');
+      if (jevSize) jevSize.disabled = false;
       btn?.setAttribute('aria-pressed', 'false');
       btn?.classList.remove('is-on');
       display?.classList.remove('page-mode-on');

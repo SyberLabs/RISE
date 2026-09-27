@@ -6,7 +6,7 @@ import { Chamber } from './Chamber.js';
 import { JEV_INKS, JEV_PALETTES } from '../core/jev-palette.js';
 import { JEV_AUDIO_IDS } from '../core/jev-config.js';
 
-function mount(experience = 'jev', audioEngine = null) {
+function mount(experience = 'jev', audioEngine = null, overrides = {}) {
   const container = document.createElement('div');
   document.body.appendChild(container);
   const chamber = new Chamber(container, {
@@ -23,7 +23,8 @@ function mount(experience = 'jev', audioEngine = null) {
       visualConfig: { visualMode: 'off' }
     },
     getSettings: () => ({ chamberFace: 'display', fontSize: 'large' }),
-    audioEngine
+    audioEngine,
+    ...overrides
   });
   return { chamber, container };
 }
@@ -62,6 +63,36 @@ describe('Jev in-session look control', () => {
     expect(container.style.getPropertyValue('--color-light')).toBe(JEV_INKS.jade);
     expect(container.style.getPropertyValue('--color-void')).toBe(JEV_PALETTES.ember.background);
     expect(chamber.session.presentation).toEqual(original);
+    chamber.destroy();
+  });
+
+  it('changes the live stream size and restores Jev generated size', () => {
+    const { chamber, container } = mount();
+    const size = container.querySelector('[name="jev-font-size"]');
+    expect(size).toBeTruthy();
+    size.value = 'xlarge';
+    size.dispatchEvent(new Event('change', { bubbles: true }));
+    expect(container.querySelector('#atom-display').dataset.fontSize).toBe('xlarge');
+    expect(chamber.session.presentation.fontSize).toBe('large');
+    size.value = 'authored';
+    size.dispatchEvent(new Event('change', { bubbles: true }));
+    expect(container.querySelector('#atom-display').dataset.fontSize).toBe('large');
+    chamber.destroy();
+  });
+
+  it('adjusts listening volume in the Jev panel', () => {
+    const calls = [];
+    const engine = { setVolume: value => calls.push(value) };
+    const { chamber, container } = mount('jev', engine, {
+      getSettings: () => ({ chamberFace: 'display', fontSize: 'large', masterVolume: 0.75 }),
+      onSettingsChange: (key, value) => calls.push(`${key}:${value}`)
+    });
+    const volume = container.querySelector('[name="jev-volume"]');
+    expect(volume.value).toBe('75');
+    volume.value = '30';
+    volume.dispatchEvent(new Event('input', { bubbles: true }));
+    expect(calls).toEqual([0.3, 'masterVolume:0.3']);
+    expect(container.querySelector('#jev-volume-value').textContent).toBe('30%');
     chamber.destroy();
   });
 

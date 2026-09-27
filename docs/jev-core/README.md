@@ -26,6 +26,9 @@ validates the complete plan before opening the reading. Model output cannot
 provide CSS or arbitrary media URLs. The reader can change the look and sound
 during the session or restore Jev's generated choices. Browser speech input
 fills the editable request field and never submits it automatically.
+The Chamber Look panel keeps face, text size, text ink, backdrop, visual
+strength, sound bed, and listening volume in one place. The size and color
+overrides stay local to the reading; volume follows the reader's saved setting.
 
 This describes the candidate source. Live provider quality and public release
 acceptance require separate verification.

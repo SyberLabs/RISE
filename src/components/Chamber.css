@@ -805,16 +805,20 @@
   border-radius: 0.4rem;
 }
 
+.jev-look-panel input[type="range"] {
+  width: 100%;
+  accent-color: var(--color-accent);
+}
+
+.jev-look-panel output {
+  font-variant-numeric: tabular-nums;
+}
+
 .jev-look-panel select:focus-visible,
+.jev-look-panel input:focus-visible,
 .jev-look-btn:focus-visible {
   outline: 2px solid var(--color-light);
   outline-offset: 2px;
-}
-
-.jev-look-hint {
-  grid-column: 1 / -1;
-  color: var(--color-cloud);
-  font-size: 0.7rem;
 }
 
 [data-jev-visual-strength="soft"] .chamber .chamber-continuous-field .continuous-field-layer > :not(.continuous-field-label) {
