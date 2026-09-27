@@ -14,9 +14,13 @@ concurrency:
 
 jobs:
   unit:
-    name: Full unit tests
+    name: Full unit tests ${{ matrix.shard }}/4
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4]
     steps:
       - uses: actions/checkout@v4
         with:
@@ -26,7 +30,7 @@ jobs:
           ffmpeg: 'true'
           chromium: 'true'
           audio: 'true'
-      - run: npm run test:run
+      - run: npm run test:run -- --shard=${{ matrix.shard }}/4
 
   scriptorium:
     name: Scriptorium CLI
