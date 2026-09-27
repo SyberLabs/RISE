@@ -201,7 +201,7 @@ test('spoken Jev request opens a reading whose look can be changed live', async 
     .toHaveValue('A reflective reading with visual scenes');
   await page.locator('#portal-jev-form button[type="submit"]').click();
   expect(requestBody).toEqual({
-    intent: 'A reflective reading with visual scenes', schemaVersion: 2
+    intent: 'A reflective reading with visual scenes', schemaVersion: 3
   });
   await expect(page.locator('#chamber-display')).toBeVisible({ timeout: 20_000 });
   await page.locator('#chamber-display').hover();

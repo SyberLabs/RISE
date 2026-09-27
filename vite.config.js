@@ -1,4 +1,5 @@
 import { cpus, totalmem } from 'node:os';
+import { fileURLToPath } from 'node:url';
 import { defineConfig } from 'vite';
 import { curiaPlugin } from './scripts/curia-plugin.js';
 import { exportMp4Plugin } from './scripts/export-mp4-plugin.js';
@@ -96,6 +97,12 @@ export default defineConfig({
     // splitting already follows the dynamic imports we write.
 
     rollupOptions: {
+      // The Oracle prototype is a second page; without an explicit input the
+      // build emits only index.html and /oracle.html falls back to the app.
+      input: {
+        main: fileURLToPath(new URL('./index.html', import.meta.url)),
+        oracle: fileURLToPath(new URL('./oracle.html', import.meta.url)),
+      },
       /**
        * A DEFERRAL WRITTEN AT ONE SITE AND UNDONE AT ANOTHER IS NOW A BUILD
        * FAILURE.

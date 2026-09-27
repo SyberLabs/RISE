@@ -20,6 +20,7 @@ import {
     EXPERIENCE_PROGRAM_LIMITS
 } from './experience-program.js';
 import { READING_LIMITS, READING_PACE } from './reading-limits.js';
+import { ATTRACTOR_PALETTES } from './visual-style-definitions.js';
 import { parseLibraryExtent } from './library-extent.js';
 import { compileSourceSpans, sourceSpanCutPoints } from './source-span.js';
 import {
@@ -72,7 +73,7 @@ const CURVES = Object.freeze({
 });
 const VISUAL_MODES = new Set(['off', 'focals', 'attractor', 'genesis', 'interlocution']);
 const ATTRACTOR_SYSTEM_IDS = new Set(['aizawa', 'thomas', 'halvorsen']);
-const ATTRACTOR_PALETTE_SET = new Set(['white', 'red', 'blue', 'gold', 'purple']);
+const ATTRACTOR_PALETTE_SET = new Set(ATTRACTOR_PALETTES.map(item => item.id));
 const ATTRACTOR_FORM_SET = new Set(['mirror', 'kaleido', 'bilateral']);
 const KLEE_PRESETS = new Set(['random', 'architectural', 'chaotic', 'harmonic', 'gravitational', 'twittering']);
 

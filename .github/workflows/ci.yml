@@ -54,8 +54,7 @@ jobs:
           wait "$tests"
           wait "$audit"
   production:
-    # Set only after the pinned Kev deployment passes the documented live gates.
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && vars.KEV_PRODUCTION_VERIFIED == 'true'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     # GitHub restricts this environment to main. Required PR checks gate merges.
@@ -64,6 +63,9 @@ jobs:
       url: https://rise.syberlabs.io
     env:
       TESTED_SHA: ${{ github.sha }}
+      # Releases always ship. Production serves the explicit Jev rollback until the pinned
+      # Kev deployment passes the documented live gates and KEV_PRODUCTION_VERIFIED=true.
+      DECISION_PROVIDER: ${{ vars.KEV_PRODUCTION_VERIFIED == 'true' && (vars.DECISION_PROVIDER || 'kev') || 'jev' }}
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
       CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
     steps:
@@ -99,10 +101,19 @@ jobs:
           set -euo pipefail
           current=$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/main" --jq '.object.sha')
           test "$TESTED_SHA" = "$current"
-          ./node_modules/.bin/wrangler deploy --config wrangler.production.jsonc --message "RISE $TESTED_SHA"
+          case "$DECISION_PROVIDER" in
+            jev) ;;
+            kev)
+              names=$(./node_modules/.bin/wrangler secret list --config wrangler.production.jsonc --format json | jq -r '.[].name')
+              for name in KEV_API_KEY KEV_BASE_URL KEV_REVISION; do
+                grep -qx "$name" <<< "$names" || { echo "Kev is selected but Worker secret $name is not set."; exit 1; }
+              done ;;
+            *) echo "Unsupported DECISION_PROVIDER=$DECISION_PROVIDER"; exit 1 ;;
+          esac
+          ./node_modules/.bin/wrangler deploy --config wrangler.production.jsonc \
+            --var "DECISION_PROVIDER:$DECISION_PROVIDER" --message "RISE $TESTED_SHA ($DECISION_PROVIDER)"
       - name: Verify public production serves the exact release
         env:
-          DECISION_PROVIDER: ${{ vars.DECISION_PROVIDER || 'kev' }}
           KEV_MODEL: ${{ vars.KEV_MODEL || 'kev-latest' }}
           KEV_REVISION: ${{ vars.KEV_REVISION }}
         run: |

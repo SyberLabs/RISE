@@ -7,6 +7,7 @@
  * Spoken narration mixes recitation / assigned PCM; it never emits a tone.
  */
 
+import { sampleNightDrive } from '../../audio/night-drive.js';
 import { fail } from './errors.js';
 import { RENDER_AUDIO_CHANNELS, RENDER_SAMPLE_RATE } from './layout.js';
 import { audioRunAt, narrationRunAt } from './plan.js';
@@ -115,7 +116,8 @@ const BEDS = Object.freeze({
   piano: Object.freeze({ kind: 'keyboard', style: 'piano' }),
   jazz: Object.freeze({ kind: 'keyboard', style: 'jazz' }),
   ...Object.fromEntries(ACOUSTIC_OFFLINE_IDS.map(id => [id, Object.freeze({ kind: 'acoustic', id })])),
-  ...Object.fromEntries(CINEMATIC_OFFLINE_IDS.map(id => [id, Object.freeze({ kind: 'cinematic', id })]))
+  ...Object.fromEntries(CINEMATIC_OFFLINE_IDS.map(id => [id, Object.freeze({ kind: 'cinematic', id })])),
+  'night-drive': Object.freeze({ kind: 'night-drive' })
 });
 
 export const OFFLINE_SOUNDSCAPE_IDS = Object.freeze(Object.keys(BEDS));
@@ -289,6 +291,7 @@ function sampleBed(kind, cue, timeSec, channel, sampleRate) {
     if (bed.kind === 'keyboard') return keyboardSample(bed.style, timeSec);
     if (bed.kind === 'acoustic') return sampleAcousticPiece(bed.id, timeSec, channel);
     if (bed.kind === 'cinematic') return sampleCinematicPiece(bed.id, timeSec, channel);
+    if (bed.kind === 'night-drive') return sampleNightDrive(timeSec, channel);
     // A score may place the halo's arrival. The defaults are the live
     // scheduler's, whose cycle is longer than a short clip — so a
     // twenty-second export would hear the swell arrive and never leave.

@@ -95,7 +95,12 @@ The fixed cases also do not establish privacy approval for real reading data. Ke
 
 ## Production release gate
 
-Merging this migration does not deploy RISE. The production job requires the repository variable KEV_PRODUCTION_VERIFIED=true. Leave it unset until the authenticated warm host, required secrets, privacy review, and live baseline comparison above are complete. Then set the variable and push a reviewed release commit to main; workflow_dispatch runs validation only. Clear the variable to pause later automated releases. Existing production remains on its previously deployed version until this gate is enabled.
+Merging this migration does not switch production to Kev and does not pause releases. Every push to main still deploys RISE. Until the repository variable `KEV_PRODUCTION_VERIFIED=true`, the production job deploys the Worker with `DECISION_PROVIDER=jev` (the explicit rollback, using the existing `OPENROUTER_API_KEY`) and verifies Jev identity after deploy. `wrangler.production.jsonc` also defaults to Jev, so a manual deploy cannot select Kev by accident.
 
-Before enabling that gate, set repository variables `DECISION_PROVIDER`, `KEV_MODEL`, and `KEV_REVISION` to match the production Worker's configuration. The post-deployment checks require both response versions to identify `Kev`, `kev-latest`, and that exact revision. For an explicit Jev rollback, set `DECISION_PROVIDER=jev` in both the Worker and repository variables; the checks then require the Jev model family. These repository variables are verification expectations and do not configure the Worker's secrets.
+Leave the variable unset until the authenticated warm host, Worker secrets, privacy review, and live baseline comparison above are complete. Then:
 
+1. Set the production Worker secrets `KEV_API_KEY`, `KEV_BASE_URL`, and `KEV_REVISION` (`wrangler secret put <NAME> --config wrangler.production.jsonc`).
+2. Set repository variables `KEV_REVISION` (the same 40-character revision), optionally `KEV_MODEL=kev-latest`, and `KEV_PRODUCTION_VERIFIED=true`.
+3. Push a reviewed release commit to main; workflow_dispatch runs validation only.
+
+With the gate enabled, the job selects `vars.DECISION_PROVIDER` (default `kev`), refuses to deploy when any Kev Worker secret is missing, and after deploy requires both response versions to identify `Kev`, `kev-latest`, and that exact revision. To roll back, clear `KEV_PRODUCTION_VERIFIED` (or set `DECISION_PROVIDER=jev`) and push or re-run the release; the checks then require the Jev model family.

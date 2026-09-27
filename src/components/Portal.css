@@ -1,7 +1,9 @@
 /* ═══════════════════════════════════════════════════════════
-   RISE Home (Portal) — SyberLabs design system
-   One primary action (Ask Jev), one secondary text link, lines not boxes.
-   Tokens live in design-system.css (--sy-*).
+   RISE Home (Portal) — SyberLabs design system v2 ("Atlas")
+   One primary action (Ask Jev), one secondary text link. The ambient
+   atmosphere sits behind everything (atlas.js), the RISE sigil is the
+   plate beside the ask, and the words stay in front on ink.
+   Tokens and the shared .sl-header live in design-system.css.
    ═══════════════════════════════════════════════════════════ */
 
 .portal {
@@ -13,70 +15,18 @@
   height: 100vh;
   height: 100svh;
   overflow-y: auto;
-  background: var(--sy-bg);
+  background-color: var(--sy-bg);
+  background-image: var(--sy-starfield);
+  background-size: var(--sy-starfield-size);
   color: var(--sy-text);
   font-family: var(--sy-font-sans);
 }
 
-/* ─── SyberLabs header: 64px, page ground, one hairline.
-   Lockup: mark + SYBERLABS / RISE (Instrument Sans 600, 13px, .14em). ─── */
-.sl-header {
-  position: sticky;
-  top: 0;
-  z-index: 20;
-  flex: none;
-  height: var(--sy-header-height);
-  padding: 0 var(--sy-space-8);
-  background: var(--sy-bg);
-  border-bottom: 1px solid var(--sy-line);
-}
-
-.sl-header-inner {
-  height: 100%;
-  max-width: 1200px;
-  margin: 0 auto;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.sl-lockup {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  color: var(--sy-text);
-}
-
-.sl-mark {
-  display: block;
-  height: 20px;
-  width: auto;
-}
-
-.sl-wordmark {
-  font-family: var(--sy-font-sans);
-  font-size: 13px;
-  line-height: 20px;
-  font-weight: 600;
-  letter-spacing: 0.14em;
-  color: var(--sy-text);
-  white-space: nowrap;
-}
-
-.sl-divider {
-  color: var(--sy-text-3);
-}
-
-@media (max-width: 1100px) {
-  .sl-header {
-    padding: 0 var(--sy-space-6);
-  }
-}
-
-@media (max-width: 640px) {
-  .sl-header {
-    padding: 0 var(--sy-space-4);
-  }
+/* Content rides above the fixed atmosphere layer (z-index 0). */
+.portal-main,
+.portal-footer {
+  position: relative;
+  z-index: 1;
 }
 
 /* ─── Header nav ─── */
@@ -84,7 +34,7 @@
 .portal-nav {
   display: flex;
   align-items: center;
-  gap: var(--sy-space-6);
+  gap: 28px;
 }
 
 .portal-nav-link,
@@ -103,11 +53,11 @@
 }
 
 .portal-nav-link {
-  font-size: 14px;
+  font-size: 15px;
   line-height: 20px;
-  font-weight: 500;
+  font-weight: 400;
   color: var(--sy-text-2);
-  min-height: var(--sy-control-height);
+  min-height: 44px;
   transition: color var(--sy-dur-hover) var(--sy-ease);
 }
 
@@ -118,6 +68,8 @@
   color: var(--sy-text);
 }
 
+/* The header's one secondary control, and the voice button beside Ask
+   Jev: round "line" buttons — a rule-2 hairline on glass ink. */
 .portal-nav-settings,
 .portal-icon-btn,
 .portal-menu-toggle {
@@ -127,13 +79,20 @@
   align-items: center;
   justify-content: center;
   flex: none;
-  border-radius: var(--sy-radius);
+  border: 1px solid var(--sy-line-strong);
+  border-radius: var(--sy-radius-full);
+  background: rgba(6, 5, 26, 0.4);
   color: var(--sy-text-2);
-  transition: color var(--sy-dur-hover) var(--sy-ease);
+  transition: color var(--sy-dur-hover) var(--sy-ease),
+    border-color var(--sy-dur-hover) var(--sy-ease),
+    box-shadow var(--sy-dur-enter) var(--sy-ease);
 }
 
-.portal-nav-settings {
-  margin-right: -12px;
+.portal-nav-settings:hover,
+.portal-icon-btn:hover:not(:disabled),
+.portal-menu-toggle:hover {
+  border-color: var(--sy-ice);
+  box-shadow: 0 0 24px -6px var(--sy-brand);
 }
 
 .portal-nav-settings-label,
@@ -141,10 +100,20 @@
   display: none;
 }
 
+/* Phone: a pill that says Menu. */
 .portal-menu-toggle {
   display: none;
-  margin-right: -12px;
+  width: auto;
+  gap: var(--sy-space-2);
+  padding: 0 14px 0 16px;
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 500;
   color: var(--sy-text);
+}
+
+.sl-header.is-open .portal-menu-toggle {
+  border-color: var(--sy-ice);
 }
 
 .portal-menu-toggle .icon-close,
@@ -161,13 +130,13 @@
 .portal-main {
   flex: 1 0 auto;
   width: 100%;
-  max-width: calc(1200px + 2 * var(--sy-space-8));
+  max-width: calc(1320px + 2 * clamp(16px, 4vw, 56px));
   margin: 0 auto;
-  padding: var(--sy-space-10) var(--sy-space-8) var(--sy-space-9);
+  padding: var(--sy-space-9) clamp(16px, 4vw, 56px);
   display: grid;
-  grid-template-columns: minmax(0, 560px) minmax(0, 1fr);
-  gap: var(--sy-space-10);
-  align-items: start;
+  grid-template-columns: minmax(0, 600px) minmax(0, 1fr);
+  gap: var(--sy-space-9);
+  align-items: center;
 }
 
 .portal-ask {
@@ -185,9 +154,9 @@
   font-weight: 500;
   font-size: 12px;
   line-height: 16px;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: var(--sy-text-3);
+  color: var(--sy-text-2);
 }
 
 .portal-dot {
@@ -195,16 +164,18 @@
   height: 8px;
   border-radius: var(--sy-radius-full);
   background: var(--sy-accent-rise);
+  box-shadow: 0 0 12px var(--sy-accent-rise);
   flex: none;
 }
 
+/* Display: Instrument Serif. The one italic word is the spectrum. */
 .portal-title {
-  margin: 0 0 var(--sy-space-5);
+  margin: 0 0 var(--sy-space-6);
   font-family: var(--sy-font-serif);
   font-weight: 400;
-  font-size: 40px;
-  line-height: 44px;
-  letter-spacing: -0.01em;
+  font-size: clamp(44px, 4.6vw, 68px);
+  line-height: 1;
+  letter-spacing: -0.015em;
   color: var(--sy-text);
 }
 
@@ -225,12 +196,13 @@
   background: var(--sy-surface);
   border: 1px solid var(--sy-line-strong);
   border-radius: var(--sy-radius);
-  padding: 12px 16px;
+  padding: 12px 14px;
   font-family: var(--sy-font-sans);
   font-size: 16px;
   line-height: 24px;
   color: var(--sy-text);
-  transition: border-color var(--sy-dur-hover) var(--sy-ease);
+  transition: border-color var(--sy-dur-hover) var(--sy-ease),
+    box-shadow var(--sy-dur-hover) var(--sy-ease);
 }
 
 .portal-jev-form textarea::placeholder {
@@ -238,9 +210,9 @@
 }
 
 .portal-jev-form textarea:focus {
-  outline: var(--sy-focus);
-  outline-offset: 2px;
-  border-color: var(--sy-brand);
+  outline: none;
+  border-color: var(--sy-ice);
+  box-shadow: 0 0 0 3px rgba(144, 216, 240, 0.25);
 }
 
 .portal-jev-form textarea[aria-invalid="true"] {
@@ -258,14 +230,14 @@
   margin: var(--sy-space-2) 0 0;
   font-size: 14px;
   line-height: 20px;
-  color: var(--sy-text-3);
+  color: var(--sy-text-2);
 }
 
 #portal-jev-demo .portal-help:first-child {
   margin-top: 0;
-  font-size: 16px;
-  line-height: 24px;
-  color: var(--sy-text-2);
+  font-size: 18px;
+  line-height: 27px;
+  color: var(--sy-text-body);
 }
 
 .portal-help.is-error {
@@ -287,26 +259,31 @@
   flex-wrap: wrap;
 }
 
+/* Primary ("solid"): the vellum pill with the blue glow. */
 .portal-primary {
   display: inline-flex;
   align-items: center;
-  gap: var(--sy-space-3);
+  gap: 10px;
   height: var(--sy-control-height);
-  padding: 0 20px;
+  padding: 0 22px;
   border: 0;
-  border-radius: var(--sy-radius);
+  border-radius: var(--sy-radius-full);
   background: var(--sy-text);
+  background-image: var(--sy-primary-fill);
+  box-shadow: var(--sy-primary-glow);
   color: var(--sy-on-primary);
   font-family: inherit;
-  font-size: 16px;
+  font-size: 15px;
   line-height: 24px;
   font-weight: 500;
   cursor: pointer;
-  transition: background-color var(--sy-dur-hover) var(--sy-ease);
+  transition: box-shadow var(--sy-dur-enter) var(--sy-ease),
+    transform var(--sy-dur-enter) var(--sy-ease);
 }
 
 .portal-primary:hover:not(:disabled) {
-  background: #FFFFFF;
+  box-shadow: var(--sy-primary-glow-hover);
+  transform: translateY(-1px);
 }
 
 .portal-primary:disabled {
@@ -340,6 +317,7 @@
 
 .portal-icon-btn[aria-pressed="true"] {
   color: var(--sy-danger);
+  border-color: var(--sy-danger);
 }
 
 .portal-icon-btn:disabled {
@@ -369,7 +347,8 @@
   gap: var(--sy-space-3);
   align-items: flex-start;
   border: 1px solid var(--sy-danger);
-  border-radius: var(--sy-radius);
+  border-radius: var(--sy-radius-panel);
+  background: var(--sy-surface);
   padding: var(--sy-space-4);
   animation: portal-enter var(--sy-dur-enter) var(--sy-ease) both;
 }
@@ -446,23 +425,24 @@
 }
 
 .portal-link {
-  font-size: 14px;
+  font-size: 15px;
   line-height: 20px;
   font-weight: 500;
-  color: var(--sy-brand);
-  text-decoration: none;
+  color: var(--sy-text);
+  text-decoration: underline;
+  text-decoration-color: var(--sy-ice);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 5px;
+  transition: color var(--sy-dur-hover) var(--sy-ease);
 }
 
 .portal-link:hover {
-  text-decoration: underline;
-  text-decoration-thickness: 1px;
-  text-underline-offset: 3px;
+  color: var(--sy-ice);
 }
 
 .portal-link:disabled {
   opacity: 0.4;
   cursor: not-allowed;
-  text-decoration: none;
 }
 
 .portal-alert-retry {
@@ -473,15 +453,62 @@
   margin: var(--sy-space-7) 0 0;
   padding-top: var(--sy-space-5);
   border-top: 1px solid var(--sy-line);
-  font-size: 14px;
+  font-size: 15px;
   line-height: 20px;
-  color: var(--sy-text-3);
+  color: var(--sy-text-2);
 }
 
-/* ─── Aside: skeleton while Jev chooses, Continue when there is one ─── */
+/* ─── Aside: the plate, then the skeleton or Continue ─── */
 
 .portal-aside {
   min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sy-space-7);
+}
+
+/* The plate: the RISE sigil, framed, with a mono caption. */
+.portal-plate {
+  margin: 0;
+  align-self: center;
+  width: min(100%, 320px);
+}
+
+.portal-sigil {
+  --sy-plate-tick: var(--sy-accent-rise);
+  aspect-ratio: 1;
+  margin: 6px;
+}
+
+.portal-sigil-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.portal-plate-caption {
+  margin-top: var(--sy-space-5);
+  font-family: var(--sy-font-mono);
+  font-size: 12px;
+  line-height: 1.65;
+  letter-spacing: 0.04em;
+  color: var(--sy-text-3);
+}
+
+.portal-plate-caption b {
+  display: block;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--sy-text-2);
+}
+
+.portal-plate-params {
+  display: block;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0;
 }
 
 .portal-skeleton {
@@ -524,7 +551,7 @@
   text-align: left;
   border-top: 1px solid var(--sy-line);
   border-bottom: 1px solid var(--sy-line);
-  padding: var(--sy-space-5) 0;
+  padding: var(--sy-space-5) var(--sy-space-2);
   color: var(--sy-text);
   transition: background-color var(--sy-dur-hover) var(--sy-ease);
 }
@@ -543,16 +570,17 @@
   font-weight: 500;
   font-size: 12px;
   line-height: 16px;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: var(--sy-text-3);
+  color: var(--sy-text-2);
 }
 
 .continue-title {
   grid-area: title;
-  font-size: 24px;
-  line-height: 32px;
-  font-weight: 600;
+  font-family: var(--sy-font-serif);
+  font-size: 32px;
+  line-height: 36px;
+  font-weight: 400;
   letter-spacing: -0.01em;
 }
 
@@ -574,8 +602,8 @@
 
 .portal-footer {
   flex: none;
-  width: calc(100% - 2 * var(--sy-space-8));
-  max-width: 1200px;
+  width: calc(100% - 2 * clamp(16px, 4vw, 56px));
+  max-width: 1320px;
   margin: 0 auto;
   padding: var(--sy-space-5) 0 var(--sy-space-6);
   display: flex;
@@ -591,7 +619,7 @@
   gap: var(--sy-space-1);
   font-size: 14px;
   line-height: 20px;
-  color: var(--sy-text-3);
+  color: var(--sy-text-2);
   text-decoration: none;
   transition: color var(--sy-dur-hover) var(--sy-ease);
 }
@@ -623,9 +651,9 @@
   margin: 0;
   padding: var(--sy-space-2) 0;
   list-style: none;
-  background: var(--sy-surface-2);
-  border: 1px solid var(--sy-line);
-  border-radius: var(--sy-radius);
+  background: rgba(11, 10, 38, 0.96);
+  border: 1px solid var(--sy-line-strong);
+  border-radius: var(--sy-radius-panel);
   box-shadow: var(--sy-shadow-overlay);
   animation: portal-enter var(--sy-dur-enter) var(--sy-ease) both;
 }
@@ -644,7 +672,7 @@
 
 .portal-more-list .portal-footer-link:hover {
   color: var(--sy-text);
-  background: var(--sy-surface);
+  background: var(--sy-surface-2);
 }
 
 .portal-legal {
@@ -658,7 +686,12 @@
 .portal button:focus-visible,
 .portal a:focus-visible {
   outline: var(--sy-focus);
-  outline-offset: 2px;
+  outline-offset: var(--sy-focus-offset);
+}
+
+.portal-link:focus-visible,
+.portal-footer-link:focus-visible,
+.portal-nav-link:focus-visible {
   border-radius: var(--sy-radius-sm);
 }
 
@@ -668,13 +701,27 @@
   .portal-main {
     grid-template-columns: minmax(0, 1fr);
     gap: var(--sy-space-7);
-    max-width: calc(560px + 2 * var(--sy-space-6));
-    padding: var(--sy-space-9) var(--sy-space-6) var(--sy-space-8);
+    max-width: calc(600px + 2 * clamp(16px, 4vw, 56px));
+    padding: var(--sy-space-8) clamp(16px, 4vw, 56px);
+    align-items: start;
   }
 
   .portal-footer {
-    width: calc(100% - 2 * var(--sy-space-6));
-    max-width: 560px;
+    max-width: 600px;
+  }
+
+  /* The plate steps down to a small figure beside its caption. */
+  .portal-plate {
+    display: grid;
+    grid-template-columns: 112px minmax(0, 1fr);
+    gap: var(--sy-space-5);
+    align-items: center;
+    align-self: stretch;
+    width: 100%;
+  }
+
+  .portal-plate-caption {
+    margin: 0;
   }
 }
 
@@ -700,7 +747,9 @@
     gap: 0;
     padding: var(--sy-space-2) var(--sy-space-4) var(--sy-space-6);
     overflow-y: auto;
-    background: var(--sy-surface);
+    background: rgba(11, 10, 38, 0.97);
+    -webkit-backdrop-filter: blur(14px);
+    backdrop-filter: blur(14px);
     border-top: 1px solid var(--sy-line);
     box-shadow: var(--sy-shadow-overlay);
     animation: portal-enter var(--sy-dur-enter) var(--sy-ease) both;
@@ -721,7 +770,8 @@
     height: 8px;
     margin-left: auto;
     border-radius: var(--sy-radius-full);
-    background: var(--sy-brand);
+    background: var(--sy-accent-rise);
+    box-shadow: 0 0 12px var(--sy-accent-rise);
   }
 
   .sl-header.is-open .portal-nav {
@@ -736,12 +786,18 @@
     padding: 0;
     justify-content: flex-start;
     gap: var(--sy-space-3);
-    font-size: 16px;
+    font-size: 17px;
     line-height: 24px;
-    font-weight: 500;
+    font-weight: 400;
     color: var(--sy-text);
     text-align: left;
+    border: 0;
     border-radius: 0;
+    background: transparent;
+  }
+
+  .portal-nav-settings:hover {
+    box-shadow: none;
   }
 
   .portal-nav > * + * {
@@ -763,8 +819,13 @@
   }
 
   .portal-title {
-    font-size: 32px;
-    line-height: 36px;
+    font-size: 40px;
+    line-height: 42px;
+  }
+
+  .portal-primary {
+    flex: 1 1 auto;
+    justify-content: center;
   }
 
   .portal-footer {
@@ -827,7 +888,8 @@
     transition: none;
   }
 
-  .portal-continue:hover .continue-go {
+  .portal-continue:hover .continue-go,
+  .portal-primary:hover:not(:disabled) {
     transform: none;
   }
 }

@@ -17,30 +17,50 @@
    generated. */
 @import url('./fonts.css');
 
-/* SYBERLABS DESIGN SYSTEM v1 — the foundation.
-   Every value below comes from the SyberLabs spec: one dark theme, ink on
-   near-black, one brand signal (blue) for links, focus and selection, and the
-   RISE accent only as an identity marker. The --sy-* tokens are the system;
-   the historical RISE names further down are aliases onto them so the rest of
-   the stylesheets keep resolving while rooms migrate. */
+/* SYBERLABS DESIGN SYSTEM v2 — "Atlas".
+   Every value below comes from the SyberLabs spec: a deep blue-black ink
+   ground, vellum type, hairline rules in a cool lilac, one brand signal (blue)
+   for links and the ice focus ring, and a spectrum kept for accents only (one
+   italic word, the primary glow, the sigils). The RISE accent is an identity
+   marker only. The --sy-* tokens are the system; the historical RISE names
+   further down are aliases onto them so every stylesheet keeps resolving. */
 :root {
   /* ═══ SYBERLABS TOKENS ═══ */
-  --sy-bg: #05060A;
-  --sy-surface: #0B0D14;
-  --sy-surface-2: #121521;
-  --sy-line: #1F2433;
-  --sy-line-strong: #5E6980;
-  --sy-text: #F2F5FB;
-  --sy-text-2: #AEB8CC;
-  --sy-text-3: #7F8AA3;
-  --sy-on-primary: #05060A;
+  --sy-bg: #06051A;              /* ink: page ground */
+  --sy-surface: #0C0A2A;         /* ink-2: panels, menus, inputs, header */
+  --sy-surface-2: #141238;       /* ink-3: hover rows, skeleton base */
+  --sy-glass: rgba(12, 10, 42, 0.74); /* ink-2 at 74%, under a 14px blur */
+  --sy-line: rgba(170, 180, 255, 0.16);        /* rule: hairlines */
+  --sy-line-strong: rgba(170, 180, 255, 0.32); /* rule-2: control borders */
+  --sy-text: #EEF0FF;            /* vellum: primary text, headlines */
+  --sy-text-body: #DFE2FB;       /* body: long-form copy */
+  --sy-text-2: #B4BBE2;          /* mist: secondary text, nav, captions */
+  --sy-text-3: #8990BB;          /* dim: meta, placeholders (6.5:1 on ink) */
+  --sy-on-primary: #07061C;
   --sy-brand: #4890F0;
   --sy-brand-deep: #0048F0;
   --sy-ice: #90D8F0;
-  --sy-success: #4CC3A6;
-  --sy-warning: #F2B84B;
-  --sy-danger: #FF7A6B;
-  --sy-accent-rise: #E4D2AE;
+  --sy-violet: #9A6BFF;
+  --sy-magenta: #FF58D6;
+  --sy-amber: #FFB54A;
+  --sy-spectrum: linear-gradient(100deg, #90D8F0 0%, #4890F0 30%, #9A6BFF 58%, #FF58D6 80%, #FFB54A 100%);
+  /* The primary ("solid") button: a vellum fill leaning ice to lilac. */
+  --sy-primary-fill: linear-gradient(100deg, #C9F0FF, #EEF0FF 45%, #E3D4FF);
+  --sy-primary-glow: 0 0 0 1px rgba(255, 255, 255, 0.2) inset, 0 10px 40px -12px rgba(72, 144, 240, 0.8);
+  --sy-primary-glow-hover: 0 0 0 1px rgba(255, 255, 255, 0.4) inset, 0 14px 48px -10px rgba(154, 107, 255, 0.87);
+  --sy-success: #6FF5A8;
+  --sy-research: #C7A4FF;
+  --sy-warning: #FFC96B;
+  --sy-danger: #FF7A8A;
+  --sy-accent-rise: #F2D9A6;
+  /* Page texture: a sparse five-layer starfield of 1px dots. */
+  --sy-starfield:
+    radial-gradient(1px 1px at 12% 18%, rgba(255, 255, 255, 0.53) 50%, transparent 51%),
+    radial-gradient(1px 1px at 72% 34%, rgba(207, 228, 255, 0.6) 50%, transparent 51%),
+    radial-gradient(1px 1px at 38% 71%, rgba(255, 255, 255, 0.4) 50%, transparent 51%),
+    radial-gradient(1px 1px at 88% 82%, rgba(232, 201, 255, 0.53) 50%, transparent 51%),
+    radial-gradient(1px 1px at 55% 9%, rgba(255, 255, 255, 0.33) 50%, transparent 51%);
+  --sy-starfield-size: 420px 420px, 530px 530px, 610px 610px, 470px 470px, 700px 700px;
 
   --sy-font-sans: 'Instrument Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   --sy-font-serif: 'Instrument Serif', Georgia, 'Times New Roman', serif;
@@ -59,13 +79,15 @@
   --sy-space-10: 128px;
 
   --sy-radius-sm: 4px;
-  --sy-radius: 8px;
-  --sy-radius-full: 999px;
+  --sy-radius: 10px;        /* fields */
+  --sy-radius-panel: 14px;  /* menus, panels, plates */
+  --sy-radius-full: 999px;  /* buttons, pills, badges */
 
-  --sy-control-height: 44px;
+  --sy-control-height: 46px;
   --sy-header-height: 64px;
-  --sy-shadow-overlay: 0 24px 64px rgba(0, 0, 0, 0.55);
-  --sy-focus: 2px solid var(--sy-brand);
+  --sy-shadow-overlay: 0 30px 80px -20px rgba(0, 0, 0, 0.9);
+  --sy-focus: 2px solid var(--sy-ice);
+  --sy-focus-offset: 3px;
 
   --sy-dur-hover: 120ms;
   --sy-dur-enter: 200ms;
@@ -76,12 +98,14 @@
   --color-void: var(--sy-bg);
   --color-abyss: var(--sy-surface);
   --color-depth: var(--sy-surface-2);
-  --color-shadow: var(--sy-line);
+  /* The rule, flattened onto ink: some rooms fill tracks and ornaments with
+     this, so it stays opaque where --sy-line is translucent. */
+  --color-shadow: #20213F;
   /* ═══ LUMINOSITY (Text) — aliases ═══ */
-  /* Tertiary text. Was #6B6B75 (3.6:1); text-3 reads at 5.8:1. */
+  /* Tertiary text. Was #6B6B75 (3.6:1); dim reads at 6.5:1 on ink. */
   --color-mist: var(--sy-text-3);
   --color-fog: var(--sy-text-2);
-  --color-cloud: var(--sy-text);
+  --color-cloud: var(--sy-text-body);
   --color-light: var(--sy-text);
   --color-glow: #FFFFFF;
 
@@ -196,12 +220,12 @@
   --ease-out: var(--sy-ease);
   --ease-in: cubic-bezier(0.4, 0, 1, 1);
 
-  /* ═══ RADIUS (4 badges, 8 controls and panels, 999 dots) ═══ */
+  /* ═══ RADIUS (4 badges, 10 fields, 14 panels, 999 buttons and pills) ═══ */
   --radius-none: 0;
   --radius-sm: var(--sy-radius-sm);
   --radius-md: var(--sy-radius);
-  --radius-lg: var(--sy-radius);
-  --radius-xl: var(--sy-radius);
+  --radius-lg: var(--sy-radius-panel);
+  --radius-xl: var(--sy-radius-panel);
   --radius-full: var(--sy-radius-full);
 
   /* ═══ SHADOWS (overlays only) ═══ */
@@ -498,46 +522,233 @@ small {
 }
 
 /* ─────────────────────────────────────────────────────────────
+   ATLAS PRIMITIVES (SyberLabs v2)
+   The spectrum word, the mono caption and the plate frame. Chrome
+   only: none of these belong on the reading surface.
+   ───────────────────────────────────────────────────────────── */
+
+/* At most one per screen: the italic word in a display headline. */
+.sy-spectrum {
+  font-style: italic;
+  background: var(--sy-spectrum);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  /* Room for the italic overhang inside the clip, given back to the line so
+     the punctuation after the word does not drift. */
+  padding-right: 0.08em;
+  margin-right: -0.06em;
+}
+
+@media (forced-colors: active) {
+  .sy-spectrum {
+    background: none;
+    color: CanvasText;
+  }
+}
+
+/* Plate caption layer: labels, numbers, parameters. */
+.sy-eyebrow {
+  font-family: var(--sy-font-mono);
+  font-weight: 500;
+  font-size: 12px;
+  line-height: 1.4;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--sy-text-2);
+}
+
+.sy-caption {
+  font-family: var(--sy-font-mono);
+  font-weight: 400;
+  font-size: 12px;
+  line-height: 1.6;
+  letter-spacing: 0.04em;
+  color: var(--sy-text-2);
+}
+
+/* Plate frame: a rule border, a second rule inset 4px, and 8px corner
+   registration ticks in rule-2. Around sigils and featured media. */
+.sy-plate {
+  position: relative;
+  border: 1px solid var(--sy-line-strong);
+  outline: 1px solid var(--sy-line);
+  outline-offset: -5px;
+  background: radial-gradient(circle at 50% 50%, #0D0B30, var(--sy-bg));
+}
+
+.sy-plate::before,
+.sy-plate::after {
+  content: '';
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  border: solid var(--sy-plate-tick, var(--sy-line-strong));
+  opacity: 0.8;
+  pointer-events: none;
+}
+
+.sy-plate::before {
+  top: -6px;
+  left: -6px;
+  border-width: 1px 0 0 1px;
+}
+
+.sy-plate::after {
+  bottom: -6px;
+  right: -6px;
+  border-width: 0 1px 1px 0;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   SyberLabs header (v2), shared by Home, the entry gate and every room
+   (room-chrome.js), so it lives here rather than in one room's sheet.
+   64px glass ink — ink-2 at 74% under a 14px blur —
+   with one bottom rule. Product lockup: mark (22px) + SYBERLABS / RISE
+   (Instrument Sans 600, 14px, .22em; the divider in dim) + the RISE sigil.
+   ═══════════════════════════════════════════════════════════ */
+.sl-header {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  flex: none;
+  height: var(--sy-header-height);
+  padding: 0 clamp(16px, 4vw, 56px);
+  background: var(--sy-glass);
+  -webkit-backdrop-filter: blur(14px) saturate(1.3);
+  backdrop-filter: blur(14px) saturate(1.3);
+  border-bottom: 1px solid var(--sy-line);
+}
+
+.sl-header-inner {
+  height: 100%;
+  max-width: 1320px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.sl-lockup {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  min-height: 44px;
+  color: var(--sy-text);
+}
+
+.sl-mark {
+  display: block;
+  width: 22px;
+  height: auto;
+}
+
+.sl-wordmark {
+  font-family: var(--sy-font-sans);
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 600;
+  letter-spacing: 0.22em;
+  color: var(--sy-text);
+  white-space: nowrap;
+}
+
+.sl-divider {
+  color: var(--sy-text-3);
+}
+
+/* The product's own mark: the RISE sigil, 16px, drawn by atlas.js. */
+.sl-sigil {
+  display: block;
+  width: 16px;
+  height: 16px;
+  flex: none;
+}
+
+@media (max-width: 380px) {
+  .sl-wordmark {
+    letter-spacing: 0.16em;
+  }
+}
+
+/* The ambient atmosphere (src/components/atlas.js): a fixed layer at the
+   lowest z-index of its room, never a target and never read aloud. Its
+   own ground is the CSS nebula, which is what shows without WebGL2; the
+   heavy scrim on top keeps every word in front at full contrast. */
+.sy-atmosphere-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(50% 60% at 50% 45%, rgba(42, 26, 122, 0.3), transparent 70%),
+    radial-gradient(34% 40% at 58% 40%, rgba(0, 72, 240, 0.2), transparent 70%),
+    radial-gradient(26% 30% at 42% 62%, rgba(255, 88, 214, 0.12), transparent 70%);
+}
+
+.sy-atmosphere {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.sy-atmosphere[hidden] {
+  display: none;
+}
+
+.sy-atmosphere-scrim {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(0deg, rgba(6, 5, 26, 0.92), rgba(6, 5, 26, 0.62) 60%, rgba(6, 5, 26, 0.72));
+}
+
+/* ─────────────────────────────────────────────────────────────
    BUTTONS
-   SyberLabs: primary (ink fill), secondary (hairline), ghost (text).
-   44px controls, radius 8, sentence case.
+   SyberLabs v2: 46px pills. Primary ("solid") is a vellum fill with a blue
+   glow; secondary ("line") is a rule-2 hairline on glass ink; ghost is mist
+   text. Sentence case.
    ───────────────────────────────────────────────────────────── */
 
 .btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: var(--sy-space-3);
+  gap: 10px;
 
   min-height: var(--sy-control-height);
   padding: 0 20px;
 
   font-family: var(--font-primary);
-  font-size: 16px;
+  font-size: 15px;
   line-height: 24px;
   font-weight: var(--font-weight-medium);
 
   border: 1px solid var(--sy-line-strong);
-  border-radius: var(--sy-radius);
-  background: transparent;
+  border-radius: var(--sy-radius-full);
+  background: rgba(6, 5, 26, 0.4);
   color: var(--sy-text);
 
   cursor: pointer;
   transition: background-color var(--sy-dur-hover) var(--sy-ease),
     color var(--sy-dur-hover) var(--sy-ease),
-    border-color var(--sy-dur-hover) var(--sy-ease);
+    border-color var(--sy-dur-hover) var(--sy-ease),
+    box-shadow var(--sy-dur-enter) var(--sy-ease),
+    transform var(--sy-dur-enter) var(--sy-ease);
 
   user-select: none;
   -webkit-tap-highlight-color: transparent;
 }
 
 .btn:hover {
-  background: var(--sy-surface-2);
+  border-color: var(--sy-ice);
+  box-shadow: 0 0 24px -6px var(--sy-brand);
 }
 
 .btn:focus-visible {
   outline: var(--sy-focus);
-  outline-offset: 2px;
+  outline-offset: var(--sy-focus-offset);
 }
 
 .btn:disabled {
@@ -549,24 +760,27 @@ small {
 /* Button variants */
 .btn-primary {
   background: var(--sy-text);
-  border-color: var(--sy-text);
+  background-image: var(--sy-primary-fill);
+  border-color: transparent;
   color: var(--sy-on-primary);
+  box-shadow: var(--sy-primary-glow);
 }
 
 .btn-primary:hover {
-  background: #FFFFFF;
-  border-color: #FFFFFF;
+  border-color: transparent;
   color: var(--sy-on-primary);
+  box-shadow: var(--sy-primary-glow-hover);
+  transform: translateY(-1px);
 }
 
 .btn-secondary {
-  background: transparent;
+  background: rgba(6, 5, 26, 0.4);
   border-color: var(--sy-line-strong);
   color: var(--sy-text);
 }
 
 .btn-secondary:hover {
-  background: var(--sy-surface-2);
+  border-color: var(--sy-ice);
   color: var(--sy-text);
 }
 
@@ -578,7 +792,11 @@ small {
 
 .btn-ghost:hover {
   background: transparent;
+  border-color: transparent;
+  box-shadow: none;
   color: var(--sy-text);
+  text-decoration: underline;
+  text-underline-offset: 4px;
 }
 
 .btn-icon {
@@ -589,7 +807,8 @@ small {
 
 /* ─────────────────────────────────────────────────────────────
    INPUTS
-   SyberLabs field: label above, 44px input, help below
+   SyberLabs field: label above, 46px input on ink-2, radius 10,
+   focus border ice + ring, help below
    ───────────────────────────────────────────────────────────── */
 
 .input-group {
@@ -608,7 +827,7 @@ small {
 
 .input {
   min-height: var(--sy-control-height);
-  padding: 12px var(--sy-space-4);
+  padding: 11px var(--sy-space-4);
 
   font-family: var(--font-primary);
   font-size: 16px;
@@ -620,7 +839,8 @@ small {
   border: 1px solid var(--sy-line-strong);
   border-radius: var(--sy-radius);
 
-  transition: border-color var(--sy-dur-hover) var(--sy-ease);
+  transition: border-color var(--sy-dur-hover) var(--sy-ease),
+    box-shadow var(--sy-dur-hover) var(--sy-ease);
 }
 
 .input::placeholder {
@@ -628,9 +848,9 @@ small {
 }
 
 .input:focus {
-  outline: var(--sy-focus);
-  outline-offset: 2px;
-  border-color: var(--sy-brand);
+  outline: none;
+  border-color: var(--sy-ice);
+  box-shadow: 0 0 0 3px rgba(144, 216, 240, 0.25);
 }
 
 .input:disabled {
@@ -1030,7 +1250,7 @@ small {
 /* Focus indicators - always visible */
 *:focus-visible {
   outline: var(--sy-focus);
-  outline-offset: 2px;
+  outline-offset: var(--sy-focus-offset);
 }
 
 /* A text caret must never blink outside genuine editing surfaces.
@@ -1458,25 +1678,27 @@ small {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: var(--sy-space-3);
+  gap: 10px;
   min-height: var(--sy-control-height);
   padding: 0 20px;
   background: var(--sy-text);
-  border: 1px solid var(--sy-text);
-  border-radius: var(--sy-radius);
+  background-image: var(--sy-primary-fill);
+  border: 1px solid transparent;
+  border-radius: var(--sy-radius-full);
   color: var(--sy-on-primary);
+  box-shadow: var(--sy-primary-glow);
   font-family: var(--font-primary);
-  font-size: 16px;
+  font-size: 15px;
   line-height: 24px;
   font-weight: var(--font-weight-medium);
   cursor: pointer;
-  transition: background-color var(--sy-dur-hover) var(--sy-ease),
-    border-color var(--sy-dur-hover) var(--sy-ease);
+  transition: box-shadow var(--sy-dur-enter) var(--sy-ease),
+    transform var(--sy-dur-enter) var(--sy-ease);
 }
 
 .btn-primary:hover:not(:disabled) {
-  background: #FFFFFF;
-  border-color: #FFFFFF;
+  box-shadow: var(--sy-primary-glow-hover);
+  transform: translateY(-1px);
   color: var(--sy-on-primary);
 }
 
@@ -1487,7 +1709,7 @@ small {
 
 .btn-primary:focus-visible {
   outline: var(--sy-focus);
-  outline-offset: 2px;
+  outline-offset: var(--sy-focus-offset);
 }
 
 /* Secondary button - cancel, back actions */
@@ -1495,29 +1717,31 @@ small {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: var(--sy-space-3);
+  gap: 10px;
   min-height: var(--sy-control-height);
   padding: 0 20px;
-  background: transparent;
+  background: rgba(6, 5, 26, 0.4);
   border: 1px solid var(--sy-line-strong);
-  border-radius: var(--sy-radius);
+  border-radius: var(--sy-radius-full);
   color: var(--sy-text);
   font-family: var(--font-primary);
-  font-size: 16px;
+  font-size: 15px;
   line-height: 24px;
   font-weight: var(--font-weight-medium);
   cursor: pointer;
-  transition: background-color var(--sy-dur-hover) var(--sy-ease);
+  transition: border-color var(--sy-dur-hover) var(--sy-ease),
+    box-shadow var(--sy-dur-enter) var(--sy-ease);
 }
 
 .btn-secondary:hover:not(:disabled) {
-  background: var(--sy-surface-2);
+  border-color: var(--sy-ice);
+  box-shadow: 0 0 24px -6px var(--sy-brand);
   color: var(--sy-text);
 }
 
 .btn-secondary:focus-visible {
   outline: var(--sy-focus);
-  outline-offset: 2px;
+  outline-offset: var(--sy-focus-offset);
 }
 
 /* Ghost button - minimal presence */
@@ -1530,10 +1754,10 @@ small {
   padding: 0 20px;
   background: transparent;
   border: none;
-  border-radius: var(--sy-radius);
+  border-radius: var(--sy-radius-full);
   color: var(--sy-text-2);
   font-family: var(--font-primary);
-  font-size: 16px;
+  font-size: 15px;
   font-weight: var(--font-weight-medium);
   cursor: pointer;
   transition: color var(--sy-dur-hover) var(--sy-ease);
@@ -1541,6 +1765,8 @@ small {
 
 .btn-ghost:hover {
   color: var(--sy-text);
+  text-decoration: underline;
+  text-underline-offset: 4px;
 }
 
 .btn-ghost .icon {
@@ -1636,12 +1862,12 @@ small {
 /* Focus glow for interactive elements */
 :focus-visible {
   outline: var(--sy-focus);
-  outline-offset: 2px;
+  outline-offset: var(--sy-focus-offset);
 }
 
 /* Selection styling */
 ::selection {
-  background: rgba(144, 216, 240, 0.2);
+  background: rgba(144, 216, 240, 0.25);
   color: var(--color-light);
 }
 

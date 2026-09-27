@@ -36,3 +36,12 @@ describe('visual style definitions', () => {
     expect(normalizeProceduralStyle(['fractal'], { preset: 'harmonic' })).toEqual({});
   });
 });
+
+describe('attractor night-drive options', () => {
+  it('keeps pace, brightness and streaks only when set, and bounds them', async () => {
+    const { normalizeFieldStyle: normalizeFieldConfig } = await import('./visual-style-definitions.js');
+    expect(normalizeFieldConfig('attractor', { palette: 'purple' })).toEqual({ system: 'aizawa', palette: 'purple', form: 'mirror' });
+    expect(normalizeFieldConfig('attractor', { palette: 'neon', speed: 9, intensity: 0, streaks: true }))
+      .toEqual({ system: 'aizawa', palette: 'neon', form: 'mirror', speed: 4, intensity: 0.2, streaks: true });
+  });
+});

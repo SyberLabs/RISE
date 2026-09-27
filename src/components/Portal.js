@@ -2,12 +2,15 @@
  * Portal Component — RISE Home.
  *
  * SyberLabs design system: one primary action (Ask RISE), one secondary text
- * link (the Meditations starter), and a header nav of plain words.
+ * link (the Meditations starter), and a header nav of plain words. The Atlas
+ * atmosphere sits behind it while it is the active room, and the RISE sigil
+ * is its brand mark (and, drawing in, its loading state).
  */
 
 
 import './Portal.css';
-import { isJevSceneDemoPath } from '../core/jev-demo-path.js';
+import { drawRiseSigil, mountAtmosphere } from './atlas.js';
+import { isJevSceneDemoPath, sceneSampleFromPath } from '../core/jev-demo-path.js';
 import { attachJevDictation } from './jev-dictation.js';
 
 const ICON_ATTRS = 'width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"';
@@ -76,6 +79,7 @@ export class Portal {
   render() {
     this.stopJevDictation?.();
     const demo = this.demoMode;
+    const nightDrive = demo && sceneSampleFromPath(window.location.pathname) === 'night-drive';
     this.container.innerHTML = `
       <div class="portal">
         <header class="sl-header">
@@ -83,8 +87,10 @@ export class Portal {
             <span class="sl-lockup" role="img" aria-label="SyberLabs RISE">
               <img class="sl-mark" src="/syberlabs-mark.webp" alt="" width="18" height="20" decoding="async">
               <span class="sl-wordmark" aria-hidden="true">SYBERLABS<span class="sl-divider"> / </span>RISE</span>
+              <canvas class="sl-sigil" aria-hidden="true"></canvas>
             </span>
             <button class="portal-menu-toggle" type="button" aria-label="Menu" aria-expanded="false" aria-controls="main-content">
+              <span class="portal-menu-label" aria-hidden="true">Menu</span>
               <svg class="icon-menu" ${ICON_ATTRS}><path d="M4 8h16"></path><path d="M4 16h16"></path></svg>
               <svg class="icon-close" ${ICON_ATTRS}><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></svg>
             </button>
@@ -103,8 +109,18 @@ export class Portal {
 
         <main class="portal-main">
           <section class="portal-ask" aria-labelledby="portal-ask-title">
-            <p class="portal-eyebrow"><span class="portal-dot" aria-hidden="true"></span>${demo ? 'RISE scene sample' : 'Read with RISE'}</p>
-            ${demo ? `<h1 class="portal-title" id="portal-ask-title">Make the scene respond.</h1>
+            <p class="portal-eyebrow"><span class="portal-dot" aria-hidden="true"></span>${nightDrive ? 'Night Drive sample' : demo ? 'RISE scene sample' : 'Read with RISE'}</p>
+            ${nightDrive ? `<h1 class="portal-title" id="portal-ask-title">Neon, at speed.</h1>
+            <div class="portal-jev-form" id="portal-jev-demo">
+              <p class="portal-help">Neon light, rushing light streaks and a driving electronic beat, over Walt Whitman’s “Song of the Open Road”. About 25 seconds.</p>
+              <p class="portal-help">This is the fixed look RISE chooses for night-drive, racing, drifting or neon requests. No live RISE request is made here. RISE makes its own visuals and music; it uses no film footage or soundtrack.</p>
+              <p class="portal-help">Sound starts when you press Start. If your device asks for reduced motion, the scene holds one still frame.</p>
+              <div class="portal-actions">
+                <button class="portal-primary" id="jev-scene-demo-start" type="button">Start Night Drive</button>
+                <p class="portal-status" id="jev-scene-demo-status" role="status" aria-live="polite"></p>
+              </div>
+              <p class="portal-alt"><a class="portal-link portal-jev-demo-live" href="/">Ask RISE live for a personal reading</a></p>
+            </div>` : demo ? `<h1 class="portal-title" id="portal-ask-title">Make the scene respond.</h1>
             <div class="portal-jev-form" id="portal-jev-demo">
               <p class="portal-help">Read a released passage from Middlemarch, then bring its next visual scene forward while the words keep moving.</p>
               <p class="portal-help">This is a fixed sample preset of choices RISE may make. No live RISE request is made here.</p>
@@ -115,7 +131,7 @@ export class Portal {
                 <p class="portal-status" id="jev-scene-demo-status" role="status" aria-live="polite"></p>
               </div>
               <p class="portal-alt"><a class="portal-link portal-jev-demo-live" href="/">Ask RISE live for a personal reading</a></p>
-            </div>` : `<h1 class="portal-title"><label id="portal-ask-title" for="portal-jev-intent">What would you like to read?</label></h1>
+            </div>` : `<h1 class="portal-title"><label id="portal-ask-title" for="portal-jev-intent">What would you like to <em class="sy-spectrum">read</em>?</label></h1>
             <form class="portal-jev-form" id="portal-jev-form" novalidate>
               <textarea id="portal-jev-intent" name="intent" rows="4" maxlength="240" required
                 aria-describedby="portal-jev-help"
@@ -145,6 +161,10 @@ export class Portal {
           </section>
 
           <section class="portal-aside" aria-label="Your reading">
+            <figure class="portal-plate" aria-hidden="true">
+              <div class="portal-sigil sy-plate"><canvas class="portal-sigil-canvas"></canvas></div>
+              <figcaption class="portal-plate-caption"><b>Plate · RISE</b><span class="portal-plate-params"></span></figcaption>
+            </figure>
             <div class="portal-skeleton" aria-hidden="true" hidden>
               <span class="sk" style="width:96px;height:12px"></span>
               <span class="sk" style="width:280px;height:40px;margin-top:24px"></span>
@@ -189,6 +209,32 @@ export class Portal {
         </footer>
       </div>
     `;
+    // Drawn when the room is shown: a hidden canvas has no size to draw at.
+    this._marksDrawn = false;
+    if (this._active) this.drawMarks();
+    if (this._atmosphere) {
+      this._atmosphere.destroy();
+      this._atmosphere = null;
+      if (this._active) this._atmosphere = mountAtmosphere(this.container.querySelector('.portal'));
+    }
+  }
+
+  /** The RISE sigil in the header lockup and on the plate beside the ask. */
+  drawMarks({ animate = true } = {}) {
+    this._marksDrawn = true;
+    drawRiseSigil(this.container.querySelector('.sl-sigil'), { animate: false });
+    this.drawPlate({ animate });
+  }
+
+  drawPlate({ animate = true } = {}) {
+    this._plateDraw?.cancel?.();
+    const canvas = this.container.querySelector('.portal-sigil-canvas');
+    drawRiseSigil(canvas, { animate }).then(result => {
+      if (!result) return;
+      this._plateDraw = result;
+      const params = this.container.querySelector('.portal-plate-params');
+      if (params) params.textContent = result.caption;
+    });
   }
 
   /** Loading state: busy button, disabled field, skeleton where the reading lands. */
@@ -202,6 +248,8 @@ export class Portal {
     const first = this.container.querySelector('.portal-first-read');
     if (first) first.disabled = busy;
     this.container.querySelector('.portal-skeleton').hidden = !busy;
+    // Loading is the sigil drawing in again while RISE chooses.
+    if (busy) this.drawPlate();
     this.container.querySelector('#portal-jev-hint').textContent = busy ? 'RISE is choosing your reading…' : '';
   }
 
@@ -266,7 +314,7 @@ export class Portal {
         const response = await fetch('/api/jev-recommend', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ intent, schemaVersion: 2 })
+          body: JSON.stringify({ intent, schemaVersion: 3 })
         });
         const decision = await response.json();
         if (!response.ok) throw new Error(decision.error?.message || 'RISE is unavailable.');
@@ -283,7 +331,7 @@ export class Portal {
       if (sample.disabled) return;
       sample.disabled = true;
       const status = this.container.querySelector('#jev-scene-demo-status');
-      status.textContent = 'Preparing the released reading…';
+      status.textContent = 'Preparing the reading…';
       try {
         await this.onLaunchJevSample();
       } catch (error) {
@@ -400,6 +448,8 @@ export class Portal {
   activate() {
     if (this._active) return;
     this._active = true;
+    this._atmosphere ||= mountAtmosphere(this.container.querySelector('.portal'));
+    if (!this._marksDrawn) this.drawMarks();
     if (!this.stopJevDictation) {
       const form = this.container.querySelector('#portal-jev-form');
       if (form) this.stopJevDictation = attachJevDictation(form);
@@ -410,6 +460,9 @@ export class Portal {
   deactivate() {
     if (!this._active) return;
     this._active = false;
+    // Every other room — and above all the Chamber — runs without it.
+    this._atmosphere?.destroy();
+    this._atmosphere = null;
     this.stopJevDictation?.();
     this.stopJevDictation = null;
     document.removeEventListener('keydown', this.boundKeyboardHandler);
@@ -418,5 +471,6 @@ export class Portal {
   destroy() {
     this.stopJevDictation?.();
     this.deactivate();
+    this._plateDraw?.cancel?.();
   }
 }

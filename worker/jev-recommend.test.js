@@ -206,7 +206,7 @@ describe('Jev reading recommendation', () => {
   });
 
   it('rejects unsupported request schema versions before touching services', async () => {
-    expect((await handleJevRecommend(request({ intent: 'A reading.', schemaVersion: 3 }), env)).status).toBe(400);
+    expect((await handleJevRecommend(request({ intent: 'A reading.', schemaVersion: 4 }), env)).status).toBe(400);
     expect(mocks.query).not.toHaveBeenCalled();
   });
   it('offers new text faces and extra large type when active in Postgres', async () => {
@@ -237,7 +237,7 @@ describe('Jev reading recommendation', () => {
     expect(result.config.fontSize).toBe('xlarge');
   });
 
-  it('accepts all 23 deployed sounds while offering Jev only a matching shortlist', async () => {
+  it('accepts all 24 deployed sounds while offering Jev only a matching shortlist', async () => {
     const fullCatalog = JEV_AUDIO_IDS.map(id => ({
       sound_id: id, decision_criterion: `Choose ${id} for fitting musical atmosphere.`, active: true
     }));
@@ -252,7 +252,7 @@ describe('Jev reading recommendation', () => {
     const response = await handleJevRecommend(request({ intent: 'Read with starlight sound.' }), env);
 
     expect(response.status).toBe(200);
-    expect(JEV_AUDIO_IDS).toHaveLength(23);
+    expect(JEV_AUDIO_IDS).toHaveLength(24);
     const payload = JSON.parse(provider.mock.calls[0][1].body);
     expect(Object.keys(payload.questions.audio.criteria)).toHaveLength(10);
     expect(payload.questions.audio.criteria).toHaveProperty('starlight');
@@ -753,6 +753,75 @@ describe('Jev reading recommendation', () => {
     });
   });
 
+  it.each([
+    'i want something psychedelic fast tokyo drift style',
+    'tokyo drift'
+  ])('turns the night-drive request %j into neon light at speed with a beat', async intent => {
+    vi.stubGlobal('fetch', vi.fn(async () => Response.json({
+      model: 'typesafe/jev-1.13', provider: 'TypeSafe',
+      // The failure this guards: a quiet, dark, slow page for a speed request.
+      answers: answers('literary-essays-emerson', {
+        visualStyle: { type: 'choice', choice: 'psychedelic' },
+        visual: { type: 'choice', choice: 'off' },
+        pace: { type: 'choice', choice: '200' },
+        chunk: { type: 'choice', choice: 'sentence' },
+        chamberFace: { type: 'choice', choice: 'jp' },
+        fontSize: { type: 'choice', choice: 'small' },
+        projection: { type: 'choice', choice: 'page' }
+      })
+    })));
+    const response = await handleJevRecommend(request({ intent, schemaVersion: 3 }), env);
+    expect(response.status).toBe(200);
+    const payload = await response.json();
+    const { config } = payload;
+    expect(config).toMatchObject({
+      visualStyle: 'immersive', visualMode: 'attractor', visualPalette: 'neon',
+      projection: 'stream', wpm: 300, chunkMode: 'phrase', fontSize: 'large',
+      chamberFace: 'thick', audio: 'night-drive', soundscape: 'night-drive',
+      colorTheme: 'prism', backgroundColor: 'prism',
+      visualConfig: { visualMode: 'attractor', attractor: {
+        system: 'halvorsen', palette: 'neon', form: 'mirror', intensity: 0.85, speed: 2.4, streaks: true
+      } }
+    });
+    // The browser admits the same plan it will play.
+    expect(() => validateJevRecommendation(payload)).not.toThrow();
+  });
+
+  it('keeps requested silence in a night-drive request', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => Response.json({
+      model: 'typesafe/jev-1.13', provider: 'TypeSafe', answers: answers('middlemarch')
+    })));
+    const response = await handleJevRecommend(request({ intent: 'Neon visuals with no music.', schemaVersion: 3 }), env);
+    expect(response.status).toBe(200);
+    const { config } = await response.json();
+    expect(config.visualPalette).toBe('neon');
+    expect(config.audio).toBe('silent');
+  });
+
+  it('never sends the new neon values to a version 2 client', async () => {
+    const provider = vi.fn(async () => Response.json({
+      model: 'typesafe/jev-1.13', provider: 'TypeSafe', answers: answers('middlemarch')
+    }));
+    vi.stubGlobal('fetch', provider);
+    const response = await handleJevRecommend(request({ intent: 'tokyo drift', schemaVersion: 2 }), env);
+    expect(response.status).toBe(200);
+    const payload = JSON.parse(provider.mock.calls[0][1].body);
+    expect(payload.questions.visualPalette.criteria).not.toHaveProperty('neon');
+    expect(payload.questions.audio.criteria).not.toHaveProperty('night-drive');
+    const { config } = await response.json();
+    expect(config.visualPalette).not.toBe('neon');
+    expect(config.soundscape).not.toBe('night-drive');
+  });
+
+  it('keeps an explicit no-visuals request dark even when it names a night drive', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => Response.json({
+      model: 'typesafe/jev-1.13', provider: 'TypeSafe', answers: answers('middlemarch')
+    })));
+    const response = await handleJevRecommend(request({ intent: 'A night drive story, text only.', schemaVersion: 3 }), env);
+    expect(response.status).toBe(200);
+    expect((await response.json()).config.visualMode).toBe('off');
+  });
+
   it('returns a visible large size when Jev chooses Fit for phrase chunks', async () => {
     vi.stubGlobal('fetch', vi.fn(async () => Response.json({
       model: 'typesafe/jev-1.13', provider: 'TypeSafe',
@@ -869,9 +938,10 @@ describe('Jev reading recommendation', () => {
         finaleEngine: { type: 'choice', choice: 'fractal' }
       })
     })));
-    const response = await handleJevRecommend(request({ intent }), env);
+    const response = await handleJevRecommend(request({ intent, schemaVersion: 3 }), env);
     expect(response.status).toBe(200);
-    const { config } = await response.json();
+    const payload = await response.json();
+    const { config } = payload;
     expect(config).toMatchObject({ visualMode: 'interlocution', visualArc: 'dual', arcSplit: '70' });
     expect(config.visualProgram.segments.map(segment => segment.match.toProgress)).toEqual([0.7, 1]);
   });
