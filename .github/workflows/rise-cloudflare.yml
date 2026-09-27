@@ -281,21 +281,38 @@ jobs:
       - name: Verify public production serves the exact release
         run: |
           set -euo pipefail
-          for path in / /try-rise /jev-preview "/release-$TESTED_SHA.txt"; do
+          verify_public() {
+            local path status
+            for path in / /try-rise /jev-preview "/release-$TESTED_SHA.txt"; do
+              status=$(curl -sS --max-time 20 --retry 5 --retry-delay 3 --retry-all-errors \
+                -D "$RUNNER_TEMP/public-headers" -o "$RUNNER_TEMP/public-body" \
+                -w '%{http_code}' "https://rise.syberlabs.io$path") || return 1
+              if [ "$status" != 200 ]; then
+                echo "Expected public HTTP 200 at $path; got HTTP $status"
+                return 1
+              fi
+              if [ "$path" = "/release-$TESTED_SHA.txt" ] &&
+                [ "$(cat "$RUNNER_TEMP/public-body")" != "$TESTED_SHA" ]; then
+                echo "Release marker does not match $TESTED_SHA"
+                return 1
+              fi
+            done
             status=$(curl -sS --max-time 20 --retry 5 --retry-delay 3 --retry-all-errors \
               -D "$RUNNER_TEMP/public-headers" -o "$RUNNER_TEMP/public-body" \
-              -w '%{http_code}' "https://rise.syberlabs.io$path")
-            test "$status" = 200 || { echo "Expected public HTTP 200 at $path; got HTTP $status"; exit 1; }
-            if [ "$path" = "/release-$TESTED_SHA.txt" ]; then
-              test "$(cat "$RUNNER_TEMP/public-body")" = "$TESTED_SHA"
+              -w '%{http_code}' 'https://rise.syberlabs.io/api/not-a-route') || return 1
+            if [ "$status" != 404 ]; then
+              echo "Expected JSON 404 for unknown API; got HTTP $status"
+              return 1
             fi
+            grep -Eiq '^content-type: application/json' "$RUNNER_TEMP/public-headers" || return 1
+            jq -e '.error.code == "NOT_FOUND"' "$RUNNER_TEMP/public-body" > /dev/null
+          }
+          for attempt in {1..12}; do
+            if verify_public; then break; fi
+            if [ "$attempt" -eq 12 ]; then exit 1; fi
+            echo "Waiting for public release propagation (attempt $attempt/12)"
+            sleep 5
           done
-          status=$(curl -sS --max-time 20 --retry 5 --retry-delay 3 --retry-all-errors \
-            -D "$RUNNER_TEMP/public-headers" -o "$RUNNER_TEMP/public-body" \
-            -w '%{http_code}' 'https://rise.syberlabs.io/api/not-a-route')
-          test "$status" = 404 || { echo "Expected JSON 404 for unknown API; got HTTP $status"; exit 1; }
-          grep -Eiq '^content-type: application/json' "$RUNNER_TEMP/public-headers"
-          jq -e '.error.code == "NOT_FOUND"' "$RUNNER_TEMP/public-body" > /dev/null
           {
             echo "Deployed production artifact $TESTED_SHA; public pages, exact release marker, and JSON API 404 verified."
             echo 'Owner acceptance: make one live Jev preview decision at https://rise.syberlabs.io/jev-preview and confirm Relay remains behind Access.'
