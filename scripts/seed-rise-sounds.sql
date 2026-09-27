@@ -13,8 +13,8 @@ INSERT INTO rise_sounds (sound_id, decision_criterion, active) VALUES
   ('sad', 'Slow minor harmony for grief, loneliness, or melancholy.', TRUE),
   ('angry', 'Tense, rough harmony for anger, conflict, or defiance.', TRUE),
   ('happy', 'Warm major harmony for joy, ease, or celebration.', TRUE),
-  ('excited', 'Bright moving harmony for anticipation and high energy.', TRUE),
-  ('thrilling', 'Driving low pulse for suspense, pursuit, or dramatic momentum.', TRUE),
+  ('excited', 'Bright sustained harmony with a quick shimmer, for anticipation. No beat.', TRUE),
+  ('thrilling', 'Low sustained tones with a slow throb for suspense or dramatic tension. No beat.', TRUE),
   ('scary', 'Uneasy low dissonance for dread, fear, or ominous scenes.', TRUE),
   ('piano', 'Gentle piano melody for intimate, tender, or reflective reading.', TRUE),
   ('jazz', 'Swung jazz piano and walking bass for lively or sophisticated reading.', TRUE),
@@ -26,10 +26,11 @@ INSERT INTO rise_sounds (sound_id, decision_criterion, active) VALUES
   ('ragtime', 'A brisk, playful ragtime keyboard piece for mischief and buoyant energy.', TRUE),
   ('wonder', 'A spacious rising synth theme for discovery, awe, and possibility.', TRUE),
   ('mystery', 'A sparse, questioning synth theme for secrets and investigation.', TRUE),
-  ('chase', 'A driving electronic pulse for pursuit, urgency, and action.', TRUE),
+  ('chase', 'A quick repeating synth figure over a low drone for pursuit and urgency. No drums.', TRUE),
   ('triumph', 'A bold resolving synth theme for victory and earned celebration.', TRUE),
   ('haunted', 'A fragile dissonant theme for eerie, ghostly, or uncanny scenes.', TRUE),
-  ('starlight', 'A slow shimmering synth theme for cosmic calm and night skies.', TRUE)
+  ('starlight', 'A slow shimmering synth theme for cosmic calm and night skies.', TRUE),
+  ('night-drive', 'Fast electronic beat with drums and bass for night drives, racing, neon, or high energy.', TRUE)
 ON CONFLICT (sound_id) DO UPDATE SET
   decision_criterion = EXCLUDED.decision_criterion,
   active = EXCLUDED.active;

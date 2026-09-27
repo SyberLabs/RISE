@@ -159,20 +159,20 @@ it, and CI fails when the committed copy is not what `src/` produces.
 
 ```mermaid
 flowchart LR
-    app["app<br/>composition root<br/>7 modules"]
-    audio["audio<br/>Web Audio, recitation<br/>9 modules"]
+    app["app<br/>composition root<br/>8 modules"]
+    audio["audio<br/>Web Audio, recitation<br/>10 modules"]
     components["components<br/>routed views<br/>39 modules"]
     content["content<br/>texts, imagery, journeys<br/>228 modules"]
     core["core<br/>session, player, router<br/>135 modules"]
     page["page<br/>spatial projection<br/>4 modules"]
     sources["sources<br/>text and visual providers<br/>22 modules"]
     vendor["vendor<br/>SyberLabs design kit<br/>2 modules"]
-    visuals["visuals<br/>procedural generation<br/>54 modules"]
+    visuals["visuals<br/>procedural generation<br/>55 modules"]
 
     app -.-> |3 lazy| audio
     app --> |1| components
     app --> |4| content
-    app --> |34| core
+    app --> |36| core
     app -.-> |1 lazy| sources
     app -.-> |1 lazy| visuals
     audio --> |1| content
@@ -184,12 +184,12 @@ flowchart LR
     components -.-> |1 lazy| page
     components --> |4| sources
     components -.-> |2 lazy| vendor
-    components --> |13| visuals
+    components --> |14| visuals
     content --> |3| audio
     content --> |16| core
     content --> |17| sources
     content --> |1| visuals
-    core --> |5| audio
+    core --> |6| audio
     core --> |11| content
     core --> |3| sources
     core --> |21| visuals
