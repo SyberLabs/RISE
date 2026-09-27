@@ -34,12 +34,21 @@ describe('Jev variance hints', () => {
     expect(new Set([...ids(first), ...ids(second)])).toEqual(new Set(books.map(book => book.work_id)));
   });
 
+  it('treats a broad vivid discovery request as open ended', () => {
+    const first = buildJevVarianceHints({ books, intent: 'Surprise me with something vivid and unusual', turn: 0 });
+    const second = buildJevVarianceHints({ books, intent: 'Surprise me with something vivid and unusual', turn: 1 });
+    const ids = hint => hint.eligibleBooks.map(book => book.work_id);
+    expect(ids(first).filter(id => ids(second).includes(id))).toEqual([]);
+  });
+
   it('offers the full catalog when a title, author, or detailed intent is given', () => {
     for (const intent of ['Read ULYSSES please', 'Something by George Eliot', 'Nature and quiet',
       'I want a novel about the consequences of marriage',
       'I would like a deep and reflective novel with many interwoven lives']) {
       expect(buildJevVarianceHints({ books, intent, turn: 1 }).eligibleBooks).toHaveLength(books.length);
     }
+    expect(buildJevVarianceHints({ books, intent: 'Surprise me with Middlemarch', turn: 1 }).eligibleBooks)
+      .toHaveLength(books.length);
   });
 
   it('subordinates variety to explicit reader preferences and offered options', () => {

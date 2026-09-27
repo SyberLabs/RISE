@@ -3,17 +3,28 @@ import { Redis } from '@upstash/redis/cloudflare';
 import releaseInventory from '../src/content/archive/release-inventory.json' with { type: 'json' };
 import { jevPalette } from '../src/core/jev-palette.js';
 import { resolveJevChamberConfig } from '../src/core/jev-config.js';
-import { compileJevVisualProgram } from '../src/core/jev-sequence.js';
+import * as jevSequence from '../src/core/jev-sequence.js';
 import { buildJevVarianceHints, VARIATION_COUNT } from './jev-variance.mjs';
 
 const API_URL = 'https://openrouter.ai/api/alpha/decisions';
 const MODEL = 'typesafe/jev-1.13';
+const AUDIO_CHOICES = Object.freeze({
+  silent: 'Silence.', aurora: 'Aurora soundscape.', 'faded-signal': 'Faded Signal soundscape.'
+});
+const COLOR_THEME_CHOICES = Object.freeze({
+  classic: 'Warm ivory text on a near-black ground.',
+  amethyst: 'Violet ground with lilac accents.',
+  prism: 'Deep violet ground, bright text, and neon magenta; choose for psychedelic or prismatic requests.',
+  ember: 'Dark red-brown ground with fiery orange accents.',
+  cobalt: 'Deep blue ground with electric blue accents.',
+  jade: 'Dark green ground with luminous jade accents.'
+});
 const CHOICES = Object.freeze({
   section: { first: 'Begin at the first section.', shortest: 'Choose the shortest section for a brief reading.', longest: 'Choose the longest section for a sustained reading.' },
   pace: { '100': 'Very slow.', '150': 'Slow.', '200': 'Moderate.', '250': 'Brisk.', '300': 'Fast.', '400': 'Very fast.', '500': 'Fastest offered.' },
   curve: { flat: 'Steady pace.', induction: 'Begin slowly.', ascent: 'Gradually accelerate.', wave: 'Rise and fall.', climax: 'Build toward a fast finish.' },
   chunk: { word: 'One word.', phrase: 'Short phrases.', sentence: 'Sentences.', paragraph: 'Paragraphs.' },
-  audio: { silent: 'Silence.', aurora: 'Aurora soundscape.', 'faded-signal': 'Faded Signal soundscape.' },
+  audio: AUDIO_CHOICES,
   visual: {
     off: 'No visual field.',
     focals: 'A single quiet focal figure.',
@@ -80,14 +91,11 @@ const CHOICES = Object.freeze({
     small: 'Small text.', medium: 'Medium text.', large: 'Large text.',
     fit: 'Fit each word to the Chamber; effective with word chunking.'
   },
-  colorTheme: {
-    classic: 'Warm ivory text on a near-black ground.',
-    amethyst: 'Violet ground with lilac accents.',
-    prism: 'Deep violet ground, bright text, and neon magenta; choose for psychedelic or prismatic requests.',
-    ember: 'Dark red-brown ground with fiery orange accents.',
-    cobalt: 'Deep blue ground with electric blue accents.',
-    jade: 'Dark green ground with luminous jade accents.'
-  },
+  colorTheme: COLOR_THEME_CHOICES,
+  middleTheme: COLOR_THEME_CHOICES,
+  finaleTheme: COLOR_THEME_CHOICES,
+  middleAudio: AUDIO_CHOICES,
+  finaleAudio: AUDIO_CHOICES,
   wordFill: {
     plain: 'Plain text ink.', accent: 'Fill text with the chosen accent color.',
     same: 'Fill text with the Gallery visual when supported.'
@@ -197,17 +205,18 @@ async function decisionCacheKey(intent, books, apiKey) {
     { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
   const input = JSON.stringify({ model: MODEL, intent, books });
   const signature = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(input));
-  return `rise:jev-decision:v7:${Array.from(new Uint8Array(signature),
+  return `rise:jev-decision:v8:${Array.from(new Uint8Array(signature),
     byte => byte.toString(16).padStart(2, '0')).join('')}`;
 }
 
 function validConfig(config) {
   if (!config || typeof config !== 'object' || Array.isArray(config)
-    || Object.keys(config).length !== 31
+    || Object.keys(config).length !== 36
     || !Number.isInteger(config.wpm) || !Object.hasOwn(CHOICES.pace, String(config.wpm))) return null;
   const fields = { section: 'section', curve: 'curve', chunkMode: 'chunk', audio: 'audio',
     visualMode: 'visual', visualStyle: 'visualStyle', visualEngine: 'visualEngine',
     visualArc: 'visualArc', arcSplit: 'arcSplit', middleEngine: 'middleEngine', finaleEngine: 'finaleEngine',
+    middleTheme: 'middleTheme', finaleTheme: 'finaleTheme', middleAudio: 'middleAudio', finaleAudio: 'finaleAudio',
     visualPalette: 'visualPalette',
     kleePreset: 'kleePreset', galleryCadence: 'galleryCadence',
     chamberFace: 'chamberFace', fontSize: 'fontSize',
@@ -229,7 +238,9 @@ function validConfig(config) {
     && config.projection !== 'stream') return null;
   if (config.fontSize === 'fit' && config.chunkMode !== 'word') return null;
   const resolved = resolveJevChamberConfig(config);
-  const visualProgram = compileJevVisualProgram(config);
+  const visualProgram = jevSequence.compileJevVisualProgram(config);
+  const audioProgram = typeof jevSequence.compileJevAudioProgram === 'function'
+    ? jevSequence.compileJevAudioProgram(config) : null;
   if (config.visualArc !== 'single' && !visualProgram) return null;
   if (config.audioPreset !== resolved.audioPreset
     || config.soundscape !== resolved.soundscape
@@ -240,11 +251,24 @@ function validConfig(config) {
     || config.projection !== resolved.projection
     || JSON.stringify(config.visualConfig) !== JSON.stringify(resolved.visualConfig)
     || JSON.stringify(config.presentation) !== JSON.stringify(resolved.presentation)
-    || JSON.stringify(config.visualProgram) !== JSON.stringify(visualProgram)) return null;
+    || JSON.stringify(config.visualProgram) !== JSON.stringify(visualProgram)
+    || JSON.stringify(config.audioProgram) !== JSON.stringify(audioProgram)) return null;
   return config;
 }
 
-function choiceConfig(answers) {
+function explicitVisualTiming(intent) {
+  const normalized = String(intent || '').normalize('NFKC').toLocaleLowerCase('en');
+  const split = normalized.match(/\b(30|50|70)\s*%/u)?.[1];
+  if (!split) return null;
+  const hasVisualWord = /\bvisuals?\b/u.test(normalized);
+  const hasPhaseWord = /\b(?:opening|middle|finale|phase|arc)\b/u.test(normalized);
+  const hasChangeWord = /\b(?:change|switch|shift|transition|different|another)\b/u.test(normalized);
+  const hasStyleSplit = /\b(?:one|another|different|new)\s+styles?\b/u.test(normalized);
+  return (hasVisualWord && hasChangeWord) || (hasPhaseWord && hasChangeWord)
+    || hasStyleSplit ? split : null;
+}
+
+function choiceConfig(answers, intent = '') {
   if (!answers || typeof answers !== 'object' || Array.isArray(answers)) return null;
   for (const question of CONFIG_ANSWERS) {
     const answer = answers[question];
@@ -261,6 +285,10 @@ function choiceConfig(answers) {
     arcSplit: answers.arcSplit.choice,
     middleEngine: answers.middleEngine.choice,
     finaleEngine: answers.finaleEngine.choice,
+    middleTheme: answers.middleTheme.choice,
+    finaleTheme: answers.finaleTheme.choice,
+    middleAudio: answers.middleAudio.choice,
+    finaleAudio: answers.finaleAudio.choice,
     visualPalette: answers.visualPalette.choice,
     kleePreset: answers.kleePreset.choice,
     galleryCadence: answers.galleryCadence.choice,
@@ -294,8 +322,22 @@ function choiceConfig(answers) {
     || config.chunkMode !== 'word')) config.wordFill = 'accent';
   if (config.fontSize === 'fit' && config.chunkMode !== 'word') config.fontSize = 'large';
   config.colors = jevPalette(config.colorTheme);
+  const explicitNoVisual = /\b(?:no|without|skip|avoid|disable|turn off)\s+(?:any\s+)?visuals?\b|\bvisuals?\s+(?:off|disabled?)\b|\b(?:text|reading)\s+only\b/iu.test(intent);
+  const timing = explicitVisualTiming(intent);
+  if (explicitNoVisual) {
+    config.visualStyle = 'quiet';
+    config.visualMode = 'off';
+    config.visualArc = 'single';
+  } else if (timing) {
+    config.visualArc = 'dual';
+    config.arcSplit = timing;
+    config.visualMode = 'interlocution';
+    config.projection = 'stream';
+  }
   Object.assign(config, resolveJevChamberConfig(config));
-  config.visualProgram = compileJevVisualProgram(config);
+  config.visualProgram = jevSequence.compileJevVisualProgram(config);
+  config.audioProgram = typeof jevSequence.compileJevAudioProgram === 'function'
+    ? jevSequence.compileJevAudioProgram(config) : null;
   return validConfig(config);
 }
 
@@ -318,12 +360,12 @@ function validCachedDecision(value, books) {
   };
 }
 
-function validDecision(value, books) {
+function validDecision(value, books, intent) {
   if (!value || typeof value !== 'object' || value.error || value.provider !== 'TypeSafe'
     || (value.model !== MODEL && !/^typesafe\/jev-1\.13-\d{8}$/u.test(value.model))) return null;
   const answer = value.answers?.book;
   const selected = books.find(book => book.work_id === answer?.choice);
-  const config = choiceConfig(value.answers);
+  const config = choiceConfig(value.answers, intent);
   if (answer?.type !== 'choice' || !selected || !config) return null;
   return {
     requestId: typeof value.id === 'string' && value.id.length <= 100 ? value.id : crypto.randomUUID(),
@@ -380,7 +422,7 @@ export async function handleJevRecommend(request, env) {
   let hints;
   try {
     const baseKey = await decisionCacheKey(intent, books, env.OPENROUTER_API_KEY);
-    const turnKey = baseKey.replace('rise:jev-decision:v7:', 'rise:jev-turn:v1:');
+    const turnKey = baseKey.replace('rise:jev-decision:v8:', 'rise:jev-turn:v1:');
     const nextTurn = await redis.incr(turnKey);
     if (!Number.isSafeInteger(nextTurn) || nextTurn < 1) throw new Error('Invalid Jev turn');
     if (nextTurn === 1) await redis.expire(turnKey, 86400);
@@ -429,7 +471,7 @@ export async function handleJevRecommend(request, env) {
     return error(502, 'DECISION_UNAVAILABLE', 'Jev could not be reached.');
   }
 
-  const decision = validDecision(provider, hints.eligibleBooks);
+  const decision = validDecision(provider, hints.eligibleBooks, intent);
   if (!decision) return error(502, 'DECISION_INVALID_RESPONSE', 'Jev returned an invalid choice.');
   try {
     await redis.set(decisionKey, decision, { ex: DECISION_CACHE_TTL_SECONDS });
