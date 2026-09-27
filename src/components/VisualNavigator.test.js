@@ -253,13 +253,13 @@ describe('the text', () => {
       click(node('face'));
       const grid = nav.container.querySelector('.vnav-face-grid .vnav-opts');
       const thick = nav.container.querySelector('[data-chamber-face="thick"]');
-      expect(grid?.children).toHaveLength(4);
+      expect(grid?.children).toHaveLength(5);
       expect([...grid.children].map(control => control.textContent.trim()))
-        .toEqual(['Literary', 'Display', 'Thick ★', 'Japanese']);
+        .toEqual(['Literary', 'Display', 'Thick ★', 'Monospace', 'Japanese']);
       expect(thick?.textContent.trim()).toBe('Thick ★');
       expect(thick?.getAttribute('aria-describedby')).toBe('vnav-thick-explanation');
       // The star used to be unexplained ornament until a hint fired. A
-      // reader choosing a face has to know one of the four is a
+      // reader choosing a face has to know one of the five is a
       // prerequisite for masking, so the sentence stands from the start.
       expect(nav.container.querySelector('#vnav-thick-explanation')?.hidden).toBe(false);
 
@@ -696,7 +696,7 @@ describe('reader-facing state', () => {
     mount({});
     click(nav.container.querySelector('.vnav-node[data-id="face"]'));
 
-    for (const id of ['literary', 'display', 'thick', 'jp']) {
+    for (const id of ['literary', 'display', 'thick', 'mono', 'jp']) {
       expect(nav.container.querySelector(`[data-chamber-face="${id}"]`)
         ?.getAttribute('data-face-sample'), id).toBe(id);
     }

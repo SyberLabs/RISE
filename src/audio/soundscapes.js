@@ -561,6 +561,74 @@ function createFadedSignal(ctx, destination, options = {}) {
     };
 }
 
+// A locally synthesized, unpitched rain texture. Each channel uses a
+// different deterministic noise stream; no recording or network asset.
+function makeSoftRainBuffer(ctx) {
+    const length = Math.max(2, Math.floor(ctx.sampleRate * 12));
+    const buffer = ctx.createBuffer(2, length, ctx.sampleRate);
+    const edge = Math.max(1, Math.floor(ctx.sampleRate * 0.15));
+    for (let channel = 0; channel < 2; channel += 1) {
+        const data = buffer.getChannelData(channel);
+        let seed = channel ? 0x3f6a528d : 0x7d4b3c29;
+        let softened = 0;
+        for (let i = 0; i < length; i += 1) {
+            seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0;
+            const white = (seed / 0xffffffff) * 2 - 1;
+            softened += (white - softened) * 0.16;
+            const edgeGain = Math.min(1, i / edge, (length - 1 - i) / edge);
+            data[i] = (softened * 0.8 + white * 0.2) * Math.max(0, edgeGain);
+        }
+    }
+    return buffer;
+}
+
+function createSoftRain(ctx, destination) {
+    let nodes = [];
+    let out = null;
+
+    return {
+        start() {
+            out = ctx.createGain();
+            out.gain.value = 0;
+            out.connect(destination);
+            const highpass = ctx.createBiquadFilter();
+            highpass.type = 'highpass';
+            highpass.frequency.value = 180;
+            highpass.Q.value = 0.6;
+            const lowpass = ctx.createBiquadFilter();
+            lowpass.type = 'lowpass';
+            lowpass.frequency.value = 4200;
+            lowpass.Q.value = 0.6;
+            const rain = ctx.createBufferSource();
+            rain.buffer = makeSoftRainBuffer(ctx);
+            rain.loop = true;
+            rain.connect(highpass).connect(lowpass).connect(out);
+            rain.start();
+            nodes = [rain, highpass, lowpass, out];
+            rampIn(ctx, out.gain, 0.3, 2.4);
+        },
+        stop(instant = false) {
+            if (out) {
+                if (instant) {
+                    out.gain.cancelScheduledValues(ctx.currentTime);
+                    out.gain.setValueAtTime(0, ctx.currentTime);
+                } else {
+                    rampOut(ctx, out.gain);
+                }
+            }
+            const held = nodes;
+            nodes = [];
+            out = null;
+            setTimeout(() => held.forEach(node => {
+                try {
+                    if (node.stop) node.stop();
+                    node.disconnect();
+                } catch (e) { /* already released */ }
+            }), instant ? 0 : 1400);
+        }
+    };
+}
+
 // ═══════════════════════════════════════════════════════════
 // Registry
 // ═══════════════════════════════════════════════════════════
@@ -616,6 +684,11 @@ export const SOUNDSCAPES = {
         name: 'Faded Signal',
         description: 'Sun-worn suspended harmony with slow tape drift, softened bandwidth, and a quiet feedback afterimage.',
         create: createFadedSignal
+    },
+    'soft-rain': {
+        name: 'Soft Rain',
+        description: 'A quiet unpitched rain texture synthesized locally, without melody or a recording.',
+        create: createSoftRain
     }
 };
 

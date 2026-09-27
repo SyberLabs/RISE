@@ -66,6 +66,19 @@ describe('the stance row', () => {
     });
 });
 
+describe('soundscape choices', () => {
+    it('lets a reader choose Soft Rain from the soundscape controls', () => {
+        const { container, orbital } = createOrbital();
+        orbital.loadText('Begin the morning', 'Meditations');
+        const button = container.querySelector('[data-soundscape="soft-rain"]');
+        expect(button).not.toBeNull();
+        button.click();
+        expect(orbital.config.soundscape).toBe('soft-rain');
+        expect(button.classList).toContain('active');
+        orbital.destroy();
+    });
+});
+
 describe('choosing a stance', () => {
     beforeEach(() => {
         localStorage.clear();

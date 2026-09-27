@@ -196,6 +196,11 @@
   --font-stream-weight: var(--font-weight-bold);
 }
 
+:root[data-chamber-face="mono"] {
+  --font-stream-face: var(--font-mono);
+  --font-stream-weight: var(--font-weight-regular);
+}
+
 :root[data-chamber-face="jp"] {
   --font-stream-face: var(--font-jp);
   --font-stream-weight: var(--font-weight-regular);
@@ -214,6 +219,11 @@
 .atom-display[data-chamber-face="thick"] {
   --font-stream-face: var(--font-stream-thick);
   --font-stream-weight: var(--font-weight-bold);
+}
+
+.atom-display[data-chamber-face="mono"] {
+  --font-stream-face: var(--font-mono);
+  --font-stream-weight: var(--font-weight-regular);
 }
 
 .atom-display[data-chamber-face="jp"] {

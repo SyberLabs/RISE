@@ -59,6 +59,12 @@ beforeEach(() => {
 });
 
 describe('Jev reading handoff', () => {
+  it('admits Soft Rain as a local soundscape', async () => {
+    const input = await resolveJevReading(decision({ audio: 'soft-rain' }));
+    expect(input.soundscape).toBe('soft-rain');
+    expect(input.audioPreset).toBe('silent');
+  });
+
   it('selects the exact released source and maps enums to Chamber input', async () => {
     const input = await resolveJevReading(decision());
     expect(input.text).toBe('The first source text.');
