@@ -133,35 +133,31 @@ describe('Chamber accent allowlist', () => {
         }
     });
 
-    it('tints primary and Begin Session hover from the sitting accent, not leftover purple', () => {
+    it('tints primary hover from the sitting accent, not leftover purple', () => {
         const root = join(dirname(fileURLToPath(import.meta.url)), '..');
         const system = readFileSync(join(root, 'design-system.css'), 'utf8');
-        const orbital = readFileSync(join(root, 'components', 'ChamberOrbital.css'), 'utf8');
         const primaryHover = system.match(/\.btn-primary:hover:not\(:disabled\)\s*\{[^}]+\}/);
-        const largeHover = orbital.match(/\.btn-large:hover\s*\{[^}]+\}/);
         expect(primaryHover, '.btn-primary:hover').toBeTruthy();
-        expect(largeHover, '.btn-large:hover').toBeTruthy();
         expect(system).not.toMatch(/#9d91e0/i);
         expect(primaryHover[0]).toMatch(/--color-accent/);
-        expect(largeHover[0]).toMatch(/--color-accent/);
-        expect(largeHover[0]).not.toMatch(/background:\s*var\(--color-light\)/);
-        expect(largeHover[0]).not.toMatch(/232,\s*232,\s*236/);
     });
 
-    it('tints the orbital center ring a lighter accent than the satellite orbs', () => {
+    it('gives the reader setup one neutral primary and the RISE marker as its only accent', () => {
         const css = readFileSync(
             join(dirname(fileURLToPath(import.meta.url)), '..', 'components', 'ChamberOrbital.css'),
             'utf8'
         );
-        const center = css.match(/\.orbit-center\s*\{[^}]+\}/);
-        const orbs = css.match(/\.orbit-node\s*\{[^}]+\}/);
-        expect(center, '.orbit-center').toBeTruthy();
-        expect(orbs, '.orbit-node').toBeTruthy();
-        expect(orbs[0]).toMatch(/border:[^;]*var\(--color-accent\)/);
-        expect(center[0]).toMatch(/border:[^;]*color-mix\(in srgb,\s*var\(--color-accent\)/);
-        expect(center[0]).toMatch(/color-mix\(in srgb,\s*var\(--color-accent\)[^;]*var\(--color-light\)/);
-        expect(center[0]).not.toMatch(/border:\s*3px\s+solid\s+var\(--color-light\)/);
-        expect(center[0]).not.toMatch(/232,\s*232,\s*236/);
+        const begin = css.match(/\.btn-large\s*\{[^}]+\}/);
+        const beginHover = css.match(/\.btn-large:hover:not\(:disabled\)\s*\{[^}]+\}/);
+        const mark = css.match(/\.stance-option\.active \.stance-mark\s*\{[^}]+\}/);
+        expect(begin, '.btn-large').toBeTruthy();
+        expect(beginHover, '.btn-large:hover').toBeTruthy();
+        expect(mark, '.stance-option.active .stance-mark').toBeTruthy();
+        expect(begin[0]).toMatch(/background:\s*var\(--rs-text\)/);
+        expect(begin[0]).not.toMatch(/box-shadow/);
+        expect(beginHover[0]).toMatch(/#FFFFFF/i);
+        expect(css).toMatch(/--rs-accent:\s*#E4D2AE/i);
+        expect(mark[0]).toMatch(/var\(--rs-accent\)/);
     });
 
     it('tints the Portal wordmark from the sitting accent', () => {

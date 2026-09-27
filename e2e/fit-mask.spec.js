@@ -75,6 +75,7 @@ async function openPrep(page, viewport, prefs = PREFS) {
   await page.goto('/');
   await page.locator('[data-nav="chamber"]').first().click();
   await expect(page.locator('#begin-btn')).toBeEnabled({ timeout: 15_000 });
+  { const adjust = page.locator('[data-action="toggle-adjust"]'); if (await adjust.getAttribute('aria-expanded') === 'false') await adjust.click(); }
   await page.locator('[data-orbit="visual"]').click();
   await expect(page.locator('.vnav')).toBeVisible();
   await openRootNode(page, 'size');

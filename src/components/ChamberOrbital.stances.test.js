@@ -27,8 +27,8 @@ function createOrbital(onBeginSession = vi.fn(), options = {}) {
 }
 
 const chosen = container => [...container.querySelectorAll('[data-stance]')]
-    .filter(button => button.getAttribute('aria-pressed') === 'true')
-    .map(button => button.dataset.stance);
+    .filter(input => input.checked)
+    .map(input => input.dataset.stance);
 
 describe('the stance row', () => {
     beforeEach(() => {
@@ -50,7 +50,7 @@ describe('the stance row', () => {
 
     it('names each stance and says what it feels like', () => {
         const { container, orbital } = createOrbital();
-        const button = container.querySelector('[data-stance="contemplate"]');
+        const button = container.querySelector('[data-stance="contemplate"]').closest('label');
         expect(button.textContent).toContain('Contemplate');
         expect(button.textContent).toContain('unhurried pace');
         orbital.destroy();
@@ -358,6 +358,49 @@ describe('choosing a stance', () => {
         orbital.resetPrefs();
 
         expect(chosen(orbital.container)).toEqual(['plainly']);
+        orbital.destroy();
+    });
+});
+
+describe('the reader setup controls', () => {
+    beforeEach(() => {
+        localStorage.clear();
+        document.body.innerHTML = '';
+    });
+
+    it('keeps the three settings panels behind one disclosure, reachable as buttons', () => {
+        const { container, orbital } = createOrbital();
+        const toggle = container.querySelector('[data-action="toggle-adjust"]');
+        const panel = container.querySelector('#reader-adjust-panel');
+        expect(toggle.getAttribute('aria-expanded')).toBe('false');
+        expect(panel.hidden).toBe(true);
+
+        toggle.click();
+        expect(toggle.getAttribute('aria-expanded')).toBe('true');
+        expect(panel.hidden).toBe(false);
+
+        const nodes = [...container.querySelectorAll('.orbit-node')];
+        expect(nodes.map(n => n.tagName)).toEqual(['BUTTON', 'BUTTON', 'BUTTON']);
+        container.querySelector('[data-orbit="audio"]').click();
+        expect(container.querySelector('#modal-audio').hidden).toBe(false);
+        orbital.destroy();
+    });
+
+    it('labels every icon-only control', () => {
+        const { container, orbital } = createOrbital();
+        for (const button of container.querySelectorAll('button')) {
+            const name = button.getAttribute('aria-label') || button.textContent.trim();
+            expect(name, button.outerHTML.slice(0, 80)).not.toBe('');
+        }
+        orbital.destroy();
+    });
+
+    it('chooses Stream or Page and remembers it', () => {
+        const { container, orbital } = createOrbital();
+        container.querySelector('[data-projection="page"]').click();
+        expect(orbital.config.projection).toBe('page');
+        expect(container.querySelector('[data-projection="page"]').getAttribute('aria-pressed')).toBe('true');
+        expect(container.querySelector('[data-projection="stream"]').getAttribute('aria-pressed')).toBe('false');
         orbital.destroy();
     });
 });

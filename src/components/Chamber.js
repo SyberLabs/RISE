@@ -464,7 +464,7 @@ export class Chamber {
         <!-- Pre-Session State -->
         <div class="chamber-pre-session" id="chamber-pre" ${this.autoStart ? 'style="display: none;"' : ''}>
           <button class="chamber-back btn-ghost" id="chamber-back">
-            <span class="icon">←</span>
+            <span class="icon" aria-hidden="true">←</span>
             <span>back</span>
           </button>
 
@@ -687,11 +687,11 @@ export class Chamber {
                 <span class="post-btn-icon" aria-hidden="true">→</span>
               </button>` : ''}
               <button class="post-btn-return" id="post-return-chamber">
-                <span class="post-btn-icon">←</span>
+                <span class="post-btn-icon" aria-hidden="true">←</span>
                 Return
               </button>
               <button class="post-btn-recursion" id="post-recursion">
-                <span class="post-btn-icon-recursion">↻</span>
+                <span class="post-btn-icon-recursion" aria-hidden="true">↻</span>
                 Recursion
               </button>
             </div>
@@ -781,7 +781,7 @@ export class Chamber {
         <!-- Custom Exit Confirmation Overlay -->
         <div id="exit-confirm-overlay" class="exit-overlay hidden" style="display: none;">
           <div class="exit-modal">
-            <div class="exit-sigil">✕</div>
+            <div class="exit-sigil" aria-hidden="true">✕</div>
             <h2 class="exit-title">Terminate?</h2>
             <p class="exit-message">
               The current sequence will be abandoned. 
