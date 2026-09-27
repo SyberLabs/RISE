@@ -15,6 +15,9 @@ inputs:
   chromium:
     description: Install the Chromium build the browser tests drive.
     default: 'false'
+  audio:
+    description: Restore the pinned recitation WAVs while dependencies install.
+    default: 'false'
 
 runs:
   using: composite
@@ -25,7 +28,21 @@ runs:
         node-version: '22'
         cache: npm
 
-    - run: npm ci --no-audit
+    - run: |
+        set -euo pipefail
+        if [ "${{ inputs.audio }}" != 'true' ]; then
+          npm ci --no-audit
+          exit 0
+        fi
+        npm ci --no-audit &
+        install=$!
+        node scripts/hydrate-recitation.mjs &
+        hydrate=$!
+        install_status=0
+        wait "$install" || install_status=$?
+        hydrate_status=0
+        wait "$hydrate" || hydrate_status=$?
+        test "$install_status" -eq 0 && test "$hydrate_status" -eq 0
       shell: bash
 
     # A stub would only prove we can satisfy our own stub, so encode-mp4.test.js
