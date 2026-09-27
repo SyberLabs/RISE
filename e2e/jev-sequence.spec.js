@@ -1,6 +1,6 @@
 import { test, expect } from './fixtures.js';
 import releaseInventory from '../src/content/archive/release-inventory.json' with { type: 'json' };
-import { jevPalette } from '../src/core/jev-palette.js';
+import { jevColors, jevPalette } from '../src/core/jev-palette.js';
 import { resolveJevChamberConfig } from '../src/core/jev-config.js';
 import { compileJevAudioProgram, compileJevVisualProgram } from '../src/core/jev-sequence.js';
 
@@ -14,14 +14,15 @@ test('one Jev plan carries a late visual and soundscape phase into the Chamber',
     visualMode: 'interlocution', visualStyle: 'psychedelic',
     visualEngine: 'fractal', middleEngine: 'harmonograph', finaleEngine: 'ostensoria',
     visualArc: 'triple', arcSplit: '70',
-    colorTheme: 'prism', middleTheme: 'ember', finaleTheme: 'jade',
+    colorTheme: 'prism', textColor: 'prism', backgroundColor: 'prism',
+    middleTheme: 'ember', finaleTheme: 'jade',
     visualPalette: 'purple', kleePreset: 'chaotic', galleryCadence: 'lively',
     chamberFace: 'thick', fontSize: 'large', wordFill: 'accent',
     projection: 'stream', revealMode: 'instant'
   };
   const config = {
     ...choices,
-    colors: jevPalette(choices.colorTheme),
+    colors: jevColors(choices.colorTheme, choices.textColor, choices.backgroundColor),
     ...resolveJevChamberConfig(choices),
     visualProgram: compileJevVisualProgram(choices),
     audioProgram: compileJevAudioProgram(choices)
@@ -30,7 +31,7 @@ test('one Jev plan carries a late visual and soundscape phase into the Chamber',
   await page.route('**/api/jev-recommend', route => {
     calls += 1;
     return route.fulfill({ json: {
-      schemaVersion: 1, requestId: 'jev-sequence-browser', model: 'typesafe/jev-1.13',
+      schemaVersion: 2, requestId: 'jev-sequence-browser', model: 'typesafe/jev-1.13',
       workId: released.workId, editionId: released.editionId,
       sourceRevision: released.sourceRevision, reason: 'A released reading.', config
     } });
