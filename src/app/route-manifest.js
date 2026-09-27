@@ -6,6 +6,16 @@
 export function createRouteManifest(operations) {
   return [
     {
+      id: 'create',
+      containerId: 'view-create',
+      load: () => import('../components/Create.js'),
+      create: (container, data, { Create }) => new Create(container, {
+        data,
+        onNavigate: operations.handleNavigate,
+        onCreateSession: operations.handleCreateSession
+      })
+    },
+    {
       id: 'portal',
       containerId: 'view-portal',
       load: () => import('../components/Portal.js'),
@@ -50,7 +60,8 @@ export function createRouteManifest(operations) {
         onSelectBlueprint: operations.handleCreateSession,
         onLaunchArchetype: operations.handleArchetypeLaunch,
         getAudioEngine: operations.getAudioEngine,
-        personalizedVault: data?.personalizedVault || null
+        personalizedVault: data?.personalizedVault || null,
+        initialSection: data?.section
       })
     },
     {

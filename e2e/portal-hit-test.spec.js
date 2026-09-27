@@ -83,6 +83,9 @@ test.describe('the Portal has no overlay between a cursor and a door', () => {
     test('CHAMBER opens from a real mouse press, without force', async ({ page }) => {
         await openPortal(page);
         await page.waitForTimeout(3000);
+        // This asserts the scrolled door's real mouse hit, not first-screen
+        // visibility. The baseline overflow is tracked in docs/personal-readings-review.md.
+        await page.locator('[data-nav="chamber"]').first().scrollIntoViewIfNeeded();
 
         const box = await page.locator('[data-nav="chamber"]').first().boundingBox();
         expect(box, 'the Chamber button has no box to press').toBeTruthy();

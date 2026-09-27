@@ -1,0 +1,20 @@
+import { afterEach, it, expect, vi } from 'vitest';
+import App from './app.js';
+import { hydrateSessionSequenceAssets } from './core/workshop-asset-durability.js';
+vi.mock('./core/workshop-asset-durability.js', () => ({ hydrateSessionSequenceAssets: vi.fn() }));
+afterEach(() => vi.resetAllMocks());
+it('navigation intent cancels before hydration can launch or replace the committed session', async () => {
+  let release;
+  hydrateSessionSequenceAssets.mockImplementation(value => new Promise(resolve => { release = () => resolve(value); }));
+  const app = new App(); const prior = { id: 'prior' };
+  app.currentSession = prior;
+  const navigationIntent = vi.fn();
+  app.router = { navigate: vi.fn(), getCurrentView: () => 'create', getViewInstance: () => ({ navigationIntent }) };
+  const pending = app.handleCreateSession({ sources: [{ id:'text', name:'Text', data:'A few words here' }] });
+  await vi.waitFor(() => expect(hydrateSessionSequenceAssets).toHaveBeenCalledOnce());
+  app.handleNavigationIntent('portal'); release();
+  expect(await pending).toBe(false);
+  expect(app.router.navigate).not.toHaveBeenCalled();
+  expect(navigationIntent).toHaveBeenCalledOnce();
+  expect(app.currentSession).toBe(prior);
+});

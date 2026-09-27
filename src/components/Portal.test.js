@@ -118,8 +118,8 @@ describe('Portal', () => {
         expect(primary).toEqual(['chamber']);
 
         const secondary = container.querySelectorAll('.nav-secondary .nav-item');
-        expect(secondary).toHaveLength(3);
-        expect([...secondary].map(el => el.dataset.nav)).toEqual(['vault', 'library', 'workshop']);
+        expect(secondary).toHaveLength(4);
+        expect([...secondary].map(el => el.dataset.nav)).toEqual(['create', 'vault', 'library', 'workshop']);
         const tryRise = container.querySelector('.nav-secondary .nav-try');
         expect(tryRise).toBeTruthy();
         expect(tryRise.dataset.nav).toBe('keystones');

@@ -207,6 +207,7 @@ export class Portal {
 
           <!-- Room index. Glyph/line are display:none above 640. -->
           <div class="nav-secondary">
+            <button class="nav-item" data-nav="create"><span class="room-glyph" aria-hidden="true">✦</span><span class="room-name">Create</span><span class="room-line">A personal reading</span></button>
             <button class="nav-item" data-nav="vault">
               <span class="room-glyph" aria-hidden="true">◈</span><span class="room-name">Vault</span><span class="room-line">Sequences</span>
             </button>
