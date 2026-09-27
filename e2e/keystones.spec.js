@@ -29,6 +29,20 @@ for (const [device, viewport] of [
   await expect.poll(() => page.evaluate(() => window.__RISE_TEST__?.getCurrentSession()?.firstReadPreview))
     .toBe(true);
 
+  await expect.poll(() => page.evaluate(() => {
+    const display = document.querySelector('#atom-display');
+    if (!display || !/\p{L}/u.test(display.textContent)
+        || Number(getComputedStyle(display).opacity) <= 0) return false;
+    const spans = [...display.querySelectorAll('.atom-word')];
+    return spans.length === 0
+      ? display.getClientRects().length > 0
+      : spans.some(word => !word.hasAttribute('data-pending')
+          && /\p{L}/u.test(word.textContent)
+          && Number(getComputedStyle(word).opacity) > 0);
+  }), { timeout: 15_000 }).toBe(true);
+  await expect.poll(() => page.evaluate(() => window.__RISE_TEST__
+    .getView('chamber-session')?.player?.state)).toBe('playing');
+
   // Drive the Player's progress event to the boundary without waiting thirty
   // real seconds. The Chamber must expose the choice without stopping Stream.
   const choice = page.locator('#first-read-choice');
@@ -38,6 +52,8 @@ for (const [device, viewport] of [
   await page.evaluate(() => window.__RISE_TEST__.getView('chamber-session')
     .player.emit('progress', { elapsed: 30000 }));
   await expect(choice).toBeVisible();
+  expect(await page.evaluate(() => window.__RISE_TEST__
+    .getView('chamber-session')?.player?.state)).toBe('playing');
   await expect(page.locator('#page-mode-btn')).toBeAttached();
   await choice.locator('#first-read-page').click();
   await expect(choice).toBeHidden();

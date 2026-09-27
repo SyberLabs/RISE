@@ -936,7 +936,7 @@ export class Chamber {
     });
     this.container.querySelector('#first-read-pause')?.addEventListener('click', () => {
       this.dismissFirstReadChoice();
-      this._pauseLikePlay();
+      this._pauseLikePlay(true);
     });
     const kaleidoscopeBtn = this.container.querySelector('#kaleidoscope-btn');
     kaleidoscopeBtn?.addEventListener('click', () => {
@@ -2490,7 +2490,7 @@ export class Chamber {
     if (choice) choice.hidden = true;
   }
 
-  togglePlayPause() {
+  togglePlayPause(ignoreDebounce = false) {
     if (!this.player) return;
 
     // Page authority (PAGE-MODE-SPEC §4): while Page is open, do not start Stream.
@@ -2498,7 +2498,7 @@ export class Chamber {
 
     // Debounce to prevent double-click issues (hardware or accidental)
     const now = Date.now();
-    if (this._lastToggleTime && now - this._lastToggleTime < 200) return;
+    if (!ignoreDebounce && this._lastToggleTime && now - this._lastToggleTime < 200) return;
     this._lastToggleTime = now;
 
     const playIcon = this.container.querySelector('#play-icon');
@@ -2517,10 +2517,10 @@ export class Chamber {
     }
   }
 
-  _pauseLikePlay() {
+  _pauseLikePlay(ignoreDebounce = false) {
     if (!this.player) return;
     if (this.player.state === 'playing' || this.player.state === 'interlocuting') {
-      this.togglePlayPause();
+      this.togglePlayPause(ignoreDebounce);
     }
   }
 

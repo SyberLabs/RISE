@@ -89,6 +89,22 @@ describe('first-read choice', () => {
     chamber.destroy();
   });
 
+  it('pauses immediately after a regular resume despite toggle debounce', () => {
+    const { chamber, container, player, choice } = mount();
+    let now = 1000;
+    vi.spyOn(Date, 'now').mockImplementation(() => now);
+    chamber.updateProgress({ elapsed: 30000 });
+    player.state = 'paused';
+    container.querySelector('#play-pause-btn').click();
+    expect(player.state).toBe('playing');
+
+    now = 1100; // The ordinary toggle would reject a second click here.
+    container.querySelector('#first-read-pause').click();
+    expect(player.state).toBe('paused');
+    expect(choice.hidden).toBe(true);
+    chamber.destroy();
+  });
+
   it('stays absent if Page opened before the milestone', () => {
     const { chamber, choice } = mount();
     void chamber.togglePageMode(true);
