@@ -3,6 +3,7 @@ import { createPersonalProject, validatePersonalProject, importPersonalProject, 
 import { compileSession } from '../core/session-compiler.js';
 import { MemoryCore } from '../core/memory.js';
 import { canonicalPersonal } from '../core/personal-identity.js';
+import { roomHeader, roomEyebrow } from './room-chrome.js';
 import './Create.css';
 
 export class Create {
@@ -20,9 +21,10 @@ export class Create {
   }
 
   render() {
-    this.container.innerHTML = `<main class="personal-create">
-      <nav><button data-action="home">Home</button><button data-action="vault">Vault</button></nav>
-      <h1>Create a personal reading</h1>
+    this.container.innerHTML = `${roomHeader({ back: 'Home', action: 'home' })}<main class="personal-create">
+      ${roomEyebrow('Create')}
+      <h1 class="room-title">Create a personal reading</h1>
+      <p class="personal-links"><button data-action="vault">Vault</button></p>
       <p>A thought can become a short original piece. You can read the whole text before deciding what to keep.</p>
       <form data-form="create">
         <label>Your thought <textarea name="thought" maxlength="500" required rows="3"></textarea></label>

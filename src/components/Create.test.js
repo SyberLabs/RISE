@@ -21,7 +21,7 @@ describe('Create', () => {
     fill('thought', 'PRIVATE'); fill('detail', 'PRIVATE DETAIL');
     await view.generate(false);
     expect(container.querySelector('[data-title]').textContent).toBe(piece.title);
-    expect(container.querySelector('img')).toBeNull();
+    expect(container.querySelector('[data-draft] img')).toBeNull();
     expect(onCreateSession).not.toHaveBeenCalled();
     expect(container.querySelector('[data-text]').textContent).toContain(piece.paragraphs[1]);
     await view.act('keep');
