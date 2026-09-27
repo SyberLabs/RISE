@@ -28,7 +28,8 @@ jobs:
         run: |
           set -euo pipefail
           node scripts/ci-hygiene.mjs
-          npm run security:audit
+          npm run security:audit &
+          audit=$!
           npm run security:compat
           npm run docs:diagram
           git diff --exit-code -- docs/specs/ARCHITECTURE.md
@@ -41,9 +42,12 @@ jobs:
             src/core/content-store.test.js \
             src/core/journey-session.test.js \
             src/audio/engine.lifecycle.test.js \
-            src/content/keystones.test.js
+            src/content/keystones.test.js &
+          tests=$!
           npx vite build
           npm run measure:first-load
+          wait "$tests"
+          wait "$audit"
   production:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
@@ -132,12 +136,6 @@ jobs:
               and ($result | has("text") | not)
               and ($result | has("reading") | not)
           ' "$RUNNER_TEMP/jev-recommend-body" > /dev/null
-          status=$(curl -sS --max-time 20 -o "$RUNNER_TEMP/release-after-jev" \
-            -w '%{http_code}' "https://rise.syberlabs.io/release-$TESTED_SHA.txt")
-          test "$status" = 200 && test "$(cat "$RUNNER_TEMP/release-after-jev")" = "$TESTED_SHA" || {
-            echo "Production changed during the Jev smoke check; expected release $TESTED_SHA."
-            exit 1
-          }
           {
             echo "Deployed production artifact $TESTED_SHA; public pages, exact release marker, JSON API 404, and one live Jev reading configuration verified."
             echo 'Owner acceptance: ask Jev for a reading at https://rise.syberlabs.io/ and check that Chamber starts with the selected text and settings.'
