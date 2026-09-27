@@ -25,7 +25,7 @@ runs:
         node-version: '20.19'
         cache: npm
 
-    - run: npm ci
+    - run: npm ci --no-audit
       shell: bash
 
     # A stub would only prove we can satisfy our own stub, so encode-mp4.test.js

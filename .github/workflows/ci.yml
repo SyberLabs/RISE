@@ -29,16 +29,19 @@ jobs:
           node scripts/ci-hygiene.mjs
           npm run security:audit
           npm run security:compat
-          npx vitest run src/core/system-design.test.js
-          npx vitest run worker/index.test.js worker/jev-recommend.test.js src/components/Library.jev.test.js
           npm run docs:diagram
           git diff --exit-code -- docs/specs/ARCHITECTURE.md
-          npm run test:run -- \
+          npm run content:build
+          npx vitest run \
+            src/core/system-design.test.js \
+            worker/index.test.js \
+            worker/jev-recommend.test.js \
+            src/components/Library.jev.test.js \
             src/core/content-store.test.js \
             src/core/journey-session.test.js \
             src/audio/engine.lifecycle.test.js \
             src/content/keystones.test.js
-          npm run build
+          npx vite build
           npm run measure:first-load
       - name: Mark the tested release
         if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
