@@ -3,7 +3,7 @@ export const SHORT_SEQUENCES = Object.freeze([
   {
     id: 'reset',
     title: 'Begin again',
-    promise: 'Find one small beginning.',
+    promise: 'When starting feels too big.',
     prompt: 'What is one small action you can begin today?',
     soundscape: 'aurora',
     engines: ['turrell', 'harmonograph', 'klee'],
@@ -16,7 +16,7 @@ Notice the first reachable part. Let that be enough to start.`
   {
     id: 'focus',
     title: 'Make room',
-    promise: 'Give one thing the next ten minutes.',
+    promise: 'When too many things compete for your attention.',
     prompt: 'What will you give the next ten minutes?',
     soundscape: 'faded-signal',
     engines: ['apparitio', 'turrell', 'harmonograph'],
@@ -29,7 +29,7 @@ When your attention moves away, notice. Then return.`
   {
     id: 'close',
     title: 'Leave a marker',
-    promise: 'Find a clear place to resume.',
+    promise: 'When you need to stop without losing your place.',
     prompt: 'What first action will help you resume?',
     soundscape: 'sad',
     engines: ['klee', 'ostensoria', 'turrell'],

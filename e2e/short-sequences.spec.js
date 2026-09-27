@@ -10,7 +10,7 @@ test('a short sequence unfolds in the Chamber and returns a private next step', 
   await authorize(page);
   await page.context().grantPermissions(['clipboard-read', 'clipboard-write']);
   await page.goto('/short-sequences/');
-  await expect(page.getByRole('heading', { name: 'Take a moment. Carry something out.' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Find a place to start, focus, or stop.' })).toBeVisible();
   await page.getByRole('button', { name: /Make room/ }).click();
   await expect(page.getByRole('heading', { name: 'Make room' })).toBeVisible();
   await page.getByRole('button', { name: /Enter the reading/ }).click();

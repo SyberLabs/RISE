@@ -23,9 +23,9 @@ export class ShortSequences {
           <span>SHORT SEQUENCES</span>
         </header>
         <section class="short-intro" aria-labelledby="short-title">
-          <p class="short-eyebrow">A short experience with a purpose</p>
-          <h1 id="short-title">Take a moment. Carry something out.</h1>
-          <p>Choose a reading. As the words and visuals unfold, keep a line that matters to you. Pause or switch to Page whenever you want.</p>
+          <p class="short-eyebrow">A reading you can act on</p>
+          <h1 id="short-title">Find a place to start, focus, or stop.</h1>
+          <p>Pick the situation you are in. When a line matters, keep it; the reading holds there until you continue. At the end, name one next step you can take.</p>
         </section>
         <div class="short-layout">
           <div class="short-choices" role="group" aria-label="Choose a short sequence">
