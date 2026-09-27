@@ -56,12 +56,13 @@
     display: flex;
     align-items: center;
     gap: var(--space-sm);
-    font-family: var(--font-primary);
-    font-size: 11px;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    line-height: 16px;
     font-weight: var(--font-weight-medium);
     text-transform: uppercase;
-    letter-spacing: 0.16em;
-    color: var(--color-accent);
+    letter-spacing: 0.08em;
+    color: var(--sy-text-3);
     margin-bottom: var(--space-md);
 }
 
@@ -69,10 +70,7 @@
     content: '';
     flex: 1;
     height: 1px;
-    background: linear-gradient(90deg,
-        rgba(var(--color-accent-rgb), 0.3),
-        rgba(var(--color-accent-rgb), 0.04) 62%,
-        transparent);
+    background: var(--sy-line);
 }
 
 /* Rows */
@@ -172,9 +170,8 @@
 }
 
 .settings .radio:has(input:checked) {
-    border-color: rgba(var(--color-accent-rgb), 0.65);
-    background: linear-gradient(180deg,
-        rgba(var(--color-accent-rgb), 0.13), transparent);
+    border-color: var(--sy-brand);
+    background: var(--sy-surface-2);
 }
 
 .settings .radio:has(input:checked) .radio-label {
@@ -182,12 +179,13 @@
 }
 
 .settings .radio:has(input:focus-visible) {
-    outline: 2px solid var(--color-threshold);
+    outline: var(--sy-focus);
     outline-offset: 2px;
 }
 
 .settings .radio-label {
-    font-size: 13px;
+    font-size: 14px;
+    line-height: 20px;
     color: var(--color-cloud);
 }
 
@@ -248,11 +246,10 @@
 .toggle-switch {
     position: relative;
     width: 46px;
-    height: 22px;
-    background: linear-gradient(180deg, #131317, #0D0D10);
-    border: 1px solid var(--color-shadow);
-    border-radius: var(--radius-sm);
-    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.7);
+    height: 24px;
+    background: var(--sy-surface);
+    border: 1px solid var(--sy-line-strong);
+    border-radius: var(--sy-radius);
     transition: background var(--transition-normal) var(--ease-default),
         border-color var(--transition-normal) var(--ease-default),
         box-shadow var(--transition-normal) var(--ease-default);
@@ -263,33 +260,26 @@
     position: absolute;
     top: 2px;
     left: 2px;
-    width: 16px;
-    height: 16px;
-    background: linear-gradient(180deg, #5E5E6A, #43434D);
-    border-top: 1px solid rgba(255, 255, 255, 0.16);
-    border-radius: 1px;
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
-    transition: all var(--transition-normal) var(--ease-default);
+    width: 18px;
+    height: 18px;
+    background: var(--sy-text-3);
+    border-radius: var(--sy-radius-sm);
+    transition: left var(--sy-dur-enter) var(--sy-ease),
+        background-color var(--sy-dur-enter) var(--sy-ease);
 }
 
 .toggle input:checked+.toggle-switch {
-    background: linear-gradient(180deg,
-        rgba(var(--color-accent-rgb), 0.46),
-        rgba(var(--color-accent-rgb), 0.24));
-    border-color: rgba(var(--color-accent-rgb), 0.72);
-    box-shadow:
-        inset 0 1px 3px rgba(0, 0, 0, 0.45),
-        0 0 10px rgba(var(--color-accent-rgb), 0.16);
+    background: var(--sy-brand);
+    border-color: var(--sy-brand);
 }
 
 .toggle input:checked+.toggle-switch::after {
-    left: 26px;
-    background: linear-gradient(180deg, var(--color-light), #C2C2CB);
-    border-top-color: rgba(255, 255, 255, 0.55);
+    left: 24px;
+    background: var(--sy-text);
 }
 
 .toggle input:focus-visible+.toggle-switch {
-    outline: 2px solid var(--color-threshold);
+    outline: var(--sy-focus);
     outline-offset: 2px;
 }
 
@@ -405,7 +395,7 @@
 .settings-bar-title {
   margin: 0;
   font-family: var(--font-primary);
-  font-size: 11px;
+  font-size: 12px;
   font-weight: var(--font-weight-medium);
   text-transform: uppercase;
   letter-spacing: 0.16em;
@@ -435,7 +425,7 @@
 .settings-bar-label {
   display: block;
   font-family: var(--font-mono);
-  font-size: 9.5px;
+  font-size: 12px;
   letter-spacing: 0.2em;
   text-transform: uppercase;
   color: var(--color-mist);
@@ -456,7 +446,7 @@
 .settings-bar-sound .slider-value {
   min-width: 44px;
   text-align: right;
-  font-size: 11px;
+  font-size: 12px;
 }
 
 .settings-bar-presets {
@@ -469,7 +459,7 @@
   flex: 1;
   padding: 5px 0;
   font: inherit;
-  font-size: 11px;
+  font-size: 12px;
   color: var(--color-cloud);
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.028), transparent);
   border: 1px solid var(--color-shadow);
@@ -498,5 +488,5 @@
 }
 
 .settings--bar .settings-hint {
-  font-size: 11px;
+  font-size: 12px;
 }

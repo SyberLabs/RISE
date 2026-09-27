@@ -6,7 +6,7 @@
  * full of benches, so on a leaf with any depth it sat below the fold: the
  * panel offered a decision and hid the way to make it.
  */
-import { test, expect } from './fixtures.js';
+import { test, expect, openHomeNav } from './fixtures.js';
 
 const GATE = { code: 'rise2025', name: 'In Sight', vault: null, timestamp: Date.now() };
 const SEED = { text: 'Light enters form. '.repeat(30).trim(), textSource: 'In Sight', origin: null };
@@ -78,7 +78,7 @@ test.describe('the Workshop score tabs', () => {
             localStorage.setItem('rise-beta-session', JSON.stringify(gate));
         }, GATE);
         await page.goto('/');
-        await page.locator('[data-nav="workshop"]').first().click();
+        await openHomeNav(page, 'workshop');
         await expect(page.locator('.workshop-studio')).toBeVisible({ timeout: 30_000 });
 
         await page.getByRole('button', { name: 'Sources', exact: true }).click();

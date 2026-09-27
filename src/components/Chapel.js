@@ -104,7 +104,7 @@ export class Chapel {
               <div class="chapel-heading-row">
                 <button class="btn-ghost chapel-back" data-action="back">
                   <span aria-hidden="true">←</span>
-                  <span>Portal</span>
+                  <span>Home</span>
                 </button>
                 <div class="chapel-heading">
                   <p class="chapel-kicker font-mono">SCRIPTURE · ${escapeHtml(CHAPEL_TRANSLATION.name.toUpperCase())} · ${escapeHtml(CHAPEL_TRANSLATION.edition.toUpperCase())}</p>

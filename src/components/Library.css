@@ -32,21 +32,18 @@
 .library-title-section h1 {
   font-family: var(--font-display);
   font-size: 32px;
-  font-weight: var(--font-weight-light);
+  line-height: 36px;
+  font-weight: var(--font-weight-regular);
   color: var(--color-light);
-  letter-spacing: 0.02em;
+  letter-spacing: -0.01em;
 }
 
 .library-intro-panel {
-  padding: var(--space-md);
-  border-radius: var(--radius-sm);
-  background: rgba(var(--color-accent-rgb), 0.05);
-  border-left: 2px solid var(--color-threshold);
-  font-family: var(--font-literary);
+  max-width: 68ch;
+  font-family: var(--font-primary);
   font-size: 16px;
-  line-height: 1.6;
-  color: var(--color-cloud);
-  font-style: italic;
+  line-height: 24px;
+  color: var(--sy-text-2);
 }
 
 .library-nav {
@@ -81,37 +78,39 @@
 }
 
 .section-header h2 {
-  font-family: var(--font-display);
+  font-family: var(--font-primary);
   font-size: 24px;
-  font-weight: var(--font-weight-light);
+  line-height: 32px;
+  font-weight: var(--font-weight-semibold);
   margin-bottom: var(--space-xs);
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
+  letter-spacing: -0.01em;
   color: var(--color-light);
 }
 
 .section-header p {
   font-size: 14px;
+  line-height: 20px;
 }
 
 .library-jev {
   max-width: 760px;
   margin: 0 0 var(--space-2xl);
   padding: var(--space-lg);
-  border: 1px solid rgba(var(--color-accent-rgb), 0.3);
-  border-radius: var(--radius-sm);
-  background: rgba(var(--color-accent-rgb), 0.06);
+  border: 1px solid var(--sy-line);
+  border-radius: var(--sy-radius);
+  background: var(--sy-surface);
 }
 
 .library-jev h3,
 .library-jev h4 {
   color: var(--color-light);
-  font-family: var(--font-display);
-  font-weight: 400;
+  font-family: var(--font-primary);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: 0;
 }
 
-.library-jev h3 { font-size: 22px; }
-.library-jev h4 { font-size: 26px; }
+.library-jev h3 { font-size: 18px; line-height: 28px; }
+.library-jev h4 { font-size: 24px; line-height: 32px; }
 .library-jev p { color: var(--color-fog); line-height: 1.5; }
 .library-jev form { margin-top: var(--space-md); }
 .library-jev label { display: block; margin-bottom: var(--space-xs); color: var(--color-light); }
@@ -119,29 +118,39 @@
 .library-jev input {
   flex: 1;
   min-width: 0;
-  padding: 12px;
-  border: 1px solid var(--color-shadow);
-  border-radius: var(--radius-sm);
-  background: var(--color-void);
+  min-height: var(--sy-control-height);
+  padding: 0 var(--sy-space-4);
+  border: 1px solid var(--sy-line-strong);
+  border-radius: var(--sy-radius);
+  background: var(--sy-bg);
   color: var(--color-light);
   font: inherit;
 }
 .library-jev button:disabled { opacity: 0.5; }
 .library-jev-dictate {
-  padding: 0 12px;
-  border: 1px solid rgba(var(--color-accent-rgb), 0.55);
-  border-radius: var(--radius-sm);
-  background: rgba(var(--color-accent-rgb), 0.09);
-  color: var(--color-light);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: var(--sy-control-height);
+  min-height: var(--sy-control-height);
+  padding: 0;
+  border: 1px solid var(--sy-line-strong);
+  border-radius: var(--sy-radius);
+  background: transparent;
+  color: var(--sy-text);
+  font: 500 16px/24px var(--font-primary);
   cursor: pointer;
   white-space: nowrap;
+  transition: background-color var(--sy-dur-hover) var(--sy-ease);
 }
-.library-jev-dictate[aria-pressed="true"] { background: rgba(var(--color-accent-rgb), 0.28); }
+.library-jev-dictate:hover { background: var(--sy-surface-2); }
+.library-jev-dictate[aria-pressed="true"] { border-color: var(--sy-brand); background: var(--sy-surface-2); }
 .library-jev-dictate:disabled { cursor: not-allowed; }
 .library-jev-voice-note, .library-jev [data-jev-dictation-status] { font-size: 12px; color: var(--color-fog); }
 .library-jev-result:not(:empty) { margin-top: var(--space-lg); }
 .library-jev-choice { display: grid; gap: var(--space-xs); }
-.library-jev-kicker { color: var(--color-threshold); text-transform: uppercase; letter-spacing: 0.12em; }
+.library-jev-kicker { font: 500 12px/16px var(--font-mono); color: var(--sy-text-3); text-transform: uppercase; letter-spacing: 0.08em; }
 .library-jev-choice .library-jev-author { margin: 0; }
 .library-jev-choice button { justify-self: start; margin-top: var(--space-sm); }
 .library-jev-choice details { color: var(--color-fog); font-size: 12px; }
@@ -177,28 +186,31 @@
 }
 
 .filter-btn {
-  padding: var(--space-xs) var(--space-sm);
+  min-height: 36px;
+  padding: 0 var(--sy-space-4);
   background: transparent;
-  border: 1px solid var(--color-shadow);
-  border-radius: var(--radius-none);
-  color: var(--color-fog);
-  font-size: 12px;
+  border: 1px solid var(--sy-line-strong);
+  border-radius: var(--sy-radius);
+  color: var(--sy-text-2);
+  font-family: var(--font-primary);
+  font-size: 14px;
+  line-height: 20px;
   font-weight: var(--font-weight-medium);
-  letter-spacing: 0.02em;
-  text-transform: uppercase;
   cursor: pointer;
-  transition: all var(--transition-normal) var(--ease-default);
+  transition: background-color var(--sy-dur-hover) var(--sy-ease),
+    color var(--sy-dur-hover) var(--sy-ease);
 }
 
 .filter-btn:hover {
-  border-color: var(--color-fog);
-  color: var(--color-cloud);
+  background: var(--sy-surface-2);
+  color: var(--sy-text);
 }
 
+/* Selected is the brand signal, never the product accent. */
 .filter-btn.active {
-  background: rgba(var(--color-accent-rgb), 0.2);
-  border-color: var(--color-threshold);
-  color: var(--color-light);
+  background: var(--sy-surface-2);
+  border-color: var(--sy-brand);
+  color: var(--sy-text);
 }
 
 /* ─────────────────────────────────────────────────────────────
@@ -247,7 +259,7 @@
 
 .archive-division-name {
   font-family: var(--font-mono);
-  font-size: 11px;
+  font-size: 12px;
   letter-spacing: 0.18em;
   text-transform: uppercase;
   color: var(--color-fog);
@@ -281,7 +293,7 @@
 }
 
 .archive-type {
-  font-size: 10px;
+  font-size: 12px;
   letter-spacing: 0.05em;
 }
 
@@ -345,7 +357,7 @@
 .resonance-fill[data-resonance="moderate"] { width: 30%; }
 
 .resonance-label {
-  font-size: 10px;
+  font-size: 12px;
   text-transform: uppercase;
   letter-spacing: 0.05em;
   margin-top: var(--space-xs);
@@ -376,18 +388,25 @@
 }
 
 .sequence-title {
-  font-family: var(--font-literary);
-  font-size: 20px;
-  font-weight: var(--font-weight-regular);
+  font-family: var(--font-primary);
+  font-size: 18px;
+  line-height: 28px;
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: 0;
   flex: 1;
 }
 
+/* Category label: SyberLabs label style. Neutral, never the accent. */
 .sequence-intent {
-  font-size: 10px;
-  letter-spacing: 0.05em;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: var(--font-weight-medium);
+  letter-spacing: 0.08em;
   padding: 4px 8px;
-  background: rgba(var(--color-accent-rgb), 0.1);
-  border-radius: var(--radius-sm);
+  color: var(--sy-text-3);
+  border: 1px solid var(--sy-line);
+  border-radius: var(--sy-radius-sm);
   white-space: nowrap;
 }
 
@@ -406,7 +425,7 @@
    citation, not a headline. */
 .sequence-source {
   margin: calc(-1 * var(--space-xs)) 0 0;
-  font-size: 11px;
+  font-size: 12px;
   line-height: 1.5;
   letter-spacing: 0.02em;
   display: flex;
@@ -419,7 +438,7 @@
 }
 
 .sequence-card:hover .sequence-source {
-  border-left-color: var(--color-threshold);
+  border-left-color: var(--sy-line-strong);
 }
 
 .sequence-source-title {
@@ -434,10 +453,10 @@
 }
 
 .sequence-actions .btn-ghost,
-.sequence-actions .btn-primary {
-  flex: 1;
-  min-height: 40px;
-  font-size: 12px;
+.sequence-actions .btn-primary,
+.sequence-actions .btn-secondary {
+  min-height: var(--sy-control-height);
+  font-size: 16px;
 }
 
 /* ─────────────────────────────────────────────────────────────
@@ -570,7 +589,7 @@
   display: flex;
   align-items: baseline;
   gap: var(--space-sm);
-  font-size: 11px;
+  font-size: 12px;
   color: var(--color-mist);
   letter-spacing: 0.05em;
   margin-bottom: var(--space-sm);
@@ -933,7 +952,7 @@
 
   .filter-btn {
     padding: 5px 9px;
-    font-size: 10.5px;
+    font-size: 12px;
     letter-spacing: 0.04em;
   }
 
@@ -972,7 +991,7 @@
   }
 
   .archive-meta {
-    font-size: 0.72rem;
+    font-size: 0.75rem;
   }
 
   .archive-card-foot {

@@ -1,4 +1,4 @@
-import { test, expect } from './fixtures.js';
+import { test, expect, openHomeNav } from './fixtures.js';
 
 /**
  * THE VISUAL NAVIGATOR, ON A PHONE.
@@ -30,7 +30,7 @@ async function openNavigator(page, size) {
     await page.setViewportSize(size);
     await page.addInitScript(g => localStorage.setItem('rise-beta-session', JSON.stringify(g)), GATE);
     await page.goto('/');
-    await page.locator('[data-nav="library"]').first().click();
+    await openHomeNav(page, 'library');
     await expect(page.locator('.archive-card').first()).toBeVisible({ timeout: 40000 });
     await page.locator('[data-text-id="literary-meditations"] [data-action="select-text"]').click();
     await page.waitForTimeout(2000);

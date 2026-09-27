@@ -43,7 +43,7 @@ test('a reading opens readable however the reader left the Chamber', async ({ pa
         }));
     }, GATE);
     await page.goto('/');
-    await expect(page.locator('[data-nav="library"]').first()).toBeVisible({ timeout: 15_000 });
+    await expect(page.locator('.portal .portal-title').first()).toBeVisible({ timeout: 15_000 });
     await page.locator('[data-nav="scriptorium"]').first().click();
     await expect(page.locator('.scriptorium')).toBeVisible({ timeout: 15_000 });
 

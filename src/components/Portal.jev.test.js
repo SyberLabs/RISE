@@ -21,6 +21,10 @@ it('asks Jev once and launches the returned reading without opening another room
 
   const form = container.querySelector('#portal-jev-form');
   form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+  // Loading: the one button is busy and the reading's place is held.
+  expect(container.querySelector('.portal-jev-submit').getAttribute('aria-busy')).not.toBeNull();
+  expect(container.querySelector('#portal-jev-hint').textContent).toBe('Jev is choosing your reading…');
+  expect(container.querySelector('.portal-skeleton').hidden).toBe(false);
   await vi.waitFor(() => expect(launch).toHaveBeenCalledWith(decision));
 
   expect(provider).toHaveBeenCalledOnce();
@@ -40,7 +44,14 @@ it('does not launch a reading when Jev returns an error', async () => {
   container.querySelector('#portal-jev-intent').value = 'A reflective classic';
 
   container.querySelector('#portal-jev-form').dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
-  await vi.waitFor(() => expect(container.querySelector('#portal-jev-hint').textContent).toBe('Unavailable'));
+  const alert = container.querySelector('#portal-jev-error');
+  await vi.waitFor(() => expect(alert.hidden).toBe(false));
+  expect(alert.textContent).toContain('The reading could not be prepared. Try again.');
+  expect(alert.querySelector('.portal-alert-message').textContent).toBe('Unavailable');
+  // The request survives the failure, and the form is usable again.
+  expect(container.querySelector('#portal-jev-intent').value).toBe('A reflective classic');
+  expect(container.querySelector('.portal-jev-submit').disabled).toBe(false);
+  expect(container.querySelector('.portal-skeleton').hidden).toBe(true);
   expect(launch).not.toHaveBeenCalled();
   portal.destroy();
 });
@@ -50,7 +61,10 @@ it('offers microphone dictation beside the editable Jev request', () => {
   document.body.appendChild(container);
   const portal = new Portal(container);
   const form = container.querySelector('#portal-jev-form');
-  expect(form.querySelector('[data-jev-dictate]')).not.toBeNull();
+  const mic = form.querySelector('[data-jev-dictate]');
+  expect(mic).not.toBeNull();
+  expect(mic.getAttribute('aria-label')).toBe('Speak your Jev request');
+  expect(mic.textContent).not.toMatch(/\p{Extended_Pictographic}/u);
   expect(form.querySelector('[data-jev-dictation-status]')).not.toBeNull();
   expect(form.textContent).toMatch(/browser.s speech service/i);
   portal.destroy();

@@ -1,10 +1,6 @@
 /**
- * The Portal, after two rooms were removed.
- *
- * This file tested the SOL strip — the hour, the current window, the Earth
- * turning in its arch. The Solarium is deleted and so are those; what is left
- * is the nav, and one assertion that outlived both rooms and now covers them
- * together, because each of them left its door standing.
+ * RISE Home (the Portal) on the SyberLabs design system: one primary action,
+ * one secondary text link, a plain-word header nav.
  */
 import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
@@ -17,11 +13,10 @@ const portalCss = readFileSync(
     'utf8'
 );
 
-// jsdom's media elements can't play; the portal defers video start anyway
 beforeEach(() => {
     localStorage.removeItem('rise_sol_plan_v1');
     localStorage.removeItem('rise_workshop_v1');
-    vi.spyOn(HTMLMediaElement.prototype, 'play').mockResolvedValue(undefined);
+    vi.restoreAllMocks();
 });
 
 function makePortal(options = {}) {
@@ -54,7 +49,7 @@ describe('Portal', () => {
 
         const buttons = container.querySelectorAll('button.portal-first-read');
         expect(buttons).toHaveLength(1);
-        expect(buttons[0].textContent).toContain('Experience 30 seconds');
+        expect(buttons[0].textContent).toContain('Meditations · Marcus Aurelius');
         expect(container.querySelector('#portal-jev-form')).not.toBeNull();
         buttons[0].click();
         buttons[0].click();
@@ -67,28 +62,42 @@ describe('Portal', () => {
         container.remove();
     });
 
-    it('asks what to read and keeps the home request to one action', () => {
+    it('asks what to read and keeps the home to one primary action', () => {
         const { portal, container, onNavigate } = makePortal();
-        expect(container.querySelector('h1').textContent).toBe('What would you like to read?');
+        expect(container.querySelector('h1').textContent.trim()).toBe('What would you like to read?');
         const intent = container.querySelector('#portal-jev-intent');
         expect(intent.maxLength).toBe(240);
-        expect(container.querySelector('#portal-jev-form .portal-jev-submit')).not.toBeNull();
+        expect(intent.placeholder).toBe('Something reflective and slow, with quiet visuals…');
+        expect(container.querySelector('label[for="portal-jev-intent"]')).not.toBeNull();
+        expect(container.querySelector('#portal-jev-help').textContent)
+            .toBe('Jev chooses from the released Library and sets up the reader.');
+        const primary = container.querySelectorAll('.portal-primary');
+        expect(primary).toHaveLength(1);
+        expect(primary[0].textContent.trim()).toBe('Ask Jev');
         expect(container.querySelector('[name="portal-jev-mode"]')).toBeNull();
-        expect(container.querySelector('.portal-jev-preferences')).toBeNull();
         expect(onNavigate).not.toHaveBeenCalled();
         portal.destroy();
         container.remove();
     });
 
-    it('never submits an empty intent', () => {
+    it('never submits an empty intent and says why', () => {
+        const fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation(() => { throw new Error('no'); });
         const { portal, container, onNavigate } = makePortal();
         const form = container.querySelector('#portal-jev-form');
         form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
         expect(onNavigate).not.toHaveBeenCalled();
+        expect(fetchSpy).not.toHaveBeenCalled();
         expect(container.querySelector('.portal-jev-submit').disabled).toBe(false);
+        const intent = container.querySelector('#portal-jev-intent');
+        expect(intent.getAttribute('aria-invalid')).toBe('true');
+        expect(container.querySelector('#portal-jev-help').textContent).toContain('Tell Jev what you’d like to read.');
+        intent.value = 'Something slow';
+        intent.dispatchEvent(new Event('input', { bubbles: true }));
+        expect(intent.getAttribute('aria-invalid')).toBe('false');
         portal.destroy();
         container.remove();
     });
+
     it('reads session and audio capabilities from its owner', () => {
         const audio = { playClick: vi.fn() };
         const { portal, container } = makePortal({
@@ -107,82 +116,78 @@ describe('Portal', () => {
         container.remove();
     });
 
-    it('nav holds the core tools', () => {
+    it('header nav is Library, Sequences, Compose and a labelled Settings button', () => {
         const { portal, container, onNavigate } = makePortal();
-
-        const sequencePreview = container.querySelector('.portal-sequence-preview');
-        expect(sequencePreview.getAttribute('href')).toBe('/sequences/');
-
-        const primary = [...container.querySelectorAll('.nav-primary .nav-item')]
-            .map(el => el.dataset.nav);
-        expect(primary).toEqual(['chamber']);
-
-        const secondary = container.querySelectorAll('.nav-secondary .nav-item');
-        expect(secondary).toHaveLength(3);
-        expect([...secondary].map(el => el.dataset.nav)).toEqual(['vault', 'library', 'workshop']);
-        const tryRise = container.querySelector('.nav-secondary .nav-try');
-        expect(tryRise).toBeTruthy();
-        expect(tryRise.dataset.nav).toBe('keystones');
-        expect(container.querySelectorAll('[data-nav="keystones"]')).toHaveLength(1);
-        tryRise.click();
-        expect(onNavigate).toHaveBeenCalledWith('keystones');
-
+        const nav = container.querySelector('.sl-header .portal-nav');
+        const links = [...nav.querySelectorAll('[data-nav]')];
+        expect(links.map(el => el.textContent.trim())).toEqual(['Library', 'Sequences', 'Compose']);
+        expect(links.map(el => el.dataset.nav)).toEqual(['library', 'vault', 'workshop']);
+        const settings = nav.querySelector('[data-action="settings"]');
+        expect(settings.getAttribute('aria-label')).toBe('Settings');
+        const opened = vi.fn();
+        window.addEventListener('rise-open-settings', opened, { once: true });
+        settings.click();
+        expect(opened).toHaveBeenCalledOnce();
+        links[1].click();
+        expect(onNavigate).toHaveBeenCalledWith('vault');
         portal.destroy();
         container.remove();
     });
 
-    it('places Curia and Scriptorium as orbs at the start, Chapel as an orb at the end', () => {
+    it('the phone Menu button discloses the nav', () => {
+        const { portal, container } = makePortal();
+        const toggle = container.querySelector('.portal-menu-toggle');
+        expect(toggle.getAttribute('aria-expanded')).toBe('false');
+        toggle.click();
+        expect(toggle.getAttribute('aria-expanded')).toBe('true');
+        expect(container.querySelector('.sl-header').classList.contains('is-open')).toBe(true);
+        portal.destroy();
+        container.remove();
+    });
+
+    it('shows the SyberLabs / RISE lockup and no glyph or emoji controls', () => {
+        const { portal, container } = makePortal();
+        expect(container.querySelector('.sl-wordmark').textContent).toBe('SYBERLABS / RISE');
+        expect(container.querySelector('.portal-orb')).toBeNull();
+        expect(container.querySelector('.portal-sigil-vessel')).toBeNull();
+        expect(container.querySelector('video')).toBeNull();
+        expect(container.textContent).not.toMatch(/[←-⯿\u{1F300}-\u{1FAFF}]/u);
+        for (const button of container.querySelectorAll('button')) {
+            const named = button.getAttribute('aria-label') || button.textContent.trim();
+            expect(named, button.outerHTML).not.toBe('');
+        }
+        portal.destroy();
+        container.remove();
+    });
+
+    it('keeps every room reachable from Home', () => {
         const { portal, container, onNavigate } = makePortal();
-        const start = container.querySelector('.portal-orbs-start');
-        expect(start).toBeTruthy();
-        expect([...start.querySelectorAll('[data-nav]')].map(el => el.dataset.nav))
-            .toEqual(['curia', 'scriptorium']);
-        const chapel = container.querySelector('.portal-orb[data-nav="chapel"]');
-        expect(chapel).toBeTruthy();
-        expect(start.contains(chapel)).toBe(false);
-        expect(container.querySelector('.chapel-lamp-name')).toBeNull();
-        chapel.click();
-        expect(onNavigate).toHaveBeenCalledWith('chapel');
-
-        const css = readFileSync(join(dirname(fileURLToPath(import.meta.url)), 'Portal.css'), 'utf8');
-        expect(css).toMatch(/\.portal-orb\s*\{[^}]*--color-accent/s);
-        expect(css).toMatch(/\.portal-orbs-start\s*\{[^}]*left:/s);
-        expect(css).toMatch(/\.portal-orb\.portal-chapel-lamp\s*\{[^}]*right:/s);
-
+        for (const room of ['chamber', 'chapel', 'scriptorium', 'curia']) {
+            const door = container.querySelector(`.portal-footer [data-nav="${room}"]`);
+            expect(door, room).not.toBeNull();
+            door.click();
+            expect(onNavigate).toHaveBeenLastCalledWith(room);
+        }
+        expect(container.querySelector('a[href="/privacy.html"]')).not.toBeNull();
+        expect(container.querySelector('a[href="/terms.html"]')).not.toBeNull();
         portal.destroy();
         container.remove();
     });
 
     it('offers no door to a room that is gone', () => {
-        // Both rooms left their door standing — the Atrium's for as long as it
-        // took to run the tests, the Solarium's alongside it. A button whose
-        // only job is to navigate somewhere the router no longer registers.
-        // Asserted rather than remembered: the next room will do it again.
         const { portal, container } = makePortal();
         for (const gone of ['atrium', 'sol']) {
             expect(container.querySelector(`[data-nav="${gone}"]`),
                 `a door still opens onto ${gone}`).toBeNull();
         }
-        expect(container.querySelector('.portal-arch-atrium')).toBeNull();
-        expect(container.querySelector('.portal-arch-sol')).toBeNull();
         portal.destroy();
         container.remove();
     });
 
-    it('scopes a token-driven layered seal to Try RISE', () => {
-        expect(portalCss).toMatch(/\.portal-nav\s+\.nav-secondary\s+\.nav-try\s*\{/);
-        expect(portalCss).toMatch(/\.nav-try::before/);
-        expect(portalCss).toMatch(/\.nav-try::after/);
-        expect(portalCss).toMatch(/pointer-events:\s*none/);
-        expect(portalCss).toMatch(/var\(--color-accent-rgb\)/);
-        expect(portalCss).toMatch(/radial-gradient/);
-        expect(portalCss).toMatch(/inset\s+0/);
-        expect(portalCss).toMatch(/\.nav-try:focus-visible/);
-        // The seal's distinctive texture layer is scoped to Try RISE. (A
-        // blanket `not /nav-item::before/` guard is unsound here: an
-        // unrelated, pre-existing .nav-item::before sheen lives elsewhere in
-        // this stylesheet and is intentionally left untouched.)
-        expect(portalCss).toMatch(/\.nav-try::after[^}]*repeating-radial-gradient/s);
+    it('styles Home from the SyberLabs tokens only', () => {
+        expect(portalCss).not.toMatch(/gradient/);
+        expect(portalCss).toMatch(/var\(--sy-accent-rise\)/);
+        expect(portalCss).not.toMatch(/font-size:\s*(?:[0-9]|1[01])px/);
     });
 
 });

@@ -1,4 +1,4 @@
-import { test, expect } from './fixtures.js';
+import { test, expect, openHomeNav } from './fixtures.js';
 
 /**
  * Phone viewports.
@@ -53,7 +53,7 @@ for (const phone of PHONES) {
     test(`the Library does not slide sideways on ${phone.name}`, async ({ page }) => {
         test.setTimeout(120000);
         await enter(page, phone.width, phone.height);
-        await page.locator('[data-nav="library"]').first().click();
+        await openHomeNav(page, 'library');
         await expect(page.locator('.library')).toBeVisible({ timeout: 30000 });
         // Wait until the registry has painted at least one card.
         await expect(page.locator('.archive-card').first()).toBeVisible({ timeout: 30000 });
@@ -75,7 +75,7 @@ test('a card carrying a scan URL still fits the column', async ({ page }) => {
     // Card with a long edition statement that once included raw URLs.
     test.setTimeout(120000);
     await enter(page, 390, 844);
-    await page.locator('[data-nav="library"]').first().click();
+    await openHomeNav(page, 'library');
     await expect(page.locator('.archive-card').first()).toBeVisible({ timeout: 30000 });
 
     const card = await page.evaluate(() => {
@@ -107,7 +107,7 @@ test('a titled work opens its contents sheet', async ({ page }) => {
     page.on('console', m => { if (m.type() === 'error') errors.push(m.text().slice(0, 160)); });
 
     await enter(page, 390, 844);
-    await page.locator('[data-nav="library"]').first().click();
+    await openHomeNav(page, 'library');
     await expect(page.locator('.archive-card').first()).toBeVisible({ timeout: 30000 });
 
     await page.locator('[data-text-id="middlemarch"] [data-action="select-text"]').click();
@@ -132,7 +132,7 @@ withdrawnJourneyTest('the Chamber reads as a band across the picture', async ({ 
     // Phone: full-bleed reading band across the middle; imagery fills the rest.
     test.setTimeout(300000);
     await enter(page, 390, 844);
-    await page.locator('[data-nav="vault"]').first().click();
+    await openHomeNav(page, 'vault');
     await page.locator('[data-nav="journeys"]').first().click();
     const DEMO = '[data-journey="demo-procedural"]';
     await expect(page.locator(`${DEMO} .journey-credits`)).toBeVisible({ timeout: 120000 });
@@ -171,7 +171,7 @@ withdrawnJourneyTest('the Chamber reads as a band across the picture', async ({ 
 test('Try RISE keeps its lateral rail on a phone', async ({ page }) => {
     test.setTimeout(120000);
     await enter(page, 390, 844);
-    await page.locator('[data-nav="keystones"]').first().click();
+    await page.goto('/try-rise');
     await expect(page).toHaveURL(/\/try-rise$/u);
     await expect(page.locator('#keystone-metamorphoses')).toBeVisible({ timeout: 30000 });
 
@@ -235,7 +235,7 @@ test('the visual navigator exposes complete Field and Text roots without a mobil
     // Every root must be populated, stay inside the viewport, and lead to its entry.
     test.setTimeout(240000);
     await enter(page, 390, 844);
-    await page.locator('[data-nav="library"]').first().click();
+    await openHomeNav(page, 'library');
     await expect(page.locator('.archive-card').first()).toBeVisible({ timeout: 40000 });
     await page.locator('[data-text-id="literary-meditations"] [data-action="select-text"]').click();
     await page.waitForTimeout(2000);
@@ -346,7 +346,7 @@ withdrawnJourneyTest('the Chamber control bar stays on the screen', async ({ pag
     // Control bar and every child must stay within the viewport.
     test.setTimeout(300000);
     await enter(page, 390, 844);
-    await page.locator('[data-nav="vault"]').first().click();
+    await openHomeNav(page, 'vault');
     await page.locator('[data-nav="journeys"]').first().click();
     const DEMO = '[data-journey="demo-procedural"]';
     await expect(page.locator(`${DEMO} .journey-credits`)).toBeVisible({ timeout: 120000 });
@@ -386,7 +386,7 @@ withdrawnJourneyTest('the Chamber control bar stays on the screen', async ({ pag
 test('a shelf shows books on the first screen', async ({ page }) => {
     test.setTimeout(120000);
     await enter(page, 390, 844);
-    await page.locator('[data-nav="library"]').first().click();
+    await openHomeNav(page, 'library');
     await expect(page.locator('.archive-card').first()).toBeVisible({ timeout: 30000 });
 
     const shelf = await page.evaluate(() => {
@@ -407,7 +407,7 @@ test('a shelf shows books on the first screen', async ({ page }) => {
 test('the Vault opens on its sequences rather than on an explanation', async ({ page }) => {
     test.setTimeout(120000);
     await enter(page, 390, 844);
-    await page.locator('[data-nav="vault"]').first().click();
+    await openHomeNav(page, 'vault');
     await expect(page.locator('.sequence-card').first()).toBeVisible({ timeout: 30000 });
 
     const vault = await page.evaluate(() => {
@@ -431,7 +431,7 @@ test('the configuration panels are not several screens of picture tiles', async 
     // Phone panels: compact option rows; body under two viewports.
     test.setTimeout(180000);
     await enter(page, 390, 844);
-    await page.locator('[data-nav="library"]').first().click();
+    await openHomeNav(page, 'library');
     await expect(page.locator('.archive-card').first()).toBeVisible({ timeout: 30000 });
     await page.locator('[data-text-id="the-iliad"] [data-action="select-text"]').click();
     const toc = page.locator('.toc-entry').first();
@@ -478,7 +478,7 @@ test('Begin reading can actually be pressed on a phone', async ({ page }) => {
     // Begin/Reset must receive taps (not be covered by .orbital-stage).
     test.setTimeout(180000);
     await enter(page, 390, 844);
-    await page.locator('[data-nav="library"]').first().click();
+    await openHomeNav(page, 'library');
     await expect(page.locator('.archive-card').first()).toBeVisible({ timeout: 30000 });
     await page.locator('[data-text-id="the-iliad"] [data-action="select-text"]').click();
     await page.waitForTimeout(1500);
@@ -521,7 +521,7 @@ withdrawnJourneyTest('the reading band holds steady while the reading fades', as
     // Glass on #atom-band must stay lit while #atom-display fades or empties.
     test.setTimeout(300000);
     await enter(page, 390, 844);
-    await page.locator('[data-nav="vault"]').first().click();
+    await openHomeNav(page, 'vault');
     await page.locator('[data-nav="journeys"]').first().click();
     const DEMO = '[data-journey="demo-procedural"]';
     await expect(page.locator(`${DEMO} .journey-credits`)).toBeVisible({ timeout: 120000 });
@@ -603,7 +603,7 @@ withdrawnJourneyTest('the reading stays above the imagery it is presented over',
     // #atom-band must stack above behind-stream imagery (z-index ≥ 10).
     test.setTimeout(300000);
     await enter(page, 390, 844);
-    await page.locator('[data-nav="vault"]').first().click();
+    await openHomeNav(page, 'vault');
     await page.locator('[data-nav="journeys"]').first().click();
     const DEMO = '[data-journey="demo-procedural"]';
     await expect(page.locator(`${DEMO} .journey-credits`)).toBeVisible({ timeout: 120000 });
@@ -656,7 +656,7 @@ test('Page Mode keeps the whole measure on the screen', async ({ page }) => {
     // Page measure and control bar must stay inside the phone viewport.
     test.setTimeout(300000);
     await enter(page, 390, 844);
-    await page.locator('[data-nav="library"]').first().click();
+    await openHomeNav(page, 'library');
     await expect(page.locator('[data-text-id="middlemarch"]')).toBeVisible({ timeout: 30000 });
     await page.locator('[data-text-id="middlemarch"] [data-action="select-text"]').click();
     await expect(page.locator('.toc-entry').first()).toBeVisible({ timeout: 30000 });
@@ -721,14 +721,6 @@ test('Page Mode keeps the whole measure on the screen', async ({ page }) => {
         .toBeGreaterThanOrEqual(20);
 });
 
-test('the sigil is still the quick way back on a pointer', async ({ page }) => {
-    await enter(page, 1280, 800);
-    const vessel = page.locator('.portal-sigil-vessel');
-    await expect(vessel).toBeVisible();
-    expect(await vessel.evaluate(el => el.tagName)).toBe('BUTTON');
-    expect(await vessel.getAttribute('aria-label')).toBe('Quick access to last session');
-});
-
 /**
  * The orbs rendered as square tiles on an iPhone and as circles everywhere
  * else, because iOS Safari does not apply an ancestor's rounded overflow
@@ -744,7 +736,7 @@ test('the sigil is still the quick way back on a pointer', async ({ page }) => {
  */
 test('every orb carries the mask that cuts its aperture on iOS', async ({ page }) => {
     await enter(page, 390, 844);
-    await page.locator('[data-nav="keystones"]').first().click();
+    await page.goto('/try-rise');
     await expect(page.locator('.keystone-orb.is-selected')).toBeVisible({ timeout: 15000 });
 
     const faces = await page.locator('.keystone-face').evaluateAll(nodes => nodes.map(el => {

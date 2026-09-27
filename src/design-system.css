@@ -17,27 +17,73 @@
    generated. */
 @import url('./fonts.css');
 
+/* SYBERLABS DESIGN SYSTEM v1 — the foundation.
+   Every value below comes from the SyberLabs spec: one dark theme, ink on
+   near-black, one brand signal (blue) for links, focus and selection, and the
+   RISE accent only as an identity marker. The --sy-* tokens are the system;
+   the historical RISE names further down are aliases onto them so the rest of
+   the stylesheets keep resolving while rooms migrate. */
 :root {
-  /* ═══ FOUNDATIONS (Backgrounds) ═══ */
-  --color-void: #0A0A0C;
-  /* Primary background - the darkness from which all emerges */
-  --color-abyss: #121214;
-  /* Elevated surfaces, cards, panels */
-  --color-depth: #1A1A1E;
-  /* Interactive elements, cards */
-  --color-shadow: #2A2A30;
-  /* Borders, dividers */
-  /* ═══ LUMINOSITY (Text) ═══ */
-  --color-mist: #6B6B75;
-  /* Tertiary text, disabled */
-  --color-fog: #9B9BA5;
-  /* Secondary text, labels, captions */
-  --color-cloud: #C5C5CD;
-  /* Primary text (default) */
-  --color-light: #E8E8EC;
-  /* Emphasized text, headings */
+  /* ═══ SYBERLABS TOKENS ═══ */
+  --sy-bg: #05060A;
+  --sy-surface: #0B0D14;
+  --sy-surface-2: #121521;
+  --sy-line: #1F2433;
+  --sy-line-strong: #5E6980;
+  --sy-text: #F2F5FB;
+  --sy-text-2: #AEB8CC;
+  --sy-text-3: #7F8AA3;
+  --sy-on-primary: #05060A;
+  --sy-brand: #4890F0;
+  --sy-brand-deep: #0048F0;
+  --sy-ice: #90D8F0;
+  --sy-success: #4CC3A6;
+  --sy-warning: #F2B84B;
+  --sy-danger: #FF7A6B;
+  --sy-accent-rise: #E4D2AE;
+
+  --sy-font-sans: 'Instrument Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --sy-font-serif: 'Instrument Serif', Georgia, 'Times New Roman', serif;
+  --sy-font-mono: 'JetBrains Mono', ui-monospace, 'SFMono-Regular', Menlo, monospace;
+  --sy-font-reading: 'Crimson Pro', Georgia, serif;
+
+  --sy-space-1: 4px;
+  --sy-space-2: 8px;
+  --sy-space-3: 12px;
+  --sy-space-4: 16px;
+  --sy-space-5: 24px;
+  --sy-space-6: 32px;
+  --sy-space-7: 48px;
+  --sy-space-8: 64px;
+  --sy-space-9: 96px;
+  --sy-space-10: 128px;
+
+  --sy-radius-sm: 4px;
+  --sy-radius: 8px;
+  --sy-radius-full: 999px;
+
+  --sy-control-height: 44px;
+  --sy-header-height: 64px;
+  --sy-shadow-overlay: 0 24px 64px rgba(0, 0, 0, 0.55);
+  --sy-focus: 2px solid var(--sy-brand);
+
+  --sy-dur-hover: 120ms;
+  --sy-dur-enter: 200ms;
+  --sy-dur-page: 320ms;
+  --sy-ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+
+  /* ═══ FOUNDATIONS (Backgrounds) — aliases ═══ */
+  --color-void: var(--sy-bg);
+  --color-abyss: var(--sy-surface);
+  --color-depth: var(--sy-surface-2);
+  --color-shadow: var(--sy-line);
+  /* ═══ LUMINOSITY (Text) — aliases ═══ */
+  /* Tertiary text. Was #6B6B75 (3.6:1); text-3 reads at 5.8:1. */
+  --color-mist: var(--sy-text-3);
+  --color-fog: var(--sy-text-2);
+  --color-cloud: var(--sy-text);
+  --color-light: var(--sy-text);
   --color-glow: #FFFFFF;
-  /* Maximum emphasis (rare) */
 
   /* Mask ground plate (FM-RISE-47). Never #000 / #fff. */
   --color-dark-slate: #2f4a4e;
@@ -45,7 +91,7 @@
 
   /* ═══ ACCENTS ═══ */
   --color-threshold: #E4D2AE;
-  /* Brand accent. [data-accent] retints both this and --color-accent. */
+  /* RISE identity marker. [data-accent] retints both this and --color-accent. */
   --color-accent: #E4D2AE;
   --color-accent-rgb: 228, 210, 174;
   /* The contrast partner: the ink that stays legible ON a full accent fill.
@@ -53,7 +99,7 @@
      block overrides only where the accent is dark enough for light ink. A
      control that fills with the accent pairs background:var(--color-accent)
      with color:var(--color-on-accent) and can never strand its own text. */
-  --color-on-accent: #0A0A0C;
+  --color-on-accent: #05060A;
   /* Accent washes, derived from the rgb triple so every family inherits the
      same depth for free — surface tint, bevel edge, and outer glow. Chrome that
      wants the accent's depth uses these instead of a frozen literal, and it
@@ -85,23 +131,24 @@
   --hero-bot-hover: rgba(34, 34, 42, 0.88);
   --hero-bevel: rgba(var(--color-accent-rgb), 0.25);
 
-  /* Chrome accent family. Swaps with [data-accent] (FM-UI-7). */
-  --color-chamber: #6B9FD4;
-  /* Secondary accent (soft blue) */
+  /* Chrome accent family. Swaps with [data-accent] (FM-UI-7). Status hues
+     are the SyberLabs status tokens. */
+  --color-chamber: var(--sy-brand);
+  /* Secondary accent (brand blue) */
   --color-ember: #D4A574;
   /* Warm accent (soft amber) */
-  --color-growth: #7FD4A4;
-  /* Positive states (soft green) */
-  --color-caution: #D4C074;
-  /* Warning states (soft gold) */
-  --color-rose: #D47F8B;
-  /* Attention states (soft rose) */
+  --color-growth: var(--sy-success);
+  /* Positive states */
+  --color-caution: var(--sy-warning);
+  /* Warning states */
+  --color-rose: var(--sy-danger);
+  /* Attention / error states */
 
   /* ═══ TYPOGRAPHY ═══ */
-  --font-primary: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
-  --font-display: 'Marcellus', 'Space Grotesk', -apple-system, BlinkMacSystemFont, sans-serif;
-  --font-literary: 'Crimson Pro', Georgia, serif;
-  --font-mono: 'JetBrains Mono', 'Courier New', monospace;
+  --font-primary: var(--sy-font-sans);
+  --font-display: var(--sy-font-serif);
+  --font-literary: var(--sy-font-reading);
+  --font-mono: var(--sy-font-mono);
   /* System CJK: Noto Serif JP is 248 files upstream for one optional
      stream face, so it is not self-hosted. Every desktop and mobile OS
      ships a CJK serif, and these are the names they ship it under. */
@@ -115,7 +162,7 @@
   --font-weight-semibold: 600;
   --font-weight-bold: 700;
 
-  /* ═══ SPACING (8px base unit) ═══ */
+  /* ═══ SPACING (SyberLabs scale) ═══ */
   --space-xs: 8px;
   /* Micro adjustments */
   --space-sm: 16px;
@@ -137,30 +184,32 @@
   /* Screen-level spacing */
 
   /* ═══ TIMING ═══ */
-  --transition-fast: 150ms;
-  /* Fade out, fast interactions */
-  --transition-normal: 200ms;
-  /* Hover states, default */
-  --transition-slow: 400ms;
+  --transition-fast: var(--sy-dur-hover);
+  /* Hover, fast interactions */
+  --transition-normal: var(--sy-dur-enter);
+  /* Enter / exit */
+  --transition-slow: var(--sy-dur-page);
   /* Page transitions, crossfades */
 
   /* ═══ EASING ═══ */
-  --ease-default: cubic-bezier(0.25, 0.1, 0.25, 1);
-  --ease-out: cubic-bezier(0, 0, 0.2, 1);
+  --ease-default: var(--sy-ease);
+  --ease-out: var(--sy-ease);
   --ease-in: cubic-bezier(0.4, 0, 1, 1);
 
-  /* ═══ BORDERS (Sharp corners = intention) ═══ */
+  /* ═══ RADIUS (4 badges, 8 controls and panels, 999 dots) ═══ */
   --radius-none: 0;
-  /* Default - sharp, intentional */
-  --radius-sm: 2px;
-  /* Rare, minimal softness */
+  --radius-sm: var(--sy-radius-sm);
+  --radius-md: var(--sy-radius);
+  --radius-lg: var(--sy-radius);
+  --radius-xl: var(--sy-radius);
+  --radius-full: var(--sy-radius-full);
 
-  /* ═══ SHADOWS ═══ */
-  --shadow-soft: 0 4px 24px rgba(0, 0, 0, 0.4);
+  /* ═══ SHADOWS (overlays only) ═══ */
+  --shadow-soft: var(--sy-shadow-overlay);
 
   /* ═══ ICON SIZES ═══ */
   --icon-sm: 16px;
-  --icon-md: 24px;
+  --icon-md: 20px;
   --icon-lg: 32px;
 }
 
@@ -295,19 +344,19 @@
 
 @media (max-width: 640px) {
   :root {
-    --space-xs: 6px;
+    --space-xs: 4px;
     --space-sm: 12px;
     --space-md: 16px;
-    --space-lg: 20px;
-    --space-xl: 28px;
-    --space-2xl: 36px;
-    --space-3xl: 52px;
+    --space-lg: 24px;
+    --space-xl: 32px;
+    --space-2xl: 48px;
+    --space-3xl: 64px;
   }
 
-  h1 { font-size: 28px; }
-  h2 { font-size: 21px; }
-  h3 { font-size: 17px; }
-  h4 { font-size: 15px; }
+  h1 { font-size: 40px; line-height: 42px; }
+  h2 { font-size: 32px; line-height: 36px; }
+  h3 { font-size: 20px; }
+  h4 { font-size: 16px; }
 }
 
 /* ─────────────────────────────────────────────────────────────
@@ -364,36 +413,45 @@ body {
    Type as architecture
    ───────────────────────────────────────────────────────────── */
 
+/* Serif for display sizes only (never below 32px); smaller headings are
+   Instrument Sans 600. */
 h1,
 h2,
 h3,
 h4,
 h5,
 h6 {
-  font-family: var(--font-display);
-  font-weight: var(--font-weight-light);
+  font-family: var(--font-primary);
+  font-weight: var(--font-weight-semibold);
   color: var(--color-light);
-  line-height: 1.2;
+  line-height: 1.25;
+}
+
+h1,
+h2 {
+  font-family: var(--font-display);
+  font-weight: var(--font-weight-regular);
 }
 
 h1 {
   font-size: 48px;
-  letter-spacing: 0.02em;
+  line-height: 1.05;
+  letter-spacing: -0.015em;
 }
 
 h2 {
   font-size: 32px;
-  letter-spacing: 0.01em;
+  line-height: 1.1;
+  letter-spacing: -0.01em;
 }
 
 h3 {
   font-size: 24px;
+  letter-spacing: -0.01em;
 }
 
 h4 {
   font-size: 18px;
-  font-family: var(--font-primary);
-  font-weight: var(--font-weight-medium);
 }
 
 p {
@@ -441,146 +499,138 @@ small {
 
 /* ─────────────────────────────────────────────────────────────
    BUTTONS
-   Sharp corners, clear hierarchy
+   SyberLabs: primary (ink fill), secondary (hairline), ghost (text).
+   44px controls, radius 8, sentence case.
    ───────────────────────────────────────────────────────────── */
 
 .btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: var(--space-sm);
+  gap: var(--sy-space-3);
 
-  min-height: 48px;
-  padding: 12px var(--space-md);
+  min-height: var(--sy-control-height);
+  padding: 0 20px;
 
   font-family: var(--font-primary);
-  font-size: 14px;
+  font-size: 16px;
+  line-height: 24px;
   font-weight: var(--font-weight-medium);
-  letter-spacing: 0.02em;
-  text-transform: uppercase;
 
-  border: 1px solid var(--color-shadow);
-  border-radius: var(--radius-none);
-  background: var(--color-abyss);
-  color: var(--color-cloud);
+  border: 1px solid var(--sy-line-strong);
+  border-radius: var(--sy-radius);
+  background: transparent;
+  color: var(--sy-text);
 
   cursor: pointer;
-  transition: all var(--transition-normal) var(--ease-default);
+  transition: background-color var(--sy-dur-hover) var(--sy-ease),
+    color var(--sy-dur-hover) var(--sy-ease),
+    border-color var(--sy-dur-hover) var(--sy-ease);
 
   user-select: none;
   -webkit-tap-highlight-color: transparent;
 }
 
 .btn:hover {
-  background: var(--color-depth);
-  border-color: var(--color-fog);
-  color: var(--color-light);
-}
-
-.btn:active {
-  transform: scale(0.98);
+  background: var(--sy-surface-2);
 }
 
 .btn:focus-visible {
-  outline: 2px solid var(--color-threshold);
+  outline: var(--sy-focus);
   outline-offset: 2px;
 }
 
 .btn:disabled {
-  opacity: 0.5;
+  opacity: 0.4;
   cursor: not-allowed;
   pointer-events: none;
 }
 
 /* Button variants */
 .btn-primary {
-  background: rgba(var(--color-accent-rgb), 0.2);
-  border-color: var(--color-threshold);
-  color: var(--color-light);
+  background: var(--sy-text);
+  border-color: var(--sy-text);
+  color: var(--sy-on-primary);
 }
 
 .btn-primary:hover {
-  background: rgba(var(--color-accent-rgb), 0.3);
-  border-color: var(--color-threshold);
-  color: var(--color-glow);
+  background: #FFFFFF;
+  border-color: #FFFFFF;
+  color: var(--sy-on-primary);
 }
 
 .btn-secondary {
   background: transparent;
-  border-color: var(--color-shadow);
-  color: var(--color-fog);
+  border-color: var(--sy-line-strong);
+  color: var(--sy-text);
 }
 
 .btn-secondary:hover {
-  background: rgba(26, 26, 30, 0.5);
-  border-color: var(--color-fog);
-  color: var(--color-cloud);
+  background: var(--sy-surface-2);
+  color: var(--sy-text);
 }
 
 .btn-ghost {
   background: transparent;
-  border: none;
-  color: var(--color-fog);
-  min-height: auto;
-  padding: var(--space-xs) var(--space-sm);
+  border-color: transparent;
+  color: var(--sy-text-2);
 }
 
 .btn-ghost:hover {
   background: transparent;
-  color: var(--color-cloud);
-  text-decoration: underline;
+  color: var(--sy-text);
 }
 
 .btn-icon {
-  min-height: 40px;
-  padding: var(--space-sm);
-  aspect-ratio: 1;
+  min-height: var(--sy-control-height);
+  width: var(--sy-control-height);
+  padding: 0;
 }
 
 /* ─────────────────────────────────────────────────────────────
    INPUTS
-   Clean, minimal, focused
+   SyberLabs field: label above, 44px input, help below
    ───────────────────────────────────────────────────────────── */
 
 .input-group {
   display: flex;
   flex-direction: column;
-  gap: var(--space-xs);
+  gap: var(--sy-space-2);
 }
 
 .input-label {
   font-family: var(--font-primary);
-  font-size: 12px;
-  font-weight: var(--font-weight-regular);
-  color: var(--color-fog);
-  letter-spacing: 0.02em;
-  text-transform: uppercase;
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: var(--font-weight-medium);
+  color: var(--sy-text);
 }
 
 .input {
-  min-height: 48px;
-  padding: 12px var(--space-sm);
+  min-height: var(--sy-control-height);
+  padding: 12px var(--sy-space-4);
 
   font-family: var(--font-primary);
-  font-size: 14px;
+  font-size: 16px;
+  line-height: 24px;
   font-weight: var(--font-weight-regular);
-  color: var(--color-cloud);
+  color: var(--sy-text);
 
-  background: var(--color-depth);
-  border: 1px solid var(--color-shadow);
-  border-radius: var(--radius-none);
+  background: var(--sy-surface);
+  border: 1px solid var(--sy-line-strong);
+  border-radius: var(--sy-radius);
 
-  transition: all var(--transition-normal) var(--ease-default);
+  transition: border-color var(--sy-dur-hover) var(--sy-ease);
 }
 
 .input::placeholder {
-  color: var(--color-mist);
+  color: var(--sy-text-3);
 }
 
 .input:focus {
-  outline: none;
-  border-color: var(--color-threshold);
-  background: var(--color-abyss);
+  outline: var(--sy-focus);
+  outline-offset: 2px;
+  border-color: var(--sy-brand);
 }
 
 .input:disabled {
@@ -605,7 +655,7 @@ small {
 .card {
   background: var(--color-abyss);
   border: 1px solid var(--color-shadow);
-  border-radius: var(--radius-none);
+  border-radius: var(--sy-radius);
   padding: var(--space-md);
   transition: all var(--transition-normal) var(--ease-default);
 
@@ -626,12 +676,12 @@ small {
 
 .card-interactive:hover {
   background: var(--color-depth);
-  border-color: var(--color-fog);
+  border-color: var(--sy-line-strong);
 }
 
 .card-interactive:active {
-  background: rgba(var(--color-accent-rgb), 0.1);
-  border-color: var(--color-threshold);
+  background: var(--sy-surface-2);
+  border-color: var(--sy-brand);
 }
 
 /* ─────────────────────────────────────────────────────────────
@@ -667,7 +717,7 @@ small {
 
 .nav-item.active {
   color: var(--color-light);
-  border-bottom-color: var(--color-threshold);
+  border-bottom-color: var(--sy-brand);
 }
 
 /* ─────────────────────────────────────────────────────────────
@@ -979,7 +1029,7 @@ small {
 
 /* Focus indicators - always visible */
 *:focus-visible {
-  outline: 2px solid var(--color-threshold);
+  outline: var(--sy-focus);
   outline-offset: 2px;
 }
 
@@ -1403,33 +1453,31 @@ small {
    Consistent button styling across the application
    ───────────────────────────────────────────────────────────── */
 
-/* Primary button - main actions */
+/* Primary button - main actions. One per screen. */
 .btn-primary {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: var(--space-xs);
-  padding: var(--space-sm) var(--space-lg);
-  background: var(--color-threshold);
-  border: 1px solid var(--color-threshold);
-  color: var(--color-on-accent);
+  gap: var(--sy-space-3);
+  min-height: var(--sy-control-height);
+  padding: 0 20px;
+  background: var(--sy-text);
+  border: 1px solid var(--sy-text);
+  border-radius: var(--sy-radius);
+  color: var(--sy-on-primary);
   font-family: var(--font-primary);
-  font-size: 14px;
+  font-size: 16px;
+  line-height: 24px;
   font-weight: var(--font-weight-medium);
-  letter-spacing: 0.02em;
   cursor: pointer;
-  transition: all var(--transition-fast) var(--ease-default);
+  transition: background-color var(--sy-dur-hover) var(--sy-ease),
+    border-color var(--sy-dur-hover) var(--sy-ease);
 }
 
 .btn-primary:hover:not(:disabled) {
-  background: color-mix(in srgb, var(--color-accent) 72%, var(--color-light));
-  border-color: color-mix(in srgb, var(--color-accent) 72%, var(--color-light));
-  color: var(--color-on-accent);
-  transform: translateY(-1px);
-}
-
-.btn-primary:active:not(:disabled) {
-  transform: translateY(0);
+  background: #FFFFFF;
+  border-color: #FFFFFF;
+  color: var(--sy-on-primary);
 }
 
 .btn-primary:disabled {
@@ -1438,7 +1486,7 @@ small {
 }
 
 .btn-primary:focus-visible {
-  outline: 2px solid var(--color-threshold);
+  outline: var(--sy-focus);
   outline-offset: 2px;
 }
 
@@ -1447,25 +1495,28 @@ small {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: var(--space-xs);
-  padding: var(--space-sm) var(--space-lg);
+  gap: var(--sy-space-3);
+  min-height: var(--sy-control-height);
+  padding: 0 20px;
   background: transparent;
-  border: 1px solid var(--color-shadow);
-  color: var(--color-fog);
+  border: 1px solid var(--sy-line-strong);
+  border-radius: var(--sy-radius);
+  color: var(--sy-text);
   font-family: var(--font-primary);
-  font-size: 14px;
-  font-weight: var(--font-weight-regular);
+  font-size: 16px;
+  line-height: 24px;
+  font-weight: var(--font-weight-medium);
   cursor: pointer;
-  transition: all var(--transition-fast) var(--ease-default);
+  transition: background-color var(--sy-dur-hover) var(--sy-ease);
 }
 
 .btn-secondary:hover:not(:disabled) {
-  border-color: var(--color-fog);
-  color: var(--color-cloud);
+  background: var(--sy-surface-2);
+  color: var(--sy-text);
 }
 
 .btn-secondary:focus-visible {
-  outline: 2px solid var(--color-fog);
+  outline: var(--sy-focus);
   outline-offset: 2px;
 }
 
@@ -1474,19 +1525,22 @@ small {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: var(--space-xs);
-  padding: var(--space-xs) var(--space-sm);
+  gap: var(--sy-space-2);
+  min-height: var(--sy-control-height);
+  padding: 0 20px;
   background: transparent;
   border: none;
-  color: var(--color-mist);
+  border-radius: var(--sy-radius);
+  color: var(--sy-text-2);
   font-family: var(--font-primary);
-  font-size: 13px;
+  font-size: 16px;
+  font-weight: var(--font-weight-medium);
   cursor: pointer;
-  transition: color var(--transition-fast) var(--ease-default);
+  transition: color var(--sy-dur-hover) var(--sy-ease);
 }
 
 .btn-ghost:hover {
-  color: var(--color-cloud);
+  color: var(--sy-text);
 }
 
 .btn-ghost .icon {
@@ -1581,13 +1635,13 @@ small {
 
 /* Focus glow for interactive elements */
 :focus-visible {
-  outline: 2px solid var(--color-threshold);
+  outline: var(--sy-focus);
   outline-offset: 2px;
 }
 
 /* Selection styling */
 ::selection {
-  background: rgba(var(--color-accent-rgb), 0.3);
+  background: rgba(144, 216, 240, 0.2);
   color: var(--color-light);
 }
 
@@ -1646,23 +1700,17 @@ html {
   100% { transform: translateX(100%); }
 }
 
-/* Subtle hover lift for cards */
+/* Cards: lines, not lift. Hover changes the surface only. */
 .card-interactive {
-  transition: transform var(--transition-normal) var(--ease-default),
-              box-shadow var(--transition-normal) var(--ease-default);
+  transition: background-color var(--sy-dur-hover) var(--sy-ease),
+              border-color var(--sy-dur-hover) var(--sy-ease);
 }
 
-.card-interactive:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-}
-
-/* Input field focus enhancement */
+/* Input field focus: brand border (the ring comes from :focus-visible). */
 input[type="text"]:focus,
 input[type="search"]:focus,
 textarea:focus {
-  border-color: var(--color-threshold);
-  box-shadow: 0 0 0 3px rgba(var(--color-accent-rgb), 0.15);
+  border-color: var(--sy-brand);
 }
 
 /* Placeholder styling */
@@ -1741,13 +1789,15 @@ textarea:focus {
 /* Navigation active indicator */
 .nav-item.active {
   color: var(--color-light);
-  border-bottom-color: var(--color-threshold);
+  border-bottom-color: var(--sy-brand);
 }
 
 /* Small button variant */
 .btn-sm {
-  padding: var(--space-xs) var(--space-sm);
-  font-size: 12px;
+  min-height: 36px;
+  padding: 0 var(--sy-space-4);
+  font-size: 14px;
+  line-height: 20px;
 }
 
 /* ─────────────────────────────────────────────────────────────
@@ -1762,9 +1812,9 @@ textarea:focus {
 }
 
 .card:hover {
-  border-color: var(--color-fog);
+  border-color: var(--sy-line-strong);
 }
 
 .card.card-interactive:hover {
-  border-color: var(--color-threshold);
+  border-color: var(--sy-line-strong);
 }
