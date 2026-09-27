@@ -2,7 +2,10 @@ import { expect, it } from 'vitest';
 import releaseInventory from '../content/archive/release-inventory.json' with { type: 'json' };
 import { jevPalette } from '../core/jev-palette.js';
 import { resolveJevChamberConfig } from '../core/jev-config.js';
-import { compileJevVisualProgram } from '../core/jev-sequence.js';
+import {
+  compileJevAudioProgram,
+  compileJevVisualProgram
+} from '../core/jev-sequence.js';
 import { resolveJevReading } from './jev-reading.js';
 import { compileSession } from '../core/session-compiler.js';
 import { cueForAtom } from '../core/visual-scheduler.js';
@@ -15,9 +18,10 @@ it('opens an existing playable division for every released book and section choi
         audio: 'silent', visualMode: 'off', visualStyle: 'quiet',
         visualEngine: 'fractal', visualPalette: 'purple', kleePreset: 'random',
         visualArc: 'single', arcSplit: '50', middleEngine: 'harmonograph',
-        finaleEngine: 'ostensoria',
+        finaleEngine: 'ostensoria', middleAudio: 'aurora', finaleAudio: 'faded-signal',
         galleryCadence: 'balanced', chamberFace: 'literary', fontSize: 'medium',
-        wordFill: 'plain', colorTheme: 'classic',
+        wordFill: 'plain', colorTheme: 'classic', middleTheme: 'amethyst',
+        finaleTheme: 'prism',
         projection: 'stream', revealMode: 'instant'
       };
       const input = await resolveJevReading({
@@ -28,7 +32,8 @@ it('opens an existing playable division for every released book and section choi
         sourceRevision: released.sourceRevision,
         config: { ...selectors, colors: jevPalette('classic'),
           ...resolveJevChamberConfig(selectors),
-          visualProgram: compileJevVisualProgram(selectors) }
+          visualProgram: compileJevVisualProgram(selectors),
+          audioProgram: compileJevAudioProgram(selectors) }
       });
       const session = compileSession({ ...input, title: input.textSource });
       expect(session.atoms.length, `${released.workId}:${section}`).toBeGreaterThan(0);
@@ -44,9 +49,9 @@ it('compiles a psychedelic Jev plan into a visible, scoped Chamber session', asy
     audio: 'aurora', visualMode: 'interlocution', visualStyle: 'psychedelic',
     visualEngine: 'fractal', visualPalette: 'purple', kleePreset: 'chaotic',
     visualArc: 'triple', arcSplit: '70', middleEngine: 'harmonograph',
-    finaleEngine: 'ostensoria',
+    finaleEngine: 'ostensoria', middleAudio: 'faded-signal', finaleAudio: 'silent',
     galleryCadence: 'lively', chamberFace: 'thick', fontSize: 'fit',
-    wordFill: 'same', colorTheme: 'prism',
+    wordFill: 'same', colorTheme: 'prism', middleTheme: 'ember', finaleTheme: 'cobalt',
     projection: 'stream', revealMode: 'progressive'
   };
   const input = await resolveJevReading({
@@ -57,7 +62,8 @@ it('compiles a psychedelic Jev plan into a visible, scoped Chamber session', asy
     sourceRevision: released.sourceRevision,
     config: { ...selectors, colors: jevPalette('prism'),
       ...resolveJevChamberConfig(selectors),
-      visualProgram: compileJevVisualProgram(selectors) }
+      visualProgram: compileJevVisualProgram(selectors),
+      audioProgram: compileJevAudioProgram(selectors) }
   });
   const session = compileSession({ ...input, title: input.textSource });
   expect(session.atoms.length).toBeGreaterThan(0);
@@ -76,6 +82,9 @@ it('compiles a psychedelic Jev plan into a visible, scoped Chamber session', asy
   expect(session.soundscape).toBe('aurora');
   expect(session.visualProgram.segments.map(segment => segment.match.toProgress))
     .toEqual([0.3, 0.7, 1]);
+  expect(session.audioProgram.segments.map(segment =>
+    segment.cue.soundscapeId || segment.cue.kind))
+    .toEqual(['aurora', 'faded-signal', 'silence']);
   expect(cueForAtom(session.visualProgram, { sourceId: 'primary', sourceProgress: 0.2 }).cue.collections)
     .toEqual(['fractal']);
   expect(cueForAtom(session.visualProgram, { sourceId: 'primary', sourceProgress: 0.5 }).cue.collections)

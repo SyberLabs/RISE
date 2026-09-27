@@ -3,17 +3,27 @@ import { Redis } from '@upstash/redis/cloudflare';
 import releaseInventory from '../src/content/archive/release-inventory.json' with { type: 'json' };
 import { jevPalette } from '../src/core/jev-palette.js';
 import { JEV_AUDIO_IDS, resolveJevChamberConfig } from '../src/core/jev-config.js';
-import { compileJevVisualProgram } from '../src/core/jev-sequence.js';
+import { compileJevAudioProgram, compileJevVisualProgram } from '../src/core/jev-sequence.js';
 import { buildJevVarianceHints, VARIATION_COUNT } from './jev-variance.mjs';
 
 const API_URL = 'https://openrouter.ai/api/alpha/decisions';
 const MODEL = 'typesafe/jev-1.13';
+const AUDIO_CHOICES = Object.freeze({ silent: 'Silence.',
+  ...Object.fromEntries(JEV_AUDIO_IDS.map(id => [id, `${id} soundscape.`])) });
+const COLOR_THEME_CHOICES = Object.freeze({
+  classic: 'Warm ivory text on a near-black ground.',
+  amethyst: 'Violet ground with lilac accents.',
+  prism: 'Deep violet ground, bright text, and neon magenta; choose for psychedelic or prismatic requests.',
+  ember: 'Dark red-brown ground with fiery orange accents.',
+  cobalt: 'Deep blue ground with electric blue accents.',
+  jade: 'Dark green ground with luminous jade accents.'
+});
 const CHOICES = Object.freeze({
   section: { first: 'First section.', middle: 'Middle section.', last: 'Final section.', shortest: 'Shortest section.', longest: 'Longest section.' },
   pace: { '100': 'Very slow.', '150': 'Slow.', '200': 'Moderate.', '250': 'Brisk.', '300': 'Fast.', '400': 'Very fast.', '500': 'Fastest offered.' },
   curve: { flat: 'Steady pace.', induction: 'Begin slowly.', ascent: 'Gradually accelerate.', wave: 'Rise and fall.', climax: 'Build toward a fast finish.' },
   chunk: { word: 'One word.', phrase: 'Short phrases.', sentence: 'Sentences.', paragraph: 'Paragraphs.' },
-  audio: { silent: 'Silence.', ...Object.fromEntries(JEV_AUDIO_IDS.map(id => [id, id])) },
+  audio: AUDIO_CHOICES,
   visual: {
     off: 'No visual field.',
     focals: 'A single quiet focal figure.',
@@ -84,14 +94,11 @@ const CHOICES = Object.freeze({
     xlarge: 'Extra large text for strong emphasis or easier reading at a distance.',
     fit: 'Fit each word to the Chamber; effective with word chunking.'
   },
-  colorTheme: {
-    classic: 'Warm ivory text on a near-black ground.',
-    amethyst: 'Violet ground with lilac accents.',
-    prism: 'Deep violet ground, bright text, and neon magenta; choose for psychedelic or prismatic requests.',
-    ember: 'Dark red-brown ground with fiery orange accents.',
-    cobalt: 'Deep blue ground with electric blue accents.',
-    jade: 'Dark green ground with luminous jade accents.'
-  },
+  colorTheme: COLOR_THEME_CHOICES,
+  middleTheme: COLOR_THEME_CHOICES,
+  finaleTheme: COLOR_THEME_CHOICES,
+  middleAudio: AUDIO_CHOICES,
+  finaleAudio: AUDIO_CHOICES,
   wordFill: {
     plain: 'Plain text ink.', accent: 'Fill text with the chosen accent color.',
     same: 'Fill text with the Gallery visual when supported.'
@@ -272,7 +279,7 @@ async function activeChoices(redis, env, sounds) {
   const audio = { silent: 'Silence.', ...Object.fromEntries(sounds.map(row =>
     [row.sound_id, row.decision_criterion])) };
   const cached = choiceMenu(await redis.get(OPTION_CACHE_KEY));
-  if (cached) return { ...cached, audio };
+  if (cached) return { ...cached, audio, middleAudio: audio, finaleAudio: audio };
   let rows;
   try {
     const sql = neon(env.NEON_DATABASE_URL);
@@ -280,13 +287,13 @@ async function activeChoices(redis, env, sounds) {
       WHERE active = TRUE AND kind IN ('chamberFace', 'fontSize')`;
   } catch (cause) {
     // An unmigrated table is optional; an outage must not reactivate disabled choices.
-    if (cause?.code === '42P01') return { ...CHOICES, audio };
+    if (cause?.code === '42P01') return { ...CHOICES, audio, middleAudio: audio, finaleAudio: audio };
     throw cause;
   }
   const menu = choiceMenu(rows);
   if (!menu) return null;
   await redis.set(OPTION_CACHE_KEY, rows, { ex: 30 });
-  return { ...menu, audio };
+  return { ...menu, audio, middleAudio: audio, finaleAudio: audio };
 }
 
 async function catalogCacheKey() {
@@ -308,11 +315,12 @@ async function decisionCacheKey(intent, books, sounds, choices, apiKey) {
 
 function validConfig(config, choices) {
   if (!config || typeof config !== 'object' || Array.isArray(config)
-    || Object.keys(config).length !== 31
+    || Object.keys(config).length !== 36
     || !Number.isInteger(config.wpm) || !Object.hasOwn(choices.pace, String(config.wpm))) return null;
   const fields = { section: 'section', curve: 'curve', chunkMode: 'chunk', audio: 'audio',
     visualMode: 'visual', visualStyle: 'visualStyle', visualEngine: 'visualEngine',
     visualArc: 'visualArc', arcSplit: 'arcSplit', middleEngine: 'middleEngine', finaleEngine: 'finaleEngine',
+    middleTheme: 'middleTheme', finaleTheme: 'finaleTheme', middleAudio: 'middleAudio', finaleAudio: 'finaleAudio',
     visualPalette: 'visualPalette',
     kleePreset: 'kleePreset', galleryCadence: 'galleryCadence',
     chamberFace: 'chamberFace', fontSize: 'fontSize',
@@ -335,6 +343,7 @@ function validConfig(config, choices) {
   if (config.fontSize === 'fit' && config.chunkMode !== 'word') return null;
   const resolved = resolveJevChamberConfig(config);
   const visualProgram = compileJevVisualProgram(config);
+  const audioProgram = compileJevAudioProgram(config);
   if (config.visualArc !== 'single' && !visualProgram) return null;
   if (config.audioPreset !== resolved.audioPreset
     || config.soundscape !== resolved.soundscape
@@ -345,8 +354,21 @@ function validConfig(config, choices) {
     || config.projection !== resolved.projection
     || JSON.stringify(config.visualConfig) !== JSON.stringify(resolved.visualConfig)
     || JSON.stringify(config.presentation) !== JSON.stringify(resolved.presentation)
-    || JSON.stringify(config.visualProgram) !== JSON.stringify(visualProgram)) return null;
+    || JSON.stringify(config.visualProgram) !== JSON.stringify(visualProgram)
+    || JSON.stringify(config.audioProgram) !== JSON.stringify(audioProgram)) return null;
   return config;
+}
+
+function explicitVisualTiming(intent) {
+  const normalized = String(intent || '').normalize('NFKC').toLocaleLowerCase('en');
+  const split = normalized.match(/\b(30|50|70)\s*(?:%|percent\b)/u)?.[1];
+  if (!split) return null;
+  const hasVisualWord = /\bvisuals?\b/u.test(normalized);
+  const hasPhaseWord = /\b(?:opening|middle|finale|phase|arc)\b/u.test(normalized);
+  const hasChangeWord = /\b(?:change|switch|shift|transition|transform|transformation|different|another)\b/u.test(normalized);
+  const hasStyleSplit = /\b(?:one|another|different|new)\s+styles?\b/u.test(normalized);
+  return (hasVisualWord && hasChangeWord) || (hasPhaseWord && hasChangeWord)
+    || hasStyleSplit ? split : null;
 }
 
 function requestsNoVisualMotion(intent) {
@@ -371,6 +393,10 @@ function choiceConfig(answers, intent, choices) {
     arcSplit: answers.arcSplit.choice,
     middleEngine: answers.middleEngine.choice,
     finaleEngine: answers.finaleEngine.choice,
+    middleTheme: answers.middleTheme.choice,
+    finaleTheme: answers.finaleTheme.choice,
+    middleAudio: answers.middleAudio.choice,
+    finaleAudio: answers.finaleAudio.choice,
     visualPalette: answers.visualPalette.choice,
     kleePreset: answers.kleePreset.choice,
     galleryCadence: answers.galleryCadence.choice,
@@ -399,18 +425,27 @@ function choiceConfig(answers, intent, choices) {
     config.visualMode = 'interlocution';
     config.projection = 'stream';
   }
-  if (requestsNoVisualMotion(intent)) {
-    config.visualMode = 'off';
-    config.visualStyle = 'quiet';
-    config.visualArc = 'single';
-  }
   if (config.wordFill === 'same' && (config.visualMode !== 'interlocution'
     || config.chamberFace !== 'thick' || config.fontSize !== 'fit'
     || config.chunkMode !== 'word')) config.wordFill = 'accent';
   if (config.fontSize === 'fit' && config.chunkMode !== 'word') config.fontSize = 'large';
   config.colors = jevPalette(config.colorTheme);
+  const explicitNoVisual = requestsNoVisualMotion(intent)
+    || /\b(?:no|without|skip|avoid|disable|turn off)\s+(?:any\s+)?visuals?\b|\bvisuals?\s+(?:off|disabled?)\b|\b(?:text|reading)\s+only\b/iu.test(intent);
+  const timing = explicitVisualTiming(intent);
+  if (explicitNoVisual) {
+    config.visualStyle = 'quiet';
+    config.visualMode = 'off';
+    config.visualArc = 'single';
+  } else if (timing) {
+    config.visualArc = 'dual';
+    config.arcSplit = timing;
+    config.visualMode = 'interlocution';
+    config.projection = 'stream';
+  }
   Object.assign(config, resolveJevChamberConfig(config));
   config.visualProgram = compileJevVisualProgram(config);
+  config.audioProgram = compileJevAudioProgram(config);
   return validConfig(config, choices);
 }
 
@@ -519,10 +554,13 @@ export async function handleJevRecommend(request, env) {
     if (nextTurn === 1) await redis.expire(turnKey, 86400);
     hints = buildJevVarianceHints({ books, intent, turn: nextTurn - 1 });
     const shortlistedSounds = shortlistSounds(sounds, intent, nextTurn - 1);
+    const audioChoices = { silent: 'Silence.', ...Object.fromEntries(shortlistedSounds.map(row =>
+      [row.sound_id, row.decision_criterion])) };
     choices = {
       ...catalogChoices,
-      audio: { silent: 'Silence.', ...Object.fromEntries(shortlistedSounds.map(row =>
-        [row.sound_id, row.decision_criterion])) }
+      audio: audioChoices,
+      middleAudio: audioChoices,
+      finaleAudio: audioChoices
     };
     const decisionBaseKey = await decisionCacheKey(intent, books, shortlistedSounds, choices, env.OPENROUTER_API_KEY);
     decisionKey = `${decisionBaseKey}:${hints.variation.cohort === null ? 0 : (nextTurn - 1) % VARIATION_COUNT}`;
