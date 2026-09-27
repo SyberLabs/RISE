@@ -157,7 +157,7 @@ export class Portal {
         </form>
 
         <a class="portal-sequence-preview" href="/sequences/">
-          <span><strong>Try short sequences</strong><small>Three original readings · feedback stays on your device</small></span>
+          <span><strong>Try short sequences</strong><small>Read for a minute · leave with one next step</small></span>
           <span aria-hidden="true">→</span>
         </a>
 
