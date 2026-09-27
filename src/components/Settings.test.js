@@ -169,9 +169,9 @@ describe('Settings display type', () => {
         const radios = [...container.querySelectorAll('input[name="chamber-face"]')];
         const ids = radios.map((radio) => radio.value);
 
-        expect(ids).toEqual(['literary', 'display', 'thick', 'mono', 'jp']);
+        expect(ids).toEqual(['literary', 'display', 'thick', 'mono', 'jp', 'sans', 'book']);
         expect(radios.map((radio) => radio.closest('label')?.textContent.replace(/\s+/g, ' ').trim()))
-            .toEqual(['Literary', 'Display', 'Thick', 'Monospace', 'Japanese']);
+            .toEqual(['Literary', 'Display', 'Thick', 'Monospace', 'Japanese', 'Sans', 'Book']);
         expect(radios.find((radio) => radio.value === 'literary').checked).toBe(true);
         expect(container.textContent).not.toMatch(/Inter|JetBrains/);
         expect(container.textContent).not.toMatch(/Crimson Pro|Marcellus|Space Grotesk|Noto Serif/);

@@ -136,6 +136,34 @@ afterEach(() => {
 });
 
 describe('Jev reading recommendation', () => {
+  it('offers new text faces and extra large type when active in Postgres', async () => {
+    mocks.optionsQuery.mockResolvedValue([
+      ...options,
+      { kind: 'chamberFace', id: 'sans', description: 'Modern sans text.' },
+      { kind: 'chamberFace', id: 'book', description: 'Strong book serif text.' },
+      { kind: 'fontSize', id: 'xlarge', description: 'Extra large text.' }
+    ]);
+    const provider = vi.fn(async () => Response.json({
+      id: 'expanded-type', model: 'typesafe/jev-1.13', provider: 'TypeSafe',
+      answers: answers('literary-walden', {
+        chamberFace: { type: 'choice', choice: 'book' },
+        fontSize: { type: 'choice', choice: 'xlarge' }
+      })
+    }));
+    vi.stubGlobal('fetch', provider);
+
+    const response = await handleJevRecommend(request({ intent: 'Strong book serif with extra large text.' }), env);
+
+    expect(response.status).toBe(200);
+    const criteria = JSON.parse(provider.mock.calls[0][1].body).questions;
+    expect(criteria.chamberFace.criteria).toHaveProperty('sans');
+    expect(criteria.chamberFace.criteria).toHaveProperty('book');
+    expect(criteria.fontSize.criteria).toHaveProperty('xlarge');
+    const result = await response.json();
+    expect(result.config.chamberFace).toBe('book');
+    expect(result.config.fontSize).toBe('xlarge');
+  });
+
   it('accepts all 23 deployed sounds while offering Jev only a matching shortlist', async () => {
     const fullCatalog = JEV_AUDIO_IDS.map(id => ({
       sound_id: id, decision_criterion: `Choose ${id} for fitting musical atmosphere.`, active: true

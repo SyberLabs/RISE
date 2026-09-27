@@ -834,7 +834,7 @@ describe('reader-facing state', () => {
     const scale = benchFor('Scale');
     expect(scale).toBeTruthy();
     expect([...scale.querySelectorAll('.vnav-opt')].map(b => b.dataset.fontSize))
-      .toEqual(['s', 'm', 'l']);
+      .toEqual(['s', 'm', 'l', 'xl']);
     expect(scale.querySelector('[data-font-size="fit"]')).toBeNull();
 
     // Fit stands on its own, still reachable, still the same control.

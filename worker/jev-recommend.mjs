@@ -75,10 +75,13 @@ const CHOICES = Object.freeze({
   chamberFace: {
     literary: 'Literary serif text.', display: 'Display serif text.',
     thick: 'Bold geometric text; strong for vivid readings.', jp: 'Japanese serif text.',
-    mono: 'Monospaced JetBrains Mono text; choose for code, technical, or typewritten atmosphere.'
+    mono: 'Monospaced JetBrains Mono text; choose for code, technical, or typewritten atmosphere.',
+    sans: 'Clean regular sans text for modern or minimal reading.',
+    book: 'Stronger book serif text for readable emphasis without a geometric face.'
   },
   fontSize: {
     small: 'Small text.', medium: 'Medium text.', large: 'Large text.',
+    xlarge: 'Extra large text for strong emphasis or easier reading at a distance.',
     fit: 'Fit each word to the Chamber; effective with word chunking.'
   },
   colorTheme: {
@@ -107,8 +110,8 @@ const QUESTION_INSTRUCTIONS = Object.freeze({
   visual: 'Choose the visual field. Honor darkness and minimalism; use continuous visuals only when the reader wants visual motion or atmosphere.',
   visualStyle: 'Choose visual energy. Reserve psychedelic for explicit vivid, trippy, or kaleidoscopic requests; keep quiet prompts quiet.',
   galleryCadence: 'Choose the speed of visual transitions. Calm requests should transition slowly; energetic requests can be lively.',
-  chamberFace: 'Choose the text font. Match literary, expressive display, bold graphic, monospaced, or Japanese typography requested by the reader.',
-  fontSize: 'Choose text size. Honor small or large text requests; fit works best with one-word chunks.',
+  chamberFace: 'Choose the text font. Match literary, book serif, modern sans, display, bold graphic, monospaced, or Japanese requests.',
+  fontSize: 'Choose text size. Honor small, large, or extra large requests; fit works best with one-word chunks.',
   projection: 'Choose timed streaming or a spatial page. Continuous visual motion needs stream because page hides the continuous visual field.'
 });
 const DECISION_CACHE_TTL_SECONDS = 3600;
