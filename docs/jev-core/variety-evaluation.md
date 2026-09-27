@@ -33,11 +33,14 @@ The candidate reuses one 1-hour decision cache slot for a specific intent. Exact
 
 The [full live v2 baseline](../../scripts/jev-eval-production-broad-baseline-2026-09-26.json) captured all 39 cases in three batches of at most 16, below the Worker's 30-per-minute per-IP limit. All 39 responses had valid offered choices; 47 of 49 explicit preferences matched, and all 19 paired contrasts differed. The two misses were sound: a combined fast/psychedelic prompt requested an atmospheric bed but got `chase`, and “Let the ending feel triumphant” got `happy` for the opening sound and the finale. Repeating the latter request three times again returned `happy` for the opening sound. These observations motivated phase-specific sound instructions and an alias for “triumphant” in the sound shortlist. The record was captured on release `e32bd26a280653a331d0743f661b0ff7d1300bb2`; it contains no prompts, request IDs, or secrets. The route reports no token usage.
 
-The [four-prompt phase baseline](../../scripts/jev-eval-production-phase-baseline-2026-09-26.json) matched 8 of 12 explicit opening/finale choices and 1 of 2 contrast pairs on the same release. In both audio-phase prompts Jev chose a `single` arc, so the requested ending sound would not play even when its `finaleAudio` answer differed. The harness now permits an audio program with visuals off and a null visual program; it also makes opening and ending questions explicit. These new rules still require a post-deploy live check.
+The [four-prompt phase baseline](../../scripts/jev-eval-production-phase-baseline-2026-09-26.json) matched 8 of 12 explicit opening/finale choices and 1 of 2 contrast pairs on the same release. In both audio-phase prompts Jev chose a `single` arc, so the requested ending sound would not play even when its `finaleAudio` answer differed. The harness now permits an audio program with visuals off and a null visual program; it also makes opening and ending questions explicit.
+
+The [post-release phase record](../../scripts/jev-eval-production-phase-post-2026-09-27.json) captured four HTTP 200 responses on release `d0cbece17b2038bd28fc0c424d4785b8e22174ea`: 12 of 12 explicit choices matched, and 2 of 2 contrast pairs differed. A separate live request for “Start in silence, then make the ending triumphant with no visuals” returned `visualMode: off`, `visualArc: dual`, a null visual program, and a timed silence-to-`triumph` audio program; the Chamber opened in Chromium. This is a small one-pass preference check, not a listening test or a measure of reader enjoyment.
 
 ```powershell
 node scripts/jev-eval.mjs --cases scripts/jev-eval-cases.json --options scripts/jev-eval-options-candidate.json --input scripts/jev-eval-production-broad-baseline-2026-09-26.json
 node scripts/jev-eval.mjs --cases scripts/jev-eval-phase-cases.json --options scripts/jev-eval-phase-options.json --input scripts/jev-eval-production-phase-baseline-2026-09-26.json
+node scripts/jev-eval.mjs --cases scripts/jev-eval-phase-cases.json --options scripts/jev-eval-phase-options.json --input scripts/jev-eval-production-phase-post-2026-09-27.json
 ```
 
 ### Historical six-prompt baseline
