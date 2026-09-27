@@ -13,10 +13,10 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-function mount() {
+function mount(options = {}) {
   container = document.createElement('div');
   document.body.appendChild(container);
-  library = new Library(container);
+  library = new Library(container, options);
   return container.querySelector('[data-jev-form]');
 }
 
@@ -34,6 +34,30 @@ function response(overrides = {}) {
 }
 
 describe('Jev recommendation in the reader-facing Library', () => {
+  it('asks Jev from a home-page intent and carries reader choices to the selected text', async () => {
+    const fetch = vi.fn().mockResolvedValue({ ok: true, json: async () => response() });
+    const selected = vi.fn();
+    vi.stubGlobal('fetch', fetch);
+    mount({
+      initialIntent: 'A reflective classic',
+      readingPreferences: {
+        wpm: 260, curve: 'wave', chunkMode: 'phrase',
+        audioPreset: 'silent', soundscape: 'aurora', visualMode: 'focals'
+      },
+      onSelectText: selected
+    });
+
+    await vi.waitFor(() => expect(fetch).toHaveBeenCalledWith('/api/jev-recommend',
+      expect.objectContaining({ body: JSON.stringify({ intent: 'A reflective classic' }) })));
+    await vi.waitFor(() => expect(container.querySelector('.library-jev-choice h4')?.textContent)
+      .toBe(book.title));
+    library.onSelectText('A selected passage', book.title, { wpm: 200, verseLines: true });
+    expect(selected).toHaveBeenCalledWith('A selected passage', book.title, expect.objectContaining({
+      wpm: 260, curve: 'wave', chunkMode: 'phrase', soundscape: 'aurora',
+      visualConfig: { visualMode: 'focals' }, verseLines: true
+    }));
+  });
+
   it('turns a chosen Standard Ebooks edition into the existing book-opening path', async () => {
     const form = mount();
     const open = vi.spyOn(library, 'handleTextSelection').mockResolvedValue();

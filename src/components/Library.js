@@ -75,7 +75,21 @@ export class Library {
   constructor(container, options = {}) {
     this.container = container;
     this.onNavigate = options.onNavigate || (() => { });
-    this.onSelectText = options.onSelectText || (() => { });
+    this.readingPreferences = options.readingPreferences || null;
+    const selectText = options.onSelectText || (() => { });
+    this.onSelectText = (...args) => {
+      const preferences = this.readingPreferences;
+      if (!preferences) return selectText(...args);
+      const [text, source, config = {}] = args;
+      const { visualMode, ...reading } = preferences;
+      return selectText(text, source, {
+        ...config,
+        ...reading,
+        visualConfig: visualMode
+          ? { ...config.visualConfig, visualMode }
+          : config.visualConfig
+      });
+    };
     this.getAudioEngine = options.getAudioEngine || (() => null);
 
     this.currentSection = 'archive'; // archive, sequences, personal
@@ -86,7 +100,7 @@ export class Library {
     this.currentFilter = 'received';
     this.localWorks = [];
     this.jevRecommendation = null;
-    this.jevIntent = '';
+    this.jevIntent = options.initialIntent || '';
     this.jevAbort = null;
     this._active = false;
     this.boundKeyboardHandler = this.handleKeyboard.bind(this);
@@ -94,6 +108,18 @@ export class Library {
     this.render();
     this.attachEvents();
     this.refreshLocalWorks();
+    if (this.jevIntent) {
+      void this.recommendWithJev(this.container.querySelector('[data-jev-form]'));
+    }
+  }
+
+  update(data) {
+    this.readingPreferences = data?.readingPreferences || null;
+    if (!data?.jevIntent) return;
+    this.jevIntent = data.jevIntent;
+    this.updateContent();
+    const form = this.container.querySelector('[data-jev-form]');
+    if (form) void this.recommendWithJev(form);
   }
 
   render() {

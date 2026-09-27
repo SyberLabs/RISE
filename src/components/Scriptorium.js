@@ -40,7 +40,7 @@ import {
   catalogueTextIsSafe,
   serializeCuratorContext
 } from '../core/curator-context.js';
-import { READING_LIMITS } from '../core/reading-limits.js';
+import { READING_LIMITS, clampReadingWpm } from '../core/reading-limits.js';
 import { estimateRundownMinutes } from '../core/program-rundown.js';
 import {
   createScriptoriumSession,
@@ -90,6 +90,12 @@ export class Scriptorium {
       getWpm: () => readerWpm(options.getSettings?.()),
       prepareAssets: (projectId) => this.durableMaterials(projectId)
     });
+    this.readingPreferences = null;
+    this.applyHomeData({
+      intent: options.initialIntent,
+      targetWords: options.initialTargetWords,
+      readingPreferences: options.readingPreferences
+    });
     this.materialBlobs = new Map();
     this.objectUrls = new Set();
     // JEV credentials live only as long as this mounted component. They are
@@ -137,9 +143,38 @@ export class Scriptorium {
     void this.loadMaterials();
   }
 
-  update() {
+  update(data) {
+    if (data) this.applyHomeData(data);
     // Router reuses this room; estimates must reflect the current settings.
     this.render();
+  }
+
+  applyHomeData(data) {
+    if (typeof data?.intent === 'string') this.session.setIntent(data.intent);
+    if (data?.targetWords != null) this.session.setTargetWords(data.targetWords);
+    if (data?.readingPreferences) {
+      this.readingPreferences = data.readingPreferences;
+      this.session.wpmOverride = clampReadingWpm(data.readingPreferences.wpm, null);
+    }
+  }
+
+  withReadingPreferences(project) {
+    if (!this.readingPreferences) return project;
+    const { wpm, curve, chunkMode, audioPreset, soundscape, visualMode } = this.readingPreferences;
+    const defaults = project.defaults;
+    return {
+      ...project,
+      defaults: {
+        ...defaults,
+        reading: { ...defaults.reading, wpm: clampReadingWpm(wpm), curve, chunkMode },
+        audio: { ...defaults.audio, audioPreset, soundscape },
+        visual: {
+          ...defaults.visual,
+          surface: visualMode === 'focals' ? 'focal' : 'off',
+          config: { ...defaults.visual.config, visualMode }
+        }
+      }
+    };
   }
 
   /**
@@ -811,7 +846,7 @@ export class Scriptorium {
     this.status = 'Opening the reading…';
     this.render();
     this.openOnReadableType();
-    await this.onCreateSession(project);
+    await this.onCreateSession(this.withReadingPreferences(project));
   }
 
   /**
@@ -1020,7 +1055,7 @@ export class Scriptorium {
     // warned to the console, and saved the dangling reference — and the room
     // then told the reader it opens from the Vault whenever they want it.
     // Closing the tab made that permanent.
-    const saved = await MemoryCore.saveWorkshopBlueprintAsync(project, {
+    const saved = await MemoryCore.saveWorkshopBlueprintAsync(this.withReadingPreferences(project), {
       blobs: this.materialBlobs
     });
     this.status = saved?.id
