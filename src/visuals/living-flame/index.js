@@ -19,7 +19,7 @@ export function createLivingFlameField(host, options = {}) {
  * Used by Page mode and export, where no animation loop may run.
  */
 export async function sampleLivingFlame(recipe, {
-  seconds = 0, energy = 0.35, width = 960, height = 600, document: doc = globalThis.document
+  seconds = 0, energy = 0.35, width = 800, height = 500, document: doc = globalThis.document
 } = {}) {
   const host = doc.createElement('div');
   host.style.cssText = `position:fixed;left:-10000px;top:0;width:${width}px;height:${height}px;`;

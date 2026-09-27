@@ -161,9 +161,9 @@ it, and CI fails when the committed copy is not what `src/` produces.
 flowchart LR
     app["app<br/>composition root<br/>7 modules"]
     audio["audio<br/>Web Audio, recitation<br/>9 modules"]
-    components["components<br/>routed views<br/>36 modules"]
+    components["components<br/>routed views<br/>37 modules"]
     content["content<br/>texts, imagery, journeys<br/>228 modules"]
-    core["core<br/>session, player, router<br/>139 modules"]
+    core["core<br/>session, player, router<br/>141 modules"]
     page["page<br/>spatial projection<br/>4 modules"]
     sources["sources<br/>text and visual providers<br/>22 modules"]
     visuals["visuals<br/>procedural generation<br/>60 modules"]
@@ -179,7 +179,7 @@ flowchart LR
     components -.-> |1 lazy| app
     components --> |2| audio
     components --> |23| content
-    components --> |137| core
+    components --> |140| core
     components -.-> |1 lazy| page
     components --> |4| sources
     components --> |17| visuals
@@ -284,6 +284,7 @@ outliving its room, fails a build.
 | Rosarium | `src/components/Rosarium.js` | the Rosary, on the liturgy engine |
 | Via | `src/components/Via.js` | the Stations of the Cross |
 | Workshop | `src/components/Workshop.js` | authoring a composition |
+| Visual Lab | `src/components/VisualLab.js` | shaping a Living Flame scene; a route at `/visual-lab` and an overlay over a reading |
 | Vault | `src/components/Vault.js` | saved compositions and archetypes |
 | Scriptorium | `src/components/Scriptorium.js` | a model composes; a gate refuses |
 | Curia | `src/components/Curia.js` | the source and rights record |

@@ -3720,9 +3720,11 @@ export class Chamber {
         || (flamePreset(recipeId) ? { recipe: flamePreset(recipeId) } : null);
       if (!config) return [];
       const { sampleLivingFlame } = await import('../visuals/living-flame/index.js');
+      // A flame is one composition: two moments of it are enough to show
+      // that it moves without making the Page wait on many renders.
       const SWEEP_SECONDS = 40;
       const samples = [];
-      for (let n = 0; n < wanted; n++) {
+      for (let n = 0; n < Math.min(wanted, 2); n++) {
         if (signal?.aborted) break;
         const url = await sampleLivingFlame(config.recipe, {
           seconds: (n / wanted) * SWEEP_SECONDS,

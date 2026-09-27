@@ -186,13 +186,20 @@
 }
 
 @media (max-width: 720px) {
+  /* The artwork keeps the space above the open sheet; collapsed, it has
+     the whole screen again. */
+  .visual-lab:not(.panel-collapsed) .vl-stage {
+    bottom: min(46dvh, 24rem);
+  }
+
   .vl-panel {
     top: auto;
     left: 0;
     right: 0;
     bottom: 0;
     width: auto;
-    max-height: 58dvh;
+    height: min(46dvh, 24rem);
+    max-height: none;
     border-radius: 1rem 1rem 0 0;
     padding-bottom: calc(1rem + env(safe-area-inset-bottom));
   }
