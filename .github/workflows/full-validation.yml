@@ -44,13 +44,13 @@ jobs:
       - run: npm run scriptorium:ci
 
   browser:
-    name: Browser matrix ${{ matrix.shard }}/8
+    name: Browser matrix ${{ matrix.shard }}/16
     runs-on: ubuntu-latest
     timeout-minutes: 20
     strategy:
       fail-fast: false
       matrix:
-        shard: [1, 2, 3, 4, 5, 6, 7, 8]
+        shard: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]
     steps:
       - uses: actions/checkout@v4
         with:
@@ -59,7 +59,7 @@ jobs:
         with:
           chromium: 'true'
           audio: 'true'
-      - run: npm run test:e2e -- --fully-parallel --shard=${{ matrix.shard }}/8
+      - run: npm run test:e2e -- --fully-parallel --shard=${{ matrix.shard }}/16
       - uses: actions/upload-artifact@v4
         if: ${{ failure() }}
         with:
