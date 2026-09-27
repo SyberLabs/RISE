@@ -160,7 +160,10 @@ jobs:
             --data '{"intent":"A thoughtful classic about self-examination"}' \
             'https://rise.syberlabs.io/api/jev-recommend')
           test "$status" = 200 || { echo "Jev recommendation returned HTTP $status"; exit 1; }
-          jq -e --slurpfile editions src/content/archive/release-inventory.json '
+          node --input-type=module -e "import { JEV_PALETTES } from './src/core/jev-palette.js'; console.log(JSON.stringify(JEV_PALETTES))" \
+            > "$RUNNER_TEMP/jev-palettes.json"
+          jq -e --slurpfile editions src/content/archive/release-inventory.json \
+            --slurpfile palettes "$RUNNER_TEMP/jev-palettes.json" '
             . as $result
             | $editions[0][$result.workId] as $edition
             | ($result.model | startswith("typesafe/jev-1.13"))
@@ -169,15 +172,44 @@ jobs:
               and ($result.editionId == $edition.editionId)
               and ($result.sourceRevision == $edition.sourceRevision)
               and ($result.config | keys | sort) ==
-                (["wpm", "curve", "chunkMode", "audio", "visualMode", "projection", "revealMode", "section"] | sort)
+                (["section", "wpm", "curve", "chunkMode", "audio", "visualMode", "visualStyle",
+                  "visualEngine", "visualPalette", "kleePreset", "galleryCadence", "chamberFace",
+                  "fontSize", "colorTheme", "colors", "wordFill", "projection", "revealMode"] | sort)
               and ([100, 150, 200, 250, 300, 400, 500] | index($result.config.wpm)) != null
               and (["flat", "induction", "ascent", "wave", "climax"] | index($result.config.curve)) != null
               and (["word", "phrase", "sentence", "paragraph"] | index($result.config.chunkMode)) != null
               and (["silent", "aurora", "faded-signal", "focus", "deep", "gateway"] | index($result.config.audio)) != null
-              and (["off", "focals"] | index($result.config.visualMode)) != null
+              and (["off", "focals", "genesis", "attractor", "interlocution"] | index($result.config.visualMode)) != null
+              and (["quiet", "gentle", "immersive", "psychedelic"] | index($result.config.visualStyle)) != null
+              and (["klee", "turrell", "fractal", "harmonograph", "ostensoria", "apparitio"] | index($result.config.visualEngine)) != null
+              and (["white", "red", "blue", "gold", "purple"] | index($result.config.visualPalette)) != null
+              and (["random", "architectural", "chaotic", "harmonic", "gravitational", "twittering"] | index($result.config.kleePreset)) != null
+              and (["slow", "balanced", "lively"] | index($result.config.galleryCadence)) != null
+              and (["literary", "display", "thick", "jp"] | index($result.config.chamberFace)) != null
+              and (["small", "medium", "large", "fit"] | index($result.config.fontSize)) != null
+              and (["plain", "accent", "same"] | index($result.config.wordFill)) != null
+              and ($result.config.colors == $palettes[0][$result.config.colorTheme])
               and (["stream", "page"] | index($result.config.projection)) != null
               and (["instant", "progressive"] | index($result.config.revealMode)) != null
               and (["first", "shortest", "longest"] | index($result.config.section)) != null
+              and (if $result.config.visualStyle == "psychedelic" then
+                $result.config.visualMode == "interlocution"
+                and $result.config.visualEngine == "fractal"
+                and $result.config.galleryCadence == "lively"
+                and $result.config.colorTheme == "prism"
+                and $result.config.projection == "stream"
+              else true end)
+              and (if $result.config.visualStyle == "immersive"
+                or $result.config.visualMode == "genesis"
+                or $result.config.visualMode == "attractor"
+                or $result.config.visualMode == "interlocution"
+                then $result.config.projection == "stream" else true end)
+              and (if $result.config.wordFill == "same" then
+                $result.config.visualMode == "interlocution"
+                and $result.config.chamberFace == "thick"
+                and $result.config.fontSize == "fit"
+                and $result.config.chunkMode == "word"
+              else true end)
               and ($result | has("text") | not)
               and ($result | has("reading") | not)
           ' "$RUNNER_TEMP/jev-recommend-body" > /dev/null
