@@ -90,4 +90,17 @@ describe('Jev recommendation in the reader-facing Library', () => {
     expect(container.querySelector('[data-jev-result]').textContent)
       .toContain('not available in this RISE release');
   });
+
+  it('labels a reused Jev choice so the reader can tell it came from the cache', async () => {
+    const form = mount();
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true, json: async () => response({ decisionCacheStatus: 'hit' })
+    }));
+    form.elements.intent.value = 'A reflective classic';
+
+    await library.recommendWithJev(form);
+
+    expect(container.querySelector('.library-jev-choice details').textContent)
+      .toContain('Reused cached Jev choice');
+  });
 });

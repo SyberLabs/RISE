@@ -136,6 +136,18 @@ the request is described at <https://openrouter.ai/privacy>; the model provider
 may also process it under its own policy. We do not promise provider-side
 retention periods.
 
+### Optional Library recommendations
+
+When you submit a reading preference in the Library, RISE sends that intent
+through its same-origin Cloudflare Worker. On a cache miss, the Worker sends
+the intent and the public catalog criteria to OpenRouter for a TypeSafe Jev
+choice. It does not send your book text, reading history, saved work, or media.
+PostgreSQL holds the public Standard Ebooks catalog. Redis holds the catalog
+briefly and a validated Jev choice for five minutes. The Redis lookup key is
+a keyed digest of the intent and catalog; the raw intent is not stored in
+Redis or PostgreSQL. A repeated matching request can reuse that choice
+without another OpenRouter call. RISE does not deliberately log these intents.
+
 ### Hosting requests
 
 **Cloudflare** serves `rise.syberlabs.io` and its API. **Netlify** still serves

@@ -29,9 +29,9 @@ Vault, Scriptorium, Curia, Journeys, Via, Keystones, Settings.
 
 Cloudflare serves the app shell and same-origin decision routes. The Library's
 optional recommendation route reads a curated Standard Ebooks catalog from
-PostgreSQL, caches that public catalog in Redis, and asks JEV to choose one
-book. The reader's source text, proposal validation, and reading pipeline
-remain in the browser.
+PostgreSQL, caches that public catalog and short-lived decisions in Redis,
+and asks JEV to choose one book on a decision-cache miss. The reader's
+source text, proposal validation, and reading pipeline remain in the browser.
 
 ---
 
@@ -46,8 +46,10 @@ else is a recommendation.
    count are sent to the RISE function and TypeSafe. The reader supplies the
    TypeSafe key for that request; RISE does not persist it. When the reader
    asks for a Library recommendation, only their entered intent is sent to
-   the RISE Worker and OpenRouter. PostgreSQL and Redis hold public catalog
-   metadata, not reader requests.
+   the RISE Worker and, on a decision-cache miss, OpenRouter. PostgreSQL holds
+   public catalog metadata. Redis holds that catalog and validated choices for
+   five minutes; its decision key is a keyed digest of the intent and catalog,
+   and it does not store the raw intent.
 2. **Reverent degradation.** A work, image or sound that will not resolve is
    *absent* — never a broken frame, never a substitute. Silence outranks
    approximation.
@@ -820,20 +822,22 @@ of `settled`, `open`, `deferred`, or `reversed`.
 
 - **Chosen:** an optional Library form sends the reader's intent to the
   same-origin Cloudflare Worker. The Worker reads an exact-edition Standard
-  Ebooks catalog from PostgreSQL, caches only that public catalog in Redis
-  for 30 seconds, and asks JEV through OpenRouter to choose one work ID.
+  Ebooks catalog from PostgreSQL, caches that public catalog in Redis
+  for 30 seconds, and asks JEV through OpenRouter to choose one work ID on a
+  decision-cache miss. Redis caches the validated decision for five minutes
+  under a keyed digest of the intent and catalog, without storing raw intent.
   The browser opens that held edition through the existing Library path.
 - **Rejected:** sending book text or personal reading history to JEV, storing
-  intents or decisions in Redis, inventing a recommendation from local
+  raw intents or decisions in PostgreSQL, inventing a recommendation from local
   heuristics when JEV fails, and accepting a model-selected unheld edition.
 - **Why:** a recommendation is useful only when it leads to a book the reader
   can actually open. PostgreSQL owns the catalog, Redis reduces repeat reads,
-  and JEV makes a bounded choice on every request. Exact edition and source
-  revision checks keep the model inside the release inventory. The brief
+  and JEV makes a bounded choice on the first matching request. Exact edition
+  and source revision checks keep the model inside the release inventory. The brief
   description shown after the decision is curated catalog copy; JEV does not
   generate prose.
-- **Status:** open until the same-origin production request and book opening
-  are verified against the deployed version.
+- **Status:** open. The same-origin production request and book opening were
+  verified; the five-minute decision cache still requires production verification.
 
 ---
 

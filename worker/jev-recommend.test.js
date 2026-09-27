@@ -96,7 +96,7 @@ describe('Jev reading recommendation', () => {
       requestId: 'gen-dec-live-1', model: 'typesafe/jev-1.13-20260917',
       workId: 'middlemarch', editionId: books[0].edition_id,
       sourceRevision: books[0].source_revision,
-      reason: books[0].fit_description, cacheStatus: 'miss'
+      reason: books[0].fit_description, cacheStatus: 'miss', decisionCacheStatus: 'miss'
     });
     expect(mocks.neon).toHaveBeenCalledWith(env.NEON_DATABASE_URL);
     expect(mocks.set).toHaveBeenCalledWith(expect.stringMatching(/^rise:books:v1:[0-9a-f]{64}$/u), books, { ex: 30 });
@@ -122,6 +122,76 @@ describe('Jev reading recommendation', () => {
     expect(response.status).toBe(200);
     expect((await response.json()).cacheStatus).toBe('hit');
     expect(mocks.query).not.toHaveBeenCalled();
+    expect(provider).toHaveBeenCalledOnce();
+  });
+
+  it('reuses a validated Jev decision for the same intent within the Redis TTL', async () => {
+    const cache = new Map();
+    mocks.get.mockImplementation(async key => cache.get(key) ?? (key.startsWith('rise:books:') ? books : null));
+    mocks.set.mockImplementation(async (key, value) => { cache.set(key, value); return 'OK'; });
+    const provider = vi.fn(async () => Response.json({
+      id: 'gen-dec-cached', model: 'typesafe/jev-1.13', provider: 'TypeSafe',
+      answers: { book: { type: 'choice', choice: 'literary-walden' } }
+    }));
+    vi.stubGlobal('fetch', provider);
+
+    const first = await handleJevRecommend(request({ intent: 'Nature and quiet.' }), env);
+    const second = await handleJevRecommend(request({ intent: 'Nature and quiet.' }), env);
+
+    expect(first.status).toBe(200);
+    expect(second.status).toBe(200);
+    expect((await first.json()).decisionCacheStatus).toBe('miss');
+    expect(await second.json()).toMatchObject({
+      requestId: 'gen-dec-cached', workId: 'literary-walden', decisionCacheStatus: 'hit'
+    });
+    expect(provider).toHaveBeenCalledTimes(1);
+    const decisionKey = [...cache.keys()].find(key => key.startsWith('rise:jev-decision:'));
+    expect(decisionKey).toMatch(/^rise:jev-decision:v1:[0-9a-f]{64}$/u);
+    expect(decisionKey).not.toContain('Nature and quiet.');
+    expect(mocks.set).toHaveBeenCalledWith(decisionKey, expect.objectContaining({
+      workId: 'literary-walden'
+    }), { ex: 300 });
+  });
+
+  it('asks Jev again when the intent or admitted catalog changes', async () => {
+    const cache = new Map();
+    let catalog = books;
+    mocks.get.mockImplementation(async key => key.startsWith('rise:books:') ? catalog : cache.get(key));
+    mocks.set.mockImplementation(async (key, value) => { cache.set(key, value); return 'OK'; });
+    const provider = vi.fn(async () => Response.json({
+      id: `gen-dec-${provider.mock.calls.length}`, model: 'typesafe/jev-1.13', provider: 'TypeSafe',
+      answers: { book: { type: 'choice', choice: 'literary-walden' } }
+    }));
+    vi.stubGlobal('fetch', provider);
+
+    await handleJevRecommend(request({ intent: 'Nature and quiet.' }), env);
+    await handleJevRecommend(request({ intent: 'An intricate novel.' }), env);
+    catalog = books.map(row => row.work_id === 'middlemarch'
+      ? { ...row, decision_criterion: 'Choose this for a rich and intricate novel.' } : row);
+    const changed = await handleJevRecommend(request({ intent: 'Nature and quiet.' }), env);
+
+    expect(changed.status).toBe(200);
+    expect((await changed.json()).decisionCacheStatus).toBe('miss');
+    expect(provider).toHaveBeenCalledTimes(3);
+  });
+
+  it('does not serve a cached result with an invalid model', async () => {
+    mocks.get.mockImplementation(async key => key.startsWith('rise:books:') ? books : {
+      requestId: 'forged', model: 'other/model', workId: 'literary-walden',
+      editionId: book('literary-walden').edition_id,
+      sourceRevision: book('literary-walden').source_revision,
+      reason: book('literary-walden').fit_description
+    });
+    const provider = vi.fn(async () => Response.json({
+      id: 'gen-dec-fresh', model: 'typesafe/jev-1.13', provider: 'TypeSafe',
+      answers: { book: { type: 'choice', choice: 'literary-walden' } }
+    }));
+    vi.stubGlobal('fetch', provider);
+
+    const response = await handleJevRecommend(request(), env);
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toMatchObject({ requestId: 'gen-dec-fresh', decisionCacheStatus: 'miss' });
     expect(provider).toHaveBeenCalledOnce();
   });
 

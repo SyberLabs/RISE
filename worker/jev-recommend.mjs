@@ -4,6 +4,7 @@ import releaseInventory from '../src/content/archive/release-inventory.json' wit
 
 const API_URL = 'https://openrouter.ai/api/alpha/decisions';
 const MODEL = 'typesafe/jev-1.13';
+const DECISION_CACHE_TTL_SECONDS = 300;
 const MAX_BODY_BYTES = 1024;
 const JSON_HEADERS = {
   'Content-Type': 'application/json; charset=utf-8',
@@ -99,6 +100,32 @@ async function catalogCacheKey() {
   return `rise:books:v1:${Array.from(new Uint8Array(digest), byte => byte.toString(16).padStart(2, '0')).join('')}`;
 }
 
+async function decisionCacheKey(intent, books, apiKey) {
+  const key = await crypto.subtle.importKey('raw', new TextEncoder().encode(apiKey),
+    { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
+  const input = JSON.stringify({ model: MODEL, intent, books });
+  const signature = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(input));
+  return `rise:jev-decision:v1:${Array.from(new Uint8Array(signature),
+    byte => byte.toString(16).padStart(2, '0')).join('')}`;
+}
+
+function validCachedDecision(value, books) {
+  if (!value || typeof value !== 'object' || typeof value.requestId !== 'string'
+    || value.requestId.length < 1 || value.requestId.length > 100
+    || (value.model !== MODEL && !/^typesafe\/jev-1\.13-\d{8}$/u.test(value.model))) return null;
+  const book = books.find(row => row.work_id === value.workId);
+  if (!book || value.editionId !== book.edition_id
+    || value.sourceRevision !== book.source_revision || value.reason !== book.fit_description) return null;
+  return {
+    requestId: value.requestId,
+    model: value.model,
+    workId: book.work_id,
+    editionId: book.edition_id,
+    sourceRevision: book.source_revision,
+    reason: book.fit_description
+  };
+}
+
 function validDecision(value, books) {
   if (!value || typeof value !== 'object' || value.error || value.provider !== 'TypeSafe'
     || (value.model !== MODEL && !/^typesafe\/jev-1\.13-\d{8}$/u.test(value.model))) return null;
@@ -155,6 +182,15 @@ export async function handleJevRecommend(request, env) {
     return error(503, 'CATALOG_UNAVAILABLE', 'The reading catalog is unavailable.');
   }
 
+  let decisionKey;
+  try {
+    decisionKey = await decisionCacheKey(intent, books, env.OPENROUTER_API_KEY);
+    const cached = validCachedDecision(await redis.get(decisionKey), books);
+    if (cached) return reply(200, { ...cached, cacheStatus, decisionCacheStatus: 'hit' });
+  } catch {
+    return error(503, 'DECISION_CACHE_UNAVAILABLE', 'Reading suggestions are unavailable.');
+  }
+
   let provider;
   try {
     const response = await fetch(API_URL, {
@@ -189,5 +225,10 @@ export async function handleJevRecommend(request, env) {
 
   const decision = validDecision(provider, books);
   if (!decision) return error(502, 'DECISION_INVALID_RESPONSE', 'Jev returned an invalid choice.');
-  return reply(200, { ...decision, cacheStatus });
+  try {
+    await redis.set(decisionKey, decision, { ex: DECISION_CACHE_TTL_SECONDS });
+  } catch {
+    return error(503, 'DECISION_CACHE_UNAVAILABLE', 'Reading suggestions are unavailable.');
+  }
+  return reply(200, { ...decision, cacheStatus, decisionCacheStatus: 'miss' });
 }
