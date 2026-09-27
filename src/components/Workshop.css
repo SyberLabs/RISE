@@ -81,7 +81,7 @@
   min-height: var(--sy-control-height);
   padding: 0 var(--sy-space-4);
   border: 1px solid transparent;
-  border-radius: var(--sy-radius);
+  border-radius: var(--sy-radius-full);
   font: 500 16px/24px var(--sy-font-sans);
   text-align: center;
   cursor: pointer;
@@ -98,13 +98,14 @@
 
 .workshop-studio .btn-primary {
   background: var(--sy-text);
-  border-color: var(--sy-text);
+  background-image: var(--sy-primary-fill);
+  box-shadow: var(--sy-primary-glow);
+  border-color: transparent;
   color: var(--sy-on-primary);
 }
 
 .workshop-studio .btn-primary:hover:not(:disabled) {
-  background: #FFFFFF;
-  border-color: #FFFFFF;
+  box-shadow: var(--sy-primary-glow-hover);
 }
 
 .workshop-studio .btn-secondary {
@@ -531,7 +532,7 @@
   padding: var(--sy-space-2);
   gap: 0;
   border: 1px solid var(--sy-line);
-  border-radius: var(--sy-radius);
+  border-radius: var(--sy-radius-panel);
   background: var(--sy-surface-2);
   box-shadow: var(--sy-shadow-overlay);
 }
@@ -863,7 +864,7 @@
   justify-content: center;
   gap: var(--sy-space-2);
   border: 1px solid var(--sy-line-strong);
-  border-radius: var(--sy-radius);
+  border-radius: var(--sy-radius-full);
   background: transparent;
   color: var(--sy-text-2);
   font: 500 14px/20px var(--sy-font-sans);
@@ -1077,7 +1078,7 @@
   padding: 0;
   place-items: center;
   border: 0;
-  border-radius: var(--sy-radius);
+  border-radius: var(--sy-radius-full);
   background: transparent;
   color: var(--sy-text-3);
   transform: translateY(-50%);
@@ -1716,7 +1717,7 @@
   flex-direction: column;
   gap: var(--sy-space-4);
   border: 1px solid var(--sy-line);
-  border-radius: var(--sy-radius);
+  border-radius: var(--sy-radius-panel);
   background: var(--sy-surface);
   box-shadow: var(--sy-shadow-overlay);
   color: var(--sy-text);
@@ -1791,7 +1792,7 @@
   flex-direction: column;
   gap: var(--sy-space-2);
   border: 1px solid var(--sy-line);
-  border-radius: var(--sy-radius);
+  border-radius: var(--sy-radius-panel);
 }
 
 .workshop-studio .studio-passage-picker {
@@ -2552,7 +2553,7 @@
   max-height: 80svh;
   flex-direction: column;
   border: 1px solid var(--sy-line);
-  border-radius: var(--sy-radius);
+  border-radius: var(--sy-radius-panel);
   background: var(--sy-surface);
   box-shadow: var(--sy-shadow-overlay);
   color: var(--sy-text);
@@ -2598,7 +2599,7 @@
   min-height: var(--sy-control-height);
   padding: 0 var(--sy-space-4);
   border: 1px solid transparent;
-  border-radius: var(--sy-radius);
+  border-radius: var(--sy-radius-full);
   background: transparent;
   color: var(--sy-text-2);
   font: 500 16px/24px var(--sy-font-sans);

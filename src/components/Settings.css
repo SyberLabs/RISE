@@ -414,7 +414,7 @@
   padding: 0;
   background: none;
   border: none;
-  border-radius: var(--sy-radius);
+  border-radius: var(--sy-radius-full);
   color: var(--color-fog);
   cursor: pointer;
 }

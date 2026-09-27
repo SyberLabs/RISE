@@ -534,7 +534,10 @@ small {
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
+  /* Room for the italic overhang inside the clip, given back to the line so
+     the punctuation after the word does not drift. */
   padding-right: 0.08em;
+  margin-right: -0.06em;
 }
 
 @media (forced-colors: active) {

@@ -8,6 +8,7 @@
  */
 
 import './room-chrome.css';
+import { drawRiseSigil } from './atlas.js';
 
 const ICON_PATHS = Object.freeze({
   back: '<path d="M19 12H5"></path><path d="m11 18-6-6 6-6"></path>',
@@ -35,17 +36,35 @@ export function roomIcon(name, size = 20) {
 }
 
 /**
+ * The product sigil in the header lockup is drawn once the room has put the
+ * header into the page: every undrawn one, after the current render.
+ */
+let sigilsPending = false;
+function drawHeaderSigils() {
+  if (sigilsPending || typeof document === 'undefined') return;
+  sigilsPending = true;
+  queueMicrotask(() => {
+    sigilsPending = false;
+    for (const canvas of document.querySelectorAll('canvas.sl-sigil:not(.is-drawn)')) {
+      drawRiseSigil(canvas, { animate: false });
+    }
+  });
+}
+
+/**
  * The system header. `back` is the destination word ("Home", "Chapel");
  * the button carries `data-action="back"` unless a room asks otherwise.
  */
 export function roomHeader({ back = 'Home', action = 'back', backClass = '', backLabel = null } = {}) {
   const label = backLabel ? ` aria-label="${backLabel}"` : '';
+  drawHeaderSigils();
   return `
     <header class="sl-header room-header">
       <div class="sl-header-inner">
         <span class="sl-lockup" aria-label="SyberLabs RISE">
           <img class="sl-mark" src="/syberlabs-mark.webp" alt="" width="18" height="20" decoding="async">
           <span class="sl-wordmark" aria-hidden="true">SYBERLABS<span class="sl-divider"> / </span>RISE</span>
+          <canvas class="sl-sigil" aria-hidden="true"></canvas>
         </span>
         <button type="button" class="room-back ${backClass}" data-action="${action}"${label}>
           ${roomIcon('back')}<span>${back}</span>

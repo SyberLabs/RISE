@@ -846,8 +846,8 @@
 }
 
 .orbital-modal .modal-content {
-  background: #0B0D14;
-  border: 1px solid #1F2433;
+  background: var(--sy-surface);
+  border: 1px solid var(--rs-line);
   border-radius: 8px;
   box-shadow: 0 24px 64px rgba(0, 0, 0, 0.55);
   max-width: 600px;
@@ -880,7 +880,7 @@
   align-items: center;
   justify-content: space-between;
   padding: var(--space-md) var(--space-lg);
-  border-bottom: 1px solid #1F2433;
+  border-bottom: 1px solid var(--rs-line);
 }
 
 .orbital-modal .modal-header h2 {
@@ -889,7 +889,7 @@
   font-size: 18px;
   line-height: 28px;
   font-weight: 600;
-  color: #F2F5FB;
+  color: var(--rs-text);
 }
 
 .orbital-modal .modal-close {
@@ -901,18 +901,18 @@
   background: none;
   border: none;
   border-radius: 8px;
-  color: #AEB8CC;
+  color: var(--rs-text-2);
   cursor: pointer;
   padding: 0;
   transition: color var(--transition-fast) var(--ease-default);
 }
 
 .orbital-modal .modal-close:hover {
-  color: #F2F5FB;
+  color: var(--rs-text);
 }
 
 .orbital-modal :focus-visible {
-  outline: 2px solid #4890F0;
+  outline: var(--sy-focus);
   outline-offset: 2px;
 }
 
@@ -1543,7 +1543,7 @@
 }
 
 /* ═══════════════════════════════════════════════════════════
-   Settings panels (Timing, Sound, Visuals) — SyberLabs DS v1
+   Settings panels (Timing, Sound, Visuals) — SyberLabs DS v2 tokens
    The classes above are shared with Settings and Compose, so the
    panel insides are restyled here, scoped to .orbital-modal.
    Controls: 1px line-strong, radius 8, 44px. Sections: hairlines
@@ -1551,16 +1551,16 @@
    ═══════════════════════════════════════════════════════════ */
 
 .orbital-modal {
-  --rs-line: #1F2433;
-  --rs-line-strong: #5E6980;
-  --rs-surface-2: #121521;
-  --rs-text: #F2F5FB;
-  --rs-text-2: #AEB8CC;
-  --rs-text-3: #7F8AA3;
-  --rs-brand: #4890F0;
-  --rs-sans: 'Instrument Sans', var(--font-primary);
-  --rs-mono: 'JetBrains Mono', var(--font-mono);
-  --rs-ease: cubic-bezier(.2, .8, .2, 1);
+  --rs-line: var(--sy-line);
+  --rs-line-strong: var(--sy-line-strong);
+  --rs-surface-2: var(--sy-surface-2);
+  --rs-text: var(--sy-text);
+  --rs-text-2: var(--sy-text-2);
+  --rs-text-3: var(--sy-text-3);
+  --rs-brand: var(--sy-brand);
+  --rs-sans: var(--sy-font-sans);
+  --rs-mono: var(--sy-font-mono);
+  --rs-ease: var(--sy-ease);
 }
 
 .orbital-modal .modal-body {
@@ -1858,7 +1858,7 @@
 .orbital-modal .voice-select {
   height: 44px;
   padding: 0 16px;
-  background: #0B0D14;
+  background: var(--sy-surface);
   border: 1px solid var(--rs-line-strong);
   border-radius: 8px;
   color: var(--rs-text);
@@ -1973,7 +1973,7 @@
    selected state, 12px floor. The ink swatches keep their own colour. */
 #modal-visual .vnav {
   --vnav-edge: var(--rs-line);
-  --vnav-panel: #0B0D14;
+  --vnav-panel: var(--sy-surface);
   --vnav-raise: var(--rs-surface-2);
   font-family: var(--rs-sans);
   color: var(--rs-text-2);
@@ -2266,7 +2266,7 @@
 #modal-visual .vnav-dialog-actions [data-dialog-primary] {
   background: var(--rs-text);
   border-color: var(--rs-text);
-  color: #05060A;
+  color: var(--sy-on-primary);
 }
 
 #modal-visual .vnav-back,
