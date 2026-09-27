@@ -12,6 +12,7 @@ export function createRouteManifest(operations) {
       create: (container, _data, { Portal }) => new Portal(container, {
         onNavigate: operations.handleNavigate,
         onQuickAccess: operations.quickAccess,
+        onLaunchJevReading: operations.launchJevReading,
         getAudioEngine: operations.getAudioEngine,
         getCurrentSession: operations.getCurrentSession
       })

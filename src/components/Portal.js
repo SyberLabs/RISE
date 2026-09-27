@@ -19,6 +19,7 @@ export class Portal {
     this.onQuickAccess = options.onQuickAccess || (() => { });
     this.getAudioEngine = options.getAudioEngine || (() => null);
     this.getCurrentSession = options.getCurrentSession || (() => null);
+    this.onLaunchJevReading = options.onLaunchJevReading || (async () => {});
     this._active = false;
     this.boundKeyboardHandler = this.handleKeyboard.bind(this);
 
@@ -144,65 +145,15 @@ export class Portal {
         <div class="portal-title-container">
           <p class="portal-jev-eyebrow">READ WITH JEV</p>
           <h1 class="portal-title">What would you like to read?</h1>
-          <p class="portal-subtitle text-fog">Name a book, author, subject, or feeling. You choose how it reads.</p>
+          <p class="portal-subtitle text-fog">Tell Jev what you want. It will choose an existing reading and shape the experience.</p>
         </div>
 
         <form class="portal-jev-form" id="portal-jev-form">
           <label class="portal-jev-label" for="portal-jev-intent">Your reading request</label>
           <textarea id="portal-jev-intent" name="intent" rows="2" maxlength="240" required
-            placeholder="Marcus Aurelius on attention, slowly, with quiet visuals…"></textarea>
-          <fieldset class="portal-jev-mode">
-            <legend>What should Jev help you do?</legend>
-            <label><input type="radio" name="portal-jev-mode" value="find" checked><span>Find a text</span></label>
-            <label><input type="radio" name="portal-jev-mode" value="compose"><span>Compose a reading</span></label>
-          </fieldset>
-          <div class="portal-jev-length" id="portal-length-group" hidden>
-            <label for="portal-length">Reading length</label>
-            <select id="portal-length" name="length">
-              <option value="400">400 words</option>
-              <option value="1000">1,000 words</option>
-              <option value="2000">2,000 words</option>
-              <option value="3000">3,000 words</option>
-              <option value="4000" selected>4,000 words</option>
-              <option value="6000">6,000 words</option>
-              <option value="9000">9,000 words</option>
-              <option value="12000">12,000 words</option>
-              <option value="18000">18,000 words</option>
-            </select>
-          </div>
-          <details class="portal-jev-preferences">
-            <summary>Shape the reading <span>Pace · chunks · sound · visuals</span></summary>
-            <div class="portal-jev-preference-grid">
-              <label for="portal-wpm">Pace <span id="portal-wpm-value">200 words/min</span>
-                <input id="portal-wpm" type="range" min="100" max="500" step="10" value="200" aria-describedby="portal-wpm-value">
-              </label>
-              <label for="portal-curve">Pacing curve
-                <select id="portal-curve">
-                  <option value="flat">Steady</option><option value="induction">Induction</option>
-                  <option value="ascent">Ascent</option><option value="wave">Wave</option>
-                  <option value="climax">Climax</option>
-                </select>
-              </label>
-              <label for="portal-chunk">Text chunks
-                <select id="portal-chunk">
-                  <option value="word">Word</option><option value="phrase">Phrase</option>
-                  <option value="sentence">Sentence</option>
-                </select>
-              </label>
-              <label for="portal-audio">Sound
-                <select id="portal-audio">
-                  <option value="silent">Silence</option><option value="aurora">Aurora</option>
-                  <option value="faded-signal">Faded Signal</option><option value="focus">Focus</option>
-                  <option value="deep">Deep</option><option value="gateway">Gateway</option>
-                </select>
-              </label>
-              <label for="portal-visual">Visuals
-                <select id="portal-visual"><option value="off">Off</option><option value="focals">Visuals on</option></select>
-              </label>
-            </div>
-          </details>
-          <button class="portal-jev-submit" type="submit">Ask Jev <span aria-hidden="true">→</span></button>
-          <p class="portal-jev-hint" id="portal-jev-hint">Choose a text from the Library. These reading settings can be adjusted before you begin.</p>
+            placeholder="I want something reflective, slow, quiet, with gentle visuals…"></textarea>
+          <button class="portal-jev-submit" type="submit">Ask Jev and read <span aria-hidden="true">→</span></button>
+          <p class="portal-jev-hint" id="portal-jev-hint" role="status" aria-live="polite">Jev chooses from the released Library and sets the Chamber in one request.</p>
         </form>
 
         <!-- Navigation -->
@@ -281,43 +232,32 @@ export class Portal {
 
   attachEvents() {
     const form = this.container.querySelector('#portal-jev-form');
-    const modeInputs = form.querySelectorAll('[name="portal-jev-mode"]');
-    const lengthGroup = form.querySelector('#portal-length-group');
-    modeInputs.forEach(input => input.addEventListener('change', () => {
-      const compose = form.querySelector('[name="portal-jev-mode"]:checked')?.value === 'compose';
-      lengthGroup.hidden = !compose;
-      form.querySelector('#portal-jev-hint').textContent = compose
-        ? 'These are reader defaults. The Scriptorium uses your Jev key or a prompt you carry to a composer, then examines the returned score before you begin.'
-        : 'Choose a text from the Library. These reading settings can be adjusted before you begin.';
-    }));
-    form.querySelector('#portal-wpm').addEventListener('input', event => {
-      form.querySelector('#portal-wpm-value').textContent = `${event.target.value} words/min`;
-    });
-    form.addEventListener('submit', event => {
+    form.addEventListener('submit', async event => {
       event.preventDefault();
       const intent = form.querySelector('#portal-jev-intent').value.trim();
-      if (!intent) {
+      if (intent.length < 3 || intent.length > 240) {
         form.querySelector('#portal-jev-intent').focus();
         return;
       }
-      const audio = form.querySelector('#portal-audio').value;
-      const readingPreferences = {
-        wpm: Number(form.querySelector('#portal-wpm').value),
-        curve: form.querySelector('#portal-curve').value,
-        chunkMode: form.querySelector('#portal-chunk').value,
-        audioPreset: ['focus', 'deep', 'gateway'].includes(audio) ? audio : 'silent',
-        soundscape: ['aurora', 'faded-signal'].includes(audio) ? audio : 'none',
-        visualMode: form.querySelector('#portal-visual').value
-      };
+      const submit = form.querySelector('.portal-jev-submit');
+      const hint = form.querySelector('#portal-jev-hint');
+      if (submit.disabled) return;
+      submit.disabled = true;
+      hint.textContent = 'Jev is choosing your reading…';
       this.getAudioEngine()?.playClick();
-      if (form.querySelector('[name="portal-jev-mode"]:checked')?.value === 'compose') {
-        this.onNavigate('scriptorium', {
-          intent,
-          targetWords: Number(form.querySelector('#portal-length').value),
-          readingPreferences
+      try {
+        const response = await fetch('/api/jev-recommend', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ intent })
         });
-      } else {
-        this.onNavigate('library', { jevIntent: intent, readingPreferences });
+        const decision = await response.json();
+        if (!response.ok) throw new Error(decision.error?.message || 'Jev is unavailable.');
+        await this.onLaunchJevReading(decision);
+      } catch (error) {
+        hint.textContent = error.message || 'The reading could not be prepared. Please try again.';
+      } finally {
+        submit.disabled = false;
       }
     });
 

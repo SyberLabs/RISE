@@ -462,6 +462,7 @@ class App {
         const routes = createRouteManifest({
             handleNavigate: this.handleNavigate,
             quickAccess: () => this.quickAccess(),
+            launchJevReading: decision => this.launchJevReading(decision),
             launchKeystone: slug => this.launchKeystone(slug),
             openMintedProgram: slug => this.openMintedProgram(slug),
             handleSequenceSelection: sequenceId => this.handleSequenceSelection(sequenceId),
@@ -746,7 +747,7 @@ class App {
         } catch (error) {
             console.error('[RISE] Session compilation failed:', error);
             this.showToast(error.message || 'Unable to compile session', 4000);
-            return;
+            return false;
         }
 
         console.log('[RISE] Created session:', session);
@@ -761,7 +762,16 @@ class App {
 
         // Store and navigate to chamber-session (immersion)
         this.currentSession = session;
-        this.router.navigate('chamber-session', { data: session });
+        return this.router.navigate('chamber-session', { data: session });
+    }
+
+    /** Resolve Jev's discrete choices against shipped text, then enter the reader. */
+    async launchJevReading(decision) {
+        const { resolveJevReading } = await import('./app/jev-reading.js');
+        const sessionConfig = await resolveJevReading(decision);
+        if (!await this.handleBeginSession(sessionConfig)) {
+            throw new Error('The selected reading could not be opened. Please try again.');
+        }
     }
 
     /** Resolve, compile, and launch an exact canonical composition. */

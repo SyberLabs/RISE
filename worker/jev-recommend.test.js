@@ -51,6 +51,26 @@ function book(workId, extras = {}) {
 
 const books = Object.keys(releaseInventory).map(workId => book(workId));
 
+const chosenConfig = Object.freeze({
+  section: 'first', wpm: 200, curve: 'flat', chunkMode: 'word',
+  audio: 'silent', visualMode: 'off', projection: 'stream', revealMode: 'instant'
+});
+
+function answers(workId, overrides = {}) {
+  return {
+    book: { type: 'choice', choice: workId },
+    section: { type: 'choice', choice: 'first' },
+    pace: { type: 'choice', choice: '200' },
+    curve: { type: 'choice', choice: 'flat' },
+    chunk: { type: 'choice', choice: 'word' },
+    audio: { type: 'choice', choice: 'silent' },
+    visual: { type: 'choice', choice: 'off' },
+    projection: { type: 'choice', choice: 'stream' },
+    reveal: { type: 'choice', choice: 'instant' },
+    ...overrides
+  };
+}
+
 function request(body = { intent: 'I want a thoughtful novel.' }, headers = {}) {
   return new Request(`${SITE}/api/jev-recommend`, {
     method: 'POST',
@@ -86,7 +106,7 @@ describe('Jev reading recommendation', () => {
   it('loads PostgreSQL on a Redis catalog miss and sends only admitted books to Jev', async () => {
     const provider = vi.fn(async () => Response.json({
       id: 'gen-dec-live-1', model: 'typesafe/jev-1.13-20260917', provider: 'TypeSafe',
-      answers: { book: { type: 'choice', choice: 'middlemarch' } }
+      answers: answers('middlemarch')
     }));
     vi.stubGlobal('fetch', provider);
 
@@ -96,7 +116,8 @@ describe('Jev reading recommendation', () => {
       requestId: 'gen-dec-live-1', model: 'typesafe/jev-1.13-20260917',
       workId: 'middlemarch', editionId: books[0].edition_id,
       sourceRevision: books[0].source_revision,
-      reason: books[0].fit_description, cacheStatus: 'miss', decisionCacheStatus: 'miss'
+      reason: books[0].fit_description, config: chosenConfig,
+      cacheStatus: 'miss', decisionCacheStatus: 'miss'
     });
     expect(mocks.neon).toHaveBeenCalledWith(env.NEON_DATABASE_URL);
     expect(mocks.set).toHaveBeenCalledWith(expect.stringMatching(/^rise:books:v1:[0-9a-f]{64}$/u), books, { ex: 30 });
@@ -107,6 +128,11 @@ describe('Jev reading recommendation', () => {
     expect(Object.keys(body.questions.book.criteria)).toContain('middlemarch');
     expect(Object.keys(body.questions.book.criteria)).toContain('literary-walden');
     expect(body.state).toEqual({ reader_intent: 'I want a thoughtful novel.' });
+    expect(Object.keys(body.questions)).toEqual([
+      'book', 'section', 'pace', 'curve', 'chunk', 'audio', 'visual', 'projection', 'reveal'
+    ]);
+    expect(body.questions.audio.criteria).toHaveProperty('aurora');
+    expect(body.questions.section.criteria).toHaveProperty('shortest');
     expect(provider.mock.calls[0][1].headers.Authorization).toBe('Bearer openrouter-server-secret');
   });
 
@@ -114,7 +140,7 @@ describe('Jev reading recommendation', () => {
     mocks.get.mockResolvedValue(books);
     const provider = vi.fn(async () => Response.json({
       id: 'gen-dec-live-2', model: 'typesafe/jev-1.13', provider: 'TypeSafe',
-      answers: { book: { type: 'choice', choice: 'literary-walden' } }
+      answers: answers('literary-walden')
     }));
     vi.stubGlobal('fetch', provider);
 
@@ -125,13 +151,36 @@ describe('Jev reading recommendation', () => {
     expect(provider).toHaveBeenCalledOnce();
   });
 
+  it('returns the selected configuration from one Jev decision', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => Response.json({
+      id: 'one-decision', model: 'typesafe/jev-1.13', provider: 'TypeSafe',
+      answers: answers('literary-walden', {
+        section: { type: 'choice', choice: 'shortest' },
+        pace: { type: 'choice', choice: '150' },
+        curve: { type: 'choice', choice: 'wave' },
+        chunk: { type: 'choice', choice: 'phrase' },
+        audio: { type: 'choice', choice: 'aurora' },
+        visual: { type: 'choice', choice: 'focals' },
+        projection: { type: 'choice', choice: 'page' },
+        reveal: { type: 'choice', choice: 'progressive' }
+      })
+    })));
+    const response = await handleJevRecommend(request({ intent: 'A brief, gentle nature reading.' }), env);
+    expect(response.status).toBe(200);
+    expect((await response.json()).config).toEqual({
+      section: 'shortest', wpm: 150, curve: 'wave', chunkMode: 'phrase',
+      audio: 'aurora', visualMode: 'focals', projection: 'page', revealMode: 'progressive'
+    });
+    expect(fetch).toHaveBeenCalledOnce();
+  });
+
   it('reuses a validated Jev decision for the same intent within the Redis TTL', async () => {
     const cache = new Map();
     mocks.get.mockImplementation(async key => cache.get(key) ?? (key.startsWith('rise:books:') ? books : null));
     mocks.set.mockImplementation(async (key, value) => { cache.set(key, value); return 'OK'; });
     const provider = vi.fn(async () => Response.json({
       id: 'gen-dec-cached', model: 'typesafe/jev-1.13', provider: 'TypeSafe',
-      answers: { book: { type: 'choice', choice: 'literary-walden' } }
+      answers: answers('literary-walden')
     }));
     vi.stubGlobal('fetch', provider);
 
@@ -146,7 +195,7 @@ describe('Jev reading recommendation', () => {
     });
     expect(provider).toHaveBeenCalledTimes(1);
     const decisionKey = [...cache.keys()].find(key => key.startsWith('rise:jev-decision:'));
-    expect(decisionKey).toMatch(/^rise:jev-decision:v1:[0-9a-f]{64}$/u);
+    expect(decisionKey).toMatch(/^rise:jev-decision:v2:[0-9a-f]{64}$/u);
     expect(decisionKey).not.toContain('Nature and quiet.');
     expect(mocks.set).toHaveBeenCalledWith(decisionKey, expect.objectContaining({
       workId: 'literary-walden'
@@ -160,7 +209,7 @@ describe('Jev reading recommendation', () => {
     mocks.set.mockImplementation(async (key, value) => { cache.set(key, value); return 'OK'; });
     const provider = vi.fn(async () => Response.json({
       id: `gen-dec-${provider.mock.calls.length}`, model: 'typesafe/jev-1.13', provider: 'TypeSafe',
-      answers: { book: { type: 'choice', choice: 'literary-walden' } }
+      answers: answers('literary-walden')
     }));
     vi.stubGlobal('fetch', provider);
 
@@ -184,7 +233,7 @@ describe('Jev reading recommendation', () => {
     });
     const provider = vi.fn(async () => Response.json({
       id: 'gen-dec-fresh', model: 'typesafe/jev-1.13', provider: 'TypeSafe',
-      answers: { book: { type: 'choice', choice: 'literary-walden' } }
+      answers: answers('literary-walden')
     }));
     vi.stubGlobal('fetch', provider);
 
@@ -199,7 +248,7 @@ describe('Jev reading recommendation', () => {
     mocks.query.mockResolvedValue(books.filter(row => row.work_id !== 'middlemarch'));
     const provider = vi.fn(async () => Response.json({
       model: 'typesafe/jev-1.13', provider: 'TypeSafe',
-      answers: { book: { type: 'choice', choice: 'literary-walden' } }
+      answers: answers('literary-walden')
     }));
     vi.stubGlobal('fetch', provider);
 
@@ -225,7 +274,22 @@ describe('Jev reading recommendation', () => {
   it('rejects a Jev choice outside the validated catalog', async () => {
     vi.stubGlobal('fetch', vi.fn(async () => Response.json({
       model: 'typesafe/jev-1.13', provider: 'TypeSafe',
-      answers: { book: { type: 'choice', choice: 'unreviewed-book' } }
+      answers: answers('unreviewed-book')
+    })));
+    const response = await handleJevRecommend(request(), env);
+    expect(response.status).toBe(502);
+    expect((await response.json()).error.code).toBe('DECISION_INVALID_RESPONSE');
+  });
+
+  it.each([
+    ['missing setting', { pace: undefined }],
+    ['unavailable sound', { audio: { type: 'choice', choice: 'invented' } }],
+    ['invalid answer type', { visual: { type: 'text', value: 'focals' } }],
+    ['unavailable section', { section: { type: 'choice', choice: 'chapter-999' } }]
+  ])('rejects %s rather than launching a partial configuration', async (_label, overrides) => {
+    vi.stubGlobal('fetch', vi.fn(async () => Response.json({
+      model: 'typesafe/jev-1.13', provider: 'TypeSafe',
+      answers: answers('middlemarch', overrides)
     })));
     const response = await handleJevRecommend(request(), env);
     expect(response.status).toBe(502);

@@ -160,9 +160,34 @@ jobs:
             --data '{"intent":"A thoughtful classic about self-examination"}' \
             'https://rise.syberlabs.io/api/jev-recommend')
           test "$status" = 200 || { echo "Jev recommendation returned HTTP $status"; exit 1; }
-          jq -e '.model | startswith("typesafe/jev-1.13")' "$RUNNER_TEMP/jev-recommend-body" > /dev/null
-          jq -e '.editionId | startswith("standard-ebooks:")' "$RUNNER_TEMP/jev-recommend-body" > /dev/null
+          jq -e --slurpfile editions src/content/archive/release-inventory.json '
+            . as $result
+            | $editions[0][$result.workId] as $edition
+            | ($result.model | startswith("typesafe/jev-1.13"))
+              and ($result.requestId | type == "string" and length > 0)
+              and ($edition != null)
+              and ($result.editionId == $edition.editionId)
+              and ($result.sourceRevision == $edition.sourceRevision)
+              and ($result.config | keys | sort) ==
+                (["wpm", "curve", "chunkMode", "audio", "visualMode", "projection", "revealMode", "section"] | sort)
+              and ([100, 150, 200, 250, 300, 400, 500] | index($result.config.wpm)) != null
+              and (["flat", "induction", "ascent", "wave", "climax"] | index($result.config.curve)) != null
+              and (["word", "phrase", "sentence", "paragraph"] | index($result.config.chunkMode)) != null
+              and (["silent", "aurora", "faded-signal", "focus", "deep", "gateway"] | index($result.config.audio)) != null
+              and (["off", "focals"] | index($result.config.visualMode)) != null
+              and (["stream", "page"] | index($result.config.projection)) != null
+              and (["instant", "progressive"] | index($result.config.revealMode)) != null
+              and (["first", "shortest", "longest"] | index($result.config.section)) != null
+              and ($result | has("text") | not)
+              and ($result | has("reading") | not)
+          ' "$RUNNER_TEMP/jev-recommend-body" > /dev/null
+          status=$(curl -sS --max-time 20 -o "$RUNNER_TEMP/release-after-jev" \
+            -w '%{http_code}' "https://rise.syberlabs.io/release-$TESTED_SHA.txt")
+          test "$status" = 200 && test "$(cat "$RUNNER_TEMP/release-after-jev")" = "$TESTED_SHA" || {
+            echo "Production changed during the Jev smoke check; expected release $TESTED_SHA."
+            exit 1
+          }
           {
-            echo "Deployed production artifact $TESTED_SHA; public pages, exact release marker, JSON API 404, and a live Jev recommendation verified."
-            echo 'Owner acceptance: open the chosen book in the Library Archive at https://rise.syberlabs.io/.'
+            echo "Deployed production artifact $TESTED_SHA; public pages, exact release marker, JSON API 404, and one live Jev reading configuration verified."
+            echo 'Owner acceptance: ask Jev for a reading at https://rise.syberlabs.io/ and check that Chamber starts with the selected text and settings.'
           } >> "$GITHUB_STEP_SUMMARY"

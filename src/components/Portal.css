@@ -1190,18 +1190,14 @@
   box-shadow: 0 20px 70px rgba(0, 0, 0, 0.28);
 }
 
-.portal-jev-label,
-.portal-jev-length label,
-.portal-jev-mode legend,
-.portal-jev-preference-grid label {
+.portal-jev-label {
   color: var(--color-light);
   font-family: var(--font-primary);
   font-size: 13px;
   letter-spacing: 0.02em;
 }
 
-.portal-jev-form textarea,
-.portal-jev-form select {
+.portal-jev-form textarea {
   width: 100%;
   border: 1px solid rgba(var(--color-accent-rgb), 0.22);
   border-radius: 6px;
@@ -1219,88 +1215,10 @@
 
 .portal-jev-form textarea::placeholder { color: var(--color-fog); }
 
-.portal-jev-form :is(textarea, select, input, button, summary):focus-visible {
+.portal-jev-form :is(textarea, button):focus-visible {
   outline: 2px solid var(--color-accent);
   outline-offset: 3px;
 }
-
-.portal-jev-mode {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin: 0;
-  padding: 0;
-  border: 0;
-}
-
-.portal-jev-mode legend { margin-bottom: 8px; }
-
-.portal-jev-mode label {
-  position: relative;
-  cursor: pointer;
-}
-
-.portal-jev-mode input {
-  position: absolute;
-  opacity: 0;
-}
-
-.portal-jev-mode span {
-  display: block;
-  padding: 9px 15px;
-  border: 1px solid rgba(var(--color-accent-rgb), 0.18);
-  border-radius: 5px;
-  color: var(--color-fog);
-  font: 13px var(--font-primary);
-}
-
-.portal-jev-mode input:checked + span {
-  border-color: rgba(var(--color-accent-rgb), 0.62);
-  background: rgba(var(--color-accent-rgb), 0.12);
-  color: var(--color-light);
-}
-
-.portal-jev-mode input:focus-visible + span {
-  outline: 2px solid var(--color-accent);
-  outline-offset: 3px;
-}
-
-.portal-jev-length:not([hidden]) { display: grid; gap: 7px; width: min(100%, 240px); }
-.portal-jev-form select { min-height: 42px; padding: 8px 10px; }
-
-.portal-jev-preferences {
-  border-top: 1px solid rgba(var(--color-accent-rgb), 0.14);
-  padding-top: 15px;
-}
-
-.portal-jev-preferences summary {
-  display: flex;
-  justify-content: space-between;
-  gap: 12px;
-  color: var(--color-light);
-  cursor: pointer;
-  font: 14px var(--font-primary);
-}
-
-.portal-jev-preferences summary span {
-  color: var(--color-fog);
-  font-size: 12px;
-}
-
-.portal-jev-preference-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 16px;
-  padding-top: 18px;
-}
-
-.portal-jev-preference-grid label {
-  display: grid;
-  gap: 7px;
-}
-
-.portal-jev-preference-grid label span { color: var(--color-fog); font-size: 11px; }
-.portal-jev-preference-grid input[type="range"] { width: 100%; accent-color: var(--color-accent); }
 
 .portal-jev-submit {
   display: flex;
@@ -1318,6 +1236,7 @@
 }
 
 .portal-jev-submit:hover { background: rgba(var(--color-accent-rgb), 0.28); }
+.portal-jev-submit:disabled { cursor: wait; opacity: 0.65; }
 .portal-jev-submit span { color: var(--color-accent); font-size: 20px; }
 .portal-jev-hint { margin: -4px 0 0; color: var(--color-fog); font: 12px/1.5 var(--font-primary); }
 
@@ -1340,8 +1259,6 @@
   .portal-title { font-size: clamp(31px, 8vw, 42px); }
   .portal-subtitle { font-size: 14px; line-height: 1.45; }
   .portal-jev-form { padding: 18px; gap: 12px; }
-  .portal-jev-preferences summary { flex-direction: column; gap: 4px; }
-  .portal-jev-preference-grid { grid-template-columns: 1fr; }
   .portal-nav { max-width: none; margin-top: 24px; }
   .portal-nav .nav-primary .nav-item { min-height: 44px; }
   .portal-nav .nav-secondary { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px; }

@@ -33,57 +33,25 @@ function makePortal(options = {}) {
 }
 
 describe('Portal', () => {
-    it('asks what to read and routes a book search with explicit reading preferences', () => {
+    it('asks what to read and keeps the home request to one action', () => {
         const { portal, container, onNavigate } = makePortal();
         expect(container.querySelector('h1').textContent).toBe('What would you like to read?');
         const intent = container.querySelector('#portal-jev-intent');
         expect(intent.maxLength).toBe(240);
-        intent.value = '  Marcus Aurelius on attention  ';
-        container.querySelector('#portal-wpm').value = '260';
-        container.querySelector('#portal-curve').value = 'wave';
-        container.querySelector('#portal-chunk').value = 'phrase';
-        container.querySelector('#portal-audio').value = 'aurora';
-        container.querySelector('#portal-visual').value = 'focals';
-        container.querySelector('#portal-jev-form').requestSubmit();
-        expect(onNavigate).toHaveBeenCalledWith('library', {
-            jevIntent: 'Marcus Aurelius on attention',
-            readingPreferences: {
-                wpm: 260,
-                curve: 'wave',
-                chunkMode: 'phrase',
-                audioPreset: 'silent',
-                soundscape: 'aurora',
-                visualMode: 'focals'
-            }
-        });
+        expect(container.querySelector('#portal-jev-form .portal-jev-submit')).not.toBeNull();
+        expect(container.querySelector('[name="portal-jev-mode"]')).toBeNull();
+        expect(container.querySelector('.portal-jev-preferences')).toBeNull();
+        expect(onNavigate).not.toHaveBeenCalled();
         portal.destroy();
         container.remove();
     });
 
-    it('routes composition with a length and never submits an empty intent', () => {
+    it('never submits an empty intent', () => {
         const { portal, container, onNavigate } = makePortal();
         const form = container.querySelector('#portal-jev-form');
         form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
         expect(onNavigate).not.toHaveBeenCalled();
-        const compose = container.querySelector('[name="portal-jev-mode"][value="compose"]');
-        compose.click();
-        expect(container.querySelector('#portal-length-group').hidden).toBe(false);
-        container.querySelector('#portal-jev-intent').value = 'A reading about memory';
-        container.querySelector('#portal-length').value = '6000';
-        container.querySelector('#portal-audio').value = 'focus';
-        form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
-        expect(onNavigate).toHaveBeenCalledWith('scriptorium', {
-            intent: 'A reading about memory',
-            targetWords: 6000,
-            readingPreferences: {
-                wpm: 200,
-                curve: 'flat',
-                chunkMode: 'word',
-                audioPreset: 'focus',
-                soundscape: 'none',
-                visualMode: 'off'
-            }
-        });
+        expect(container.querySelector('.portal-jev-submit').disabled).toBe(false);
         portal.destroy();
         container.remove();
     });
