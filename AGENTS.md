@@ -170,11 +170,12 @@ Guidance for anyone (human or agent) working on RISE. Standard commands live in
 
 ## Architecture at a glance
 
-RISE is a **client-only browser app** (vanilla-JS SPA built with Vite). There is
-**no backend, database, or external service to stand up** — user text is
-processed in the browser, and remote content (museum/text APIs) is fetched
-anonymously and degrades gracefully when unreachable. The whole product runs
-from the Vite dev server.
+RISE is a vanilla-JS SPA built with Vite. Reading and browser-local work stay
+client-side. Its production Cloudflare Worker serves the app and same-origin
+Jev decision routes. Optional book recommendations read a held Standard Ebooks
+catalog in Neon PostgreSQL, cache public catalog rows in Upstash Redis, and
+ask Jev through OpenRouter to choose a book. The Vite dev server runs the UI;
+the Worker and managed services are required for live recommendations.
 
 ## Environment / setup
 

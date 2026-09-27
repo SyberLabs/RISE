@@ -30,6 +30,7 @@ jobs:
           npm run security:audit
           npm run security:compat
           npx vitest run src/core/system-design.test.js
+          npx vitest run worker/index.test.js worker/jev-recommend.test.js src/components/Library.jev.test.js
           npm run docs:diagram
           git diff --exit-code -- docs/specs/ARCHITECTURE.md
           npm run test:run -- \
@@ -54,8 +55,12 @@ jobs:
           path: |
             dist/
             worker/index.mjs
+            worker/jev-recommend.mjs
+            src/content/archive/release-inventory.json
             netlify/functions/jev-decision.mjs
             netlify/functions/jev-route.mjs
+            package.json
+            package-lock.json
             wrangler.production.jsonc
           if-no-files-found: error
           compression-level: 0
@@ -86,6 +91,13 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22.12.0'
+      - name: Prove the exact release artifact bundles
+        working-directory: release
+        run: |
+          set -euo pipefail
+          npm ci --omit=dev --ignore-scripts --no-audit --no-fund
+          npx --yes wrangler@4.141.0 deploy --dry-run --config wrangler.production.jsonc \
+            --outdir "$RUNNER_TEMP/wrangler-dry-run"
       - name: Recheck main after owner approval
         env:
           GH_TOKEN: ${{ github.token }}
@@ -174,7 +186,15 @@ jobs:
           test "$status" = 404 || { echo "Expected JSON 404 for unknown API; got HTTP $status"; exit 1; }
           grep -Eiq '^content-type: application/json' "$RUNNER_TEMP/public-headers"
           jq -e '.error.code == "NOT_FOUND"' "$RUNNER_TEMP/public-body" > /dev/null
+          status=$(curl -sS --max-time 20 -o "$RUNNER_TEMP/jev-recommend-body" \
+            -w '%{http_code}' -H 'Origin: https://rise.syberlabs.io' \
+            -H 'Content-Type: application/json' \
+            --data '{"intent":"A thoughtful classic about self-examination"}' \
+            'https://rise.syberlabs.io/api/jev-recommend')
+          test "$status" = 200 || { echo "Jev recommendation returned HTTP $status"; exit 1; }
+          jq -e '.model | startswith("typesafe/jev-1.13")' "$RUNNER_TEMP/jev-recommend-body" > /dev/null
+          jq -e '.editionId | startswith("standard-ebooks:")' "$RUNNER_TEMP/jev-recommend-body" > /dev/null
           {
-            echo "Deployed production artifact $TESTED_SHA; public pages, exact release marker, and JSON API 404 verified."
-            echo 'Owner acceptance: make one live Jev preview decision at https://rise.syberlabs.io/jev-preview and confirm Relay remains behind Access.'
+            echo "Deployed production artifact $TESTED_SHA; public pages, exact release marker, JSON API 404, and a live Jev recommendation verified."
+            echo 'Owner acceptance: open the chosen book in the Library Archive at https://rise.syberlabs.io/.'
           } >> "$GITHUB_STEP_SUMMARY"

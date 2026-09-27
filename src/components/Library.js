@@ -85,6 +85,9 @@ export class Library {
     // make.
     this.currentFilter = 'received';
     this.localWorks = [];
+    this.jevRecommendation = null;
+    this.jevIntent = '';
+    this.jevAbort = null;
     this._active = false;
     this.boundKeyboardHandler = this.handleKeyboard.bind(this);
 
@@ -207,6 +210,23 @@ export class Library {
             : ''}
         </div>
 
+        <section class="library-jev" aria-labelledby="library-jev-title">
+          <h3 id="library-jev-title">Find your next reading with Jev</h3>
+          <p>Describe what you want to explore. Jev chooses from the Standard Ebooks editions already held by RISE.</p>
+          <form data-jev-form>
+            <label for="library-jev-intent">What are you in the mood to read?</label>
+            <div class="library-jev-controls">
+              <input id="library-jev-intent" name="intent" type="text" minlength="3" maxlength="240" required
+                value="${escapeHtml(this.jevIntent)}"
+                placeholder="A thoughtful book about change and courage">
+              <button class="btn-primary" type="submit">Ask Jev</button>
+            </div>
+          </form>
+          <div class="library-jev-result" data-jev-result aria-live="polite">
+            ${this.renderJevRecommendation()}
+          </div>
+        </section>
+
         <!-- ONE QUESTION, ASKED FIRST: did RISE receive this work, or write
              it? Provenance is what the Archive promises to keep, so it is the
              cut a reader makes before any other. -->
@@ -228,6 +248,69 @@ export class Library {
         </div>
       </div>
     `;
+  }
+
+  renderJevRecommendation() {
+    const choice = this.jevRecommendation;
+    if (!choice) return '';
+    const book = LIBRARY_TEXTS.find(text => text.id === choice.workId
+      && text.provider === 'archive-ingest'
+      && text.editionId === choice.editionId
+      && text.sourceRevision === choice.sourceRevision);
+    if (!book) return '';
+    return `<div class="library-jev-choice">
+      <span class="library-jev-kicker">Jev chose</span>
+      <h4>${escapeHtml(book.title)}</h4>
+      <p class="library-jev-author">${escapeHtml(book.author)} · Standard Ebooks</p>
+      <p>About this book: ${escapeHtml(choice.reason || book.description)}</p>
+      <button class="btn-primary" data-action="open-jev" data-id="${escapeHtml(book.id)}">Open this book</button>
+      <details><summary>Decision details</summary>
+        <p>Model: ${escapeHtml(choice.model)} · Request: ${escapeHtml(choice.requestId)}</p>
+      </details>
+    </div>`;
+  }
+
+  async recommendWithJev(form) {
+    const input = form.elements.namedItem('intent');
+    const intent = String(input?.value || '').trim();
+    if (intent.length < 3 || intent.length > 240) return;
+    this.jevIntent = intent;
+    this.jevRecommendation = null;
+    this.jevAbort?.abort();
+    const controller = new AbortController();
+    this.jevAbort = controller;
+    const button = form.querySelector('button[type="submit"]');
+    const result = this.container.querySelector('[data-jev-result]');
+    if (button) button.disabled = true;
+    if (result) result.textContent = 'Jev is choosing from the RISE catalog…';
+    try {
+      const response = await fetch('/api/jev-recommend', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ intent }),
+        signal: controller.signal
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data?.error?.message || 'Jev is unavailable right now.');
+      const book = LIBRARY_TEXTS.find(text => text.id === data.workId
+        && text.provider === 'archive-ingest'
+        && text.editionId === data.editionId
+        && text.sourceRevision === data.sourceRevision);
+      if (!book || typeof data.model !== 'string' || typeof data.requestId !== 'string') {
+        throw new Error('The selected edition is not available in this RISE release.');
+      }
+      if (this.jevAbort !== controller) return;
+      this.jevRecommendation = data;
+      if (result) result.innerHTML = this.renderJevRecommendation();
+    } catch (error) {
+      if (error?.name === 'AbortError' || this.jevAbort !== controller) return;
+      if (result) result.textContent = error.message || 'Jev is unavailable right now.';
+    } finally {
+      if (this.jevAbort === controller) {
+        this.jevAbort = null;
+        if (button) button.disabled = false;
+      }
+    }
   }
 
   renderArchiveItems() {
@@ -513,6 +596,12 @@ export class Library {
     });
 
     // Category filters (delegated or direct)
+    this.container.querySelector('#library-content')?.addEventListener('submit', (e) => {
+      const form = e.target.closest('[data-jev-form]');
+      if (!form) return;
+      e.preventDefault();
+      this.recommendWithJev(form);
+    });
     this.container.querySelector('#library-content')?.addEventListener('click', (e) => {
       const filterBtn = e.target.closest('.filter-btn');
       if (filterBtn) {
@@ -535,6 +624,8 @@ export class Library {
 
       if (action === 'preview' && id) {
         console.log('Preview sequence:', id);
+      } else if (action === 'open-jev' && id && this.jevRecommendation?.workId === id) {
+        this.handleTextSelection(id);
       } else if (action === 'select-text' && id) {
         this.handleTextSelection(id);
       } else if (action === 'open-local' || action === 'edit-local' || action === 'drop-local') {
@@ -973,6 +1064,7 @@ export class Library {
   }
 
   destroy() {
+    this.jevAbort?.abort();
     this.deactivate();
   }
 }

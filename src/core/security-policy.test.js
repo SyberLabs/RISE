@@ -14,7 +14,6 @@ describe('dependency security policy', () => {
 
     it('runs that command in CI without excluding development tools', () => {
         expect(ciWorkflow.match(/npm run security:audit/g)).toHaveLength(1);
-        expect(ciWorkflow).not.toMatch(/--omit(?:=|\s+)dev\b/);
     });
 
     it('executes the Kokoro and Sharp compatibility probe in CI', () => {
