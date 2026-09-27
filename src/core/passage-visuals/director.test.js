@@ -1,0 +1,166 @@
+import { describe, expect, it } from 'vitest';
+import { compileSession } from '../session-compiler.js';
+import { VisualScheduleController } from '../visual-scheduler.js';
+import { PassageDirector, blockSignal } from './director.js';
+import { prepareVisualSource } from './segmentation.js';
+import {
+  INTENSITY_BANDS,
+  TREATMENT_IDS,
+  compileTreatmentCue,
+  effectiveEnergy,
+  localDirection
+} from './treatments.js';
+import { flamePreset } from '../../visuals/living-flame/flame-presets.js';
+
+const calm = 'The quiet garden rests in gentle peace and the still water holds the soft light of evening.';
+const storm = 'The furious storm tore the burning city apart with terror and rage and the screaming war raged on.';
+
+function reading(paragraphs) {
+  const text = paragraphs.join('\n\n');
+  const session = compileSession({ title: 'Direction', text, wpm: 300, chunkMode: 'phrase', visualConfig: { visualMode: 'off' } });
+  const director = new PassageDirector({
+    sources: session.sources.map(source => ({ id: source.id, text: session.sourceTexts.get(source.id) })),
+    atoms: session.atoms,
+    flameRecipe: flamePreset
+  });
+  return { text, session, director };
+}
+
+const long = (sentence, count) => Array.from({ length: count }, () => sentence).join(' ');
+
+describe('local direction mapping', () => {
+  it.each([
+    [{ valence: 0.9, arousal: 0.9, confidence: 0.149 }, 'glacial-silk', 'quiet'],
+    [{ valence: 0.9, arousal: 0.9, confidence: undefined }, 'glacial-silk', 'quiet'],
+    [{ valence: 0.16, arousal: 0.65, confidence: 0.15 }, 'solar-bloom', 'intense'],
+    [{ valence: 0.15, arousal: 0.65, confidence: 1 }, 'ember-cathedral', 'intense'],
+    [{ valence: -0.16, arousal: 0.7, confidence: 1 }, 'prismatic-knot', 'intense'],
+    [{ valence: -0.16, arousal: 0.35, confidence: 1 }, 'violet-nebula', 'quiet'],
+    [{ valence: 0.16, arousal: 0.2, confidence: 1 }, 'glacial-silk', 'quiet'],
+    [{ valence: -0.5, arousal: 0.5, confidence: 1 }, 'ember-cathedral', 'balanced'],
+    [{ valence: 0, arousal: 0.36, confidence: 1 }, 'ember-cathedral', 'balanced']
+  ])('maps %o to %s / %s', (signal, treatmentId, intensityBand) => {
+    expect(localDirection(signal)).toEqual({ treatmentId, intensityBand });
+  });
+
+  it('treats unsupported-language text as low confidence without claiming to read it', () => {
+    const signal = blockSignal('夏の夜は月のころはさらなり闇もなほ蛍の多く飛びちがひたる');
+    expect(signal).toMatchObject({ confidence: 0, supported: false });
+    expect(localDirection(signal)).toEqual({ treatmentId: 'glacial-silk', intensityBand: 'quiet' });
+  });
+
+  it('reads English lexicon signal from a block', () => {
+    const signal = blockSignal(long(storm, 4));
+    expect(signal.supported).toBe(true);
+    expect(signal.confidence).toBeGreaterThan(0.15);
+    expect(signal.valence).toBeLessThan(0);
+  });
+});
+
+describe('treatment cues', () => {
+  it('compiles every treatment to a supported renderer with bounded data', () => {
+    for (const id of TREATMENT_IDS) {
+      const cue = compileTreatmentCue(id, 'balanced', flamePreset(id));
+      expect(['field', 'procedural', 'still']).toContain(cue.kind);
+      if (cue.renderer === 'living-flame') {
+        expect(cue.config.recipe.id).toBe(id);
+        expect(cue.config.intensity).toBe(INTENSITY_BANDS.balanced);
+      }
+    }
+  });
+
+  it('refuses unknown treatments and bands as stillness', () => {
+    expect(compileTreatmentCue('shader', 'balanced')).toEqual({ kind: 'still' });
+    expect(compileTreatmentCue('solar-bloom', 'extreme', flamePreset('solar-bloom'))).toEqual({ kind: 'still' });
+  });
+
+  it('scales energy globally with a reader ceiling', () => {
+    expect(effectiveEnergy(0.35, 0.35)).toBeCloseTo(0.35);
+    expect(effectiveEnergy(0.6, 1)).toBe(0.65);
+    expect(effectiveEnergy(0.15, 0.7)).toBeCloseTo(0.3);
+    expect(effectiveEnergy(0.6, 0)).toBe(0);
+  });
+});
+
+describe('PassageDirector', () => {
+  it('covers every atom with a block and admits local direction immediately', () => {
+    const { session, director } = reading([long(calm, 12), long(storm, 12), long(calm, 12)]);
+    expect(director.blocks.length).toBeGreaterThanOrEqual(3);
+    for (const atom of session.atoms.filter(item => item.content?.trim())) {
+      expect(director.blockIndexForAtom(atom)).toBeGreaterThanOrEqual(0);
+    }
+    const first = director.observe(session.atoms[0]);
+    expect(first.record.provenance).toBe('local');
+    expect(director.program.segments[first.index].cue.kind).not.toBe(undefined);
+  });
+
+  it('drives the existing scheduler at block boundaries without retiming atoms', () => {
+    const { session, director } = reading([long(calm, 12), long(storm, 12)]);
+    const durations = session.atoms.map(atom => atom.duration);
+    const cues = [];
+    const schedule = new VisualScheduleController(director.program, (cue, meta) => cues.push(meta.cueId));
+    for (const atom of session.atoms) {
+      director.observe(atom);
+      schedule.observe(atom);
+    }
+    expect(session.atoms.map(atom => atom.duration)).toEqual(durations);
+    expect(cues).toEqual(director.blocks.map(block => block.key));
+  });
+
+  it('stages a late choice only for unentered blocks and adopts it at the boundary', async () => {
+    const { session, director, text } = reading([long(calm, 12), long(calm, 12), long(calm, 12)]);
+    const prepared = await prepareVisualSource(text);
+    director.identify('primary', prepared.blocks);
+    director.observe(session.atoms[0]);
+    const firstRecord = director.blocks[0].admitted;
+    const staged = director.stage(director.blocks.map(block => ({
+      blockId: block.id, treatmentId: 'prismatic-knot', intensityBand: 'intense'
+    })));
+    expect(staged).toBe(director.blocks.length - 1);
+    expect(director.blocks[0].admitted).toBe(firstRecord);
+    const later = session.atoms.find(atom => director.blockIndexForAtom(atom) === 1);
+    expect(director.observe(later).record).toEqual({
+      treatmentId: 'prismatic-knot', intensityBand: 'intense', provenance: 'jev'
+    });
+  });
+
+  it('keeps admitted choices on a backward seek and ignores later rewrites', async () => {
+    const { session, director, text } = reading([long(calm, 12), long(storm, 12)]);
+    director.identify('primary', (await prepareVisualSource(text)).blocks);
+    const secondAtom = session.atoms.find(atom => director.blockIndexForAtom(atom) === 1);
+    director.observe(session.atoms[0]);
+    director.observe(secondAtom);
+    const before = director.admittedChoices();
+    expect(director.stage(director.blocks.map(block => ({
+      blockId: block.id, treatmentId: 'stillness', intensityBand: 'quiet'
+    })))).toBe(0);
+    director.observe(session.atoms[0]);
+    expect(director.admittedChoices()).toEqual(before);
+  });
+
+  it('ignores unknown or malformed choices', async () => {
+    const { director, text } = reading([long(calm, 12), long(storm, 12)]);
+    director.identify('primary', (await prepareVisualSource(text)).blocks);
+    expect(director.stage([
+      { blockId: 'b-nope', treatmentId: 'solar-bloom', intensityBand: 'quiet' },
+      { blockId: director.blocks[0].id, treatmentId: 'shader', intensityBand: 'quiet' },
+      { blockId: director.blocks[0].id, treatmentId: 'solar-bloom', intensityBand: 'loud' }
+    ])).toBe(0);
+  });
+
+  it('restores saved choices as Saved provenance', async () => {
+    const { session, director, text } = reading([long(calm, 12), long(storm, 12)]);
+    director.identify('primary', (await prepareVisualSource(text)).blocks);
+    director.restore([{ blockId: director.blocks[0].id, treatmentId: 'turrell', intensityBand: 'quiet' }]);
+    expect(director.observe(session.atoms[0]).record).toEqual({
+      treatmentId: 'turrell', intensityBand: 'quiet', provenance: 'saved'
+    });
+  });
+
+  it('never retains the source text on the persisted session', () => {
+    const { session } = reading([long(calm, 4)]);
+    expect(session.sourceTexts.get('primary')).toContain('quiet garden');
+    expect(JSON.stringify(session)).not.toContain('sourceTexts');
+    expect(Object.keys(session)).not.toContain('sourceTexts');
+  });
+});

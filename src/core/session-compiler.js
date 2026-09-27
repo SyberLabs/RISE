@@ -649,7 +649,7 @@ export function compileSession(input = {}) {
     pacing.setStateCurve(CURVES[config.curve]());
     const pacedAtoms = pacing.paceAtoms(atoms);
 
-    return new Session({
+    const session = new Session({
         ...config,
         name: config.name,
         title: config.title || sources[0].name,
@@ -665,6 +665,14 @@ export function compileSession(input = {}) {
                 .map(asset => asset.uri)
         ].filter(isSessionImageUri))].slice(0, READING_LIMITS.maxSequenceAssets)
     });
+    // The exact source text, for source-coordinate features in this browser
+    // session only. Non-enumerable: it is never serialized, cloned, or
+    // persisted with the session, and nothing sends it anywhere by itself.
+    Object.defineProperty(session, 'sourceTexts', {
+        value: new Map(sources.map(source => [source.id, source.raw])),
+        enumerable: false
+    });
+    return session;
 }
 
 export function estimateCompiledDuration(input = {}) {

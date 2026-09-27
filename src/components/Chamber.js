@@ -101,6 +101,8 @@ import { SEQUENCE_PILOT, nextSequencePilot } from '../content/sequence-pilot.js'
 import { saveSequencePilotFeedback } from '../core/sequence-pilot-feedback.js';
 import { advanceJevVisualArc } from '../core/jev-sequence.js';
 import { normalizeLivingFlameConfig } from '../core/flame-recipe.js';
+import { directionStateFor, ensureDirector } from '../core/passage-visuals/reading-state.js';
+import { flamePreset } from '../visuals/living-flame/flame-presets.js';
 import { JEV_INKS, JEV_PALETTES, jevColors } from '../core/jev-palette.js';
 import { JEV_AUDIO_IDS } from '../core/jev-config.js';
 import { CHAMBER_STREAM_FACES } from '../core/chamber-stream-face.js';
@@ -319,6 +321,15 @@ export class Chamber {
       ?.some(id => id.startsWith('chapel-gospel-'))) {
       console.warn('[Chamber] Gospel episode selection has no visual schedule');
     }
+
+    // PASSAGE-DIRECTED VISUALS. An authored program above always wins; an
+    // eligible new reading follows its own text by default, from local
+    // direction, without waiting for anything. Built synchronously for the
+    // same reason as the authored schedule: nothing may race auto-start.
+    this._direction = directionStateFor(this.session);
+    this._directedSchedule = null;
+    this._lastDirectedCue = null;
+    if (!this._visualSchedule && this._direction?.mode === 'follow') this._startFollowText();
 
     // A JOURNEY'S TWO SIBLINGS (JOURNEYS-SPEC §8.4). Built here for the
     // same reason and with the same discipline as the visual schedule
@@ -1203,6 +1214,11 @@ export class Chamber {
         // world it belongs to.
         this._movementSchedule?.observe(data.atom);
         this._trackVisualClock(data.index);
+        // Admission first: entering a block freezes its treatment, so the
+        // cue the scheduler emits next is the one this reader will keep.
+        if (this._directedSchedule && this._visualSchedule === this._directedSchedule) {
+          this._direction.director.observe(data.atom);
+        }
 
         // The visual schedule follows the reading (PERICOPE-IMAGERY-
         // SPEC §6): each atom's coordinates drive at most one cue
@@ -1621,13 +1637,53 @@ export class Chamber {
     return true;
   }
 
+  /** Follow text: schedule this reading's own passage direction. */
+  _startFollowText() {
+    const director = ensureDirector(this.session, this._direction);
+    if (!director) {
+      console.warn('[Chamber] Passage direction unavailable:', this._direction?.directorError);
+      if (this._direction) this._direction.mode = 'hold';
+      return false;
+    }
+    this._directedSchedule = new VisualScheduleController(
+      director.program,
+      (cue, meta) => this._applyDirectedCue(cue, meta),
+      { atoms: this.session.atoms }
+    );
+    this._visualSchedule = this._directedSchedule;
+    // The reading's own Gallery engine must not flash up before the first
+    // directed cue arrives with the first atom.
+    visualCortex.applyCue({ kind: 'still' }, { cueId: 'passage-direction' });
+    return true;
+  }
+
+  /**
+   * Present one block's admitted cue. Identical adjacent cues collapse, a
+   * very short block holds the scene before it, and a change crossfades
+   * over 1.2 s (immediately under reduced motion).
+   */
+  _applyDirectedCue(cue, meta = {}) {
+    if (this._direction?.mode !== 'follow') return false;
+    const director = this._direction.director;
+    const index = director?.program.segments.findIndex(segment => segment.id === meta.cueId) ?? -1;
+    if (this._lastDirectedCue && index >= 0 && director.holdsPrevious(index)) return false;
+    if (this._lastDirectedCue && JSON.stringify(cue) === JSON.stringify(this._lastDirectedCue)) return false;
+    this._lastDirectedCue = cue;
+    const reduced = this._prefersReducedMotion()
+      || document.documentElement.classList.contains('reduced-motion')
+      || document.documentElement.classList.contains('photosensitivity-mode');
+    return this.applyScheduledVisualCue(cue, { ...meta, transitionMs: reduced ? 0 : 1200 });
+  }
+
   /** One scheduled cue owns the complete visual presentation transition. */
   applyScheduledVisualCue(cue, meta = {}) {
     this.applyScheduledColorTheme(cue?.colorTheme);
     const fieldCue = cue?.kind === 'focal'
       ? { kind: 'field', renderer: 'focal', config: cue.focal || {} }
       : cue;
-    const transitionMs = authoredVisualTransition(meta.durationMs, 320);
+    const transitionMs = Number.isFinite(meta.transitionMs)
+      ? Math.max(0, Math.min(meta.transitionMs, 2000))
+      : authoredVisualTransition(meta.durationMs, 320);
     const authority = (Number.isInteger(this._scheduledVisualGeneration)
       ? this._scheduledVisualGeneration : 0) + 1;
     this._scheduledVisualGeneration = authority;
@@ -3055,7 +3111,7 @@ export class Chamber {
         // retained as an explicit projection choice in the Chamber bar.
         scrollUnderPages: Number.POSITIVE_INFINITY,
         onPageChange: (state) => this._syncPageTurn(state),
-        session: this.session,
+        session: this._pageSession(),
         // Session stores the compiled title as `name`; `title` is only an
         // input alias and is undefined on the model, which left every
         // masthead untitled.
@@ -3129,6 +3185,25 @@ export class Chamber {
       }] : [];
     }
 
+    if (id.startsWith?.('living-flame:')) {
+      const recipeId = id.slice('living-flame:'.length);
+      const config = this._pageFlameRecipes?.get(recipeId)
+        || (flamePreset(recipeId) ? { recipe: flamePreset(recipeId) } : null);
+      if (!config) return [];
+      const { sampleLivingFlame } = await import('../visuals/living-flame/index.js');
+      const SWEEP_SECONDS = 40;
+      const samples = [];
+      for (let n = 0; n < wanted; n++) {
+        if (signal?.aborted) break;
+        const url = await sampleLivingFlame(config.recipe, {
+          seconds: (n / wanted) * SWEEP_SECONDS,
+          energy: this._effectiveFlameEnergy(config.intensity)
+        });
+        if (url) samples.push({ name: config.recipe.name, data: { url, title: config.recipe.name } });
+      }
+      return samples;
+    }
+
     if (id === 'genesis' && this.kleeField?.sampleAt) {
       // Growth is parameterised 0..1, so the samples are evenly spaced
       // through the composition's life and the LAST is the settled work.
@@ -3176,6 +3251,26 @@ export class Chamber {
     }
 
     return visualCortex.resolveCollectionWorks(id, { limit: 12, signal });
+  }
+
+  /**
+   * The session the Page lays out. When the reading follows its text, the
+   * Page receives the directed program so each passage shows its assigned
+   * treatment; flame recipes are registered for still sampling.
+   */
+  _pageSession() {
+    this._pageFlameRecipes = new Map();
+    const program = this._visualSchedule === this._directedSchedule && this._direction?.director
+      ? this._direction.director.pageProgram()
+      : this.session?.visualProgram;
+    const held = this._direction?.mode === 'hold' ? this._direction.heldCue : null;
+    for (const cue of [...(program?.segments || []).map(segment => segment.cue), program?.fallback, held]) {
+      if (cue?.kind === 'field' && cue.renderer === 'living-flame' && cue.config?.recipe?.id) {
+        this._pageFlameRecipes.set(cue.config.recipe.id, cue.config);
+      }
+    }
+    if (program === this.session?.visualProgram) return this.session;
+    return Object.create(this.session, { visualProgram: { value: program, enumerable: true } });
   }
 
   /** Turn N field samples into the Page's image-work contract. */
