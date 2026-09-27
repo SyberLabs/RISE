@@ -164,17 +164,19 @@ function page(title, body) {
   <link rel="icon" href="/favicon.ico" sizes="any">
   <style>
     :root {
-      --bg: #05060A;
-      --surface: #0B0D14;
-      --line: #1F2433;
-      --text: #F2F5FB;
-      --text-2: #AEB8CC;
-      --text-3: #7F8AA3;
+      /* SyberLabs Design System v2 ("Atlas") tokens. */
+      --bg: #06051A;
+      --surface: #0C0A2A;
+      --line: rgba(170, 180, 255, 0.16);
+      --text: #EEF0FF;
+      --text-2: #B4BBE2;
+      --text-3: #8990BB;
       --brand: #4890F0;
+      --ice: #90D8F0;
       --sans: 'Instrument Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
       --serif: 'Instrument Serif', Georgia, 'Times New Roman', serif;
       --mono: 'JetBrains Mono', ui-monospace, Menlo, monospace;
-      --gutter: 64px;
+      --gutter: clamp(16px, 4vw, 56px);
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -186,26 +188,31 @@ function page(title, body) {
       -webkit-font-smoothing: antialiased;
     }
 
-    a { color: var(--brand); text-decoration: none; }
-    a:hover { text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 3px; }
-    main a { text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 3px; }
+    a { color: var(--text); text-decoration: none; }
+    a:hover { color: var(--ice); }
+    main a { text-decoration: underline; text-decoration-color: var(--ice); text-decoration-thickness: 1px; text-underline-offset: 5px; }
 
     a:focus-visible,
     [tabindex]:focus-visible {
-      outline: 2px solid var(--brand);
-      outline-offset: 2px;
+      outline: 2px solid var(--ice);
+      outline-offset: 3px;
       border-radius: 4px;
     }
 
     header {
+      position: sticky;
+      top: 0;
       height: 64px;
       padding: 0 var(--gutter);
+      background: rgba(12, 10, 42, 0.74);
+      -webkit-backdrop-filter: blur(14px) saturate(1.3);
+      backdrop-filter: blur(14px) saturate(1.3);
       border-bottom: 1px solid var(--line);
     }
 
     .header-inner {
       height: 100%;
-      max-width: 1200px;
+      max-width: 1320px;
       margin: 0 auto;
       display: flex;
       align-items: center;
@@ -214,14 +221,15 @@ function page(title, body) {
     .lockup {
       display: flex;
       align-items: center;
-      gap: 10px;
+      gap: 11px;
+      min-height: 44px;
       color: var(--text);
-      font: 600 13px/20px var(--sans);
-      letter-spacing: 0.14em;
+      font: 600 14px/20px var(--sans);
+      letter-spacing: 0.22em;
       white-space: nowrap;
     }
-    .lockup:hover { text-decoration: none; }
-    .lockup img { display: block; height: 20px; width: auto; }
+    .lockup:hover { color: var(--text); text-decoration: none; }
+    .lockup img { display: block; width: 22px; height: auto; }
     .lockup .divider { color: var(--text-3); }
 
     main {
@@ -282,7 +290,8 @@ function page(title, body) {
       margin: 0 0 24px;
       padding: 16px;
       border: 1px solid var(--line);
-      border-radius: 8px;
+      border-radius: 14px;
+      background: var(--surface);
       font-size: 14px;
       line-height: 20px;
       color: var(--text-2);

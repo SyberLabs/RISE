@@ -1,6 +1,7 @@
 /* ═══════════════════════════════════════════════════════════
    Settings Component Styles
-   Following design-system.css tokens
+   SyberLabs v2 tokens (design-system.css): ink with the starfield, the
+   system room header, mono section labels, pill chips.
    ═══════════════════════════════════════════════════════════ */
 
 /* body is overflow:hidden; min-height alone grows with content and
@@ -11,7 +12,9 @@
     height: 100dvh;
     margin: 0;
     padding: 0;
-    background: var(--sy-bg);
+    background-color: var(--sy-bg);
+    background-image: var(--sy-starfield);
+    background-size: var(--sy-starfield-size);
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
 }
@@ -58,8 +61,8 @@
     line-height: 16px;
     font-weight: var(--font-weight-medium);
     text-transform: uppercase;
-    letter-spacing: 0.08em;
-    color: var(--sy-text-3);
+    letter-spacing: 0.14em;
+    color: var(--sy-text-2);
     margin-bottom: var(--space-md);
 }
 
@@ -145,16 +148,16 @@
     gap: 8px;
     min-height: var(--sy-control-height);
     box-sizing: border-box;
-    padding: 0 var(--sy-space-3);
+    padding: 0 var(--sy-space-4);
     border: 1px solid var(--sy-line-strong);
-    border-radius: var(--sy-radius);
-    background: transparent;
+    border-radius: var(--sy-radius-full);
+    background: rgba(6, 5, 26, 0.4);
     transition: border-color var(--transition-fast) var(--ease-default),
         background var(--transition-fast) var(--ease-default);
 }
 
 .settings .radio:hover {
-    background: var(--sy-surface-2);
+    border-color: var(--sy-ice);
 }
 
 /* Kept in the layout, not in the paint: focus must still land on the input. */
@@ -169,8 +172,9 @@
 }
 
 .settings .radio:has(input:checked) {
-    border-color: var(--sy-brand);
+    border-color: var(--sy-ice);
     background: var(--sy-surface-2);
+    box-shadow: 0 0 24px -8px var(--sy-brand);
 }
 
 .settings .radio:has(input:checked) .radio-label {
@@ -179,7 +183,7 @@
 
 .settings .radio:has(input:focus-visible) {
     outline: var(--sy-focus);
-    outline-offset: 2px;
+    outline-offset: var(--sy-focus-offset);
 }
 
 .settings .radio-label {
@@ -193,15 +197,15 @@
    bare :root — both halves of what it really is, slate under ivory, split
    across the square. The label stays, because a colour still has a name. */
 .settings .radio-swatch {
-    padding-left: 7px;
+    padding-left: 12px;
 }
 
 .settings .radio-swatch input[type="radio"] {
     position: static;
-    width: 13px;
-    height: 13px;
+    width: 12px;
+    height: 12px;
     opacity: 1;
-    border-radius: 1px;
+    border-radius: 50%;
     background: linear-gradient(135deg,
         var(--swatch) 0 50%, var(--swatch-far) 50% 100%);
     box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.22);
@@ -346,8 +350,10 @@
 
 /* Responsive */
 @media (max-width: 600px) {
+    /* The system header runs edge to edge; .settings-content carries the
+       phone gutter itself. */
     .settings {
-        padding: var(--space-md);
+        padding: 0;
     }
 
     .settings-row {
@@ -410,7 +416,7 @@
   padding: 0;
   background: none;
   border: none;
-  border-radius: var(--sy-radius);
+  border-radius: var(--sy-radius-full);
   color: var(--color-fog);
   cursor: pointer;
 }

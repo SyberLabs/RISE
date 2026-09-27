@@ -1,7 +1,9 @@
 /**
- * BetaGate — the first-entry threshold, in the SyberLabs system.
+ * BetaGate — the first-entry threshold, in SyberLabs Design System v2.
  * Header lockup, one statement, one primary action, a hairline footer.
- * No grain, no vignette, no glow: the words are the welcome.
+ * The ambient atmosphere sits behind it (atlas.js) and the RISE sigil is
+ * its mark, on a plate beside the words. Decoration comes only from the
+ * system tokens: no grain, no vignette, nothing that animates forever.
  */
 
 .beta-gate {
@@ -11,27 +13,41 @@
   display: flex;
   flex-direction: column;
   overflow-y: auto;
-  background: var(--sy-bg);
+  background-color: var(--sy-bg);
+  background-image: var(--sy-starfield);
+  background-size: var(--sy-starfield-size);
   color: var(--sy-text);
   font-family: var(--sy-font-sans);
+}
+
+/* Words and plate ride above the fixed atmosphere layer (z-index 0). */
+.beta-gate-content,
+.beta-footer {
+  position: relative;
+  z-index: 1;
 }
 
 .beta-gate-content {
   flex: 1;
   width: 100%;
-  max-width: 1200px;
+  max-width: calc(1320px + 2 * clamp(16px, 4vw, 56px));
   margin: 0 auto;
-  padding: var(--sy-space-9) var(--sy-space-8) var(--sy-space-8);
+  padding: var(--sy-space-9) clamp(16px, 4vw, 56px) var(--sy-space-8);
   box-sizing: border-box;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
+  display: grid;
+  grid-template-columns: minmax(0, 680px) minmax(0, 1fr);
+  gap: var(--sy-space-9);
+  align-items: center;
   animation: beta-enter var(--sy-dur-page) var(--sy-ease) both;
 }
 
 @keyframes beta-enter {
   from { opacity: 0; transform: translateY(8px); }
   to { opacity: 1; transform: none; }
+}
+
+.beta-copy {
+  min-width: 0;
 }
 
 .beta-identity {
@@ -41,17 +57,22 @@
 }
 
 .beta-subtitle {
+  --tracking: 0.14em;
+  letter-spacing: var(--tracking);
+  color: var(--sy-text-2);
   margin-bottom: var(--sy-space-5);
 }
 
+/* Display-xl: Instrument Serif; the one italic word is the spectrum. */
 .beta-title {
+  --tracking: -0.02em;
   margin: 0;
   max-width: 14ch;
   font-family: var(--sy-font-serif);
-  font-size: 96px;
-  line-height: 92px;
+  font-size: clamp(64px, 7.4vw, 112px);
+  line-height: 0.92;
   font-weight: 400;
-  letter-spacing: -0.02em;
+  letter-spacing: var(--tracking);
   color: var(--sy-text);
 }
 
@@ -62,37 +83,47 @@
 
 .beta-welcome-text p {
   margin: 0 0 var(--sy-space-4);
-  font-size: 18px;
-  line-height: 28px;
-  color: var(--sy-text-2);
+  font-size: clamp(18px, 1.45vw, 21px);
+  line-height: 1.5;
+  color: var(--sy-text-body);
 }
 
 .beta-welcome-text p.beta-welcome-note {
   font-size: 14px;
   line-height: 20px;
-  color: var(--sy-text-3);
+  color: var(--sy-text-2);
 }
 
+/* Primary ("solid"): the vellum pill with the blue glow. */
 .beta-enter-btn {
   display: inline-flex;
   align-items: center;
   gap: var(--sy-space-2);
   height: var(--sy-control-height);
   margin-top: var(--sy-space-4);
-  padding: 0 var(--sy-space-5);
+  padding: 0 22px;
   background: var(--sy-text);
+  background-image: var(--sy-primary-fill);
+  box-shadow: var(--sy-primary-glow);
   border: 0;
-  border-radius: var(--sy-radius);
+  border-radius: var(--sy-radius-full);
   color: var(--sy-on-primary);
   font-family: inherit;
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 500;
   cursor: pointer;
-  transition: background var(--sy-dur-hover) var(--sy-ease);
+  transition: box-shadow var(--sy-dur-enter) var(--sy-ease),
+    transform var(--sy-dur-enter) var(--sy-ease);
 }
 
 .beta-enter-btn:hover {
-  background: #FFFFFF;
+  transform: translateY(-1px);
+  box-shadow: var(--sy-primary-glow-hover);
+}
+
+.beta-enter-btn:focus-visible {
+  outline: var(--sy-focus);
+  outline-offset: var(--sy-focus-offset);
 }
 
 .beta-enter-btn .room-icon {
@@ -103,11 +134,73 @@
   transform: translateX(4px);
 }
 
-.beta-footer {
+/* ─── The plate: the RISE sigil, framed, with a mono caption ─── */
+
+.beta-plate {
+  margin: 0;
+  justify-self: center;
+  width: min(100%, 340px);
+}
+
+.beta-sigil {
+  --sy-plate-tick: var(--sy-accent-rise);
+  aspect-ratio: 1;
+  margin: 6px;
+}
+
+.beta-sigil-canvas {
+  position: absolute;
+  inset: 0;
   width: 100%;
-  max-width: 1200px;
+  height: 100%;
+  display: block;
+}
+
+/* Until the sigil draws (or where it cannot), the RISE clip mark holds
+   the plate. */
+.beta-sigil-fallback.rise-mark {
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  width: 56px;
+  height: 56px;
+  opacity: 0.5;
+}
+
+.beta-sigil-canvas.is-drawn + .beta-sigil-fallback {
+  display: none;
+}
+
+.beta-plate-caption {
+  margin-top: var(--sy-space-5);
+  font-family: var(--sy-font-mono);
+  font-size: 12px;
+  line-height: 1.65;
+  letter-spacing: 0.04em;
+  color: var(--sy-text-3);
+}
+
+.beta-plate-caption b {
+  display: block;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--sy-text-2);
+}
+
+.beta-plate-params {
+  display: block;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0;
+}
+
+/* ─── Footer ─── */
+
+.beta-footer {
+  width: calc(100% - 2 * clamp(16px, 4vw, 56px));
+  max-width: 1320px;
   margin: 0 auto;
-  padding: var(--sy-space-5) var(--sy-space-8) calc(var(--sy-space-5) + env(safe-area-inset-bottom, 0px));
+  padding: var(--sy-space-5) 0 calc(var(--sy-space-5) + env(safe-area-inset-bottom, 0px));
   box-sizing: border-box;
   display: flex;
   flex-wrap: wrap;
@@ -119,8 +212,11 @@
 
 .beta-footer p {
   margin: 0;
-  font-size: 14px;
+  font-family: var(--sy-font-mono);
+  font-size: 12px;
   line-height: 20px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
   color: var(--sy-text-3);
 }
 
@@ -129,10 +225,17 @@
   gap: var(--sy-space-5);
 }
 
+.beta-footer p.beta-footer-links {
+  font-family: var(--sy-font-sans);
+  font-size: 14px;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
 .beta-footer-links a {
   display: inline-flex;
   align-items: center;
-  min-height: var(--sy-control-height);
+  min-height: 44px;
   color: var(--sy-text-2);
   text-decoration: none;
 }
@@ -140,6 +243,7 @@
 .beta-footer-links a:hover {
   color: var(--sy-text);
   text-decoration: underline;
+  text-decoration-color: var(--sy-ice);
   text-underline-offset: 3px;
 }
 
@@ -158,7 +262,8 @@
   max-width: 40ch;
   padding: var(--sy-space-4);
   border: 1px solid var(--sy-danger);
-  border-radius: var(--sy-radius);
+  border-radius: var(--sy-radius-panel);
+  background: var(--sy-surface);
   font-size: 14px;
   line-height: 20px;
   font-weight: 600;
@@ -167,19 +272,36 @@
 
 @media (max-width: 1023px) {
   .beta-gate-content {
-    padding: var(--sy-space-8) var(--sy-space-6) var(--sy-space-7);
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--sy-space-6);
+    max-width: calc(680px + 2 * clamp(16px, 4vw, 56px));
+    padding: var(--sy-space-8) clamp(16px, 4vw, 56px) var(--sy-space-7);
+    align-items: start;
+  }
+
+  /* On one column the plate goes first, small, beside its caption. */
+  .beta-plate {
+    order: -1;
+    justify-self: stretch;
+    width: 100%;
+    display: grid;
+    grid-template-columns: 112px minmax(0, 1fr);
+    gap: var(--sy-space-5);
+    align-items: center;
+  }
+
+  .beta-plate-caption {
+    margin: 0;
   }
 
   .beta-footer {
-    padding-left: var(--sy-space-6);
-    padding-right: var(--sy-space-6);
+    max-width: 680px;
   }
 }
 
 @media (max-width: 640px) {
   .beta-gate-content {
-    justify-content: flex-start;
-    padding: var(--sy-space-7) var(--sy-space-4) var(--sy-space-6);
+    padding: var(--sy-space-6) var(--sy-space-4) var(--sy-space-6);
   }
 
   .beta-title {
@@ -188,13 +310,17 @@
   }
 
   .beta-welcome-text p {
-    font-size: 16px;
-    line-height: 24px;
+    font-size: 17px;
+    line-height: 26px;
+  }
+
+  .beta-enter-btn {
+    width: 100%;
+    justify-content: center;
   }
 
   .beta-footer {
-    padding-left: var(--sy-space-4);
-    padding-right: var(--sy-space-4);
+    width: calc(100% - 2 * var(--sy-space-4));
   }
 }
 
@@ -203,6 +329,8 @@
     animation: beta-fade var(--sy-dur-page) linear both;
   }
 
+  .beta-enter-btn,
+  .beta-enter-btn:hover,
   .beta-enter-btn .room-icon,
   .beta-enter-btn:hover .room-icon {
     transition: none;

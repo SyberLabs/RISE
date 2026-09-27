@@ -9,6 +9,7 @@
  */
 
 import { roomEyebrow, roomIcon } from './room-chrome.js';
+import { drawRiseSigil, mountAtmosphere } from './atlas.js';
 import './BetaGate.css';
 
 // Beta access codes - add new invitees here
@@ -143,17 +144,28 @@ export class BetaGate {
             <span class="sl-lockup" aria-label="SyberLabs RISE">
               <img class="sl-mark" src="/syberlabs-mark.webp" alt="" width="18" height="20" decoding="async">
               <span class="sl-wordmark" aria-hidden="true">SYBERLABS<span class="sl-divider"> / </span>RISE</span>
+              <canvas class="sl-sigil" aria-hidden="true"></canvas>
             </span>
           </div>
         </header>
 
         <main class="beta-gate-content">
-          <div class="beta-identity">
-            ${roomEyebrow('RISE · Audiovisual reader', 'beta-subtitle')}
-            <h1 class="beta-title">Read beyond the page.</h1>
+          <div class="beta-copy">
+            <div class="beta-identity">
+              ${roomEyebrow('RISE · Audiovisual reader', 'beta-subtitle')}
+              <h1 class="beta-title">Read beyond the <em class="sy-spectrum">page</em>.</h1>
+            </div>
+
+            ${hasValidInvite ? this.renderPersonalizedWelcome(inviteData) : this.renderOpenThreshold()}
           </div>
 
-          ${hasValidInvite ? this.renderPersonalizedWelcome(inviteData) : this.renderOpenThreshold()}
+          <figure class="beta-plate" aria-hidden="true">
+            <div class="beta-sigil sy-plate">
+              <canvas class="beta-sigil-canvas"></canvas>
+              <span class="beta-sigil-fallback rise-mark"></span>
+            </div>
+            <figcaption class="beta-plate-caption"><b>Plate · RISE</b><span class="beta-plate-params"></span></figcaption>
+          </figure>
         </main>
 
         <footer class="beta-footer">
@@ -165,6 +177,22 @@ export class BetaGate {
         </footer>
       </div>
     `;
+
+    // The Atlas behind the threshold, and the RISE sigil drawing in as its
+    // mark. Both are lazy; the words read the same without them.
+    const gate = this.container.querySelector('.beta-gate');
+    this.atmosphere = mountAtmosphere(gate);
+    drawRiseSigil(gate.querySelector('.sl-sigil'), { animate: false });
+    drawRiseSigil(gate.querySelector('.beta-sigil-canvas')).then(result => {
+      const params = gate.querySelector('.beta-plate-params');
+      if (result && params) params.textContent = result.caption;
+    });
+  }
+
+  /** The reading rooms run without the atmosphere; stop it at the door. */
+  releaseAtmosphere() {
+    this.atmosphere?.destroy();
+    this.atmosphere = null;
   }
 
   /**
@@ -252,12 +280,14 @@ A space has been prepared for you.`;
         const inviteData = (this.inviteCode && this.validateCode(this.inviteCode))
           || { name: 'Reader', welcome: null };
         this.saveSession(inviteData, this.inviteCode?.toLowerCase().trim() || 'open');
+        this.releaseAtmosphere();
         this.onAccess(this.session);
       });
     }
   }
 
   destroy() {
+    this.releaseAtmosphere();
     this.container.innerHTML = '';
   }
 }

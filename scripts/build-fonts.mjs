@@ -60,7 +60,7 @@ const FAMILIES = [
     { name: 'JetBrains Mono', spec: 'JetBrains+Mono:wght@400;500' },
     // SyberLabs design system: interface sans and display serif.
     { name: 'Instrument Sans', spec: 'Instrument+Sans:wght@400;500;600' },
-    { name: 'Instrument Serif', spec: 'Instrument+Serif' }
+    { name: 'Instrument Serif', spec: 'Instrument+Serif:ital@0;1' }
 ];
 
 /**
