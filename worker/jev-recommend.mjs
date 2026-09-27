@@ -28,7 +28,7 @@ const CHOICES = Object.freeze({
     off: 'No visual field.',
     focals: 'A single quiet focal figure.',
     genesis: 'Continuous growing Klee line art; colorful and lively with a chaotic preset.',
-    attractor: 'A continuous luminous strange-attractor field; purple and kaleidoscopic for psychedelic color.',
+    attractor: 'A continuous luminous strange-attractor field; purple and kaleidoscopic for psychedelic color, or neon with rushing light streaks for fast night-drive energy.',
     interlocution: 'A colorful, continuously crossfading Gallery behind the reading. Choose this for psychedelic, kaleidoscopic, trippy, or vivid visual requests; it never flashes.'
   },
   visualStyle: {
@@ -70,7 +70,8 @@ const CHOICES = Object.freeze({
   visualPalette: {
     white: 'White attractor light.', red: 'Warm red attractor light.',
     blue: 'Cool blue attractor light.', gold: 'Golden attractor light.',
-    purple: 'Purple attractor light; choose for psychedelic color.'
+    purple: 'Purple attractor light; choose for psychedelic color.',
+    neon: 'Neon magenta and cyan light at speed, with light streaks rushing past; choose for night drives, racing, drifting, neon cities, or fast energy.'
   },
   kleePreset: {
     random: 'Varied Klee forms.', architectural: 'Structured geometry.',
@@ -139,8 +140,10 @@ const QUESTION_INSTRUCTIONS = Object.freeze({
   colorTheme: 'Opening accent: honor a requested opening color. Text ink and background have their own questions.',
   textColor: 'Choose the text ink color. Honor explicit reader requests for warm, cool, lilac, or mint text.',
   backgroundColor: 'Choose the background color independently from the text and accent. Honor explicit reader color requests.',
-  projection: 'Choose timed streaming or a spatial page. Continuous visual motion needs stream because page hides the continuous visual field.'
+  projection: 'Choose timed streaming or a spatial page. Continuous visual motion needs stream because page hides the continuous visual field.',
+  visualPalette: 'Choose the attractor light color. Choose neon for night-drive, racing, drifting, neon-city, or fast high-energy requests.'
 });
+const NIGHT_DRIVE_SOUND = 'Fast electronic beat with drums and bass for night drives, racing, neon, or high energy.';
 const DECISION_CACHE_TTL_SECONDS = 3600;
 const SOUND_CACHE_KEY = 'rise:sounds:v1';
 const SOUND_CATALOG_LIMIT = 64;
@@ -217,10 +220,14 @@ async function readIntent(request) {
       || typeof body.intent !== 'string'
       || (body.schemaVersion === undefined && Object.keys(body).length !== 1)
       || (body.schemaVersion !== undefined
-        && (body.schemaVersion !== 2 || Object.keys(body).length !== 2))) return null;
+        && (![2, 3].includes(body.schemaVersion) || Object.keys(body).length !== 2))) return null;
     const intent = body.intent.trim();
+    // Version 3 is the version 2 response plus the night-drive values
+    // (neon palette, night-drive sound). Older open tabs keep asking for 2
+    // and are never sent a value their validator does not know.
     return intent.length >= 3 && intent.length <= 240
-      ? { intent, schemaVersion: body.schemaVersion === 2 ? 2 : 1 } : null;
+      ? { intent, schemaVersion: body.schemaVersion >= 2 ? 2 : 1, nightDrive: body.schemaVersion === 3 }
+      : null;
   } catch {
     return null;
   }
@@ -406,6 +413,22 @@ function explicitVisualTiming(intent) {
     || hasStyleSplit ? split : null;
 }
 
+/**
+ * A night drive, a race, drifting, a neon city. Film, game and song titles
+ * that name one ("Tokyo Drift") are read as this look, never as footage or
+ * a soundtrack RISE could play.
+ */
+/** An explicit ask for no music or sound; night-drive routing keeps it. */
+export function requestsNoSound(intent) {
+  const text = String(intent || '').normalize('NFKC').toLowerCase();
+  return /\b(?:no|without|skip|avoid|mute|muted|zero)\s+(?:any\s+)?(?:audio|music|sounds?|soundscape|beat|soundtrack)\b|\b(?:silent|silence|muted)\b|\bsound\s+off\b/u.test(text);
+}
+
+export function requestsNightDrive(intent) {
+  const text = String(intent || '').normalize('NFKC').toLowerCase();
+  return /\b(?:drift(?:s|ing)?|night[\s-]?driv(?:e|es|ing)|racing|race\s*cars?|street\s*rac\w*|highway|synthwave|outrun|tokyo|neon)\b/u.test(text);
+}
+
 function requestsNoVisualMotion(intent) {
   const text = intent.normalize('NFKC').toLowerCase();
   return /\b(?:no|without)\s+(?:moving\s+visuals?|visual\s+motion|motion|visuals?|animation)\b|\b(?:don['’]?t|do\s+not)\s+want\s+(?:any\s+)?moving\s+visuals?\b|\b(?:dark|black)\s+screen\b|\btext\s+only\b/u.test(text);
@@ -490,6 +513,33 @@ function choiceConfig(answers, intent, choices) {
     || config.chamberFace !== 'thick' || config.fontSize !== 'fit'
     || config.chunkMode !== 'word')) config.wordFill = 'accent';
   if (config.fontSize === 'fit' && config.chunkMode !== 'word') config.fontSize = 'large';
+  const explicitNoVisualWords = requestsNoVisualMotion(intent)
+    || /\b(?:no|without|skip|avoid|disable|turn off)\s+(?:any\s+)?visuals?\b|\bvisuals?\s+(?:off|disabled?)\b|\b(?:text|reading)\s+only\b/iu.test(intent);
+  // A night-drive request gets the one look built for it: neon light at
+  // speed, a beat, a fast readable stream. Decided here from the reader's
+  // own words so a model answer cannot land it on a dark page.
+  // Only clients that know the neon values are offered them (see readIntent).
+  if (Object.hasOwn(choices.visualPalette, 'neon')
+    && requestsNightDrive(intent) && !explicitNoVisualWords) {
+    config.visualStyle = 'immersive';
+    config.visualMode = 'attractor';
+    config.visualPalette = 'neon';
+    config.visualArc = 'single';
+    config.projection = 'stream';
+    config.colorTheme = 'prism';
+    config.backgroundColor = 'prism';
+    if (config.wpm < 250) config.wpm = 300;
+    if (config.chunkMode === 'sentence' || config.chunkMode === 'paragraph') config.chunkMode = 'phrase';
+    if (config.fontSize === 'small' || config.fontSize === 'medium') config.fontSize = 'large';
+    if (config.fontSize === 'fit' && config.chunkMode !== 'word') config.fontSize = 'large';
+    if (config.chamberFace === 'jp' && !/\bjapanese\b/u.test(intent.toLowerCase())) config.chamberFace = 'thick';
+    if (Object.hasOwn(choices.audio, 'night-drive') && !requestsNoSound(intent)) {
+      config.audio = 'night-drive';
+      config.middleAudio = 'night-drive';
+      config.finaleAudio = 'night-drive';
+    }
+    config.wordFill = config.wordFill === 'same' ? 'accent' : config.wordFill;
+  }
   const explicitNoVisual = requestsNoVisualMotion(intent)
     || /\b(?:no|without|skip|avoid|disable|turn off)\s+(?:any\s+)?visuals?\b|\bvisuals?\s+(?:off|disabled?)\b|\b(?:text|reading)\s+only\b/iu.test(intent);
   const timing = explicitVisualTiming(intent);
@@ -578,7 +628,7 @@ export async function handleJevRecommend(request, env) {
   }
   const input = await readIntent(request);
   if (!input) return error(400, 'INVALID_REQUEST', 'Enter a reading intent of 3 to 240 characters.');
-  const { intent, schemaVersion } = input;
+  const { intent, schemaVersion, nightDrive = false } = input;
   if (!env?.OPENROUTER_API_KEY?.trim() || !env?.NEON_DATABASE_URL?.trim()
     || !env?.UPSTASH_REDIS_REST_URL?.trim() || !env?.UPSTASH_REDIS_REST_TOKEN?.trim()) {
     return error(503, 'RECOMMENDATION_NOT_CONFIGURED', 'Reading suggestions are unavailable.');
@@ -637,8 +687,17 @@ export async function handleJevRecommend(request, env) {
     const shortlistedSounds = shortlistSounds(sounds, intent, nextTurn - 1);
     const audioChoices = { silent: 'Silence.', ...Object.fromEntries(shortlistedSounds.map(row =>
       [row.sound_id, row.decision_criterion])) };
+    // The night-drive beat ships in the client; offer it for the requests it
+    // exists for even before the sound catalog row is seeded.
+    if (!nightDrive) delete audioChoices['night-drive'];
+    else if (requestsNightDrive(intent) && !requestsNoSound(intent)) {
+      audioChoices['night-drive'] ??= NIGHT_DRIVE_SOUND;
+    }
+    const visualPalette = { ...catalogChoices.visualPalette };
+    if (!nightDrive) delete visualPalette.neon;
     choices = {
       ...catalogChoices,
+      visualPalette,
       audio: audioChoices,
       middleAudio: audioChoices,
       finaleAudio: audioChoices

@@ -29,7 +29,7 @@ it('asks Jev once and launches the returned reading without opening another room
 
   expect(provider).toHaveBeenCalledOnce();
   expect(provider).toHaveBeenCalledWith('/api/jev-recommend', expect.objectContaining({
-    method: 'POST', body: JSON.stringify({ intent: 'A reflective classic', schemaVersion: 2 })
+    method: 'POST', body: JSON.stringify({ intent: 'A reflective classic', schemaVersion: 3 })
   }));
   expect(navigate).not.toHaveBeenCalled();
   portal.destroy();

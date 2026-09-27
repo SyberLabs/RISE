@@ -353,7 +353,7 @@ export class Library {
       const response = await fetch('/api/jev-recommend', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ intent, schemaVersion: 2 }),
+        body: JSON.stringify({ intent, schemaVersion: 3 }),
         signal: controller.signal
       });
       const data = await response.json().catch(() => null);

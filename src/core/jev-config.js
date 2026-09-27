@@ -3,7 +3,7 @@ import { jevColors } from './jev-palette.js';
 export const JEV_AUDIO_IDS = Object.freeze([
   'aurora', 'faded-signal', 'soft-rain', 'sad', 'angry', 'happy', 'excited', 'thrilling', 'scary',
   'piano', 'jazz', 'lullaby', 'nocturne', 'waltz', 'blues', 'bossa', 'ragtime',
-  'wonder', 'mystery', 'chase', 'triumph', 'haunted', 'starlight'
+  'wonder', 'mystery', 'chase', 'triumph', 'haunted', 'starlight', 'night-drive'
 ]);
 
 const CADENCES = Object.freeze({ slow: 0.15, balanced: 0.5, lively: 0.85 });
@@ -32,7 +32,11 @@ export function resolveJevChamberConfig(plan) {
   } else if (visualMode === 'genesis') {
     visualConfig.genesis = { preset: plan.kleePreset, glass: true };
   } else if (visualMode === 'attractor') {
-    visualConfig.attractor = { system: 'aizawa', palette: plan.visualPalette, form: 'kaleido' };
+    // Neon is the night-drive look: a sweeping Halvorsen filament at speed,
+    // with light streaks rushing past underneath.
+    visualConfig.attractor = plan.visualPalette === 'neon'
+      ? { system: 'halvorsen', palette: 'neon', form: 'mirror', intensity: 0.85, speed: 2.4, streaks: true }
+      : { system: 'aizawa', palette: plan.visualPalette, form: 'kaleido' };
   } else if (visualMode === 'interlocution') {
     visualConfig.livingText = { enabled: true };
     visualConfig.interlocution = {
