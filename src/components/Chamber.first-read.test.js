@@ -74,6 +74,21 @@ describe('first-read choice', () => {
     chamber.destroy();
   });
 
+  it('does not resume a reading already paused through the regular control', () => {
+    const { chamber, container, player, choice } = mount();
+    let now = 1000;
+    vi.spyOn(Date, 'now').mockImplementation(() => now);
+    chamber.updateProgress({ elapsed: 30000 });
+    container.querySelector('#play-pause-btn').click();
+    expect(player.state).toBe('paused');
+
+    now = 1300; // Outside transport's double-click debounce.
+    container.querySelector('#first-read-pause').click();
+    expect(player.state).toBe('paused');
+    expect(choice.hidden).toBe(true);
+    chamber.destroy();
+  });
+
   it('stays absent if Page opened before the milestone', () => {
     const { chamber, choice } = mount();
     void chamber.togglePageMode(true);

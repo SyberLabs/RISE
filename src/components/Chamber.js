@@ -936,7 +936,7 @@ export class Chamber {
     });
     this.container.querySelector('#first-read-pause')?.addEventListener('click', () => {
       this.dismissFirstReadChoice();
-      this.togglePlayPause();
+      this._pauseLikePlay();
     });
     const kaleidoscopeBtn = this.container.querySelector('#kaleidoscope-btn');
     kaleidoscopeBtn?.addEventListener('click', () => {
