@@ -9,6 +9,7 @@ on:
 
 permissions:
   contents: read
+  actions: read
 
 concurrency:
   group: rise-cloudflare
@@ -40,46 +41,8 @@ jobs:
           echo "sha=$TESTED_SHA" >> "$GITHUB_OUTPUT"
           echo "artifact=rise-$TESTED_SHA" >> "$GITHUB_OUTPUT"
 
-  build:
-    needs: source
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: ${{ needs.source.outputs.sha }}
-          persist-credentials: false
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '20.19.0'
-          cache: npm
-      - run: npm ci
-      - run: npm run build
-      - name: Pack the only release artifact
-        env:
-          TESTED_SHA: ${{ needs.source.outputs.sha }}
-        run: |
-          set -euo pipefail
-          printf '%s\n' "$TESTED_SHA" > "dist/release-$TESTED_SHA.txt"
-          tar -czf "$RUNNER_TEMP/release.tar.gz" \
-            dist \
-            worker/index.mjs \
-            netlify/functions/jev-decision.mjs \
-            netlify/functions/jev-route.mjs \
-            wrangler.staging.jsonc \
-            wrangler.production.jsonc
-          (cd "$RUNNER_TEMP" && sha256sum release.tar.gz > release.tar.gz.sha256)
-      - uses: actions/upload-artifact@v4
-        with:
-          name: ${{ needs.source.outputs.artifact }}
-          path: |
-            ${{ runner.temp }}/release.tar.gz
-            ${{ runner.temp }}/release.tar.gz.sha256
-          if-no-files-found: error
-          retention-days: 14
-
   staging:
-    needs: [source, build]
+    needs: source
     runs-on: ubuntu-latest
     timeout-minutes: 15
     environment:
@@ -95,6 +58,8 @@ jobs:
         with:
           name: ${{ needs.source.outputs.artifact }}
           path: ${{ runner.temp }}/release
+          run-id: ${{ github.event.workflow_run.id }}
+          github-token: ${{ github.token }}
       - name: Verify and unpack the release artifact
         run: |
           set -euo pipefail
@@ -172,7 +137,7 @@ jobs:
           EOF
 
   production:
-    needs: [source, build, staging]
+    needs: [source, staging]
     runs-on: ubuntu-latest
     timeout-minutes: 20
     # GitHub restricts this environment to main, requires @sdcarlson review,
@@ -189,6 +154,8 @@ jobs:
         with:
           name: ${{ needs.source.outputs.artifact }}
           path: ${{ runner.temp }}/release
+          run-id: ${{ github.event.workflow_run.id }}
+          github-token: ${{ github.token }}
       - name: Verify and unpack the same release artifact
         run: |
           set -euo pipefail

@@ -1,0 +1,62 @@
+name: Full validation
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: full-validation-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  unit:
+    name: Full unit tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup
+        with:
+          ffmpeg: 'true'
+          chromium: 'true'
+      - run: npm run test:run
+
+  scriptorium:
+    name: Scriptorium CLI
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup
+      - run: npm run scriptorium:ci
+
+  browser:
+    name: Browser matrix ${{ matrix.shard }}/4
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup
+        with:
+          chromium: 'true'
+      - run: npm run test:e2e -- --shard=${{ matrix.shard }}/4
+      - uses: actions/upload-artifact@v4
+        if: ${{ failure() }}
+        with:
+          name: playwright-report-${{ matrix.shard }}
+          path: playwright-report/
+          if-no-files-found: ignore
