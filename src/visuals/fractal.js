@@ -4,7 +4,7 @@
  * Implements a "Preload Queue" strategy to ensure instant availability for flashes.
  */
 import { FractalFlameGenerator } from './lib/fractal-engine.js';
-import { planFlame, pickNearestSignalIndex } from '../core/conductor.js';
+import { buildAccentFlamePalette, planFlame, pickNearestSignalIndex } from '../core/conductor.js';
 
 export class FractalFlame {
     constructor(canvas) {
@@ -28,6 +28,8 @@ export class FractalFlame {
         // raw platform behavior.
         this.signalPool = null;
         this._poolIndex = 0;
+        // A reading's chosen colors, when it has them (Jev readings do).
+        this.accentPalette = null;
 
         // Configuration
         this.config = {
@@ -80,6 +82,19 @@ export class FractalFlame {
             this.queue = [];
             console.log(`[FractalFlame] Signal pool ${next ? `set (${next.length} signals)` : 'cleared'}, queue flushed.`);
         }
+    }
+
+    /**
+     * Paint flames in a reading's chosen colors (null = the mood palettes).
+     * A change flushes the queue so no flame in the old colors is shown.
+     */
+    setColorTheme(colors) {
+        const next = colors ? buildAccentFlamePalette(colors) : null;
+        const key = palette => palette ? palette[128].join(',') + palette[255].join(',') : 'none';
+        if (key(next) === key(this.accentPalette)) return;
+        this.accentPalette = next;
+        this._generation++;
+        this.queue = [];
     }
 
     beginSession(signals) {
@@ -155,6 +170,7 @@ export class FractalFlame {
             this.generator.palette = this.generator.generateDefaultPalette();
             this.generator.generateRandomFlame();
         }
+        if (this.accentPalette) this.generator.palette = this.accentPalette;
 
         // Always generate at the current canvas size to ensure sync putImageData works
         const { width, height } = this.canvas;

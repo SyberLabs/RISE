@@ -405,3 +405,19 @@ describe('summarizeTrack', () => {
         expect(summarizeTrack([]).meanValence).toBe(0);
     });
 });
+
+describe('accent flame palette', () => {
+    it('builds a 256-color palette from a reading’s chosen colors', async () => {
+        const { buildAccentFlamePalette } = await import('./conductor.js');
+        const palette = buildAccentFlamePalette({ background: '#0A0619', text: '#A8F1FF', accent: '#E84BFF' });
+        expect(palette).toHaveLength(256);
+        // The accent itself anchors the palette: magenta, not yellow-green.
+        const [r, g, b] = palette[64];
+        expect(r).toBeGreaterThan(200);
+        expect(b).toBeGreaterThan(200);
+        expect(g).toBeLessThan(120);
+        // No entry is dark enough to vanish on the ground.
+        expect(Math.min(...palette.map(([pr, pg, pb]) => pr + pg + pb))).toBeGreaterThan(250);
+        expect(buildAccentFlamePalette({ background: 'red' })).toBeNull();
+    });
+});
