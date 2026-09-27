@@ -60,6 +60,19 @@ function assertPlan(decision) {
   return { plan: config, resolved, visualProgram };
 }
 
+/** Admit the versioned Worker JSON before offering a reading to the reader. */
+export function validateJevRecommendation(decision) {
+  if (!decision || decision.schemaVersion !== 1
+    || typeof decision.requestId !== 'string' || !decision.requestId || decision.requestId.length > 100
+    || typeof decision.model !== 'string' || !/^typesafe\/jev-1\.13(?:-\d{8})?$/.test(decision.model)
+    || typeof decision.workId !== 'string' || typeof decision.editionId !== 'string'
+    || typeof decision.sourceRevision !== 'string' || typeof decision.reason !== 'string') {
+    throw new TypeError('Jev returned an invalid reading plan.');
+  }
+  assertPlan(decision);
+  return decision;
+}
+
 /** Select from the edition's actual divisions, never from model-supplied text. */
 export function selectJevDivision(divisions, section) {
   const entries = divisions?.entries;

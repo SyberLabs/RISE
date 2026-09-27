@@ -1,6 +1,9 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { LIBRARY_TEXTS } from '../content/library.js';
 import { Library } from './Library.js';
+import { jevPalette } from '../core/jev-palette.js';
+import { resolveJevChamberConfig } from '../core/jev-config.js';
+import { compileJevVisualProgram } from '../core/jev-sequence.js';
 
 const book = LIBRARY_TEXTS.find(text => text.id === 'literary-meditations');
 let library;
@@ -21,13 +24,26 @@ function mount(options = {}) {
 }
 
 function response(overrides = {}) {
+  const selectors = {
+    section: 'first', wpm: 200, curve: 'flat', chunkMode: 'phrase',
+    audio: 'aurora', visualMode: 'focals', visualStyle: 'gentle',
+    visualEngine: 'klee', visualArc: 'single', arcSplit: '50',
+    middleEngine: 'turrell', finaleEngine: 'fractal',
+    visualPalette: 'white', kleePreset: 'random', galleryCadence: 'balanced',
+    chamberFace: 'literary', fontSize: 'medium', colorTheme: 'classic',
+    wordFill: 'plain', projection: 'stream', revealMode: 'instant'
+  };
   return {
+    schemaVersion: 1,
     requestId: 'request-1',
     model: 'typesafe/jev-1.13-20260917',
     workId: book.id,
     editionId: book.editionId,
     sourceRevision: book.sourceRevision,
     reason: 'A reflective classical work.',
+    config: { ...selectors, colors: jevPalette(selectors.colorTheme),
+      ...resolveJevChamberConfig(selectors),
+      visualProgram: compileJevVisualProgram(selectors) },
     cacheStatus: 'miss',
     ...overrides
   };
@@ -102,5 +118,21 @@ describe('Jev recommendation in the reader-facing Library', () => {
 
     expect(container.querySelector('.library-jev-choice details').textContent)
       .toContain('Reused cached Jev choice');
+  });
+
+  it('rejects a malformed or unsupported JSON plan before showing an open action', async () => {
+    const form = mount();
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true, json: async () => response({ schemaVersion: 2 })
+    }));
+    form.elements.intent.value = 'A reflective classic';
+    await library.recommendWithJev(form);
+    expect(container.querySelector('[data-action="open-jev"]')).toBeNull();
+
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true, json: async () => response({ config: { ...response().config, fontSize: 'giant' } })
+    }));
+    await library.recommendWithJev(form);
+    expect(container.querySelector('[data-action="open-jev"]')).toBeNull();
   });
 });

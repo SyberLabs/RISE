@@ -318,6 +318,8 @@ export class Library {
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data?.error?.message || 'Jev is unavailable right now.');
+      const { validateJevRecommendation } = await import('../app/jev-reading.js');
+      validateJevRecommendation(data);
       const book = LIBRARY_TEXTS.find(text => text.id === data.workId
         && text.provider === 'archive-ingest'
         && text.editionId === data.editionId
