@@ -199,7 +199,7 @@ from the Vite dev server.
  Chromium only, single worker, with autoplay forced on (Web Audio).
 - Pull requests and main run core smoke, build, hygiene, security,
  and docs in one `CI` job with one dependency install. Main's `CI` uploads
- the tested build for deployment. Full unit, Scriptorium, and sharded browser
+ the tested build for its protected production job. Full unit, Scriptorium, and sharded browser
  suites run separately on main and manual dispatch. They report failures but
  do not hold deployment. The ruleset requires `CI`. Run
  `npm run test:e2e:gate` locally before pushing.
