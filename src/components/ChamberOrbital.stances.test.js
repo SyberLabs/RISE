@@ -52,7 +52,7 @@ describe('the stance row', () => {
         const { container, orbital } = createOrbital();
         const button = container.querySelector('[data-stance="contemplate"]').closest('label');
         expect(button.textContent).toContain('Contemplate');
-        expect(button.textContent).toContain('unhurried pace');
+        expect(button.textContent).toContain('One held image, an unhurried pace, a soundscape.');
         orbital.destroy();
     });
 

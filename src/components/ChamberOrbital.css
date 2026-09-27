@@ -915,10 +915,6 @@
   outline-offset: 2px;
 }
 
-.orbital-modal .modal-body {
-  padding: var(--space-md) var(--space-lg);
-}
-
 /* ─── Modal Config Sections ─── */
 .config-section {
   margin-bottom: var(--space-lg);
@@ -1346,44 +1342,6 @@
   font-weight: var(--font-weight-medium);
 }
 
-/* Specificity boost to avoid collision with Workshop.css */
-.orbital-modal .curve-options {
-  display: grid;
-  grid-template-columns: repeat(5, 1fr);
-  gap: 8px;
-  width: 100%;
-}
-
-.orbital-modal .curve-option {
-  width: 100%;
-  background: transparent;
-  border: 1px solid var(--color-shadow);
-  padding: var(--space-md) var(--space-xs);
-  cursor: pointer;
-  transition: all var(--transition-fast) var(--ease-default);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: var(--space-xs);
-  color: var(--color-cloud);
-  font-size: 12px;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
-
-.orbital-modal .curve-option:hover {
-  border-color: var(--color-threshold);
-  color: var(--color-light);
-  background: rgba(var(--color-accent-rgb), 0.05);
-}
-
-.orbital-modal .curve-option.active {
-  border-color: var(--color-threshold);
-  background: rgba(var(--color-accent-rgb), 0.15);
-  color: var(--color-light);
-  box-shadow: inset 0 0 12px rgba(var(--color-accent-rgb), 0.2);
-}
-
 .curve-icon {
   font-size: 24px;
 }
@@ -1583,33 +1541,769 @@
   font-style: italic;
 }
 
-/* ─── A locked chunking mode ───
-   Word and Sentence are unavailable while Recitation is on. Until now
-   they were only `disabled`, which on a dark panel is a slightly
-   dimmer button — indistinguishable from a control that does not
-   work. The padlock says the state is deliberate; the note beneath
-   says who imposed it. */
-.chunk-option.is-locked {
-  opacity: 0.55;
-  cursor: not-allowed;
-  border-style: dashed;
+/* ═══════════════════════════════════════════════════════════
+   Settings panels (Timing, Sound, Visuals) — SyberLabs DS v1
+   The classes above are shared with Settings and Compose, so the
+   panel insides are restyled here, scoped to .orbital-modal.
+   Controls: 1px line-strong, radius 8, 44px. Sections: hairlines
+   and space, not boxes. Selected: brand. Nothing under 12px.
+   ═══════════════════════════════════════════════════════════ */
+
+.orbital-modal {
+  --rs-line: #1F2433;
+  --rs-line-strong: #5E6980;
+  --rs-surface-2: #121521;
+  --rs-text: #F2F5FB;
+  --rs-text-2: #AEB8CC;
+  --rs-text-3: #7F8AA3;
+  --rs-brand: #4890F0;
+  --rs-sans: 'Instrument Sans', var(--font-primary);
+  --rs-mono: 'JetBrains Mono', var(--font-mono);
+  --rs-ease: cubic-bezier(.2, .8, .2, 1);
 }
 
-.chunk-option.is-locked:hover {
-  border-color: var(--color-shadow);
-  color: var(--color-cloud);
+.orbital-modal .modal-body {
+  padding: 24px 32px 32px;
+  font-family: var(--rs-sans);
+  color: var(--rs-text-2);
+}
+
+/* Sections are separated by a hairline and space. */
+.orbital-modal .config-section {
+  margin: 0;
+  padding: 24px 0;
+  border-top: 1px solid var(--rs-line);
+}
+
+.orbital-modal .config-section:first-child {
+  padding-top: 0;
+  border-top: none;
+}
+
+.orbital-modal .config-section:last-child {
+  padding-bottom: 0;
+}
+
+/* Label: JetBrains Mono 12/16, 500, .08em, uppercase, text-3. */
+.orbital-modal .config-label,
+.orbital-modal .input-label {
+  font-family: var(--rs-mono);
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 500;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--rs-text-3);
+  margin: 0 0 12px;
+}
+
+.orbital-modal .config-label-row {
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.orbital-modal .config-label-row .config-label {
+  margin: 0;
+}
+
+.orbital-modal .input-label-value {
+  font-family: var(--rs-mono);
+  font-size: 12px;
+  color: var(--rs-text);
+  letter-spacing: 0;
+}
+
+.orbital-modal .config-note,
+.orbital-modal .config-notice,
+.orbital-modal .audio-bed-note {
+  font-family: var(--rs-sans);
+  font-style: normal;
+  font-size: 14px !important;
+  line-height: 20px;
+  letter-spacing: 0;
+  color: var(--rs-text-3);
+  max-width: 60ch;
+  margin: 12px 0 0;
+}
+
+.orbital-modal .audio-bed-note {
+  color: var(--rs-text-2);
+  margin: 0 0 16px;
+}
+
+.orbital-modal .config-info {
+  width: 20px;
+  height: 20px;
+  opacity: 1;
+  color: var(--rs-text-3);
+  border-color: var(--rs-line-strong);
+  font-family: var(--rs-sans);
+}
+
+.orbital-modal .config-info:hover {
+  color: var(--rs-text);
+  border-color: var(--rs-text-2);
+}
+
+.orbital-modal .config-info::after {
+  background: var(--rs-surface-2);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  border: 1px solid var(--rs-line);
+  border-radius: 8px;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.55);
+  font-family: var(--rs-sans);
+  font-size: 14px;
+  line-height: 20px;
+  letter-spacing: 0;
+  color: var(--rs-text-2);
+}
+
+.orbital-modal .config-info::before {
+  border-top-color: var(--rs-line);
+  filter: none;
+}
+
+/* Pacing slider: a hairline track, a plain thumb, brand on focus. */
+.orbital-modal .slider {
+  height: 20px;
   background: transparent;
 }
 
-.chunk-lock {
-  font-size: 0.85em;
-  margin-right: 5px;
-  /* The emoji's own colour would be the one bright thing in a panel
-     of hairlines. */
-  filter: grayscale(1);
-  opacity: 0.8;
+.orbital-modal .slider::-webkit-slider-runnable-track {
+  height: 2px;
+  background: var(--rs-line-strong);
+  border-radius: 999px;
 }
 
+.orbital-modal .slider::-moz-range-track {
+  height: 2px;
+  background: var(--rs-line-strong);
+  border-radius: 999px;
+}
+
+.orbital-modal .slider::-webkit-slider-thumb {
+  width: 20px;
+  height: 20px;
+  margin-top: -9px;
+  background: var(--rs-text);
+  box-shadow: none;
+}
+
+.orbital-modal .slider::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  background: var(--rs-text);
+  box-shadow: none;
+}
+
+.orbital-modal .slider:hover::-webkit-slider-thumb { background: #FFFFFF; box-shadow: none; }
+.orbital-modal .slider:hover::-moz-range-thumb { background: #FFFFFF; box-shadow: none; }
+
+.orbital-modal .slider:focus-visible {
+  outline: 2px solid var(--rs-brand);
+  outline-offset: 2px;
+}
+
+/* ─── Option tiles ─── */
+.orbital-modal .audio-preset-options,
+.orbital-modal .audio-mode-options,
+.orbital-modal .audio-waveform-options,
+.orbital-modal .chunk-options,
+.orbital-modal .curve-options {
+  gap: 8px;
+}
+
+/* Four soundscapes (six in the Chapel) read as a 2×n set, not 3 + 1. */
+.orbital-modal .soundscape-options {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.orbital-modal .audio-preset-option,
+.orbital-modal .audio-mode-option,
+.orbital-modal .audio-waveform-option,
+.orbital-modal .chunk-option,
+.orbital-modal .curve-option {
+  min-height: 44px;
+  padding: 12px 16px;
+  background: transparent;
+  border: 1px solid var(--rs-line-strong);
+  border-radius: 8px;
+  box-shadow: none;
+  color: var(--rs-text-2);
+  font-family: var(--rs-sans);
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 500;
+  letter-spacing: 0;
+  text-transform: none;
+  display: inline-flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: background-color 120ms var(--rs-ease),
+              border-color 120ms var(--rs-ease),
+              color 120ms var(--rs-ease);
+}
+
+.orbital-modal .audio-preset-option:hover,
+.orbital-modal .audio-mode-option:hover,
+.orbital-modal .audio-waveform-option:hover,
+.orbital-modal .chunk-option:hover,
+.orbital-modal .curve-option:hover {
+  background: var(--rs-surface-2);
+  border-color: var(--rs-line-strong);
+  color: var(--rs-text);
+}
+
+/* [hidden] must still hide: the Chapel-only chant tiles rely on it. */
+.orbital-modal .audio-preset-option[hidden],
+.orbital-modal .audio-mode-option[hidden],
+.orbital-modal .audio-waveform-option[hidden],
+.orbital-modal .chunk-option[hidden],
+.orbital-modal .curve-option[hidden] {
+  display: none;
+}
+
+/* Selected: brand border drawn 2px (1px border + 1px inset), text white. */
+.orbital-modal .audio-preset-option.active,
+.orbital-modal .audio-mode-option.active,
+.orbital-modal .audio-waveform-option.active,
+.orbital-modal .chunk-option.active,
+.orbital-modal .curve-option.active {
+  background: transparent;
+  border-color: var(--rs-brand);
+  box-shadow: inset 0 0 0 1px var(--rs-brand);
+  color: var(--rs-text);
+}
+
+.orbital-modal .preset-label {
+  font-size: inherit;
+  letter-spacing: 0;
+  text-transform: none;
+  font-weight: inherit;
+}
+
+.orbital-modal .chunk-option:disabled:not(.is-locked) {
+  opacity: .4;
+  cursor: not-allowed;
+}
+
+/* Pacing curve: the shape is drawn, above its name. */
+.orbital-modal .curve-options {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  width: 100%;
+}
+
+.orbital-modal .curve-option {
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px 8px;
+}
+
+.orbital-modal .curve-icon {
+  display: block;
+  font-size: 0;
+  line-height: 0;
+  color: var(--rs-text-3);
+  transition: color 120ms var(--rs-ease);
+}
+
+.orbital-modal .curve-option:hover .curve-icon,
+.orbital-modal .curve-option.active .curve-icon {
+  color: var(--rs-brand);
+}
+
+/* ─── A locked chunking mode ───
+   Word and Sentence are unavailable while Recitation is on. The lock
+   is drawn on the control it applies to, and the note beneath says
+   who imposed it. */
+.orbital-modal .chunk-option.is-locked {
+  opacity: 1;
+  cursor: not-allowed;
+  border-color: var(--rs-line);
+  color: var(--rs-text-3);
+  box-shadow: none;
+}
+
+.orbital-modal .chunk-option.is-locked:hover {
+  background: transparent;
+  border-color: var(--rs-line);
+  color: var(--rs-text-3);
+}
+
+.chunk-lock {
+  flex: none;
+  display: block;
+}
+
+/* Pure Tone parameters: an indented hairline, not a tinted box. */
+.orbital-modal .pure-tone-controls {
+  margin-top: 16px;
+  padding: 0 0 0 16px;
+  background: none;
+  border-left: 1px solid var(--rs-line);
+}
+
+.orbital-modal .config-subsection + .config-subsection {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--rs-line);
+}
+
+/* Voice picker: a field. */
+.orbital-modal .voice-select {
+  height: 44px;
+  padding: 0 16px;
+  background: #0B0D14;
+  border: 1px solid var(--rs-line-strong);
+  border-radius: 8px;
+  color: var(--rs-text);
+  font-family: var(--rs-sans);
+  font-size: 16px;
+}
+
+.orbital-modal .voice-select:focus {
+  border-color: var(--rs-brand);
+  box-shadow: none;
+}
+
+.orbital-modal .voice-select:focus-visible {
+  outline: 2px solid var(--rs-brand);
+  outline-offset: 2px;
+}
+
+/* Personal swell pool: a hairline list, a 44px add button. */
+.orbital-modal .section-header-row {
+  margin-bottom: 12px;
+}
+
+.orbital-modal .section-header-row .config-label {
+  margin: 0;
+}
+
+.orbital-modal .pool-upload-btn {
+  width: 44px;
+  height: 44px;
+  background: transparent;
+  border: 1px solid var(--rs-line-strong);
+  border-radius: 8px;
+  color: var(--rs-text);
+  font-family: var(--rs-sans);
+  font-size: 20px;
+  box-shadow: none;
+}
+
+.orbital-modal .pool-upload-btn:hover {
+  background: var(--rs-surface-2);
+  border-color: var(--rs-line-strong);
+  box-shadow: none;
+}
+
+.orbital-modal .pool-upload-btn:focus-within {
+  outline: 2px solid var(--rs-brand);
+  outline-offset: 2px;
+}
+
+.orbital-modal .personal-swell-list {
+  background: none;
+  border: none;
+  border-top: 1px solid var(--rs-line);
+  border-bottom: 1px solid var(--rs-line);
+  border-radius: 0;
+  margin-bottom: 0;
+}
+
+.orbital-modal .pool-empty {
+  padding: 16px 0;
+  text-align: left;
+  font-family: var(--rs-sans);
+  font-style: normal;
+  font-size: 14px;
+  line-height: 20px;
+  letter-spacing: 0;
+  color: var(--rs-text-3);
+}
+
+.orbital-modal .swell-item {
+  min-height: 44px;
+  padding: 0 8px;
+  border-bottom: 1px solid var(--rs-line);
+}
+
+.orbital-modal .swell-item:hover {
+  background: var(--rs-surface-2);
+}
+
+.orbital-modal .swell-item.selected {
+  background: none;
+  border-left: none;
+  box-shadow: inset 2px 0 0 var(--rs-brand);
+}
+
+.orbital-modal .swell-name {
+  font-family: var(--rs-sans);
+  font-size: 14px;
+  color: var(--rs-text-2);
+}
+
+.orbital-modal .swell-item.selected .swell-name {
+  color: var(--rs-text);
+}
+
+.orbital-modal .swell-btn {
+  width: 44px;
+  height: 44px;
+  border-radius: 8px;
+  color: var(--rs-text-3);
+}
+
+.orbital-modal .preview-btn:hover,
+.orbital-modal .delete-btn:hover {
+  background: var(--rs-surface-2);
+  color: var(--rs-text);
+}
+
+/* ─── Visuals: the Visual Navigator, inside this panel ───
+   The Navigator carries its own palette for every other room. Inside the
+   reader setup it takes the setup's: sans type, hairlines, brand for the
+   selected state, 12px floor. The ink swatches keep their own colour. */
+#modal-visual .vnav {
+  --vnav-edge: var(--rs-line);
+  --vnav-panel: #0B0D14;
+  --vnav-raise: var(--rs-surface-2);
+  font-family: var(--rs-sans);
+  color: var(--rs-text-2);
+  background: transparent;
+  border-radius: 8px;
+}
+
+#modal-visual .vnav-bar,
+#modal-visual .vnav-group,
+#modal-visual .vnav-bench-label,
+#modal-visual .vnav-section-title,
+#modal-visual .vnav-kind,
+#modal-visual .vnav-preview-note,
+#modal-visual .vnav-preview-label,
+#modal-visual .vnav-ink-own-caption,
+#modal-visual .vnav-commit-label,
+#modal-visual .vnav-cadence > span {
+  font-family: var(--rs-mono);
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 500;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--rs-text-3);
+}
+
+#modal-visual .vnav-path,
+#modal-visual .vnav-path span.here,
+#modal-visual .vnav-field {
+  color: var(--rs-text);
+}
+
+#modal-visual .vnav-path span,
+#modal-visual .vnav-path i {
+  color: var(--rs-text-3);
+}
+
+#modal-visual .vnav-node {
+  border-radius: 8px;
+  color: var(--rs-text-2);
+  font-size: 14px;
+  line-height: 20px;
+}
+
+#modal-visual .vnav-node:hover {
+  background: var(--rs-surface-2);
+  color: var(--rs-text);
+}
+
+#modal-visual .vnav-node .g,
+#modal-visual .vnav-node .arw {
+  color: var(--rs-text-3);
+  font-size: 12px;
+}
+
+#modal-visual .vnav-node.sel {
+  background: var(--rs-surface-2);
+  border-color: transparent;
+  box-shadow: inset 2px 0 0 var(--rs-brand);
+  color: var(--rs-text);
+}
+
+#modal-visual .vnav-node.sel .g,
+#modal-visual .vnav-node.on .nm {
+  color: var(--rs-text);
+}
+
+#modal-visual .vnav-node .dot {
+  background: var(--rs-brand);
+  box-shadow: none;
+}
+
+#modal-visual .vnav-empty {
+  font-family: var(--rs-sans);
+  font-size: 14px;
+  letter-spacing: 0;
+  color: var(--rs-text-3);
+}
+
+#modal-visual .vnav-entry-head h3 {
+  font-family: var(--rs-sans);
+  font-size: 18px;
+  line-height: 28px;
+  font-weight: 600;
+  color: var(--rs-text);
+}
+
+#modal-visual .vnav-kind b,
+#modal-visual .vnav-glyph,
+#modal-visual .vnav-preview-glyph {
+  color: var(--rs-text-3);
+}
+
+#modal-visual .vnav-desc {
+  font-family: var(--rs-sans);
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--rs-text-2);
+  max-width: 60ch;
+}
+
+#modal-visual .vnav-opt {
+  padding: 8px 12px;
+  background: transparent;
+  border: 1px solid var(--rs-line-strong);
+  border-radius: 8px;
+  color: var(--rs-text-2);
+  font-family: var(--rs-sans);
+  font-size: 14px;
+  line-height: 20px;
+  transition: background-color 120ms var(--rs-ease),
+              border-color 120ms var(--rs-ease),
+              color 120ms var(--rs-ease);
+}
+
+#modal-visual .vnav-opt:hover {
+  background: var(--rs-surface-2);
+  color: var(--rs-text);
+}
+
+#modal-visual .vnav-opt.on,
+#modal-visual .vnav-global-assets button.on {
+  background: transparent;
+  border-color: var(--rs-brand);
+  box-shadow: inset 0 0 0 1px var(--rs-brand);
+  color: var(--rs-text);
+}
+
+#modal-visual .vnav-opt.is-special {
+  color: var(--rs-text);
+}
+
+#modal-visual .vnav-cadence .vnav-opt {
+  padding: 4px 8px;
+  font-size: 12px;
+}
+
+#modal-visual .vnav-control-explanation,
+#modal-visual .vnav-program,
+#modal-visual .vnav-lock,
+#modal-visual .vnav-held,
+#modal-visual .vnav-text-locked,
+#modal-visual .vnav-reading-collections,
+#modal-visual .vnav-global-picker,
+#modal-visual .vnav-size-note,
+#modal-visual .vnav-fit-consequence {
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--rs-text-2);
+}
+
+#modal-visual .vnav-program,
+#modal-visual .vnav-lock,
+#modal-visual .vnav-reading-collections {
+  background: none;
+}
+
+#modal-visual .vnav-held,
+#modal-visual .vnav-text-locked {
+  background: none;
+  border-color: var(--rs-line);
+  border-radius: 8px;
+}
+
+#modal-visual .vnav-program > span:first-child,
+#modal-visual .vnav-held b,
+#modal-visual .vnav-reading-collections > b {
+  color: var(--rs-text);
+}
+
+#modal-visual .vnav-program-release,
+#modal-visual .vnav-manage,
+#modal-visual .vnav-personal-upload,
+#modal-visual .vnav-personal-focal button,
+#modal-visual .vnav-chapel-menu button {
+  border: 1px solid var(--rs-line-strong);
+  border-style: solid;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--rs-text);
+  font-family: var(--rs-sans);
+  font-size: 14px;
+}
+
+#modal-visual .vnav-manage:hover,
+#modal-visual .vnav-program-release:hover {
+  background: var(--rs-surface-2);
+  color: var(--rs-text);
+}
+
+#modal-visual .vnav-switch {
+  border-radius: 8px;
+}
+
+#modal-visual .vnav-switch:hover {
+  background: var(--rs-surface-2);
+}
+
+#modal-visual .vnav-switch-name {
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--rs-text);
+}
+
+#modal-visual .vnav-switch-note {
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--rs-text-3);
+}
+
+#modal-visual .vnav-switch-track {
+  background: transparent;
+  border: 1px solid var(--rs-line-strong);
+  border-radius: 999px;
+  box-shadow: none;
+}
+
+#modal-visual .vnav-switch-knob {
+  background: var(--rs-text-3);
+  border-top: none;
+  border-radius: 999px;
+}
+
+#modal-visual .vnav-switch.is-on .vnav-switch-track {
+  background: var(--rs-brand);
+  border-color: var(--rs-brand);
+}
+
+#modal-visual .vnav-switch.is-on .vnav-switch-knob {
+  background: var(--rs-text);
+}
+
+#modal-visual .vnav-toggle {
+  background: transparent;
+  border-color: var(--rs-line-strong);
+}
+
+#modal-visual .vnav-toggle .knob {
+  background: var(--rs-text-3);
+}
+
+#modal-visual .vnav-toggle.on {
+  background: var(--rs-brand);
+  border-color: var(--rs-brand);
+}
+
+#modal-visual .vnav-toggle.on .knob {
+  background: var(--rs-text);
+  box-shadow: none;
+}
+
+#modal-visual .vnav-type-section.is-active {
+  border-left-color: var(--rs-brand);
+}
+
+#modal-visual .vnav-dialog {
+  border: 1px solid var(--rs-line);
+  border-radius: 8px;
+  background: var(--rs-surface-2);
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.55);
+  color: var(--rs-text-2);
+}
+
+#modal-visual .vnav-dialog h3 {
+  font-family: var(--rs-sans);
+  font-size: 18px;
+  line-height: 28px;
+  font-weight: 600;
+  color: var(--rs-text);
+}
+
+#modal-visual .vnav-dialog p {
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--rs-text-2);
+}
+
+#modal-visual .vnav-dialog-actions button {
+  min-height: 44px;
+  padding: 0 20px;
+  border: 1px solid var(--rs-line-strong);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--rs-text);
+  font-family: var(--rs-sans);
+  font-size: 16px;
+  font-weight: 500;
+}
+
+#modal-visual .vnav-dialog-actions [data-dialog-primary] {
+  background: var(--rs-text);
+  border-color: var(--rs-text);
+  color: #05060A;
+}
+
+#modal-visual .vnav-back,
+#modal-visual .vnav-reader-mark,
+#modal-visual .vnav-type-section.is-active .vnav-section-title {
+  color: var(--rs-text);
+}
+
+#modal-visual .vnav-back {
+  font-family: var(--rs-mono);
+  font-size: 12px;
+  letter-spacing: .08em;
+}
+
+#modal-visual .vnav-gate-mark {
+  color: var(--rs-text-3);
+}
+
+#modal-visual .vnav-control-group,
+#modal-visual .vnav-ink-own {
+  background: none;
+  border-color: var(--rs-line);
+  border-radius: 8px;
+}
+
+#modal-visual .vnav-reader-summary {
+  font-size: 12px;
+}
+
+#modal-visual .vnav-reader-summary:focus-visible {
+  outline-color: var(--rs-brand);
+}
+
+#modal-visual .vnav :focus-visible,
+#modal-visual .vnav-switch:has(input:focus-visible) {
+  outline: 2px solid var(--rs-brand);
+  outline-offset: 2px;
+}
 
 @media (max-width: 768px) {
   .mode-options,
@@ -1656,48 +2350,49 @@
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
+  /* Five curves, one row: the drawn shape carries the choice, the name
+     sits under it at the 12px floor. */
   .orbital-modal .curve-options {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: var(--space-xs);
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 8px;
   }
 
-  /* All option spellings: row layout under .orbital-modal. */
-  .orbital-modal .mode-option,
-  .orbital-modal .audio-preset-option,
-  .orbital-modal .curve-option,
-  .orbital-modal .audio-mode-option,
-  .orbital-modal .audio-waveform-option {
-    flex-direction: row;
-    justify-content: center;
-    align-items: center;
-    gap: 7px;
-    padding: 9px 8px;
-    min-height: 40px;
+  .orbital-modal .curve-option {
+    padding: 8px 2px;
+    gap: 2px;
     font-size: 12px;
-    line-height: 1.2;
+    line-height: 16px;
   }
 
-  .orbital-modal .mode-icon,
-  .orbital-modal .preset-icon,
-  .orbital-modal .curve-icon {
+  .orbital-modal .audio-preset-option,
+  .orbital-modal .audio-mode-option,
+  .orbital-modal .audio-waveform-option,
+  .orbital-modal .chunk-option {
+    padding: 12px 8px;
+  }
+
+  /* Three waveforms, one row, not two and a stray. */
+  .orbital-modal .audio-waveform-options {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .orbital-modal .mode-icon {
     font-size: 15px;
     line-height: 1;
   }
 
-  .orbital-modal .preset-label {
-    font-size: 12px;
-  }
-
-  /* Seven sections at 20px of tail and 16px under each label is 250px
-     of pure separation — a third of the panel spent on gaps between
-     things that were never in danger of being confused. */
   .orbital-modal .config-section {
-    margin-bottom: var(--space-sm);
+    padding: 16px 0;
   }
 
   .orbital-modal .config-label,
+  .orbital-modal .input-label,
   .orbital-modal .config-label-row {
-    margin-bottom: var(--space-xs);
+    margin-bottom: 8px;
+  }
+
+  .orbital-modal .pure-tone-controls {
+    padding-left: 12px;
   }
 
   /* The panel takes the screen it is on. 80vh left a fifth of the
@@ -1725,8 +2420,9 @@
     padding: var(--space-xs);
   }
 
-  .modal-body {
-    padding: var(--space-sm) var(--space-sm);
+  .modal-body,
+  .orbital-modal .modal-body {
+    padding: 16px;
   }
 }
 
