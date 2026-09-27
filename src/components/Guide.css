@@ -1,255 +1,215 @@
 /* ═══════════════════════════════════════════════════════════
-   Guide Component Styles
-   The User Protocol - archival, structured, numinous
+   Guide — a plain overlay panel on the SyberLabs system.
+   Surface panel, hairlines, overlay shadow; no ornaments.
    ═══════════════════════════════════════════════════════════ */
 
 .guide-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(4, 4, 5, 0.95);
-  backdrop-filter: blur(10px);
   z-index: 1000;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: var(--space-xl);
-  animation: guide-fade-in 400ms var(--ease-out);
+  padding: var(--sy-space-7) var(--sy-space-5);
+  background: rgba(5, 6, 10, 0.72);
+  animation: guide-fade-in var(--sy-dur-enter) var(--sy-ease);
 }
 
 .guide-modal {
-  background: var(--color-void);
-  width: 100%;
-  max-width: 800px;
-  max-height: 85vh;
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  border-radius: 4px;
   display: flex;
   flex-direction: column;
-  position: relative;
-  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.8), 0 0 100px rgba(var(--color-accent-rgb), 0.05);
+  width: 100%;
+  max-width: 760px;
+  max-height: calc(100vh - 96px);
+  max-height: calc(100dvh - 96px);
   overflow: hidden;
-}
-
-.guide-close {
-  position: absolute;
-  top: var(--space-md);
-  right: var(--space-md);
-  background: transparent;
-  border: none;
-  color: var(--color-fog);
-  font-size: 20px;
-  cursor: pointer;
-  z-index: 10;
-  transition: color var(--transition-fast) var(--ease-default);
-}
-
-.guide-close:hover {
-  color: var(--color-light);
+  background: var(--sy-surface);
+  border: 1px solid var(--sy-line);
+  border-radius: var(--sy-radius);
+  box-shadow: var(--sy-shadow-overlay);
+  color: var(--sy-text);
 }
 
 .guide-header {
-  padding: var(--space-md) var(--space-lg);
-  text-align: center;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-  background: linear-gradient(180deg, rgba(var(--color-accent-rgb), 0.03) 0%, transparent 100%);
-}
-
-.guide-sigil {
-  font-size: 24px;
-  color: var(--color-accent);
-  margin-bottom: var(--space-sm);
-}
-
-.guide-sigil.rise-mark {
-  font-size: 0;
-  width: 40px;
-  height: 40px;
-  margin-left: auto;
-  margin-right: auto;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--sy-space-4);
+  padding: var(--sy-space-5) var(--sy-space-5) var(--sy-space-4);
+  border-bottom: 1px solid var(--sy-line);
 }
 
 .guide-title {
-  font-family: var(--font-display);
-  font-size: 32px;
-  font-weight: var(--font-weight-light);
-  letter-spacing: 0.15em;
-  text-transform: uppercase;
-  color: var(--color-light);
-  margin-bottom: var(--space-xs);
+  margin: 0;
+  font: 600 24px/32px var(--sy-font-sans);
+  letter-spacing: -0.01em;
+  color: var(--sy-text);
 }
 
 .guide-subtitle {
-  font-family: var(--font-primary);
-  font-size: 12px;
-  letter-spacing: 0.2em;
-  text-transform: uppercase;
-  color: var(--color-fog);
+  margin: var(--sy-space-1) 0 0;
+  font: 400 14px/20px var(--sy-font-sans);
+  color: var(--sy-text-2);
 }
 
-.guide-content {
-  flex: 1;
-  overflow-y: auto;
-  padding: var(--space-md) var(--space-lg);
-  scrollbar-width: thin;
-  scrollbar-color: rgba(255,255,255,0.1) transparent;
-}
-
-.guide-section {
-  margin-bottom: var(--space-lg);
-}
-
-.section-title {
-  font-family: var(--font-primary);
-  font-size: 13px;
-  font-weight: var(--font-weight-bold);
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--color-threshold);
-  margin-bottom: var(--space-lg);
-  display: flex;
+.guide-close {
+  display: inline-flex;
   align-items: center;
-  gap: var(--space-sm);
+  justify-content: center;
+  flex: none;
+  width: var(--sy-control-height);
+  height: var(--sy-control-height);
+  margin: calc(-1 * var(--sy-space-2)) calc(-1 * var(--sy-space-3)) 0 0;
+  padding: 0;
+  border: none;
+  border-radius: var(--sy-radius);
+  background: transparent;
+  color: var(--sy-text-2);
+  cursor: pointer;
+  transition: color var(--sy-dur-hover) var(--sy-ease),
+    background-color var(--sy-dur-hover) var(--sy-ease);
 }
 
-.section-title::after {
-  content: '';
-  flex: 1;
-  height: 1px;
-  background: linear-gradient(90deg, rgba(var(--color-accent-rgb), 0.2), transparent);
+@media (hover: hover) {
+  .guide-close:hover {
+    color: var(--sy-text);
+    background: var(--sy-surface-2);
+  }
+}
+
+/* The scroller is a focusable, labelled region so a keyboard can reach
+   and scroll it. */
+.guide-content {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: var(--sy-space-5);
+}
+
+.guide-content:focus-visible {
+  outline: var(--sy-focus);
+  outline-offset: -2px;
+}
+
+.guide-section + .guide-section {
+  margin-top: var(--sy-space-6);
+  padding-top: var(--sy-space-5);
+  border-top: 1px solid var(--sy-line);
+}
+
+.guide-section .section-title {
+  margin: 0 0 var(--sy-space-3);
+  font: 600 18px/28px var(--sy-font-sans);
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--sy-text);
 }
 
 .guide-section p {
-  color: var(--color-cloud);
-  line-height: 1.8;
-  margin-bottom: var(--space-md);
-  font-size: 15px;
+  margin: 0 0 var(--sy-space-3);
+  max-width: 68ch;
+  font: 400 16px/24px var(--sy-font-sans);
+  color: var(--sy-text-2);
 }
 
-.guide-section strong {
-  color: var(--color-light);
-  font-weight: var(--font-weight-medium);
-}
+.guide-section p:last-child { margin-bottom: 0; }
 
-/* Workflow Steps */
-.workflow-steps {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-xl);
-}
+.guide-section em { font-style: normal; color: var(--sy-text); }
 
-.step {
-  display: flex;
-  gap: var(--space-lg);
-}
-
-.step-num {
-  font-family: var(--font-display);
-  font-size: 24px;
-  color: var(--color-threshold);
-  opacity: 0.5;
-  width: 30px;
-}
-
-.step-body strong {
-  display: block;
-  font-size: 16px;
-  margin-bottom: var(--space-2xs);
-}
-
-.step-body p {
-  font-size: 14px;
-  color: var(--color-fog);
+/* Rooms and controls: term on the left, one sentence on the right. */
+.workflow-steps,
+.mechanics-list,
+.shortcuts-grid {
+  display: grid;
+  gap: var(--sy-space-3);
   margin: 0;
 }
 
-/* Mechanics List */
-.mechanics-list {
-  list-style: none;
-  padding: 0;
-}
-
-.mechanics-list li {
-  position: relative;
-  padding-left: var(--space-lg);
-  margin-bottom: var(--space-md);
-  color: var(--color-cloud);
-  font-size: 14px;
-}
-
-.mechanics-list li::before {
-  content: '◈';
-  position: absolute;
-  left: 0;
-  color: var(--color-threshold);
-  font-size: 12px;
-  top: 4px;
-}
-
-/* Shortcuts Grid */
-.shortcuts-grid {
+.workflow-steps > div,
+.mechanics-list > div,
+.shortcuts-grid > div {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-  gap: var(--space-md);
+  grid-template-columns: 144px minmax(0, 1fr);
+  gap: var(--sy-space-4);
+  align-items: baseline;
 }
 
-.shortcut {
-  display: flex;
-  align-items: center;
-  gap: var(--space-md);
-  font-size: 13px;
-  color: var(--color-fog);
+.guide-section dt {
+  font: 500 16px/24px var(--sy-font-sans);
+  color: var(--sy-text);
+}
+
+.guide-section dd {
+  margin: 0;
+  font: 400 16px/24px var(--sy-font-sans);
+  color: var(--sy-text-2);
 }
 
 .shortcut kbd {
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 3px;
-  padding: 2px 6px;
-  font-family: var(--font-mono);
-  font-size: 12px;
-  color: var(--color-cloud);
-  min-width: 40px;
+  display: inline-block;
+  min-width: 32px;
+  padding: 2px var(--sy-space-2);
+  border: 1px solid var(--sy-line-strong);
+  border-radius: var(--sy-radius-sm);
+  font: 500 12px/16px var(--sy-font-mono);
+  color: var(--sy-text);
   text-align: center;
 }
 
 .guide-footer {
-  padding: var(--space-md) var(--space-lg);
-  text-align: center;
-  border-top: 1px solid rgba(255, 255, 255, 0.05);
-  font-size: 12px;
-  color: var(--color-fog);
+  padding: var(--sy-space-4) var(--sy-space-5);
+  border-top: 1px solid var(--sy-line);
 }
 
+.guide-footer p {
+  margin: 0;
+  font: 400 14px/20px var(--sy-font-sans);
+  color: var(--sy-text-2);
+}
+
+/* A normal link: brand, underlined, passing contrast (6.3:1 on surface). */
 .guide-footer a {
-  color: var(--color-threshold);
-  text-decoration: none;
-}
-
-.guide-footer a:hover {
+  color: var(--sy-brand);
   text-decoration: underline;
+  text-underline-offset: 3px;
 }
 
-.guide-footer-sigil {
-  margin-top: var(--space-sm);
-  color: var(--color-void-light);
-  font-size: 18px;
-}
+.guide-footer a:hover { color: var(--sy-text); }
 
 @keyframes guide-fade-in {
   from { opacity: 0; }
   to { opacity: 1; }
 }
 
-@media (max-width: 768px) {
+@media (prefers-reduced-motion: reduce) {
+  .guide-overlay { animation: none; }
+}
+
+@media (max-width: 640px) {
+  .guide-overlay {
+    align-items: flex-end;
+    padding: var(--sy-space-7) 0 0;
+  }
+
   .guide-modal {
-    max-height: 95vh;
+    max-height: calc(100vh - 48px);
+    max-height: calc(100dvh - 48px);
+    border-bottom: none;
+    border-radius: var(--sy-radius) var(--sy-radius) 0 0;
   }
-  
-  .guide-content {
-    padding: var(--space-lg);
+
+  .guide-header,
+  .guide-content,
+  .guide-footer {
+    padding-left: var(--sy-space-4);
+    padding-right: var(--sy-space-4);
   }
-  
-  .shortcuts-grid {
-    grid-template-columns: 1fr;
+
+  .workflow-steps > div,
+  .mechanics-list > div,
+  .shortcuts-grid > div {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0;
   }
 }

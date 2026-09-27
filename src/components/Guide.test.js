@@ -36,9 +36,29 @@ describe('Guide', () => {
 
     it('names the rooms a reader can actually reach', () => {
         const text = render();
-        for (const room of ['Portal', 'Library', 'Workshop', 'Chamber', 'Vault', 'Chapel']) {
+        // The names the navigation uses (Portal→Home, Chamber→Reader,
+        // Vault→Sequences, Workshop→Compose).
+        for (const room of ['Home', 'Library', 'Compose', 'Reader', 'Sequences', 'Chapel']) {
             expect(text, `the Guide never mentions the ${room}`).toContain(room);
         }
+    });
+
+    it('uses plain names, no ornament, and a scroller a keyboard can reach', () => {
+        const container = document.createElement('div');
+        document.body.appendChild(container);
+        const guide = new Guide(container);
+        const text = container.textContent;
+        for (const old of ['The Portal', 'The Chamber', 'The Workshop', 'The Vault', 'Philosophical Premise']) {
+            expect(text).not.toContain(old);
+        }
+        expect(text).not.toMatch(/[◈Ⅰ-Ⅵ✕]/);
+        expect(container.querySelector('.guide-sigil, .rise-mark, .guide-footer-sigil')).toBeNull();
+        const scroller = container.querySelector('.guide-content');
+        expect(scroller.getAttribute('tabindex')).toBe('0');
+        expect(scroller.getAttribute('aria-label')).toBeTruthy();
+        expect(document.activeElement).toBe(container.querySelector('.guide-close'));
+        guide.destroy();
+        container.remove();
     });
 
     it('links only to pages that ship', async () => {
