@@ -8,6 +8,7 @@
 
 import { cueForAtom } from '../core/visual-scheduler.js';
 import { pageCollectionId } from '../visuals/work-engines.js';
+import { livingFlameConfigKey } from '../core/flame-recipe.js';
 
 /** Block kinds the compositor understands. */
 export const BLOCK = Object.freeze({
@@ -73,7 +74,7 @@ function collectionsOf(cue) {
     // A Living Flame passage is sampled as a still of its own recipe.
     if (cue.kind === 'field' && cue.renderer === 'living-flame'
         && typeof cue.config?.recipe?.id === 'string') {
-        return [`${LIVING_FLAME_PAGE_PREFIX}${cue.config.recipe.id}`];
+        return [`${LIVING_FLAME_PAGE_PREFIX}${livingFlameConfigKey(cue.config)}`];
     }
     const collections = Array.isArray(cue.collections)
         ? cue.collections.filter(Boolean) : [];

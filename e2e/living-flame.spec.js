@@ -214,6 +214,23 @@ test.describe('passage-directed visuals', () => {
     await expect(page.locator('.toast, [role="alert"]').filter({ hasText: /Jev/i })).toHaveCount(0);
   });
 
+  test('Escape closes the Lab over a reading and asks nothing else', async ({ page }) => {
+    await gate(page);
+    await mockScoring(page);
+    await beginChapter(page);
+    await expect.poll(async () => (await direction(page)).flame, { timeout: 15_000 }).toBe(true);
+    await page.mouse.move(640, 700);
+    await page.locator('#visual-direction-btn').click();
+    await page.locator('[data-vd="lab"]').click();
+    await expect(page.locator('.visual-lab.is-overlay .living-flame-canvas')).toBeVisible({ timeout: 15_000 });
+    await page.keyboard.press('Escape');
+    await expect(page.locator('.visual-lab')).toHaveCount(0);
+    // The reading's exit confirmation must not have been opened underneath.
+    await expect(page.locator('#exit-confirm-overlay')).not.toBeVisible();
+    expect(await page.evaluate(() => window.__RISE_TEST__.getRouterState().currentView))
+      .toBe('chamber-session');
+  });
+
   test('Chamber to Lab to reading: the scene is held, saved, and still saved after reload', async ({ page }) => {
     await gate(page);
     await mockScoring(page);

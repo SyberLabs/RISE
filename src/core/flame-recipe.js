@@ -233,3 +233,19 @@ export function normalizeLivingFlameConfig(value) {
     return null;
   }
 }
+
+/**
+ * A stable key for one exact Living Flame configuration: the recipe id for
+ * reading, plus a digest of the full recipe and intensity, so two passages
+ * that share a composition at different intensities (or two edits that
+ * share an id) never share a sample.
+ */
+export function livingFlameConfigKey(config) {
+  const text = JSON.stringify({ recipe: config?.recipe ?? null, intensity: config?.intensity ?? null });
+  let hash = 0x811c9dc5;
+  for (let i = 0; i < text.length; i++) {
+    hash ^= text.charCodeAt(i);
+    hash = Math.imul(hash, 0x01000193) >>> 0;
+  }
+  return `${config?.recipe?.id ?? 'flame'}~${hash.toString(16).padStart(8, '0')}`;
+}

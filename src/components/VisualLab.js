@@ -205,10 +205,8 @@ export class VisualLab {
       if (action) this.act(action, event.target.closest('[data-vl]'));
     });
     root.querySelector('[name="vl-import"]').addEventListener('change', event => this.importFile(event.target));
-    this._onKey = event => {
-      if (event.key === 'Escape' && this.mode === 'overlay') this.onClose?.();
-    };
-    document.addEventListener('keydown', this._onKey);
+    // Escape is not handled here: the router owns it and dispatches to the
+    // Chamber, which closes an open overlay Lab before anything else.
   }
 
   act(action, button) {
@@ -309,7 +307,6 @@ export class VisualLab {
 
   destroy() {
     this.destroyed = true;
-    document.removeEventListener('keydown', this._onKey);
     this.field?.destroy();
     this.field = null;
     this.container.innerHTML = '';

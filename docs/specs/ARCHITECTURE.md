@@ -191,7 +191,7 @@ flowchart LR
     core --> |11| content
     core --> |3| sources
     core --> |23| visuals
-    page --> |1| core
+    page --> |2| core
     page --> |3| visuals
     sources --> |2| content
     sources -.-> |3 lazy| visuals

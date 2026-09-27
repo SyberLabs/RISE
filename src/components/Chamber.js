@@ -100,9 +100,9 @@ import { sessionColorTheme } from '../core/session-presentation.js';
 import { SEQUENCE_PILOT, nextSequencePilot } from '../content/sequence-pilot.js';
 import { saveSequencePilotFeedback } from '../core/sequence-pilot-feedback.js';
 import { advanceJevVisualArc } from '../core/jev-sequence.js';
-import { normalizeFlameRecipe, normalizeLivingFlameConfig, validateFlameRecipe } from '../core/flame-recipe.js';
+import { livingFlameConfigKey, normalizeFlameRecipe, normalizeLivingFlameConfig, validateFlameRecipe } from '../core/flame-recipe.js';
 import { saveFlameScene } from '../core/flame-scenes.js';
-import { directionStateFor, ensureDirector, followProgram } from '../core/passage-visuals/reading-state.js';
+import { directionStateFor, ensureDirector, followProgram, permittedSourceDigests } from '../core/passage-visuals/reading-state.js';
 import { mutateRecipe } from '../visuals/living-flame/flame-math.js';
 import { FLAME_PRESET_IDS, flamePreset } from '../visuals/living-flame/flame-presets.js';
 import { JEV_INKS, JEV_PALETTES, jevColors } from '../core/jev-palette.js';
@@ -1991,7 +1991,6 @@ export class Chamber {
     const state = this._direction;
     if (!state?.scoring?.prepared) return false;
     state.consent = { sourceDigests: [...state.scoring.sourceDigests] };
-    state.consent.sourceDigest = state.consent.sourceDigests[0];
     this._syncScoringPermission();
     this._syncScoringActivity();
     this._renderVisualDrawer();
@@ -2159,11 +2158,11 @@ export class Chamber {
   _syncScoringPermission() {
     const state = this._direction;
     if (!state?.scoring?.prepared) return;
-    const digests = state.scoring.sourceDigests;
-    const permitted = state.catalogVerified
-      ? digests
-      : digests.filter(digest => state.consent?.sourceDigest === digest);
-    state.scoring.setPermission(permitted);
+    state.scoring.setPermission(permittedSourceDigests({
+      digests: state.scoring.sourceDigests,
+      catalogVerified: state.catalogVerified,
+      consent: state.consent
+    }));
   }
 
   /** No new request while paused, hidden, outside the Chamber, Hold, or Off. */
@@ -3715,8 +3714,9 @@ export class Chamber {
     }
 
     if (id.startsWith?.('living-flame:')) {
-      const recipeId = id.slice('living-flame:'.length);
-      const config = this._pageFlameRecipes?.get(recipeId)
+      const key = id.slice('living-flame:'.length);
+      const recipeId = key.split('~')[0];
+      const config = this._pageFlameRecipes?.get(key)
         || (flamePreset(recipeId) ? { recipe: flamePreset(recipeId) } : null);
       if (!config) return [];
       const { sampleLivingFlame } = await import('../visuals/living-flame/index.js');
@@ -3797,7 +3797,7 @@ export class Chamber {
     const held = this._direction?.mode === 'hold' ? this._direction.heldCue : null;
     for (const cue of [...(program?.segments || []).map(segment => segment.cue), program?.fallback, held]) {
       if (cue?.kind === 'field' && cue.renderer === 'living-flame' && cue.config?.recipe?.id) {
-        this._pageFlameRecipes.set(cue.config.recipe.id, cue.config);
+        this._pageFlameRecipes.set(livingFlameConfigKey(cue.config), cue.config);
       }
     }
     if (program === this.session?.visualProgram) return this.session;
@@ -4236,6 +4236,11 @@ export class Chamber {
   }
 
   handleEscape() {
+    // The router dispatches Escape here first; an open Lab is the top layer.
+    if (this._labOpen) {
+      this.closeVisualLab();
+      return true;
+    }
     const settingsOverlay = this.container.querySelector('#chamber-settings-overlay');
     if (settingsOverlay && !settingsOverlay.hidden) {
       this.closeSettings();

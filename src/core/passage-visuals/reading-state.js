@@ -114,3 +114,14 @@ export function ensureDirector(session, state = directionStateFor(session)) {
   }
   return state.director;
 }
+
+/**
+ * Which sources may be sent to Jev: every one of a verified catalog reading,
+ * otherwise exactly those whose digests the reader consented to. Consent is
+ * for the whole reading as shown, so a multi-source reading covers each source.
+ */
+export function permittedSourceDigests({ digests = [], catalogVerified = false, consent = null } = {}) {
+  if (catalogVerified) return [...digests];
+  const granted = new Set(Array.isArray(consent?.sourceDigests) ? consent.sourceDigests : []);
+  return digests.filter(digest => granted.has(digest));
+}
