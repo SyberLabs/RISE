@@ -79,6 +79,15 @@ describe('soundscapes', () => {
         ids.forEach(id => expect(SOUNDSCAPES).toHaveProperty(id));
     });
 
+    it('offers the expanded original music catalog', () => {
+        const additions = ['lullaby', 'nocturne', 'waltz', 'blues', 'bossa', 'ragtime',
+            'wonder', 'mystery', 'chase', 'triumph', 'haunted', 'starlight'];
+        additions.forEach(id => {
+            expect(JEV_AUDIO_IDS).toContain(id);
+            expect(SOUNDSCAPES[id]?.create).toBeTypeOf('function');
+        });
+    });
+
     it.each(['sad', 'angry', 'happy', 'excited', 'thrilling', 'scary'])(
         'plays and tears down the %s mood sound', id => {
             const { ctx, oscillators } = makeMockContext();

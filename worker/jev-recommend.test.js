@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import releaseInventory from '../src/content/archive/release-inventory.json';
 import { JEV_PALETTES } from '../src/core/jev-palette.js';
+import { JEV_AUDIO_IDS } from '../src/core/jev-config.js';
 
 const mocks = vi.hoisted(() => ({
   query: vi.fn(),
@@ -135,6 +136,28 @@ afterEach(() => {
 });
 
 describe('Jev reading recommendation', () => {
+  it('accepts all 23 deployed sounds while offering Jev only a matching shortlist', async () => {
+    const fullCatalog = JEV_AUDIO_IDS.map(id => ({
+      sound_id: id, decision_criterion: `Choose ${id} for fitting musical atmosphere.`, active: true
+    }));
+    mocks.query.mockImplementation(strings => Promise.resolve(strings.join('').includes('FROM rise_sounds')
+      ? fullCatalog : books));
+    const provider = vi.fn(async () => Response.json({
+      id: 'expanded-catalog', model: 'typesafe/jev-1.13', provider: 'TypeSafe',
+      answers: answers('literary-walden', { audio: { type: 'choice', choice: 'starlight' } })
+    }));
+    vi.stubGlobal('fetch', provider);
+
+    const response = await handleJevRecommend(request({ intent: 'Read with starlight sound.' }), env);
+
+    expect(response.status).toBe(200);
+    expect(JEV_AUDIO_IDS).toHaveLength(23);
+    const payload = JSON.parse(provider.mock.calls[0][1].body);
+    expect(Object.keys(payload.questions.audio.criteria)).toHaveLength(10);
+    expect(payload.questions.audio.criteria).toHaveProperty('starlight');
+    expect((await response.json()).config.soundscape).toBe('starlight');
+  });
+
   it('uses the production Worker rate limit before reading PostgreSQL, Redis, or Jev', async () => {
     const provider = vi.fn();
     vi.stubGlobal('fetch', provider);
