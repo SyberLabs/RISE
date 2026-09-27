@@ -73,3 +73,43 @@ describe('acoustic soundscapes', () => {
     expect(oscillators.every(osc => osc.stop.mock.calls.length === 2)).toBe(true);
   });
 });
+
+  it('gives the blues a four-note walking bass and swung offbeat answers', () => {
+    vi.useFakeTimers();
+    const { ctx, oscillators } = makeContext();
+    const sound = ACOUSTIC_SOUNDSCAPES.blues.create(ctx, ctx.destination);
+    sound.start();
+
+    const beat = 60 / 82;
+    const notesAt = new Map();
+    for (const oscillator of oscillators) {
+      const [at] = oscillator.start.mock.calls[0];
+      if (typeof at !== 'number') continue;
+      const notes = notesAt.get(at) || [];
+      notes.push(oscillator.frequency.value);
+      notesAt.set(at, notes);
+    }
+    const notesAtBeat = offset => [...notesAt.entries()].find(([at]) => Math.abs(at - (0.06 + offset * beat)) < 0.001)?.[1];
+    const midiHz = midi => 440 * 2 ** ((midi - 69) / 12);
+
+    const walkingBass = [0, 1, 2, 3].map(offset => {
+      const notes = notesAtBeat(offset);
+      return notes ? Math.min(...notes) : null;
+    });
+    expect(walkingBass).toEqual([41, 45, 48, 49].map(midiHz));
+    expect(notesAtBeat(2 / 3)).toBeTruthy();
+    expect(notesAtBeat(0.5)).toBeUndefined();
+    sound.stop(true);
+  });
+
+  it('lets an immediate stop cancel a graceful release already in progress', () => {
+    vi.useFakeTimers();
+    const { ctx, oscillators } = makeContext();
+    const sound = ACOUSTIC_SOUNDSCAPES.nocturne.create(ctx, ctx.destination);
+    sound.start();
+    sound.stop(false);
+    sound.stop(true);
+
+    expect(oscillators.every(osc => osc.stop.mock.calls.length === 2)).toBe(true);
+    expect(vi.getTimerCount()).toBe(0);
+  });
