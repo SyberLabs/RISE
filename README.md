@@ -23,7 +23,7 @@ Reading runs entirely in the browser. Your files and saved work stay in browser 
 
 - **Vanilla JavaScript single-page app** built with Vite; one-way pipeline from source text → timed units → pacing → compiled session → clock-driven player.
 - **Content-addressed data plane:** book text is served as SHA-256-named JSON and verified on every read, which removed 15.4 MB from the JavaScript bundle.
-- **First load of 58.8 KB (brotli, 3 requests)**, held under a 64 KB budget enforced in CI.
+- **First load of ~59 KB (brotli, 3 requests)**, held under a 64 KB budget enforced in CI.
 - **~2,800 Vitest unit and integration tests** plus Playwright browser tests, including real `ffmpeg` encoding and live Chromium rendering.
 - **Generated architecture diagram** and tested design contracts, so documentation cannot drift from the code.
 - **Edge backend:** Cloudflare Workers, Neon PostgreSQL, Upstash Redis, and OpenRouter for the optional recommendation service; gated GitHub Actions release with artifact verification and rollback.
