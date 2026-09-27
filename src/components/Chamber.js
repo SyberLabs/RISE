@@ -919,9 +919,23 @@ export class Chamber {
     // In-session controls
     const playPauseBtn = this.container.querySelector('#play-pause-btn');
     this.container.querySelector('#short-keep-line')?.addEventListener('click', () => {
+      if (this._shortLineDwell) {
+        this._shortLineDwell = false;
+        this.container.querySelector('#short-keep-status').textContent = 'Line kept.';
+        if (this.player?.state === 'paused') this.togglePlayPause(true);
+        this.container.querySelector('#short-keep-line').textContent = 'Keep this line';
+        return;
+      }
       if (!this.currentShortLine) return;
       this.session.shortSequenceKeptLine = this.currentShortLine;
-      this.container.querySelector('#short-keep-status').textContent = 'Line kept. You can choose another.';
+      if (this.player?.state === 'playing' || this.player?.state === 'interlocuting') {
+        this._shortLineDwell = true;
+        this.togglePlayPause(true);
+        this.container.querySelector('#short-keep-line').textContent = 'Continue reading';
+        this.container.querySelector('#short-keep-status').textContent = 'Stay with this line as long as you like.';
+      } else {
+        this.container.querySelector('#short-keep-status').textContent = 'Line kept.';
+      }
     });
     const visualsToggleBtn = this.container.querySelector('#visuals-toggle-btn');
     this.container.querySelector('#jev-next-scene')?.addEventListener('click', () => {
@@ -3522,6 +3536,11 @@ export class Chamber {
     const pauseIcon = this.container.querySelector('#pause-icon');
 
     if (state === 'playing' || state === 'interlocuting') {
+      if (this._shortLineDwell) {
+        this._shortLineDwell = false;
+        this.container.querySelector('#short-keep-line').textContent = 'Keep this line';
+        this.container.querySelector('#short-keep-status').textContent = 'Line kept.';
+      }
       playIcon?.classList.add('hidden');
       pauseIcon?.classList.remove('hidden');
     } else {

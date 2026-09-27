@@ -17,7 +17,13 @@ test('a short sequence unfolds in the Chamber and returns a private next step', 
   await expect(page.locator('#chamber-display')).toBeVisible({ timeout: 30000 });
   await expect(page.locator('#atom-display')).not.toBeEmpty();
   await page.getByRole('button', { name: 'Keep this line' }).click();
-  await expect(page.getByText('Line kept. You can choose another.')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Continue reading' })).toBeVisible();
+  await expect(page.getByText('Stay with this line as long as you like.')).toBeVisible();
+  const heldTime = await page.locator('#time-current').textContent();
+  await page.waitForTimeout(1200);
+  await expect(page.locator('#time-current')).toHaveText(heldTime);
+  await page.getByRole('button', { name: 'Continue reading' }).click();
+  await expect(page.getByRole('button', { name: 'Keep this line' })).toBeVisible();
   await page.locator('#chamber-display').hover();
   await page.locator('#page-mode-btn').click();
   await expect(page.locator('#chamber-page')).toBeVisible();
