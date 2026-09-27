@@ -18,6 +18,12 @@
   position: relative;
 }
 
+.portal-jev-demo-live {
+  color: var(--color-accent);
+  text-align: center;
+  text-underline-offset: 3px;
+}
+
 /* Quiet room doors: Curia + Scriptorium top-left, Chapel top-right.
    Styled here so they paint on first Portal load — the room stylesheets
    never ride this view. */

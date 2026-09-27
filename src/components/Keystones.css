@@ -696,6 +696,12 @@
   text-align: center;
 }
 
+.keystone-promise {
+  max-width: 440px;
+  color: var(--color-fog);
+  font: italic 16px/1.5 var(--font-literary);
+}
+
 .keystone-state {
   max-width: 420px;
   color: var(--color-fog);

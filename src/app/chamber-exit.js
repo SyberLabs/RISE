@@ -26,6 +26,16 @@ const LEAVING = new Set(['back', 'exit', 'close']);
  *   teardown still happens and the reader stays where they are.
  */
 export function chamberExitTarget(reason, session = {}, data = null) {
+    if (reason === 'pilot-next') {
+        const current = session?.provenance?.kind === 'keystone'
+            ? session.provenance.keystone : null;
+        const slug = data?.slug;
+        // This selects a shelf item; Keystones still admits the actual reading.
+        return current && typeof slug === 'string' && /^[a-z0-9-]+$/u.test(slug)
+            && slug !== current
+            ? { kind: 'navigate', view: 'keystones', data: { slug }, replaceUrl: true }
+            : null;
+    }
     if (reason === 'continue') return { kind: 'continue' };
 
     if (reason === 'workshop' && data && data.text) {
@@ -51,6 +61,10 @@ export function chamberExitTarget(reason, session = {}, data = null) {
             // reaches whatever preceded it instead.
             replaceUrl: true
         };
+    }
+
+    if (session?.origin?.experience === 'jev-sample') {
+        return { kind: 'navigate', view: 'portal' };
     }
 
     return { kind: 'navigate', view: 'chamber' };
