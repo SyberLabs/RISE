@@ -198,30 +198,39 @@ the Worker and managed services are required for live recommendations.
  builds the app and starts `vite preview` on `127.0.0.1:4317` itself, with
  `VITE_RISE_ARCHIVE_REVIEW=1`. Do **not** start a server manually. It runs
  Chromium only, single worker, with autoplay forced on (Web Audio).
-- Pull requests and main run core smoke, build, hygiene, security,
- and docs in one `CI` job with one dependency install. Main's `CI` uploads
- the tested build for its protected production job. Full unit, Scriptorium, and sharded browser
- suites run separately on main and manual dispatch. They report failures but
- do not hold deployment. The ruleset requires `CI`. Run
+- Pull requests run core smoke, build, hygiene, security, and docs in one
+ required `CI` job. After a merge, a separate `CI` job builds and deploys
+ `main` directly. Full unit, Scriptorium, and sharded browser suites run
+ separately on main and manual dispatch; they do not hold deployment. Run
  `npm run test:e2e:gate` locally before pushing.
 - There is **no lint script**. The gates a pull request has to pass are:
  `node scripts/ci-hygiene.mjs`, `npm run security:audit`, and
  `npm run security:compat`
- (`CI` on pull requests and main); `npm run measure:first-load`, which holds what
+ (`CI` on pull requests); `npm run measure:first-load`, which holds what
  `dist/index.html` fetches to a ratcheting brotli budget declared in the script
- (`CI` on pull requests and main); and `npx vitest run src/core/system-design.test.js` plus
+ (`CI` on pull requests); and `npx vitest run src/core/system-design.test.js` plus
  `npm run docs:diagram`, which must leave `docs/specs/ARCHITECTURE.md` unchanged
- (`CI` on pull requests and main).
+ (`CI` on pull requests).
 - `docs/specs/ARCHITECTURE.md` §3 carries a **generated** import graph between
  `<!-- BEGIN GENERATED DIAGRAM -->` markers. Edit
  `scripts/build-architecture-diagram.mjs`, never the diagram. The rest of that
  file is hand-written and guarded by `src/core/system-design.test.js`.
-- Fast `CI` runs for every pull request and main commit, including prose-only
- changes. Full validation runs for every main commit. The system-design guard lives in the unit suite
- but is **also** run by `CI`, because editing that
- document is exactly when it has to run.
-- `CI` is the one job that always reports and the only name a branch ruleset
- should require. A required check that never reports blocks a merge forever.
+- Fast `CI` runs for every pull request, including prose-only changes. Main
+ runs production deployment and full validation. The system-design guard
+ lives in the unit suite but is **also** run by PR `CI`.
+- `CI` is the only check the pull-request branch ruleset should require.
+ Requiring a check that only runs after merge blocks PRs forever.
+
+## Parallel agent work
+
+- For independent backend and client changes, use separate worktrees and
+ branches. Agree on the endpoint shape and error behavior before coding.
+- Give one agent `worker/*` and its tests, another `src/*` and its tests, and
+ a third read-only review when useful. Each coding agent owns one narrow PR.
+- Keep `.github/workflows/*`, `wrangler.production.jsonc`, the lockfile,
+ integration, and production verification with the coordinating agent.
+- Merge through the existing required `CI` check, then verify the exact live
+ release. Do not add an agent service or another required check for fan-out.
 
 ## Running / manual testing
 
