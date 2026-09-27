@@ -29,7 +29,7 @@ function isOpenEnded(intent, books) {
   const normalized = words(intent);
   // Only explicit discovery requests can safely lose half the catalog.
   // A short thematic request still needs every book for relevance.
-  return !namesCatalogEntry(intent, books) && /^(?:surprise me(?: with (?:a )?book)?|anything(?: is fine)?|(?:choose|pick) (?:a book |something )?for me|recommend (?:me )?something|what should i read|i don t know what to read)(?: please)?$/u.test(normalized);
+  return !namesCatalogEntry(intent, books) && /^(?:surprise me(?: with .+)?|anything(?: is fine)?|(?:choose|pick) (?:a book |something )?for me|recommend (?:me )?something|what should i read|i don t know what to read)(?: please)?$/u.test(normalized);
 }
 
 export function buildJevVarianceHints({ books, intent = '', turn }) {

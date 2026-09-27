@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import { test, expect } from './fixtures.js';
 import { resolveJevChamberConfig } from '../src/core/jev-config.js';
 import { jevPalette } from '../src/core/jev-palette.js';
-import { compileJevVisualProgram } from '../src/core/jev-sequence.js';
+import { compileJevAudioProgram, compileJevVisualProgram } from '../src/core/jev-sequence.js';
 
 const releaseInventory = JSON.parse(readFileSync(
   new URL('../src/content/archive/release-inventory.json', import.meta.url), 'utf8'
@@ -11,14 +11,17 @@ const released = releaseInventory.middlemarch;
 const selectors = {
   section: 'first', wpm: 200, curve: 'flat', chunkMode: 'word',
   audio: 'silent', visualMode: 'interlocution', visualStyle: 'immersive',
+  middleAudio: 'aurora', finaleAudio: 'faded-signal',
   visualEngine: 'klee', middleEngine: 'harmonograph', finaleEngine: 'ostensoria',
   visualPalette: 'white', visualArc: 'dual', arcSplit: '50',
   kleePreset: 'harmonic', galleryCadence: 'balanced',
   chamberFace: 'literary', fontSize: 'medium', colorTheme: 'classic',
+  middleTheme: 'amethyst', finaleTheme: 'prism',
   wordFill: 'plain', projection: 'stream', revealMode: 'instant'
 };
 
 const decision = {
+  schemaVersion: 1,
   requestId: 'browser-jeff-steering',
   model: 'typesafe/jev-1.13',
   workId: 'middlemarch',
@@ -29,7 +32,8 @@ const decision = {
     ...selectors,
     colors: jevPalette(selectors.colorTheme),
     ...resolveJevChamberConfig(selectors),
-    visualProgram: compileJevVisualProgram(selectors)
+    visualProgram: compileJevVisualProgram(selectors),
+    audioProgram: compileJevAudioProgram(selectors)
   }
 };
 
