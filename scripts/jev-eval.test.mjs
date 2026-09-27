@@ -60,6 +60,12 @@ test('evaluation set has paired, valid, explicit choices on every requested axis
     && fixtures.some(fixture => fixture.expect.chamberFace?.includes(face))));
   assert.ok(options.fontSize.includes('xlarge')
     && fixtures.some(fixture => fixture.expect.fontSize?.includes('xlarge')));
+  const byId = new Map(fixtures.map(fixture => [fixture.id, fixture]));
+  assert.ok(byId.get('book-serif').expect.chamberFace.includes('book'));
+  assert.ok(byId.get('large').expect.fontSize.includes('xlarge'));
+  assert.ok(['lullaby', 'nocturne', 'starlight'].every(sound =>
+    byId.get('soundscape').expect.audio.includes(sound)));
+  assert.ok(byId.get('soundscape').expect.audio.length < options.audio.length);
 });
 
 test('rejects unexpected answer keys', () => {
