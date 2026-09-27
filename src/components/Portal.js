@@ -77,10 +77,10 @@ export class Portal {
     this.stopJevDictation?.();
     const demo = this.demoMode;
     this.container.innerHTML = `
-      <div class="portal" role="main">
+      <div class="portal">
         <header class="sl-header">
           <div class="sl-header-inner">
-            <span class="sl-lockup" aria-label="SyberLabs RISE">
+            <span class="sl-lockup" role="img" aria-label="SyberLabs RISE">
               <img class="sl-mark" src="/syberlabs-mark.webp" alt="" width="18" height="20" decoding="async">
               <span class="sl-wordmark" aria-hidden="true">SYBERLABS<span class="sl-divider"> / </span>RISE</span>
             </span>
@@ -89,6 +89,7 @@ export class Portal {
               <svg class="icon-close" ${ICON_ATTRS}><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></svg>
             </button>
             <nav id="main-content" class="portal-nav" aria-label="Primary">
+              <button class="portal-nav-link portal-nav-home" type="button" data-action="home" aria-current="page">Home</button>
               <button class="portal-nav-link" type="button" data-nav="create">Create</button>
               <button class="portal-nav-link" type="button" data-nav="library">Library</button>
               <button class="portal-nav-link" type="button" data-nav="vault">Sequences</button>
@@ -100,7 +101,7 @@ export class Portal {
           </div>
         </header>
 
-        <div class="portal-main">
+        <main class="portal-main">
           <section class="portal-ask" aria-labelledby="portal-ask-title">
             <p class="portal-eyebrow"><span class="portal-dot" aria-hidden="true"></span>${demo ? 'Jev scene sample' : 'Read with Jev'}</p>
             ${demo ? `<h1 class="portal-title" id="portal-ask-title">Make the scene respond.</h1>
@@ -130,7 +131,10 @@ export class Portal {
                 <svg ${ICON_ATTRS}><circle cx="12" cy="12" r="10"></circle><path d="M12 8v4"></path><path d="M12 16h.01"></path></svg>
                 <div class="portal-alert-body">
                   <p class="portal-alert-title">The reading could not be prepared. Try again.</p>
-                  <p class="portal-alert-message"></p>
+                  <details class="portal-alert-details">
+                    <summary>Details<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></summary>
+                    <p class="portal-alert-message"></p>
+                  </details>
                 </div>
                 <button class="portal-link portal-alert-retry" type="button">Try again</button>
               </div>
@@ -159,22 +163,29 @@ export class Portal {
               <svg class="continue-go" ${ICON_ATTRS}><path d="M5 12h14"></path><path d="m13 6 6 6-6 6"></path></svg>
             </button>
           </section>
-        </div>
+        </main>
 
         <footer class="portal-footer">
-          <!-- Rooms without a header slot keep a quiet, labelled door here:
-               the header holds at most four destinations. -->
-          <button class="portal-footer-link" type="button" data-nav="chamber">Reader setup</button>
-          <button class="portal-footer-link" type="button" data-nav="chapel">Chapel</button>
-          <button class="portal-footer-link" type="button" data-nav="scriptorium">Scriptorium</button>
-          <button class="portal-footer-link" type="button" data-nav="curia">Curia</button>
           <button class="portal-footer-link" type="button" data-action="guide">Guide</button>
           <a href="/sequences/" class="portal-footer-link">Short readings</a>
+          <button class="portal-footer-link" type="button" data-nav="chamber">Reader setup</button>
+          <!-- The header holds at most four destinations and the footer stays
+               plain; the remaining rooms are one disclosure away, never gone. -->
+          <div class="portal-more">
+            <button class="portal-footer-link portal-more-toggle" type="button" aria-expanded="false" aria-controls="portal-more-list">More<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></button>
+            <ul class="portal-more-list" id="portal-more-list" hidden>
+              <li><button class="portal-footer-link" type="button" data-nav="chapel">Chapel</button></li>
+              <li><button class="portal-footer-link" type="button" data-nav="scriptorium">Scriptorium</button></li>
+              <li><button class="portal-footer-link" type="button" data-nav="curia">Curia</button></li>
+            </ul>
+          </div>
           <!-- Conspicuously posted, which is the standard CalOPPA sets and
                the reason these sit on the Portal rather than inside a room.
                Generated from PRIVACY.md and TERMS.md by build-legal.mjs. -->
-          <a href="/privacy.html" class="portal-footer-link portal-legal-link">Privacy</a>
-          <a href="/terms.html" class="portal-footer-link portal-legal-link">Terms</a>
+          <span class="portal-legal">
+            <a href="/privacy.html" class="portal-footer-link portal-legal-link">Privacy</a>
+            <a href="/terms.html" class="portal-footer-link portal-legal-link">Terms</a>
+          </span>
         </footer>
       </div>
     `;
@@ -203,11 +214,18 @@ export class Portal {
     help.innerHTML = show ? `${ALERT_ICON_16}Tell Jev what you’d like to read.` : HELP;
   }
 
-  showJevError(message) {
+  /**
+   * The alert always says the SPEC sentence. A raw cause (an API message, a
+   * network error) is kept for whoever needs it, one "Details" click away.
+   */
+  showJevError(show, details = '') {
     const alert = this.container.querySelector('#portal-jev-error');
     if (!alert) return;
-    alert.hidden = !message;
-    alert.querySelector('.portal-alert-message').textContent = message || '';
+    alert.hidden = !show;
+    const more = alert.querySelector('.portal-alert-details');
+    more.open = false;
+    more.hidden = !details;
+    alert.querySelector('.portal-alert-message').textContent = details;
   }
 
   attachEvents() {
@@ -241,7 +259,7 @@ export class Portal {
       const submit = form.querySelector('.portal-jev-submit');
       if (submit.disabled) return;
       this.showJevFieldError(false);
-      this.showJevError('');
+      this.showJevError(false);
       this.setJevBusy(true);
       this.getAudioEngine()?.playClick();
       try {
@@ -254,7 +272,7 @@ export class Portal {
         if (!response.ok) throw new Error(decision.error?.message || 'Jev is unavailable.');
         await this.onLaunchJevReading(decision);
       } catch (error) {
-        this.showJevError(error.message || 'Your request is still here. Nothing was lost.');
+        this.showJevError(true, error?.message || '');
       } finally {
         this.setJevBusy(false);
       }
@@ -275,14 +293,65 @@ export class Portal {
       }
     });
 
-    // Phone header: one Menu button discloses the same nav.
+    // Phone header: one Menu button opens the same nav as a sheet. While it
+    // is open, Tab stays inside it and Escape closes it.
     const header = this.container.querySelector('.sl-header');
     const toggle = this.container.querySelector('.portal-menu-toggle');
-    toggle.addEventListener('click', () => {
-      const open = !header.classList.contains('is-open');
+    const nav = header.querySelector('.portal-nav');
+    const setMenu = (open, { restoreFocus = false } = {}) => {
       header.classList.toggle('is-open', open);
+      this.container.querySelector('.portal').classList.toggle('is-menu-open', open);
       toggle.setAttribute('aria-expanded', String(open));
       toggle.setAttribute('aria-label', open ? 'Close menu' : 'Menu');
+      if (open) nav.querySelector('button')?.focus();
+      else if (restoreFocus) toggle.focus();
+    };
+    this.closeMenu = () => setMenu(false);
+    toggle.addEventListener('click', () => setMenu(!header.classList.contains('is-open'), { restoreFocus: true }));
+    header.addEventListener('keydown', event => {
+      if (!header.classList.contains('is-open')) return;
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        setMenu(false, { restoreFocus: true });
+        return;
+      }
+      if (event.key !== 'Tab') return;
+      const stops = [toggle, ...nav.querySelectorAll('button')];
+      const first = stops[0];
+      const last = stops[stops.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    });
+    nav.querySelector('[data-action="home"]').addEventListener('click', () => setMenu(false, { restoreFocus: true }));
+
+    // Footer "More": the rooms without a plain everyday name, one click away.
+    const more = this.container.querySelector('.portal-more');
+    const moreToggle = more.querySelector('.portal-more-toggle');
+    const moreList = more.querySelector('.portal-more-list');
+    const setMore = open => {
+      moreList.hidden = !open;
+      moreToggle.setAttribute('aria-expanded', String(open));
+    };
+    moreToggle.addEventListener('click', () => setMore(moreList.hidden));
+    more.addEventListener('keydown', event => {
+      if (event.key === 'Escape' && !moreList.hidden) {
+        event.preventDefault();
+        setMore(false);
+        moreToggle.focus();
+      }
+    });
+    // Tabbing away or clicking elsewhere closes it. (A null relatedTarget
+    // is a click that moved no focus, as Safari does; the click handler has it.)
+    more.addEventListener('focusout', event => {
+      if (event.relatedTarget && !more.contains(event.relatedTarget)) setMore(false);
+    });
+    this.container.querySelector('.portal').addEventListener('click', event => {
+      if (!more.contains(event.target)) setMore(false);
     });
 
     // Navigation
@@ -290,6 +359,7 @@ export class Portal {
     navItems.forEach(item => {
       item.addEventListener('click', () => {
         this.getAudioEngine()?.playClick();
+        this.closeMenu?.();
         const destination = item.dataset.nav;
         this.onNavigate(destination);
       });
@@ -309,6 +379,7 @@ export class Portal {
     utilLinks.forEach(link => {
       link.addEventListener('click', () => {
         this.getAudioEngine()?.playClick();
+        this.closeMenu?.();
         const action = link.dataset.action;
         if (action === 'guide') {
           window.dispatchEvent(new CustomEvent('rise-open-guide'));

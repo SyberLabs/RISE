@@ -1,4 +1,4 @@
-import { test, expect } from './fixtures.js';
+import { test, expect, openHomeRoom } from './fixtures.js';
 import { collectAcrossPages, pageCount } from './page-helpers.js';
 
 const GATE = { code: 'rise2025', name: 'Page Harness', vault: null, timestamp: Date.now() };
@@ -31,7 +31,7 @@ test('Page Mode typesets a Gospel chapter in space, and holds the stream', async
     await expect(page.locator('.portal .portal-title').first()).toBeVisible({ timeout: 15_000 });
 
     // Chapel → Matthew 27: seven Passion pericopes, the richest schedule
-    await page.locator('[data-nav="chapel"]').first().click();
+    await openHomeRoom(page, 'chapel');
     await expect(page.locator('.chapel-book[data-book-id="matthew"]')).toBeVisible({ timeout: 15_000 });
     await page.locator('.chapel-book[data-book-id="matthew"]').click();
     await page.locator('[data-book-id="matthew"][data-chapter="27"]').click();

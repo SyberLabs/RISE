@@ -42,7 +42,7 @@ import { hasPersonalWorkInPage } from './core/personal-identity.js';
 // with the room's module and arrives with it, so the Portal's cost no
 // longer grows every time a room is added.
 import './design-system.css';
-import './premium-additions.css';
+import './core/visual-safety.css';
 
 /**
  * A DEPLOY MUST NOT STRAND AN OPEN TAB.

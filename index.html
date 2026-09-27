@@ -85,8 +85,12 @@
     aria-labelledby="safety-title">
     <div class="modal-content safety-modal-content">
       <div class="modal-header">
-        <div class="safety-icon" aria-hidden="true">⚠</div>
-        <h2 id="safety-title">Photosensitivity Warning</h2>
+        <svg class="safety-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+          stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+          <path d="M10.3 3.9 2.4 17.5A2 2 0 0 0 4.1 20.5h15.8a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/>
+          <path d="M12 9v4.5M12 17h.01"/>
+        </svg>
+        <h2 id="safety-title">Photosensitivity warning</h2>
       </div>
 
       <div class="modal-body">
@@ -108,7 +112,7 @@
         </div>
 
         <div class="safety-protections">
-          <p class="protection-title">Engineering limits and controls:</p>
+          <p class="protection-title">Limits and controls:</p>
           <ul class="protection-list">
             <li>Rapid recurrence remains constrained even when Frequency is 100%</li>
             <li>Presence is configurable from 150 milliseconds to 2 seconds</li>
@@ -128,8 +132,8 @@
       </div>
 
       <div class="modal-footer">
-        <button class="btn-secondary" id="safety-cancel">Cancel</button>
-        <button class="btn-primary" id="safety-accept">I Understand, Enable</button>
+        <button class="btn-secondary" id="safety-cancel" type="button">Cancel</button>
+        <button class="btn-primary" id="safety-accept" type="button">Enable visuals</button>
       </div>
     </div>
   </div>

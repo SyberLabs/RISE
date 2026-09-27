@@ -134,13 +134,55 @@ describe('Portal', () => {
         container.remove();
     });
 
-    it('the phone Menu button discloses the nav', () => {
+    it('the phone Menu opens a sheet that starts at Home, keeps focus and closes on Escape', () => {
         const { portal, container } = makePortal();
+        const header = container.querySelector('.sl-header');
         const toggle = container.querySelector('.portal-menu-toggle');
         expect(toggle.getAttribute('aria-expanded')).toBe('false');
         toggle.click();
         expect(toggle.getAttribute('aria-expanded')).toBe('true');
-        expect(container.querySelector('.sl-header').classList.contains('is-open')).toBe(true);
+        expect(header.classList.contains('is-open')).toBe(true);
+        expect(container.querySelector('.portal').classList.contains('is-menu-open')).toBe(true);
+
+        const items = [...container.querySelectorAll('.portal-nav button')];
+        expect(items[0].textContent.trim()).toBe('Home');
+        expect(items[0].getAttribute('aria-current')).toBe('page');
+        expect(document.activeElement).toBe(items[0]);
+
+        // Tab from the last item wraps to the toggle; Shift+Tab from the toggle wraps back.
+        const last = items[items.length - 1];
+        last.focus();
+        last.dispatchEvent(new KeyboardEvent('keydown', { key: 'Tab', bubbles: true, cancelable: true }));
+        expect(document.activeElement).toBe(toggle);
+        toggle.dispatchEvent(new KeyboardEvent('keydown', { key: 'Tab', shiftKey: true, bubbles: true, cancelable: true }));
+        expect(document.activeElement).toBe(last);
+
+        last.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
+        expect(header.classList.contains('is-open')).toBe(false);
+        expect(toggle.getAttribute('aria-expanded')).toBe('false');
+        expect(document.activeElement).toBe(toggle);
+        portal.destroy();
+        container.remove();
+    });
+
+    it('closes the phone Menu when a destination is chosen', () => {
+        const { portal, container, onNavigate } = makePortal();
+        container.querySelector('.portal-menu-toggle').click();
+        container.querySelector('.portal-nav [data-nav="library"]').click();
+        expect(onNavigate).toHaveBeenCalledWith('library');
+        expect(container.querySelector('.sl-header').classList.contains('is-open')).toBe(false);
+        portal.destroy();
+        container.remove();
+    });
+
+    it('names the lockup as one image', () => {
+        const { portal, container } = makePortal();
+        const lockup = container.querySelector('.sl-lockup');
+        expect(lockup.getAttribute('role')).toBe('img');
+        expect(lockup.getAttribute('aria-label')).toBe('SyberLabs RISE');
+        // Header and footer sit beside main, not inside it, so they keep their landmarks.
+        expect(container.querySelector('main .sl-header, main .portal-footer')).toBeNull();
+        expect(container.querySelectorAll('main')).toHaveLength(1);
         portal.destroy();
         container.remove();
     });
@@ -160,8 +202,25 @@ describe('Portal', () => {
         container.remove();
     });
 
-    it('keeps every room reachable from Home', () => {
+    it('keeps the footer plain and every room reachable from Home', () => {
         const { portal, container, onNavigate } = makePortal();
+        const footer = container.querySelector('.portal-footer');
+        const moreList = footer.querySelector('.portal-more-list');
+        const visible = [...footer.querySelectorAll('.portal-footer-link')]
+            .filter(link => !moreList.contains(link))
+            .map(link => link.textContent.trim());
+        expect(visible).toEqual(['Guide', 'Short readings', 'Reader setup', 'More', 'Privacy', 'Terms']);
+
+        const more = footer.querySelector('.portal-more-toggle');
+        expect(moreList.hidden).toBe(true);
+        more.click();
+        expect(more.getAttribute('aria-expanded')).toBe('true');
+        expect(moreList.hidden).toBe(false);
+        moreList.querySelector('button').dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
+        expect(moreList.hidden).toBe(true);
+        expect(document.activeElement).toBe(more);
+        more.click();
+
         for (const room of ['chamber', 'chapel', 'scriptorium', 'curia']) {
             const door = container.querySelector(`.portal-footer [data-nav="${room}"]`);
             expect(door, room).not.toBeNull();
