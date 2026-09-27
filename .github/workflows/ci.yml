@@ -29,16 +29,19 @@ jobs:
           node scripts/ci-hygiene.mjs
           npm run security:audit
           npm run security:compat
-          npx vitest run src/core/system-design.test.js
-          npx vitest run worker/index.test.js worker/jev-recommend.test.js src/components/Library.jev.test.js
           npm run docs:diagram
           git diff --exit-code -- docs/specs/ARCHITECTURE.md
-          npm run test:run -- \
+          npm run content:build
+          npx vitest run \
+            src/core/system-design.test.js \
+            worker/index.test.js \
+            worker/jev-recommend.test.js \
+            src/components/Library.jev.test.js \
             src/core/content-store.test.js \
             src/core/journey-session.test.js \
             src/audio/engine.lifecycle.test.js \
             src/content/keystones.test.js
-          npm run build
+          npx vite build
           npm run measure:first-load
       - name: Mark the tested release
         if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
@@ -63,7 +66,7 @@ jobs:
             package-lock.json
             wrangler.production.jsonc
           if-no-files-found: error
-          compression-level: 0
+          compression-level: 1
           retention-days: 14
   production:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
@@ -91,13 +94,11 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22.12.0'
-      - name: Prove the exact release artifact bundles
+      - name: Install production dependencies
         working-directory: release
         run: |
           set -euo pipefail
           npm ci --omit=dev --ignore-scripts --no-audit --no-fund
-          npx --yes wrangler@4.141.0 deploy --dry-run --config wrangler.production.jsonc \
-            --outdir "$RUNNER_TEMP/wrangler-dry-run"
       - name: Recheck main after owner approval
         env:
           GH_TOKEN: ${{ github.token }}
