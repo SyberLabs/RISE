@@ -5,6 +5,7 @@ import {
     CHAMBER_ACCENT_TOKENS,
     resolveChamberAccent
 } from '../core/chamber-accent.js';
+import { roomHeader, roomIcon } from './room-chrome.js';
 import './Settings.css';
 import {
     FONT_SIZE_CHIPS,
@@ -107,16 +108,11 @@ export class Settings {
         <a href="#settings-content" class="skip-link">Skip to settings</a>
 
         <!-- Header -->
-        <header class="settings-header">
-          <button type="button" class="btn-ghost" data-action="back" aria-label="${backAria}">
-            <span class="icon">←</span>
-            <span>${backLabel}</span>
-          </button>
-        </header>
+        ${roomHeader({ back: backLabel, backLabel: backAria, backClass: 'settings-back' })}
 
         <!-- Content -->
         <div class="settings-content" id="settings-content">
-          <h1 id="settings-title" class="settings-title text-light">Settings</h1>
+          <h1 id="settings-title" class="settings-title room-title">Settings</h1>
 
           <!-- Display Section -->
           <section class="settings-section" aria-labelledby="display-heading">
@@ -136,8 +132,8 @@ export class Settings {
 
             <div class="settings-row">
               <div class="settings-label-group">
-                <span class="settings-label" id="chamber-face-label">Chamber face</span>
-                <p class="settings-hint text-mist">Live Chamber stream only.</p>
+                <span class="settings-label" id="chamber-face-label">Reader face</span>
+                <p class="settings-hint text-mist">Live Reader stream only.</p>
               </div>
               <div class="settings-control" role="radiogroup" aria-labelledby="chamber-face-label">
                 ${this.renderChamberFaceRadios()}
@@ -159,8 +155,8 @@ export class Settings {
               <div class="settings-label-group">
                 <label class="settings-label" for="${this.settingInputId('chamberMask')}">Mask</label>
                 <p class="settings-hint text-mist">
-                  Same as PREP → Presentation → Gallery in the word.
-                  Thick Word stream. Glass stays off. Phrase and sentence are unchanged.
+                  The same as Gallery in the word under Presentation in the Reader setup.
+                  Thick word stream. Glass stays off. Phrase and sentence are unchanged.
                 </p>
               </div>
               <label class="toggle">
@@ -175,7 +171,7 @@ export class Settings {
             </div>
 
             <div class="settings-row">
-              <label class="settings-label" for="${this.settingInputId('showProgress')}">Show Progress</label>
+              <label class="settings-label" for="${this.settingInputId('showProgress')}">Show progress</label>
               <label class="toggle">
                 <input
                   id="${this.settingInputId('showProgress')}"
@@ -188,7 +184,7 @@ export class Settings {
             </div>
 
             <div class="settings-row">
-              <label class="settings-label" for="${this.settingInputId('showDuration')}">Show Duration</label>
+              <label class="settings-label" for="${this.settingInputId('showDuration')}">Show duration</label>
               <label class="toggle">
                 <input
                   id="${this.settingInputId('showDuration')}"
@@ -202,7 +198,7 @@ export class Settings {
 
             <div class="settings-row">
               <div class="settings-label-group">
-                <label class="settings-label" for="${this.settingInputId('showArtworkLabels')}">Artwork Labels</label>
+                <label class="settings-label" for="${this.settingInputId('showArtworkLabels')}">Artwork labels</label>
                 <p class="settings-hint text-mist">
                   Show the title and artist while a sourced work is visible.
                   Credits required by a work's license always remain visible.
@@ -227,9 +223,9 @@ export class Settings {
             ${this.inSession ? '' : `
             <div class="settings-row">
               <div class="settings-label-group">
-                <label class="settings-label" for="${this.settingInputId('enableAmbient')}">Lobby Drone</label>
+                <label class="settings-label" for="${this.settingInputId('enableAmbient')}">Lobby drone</label>
                 <p class="settings-hint text-mist">
-                  A low drone between sessions, in the Portal and the
+                  A low drone between sessions, on Home and in the
                   other rooms. Off by default — nothing plays until you
                   ask for it.
                 </p>
@@ -247,7 +243,7 @@ export class Settings {
             `}
 
             <div class="settings-row">
-              <label class="settings-label" for="master-volume">Master Volume</label>
+              <label class="settings-label" for="master-volume">Master volume</label>
               <div class="settings-control slider-container">
                 <input
                   type="range"
@@ -267,7 +263,7 @@ export class Settings {
             </div>
 
             <div class="settings-row">
-              <label class="settings-label" for="${this.settingInputId('enableBinaural')}">Enable Binaural</label>
+              <label class="settings-label" for="${this.settingInputId('enableBinaural')}">Binaural tones</label>
               <label class="toggle">
                 <input
                   id="${this.settingInputId('enableBinaural')}"
@@ -286,8 +282,8 @@ export class Settings {
 
             <div class="settings-row">
               <div class="settings-label-group">
-                <label class="settings-label" for="${this.settingInputId('photosensitivityMode')}">Photosensitivity Mode</label>
-                <span class="settings-hint text-mist">Disables all brightness oscillation</span>
+                <label class="settings-label" for="${this.settingInputId('photosensitivityMode')}">Photosensitivity mode</label>
+                <span class="settings-hint text-mist">Disables all brightness oscillation.</span>
               </div>
               <label class="toggle">
                 <input
@@ -302,8 +298,8 @@ export class Settings {
 
             <div class="settings-row">
               <div class="settings-label-group">
-                <label class="settings-label" for="${this.settingInputId('reducedMotion')}">Reduced Motion</label>
-                <span class="settings-hint text-mist">Minimizes animations throughout</span>
+                <label class="settings-label" for="${this.settingInputId('reducedMotion')}">Reduced motion</label>
+                <span class="settings-hint text-mist">Minimizes animation throughout.</span>
               </div>
               <label class="toggle">
                 <input
@@ -324,7 +320,7 @@ export class Settings {
 
             <div class="settings-row">
               <button type="button" class="btn-secondary" data-action="export-data">
-                Export Personal Data
+                Export personal data
               </button>
             </div>
 
@@ -336,7 +332,7 @@ export class Settings {
                   want one.
                 </p>
                 <button type="button" class="btn-secondary btn-caution" data-action="clear-history">
-                  Clear All Personal Data
+                  Clear all personal data
                 </button>
               </div>
             </div>
@@ -366,7 +362,7 @@ export class Settings {
       <form class="settings settings--bar" role="dialog" aria-labelledby="settings-title">
         <header class="settings-bar-head">
           <h1 id="settings-title" class="settings-bar-title">Settings</h1>
-          <button type="button" class="settings-bar-close" data-action="back" aria-label="Close">✕</button>
+          <button type="button" class="settings-bar-close" data-action="back" aria-label="Close">${roomIcon('close')}</button>
         </header>
 
         <section class="settings-bar-group" aria-labelledby="bar-sound-label">
@@ -401,7 +397,7 @@ export class Settings {
           <span class="settings-bar-label" id="bar-safety-label">Safety</span>
           ${[
                 { key: 'photosensitivityMode', label: 'Photosensitivity', hint: 'No brightness oscillation' },
-                { key: 'reducedMotion', label: 'Reduced Motion', hint: 'Fewer animations' }
+                { key: 'reducedMotion', label: 'Reduced motion', hint: 'Fewer animations' }
             ].map(row => `
             <div class="settings-row">
               <div class="settings-label-group">
