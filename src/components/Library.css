@@ -135,7 +135,22 @@
 .library-jev-choice details { color: var(--color-fog); font-size: 12px; }
 
 @media (max-width: 600px) {
-  .library-jev-controls { flex-direction: column; }
+  .library-jev { padding: var(--space-md); margin-bottom: var(--space-md); }
+  .library-jev h3 { font-size: 18px; }
+  .library-jev > p { display: none; }
+  .library-jev form { margin-top: var(--space-xs); }
+  .library-jev label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+  .library-jev-controls { gap: var(--space-xs); }
 }
 
 /* ─────────────────────────────────────────────────────────────
