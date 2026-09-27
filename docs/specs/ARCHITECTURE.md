@@ -27,9 +27,11 @@ appears when.
 Around that engine sit rooms: Portal, Library, Chapel and Rosarium, Workshop,
 Vault, Scriptorium, Curia, Journeys, Via, Keystones, Settings.
 
-The app shell ships as static files to a CDN. A small Netlify Function now
-provides the Scriptorium's central JEV decision route; the app's proposal
-validation and reading pipeline remain in the browser.
+Cloudflare serves the app shell and same-origin decision routes. The Library's
+optional recommendation route reads a curated Standard Ebooks catalog from
+PostgreSQL, caches that public catalog in Redis, and asks JEV to choose one
+book. The reader's source text, proposal validation, and reading pipeline
+remain in the browser.
 
 ---
 
@@ -42,7 +44,10 @@ else is a recommendation.
    personal media stay in the browser. When the reader explicitly routes a
    Scriptorium request with JEV, only the intent they entered and target word
    count are sent to the RISE function and TypeSafe. The reader supplies the
-   TypeSafe key for that request; RISE does not persist it.
+   TypeSafe key for that request; RISE does not persist it. When the reader
+   asks for a Library recommendation, only their entered intent is sent to
+   the RISE Worker and OpenRouter. PostgreSQL and Redis hold public catalog
+   metadata, not reader requests.
 2. **Reverent degradation.** A work, image or sound that will not resolve is
    *absent* — never a broken frame, never a substitute. Silence outranks
    approximation.
@@ -82,13 +87,13 @@ else is a recommendation.
                             └────────┬─────────┘
                                      ▼
   DELIVERY   ┌──────────────────────────────────────────────────────────┐
-             │  CDN (Netlify) · SPA rewrite · /assets/* immutable        │
+             │  Cloudflare Worker · SPA rewrite · /assets/* immutable   │
              │  index.html no-cache — it names the hashed chunks         │
              │  CSP: self + named museum/text origins; no third-party JS │
              └────────────────────────┬─────────────────────────────────┘
                                       ▼
 ╔═══════════════════════════════════════════════════════════════════════════════╗
-║  BROWSER — the entire runtime. No server, no account, no request path.        ║
+║  BROWSER — reading runtime; optional same-origin decision requests.           ║
 ║                                                                               ║
 ║   index.html ─▶ src/app.js  — composition root: boots app-scoped services,    ║
 ║                               injects operations into the route manifest       ║
@@ -524,7 +529,8 @@ of `settled`, `open`, `deferred`, or `reversed`.
 ### 8.10 Vanilla DOM, no UI framework
 
 - **Chosen:** direct DOM construction and template strings, one bespoke module
-  per room, one production dependency in the whole project.
+  per room, three production dependencies: `sql.js` for browser-local work,
+  `@neondatabase/serverless` and `@upstash/redis` for the Worker catalog path.
 - **Rejected:** React, Vue, Svelte or any virtual-DOM library.
 - **Why:** the tradeoff is real in both directions. A framework would give
   declarative rendering, diffing, and would largely remove the `innerHTML`
@@ -791,8 +797,8 @@ of `settled`, `open`, `deferred`, or `reversed`.
 - **Chosen:** the Scriptorium offers an optional JEV route to choose between
   the two proposal formats RISE already accepts:
   `rise.experience-program.v1` and `rise.agent-operation-set.v1`. The core
-  session puts that choice into the curator prompt. A same-origin Netlify
-  Function forwards only the reader's intent and target word count to
+  session puts that choice into the curator prompt. A same-origin Cloudflare
+  Worker route forwards only the reader's intent and target word count to
   TypeSafe's JEV API; the reader supplies the API key for the request.
 - **Rejected:** putting the TypeSafe key in browser code, adding a second
   proposal format, or letting JEV accept or execute the proposal.
@@ -807,8 +813,27 @@ of `settled`, `open`, `deferred`, or `reversed`.
   intent may itself contain personal information and is sent only after the
   reader presses **Route with JEV**. The TypeSafe key is held in page memory
   and forwarded in the authorization header; RISE does not store it.
-- **Status:** open. The Netlify Function is implemented; deployment must expose
-  the route, and each reader must supply a TypeSafe API key.
+- **Status:** open. The route exists in the Worker; each reader must supply a
+  TypeSafe API key, and the production path still needs direct verification.
+
+### 8.29 JEV chooses a held Standard Ebooks reading
+
+- **Chosen:** an optional Library form sends the reader's intent to the
+  same-origin Cloudflare Worker. The Worker reads an exact-edition Standard
+  Ebooks catalog from PostgreSQL, caches only that public catalog in Redis
+  for five minutes, and asks JEV through OpenRouter to choose one work ID.
+  The browser opens that held edition through the existing Library path.
+- **Rejected:** sending book text or personal reading history to JEV, storing
+  intents or decisions in Redis, inventing a recommendation from local
+  heuristics when JEV fails, and accepting a model-selected unheld edition.
+- **Why:** a recommendation is useful only when it leads to a book the reader
+  can actually open. PostgreSQL owns the catalog, Redis reduces repeat reads,
+  and JEV makes a bounded choice on every request. Exact edition and source
+  revision checks keep the model inside the release inventory. The brief
+  description shown after the decision is curated catalog copy; JEV does not
+  generate prose.
+- **Status:** open until the same-origin production request and book opening
+  are verified against the deployed version.
 
 ---
 

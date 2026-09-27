@@ -1,5 +1,6 @@
 import { handleJevDecision } from '../netlify/functions/jev-decision.mjs';
 import handleJevRoute from '../netlify/functions/jev-route.mjs';
+import { handleJevRecommend } from './jev-recommend.mjs';
 
 const JSON_HEADERS = {
   'Content-Type': 'application/json; charset=utf-8',
@@ -18,7 +19,7 @@ export default {
   async fetch(request, env) {
     const path = new URL(request.url).pathname;
 
-    if (path === '/api/jev-decision') {
+    if (path === '/api/jev-decision' || path === '/api/jev-recommend') {
       const ip = request.headers.get('CF-Connecting-IP')?.trim();
       if (!ip || !env?.OPENROUTER_API_KEY?.trim() || typeof env?.DECISION_LIMITER?.limit !== 'function') {
         return error(503, 'DECISION_NOT_CONFIGURED', 'Decision service is unavailable.');
@@ -33,7 +34,9 @@ export default {
         return error(503, 'DECISION_NOT_CONFIGURED', 'Decision service is unavailable.');
       }
 
-      return handleJevDecision(request, env.OPENROUTER_API_KEY);
+      return path === '/api/jev-recommend'
+        ? handleJevRecommend(request, env)
+        : handleJevDecision(request, env.OPENROUTER_API_KEY);
     }
 
     if (path === '/api/jev/route') {

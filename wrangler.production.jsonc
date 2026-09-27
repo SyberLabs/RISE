@@ -12,7 +12,12 @@
     "run_worker_first": ["/api/*"]
   },
   "secrets": {
-    "required": ["OPENROUTER_API_KEY"]
+    "required": [
+      "OPENROUTER_API_KEY",
+      "NEON_DATABASE_URL",
+      "UPSTASH_REDIS_REST_URL",
+      "UPSTASH_REDIS_REST_TOKEN"
+    ]
   },
   "ratelimits": [{
     "name": "DECISION_LIMITER",
