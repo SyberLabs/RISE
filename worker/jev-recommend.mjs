@@ -371,6 +371,7 @@ function validConfig(config, choices) {
   if (config.visualStyle === 'immersive' && config.projection !== 'stream') return null;
   if (config.visualArc !== 'single'
     && config.visualMode !== 'interlocution' && config.visualMode !== 'off') return null;
+  if (config.visualArc !== 'single' && config.projection !== 'stream') return null;
   if (['genesis', 'attractor', 'interlocution'].includes(config.visualMode)
     && config.projection !== 'stream') return null;
   if (config.fontSize === 'fit' && config.chunkMode !== 'word') return null;
@@ -465,6 +466,7 @@ function choiceConfig(answers, intent, choices) {
     config.finaleAudio = 'triumph';
   }
   const soundArc = requestsEndingSoundChange(intent, config.audio, config.finaleAudio);
+  if (soundArc) config.projection = 'stream';
   // One Jev answer determines one coherent plan. A psychedelic request cannot
   // accidentally open a page, where temporal visual fields are hidden.
   if (config.visualStyle === 'psychedelic') {
@@ -553,6 +555,11 @@ function responseForVersion(decision, schemaVersion) {
   if (schemaVersion === 2) return decision;
   const config = { ...decision.config };
   const presentation = { ...config.presentation };
+  // Old tabs know visual arcs only. Preserve their original dark, single-arc shape.
+  if (config.visualMode === 'off' && config.visualArc !== 'single') {
+    config.visualArc = 'single';
+    config.audioProgram = null;
+  }
   delete config.textColor;
   delete config.backgroundColor;
   delete presentation.textColor;

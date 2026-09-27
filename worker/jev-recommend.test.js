@@ -297,7 +297,7 @@ describe('Jev reading recommendation', () => {
 
     const response = await handleJevRecommend(request({ intent: 'Let the ending feel triumphant.' }), env);
 
-    expect(response.status, await response.clone().text()).toBe(200);
+    expect(response.status).toBe(200);
     const questions = JSON.parse(provider.mock.calls[0][1].body).questions;
     expect(Object.keys(questions.finaleAudio.criteria)[1]).toBe('triumph');
     expect(questions.finaleAudio.instructions).toMatch(/ending.*triumph/u);
@@ -316,7 +316,8 @@ describe('Jev reading recommendation', () => {
         audio: { type: 'choice', choice: 'silent' },
         finaleAudio: { type: 'choice', choice: 'silent' },
         visual: { type: 'choice', choice: 'off' },
-        visualArc: { type: 'choice', choice: 'single' }
+        visualArc: { type: 'choice', choice: 'single' },
+        projection: { type: 'choice', choice: 'page' }
       })
     })));
 
@@ -324,10 +325,11 @@ describe('Jev reading recommendation', () => {
       intent: 'Start in silence, then make the ending triumphant with no visuals.'
     }), env);
 
-    expect(response.status, await response.clone().text()).toBe(200);
+    expect(response.status).toBe(200);
     const decision = await response.json();
     expect(decision.config).toMatchObject({
       audio: 'silent', finaleAudio: 'triumph', visualMode: 'off', visualArc: 'dual',
+      projection: 'stream',
       visualProgram: null,
       audioProgram: { segments: [
         { cue: { kind: 'silence' } },
@@ -335,6 +337,34 @@ describe('Jev reading recommendation', () => {
       ] }
     });
     expect(() => validateJevRecommendation(decision)).not.toThrow();
+  });
+
+  it('returns the original single-arc shape to an old tab for an audio-only finale', async () => {
+    mocks.query.mockImplementation(strings => Promise.resolve(strings.join('').includes('FROM rise_sounds')
+      ? JEV_AUDIO_IDS.map(id => ({ sound_id: id,
+        decision_criterion: `Choose a ${id} soundscape for this reading.`, active: true }))
+      : books));
+    vi.stubGlobal('fetch', vi.fn(async () => Response.json({
+      id: 'old-tab-finale', model: 'typesafe/jev-1.13', provider: 'TypeSafe',
+      answers: answers('literary-walden', {
+        audio: { type: 'choice', choice: 'silent' },
+        finaleAudio: { type: 'choice', choice: 'silent' },
+        visual: { type: 'choice', choice: 'off' }
+      })
+    })));
+
+    const response = await handleJevRecommend(request({
+      intent: 'Start in silence, then make the ending triumphant with no visuals.'
+    }, {}, true), env);
+
+    expect(response.status).toBe(200);
+    const { schemaVersion, config } = await response.json();
+    expect(schemaVersion).toBe(1);
+    expect(config.visualMode).toBe('off');
+    expect(config.visualArc).toBe('single');
+    expect(config.visualProgram).toBeNull();
+    expect(config.audioProgram).toBeNull();
+    expect(config).not.toHaveProperty('textColor');
   });
 
   it('keeps a requested silent ending after a triumphant opening', async () => {
