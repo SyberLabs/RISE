@@ -172,10 +172,13 @@ Guidance for anyone (human or agent) working on RISE. Standard commands live in
 
 RISE is a vanilla-JS SPA built with Vite. Reading and browser-local work stay
 client-side. Its production Cloudflare Worker serves the app and same-origin
-Jev decision routes. Optional book recommendations read a held Standard Ebooks
+decision routes. Optional book recommendations read a held Standard Ebooks
 catalog in Neon PostgreSQL, cache public catalog rows in Upstash Redis, and
-ask Jev through OpenRouter to choose a book. The Vite dev server runs the UI;
-the Worker and managed services are required for live recommendations.
+ask the server-configured decision provider to choose a book. The migration
+code defaults to Kev with a pinned endpoint and revision; an explicit
+`DECISION_PROVIDER=jev` setting routes through OpenRouter. No live Kev endpoint
+has been confirmed. The Vite dev server runs the UI; the Worker and managed
+services are required for live recommendations.
 
 ## Environment / setup
 

@@ -53,14 +53,14 @@ function response(overrides = {}) {
   };
 }
 
-describe('Jev recommendation in the reader-facing Library', () => {
-  it('offers microphone dictation beside its editable Jev request', () => {
+describe('RISE recommendation in the reader-facing Library', () => {
+  it('offers microphone dictation beside its editable RISE request', () => {
     const form = mount();
     expect(form.querySelector('[data-jev-dictate]')).not.toBeNull();
     expect(form.querySelector('[data-jev-dictation-status]')).not.toBeNull();
     expect(form.textContent).toMatch(/browser.s speech service/i);
   });
-  it('asks Jev from a home-page intent and carries reader choices to the selected text', async () => {
+  it('asks RISE from a home-page intent and carries reader choices to the selected text', async () => {
     const fetch = vi.fn().mockResolvedValue({ ok: true, json: async () => response() });
     const selected = vi.fn();
     vi.stubGlobal('fetch', fetch);
@@ -117,7 +117,7 @@ describe('Jev recommendation in the reader-facing Library', () => {
       .toContain('not available in this RISE release');
   });
 
-  it('labels a reused Jev choice so the reader can tell it came from the cache', async () => {
+  it('labels a reused RISE choice so the reader can tell it came from the cache', async () => {
     const form = mount();
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
       ok: true, json: async () => response({ decisionCacheStatus: 'hit' })
@@ -127,7 +127,7 @@ describe('Jev recommendation in the reader-facing Library', () => {
     await library.recommendWithJev(form);
 
     expect(container.querySelector('.library-jev-choice details').textContent)
-      .toContain('Reused cached Jev choice');
+      .toContain('Reused cached RISE choice');
   });
 
   it('rejects a malformed or unsupported JSON plan before showing an open action', async () => {

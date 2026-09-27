@@ -28,6 +28,8 @@ jobs:
         run: |
           set -euo pipefail
           node scripts/ci-hygiene.mjs
+          node --test deploy/kev/staging-eval.test.mjs
+          python3 -m unittest discover -s deploy/kev -p 'test_*.py'
           npm run security:audit &
           audit=$!
           npm run security:compat
@@ -37,6 +39,9 @@ jobs:
           npx vitest run \
             src/core/system-design.test.js \
             worker/index.test.js \
+            worker/kev-migration.test.js \
+            src/core/kev-client.test.js \
+            src/core/jev-decision.test.js \
             worker/jev-recommend.test.js \
             src/components/Library.jev.test.js \
             src/core/content-store.test.js \
@@ -49,7 +54,8 @@ jobs:
           wait "$tests"
           wait "$audit"
   production:
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    # Set only after the pinned Kev deployment passes the documented live gates.
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && vars.KEV_PRODUCTION_VERIFIED == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     # GitHub restricts this environment to main. Required PR checks gate merges.

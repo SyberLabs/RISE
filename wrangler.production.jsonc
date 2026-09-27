@@ -13,7 +13,9 @@
   },
   "secrets": {
     "required": [
-      "OPENROUTER_API_KEY",
+      "KEV_API_KEY",
+      "KEV_BASE_URL",
+      "KEV_REVISION",
       "NEON_DATABASE_URL",
       "UPSTASH_REDIS_REST_URL",
       "UPSTASH_REDIS_REST_TOKEN"

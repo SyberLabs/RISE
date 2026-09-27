@@ -30,7 +30,10 @@ Vault, Scriptorium, Curia, Journeys, Via, Keystones, Settings.
 Cloudflare serves the app shell and same-origin decision routes. The Library's
 optional recommendation route reads a curated Standard Ebooks catalog from
 PostgreSQL, caches that public catalog and short-lived decisions in Redis,
-and asks JEV to choose one book on a decision-cache miss. The reader's
+and asks the server-configured decision provider to choose one book on a
+decision-cache miss. The migration code defaults to Kev when an operator
+configures its pinned host, model, and revision; `DECISION_PROVIDER=jev` is an
+explicit OpenRouter rollback. No live Kev endpoint has been confirmed. The reader's
 source text, proposal validation, and reading pipeline remain in the browser.
 
 ---
@@ -42,13 +45,15 @@ else is a recommendation.
 
 1. **Reader material stays local by default.** Source text, reading history and
    personal media stay in the browser. When the reader explicitly routes a
-   Scriptorium request with JEV, only the intent they entered and target word
-   count are sent to the RISE function and TypeSafe. The reader supplies the
-   TypeSafe key for that request; RISE does not persist it. When the reader
+   Scriptorium model request, only the intent they entered and target word
+   count are sent through the RISE function to the configured inference host.
+   Provider credentials are server-held; the browser supplies no API key. The
+   actual host and its policy must be published before a Kev rollout. When the reader
    asks for a Library recommendation, only their entered intent is sent to
-   the RISE Worker and, on a decision-cache miss, OpenRouter. PostgreSQL holds
+   the RISE Worker and, on a decision-cache miss, the configured provider.
+   OpenRouter is used only for explicit Jev rollback. PostgreSQL holds
    public catalog metadata. Redis holds that catalog and validated choices for
-   five minutes; its decision key is a keyed digest of the intent and catalog,
+   up to one hour; its decision key is a keyed digest of the intent and catalog,
    and it does not store the raw intent.
 2. **Reverent degradation.** A work, image or sound that will not resolve is
    *absent* — never a broken frame, never a substitute. Silence outranks
@@ -796,50 +801,54 @@ of `settled`, `open`, `deferred`, or `reversed`.
   part of the production product surface.
 - **Status:** settled.
 
-### 8.28 JEV routes the Scriptorium's proposal format
+### 8.28 A bounded model routes the Scriptorium's proposal format
 
-- **Chosen:** the Scriptorium offers an optional JEV route to choose between
+- **Chosen:** the Scriptorium offers an optional model route to choose between
   the two proposal formats RISE already accepts:
   `rise.experience-program.v1` and `rise.agent-operation-set.v1`. The core
   session puts that choice into the curator prompt. A same-origin Cloudflare
   Worker route forwards only the reader's intent and target word count to
-  TypeSafe's JEV API; the reader supplies the API key for the request.
-- **Rejected:** putting the TypeSafe key in browser code, adding a second
-  proposal format, or letting JEV accept or execute the proposal.
+  the configured inference host. The server holds the provider credential.
+  The code defaults to Kev with `KEV_BASE_URL`, `KEV_API_KEY`, `KEV_MODEL`, and
+  a pinned `KEV_REVISION`; `DECISION_PROVIDER=jev` explicitly rolls back through
+  OpenRouter. An unconfigured provider fails closed.
+- **Rejected:** putting a provider key in browser code, adding a second
+  proposal format, or letting the model accept or execute the proposal.
 - **Why:** proposal format is a real next-operation choice already understood
-  by the Scriptorium parser and producer. This places optional JEV routing in
+  by the Scriptorium parser and producer. This places optional model routing in
   the authoring flow while keeping its decision bounded by RISE's existing schemas
-  and validation. JEV's choice is a routing recommendation; deterministic
+  and validation. The model's choice is a routing recommendation; deterministic
   parsing, source resolution, producer checks and the reader's Begin action
   retain their existing authority.
 - **Data boundary:** no source text, Library records, personal media, reading
-  history or generated proposal is sent to JEV by this route. The user-entered
+  history or generated proposal is sent to the provider by this route. The user-entered
   intent may itself contain personal information and is sent only after the
-  reader presses **Route with JEV**. The TypeSafe key is held in page memory
-  and forwarded in the authorization header; RISE does not store it.
-- **Status:** open. The route exists in the Worker; each reader must supply a
-  TypeSafe API key, and the production path still needs direct verification.
+  reader requests routing. No provider key is sent from browser code.
+- **Status:** open. Migration in progress. No live Kev endpoint or successful Kev
+  Scriptorium route has been confirmed. Before rollout, the operator must
+  publish the actual inference host and its privacy and retention policy.
 
-### 8.29 JEV chooses a held Standard Ebooks reading
+### 8.29 A bounded model chooses a held Standard Ebooks reading
 
 - **Chosen:** an optional Library form sends the reader's intent to the
   same-origin Cloudflare Worker. The Worker reads an exact-edition Standard
   Ebooks catalog from PostgreSQL, caches that public catalog in Redis
-  for 30 seconds, and asks JEV through OpenRouter to choose one work ID on a
-  decision-cache miss. Redis caches the validated decision for five minutes
+  for 30 seconds, and asks the configured decision provider to choose one work
+  ID on a decision-cache miss. Redis caches the validated decision for one hour
   under a keyed digest of the intent and catalog, without storing raw intent.
   The browser opens that held edition through the existing Library path.
-- **Rejected:** sending book text or personal reading history to JEV, storing
+- **Rejected:** sending book text or personal reading history to the model, storing
   raw intents or decisions in PostgreSQL, inventing a recommendation from local
-  heuristics when JEV fails, and accepting a model-selected unheld edition.
+  heuristics when the provider fails, and accepting a model-selected unheld edition.
 - **Why:** a recommendation is useful only when it leads to a book the reader
   can actually open. PostgreSQL owns the catalog, Redis reduces repeat reads,
-  and JEV makes a bounded choice on the first matching request. Exact edition
+  and the provider makes a bounded choice on the first matching request. Exact edition
   and source revision checks keep the model inside the release inventory. The brief
-  description shown after the decision is curated catalog copy; JEV does not
+  description shown after the decision is curated catalog copy; the model does not
   generate prose.
-- **Status:** open. The same-origin production request and book opening were
-  verified; the five-minute decision cache still requires production verification.
+- **Status:** open. The earlier Jev same-origin production request and book opening
+  were verified. The Kev path and one-hour decision cache still require
+  production verification; no live Kev endpoint has been confirmed.
 
 ---
 

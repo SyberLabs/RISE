@@ -4,7 +4,7 @@ A recruiter- and hiring-manager-scannable summary of what this codebase is and w
 
 ## What it is (30 seconds)
 
-RISE is a **browser-first application** — an audiovisual reading environment. Text is compiled into timed atoms, played by a clock-driven engine, and painted in a Chamber over procedural visuals and Web Audio. Reading runs entirely in the browser; a small Cloudflare Worker serves the app and the optional Ask Jev book recommendation.
+RISE is a **browser-first application** — an audiovisual reading environment. Text is compiled into timed atoms, played by a clock-driven engine, and painted in a Chamber over procedural visuals and Web Audio. Reading runs entirely in the browser; a small Cloudflare Worker serves the app and optional bounded reading decisions. The decision-provider migration to Kev is in progress; no live Kev endpoint has been confirmed.
 
 Live app: [rise.syberlabs.io](https://rise.syberlabs.io/)
 
@@ -20,7 +20,7 @@ Live app: [rise.syberlabs.io](https://rise.syberlabs.io/)
 | Audio / visuals | Web Audio API, Canvas 2D, procedural engines |
 | Production deps | 3 (`sql.js`, Neon serverless driver, Upstash Redis client) |
 | Deploy | Cloudflare Workers, gated GitHub Actions release with rollback |
-| Recommendation service | Cloudflare Worker, Neon PostgreSQL, Upstash Redis, OpenRouter |
+| Recommendation service | Cloudflare Worker, Neon PostgreSQL, Upstash Redis, server-configured Kev endpoint; OpenRouter only for explicit Jev rollback |
 
 ## Architecture (one diagram)
 

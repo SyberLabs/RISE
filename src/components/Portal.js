@@ -1,7 +1,7 @@
 /**
  * Portal Component — RISE Home.
  *
- * SyberLabs design system: one primary action (Ask Jev), one secondary text
+ * SyberLabs design system: one primary action (Ask RISE), one secondary text
  * link (the Meditations starter), and a header nav of plain words.
  */
 
@@ -13,7 +13,7 @@ import { attachJevDictation } from './jev-dictation.js';
 const ICON_ATTRS = 'width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"';
 const SETTINGS_PATH = '<path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path><circle cx="12" cy="12" r="3"></circle>';
 const ALERT_ICON_16 = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="M12 8v4"></path><path d="M12 16h.01"></path></svg>';
-const HELP = 'Jev chooses from the released Library and sets up the reader.';
+const HELP = 'RISE chooses from the released Library and sets up the reader. Only this request goes to the configured AI decision service; your reading and saved work stay local.';
 
 export class Portal {
   constructor(container, options = {}) {
@@ -102,18 +102,18 @@ export class Portal {
 
         <main class="portal-main">
           <section class="portal-ask" aria-labelledby="portal-ask-title">
-            <p class="portal-eyebrow"><span class="portal-dot" aria-hidden="true"></span>${demo ? 'Jev scene sample' : 'Read with Jev'}</p>
+            <p class="portal-eyebrow"><span class="portal-dot" aria-hidden="true"></span>${demo ? 'RISE scene sample' : 'Read with RISE'}</p>
             ${demo ? `<h1 class="portal-title" id="portal-ask-title">Make the scene respond.</h1>
             <div class="portal-jev-form" id="portal-jev-demo">
               <p class="portal-help">Read a released passage from Middlemarch, then bring its next visual scene forward while the words keep moving.</p>
-              <p class="portal-help">This is a fixed sample preset of choices Jev may make. No live Jev request is made here.</p>
+              <p class="portal-help">This is a fixed sample preset of choices RISE may make. No live RISE request is made here.</p>
               <p class="portal-help">Source: <em>Middlemarch</em> by George Eliot ·
                 <a class="portal-link" href="https://standardebooks.org/ebooks/george-eliot/middlemarch" target="_blank" rel="noopener noreferrer">Standard Ebooks edition</a></p>
               <div class="portal-actions">
                 <button class="portal-primary" id="jev-scene-demo-start" type="button">Start sample reading</button>
                 <p class="portal-status" id="jev-scene-demo-status" role="status" aria-live="polite"></p>
               </div>
-              <p class="portal-alt"><a class="portal-link portal-jev-demo-live" href="/">Ask Jev live for a personal reading</a></p>
+              <p class="portal-alt"><a class="portal-link portal-jev-demo-live" href="/">Ask RISE live for a personal reading</a></p>
             </div>` : `<h1 class="portal-title"><label id="portal-ask-title" for="portal-jev-intent">What would you like to read?</label></h1>
             <form class="portal-jev-form" id="portal-jev-form" novalidate>
               <textarea id="portal-jev-intent" name="intent" rows="4" maxlength="240" required
@@ -121,11 +121,11 @@ export class Portal {
                 placeholder="Something reflective and slow, with quiet visuals…"></textarea>
               <p class="portal-help" id="portal-jev-help">${HELP}</p>
               <div class="portal-actions">
-                <button class="portal-primary portal-jev-submit" type="submit">Ask Jev<svg class="portal-spinner" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9" stroke-opacity=".25"></circle><path d="M21 12a9 9 0 0 0-9-9"></path></svg></button>
-                <button class="portal-icon-btn portal-jev-dictate" data-jev-dictate="icon" type="button" aria-label="Speak your Jev request" aria-pressed="false" aria-describedby="portal-jev-voice-note"><svg ${ICON_ATTRS}><rect x="9" y="3" width="6" height="11" rx="3"></rect><path d="M5 11a7 7 0 0 0 14 0"></path><path d="M12 18v3"></path></svg></button>
+                <button class="portal-primary portal-jev-submit" type="submit">Ask RISE<svg class="portal-spinner" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9" stroke-opacity=".25"></circle><path d="M21 12a9 9 0 0 0-9-9"></path></svg></button>
+                <button class="portal-icon-btn portal-jev-dictate" data-jev-dictate="icon" type="button" aria-label="Speak your RISE request" aria-pressed="false" aria-describedby="portal-jev-voice-note"><svg ${ICON_ATTRS}><rect x="9" y="3" width="6" height="11" rx="3"></rect><path d="M5 11a7 7 0 0 0 14 0"></path><path d="M12 18v3"></path></svg></button>
                 <p class="portal-status" id="portal-jev-hint" role="status" aria-live="polite"></p>
               </div>
-              <p class="portal-voice" id="portal-jev-voice-note"><span data-jev-dictation-status role="status" aria-live="polite"></span><span class="portal-voice-note">Voice input may use your browser’s speech service. Review the text before asking Jev.</span></p>
+              <p class="portal-voice" id="portal-jev-voice-note"><span data-jev-dictation-status role="status" aria-live="polite"></span><span class="portal-voice-note">Voice input may use your browser’s speech service. Review the text before asking RISE.</span></p>
               <div class="portal-alert" id="portal-jev-error" role="alert" hidden>
                 <svg ${ICON_ATTRS}><circle cx="12" cy="12" r="10"></circle><path d="M12 8v4"></path><path d="M12 16h.01"></path></svg>
                 <div class="portal-alert-body">
@@ -201,7 +201,7 @@ export class Portal {
     const first = this.container.querySelector('.portal-first-read');
     if (first) first.disabled = busy;
     this.container.querySelector('.portal-skeleton').hidden = !busy;
-    this.container.querySelector('#portal-jev-hint').textContent = busy ? 'Jev is choosing your reading…' : '';
+    this.container.querySelector('#portal-jev-hint').textContent = busy ? 'RISE is choosing your reading…' : '';
   }
 
   showJevFieldError(show) {
@@ -210,7 +210,7 @@ export class Portal {
     const help = form.querySelector('#portal-jev-help');
     intent.setAttribute('aria-invalid', String(show));
     help.classList.toggle('is-error', show);
-    help.innerHTML = show ? `${ALERT_ICON_16}Tell Jev what you’d like to read.` : HELP;
+    help.innerHTML = show ? `${ALERT_ICON_16}Tell RISE what you’d like to read.` : HELP;
   }
 
   /**
@@ -268,7 +268,7 @@ export class Portal {
           body: JSON.stringify({ intent, schemaVersion: 2 })
         });
         const decision = await response.json();
-        if (!response.ok) throw new Error(decision.error?.message || 'Jev is unavailable.');
+        if (!response.ok) throw new Error(decision.error?.message || 'RISE is unavailable.');
         await this.onLaunchJevReading(decision);
       } catch (error) {
         this.showJevError(true, error?.message || '');

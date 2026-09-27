@@ -47,7 +47,7 @@ test('cold sample deep link admits a preset Gallery, then returns to its thresho
   await page.goto('/jev-scene-demo');
   await page.locator('#beta-enter').click();
   await expect(page.locator('#jev-scene-demo-start')).toBeVisible();
-  await expect(page.locator('#portal-jev-demo')).toContainText('No live Jev request');
+  await expect(page.locator('#portal-jev-demo')).toContainText('No live RISE request');
   await expect(page.locator('#portal-jev-form')).toHaveCount(0);
   await page.locator('#jev-scene-demo-start').click();
   await expect(page.locator('#chamber-display')).toBeVisible({ timeout: 20_000 });

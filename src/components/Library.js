@@ -267,18 +267,18 @@ export class Library {
              them, and paragraphs describing the pipeline, were deleted. -->
 
         <section class="library-jev" aria-labelledby="library-jev-title">
-          <h2 id="library-jev-title">Find your next reading with Jev</h2>
-          <p>Describe what you want to explore. Jev chooses from the Standard Ebooks editions already held by RISE.</p>
+          <h2 id="library-jev-title">Find your next reading with RISE</h2>
+          <p>Describe what you want to explore. RISE chooses from the Standard Ebooks editions already held by RISE. Only this request goes to the configured AI decision service; your reading and saved work stay local.</p>
           <form data-jev-form>
             <label for="library-jev-intent">What are you in the mood to read?</label>
             <div class="library-jev-controls">
               <input id="library-jev-intent" name="intent" type="text" minlength="3" maxlength="240" required
                 value="${escapeHtml(this.jevIntent)}"
                 placeholder="A thoughtful book about change and courage">
-              <button class="library-jev-dictate" data-jev-dictate="icon" type="button" aria-label="Speak your Jev request" aria-pressed="false"></button>
-              <button class="btn-primary" type="submit">Ask Jev</button>
+              <button class="library-jev-dictate" data-jev-dictate="icon" type="button" aria-label="Speak your RISE request" aria-pressed="false"></button>
+              <button class="btn-primary" type="submit">Ask RISE</button>
             </div>
-            <p class="library-jev-voice-note">Voice input may use your browser’s speech service. Review the text before asking Jev.</p>
+            <p class="library-jev-voice-note">Voice input may use your browser’s speech service. Review the text before asking RISE.</p>
             <span data-jev-dictation-status role="status" aria-live="polite"></span>
           </form>
           <div class="library-jev-result" data-jev-result aria-live="polite">${this.renderJevRecommendation()}</div>
@@ -321,13 +321,13 @@ export class Library {
       && text.sourceRevision === choice.sourceRevision);
     if (!book) return '';
     return `<div class="library-jev-choice">
-      <span class="library-jev-kicker">Jev chose</span>
+      <span class="library-jev-kicker">RISE chose</span>
       <h3>${escapeHtml(book.title)}</h3>
       <p class="library-jev-author">${escapeHtml(book.author)} · Standard Ebooks</p>
       <p>About this book: ${escapeHtml(choice.reason || book.description)}</p>
       <button class="btn-primary" data-action="open-jev" data-id="${escapeHtml(book.id)}">Open this book</button>
       <details><summary>Decision details</summary>
-        <p>Model: ${escapeHtml(choice.model)} · Request: ${escapeHtml(choice.requestId)} · ${choice.decisionCacheStatus === 'hit' ? 'Reused cached Jev choice' : 'New Jev choice'}</p>
+        <p>Model: ${escapeHtml(choice.model)} · Request: ${escapeHtml(choice.requestId)} · ${choice.decisionCacheStatus === 'hit' ? 'Reused cached RISE choice' : 'New RISE choice'}</p>
       </details>
     </div>`;
   }
@@ -344,7 +344,7 @@ export class Library {
     const button = form.querySelector('button[type="submit"]');
     const result = this.container.querySelector('[data-jev-result]');
     if (button) button.disabled = true;
-    if (result) result.innerHTML = `<p class="library-status" role="status">${SPINNER}<span>Jev is choosing your reading…</span></p>`;
+    if (result) result.innerHTML = `<p class="library-status" role="status">${SPINNER}<span>RISE is choosing your reading…</span></p>`;
     if (button) button.setAttribute('aria-busy', 'true');
     try {
       const response = await fetch('/api/jev-recommend', {
@@ -354,7 +354,7 @@ export class Library {
         signal: controller.signal
       });
       const data = await response.json().catch(() => null);
-      if (!response.ok || !data) throw new Error(data?.error?.message || 'Jev is unavailable right now.');
+      if (!response.ok || !data) throw new Error(data?.error?.message || 'RISE is unavailable right now.');
       const { validateJevRecommendation } = await import('../app/jev-reading.js');
       validateJevRecommendation(data);
       const book = LIBRARY_TEXTS.find(text => text.id === data.workId
@@ -372,8 +372,8 @@ export class Library {
       // A network failure reads "Failed to fetch"; that is the browser's
       // sentence, not ours.
       const plain = error instanceof TypeError || error instanceof SyntaxError
-        ? 'Jev is unavailable right now. Try again.'
-        : (error.message || 'Jev is unavailable right now.');
+        ? 'RISE is unavailable right now. Try again.'
+        : (error.message || 'RISE is unavailable right now.');
       if (result) result.innerHTML = alertHtml(plain);
     } finally {
       if (this.jevAbort === controller) {
