@@ -826,7 +826,7 @@
 }
 
 [data-jev-visual-strength="soft"] .chamber :is(
-  .chamber-genesis, .chamber-attractor,
+  .chamber-genesis, .chamber-attractor, .chamber-living-flame,
   .chamber-focal, .sequence-video-field
 ) {
   opacity: 0.45;
@@ -1115,6 +1115,23 @@
 /* Authored field cues share one lifecycle grammar. A successor is mounted
    before its predecessor retires, so passage boundaries crossfade without
    restarting the reading or exposing the empty Chamber ground. */
+.chamber-living-flame {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  /* Behind atom text (z-index: 10); the glass tile keeps words readable. */
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.chamber-living-flame .living-flame-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
 .chamber-scheduled-field {
   opacity: 0;
   transition: opacity 320ms ease;

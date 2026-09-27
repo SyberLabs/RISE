@@ -5,7 +5,13 @@
  */
 
 export class FractalFlameGenerator {
-    constructor() {
+    /**
+     * @param {{ random?: () => number }} [options] A seeded source makes the
+     *   single-threaded iteration reproducible (used for deterministic export
+     *   stills); the default keeps the original behaviour.
+     */
+    constructor(options = {}) {
+        this.random = typeof options.random === 'function' ? options.random : Math.random;
         this.transforms = [];
         this.finalTransform = null;
 
@@ -397,9 +403,9 @@ export class FractalFlameGenerator {
      * @private
      */
     async _iterateFlame(density, colorR, colorG, colorB, width, height, iterations, skipIterations) {
-        let x = Math.random() * 4 - 2;
-        let y = Math.random() * 4 - 2;
-        let color = Math.random();
+        let x = this.random() * 4 - 2;
+        let y = this.random() * 4 - 2;
+        let color = this.random();
 
         const cumulativeProbs = [];
         let sum = 0;
@@ -409,7 +415,7 @@ export class FractalFlameGenerator {
         }
 
         for (let i = 0; i < iterations + skipIterations; i++) {
-            const rand = Math.random() * sum;
+            const rand = this.random() * sum;
             let transformIndex = 0;
             for (let j = 0; j < cumulativeProbs.length; j++) {
                 if (rand < cumulativeProbs[j]) {

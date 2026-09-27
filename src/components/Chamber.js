@@ -100,6 +100,7 @@ import { sessionColorTheme } from '../core/session-presentation.js';
 import { SEQUENCE_PILOT, nextSequencePilot } from '../content/sequence-pilot.js';
 import { saveSequencePilotFeedback } from '../core/sequence-pilot-feedback.js';
 import { advanceJevVisualArc } from '../core/jev-sequence.js';
+import { normalizeLivingFlameConfig } from '../core/flame-recipe.js';
 import { JEV_INKS, JEV_PALETTES, jevColors } from '../core/jev-palette.js';
 import { JEV_AUDIO_IDS } from '../core/jev-config.js';
 import { CHAMBER_STREAM_FACES } from '../core/chamber-stream-face.js';
@@ -294,6 +295,14 @@ export class Chamber {
     // regression the reader caught in the live app). The module is
     // tiny; a static import costs nothing and removes the race.
     this._visualSchedule = null;
+    // Living Flame reads the reading clock: elapsed reading time, shifted
+    // to an atom's own start when the reader jumps, so a seek evaluates the
+    // destination rather than continuing from where the jump began.
+    this._visualClockOffsetMs = 0;
+    this._lastVisualAtomIndex = null;
+    this._atomStartsMs = null;
+    // The reader's global Energy control (0..1). 0.35 is the default.
+    this._visualEnergy = 0.35;
     this._jevCurrentAtom = null;
     this._authoredGalleryPaused = false;
     const program = this.session?.visualProgram;
@@ -1193,6 +1202,7 @@ export class Chamber {
         // text is painted last so nothing a reader sees precedes the
         // world it belongs to.
         this._movementSchedule?.observe(data.atom);
+        this._trackVisualClock(data.index);
 
         // The visual schedule follows the reading (PERICOPE-IMAGERY-
         // SPEC §6): each atom's coordinates drive at most one cue
@@ -1738,6 +1748,57 @@ export class Chamber {
         form: config.form
       });
       this.attractorField = controller;
+    } else if (cue.renderer === 'living-flame') {
+      const flame = normalizeLivingFlameConfig(config);
+      if (!flame) return null;
+      host.className = 'chamber-living-flame';
+      // The same glass grammar Genesis uses keeps words readable over light.
+      field.classList.add('chamber-field-genesis');
+      if (atomDisplay && this.glassCanApply()) atomDisplay.classList.add('glass-tile');
+      this._insertBehindReading(field, host);
+      let paused = this._visualFieldDirector?.paused === true;
+      let intensity = flame.intensity;
+      const reducedMotion = this._prefersReducedMotion()
+        || document.documentElement.classList.contains('reduced-motion')
+        || document.documentElement.classList.contains('photosensitivity-mode');
+      void import('../visuals/living-flame/index.js').then(({ createLivingFlameField }) => {
+        if (destroyed || !host.isConnected) return;
+        controller = createLivingFlameField(host, {
+          recipe: flame.recipe,
+          energy: this._effectiveFlameEnergy(intensity),
+          clock: () => this._visualClockMs(),
+          reducedMotion
+        });
+        if (paused) controller.pause();
+        this.livingFlameField = controller;
+      }).catch(error => console.warn('[Chamber] Living Flame unavailable:', error));
+      return {
+        node: host,
+        renderer: 'living-flame',
+        pause: () => { paused = true; controller?.pause?.(); },
+        resume: () => { paused = false; controller?.resume?.(); },
+        setEnergy: () => controller?.setEnergy?.(this._effectiveFlameEnergy(intensity)),
+        morph: (next, { transitionMs } = {}) => {
+          const nextFlame = normalizeLivingFlameConfig(next?.config);
+          if (!nextFlame || !controller?.canMorphTo?.(nextFlame.recipe)) return false;
+          intensity = nextFlame.intensity;
+          controller.setRecipe(nextFlame.recipe, { transitionMs: reducedMotion ? 0 : transitionMs });
+          controller.setEnergy(this._effectiveFlameEnergy(intensity));
+          return true;
+        },
+        destroy: () => {
+          destroyed = true;
+          controller?.destroy?.();
+          if (this.livingFlameField === controller) this.livingFlameField = null;
+          host.remove();
+          if (!field.querySelector('.chamber-genesis, .chamber-living-flame')) {
+            field.classList.remove('chamber-field-genesis');
+            if (!field.classList.contains('chamber-field-stream')) {
+              atomDisplay?.classList.remove('glass-tile');
+            }
+          }
+        }
+      };
     } else if (cue.renderer === 'focal') {
       host.className = 'chamber-focal';
       const personalImage = config.type === 'personal'
@@ -1790,7 +1851,7 @@ export class Chamber {
         if (this.attractorField === controller) this.attractorField = null;
         if (this.rosaField === controller) this.rosaField = null;
         host.remove();
-        if (!field.querySelector('.chamber-genesis')) {
+        if (!field.querySelector('.chamber-genesis, .chamber-living-flame')) {
           field.classList.remove('chamber-field-genesis');
           if (!field.classList.contains('chamber-field-stream')) {
             atomDisplay?.classList.remove('glass-tile');
@@ -1798,6 +1859,39 @@ export class Chamber {
         }
       }
     };
+  }
+
+  /** Logical reading time for Living Flame, in milliseconds. */
+  _visualClockMs() {
+    const elapsed = Number(this.player?.elapsed) || 0;
+    return Math.max(0, elapsed + this._visualClockOffsetMs);
+  }
+
+  /** A non-sequential atom is a seek: move the clock to that atom's start. */
+  _trackVisualClock(index) {
+    if (!Number.isInteger(index)) return;
+    const last = this._lastVisualAtomIndex;
+    this._lastVisualAtomIndex = index;
+    if (last === null || index === last + 1) return;
+    if (!this._atomStartsMs) {
+      const atoms = Array.isArray(this.session?.atoms) ? this.session.atoms : [];
+      const starts = new Float64Array(atoms.length + 1);
+      for (let i = 0; i < atoms.length; i += 1) {
+        starts[i + 1] = starts[i] + Math.max(0, Number(atoms[i]?.duration) || 0);
+      }
+      this._atomStartsMs = starts;
+    }
+    const start = this._atomStartsMs[Math.min(index, this._atomStartsMs.length - 1)] || 0;
+    this._visualClockOffsetMs = start - (Number(this.player?.elapsed) || 0);
+  }
+
+  /**
+   * Effective Living Flame energy in the reader: the cue's intensity band
+   * scaled by the reader's Energy control, never above 0.65.
+   */
+  _effectiveFlameEnergy(intensity) {
+    const band = Number.isFinite(intensity) ? intensity : 0.35;
+    return Math.max(0, Math.min(0.65, band * this._visualEnergy / 0.35));
   }
 
   /**

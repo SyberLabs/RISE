@@ -78,3 +78,50 @@ describe('VisualFieldDirector', () => {
     expect(log).toEqual(['destroy:genesis']);
   });
 });
+
+describe('VisualFieldDirector living-flame support', () => {
+  it('morphs a compatible successor in place instead of mounting a new layer', () => {
+    const log = [];
+    let mounts = 0;
+    const director = new VisualFieldDirector({
+      transitionMs: 1200,
+      scheduleFrame: callback => callback(),
+      mount: cue => {
+        mounts += 1;
+        const entry = record(`${cue.renderer}-${mounts}`, log);
+        entry.renderer = cue.renderer;
+        entry.morph = (next, { transitionMs }) => {
+          log.push(`morph:${next.config.recipe}:${transitionMs}`);
+          return next.config.recipe !== 'incompatible';
+        };
+        return entry;
+      }
+    });
+    director.applyCue({ kind: 'field', renderer: 'living-flame', config: { recipe: 'a' } });
+    const first = director.active;
+    expect(director.applyCue({ kind: 'field', renderer: 'living-flame', config: { recipe: 'b' } })).toBe(true);
+    expect(director.active).toBe(first);
+    expect(mounts).toBe(1);
+    expect(log).toContain('morph:b:1200');
+    director.applyCue({ kind: 'field', renderer: 'living-flame', config: { recipe: 'incompatible' } });
+    expect(mounts).toBe(2);
+    expect(director.active).not.toBe(first);
+  });
+
+  it('never keeps more than two layers alive', () => {
+    vi.useFakeTimers();
+    const log = [];
+    const director = new VisualFieldDirector({
+      transitionMs: 1200,
+      scheduleFrame: callback => callback(),
+      mount: cue => record(cue.config.id, log)
+    });
+    for (const id of ['a', 'b', 'c', 'd']) {
+      director.applyCue({ kind: 'field', renderer: 'attractor', config: { id } });
+      expect(director.retiring.size + (director.active ? 1 : 0)).toBeLessThanOrEqual(2);
+    }
+    expect(log).toEqual(['destroy:a', 'destroy:b']);
+    vi.advanceTimersByTime(1200);
+    expect(log).toEqual(['destroy:a', 'destroy:b', 'destroy:c']);
+  });
+});
