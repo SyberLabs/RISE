@@ -29,6 +29,9 @@
  * (the engine's soundscape layer gain) and ramp every transition.
  */
 
+import { ACOUSTIC_SOUNDSCAPES } from './acoustic-pieces.js';
+import { CINEMATIC_SOUNDSCAPES } from './cinematic-pieces.js';
+
 /** How long a held phase waits before asking again. */
 const HOLD_MS = 250;
 
@@ -898,6 +901,8 @@ export const SOUNDSCAPES = {
         description: 'Swung piano chords and a walking bass phrase.',
         create: (ctx, destination, options) => createKeyboardMusic('jazz', ctx, destination, options)
     },
+    ...ACOUSTIC_SOUNDSCAPES,
+    ...CINEMATIC_SOUNDSCAPES,
     ...Object.fromEntries(Object.entries(MOOD_BEDS).map(([id, profile]) => [id, {
         name: id[0].toUpperCase() + id.slice(1),
         description: `${id} procedural tone bed`,

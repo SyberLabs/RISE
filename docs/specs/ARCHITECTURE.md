@@ -160,10 +160,10 @@ it, and CI fails when the committed copy is not what `src/` produces.
 ```mermaid
 flowchart LR
     app["app<br/>composition root<br/>7 modules"]
-    audio["audio<br/>Web Audio, recitation<br/>7 modules"]
+    audio["audio<br/>Web Audio, recitation<br/>9 modules"]
     components["components<br/>routed views<br/>36 modules"]
     content["content<br/>texts, imagery, journeys<br/>229 modules"]
-    core["core<br/>session, player, router<br/>129 modules"]
+    core["core<br/>session, player, router<br/>131 modules"]
     page["page<br/>spatial projection<br/>4 modules"]
     sources["sources<br/>text and visual providers<br/>22 modules"]
     visuals["visuals<br/>procedural generation<br/>54 modules"]
@@ -187,7 +187,7 @@ flowchart LR
     content --> |16| core
     content --> |17| sources
     content --> |1| visuals
-    core --> |3| audio
+    core --> |5| audio
     core --> |11| content
     core --> |3| sources
     core --> |21| visuals
@@ -276,7 +276,6 @@ outliving its room, fails a build.
 |---|---|---|
 | Portal | `src/components/Portal.js` | the hub, and the first screen |
 | Keystones | `src/components/Keystones.js` | the public entry corridor |
-| ShortSequences | `src/components/ShortSequences.js` | short authored readings that enter the Chamber and return to a private next step |
 | Mint | `src/components/Mint.js` | the door a minted sequence opens onto |
 | Chamber | `src/components/Chamber.js` | a reading, in time |
 | ChamberOrbital | `src/components/ChamberOrbital.js` | tuning a reading before it starts |
