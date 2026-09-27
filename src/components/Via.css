@@ -101,7 +101,7 @@
   padding: 0 var(--sy-space-4);
   background: transparent;
   border: 1px solid var(--sy-line-strong);
-  border-radius: var(--sy-radius);
+  border-radius: var(--sy-radius-full);
   color: var(--sy-text-2);
   font-family: inherit;
   font-size: 14px;
@@ -131,7 +131,7 @@
   padding: 0 var(--sy-space-5);
   background: transparent;
   border: 1px solid var(--sy-line-strong);
-  border-radius: var(--sy-radius);
+  border-radius: var(--sy-radius-full);
   color: var(--sy-text);
   font-family: inherit;
   font-size: 16px;
@@ -146,12 +146,14 @@
 
 .via-primary {
   background: var(--sy-text);
-  border-color: var(--sy-text);
+  background-image: var(--sy-primary-fill);
+  box-shadow: var(--sy-primary-glow);
+  border-color: transparent;
   color: var(--sy-on-primary);
 }
 
 .via-primary:hover {
-  background: #FFFFFF;
+  box-shadow: var(--sy-primary-glow-hover);
 }
 
 .via-panel > .via-start {
@@ -180,7 +182,7 @@
   padding: 0 var(--sy-space-3);
   background: transparent;
   border: 0;
-  border-radius: var(--sy-radius);
+  border-radius: var(--sy-radius-full);
   color: var(--sy-text-3);
   font-family: var(--sy-font-sans);
   font-size: 14px;

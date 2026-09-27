@@ -159,19 +159,21 @@ it, and CI fails when the committed copy is not what `src/` produces.
 
 ```mermaid
 flowchart LR
-    app["app<br/>composition root<br/>7 modules"]
-    audio["audio<br/>Web Audio, recitation<br/>9 modules"]
-    components["components<br/>routed views<br/>39 modules"]
+    app["app<br/>composition root<br/>8 modules"]
+    audio["audio<br/>Web Audio, recitation<br/>10 modules"]
+    components["components<br/>routed views<br/>40 modules"]
     content["content<br/>texts, imagery, journeys<br/>228 modules"]
     core["core<br/>session, player, router<br/>145 modules"]
+    oracle["oracle<br/>2 modules"]
     page["page<br/>spatial projection<br/>4 modules"]
     sources["sources<br/>text and visual providers<br/>22 modules"]
-    visuals["visuals<br/>procedural generation<br/>60 modules"]
+    vendor["vendor<br/>SyberLabs design kit<br/>2 modules"]
+    visuals["visuals<br/>procedural generation<br/>61 modules"]
 
     app -.-> |3 lazy| audio
     app --> |1| components
     app --> |4| content
-    app --> |34| core
+    app --> |36| core
     app -.-> |1 lazy| sources
     app -.-> |1 lazy| visuals
     audio --> |1| content
@@ -182,12 +184,13 @@ flowchart LR
     components --> |148| core
     components -.-> |1 lazy| page
     components --> |4| sources
-    components --> |17| visuals
+    components -.-> |2 lazy| vendor
+    components --> |18| visuals
     content --> |3| audio
     content --> |16| core
     content --> |17| sources
     content --> |1| visuals
-    core --> |5| audio
+    core --> |6| audio
     core --> |11| content
     core --> |3| sources
     core --> |23| visuals
@@ -285,7 +288,6 @@ outliving its room, fails a build.
 | Rosarium | `src/components/Rosarium.js` | the Rosary, on the liturgy engine |
 | Via | `src/components/Via.js` | the Stations of the Cross |
 | Workshop | `src/components/Workshop.js` | authoring a composition |
-| Visual Lab | `src/components/VisualLab.js` | shaping a Living Flame scene; a route at `/visual-lab` and an overlay over a reading |
 | Vault | `src/components/Vault.js` | saved compositions and archetypes |
 | Scriptorium | `src/components/Scriptorium.js` | a model composes; a gate refuses |
 | Curia | `src/components/Curia.js` | the source and rights record |
@@ -294,12 +296,16 @@ outliving its room, fails a build.
 | Guide | `src/components/Guide.js` | onboarding, as an overlay rather than a route |
 | BetaGate | `src/components/BetaGate.js` | invitation UX; **not** a security boundary (§7) |
 
-Five modules in `src/components/` are deliberately not rooms; they support
+Seven modules in `src/components/` are deliberately not rooms; they support
 routed rooms: `src/components/Admit.js`,
 `src/components/NamingModal.js`, `src/components/SourceBrowser.js` and
 `src/components/VisualNavigator.js`, plus the Jev voice input helper
-`src/components/jev-dictation.js`. The Navigator's columns, text material,
-preview, and Chapel trays live in `src/components/visual-navigator/` so the
+`src/components/jev-dictation.js`, the shared room frame
+`src/components/room-chrome.js` (header, icons, Alert), and the SyberLabs
+chrome helper `src/components/atlas.js`, which lazily imports the vendored
+design-system kit in `src/vendor/syber/` (the ambient atmosphere behind Home
+and the gate, and the RISE sigil) so neither engine is part of first load.
+The Navigator's columns, text material, preview, and Chapel trays live in `src/components/visual-navigator/` so the
 shell stays a mount point. Chamber mounts a Fit-mask runtime from
 `src/core/fit-mask-runtime.js` rather than owning the glyph-mask state machine.
 

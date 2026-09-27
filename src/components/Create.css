@@ -1,14 +1,23 @@
-.personal-create { max-width: 760px; margin: 0 auto; padding: 40px 24px 100px; color: var(--color-light, #e8e8e8); line-height: 1.65; }
-.personal-create h1 { font-size: 2rem; margin: 24px 0; }
-.personal-create h2 { font-size: 1.4rem; margin: 24px 0 12px; }
+/* Create — personal readings, on the SyberLabs v2 tokens (design-system.css).
+   The system room header comes from room-chrome.js. */
+.personal-create { max-width: 760px; margin: 0 auto; padding: var(--sy-space-7) var(--sy-space-5) 100px; color: var(--sy-text-body); font-family: var(--sy-font-sans); line-height: 1.6; }
+.personal-create h1 { margin: var(--sy-space-5) 0; }
+.personal-create h2 { margin: var(--sy-space-5) 0 var(--sy-space-3); font: 600 22px/30px var(--sy-font-sans); letter-spacing: -0.01em; color: var(--sy-text); }
 .personal-create p { margin: 14px 0; }
-.personal-create label { display: block; margin: 16px 0; }
-.personal-create textarea { display: block; box-sizing: border-box; width: 100%; padding: 12px; margin-top: 8px; background: #18191c; color: #f4f4f4; border: 1px solid #777; border-radius: 5px; font: inherit; }
-.personal-create button { padding: 10px 16px; margin: 4px 6px 4px 0; min-height: 44px; border: 1px solid #888; border-radius: 5px; background: #24262a; color: #fff; cursor: pointer; font: inherit; }
-.personal-create button:focus-visible, .personal-create textarea:focus-visible { outline: 2px solid #d1bb8e; outline-offset: 3px; }
-.personal-create [data-text] { font-size: 1.15rem; white-space: pre-wrap; overflow-wrap: anywhere; }
-.personal-create [data-status] { min-height: 1.6em; color: #e5cf9f; }
-.personal-create .personal-disclosure { font-size: .9rem; }
+.personal-create label { display: block; margin: var(--sy-space-4) 0; font: 500 14px/20px var(--sy-font-sans); color: var(--sy-text); }
+.personal-create textarea { display: block; box-sizing: border-box; width: 100%; min-height: 110px; padding: 12px 14px; margin-top: var(--sy-space-2); background: var(--sy-surface); color: var(--sy-text); border: 1px solid var(--sy-line-strong); border-radius: var(--sy-radius); font: 400 16px/1.5 var(--sy-font-sans); transition: border-color var(--sy-dur-hover) var(--sy-ease), box-shadow var(--sy-dur-hover) var(--sy-ease); }
+.personal-create textarea:focus { outline: none; border-color: var(--sy-ice); box-shadow: 0 0 0 3px rgba(144, 216, 240, 0.25); }
+/* Buttons are the system "line" pill; the form's submit is the one solid primary. */
+.personal-create button { display: inline-flex; align-items: center; justify-content: center; min-height: var(--sy-control-height); padding: 0 20px; margin: 4px 6px 4px 0; border: 1px solid var(--sy-line-strong); border-radius: var(--sy-radius-full); background: rgba(6, 5, 26, 0.4); color: var(--sy-text); cursor: pointer; font: 500 15px/24px var(--sy-font-sans); transition: border-color var(--sy-dur-hover) var(--sy-ease), box-shadow var(--sy-dur-enter) var(--sy-ease); }
+.personal-create button:hover:not(:disabled) { border-color: var(--sy-ice); box-shadow: 0 0 24px -6px var(--sy-brand); }
+.personal-create button[type="submit"] { border-color: transparent; background: var(--sy-text); background-image: var(--sy-primary-fill); box-shadow: var(--sy-primary-glow); color: var(--sy-on-primary); }
+.personal-create button[type="submit"]:hover:not(:disabled) { border-color: transparent; box-shadow: var(--sy-primary-glow-hover); }
+.personal-create button:disabled { opacity: 0.4; cursor: not-allowed; }
+.personal-create button:focus-visible, .personal-create textarea:focus-visible { outline: var(--sy-focus); outline-offset: var(--sy-focus-offset); }
+/* The piece itself is reading text. */
+.personal-create [data-text] { font: 400 21px/1.6 var(--sy-font-reading); color: var(--sy-text-body); white-space: pre-wrap; overflow-wrap: anywhere; }
+.personal-create [data-status] { min-height: 1.6em; color: var(--sy-text-2); }
+.personal-create .personal-disclosure { font-size: 14px; line-height: 20px; color: var(--sy-text-2); }
 .personal-create [hidden] { display: none !important; }
-.personal-create section { margin-top: 32px; border-top: 1px solid #444; padding-top: 12px; }
+.personal-create section { margin-top: var(--sy-space-6); border-top: 1px solid var(--sy-line); padding-top: var(--sy-space-3); }
 .personal-actions { display: flex; flex-wrap: wrap; }

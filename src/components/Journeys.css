@@ -42,7 +42,7 @@
   margin: 0 0 var(--sy-space-5) calc(var(--sy-space-3) * -1);
   padding: 0 var(--sy-space-3);
   border: 0;
-  border-radius: var(--sy-radius);
+  border-radius: var(--sy-radius-full);
   background: transparent;
   color: var(--sy-text-2);
   font: 500 14px/20px var(--sy-font-sans);

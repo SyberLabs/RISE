@@ -9,6 +9,7 @@ import { parsePageCollectionId, sampleWorkEngine } from '../visuals/work-engines
 import { TIME_SCALE as WORK_ENGINE_TIME_SCALE } from '../visuals/work-engine-field.js';
 import { MemoryCore } from '../core/memory.js';
 import { AttractorField } from '../visuals/attractor.js';
+import { NightStreaks } from '../visuals/night-streaks.js';
 import { KleeField } from '../visuals/klee-field.js';
 import { VisualFieldDirector } from '../visuals/visual-field-director.js';
 import { escapeHtml } from '../core/sanitize.js';
@@ -189,6 +190,7 @@ export class Chamber {
       ? options.loadSettingsClass
       : async () => (await import('./Settings.js')).Settings;
     this.attractorField = null;
+    this.nightStreaks = null;
     this.kleeField = null;
     this._visualFieldDirector = null;
     this._fillMaskGeneration = 0;
@@ -2274,6 +2276,31 @@ export class Chamber {
     }
   }
 
+  /**
+   * One Page plate of the attractor at `seconds`. With night streaks the
+   * plate carries both layers, as the Stream shows them.
+   */
+  _sampleAttractorPlate(seconds) {
+    const filament = this.attractorField.sampleAt(seconds);
+    const streaks = this.nightStreaks;
+    if (!streaks?.sampleAt || !filament) return filament;
+    try {
+      streaks.sampleAt(seconds);
+      const under = streaks.canvas;
+      const over = this.attractorField.canvas;
+      const plate = document.createElement('canvas');
+      plate.width = over.width;
+      plate.height = over.height;
+      const ctx = plate.getContext('2d');
+      if (!ctx) return filament;
+      ctx.drawImage(under, 0, 0, plate.width, plate.height);
+      ctx.drawImage(over, 0, 0);
+      return plate.toDataURL('image/webp', 0.9);
+    } catch {
+      return filament;
+    }
+  }
+
   mountVisualFieldCue(cue) {
     const field = this.container.querySelector('#chamber-field');
     if (!field || cue?.kind !== 'field') return null;
@@ -2295,12 +2322,37 @@ export class Chamber {
     } else if (cue.renderer === 'attractor') {
       host.className = 'chamber-attractor';
       this._insertBehindReading(field, host);
-      controller = new AttractorField(host, {
+      // Night drive: light streaks run underneath the filament, on the
+      // same pause, resume and sample contract.
+      const streaks = config.streaks === true
+        ? new NightStreaks(host, { speed: config.speed, intensity: config.intensity })
+        : null;
+      if (streaks) {
+        host.classList.add('chamber-attractor-night');
+        field.classList.add('chamber-field-night');
+        // Bright filaments cross the centre; the stream glass keeps the
+        // words readable against the brightest frame.
+        if (atomDisplay && this.glassCanApply()) atomDisplay.classList.add('glass-tile');
+      }
+      const attractor = new AttractorField(host, {
         system: config.system || 'aizawa',
         palette: config.palette,
-        form: config.form
+        form: config.form,
+        ...(Number.isFinite(config.intensity) ? { intensity: config.intensity } : {}),
+        ...(Number.isFinite(config.speed) ? { speed: config.speed } : {})
       });
-      this.attractorField = controller;
+      this.attractorField = attractor;
+      this.nightStreaks = streaks;
+      controller = streaks ? {
+        pause: () => { streaks.pause(); return attractor.pause(); },
+        resume: () => { streaks.resume(); attractor.resume(); },
+        destroy: () => {
+          streaks.destroy();
+          attractor.destroy();
+          if (this.nightStreaks === streaks) this.nightStreaks = null;
+          if (this.attractorField === attractor) this.attractorField = null;
+        }
+      } : attractor;
     } else if (cue.renderer === 'living-flame') {
       const flame = normalizeLivingFlameConfig(config);
       if (!flame) return null;
@@ -2404,6 +2456,7 @@ export class Chamber {
         if (this.attractorField === controller) this.attractorField = null;
         if (this.rosaField === controller) this.rosaField = null;
         host.remove();
+        if (!field.querySelector('.chamber-attractor-night')) field.classList.remove('chamber-field-night');
         if (!field.querySelector('.chamber-genesis, .chamber-living-flame')) {
           field.classList.remove('chamber-field-genesis');
           if (!field.classList.contains('chamber-field-stream')) {
@@ -3716,7 +3769,7 @@ export class Chamber {
       // states rather than three near-identical frames.
       const SWEEP_SECONDS = 24;
       return this._fieldSamples(wanted, (n) =>
-        this.attractorField.sampleAt(((n + 1) / wanted) * SWEEP_SECONDS), 'Attractor');
+        this._sampleAttractorPlate(((n + 1) / wanted) * SWEEP_SECONDS), 'Attractor');
     }
 
     // Engines authored FOR a work are persistent fields too, and they
@@ -3825,6 +3878,7 @@ export class Chamber {
     // painting, not the integration beneath it.
     if (this.attractorField?.pause) {
       this.attractorField.pause();
+      this.nightStreaks?.pause();
       this._temporalSuspended.attractor = true;
     }
     // The flash economy is already inert: the Page pauses the Player, and
@@ -3847,7 +3901,10 @@ export class Chamber {
     }
     this._sequenceVideoHost = null;
     if (suspended.klee && this.kleeField?.resume) this.kleeField.resume();
-    if (suspended.attractor && this.attractorField?.resume) this.attractorField.resume();
+    if (suspended.attractor && this.attractorField?.resume) {
+      this.attractorField.resume();
+      this.nightStreaks?.resume();
+    }
   }
 
   /**
@@ -4511,6 +4568,10 @@ export class Chamber {
     if (this.attractorField) {
       this.attractorField.destroy();
       this.attractorField = null;
+    }
+    if (this.nightStreaks) {
+      this.nightStreaks.destroy();
+      this.nightStreaks = null;
     }
     if (this.kleeField) {
       this.kleeField.destroy();

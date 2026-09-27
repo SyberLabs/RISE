@@ -26,6 +26,18 @@ describe('the RISE mark', () => {
         expect(container.textContent).not.toContain('◇');
     });
 
+    it('marks the gate with the RISE sigil on a plate, the clip mark holding it until drawn', () => {
+        const container = document.createElement('div');
+        new BetaGate(container, { onAccess: () => {} });
+        const plate = container.querySelector('.beta-plate');
+        expect(plate).toBeTruthy();
+        expect(plate.getAttribute('aria-hidden')).toBe('true');
+        expect(plate.querySelector('.beta-sigil canvas.beta-sigil-canvas')).toBeTruthy();
+        expect(plate.querySelector('.beta-sigil-fallback.rise-mark')).toBeTruthy();
+        // The header lockup carries the product's 16px sigil too.
+        expect(container.querySelector('.sl-lockup canvas.sl-sigil')).toBeTruthy();
+    });
+
     it('gives the gate one statement and one primary action', () => {
         const container = document.createElement('div');
         new BetaGate(container, { onAccess: () => {} });
@@ -34,10 +46,14 @@ describe('the RISE mark', () => {
         expect(container.querySelector('#beta-enter').textContent.trim()).toBe('Enter RISE');
     });
 
-    it('keeps the entry gate still and free of decoration', () => {
+    it('keeps the entry gate still and decorates it only through the system tokens', () => {
         const css = readFileSync(join(ROOT, 'src', 'components', 'BetaGate.css'), 'utf8');
+        // v2 allows the spectrum and the primary glow, but only as tokens:
+        // no private gradients, grain or glows written into the gate.
         expect(css).not.toMatch(/gradient\(/);
-        expect(css).not.toMatch(/box-shadow/);
+        for (const [, value] of css.matchAll(/box-shadow:\s*([^;]+);/g)) {
+            expect(value.trim()).toMatch(/^var\(--sy-primary-glow(?:-hover)?\)$/);
+        }
         expect(css).not.toMatch(/animation:[^;]*infinite/);
     });
 

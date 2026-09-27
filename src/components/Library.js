@@ -18,6 +18,7 @@ import { LocalWorks } from '../core/local-work-store.js';
 import { localWorkRuntime } from '../core/local-works.js';
 import { Admit } from './Admit.js';
 import { attachJevDictation } from './jev-dictation.js';
+import { drawRiseSigil } from './atlas.js';
 import './Library.css';
 
 /**
@@ -171,6 +172,7 @@ export class Library {
             <span class="sl-lockup" role="img" aria-label="SyberLabs RISE">
               <img class="sl-mark" src="/syberlabs-mark.webp" alt="" width="18" height="20" decoding="async">
               <span class="sl-wordmark" aria-hidden="true">SYBERLABS<span class="sl-divider"> / </span>RISE</span>
+              <canvas class="sl-sigil" aria-hidden="true"></canvas>
             </span>
           </div>
         </header>
@@ -199,6 +201,7 @@ export class Library {
       </div>
     `;
 
+    drawRiseSigil(this.container.querySelector('.sl-sigil'), { animate: false });
     this.updateActiveNav();
   }
 
@@ -350,7 +353,7 @@ export class Library {
       const response = await fetch('/api/jev-recommend', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ intent, schemaVersion: 2 }),
+        body: JSON.stringify({ intent, schemaVersion: 3 }),
         signal: controller.signal
       });
       const data = await response.json().catch(() => null);

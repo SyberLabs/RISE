@@ -29,6 +29,7 @@
  * (the engine's soundscape layer gain) and ramp every transition.
  */
 
+import { createNightDrive } from './night-drive.js';
 import { ACOUSTIC_SOUNDSCAPES } from './acoustic-pieces.js';
 import { CINEMATIC_SOUNDSCAPES } from './cinematic-pieces.js';
 
@@ -900,6 +901,11 @@ export const SOUNDSCAPES = {
         name: 'Jazz Piano',
         description: 'Swung piano chords and a walking bass phrase.',
         create: (ctx, destination, options) => createKeyboardMusic('jazz', ctx, destination, options)
+    },
+    'night-drive': {
+        name: 'Night Drive',
+        description: 'A four-on-the-floor electronic beat at 124 BPM: kick, clap, hats, rolling bass and arpeggio.',
+        create: (ctx, destination) => createNightDrive(ctx, destination, { bpm: 124, intensity: 0.6, level: 0.4 })
     },
     ...ACOUSTIC_SOUNDSCAPES,
     ...CINEMATIC_SOUNDSCAPES,

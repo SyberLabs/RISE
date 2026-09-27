@@ -269,8 +269,10 @@
 
 .chamber-field-stream .atom-display.is-mask,
 .chamber-field-genesis .atom-display.is-mask,
+.chamber-field-night .atom-display.is-mask,
 .chamber-field-stream .atom-display.is-mask.glass-tile,
-.chamber-field-genesis .atom-display.is-mask.glass-tile {
+.chamber-field-genesis .atom-display.is-mask.glass-tile,
+.chamber-field-night .atom-display.is-mask.glass-tile {
   background: transparent;
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
@@ -1465,12 +1467,34 @@
   transition-duration: 0ms;
 }
 
-.chamber-attractor .attractor-canvas {
+.chamber-attractor .attractor-canvas,
+.chamber-attractor .night-streaks-canvas {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
   display: block;
+}
+
+/* Night drive: a horizon glow under the streaks, so the ground reads as a
+   city at night rather than empty black. Colour only; it never moves. */
+.chamber-attractor-night {
+  background:
+    radial-gradient(120% 55% at 50% 108%, rgba(255, 46, 170, 0.34), transparent 62%),
+    radial-gradient(70% 45% at 8% 100%, rgba(0, 190, 255, 0.2), transparent 70%),
+    radial-gradient(60% 40% at 95% 96%, rgba(122, 60, 255, 0.22), transparent 70%);
+}
+
+/* The filament's brightest pulses cross the centre, where the words are.
+   A still, ink-coloured pool behind the text band keeps them readable
+   against the brightest frame; the light stays vivid everywhere else. */
+.chamber-attractor-night::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(70% 24% at 50% 50%,
+    rgba(5, 3, 20, 0.8) 0%, rgba(5, 3, 20, 0.6) 50%, rgba(5, 3, 20, 0) 100%);
 }
 
 /* ─────────────────────────────────────────────────────────────
@@ -1498,7 +1522,8 @@
    pane hugging the token — soft edges so the drawing dissolves into it
    rather than meeting a hard seam. Toggleable for sparse compositions
    (e.g. Architectural) where even soft glass can obstruct. */
-.chamber-field-genesis .atom-display.glass-tile {
+.chamber-field-genesis .atom-display.glass-tile,
+.chamber-field-night .atom-display.glass-tile {
   background: rgba(10, 10, 12, 0.36);
   backdrop-filter: blur(16px) saturate(1.12);
   -webkit-backdrop-filter: blur(16px) saturate(1.12);
@@ -1513,7 +1538,8 @@
 
 /* No words, no pane: before the first token and during silences the
    glass fully dematerializes instead of lingering as an empty slab */
-.chamber-field-genesis .atom-display.glass-tile:empty {
+.chamber-field-genesis .atom-display.glass-tile:empty,
+.chamber-field-night .atom-display.glass-tile:empty {
   background: transparent;
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
@@ -1598,7 +1624,8 @@
    tile, masked to the words that have arrived, each ramped away at its ends
    so the fog has no edge to watch. */
 .chamber-field-stream .atom-display.glass-tile.is-progressive-glass,
-.chamber-field-genesis .atom-display.glass-tile.is-progressive-glass {
+.chamber-field-genesis .atom-display.glass-tile.is-progressive-glass,
+.chamber-field-night .atom-display.glass-tile.is-progressive-glass {
   background: transparent;
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
@@ -1608,7 +1635,8 @@
 }
 
 .chamber-field-stream .atom-display.glass-tile.is-progressive-glass::before,
-.chamber-field-genesis .atom-display.glass-tile.is-progressive-glass::before {
+.chamber-field-genesis .atom-display.glass-tile.is-progressive-glass::before,
+.chamber-field-night .atom-display.glass-tile.is-progressive-glass::before {
   content: "";
   position: absolute;
   z-index: 0;
@@ -1641,7 +1669,8 @@
 }
 
 .chamber-field-stream .atom-display.glass-tile.is-progressive-glass-ready::before,
-.chamber-field-genesis .atom-display.glass-tile.is-progressive-glass-ready::before {
+.chamber-field-genesis .atom-display.glass-tile.is-progressive-glass-ready::before,
+.chamber-field-night .atom-display.glass-tile.is-progressive-glass-ready::before {
   opacity: 1;
 }
 
@@ -2104,7 +2133,8 @@
      every atom. The band is `display: contents` elsewhere, so desktop
      is unaffected. */
   .chamber-field-stream .atom-band:has(.atom-display.glass-tile),
-  .chamber-field-genesis .atom-band:has(.atom-display.glass-tile) {
+  .chamber-field-genesis .atom-band:has(.atom-display.glass-tile),
+.chamber-field-night .atom-band:has(.atom-display.glass-tile) {
     display: block;
     width: 100%;
 
@@ -2132,7 +2162,8 @@
   }
 
   .chamber-field-stream .atom-band:has(.atom-display.is-mask),
-  .chamber-field-genesis .atom-band:has(.atom-display.is-mask) {
+  .chamber-field-genesis .atom-band:has(.atom-display.is-mask),
+.chamber-field-night .atom-band:has(.atom-display.is-mask) {
     background: transparent;
     backdrop-filter: none;
     -webkit-backdrop-filter: none;
@@ -2142,14 +2173,16 @@
   }
 
   .chamber-field-stream .atom-band:has(.atom-display.glass-tile) .atom-display,
-  .chamber-field-genesis .atom-band:has(.atom-display.glass-tile) .atom-display {
+  .chamber-field-genesis .atom-band:has(.atom-display.glass-tile) .atom-display,
+.chamber-field-night .atom-band:has(.atom-display.glass-tile) .atom-display {
     transform: none;
   }
 
   /* The reading keeps the band's padding and loses the band's skin —
      it is the thing that fades, and it must have nothing to fade. */
   .chamber-field-stream .atom-display.glass-tile,
-  .chamber-field-genesis .atom-display.glass-tile {
+  .chamber-field-genesis .atom-display.glass-tile,
+.chamber-field-night .atom-display.glass-tile {
     border: 0;
     border-radius: 0;
     padding: var(--space-sm) var(--space-md);
@@ -2160,7 +2193,8 @@
   }
 
   .chamber-field-stream .atom-display.glass-tile.is-progressive-glass::before,
-  .chamber-field-genesis .atom-display.glass-tile.is-progressive-glass::before {
+  .chamber-field-genesis .atom-display.glass-tile.is-progressive-glass::before,
+.chamber-field-night .atom-display.glass-tile.is-progressive-glass::before {
     content: none;
   }
 
@@ -2168,7 +2202,8 @@
      now and cannot be taken by anything the display does, but the
      display's own box still has to hold its share of the height. */
   .chamber-field-stream .atom-display.glass-tile:empty,
-  .chamber-field-genesis .atom-display.glass-tile:empty {
+  .chamber-field-genesis .atom-display.glass-tile:empty,
+.chamber-field-night .atom-display.glass-tile:empty {
     padding: var(--space-sm) var(--space-md);
   }
 
@@ -2178,7 +2213,8 @@
      content, so this does not clear the match; Chamber.js still writes
      a truly empty element for the silence test. */
   .chamber-field-stream .atom-display.glass-tile:empty::before,
-  .chamber-field-genesis .atom-display.glass-tile:empty::before {
+  .chamber-field-genesis .atom-display.glass-tile:empty::before,
+.chamber-field-night .atom-display.glass-tile:empty::before {
     content: "\00a0";
   }
 
@@ -2253,7 +2289,8 @@
   }
 
   .chamber-field-stream .atom-display.glass-tile,
-  .chamber-field-genesis .atom-display.glass-tile {
+  .chamber-field-genesis .atom-display.glass-tile,
+.chamber-field-night .atom-display.glass-tile {
     border-radius: 0;
     border-left: 0;
     border-right: 0;

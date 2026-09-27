@@ -11,7 +11,8 @@ export const ATTRACTOR_PALETTES = Object.freeze([
   Object.freeze({ id: 'red', name: 'Red', swatch: '#ffc4aa' }),
   Object.freeze({ id: 'blue', name: 'Blue', swatch: '#c6e2ff' }),
   Object.freeze({ id: 'gold', name: 'Gold', swatch: '#ffe8b0' }),
-  Object.freeze({ id: 'purple', name: 'Purple', swatch: '#e0ccff' })
+  Object.freeze({ id: 'purple', name: 'Purple', swatch: '#e0ccff' }),
+  Object.freeze({ id: 'neon', name: 'Neon', swatch: '#ff2eaa' })
 ]);
 
 export const ATTRACTOR_FORMS = Object.freeze(['mirror', 'kaleido', 'bilateral']);
@@ -142,10 +143,16 @@ export function normalizeFieldStyle(renderer, value = {}) {
     });
   }
   if (renderer === 'attractor') {
+    // Optional pace, brightness and the light-streak layer travel only
+    // when set, so every existing saved cue normalizes exactly as before.
+    const within = (value, min, max) => Math.min(max, Math.max(min, value));
     return Object.freeze({
       system: ATTRACTOR_SYSTEM_IDS.has(source.system) ? source.system : 'aizawa',
       palette: ATTRACTOR_PALETTE_IDS.has(source.palette) ? source.palette : 'white',
-      form: ATTRACTOR_FORM_IDS.has(source.form) ? source.form : 'mirror'
+      form: ATTRACTOR_FORM_IDS.has(source.form) ? source.form : 'mirror',
+      ...(Number.isFinite(source.intensity) ? { intensity: within(source.intensity, 0.2, 1) } : {}),
+      ...(Number.isFinite(source.speed) ? { speed: within(source.speed, 0.25, 4) } : {}),
+      ...(source.streaks === true ? { streaks: true } : {})
     });
   }
   if (renderer === 'genesis') {
