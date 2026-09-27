@@ -1,11 +1,12 @@
+import { countWords, isCanonicalPiece } from './personal-text.js';
+
 export function validatePiece(value) {
-  if (!value || typeof value.title !== 'string' || !value.title.trim()
-    || value.title.length > 80 || value.title !== value.title.trim()
-    || !Array.isArray(value.paragraphs) || value.paragraphs.length < 2 || value.paragraphs.length > 5
-    || value.paragraphs.some(p => typeof p !== 'string' || !p.trim() || p.length > 2000
-      || p !== p.trim() || /[\r\n]/u.test(p))) throw new Error('The writer returned an invalid piece.');
-  const words = value.paragraphs.join(' ').split(/\s+/u).filter(Boolean).length;
-  if (words < 80 || words > 220) throw new Error('The writer returned an invalid piece length.');
+  if (!isCanonicalPiece(value)) {
+    const words = Array.isArray(value?.paragraphs) && value.paragraphs.every(p => typeof p === 'string')
+      ? countWords(value.paragraphs) : 0;
+    throw new Error(words && (words < 80 || words > 220)
+      ? 'The writer returned an invalid piece length.' : 'The writer returned an invalid piece.');
+  }
   return { title: value.title, paragraphs: [...value.paragraphs] };
 }
 

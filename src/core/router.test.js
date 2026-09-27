@@ -151,6 +151,21 @@ describe('Router stale-build recovery', () => {
     router.destroy();
   });
 
+  it('does not reload while a reload would destroy unsaved work', async () => {
+    const router = new Router({ hasUnsavedWork: () => true });
+    router.transitionDuration = 0;
+    router.registerView('a', { container: document.querySelector('#a'), init: () => ({}) });
+    router.registerView('b', { container: document.querySelector('#b'), init: staleError });
+
+    await router.navigate('a');
+    expect(await router.navigate('b')).toBe(false);
+
+    expect(reload).not.toHaveBeenCalled();
+    expect(router.currentView).toBe('a');
+    expect(document.querySelector('#a').hidden).toBe(false);
+    router.destroy();
+  });
+
   it('never reloads more than once, whatever keeps failing', async () => {
     const router = new Router();
     router.transitionDuration = 0;

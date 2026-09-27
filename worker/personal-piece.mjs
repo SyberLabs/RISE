@@ -1,4 +1,5 @@
 import { RELEASE_VERIFIED } from './personal-piece-release.mjs';
+import { isCanonicalPiece, normalizeParagraph, normalizeTitle } from '../src/core/personal-text.js';
 
 const MODEL = 'qwen/qwen3.5-9b';
 const VERSION = 'personal-v1';
@@ -30,14 +31,17 @@ function exact(value, required, optional = []) {
     && Object.keys(value).every(key => required.includes(key) || optional.includes(key));
 }
 function text(value, min, max) { return typeof value === 'string' && value.trim().length >= min && value.trim().length <= max; }
+// Accepts only canonical text (see src/core/personal-text.js), so the browser
+// can never reject a piece this Worker returned.
 export function validPiece(value) {
-  if (!exact(value, ['title', 'paragraphs']) || !text(value.title, 1, 80)
-    || !Array.isArray(value.paragraphs) || value.paragraphs.length < 2 || value.paragraphs.length > 5
-    || !value.paragraphs.every(p => text(p, 1, 2000))) return false;
+  if (!exact(value, ['title', 'paragraphs']) || !isCanonicalPiece(value)) return false;
   const all = [value.title, ...value.paragraphs].join(' ');
-  if (/(?:\b[a-z][a-z0-9+.-]*:\/\/|\/\/[^\s/]|\b(?:data|javascript|mailto):\S|www\.|<\/?[a-z]|```)/i.test(all)) return false;
-  const count = value.paragraphs.join(' ').trim().split(/\s+/u).length;
-  return count >= 80 && count <= 220;
+  return !/(?:\b[a-z][a-z0-9+.-]*:\/\/|\/\/[^\s/]|\b(?:data|javascript|mailto):\S|www\.|<\/?[a-z]|```)/i.test(all);
+}
+export function normalizePiece(value) {
+  if (!exact(value, ['title', 'paragraphs']) || typeof value.title !== 'string'
+    || !Array.isArray(value.paragraphs) || !value.paragraphs.every(p => typeof p === 'string')) return null;
+  return { title: normalizeTitle(value.title), paragraphs: value.paragraphs.map(normalizeParagraph) };
 }
 function validRequest(value) {
   if (!value || typeof value.requestId !== 'string' || !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value.requestId)) return false;
@@ -136,9 +140,9 @@ export async function handlePersonalPiece(request, env) {
       if (result.error || result.model !== MODEL || result.provider !== 'Darkbloom' || result.choices?.length !== 1
         || choice?.finish_reason !== 'stop' || choice.message?.tool_calls?.length || choice.message?.refusal
         || choice.message?.reasoning || choice.message?.reasoning_details?.length || typeof choice.message?.content !== 'string') throw new Error('provider');
-      const piece = JSON.parse(choice.message.content);
+      const piece = normalizePiece(JSON.parse(choice.message.content));
       if (!validPiece(piece)) throw new Error('output');
-      return json({ requestId: input.requestId, title: piece.title.trim(), paragraphs: piece.paragraphs.map(p => p.trim()), writerModel: MODEL, promptVersion: VERSION });
+      return json({ requestId: input.requestId, title: piece.title, paragraphs: piece.paragraphs, writerModel: MODEL, promptVersion: VERSION });
     } catch (error) { if (signal.aborted) throw error; return failure(502, 'WRITER_FAILED', 'The reading could not be generated.'); }
   } catch { return failure(signal.aborted ? 504 : 503, signal.aborted ? 'WRITER_TIMEOUT' : 'WRITER_UNAVAILABLE', 'Personal readings are unavailable.'); }
   finally { clearTimeout(timer); }

@@ -78,6 +78,29 @@ describe('personal writer boundary', () => {
     expect((await worker.fetch(request(), env())).status).toBe(502);
     expect(calls).toHaveLength(2);
   });
+  it('returns verse line breaks in the canonical form the browser accepts', async () => {
+    const { validatePiece } = await import('../src/core/personal-piece-client.js');
+    const [first, second] = piece.paragraphs;
+    const verse = { title: '  Morning\n light ', paragraphs: [first.replace('. ', '.\r\n  ').replace('. ', '.\n\n\n'), second] };
+    upstream(verse);
+    const response = await worker.fetch(request(), env());
+    expect(response.status).toBe(200);
+    const body = await response.json();
+    expect(body.title).toBe('Morning light');
+    expect(body.paragraphs[0]).toContain('.\n');
+    expect(body.paragraphs[0]).not.toMatch(/\r|\n\s*\n|  /u);
+    expect(validatePiece(body)).toEqual({ title: body.title, paragraphs: body.paragraphs });
+    const calls = upstream();
+    const revised = await worker.fetch(request({ requestId: '650e8400-e29b-41d4-a716-446655440000', mode: 'revise', parent: { title: body.title, paragraphs: body.paragraphs }, instruction: 'Shorter.' }), env());
+    expect(revised.status).toBe(200);
+    expect(calls).toHaveLength(2);
+  });
+  it('rejects a revision parent that is not canonical before reserving', async () => {
+    const calls = upstream();
+    const response = await worker.fetch(request({ requestId: id, mode: 'revise', parent: { title: 'Morning', paragraphs: [`${piece.paragraphs[0]}\n\n`, piece.paragraphs[1]] }, instruction: 'Shorter.' }), env());
+    expect(response.status).toBe(400);
+    expect(calls).toHaveLength(0);
+  });
   it('allows ordinary prose colons', async () => {
     upstream({ ...piece, paragraphs: [piece.paragraphs[0], `${piece.paragraphs[1]} Data: a word for what has been noticed. Tomorrow: another word.`] });
     expect((await worker.fetch(request(), env())).status).toBe(200);

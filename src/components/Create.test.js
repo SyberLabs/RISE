@@ -35,6 +35,37 @@ describe('Create', () => {
     resolve(piece); await pending;
     expect(view.draft?.title).toBe(reason === 'new request' ? 'New' : undefined);
   });
+  it('never cancels a paid request for an unrelated action, and blocks a second submission', async () => {
+    Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText: vi.fn().mockResolvedValue() } });
+    let resolve; const signals = [];
+    const request = vi.fn().mockResolvedValueOnce(piece)
+      .mockImplementationOnce((_input, { signal }) => { signals.push(signal); return new Promise(r => { resolve = r; }); });
+    const view = new Create(container, { request }); fill('thought', 'a');
+    await view.generate(false);
+    fill('instruction', 'Change title');
+    const pending = view.generate(true);
+    const submits = [...container.querySelectorAll('form [type="submit"]')];
+    expect(submits.every(button => button.disabled)).toBe(true);
+    await view.act('copy'); await view.act('export-text').catch(() => {});
+    expect(signals[0].aborted).toBe(false);
+    resolve({ ...piece, title: 'Revision' }); await pending;
+    expect(view.draft.title).toBe('Revision');
+    expect(submits.every(button => !button.disabled)).toBe(true);
+    expect(request).toHaveBeenCalledTimes(2);
+  });
+  it('says a cancelled attempt still counts, and marks only unkept drafts as unsaved', async () => {
+    const request = vi.fn().mockResolvedValueOnce(piece).mockImplementationOnce(() => new Promise(() => {}));
+    const view = new Create(container, { request }); fill('thought', 'a');
+    await view.generate(false);
+    const root = container.querySelector('.personal-create');
+    expect(root.dataset.unsaved).toBe('true');
+    await view.act('keep');
+    expect(root.dataset.unsaved).toBe('false');
+    fill('instruction', 'Again'); void view.generate(true);
+    await view.act('cancel');
+    expect(container.querySelector('[data-status]').textContent).toMatch(/still counts/);
+    expect([...container.querySelectorAll('form [type="submit"]')].some(button => button.disabled)).toBe(false);
+  });
   it('restores unsaved parent, never saves implicitly, and preserves parent on storage failure', async () => {
     const request = vi.fn().mockResolvedValueOnce(piece).mockResolvedValueOnce({ ...piece, title: 'Revision' });
     const view = new Create(container, { request }); fill('thought', 'a'); await view.generate(false);

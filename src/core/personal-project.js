@@ -57,8 +57,12 @@ export function validatePersonalProject(value) {
     || typeof p.writerModel !== 'string' || !p.writerModel || p.writerModel.length > 100
     || typeof p.promptVersion !== 'string' || !p.promptVersion || p.promptVersion.length > 100
     || typeof p.presentationVersion !== 'string' || !p.presentationVersion || p.presentationVersion.length > 100) fail();
-  // Check the exact raw defaults, including every nested key, before normalization.
-  if (canonicalPersonal(value.defaults) !== canonicalPersonal(safeDefaults())) fail();
+  // A known version must carry its exact raw defaults, checked before normalization.
+  // An unknown (e.g. later) version keeps its text; its presentation is replaced,
+  // never interpreted, with the neutral defaults below.
+  if (p.presentationVersion === PRESENTATION_VERSION
+    ? canonicalPersonal(value.defaults) !== canonicalPersonal(safeDefaults())
+    : !value.defaults || typeof value.defaults !== 'object' || Array.isArray(value.defaults)) fail();
   return validateWorkshopProject({ ...value, defaults: safeDefaults() });
 }
 

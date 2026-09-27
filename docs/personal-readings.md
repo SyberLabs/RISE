@@ -16,8 +16,11 @@ JavaScript string characters; optional detail is 0–500. Unknown fields fail.
 Parent prose must pass the same strict output validator and remains untrusted.
 
 Success is `{requestId,title,paragraphs,writerModel:"qwen/qwen3.5-9b",promptVersion:"personal-v1"}`.
-Title is 1–80 trimmed characters, with 2–5 nonempty paragraphs of at most 2000
-trimmed characters each. Paragraph text is 80–220 whitespace-separated words;
+Title is 1–80 characters on one line, with 2–5 nonempty paragraphs of at most
+2000 characters each. `src/core/personal-text.js` is the single text contract for
+the Worker and the browser: the Worker normalizes model output (collapsed spaces,
+single line breaks kept for verse, blank lines inside a paragraph removed) before
+validating it, and revision parents must already be in that canonical form. Paragraph text is 80–220 whitespace-separated words;
 the prompt targets 120–180 English words. Invalid JSON, extra fields, detectable
 URLs/markup, truncation, refusals, tools, or reasoning fail. There are no repairs
 or retries. Syntactic validation cannot prove factual or tonal faithfulness;

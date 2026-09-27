@@ -38,6 +38,8 @@ export class Router {
 
         // Callbacks
         this.onNavigationIntent = options.onNavigationIntent || (() => {});
+        // True while a reload would destroy unsaved work (an unkept personal draft).
+        this.hasUnsavedWork = options.hasUnsavedWork || (() => false);
         this.onViewChange = options.onViewChange || (() => { });
 
         this.handleKeydown = this.handleKeydown.bind(this);
@@ -150,7 +152,8 @@ export class Router {
             // reader lands where they were going. The guard prevents a
             // reload loop if something else produces the same error.
             if (isStaleChunkError(error) && !this._reloadedForStaleChunk
-                && options.data?.provenance?.kind !== 'personal-generated') {
+                && options.data?.provenance?.kind !== 'personal-generated'
+                && !this.hasUnsavedWork()) {
                 this._reloadedForStaleChunk = true;
                 try {
                     // Carry the route DATA too, not just the view name:

@@ -85,7 +85,7 @@ try {
 export const STALE_BUILD_SENTINEL = 'rise_reloaded_for_stale_build';
 
 function hasPersonalWorkInPage() {
-    return Boolean(document.querySelector('#view-create [data-draft]:not([hidden])'))
+    return Boolean(document.querySelector('#view-create [data-unsaved="true"]'))
         || [...document.querySelectorAll('#view-create textarea')].some(field => field.value.trim());
 }
 
@@ -282,6 +282,7 @@ class App {
 
         this.router = new Router({
             onNavigationIntent: (view, options) => this.handleNavigationIntent(view, options),
+            hasUnsavedWork: hasPersonalWorkInPage,
             onViewChange: (view, data) => {
                 console.log(`[RISE] View: ${view}`);
                 if (view === 'create' && window.location.pathname !== '/create') {

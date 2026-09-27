@@ -11,6 +11,7 @@ export class Create {
     this.onCreateSession = options.onCreateSession || (async () => false);
     this.request = options.request || requestPersonalPiece;
     this.operation = 0;
+    this.generation = 0;
     this.history = [];
     this.kept = new Set();
     this.render();
@@ -67,13 +68,26 @@ export class Create {
   }
 
   status(text) { this.container.querySelector('[data-status]').textContent = text; }
-  invalidate() { ++this.operation; this.controller?.abort(); this.controller = null; }
-  navigationIntent() { this.invalidate(); }
-  deactivate() { this.invalidate(); }
-  destroy() { this.invalidate(); this.container.onclick = null; }
+  // Actions (Keep, Copy, Start, export, import) and paid generation have separate
+  // ownership: an action must never cancel a request that is already being paid for.
+  invalidate() { ++this.operation; }
+  cancelGeneration() {
+    ++this.generation; this.controller?.abort(); this.controller = null; this.setWriting(false);
+  }
+  setWriting(busy) {
+    this.writing = busy;
+    for (const button of this.container.querySelectorAll('form [type="submit"]')) button.disabled = busy;
+  }
+  navigationIntent() { this.invalidate(); this.cancelGeneration(); }
+  deactivate() { this.invalidate(); this.cancelGeneration(); }
+  destroy() { this.invalidate(); this.cancelGeneration(); this.container.onclick = null; }
   update(data) {
     if (data?.project) {
-      this.invalidate();
+      this.invalidate(); this.cancelGeneration();
+      // Opening another kept piece starts a new history; "previous" never crosses pieces.
+      if (this.draft?.provenance?.compositionId !== data.project?.provenance?.compositionId) {
+        this.history = []; this.draft = null;
+      }
       try { this.setDraft(validatePersonalProject(data.project)); }
       catch (error) { this.status(error.message); }
     }
@@ -97,13 +111,15 @@ export class Create {
     const seconds = Math.ceil(compileSession(personalSession(project)).totalDuration / 1000);
     this.container.querySelector('[data-duration]').textContent = `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')} at 160 words per minute`;
     this.container.querySelector('[data-action="keep"]').textContent = this.kept.has(project.id) ? 'Kept' : 'Keep';
+    // Read by the stale-build guard: only an unkept draft blocks automatic reloads.
+    this.container.querySelector('.personal-create').dataset.unsaved = String(!this.kept.has(project.id));
     this.container.querySelector('[data-action="previous"]').hidden = !this.history.length;
     this.container.querySelector('[data-form="revise"]').hidden = true;
   }
 
   async generate(revise) {
-    this.invalidate();
-    const operation = this.operation;
+    this.cancelGeneration();
+    const generation = this.generation;
     const parent = revise ? this.draft : null;
     const field = name => this.container.querySelector(`[name="${name}"]`).value.trim();
     const thought = field('thought'), detail = field('detail'), instruction = field('instruction');
@@ -112,17 +128,21 @@ export class Create {
       this.status('Please use 1–500 characters, with optional detail up to 500 characters.'); return;
     }
     this.controller = new AbortController();
-    this.status('Writing… You can cancel or leave this page.');
+    this.setWriting(true);
+    this.status('Writing… Cancelling or leaving this page discards this attempt; it still counts toward your writing limit.');
     try {
       const result = await this.request(revise
         ? { mode: 'revise', parent: { title: parent.title, paragraphs: parent.sources[0].data.split('\n\n') }, instruction }
         : { mode: 'create', thought, ...(detail ? { detail } : {}) }, { signal: this.controller.signal });
-      if (operation !== this.operation) return;
+      if (generation !== this.generation) return;
+      this.setWriting(false); this.controller = null;
       this.setDraft(createPersonalProject(result, parent));
       this.container.querySelector('[name="instruction"]').value = '';
       this.status('Your draft is ready. Nothing has been saved.');
     } catch (error) {
-      if (operation === this.operation) this.status(error.message || 'The writer is unavailable.');
+      if (generation !== this.generation) return;
+      this.setWriting(false); this.controller = null;
+      this.status(error.message || 'The writer is unavailable.');
     }
   }
 
@@ -143,8 +163,13 @@ export class Create {
   }
 
   async act(action) {
-    if (action === 'home' || action === 'vault') { this.invalidate(); this.onNavigate(action === 'home' ? 'portal' : 'vault', action === 'vault' ? { section: 'custom' } : undefined); return; }
-    if (action === 'cancel') { this.invalidate(); this.status('Request cancelled. Your existing draft is still available.'); return; }
+    if (action === 'home' || action === 'vault') { this.invalidate(); this.cancelGeneration(); this.onNavigate(action === 'home' ? 'portal' : 'vault', action === 'vault' ? { section: 'custom' } : undefined); return; }
+    if (action === 'cancel') {
+      if (!this.writing) return;
+      this.cancelGeneration();
+      this.status('Stopped waiting. This attempt still counts toward your writing limit. Your existing draft is still available.');
+      return;
+    }
     if (!this.draft) return;
     if (action === 'change') {
       this.container.querySelector('[data-form="revise"]').hidden = false;
@@ -160,7 +185,7 @@ export class Create {
       if (action === 'keep') {
         const saved = await MemoryCore.saveWorkshopBlueprintAsync(project);
         if (operation !== this.operation) return;
-        if (!saved) throw new Error('This browser could not keep the piece. You can still copy or export it.');
+        if (!saved) throw new Error('keep');
         this.kept.add(project.id); this.showDraft(); this.status('Kept in this browser’s Vault.');
       } else if (action === 'start') {
         const started = await this.onCreateSession(project);
@@ -172,6 +197,11 @@ export class Create {
       } else if (action === 'export-text' || action === 'export-json') {
         await exportPersonalProject(project, action === 'export-text' ? 'text' : 'json');
       }
-    } catch (error) { if (operation === this.operation) this.status(error.message || 'This action could not be completed. Your text is still available.'); }
+    } catch (error) {
+      if (operation !== this.operation) return;
+      this.status(action === 'keep'
+        ? `This browser could not keep the piece${/different content|cannot be overwritten/u.test(error?.message || '') ? `: ${error.message}` : '.'} You can still copy or export it.`
+        : 'This action could not be completed. Your text is still available.');
+    }
   }
 }

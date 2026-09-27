@@ -39,4 +39,23 @@ describe('personal projects', () => {
     expect(result.project.sources[0].data).toBe(p.sources[0].data);
     expect(result.notice).toMatch(/neutral/i);
   });
+  it('neutralizes, rather than refuses, the different defaults of an unknown version', () => {
+    const p = JSON.parse(serializePersonalProject(createPersonalProject(piece)));
+    p.provenance.presentationVersion = 'future-2';
+    p.defaults = { reading: { wpm: 400 }, audio: { soundscape: 'rain' }, recitation: { enabled: true }, visual: { url: 'https://evil.test' } };
+    const { project, notice } = importPersonalProject(JSON.stringify(p));
+    expect(notice).toMatch(/neutral/i);
+    expect(project.sources[0].data).toBe(p.sources[0].data);
+    expect(personalSession(project)).toMatchObject({ wpm: 160, soundscape: 'none', audioPreset: 'silent', recitation: { enabled: false } });
+    expect(JSON.stringify(project)).not.toContain('evil.test');
+    expect(importPersonalProject(serializePersonalProject(project)).project).toEqual(project);
+    for (const defaults of [null, [], 'x']) {
+      expect(() => importPersonalProject(JSON.stringify({ ...p, defaults }))).toThrow();
+    }
+  });
+  it('keeps single line breaks inside a paragraph through export and import', () => {
+    const verse = { ...piece, paragraphs: [piece.paragraphs[0].replace('. ', '.\n'), piece.paragraphs[1]] };
+    const p = createPersonalProject(verse);
+    expect(importPersonalProject(serializePersonalProject(p)).project.sources[0].data).toBe(verse.paragraphs.join('\n\n'));
+  });
 });
