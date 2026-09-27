@@ -267,7 +267,9 @@ test.describe('passage-directed visuals', () => {
     await page.locator('#visual-direction-btn').click();
     await page.locator('[data-vd="workshop"]').click();
     await page.waitForFunction(() => window.__RISE_TEST__.getRouterState().currentView === 'workshop', null, { timeout: 20_000 });
-    await page.locator('#view-workshop [data-action="select-score-assignment"]').first().click();
+    // The assignment list's own button, not the inline text mark (which the
+    // sticky score header can cover when scrolled to the edge).
+    await page.locator('#view-workshop button.visual-score-clip-main[data-action="select-score-assignment"]').first().click();
     const picker = page.locator('#view-workshop [data-visual-style-setting="flame-composition"]');
     await expect(picker).toBeVisible({ timeout: 10_000 });
     await picker.selectOption('solar-bloom');
