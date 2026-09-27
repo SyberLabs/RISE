@@ -35,7 +35,7 @@ export function validPiece(value) {
     || !Array.isArray(value.paragraphs) || value.paragraphs.length < 2 || value.paragraphs.length > 5
     || !value.paragraphs.every(p => text(p, 1, 2000))) return false;
   const all = [value.title, ...value.paragraphs].join(' ');
-  if (/(?:https?:\/\/|www\.|<\/?[a-z]|```)/i.test(all)) return false;
+  if (/(?:\b[a-z][a-z0-9+.-]*:\/\/|\/\/[^\s/]|\b(?:data|javascript|mailto):\S|www\.|<\/?[a-z]|```)/i.test(all)) return false;
   const count = value.paragraphs.join(' ').trim().split(/\s+/u).length;
   return count >= 80 && count <= 220;
 }

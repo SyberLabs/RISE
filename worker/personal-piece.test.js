@@ -73,6 +73,15 @@ describe('personal writer boundary', () => {
     expect((await worker.fetch(request({ requestId: id, mode: 'revise', parent: piece, instruction: 'Less reassurance.' }), env())).status).toBe(200);
     expect(JSON.parse(calls[1].body.messages[1].content)).toEqual({ mode: 'revise', parent: piece, instruction: 'Less reassurance.' });
   });
+  it.each(['ftp://example.com/file', '//example.com/path', 'custom+app://open', 'data:text/html,hello', 'javascript:alert(1)', 'mailto:reader@example.com'])('rejects actionable URL %s in otherwise valid prose', async url => {
+    const calls = upstream({ ...piece, paragraphs: [piece.paragraphs[0], `${piece.paragraphs[1]} ${url}`] });
+    expect((await worker.fetch(request(), env())).status).toBe(502);
+    expect(calls).toHaveLength(2);
+  });
+  it('allows ordinary prose colons', async () => {
+    upstream({ ...piece, paragraphs: [piece.paragraphs[0], `${piece.paragraphs[1]} Data: a word for what has been noticed. Tomorrow: another word.`] });
+    expect((await worker.fetch(request(), env())).status).toBe(200);
+  });
   it('bounds a hanging incoming stream by the overall deadline', async () => {
     vi.useFakeTimers(); const calls = upstream();
     const req = new Request(`${site}/api/personal-piece`, { method: 'POST', headers: { Origin: site, 'Content-Type': 'application/json' }, body: new ReadableStream({}), duplex: 'half' });

@@ -106,7 +106,8 @@ Before enabling, the release owner must record:
 2. A defensible tokenizer and full chat-template/schema overhead upper bound for
    all accepted Unicode and escaped inputs, including maximum revision parents.
 3. Explicitly authorized paid verification of exact Darkbloom routing, schema
-   support, reasoning truly disabled, and total billable tokens bounded by 700;
+   support, reasoning truly disabled, and billable completion/output tokens
+   (including any reasoning tokens) bounded by 700;
    compare generation usage and actual cost. No such calls were made here.
 4. Cost evidence showing the full worst-case bound remains <= $0.005/request.
 5. Actual Upstash EVAL behavior under competing requests, duplicate IDs, outages,
