@@ -113,6 +113,12 @@ const QUESTION_INSTRUCTIONS = Object.freeze({
 });
 const DECISION_CACHE_TTL_SECONDS = 3600;
 const SOUND_CACHE_KEY = 'rise:sounds:v1';
+const SOUND_CATALOG_LIMIT = 64;
+const SOUND_SHORTLIST_SIZE = 9;
+const IGNORED_SOUND_WORDS = new Set([
+  'and', 'are', 'for', 'from', 'give', 'have', 'into', 'like', 'me', 'please', 'read', 'reading',
+  'sound', 'sounds', 'that', 'the', 'this', 'with', 'you'
+]);
 const MAX_BODY_BYTES = 1024;
 const JSON_HEADERS = {
   'Content-Type': 'application/json; charset=utf-8',
@@ -211,6 +217,29 @@ function validSoundCatalog(rows) {
     ids.add(row.sound_id);
   }
   return rows;
+}
+
+function soundWords(value) {
+  return (value.toLowerCase().match(/[a-z0-9]+/gu) || [])
+    .filter(word => !IGNORED_SOUND_WORDS.has(word));
+}
+
+function shortlistSounds(sounds, intent, turn) {
+  const intentWords = new Set(soundWords(intent));
+  const normalizedIntent = ` ${soundWords(intent).join(' ')} `;
+  const offset = sounds.length ? turn % sounds.length : 0;
+  const rotated = [...sounds.slice(offset), ...sounds.slice(0, offset)];
+  const ranked = rotated.map((row, index) => {
+    const idWords = soundWords(row.sound_id.replaceAll('-', ' '));
+    const criterionWords = new Set(soundWords(row.decision_criterion));
+    const explicit = normalizedIntent.includes(` ${idWords.join(' ')} `);
+    const score = idWords.reduce((total, word) => total + (intentWords.has(word) ? 3 : 0), 0)
+      + [...criterionWords].reduce((total, word) => total + (intentWords.has(word) ? 1 : 0), 0);
+    return { row, explicit, score, index };
+  });
+  ranked.sort((left, right) => Number(right.explicit) - Number(left.explicit)
+    || right.score - left.score || left.index - right.index);
+  return ranked.slice(0, SOUND_SHORTLIST_SIZE).map(item => item.row);
 }
 
 function choiceMenu(rows) {
@@ -462,7 +491,7 @@ export async function handleJevRecommend(request, env) {
     if (!sounds) {
       const sql = neon(env.NEON_DATABASE_URL);
       sounds = validSoundCatalog(await sql`SELECT sound_id, decision_criterion, active
-        FROM rise_sounds WHERE active = true ORDER BY sound_id LIMIT 16`);
+        FROM rise_sounds WHERE active = true ORDER BY sound_id LIMIT ${SOUND_CATALOG_LIMIT}`);
       if (!sounds) return error(503, 'CATALOG_UNAVAILABLE', 'The sound catalog is unavailable.');
       await redis.set(SOUND_CACHE_KEY, sounds, { ex: 30 });
     }
@@ -474,15 +503,21 @@ export async function handleJevRecommend(request, env) {
   let hints;
   let choices;
   try {
-    choices = await activeChoices(redis, env, sounds);
-    if (!choices) return error(503, 'OPTIONS_UNAVAILABLE', 'The presentation menu is unavailable.');
-    const baseKey = await decisionCacheKey(intent, books, sounds, choices, env.OPENROUTER_API_KEY);
-    const turnKey = baseKey.replace('rise:jev-decision:v10:', 'rise:jev-turn:v4:');
+    const catalogChoices = await activeChoices(redis, env, sounds);
+    if (!catalogChoices) return error(503, 'OPTIONS_UNAVAILABLE', 'The presentation menu is unavailable.');
+    const turnBaseKey = await decisionCacheKey(intent, books, sounds, catalogChoices, env.OPENROUTER_API_KEY);
+    const turnKey = turnBaseKey.replace('rise:jev-decision:v10:', 'rise:jev-turn:v4:');
     const nextTurn = await redis.incr(turnKey);
     if (!Number.isSafeInteger(nextTurn) || nextTurn < 1) throw new Error('Invalid Jev turn');
     if (nextTurn === 1) await redis.expire(turnKey, 86400);
     hints = buildJevVarianceHints({ books, intent, turn: nextTurn - 1 });
-    decisionKey = `${baseKey}:${hints.variation.cohort === null ? 0 : (nextTurn - 1) % VARIATION_COUNT}`;
+    const shortlistedSounds = shortlistSounds(sounds, intent, nextTurn - 1);
+    choices = {
+      ...catalogChoices,
+      audio: { silent: 'Silence.', ...Object.fromEntries(shortlistedSounds.map(row =>
+        [row.sound_id, row.decision_criterion])) }
+    };
+    decisionKey = `${turnBaseKey}:${hints.variation.cohort === null ? 0 : (nextTurn - 1) % VARIATION_COUNT}`;
     const cached = validCachedDecision(await redis.get(decisionKey), hints.eligibleBooks, choices);
     if (cached) return reply(200, { ...cached, cacheStatus, decisionCacheStatus: 'hit' });
   } catch {

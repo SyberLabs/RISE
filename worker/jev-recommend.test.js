@@ -147,6 +147,84 @@ describe('Jev reading recommendation', () => {
     expect(provider).not.toHaveBeenCalled();
   });
 
+  it('loads the expanded sound catalog and sends Jev a bounded shortlist', async () => {
+    const provider = vi.fn(async () => Response.json({
+      id: 'bounded-sounds', model: 'typesafe/jev-1.13', provider: 'TypeSafe',
+      answers: answers('literary-walden')
+    }));
+    vi.stubGlobal('fetch', provider);
+
+    const response = await handleJevRecommend(request(), env);
+
+    expect(response.status).toBe(200);
+    const soundQuery = mocks.query.mock.calls.find(([strings]) => strings.join('').includes('FROM rise_sounds'));
+    expect(soundQuery[0].join('')).toContain('LIMIT ');
+    expect(soundQuery[1]).toBe(64);
+    const audio = JSON.parse(provider.mock.calls[0][1].body).questions.audio.criteria;
+    expect(Object.keys(audio)).toHaveLength(10);
+    expect(audio).toHaveProperty('silent', 'Silence.');
+  });
+
+  it('keeps an explicitly requested sound in Jev’s shortlist', async () => {
+    const provider = vi.fn(async () => Response.json({
+      id: 'explicit-sound', model: 'typesafe/jev-1.13', provider: 'TypeSafe',
+      answers: answers('literary-walden')
+    }));
+    vi.stubGlobal('fetch', provider);
+
+    const response = await handleJevRecommend(request({ intent: 'Read with piano music.' }), env);
+
+    expect(response.status).toBe(200);
+    const audio = JSON.parse(provider.mock.calls[0][1].body).questions.audio.criteria;
+    expect(Object.keys(audio).slice(1)).toContain('piano');
+    expect(Object.keys(audio)[1]).toBe('piano');
+  });
+
+  it('ranks sound criteria that fit the requested mood ahead of unrelated sounds', async () => {
+    mocks.query.mockImplementation(strings => Promise.resolve(strings.join('').includes('FROM rise_sounds')
+      ? sounds.map(row => ({
+        ...row,
+        decision_criterion: row.sound_id === 'piano'
+          ? 'A quiet and reflective soundscape for reading.'
+          : 'A vivid and energetic soundscape for reading.'
+      }))
+      : books));
+    const provider = vi.fn(async () => Response.json({
+      id: 'mood-fit-sound', model: 'typesafe/jev-1.13', provider: 'TypeSafe',
+      answers: answers('literary-walden')
+    }));
+    vi.stubGlobal('fetch', provider);
+
+    const response = await handleJevRecommend(request({ intent: 'A quiet reflective reading.' }), env);
+
+    expect(response.status).toBe(200);
+    const audio = JSON.parse(provider.mock.calls[0][1].body).questions.audio.criteria;
+    expect(Object.keys(audio)[1]).toBe('piano');
+  });
+
+  it('rotates equally fitting sounds across repeated requests', async () => {
+    let turn = 0;
+    mocks.incr.mockImplementation(async () => ++turn);
+    const provider = vi.fn(async (_url, init) => {
+      const firstSound = Object.keys(JSON.parse(init.body).questions.audio.criteria)[1];
+      return Response.json({
+        id: `rotating-sound-${turn}`, model: 'typesafe/jev-1.13', provider: 'TypeSafe',
+        answers: answers('literary-walden', { audio: { type: 'choice', choice: firstSound } })
+      });
+    });
+    vi.stubGlobal('fetch', provider);
+    const body = { intent: 'Give me an unexpected reading atmosphere.' };
+
+    await handleJevRecommend(request(body), env);
+    await handleJevRecommend(request(body), env);
+
+    const menus = provider.mock.calls.map(([, init]) => Object.keys(
+      JSON.parse(init.body).questions.audio.criteria).slice(1));
+    expect(menus[0]).not.toEqual(menus[1]);
+    expect(menus[0]).toHaveLength(9);
+    expect(menus[1]).toHaveLength(9);
+  });
+
   it('loads PostgreSQL on a Redis catalog miss and sends only admitted books to Jev', async () => {
     const provider = vi.fn(async () => Response.json({
       id: 'gen-dec-live-1', model: 'typesafe/jev-1.13-20260917', provider: 'TypeSafe',
@@ -185,9 +263,7 @@ describe('Jev reading recommendation', () => {
     ]);
     expect(body.questions.visual.criteria.interlocution).toContain('psychedelic');
     expect(body.questions.visualEngine.criteria.fractal).toContain('psychedelic');
-    expect(Object.keys(body.questions.audio.criteria)).toEqual([
-      'silent', 'aurora', 'faded-signal', 'sad', 'angry', 'happy', 'excited', 'thrilling', 'scary', 'piano', 'jazz'
-    ]);
+    expect(Object.keys(body.questions.audio.criteria)).toHaveLength(10);
     expect(mocks.set).toHaveBeenCalledWith('rise:sounds:v1', sounds, { ex: 30 });
     expect(body.questions.chamberFace.criteria).toHaveProperty('mono');
     expect(body.questions.section.criteria).toHaveProperty('middle');
