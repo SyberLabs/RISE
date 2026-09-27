@@ -4,6 +4,8 @@
  */
 
 import { STARTER_SEQUENCES, SEQUENCE_CATEGORIES } from './starters.js';
+import { MODERN_READINGS } from './modern-readings.js';
+import modernManifest from './modern-readings-manifest.json' with { type: 'json' };
 import { SACRED_TEXTS } from '../sources/text/sacred.js';
 import { SACRED_DEEP } from '../sources/text/data/sacred_deep.js';
 import { LITERARY_DEEP } from '../sources/text/data/literary_deep.js';
@@ -125,6 +127,37 @@ function registerStarterTexts() {
             verses: structuredVerses,
             provider: 'starters',
             getSequences: () => structuredVerses
+        });
+    }
+}
+
+function registerModernReadings() {
+    for (const reading of MODERN_READINGS) {
+        const edition = modernManifest[reading.id];
+        registerText({
+            id: reading.id,
+            workId: reading.id,
+            title: reading.title,
+            author: 'RISE',
+            category: 'composed',
+            division: 'technology',
+            tradition: 'RISE Original',
+            description: reading.description,
+            chapterCount: 1,
+            segmentCount: 1,
+            chapterNoun: 'reading',
+            defaultCurve: 'flat',
+            defaultWpm: 200,
+            tags: ['original', 'modern', 'technology'],
+            provider: 'rise-original',
+            editionId: edition.editionId,
+            sourceRevision: edition.sourceRevision,
+            provenance: { author: 'RISE', basis: 'rise-original' },
+            getSequences: () => [{ name: reading.title, content: reading.content, wpm: 200, curve: 'flat' }],
+            getDivisions: () => ({ divided: false, noun: 'reading', entries: [{
+                id: reading.id, label: reading.title, content: reading.content,
+                words: reading.content.trim().split(/\s+/u).length
+            }] })
         });
     }
 }
@@ -453,6 +486,7 @@ registerIngestedWorks();         // Verified public-domain ingests
 // certification-gated Archive projection above or they do not enter at all.
 // registerSimplifiedSacredTexts();
 registerStarterTexts();          // Original RISE compositions
+registerModernReadings();        // Original contemporary short readings
 // registerLiteraryTexts();
 
 // RETIRED (LIBRARY-SPEC §0). Two registrations are deliberately absent:

@@ -87,7 +87,8 @@ describe('a work names itself in its own pages', () => {
         for (const text of LIBRARY_TEXTS) {
             if (typeof text.getSequences !== 'function') continue;
             // RISE's own compositions have no external identity to match.
-            if (text.provider === 'local' || /^starter-/.test(text.id)) continue;
+            if (text.provider === 'local' || text.provider === 'rise-original'
+                || /^starter-/.test(text.id)) continue;
 
             // THE PAYLOAD, NOT THE DISPLAY.
             //

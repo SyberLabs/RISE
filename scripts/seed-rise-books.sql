@@ -1,13 +1,18 @@
+-- Deploy the matching Worker and client before applying this seed.
 CREATE TABLE IF NOT EXISTS rise_books (
   work_id TEXT PRIMARY KEY,
   title TEXT NOT NULL,
   author TEXT NOT NULL,
-  edition_id TEXT NOT NULL CHECK (edition_id LIKE 'standard-ebooks:%'),
+  edition_id TEXT NOT NULL CHECK (edition_id LIKE 'standard-ebooks:%' OR edition_id LIKE 'rise-original:%'),
   source_revision TEXT NOT NULL CHECK (source_revision ~ '^sha256:[0-9a-f]{64}$'),
   fit_description TEXT NOT NULL,
   decision_criterion TEXT NOT NULL,
   active BOOLEAN NOT NULL DEFAULT TRUE
 );
+
+ALTER TABLE rise_books DROP CONSTRAINT IF EXISTS rise_books_edition_id_check;
+ALTER TABLE rise_books ADD CONSTRAINT rise_books_edition_id_check
+  CHECK (edition_id LIKE 'standard-ebooks:%' OR edition_id LIKE 'rise-original:%');
 
 INSERT INTO rise_books
   (work_id, title, author, edition_id, source_revision, fit_description, decision_criterion, active)
@@ -26,7 +31,23 @@ VALUES
   ('paradise-lost', 'Paradise Lost', 'John Milton', 'standard-ebooks:john-milton/paradise-lost', 'sha256:e1f747c0f0e2d1b13433f6b2f51c9be28e53fe496c0ebb11904b8ef0c26c467e', 'A blank-verse epic about rebellion, temptation, and the Fall.', 'Choose for a reader seeking English epic poetry about myth, theology, rebellion, and temptation.', TRUE),
   ('literary-essays-emerson', 'Essays', 'Ralph Waldo Emerson', 'standard-ebooks:ralph-waldo-emerson/essays', 'sha256:54315365d0f668f414e4a115566332406e4c43b3fe9c8088931fcb629886cca3', 'Arguments for self-reliance, nature, and intellectual independence.', 'Choose for a reader seeking philosophical essays about self-reliance, individuality, or nature.', TRUE),
   ('confucius-analects', 'The Analects', 'Confucius', 'standard-ebooks:confucius/analects_james-legge', 'sha256:07a1a0df72a27ea7ab2dd96072d6ac9498b01bc4b1008b02464c14395dc3dc13', 'Short teachings on learning, character, and social responsibility.', 'Choose for a reader seeking brief ethical teachings about learning, conduct, and community.', TRUE),
-  ('lyrical-ballads', 'Lyrical Ballads', 'William Wordsworth and Samuel Taylor Coleridge', 'standard-ebooks:william-wordsworth/samuel-taylor-coleridge_lyrical-ballads', 'sha256:24576576e9f5b402ff5c2b004c8888b5445f56e89ce9e9a52dca9c33636612d5', 'Romantic poems of landscape, memory, and everyday life.', 'Choose for a reader seeking Romantic lyric poetry, landscape, memory, or emotional reflection.', TRUE)
+  ('lyrical-ballads', 'Lyrical Ballads', 'William Wordsworth and Samuel Taylor Coleridge', 'standard-ebooks:william-wordsworth/samuel-taylor-coleridge_lyrical-ballads', 'sha256:24576576e9f5b402ff5c2b004c8888b5445f56e89ce9e9a52dca9c33636612d5', 'Romantic poems of landscape, memory, and everyday life.', 'Choose for a reader seeking Romantic lyric poetry, landscape, memory, or emotional reflection.', TRUE),
+  ('the-prompt-and-the-pencil', 'The Prompt and the Pencil', 'RISE', 'rise-original:the-prompt-and-the-pencil', 'sha256:b5f0115c45ee1f40537fe55c90f66b592784ff9f85d74d937b03db08f4e9f95c', 'A student tests what an AI answer can and cannot do for her thinking.', 'Choose for a reader interested in AI, school, creative work, or learning without outsourcing their judgment.', TRUE),
+  ('the-group-chat-went-quiet', 'The Group Chat Went Quiet', 'RISE', 'rise-original:the-group-chat-went-quiet', 'sha256:0105be5cf5eb4a1aa1df0041fc6a4d3e466aff90a31f9a8689d6de76c9ed32c7', 'A small story about silence, friendship, and the limits of read receipts.', 'Choose for a reader asking about group chats, friendship, anxiety, being left on read, or digital communication.', TRUE),
+  ('who-taught-the-feed', 'Who Taught the Feed?', 'RISE', 'rise-original:who-taught-the-feed', 'sha256:b02f7d04aeae2b8083e716bdeb3be919d2796abd30de30393cc53f171ef8df95', 'An accessible reflection on recommendation algorithms and attention.', 'Choose for a reader curious about algorithms, feeds, social media, attention, or why certain videos keep appearing.', TRUE),
+  ('the-last-save-point', 'The Last Save Point', 'RISE', 'rise-original:the-last-save-point', 'sha256:8afd3049196d40c696510c766a0c61d4ebc11f823421347323e33906d05677d7', 'A game player learns why retrying is different from repeating.', 'Choose for a reader interested in games, challenge, practice, failure, or learning through retries.', TRUE),
+  ('a-video-is-a-small-business', 'A Video Is a Small Business', 'RISE', 'rise-original:a-video-is-a-small-business', 'sha256:6d2b0546170094735ce01dd12e024c12651ab26e11e70fd5ddd43bbdc5a8edab', 'The invisible labor behind a creator’s thirty-second clip.', 'Choose for a reader curious about creators, making videos, online work, or the economics of attention.', TRUE),
+  ('the-photo-that-knew-your-street', 'The Photo That Knew Your Street', 'RISE', 'rise-original:the-photo-that-knew-your-street', 'sha256:323b4623027fd123dcd8300324d526456bf5bc5d13897eb7f5dbf3802621d349', 'A practical story about location clues and sharing safely.', 'Choose for a reader interested in online privacy, photos, location sharing, or protecting personal information.', TRUE),
+  ('the-repair-table', 'The Repair Table', 'RISE', 'rise-original:the-repair-table', 'sha256:cb72f0ba41ff08942c143ded29d758bff81b341fdfbd0c75a49ffef95738cb6d', 'Friends keep an old device useful and learn where its materials came from.', 'Choose for a reader interested in gadgets, repair, climate, electronics, or making technology last.', TRUE),
+  ('robot-in-the-hallway', 'Robot in the Hallway', 'RISE', 'rise-original:robot-in-the-hallway', 'sha256:5e7188d42e1a8bcb6e197729f71ccbde1da514724920f06ed47d5954df6af87b', 'A school delivery robot reveals that useful automation still needs people.', 'Choose for a reader interested in robots, automation, school technology, or what machines can do in the real world.', TRUE),
+  ('signal-from-the-moon', 'Signal from the Moon', 'RISE', 'rise-original:signal-from-the-moon', 'sha256:dcbd3c94d0602cca4fe0354b3cb2c604d893c1a6fcda1ec4052aaccae6c16d00', 'A young radio listener thinks about distance, delay, and space exploration.', 'Choose for a reader interested in space, the Moon, communications, exploration, or science wonder.', TRUE),
+  ('the-fan-edit', 'The Fan Edit', 'RISE', 'rise-original:the-fan-edit', 'sha256:4a5bc28506fd7e3c4f213b7fc277d2a8111feb6a5668590dbaeddbeca31f4336', 'An editor learns to credit collaborators and respect borrowed material.', 'Choose for a reader interested in fandom, remixing, edits, creative credit, or sharing art online.', TRUE),
+  ('the-deepfake-in-the-chat', 'The Deepfake in the Chat', 'RISE', 'rise-original:the-deepfake-in-the-chat', 'sha256:3db330d353bc9e40a40a508ebdd4dfc7651d8459a88d8e24c05f01025e2faf2e', 'A convincing clip prompts a class to verify before forwarding.', 'Choose for a reader concerned with deepfakes, misinformation, viral clips, or checking a shocking claim.', TRUE),
+  ('captions-on', 'Captions On', 'RISE', 'rise-original:captions-on', 'sha256:dfcb18a3669b0b0b02500da15bd8fce423464c08b6b574c96a496b8919b4a976', 'A film night shows how accessibility changes the experience for everyone.', 'Choose for a reader interested in captions, accessibility, inclusive design, video, or communication.', TRUE),
+  ('a-map-made-of-heat', 'A Map Made of Heat', 'RISE', 'rise-original:a-map-made-of-heat', 'sha256:248a57f7d6afe3b9f626f1c060aa390d71c02dae8aeea790795d375a044ee568', 'Students compare two neighborhood streets on a hot afternoon.', 'Choose for a reader interested in climate, city design, heat, maps, or local science.', TRUE),
+  ('the-smallest-app', 'The Smallest App', 'RISE', 'rise-original:the-smallest-app', 'sha256:26b02d6a21548ddd4f7dba7970c279ae4f1c870d630e386c03fea03969d0d96a', 'A beginner writes software to solve one real problem for a friend.', 'Choose for a reader interested in coding, apps, building things, or solving a small everyday problem.', TRUE),
+  ('the-online-friend', 'The Online Friend', 'RISE', 'rise-original:the-online-friend', 'sha256:7ded8bd6a104fc4a62f0d5a692a91f8b6a0eb73d9c8a1724aa08dbdac7245588', 'Two friends keep a real connection while setting clear boundaries online.', 'Choose for a reader interested in online friendships, gaming friends, trust, or boundaries in digital spaces.', TRUE),
+  ('when-the-screen-goes-dark', 'When the Screen Goes Dark', 'RISE', 'rise-original:when-the-screen-goes-dark', 'sha256:35adc42b471f62e51834ae95e43db2bcb45fe438cc42a9f2b272df3435366d8e', 'A power outage turns a digital project into a shared real-world plan.', 'Choose for a reader interested in resilience, offline life, digital tools, community, or what happens when technology fails.', TRUE)
 ON CONFLICT (work_id) DO UPDATE SET
   title = EXCLUDED.title, author = EXCLUDED.author,
   edition_id = EXCLUDED.edition_id, source_revision = EXCLUDED.source_revision,

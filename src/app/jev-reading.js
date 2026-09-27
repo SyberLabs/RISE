@@ -1,5 +1,6 @@
 import { getTextById } from '../content/library.js';
 import releaseInventory from '../content/archive/release-inventory.json' with { type: 'json' };
+import modernManifest from '../content/modern-readings-manifest.json' with { type: 'json' };
 import { firstBodyOrdinal } from '../content/archive/divisions.js';
 import { READING_LIMITS } from '../core/reading-limits.js';
 import { CHAMBER_STREAM_FACES } from '../core/chamber-stream-face.js';
@@ -114,14 +115,17 @@ export function selectJevDivision(divisions, section) {
 /** Resolve an exact released edition into the existing Chamber session input. */
 export async function resolveJevReading(decision) {
   const { plan, resolved, visualProgram, audioProgram } = validateJevRecommendation(decision);
-  const released = releaseInventory[decision.workId];
+  const released = releaseInventory[decision.workId] || modernManifest[decision.workId];
   const work = getTextById(decision.workId);
-  if (!released || !released.editionId?.startsWith('standard-ebooks:')
-    || !released.source?.url?.startsWith('https://standardebooks.org/ebooks/')
+  const admittedSource = released?.editionId?.startsWith('standard-ebooks:')
+    ? released.source?.url?.startsWith('https://standardebooks.org/ebooks/')
+      && work?.provider === 'archive-ingest'
+    : released?.editionId === `rise-original:${decision.workId}`
+      && work?.provider === 'rise-original';
+  if (!released || !admittedSource
     || released.workId !== decision.workId
     || released.editionId !== decision.editionId
     || released.sourceRevision !== decision.sourceRevision
-    || work?.provider !== 'archive-ingest'
     || work.editionId !== decision.editionId
     || work.sourceRevision !== decision.sourceRevision
     || typeof work.getDivisions !== 'function') {
