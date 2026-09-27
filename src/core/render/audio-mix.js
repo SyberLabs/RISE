@@ -12,6 +12,8 @@ import { RENDER_AUDIO_CHANNELS, RENDER_SAMPLE_RATE } from './layout.js';
 import { audioRunAt, narrationRunAt } from './plan.js';
 import { duckGainAt } from '../narration.js';
 import { renderSpokenPcm } from './voice-pcm.js';
+import { ACOUSTIC_OFFLINE_IDS, sampleAcousticPiece } from './acoustic-piece-sample.js';
+import { CINEMATIC_OFFLINE_IDS, sampleCinematicPiece } from './cinematic-piece-sample.js';
 
 /**
  * ONE LOWERING PER NAMED SOUNDSCAPE.
@@ -60,7 +62,60 @@ const BEDS = Object.freeze({
     motion: 0.035,
     breath: 0.12,
     driftCents: 4.5
-  })
+  }),
+  sad: Object.freeze({
+    kind: 'mood',
+    notes: Object.freeze([110, 130.81, 164.81]),
+    wave: 'sine',
+    color: 620,
+    motion: 0.09,
+    level: 0.075
+  }),
+  angry: Object.freeze({
+    kind: 'mood',
+    notes: Object.freeze([82.41, 87.31, 123.47]),
+    wave: 'sawtooth',
+    color: 850,
+    motion: 3.2,
+    level: 0.035
+  }),
+  happy: Object.freeze({
+    kind: 'mood',
+    notes: Object.freeze([130.81, 164.81, 196]),
+    wave: 'triangle',
+    color: 1800,
+    motion: 0.9,
+    level: 0.065
+  }),
+  excited: Object.freeze({
+    kind: 'mood',
+    notes: Object.freeze([146.83, 185, 220]),
+    wave: 'triangle',
+    color: 2300,
+    motion: 2.4,
+    level: 0.055
+  }),
+  thrilling: Object.freeze({
+    kind: 'mood',
+    notes: Object.freeze([73.42, 110, 155.56]),
+    wave: 'sawtooth',
+    color: 780,
+    motion: 1.5,
+    level: 0.035
+  }),
+  scary: Object.freeze({
+    kind: 'mood',
+    notes: Object.freeze([65.41, 69.3, 92.5]),
+    wave: 'sine',
+    color: 480,
+    motion: 0.27,
+    level: 0.07
+  }),
+  'soft-rain': Object.freeze({ kind: 'soft-rain' }),
+  piano: Object.freeze({ kind: 'keyboard', style: 'piano' }),
+  jazz: Object.freeze({ kind: 'keyboard', style: 'jazz' }),
+  ...Object.fromEntries(ACOUSTIC_OFFLINE_IDS.map(id => [id, Object.freeze({ kind: 'acoustic', id })])),
+  ...Object.fromEntries(CINEMATIC_OFFLINE_IDS.map(id => [id, Object.freeze({ kind: 'cinematic', id })]))
 });
 
 export const OFFLINE_SOUNDSCAPE_IDS = Object.freeze(Object.keys(BEDS));
@@ -110,11 +165,130 @@ function haloSample(halo, timeSec, channel) {
     * halo.level * shaped * width;
 }
 
-function sampleBed(kind, cue, timeSec, channel) {
+function waveformSample(wave, phase) {
+  const cycle = phase - Math.floor(phase);
+  if (wave === 'sawtooth') return cycle * 2 - 1;
+  if (wave === 'triangle') return 1 - 4 * Math.abs(cycle - 0.5);
+  return Math.sin(2 * Math.PI * cycle);
+}
+
+function moodSample(bed, timeSec) {
+  const motion = 1 + 0.18 * Math.sin(2 * Math.PI * bed.motion * timeSec);
+  let sample = 0;
+  for (let i = 0; i < bed.notes.length; i += 1) {
+    const frequency = bed.notes[i];
+    const phase = frequency * timeSec;
+    // The live mood bed is filtered at `color`; these few harmonics are the
+    // same low-cost offline approximation and keep saw/triangle beds from
+    // turning into aliases at the renderer's lower test sample rates.
+    const harmonics = bed.wave === 'sine' ? 1 : bed.wave === 'triangle' ? 3 : 4;
+    let voice = 0;
+    for (let harmonic = 1; harmonic <= harmonics; harmonic += 1) {
+      const cutoff = Math.min(1, bed.color / (frequency * harmonic * 2));
+      const partial = bed.wave === 'triangle'
+        ? (harmonic % 2 ? 1 / (harmonic * harmonic) : 0)
+        : 1 / harmonic;
+      voice += waveformSample(bed.wave, phase * harmonic) * partial * cutoff;
+    }
+    sample += voice * (i === 0 ? 0.5 : 0.25);
+  }
+  return sample * bed.level * motion;
+}
+
+function hashNoise(index, channel) {
+  let value = (Math.imul(index | 0, 0x45d9f3b) + (channel + 1) * 0x27d4eb2d) | 0;
+  value = Math.imul(value ^ (value >>> 16), 0x45d9f3b);
+  value ^= value >>> 16;
+  return (value >>> 0) / 0xffffffff * 2 - 1;
+}
+
+function rainSample(timeSec, channel, sampleRate) {
+  const frame = Math.floor(timeSec * sampleRate);
+  const smooth = (
+    hashNoise(frame - 1, channel) +
+    2 * hashNoise(frame, channel) +
+    hashNoise(frame + 1, channel)
+  ) / 4;
+  const hiss = hashNoise(frame * 3 + 17, channel) * 0.12;
+  return (smooth * 0.88 + hiss) * 0.3;
+}
+
+const KEYBOARD = Object.freeze({
+  piano: Object.freeze({
+    bpm: 72,
+    bars: Object.freeze([
+      Object.freeze({ chord: Object.freeze([60, 64, 67, 71]), melody: Object.freeze([76, 79, 83, 79]) }),
+      Object.freeze({ chord: Object.freeze([57, 60, 64, 67]), melody: Object.freeze([72, 71, 69, 76]) }),
+      Object.freeze({ chord: Object.freeze([53, 57, 60, 64]), melody: Object.freeze([69, 72, 76, 72]) }),
+      Object.freeze({ chord: Object.freeze([55, 59, 62, 65]), melody: Object.freeze([71, 74, 77, 74]) })
+    ])
+  }),
+  jazz: Object.freeze({
+    bpm: 108,
+    bars: Object.freeze([
+      Object.freeze({ chord: Object.freeze([62, 65, 69, 72, 76]), bass: 38, melody: Object.freeze([76, 72]) }),
+      Object.freeze({ chord: Object.freeze([59, 65, 69, 76]), bass: 31, melody: Object.freeze([79, 76]) }),
+      Object.freeze({ chord: Object.freeze([60, 64, 67, 71, 74]), bass: 36, melody: Object.freeze([76, 74]) }),
+      Object.freeze({ chord: Object.freeze([61, 67, 70, 76]), bass: 33, melody: Object.freeze([70, 73]) })
+    ])
+  })
+});
+
+function midiFrequency(midi) {
+  return 440 * 2 ** ((midi - 69) / 12);
+}
+
+function keyboardNoteSample(midi, ageSec, lengthSec, volume) {
+  if (ageSec < 0 || ageSec >= lengthSec) return 0;
+  const attack = Math.min(1, ageSec / 0.015);
+  const sustainEnd = Math.min(0.18, lengthSec / 2);
+  const decay = ageSec < sustainEnd
+    ? 1 - 0.72 * Math.max(0, (ageSec - 0.015) / Math.max(0.001, sustainEnd - 0.015))
+    : 0.28 * Math.max(0, 1 - (ageSec - sustainEnd) / Math.max(0.001, lengthSec - sustainEnd));
+  const envelope = Math.max(0.0001, Math.min(1, attack)) * Math.max(0.0001, decay);
+  const phase = midiFrequency(midi) * ageSec;
+  return Math.sin(2 * Math.PI * phase) * volume * envelope
+    + Math.sin(2 * Math.PI * phase * 2) * volume * 0.28 * envelope
+    + Math.sin(2 * Math.PI * phase * 3) * volume * 0.09 * envelope;
+}
+
+function keyboardSample(style, timeSec) {
+  const score = KEYBOARD[style];
+  const beat = 60 / score.bpm;
+  const barLength = beat * 4;
+  const barTime = timeSec % barLength;
+  const bar = score.bars[Math.floor(timeSec / barLength) % score.bars.length];
+  let sample = 0;
+  if (style === 'piano') {
+    bar.chord.forEach((pitch, i) => {
+      sample += keyboardNoteSample(pitch, barTime - i * 0.035, beat * 2.7, 0.016);
+    });
+    bar.melody.forEach((pitch, i) => {
+      sample += keyboardNoteSample(pitch, barTime - (i + 0.5) * beat, beat * 0.8, 0.035);
+    });
+  } else {
+    sample += keyboardNoteSample(bar.bass, barTime, beat * 1.5, 0.065);
+    sample += keyboardNoteSample(bar.bass + 7, barTime - 2 * beat, beat * 1.4, 0.05);
+    [0.75, 2.75].forEach(offset => bar.chord.forEach(pitch => {
+      sample += keyboardNoteSample(pitch, barTime - offset * beat, beat * 1.1, 0.011);
+    }));
+    bar.melody.forEach((pitch, i) => {
+      sample += keyboardNoteSample(pitch, barTime - (i * 2 + 1.75) * beat, beat * 0.7, 0.025);
+    });
+  }
+  return sample;
+}
+
+function sampleBed(kind, cue, timeSec, channel, sampleRate) {
   if (kind === 'audio:silence') return 0;
   if (kind === 'audio:soundscape') {
     const bed = BEDS[cue?.soundscapeId];
     if (!bed) return 0;
+    if (bed.kind === 'mood') return moodSample(bed, timeSec);
+    if (bed.kind === 'soft-rain') return rainSample(timeSec, channel, sampleRate);
+    if (bed.kind === 'keyboard') return keyboardSample(bed.style, timeSec);
+    if (bed.kind === 'acoustic') return sampleAcousticPiece(bed.id, timeSec, channel);
+    if (bed.kind === 'cinematic') return sampleCinematicPiece(bed.id, timeSec, channel);
     // A score may place the halo's arrival. The defaults are the live
     // scheduler's, whose cycle is longer than a short clip — so a
     // twenty-second export would hear the swell arrive and never leave.
@@ -258,7 +432,7 @@ export function mixAudio(plan, {
     const t = start / 1000 + i / sampleRate;
     for (let ch = 0; ch < channels; ch += 1) {
       let sample = active
-        ? sampleBed(active.cueKind, active.cue, t, ch) * gain
+        ? sampleBed(active.cueKind, active.cue, t, ch, sampleRate) * gain
         : 0;
       if (spoken) sample += spoken[i * channels + ch];
       pcm[i * channels + ch] = sample;

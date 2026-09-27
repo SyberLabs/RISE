@@ -1,5 +1,10 @@
 /* The Try RISE corridor: one instrument in three states, on one rail.
 
+   SyberLabs system: ink on near-black, a plain hairline for the rail, serif
+   only for titles, mono for labels, brand blue for focus and the selected
+   ring, and the RISE accent only as the identity dot. The orb faces are the
+   one piece of imagery; everything decorative around them is gone.
+
    Geometry is driven by two lengths — the diameter of the centred orb and how
    far apart the positions sit — and every state is a rank away from the
    centre (0, ±1, ±2). Nothing here animates a layout property: the whole
@@ -9,14 +14,14 @@
   /* The composition is sized by the SMALLER viewport axis. A rail measured
      only in vw grows a laptop's centre orb until the one action it exists to
      offer is below the fold. */
-  --orb: clamp(148px, min(24vw, 27vh), 320px);
+  --orb: clamp(148px, min(22vw, 25vh), 288px);
   --spread: clamp(126px, 29vw, 418px);
   --plaque-w: min(300px, max(220px, 24vw));
-  --rail-plaque-space: clamp(112px, min(13vw, 15vh), 168px);
-  /* Ceremonial rather than springy: a slow start, a long settle. */
-  --keystone-move: 520ms;
-  --keystone-ease: cubic-bezier(0.35, 0.02, 0.16, 1);
+  --rail-plaque-space: clamp(120px, min(14vw, 16vh), 168px);
+  --keystone-move: var(--sy-dur-page);
+  --keystone-ease: var(--sy-ease);
 
+  box-sizing: border-box;
   position: relative;
   display: flex;
   flex-direction: column;
@@ -24,60 +29,95 @@
      overflowing composition above the scrollable area, where it cannot be
      reached. Short viewports fall back to the top and scroll. */
   justify-content: safe center;
-  /* `svh`, not `vh` or `dvh`: the small viewport is the only height this app
-     is ever shown at, and the only one that cannot go stale when iOS returns
-     a tab. The reasoning is on `body` in design-system.css. */
+  /* `svh`: the small viewport is the only height this app is ever shown at.
+     The reasoning is on `body` in design-system.css. */
   height: 100vh;
   height: 100svh;
   overflow-y: auto;
   overflow-x: hidden;
   overscroll-behavior-y: contain;
   -webkit-overflow-scrolling: touch;
-  padding: clamp(20px, 4vh, 72px) clamp(16px, 5vw, 72px) clamp(24px, 4vh, 72px);
-  color: var(--color-light);
-  background:
-    radial-gradient(circle at 50% 0%, rgba(var(--color-accent-rgb), 0.09), transparent 42%),
-    var(--color-void);
+  padding: var(--sy-space-8) var(--sy-space-8) var(--sy-space-7);
+  color: var(--sy-text);
+  font-family: var(--sy-font-sans);
+  background: var(--sy-bg);
 }
 
 /* ─── Header ─── */
 
+.keystone-back {
+  position: absolute;
+  top: var(--sy-space-3);
+  left: var(--sy-space-5);
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sy-space-2);
+  min-height: var(--sy-control-height);
+  padding: 0 var(--sy-space-3);
+  border: 0;
+  border-radius: var(--sy-radius);
+  background: transparent;
+  color: var(--sy-text-2);
+  font: 500 14px/20px var(--sy-font-sans);
+  cursor: pointer;
+  transition: color var(--sy-dur-hover) var(--sy-ease);
+}
+
+.keystone-back:hover { color: var(--sy-text); }
+
 .keystone-header {
   flex: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--sy-space-4);
   width: 100%;
   max-width: 760px;
-  /* The title and the instrument are two separate things, and the distance
-     says so. */
-  margin: 0 auto clamp(32px, 11vh, 140px);
+  margin: 0 auto clamp(32px, 8vh, 96px);
   text-align: center;
 }
 
-.keystone-back {
-  position: absolute;
-  top: clamp(14px, 2.4vh, 28px);
-  left: clamp(14px, 2vw, 32px);
-  z-index: 2;
-  padding: 8px 4px;
-  border: 0;
-  background: transparent;
-  color: var(--color-fog);
-  font: 11px var(--font-mono);
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  cursor: pointer;
-}
-
-.keystone-axis,
+.keystone-eyebrow,
 .keystone-index,
-.keystone-extent,
-.keystone-state {
-  font-family: var(--font-mono);
-  letter-spacing: 0.16em;
+.keystone-extent {
+  font: 500 12px/16px var(--sy-font-mono);
+  letter-spacing: 0.08em;
   text-transform: uppercase;
+  color: var(--sy-text-3);
 }
 
-.keystone-header h1 { font: 300 clamp(28px, min(5vw, 7vh), 64px)/1.05 var(--font-display); }
-.keystone-intro { color: var(--color-fog); font: italic 17px/1.6 var(--font-literary); }
+.keystone-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sy-space-3);
+  margin: 0;
+}
+
+.keystone-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: var(--sy-radius-full);
+  background: var(--sy-accent-rise);
+}
+
+.keystone-header h1 {
+  margin: 0;
+  font-family: var(--sy-font-serif);
+  font-weight: 400;
+  font-size: clamp(40px, min(5vw, 8vh), 64px);
+  line-height: 1;
+  letter-spacing: -0.015em;
+  color: var(--sy-text);
+}
+
+.keystone-intro {
+  margin: 0;
+  max-width: 56ch;
+  font-size: 18px;
+  line-height: 28px;
+  color: var(--sy-text-2);
+}
 
 /* ─── The field: the rail, and the two ways to move along it ─── */
 
@@ -85,22 +125,19 @@
   flex: none;
   position: relative;
   width: 100%;
-  max-width: 1320px;
+  max-width: 1200px;
   margin: 0 auto;
 }
 
 .keystone-rail {
   position: relative;
   height: calc(var(--orb) + var(--rail-plaque-space));
-  /* Sideways only: an orb leaving the rail is clipped, while the centre's
-     halo is free to bleed above and below it. */
   overflow-x: hidden;
   overflow-x: clip;
   overflow-y: visible;
   touch-action: pan-y;
-  /* How much of the rail marking is drawn, and where it is centred. An end of
-     the rail has nothing beyond it, so the line stops at the last reading
-     rather than pointing at a place there is no way to reach. */
+  /* How much of the rail is drawn, and where it is centred. An end of the
+     rail has nothing beyond it, so the line stops at the last reading. */
   --rail-span: 0.72;
   --rail-shift: 0px;
 }
@@ -115,16 +152,14 @@
   --rail-shift: calc(var(--spread) * -0.69);
 }
 
-/* The spatial relationship between the positions: one hairline and two nodes,
-   held far enough back that they read as alignment rather than as a track.
-   Both are laid out across the widest span the rail can hold and then scaled
-   to the span actually occupied, so they travel on transform alone. */
-.keystone-hairline,
-.keystone-nodes {
+/* One hairline: alignment, not a track. */
+.keystone-hairline {
   position: absolute;
   top: calc(var(--orb) / 2);
   left: 50%;
   width: calc(var(--spread) * 2.76);
+  height: 1px;
+  background: var(--sy-line);
   pointer-events: none;
   transform:
     translate(-50%, -50%)
@@ -133,21 +168,7 @@
   transition: transform var(--keystone-move) var(--keystone-ease);
 }
 
-.keystone-hairline {
-  height: 1px;
-  background: linear-gradient(90deg,
-    transparent,
-    rgba(var(--color-accent-rgb), 0.16) 22%,
-    rgba(var(--color-accent-rgb), 0.16) 78%,
-    transparent);
-}
-
-.keystone-nodes {
-  height: 6px;
-  background:
-    radial-gradient(circle 2px at 25% 50%, rgba(var(--color-accent-rgb), 0.55), transparent 100%),
-    radial-gradient(circle 2px at 75% 50%, rgba(var(--color-accent-rgb), 0.55), transparent 100%);
-}
+.keystone-nodes { display: none; }
 
 /* ─── Reading objects ─── */
 
@@ -189,7 +210,7 @@
 .keystone-orb[data-pos="1"] {
   z-index: 0;
   --rank-scale: 0.57;
-  --rank-plaque: 0.78;
+  --rank-plaque: 0.8;
   --rank-dim: 0.6;
 }
 
@@ -224,21 +245,16 @@
   margin: 0 auto;
   border-radius: 50%;
   transform: scale(var(--rank-scale));
-  box-shadow:
-    0 0 0 1px rgba(var(--color-accent-rgb), 0.10),
-    0 20px 52px rgba(0, 0, 0, 0.55);
+  box-shadow: 0 0 0 1px var(--sy-line);
   transition:
     transform var(--keystone-move) var(--keystone-ease),
     box-shadow var(--keystone-move) var(--keystone-ease);
   --keystone-still: none;
 }
 
+/* Selected: the brand ring, set off the face by the page ground. */
 .is-selected .keystone-figure {
-  box-shadow:
-    0 0 0 1px rgba(var(--color-accent-rgb), 0.42),
-    0 0 32px rgba(var(--color-accent-rgb), 0.22),
-    0 0 88px rgba(var(--color-accent-rgb), 0.11),
-    0 28px 74px rgba(0, 0, 0, 0.6);
+  box-shadow: 0 0 0 4px var(--sy-bg), 0 0 0 5px var(--sy-brand);
 }
 
 .keystone-orb:focus-visible {
@@ -246,35 +262,8 @@
 }
 
 .keystone-orb:focus-visible .keystone-figure {
-  outline: 2px solid var(--color-accent);
-  outline-offset: 7px;
-}
-
-/* Ghost ring — every position keeps one, so the rail reads as one fitting. */
-.keystone-figure::before,
-.keystone-figure::after {
-  content: '';
-  position: absolute;
-  border-radius: 50%;
-  pointer-events: none;
-}
-
-.keystone-figure::before {
-  inset: calc(var(--orb) * -0.05);
-  border: 1px solid rgba(var(--color-accent-rgb), 0.10);
-}
-
-/* Alignment marks — the centre alone is fitted into the instrument. */
-.keystone-figure::after {
-  inset: calc(var(--orb) * -0.115);
-  border: 1px dotted rgba(var(--color-accent-rgb), 0.24);
-  opacity: 0;
-  transition: opacity var(--keystone-move) var(--keystone-ease);
-}
-
-.is-selected .keystone-figure::after {
-  opacity: 1;
-  animation: keystone-turn 84s linear infinite;
+  outline: var(--sy-focus);
+  outline-offset: 8px;
 }
 
 /* ─── Faces: three windows, not three discs ───────────────────────────────
@@ -558,30 +547,13 @@
   to { transform: rotate(0deg); }
 }
 
-/* Vignette, rim and grain — the shell every face is fitted into. */
+/* The vignette every face is fitted into — depth, not ornament. */
 .keystone-veil {
   position: absolute;
   inset: 0;
   border-radius: 50%;
   pointer-events: none;
-  background:
-    radial-gradient(circle at 34% 24%, rgba(255, 255, 255, 0.14), transparent 38%),
-    radial-gradient(circle at 50% 50%, rgba(6, 7, 9, 0) 52%, rgba(6, 7, 9, 0.34) 82%, rgba(4, 5, 7, 0.78) 100%);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.10),
-    inset 0 0 0 1px rgba(0, 0, 0, 0.4),
-    inset 0 -14px 34px rgba(0, 0, 0, 0.38);
-}
-
-.keystone-veil::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  border-radius: 50%;
-  opacity: 0.26;
-  background: repeating-radial-gradient(circle at 38% 32%, transparent 0 3px,
-    rgba(255, 255, 255, 0.035) 4px 5px);
-  mix-blend-mode: soft-light;
+  background: radial-gradient(circle at 50% 50%, rgba(5, 6, 10, 0) 56%, rgba(5, 6, 10, 0.5) 100%);
 }
 
 /* ─── Plaques: the typography travels with its object ─── */
@@ -590,8 +562,8 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 4px;
-  margin-top: clamp(12px, 1.6vw, 24px);
+  gap: var(--sy-space-2);
+  margin-top: var(--sy-space-5);
   opacity: var(--rank-label);
   /* Scaled from its top edge so it stays fixed to the orb it belongs to,
      and lifted by exactly the height the shrinking orb gave back. */
@@ -604,41 +576,33 @@
     opacity var(--keystone-move) var(--keystone-ease);
 }
 
-.keystone-index { color: rgba(var(--color-accent-rgb), 0.5); font-size: 11px; }
-.keystone-axis { color: var(--color-threshold); font-size: 10px; }
-
 .keystone-title {
-  margin-top: 2px;
-  font: 300 clamp(24px, 2.6vw, 38px)/1.1 var(--font-display);
-  color: var(--color-light);
+  font-family: var(--sy-font-serif);
+  font-weight: 400;
+  font-size: 40px;
+  line-height: 44px;
+  letter-spacing: -0.01em;
+  color: var(--sy-text);
 }
 
 .keystone-relation {
-  color: var(--color-fog);
-  font: italic 15px/1.5 var(--font-literary);
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--sy-text-2);
 }
 
 /* Secondary metadata belongs to the centre, and resolves at the end of the
    move rather than arriving with it. */
 .keystone-extent {
   display: block;
-  min-height: 15px;
-  margin-top: 4px;
-  color: var(--color-mist);
-  font-size: 10px;
+  min-height: 16px;
   opacity: 0;
-  transform: translateY(4px);
-  transition:
-    opacity 220ms var(--ease-out) 290ms,
-    transform 220ms var(--ease-out) 290ms;
+  transition: opacity var(--sy-dur-enter) var(--sy-ease) var(--sy-dur-page);
 }
 
-.is-selected .keystone-extent {
-  opacity: 1;
-  transform: none;
-}
+.is-selected .keystone-extent { opacity: 1; }
 
-/* ─── Steps ─── */
+/* ─── Steps: 44px icon buttons ─── */
 
 .keystone-step {
   position: absolute;
@@ -646,30 +610,25 @@
   z-index: 2;
   display: grid;
   place-items: center;
-  width: 44px;
-  height: 44px;
+  width: var(--sy-control-height);
+  height: var(--sy-control-height);
   padding: 0;
-  border: 1px solid rgba(var(--color-accent-rgb), 0.2);
-  border-radius: 50%;
-  background: rgba(10, 10, 12, 0.62);
-  color: var(--color-fog);
-  font: 18px/1 var(--font-mono);
+  border: 1px solid var(--sy-line-strong);
+  border-radius: var(--sy-radius);
+  background: var(--sy-bg);
+  color: var(--sy-text);
   cursor: pointer;
   transform: translateY(-50%);
   transition:
-    border-color var(--transition-normal) var(--ease-default),
-    color var(--transition-normal) var(--ease-default),
-    opacity var(--transition-normal) var(--ease-default),
-    visibility var(--transition-normal) var(--ease-default);
+    background-color var(--sy-dur-hover) var(--sy-ease),
+    opacity var(--sy-dur-enter) var(--sy-ease),
+    visibility var(--sy-dur-enter) var(--sy-ease);
 }
 
 .keystone-step[data-step="-1"] { left: 0; }
 .keystone-step[data-step="1"] { right: 0; }
 
-.keystone-step:hover:not(:disabled) {
-  border-color: rgba(var(--color-accent-rgb), 0.55);
-  color: var(--color-light);
-}
+.keystone-step:hover:not(:disabled) { background: var(--sy-surface-2); }
 
 .keystone-step:disabled {
   opacity: 0;
@@ -677,54 +636,63 @@
   pointer-events: none;
 }
 
+.keystone-back:focus-visible,
 .keystone-step:focus-visible {
-  outline: 2px solid var(--color-accent);
-  outline-offset: 3px;
+  outline: var(--sy-focus);
+  outline-offset: 2px;
 }
 
-/* ─── Console: one action, and the evidence behind it ─── */
+/* ─── Console: one action, and — only when refused — why ─── */
 
 .keystone-console {
   flex: none;
   display: flex;
   width: 100%;
+  max-width: 560px;
   flex-direction: column;
   align-items: center;
-  gap: 14px;
-  margin: clamp(20px, 5vh, 64px) auto 0;
-  max-width: 560px;
+  gap: var(--sy-space-4);
+  margin: var(--sy-space-5) auto 0;
   text-align: center;
 }
 
+.keystone-promise {
+  margin: 0;
+  max-width: 44ch;
+  font-size: 16px;
+  line-height: 24px;
+  color: var(--sy-text-2);
+}
+
+.keystone-enter { min-width: 200px; }
+
+/* A refusal: icon + words, never colour alone. */
 .keystone-state {
-  max-width: 420px;
-  color: var(--color-fog);
-  font-size: 9px;
-  line-height: 1.7;
+  display: inline-flex;
+  align-items: flex-start;
+  gap: var(--sy-space-2);
+  margin: 0;
+  max-width: 48ch;
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--sy-text-2);
+  text-align: left;
 }
 
-.keystone-state[data-state="ready"] { color: #8bc49a; }
-.keystone-state[data-state="admitted"] { color: var(--color-threshold); }
-
-.keystone-enter {
-  min-width: 264px;
-  min-height: 52px;
-  font-family: var(--font-mono);
-  font-size: 12px;
-  letter-spacing: 0.22em;
-  text-transform: uppercase;
-  box-shadow: 0 0 30px rgba(var(--color-accent-rgb), 0.2);
+.keystone-state::before {
+  content: '';
+  flex: none;
+  width: 16px;
+  height: 16px;
+  margin-top: 2px;
+  background: var(--sy-warning);
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.5' stroke-linecap='round'%3E%3Ccircle cx='12' cy='12' r='10'/%3E%3Cpath d='M12 8v4M12 16h.01'/%3E%3C/svg%3E") center / contain no-repeat;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.5' stroke-linecap='round'%3E%3Ccircle cx='12' cy='12' r='10'/%3E%3Cpath d='M12 8v4M12 16h.01'/%3E%3C/svg%3E") center / contain no-repeat;
 }
 
-.keystone-enter:disabled { opacity: 0.4; cursor: not-allowed; box-shadow: none; }
+.keystone-state[hidden] { display: none; }
 
-.keystone-mp4 {
-  min-height: 36px;
-  font-size: 12px;
-  text-decoration: none;
-}
-
-/* .btn-ghost sets a display, which outranks the UA rule for [hidden]. */
+/* .btn sets a display, which outranks the UA rule for [hidden]. */
 .keystone-mp4[hidden] { display: none; }
 
 /* ─── Phones: the rail survives; the side plaques do not ─── */
@@ -733,14 +701,19 @@
   .keystones {
     --spread: clamp(120px, 42vw, 200px);
     --rail-plaque-space: 132px;
+    padding: var(--sy-space-8) var(--sy-space-4) var(--sy-space-6);
   }
 
-  /* A phone has no room for three plaques, and the steps have to be legible
-     over the cropped neighbours they sit on. */
+  .keystone-back { left: var(--sy-space-2); top: var(--sy-space-2); }
+
+  .keystone-title {
+    font-size: 32px;
+    line-height: 36px;
+  }
+
   .keystone-orb:not(.is-selected) { --rank-dim: 0.45; }
   .keystone-orb:not(.is-selected) .keystone-plaque { opacity: 0; }
-  .keystone-step { width: 40px; height: 40px; }
-  .keystone-enter { min-width: min(264px, 82vw); }
+  .keystone-enter { width: 100%; }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -750,11 +723,9 @@
      travels. Nothing translates, scales or drifts. */
   .keystone-orb,
   .keystone-figure,
-  .keystone-figure::after,
   .keystone-plaque,
   .keystone-extent,
   .keystone-hairline,
-  .keystone-nodes,
   .keystone-step {
     transition: none;
   }
@@ -765,9 +736,5 @@
   .keystone-orb,
   .keystone-orb.is-selected {
     --face-play: paused;
-  }
-
-  .keystone-orb.is-selected .keystone-figure::after {
-    animation: none;
   }
 }

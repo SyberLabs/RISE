@@ -40,7 +40,7 @@ import {
   catalogueTextIsSafe,
   serializeCuratorContext
 } from '../core/curator-context.js';
-import { READING_LIMITS } from '../core/reading-limits.js';
+import { READING_LIMITS, clampReadingWpm } from '../core/reading-limits.js';
 import { estimateRundownMinutes } from '../core/program-rundown.js';
 import {
   createScriptoriumSession,
@@ -52,6 +52,7 @@ import {
   downloadTextFile
 } from '../core/experience-program-io.js';
 import { escapeHtml, safeUrl } from '../core/sanitize.js';
+import { roomHeader, roomEyebrow, roomAlert } from './room-chrome.js';
 import './Scriptorium.css';
 
 async function copyText(text) {
@@ -89,6 +90,12 @@ export class Scriptorium {
     this.session = createScriptoriumSession({
       getWpm: () => readerWpm(options.getSettings?.()),
       prepareAssets: (projectId) => this.durableMaterials(projectId)
+    });
+    this.readingPreferences = null;
+    this.applyHomeData({
+      intent: options.initialIntent,
+      targetWords: options.initialTargetWords,
+      readingPreferences: options.readingPreferences
     });
     this.materialBlobs = new Map();
     this.objectUrls = new Set();
@@ -137,9 +144,38 @@ export class Scriptorium {
     void this.loadMaterials();
   }
 
-  update() {
+  update(data) {
+    if (data) this.applyHomeData(data);
     // Router reuses this room; estimates must reflect the current settings.
     this.render();
+  }
+
+  applyHomeData(data) {
+    if (typeof data?.intent === 'string') this.session.setIntent(data.intent);
+    if (data?.targetWords != null) this.session.setTargetWords(data.targetWords);
+    if (data?.readingPreferences) {
+      this.readingPreferences = data.readingPreferences;
+      this.session.wpmOverride = clampReadingWpm(data.readingPreferences.wpm, null);
+    }
+  }
+
+  withReadingPreferences(project) {
+    if (!this.readingPreferences) return project;
+    const { wpm, curve, chunkMode, audioPreset, soundscape, visualMode } = this.readingPreferences;
+    const defaults = project.defaults;
+    return {
+      ...project,
+      defaults: {
+        ...defaults,
+        reading: { ...defaults.reading, wpm: clampReadingWpm(wpm), curve, chunkMode },
+        audio: { ...defaults.audio, audioPreset, soundscape },
+        visual: {
+          ...defaults.visual,
+          surface: visualMode === 'focals' ? 'focal' : 'off',
+          config: { ...defaults.visual.config, visualMode }
+        }
+      }
+    };
   }
 
   /**
@@ -390,11 +426,12 @@ export class Scriptorium {
 
     this.container.innerHTML = `
       <div class="scriptorium" role="main">
+        ${roomHeader({ back: 'Home', backClass: 'scriptorium-back' })}
         <div class="scriptorium-column">
         <header class="scriptorium-header">
-          <button type="button" class="scriptorium-back" data-action="back">← Portal</button>
-          <h1>The Scriptorium</h1>
-          <p class="scriptorium-sub">
+          ${roomEyebrow('Scored reading')}
+          <h1 class="room-title">The Scriptorium</h1>
+          <p class="scriptorium-sub room-deck">
             You state an intent and a length. A hand outside the building writes
             a score. RISE examines it before admitting it. A score may arrange
             imagery and sound, and may set the reading's own pace — though what
@@ -427,8 +464,8 @@ export class Scriptorium {
             this is refused, not trimmed.
           </p>
           <div class="scriptorium-jev" aria-labelledby="scriptorium-jev-title">
-            <h3 id="scriptorium-jev-title">Route the composition with JEV</h3>
-            <label class="scriptorium-label" for="scriptorium-jev-key">JEV API key</label>
+            <h3 id="scriptorium-jev-title">Route the composition with Jev</h3>
+            <label class="scriptorium-label" for="scriptorium-jev-key">Jev API key</label>
             <input id="scriptorium-jev-key" class="scriptorium-jev-key" type="password"
               autocomplete="off" spellcheck="false" value="${escapeHtml(this.jevApiKey)}"
               aria-describedby="scriptorium-jev-privacy">
@@ -441,19 +478,19 @@ export class Scriptorium {
             <div class="scriptorium-actions">
               <button type="button" class="btn-primary" data-action="route-jev"
                 ${this.jevRouting || !this.jevApiKey.trim() ? 'disabled' : ''}>
-                ${this.jevRouting ? 'Routing with JEV…' : 'Route with JEV'}
+                ${this.jevRouting ? 'Routing with Jev…' : 'Route with Jev'}
               </button>
             </div>
             ${this.session.jevRoute ? `
               <p class="scriptorium-jev-result" role="status">
-                JEV selected <strong>${this.session.jevRoute.route === 'experience_program'
+                Jev selected <strong>${this.session.jevRoute.route === 'experience_program'
                   ? 'Experience Program' : 'Agent Operation Set'}</strong>
                 with ${(this.session.jevRoute.confidence * 100).toFixed(0)}% confidence.
                 This selects a prompt format; RISE still examines the result before
                 it can become a reading.
               </p>
             ` : ''}
-            <p class="scriptorium-note">Prefer to work locally? You can prepare the prompt without JEV below.</p>
+            <p class="scriptorium-note">Prefer to work locally? You can prepare the prompt without Jev below.</p>
           </div>
           ${this.renderOwnTexts()}
         </section>
@@ -496,7 +533,7 @@ export class Scriptorium {
           <h2 id="scriptorium-take-title">2. Take</h2>
           <p class="scriptorium-note">Prepare a prompt locally, then copy or download it and context.json.</p>
           <div class="scriptorium-actions">
-            <button type="button" class="btn-secondary" data-action="prepare-take">Prepare locally without JEV</button>
+            <button type="button" class="btn-secondary" data-action="prepare-take">Prepare locally without Jev</button>
             <button type="button" class="btn-secondary" data-action="copy-prompt" ${this.promptText ? '' : 'disabled'}>Copy prompt</button>
             <button type="button" class="btn-secondary" data-action="download-prompt" ${this.promptText ? '' : 'disabled'}>Download prompt</button>
             <button type="button" class="btn-secondary" data-action="copy-context" ${this.context ? '' : 'disabled'}>Copy context.json</button>
@@ -517,8 +554,9 @@ export class Scriptorium {
         <section class="scriptorium-step" aria-labelledby="scriptorium-verdict-title">
           <h2 id="scriptorium-verdict-title">4. Verdict</h2>
           ${verdict?.ok ? `
-            <p class="scriptorium-ok">Accepted as a proposal.</p>
+            ${roomAlert({ title: 'Accepted as a proposal.', variant: 'success', className: 'scriptorium-ok' })}
           ` : verdict?.text ? `
+            ${roomAlert({ title: 'The score was refused.', message: 'RISE examined it and could not admit it. The reasons are below.', className: 'scriptorium-refused' })}
             <pre class="scriptorium-refusal" id="scriptorium-refusal">${escapeHtml(verdict.text)}</pre>
             <button type="button" class="btn-secondary" data-action="copy-refusal">Copy refusal</button>
           ` : `
@@ -537,13 +575,13 @@ export class Scriptorium {
           <h2 id="scriptorium-accept-title">6. Begin</h2>
           <p class="scriptorium-note">
             The score is complete as it stands. Reading it loads the works it
-            names; keeping it saves a Vault draft you can return to. Neither
-            passes through the Workshop, which is for readings you compose
+            names; keeping it saves a draft in Sequences you can return to.
+            Neither passes through Compose, which is for readings you compose
             yourself.
           </p>
           <div class="scriptorium-actions">
             <button type="button" class="btn-primary" data-action="begin" ${this.program || this.operationSet ? '' : 'disabled'}>Begin reading</button>
-            <button type="button" class="btn-secondary" data-action="keep" ${this.program || this.operationSet ? '' : 'disabled'}>Keep in the Vault</button>
+            <button type="button" class="btn-secondary" data-action="keep" ${this.program || this.operationSet ? '' : 'disabled'}>Keep in Sequences</button>
           </div>
         </section>
 
@@ -596,17 +634,17 @@ export class Scriptorium {
       ?.addEventListener('click', async () => {
         if (this.jevRouting || !this.jevApiKey.trim()) return;
         this.jevRouting = true;
-        this.status = 'Routing this intent with JEV…';
+        this.status = 'Routing this intent with Jev…';
         this.render();
         try {
           const result = await this.session.routeWithJev(this.jevApiKey);
           this.status = result.ok
-            ? 'JEV selected a prompt route.'
+            ? 'Jev selected a prompt route.'
             : result.stale
-              ? 'The intent changed while JEV was routing. Route the current intent again.'
-              : (result.message || 'JEV could not select a route.');
+              ? 'The intent changed while Jev was routing. Route the current intent again.'
+              : (result.message || 'Jev could not select a route.');
         } catch (error) {
-          this.status = error?.message || 'JEV routing failed.';
+          this.status = error?.message || 'Jev routing failed.';
         } finally {
           this.jevApiKey = '';
           this.jevRouting = false;
@@ -811,7 +849,7 @@ export class Scriptorium {
     this.status = 'Opening the reading…';
     this.render();
     this.openOnReadableType();
-    await this.onCreateSession(project);
+    await this.onCreateSession(this.withReadingPreferences(project));
   }
 
   /**
@@ -1020,12 +1058,12 @@ export class Scriptorium {
     // warned to the console, and saved the dangling reference — and the room
     // then told the reader it opens from the Vault whenever they want it.
     // Closing the tab made that permanent.
-    const saved = await MemoryCore.saveWorkshopBlueprintAsync(project, {
+    const saved = await MemoryCore.saveWorkshopBlueprintAsync(this.withReadingPreferences(project), {
       blobs: this.materialBlobs
     });
     this.status = saved?.id
-      ? 'Kept in the Vault. It opens from there whenever you want it.'
-      : 'Could not save the Vault draft.';
+      ? 'Kept in Sequences. It opens from there whenever you want it.'
+      : 'Could not save the draft to Sequences.';
     this.render();
   }
 }

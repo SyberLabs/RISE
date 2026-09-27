@@ -32,6 +32,8 @@ describe('Cloudflare static headers', () => {
             expect(expected, `missing Netlify ${name}`).toBeTruthy();
             expect(common.get(name), name).toBe(expected);
         }
+        expect(common.get('Permissions-Policy'))
+            .toBe('camera=(), microphone=(self), geolocation=()');
         for (const line of readFileSync(output, 'utf8').split(/\r?\n/u)) {
             expect(line.length, 'Cloudflare header line limit').toBeLessThan(2000);
         }

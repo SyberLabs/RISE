@@ -36,12 +36,10 @@ import { defineConfig } from '@playwright/test';
  *   csp-live          the policy that governs every remote fetch
  *   curation          what the shelf is allowed to show
  *
- * CI no longer STOPS here. The 502 seconds shard four ways to ~200, so a
- * pull request runs all of it; this list stays as the fast no, and as what
- * you run locally when you want an answer in two minutes rather than eight.
- * The two projects partition the suite, so `playwright test` with no
- * argument — which is what each CI shard invokes — is still exactly one
- * run of everything.
+ * Full coverage runs in four shards on main without holding the release.
+ * This corridor remains the local fast check before pushing. The two
+ * projects partition the suite, so `playwright test` with no argument —
+ * which is what each shard invokes — runs everything exactly once.
  */
 /** Runs without the autoplay override; see the `admission` project. */
 const ADMISSION = '**/audio-admission.spec.js';
@@ -58,6 +56,7 @@ const GATE = [
     '**/scriptorium.spec.js',
     '**/smoke.spec.js'
 ];
+const e2ePort = Number(process.env.RISE_E2E_PORT) || 4317;
 
 export default defineConfig({
     testDir: './e2e',
@@ -67,7 +66,7 @@ export default defineConfig({
     workers: 1, // one browser, sequential — flows share an audio device
     reporter: [['list'], ['github']],
     use: {
-        baseURL: 'http://localhost:4317',
+        baseURL: `http://localhost:${e2ePort}`,
         headless: true,
         viewport: { width: 1280, height: 800 },
         // Web Audio must start without a physical click's blessing

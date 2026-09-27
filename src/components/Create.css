@@ -1,0 +1,14 @@
+.personal-create { max-width: 760px; margin: 0 auto; padding: 40px 24px 100px; color: var(--color-light, #e8e8e8); line-height: 1.65; }
+.personal-create h1 { font-size: 2rem; margin: 24px 0; }
+.personal-create h2 { font-size: 1.4rem; margin: 24px 0 12px; }
+.personal-create p { margin: 14px 0; }
+.personal-create label { display: block; margin: 16px 0; }
+.personal-create textarea { display: block; box-sizing: border-box; width: 100%; padding: 12px; margin-top: 8px; background: #18191c; color: #f4f4f4; border: 1px solid #777; border-radius: 5px; font: inherit; }
+.personal-create button { padding: 10px 16px; margin: 4px 6px 4px 0; min-height: 44px; border: 1px solid #888; border-radius: 5px; background: #24262a; color: #fff; cursor: pointer; font: inherit; }
+.personal-create button:focus-visible, .personal-create textarea:focus-visible { outline: 2px solid #d1bb8e; outline-offset: 3px; }
+.personal-create [data-text] { font-size: 1.15rem; white-space: pre-wrap; overflow-wrap: anywhere; }
+.personal-create [data-status] { min-height: 1.6em; color: #e5cf9f; }
+.personal-create .personal-disclosure { font-size: .9rem; }
+.personal-create [hidden] { display: none !important; }
+.personal-create section { margin-top: 32px; border-top: 1px solid #444; padding-top: 12px; }
+.personal-actions { display: flex; flex-wrap: wrap; }

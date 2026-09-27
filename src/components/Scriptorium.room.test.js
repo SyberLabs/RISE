@@ -255,7 +255,7 @@ describe('the Scriptorium as the reader meets it', () => {
             paste(score({ sourceId: shortestWork().id }));
             click('examine');
             click('keep');
-            await vi.waitFor(() => expect(room.status).toMatch(/Kept in the Vault/));
+            await vi.waitFor(() => expect(room.status).toMatch(/Kept in Sequences/));
             expect(MemoryCore.getWorkshopBlueprints()).toHaveLength(1);
         });
     });
@@ -452,7 +452,7 @@ describe('the Scriptorium as the reader meets it', () => {
             paste(score({ sourceId: shortestWork().id, assetId }));
             click('examine');
             click('keep');
-            await vi.waitFor(() => expect(room.status).toMatch(/Kept in the Vault/));
+            await vi.waitFor(() => expect(room.status).toMatch(/Kept in Sequences/));
 
             const [draft] = MemoryCore.getWorkshopBlueprints();
             expect(draft.assets.map(asset => asset.id)).toEqual([assetId]);

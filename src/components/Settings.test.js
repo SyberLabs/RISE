@@ -95,7 +95,7 @@ describe('Settings display type', () => {
             '[data-action="clear-history"]',
             '.settings-about'
         ]) expect(container.querySelector(gone), gone).toBeNull();
-        expect(container.textContent).not.toContain('Lobby Drone');
+        expect(container.textContent).not.toContain('Lobby drone');
 
         // Everything that can rescue a reading in progress is still here.
         for (const kept of [
@@ -124,7 +124,7 @@ describe('Settings display type', () => {
         settings.destroy();
     });
 
-    it('keeps Size on S | M | L | Fit chips and drops the 0–2 slider', () => {
+    it('keeps Size on S | M | L | XL | Fit chips and drops the 0–2 slider', () => {
         const { container, settings, onChange } = mountSettings({ fontSize: 'medium' });
         const radios = [...container.querySelectorAll('input[name="font-size"]')];
 
@@ -137,6 +137,7 @@ describe('Settings display type', () => {
             ['s', 'small', 'S'],
             ['m', 'medium', 'M'],
             ['l', 'large', 'L'],
+            ['xl', 'xlarge', 'XL'],
             ['fit', 'fit', 'Fit']
         ]);
         expect(radios.find((radio) => radio.value === 'medium').checked).toBe(true);
@@ -144,6 +145,9 @@ describe('Settings display type', () => {
 
         radios.find((radio) => radio.value === 'large').click();
         expect(onChange).toHaveBeenCalledWith('fontSize', 'large');
+
+        radios.find((radio) => radio.value === 'xlarge').click();
+        expect(onChange).toHaveBeenCalledWith('fontSize', 'xlarge');
 
         radios.find((radio) => radio.value === 'fit').click();
         expect(onChange).toHaveBeenCalledWith('fontSize', 'fit');
@@ -165,9 +169,9 @@ describe('Settings display type', () => {
         const radios = [...container.querySelectorAll('input[name="chamber-face"]')];
         const ids = radios.map((radio) => radio.value);
 
-        expect(ids).toEqual(['literary', 'display', 'thick', 'jp']);
+        expect(ids).toEqual(['literary', 'display', 'thick', 'mono', 'jp', 'sans', 'book']);
         expect(radios.map((radio) => radio.closest('label')?.textContent.replace(/\s+/g, ' ').trim()))
-            .toEqual(['Literary', 'Display', 'Thick', 'Japanese']);
+            .toEqual(['Literary', 'Display', 'Thick', 'Monospace', 'Japanese', 'Sans', 'Book']);
         expect(radios.find((radio) => radio.value === 'literary').checked).toBe(true);
         expect(container.textContent).not.toMatch(/Inter|JetBrains/);
         expect(container.textContent).not.toMatch(/Crimson Pro|Marcellus|Space Grotesk|Noto Serif/);

@@ -9,7 +9,7 @@
  * wider than the viewport.
  */
 import { describe, expect, it } from 'vitest';
-import { contentsNoun, editionStatement } from './Library.js';
+import { contentsNoun, editionLine, editionStatement } from './Library.js';
 
 describe('an edition statement is for a reader', () => {
     const ROMANCE = 'trans. C. H. Brewitt-Taylor, Kelly & Walsh, Shanghai, 2 vols., 1925; '
@@ -68,6 +68,43 @@ describe('an edition statement is for a reader', () => {
 
     it('shortens the two memos substantially', () => {
         expect(editionStatement(ROMANCE).length).toBeLessThan(ROMANCE.length / 2);
+    });
+});
+
+describe('an edition line carries one year', () => {
+    // The Iliad row read "Standard Ebooks, 1870" beside "1883" in its foot.
+    // 1883 is the year the provenance record gives, with its evidence; the
+    // catalog's year is dropped rather than shown as a second answer.
+    const ILIAD = {
+        tradition: 'Standard Ebooks, 1870',
+        provenance: { edition: 'trans. Andrew Lang, Walter Leaf, and Ernest Myers, 1883', year: 1883 }
+    };
+
+    it('uses the provenance year and keeps the publisher', () => {
+        const line = editionLine(ILIAD);
+        expect(line).toBe('Standard Ebooks · trans. Andrew Lang, Walter Leaf, and Ernest Myers, 1883');
+        expect(line).not.toContain('1870');
+    });
+
+    it('builds the edition from translator and year when there is no statement', () => {
+        expect(editionLine({ tradition: 'Standard Ebooks, 1912', provenance: { translator: 'Francis Storr', year: 1912 } }))
+            .toBe('Standard Ebooks · trans. Francis Storr, 1912');
+        expect(editionLine({ tradition: 'Standard Ebooks, 1854', provenance: { year: 1854 } }))
+            .toBe('Standard Ebooks · 1854');
+    });
+
+    it('leaves a work without provenance as its statement', () => {
+        expect(editionLine({ tradition: 'Core System' })).toBe('Core System');
+    });
+
+    it('shows exactly one year on every received work', async () => {
+        const { LIBRARY_TEXTS } = await import('../content/library.js');
+        for (const text of LIBRARY_TEXTS.filter(t => t.provenance?.year)) {
+            const years = new Set(editionLine(text).match(/\b1[0-9]{3}\b/g) || []);
+            // A range ("1871–72") or an edition named by its year is one year.
+            expect([...years].every(y => Math.abs(Number(y) - text.provenance.year) <= 1),
+                `${text.id}: ${editionLine(text)}`).toBe(true);
+        }
     });
 });
 

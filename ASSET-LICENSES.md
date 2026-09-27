@@ -155,7 +155,7 @@ installed packages' own licence files.
 
 ### Typefaces — SIL Open Font License 1.1, redistributed
 
-The five typefaces the interface sets are **self-hosted**, and the files under
+The seven typefaces the interface sets are **self-hosted**, and the files under
 `public/fonts/` are therefore redistributed by this project rather than merely
 linked. Each is licensed under the
 [SIL Open Font License 1.1](https://openfontlicense.org/), which permits
@@ -169,6 +169,8 @@ their own and the licence and copyright notice travel with them.
 | Crimson Pro | © The Crimson Pro Project Authors |
 | Marcellus | © The Marcellus Project Authors |
 | JetBrains Mono | © The JetBrains Mono Project Authors |
+| Instrument Sans | © The Instrument Sans Project Authors |
+| Instrument Serif | © The Instrument Serif Project Authors |
 
 Only the `latin` and `latin-ext` subsets are carried, and only the weights the
 interface actually sets. `scripts/build-fonts.mjs` fetches them and generates

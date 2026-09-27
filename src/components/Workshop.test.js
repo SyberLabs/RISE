@@ -174,7 +174,7 @@ describe('Workshop Composition Studio architecture', () => {
     it('presents exact images, collections, procedural families, shared assets, and surfaces together', () => {
         const { container } = makeWorkshop();
         const form = container.querySelector('#workshop-form');
-        expect(form.textContent).toContain('Unified registry');
+        expect(form.querySelector('.studio-visual-library .studio-kicker')?.textContent).toBe('Media');
         expect(form.textContent).toContain('Passage visuals score selected text');
         expect(form.textContent).toContain('Old Masters');
         expect(form.textContent).toContain('Klee Lines');

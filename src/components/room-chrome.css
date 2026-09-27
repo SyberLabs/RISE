@@ -1,0 +1,163 @@
+/* ═══════════════════════════════════════════════════════════
+   Room chrome — SyberLabs system frame for the quieter rooms.
+   Header lockup lives in premium-additions.css (.sl-header).
+   Tokens: design-system.css (--sy-*).
+   ═══════════════════════════════════════════════════════════ */
+
+.room-icon {
+  flex: none;
+  display: block;
+}
+
+/* ─── Header back link ─── */
+
+.room-back {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sy-space-2);
+  height: var(--sy-control-height);
+  padding: 0 var(--sy-space-3);
+  margin-right: calc(-1 * var(--sy-space-3));
+  background: transparent;
+  border: 0;
+  border-radius: var(--sy-radius);
+  color: var(--sy-text-2);
+  font-family: var(--sy-font-sans);
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: color var(--sy-dur-hover) var(--sy-ease);
+}
+
+.room-back:hover {
+  color: var(--sy-text);
+}
+
+/* ─── Page type ─── */
+
+.room-eyebrow {
+  display: flex;
+  align-items: center;
+  gap: var(--sy-space-3);
+  margin: 0 0 var(--sy-space-4);
+  font-family: var(--sy-font-mono);
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--sy-text-3);
+}
+
+.room-dot {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: var(--sy-radius-full);
+  background: var(--sy-accent-rise);
+}
+
+.room-title {
+  margin: 0;
+  font-family: var(--sy-font-serif);
+  font-size: 40px;
+  line-height: 44px;
+  font-weight: 400;
+  letter-spacing: -0.01em;
+  color: var(--sy-text);
+}
+
+.room-deck {
+  margin: var(--sy-space-3) 0 0;
+  max-width: 60ch;
+  font-family: var(--sy-font-sans);
+  font-size: 18px;
+  line-height: 28px;
+  color: var(--sy-text-2);
+}
+
+.room-section-label {
+  margin: 0 0 var(--sy-space-4);
+  font-family: var(--sy-font-mono);
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--sy-text-3);
+}
+
+/* ─── Alert (system pattern) ─── */
+
+.room-alert {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--sy-space-3);
+  padding: var(--sy-space-4);
+  border: 1px solid var(--sy-line);
+  border-radius: var(--sy-radius);
+  background: transparent;
+  font-family: var(--sy-font-sans);
+}
+
+.room-alert[hidden] {
+  display: none;
+}
+
+.room-alert > .room-icon {
+  color: var(--sy-brand);
+}
+
+.room-alert-error {
+  border-color: var(--sy-danger);
+}
+
+.room-alert-error > .room-icon {
+  color: var(--sy-danger);
+}
+
+.room-alert-success > .room-icon {
+  color: var(--sy-success);
+}
+
+.room-alert-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sy-space-1);
+}
+
+.room-alert-title {
+  margin: 0;
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 600;
+  color: var(--sy-text);
+}
+
+.room-alert-message {
+  margin: 0;
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--sy-text-2);
+}
+
+@media (max-width: 640px) {
+  .room-title {
+    font-size: 32px;
+    line-height: 36px;
+  }
+
+  .room-deck {
+    font-size: 16px;
+    line-height: 24px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .room-back {
+    transition: none;
+  }
+}

@@ -72,27 +72,37 @@ export class Journeys {
         this.container.innerHTML = `
       <div class="journeys" role="main">
         <header class="journeys-header">
-          <!-- Journeys is reached from the Vault's first screen now,
-               so back is the Vault. -->
-          <button class="btn-ghost" data-nav="vault">
-            <span class="icon" aria-hidden="true">←</span> Vault
+          <!-- Journeys is reached from Sequences, so back is Sequences. -->
+          <button type="button" class="journeys-back" data-nav="vault">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5"></path><path d="m11 18-6-6 6-6"></path></svg>
+            Sequences
           </button>
-          <h1 class="journeys-title text-light">Journeys</h1>
+          <p class="journeys-eyebrow"><span class="journeys-dot" aria-hidden="true"></span>RISE / Journeys</p>
+          <h1 class="journeys-title">Journeys</h1>
+          ${JOURNEYS.length ? `<p class="journeys-intro">
+            A Journey is several works becoming movements in one argument.
+            Not a theme and not an anthology: each movement revises the one
+            before it, and the sources are allowed to resist the claim being
+            made of them.
+          </p>` : ''}
         </header>
-
-        ${JOURNEYS.length ? `<p class="journeys-intro text-fog">
-          A Journey is several works becoming movements in one argument.
-          Not a theme and not an anthology: each movement revises the one
-          before it, and the sources are allowed to resist the claim being
-          made of them.
-        </p>` : ''}
 
         <div class="journeys-list">
           ${JOURNEYS.length
             ? JOURNEYS.map(({ journey }) => this.renderCard(journey)).join('')
-            : '<div class="journeys-empty"><h2>No Journeys are available</h2><p>Browse Sequences in the Vault instead.</p></div>'}
+            : this.renderEmpty()}
         </div>
       </div>`;
+    }
+
+    /** Nothing is published: say so, and offer the one way on. */
+    renderEmpty() {
+        return `
+          <div class="journeys-empty">
+            <h2>No Journeys are available</h2>
+            <p>Journeys are being re-authored against the editions RISE now carries. Browse Sequences instead.</p>
+            <button type="button" class="btn btn-secondary journeys-empty-action" data-nav="vault">Browse Sequences</button>
+          </div>`;
     }
 
     renderCard(journey) {
@@ -115,7 +125,7 @@ export class Journeys {
       </li>`).join('');
 
         return `
-      <article class="journey-card card" data-journey="${esc(journey.id)}">
+      <article class="journey-card" data-journey="${esc(journey.id)}">
         <header class="journey-card-head">
           <h2 class="journey-name text-light">${esc(journey.title)}</h2>
           ${journey.subtitle
@@ -176,7 +186,9 @@ export class Journeys {
             }
         }
         const list = this.container.querySelector('.journeys-list');
-        if (list) {
+        // With nothing published the empty state is already the list; a
+        // rebuild from an empty register would erase it.
+        if (list && JOURNEYS.length) {
             list.innerHTML = JOURNEYS.map(({ journey }) => this.renderCard(journey)).join('');
         }
     }

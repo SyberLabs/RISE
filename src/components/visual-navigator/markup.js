@@ -19,16 +19,6 @@ const FOCAL_PASSTHROUGH_BYTES = 150 * 1024;
 export const optId = o => (typeof o === 'string' ? o : o.id);
 export const optLabel = o => (typeof o === 'string' ? o[0].toUpperCase() + o.slice(1) : (o.name || o.label || o.id));
 
-export function glyphFor(node) {
-  const glyphs = { off: '○', visual: '❖', focal: '◯', gallery: '▦',
-    'gallery-procedural': '❋', 'gallery-sourced': '▤', personal: '◈', dynamic: '∮',
-    attractor: '∮', klee: '✎', harmonograph: '∿', ostensoria: '✷', apparitio: '❂',
-    fractal: '❋', turrell: '◗', rockgarden: '⬡', neural: '⧉',
-    'by-manner': '◐', 'by-subject': '◑', science: '◉',
-    face: 'A', size: '⤢', ink: '◑' };
-  return glyphs[node.id] || '·';
-}
-
 /**
  * A chip carries four conditions — chosen, blocked, owned by a program, and
  * plainly unavailable — and used to render them as near-identical pills. They
@@ -53,7 +43,7 @@ export const CHIP_REASON = Object.freeze({
 export const MASK_REASON = Object.freeze({
   'requires-gallery': 'Needs a Gallery field — a Focal or a Dynamic field has no imagery to paint through the letters.',
   'requires-word': 'Needs one word at a time — phrase chunking leaves no single Word to fill.',
-  'requires-thick': 'Needs the Thick face — the other three are too fine to carry imagery.',
+  'requires-thick': 'Needs the Thick face — the other six are too fine to carry imagery.',
   'requires-fit': 'Needs the Fit size — a Word must fill the chamber to hold a picture.',
   'program-owned': 'This reading came with its own visual program, which owns this choice.'
 });

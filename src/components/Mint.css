@@ -1,90 +1,174 @@
 /**
  * The minted-sequence threshold.
  *
- * One reading, one action. Nothing here scrolls and nothing here is a
- * list — a reader arrives from a printed code with one question, and the
- * page answers it and gets out of the way.
+ * One reading, one action. Nothing here is a list — a reader arrives from a
+ * printed code with one question, and the page answers it and gets out of
+ * the way. SyberLabs system: ink on near-black, the RISE accent only as the
+ * 8px identity dot, one primary button.
  */
 
 .mint {
+  box-sizing: border-box;
+  /* 100svh is the small viewport: the only height this app is ever shown
+     at, since the document never scrolls. See #161. */
   min-height: 100svh;
+  width: 100%;
+  max-width: calc(720px + 2 * var(--sy-space-8));
+  margin: 0 auto;
+  padding: var(--sy-space-8);
   display: flex;
   flex-direction: column;
   justify-content: center;
-  align-items: center;
-  text-align: center;
-  /* 100svh is the small viewport: the only height this app is ever shown
-     at, since the document never scrolls. See #161. */
-  padding: 0 24px;
-  gap: 16px;
-  background: var(--color-void);
-  color: var(--color-light);
+  align-items: flex-start;
+  gap: var(--sy-space-5);
+  background: var(--sy-bg);
+  color: var(--sy-text);
+  font-family: var(--sy-font-sans);
 }
 
 .mint-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sy-space-3);
   margin: 0;
-  font-family: var(--font-primary);
-  font-size: 0.75rem;
-  letter-spacing: 0.18em;
+  font-family: var(--sy-font-mono);
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--color-mist);
+  color: var(--sy-text-3);
+}
+
+.mint-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: var(--sy-radius-full);
+  background: var(--sy-accent-rise);
+  flex: none;
 }
 
 .mint-title {
   margin: 0;
-  font-family: var(--font-display);
+  font-family: var(--sy-font-serif);
   font-weight: 400;
-  font-size: clamp(2rem, 8vw, 3.25rem);
-  line-height: 1.1;
+  font-size: 64px;
+  line-height: 64px;
+  letter-spacing: -0.015em;
   text-wrap: balance;
   max-width: 16ch;
-  color: var(--color-threshold);
+  color: var(--sy-text);
 }
 
 .mint-summary {
-  margin: 0 0 16px;
-  font-family: var(--font-literary);
-  font-size: clamp(1rem, 4vw, 1.2rem);
-  line-height: 1.5;
-  text-wrap: balance;
-  max-width: 34ch;
-  color: var(--color-cloud);
+  margin: 0;
+  font-size: 18px;
+  line-height: 28px;
+  max-width: 44ch;
+  text-wrap: pretty;
+  color: var(--sy-text-2);
 }
 
-.mint-open {
-  min-width: 12rem;
-  /* A thumb target, and the gesture the audio lifecycle is waiting for. */
-  min-height: 48px;
-  padding: 12px 32px;
-  font-family: var(--font-primary);
-  font-size: 1rem;
-  letter-spacing: 0.08em;
-  color: var(--color-on-accent);
-  background: var(--color-accent);
-  border: none;
-  border-radius: 2px;
+.mint-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sy-space-3);
+  margin-top: var(--sy-space-3);
+}
+
+.mint-open,
+.mint-elsewhere {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--sy-space-3);
+  min-height: var(--sy-control-height);
+  padding: 0 20px;
+  border-radius: var(--sy-radius);
+  font-family: var(--sy-font-sans);
+  font-size: 16px;
+  line-height: 24px;
+  font-weight: 500;
   cursor: pointer;
-  transition: opacity 150ms var(--ease-out, ease-out);
+  transition: background-color var(--sy-dur-hover) var(--sy-ease),
+    color var(--sy-dur-hover) var(--sy-ease);
+}
+
+/* Primary: ink fill. The gesture the audio lifecycle is waiting for. */
+.mint-open {
+  border: 1px solid var(--sy-text);
+  background: var(--sy-text);
+  color: var(--sy-on-primary);
+}
+
+.mint-open:hover:not(:disabled) {
+  background: #FFFFFF;
+  border-color: #FFFFFF;
 }
 
 .mint-open:disabled {
-  opacity: 0.6;
-  cursor: default;
+  cursor: progress;
 }
 
+.mint-open:not([aria-busy]):disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.mint-icon {
+  flex: none;
+  transition: transform var(--sy-dur-hover) var(--sy-ease);
+}
+
+.mint-open:hover:not(:disabled) .mint-icon:not(.mint-spinner) {
+  transform: translateX(2px);
+}
+
+.mint-spinner {
+  animation: mint-spin 800ms linear infinite;
+}
+
+@keyframes mint-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Ghost: the way out, never a second offer. */
 .mint-elsewhere {
-  min-height: 44px;
-  padding: 8px 16px;
-  font-family: var(--font-primary);
-  font-size: 0.875rem;
-  color: var(--color-fog);
-  background: none;
-  border: none;
-  cursor: pointer;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--sy-text-2);
+}
+
+.mint-elsewhere:hover {
+  color: var(--sy-text);
 }
 
 .mint-open:focus-visible,
 .mint-elsewhere:focus-visible {
-  outline: 2px solid var(--color-threshold);
-  outline-offset: 3px;
+  outline: var(--sy-focus);
+  outline-offset: 2px;
+}
+
+@media (max-width: 640px) {
+  .mint {
+    padding: var(--sy-space-7) var(--sy-space-4);
+  }
+
+  .mint-title {
+    font-size: 40px;
+    line-height: 42px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mint-icon,
+  .mint-open,
+  .mint-elsewhere {
+    transition: none;
+  }
+
+  .mint-spinner {
+    animation: none;
+  }
 }

@@ -2,10 +2,16 @@
    Spatial column: no flash clock; dim ground, literary serif. */
 
 .page-reader {
-  --page-measure: 34rem;          /* ~62-70 characters: the readable line */
-  --page-ink: var(--color-cloud);
-  --page-ink-strong: var(--color-light);
-  --page-ink-quiet: var(--color-mist);
+  /* The readable line: 32em of the reading face is about 75 characters,
+     inside the system's 68ch maximum. */
+  --page-measure: 32em;
+  --page-ink: var(--sy-text);
+  --page-ink-strong: var(--sy-text);
+  --page-ink-quiet: var(--sy-text-3);
+  /* em resolves against the element that uses the measure, so it is
+     counted in the reading face at the reading size. */
+  font-family: var(--sy-font-reading);
+  font-size: 22px;
 
   /* Host may grow with content; bound to viewport so overflow can scroll.
      Prefer dvh: vh on iOS is chrome-hidden height. */
@@ -17,29 +23,30 @@
   overflow-y: auto;
   overflow-x: hidden;
   overscroll-behavior: contain;
-  background: var(--color-void);
+  background: var(--sy-bg);
   /* momentum scrolling, and a scrollbar that does not shout */
   scrollbar-width: thin;
-  scrollbar-color: var(--color-shadow) transparent;
+  scrollbar-color: var(--sy-line) transparent;
 }
 
 .page-reader::-webkit-scrollbar { width: 10px; }
 .page-reader::-webkit-scrollbar-track { background: transparent; }
 .page-reader::-webkit-scrollbar-thumb {
-  background: var(--color-shadow);
-  border-radius: 6px;
-  border: 3px solid var(--color-void);
+  background: var(--sy-line);
+  border-radius: var(--sy-radius);
+  border: 3px solid var(--sy-bg);
 }
 
 .page-article {
   max-width: var(--page-measure);
   /* Optical nudge for hanging verse marks outside the measure. */
   margin: 0 auto 0 calc(50% - var(--page-measure) / 2 + 1.4rem);
-  padding: clamp(2rem, 6vh, 3.5rem) var(--space-lg) clamp(6rem, 22vh, 12rem);
+  padding: clamp(2rem, 6vh, 3.5rem) var(--sy-space-6) clamp(6rem, 22vh, 12rem);
   color: var(--page-ink);
-  font-family: var(--font-literary);
-  font-size: clamp(17px, 1.15vw + 14px, 20px);
-  line-height: 1.72;
+  font-family: var(--sy-font-reading);
+  font-size: 22px;
+  line-height: 34px;
+  font-weight: 400;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
 }
@@ -92,22 +99,28 @@
 }
 
 .page-title {
-  font-family: var(--font-display);
-  font-size: clamp(24px, 2.4vw, 34px);
-  font-weight: var(--font-weight-light);
-  letter-spacing: 0.06em;
+  font-family: var(--sy-font-serif);
+  font-size: 40px;
+  line-height: 44px;
+  font-weight: 400;
+  letter-spacing: -0.01em;
   color: var(--page-ink-strong);
-  margin: 0 0 0.4rem;
+  margin: 0;
+  text-wrap: balance;
 }
 .page-source {
-  font-size: 13px;
-  font-style: italic;
+  margin: var(--sy-space-3) 0 0;
+  font: 500 12px/16px var(--sy-font-mono);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
   color: var(--page-ink-quiet);
-  margin: 0;
 }
 
 /* ─── Text: the measure ─── */
 .page-text {
+  /* The reading style, not the shell's paragraph size. */
+  font-size: inherit;
+  line-height: inherit;
   /* Verses are a continuous scripture column, not a stack of islands:
      a modest gap keeps each verse legible as a unit while the chapter
      still reads as one body of prose. */
@@ -281,25 +294,21 @@
    the text it sits beside rather than centred like a plate's. */
 .page-wrap .page-figure-caption {
   text-align: left;
-  font-size: 11.5px;
 }
 .page-wrap.side-right .page-figure-caption { text-align: right; }
 
 .page-figure-caption {
-  margin-top: 0.6rem;
-  font-family: var(--font-literary);
-  font-size: 12.5px;
-  font-style: italic;
-  line-height: 1.5;
+  margin-top: var(--sy-space-2);
+  font-family: var(--sy-font-sans);
+  font-size: 14px;
+  line-height: 20px;
   color: var(--page-ink-quiet);
   text-align: center;
 }
 /* A CC-BY work's credit is an obligation, not decoration: it is never
    dimmed past legibility and never truncated by ellipsis. */
 .page-figure-caption.is-required-credit {
-  color: var(--color-fog);
-  font-style: normal;
-  font-size: 12px;
+  color: var(--sy-text-2);
 }
 
 /* ─── Responsive: the verse marks come inside on narrow screens ─── */
@@ -310,8 +319,12 @@
     max-width: none;
     margin-left: auto;
     margin-right: auto;
-    padding-left: var(--space-md);
-    padding-right: var(--space-md);
+    padding-left: var(--sy-space-4);
+    padding-right: var(--sy-space-4);
+  }
+  .page-title {
+    font-size: 32px;
+    line-height: 36px;
   }
   .page-verse {
     float: none;
@@ -367,22 +380,15 @@
   left: 0;
   right: 0;
   z-index: 2;
-  padding: clamp(0.7rem, 2.2vh, 1.1rem) var(--space-lg);
+  padding: var(--sy-space-4) var(--sy-space-6);
   text-align: center;
-  font-family: var(--font-display);
-  font-size: 11px;
-  letter-spacing: 0.2em;
+  font: 500 12px/16px var(--sy-font-mono);
+  letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--page-ink-quiet);
   pointer-events: none;
-  /* The column passes underneath, so the head needs the ground to stay
-     legible without becoming a bar. */
-  background: linear-gradient(
-    180deg,
-    var(--color-void) 0%,
-    var(--color-void) 55%,
-    transparent 100%
-  );
+  /* The column passes underneath, so the head holds the ground. */
+  background: var(--sy-bg);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -398,43 +404,45 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: var(--space-md);
-  padding: 6px 10px;
-  border-radius: 22px;
-  background: rgba(10, 10, 12, 0.82);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  border: 1px solid var(--color-shadow);
+  gap: 0;
+  padding: var(--sy-space-1);
+  border-radius: var(--sy-radius);
+  background: var(--sy-surface);
+  border: 1px solid var(--sy-line);
 }
 
 .page-pager-btn {
   background: transparent;
   border: 0;
-  color: var(--page-ink-quiet);
-  font-size: 14px;
-  line-height: 1;
-  padding: 8px 12px;
-  min-width: 40px;
-  min-height: 34px;
+  border-radius: var(--sy-radius);
+  color: var(--sy-text-2);
+  font: 500 16px/24px var(--sy-font-sans);
+  min-width: var(--sy-control-height);
+  min-height: var(--sy-control-height);
+  padding: 0;
   cursor: pointer;
-  transition: color 200ms var(--ease-default);
+  transition: color var(--sy-dur-hover) var(--sy-ease),
+    background-color var(--sy-dur-hover) var(--sy-ease);
 }
 
-.page-pager-btn:hover:not(:disabled) { color: var(--page-ink-strong); }
+.page-pager-btn:hover:not(:disabled) {
+  color: var(--sy-text);
+  background: var(--sy-surface-2);
+}
 
 /* A turn that cannot be taken is stated, not hidden: a reader at the
    last page should see that it is the last page. */
 .page-pager-btn:disabled {
-  opacity: 0.26;
-  cursor: default;
+  opacity: 0.4;
+  cursor: not-allowed;
 }
 
 .page-pager-count {
-  font-family: var(--font-mono);
-  font-size: 10px;
-  letter-spacing: 0.12em;
-  color: var(--page-ink-quiet);
-  min-width: 5ch;
+  font: 500 12px/16px var(--sy-font-mono);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.04em;
+  color: var(--sy-text-2);
+  min-width: 6ch;
   text-align: center;
 }
 
@@ -445,24 +453,21 @@
        room for furniture that is no longer in the flow. */
     padding-bottom: clamp(5rem, 14vh, 7rem);
   }
-  .page-runner { font-size: 9.5px; letter-spacing: 0.16em; }
+  .page-runner { padding-inline: var(--sy-space-4); }
   .page-pager {
     /* Measured: the Chamber's pill occupies the last 90px of the
        frame on a phone. 72 clears it with air rather than by a
        pixel. */
     bottom: calc(var(--space-xl) + 72px);
-    gap: var(--space-sm);
   }
-  .page-pager-count { font-size: 9.5px; }
 }
 
 /* Inline headings: centred air matching raised chapter marks. */
 .page-text.is-heading {
   margin-top: 2.4em;
   margin-bottom: 1.1em;
-  font-family: var(--font-display);
-  font-size: 0.82em;
-  letter-spacing: 0.14em;
+  font: 600 18px/28px var(--sy-font-sans);
+  letter-spacing: 0;
   color: var(--page-ink-strong);
   text-align: center;
   /* Balanced wrapping so a two-line heading breaks near its middle
