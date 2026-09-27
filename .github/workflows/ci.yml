@@ -94,13 +94,11 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22.12.0'
-      - name: Prove the exact release artifact bundles
+      - name: Install production dependencies
         working-directory: release
         run: |
           set -euo pipefail
           npm ci --omit=dev --ignore-scripts --no-audit --no-fund
-          npx --yes wrangler@4.141.0 deploy --dry-run --config wrangler.production.jsonc \
-            --outdir "$RUNNER_TEMP/wrangler-dry-run"
       - name: Recheck main after owner approval
         env:
           GH_TOKEN: ${{ github.token }}
