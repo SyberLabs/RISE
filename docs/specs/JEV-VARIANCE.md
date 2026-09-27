@@ -20,3 +20,22 @@ always take priority.
 The hard guarantee is book diversity for adjacent broad discovery turns. Jev
 may choose the same settings, or the same book for a specific request, when
 that best honors the reader's intent. The harness adds no second model call.
+
+## Visual sequence
+
+The same Jev request also chooses a visual arc: one, two, or three phases. For
+two phases, Jev chooses a change at 30%, 50%, or 70% of the reading. A three
+phase arc changes at 30% and 70%. Jev chooses a procedural visual engine for
+each phase from the Chamber's existing engines. The Worker turns those bounded
+choices into `config.visualProgram`, an ordered array of source-progress
+segments. It resolves repeated engine picks into distinct adjacent phases.
+The Chamber follows this program with its existing visual scheduler. Seeking,
+pausing, and resuming therefore keep visuals aligned with the text. Soundscape,
+text selection, pace, and layout remain one coherent reading plan.
+
+This follows TypeSafe's Choice and fan-out contracts: ask independent bounded
+questions in one request, then assemble the resulting choices into a validated
+plan in application code. The model never writes executable code, CSS, or the
+reading text. There is no streaming decision loop or per-phase model call.
+See https://docs.typesafe.ai/primitives/choice and
+https://docs.typesafe.ai/patterns/fan-out.

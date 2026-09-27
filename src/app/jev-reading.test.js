@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { getTextById } from '../content/library.js';
 import releaseInventory from '../content/archive/release-inventory.json' with { type: 'json' };
 import { jevPalette } from '../core/jev-palette.js';
+import { compileJevVisualProgram } from '../core/jev-sequence.js';
 import { resolveJevChamberConfig } from '../core/jev-config.js';
 import { resolveJevReading, selectJevDivision } from './jev-reading.js';
 
@@ -23,6 +24,8 @@ function decision(config = {}) {
     section: 'first', wpm: 200, curve: 'flat', chunkMode: 'phrase',
     audio: 'aurora', visualMode: 'focals', projection: 'stream',
     revealMode: 'instant', visualEngine: 'fractal', visualPalette: 'purple',
+    visualArc: 'single', arcSplit: '50', middleEngine: 'harmonograph',
+    finaleEngine: 'ostensoria',
     kleePreset: 'chaotic', galleryCadence: 'balanced',
     visualStyle: 'gentle', chamberFace: 'literary', fontSize: 'medium',
     wordFill: 'plain', colorTheme: 'classic', ...config
@@ -35,7 +38,8 @@ function decision(config = {}) {
     config: {
       ...selectors,
       colors: jevPalette(selectors.colorTheme),
-      ...resolveJevChamberConfig(selectors)
+      ...resolveJevChamberConfig(selectors),
+      visualProgram: compileJevVisualProgram(selectors)
     }
   };
 }
@@ -81,6 +85,18 @@ describe('Jev reading handoff', () => {
       .rejects.toThrow('invalid reading plan');
     for (const audio of ['focus', 'deep', 'gateway']) {
       await expect(resolveJevReading(decision({ audio })))
+      .rejects.toThrow('invalid reading plan');
+    }
+    for (const visualArc of ['quad', ''] ) {
+      await expect(resolveJevReading(decision({ visualArc })))
+        .rejects.toThrow('invalid reading plan');
+    }
+    for (const arcSplit of ['20', '40', '60', '80']) {
+      await expect(resolveJevReading(decision({ arcSplit })))
+        .rejects.toThrow('invalid reading plan');
+    }
+    for (const engineKey of ['middleEngine', 'finaleEngine']) {
+      await expect(resolveJevReading(decision({ [engineKey]: 'unknown' })))
         .rejects.toThrow('invalid reading plan');
     }
     await expect(resolveJevReading({ ...decision(), sourceRevision: 'other' }))
@@ -111,6 +127,21 @@ describe('Jev reading handoff', () => {
       }
     });
     expect(input.presentation.colors).toEqual(jevPalette('prism'));
+  });
+
+  it('attaches the validated helper-derived visual program', async () => {
+    const input = await resolveJevReading(decision({ visualArc: 'triple', arcSplit: '70' }));
+    const expected = decision({ visualArc: 'triple', arcSplit: '70' }).config;
+    expect(input.visualProgram).toEqual(compileJevVisualProgram(expected));
+    expect((await resolveJevReading(decision())).visualProgram).toBeNull();
+
+    const dual = await resolveJevReading(decision({ visualArc: 'dual', arcSplit: '70' }));
+    expect(dual.visualProgram.segments.map(segment => segment.match.toProgress))
+      .toEqual([0.7, 1]);
+
+    const missing = decision();
+    delete missing.config.visualProgram;
+    await expect(resolveJevReading(missing)).rejects.toThrow('invalid reading plan');
   });
 
   it('chooses a real division using the section enum', () => {

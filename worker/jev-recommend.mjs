@@ -3,6 +3,7 @@ import { Redis } from '@upstash/redis/cloudflare';
 import releaseInventory from '../src/content/archive/release-inventory.json' with { type: 'json' };
 import { jevPalette } from '../src/core/jev-palette.js';
 import { resolveJevChamberConfig } from '../src/core/jev-config.js';
+import { compileJevVisualProgram } from '../src/core/jev-sequence.js';
 import { buildJevVarianceHints, VARIATION_COUNT } from './jev-variance.mjs';
 
 const API_URL = 'https://openrouter.ai/api/alpha/decisions';
@@ -30,6 +31,30 @@ const CHOICES = Object.freeze({
     klee: 'Graphic Klee line art.', turrell: 'Soft atmospheric light.',
     fractal: 'Dense colorful fractal flames; the most psychedelic Gallery engine.',
     harmonograph: 'Fine harmonic line lattice.', ostensoria: 'Iridescent radial iris plate.',
+    apparitio: 'Prismatic spectral apparition.'
+  },
+  visualArc: {
+    single: 'Hold one visual style for the whole reading.',
+    dual: 'Use an opening and a finale visual style.',
+    triple: 'Use opening, middle, and finale visual styles.'
+  },
+  arcSplit: {
+    '30': 'Place the first change at 30% of the reading.',
+    '50': 'Place the first change at 50% of the reading.',
+    '70': 'Place the first change at 70% of the reading.'
+  },
+  middleEngine: {
+    klee: 'Graphic Klee line art.', turrell: 'Soft atmospheric light.',
+    fractal: 'Dense colorful fractal flames.',
+    harmonograph: 'Fine harmonic line lattice.',
+    ostensoria: 'Iridescent radial iris plate.',
+    apparitio: 'Prismatic spectral apparition.'
+  },
+  finaleEngine: {
+    klee: 'Graphic Klee line art.', turrell: 'Soft atmospheric light.',
+    fractal: 'Dense colorful fractal flames.',
+    harmonograph: 'Fine harmonic line lattice.',
+    ostensoria: 'Iridescent radial iris plate.',
     apparitio: 'Prismatic spectral apparition.'
   },
   visualPalette: {
@@ -172,16 +197,18 @@ async function decisionCacheKey(intent, books, apiKey) {
     { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
   const input = JSON.stringify({ model: MODEL, intent, books });
   const signature = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(input));
-  return `rise:jev-decision:v6:${Array.from(new Uint8Array(signature),
+  return `rise:jev-decision:v7:${Array.from(new Uint8Array(signature),
     byte => byte.toString(16).padStart(2, '0')).join('')}`;
 }
 
 function validConfig(config) {
   if (!config || typeof config !== 'object' || Array.isArray(config)
-    || Object.keys(config).length !== 26
+    || Object.keys(config).length !== 31
     || !Number.isInteger(config.wpm) || !Object.hasOwn(CHOICES.pace, String(config.wpm))) return null;
   const fields = { section: 'section', curve: 'curve', chunkMode: 'chunk', audio: 'audio',
-    visualMode: 'visual', visualStyle: 'visualStyle', visualEngine: 'visualEngine', visualPalette: 'visualPalette',
+    visualMode: 'visual', visualStyle: 'visualStyle', visualEngine: 'visualEngine',
+    visualArc: 'visualArc', arcSplit: 'arcSplit', middleEngine: 'middleEngine', finaleEngine: 'finaleEngine',
+    visualPalette: 'visualPalette',
     kleePreset: 'kleePreset', galleryCadence: 'galleryCadence',
     chamberFace: 'chamberFace', fontSize: 'fontSize',
     colorTheme: 'colorTheme', wordFill: 'wordFill',
@@ -196,10 +223,14 @@ function validConfig(config) {
     || config.visualEngine !== 'fractal' || config.projection !== 'stream'
     || config.colorTheme !== 'prism' || config.galleryCadence !== 'lively')) return null;
   if (config.visualStyle === 'immersive' && config.projection !== 'stream') return null;
+  if (config.visualMode === 'off' && config.visualArc !== 'single') return null;
+  if (config.visualArc !== 'single' && config.visualMode !== 'interlocution') return null;
   if (['genesis', 'attractor', 'interlocution'].includes(config.visualMode)
     && config.projection !== 'stream') return null;
   if (config.fontSize === 'fit' && config.chunkMode !== 'word') return null;
   const resolved = resolveJevChamberConfig(config);
+  const visualProgram = compileJevVisualProgram(config);
+  if (config.visualArc !== 'single' && !visualProgram) return null;
   if (config.audioPreset !== resolved.audioPreset
     || config.soundscape !== resolved.soundscape
     || config.entrainmentMode !== resolved.entrainmentMode
@@ -208,7 +239,8 @@ function validConfig(config) {
     || config.voiceId !== resolved.voiceId
     || config.projection !== resolved.projection
     || JSON.stringify(config.visualConfig) !== JSON.stringify(resolved.visualConfig)
-    || JSON.stringify(config.presentation) !== JSON.stringify(resolved.presentation)) return null;
+    || JSON.stringify(config.presentation) !== JSON.stringify(resolved.presentation)
+    || JSON.stringify(config.visualProgram) !== JSON.stringify(visualProgram)) return null;
   return config;
 }
 
@@ -225,6 +257,10 @@ function choiceConfig(answers) {
     audio: answers.audio.choice, visualMode: answers.visual.choice,
     visualStyle: answers.visualStyle.choice,
     visualEngine: answers.visualEngine.choice,
+    visualArc: answers.visualArc.choice,
+    arcSplit: answers.arcSplit.choice,
+    middleEngine: answers.middleEngine.choice,
+    finaleEngine: answers.finaleEngine.choice,
     visualPalette: answers.visualPalette.choice,
     kleePreset: answers.kleePreset.choice,
     galleryCadence: answers.galleryCadence.choice,
@@ -246,13 +282,21 @@ function choiceConfig(answers) {
     || ['genesis', 'attractor', 'interlocution'].includes(config.visualMode)) {
     config.projection = 'stream';
   }
+  // A sequence needs the continuous Gallery host. An explicit no-visual
+  // choice stays dark even if an independent arc answer requested phases.
+  if (config.visualMode === 'off') config.visualArc = 'single';
+  else if (config.visualArc !== 'single') {
+    config.visualMode = 'interlocution';
+    config.projection = 'stream';
+  }
   if (config.wordFill === 'same' && (config.visualMode !== 'interlocution'
     || config.chamberFace !== 'thick' || config.fontSize !== 'fit'
     || config.chunkMode !== 'word')) config.wordFill = 'accent';
   if (config.fontSize === 'fit' && config.chunkMode !== 'word') config.fontSize = 'large';
   config.colors = jevPalette(config.colorTheme);
   Object.assign(config, resolveJevChamberConfig(config));
-  return config;
+  config.visualProgram = compileJevVisualProgram(config);
+  return validConfig(config);
 }
 
 function validCachedDecision(value, books) {
@@ -336,7 +380,7 @@ export async function handleJevRecommend(request, env) {
   let hints;
   try {
     const baseKey = await decisionCacheKey(intent, books, env.OPENROUTER_API_KEY);
-    const turnKey = baseKey.replace('rise:jev-decision:v6:', 'rise:jev-turn:v1:');
+    const turnKey = baseKey.replace('rise:jev-decision:v7:', 'rise:jev-turn:v1:');
     const nextTurn = await redis.incr(turnKey);
     if (!Number.isSafeInteger(nextTurn) || nextTurn < 1) throw new Error('Invalid Jev turn');
     if (nextTurn === 1) await redis.expire(turnKey, 86400);
