@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { LIBRARY_TEXTS } from '../content/library.js';
 import { Library } from './Library.js';
-import { jevPalette } from '../core/jev-palette.js';
+import { jevColors } from '../core/jev-palette.js';
 import { resolveJevChamberConfig } from '../core/jev-config.js';
 import { compileJevVisualProgram } from '../core/jev-sequence.js';
 
@@ -31,17 +31,18 @@ function response(overrides = {}) {
     middleEngine: 'turrell', finaleEngine: 'fractal',
     visualPalette: 'white', kleePreset: 'random', galleryCadence: 'balanced',
     chamberFace: 'literary', fontSize: 'medium', colorTheme: 'classic',
+    textColor: 'classic', backgroundColor: 'classic',
     wordFill: 'plain', projection: 'stream', revealMode: 'instant'
   };
   return {
-    schemaVersion: 1,
+    schemaVersion: 2,
     requestId: 'request-1',
     model: 'typesafe/jev-1.13-20260917',
     workId: book.id,
     editionId: book.editionId,
     sourceRevision: book.sourceRevision,
     reason: 'A reflective classical work.',
-    config: { ...selectors, colors: jevPalette(selectors.colorTheme),
+    config: { ...selectors, colors: jevColors(selectors.colorTheme, selectors.textColor, selectors.backgroundColor),
       ...resolveJevChamberConfig(selectors),
       visualProgram: compileJevVisualProgram(selectors) },
     cacheStatus: 'miss',
@@ -50,6 +51,12 @@ function response(overrides = {}) {
 }
 
 describe('Jev recommendation in the reader-facing Library', () => {
+  it('offers microphone dictation beside its editable Jev request', () => {
+    const form = mount();
+    expect(form.querySelector('[data-jev-dictate]')).not.toBeNull();
+    expect(form.querySelector('[data-jev-dictation-status]')).not.toBeNull();
+    expect(form.textContent).toMatch(/browser.s speech service/i);
+  });
   it('asks Jev from a home-page intent and carries reader choices to the selected text', async () => {
     const fetch = vi.fn().mockResolvedValue({ ok: true, json: async () => response() });
     const selected = vi.fn();
@@ -64,7 +71,7 @@ describe('Jev recommendation in the reader-facing Library', () => {
     });
 
     await vi.waitFor(() => expect(fetch).toHaveBeenCalledWith('/api/jev-recommend',
-      expect.objectContaining({ body: JSON.stringify({ intent: 'A reflective classic' }) })));
+      expect.objectContaining({ body: JSON.stringify({ intent: 'A reflective classic', schemaVersion: 2 }) })));
     await vi.waitFor(() => expect(container.querySelector('.library-jev-choice h4')?.textContent)
       .toBe(book.title));
     library.onSelectText('A selected passage', book.title, { wpm: 200, verseLines: true });
@@ -85,7 +92,7 @@ describe('Jev recommendation in the reader-facing Library', () => {
 
     expect(fetch).toHaveBeenCalledWith('/api/jev-recommend', expect.objectContaining({
       method: 'POST',
-      body: JSON.stringify({ intent: 'I want a reflective classic' })
+      body: JSON.stringify({ intent: 'I want a reflective classic', schemaVersion: 2 })
     }));
     expect(container.querySelector('.library-jev-choice h4').textContent).toBe(book.title);
     container.querySelector('[data-action="open-jev"]').click();
@@ -123,7 +130,7 @@ describe('Jev recommendation in the reader-facing Library', () => {
   it('rejects a malformed or unsupported JSON plan before showing an open action', async () => {
     const form = mount();
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
-      ok: true, json: async () => response({ schemaVersion: 2 })
+      ok: true, json: async () => response({ schemaVersion: 3 })
     }));
     form.elements.intent.value = 'A reflective classic';
     await library.recommendWithJev(form);

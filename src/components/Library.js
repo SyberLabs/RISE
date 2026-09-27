@@ -17,6 +17,7 @@ import { MemoryCore } from '../core/memory.js';
 import { LocalWorks } from '../core/local-work-store.js';
 import { localWorkRuntime } from '../core/local-works.js';
 import { Admit } from './Admit.js';
+import { attachJevDictation } from './jev-dictation.js';
 import './Library.css';
 
 /**
@@ -107,6 +108,7 @@ export class Library {
 
     this.render();
     this.attachEvents();
+    this.attachJevDictation();
     this.refreshLocalWorks();
     if (this.jevIntent) {
       void this.recommendWithJev(this.container.querySelector('[data-jev-form]'));
@@ -245,8 +247,11 @@ export class Library {
               <input id="library-jev-intent" name="intent" type="text" minlength="3" maxlength="240" required
                 value="${escapeHtml(this.jevIntent)}"
                 placeholder="A thoughtful book about change and courage">
+              <button class="library-jev-dictate" data-jev-dictate type="button" aria-label="Speak your Jev request" aria-pressed="false">🎙 Speak</button>
               <button class="btn-primary" type="submit">Ask Jev</button>
             </div>
+            <p class="library-jev-voice-note">Voice input may use your browser’s speech service. Review the text before asking Jev.</p>
+            <span data-jev-dictation-status role="status" aria-live="polite"></span>
           </form>
           <div class="library-jev-result" data-jev-result aria-live="polite">
             ${this.renderJevRecommendation()}
@@ -313,7 +318,7 @@ export class Library {
       const response = await fetch('/api/jev-recommend', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ intent }),
+        body: JSON.stringify({ intent, schemaVersion: 2 }),
         signal: controller.signal
       });
       const data = await response.json();
@@ -702,6 +707,7 @@ export class Library {
   }
 
   updateContent() {
+    this.stopJevDictation?.();
     const content = this.container.querySelector('#library-content');
     if (content) {
       content.innerHTML = this.renderSection(this.currentSection);
@@ -709,7 +715,13 @@ export class Library {
       if (this.currentSection === 'personal') {
         this.attachFileUploadEvents();
       }
+      this.attachJevDictation();
     }
+  }
+
+  attachJevDictation() {
+    const form = this.container.querySelector('[data-jev-form]');
+    this.stopJevDictation = form ? attachJevDictation(form) : null;
   }
 
   updateActiveNav() {
@@ -1082,16 +1094,20 @@ export class Library {
   activate() {
     if (this._active) return;
     this._active = true;
+    if (!this.stopJevDictation) this.attachJevDictation();
     document.addEventListener('keydown', this.boundKeyboardHandler);
   }
 
   deactivate() {
     if (!this._active) return;
     this._active = false;
+    this.stopJevDictation?.();
+    this.stopJevDictation = null;
     document.removeEventListener('keydown', this.boundKeyboardHandler);
   }
 
   destroy() {
+    this.stopJevDictation?.();
     this.jevAbort?.abort();
     this.deactivate();
   }

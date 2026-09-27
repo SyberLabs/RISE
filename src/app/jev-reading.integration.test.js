@@ -1,6 +1,6 @@
 import { expect, it } from 'vitest';
 import releaseInventory from '../content/archive/release-inventory.json' with { type: 'json' };
-import { jevPalette } from '../core/jev-palette.js';
+import { jevColors, jevPalette } from '../core/jev-palette.js';
 import { resolveJevChamberConfig } from '../core/jev-config.js';
 import { compileJevVisualProgram } from '../core/jev-sequence.js';
 import { resolveJevReading } from './jev-reading.js';
@@ -17,11 +17,12 @@ it('opens an existing playable division for every released book and section choi
         visualArc: 'single', arcSplit: '50', middleEngine: 'harmonograph',
         finaleEngine: 'ostensoria',
         galleryCadence: 'balanced', chamberFace: 'literary', fontSize: 'medium',
-        wordFill: 'plain', colorTheme: 'classic',
+        wordFill: 'plain', colorTheme: 'classic', textColor: 'classic',
+        backgroundColor: 'classic',
         projection: 'stream', revealMode: 'instant'
       };
       const input = await resolveJevReading({
-        schemaVersion: 1, requestId: 'integration-decision',
+        schemaVersion: 2, requestId: 'integration-decision',
         model: 'typesafe/jev-1.13', reason: 'A reviewed catalog description.',
         workId: released.workId,
         editionId: released.editionId,
@@ -46,16 +47,17 @@ it('compiles a psychedelic Jev plan into a visible, scoped Chamber session', asy
     visualArc: 'triple', arcSplit: '70', middleEngine: 'harmonograph',
     finaleEngine: 'ostensoria',
     galleryCadence: 'lively', chamberFace: 'thick', fontSize: 'fit',
-    wordFill: 'same', colorTheme: 'prism',
+    wordFill: 'same', colorTheme: 'prism', textColor: 'prism',
+    backgroundColor: 'prism',
     projection: 'stream', revealMode: 'progressive'
   };
   const input = await resolveJevReading({
-    schemaVersion: 1, requestId: 'integration-decision',
+    schemaVersion: 2, requestId: 'integration-decision',
     model: 'typesafe/jev-1.13', reason: 'A reviewed catalog description.',
     workId: released.workId,
     editionId: released.editionId,
     sourceRevision: released.sourceRevision,
-    config: { ...selectors, colors: jevPalette('prism'),
+    config: { ...selectors, colors: jevColors('prism', 'prism', 'prism'),
       ...resolveJevChamberConfig(selectors),
       visualProgram: compileJevVisualProgram(selectors) }
   });
@@ -71,7 +73,7 @@ it('compiles a psychedelic Jev plan into a visible, scoped Chamber session', asy
   });
   expect(session.presentation).toMatchObject({
     chamberFace: 'thick', fontSize: 'fit', colorTheme: 'prism',
-    colors: jevPalette('prism')
+    colors: jevColors('prism', 'prism', 'prism')
   });
   expect(session.soundscape).toBe('aurora');
   expect(session.visualProgram.segments.map(segment => segment.match.toProgress))

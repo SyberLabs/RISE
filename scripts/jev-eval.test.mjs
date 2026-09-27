@@ -58,3 +58,16 @@ test('rejects unexpected answer keys', () => {
   ], { pace: ['150'], audio: ['silent'] });
   assert.equal(result.invalid, 1);
 });
+
+test('look evaluation covers independent colors, type, audio, and visuals in contrast pairs', () => {
+  const fixtures = JSON.parse(readFileSync(new URL('./jev-eval-look-cases.json', import.meta.url)));
+  const options = JSON.parse(readFileSync(new URL('./jev-eval-look-options.json', import.meta.url)));
+  assert.equal(fixtures.length, 8);
+  assert.deepEqual(fixtures.map(item => item.group),
+    ['ink', 'ink', 'ground', 'ground', 'type', 'type', 'senses', 'senses']);
+  for (const item of fixtures) {
+    for (const [axis, values] of Object.entries(item.expect)) {
+      assert.ok(values.length && values.every(value => options[axis]?.includes(value)));
+    }
+  }
+});

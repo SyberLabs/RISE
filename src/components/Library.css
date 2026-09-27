@@ -127,6 +127,18 @@
   font: inherit;
 }
 .library-jev button:disabled { opacity: 0.5; }
+.library-jev-dictate {
+  padding: 0 12px;
+  border: 1px solid rgba(var(--color-accent-rgb), 0.55);
+  border-radius: var(--radius-sm);
+  background: rgba(var(--color-accent-rgb), 0.09);
+  color: var(--color-light);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.library-jev-dictate[aria-pressed="true"] { background: rgba(var(--color-accent-rgb), 0.28); }
+.library-jev-dictate:disabled { cursor: not-allowed; }
+.library-jev-voice-note, .library-jev [data-jev-dictation-status] { font-size: 12px; color: var(--color-fog); }
 .library-jev-result:not(:empty) { margin-top: var(--space-lg); }
 .library-jev-choice { display: grid; gap: var(--space-xs); }
 .library-jev-kicker { color: var(--color-threshold); text-transform: uppercase; letter-spacing: 0.12em; }

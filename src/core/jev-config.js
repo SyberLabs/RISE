@@ -1,4 +1,4 @@
-import { jevPalette } from './jev-palette.js';
+import { jevColors } from './jev-palette.js';
 
 export const JEV_AUDIO_IDS = Object.freeze([
   'aurora', 'faded-signal', 'soft-rain', 'sad', 'angry', 'happy', 'excited', 'thrilling', 'scary', 'piano', 'jazz'
@@ -52,7 +52,10 @@ export function resolveJevChamberConfig(plan) {
       chamberFace: plan.chamberFace,
       fontSize,
       colorTheme,
-      colors: jevPalette(colorTheme)
+      textColor: plan.textColor ?? colorTheme,
+      backgroundColor: plan.backgroundColor ?? colorTheme,
+      colors: jevColors(colorTheme, plan.textColor ?? colorTheme,
+        plan.backgroundColor ?? colorTheme)
     },
     projection: visualMode === 'off' && plan.visualStyle !== 'immersive'
       ? plan.projection : 'stream'

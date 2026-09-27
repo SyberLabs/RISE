@@ -15,6 +15,21 @@ It sends the typed composition intent and target word count to TypeSafe using
 a key supplied for that action, to choose among composition formats. It is an
 authoring choice, not a reading gate.
 
+## Jev reading recommendation candidate
+
+The Portal and Library send a reader's short request to `/api/jev-recommend`.
+Its versioned JSON chooses an admitted edition and a bounded Chamber plan.
+The presentation choices include font face and size, separate `textColor` and
+`backgroundColor` selectors, an accent motif, visual style and scene arc, and
+an audio bed. The Worker resolves color names to shipped values; the browser
+validates the complete plan before opening the reading. Model output cannot
+provide CSS or arbitrary media URLs. The reader can change the look and sound
+during the session or restore Jev's generated choices. Browser speech input
+fills the editable request field and never submits it automatically.
+
+This describes the candidate source. Live provider quality and public release
+acceptance require separate verification.
+
 ## Historical verification
 
 The following results describe the prior implementation and are not validation

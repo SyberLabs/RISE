@@ -25,7 +25,7 @@ it('asks Jev once and launches the returned reading without opening another room
 
   expect(provider).toHaveBeenCalledOnce();
   expect(provider).toHaveBeenCalledWith('/api/jev-recommend', expect.objectContaining({
-    method: 'POST', body: JSON.stringify({ intent: 'A reflective classic' })
+    method: 'POST', body: JSON.stringify({ intent: 'A reflective classic', schemaVersion: 2 })
   }));
   expect(navigate).not.toHaveBeenCalled();
   portal.destroy();
@@ -42,5 +42,16 @@ it('does not launch a reading when Jev returns an error', async () => {
   container.querySelector('#portal-jev-form').dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
   await vi.waitFor(() => expect(container.querySelector('#portal-jev-hint').textContent).toBe('Unavailable'));
   expect(launch).not.toHaveBeenCalled();
+  portal.destroy();
+});
+
+it('offers microphone dictation beside the editable Jev request', () => {
+  const container = document.createElement('div');
+  document.body.appendChild(container);
+  const portal = new Portal(container);
+  const form = container.querySelector('#portal-jev-form');
+  expect(form.querySelector('[data-jev-dictate]')).not.toBeNull();
+  expect(form.querySelector('[data-jev-dictation-status]')).not.toBeNull();
+  expect(form.textContent).toMatch(/browser.s speech service/i);
   portal.destroy();
 });
