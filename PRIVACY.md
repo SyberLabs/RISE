@@ -19,10 +19,30 @@ endpoint has been confirmed.
 If you press **Speak**, your browser may use its speech service to turn your
 voice into editable text. RISE does not receive the microphone audio.
 
+Create also has an optional hosted writing service, currently disabled. When
+enabled, submitting a thought and optional detail sends them through RISE and
+OpenRouter to Darkbloom, which runs the Qwen writer. A revision sends the selected
+piece and revision instruction. RISE does not persist those inputs or generated
+prose in its server content store. The providers receive the submitted content;
+browser-local storage does not mean inference happens locally. Provider retention
+and privacy practices must be reviewed before enabling this service.
+
+Keep stores the generated piece in this browser; it does not store the original
+thought, detail, or revision instruction. Generated prose can itself contain
+sensitive information. Text and project exports are files you deliberately save.
+Import and playback do not call the writer.
+
+For this service, RISE uses Redis for attempt counters and content-free request
+identifiers. A daily keyed hash of an IP address (an IPv6 /64 network prefix for
+IPv6) provides rate-limit friction. The raw address and writing are not stored in
+these records. Counters expire after 48 hours; request identifiers are retained
+indefinitely to prevent duplicate dispatch. Hosting still processes network
+addresses. Cancelled or failed attempts may count against the writing limit.
+
 We do not use cookies. We do not use analytics. We do not track you across
 sites or across visits. We have no accounts, so we do not know who you are. We
 do not sell personal information. Network processing occurs for hosting,
-external resources you request, and the optional decision actions described below.
+external resources you request, optional Create writing, and the optional decision actions described below.
 
 Scriptorium also has separate optional model routing. It sends the typed
 composition intent and target word count through RISE's same-origin API. Model

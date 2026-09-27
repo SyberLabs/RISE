@@ -180,7 +180,9 @@ describe('App safety orchestration', () => {
     });
 
     const launchA = app.handleCreateSession(input('A'));
+    await vi.waitFor(() => expect(navigations).toHaveLength(1));
     const launchB = app.handleCreateSession(input('B'));
+    await vi.waitFor(() => expect(navigations).toHaveLength(2));
     const launchC = app.handleCreateSession(input('C'));
     await vi.waitFor(() => expect(navigations).toHaveLength(3));
 
@@ -210,7 +212,9 @@ describe('App safety orchestration', () => {
     });
 
     const launchA = app.handleCreateSession(input('A'));
+    await vi.waitFor(() => expect(navigations).toHaveLength(1));
     const launchB = app.handleCreateSession(input('B'));
+    await vi.waitFor(() => expect(navigations).toHaveLength(2));
     const launchC = app.handleCreateSession(input('C'));
     await vi.waitFor(() => expect(navigations).toHaveLength(3));
     navigations[1].resolve(false);
@@ -249,7 +253,8 @@ describe('App safety orchestration', () => {
 
     expect(await launchA).toBe(false);
     expect(await launchB).toBe(true);
-    expect(update).toHaveBeenCalledWith(app.currentSession);
+    expect(router.getViewInstance('chamber-session').initialData).toBe(app.currentSession);
+    expect(update).not.toHaveBeenCalled(); // The superseded instance was disposed.
     expect(app.currentSession.sources[0].id).toBe('B');
     router.destroy();
     chamber.remove();

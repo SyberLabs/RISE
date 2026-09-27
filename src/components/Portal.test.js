@@ -116,19 +116,19 @@ describe('Portal', () => {
         container.remove();
     });
 
-    it('header nav is Library, Sequences, Compose and a labelled Settings button', () => {
+    it('header nav is Create, Library, Sequences, Compose and a labelled Settings button', () => {
         const { portal, container, onNavigate } = makePortal();
         const nav = container.querySelector('.sl-header .portal-nav');
         const links = [...nav.querySelectorAll('[data-nav]')];
-        expect(links.map(el => el.textContent.trim())).toEqual(['Library', 'Sequences', 'Compose']);
-        expect(links.map(el => el.dataset.nav)).toEqual(['library', 'vault', 'workshop']);
+        expect(links.map(el => el.textContent.trim())).toEqual(['Create', 'Library', 'Sequences', 'Compose']);
+        expect(links.map(el => el.dataset.nav)).toEqual(['create', 'library', 'vault', 'workshop']);
         const settings = nav.querySelector('[data-action="settings"]');
         expect(settings.getAttribute('aria-label')).toBe('Settings');
         const opened = vi.fn();
         window.addEventListener('rise-open-settings', opened, { once: true });
         settings.click();
         expect(opened).toHaveBeenCalledOnce();
-        links[1].click();
+        links[2].click();
         expect(onNavigate).toHaveBeenCalledWith('vault');
         portal.destroy();
         container.remove();

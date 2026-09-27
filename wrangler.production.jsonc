@@ -4,6 +4,9 @@
   "compatibility_date": "2026-09-26",
   "workers_dev": false,
   "preview_urls": false,
+  // Optional pilot remains off. Provision PERSONAL_PIECE_IP_SECRET as a Worker
+  // secret (at least 32 characters) before activation; never put its value here.
+  "vars": { "PERSONAL_PIECE_ENABLED": "false" },
   // rise.syberlabs.io is attached to this Worker in the Cloudflare dashboard.
   "observability": { "enabled": true },
   "assets": {
