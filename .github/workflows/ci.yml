@@ -23,6 +23,11 @@ jobs:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
+          sparse-checkout: |
+            /*
+            !/public/audio/recitation/
+          sparse-checkout-cone-mode: false
+      - run: test ! -e public/audio/recitation
       - uses: ./.github/actions/setup
       - name: Fast release checks
         run: |
