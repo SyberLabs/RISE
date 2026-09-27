@@ -119,6 +119,7 @@ history, not a distinction; read the status column instead.
 | Document | Status | What it is |
 | --- | --- | --- |
 | [jev-core/service.md](jev-core/service.md) | Contract | Optional same-origin OpenRouter decision endpoint used by the explicit Jev preview. |
+| [jev-core/variety-evaluation.md](jev-core/variety-evaluation.md) | Record | Jev prompt-variety baseline, bounded evaluation method, and local candidate evidence. |
 | [jev-core/README.md](jev-core/README.md) | Historical record | Removed Chamber gate, prior verification evidence, and live-provider caveat. |
 
 ## Conventions

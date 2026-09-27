@@ -890,6 +890,10 @@ export class ChamberOrbital {
                   <span class="preset-icon">◌</span>
                   <span class="preset-label">Faded Signal</span>
                 </button>
+                <button class="audio-preset-option ${this.config.soundscape === 'soft-rain' ? 'active' : ''}" data-soundscape="soft-rain">
+                  <span class="preset-icon">≋</span>
+                  <span class="preset-label">Soft Rain</span>
+                </button>
                 <!-- Chant is Chapel-exclusive: recorded sacred music
                      belongs to the room built for it, not to ambient
                      texture under arbitrary text — the same scoping
@@ -1229,7 +1233,7 @@ export class ChamberOrbital {
 
     if (hasSoundscape) {
       const labels = {
-        aurora: 'Aurora', 'faded-signal': 'Faded Signal',
+        aurora: 'Aurora', 'faded-signal': 'Faded Signal', 'soft-rain': 'Soft Rain',
         'chant-gregorian': 'Gregorian', 'chant-znamenny': 'Znamenny'
       };
       const scape = labels[this.config.soundscape] || this.capitalizeFirst(this.config.soundscape);

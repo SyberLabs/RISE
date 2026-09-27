@@ -708,6 +708,7 @@
 .vnav-opt[data-face-sample="literary"] { font-family: var(--font-literary); }
 .vnav-opt[data-face-sample="display"]  { font-family: var(--font-display); }
 .vnav-opt[data-face-sample="thick"]    { font-family: var(--font-stream-thick); font-weight: 700; }
+.vnav-opt[data-face-sample="mono"]     { font-family: var(--font-mono); }
 .vnav-opt[data-face-sample="jp"]       { font-family: var(--font-jp); }
 
 .vnav-preview-type {
@@ -739,6 +740,7 @@
 .vnav-preview-type[data-face-sample="literary"] .vnav-preview-sample { font-family: var(--font-literary); }
 .vnav-preview-type[data-face-sample="display"]  .vnav-preview-sample { font-family: var(--font-display); }
 .vnav-preview-type[data-face-sample="thick"]    .vnav-preview-sample { font-family: var(--font-stream-thick); font-weight: 700; }
+.vnav-preview-type[data-face-sample="mono"]     .vnav-preview-sample { font-family: var(--font-mono); }
 .vnav-preview-type[data-face-sample="jp"]       .vnav-preview-sample { font-family: var(--font-jp); }
 
 

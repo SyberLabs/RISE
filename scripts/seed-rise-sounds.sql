@@ -9,6 +9,7 @@ CREATE TABLE IF NOT EXISTS rise_sounds (
 INSERT INTO rise_sounds (sound_id, decision_criterion, active) VALUES
   ('aurora', 'Soft, spacious harmonics for calm, hopeful, or reflective reading.', TRUE),
   ('faded-signal', 'Weathered, nostalgic ambience for memory or bittersweet reflection.', TRUE),
+  ('soft-rain', 'Locally synthesized unpitched rain for a rainy, sheltered, or nature-focused reading.', TRUE),
   ('sad', 'Slow minor harmony for grief, loneliness, or melancholy.', TRUE),
   ('angry', 'Tense, rough harmony for anger, conflict, or defiance.', TRUE),
   ('happy', 'Warm major harmony for joy, ease, or celebration.', TRUE),

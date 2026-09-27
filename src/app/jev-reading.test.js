@@ -31,6 +31,10 @@ function decision(config = {}) {
     wordFill: 'plain', colorTheme: 'classic', ...config
   };
   return {
+    schemaVersion: 1,
+    requestId: 'test-decision',
+    model: 'typesafe/jev-1.13',
+    reason: 'A reviewed catalog description.',
     workId: released.workId,
     editionId: released.editionId,
     sourceRevision: released.sourceRevision,
@@ -59,6 +63,12 @@ beforeEach(() => {
 });
 
 describe('Jev reading handoff', () => {
+  it('admits Soft Rain as a local soundscape', async () => {
+    const input = await resolveJevReading(decision({ audio: 'soft-rain' }));
+    expect(input.soundscape).toBe('soft-rain');
+    expect(input.audioPreset).toBe('silent');
+  });
+
   it('selects the exact released source and maps enums to Chamber input', async () => {
     const input = await resolveJevReading(decision());
     expect(input.text).toBe('The first source text.');
@@ -82,6 +92,8 @@ describe('Jev reading handoff', () => {
   });
 
   it('rejects unknown options and changed edition identity', async () => {
+    await expect(resolveJevReading({ ...decision(), schemaVersion: 2 }))
+      .rejects.toThrow('invalid reading plan');
     await expect(resolveJevReading(decision({ chunkMode: 'script' })))
       .rejects.toThrow('invalid reading plan');
     for (const audio of ['focus', 'deep', 'gateway']) {

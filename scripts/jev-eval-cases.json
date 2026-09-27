@@ -1,0 +1,18 @@
+[
+  { "id": "rest-slow", "group": "pace", "intent": "I need a very slow, restful reading tonight.", "expect": { "pace": ["100", "150"] } },
+  { "id": "sprint-fast", "group": "pace", "intent": "Make this a fast, energetic reading. I only have five minutes.", "expect": { "pace": ["300", "400", "500"] } },
+  { "id": "silence", "group": "audio", "intent": "Read in complete silence. No music or soundscape.", "expect": { "audio": ["silent"] } },
+  { "id": "soundscape", "group": "audio", "intent": "Give me a soft atmospheric soundscape under the words.", "expect": { "audio": ["aurora", "faded-signal"] } },
+  { "id": "spare", "group": "visual", "intent": "Keep the screen still and spare. No moving visuals.", "expect": { "visualMode": ["off", "focals"], "visualStyle": ["quiet", "gentle"] } },
+  { "id": "prismatic", "group": "visual", "intent": "I want vivid psychedelic color and an immersive moving visual field, without flashes.", "expect": { "visualMode": ["interlocution", "attractor"], "visualStyle": ["psychedelic"] } },
+  { "id": "literary", "group": "font", "intent": "Use a calm literary serif face, like a book page.", "expect": { "chamberFace": ["literary"] } },
+  { "id": "bold", "group": "font", "intent": "Give me strong bold geometric lettering that commands the screen.", "expect": { "chamberFace": ["thick"] } },
+  { "id": "compact", "group": "size", "intent": "Keep the words small and unobtrusive on screen.", "expect": { "fontSize": ["small"] } },
+  { "id": "large", "group": "size", "intent": "Make the text large and easy to read from across the room.", "expect": { "fontSize": ["large", "fit"] } },
+  { "id": "quiet-combined", "group": "combined", "intent": "Slow words, a literary serif, small type, complete silence, and no moving pictures.", "expect": { "pace": ["100", "150"], "audio": ["silent"], "chamberFace": ["literary"], "fontSize": ["small"], "visualMode": ["off", "focals"] } },
+    { "id": "vivid-combined", "group": "combined", "intent": "Fast phrases, bold large type, an atmospheric soundscape, and vivid psychedelic visuals.", "expect": { "pace": ["300", "400", "500"], "audio": ["aurora", "faded-signal", "soft-rain", "excited"], "chamberFace": ["thick"], "fontSize": ["large", "fit"], "visualMode": ["interlocution", "attractor"] } },
+  { "id": "rain", "group": "sound-kind", "intent": "I want gentle steady rain behind the reading, like sitting indoors during a storm.", "expect": { "audio": ["soft-rain"] } },
+  { "id": "electronic", "group": "sound-kind", "intent": "Give me the eerie, fading electronic signal soundscape, with no rain.", "expect": { "audio": ["faded-signal"] } },
+  { "id": "monospaced", "group": "font-kind", "intent": "Use monospaced type like a code editor or typewriter.", "expect": { "chamberFace": ["mono"] } },
+  { "id": "book-serif", "group": "font-kind", "intent": "Use a traditional literary serif like a printed book, not monospace.", "expect": { "chamberFace": ["literary"] } }
+]

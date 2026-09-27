@@ -15,6 +15,9 @@ describe('Jev variance hints', () => {
     expect(new Set(hints.map(hint => hint.variation.focusWorkId))).toEqual(new Set(books.map(book => book.work_id)));
     expect(new Set(hints.map(hint => hint.variation.directionIndex)).size).toBe(8);
     expect(new Set(hints.map(hint => hint.configHint)).size).toBe(8);
+    expect(new Set(hints.map(hint => hint.configHint.match(/pace=(\d+)/u)?.[1])).size).toBeGreaterThan(1);
+    expect(new Set(hints.map(hint => hint.configHint.match(/audio=([\w-]+)/u)?.[1])).size).toBeGreaterThan(1);
+    expect(new Set(hints.map(hint => hint.configHint.match(/chamberFace=(\w+)/u)?.[1])).size).toBeGreaterThan(1);
     expect(new Set(hints.map(hint => hint.variation.sectionHint)))
       .toEqual(new Set(['first', 'middle', 'last', 'shortest', 'longest']));
   });
@@ -49,5 +52,7 @@ describe('Jev variance hints', () => {
     expect(hint.bookHint).toContain('reader\'s intent always take priority');
     expect(hint.configHint).toContain('Explicit reader preferences always take priority');
     expect(hint.configHint).toContain('select only offered values');
+    const specific = buildJevVarianceHints({ books, intent: 'I want large text, silence, and a slow pace', turn: 3 });
+    expect(specific.configHint).not.toContain('visualStyle=');
   });
 });

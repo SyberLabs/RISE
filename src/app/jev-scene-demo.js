@@ -16,6 +16,10 @@ export function sampleJevSceneDecision() {
     wordFill: 'plain', projection: 'stream', revealMode: 'instant'
   };
   return {
+    schemaVersion: 1,
+    requestId: 'jev-scene-sample',
+    model: 'typesafe/jev-1.13',
+    reason: 'A disclosed sample of a released Middlemarch reading.',
     workId: released.workId,
     editionId: released.editionId,
     sourceRevision: released.sourceRevision,
