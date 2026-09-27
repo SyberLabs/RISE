@@ -28,6 +28,15 @@ export function createRouteManifest(operations) {
       })
     },
     {
+      id: 'short-sequences',
+      containerId: 'view-short-sequences',
+      load: () => import('../components/ShortSequences.js'),
+      create: (container, _data, { ShortSequences }) => new ShortSequences(container, {
+        onNavigate: operations.handleNavigate,
+        onBeginSession: operations.handleBeginSession
+      })
+    },
+    {
       id: 'mint',
       containerId: 'view-mint',
       load: () => import('../components/Mint.js'),

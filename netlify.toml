@@ -42,6 +42,13 @@
   status = 200
   force = true
 
+# Keep links to the original static preview working.
+[[redirects]]
+  from = "/sequences/*"
+  to = "/short-sequences/"
+  status = 301
+  force = true
+
 # SPA routing - redirect all requests to index.html
 [[redirects]]
   from = "/*"

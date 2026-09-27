@@ -77,7 +77,7 @@ describe('Portal', () => {
         const { portal, container, onNavigate } = makePortal();
 
         const sequencePreview = container.querySelector('.portal-sequence-preview');
-        expect(sequencePreview.getAttribute('href')).toBe('/sequences/');
+        expect(sequencePreview.getAttribute('href')).toBe('/short-sequences/');
 
         const primary = [...container.querySelectorAll('.nav-primary .nav-item')]
             .map(el => el.dataset.nav);

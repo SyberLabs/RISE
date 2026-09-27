@@ -30,6 +30,18 @@ describe('leaving a reading opened from try-rise', () => {
     });
 });
 
+describe('leaving a short sequence', () => {
+    it('returns to its selected reading and only opens reflection after completion', () => {
+        const session = { origin: { view: 'short-sequences', sequenceId: 'focus' } };
+        expect(chamberExitTarget('exit', session)).toEqual({
+            kind: 'navigate', view: 'short-sequences',
+            data: { sequenceId: 'focus', completed: false }, replaceUrl: true
+        });
+        session.shortSequenceCompleted = true;
+        expect(chamberExitTarget('close', session).data.completed).toBe(true);
+    });
+});
+
 describe('every other surface leaves exactly as it did', () => {
     it('sends a Library reading back to the orbital prep screen', () => {
         for (const reason of LEAVING) {

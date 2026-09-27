@@ -286,6 +286,7 @@ class App {
         const { keystoneSlugFromPath } = await import('./content/keystones.js');
         const directKeystone = keystoneSlugFromPath(window.location.pathname);
         const directTryRise = isTryRisePath(window.location.pathname);
+        const directShortSequences = /^\/short-sequences\/?$/u.test(window.location.pathname);
         // A minted sequence is the same kind of public entry point. TWO
         // QUESTIONS, NOT ONE: whether this is a mint URL at all, and which
         // mint it names. A printed code outlives the sequence it names, so
@@ -325,6 +326,8 @@ class App {
             await this.router.navigate('keystones', { data: { slug: directKeystone } });
         } else if (directTryRise) {
             await this.router.navigate('keystones');
+        } else if (directShortSequences) {
+            await this.router.navigate('short-sequences');
         } else if (mintedSlug) {
             await this.router.navigate('mint', { data: { entry: houseProgram(mintedSlug) } });
         } else if (options.personalizedVault) {
@@ -550,6 +553,12 @@ class App {
         }
         if (viewName === 'portal'
             && /^\/(?:try-rise|keystone(?:\/|$))/u.test(window.location.pathname)) {
+            window.history.pushState({}, '', '/');
+        }
+        if (viewName === 'short-sequences' && !/^\/short-sequences\/?$/u.test(window.location.pathname)) {
+            window.history[replaceUrl ? 'replaceState' : 'pushState']({}, '', '/short-sequences/');
+        }
+        if (viewName === 'portal' && /^\/short-sequences\/?$/u.test(window.location.pathname)) {
             window.history.pushState({}, '', '/');
         }
         // Returned so a caller can wait for the outgoing view to have

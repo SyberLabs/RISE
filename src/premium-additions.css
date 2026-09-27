@@ -405,6 +405,8 @@
   width: 100%;
 }
 
+.post-stats[hidden], .post-btn-recursion[hidden] { display: none; }
+
 .post-stat {
   display: flex;
   flex-direction: column;

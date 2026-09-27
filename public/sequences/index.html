@@ -3,65 +3,9 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="color-scheme" content="light">
+    <meta http-equiv="refresh" content="0;url=/short-sequences/">
     <title>Short sequences · RISE</title>
-    <link rel="stylesheet" href="./style.css">
-    <script type="module" src="./app.js"></script>
+    <script>location.replace('/short-sequences/')</script>
   </head>
-  <body>
-    <a class="skip-link" href="#main">Skip to content</a>
-    <div class="shell">
-      <header class="site-header">
-        <a class="brand" href="/">✦ RISE <span>/ short sequences</span></a>
-        <span class="preview-label">ORIGINAL READING PREVIEW</span>
-      </header>
-      <main id="main" tabindex="-1">
-        <section id="choice-screen" class="screen" aria-labelledby="choice-title">
-          <p class="eyebrow">A minute with a purpose</p>
-          <h1 id="choice-title">Leave with one next step.</h1>
-          <p class="lead">Choose what you need. Read the whole short sequence, write one thing you will do, and take it with you. Your words stay in this browser tab unless you copy them.</p>
-          <div id="legacy-record" class="legacy-record" hidden>
-            <p>An earlier preview saved reading records on this device.</p>
-            <button id="erase-legacy" type="button" class="text-button">Erase old preview records</button>
-            <p id="legacy-status" role="status"></p>
-          </div>
-          <div id="sequence-cards" class="cards" aria-label="Choose a short sequence"></div>
-        </section>
-        <section id="read-screen" class="screen" aria-labelledby="read-title" hidden>
-          <button id="back-choice" type="button" class="text-button">← Choose another</button>
-          <article class="reading-card">
-            <p class="eyebrow">A short reading</p>
-            <h1 id="read-title"></h1>
-            <p id="read-promise" class="reading-promise"></p>
-            <div id="steps" class="steps"></div>
-            <form id="next-step-form" class="next-step-form">
-              <label for="next-step-input">My next step</label>
-              <p>Make it small enough to do today. Nothing is saved or sent.</p>
-              <textarea id="next-step-input" rows="2" maxlength="240" required placeholder="I will…"></textarea>
-              <button class="primary" type="submit">Keep my next step →</button>
-            </form>
-            <details class="source-note"><summary>About this text</summary><p id="source-credit"></p></details>
-          </article>
-        </section>
-        <section id="finish-screen" class="screen" aria-labelledby="finish-title" hidden>
-          <p class="eyebrow">Your next step</p>
-          <h1 id="finish-title">Take this with you.</h1>
-          <div class="takeaway"><p id="takeaway-text"></p></div>
-          <div class="finish-actions">
-            <button id="copy-step" type="button" class="primary">Copy my next step</button>
-            <button id="back-reading" type="button" class="secondary">Edit it</button>
-          </div>
-          <p id="copy-status" role="status" class="muted"></p>
-          <div id="next-card" class="next-card" hidden>
-            <p class="eyebrow">If you want another</p>
-            <h2 id="next-title"></h2>
-            <p id="next-promise"></p>
-            <button id="start-next" type="button" class="text-button">Read another →</button>
-          </div>
-          <button id="all-sequences" type="button" class="text-button">See all sequences</button>
-        </section>
-      </main>
-      <footer><span>Original preview text · no account · no background tracking</span><a href="/">Return to RISE</a></footer>
-    </div>
-  </body>
+  <body><p>The short sequences have moved. <a href="/short-sequences/">Enter the reading</a>.</p></body>
 </html>

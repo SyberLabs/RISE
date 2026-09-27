@@ -602,10 +602,10 @@ export class Chamber {
             </div>
 
             <!-- Eyebrow + Title -->
-            <p class="post-eyebrow">Session Closed</p>
-            <h2 class="post-complete-title">Complete</h2>
+            <p class="post-eyebrow">${this.session?.origin?.view === 'short-sequences' ? 'THE READING ENDS' : 'Session Closed'}</p>
+            <h2 class="post-complete-title">${this.session?.origin?.view === 'short-sequences' ? 'What will you carry?' : 'Complete'}</h2>
 
-            <div class="post-stats">
+            <div class="post-stats" ${this.session?.origin?.view === 'short-sequences' ? 'hidden' : ''}>
               <div class="post-stat">
                 <span class="post-stat-value" id="post-atoms">0</span>
                 <span class="post-stat-label">Atoms</span>
@@ -624,16 +624,16 @@ export class Chamber {
               </button>` : ''}
               <button class="post-btn-return" id="post-return-chamber">
                 <span class="post-btn-icon">←</span>
-                Return
+                ${this.session?.origin?.view === 'short-sequences' ? 'Choose a next step' : 'Return'}
               </button>
-              <button class="post-btn-recursion" id="post-recursion">
+              <button class="post-btn-recursion" id="post-recursion" ${this.session?.origin?.view === 'short-sequences' ? 'hidden' : ''}>
                 <span class="post-btn-icon-recursion">↻</span>
                 Recursion
               </button>
             </div>
 
             <!-- Subtle bottom inscription -->
-            <p class="post-inscription">The pattern persists. Begin again or carry it forward.</p>
+            <p class="post-inscription">${this.session?.origin?.view === 'short-sequences' ? 'Take one small action into the day.' : 'The pattern persists. Begin again or carry it forward.'}</p>
 
           </div>
           
@@ -3196,6 +3196,7 @@ export class Chamber {
   }
 
   onSessionComplete() {
+    if (this.session?.origin?.view === 'short-sequences') this.session.shortSequenceCompleted = true;
     const display = this.container.querySelector('#chamber-display');
     const postSession = this.container.querySelector('#chamber-post');
 

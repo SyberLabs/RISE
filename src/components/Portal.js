@@ -156,8 +156,8 @@ export class Portal {
           <p class="portal-jev-hint" id="portal-jev-hint" role="status" aria-live="polite">Jev chooses from the released Library and sets the Chamber in one request.</p>
         </form>
 
-        <a class="portal-sequence-preview" href="/sequences/">
-          <span><strong>Try short sequences</strong><small>Read for a minute · leave with one next step</small></span>
+        <a class="portal-sequence-preview" href="/short-sequences/">
+          <span><strong>Try short sequences</strong><small>Experience a short reading · carry one next step</small></span>
           <span aria-hidden="true">→</span>
         </a>
 
