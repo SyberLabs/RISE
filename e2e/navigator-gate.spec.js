@@ -18,7 +18,8 @@ async function openNavigator(page, { withText }) {
     }, { gate: GATE, seed: SEED, withText });
     await page.goto('/');
     await page.locator('[data-nav="chamber"]').first().click();
-    await expect(page.locator('[data-orbit="visual"]')).toBeVisible({ timeout: 20_000 });
+    await expect(page.locator('[data-action="toggle-adjust"]')).toBeVisible({ timeout: 20_000 });
+    { const adjust = page.locator('[data-action="toggle-adjust"]'); if (await adjust.getAttribute('aria-expanded') === 'false') await adjust.click(); }
     await page.locator('[data-orbit="visual"]').click();
     await expect(page.locator('.vnav')).toBeVisible({ timeout: 10_000 });
 }

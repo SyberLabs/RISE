@@ -106,14 +106,15 @@ describe('Chamber accent allowlist', () => {
             expect(css).toContain(`[data-accent="${id}"]`);
             expect(css).toContain(CHAMBER_ACCENT_TOKENS[id]['--color-accent']);
         }
-        // A chosen setting still shows the sitting rather than a frozen colour;
-        // the chip carries it now, not the dot the chip replaced. Asserted
-        // where it lives — the panel's own stylesheet.
+        // A chosen setting wears the SyberLabs selection signal (brand), not
+        // the product accent: the accent is an identity marker, and the swatch
+        // chips already show each sitting's own hue. Asserted where it lives —
+        // the panel's own stylesheet.
         const panel = readFileSync(
             join(dirname(fileURLToPath(import.meta.url)), '..', 'components', 'Settings.css'),
             'utf8'
         );
-        expect(panel).toMatch(/\.settings \.radio:has\(input:checked\)\s*\{[^}]*--color-accent-rgb/s);
+        expect(panel).toMatch(/\.settings \.radio:has\(input:checked\)\s*\{[^}]*--sy-brand/s);
     });
 
     it('keeps --color-threshold on the same hex as --color-accent for every allowlisted id', () => {
@@ -133,46 +134,46 @@ describe('Chamber accent allowlist', () => {
         }
     });
 
-    it('tints primary and Begin Session hover from the sitting accent, not leftover purple', () => {
+    it('keeps the primary button neutral, not an accent or leftover purple', () => {
         const root = join(dirname(fileURLToPath(import.meta.url)), '..');
         const system = readFileSync(join(root, 'design-system.css'), 'utf8');
-        const orbital = readFileSync(join(root, 'components', 'ChamberOrbital.css'), 'utf8');
         const primaryHover = system.match(/\.btn-primary:hover:not\(:disabled\)\s*\{[^}]+\}/);
-        const largeHover = orbital.match(/\.btn-large:hover\s*\{[^}]+\}/);
         expect(primaryHover, '.btn-primary:hover').toBeTruthy();
-        expect(largeHover, '.btn-large:hover').toBeTruthy();
         expect(system).not.toMatch(/#9d91e0/i);
-        expect(primaryHover[0]).toMatch(/--color-accent/);
-        expect(largeHover[0]).toMatch(/--color-accent/);
-        expect(largeHover[0]).not.toMatch(/background:\s*var\(--color-light\)/);
-        expect(largeHover[0]).not.toMatch(/232,\s*232,\s*236/);
+        // SyberLabs: the primary button is ink, never an accent fill; the
+        // accent is an identity marker only.
+        expect(primaryHover[0]).not.toMatch(/--color-accent/);
     });
 
-    it('tints the orbital center ring a lighter accent than the satellite orbs', () => {
+    it('gives the reader setup one neutral primary and the RISE marker as its only accent', () => {
         const css = readFileSync(
             join(dirname(fileURLToPath(import.meta.url)), '..', 'components', 'ChamberOrbital.css'),
             'utf8'
         );
-        const center = css.match(/\.orbit-center\s*\{[^}]+\}/);
-        const orbs = css.match(/\.orbit-node\s*\{[^}]+\}/);
-        expect(center, '.orbit-center').toBeTruthy();
-        expect(orbs, '.orbit-node').toBeTruthy();
-        expect(orbs[0]).toMatch(/border:[^;]*var\(--color-accent\)/);
-        expect(center[0]).toMatch(/border:[^;]*color-mix\(in srgb,\s*var\(--color-accent\)/);
-        expect(center[0]).toMatch(/color-mix\(in srgb,\s*var\(--color-accent\)[^;]*var\(--color-light\)/);
-        expect(center[0]).not.toMatch(/border:\s*3px\s+solid\s+var\(--color-light\)/);
-        expect(center[0]).not.toMatch(/232,\s*232,\s*236/);
+        const begin = css.match(/\.btn-large\s*\{[^}]+\}/);
+        const beginHover = css.match(/\.btn-large:hover:not\(:disabled\)\s*\{[^}]+\}/);
+        const mark = css.match(/\.stance-option\.active \.stance-mark\s*\{[^}]+\}/);
+        expect(begin, '.btn-large').toBeTruthy();
+        expect(beginHover, '.btn-large:hover').toBeTruthy();
+        expect(mark, '.stance-option.active .stance-mark').toBeTruthy();
+        expect(begin[0]).toMatch(/background:\s*var\(--rs-text\)/);
+        expect(begin[0]).not.toMatch(/box-shadow/);
+        expect(beginHover[0]).toMatch(/#FFFFFF/i);
+        expect(css).toMatch(/--rs-accent:\s*#E4D2AE/i);
+        expect(mark[0]).toMatch(/var\(--rs-accent\)/);
     });
 
-    it('tints the Portal wordmark from the sitting accent', () => {
+    it('marks Home with the RISE accent as a dot, not a tinted title', () => {
         const css = readFileSync(
             join(dirname(fileURLToPath(import.meta.url)), '..', 'components', 'Portal.css'),
             'utf8'
         );
         const title = css.match(/\.portal-title\s*\{[^}]+\}/);
         expect(title, '.portal-title').toBeTruthy();
-        expect(title[0]).toMatch(/color:\s*var\(--color-accent\)/);
-        expect(title[0]).not.toMatch(/color:\s*var\(--color-light\)/);
+        expect(title[0]).toMatch(/color:\s*var\(--sy-text\)/);
+        const dot = css.match(/\.portal-dot\s*\{[^}]+\}/);
+        expect(dot[0]).toMatch(/width:\s*8px/);
+        expect(dot[0]).toMatch(/background:\s*var\(--sy-accent-rise\)/);
     });
 
     it('does not leave the purple rgb triple as a chrome wash outside the purple token', () => {
@@ -234,18 +235,19 @@ describe('the accent carries a legible ink for full fills', () => {
         }
     });
 
-    it('the filled primary button inks with --color-on-accent, not glow', () => {
-        // .btn-primary fills with --color-threshold (the sitting). White
-        // (--color-glow) on ivory cream is about 1.4:1. --color-on-accent
-        // exists for exactly this pairing.
+    it('the filled primary button is ink with the on-primary label, never an accent fill', () => {
+        // SyberLabs primary: fill text (#F2F5FB), label on-primary (#05060A),
+        // about 18:1. Every .btn-primary block in the system agrees.
         const css = readFileSync(
             join(dirname(fileURLToPath(import.meta.url)), '..', 'design-system.css'), 'utf8');
-        const filled = [...css.matchAll(/\.btn-primary\s*\{[^}]+\}/g)]
-            .map(match => match[0])
-            .find(block => /background:\s*var\(--color-threshold\)/.test(block));
-        expect(filled, 'the threshold-filled .btn-primary block').toBeTruthy();
-        expect(filled).toMatch(/color:\s*var\(--color-on-accent\)/);
-        expect(filled).not.toMatch(/color:\s*var\(--color-glow\)/);
+        const blocks = [...css.matchAll(/\.btn-primary\s*\{[^}]+\}/g)].map(match => match[0]);
+        expect(blocks.length).toBeGreaterThan(0);
+        for (const block of blocks) {
+            expect(block).toMatch(/background:\s*var\(--sy-text\)/);
+            expect(block).toMatch(/color:\s*var\(--sy-on-primary\)/);
+            expect(block).not.toMatch(/--color-threshold|--color-accent/);
+        }
+        expect(contrast('#05060A', '#F2F5FB')).toBeGreaterThanOrEqual(7);
     });
 
     it('every sitting clears AA on that filled button', () => {
@@ -275,12 +277,9 @@ describe('the accent carries a legible ink for full fills', () => {
         expect(css).toContain('--accent-wash: rgba(var(--color-accent-rgb)');
     });
 
-    it('the Portal hero bevel travels with the accent, not a frozen purple', () => {
+    it('Home carries no frozen purple', () => {
         const portal = readFileSync(
             join(dirname(fileURLToPath(import.meta.url)), '..', 'components', 'Portal.css'), 'utf8');
-        const hero = portal.match(/\.portal-nav \.nav-primary \.nav-item\s*\{[^}]+\}/);
-        expect(hero, '.nav-primary .nav-item').toBeTruthy();
-        expect(hero[0]).toMatch(/var\(--color-accent-rgb\)/);
         // No lavender literal survives anywhere in the Portal's chrome.
         expect(portal).not.toMatch(/1(?:39|60|40|20),\s*(?:127|145|125|110),\s*(?:180|200|160)/);
     });
@@ -313,44 +312,6 @@ describe('the colourway dresses the whole cluster', () => {
     for (const id of Object.keys(CHAMBER_ACCENT_TOKENS)) {
       expect(css, id).toContain(`:root[data-accent="${id}"]`);
     }
-  });
-
-  it('the Portal buttons read from the surface tokens, not frozen slate', () => {
-    const portal = read('components/Portal.css');
-    const tile = portal.match(/\.portal-nav \.nav-item\s*\{[^}]+\}/)[0];
-    expect(tile).toMatch(/background:\s*\n?\s*linear-gradient\(180deg,\s*\n?\s*var\(--btn-top\)/);
-    expect(tile).toMatch(/color:\s*var\(--btn-ink\)/);
-    // The old frozen slate gradient is gone from the tile.
-    expect(tile).not.toMatch(/rgba\(42, 42, 48/);
-  });
-
-  it('the actual Try RISE seal carries the sitting accent and a legible ink', () => {
-    // The seal is LIT BY the accent, not filled with it. It was a solid
-    // --color-accent disc, which is why its ink was --color-on-accent: the
-    // dark ink that token exists to guarantee against a light accent fill.
-    // The seal's body is now slate and the accent enters as rim, glow, and
-    // gradient — so that same dark ink would sink into it, and the ink is
-    // light instead. The invariant the old spelling protected is unchanged
-    // and still asserted here: the circle tracks the sitting, and its ink is
-    // legible on it.
-    //
-    // Legibility is no longer INFERRED from a token name. The seal renders
-    // in all ten sittings in e2e/portal-hit-test.spec.js, where the real
-    // composited contrast is measured against the lightest pixel under the
-    // label (worst case 5.91:1; AA is 4.5). That is a measurement, where
-    // this can only ever be a spelling check.
-    const portal = read('components/Portal.css');
-    const circle = portal.match(/\.portal-nav \.nav-secondary \.nav-try\s*\{[^}]+\}/)[0];
-    // Lit by the sitting: illumination, rim, and halo all read the accent.
-    expect(circle).toMatch(/background:[^;]*rgba\(var\(--color-accent-rgb\)/s);
-    expect(circle).toMatch(/border:[^;]*rgba\(var\(--color-accent-rgb\)/s);
-    expect(circle).toMatch(/box-shadow:[^;]*rgba\(var\(--color-accent-rgb\)/s);
-    // Light ink, over a body that really is slate-dominant.
-    expect(circle).toMatch(/color:\s*var\(--color-light\)/);
-    expect(circle).toMatch(/linear-gradient\([^;]*rgba\(20, 25, 30/s);
-    // The mark still carries the sitting rather than a frozen colour.
-    expect(portal).toMatch(/\.nav-try \.try-mark\s*\{[^}]*var\(--color-accent\)/s);
-    expect(portal).not.toMatch(/\.nav-try\s*\{[^}]*rgba\(48, 48, 56/s);
   });
 
   it('the new sittings clear WCAG AA for their chosen ink', () => {

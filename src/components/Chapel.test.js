@@ -186,20 +186,13 @@ describe('the doorway (seam)', () => {
   const routeManifestSource = readFileSync(resolve('src/app/route-manifest.js'), 'utf8');
   const indexHtml = readFileSync(resolve('index.html'), 'utf8');
 
-  it('the sanctuary lamp is the only entrance: portal has it, the nav row does not', () => {
-    expect(portalSource).toMatch(/portal-chapel-lamp[^>]*data-nav="chapel"/s);
-    // The nav row (nav-primary/nav-secondary) must never gain a chapel item
+  it('Home keeps a labelled Chapel door outside the header nav', () => {
+    expect(portalSource).toMatch(/portal-footer-link[^>]*data-nav="chapel"[^>]*>Chapel</s);
     const navBlock = portalSource.slice(
-      portalSource.indexOf('class="nav-primary"'),
+      portalSource.indexOf('class="portal-nav"'),
       portalSource.indexOf('</nav>')
     );
     expect(navBlock).not.toContain('chapel');
-  });
-
-  it('the chapel door is a portal orb styled with the sitting accent', () => {
-    const portalCss = readFileSync(resolve('src/components/Portal.css'), 'utf8');
-    expect(portalCss).toMatch(/\.portal-orb\s*\{[^}]*--color-accent/s);
-    expect(portalCss).toMatch(/\.portal-orb\.portal-chapel-lamp\s*\{[^}]*right:/s);
     expect(chapelCss).not.toMatch(/\.portal-chapel-lamp\s*\{/);
   });
 

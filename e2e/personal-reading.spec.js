@@ -114,7 +114,11 @@ test('missing Vault chunk cannot reload away an unkept draft', async ({ page }) 
   await page.getByLabel('Your thought', { exact: true }).fill('One thought');
   await page.getByRole('button', { name: 'Write a piece', exact: true }).click();
   await expect(page.locator('[data-title]')).toHaveText('Unkept');
+  // Wait for the router to refuse the missing chunk and restore Create; a Keep
+  // pressed before then belongs to the navigation it would race.
+  const refused = page.waitForEvent('console', message => message.text().includes('Navigation to "vault" failed'));
   await page.getByRole('button', { name: 'Vault', exact: true }).click();
+  await refused;
   await expect(page.locator('[data-text]')).toBeVisible();
   await page.getByRole('button', { name: 'Keep', exact: true }).click();
   await expect(page.locator('[data-status]')).toContainText('Kept');

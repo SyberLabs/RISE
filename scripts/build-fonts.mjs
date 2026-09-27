@@ -26,7 +26,7 @@
  * (Hiragino Mincho ProN, Yu Mincho, Noto Serif CJK) — every desktop and mobile
  * OS ships a CJK serif.
  *
- * All six families are SIL Open Font License 1.1, which permits this. The
+ * All seven families are SIL Open Font License 1.1, which permits this. The
  * licence obligation travels in ASSET-LICENSES.md.
  *
  *   node scripts/build-fonts.mjs           fetch, write files and CSS
@@ -57,7 +57,10 @@ const FAMILIES = [
     { name: 'Space Grotesk', spec: 'Space+Grotesk:wght@300;500;700' },
     { name: 'Crimson Pro', spec: 'Crimson+Pro:ital,wght@0,400;0,600;1,400' },
     { name: 'Marcellus', spec: 'Marcellus' },
-    { name: 'JetBrains Mono', spec: 'JetBrains+Mono:wght@400;500' }
+    { name: 'JetBrains Mono', spec: 'JetBrains+Mono:wght@400;500' },
+    // SyberLabs design system: interface sans and display serif.
+    { name: 'Instrument Sans', spec: 'Instrument+Sans:wght@400;500;600' },
+    { name: 'Instrument Serif', spec: 'Instrument+Serif' }
 ];
 
 /**

@@ -228,7 +228,7 @@ export class Curia {
             <div class="curia">
                 <div class="curia-scroll">
                     <header class="curia-header">
-                        <button class="curia-back" data-nav="portal">← Portal</button>
+                        <button class="curia-back" data-nav="portal">← Home</button>
                         <h1>The Curia</h1>
                         <p class="curia-sub">The visual canon, governed. Every work each category can
                         serve — live search and pins alike — with the verbs the audits proved:

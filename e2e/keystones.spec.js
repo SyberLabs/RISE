@@ -78,9 +78,10 @@ for (const [device, viewport] of [
 test('Keystone corridor has durable cold, reload, launch, and Back behavior', async ({ page }) => {
   await authorize(page);
   await page.goto('/');
-  await expect(page.locator('[data-nav="keystones"]')).toBeVisible({ timeout: 15_000 });
+  await expect(page.locator('.portal-first-read')).toBeVisible({ timeout: 15_000 });
 
-  await page.locator('[data-nav="keystones"]').click();
+  // Home no longer carries a Try RISE door; the corridor is its own URL.
+  await page.goto('/try-rise');
   await expect(page).toHaveURL(/\/try-rise$/u);
 
   // The corridor opens on Transformation, centred and expanded; the other
@@ -177,7 +178,7 @@ test('Keystone corridor has durable cold, reload, launch, and Back behavior', as
   // rather than resuming wherever the last visit left it.
   await page.locator('[data-nav="portal"]').click();
   await expect(page).toHaveURL(/\/$/u);
-  await page.locator('[data-nav="keystones"]').first().click();
+  await page.goto('/try-rise');
   await expect(page).toHaveURL(/\/try-rise$/u);
   await expect(page.locator('#keystone-metamorphoses')).toHaveAttribute('data-pos', '0');
 

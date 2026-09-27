@@ -22,7 +22,6 @@ export function createRouteManifest(operations) {
       create: (container, data, { Portal }) => new Portal(container, {
         demoMode: data?.demoMode === true,
         onNavigate: operations.handleNavigate,
-        onQuickAccess: operations.quickAccess,
         onLaunchJevReading: operations.launchJevReading,
         onLaunchJevSample: operations.launchJevSample,
         onLaunchFirstRead: operations.launchFirstRead,

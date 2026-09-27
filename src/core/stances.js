@@ -94,7 +94,7 @@ export const STANCES = Object.freeze([
     Object.freeze({
         id: 'contemplate',
         name: 'Contemplate',
-        line: 'One held focal, an unhurried pace, a soundscape.',
+        line: 'One held image, an unhurried pace, a soundscape.',
         config: Object.freeze({
             visualInterlocution: Object.freeze({ visualMode: 'focals' }),
             wpm: 140,

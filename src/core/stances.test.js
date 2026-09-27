@@ -90,6 +90,11 @@ describe('what each stance sets', () => {
         expect(config.soundscape).toBe('aurora');
     });
 
+    it('describes Contemplate in plain words', () => {
+        expect(STANCES.find((s) => s.id === 'contemplate').line)
+            .toBe('One held image, an unhurried pace, a soundscape.');
+    });
+
     it('paces every stance on the step the Chamber slider can express', () => {
         // The Orbital's pacing slider is min 100, max 500, step 10. A stance
         // landing between steps would be a posture the reader cannot return to

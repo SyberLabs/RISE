@@ -132,7 +132,7 @@ export class Library {
           <div class="library-title-section">
             <button class="btn-ghost" data-action="back">
               <span class="icon">←</span>
-              <span>Portal</span>
+              <span>Home</span>
             </button>
             <h1>Library</h1>
           </div>
@@ -247,7 +247,7 @@ export class Library {
               <input id="library-jev-intent" name="intent" type="text" minlength="3" maxlength="240" required
                 value="${escapeHtml(this.jevIntent)}"
                 placeholder="A thoughtful book about change and courage">
-              <button class="library-jev-dictate" data-jev-dictate type="button" aria-label="Speak your Jev request" aria-pressed="false">🎙 Speak</button>
+              <button class="library-jev-dictate" data-jev-dictate="icon" type="button" aria-label="Speak your Jev request" aria-pressed="false"></button>
               <button class="btn-primary" type="submit">Ask Jev</button>
             </div>
             <p class="library-jev-voice-note">Voice input may use your browser’s speech service. Review the text before asking Jev.</p>

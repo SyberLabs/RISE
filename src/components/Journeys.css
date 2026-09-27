@@ -57,7 +57,7 @@
 }
 
 .journey-sub {
-  font-size: 0.72rem;
+  font-size: 0.75rem;
   letter-spacing: 0.16em;
   text-transform: uppercase;
   margin: var(--space-xs) 0 0;
@@ -81,7 +81,7 @@
 }
 .journey-claims dt {
   font-family: var(--font-mono);
-  font-size: 0.68rem;
+  font-size: 0.75rem;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   white-space: nowrap;
@@ -107,7 +107,7 @@
   align-items: start;
 }
 .journey-movement-index {
-  font-size: 0.72rem;
+  font-size: 0.75rem;
   color: var(--color-mist);
   padding-top: 0.2rem;
 }

@@ -1,4 +1,4 @@
-import { test, expect } from './fixtures.js';
+import { test, expect, openHomeNav } from './fixtures.js';
 
 const GATE = { code: 'rise2025', name: 'Shelves', vault: null, timestamp: Date.now() };
 
@@ -8,7 +8,7 @@ test('Received and Composed stay separate; Received forms are ordered', async ({
     localStorage.setItem('rise-beta-session', JSON.stringify(g));
   }, GATE);
   await page.goto('/');
-  await page.locator('[data-nav="library"]').first().click();
+  await openHomeNav(page, 'library');
   await expect(page.locator('[data-filter="received"]')).toBeVisible({ timeout: 15000 });
 
   const filters = await page.locator('.section-filters .filter-btn')
@@ -47,7 +47,7 @@ async function openLibrary(page) {
     localStorage.setItem('rise-beta-session', JSON.stringify(g));
   }, GATE);
   await page.goto('/');
-  await page.locator('[data-nav="library"]').first().click();
+  await openHomeNav(page, 'library');
   await expect(page.locator('[data-filter="received"]')).toBeVisible({ timeout: 15000 });
 }
 
