@@ -56,3 +56,18 @@ test('the old URL forwards and old records can be erased', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 780 });
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 });
+
+test('a reader can hold and resume a line at phone width', async ({ page }) => {
+  await authorize(page);
+  await page.setViewportSize({ width: 390, height: 780 });
+  await page.goto('/short-sequences/');
+  await page.getByRole('button', { name: /Enter the reading/ }).click();
+  await expect(page.locator('#atom-display')).not.toBeEmpty({ timeout: 30000 });
+  const keep = page.getByRole('button', { name: 'Keep this line' });
+  await expect(keep).toBeInViewport();
+  await keep.click();
+  await expect(page.getByRole('button', { name: 'Continue reading' })).toBeInViewport();
+  await expect(page.getByText('Stay with this line as long as you like.')).toBeInViewport();
+  await page.getByRole('button', { name: 'Continue reading' }).click();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+});
