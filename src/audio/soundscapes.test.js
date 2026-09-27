@@ -104,6 +104,36 @@ describe('soundscapes', () => {
         expect(new Set(signatures).size).toBe(6);
     });
 
+    it.each(['piano', 'jazz'])('plays a repeating %s composition and stops its scheduler', id => {
+        const { ctx, oscillators } = makeMockContext();
+        const sound = createSoundscape(id, ctx, makeNode());
+        expect(sound).not.toBeNull();
+        sound.start();
+        expect(oscillators.length).toBeGreaterThan(8);
+        expect(new Set(oscillators.map(osc => osc.frequency.value)).size).toBeGreaterThan(5);
+        const firstBar = oscillators.length;
+        ctx.currentTime = 5;
+        vi.advanceTimersByTime(5000);
+        expect(oscillators.length).toBeGreaterThan(firstBar);
+        sound.stop(true);
+        const stoppedAt = oscillators.length;
+        ctx.currentTime = 15;
+        vi.advanceTimersByTime(15000);
+        expect(oscillators.length).toBe(stoppedAt);
+    });
+
+    it('swings jazz offbeats while piano stays even', () => {
+        const starts = id => {
+            const { ctx, oscillators } = makeMockContext();
+            const sound = createSoundscape(id, ctx, makeNode());
+            sound.start();
+            const times = [...new Set(oscillators.flatMap(osc => osc.start.mock.calls.map(call => call[0])))];
+            sound.stop(true);
+            return times;
+        };
+        expect(starts('piano')).not.toEqual(starts('jazz'));
+    });
+
     it('registry exposes aurora and faded-signal; unknown ids return null', () => {
         expect(SOUNDSCAPES.aurora.name).toBe('Aurora');
         expect(SOUNDSCAPES['faded-signal'].name).toBe('Faded Signal');

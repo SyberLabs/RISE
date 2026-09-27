@@ -57,7 +57,7 @@ function book(workId, extras = {}) {
 }
 
 const books = Object.keys(releaseInventory).map(workId => book(workId));
-const sounds = ['aurora', 'faded-signal', 'sad', 'angry', 'happy', 'excited', 'thrilling', 'scary']
+const sounds = ['aurora', 'faded-signal', 'sad', 'angry', 'happy', 'excited', 'thrilling', 'scary', 'piano', 'jazz']
   .map(id => ({ sound_id: id, decision_criterion: `Choose for a ${id} reading mood.`, active: true }));
 const options = [
   ...['literary', 'display', 'thick', 'jp', 'mono'].map(id => ({ kind: 'chamberFace', id, description: 'Reviewed font.' })),
@@ -186,7 +186,7 @@ describe('Jev reading recommendation', () => {
     expect(body.questions.visual.criteria.interlocution).toContain('psychedelic');
     expect(body.questions.visualEngine.criteria.fractal).toContain('psychedelic');
     expect(Object.keys(body.questions.audio.criteria)).toEqual([
-      'silent', 'aurora', 'faded-signal', 'sad', 'angry', 'happy', 'excited', 'thrilling', 'scary'
+      'silent', 'aurora', 'faded-signal', 'sad', 'angry', 'happy', 'excited', 'thrilling', 'scary', 'piano', 'jazz'
     ]);
     expect(mocks.set).toHaveBeenCalledWith('rise:sounds:v1', sounds, { ex: 30 });
     expect(body.questions.chamberFace.criteria).toHaveProperty('mono');
@@ -226,6 +226,18 @@ describe('Jev reading recommendation', () => {
       const response = await handleJevRecommend(request({ intent: `A ${mood} reading.` }), env);
       expect(response.status).toBe(200);
       expect((await response.json()).config).toMatchObject({ audio: mood, soundscape: mood });
+    }
+  );
+
+  it.each(['piano', 'jazz'])(
+    'serves %s music when Jev selects it for a reader request', async music => {
+      vi.stubGlobal('fetch', vi.fn(async () => Response.json({
+        id: `music-${music}`, model: 'typesafe/jev-1.13', provider: 'TypeSafe',
+        answers: answers('literary-walden', { audio: { type: 'choice', choice: music } })
+      })));
+      const response = await handleJevRecommend(request({ intent: `Read to ${music} music.` }), env);
+      expect(response.status).toBe(200);
+      expect((await response.json()).config).toMatchObject({ audio: music, soundscape: music });
     }
   );
 
