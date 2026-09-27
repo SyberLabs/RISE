@@ -155,6 +155,7 @@ jobs:
           npm run test:run --
           src/core/content-store.test.js
           src/core/journey-session.test.js
+          src/core/ci-pipeline.test.js
           src/audio/engine.lifecycle.test.js
           src/content/keystones.test.js
       - name: Full unit and integration suite
