@@ -29,6 +29,22 @@ for (const [device, viewport] of [
   await expect.poll(() => page.evaluate(() => window.__RISE_TEST__?.getCurrentSession()?.firstReadPreview))
     .toBe(true);
 
+  // Drive the Player's progress event to the boundary without waiting thirty
+  // real seconds. The Chamber must expose the choice without stopping Stream.
+  const choice = page.locator('#first-read-choice');
+  await page.evaluate(() => window.__RISE_TEST__.getView('chamber-session')
+    .player.emit('progress', { elapsed: 29999 }));
+  await expect(choice).toBeHidden();
+  await page.evaluate(() => window.__RISE_TEST__.getView('chamber-session')
+    .player.emit('progress', { elapsed: 30000 }));
+  await expect(choice).toBeVisible();
+  await expect(page.locator('#page-mode-btn')).toBeAttached();
+  await choice.locator('#first-read-page').click();
+  await expect(choice).toBeHidden();
+  await expect(page.locator('.page-article')).toBeVisible({ timeout: 10_000 });
+  await expect.poll(() => page.evaluate(() => window.__RISE_TEST__
+    .getView('chamber-session')?.player?.state)).not.toBe('playing');
+
   await page.locator('#chamber-display').hover();
   await page.locator('#exit-btn').click();
   await page.locator('#exit-confirm').click();
