@@ -163,7 +163,7 @@ flowchart LR
     audio["audio<br/>Web Audio, recitation<br/>9 modules"]
     components["components<br/>routed views<br/>37 modules"]
     content["content<br/>texts, imagery, journeys<br/>228 modules"]
-    core["core<br/>session, player, router<br/>134 modules"]
+    core["core<br/>session, player, router<br/>135 modules"]
     page["page<br/>spatial projection<br/>4 modules"]
     sources["sources<br/>text and visual providers<br/>22 modules"]
     visuals["visuals<br/>procedural generation<br/>54 modules"]
@@ -285,6 +285,7 @@ outliving its room, fails a build.
 | Via | `src/components/Via.js` | the Stations of the Cross |
 | Workshop | `src/components/Workshop.js` | authoring a composition |
 | Vault | `src/components/Vault.js` | saved compositions and archetypes |
+| Create | `src/components/Create.js` | a thought becomes a short personal reading to keep |
 | Scriptorium | `src/components/Scriptorium.js` | a model composes; a gate refuses |
 | Curia | `src/components/Curia.js` | the source and rights record |
 | Journeys | `src/components/Journeys.js` | authored long-form experiences |

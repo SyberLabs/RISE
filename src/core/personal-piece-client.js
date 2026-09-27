@@ -1,9 +1,10 @@
-import { countWords, isCanonicalPiece } from './personal-text.js';
+import { countWords } from './chunker.js';
+import { isCanonicalPiece } from './personal-text.js';
 
 export function validatePiece(value) {
   if (!isCanonicalPiece(value)) {
     const words = Array.isArray(value?.paragraphs) && value.paragraphs.every(p => typeof p === 'string')
-      ? countWords(value.paragraphs) : 0;
+      ? countWords(value.paragraphs.join(' ')) : 0;
     throw new Error(words && (words < 80 || words > 220)
       ? 'The writer returned an invalid piece length.' : 'The writer returned an invalid piece.');
   }
