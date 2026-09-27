@@ -41,6 +41,41 @@ export function editionStatement(tradition) {
 }
 
 /**
+ * One edition line per work: who published this text, and which edition it
+ * is, with ONE year.
+ *
+ * The catalog's `tradition` reads "Standard Ebooks, 1870" while the
+ * provenance record — the field that carries its evidence — says the Lang,
+ * Leaf and Myers Iliad is the 1883 edition. Showing both put two years on one
+ * card. Where a provenance record exists its year wins, because it is the one
+ * that was checked; the publisher keeps its name and loses its year.
+ */
+export function editionLine(text) {
+    const statement = editionStatement(text?.tradition);
+    const p = text?.provenance;
+    if (!p || !p.year) return statement;
+    const publisher = statement.replace(/,\s*\d{3,4}(?:[–-]\d{2,4})?$/, '').trim();
+    const year = String(p.year);
+    let edition = typeof p.edition === 'string' && p.edition.trim()
+        ? p.edition.trim()
+        : [p.translator ? `trans. ${p.translator}` : null, year].filter(Boolean).join(', ');
+    if (!edition.includes(year) && !/\d{4}/.test(edition)) edition = `${edition}, ${year}`;
+    return [publisher, edition].filter(Boolean).join(' · ');
+}
+
+const ICON = 'width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"';
+const ARROW_LEFT = `<svg ${ICON}><path d="M19 12H5"></path><path d="m12 19-7-7 7-7"></path></svg>`;
+const ARROW_RIGHT = `<svg class="archive-arrow" ${ICON}><path d="M5 12h14"></path><path d="m12 5 7 7-7 7"></path></svg>`;
+const SPINNER = `<svg class="library-spinner" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9" stroke-opacity=".25"></circle><path d="M21 12a9 9 0 0 0-9-9"></path></svg>`;
+const ALERT_ICON = `<svg ${ICON}><circle cx="12" cy="12" r="10"></circle><path d="M12 8v4"></path><path d="M12 16h.01"></path></svg>`;
+const CLOSE_ICON = `<svg ${ICON}><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></svg>`;
+
+/** An inline alert: icon, one plain sentence, no coloured background. */
+function alertHtml(message) {
+    return `<div class="library-alert" role="alert">${ALERT_ICON}<p>${escapeHtml(message)}</p></div>`;
+}
+
+/**
  * What to call the things in a contents sheet.
  *
  * `divisions.noun` is null whenever a work divides by TITLE rather than
@@ -100,6 +135,10 @@ export class Library {
     // make.
     this.currentFilter = 'received';
     this.localWorks = [];
+    // 'loading' until the first IndexedDB read lands, then 'ready' or
+    // 'error'. Each is drawn: a tab never shows a blank where a state is.
+    this.localState = 'loading';
+    this.localAlert = '';
     this.jevRecommendation = null;
     this.jevIntent = options.initialIntent || '';
     this.jevAbort = null;
@@ -126,33 +165,36 @@ export class Library {
 
   render() {
     this.container.innerHTML = `
-      <div class="library" role="main">
-        <!-- Header -->
-        <header class="library-header">
-          <div class="library-title-section">
-            <button class="btn-ghost" data-action="back">
-              <span class="icon">←</span>
-              <span>Home</span>
-            </button>
-            <h1>Library</h1>
+      <div class="library library-room">
+        <header class="sl-header">
+          <div class="sl-header-inner">
+            <span class="sl-lockup" role="img" aria-label="SyberLabs RISE">
+              <img class="sl-mark" src="/syberlabs-mark.webp" alt="" width="18" height="20" decoding="async">
+              <span class="sl-wordmark" aria-hidden="true">SYBERLABS<span class="sl-divider"> / </span>RISE</span>
+            </span>
           </div>
-
-          <!-- Top Explanatory Panel -->
-          <p class="library-intro-panel text-fog">
-            Browse received works, RISE compositions, and files on this device. Choose a work to read it whole or select a section.
-          </p>
-
-          <!-- Section Navigation -->
-          <nav class="library-nav nav" aria-label="Library sections">
-            <button class="nav-item" data-section="archive">The Archive</button>
-            <button class="nav-item" data-section="personal">Local Files</button>
-            <button class="nav-item" data-section="history">Reflections</button>
-          </nav>
         </header>
 
-        <!-- Content Area -->
-        <div class="library-content" id="library-content">
-          ${this.renderSection(this.currentSection)}
+        <!-- ONE COLUMN. The back link, the title, the tabs and every row
+             share the same left edge; the header used to start at 32px and
+             the content at 120px. -->
+        <div class="library-page" role="main">
+          <div class="library-head">
+            <button class="library-back" type="button" data-action="back">${ARROW_LEFT}<span>Home</span></button>
+            <h1>Library</h1>
+            <p class="library-intro-panel">
+              Works in named editions, texts written for RISE, and files on this device. Open a work to read it whole or choose where to begin.
+            </p>
+            <nav class="library-nav nav" aria-label="Library sections">
+              <button class="nav-item" type="button" data-section="archive">Works</button>
+              <button class="nav-item" type="button" data-section="personal">Your files</button>
+              <button class="nav-item" type="button" data-section="history">Reflections</button>
+            </nav>
+          </div>
+
+          <div class="library-content" id="library-content">
+            ${this.renderSection(this.currentSection)}
+          </div>
         </div>
       </div>
     `;
@@ -169,7 +211,7 @@ export class Library {
       case 'history':
         return this.renderHistory();
       default:
-        return '<p class="text-fog">Section not found</p>';
+        return '<p class="library-note">Section not found.</p>';
     }
   }
 
@@ -178,36 +220,39 @@ export class Library {
    * Synthesis stage. This is the read-side of the Recursion loop.
    */
   renderHistory() {
-    const entries = MemoryCore.getRecursions();
+    let entries;
+    try {
+      entries = MemoryCore.getRecursions();
+    } catch (error) {
+      console.error('[Library] Could not read reflections:', error);
+      return `<div class="library-section">${alertHtml('Your reflections could not be read in this browser.')}</div>`;
+    }
 
-    const body = entries.length === 0
-      ? `
-        <div class="reflections-empty">
-          <span class="reflections-empty-sigil" aria-hidden="true">◌</span>
-          <p class="text-fog">The archive of reflections is empty.</p>
-          <p class="text-mist">Save a reflection after a reading, and it will appear here.</p>
-        </div>
-      `
-      : entries.map(entry => `
-        <article class="card reflection-card">
-          <div class="reflection-meta font-mono">
-            <span class="reflection-date">${new Date(entry.timestamp).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}</span>
-            <span class="reflection-title text-fog">${escapeHtml(entry.sequenceTitle)}</span>
-            <button class="btn-ghost-sm reflection-delete" data-action="delete-recursion" data-id="${escapeHtml(entry.id)}" title="Delete this reflection">✕</button>
+    if (!entries.length) {
+      return `
+        <div class="library-section">
+          <div class="library-empty">
+            <h2>No reflections yet.</h2>
+            <p>Save a reflection after a reading and it will appear here.</p>
           </div>
-          <p class="reflection-text">${escapeHtml(entry.journal)}</p>
-        </article>
-      `).join('');
+        </div>
+      `;
+    }
 
     return `
       <div class="library-section">
-        <div class="section-header">
-          <h2 class="text-light">Reflections</h2>
-          <p class="text-fog">Reflections you chose to save after a reading.</p>
-        </div>
-        <div class="reflections-list">
-          ${body}
-        </div>
+        <ul class="reflections-list">
+          ${entries.map(entry => `
+          <li class="reflection-card">
+            <div class="reflection-meta">
+              <span class="reflection-date">${new Date(entry.timestamp).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}</span>
+              <span class="reflection-title">${escapeHtml(entry.sequenceTitle)}</span>
+              <button class="library-icon-btn reflection-delete" type="button" data-action="delete-recursion" data-id="${escapeHtml(entry.id)}" aria-label="Delete this reflection">${CLOSE_ICON}</button>
+            </div>
+            <p class="reflection-text">${escapeHtml(entry.journal)}</p>
+          </li>
+          `).join('')}
+        </ul>
       </div>
     `;
   }
@@ -218,28 +263,11 @@ export class Library {
     const shelf = LIBRARY_CATEGORIES.find(c => c.id === this.currentFilter);
     return `
       <div class="library-section">
-        <div class="section-header">
-          <h2 class="text-light">The Archive</h2>
-          <!-- THREE PARAGRAPHS STOOD BETWEEN A READER AND THE FIRST SHELF.
-               The first described sorting by FORM — a verse line met
-               differently from a paragraph — which stopped being true when the
-               Archive was cut by provenance instead: Received and Composed are
-               where a text came from, not what shape it is. Copy that
-               describes a previous organisation is worse than no copy.
-               The third announced how many editions were 'prepared but not yet
-               certified'. That is a real distinction and a real safeguard, but
-               it is a fact about this project's pipeline wearing a reader's
-               clothes — the certification ledger belongs to whoever runs the
-               import, not to someone choosing what to read.
-               What survives is the promise the Archive actually makes. -->
-          <p class="text-fog">Received works show their edition; composed texts were written for RISE.</p>
-          ${shelf?.orientation
-            ? `<p class="archive-orientation text-mist">${escapeHtml(shelf.orientation)}</p>`
-            : ''}
-        </div>
+        <!-- The tabs already say where the reader is; a heading repeating
+             them, and paragraphs describing the pipeline, were deleted. -->
 
         <section class="library-jev" aria-labelledby="library-jev-title">
-          <h3 id="library-jev-title">Find your next reading with Jev</h3>
+          <h2 id="library-jev-title">Find your next reading with Jev</h2>
           <p>Describe what you want to explore. Jev chooses from the Standard Ebooks editions already held by RISE.</p>
           <form data-jev-form>
             <label for="library-jev-intent">What are you in the mood to read?</label>
@@ -253,9 +281,7 @@ export class Library {
             <p class="library-jev-voice-note">Voice input may use your browser’s speech service. Review the text before asking Jev.</p>
             <span data-jev-dictation-status role="status" aria-live="polite"></span>
           </form>
-          <div class="library-jev-result" data-jev-result aria-live="polite">
-            ${this.renderJevRecommendation()}
-          </div>
+          <div class="library-jev-result" data-jev-result aria-live="polite">${this.renderJevRecommendation()}</div>
         </section>
 
         <!-- ONE QUESTION, ASKED FIRST: did RISE receive this work, or write
@@ -263,14 +289,19 @@ export class Library {
              cut a reader makes before any other. -->
         <div class="archive-axes">
           <div class="archive-axis">
-            <div class="section-filters">
+            <div class="section-filters" role="group" aria-label="Shelf">
               ${LIBRARY_CATEGORIES.map(c => `
-                <button class="filter-btn ${this.currentFilter === c.id ? 'active' : ''}"
+                <button class="filter-btn ${this.currentFilter === c.id ? 'active' : ''}" type="button"
                   data-filter="${c.id}" aria-pressed="${this.currentFilter === c.id}" title="${escapeHtml(c.description)}">${escapeHtml(c.name)}</button>
               `).join('')}
             </div>
           </div>
+          ${shelf?.orientation
+            ? `<p class="archive-orientation">${escapeHtml(shelf.orientation)}</p>`
+            : ''}
         </div>
+
+        <div class="library-alert-slot" data-archive-alert></div>
 
         <!-- Always grouped by division, so the wrapper must not impose a
              grid over the group headings; each division carries its own. -->
@@ -291,7 +322,7 @@ export class Library {
     if (!book) return '';
     return `<div class="library-jev-choice">
       <span class="library-jev-kicker">Jev chose</span>
-      <h4>${escapeHtml(book.title)}</h4>
+      <h3>${escapeHtml(book.title)}</h3>
       <p class="library-jev-author">${escapeHtml(book.author)} · Standard Ebooks</p>
       <p>About this book: ${escapeHtml(choice.reason || book.description)}</p>
       <button class="btn-primary" data-action="open-jev" data-id="${escapeHtml(book.id)}">Open this book</button>
@@ -313,7 +344,8 @@ export class Library {
     const button = form.querySelector('button[type="submit"]');
     const result = this.container.querySelector('[data-jev-result]');
     if (button) button.disabled = true;
-    if (result) result.textContent = 'Jev is choosing from the RISE catalog…';
+    if (result) result.innerHTML = `<p class="library-status" role="status">${SPINNER}<span>Jev is choosing your reading…</span></p>`;
+    if (button) button.setAttribute('aria-busy', 'true');
     try {
       const response = await fetch('/api/jev-recommend', {
         method: 'POST',
@@ -321,8 +353,8 @@ export class Library {
         body: JSON.stringify({ intent, schemaVersion: 2 }),
         signal: controller.signal
       });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data?.error?.message || 'Jev is unavailable right now.');
+      const data = await response.json().catch(() => null);
+      if (!response.ok || !data) throw new Error(data?.error?.message || 'Jev is unavailable right now.');
       const { validateJevRecommendation } = await import('../app/jev-reading.js');
       validateJevRecommendation(data);
       const book = LIBRARY_TEXTS.find(text => text.id === data.workId
@@ -337,11 +369,19 @@ export class Library {
       if (result) result.innerHTML = this.renderJevRecommendation();
     } catch (error) {
       if (error?.name === 'AbortError' || this.jevAbort !== controller) return;
-      if (result) result.textContent = error.message || 'Jev is unavailable right now.';
+      // A network failure reads "Failed to fetch"; that is the browser's
+      // sentence, not ours.
+      const plain = error instanceof TypeError || error instanceof SyntaxError
+        ? 'Jev is unavailable right now. Try again.'
+        : (error.message || 'Jev is unavailable right now.');
+      if (result) result.innerHTML = alertHtml(plain);
     } finally {
       if (this.jevAbort === controller) {
         this.jevAbort = null;
-        if (button) button.disabled = false;
+        if (button) {
+          button.disabled = false;
+          button.removeAttribute('aria-busy');
+        }
       }
     }
   }
@@ -352,7 +392,10 @@ export class Library {
     texts = texts.filter(t => t.category === this.currentFilter);
 
     if (texts.length === 0) {
-      return '<div class="empty-state"><p class="text-fog">No texts in this category</p></div>';
+      return `<div class="library-empty">
+        <h2>Nothing on this shelf yet.</h2>
+        <p>Works appear here once their editions are checked.</p>
+      </div>`;
     }
 
     // A reader standing at a shelf sees its forms in reading order: what
@@ -373,16 +416,16 @@ export class Library {
         return grouped.map(({ d, items }) => `
           <div class="archive-division" data-division="${d.id}">
             <div class="archive-division-head">
-              <span class="archive-division-name">${escapeHtml(d.name)}</span>
-              <span class="archive-division-note text-mist">${escapeHtml(d.description)}</span>
+              <h2 class="archive-division-name">${escapeHtml(d.name)}</h2>
+              <p class="archive-division-note">${escapeHtml(d.description)}</p>
             </div>
-            <div class="archive-grid">${this.renderArchiveCards(items)}</div>
+            <ul class="archive-list">${this.renderArchiveCards(items)}</ul>
           </div>
         `).join('');
       }
     }
 
-    return this.renderArchiveCards(texts);
+    return `<ul class="archive-list">${this.renderArchiveCards(texts)}</ul>`;
   }
 
   /**
@@ -399,7 +442,9 @@ export class Library {
    */
   holdingsPhrase(text) {
     const n = text.chapterCount;
-    if (Number.isFinite(n) && n > 0) {
+    // No counting word and one division: "1 entry" says nothing, so the
+    // length is the honest fact instead.
+    if (Number.isFinite(n) && (n > 1 || (n === 1 && text.chapterNoun))) {
       // ALWAYS A COUNT AND A NOUN. Falling back to a duration for
       // undivided works put "5.2 hours" beside "12 books" in the same
       // row, and a shelf scanned by eye wants one unit, not two.
@@ -410,78 +455,59 @@ export class Library {
       // are Orainville and Guillemont, not "Chapter 1". "Sections" is
       // the generic that claims nothing; the contents sheet shows the
       // names themselves, which is where they belong.
-      const noun = text.chapterTitled
-        ? 'section'
-        : (text.chapterNoun || 'verse').toLowerCase();
-      return `${n} ${noun}${n === 1 ? '' : 's'}`;
+      //
+      // NO COUNTING WORD IS NOT "VERSE". The division index records none
+      // for most received works, and the fallback printed "24 verses" for
+      // the Iliad and "87 verses" for Middlemarch. The row now uses the
+      // contents sheet's own word, so row and sheet agree.
+      const noun = contentsNoun({ noun: text.chapterTitled ? null : text.chapterNoun });
+      return `${n} ${n === 1 ? noun.one : noun.many}`;
     }
     if (Number.isFinite(text.wordCount) && text.wordCount > 0) {
       const hours = text.wordCount / 200 / 60;
-      return hours >= 1
-        ? `${hours.toFixed(hours < 10 ? 1 : 0)} hours`
-        : `${Math.max(1, Math.round(hours * 60))} min`;
+      return this.contentsDuration(Math.max(1, Math.round(hours * 60)));
     }
     return '';
   }
 
+  /**
+   * One hairline row per work. The title is the button, and its hit area is
+   * stretched over the whole row, so the row opens the work while a screen
+   * reader hears one control named for the book. No per-row button: sixteen
+   * filled "Open" buttons on one screen was sixteen primary actions.
+   */
   renderArchiveCards(texts) {
     return texts.map(text => {
-      const shelf = LIBRARY_CATEGORIES.find(c => c.id === text.category);
-      // Provenance is part of the reading, not a footnote: a world-class
-      // housing of public-domain texts says which EDITION you are
-      // holding, because a translation carries its own copyright.
-      const p = text.provenance;
-      const edition = p
-        ? [p.translator ? `trans. ${p.translator}` : null, p.year || null]
-          .filter(Boolean).join(', ')
-        : '';
+      const holdings = this.holdingsPhrase(text);
+      const blurb = text.why || text.description || '';
       return `
-      <div class="archive-card card card-interactive" data-text-id="${text.id}">
-        <div class="archive-card-header">
-          <span class="archive-status">${shelf?.icon || '◇'}</span>
-          <span class="archive-type text-fog text-uppercase">${escapeHtml(shelf?.name || text.category)}</span>
-        </div>
-        <h3 class="archive-title text-light">${escapeHtml(text.title)}</h3>
-        <p class="archive-subtitle text-fog">${escapeHtml(text.author)} · ${escapeHtml(editionStatement(text.tradition))}</p>
-        ${text.why
-          ? `<p class="archive-why">${escapeHtml(text.why)}</p>`
-          : `<p class="archive-description text-fog">${escapeHtml(text.description) || ''}</p>`}
-        <div class="archive-card-foot">
-          <div class="archive-meta text-mist font-mono">
-            ${this.holdingsPhrase(text)}${edition ? ` · ${escapeHtml(edition)}` : ''}
-          </div>
-          <button class="btn-primary btn-sm archive-open" data-action="select-text" data-id="${text.id}">
-            ${text.chapterCount > 1 ? 'Open' : 'Load Text'}
-          </button>
-        </div>
-      </div>
+      <li class="archive-card" data-text-id="${escapeHtml(text.id)}">
+        <h3 class="archive-title">
+          <button class="archive-open" type="button" data-action="select-text" data-id="${escapeHtml(text.id)}">${escapeHtml(text.title)}</button>
+        </h3>
+        <p class="archive-subtitle">${escapeHtml(text.author)}${editionLine(text) ? ` · ${escapeHtml(editionLine(text))}` : ''}</p>
+        ${blurb ? `<p class="archive-why">${escapeHtml(blurb)}</p>` : ''}
+        ${holdings ? `<span class="archive-meta">${escapeHtml(holdings)}</span>` : ''}
+        <span class="archive-go" aria-hidden="true">${ARROW_RIGHT}${SPINNER}</span>
+      </li>
     `;
     }).join('');
   }
 
   renderPersonal() {
+    const empty = this.localState === 'ready' && !this.localWorks.length;
     return `
       <div class="library-section">
-        <div class="section-header">
-          <h2 class="text-light">Your Own Texts</h2>
-          <p class="text-fog">Files you have added, kept on this device</p>
-        </div>
-
         <div class="personal-upload-zone" id="personal-upload-zone">
           <input type="file" id="local-file-input" accept=".txt,.md" hidden />
-          <label for="local-file-input" class="upload-zone-label">
-            <span class="upload-icon">◇</span>
-            <p class="upload-text text-light">Drop file here or click to browse</p>
-            <p class="upload-hint text-fog">Supports .txt and .md files</p>
-          </label>
+          <h2 class="upload-text">${empty ? 'No files yet.' : 'Add a file'}</h2>
+          <p class="upload-hint">Drop a .txt or .md file here, or choose one. It stays on this device; you can name its parts or read it straight through.</p>
+          <button class="btn-secondary" type="button" data-action="choose-file">Choose a file</button>
         </div>
+
+        <div class="library-alert-slot" data-local-alert>${this.localAlert ? alertHtml(this.localAlert) : ''}</div>
 
         ${this.renderLocalShelf()}
-
-        <div class="personal-instructions text-fog">
-          A file you drop opens as the parts it will become: name them, divide
-          them, or read it straight through. Nothing leaves this device.
-        </div>
       </div>
     `;
   }
@@ -494,27 +520,30 @@ export class Library {
    * name anything at all in a work with one.
    */
   renderLocalShelf() {
+    if (this.localState === 'loading') {
+      return `<p class="library-status" role="status">${SPINNER}<span>Loading your files…</span></p>`;
+    }
+    if (this.localState === 'error') {
+      return alertHtml('Saved files cannot be shown in this browser. You can still choose a file to read it.');
+    }
     if (!this.localWorks.length) return '';
     const items = this.localWorks.map(work => {
       const parts = work.labels.length;
       return `
-        <article class="local-work" data-local-id="${escapeHtml(work.id)}">
+        <li class="local-work" data-local-id="${escapeHtml(work.id)}">
           <div class="local-work-body">
-            <h3 class="text-light">${escapeHtml(work.title)}</h3>
-            <p class="text-fog">
-              ${parts} ${parts === 1 ? 'part' : 'parts'} ·
-              ${escapeHtml(work.id)}
-            </p>
+            <h3>${escapeHtml(work.title)}</h3>
+            <p>${parts} ${parts === 1 ? 'part' : 'parts'} · ${escapeHtml(work.id)}</p>
           </div>
           <div class="local-work-actions">
-            <button class="btn-secondary" data-action="edit-local">Divide</button>
-            <button class="btn-secondary" data-action="drop-local">Remove</button>
-            <button class="btn-primary" data-action="open-local">Read</button>
+            <button class="btn-ghost" type="button" data-action="drop-local">Remove</button>
+            <button class="btn-ghost" type="button" data-action="edit-local">Divide</button>
+            <button class="btn-secondary" type="button" data-action="open-local">Read</button>
           </div>
-        </article>
+        </li>
       `;
     }).join('');
-    return `<div class="local-work-shelf">${items}</div>`;
+    return `<ul class="local-work-shelf">${items}</ul>`;
   }
 
   /**
@@ -526,10 +555,13 @@ export class Library {
   async refreshLocalWorks() {
     try {
       this.localWorks = await LocalWorks.all();
+      this.localState = 'ready';
     } catch {
       // No IndexedDB (private mode, an old browser): the drop zone still
-      // works and still reaches the Chamber. Only the shelf is unavailable.
+      // works and still reaches the Chamber. Only the shelf is unavailable,
+      // and the tab says so rather than showing nothing.
       this.localWorks = [];
+      this.localState = 'error';
     }
     if (this.currentSection === 'personal') this.updateContent();
   }
@@ -592,8 +624,10 @@ export class Library {
   async handleFileUpload(file) {
     const validExtensions = ['.txt', '.md'];
     const ext = file.name.substring(file.name.lastIndexOf('.')).toLowerCase();
+    this.setLocalAlert('');
     if (!validExtensions.includes(ext)) {
       console.error('[Library] Invalid file type:', file.type);
+      this.setLocalAlert('That file type cannot be read. Choose a .txt or .md file.');
       return;
     }
 
@@ -601,17 +635,32 @@ export class Library {
       const text = await file.text();
       if (text.trim().length === 0) {
         console.error('[Library] File is empty');
+        this.setLocalAlert('That file is empty. Choose a file with text in it.');
         return;
       }
       this.openAdmit({ text, sourceName: file.name });
     } catch (err) {
       console.error('[Library] Failed to read file:', err);
+      this.setLocalAlert('That file could not be read. Try again.');
     }
+  }
+
+  /** Say what went wrong with a file, in the tab, where the reader is looking. */
+  setLocalAlert(message) {
+    this.localAlert = message;
+    const slot = this.container.querySelector('[data-local-alert]');
+    if (slot) slot.innerHTML = message ? alertHtml(message) : '';
+  }
+
+  /** Say that a work would not open, above the shelf it was chosen from. */
+  setArchiveAlert(message) {
+    const slot = this.container.querySelector('[data-archive-alert]');
+    if (slot) slot.innerHTML = message ? alertHtml(message) : '';
   }
 
   attachEvents() {
     // Back button
-    this.container.querySelector('[data-action="back"]')?.addEventListener('click', () => {
+    this.container.querySelector('.library-back[data-action="back"]')?.addEventListener('click', () => {
       this.getAudioEngine()?.playClick();
       this.onNavigate('portal');
     });
@@ -655,7 +704,9 @@ export class Library {
       const action = target.dataset.action;
       const id = target.dataset.id;
 
-      if (action === 'preview' && id) {
+      if (action === 'choose-file') {
+        this.container.querySelector('#local-file-input')?.click();
+      } else if (action === 'preview' && id) {
         console.log('Preview sequence:', id);
       } else if (action === 'open-jev' && id && this.jevRecommendation?.workId === id) {
         this.handleTextSelection(id);
@@ -738,19 +789,27 @@ export class Library {
   }
 
   async handleTextSelection(textId) {
+    const failed = 'This work could not be opened. Try again.';
+    // The row acknowledges the click while the payload is fetched — these
+    // are whole books and the wait is real.
+    const card = this.container.querySelector(`[data-text-id="${textId}"]`);
+    card?.classList.add('is-opening');
+    card?.setAttribute('aria-busy', 'true');
+    this.setArchiveAlert('');
     try {
       const { getTextById } = await import('../content/library.js');
       const text = getTextById(textId);
 
       if (!text) {
         console.error('[Library] Text not found:', textId);
+        this.setArchiveAlert(failed);
         return;
       }
 
       // Handle async collections (e.g. ArXiv)
       if (text.isCollection && text.provider === 'arxiv-research') {
         const btn = this.container.querySelector(`button[data-id="${textId}"]`);
-        const originalText = btn ? btn.textContent : 'Load Text';
+        const originalText = btn ? btn.textContent : '';
         if (btn) btn.textContent = 'Fetching...';
 
         const { ArxivProvider } = await import('../sources/text/arxiv.js');
@@ -762,6 +821,7 @@ export class Library {
 
           if (!result || !result.data || result.data.length === 0) {
             console.error('[Library] No papers found in category:', text.arxivCategory);
+            this.setArchiveAlert(failed);
             return;
           }
 
@@ -773,7 +833,8 @@ export class Library {
           });
         } catch (err) {
           console.error('[Library] Failed to fetch ArXiv category:', err);
-          if (btn) btn.textContent = 'Error';
+          if (btn) btn.textContent = originalText;
+          this.setArchiveAlert(failed);
         }
         return;
       }
@@ -792,6 +853,7 @@ export class Library {
 
       if (!sequences || sequences.length === 0) {
         console.error('[Library] No verses available for text:', textId);
+        this.setArchiveAlert(failed);
         return;
       }
 
@@ -803,6 +865,7 @@ export class Library {
 
       if (!fullText) {
         console.error('[Library] Extracted text is empty or invalid');
+        this.setArchiveAlert(failed);
         return;
       }
 
@@ -820,6 +883,10 @@ export class Library {
 
     } catch (error) {
       console.error('[Library] Failure during text selection processing:', error);
+      this.setArchiveAlert(failed);
+    } finally {
+      card?.classList.remove('is-opening');
+      card?.removeAttribute('aria-busy');
     }
   }
 
@@ -872,17 +939,13 @@ export class Library {
       || this.localRuntime(textId);
     if (!text || typeof text.getDivisions !== 'function') return false;
 
-    const card = this.container.querySelector(`[data-text-id="${textId}"]`);
-    card?.classList.add('is-opening');
     try {
       const divisions = await text.getDivisions();
-      card?.classList.remove('is-opening');
       if (!divisions?.divided) return false;
       this._contents = { text, divisions, query: '' };
       this.renderContents();
       return true;
     } catch (error) {
-      card?.classList.remove('is-opening');
       console.error('[Library] Could not open work:', textId, error);
       return false;
     }
@@ -902,10 +965,7 @@ export class Library {
     const entries = this.contentsEntries();
     const totalWords = divisions.entries.reduce((n, e) => n + e.words, 0);
     const totalMin = this.contentsMinutes(totalWords, text.defaultWpm || 200);
-    const p = text.provenance;
-    const edition = p
-      ? [p.translator ? `trans. ${p.translator}` : null, p.year || null].filter(Boolean).join(', ')
-      : '';
+    const edition = editionLine(text);
 
     // A work with many divisions needs a way in that is not scrolling.
     // Below that count the search field is clutter.
@@ -925,14 +985,12 @@ export class Library {
     sheet.innerHTML = `
       <div class="toc-sheet" role="dialog" aria-modal="true" aria-label="Contents of ${escapeHtml(text.title)}">
         <header class="toc-head">
-          <button class="btn-ghost toc-close" data-toc="close" aria-label="Close contents">
-            <span class="icon" aria-hidden="true">←</span> Shelf
-          </button>
+          <button class="library-back toc-close" type="button" data-toc="close">${ARROW_LEFT}<span>Library</span></button>
           <div class="toc-identity">
-            <h2 class="toc-title text-light">${escapeHtml(text.title)}</h2>
-            <p class="toc-byline text-fog">${escapeHtml(text.author)}${edition ? ` · ${escapeHtml(edition)}` : ''}</p>
+            <h2 class="toc-title">${escapeHtml(text.title)}</h2>
+            <p class="toc-byline">${escapeHtml(text.author)}${edition ? ` · ${escapeHtml(edition)}` : ''}</p>
           </div>
-          <div class="toc-weight font-mono text-mist">
+          <div class="toc-weight">
             <span class="toc-weight-count">${divisions.entries.length}</span>
             <span class="toc-weight-noun">${escapeHtml(divisions.entries.length === 1 ? noun.one : noun.many)}</span>
             <span class="toc-weight-time">${this.contentsDuration(totalMin)}</span>
@@ -940,7 +998,7 @@ export class Library {
         </header>
 
         ${divisions.reason === 'measured' ? `
-          <p class="toc-note text-mist">
+          <p class="toc-note">
             This edition carries no division scheme this Archive can verify,
             so it is offered in readings of even length rather than under
             chapter names it does not have.
@@ -951,28 +1009,28 @@ export class Library {
             <input type="search" class="toc-search-input" data-toc="search"
                    placeholder="${escapeHtml(noun.find)}"
                    value="${escapeHtml(query)}" aria-label="Filter contents">
-            ${query ? `<span class="toc-search-count font-mono text-mist">${entries.length} of ${divisions.entries.length}</span>` : ''}
+            ${query ? `<span class="toc-search-count">${entries.length} of ${divisions.entries.length}</span>` : ''}
           </div>` : ''}
 
         <div class="toc-list">
           ${entries.length === 0
-            ? `<p class="toc-empty text-fog">Nothing here matches “${escapeHtml(query)}”.</p>`
+            ? `<p class="toc-empty">Nothing here matches “${escapeHtml(query)}”.</p>`
             : entries.map(e => {
               const min = this.contentsMinutes(e.words, text.defaultWpm || 200);
               return `
               <button class="toc-entry" type="button" data-toc="read" data-entry="${e.id}">
-                <span class="toc-entry-mark font-mono" aria-hidden="true">${escapeHtml(this.contentsMark(e, divisions))}</span>
+                <span class="toc-entry-mark" aria-hidden="true">${escapeHtml(this.contentsMark(e, divisions))}</span>
                 <span class="toc-entry-body">
                   <span class="toc-entry-label">${escapeHtml(e.label)}</span>
-                  ${e.title ? `<span class="toc-entry-title text-fog">${escapeHtml(e.title)}</span>` : ''}
+                  ${e.title ? `<span class="toc-entry-title">${escapeHtml(e.title)}</span>` : ''}
                 </span>
-                <span class="toc-entry-time font-mono text-mist">${this.contentsDuration(min)}</span>
+                <span class="toc-entry-time">${this.contentsDuration(min)}</span>
               </button>`;
             }).join('')}
         </div>
 
         <footer class="toc-foot">
-          <button class="btn-ghost toc-whole" data-toc="whole">
+          <button class="btn-secondary toc-whole" type="button" data-toc="whole">
             Read the whole work · ${this.contentsDuration(totalMin)}
           </button>
         </footer>

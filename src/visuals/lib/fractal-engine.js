@@ -594,9 +594,20 @@ export class FractalFlameGenerator {
                     const avgG = totalG / totalDensity;
                     const avgB = totalB / totalDensity;
 
-                    r = avgR * alpha * brightness * vibrancy;
-                    g = avgG * alpha * brightness * vibrancy;
-                    b = avgB * alpha * brightness * vibrancy;
+                    // BRIGHTNESS SCALES INTENSITY, NOT THE PALETTE. It used to
+                    // multiply raw 0-255 channels by 12-20, so every channel
+                    // above ~15 clipped: a magenta palette burned to white and
+                    // mood palettes to harsh primaries. Intensity is clamped to
+                    // 1 so the palette's own hue survives; vibrancy then pushes
+                    // saturation away from grey.
+                    const intensity = Math.min(1, alpha * brightness / 6);
+                    r = avgR * intensity;
+                    g = avgG * intensity;
+                    b = avgB * intensity;
+                    const grey = (r + g + b) / 3;
+                    r = grey + (r - grey) * vibrancy;
+                    g = grey + (g - grey) * vibrancy;
+                    b = grey + (b - grey) * vibrancy;
                 } else {
                     r = this.backgroundColor[0];
                     g = this.backgroundColor[1];
