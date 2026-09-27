@@ -1,0 +1,183 @@
+{
+  "model": "Xenova/all-MiniLM-L6-v2 (q8)",
+  "method": "cosine similarity between prompt and independently worded option descriptions",
+  "elapsedMs": 169,
+  "rows": [
+    {
+      "id": "rest-slow",
+      "decision": {
+        "pace": "150",
+        "audio": "soft-rain",
+        "visualMode": "focals",
+        "visualStyle": "quiet",
+        "chamberFace": "literary",
+        "fontSize": "large"
+      }
+    },
+    {
+      "id": "sprint-fast",
+      "decision": {
+        "pace": "500",
+        "audio": "excited",
+        "visualMode": "genesis",
+        "visualStyle": "quiet",
+        "chamberFace": "literary",
+        "fontSize": "large"
+      }
+    },
+    {
+      "id": "silence",
+      "decision": {
+        "pace": "100",
+        "audio": "silent",
+        "visualMode": "off",
+        "visualStyle": "gentle",
+        "chamberFace": "thick",
+        "fontSize": "small"
+      }
+    },
+    {
+      "id": "soundscape",
+      "decision": {
+        "pace": "100",
+        "audio": "aurora",
+        "visualMode": "focals",
+        "visualStyle": "gentle",
+        "chamberFace": "thick",
+        "fontSize": "fit"
+      }
+    },
+    {
+      "id": "spare",
+      "decision": {
+        "pace": "100",
+        "audio": "thrilling",
+        "visualMode": "off",
+        "visualStyle": "quiet",
+        "chamberFace": "display",
+        "fontSize": "fit"
+      }
+    },
+    {
+      "id": "prismatic",
+      "decision": {
+        "pace": "100",
+        "audio": "excited",
+        "visualMode": "interlocution",
+        "visualStyle": "psychedelic",
+        "chamberFace": "thick",
+        "fontSize": "small"
+      }
+    },
+    {
+      "id": "literary",
+      "decision": {
+        "pace": "150",
+        "audio": "scary",
+        "visualMode": "focals",
+        "visualStyle": "gentle",
+        "chamberFace": "literary",
+        "fontSize": "small"
+      }
+    },
+    {
+      "id": "bold",
+      "decision": {
+        "pace": "150",
+        "audio": "excited",
+        "visualMode": "off",
+        "visualStyle": "gentle",
+        "chamberFace": "thick",
+        "fontSize": "fit"
+      }
+    },
+    {
+      "id": "compact",
+      "decision": {
+        "pace": "150",
+        "audio": "silent",
+        "visualMode": "off",
+        "visualStyle": "gentle",
+        "chamberFace": "display",
+        "fontSize": "small"
+      }
+    },
+    {
+      "id": "large",
+      "decision": {
+        "pace": "200",
+        "audio": "soft-rain",
+        "visualMode": "interlocution",
+        "visualStyle": "gentle",
+        "chamberFace": "display",
+        "fontSize": "medium"
+      }
+    },
+    {
+      "id": "quiet-combined",
+      "decision": {
+        "pace": "100",
+        "audio": "silent",
+        "visualMode": "off",
+        "visualStyle": "gentle",
+        "chamberFace": "literary",
+        "fontSize": "small"
+      }
+    },
+    {
+      "id": "vivid-combined",
+      "decision": {
+        "pace": "100",
+        "audio": "excited",
+        "visualMode": "genesis",
+        "visualStyle": "psychedelic",
+        "chamberFace": "thick",
+        "fontSize": "large"
+      }
+    },
+    {
+      "id": "rain",
+      "decision": {
+        "pace": "150",
+        "audio": "soft-rain",
+        "visualMode": "interlocution",
+        "visualStyle": "gentle",
+        "chamberFace": "literary",
+        "fontSize": "large"
+      }
+    },
+    {
+      "id": "electronic",
+      "decision": {
+        "pace": "100",
+        "audio": "faded-signal",
+        "visualMode": "off",
+        "visualStyle": "gentle",
+        "chamberFace": "thick",
+        "fontSize": "small"
+      }
+    },
+    {
+      "id": "monospaced",
+      "decision": {
+        "pace": "400",
+        "audio": "scary",
+        "visualMode": "off",
+        "visualStyle": "gentle",
+        "chamberFace": "mono",
+        "fontSize": "medium"
+      }
+    },
+    {
+      "id": "book-serif",
+      "decision": {
+        "pace": "400",
+        "audio": "soft-rain",
+        "visualMode": "interlocution",
+        "visualStyle": "quiet",
+        "chamberFace": "literary",
+        "fontSize": "medium"
+      }
+    }
+  ]
+}

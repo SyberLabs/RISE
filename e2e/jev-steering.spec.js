@@ -21,6 +21,7 @@ const selectors = {
 };
 
 const decision = {
+  schemaVersion: 1,
   requestId: 'browser-jeff-steering',
   model: 'typesafe/jev-1.13',
   workId: 'middlemarch',

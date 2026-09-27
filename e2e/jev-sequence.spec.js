@@ -30,7 +30,7 @@ test('one Jev plan carries a late visual and soundscape phase into the Chamber',
   await page.route('**/api/jev-recommend', route => {
     calls += 1;
     return route.fulfill({ json: {
-      requestId: 'jev-sequence-browser', model: 'typesafe/jev-1.13',
+      schemaVersion: 1, requestId: 'jev-sequence-browser', model: 'typesafe/jev-1.13',
       workId: released.workId, editionId: released.editionId,
       sourceRevision: released.sourceRevision, reason: 'A released reading.', config
     } });

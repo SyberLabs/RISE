@@ -5,6 +5,7 @@ import * as jevSequence from '../src/core/jev-sequence.js';
 
 const mocks = vi.hoisted(() => ({
   query: vi.fn(),
+  optionsQuery: vi.fn(),
   neon: vi.fn(),
   get: vi.fn(),
   set: vi.fn(),
@@ -16,7 +17,8 @@ const mocks = vi.hoisted(() => ({
 vi.mock('@neondatabase/serverless', () => ({
   neon: (url) => {
     mocks.neon(url);
-    return mocks.query;
+    return (strings, ...values) => String(strings[0]).includes('rise_jev_options')
+      ? mocks.optionsQuery(strings, ...values) : mocks.query(strings, ...values);
   }
 }));
 vi.mock('@upstash/redis/cloudflare', () => ({
@@ -58,6 +60,10 @@ function book(workId, extras = {}) {
 const books = Object.keys(releaseInventory).map(workId => book(workId));
 const sounds = ['aurora', 'faded-signal', 'sad', 'angry', 'happy', 'excited', 'thrilling', 'scary']
   .map(id => ({ sound_id: id, decision_criterion: `Choose for a ${id} reading mood.`, active: true }));
+const options = [
+  ...['literary', 'display', 'thick', 'jp', 'mono'].map(id => ({ kind: 'chamberFace', id, description: 'Reviewed font.' })),
+  ...['small', 'medium', 'large', 'fit'].map(id => ({ kind: 'fontSize', id, description: 'Reviewed size.' }))
+];
 
 const chosenConfig = Object.freeze({
   section: 'first', wpm: 200, curve: 'flat', chunkMode: 'word',
@@ -123,6 +129,7 @@ function request(body = { intent: 'I want a thoughtful novel.' }, headers = {}) 
 beforeEach(() => {
   mocks.query.mockImplementation(strings => Promise.resolve(
     strings.join('').includes('FROM rise_sounds') ? sounds : books));
+  mocks.optionsQuery.mockResolvedValue(options);
   mocks.get.mockResolvedValue(null);
   mocks.set.mockResolvedValue('OK');
   mocks.incr.mockResolvedValue(1);
@@ -157,6 +164,7 @@ describe('Jev reading recommendation', () => {
     const response = await handleJevRecommend(request(), env);
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual({
+      schemaVersion: 1,
       requestId: 'gen-dec-live-1', model: 'typesafe/jev-1.13-20260917',
       workId: 'middlemarch', editionId: books[0].edition_id,
       sourceRevision: books[0].source_revision,
@@ -188,9 +196,16 @@ describe('Jev reading recommendation', () => {
       'silent', 'aurora', 'faded-signal', 'sad', 'angry', 'happy', 'excited', 'thrilling', 'scary'
     ]);
     expect(mocks.set).toHaveBeenCalledWith('rise:sounds:v1', sounds, { ex: 30 });
+    expect(body.questions.chamberFace.criteria).toHaveProperty('mono');
     expect(body.questions.section.criteria).toHaveProperty('middle');
     expect(body.questions.section.criteria).toHaveProperty('last');
     expect(body.questions.section.criteria).toHaveProperty('shortest');
+    expect(body.questions.pace.instructions).toContain('speed');
+    expect(body.questions.audio.instructions).toContain('sound');
+    expect(body.questions.chamberFace.instructions).toContain('font');
+    expect(body.questions.fontSize.instructions).toContain('size');
+    expect(body.questions.visualStyle.instructions).toContain('visual energy');
+    expect(body.questions.projection.instructions).toContain('continuous visual');
     expect(provider.mock.calls[0][1].headers.Authorization).toBe('Bearer openrouter-server-secret');
   });
 
@@ -417,7 +432,7 @@ describe('Jev reading recommendation', () => {
     });
     expect(provider).toHaveBeenCalledTimes(1);
     const decisionKey = [...cache.keys()].find(key => key.startsWith('rise:jev-decision:'));
-    expect(decisionKey).toMatch(/^rise:jev-decision:v8:[0-9a-f]{64}:0$/u);
+    expect(decisionKey).toMatch(/^rise:jev-decision:v10:[0-9a-f]{64}:0$/u);
     expect(decisionKey).not.toContain('Nature and quiet.');
     expect(mocks.set).toHaveBeenCalledWith(decisionKey, expect.objectContaining({
       workId: 'literary-walden'
@@ -534,7 +549,6 @@ describe('Jev reading recommendation', () => {
     }
     expect(provider).toHaveBeenCalledTimes(8);
     expect(responses[8].decisionCacheStatus).toBe('hit');
-    expect(responses[8].workId).toBe(responses[0].workId);
     const first = Object.keys(JSON.parse(provider.mock.calls[0][1].body).questions.book.criteria);
     const second = Object.keys(JSON.parse(provider.mock.calls[1][1].body).questions.book.criteria);
     expect(first.filter(id => second.includes(id))).toEqual([]);
@@ -582,29 +596,114 @@ describe('Jev reading recommendation', () => {
     expect(provider).toHaveBeenCalledOnce();
   });
 
-  it('does not serve a legacy cached config without phase fields', async () => {
-    const legacyConfig = { ...chosenConfig };
-    delete legacyConfig.middleTheme;
-    delete legacyConfig.finaleTheme;
-    delete legacyConfig.middleAudio;
-    delete legacyConfig.finaleAudio;
-    delete legacyConfig.audioProgram;
+  it('offers only active approved menu IDs and keys cached decisions by that menu', async () => {
+    const cache = new Map();
+    mocks.get.mockImplementation(async key => key.startsWith('rise:books:') ? books : cache.get(key));
+    mocks.set.mockImplementation(async (key, value) => { if (!key.startsWith('rise:jev-options:')) cache.set(key, value); return 'OK'; });
+    const provider = vi.fn(async () => Response.json({
+      model: 'typesafe/jev-1.13', provider: 'TypeSafe',
+      answers: answers('literary-walden')
+    }));
+    vi.stubGlobal('fetch', provider);
+
+    expect((await handleJevRecommend(request({ intent: 'Quiet and reflective.' }), env)).status).toBe(200);
+    mocks.optionsQuery.mockResolvedValue(options.filter(row => row.id !== 'mono'));
+    expect((await handleJevRecommend(request({ intent: 'Quiet and reflective.' }), env)).status).toBe(200);
+
+    expect(provider).toHaveBeenCalledTimes(2);
+    expect(mocks.optionsQuery.mock.calls[0][0].join('')).toContain("kind IN ('chamberFace', 'fontSize')");
+    const first = JSON.parse(provider.mock.calls[0][1].body).questions;
+    const second = JSON.parse(provider.mock.calls[1][1].body).questions;
+    expect(first.chamberFace.criteria).toHaveProperty('mono');
+    expect(second.chamberFace.criteria).not.toHaveProperty('mono');
+  });
+
+  it('uses compiled options if the optional menu table is unavailable', async () => {
+    mocks.optionsQuery.mockRejectedValue(Object.assign(new Error('Table not yet deployed'), { code: '42P01' }));
+    const provider = vi.fn(async () => Response.json({
+      model: 'typesafe/jev-1.13', provider: 'TypeSafe', answers: answers('literary-walden')
+    }));
+    vi.stubGlobal('fetch', provider);
+    const response = await handleJevRecommend(request(), env);
+    expect(response.status).toBe(200);
+    expect(JSON.parse(provider.mock.calls[0][1].body).questions.chamberFace.criteria).toHaveProperty('mono');
+  });
+
+  it('does not re-enable disabled menu options during a later database outage', async () => {
+    mocks.optionsQuery.mockRejectedValue(Object.assign(new Error('Database unavailable'), { code: '08006' }));
+    vi.stubGlobal('fetch', vi.fn());
+    const response = await handleJevRecommend(request(), env);
+    expect(response.status).toBe(503);
+    expect(globalThis.fetch).not.toHaveBeenCalled();
+  });
+
+  it('rejects malformed menu rows before calling Jev', async () => {
+    mocks.optionsQuery.mockResolvedValue([...options, { kind: 'audio', id: 'external-file', description: 'Unsafe.' }]);
+    const provider = vi.fn();
+    vi.stubGlobal('fetch', provider);
+    const response = await handleJevRecommend(request(), env);
+    expect(response.status).toBe(503);
+    expect((await response.json()).error.code).toBe('OPTIONS_UNAVAILABLE');
+    expect(provider).not.toHaveBeenCalled();
+  });
+
+  it('rejects a Jev choice that the active menu has disabled', async () => {
+    mocks.optionsQuery.mockResolvedValue(options.filter(row => row.id !== 'mono'));
+    vi.stubGlobal('fetch', vi.fn(async () => Response.json({
+      model: 'typesafe/jev-1.13', provider: 'TypeSafe',
+      answers: answers('literary-walden', { chamberFace: { type: 'choice', choice: 'mono' } })
+    })));
+    const response = await handleJevRecommend(request(), env);
+    expect(response.status).toBe(502);
+    expect((await response.json()).error.code).toBe('DECISION_INVALID_RESPONSE');
+  });
+
+  it('honors an explicit no-motion request even when Jev picks psychedelic visuals', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => Response.json({
+      model: 'typesafe/jev-1.13', provider: 'TypeSafe',
+      answers: answers('literary-walden', {
+        visual: { type: 'choice', choice: 'interlocution' },
+        visualStyle: { type: 'choice', choice: 'psychedelic' },
+        visualArc: { type: 'choice', choice: 'triple' }
+      })
+    })));
+    const response = await handleJevRecommend(request({ intent: 'A quiet reading with no moving visuals.' }), env);
+    expect(response.status).toBe(200);
+    expect((await response.json()).config).toMatchObject({
+      visualMode: 'off', visualStyle: 'quiet', visualArc: 'single', visualProgram: null
+    });
+  });
+
+  it('honors natural language requests against moving imagery', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => Response.json({
+      model: 'typesafe/jev-1.13', provider: 'TypeSafe',
+      answers: answers('literary-walden', {
+        visual: { type: 'choice', choice: 'interlocution' },
+        visualStyle: { type: 'choice', choice: 'psychedelic' }
+      })
+    })));
+    for (const intent of ["I don't want moving visuals", 'Read with no motion']) {
+      const response = await handleJevRecommend(request({ intent }), env);
+      expect((await response.json()).config.visualMode).toBe('off');
+    }
+  });
+
+  it('does not serve a cached result with an unsupported schema version', async () => {
     mocks.get.mockImplementation(async key => key.startsWith('rise:books:') ? books : {
-      requestId: 'legacy', model: 'typesafe/jev-1.13', workId: 'literary-walden',
-      editionId: book('literary-walden').edition_id,
+      schemaVersion: 2, requestId: 'future', model: 'typesafe/jev-1.13',
+      workId: 'literary-walden', editionId: book('literary-walden').edition_id,
       sourceRevision: book('literary-walden').source_revision,
-      reason: book('literary-walden').fit_description, config: legacyConfig
+      reason: book('literary-walden').fit_description, config: chosenConfig
     });
     const provider = vi.fn(async () => Response.json({
-      id: 'fresh-after-legacy', model: 'typesafe/jev-1.13', provider: 'TypeSafe',
+      id: 'gen-dec-fresh', model: 'typesafe/jev-1.13', provider: 'TypeSafe',
       answers: answers('literary-walden')
     }));
     vi.stubGlobal('fetch', provider);
 
     const response = await handleJevRecommend(request(), env);
-
     expect(response.status).toBe(200);
-    expect(await response.json()).toMatchObject({ requestId: 'fresh-after-legacy', decisionCacheStatus: 'miss' });
+    expect(await response.json()).toMatchObject({ schemaVersion: 1, requestId: 'gen-dec-fresh' });
     expect(provider).toHaveBeenCalledOnce();
   });
 

@@ -31,6 +31,8 @@ function makeNode(params = {}) {
 
 function makeMockContext() {
     const oscillators = [];
+    const bufferSources = [];
+    const buffers = [];
     const ctx = {
         currentTime: 0,
         sampleRate: 8000, // keep the impulse computation small
@@ -50,14 +52,20 @@ function makeMockContext() {
         createDelay: () => makeNode({ delayTime: makeParam(0) }),
         createConvolver: () => makeNode({ buffer: null }),
         createStereoPanner: () => makeNode({ pan: makeParam(0) }),
-        createBuffer: (channels, length) => ({
-            getChannelData: () => new Float32Array(length)
-        }),
+        createBuffer: (channels, length) => {
+            const data = Array.from({ length: channels }, () => new Float32Array(length));
+            buffers.push(data);
+            return { getChannelData: channel => data[channel] };
+        },
         createPeriodicWave: vi.fn(() => ({})),
         createWaveShaper: () => makeNode({ curve: null, oversample: 'none' }),
-        createBufferSource: () => makeNode({ buffer: null, loop: false })
+        createBufferSource: () => {
+            const source = makeNode({ buffer: null, loop: false });
+            bufferSources.push(source);
+            return source;
+        }
     };
-    return { ctx, oscillators };
+    return { ctx, oscillators, bufferSources, buffers };
 }
 
 describe('soundscapes', () => {
@@ -103,6 +111,28 @@ describe('soundscapes', () => {
         expect(createSoundscape('nope', ctx, makeNode())).toBeNull();
         expect(createSoundscape('aurora', ctx, makeNode())).not.toBeNull();
         expect(createSoundscape('faded-signal', ctx, makeNode())).not.toBeNull();
+    });
+
+    it('soft-rain creates a finite stereo noise bed and stops it cleanly', () => {
+        const { ctx, bufferSources, buffers } = makeMockContext();
+        const rain = createSoundscape('soft-rain', ctx, makeNode());
+        expect(rain).not.toBeNull();
+        rain.start();
+
+        expect(bufferSources).toHaveLength(1);
+        expect(bufferSources[0].loop).toBe(true);
+        expect(bufferSources[0].start).toHaveBeenCalledOnce();
+        expect(buffers).toHaveLength(1);
+        expect(buffers[0]).toHaveLength(2);
+        for (const channel of buffers[0]) {
+            expect(Math.abs(channel[0])).toBe(0);
+            expect(Math.abs(channel.at(-1))).toBe(0);
+            expect(channel.some(sample => sample !== 0)).toBe(true);
+            expect(channel.every(sample => Number.isFinite(sample) && Math.abs(sample) <= 1)).toBe(true);
+        }
+        rain.stop(true);
+        vi.runAllTimers();
+        expect(bufferSources[0].stop).toHaveBeenCalledOnce();
     });
 
     it('faded-signal starts its full graph and tears down dead', () => {
