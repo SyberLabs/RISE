@@ -56,6 +56,8 @@ function book(workId, extras = {}) {
 }
 
 const books = Object.keys(releaseInventory).map(workId => book(workId));
+const sounds = ['aurora', 'faded-signal', 'sad', 'angry', 'happy', 'excited', 'thrilling', 'scary']
+  .map(id => ({ sound_id: id, decision_criterion: `Choose for a ${id} reading mood.`, active: true }));
 
 const chosenConfig = Object.freeze({
   section: 'first', wpm: 200, curve: 'flat', chunkMode: 'word',
@@ -119,7 +121,8 @@ function request(body = { intent: 'I want a thoughtful novel.' }, headers = {}) 
 }
 
 beforeEach(() => {
-  mocks.query.mockResolvedValue(books);
+  mocks.query.mockImplementation(strings => Promise.resolve(
+    strings.join('').includes('FROM rise_sounds') ? sounds : books));
   mocks.get.mockResolvedValue(null);
   mocks.set.mockResolvedValue('OK');
   mocks.incr.mockResolvedValue(1);
@@ -164,6 +167,7 @@ describe('Jev reading recommendation', () => {
     expect(mocks.set).toHaveBeenCalledWith(expect.stringMatching(/^rise:books:v1:[0-9a-f]{64}$/u), books, { ex: 30 });
     expect(mocks.set.mock.calls[0][0]).not.toContain('thoughtful novel');
     const body = JSON.parse(provider.mock.calls[0][1].body);
+    expect(new TextEncoder().encode(provider.mock.calls[0][1].body).length).toBeLessThan(12000);
     expect(body.model).toBe('typesafe/jev-1.13');
     expect(Object.keys(body.questions.book.criteria)).toHaveLength(15);
     expect(Object.keys(body.questions.book.criteria)).toContain('middlemarch');
@@ -180,13 +184,18 @@ describe('Jev reading recommendation', () => {
     ]);
     expect(body.questions.visual.criteria.interlocution).toContain('psychedelic');
     expect(body.questions.visualEngine.criteria.fractal).toContain('psychedelic');
-    expect(Object.keys(body.questions.audio.criteria)).toEqual(['silent', 'aurora', 'faded-signal']);
+    expect(Object.keys(body.questions.audio.criteria)).toEqual([
+      'silent', 'aurora', 'faded-signal', 'sad', 'angry', 'happy', 'excited', 'thrilling', 'scary'
+    ]);
+    expect(mocks.set).toHaveBeenCalledWith('rise:sounds:v1', sounds, { ex: 30 });
+    expect(body.questions.section.criteria).toHaveProperty('middle');
+    expect(body.questions.section.criteria).toHaveProperty('last');
     expect(body.questions.section.criteria).toHaveProperty('shortest');
     expect(provider.mock.calls[0][1].headers.Authorization).toBe('Bearer openrouter-server-secret');
   });
 
   it('uses public catalog metadata from Redis but still calls Jev for the reader intent', async () => {
-    mocks.get.mockResolvedValue(books);
+    mocks.get.mockImplementation(async key => key === 'rise:sounds:v1' ? sounds : books);
     const provider = vi.fn(async () => Response.json({
       id: 'gen-dec-live-2', model: 'typesafe/jev-1.13', provider: 'TypeSafe',
       answers: answers('literary-walden')
@@ -198,6 +207,42 @@ describe('Jev reading recommendation', () => {
     expect((await response.json()).cacheStatus).toBe('hit');
     expect(mocks.query).not.toHaveBeenCalled();
     expect(provider).toHaveBeenCalledOnce();
+  });
+
+  it.each(['sad', 'angry', 'happy', 'excited', 'thrilling', 'scary'])(
+    'serves a validated %s mood choice into the Chamber plan', async mood => {
+      vi.stubGlobal('fetch', vi.fn(async () => Response.json({
+        id: `mood-${mood}`, model: 'typesafe/jev-1.13', provider: 'TypeSafe',
+        answers: answers('literary-walden', { audio: { type: 'choice', choice: mood } })
+      })));
+      const response = await handleJevRecommend(request({ intent: `A ${mood} reading.` }), env);
+      expect(response.status).toBe(200);
+      expect((await response.json()).config).toMatchObject({ audio: mood, soundscape: mood });
+    }
+  );
+
+  it('rejects a sound catalog with an unshipped ID before calling Jev', async () => {
+    mocks.query.mockImplementation(strings => Promise.resolve(strings.join('').includes('FROM rise_sounds')
+      ? [...sounds.slice(0, -1), { sound_id: 'unshipped', decision_criterion: 'Unknown sound.', active: true }]
+      : books));
+    const provider = vi.fn();
+    vi.stubGlobal('fetch', provider);
+    const response = await handleJevRecommend(request(), env);
+    expect(response.status).toBe(503);
+    expect(provider).not.toHaveBeenCalled();
+  });
+
+  it('does not offer or accept a deactivated mood sound', async () => {
+    mocks.query.mockImplementation(strings => Promise.resolve(strings.join('').includes('FROM rise_sounds')
+      ? sounds.filter(row => row.sound_id !== 'scary') : books));
+    const provider = vi.fn(async () => Response.json({
+      model: 'typesafe/jev-1.13', provider: 'TypeSafe',
+      answers: answers('literary-walden', { audio: { type: 'choice', choice: 'scary' } })
+    }));
+    vi.stubGlobal('fetch', provider);
+    const response = await handleJevRecommend(request(), env);
+    expect(JSON.parse(provider.mock.calls[0][1].body).questions.audio.criteria).not.toHaveProperty('scary');
+    expect(response.status).toBe(502);
   });
 
   it('returns the selected configuration from one Jev decision', async () => {
@@ -376,7 +421,7 @@ describe('Jev reading recommendation', () => {
     expect(decisionKey).not.toContain('Nature and quiet.');
     expect(mocks.set).toHaveBeenCalledWith(decisionKey, expect.objectContaining({
       workId: 'literary-walden'
-    }), { ex: 300 });
+    }), { ex: 3600 });
   });
 
   it('uses the Gallery host for a visual arc and keeps explicit darkness dark', async () => {
@@ -395,6 +440,8 @@ describe('Jev reading recommendation', () => {
     expect(activeConfig.visualMode).toBe('interlocution');
     expect(activeConfig.visualProgram.segments.map(segment => segment.match.toProgress))
       .toEqual([0.7, 1]);
+    expect(activeConfig.visualProgram.segments.map(segment => segment.cue.collections[0]))
+      .toEqual(['klee', 'fractal']);
 
     provider.mockImplementationOnce(async () => Response.json({
       id: 'dark-decision', model: 'typesafe/jev-1.13', provider: 'TypeSafe',
@@ -464,8 +511,7 @@ describe('Jev reading recommendation', () => {
     const cache = new Map();
     mocks.get.mockImplementation(async key => key.startsWith('rise:books:') ? books : cache.get(key));
     mocks.set.mockImplementation(async (key, value) => { cache.set(key, value); return 'OK'; });
-    mocks.incr.mockResolvedValueOnce(1).mockResolvedValueOnce(2)
-      .mockResolvedValueOnce(3).mockResolvedValueOnce(4).mockResolvedValueOnce(5);
+    mocks.incr.mockImplementation(async () => mocks.incr.mock.calls.length);
     const provider = vi.fn(async (_url, options) => {
       const criteria = JSON.parse(options.body).questions.book.criteria;
       return Response.json({
@@ -477,7 +523,7 @@ describe('Jev reading recommendation', () => {
     vi.stubGlobal('fetch', provider);
 
     const responses = [];
-    for (let index = 0; index < 5; index++) {
+    for (let index = 0; index < 9; index++) {
       const response = await handleJevRecommend(request({ intent: 'Surprise me.' }), env);
       expect(response.status).toBe(200);
       responses.push(await response.json());
@@ -486,9 +532,9 @@ describe('Jev reading recommendation', () => {
     for (let index = 1; index < responses.length; index++) {
       expect(responses[index].workId).not.toBe(responses[index - 1].workId);
     }
-    expect(provider).toHaveBeenCalledTimes(4);
-    expect(responses[4].decisionCacheStatus).toBe('hit');
-    expect(responses[4].workId).toBe(responses[0].workId);
+    expect(provider).toHaveBeenCalledTimes(8);
+    expect(responses[8].decisionCacheStatus).toBe('hit');
+    expect(responses[8].workId).toBe(responses[0].workId);
     const first = Object.keys(JSON.parse(provider.mock.calls[0][1].body).questions.book.criteria);
     const second = Object.keys(JSON.parse(provider.mock.calls[1][1].body).questions.book.criteria);
     expect(first.filter(id => second.includes(id))).toEqual([]);
@@ -563,7 +609,8 @@ describe('Jev reading recommendation', () => {
   });
 
   it('continues recommending only active books when a catalog row is withdrawn', async () => {
-    mocks.query.mockResolvedValue(books.filter(row => row.work_id !== 'middlemarch'));
+    mocks.query.mockImplementation(strings => Promise.resolve(strings.join('').includes('FROM rise_sounds')
+      ? sounds : books.filter(row => row.work_id !== 'middlemarch')));
     const provider = vi.fn(async () => Response.json({
       model: 'typesafe/jev-1.13', provider: 'TypeSafe',
       answers: answers('literary-walden')

@@ -56,6 +56,7 @@ const GATE = [
     '**/scriptorium.spec.js',
     '**/smoke.spec.js'
 ];
+const e2ePort = Number(process.env.RISE_E2E_PORT) || 4317;
 
 export default defineConfig({
     testDir: './e2e',
@@ -65,7 +66,7 @@ export default defineConfig({
     workers: 1, // one browser, sequential — flows share an audio device
     reporter: [['list'], ['github']],
     use: {
-        baseURL: 'http://localhost:4317',
+        baseURL: `http://localhost:${e2ePort}`,
         headless: true,
         viewport: { width: 1280, height: 800 },
         // Web Audio must start without a physical click's blessing

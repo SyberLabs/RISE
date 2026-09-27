@@ -5,6 +5,7 @@
  */
 
 import { jevPalette } from './jev-palette.js';
+import { JEV_AUDIO_IDS } from './jev-config.js';
 
 const PROCEDURAL_ENGINES = Object.freeze([
   'klee',
@@ -17,7 +18,7 @@ const PROCEDURAL_ENGINES = Object.freeze([
 
 const ARC_SPLITS = new Set([0.3, 0.5, 0.7]);
 const ARC_COUNTS = Object.freeze({ single: 1, dual: 2, triple: 3 });
-const JEV_SOUNDSCAPES = new Set(['silent', 'aurora', 'faded-signal']);
+const JEV_SOUNDSCAPES = new Set(['silent', ...JEV_AUDIO_IDS]);
 
 function nextDistinctEngine(requested, used) {
   const requestedIndex = PROCEDURAL_ENGINES.indexOf(requested);
@@ -30,7 +31,9 @@ function nextDistinctEngine(requested, used) {
 }
 
 function chooseEngines(values, count) {
-  const requested = [values.visualEngine, values.middleEngine, values.finaleEngine];
+  const requested = count === 2
+    ? [values.visualEngine, values.finaleEngine]
+    : [values.visualEngine, values.middleEngine, values.finaleEngine];
   const used = new Set();
   const engines = [];
   for (let index = 0; index < count; index += 1) {
@@ -141,3 +144,44 @@ export function compileJevAudioProgram(value = {}) {
 export { PROCEDURAL_ENGINES as JEV_PROCEDURAL_ENGINES };
 
 export const compileJevVisualProgram = buildJevVisualProgram;
+
+/** Bring the next admitted Jev scene forward to a point within the current scene. */
+export function advanceJevVisualArc(program, sourceProgress) {
+  const segments = program?.segments;
+  if (program?.coordinateSpace !== 'source' || program?.fallback?.kind !== 'still'
+    || !Array.isArray(segments) || ![2, 3].includes(segments.length)
+    || !Number.isFinite(sourceProgress) || sourceProgress <= 0 || sourceProgress >= 1) return null;
+
+  const names = segments.length === 2
+    ? ['jev-opening', 'jev-finale']
+    : ['jev-opening', 'jev-middle', 'jev-finale'];
+  const used = new Set();
+  let previousEnd = 0;
+  for (const [index, segment] of segments.entries()) {
+    const { fromProgress, toProgress, sourceIds } = segment?.match || {};
+    const engine = segment?.cue?.collections?.[0];
+    if (segment?.id !== names[index] || !Array.isArray(sourceIds)
+      || sourceIds.length !== 1 || sourceIds[0] !== 'primary'
+      || fromProgress !== previousEnd || !Number.isFinite(toProgress)
+      || toProgress <= fromProgress || toProgress > 1
+      || segment?.cue?.kind !== 'procedural' || segment.cue.collections?.length !== 1
+      || !PROCEDURAL_ENGINES.includes(engine) || used.has(engine)) return null;
+    used.add(engine);
+    previousEnd = toProgress;
+  }
+  if (previousEnd !== 1) return null;
+
+  const currentIndex = segments.findIndex((segment, index) => index < segments.length - 1
+    && sourceProgress > segment.match.fromProgress
+    && sourceProgress < segment.match.toProgress);
+  if (currentIndex < 0) return null;
+
+  return {
+    ...program,
+    segments: segments.map((segment, index) => index === currentIndex
+      ? { ...segment, match: { ...segment.match, toProgress: sourceProgress } }
+      : index === currentIndex + 1
+        ? { ...segment, match: { ...segment.match, fromProgress: sourceProgress } }
+        : segment)
+  };
+}

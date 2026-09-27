@@ -4,6 +4,8 @@
  * the scheduler, and tears down cleanly (no timers left alive).
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { readFileSync } from 'node:fs';
+import { JEV_AUDIO_IDS } from '../core/jev-config.js';
 import { SOUNDSCAPES, createSoundscape } from './soundscapes.js';
 
 function makeParam(initial = 0) {
@@ -61,6 +63,38 @@ function makeMockContext() {
 describe('soundscapes', () => {
     beforeEach(() => vi.useFakeTimers());
     afterEach(() => vi.useRealTimers());
+
+    it('SQL sound rows match the sounds the Chamber can actually play', () => {
+        const seed = readFileSync('scripts/seed-rise-sounds.sql', 'utf8');
+        const ids = [...seed.matchAll(/^\s*\('([^']+)',\s*'[^']+',\s*TRUE\)/gm)].map(match => match[1]);
+        expect(new Set(ids)).toEqual(new Set(JEV_AUDIO_IDS));
+        ids.forEach(id => expect(SOUNDSCAPES).toHaveProperty(id));
+    });
+
+    it.each(['sad', 'angry', 'happy', 'excited', 'thrilling', 'scary'])(
+        'plays and tears down the %s mood sound', id => {
+            const { ctx, oscillators } = makeMockContext();
+            const sound = createSoundscape(id, ctx, makeNode());
+            expect(sound).not.toBeNull();
+            sound.start();
+            expect(oscillators.length).toBeGreaterThan(1);
+            oscillators.forEach(osc => expect(osc.start).toHaveBeenCalledOnce());
+            sound.stop(true);
+            oscillators.forEach(osc => expect(osc.stop).toHaveBeenCalledOnce());
+        }
+    );
+
+    it('gives the six moods distinct audible pitch and timbre signatures', () => {
+        const signatures = ['sad', 'angry', 'happy', 'excited', 'thrilling', 'scary'].map(id => {
+            const { ctx, oscillators } = makeMockContext();
+            const sound = createSoundscape(id, ctx, makeNode());
+            const signature = `${oscillators[0].type}:${oscillators[0].frequency.value}`;
+            sound.start();
+            sound.stop(true);
+            return signature;
+        });
+        expect(new Set(signatures).size).toBe(6);
+    });
 
     it('registry exposes aurora and faded-signal; unknown ids return null', () => {
         expect(SOUNDSCAPES.aurora.name).toBe('Aurora');

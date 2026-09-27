@@ -6,6 +6,10 @@
 
 [Enter RISE →](https://rise.syberlabs.io/)
 
+[Try the Jev scene sample →](https://rise.syberlabs.io/jev-scene-demo) opens a fixed
+Middlemarch preset to demonstrate **Shift scene**. It makes no live Jev request;
+use **Ask Jev** on the [RISE home page](https://rise.syberlabs.io/) for a personal choice.
+
 The earlier site at [rise.syberlabs.space](https://rise.syberlabs.space/) remains
 available for work saved in that browser origin. The new `.io` address has
 separate browser storage; RISE does not have a complete import path between them.

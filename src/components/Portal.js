@@ -11,6 +11,7 @@
 
 
 import './Portal.css';
+import { isJevSceneDemoPath } from '../core/jev-demo-path.js';
 
 export class Portal {
   constructor(container, options = {}) {
@@ -20,6 +21,8 @@ export class Portal {
     this.getAudioEngine = options.getAudioEngine || (() => null);
     this.getCurrentSession = options.getCurrentSession || (() => null);
     this.onLaunchJevReading = options.onLaunchJevReading || (async () => {});
+    this.onLaunchJevSample = options.onLaunchJevSample || (async () => {});
+    this.demoMode = options.demoMode === true;
     this._active = false;
     this.boundKeyboardHandler = this.handleKeyboard.bind(this);
 
@@ -31,6 +34,12 @@ export class Portal {
 
   /** Router re-entry hook — refresh the living entries on return */
   update() {
+    const demoMode = isJevSceneDemoPath(window.location.pathname);
+    if (demoMode !== this.demoMode) {
+      this.demoMode = demoMode;
+      this.render();
+      this.attachEvents();
+    }
     // Returning from a reading is precisely when this changes.
     this.syncContinue();
   }
@@ -143,18 +152,27 @@ export class Portal {
         <!-- The reading request is the first action. The existing rooms remain
              available below it for readers who already know where to go. -->
         <div class="portal-title-container">
-          <p class="portal-jev-eyebrow">READ WITH JEV</p>
-          <h1 class="portal-title">What would you like to read?</h1>
-          <p class="portal-subtitle text-fog">Tell Jev what you want. It will choose an existing reading and shape the experience.</p>
+          <p class="portal-jev-eyebrow">${this.demoMode ? 'JEV SCENE SAMPLE' : 'READ WITH JEV'}</p>
+          <h1 class="portal-title">${this.demoMode ? 'Make the scene respond.' : 'What would you like to read?'}</h1>
+          <p class="portal-subtitle text-fog">${this.demoMode
+            ? 'Read a released passage from Middlemarch, then bring its next visual scene forward while the words keep moving.'
+            : 'Tell Jev what you want. It will choose an existing reading and shape the experience.'}</p>
         </div>
 
-        <form class="portal-jev-form" id="portal-jev-form">
+        ${this.demoMode ? `<div class="portal-jev-form" id="portal-jev-demo">
+          <p class="portal-jev-hint">This is a fixed sample preset of choices Jev may make. No live Jev request is made here.</p>
+          <p class="portal-jev-hint">Source: <em>Middlemarch</em> by George Eliot ·
+            <a href="https://standardebooks.org/ebooks/george-eliot/middlemarch" target="_blank" rel="noopener noreferrer">Standard Ebooks edition</a></p>
+          <button class="portal-jev-submit" id="jev-scene-demo-start" type="button">Start sample reading <span aria-hidden="true">→</span></button>
+          <a class="portal-jev-demo-live" href="/">Ask Jev live for a personal reading</a>
+          <p class="portal-jev-hint" id="jev-scene-demo-status" role="status" aria-live="polite"></p>
+        </div>` : `<form class="portal-jev-form" id="portal-jev-form">
           <label class="portal-jev-label" for="portal-jev-intent">Your reading request</label>
           <textarea id="portal-jev-intent" name="intent" rows="2" maxlength="240" required
             placeholder="I want something reflective, slow, quiet, with gentle visuals…"></textarea>
           <button class="portal-jev-submit" type="submit">Ask Jev and read <span aria-hidden="true">→</span></button>
           <p class="portal-jev-hint" id="portal-jev-hint" role="status" aria-live="polite">Jev chooses from the released Library and sets the Chamber in one request.</p>
-        </form>
+        </form>`}
 
         <a class="portal-sequence-preview" href="/sequences/">
           <span><strong>Try short sequences</strong><small>Three original readings · feedback stays on your device</small></span>
@@ -237,7 +255,7 @@ export class Portal {
 
   attachEvents() {
     const form = this.container.querySelector('#portal-jev-form');
-    form.addEventListener('submit', async event => {
+    form?.addEventListener('submit', async event => {
       event.preventDefault();
       const intent = form.querySelector('#portal-jev-intent').value.trim();
       if (intent.length < 3 || intent.length > 240) {
@@ -263,6 +281,21 @@ export class Portal {
         hint.textContent = error.message || 'The reading could not be prepared. Please try again.';
       } finally {
         submit.disabled = false;
+      }
+    });
+
+    const sample = this.container.querySelector('#jev-scene-demo-start');
+    sample?.addEventListener('click', async () => {
+      if (sample.disabled) return;
+      sample.disabled = true;
+      const status = this.container.querySelector('#jev-scene-demo-status');
+      status.textContent = 'Preparing the released reading…';
+      try {
+        await this.onLaunchJevSample();
+      } catch (error) {
+        status.textContent = error.message || 'The sample could not be prepared.';
+      } finally {
+        sample.disabled = false;
       }
     });
 
