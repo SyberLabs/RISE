@@ -41,6 +41,7 @@ history, not a distinction; read the status column instead.
 | --- | --- | --- |
 | [pilot/SEQUENCE-PILOT.md](pilot/SEQUENCE-PILOT.md) | Intent | Seven-day, invited sequence discovery protocol, manual evidence rules, rights and consent gates, and pass thresholds. |
 | [pilot/JEV-STEERING.md](pilot/JEV-STEERING.md) | Intent | Six-reader private usability gate for one optional Jev scene shift. |
+| [pilot/FIRST-READ.md](pilot/FIRST-READ.md) | Intent | Five-reader comparison of the existing and new Meditations entrances, with consent, timing, retention, and a fixed 10× decision rule. |
 
 ## The Archive - texts and their editing
 
