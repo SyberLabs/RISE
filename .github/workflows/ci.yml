@@ -148,14 +148,25 @@ jobs:
       - name: Verify public production serves the exact release
         run: |
           set -euo pipefail
-          for path in / /try-rise /jev-preview "/release-$TESTED_SHA.txt"; do
+          # Cloudflare can serve the prior version for a few seconds after deploy.
+          for attempt in {1..10}; do
+            status=$(curl -sS --max-time 20 --retry 2 --retry-delay 1 --retry-all-errors \
+              -o "$RUNNER_TEMP/public-body" -w '%{http_code}' \
+              "https://rise.syberlabs.io/release-$TESTED_SHA.txt" || true)
+            if [ "$status" = 200 ] && [ "$(cat "$RUNNER_TEMP/public-body")" = "$TESTED_SHA" ]; then
+              break
+            fi
+            if [ "$attempt" = 10 ]; then
+              echo "Production did not serve release $TESTED_SHA after 10 checks."
+              exit 1
+            fi
+            sleep 2
+          done
+          for path in / /try-rise /jev-preview; do
             status=$(curl -sS --max-time 20 --retry 5 --retry-delay 3 --retry-all-errors \
               -D "$RUNNER_TEMP/public-headers" -o "$RUNNER_TEMP/public-body" \
               -w '%{http_code}' "https://rise.syberlabs.io$path")
             test "$status" = 200 || { echo "Expected public HTTP 200 at $path; got HTTP $status"; exit 1; }
-            if [ "$path" = "/release-$TESTED_SHA.txt" ]; then
-              test "$(cat "$RUNNER_TEMP/public-body")" = "$TESTED_SHA"
-            fi
           done
           status=$(curl -sS --max-time 20 --retry 5 --retry-delay 3 --retry-all-errors \
             -D "$RUNNER_TEMP/public-headers" -o "$RUNNER_TEMP/public-body" \
