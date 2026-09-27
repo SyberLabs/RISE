@@ -197,7 +197,7 @@ from the Vite dev server.
  builds the app and starts `vite preview` on `127.0.0.1:4317` itself, with
  `VITE_RISE_ARCHIVE_REVIEW=1`. Do **not** start a server manually. It runs
  Chromium only, single worker, with autoplay forced on (Web Audio).
-- Pull requests run five core and CI policy smoke files, plus build, hygiene,
+- Pull requests run four core smoke files and the CI policy test, plus build, hygiene,
  and docs checks in one `CI` job with one dependency install. Scriptorium runs
  on main, where its full CLI contract is checked before release.
  The complete unit and browser suites run after merge
@@ -220,7 +220,7 @@ from the Vite dev server.
  file is hand-written and guarded by `src/core/system-design.test.js`.
 - A change touching only `docs/`, `.agents/`, `.cursor/`, a root `*.md`,
  `LICENSE`, or `NOTICE` skips the unit, build, Scriptorium, and browser jobs.
- Anything else runs everything. The system-design guard lives in the unit suite
+ Anything else runs the fast PR checks and the full main checks. The system-design guard lives in the unit suite
  but is **also** run by PR `CI` and the main `docs` job, because editing that
  document is exactly when it has to run.
 - `CI` is the one job that always reports and the only name a branch ruleset
