@@ -16,7 +16,8 @@ function session(overrides = {}) {
     visualConfig: { visualMode: 'interlocution', interlocution: { presentation: 'continuous' } },
     visualProgram: buildJevVisualProgram({
       visualArc: 'dual', arcSplit: '70', visualEngine: 'klee',
-      middleEngine: 'turrell', finaleEngine: 'fractal'
+      middleEngine: 'turrell', finaleEngine: 'fractal',
+      colorTheme: 'classic', middleTheme: 'amethyst', finaleTheme: 'prism'
     }),
     ...overrides
   };
@@ -72,7 +73,8 @@ describe('reader steering of a Jev visual arc', () => {
   it('allows only one shift even when a Jev arc has three scenes', async () => {
     const reading = session({ visualProgram: buildJevVisualProgram({
       visualArc: 'triple', arcSplit: '50', visualEngine: 'klee',
-      middleEngine: 'turrell', finaleEngine: 'fractal'
+      middleEngine: 'turrell', finaleEngine: 'fractal',
+      colorTheme: 'classic', middleTheme: 'amethyst', finaleTheme: 'prism'
     }) });
     const { chamber, container } = mount(reading);
     vi.spyOn(visualCortex, 'isCuePrepared').mockReturnValue(true);
