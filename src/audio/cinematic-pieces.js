@@ -38,6 +38,14 @@ const DEFINITIONS = {
     }
 };
 
+export const CINEMATIC_PIECE_PROFILES = Object.freeze(Object.fromEntries(
+    Object.entries(DEFINITIONS).map(([id, definition]) => [id, Object.freeze({
+        ...definition,
+        partials: Object.freeze([...definition.partials]),
+        notes: Object.freeze([...definition.notes])
+    })])
+));
+
 function setLevel(param, value, ctx, seconds) {
     param.cancelScheduledValues?.(ctx.currentTime);
     param.setValueAtTime?.(param.value, ctx.currentTime);
