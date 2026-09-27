@@ -83,10 +83,12 @@ export function createRouteManifest(operations) {
       id: 'library',
       containerId: 'view-library',
       load: () => import('../components/Library.js'),
-      create: (container, _data, { Library }) => new Library(container, {
+      create: (container, data, { Library }) => new Library(container, {
         onNavigate: operations.handleNavigate,
         onSelectText: operations.handleTextSelection,
-        getAudioEngine: operations.getAudioEngine
+        getAudioEngine: operations.getAudioEngine,
+        initialIntent: data?.jevIntent,
+        readingPreferences: data?.readingPreferences
       })
     },
     {
@@ -150,12 +152,15 @@ export function createRouteManifest(operations) {
       id: 'scriptorium',
       containerId: 'view-scriptorium',
       load: () => import('../components/Scriptorium.js'),
-      create: (container, _data, { Scriptorium }) => {
+      create: (container, data, { Scriptorium }) => {
         const room = new Scriptorium(container, {
           onNavigate: operations.handleNavigate,
           onCreateSession: operations.handleCreateSession,
           getSettings: operations.getSettings,
-          onSettingsTransaction: operations.handleSettingsTransaction
+          onSettingsTransaction: operations.handleSettingsTransaction,
+          initialIntent: data?.intent,
+          initialTargetWords: data?.targetWords,
+          readingPreferences: data?.readingPreferences
         });
         room.mount();
         return room;
