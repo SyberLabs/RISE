@@ -75,6 +75,24 @@ describe('visual program persistence boundary', () => {
     });
   });
 
+  it('keeps only shipped color themes on procedural phase cues', () => {
+    const input = {
+      coordinateSpace: 'source',
+      segments: [
+        { id: 'first', match: { sourceIds: ['primary'] },
+          cue: { kind: 'procedural', collections: ['fractal'], colorTheme: 'prism' } },
+        { id: 'second', match: { sourceIds: ['primary'] },
+          cue: { kind: 'procedural', collections: ['klee'], colorTheme: 'custom-css' } }
+      ],
+      fallback: { kind: 'still' }
+    };
+    const cues = deserializeVisualProgram(JSON.parse(JSON.stringify(
+      serializeVisualProgram(input)
+    ))).segments.map(segment => segment.cue);
+    expect(cues[0].colorTheme).toBe('prism');
+    expect(cues[1]).not.toHaveProperty('colorTheme');
+  });
+
   it('continues through compilation and activates the restored final episode', () => {
     const restored = deserializeVisualProgram(JSON.parse(
       JSON.stringify(serializeVisualProgram(program))

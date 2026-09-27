@@ -411,7 +411,8 @@ describe('Jev reading recommendation', () => {
 
   it.each([
     'change visuals 70% through',
-    '70% one style, 30% another'
+    '70% one style, 30% another',
+    'crazy colorful psychedelic visuals, with a dramatic transformation 70 percent through the reading'
   ])('honors an explicit 70%% visual timing request over Jev choices: %s', async (intent) => {
     vi.stubGlobal('fetch', vi.fn(async () => Response.json({
       model: 'typesafe/jev-1.13', provider: 'TypeSafe',

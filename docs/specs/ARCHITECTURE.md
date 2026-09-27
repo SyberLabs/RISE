@@ -178,7 +178,7 @@ flowchart LR
     audio --> |5| core
     components --> |2| audio
     components --> |20| content
-    components --> |126| core
+    components --> |127| core
     components -.-> |1 lazy| page
     components --> |4| sources
     components --> |13| visuals

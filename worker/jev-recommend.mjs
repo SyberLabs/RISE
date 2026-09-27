@@ -3,7 +3,7 @@ import { Redis } from '@upstash/redis/cloudflare';
 import releaseInventory from '../src/content/archive/release-inventory.json' with { type: 'json' };
 import { jevPalette } from '../src/core/jev-palette.js';
 import { resolveJevChamberConfig } from '../src/core/jev-config.js';
-import * as jevSequence from '../src/core/jev-sequence.js';
+import { compileJevAudioProgram, compileJevVisualProgram } from '../src/core/jev-sequence.js';
 import { buildJevVarianceHints, VARIATION_COUNT } from './jev-variance.mjs';
 
 const API_URL = 'https://openrouter.ai/api/alpha/decisions';
@@ -238,9 +238,8 @@ function validConfig(config) {
     && config.projection !== 'stream') return null;
   if (config.fontSize === 'fit' && config.chunkMode !== 'word') return null;
   const resolved = resolveJevChamberConfig(config);
-  const visualProgram = jevSequence.compileJevVisualProgram(config);
-  const audioProgram = typeof jevSequence.compileJevAudioProgram === 'function'
-    ? jevSequence.compileJevAudioProgram(config) : null;
+  const visualProgram = compileJevVisualProgram(config);
+  const audioProgram = compileJevAudioProgram(config);
   if (config.visualArc !== 'single' && !visualProgram) return null;
   if (config.audioPreset !== resolved.audioPreset
     || config.soundscape !== resolved.soundscape
@@ -258,11 +257,11 @@ function validConfig(config) {
 
 function explicitVisualTiming(intent) {
   const normalized = String(intent || '').normalize('NFKC').toLocaleLowerCase('en');
-  const split = normalized.match(/\b(30|50|70)\s*%/u)?.[1];
+  const split = normalized.match(/\b(30|50|70)\s*(?:%|percent\b)/u)?.[1];
   if (!split) return null;
   const hasVisualWord = /\bvisuals?\b/u.test(normalized);
   const hasPhaseWord = /\b(?:opening|middle|finale|phase|arc)\b/u.test(normalized);
-  const hasChangeWord = /\b(?:change|switch|shift|transition|different|another)\b/u.test(normalized);
+  const hasChangeWord = /\b(?:change|switch|shift|transition|transform|transformation|different|another)\b/u.test(normalized);
   const hasStyleSplit = /\b(?:one|another|different|new)\s+styles?\b/u.test(normalized);
   return (hasVisualWord && hasChangeWord) || (hasPhaseWord && hasChangeWord)
     || hasStyleSplit ? split : null;
@@ -335,9 +334,8 @@ function choiceConfig(answers, intent = '') {
     config.projection = 'stream';
   }
   Object.assign(config, resolveJevChamberConfig(config));
-  config.visualProgram = jevSequence.compileJevVisualProgram(config);
-  config.audioProgram = typeof jevSequence.compileJevAudioProgram === 'function'
-    ? jevSequence.compileJevAudioProgram(config) : null;
+  config.visualProgram = compileJevVisualProgram(config);
+  config.audioProgram = compileJevAudioProgram(config);
   return validConfig(config);
 }
 
