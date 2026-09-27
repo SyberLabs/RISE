@@ -14,7 +14,7 @@ import {
 const CHUNKS = new Set(['word', 'phrase', 'sentence', 'paragraph']);
 const CURVES = new Set(['flat', 'induction', 'ascent', 'wave', 'climax']);
 const PACES = new Set([100, 150, 200, 250, 300, 400, 500]);
-const AUDIO = new Set(['silent', 'aurora', 'faded-signal', 'focus', 'deep', 'gateway']);
+const AUDIO = new Set(['silent', 'aurora', 'faded-signal']);
 const VISUALS = new Set(['off', 'focals', 'genesis', 'attractor', 'interlocution']);
 const ENGINES = new Set(['klee', 'turrell', 'fractal', 'harmonograph', 'ostensoria', 'apparitio']);
 const PALETTES = new Set(ATTRACTOR_PALETTES.map(item => item.id));

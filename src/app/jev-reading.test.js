@@ -79,6 +79,10 @@ describe('Jev reading handoff', () => {
   it('rejects unknown options and changed edition identity', async () => {
     await expect(resolveJevReading(decision({ chunkMode: 'script' })))
       .rejects.toThrow('invalid reading plan');
+    for (const audio of ['focus', 'deep', 'gateway']) {
+      await expect(resolveJevReading(decision({ audio })))
+        .rejects.toThrow('invalid reading plan');
+    }
     await expect(resolveJevReading({ ...decision(), sourceRevision: 'other' }))
       .rejects.toThrow('not available');
     const tampered = decision();

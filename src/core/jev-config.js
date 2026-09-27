@@ -37,7 +37,7 @@ export function resolveJevChamberConfig(plan) {
   }
 
   return {
-    audioPreset: ['focus', 'deep', 'gateway'].includes(plan.audio) ? plan.audio : 'silent',
+    audioPreset: 'silent',
     soundscape: ['aurora', 'faded-signal'].includes(plan.audio) ? plan.audio : 'none',
     entrainmentMode: 'binaural',
     entrainmentWaveform: 'sine',
