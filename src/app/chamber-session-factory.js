@@ -15,7 +15,7 @@ import {
 } from '../core/visual-safety.js';
 import { normalizeVisualSelection, resolveSessionWordFill } from '../core/visual-selection.js';
 import { chamberExitTarget } from './chamber-exit.js';
-import { createPresentationLens } from '../core/session-presentation.js';
+import { createPresentationLens, sessionColorTheme } from '../core/session-presentation.js';
 import { sessionImageryCollections } from '../core/visual-selection.js';
 import { audioDiag } from '../core/audio-diagnostics.js';
 
@@ -285,6 +285,9 @@ export async function createChamberSession(operations, container, sessionData) {
                         interlocution.galleryCadence ?? GALLERY_CADENCE_DEFAULT
                     ),
                     renderLanguage: 'native',   // ASCII retired 2026-08-06
+                    // The reading's chosen colors paint the flame; readings
+                    // without a declared palette keep the mood palettes.
+                    flameColors: sessionColorTheme(session),
                     presentation: normalizePresentation(interlocution.presentation),
                     activeTypes: activeTypes,
                     kleePreset: interlocution.kleePreset ?? 'random',
