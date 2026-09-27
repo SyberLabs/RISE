@@ -198,7 +198,10 @@ jobs:
               and ($result.config.audioProgram == $resolved[0].audioProgram)
               and (if $result.config.visualArc == "single" then
                 $result.config.visualProgram == null and $result.config.audioProgram == null
-              else $result.config.visualProgram != null and $result.config.audioProgram != null end)
+              else $result.config.audioProgram != null
+                and (if $result.config.visualMode == "off" then
+                  $result.config.visualProgram == null
+                else $result.config.visualProgram != null end) end)
               and ($result.config.presentation == $resolved[0].presentation)
               and ($result.config.projection == $resolved[0].projection)
               and (if $result.config.visualStyle == "psychedelic" then

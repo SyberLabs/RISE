@@ -96,3 +96,32 @@ it('compiles a psychedelic Jev plan into a visible, scoped Chamber session', asy
   expect(cueForAtom(session.visualProgram, { sourceId: 'primary', sourceProgress: 0.8 }).cue.collections)
     .toEqual(['ostensoria']);
 });
+
+it('opens a dark reading with a silent opening and a sound-only finale', async () => {
+  const released = releaseInventory.middlemarch;
+  const selectors = {
+    section: 'first', wpm: 200, curve: 'flat', chunkMode: 'word',
+    audio: 'silent', visualMode: 'off', visualStyle: 'quiet',
+    visualEngine: 'klee', visualPalette: 'white', kleePreset: 'harmonic',
+    visualArc: 'dual', arcSplit: '50', middleEngine: 'turrell', finaleEngine: 'fractal',
+    middleAudio: 'silent', finaleAudio: 'triumph', middleTheme: 'classic', finaleTheme: 'classic',
+    galleryCadence: 'balanced', chamberFace: 'literary', fontSize: 'medium',
+    wordFill: 'plain', colorTheme: 'classic', textColor: 'classic',
+    backgroundColor: 'classic', projection: 'stream', revealMode: 'instant'
+  };
+  const input = await resolveJevReading({
+    schemaVersion: 2, requestId: 'sound-finale', model: 'typesafe/jev-1.13',
+    reason: 'A reviewed catalog description.', workId: released.workId,
+    editionId: released.editionId, sourceRevision: released.sourceRevision,
+    config: { ...selectors, colors: jevColors('classic', 'classic', 'classic'),
+      ...resolveJevChamberConfig(selectors),
+      visualProgram: compileJevVisualProgram(selectors),
+      audioProgram: compileJevAudioProgram(selectors) }
+  });
+  const session = compileSession({ ...input, title: input.textSource });
+  expect(session.atoms.length).toBeGreaterThan(0);
+  expect(session.visualConfig.visualMode).toBe('off');
+  expect(session.visualProgram).toBeNull();
+  expect(session.audioProgram.segments.map(segment =>
+    segment.cue.soundscapeId || segment.cue.kind)).toEqual(['silence', 'triumph']);
+});

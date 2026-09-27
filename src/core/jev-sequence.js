@@ -71,6 +71,7 @@ function phaseNames(count) {
  */
 export function buildJevVisualProgram(value = {}) {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
+  if (value.visualMode === 'off') return null;
 
   const count = ARC_COUNTS[value.visualArc];
   if (!count || count === 1) return null;
