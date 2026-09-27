@@ -98,18 +98,18 @@ jobs:
         run: |
           set -euo pipefail
           # Cloudflare can serve the prior version for a few seconds after deploy.
-          for attempt in {1..10}; do
+          for attempt in {1..45}; do
             status=$(curl -sS --max-time 20 --retry 2 --retry-delay 1 --retry-all-errors \
               -o "$RUNNER_TEMP/public-body" -w '%{http_code}' \
               "https://rise.syberlabs.io/release-$TESTED_SHA.txt" || true)
             if [ "$status" = 200 ] && [ "$(cat "$RUNNER_TEMP/public-body")" = "$TESTED_SHA" ]; then
               break
             fi
-            if [ "$attempt" = 10 ]; then
-              echo "Production did not serve release $TESTED_SHA after 10 checks."
+            if [ "$attempt" = 45 ]; then
+              echo "Production did not serve release $TESTED_SHA after 45 checks."
               exit 1
             fi
-            sleep 2
+            sleep 1
           done
           for path in / /try-rise /jev-preview; do
             status=$(curl -sS --max-time 20 --retry 5 --retry-delay 3 --retry-all-errors \
