@@ -22,7 +22,7 @@ runs:
     - uses: actions/setup-node@v4
       with:
         # Matches the engines field in package.json.
-        node-version: '22.12.0'
+        node-version: '22'
         cache: npm
 
     - run: npm ci --no-audit
