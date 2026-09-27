@@ -78,8 +78,8 @@ jobs:
           wait "$install"
           npm run build
           wait "$hydrate"
-          mkdir -p dist/audio
-          cp -a public/audio/recitation dist/audio/recitation
+          mkdir -p dist/audio/recitation
+          cp -a public/audio/recitation/. dist/audio/recitation/
       - name: Mark the tested release
         run: |
           set -euo pipefail
