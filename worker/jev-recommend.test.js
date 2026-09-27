@@ -7,6 +7,8 @@ const mocks = vi.hoisted(() => ({
   neon: vi.fn(),
   get: vi.fn(),
   set: vi.fn(),
+  incr: vi.fn(),
+  expire: vi.fn(),
   redis: vi.fn()
 }));
 
@@ -21,6 +23,8 @@ vi.mock('@upstash/redis/cloudflare', () => ({
     constructor(options) { mocks.redis(options); }
     get(key) { return mocks.get(key); }
     set(key, value, options) { return mocks.set(key, value, options); }
+    incr(key) { return mocks.incr(key); }
+    expire(key, seconds) { return mocks.expire(key, seconds); }
   }
 }));
 
@@ -105,6 +109,8 @@ beforeEach(() => {
   mocks.query.mockResolvedValue(books);
   mocks.get.mockResolvedValue(null);
   mocks.set.mockResolvedValue('OK');
+  mocks.incr.mockResolvedValue(1);
+  mocks.expire.mockResolvedValue(1);
 });
 
 afterEach(() => {
@@ -149,7 +155,10 @@ describe('Jev reading recommendation', () => {
     expect(Object.keys(body.questions.book.criteria)).toHaveLength(15);
     expect(Object.keys(body.questions.book.criteria)).toContain('middlemarch');
     expect(Object.keys(body.questions.book.criteria)).toContain('literary-walden');
-    expect(body.state).toEqual({ reader_intent: 'I want a thoughtful novel.' });
+    expect(body.state).toEqual({
+      reader_intent: 'I want a thoughtful novel.',
+      experience_hint: expect.stringContaining('Explicit reader preferences always take priority')
+    });
     expect(Object.keys(body.questions)).toEqual([
       'book', 'section', 'pace', 'curve', 'chunk', 'audio', 'visual', 'visualStyle',
       'visualEngine', 'visualPalette', 'kleePreset', 'galleryCadence',
@@ -157,7 +166,7 @@ describe('Jev reading recommendation', () => {
     ]);
     expect(body.questions.visual.criteria.interlocution).toContain('psychedelic');
     expect(body.questions.visualEngine.criteria.fractal).toContain('psychedelic');
-    expect(body.questions.audio.criteria).toHaveProperty('aurora');
+    expect(Object.keys(body.questions.audio.criteria)).toEqual(['silent', 'aurora', 'faded-signal']);
     expect(body.questions.section.criteria).toHaveProperty('shortest');
     expect(provider.mock.calls[0][1].headers.Authorization).toBe('Bearer openrouter-server-secret');
   });
@@ -290,11 +299,45 @@ describe('Jev reading recommendation', () => {
     });
     expect(provider).toHaveBeenCalledTimes(1);
     const decisionKey = [...cache.keys()].find(key => key.startsWith('rise:jev-decision:'));
-    expect(decisionKey).toMatch(/^rise:jev-decision:v5:[0-9a-f]{64}$/u);
+    expect(decisionKey).toMatch(/^rise:jev-decision:v6:[0-9a-f]{64}:0$/u);
     expect(decisionKey).not.toContain('Nature and quiet.');
     expect(mocks.set).toHaveBeenCalledWith(decisionKey, expect.objectContaining({
       workId: 'literary-walden'
     }), { ex: 300 });
+  });
+
+  it('rotates distinct released books for an open discovery request in one Jev call per new variant', async () => {
+    const cache = new Map();
+    mocks.get.mockImplementation(async key => key.startsWith('rise:books:') ? books : cache.get(key));
+    mocks.set.mockImplementation(async (key, value) => { cache.set(key, value); return 'OK'; });
+    mocks.incr.mockResolvedValueOnce(1).mockResolvedValueOnce(2)
+      .mockResolvedValueOnce(3).mockResolvedValueOnce(4).mockResolvedValueOnce(5);
+    const provider = vi.fn(async (_url, options) => {
+      const criteria = JSON.parse(options.body).questions.book.criteria;
+      return Response.json({
+        id: `gen-dec-${provider.mock.calls.length}`,
+        model: 'typesafe/jev-1.13', provider: 'TypeSafe',
+        answers: answers(Object.keys(criteria)[0])
+      });
+    });
+    vi.stubGlobal('fetch', provider);
+
+    const responses = [];
+    for (let index = 0; index < 5; index++) {
+      const response = await handleJevRecommend(request({ intent: 'Surprise me.' }), env);
+      expect(response.status).toBe(200);
+      responses.push(await response.json());
+    }
+
+    for (let index = 1; index < responses.length; index++) {
+      expect(responses[index].workId).not.toBe(responses[index - 1].workId);
+    }
+    expect(provider).toHaveBeenCalledTimes(4);
+    expect(responses[4].decisionCacheStatus).toBe('hit');
+    expect(responses[4].workId).toBe(responses[0].workId);
+    const first = Object.keys(JSON.parse(provider.mock.calls[0][1].body).questions.book.criteria);
+    const second = Object.keys(JSON.parse(provider.mock.calls[1][1].body).questions.book.criteria);
+    expect(first.filter(id => second.includes(id))).toEqual([]);
   });
 
   it('asks Jev again when the intent or admitted catalog changes', async () => {
@@ -379,6 +422,9 @@ describe('Jev reading recommendation', () => {
   it.each([
     ['missing setting', { pace: undefined }],
     ['unavailable sound', { audio: { type: 'choice', choice: 'invented' } }],
+    ['pure focus tone', { audio: { type: 'choice', choice: 'focus' } }],
+    ['pure deep tone', { audio: { type: 'choice', choice: 'deep' } }],
+    ['pure gateway tone', { audio: { type: 'choice', choice: 'gateway' } }],
     ['invalid answer type', { visual: { type: 'text', value: 'focals' } }],
     ['unavailable section', { section: { type: 'choice', choice: 'chapter-999' } }]
   ])('rejects %s rather than launching a partial configuration', async (_label, overrides) => {
