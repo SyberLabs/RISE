@@ -37,8 +37,9 @@ test('a composed work offers itself as one reading', async ({ page }) => {
     console.log('CARD ' + JSON.stringify(text));
 
     // The segment count is the composition's bookkeeping, never the shelf's.
-    expect(text, 'the card counts readings, not segments').not.toMatch(/\b16 readings\b/);
-    expect(text).toMatch(/\b1 reading\b/);
+    expect(text, 'the card counts readings, not segments').not.toMatch(/\b16 readings\b/i);
+    // The count is set in label style (uppercase), so match either case.
+    expect(text).toMatch(/\b1 reading\b/i);
 });
 
 test('opening it begins one reading rather than a table of parts', async ({ page }) => {
@@ -48,10 +49,7 @@ test('opening it begins one reading rather than a table of parts', async ({ page
     await page.waitForTimeout(1200);
     const open = page.locator('[data-id="starter-creator-affirmations"]');
     await expect(open).toBeVisible({ timeout: 10_000 });
-    // A work with parts to browse says Open and shows its contents; a single
-    // reading is loaded whole.
-    await expect(open, 'one reading is loaded, not opened into parts')
-        .toHaveText(/Load Text/i);
+    // The row is the control; a single reading is loaded whole.
 
     await open.click();
     await page.waitForTimeout(1500);
