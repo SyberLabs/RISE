@@ -228,6 +228,16 @@
   --font-stream-weight: var(--font-weight-regular);
 }
 
+:root[data-chamber-face="sans"] {
+  --font-stream-face: var(--font-primary);
+  --font-stream-weight: var(--font-weight-regular);
+}
+
+:root[data-chamber-face="book"] {
+  --font-stream-face: var(--font-literary);
+  --font-stream-weight: var(--font-weight-semibold);
+}
+
 .atom-display[data-chamber-face="literary"] {
   --font-stream-face: var(--font-literary);
   --font-stream-weight: var(--font-weight-regular);
@@ -251,6 +261,16 @@
 .atom-display[data-chamber-face="jp"] {
   --font-stream-face: var(--font-jp);
   --font-stream-weight: var(--font-weight-regular);
+}
+
+.atom-display[data-chamber-face="sans"] {
+  --font-stream-face: var(--font-primary);
+  --font-stream-weight: var(--font-weight-regular);
+}
+
+.atom-display[data-chamber-face="book"] {
+  --font-stream-face: var(--font-literary);
+  --font-stream-weight: var(--font-weight-semibold);
 }
 
 /* Mask is a live overlay: thick Word, large, glass off. It does not

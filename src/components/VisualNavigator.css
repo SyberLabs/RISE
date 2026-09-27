@@ -710,6 +710,8 @@
 .vnav-opt[data-face-sample="thick"]    { font-family: var(--font-stream-thick); font-weight: 700; }
 .vnav-opt[data-face-sample="mono"]     { font-family: var(--font-mono); }
 .vnav-opt[data-face-sample="jp"]       { font-family: var(--font-jp); }
+.vnav-opt[data-face-sample="sans"]     { font-family: var(--font-primary); }
+.vnav-opt[data-face-sample="book"]     { font-family: var(--font-literary); font-weight: 600; }
 
 .vnav-preview-type {
   margin: 12px 0 10px;
@@ -742,6 +744,8 @@
 .vnav-preview-type[data-face-sample="thick"]    .vnav-preview-sample { font-family: var(--font-stream-thick); font-weight: 700; }
 .vnav-preview-type[data-face-sample="mono"]     .vnav-preview-sample { font-family: var(--font-mono); }
 .vnav-preview-type[data-face-sample="jp"]       .vnav-preview-sample { font-family: var(--font-jp); }
+.vnav-preview-type[data-face-sample="sans"]     .vnav-preview-sample { font-family: var(--font-primary); }
+.vnav-preview-type[data-face-sample="book"]     .vnav-preview-sample { font-family: var(--font-literary); font-weight: 600; }
 
 
 /* The scale sample carries the ratio the reading uses, handed down from
