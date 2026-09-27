@@ -85,7 +85,7 @@
   gap: var(--sy-space-3);
   min-height: var(--sy-control-height);
   padding: 0 20px;
-  border-radius: var(--sy-radius);
+  border-radius: var(--sy-radius-full);
   font-family: var(--sy-font-sans);
   font-size: 16px;
   line-height: 24px;
@@ -99,12 +99,13 @@
 .mint-open {
   border: 1px solid var(--sy-text);
   background: var(--sy-text);
+  background-image: var(--sy-primary-fill);
+  box-shadow: var(--sy-primary-glow);
   color: var(--sy-on-primary);
 }
 
 .mint-open:hover:not(:disabled) {
-  background: #FFFFFF;
-  border-color: #FFFFFF;
+  box-shadow: var(--sy-primary-glow-hover);
 }
 
 .mint-open:disabled {

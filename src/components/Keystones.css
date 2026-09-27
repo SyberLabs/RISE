@@ -56,7 +56,7 @@
   min-height: var(--sy-control-height);
   padding: 0 var(--sy-space-3);
   border: 0;
-  border-radius: var(--sy-radius);
+  border-radius: var(--sy-radius-full);
   background: transparent;
   color: var(--sy-text-2);
   font: 500 14px/20px var(--sy-font-sans);
@@ -614,7 +614,7 @@
   height: var(--sy-control-height);
   padding: 0;
   border: 1px solid var(--sy-line-strong);
-  border-radius: var(--sy-radius);
+  border-radius: var(--sy-radius-full);
   background: var(--sy-bg);
   color: var(--sy-text);
   cursor: pointer;
