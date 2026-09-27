@@ -149,9 +149,14 @@ jobs:
           chromium: 'true'
       - uses: ./.github/actions/setup
         if: github.event_name == 'pull_request'
-      - name: Unit tests without system-tool integration
+      - name: Core unit smoke
         if: github.event_name == 'pull_request'
-        run: npm run test:run -- --exclude src/core/render/encode-mp4.test.js --exclude src/core/render/chamber-paint.test.js
+        run: >-
+          npm run test:run --
+          src/core/content-store.test.js
+          src/core/journey-session.test.js
+          src/audio/engine.lifecycle.test.js
+          src/content/keystones.test.js
       - name: Full unit and integration suite
         if: github.event_name != 'pull_request'
         run: npm run test:run

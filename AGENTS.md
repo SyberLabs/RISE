@@ -197,12 +197,13 @@ from the Vite dev server.
  builds the app and starts `vite preview` on `127.0.0.1:4317` itself, with
  `VITE_RISE_ARCHIVE_REVIEW=1`. Do **not** start a server manually. It runs
  Chromium only, single worker, with autoplay forced on (Web Audio).
-- Pull requests run the unit suite except the two tests that install system
- tools, plus build, hygiene, docs, and Scriptorium checks. Browser checks run
- after merge on main or through `workflow_dispatch`; the four `Browser matrix`
- check names still report on pull requests because repository rules may require
- them. Their pull-request result explicitly says browser coverage was deferred.
- `npm run test:e2e:gate` runs the browser corridor locally before pushing.
+- Pull requests run four core unit smoke files, plus build, hygiene, docs,
+ and Scriptorium checks. The complete unit and browser suites run after merge
+ on main. Browser checks also run through `workflow_dispatch`; the four
+ `Browser matrix` check names still report on pull requests because repository
+ rules may require them. Their pull-request result explicitly says browser
+ coverage was deferred. `npm run test:e2e:gate` runs the browser corridor
+ locally before pushing.
 - There is **no lint script**. The gates a pull request has to pass are:
  `node scripts/ci-hygiene.mjs`, `npm run security:audit`, and
  `npm run security:compat`
