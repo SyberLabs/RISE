@@ -76,6 +76,9 @@ describe('Portal', () => {
     it('nav holds the core tools', () => {
         const { portal, container, onNavigate } = makePortal();
 
+        const sequencePreview = container.querySelector('.portal-sequence-preview');
+        expect(sequencePreview.getAttribute('href')).toBe('/sequences/');
+
         const primary = [...container.querySelectorAll('.nav-primary .nav-item')]
             .map(el => el.dataset.nav);
         expect(primary).toEqual(['chamber']);

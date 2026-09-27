@@ -156,6 +156,11 @@ export class Portal {
           <p class="portal-jev-hint" id="portal-jev-hint" role="status" aria-live="polite">Jev chooses from the released Library and sets the Chamber in one request.</p>
         </form>
 
+        <a class="portal-sequence-preview" href="/sequences/">
+          <span><strong>Try short sequences</strong><small>Three original readings · feedback stays on your device</small></span>
+          <span aria-hidden="true">→</span>
+        </a>
+
         <!-- Navigation -->
         <nav
           id="main-content"
