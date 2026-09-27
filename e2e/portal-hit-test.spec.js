@@ -86,6 +86,8 @@ test.describe('the Portal has no overlay between a cursor and a door', () => {
 
         const box = await page.locator('[data-nav="chamber"]').first().boundingBox();
         expect(box, 'the Chamber button has no box to press').toBeTruthy();
+        expect(box.y + box.height / 2, 'the Chamber button centre is below the viewport')
+            .toBeLessThan(page.viewportSize().height);
 
         // move → press → release at the coordinate, the way a hand does
         // it. No locator click, so no actionability retry to hide behind.

@@ -469,6 +469,7 @@ class App {
             launchJevReading: decision => this.launchJevReading(decision),
             launchJevSample: () => this.launchJevSample(),
             launchKeystone: slug => this.launchKeystone(slug),
+            launchFirstRead: () => this.launchKeystone('meditations', { firstReadPreview: true }),
             openMintedProgram: slug => this.openMintedProgram(slug),
             handleSequenceSelection: sequenceId => this.handleSequenceSelection(sequenceId),
             handleCreateSession: this.handleCreateSession,
@@ -767,6 +768,9 @@ class App {
         if (sessionConfig.origin) {
             session.origin = sessionConfig.origin;
         }
+        if (sessionConfig.firstReadPreview === true) {
+            session.firstReadPreview = true;
+        }
 
         // Store and navigate to chamber-session (immersion)
         this.currentSession = session;
@@ -795,7 +799,7 @@ class App {
     }
 
     /** Resolve, compile, and launch an exact canonical composition. */
-    async launchKeystone(slug) {
+    async launchKeystone(slug, { firstReadPreview = false } = {}) {
         try {
             const [keystones, archive] = await Promise.all([
                 import('./content/keystones.js'),
@@ -815,7 +819,8 @@ class App {
             }
             await this.handleBeginSession({
                 ...result.sessionInput,
-                origin: KEYSTONE_SESSION_ORIGIN
+                origin: KEYSTONE_SESSION_ORIGIN,
+                firstReadPreview
             });
         } catch (error) {
             console.error('[RISE] Keystone launch refused:', error);
