@@ -114,8 +114,7 @@ export class Keystones {
           <span class="keystone-veil" aria-hidden="true"></span>
         </span>
         <span class="keystone-plaque">
-          <span class="keystone-index">0${index + 1}</span>
-          <span class="keystone-axis">${escapeHtml(item.axis)}</span>
+          <span class="keystone-index">0${index + 1} / ${escapeHtml(item.axis)}</span>
           <span class="keystone-title">${escapeHtml(item.title)}</span>
           <span class="keystone-relation">${escapeHtml(item.author)} × ${escapeHtml(item.relation)}</span>
           <span class="keystone-extent" data-extent aria-hidden="true"></span>
@@ -127,8 +126,12 @@ export class Keystones {
     const orbs = KEYSTONE_MANIFESTS.map((item, index) => this.orbMarkup(item, index)).join('');
     this.container.innerHTML = `
       <main class="keystones" id="main-content">
-        <button class="keystone-back" data-nav="portal" aria-label="Return to Home">← Home</button>
+        <button type="button" class="keystone-back" data-nav="portal" aria-label="Return to Home">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5"></path><path d="m11 18-6-6 6-6"></path></svg>
+          Home
+        </button>
         <header class="keystone-header">
+          <p class="keystone-eyebrow"><span class="keystone-dot" aria-hidden="true"></span>RISE / Try RISE</p>
           <h1>Three canonical readings</h1>
           <p class="keystone-intro">One instrument, composed three ways: mind, transformation, and world.</p>
         </header>
@@ -138,17 +141,17 @@ export class Keystones {
             <span class="keystone-nodes" aria-hidden="true"></span>
             ${orbs}
           </div>
-          <button class="keystone-step" data-step="-1" aria-label="Previous reading">
-            <span aria-hidden="true">‹</span>
+          <button type="button" class="keystone-step" data-step="-1" aria-label="Previous reading">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"></path></svg>
           </button>
-          <button class="keystone-step" data-step="1" aria-label="Next reading">
-            <span aria-hidden="true">›</span>
+          <button type="button" class="keystone-step" data-step="1" aria-label="Next reading">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"></path></svg>
           </button>
         </section>
         <div class="keystone-console">
           <p class="keystone-promise" data-pilot-promise></p>
-          <button class="btn-primary keystone-enter" data-enter>Enter reading</button>
-          <a class="btn-ghost keystone-mp4" data-mp4 href="#" hidden>Watch full MP4</a>
+          <button type="button" class="btn btn-primary keystone-enter" data-enter>Enter reading</button>
+          <a class="btn btn-ghost keystone-mp4" data-mp4 href="#" hidden>Watch the full video</a>
           <p class="keystone-state" data-state="pending" hidden></p>
         </div>
       </main>`;
