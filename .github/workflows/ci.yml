@@ -285,7 +285,6 @@ jobs:
               src/core/ci-pipeline.test.js \
               src/audio/engine.lifecycle.test.js \
               src/content/keystones.test.js
-            npm run scriptorium:ci
             npm run build
             npm run measure:first-load
           fi

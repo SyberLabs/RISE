@@ -198,7 +198,8 @@ from the Vite dev server.
  `VITE_RISE_ARCHIVE_REVIEW=1`. Do **not** start a server manually. It runs
  Chromium only, single worker, with autoplay forced on (Web Audio).
 - Pull requests run five core and CI policy smoke files, plus build, hygiene,
- docs, and Scriptorium checks in one `CI` job with one dependency install.
+ and docs checks in one `CI` job with one dependency install. Scriptorium runs
+ on main, where its full CLI contract is checked before release.
  The complete unit and browser suites run after merge
  on main. Browser checks also run through `workflow_dispatch`; the four
  `Browser matrix` check names still report on pull requests because repository
