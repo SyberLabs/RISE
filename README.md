@@ -253,6 +253,10 @@ User-provided files and saved work remain in browser storage. Chamber reading do
 
 Separately, choosing **Route with JEV** in Scriptorium sends the typed intent and target word count through RISE to TypeSafe using a reader-provided key. That optional routing request excludes saved texts, media, reading history, and proposals.
 
+Submitting a Library reading preference asks Jev through OpenRouter to choose
+from RISE's held Standard Ebooks catalog. Identical requests reuse a validated
+choice in Redis for up to five minutes. Redis stores no raw preference text.
+
 The optional [Jev preview](https://rise.syberlabs.io/jev-preview.html) sends
 the displayed sample reading state through the `.io` site's same-origin API to
 OpenRouter only after you click the button. It does not send your active

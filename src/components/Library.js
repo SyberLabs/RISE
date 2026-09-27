@@ -265,7 +265,7 @@ export class Library {
       <p>About this book: ${escapeHtml(choice.reason || book.description)}</p>
       <button class="btn-primary" data-action="open-jev" data-id="${escapeHtml(book.id)}">Open this book</button>
       <details><summary>Decision details</summary>
-        <p>Model: ${escapeHtml(choice.model)} · Request: ${escapeHtml(choice.requestId)}</p>
+        <p>Model: ${escapeHtml(choice.model)} · Request: ${escapeHtml(choice.requestId)} · ${choice.decisionCacheStatus === 'hit' ? 'Reused cached Jev choice' : 'New Jev choice'}</p>
       </details>
     </div>`;
   }
