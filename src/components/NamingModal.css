@@ -29,7 +29,7 @@
   padding: var(--sy-space-6);
   background: var(--sy-surface);
   border: 1px solid var(--sy-line);
-  border-radius: var(--sy-radius);
+  border-radius: var(--sy-radius-panel);
   box-shadow: var(--sy-shadow-overlay);
   color: var(--sy-text);
   font-family: var(--sy-font-sans);
@@ -156,7 +156,7 @@
   min-height: var(--sy-control-height);
   padding: 0 20px;
   border: 1px solid transparent;
-  border-radius: var(--sy-radius);
+  border-radius: var(--sy-radius-full);
   font: 500 16px/24px var(--sy-font-sans);
   cursor: pointer;
   transition: background-color var(--sy-dur-hover) var(--sy-ease),
@@ -167,14 +167,15 @@
 .naming-btn-submit,
 .naming-modal-actions .btn-primary {
   background: var(--sy-text);
-  border-color: var(--sy-text);
+  background-image: var(--sy-primary-fill);
+  box-shadow: var(--sy-primary-glow);
+  border-color: transparent;
   color: var(--sy-on-primary);
 }
 
 .naming-btn-submit:hover,
 .naming-modal-actions .btn-primary:hover {
-  background: #FFFFFF;
-  border-color: #FFFFFF;
+  box-shadow: var(--sy-primary-glow-hover);
 }
 
 .naming-modal-actions .btn-secondary {

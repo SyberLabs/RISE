@@ -41,6 +41,7 @@ const CAPTIONS = {
     core: 'session, player, router',
     page: 'spatial projection',
     sources: 'text and visual providers',
+    vendor: 'SyberLabs design kit',
     visuals: 'procedural generation'
 };
 
