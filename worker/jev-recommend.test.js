@@ -60,6 +60,7 @@ const chosenConfig = Object.freeze({
   section: 'first', wpm: 200, curve: 'flat', chunkMode: 'word',
   audio: 'silent', visualMode: 'off', visualStyle: 'quiet',
   visualEngine: 'klee', visualPalette: 'white',
+  visualArc: 'single', arcSplit: '50', middleEngine: 'klee', finaleEngine: 'klee',
   kleePreset: 'harmonic', galleryCadence: 'balanced', chamberFace: 'literary',
   fontSize: 'medium', colorTheme: 'classic', colors: JEV_PALETTES.classic, wordFill: 'plain',
   projection: 'stream', revealMode: 'instant',
@@ -67,6 +68,7 @@ const chosenConfig = Object.freeze({
   entrainmentMode: 'binaural', entrainmentWaveform: 'sine',
   recitation: { enabled: false }, voiceId: null,
   visualConfig: { visualMode: 'off' },
+  visualProgram: null,
   presentation: {
     chamberFace: 'literary', fontSize: 'medium',
     colorTheme: 'classic', colors: JEV_PALETTES.classic
@@ -84,6 +86,10 @@ function answers(workId, overrides = {}) {
     visual: { type: 'choice', choice: 'off' },
     visualStyle: { type: 'choice', choice: 'quiet' },
     visualEngine: { type: 'choice', choice: 'klee' },
+    visualArc: { type: 'choice', choice: 'single' },
+    arcSplit: { type: 'choice', choice: '50' },
+    middleEngine: { type: 'choice', choice: 'klee' },
+    finaleEngine: { type: 'choice', choice: 'klee' },
     visualPalette: { type: 'choice', choice: 'white' },
     kleePreset: { type: 'choice', choice: 'harmonic' },
     galleryCadence: { type: 'choice', choice: 'balanced' },
@@ -161,7 +167,8 @@ describe('Jev reading recommendation', () => {
     });
     expect(Object.keys(body.questions)).toEqual([
       'book', 'section', 'pace', 'curve', 'chunk', 'audio', 'visual', 'visualStyle',
-      'visualEngine', 'visualPalette', 'kleePreset', 'galleryCadence',
+      'visualEngine', 'visualArc', 'arcSplit', 'middleEngine', 'finaleEngine',
+      'visualPalette', 'kleePreset', 'galleryCadence',
       'chamberFace', 'fontSize', 'colorTheme', 'wordFill', 'projection', 'reveal'
     ]);
     expect(body.questions.visual.criteria.interlocution).toContain('psychedelic');
@@ -198,6 +205,10 @@ describe('Jev reading recommendation', () => {
         visual: { type: 'choice', choice: 'interlocution' },
         visualStyle: { type: 'choice', choice: 'psychedelic' },
         visualEngine: { type: 'choice', choice: 'fractal' },
+        visualArc: { type: 'choice', choice: 'triple' },
+        arcSplit: { type: 'choice', choice: '70' },
+        middleEngine: { type: 'choice', choice: 'turrell' },
+        finaleEngine: { type: 'choice', choice: 'apparitio' },
         visualPalette: { type: 'choice', choice: 'purple' },
         kleePreset: { type: 'choice', choice: 'chaotic' },
         galleryCadence: { type: 'choice', choice: 'lively' },
@@ -214,7 +225,9 @@ describe('Jev reading recommendation', () => {
     expect((await response.json()).config).toEqual({
       section: 'shortest', wpm: 150, curve: 'wave', chunkMode: 'phrase',
       audio: 'aurora', visualMode: 'interlocution', visualEngine: 'fractal',
-      visualStyle: 'psychedelic', visualPalette: 'purple', kleePreset: 'chaotic',
+      visualStyle: 'psychedelic', visualArc: 'triple', arcSplit: '70',
+      middleEngine: 'turrell', finaleEngine: 'apparitio', visualPalette: 'purple',
+      kleePreset: 'chaotic',
       galleryCadence: 'lively', chamberFace: 'thick', fontSize: 'large',
       colorTheme: 'prism', colors: JEV_PALETTES.prism,
       wordFill: 'accent', projection: 'stream', revealMode: 'progressive',
@@ -228,6 +241,15 @@ describe('Jev reading recommendation', () => {
           presentation: 'continuous', galleryCadence: 0.85,
           kleePreset: 'chaotic', wordFill: { mode: 'accent' }
         }
+      },
+      visualProgram: {
+        coordinateSpace: 'source',
+        segments: [
+          { id: 'jev-opening', match: { sourceIds: ['primary'], fromProgress: 0, toProgress: 0.3 }, cue: { kind: 'procedural', collections: ['fractal'] } },
+          { id: 'jev-middle', match: { sourceIds: ['primary'], fromProgress: 0.3, toProgress: 0.7 }, cue: { kind: 'procedural', collections: ['turrell'] } },
+          { id: 'jev-finale', match: { sourceIds: ['primary'], fromProgress: 0.7, toProgress: 1 }, cue: { kind: 'procedural', collections: ['apparitio'] } }
+        ],
+        fallback: { kind: 'still' }
       },
       presentation: {
         chamberFace: 'thick', fontSize: 'large',
@@ -254,6 +276,7 @@ describe('Jev reading recommendation', () => {
     expect((await response.json()).config).toMatchObject({
       visualStyle: 'psychedelic', visualMode: 'interlocution',
       visualEngine: 'fractal', galleryCadence: 'lively',
+      visualArc: 'single', arcSplit: '50', middleEngine: 'klee', finaleEngine: 'klee',
       projection: 'stream', colorTheme: 'prism', colors: JEV_PALETTES.prism,
       visualConfig: { visualMode: 'interlocution', interlocution: {
         presentation: 'continuous', procedural: ['fractal'], galleryCadence: 0.85
@@ -299,11 +322,41 @@ describe('Jev reading recommendation', () => {
     });
     expect(provider).toHaveBeenCalledTimes(1);
     const decisionKey = [...cache.keys()].find(key => key.startsWith('rise:jev-decision:'));
-    expect(decisionKey).toMatch(/^rise:jev-decision:v6:[0-9a-f]{64}:0$/u);
+    expect(decisionKey).toMatch(/^rise:jev-decision:v7:[0-9a-f]{64}:0$/u);
     expect(decisionKey).not.toContain('Nature and quiet.');
     expect(mocks.set).toHaveBeenCalledWith(decisionKey, expect.objectContaining({
       workId: 'literary-walden'
     }), { ex: 300 });
+  });
+
+  it('uses the Gallery host for a visual arc and keeps explicit darkness dark', async () => {
+    const provider = vi.fn(async () => Response.json({
+      id: 'arc-decision', model: 'typesafe/jev-1.13', provider: 'TypeSafe',
+      answers: answers('literary-walden', {
+        visual: { type: 'choice', choice: 'genesis' },
+        visualArc: { type: 'choice', choice: 'dual' },
+        arcSplit: { type: 'choice', choice: '70' },
+        finaleEngine: { type: 'choice', choice: 'fractal' }
+      })
+    }));
+    vi.stubGlobal('fetch', provider);
+    const active = await handleJevRecommend(request(), env);
+    const activeConfig = (await active.json()).config;
+    expect(activeConfig.visualMode).toBe('interlocution');
+    expect(activeConfig.visualProgram.segments.map(segment => segment.match.toProgress))
+      .toEqual([0.7, 1]);
+
+    provider.mockImplementationOnce(async () => Response.json({
+      id: 'dark-decision', model: 'typesafe/jev-1.13', provider: 'TypeSafe',
+      answers: answers('literary-walden', {
+        visualArc: { type: 'choice', choice: 'dual' }
+      })
+    }));
+    const dark = await handleJevRecommend(request(), env);
+    const darkConfig = (await dark.json()).config;
+    expect(darkConfig.visualMode).toBe('off');
+    expect(darkConfig.visualArc).toBe('single');
+    expect(darkConfig.visualProgram).toBeNull();
   });
 
   it('rotates distinct released books for an open discovery request in one Jev call per new variant', async () => {
@@ -426,7 +479,11 @@ describe('Jev reading recommendation', () => {
     ['pure deep tone', { audio: { type: 'choice', choice: 'deep' } }],
     ['pure gateway tone', { audio: { type: 'choice', choice: 'gateway' } }],
     ['invalid answer type', { visual: { type: 'text', value: 'focals' } }],
-    ['unavailable section', { section: { type: 'choice', choice: 'chapter-999' } }]
+    ['unavailable section', { section: { type: 'choice', choice: 'chapter-999' } }],
+    ['unavailable visual arc', { visualArc: { type: 'choice', choice: 'quad' } }],
+    ['unavailable arc split', { arcSplit: { type: 'choice', choice: '40' } }],
+    ['unavailable middle engine', { middleEngine: { type: 'choice', choice: 'unknown' } }],
+    ['unavailable finale engine', { finaleEngine: { type: 'choice', choice: 'unknown' } }]
   ])('rejects %s rather than launching a partial configuration', async (_label, overrides) => {
     vi.stubGlobal('fetch', vi.fn(async () => Response.json({
       model: 'typesafe/jev-1.13', provider: 'TypeSafe',

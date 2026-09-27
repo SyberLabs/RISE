@@ -6,6 +6,7 @@ import { CHAMBER_STREAM_FACES } from '../core/chamber-stream-face.js';
 import { FONT_SIZE_CHIPS } from '../core/chamber-type-size.js';
 import { resolveJevChamberConfig } from '../core/jev-config.js';
 import { jevPalette } from '../core/jev-palette.js';
+import { compileJevVisualProgram } from '../core/jev-sequence.js';
 import {
   ATTRACTOR_PALETTES,
   KLEE_PRESETS
@@ -25,6 +26,8 @@ const CADENCES = new Set(['slow', 'balanced', 'lively']);
 const WORD_FILLS = new Set(['plain', 'accent', 'same']);
 const STYLES = new Set(['quiet', 'gentle', 'immersive', 'psychedelic']);
 const SECTIONS = new Set(['first', 'shortest', 'longest']);
+const VISUAL_ARCS = new Set(['single', 'dual', 'triple']);
+const ARC_SPLITS = new Set(['30', '50', '70']);
 
 function assertPlan(decision) {
   const config = decision?.config;
@@ -36,6 +39,8 @@ function assertPlan(decision) {
     || !KLEE.has(config.kleePreset) || !CADENCES.has(config.galleryCadence)
     || !FACES.has(config.chamberFace) || !SIZES.has(config.fontSize)
     || !WORD_FILLS.has(config.wordFill) || !STYLES.has(config.visualStyle)
+    || !VISUAL_ARCS.has(config.visualArc) || !ARC_SPLITS.has(config.arcSplit)
+    || !ENGINES.has(config.middleEngine) || !ENGINES.has(config.finaleEngine)
     || !jevPalette(config.colorTheme)
     || !config.colors || Object.keys(config.colors).length !== 3
     || Object.entries(jevPalette(config.colorTheme)).some(([key, value]) => config.colors[key] !== value)
@@ -48,7 +53,11 @@ function assertPlan(decision) {
     JSON.stringify(config[key]) !== JSON.stringify(value))) {
     throw new TypeError('Jev returned an invalid reading plan.');
   }
-  return { plan: config, resolved };
+  const visualProgram = compileJevVisualProgram(config);
+  if (JSON.stringify(config.visualProgram) !== JSON.stringify(visualProgram)) {
+    throw new TypeError('Jev returned an invalid reading plan.');
+  }
+  return { plan: config, resolved, visualProgram };
 }
 
 /** Select from the edition's actual divisions, never from model-supplied text. */
@@ -73,7 +82,7 @@ export function selectJevDivision(divisions, section) {
 
 /** Resolve an exact released edition into the existing Chamber session input. */
 export async function resolveJevReading(decision) {
-  const { plan, resolved } = assertPlan(decision);
+  const { plan, resolved, visualProgram } = assertPlan(decision);
   const released = releaseInventory[decision.workId];
   const work = getTextById(decision.workId);
   if (!released || !released.editionId?.startsWith('standard-ebooks:')
@@ -99,6 +108,7 @@ export async function resolveJevReading(decision) {
     chunkMode: plan.chunkMode,
     revealMode: plan.revealMode,
     ...resolved,
+    visualProgram,
     verseLines: entry.verse === true,
     provenance: work.provenance,
     origin: { view: 'portal', icon: '✧', name: 'Home' },
