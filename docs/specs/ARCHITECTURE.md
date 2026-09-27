@@ -164,6 +164,7 @@ flowchart LR
     components["components<br/>routed views<br/>39 modules"]
     content["content<br/>texts, imagery, journeys<br/>228 modules"]
     core["core<br/>session, player, router<br/>135 modules"]
+    oracle["oracle<br/>2 modules"]
     page["page<br/>spatial projection<br/>4 modules"]
     sources["sources<br/>text and visual providers<br/>22 modules"]
     vendor["vendor<br/>SyberLabs design kit<br/>2 modules"]
