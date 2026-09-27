@@ -114,7 +114,7 @@ jobs:
               echo 'No prior production deployment exists; this first release has no Worker rollback version.'
             else
               echo 'If a prior version is independently verified as known-good, restore its **version ID** with:'
-              echo '`npx --yes wrangler@4.141.0 rollback <VERSION_ID> --config wrangler.production.jsonc --message "RISE rollback"`'
+              echo '`./node_modules/.bin/wrangler rollback <VERSION_ID> --config wrangler.production.jsonc --message "RISE rollback"`'
             fi
           } >> "$GITHUB_STEP_SUMMARY"
       - name: Deploy production
@@ -124,7 +124,7 @@ jobs:
           set -euo pipefail
           current=$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/main" --jq '.object.sha')
           test "$TESTED_SHA" = "$current"
-          npx --yes wrangler@4.141.0 deploy --config wrangler.production.jsonc --message "RISE $TESTED_SHA"
+          ./node_modules/.bin/wrangler deploy --config wrangler.production.jsonc --message "RISE $TESTED_SHA"
       - name: Verify public production serves the exact release
         run: |
           set -euo pipefail
