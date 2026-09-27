@@ -65,7 +65,8 @@ describe('the system design document describes this tree', () => {
         'NamingModal.js',        // shared naming prompt
         'SourceBrowser.js',      // source picker, embedded in Workshop
         'VisualNavigator.js',    // visual and text controls, embedded in ChamberOrbital
-        'jev-dictation.js'       // voice input shared by Portal and Library
+        'jev-dictation.js',      // voice input shared by Portal and Library
+        'room-chrome.js'         // SyberLabs header, icons and Alert shared by the quieter rooms
     ]);
 
     const roomsOnDisk = () => readdirSync(join(ROOT, 'src/components'))

@@ -8,6 +8,7 @@
  * - Session persistence (localStorage)
  */
 
+import { roomEyebrow, roomIcon } from './room-chrome.js';
 import './BetaGate.css';
 
 // Beta access codes - add new invitees here
@@ -137,22 +138,31 @@ export class BetaGate {
 
     this.container.innerHTML = `
       <div class="beta-gate">
-        <div class="beta-gate-content">
+        <header class="sl-header beta-header">
+          <div class="sl-header-inner">
+            <span class="sl-lockup" aria-label="SyberLabs RISE">
+              <img class="sl-mark" src="/syberlabs-mark.webp" alt="" width="18" height="20" decoding="async">
+              <span class="sl-wordmark" aria-hidden="true">SYBERLABS<span class="sl-divider"> / </span>RISE</span>
+            </span>
+          </div>
+        </header>
+
+        <main class="beta-gate-content">
           <div class="beta-identity">
-            <div class="beta-sigil rise-mark" aria-hidden="true"></div>
-            <div class="beta-identity-word">
-              <h1 class="beta-title">RISE</h1>
-              <p class="beta-subtitle">Audiovisual Reader</p>
-            </div>
+            ${roomEyebrow('RISE · Audiovisual reader', 'beta-subtitle')}
+            <h1 class="beta-title">Read beyond the page.</h1>
           </div>
 
           ${hasValidInvite ? this.renderPersonalizedWelcome(inviteData) : this.renderOpenThreshold()}
-        </div>
+        </main>
 
-        <!-- Footer -->
-        <div class="beta-footer">
-          <p>Open Beta · v2.0</p>
-        </div>
+        <footer class="beta-footer">
+          <p>Open beta · v2.0</p>
+          <p class="beta-footer-links">
+            <a href="/privacy.html">Privacy</a>
+            <a href="/terms.html">Terms</a>
+          </p>
+        </footer>
       </div>
     `;
   }
@@ -169,8 +179,8 @@ export class BetaGate {
           <p class="beta-welcome-note">Your writing and saved reading state stay in this browser. RISE may fetch public texts and images from their providers.</p>
         </div>
 
-        <button id="beta-enter" class="beta-enter-btn">
-          Enter the Space
+        <button id="beta-enter" class="beta-enter-btn" type="button">
+          Enter RISE${roomIcon('forward')}
         </button>
       </div>
     `;
@@ -191,8 +201,8 @@ A space has been prepared for you.`;
           ${welcomeText.split('\n\n').map(p => `<p>${p}</p>`).join('')}
         </div>
 
-        <button id="beta-enter" class="beta-enter-btn">
-          Enter the Space
+        <button id="beta-enter" class="beta-enter-btn" type="button">
+          Enter RISE${roomIcon('forward')}
         </button>
       </div>
     `;

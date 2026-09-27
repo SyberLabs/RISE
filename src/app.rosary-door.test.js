@@ -90,7 +90,7 @@ describe('Chapel Rosary door (#rosary)', () => {
 
     const enter = document.querySelector('#beta-enter');
     expect(enter).toBeTruthy();
-    expect(enter.textContent).toMatch(/Enter the Space/i);
+    expect(enter.textContent).toMatch(/Enter RISE/);
     expect(prayerText()).toBeNull();
     expect(app.router).toBeNull();
 
