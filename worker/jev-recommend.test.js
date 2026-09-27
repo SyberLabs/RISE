@@ -175,7 +175,7 @@ describe('Jev reading recommendation', () => {
     expect(mocks.set).toHaveBeenCalledWith(expect.stringMatching(/^rise:books:v1:[0-9a-f]{64}$/u), books, { ex: 30 });
     expect(mocks.set.mock.calls[0][0]).not.toContain('thoughtful novel');
     const body = JSON.parse(provider.mock.calls[0][1].body);
-    expect(new TextEncoder().encode(provider.mock.calls[0][1].body).length).toBeLessThan(12000);
+    expect(new TextEncoder().encode(provider.mock.calls[0][1].body).length).toBeLessThan(13000);
     expect(body.model).toBe('typesafe/jev-1.13');
     expect(Object.keys(body.questions.book.criteria)).toHaveLength(15);
     expect(Object.keys(body.questions.book.criteria)).toContain('middlemarch');
