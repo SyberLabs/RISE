@@ -2,7 +2,7 @@
 
 ## What is measured
 
-The [case set](../../scripts/jev-eval-cases.json) contains 16 synthetic reader prompts in eight contrast pairs. Each pair changes one or several explicit requests for pace, sound, moving visuals, visual energy, typeface, or type size. The [production option snapshot](../../scripts/jev-eval-options.json) is the six relevant fields from `worker/jev-recommend.mjs` on 2026-09-26. The [candidate snapshot](../../scripts/jev-eval-options-candidate.json) adds `soft-rain` sound and `mono` type. Keep both snapshots so the original production baseline remains reproducible. The scorer reports:
+The [case set](../../scripts/jev-eval-cases.json) contains 16 synthetic reader prompts in eight contrast pairs. Each pair changes one or several explicit requests for pace, sound, moving visuals, visual energy, typeface, or type size. The [production option snapshot](../../scripts/jev-eval-options.json) is the six relevant fields from `worker/jev-recommend.mjs` on 2026-09-26. The [merged candidate snapshot](../../scripts/jev-eval-options-candidate.json) contains `soft-rain`, the six mood sounds (`sad`, `angry`, `happy`, `excited`, `thrilling`, `scary`), and `mono` type. Keep both snapshots so the original production baseline remains reproducible. The scorer reports:
 
 - Exact offered-choice validity (all six fields, no extra keys)
 - Explicit preference matches, counted by field
@@ -12,7 +12,7 @@ The [case set](../../scripts/jev-eval-cases.json) contains 16 synthetic reader p
 
 A larger distinct-value count alone does not prove better personalization: the explicit-match and contrast results must improve as well. The fixture does not judge book relevance, reading quality, accessibility, or visual safety. It is a small regression set, not a reader study.
 
-The candidate reuses one 5-minute decision cache slot for a specific intent. Exact open discovery requests rotate four slots. That caps fresh Jev calls for the same intent and menu in that window at one or four respectively, subject to the existing rate limit. The current route does not expose provider tokens or price, so this is a call-count bound, not a measured dollar cost.
+The candidate reuses one 1-hour decision cache slot for a specific intent. Exact open discovery requests rotate eight slots. That caps fresh Jev calls for the same intent and menu in that window at one or eight respectively, subject to the existing rate limit. The current route does not expose provider tokens or price, so this is a call-count bound, not a measured dollar cost.
 
 ## Current production baseline
 
@@ -47,7 +47,7 @@ No **hosted chat model** inference was run on 2026-09-26: this workspace had no 
 
 The repository's existing `@huggingface/transformers` dependency loaded the [Xenova/all-MiniLM-L6-v2](https://huggingface.co/Xenova/all-MiniLM-L6-v2) q8 feature-extraction model locally. The [local selector](../../scripts/jev-eval-local-hf.mjs) chooses each field by cosine similarity between the prompt and short, human-authored option descriptions. This is a cheap semantic baseline and has no JSON generation, cross-field constraint handling, or Jev book selection. It is not a drop-in production alternative.
 
-With the candidate options, the [captured 16-prompt run](../../scripts/jev-eval-local-hf-2026-09-26.json) had 23/26 explicit-field matches, 7/8 complete contrast pairs, and no invalid choices by construction. Its misses were large text selected as medium, and the combined vivid/fast request selected slow pace and graphic line art. The model selected all four sound values at least once, and four of five typefaces. Local inference elapsed 177 ms after the model was cached; model download time, electricity, and dollar cost were not measured. These scores cannot be directly compared with the six-prompt production Jev baseline because both the sample and the task differ.
+The [first candidate run](../../scripts/jev-eval-local-hf-2026-09-26.json), before the six mood sounds were added, scored 23/26 explicit-field matches and 7/8 complete contrast pairs. The [merged candidate rerun](../../scripts/jev-eval-local-hf-merged-2026-09-26.json) also scored 23/26 and 7/8 after the high-energy combined case was updated to accept `excited` audio. It selected seven of ten sound values and four of five typefaces. Three misses remained: large text became medium, while the combined vivid/fast request became slow with graphic line art. Local inference elapsed 169 ms after the model was cached; model download time, electricity, and dollar cost were not measured. Neither local score can be directly compared with the six-prompt production Jev baseline because both the sample and the task differ. None of the 16 cases explicitly asks for each of the six new moods.
 
 Reproduce (model download is about 23 MB for the q8 file, plus tokenizer files):
 

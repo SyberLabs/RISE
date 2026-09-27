@@ -2,23 +2,18 @@ import { neon } from '@neondatabase/serverless';
 import { Redis } from '@upstash/redis/cloudflare';
 import releaseInventory from '../src/content/archive/release-inventory.json' with { type: 'json' };
 import { jevPalette } from '../src/core/jev-palette.js';
-import { resolveJevChamberConfig } from '../src/core/jev-config.js';
+import { JEV_AUDIO_IDS, resolveJevChamberConfig } from '../src/core/jev-config.js';
 import { compileJevVisualProgram } from '../src/core/jev-sequence.js';
 import { buildJevVarianceHints, VARIATION_COUNT } from './jev-variance.mjs';
 
 const API_URL = 'https://openrouter.ai/api/alpha/decisions';
 const MODEL = 'typesafe/jev-1.13';
 const CHOICES = Object.freeze({
-  section: { first: 'Begin at the first section.', shortest: 'Choose the shortest section for a brief reading.', longest: 'Choose the longest section for a sustained reading.' },
+  section: { first: 'First section.', middle: 'Middle section.', last: 'Final section.', shortest: 'Shortest section.', longest: 'Longest section.' },
   pace: { '100': 'Very slow.', '150': 'Slow.', '200': 'Moderate.', '250': 'Brisk.', '300': 'Fast.', '400': 'Very fast.', '500': 'Fastest offered.' },
   curve: { flat: 'Steady pace.', induction: 'Begin slowly.', ascent: 'Gradually accelerate.', wave: 'Rise and fall.', climax: 'Build toward a fast finish.' },
   chunk: { word: 'One word.', phrase: 'Short phrases.', sentence: 'Sentences.', paragraph: 'Paragraphs.' },
-  audio: {
-    silent: 'Silence; choose when the reader asks for quiet or no sound.',
-    aurora: 'A slow, deep harmonic pad with occasional drifting overtones; choose for serene, spacious atmosphere.',
-    'faded-signal': 'A warm, weathered analog bed with subtle pitch drift; choose for nostalgic or imperfect atmosphere.',
-    'soft-rain': 'Gentle, steady rain texture; choose for a natural rainy or sheltered atmosphere.'
-  },
+  audio: { silent: 'Silence.', ...Object.fromEntries(JEV_AUDIO_IDS.map(id => [id, id])) },
   visual: {
     off: 'No visual field.',
     focals: 'A single quiet focal figure.',
@@ -102,7 +97,7 @@ const CHOICES = Object.freeze({
   reveal: { instant: 'Show chunks immediately.', progressive: 'Reveal chunks progressively.' }
 });
 const CONFIG_ANSWERS = Object.keys(CHOICES);
-const OPTION_KINDS = ['audio', 'chamberFace', 'fontSize'];
+const OPTION_KINDS = ['chamberFace', 'fontSize'];
 const OPTION_CACHE_KEY = 'rise:jev-options:v1';
 const QUESTION_INSTRUCTIONS = Object.freeze({
   pace: 'Choose the reading speed in words per minute. Honor explicit slow, fast, brief, or sustained requests; use the reading mood when speed is unstated.',
@@ -116,7 +111,8 @@ const QUESTION_INSTRUCTIONS = Object.freeze({
   fontSize: 'Choose text size. Honor small or large text requests; fit works best with one-word chunks.',
   projection: 'Choose timed streaming or a spatial page. Continuous visual motion needs stream because page hides the continuous visual field.'
 });
-const DECISION_CACHE_TTL_SECONDS = 300;
+const DECISION_CACHE_TTL_SECONDS = 3600;
+const SOUND_CACHE_KEY = 'rise:sounds:v1';
 const MAX_BODY_BYTES = 1024;
 const JSON_HEADERS = {
   'Content-Type': 'application/json; charset=utf-8',
@@ -205,6 +201,18 @@ function validCatalog(rows) {
   return new Set(ids).size === ids.length ? rows : null;
 }
 
+function validSoundCatalog(rows) {
+  if (!Array.isArray(rows) || rows.length < 1 || rows.length > JEV_AUDIO_IDS.length) return null;
+  const ids = new Set();
+  for (const row of rows) {
+    if (row?.active !== true || !JEV_AUDIO_IDS.includes(row.sound_id)
+      || ids.has(row.sound_id) || typeof row.decision_criterion !== 'string'
+      || row.decision_criterion.length < 10 || row.decision_criterion.length > 120) return null;
+    ids.add(row.sound_id);
+  }
+  return rows;
+}
+
 function choiceMenu(rows) {
   if (!Array.isArray(rows) || rows.length < OPTION_KINDS.length
     || rows.length > OPTION_KINDS.reduce((total, kind) => total + Object.keys(CHOICES[kind]).length, 0)) return null;
@@ -224,22 +232,24 @@ function choiceMenu(rows) {
   };
 }
 
-async function activeChoices(redis, env) {
+async function activeChoices(redis, env, sounds) {
+  const audio = { silent: 'Silence.', ...Object.fromEntries(sounds.map(row =>
+    [row.sound_id, row.decision_criterion])) };
   const cached = choiceMenu(await redis.get(OPTION_CACHE_KEY));
-  if (cached) return cached;
+  if (cached) return { ...cached, audio };
   let rows;
   try {
     const sql = neon(env.NEON_DATABASE_URL);
     rows = await sql`SELECT kind, id, description FROM rise_jev_options WHERE active = TRUE`;
   } catch (cause) {
     // An unmigrated table is optional; an outage must not reactivate disabled choices.
-    if (cause?.code === '42P01') return CHOICES;
+    if (cause?.code === '42P01') return { ...CHOICES, audio };
     throw cause;
   }
   const menu = choiceMenu(rows);
   if (!menu) return null;
   await redis.set(OPTION_CACHE_KEY, rows, { ex: 30 });
-  return menu;
+  return { ...menu, audio };
 }
 
 async function catalogCacheKey() {
@@ -249,13 +259,13 @@ async function catalogCacheKey() {
   return `rise:books:v1:${Array.from(new Uint8Array(digest), byte => byte.toString(16).padStart(2, '0')).join('')}`;
 }
 
-async function decisionCacheKey(intent, books, choices, apiKey) {
+async function decisionCacheKey(intent, books, sounds, choices, apiKey) {
   const key = await crypto.subtle.importKey('raw', new TextEncoder().encode(apiKey),
     { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
   const menu = Object.fromEntries(OPTION_KINDS.map(kind => [kind, Object.keys(choices[kind])]));
-  const input = JSON.stringify({ model: MODEL, intent, books, menu });
+  const input = JSON.stringify({ model: MODEL, intent, books, sounds, menu });
   const signature = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(input));
-  return `rise:jev-decision:v9:${Array.from(new Uint8Array(signature),
+  return `rise:jev-decision:v10:${Array.from(new Uint8Array(signature),
     byte => byte.toString(16).padStart(2, '0')).join('')}`;
 }
 
@@ -423,6 +433,7 @@ export async function handleJevRecommend(request, env) {
 
   let redis;
   let books;
+  let sounds;
   let cacheStatus = 'hit';
   try {
     redis = new Redis({
@@ -432,7 +443,10 @@ export async function handleJevRecommend(request, env) {
       enableTelemetry: false
     });
     const key = await catalogCacheKey();
-    books = validCatalog(await redis.get(key));
+    const [bookCache, soundCache] = await Promise.all([
+      redis.get(key), redis.get(SOUND_CACHE_KEY)
+    ]);
+    books = validCatalog(bookCache);
     if (!books) {
       cacheStatus = 'miss';
       const sql = neon(env.NEON_DATABASE_URL);
@@ -443,18 +457,26 @@ export async function handleJevRecommend(request, env) {
       if (!books) return error(503, 'CATALOG_UNAVAILABLE', 'The reading catalog is unavailable.');
       await redis.set(key, books, { ex: 30 });
     }
+    sounds = validSoundCatalog(soundCache);
+    if (!sounds) {
+      const sql = neon(env.NEON_DATABASE_URL);
+      sounds = validSoundCatalog(await sql`SELECT sound_id, decision_criterion, active
+        FROM rise_sounds WHERE active = true ORDER BY sound_id LIMIT 16`);
+      if (!sounds) return error(503, 'CATALOG_UNAVAILABLE', 'The sound catalog is unavailable.');
+      await redis.set(SOUND_CACHE_KEY, sounds, { ex: 30 });
+    }
   } catch {
-    return error(503, 'CATALOG_UNAVAILABLE', 'The reading catalog is unavailable.');
+    return error(503, 'CATALOG_UNAVAILABLE', 'The reading or sound catalog is unavailable.');
   }
 
   let decisionKey;
   let hints;
   let choices;
   try {
-    choices = await activeChoices(redis, env);
+    choices = await activeChoices(redis, env, sounds);
     if (!choices) return error(503, 'OPTIONS_UNAVAILABLE', 'The presentation menu is unavailable.');
-    const baseKey = await decisionCacheKey(intent, books, choices, env.OPENROUTER_API_KEY);
-    const turnKey = baseKey.replace('rise:jev-decision:v9:', 'rise:jev-turn:v3:');
+    const baseKey = await decisionCacheKey(intent, books, sounds, choices, env.OPENROUTER_API_KEY);
+    const turnKey = baseKey.replace('rise:jev-decision:v10:', 'rise:jev-turn:v4:');
     const nextTurn = await redis.incr(turnKey);
     if (!Number.isSafeInteger(nextTurn) || nextTurn < 1) throw new Error('Invalid Jev turn');
     if (nextTurn === 1) await redis.expire(turnKey, 86400);
@@ -487,7 +509,7 @@ export async function handleJevRecommend(request, env) {
           },
           ...Object.fromEntries(CONFIG_ANSWERS.map(question => [question, {
             type: 'choice',
-            instructions: `${QUESTION_INSTRUCTIONS[question] || `Choose the ${question} that best fits the reader intent.`} Consider the experience hint only where the reader leaves that choice open. Only select an offered value.`,
+            instructions: QUESTION_INSTRUCTIONS[question] || `Match ${question} to the reader; use the hint only if unspecified.`,
             criteria: choices[question]
           }]))
         }

@@ -159,7 +159,7 @@ jobs:
               and ([100, 150, 200, 250, 300, 400, 500] | index($result.config.wpm)) != null
               and (["flat", "induction", "ascent", "wave", "climax"] | index($result.config.curve)) != null
               and (["word", "phrase", "sentence", "paragraph"] | index($result.config.chunkMode)) != null
-              and (["silent", "aurora", "faded-signal"] | index($result.config.audio)) != null
+              and (["silent", "aurora", "faded-signal", "sad", "angry", "happy", "excited", "thrilling", "scary", "soft-rain"] | index($result.config.audio)) != null
               and (["off", "focals", "genesis", "attractor", "interlocution"] | index($result.config.visualMode)) != null
               and (["quiet", "gentle", "immersive", "psychedelic"] | index($result.config.visualStyle)) != null
               and (["klee", "turrell", "fractal", "harmonograph", "ostensoria", "apparitio"] | index($result.config.visualEngine)) != null
@@ -170,13 +170,13 @@ jobs:
               and (["white", "red", "blue", "gold", "purple"] | index($result.config.visualPalette)) != null
               and (["random", "architectural", "chaotic", "harmonic", "gravitational", "twittering"] | index($result.config.kleePreset)) != null
               and (["slow", "balanced", "lively"] | index($result.config.galleryCadence)) != null
-              and (["literary", "display", "thick", "jp"] | index($result.config.chamberFace)) != null
+              and (["literary", "display", "thick", "jp", "mono"] | index($result.config.chamberFace)) != null
               and (["small", "medium", "large", "fit"] | index($result.config.fontSize)) != null
               and (["plain", "accent", "same"] | index($result.config.wordFill)) != null
               and ($result.config.colors == $palettes[0][$result.config.colorTheme])
               and (["stream", "page"] | index($result.config.projection)) != null
               and (["instant", "progressive"] | index($result.config.revealMode)) != null
-              and (["first", "shortest", "longest"] | index($result.config.section)) != null
+              and (["first", "middle", "last", "shortest", "longest"] | index($result.config.section)) != null
               and ($result.config.audioPreset == $resolved[0].audioPreset)
               and ($result.config.soundscape == $resolved[0].soundscape)
               and ($result.config.entrainmentMode == $resolved[0].entrainmentMode)

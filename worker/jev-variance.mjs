@@ -4,10 +4,15 @@ const DIRECTIONS = Object.freeze([
   'a prismatic Gallery (visualStyle=psychedelic, visualEngine=fractal, colorTheme=prism, pace=250, chunk=word, audio=faded-signal, chamberFace=thick, fontSize=fit)',
   'energetic line art (visual=genesis, kleePreset=chaotic, colorTheme=ember, pace=300, chunk=phrase, audio=faded-signal, chamberFace=thick, fontSize=large)',
   'soft atmospheric light (visual=interlocution, visualEngine=turrell, colorTheme=jade, pace=150, chunk=phrase, audio=aurora, chamberFace=literary, fontSize=large)',
-  'fine harmonic line work (visual=interlocution, visualEngine=harmonograph, colorTheme=amethyst, pace=100, chunk=paragraph, audio=silent, chamberFace=literary, fontSize=medium)'
+  'fine harmonic line work (visual=interlocution, visualEngine=harmonograph, colorTheme=amethyst, pace=100, chunk=paragraph, audio=silent, chamberFace=literary, fontSize=medium)',
+  'a luminous attractor (visual=attractor, visualPalette=purple, colorTheme=amethyst, pace=200, chunk=word, audio=aurora, chamberFace=display, fontSize=fit)',
+  'a spectral Gallery (visual=interlocution, visualEngine=apparitio, colorTheme=cobalt, pace=250, chunk=sentence, audio=excited, chamberFace=display, fontSize=medium)',
+  'an iridescent radial Gallery (visual=interlocution, visualEngine=ostensoria, colorTheme=ember, pace=200, chunk=sentence, audio=happy, chamberFace=display, fontSize=large)',
+  'a single still focal figure (visual=focals, visualStyle=quiet, colorTheme=classic, pace=150, chunk=phrase, audio=silent, chamberFace=literary, fontSize=large)'
 ]);
 
 export const VARIATION_COUNT = DIRECTIONS.length;
+const TEXT_SECTIONS = Object.freeze(['first', 'middle', 'last', 'shortest', 'longest']);
 
 function words(value) {
   return String(value || '').normalize('NFKC').toLocaleLowerCase('en')
@@ -29,12 +34,14 @@ function isOpenEnded(intent, books) {
 
 export function buildJevVarianceHints({ books, intent = '', turn }) {
   const index = Number.isSafeInteger(turn) && turn >= 0 ? turn : 0;
+  const slot = index % VARIATION_COUNT;
   const catalog = Array.isArray(books) ? [...books].sort((a, b) => a.work_id.localeCompare(b.work_id)) : [];
-  const cohort = index % 2;
+  const cohort = slot % 2;
   const narrow = catalog.length > 1 && isOpenEnded(intent, catalog);
   const eligibleBooks = narrow ? catalog.filter((_, position) => position % 2 === cohort) : catalog;
-  const focusWorkId = eligibleBooks.length ? eligibleBooks[Math.floor(index / 2) % eligibleBooks.length].work_id : null;
-  const direction = DIRECTIONS[index % DIRECTIONS.length];
+  const focusWorkId = eligibleBooks.length ? eligibleBooks[Math.floor(slot / 2) % eligibleBooks.length].work_id : null;
+  const direction = DIRECTIONS[slot];
+  const sectionHint = narrow ? TEXT_SECTIONS[slot % TEXT_SECTIONS.length] : null;
 
   return {
     eligibleBooks,
@@ -42,8 +49,9 @@ export function buildJevVarianceHints({ books, intent = '', turn }) {
       ? `When several readings fit the reader equally well, consider ${focusWorkId} on this turn. A named or clearly requested work and the reader's intent always take priority.`
       : 'Choose the reading that best fits the reader intent.',
     configHint: narrow
-      ? `For this open discovery request, consider ${direction} as a coherent direction this turn. Explicit reader preferences always take priority; select only offered values.`
+      ? `For this open discovery request, consider ${direction} and section=${sectionHint} as a coherent direction this turn. Explicit reader preferences always take priority; select only offered values.`
       : 'Choose every presentation setting to fit the reader intent. Explicit reader preferences always take priority; select only offered values.',
-    variation: { turn: index, focusWorkId, directionIndex: index % DIRECTIONS.length, cohort: narrow ? cohort : null }
+    variation: { turn: index, focusWorkId, directionIndex: slot,
+      sectionHint, cohort: narrow ? cohort : null }
   };
 }

@@ -1,5 +1,9 @@
 import { jevPalette } from './jev-palette.js';
 
+export const JEV_AUDIO_IDS = Object.freeze([
+  'aurora', 'faded-signal', 'soft-rain', 'sad', 'angry', 'happy', 'excited', 'thrilling', 'scary'
+]);
+
 const CADENCES = Object.freeze({ slow: 0.15, balanced: 0.5, lively: 0.85 });
 
 /** Expand one Jev Choice decision into the exact existing Chamber controls. */
@@ -38,7 +42,7 @@ export function resolveJevChamberConfig(plan) {
 
   return {
     audioPreset: 'silent',
-    soundscape: ['aurora', 'faded-signal', 'soft-rain'].includes(plan.audio) ? plan.audio : 'none',
+    soundscape: JEV_AUDIO_IDS.includes(plan.audio) ? plan.audio : 'none',
     entrainmentMode: 'binaural',
     entrainmentWaveform: 'sine',
     recitation: { enabled: false },

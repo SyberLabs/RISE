@@ -14,7 +14,13 @@ const descriptions = {
     silent: 'Complete silence, no music or soundscape.',
     aurora: 'Soft atmospheric Aurora soundscape.',
     'faded-signal': 'Eerie fading electronic signal soundscape.',
-    'soft-rain': 'Gentle steady natural rain behind the reading.'
+    'soft-rain': 'Gentle steady natural rain behind the reading.',
+    sad: 'Slow minor harmony for grief, loneliness, or melancholy.',
+    angry: 'Tense rough harmony for anger, conflict, or defiance.',
+    happy: 'Warm major harmony for joy, ease, or celebration.',
+    excited: 'Bright moving harmony for anticipation and high energy.',
+    thrilling: 'Driving low pulse for suspense, pursuit, or dramatic momentum.',
+    scary: 'Uneasy low dissonance for dread, fear, or ominous scenes.'
   },
   visualMode: {
     off: 'No moving visuals, blank still background.',

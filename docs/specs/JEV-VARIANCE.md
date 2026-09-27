@@ -7,7 +7,7 @@ never asks Jev to write reading text or CSS.
 
 For each intent and catalog revision, an atomic Redis counter advances the
 turn. The counter key is an HMAC, so the raw intent is absent from Redis keys.
-One short-lived decision cache slot serves a specific intent. Four slots rotate
+One 1-hour decision cache slot serves a specific intent. Eight slots rotate
 only for open discovery requests, where the reader has left the choice open.
 
 When the reader explicitly asks to discover something new, adjacent turns
