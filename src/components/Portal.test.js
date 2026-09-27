@@ -33,6 +33,20 @@ function makePortal(options = {}) {
 }
 
 describe('Portal', () => {
+    it('offers a disclosed preset scene sample and a separate live Jev link', async () => {
+        const onLaunchJevSample = vi.fn().mockResolvedValue(undefined);
+        const { portal, container } = makePortal({ demoMode: true, onLaunchJevSample });
+        expect(container.textContent).toContain('preset');
+        expect(container.textContent).toContain('No live Jev request');
+        expect(container.querySelector('#portal-jev-form')).toBeNull();
+        expect(container.querySelector('a[href="/"]')).not.toBeNull();
+        expect(container.querySelector('#portal-jev-demo').textContent).toContain('George Eliot');
+        expect(container.querySelector('#portal-jev-demo a[href="https://standardebooks.org/ebooks/george-eliot/middlemarch"]')).not.toBeNull();
+        container.querySelector('#jev-scene-demo-start').click();
+        await vi.waitFor(() => expect(onLaunchJevSample).toHaveBeenCalledOnce());
+        portal.destroy();
+    });
+
     it('asks what to read and keeps the home request to one action', () => {
         const { portal, container, onNavigate } = makePortal();
         expect(container.querySelector('h1').textContent).toBe('What would you like to read?');

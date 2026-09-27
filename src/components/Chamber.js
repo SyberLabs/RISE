@@ -68,7 +68,7 @@ export const ICONS = Object.freeze({
 });
 
 import { livingTextAppearance, scoreAtoms, planInterlocution } from '../core/conductor.js';
-import { VisualScheduleController } from '../core/visual-scheduler.js';
+import { cueForAtom, VisualScheduleController } from '../core/visual-scheduler.js';
 import {
   authoredVisualTransition,
   isContinuousPresentation
@@ -96,6 +96,9 @@ import { resolveTextMaterialCapability } from '../core/chamber-text-material.js'
 import { FitMaskRuntime } from '../core/fit-mask-runtime.js';
 import { resolveSessionWordFill } from '../core/visual-selection.js';
 import { sessionColorTheme } from '../core/session-presentation.js';
+import { SEQUENCE_PILOT, nextSequencePilot } from '../content/sequence-pilot.js';
+import { saveSequencePilotFeedback } from '../core/sequence-pilot-feedback.js';
+import { advanceJevVisualArc } from '../core/jev-sequence.js';
 import './Chamber.css';
 
 /**
@@ -285,6 +288,7 @@ export class Chamber {
     // regression the reader caught in the live app). The module is
     // tiny; a static import costs nothing and removes the race.
     this._visualSchedule = null;
+    this._jevCurrentAtom = null;
     this._authoredGalleryPaused = false;
     const program = this.session?.visualProgram;
     if (program && Array.isArray(program.segments) && program.segments.length) {
@@ -442,6 +446,9 @@ export class Chamber {
 
   render() {
     const session = this.session || {};
+    const pilotCurrent = session.provenance?.kind === 'keystone'
+      ? SEQUENCE_PILOT.find(item => item.slug === session.provenance.keystone) : null;
+    const pilotNext = pilotCurrent && nextSequencePilot(pilotCurrent.slug);
     const title = session.title || session.name || 'Untitled Session';
     const duration = session.totalDuration || 0;
     const sources = session.sources;
@@ -519,6 +526,20 @@ export class Chamber {
                 <span class="icon" aria-hidden="true">${ICONS.visuals}</span>
                 <span class="control-label">Visuals</span>
               </button>
+            ` : ''}
+
+            ${['jev', 'jev-sample'].includes(this.session?.origin?.experience)
+              && this.session?.visualProgram?.segments?.length > 1
+              && this.session?.visualConfig?.visualMode === 'interlocution'
+              && isContinuousPresentation(this.session.visualConfig.interlocution?.presentation)
+              && this.session?.projection !== 'page' ? `
+              <button class="control-btn jev-next-scene" id="jev-next-scene" type="button" disabled
+                aria-label="Bring the next visual scene forward"
+                title="Bring the next visual scene forward">
+                <span class="icon" aria-hidden="true">✦</span>
+                <span class="control-label">Shift scene</span>
+              </button>
+              <span class="jev-scene-status" id="jev-scene-status" role="status"></span>
             ` : ''}
 
             <!-- PAGE TURN, IN THE BAR THAT ALREADY EXISTS.
@@ -614,6 +635,27 @@ export class Chamber {
 
             <!-- Separator line -->
             <div class="post-separator"></div>
+
+            ${pilotNext ? `
+              <section class="post-pilot" aria-label="Next reading">
+                <p class="post-pilot-label">Continue the sequence</p>
+                <p id="post-pilot-reason">${escapeHtml(pilotNext.promise)}</p>
+                <button class="post-btn-continue" id="post-pilot-next" type="button">
+                  Explore ${escapeHtml(pilotNext.title)} <span aria-hidden="true">→</span>
+                </button>
+                <div class="post-pilot-feedback">
+                  <p>Was this worth your time?</p>
+                  <label><input type="checkbox" id="post-pilot-consent">
+                    Save my answer on this device. Nothing is sent.</label>
+                  <p class="post-pilot-data-note">After reading, Settings has Export Personal Data and Clear All Personal Data.</p>
+                  <div class="post-pilot-feedback-answers" role="group" aria-label="Was this worth your time?">
+                    <button type="button" data-pilot-feedback="yes" disabled>Yes</button>
+                    <button type="button" data-pilot-feedback="somewhat" disabled>Somewhat</button>
+                    <button type="button" data-pilot-feedback="no" disabled>No</button>
+                  </div>
+                  <p id="post-pilot-feedback-status" role="status"></p>
+                </div>
+              </section>` : ''}
 
             <!-- Actions -->
             <div class="post-complete-actions">
@@ -849,6 +891,9 @@ export class Chamber {
     // In-session controls
     const playPauseBtn = this.container.querySelector('#play-pause-btn');
     const visualsToggleBtn = this.container.querySelector('#visuals-toggle-btn');
+    this.container.querySelector('#jev-next-scene')?.addEventListener('click', () => {
+      void this.advanceJevScene();
+    });
     const settingsBtn = this.container.querySelector('#chamber-settings-btn');
     const exitBtn = this.container.querySelector('#exit-btn');
 
@@ -896,6 +941,31 @@ export class Chamber {
     const recursionBtn = this.container.querySelector('#post-recursion');
     const sealBtn = this.container.querySelector('#post-seal');
     const closeBtn = this.container.querySelector('#post-close');
+    const pilotNextButton = this.container.querySelector('#post-pilot-next');
+    const pilotConsent = this.container.querySelector('#post-pilot-consent');
+    const pilotAnswers = this.container.querySelectorAll('[data-pilot-feedback]');
+
+    pilotNextButton?.addEventListener('click', () => {
+      const next = nextSequencePilot(this.session.provenance.keystone);
+      if (next) this.onExit('pilot-next', { slug: next.slug });
+    });
+    pilotConsent?.addEventListener('change', () => {
+      pilotAnswers.forEach(button => { button.disabled = !pilotConsent.checked; });
+    });
+    pilotAnswers.forEach(button => button.addEventListener('click', () => {
+      if (!pilotConsent.checked) return;
+      const current = SEQUENCE_PILOT.find(item => item.slug === this.session.provenance.keystone);
+      const status = this.container.querySelector('#post-pilot-feedback-status');
+      try {
+        saveSequencePilotFeedback({
+          sequenceId: current.id, version: current.version,
+          value: button.dataset.pilotFeedback, consent: true
+        });
+        status.textContent = 'Saved on this device. Export or erase it in Settings after reading.';
+      } catch {
+        status.textContent = 'Could not save on this device.';
+      }
+    }));
 
     continueBtn?.addEventListener('click', () => {
       this.audioEngine?.playClick();
@@ -941,6 +1011,9 @@ export class Chamber {
     // Mouse movement for hidden controls
     const display = this.container.querySelector('#chamber-display');
     display?.addEventListener('mousemove', () => this.showControls());
+    display?.addEventListener('pointerdown', (event) => {
+      if (event.pointerType === 'touch') this.showControls();
+    });
 
     this.attachBandMove();
 
@@ -1000,6 +1073,7 @@ export class Chamber {
         // change, which the generic scheduler sends to the cortex.
         // Chapel-agnostic — the Chamber knows nothing of pericopes.
         this._visualSchedule?.observe(data.atom);
+        this._updateJevSceneControl(data.atom);
 
         this._audioSchedule?.observe(data.atom);
 
@@ -1340,6 +1414,75 @@ export class Chamber {
     // Gallery (Continuous Field): a persistent crossfading gallery behind
     // the reading, a third interlocution presentation beside behind-stream.
     this.initializeContinuousField();
+  }
+
+  _updateJevSceneControl(atom) {
+    this._jevCurrentAtom = atom || null;
+    const button = this.container.querySelector('#jev-next-scene');
+    if (!button) return;
+    const visualsAllowed = !this.pageModeActive
+      && this.player?.state === 'playing'
+      && this.session?.jevSceneShifted !== true
+      && this.session?.visualConfig?.visualMode === 'interlocution'
+      && !this._prefersReducedMotion()
+      && !document.documentElement.classList.contains('reduced-motion')
+      && !document.documentElement.classList.contains('photosensitivity-mode');
+    button.disabled = this._jevShiftPending === true || !visualsAllowed || !advanceJevVisualArc(
+      this.session.visualProgram, Number(atom?.sourceProgress)
+    );
+  }
+
+  /** A reader may bring forward only the next scene Jev already chose. */
+  async advanceJevScene() {
+    if (!['jev', 'jev-sample'].includes(this.session?.origin?.experience) || !this._visualSchedule) return false;
+    const atom = this._jevCurrentAtom;
+    this._updateJevSceneControl(atom);
+    if (this.container.querySelector('#jev-next-scene')?.disabled) return false;
+    const program = advanceJevVisualArc(this.session.visualProgram, Number(atom.sourceProgress));
+    if (!program) return false;
+    const previous = this.session.visualProgram;
+    const status = this.container.querySelector('#jev-scene-status');
+    const nextCue = cueForAtom(program, atom).cue;
+    this._jevShiftPending = true;
+    this._updateJevSceneControl(atom);
+    if (!visualCortex.isCuePrepared(nextCue)) {
+      status.textContent = 'Preparing the next scene…';
+      let ready = false;
+      try { ready = await visualCortex.prepareCue(nextCue); } catch { /* keep the original */ }
+      if (!ready) {
+        status.textContent = 'The next scene could not be prepared.';
+        this._jevShiftPending = false;
+        this._updateJevSceneControl(this._jevCurrentAtom);
+        return false;
+      }
+    }
+    this._jevShiftPending = false;
+    this._updateJevSceneControl(this._jevCurrentAtom);
+    if (this._destroyed || this._jevCurrentAtom !== atom
+      || this.session.visualProgram !== previous
+      || this.container.querySelector('#jev-next-scene')?.disabled) {
+      status.textContent = 'The reading moved before the scene was ready.';
+      return false;
+    }
+    const oldSchedule = this._visualSchedule;
+    try {
+      this.session.visualProgram = program;
+      this._visualSchedule = new VisualScheduleController(
+        program,
+        (cue, meta) => this.applyScheduledVisualCue(cue, meta),
+        { atoms: this.session.atoms }
+      );
+      this._visualSchedule.observe(atom);
+    } catch {
+      this.session.visualProgram = previous;
+      this._visualSchedule = oldSchedule;
+      status.textContent = 'The next scene could not be prepared.';
+      return false;
+    }
+    this.session.jevSceneShifted = true;
+    status.textContent = 'Next scene selected.';
+    this._updateJevSceneControl(atom);
+    return true;
   }
 
   /** One scheduled cue owns the complete visual presentation transition. */
@@ -2490,6 +2633,7 @@ export class Chamber {
     const next = typeof forceOn === 'boolean' ? forceOn : !this.pageModeActive;
     if (next === this.pageModeActive) return next;
     this.pageModeActive = next;
+    this._updateJevSceneControl(this._jevCurrentAtom);
     if (!next) this._syncPageTurn();
 
     const btn = this.container.querySelector('#page-mode-btn');
@@ -2806,6 +2950,7 @@ export class Chamber {
       if (icon) icon.textContent = enabled ? '◆' : '◇';
     }
     this.showControls();
+    this._updateJevSceneControl(this._jevCurrentAtom);
     return enabled;
   }
 
@@ -3316,6 +3461,7 @@ export class Chamber {
       playIcon?.classList.remove('hidden');
       pauseIcon?.classList.add('hidden');
     }
+    this._updateJevSceneControl(this._jevCurrentAtom);
   }
 
   handleSynthesisSealing() {
