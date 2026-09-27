@@ -493,6 +493,10 @@ export class Chamber {
             <div class="atom-band" id="atom-band">
               <div class="atom-display" id="atom-display"></div>
             </div>
+            ${this.session?.origin?.view === 'short-sequences' ? `
+              <button type="button" class="short-keep-line" id="short-keep-line" disabled>Keep this line</button>
+              <span class="short-keep-status" id="short-keep-status" role="status" aria-live="polite"></span>
+            ` : ''}
           </div>
 
           <!-- PAGE MODE (PAGE-MODE-SPEC): the SPATIAL projection of this
@@ -914,6 +918,11 @@ export class Chamber {
     });
     // In-session controls
     const playPauseBtn = this.container.querySelector('#play-pause-btn');
+    this.container.querySelector('#short-keep-line')?.addEventListener('click', () => {
+      if (!this.currentShortLine) return;
+      this.session.shortSequenceKeptLine = this.currentShortLine;
+      this.container.querySelector('#short-keep-status').textContent = 'Line kept. You can choose another.';
+    });
     const visualsToggleBtn = this.container.querySelector('#visuals-toggle-btn');
     this.container.querySelector('#jev-next-scene')?.addEventListener('click', () => {
       void this.advanceJevScene();
@@ -2322,6 +2331,11 @@ export class Chamber {
     if (!atomDisplay) {
       console.error('[Chamber] No atom-display element found!');
       return;
+    }
+    if (this.session?.origin?.view === 'short-sequences') {
+      this.currentShortLine = concealed ? '' : (atom.content || '').trim();
+      const keepButton = this.container.querySelector('#short-keep-line');
+      if (keepButton) keepButton.disabled = !this.currentShortLine;
     }
     // Commit the aperture once per atom so a Gallery dissolve cannot resize
     // a word while it is being read. The next atom sees the next artwork.

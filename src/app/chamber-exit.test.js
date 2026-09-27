@@ -51,10 +51,12 @@ describe('leaving a short sequence', () => {
         const session = { origin: { view: 'short-sequences', sequenceId: 'focus' } };
         expect(chamberExitTarget('exit', session)).toEqual({
             kind: 'navigate', view: 'short-sequences',
-            data: { sequenceId: 'focus', completed: false }, replaceUrl: true
+            data: { sequenceId: 'focus', completed: false, keptLine: '' }, replaceUrl: true
         });
         session.shortSequenceCompleted = true;
+        session.shortSequenceKeptLine = 'Then return.';
         expect(chamberExitTarget('close', session).data.completed).toBe(true);
+        expect(chamberExitTarget('close', session).data.keptLine).toBe('Then return.');
     });
 });
 

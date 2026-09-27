@@ -25,6 +25,9 @@
 .short-note { margin-top: .85rem; font-size: .78rem; line-height: 1.5; }
 .short-reflection { margin-top: 2rem; max-width: 700px; }
 .short-reflection label { display: block; margin: 1.2rem 0 .6rem; }
+.short-kept { margin: 1rem 0; padding: 1rem 1.2rem; border-left: 2px solid #d2b993; background: rgba(8, 10, 17, .5); }
+.short-kept span { color: #cfc2ae; font-size: .7rem; letter-spacing: .12em; }
+.short-kept blockquote { margin: .5rem 0 0; font-family: Georgia, serif; font-size: 1.3rem; line-height: 1.4; }
 .short-reflection textarea { display: block; width: 100%; margin-bottom: 1rem; padding: .9rem; border: 1px solid #787889; border-radius: 4px; background: #0e111b; color: #fff; font: inherit; resize: vertical; }
 .short-reflection [role="status"] { color: #bfc0c8; font-size: .82rem; }
 .short-legacy { margin-top: 2rem; color: #bfc0c8; font-size: .85rem; }

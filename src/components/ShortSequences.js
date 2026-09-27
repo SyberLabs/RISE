@@ -25,7 +25,7 @@ export class ShortSequences {
         <section class="short-intro" aria-labelledby="short-title">
           <p class="short-eyebrow">A short experience with a purpose</p>
           <h1 id="short-title">Take a moment. Carry something out.</h1>
-          <p>Choose a reading. Its words unfold with a changing visual field and optional sound. Pause or switch to Page whenever you want.</p>
+          <p>Choose a reading. As the words and visuals unfold, keep a line that matters to you. Pause or switch to Page whenever you want.</p>
         </section>
         <div class="short-layout">
           <div class="short-choices" role="group" aria-label="Choose a short sequence">
@@ -47,6 +47,7 @@ export class ShortSequences {
         <section class="short-reflection" id="short-reflection" hidden aria-labelledby="short-reflection-title">
           <p class="short-eyebrow">AFTER THE READING</p>
           <h2 id="short-reflection-title">Carry one thing forward.</h2>
+          <div class="short-kept" id="short-kept" hidden><span>THE LINE YOU KEPT</span><blockquote id="short-kept-text"></blockquote></div>
           <label id="short-prompt" for="short-answer"></label>
           <textarea id="short-answer" maxlength="240" rows="2" placeholder="I will…"></textarea>
           <button type="button" id="short-copy">Copy my next step</button>
@@ -122,6 +123,9 @@ export class ShortSequences {
     this.completed = data?.completed === true;
     this.container.querySelector('#short-reflection').hidden = !this.completed;
     if (this.completed) {
+      const keptLine = typeof data?.keptLine === 'string' ? data.keptLine.trim() : '';
+      this.container.querySelector('#short-kept').hidden = !keptLine;
+      this.container.querySelector('#short-kept-text').textContent = keptLine;
       this.container.querySelector('#short-answer').value = '';
       this.container.querySelector('#short-copy-status').textContent = 'Your words stay in this tab unless you copy them.';
       requestAnimationFrame(() => this.container.querySelector('#short-reflection').scrollIntoView({ block: 'center' }));

@@ -16,6 +16,8 @@ test('a short sequence unfolds in the Chamber and returns a private next step', 
   await page.getByRole('button', { name: /Enter the reading/ }).click();
   await expect(page.locator('#chamber-display')).toBeVisible({ timeout: 30000 });
   await expect(page.locator('#atom-display')).not.toBeEmpty();
+  await page.getByRole('button', { name: 'Keep this line' }).click();
+  await expect(page.getByText('Line kept. You can choose another.')).toBeVisible();
   await page.locator('#chamber-display').hover();
   await page.locator('#page-mode-btn').click();
   await expect(page.locator('#chamber-page')).toBeVisible();
@@ -29,6 +31,7 @@ test('a short sequence unfolds in the Chamber and returns a private next step', 
   await expect(page.locator('#post-recursion')).toBeHidden();
   await page.getByRole('button', { name: 'Choose a next step' }).click();
   await expect(page.getByRole('heading', { name: 'Carry one thing forward.' })).toBeVisible();
+  await expect(page.locator('#short-kept-text')).not.toBeEmpty();
   await page.getByLabel('What will you give the next ten minutes?').fill('Open the draft and write one sentence');
   await page.getByRole('button', { name: 'Copy my next step' }).click();
   await expect.poll(() => page.evaluate(() => navigator.clipboard.readText()))

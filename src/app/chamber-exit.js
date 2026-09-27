@@ -67,7 +67,11 @@ export function chamberExitTarget(reason, session = {}, data = null) {
         return {
             kind: 'navigate',
             view: 'short-sequences',
-            data: { sequenceId: session.origin.sequenceId, completed: session.shortSequenceCompleted === true },
+            data: {
+                sequenceId: session.origin.sequenceId,
+                completed: session.shortSequenceCompleted === true,
+                keptLine: session.shortSequenceKeptLine || ''
+            },
             replaceUrl: true
         };
     }
