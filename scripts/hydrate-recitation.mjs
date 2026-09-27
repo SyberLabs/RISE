@@ -4,7 +4,7 @@ const source = 'refs/heads/rise/audio-assets';
 const expectedTree = '9879dfa2441540d1d03a350e158e4d7e5b9ee277';
 
 execFileSync('git', [
-  '-c', 'protocol.version=2', 'fetch', '--depth=1', '--filter=blob:none',
+  '-c', 'protocol.version=2', 'fetch', '--depth=1',
   'origin', source
 ], { stdio: 'inherit' });
 
