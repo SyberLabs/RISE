@@ -99,7 +99,7 @@ describe('Jev reading recommendation', () => {
       reason: books[0].fit_description, cacheStatus: 'miss'
     });
     expect(mocks.neon).toHaveBeenCalledWith(env.NEON_DATABASE_URL);
-    expect(mocks.set).toHaveBeenCalledWith(expect.stringMatching(/^rise:books:v1:[0-9a-f]{64}$/u), books, { ex: 300 });
+    expect(mocks.set).toHaveBeenCalledWith(expect.stringMatching(/^rise:books:v1:[0-9a-f]{64}$/u), books, { ex: 30 });
     expect(mocks.set.mock.calls[0][0]).not.toContain('thoughtful novel');
     const body = JSON.parse(provider.mock.calls[0][1].body);
     expect(body.model).toBe('typesafe/jev-1.13');
@@ -123,6 +123,21 @@ describe('Jev reading recommendation', () => {
     expect((await response.json()).cacheStatus).toBe('hit');
     expect(mocks.query).not.toHaveBeenCalled();
     expect(provider).toHaveBeenCalledOnce();
+  });
+
+  it('continues recommending only active books when a catalog row is withdrawn', async () => {
+    mocks.query.mockResolvedValue(books.filter(row => row.work_id !== 'middlemarch'));
+    const provider = vi.fn(async () => Response.json({
+      model: 'typesafe/jev-1.13', provider: 'TypeSafe',
+      answers: { book: { type: 'choice', choice: 'literary-walden' } }
+    }));
+    vi.stubGlobal('fetch', provider);
+
+    const response = await handleJevRecommend(request(), env);
+    expect(response.status).toBe(200);
+    const criteria = JSON.parse(provider.mock.calls[0][1].body).questions.book.criteria;
+    expect(Object.keys(criteria)).toHaveLength(14);
+    expect(criteria).not.toHaveProperty('middlemarch');
   });
 
   it('rejects a database row whose edition does not match the shipped Standard Ebooks inventory', async () => {

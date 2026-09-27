@@ -821,7 +821,7 @@ of `settled`, `open`, `deferred`, or `reversed`.
 - **Chosen:** an optional Library form sends the reader's intent to the
   same-origin Cloudflare Worker. The Worker reads an exact-edition Standard
   Ebooks catalog from PostgreSQL, caches only that public catalog in Redis
-  for five minutes, and asks JEV through OpenRouter to choose one work ID.
+  for 30 seconds, and asks JEV through OpenRouter to choose one work ID.
   The browser opens that held edition through the existing Library path.
 - **Rejected:** sending book text or personal reading history to JEV, storing
   intents or decisions in Redis, inventing a recommendation from local

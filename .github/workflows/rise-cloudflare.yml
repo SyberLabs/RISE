@@ -64,11 +64,24 @@ jobs:
           tar -czf "$RUNNER_TEMP/release.tar.gz" \
             dist \
             worker/index.mjs \
+            worker/jev-recommend.mjs \
+            src/content/archive/release-inventory.json \
             netlify/functions/jev-decision.mjs \
             netlify/functions/jev-route.mjs \
+            package.json \
+            package-lock.json \
             wrangler.staging.jsonc \
             wrangler.production.jsonc
           (cd "$RUNNER_TEMP" && sha256sum release.tar.gz > release.tar.gz.sha256)
+      - name: Bundle the unpacked release exactly as staging will
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/release-smoke"
+          tar -xzf "$RUNNER_TEMP/release.tar.gz" -C "$RUNNER_TEMP/release-smoke"
+          cd "$RUNNER_TEMP/release-smoke"
+          npm ci --omit=dev --ignore-scripts --no-audit --no-fund
+          npx --yes wrangler@4.141.0 deploy --dry-run --config wrangler.staging.jsonc \
+            --outdir "$RUNNER_TEMP/worker-dry-run"
       - uses: actions/upload-artifact@v4
         with:
           name: ${{ needs.source.outputs.artifact }}
@@ -106,6 +119,9 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22.12.0'
+      - name: Install locked Worker dependencies
+        working-directory: release
+        run: npm ci --omit=dev --ignore-scripts --no-audit --no-fund
       - name: Recheck main and staging configuration before deploy
         env:
           GH_TOKEN: ${{ github.token }}
@@ -200,6 +216,9 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22.12.0'
+      - name: Install locked Worker dependencies
+        working-directory: release
+        run: npm ci --omit=dev --ignore-scripts --no-audit --no-fund
       - name: Recheck main after staging and owner approval
         env:
           GH_TOKEN: ${{ github.token }}

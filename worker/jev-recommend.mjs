@@ -85,7 +85,8 @@ function admittedBook(row) {
 }
 
 function validCatalog(rows) {
-  if (!Array.isArray(rows) || rows.length !== Object.keys(RELEASE_EDITIONS).length
+  if (!Array.isArray(rows) || rows.length < 1
+    || rows.length > Object.keys(RELEASE_EDITIONS).length
     || rows.some(row => !admittedBook(row))) return null;
   const ids = rows.map(row => row.work_id);
   return new Set(ids).size === ids.length ? rows : null;
@@ -148,7 +149,7 @@ export async function handleJevRecommend(request, env) {
         FROM rise_books WHERE active = true ORDER BY work_id LIMIT 32`;
       books = validCatalog(rows);
       if (!books) return error(503, 'CATALOG_UNAVAILABLE', 'The reading catalog is unavailable.');
-      await redis.set(key, books, { ex: 300 });
+      await redis.set(key, books, { ex: 30 });
     }
   } catch {
     return error(503, 'CATALOG_UNAVAILABLE', 'The reading catalog is unavailable.');
