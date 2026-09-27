@@ -197,7 +197,7 @@ from the Vite dev server.
  builds the app and starts `vite preview` on `127.0.0.1:4317` itself, with
  `VITE_RISE_ARCHIVE_REVIEW=1`. Do **not** start a server manually. It runs
  Chromium only, single worker, with autoplay forced on (Web Audio).
-- Pull requests and main run core smoke, CI policy, build, hygiene, security,
+- Pull requests and main run core smoke, build, hygiene, security,
  and docs in one `CI` job with one dependency install. Main's `CI` uploads
  the tested build for deployment. Full unit, Scriptorium, and sharded browser
  suites run separately on main and manual dispatch. They report failures but
