@@ -36,12 +36,10 @@ import { defineConfig } from '@playwright/test';
  *   csp-live          the policy that governs every remote fetch
  *   curation          what the shelf is allowed to show
  *
- * CI no longer STOPS here. The 502 seconds shard four ways to ~200, so a
- * pull request runs all of it; this list stays as the fast no, and as what
- * you run locally when you want an answer in two minutes rather than eight.
- * The two projects partition the suite, so `playwright test` with no
- * argument — which is what each CI shard invokes — is still exactly one
- * run of everything.
+ * Full coverage runs in four shards on main without holding the release.
+ * This corridor remains the local fast check before pushing. The two
+ * projects partition the suite, so `playwright test` with no argument —
+ * which is what each shard invokes — runs everything exactly once.
  */
 /** Runs without the autoplay override; see the `admission` project. */
 const ADMISSION = '**/audio-admission.spec.js';

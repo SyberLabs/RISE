@@ -197,29 +197,27 @@ from the Vite dev server.
  builds the app and starts `vite preview` on `127.0.0.1:4317` itself, with
  `VITE_RISE_ARCHIVE_REVIEW=1`. Do **not** start a server manually. It runs
  Chromium only, single worker, with autoplay forced on (Web Audio).
-- Pull requests run four core smoke files and the CI policy test, plus build, hygiene,
- and docs checks in one `CI` job with one dependency install. Scriptorium runs
- on main, where its full CLI contract is checked before release.
- The complete unit and browser suites run after merge on main. Browser checks
- also run through `workflow_dispatch`. The repository ruleset requires the
- substantive `CI` check. `npm run test:e2e:gate` runs the browser corridor
- locally before pushing.
+- Pull requests and main run core smoke, CI policy, build, hygiene, security,
+ and docs in one `CI` job with one dependency install. Main's `CI` uploads
+ the tested build for deployment. Full unit, Scriptorium, and sharded browser
+ suites run separately on main and manual dispatch. They report failures but
+ do not hold deployment. The ruleset requires `CI`. Run
+ `npm run test:e2e:gate` locally before pushing.
 - There is **no lint script**. The gates a pull request has to pass are:
  `node scripts/ci-hygiene.mjs`, `npm run security:audit`, and
  `npm run security:compat`
- (`CI` on pull requests, `hygiene` on main); `npm run measure:first-load`, which holds what
+ (`CI` on pull requests and main); `npm run measure:first-load`, which holds what
  `dist/index.html` fetches to a ratcheting brotli budget declared in the script
- (`CI` on pull requests, `build` on main); and `npx vitest run src/core/system-design.test.js` plus
+ (`CI` on pull requests and main); and `npx vitest run src/core/system-design.test.js` plus
  `npm run docs:diagram`, which must leave `docs/specs/ARCHITECTURE.md` unchanged
- (`CI` on pull requests, `docs` on main).
+ (`CI` on pull requests and main).
 - `docs/specs/ARCHITECTURE.md` §3 carries a **generated** import graph between
  `<!-- BEGIN GENERATED DIAGRAM -->` markers. Edit
  `scripts/build-architecture-diagram.mjs`, never the diagram. The rest of that
  file is hand-written and guarded by `src/core/system-design.test.js`.
-- A change touching only `docs/`, `.agents/`, `.cursor/`, a root `*.md`,
- `LICENSE`, or `NOTICE` skips the unit, build, Scriptorium, and browser jobs.
- Anything else runs the fast PR checks and the full main checks. The system-design guard lives in the unit suite
- but is **also** run by PR `CI` and the main `docs` job, because editing that
+- Fast `CI` runs for every pull request and main commit, including prose-only
+ changes. Full validation runs for every main commit. The system-design guard lives in the unit suite
+ but is **also** run by `CI`, because editing that
  document is exactly when it has to run.
 - `CI` is the one job that always reports and the only name a branch ruleset
  should require. A required check that never reports blocks a merge forever.
