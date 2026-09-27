@@ -38,6 +38,7 @@ import worker from './index.mjs';
 
 const SITE = 'https://rise.example';
 const env = {
+  DECISION_PROVIDER: 'jev',
   OPENROUTER_API_KEY: 'openrouter-server-secret',
   NEON_DATABASE_URL: 'postgresql://private.example/rise',
   UPSTASH_REDIS_REST_URL: 'https://redis.example',
@@ -148,6 +149,29 @@ afterEach(() => {
 });
 
 describe('Jev reading recommendation', () => {
+  it('admits Kev choices and isolates cached decisions by pinned checkpoint', async () => {
+    const cache = new Map();
+    mocks.get.mockImplementation(async key => cache.get(key) ?? null);
+    mocks.set.mockImplementation(async (key, value) => { cache.set(key, value); return 'OK'; });
+    let servedRevision = 'a'.repeat(40);
+    const fetcher = vi.fn(async () => Response.json({ model: 'kev-latest', answers: answers('middlemarch') },
+      { headers: { 'x-kev-revision': servedRevision } }));
+    vi.stubGlobal('fetch', fetcher);
+    const kev = { ...env, DECISION_PROVIDER: 'kev', KEV_BASE_URL: 'https://kev.example',
+      KEV_API_KEY: 'kev-secret', KEV_MODEL: 'kev-latest', KEV_REVISION: 'a'.repeat(40) };
+    const first = await handleJevRecommend(request({ intent: 'A thoughtful reading.' }), kev);
+    expect(first.status).toBe(200);
+    const decision = await first.json();
+    expect(decision).toMatchObject({ provider: 'Kev', revision: kev.KEV_REVISION, model: 'kev-latest' });
+    expect(() => validateJevRecommendation(decision)).not.toThrow();
+    expect((await (await handleJevRecommend(request({ intent: 'A thoughtful reading.' }), kev)).json()).decisionCacheStatus).toBe('hit');
+    expect(fetcher).toHaveBeenCalledTimes(1);
+    servedRevision = 'b'.repeat(40);
+    const changed = await handleJevRecommend(request({ intent: 'A thoughtful reading.' }), { ...kev, KEV_REVISION: servedRevision });
+    expect(changed.status).toBe(200);
+    expect(fetcher).toHaveBeenCalledTimes(2);
+    expect(fetcher.mock.calls[0][0]).toBe('https://kev.example/v1/systemone');
+  });
   it('serves the original v1 shape to an old tab and the expressive v2 shape to a new tab', async () => {
     const cache = new Map();
     mocks.get.mockImplementation(async key => cache.get(key) ?? null);

@@ -77,7 +77,11 @@ function assertPlan(decision) {
 export function validateJevRecommendation(decision) {
   if (!decision || decision.schemaVersion !== 2
     || typeof decision.requestId !== 'string' || !decision.requestId || decision.requestId.length > 100
-    || typeof decision.model !== 'string' || !/^typesafe\/jev-1\.13(?:-\d{8})?$/.test(decision.model)
+    || typeof decision.model !== 'string'
+    || !((decision.model === 'kev-latest' && decision.provider === 'Kev'
+      && /^[a-f0-9]{40}$/.test(decision.revision || ''))
+      || (/^typesafe\/jev-1\.13(?:-\d{8})?$/.test(decision.model)
+        && (!decision.provider || decision.provider === 'TypeSafe')))
     || typeof decision.workId !== 'string' || typeof decision.editionId !== 'string'
     || typeof decision.sourceRevision !== 'string' || typeof decision.reason !== 'string') {
     throw new TypeError('Jev returned an invalid reading plan.');

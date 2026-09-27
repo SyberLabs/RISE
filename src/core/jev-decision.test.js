@@ -48,6 +48,7 @@ async function json(response) {
 
 describe('OpenRouter decision Netlify function', () => {
     beforeEach(() => {
+        vi.stubEnv('DECISION_PROVIDER', 'jev');
         vi.stubEnv('OPENROUTER_API_KEY', 'server-secret');
         vi.stubEnv('OPENROUTER_MODEL', 'openai/gpt-4.1-mini');
     });
@@ -70,7 +71,7 @@ describe('OpenRouter decision Netlify function', () => {
         vi.stubEnv('OPENROUTER_API_KEY', undefined);
         const fetchMock = mockFetch();
 
-        const response = await handleJevDecision(request(), 'server-secret');
+        const response = await handleJevDecision(request(), { DECISION_PROVIDER: 'jev', OPENROUTER_API_KEY: 'server-secret' });
 
         expect(response.status).toBe(200);
         expect(await json(response)).toEqual({

@@ -12,8 +12,10 @@
 
 RISE stores your projects, journals, and settings in your browser. Text you
 bring to a Chamber reading is presented and paced locally. Chamber playback
-does not send your reading to a model service. If you ask Jev for a reading,
-RISE sends the short request you submit to OpenRouter for a bounded choice.
+does not send your reading to a model service. If you request an AI reading,
+RISE sends the short preference you submit through its server for a bounded
+choice. The server-side migration from Jev to Kev is in progress; no live Kev
+endpoint has been confirmed.
 If you press **Speak**, your browser may use its speech service to turn your
 voice into editable text. RISE does not receive the microphone audio.
 
@@ -40,9 +42,12 @@ addresses. Cancelled or failed attempts may count against the writing limit.
 We do not use cookies. We do not use analytics. We do not track you across
 sites or across visits. We have no accounts, so we do not know who you are. We
 do not sell personal information. Network processing occurs for hosting,
-external resources you request, optional Create writing, and the optional Jev actions described below.
+external resources you request, optional Create writing, and the optional decision actions described below.
 
-Scriptorium also has a separate optional **Route with JEV** action. It sends the typed composition intent and target word count through RISE to TypeSafe using a key you supply for that action. **Prepare locally without JEV** remains available.
+Scriptorium also has separate optional model routing. It sends the typed
+composition intent and target word count through RISE's same-origin API. Model
+credentials stay on the server; the browser does not supply an API key. Local
+prompt preparation remains available without a model call.
 
 The rest of this document is the detail behind those sentences.
 
@@ -124,49 +129,51 @@ Session storage is discarded when you close the tab.
 
 Text you bring to RISE is processed in your browser and stored in the same
 local storage above. Chamber playback does not send excerpts, intent, feedback,
-mode, or pace to a reading service or model provider. A Jev reading request
+mode, or pace to a reading service or model provider. An AI reading request
 sends the short preference you submit, whether typed or dictated, not the
 reading or saved work in your browser.
 
 ---
 
-## 4. What hosting and Jev services receive
+## 4. What hosting and decision services receive
 
 ### Optional Scriptorium routing
 
-Choosing **Route with JEV** sends only the typed Scriptorium intent (up to
-2,000 characters) and target word count to `/api/jev/route`. The browser sends
-your supplied JEV key in the authorization header; the same-origin API forwards
-these fields and the key to TypeSafe SystemOne at `api.typesafe.ai`. On `.io`
+Choosing optional Scriptorium model routing sends only the typed intent (up to
+2,000 characters) and target word count to `/api/jev/route`. That route name is
+retained during the migration; it does not identify the active model. On `.io`
 the API runs in a Cloudflare Worker; on `.space` it runs as a Netlify function.
-The key is
-held only in the mounted interface, not saved in browser storage. RISE application
-code does not deliberately log or persist the key or routing request. Saved
-texts, Library entries, source text, media, reading history, and proposals are
-not part of this routing request. **Prepare locally without JEV** does not call
-TypeSafe. This optional authoring route is separate from local Chamber reading.
+The server supplies its own provider credential. The browser does not send or
+store a model API key. RISE application code does not deliberately log or
+persist the routing request. Saved texts, Library entries, source text, media,
+reading history, and proposals are not part of it. Local prompt preparation
+does not call the provider. This optional authoring route is separate from
+local Chamber reading.
 
 ### Optional voice dictation
 
-Pressing **Speak** on a Jev request asks your browser to use the microphone.
+Pressing **Speak** on a reading request asks your browser to use the microphone.
 The browser may process speech on your device or send audio to its own speech
 service, depending on the browser. That provider's privacy policy governs its
 processing. RISE application code receives only the resulting text in the
 editable request field; it does not upload, save, or log microphone audio.
-You can edit or discard the text. It is sent to Jev only if you submit the
+You can edit or discard the text. It is sent to the decision provider only if you submit the
 request. Denying microphone permission leaves typed requests available.
 
-### Optional Jev reading request
+### Optional AI reading request
 
 When you submit a reading preference on the RISE home or in the Library, RISE
 sends that text through its same-origin Cloudflare Worker. On a cache miss, the Worker sends
-the intent and the public catalog criteria to OpenRouter for a TypeSafe Jev
-choice. It does not send your book text, reading history, saved work, or media.
+the intent and the public catalog criteria to the configured decision provider
+for a bounded choice. The migration code defaults to Kev when an operator has
+configured a pinned endpoint and model revision. Explicit Jev rollback uses
+OpenRouter. No Kev endpoint has been confirmed live. RISE does not send your
+book text, reading history, saved work, or media.
 PostgreSQL holds the public Standard Ebooks catalog. Redis holds the catalog
-briefly and a validated Jev choice for up to one hour. The Redis lookup key is
+briefly and a validated choice for up to one hour. The Redis lookup key is
 a keyed digest of the intent and catalog; the raw intent is not stored in
 Redis or PostgreSQL. A repeated matching request can reuse that choice
-without another OpenRouter call. RISE does not deliberately log these intents.
+without another provider call. RISE does not deliberately log these intents.
 
 ### Hosting requests
 
@@ -179,12 +186,13 @@ The providers' handling is described at
 <https://www.cloudflare.com/privacypolicy/> and
 <https://www.netlify.com/privacy/>.
 
-TypeSafe SystemOne receives the routing fields and the reader-provided API key
-through the API request. TypeSafe's use, security, and retention of that
-information are governed by TypeSafe's own terms and privacy policy; this
-policy does not make claims about provider-side retention. JEV routing is an
-explicit user action and is not called when you choose **Prepare locally
-without JEV**.
+The configured inference host receives the fields needed for the requested
+decision and the server's provider credential. Its handling and retention are
+governed by that host's own policy; RISE does not assert a retention guarantee
+for it. Before enabling a Kev endpoint for readers, the operator must publish
+the actual host and its privacy and retention policy. If the explicit Jev
+rollback is selected, OpenRouter and TypeSafe process the request under their
+own policies. No model call occurs when you prepare locally.
 
 ---
 
@@ -238,10 +246,10 @@ We state these plainly because the absence is the point.
   an identifier for you; it is your own work and your own settings.
 - **No sale or sharing of personal information**, as those terms are used in
   the California Consumer Privacy Act. Optional Scriptorium routing is for the
-  action you choose, not advertising. A Jev reading request sends your typed
-  preference to OpenRouter for the decision you request.
+  action you choose, not advertising. An AI reading request sends your typed
+  preference to the configured decision provider for the choice you request.
 - **No camera or location access.** The browser security policy denies both.
-  It permits the microphone only on RISE's own origin, for optional Jev voice
+  It permits the microphone only on RISE's own origin, for optional voice
   dictation. RISE asks for microphone access only after you press **Speak**.
 
 ---
@@ -260,11 +268,11 @@ never performs.
 
 **RISE runs no third-party tracking scripts.** The museums and archives in
 section 5 receive direct requests for texts or artworks as described there.
-Separately, if you choose JEV routing, TypeSafe receives the typed intent,
-target word count and your API key through RISE's API. This is a routing
-request, not cross-site tracking; consult TypeSafe's own policy for its handling
-of that request. A Jev reading request sends the submitted text through
-OpenRouter only when you submit it.
+Separately, if you choose Scriptorium model routing, the configured inference
+host receives the typed intent and target word count through RISE's API. This
+is a routing request, not cross-site tracking. An AI reading request sends the
+submitted preference to the configured provider only when you submit it. See
+section 4 for the Kev migration and explicit Jev rollback paths.
 
 ---
 
@@ -289,20 +297,19 @@ supervisory authority; in the UK that is the Information Commissioner's Office.
 
 For the on-device data in section 3 we cannot action such a request, because we
 have no copy to access, correct or delete. The local erase control can delete
-that copy immediately. For a JEV request, TypeSafe may also process
-the request under its own policy; contact the provider for requests concerning
-its processing or retention. OpenRouter and the model provider may process an
-optional Jev reading request under their own policies.
+that copy immediately. A decision provider may also process an optional model
+request under its own policy; contact the disclosed provider for requests
+concerning its processing or retention.
 
 ---
 
 ## 9. California residents
 
 RISE is published from California. Our server processing includes hosting
-request data and optional Jev requests, as described in section 4.
+request data and optional decision requests, as described in section 4.
 
 **We do not sell personal information**, as that term is defined in the
-California Consumer Privacy Act. The optional JEV route is disclosed in
+California Consumer Privacy Act. The optional Scriptorium route is disclosed in
 section 4. We do not use or disclose sensitive personal information for any
 purpose that would require an opt-out. We do not offer financial incentives
 for data.
@@ -322,7 +329,7 @@ We do not, and never have.
 
 ## 10. Legal basis (UK/EU GDPR)
 
-- **Serving the sites and processing expressly requested Jev actions**, including
+- **Serving the sites and processing expressly requested decision actions**, including
   request data and bounded requests in section 4: our legitimate interest in
   delivering and securing the application and fulfilling the action you chose
   (Article 6(1)(f)).
@@ -338,10 +345,12 @@ ask first.
 
 ## 11. Retention
 
-RISE application code does not persist JEV routing requests, Jev reading
-requests, or API keys. Cloudflare and Netlify handle hosting and API request
-data under their own policies. OpenRouter and TypeSafe handle optional Jev
-requests under their own policies; see section 4.
+RISE application code does not persist Scriptorium routing requests or AI
+reading requests. Provider credentials are server-held, not stored in the
+browser or application databases. Cloudflare and Netlify handle hosting and
+API request data under their own policies. The configured inference host may process
+an optional decision request under its own policy; see section 4. No
+provider-side retention guarantee is made here.
 
 Data on your device persists until you erase it or clear your browser storage.
 
@@ -351,11 +360,10 @@ Data on your device persists until you erase it or clear your browser storage.
 
 The third parties in section 5 are located in various countries, including the
 United States. Your browser contacts the listed reading and image sources
-directly. For JEV routing, RISE's API sends the bounded request and key to
-TypeSafe SystemOne; consult TypeSafe's policies for information about its
-processing locations and any transfers it makes. An optional Jev reading
-request sends the typed preference through OpenRouter to TypeSafe; consult their policies for
-their processing locations and transfers.
+directly. Optional model requests are sent by RISE's API to the configured
+inference host. Its policy must be published before a Kev endpoint is enabled
+for readers; consult that policy for processing locations and transfers. The
+explicit Jev rollback path uses OpenRouter and TypeSafe under their policies.
 
 ---
 
@@ -363,13 +371,14 @@ their processing locations and transfers.
 
 RISE is not directed at children and is not intended for anyone under 13. We do
 not knowingly collect personal information from children. A reader who
-chooses JEV routing may include personal information in the intent sent as
+chooses model routing may include personal information in the intent sent as
 described in section 4.
 There is no account system, so we hold no age information about anybody. If you
 believe a child has provided us with personal information, write to
 syberlabs.software@gmail.com. We will review data held by RISE and explain the
-available deletion steps; contact TypeSafe or OpenRouter about any request
-concerning their processing of a JEV request.
+available deletion steps; contact the disclosed inference provider about any
+request concerning its processing. Jev rollback also involves OpenRouter and
+TypeSafe.
 
 Some readings are drawn from adult literary and philosophical works. RISE also
 presents moving light and generative visuals, and carries a photosensitivity

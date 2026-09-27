@@ -26,6 +26,7 @@ function decisionRequest(options = {}) {
 
 function environment(success = true) {
   return {
+    DECISION_PROVIDER: 'jev',
     OPENROUTER_API_KEY: 'server-secret',
     DECISION_LIMITER: { limit: vi.fn(async () => ({ success })) }
   };
@@ -101,8 +102,9 @@ describe('Cloudflare API Worker', () => {
     expect(provider).not.toHaveBeenCalled();
   });
 
-  it('keeps the bring-your-own-key route on its TypeSafe handler', async () => {
+  it('uses server-owned credentials for the explicit Jev routing rollback', async () => {
     const provider = vi.fn(async () => Response.json({
+      model: 'typesafe/jev-1.13', provider: 'TypeSafe',
       answers: { route: { type: 'choice', choice: 'experience_program', confidence: 0.9 } }
     }));
     vi.stubGlobal('fetch', provider);
@@ -110,17 +112,17 @@ describe('Cloudflare API Worker', () => {
 
     const response = await worker.fetch(new Request(`${SITE}/api/jev/route`, {
       method: 'POST',
-      headers: { Authorization: 'Bearer personal-key', 'Content-Type': 'application/json' },
+      headers: { Origin: SITE, 'CF-Connecting-IP': '192.0.2.1', Authorization: 'Bearer personal-key', 'Content-Type': 'application/json' },
       body: JSON.stringify({ intent: 'Create a reading', targetWords: 800 })
     }), env);
 
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual({
-      route: 'experience_program', confidence: 0.9, model: 'jev-latest'
+      route: 'experience_program', confidence: 0.9, model: 'typesafe/jev-1.13'
     });
-    expect(provider.mock.calls[0][0]).toBe('https://api.typesafe.ai/v1/systemone');
-    expect(provider.mock.calls[0][1].headers.Authorization).toBe('Bearer personal-key');
-    expect(env.DECISION_LIMITER.limit).not.toHaveBeenCalled();
+    expect(provider.mock.calls[0][0]).toBe('https://openrouter.ai/api/alpha/decisions');
+    expect(provider.mock.calls[0][1].headers.Authorization).toBe('Bearer server-secret');
+    expect(env.DECISION_LIMITER.limit).toHaveBeenCalledOnce();
   });
 
   it.each([

@@ -1,6 +1,6 @@
 # Terms of Use
 
-**Last updated: 26 September 2026**
+**Last updated: 27 September 2026**
 
 > **This document has not been reviewed by a lawyer.** Sections 3, 11 and 12
 > in particular carry real legal consequence and are worth settling with
@@ -66,11 +66,14 @@ or licence in it.
 
 Your saved work is stored **in your browser, on your device**. Storage at the
 `.space` site stays at that origin and does not appear at `.io`. Chamber reading
-and pacing run locally. Choosing the optional Scriptorium JEV route sends the
-typed composition intent and target word count to TypeSafe. A separate,
-user-triggered Jev preview sends a fixed sample reading state through OpenRouter
-to TypeSafe; it does not send your active reading or change playback. See the
-Privacy Policy. These actions do not create a backup of your saved work. Two
+and pacing run locally. Choosing optional Scriptorium model routing sends the
+typed composition intent and target word count through RISE's server to its
+configured inference host. A separate, user-triggered reading request sends
+the short preference you submit and public catalog choices for a bounded
+decision. Server-held credentials are used; you do not supply a model API key.
+The Kev migration is in progress and no live Kev endpoint has been confirmed.
+An explicit Jev rollback uses OpenRouter. See the Privacy Policy. These actions
+do not create a backup of your saved work. Two
 consequences follow:
 
 - **We cannot recover it.** If you clear your browser storage, use private
