@@ -100,9 +100,11 @@ import { sessionColorTheme } from '../core/session-presentation.js';
 import { SEQUENCE_PILOT, nextSequencePilot } from '../content/sequence-pilot.js';
 import { saveSequencePilotFeedback } from '../core/sequence-pilot-feedback.js';
 import { advanceJevVisualArc } from '../core/jev-sequence.js';
-import { normalizeLivingFlameConfig } from '../core/flame-recipe.js';
-import { directionStateFor, ensureDirector } from '../core/passage-visuals/reading-state.js';
-import { flamePreset } from '../visuals/living-flame/flame-presets.js';
+import { normalizeFlameRecipe, normalizeLivingFlameConfig, validateFlameRecipe } from '../core/flame-recipe.js';
+import { saveFlameScene } from '../core/flame-scenes.js';
+import { directionStateFor, ensureDirector, followProgram } from '../core/passage-visuals/reading-state.js';
+import { mutateRecipe } from '../visuals/living-flame/flame-math.js';
+import { FLAME_PRESET_IDS, flamePreset } from '../visuals/living-flame/flame-presets.js';
 import { JEV_INKS, JEV_PALETTES, jevColors } from '../core/jev-palette.js';
 import { JEV_AUDIO_IDS } from '../core/jev-config.js';
 import { CHAMBER_STREAM_FACES } from '../core/chamber-stream-face.js';
@@ -329,7 +331,21 @@ export class Chamber {
     this._direction = directionStateFor(this.session);
     this._directedSchedule = null;
     this._lastDirectedCue = null;
-    if (!this._visualSchedule && this._direction?.mode === 'follow') this._startFollowText();
+    this._currentVisualCue = null;
+    // What the reading brings on its own: an authored schedule and the
+    // Gallery pool the session installed. Hold and Off restore to these.
+    this._ownSchedule = this._visualSchedule;
+    this._ownActiveTypes = [...(visualCortex.config?.activeTypes || [])];
+    this._visualEnergy = Number.isFinite(this._direction?.energy) ? this._direction.energy : 0.35;
+    // A scene carried from the Visual Lab through the reading chooser is a
+    // manual Hold, which outranks any authored or directed visuals.
+    const pendingRecipe = normalizeFlameRecipe(options.pendingVisualRecipe);
+    if (pendingRecipe && this._direction) {
+      this._direction.mode = 'hold';
+      this._direction.heldCue = this._flameCue(pendingRecipe, pendingRecipe.macros.energy);
+    }
+    if (this._direction?.mode === 'follow') this._startFollowText();
+    else if (this._direction?.mode === 'off' || this._direction?.heldCue) this._visualSchedule = null;
 
     // A JOURNEY'S TWO SIBLINGS (JOURNEYS-SPEC §8.4). Built here for the
     // same reason and with the same discipline as the visual schedule
@@ -613,6 +629,15 @@ export class Chamber {
               <span class="control-label">Page</span>
             </button>
 
+            ${this._direction && this._offersVisualDrawer() ? `
+              <button class="control-btn visual-direction-btn" id="visual-direction-btn" type="button"
+                aria-label="Visual direction" aria-expanded="false" aria-controls="visual-direction-panel"
+                title="Visuals">
+                <span class="icon" aria-hidden="true">✺</span>
+                <span class="control-label">Visuals</span>
+              </button>
+            ` : ''}
+
             ${this.hasAttractorField ? `
               <button class="control-btn kaleidoscope-toggle" id="kaleidoscope-btn"
                 type="button" aria-pressed="false" aria-label="Fold the field into a kaleidoscope"
@@ -748,6 +773,8 @@ export class Chamber {
         </div>
 
         <div class="chamber-settings-overlay" id="chamber-settings-overlay" hidden></div>
+        <div class="visual-direction-panel" id="visual-direction-panel" role="group"
+          aria-label="Visual direction" hidden></div>
         ${['jev', 'jev-sample'].includes(this.session?.origin?.experience) ? `
           <div class="jev-look-panel" id="jev-look-panel" role="group" aria-label="Jev look and sound" hidden>
             <label>Stream face
@@ -1162,6 +1189,7 @@ export class Chamber {
     });
 
     this.attachBandMove();
+    this.attachVisualDrawer();
 
     // Player events
     if (this.player) {
@@ -1570,6 +1598,12 @@ export class Chamber {
     // Gallery (Continuous Field): a persistent crossfading gallery behind
     // the reading, a third interlocution presentation beside behind-stream.
     this.initializeContinuousField();
+
+    // A held scene or Off is in force from the first frame.
+    if (this._direction?.mode === 'off') this._stopVisualWork(0);
+    else if (this._direction?.mode === 'hold' && this._direction.heldCue) {
+      this.applyScheduledVisualCue(this._direction.heldCue, { transitionMs: 0 });
+    }
   }
 
   _updateJevSceneControl(atom) {
@@ -1641,6 +1675,425 @@ export class Chamber {
     return true;
   }
 
+  _flameCue(recipe, intensity = 0.35) {
+    return {
+      kind: 'field', renderer: 'living-flame',
+      config: { recipe, intensity: Math.max(0, Math.min(1, Number(intensity) || 0.35)) }
+    };
+  }
+
+  _offersVisualDrawer() {
+    const mode = this.session?.visualConfig?.visualMode;
+    return Boolean(this._direction?.eligibility?.canFollow || (mode && mode !== 'off')
+      || this._direction?.heldCue);
+  }
+
+  _currentReadingAtom() {
+    const index = this.player?.sessionState?.currentIndex;
+    return this._jevCurrentAtom || this.session?.atoms?.[Number.isInteger(index) ? index : 0] || null;
+  }
+
+  _currentFlameConfig() {
+    const cue = this._direction?.mode === 'hold' && this._direction.heldCue
+      ? this._direction.heldCue
+      : this._currentVisualCue;
+    return cue?.kind === 'field' && cue.renderer === 'living-flame'
+      ? normalizeLivingFlameConfig(cue.config) : null;
+  }
+
+  _visualTransitionMs() {
+    const reduced = this._prefersReducedMotion()
+      || document.documentElement.classList.contains('reduced-motion')
+      || document.documentElement.classList.contains('photosensitivity-mode');
+    return reduced ? 0 : 1200;
+  }
+
+  /** Where the scene on screen comes from: Jev, Local, Saved, or Manual. */
+  _visualProvenanceLabel() {
+    const state = this._direction;
+    if (!state) return '';
+    if (state.mode === 'off') return 'Direction: Off';
+    if (state.mode === 'hold') {
+      if (state.heldCue) return 'Direction: Manual';
+      return this._ownSchedule ? 'Direction: Saved' : 'Direction: Manual';
+    }
+    if (state.cueSource === 'saved') return 'Direction: Saved';
+    const record = state.director?.blocks[state.currentBlock]?.admitted;
+    const label = { jev: 'Jev', local: 'Local', saved: 'Saved' }[record?.provenance] || 'Local';
+    const unavailable = label === 'Local' && state.lastScoring?.kind === 'failed'
+      && (state.catalogVerified || state.consent);
+    return `Direction: ${label}${unavailable ? ' — Jev is unavailable, so visuals follow the text locally' : ''}`;
+  }
+
+  attachVisualDrawer() {
+    const button = this.container.querySelector('#visual-direction-btn');
+    const panel = this.container.querySelector('#visual-direction-panel');
+    if (!button || !panel) return;
+    button.addEventListener('click', () => this.toggleVisualDrawer());
+    panel.addEventListener('change', (event) => {
+      if (event.target.name === 'vd-mode') this.setVisualDirectionMode(event.target.value);
+      if (event.target.type === 'range') this._visualSliderDragging = false;
+    });
+    panel.addEventListener('input', (event) => {
+      const value = Number(event.target.value);
+      const name = event.target.name;
+      if (name === 'vd-energy') return this.setVisualEnergy(value / 100);
+      const record = !this._visualSliderDragging;
+      this._visualSliderDragging = true;
+      if (name === 'vd-complexity') {
+        this._editHeldFlame(recipe => ({ ...recipe, macros: { ...recipe.macros, complexity: value / 100 } }), { record, transitionMs: 0 });
+      } else if (name === 'vd-hue') {
+        this._editHeldFlame(recipe => ({ ...recipe, macros: { ...recipe.macros, hue: value } }), { record, transitionMs: 0 });
+      } else if (name === 'vd-symmetry') {
+        this._editHeldFlame(recipe => ({ ...recipe, symmetry: Math.round(value) }), { record });
+      }
+      const output = panel.querySelector(`[data-vd-out="${name}"]`);
+      if (output) output.textContent = name === 'vd-hue' ? `${Math.round(value)}°`
+        : name === 'vd-symmetry' ? String(Math.round(value)) : `${Math.round(value)}%`;
+    });
+    panel.addEventListener('click', (event) => {
+      const action = event.target.closest?.('[data-vd]')?.dataset.vd;
+      if (!action) return;
+      if (action === 'mutate') this.mutateVisualScene();
+      else if (action === 'undo') this.undoVisualScene();
+      else if (action === 'save') this.saveVisualScene();
+      else if (action === 'lab') void this.openVisualLab();
+      else if (action === 'workshop') void this.editPassagesInWorkshop();
+      else if (action === 'consent') void this.grantVisualConsent();
+      else if (action === 'revoke') this.revokeVisualConsent();
+    });
+  }
+
+  toggleVisualDrawer(force) {
+    const panel = this.container.querySelector('#visual-direction-panel');
+    const button = this.container.querySelector('#visual-direction-btn');
+    if (!panel || !button) return;
+    panel.hidden = force === undefined ? !panel.hidden : !force;
+    button.setAttribute('aria-expanded', String(!panel.hidden));
+    if (!panel.hidden) this._renderVisualDrawer();
+    this.showControls();
+  }
+
+  _refreshVisualDrawer() {
+    if (this._visualSliderDragging) {
+      const line = this.container.querySelector('#vd-provenance');
+      if (line) line.textContent = this._visualProvenanceLabel();
+      return;
+    }
+    this._renderVisualDrawer();
+  }
+
+  _renderVisualDrawer() {
+    const panel = this.container.querySelector('#visual-direction-panel');
+    const state = this._direction;
+    if (!panel || panel.hidden || !state) return;
+    const flame = this._currentFlameConfig();
+    const canFollow = state.eligibility.canFollow && !state.directorError;
+    const modes = [['follow', 'Follow text'], ['hold', 'Hold this scene'], ['off', 'Off']];
+    let consent = '';
+    if (state.mode === 'follow' && state.director && state.scoring?.prepared) {
+      if (state.catalogVerified) {
+        consent = '<p class="vd-note">Jev directs this released text automatically, one section ahead of you.</p>';
+      } else if (state.consent) {
+        consent = `<div class="vd-consent"><p>Jev is directing these visuals. Sections of this reading are sent as you read; text already sent cannot be recalled.</p>
+          <button type="button" data-vd="revoke">Stop sending</button></div>`;
+      } else {
+        consent = `<div class="vd-consent"><p>This reading stays on your device, and visuals follow it locally. Jev can direct them more closely if the reading is sent to it, one section at a time as you read.</p>
+          <button type="button" class="vd-primary" data-vd="consent">Send this reading to Jev to direct its visuals.</button></div>`;
+      }
+    }
+    const pct = value => Math.round(value * 100);
+    const controls = flame ? `
+      <label class="vd-field">Energy <output data-vd-out="vd-energy">${pct(this._visualEnergy)}%</output>
+        <input type="range" name="vd-energy" min="0" max="100" step="1" value="${pct(this._visualEnergy)}" /></label>
+      <label class="vd-field">Complexity <output data-vd-out="vd-complexity">${pct(flame.recipe.macros.complexity)}%</output>
+        <input type="range" name="vd-complexity" min="0" max="100" step="1" value="${pct(flame.recipe.macros.complexity)}" /></label>
+      <label class="vd-field">Symmetry <output data-vd-out="vd-symmetry">${flame.recipe.symmetry}</output>
+        <input type="range" name="vd-symmetry" min="1" max="8" step="1" value="${flame.recipe.symmetry}" /></label>
+      <label class="vd-field">Color <output data-vd-out="vd-hue">${Math.round(flame.recipe.macros.hue)}°</output>
+        <input type="range" name="vd-hue" min="-180" max="180" step="1" value="${Math.round(flame.recipe.macros.hue)}" /></label>
+      <div class="vd-actions">
+        <button type="button" data-vd="mutate">Mutate</button>
+        <button type="button" data-vd="undo" ${state.history.length ? '' : 'disabled'}>Undo</button>
+        <button type="button" data-vd="save">Save scene</button>
+      </div>` : '';
+    panel.innerHTML = `
+      <fieldset class="vd-modes"><legend>Visuals</legend>
+        ${modes.map(([id, label]) => `<label class="vd-mode"><input type="radio" name="vd-mode" value="${id}"
+          ${state.mode === id ? 'checked' : ''} ${id === 'follow' && !canFollow ? 'disabled' : ''}><span>${label}</span></label>`).join('')}
+      </fieldset>
+      <p class="vd-provenance" id="vd-provenance" role="status">${escapeHtml(this._visualProvenanceLabel())}</p>
+      ${!canFollow && state.eligibility.reason === 'no-gallery'
+        ? '<p class="vd-note">Follow text needs Gallery visuals in this reading.</p>' : ''}
+      ${consent}
+      ${state.mode === 'off' ? '' : controls}
+      <p class="vd-status" id="vd-status" role="status" aria-live="polite">${escapeHtml(this._visualStatus || '')}</p>
+      <div class="vd-actions">
+        <button type="button" data-vd="lab">Open in Visual Lab</button>
+        ${state.director ? '<button type="button" data-vd="workshop">Edit passage assignments in Workshop</button>' : ''}
+      </div>`;
+  }
+
+  /** Follow text, Hold this scene, or Off. Pending replies never change this. */
+  setVisualDirectionMode(mode) {
+    const state = this._direction;
+    if (!state || !['follow', 'hold', 'off'].includes(mode) || state.mode === mode) return false;
+    const previous = state.mode;
+    const transitionMs = this._visualTransitionMs();
+    if (mode === 'follow' && !(state.eligibility.canFollow && !state.directorError)) return false;
+    state.mode = mode;
+    this._visualStatus = '';
+    if (mode === 'off') {
+      this._visualSchedule = null;
+      this._stopVisualWork(transitionMs);
+    } else {
+      if (previous === 'off') this._resumeVisualWork();
+      if (mode === 'follow') {
+        state.heldCue = null;
+        if (!this._startFollowText()) {
+          state.mode = previous;
+          this._renderVisualDrawer();
+          return false;
+        }
+        this._lastDirectedCue = null;
+        this._directedSchedule.reset();
+        const atom = this._currentReadingAtom();
+        if (atom) {
+          const entered = state.director.observe(atom);
+          if (entered) state.currentBlock = entered.index;
+          this._directedSchedule.observe(atom);
+        }
+      } else if (previous === 'follow') {
+        // Hold keeps exactly the scene on screen and stops following.
+        this._visualSchedule = null;
+        state.heldCue = this._currentVisualCue || null;
+      } else if (state.heldCue) {
+        this._visualSchedule = null;
+        this.applyScheduledVisualCue(state.heldCue, { transitionMs });
+      } else {
+        this._restoreOwnVisuals(transitionMs);
+      }
+    }
+    this._syncScoringActivity();
+    this._renderVisualDrawer();
+    return true;
+  }
+
+  /** Off: stop all visual work, including the Gallery's own clock. */
+  _stopVisualWork(transitionMs = 0) {
+    this.applyScheduledVisualCue({ kind: 'still' }, { transitionMs });
+    this._visualFieldDirector?.clear({ transitionMs });
+    if (visualCortex.pauseContinuousField?.() === true) this._offGalleryPaused = true;
+  }
+
+  _resumeVisualWork() {
+    if (this._offGalleryPaused && this.player?.state === 'playing') visualCortex.resumeContinuousField?.();
+    this._offGalleryPaused = false;
+  }
+
+  /** The reading's own visuals: its authored schedule or its configuration. */
+  _restoreOwnVisuals(transitionMs = 0) {
+    if (this._ownSchedule) {
+      this._visualSchedule = this._ownSchedule;
+      this._ownSchedule.reset();
+      const atom = this._currentReadingAtom();
+      if (atom) this._ownSchedule.observe(atom);
+      return;
+    }
+    const mode = this.session?.visualConfig?.visualMode;
+    this._currentVisualCue = null;
+    this._visualFieldDirector?.clear({ transitionMs });
+    if (mode === 'genesis') this.initializeGenesis();
+    else if (mode === 'attractor') this.initializeAttractor();
+    else if (mode === 'focals') this.initializeFocal();
+    else if (mode === 'interlocution') {
+      visualCortex.updateConfig({ activeTypes: [...this._ownActiveTypes] }, { preservePresentation: true });
+    }
+  }
+
+  setVisualEnergy(energy) {
+    this._visualEnergy = Math.max(0, Math.min(1, Number(energy) || 0));
+    if (this._direction) this._direction.energy = this._visualEnergy;
+    // Energy alone never changes the direction mode.
+    this._visualFieldDirector?.active?.setEnergy?.();
+    const output = this.container.querySelector('[data-vd-out="vd-energy"]');
+    if (output) output.textContent = `${Math.round(this._visualEnergy * 100)}%`;
+  }
+
+  /** Geometry, color, or mutation selects Hold: the reader has taken the scene. */
+  _editHeldFlame(transform, { record = true, transitionMs = this._visualTransitionMs() } = {}) {
+    const state = this._direction;
+    const current = this._currentFlameConfig();
+    if (!state || !current) return false;
+    let recipe;
+    try {
+      recipe = validateFlameRecipe(transform(current.recipe));
+    } catch {
+      return false;
+    }
+    if (record) {
+      state.history.push(current.recipe);
+      if (state.history.length > 20) state.history.shift();
+    }
+    state.mode = 'hold';
+    state.heldCue = this._flameCue(recipe, current.intensity);
+    this._visualSchedule = null;
+    this.applyScheduledVisualCue(state.heldCue, { transitionMs });
+    this._syncScoringActivity();
+    if (!this._visualSliderDragging) this._renderVisualDrawer();
+    else {
+      const radio = this.container.querySelector('[name="vd-mode"][value="hold"]');
+      if (radio) radio.checked = true;
+      const line = this.container.querySelector('#vd-provenance');
+      if (line) line.textContent = this._visualProvenanceLabel();
+    }
+    return true;
+  }
+
+  mutateVisualScene() {
+    const current = this._currentFlameConfig();
+    if (!current) return false;
+    const seed = (Date.now() ^ Math.floor(Math.random() * 0xffffffff)) >>> 0;
+    const next = mutateRecipe(current.recipe, seed);
+    if (!next) {
+      this._visualStatus = 'No clear variation appeared; the scene stays.';
+      this._renderVisualDrawer();
+      return false;
+    }
+    return this._editHeldFlame(() => next);
+  }
+
+  undoVisualScene() {
+    const state = this._direction;
+    const previous = state?.history.pop();
+    if (!previous) return false;
+    return this._editHeldFlame(() => previous, { record: false });
+  }
+
+  saveVisualScene() {
+    const current = this._currentFlameConfig();
+    if (!current) return false;
+    const recipe = FLAME_PRESET_IDS.includes(current.recipe.id)
+      ? { ...current.recipe, id: `scene-${Date.now().toString(36)}`, name: `${current.recipe.name} · saved`.slice(0, 64) }
+      : current.recipe;
+    try {
+      saveFlameScene(recipe);
+      this._visualStatus = `Saved “${recipe.name}” to your scenes on this device.`;
+    } catch (error) {
+      this._visualStatus = error.message;
+    }
+    this._renderVisualDrawer();
+    return true;
+  }
+
+  /** Explicit reader action, scoped to this exact source and this reading. */
+  async grantVisualConsent() {
+    const state = this._direction;
+    if (!state?.scoring?.prepared) return false;
+    state.consent = { sourceDigests: [...state.scoring.sourceDigests] };
+    state.consent.sourceDigest = state.consent.sourceDigests[0];
+    this._syncScoringPermission();
+    this._syncScoringActivity();
+    this._renderVisualDrawer();
+    return true;
+  }
+
+  revokeVisualConsent() {
+    const state = this._direction;
+    if (!state) return false;
+    state.consent = null;
+    state.scoring?.revoke();
+    this._syncScoringPermission();
+    this._renderVisualDrawer();
+    return true;
+  }
+
+  /** The Lab over the reading: reading and audio pause; position is kept. */
+  async openVisualLab() {
+    if (this._labOpen || this._destroyed) return false;
+    this._labOpen = true;
+    this._pauseLikePlay(true);
+    this._syncScoringActivity();
+    this.toggleVisualDrawer(false);
+    const host = document.createElement('div');
+    host.className = 'chamber-lab-host';
+    this.container.appendChild(host);
+    this._labHost = host;
+    try {
+      const { VisualLab } = await import('./VisualLab.js');
+      if (!this._labOpen || this._destroyed) return false;
+      this._lab = new VisualLab(host, {
+        mode: 'overlay',
+        recipe: this._currentFlameConfig()?.recipe || null,
+        onUseInReading: recipe => {
+          this.closeVisualLab();
+          this._holdRecipe(recipe);
+        },
+        onEditInWorkshop: () => {
+          this.closeVisualLab();
+          void this.editPassagesInWorkshop();
+        },
+        onClose: () => this.closeVisualLab()
+      });
+      return true;
+    } catch (error) {
+      console.warn('[Chamber] Visual Lab unavailable:', error);
+      this.closeVisualLab();
+      return false;
+    }
+  }
+
+  /** Returning keeps the reading paused: audio never resumes silently. */
+  closeVisualLab() {
+    this._lab?.destroy();
+    this._lab = null;
+    this._labHost?.remove();
+    this._labHost = null;
+    this._labOpen = false;
+    this._syncScoringActivity();
+    this.container.querySelector('#visual-direction-btn')?.focus?.();
+  }
+
+  _holdRecipe(recipe) {
+    const valid = normalizeFlameRecipe(recipe);
+    const state = this._direction;
+    if (!valid || !state) return false;
+    if (state.mode === 'off') this._resumeVisualWork();
+    const current = this._currentFlameConfig();
+    if (current) state.history.push(current.recipe);
+    state.mode = 'hold';
+    state.heldCue = this._flameCue(valid, valid.macros.energy);
+    this._visualSchedule = null;
+    this.applyScheduledVisualCue(state.heldCue, { transitionMs: this._visualTransitionMs() });
+    this._syncScoringActivity();
+    return true;
+  }
+
+  /**
+   * Save this reading, with the choices it has admitted, as a Workshop
+   * project and open its passage assignments there.
+   */
+  async editPassagesInWorkshop() {
+    const director = this._direction?.director;
+    if (!director) return false;
+    try {
+      const { readingToWorkshopProject } = await import('../core/passage-visuals/workshop-export.js');
+      const projectId = `directed-${Date.now().toString(36)}`;
+      const project = readingToWorkshopProject({
+        session: this.session, director, flameRecipe: flamePreset, projectId, updatedAt: Date.now()
+      });
+      const saved = await MemoryCore.saveWorkshopBlueprintAsync(project);
+      if (!saved) throw new Error('The Workshop project was not saved.');
+      this.onExit('visual-passages', { blueprintId: projectId });
+      return true;
+    } catch (error) {
+      console.warn('[Chamber] Could not open this reading in the Workshop:', error);
+      this._visualStatus = 'This reading could not be opened in the Workshop.';
+      this._renderVisualDrawer();
+      return false;
+    }
+  }
+
   /** Follow text: schedule this reading's own passage direction. */
   _startFollowText() {
     const director = ensureDirector(this.session, this._direction);
@@ -1649,8 +2102,8 @@ export class Chamber {
       if (this._direction) this._direction.mode = 'hold';
       return false;
     }
-    this._directedSchedule = new VisualScheduleController(
-      director.program,
+    this._directedSchedule ||= new VisualScheduleController(
+      followProgram(this.session, director, this._direction.eligibility),
       (cue, meta) => this._applyDirectedCue(cue, meta),
       { atoms: this.session.atoms }
     );
@@ -1740,6 +2193,7 @@ export class Chamber {
     if (this._direction?.mode !== 'follow') return false;
     const director = this._direction.director;
     const index = director?.program.segments.findIndex(segment => segment.id === meta.cueId) ?? -1;
+    this._direction.cueSource = index >= 0 ? 'block' : 'saved';
     if (this._lastDirectedCue && index >= 0 && director.holdsPrevious(index)) return false;
     if (this._lastDirectedCue && JSON.stringify(cue) === JSON.stringify(this._lastDirectedCue)) return false;
     this._lastDirectedCue = cue;
@@ -1751,6 +2205,7 @@ export class Chamber {
 
   /** One scheduled cue owns the complete visual presentation transition. */
   applyScheduledVisualCue(cue, meta = {}) {
+    this._currentVisualCue = cue || null;
     this.applyScheduledColorTheme(cue?.colorTheme);
     const fieldCue = cue?.kind === 'focal'
       ? { kind: 'field', renderer: 'focal', config: cue.focal || {} }
@@ -3956,7 +4411,8 @@ export class Chamber {
     if (state === 'paused' && this._visualSchedule && !this._authoredGalleryPaused) {
       this._authoredGalleryPaused = visualCortex.pauseContinuousField() === true;
     } else if (state === 'playing' && this._authoredGalleryPaused) {
-      visualCortex.resumeContinuousField();
+      // Off stays off: resuming the reading never restarts visual work.
+      if (this._direction?.mode !== 'off') visualCortex.resumeContinuousField();
       this._authoredGalleryPaused = false;
     }
 
@@ -4061,6 +4517,7 @@ export class Chamber {
       this._onRevealMotionChange = null;
     }
     this.deactivate();
+    if (this._labOpen) this.closeVisualLab();
     // Outside the Chamber no new scoring request starts; a valid reply
     // already in flight may still land in the local cache.
     this._syncScoringActivity();

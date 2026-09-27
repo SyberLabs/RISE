@@ -166,6 +166,7 @@ export class Portal {
           <button class="portal-footer-link" type="button" data-nav="chamber">Reader setup</button>
           <button class="portal-footer-link" type="button" data-nav="chapel">Chapel</button>
           <button class="portal-footer-link" type="button" data-nav="scriptorium">Scriptorium</button>
+          <button class="portal-footer-link" type="button" data-nav="visual-lab">Visual Lab</button>
           <button class="portal-footer-link" type="button" data-nav="curia">Curia</button>
           <button class="portal-footer-link" type="button" data-action="guide">Guide</button>
           <a href="/sequences/" class="portal-footer-link">Short readings</a>

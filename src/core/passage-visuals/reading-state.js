@@ -34,6 +34,11 @@ export function directionEligibility(session) {
     return { canFollow: false, defaultMode: 'off', reason: 'visuals-off' };
   }
   if (session.visualProgram?.segments?.length || session.experienceProgram) {
+    // A reading saved from its own direction keeps its saved passages and
+    // lets the passages it never assigned keep following the text locally.
+    if (visual.passageDirection === 'local' && session.visualProgram?.coordinateSpace === 'source') {
+      return { canFollow: true, defaultMode: 'follow', reason: 'saved-with-local', composite: true };
+    }
     return { canFollow: false, defaultMode: 'hold', reason: 'authored-program' };
   }
   const interlocution = visual.interlocution || {};
@@ -60,7 +65,7 @@ export function directionStateFor(session) {
     state = {
       eligibility,
       mode: eligibility.defaultMode,
-      provenance: eligibility.defaultMode === 'follow' ? 'local' : 'manual',
+      history: [],
       director: null,
       directorError: null,
       heldCue: null,
@@ -69,6 +74,23 @@ export function directionStateFor(session) {
     states.set(session, state);
   }
   return state;
+}
+
+/**
+ * The program Follow text schedules: the director's per-block segments, or
+ * for a saved reading, its saved passages first and local blocks after, so
+ * a saved span always wins where it exists.
+ */
+export function followProgram(session, director, eligibility) {
+  if (!eligibility?.composite) return director.program;
+  const saved = (session.visualProgram?.segments || []).filter(segment =>
+    segment.match?.fromCharacter !== undefined || segment.match?.fromToken !== undefined
+      || segment.match?.fromProgress !== undefined);
+  return {
+    coordinateSpace: 'source',
+    segments: [...saved, ...director.program.segments],
+    fallback: director.program.fallback
+  };
 }
 
 /** Build (once) the passage director for a reading, or record why not. */

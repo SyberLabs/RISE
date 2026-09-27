@@ -46,6 +46,12 @@ export function chamberExitTarget(reason, session = {}, data = null) {
         };
     }
 
+    // A directed reading saved as a Workshop project opens its passage
+    // assignments there.
+    if (reason === 'visual-passages' && typeof data?.blueprintId === 'string' && data.blueprintId) {
+        return { kind: 'navigate', view: 'workshop', data: { blueprintId: data.blueprintId } };
+    }
+
     if (!LEAVING.has(reason)) return null;
 
     // A preview belongs to the room that is previewing it, whatever the

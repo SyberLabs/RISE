@@ -8,6 +8,9 @@
  * - Generous spacing, no cluttered toolbars
  */
 
+import { normalizeLivingFlameConfig } from '../core/flame-recipe.js';
+import { findFlameScene, loadFlameScenes } from '../core/flame-scenes.js';
+import { FLAME_PRESETS, flamePreset } from '../visuals/living-flame/flame-presets.js';
 import { SourceBrowser } from './SourceBrowser.js';
 import { MemoryCore } from '../core/memory.js';
 import { PersonalSwells } from '../core/personal-swells.js';
@@ -317,6 +320,13 @@ function normalizeSessionData(data = {}) {
     }
   };
 }
+
+/** Living Flame intensity bands offered per passage (the reader caps energy). */
+const FLAME_INTENSITIES = Object.freeze([
+  Object.freeze({ id: '0.15', name: 'Quiet', value: 0.15 }),
+  Object.freeze({ id: '0.35', name: 'Balanced', value: 0.35 }),
+  Object.freeze({ id: '0.6', name: 'Intense', value: 0.6 })
+]);
 
 export class Workshop {
   constructor(container, options = {}) {
@@ -1322,6 +1332,17 @@ export class Workshop {
           ${options(ATTRACTOR_PALETTES, config.palette)}</select></label>
         <label><span>Form</span><select class="input-select" data-visual-style-setting="attractor-form">
           ${options(ATTRACTOR_FORMS, config.form)}</select></label>`;
+    } else if (cue.kind === 'field' && cue.renderer === 'living-flame') {
+      const config = normalizeLivingFlameConfig(cue.config);
+      const compositions = [...FLAME_PRESETS, ...loadFlameScenes()]
+        .map(recipe => ({ id: recipe.id, name: recipe.name }));
+      const current = config?.recipe;
+      const custom = current && !compositions.some(item => item.id === current.id)
+        ? `<option value="${this.escapeHtml(current.id)}" selected>${this.escapeHtml(current.name)}</option>` : '';
+      controls = `<label><span>Composition</span><select class="input-select" data-visual-style-setting="flame-composition">
+          ${options(compositions, current?.id)}${custom}</select></label>
+        <label><span>Intensity</span><select class="input-select" data-visual-style-setting="flame-intensity">
+          ${options(FLAME_INTENSITIES, String(config?.intensity ?? 0.35))}</select></label>`;
     } else if (cue.kind === 'field' && cue.renderer === 'genesis') {
       const config = normalizeFieldStyle('genesis', cue.config);
       controls = `<label><span>Climate</span><select class="input-select" data-visual-style-setting="genesis-preset">
@@ -3715,6 +3736,19 @@ export class Workshop {
       else if (setting === 'attractor-form') config.form = value;
       else return false;
       next = { kind: 'field', renderer: 'attractor', config: normalizeFieldStyle('attractor', config) };
+    } else if (current.kind === 'field' && current.renderer === 'living-flame') {
+      const config = normalizeLivingFlameConfig(current.config)
+        || { recipe: FLAME_PRESETS[0], intensity: 0.35 };
+      if (setting === 'flame-composition') {
+        const recipe = flamePreset(value) || findFlameScene(value)
+          || (config.recipe.id === value ? config.recipe : null);
+        if (!recipe) return false;
+        next = { kind: 'field', renderer: 'living-flame', config: { recipe, intensity: config.intensity ?? 0.35 } };
+      } else if (setting === 'flame-intensity') {
+        const intensity = FLAME_INTENSITIES.find(item => item.id === value)?.value;
+        if (intensity === undefined) return false;
+        next = { kind: 'field', renderer: 'living-flame', config: { recipe: config.recipe, intensity } };
+      } else return false;
     } else if (current.kind === 'field' && current.renderer === 'genesis') {
       const config = { ...normalizeFieldStyle('genesis', current.config) };
       if (setting === 'genesis-preset') config.preset = value;
@@ -4258,7 +4292,8 @@ export class Workshop {
         if (value) value.textContent = formatGalleryCadence(cadence);
       }
       if (event.type === 'change' && ['focal-glyph', 'focal-rose-mode', 'attractor-system',
-        'attractor-palette', 'attractor-form', 'genesis-preset', 'genesis-glass'].includes(setting)) {
+        'attractor-palette', 'attractor-form', 'genesis-preset', 'genesis-glass',
+        'flame-composition', 'flame-intensity'].includes(setting)) {
         this.refreshVisualLibraryAndInspector();
       }
     };

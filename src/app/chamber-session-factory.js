@@ -419,6 +419,7 @@ export async function createChamberSession(operations, container, sessionData) {
             },
             onDataCleared: () => operations.handleDataCleared(),
             onEnterStream: activateDeferredVisuals,
+            pendingVisualRecipe: operations.takePendingVisualRecipe?.() || null,
             onExit: (reason, data) => {
                 // Cleanup
                 player.stop();

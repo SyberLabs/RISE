@@ -1,6 +1,7 @@
 export const EDITOR_ASSET_SCHEMA = 'rise.editor-asset.v1';
 
 import { normalizeProceduralStyle } from './visual-style-definitions.js';
+import { validateLivingFlameConfig } from './flame-recipe.js';
 
 const LANES = new Set(['visual', 'audio', 'swell']);
 const KINDS = new Set([
@@ -10,7 +11,7 @@ const KINDS = new Set([
 const CAPABILITIES = new Set(['span', 'default', 'both']);
 const PREVIEW_KINDS = new Set(['image', 'video', 'sample', 'generator', 'audio', 'surface']);
 const AVAILABILITY = new Set(['ready', 'loading', 'unavailable']);
-const FIELD_RENDERERS = new Set(['focal', 'attractor', 'genesis']);
+const FIELD_RENDERERS = new Set(['focal', 'attractor', 'genesis', 'living-flame']);
 const COLORS = /^#[0-9a-f]{6}$/iu;
 
 export class EditorAssetError extends Error {
@@ -132,6 +133,15 @@ function normalizeCue(value, kind, path) {
     if (value.kind === 'still') return { kind: 'still' };
     if (value.kind !== 'field' || !FIELD_RENDERERS.has(value.renderer)) {
       fail('EDITOR_ASSET_CUE_KIND', 'Expected a supported visual field cue', `${path}.kind`);
+    }
+    if (value.renderer === 'living-flame') {
+      // The generic clone stops at four levels and would drop a recipe's
+      // affine arrays; the recipe boundary keeps it whole or refuses it.
+      try {
+        return { kind: 'field', renderer: 'living-flame', config: validateLivingFlameConfig(value.config) };
+      } catch (error) {
+        fail('EDITOR_ASSET_FLAME', error.message, `${path}.config`);
+      }
     }
     return {
       kind: 'field',

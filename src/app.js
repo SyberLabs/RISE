@@ -33,6 +33,8 @@ import { resolveFontSize } from './core/chamber-type-size.js';
 import { clampReadingWpm } from './core/reading-limits.js';
 import { createRouteManifest } from './app/route-manifest.js';
 import { installTestBridge } from './app/test-bridge.js';
+
+const VISUAL_LAB_PATH = '/visual-lab';
 import { watchTabFreshness } from './core/tab-freshness.js';
 
 // THE SHELL'S OWN STYLES, AND ONLY THOSE. app.js used to import sixteen
@@ -331,6 +333,8 @@ class App {
             await this.router.navigate('portal', { data: { demoMode: true } });
         } else if (mintedSlug) {
             await this.router.navigate('mint', { data: { entry: houseProgram(mintedSlug) } });
+        } else if (window.location.pathname === VISUAL_LAB_PATH) {
+            await this.router.navigate('visual-lab');
         } else if (options.personalizedVault) {
             console.log('[RISE] Navigating directly to personalized vault:', options.personalizedVault);
             await this.router.navigate('vault', { data: { personalizedVault: options.personalizedVault } });
@@ -474,6 +478,7 @@ class App {
             handleCreateSession: this.handleCreateSession,
             handleArchetypeLaunch: data => this.handleArchetypeLaunch(data),
             handleBeginSession: session => this.handleBeginSession(session),
+            useRecipeInReading: recipe => this.useRecipeInReading(recipe),
             getAudioEngine: () => this.audioEngine,
             getCurrentSession: () => this.currentSession,
             getSettings: () => this.settings,
@@ -498,7 +503,14 @@ class App {
                 showLoading: title => this.showLoading(title),
                 updateLoadingStatus: status => this.updateLoadingStatus(status),
                 hideLoading: () => this.hideLoading(),
-                showToast: (message, duration) => this.showToast(message, duration)
+                showToast: (message, duration) => this.showToast(message, duration),
+                // A scene chosen in the Visual Lab before any reading was
+                // open waits here and is held by the next reading, once.
+                takePendingVisualRecipe: () => {
+                    const recipe = this.pendingVisualRecipe || null;
+                    this.pendingVisualRecipe = null;
+                    return recipe;
+                }
             },
             handleTextSelection: (text, source, config) => this.handleTextSelection(text, source, config),
             refreshVaultBlueprints: () => this.router.getViewInstance('vault')?.refreshBlueprints?.(),
@@ -560,9 +572,24 @@ class App {
         if (viewName !== 'portal' && isJevSceneDemoPath(window.location.pathname)) {
             window.history.pushState({}, '', '/');
         }
+        if (viewName === 'visual-lab' && window.location.pathname !== VISUAL_LAB_PATH) {
+            window.history[replaceUrl ? 'replaceState' : 'pushState']({}, '', VISUAL_LAB_PATH);
+        } else if (viewName !== 'visual-lab' && window.location.pathname === VISUAL_LAB_PATH) {
+            window.history.pushState({}, '', '/');
+        }
         // Returned so a caller can wait for the outgoing view to have
         // faded out before disposing of it. See chamber-session-factory.
         return this.router.navigate(viewName, { data });
+    }
+
+    /**
+     * Use a Visual Lab scene in a reading. With no reading open, the existing
+     * reading chooser opens and the scene waits to be held by the next one.
+     */
+    useRecipeInReading(recipe) {
+        this.pendingVisualRecipe = recipe || null;
+        this.showToast('Choose a reading. Your scene will be held in it.', 3500);
+        return this.handleNavigate('library');
     }
 
     /**
@@ -1274,6 +1301,10 @@ class App {
             // pull an in-progress prayer back to the Portal.
             if (isRosaryDoor() || this.router?.getCurrentView() === 'rosarium') return;
             const { keystoneSlugFromPath } = await import('./content/keystones.js');
+            if (window.location.pathname === VISUAL_LAB_PATH) {
+                await this.router?.navigate('visual-lab', { replace: true, skipStack: true });
+                return;
+            }
             const slug = keystoneSlugFromPath(window.location.pathname);
             if (slug || isTryRisePath(window.location.pathname)) {
                 await this.router?.navigate('keystones', {
