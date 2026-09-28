@@ -739,7 +739,7 @@ export async function handleJevRecommend(request, env) {
           }]))
         }
       }),
-      redirect: 'error',
+      redirect: 'manual',
       signal: AbortSignal.any([request.signal, AbortSignal.timeout(8000)])
     });
     if (!response.ok) return error(502, 'DECISION_UPSTREAM_ERROR', 'Jev returned an error.');

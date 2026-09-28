@@ -62,7 +62,7 @@ export async function handleJevRoute(request, env) {
           }
         }
       }),
-      redirect: 'error',
+      redirect: 'manual',
       signal: AbortSignal.any([request.signal, AbortSignal.timeout(12000)])
     });
   } catch (error) {

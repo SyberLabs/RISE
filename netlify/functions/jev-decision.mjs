@@ -189,7 +189,7 @@ export async function handleJevDecision(request, env) {
                 },
                 questions: { reading_action: READING_ACTION }
             }),
-            redirect: 'error',
+            redirect: 'manual',
             signal: AbortSignal.any([request.signal, AbortSignal.timeout(UPSTREAM_TIMEOUT_MS)])
         });
 
