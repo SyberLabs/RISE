@@ -66,7 +66,7 @@ describe('enterprise decision route', () => {
         const [url, init] = fetcher.mock.calls[0];
         expect(url).toBe('https://kev.example/v1/systemone');
         expect(init.headers.Authorization).toBe('Bearer server-kev-secret');
-        expect(init.redirect).toBe('error');
+        expect(init.redirect).toBe('manual');
         const sent = JSON.parse(init.body);
         expect(Object.keys(sent.questions.rail_action.criteria)).toEqual([
             'hold', 'dismiss', 'show_1_quote', 'show_2_bar', 'show_2_line', 'show_2_table'

@@ -148,7 +148,7 @@ export async function handleEnterpriseDecision(request, env, { log = console.log
                 Accept: 'application/json'
             },
             body: JSON.stringify({ model: provider.model, state, questions: { [QUESTION]: question } }),
-            redirect: 'error',
+            redirect: 'manual',
             signal: AbortSignal.any([request.signal, AbortSignal.timeout(UPSTREAM_TIMEOUT_MS)])
         });
         if (!upstream.ok) return refuse(502, 'DECISION_UPSTREAM_ERROR', 'Decision service returned an error.');
