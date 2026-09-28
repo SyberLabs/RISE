@@ -45,6 +45,8 @@ for (const identity of [
   await page.goto('/');
   await page.locator('#portal-jev-intent').fill('Give me a visual journey through this reading.');
   await page.locator('.portal-jev-submit').click();
+  // Home previews Jev's answer; the reading starts only from Play.
+  await page.locator('#portal-play').click();
   await expect(page.locator('#chamber-continuous-field')).toBeVisible({ timeout: 30_000 });
   expect(calls).toBe(1);
 

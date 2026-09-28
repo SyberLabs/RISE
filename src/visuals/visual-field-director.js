@@ -31,6 +31,14 @@ export class VisualFieldDirector {
     }
     const key = JSON.stringify([cue.renderer, cue.config || {}]);
     if (this.active?.key === key) return true;
+    // A field that can reach its successor by interpolation keeps its layer:
+    // compatible Living Flame recipes morph rather than crossfade.
+    if (this.active && this.active.renderer === cue.renderer
+      && typeof this.active.morph === 'function'
+      && this.active.morph(cue, { transitionMs: transition }) === true) {
+      this.active.key = key;
+      return true;
+    }
 
     const generation = ++this.generation;
     const record = this.mount(cue, { generation });
@@ -66,6 +74,9 @@ export class VisualFieldDirector {
 
   retire(record, immediate = false, transitionMs = this.transitionMs) {
     if (!record || this.retiring.has(record)) return;
+    // At most two layers: the incoming field and one outgoing field. An
+    // older layer still fading out is disposed now rather than stacking.
+    [...this.retiring].forEach(previous => this.dispose(previous));
     record.node?.classList?.remove('is-active');
     record.node?.classList?.add('is-leaving');
     const transition = Math.max(0, Math.min(Number(transitionMs) || 0, 2000));

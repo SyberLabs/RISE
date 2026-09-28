@@ -790,7 +790,11 @@ describe('every refusal the session can phrase has a status', () => {
       'the same: nothing in this sequence renders',
     SceneError:
       'scenes are the phone Workshop\'s; only workshop/scene-api.js calls '
-      + 'workshop-scenes.js, and it catches every throw into { ok: false, message }'
+      + 'workshop-scenes.js, and it catches every throw into { ok: false, message }',
+    FlameRecipeError:
+      'experience-program.js rethrows a flame recipe refusal as '
+      + 'PROGRAM_FLAME_RECIPE and editor-asset.js as EDITOR_ASSET_FLAME; the '
+      + 'other readers normalize to null, so the raw class never escapes'
   });
 
   it('names every error class under src/core, or excuses it here', () => {

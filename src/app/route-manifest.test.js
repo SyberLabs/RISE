@@ -17,6 +17,7 @@ const ROUTE_IDS = [
   'curia',
   'scriptorium',
   'via',
+  'visual-lab',
   'chapel'
 ];
 

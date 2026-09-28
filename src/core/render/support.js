@@ -85,6 +85,14 @@ export const RENDER_SUPPORT = Object.freeze({
     'KleeEngine.render at genesisGrowProgress(t)',
     'canvas 2d'
   ]),
+  // Living Flame animates on the reader's GPU. Export paints a deterministic
+  // still of the cue's full recipe through the CPU flame generator; exporting
+  // the live GPU motion is outside this release, and the report says so.
+  'visual:field:living-flame': entry('visual:field:living-flame', 'degraded', {
+    degradation: 'deterministic-still',
+    reason: 'Living Flame exports as a deterministic still of its recipe; live GPU motion is not exported in this release.',
+    realtimeDependencies: ['WebGL2 transform feedback in the Chamber', 'reading clock']
+  }),
 
   'visual:sourced:project-image': nativeSlice('visual:sourced:project-image', [
     'blob/object-URL hydration at runtime',

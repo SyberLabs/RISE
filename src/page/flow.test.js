@@ -474,6 +474,28 @@ describe('a Journey has its authored imagery reach the page at all', () => {
         expect(seen).toContain('two');
     });
 
+    it('gives one composition at two intensities two distinct flame samples', () => {
+        // Keyed by recipe id alone, the second passage's intensity
+        // overwrote the first's and both pages showed the same still.
+        const recipe = { id: 'ember-cathedral', name: 'Ember Cathedral' };
+        const flow = compileFlow({
+            atoms: [...atoms(20, 'p1'), ...atoms(20, 'p2')],
+            visualProgram: {
+                coordinateSpace: 'source',
+                segments: [
+                    { id: 'a', match: { sourceIds: ['p1'] },
+                      cue: { kind: 'field', renderer: 'living-flame', config: { recipe, intensity: 0.15 } } },
+                    { id: 'b', match: { sourceIds: ['p2'] },
+                      cue: { kind: 'field', renderer: 'living-flame', config: { recipe, intensity: 0.6 } } }
+                ],
+                fallback: { kind: 'still' }
+            }
+        });
+        const ids = flowCollections(flow);
+        expect(ids).toHaveLength(2);
+        for (const id of ids) expect(id).toMatch(/^living-flame:ember-cathedral~[0-9a-f]{8}$/);
+    });
+
     it('illustrates a procedural cue with the engines its author named', () => {
         // Held back until the Page paginated, on the grounds that a
         // 23,000-word Journey was one continuous column and could not

@@ -818,7 +818,7 @@
 }
 
 [data-jev-visual-strength="soft"] .chamber :is(
-  .chamber-genesis, .chamber-attractor,
+  .chamber-genesis, .chamber-attractor, .chamber-living-flame,
   .chamber-focal, .sequence-video-field
 ) {
   opacity: 0.45;
@@ -1430,6 +1430,23 @@
 /* Authored field cues share one lifecycle grammar. A successor is mounted
    before its predecessor retires, so passage boundaries crossfade without
    restarting the reading or exposing the empty Chamber ground. */
+.chamber-living-flame {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  /* Behind atom text (z-index: 10); the glass tile keeps words readable. */
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.chamber-living-flame .living-flame-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
 .chamber-scheduled-field {
   opacity: 0;
   transition: opacity 320ms ease;
@@ -2314,4 +2331,147 @@
 .chamber :focus-visible {
   outline: 2px solid #4890F0;
   outline-offset: 2px;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   VISUAL DIRECTION DRAWER — Follow text, Hold, Off, scene controls
+   ───────────────────────────────────────────────────────────── */
+
+.visual-direction-panel {
+  position: fixed;
+  right: max(1rem, env(safe-area-inset-right));
+  bottom: calc(6rem + env(safe-area-inset-bottom));
+  z-index: 150000;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  width: min(22rem, calc(100vw - 2rem));
+  max-height: calc(100dvh - 8rem);
+  overflow-y: auto;
+  padding: 1rem;
+  color: var(--color-light);
+  background: color-mix(in srgb, var(--color-void) 94%, black);
+  border: 1px solid var(--color-accent);
+  border-radius: 1rem;
+  box-shadow: 0 1rem 3rem rgba(0, 0, 0, 0.55);
+}
+
+.visual-direction-panel[hidden] { display: none; }
+
+.visual-direction-panel .vd-modes {
+  display: grid;
+  gap: 0.4rem;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.visual-direction-panel legend,
+.visual-direction-panel .vd-field {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+}
+
+.visual-direction-panel legend {
+  margin-bottom: 0.4rem;
+  color: var(--color-fog);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.visual-direction-panel .vd-mode {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  min-height: 36px;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.visual-direction-panel .vd-mode input { accent-color: var(--color-accent); }
+.visual-direction-panel .vd-mode input:disabled + span { opacity: 0.45; }
+
+.visual-direction-panel .vd-field {
+  display: grid;
+  gap: 0.3rem;
+}
+
+.visual-direction-panel .vd-field output {
+  justify-self: end;
+  margin-top: -1.25rem;
+}
+
+.visual-direction-panel input[type="range"] {
+  width: 100%;
+  accent-color: var(--color-accent);
+}
+
+.visual-direction-panel .vd-provenance,
+.visual-direction-panel .vd-note,
+.visual-direction-panel .vd-status,
+.visual-direction-panel .vd-consent p {
+  margin: 0;
+  font-size: 0.8rem;
+  line-height: 1.45;
+  color: var(--color-fog);
+}
+
+.visual-direction-panel .vd-provenance { color: var(--color-light); }
+.visual-direction-panel .vd-status:empty { display: none; }
+
+.visual-direction-panel .vd-consent {
+  display: grid;
+  gap: 0.6rem;
+  padding: 0.75rem;
+  border: 1px solid var(--color-shadow);
+  border-radius: 0.75rem;
+}
+
+.visual-direction-panel .vd-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.visual-direction-panel button {
+  min-height: 38px;
+  padding: 0 0.8rem;
+  border: 1px solid var(--color-shadow);
+  border-radius: 0.6rem;
+  background: transparent;
+  color: var(--color-light);
+  font: inherit;
+  font-size: 0.82rem;
+  cursor: pointer;
+}
+
+.visual-direction-panel button:disabled { opacity: 0.45; cursor: default; }
+
+.visual-direction-panel .vd-primary {
+  border-color: var(--color-accent);
+  background: var(--color-accent);
+  color: var(--color-on-accent);
+  text-align: left;
+  padding: 0.5rem 0.8rem;
+}
+
+.visual-direction-panel button:focus-visible,
+.visual-direction-panel input:focus-visible,
+.visual-direction-btn:focus-visible {
+  outline: 2px solid var(--color-light);
+  outline-offset: 2px;
+}
+
+.chamber-lab-host {
+  position: fixed;
+  inset: 0;
+  z-index: 160000;
+}
+
+@media (max-width: 640px) {
+  .visual-direction-panel {
+    left: 1rem;
+    right: 1rem;
+    width: auto;
+  }
 }

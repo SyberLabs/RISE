@@ -1429,6 +1429,7 @@ I receive its gifts.`
 ];
 
 export const SEQUENCE_CATEGORIES = [
+    { id: 'technology', name: 'Now & Next', icon: '◈', description: 'Stories about life with technology' },
     { id: 'chamber-entry', name: 'Chamber Entries', icon: '◎', description: 'State induction' },
     { id: 'installation', name: 'Installations', icon: '⚡', description: 'Pattern inscription' },
     { id: 'grounding', name: 'Grounding', icon: '▽', description: 'Embodiment' },

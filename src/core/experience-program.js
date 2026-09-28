@@ -12,6 +12,7 @@
  * A score either validates exactly or refuses with a path and error code.
  */
 
+import { validateLivingFlameConfig } from './flame-recipe.js';
 import { validateNarrationCue } from './narration.js';
 import { READING_PACE } from './reading-limits.js';
 
@@ -51,6 +52,14 @@ export const PROGRAM_VISUAL_KINDS = Object.freeze([
   'still', 'focal', 'field', 'sourced', 'procedural', 'video'
 ]);
 export const PROGRAM_VISUAL_FIELD_RENDERERS = Object.freeze([
+  'focal', 'attractor', 'genesis', 'living-flame'
+]);
+/**
+ * Field renderers a composer may name as a bare surface. Living Flame is a
+ * field too, but it is defined by a full recipe, so it is authored through
+ * its recipe rather than offered as a configuration-free surface.
+ */
+export const PROGRAM_SURFACE_FIELD_RENDERERS = Object.freeze([
   'focal', 'attractor', 'genesis'
 ]);
 export const PROGRAM_AUDIO_KINDS = Object.freeze(['hold', 'silence', 'soundscape', 'tone']);
@@ -346,6 +355,16 @@ function validateVisualCue(value, path) {
       fail('PROGRAM_VISUAL_FIELD_RENDERER',
         `Unknown visual field renderer: ${String(source.renderer)}`,
         `${path}.renderer`);
+    }
+    if (source.renderer === 'living-flame') {
+      let config;
+      try {
+        config = validateLivingFlameConfig(source.config);
+      } catch (error) {
+        fail('PROGRAM_FLAME_RECIPE', error.message,
+          `${path}${String(error.path || '$.config').slice(1)}`);
+      }
+      return { kind: 'field', renderer: 'living-flame', config };
     }
     return {
       kind: 'field',

@@ -16,9 +16,31 @@ describe('the RISE mark', () => {
         expect(css).toMatch(/syber-clip\.png/);
     });
 
-    it('opens the first-entry gate with the SyberLabs lockup, not a glyph', () => {
+    // Only an invited reader meets the entry screen; the open door has none.
+    const invitedGate = () => {
+        localStorage.removeItem('rise-beta-session');
+        window.history.replaceState(null, '', '/?invite=rise2025');
         const container = document.createElement('div');
         new BetaGate(container, { onAccess: () => {} });
+        window.history.replaceState(null, '', '/');
+        return container;
+    };
+
+    it('lets a personal invite replace an automatic open session', () => {
+        localStorage.setItem('rise-beta-session', JSON.stringify({ code: 'open', name: 'Reader', vault: null, timestamp: Date.now() }));
+        window.history.replaceState(null, '', '/?invite=rise2025');
+        const container = document.createElement('div');
+        let admitted = null;
+        new BetaGate(container, { onAccess: session => { admitted = session; } });
+        window.history.replaceState(null, '', '/');
+        expect(admitted).toBeNull();
+        container.querySelector('#beta-enter').click();
+        expect(admitted).toMatchObject({ code: 'rise2025', name: 'Beta Tester' });
+        localStorage.removeItem('rise-beta-session');
+    });
+
+    it('opens the first-entry gate with the SyberLabs lockup, not a glyph', () => {
+        const container = invitedGate();
         const lockup = container.querySelector('.beta-gate .sl-lockup');
         expect(lockup).toBeTruthy();
         expect(lockup.getAttribute('aria-label')).toBe('SyberLabs RISE');
@@ -27,8 +49,7 @@ describe('the RISE mark', () => {
     });
 
     it('marks the gate with the RISE sigil on a plate, the clip mark holding it until drawn', () => {
-        const container = document.createElement('div');
-        new BetaGate(container, { onAccess: () => {} });
+        const container = invitedGate();
         const plate = container.querySelector('.beta-plate');
         expect(plate).toBeTruthy();
         expect(plate.getAttribute('aria-hidden')).toBe('true');
@@ -39,8 +60,7 @@ describe('the RISE mark', () => {
     });
 
     it('gives the gate one statement and one primary action', () => {
-        const container = document.createElement('div');
-        new BetaGate(container, { onAccess: () => {} });
+        const container = invitedGate();
         expect(container.querySelector('h1.beta-title').textContent).toBe('Read beyond the page.');
         expect(container.querySelectorAll('button')).toHaveLength(1);
         expect(container.querySelector('#beta-enter').textContent.trim()).toBe('Enter RISE');

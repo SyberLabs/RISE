@@ -104,3 +104,12 @@ describe('every other surface leaves exactly as it did', () => {
         expect(chamberExitTarget('back', null)).toEqual({ kind: 'navigate', view: 'chamber' });
     });
 });
+
+describe('leaving a directed reading for the Workshop', () => {
+    it('opens the saved project, and nothing without one', () => {
+        expect(chamberExitTarget('visual-passages', {}, { blueprintId: 'bp-1' }))
+            .toEqual({ kind: 'navigate', view: 'workshop', data: { blueprintId: 'bp-1' } });
+        expect(chamberExitTarget('visual-passages', {}, {})).toBeNull();
+        expect(chamberExitTarget('visual-passages', {}, { blueprintId: '' })).toBeNull();
+    });
+});

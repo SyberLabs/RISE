@@ -411,7 +411,6 @@
   margin: 0;
   font: 400 14px/20px var(--sy-font-sans);
 }
-.library-jev-result .library-alert { margin: 0; }
 
 .library-empty {
   padding: var(--sy-space-2) 0 var(--sy-space-6);
@@ -455,130 +454,7 @@
 
 /* ── Jev ─────────────────────────────────────────────────── */
 
-/* Ask Jev: the featured request, on a plate — a rule-2 frame, a second
-   rule inset, and RISE-accent registration ticks. */
-.library-jev {
-  position: relative;
-  max-width: 760px;
-  margin: 6px 6px var(--sy-space-7);
-  padding: var(--sy-space-5);
-  border: 1px solid var(--sy-line-strong);
-  outline: 1px solid var(--sy-line);
-  outline-offset: -5px;
-  border-radius: 0;
-  background: var(--sy-surface);
-}
 
-.library-jev::before,
-.library-jev::after {
-  content: '';
-  position: absolute;
-  width: 8px;
-  height: 8px;
-  border: solid var(--sy-accent-rise);
-  opacity: 0.8;
-  pointer-events: none;
-}
-
-.library-jev::before {
-  top: -6px;
-  left: -6px;
-  border-width: 1px 0 0 1px;
-}
-
-.library-jev::after {
-  bottom: -6px;
-  right: -6px;
-  border-width: 0 1px 1px 0;
-}
-
-.library-jev h2,
-.library-jev h3 {
-  margin: 0;
-  color: var(--sy-text);
-  font-family: var(--sy-font-sans);
-  font-weight: 600;
-  letter-spacing: 0;
-}
-.library-jev h2 { font-size: 22px; line-height: 30px; letter-spacing: -0.01em; }
-.library-jev h3 { font-family: var(--sy-font-serif); font-weight: 400; font-size: 40px; line-height: 44px; letter-spacing: -0.01em; }
-.library-jev p {
-  margin: var(--sy-space-1) 0 0;
-  font: 400 14px/20px var(--sy-font-sans);
-  color: var(--sy-text-2);
-}
-.library-jev form { margin-top: var(--sy-space-4); }
-.library-jev label {
-  display: block;
-  margin-bottom: var(--sy-space-2);
-  font: 500 14px/20px var(--sy-font-sans);
-  color: var(--sy-text);
-}
-.library-jev-controls { display: flex; gap: var(--sy-space-2); }
-.library-jev input {
-  flex: 1;
-  min-width: 0;
-  min-height: var(--sy-control-height);
-  padding: 0 var(--sy-space-4);
-  border: 1px solid var(--sy-line-strong);
-  border-radius: var(--sy-radius);
-  background: var(--sy-surface);
-  color: var(--sy-text);
-  font: 400 16px/24px var(--sy-font-sans);
-  transition: border-color var(--sy-dur-hover) var(--sy-ease),
-    box-shadow var(--sy-dur-hover) var(--sy-ease);
-}
-.library-jev input::placeholder { color: var(--sy-text-3); }
-.library-jev input:focus {
-  outline: none;
-  border-color: var(--sy-ice);
-  box-shadow: 0 0 0 3px rgba(144, 216, 240, 0.25);
-}
-.library-jev button:disabled { opacity: 0.4; cursor: not-allowed; }
-.library-jev-dictate {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  flex: none;
-  width: var(--sy-control-height);
-  min-height: var(--sy-control-height);
-  padding: 0;
-  border: 1px solid var(--sy-line-strong);
-  border-radius: var(--sy-radius-full);
-  background: rgba(6, 5, 26, 0.4);
-  color: var(--sy-text);
-  font: 500 16px/24px var(--sy-font-sans);
-  cursor: pointer;
-  white-space: nowrap;
-  transition: border-color var(--sy-dur-hover) var(--sy-ease),
-    box-shadow var(--sy-dur-enter) var(--sy-ease);
-}
-.library-jev-dictate:hover { border-color: var(--sy-ice); box-shadow: 0 0 24px -6px var(--sy-brand); }
-.library-jev-dictate[aria-pressed="true"] { border-color: var(--sy-danger); color: var(--sy-danger); }
-.library-jev-dictate:disabled { cursor: not-allowed; }
-.library-jev .library-jev-voice-note,
-.library-jev [data-jev-dictation-status] {
-  font: 400 12px/16px var(--sy-font-sans);
-  color: var(--sy-text-3);
-}
-.library-jev .library-jev-voice-note { margin-top: var(--sy-space-2); }
-.library-jev [data-jev-dictation-status]:empty { display: none; }
-.library-jev-result:not(:empty) { margin-top: var(--sy-space-5); }
-.library-jev-result .library-status { margin: 0; }
-.library-jev-choice { display: grid; gap: var(--sy-space-1); }
-.library-jev-kicker {
-  font: 500 12px/16px var(--sy-font-mono);
-  color: var(--sy-text-2);
-  text-transform: uppercase;
-  letter-spacing: 0.14em;
-}
-.library-jev-choice .library-jev-author { margin: 0; }
-.library-jev-choice button { justify-self: start; margin-top: var(--sy-space-3); }
-.library-jev-choice details {
-  margin-top: var(--sy-space-2);
-  font: 400 12px/16px var(--sy-font-sans);
-  color: var(--sy-text-3);
-}
 
 /* ── Shelf filter ────────────────────────────────────────── */
 
@@ -1101,21 +977,6 @@
   .library-room .library-nav { gap: var(--sy-space-5); margin-top: var(--sy-space-3); }
   .library-room .library-content { padding-top: var(--sy-space-4); }
 
-  .library-jev { padding: var(--sy-space-4); margin-bottom: var(--sy-space-5); }
-  .library-jev > p { display: none; }
-  .library-jev form { margin-top: var(--sy-space-2); }
-  .library-jev label {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    padding: 0;
-    margin: -1px;
-    overflow: hidden;
-    clip: rect(0, 0, 0, 0);
-    white-space: nowrap;
-    border: 0;
-  }
-  .library-jev .library-jev-voice-note { display: none; }
 
   .archive-axes { margin-bottom: var(--sy-space-5); }
   .archive-orientation { display: none; }
@@ -1161,3 +1022,24 @@
   }
   .toc-foot { padding: var(--sy-space-3) var(--sy-space-4) var(--sy-space-4); }
 }
+
+/* One way in: describing a reading happens on Home. */
+.library-describe {
+  margin: 0 0 var(--space-xl);
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--color-fog);
+}
+
+.library-describe-link {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--sy-text);
+  font: inherit;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.library-describe-link:hover { color: var(--sy-ice); }
