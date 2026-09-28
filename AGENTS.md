@@ -223,10 +223,11 @@ services are required for live recommendations.
 - Fast `CI` runs for every pull request, including prose-only changes. Main
  runs production deployment and full validation. The system-design guard
  lives in the unit suite but is **also** run by PR `CI`.
-- The main-branch ruleset requires two checks and no human approval: `CI` and
- `Agentic review` (`.github/workflows/agentic-review.yml`, an AI code review
- that fails closed and blocks on concrete correctness or security defects).
- Requiring a check that only runs after merge blocks PRs forever.
+- The main-branch ruleset requires one check and no human approval: `CI`.
+ `Agentic review` (`.github/workflows/agentic-review.yml`, an AI code review)
+ is advisory: without an `OPENAI_API_KEY` secret it passes with a notice that
+ no review ran; with one it blocks on concrete correctness or security
+ defects. Requiring a check that only runs after merge blocks PRs forever.
 
 ## Parallel agent work
 
@@ -236,7 +237,7 @@ services are required for live recommendations.
  a third read-only review when useful. Each coding agent owns one narrow PR.
 - Keep `.github/workflows/*`, `wrangler.production.jsonc`, the lockfile,
  integration, and production verification with the coordinating agent.
-- Merge through the required `CI` and `Agentic review` checks, then verify the
+- Merge through the required `CI` check, then verify the
  exact live release. Do not add an agent service or another required check for
  fan-out.
 
