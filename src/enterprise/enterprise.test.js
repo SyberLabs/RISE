@@ -553,6 +553,30 @@ describe('live session', () => {
         })).toThrow();
     });
 
+    it('binds a reasoning request onto the rail and not the stage', () => {
+        const input = corpusInput();
+        input.documents.push({
+            id: 'ops',
+            title: 'Ops note',
+            audiences: ['all-hands'],
+            pages: [{ page: 1, text: 'The cafeteria serves soup on Tuesday.' }]
+        });
+        const corpus = ingestCorpus(input);
+        const program = prepareTalk({
+            deck: deck(),
+            corpus,
+            audienceId: 'all-hands',
+            presenterId: PRESENTER
+        });
+        const session = openSession({ program, corpus, now: (at) => at });
+        const result = session.requestReasoning({ text: 'cafeteria soup tuesday', at: 1000 });
+        expect(result.tier).toBe('reasoning');
+        expect(result.action).toBe('show');
+        expect(session.rail()[0].body).toContain('soup');
+        expect(session.stage()).toEqual([]);
+        expect(session.rail()[0].body).not.toContain('880');
+    });
+
     it('records an audience question with no card as a follow-up gap', () => {
         const { corpus, program } = prepared();
         const session = openSession({ program, corpus, now: (at) => at });

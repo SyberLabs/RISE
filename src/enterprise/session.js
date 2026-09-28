@@ -112,11 +112,23 @@ export function openSession({ program, corpus, decider = ruleDecider, policy, no
                 ];
             }
         }
+        return settle(ranked, {
+            windowText,
+            speaker: event.speaker,
+            mode: event.speaker === 'audience' ? 'qa' : 'prepared',
+            tier,
+            at: event.at,
+            text: event.text,
+            recordGap: event.final
+        });
+    }
+
+    function settle(ranked, { windowText, speaker, mode, tier, at, text, recordGap }) {
         const candidates = viewCandidates(ranked);
         const view = {
             window: windowText,
-            speaker: event.speaker,
-            mode: event.speaker === 'audience' ? 'qa' : 'prepared',
+            speaker,
+            mode,
             candidates,
             rail: state.cards.map(card => ({ id: card.id, title: card.title }))
         };
@@ -128,13 +140,16 @@ export function openSession({ program, corpus, decider = ruleDecider, policy, no
         }
         const decision = sanitizeDecision(raw, candidates);
         const chosen = candidates.find(item => item.id === decision.cardId);
+        const noteGap = () => {
+            if (recordGap) gaps.push({ text, speaker, at });
+        };
         if (!decision.refused && decision.action === 'show' && chosen) {
             const record = recordOf(decision.cardId);
             const parts = record ? presentParts(record, decision.layout, corpus) : [];
             const audit = record ? auditRendered(parts, record, corpus) : { traced: 0, untraced: 1 };
             if (!record || audit.untraced > 0) {
                 numbers.untraced += audit.untraced;
-                if (event.final) gaps.push({ text: event.text, speaker: event.speaker, at: event.at });
+                noteGap();
                 return { action: 'hold', cardId: null, tier, latencyMs: null };
             }
             const reduced = reduceRail(state, {
@@ -144,16 +159,16 @@ export function openSession({ program, corpus, decider = ruleDecider, policy, no
                 layout: decision.layout,
                 score: chosen.score,
                 title: chosen.title,
-                at: event.at
+                at
             }, policy);
             if (reduced.effect !== 'show') {
                 state = reduced.state;
-                if (event.final) gaps.push({ text: event.text, speaker: event.speaker, at: event.at });
+                noteGap();
                 return { action: 'hold', cardId: decision.cardId, tier, latencyMs: null };
             }
             numbers.traced += audit.traced;
-            const shownAt = stamp(event.at);
-            const latencyMs = shownAt - event.at;
+            const shownAt = stamp(at);
+            const latencyMs = shownAt - at;
             samples.push({ cardId: decision.cardId, latencyMs, at: shownAt });
             state = reduced.state;
             return { action: 'show', cardId: decision.cardId, tier, latencyMs };
@@ -165,16 +180,39 @@ export function openSession({ program, corpus, decider = ruleDecider, policy, no
             layout: decision.layout,
             score: chosen?.score ?? 0,
             title: chosen?.title ?? '',
-            at: event.at
+            at
         }, policy);
         state = reduced.state;
-        if (event.final) gaps.push({ text: event.text, speaker: event.speaker, at: event.at });
+        noteGap();
         const action = decision.refused ? 'hold' : decision.action;
         return { action, cardId: null, tier, latencyMs: null };
     }
 
+    function requestReasoning({ text, at }) {
+        const cards = retrieve(indexCorpus(corpus, program.audienceId), text);
+        for (const card of cards) retrieved.set(card.id, card);
+        const ranked = cards.map(card => ({
+            id: card.id,
+            title: card.title,
+            score: 0.8,
+            tier: 'reasoning',
+            layouts: card.layouts,
+            layout: card.layout
+        }));
+        return settle(ranked, {
+            windowText: text,
+            speaker: 'presenter',
+            mode: 'prepared',
+            tier: 'reasoning',
+            at,
+            text,
+            recordGap: false
+        });
+    }
+
     return {
         hear,
+        requestReasoning,
         promote(cardId) {
             const record = recordOf(cardId);
             if (!record || !state.cards.some(card => card.id === cardId)
