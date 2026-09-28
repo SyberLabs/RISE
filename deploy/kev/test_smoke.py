@@ -1,7 +1,7 @@
 import unittest
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from threading import Thread
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 from smoke import EXPECTED_REVISION, RUN, check, request, required_environment
 
@@ -33,6 +33,65 @@ class SmokeConfigurationTests(unittest.TestCase):
             with self.subTest(origin=origin), patch.dict("os.environ", {**common, "KEV_BASE_URL": origin}, clear=True):
                 with self.assertRaisesRegex(ValueError, "KEV_BASE_URL"):
                     required_environment()
+
+    def test_loopback_requires_explicit_opt_in(self):
+        common = {"KEV_API_KEY": "secret", "KEV_MODEL": "kev-latest",
+                  "KEV_REVISION": EXPECTED_REVISION}
+        with patch.dict("os.environ", {**common, "KEV_BASE_URL": "http://127.0.0.1:8009"}, clear=True):
+            with self.assertRaisesRegex(ValueError, "KEV_BASE_URL"):
+                required_environment()
+            self.assertEqual(required_environment(allow_loopback=True)[0], "http://127.0.0.1:8009")
+        with patch.dict("os.environ", {**common, "KEV_BASE_URL": "https://kev.example.com"}, clear=True):
+            self.assertEqual(required_environment(allow_loopback=True)[0], "https://kev.example.com")
+
+    def test_probe_accepts_loopback_only_with_the_same_opt_in(self):
+        import probe
+        env = {"KEV_BASE_URL": "http://127.0.0.1:8009", "KEV_API_KEY": "secret",
+               "KEV_MODEL": "kev-latest", "KEV_REVISION": EXPECTED_REVISION}
+        with patch.dict("os.environ", env, clear=True):
+            with self.assertRaisesRegex(ValueError, "KEV_BASE_URL"):
+                probe.main([])
+            with patch("probe.request", return_value=(503, None, {"X-Kev-Revision": EXPECTED_REVISION})) as sent, \
+                    patch("builtins.print"):
+                self.assertEqual(probe.main(["--allow-loopback"]), 1)
+            self.assertEqual(sent.call_count, len(probe.CASES))
+
+    def test_loopback_opt_in_rejects_everything_but_an_explicit_loopback_port(self):
+        common = {"KEV_API_KEY": "secret", "KEV_MODEL": "kev-latest",
+                  "KEV_REVISION": EXPECTED_REVISION}
+        for origin in ("http://127.0.0.1", "http://127.0.0.1:0", "http://127.0.0.1:65536",
+                       "http://127.0.0.1:port", "http://localhost:8009", "http://192.168.1.20:8009",
+                       "http://kev.example.com:8009", "http://127.0.0.1.example.com:8009",
+                       "http://127.0.0.1:8009@example.com", "http://user:pass@127.0.0.1:8009",
+                       "http://127.0.0.1:8009/v1", "http://127.0.0.1:8009?next=x",
+                       "http://127.0.0.1:8009#x", "http://[::1]:8009", "ftp://127.0.0.1:8009"):
+            with self.subTest(origin=origin), \
+                    patch.dict("os.environ", {**common, "KEV_BASE_URL": origin}, clear=True):
+                with self.assertRaisesRegex(ValueError, "KEV_BASE_URL"):
+                    required_environment(allow_loopback=True)
+
+    def test_loopback_requests_bypass_configured_proxies(self):
+        class Models(BaseHTTPRequestHandler):
+            def do_GET(self):
+                self.send_response(401)
+                self.send_header("X-Kev-Revision", EXPECTED_REVISION)
+                self.end_headers()
+
+            def log_message(self, *_):
+                pass
+
+        local = HTTPServer(("127.0.0.1", 0), Models)
+        thread = Thread(target=local.serve_forever, daemon=True)
+        thread.start()
+        try:
+            with patch("smoke.OPENER", Mock(open=Mock(side_effect=AssertionError("used the proxy-aware opener")))):
+                status, _, headers = request(f"http://127.0.0.1:{local.server_port}", "/v1/models", "secret")
+            self.assertEqual(status, 401)
+            self.assertEqual(headers.get("X-Kev-Revision"), EXPECTED_REVISION)
+        finally:
+            local.shutdown()
+            local.server_close()
+            thread.join(timeout=2)
 
     def test_requires_serving_revision_on_every_v1_response(self):
         common = {"KEV_BASE_URL": "https://rise-kev-preview.example.workers.dev",

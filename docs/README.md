@@ -127,7 +127,7 @@ history, not a distinction; read the status column instead.
 
 | Document | Status | What it is |
 | --- | --- | --- |
-| [KEV-DEPLOYMENT.md](KEV-DEPLOYMENT.md) | Intent | Staging procedure for the pinned, authenticated Kev-4B service, its revision attestation, and the RISE Jev/Kev evaluation. Deploys nothing by itself. |
+| [KEV-DEPLOYMENT.md](KEV-DEPLOYMENT.md) | Intent | Staging procedure for the pinned, authenticated Kev-4B service (Modal or a local loopback GPU), its revision attestation, and the RISE Jev/Kev evaluation. Deploys nothing by itself. |
 | [jev-core/service.md](jev-core/service.md) | Contract | Optional same-origin OpenRouter decision endpoint used by the explicit Jev preview. |
 | [jev-core/variety-evaluation.md](jev-core/variety-evaluation.md) | Record | Jev prompt-variety baseline, bounded evaluation method, and local candidate evidence. |
 | [jev-core/README.md](jev-core/README.md) | Historical record | Removed Chamber gate, prior verification evidence, and live-provider caveat. |
