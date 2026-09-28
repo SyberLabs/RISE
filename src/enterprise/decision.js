@@ -90,7 +90,7 @@ export function reduceRail(state, event, policy = RAIL_POLICY) {
     const next = cloneState(state);
     if (event.type === 'dismiss') {
         const card = next.cards.find(item => item.id === event.cardId);
-        if (!card) return { state: next, effect: 'hold' };
+        if (!card) return { state: next, effect: 'hold', reason: 'unknown' };
         next.cards = next.cards.filter(item => item.id !== event.cardId);
         next.stageIds = next.stageIds.filter(id => id !== event.cardId);
         next.lastDismissedAt = event.at;
@@ -98,30 +98,32 @@ export function reduceRail(state, event, policy = RAIL_POLICY) {
         return { state: next, effect: 'dismiss' };
     }
     if (event.type === 'retract') {
-        if (!next.stageIds.includes(event.cardId)) return { state: next, effect: 'hold' };
+        if (!next.stageIds.includes(event.cardId)) return { state: next, effect: 'hold', reason: 'unknown' };
         next.stageIds = next.stageIds.filter(id => id !== event.cardId);
         return { state: next, effect: 'retract' };
     }
     if (event.type === 'promote') {
         const card = next.cards.find(item => item.id === event.cardId);
-        if (!card || card.status === 'promoted') return { state: next, effect: 'hold' };
+        if (!card) return { state: next, effect: 'hold', reason: 'unknown' };
+        if (card.status === 'promoted') return { state: next, effect: 'hold', reason: 'duplicate' };
         card.status = 'promoted';
         next.promotedIds.push(event.cardId);
         if (!next.stageIds.includes(event.cardId)) next.stageIds.push(event.cardId);
         return { state: next, effect: 'promote' };
     }
-    if (event.action !== 'show' || next.cards.some(card => card.id === event.cardId)) {
-        return { state: next, effect: 'hold' };
+    if (event.action !== 'show') return { state: next, effect: 'hold', reason: 'not-show' };
+    if (next.cards.some(card => card.id === event.cardId)) {
+        return { state: next, effect: 'hold', reason: 'duplicate' };
     }
-    if (cooling(next, event.at, policy)) return { state: next, effect: 'hold' };
+    if (cooling(next, event.at, policy)) return { state: next, effect: 'hold', reason: 'cooldown' };
     const best = next.cards.reduce((score, card) => Math.max(score, card.score), 0);
     const youngest = next.cards.reduce((at, card) => Math.max(at, card.shownAt), -Infinity);
     const dwelling = next.cards.length > 0 && event.at - youngest < policy.dwellMs;
     if (dwelling && event.score < best + policy.margin) {
-        return { state: next, effect: 'hold' };
+        return { state: next, effect: 'hold', reason: 'dwell' };
     }
     if (next.cards.length >= policy.maxRail) {
-        if (event.score < best + policy.margin) return { state: next, effect: 'hold' };
+        if (event.score < best + policy.margin) return { state: next, effect: 'hold', reason: 'margin' };
         let lowest = 0;
         next.cards.forEach((card, index) => {
             if (card.score < next.cards[lowest].score) lowest = index;

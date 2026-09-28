@@ -55,6 +55,7 @@ export function renderStage(root, session) {
             retract.dataset.action = 'retract';
             retract.dataset.cardId = card.id;
             retract.textContent = 'Retract';
+            retract.setAttribute('aria-label', `Retract “${card.title}” from the stage`);
             retract.addEventListener('click', () => {
                 session.retract(card.id);
                 draw();

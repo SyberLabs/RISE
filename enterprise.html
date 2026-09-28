@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="robots" content="noindex, nofollow">
-  <title>EnterpRise — speaker rail</title>
+  <title>EnterpRise — live room</title>
   <style>
     :root {
       color-scheme: light;
@@ -107,6 +107,28 @@
     #stage p, #stage td { font: 0.95rem/1.4 ui-sans-serif, system-ui, sans-serif; }
     #stage button { margin-top: 0.5rem; background: transparent; color: var(--ink); }
     #debrief { padding-left: 1.1rem; }
+    label { font: 0.9rem/1.4 ui-sans-serif, system-ui, sans-serif; }
+    .controls { display: flex; flex-wrap: wrap; gap: 0.6rem; align-items: end; margin-bottom: 0.8rem; }
+    .controls label { display: grid; gap: 0.2rem; }
+    button[aria-pressed="true"] { background: var(--mark); border-color: var(--mark); }
+    button:disabled { opacity: 0.45; cursor: not-allowed; }
+    button:focus-visible, select:focus-visible, textarea:focus-visible { outline: 3px solid var(--mark); outline-offset: 2px; }
+    #status {
+      min-height: 1.4em;
+      margin: 0 0 0.4rem;
+      font: 0.95rem/1.4 ui-sans-serif, system-ui, sans-serif;
+    }
+    #interim {
+      min-height: 1.4em;
+      margin: 0 0 1rem;
+      color: var(--muted);
+      font: italic 0.95rem/1.4 ui-sans-serif, system-ui, sans-serif;
+      overflow-wrap: anywhere;
+    }
+    #rail li p[data-decision] { font-style: italic; }
+    #trace-summary { font: 0.85rem/1.4 ui-sans-serif, system-ui, sans-serif; color: var(--muted); }
+    #export-trace { background: transparent; color: var(--ink); }
+    #rail li, #stage article { overflow-wrap: anywhere; }
     h2.section {
       font: 0.8rem/1.3 ui-sans-serif, system-ui, sans-serif;
       letter-spacing: 0.06em;
@@ -119,19 +141,32 @@
 <body>
   <main>
     <h1>Speaker rail</h1>
-    <p class="lede">Prepared cards for Ada’s all-hands. Promote is the tap that admits a card to the stage. Dismiss sends a suggestion back. Retract takes a card off the stage.</p>
+    <p class="lede">Prepared cards for Ada’s all-hands. Speak, and a permitted card may appear on this rail. Only Promote shows it to the room, and the room’s permissions are checked again at that tap. Dismiss sends a suggestion back. Retract takes a card off the stage.</p>
     <p class="meta">Recognizer boost: <span id="hints"></span></p>
+    <div class="controls">
+      <button type="button" id="listen" aria-pressed="false">Listen</button>
+      <label for="speaker">
+        Speaker
+        <select id="speaker">
+          <option value="presenter">Presenter</option>
+          <option value="audience">Audience question</option>
+        </select>
+      </label>
+      <label for="decider">
+        Decides
+        <select id="decider">
+          <option value="jev">JEV (server)</option>
+          <option value="local">Local rules</option>
+        </select>
+      </label>
+    </div>
+    <p class="meta" id="speech-note"></p>
+    <p id="status" role="status" aria-live="polite"></p>
+    <p id="interim"></p>
     <form>
-      <label for="transcript">Transcript</label>
+      <label for="transcript">Typed transcript</label>
       <textarea id="transcript" placeholder="Atlas renewal price"></textarea>
       <div class="row">
-        <label>
-          Speaker
-          <select id="speaker">
-            <option value="presenter">Presenter</option>
-            <option value="audience">Audience</option>
-          </select>
-        </label>
         <button type="button" data-action="draft">Draft</button>
         <button type="button" data-action="final">Final sentence</button>
       </div>
@@ -141,6 +176,9 @@
     <section id="stage" aria-label="Stage"></section>
     <h2 class="section">Follow-up</h2>
     <ul id="debrief"></ul>
+    <h2 class="section">Trace</h2>
+    <p id="trace-summary"></p>
+    <button type="button" id="export-trace">Export trace</button>
   </main>
   <script type="module" src="/src/enterprise/demo-page.js"></script>
 </body>
