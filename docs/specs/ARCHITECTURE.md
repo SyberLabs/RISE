@@ -161,15 +161,15 @@ it, and CI fails when the committed copy is not what `src/` produces.
 flowchart LR
     app["app<br/>composition root<br/>8 modules"]
     audio["audio<br/>Web Audio, recitation<br/>10 modules"]
-    components["components<br/>routed views<br/>39 modules"]
+    components["components<br/>routed views<br/>40 modules"]
     content["content<br/>texts, imagery, journeys<br/>230 modules"]
-    core["core<br/>session, player, router<br/>136 modules"]
+    core["core<br/>session, player, router<br/>146 modules"]
     enterprise["enterprise<br/>talk program, speaker rail<br/>21 modules"]
     oracle["oracle<br/>2 modules"]
     page["page<br/>spatial projection<br/>4 modules"]
     sources["sources<br/>text and visual providers<br/>22 modules"]
     vendor["vendor<br/>SyberLabs design kit<br/>2 modules"]
-    visuals["visuals<br/>procedural generation<br/>55 modules"]
+    visuals["visuals<br/>procedural generation<br/>61 modules"]
 
     app -.-> |3 lazy| audio
     app --> |1| components
@@ -182,11 +182,11 @@ flowchart LR
     components -.-> |1 lazy| app
     components --> |2| audio
     components --> |23| content
-    components --> |140| core
+    components --> |148| core
     components -.-> |1 lazy| page
     components --> |4| sources
     components -.-> |2 lazy| vendor
-    components --> |14| visuals
+    components --> |18| visuals
     content --> |3| audio
     content --> |16| core
     content --> |17| sources
@@ -194,13 +194,13 @@ flowchart LR
     core --> |6| audio
     core --> |13| content
     core --> |3| sources
-    core --> |21| visuals
-    page --> |1| core
+    core --> |23| visuals
+    page --> |2| core
     page --> |3| visuals
     sources --> |2| content
     sources -.-> |3 lazy| visuals
     visuals -.-> |5 lazy| content
-    visuals --> |15| core
+    visuals --> |18| core
     visuals --> |4| sources
 ```
 
@@ -295,6 +295,7 @@ outliving its room, fails a build.
 | Rosarium | `src/components/Rosarium.js` | the Rosary, on the liturgy engine |
 | Via | `src/components/Via.js` | the Stations of the Cross |
 | Workshop | `src/components/Workshop.js` | authoring a composition |
+| Visual Lab | `src/components/VisualLab.js` | exploring, saving, and reusing Living Flame scenes |
 | Vault | `src/components/Vault.js` | saved compositions and archetypes |
 | Scriptorium | `src/components/Scriptorium.js` | a model composes; a gate refuses |
 | Curia | `src/components/Curia.js` | the source and rights record |

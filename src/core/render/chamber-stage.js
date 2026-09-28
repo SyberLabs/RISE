@@ -26,6 +26,8 @@ import { RockGarden } from '../../visuals/rockgarden.js';
 import { NeuralNetwork } from '../../visuals/neural.js';
 import { FractalFlameGenerator } from '../../visuals/lib/fractal-engine.js';
 import { AttractorField } from '../../visuals/attractor.js';
+import { renderFlameImage } from '../../visuals/living-flame/cpu-fallback.js';
+import { normalizeLivingFlameConfig } from '../flame-recipe.js';
 import { RosaMystica } from '../../visuals/rosa-mystica.js';
 import {
   isWorkEngineFamily,
@@ -568,6 +570,9 @@ const stage = {
     if (cueKind === 'visual:field:attractor') {
       return { kind: cueKind, glass: false, mode: 'attractor' };
     }
+    if (cueKind === 'visual:field:living-flame') {
+      return { kind: cueKind, glass: true, mode: 'figure' };
+    }
     if (cueKind === 'visual:focal' || cueKind === 'visual:field:focal') {
       return { kind: cueKind, glass: false, mode: 'focal' };
     }
@@ -596,6 +601,7 @@ const stage = {
       return this.paintWorkEngine(ctx, resolved.family);
     }
     if (kind === 'visual:field:attractor') return this.paintAttractor(ctx);
+    if (kind === 'visual:field:living-flame') return this.paintLivingFlame(ctx);
     if (kind === 'visual:focal' || kind === 'visual:field:focal') return this.paintFocal(ctx);
     if (kind === 'visual:still'
       || kind === 'visual:sourced:project-image'
@@ -728,6 +734,36 @@ const stage = {
       };
     });
     ctx.canvas.getContext('2d').putImageData(painter.imageData, 0, 0);
+  },
+
+  /**
+   * A deterministic still of the cue's full recipe, from the recipe seed.
+   * Live GPU motion is declared degraded in the render-support registry.
+   */
+  async paintLivingFlame(ctx) {
+    const config = normalizeLivingFlameConfig(ctx.cue?.config);
+    if (!config) {
+      clearVoid(ctx.canvas || this.canvas);
+      return;
+    }
+    const side = Math.min(this.width, this.height);
+    const key = `living-flame:${JSON.stringify(config)}:${side}`;
+    const painter = await this.ensure(key, async () => {
+      const image = await renderFlameImage(config.recipe, {
+        side,
+        energy: config.intensity ?? config.recipe.macros.energy,
+        iterations: 600_000,
+        deterministic: true,
+        transparent: false
+      });
+      return { image, destroy() {} };
+    });
+    const target = ctx.canvas || this.canvas;
+    const context = target.getContext('2d');
+    context.fillStyle = VOID;
+    context.fillRect(0, 0, this.width, this.height);
+    context.putImageData(painter.image,
+      Math.round((this.width - side) / 2), Math.round((this.height - side) / 2));
   },
 
   async paintWorkEngine(ctx, familyFromShuffle = null) {

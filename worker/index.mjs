@@ -2,6 +2,7 @@ import { handleJevDecision } from '../netlify/functions/jev-decision.mjs';
 import { handleJevRoute } from '../netlify/functions/jev-route.mjs';
 import { handleEnterpriseDecision } from './enterprise-decision.mjs';
 import { handleJevRecommend } from './jev-recommend.mjs';
+import { handleJevVisualScore } from './jev-visual-score.mjs';
 import { decisionProvider } from '../server/decision-provider.mjs';
 import { handlePersonalPiece } from './personal-piece.mjs';
 
@@ -45,6 +46,12 @@ export default {
       return path === '/api/jev-recommend'
         ? handleJevRecommend(request, env)
         : handleJevDecision(request, env);
+    }
+
+    // Passage-directed visuals have their own limiter so a long reading can
+    // never spend the recommendation budget, and vice versa.
+    if (path === '/api/jev-visual-score') {
+      return handleJevVisualScore(request, env);
     }
 
     return error(404, 'NOT_FOUND', 'API route not found.');

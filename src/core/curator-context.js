@@ -20,7 +20,7 @@ import { PROCEDURAL_PATTERNS, PROCEDURAL_PATTERN_IDS } from './visual-registry.j
 import { WORKSHOP_AUDIO_ASSETS } from './workshop-audio.js';
 import {
   EXPERIENCE_PROGRAM_LIMITS,
-  PROGRAM_VISUAL_FIELD_RENDERERS
+  PROGRAM_SURFACE_FIELD_RENDERERS
 } from './experience-program.js';
 import { READING_LIMITS } from './reading-limits.js';
 import { countWords } from './chunker.js';
@@ -885,7 +885,7 @@ export function exportCuratorContext(surface = {}) {
   // Both from the registry that owns them, for the same reason as everything
   // above: a list written out here is a list that can come to disagree with
   // the thing it describes.
-  const surfaces = uniquePreserve(PROGRAM_VISUAL_FIELD_RENDERERS);
+  const surfaces = uniquePreserve(PROGRAM_SURFACE_FIELD_RENDERERS);
   const voices = uniquePreserve(availableVoicePacks().map(pack => pack.id));
 
   const payload = {

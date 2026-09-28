@@ -10,13 +10,14 @@
 
 import { normalizeProceduralStyle } from './visual-style-definitions.js';
 import { jevPalette } from './jev-palette.js';
+import { normalizeLivingFlameConfig } from './flame-recipe.js';
 
 const INFINITY_TOKEN = '__rise_infinity__';
 const MAX_SEGMENTS = 512;
 const MAX_COLLECTIONS = 32;
 const MAX_ID_LENGTH = 160;
 const MAX_FOCAL_FIELDS = 32;
-const FIELD_RENDERERS = new Set(['focal', 'attractor', 'genesis']);
+const FIELD_RENDERERS = new Set(['focal', 'attractor', 'genesis', 'living-flame']);
 
 function boundedString(value, max = MAX_ID_LENGTH) {
   return typeof value === 'string' ? value.slice(0, max) : '';
@@ -117,6 +118,12 @@ export function normalizeVisualCue(value) {
     return { kind: 'focal', focal: normalizeFocal(value.focal) };
   }
   if (value.kind === 'field') {
+    if (value.renderer === 'living-flame') {
+      // The shared strict recipe boundary, not the flat field config: a
+      // recipe that does not validate becomes stillness rather than a guess.
+      const config = normalizeLivingFlameConfig(value.config);
+      return config ? { kind: 'field', renderer: 'living-flame', config } : { kind: 'still' };
+    }
     return FIELD_RENDERERS.has(value.renderer)
       ? { kind: 'field', renderer: value.renderer, config: normalizeFieldConfig(value.config) }
       : { kind: 'still' };

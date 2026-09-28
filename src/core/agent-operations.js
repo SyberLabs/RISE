@@ -8,6 +8,7 @@
 
 import {
   EXPERIENCE_PROGRAM_SCHEMA,
+  PROGRAM_SURFACE_FIELD_RENDERERS,
   PROGRAM_VISUAL_FIELD_RENDERERS,
   createExperienceProgram,
   validateExperienceProgram
@@ -758,9 +759,9 @@ function visualAssetFor(assetId, { project, context, path = '$.assetId' }) {
     // used to go straight into createEditorAsset, which refused it as
     // EDITOR_ASSET_CUE_KIND and leaked `$.cueTemplate.kind` — a path into an
     // object the reader never wrote — under a status that says RISE is broken.
-    if (!PROGRAM_VISUAL_FIELD_RENDERERS.includes(reference.id)) {
+    if (!PROGRAM_SURFACE_FIELD_RENDERERS.includes(reference.id)) {
       fail('AGENT_OP_SURFACE', `Unknown field renderer: ${reference.id}`, path,
-        { renderer: reference.id, offered: [...PROGRAM_VISUAL_FIELD_RENDERERS] });
+        { renderer: reference.id, offered: [...PROGRAM_SURFACE_FIELD_RENDERERS] });
     }
     return createEditorAsset({
       id: `surface:${reference.id}`,

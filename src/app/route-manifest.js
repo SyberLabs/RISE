@@ -189,6 +189,18 @@ export function createRouteManifest(operations) {
       })
     },
     {
+      id: 'visual-lab',
+      containerId: 'view-visual-lab',
+      load: () => import('../components/VisualLab.js'),
+      create: (container, data, { VisualLab }) => new VisualLab(container, {
+        mode: 'route',
+        recipe: data?.recipe || null,
+        onUseInReading: operations.useRecipeInReading,
+        onEditInWorkshop: () => operations.handleNavigate('workshop'),
+        onClose: () => operations.handleNavigate('portal')
+      })
+    },
+    {
       id: 'chapel',
       containerId: 'view-chapel',
       load: () => import('../components/Chapel.js'),

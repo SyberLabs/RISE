@@ -9,7 +9,8 @@ test('Night Drive plays neon light, streaks and the beat without a Jev request',
     return route.abort();
   });
   await page.goto('/night-drive');
-  await page.locator('#beta-enter').click();
+  // The open door has no entry screen (#264); the sample is the first view.
+  await expect(page.locator('#beta-enter')).toHaveCount(0);
   await expect(page.locator('#portal-jev-demo')).toContainText('no film footage or soundtrack');
   await page.locator('#jev-scene-demo-start').click();
   await expect(page.locator('#chamber-display')).toBeVisible({ timeout: 20_000 });
