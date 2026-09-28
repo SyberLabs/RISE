@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { ingestCorpus } from './corpus.js';
+import { bindTenant, combineCorpora, corpusFromRecords, ingestCorpus } from './corpus.js';
 import { admitToStage, permit, validateCard, validateProgram } from './gate.js';
 import { renderChart } from './chart.js';
 import { prepareTalk } from './prepare.js';
@@ -118,6 +118,27 @@ function chartCard(overrides = {}) {
 }
 
 describe('corpus ingest', () => {
+    it('refuses to mix residencies and accepts one record connector', () => {
+        const binding = { tenantId: 'northwind', residency: 'eu' };
+        const left = corpusFromRecords(corpusInput(), binding);
+        expect(left.tenantId).toBe('northwind');
+        expect(left.residency).toBe('eu');
+        const other = bindTenant(corpusInput(), { tenantId: 'northwind', residency: 'us' });
+        expect(() => combineCorpora(left, other)).toThrow(/residency/i);
+        const right = bindTenant({
+            documents: [{
+                id: 'ops',
+                title: 'Ops note',
+                audiences: ['all-hands'],
+                pages: [{ page: 1, text: 'The cafeteria serves soup on Tuesday.' }]
+            }],
+            tables: [],
+            entities: []
+        }, binding);
+        expect(combineCorpora(left, right).documents).toHaveLength(left.documents.length + 1);
+        expect(ingestCorpus(corpusInput()).residency).toBe('local');
+    });
+
     it('rejects a number cell that is not a bare numeral', () => {
         const input = corpusInput();
         input.tables[0].rows[0].revenue = '4.2 million';

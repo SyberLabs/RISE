@@ -123,5 +123,40 @@ export function ingestCorpus(input) {
         };
     });
 
-    return deepFreeze({ documents, tables, entities });
+    const tenantId = input.tenantId == null ? 'local' : input.tenantId;
+    const residency = input.residency == null ? 'local' : input.residency;
+    return deepFreeze({ documents, tables, entities, tenantId, residency });
+}
+
+function boundString(value, code, word) {
+    if (typeof value !== 'string' || !value || value !== value.trim()) {
+        fail(code, `Expected a ${word}`);
+    }
+    return value;
+}
+
+export function bindTenant(input, binding = {}) {
+    const tenantId = boundString(binding.tenantId, 'CORPUS_TENANT', 'tenant');
+    const residency = boundString(binding.residency, 'CORPUS_RESIDENCY', 'residency');
+    return ingestCorpus({ ...input, tenantId, residency });
+}
+
+export function corpusFromRecords(records, binding) {
+    return bindTenant(records, binding);
+}
+
+export function combineCorpora(left, right) {
+    if (left?.residency !== right?.residency) {
+        fail('CORPUS_RESIDENCY', 'Corpora must share a residency');
+    }
+    if (left?.tenantId !== right?.tenantId) {
+        fail('CORPUS_TENANT', 'Corpora must share a tenant');
+    }
+    return ingestCorpus({
+        documents: [...left.documents, ...right.documents],
+        tables: [...left.tables, ...right.tables],
+        entities: [...left.entities, ...right.entities],
+        tenantId: left.tenantId,
+        residency: left.residency
+    });
 }
