@@ -4,7 +4,7 @@ import json
 import sys
 import time
 
-from smoke import check_revision_header, request, required_environment
+from smoke import arguments, check_revision_header, request, required_environment
 
 # Intents come from worker/jev-recommend.test.js. Expected values below are
 # explicit reader constraints for human review, not labels established by mocks.
@@ -18,8 +18,8 @@ CASES = [
 ]
 
 
-def main():
-    base_url, key, model = required_environment()
+def main(argv=None):
+    base_url, key, model = required_environment(arguments(argv).allow_loopback)
     observations = []
     for case_id, intent, question, criteria, expected in CASES:
         body = {
