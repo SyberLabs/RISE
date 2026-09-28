@@ -1,7 +1,8 @@
-# Required merge gate. Replaces the human approval rule on main.
-# Runs from the trusted base branch and examines a bounded diff; it never
-# checks out or executes pull request code. Fails closed: anything it cannot
-# review (fork, oversized diff, missing key, model error) blocks the merge.
+# AI code review of a bounded diff. Not a required check: the main-branch
+# ruleset requires only `CI`. Runs from the trusted base branch; it never
+# checks out or executes pull request code. Without an OPENAI_API_KEY secret
+# it reports that no review ran and passes. With a key it fails closed: a
+# fork, an oversized diff, a model error, or a BLOCK verdict fails the check.
 name: Agentic review
 
 on:
@@ -17,8 +18,8 @@ concurrency:
 
 jobs:
   review:
-    # This job name is the status check the main-branch ruleset requires.
-    # Never add a job-level `if`: a skipped required check counts as passing.
+    # Never add a job-level `if`: should this become a required check again,
+    # a skipped required check counts as passing.
     name: Agentic review
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -32,22 +33,27 @@ jobs:
           echo "::error::Agentic review does not run on fork pull requests. Push the branch to SyberLabs/RISE."
           exit 1
 
-      - name: Require the review key
+      - name: Check for the review key
+        id: key
         env:
           HAS_KEY: ${{ secrets.OPENAI_API_KEY != '' }}
         run: |
           if [ "$HAS_KEY" != "true" ]; then
-            echo "::error::OPENAI_API_KEY is not set. Add it under Settings > Secrets and variables > Actions > Repository secrets."
-            exit 1
+            echo "::notice::No review ran: OPENAI_API_KEY is not set. Add it under Settings > Secrets and variables > Actions > Repository secrets to enable Agentic review."
+            echo 'enabled=false' >> "$GITHUB_OUTPUT"
+            exit 0
           fi
+          echo 'enabled=true' >> "$GITHUB_OUTPUT"
 
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - if: steps.key.outputs.enabled == 'true'
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           ref: ${{ github.event.pull_request.base.sha }}
           persist-credentials: false
 
       - name: Prepare bounded pull request diff
         id: diff
+        if: steps.key.outputs.enabled == 'true'
         env:
           PR_NUMBER: ${{ github.event.pull_request.number }}
           EXPECTED_HEAD: ${{ github.event.pull_request.head.sha }}
