@@ -134,6 +134,22 @@ function credit(value) {
   return value;
 }
 
+function parentReference(value) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)
+    || Object.keys(value).length !== 1
+    || !/^portable-[0-9a-f]{32}$/u.test(value.id || '')) {
+    refuse('PORTABLE_PARENT', 'Parent must name one portable score ID.');
+  }
+  return { id: value.id };
+}
+
+async function portableId(program, sources, { parent = null, title, wpm } = {}) {
+  const identity = parent
+    ? { program, sources, parent, title, reading: { wpm } }
+    : { program, sources };
+  return `portable-${(await contentHashOf(identity)).slice(7, 39)}`;
+}
+
 function rethrow(error) {
   if (error instanceof PortableSequenceError) throw error;
   throw new PortableSequenceError('PORTABLE_SCORE_INVALID', error?.message || 'The score was refused.');
@@ -156,11 +172,16 @@ export async function exportPortableSequence(value, { creatorCredit = null } = {
           `${source.id} differs from the Archive edition. Make a fresh score from the Archive.`);
       }
     }
-    const id = `portable-${(await contentHashOf({ program, sources: references })).slice(7, 39)}`;
+    const parent = project.provenance?.parentPortableId
+      ? parentReference({ id: project.provenance.parentPortableId }) : null;
+    const title = project.title || program.id;
+    const wpm = project.defaults.reading.wpm;
+    const id = await portableId(program, references, { parent, title, wpm });
+    if (parent?.id === id) refuse('PORTABLE_PARENT', 'A sequence cannot name itself as parent.');
     return `${JSON.stringify({
-      schema: PORTABLE_SEQUENCE_SCHEMA, id, title: project.title || program.id,
-      creatorCredit: credit(creatorCredit), sources: references, program,
-      reading: { wpm: project.defaults.reading.wpm }
+      schema: PORTABLE_SEQUENCE_SCHEMA, id, title,
+      creatorCredit: credit(creatorCredit), ...(parent ? { parent } : {}),
+      sources: references, program, reading: { wpm }
     }, null, 2)}\n`;
   } catch (error) { rethrow(error); }
 }
@@ -174,7 +195,7 @@ export async function inspectPortableSequence(text) {
     try { bundle = JSON.parse(text); } catch {
       refuse('PORTABLE_JSON', 'This file is not valid JSON.');
     }
-    onlyKeys(bundle, ['schema', 'id', 'title', 'creatorCredit', 'sources', 'program', 'reading']);
+    onlyKeys(bundle, ['schema', 'id', 'title', 'creatorCredit', 'parent', 'sources', 'program', 'reading']);
     if (bundle.schema !== PORTABLE_SEQUENCE_SCHEMA) {
       refuse('PORTABLE_SCHEMA', `Expected ${PORTABLE_SEQUENCE_SCHEMA}.`);
     }
@@ -182,6 +203,10 @@ export async function inspectPortableSequence(text) {
       refuse('PORTABLE_TITLE', 'This sequence needs a title of at most 200 characters.');
     }
     const creatorCredit = credit(bundle.creatorCredit);
+    const parent = Object.hasOwn(bundle, 'parent') ? parentReference(bundle.parent) : null;
+    if (parent?.id === bundle.id) {
+      refuse('PORTABLE_PARENT', 'A sequence cannot name itself as parent.');
+    }
     if (!Array.isArray(bundle.sources)) refuse('PORTABLE_SOURCES', 'Source references are missing.');
     const program = importExperienceProgram(portableProgram(bundle.program), { context: context() });
     const ids = programSourceIds(program);
@@ -189,20 +214,22 @@ export async function inspectPortableSequence(text) {
       refuse('PORTABLE_SOURCES', 'Source references do not match the score.');
     }
     ids.forEach((id, index) => checkReference(bundle.sources[index], id));
-    const expectedId = `portable-${(await contentHashOf({ program, sources: bundle.sources })).slice(7, 39)}`;
-    if (bundle.id !== expectedId) refuse('PORTABLE_ID', 'Sequence identity does not match its score.');
-    const sources = await admittedSources(program);
     onlyKeys(bundle.reading, ['wpm']);
     const wpm = bundle.reading.wpm;
     if (!Number.isInteger(wpm) || wpm < READING_PACE.min || wpm > READING_PACE.max) {
       refuse('PORTABLE_PACE', 'The saved reading pace is invalid.');
     }
+    const expectedId = await portableId(program, bundle.sources,
+      { parent, title: bundle.title, wpm });
+    if (bundle.id !== expectedId) refuse('PORTABLE_ID', 'Sequence identity does not match its score.');
+    const sources = await admittedSources(program);
     const project = workshopProjectFromImportedProgram({
       program, context: context(), sources, assets: [],
       defaults: { reading: { wpm }, projection: 'stream' }, title: bundle.title, id: bundle.id,
-      provenance: { kind: 'portable-sequence-import', portableId: bundle.id, creatorCredit }
+      provenance: { kind: 'portable-sequence-import', portableId: bundle.id,
+        ...(parent ? { parentPortableId: parent.id } : {}), creatorCredit }
     });
     return { id: bundle.id, title: project.title, creatorCredit,
-      sources: bundle.sources, project };
+      parentPortableId: parent?.id || null, sources: bundle.sources, project };
   } catch (error) { rethrow(error); }
 }

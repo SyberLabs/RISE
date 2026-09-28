@@ -463,6 +463,11 @@ export class Workshop {
       return;
     }
 
+    if (data.varyBlueprintId) {
+      this.openSavedBlueprint(data.varyBlueprintId, { varyAsNew: true });
+      return;
+    }
+
     if (data.blueprintId) {
       this.openSavedBlueprint(data.blueprintId);
       return;
@@ -614,17 +619,21 @@ export class Workshop {
     if (notify) this.showToast('Workshop reset');
   }
 
-  openSavedBlueprint(blueprintId, { preserveCurrent = true } = {}) {
-    void this.openSavedBlueprintAsync(blueprintId, { preserveCurrent });
+  openSavedBlueprint(blueprintId, { preserveCurrent = true, varyAsNew = false } = {}) {
+    void this.openSavedBlueprintAsync(blueprintId, { preserveCurrent, varyAsNew });
     return true;
   }
 
-  async openSavedBlueprintAsync(blueprintId, { preserveCurrent = true } = {}) {
+  async openSavedBlueprintAsync(blueprintId, { preserveCurrent = true, varyAsNew = false } = {}) {
     this.savedBlueprints = await this.loadSavedBlueprints();
     const blueprint = this.savedBlueprints.find(item => item.id === blueprintId);
     if (!blueprint) {
       this.showToast('That sequence is no longer in the Vault');
       this.updateSequencePicker();
+      return false;
+    }
+    if (varyAsNew && !blueprint.provenance?.portableId) {
+      this.showToast('Only imported portable scores can start this variation');
       return false;
     }
 
@@ -641,9 +650,15 @@ export class Workshop {
     delete editable.project;
     delete editable.id;
     delete editable.updatedAt;
+    if (varyAsNew) {
+      editable.provenance = {
+        kind: 'portable-sequence-variation',
+        parentPortableId: blueprint.provenance.portableId
+      };
+    }
     this.replaceEditorData(editable, {
-      blueprintId,
-      kind: 'saved'
+      blueprintId: varyAsNew ? null : blueprintId,
+      kind: varyAsNew ? 'variation' : 'saved'
     });
     return true;
   }
@@ -703,6 +718,9 @@ export class Workshop {
     }
     if (this.activeDraftKind === 'recursion') {
       return 'New from Recursion · not saved';
+    }
+    if (this.activeDraftKind === 'variation') {
+      return 'Variation of an imported score · change title or pace, then Save to Vault';
     }
     if (this.isCurrentDraftDirty()) {
       return 'Unsaved draft · available only while this app remains open';
@@ -5186,7 +5204,8 @@ export class Workshop {
     }
 
     const saved = await MemoryCore.saveWorkshopBlueprintAsync(payload, {
-      blobs: pendingBlobs
+      blobs: pendingBlobs,
+      createOnly: !blueprintId && payload.provenance?.kind === 'portable-sequence-variation'
     });
     if (!saved?.id) return null;
     for (const [assetId, blob] of pendingBlobs) {
@@ -5723,7 +5742,8 @@ export class Workshop {
     let saved;
     let session;
     try {
-      saved = await this.persistSequenceToVault(transaction);
+      saved = this.activeDraftKind === 'variation' && !this.activeBlueprintId
+        ? null : await this.persistSequenceToVault(transaction);
       session = cloneSessionData(saved || this.prepareSessionPayload(this.sessionData));
     } catch (error) {
       this.showToast(error.message || 'Could not compile this visual score');

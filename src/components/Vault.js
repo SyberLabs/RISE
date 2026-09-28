@@ -216,6 +216,7 @@ export class Vault {
               <h3>${escapeHtml(this.pendingPortable.title)}</h3>
               <p>Creator credit: ${escapeHtml(this.pendingPortable.creatorCredit || 'Unattributed')} (declared, unverified)</p>
               <p>Source: ${this.pendingPortable.sources.map(source => escapeHtml(source.title)).join(', ')}</p>
+              ${this.pendingPortable.parentPortableId ? `<p class="sequence-parent-reference">Parent score ID: ${escapeHtml(this.pendingPortable.parentPortableId)}. This is a structural reference, not an endorsement by its creator.</p>` : ''}
               <p>Inspect this proposed score before keeping it in this browser. Your own reading settings may change its presentation.</p>
               <button class="btn-primary" data-action="keep-portable" ${this.portableBusy ? 'disabled' : ''}>Keep in this browser</button>
               <button class="btn-secondary" data-action="cancel-portable">Cancel</button>
@@ -272,6 +273,8 @@ export class Vault {
             <span class="sequence-intent text-uppercase">${escapeHtml(bp.intent) || 'Custom'}</span>
           </div>
           <p class="sequence-description text-fog">Compiled from ${bp.sources?.length || 0} modular textual sources.</p>
+          ${bp.provenance?.portableId && bp.provenance.creatorCredit ? `<p class="text-fog">Creator credit: ${escapeHtml(bp.provenance.creatorCredit)} (declared, unverified)</p>` : ''}
+          ${bp.provenance?.parentPortableId ? `<p class="sequence-parent-reference text-fog">Variation of ${escapeHtml(bp.provenance.parentPortableId)} · relationship unverified, not an endorsement</p>` : ''}
           <div class="sequence-meta text-fog font-mono" style="margin-top: 1rem; align-items: center; display: flex; gap: 0.5rem;">
             <span>${this.formatDuration(duration)}</span>
             <span class="meta-separator">·</span>
@@ -280,9 +283,10 @@ export class Vault {
             <span style="text-transform: capitalize;">${escapeHtml(bp.curve || 'Flat')}</span>
           </div>
           <div class="sequence-actions" style="margin-top: 1.5rem; display: flex; justify-content: space-between; align-items: center;">
-            <div style="display: flex; gap: 0.5rem; align-items: center;">
+            <div style="display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center;">
               <button class="btn-secondary" data-action="begin-custom" data-id="${escapeHtml(bp.id)}">Launch</button>
-              <button class="btn-secondary" data-action="edit-custom" data-id="${escapeHtml(bp.id)}">${bp.provenance?.portableId ? 'Preview / vary' : 'Edit'}</button>
+              <button class="btn-secondary" data-action="edit-custom" data-id="${escapeHtml(bp.id)}">${bp.provenance?.portableId ? 'Preview / edit' : 'Edit'}</button>
+              ${bp.provenance?.portableId ? `<button class="btn-secondary" data-action="vary-portable" data-id="${escapeHtml(bp.id)}">Vary as new</button>` : ''}
             </div>
             <button class="btn-icon" data-action="delete-custom" data-id="${escapeHtml(bp.id)}" aria-label="Delete Blueprint">
                <span class="icon text-error">✕</span>
@@ -410,6 +414,11 @@ export class Vault {
          const bp = this.blueprints.find(b => b.id === target.dataset.id);
          if (isPersonalProject(bp?.project || bp)) this.onNavigate('create', { project: bp.project || bp });
          else this.onNavigate('workshop', { blueprintId: target.dataset.id });
+      } else if (action === 'vary-portable') {
+         const bp = this.blueprints.find(item => item.id === target.dataset.id);
+         if (bp?.provenance?.portableId) {
+           this.onNavigate('workshop', { varyBlueprintId: bp.id });
+         }
       } else if (action === 'delete-custom') {
          this.getAudioEngine()?.playHiss();
          if (await MemoryCore.deleteWorkshopBlueprintAsync(target.dataset.id)) {
@@ -456,7 +465,7 @@ export class Vault {
       const saved = await MemoryCore.saveWorkshopBlueprintAsync(candidate.project, { createOnly: true });
       if (saved?.id) this.pendingPortable = null;
       if (saved?.id) {
-        this.portableNotice = 'Sequence kept in this browser. Preview / vary it in Workshop, or Launch to play.';
+        this.portableNotice = 'Sequence kept in this browser. Preview / edit it, Vary as new, or Launch to play.';
       } else if (MemoryCore.getWorkshopBlueprints().some(item => item.id === candidate.id)) {
         this.pendingPortable = null;
         this.portableNotice = 'This sequence is already in this browser.';

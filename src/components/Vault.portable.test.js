@@ -2,7 +2,7 @@ import { afterEach, expect, it, vi } from 'vitest';
 import { Vault } from './Vault.js';
 import { MemoryCore } from '../core/memory.js';
 import { resolveLibrarySourceIds } from '../core/scriptorium-resolve.js';
-import { exportPortableSequence } from '../core/portable-sequence.js';
+import { exportPortableSequence, inspectPortableSequence } from '../core/portable-sequence.js';
 import { validateWorkshopProject, WORKSHOP_PROJECT_SCHEMA } from '../core/workshop-project.js';
 
 afterEach(() => {
@@ -66,7 +66,7 @@ it('inspects without saving, cancels, and saves only on an explicit second gestu
   expect(saved).toHaveLength(initial + 1);
   expect(saved[0].project.experienceProgram.authority).toBe('proposed');
   expect(container.querySelector('[data-action="begin-custom"]')).not.toBeNull();
-  expect(container.querySelector('[data-action="edit-custom"]')?.textContent).toBe('Preview / vary');
+  expect(container.querySelector('[data-action="edit-custom"]')?.textContent).toBe('Preview / edit');
   vault.destroy();
 });
 
@@ -83,6 +83,43 @@ it('rejects a duplicate import and keeps the existing sequence unchanged', async
   expect(MemoryCore.getWorkshopBlueprints()).toHaveLength(1);
   expect(MemoryCore.getWorkshopBlueprints()[0].project).toEqual(first);
   expect(container.textContent).toContain('already in this browser');
+  vault.destroy();
+});
+
+it('routes an imported score to an explicit new variation draft', async () => {
+  const { text } = await bundle();
+  const container = document.createElement('div');
+  document.body.append(container);
+  const routes = [];
+  const vault = new Vault(container, {
+    initialSection: 'custom', onNavigate: (...args) => routes.push(args)
+  });
+  await vault.stagePortableSequence(text);
+  await vault.acceptPortableSequence();
+  const card = container.querySelector('.sequence-card');
+  expect(card.querySelector('[data-action="edit-custom"]').textContent).toBe('Preview / edit');
+  card.querySelector('[data-action="vary-portable"]').click();
+  expect(routes).toEqual([['workshop', { varyBlueprintId: vault.blueprints[0].id }]]);
+  expect(MemoryCore.getWorkshopBlueprints()).toHaveLength(1);
+  vault.destroy();
+});
+
+it('shows a child parent reference without treating it as creator approval', async () => {
+  const { text } = await bundle();
+  const parent = await inspectPortableSequence(text);
+  const child = structuredClone(parent.project);
+  child.title = 'Child reading';
+  child.defaults.reading.wpm = 180;
+  child.provenance = { kind: 'portable-sequence-variation', parentPortableId: parent.id };
+  const childText = await exportPortableSequence(child);
+  const container = document.createElement('div');
+  document.body.append(container);
+  const vault = new Vault(container, { initialSection: 'custom' });
+  await vault.stagePortableSequence(childText);
+  expect(container.textContent).toContain(parent.id);
+  expect(container.textContent).toContain('not an endorsement');
+  await vault.acceptPortableSequence();
+  expect(container.textContent).toContain(parent.id);
   vault.destroy();
 });
 
