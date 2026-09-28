@@ -154,6 +154,16 @@ export function validateCard(card, corpus, audienceId) {
     return card;
 }
 
+export function admitToStage(card, corpus, audienceId) {
+    if (!permit(card, corpus, audienceId)) return false;
+    try {
+        validateCard(card, corpus, audienceId);
+        return true;
+    } catch {
+        return false;
+    }
+}
+
 export function validateProgram(program, corpus) {
     if (!program || program.schema !== TALK_PROGRAM_SCHEMA) {
         fail('PROGRAM_SCHEMA', 'Expected a talk program');

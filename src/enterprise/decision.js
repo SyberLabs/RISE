@@ -21,6 +21,7 @@ const DECISION_KEYS = new Set(['action', 'cardId', 'layout']);
 export function initialRailState() {
     return {
         cards: [],
+        stageIds: [],
         lastShownAt: null,
         lastDismissedAt: null,
         shown: 0,
@@ -32,6 +33,7 @@ export function initialRailState() {
 function cloneState(state) {
     return {
         cards: state.cards.map(card => ({ ...card })),
+        stageIds: [...(state.stageIds || [])],
         lastShownAt: state.lastShownAt,
         lastDismissedAt: state.lastDismissedAt,
         shown: state.shown,
@@ -90,15 +92,22 @@ export function reduceRail(state, event, policy = RAIL_POLICY) {
         const card = next.cards.find(item => item.id === event.cardId);
         if (!card) return { state: next, effect: 'hold' };
         next.cards = next.cards.filter(item => item.id !== event.cardId);
+        next.stageIds = next.stageIds.filter(id => id !== event.cardId);
         next.lastDismissedAt = event.at;
         if (card.status !== 'promoted') next.dismissedIds.push(event.cardId);
         return { state: next, effect: 'dismiss' };
+    }
+    if (event.type === 'retract') {
+        if (!next.stageIds.includes(event.cardId)) return { state: next, effect: 'hold' };
+        next.stageIds = next.stageIds.filter(id => id !== event.cardId);
+        return { state: next, effect: 'retract' };
     }
     if (event.type === 'promote') {
         const card = next.cards.find(item => item.id === event.cardId);
         if (!card || card.status === 'promoted') return { state: next, effect: 'hold' };
         card.status = 'promoted';
         next.promotedIds.push(event.cardId);
+        if (!next.stageIds.includes(event.cardId)) next.stageIds.push(event.cardId);
         return { state: next, effect: 'promote' };
     }
     if (event.action !== 'show' || next.cards.some(card => card.id === event.cardId)) {

@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { ingestCorpus } from './corpus.js';
-import { permit, validateCard, validateProgram } from './gate.js';
+import { admitToStage, permit, validateCard, validateProgram } from './gate.js';
 import { renderChart } from './chart.js';
 import { prepareTalk } from './prepare.js';
 import { embed, indexProgram, matchLexical, matchSemantic } from './match.js';
@@ -377,6 +377,38 @@ describe('live session', () => {
         });
         expect(other.action).toBe('ignore');
         expect(session.rail()).toHaveLength(1);
+    });
+
+    it('puts a permitted card on the stage only after promote', () => {
+        const { corpus, program } = prepared();
+        const session = openSession({ program, corpus, now: (at) => at });
+        session.hear({
+            text: 'Atlas renewal price',
+            final: true,
+            speaker: 'presenter',
+            speakerId: PRESENTER,
+            at: 1000
+        });
+        expect(session.stage()).toEqual([]);
+        const card = program.cards.find(item => item.kind === 'passage');
+        expect(admitToStage(card, corpus, 'all-hands')).toBe(true);
+        expect(admitToStage(passageCard({
+            body: 'The acquisition price is 880 million and stays in the board room.',
+            provenance: [{ documentId: 'board-memo', page: 1, tableId: null, query: 'Acquisition' }]
+        }), corpus, 'all-hands')).toBe(false);
+        const id = session.rail()[0].id;
+        expect(session.promote(id)).toEqual({ action: 'promote' });
+        expect(session.stage().map(item => item.id)).toEqual([id]);
+        expect(session.stage()[0].body).toContain('12.4');
+        expect(session.retract(id)).toEqual({ action: 'retract' });
+        expect(session.stage()).toEqual([]);
+        expect(session.rail().map(item => item.id)).toEqual([id]);
+        session.dismiss(id);
+        expect(session.stage()).toEqual([]);
+        expect(session.rail()).toEqual([]);
+        expect(session.metrics().promoted).toBe(1);
+        expect(session.metrics().speakerDismissed).toBe(0);
+        expect(session.debrief().stage).toHaveLength(1);
     });
 
     it('counts a promotion and a dismissal separately from cards never shown', () => {

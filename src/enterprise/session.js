@@ -13,7 +13,7 @@
 
 import { renderChart } from './chart.js';
 import { reduceRail, ruleDecider, sanitizeDecision, initialRailState } from './decision.js';
-import { auditRendered, validateProgram } from './gate.js';
+import { admitToStage, auditRendered, validateProgram } from './gate.js';
 import { indexProgram, matchLexical, matchSemantic } from './match.js';
 
 function presentParts(record, layout, corpus) {
@@ -33,8 +33,14 @@ export function openSession({ program, corpus, decider = ruleDecider, policy, no
     const finals = [];
     const gaps = [];
     const samples = [];
+    const stageLog = [];
+    const retrieved = new Map();
     const numbers = { traced: 0, untraced: 0 };
     let latestAt = 0;
+
+    function recordOf(cardId) {
+        return program.cards.find(item => item.id === cardId) || retrieved.get(cardId) || null;
+    }
 
     function stamp(at) {
         const basis = Number.isFinite(at) ? at : latestAt;
@@ -55,7 +61,8 @@ export function openSession({ program, corpus, decider = ruleDecider, policy, no
     }
 
     function materialize(cardState) {
-        const record = program.cards.find(item => item.id === cardState.id);
+        const record = recordOf(cardState.id);
+        if (!record) return null;
         const chart = record.kind === 'chart'
             ? renderChart({ ...record, layout: cardState.layout }, corpus)
             : null;
@@ -151,15 +158,35 @@ export function openSession({ program, corpus, decider = ruleDecider, policy, no
     return {
         hear,
         promote(cardId) {
-            const reduced = reduceRail(state, { type: 'promote', cardId, at: stamp() }, policy);
+            const record = recordOf(cardId);
+            if (!record || !state.cards.some(card => card.id === cardId)
+                || !admitToStage(record, corpus, program.audienceId)) {
+                return { action: 'refused' };
+            }
+            const at = stamp();
+            const reduced = reduceRail(state, { type: 'promote', cardId, at }, policy);
             state = reduced.state;
+            if (reduced.effect !== 'promote') return { action: 'refused' };
+            stageLog.push({ cardId, at });
+            return { action: 'promote' };
+        },
+        retract(cardId) {
+            const reduced = reduceRail(state, { type: 'retract', cardId, at: stamp() }, policy);
+            state = reduced.state;
+            return { action: reduced.effect === 'retract' ? 'retract' : 'refused' };
         },
         dismiss(cardId) {
             const reduced = reduceRail(state, { type: 'dismiss', cardId, at: stamp() }, policy);
             state = reduced.state;
         },
         rail() {
-            return state.cards.map(materialize);
+            return state.cards.map(materialize).filter(Boolean);
+        },
+        stage() {
+            return state.stageIds.map(id => {
+                const card = state.cards.find(item => item.id === id);
+                return card ? materialize(card) : null;
+            }).filter(Boolean);
         },
         hints() {
             return program.entities.map(entity => entity.name);
@@ -184,6 +211,7 @@ export function openSession({ program, corpus, decider = ruleDecider, policy, no
             return {
                 shown: samples.map(sample => ({ ...sample })),
                 promoted: state.promotedIds.map(cardId => ({ cardId })),
+                stage: stageLog.map(entry => ({ ...entry })),
                 dismissed: state.dismissedIds.map(cardId => ({ cardId })),
                 gaps: gapList,
                 followUp: gapList.map(gap => ({ ...gap }))
