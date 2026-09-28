@@ -130,6 +130,7 @@
     #state[data-state="hearing"] .dot { animation: pulse 1s ease-in-out infinite; }
     #state[data-state="deciding"] .dot { background: var(--warn); animation: pulse 0.6s ease-in-out infinite; }
     #state[data-state="held"] .dot { background: var(--warn); }
+    #state[data-state="loading"] .dot { background: var(--warn); animation: pulse 1.4s ease-in-out infinite; }
     #state[data-state="error"] .dot { background: var(--err); }
     /* A fixed number of lines per viewport, so a longer message never moves anything. */
     #state-text {
@@ -355,6 +356,7 @@
     <select id="decider" aria-label="Decides">
       <option value="jev">JEV</option>
       <option value="local">Local rules</option>
+      <option value="device">Kev (device)</option>
     </select>
   </header>
   <div id="state" data-state="idle">

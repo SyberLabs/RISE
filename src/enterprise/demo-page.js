@@ -13,6 +13,8 @@
  */
 
 import { createDemoSession } from './demo.js';
+import { createDeviceDecider } from './device-decider.js';
+import { DEFAULT_DEVICE_MODEL, DEVICE_MODELS, formatBytes } from './device-model.js';
 import { createLiveLoop, localDecider } from './live.js';
 import { renderRail } from './rail-view.js';
 import { createRecognizer, onDeviceStatus, speechRecognitionClass } from './recognition.js';
@@ -42,11 +44,19 @@ const askForm = $('#ask-form');
 const askInput = $('#ask');
 const askAnswer = $('#ask-answer');
 
+const requestedModel = new URLSearchParams(location.search).get('kev');
+const deviceModel = DEVICE_MODELS[requestedModel] ? requestedModel : DEFAULT_DEVICE_MODEL;
+let device = null;
+const DECIDERS = {
+    jev: (context, options) => remote(context, options),
+    local: (context, options) => localDecider(context, options),
+    device: (context, options) => device.decide(context, options)
+};
 const loop = createLiveLoop({
     session,
     trace,
     now: clock,
-    decide: (context, options) => (deciderSelect.value === 'local' ? localDecider : remote)(context, options)
+    decide: (context, options) => DECIDERS[deciderSelect.value](context, options)
 });
 const refresh = () => {
     rail.update();
@@ -57,7 +67,8 @@ const refresh = () => {
 const rail = renderRail($('#rail'), session, { onChange: refresh });
 const stage = renderStage($('#stage'), session, { onChange: refresh });
 
-const deciderName = () => (deciderSelect.value === 'local' ? 'Local rules' : 'JEV');
+const DECIDER_NAMES = { jev: 'JEV', local: 'Local rules', device: 'Kev (device)' };
+const deciderName = () => DECIDER_NAMES[deciderSelect.value];
 
 /* ---------- One status surface ---------- */
 
@@ -72,7 +83,8 @@ const HELD = {
     margin: () => 'The rail is full. Dismiss a card to make room.',
     full: () => 'The rail is full of cards on stage. Retract or dismiss one.',
     dismissed: () => 'You dismissed that card, so it stays off.',
-    untraced: () => 'A number on that card isn’t in its source, so it stays off.'
+    untraced: () => 'A number on that card isn’t in its source, so it stays off.',
+    loading: () => 'Kev is still loading on this device; decisions hold until it’s ready.'
 };
 
 const NOTE = {
@@ -89,7 +101,8 @@ const NOTE = {
     margin: 'held: rail full',
     full: 'held: rail full',
     dismissed: 'held: you dismissed it',
-    untraced: 'held: unsourced number'
+    untraced: 'held: unsourced number',
+    loading: 'held: Kev still loading'
 };
 
 function setState(name, text) {
@@ -341,12 +354,58 @@ $('#export-trace').addEventListener('click', () => {
     setTimeout(() => URL.revokeObjectURL(url), 0);
 });
 
+/* ---------- Kev on this device ---------- */
+
+const DEVICE_FAILED = {
+    'no-webgpu': 'This browser has no WebGPU, so Kev can’t run here. Choose JEV or Local rules.',
+    'no-adapter': 'No usable GPU for WebGPU, so Kev can’t run here. Choose JEV or Local rules.',
+    'wrong-model': 'The published Kev bundle isn’t the pinned checkpoint, so it wasn’t loaded.',
+    'runtime-digest': 'The downloaded runtime didn’t match its pinned digest, so it wasn’t used.',
+    network: 'Kev couldn’t be downloaded. Check the connection, then choose Kev (device) again.'
+};
+
+// Load progress uses the fixed decision-time slot so it never competes with
+// the live status line.
+function onDeviceChange(status) {
+    if (deciderSelect.value !== 'device') return;
+    if (status.state === 'loading') {
+        const share = status.total ? Math.min(99, Math.floor((status.loaded / status.total) * 100)) : 0;
+        lastDecision.textContent = status.loaded ? `Kev ${share}%` : 'Kev …';
+    } else if (status.state === 'ready') {
+        lastDecision.textContent = 'Kev ready';
+        trace.emit('device.ready', { run: status.info.run, loadMs: status.info.loadMs, vendor: status.adapter?.vendor ?? null });
+        setState(listening() ? 'listening' : 'idle', `Kev (${DEVICE_MODELS[deviceModel].label}) is ready on this device.`);
+    } else if (status.state === 'failed') {
+        lastDecision.textContent = 'Kev failed';
+        trace.emit('device.failed', { code: status.code });
+        setState('error', DEVICE_FAILED[status.code] || 'Kev couldn’t start on this device. Choose JEV or Local rules.');
+    }
+}
+
+function useDevice() {
+    if (device?.status().state === 'failed') device.dispose();
+    device ??= createDeviceDecider({ model: deviceModel, onChange: onDeviceChange });
+    if (device.status().state !== 'idle') {
+        onDeviceChange(device.status());
+        return;
+    }
+    const model = DEVICE_MODELS[deviceModel];
+    setState('loading', `Loading ${model.label} on this device (${formatBytes(model.bytes)} the first time). Decisions hold until it’s ready.`);
+    device.load();
+}
+
 deciderSelect.addEventListener('change', () => {
     trace.emit('decider.change', { decider: deciderSelect.value });
-    setState(stateBox.dataset.state === 'held' ? (listening() ? 'listening' : 'idle') : stateBox.dataset.state,
-        deciderSelect.value === 'local'
-            ? 'Local rules decide. Nothing leaves this browser for a decision.'
-            : 'JEV decides through the server.');
+    if (deciderSelect.value === 'device') {
+        useDevice();
+        return;
+    }
+    const settled = ['held', 'error', 'loading'].includes(stateBox.dataset.state)
+        ? (listening() ? 'listening' : 'idle')
+        : stateBox.dataset.state;
+    setState(settled, deciderSelect.value === 'local'
+        ? 'Local rules decide. Nothing leaves this browser for a decision.'
+        : 'JEV decides through the server.');
 });
 
 /* ---------- Microphone ---------- */

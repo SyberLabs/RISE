@@ -180,6 +180,26 @@ test.describe('EnterpRise live room', () => {
         await expect(stage(page)).toHaveText('Nothing on stage.');
     });
 
+    test('Kev on this device fails closed where it cannot run, and never falls back', async ({ page }) => {
+        const sent = [];
+        await page.route(ROUTE, (route) => {
+            sent.push(route.request().postData());
+            return route.fulfill({ json: showFirst(route.request().postDataJSON()) });
+        });
+        await page.route(/huggingface\.co|hf\.co|jsdelivr\.net/u, (route) => route.abort());
+        await openRoom(page);
+        await page.locator('#decider').selectOption('device');
+        await expect(state(page)).toHaveAttribute('data-state', /loading|error/u);
+        await expect(state(page)).toHaveAttribute('data-state', 'error', { timeout: 15_000 });
+        await expect(state(page)).toContainText('Choose JEV or Local rules');
+        await expect(page.locator('#last-decision')).toHaveText('Kev failed');
+
+        await say(page, 'Atlas renewal price');
+        await expect(lines(page).last().locator('.note')).toHaveText('→ held: Kev (device) unavailable');
+        await expect(rail(page)).toHaveCount(0);
+        expect(sent).toEqual([]);
+    });
+
     test('newer speech replaces a decision still in flight', async ({ page }) => {
         let calls = 0;
         await page.route(ROUTE, async (route) => {
