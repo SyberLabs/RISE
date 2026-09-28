@@ -199,10 +199,18 @@ Inline asset preview may be lightweight, but session audition must compile the
 current canonical project and enter the same Chamber path as launch. There is
 no editor-only playback engine.
 
-### 3.7 Responsive means rearranged, not reduced
+### 3.7 Responsive means rearranged, not reduced — except on a phone
 
-Phone and tablet layouts may use sheets, drawers, and focused modes, but every
+Tablet layouts may use sheets, drawers, and focused modes, but every
 essential authoring action remains available.
+
+**Amended 2026-09-25.** A phone is a distinct instrument, not a reduced
+studio. It opens on the Scene Stack (a scene is a source; its visual and sound
+are whole-scene clips), specified in
+`docs/superpowers/specs/2026-09-25-mobile-navigator-and-workshop-design.md`.
+Every studio action stays reachable on a phone through the deliberate
+**Full studio** escape, which is this document's phone layout (§5.3) on the
+same draft.
 
 ---
 
@@ -267,9 +275,14 @@ At 768–1179 px:
 - opening a drawer never clears the text selection or active clip;
 - the transport bar collapses secondary controls into a Project menu.
 
-### 5.3 Phone — focused authoring modes
+### 5.3 Phone — focused authoring modes (Full studio)
 
-Below 768 px:
+Below 768 px the Workshop opens on the Scene Stack (§3.7). What follows is
+**Full studio**, reached from the stack's sequence menu and left by its
+**Scenes** button. Its header is one row; the sequence switcher and conductor
+live in the stack, and pace and curve in the Project menu.
+
+In Full studio, below 768 px:
 
 - the user sees one primary surface at a time: Text, Score, Assets, or
   Inspector;
