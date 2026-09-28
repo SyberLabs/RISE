@@ -14,6 +14,13 @@
 /assets/*
   Cache-Control: public, max-age=31536000, immutable
 
+# The on-device Kev worker is the only document allowed to fetch model weights
+# and compile WebAssembly. A dedicated worker is governed by the policy on its
+# own script, so the pages that start it keep the site policy unchanged.
+/assets/kev-worker-*
+  ! Content-Security-Policy
+  Content-Security-Policy: default-src 'none'; script-src 'self' 'wasm-unsafe-eval'; connect-src https://huggingface.co https://*.huggingface.co https://*.hf.co https://cdn.jsdelivr.net
+
 /fonts/*.woff2
   Cache-Control: public, max-age=31536000, immutable
 
