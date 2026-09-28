@@ -64,6 +64,9 @@ reduces the rail.
   `invalid`, `unavailable`);
 - the chosen card was dismissed after the turn was prepared.
 
+`promote(cardId, { by })` refuses a promoter who is not a listed presenter.
+`by` defaults to the program's presenter, the device owner.
+
 `hear(event)` is `resolve(prepare(event), ruleDecider(view))`. It keeps its
 current behaviour, drafts included, for tests and explicit local mode.
 
@@ -81,7 +84,8 @@ final calls `prepare`, aborts any decision still in flight, calls
 `decide(context, { signal })` under a timeout (default 3_500 ms), and passes
 the answer to `resolve`. At most one decision is in flight.
 
-`decide` returns `{ raw, meta }`. `localDecider` wraps `ruleDecider`.
+A cancelled decision resolves with the reason `superseded`; `stop()` uses
+`stopped`. `decide` returns `{ raw, meta }`. `localDecider` wraps `ruleDecider`.
 `createRemoteDecider` in `src/enterprise/remote-decider.js` posts the context
 to `/api/enterprise-decision`, accepts only `rise.enterprise-decision.v1` with
 the same `requestId`, and returns `{ action, cardId, layout }` as `raw`.
@@ -128,9 +132,9 @@ typed transcript.
 
 `src/enterprise/trace.js` is an append-only, bounded event list (2_000
 events) with a monotonic `seq` and a clock. Event types: `speech.state`,
-`speech.interim`, `speech.final`, `speech.error`, `warm`, `retrieve`,
-`candidates`, `decision.request`, `decision.response`, `decision.hold`,
-`rail.show`, `rail.hold`, `rail.dismiss`, `promote.gate`, `stage.publish`,
+`speech.interim`, `speech.final`, `warm`, `retrieve`, `candidates`,
+`decision.request`, `decision.response`, `decider.change`, `rail.show`,
+`rail.hold`, `rail.dismiss`, `promote.gate`, `stage.publish`, and
 `stage.retract`. Speech events carry a character count, not text. Decision
 events carry `requestId`, provider, model, revision, outcome, and latency.
 `summary()` returns counts and decision latency p50/p95. The page can export

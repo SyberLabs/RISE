@@ -164,7 +164,7 @@ flowchart LR
     components["components<br/>routed views<br/>39 modules"]
     content["content<br/>texts, imagery, journeys<br/>228 modules"]
     core["core<br/>session, player, router<br/>135 modules"]
-    enterprise["enterprise<br/>talk program, speaker rail<br/>16 modules"]
+    enterprise["enterprise<br/>talk program, speaker rail<br/>21 modules"]
     oracle["oracle<br/>2 modules"]
     page["page<br/>spatial projection<br/>4 modules"]
     sources["sources<br/>text and visual providers<br/>22 modules"]
@@ -879,8 +879,40 @@ of `settled`, `open`, `deferred`, or `reversed`.
   `docs/superpowers/plans/2026-09-27-enterprise-room.md`. The reader's lack of
   access control (§8.1) is unchanged: this audience check belongs to the
   sibling, and the sibling is not on the reader's first load.
-- **Status:** settled. The suite's latency ceilings are the product targets
-  on this fixture, not a measurement of a live recognizer.
+- **Status:** settled, except the rejected provider call on the enterprise
+  decision route, which §8.31 reverses. The suite's latency ceilings are the
+  product targets on this fixture, not a measurement of a live recognizer.
+
+### 8.31 The live room decides through JEV and holds on any doubt
+
+- **Chosen:** the room listens through the browser recognizer. Interim speech
+  warms the lexical tier; only a final asks for a decision. `session.prepare`
+  builds a `rise.enterprise-context.v1` (`src/enterprise/context.js`):
+  evidence (window, speaker, mode), structure (candidate ids, titles, scores,
+  layouts; rail ids and titles), and authority (the actions this turn allows,
+  never promotion). The live loop (`src/enterprise/live.js`) keeps one
+  decision in flight, cancels it when a newer final arrives, and bounds it
+  with a timeout. `/api/enterprise-decision` joins the other decision routes
+  behind `decisionProvider` and the limiter and asks the provider one choice
+  question whose options are opaque keys. `session.resolve` accepts an answer
+  only for a turn it issued, once, while no later final is pending. The
+  trace (`src/enterprise/trace.js`) records every step without the
+  transcript. The rule decider remains for tests and an explicitly chosen
+  local mode.
+- **Rejected:** falling back from a failed JEV decision to rules; letting the
+  provider name a card id or write text; sending documents, tenants, or the
+  audience to the route; deciding on interim speech; a speech vendor SDK; a
+  server-side trace store; a vector store.
+- **Why:** the model is useful for choosing which permitted card fits what
+  was just said, and harmful anywhere else. Every failure mode — timeout,
+  cancellation, a late answer, a malformed answer, an outage — resolves to
+  the rail as it was, and the stage still moves only on a presenter's tap
+  after the gate runs again. Spec:
+  `docs/superpowers/specs/2026-09-28-enterprise-live-loop-design.md`.
+- **Status:** open. The loop, route, and page are verified with a scripted
+  recognizer and routed decisions. A live Kev or Jev decision on the
+  deployed room, and field latency from a real microphone, are not yet
+  measured.
 
 ---
 

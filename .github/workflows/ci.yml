@@ -47,7 +47,9 @@ jobs:
             src/core/content-store.test.js \
             src/core/journey-session.test.js \
             src/audio/engine.lifecycle.test.js \
-            src/content/keystones.test.js &
+            src/content/keystones.test.js \
+            src/enterprise \
+            worker/enterprise-decision.test.js &
           tests=$!
           npx vite build
           npm run measure:first-load
