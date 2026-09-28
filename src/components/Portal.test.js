@@ -14,6 +14,8 @@ const portalCss = readFileSync(
 );
 
 beforeEach(() => {
+    // Home keeps the request for the tab's session; each test starts clean.
+    sessionStorage.clear();
     localStorage.removeItem('rise_sol_plan_v1');
     localStorage.removeItem('rise_workshop_v1');
     vi.restoreAllMocks();
@@ -62,18 +64,28 @@ describe('Portal', () => {
         container.remove();
     });
 
-    it('asks what to read and keeps the home to one primary action', () => {
+    it('asks what to experience and keeps the home to one primary action', () => {
+        sessionStorage.clear();
         const { portal, container, onNavigate } = makePortal();
-        expect(container.querySelector('h1').textContent.trim()).toBe('What would you like to read?');
+        expect(container.querySelector('h1').textContent.trim()).toBe('What do you want to experience?');
         const intent = container.querySelector('#portal-jev-intent');
         expect(intent.maxLength).toBe(240);
-        expect(intent.placeholder).toBe('Something reflective and slow, with quiet visuals…');
+        expect(intent.placeholder).toBe('Describe a mood, a style, a text, or all three.');
         expect(container.querySelector('label[for="portal-jev-intent"]')).not.toBeNull();
         expect(container.querySelector('#portal-jev-help').textContent)
-            .toContain('Only this request goes to the configured AI decision service; your reading and saved work stay local.');
-        const primary = container.querySelectorAll('.portal-primary');
+            .toBe('RISE turns your words into a reading with visuals, pace and sound. You’ll see how it was read before anything plays. Only this request goes to the configured AI decision service; your reading and saved work stay local.');
+        // Play lives inside the hidden preview; before a request there is one action.
+        const primary = [...container.querySelectorAll('.portal-primary')].filter(el => !el.closest('[hidden]'));
         expect(primary).toHaveLength(1);
-        expect(primary[0].textContent.trim()).toBe('Ask RISE');
+        expect(primary[0].textContent.trim()).toBe('Create preview');
+        const examples = [...container.querySelectorAll('[data-example]')];
+        expect(examples.map(el => el.textContent)).toEqual([
+            'Neon and fast, like a night drive',
+            'Slow and quiet, something to think about',
+            'An epic battle with a big sound'
+        ]);
+        examples[0].click();
+        expect(intent.value).toBe('Neon and fast, like a night drive');
         expect(container.querySelector('[name="portal-jev-mode"]')).toBeNull();
         expect(onNavigate).not.toHaveBeenCalled();
         portal.destroy();
@@ -90,7 +102,7 @@ describe('Portal', () => {
         expect(container.querySelector('.portal-jev-submit').disabled).toBe(false);
         const intent = container.querySelector('#portal-jev-intent');
         expect(intent.getAttribute('aria-invalid')).toBe('true');
-        expect(container.querySelector('#portal-jev-help').textContent).toContain('Tell RISE what you’d like to read.');
+        expect(container.querySelector('#portal-jev-help').textContent).toContain('Add a few words: a mood, a style, a text, or all three.');
         intent.value = 'Something slow';
         intent.dispatchEvent(new Event('input', { bubbles: true }));
         expect(intent.getAttribute('aria-invalid')).toBe('false');

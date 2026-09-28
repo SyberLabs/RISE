@@ -92,8 +92,9 @@ it('compiles a psychedelic Jev plan into a visible, scoped Chamber session', asy
     .toEqual(['aurora', 'faded-signal', 'silence']);
   expect(cueForAtom(session.visualProgram, { sourceId: 'primary', sourceProgress: 0.2 }).cue.collections)
     .toEqual(['fractal']);
+  // An energetic arc never spends a phase on a calm engine.
   expect(cueForAtom(session.visualProgram, { sourceId: 'primary', sourceProgress: 0.5 }).cue.collections)
-    .toEqual(['harmonograph']);
+    .toEqual(['apparitio']);
   expect(cueForAtom(session.visualProgram, { sourceId: 'primary', sourceProgress: 0.8 }).cue.collections)
     .toEqual(['ostensoria']);
 });

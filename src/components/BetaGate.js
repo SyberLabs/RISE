@@ -118,6 +118,14 @@ export class BetaGate {
   }
 
   render() {
+    // Ordinary visits now save an automatic 'open' session. A personal
+    // invite followed later must still get its own welcome and vault, so an
+    // open session gives way to a valid invite in the address.
+    if (this.session?.code === 'open' && this.inviteCode
+      && this.inviteCode.toLowerCase().trim() !== 'open'
+      && this.validateCode(this.inviteCode)) {
+      this.clearSession();
+    }
     if (this.session) {
       // If there's a URL invite code, ensure the session has the vault from that invite
       // This handles cases where user bookmarked the personalized link
@@ -135,6 +143,18 @@ export class BetaGate {
 
     // Check for URL invite code
     const inviteData = this.inviteCode ? this.validateCode(this.inviteCode) : null;
+
+    // THE OPEN DOOR IS NOT A STEP. An uninvited reader used to meet an
+    // "Enter the Space" screen before the only real action, the request.
+    // Audio no longer needs this click: the engine arrives with the first
+    // interaction, and Play is that interaction. Invited readers still see
+    // their personal welcome below.
+    if (!inviteData) {
+      this.saveSession({ name: 'Reader', welcome: null }, 'open');
+      this.container.innerHTML = '';
+      this.onAccess(this.session || { code: 'open', name: 'Reader', vault: null });
+      return;
+    }
     const hasValidInvite = !!inviteData;
 
     this.container.innerHTML = `
