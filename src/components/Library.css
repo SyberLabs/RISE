@@ -80,6 +80,31 @@
   margin: 0 auto;
 }
 
+.vault-portable {
+  margin-bottom: var(--space-xl);
+  padding: var(--space-lg);
+}
+
+.vault-portable input[type="file"],
+.vault-portable-credit input {
+  display: block;
+  max-width: 100%;
+  margin: var(--space-xs) 0;
+}
+
+.vault-portable-review {
+  margin-top: var(--space-md);
+}
+
+.vault-portable-review button {
+  margin: var(--space-xs) var(--space-xs) var(--space-xs) 0;
+}
+
+.vault-portable-credit {
+  display: block;
+  margin-top: var(--space-md);
+}
+
 .section-header {
   margin-bottom: var(--space-2xl);
 }
