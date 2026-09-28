@@ -10,4 +10,5 @@ export { EnterpriseError } from './errors.js';
 export { prepareTalk } from './prepare.js';
 export { openSession } from './session.js';
 export { renderRail } from './rail-view.js';
+export { renderStage } from './stage-view.js';
 export { renderChart } from './chart.js';

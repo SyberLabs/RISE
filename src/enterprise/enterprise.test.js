@@ -13,6 +13,7 @@ import {
 } from './decision.js';
 import { openSession } from './session.js';
 import { renderRail } from './rail-view.js';
+import { renderStage } from './stage-view.js';
 
 const PRESENTER = 'ada';
 
@@ -474,6 +475,32 @@ describe('live session', () => {
 });
 
 describe('speaker rail', () => {
+    it('shows a card on the stage element only after promote', () => {
+        const { corpus, program } = prepared();
+        const session = openSession({ program, corpus, now: () => 1500 });
+        const railRoot = document.createElement('div');
+        const stageRoot = document.createElement('div');
+        const rail = renderRail(railRoot, session);
+        const stage = renderStage(stageRoot, session);
+        rail.hear({
+            text: 'Atlas renewal price',
+            final: true,
+            speaker: 'presenter',
+            speakerId: PRESENTER,
+            at: 1000
+        });
+        expect(stageRoot.querySelector('[data-surface="stage"]')).not.toBeNull();
+        expect(stageRoot.textContent).not.toContain('12.4');
+        railRoot.querySelector('[data-action="promote"]').click();
+        stage.update();
+        expect(stageRoot.textContent).toContain('12.4');
+        expect(stageRoot.textContent).toContain('pricing');
+        expect(stageRoot.querySelector('[data-action="promote"]')).toBeNull();
+        stageRoot.querySelector('[data-action="retract"]').click();
+        expect(stageRoot.textContent).not.toContain('12.4');
+        expect(railRoot.querySelector('[data-surface="stage"]')).toBeNull();
+    });
+
     it('promotes and dismisses only from the speaker controls', () => {
         const { corpus, program } = prepared();
         const session = openSession({ program, corpus, now: () => 1500 });

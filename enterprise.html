@@ -95,6 +95,17 @@
     }
     #rail button { margin-right: 0.4rem; }
     #rail button[data-action="dismiss"] { background: transparent; color: var(--ink); }
+    #stage { margin-top: 1rem; }
+    #stage [data-surface="stage"] { display: grid; gap: 0.8rem; }
+    #stage article {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-top: 4px solid var(--ink);
+      padding: 0.9rem;
+    }
+    #stage h2 { font-size: 1.2rem; margin: 0 0 0.4rem; }
+    #stage p, #stage td { font: 0.95rem/1.4 ui-sans-serif, system-ui, sans-serif; }
+    #stage button { margin-top: 0.5rem; background: transparent; color: var(--ink); }
     #debrief { padding-left: 1.1rem; }
     h2.section {
       font: 0.8rem/1.3 ui-sans-serif, system-ui, sans-serif;
@@ -108,7 +119,7 @@
 <body>
   <main>
     <h1>Speaker rail</h1>
-    <p class="lede">Prepared cards for Ada’s all-hands. Nothing here is on a stage. Promote is the tap that admits a card; Dismiss sends it back.</p>
+    <p class="lede">Prepared cards for Ada’s all-hands. Promote is the tap that admits a card to the stage. Dismiss sends a suggestion back. Retract takes a card off the stage.</p>
     <p class="meta">Recognizer boost: <span id="hints"></span></p>
     <form>
       <label for="transcript">Transcript</label>
@@ -126,6 +137,8 @@
       </div>
     </form>
     <div id="rail"></div>
+    <h2 class="section">Stage</h2>
+    <section id="stage" aria-label="Stage"></section>
     <h2 class="section">Follow-up</h2>
     <ul id="debrief"></ul>
   </main>

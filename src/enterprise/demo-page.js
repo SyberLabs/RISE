@@ -7,9 +7,12 @@
 
 import { createDemoSession } from './demo.js';
 import { renderRail } from './rail-view.js';
+import { renderStage } from './stage-view.js';
 
 const { session } = createDemoSession((at) => at);
+const stage = renderStage(document.querySelector('#stage'), session);
 const rail = renderRail(document.querySelector('#rail'), session);
+document.querySelector('#rail').addEventListener('click', () => stage.update());
 const transcript = document.querySelector('#transcript');
 const speaker = document.querySelector('#speaker');
 const debrief = document.querySelector('#debrief');
@@ -45,6 +48,7 @@ function send(final) {
         speakerId: who === 'presenter' ? 'ada' : 'guest',
         at
     });
+    stage.update();
     paintDebrief();
 }
 
