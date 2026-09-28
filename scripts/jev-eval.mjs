@@ -1,8 +1,18 @@
 import { readFile, writeFile } from 'node:fs/promises';
 import { pathToFileURL } from 'node:url';
 
+/** Lower bound of the Wilson score interval for k passes in n samples (default 95%). */
+export function wilsonLowerBound(k, n, z = 1.96) {
+  if (!(n > 0)) return 0;
+  const p = k / n;
+  const z2 = z * z;
+  const bound = (p + z2 / (2 * n) - z * Math.sqrt(p * (1 - p) / n + z2 / (4 * n * n))) / (1 + z2 / n);
+  return Math.round(Math.max(0, bound) * 1e4) / 1e4;
+}
+
 export function scoreDecisions(cases, rows, options) {
-  const byId = new Map(rows.map(row => [row.id, row]));
+  const byId = new Map();
+  for (const row of rows) byId.set(row.id, [...(byId.get(row.id) || []), row]);
   const groups = new Map();
   const values = Object.fromEntries(Object.keys(options).map(key => [key, new Set()]));
   const result = {
@@ -10,42 +20,69 @@ export function scoreDecisions(cases, rows, options) {
     explicit: { passed: 0, total: 0 }, contrast: { passed: 0, total: 0 },
     unique: {}, usage: { promptTokens: 0, completionTokens: 0, unreported: 0 }
   };
+  const passRates = [];
+  let repeated = false;
   for (const item of cases) {
-    const row = byId.get(item.id);
-    const decision = row?.decision;
-    const valid = decision && typeof decision === 'object' && !Array.isArray(decision)
-      && Object.keys(decision).length === Object.keys(options).length
-      && Object.entries(options).every(([key, allowed]) =>
-        typeof decision[key] === 'string' && allowed.includes(decision[key]));
-    if (row) result.returned++;
-    if (!valid) result.invalid++;
-    else for (const key of Object.keys(options)) values[key].add(decision[key]);
-    for (const [key, allowed] of Object.entries(item.expect || {})) {
-      result.explicit.total++;
-      if (valid && allowed.includes(decision[key])) result.explicit.passed++;
+    // One row per case is the original shape; several rows are repeat samples.
+    const samples = byId.get(item.id) || [undefined];
+    if (samples.length > 1) repeated = true;
+    const decisions = [];
+    let casePassed = 0;
+    for (const row of samples) {
+      const decision = row?.decision;
+      const valid = decision && typeof decision === 'object' && !Array.isArray(decision)
+        && Object.keys(decision).length === Object.keys(options).length
+        && Object.entries(options).every(([key, allowed]) =>
+          typeof decision[key] === 'string' && allowed.includes(decision[key]));
+      if (row) result.returned++;
+      if (!valid) result.invalid++;
+      else for (const key of Object.keys(options)) values[key].add(decision[key]);
+      let samplePassed = Boolean(valid);
+      for (const [key, allowed] of Object.entries(item.expect || {})) {
+        result.explicit.total++;
+        if (valid && allowed.includes(decision[key])) result.explicit.passed++;
+        else samplePassed = false;
+      }
+      for (const [field, wanted] of [['expectBook', true], ['forbidBook', false]]) {
+        if (!item[field]) continue;
+        result.explicit.total++;
+        if (valid && typeof row.workId === 'string' && item[field].includes(row.workId) === wanted) {
+          result.explicit.passed++;
+        } else samplePassed = false;
+      }
+      if (samplePassed) casePassed++;
+      decisions.push(valid ? decision : null);
+      if (Number.isSafeInteger(row?.usage?.prompt_tokens)
+        && Number.isSafeInteger(row?.usage?.completion_tokens)) {
+        result.usage.promptTokens += row.usage.prompt_tokens;
+        result.usage.completionTokens += row.usage.completion_tokens;
+      } else result.usage.unreported++;
     }
     if (item.group) {
       const group = groups.get(item.group) || [];
-      group.push({ item, decision: valid ? decision : null });
+      group.push({ item, decisions });
       groups.set(item.group, group);
     }
-    if (Number.isSafeInteger(row?.usage?.prompt_tokens)
-      && Number.isSafeInteger(row?.usage?.completion_tokens)) {
-      result.usage.promptTokens += row.usage.prompt_tokens;
-      result.usage.completionTokens += row.usage.completion_tokens;
-    } else result.usage.unreported++;
+    passRates.push({ id: item.id, passed: casePassed, n: samples.length,
+      rate: Math.round(casePassed / samples.length * 1e4) / 1e4,
+      wilsonLower: wilsonLowerBound(casePassed, samples.length) });
   }
   for (const group of groups.values()) {
     if (group.length !== 2) continue;
-    result.contrast.total++;
     const [a, b] = group;
     const contrastKeys = Object.keys(a.item.expect || {})
       .filter(key => Object.hasOwn(b.item.expect || {}, key)
         && a.item.expect[key].every(value => !b.item.expect[key].includes(value)));
-    if (a.decision && b.decision && contrastKeys.length
-      && contrastKeys.every(key => a.decision[key] !== b.decision[key])) result.contrast.passed++;
+    for (let index = 0; index < Math.max(a.decisions.length, b.decisions.length); index++) {
+      result.contrast.total++;
+      const first = a.decisions[index];
+      const second = b.decisions[index];
+      if (first && second && contrastKeys.length
+        && contrastKeys.every(key => first[key] !== second[key])) result.contrast.passed++;
+    }
   }
   for (const [key, set] of Object.entries(values)) result.unique[key] = set.size;
+  if (repeated) result.passRates = passRates;
   return result;
 }
 
