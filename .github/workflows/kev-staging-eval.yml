@@ -1,0 +1,77 @@
+# The 39-case Jev/Kev comparison from docs/KEV-DEPLOYMENT.md, run against the
+# Access-protected staging Worker. Each run deploys the tested main commit to
+# staging with a fresh DECISION_CACHE_NAMESPACE, so both providers start from
+# empty decision and variation state and production's cache is never read or
+# written. Jev is captured first, then Kev through the operator's tunnel.
+# Production is not touched.
+name: Kev staging evaluation
+
+on:
+  workflow_dispatch:
+    inputs:
+      kev_base_url:
+        description: HTTPS origin of the Kev service (the operator's tunnel)
+        required: true
+        default: https://kev-local.syberlabs.io
+
+concurrency:
+  group: kev-staging-eval
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  evaluate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: staging
+    env:
+      TESTED_SHA: ${{ github.sha }}
+      STAGE: https://rise-jev-preview.scarlson896.workers.dev
+      KEV_BASE_URL: ${{ inputs.kev_base_url }}
+      KEV_REVISION: 139fdd94f1b6a6ad80cc15e08fcb99cac885a101
+      NAMESPACE: kev-eval-${{ github.run_id }}-${{ github.run_attempt }}
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+      CF_ACCESS_CLIENT_ID: ${{ secrets.CF_ACCESS_CLIENT_ID }}
+      CF_ACCESS_CLIENT_SECRET: ${{ secrets.CF_ACCESS_CLIENT_SECRET }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup
+      - name: Build
+        run: npm run build
+      - name: Check prerequisites
+        run: |
+          set -euo pipefail
+          [[ "$TESTED_SHA" =~ ^[0-9a-f]{40}$ ]]
+          [[ "$KEV_BASE_URL" =~ ^https://[a-z0-9.-]+$ ]] || { echo "kev_base_url must be an HTTPS origin"; exit 1; }
+          test -n "$CF_ACCESS_CLIENT_ID" -a -n "$CF_ACCESS_CLIENT_SECRET" \
+            || { echo "Set CF_ACCESS_CLIENT_ID and CF_ACCESS_CLIENT_SECRET in the staging environment."; exit 1; }
+          names=$(./node_modules/.bin/wrangler secret list --config wrangler.staging.jsonc --format json | jq -r '.[].name')
+          grep -qx KEV_API_KEY <<< "$names" || { echo "Staging Worker secret KEV_API_KEY is not set."; exit 1; }
+      - name: Capture the Jev baseline
+        run: bash deploy/kev/staging-eval-run.sh jev
+      - name: Capture the Kev candidate
+        run: bash deploy/kev/staging-eval-run.sh kev
+      - name: Compare
+        run: |
+          set -euo pipefail
+          node deploy/kev/staging-eval.mjs compare --cases scripts/jev-eval-cases.json \
+            --options scripts/jev-eval-options-candidate.json \
+            --baseline "$RUNNER_TEMP/jev-staging.json" --candidate "$RUNNER_TEMP/kev-staging.json" \
+            | tee "$RUNNER_TEMP/compare.json"
+      - name: Summarize
+        if: always()
+        run: node deploy/kev/staging-eval-summary.mjs "$RUNNER_TEMP" >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: kev-staging-eval-${{ github.run_id }}
+          path: |
+            ${{ runner.temp }}/jev-staging.json
+            ${{ runner.temp }}/kev-staging.json
+            ${{ runner.temp }}/compare.json
+          if-no-files-found: warn

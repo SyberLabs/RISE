@@ -61,6 +61,20 @@ $env:KEV_REVISION = '139fdd94f1b6a6ad80cc15e08fcb99cac885a101'
 
 The Worker contract uses `DECISION_PROVIDER=kev` for the default path and `DECISION_PROVIDER=jev` for explicit rollback, plus `KEV_BASE_URL`, `KEV_API_KEY`, `KEV_MODEL`, and `KEV_REVISION`. Configure these only in the intended staging Worker environment after the smoke check. The Worker must construct `${KEV_BASE_URL}/v1/systemone`, keep the key server side, bound requests to the intended HTTPS origin, and normalize Kev's `{model, answers, usage, latency_ms}` response for its decision validator. The current Jev response also has an `id` and `provider`; Kev's native response does not. Keep the existing allowed-choice and fallback validation as the routing changes. Switching a Worker is a separate deployment action; this procedure makes no production change.
 
+## Local Windows GPU
+
+`deploy/kev/local_app.py` serves the same pinned checkpoint on this PC's NVIDIA GPU with no cloud service. It uses upstream `kev.serve` in one process on `http://127.0.0.1:8009` only. There is no LAN binding, port forward or tunnel. Startup keeps the Modal wrapper's rules: it needs a nonempty `KEV_API_KEY` before `kev.serve` is imported, checks the run, base and base revision before loading, warms up on synthetic requests, and only then adds `X-Kev-Revision` to every `/v1/` response. It stops instead of falling back to the CPU, another checkpoint or hosted inference. The first qualification configuration is bf16 PyTorch with CUDA graphs off, fused kernels off, backend `torch`, and the prefix cache off (`KEV_PREFIX_CACHE=0`). Change it only after a measured failure, then rerun acceptance.
+
+From the RISE repository root in PowerShell:
+
+```powershell
+.\deploy\kev\local.ps1 setup -Python <path to a Python 3.12 python.exe>   # once: venv, torch 2.8.0+cu128, kev[serve] at the pin, CUDA check
+.\deploy\kev\local.ps1 start   # loads the model and serves; Ctrl+C stops it
+.\deploy\kev\local.ps1 smoke   # in a second window: smoke.py and probe.py against 127.0.0.1:8009
+```
+
+The venv, Hugging Face cache, `pip freeze` inventory and bearer key live in `%LOCALAPPDATA%\rise-kev`, outside the repository. The launcher generates the key once, restricts the file to the current user, and passes it only through the child process environment. `smoke.py` and `probe.py` accept plain HTTP only with `--allow-loopback`, and then only `http://127.0.0.1:<port>` with no credentials, path, query or fragment. Requests to that origin skip configured HTTP proxies and never follow redirects. Without the flag they stay HTTPS-only, and the Worker's provider validation is unchanged. A passing local smoke shows the model loads and answers. It does not show that full RISE requests meet the 8,000 ms gate below.
+
 ## Evaluation gates before routing
 
 Run the repository's fixed Worker cases first. These tests exercise menu bounds, active catalog filtering, schema versions, invalid provider choices, cache behavior, and reading configuration mapping; provider responses there are mocked, so passing them establishes integration behavior only.
@@ -98,6 +112,8 @@ Start-Sleep -Seconds 65
 & $Node $Eval capture --origin $Stage --provider kev --cases $Cases --options $Options --start 26 --count 13 --output kev-staging.json
 & $Node $Eval compare --cases $Cases --options $Options --baseline jev-staging.json --candidate kev-staging.json
 ```
+
+**Automated run.** Actions → **Kev staging evaluation** (`.github/workflows/kev-staging-eval.yml`, from `main`) runs the same captures and comparison against the Access-protected staging Worker. It needs the staging environment secrets `CF_ACCESS_CLIENT_ID` and `CF_ACCESS_CLIENT_SECRET` (a Cloudflare Access service token that the staging app's policy admits) and the staging Worker secret `KEV_API_KEY`. Each run deploys the tested commit to staging with `DECISION_CACHE_NAMESPACE` set to a value unique to the run. That value is signed into every decision and variation key, so both providers start from empty state and production's cache is never read or written. With it unset, keys are byte-for-byte what they were before the variable existed. The job summary shows the gates, both scores, Kev's p50/p95/max full-request time, and any rows that were not accepted; the sanitized captures are kept as a run artifact.
 
 The comparison fails without a complete measured Jev baseline identity and the exact Kev revision. Its gates require 39 valid accepted decisions, zero out-of-menu values, explicit preference matches and contrast pairs at least as good as the Jev baseline, and every Kev request within the Worker's existing 8-second provider deadline. A cached decision is excluded because it would hide provider latency. The baseline's Jev model string is the only identity its route exposes; it is not an immutable Jev weights SHA. The live full-request accuracy and latency result remains **unverified** until both captures and the comparison complete. Preserve the two sanitized captures and comparison output for review before any traffic switch.
 
