@@ -64,7 +64,7 @@ export function demoDeck() {
     };
 }
 
-export function createDemoSession(now = () => Date.now()) {
+export function createDemoSession(now = () => Date.now(), { onEvent } = {}) {
     const corpus = ingestCorpus(demoCorpusInput());
     const program = prepareTalk({
         deck: demoDeck(),
@@ -72,5 +72,5 @@ export function createDemoSession(now = () => Date.now()) {
         audienceId: 'all-hands',
         presenterId: 'ada'
     });
-    return { corpus, program, session: openSession({ program, corpus, now }) };
+    return { corpus, program, session: openSession({ program, corpus, now, onEvent }) };
 }
