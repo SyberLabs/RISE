@@ -15,6 +15,7 @@ import { renderChart } from './chart.js';
 import { reduceRail, ruleDecider, sanitizeDecision, initialRailState } from './decision.js';
 import { admitToStage, auditRendered, validateProgram } from './gate.js';
 import { indexProgram, matchLexical, matchSemantic } from './match.js';
+import { indexCorpus, retrieve } from './retrieve.js';
 
 function presentParts(record, layout, corpus) {
     const parts = [record.title];
@@ -91,9 +92,26 @@ export function openSession({ program, corpus, decider = ruleDecider, policy, no
             while (finals.length > 3) finals.shift();
             windowText = finals.join(' ');
         }
-        const ranked = tier === 'semantic'
+        let ranked = tier === 'semantic'
             ? matchSemantic(index, windowText, { lexicalText: event.text })
             : matchLexical(index, event.text);
+        if (event.speaker === 'audience' && event.final && (ranked[0]?.score ?? 0) < 0.22) {
+            const cards = retrieve(indexCorpus(corpus, program.audienceId), event.text);
+            for (const card of cards) retrieved.set(card.id, card);
+            if (cards.length) {
+                ranked = [
+                    ...cards.map(card => ({
+                        id: card.id,
+                        title: card.title,
+                        score: 0.8,
+                        tier: 'semantic',
+                        layouts: card.layouts,
+                        layout: card.layout
+                    })),
+                    ...ranked
+                ];
+            }
+        }
         const candidates = viewCandidates(ranked);
         const view = {
             window: windowText,
@@ -111,10 +129,10 @@ export function openSession({ program, corpus, decider = ruleDecider, policy, no
         const decision = sanitizeDecision(raw, candidates);
         const chosen = candidates.find(item => item.id === decision.cardId);
         if (!decision.refused && decision.action === 'show' && chosen) {
-            const record = program.cards.find(item => item.id === decision.cardId);
-            const parts = presentParts(record, decision.layout, corpus);
-            const audit = auditRendered(parts, record, corpus);
-            if (audit.untraced > 0 || !record) {
+            const record = recordOf(decision.cardId);
+            const parts = record ? presentParts(record, decision.layout, corpus) : [];
+            const audit = record ? auditRendered(parts, record, corpus) : { traced: 0, untraced: 1 };
+            if (!record || audit.untraced > 0) {
                 numbers.untraced += audit.untraced;
                 if (event.final) gaps.push({ text: event.text, speaker: event.speaker, at: event.at });
                 return { action: 'hold', cardId: null, tier, latencyMs: null };

@@ -485,6 +485,45 @@ describe('live session', () => {
         });
     });
 
+    it('retrieves for an audience final that misses the prepared program', () => {
+        const input = corpusInput();
+        input.documents.push({
+            id: 'ops',
+            title: 'Ops note',
+            audiences: ['all-hands'],
+            pages: [{ page: 1, text: 'The cafeteria serves soup on Tuesday.' }]
+        });
+        const corpus = ingestCorpus(input);
+        const program = prepareTalk({
+            deck: deck(),
+            corpus,
+            audienceId: 'all-hands',
+            presenterId: PRESENTER
+        });
+        const session = openSession({ program, corpus, now: (at) => at });
+        const missed = session.hear({
+            text: 'cafeteria soup tuesday',
+            final: false,
+            speaker: 'audience',
+            speakerId: 'guest',
+            at: 1000
+        });
+        expect(missed.action).not.toBe('show');
+        const found = session.hear({
+            text: 'cafeteria soup tuesday',
+            final: true,
+            speaker: 'audience',
+            speakerId: 'guest',
+            at: 1000
+        });
+        expect(found.action).toBe('show');
+        expect(session.rail()[0].body).toBe('The cafeteria serves soup on Tuesday.');
+        expect(session.stage()).toEqual([]);
+        expect(session.promote(session.rail()[0].id).action).toBe('promote');
+        expect(session.stage()[0].body).toContain('soup');
+        expect(JSON.stringify(session.stage())).not.toContain('880');
+    });
+
     it('records an audience question with no card as a follow-up gap', () => {
         const { corpus, program } = prepared();
         const session = openSession({ program, corpus, now: (at) => at });
