@@ -524,6 +524,35 @@ describe('live session', () => {
         expect(JSON.stringify(session.stage())).not.toContain('880');
     });
 
+    it('lets every listed presenter speak on the same rail', () => {
+        const { corpus } = prepared();
+        const program = prepareTalk({
+            deck: deck(),
+            corpus,
+            audienceId: 'all-hands',
+            presenterId: PRESENTER,
+            presenterIds: [PRESENTER, 'bruno']
+        });
+        expect(program.presenterIds).toEqual([PRESENTER, 'bruno']);
+        const session = openSession({ program, corpus, now: (at) => at });
+        const spoken = session.hear({
+            text: 'Atlas renewal price',
+            final: true,
+            speaker: 'presenter',
+            speakerId: 'bruno',
+            at: 1000
+        });
+        expect(spoken.action).toBe('show');
+        expect(session.rail()).toHaveLength(1);
+        expect(() => prepareTalk({
+            deck: deck(),
+            corpus,
+            audienceId: 'all-hands',
+            presenterId: PRESENTER,
+            presenterIds: ['bruno']
+        })).toThrow();
+    });
+
     it('records an audience question with no card as a follow-up gap', () => {
         const { corpus, program } = prepared();
         const session = openSession({ program, corpus, now: (at) => at });

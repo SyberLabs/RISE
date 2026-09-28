@@ -82,7 +82,7 @@ export function openSession({ program, corpus, decider = ruleDecider, policy, no
     }
 
     function hear(event) {
-        if (event.speaker === 'presenter' && event.speakerId !== program.presenterId) {
+        if (event.speaker === 'presenter' && !program.presenterIds.includes(event.speakerId)) {
             return { action: 'ignore', cardId: null, tier: null, latencyMs: null };
         }
         const tier = event.final ? 'semantic' : 'lexical';

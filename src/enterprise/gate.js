@@ -171,6 +171,10 @@ export function validateProgram(program, corpus) {
     if (typeof program.presenterId !== 'string' || !program.presenterId.trim()) {
         fail('PROGRAM_PRESENTER', 'Expected one presenter id');
     }
+    if (!Array.isArray(program.presenterIds) || !program.presenterIds.includes(program.presenterId)
+        || new Set(program.presenterIds).size !== program.presenterIds.length) {
+        fail('PROGRAM_PRESENTER', 'Presenter ids must include the presenter, without duplicates');
+    }
     if (typeof program.audienceId !== 'string' || !program.audienceId) {
         fail('PROGRAM_AUDIENCE', 'Expected an audience id');
     }

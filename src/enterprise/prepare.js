@@ -104,13 +104,25 @@ function visibleEntities(corpus, audienceId) {
         .sort((a, b) => a.name.localeCompare(b.name));
 }
 
-export function prepareTalk({ deck, corpus, audienceId, presenterId }) {
+function presenterList(presenterId, presenterIds) {
+    const list = presenterIds == null ? [presenterId] : presenterIds;
+    if (!Array.isArray(list) || !list.length || list.some(id => typeof id !== 'string' || !id.trim())) {
+        fail('PREPARE_PRESENTER', 'Expected presenter ids');
+    }
+    if (new Set(list).size !== list.length || !list.includes(presenterId)) {
+        fail('PREPARE_PRESENTER', 'The presenter has to be one of the listed presenters, once');
+    }
+    return list;
+}
+
+export function prepareTalk({ deck, corpus, audienceId, presenterId, presenterIds }) {
     if (!deck?.id || !Array.isArray(deck.slides) || !deck.slides.length) {
         fail('PREPARE_DECK', 'Expected one deck with slides');
     }
     if (typeof presenterId !== 'string' || !presenterId.trim()) {
         fail('PREPARE_PRESENTER', 'Expected one presenter');
     }
+    const presenters = presenterList(presenterId, presenterIds);
     if (typeof audienceId !== 'string' || !audienceId) {
         fail('PREPARE_AUDIENCE', 'Expected an audience');
     }
@@ -179,6 +191,7 @@ export function prepareTalk({ deck, corpus, audienceId, presenterId }) {
         schema: TALK_PROGRAM_SCHEMA,
         id: `talk:${deck.id}:${audienceId}`,
         presenterId,
+        presenterIds: presenters,
         deckId: deck.id,
         audienceId,
         entities: visibleEntities(source, audienceId),
