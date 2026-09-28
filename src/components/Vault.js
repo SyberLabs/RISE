@@ -5,6 +5,12 @@ import { escapeHtml } from '../core/sanitize.js';
 import { isPersonalProject } from '../core/personal-identity.js';
 import { personalSession } from '../core/personal-project.js';
 import { compileSession } from '../core/session-compiler.js';
+import { downloadJsonFile } from '../core/experience-program-io.js';
+import {
+  exportPortableSequence,
+  inspectPortableSequence,
+  PORTABLE_SEQUENCE_MAX_BYTES
+} from '../core/portable-sequence.js';
 import './Library.css';
 
 // Personalized vault configurations
@@ -33,6 +39,10 @@ export class Vault {
 
     this.currentSection = options.initialSection === 'custom' ? 'custom' : this.personalizedVault ? 'personalized' : 'sequences';
     this.blueprints = MemoryCore.getWorkshopBlueprints();
+    this.pendingPortable = null;
+    this.portableNotice = '';
+    this.portableBusy = false;
+    this.portableGeneration = 0;
     this._active = false;
     this.boundKeyboardHandler = this.handleKeyboard.bind(this);
 
@@ -195,6 +205,23 @@ export class Vault {
           <h2 class="text-light">Kept work</h2>
           <p class="text-fog">Your personal readings and saved sequences</p>
         </div>
+        <div class="vault-portable card">
+          <label class="text-light">Bring in a sequence
+            <input data-portable-file type="file" accept=".json,application/json"
+              ${this.portableBusy ? 'disabled' : ''}>
+          </label>
+          <p class="text-fog">A portable score names an exact Archive edition. It includes authored labels and visual settings, and may include short Archive quotes as position anchors (up to 500 characters each). It does not bundle the full reading or local media. Its rights basis is United States public domain.</p>
+          ${this.pendingPortable ? `
+            <div class="vault-portable-review">
+              <h3>${escapeHtml(this.pendingPortable.title)}</h3>
+              <p>Creator credit: ${escapeHtml(this.pendingPortable.creatorCredit || 'Unattributed')} (declared, unverified)</p>
+              <p>Source: ${this.pendingPortable.sources.map(source => escapeHtml(source.title)).join(', ')}</p>
+              <p>Inspect this proposed score before keeping it in this browser. Your own reading settings may change its presentation.</p>
+              <button class="btn-primary" data-action="keep-portable" ${this.portableBusy ? 'disabled' : ''}>Keep in this browser</button>
+              <button class="btn-secondary" data-action="cancel-portable">Cancel</button>
+            </div>` : ''}
+          <p role="status" class="text-fog">${escapeHtml(this.portableNotice)}</p>
+        </div>
         <div class="sequences-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1.5rem; margin-top: 1.5rem;">
           ${this.blueprints.length > 0 ? this.renderCustomItems() : this.renderEmptyCustomState()}
         </div>
@@ -255,12 +282,18 @@ export class Vault {
           <div class="sequence-actions" style="margin-top: 1.5rem; display: flex; justify-content: space-between; align-items: center;">
             <div style="display: flex; gap: 0.5rem; align-items: center;">
               <button class="btn-secondary" data-action="begin-custom" data-id="${escapeHtml(bp.id)}">Launch</button>
-              <button class="btn-secondary" data-action="edit-custom" data-id="${escapeHtml(bp.id)}">Edit</button>
+              <button class="btn-secondary" data-action="edit-custom" data-id="${escapeHtml(bp.id)}">${bp.provenance?.portableId ? 'Preview / vary' : 'Edit'}</button>
             </div>
             <button class="btn-icon" data-action="delete-custom" data-id="${escapeHtml(bp.id)}" aria-label="Delete Blueprint">
                <span class="icon text-error">✕</span>
             </button>
           </div>
+          ${bp.experienceProgram && !bp.provenance?.portableId ? `
+            <label class="vault-portable-credit">Creator credit (optional)
+              <input data-portable-credit maxlength="120" autocomplete="off" placeholder="Name to show the recipient">
+            </label>
+            <button class="btn-secondary" data-action="export-portable" data-id="${escapeHtml(bp.id)}">Export portable score</button>
+            <p role="status" data-portable-status></p>` : ''}
         </div>
        `;
     }).join('');
@@ -297,6 +330,29 @@ export class Vault {
       });
     });
 
+    this.container.addEventListener('change', async (event) => {
+      if (!event.target.matches('[data-portable-file]')) return;
+      const file = event.target.files?.[0];
+      if (!file) return;
+      const generation = ++this.portableGeneration;
+      if (file.size > PORTABLE_SEQUENCE_MAX_BYTES) {
+        this.pendingPortable = null;
+        this.portableNotice = 'Portable sequence file exceeds the 2 MB limit.';
+        this.updateContent();
+        return;
+      }
+      try {
+        const text = await file.text();
+        if (generation !== this.portableGeneration) return;
+        await this.stagePortableSequence(text);
+      } catch (error) {
+        if (generation !== this.portableGeneration) return;
+        this.pendingPortable = null;
+        this.portableNotice = error.message || 'Could not read this file.';
+        this.updateContent();
+      }
+    });
+
     // Global click delegate
     this.container.addEventListener('click', async (e) => {
       const target = e.target.closest('[data-action]');
@@ -329,6 +385,26 @@ export class Vault {
            const status = target.closest('.sequence-card')?.querySelector('[data-personal-status]');
            if (status) status.textContent = error.message || 'Export failed.';
          }
+      } else if (action === 'export-portable') {
+         const bp = this.blueprints.find(item => item.id === target.dataset.id);
+         const status = target.closest('.sequence-card')?.querySelector('[data-portable-status]');
+         const creatorCredit = target.closest('.sequence-card')?.querySelector('[data-portable-credit]')?.value.trim() || null;
+         try {
+           if (!bp) throw new Error('Saved sequence was not found.');
+           target.disabled = true;
+           const text = await exportPortableSequence(bp.project || bp, { creatorCredit });
+           downloadJsonFile(`${bp.id}.portable-sequence.json`, text);
+           if (status) status.textContent = 'Portable score exported. Review its authored labels and any short Archive quote anchors before sharing.';
+         } catch (error) {
+           if (status) status.textContent = error.message || 'Could not export this score.';
+         } finally { target.disabled = false; }
+      } else if (action === 'keep-portable') {
+         await this.acceptPortableSequence();
+      } else if (action === 'cancel-portable') {
+         this.portableGeneration += 1;
+         this.pendingPortable = null;
+         this.portableNotice = 'Import cancelled.';
+         this.updateContent();
       } else if (action === 'edit-custom') {
          this.getAudioEngine()?.playHiss();
          const bp = this.blueprints.find(b => b.id === target.dataset.id);
@@ -346,6 +422,52 @@ export class Vault {
       }
     });
 
+  }
+
+  async stagePortableSequence(text) {
+    const generation = ++this.portableGeneration;
+    this.pendingPortable = null;
+    this.portableNotice = 'Checking score and exact Archive sources…';
+    this.updateContent();
+    try {
+      const candidate = await inspectPortableSequence(text);
+      if (generation !== this.portableGeneration) return;
+      this.pendingPortable = candidate;
+      this.portableNotice = 'Ready for your review. Nothing has been saved.';
+    } catch (error) {
+      if (generation !== this.portableGeneration) return;
+      this.portableNotice = error.message || 'This sequence could not be admitted.';
+    }
+    this.updateContent();
+  }
+
+  async acceptPortableSequence() {
+    const candidate = this.pendingPortable;
+    if (!candidate || this.portableBusy) return;
+    if (MemoryCore.getWorkshopBlueprints().some(item => item.id === candidate.id)) {
+      this.pendingPortable = null;
+      this.portableNotice = 'This sequence is already in this browser.';
+      this.updateContent();
+      return;
+    }
+    this.portableBusy = true;
+    this.updateContent();
+    try {
+      const saved = await MemoryCore.saveWorkshopBlueprintAsync(candidate.project, { createOnly: true });
+      if (saved?.id) this.pendingPortable = null;
+      if (saved?.id) {
+        this.portableNotice = 'Sequence kept in this browser. Preview / vary it in Workshop, or Launch to play.';
+      } else if (MemoryCore.getWorkshopBlueprints().some(item => item.id === candidate.id)) {
+        this.pendingPortable = null;
+        this.portableNotice = 'This sequence is already in this browser.';
+      } else {
+        this.portableNotice = 'Could not keep this sequence. Try again.';
+      }
+    } catch (error) {
+      this.portableNotice = error.message || 'Could not keep this sequence. Try again.';
+    }
+    this.portableBusy = false;
+    this.refreshBlueprints();
   }
 
   launchPersonalizedSequence(sequenceId) {
@@ -434,6 +556,7 @@ export class Vault {
   }
 
   deactivate() {
+    this.portableGeneration += 1;
     if (!this._active) return;
     this._active = false;
     document.removeEventListener('keydown', this.boundKeyboardHandler);

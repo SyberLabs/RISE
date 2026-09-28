@@ -526,7 +526,7 @@ export class MemoryCore {
   /**
    * Persist bytes to IndexedDB, then write metadata-only project JSON.
    * @param {Object} blueprint editor or formal project payload
-   * @param {{ blobs?: Map<string, Blob>|Record<string, Blob> }} [options]
+   * @param {{ blobs?: Map<string, Blob>|Record<string, Blob>, createOnly?: boolean }} [options]
    */
   static saveWorkshopBlueprintAsync(blueprint, options = {}) {
     return this._queueWorkshopMutation(
@@ -560,6 +560,7 @@ export class MemoryCore {
       // Read at commit, after all asynchronous media writes, so another
       // save cannot disappear when this operation publishes its metadata.
       const { stored: storedHistory } = this._readWorkshopStore();
+      if (options.createOnly && storedHistory.some(item => item.id === id)) return null;
       const existingPersonal = guardPersonalOverwrite(storedHistory, blueprint);
       if (existingPersonal) return workshopProjectToBlueprintView(existingPersonal);
       const previous = storedHistory.find(item => item.id === id);
