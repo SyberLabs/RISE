@@ -98,6 +98,77 @@ describe('portable Archive sequences', () => {
       .rejects.toMatchObject({ code: 'PORTABLE_CAPABILITY' });
   });
 
+  it('refuses freeform visual fields that could carry private notes', async () => {
+    const original = await authoredProject();
+    const field = structuredClone(original);
+    field.experienceProgram.tracks[1].clips[0].cue.config = {
+      privatePrompt: 'do not export this note'
+    };
+    await expect(exportPortableSequence(field))
+      .rejects.toMatchObject({ code: 'PORTABLE_CAPABILITY' });
+
+    const focal = structuredClone(original);
+    focal.experienceProgram.tracks[1].clips[0].cue = {
+      kind: 'focal', focal: { privatePrompt: 'do not export this note' }
+    };
+    await expect(exportPortableSequence(focal))
+      .rejects.toMatchObject({ code: 'PORTABLE_CAPABILITY' });
+
+    const fallback = structuredClone(original);
+    fallback.experienceProgram.tracks[1].fallback = {
+      kind: 'field', renderer: 'attractor', config: { privatePrompt: 'do not export this note' }
+    };
+    await expect(exportPortableSequence(fallback))
+      .rejects.toMatchObject({ code: 'PORTABLE_CAPABILITY' });
+
+    const sourcedFallback = structuredClone(original);
+    sourcedFallback.experienceProgram.tracks[1].fallback = {
+      kind: 'sourced', collections: ['aic-portraits']
+    };
+    await expect(exportPortableSequence(sourcedFallback))
+      .rejects.toMatchObject({ code: 'PORTABLE_CAPABILITY' });
+
+    const personal = JSON.parse(await exportPortableSequence(original));
+    personal.program.tracks[1].clips[0].cue = {
+      kind: 'field', renderer: 'focal',
+      config: { type: 'personal', personalAssetId: 'a-private-photo' }
+    };
+    await expect(inspectPortableSequence(JSON.stringify(personal)))
+      .rejects.toMatchObject({ code: 'PORTABLE_CAPABILITY' });
+  });
+
+  it('preserves supported authored visual controls', async () => {
+    const original = await authoredProject();
+    const styled = structuredClone(original);
+    styled.experienceProgram.tracks[1].clips[0].cue.config = {
+      system: 'thomas', palette: 'blue', form: 'kaleido', speed: 1.5
+    };
+    const imported = await inspectPortableSequence(await exportPortableSequence(styled));
+    expect(imported.project.experienceProgram.tracks[1].clips[0].cue.config)
+      .toMatchObject(styled.experienceProgram.tracks[1].clips[0].cue.config);
+  });
+
+  it('keeps matching Archive quote anchors and refuses a false fingerprint', async () => {
+    const original = await authoredProject();
+    const phrase = 'How does it happen, tell me';
+    const start = original.sources[0].data.indexOf(phrase);
+    expect(start).toBeGreaterThanOrEqual(0);
+    const quoted = structuredClone(original);
+    quoted.experienceProgram.tracks[1].clips[0].anchor = {
+      sourceIds: [SOURCE_ID], fromCharacter: start, toCharacter: start + phrase.length,
+      quoteStart: 'How does', quoteEnd: 'tell me'
+    };
+    const text = await exportPortableSequence(quoted);
+    expect(text).toContain('How does');
+    await expect(inspectPortableSequence(text)).resolves.toMatchObject({
+      project: { experienceProgram: { authority: 'proposed' } }
+    });
+
+    quoted.experienceProgram.tracks[1].clips[0].anchor.quoteStart = 'PRIVATE_NONMATCHING_TEXT';
+    await expect(exportPortableSequence(quoted))
+      .rejects.toMatchObject({ code: 'PORTABLE_SOURCE_QUOTE' });
+  });
+
   it('refuses malformed, unknown, and oversized transfer documents', async () => {
     await expect(inspectPortableSequence('{')).rejects.toMatchObject({ code: 'PORTABLE_JSON' });
     await expect(inspectPortableSequence('x'.repeat(2_000_001)))

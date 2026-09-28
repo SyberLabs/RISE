@@ -8,8 +8,10 @@ import { validateExperienceProgram } from './experience-program.js';
 import { parseLibraryExtent } from './library-extent.js';
 import { READING_PACE } from './reading-limits.js';
 import { contentHashOf } from './render/hash.js';
-import { assertResolvedProgramQuotations, resolveProgramLibrarySources } from './scriptorium-resolve.js';
+import { resolveProgramLibrarySources } from './scriptorium-resolve.js';
+import { resolveSourceSpan } from './source-span.js';
 import { validateWorkshopProject } from './workshop-project.js';
+import { normalizeFieldStyle } from './visual-style-definitions.js';
 
 export const PORTABLE_SEQUENCE_SCHEMA = 'rise.portable-sequence.v1';
 export const PORTABLE_SEQUENCE_MAX_BYTES = 2_000_000;
@@ -66,8 +68,16 @@ function portableProgram(value) {
     refuse('PORTABLE_CAPABILITY', 'Personal media or narration cannot travel in this file.');
   }
   for (const track of program.tracks.filter(item => item.kind === 'visual')) {
-    for (const { cue } of track.clips) {
+    for (const cue of [track.fallback, ...track.clips.map(clip => clip.cue)]) {
+      const config = cue.kind === 'field' ? cue.config : null;
+      const style = cue.kind === 'field' && cue.renderer !== 'living-flame'
+        ? normalizeFieldStyle(cue.renderer, config) : null;
       if (!['still', 'focal', 'field', 'procedural'].includes(cue.kind)
+        || (cue.kind === 'focal' && Object.keys(cue.focal || {}).length > 0)
+        || (style && (style.type === 'personal'
+          || !config || typeof config !== 'object' || Array.isArray(config)
+          || Object.entries(config).some(([key, entry]) =>
+            JSON.stringify(style[key]) !== JSON.stringify(entry))))
         || (cue.kind === 'procedural' && (
           !cue.collections.every(id => PROCEDURAL_IDS.has(id))
           || (cue.engines || []).some(id => !PROCEDURAL_IDS.has(id))
@@ -96,7 +106,22 @@ async function admittedSources(program) {
     refuse('PORTABLE_SOURCE_UNAVAILABLE',
       `The Archive reading cannot load: ${[...missing, ...refused].join(', ')}.`);
   }
-  assertResolvedProgramQuotations(program, sources);
+  const sourceMap = new Map(sources.map(source => [source.id, source]));
+  for (const track of program.tracks) {
+    for (const clip of track.clips) {
+      const anchor = clip.anchor;
+      if (!anchor.quoteStart) continue;
+      if (anchor.sourceIds.length !== 1) {
+        refuse('PORTABLE_SOURCE_QUOTE', 'A quoted score anchor needs one exact Archive reading.');
+      }
+      try {
+        resolveSourceSpan(anchor, sourceMap.get(anchor.sourceIds[0]).data);
+      } catch {
+        refuse('PORTABLE_SOURCE_QUOTE',
+          'A quoted score anchor does not match its exact Archive reading.');
+      }
+    }
+  }
   return sources;
 }
 

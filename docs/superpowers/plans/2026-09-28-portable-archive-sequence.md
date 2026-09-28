@@ -4,7 +4,7 @@
 
 **Goal:** A saved authored sequence using only built-in Archive text and built-in audiovisual capabilities can be exported, inspected, accepted, and played in another browser without an account.
 
-**Architecture:** One `rise.portable-sequence.v1` envelope wraps the existing Experience Program v1. A small core module re-derives Archive work identity and rights, resolves exact extents, checks source text equality at export, admits the program through the existing context gate, and creates a proposed Workshop project at import. Vault owns file selection, visible review, explicit acceptance, local save, and download. No source body or media bytes enter the file.
+**Architecture:** One `rise.portable-sequence.v1` envelope wraps the existing Experience Program v1. A small core module re-derives Archive work identity and rights, resolves exact extents, checks source text equality at export, admits the program through the existing context gate, and creates a proposed Workshop project at import. Vault owns file selection, visible review, explicit acceptance, local save, and download. The file carries score titles and bounded Archive quote anchors, but no separate source body or local media bytes.
 
 **Tech Stack:** Vite vanilla JavaScript, Vitest, Playwright, Web Crypto, existing Archive/Scriptorium/Workshop modules.
 

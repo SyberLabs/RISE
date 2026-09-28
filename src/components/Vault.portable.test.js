@@ -86,6 +86,25 @@ it('rejects a duplicate import and keeps the existing sequence unchanged', async
   vault.destroy();
 });
 
+it('does not overwrite the first import when two Vaults accept the same score together', async () => {
+  const { text } = await bundle();
+  const alternate = JSON.parse(text);
+  alternate.title = 'Second title';
+  const firstContainer = document.createElement('div');
+  const secondContainer = document.createElement('div');
+  document.body.append(firstContainer, secondContainer);
+  const first = new Vault(firstContainer, { initialSection: 'custom' });
+  const second = new Vault(secondContainer, { initialSection: 'custom' });
+  await first.stagePortableSequence(text);
+  await second.stagePortableSequence(JSON.stringify(alternate));
+  await Promise.all([first.acceptPortableSequence(), second.acceptPortableSequence()]);
+  expect(MemoryCore.getWorkshopBlueprints()).toHaveLength(1);
+  expect(MemoryCore.getWorkshopBlueprints()[0].project.title).toBe('From the Archive');
+  expect(secondContainer.textContent).toContain('already in this browser');
+  first.destroy();
+  second.destroy();
+});
+
 it('shows a refusal without writing a malformed sequence', async () => {
   const container = document.createElement('div');
   document.body.append(container);

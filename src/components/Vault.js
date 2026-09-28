@@ -210,7 +210,7 @@ export class Vault {
             <input data-portable-file type="file" accept=".json,application/json"
               ${this.portableBusy ? 'disabled' : ''}>
           </label>
-          <p class="text-fog">A portable score names an exact Archive edition. It carries no source text or local media. Its rights basis is United States public domain.</p>
+          <p class="text-fog">A portable score names an exact Archive edition. It includes authored labels and visual settings, and may include short Archive quotes as position anchors (up to 500 characters each). It does not bundle the full reading or local media. Its rights basis is United States public domain.</p>
           ${this.pendingPortable ? `
             <div class="vault-portable-review">
               <h3>${escapeHtml(this.pendingPortable.title)}</h3>
@@ -394,7 +394,7 @@ export class Vault {
            target.disabled = true;
            const text = await exportPortableSequence(bp.project || bp, { creatorCredit });
            downloadJsonFile(`${bp.id}.portable-sequence.json`, text);
-           if (status) status.textContent = 'Portable score exported. Only Archive references and the score are in the file.';
+           if (status) status.textContent = 'Portable score exported. Review its authored labels and any short Archive quote anchors before sharing.';
          } catch (error) {
            if (status) status.textContent = error.message || 'Could not export this score.';
          } finally { target.disabled = false; }
@@ -453,11 +453,16 @@ export class Vault {
     this.portableBusy = true;
     this.updateContent();
     try {
-      const saved = await MemoryCore.saveWorkshopBlueprintAsync(candidate.project);
+      const saved = await MemoryCore.saveWorkshopBlueprintAsync(candidate.project, { createOnly: true });
       if (saved?.id) this.pendingPortable = null;
-      this.portableNotice = saved?.id
-        ? 'Sequence kept in this browser. Preview / vary it in Workshop, or Launch to play.'
-        : 'Could not keep this sequence. Try again.';
+      if (saved?.id) {
+        this.portableNotice = 'Sequence kept in this browser. Preview / vary it in Workshop, or Launch to play.';
+      } else if (MemoryCore.getWorkshopBlueprints().some(item => item.id === candidate.id)) {
+        this.pendingPortable = null;
+        this.portableNotice = 'This sequence is already in this browser.';
+      } else {
+        this.portableNotice = 'Could not keep this sequence. Try again.';
+      }
     } catch (error) {
       this.portableNotice = error.message || 'Could not keep this sequence. Try again.';
     }
