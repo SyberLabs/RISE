@@ -116,6 +116,10 @@ history, not a distinction; read the status column instead.
 | [vision/JOURNEYS-SPEC.md](vision/JOURNEYS-SPEC.md) | Intent | Journeys are on ice - their scores quote editions the canon no longer serves. Re-anchoring is an editorial act, not a repair. |
 | [specs/BOOK-VI-PROCEDURAL-WORKS.md](specs/BOOK-VI-PROCEDURAL-WORKS.md) | Record | Milton's Book VI mapped to the engines in `src/visuals/paradise_lost/`, for the withdrawn Journey. |
 | [vision/DREAMS.md](vision/DREAMS.md) | Intent | Unscheduled experiments. Explicitly not a plan. |
+| [journey-editorial/editorial-work.md](journey-editorial/editorial-work.md) | Draft | Unpublished source-bound Journey, editorial status, and decisions. |
+| [journey-editorial/sources.md](journey-editorial/sources.md) | Evidence | Edition identities, excerpt anchors, and checksum evidence. |
+| [journey-editorial/review.md](journey-editorial/review.md) | Review | Scope-limited review and validation evidence. |
+| [journey-editorial/validation.md](journey-editorial/validation.md) | Validation | Draft launch, source, checksum, and certification boundaries. |
 
 ---
 

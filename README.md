@@ -16,6 +16,7 @@
 - **Chapel** – the complete Douay-Rheims Bible (73 books), plus the Rosary and Stations of the Cross paced by a liturgy engine.
 - **Workshop and Vault** – author your own audiovisual compositions and save them in the browser.
 - **AI reading request** (optional) – describe what you want to read and a bounded decision model picks a book and presentation from the held catalog. The server-side migration from Jev to Kev is in progress; no live Kev endpoint has been confirmed.
+- **Journeys (unpublished draft)** – [Heaven and Household](docs/journey-editorial/editorial-work.md) is source-bound against Milton and Bryant and remains outside the public catalog.
 
 Reading runs entirely in the browser. Your files and saved work stay in browser storage. See [Privacy](PRIVACY.md).
 
