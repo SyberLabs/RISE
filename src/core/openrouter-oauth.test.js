@@ -53,9 +53,11 @@ describe('Connect OpenRouter (PKCE S256)', () => {
   });
 
   it('strips the code from the address bar before exchanging it', () => {
-    const history = { replaceState: vi.fn() };
+    // A real history rewrites the location it was given, as the browser does.
+    const location = callbackLocation('s', { code: 'abc12345' });
+    const history = { replaceState: vi.fn((_state, _title, url) => { location.pathname = url; location.href = `${ORIGIN}${url}`; }) };
     const storage = memoryStorage();
-    const taken = takeOpenRouterReturn(callbackLocation('s', { code: 'abc12345' }), history, storage);
+    const taken = takeOpenRouterReturn(location, history, storage);
     expect(taken).toEqual({ callback: { code: 'abc12345', state: 's' } });
     expect(history.replaceState).toHaveBeenCalledWith(null, '', '/');
     const elsewhere = vi.fn();

@@ -14,8 +14,9 @@ export function takeOpenRouterReturn(location = globalThis.location, history = g
   storage = globalThis.sessionStorage) {
   const match = /^\/connect\/openrouter(?:\/([^/]*))?\/?$/u.exec(location.pathname);
   if (match) {
+    const callback = { code: new URL(location.href).searchParams.get('code'), state: match[1] || null };
     history.replaceState(null, '', '/');
-    return { callback: { code: new URL(location.href).searchParams.get('code'), state: match[1] || null } };
+    return { callback };
   }
   try {
     if (storage.getItem(PENDING_KEY) === null) return null;
