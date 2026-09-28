@@ -349,6 +349,41 @@ export function livingTextAppearance(signal, intensity = 1, options = {}) {
     };
 }
 
+/**
+ * Keep accent Living Text readable over the Chamber's 80% ink scrim, even
+ * for a saved accent whose original hue does not meet text contrast by itself.
+ * Mix toward the system's light ink only as far as needed, preserving the
+ * accent's identity while guaranteeing the requested ratio against the
+ * worst-case white artwork behind that scrim.
+ */
+export function ensureTextContrast(rgb, backgroundRgb, minimumRatio = 4.5, targetRgb = [238, 240, 255]) {
+    const linear = channel => {
+        const value = channel / 255;
+        return value <= 0.04045 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4;
+    };
+    const luminance = color => (
+        0.2126 * linear(color[0]) + 0.7152 * linear(color[1]) + 0.0722 * linear(color[2])
+    );
+    const bg = luminance(backgroundRgb);
+    const contrast = color => {
+        const fg = luminance(color);
+        return (Math.max(fg, bg) + 0.05) / (Math.min(fg, bg) + 0.05);
+    };
+    if (contrast(rgb) >= minimumRatio) return [...rgb];
+
+    let low = 0;
+    let high = 1;
+    for (let i = 0; i < 16; i++) {
+        const mix = (low + high) / 2;
+        const candidate = rgb.map((channel, index) => (
+            Math.round(channel + (targetRgb[index] - channel) * mix)
+        ));
+        if (contrast(candidate) >= minimumRatio) high = mix;
+        else low = mix;
+    }
+    return rgb.map((channel, index) => Math.round(channel + (targetRgb[index] - channel) * high));
+}
+
 function ema(values, alphas) {
     const out = new Array(values.length);
     let acc = values[0];
