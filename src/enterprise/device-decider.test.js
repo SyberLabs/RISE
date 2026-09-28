@@ -34,7 +34,7 @@ function fakeWorker({ answer, fail } = {}) {
             queueMicrotask(() => {
                 if (message.type === 'load') {
                     if (fail) worker.onmessage({ data: { type: 'failed', code: fail } });
-                    else worker.onmessage({ data: { type: 'ready', info: { run: 'jaredpalmer/kev-4b@4bc64c6aa', revision: 'r1', adapter: { vendor: 'nvidia' } } } });
+                    else worker.onmessage({ data: { type: 'ready', info: { run: 'jaredpalmer/kev-4b@139fdd94f1b6a6ad80cc15e08fcb99cac885a101', revision: 'r1', adapter: { vendor: 'nvidia' } } } });
                 }
                 if (message.type === 'ask') {
                     const response = answer?.(message.request);
@@ -57,6 +57,15 @@ describe('device model pins', () => {
         expect(runMatches('someone/kev-4b@4bc64c6', 'jaredpalmer/kev-4b@4bc64c6')).toBe(false);
         expect(runMatches('jaredpalmer/kev-4b', 'jaredpalmer/kev-4b@4bc64c6')).toBe(false);
         expect(runMatches(undefined, 'jaredpalmer/kev-4b@4bc64c6')).toBe(false);
+    });
+
+    it('pins Kev-4B on the device to the checkpoint the server Kev serves', () => {
+        const serving = readFileSync(join(ROOT, 'deploy/kev/modal_app.py'), 'utf8');
+        const revision = serving.match(/^KEV_MODEL_REVISION = "([0-9a-f]{40})"$/mu)?.[1];
+        expect(revision).toBeTruthy();
+        expect(DEVICE_MODELS['kev-4b'].run).toBe(`jaredpalmer/kev-4b@${revision}`);
+        expect(runMatches(`jaredpalmer/kev-4b@${revision}`, DEVICE_MODELS['kev-4b'].run)).toBe(true);
+        expect(runMatches('jaredpalmer/kev-4b@4bc64c6f00d', DEVICE_MODELS['kev-4b'].run)).toBe(false);
     });
 
     it('pins the runtime binary the lockfile installed', () => {
@@ -96,7 +105,7 @@ describe('device decider', () => {
         const context = room().prepare(atlas).context;
         const result = await device.decide(context);
         expect(result.raw).toEqual({ action: 'show', cardId: context.structure.candidates[0].id, layout: 'quote' });
-        expect(result.meta).toMatchObject({ provider: DEVICE_PROVIDER, model: 'jaredpalmer/kev-4b@4bc64c6aa', confidence: 0.7 });
+        expect(result.meta).toMatchObject({ provider: DEVICE_PROVIDER, model: 'jaredpalmer/kev-4b@139fdd94f1b6a6ad80cc15e08fcb99cac885a101', confidence: 0.7 });
         const request = JSON.stringify(worker.sent.find(message => message.type === 'ask').request);
         expect(request).not.toContain('card:');
         expect(request).not.toContain('12.4');
