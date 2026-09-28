@@ -125,21 +125,35 @@ describe('Cloudflare API Worker', () => {
     expect(env.DECISION_LIMITER.limit).toHaveBeenCalledOnce();
   });
 
-  it('serves the ids-only enterprise decision without a model key', async () => {
-    const response = await worker.fetch(new Request(`${SITE}/api/enterprise-decision`, {
-      method: 'POST',
-      headers: { Origin: SITE, 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        window: 'Atlas renewal price',
-        speaker: 'presenter',
-        mode: 'prepared',
+  it('routes the enterprise decision through the decision provider and limiter', async () => {
+    const context = {
+      schema: 'rise.enterprise-context.v1',
+      requestId: 'room1:1',
+      evidence: { window: 'Atlas renewal price', speaker: 'presenter', mode: 'prepared' },
+      structure: {
         candidates: [{ id: 'a', title: 'Atlas renewal', score: 0.9, layouts: ['quote'], layout: 'quote' }],
         rail: []
-      })
-    }), {});
+      },
+      authority: { actions: ['show', 'hold', 'dismiss'] }
+    };
+    const enterpriseRequest = () => new Request(`${SITE}/api/enterprise-decision`, {
+      method: 'POST',
+      headers: { Origin: SITE, 'Content-Type': 'application/json', 'CF-Connecting-IP': '192.0.2.1' },
+      body: JSON.stringify(context)
+    });
+    const fetcher = vi.fn(async () => Response.json({
+      provider: 'TypeSafe', model: 'typesafe/jev-1.13',
+      answers: { rail_action: { type: 'choice', choice: 'show_1_quote', confidence: 0.9 } }
+    }));
+    vi.stubGlobal('fetch', fetcher);
 
+    expect((await worker.fetch(enterpriseRequest(), {})).status).toBe(503);
+    expect((await worker.fetch(enterpriseRequest(), environment(false))).status).toBe(429);
+    expect(fetcher).not.toHaveBeenCalled();
+
+    const response = await worker.fetch(enterpriseRequest(), environment());
     expect(response.status).toBe(200);
-    expect(await response.json()).toEqual({ action: 'show', cardId: 'a', layout: 'quote' });
+    expect(await response.json()).toMatchObject({ requestId: 'room1:1', action: 'show', cardId: 'a', layout: 'quote' });
   });
 
   it.each([
