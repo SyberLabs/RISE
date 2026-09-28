@@ -940,9 +940,9 @@ of `settled`, `open`, `deferred`, or `reversed`.
   a live rail; serving the runtime binary from this site, which is over the
   static asset size limit.
 - **Why:** the transcript and the decision stay on the presenter's machine,
-  with nothing to install. The device checkpoint (`kev-4b@4bc64c6`) is not the
-  server's pinned revision, so agreement between them is measured, not
-  assumed.
+  with nothing to install. Kev-4B on the device is pinned to the checkpoint
+  the server Kev serves (`deploy/kev/modal_app.py`), and a test keeps the two
+  pins equal.
 - **Status:** open. Loading and inference on Windows GPUs have not been run;
   the published kev.js bundles were tested by their authors on Chrome for
   macOS only. Hosts other than the Cloudflare Worker serve the worker script
