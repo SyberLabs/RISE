@@ -1,3 +1,4 @@
+import { readdirSync, readFileSync } from 'node:fs';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import worker from './index.mjs';
 
@@ -166,5 +167,16 @@ describe('Cloudflare API Worker', () => {
     expect(response.headers.get('content-type')).toContain('application/json');
     expect(response.headers.get('cache-control')).toBe('no-store');
     expect(await response.json()).toEqual({ error: { code: 'NOT_FOUND', message: 'API route not found.' } });
+  });
+});
+
+describe('Workers runtime compatibility', () => {
+  it('never asks fetch for redirect "error", which the Workers runtime rejects', () => {
+    // workerd throws TypeError for redirect: 'error'; mocked fetch in unit tests hides it.
+    const files = ['worker', 'netlify/functions', 'server'].flatMap(dir => readdirSync(dir)
+      .filter(name => /\.m?js$/.test(name) && !name.includes('.test.'))
+      .map(name => `${dir}/${name}`));
+    const offenders = files.filter(file => /redirect:\s*['"]error['"]/.test(readFileSync(file, 'utf8')));
+    expect(offenders).toEqual([]);
   });
 });

@@ -93,7 +93,7 @@ async function reserve(input, request, env, signal) {
   const minute = Math.floor(Date.now() / 60000);
   const hash = await bounded(pseudonym(quotaAddress(request.headers.get('CF-Connecting-IP').trim()), day, env.PERSONAL_PIECE_IP_SECRET), signal);
   const keys = [`personal:v1:request:${input.requestId.toLowerCase()}`, `personal:v1:day:${day}`, `personal:v1:ip:${day}:${hash}`, `personal:v1:minute:${minute}:${hash}`];
-  const response = await bounded(fetch(env.UPSTASH_REDIS_REST_URL, { method: 'POST', redirect: 'error', headers: { Authorization: `Bearer ${env.UPSTASH_REDIS_REST_TOKEN}`, 'Content-Type': 'application/json' }, body: JSON.stringify(['EVAL', RESERVE_SCRIPT, '4', ...keys]), signal }), signal);
+  const response = await bounded(fetch(env.UPSTASH_REDIS_REST_URL, { method: 'POST', redirect: 'manual', headers: { Authorization: `Bearer ${env.UPSTASH_REDIS_REST_TOKEN}`, 'Content-Type': 'application/json' }, body: JSON.stringify(['EVAL', RESERVE_SCRIPT, '4', ...keys]), signal }), signal);
   if (!response.ok) { void response.body?.cancel(); throw new Error('quota'); }
   const result = await readJson(response, 4096, signal);
   if (result.error || ![1, 0, -1].includes(result.result)) throw new Error('quota');
@@ -137,7 +137,7 @@ export async function handlePersonalPiece(request, env) {
     if (reservation === -1) return failure(409, 'DUPLICATE_REQUEST', 'This request was already attempted. Its response cannot be recovered; no new reading was generated.');
     if (reservation === 0) return failure(429, 'RATE_LIMITED', 'The personal reading limit has been reached.');
     try {
-      const response = await bounded(fetch('https://openrouter.ai/api/v1/chat/completions', { method: 'POST', redirect: 'error', headers: { Authorization: `Bearer ${env.OPENROUTER_API_KEY}`, 'Content-Type': 'application/json' }, body, signal }), signal);
+      const response = await bounded(fetch('https://openrouter.ai/api/v1/chat/completions', { method: 'POST', redirect: 'manual', headers: { Authorization: `Bearer ${env.OPENROUTER_API_KEY}`, 'Content-Type': 'application/json' }, body, signal }), signal);
       if (!response.ok) { void response.body?.cancel(); throw new Error('provider'); }
       const result = await readJson(response, 32768, signal);
       const choice = result.choices?.[0];
