@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import {
+    ensureTextContrast,
     livingTextAppearance,
     planFlame,
     planInterlocution,
@@ -13,13 +14,36 @@ import { CHAMBER_ACCENT_TOKENS } from './chamber-accent.js';
 
 const mkAtoms = (...contents) => contents.map(c => ({ content: c, duration: 300 }));
 
+describe('ensureTextContrast', () => {
+    it('lifts a low-contrast retained accent only enough to meet 4.5:1', () => {
+        const background = [56, 55, 72]; // 80% Atlas ink over worst-case white artwork
+        const original = [60, 97, 170]; // saved Cobalt accent
+        const result = ensureTextContrast(original, background);
+        const luminance = color => color.map(channel => {
+            const value = channel / 255;
+            return value <= 0.04045 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4;
+        }).reduce((sum, value, index) => sum + value * [0.2126, 0.7152, 0.0722][index], 0);
+        const ratio = (Math.max(luminance(result), luminance(background)) + 0.05)
+            / (Math.min(luminance(result), luminance(background)) + 0.05);
+
+        expect(result).not.toEqual(original);
+        expect(result[2]).toBeGreaterThan(result[1]);
+        expect(result[1]).toBeGreaterThan(result[0]);
+        expect(ratio).toBeGreaterThanOrEqual(4.5);
+    });
+
+    it('leaves an accent alone when it already meets the requested ratio', () => {
+        expect(ensureTextContrast([255, 208, 130], [56, 55, 72])).toEqual([255, 208, 130]);
+    });
+});
+
 describe('livingTextAppearance', () => {
     it('preserves the ordinary warm text palette', () => {
         expect(livingTextAppearance({ valence: 1, arousal: 1 }, 1)).toEqual({
             color: 'rgb(255, 208, 131)',
             rgb: [255, 208, 131],
-            glowRadius: 48,
-            glowAlpha: 0.6
+            glowRadius: 0,
+            glowAlpha: 0
         });
     });
 
@@ -27,8 +51,8 @@ describe('livingTextAppearance', () => {
         expect(livingTextAppearance({ valence: -1, arousal: 1 }, 0)).toEqual({
             color: 'rgb(232, 232, 236)',
             rgb: [232, 232, 236],
-            glowRadius: 8,
-            glowAlpha: 0.15
+            glowRadius: 0,
+            glowAlpha: 0
         });
     });
 
@@ -36,8 +60,8 @@ describe('livingTextAppearance', () => {
         expect(livingTextAppearance({ valence: -4, arousal: 5 }, 2)).toEqual({
             color: 'rgb(141, 173, 255)',
             rgb: [141, 173, 255],
-            glowRadius: 48,
-            glowAlpha: 0.6
+            glowRadius: 0,
+            glowAlpha: 0
         });
     });
 

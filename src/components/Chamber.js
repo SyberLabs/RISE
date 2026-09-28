@@ -73,7 +73,7 @@ export const ICONS = Object.freeze({
   arrow: svg('<path d="M5 12h14M13 6l6 6-6 6"/>')
 });
 
-import { livingTextAppearance, scoreAtoms, planInterlocution } from '../core/conductor.js';
+import { livingTextAppearance, ensureTextContrast, scoreAtoms, planInterlocution } from '../core/conductor.js';
 import { cueForAtom, VisualScheduleController } from '../core/visual-scheduler.js';
 import {
   authoredVisualTransition,
@@ -3128,8 +3128,14 @@ export class Chamber {
       atomDisplay.style.removeProperty('text-shadow');
       return;
     }
-    atomDisplay.style.color = appearance.color;
-    const [r, g, b] = appearance.rgb;
+    // The scrim is sized for white artwork, but retained accents such as
+    // Cobalt can still fall below 4.5:1 on it. Preserve the accent hue while
+    // mixing only as far toward Atlas vellum as the contrast floor requires.
+    const visibleRgb = accentRgb
+      ? ensureTextContrast(appearance.rgb, [56, 55, 72])
+      : appearance.rgb;
+    atomDisplay.style.color = `rgb(${visibleRgb[0]}, ${visibleRgb[1]}, ${visibleRgb[2]})`;
+    const [r, g, b] = visibleRgb;
     atomDisplay.style.textShadow = `0 0 ${appearance.glowRadius.toFixed(0)}px rgba(${r}, ${g}, ${b}, ${appearance.glowAlpha.toFixed(3)})`;
   }
 

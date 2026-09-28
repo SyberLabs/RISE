@@ -306,7 +306,6 @@ function preserveAccentDominance(base, rgb) {
 export function livingTextAppearance(signal, intensity = 1, options = {}) {
     const strength = clamp(Number(intensity) || 0, 0, 1);
     const valence = clamp(Number(signal?.valence) || 0, -1, 1);
-    const arousal = clamp(Number(signal?.arousal ?? 0.3) || 0, 0, 1);
     const neutral = [232, 232, 236];
     const pole = valence >= 0 ? [255, 208, 130] : [140, 172, 255];
     const mood = Math.tanh(Math.abs(valence) * 2.6);
@@ -335,12 +334,54 @@ export function livingTextAppearance(signal, intensity = 1, options = {}) {
     return {
         color: `rgb(${rgb[0]}, ${rgb[1]}, ${rgb[2]})`,
         rgb,
-        glowRadius: round3(8 + arousal * 40 * strength),
-        glowAlpha: round3(0.15 + arousal * 0.45 * strength)
+        // NO HALO. Arousal used to widen a glow of the word's own colour
+        // behind it, up to 48px at 60% alpha. A glow of the ink's own hue
+        // adds no contrast, it only blurs the letterforms and lays a
+        // coloured cloud behind "Read plainly", whose promise is nothing
+        // behind the words. The colour shift above carries the signal;
+        // legibility over imagery is the scrim's job, not the glyph's.
+        // Kept as zeroes so every caller still writes a well-formed value.
+        glowRadius: 0,
+        glowAlpha: 0
         // fitMix, fitSaturation and fitBrightness stood here and drove a flat
         // wash over the fill. Living Text colours the text; a generated field
         // is tinted through its engine's own palette, never by being covered.
     };
+}
+
+/**
+ * Keep accent Living Text readable over the Chamber's 80% ink scrim, even
+ * for a saved accent whose original hue does not meet text contrast by itself.
+ * Mix toward the system's light ink only as far as needed, preserving the
+ * accent's identity while guaranteeing the requested ratio against the
+ * worst-case white artwork behind that scrim.
+ */
+export function ensureTextContrast(rgb, backgroundRgb, minimumRatio = 4.5, targetRgb = [238, 240, 255]) {
+    const linear = channel => {
+        const value = channel / 255;
+        return value <= 0.04045 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4;
+    };
+    const luminance = color => (
+        0.2126 * linear(color[0]) + 0.7152 * linear(color[1]) + 0.0722 * linear(color[2])
+    );
+    const bg = luminance(backgroundRgb);
+    const contrast = color => {
+        const fg = luminance(color);
+        return (Math.max(fg, bg) + 0.05) / (Math.min(fg, bg) + 0.05);
+    };
+    if (contrast(rgb) >= minimumRatio) return [...rgb];
+
+    let low = 0;
+    let high = 1;
+    for (let i = 0; i < 16; i++) {
+        const mix = (low + high) / 2;
+        const candidate = rgb.map((channel, index) => (
+            Math.round(channel + (targetRgb[index] - channel) * mix)
+        ));
+        if (contrast(candidate) >= minimumRatio) high = mix;
+        else low = mix;
+    }
+    return rgb.map((channel, index) => Math.round(channel + (targetRgb[index] - channel) * high));
 }
 
 function ema(values, alphas) {

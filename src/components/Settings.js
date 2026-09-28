@@ -61,6 +61,9 @@ const SESSION_SCOPE = 'session';
  */
 const BAR_SCOPE = 'bar';
 
+/** The accents the panel offers: the default and three that read as ink. */
+const OFFERED_ACCENTS = Object.freeze(['default', 'slate', 'amber', 'gecko']);
+
 const VOLUME_PRESETS = Object.freeze([
     Object.freeze({ value: 0, label: 'Mute' }),
     Object.freeze({ value: 50, label: '50%' }),
@@ -103,25 +106,26 @@ export class Settings {
         if (this.inBar) return this.renderBar();
         const backLabel = this.onClose ? 'Back' : 'Home';
         const backAria = this.onClose ? 'Back' : 'Back to Home';
+        // One main landmark per page: the full panel is the page's main
+        // region; opened over a reading it sits inside the Reader's own.
+        const region = this.inSession ? 'div' : 'main';
         this.container.innerHTML = `
-      <form class="settings" role="main" aria-labelledby="settings-title">
+      <div class="settings">
         <a href="#settings-content" class="skip-link">Skip to settings</a>
 
-        <!-- Header -->
         ${roomHeader({ back: backLabel, backLabel: backAria, backClass: 'settings-back' })}
 
-        <!-- Content -->
-        <div class="settings-content" id="settings-content">
+        <${region} class="settings-content" id="settings-content" aria-labelledby="settings-title">
           <h1 id="settings-title" class="settings-title room-title">Settings</h1>
 
-          <!-- Display Section -->
+          <form class="settings-form">
           <section class="settings-section" aria-labelledby="display-heading">
-            <h2 id="display-heading" class="settings-section-title text-fog">Display</h2>
+            <h2 id="display-heading" class="settings-section-title">Display</h2>
 
             <div class="settings-row">
               <div class="settings-label-group">
-                <span class="settings-label" id="font-size-label">Size</span>
-                <p class="settings-hint text-mist" id="font-size-hint" ${resolveFontSize(this.settings.fontSize) === 'fit' ? '' : 'hidden'}>
+                <span class="settings-label" id="font-size-label">Text size</span>
+                <p class="settings-hint" id="font-size-hint" ${resolveFontSize(this.settings.fontSize) === 'fit' ? '' : 'hidden'}>
                   ${this.fontSizeHint()}
                 </p>
               </div>
@@ -132,18 +136,19 @@ export class Settings {
 
             <div class="settings-row">
               <div class="settings-label-group">
-                <span class="settings-label" id="chamber-face-label">Reader face</span>
-                <p class="settings-hint text-mist">Live Reader stream only.</p>
+                <span class="settings-label" id="chamber-face-label">Reader typeface</span>
+                <p class="settings-hint">The typeface for words in a streamed reading. Page view keeps its own.</p>
               </div>
               <div class="settings-control" role="radiogroup" aria-labelledby="chamber-face-label">
                 ${this.renderChamberFaceRadios()}
-                <p class="settings-fail" id="chamber-face-fail" hidden>Face did not take.</p>
+                <p class="settings-fail" id="chamber-face-fail" hidden>Typeface did not take.</p>
               </div>
             </div>
 
             <div class="settings-row">
               <div class="settings-label-group">
                 <span class="settings-label" id="chamber-accent-label">Accent</span>
+                <p class="settings-hint">The highlight colour in a reading and its setup, such as the progress bar.</p>
               </div>
               <div class="settings-control" role="radiogroup" aria-labelledby="chamber-accent-label">
                 ${this.renderChamberAccentRadios()}
@@ -151,99 +156,29 @@ export class Settings {
               </div>
             </div>
 
-            <div class="settings-row">
-              <div class="settings-label-group">
-                <label class="settings-label" for="${this.settingInputId('chamberMask')}">Mask</label>
-                <p class="settings-hint text-mist">
-                  The same as Gallery in the word under Presentation in the Reader setup.
-                  Thick word stream. Glass stays off. Phrase and sentence are unchanged.
-                </p>
-              </div>
-              <label class="toggle">
-                <input
-                  id="${this.settingInputId('chamberMask')}"
-                  type="checkbox"
-                  data-setting="chamberMask"
-                  ${this.settings.chamberMask === true ? 'checked' : ''}
-                />
-                <span class="toggle-switch"></span>
-              </label>
-            </div>
-
-            <div class="settings-row">
-              <label class="settings-label" for="${this.settingInputId('showProgress')}">Show progress</label>
-              <label class="toggle">
-                <input
-                  id="${this.settingInputId('showProgress')}"
-                  type="checkbox"
-                  data-setting="showProgress"
-                  ${this.settings.showProgress ? 'checked' : ''}
-                />
-                <span class="toggle-switch"></span>
-              </label>
-            </div>
-
-            <div class="settings-row">
-              <label class="settings-label" for="${this.settingInputId('showDuration')}">Show duration</label>
-              <label class="toggle">
-                <input
-                  id="${this.settingInputId('showDuration')}"
-                  type="checkbox"
-                  data-setting="showDuration"
-                  ${this.settings.showDuration ? 'checked' : ''}
-                />
-                <span class="toggle-switch"></span>
-              </label>
-            </div>
-
-            <div class="settings-row">
-              <div class="settings-label-group">
-                <label class="settings-label" for="${this.settingInputId('showArtworkLabels')}">Artwork labels</label>
-                <p class="settings-hint text-mist">
-                  Show the title and artist while a sourced work is visible.
-                  Credits required by a work's license always remain visible.
-                </p>
-              </div>
-              <label class="toggle">
-                <input
-                  id="${this.settingInputId('showArtworkLabels')}"
-                  type="checkbox"
-                  data-setting="showArtworkLabels"
-                  ${this.settings.showArtworkLabels !== false ? 'checked' : ''}
-                />
-                <span class="toggle-switch"></span>
-              </label>
-            </div>
+            ${this.toggleRow('chamberMask', 'Show imagery through words',
+                'In a Gallery reading shown one word at a time in the Thick typeface at Fit size, each word becomes a window onto the imagery.',
+                this.settings.chamberMask === true)}
+            ${this.toggleRow('showProgress', 'Show progress',
+                'A thin bar along the bottom of a reading.',
+                Boolean(this.settings.showProgress))}
+            ${this.toggleRow('showDuration', 'Show time',
+                'Elapsed and total time in the reading controls.',
+                Boolean(this.settings.showDuration))}
+            ${this.toggleRow('showArtworkLabels', 'Artwork labels',
+                'Title and artist while a sourced work is on screen. Credits a licence requires always stay visible.',
+                this.settings.showArtworkLabels !== false)}
           </section>
 
-          <!-- Audio Section -->
           <section class="settings-section" aria-labelledby="audio-heading">
-            <h2 id="audio-heading" class="settings-section-title text-fog">Audio</h2>
+            <h2 id="audio-heading" class="settings-section-title">Sound</h2>
 
-            ${this.inSession ? '' : `
-            <div class="settings-row">
-              <div class="settings-label-group">
-                <label class="settings-label" for="${this.settingInputId('enableAmbient')}">Lobby drone</label>
-                <p class="settings-hint text-mist">
-                  A low drone between sessions, on Home and in the
-                  other rooms. Off by default — nothing plays until you
-                  ask for it.
-                </p>
-              </div>
-              <label class="toggle">
-                <input
-                  id="${this.settingInputId('enableAmbient')}"
-                  type="checkbox"
-                  data-setting="enableAmbient"
-                  ${this.settings.enableAmbient ? 'checked' : ''}
-                />
-                <span class="toggle-switch"></span>
-              </label>
-            </div>
-            `}
+            ${this.inSession ? '' : this.toggleRow('enableAmbient', 'Ambient sound',
+                'A quiet drone on Home and in the other rooms. It never plays during a reading, and is off until you turn it on.',
+                Boolean(this.settings.enableAmbient))}
 
             <div class="settings-row">
-              <label class="settings-label" for="master-volume">Master volume</label>
+              <label class="settings-label" for="master-volume">Volume</label>
               <div class="settings-control slider-container">
                 <input
                   type="range"
@@ -256,102 +191,77 @@ export class Settings {
                   aria-valuemin="0"
                   aria-valuemax="100"
                 />
-                <span class="slider-value font-mono" id="volume-value">
+                <span class="slider-value" id="volume-value">
                   ${Math.round((this.settings.masterVolume ?? 0.75) * 100)}%
                 </span>
               </div>
             </div>
-
-            <div class="settings-row">
-              <label class="settings-label" for="${this.settingInputId('enableBinaural')}">Binaural tones</label>
-              <label class="toggle">
-                <input
-                  id="${this.settingInputId('enableBinaural')}"
-                  type="checkbox"
-                  data-setting="enableBinaural"
-                  ${this.settings.enableBinaural ? 'checked' : ''}
-                />
-                <span class="toggle-switch"></span>
-              </label>
-            </div>
           </section>
 
-          <!-- Safety Section -->
           <section class="settings-section" aria-labelledby="safety-heading">
-            <h2 id="safety-heading" class="settings-section-title text-fog">Safety</h2>
+            <h2 id="safety-heading" class="settings-section-title">Safety</h2>
 
-            <div class="settings-row">
-              <div class="settings-label-group">
-                <label class="settings-label" for="${this.settingInputId('photosensitivityMode')}">Photosensitivity mode</label>
-                <span class="settings-hint text-mist">Disables all brightness oscillation.</span>
-              </div>
-              <label class="toggle">
-                <input
-                  id="${this.settingInputId('photosensitivityMode')}"
-                  type="checkbox"
-                  data-setting="photosensitivityMode"
-                  ${this.settings.photosensitivityMode ? 'checked' : ''}
-                />
-                <span class="toggle-switch"></span>
-              </label>
-            </div>
-
-            <div class="settings-row">
-              <div class="settings-label-group">
-                <label class="settings-label" for="${this.settingInputId('reducedMotion')}">Reduced motion</label>
-                <span class="settings-hint text-mist">Minimizes animation throughout.</span>
-              </div>
-              <label class="toggle">
-                <input
-                  id="${this.settingInputId('reducedMotion')}"
-                  type="checkbox"
-                  data-setting="reducedMotion"
-                  ${this.settings.reducedMotion ? 'checked' : ''}
-                />
-                <span class="toggle-switch"></span>
-              </label>
-            </div>
+            ${this.toggleRow('photosensitivityMode', 'Photosensitivity mode',
+                'Stops imagery from flashing or pulsing in brightness.',
+                Boolean(this.settings.photosensitivityMode))}
+            ${this.toggleRow('reducedMotion', 'Reduced motion',
+                'Keeps animation to a minimum everywhere in RISE.',
+                Boolean(this.settings.reducedMotion))}
           </section>
 
-          <!-- Data Section -->
           ${this.inSession ? '' : `
           <section class="settings-section" aria-labelledby="data-heading">
-            <h2 id="data-heading" class="settings-section-title text-fog">Data</h2>
+            <h2 id="data-heading" class="settings-section-title">Your data</h2>
 
-            <div class="settings-row">
-              <button type="button" class="btn-secondary" data-action="export-data">
-                Export personal data
-              </button>
+            <div class="settings-row settings-action">
+              <div class="settings-label-group">
+                <span class="settings-label">Export personal data</span>
+                <p class="settings-hint">Downloads your journals, saved sequences, preferences and uploaded media as one JSON file.</p>
+              </div>
+              <button type="button" class="btn-secondary" data-action="export-data">Export</button>
             </div>
 
-            <div class="settings-row settings-danger">
+            <div class="settings-row settings-action">
               <div class="settings-label-group">
-                <p class="settings-hint text-mist">
-                  Removes every reading, sequence, and preference held in this
-                  browser. There is no copy elsewhere — export first if you
-                  want one.
+                <span class="settings-label">Clear personal data</span>
+                <p class="settings-hint">
+                  Removes your journals, saved sequences, preferences, uploaded media
+                  and cached sources from this browser. There is no other copy, so
+                  export first if you want one.
                 </p>
-                <button type="button" class="btn-secondary btn-caution" data-action="clear-history">
-                  Clear all personal data
-                </button>
               </div>
+              <button type="button" class="btn-secondary settings-btn-danger" data-action="clear-history">Clear data</button>
             </div>
           </section>
 
-          <!-- About Section -->
           <section class="settings-section settings-about" aria-labelledby="about-heading">
-            <h2 id="about-heading" class="settings-section-title text-fog">About</h2>
+            <h2 id="about-heading" class="settings-section-title">About</h2>
 
-            <div class="about-content text-fog">
-              <p class="about-version font-mono">RISE v2.0</p>
-              <p class="about-tagline">An experimental audiovisual reading interface.</p>
-              <p class="about-attribution text-mist">SyberLabs · 2026</p>
+            <div class="about-content">
+              <p class="about-tagline">RISE 2.0, an experimental reading interface by SyberLabs.</p>
             </div>
           </section>
           `}
-        </div>
-      </form>
+          </form>
+        </${region}>
+      </div>
     `;
+    }
+
+    /** A setting that is on or off: its name, what it does, and the switch. */
+    toggleRow(key, label, hint, checked) {
+        const id = this.settingInputId(key);
+        return `
+            <div class="settings-row">
+              <div class="settings-label-group">
+                <label class="settings-label" for="${id}">${label}</label>
+                <p class="settings-hint">${hint}</p>
+              </div>
+              <label class="toggle">
+                <input id="${id}" type="checkbox" data-setting="${key}" ${checked ? 'checked' : ''} />
+                <span class="toggle-switch"></span>
+              </label>
+            </div>`;
     }
 
     /** The reading's own controls, at the size the reading can spare. */
@@ -455,15 +365,18 @@ export class Settings {
     }
 
     /**
-     * A COLOUR PICKER HAS TO SHOW THE COLOUR. These eleven read as words with
-     * eleven identical grey rings — the ring paints from --color-accent, the
-     * one already in force, so every option wore the same hue and none wore
-     * its own. Each chip now carries its real token, and the default carries
-     * both halves of what it actually is: a slate surface under ivory.
+     * A COLOUR PICKER HAS TO SHOW THE COLOUR, and it offers few of them.
+     * The system is neutral first with one signal, so the panel offers the
+     * default and three sittings that hold 4.5:1 as text on Atlas ink
+     * (--sy-bg) (cobalt, at 3.3:1, did not). The other colourways stay on
+     * the allowlist, so a reader who chose one keeps it and sees it here
+     * until they pick another.
      */
     renderChamberAccentRadios() {
         const selected = resolveChamberAccent(this.settings.chamberAccent);
-        return CHAMBER_ACCENTS.map((accent) => {
+        const offered = CHAMBER_ACCENTS.filter((accent) =>
+            OFFERED_ACCENTS.includes(accent.id) || accent.id === selected);
+        return offered.map((accent) => {
             const hue = CHAMBER_ACCENT_TOKENS[accent.id]?.['--color-accent'];
             const swatch = hue
                 ? `--swatch: ${hue}; --swatch-far: ${hue}`
@@ -488,7 +401,7 @@ export class Settings {
     }
 
     attachEvents() {
-        this.container.querySelector('form.settings')?.addEventListener('submit', (e) => {
+        this.container.querySelector('form')?.addEventListener('submit', (e) => {
             e.preventDefault();
         });
 
@@ -614,7 +527,7 @@ export class Settings {
 
         try {
             await clearUserData();
-            this.showToast('Personal data cleared. Reloadingâ€¦');
+            this.showToast('Personal data cleared. Reloading…');
             this.onDataCleared();
         } catch (e) {
             console.error('[Settings] Clear data failed:', e);
