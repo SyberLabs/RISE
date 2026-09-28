@@ -36,7 +36,7 @@ import { defineConfig } from '@playwright/test';
  *   csp-live          the policy that governs every remote fetch
  *   curation          what the shelf is allowed to show
  *
- * Full coverage runs in four shards on main without holding the release.
+ * Full coverage runs in sixteen shards on main without holding the release.
  * This corridor remains the local fast check before pushing. The two
  * projects partition the suite, so `playwright test` with no argument —
  * which is what each shard invokes — runs everything exactly once.
