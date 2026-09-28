@@ -24,7 +24,8 @@ export default {
 
     if (path === '/api/personal-piece') return handlePersonalPiece(request, env);
 
-    if (path === '/api/jev-decision' || path === '/api/jev-recommend' || path === '/api/jev/route') {
+    if (path === '/api/jev-decision' || path === '/api/jev-recommend' || path === '/api/jev/route'
+      || path === '/api/enterprise-decision') {
       const ip = request.headers.get('CF-Connecting-IP')?.trim();
       if (!ip || !decisionProvider(env) || typeof env?.DECISION_LIMITER?.limit !== 'function') {
         return error(503, 'DECISION_NOT_CONFIGURED', 'Decision service is unavailable.');
@@ -40,12 +41,11 @@ export default {
       }
 
       if (path === '/api/jev/route') return handleJevRoute(request, env);
+      if (path === '/api/enterprise-decision') return handleEnterpriseDecision(request, env);
       return path === '/api/jev-recommend'
         ? handleJevRecommend(request, env)
         : handleJevDecision(request, env);
     }
-
-    if (path === '/api/enterprise-decision') return handleEnterpriseDecision(request);
 
     return error(404, 'NOT_FOUND', 'API route not found.');
   }

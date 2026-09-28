@@ -66,12 +66,24 @@ export function renderRail(root, session) {
                 return `${itemSource.documentId} · page ${itemSource.page}${table} · ${itemSource.query}`;
             }).join('; ');
             item.append(provenanceLine);
+            if (card.decidedBy || Number.isFinite(card.latencyMs)) {
+                const decided = document.createElement('p');
+                decided.dataset.decision = card.decidedBy || 'unknown';
+                const by = card.decidedBy === 'local' ? 'local rules' : (card.decidedBy || 'unknown');
+                const latency = Number.isFinite(card.latencyMs) ? ` · ${Math.round(card.latencyMs)} ms` : '';
+                decided.textContent = `Chosen by ${by}${latency}`;
+                item.append(decided);
+            }
 
             const promote = document.createElement('button');
             promote.type = 'button';
             promote.dataset.action = 'promote';
             promote.dataset.cardId = card.id;
-            promote.textContent = 'Promote';
+            promote.textContent = card.status === 'promoted' ? 'On stage' : 'Promote';
+            promote.disabled = card.status === 'promoted';
+            promote.setAttribute('aria-label', card.status === 'promoted'
+                ? `“${card.title}” is on the stage`
+                : `Promote “${card.title}” to the stage`);
             promote.addEventListener('click', () => {
                 session.promote(card.id);
                 draw();
@@ -81,6 +93,7 @@ export function renderRail(root, session) {
             dismiss.dataset.action = 'dismiss';
             dismiss.dataset.cardId = card.id;
             dismiss.textContent = 'Dismiss';
+            dismiss.setAttribute('aria-label', `Dismiss “${card.title}”`);
             dismiss.addEventListener('click', () => {
                 session.dismiss(card.id);
                 draw();

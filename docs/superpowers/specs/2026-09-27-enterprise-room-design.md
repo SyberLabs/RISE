@@ -78,6 +78,8 @@ Retrieval runs only as a fallback. Prepared matches stay first.
 
 ## 5. Decision route
 
+Superseded by `2026-09-28-enterprise-live-loop-design.md`: the route now takes the versioned context and asks the configured decision provider. The paragraphs below record the first version.
+
 `worker/enterprise-decision.mjs` exports `handleEnterpriseDecision(request)`. `worker/index.mjs` routes `POST /api/enterprise-decision` to it.
 
 The JSON body may contain only `window`, `speaker`, `mode`, `candidates`, and `rail`. `candidates` entries may contain only `id`, `title`, `score`, `layouts`, and `layout`. `rail` entries may contain only `id` and `title`. Any other key, a body over 4_096 bytes, a missing `Origin` that does not match the request origin, or a non-POST is refused. The handler does not read `env` for documents. It returns `sanitizeDecision(ruleDecider(view), candidates)` as JSON `{ action, cardId, layout }`. This route does not call OpenRouter. A later replacement may, and it will still have to return that shape. The browser session keeps `ruleDecider` until a caller passes another `decider`.
