@@ -21,7 +21,7 @@ export const DEVICE_MODELS = Object.freeze({
     'kev-0.8b': Object.freeze({
         label: 'Kev-0.8B',
         base: 'https://huggingface.co/ai-ecoverse/kev.js/resolve/main/kev-0.8b',
-        run: 'jaredpalmer/kev-0.8b@2256796',
+        run: 'jaredpalmer/kev-0.8b@9a45d25eb2ab761841196625383fa1dff0e56c1e',
         variant: 'q8f32',
         bytes: 822_000_000
     })
