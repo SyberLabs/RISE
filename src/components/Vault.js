@@ -1,4 +1,5 @@
 import { STARTER_SEQUENCES } from '../content/starters.js';
+import { PORTABLE_EXAMPLES } from '../content/portable-examples.js';
 import { MemoryCore } from '../core/memory.js';
 import { VAULT_A_SEQUENCES, VAULT_A_ARCHETYPE } from '../content/personalized/vault-a.js';
 import { escapeHtml } from '../core/sanitize.js';
@@ -161,7 +162,27 @@ export class Vault {
     return `
       <div class="library-section">
         <div class="section-header">
-          <h2 class="text-light">All Sequences</h2>
+          <h2 class="text-light">Authored examples</h2>
+          <p class="text-fog">Try a short Archive score without saving it. Keep opens a review before it joins your Vault.</p>
+        </div>
+        <div class="sequences-grid vault-examples" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1.5rem; margin-top: 1.5rem;">
+          ${PORTABLE_EXAMPLES.map(example => `
+            <div class="sequence-card card" data-portable-example="${example.id}">
+              <div class="sequence-header">
+                <h3 class="sequence-title text-light">${escapeHtml(example.bundle.title)}</h3>
+                <span class="sequence-intent text-uppercase">${escapeHtml(example.tone)}</span>
+              </div>
+              <p class="sequence-description text-fog">${escapeHtml(example.description)}</p>
+              <p class="text-fog">${escapeHtml(example.bundle.sources[0].title)} · ${example.bundle.reading.wpm} WPM · visual and audio score</p>
+              <div class="sequence-actions">
+                <button class="btn-primary" data-action="try-example" data-example-id="${example.id}">Try</button>
+                <button class="btn-secondary" data-action="keep-example" data-example-id="${example.id}">Keep</button>
+              </div>
+              <p role="status" data-example-status></p>
+            </div>`).join('')}
+        </div>
+        <div class="section-header" style="margin-top: 3rem;">
+          <h2 class="text-light">Starter readings</h2>
         </div>
         <div class="sequences-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1.5rem; margin-top: 1.5rem;">
           ${this.renderSequenceItems()}
@@ -380,6 +401,30 @@ export class Vault {
       } else if (action === 'begin-starter') {
          this.getAudioEngine()?.playClick();
          this.onSelectSequence(target.dataset.id);
+      } else if (action === 'try-example' || action === 'keep-example') {
+         const example = PORTABLE_EXAMPLES.find(item => item.id === target.dataset.exampleId);
+         if (!example) return;
+         const text = JSON.stringify(example.bundle);
+         if (action === 'keep-example') {
+           this.currentSection = 'custom';
+           this.updateActiveNav();
+           await this.stagePortableSequence(text);
+           return;
+         }
+         const generation = ++this.portableGeneration;
+         const status = target.closest('[data-portable-example]')?.querySelector('[data-example-status]');
+         if (status) status.textContent = 'Checking the exact Archive score…';
+         target.disabled = true;
+         try {
+           const candidate = await inspectPortableSequence(text);
+           if (generation !== this.portableGeneration) return;
+           const launched = await this.onSelectBlueprint(candidate.project);
+           if (launched === false && status) status.textContent = 'This example could not play.';
+         } catch (error) {
+           if (generation === this.portableGeneration && status) {
+             status.textContent = error.message || 'This example could not play.';
+           }
+         } finally { target.disabled = false; }
       } else if (action === 'begin-custom') {
          this.getAudioEngine()?.playClick();
          const bp = this.blueprints.find(b => b.id === target.dataset.id);
