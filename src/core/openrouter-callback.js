@@ -8,18 +8,20 @@
 export const CALLBACK_PATH = '/connect/openrouter';
 export const PENDING_KEY = 'rise-openrouter-pkce-v1';
 
+// The one-time state rides in the callback path (/connect/openrouter/<state>),
+// so it survives however the provider appends ?code= to the URL.
 export function takeOpenRouterReturn(location = globalThis.location, history = globalThis.history,
   storage = globalThis.sessionStorage) {
-  if (/^\/connect\/openrouter\/?$/u.test(location.pathname)) {
-    const params = new URL(location.href).searchParams;
+  const match = /^\/connect\/openrouter(?:\/([^/]*))?\/?$/u.exec(location.pathname);
+  if (match) {
     history.replaceState(null, '', '/');
-    return { callback: { code: params.get('code'), state: params.get('rise_state') } };
+    return { callback: { code: new URL(location.href).searchParams.get('code'), state: match[1] || null } };
   }
   try {
-    const abandoned = storage.getItem(PENDING_KEY) !== null;
+    if (storage.getItem(PENDING_KEY) === null) return null;
     storage.removeItem(PENDING_KEY);
-    return { abandoned };
+    return { abandoned: true };
   } catch {
-    return {};
+    return null;
   }
 }

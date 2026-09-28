@@ -449,10 +449,13 @@ export class Portal {
         this.showAiNotice('OpenRouter disconnected. RISE forgot the key.');
       }
     });
-    this.stopConnection = subscribeConnection(() => this.renderAiPanel());
-    this.renderAiPanel();
-    const notice = takeConnectionNotice();
-    if (notice) this.showAiNotice(notice.message);
+    const refresh = () => {
+      this.renderAiPanel();
+      const notice = takeConnectionNotice();
+      if (notice) this.showAiNotice(notice.message);
+    };
+    this.stopConnection = subscribeConnection(refresh);
+    refresh();
     if (isLocalRise()) void this.watchLocalKev();
 
     this.container.querySelectorAll('[data-example]').forEach(chip => {
@@ -747,7 +750,8 @@ export class Portal {
           Each request is billed to that account, including visual direction while you read a released text.
           The key stays in this tab’s memory and is forgotten when you
           disconnect, reload, or close the tab. It is never sent to SyberLabs, but browser extensions you have
-          installed can read what a page holds.</p>
+          installed can read what a page holds. Each connection creates a key in your OpenRouter account;
+          revoke old ones in your OpenRouter settings.</p>
         <button class="portal-chip" type="button" data-ai="disconnect">Disconnect OpenRouter</button>`;
       return;
     }
@@ -756,7 +760,7 @@ export class Portal {
         state.device ? ` (${escapeHtml(state.device)})` : ''}. No hosted inference bill.</p>`;
       return;
     }
-    if (this.localStatus?.local) {
+    if (this.localStatus?.local || isLocalRise()) {
       body.innerHTML = `<p class="portal-help">${escapeHtml(KEV_STATES[this.localStatus.kev?.state] || KEV_STATES.checking)}${
         this.localStatus.kev?.message ? ` ${escapeHtml(String(this.localStatus.kev.message).slice(0, 240))}` : ''}</p>`;
       return;

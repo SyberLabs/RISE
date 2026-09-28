@@ -78,6 +78,14 @@
   [headers.values]
     Cache-Control = "public, max-age=0, must-revalidate"
 
+# The OpenRouter sign-in returns here with a one-time code in the URL; no
+# request made from this page may carry that URL as a Referer.
+[[headers]]
+  for = "/connect/*"
+  [headers.values]
+    Referrer-Policy = "no-referrer"
+    Cache-Control = "no-store"
+
 # Netlify serves .webmanifest as application/octet-stream; Chrome requires
 # a JSON media type or it declines to parse the manifest.
 [[headers]]

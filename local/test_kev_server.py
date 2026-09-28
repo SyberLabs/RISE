@@ -12,8 +12,10 @@ sys.path.insert(0, os.path.dirname(__file__))
 import kev_server  # noqa: E402
 
 
-def checkpoint(revision=kev_server.KEV_MODEL_REVISION, base=kev_server.BASE, base_revision=kev_server.BASE_REVISION):
+def checkpoint(revision=kev_server.KEV_MODEL_REVISION, base=kev_server.BASE, base_revision=kev_server.BASE_REVISION,
+               fetched=kev_server.KEV_MODEL_REVISION):
     return SimpleNamespace(requested=f"jaredpalmer/kev-4b@{revision}",
+                           path=os.path.join("hf", "hub", "models--jaredpalmer--kev-4b", "snapshots", fetched),
                            meta=SimpleNamespace(base=base, base_revision=base_revision))
 
 
@@ -27,9 +29,14 @@ class KevServerGuards(unittest.TestCase):
     def test_accepts_only_the_pinned_checkpoint_and_base(self):
         self.assertEqual(kev_server.check_pins(checkpoint()), kev_server.KEV_MODEL_REVISION)
         for bad in (checkpoint(revision="main"), checkpoint(base="Qwen/Qwen3-4B-Instruct"),
-                    checkpoint(base_revision="0" * 40)):
+                    checkpoint(base_revision="0" * 40), checkpoint(fetched="a" * 40)):
             with self.assertRaises(RuntimeError):
                 kev_server.check_pins(bad)
+
+    def test_refuses_to_load_under_memory_pressure_without_closing_anything(self):
+        self.assertIsNone(kev_server.memory_verdict(20000, 6144, 15000, 10240))
+        self.assertIn("did not close anything", kev_server.memory_verdict(2000, 6144, 15000, 10240))
+        self.assertIn("GPU memory", kev_server.memory_verdict(20000, 6144, 4000, 10240))
 
     def test_binds_to_loopback_only(self):
         for host in ("127.0.0.1", "::1", "localhost"):

@@ -42,13 +42,38 @@ def loopback(host):
 
 
 def check_pins(checkpoint):
-    """The served adapter, its base, and the base revision must be exactly the pinned ones."""
-    served = checkpoint.requested.partition("@")[2]
-    if served != KEV_MODEL_REVISION:
-        raise RuntimeError(f"Kev checkpoint revision {served!r} is not the pinned {KEV_MODEL_REVISION}")
+    """The adapter actually downloaded, its base, and the base revision must be exactly the pinned ones.
+
+    The Hub cache stores a snapshot under snapshots/<commit>; that directory name is what was fetched,
+    independent of what was asked for."""
+    fetched = os.path.basename(os.path.normpath(str(checkpoint.path)))
+    if checkpoint.requested.partition("@")[2] != KEV_MODEL_REVISION or fetched != KEV_MODEL_REVISION:
+        raise RuntimeError(f"Kev checkpoint snapshot {fetched!r} is not the pinned {KEV_MODEL_REVISION}")
     if checkpoint.meta.base != BASE or checkpoint.meta.base_revision != BASE_REVISION:
         raise RuntimeError("The Kev checkpoint names an unexpected base model or base revision")
-    return served
+    return fetched
+
+
+def memory_verdict(free_ram_mib, min_ram_mib, free_vram_mib=None, min_vram_mib=0):
+    """None when loading may proceed, else a plain reason. Nothing is closed to make room."""
+    if free_ram_mib < min_ram_mib:
+        return (f"Only {free_ram_mib} MiB of system memory is free; loading Kev needs about {min_ram_mib} MiB. "
+                "RISE did not close anything.")
+    if free_vram_mib is not None and free_vram_mib < min_vram_mib:
+        return f"Only {free_vram_mib} MiB of GPU memory is free; Kev-4B needs about {min_vram_mib} MiB."
+    return None
+
+
+def check_memory_now(device):
+    """Recheck right before the weights load (the first-run download can take many minutes)."""
+    import psutil  # a dependency of accelerate, which Kev requires
+    free_ram = psutil.virtual_memory().available // (1024 * 1024)
+    free_vram = None
+    if device == "cuda":
+        import torch
+        free_vram = torch.cuda.mem_get_info()[0] // (1024 * 1024)
+    return memory_verdict(free_ram, int(os.environ.get("RISE_KEV_MIN_RAM_MIB", "0")),
+                          free_vram, int(os.environ.get("RISE_KEV_MIN_VRAM_MIB", "0")))
 
 
 def device_label(device):
@@ -104,6 +129,10 @@ def main(argv=None):
     if options.backend is None:
         options = replace(options, backend="auto")
 
+    refusal = check_memory_now(device)
+    if refusal:
+        state("error", refusal)
+        return 4
     state("loading", f"Loading Kev onto {device_label(device)}.")
     tokenizer, model = checkpoint.load(device, options)
     server = serve.app.state.server = serve.Server(checkpoint, tokenizer, model, device)

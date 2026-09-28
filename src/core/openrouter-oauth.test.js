@@ -25,11 +25,11 @@ async function begin(storage, now = () => 1_000) {
   await beginOpenRouterConnect({ storage, origin: ORIGIN, navigate: url => { navigated = url; }, now });
   const url = new URL(navigated);
   const callback = new URL(url.searchParams.get('callback_url'));
-  return { url, callback, state: callback.searchParams.get('rise_state') };
+  return { url, callback, state: callback.pathname.split('/').pop() };
 }
 
-function callbackLocation(params) {
-  const url = new URL(CALLBACK_PATH, ORIGIN);
+function callbackLocation(state, params) {
+  const url = new URL(`${CALLBACK_PATH}/${state}`, ORIGIN);
   for (const [key, value] of Object.entries(params)) url.searchParams.set(key, value);
   return { pathname: url.pathname, href: url.href };
 }
@@ -44,7 +44,8 @@ describe('Connect OpenRouter (PKCE S256)', () => {
     expect(url.origin + url.pathname).toBe(AUTH_URL);
     expect(url.searchParams.get('code_challenge_method')).toBe('S256');
     expect(callback.origin).toBe(ORIGIN);
-    expect(callback.pathname).toBe(CALLBACK_PATH);
+    expect(callback.pathname).toBe(`${CALLBACK_PATH}/${state}`);
+    expect(callback.search).toBe('');
     const pending = JSON.parse(storage.getItem(PENDING_KEY));
     expect(pending.state).toBe(state);
     expect(url.searchParams.get('code_challenge')).toBe(await codeChallenge(pending.verifier));
@@ -54,11 +55,11 @@ describe('Connect OpenRouter (PKCE S256)', () => {
   it('strips the code from the address bar before exchanging it', () => {
     const history = { replaceState: vi.fn() };
     const storage = memoryStorage();
-    const taken = takeOpenRouterReturn(callbackLocation({ rise_state: 's', code: 'abc12345' }), history, storage);
+    const taken = takeOpenRouterReturn(callbackLocation('s', { code: 'abc12345' }), history, storage);
     expect(taken).toEqual({ callback: { code: 'abc12345', state: 's' } });
     expect(history.replaceState).toHaveBeenCalledWith(null, '', '/');
     const elsewhere = vi.fn();
-    expect(takeOpenRouterReturn({ pathname: '/', href: `${ORIGIN}/` }, { replaceState: elsewhere }, storage)).toEqual({ abandoned: false });
+    expect(takeOpenRouterReturn({ pathname: '/', href: `${ORIGIN}/` }, { replaceState: elsewhere }, storage)).toBeNull();
     expect(elsewhere).not.toHaveBeenCalled();
   });
 
@@ -99,8 +100,8 @@ describe('Connect OpenRouter (PKCE S256)', () => {
     expect(storage.getItem(PENDING_KEY)).toBeNull();
     expect(await finishOpenRouterReturn(returned)).toBe('CANCELED');
     expect(takeConnectionNotice().message).toContain('not connected');
-    expect(takeOpenRouterReturn(home, { replaceState: vi.fn() }, storage)).toEqual({ abandoned: false });
-    expect(await finishOpenRouterReturn({ abandoned: false })).toBeNull();
+    expect(takeOpenRouterReturn(home, { replaceState: vi.fn() }, storage)).toBeNull();
+    expect(await finishOpenRouterReturn(null)).toBeNull();
   });
 
   it.each([

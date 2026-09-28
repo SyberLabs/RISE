@@ -23,9 +23,11 @@ The same connection serves the auxiliary features: Scriptorium routing (`route.j
 
 Following [OpenRouter's OAuth PKCE guide](https://openrouter.ai/docs/guides/overview/auth/oauth), `src/core/openrouter-oauth.js`:
 
-1. Makes a random verifier and a one-time state. It stores only those two values and a timestamp in `sessionStorage` (this tab only), then sends the reader to `https://openrouter.ai/auth` with an S256 challenge. OpenRouter has no `state` parameter, so the state rides in RISE's own callback URL (`/connect/openrouter?rise_state=…`).
+1. Makes a random verifier and a one-time state. It stores only those two values and a timestamp in `sessionStorage` (this tab only), then sends the reader to `https://openrouter.ai/auth` with an S256 challenge. OpenRouter has no `state` parameter, so the state rides in RISE's own callback path (`/connect/openrouter/<state>`), which survives however OpenRouter appends `?code=`. The callback page is served with `Referrer-Policy: no-referrer`.
 2. On return, `src/app.js` removes the code from the address bar before anything else runs. The stored state is deleted whatever happens next. A callback that this tab did not start, that is older than ten minutes, or that carries a different state is ignored and never reaches OpenRouter. A callback without a code counts as cancellation, and any other page load abandons a started sign-in.
-3. Exchanges the code with the verifier at `https://openrouter.ai/api/v1/auth/keys` (no cookies, no referrer) and keeps the key in memory.
+3. Exchanges the code with the verifier at `https://openrouter.ai/api/v1/auth/keys` (no cookies, no referrer) and keeps the key in memory. The exchange does not block the app from starting.
+
+Disconnect forgets the key in RISE. Each connection mints a new key in the reader's OpenRouter account; the reader can revoke old keys in their OpenRouter settings, and the Home panel says so.
 
 The key goes only to `https://openrouter.ai`: the CSP `connect-src` names that exact origin. It never reaches a SyberLabs server, storage, analytics (RISE has none), logs, exports, or error reports (RISE sends none). This is not a vault: browser extensions and any script in the page can read page memory. RISE loads no third-party scripts (`script-src 'self'`) to keep that surface small, and the Home panel says so to the reader.
 

@@ -24,7 +24,7 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { createBridge } from './bridge.mjs';
 import { seedCatalog } from './catalog.mjs';
-import { detectHardware, readiness } from './hardware.mjs';
+import { REQUIREMENTS, detectHardware, readiness } from './hardware.mjs';
 
 export const KEV_CODE_REVISION = '9c41005b2180347c3c646dfc9e50c4428483ec6b';
 export const KEV_REVISION = '139fdd94f1b6a6ad80cc15e08fcb99cac885a101';
@@ -127,10 +127,27 @@ function createStatus() {
   };
 }
 
-function startKev({ status, port, token, offline }) {
+/** Kev says ready before its server has bound the port; wait until it answers. */
+async function reachable(port, fetchImpl = fetch, attempts = 60) {
+  for (let i = 0; i < attempts; i += 1) {
+    try {
+      await fetchImpl(`http://127.0.0.1:${port}/v1/models`, { signal: AbortSignal.timeout(1000) });
+      return true;
+    } catch {
+      await new Promise(resolve => setTimeout(resolve, 500));
+    }
+  }
+  return false;
+}
+
+function startKev({ status, port, token, offline, gpu }) {
   const env = {
     ...process.env,
     KEV_API_KEY: token,
+    // Load on the GPU the readiness check measured, and recheck there before loading.
+    ...(gpu.kind === 'nvidia' ? { CUDA_VISIBLE_DEVICES: String(gpu.index) } : {}),
+    RISE_KEV_MIN_RAM_MIB: String(gpu.kind === 'apple' ? REQUIREMENTS.appleFreeMiB : REQUIREMENTS.loadFreeRamMiB),
+    RISE_KEV_MIN_VRAM_MIB: String(gpu.kind === 'nvidia' ? REQUIREMENTS.nvidiaFreeVramMiB : 0),
     HF_HOME: join(HOME, 'hf'),
     HF_HUB_DISABLE_TELEMETRY: '1',
     HF_HUB_DISABLE_PROGRESS_BARS: '1',
@@ -150,8 +167,11 @@ function startKev({ status, port, token, offline }) {
       const match = /^RISE_KEV_STATE (\w+) ?(.*)$/u.exec(line);
       if (!match) { if (line) process.stdout.write(`[Kev] ${line}\n`); continue; }
       const [, state, message] = match;
-      if (state === 'ready') status.set('ready', null, message || null);
-      else status.set(state, message || null);
+      if (state === 'ready') {
+        status.set('loading', 'Starting Kev’s local server.');
+        void reachable(port).then(ok => (ok ? status.set('ready', null, message || null)
+          : status.set('error', 'Kev loaded but its local server did not answer.')));
+      } else status.set(state, message || null);
     }
   });
   return child;
@@ -244,14 +264,15 @@ async function main() {
     return;
   }
   // Recheck right before loading weights: memory may have changed during install.
-  const now = readiness(await detectHardware());
+  const current = await detectHardware();
+  const now = readiness(current);
   if (!now.ok) {
     status.set('error', now.message);
     return;
   }
   const weightsMarker = join(HOME, 'weights-ready.json');
   const offline = existsSync(weightsMarker);
-  child = startKev({ status, port: kevPort, token, offline });
+  child = startKev({ status, port: kevPort, token, offline, gpu: current.gpu });
   child.on('exit', code => {
     if (stopping) return;
     if (status.get().state !== 'error') status.set('error', `Kev exited (code ${code}). See the messages above.`);

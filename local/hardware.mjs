@@ -14,15 +14,27 @@ export const REQUIREMENTS = Object.freeze({
   appleFreeMiB: 10 * 1024
 });
 
-/** nvidia-smi --query-gpu=name,memory.total,memory.used,driver_version --format=csv,noheader,nounits */
+/** nvidia-smi --query-gpu=index,name,memory.total,memory.used,driver_version --format=csv,noheader,nounits */
 export function parseNvidiaSmi(output) {
   return String(output || '').split(/\r?\n/u).map(line => line.trim()).filter(Boolean).map(line => {
-    const [name, total, used, driver] = line.split(',').map(part => part.trim());
+    const [index, name, total, used, driver] = line.split(',').map(part => part.trim());
     const memoryTotalMiB = Number(total);
     const memoryUsedMiB = Number(used);
-    return Number.isFinite(memoryTotalMiB) && Number.isFinite(memoryUsedMiB) && name
-      ? { name, memoryTotalMiB, memoryFreeMiB: memoryTotalMiB - memoryUsedMiB, driver: driver || null } : null;
+    return /^\d+$/u.test(index) && Number.isFinite(memoryTotalMiB) && Number.isFinite(memoryUsedMiB) && name
+      ? { index: Number(index), name, memoryTotalMiB, memoryFreeMiB: memoryTotalMiB - memoryUsedMiB, driver: driver || null } : null;
   }).filter(Boolean);
+}
+
+/**
+ * macOS counts inactive and speculative pages as reclaimable, but
+ * os.freemem() reports only wholly free pages, so a busy Mac looks full.
+ */
+export function parseVmStat(output) {
+  const text = String(output || '');
+  const pageSize = Number(/page size of (\d+) bytes/u.exec(text)?.[1]);
+  const pages = name => Number(new RegExp(`Pages ${name}:\\s+(\\d+)`, 'u').exec(text)?.[1] || 0);
+  if (!Number.isFinite(pageSize) || pageSize <= 0) return null;
+  return Math.floor(((pages('free') + pages('inactive') + pages('speculative')) * pageSize) / MiB);
 }
 
 function run(command, args) {
@@ -38,9 +50,11 @@ export async function detectHardware({
   const ram = { totalMiB: Math.floor(totalmem() / MiB), freeMiB: Math.floor(freemem() / MiB) };
   let gpu = null;
   if (platform === 'darwin' && arch === 'arm64') {
+    const reclaimable = parseVmStat(await exec('vm_stat', []));
+    if (reclaimable !== null) ram.freeMiB = Math.max(ram.freeMiB, reclaimable);
     gpu = { kind: 'apple', name: 'Apple Silicon (MLX)', memoryTotalMiB: ram.totalMiB, memoryFreeMiB: ram.freeMiB };
   } else {
-    const smi = await exec('nvidia-smi', ['--query-gpu=name,memory.total,memory.used,driver_version', '--format=csv,noheader,nounits']);
+    const smi = await exec('nvidia-smi', ['--query-gpu=index,name,memory.total,memory.used,driver_version', '--format=csv,noheader,nounits']);
     const gpus = parseNvidiaSmi(smi);
     if (gpus.length) {
       const best = [...gpus].sort((a, b) => b.memoryFreeMiB - a.memoryFreeMiB)[0];

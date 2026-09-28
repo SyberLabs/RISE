@@ -8,6 +8,10 @@
 /index.html
   Cache-Control: public, max-age=0, must-revalidate
 
+/connect/*
+  Referrer-Policy: no-referrer
+  Cache-Control: no-store
+
 /site.webmanifest
   Content-Type: application/manifest+json
 

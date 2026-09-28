@@ -64,10 +64,11 @@ async function readBounded(response) {
 export async function callDecision(connection, body, { signal, deadlineMs = DEFAULT_DEADLINE_MS } = {}) {
   if (!connection?.provider || typeof connection.request !== 'function') throw new DecisionError('NOT_CONNECTED');
   if (signal?.aborted) throw new DecisionError('CANCELED');
-  const deadline = AbortSignal.timeout(deadlineMs);
-  const combined = signal ? AbortSignal.any([signal, deadline]) : deadline;
+  let deadline;
   let response;
   try {
+    deadline = AbortSignal.timeout(deadlineMs);
+    const combined = signal ? AbortSignal.any([signal, deadline]) : deadline;
     response = await connection.request({
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
@@ -77,7 +78,7 @@ export async function callDecision(connection, body, { signal, deadlineMs = DEFA
     });
   } catch (cause) {
     if (cause instanceof DecisionError) throw cause;
-    if (deadline.aborted) throw new DecisionError('TIMEOUT');
+    if (deadline?.aborted) throw new DecisionError('TIMEOUT');
     if (signal?.aborted) throw new DecisionError('CANCELED');
     throw new DecisionError('UNREACHABLE');
   }

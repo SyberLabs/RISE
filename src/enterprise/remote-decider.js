@@ -47,9 +47,10 @@ export function createRemoteDecider({ endpoint = LOCAL_KEV_ENDPOINT, fetch: fetc
             throw new DecisionError('invalid');
         }
         const { options, question, state } = railQuestion(checked);
-        const deadline = AbortSignal.timeout(DEADLINE_MS);
+        let deadline;
         let response;
         try {
+            deadline = AbortSignal.timeout(DEADLINE_MS);
             response = await send(endpoint, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
@@ -60,7 +61,7 @@ export function createRemoteDecider({ endpoint = LOCAL_KEV_ENDPOINT, fetch: fetc
                 signal: signal ? AbortSignal.any([signal, deadline]) : deadline
             });
         } catch {
-            throw new DecisionError(deadline.aborted ? 'timeout' : 'unavailable');
+            throw new DecisionError(deadline?.aborted ? 'timeout' : 'unavailable');
         }
         if (!response.ok) throw new DecisionError(statusReason(response.status), response.status);
         if (response.headers.get('x-kev-revision') !== KEV_REVISION) throw new DecisionError('invalid', response.status);

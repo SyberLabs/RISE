@@ -5,7 +5,7 @@
  * Only the verifier and a one-time state, needed across the redirect, touch
  * storage (sessionStorage, this tab only), and they are removed the moment
  * the callback is read, whatever its outcome. OpenRouter has no state
- * parameter, so the state rides in our own callback URL and must match.
+ * parameter, so the state rides in our own callback path and must match.
  * The authorization code is stripped from the address bar before anything
  * else happens. The key goes straight to memory (ai-connection.js).
  */
@@ -22,7 +22,7 @@ const CODE_SHAPE = /^[A-Za-z0-9._~-]{8,512}$/u;
 const OUTCOME_MESSAGES = Object.freeze({
   CONNECTED: 'OpenRouter connected. Jev requests are billed to your OpenRouter account.',
   CANCELED: 'OpenRouter was not connected. Nothing changed.',
-  UNSOLICITED: 'That OpenRouter sign-in was not started from this tab, so RISE ignored it.',
+  UNSOLICITED: 'That OpenRouter sign-in was not started from this tab, so RISE ignored it. Press Connect OpenRouter in the tab where you want to use it.',
   EXPIRED: 'That OpenRouter sign-in took too long. Connect OpenRouter again.',
   STATE_MISMATCH: 'That OpenRouter sign-in did not match this tab, so RISE ignored it.',
   INVALID_CALLBACK: 'OpenRouter returned an unexpected answer. Connect OpenRouter again.',
@@ -58,8 +58,7 @@ export async function beginOpenRouterConnect({
   const challenge = await codeChallenge(verifier, cryptoImpl);
   // Throws in a storage-less private window; the caller shows the error.
   storage.setItem(PENDING_KEY, JSON.stringify({ verifier, state, createdAt: now() }));
-  const callback = new URL(CALLBACK_PATH, origin);
-  callback.searchParams.set('rise_state', state);
+  const callback = new URL(`${CALLBACK_PATH}/${state}`, origin);
   const url = new URL(AUTH_URL);
   url.searchParams.set('callback_url', callback.href);
   url.searchParams.set('code_challenge', challenge);
@@ -127,7 +126,8 @@ export async function completeOpenRouterConnect(taken, {
 }
 
 /** Finish what takeOpenRouterReturn found on page load, and tell the Portal. */
-export async function finishOpenRouterReturn({ callback, abandoned } = {}, options) {
+export async function finishOpenRouterReturn(found, options) {
+  const { callback, abandoned } = found || {};
   if (!callback && !abandoned) return null;
   const { code } = callback ? await completeOpenRouterConnect(callback, options) : { code: 'CANCELED' };
   postConnectionNotice(outcomeMessage(code), code === 'CONNECTED' ? 'success' : 'error');

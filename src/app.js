@@ -302,9 +302,7 @@ class App {
 
         // Finish "Connect OpenRouter". The key goes to memory only; the
         // Portal shows the outcome. A failure changes nothing else.
-        if (openRouterReturn.callback || openRouterReturn.abandoned) {
-            await import('./core/openrouter-oauth.js').then(oauth => oauth.finishOpenRouterReturn(openRouterReturn));
-        }
+        if (openRouterReturn) void import('./core/openrouter-oauth.js').then(oauth => oauth.finishOpenRouterReturn(openRouterReturn));
 
         // Keystone paths are durable public entry points.  They resolve to a
         // threshold view first; admission and launch still happen through the
