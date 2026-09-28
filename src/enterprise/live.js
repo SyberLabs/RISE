@@ -1,9 +1,10 @@
 /**
- * The live loop: one decision in flight, bounded in time.
+ * The live loop: one decision in flight per channel, bounded in time.
  *
- * An interim transcript warms the lexical tier. A final prepares a turn,
- * cancels the decision still in flight, and asks the decider under a
- * timeout. The session resolves whatever comes back — a late, cancelled,
+ * Speech and the presenter's asks are separate channels. An interim
+ * transcript warms the lexical tier. A final prepares a turn, cancels the
+ * speech decision still in flight, and asks the decider under a timeout. An
+ * ask cancels only an older ask. Neither channel cancels the other. The session resolves whatever comes back — a late, cancelled,
  * failed, or malformed answer is a hold. A decider that ignores its abort
  * signal still loses the race to the timeout.
  */
@@ -33,7 +34,7 @@ export function createLiveLoop({
     trace = null,
     now = () => performance.now()
 }) {
-    let inflight = null;
+    const inflight = { speech: null, ask: null };
     let stopped = false;
 
     function emit(type, fields) {
@@ -41,14 +42,16 @@ export function createLiveLoop({
     }
 
     async function run(turn) {
-        inflight?.controller.abort('superseded');
+        const channel = turn.channel;
+        inflight[channel]?.controller.abort('superseded');
         const controller = new AbortController();
         const entry = { controller, turn };
-        inflight = entry;
+        inflight[channel] = entry;
         const timer = setTimeout(() => controller.abort('timeout'), timeoutMs);
         const started = now();
         emit('decision.request', {
             requestId: turn.requestId,
+            channel: turn.channel,
             tier: turn.tier,
             speaker: turn.speaker,
             candidates: turn.context.structure.candidates.length
@@ -83,7 +86,7 @@ export function createLiveLoop({
             return session.resolve(turn, null, { reason });
         } finally {
             clearTimeout(timer);
-            if (inflight === entry) inflight = null;
+            if (inflight[channel] === entry) inflight[channel] = null;
         }
     }
 
@@ -119,12 +122,13 @@ export function createLiveLoop({
             const { turn, failed } = prepared(() => session.prepareReasoning(request));
             return failed || run(turn);
         },
-        pending() {
-            return inflight ? inflight.turn.requestId : null;
+        pending(channel = 'speech') {
+            return inflight[channel] ? inflight[channel].turn.requestId : null;
         },
         stop() {
             stopped = true;
-            inflight?.controller.abort('stopped');
+            inflight.speech?.controller.abort('stopped');
+            inflight.ask?.controller.abort('stopped');
         }
     };
 }

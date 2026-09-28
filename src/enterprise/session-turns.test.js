@@ -19,6 +19,9 @@ function room(options = {}) {
     return { corpus, program, session, events };
 }
 
+const final = (text, speaker = 'presenter', at = 1000) => ({
+    text, final: true, speaker, speakerId: speaker === 'presenter' ? 'ada' : 'guest', at
+});
 const atlas = (at = 1000) => ({ text: 'Atlas renewal price', final: true, speaker: 'presenter', speakerId: 'ada', at });
 const revenue = (at = 20_000) => ({ text: 'pipeline revenue by quarter', final: true, speaker: 'presenter', speakerId: 'ada', at });
 const showTop = (turn) => {
@@ -73,7 +76,7 @@ describe('prepare, decide, resolve', () => {
         const result = session.resolve(turn, showTop(turn), { reason });
         expect(result).toMatchObject({ action: 'hold', reason });
         expect(session.rail()).toEqual([]);
-        expect(session.debrief().gaps).toHaveLength(1);
+        expect(session.debrief().gaps).toEqual([]);
     });
 
     it.each([
@@ -140,5 +143,65 @@ describe('prepare, decide, resolve', () => {
         session.hear(atlas());
         const turn = session.prepare(revenue(1500));
         expect(session.resolve(turn, showTop(turn))).toMatchObject({ action: 'hold', reason: 'cooldown' });
+    });
+});
+
+describe('follow-up', () => {
+    const decline = { action: 'dismiss', cardId: null, layout: null };
+
+    it('never records presenter speech', () => {
+        const { session } = room();
+        const turn = session.prepare(final('Hello, hello'));
+        session.resolve(turn, decline);
+        expect(session.debrief().followUp).toEqual([]);
+    });
+
+    it('records audience speech only when the decider declines it', () => {
+        const { session } = room();
+        const declined = session.prepare(final('What is on the menu', 'audience'));
+        session.resolve(declined, decline);
+        const failed = session.prepare(final('When is the offsite', 'audience', 2000));
+        session.resolve(failed, null, { reason: 'timeout' });
+        const stale = session.prepare(final('Who approved it', 'audience', 3000));
+        session.prepare(final('Thanks', 'audience', 4000));
+        session.resolve(stale, decline);
+        expect(session.debrief().followUp.map(gap => gap.text)).toEqual(['What is on the menu']);
+    });
+});
+
+describe('speech and ask channels', () => {
+    const ask = (text, at = 0) => ({ text, at });
+
+    it('keeps an ask alive when speech arrives after it', () => {
+        const { session } = room();
+        const asked = session.prepareReasoning(ask('Pipeline revenue by quarter'));
+        const spoken = session.prepare(atlas(10));
+        expect(session.resolve(asked, showTop(asked))).toMatchObject({ action: 'show' });
+        expect(session.resolve(spoken, { action: 'hold', cardId: null, layout: null }).reason).not.toBe('stale');
+    });
+
+    it('keeps speech alive when an ask arrives after it', () => {
+        const { session } = room();
+        const spoken = session.prepare(atlas(0));
+        session.prepareReasoning(ask('Pipeline revenue by quarter', 10));
+        expect(session.resolve(spoken, showTop(spoken))).toMatchObject({ action: 'show' });
+    });
+
+    it('lets a newer ask replace an older one', () => {
+        const { session } = room();
+        const first = session.prepareReasoning(ask('Pipeline revenue by quarter'));
+        session.prepareReasoning(ask('Atlas plan renewal price', 10));
+        expect(session.resolve(first, showTop(first))).toMatchObject({ action: 'hold', reason: 'stale' });
+    });
+
+    it('puts an asked card on the rail past the waiting rules, marked as asked', () => {
+        const { session } = room();
+        session.hear(atlas(1000));
+        const asked = session.prepareReasoning(ask('Pipeline revenue by quarter', 1500));
+        expect(session.resolve(asked, showTop(asked))).toMatchObject({ action: 'show' });
+        const card = session.rail().find(item => item.id === asked.context.structure.candidates[0].id);
+        expect(card).toMatchObject({ asked: true, status: 'shown' });
+        expect(session.rail().find(item => item.id !== card.id).asked).toBe(false);
+        expect(session.stage()).toEqual([]);
     });
 });
