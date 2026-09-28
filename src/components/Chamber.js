@@ -66,6 +66,7 @@ export const ICONS = Object.freeze({
   kaleidoscope: svg('<path d="M12 3.5v17M4.64 7.75l14.72 8.5M4.64 16.25l14.72-8.5"/>'
     + '<circle cx="12" cy="12" r="2.2"/>'),
   visuals: svg('<path d="M12 4.6 19.4 12 12 19.4 4.6 12Z"/>'),
+  fullscreen: svg('<path d="M4.5 9V4.5H9M15 4.5h4.5V9M19.5 15v4.5H15M9 19.5H4.5V15"/>'),
   spark: svg('<path d="M12 4v4M12 16v4M4 12h4M16 12h4M7.1 7.1l2.1 2.1M14.8 14.8l2.1 2.1'
     + 'M16.9 7.1l-2.1 2.1M9.2 14.8l-2.1 2.1"/>'),
   check: svg('<circle cx="12" cy="12" r="9"/><path d="m8 12 3 3 5-6"/>'),
@@ -439,9 +440,8 @@ export class Chamber {
         }
 
         console.log('[Chamber] Auto-starting session...');
-        if (document.documentElement.requestFullscreen) {
-          document.documentElement.requestFullscreen().catch(() => { });
-        }
+        // Fullscreen is the reader's choice (the Fullscreen control), never
+        // a side effect of starting.
         if (this.player) {
           this.player.play();
           if (this.audioEngine) {
@@ -593,7 +593,14 @@ export class Chamber {
               type="button" aria-pressed="false" aria-label="Read as a page"
               title="Read as a page (the spatial projection)">
               <span class="icon" aria-hidden="true">${ICONS.page}</span>
-              <span class="control-label">Page</span>
+              <span class="control-label">Page view</span>
+            </button>
+
+            <!-- Fullscreen: only when the reader asks for it. -->
+            <button class="control-btn fullscreen-toggle" id="fullscreen-btn"
+              type="button" aria-pressed="false" aria-label="Fullscreen" title="Fullscreen">
+              <span class="icon" aria-hidden="true">${ICONS.fullscreen}</span>
+              <span class="control-label">Fullscreen</span>
             </button>
 
             ${this.hasAttractorField ? `
@@ -982,6 +989,23 @@ export class Chamber {
       const r = this.pageReader;
       if (r) r.setPaged(!r.isPaged);
     });
+
+    const fullscreenBtn = this.container.querySelector('#fullscreen-btn');
+    if (fullscreenBtn && !document.documentElement.requestFullscreen) fullscreenBtn.hidden = true;
+    fullscreenBtn?.addEventListener('click', () => {
+      if (document.fullscreenElement) document.exitFullscreen?.().catch(() => {});
+      else document.documentElement.requestFullscreen?.().catch(() => {});
+    });
+    this._syncFullscreenControl = () => {
+      const on = Boolean(document.fullscreenElement);
+      fullscreenBtn?.setAttribute('aria-pressed', String(on));
+      fullscreenBtn?.setAttribute('aria-label', on ? 'Exit fullscreen' : 'Fullscreen');
+      const text = fullscreenBtn?.querySelector('.control-label');
+      if (text) text.textContent = on ? 'Exit fullscreen' : 'Fullscreen';
+    };
+    document.addEventListener('fullscreenchange', this._syncFullscreenControl);
+    // A reading can open while the document is already fullscreen.
+    this._syncFullscreenControl();
 
     const pageModeBtn = this.container.querySelector('#page-mode-btn');
     pageModeBtn?.addEventListener('click', () => {
@@ -1440,12 +1464,8 @@ export class Chamber {
       if (this._destroyed || !display.isConnected) return;
       display.style.opacity = '1';
 
-      // Request fullscreen
-      if (document.documentElement.requestFullscreen) {
-        document.documentElement.requestFullscreen().catch(() => {
-          // User declined, continue anyway
-        });
-      }
+      // Fullscreen is the reader's choice (the Fullscreen control), never
+      // a side effect of Begin.
 
       if (this.player) {
         this.player.play();
@@ -2898,6 +2918,8 @@ export class Chamber {
     const display = this.container.querySelector('#chamber-display');
     btn?.setAttribute('aria-pressed', String(next));
     btn?.setAttribute('aria-label', next ? 'Return to the stream' : 'Read as a page');
+    const label = btn?.querySelector('.control-label');
+    if (label) label.textContent = next ? 'Back to stream' : 'Page view';
     btn?.classList.toggle('is-on', next);
     display?.classList.toggle('page-mode-on', next);
 
@@ -3791,6 +3813,10 @@ export class Chamber {
 
   destroy() {
     this._destroyed = true;
+    if (this._syncFullscreenControl) {
+      document.removeEventListener('fullscreenchange', this._syncFullscreenControl);
+      this._syncFullscreenControl = null;
+    }
     if (this.session?.firstReadPreview === true) this.dismissFirstReadChoice();
     for (const name of ['--color-void', '--color-light', '--color-cloud',
       '--color-accent', '--color-accent-rgb', '--color-threshold']) {

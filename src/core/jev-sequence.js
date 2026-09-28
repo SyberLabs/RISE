@@ -30,15 +30,33 @@ function nextDistinctEngine(requested, used) {
   return null;
 }
 
+// A psychedelic or immersive reading asked for energy. Soft light and fine
+// line lattice are the calmest engines, so an energetic arc never spends a
+// phase on them; repeats resolve through the energetic engines first.
+const CALM_ENGINES = new Set(['turrell', 'harmonograph']);
+const ENERGETIC_ENGINES = Object.freeze(['fractal', 'apparitio', 'ostensoria', 'klee']);
+
+function nextEnergeticEngine(requested, used) {
+  const start = Math.max(0, ENERGETIC_ENGINES.indexOf(requested));
+  for (let offset = 0; offset < ENERGETIC_ENGINES.length; offset += 1) {
+    const engine = ENERGETIC_ENGINES[(start + offset) % ENERGETIC_ENGINES.length];
+    if (!used.has(engine)) return engine;
+  }
+  return null;
+}
+
 function chooseEngines(values, count) {
   const requested = count === 2
     ? [values.visualEngine, values.finaleEngine]
     : [values.visualEngine, values.middleEngine, values.finaleEngine];
+  const energetic = values.visualStyle === 'psychedelic' || values.visualStyle === 'immersive';
   const used = new Set();
   const engines = [];
   for (let index = 0; index < count; index += 1) {
     if (!PROCEDURAL_ENGINES.includes(requested[index])) return null;
-    const engine = nextDistinctEngine(requested[index], used);
+    const engine = energetic
+      ? nextEnergeticEngine(CALM_ENGINES.has(requested[index]) ? 'fractal' : requested[index], used)
+      : nextDistinctEngine(requested[index], used);
     if (!engine) return null;
     used.add(engine);
     engines.push(engine);

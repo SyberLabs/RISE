@@ -101,7 +101,6 @@ export function createRouteManifest(operations) {
         onNavigate: operations.handleNavigate,
         onSelectText: operations.handleTextSelection,
         getAudioEngine: operations.getAudioEngine,
-        initialIntent: data?.jevIntent,
         readingPreferences: data?.readingPreferences
       })
     },
