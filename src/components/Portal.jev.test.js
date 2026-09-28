@@ -207,3 +207,29 @@ it('brings the previous preview back when an update fails', async () => {
   expect(container.querySelector('#portal-jev-intent').value).toBe('tokyo drift, slower');
   portal.destroy();
 });
+
+it('tags the field of "Pace & sound" the reader changed, not the whole row', async () => {
+  vi.stubGlobal('fetch', vi.fn(async () => Response.json(tokyoDecision())));
+  const { portal, container } = mount();
+  await request(container, 'tokyo drift');
+  const preview = container.querySelector('#portal-preview');
+  await vi.waitFor(() => expect(preview.hidden).toBe(false));
+  const paceRow = () => preview.querySelectorAll('.portal-row')[2];
+  const yours = selector => paceRow().querySelector(`${selector} .portal-yours`) !== null;
+  expect(paceRow().querySelector('.portal-yours')).toBeNull();
+
+  // Only Sound changed: the pace figure must not claim to be the reader's.
+  preview.querySelector('[data-adjust-kind="sound"][data-adjust-value="silent"]').click();
+  await vi.waitFor(() => expect(paceRow().textContent).toContain('no sound'));
+  expect(yours('.portal-row-value')).toBe(false);
+  expect(yours('.portal-row-detail')).toBe(true);
+
+  // Only Speed changed: the sound line must not claim to be the reader's.
+  preview.querySelector('.portal-adjust-reset').click();
+  await vi.waitFor(() => expect(paceRow().querySelector('.portal-yours')).toBeNull());
+  preview.querySelector('[data-adjust-kind="speed"][data-adjust-value="slow"]').click();
+  await vi.waitFor(() => expect(paceRow().textContent).toContain('150 words'));
+  expect(yours('.portal-row-value')).toBe(true);
+  expect(yours('.portal-row-detail')).toBe(false);
+  portal.destroy();
+});

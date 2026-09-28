@@ -34,6 +34,14 @@ describe('Guide', () => {
         }
     });
 
+    it('describes Home in the words Home uses', () => {
+        // Home asks "What do you want to experience?" and offers "Create
+        // preview"; it no longer has an "Ask Jev" button.
+        const text = render();
+        expect(text).not.toMatch(/Ask Jev/);
+        expect(text).toMatch(/Describe what you want to experience/);
+    });
+
     it('names the rooms a reader can actually reach', () => {
         const text = render();
         // The names the navigation uses (Portal→Home, Chamber→Reader,

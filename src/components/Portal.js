@@ -258,7 +258,7 @@ export class Portal {
               </div>
               <div class="portal-actions portal-play-row">
                 <button class="portal-primary portal-play" id="portal-play" type="button">Play with sound</button>
-                <p class="portal-help">Plays here. Fullscreen only if you choose it.</p>
+                <p class="portal-help">Opens the reader. Fullscreen only if you choose it.</p>
               </div>
               <details class="portal-details">
                 <summary>Details</summary>
@@ -641,7 +641,11 @@ export class Portal {
     const named = tools.namesWork(intent, work);
     const { reference, limits } = tools.readJevRequest(intent);
     const changed = new Set(changes.map(([kind]) => kind));
-    const rowChanged = { colors: ['colors'], energy: ['energy'], speed: ['speed', 'sound'], text: [] };
+    // A tag sits on the field the reader changed: Speed on the pace figure
+    // (only shown when the plan has one), Sound on the "with ..." line.
+    const rowChanged = { colors: ['colors'], energy: ['energy'], speed: config.projection === 'page' ? [] : ['speed'], text: [] };
+    const detailChanged = { speed: ['sound'] };
+    const yours = (map, key) => map[key]?.some(k => changed.has(k)) ? '<span class="portal-yours">Yours</span>' : '';
 
     root.querySelector('.portal-preview-lede').innerHTML = reference
       ? `You referenced <strong>“${escapeHtml(reference.name)}”</strong>. RISE treated it as a style (${escapeHtml(reference.reads)}), not as a ${escapeHtml(reference.kind)} to play.`
@@ -652,8 +656,8 @@ export class Portal {
     root.querySelector('.portal-rows').innerHTML = tools.describeJevPlan(config).map(row => `
       <div class="portal-row">
         <dt>${escapeHtml(row.label)}</dt>
-        <dd><span class="portal-row-value">${escapeHtml(row.value)}${rowChanged[row.key]?.some(k => changed.has(k)) ? '<span class="portal-yours">Yours</span>' : ''}</span>
-        <span class="portal-row-detail">${escapeHtml(row.detail)}</span></dd>
+        <dd><span class="portal-row-value">${escapeHtml(row.value)}${yours(rowChanged, row.key)}</span>
+        <span class="portal-row-detail">${escapeHtml(row.detail)}${yours(detailChanged, row.key)}</span></dd>
       </div>`).join('');
 
     root.querySelector('.portal-read-title').innerHTML = `${escapeHtml(work?.title || decision.workId)}${changed.has('workId') ? '<span class="portal-yours">Yours</span>' : ''}`;
