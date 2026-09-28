@@ -132,6 +132,7 @@ export const directoryMethods = {
           settings: { chamberFace: settings.face, fontSize: 'medium', chamberMask: false }
         });
         this.closeDialog();
+        this._onFieldCommitted?.();
       }
     }, returnFocus);
   },
