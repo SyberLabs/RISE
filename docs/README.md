@@ -127,8 +127,9 @@ history, not a distinction; read the status column instead.
 
 | Document | Status | What it is |
 | --- | --- | --- |
-| [KEV-DEPLOYMENT.md](KEV-DEPLOYMENT.md) | Intent | Staging procedure for the pinned, authenticated Kev-4B service (Modal or a local loopback GPU), its revision attestation, and the RISE Jev/Kev evaluation. Deploys nothing by itself. |
-| [jev-core/service.md](jev-core/service.md) | Contract | Optional same-origin OpenRouter decision endpoint used by the explicit Jev preview. |
+| [USER-OWNED-AI.md](USER-OWNED-AI.md) | Intent | RISE spends no shared inference: hosted Jev on the reader's own OpenRouter account, the shared decision contract, retired routes, release order, and the mocked/local/live evaluation. |
+| [LOCAL-RISE.md](LOCAL-RISE.md) | Intent | Run RISE and pinned Kev-4B on your own computer: requirements, launcher states, bridge security, and network dependencies. |
+| [jev-core/service.md](jev-core/service.md) | Historical record | The retired server-side OpenRouter decision route. |
 | [jev-core/variety-evaluation.md](jev-core/variety-evaluation.md) | Record | Jev prompt-variety baseline, bounded evaluation method, and local candidate evidence. |
 | [jev-core/README.md](jev-core/README.md) | Historical record | Removed Chamber gate, prior verification evidence, and live-provider caveat. |
 

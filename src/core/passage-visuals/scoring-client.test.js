@@ -24,7 +24,14 @@ function setup({ paragraphs = 20, fetchImpl, cache, now } = {}) {
   const coordinator = new VisualScoreCoordinator({
     director,
     sources: [{ id: 'primary', text }],
-    fetchImpl,
+    // The coordinator calls the reader's connection; the test stands in a
+    // provider whose replies it releases one at a time.
+    score: async (request, signal) => {
+      const response = await fetchImpl('reader-connection', { body: JSON.stringify(request), signal });
+      if (!response.ok) throw Object.assign(new Error('refused'), { code: `HTTP_${response.status}` });
+      return response.json();
+    },
+    canScore: () => true,
     cache: cache || new VisualScoreCache(),
     now: now || (() => 0),
     onEvent: event => events.push(event)

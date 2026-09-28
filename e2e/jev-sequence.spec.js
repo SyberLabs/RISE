@@ -1,8 +1,12 @@
 import { test, expect } from './fixtures.js';
+import { answerDecisions, connectOpenRouter, runAsLocalRise } from './reader-connection.js';
 import releaseInventory from '../src/content/archive/release-inventory.json' with { type: 'json' };
 import { jevColors, jevPalette } from '../src/core/jev-palette.js';
 import { resolveJevChamberConfig } from '../src/core/jev-config.js';
 import { compileJevAudioProgram, compileJevVisualProgram } from '../src/core/jev-sequence.js';
+
+// Connecting OpenRouter adds one real OAuth redirect and page load to each flow.
+test.describe.configure({ timeout: 120_000 });
 
 const GATE_SESSION = { code: 'rise2025', name: 'Jev Sequence Test', vault: null, timestamp: Date.now() };
 
@@ -30,25 +34,21 @@ for (const identity of [
     visualProgram: compileJevVisualProgram(choices),
     audioProgram: compileJevAudioProgram(choices)
   };
-  let calls = 0;
-  await page.route('**/api/jev-recommend', route => {
-    calls += 1;
-    return route.fulfill({ json: {
-      schemaVersion: 2, requestId: 'decision-sequence-browser', ...identity,
-      workId: released.workId, editionId: released.editionId,
-      sourceRevision: released.sourceRevision, reason: 'A released reading.', config
-    } });
-  });
+  const plan = { workId: released.workId, model: identity.model, config };
   await page.addInitScript(gate => {
     localStorage.setItem('rise-beta-session', JSON.stringify(gate));
   }, GATE_SESSION);
+  // Hosted Jev on the reader's OpenRouter account, or Kev in local RISE.
+  const seen = identity.provider === 'Kev' ? await runAsLocalRise(page, plan) : null;
   await page.goto('/');
+  const calls = seen || (await connectOpenRouter(page), await answerDecisions(page, plan));
   await page.locator('#portal-jev-intent').fill('Give me a visual journey through this reading.');
   await page.locator('.portal-jev-submit').click();
   // Home previews Jev's answer; the reading starts only from Play.
   await page.locator('#portal-play').click();
   await expect(page.locator('#chamber-continuous-field')).toBeVisible({ timeout: 30_000 });
-  expect(calls).toBe(1);
+  expect(calls).toHaveLength(1);
+  if (identity.provider === 'Kev') expect(calls[0].authorization).toBeUndefined();
 
   const result = await page.evaluate(() => {
     const chamber = window.__RISE_TEST__?.getView('chamber-session');

@@ -73,7 +73,7 @@ describe('Portal', () => {
         expect(intent.placeholder).toBe('Describe a mood, a style, a text, or all three.');
         expect(container.querySelector('label[for="portal-jev-intent"]')).not.toBeNull();
         expect(container.querySelector('#portal-jev-help').textContent)
-            .toBe('RISE turns your words into a reading with visuals, pace and sound. You’ll see how it was read before anything plays. Only this request goes to the configured AI decision service; your reading and saved work stay local.');
+            .toBe('RISE turns your words into a reading with visuals, pace and sound. You’ll see how it was read before anything plays. Only this request goes to your own AI connection; your reading and saved work stay local.');
         // Play lives inside the hidden preview; before a request there is one action.
         const primary = [...container.querySelectorAll('.portal-primary')].filter(el => !el.closest('[hidden]'));
         expect(primary).toHaveLength(1);

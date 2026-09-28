@@ -3,12 +3,12 @@ import { expect, test } from './fixtures.js';
 /**
  * The live room in a real browser. A scripted recognizer stands in for the
  * microphone and the decision route is answered here, so each test controls
- * exactly what "JEV" says. Invariants under test: nothing reaches the stage
+ * exactly what local Kev says. Invariants under test: nothing reaches the stage
  * without Promote; a bad, late, or failed decision changes nothing; the
  * board memo's figure never appears; speech and asks never cancel each other.
  */
 
-const ROUTE = '**/api/enterprise-decision';
+const ROUTE = '**/api/local/kev/systemone';
 const SECRET = /880/u;
 
 async function openRoom(page, { speech = true, listen = true } = {}) {
@@ -41,19 +41,23 @@ async function openRoom(page, { speech = true, listen = true } = {}) {
     }
 }
 
-function decision(context, fields) {
-    return { schema: 'rise.enterprise-decision.v1', requestId: context.requestId, confidence: 0.8,
-        model: 'kev-latest', provider: 'Kev', ...fields };
+const REVISION = '139fdd94f1b6a6ad80cc15e08fcb99cac885a101';
+
+/** What pinned local Kev sends back through the local RISE bridge. */
+function kev(choice, { revision = REVISION, answer } = {}) {
+    return {
+        headers: revision ? { 'x-kev-revision': revision } : {},
+        json: { model: 'kev-latest', answers: { rail_action: answer || { type: 'choice', choice, confidence: 0.8 } } }
+    };
 }
 
-/** Answer with the first offered candidate, as a well-behaved provider would. */
-function showFirst(context, extra = {}) {
-    const top = context.structure.candidates[0];
-    if (!top) return decision(context, { action: 'dismiss', cardId: null, layout: null, ...extra });
-    return decision(context, { action: 'show', cardId: top.id, layout: top.layout, ...extra });
+/** Choose the first offered source, as a well-behaved model would. */
+function showFirst(body, options) {
+    const offered = Object.keys(body.questions.rail_action.criteria);
+    return kev(offered.find(key => key.startsWith('show_1_')) || 'dismiss', options);
 }
 
-const decline = (context) => decision(context, { action: 'dismiss', cardId: null, layout: null });
+const decline = () => kev('dismiss');
 const say = (page, text, final = true) => page.evaluate(([t, f]) => window.__say(t, f), [text, final]);
 const state = (page) => page.locator('#state');
 const lines = (page) => page.locator('#transcript li');
@@ -66,7 +70,7 @@ test.describe('EnterpRise live room', () => {
         const sent = [];
         await page.route(ROUTE, async (route) => {
             sent.push(route.request().postData());
-            await route.fulfill({ json: showFirst(route.request().postDataJSON()) });
+            await route.fulfill(showFirst(route.request().postDataJSON()));
         });
         await openRoom(page);
 
@@ -82,7 +86,7 @@ test.describe('EnterpRise live room', () => {
         await expect(lines(page).last().locator('.note')).toHaveText('→ Atlas renewal (on rail)');
         await expect(rail(page)).toHaveCount(1);
         await expect(rail(page).first()).toContainText('12.4');
-        await expect(page.locator('#last-decision')).toHaveText(/^JEV \d+ ms$/u);
+        await expect(page.locator('#last-decision')).toHaveText(/^Kev \(local RISE\) \d+ ms$/u);
         await expect(stage(page)).toHaveText('Nothing on stage.');
 
         expect(sent).toHaveLength(1);
@@ -100,7 +104,7 @@ test.describe('EnterpRise live room', () => {
     });
 
     test('presenter speech never lands in follow-up; a declined audience question does', async ({ page }) => {
-        await page.route(ROUTE, (route) => route.fulfill({ json: decline(route.request().postDataJSON()) }));
+        await page.route(ROUTE, (route) => route.fulfill(decline(route.request().postDataJSON())));
         await openRoom(page);
         await say(page, 'Hello, hello');
         await expect(lines(page).last().locator('.note')).toHaveText('→ held: nothing fits');
@@ -115,10 +119,10 @@ test.describe('EnterpRise live room', () => {
     test('an ask returns while speech keeps streaming, and neither cancels the other', async ({ page }) => {
         const aborted = [];
         await page.route(ROUTE, async (route) => {
-            const context = route.request().postDataJSON();
-            const spoken = context.evidence.mode === 'prepared' && context.structure.candidates.every(c => !c.id.startsWith('card:retrieval'));
+            const body = route.request().postDataJSON();
+            const spoken = /Atlas/u.test(body.state.window);
             await new Promise(done => setTimeout(done, spoken ? 900 : 150));
-            await route.fulfill({ json: showFirst(context) }).catch(() => aborted.push(context.requestId));
+            await route.fulfill(showFirst(body)).catch(() => aborted.push(body.state.window));
         });
         await openRoom(page);
         await say(page, 'What was the Atlas renewal price');
@@ -137,7 +141,7 @@ test.describe('EnterpRise live room', () => {
     });
 
     test('an ask that finds nothing still answers', async ({ page }) => {
-        await page.route(ROUTE, (route) => route.fulfill({ json: showFirst(route.request().postDataJSON()) }));
+        await page.route(ROUTE, (route) => route.fulfill(showFirst(route.request().postDataJSON())));
         await openRoom(page);
         await ask(page).fill('acquisition price');
         await ask(page).press('Enter');
@@ -147,12 +151,12 @@ test.describe('EnterpRise live room', () => {
     });
 
     for (const [name, answer] of [
-        ['a restricted card id', (context) => showFirst(context, { cardId: 'card:retrieval:board-memo:1:0' })],
-        ['model prose', (context) => ({ ...showFirst(context), text: 'The acquisition price is 880 million' })],
-        ['another request id', (context) => showFirst(context, { requestId: 'someone-else:1' })]
+        ['a restricted card id', () => kev('card:retrieval:board-memo:1:0')],
+        ['model prose', () => kev(null, { answer: { type: 'text', text: 'The acquisition price is 880 million' } })],
+        ['an unattested checkpoint', (body) => showFirst(body, { revision: null })]
     ]) {
         test(`holds ${name}`, async ({ page }) => {
-            await page.route(ROUTE, (route) => route.fulfill({ json: answer(route.request().postDataJSON()) }));
+            await page.route(ROUTE, (route) => route.fulfill(answer(route.request().postDataJSON())));
             await openRoom(page);
             await say(page, 'Atlas renewal price');
             await expect(lines(page).last().locator('.note')).toHaveText('→ held: answer refused');
@@ -169,7 +173,7 @@ test.describe('EnterpRise live room', () => {
         }));
         await openRoom(page);
         await say(page, 'Atlas renewal price');
-        await expect(lines(page).last().locator('.note')).toHaveText('→ held: JEV unavailable');
+        await expect(lines(page).last().locator('.note')).toHaveText('→ held: Kev (local RISE) unavailable');
         await expect(state(page)).toContainText('Local rules');
         await expect(rail(page)).toHaveCount(0);
 
@@ -184,14 +188,14 @@ test.describe('EnterpRise live room', () => {
         const sent = [];
         await page.route(ROUTE, (route) => {
             sent.push(route.request().postData());
-            return route.fulfill({ json: showFirst(route.request().postDataJSON()) });
+            return route.fulfill(showFirst(route.request().postDataJSON()));
         });
         await page.route(/huggingface\.co|hf\.co|jsdelivr\.net/u, (route) => route.abort());
         await openRoom(page);
         await page.locator('#decider').selectOption('device');
         await expect(state(page)).toHaveAttribute('data-state', /loading|error/u);
         await expect(state(page)).toHaveAttribute('data-state', 'error', { timeout: 15_000 });
-        await expect(state(page)).toContainText('Choose JEV or Local rules');
+        await expect(state(page)).toContainText('Choose Local rules');
         await expect(page.locator('#last-decision')).toHaveText('Kev failed');
 
         await say(page, 'Atlas renewal price');
@@ -203,10 +207,10 @@ test.describe('EnterpRise live room', () => {
     test('newer speech replaces a decision still in flight', async ({ page }) => {
         let calls = 0;
         await page.route(ROUTE, async (route) => {
-            const context = route.request().postDataJSON();
+            const body = route.request().postDataJSON();
             calls += 1;
             if (calls === 1) await new Promise(done => setTimeout(done, 800));
-            await route.fulfill({ json: showFirst(context) }).catch(() => {});
+            await route.fulfill(showFirst(body)).catch(() => {});
         });
         await openRoom(page);
         await say(page, 'Atlas renewal price');
@@ -217,7 +221,7 @@ test.describe('EnterpRise live room', () => {
     });
 
     test('keyboard drives the rail and stage, and stays out of the ask box', async ({ page }) => {
-        await page.route(ROUTE, (route) => route.fulfill({ json: showFirst(route.request().postDataJSON()) }));
+        await page.route(ROUTE, (route) => route.fulfill(showFirst(route.request().postDataJSON())));
         await openRoom(page);
         await say(page, 'Atlas renewal price');
         await expect(rail(page)).toHaveCount(1);
@@ -243,7 +247,7 @@ test.describe('EnterpRise live room', () => {
     });
 
     test('scrolling up keeps its place and offers a jump to the newest line', async ({ page }) => {
-        await page.route(ROUTE, (route) => route.fulfill({ json: decline(route.request().postDataJSON()) }));
+        await page.route(ROUTE, (route) => route.fulfill(decline(route.request().postDataJSON())));
         await openRoom(page);
         for (let i = 1; i <= 14; i += 1) await say(page, `Line number ${i} of the opening remarks`);
         await expect(lines(page)).toHaveCount(14);
@@ -264,7 +268,7 @@ test.describe('EnterpRise live room', () => {
     for (const width of [1280, 360]) {
         test(`streaming causes no layout shift and never moves Promote at ${width}px`, async ({ page }) => {
             await page.setViewportSize({ width, height: 800 });
-            await page.route(ROUTE, (route) => route.fulfill({ json: showFirst(route.request().postDataJSON()) }));
+            await page.route(ROUTE, (route) => route.fulfill(showFirst(route.request().postDataJSON())));
             await openRoom(page);
             await say(page, 'Atlas renewal price');
             await expect(rail(page)).toHaveCount(1);
@@ -287,7 +291,7 @@ test.describe('EnterpRise live room', () => {
 
     test('at 360px transcript, rail, ask, and stage all work without horizontal scroll', async ({ page }) => {
         await page.setViewportSize({ width: 360, height: 780 });
-        await page.route(ROUTE, (route) => route.fulfill({ json: showFirst(route.request().postDataJSON()) }));
+        await page.route(ROUTE, (route) => route.fulfill(showFirst(route.request().postDataJSON())));
         await openRoom(page);
         await say(page, 'Atlas renewal price');
         await expect(rail(page)).toHaveCount(1);
@@ -305,7 +309,7 @@ test.describe('EnterpRise live room', () => {
     });
 
     test('without a speech recognizer the page offers Ask only', async ({ page }) => {
-        await page.route(ROUTE, (route) => route.fulfill({ json: showFirst(route.request().postDataJSON()) }));
+        await page.route(ROUTE, (route) => route.fulfill(showFirst(route.request().postDataJSON())));
         await openRoom(page, { speech: false });
         await expect(page.getByRole('button', { name: 'Listen' })).toHaveCount(0);
         await expect(page.locator('#transcript-panel')).toContainText('Speech isn’t available in this browser. Use Ask.');
@@ -315,7 +319,7 @@ test.describe('EnterpRise live room', () => {
     });
 
     test('the trace export counts speech and never carries the words', async ({ page }) => {
-        await page.route(ROUTE, (route) => route.fulfill({ json: decline(route.request().postDataJSON()) }));
+        await page.route(ROUTE, (route) => route.fulfill(decline(route.request().postDataJSON())));
         await openRoom(page);
         await say(page, 'Our cafeteria plans are', false);
         await say(page, 'Our cafeteria plans are unchanged');

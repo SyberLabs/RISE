@@ -59,6 +59,14 @@ describe('content security policy', () => {
         }
     });
 
+    it('lets only the exact OpenRouter origin receive a reader-owned key', () => {
+        const hosts = directive('connect-src').split(/\s+/u);
+        expect(hosts).toContain('https://openrouter.ai');
+        expect(hosts.filter(host => host.includes('openrouter'))).toEqual(['https://openrouter.ai']);
+        expect(hosts).not.toContain('https:');
+        expect(hosts.some(host => host.includes('*'))).toBe(false);
+    });
+
     it('keeps scripts self-hosted, with no executable CDN', () => {
         const script = directive('script-src');
         expect(script).toBe("script-src 'self'");

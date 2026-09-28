@@ -59,8 +59,8 @@ describe('device model pins', () => {
         expect(runMatches(undefined, 'jaredpalmer/kev-4b@4bc64c6')).toBe(false);
     });
 
-    it('pins Kev-4B on the device to the checkpoint the server Kev serves', () => {
-        const serving = readFileSync(join(ROOT, 'deploy/kev/modal_app.py'), 'utf8');
+    it('pins Kev-4B on the device to the checkpoint local RISE serves', () => {
+        const serving = readFileSync(join(ROOT, 'local/kev_server.py'), 'utf8');
         const revision = serving.match(/^KEV_MODEL_REVISION = "([0-9a-f]{40})"$/mu)?.[1];
         expect(revision).toBeTruthy();
         expect(DEVICE_MODELS['kev-4b'].run).toBe(`jaredpalmer/kev-4b@${revision}`);

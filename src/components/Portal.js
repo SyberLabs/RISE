@@ -19,11 +19,23 @@ import './Portal.css';
 import { drawRiseSigil, mountAtmosphere } from './atlas.js';
 import { isJevSceneDemoPath, sceneSampleFromPath } from '../core/jev-demo-path.js';
 import { attachJevDictation } from './jev-dictation.js';
+import {
+  connectionState, detectLocalKev, disconnect, isLocalRise, subscribeConnection, takeConnectionNotice
+} from '../core/ai-connection.js';
 
 const ICON_ATTRS = 'width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"';
 const SETTINGS_PATH = '<path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path><circle cx="12" cy="12" r="3"></circle>';
 const ALERT_ICON_16 = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="M12 8v4"></path><path d="M12 16h.01"></path></svg>';
-const HELP = 'RISE turns your words into a reading with visuals, pace and sound. You’ll see how it was read before anything plays. Only this request goes to the configured AI decision service; your reading and saved work stay local.';
+const HELP = 'RISE turns your words into a reading with visuals, pace and sound. You’ll see how it was read before anything plays. Only this request goes to your own AI connection; your reading and saved work stay local.';
+const LOCAL_GUIDE = 'https://github.com/SyberLabs/RISE/blob/main/docs/LOCAL-RISE.md';
+const KEV_STATES = Object.freeze({
+  checking: 'Checking this computer for Kev…',
+  installing: 'Installing Kev’s isolated environment. This happens once.',
+  downloading: 'Downloading the pinned Kev and Qwen weights. This happens once.',
+  loading: 'Loading Kev onto your GPU…',
+  error: 'Kev could not start. The terminal that launched RISE says why.',
+  stopped: 'Kev is stopped.'
+});
 const PREVIEW_KEY = 'rise-jev-preview-v1';
 const EXAMPLES = Object.freeze([
   'Neon and fast, like a night drive',
@@ -193,6 +205,11 @@ export class Portal {
               <p class="portal-voice" id="portal-jev-voice-note"><span data-jev-dictation-status role="status" aria-live="polite"></span><span class="portal-voice-note">Voice input may use your browser’s speech service. Review the text before creating a preview.</span></p>
               <div class="portal-examples" aria-label="Example requests">
                 ${EXAMPLES.map(text => `<button class="portal-chip" type="button" data-example="${escapeHtml(text)}">${escapeHtml(text)}</button>`).join('')}
+              </div>
+              <div class="portal-ai" id="portal-ai" aria-labelledby="portal-ai-title">
+                <p class="portal-ai-title" id="portal-ai-title">AI suggestions use your own model</p>
+                <div class="portal-ai-body"></div>
+                <p class="portal-ai-notice" role="status" aria-live="polite" hidden></p>
               </div>
               <div class="portal-alert" id="portal-jev-error" role="alert" hidden>
                 <svg ${ICON_ATTRS}><circle cx="12" cy="12" r="10"></circle><path d="M12 8v4"></path><path d="M12 16h.01"></path></svg>
@@ -405,21 +422,38 @@ export class Portal {
       this.setJevBusy(true);
       this.getAudioEngine()?.playClick();
       try {
-        const response = await fetch('/api/jev-recommend', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ intent, schemaVersion: 3 })
-        });
-        const decision = await response.json();
-        if (!response.ok) throw new Error(decision.error?.message || 'RISE is unavailable.');
+        // Decided in this page on the reader's own connection (their
+        // OpenRouter account, or Kev on their computer). Never a SyberLabs model.
+        const { recommendReading } = await import('../core/decision/browser.js');
+        const decision = await recommendReading(intent, { nightDrive: true });
         // The reader's own changes survive a new request (they are theirs).
         await this.showPreview(intent, decision, this.preview?.changes || []);
       } catch (error) {
-        this.showJevError(true, error?.message || '');
+        if (error?.code === 'NOT_CONNECTED') {
+          // Not a failure: nothing was sent. Point at the two ways to connect.
+          this.showAiNotice(error.message);
+          this.container.querySelector('#portal-ai [data-ai="connect"]')?.focus();
+        } else {
+          this.showJevError(true, error?.message || '');
+        }
       } finally {
         this.setJevBusy(false);
       }
     });
+
+    this.container.querySelector('#portal-ai')?.addEventListener('click', event => {
+      const action = event.target.closest('[data-ai]')?.dataset.ai;
+      if (action === 'connect') void this.connectOpenRouter();
+      if (action === 'disconnect') {
+        disconnect();
+        this.showAiNotice('OpenRouter disconnected. RISE forgot the key.');
+      }
+    });
+    this.stopConnection = subscribeConnection(() => this.renderAiPanel());
+    this.renderAiPanel();
+    const notice = takeConnectionNotice();
+    if (notice) this.showAiNotice(notice.message);
+    if (isLocalRise()) void this.watchLocalKev();
 
     this.container.querySelectorAll('[data-example]').forEach(chip => {
       chip.addEventListener('click', () => {
@@ -685,8 +719,9 @@ export class Portal {
     root.querySelector('.portal-adjust-reset').hidden = changes.length === 0;
 
     root.querySelector('.portal-details-body').textContent =
-      `Interpreted by RISE’s AI decision service. Model ${decision.model} · request ${decision.requestId}`
-      + (decision.decisionCacheStatus === 'hit' ? ' · reused a recent answer' : '');
+      `Interpreted by ${decision.provider === 'Kev' ? 'Kev on this computer' : 'Jev through your OpenRouter account'}. `
+      + `Model ${decision.model} · request ${decision.requestId}`
+      + (decision.decisionCacheStatus === 'hit' ? ' · reused a recent answer, no new charge' : '');
 
     const kept = this.container.querySelector('#portal-jev-kept');
     if (kept) {
@@ -697,6 +732,74 @@ export class Portal {
     const label = this.container.querySelector('.portal-submit-label');
     if (label) label.textContent = 'Update preview';
     root.hidden = false;
+  }
+
+  /**
+   * The two ways to use AI in RISE, and which one this tab is using. Both
+   * are the reader's own; neither is required to read.
+   */
+  renderAiPanel() {
+    const body = this.container.querySelector('#portal-ai .portal-ai-body');
+    if (!body) return;
+    const state = connectionState();
+    if (state.kind === 'openrouter') {
+      body.innerHTML = `<p class="portal-help"><strong>Connected:</strong> Jev through your OpenRouter account.
+          Each request is billed to that account, including visual direction while you read a released text.
+          The key stays in this tab’s memory and is forgotten when you
+          disconnect, reload, or close the tab. It is never sent to SyberLabs, but browser extensions you have
+          installed can read what a page holds.</p>
+        <button class="portal-chip" type="button" data-ai="disconnect">Disconnect OpenRouter</button>`;
+      return;
+    }
+    if (state.kind === 'local') {
+      body.innerHTML = `<p class="portal-help"><strong>Running locally:</strong> Kev on this computer${
+        state.device ? ` (${escapeHtml(state.device)})` : ''}. No hosted inference bill.</p>`;
+      return;
+    }
+    if (this.localStatus?.local) {
+      body.innerHTML = `<p class="portal-help">${escapeHtml(KEV_STATES[this.localStatus.kev?.state] || KEV_STATES.checking)}${
+        this.localStatus.kev?.message ? ` ${escapeHtml(String(this.localStatus.kev.message).slice(0, 240))}` : ''}</p>`;
+      return;
+    }
+    body.innerHTML = `<div class="portal-ai-choices">
+        <button class="portal-chip" type="button" data-ai="connect">Connect OpenRouter</button>
+        <a class="portal-chip" href="${LOCAL_GUIDE}" target="_blank" rel="noopener noreferrer">Run locally</a>
+      </div>
+      <p class="portal-help"><strong>Connect OpenRouter:</strong> hosted Jev, billed to your own OpenRouter account.
+        <strong>Run locally:</strong> RISE and Kev on your computer, with no hosted inference bill.
+        Reading and choosing settings yourself need neither.</p>`;
+  }
+
+  showAiNotice(message) {
+    const notice = this.container.querySelector('#portal-ai .portal-ai-notice');
+    if (!notice) return;
+    notice.textContent = message || '';
+    notice.hidden = !message;
+  }
+
+  async connectOpenRouter() {
+    try {
+      const { beginOpenRouterConnect } = await import('../core/openrouter-oauth.js');
+      await beginOpenRouterConnect();
+    } catch {
+      this.showAiNotice('This browser blocked the sign-in state RISE needs. Allow site storage for this tab, then try again.');
+    }
+  }
+
+  /** Local RISE: follow Kev from install to ready, then stop asking. */
+  async watchLocalKev() {
+    if (this._watchingLocal) return;
+    this._watchingLocal = true;
+    try {
+      for (let attempt = 0; attempt < 600 && !this._destroyed; attempt += 1) {
+        this.localStatus = await detectLocalKev();
+        this.renderAiPanel();
+        if (!this.localStatus.local || this.localStatus.ready || this.localStatus.kev?.state === 'error') return;
+        await new Promise(resolve => setTimeout(resolve, 2000));
+      }
+    } finally {
+      this._watchingLocal = false;
+    }
   }
 
   handleKeyboard(e) {
@@ -730,6 +833,8 @@ export class Portal {
   }
 
   destroy() {
+    this._destroyed = true;
+    this.stopConnection?.();
     this.stopJevDictation?.();
     this.deactivate();
     this._plateDraw?.cancel?.();

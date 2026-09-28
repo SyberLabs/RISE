@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildJevVarianceHints, VARIATION_COUNT } from './jev-variance.mjs';
+import { buildJevVarianceHints, VARIATION_COUNT } from './variance.js';
 
 const books = [
   { work_id: 'ulysses', title: 'Ulysses', author: 'James Joyce' },

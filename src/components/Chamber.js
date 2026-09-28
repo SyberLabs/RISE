@@ -113,6 +113,7 @@ import { mutateRecipe } from '../visuals/living-flame/flame-math.js';
 import { FLAME_PRESET_IDS, flamePreset } from '../visuals/living-flame/flame-presets.js';
 import { JEV_INKS, JEV_PALETTES, jevColors } from '../core/jev-palette.js';
 import { JEV_AUDIO_IDS } from '../core/jev-config.js';
+import { connectionState } from '../core/ai-connection.js';
 import { CHAMBER_STREAM_FACES } from '../core/chamber-stream-face.js';
 import './Chamber.css';
 
@@ -1782,9 +1783,13 @@ export class Chamber {
     const canFollow = state.eligibility.canFollow && !state.directorError;
     const modes = [['follow', 'Follow text'], ['hold', 'Hold this scene'], ['off', 'Off']];
     let consent = '';
-    if (state.mode === 'follow' && state.director && state.scoring?.prepared) {
+    const ai = connectionState();
+    const who = ai.kind === 'local' ? 'Kev on this computer' : 'Jev, through your OpenRouter account (billed to you),';
+    if (state.mode === 'follow' && state.director && state.scoring?.prepared && ai.kind === 'none') {
+      consent = '<p class="vd-note">Visuals follow this text locally. Connect OpenRouter on Home, or run RISE locally, to let a decision model direct them.</p>';
+    } else if (state.mode === 'follow' && state.director && state.scoring?.prepared) {
       if (state.catalogVerified) {
-        consent = '<p class="vd-note">Jev directs this released text automatically, one section ahead of you.</p>';
+        consent = `<p class="vd-note">${who} directs this released text automatically, one section ahead of you.</p>`;
       } else if (state.consent) {
         consent = `<div class="vd-consent"><p>Jev is directing these visuals. Sections of this reading are sent as you read; text already sent cannot be recalled.</p>
           <button type="button" data-vd="revoke">Stop sending</button></div>`;

@@ -305,7 +305,7 @@ export class ScriptoriumSession {
   }
 
   /**
-   * Ask Decision service to select one existing output schema for the current request.
+   * Ask the reader's own decision model to select one existing output schema for the current request.
    * The response is a prompt-routing recommendation, never an approval.
    */
   async routeWithJev(apiKey) {
@@ -319,13 +319,13 @@ export class ScriptoriumSession {
     let result;
     try {
       result = await requestJevRoute(apiKey, { intent, targetWords });
-    } catch {
-      return { ok: false, message: 'Decision service routing could not be completed.' };
+    } catch (error) {
+      return { ok: false, message: error?.message || 'Decision service routing could not be completed.' };
     }
     if (requestId !== this.jevRouteRequestId
       || intent !== this.intent
       || targetWords !== this.targetWords) {
-      return { ok: false, stale: true, message: 'The request changed before Decision service returned.' };
+      return { ok: false, stale: true, message: 'The request changed before the decision model returned.' };
     }
 
     this.jevRoute = result;

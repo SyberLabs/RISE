@@ -1,10 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import releaseInventory from '../src/content/archive/release-inventory.json';
-import modernManifest from '../src/content/modern-readings-manifest.json';
-import { JEV_INKS, JEV_PALETTES, jevColors } from '../src/core/jev-palette.js';
-import { JEV_AUDIO_IDS } from '../src/core/jev-config.js';
-import * as jevSequence from '../src/core/jev-sequence.js';
-import { validateJevRecommendation } from '../src/app/jev-reading.js';
+import releaseInventory from '../../content/archive/release-inventory.json';
+import modernManifest from '../../content/modern-readings-manifest.json';
+import { JEV_INKS, JEV_PALETTES, jevColors } from '../../core/jev-palette.js';
+import { JEV_AUDIO_IDS } from '../../core/jev-config.js';
+import * as jevSequence from '../../core/jev-sequence.js';
+import { validateJevRecommendation } from '../../app/jev-reading.js';
 
 const mocks = vi.hoisted(() => ({
   query: vi.fn(),
@@ -34,20 +34,67 @@ vi.mock('@upstash/redis/cloudflare', () => ({
   }
 }));
 
-import { handleJevRecommend } from './jev-recommend.mjs';
-import worker from './index.mjs';
+import { handleDecisionCatalog } from '../../../worker/decision-catalog.mjs';
+import { readPublicCatalog } from './catalog.js';
+import { createRecommender } from './recommend.js';
+import { DecisionError } from './call.js';
+import { JEV, KEV } from './providers.js';
 
 const SITE = 'https://rise.example';
-// Captured before DECISION_CACHE_NAMESPACE existed: an unset namespace must keep production's keys.
-const GOLDEN_PRODUCTION_DECISION_KEY =
-  'rise:jev-decision:v13:6d367a864421a6464055456926152681e6fdf6e8a71700314d2fc1cb78683bd8:0';
+// The reader's own OpenRouter key; the catalog credentials stay in the Worker.
 const env = {
-  DECISION_PROVIDER: 'jev',
-  OPENROUTER_API_KEY: 'openrouter-server-secret',
+  OPENROUTER_API_KEY: 'reader-openrouter-key',
   NEON_DATABASE_URL: 'postgresql://private.example/rise',
   UPSTASH_REDIS_REST_URL: 'https://redis.example',
   UPSTASH_REDIS_REST_TOKEN: 'redis-server-secret'
 };
+
+const STATUS = { INVALID_REQUEST: 400, NOT_CONNECTED: 503, CATALOG_UNAVAILABLE: 503, CATALOG_NOT_CONFIGURED: 503,
+  OPTIONS_UNAVAILABLE: 503, TIMEOUT: 504, CANCELED: 499 };
+
+// One browser session: the published catalog (through the real Worker route),
+// a reader-owned connection, and the recommender's store (Redis-shaped mocks so
+// turn and cache behavior stay observable).
+let currentEnv = env;
+let recommend;
+function connectionFor(settings) {
+  if (settings.KEV_REVISION) {
+    const provider = { ...KEV, revision: settings.KEV_REVISION };
+    return { provider, request: init => fetch(provider.url, init) };
+  }
+  if (!settings.OPENROUTER_API_KEY) return null;
+  return { provider: JEV, request: init => fetch(JEV.url,
+    { ...init, headers: { ...init.headers, Authorization: `Bearer ${settings.OPENROUTER_API_KEY}` } }) };
+}
+function newSession() {
+  recommend = createRecommender({
+    loadCatalog: async () => {
+      const response = await handleDecisionCatalog(new Request(`${SITE}/api/decision-catalog`), currentEnv);
+      const body = await response.json();
+      if (!response.ok) throw new DecisionError(body.error.code, body.error.message);
+      const catalog = readPublicCatalog(body);
+      if (!catalog) throw new DecisionError('CATALOG_UNAVAILABLE', 'The reading catalog is unavailable.');
+      return catalog;
+    },
+    getConnection: () => connectionFor(currentEnv),
+    store: {
+      nextTurn: async key => (await mocks.incr(`rise:jev-turn:${key}`)) - 1,
+      get: key => mocks.get(`rise:jev-decision:${key}`),
+      set: (key, value) => mocks.set(`rise:jev-decision:${key}`, value)
+    }
+  });
+}
+async function handleJevRecommend(req, settings) {
+  currentEnv = settings;
+  const body = await req.json();
+  if (![2, 3].includes(body.schemaVersion)) return Response.json({ error: { code: 'INVALID_REQUEST' } }, { status: 400 });
+  try {
+    return Response.json(await recommend(body.intent, { nightDrive: body.schemaVersion === 3 }));
+  } catch (error) {
+    if (!(error instanceof DecisionError)) throw error;
+    return Response.json({ error: { code: error.code, message: error.message } }, { status: STATUS[error.code] || 502 });
+  }
+}
 
 function book(workId, extras = {}) {
   const edition = releaseInventory[workId] || modernManifest[workId];
@@ -138,6 +185,7 @@ function request(body = { intent: 'I want a thoughtful novel.' }, headers = {}, 
 }
 
 beforeEach(() => {
+  newSession();
   mocks.query.mockImplementation(strings => Promise.resolve(
     strings.join('').includes('FROM rise_sounds') ? sounds : books));
   mocks.optionsQuery.mockResolvedValue(options);
@@ -153,30 +201,35 @@ afterEach(() => {
 });
 
 describe('Jev reading recommendation', () => {
-  it('admits Kev choices and isolates cached decisions by pinned checkpoint', async () => {
+  it('admits local Kev choices only with the pinned attestation and isolates decisions by checkpoint', async () => {
     const cache = new Map();
     mocks.get.mockImplementation(async key => cache.get(key) ?? null);
     mocks.set.mockImplementation(async (key, value) => { cache.set(key, value); return 'OK'; });
-    let servedRevision = 'a'.repeat(40);
+    let servedRevision = KEV.revision;
     const fetcher = vi.fn(async () => Response.json({ model: 'kev-latest', answers: answers('middlemarch') },
-      { headers: { 'x-kev-revision': servedRevision } }));
+      { headers: servedRevision ? { 'x-kev-revision': servedRevision } : {} }));
     vi.stubGlobal('fetch', fetcher);
-    const kev = { ...env, DECISION_PROVIDER: 'kev', KEV_BASE_URL: 'https://kev.example',
-      KEV_API_KEY: 'kev-secret', KEV_MODEL: 'kev-latest', KEV_REVISION: 'a'.repeat(40) };
+    const kev = { ...env, OPENROUTER_API_KEY: '', KEV_REVISION: KEV.revision };
     const first = await handleJevRecommend(request({ intent: 'A thoughtful reading.' }), kev);
     expect(first.status).toBe(200);
     const decision = await first.json();
-    expect(decision).toMatchObject({ provider: 'Kev', revision: kev.KEV_REVISION, model: 'kev-latest' });
+    expect(decision).toMatchObject({ provider: 'Kev', revision: KEV.revision, model: 'kev-latest' });
     expect(() => validateJevRecommendation(decision)).not.toThrow();
     expect((await (await handleJevRecommend(request({ intent: 'A thoughtful reading.' }), kev)).json()).decisionCacheStatus).toBe('hit');
     expect(fetcher).toHaveBeenCalledTimes(1);
+    // Local Kev is a same-origin bridge route; no credential leaves the page.
+    expect(fetcher.mock.calls[0][0]).toBe('/api/local/kev/systemone');
+    expect(fetcher.mock.calls[0][1].headers).not.toHaveProperty('Authorization');
     servedRevision = 'b'.repeat(40);
     const changed = await handleJevRecommend(request({ intent: 'A thoughtful reading.' }), { ...kev, KEV_REVISION: servedRevision });
     expect(changed.status).toBe(200);
     expect(fetcher).toHaveBeenCalledTimes(2);
-    expect(fetcher.mock.calls[0][0]).toBe('https://kev.example/v1/systemone');
+    servedRevision = null;
+    const unattested = await handleJevRecommend(request({ intent: 'Another thoughtful reading.' }), kev);
+    expect(unattested.status).toBe(502);
+    expect((await unattested.json()).error.code).toBe('UNATTESTED');
   });
-  it('serves the original v1 shape to an old tab and the expressive v2 shape to a new tab', async () => {
+  it('serves expressive colors and answers a repeated request from this tab without a new charge', async () => {
     const cache = new Map();
     mocks.get.mockImplementation(async key => cache.get(key) ?? null);
     mocks.set.mockImplementation(async (key, value) => { cache.set(key, value); return 'OK'; });
@@ -188,17 +241,7 @@ describe('Jev reading recommendation', () => {
       })
     }));
     vi.stubGlobal('fetch', provider);
-    const oldResponse = await handleJevRecommend(request({ intent: 'A colorful reading.' }, {}, true), env);
-    const oldDecision = await oldResponse.json();
-    expect(oldResponse.status).toBe(200);
-    expect(oldDecision.schemaVersion).toBe(1);
-    expect(Object.keys(oldDecision.config)).toHaveLength(36);
-    expect(oldDecision.config).not.toHaveProperty('textColor');
-    expect(oldDecision.config.presentation).toEqual({
-      chamberFace: 'literary', fontSize: 'medium', colorTheme: 'classic',
-      colors: JEV_PALETTES.classic
-    });
-
+    await handleJevRecommend(request({ intent: 'A colorful reading.' }), env);
     const newResponse = await handleJevRecommend(request({ intent: 'A colorful reading.', schemaVersion: 2 }), env);
     const newDecision = await newResponse.json();
     expect(newResponse.status).toBe(200);
@@ -265,18 +308,6 @@ describe('Jev reading recommendation', () => {
     expect(payload.questions.middleAudio.criteria).toHaveProperty('starlight');
     expect(payload.questions.finaleAudio.criteria).toHaveProperty('starlight');
     expect((await response.json()).config.soundscape).toBe('starlight');
-  });
-
-  it('uses the production Worker rate limit before reading PostgreSQL, Redis, or Jev', async () => {
-    const provider = vi.fn();
-    vi.stubGlobal('fetch', provider);
-    const response = await worker.fetch(request(undefined, { 'CF-Connecting-IP': '192.0.2.1' }), {
-      ...env, DECISION_LIMITER: { limit: vi.fn(async () => ({ success: false })) }
-    });
-    expect(response.status).toBe(429);
-    expect(mocks.get).not.toHaveBeenCalled();
-    expect(mocks.query).not.toHaveBeenCalled();
-    expect(provider).not.toHaveBeenCalled();
   });
 
   it('loads the expanded sound catalog and sends Jev a bounded shortlist', async () => {
@@ -365,34 +396,6 @@ describe('Jev reading recommendation', () => {
       ] }
     });
     expect(() => validateJevRecommendation(decision)).not.toThrow();
-  });
-
-  it('returns the original single-arc shape to an old tab for an audio-only finale', async () => {
-    mocks.query.mockImplementation(strings => Promise.resolve(strings.join('').includes('FROM rise_sounds')
-      ? JEV_AUDIO_IDS.map(id => ({ sound_id: id,
-        decision_criterion: `Choose a ${id} soundscape for this reading.`, active: true }))
-      : books));
-    vi.stubGlobal('fetch', vi.fn(async () => Response.json({
-      id: 'old-tab-finale', model: 'typesafe/jev-1.13', provider: 'TypeSafe',
-      answers: answers('literary-walden', {
-        audio: { type: 'choice', choice: 'silent' },
-        finaleAudio: { type: 'choice', choice: 'silent' },
-        visual: { type: 'choice', choice: 'off' }
-      })
-    })));
-
-    const response = await handleJevRecommend(request({
-      intent: 'Start in silence, then make the ending triumphant with no visuals.'
-    }, {}, true), env);
-
-    expect(response.status).toBe(200);
-    const { schemaVersion, config } = await response.json();
-    expect(schemaVersion).toBe(1);
-    expect(config.visualMode).toBe('off');
-    expect(config.visualArc).toBe('single');
-    expect(config.visualProgram).toBeNull();
-    expect(config.audioProgram).toBeNull();
-    expect(config).not.toHaveProperty('textColor');
   });
 
   it('keeps a requested silent ending after a triumphant opening', async () => {
@@ -510,7 +513,7 @@ describe('Jev reading recommendation', () => {
       workId: 'middlemarch', editionId: books[0].edition_id,
       sourceRevision: books[0].source_revision,
       reason: books[0].fit_description, config: chosenConfig,
-      cacheStatus: 'miss', decisionCacheStatus: 'miss'
+      decisionCacheStatus: 'miss'
     });
     expect(mocks.neon).toHaveBeenCalledWith(env.NEON_DATABASE_URL);
     expect(mocks.set).toHaveBeenCalledWith(expect.stringMatching(/^rise:books:v1:[0-9a-f]{64}$/u), books, { ex: 30 });
@@ -550,7 +553,10 @@ describe('Jev reading recommendation', () => {
     expect(body.questions.backgroundColor.instructions).toContain('background');
     expect(body.questions.visualStyle.instructions).toContain('visual energy');
     expect(body.questions.projection.instructions).toContain('continuous visual');
-    expect(provider.mock.calls[0][1].headers.Authorization).toBe('Bearer openrouter-server-secret');
+    // The reader's own key goes only to OpenRouter's Decisions API.
+    expect(provider.mock.calls[0][0]).toBe('https://openrouter.ai/api/alpha/decisions');
+    expect(provider.mock.calls[0][1].headers.Authorization).toBe('Bearer reader-openrouter-key');
+    expect(provider.mock.calls[0][1].redirect).toBe('error');
   });
 
   it('resolves independent named text and background choices into bounded colors', async () => {
@@ -610,7 +616,8 @@ describe('Jev reading recommendation', () => {
   });
 
   it('uses public catalog metadata from Redis but still calls Jev for the reader intent', async () => {
-    mocks.get.mockImplementation(async key => key === 'rise:sounds:v1' ? sounds : books);
+    mocks.get.mockImplementation(async key => key.startsWith('rise:jev-decision:') ? null
+      : key === 'rise:sounds:v1' ? sounds : books);
     const provider = vi.fn(async () => Response.json({
       id: 'gen-dec-live-2', model: 'typesafe/jev-1.13', provider: 'TypeSafe',
       answers: answers('literary-walden')
@@ -619,7 +626,7 @@ describe('Jev reading recommendation', () => {
 
     const response = await handleJevRecommend(request({ intent: 'Nature and quiet.' }), env);
     expect(response.status).toBe(200);
-    expect((await response.json()).cacheStatus).toBe('hit');
+    expect((await response.json()).decisionCacheStatus).toBe('miss');
     expect(mocks.query).not.toHaveBeenCalled();
     expect(provider).toHaveBeenCalledOnce();
   });
@@ -920,39 +927,11 @@ describe('Jev reading recommendation', () => {
     });
     expect(provider).toHaveBeenCalledTimes(1);
     const decisionKey = [...cache.keys()].find(key => key.startsWith('rise:jev-decision:'));
-    expect(decisionKey).toMatch(/^rise:jev-decision:v13:[0-9a-f]{64}:0$/u);
-    expect(decisionKey).not.toContain('Nature and quiet.');
+    // Keyed by provider identity; held only in this tab's memory in production.
+    expect(decisionKey.startsWith('rise:jev-decision:TypeSafe:jev-1.13:')).toBe(true);
     expect(mocks.set).toHaveBeenCalledWith(decisionKey, expect.objectContaining({
       workId: 'literary-walden'
-    }), { ex: 3600 });
-  });
-
-  it('separates decision and turn state by DECISION_CACHE_NAMESPACE and leaves unnamespaced keys unchanged', async () => {
-    const cache = new Map();
-    const turns = [];
-    mocks.get.mockImplementation(async key => cache.get(key) ?? (key.startsWith('rise:books:') ? books : null));
-    mocks.set.mockImplementation(async (key, value) => { cache.set(key, value); return 'OK'; });
-    mocks.incr.mockImplementation(async key => { turns.push(key); return 1; });
-    const provider = vi.fn(async () => Response.json({
-      id: 'gen-dec-ns', model: 'typesafe/jev-1.13', provider: 'TypeSafe',
-      answers: answers('literary-walden')
     }));
-    vi.stubGlobal('fetch', provider);
-    const decisionKeys = () => [...cache.keys()].filter(key => key.startsWith('rise:jev-decision:'));
-
-    const unnamespaced = await handleJevRecommend(request({ intent: 'Nature and quiet.' }), env);
-    const [productionKey] = decisionKeys();
-    const evaluation = await handleJevRecommend(request({ intent: 'Nature and quiet.' }),
-      { ...env, DECISION_CACHE_NAMESPACE: 'kev-eval-1' });
-    const evaluationKey = decisionKeys().find(key => key !== productionKey);
-
-    expect((await unnamespaced.json()).decisionCacheStatus).toBe('miss');
-    expect((await evaluation.json()).decisionCacheStatus).toBe('miss');
-    expect(provider).toHaveBeenCalledTimes(2);
-    expect(productionKey).toBe(GOLDEN_PRODUCTION_DECISION_KEY);
-    expect(evaluationKey).toMatch(/^rise:jev-decision:v13:[0-9a-f]{64}:0$/u);
-    expect(new Set(turns).size).toBe(2);
-    expect(turns.every(key => key.startsWith('rise:jev-turn:v4:'))).toBe(true);
   });
 
   it('uses the Gallery host for a visual arc and keeps explicit darkness dark', async () => {
@@ -1095,26 +1074,6 @@ describe('Jev reading recommendation', () => {
     expect(provider).toHaveBeenCalledTimes(3);
   });
 
-  it('does not serve a cached result with an invalid model', async () => {
-    mocks.get.mockImplementation(async key => key.startsWith('rise:books:') ? books : {
-      requestId: 'forged', model: 'other/model', workId: 'literary-walden',
-      editionId: book('literary-walden').edition_id,
-      sourceRevision: book('literary-walden').source_revision,
-      reason: book('literary-walden').fit_description
-    });
-    const provider = vi.fn(async () => Response.json({
-      id: 'gen-dec-fresh', model: 'typesafe/jev-1.13', provider: 'TypeSafe',
-      answers: answers('literary-walden')
-    }));
-    vi.stubGlobal('fetch', provider);
-
-    const response = await handleJevRecommend(request(), env);
-
-    expect(response.status).toBe(200);
-    expect(await response.json()).toMatchObject({ requestId: 'gen-dec-fresh', decisionCacheStatus: 'miss' });
-    expect(provider).toHaveBeenCalledOnce();
-  });
-
   it('offers only active approved menu IDs and keys cached decisions by that menu', async () => {
     const cache = new Map();
     mocks.get.mockImplementation(async key => key.startsWith('rise:books:') ? books : cache.get(key));
@@ -1174,7 +1133,7 @@ describe('Jev reading recommendation', () => {
     })));
     const response = await handleJevRecommend(request(), env);
     expect(response.status).toBe(502);
-    expect((await response.json()).error.code).toBe('DECISION_INVALID_RESPONSE');
+    expect((await response.json()).error.code).toBe('INVALID_RESPONSE');
   });
 
   it('honors an explicit no-motion request even when Jev picks psychedelic visuals', async () => {
@@ -1205,25 +1164,6 @@ describe('Jev reading recommendation', () => {
       const response = await handleJevRecommend(request({ intent }), env);
       expect((await response.json()).config.visualMode).toBe('off');
     }
-  });
-
-  it('does not serve a cached result with an unsupported schema version', async () => {
-    mocks.get.mockImplementation(async key => key.startsWith('rise:books:') ? books : {
-      schemaVersion: 3, requestId: 'future', model: 'typesafe/jev-1.13',
-      workId: 'literary-walden', editionId: book('literary-walden').edition_id,
-      sourceRevision: book('literary-walden').source_revision,
-      reason: book('literary-walden').fit_description, config: chosenConfig
-    });
-    const provider = vi.fn(async () => Response.json({
-      id: 'gen-dec-fresh', model: 'typesafe/jev-1.13', provider: 'TypeSafe',
-      answers: answers('literary-walden')
-    }));
-    vi.stubGlobal('fetch', provider);
-
-    const response = await handleJevRecommend(request(), env);
-    expect(response.status).toBe(200);
-    expect(await response.json()).toMatchObject({ schemaVersion: 2, requestId: 'gen-dec-fresh' });
-    expect(provider).toHaveBeenCalledOnce();
   });
 
   it('continues recommending only active books when a catalog row is withdrawn', async () => {
@@ -1261,7 +1201,7 @@ describe('Jev reading recommendation', () => {
     })));
     const response = await handleJevRecommend(request(), env);
     expect(response.status).toBe(502);
-    expect((await response.json()).error.code).toBe('DECISION_INVALID_RESPONSE');
+    expect((await response.json()).error.code).toBe('INVALID_RESPONSE');
   });
 
   it.each([
@@ -1287,20 +1227,50 @@ describe('Jev reading recommendation', () => {
     })));
     const response = await handleJevRecommend(request(), env);
     expect(response.status).toBe(502);
-    expect((await response.json()).error.code).toBe('DECISION_INVALID_RESPONSE');
+    expect((await response.json()).error.code).toBe('INVALID_RESPONSE');
   });
 
-  it('rejects cross-origin and malformed requests before touching secrets or services', async () => {
+  it('rejects malformed intents before loading the catalog or calling a model', async () => {
     const provider = vi.fn();
     vi.stubGlobal('fetch', provider);
     const responses = await Promise.all([
-      handleJevRecommend(request({ intent: 'read' }, { Origin: 'https://other.example' }), env),
       handleJevRecommend(request({ intent: 'ab' }), env),
-      handleJevRecommend(request({ intent: 'read', extra: 'ignored' }), env)
+      handleJevRecommend(request({ intent: 'x'.repeat(241) }), env),
+      handleJevRecommend(request({ intent: 42 }), env)
     ]);
-    expect(responses.map(item => item.status)).toEqual([403, 400, 400]);
+    expect(responses.map(item => item.status)).toEqual([400, 400, 400]);
     expect(mocks.get).not.toHaveBeenCalled();
     expect(provider).not.toHaveBeenCalled();
+  });
+
+  it('asks nothing and loads nothing without a reader connection', async () => {
+    const provider = vi.fn();
+    vi.stubGlobal('fetch', provider);
+    const response = await handleJevRecommend(request(), { ...env, OPENROUTER_API_KEY: '' });
+    expect(response.status).toBe(503);
+    expect((await response.json()).error.code).toBe('NOT_CONNECTED');
+    expect(mocks.get).not.toHaveBeenCalled();
+    expect(provider).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    [401, 'AUTH'], [403, 'FORBIDDEN'], [402, 'PAYMENT'], [429, 'RATE_LIMITED'], [500, 'UPSTREAM']
+  ])('reports OpenRouter HTTP %s as %s without retrying or falling back', async (status, code) => {
+    const provider = vi.fn(async () => new Response('reader-openrouter-key', { status }));
+    vi.stubGlobal('fetch', provider);
+    const response = await handleJevRecommend(request(), env);
+    const body = await response.json();
+    expect(body.error.code).toBe(code);
+    expect(JSON.stringify(body)).not.toContain('reader-openrouter-key');
+    expect(provider).toHaveBeenCalledOnce();
+  });
+
+  it('times out once and never retries or falls back to another provider', async () => {
+    const provider = vi.fn(async () => { throw new DOMException('slow', 'TimeoutError'); });
+    vi.stubGlobal('fetch', provider);
+    const response = await handleJevRecommend(request(), env);
+    expect(response.status).toBe(502);
+    expect(provider).toHaveBeenCalledOnce();
   });
 
   it('fails closed when Redis or required production secrets are unavailable', async () => {

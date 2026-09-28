@@ -37,6 +37,13 @@ import { installTestBridge } from './app/test-bridge.js';
 const VISUAL_LAB_PATH = '/visual-lab';
 import { watchTabFreshness } from './core/tab-freshness.js';
 import { hasPersonalWorkInPage } from './core/personal-identity.js';
+import { takeOpenRouterReturn } from './core/openrouter-callback.js';
+
+// FIRST, before any other work: an OpenRouter sign-in returns here with a
+// one-time authorization code in the URL. Lift it out of the address bar and
+// history now; it is exchanged (and the PKCE state cleared) once the app is up.
+// Any other page load abandons a sign-in this tab started and never finished.
+const openRouterReturn = takeOpenRouterReturn();
 
 // THE SHELL'S OWN STYLES, AND ONLY THOSE. app.js used to import sixteen
 // stylesheets — every room's, not the Portal's — which is 220 KB of CSS
@@ -292,6 +299,12 @@ class App {
 
         // Register views
         this.registerViews();
+
+        // Finish "Connect OpenRouter". The key goes to memory only; the
+        // Portal shows the outcome. A failure changes nothing else.
+        if (openRouterReturn.callback || openRouterReturn.abandoned) {
+            await import('./core/openrouter-oauth.js').then(oauth => oauth.finishOpenRouterReturn(openRouterReturn));
+        }
 
         // Keystone paths are durable public entry points.  They resolve to a
         // threshold view first; admission and launch still happen through the

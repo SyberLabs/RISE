@@ -8,12 +8,11 @@
     "directory": "./dist",
     "not_found_handling": "single-page-application",
     "binding": "ASSETS",
-    // The Kev worker script carries its own policy (worker/enterprise-decision.mjs).
+    // The Kev worker script carries its own policy (worker/kev-worker-script.mjs).
     "run_worker_first": ["/api/*", "/assets/kev-worker-*"]
   },
   "secrets": {
     "required": [
-      "OPENROUTER_API_KEY",
       "NEON_DATABASE_URL",
       "UPSTASH_REDIS_REST_URL",
       "UPSTASH_REDIS_REST_TOKEN"
@@ -23,9 +22,5 @@
     "name": "DECISION_LIMITER",
     "namespace_id": "2026092601",
     "simple": { "limit": 30, "period": 60 }
-  }, {
-    "name": "VISUAL_SCORE_LIMITER",
-    "namespace_id": "2026092702",
-    "simple": { "limit": 6, "period": 60 }
   }]
 }

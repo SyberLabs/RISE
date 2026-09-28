@@ -1,160 +1,129 @@
 import { readdirSync, readFileSync } from 'node:fs';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+
+const mocks = vi.hoisted(() => ({ query: vi.fn(), get: vi.fn(), set: vi.fn() }));
+vi.mock('@neondatabase/serverless', () => ({
+  neon: () => (strings, ...values) => mocks.query(strings, ...values)
+}));
+vi.mock('@upstash/redis/cloudflare', () => ({
+  Redis: class {
+    get(key) { return mocks.get(key); }
+    set(key, value, options) { return mocks.set(key, value, options); }
+  }
+}));
+
 import worker from './index.mjs';
+import retiredNetlify, { config as netlifyConfig } from '../netlify/functions/retired-inference.mjs';
+import { RETIRED_INFERENCE_ROUTES } from './retired-inference.mjs';
+import releaseInventory from '../src/content/archive/release-inventory.json';
+import { readPublicCatalog } from '../src/core/decision/catalog.js';
 
 const SITE = 'https://rise.example';
-const input = {
-  intent: 'Help me stay with this passage.',
-  feedback: 'I am losing focus.',
-  excerpt: 'The reader’s attention turns toward the sea.',
-  requestId: 'request-123',
-  mode: 'reading',
-  pace: 220
+// Every credential the old routes could spend, present on purpose: a retired
+// route must not touch any of them.
+const LEGACY = {
+  DECISION_PROVIDER: 'jev', OPENROUTER_API_KEY: 'server-openrouter-secret',
+  KEV_BASE_URL: 'https://kev.example', KEV_API_KEY: 'server-kev-secret',
+  KEV_REVISION: '139fdd94f1b6a6ad80cc15e08fcb99cac885a101',
+  PERSONAL_PIECE_ENABLED: 'true', PERSONAL_PIECE_IP_SECRET: 'x'.repeat(40)
+};
+const CATALOG = {
+  NEON_DATABASE_URL: 'postgresql://private.example/rise',
+  UPSTASH_REDIS_REST_URL: 'https://redis.example',
+  UPSTASH_REDIS_REST_TOKEN: 'redis-server-secret'
 };
 
-function decisionRequest(options = {}) {
-  return new Request(`${SITE}/api/jev-decision`, {
-    method: 'POST',
-    headers: {
-      Origin: SITE,
-      'Content-Type': 'application/json',
-      'CF-Connecting-IP': '192.0.2.1',
-      ...options.headers
-    },
-    body: options.body ?? JSON.stringify(input)
-  });
+function environment(success = true) {
+  return { ...LEGACY, ...CATALOG, DECISION_LIMITER: { limit: vi.fn(async () => ({ success })) },
+    VISUAL_SCORE_LIMITER: { limit: vi.fn(async () => ({ success })) } };
 }
 
-function environment(success = true) {
-  return {
-    DECISION_PROVIDER: 'jev',
-    OPENROUTER_API_KEY: 'server-secret',
-    DECISION_LIMITER: { limit: vi.fn(async () => ({ success })) }
-  };
-}
+const books = Object.values(releaseInventory)
+  .filter(item => item.editionId?.startsWith('standard-ebooks:'))
+  .map(item => ({
+    work_id: item.workId, title: 'A title', author: 'An author', edition_id: item.editionId,
+    source_revision: item.sourceRevision, fit_description: 'A reviewed public description.',
+    decision_criterion: 'Choose this for a reviewed public reason.', active: true, internal_note: 'never published'
+  }));
+const sounds = [{ sound_id: 'aurora', decision_criterion: 'Soft, spacious harmonics for calm reading.', active: true }];
 
 afterEach(() => {
   vi.unstubAllGlobals();
+  vi.clearAllMocks();
 });
 
 describe('Cloudflare API Worker', () => {
-  it('returns the validated same-origin Jev action with the Worker secret', async () => {
-    const provider = vi.fn(async () => Response.json({
-      model: 'typesafe/jev-1.13-20260917',
-      provider: 'TypeSafe',
-      answers: { reading_action: { type: 'choice', choice: 'slower' } }
-    }));
-    vi.stubGlobal('fetch', provider);
-    const env = environment();
-
-    const response = await worker.fetch(decisionRequest(), env);
-
-    expect(response.status).toBe(200);
-    expect(await response.json()).toEqual({
-      requestId: 'request-123', action: 'slower', model: 'typesafe/jev-1.13-20260917'
-    });
-    expect(env.DECISION_LIMITER.limit).toHaveBeenCalledWith({ key: '192.0.2.1' });
-    expect(provider).toHaveBeenCalledOnce();
-    expect(provider.mock.calls[0][1].headers.Authorization).toBe('Bearer server-secret');
-  });
-
-  it('rejects a denied rate limit before contacting the provider', async () => {
-    const provider = vi.fn();
-    vi.stubGlobal('fetch', provider);
-
-    const response = await worker.fetch(decisionRequest(), environment(false));
-
-    expect(response.status).toBe(429);
-    expect(response.headers.get('content-type')).toContain('application/json');
-    expect(response.headers.get('cache-control')).toBe('no-store');
-    expect(provider).not.toHaveBeenCalled();
-  });
-
-  it.each([
-    ['limiter', (env) => { delete env.DECISION_LIMITER; }, {}],
-    ['IP', () => {}, { headers: { 'CF-Connecting-IP': '' } }],
-    ['key', (env) => { delete env.OPENROUTER_API_KEY; }, {}],
-    ['limiter failure', (env) => { env.DECISION_LIMITER.limit.mockRejectedValue(new Error('unavailable')); }, {}]
-  ])('fails closed when %s is unavailable', async (_name, changeEnv, requestOptions) => {
-    const provider = vi.fn();
-    vi.stubGlobal('fetch', provider);
-    const env = environment();
-    changeEnv(env);
-
-    const response = await worker.fetch(decisionRequest(requestOptions), env);
-
-    expect(response.status).toBe(503);
-    expect(response.headers.get('content-type')).toContain('application/json');
-    expect(provider).not.toHaveBeenCalled();
-  });
-
-  it('leaves method, origin, and body validation with the shared decision handler', async () => {
-    const provider = vi.fn();
-    vi.stubGlobal('fetch', provider);
-    const env = environment();
-
-    const wrongMethod = await worker.fetch(new Request(`${SITE}/api/jev-decision`, {
-      method: 'GET', headers: { Origin: SITE, 'CF-Connecting-IP': '192.0.2.1' }
-    }), env);
-    const wrongOrigin = await worker.fetch(decisionRequest({ headers: { Origin: 'https://other.example' } }), env);
-    const invalidBody = await worker.fetch(decisionRequest({ body: '{' }), env);
-
-    expect([wrongMethod.status, wrongOrigin.status, invalidBody.status]).toEqual([405, 403, 400]);
-    expect(provider).not.toHaveBeenCalled();
-  });
-
-  it('uses server-owned credentials for the explicit Jev routing rollback', async () => {
-    const provider = vi.fn(async () => Response.json({
-      model: 'typesafe/jev-1.13', provider: 'TypeSafe',
-      answers: { route: { type: 'choice', choice: 'experience_program', confidence: 0.9 } }
-    }));
-    vi.stubGlobal('fetch', provider);
-    const env = environment();
-
-    const response = await worker.fetch(new Request(`${SITE}/api/jev/route`, {
-      method: 'POST',
-      headers: { Origin: SITE, 'CF-Connecting-IP': '192.0.2.1', Authorization: 'Bearer personal-key', 'Content-Type': 'application/json' },
-      body: JSON.stringify({ intent: 'Create a reading', targetWords: 800 })
-    }), env);
-
-    expect(response.status).toBe(200);
-    expect(await response.json()).toEqual({
-      route: 'experience_program', confidence: 0.9, model: 'typesafe/jev-1.13'
-    });
-    expect(provider.mock.calls[0][0]).toBe('https://openrouter.ai/api/alpha/decisions');
-    expect(provider.mock.calls[0][1].headers.Authorization).toBe('Bearer server-secret');
-    expect(env.DECISION_LIMITER.limit).toHaveBeenCalledOnce();
-  });
-
-  it('routes the enterprise decision through the decision provider and limiter', async () => {
-    const context = {
-      schema: 'rise.enterprise-context.v1',
-      requestId: 'room1:1',
-      evidence: { window: 'Atlas renewal price', speaker: 'presenter', mode: 'prepared' },
-      structure: {
-        candidates: [{ id: 'a', title: 'Atlas renewal', score: 0.9, layouts: ['quote'], layout: 'quote' }],
-        rail: []
-      },
-      authority: { actions: ['show', 'hold', 'dismiss'] }
-    };
-    const enterpriseRequest = () => new Request(`${SITE}/api/enterprise-decision`, {
-      method: 'POST',
-      headers: { Origin: SITE, 'Content-Type': 'application/json', 'CF-Connecting-IP': '192.0.2.1' },
-      body: JSON.stringify(context)
-    });
-    const fetcher = vi.fn(async () => Response.json({
-      provider: 'TypeSafe', model: 'typesafe/jev-1.13',
-      answers: { rail_action: { type: 'choice', choice: 'show_1_quote', confidence: 0.9 } }
-    }));
+  it.each(RETIRED_INFERENCE_ROUTES)('retires %s with a clear 410 and spends nothing', async (path) => {
+    const fetcher = vi.fn();
     vi.stubGlobal('fetch', fetcher);
-
-    expect((await worker.fetch(enterpriseRequest(), {})).status).toBe(503);
-    expect((await worker.fetch(enterpriseRequest(), environment(false))).status).toBe(429);
+    const env = environment();
+    for (const method of ['POST', 'GET']) {
+      const response = await worker.fetch(new Request(`${SITE}${path}`, {
+        method,
+        headers: { Origin: SITE, 'Content-Type': 'application/json', 'CF-Connecting-IP': '192.0.2.1' },
+        ...(method === 'POST' ? { body: JSON.stringify({ intent: 'A thoughtful classic.', schemaVersion: 3 }) } : {})
+      }), env);
+      expect(response.status).toBe(410);
+      expect(response.headers.get('cache-control')).toBe('no-store');
+      const body = await response.json();
+      expect(body.error.code).toBe('SHARED_INFERENCE_RETIRED');
+      expect(body.error.message).toMatch(/OpenRouter account or run RISE locally/u);
+    }
     expect(fetcher).not.toHaveBeenCalled();
+    expect(mocks.query).not.toHaveBeenCalled();
+    expect(env.DECISION_LIMITER.limit).not.toHaveBeenCalled();
+  });
 
-    const response = await worker.fetch(enterpriseRequest(), environment());
+  it('answers the same retired routes on Netlify previews', async () => {
+    expect([...netlifyConfig.path].sort()).toEqual([...RETIRED_INFERENCE_ROUTES].sort());
+    expect((await retiredNetlify(new Request(`${SITE}/api/jev/route`, { method: 'POST' }))).status).toBe(410);
+  });
+
+  it('publishes only public catalog columns, rate limited, with no model call', async () => {
+    const fetcher = vi.fn();
+    vi.stubGlobal('fetch', fetcher);
+    mocks.get.mockResolvedValue(null);
+    mocks.set.mockResolvedValue('OK');
+    mocks.query.mockImplementation(strings => {
+      const sql = strings.join('');
+      if (sql.includes('rise_jev_options')) return Promise.reject(Object.assign(new Error('missing'), { code: '42P01' }));
+      return Promise.resolve(sql.includes('FROM rise_sounds') ? sounds : books);
+    });
+    const env = environment();
+    const response = await worker.fetch(new Request(`${SITE}/api/decision-catalog`, {
+      headers: { 'CF-Connecting-IP': '192.0.2.1' }
+    }), env);
     expect(response.status).toBe(200);
-    expect(await response.json()).toMatchObject({ requestId: 'room1:1', action: 'show', cardId: 'a', layout: 'quote' });
+    expect(response.headers.get('cache-control')).toBe('public, max-age=60');
+    const text = await response.text();
+    const catalog = readPublicCatalog(JSON.parse(text));
+    expect(catalog.books).toHaveLength(books.length);
+    expect(catalog.options).toBeNull();
+    for (const secret of [LEGACY.OPENROUTER_API_KEY, LEGACY.KEV_API_KEY, LEGACY.PERSONAL_PIECE_IP_SECRET,
+      ...Object.values(CATALOG), 'never published', 'private.example']) {
+      expect(text).not.toContain(secret);
+    }
+    expect(env.DECISION_LIMITER.limit).toHaveBeenCalledWith({ key: '192.0.2.1' });
+    expect(fetcher).not.toHaveBeenCalled();
+  });
+
+  it('rate limits the catalog before reading the database', async () => {
+    const response = await worker.fetch(new Request(`${SITE}/api/decision-catalog`, {
+      headers: { 'CF-Connecting-IP': '192.0.2.1' }
+    }), environment(false));
+    expect(response.status).toBe(429);
+    expect(mocks.get).not.toHaveBeenCalled();
+    expect(mocks.query).not.toHaveBeenCalled();
+  });
+
+  it('fails closed without a limiter, a client address, or catalog configuration', async () => {
+    const request = (ip = '192.0.2.1') => new Request(`${SITE}/api/decision-catalog`, { headers: ip ? { 'CF-Connecting-IP': ip } : {} });
+    expect((await worker.fetch(request(''), environment())).status).toBe(503);
+    expect((await worker.fetch(request(), { ...environment(), DECISION_LIMITER: undefined })).status).toBe(503);
+    expect((await worker.fetch(request(), { ...environment(), NEON_DATABASE_URL: '' })).status).toBe(503);
+    expect((await worker.fetch(new Request(`${SITE}/api/decision-catalog`, {
+      method: 'POST', headers: { 'CF-Connecting-IP': '192.0.2.1' }
+    }), environment())).status).toBe(405);
   });
 
   it.each([
@@ -170,13 +139,20 @@ describe('Cloudflare API Worker', () => {
   });
 });
 
-describe('Workers runtime compatibility', () => {
+describe('no shared inference credential in server code', () => {
+  const serverFiles = ['worker', 'netlify/functions'].flatMap(dir => readdirSync(dir)
+    .filter(name => /\.m?js$/.test(name) && !name.includes('.test.'))
+    .map(name => `${dir}/${name}`));
+
+  it('never reads a model provider credential or calls a model host', () => {
+    const offenders = serverFiles.filter(file => /OPENROUTER_API_KEY|KEV_API_KEY|KEV_BASE_URL|openrouter\.ai|\/v1\/systemone/u
+      .test(readFileSync(file, 'utf8')));
+    expect(offenders).toEqual([]);
+  });
+
   it('never asks fetch for redirect "error", which the Workers runtime rejects', () => {
     // workerd throws TypeError for redirect: 'error'; mocked fetch in unit tests hides it.
-    const files = ['worker', 'netlify/functions', 'server'].flatMap(dir => readdirSync(dir)
-      .filter(name => /\.m?js$/.test(name) && !name.includes('.test.'))
-      .map(name => `${dir}/${name}`));
-    const offenders = files.filter(file => /redirect:\s*['"]error['"]/.test(readFileSync(file, 'utf8')));
+    const offenders = serverFiles.filter(file => /redirect:\s*['"]error['"]/.test(readFileSync(file, 'utf8')));
     expect(offenders).toEqual([]);
   });
 });

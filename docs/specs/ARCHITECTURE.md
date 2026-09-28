@@ -41,15 +41,15 @@ Every decision in §8 is downstream of these. They are the axioms; everything
 else is a recommendation.
 
 1. **Reader material stays local by default.** Source text, reading history and
-   personal media stay in the browser. When the reader explicitly routes a
-   Scriptorium request with JEV, only the intent they entered and target word
-   count are sent to the RISE function and TypeSafe. The reader supplies the
-   TypeSafe key for that request; RISE does not persist it. When the reader
-   asks for a Library recommendation, only their entered intent is sent to
-   the RISE Worker and, on a decision-cache miss, OpenRouter. PostgreSQL holds
-   public catalog metadata. Redis holds that catalog and validated choices for
-   five minutes; its decision key is a keyed digest of the intent and catalog,
-   and it does not store the raw intent.
+   personal media stay in the browser. AI decisions run on the reader's own
+   connection, never on a SyberLabs model credential: Jev through the reader's
+   OpenRouter account (the key is held in the tab's memory and sent only to
+   OpenRouter), or Kev on the reader's computer through local RISE. Only what a
+   decision needs leaves the page: the entered intent for a recommendation or
+   Scriptorium route, and, for visual direction, sections of a released text
+   or of a text the reader consented to send. The RISE Worker publishes the
+   public catalog from PostgreSQL through a short Redis cache and calls no
+   model.
 2. **Reverent degradation.** A work, image or sound that will not resolve is
    *absent* — never a broken frame, never a substitute. Silence outranks
    approximation.
@@ -174,7 +174,7 @@ flowchart LR
     app -.-> |3 lazy| audio
     app --> |1| components
     app --> |5| content
-    app --> |36| core
+    app --> |37| core
     app -.-> |1 lazy| sources
     app -.-> |1 lazy| visuals
     audio --> |1| content
@@ -821,10 +821,10 @@ of `settled`, `open`, `deferred`, or `reversed`.
 - **Chosen:** the Scriptorium offers an optional JEV route to choose between
   the two proposal formats RISE already accepts:
   `rise.experience-program.v1` and `rise.agent-operation-set.v1`. The core
-  session puts that choice into the curator prompt. A same-origin Cloudflare
-  Worker route forwards only the reader's intent and target word count to
-  TypeSafe's JEV API; the reader supplies the API key for the request.
-- **Rejected:** putting the TypeSafe key in browser code, adding a second
+  session puts that choice into the curator prompt. The page sends only the
+  reader's intent and target word count to the reader's own decision model
+  (`src/core/decision/route.js`): Jev on their OpenRouter account, or local Kev.
+- **Rejected:** a shared key in browser code or on a server, adding a second
   proposal format, or letting JEV accept or execute the proposal.
 - **Why:** proposal format is a real next-operation choice already understood
   by the Scriptorium parser and producer. This places optional JEV routing in
@@ -835,31 +835,32 @@ of `settled`, `open`, `deferred`, or `reversed`.
 - **Data boundary:** no source text, Library records, personal media, reading
   history or generated proposal is sent to JEV by this route. The user-entered
   intent may itself contain personal information and is sent only after the
-  reader presses **Route with JEV**. The TypeSafe key is held in page memory
-  and forwarded in the authorization header; RISE does not store it.
-- **Status:** open. The route exists in the Worker; each reader must supply a
-  TypeSafe API key, and the production path still needs direct verification.
+  reader presses **Suggest a route**. An OpenRouter key is held in page memory
+  and sent only to OpenRouter; RISE does not store it.
+- **Status:** open. The browser path is tested with mocked providers; a live
+  reader-account route decision still needs direct verification.
 
 ### 8.29 JEV chooses a held Standard Ebooks reading
 
-- **Chosen:** an optional Library form sends the reader's intent to the
-  same-origin Cloudflare Worker. The Worker reads an exact-edition Standard
-  Ebooks catalog from PostgreSQL, caches that public catalog in Redis
-  for 30 seconds, and asks JEV through OpenRouter to choose one work ID on a
-  decision-cache miss. Redis caches the validated decision for five minutes
-  under a keyed digest of the intent and catalog, without storing raw intent.
+- **Chosen:** the Home request box asks the reader's own decision model to
+  choose one held work and its presentation. The browser loads the public
+  catalog (`GET /api/decision-catalog`: PostgreSQL through a 30-second Redis
+  cache, public columns only) and builds the finite choice questions in
+  `src/core/decision/recommend.js`. The answer is admitted only if every
+  choice was offered, then mapped to reading settings by deterministic code.
   The browser opens that held edition through the existing Library path.
 - **Rejected:** sending book text or personal reading history to JEV, storing
-  raw intents or decisions in PostgreSQL, inventing a recommendation from local
-  heuristics when JEV fails, and accepting a model-selected unheld edition.
+  raw intents or decisions, inventing a recommendation from local heuristics
+  when the model fails, accepting a model-selected unheld edition, and any
+  server-held model key or paid fallback.
 - **Why:** a recommendation is useful only when it leads to a book the reader
-  can actually open. PostgreSQL owns the catalog, Redis reduces repeat reads,
-  and JEV makes a bounded choice on the first matching request. Exact edition
-  and source revision checks keep the model inside the release inventory. The brief
-  description shown after the decision is curated catalog copy; JEV does not
-  generate prose.
-- **Status:** open. The same-origin production request and book opening were
-  verified; the five-minute decision cache still requires production verification.
+  can actually open. Exact edition and source revision checks keep the model
+  inside the release inventory, and Neon's active flags still withdraw a row
+  from every reader. The brief description shown after the decision is
+  curated catalog copy; JEV does not generate prose.
+- **Status:** open. The browser contract and catalog route are verified with
+  mocked providers; a live reader-account decision in production is not yet
+  verified.
 
 ### 8.30 EnterpRise is a sibling rail, not a fork of the reader
 
@@ -880,7 +881,7 @@ of `settled`, `open`, `deferred`, or `reversed`.
   that was not in the source, in front of the room. The gate, the id-only
   decision, and the cell renderer make that failure loud. The phases in
   `docs/superpowers/specs/2026-09-27-enterprise-room-design.md` are implemented
-  in `src/enterprise/` and `worker/enterprise-decision.mjs`, from
+  in `src/enterprise/`, from
   `docs/superpowers/plans/2026-09-27-enterprise-room.md`. The reader's lack of
   access control (§8.1) is unchanged: this audience check belongs to the
   sibling, and the sibling is not on the reader's first load.
@@ -898,9 +899,10 @@ of `settled`, `open`, `deferred`, or `reversed`.
   layouts; rail ids and titles), and authority (the actions this turn allows,
   never promotion). The live loop (`src/enterprise/live.js`) keeps one
   decision in flight per channel (speech, ask), cancels it only when a newer
-  turn on the same channel arrives, and bounds it with a timeout. `/api/enterprise-decision` joins the other decision routes
-  behind `decisionProvider` and the limiter and asks the provider one choice
-  question whose options are opaque keys. `session.resolve` accepts an answer
+  turn on the same channel arrives, and bounds it with a timeout. The "Kev
+  (local RISE)" decider (`src/enterprise/remote-decider.js`) asks pinned Kev on
+  the presenter's computer, through local RISE's bridge, one choice question
+  whose options are opaque keys; the hosted decision route is retired (§8.33). `session.resolve` accepts an answer
   only for a turn it issued, once, while no later turn on its channel is
   pending. The
   trace (`src/enterprise/trace.js`) records every step without the
@@ -933,7 +935,7 @@ of `settled`, `open`, `deferred`, or `reversed`.
   downloads only when a presenter chooses it. Until it is ready, or after it
   fails, decisions hold. The worker script alone may fetch model hosts and
   compile WebAssembly: the Cloudflare Worker serves it with its own policy
-  (`worker/enterprise-decision.mjs`), and every page keeps the site policy in
+  (`worker/kev-worker-script.mjs`), and every page keeps the site policy in
   `public/_headers`.
   `kev-check.html` measures load, latency, and agreement on a real device.
   The weights never sit whole in the worker: each file streams into Cache
@@ -950,7 +952,7 @@ of `settled`, `open`, `deferred`, or `reversed`.
   Kev-4B's 4.7 GB on a 16 GB Windows machine.
 - **Why:** the transcript and the decision stay on the presenter's machine,
   with nothing to install. Kev-4B on the device is pinned to the checkpoint
-  the server Kev serves (`deploy/kev/modal_app.py`), and a test keeps the two
+  local RISE serves (`local/kev_server.py`), and a test keeps the two
   pins equal.
 - **Status:** open. Kev-0.8B loads and decides on Chrome 153 for Windows with
   an AMD RX 5700 (30 of 30 questions, 214 ms median). While a model is
@@ -958,6 +960,31 @@ of `settled`, `open`, `deferred`, or `reversed`.
   model's size, so Kev-4B needs roughly 6 GB of free memory; it has not yet
   been run on Windows. Hosts other than the Cloudflare Worker serve the
   worker script with the site policy, so Kev (device) fails closed there.
+
+### 8.33 RISE spends no shared inference; readers bring their own model
+
+- **Chosen:** two reader-owned options on one decision contract. "Connect
+  OpenRouter" runs OAuth PKCE (S256) so the reader's own account mints a key;
+  the key stays in the tab's memory (`src/core/ai-connection.js`) and goes only
+  to OpenRouter's Decisions API with `typesafe/jev-1.13`. "Run locally" starts
+  local RISE and pinned Kev-4B on the reader's computer (`local/`): a loopback
+  bridge serves the app, the public catalog, and one fixed Kev route guarded by
+  Host and Origin checks, and forwards to Kev with a per-run key the page never
+  sees. Every former model route answers `410 SHARED_INFERENCE_RETIRED`
+  (`worker/retired-inference.mjs`) so a stale tab fails clearly and spends
+  nothing. Reading and manual settings need neither option.
+- **Rejected:** a SyberLabs key as fallback, a hosted Kev deployment, a public
+  tunnel to the reader's computer, the public site calling loopback, persisting
+  the reader's key, and a bridge that proxies arbitrary hosts or providers.
+- **Why:** a free public model route is an unbounded bill with no owner. A
+  reader-owned connection puts the cost and the choice with the reader, and one
+  contract keeps allowed-choice validation, deadlines, cancellation, and
+  deterministic settings identical in both modes. Page memory is not a vault:
+  extensions and page scripts can read it, which is why RISE loads no
+  third-party scripts and pins `connect-src` to the exact OpenRouter origin.
+- **Status:** open. Mocked OAuth, decisions, and bridge security are tested;
+  live authentication with a reader test account and Kev on a reader GPU are
+  verified only where `docs/USER-OWNED-AI.md` says so.
 
 ---
 

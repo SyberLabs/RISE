@@ -1,10 +1,6 @@
-import { handleJevDecision } from '../netlify/functions/jev-decision.mjs';
-import { handleJevRoute } from '../netlify/functions/jev-route.mjs';
-import { handleEnterpriseDecision, isKevWorkerScript, serveKevWorkerScript } from './enterprise-decision.mjs';
-import { handleJevRecommend } from './jev-recommend.mjs';
-import { handleJevVisualScore } from './jev-visual-score.mjs';
-import { decisionProvider } from '../server/decision-provider.mjs';
-import { handlePersonalPiece } from './personal-piece.mjs';
+import { isKevWorkerScript, serveKevWorkerScript } from './kev-worker-script.mjs';
+import { handleDecisionCatalog } from './decision-catalog.mjs';
+import { isRetiredInferenceRoute, retiredInference } from './retired-inference.mjs';
 
 const JSON_HEADERS = {
   'Content-Type': 'application/json; charset=utf-8',
@@ -19,41 +15,30 @@ function error(status, code, message) {
   });
 }
 
+// This Worker performs no model inference and holds no model credential.
+// Decisions run in the reader's browser on the reader's own connection.
 export default {
   async fetch(request, env) {
     const path = new URL(request.url).pathname;
 
     if (isKevWorkerScript(path)) return serveKevWorkerScript(request, env);
 
-    if (path === '/api/personal-piece') return handlePersonalPiece(request, env);
+    if (isRetiredInferenceRoute(path)) return retiredInference();
 
-    if (path === '/api/jev-decision' || path === '/api/jev-recommend' || path === '/api/jev/route'
-      || path === '/api/enterprise-decision') {
+    if (path === '/api/decision-catalog') {
+      // The catalog reads Neon through a short Redis cache; the limiter keeps
+      // a flood of uncached reads off the database.
       const ip = request.headers.get('CF-Connecting-IP')?.trim();
-      if (!ip || !decisionProvider(env) || typeof env?.DECISION_LIMITER?.limit !== 'function') {
-        return error(503, 'DECISION_NOT_CONFIGURED', 'Decision service is unavailable.');
+      if (!ip || typeof env?.DECISION_LIMITER?.limit !== 'function') {
+        return error(503, 'CATALOG_NOT_CONFIGURED', 'The reading catalog is unavailable.');
       }
-
       try {
         const result = await env.DECISION_LIMITER.limit({ key: ip });
-        if (!result?.success) {
-          return error(429, 'RATE_LIMITED', 'Too many decision requests.');
-        }
+        if (!result?.success) return error(429, 'RATE_LIMITED', 'Too many catalog requests.');
       } catch {
-        return error(503, 'DECISION_NOT_CONFIGURED', 'Decision service is unavailable.');
+        return error(503, 'CATALOG_NOT_CONFIGURED', 'The reading catalog is unavailable.');
       }
-
-      if (path === '/api/jev/route') return handleJevRoute(request, env);
-      if (path === '/api/enterprise-decision') return handleEnterpriseDecision(request, env);
-      return path === '/api/jev-recommend'
-        ? handleJevRecommend(request, env)
-        : handleJevDecision(request, env);
-    }
-
-    // Passage-directed visuals have their own limiter so a long reading can
-    // never spend the recommendation budget, and vice versa.
-    if (path === '/api/jev-visual-score') {
-      return handleJevVisualScore(request, env);
+      return handleDecisionCatalog(request, env);
     }
 
     return error(404, 'NOT_FOUND', 'API route not found.');

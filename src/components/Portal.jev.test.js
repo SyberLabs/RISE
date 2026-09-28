@@ -6,9 +6,25 @@ import { resolveJevChamberConfig } from '../core/jev-config.js';
 import { jevColors } from '../core/jev-palette.js';
 import { compileJevAudioProgram, compileJevVisualProgram } from '../core/jev-sequence.js';
 import { Portal } from './Portal.js';
+import { DecisionError } from '../core/decision/call.js';
+import { acceptOpenRouterKey, resetConnectionForTests } from '../core/ai-connection.js';
+
+// The recommender runs in the page on the reader's own connection. Here a
+// stand-in connection answers with the decision each test scripts.
+vi.mock('../core/decision/browser.js', () => ({
+  recommendReading: async (intent, options) => {
+    if (globalThis.__notConnected) throw new DecisionError('NOT_CONNECTED');
+    const response = await fetch('reader-connection', { method: 'POST', body: JSON.stringify({ intent, ...options }) });
+    const body = await response.json();
+    if (!response.ok) throw new Error(body.error.message);
+    return body;
+  }
+}));
 
 beforeEach(() => sessionStorage.clear());
 afterEach(() => {
+  delete globalThis.__notConnected;
+  resetConnectionForTests();
   document.body.innerHTML = '';
   sessionStorage.clear();
   vi.unstubAllGlobals();
@@ -70,9 +86,8 @@ it('asks RISE once, shows how the request was read, and plays only when asked', 
   const preview = container.querySelector('#portal-preview');
   await vi.waitFor(() => expect(preview.hidden).toBe(false));
   expect(provider).toHaveBeenCalledOnce();
-  expect(provider).toHaveBeenCalledWith('/api/jev-recommend', expect.objectContaining({
-    method: 'POST',
-    body: JSON.stringify({ intent: 'i want something psychedelic fast tokyo drift style', schemaVersion: 3 })
+  expect(provider).toHaveBeenCalledWith('reader-connection', expect.objectContaining({
+    body: JSON.stringify({ intent: 'i want something psychedelic fast tokyo drift style', nightDrive: true })
   }));
   // Nothing plays on arrival.
   expect(launch).not.toHaveBeenCalled();
@@ -202,5 +217,38 @@ it('brings the previous preview back when an update fails', async () => {
   await vi.waitFor(() => expect(container.querySelector('#portal-jev-error').hidden).toBe(false));
   expect(preview.hidden).toBe(false);
   expect(container.querySelector('#portal-jev-intent').value).toBe('tokyo drift, slower');
+  portal.destroy();
+});
+
+it('offers the two reader-owned choices, and sends nothing without one', async () => {
+  globalThis.__notConnected = true;
+  const provider = vi.fn();
+  vi.stubGlobal('fetch', provider);
+  const { portal, container } = mount();
+  const panel = container.querySelector('#portal-ai');
+  expect(panel.querySelector('[data-ai="connect"]').textContent).toBe('Connect OpenRouter');
+  expect(panel.querySelector('a').textContent).toBe('Run locally');
+  expect(panel.textContent).toContain('billed to your own OpenRouter account');
+  expect(panel.textContent).toContain('no hosted inference bill');
+  await request(container, 'A slow, quiet reading.');
+  await vi.waitFor(() => expect(panel.querySelector('.portal-ai-notice').hidden).toBe(false));
+  expect(panel.querySelector('.portal-ai-notice').textContent).toContain('Connect OpenRouter or run RISE locally');
+  expect(container.querySelector('#portal-jev-error').hidden).toBe(true);
+  expect(provider).not.toHaveBeenCalled();
+  // Reading without AI is still one click away.
+  expect(container.querySelector('.portal-first-read')).not.toBeNull();
+  portal.destroy();
+});
+
+it('shows a connected OpenRouter account, its billing, and disconnects', async () => {
+  const { portal, container } = mount();
+  acceptOpenRouterKey('sk-or-v1-portal-test-key-0123456789');
+  const panel = container.querySelector('#portal-ai');
+  expect(panel.textContent).toContain('billed to that account');
+  expect(panel.textContent).not.toContain('sk-or-v1-portal-test-key');
+  expect(panel.textContent).toContain('browser extensions');
+  panel.querySelector('[data-ai="disconnect"]').click();
+  expect(panel.querySelector('[data-ai="connect"]')).not.toBeNull();
+  expect(panel.querySelector('.portal-ai-notice').textContent).toContain('forgot the key');
   portal.destroy();
 });

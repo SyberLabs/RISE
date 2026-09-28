@@ -171,14 +171,14 @@ Guidance for anyone (human or agent) working on RISE. Standard commands live in
 ## Architecture at a glance
 
 RISE is a vanilla-JS SPA built with Vite. Reading and browser-local work stay
-client-side. Its production Cloudflare Worker serves the app and same-origin
-decision routes. Optional book recommendations read a held Standard Ebooks
-catalog in Neon PostgreSQL, cache public catalog rows in Upstash Redis, and
-ask the server-configured decision provider to choose a book. The migration
-code defaults to Kev with a pinned endpoint and revision; an explicit
-`DECISION_PROVIDER=jev` setting routes through OpenRouter. No live Kev endpoint
-has been confirmed. The Vite dev server runs the UI; the Worker and managed
-services are required for live recommendations.
+client-side. Its production Cloudflare Worker serves the app and the public
+decision catalog (`GET /api/decision-catalog`: Neon PostgreSQL through Upstash
+Redis). **RISE spends no shared inference.** AI decisions run in the browser
+on the reader's own connection through `src/core/decision/`: hosted Jev via
+the reader's OpenRouter account (OAuth PKCE, key in tab memory only), or
+pinned Kev on the reader's computer via `npm run local` (`local/`). Former
+model routes answer 410. Never add a server-held model key, a paid fallback,
+or a release check that calls a model. See `docs/USER-OWNED-AI.md`.
 
 ## Environment / setup
 
