@@ -164,6 +164,7 @@ flowchart LR
     components["components<br/>routed views<br/>39 modules"]
     content["content<br/>texts, imagery, journeys<br/>228 modules"]
     core["core<br/>session, player, router<br/>135 modules"]
+    enterprise["enterprise<br/>talk program, speaker rail<br/>16 modules"]
     oracle["oracle<br/>2 modules"]
     page["page<br/>spatial projection<br/>4 modules"]
     sources["sources<br/>text and visual providers<br/>22 modules"]
@@ -268,6 +269,12 @@ provider failure degrades that provider, not startup.
 **Layering, checked by §10:** `src/core` and `src/visuals` never import from
 `src/components`, statically or dynamically. Rooms communicate with the
 application through callbacks passed in at construction.
+
+**`src/enterprise/`** is a sibling of the reader, not a room. The reader does
+not import it, and it imports nothing outside itself.
+`src/enterprise/boundary.test.js` fails if either side reaches across. What a
+speaker may see is admitted by the talk-program gate in that directory, not by
+the Experience Program. §8.30.
 
 ### The rooms
 
@@ -848,6 +855,32 @@ of `settled`, `open`, `deferred`, or `reversed`.
   generate prose.
 - **Status:** open. The same-origin production request and book opening were
   verified; the five-minute decision cache still requires production verification.
+
+### 8.30 EnterpRise is a sibling rail, not a fork of the reader
+
+- **Chosen:** the live room lives in `src/enterprise/`. One deck, an in-memory
+  corpus of documents and tables, cards prepared before the talk, one speaker
+  rail, and one stage. Promote re-checks the talk-program gate for that room's
+  audience. An audience final that misses the program may retrieve a permitted
+  sentence onto the rail. Listed presenters share the rail. A decision sees
+  the transcript window plus candidate ids, titles, scores, and layouts. A
+  chart names a table and columns; the renderer copies cells. Promote, Dismiss,
+  and Retract are the speaker's.
+- **Rejected:** forking the reader into a second app; extracting Chamber, the
+  Experience Program, and the Worker into a shared package; putting the rail
+  inside a reader route; mounting Chamber on the stage; a second rail; an
+  external file-host connector; an OpenRouter call on the enterprise decision
+  route.
+- **Why:** the failure that matters is a confidential document, or a number
+  that was not in the source, in front of the room. The gate, the id-only
+  decision, and the cell renderer make that failure loud. The phases in
+  `docs/superpowers/specs/2026-09-27-enterprise-room-design.md` are implemented
+  in `src/enterprise/` and `worker/enterprise-decision.mjs`, from
+  `docs/superpowers/plans/2026-09-27-enterprise-room.md`. The reader's lack of
+  access control (§8.1) is unchanged: this audience check belongs to the
+  sibling, and the sibling is not on the reader's first load.
+- **Status:** settled. The suite's latency ceilings are the product targets
+  on this fixture, not a measurement of a live recognizer.
 
 ---
 
