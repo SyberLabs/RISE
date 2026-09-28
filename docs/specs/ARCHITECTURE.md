@@ -164,7 +164,7 @@ flowchart LR
     components["components<br/>routed views<br/>44 modules"]
     content["content<br/>texts, imagery, journeys<br/>230 modules"]
     core["core<br/>session, player, router<br/>148 modules"]
-    enterprise["enterprise<br/>talk program, speaker rail<br/>27 modules"]
+    enterprise["enterprise<br/>talk program, speaker rail<br/>29 modules"]
     oracle["oracle<br/>2 modules"]
     page["page<br/>spatial projection<br/>4 modules"]
     sources["sources<br/>text and visual providers<br/>22 modules"]
@@ -947,6 +947,25 @@ of `settled`, `open`, `deferred`, or `reversed`.
   the published kev.js bundles were tested by their authors on Chrome for
   macOS only. Hosts other than the Cloudflare Worker serve the worker script
   with the site policy, so Kev (device) fails closed there.
+
+### 8.33 The projector gets its own window; the presenter marks audience speech
+
+- **Chosen:** "Stage window" opens a popup that the presenter page draws into
+  through the same stage view (`src/enterprise/projector.js`), without
+  controls. It shows only what Promote put on the stage, and goes blank when
+  the presenter page leaves, so nothing stays on it that no one can retract.
+  Holding Q labels speech as audience (`src/enterprise/speaker-key.js`); an
+  utterance counts as audience if Q was down at any moment of it, because the
+  recognizer's final often lands after the key is released.
+- **Rejected:** a second page with its own script, kept in step over a
+  message channel, which is a second copy of the stage that can drift from
+  the first; voice diarization, which needs server-side audio and captures a
+  biometric; labelling a line by the key's state when its final arrives.
+- **Why:** the audience should see the stage and nothing of the rail, and the
+  one fact Web Speech cannot supply, who is speaking, is one the presenter
+  already knows.
+- **Status:** open. Verified in headless Chromium with a scripted recognizer;
+  not yet used with a real projector or microphone.
 
 ---
 
