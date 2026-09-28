@@ -14,6 +14,7 @@ import { VisualNavigator } from './VisualNavigator.js';
 import { MemoryCore } from '../core/memory.js';
 import { safeUrl } from '../core/sanitize.js';
 import { visualCortex } from '../visuals/visual-cortex.js';
+import { stillQueue } from './visual-navigator/preview.js';
 
 let nav = null;
 let onChange = null;
@@ -55,6 +56,8 @@ afterEach(() => {
   // left standing is inherited by every test after it. Restoring is the
   // difference between a suite and a sequence.
   vi.restoreAllMocks();
+  // The still cache is a module singleton too, shared by every navigator.
+  stillQueue._reset();
   localStorage.removeItem('rise_global_images_v1');
   localStorage.removeItem('rise_workshop_v1');
 });

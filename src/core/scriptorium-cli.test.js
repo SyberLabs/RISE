@@ -788,6 +788,9 @@ describe('every refusal the session can phrase has a status', () => {
       + 'Scriptorium runs the producer with render: false',
     RenderError:
       'the same: nothing in this sequence renders',
+    SceneError:
+      'scenes are the phone Workshop\'s; only workshop/scene-api.js calls '
+      + 'workshop-scenes.js, and it catches every throw into { ok: false, message }',
     FlameRecipeError:
       'experience-program.js rethrows a flame recipe refusal as '
       + 'PROGRAM_FLAME_RECIPE and editor-asset.js as EDITOR_ASSET_FLAME; the '

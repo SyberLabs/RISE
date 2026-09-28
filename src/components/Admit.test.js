@@ -116,7 +116,9 @@ describe('the two exits', () => {
         const onReadNow = vi.fn();
         open({ onReadNow });
         click(room.element.querySelector('[data-action="read"]'));
-        expect(onReadNow).toHaveBeenCalledWith(TEXT, 'poems');
+        // The record rides along third, so a caller can use the parts the
+        // reader placed (the phone Workshop makes them scenes).
+        expect(onReadNow).toHaveBeenCalledWith(TEXT, 'poems', expect.objectContaining({ text: TEXT }));
     });
 
     it('leaves nothing behind on any exit', () => {
