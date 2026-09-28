@@ -404,6 +404,8 @@ const DEVICE_FAILED = {
     'no-adapter': 'No usable GPU for WebGPU, so Kev can’t run here. Choose JEV or Local rules.',
     'wrong-model': 'The published Kev bundle isn’t the pinned checkpoint, so it wasn’t loaded.',
     'runtime-digest': 'The downloaded runtime didn’t match its pinned digest, so it wasn’t used.',
+    'no-jspi': 'This browser can’t stream Kev to the GPU. Use a current Chrome or Edge, or choose JEV or Local rules.',
+    storage: 'There isn’t enough disk space to keep Kev. Free some space, then choose Kev (device) again.',
     network: 'Kev couldn’t be downloaded. Check the connection, then choose Kev (device) again.'
 };
 

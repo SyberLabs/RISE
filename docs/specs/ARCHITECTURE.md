@@ -164,7 +164,7 @@ flowchart LR
     components["components<br/>routed views<br/>44 modules"]
     content["content<br/>texts, imagery, journeys<br/>230 modules"]
     core["core<br/>session, player, router<br/>148 modules"]
-    enterprise["enterprise<br/>talk program, speaker rail<br/>29 modules"]
+    enterprise["enterprise<br/>talk program, speaker rail<br/>30 modules"]
     oracle["oracle<br/>2 modules"]
     page["page<br/>spatial projection<br/>4 modules"]
     sources["sources<br/>text and visual providers<br/>22 modules"]
@@ -549,10 +549,12 @@ of `settled`, `open`, `deferred`, or `reversed`.
 ### 8.10 Vanilla DOM, no UI framework
 
 - **Chosen:** direct DOM construction and template strings, one bespoke module
-  per room, five production dependencies: `sql.js` for browser-local work,
+  per room, six production dependencies: `sql.js` for browser-local work,
   `@neondatabase/serverless` and `@upstash/redis` for the Worker catalog path,
-  and `@ai-ecoverse/kev.js` with `onnxruntime-web` for on-device Kev, imported
-  only by the EnterpRise worker that runs it (§8.32).
+  and `@ai-ecoverse/kev.js`, `onnxruntime-web` and `@huggingface/tokenizers`
+  for on-device Kev, imported only by the EnterpRise worker that runs it
+  (§8.32). The tokenizer already shipped inside kev.js; it is named because
+  the worker builds Kev's session itself.
 - **Rejected:** React, Vue, Svelte or any virtual-DOM library.
 - **Why:** the tradeoff is real in both directions. A framework would give
   declarative rendering, diffing, and would largely remove the `innerHTML`
@@ -934,19 +936,28 @@ of `settled`, `open`, `deferred`, or `reversed`.
   (`worker/enterprise-decision.mjs`), and every page keeps the site policy in
   `public/_headers`.
   `kev-check.html` measures load, latency, and agreement on a real device.
+  The weights never sit whole in the worker: each file streams into Cache
+  Storage (`src/enterprise/kev-store.js`) and reaches the runtime as a
+  disk-backed Blob, which the JSPI build of `onnxruntime-web` reads one
+  tensor at a time on its way to the GPU. A browser without JSPI loads
+  nothing.
 - **Rejected:** a local Python service for Windows users (CUDA, WSL2, and a
   localhost port every site could reach); falling back to the server or the
   rules when the device cannot run Kev; the CPU WebAssembly path, too slow for
   a live rail; serving the runtime binary from this site, which is over the
-  static asset size limit.
+  static asset size limit; kev.js's own `loadKev`, which reads every weight
+  file into memory before the session exists and crashed the tab loading
+  Kev-4B's 4.7 GB on a 16 GB Windows machine.
 - **Why:** the transcript and the decision stay on the presenter's machine,
   with nothing to install. Kev-4B on the device is pinned to the checkpoint
   the server Kev serves (`deploy/kev/modal_app.py`), and a test keeps the two
   pins equal.
-- **Status:** open. Loading and inference on Windows GPUs have not been run;
-  the published kev.js bundles were tested by their authors on Chrome for
-  macOS only. Hosts other than the Cloudflare Worker serve the worker script
-  with the site policy, so Kev (device) fails closed there.
+- **Status:** open. Kev-0.8B loads and decides on Chrome 153 for Windows with
+  an AMD RX 5700 (30 of 30 questions, 214 ms median). While a model is
+  loaded, Chrome's GPU process holds system memory about 1.4 times the
+  model's size, so Kev-4B needs roughly 6 GB of free memory; it has not yet
+  been run on Windows. Hosts other than the Cloudflare Worker serve the
+  worker script with the site policy, so Kev (device) fails closed there.
 
 ### 8.33 The projector gets its own window; the presenter marks audience speech
 

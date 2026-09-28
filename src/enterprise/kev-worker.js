@@ -7,23 +7,21 @@
  * the pinned digest), then the weights. WebGPU only: the CPU fallback is too
  * slow for a live rail, so a device without a usable adapter reports that
  * and loads nothing.
+ *
+ * The weights never sit whole in this worker (see kev-store.js). The JSPI
+ * build of the runtime is the one that reads a Blob lazily, one tensor at a
+ * time on its way to the GPU, so a browser without JSPI loads nothing.
  */
 
-import * as ort from 'onnxruntime-web/webgpu';
-import { loadKev } from '@ai-ecoverse/kev.js';
+import * as ort from 'onnxruntime-web/jspi';
+import { Kev, PointerHead } from '@ai-ecoverse/kev.js';
+import { Tokenizer } from '@huggingface/tokenizers';
 import { DEVICE_MODELS, ORT_WASM, runMatches } from './device-model.js';
+import { CACHE_NAME, dropOtherRevisions, LoadFailure, storedFile } from './kev-store.js';
 
 let kev = null;
 
 const post = (message) => self.postMessage(message);
-
-class LoadFailure extends Error {
-    constructor(code, detail = null) {
-        super(code);
-        this.code = code;
-        this.detail = detail;
-    }
-}
 
 async function sha256(bytes) {
     const digest = await crypto.subtle.digest('SHA-256', bytes);
@@ -82,21 +80,46 @@ async function load(modelId) {
     const manifest = await (await fetchChecked(`${model.base}/manifest.json`, 'manifest')).json();
     if (!runMatches(manifest.run, model.run)) throw new LoadFailure('wrong-model', String(manifest.run));
 
+    const variant = manifest.variants?.[model.variant];
+    if (!variant) throw new LoadFailure('wrong-model', `no variant ${model.variant}`);
+
     post({ type: 'phase', phase: 'runtime' });
+    if (typeof WebAssembly.Suspending !== 'function') throw new LoadFailure('no-jspi');
     const wasm = new Uint8Array(await (await fetchChecked(ORT_WASM.url, 'runtime')).arrayBuffer());
     if (await sha256(wasm) !== ORT_WASM.sha256) throw new LoadFailure('runtime-digest');
     ort.env.wasm.wasmBinary = wasm;
     ort.env.wasm.numThreads = 1;
 
-    kev = await loadKev(model.base, {
-        ort,
-        variant: model.variant,
+    post({ type: 'phase', phase: 'download' });
+    if (typeof caches === 'undefined') throw new LoadFailure('storage', 'no Cache Storage');
+    const cache = await caches.open(CACHE_NAME);
+    const rev = manifest.revision ?? manifest.run;
+    await dropOtherRevisions(cache, model.base, rev);
+    const onProgress = progressReporter();
+    const sizes = variant.sizes || {};
+    // Announce every file up front so the total does not grow as downloads start.
+    for (const [file, bytes] of Object.entries(sizes)) onProgress({ file, loaded: 0, total: bytes });
+    const file = (path) => storedFile(cache, `${model.base}/${path}`, { rev, bytes: sizes[path], file: path, onProgress });
+    const { files } = manifest;
+    const [tokenizerJson, tokenizerConfig, head, graph] = await Promise.all(
+        [files.tokenizer, files.tokenizer_config, files.head, variant.model].map(file));
+    const weights = [];
+    for (const path of variant.data) weights.push({ path: path.split('/').pop(), data: await file(path) });
+
+    post({ type: 'phase', phase: 'session' });
+    const session = await ort.InferenceSession.create(new Uint8Array(await graph.arrayBuffer()), {
+        ...Kev.sessionOptions(manifest, model.variant, true),
         executionProviders: ['webgpu'],
-        vision: false,
-        onProgress: progressReporter(),
-        onPhase: (phase) => post({ type: 'phase', phase })
+        externalData: weights
     });
-    if (!runMatches(kev.manifest.run, model.run)) throw new LoadFailure('wrong-model', String(kev.manifest.run));
+    kev = new Kev({
+        ort,
+        session,
+        head: PointerHead.fromSafetensors(await head.arrayBuffer()),
+        tokenizer: new Tokenizer(JSON.parse(await tokenizerJson.text()), JSON.parse(await tokenizerConfig.text())),
+        manifest,
+        variant: model.variant
+    });
 
     // The first run compiles GPU shaders; pay for it here, not on the first live line.
     await kev.systemOne({

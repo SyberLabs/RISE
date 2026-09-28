@@ -27,7 +27,7 @@ function javascriptFiles(dir, out = []) {
 // The on-device model runs in its own worker; these are the only packages
 // any enterprise module may import, and only there.
 const PACKAGE_IMPORTS = new Map([
-    [join(ENTERPRISE, 'kev-worker.js'), new Set(['onnxruntime-web/webgpu', '@ai-ecoverse/kev.js'])]
+    [join(ENTERPRISE, 'kev-worker.js'), new Set(['onnxruntime-web/jspi', '@ai-ecoverse/kev.js', '@huggingface/tokenizers'])]
 ]);
 
 describe('enterprise stays beside the reader', () => {
