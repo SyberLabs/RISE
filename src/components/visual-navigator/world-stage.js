@@ -24,7 +24,7 @@ import { poolOptions } from '../../core/visual-taxonomy-config.js';
 import { FOCAL_GLYPHS } from '../../core/visual-style-definitions.js';
 import { RAIL_FAMILIES, chooseField, railNeighbour, worldRail } from '../../core/world-rail.js';
 import { MemoryCore } from '../../core/memory.js';
-import { glyphFor, optId, optLabel } from './markup.js';
+import { optId, optLabel } from './markup.js';
 import { stillQueue } from './preview.js';
 import { createLiveStage } from './live-stage.js';
 import './world-stage.css';
@@ -263,9 +263,7 @@ export const stageMethods = {
       <div class="vstage${sheet ? ` has-sheet-${sheet}` : ''}${this.stage.committed ? ' is-committed' : ''}"
         data-mode="${this.mode}">
         <div class="vstage-still${stillUrl ? ' has-still' : ''}" aria-hidden="true"
-          ${stillUrl ? `style="background-image:url(&quot;${stillUrl}&quot;)"` : ''}>
-          <span class="vstage-still-glyph">${world ? glyphFor(world) : '◈'}</span>
-        </div>
+          ${stillUrl ? `style="background-image:url(&quot;${stillUrl}&quot;)"` : ''}></div>
         <div class="vstage-live-slot" aria-hidden="true"></div>
         <div class="vstage-scrim" aria-hidden="true"></div>
         <div class="vstage-top">
@@ -329,7 +327,7 @@ export const stageMethods = {
       role="option" aria-selected="${focused}" tabindex="${focused ? '0' : '-1'}"
       data-world="${escapeHtml(world.id)}">
       <span class="vstage-tile-art${url ? ' has-still' : ''}" aria-hidden="true"
-        ${url ? `style="background-image:url(&quot;${url}&quot;)"` : ''}>${glyphFor(world)}</span>
+        ${url ? `style="background-image:url(&quot;${url}&quot;)"` : ''}></span>
       <span class="vstage-tile-name">${escapeHtml(world.label)}</span>
     </button>`;
   },

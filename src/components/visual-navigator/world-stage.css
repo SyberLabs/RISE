@@ -50,12 +50,6 @@
   place-items: center;
 }
 .vstage-still { transition: background-image 320ms var(--vstage-ease); }
-.vstage-still-glyph {
-  font-size: clamp(4rem, 28vw, 9rem);
-  color: var(--color-shadow, #2A2A30);
-  line-height: 1;
-}
-.vstage-still.has-still .vstage-still-glyph { display: none; }
 .vstage-missing {
   position: absolute;
   top: 38%;
