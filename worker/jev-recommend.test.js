@@ -38,6 +38,9 @@ import { handleJevRecommend } from './jev-recommend.mjs';
 import worker from './index.mjs';
 
 const SITE = 'https://rise.example';
+// Captured before DECISION_CACHE_NAMESPACE existed: an unset namespace must keep production's keys.
+const GOLDEN_PRODUCTION_DECISION_KEY =
+  'rise:jev-decision:v13:6d367a864421a6464055456926152681e6fdf6e8a71700314d2fc1cb78683bd8:0';
 const env = {
   DECISION_PROVIDER: 'jev',
   OPENROUTER_API_KEY: 'openrouter-server-secret',
@@ -922,6 +925,34 @@ describe('Jev reading recommendation', () => {
     expect(mocks.set).toHaveBeenCalledWith(decisionKey, expect.objectContaining({
       workId: 'literary-walden'
     }), { ex: 3600 });
+  });
+
+  it('separates decision and turn state by DECISION_CACHE_NAMESPACE and leaves unnamespaced keys unchanged', async () => {
+    const cache = new Map();
+    const turns = [];
+    mocks.get.mockImplementation(async key => cache.get(key) ?? (key.startsWith('rise:books:') ? books : null));
+    mocks.set.mockImplementation(async (key, value) => { cache.set(key, value); return 'OK'; });
+    mocks.incr.mockImplementation(async key => { turns.push(key); return 1; });
+    const provider = vi.fn(async () => Response.json({
+      id: 'gen-dec-ns', model: 'typesafe/jev-1.13', provider: 'TypeSafe',
+      answers: answers('literary-walden')
+    }));
+    vi.stubGlobal('fetch', provider);
+    const decisionKeys = () => [...cache.keys()].filter(key => key.startsWith('rise:jev-decision:'));
+
+    const unnamespaced = await handleJevRecommend(request({ intent: 'Nature and quiet.' }), env);
+    const [productionKey] = decisionKeys();
+    const evaluation = await handleJevRecommend(request({ intent: 'Nature and quiet.' }),
+      { ...env, DECISION_CACHE_NAMESPACE: 'kev-eval-1' });
+    const evaluationKey = decisionKeys().find(key => key !== productionKey);
+
+    expect((await unnamespaced.json()).decisionCacheStatus).toBe('miss');
+    expect((await evaluation.json()).decisionCacheStatus).toBe('miss');
+    expect(provider).toHaveBeenCalledTimes(2);
+    expect(productionKey).toBe(GOLDEN_PRODUCTION_DECISION_KEY);
+    expect(evaluationKey).toMatch(/^rise:jev-decision:v13:[0-9a-f]{64}:0$/u);
+    expect(new Set(turns).size).toBe(2);
+    expect(turns.every(key => key.startsWith('rise:jev-turn:v4:'))).toBe(true);
   });
 
   it('uses the Gallery host for a visual arc and keeps explicit darkness dark', async () => {

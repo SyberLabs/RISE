@@ -345,11 +345,13 @@ async function catalogCacheKey() {
   return `rise:books:v1:${Array.from(new Uint8Array(digest), byte => byte.toString(16).padStart(2, '0')).join('')}`;
 }
 
-async function decisionCacheKey(intent, books, sounds, choices, provider) {
+// namespace (env.DECISION_CACHE_NAMESPACE) separates evaluation state; unset, it is
+// omitted from the signed input, so production keys stay exactly as they were.
+async function decisionCacheKey(intent, books, sounds, choices, provider, namespace) {
   const key = await crypto.subtle.importKey('raw', new TextEncoder().encode(provider.key),
     { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
   const menu = Object.fromEntries(OPTION_KINDS.map(kind => [kind, Object.keys(choices[kind])]));
-  const input = JSON.stringify({ provider: provider.name, endpoint: provider.url,
+  const input = JSON.stringify({ namespace: namespace || undefined, provider: provider.name, endpoint: provider.url,
     model: provider.model, revision: provider.revision, intent, books, sounds, menu });
   const signature = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(input));
   return `rise:jev-decision:v13:${Array.from(new Uint8Array(signature),
@@ -683,7 +685,8 @@ export async function handleJevRecommend(request, env) {
   try {
     const catalogChoices = await activeChoices(redis, env, sounds);
     if (!catalogChoices) return error(503, 'OPTIONS_UNAVAILABLE', 'The presentation menu is unavailable.');
-    const turnBaseKey = await decisionCacheKey(intent, books, sounds, catalogChoices, connection);
+    const turnBaseKey = await decisionCacheKey(intent, books, sounds, catalogChoices, connection,
+      env.DECISION_CACHE_NAMESPACE);
     const turnKey = turnBaseKey.replace('rise:jev-decision:v13:', 'rise:jev-turn:v4:');
     const nextTurn = await redis.incr(turnKey);
     if (!Number.isSafeInteger(nextTurn) || nextTurn < 1) throw new Error('Invalid Jev turn');
@@ -707,7 +710,8 @@ export async function handleJevRecommend(request, env) {
       middleAudio: audioChoices,
       finaleAudio: audioChoices
     };
-    const decisionBaseKey = await decisionCacheKey(intent, books, shortlistedSounds, choices, connection);
+    const decisionBaseKey = await decisionCacheKey(intent, books, shortlistedSounds, choices, connection,
+      env.DECISION_CACHE_NAMESPACE);
     decisionKey = `${decisionBaseKey}:${hints.variation.cohort === null ? 0 : (nextTurn - 1) % VARIATION_COUNT}`;
     const cached = validCachedDecision(await redis.get(decisionKey), hints.eligibleBooks, choices, connection);
     if (cached) return reply(200, {
