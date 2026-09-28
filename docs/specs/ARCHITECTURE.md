@@ -930,7 +930,9 @@ of `settled`, `open`, `deferred`, or `reversed`.
   runtime binary must match the digest of the lockfile's copy. The model
   downloads only when a presenter chooses it. Until it is ready, or after it
   fails, decisions hold. The worker script alone may fetch model hosts and
-  compile WebAssembly (`public/_headers`); every page keeps the site policy.
+  compile WebAssembly: the Cloudflare Worker serves it with its own policy
+  (`worker/enterprise-decision.mjs`), and every page keeps the site policy in
+  `public/_headers`.
   `kev-check.html` measures load, latency, and agreement on a real device.
 - **Rejected:** a local Python service for Windows users (CUDA, WSL2, and a
   localhost port every site could reach); falling back to the server or the
@@ -943,8 +945,8 @@ of `settled`, `open`, `deferred`, or `reversed`.
   assumed.
 - **Status:** open. Loading and inference on Windows GPUs have not been run;
   the published kev.js bundles were tested by their authors on Chrome for
-  macOS only. The `! Content-Security-Policy` detach in `public/_headers` is
-  unverified on the production Worker.
+  macOS only. Hosts other than the Cloudflare Worker serve the worker script
+  with the site policy, so Kev (device) fails closed there.
 
 ---
 
