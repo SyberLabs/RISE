@@ -169,15 +169,15 @@
 /* ═══════════════════════════════════════════════════════════
    The reading scrim: what keeps a word legible over imagery.
 
-   Any word that sits over a picture (Gallery, behind-stream, Genesis)
-   stands on one flat pane of the page background at 80%. Measured
-   against the worst backdrop there is, pure white, that composite is
-   #37393C: the neutral ink reads at 9.5:1 on it and both living-text
+   Any word that sits over a picture (Gallery, behind-stream, Genesis,
+   Night Drive) stands on one flat pane of Atlas ink (--sy-bg) at 80%.
+   Measured against the worst backdrop there is, pure white, that
+   composite is #383748: the neutral ink reads at 9.5:1 on it and both living-text
    poles at 5.2:1 or better, so the text holds 4.5:1 whatever the
    imagery does. The glass it replaces was 36% with a blur and three
    shadows (1.8:1 over white) and a 52% band on a phone (3.0:1).
 
-   One pane, no shadow, no hairline, the system radius. A reading
+   One pane, no shadow, no hairline, the Atlas panel radius. A reading
    with nothing behind it ("Read plainly") never gets a pane at all:
    the tile is only applied when imagery is mounted.
 
@@ -192,13 +192,15 @@
 @media (min-width: 641px) {
     .chamber .chamber-field-stream .atom-display.glass-tile:not(.is-mask):not(:empty):not(.is-progressive-glass),
     .chamber .chamber-field-genesis .atom-display.glass-tile:not(.is-mask):not(:empty):not(.is-progressive-glass),
+    .chamber .chamber-field-night .atom-display.glass-tile:not(.is-mask):not(:empty):not(.is-progressive-glass),
     .chamber .chamber-field-stream .atom-display.glass-tile.is-progressive-glass:not(.is-mask)::before,
-    .chamber .chamber-field-genesis .atom-display.glass-tile.is-progressive-glass:not(.is-mask)::before {
+    .chamber .chamber-field-genesis .atom-display.glass-tile.is-progressive-glass:not(.is-mask)::before,
+    .chamber .chamber-field-night .atom-display.glass-tile.is-progressive-glass:not(.is-mask)::before {
         background: var(--reading-scrim);
         backdrop-filter: blur(12px);
         -webkit-backdrop-filter: blur(12px);
         border: 0;
-        border-radius: var(--sy-radius);
+        border-radius: var(--sy-radius-panel);
         box-shadow: none;
     }
 }
@@ -206,7 +208,8 @@
 /* On a phone the pane is the full-width band that holds the word. */
 @media (max-width: 640px) {
     .chamber .chamber-field-stream .atom-band:has(.atom-display.glass-tile:not(.is-mask)),
-    .chamber .chamber-field-genesis .atom-band:has(.atom-display.glass-tile:not(.is-mask)) {
+    .chamber .chamber-field-genesis .atom-band:has(.atom-display.glass-tile:not(.is-mask)),
+    .chamber .chamber-field-night .atom-band:has(.atom-display.glass-tile:not(.is-mask)) {
         background: var(--reading-scrim);
         backdrop-filter: blur(12px);
         -webkit-backdrop-filter: blur(12px);

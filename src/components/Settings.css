@@ -21,14 +21,15 @@
 
 /* Header: the system room header (room-chrome.js). */
 
-/* Content: the header's own column and gutter, so the title and the back
-   link start on the same line as every other room; the form keeps a
-   reading measure inside it. */
+/* Content: the Atlas header's own column and gutter (.sl-header,
+   design-system.css), so the title starts on the lockup's line as it does
+   on Home; the form keeps a reading measure inside it. */
 .settings-content {
+    --settings-gutter: clamp(16px, 4vw, 56px);
     box-sizing: content-box;
-    max-width: 1200px;
+    max-width: 1320px;
     margin: 0 auto;
-    padding: var(--sy-space-8) var(--sy-space-8) var(--sy-space-9);
+    padding: var(--sy-space-8) var(--settings-gutter) var(--sy-space-9);
 }
 
 .settings-form {
@@ -41,13 +42,13 @@
 
 @media (max-width: 1100px) {
     .settings-content {
-        padding: var(--sy-space-7) var(--sy-space-6) var(--sy-space-8);
+        padding: var(--sy-space-7) var(--settings-gutter) var(--sy-space-8);
     }
 }
 
 @media (max-width: 640px) {
     .settings-content {
-        padding: var(--sy-space-6) var(--sy-space-4) var(--sy-space-8);
+        padding: var(--sy-space-6) var(--settings-gutter) var(--sy-space-8);
     }
 }
 
@@ -266,18 +267,16 @@
     display: none;
 }
 
-/* A MACHINED SWITCH, NOT A BORROWED PILL. The 12px track and its round knob
-   were an iOS component sitting in a system whose tokens read "Sharp corners
-   = intention" and cap the radius at 2px. It is the most repeated control on
-   this screen — seven of them — so it sets the panel's whole texture. It now
-   carries the same recessed track and lit bevel as the Portal's tiles. */
+/* A PILL, LIKE EVERY OTHER ATLAS CONTROL. It is the most repeated control on
+   this screen, so it sets the panel's texture: the same full radius as the
+   buttons and chips around it, ink-2 track, a brand fill when on. */
 .toggle-switch {
     position: relative;
     width: 46px;
     height: 24px;
     background: var(--sy-surface);
     border: 1px solid var(--sy-line-strong);
-    border-radius: var(--sy-radius);
+    border-radius: var(--sy-radius-full);
     transition: background var(--transition-normal) var(--ease-default),
         border-color var(--transition-normal) var(--ease-default),
         box-shadow var(--transition-normal) var(--ease-default);
@@ -291,7 +290,7 @@
     width: 18px;
     height: 18px;
     background: var(--sy-text-3);
-    border-radius: var(--sy-radius-sm);
+    border-radius: 50%;
     transition: left var(--sy-dur-enter) var(--sy-ease),
         background-color var(--sy-dur-enter) var(--sy-ease);
 }

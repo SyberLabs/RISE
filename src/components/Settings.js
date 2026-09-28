@@ -148,7 +148,7 @@ export class Settings {
             <div class="settings-row">
               <div class="settings-label-group">
                 <span class="settings-label" id="chamber-accent-label">Accent</span>
-                <p class="settings-hint">The colour of buttons and highlights across RISE.</p>
+                <p class="settings-hint">The highlight colour in a reading and its setup, such as the progress bar.</p>
               </div>
               <div class="settings-control" role="radiogroup" aria-labelledby="chamber-accent-label">
                 ${this.renderChamberAccentRadios()}
@@ -216,7 +216,7 @@ export class Settings {
             <div class="settings-row settings-action">
               <div class="settings-label-group">
                 <span class="settings-label">Export personal data</span>
-                <p class="settings-hint">Downloads your readings, sequences and preferences as one JSON file.</p>
+                <p class="settings-hint">Downloads your journals, saved sequences, preferences and uploaded media as one JSON file.</p>
               </div>
               <button type="button" class="btn-secondary" data-action="export-data">Export</button>
             </div>
@@ -225,8 +225,9 @@ export class Settings {
               <div class="settings-label-group">
                 <span class="settings-label">Clear personal data</span>
                 <p class="settings-hint">
-                  Removes every reading, sequence and preference stored in this
-                  browser. There is no other copy, so export first if you want one.
+                  Removes your journals, saved sequences, preferences, uploaded media
+                  and cached sources from this browser. There is no other copy, so
+                  export first if you want one.
                 </p>
               </div>
               <button type="button" class="btn-secondary settings-btn-danger" data-action="clear-history">Clear data</button>
@@ -366,8 +367,8 @@ export class Settings {
     /**
      * A COLOUR PICKER HAS TO SHOW THE COLOUR, and it offers few of them.
      * The system is neutral first with one signal, so the panel offers the
-     * default and three sittings that hold 4.5:1 as ink on the page
-     * background (cobalt, at 3.3:1, did not). The other colourways stay on
+     * default and three sittings that hold 4.5:1 as text on Atlas ink
+     * (--sy-bg) (cobalt, at 3.3:1, did not). The other colourways stay on
      * the allowlist, so a reader who chose one keeps it and sees it here
      * until they pick another.
      */
