@@ -391,6 +391,35 @@ describe('rail eviction', () => {
         expect(promotedOnly.state.stageIds).toEqual(['low', 'high']);
     });
 
+    it('evicts a retracted card, since only the stage is protected', () => {
+        const policy = { ...RAIL_POLICY, cooldownMs: 0, dwellMs: 0, margin: 0.1, maxRail: 1 };
+        const show = (cardId, score, at) => ({
+            type: 'verdict', action: 'show', cardId, layout: 'quote', score, title: cardId, at
+        });
+        let state = reduceRail(initialRailState(), show('a', 0.5, 0), policy).state;
+        state = reduceRail(state, { type: 'promote', cardId: 'a', at: 1 }, policy).state;
+        expect(reduceRail(state, show('b', 0.9, 2), policy)).toMatchObject({ effect: 'hold', reason: 'full' });
+        state = reduceRail(state, { type: 'retract', cardId: 'a', at: 3 }, policy).state;
+        const next = reduceRail(state, show('b', 0.9, 4), policy);
+        expect(next.effect).toBe('show');
+        expect(next.state.cards.map(card => card.id)).toEqual(['b']);
+    });
+
+    it('measures the speech margin against speech cards only', () => {
+        const policy = { ...RAIL_POLICY, cooldownMs: 0, dwellMs: 0, margin: 0.12, maxRail: 2 };
+        let state = reduceRail(initialRailState(), {
+            type: 'verdict', action: 'show', cardId: 'asked', layout: 'quote', score: 0.8, title: 'A', at: 0, asked: true
+        }, policy).state;
+        state = reduceRail(state, {
+            type: 'verdict', action: 'show', cardId: 'spoken', layout: 'quote', score: 0.3, title: 'S', at: 10
+        }, policy).state;
+        const next = reduceRail(state, {
+            type: 'verdict', action: 'show', cardId: 'better', layout: 'quote', score: 0.6, title: 'B', at: 20
+        }, policy);
+        expect(next.effect).toBe('show');
+        expect(next.state.cards.map(card => card.id)).toEqual(['asked', 'better']);
+    });
+
     it('does not let an asked card start the waits for speech', () => {
         const policy = { ...RAIL_POLICY, cooldownMs: 4000, dwellMs: 8000 };
         const asked = reduceRail(initialRailState(), {
