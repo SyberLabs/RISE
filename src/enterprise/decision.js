@@ -120,7 +120,8 @@ export function reduceRail(state, event, policy = RAIL_POLICY) {
     // keep speech from flickering the rail do not apply to it.
     const asked = event.asked === true;
     if (!asked && cooling(next, event.at, policy)) return { state: next, effect: 'hold', reason: 'cooldown' };
-    const best = next.cards.reduce((score, card) => Math.max(score, card.score), 0);
+    // Speech is paced against speech: an asked card sets no bar for it.
+    const best = next.cards.reduce((score, card) => (card.asked ? score : Math.max(score, card.score)), 0);
     const youngest = next.cards.reduce((at, card) => (card.asked ? at : Math.max(at, card.shownAt)), -Infinity);
     const dwelling = next.cards.length > 0 && event.at - youngest < policy.dwellMs;
     if (!asked && dwelling && event.score < best + policy.margin) {
@@ -128,10 +129,11 @@ export function reduceRail(state, event, policy = RAIL_POLICY) {
     }
     if (next.cards.length >= policy.maxRail) {
         if (!asked && event.score < best + policy.margin) return { state: next, effect: 'hold', reason: 'margin' };
-        // A promoted card is on the stage; only the presenter may take it off.
+        // A card on the stage stays until the presenter takes it off; a
+        // retracted card is no longer on the stage and may go.
         let lowest = -1;
         next.cards.forEach((card, index) => {
-            if (card.status === 'promoted') return;
+            if (next.stageIds.includes(card.id)) return;
             if (lowest < 0 || card.score < next.cards[lowest].score) lowest = index;
         });
         if (lowest < 0) return { state: next, effect: 'hold', reason: 'full' };
