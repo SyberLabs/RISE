@@ -1,3 +1,4 @@
+import { readdirSync, readFileSync } from 'node:fs';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import worker from './index.mjs';
 
@@ -26,6 +27,7 @@ function decisionRequest(options = {}) {
 
 function environment(success = true) {
   return {
+    DECISION_PROVIDER: 'jev',
     OPENROUTER_API_KEY: 'server-secret',
     DECISION_LIMITER: { limit: vi.fn(async () => ({ success })) }
   };
@@ -101,8 +103,9 @@ describe('Cloudflare API Worker', () => {
     expect(provider).not.toHaveBeenCalled();
   });
 
-  it('keeps the bring-your-own-key route on its TypeSafe handler', async () => {
+  it('uses server-owned credentials for the explicit Jev routing rollback', async () => {
     const provider = vi.fn(async () => Response.json({
+      model: 'typesafe/jev-1.13', provider: 'TypeSafe',
       answers: { route: { type: 'choice', choice: 'experience_program', confidence: 0.9 } }
     }));
     vi.stubGlobal('fetch', provider);
@@ -110,17 +113,48 @@ describe('Cloudflare API Worker', () => {
 
     const response = await worker.fetch(new Request(`${SITE}/api/jev/route`, {
       method: 'POST',
-      headers: { Authorization: 'Bearer personal-key', 'Content-Type': 'application/json' },
+      headers: { Origin: SITE, 'CF-Connecting-IP': '192.0.2.1', Authorization: 'Bearer personal-key', 'Content-Type': 'application/json' },
       body: JSON.stringify({ intent: 'Create a reading', targetWords: 800 })
     }), env);
 
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual({
-      route: 'experience_program', confidence: 0.9, model: 'jev-latest'
+      route: 'experience_program', confidence: 0.9, model: 'typesafe/jev-1.13'
     });
-    expect(provider.mock.calls[0][0]).toBe('https://api.typesafe.ai/v1/systemone');
-    expect(provider.mock.calls[0][1].headers.Authorization).toBe('Bearer personal-key');
-    expect(env.DECISION_LIMITER.limit).not.toHaveBeenCalled();
+    expect(provider.mock.calls[0][0]).toBe('https://openrouter.ai/api/alpha/decisions');
+    expect(provider.mock.calls[0][1].headers.Authorization).toBe('Bearer server-secret');
+    expect(env.DECISION_LIMITER.limit).toHaveBeenCalledOnce();
+  });
+
+  it('routes the enterprise decision through the decision provider and limiter', async () => {
+    const context = {
+      schema: 'rise.enterprise-context.v1',
+      requestId: 'room1:1',
+      evidence: { window: 'Atlas renewal price', speaker: 'presenter', mode: 'prepared' },
+      structure: {
+        candidates: [{ id: 'a', title: 'Atlas renewal', score: 0.9, layouts: ['quote'], layout: 'quote' }],
+        rail: []
+      },
+      authority: { actions: ['show', 'hold', 'dismiss'] }
+    };
+    const enterpriseRequest = () => new Request(`${SITE}/api/enterprise-decision`, {
+      method: 'POST',
+      headers: { Origin: SITE, 'Content-Type': 'application/json', 'CF-Connecting-IP': '192.0.2.1' },
+      body: JSON.stringify(context)
+    });
+    const fetcher = vi.fn(async () => Response.json({
+      provider: 'TypeSafe', model: 'typesafe/jev-1.13',
+      answers: { rail_action: { type: 'choice', choice: 'show_1_quote', confidence: 0.9 } }
+    }));
+    vi.stubGlobal('fetch', fetcher);
+
+    expect((await worker.fetch(enterpriseRequest(), {})).status).toBe(503);
+    expect((await worker.fetch(enterpriseRequest(), environment(false))).status).toBe(429);
+    expect(fetcher).not.toHaveBeenCalled();
+
+    const response = await worker.fetch(enterpriseRequest(), environment());
+    expect(response.status).toBe(200);
+    expect(await response.json()).toMatchObject({ requestId: 'room1:1', action: 'show', cardId: 'a', layout: 'quote' });
   });
 
   it.each([
@@ -133,5 +167,16 @@ describe('Cloudflare API Worker', () => {
     expect(response.headers.get('content-type')).toContain('application/json');
     expect(response.headers.get('cache-control')).toBe('no-store');
     expect(await response.json()).toEqual({ error: { code: 'NOT_FOUND', message: 'API route not found.' } });
+  });
+});
+
+describe('Workers runtime compatibility', () => {
+  it('never asks fetch for redirect "error", which the Workers runtime rejects', () => {
+    // workerd throws TypeError for redirect: 'error'; mocked fetch in unit tests hides it.
+    const files = ['worker', 'netlify/functions', 'server'].flatMap(dir => readdirSync(dir)
+      .filter(name => /\.m?js$/.test(name) && !name.includes('.test.'))
+      .map(name => `${dir}/${name}`));
+    const offenders = files.filter(file => /redirect:\s*['"]error['"]/.test(readFileSync(file, 'utf8')));
+    expect(offenders).toEqual([]);
   });
 });

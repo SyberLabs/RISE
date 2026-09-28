@@ -38,6 +38,7 @@ function scoreRequest(payload, options = {}) {
 
 function environment({ success = true } = {}) {
   return {
+    DECISION_PROVIDER: 'jev',
     OPENROUTER_API_KEY: 'server-secret',
     DECISION_LIMITER: { limit: vi.fn(async () => ({ success: true })) },
     VISUAL_SCORE_LIMITER: { limit: vi.fn(async () => ({ success })) }

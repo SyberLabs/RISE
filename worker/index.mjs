@@ -1,7 +1,9 @@
 import { handleJevDecision } from '../netlify/functions/jev-decision.mjs';
-import handleJevRoute from '../netlify/functions/jev-route.mjs';
+import { handleJevRoute } from '../netlify/functions/jev-route.mjs';
+import { handleEnterpriseDecision } from './enterprise-decision.mjs';
 import { handleJevRecommend } from './jev-recommend.mjs';
 import { handleJevVisualScore } from './jev-visual-score.mjs';
+import { decisionProvider } from '../server/decision-provider.mjs';
 import { handlePersonalPiece } from './personal-piece.mjs';
 
 const JSON_HEADERS = {
@@ -23,9 +25,10 @@ export default {
 
     if (path === '/api/personal-piece') return handlePersonalPiece(request, env);
 
-    if (path === '/api/jev-decision' || path === '/api/jev-recommend') {
+    if (path === '/api/jev-decision' || path === '/api/jev-recommend' || path === '/api/jev/route'
+      || path === '/api/enterprise-decision') {
       const ip = request.headers.get('CF-Connecting-IP')?.trim();
-      if (!ip || !env?.OPENROUTER_API_KEY?.trim() || typeof env?.DECISION_LIMITER?.limit !== 'function') {
+      if (!ip || !decisionProvider(env) || typeof env?.DECISION_LIMITER?.limit !== 'function') {
         return error(503, 'DECISION_NOT_CONFIGURED', 'Decision service is unavailable.');
       }
 
@@ -38,19 +41,17 @@ export default {
         return error(503, 'DECISION_NOT_CONFIGURED', 'Decision service is unavailable.');
       }
 
+      if (path === '/api/jev/route') return handleJevRoute(request, env);
+      if (path === '/api/enterprise-decision') return handleEnterpriseDecision(request, env);
       return path === '/api/jev-recommend'
         ? handleJevRecommend(request, env)
-        : handleJevDecision(request, env.OPENROUTER_API_KEY);
+        : handleJevDecision(request, env);
     }
 
     // Passage-directed visuals have their own limiter so a long reading can
     // never spend the recommendation budget, and vice versa.
     if (path === '/api/jev-visual-score') {
       return handleJevVisualScore(request, env);
-    }
-
-    if (path === '/api/jev/route') {
-      return handleJevRoute(request);
     }
 
     return error(404, 'NOT_FOUND', 'API route not found.');

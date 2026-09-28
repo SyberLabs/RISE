@@ -28,6 +28,8 @@ jobs:
         run: |
           set -euo pipefail
           node scripts/ci-hygiene.mjs
+          node --test deploy/kev/staging-eval.test.mjs scripts/verify-decision-identity.test.mjs
+          python3 -m unittest discover -s deploy/kev -p 'test_*.py'
           npm run security:audit &
           audit=$!
           npm run security:compat
@@ -37,12 +39,17 @@ jobs:
           npx vitest run \
             src/core/system-design.test.js \
             worker/index.test.js \
+            worker/kev-migration.test.js \
+            src/core/kev-client.test.js \
+            src/core/jev-decision.test.js \
             worker/jev-recommend.test.js \
             src/components/Library.jev.test.js \
             src/core/content-store.test.js \
             src/core/journey-session.test.js \
             src/audio/engine.lifecycle.test.js \
-            src/content/keystones.test.js &
+            src/content/keystones.test.js \
+            src/enterprise \
+            worker/enterprise-decision.test.js &
           tests=$!
           npx vite build
           npm run measure:first-load
@@ -58,6 +65,9 @@ jobs:
       url: https://rise.syberlabs.io
     env:
       TESTED_SHA: ${{ github.sha }}
+      # Releases always ship. Production serves the explicit Jev rollback until the pinned
+      # Kev deployment passes the documented live gates and KEV_PRODUCTION_VERIFIED=true.
+      DECISION_PROVIDER: ${{ vars.KEV_PRODUCTION_VERIFIED == 'true' && (vars.DECISION_PROVIDER || 'kev') || 'jev' }}
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
       CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
     steps:
@@ -93,8 +103,21 @@ jobs:
           set -euo pipefail
           current=$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/main" --jq '.object.sha')
           test "$TESTED_SHA" = "$current"
-          ./node_modules/.bin/wrangler deploy --config wrangler.production.jsonc --message "RISE $TESTED_SHA"
+          case "$DECISION_PROVIDER" in
+            jev) ;;
+            kev)
+              names=$(./node_modules/.bin/wrangler secret list --config wrangler.production.jsonc --format json | jq -r '.[].name')
+              for name in KEV_API_KEY KEV_BASE_URL KEV_REVISION; do
+                grep -qx "$name" <<< "$names" || { echo "Kev is selected but Worker secret $name is not set."; exit 1; }
+              done ;;
+            *) echo "Unsupported DECISION_PROVIDER=$DECISION_PROVIDER"; exit 1 ;;
+          esac
+          ./node_modules/.bin/wrangler deploy --config wrangler.production.jsonc \
+            --var "DECISION_PROVIDER:$DECISION_PROVIDER" --message "RISE $TESTED_SHA ($DECISION_PROVIDER)"
       - name: Verify public production serves the exact release
+        env:
+          KEV_MODEL: ${{ vars.KEV_MODEL || 'kev-latest' }}
+          KEV_REVISION: ${{ vars.KEV_REVISION }}
         run: |
           set -euo pipefail
           # Cloudflare can serve the prior version for a few seconds after deploy.
@@ -123,7 +146,7 @@ jobs:
           test "$status" = 404 || { echo "Expected JSON 404 for unknown API; got HTTP $status"; exit 1; }
           grep -Eiq '^content-type: application/json' "$RUNNER_TEMP/public-headers"
           jq -e '.error.code == "NOT_FOUND"' "$RUNNER_TEMP/public-body" > /dev/null
-          # Jev calls a live model. One upstream error must not fail a release that
+          # The decision route calls a live model. One upstream error must not fail a release that
           # already deployed, so retry transient failures and show the answer.
           jev_post() {
             local out=$1 data=$2 status=
@@ -132,12 +155,13 @@ jobs:
                 -H 'Origin: https://rise.syberlabs.io' -H 'Content-Type: application/json' \
                 --data "$data" 'https://rise.syberlabs.io/api/jev-recommend' || true)
               [ "$status" = 200 ] && return 0
-              echo "Jev recommendation attempt $attempt returned HTTP ${status:-none}: $(head -c 600 "$out" 2>/dev/null)"
+              echo "Decision recommendation attempt $attempt returned HTTP ${status:-none}: $(head -c 600 "$out" 2>/dev/null)"
               sleep $((attempt * 5))
             done
             return 1
           }
           jev_post "$RUNNER_TEMP/jev-recommend-body" '{"intent":"A thoughtful classic about self-examination"}'
+          node scripts/verify-decision-identity.mjs "$RUNNER_TEMP/jev-recommend-body"
           node --input-type=module -e "import { JEV_PALETTES } from './src/core/jev-palette.js'; console.log(JSON.stringify(JEV_PALETTES))" \
             > "$RUNNER_TEMP/jev-palettes.json"
           JEV_RESPONSE_FILE="$RUNNER_TEMP/jev-recommend-body" node --input-type=module -e '
@@ -158,8 +182,7 @@ jobs:
             --slurpfile resolved "$RUNNER_TEMP/jev-resolved.json" '
             . as $result
             | $editions[0][$result.workId] as $edition
-            | ($result.model | startswith("typesafe/jev-1.13"))
-              and ($result.requestId | type == "string" and length > 0)
+            | ($result.requestId | type == "string" and length > 0)
               and ($edition != null)
               and ($result.editionId == $edition.editionId)
               and ($result.sourceRevision == $edition.sourceRevision)
@@ -234,9 +257,10 @@ jobs:
               and ($result | has("text") | not)
               and ($result | has("reading") | not)
           ' "$RUNNER_TEMP/jev-recommend-body" > /dev/null || {
-            echo "Live Jev v1 answer did not match the request contract:"; cat "$RUNNER_TEMP/jev-recommend-body"; exit 1; }
+            echo "Live decision v1 answer did not match the request contract:"; cat "$RUNNER_TEMP/jev-recommend-body"; exit 1; }
           jev_post "$RUNNER_TEMP/jev-recommend-v2-body" \
             '{"intent":"A warm gold reading on a dark forest background with large text and gentle piano","schemaVersion":2}'
+          node scripts/verify-decision-identity.mjs "$RUNNER_TEMP/jev-recommend-v2-body"
           JEV_RESPONSE_FILE="$RUNNER_TEMP/jev-recommend-v2-body" node --input-type=module -e '
             import { readFileSync } from "node:fs";
             import { JEV_INKS, JEV_PALETTES, jevColors } from "./src/core/jev-palette.js";
@@ -245,13 +269,13 @@ jobs:
             const config = result.config;
             const colors = config && jevColors(config.colorTheme, config.textColor, config.backgroundColor);
             const expected = config && resolveJevChamberConfig(config).presentation;
-            if (result.schemaVersion !== 2 || !result.model?.startsWith("typesafe/jev-1.13")
+            if (result.schemaVersion !== 2
               || !result.requestId || !colors || !expected
               || !Object.hasOwn(JEV_INKS, config.textColor)
               || !Object.hasOwn(JEV_PALETTES, config.backgroundColor)
               || JSON.stringify(config.colors) !== JSON.stringify(colors)
               || JSON.stringify(config.presentation) !== JSON.stringify(expected)) {
-              console.error("Live Jev v2 visual and audio choices did not match the request contract:");
+              console.error("Live decision v2 visual and audio choices did not match the request contract:");
               console.error(JSON.stringify(result));
               process.exit(1);
             }
@@ -259,10 +283,10 @@ jobs:
           status=$(curl -sS --max-time 20 -o "$RUNNER_TEMP/release-after-jev" \
             -w '%{http_code}' "https://rise.syberlabs.io/release-$TESTED_SHA.txt")
           test "$status" = 200 && test "$(cat "$RUNNER_TEMP/release-after-jev")" = "$TESTED_SHA" || {
-            echo "Production changed during the Jev smoke check; expected release $TESTED_SHA."
+            echo "Production changed during the decision smoke check; expected release $TESTED_SHA."
             exit 1
           }
           {
-            echo "Deployed production artifact $TESTED_SHA; public pages, exact release marker, JSON API 404, and one live Jev reading configuration verified."
-            echo 'Owner acceptance: ask Jev for a reading at https://rise.syberlabs.io/ and check that Chamber starts with the selected text and settings.'
+            echo "Deployed production artifact $TESTED_SHA; public pages, exact release marker, JSON API 404, and both live decision response versions verified."
+            echo 'Owner acceptance: ask RISE for a reading at https://rise.syberlabs.io/ and check that Chamber starts with the selected text and settings.'
           } >> "$GITHUB_STEP_SUMMARY"

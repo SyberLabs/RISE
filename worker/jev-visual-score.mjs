@@ -188,6 +188,7 @@ export async function handleJevVisualScore(request, env) {
   try {
     const response = await fetch(API_URL, {
       method: 'POST',
+      redirect: 'manual',
       headers: {
         Authorization: `Bearer ${env.OPENROUTER_API_KEY}`,
         'Content-Type': 'application/json',

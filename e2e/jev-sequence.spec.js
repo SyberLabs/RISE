@@ -6,7 +6,10 @@ import { compileJevAudioProgram, compileJevVisualProgram } from '../src/core/jev
 
 const GATE_SESSION = { code: 'rise2025', name: 'Jev Sequence Test', vault: null, timestamp: Date.now() };
 
-test('one Jev plan carries a late visual and soundscape phase into the Chamber', async ({ page }) => {
+for (const identity of [
+  { model: 'typesafe/jev-1.13' },
+  { model: 'kev-latest', provider: 'Kev', revision: '139fdd94f1b6a6ad80cc15e08fcb99cac885a101' }
+]) test(`one ${identity.model} plan carries a late visual and soundscape phase into the Chamber`, async ({ page }) => {
   const released = releaseInventory['literary-walden'];
   const choices = {
     section: 'shortest', wpm: 300, curve: 'flat', chunkMode: 'phrase',
@@ -31,7 +34,7 @@ test('one Jev plan carries a late visual and soundscape phase into the Chamber',
   await page.route('**/api/jev-recommend', route => {
     calls += 1;
     return route.fulfill({ json: {
-      schemaVersion: 2, requestId: 'jev-sequence-browser', model: 'typesafe/jev-1.13',
+      schemaVersion: 2, requestId: 'decision-sequence-browser', ...identity,
       workId: released.workId, editionId: released.editionId,
       sourceRevision: released.sourceRevision, reason: 'A released reading.', config
     } });

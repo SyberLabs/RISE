@@ -15,7 +15,7 @@
 - **Library** – curated public-domain literature, philosophy, poetry, and scripture, prepared through an editorial pipeline that tracks edition, structure, provenance, and rights.
 - **Chapel** – the complete Douay-Rheims Bible (73 books), plus the Rosary and Stations of the Cross paced by a liturgy engine.
 - **Workshop and Vault** – author your own audiovisual compositions and save them in the browser.
-- **Ask Jev** (optional) – describe what you want to read and an AI model picks a book and presentation from the held catalog.
+- **AI reading request** (optional) – describe what you want to read and a bounded decision model picks a book and presentation from the held catalog. The server-side migration from Jev to Kev is in progress; no live Kev endpoint has been confirmed.
 
 Reading runs entirely in the browser. Your files and saved work stay in browser storage. See [Privacy](PRIVACY.md).
 
@@ -26,7 +26,7 @@ Reading runs entirely in the browser. Your files and saved work stay in browser 
 - **First load of ~59 KB (brotli, 3 requests)**, held under a 64 KB budget enforced in CI.
 - **~2,800 Vitest unit and integration tests** plus Playwright browser tests, including real `ffmpeg` encoding and live Chromium rendering.
 - **Generated architecture diagram** and tested design contracts, so documentation cannot drift from the code.
-- **Edge backend:** Cloudflare Workers, Neon PostgreSQL, Upstash Redis, and OpenRouter for the optional recommendation service; gated GitHub Actions release with artifact verification and rollback.
+- **Edge backend:** Cloudflare Workers, Neon PostgreSQL, Upstash Redis, and a server-configured decision provider for optional recommendations. Kev is the code default when configured with a pinned host and revision; explicit Jev rollback uses OpenRouter. No live Kev deployment has been confirmed. Releases use gated GitHub Actions with artifact verification and rollback.
 
 **Stack:** JavaScript (ES modules) · Vite · Web Audio API · Canvas 2D · IndexedDB · Cloudflare Workers · PostgreSQL · Redis · Vitest · Playwright · GitHub Actions
 

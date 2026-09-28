@@ -6,7 +6,10 @@
   "preview_urls": false,
   // Optional pilot remains off. Provision PERSONAL_PIECE_IP_SECRET as a Worker
   // secret (at least 32 characters) before activation; never put its value here.
-  "vars": { "PERSONAL_PIECE_ENABLED": "false" },
+  // CI overrides DECISION_PROVIDER at deploy; Jev (explicit rollback) stays the
+  // production choice until KEV_PRODUCTION_VERIFIED=true. Kev secrets are then
+  // checked by CI before deploy.
+  "vars": { "PERSONAL_PIECE_ENABLED": "false", "DECISION_PROVIDER": "jev" },
   // rise.syberlabs.io is attached to this Worker in the Cloudflare dashboard.
   "observability": { "enabled": true },
   "assets": {

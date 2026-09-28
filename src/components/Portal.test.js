@@ -28,11 +28,11 @@ function makePortal(options = {}) {
 }
 
 describe('Portal', () => {
-    it('offers a disclosed preset scene sample and a separate live Jev link', async () => {
+    it('offers a disclosed preset scene sample and a separate live RISE link', async () => {
         const onLaunchJevSample = vi.fn().mockResolvedValue(undefined);
         const { portal, container } = makePortal({ demoMode: true, onLaunchJevSample });
         expect(container.textContent).toContain('preset');
-        expect(container.textContent).toContain('No live Jev request');
+        expect(container.textContent).toContain('No live RISE request');
         expect(container.querySelector('#portal-jev-form')).toBeNull();
         expect(container.querySelector('a[href="/"]')).not.toBeNull();
         expect(container.querySelector('#portal-jev-demo').textContent).toContain('George Eliot');
@@ -42,7 +42,7 @@ describe('Portal', () => {
         portal.destroy();
     });
 
-    it('starts one first reading while the launch is pending and keeps the Jev request available', async () => {
+    it('starts one first reading while the launch is pending and keeps the RISE request available', async () => {
         let finishLaunch;
         const onLaunchFirstRead = vi.fn(() => new Promise(resolve => { finishLaunch = resolve; }));
         const { portal, container } = makePortal({ onLaunchFirstRead });
@@ -70,10 +70,10 @@ describe('Portal', () => {
         expect(intent.placeholder).toBe('Something reflective and slow, with quiet visuals…');
         expect(container.querySelector('label[for="portal-jev-intent"]')).not.toBeNull();
         expect(container.querySelector('#portal-jev-help').textContent)
-            .toBe('Jev chooses from the released Library and sets up the reader.');
+            .toContain('Only this request goes to the configured AI decision service; your reading and saved work stay local.');
         const primary = container.querySelectorAll('.portal-primary');
         expect(primary).toHaveLength(1);
-        expect(primary[0].textContent.trim()).toBe('Ask Jev');
+        expect(primary[0].textContent.trim()).toBe('Ask RISE');
         expect(container.querySelector('[name="portal-jev-mode"]')).toBeNull();
         expect(onNavigate).not.toHaveBeenCalled();
         portal.destroy();
@@ -90,7 +90,7 @@ describe('Portal', () => {
         expect(container.querySelector('.portal-jev-submit').disabled).toBe(false);
         const intent = container.querySelector('#portal-jev-intent');
         expect(intent.getAttribute('aria-invalid')).toBe('true');
-        expect(container.querySelector('#portal-jev-help').textContent).toContain('Tell Jev what you’d like to read.');
+        expect(container.querySelector('#portal-jev-help').textContent).toContain('Tell RISE what you’d like to read.');
         intent.value = 'Something slow';
         intent.dispatchEvent(new Event('input', { bubbles: true }));
         expect(intent.getAttribute('aria-invalid')).toBe('false');

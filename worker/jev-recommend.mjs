@@ -6,8 +6,7 @@ import { JEV_AUDIO_IDS, resolveJevChamberConfig } from '../src/core/jev-config.j
 import { compileJevAudioProgram, compileJevVisualProgram } from '../src/core/jev-sequence.js';
 import { buildJevVarianceHints, VARIATION_COUNT } from './jev-variance.mjs';
 
-const API_URL = 'https://openrouter.ai/api/alpha/decisions';
-const MODEL = 'typesafe/jev-1.13';
+import { decisionProvider, validProviderResult, validProviderResponse, decisionIdentity } from '../server/decision-provider.mjs';
 const AUDIO_CHOICES = Object.freeze({ silent: 'Silence.',
   ...Object.fromEntries(JEV_AUDIO_IDS.map(id => [id, `${id} soundscape.`])) });
 const COLOR_THEME_CHOICES = Object.freeze({
@@ -342,11 +341,12 @@ async function catalogCacheKey() {
   return `rise:books:v1:${Array.from(new Uint8Array(digest), byte => byte.toString(16).padStart(2, '0')).join('')}`;
 }
 
-async function decisionCacheKey(intent, books, sounds, choices, apiKey) {
-  const key = await crypto.subtle.importKey('raw', new TextEncoder().encode(apiKey),
+async function decisionCacheKey(intent, books, sounds, choices, provider) {
+  const key = await crypto.subtle.importKey('raw', new TextEncoder().encode(provider.key),
     { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
   const menu = Object.fromEntries(OPTION_KINDS.map(kind => [kind, Object.keys(choices[kind])]));
-  const input = JSON.stringify({ model: MODEL, intent, books, sounds, menu });
+  const input = JSON.stringify({ provider: provider.name, endpoint: provider.url,
+    model: provider.model, revision: provider.revision, intent, books, sounds, menu });
   const signature = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(input));
   return `rise:jev-decision:v13:${Array.from(new Uint8Array(signature),
     byte => byte.toString(16).padStart(2, '0')).join('')}`;
@@ -560,11 +560,12 @@ function choiceConfig(answers, intent, choices) {
   return validConfig(config, choices);
 }
 
-function validCachedDecision(value, books, choices) {
+function validCachedDecision(value, books, choices, provider) {
   if (!value || typeof value !== 'object' || value.schemaVersion !== 2
     || typeof value.requestId !== 'string'
     || value.requestId.length < 1 || value.requestId.length > 100
-    || (value.model !== MODEL && !/^typesafe\/jev-1\.13-\d{8}$/u.test(value.model))) return null;
+    || !validProviderResult({ ...value, provider: value.provider || 'TypeSafe' }, provider)
+    || (provider.name === 'Kev' && value.revision !== provider.revision)) return null;
   const book = books.find(row => row.work_id === value.workId);
   const config = validConfig(value.config, choices);
   if (!book || !config || value.editionId !== book.edition_id
@@ -572,7 +573,7 @@ function validCachedDecision(value, books, choices) {
   return {
     schemaVersion: 2,
     requestId: value.requestId,
-    model: value.model,
+    model: value.model, ...decisionIdentity(provider),
     workId: book.work_id,
     editionId: book.edition_id,
     sourceRevision: book.source_revision,
@@ -581,9 +582,8 @@ function validCachedDecision(value, books, choices) {
   };
 }
 
-function validDecision(value, books, intent, choices) {
-  if (!value || typeof value !== 'object' || value.error || value.provider !== 'TypeSafe'
-    || (value.model !== MODEL && !/^typesafe\/jev-1\.13-\d{8}$/u.test(value.model))) return null;
+function validDecision(value, books, intent, choices, provider) {
+  if (!validProviderResult(value, provider)) return null;
   const answer = value.answers?.book;
   const selected = books.find(book => book.work_id === answer?.choice);
   const config = choiceConfig(value.answers, intent, choices);
@@ -591,7 +591,7 @@ function validDecision(value, books, intent, choices) {
   return {
     schemaVersion: 2,
     requestId: typeof value.id === 'string' && value.id.length <= 100 ? value.id : crypto.randomUUID(),
-    model: value.model,
+    model: value.model, ...decisionIdentity(provider),
     workId: selected.work_id,
     editionId: selected.edition_id,
     sourceRevision: selected.source_revision,
@@ -629,7 +629,8 @@ export async function handleJevRecommend(request, env) {
   const input = await readIntent(request);
   if (!input) return error(400, 'INVALID_REQUEST', 'Enter a reading intent of 3 to 240 characters.');
   const { intent, schemaVersion, nightDrive = false } = input;
-  if (!env?.OPENROUTER_API_KEY?.trim() || !env?.NEON_DATABASE_URL?.trim()
+  const connection = decisionProvider(env);
+  if (!connection || !env?.NEON_DATABASE_URL?.trim()
     || !env?.UPSTASH_REDIS_REST_URL?.trim() || !env?.UPSTASH_REDIS_REST_TOKEN?.trim()) {
     return error(503, 'RECOMMENDATION_NOT_CONFIGURED', 'Reading suggestions are unavailable.');
   }
@@ -678,7 +679,7 @@ export async function handleJevRecommend(request, env) {
   try {
     const catalogChoices = await activeChoices(redis, env, sounds);
     if (!catalogChoices) return error(503, 'OPTIONS_UNAVAILABLE', 'The presentation menu is unavailable.');
-    const turnBaseKey = await decisionCacheKey(intent, books, sounds, catalogChoices, env.OPENROUTER_API_KEY);
+    const turnBaseKey = await decisionCacheKey(intent, books, sounds, catalogChoices, connection);
     const turnKey = turnBaseKey.replace('rise:jev-decision:v13:', 'rise:jev-turn:v4:');
     const nextTurn = await redis.incr(turnKey);
     if (!Number.isSafeInteger(nextTurn) || nextTurn < 1) throw new Error('Invalid Jev turn');
@@ -702,9 +703,9 @@ export async function handleJevRecommend(request, env) {
       middleAudio: audioChoices,
       finaleAudio: audioChoices
     };
-    const decisionBaseKey = await decisionCacheKey(intent, books, shortlistedSounds, choices, env.OPENROUTER_API_KEY);
+    const decisionBaseKey = await decisionCacheKey(intent, books, shortlistedSounds, choices, connection);
     decisionKey = `${decisionBaseKey}:${hints.variation.cohort === null ? 0 : (nextTurn - 1) % VARIATION_COUNT}`;
-    const cached = validCachedDecision(await redis.get(decisionKey), hints.eligibleBooks, choices);
+    const cached = validCachedDecision(await redis.get(decisionKey), hints.eligibleBooks, choices, connection);
     if (cached) return reply(200, {
       ...responseForVersion(cached, schemaVersion), cacheStatus, decisionCacheStatus: 'hit'
     });
@@ -714,15 +715,15 @@ export async function handleJevRecommend(request, env) {
 
   let provider;
   try {
-    const response = await fetch(API_URL, {
+    const response = await fetch(connection.url, {
       method: 'POST',
       headers: {
-        Authorization: `Bearer ${env.OPENROUTER_API_KEY}`,
+        Authorization: `Bearer ${connection.key}`,
         'Content-Type': 'application/json',
         Accept: 'application/json'
       },
       body: JSON.stringify({
-        model: MODEL,
+        model: connection.model,
         state: { reader_intent: intent, experience_hint: hints.configHint },
         questions: {
           book: {
@@ -738,9 +739,11 @@ export async function handleJevRecommend(request, env) {
           }]))
         }
       }),
-      signal: AbortSignal.timeout(8000)
+      redirect: 'manual',
+      signal: AbortSignal.any([request.signal, AbortSignal.timeout(8000)])
     });
     if (!response.ok) return error(502, 'DECISION_UPSTREAM_ERROR', 'Jev returned an error.');
+    if (!validProviderResponse(response, connection)) return error(502, 'DECISION_INVALID_RESPONSE', 'Decision service returned an unexpected checkpoint.');
     provider = await response.json();
   } catch (cause) {
     if (cause?.name === 'TimeoutError' || cause?.name === 'AbortError') {
@@ -749,7 +752,7 @@ export async function handleJevRecommend(request, env) {
     return error(502, 'DECISION_UNAVAILABLE', 'Jev could not be reached.');
   }
 
-  const decision = validDecision(provider, hints.eligibleBooks, intent, choices);
+  const decision = validDecision(provider, hints.eligibleBooks, intent, choices, connection);
   if (!decision) return error(502, 'DECISION_INVALID_RESPONSE', 'Jev returned an invalid choice.');
   try {
     await redis.set(decisionKey, decision, { ex: DECISION_CACHE_TTL_SECONDS });

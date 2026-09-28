@@ -99,9 +99,7 @@ export class Scriptorium {
     });
     this.materialBlobs = new Map();
     this.objectUrls = new Set();
-    // JEV credentials live only as long as this mounted component. They are
-    // never written to browser storage, the session, or the reading prompt.
-    this.jevApiKey = '';
+    // Provider credentials stay on the server, never in the mounted component.
     this.jevRouting = false;
     // Said where the reader is standing. A refusal about a file belongs beside
     // the panel that took it, not in a status line six sections further down a
@@ -464,33 +462,29 @@ export class Scriptorium {
             this is refused, not trimmed.
           </p>
           <div class="scriptorium-jev" aria-labelledby="scriptorium-jev-title">
-            <h3 id="scriptorium-jev-title">Route the composition with Jev</h3>
-            <label class="scriptorium-label" for="scriptorium-jev-key">Jev API key</label>
-            <input id="scriptorium-jev-key" class="scriptorium-jev-key" type="password"
-              autocomplete="off" spellcheck="false" value="${escapeHtml(this.jevApiKey)}"
-              aria-describedby="scriptorium-jev-privacy">
+            <h3 id="scriptorium-jev-title">Route the composition</h3>
             <p class="scriptorium-note" id="scriptorium-jev-privacy">
-              With your key, RISE sends only this typed intent (up to 2,000 characters)
+              RISE sends only this typed intent (up to 2,000 characters)
               and the target word count to its same-origin routing function, which
-              forwards those fields and your key to TypeSafe SystemOne. Saved texts, Library entries,
-              media, and reading history are not sent. RISE does not store your key.
+              forwards those fields to the configured decision service. Saved texts, Library entries,
+              media, and reading history are not sent. No personal API key is needed.
             </p>
             <div class="scriptorium-actions">
               <button type="button" class="btn-primary" data-action="route-jev"
-                ${this.jevRouting || !this.jevApiKey.trim() ? 'disabled' : ''}>
-                ${this.jevRouting ? 'Routing with Jev…' : 'Route with Jev'}
+                ${this.jevRouting ? 'disabled' : ''}>
+                ${this.jevRouting ? 'Routing…' : 'Suggest a route'}
               </button>
             </div>
             ${this.session.jevRoute ? `
               <p class="scriptorium-jev-result" role="status">
-                Jev selected <strong>${this.session.jevRoute.route === 'experience_program'
+                The decision service selected <strong>${this.session.jevRoute.route === 'experience_program'
                   ? 'Experience Program' : 'Agent Operation Set'}</strong>
-                with ${(this.session.jevRoute.confidence * 100).toFixed(0)}% confidence.
+                with a ${(this.session.jevRoute.confidence * 100).toFixed(0)}% confidence score, not a measured accuracy rate.
                 This selects a prompt format; RISE still examines the result before
                 it can become a reading.
               </p>
             ` : ''}
-            <p class="scriptorium-note">Prefer to work locally? You can prepare the prompt without Jev below.</p>
+            <p class="scriptorium-note">Prefer to work locally? You can prepare the prompt without a model below.</p>
           </div>
           ${this.renderOwnTexts()}
         </section>
@@ -533,7 +527,7 @@ export class Scriptorium {
           <h2 id="scriptorium-take-title">2. Take</h2>
           <p class="scriptorium-note">Prepare a prompt locally, then copy or download it and context.json.</p>
           <div class="scriptorium-actions">
-            <button type="button" class="btn-secondary" data-action="prepare-take">Prepare locally without Jev</button>
+            <button type="button" class="btn-secondary" data-action="prepare-take">Prepare locally without Decision service</button>
             <button type="button" class="btn-secondary" data-action="copy-prompt" ${this.promptText ? '' : 'disabled'}>Copy prompt</button>
             <button type="button" class="btn-secondary" data-action="download-prompt" ${this.promptText ? '' : 'disabled'}>Download prompt</button>
             <button type="button" class="btn-secondary" data-action="copy-context" ${this.context ? '' : 'disabled'}>Copy context.json</button>
@@ -623,30 +617,22 @@ export class Scriptorium {
         if (route) route.remove();
       });
 
-    this.container.querySelector('#scriptorium-jev-key')
-      ?.addEventListener('input', (event) => {
-        this.jevApiKey = event.target.value;
-        const button = this.container.querySelector('[data-action="route-jev"]');
-        if (button) button.disabled = this.jevRouting || !this.jevApiKey.trim();
-      });
-
     this.container.querySelector('[data-action="route-jev"]')
       ?.addEventListener('click', async () => {
-        if (this.jevRouting || !this.jevApiKey.trim()) return;
+        if (this.jevRouting) return;
         this.jevRouting = true;
-        this.status = 'Routing this intent with Jev…';
+        this.status = 'Routing this intent with Decision service…';
         this.render();
         try {
-          const result = await this.session.routeWithJev(this.jevApiKey);
+          const result = await this.session.routeWithJev();
           this.status = result.ok
-            ? 'Jev selected a prompt route.'
+            ? 'Decision service selected a prompt route.'
             : result.stale
-              ? 'The intent changed while Jev was routing. Route the current intent again.'
-              : (result.message || 'Jev could not select a route.');
+              ? 'The intent changed while Decision service was routing. Route the current intent again.'
+              : (result.message || 'Decision service could not select a route.');
         } catch (error) {
-          this.status = error?.message || 'Jev routing failed.';
+          this.status = error?.message || 'Decision service routing failed.';
         } finally {
-          this.jevApiKey = '';
           this.jevRouting = false;
           this.render();
         }
