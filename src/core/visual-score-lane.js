@@ -206,7 +206,7 @@ export function sequenceAssetReferencesFromCue(cue) {
 /** Rebuild the deterministic editor reference stored implicitly by a cue. */
 export function scoreAssetIdFromCue(cue) {
   if (cue?.kind === 'video') return cue.assetId || null;
-  if (cue?.kind === 'field' && ['focal', 'attractor', 'genesis'].includes(cue.renderer)) {
+  if (cue?.kind === 'field' && ['focal', 'attractor', 'genesis', 'living-flame'].includes(cue.renderer)) {
     return `surface:${cue.renderer}`;
   }
   if (cue?.kind === 'still') return 'surface:off';
@@ -474,7 +474,8 @@ export function assignVisualSpan({
     quoteEnd: fingerprint(selected, 'end')
   };
   if (cue != null) {
-    const field = cue?.kind === 'field' && ['focal', 'attractor', 'genesis'].includes(cue.renderer);
+    const field = cue?.kind === 'field'
+      && ['focal', 'attractor', 'genesis', 'living-flame'].includes(cue.renderer);
     const procedural = cue?.kind === 'procedural' && Array.isArray(cue.collections)
       && cue.collections.length === 1;
     if (!field && !procedural) {

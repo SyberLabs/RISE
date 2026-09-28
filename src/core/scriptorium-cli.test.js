@@ -787,7 +787,11 @@ describe('every refusal the session can phrase has a status', () => {
       'render/project-asset.js resolves bytes for an encode, and the '
       + 'Scriptorium runs the producer with render: false',
     RenderError:
-      'the same: nothing in this sequence renders'
+      'the same: nothing in this sequence renders',
+    FlameRecipeError:
+      'experience-program.js rethrows a flame recipe refusal as '
+      + 'PROGRAM_FLAME_RECIPE and editor-asset.js as EDITOR_ASSET_FLAME; the '
+      + 'other readers normalize to null, so the raw class never escapes'
   });
 
   it('names every error class under src/core, or excuses it here', () => {

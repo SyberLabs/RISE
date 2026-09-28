@@ -9,7 +9,7 @@
 
 import {
   EXPERIENCE_PROGRAM_SCHEMA,
-  PROGRAM_VISUAL_FIELD_RENDERERS,
+  PROGRAM_SURFACE_FIELD_RENDERERS,
   validateExperienceProgram
 } from './experience-program.js';
 import {
@@ -193,8 +193,8 @@ export const CAPABILITY_FAMILIES = Object.freeze({
   /**
    * THE ONE FAMILY THAT IS THE BUILD'S RATHER THAN THE DOCUMENT'S.
    *
-   * A field renderer is closed by `PROGRAM_VISUAL_FIELD_RENDERERS` and has
-   * been since the program validator existed — the three names do not vary
+   * A surface is closed by `PROGRAM_SURFACE_FIELD_RENDERERS` — the field
+   * renderers that need no authored recipe — and the three names do not vary
    * with what a reader brought. So the check is against the constant, and the
    * document carries the list so a composer can READ it: a gate checking
    * against a vocabulary nobody was given refuses on a rule nobody could have
@@ -210,7 +210,7 @@ export const CAPABILITY_FAMILIES = Object.freeze({
     noun: 'field renderer',
     code: 'PROGRAM_IO_UNKNOWN_SURFACE',
     detail: 'renderer',
-    offered: () => PROGRAM_VISUAL_FIELD_RENDERERS
+    offered: () => PROGRAM_SURFACE_FIELD_RENDERERS
   }),
   soundscapes: Object.freeze({
     noun: 'soundscape',

@@ -286,6 +286,7 @@ export class Portal {
             <ul class="portal-more-list" id="portal-more-list" hidden>
               <li><button class="portal-footer-link" type="button" data-nav="chapel">Chapel</button></li>
               <li><button class="portal-footer-link" type="button" data-nav="scriptorium">Scriptorium</button></li>
+              <li><button class="portal-footer-link" type="button" data-nav="visual-lab">Visual Lab</button></li>
               <li><button class="portal-footer-link" type="button" data-nav="curia">Curia</button></li>
             </ul>
           </div>

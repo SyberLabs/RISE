@@ -2,6 +2,7 @@ import { createEditorAsset, validateEditorAsset } from '../../core/editor-asset.
 import { VISUAL_SCORE_COLORS } from '../../core/visual-score-lane.js';
 import { visualFallbackCueFromConfig } from '../../core/visual-program.js';
 import { MUSEUM_CATEGORIES } from '../../sources/visual/museum.js';
+import { FLAME_PRESETS } from '../../visuals/living-flame/flame-presets.js';
 import {
   normalizeFieldStyle,
   normalizeProceduralStyle
@@ -163,6 +164,27 @@ function surfaceEntries(offset, visualConfig = {}) {
     }),
     defaultValue: { surface }
   }));
+  // Living Flame is assigned to passages only. Each assignment carries its
+  // own full recipe as a cue snapshot; the asset's template is the first
+  // composition, changed per passage with the Composition control.
+  fields.push({
+    group: 'fields',
+    symbol: '✺',
+    previewStyle: 'radial-gradient(ellipse at 50% 60%,#f5a53a 0 10%,#c25a0e 30%,#6b1d04 55%,#1a0500 80%)',
+    asset: createEditorAsset({
+      id: 'surface:living-flame',
+      lane: 'visual',
+      kind: 'project-surface',
+      name: 'Living Flame',
+      capability: 'span',
+      editor: { color: colorAt(offset + fields.length), preview: { kind: 'surface', ref: 'living-flame' } },
+      provenance: { provider: 'RISE Living Flame', surface: 'living-flame' },
+      cueTemplate: {
+        kind: 'field', renderer: 'living-flame',
+        config: { recipe: FLAME_PRESETS[0], intensity: 0.35 }
+      }
+    })
+  });
   // Stillness is an authoring operation, not an asset. Keep its cue in the
   // internal registry so saved assignments remain resolvable, but never
   // expose it in browsing, search, or the passage picker.

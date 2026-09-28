@@ -8,6 +8,7 @@
 
 import { cueForAtom } from '../core/visual-scheduler.js';
 import { pageCollectionId } from '../visuals/work-engines.js';
+import { livingFlameConfigKey } from '../core/flame-recipe.js';
 
 /** Block kinds the compositor understands. */
 export const BLOCK = Object.freeze({
@@ -61,12 +62,20 @@ function isSymbol(atom) {
  */
 const PROCEDURAL_FIGURES = true;
 
+/** Page collection ids for Living Flame stills: `living-flame:<recipe id>`. */
+export const LIVING_FLAME_PAGE_PREFIX = 'living-flame:';
+
 /**
  * A cue's sourced collections, or [] for stillness. A works-less episode
  * is sanctioned stillness (§5) — it yields no ImagePlacement at all.
  */
 function collectionsOf(cue) {
     if (!cue) return [];
+    // A Living Flame passage is sampled as a still of its own recipe.
+    if (cue.kind === 'field' && cue.renderer === 'living-flame'
+        && typeof cue.config?.recipe?.id === 'string') {
+        return [`${LIVING_FLAME_PAGE_PREFIX}${livingFlameConfigKey(cue.config)}`];
+    }
     const collections = Array.isArray(cue.collections)
         ? cue.collections.filter(Boolean) : [];
     if (cue.kind === 'sourced') return collections;

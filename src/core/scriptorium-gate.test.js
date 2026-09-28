@@ -23,7 +23,7 @@ import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { availableVoicePacks } from '../audio/voice-pack.js';
 import { exportCuratorContext } from './curator-context.js';
-import { PROGRAM_VISUAL_FIELD_RENDERERS } from './experience-program.js';
+import { PROGRAM_SURFACE_FIELD_RENDERERS } from './experience-program.js';
 import {
   AGENT_OPERATION_OPS,
   applyAgentOperationSet,
@@ -1020,7 +1020,7 @@ describe('every capability family is refused the same way at both doors', () => 
     }
     // An unbuilt voice is silence wearing a name, so the list is what is BUILT.
     expect(ctx.audio.voices).toEqual(availableVoicePacks().map(pack => pack.id));
-    expect(ctx.visuals.surfaces).toEqual([...PROGRAM_VISUAL_FIELD_RENDERERS]);
+    expect(ctx.visuals.surfaces).toEqual([...PROGRAM_SURFACE_FIELD_RENDERERS]);
     for (const id of ctx.audio.voices) {
       expect(ctx.catalog.voices[id]?.kind, `${id} reaches the model as a bare id`)
         .toBe('narration-voice');
@@ -1224,10 +1224,10 @@ describe('a museum collection is scored as a collection', () => {
     // The path names the operation, not an object the caller never wrote.
     expect(refusal.path).toContain('$.operations[id=op-2]');
     expect(refusal.path).not.toContain('cueTemplate');
-    expect(refusal.details.offered).toEqual([...PROGRAM_VISUAL_FIELD_RENDERERS]);
+    expect(refusal.details.offered).toEqual([...PROGRAM_SURFACE_FIELD_RENDERERS]);
 
     // And each of the three it does offer still builds its field.
-    for (const renderer of PROGRAM_VISUAL_FIELD_RENDERERS) {
+    for (const renderer of PROGRAM_SURFACE_FIELD_RENDERERS) {
       const cue = run(`surface:${renderer}`).project.experienceProgram.tracks
         .find(track => track.kind === 'visual').clips[0].cue;
       expect(cue).toMatchObject({ kind: 'field', renderer });

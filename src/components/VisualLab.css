@@ -1,0 +1,214 @@
+/* Visual Lab — the artwork first, controls beside it (below it on phones). */
+
+.visual-lab {
+  position: relative;
+  width: 100%;
+  min-height: 100dvh;
+  overflow: hidden;
+  background: var(--color-void);
+  color: var(--color-light);
+  font-family: var(--sy-font-sans);
+}
+
+.visual-lab.is-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 160000;
+}
+
+.vl-stage {
+  position: absolute;
+  inset: 0;
+}
+
+.vl-stage .living-flame-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.vl-renderer {
+  position: absolute;
+  left: max(1rem, env(safe-area-inset-left));
+  bottom: max(1rem, env(safe-area-inset-bottom));
+  margin: 0;
+  font-family: var(--sy-font-mono);
+  font-size: 0.75rem;
+  color: var(--color-fog);
+}
+
+.vl-renderer:empty { display: none; }
+
+.vl-toggle {
+  position: absolute;
+  top: max(1rem, env(safe-area-inset-top));
+  right: max(1rem, env(safe-area-inset-right));
+  z-index: 2;
+  min-height: var(--sy-control-height);
+  padding: 0 1rem;
+  border: 1px solid var(--sy-line-strong);
+  border-radius: var(--sy-radius-full);
+  background: color-mix(in srgb, var(--color-void) 80%, transparent);
+  color: var(--color-light);
+  font: inherit;
+  cursor: pointer;
+}
+
+.vl-panel {
+  position: absolute;
+  top: calc(max(1rem, env(safe-area-inset-top)) + var(--sy-control-height) + 0.75rem);
+  right: max(1rem, env(safe-area-inset-right));
+  bottom: max(1rem, env(safe-area-inset-bottom));
+  z-index: 1;
+  width: min(21rem, calc(100vw - 2rem));
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+  overflow-y: auto;
+  padding: 1.1rem;
+  border: 1px solid var(--sy-line);
+  border-radius: 1rem;
+  background: color-mix(in srgb, var(--color-void) 88%, transparent);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  box-shadow: var(--sy-shadow-overlay);
+  transition: opacity var(--sy-dur-enter) var(--sy-ease), transform var(--sy-dur-enter) var(--sy-ease);
+}
+
+.visual-lab.panel-collapsed .vl-panel {
+  opacity: 0;
+  pointer-events: none;
+  transform: translateX(1rem);
+}
+
+.vl-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.vl-title {
+  margin: 0;
+  font-family: var(--sy-font-serif);
+  font-size: 1.6rem;
+  font-weight: 400;
+}
+
+.vl-field {
+  display: grid;
+  gap: 0.35rem;
+  font-family: var(--sy-font-mono);
+  font-size: 0.75rem;
+  letter-spacing: 0.02em;
+  color: var(--color-fog);
+}
+
+.vl-field output {
+  justify-self: end;
+  margin-top: -1.3rem;
+  color: var(--color-light);
+}
+
+.vl-field select,
+.vl-field input[type="range"] {
+  width: 100%;
+  accent-color: var(--color-accent);
+}
+
+.vl-field select {
+  min-height: var(--sy-control-height);
+  padding: 0 0.6rem;
+  border: 1px solid var(--sy-line-strong);
+  border-radius: var(--sy-radius);
+  background: var(--color-abyss);
+  color: var(--color-light);
+  font: inherit;
+  font-size: 0.85rem;
+}
+
+.vl-actions,
+.vl-exits {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.vl-panel button,
+.vl-import {
+  min-height: 40px;
+  padding: 0 0.85rem;
+  border: 1px solid var(--sy-line-strong);
+  border-radius: var(--sy-radius);
+  background: transparent;
+  color: var(--color-light);
+  font: inherit;
+  font-size: 0.85rem;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+}
+
+.vl-panel button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.vl-panel .vl-primary {
+  border-color: var(--color-accent);
+  background: var(--color-accent);
+  color: var(--color-on-accent);
+}
+
+.vl-import input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+}
+
+.vl-status {
+  min-height: 1.2em;
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--color-fog);
+}
+
+.vl-panel button:focus-visible,
+.vl-import:focus-within,
+.vl-toggle:focus-visible,
+.vl-field select:focus-visible,
+.vl-field input:focus-visible {
+  outline: var(--sy-focus);
+  outline-offset: 2px;
+}
+
+@media (max-width: 720px) {
+  /* The artwork keeps the space above the open sheet; collapsed, it has
+     the whole screen again. */
+  .visual-lab:not(.panel-collapsed) .vl-stage {
+    bottom: min(46dvh, 24rem);
+  }
+
+  .vl-panel {
+    top: auto;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: auto;
+    height: min(46dvh, 24rem);
+    max-height: none;
+    border-radius: 1rem 1rem 0 0;
+    padding-bottom: calc(1rem + env(safe-area-inset-bottom));
+  }
+
+  .visual-lab.panel-collapsed .vl-panel {
+    transform: translateY(1rem);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .vl-panel { transition: none; }
+}
