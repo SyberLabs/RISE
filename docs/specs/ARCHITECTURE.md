@@ -549,8 +549,10 @@ of `settled`, `open`, `deferred`, or `reversed`.
 ### 8.10 Vanilla DOM, no UI framework
 
 - **Chosen:** direct DOM construction and template strings, one bespoke module
-  per room, three production dependencies: `sql.js` for browser-local work,
-  `@neondatabase/serverless` and `@upstash/redis` for the Worker catalog path.
+  per room, five production dependencies: `sql.js` for browser-local work,
+  `@neondatabase/serverless` and `@upstash/redis` for the Worker catalog path,
+  and `@ai-ecoverse/kev.js` with `onnxruntime-web` for on-device Kev, imported
+  only by the EnterpRise worker that runs it (§8.32).
 - **Rejected:** React, Vue, Svelte or any virtual-DOM library.
 - **Why:** the tradeoff is real in both directions. A framework would give
   declarative rendering, diffing, and would largely remove the `innerHTML`
@@ -916,6 +918,33 @@ of `settled`, `open`, `deferred`, or `reversed`.
   recognizer and routed decisions. A live Kev or Jev decision on the
   deployed room, and field latency from a real microphone, are not yet
   measured.
+
+### 8.32 Kev can decide on the presenter's own GPU, in the browser
+
+- **Chosen:** a third decider, "Kev (device)", runs Kev through WebGPU with
+  `@ai-ecoverse/kev.js` and `onnxruntime-web` in a dedicated worker
+  (`src/enterprise/kev-worker.js`). It asks the same question and reads the
+  answer the same way as the server route (`src/enterprise/rail-question.js`).
+  `src/enterprise/device-model.js` pins what may load: a manifest naming any
+  checkpoint but the pinned one is refused before weights are fetched, and the
+  runtime binary must match the digest of the lockfile's copy. The model
+  downloads only when a presenter chooses it. Until it is ready, or after it
+  fails, decisions hold. The worker script alone may fetch model hosts and
+  compile WebAssembly (`public/_headers`); every page keeps the site policy.
+  `kev-check.html` measures load, latency, and agreement on a real device.
+- **Rejected:** a local Python service for Windows users (CUDA, WSL2, and a
+  localhost port every site could reach); falling back to the server or the
+  rules when the device cannot run Kev; the CPU WebAssembly path, too slow for
+  a live rail; serving the runtime binary from this site, which is over the
+  static asset size limit.
+- **Why:** the transcript and the decision stay on the presenter's machine,
+  with nothing to install. The device checkpoint (`kev-4b@4bc64c6`) is not the
+  server's pinned revision, so agreement between them is measured, not
+  assumed.
+- **Status:** open. Loading and inference on Windows GPUs have not been run;
+  the published kev.js bundles were tested by their authors on Chrome for
+  macOS only. The `! Content-Security-Policy` detach in `public/_headers` is
+  unverified on the production Worker.
 
 ---
 

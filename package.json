@@ -72,8 +72,10 @@
     "wrangler": "4.141.0"
   },
   "dependencies": {
+    "@ai-ecoverse/kev.js": "0.6.0",
     "@neondatabase/serverless": "^1.1.0",
     "@upstash/redis": "^1.39.0",
+    "onnxruntime-web": "1.30.0",
     "sql.js": "^1.14.2"
   },
   "overrides": {

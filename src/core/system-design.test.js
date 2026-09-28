@@ -143,9 +143,9 @@ describe('the system design document describes this tree', () => {
         // sentence that argues from its smallness has to be re-argued.
         expect(production.length,
             'production dependencies changed — ARCHITECTURE.md 8.10 argues from this number')
-            .toBe(3);
-        expect(text, `${DOC} 8.10 should say "three production dependencies"`)
-            .toMatch(/three production dependencies/u);
+            .toBe(5);
+        expect(text, `${DOC} 8.10 should say "five production dependencies"`)
+            .toMatch(/five production dependencies/u);
     });
 });
 
