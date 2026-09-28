@@ -733,8 +733,9 @@ describe('Jev reading recommendation', () => {
       coordinateSpace: 'source',
       segments: [
         { id: 'jev-opening', match: { sourceIds: ['primary'], fromProgress: 0, toProgress: 0.3 }, cue: { kind: 'procedural', collections: ['fractal'] } },
-        { id: 'jev-middle', match: { sourceIds: ['primary'], fromProgress: 0.3, toProgress: 0.7 }, cue: { kind: 'procedural', collections: ['turrell'] } },
-        { id: 'jev-finale', match: { sourceIds: ['primary'], fromProgress: 0.7, toProgress: 1 }, cue: { kind: 'procedural', collections: ['apparitio'] } }
+        // Psychedelic energy: the requested calm middle (turrell) becomes the next energetic engine.
+        { id: 'jev-middle', match: { sourceIds: ['primary'], fromProgress: 0.3, toProgress: 0.7 }, cue: { kind: 'procedural', collections: ['apparitio'] } },
+        { id: 'jev-finale', match: { sourceIds: ['primary'], fromProgress: 0.7, toProgress: 1 }, cue: { kind: 'procedural', collections: ['ostensoria'] } }
       ],
       fallback: { kind: 'still' }
     });

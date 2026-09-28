@@ -17,7 +17,6 @@ import { MemoryCore } from '../core/memory.js';
 import { LocalWorks } from '../core/local-work-store.js';
 import { localWorkRuntime } from '../core/local-works.js';
 import { Admit } from './Admit.js';
-import { attachJevDictation } from './jev-dictation.js';
 import { drawRiseSigil } from './atlas.js';
 import './Library.css';
 
@@ -140,28 +139,16 @@ export class Library {
     // 'error'. Each is drawn: a tab never shows a blank where a state is.
     this.localState = 'loading';
     this.localAlert = '';
-    this.jevRecommendation = null;
-    this.jevIntent = options.initialIntent || '';
-    this.jevAbort = null;
     this._active = false;
     this.boundKeyboardHandler = this.handleKeyboard.bind(this);
 
     this.render();
     this.attachEvents();
-    this.attachJevDictation();
     this.refreshLocalWorks();
-    if (this.jevIntent) {
-      void this.recommendWithJev(this.container.querySelector('[data-jev-form]'));
-    }
   }
 
   update(data) {
     this.readingPreferences = data?.readingPreferences || null;
-    if (!data?.jevIntent) return;
-    this.jevIntent = data.jevIntent;
-    this.updateContent();
-    const form = this.container.querySelector('[data-jev-form]');
-    if (form) void this.recommendWithJev(form);
   }
 
   render() {
@@ -269,23 +256,11 @@ export class Library {
         <!-- The tabs already say where the reader is; a heading repeating
              them, and paragraphs describing the pipeline, were deleted. -->
 
-        <section class="library-jev" aria-labelledby="library-jev-title">
-          <h2 id="library-jev-title">Find your next reading with RISE</h2>
-          <p>Describe what you want to explore. RISE chooses from its released Standard Ebooks editions and original readings. Only this request goes to the configured AI decision service; your reading and saved work stay local.</p>
-          <form data-jev-form>
-            <label for="library-jev-intent">What are you in the mood to read?</label>
-            <div class="library-jev-controls">
-              <input id="library-jev-intent" name="intent" type="text" minlength="3" maxlength="240" required
-                value="${escapeHtml(this.jevIntent)}"
-                placeholder="A thoughtful book about change and courage">
-              <button class="library-jev-dictate" data-jev-dictate="icon" type="button" aria-label="Speak your RISE request" aria-pressed="false"></button>
-              <button class="btn-primary" type="submit">Ask RISE</button>
-            </div>
-            <p class="library-jev-voice-note">Voice input may use your browser’s speech service. Review the text before asking RISE.</p>
-            <span data-jev-dictation-status role="status" aria-live="polite"></span>
-          </form>
-          <div class="library-jev-result" data-jev-result aria-live="polite">${this.renderJevRecommendation()}</div>
-        </section>
+        <!-- ONE WAY IN. Describing what you want happens in one place, Home,
+             which shows how the request was read before anything plays.
+             The Library is for browsing. -->
+        <p class="library-describe">Not sure what to read?
+          <button class="library-describe-link" type="button" data-action="go-home">Describe what you want on Home</button></p>
 
         <!-- ONE QUESTION, ASKED FIRST: did RISE receive this work, or write
              it? Provenance is what the Archive promises to keep, so it is the
@@ -313,80 +288,6 @@ export class Library {
         </div>
       </div>
     `;
-  }
-
-  renderJevRecommendation() {
-    const choice = this.jevRecommendation;
-    if (!choice) return '';
-    const book = LIBRARY_TEXTS.find(text => text.id === choice.workId
-      && ['archive-ingest', 'rise-original'].includes(text.provider)
-      && text.editionId === choice.editionId
-      && text.sourceRevision === choice.sourceRevision);
-    if (!book) return '';
-    return `<div class="library-jev-choice">
-      <span class="library-jev-kicker">RISE chose</span>
-      <h3>${escapeHtml(book.title)}</h3>
-      <p class="library-jev-author">${escapeHtml(book.author)} · ${book.provider === 'rise-original' ? 'RISE Original' : 'Standard Ebooks'}</p>
-      <p>About this book: ${escapeHtml(choice.reason || book.description)}</p>
-      <button class="btn-primary" data-action="open-jev" data-id="${escapeHtml(book.id)}">Open this reading</button>
-      <details><summary>Decision details</summary>
-        <p>Model: ${escapeHtml(choice.model)} · Request: ${escapeHtml(choice.requestId)} · ${choice.decisionCacheStatus === 'hit' ? 'Reused cached RISE choice' : 'New RISE choice'}</p>
-      </details>
-    </div>`;
-  }
-
-  async recommendWithJev(form) {
-    const input = form.elements.namedItem('intent');
-    const intent = String(input?.value || '').trim();
-    if (intent.length < 3 || intent.length > 240) return;
-    this.jevIntent = intent;
-    this.jevRecommendation = null;
-    this.jevAbort?.abort();
-    const controller = new AbortController();
-    this.jevAbort = controller;
-    const button = form.querySelector('button[type="submit"]');
-    const result = this.container.querySelector('[data-jev-result]');
-    if (button) button.disabled = true;
-    if (result) result.innerHTML = `<p class="library-status" role="status">${SPINNER}<span>RISE is choosing your reading…</span></p>`;
-    if (button) button.setAttribute('aria-busy', 'true');
-    try {
-      const response = await fetch('/api/jev-recommend', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ intent, schemaVersion: 3 }),
-        signal: controller.signal
-      });
-      const data = await response.json().catch(() => null);
-      if (!response.ok || !data) throw new Error(data?.error?.message || 'RISE is unavailable right now.');
-      const { validateJevRecommendation } = await import('../app/jev-reading.js');
-      validateJevRecommendation(data);
-      const book = LIBRARY_TEXTS.find(text => text.id === data.workId
-        && ['archive-ingest', 'rise-original'].includes(text.provider)
-        && text.editionId === data.editionId
-        && text.sourceRevision === data.sourceRevision);
-      if (!book || typeof data.model !== 'string' || typeof data.requestId !== 'string') {
-        throw new Error('The selected edition is not available in this RISE release.');
-      }
-      if (this.jevAbort !== controller) return;
-      this.jevRecommendation = data;
-      if (result) result.innerHTML = this.renderJevRecommendation();
-    } catch (error) {
-      if (error?.name === 'AbortError' || this.jevAbort !== controller) return;
-      // A network failure reads "Failed to fetch"; that is the browser's
-      // sentence, not ours.
-      const plain = error instanceof TypeError || error instanceof SyntaxError
-        ? 'RISE is unavailable right now. Try again.'
-        : (error.message || 'RISE is unavailable right now.');
-      if (result) result.innerHTML = alertHtml(plain);
-    } finally {
-      if (this.jevAbort === controller) {
-        this.jevAbort = null;
-        if (button) {
-          button.disabled = false;
-          button.removeAttribute('aria-busy');
-        }
-      }
-    }
   }
 
   renderArchiveItems() {
@@ -681,12 +582,6 @@ export class Library {
     });
 
     // Category filters (delegated or direct)
-    this.container.querySelector('#library-content')?.addEventListener('submit', (e) => {
-      const form = e.target.closest('[data-jev-form]');
-      if (!form) return;
-      e.preventDefault();
-      this.recommendWithJev(form);
-    });
     this.container.querySelector('#library-content')?.addEventListener('click', (e) => {
       const filterBtn = e.target.closest('.filter-btn');
       if (filterBtn) {
@@ -711,8 +606,8 @@ export class Library {
         this.container.querySelector('#local-file-input')?.click();
       } else if (action === 'preview' && id) {
         console.log('Preview sequence:', id);
-      } else if (action === 'open-jev' && id && this.jevRecommendation?.workId === id) {
-        this.handleTextSelection(id);
+      } else if (action === 'go-home') {
+        this.onNavigate('portal');
       } else if (action === 'select-text' && id) {
         this.handleTextSelection(id);
       } else if (action === 'open-local' || action === 'edit-local' || action === 'drop-local') {
@@ -761,7 +656,6 @@ export class Library {
   }
 
   updateContent() {
-    this.stopJevDictation?.();
     const content = this.container.querySelector('#library-content');
     if (content) {
       content.innerHTML = this.renderSection(this.currentSection);
@@ -769,13 +663,7 @@ export class Library {
       if (this.currentSection === 'personal') {
         this.attachFileUploadEvents();
       }
-      this.attachJevDictation();
     }
-  }
-
-  attachJevDictation() {
-    const form = this.container.querySelector('[data-jev-form]');
-    this.stopJevDictation = form ? attachJevDictation(form) : null;
   }
 
   updateActiveNav() {
@@ -1159,21 +1047,16 @@ export class Library {
   activate() {
     if (this._active) return;
     this._active = true;
-    if (!this.stopJevDictation) this.attachJevDictation();
     document.addEventListener('keydown', this.boundKeyboardHandler);
   }
 
   deactivate() {
     if (!this._active) return;
     this._active = false;
-    this.stopJevDictation?.();
-    this.stopJevDictation = null;
     document.removeEventListener('keydown', this.boundKeyboardHandler);
   }
 
   destroy() {
-    this.stopJevDictation?.();
-    this.jevAbort?.abort();
     this.deactivate();
   }
 }
