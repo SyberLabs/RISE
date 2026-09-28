@@ -1,0 +1,127 @@
+import { afterEach, beforeEach, expect, it, vi } from 'vitest';
+import { MemoryCore } from '../core/memory.js';
+import { resolveLibrarySourceIds } from '../core/scriptorium-resolve.js';
+import { validateWorkshopProject, WORKSHOP_PROJECT_SCHEMA } from '../core/workshop-project.js';
+import { exportPortableSequence, inspectPortableSequence } from '../core/portable-sequence.js';
+
+if (typeof globalThis.indexedDB === 'undefined') {
+  globalThis.indexedDB = { open: () => ({ onsuccess: null, onerror: null, onupgradeneeded: null }) };
+}
+
+const { Workshop } = await import('./Workshop.js');
+const { WorkshopMedia } = await import('../core/workshop-media.js');
+
+beforeEach(() => {
+  vi.spyOn(WorkshopMedia, 'has').mockResolvedValue(true);
+  vi.spyOn(WorkshopMedia, 'getAllIds').mockResolvedValue([]);
+  vi.spyOn(WorkshopMedia, 'resolveObjectUrl').mockResolvedValue(null);
+  vi.spyOn(WorkshopMedia, 'delete').mockResolvedValue(undefined);
+  vi.spyOn(WorkshopMedia, 'deleteByProject').mockResolvedValue(undefined);
+  vi.spyOn(WorkshopMedia, 'revokeObjectUrl').mockImplementation(() => {});
+});
+
+afterEach(async () => {
+  for (let pass = 0; pass < 8; pass += 1) {
+    const tail = MemoryCore._workshopMutationTail;
+    await tail;
+    await Promise.resolve();
+    if (tail === MemoryCore._workshopMutationTail) break;
+  }
+  vi.restoreAllMocks();
+  localStorage.clear();
+  document.body.innerHTML = '';
+  MemoryCore._stopWorkshopLeaseHeartbeat();
+  MemoryCore._stopWorkshopDeferredAssetRetries();
+  MemoryCore._workshopAssetReferenceProviders = new Set();
+});
+
+async function importedParent() {
+  const { sources } = await resolveLibrarySourceIds(['spoon-river-anthology#12']);
+  const project = validateWorkshopProject({
+    schema: WORKSHOP_PROJECT_SCHEMA, id: 'author-project', title: 'Original reading',
+    sources, assets: [], defaults: { reading: { wpm: 220 } },
+    experienceProgram: {
+      schema: 'rise.experience-program.v1', id: 'original-score', authority: 'user',
+      editable: true, tracks: [{ id: 'movement', kind: 'movement', clips: [{
+        id: 'first', anchor: { sourceIds: ['spoon-river-anthology#12'] },
+        data: { index: 0, title: 'First' }
+      }] }]
+    }
+  });
+  const inspected = await inspectPortableSequence(await exportPortableSequence(project, {
+    creatorCredit: 'Original creator'
+  }));
+  await MemoryCore.saveWorkshopBlueprintAsync(inspected.project);
+  return inspected;
+}
+
+function makeWorkshop(onCreateSession = vi.fn()) {
+  const container = document.createElement('div');
+  document.body.append(container);
+  return { workshop: new Workshop(container, { onCreateSession }), container };
+}
+
+it('opens a local child draft and leaves the original untouched on cancellation', async () => {
+  const parent = await importedParent();
+  const before = MemoryCore.getWorkshopBlueprints()[0].project;
+  const { workshop } = makeWorkshop();
+  workshop.update({ varyBlueprintId: parent.id });
+  await vi.waitFor(() => expect(workshop.sessionData.provenance?.parentPortableId).toBe(parent.id));
+  expect(workshop.activeBlueprintId).toBeNull();
+  expect(workshop.sessionData.provenance.creatorCredit).toBeUndefined();
+  workshop.destroy();
+  expect(MemoryCore.getWorkshopBlueprints()).toHaveLength(1);
+  expect(MemoryCore.getWorkshopBlueprints()[0].project).toEqual(before);
+});
+
+it('previews an unsaved variation without creating a Vault child', async () => {
+  const parent = await importedParent();
+  const onCreateSession = vi.fn().mockResolvedValue(true);
+  const { workshop } = makeWorkshop(onCreateSession);
+  workshop.update({ varyBlueprintId: parent.id });
+  await vi.waitFor(() => expect(workshop.sessionData.provenance?.parentPortableId).toBe(parent.id));
+  expect(await workshop.createSession()).toBe(true);
+  expect(onCreateSession).toHaveBeenCalledOnce();
+  expect(MemoryCore.getWorkshopBlueprints()).toHaveLength(1);
+  workshop.destroy();
+});
+
+it('keeps an imported parent eligible for variation after its Workshop preview', async () => {
+  const parent = await importedParent();
+  const onCreateSession = vi.fn().mockResolvedValue(true);
+  const { workshop } = makeWorkshop(onCreateSession);
+  workshop.update({ blueprintId: parent.id });
+  await vi.waitFor(() => expect(workshop.sessionData.provenance?.portableId).toBe(parent.id));
+  expect(await workshop.createSession()).toBe(true);
+  const saved = MemoryCore.getWorkshopBlueprints();
+  expect(saved).toHaveLength(1);
+  expect(saved[0].provenance.portableId).toBe(parent.id);
+  workshop.destroy();
+});
+
+it('saves a changed title and pace as a distinct proposed child with parent lineage', async () => {
+  const parent = await importedParent();
+  const before = MemoryCore.getWorkshopBlueprints()[0].project;
+  const { workshop } = makeWorkshop();
+  workshop.update({ varyBlueprintId: parent.id });
+  await vi.waitFor(() => expect(workshop.sessionData.provenance?.parentPortableId).toBe(parent.id));
+  workshop.sessionData.title = 'My slower reading';
+  workshop.sessionData.wpm = 180;
+  const saved = await workshop.saveSequenceToVault();
+  expect(saved.id).not.toBe(parent.id);
+  const projects = MemoryCore.getWorkshopBlueprints().map(item => item.project);
+  expect(projects).toHaveLength(2);
+  expect(projects.find(item => item.id === parent.id)).toEqual(before);
+  const child = projects.find(item => item.id === saved.id);
+  expect(child.title).toBe('My slower reading');
+  expect(child.defaults.reading.wpm).toBe(180);
+  expect(child.experienceProgram.authority).toBe('proposed');
+  expect(child.provenance).toEqual({
+    kind: 'portable-sequence-variation', parentPortableId: parent.id
+  });
+  const carried = await inspectPortableSequence(await exportPortableSequence(child));
+  expect(carried.parentPortableId).toBe(parent.id);
+  expect(carried.creatorCredit).toBeNull();
+  expect(carried.id).not.toBe(parent.id);
+  workshop.destroy();
+});

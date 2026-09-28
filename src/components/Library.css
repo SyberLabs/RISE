@@ -105,6 +105,10 @@
   margin-top: var(--space-md);
 }
 
+.sequence-parent-reference {
+  overflow-wrap: anywhere;
+}
+
 .section-header {
   margin-bottom: var(--space-2xl);
 }

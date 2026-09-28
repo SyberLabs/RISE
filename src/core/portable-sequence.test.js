@@ -66,6 +66,47 @@ describe('portable Archive sequences', () => {
     expect(imported.project.id).toBe(imported.id);
   });
 
+  it('gives a title and pace variation a new identity with an unverified parent reference', async () => {
+    const parentText = await exportPortableSequence(await authoredProject(), {
+      creatorCredit: 'First creator'
+    });
+    const parent = await inspectPortableSequence(parentText);
+    const child = structuredClone(parent.project);
+    child.title = 'My slower reading';
+    child.defaults.reading.wpm = 180;
+    child.provenance = {
+      kind: 'portable-sequence-variation', parentPortableId: parent.id
+    };
+    const childText = await exportPortableSequence(child, { creatorCredit: 'Second creator' });
+    const bundle = JSON.parse(childText);
+    expect(bundle.parent).toEqual({ id: parent.id });
+    expect(bundle.id).not.toBe(parent.id);
+    expect(JSON.parse(await exportPortableSequence(child)).id).toBe(bundle.id);
+    const inspected = await inspectPortableSequence(childText);
+    expect(inspected.project.title).toBe('My slower reading');
+    expect(inspected.project.defaults.reading.wpm).toBe(180);
+    expect(inspected.project.experienceProgram.authority).toBe('proposed');
+    expect(inspected.project.provenance).toMatchObject({
+      portableId: bundle.id, parentPortableId: parent.id, creatorCredit: 'Second creator'
+    });
+
+    child.defaults.reading.wpm = 200;
+    const faster = JSON.parse(await exportPortableSequence(child, { creatorCredit: 'Second creator' }));
+    expect(faster.id).not.toBe(bundle.id);
+    await expect(inspectPortableSequence(JSON.stringify({ ...bundle, title: 'Rebranded' })))
+      .rejects.toMatchObject({ code: 'PORTABLE_ID' });
+  });
+
+  it('refuses malformed or self-referential parent claims', async () => {
+    const valid = JSON.parse(await exportPortableSequence(await authoredProject()));
+    for (const parent of [[], { id: 'local-draft' }, { id: valid.id, claim: 'approved' }]) {
+      await expect(inspectPortableSequence(JSON.stringify({ ...valid, parent })))
+        .rejects.toMatchObject({ code: 'PORTABLE_PARENT' });
+    }
+    await expect(inspectPortableSequence(JSON.stringify({ ...valid, parent: { id: valid.id } })))
+      .rejects.toMatchObject({ code: 'PORTABLE_PARENT' });
+  });
+
   it('refuses an export whose saved source text differs from the named Archive extent', async () => {
     const original = await authoredProject();
     const changed = {
