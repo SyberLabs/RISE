@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import releaseInventory from '../src/content/archive/release-inventory.json';
+import modernManifest from '../src/content/modern-readings-manifest.json';
 import { JEV_INKS, JEV_PALETTES, jevColors } from '../src/core/jev-palette.js';
 import { JEV_AUDIO_IDS } from '../src/core/jev-config.js';
 import * as jevSequence from '../src/core/jev-sequence.js';
@@ -46,7 +47,7 @@ const env = {
 };
 
 function book(workId, extras = {}) {
-  const edition = releaseInventory[workId];
+  const edition = releaseInventory[workId] || modernManifest[workId];
   return {
     work_id: workId,
     title: workId === 'middlemarch' ? 'Middlemarch' : 'Walden',
@@ -573,6 +574,36 @@ describe('Jev reading recommendation', () => {
       answers: answers('middlemarch', { textColor: { type: 'choice', choice: 'transparent' } })
     })));
     expect((await handleJevRecommend(request(), env)).status).toBe(502);
+  });
+
+  it('offers every released original from PostgreSQL and admits Jev choosing one', async () => {
+    const originalId = 'the-prompt-and-the-pencil';
+    const catalog = [
+      ...books,
+      ...Object.values(modernManifest).map(item => book(item.workId, {
+        title: item.title, author: item.author,
+        fit_description: item.fitDescription,
+        decision_criterion: item.decisionCriterion
+      }))
+    ];
+    mocks.query.mockImplementation(strings => Promise.resolve(
+      strings.join('').includes('FROM rise_sounds') ? sounds : catalog));
+    const provider = vi.fn(async () => Response.json({
+      id: 'modern-choice', model: 'typesafe/jev-1.13', provider: 'TypeSafe',
+      answers: answers(originalId)
+    }));
+    vi.stubGlobal('fetch', provider);
+
+    const response = await handleJevRecommend(request({ intent: 'A short story about AI and school.' }), env);
+    expect(response.status).toBe(200);
+    expect((await response.json())).toMatchObject({
+      workId: originalId,
+      editionId: modernManifest[originalId].editionId,
+      sourceRevision: modernManifest[originalId].sourceRevision
+    });
+    const criteria = JSON.parse(provider.mock.calls[0][1].body).questions.book.criteria;
+    expect(Object.keys(criteria)).toHaveLength(Object.keys(releaseInventory).length + Object.keys(modernManifest).length);
+    expect(criteria[originalId]).toContain('AI');
   });
 
   it('uses public catalog metadata from Redis but still calls Jev for the reader intent', async () => {

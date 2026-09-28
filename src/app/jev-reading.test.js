@@ -1,6 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { getTextById } from '../content/library.js';
 import releaseInventory from '../content/archive/release-inventory.json' with { type: 'json' };
+import modernManifest from '../content/modern-readings-manifest.json' with { type: 'json' };
+import { MODERN_READINGS } from '../content/modern-readings.js';
 import { jevColors, jevPalette } from '../core/jev-palette.js';
 import {
   compileJevAudioProgram,
@@ -69,6 +71,25 @@ beforeEach(() => {
 });
 
 describe('Jev reading handoff', () => {
+  it('opens the exact original reading shipped with this release', async () => {
+    const reading = MODERN_READINGS[0];
+    const edition = modernManifest[reading.id];
+    vi.mocked(getTextById).mockReturnValue({
+      id: reading.id, workId: reading.id, provider: 'rise-original',
+      title: reading.title, editionId: edition.editionId,
+      sourceRevision: edition.sourceRevision,
+      provenance: { basis: 'rise-original' },
+      getDivisions: async () => ({ divided: false, noun: 'reading', entries: [{
+        id: reading.id, label: reading.title, content: reading.content,
+        words: reading.content.trim().split(/\s+/u).length
+      }] })
+    });
+    const originalDecision = { ...decision(), workId: reading.id,
+      editionId: edition.editionId, sourceRevision: edition.sourceRevision };
+    expect((await resolveJevReading(originalDecision)).text).toBe(reading.content);
+    await expect(resolveJevReading({ ...originalDecision,
+      sourceRevision: `sha256:${'0'.repeat(64)}` })).rejects.toThrow('not available');
+  });
   it('admits Soft Rain as a local soundscape', async () => {
     const input = await resolveJevReading(decision({ audio: 'soft-rain' }));
     expect(input.soundscape).toBe('soft-rain');

@@ -1,6 +1,7 @@
 import { neon } from '@neondatabase/serverless';
 import { Redis } from '@upstash/redis/cloudflare';
 import releaseInventory from '../src/content/archive/release-inventory.json' with { type: 'json' };
+import modernManifest from '../src/content/modern-readings-manifest.json' with { type: 'json' };
 import { jevColors, jevPalette } from '../src/core/jev-palette.js';
 import { JEV_AUDIO_IDS, resolveJevChamberConfig } from '../src/core/jev-config.js';
 import { compileJevAudioProgram, compileJevVisualProgram } from '../src/core/jev-sequence.js';
@@ -163,10 +164,13 @@ const JSON_HEADERS = {
   'Cache-Control': 'no-store',
   'X-Content-Type-Options': 'nosniff'
 };
-const RELEASE_EDITIONS = Object.fromEntries(Object.values(releaseInventory)
-  .filter(item => item.editionId?.startsWith('standard-ebooks:')
-    && item.source?.url?.startsWith('https://standardebooks.org/ebooks/'))
-  .map(item => [item.workId, item]));
+const RELEASE_EDITIONS = {
+  ...Object.fromEntries(Object.values(releaseInventory)
+    .filter(item => item.editionId?.startsWith('standard-ebooks:')
+      && item.source?.url?.startsWith('https://standardebooks.org/ebooks/'))
+    .map(item => [item.workId, item])),
+  ...modernManifest
+};
 
 function reply(status, body) {
   return new Response(JSON.stringify(body), { status, headers: JSON_HEADERS });
@@ -656,7 +660,7 @@ export async function handleJevRecommend(request, env) {
       const sql = neon(env.NEON_DATABASE_URL);
       const rows = await sql`SELECT work_id, title, author, edition_id, source_revision,
         fit_description, decision_criterion, active
-        FROM rise_books WHERE active = true ORDER BY work_id LIMIT 32`;
+        FROM rise_books WHERE active = true ORDER BY work_id LIMIT ${Object.keys(RELEASE_EDITIONS).length + 1}`;
       books = validCatalog(rows);
       if (!books) return error(503, 'CATALOG_UNAVAILABLE', 'The reading catalog is unavailable.');
       await redis.set(key, books, { ex: 30 });

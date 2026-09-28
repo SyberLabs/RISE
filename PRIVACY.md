@@ -169,7 +169,7 @@ for a bounded choice. The migration code defaults to Kev when an operator has
 configured a pinned endpoint and model revision. Explicit Jev rollback uses
 OpenRouter. No Kev endpoint has been confirmed live. RISE does not send your
 book text, reading history, saved work, or media.
-PostgreSQL holds the public Standard Ebooks catalog. Redis holds the catalog
+PostgreSQL holds public metadata for released Standard Ebooks editions and RISE original readings. Redis holds the catalog
 briefly and a validated choice for up to one hour. The Redis lookup key is
 a keyed digest of the intent and catalog; the raw intent is not stored in
 Redis or PostgreSQL. A repeated matching request can reuse that choice

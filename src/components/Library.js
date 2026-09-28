@@ -271,7 +271,7 @@ export class Library {
 
         <section class="library-jev" aria-labelledby="library-jev-title">
           <h2 id="library-jev-title">Find your next reading with RISE</h2>
-          <p>Describe what you want to explore. RISE chooses from the Standard Ebooks editions already held by RISE. Only this request goes to the configured AI decision service; your reading and saved work stay local.</p>
+          <p>Describe what you want to explore. RISE chooses from its released Standard Ebooks editions and original readings. Only this request goes to the configured AI decision service; your reading and saved work stay local.</p>
           <form data-jev-form>
             <label for="library-jev-intent">What are you in the mood to read?</label>
             <div class="library-jev-controls">
@@ -319,16 +319,16 @@ export class Library {
     const choice = this.jevRecommendation;
     if (!choice) return '';
     const book = LIBRARY_TEXTS.find(text => text.id === choice.workId
-      && text.provider === 'archive-ingest'
+      && ['archive-ingest', 'rise-original'].includes(text.provider)
       && text.editionId === choice.editionId
       && text.sourceRevision === choice.sourceRevision);
     if (!book) return '';
     return `<div class="library-jev-choice">
       <span class="library-jev-kicker">RISE chose</span>
       <h3>${escapeHtml(book.title)}</h3>
-      <p class="library-jev-author">${escapeHtml(book.author)} · Standard Ebooks</p>
+      <p class="library-jev-author">${escapeHtml(book.author)} · ${book.provider === 'rise-original' ? 'RISE Original' : 'Standard Ebooks'}</p>
       <p>About this book: ${escapeHtml(choice.reason || book.description)}</p>
-      <button class="btn-primary" data-action="open-jev" data-id="${escapeHtml(book.id)}">Open this book</button>
+      <button class="btn-primary" data-action="open-jev" data-id="${escapeHtml(book.id)}">Open this reading</button>
       <details><summary>Decision details</summary>
         <p>Model: ${escapeHtml(choice.model)} · Request: ${escapeHtml(choice.requestId)} · ${choice.decisionCacheStatus === 'hit' ? 'Reused cached RISE choice' : 'New RISE choice'}</p>
       </details>
@@ -361,7 +361,7 @@ export class Library {
       const { validateJevRecommendation } = await import('../app/jev-reading.js');
       validateJevRecommendation(data);
       const book = LIBRARY_TEXTS.find(text => text.id === data.workId
-        && text.provider === 'archive-ingest'
+        && ['archive-ingest', 'rise-original'].includes(text.provider)
         && text.editionId === data.editionId
         && text.sourceRevision === data.sourceRevision);
       if (!book || typeof data.model !== 'string' || typeof data.requestId !== 'string') {
