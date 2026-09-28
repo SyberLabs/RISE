@@ -27,7 +27,11 @@ appears when.
 Around that engine sit rooms: Portal, Library, Chapel and Rosarium, Workshop,
 Vault, Scriptorium, Curia, Journeys, Via, Keystones, Settings.
 
-It ships as static files to a CDN. There is no backend.
+Cloudflare serves the app shell and same-origin decision routes. The Library's
+optional recommendation route reads a curated Standard Ebooks catalog from
+PostgreSQL, caches that public catalog and short-lived decisions in Redis,
+and asks JEV to choose one book on a decision-cache miss. The reader's
+source text, proposal validation, and reading pipeline remain in the browser.
 
 ---
 
@@ -36,9 +40,16 @@ It ships as static files to a CDN. There is no backend.
 Every decision in §8 is downstream of these. They are the axioms; everything
 else is a recommendation.
 
-1. **Nothing leaves.** A reader's text, reading history and personal media stay
-   in their browser. This is enforced by there being nowhere to send them, not
-   by a policy promise.
+1. **Reader material stays local by default.** Source text, reading history and
+   personal media stay in the browser. When the reader explicitly routes a
+   Scriptorium request with JEV, only the intent they entered and target word
+   count are sent to the RISE function and TypeSafe. The reader supplies the
+   TypeSafe key for that request; RISE does not persist it. When the reader
+   asks for a Library recommendation, only their entered intent is sent to
+   the RISE Worker and, on a decision-cache miss, OpenRouter. PostgreSQL holds
+   public catalog metadata. Redis holds that catalog and validated choices for
+   five minutes; its decision key is a keyed digest of the intent and catalog,
+   and it does not store the raw intent.
 2. **Reverent degradation.** A work, image or sound that will not resolve is
    *absent* — never a broken frame, never a substitute. Silence outranks
    approximation.
@@ -78,13 +89,13 @@ else is a recommendation.
                             └────────┬─────────┘
                                      ▼
   DELIVERY   ┌──────────────────────────────────────────────────────────┐
-             │  CDN (Netlify) · SPA rewrite · /assets/* immutable        │
+             │  Cloudflare Worker · SPA rewrite · /assets/* immutable   │
              │  index.html no-cache — it names the hashed chunks         │
              │  CSP: self + named museum/text origins; no third-party JS │
              └────────────────────────┬─────────────────────────────────┘
                                       ▼
 ╔═══════════════════════════════════════════════════════════════════════════════╗
-║  BROWSER — the entire runtime. No server, no account, no request path.        ║
+║  BROWSER — reading runtime; optional same-origin decision requests.           ║
 ║                                                                               ║
 ║   index.html ─▶ src/app.js  — composition root: boots app-scoped services,    ║
 ║                               injects operations into the route manifest       ║
@@ -148,34 +159,39 @@ it, and CI fails when the committed copy is not what `src/` produces.
 
 ```mermaid
 flowchart LR
-    app["app<br/>composition root<br/>5 modules"]
-    audio["audio<br/>Web Audio, recitation<br/>7 modules"]
-    components["components<br/>routed views<br/>35 modules"]
-    content["content<br/>texts, imagery, journeys<br/>227 modules"]
-    core["core<br/>session, player, router<br/>122 modules"]
+    app["app<br/>composition root<br/>8 modules"]
+    audio["audio<br/>Web Audio, recitation<br/>10 modules"]
+    components["components<br/>routed views<br/>39 modules"]
+    content["content<br/>texts, imagery, journeys<br/>230 modules"]
+    core["core<br/>session, player, router<br/>135 modules"]
+    enterprise["enterprise<br/>talk program, speaker rail<br/>21 modules"]
+    oracle["oracle<br/>2 modules"]
     page["page<br/>spatial projection<br/>4 modules"]
     sources["sources<br/>text and visual providers<br/>22 modules"]
-    visuals["visuals<br/>procedural generation<br/>54 modules"]
+    vendor["vendor<br/>SyberLabs design kit<br/>2 modules"]
+    visuals["visuals<br/>procedural generation<br/>55 modules"]
 
     app -.-> |3 lazy| audio
     app --> |1| components
-    app -.-> |8 lazy| content
-    app --> |21| core
+    app --> |5| content
+    app --> |36| core
     app -.-> |1 lazy| sources
     app -.-> |1 lazy| visuals
     audio --> |1| content
     audio --> |5| core
+    components -.-> |1 lazy| app
     components --> |2| audio
-    components --> |20| content
-    components --> |125| core
+    components --> |23| content
+    components --> |140| core
     components -.-> |1 lazy| page
     components --> |4| sources
-    components --> |13| visuals
+    components -.-> |2 lazy| vendor
+    components --> |14| visuals
     content --> |3| audio
     content --> |16| core
     content --> |17| sources
     content --> |1| visuals
-    core --> |3| audio
+    core --> |6| audio
     core --> |11| content
     core --> |3| sources
     core --> |21| visuals
@@ -254,6 +270,12 @@ provider failure degrades that provider, not startup.
 `src/components`, statically or dynamically. Rooms communicate with the
 application through callbacks passed in at construction.
 
+**`src/enterprise/`** is a sibling of the reader, not a room. The reader does
+not import it, and it imports nothing outside itself.
+`src/enterprise/boundary.test.js` fails if either side reaches across. What a
+speaker may see is admitted by the talk-program gate in that directory, not by
+the Experience Program. §8.30.
+
 ### The rooms
 
 Every place a reader can be. This list is checked against `src/components/`
@@ -263,6 +285,7 @@ outliving its room, fails a build.
 | Room | Module | What it is |
 |---|---|---|
 | Portal | `src/components/Portal.js` | the hub, and the first screen |
+| Create | `src/components/Create.js` | original personal readings, private revisions, and portable text |
 | Keystones | `src/components/Keystones.js` | the public entry corridor |
 | Mint | `src/components/Mint.js` | the door a minted sequence opens onto |
 | Chamber | `src/components/Chamber.js` | a reading, in time |
@@ -280,11 +303,16 @@ outliving its room, fails a build.
 | Guide | `src/components/Guide.js` | onboarding, as an overlay rather than a route |
 | BetaGate | `src/components/BetaGate.js` | invitation UX; **not** a security boundary (§7) |
 
-Four modules in `src/components/` are deliberately not rooms, because they only
-ever appear inside one: `src/components/Admit.js`,
+Seven modules in `src/components/` are deliberately not rooms; they support
+routed rooms: `src/components/Admit.js`,
 `src/components/NamingModal.js`, `src/components/SourceBrowser.js` and
-`src/components/VisualNavigator.js`. The Navigator's columns, text material,
-preview, and Chapel trays live in `src/components/visual-navigator/` so the
+`src/components/VisualNavigator.js`, plus the Jev voice input helper
+`src/components/jev-dictation.js`, the shared room frame
+`src/components/room-chrome.js` (header, icons, Alert), and the SyberLabs
+chrome helper `src/components/atlas.js`, which lazily imports the vendored
+design-system kit in `src/vendor/syber/` (the ambient atmosphere behind Home
+and the gate, and the RISE sigil) so neither engine is part of first load.
+The Navigator's columns, text material, preview, and Chapel trays live in `src/components/visual-navigator/` so the
 shell stays a mount point. Chamber mounts a Fit-mask runtime from
 `src/core/fit-mask-runtime.js` rather than owning the glyph-mask state machine.
 
@@ -520,7 +548,8 @@ of `settled`, `open`, `deferred`, or `reversed`.
 ### 8.10 Vanilla DOM, no UI framework
 
 - **Chosen:** direct DOM construction and template strings, one bespoke module
-  per room, one production dependency in the whole project.
+  per room, three production dependencies: `sql.js` for browser-local work,
+  `@neondatabase/serverless` and `@upstash/redis` for the Worker catalog path.
 - **Rejected:** React, Vue, Svelte or any virtual-DOM library.
 - **Why:** the tradeoff is real in both directions. A framework would give
   declarative rendering, diffing, and would largely remove the `innerHTML`
@@ -781,6 +810,109 @@ of `settled`, `open`, `deferred`, or `reversed`.
   narrow test bridge preserves observability without making automation access
   part of the production product surface.
 - **Status:** settled.
+
+### 8.28 JEV routes the Scriptorium's proposal format
+
+- **Chosen:** the Scriptorium offers an optional JEV route to choose between
+  the two proposal formats RISE already accepts:
+  `rise.experience-program.v1` and `rise.agent-operation-set.v1`. The core
+  session puts that choice into the curator prompt. A same-origin Cloudflare
+  Worker route forwards only the reader's intent and target word count to
+  TypeSafe's JEV API; the reader supplies the API key for the request.
+- **Rejected:** putting the TypeSafe key in browser code, adding a second
+  proposal format, or letting JEV accept or execute the proposal.
+- **Why:** proposal format is a real next-operation choice already understood
+  by the Scriptorium parser and producer. This places optional JEV routing in
+  the authoring flow while keeping its decision bounded by RISE's existing schemas
+  and validation. JEV's choice is a routing recommendation; deterministic
+  parsing, source resolution, producer checks and the reader's Begin action
+  retain their existing authority.
+- **Data boundary:** no source text, Library records, personal media, reading
+  history or generated proposal is sent to JEV by this route. The user-entered
+  intent may itself contain personal information and is sent only after the
+  reader presses **Route with JEV**. The TypeSafe key is held in page memory
+  and forwarded in the authorization header; RISE does not store it.
+- **Status:** open. The route exists in the Worker; each reader must supply a
+  TypeSafe API key, and the production path still needs direct verification.
+
+### 8.29 JEV chooses a held Standard Ebooks reading
+
+- **Chosen:** an optional Library form sends the reader's intent to the
+  same-origin Cloudflare Worker. The Worker reads an exact-edition Standard
+  Ebooks catalog from PostgreSQL, caches that public catalog in Redis
+  for 30 seconds, and asks JEV through OpenRouter to choose one work ID on a
+  decision-cache miss. Redis caches the validated decision for five minutes
+  under a keyed digest of the intent and catalog, without storing raw intent.
+  The browser opens that held edition through the existing Library path.
+- **Rejected:** sending book text or personal reading history to JEV, storing
+  raw intents or decisions in PostgreSQL, inventing a recommendation from local
+  heuristics when JEV fails, and accepting a model-selected unheld edition.
+- **Why:** a recommendation is useful only when it leads to a book the reader
+  can actually open. PostgreSQL owns the catalog, Redis reduces repeat reads,
+  and JEV makes a bounded choice on the first matching request. Exact edition
+  and source revision checks keep the model inside the release inventory. The brief
+  description shown after the decision is curated catalog copy; JEV does not
+  generate prose.
+- **Status:** open. The same-origin production request and book opening were
+  verified; the five-minute decision cache still requires production verification.
+
+### 8.30 EnterpRise is a sibling rail, not a fork of the reader
+
+- **Chosen:** the live room lives in `src/enterprise/`. One deck, an in-memory
+  corpus of documents and tables, cards prepared before the talk, one speaker
+  rail, and one stage. Promote re-checks the talk-program gate for that room's
+  audience. An audience final that misses the program may retrieve a permitted
+  sentence onto the rail. Listed presenters share the rail. A decision sees
+  the transcript window plus candidate ids, titles, scores, and layouts. A
+  chart names a table and columns; the renderer copies cells. Promote, Dismiss,
+  and Retract are the speaker's.
+- **Rejected:** forking the reader into a second app; extracting Chamber, the
+  Experience Program, and the Worker into a shared package; putting the rail
+  inside a reader route; mounting Chamber on the stage; a second rail; an
+  external file-host connector; an OpenRouter call on the enterprise decision
+  route.
+- **Why:** the failure that matters is a confidential document, or a number
+  that was not in the source, in front of the room. The gate, the id-only
+  decision, and the cell renderer make that failure loud. The phases in
+  `docs/superpowers/specs/2026-09-27-enterprise-room-design.md` are implemented
+  in `src/enterprise/` and `worker/enterprise-decision.mjs`, from
+  `docs/superpowers/plans/2026-09-27-enterprise-room.md`. The reader's lack of
+  access control (§8.1) is unchanged: this audience check belongs to the
+  sibling, and the sibling is not on the reader's first load.
+- **Status:** settled, except the rejected provider call on the enterprise
+  decision route, which §8.31 reverses. The suite's latency ceilings are the
+  product targets on this fixture, not a measurement of a live recognizer.
+
+### 8.31 The live room decides through JEV and holds on any doubt
+
+- **Chosen:** the room listens through the browser recognizer. Interim speech
+  warms the lexical tier; only a final asks for a decision. `session.prepare`
+  builds a `rise.enterprise-context.v1` (`src/enterprise/context.js`):
+  evidence (window, speaker, mode), structure (candidate ids, titles, scores,
+  layouts; rail ids and titles), and authority (the actions this turn allows,
+  never promotion). The live loop (`src/enterprise/live.js`) keeps one
+  decision in flight, cancels it when a newer final arrives, and bounds it
+  with a timeout. `/api/enterprise-decision` joins the other decision routes
+  behind `decisionProvider` and the limiter and asks the provider one choice
+  question whose options are opaque keys. `session.resolve` accepts an answer
+  only for a turn it issued, once, while no later final is pending. The
+  trace (`src/enterprise/trace.js`) records every step without the
+  transcript. The rule decider remains for tests and an explicitly chosen
+  local mode.
+- **Rejected:** falling back from a failed JEV decision to rules; letting the
+  provider name a card id or write text; sending documents, tenants, or the
+  audience to the route; deciding on interim speech; a speech vendor SDK; a
+  server-side trace store; a vector store.
+- **Why:** the model is useful for choosing which permitted card fits what
+  was just said, and harmful anywhere else. Every failure mode — timeout,
+  cancellation, a late answer, a malformed answer, an outage — resolves to
+  the rail as it was, and the stage still moves only on a presenter's tap
+  after the gate runs again. Spec:
+  `docs/superpowers/specs/2026-09-28-enterprise-live-loop-design.md`.
+- **Status:** open. The loop, route, and page are verified with a scripted
+  recognizer and routed decisions. A live Kev or Jev decision on the
+  deployed room, and field latency from a real microphone, are not yet
+  measured.
 
 ---
 

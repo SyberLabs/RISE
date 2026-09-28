@@ -31,7 +31,7 @@ const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const OUT_DIR = resolve(ROOT, 'docs/mints');
 
 /** Where a scanned code actually goes. */
-const DEFAULT_ORIGIN = 'https://rise.syberlabs.space';
+const DEFAULT_ORIGIN = 'https://rise.syberlabs.io';
 
 /**
  * Error correction, and why this level.

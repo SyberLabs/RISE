@@ -12,6 +12,7 @@ import {
   workshopProjectToBlueprintView
 } from './workshop-project.js';
 import { WorkshopMedia } from './workshop-media.js';
+import { guardPersonalOverwrite, isPersonalProject } from './personal-identity.js';
 
 const STORAGE_KEY = 'rise_recursions_v1';
 const WORKSHOP_KEY = 'rise_workshop_v1';
@@ -493,8 +494,10 @@ export class MemoryCore {
     try {
       if (!blueprint || typeof blueprint !== 'object') return null;
       const { stored } = this._readWorkshopStore();
+      const identical = guardPersonalOverwrite(stored, blueprint);
+      if (identical) return workshopProjectToBlueprintView(identical);
       const id = blueprint.id || `blueprint_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
-      const updatedAt = Date.now();
+      const updatedAt = isPersonalProject(blueprint) ? blueprint.updatedAt : Date.now();
       const formalInput = isWorkshopProject(blueprint)
         && !Object.hasOwn(blueprint, 'wpm')
         ? { ...blueprint, id, updatedAt }
@@ -534,18 +537,20 @@ export class MemoryCore {
   static async _saveWorkshopBlueprintDurable(blueprint, options = {}) {
     try {
       if (!blueprint || typeof blueprint !== 'object') return null;
-      const { ensureWorkshopAssetsDurable, hydrateWorkshopProjectView } = await workshopDurability();
+      const identical = guardPersonalOverwrite(this._readWorkshopStore().stored, blueprint);
+      if (identical) return workshopProjectToBlueprintView(identical);
       const id = blueprint.id || `blueprint_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
-      const updatedAt = Date.now();
+      const updatedAt = isPersonalProject(blueprint) ? blueprint.updatedAt : Date.now();
       const draft = isWorkshopProject(blueprint) && !Object.hasOwn(blueprint, 'wpm')
         ? validateWorkshopProject({ ...blueprint, id, updatedAt })
         : workshopEditorDataToProject(blueprint, { id, updatedAt });
 
-      const durableAssets = await ensureWorkshopAssetsDurable(
-        id,
-        draft.assets,
-        options.blobs || null
-      );
+      // A text-only save has no media to make durable. Skipping the media
+      // layer keeps it working when a deploy has removed that lazy chunk.
+      const media = draft.assets.length ? await workshopDurability() : null;
+      const durableAssets = media
+        ? await media.ensureWorkshopAssetsDurable(id, draft.assets, options.blobs || null)
+        : draft.assets;
       const project = validateWorkshopProject({
         ...draft,
         assets: durableAssets,
@@ -555,6 +560,8 @@ export class MemoryCore {
       // Read at commit, after all asynchronous media writes, so another
       // save cannot disappear when this operation publishes its metadata.
       const { stored: storedHistory } = this._readWorkshopStore();
+      const existingPersonal = guardPersonalOverwrite(storedHistory, blueprint);
+      if (existingPersonal) return workshopProjectToBlueprintView(existingPersonal);
       const previous = storedHistory.find(item => item.id === id);
       const previousIds = (previous?.assets || []).map(asset => asset.id);
       const existingIndex = storedHistory.findIndex(b => b.id === project.id);
@@ -566,7 +573,7 @@ export class MemoryCore {
       await this._deleteUnreferencedWorkshopAssets(previousIds);
       console.log('[Memory] Workshop Project saved (durable):', project.id);
       try {
-        return await hydrateWorkshopProjectView(project);
+        return media ? await media.hydrateWorkshopProjectView(project) : workshopProjectToBlueprintView(project);
       } catch (error) {
         // Metadata is already committed. A temporary IndexedDB/object-URL read
         // failure must not turn that successful save into an apparent failure.

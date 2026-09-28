@@ -4,6 +4,8 @@
  * the scheduler, and tears down cleanly (no timers left alive).
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { readFileSync } from 'node:fs';
+import { JEV_AUDIO_IDS } from '../core/jev-config.js';
 import { SOUNDSCAPES, createSoundscape } from './soundscapes.js';
 
 function makeParam(initial = 0) {
@@ -29,6 +31,8 @@ function makeNode(params = {}) {
 
 function makeMockContext() {
     const oscillators = [];
+    const bufferSources = [];
+    const buffers = [];
     const ctx = {
         currentTime: 0,
         sampleRate: 8000, // keep the impulse computation small
@@ -48,19 +52,96 @@ function makeMockContext() {
         createDelay: () => makeNode({ delayTime: makeParam(0) }),
         createConvolver: () => makeNode({ buffer: null }),
         createStereoPanner: () => makeNode({ pan: makeParam(0) }),
-        createBuffer: (channels, length) => ({
-            getChannelData: () => new Float32Array(length)
-        }),
+        createBuffer: (channels, length) => {
+            const data = Array.from({ length: channels }, () => new Float32Array(length));
+            buffers.push(data);
+            return { getChannelData: channel => data[channel] };
+        },
         createPeriodicWave: vi.fn(() => ({})),
         createWaveShaper: () => makeNode({ curve: null, oversample: 'none' }),
-        createBufferSource: () => makeNode({ buffer: null, loop: false })
+        createBufferSource: () => {
+            const source = makeNode({ buffer: null, loop: false });
+            bufferSources.push(source);
+            return source;
+        }
     };
-    return { ctx, oscillators };
+    return { ctx, oscillators, bufferSources, buffers };
 }
 
 describe('soundscapes', () => {
     beforeEach(() => vi.useFakeTimers());
     afterEach(() => vi.useRealTimers());
+
+    it('SQL sound rows match the sounds the Chamber can actually play', () => {
+        const seed = readFileSync('scripts/seed-rise-sounds.sql', 'utf8');
+        const ids = [...seed.matchAll(/^\s*\('([^']+)',\s*'[^']+',\s*TRUE\)/gm)].map(match => match[1]);
+        expect(new Set(ids)).toEqual(new Set(JEV_AUDIO_IDS));
+        ids.forEach(id => expect(SOUNDSCAPES).toHaveProperty(id));
+    });
+
+    it('offers the expanded original music catalog', () => {
+        const additions = ['lullaby', 'nocturne', 'waltz', 'blues', 'bossa', 'ragtime',
+            'wonder', 'mystery', 'chase', 'triumph', 'haunted', 'starlight'];
+        additions.forEach(id => {
+            expect(JEV_AUDIO_IDS).toContain(id);
+            expect(SOUNDSCAPES[id]?.create).toBeTypeOf('function');
+        });
+    });
+
+    it.each(['sad', 'angry', 'happy', 'excited', 'thrilling', 'scary'])(
+        'plays and tears down the %s mood sound', id => {
+            const { ctx, oscillators } = makeMockContext();
+            const sound = createSoundscape(id, ctx, makeNode());
+            expect(sound).not.toBeNull();
+            sound.start();
+            expect(oscillators.length).toBeGreaterThan(1);
+            oscillators.forEach(osc => expect(osc.start).toHaveBeenCalledOnce());
+            sound.stop(true);
+            oscillators.forEach(osc => expect(osc.stop).toHaveBeenCalledOnce());
+        }
+    );
+
+    it('gives the six moods distinct audible pitch and timbre signatures', () => {
+        const signatures = ['sad', 'angry', 'happy', 'excited', 'thrilling', 'scary'].map(id => {
+            const { ctx, oscillators } = makeMockContext();
+            const sound = createSoundscape(id, ctx, makeNode());
+            const signature = `${oscillators[0].type}:${oscillators[0].frequency.value}`;
+            sound.start();
+            sound.stop(true);
+            return signature;
+        });
+        expect(new Set(signatures).size).toBe(6);
+    });
+
+    it.each(['piano', 'jazz'])('plays a repeating %s composition and stops its scheduler', id => {
+        const { ctx, oscillators } = makeMockContext();
+        const sound = createSoundscape(id, ctx, makeNode());
+        expect(sound).not.toBeNull();
+        sound.start();
+        expect(oscillators.length).toBeGreaterThan(8);
+        expect(new Set(oscillators.map(osc => osc.frequency.value)).size).toBeGreaterThan(5);
+        const firstBar = oscillators.length;
+        ctx.currentTime = 5;
+        vi.advanceTimersByTime(5000);
+        expect(oscillators.length).toBeGreaterThan(firstBar);
+        sound.stop(true);
+        const stoppedAt = oscillators.length;
+        ctx.currentTime = 15;
+        vi.advanceTimersByTime(15000);
+        expect(oscillators.length).toBe(stoppedAt);
+    });
+
+    it('swings jazz offbeats while piano stays even', () => {
+        const starts = id => {
+            const { ctx, oscillators } = makeMockContext();
+            const sound = createSoundscape(id, ctx, makeNode());
+            sound.start();
+            const times = [...new Set(oscillators.flatMap(osc => osc.start.mock.calls.map(call => call[0])))];
+            sound.stop(true);
+            return times;
+        };
+        expect(starts('piano')).not.toEqual(starts('jazz'));
+    });
 
     it('registry exposes aurora and faded-signal; unknown ids return null', () => {
         expect(SOUNDSCAPES.aurora.name).toBe('Aurora');
@@ -69,6 +150,28 @@ describe('soundscapes', () => {
         expect(createSoundscape('nope', ctx, makeNode())).toBeNull();
         expect(createSoundscape('aurora', ctx, makeNode())).not.toBeNull();
         expect(createSoundscape('faded-signal', ctx, makeNode())).not.toBeNull();
+    });
+
+    it('soft-rain creates a finite stereo noise bed and stops it cleanly', () => {
+        const { ctx, bufferSources, buffers } = makeMockContext();
+        const rain = createSoundscape('soft-rain', ctx, makeNode());
+        expect(rain).not.toBeNull();
+        rain.start();
+
+        expect(bufferSources).toHaveLength(1);
+        expect(bufferSources[0].loop).toBe(true);
+        expect(bufferSources[0].start).toHaveBeenCalledOnce();
+        expect(buffers).toHaveLength(1);
+        expect(buffers[0]).toHaveLength(2);
+        for (const channel of buffers[0]) {
+            expect(Math.abs(channel[0])).toBe(0);
+            expect(Math.abs(channel.at(-1))).toBe(0);
+            expect(channel.some(sample => sample !== 0)).toBe(true);
+            expect(channel.every(sample => Number.isFinite(sample) && Math.abs(sample) <= 1)).toBe(true);
+        }
+        rain.stop(true);
+        vi.runAllTimers();
+        expect(bufferSources[0].stop).toHaveBeenCalledOnce();
     });
 
     it('faded-signal starts its full graph and tears down dead', () => {

@@ -1,0 +1,185 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <title>EnterpRise — live room</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #1c1915;
+      --muted: #5e584f;
+      --paper: #f6f3ec;
+      --card: #fffdf8;
+      --line: #ddd6c8;
+      --mark: #8c3a2f;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--paper);
+      color: var(--ink);
+      font: 17px/1.45 "Iowan Old Style", Palatino, Georgia, serif;
+    }
+    main {
+      max-width: 40rem;
+      margin: 0 auto;
+      padding: 1.5rem 1.1rem 3rem;
+    }
+    h1 {
+      font-size: 1.7rem;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+      margin: 0 0 0.3rem;
+    }
+    .lede, .meta { color: var(--muted); margin: 0 0 1rem; }
+    .meta { font: 0.85rem/1.4 ui-sans-serif, system-ui, sans-serif; }
+    form {
+      display: grid;
+      gap: 0.6rem;
+      margin-bottom: 1.2rem;
+    }
+    textarea, select, button {
+      font: 1rem/1.4 ui-sans-serif, system-ui, sans-serif;
+    }
+    textarea {
+      width: 100%;
+      min-height: 5.5rem;
+      padding: 0.7rem 0.8rem;
+      border: 1px solid var(--line);
+      border-radius: 0.4rem;
+      background: var(--card);
+      color: inherit;
+      resize: vertical;
+    }
+    .row { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+    select, button { padding: 0.55rem 0.8rem; border-radius: 0.4rem; }
+    select { border: 1px solid var(--line); background: var(--card); color: inherit; }
+    button { border: 1px solid var(--ink); background: var(--ink); color: var(--paper); cursor: pointer; }
+    button[data-action="draft"] { background: transparent; color: var(--ink); }
+    #rail p[data-metrics] {
+      font: 0.85rem/1.4 ui-sans-serif, system-ui, sans-serif;
+      color: var(--muted);
+    }
+    #rail ol { list-style: none; padding: 0; margin: 0; display: grid; gap: 0.8rem; }
+    #rail li {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-left: 4px solid var(--mark);
+      padding: 0.8rem 0.9rem 0.9rem;
+    }
+    #rail h2 { font-size: 1.05rem; margin: 0 0 0.4rem; }
+    #rail blockquote { margin: 0 0 0.6rem; }
+    #rail table { width: 100%; border-collapse: collapse; margin: 0 0 0.6rem; }
+    #rail caption {
+      text-align: left;
+      font: 0.75rem/1.3 ui-sans-serif, system-ui, sans-serif;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 0.3rem;
+    }
+    #rail td { padding: 0.2rem 0.4rem 0.2rem 0; vertical-align: middle; }
+    #rail td .bar {
+      display: block;
+      height: 0.35rem;
+      background: var(--mark);
+      margin-bottom: 0.15rem;
+      min-width: 2px;
+    }
+    #rail li p {
+      margin: 0 0 0.6rem;
+      color: var(--muted);
+      font: 0.8rem/1.35 ui-sans-serif, system-ui, sans-serif;
+    }
+    #rail button { margin-right: 0.4rem; }
+    #rail button[data-action="dismiss"] { background: transparent; color: var(--ink); }
+    #stage { margin-top: 1rem; }
+    #stage [data-surface="stage"] { display: grid; gap: 0.8rem; }
+    #stage article {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-top: 4px solid var(--ink);
+      padding: 0.9rem;
+    }
+    #stage h2 { font-size: 1.2rem; margin: 0 0 0.4rem; }
+    #stage p, #stage td { font: 0.95rem/1.4 ui-sans-serif, system-ui, sans-serif; }
+    #stage button { margin-top: 0.5rem; background: transparent; color: var(--ink); }
+    #debrief { padding-left: 1.1rem; }
+    label { font: 0.9rem/1.4 ui-sans-serif, system-ui, sans-serif; }
+    .controls { display: flex; flex-wrap: wrap; gap: 0.6rem; align-items: end; margin-bottom: 0.8rem; }
+    .controls label { display: grid; gap: 0.2rem; }
+    button[aria-pressed="true"] { background: var(--mark); border-color: var(--mark); }
+    button:disabled { opacity: 0.45; cursor: not-allowed; }
+    button:focus-visible, select:focus-visible, textarea:focus-visible { outline: 3px solid var(--mark); outline-offset: 2px; }
+    #status {
+      min-height: 1.4em;
+      margin: 0 0 0.4rem;
+      font: 0.95rem/1.4 ui-sans-serif, system-ui, sans-serif;
+    }
+    #interim {
+      min-height: 1.4em;
+      margin: 0 0 1rem;
+      color: var(--muted);
+      font: italic 0.95rem/1.4 ui-sans-serif, system-ui, sans-serif;
+      overflow-wrap: anywhere;
+    }
+    #rail li p[data-decision] { font-style: italic; }
+    #trace-summary { font: 0.85rem/1.4 ui-sans-serif, system-ui, sans-serif; color: var(--muted); }
+    #export-trace { background: transparent; color: var(--ink); }
+    #rail li, #stage article { overflow-wrap: anywhere; }
+    h2.section {
+      font: 0.8rem/1.3 ui-sans-serif, system-ui, sans-serif;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin: 1.4rem 0 0.4rem;
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Speaker rail</h1>
+    <p class="lede">Prepared cards for Ada’s all-hands. Speak, and a permitted card may appear on this rail. Only Promote shows it to the room, and the room’s permissions are checked again at that tap. Dismiss sends a suggestion back. Retract takes a card off the stage.</p>
+    <p class="meta">Recognizer boost: <span id="hints"></span></p>
+    <div class="controls">
+      <button type="button" id="listen" aria-pressed="false">Listen</button>
+      <label for="speaker">
+        Speaker
+        <select id="speaker">
+          <option value="presenter">Presenter</option>
+          <option value="audience">Audience question</option>
+        </select>
+      </label>
+      <label for="decider">
+        Decides
+        <select id="decider">
+          <option value="jev">JEV (server)</option>
+          <option value="local">Local rules</option>
+        </select>
+      </label>
+    </div>
+    <p class="meta" id="speech-note"></p>
+    <p id="status" role="status" aria-live="polite"></p>
+    <p id="interim"></p>
+    <form>
+      <label for="transcript">Typed transcript</label>
+      <textarea id="transcript" placeholder="Atlas renewal price"></textarea>
+      <div class="row">
+        <button type="button" data-action="draft">Draft</button>
+        <button type="button" data-action="final">Final sentence</button>
+      </div>
+    </form>
+    <div id="rail"></div>
+    <h2 class="section">Stage</h2>
+    <section id="stage" aria-label="Stage"></section>
+    <h2 class="section">Follow-up</h2>
+    <ul id="debrief"></ul>
+    <h2 class="section">Trace</h2>
+    <p id="trace-summary"></p>
+    <button type="button" id="export-trace">Export trace</button>
+  </main>
+  <script type="module" src="/src/enterprise/demo-page.js"></script>
+</body>
+</html>

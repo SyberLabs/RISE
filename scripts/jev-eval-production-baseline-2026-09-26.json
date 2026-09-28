@@ -1,0 +1,13 @@
+{
+  "model": "typesafe/jev-1.13-20260917",
+  "source": "https://rise.syberlabs.io/api/jev-recommend",
+  "method": "one request per synthetic prompt, 2026-09-26",
+  "rows": [
+    { "id": "silence", "decision": { "pace": "150", "audio": "silent", "visualMode": "interlocution", "visualStyle": "psychedelic", "chamberFace": "thick", "fontSize": "medium" } },
+    { "id": "sprint-fast", "decision": { "pace": "300", "audio": "aurora", "visualMode": "interlocution", "visualStyle": "psychedelic", "chamberFace": "thick", "fontSize": "large" } },
+    { "id": "spare", "decision": { "pace": "100", "audio": "silent", "visualMode": "interlocution", "visualStyle": "quiet", "chamberFace": "literary", "fontSize": "small" } },
+    { "id": "literary", "decision": { "pace": "150", "audio": "silent", "visualMode": "interlocution", "visualStyle": "psychedelic", "chamberFace": "literary", "fontSize": "medium" } },
+    { "id": "large", "decision": { "pace": "100", "audio": "aurora", "visualMode": "interlocution", "visualStyle": "psychedelic", "chamberFace": "display", "fontSize": "large" } },
+    { "id": "prismatic", "decision": { "pace": "200", "audio": "aurora", "visualMode": "interlocution", "visualStyle": "psychedelic", "chamberFace": "thick", "fontSize": "medium" } }
+  ]
+}

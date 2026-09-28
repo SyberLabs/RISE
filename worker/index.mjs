@@ -1,0 +1,52 @@
+import { handleJevDecision } from '../netlify/functions/jev-decision.mjs';
+import { handleJevRoute } from '../netlify/functions/jev-route.mjs';
+import { handleEnterpriseDecision } from './enterprise-decision.mjs';
+import { handleJevRecommend } from './jev-recommend.mjs';
+import { decisionProvider } from '../server/decision-provider.mjs';
+import { handlePersonalPiece } from './personal-piece.mjs';
+
+const JSON_HEADERS = {
+  'Content-Type': 'application/json; charset=utf-8',
+  'Cache-Control': 'no-store',
+  'X-Content-Type-Options': 'nosniff'
+};
+
+function error(status, code, message) {
+  return new Response(JSON.stringify({ error: { code, message } }), {
+    status,
+    headers: JSON_HEADERS
+  });
+}
+
+export default {
+  async fetch(request, env) {
+    const path = new URL(request.url).pathname;
+
+    if (path === '/api/personal-piece') return handlePersonalPiece(request, env);
+
+    if (path === '/api/jev-decision' || path === '/api/jev-recommend' || path === '/api/jev/route'
+      || path === '/api/enterprise-decision') {
+      const ip = request.headers.get('CF-Connecting-IP')?.trim();
+      if (!ip || !decisionProvider(env) || typeof env?.DECISION_LIMITER?.limit !== 'function') {
+        return error(503, 'DECISION_NOT_CONFIGURED', 'Decision service is unavailable.');
+      }
+
+      try {
+        const result = await env.DECISION_LIMITER.limit({ key: ip });
+        if (!result?.success) {
+          return error(429, 'RATE_LIMITED', 'Too many decision requests.');
+        }
+      } catch {
+        return error(503, 'DECISION_NOT_CONFIGURED', 'Decision service is unavailable.');
+      }
+
+      if (path === '/api/jev/route') return handleJevRoute(request, env);
+      if (path === '/api/enterprise-decision') return handleEnterpriseDecision(request, env);
+      return path === '/api/jev-recommend'
+        ? handleJevRecommend(request, env)
+        : handleJevDecision(request, env);
+    }
+
+    return error(404, 'NOT_FOUND', 'API route not found.');
+  }
+};

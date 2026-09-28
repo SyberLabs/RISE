@@ -2,7 +2,7 @@
  * Page Mode geometry: figures must not float beside headings.
  * Walks real pages (Vitruvius-style inline structure).
  */
-import { test, expect } from '@playwright/test';
+import { test, expect } from './fixtures.js';
 import { acceptFlashWarningIfShown, pageCount } from './page-helpers.js';
 
 const GATE = { code: 'rise2025', name: 'Typography', vault: null, timestamp: Date.now() };
@@ -40,7 +40,7 @@ async function openThePage(page) {
         localStorage.setItem('rise_orbital_prefs_v1', JSON.stringify(g.prefs));
     }, { gate: GATE, seed: SEED, prefs: PREFS });
     await page.goto('/');
-    await expect(page.locator('[data-nav="library"]').first()).toBeVisible({ timeout: 15000 });
+    await expect(page.locator('.portal .portal-title').first()).toBeVisible({ timeout: 15000 });
     await page.locator('[data-nav="chamber"]').first().click();
     await expect(page.locator('#begin-btn')).toBeEnabled({ timeout: 15000 });
     await page.locator('#begin-btn').click();
@@ -81,26 +81,21 @@ async function wrappedHeadings(page) {
     });
 }
 
-/**
- * Enter the paged projection.
- *
- * The public Page opens as one elongated composition, so a test about how
- * PAGES are typeset has to ask for pages rather than assume them. The control
- * reads 'Paginate' on open and 'Elongate' once pages are cut.
- */
-async function paginate(page) {
+/** Select the paginated projection for checks that inspect individual pages. */
+async function ensurePaginated(page) {
+    const button = page.locator('#page-elongate');
     await page.locator('#chamber-display').hover();
-    const btn = page.locator('#page-elongate');
-    await expect(btn).toBeVisible({ timeout: 10000 });
-    await btn.click();
+    await expect(button).toBeVisible({ timeout: 10000 });
+    if (await button.locator('.control-label').textContent() === 'Paginate') {
+        await button.click();
+    }
     await expect.poll(() => pageCount(page), { timeout: 10000 }).toBeGreaterThan(1);
-    await page.waitForTimeout(600);
 }
 
 test('no figure stands beside a heading, on any page', async ({ page }) => {
     await page.setViewportSize({ width: 1280, height: 900 });
     await openThePage(page);
-    await paginate(page);
+    await ensurePaginated(page);
 
     const total = await pageCount(page);
     expect(total, 'the fixture is long enough to paginate').toBeGreaterThan(1);
@@ -125,7 +120,7 @@ test('an inline CHAPTER heading opens its page rather than closing the last one'
     // CHAPTER II must open a page, not close the previous one.
     await page.setViewportSize({ width: 1280, height: 900 });
     await openThePage(page);
-    await paginate(page);
+    await ensurePaginated(page);
 
     const where = await page.evaluate(() => {
         const r = window.__RISE_TEST__?.getView('chamber-session')?.pageReader;
@@ -148,27 +143,20 @@ test('an inline CHAPTER heading opens its page rather than closing the last one'
     }
 });
 
-test('the projection control turns both ways — neither is a one-way door', async ({ page }) => {
+test('the reader can switch between paginated and elongated projections', async ({ page }) => {
     await page.setViewportSize({ width: 1280, height: 900 });
     await openThePage(page);
 
     const btn = page.locator('#page-elongate');
     await page.locator('#chamber-display').hover();
     await expect(btn).toBeVisible({ timeout: 10000 });
-    // The Page opens elongated, so the control offers the other projection.
-    await expect(btn.locator('.control-label')).toHaveText('Paginate');
-
-    await btn.click();
-    await page.waitForTimeout(700);
-    await page.locator('#chamber-display').hover();
-    // Pagination must leave a way back to one column.
-    await expect(btn, 'the way back to one column vanished').toBeVisible();
-    await expect(btn.locator('.control-label')).toHaveText('Elongate');
-
-    await btn.click();
-    await page.waitForTimeout(700);
-    await page.locator('#chamber-display').hover();
-    // And back to where it opened: one column, offering pages again.
     await expect(btn.locator('.control-label')).toHaveText('Paginate');
     expect(await pageCount(page)).toBe(1);
+    await btn.click();
+    await expect(btn.locator('.control-label')).toHaveText('Elongate');
+    await expect.poll(() => pageCount(page)).toBeGreaterThan(1);
+
+    await btn.click();
+    await expect(btn.locator('.control-label')).toHaveText('Paginate');
+    await expect.poll(() => pageCount(page)).toBe(1);
 });

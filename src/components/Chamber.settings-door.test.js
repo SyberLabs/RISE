@@ -133,7 +133,7 @@ describe('Chamber Settings door', () => {
     expect(container.querySelector('#master-volume'), 'Sound').toBeTruthy();
     expect(container.querySelectorAll('[data-volume]'), 'its presets').toHaveLength(3);
     expect([...container.querySelectorAll('input[name="font-size"]')].map(i => i.value))
-      .toEqual(['small', 'medium', 'large']);
+      .toEqual(['small', 'medium', 'large', 'xlarge']);
     expect(container.querySelector('[data-setting="photosensitivityMode"]')).toBeTruthy();
     expect(container.querySelector('[data-setting="reducedMotion"]')).toBeTruthy();
 

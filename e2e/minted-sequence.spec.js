@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './fixtures.js';
 
 /**
  * A PRINTED CODE IS THE ONE ENTRY POINT THAT CANNOT BE RECALLED.

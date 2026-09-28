@@ -8,6 +8,8 @@
  * - Session persistence (localStorage)
  */
 
+import { roomEyebrow, roomIcon } from './room-chrome.js';
+import { drawRiseSigil, mountAtmosphere } from './atlas.js';
 import './BetaGate.css';
 
 // Beta access codes - add new invitees here
@@ -97,8 +99,12 @@ export class BetaGate {
   }
 
   clearSession() {
-    localStorage.removeItem(BETA_SESSION_KEY);
     this.session = null;
+    try {
+      localStorage.removeItem(BETA_SESSION_KEY);
+    } catch (e) {
+      console.error('[BetaGate] Failed to clear session:', e);
+    }
   }
 
   validateCode(code) {
@@ -133,24 +139,60 @@ export class BetaGate {
 
     this.container.innerHTML = `
       <div class="beta-gate">
-        <div class="beta-gate-content">
-          <div class="beta-identity">
-            <div class="beta-sigil rise-mark" aria-hidden="true"></div>
-            <div class="beta-identity-word">
-              <h1 class="beta-title">RISE</h1>
-              <p class="beta-subtitle">Audiovisual Reader</p>
+        <header class="sl-header beta-header">
+          <div class="sl-header-inner">
+            <span class="sl-lockup" aria-label="SyberLabs RISE">
+              <img class="sl-mark" src="/syberlabs-mark.webp" alt="" width="18" height="20" decoding="async">
+              <span class="sl-wordmark" aria-hidden="true">SYBERLABS<span class="sl-divider"> / </span>RISE</span>
+              <canvas class="sl-sigil" aria-hidden="true"></canvas>
+            </span>
+          </div>
+        </header>
+
+        <main class="beta-gate-content">
+          <div class="beta-copy">
+            <div class="beta-identity">
+              ${roomEyebrow('RISE · Audiovisual reader', 'beta-subtitle')}
+              <h1 class="beta-title">Read beyond the <em class="sy-spectrum">page</em>.</h1>
             </div>
+
+            ${hasValidInvite ? this.renderPersonalizedWelcome(inviteData) : this.renderOpenThreshold()}
           </div>
 
-          ${hasValidInvite ? this.renderPersonalizedWelcome(inviteData) : this.renderOpenThreshold()}
-        </div>
+          <figure class="beta-plate" aria-hidden="true">
+            <div class="beta-sigil sy-plate">
+              <canvas class="beta-sigil-canvas"></canvas>
+              <span class="beta-sigil-fallback rise-mark"></span>
+            </div>
+            <figcaption class="beta-plate-caption"><b>Plate · RISE</b><span class="beta-plate-params"></span></figcaption>
+          </figure>
+        </main>
 
-        <!-- Footer -->
-        <div class="beta-footer">
-          <p>Open Beta · v2.0</p>
-        </div>
+        <footer class="beta-footer">
+          <p>Open beta · v2.0</p>
+          <p class="beta-footer-links">
+            <a href="/privacy.html">Privacy</a>
+            <a href="/terms.html">Terms</a>
+          </p>
+        </footer>
       </div>
     `;
+
+    // The Atlas behind the threshold, and the RISE sigil drawing in as its
+    // mark. Both are lazy; the words read the same without them.
+    const gate = this.container.querySelector('.beta-gate');
+    this.atmosphere = mountAtmosphere(gate);
+    drawRiseSigil(gate.querySelector('.sl-sigil'), { animate: false });
+    drawRiseSigil(gate.querySelector('.beta-sigil-canvas')).then(result => {
+      const params = gate.querySelector('.beta-plate-params');
+      if (result && params) params.textContent = result.caption;
+    });
+  }
+
+  /** The reading rooms run without the atmosphere; stop it at the door. */
+  releaseAtmosphere() {
+    this.atmosphere?.destroy();
+    this.atmosphere = null;
   }
 
   /**
@@ -162,11 +204,11 @@ export class BetaGate {
       <div class="beta-welcome">
         <div class="beta-welcome-text">
           <p>An audiovisual reader: curated texts, paced to be entered rather than skimmed, with museum imagery and sound arranged around the words.</p>
-          <p class="beta-welcome-note">A fully client-side application. Nothing leaves your device.</p>
+          <p class="beta-welcome-note">Your writing and saved reading state stay in this browser. RISE may fetch public texts and images from their providers.</p>
         </div>
 
-        <button id="beta-enter" class="beta-enter-btn">
-          Enter the Space
+        <button id="beta-enter" class="beta-enter-btn" type="button">
+          Enter RISE${roomIcon('forward')}
         </button>
       </div>
     `;
@@ -187,8 +229,8 @@ A space has been prepared for you.`;
           ${welcomeText.split('\n\n').map(p => `<p>${p}</p>`).join('')}
         </div>
 
-        <button id="beta-enter" class="beta-enter-btn">
-          Enter the Space
+        <button id="beta-enter" class="beta-enter-btn" type="button">
+          Enter RISE${roomIcon('forward')}
         </button>
       </div>
     `;
@@ -238,12 +280,14 @@ A space has been prepared for you.`;
         const inviteData = (this.inviteCode && this.validateCode(this.inviteCode))
           || { name: 'Reader', welcome: null };
         this.saveSession(inviteData, this.inviteCode?.toLowerCase().trim() || 'open');
+        this.releaseAtmosphere();
         this.onAccess(this.session);
       });
     }
   }
 
   destroy() {
+    this.releaseAtmosphere();
     this.container.innerHTML = '';
   }
 }

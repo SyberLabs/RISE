@@ -22,6 +22,7 @@
 
 import { escapeHtml } from '../core/sanitize.js';
 import { REMOTE_IMAGE_ATTRS } from '../visuals/remote-image.js';
+import { roomHeader, roomEyebrow, roomIcon, roomAlert } from './room-chrome.js';
 import './Curia.css';
 
 const VERB_LABELS = {
@@ -30,7 +31,12 @@ const VERB_LABELS = {
     addPin: 'pin',
     removePin: 'unpin',
     movePin: 'move',
-    setLiveSearch: 'live-search'
+    setLiveSearch: 'live search'
+};
+
+const MODE_LABELS = {
+    'live+pins': 'Live search and pins',
+    'pinned-only': 'Pinned only'
 };
 
 export class Curia {
@@ -43,7 +49,17 @@ export class Curia {
         this.openCategory = null;
         this._devWrite = null;       // tri-state: null unknown, true, false
         this.render();
-        this.load();
+        this.load().catch(error => this.renderLoadError(error));
+    }
+
+    renderLoadError(error) {
+        const board = this.container.querySelector('.curia-board');
+        if (!board) return;
+        board.innerHTML = roomAlert({
+            title: 'The canon could not be read.',
+            message: escapeHtml(error?.message || String(error)),
+            className: 'curia-error'
+        });
     }
 
     // ---------- data ----------
@@ -200,7 +216,7 @@ export class Curia {
             });
             const j = await r.json();
             if (!j.ok) throw new Error(j.error || 'apply failed');
-            status.textContent = `written to canon: ${Object.entries(j.applied)
+            status.textContent = `Written to canon: ${Object.entries(j.applied)
                 .filter(([, n]) => n > 0).map(([k, n]) => `${VERB_LABELS[k]} ${n}`).join(', ') || 'no changes'}`;
             this.changeset = { exclude: [], unexclude: [], addPin: [], removePin: [], movePin: [], setLiveSearch: [] };
             this.inventory.clear();
@@ -209,16 +225,16 @@ export class Curia {
             await this.load();
             if (this.openCategory) this.openDetail(this.openCategory);
         } catch (e) {
-            status.textContent = `write failed: ${e.message}`;
+            status.textContent = `Write failed: ${e.message}`;
         }
     }
 
     async copyChangeset() {
         const payload = JSON.stringify(this.changeset);
         try { await navigator.clipboard.writeText(payload); }
-        catch { prompt('copy this changeset:', payload); }
+        catch { prompt('Copy this changeset:', payload); }
         const status = this.container.querySelector('.curia-status');
-        status.textContent = `changeset copied (${this.changeCount()} edits) — apply via the dev server`;
+        status.textContent = `Changeset copied (${this.changeCount()} edits). Apply it through the dev server.`;
     }
 
     // ---------- render ----------
@@ -227,20 +243,23 @@ export class Curia {
         this.container.innerHTML = `
             <div class="curia">
                 <div class="curia-scroll">
+                    ${roomHeader({ back: 'Home', action: 'home', backClass: 'curia-back' })}
+                    <div class="curia-inner">
                     <header class="curia-header">
-                        <button class="curia-back" data-nav="portal">← Portal</button>
-                        <h1>The Curia</h1>
-                        <p class="curia-sub">The visual canon, governed. Every work each category can
+                        ${roomEyebrow('Visual canon')}
+                        <h1 class="room-title">The Curia</h1>
+                        <p class="curia-sub room-deck">The visual canon, governed. Every work each category can
                         serve — live search and pins alike — with the verbs the audits proved:
                         exclude, restore, move, unpin.</p>
                     </header>
                     <div class="curia-board"></div>
                     <div class="curia-detail" hidden></div>
+                    </div>
                 </div>
                 <footer class="curia-bar">
                     <span class="curia-count"></span>
-                    <button class="curia-apply" hidden>Apply to canon</button>
-                    <button class="curia-copy" hidden>Copy changeset</button>
+                    <button type="button" class="curia-apply" hidden>Apply to canon</button>
+                    <button type="button" class="curia-copy" hidden>Copy changeset</button>
                     <span class="curia-status"></span>
                 </footer>
             </div>`;
@@ -266,31 +285,35 @@ export class Curia {
             });
         this.container.querySelector('.curia-detail')
             .addEventListener('click', (e) => this._onDetailClick(e));
+        this.container.querySelector('.curia-detail')
+            .addEventListener('change', (e) => this._onDetailChange(e));
     }
 
     renderBoard() {
         const board = this.container.querySelector('.curia-board');
-        if (!this.categories) { board.innerHTML = '<p class="curia-loading">reading the canon…</p>'; return; }
+        if (!this.categories) { board.innerHTML = '<p class="curia-loading" role="status">Reading the canon…</p>'; return; }
         board.innerHTML = this.categories.map(c => `
-            <button class="curia-cat" data-category="${c.id}">
+            <button type="button" class="curia-cat" data-category="${c.id}">
                 <span class="curia-cat-name">${escapeHtml(c.name)}</span>
-                <span class="curia-cat-mode ${c.mode === 'pinned-only' ? 'is-pinned' : 'is-live'}">${c.mode}</span>
+                <span class="curia-cat-mode ${c.mode === 'pinned-only' ? 'is-pinned' : 'is-live'}"><span class="curia-dot" aria-hidden="true"></span>${MODE_LABELS[c.mode]}</span>
                 <span class="curia-cat-stats">${c.pinCount} pins${c.exclusionCount ? ` · ${c.exclusionCount} excluded` : ''}</span>
+                ${roomIcon('forward')}
             </button>`).join('');
 
         if (this.scienceCategories?.length) {
             board.insertAdjacentHTML('beforeend', `
                 <div class="curia-group-break">
-                    <h3>Science collections</h3>
+                    <h2>Science collections</h2>
                     <p class="curia-group-note">Attribution record. Governed by
                     <code>science-pins.js</code> and rebuilt, not edited here — so this
                     room reads them and does not pretend to rule them.</p>
                 </div>
                 ${this.scienceCategories.map(c => `
-                <button class="curia-cat curia-cat-science" data-science="${escapeHtml(c.id)}">
+                <button type="button" class="curia-cat curia-cat-science" data-science="${escapeHtml(c.id)}">
                     <span class="curia-cat-name">${escapeHtml(c.name)}</span>
-                    <span class="curia-cat-mode is-pinned">record</span>
+                    <span class="curia-cat-mode is-record"><span class="curia-dot" aria-hidden="true"></span>Record</span>
                     <span class="curia-cat-stats">${c.works} works${c.elided ? ` · ${c.elided} full credits held here` : ''}</span>
+                    ${roomIcon('forward')}
                 </button>`).join('')}`);
         }
         this.renderBar();
@@ -327,27 +350,27 @@ export class Curia {
                 <div class="curia-work-meta">
                     <div class="curia-work-title">${escapeHtml(w.title || '(untitled)')}</div>
                     <div class="curia-work-src">${escapeHtml(w.sourceName || '')}${w.date ? ` · ${escapeHtml(w.date)}` : ''}</div>
-                    <div class="curia-credit" title="exactly what the Chamber chip shows">${escapeHtml(w.requiredCredit)}</div>
+                    <div class="curia-credit" title="Exactly what the Reader credit shows">${escapeHtml(w.requiredCredit)}</div>
                     ${w.creditElided ? `<details class="curia-full-credit">
-                        <summary>full credit as the provider gave it</summary>
+                        <summary>Full credit as the provider gave it</summary>
                         ${escapeHtml(w.fullCredit)}
                     </details>` : ''}
                     <div class="curia-work-links">
                         <span class="curia-lic curia-lic-${escapeHtml(w.licence)}">${escapeHtml(w.licence)}</span>
                         ${w.sourceUrl ? `<a href="${escapeHtml(w.sourceUrl)}" target="_blank"
-                            rel="noopener noreferrer">source record ↗</a>` : ''}
+                            rel="noopener noreferrer">Source record${roomIcon('external', 16)}</a>` : ''}
                     </div>
                 </div>
             </div>`;
 
         detail.innerHTML = `
             <div class="curia-detail-head">
-                <button class="curia-detail-back">← categories</button>
+                <button type="button" class="curia-detail-back">${roomIcon('back')}<span>Categories</span></button>
                 <h2>${escapeHtml(cat.name)}</h2>
                 <span class="curia-detail-stats">
                     ${works.length} works ·
                     ${Object.entries(licences).map(([k, n]) => `${n} ${escapeHtml(k)}`).join(' · ')}
-                    · rights verified ${escapeHtml(this._science.rightsVerifiedAt || '?')}
+                    · Rights verified ${escapeHtml(this._science.rightsVerifiedAt || '?')}
                 </span>
             </div>
             <p class="curia-group-note">
@@ -371,7 +394,7 @@ export class Curia {
         this.container.querySelector('.curia-board').hidden = true;
         const detail = this.container.querySelector('.curia-detail');
         detail.hidden = false;
-        detail.innerHTML = '<p class="curia-loading">assembling the inventory…</p>';
+        detail.innerHTML = '<p class="curia-loading" role="status">Assembling the inventory…</p>';
         await this.loadCategory(categoryId);
         this.renderDetail();
     }
@@ -390,13 +413,13 @@ export class Curia {
                 <div class="curia-work-meta">
                     <div class="curia-work-title">${escapeHtml(w.title || '(untitled)')}</div>
                     <div class="curia-work-artist">${escapeHtml((w.artist || '').split('\n')[0])}</div>
-                    <div class="curia-work-src">${escapeHtml(w.sourceName || '')} · <span class="curia-origin curia-origin-${origin}">${origin}</span></div>
+                    <div class="curia-work-src">${escapeHtml(w.sourceName || '')} · <span class="curia-origin curia-origin-${origin}">${{ live: 'Live', pin: 'Pinned', excluded: 'Excluded' }[origin]}</span></div>
                 </div>
                 <div class="curia-work-verbs">
-                    ${origin === 'live' ? `<button data-verb="exclude">exclude</button>` : ''}
-                    ${origin === 'excluded' ? `<button data-verb="unexclude">restore</button>` : ''}
-                    ${origin === 'pin' ? `<button data-verb="removePin">unpin</button>
-                        <select data-verb="movePin"><option value="">move →</option>
+                    ${origin === 'live' ? `<button type="button" data-verb="exclude">Exclude</button>` : ''}
+                    ${origin === 'excluded' ? `<button type="button" data-verb="unexclude">Restore</button>` : ''}
+                    ${origin === 'pin' ? `<button type="button" data-verb="removePin">Unpin</button>
+                        <select data-verb="movePin" aria-label="Move to another category"><option value="">Move to…</option>
                         ${moveTargets.map(t => `<option value="${t.id}">${escapeHtml(t.name)}</option>`).join('')}
                         </select>` : ''}
                 </div>
@@ -404,31 +427,31 @@ export class Curia {
 
         detail.innerHTML = `
             <div class="curia-detail-head">
-                <button class="curia-detail-back">← categories</button>
+                <button type="button" class="curia-detail-back">${roomIcon('back')}<span>Categories</span></button>
                 <h2>${escapeHtml(cat.name)}</h2>
                 <span class="curia-detail-stats">
                     ${inv.live.length} live · ${inv.pins.length} pins · ${inv.excluded.length} excluded
-                    ${inv.loading ? ' · resolving…' : ''}
+                    ${inv.loading ? ' · Resolving…' : ''}
                 </span>
                 ${cat.hasClauses ? `
-                <label class="curia-live-toggle" title="Serve this category's AIC live-search results alongside the pins (canon-wide, default off)">
+                <label class="curia-live-toggle" title="Serve this category's Art Institute of Chicago live-search results alongside the pins (canon-wide, default off)">
                     <input type="checkbox" data-verb="setLiveSearch" ${cat.liveOn ? 'checked' : ''}>
-                    <span>Live-AIC ${cat.liveOn ? 'on' : 'off'}</span>
+                    <span>Live search ${cat.liveOn ? 'on' : 'off'}</span>
                 </label>` : ''}
             </div>
+            ${inv.liveError ? roomAlert({ title: 'The live search could not be reached.', message: escapeHtml(inv.liveError), className: 'curia-error' }) : ''}
+            ${inv.pinError ? roomAlert({ title: 'Some pinned works could not be resolved.', message: escapeHtml(inv.pinError), className: 'curia-error' }) : ''}
             ${inv.pins.length ? `<h3>Pinned (${inv.pins.length})</h3>
                 <div class="curia-grid">${inv.pins.map(w => card(w, 'pin')).join('')}</div>` : ''}
             ${inv.live.length ? `<h3>Live search (${inv.live.length})</h3>
                 <div class="curia-grid">${inv.live.map(w => card(w, 'live')).join('')}</div>` : ''}
             ${inv.excluded.length ? `<h3>Excluded (${inv.excluded.length})</h3>
-                <div class="curia-grid">${inv.excluded.map(w => card(w, 'excluded')).join('')}</div>` : ''}
-            ${inv.liveError ? `<p class="curia-error">live surface unavailable: ${escapeHtml(inv.liveError)}</p>` : ''}`;
+                <div class="curia-grid">${inv.excluded.map(w => card(w, 'excluded')).join('')}</div>` : ''}`;
         detail.querySelector('.curia-detail-back').addEventListener('click', () => {
             this.openCategory = null;
             detail.hidden = true;
             this.container.querySelector('.curia-board').hidden = false;
         });
-        detail.addEventListener('change', (e) => this._onDetailChange(e), { once: false });
     }
 
     _onDetailClick(e) {
@@ -453,7 +476,7 @@ export class Curia {
                 category: this.openCategory, enabled: toggle.checked
             });
             toggle.closest('.curia-live-toggle').querySelector('span').textContent =
-                `Live-AIC ${toggle.checked ? 'on' : 'off'} (pending)`;
+                `Live search ${toggle.checked ? 'on' : 'off'} (pending)`;
             return;
         }
         const sel = e.target.closest('select[data-verb="movePin"]');

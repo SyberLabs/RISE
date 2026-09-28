@@ -35,6 +35,13 @@
   status = 301
   force = true
 
+# Preview audio stays same-origin while production serves the pinned WAVs.
+[[redirects]]
+  from = "/audio/recitation/*"
+  to = "https://rise.syberlabs.io/audio/recitation/:splat"
+  status = 200
+  force = true
+
 # SPA routing - redirect all requests to index.html
 [[redirects]]
   from = "/*"
@@ -48,7 +55,7 @@
     X-Frame-Options = "DENY"
     X-Content-Type-Options = "nosniff"
     Referrer-Policy = "strict-origin-when-cross-origin"
-    Permissions-Policy = "camera=(), microphone=(), geolocation=()"
+    Permissions-Policy = "camera=(), microphone=(self), geolocation=()"
     # CSP: self-hosted scripts only; APIs limited to the content providers the app
     # actually calls (Gutenberg, arXiv, Wikimedia Commons, Met, Art Institute, corsproxy).
     # img-src allows any https CDN because museum APIs return varied image hosts.

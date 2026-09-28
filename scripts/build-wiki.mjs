@@ -20,9 +20,10 @@
  */
 import { readFileSync, writeFileSync, mkdirSync, rmSync, readdirSync, statSync } from 'node:fs';
 import { join, dirname, basename, relative, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 const REPO = 'https://github.com/SyberLabs/RISE';
-const ROOT = resolve(dirname(new URL(import.meta.url).pathname), '..');
+const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const INDEX = 'docs/README.md';
 
 /** Repo-relative path → wiki page name. The wiki namespace is flat. */
@@ -75,7 +76,7 @@ function rewriteLinks(body, sourcePath) {
         const [rawPath, anchor] = target.split('#');
         if (!rawPath) return whole;
 
-        const repoPath = relative(ROOT, resolve(ROOT, dirname(sourcePath), rawPath));
+        const repoPath = relative(ROOT, resolve(ROOT, dirname(sourcePath), rawPath)).replaceAll('\\', '/');
         const suffix = anchor ? `#${anchor}` : '';
 
         let onDisk = false;
@@ -111,7 +112,7 @@ function buildSidebar() {
         const row = line.match(/^\|\s*\[([^\]]+)\]\(([^)]+)\)/);
         if (!row) continue;
 
-        const repoPath = relative(ROOT, resolve(ROOT, 'docs', row[2].split('#')[0]));
+        const repoPath = relative(ROOT, resolve(ROOT, 'docs', row[2].split('#')[0])).replaceAll('\\', '/');
         if (!PAGES.has(repoPath)) continue;
 
         if (heading) {

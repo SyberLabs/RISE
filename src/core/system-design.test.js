@@ -64,7 +64,10 @@ describe('the system design document describes this tree', () => {
         'Admit.js',              // edition admission dialog, opened from Library
         'NamingModal.js',        // shared naming prompt
         'SourceBrowser.js',      // source picker, embedded in Workshop
-        'VisualNavigator.js'     // visual and text controls, embedded in ChamberOrbital
+        'VisualNavigator.js',    // visual and text controls, embedded in ChamberOrbital
+        'jev-dictation.js',      // voice input shared by Portal and Library
+        'room-chrome.js',        // SyberLabs header, icons and Alert shared by the quieter rooms
+        'atlas.js'               // SyberLabs atmosphere and sigil, shared by Portal and BetaGate
     ]);
 
     const roomsOnDisk = () => readdirSync(join(ROOT, 'src/components'))
@@ -140,9 +143,9 @@ describe('the system design document describes this tree', () => {
         // sentence that argues from its smallness has to be re-argued.
         expect(production.length,
             'production dependencies changed — ARCHITECTURE.md 8.10 argues from this number')
-            .toBe(1);
-        expect(text, `${DOC} 8.10 should say "one production dependency"`)
-            .toMatch(/one production dependency/u);
+            .toBe(3);
+        expect(text, `${DOC} 8.10 should say "three production dependencies"`)
+            .toMatch(/three production dependencies/u);
     });
 });
 

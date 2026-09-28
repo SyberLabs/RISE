@@ -4,9 +4,9 @@ A recruiter- and hiring-manager-scannable summary of what this codebase is and w
 
 ## What it is (30 seconds)
 
-RISE is a **client-only browser application** — an audiovisual reading environment. Text is compiled into timed atoms, played by a clock-driven engine, and painted in a Chamber over procedural visuals and Web Audio. There is **no backend**: privacy and availability are properties of the topology, not policy flags.
+RISE is a **browser-first application** — an audiovisual reading environment. Text is compiled into timed atoms, played by a clock-driven engine, and painted in a Chamber over procedural visuals and Web Audio. Reading runs entirely in the browser; a small Cloudflare Worker serves the app and optional bounded reading decisions. The decision-provider migration to Kev is in progress; no live Kev endpoint has been confirmed.
 
-Live demo: [rise.syberlabs.space](https://rise.syberlabs.space/)
+Live app: [rise.syberlabs.io](https://rise.syberlabs.io/)
 
 **Try in 60 seconds:** Portal → **Try RISE** → **Meditations** → **Begin**. Text streams over generative visuals. Use **Page** for the spatial projection.
 
@@ -14,12 +14,13 @@ Live demo: [rise.syberlabs.space](https://rise.syberlabs.space/)
 
 | Layer | Choice |
 |-------|--------|
-| Runtime | Browser only (Vite SPA, vanilla JS) |
+| Runtime | Browser (Vite SPA, vanilla JS) |
 | Build | Vite 7, content-addressed data plane |
 | Tests | Vitest (~2,800 unit), Playwright (browser smoke) |
 | Audio / visuals | Web Audio API, Canvas 2D, procedural engines |
-| Production deps | 1 (`sql.js`) |
-| Deploy | Static CDN (Netlify) |
+| Production deps | 3 (`sql.js`, Neon serverless driver, Upstash Redis client) |
+| Deploy | Cloudflare Workers, gated GitHub Actions release with rollback |
+| Recommendation service | Cloudflare Worker, Neon PostgreSQL, Upstash Redis, server-configured Kev endpoint; OpenRouter only for explicit Jev rollback |
 
 ## Architecture (one diagram)
 
@@ -38,7 +39,7 @@ Immutable reader content (books, scripture) lives in `/content/<sha256>.json`, n
 
 | Metric | Before | After |
 |--------|--------|-------|
-| First load (brotli) | ~252 KB / 10 requests | **58.8 KB / 3 requests** |
+| First load (brotli) | ~252 KB / 10 requests | **~59 KB / 3 requests** |
 | Book text in JS bundle | 15.4 MB (83% of JS) | **0** |
 | `dist/` JavaScript | ~18 MB | **~3 MB** |
 | Dead code removed | — | **~4,600 lines** |
@@ -50,7 +51,7 @@ First-load budget is enforced in CI (`npm run measure:first-load`, ceiling 64 KB
 
 - **Certification chain:** edition identity tied to bytes; re-ingest withdraws certification; models flag, humans disposition. First certified work: *Meditations* (see `src/content/archive/certifications.json`).
 - **Living architecture doc** with test guards (`src/core/system-design.test.js`) so diagrams and room registers cannot drift from code.
-- **CI:** unit tests (ffmpeg + Chromium for real encode/paint paths), production build, Scriptorium CLI exit-status matrix, source hygiene, browser smoke.
+- **CI:** every pull request runs build, hygiene, security, first-load budget, and design-contract checks; full unit tests (ffmpeg + Chromium for real encode/paint paths), Scriptorium CLI exit-status matrix, and sharded browser tests run on `main`.
 - **Content plane:** build-time manifest + runtime `ContentStore` with digest verification (same pattern as content-addressed storage in distributed systems, without adding a server).
 
 ## Interview whiteboard path
@@ -78,4 +79,4 @@ docs/specs/         Architecture and contracts
 
 ## Author
 
-Mateo (SyberLabs) — product vision, editorial authority, UX. Engineering infrastructure and system design review: Seth Carlson.
+Mateo Robles (SyberLabs) — product vision, editorial authority, UX. Engineering infrastructure and system design review: Seth Carlson.

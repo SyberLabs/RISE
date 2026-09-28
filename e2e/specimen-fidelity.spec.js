@@ -10,7 +10,7 @@
  *
  * Measured rather than eyeballed, because "nearly invisible" is a number.
  */
-import { test, expect } from '@playwright/test';
+import { test, expect } from './fixtures.js';
 
 const GATE = { code: 'rise2025', name: 'Specimen', vault: null, timestamp: Date.now() };
 const SEED = { text: 'Light enters form. '.repeat(40).trim(), textSource: 'Specimen', origin: null };
@@ -25,6 +25,7 @@ test('the masking specimen shows a word a reader can read', async ({ page }) => 
     await page.goto('/');
     await page.locator('[data-nav="chamber"]').first().click();
     await expect(page.locator('#begin-btn')).toBeEnabled({ timeout: 20_000 });
+    { const adjust = page.locator('[data-action="toggle-adjust"]'); if (await adjust.getAttribute('aria-expanded') === 'false') await adjust.click(); }
     await page.locator('[data-orbit="visual"]').click();
     await expect(page.locator('.vnav')).toBeVisible();
 

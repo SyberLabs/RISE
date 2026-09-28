@@ -45,8 +45,8 @@ afterEach(() => {
 });
 
 describe('Attractor palettes', () => {
-  it('offers exactly the five selectable filament colors', () => {
-    expect(ATTRACTOR_PALETTE_IDS).toEqual(['white', 'red', 'blue', 'gold', 'purple']);
+  it('offers exactly the six selectable filament colors', () => {
+    expect(ATTRACTOR_PALETTE_IDS).toEqual(['white', 'red', 'blue', 'gold', 'purple', 'neon']);
     for (const p of ATTRACTOR_PALETTES) {
       expect(p.name).toBeTruthy();
       expect(p.swatch).toMatch(/^#[0-9a-f]{6}$/i);
@@ -244,5 +244,24 @@ describe('Attractor forms', () => {
     expect(field.sx2.some(v => v !== 0)).toBe(true);
 
     field.destroy();
+  });
+});
+
+describe('Attractor speed', () => {
+  it('defaults to the original pace and clamps the option', () => {
+    expect(new AttractorField(makeHost(), {}).speed).toBe(1);
+    expect(new AttractorField(makeHost(), { speed: 9 }).speed).toBe(4);
+    expect(new AttractorField(makeHost(), { speed: 0 }).speed).toBe(0.25);
+  });
+
+  it('changes pace without jumping the figure', () => {
+    const now = vi.spyOn(performance, 'now');
+    now.mockReturnValue(0);
+    const field = new AttractorField(makeHost(), { speed: 2 });
+    now.mockReturnValue(3000);
+    const before = field.motionTime(3000);
+    expect(field.setSpeed(0.5)).toBe(true);
+    expect(field.motionTime(3000)).toBeCloseTo(before, 6);
+    expect(field.motionTime(5000)).toBeCloseTo(before + 1, 6);
   });
 });

@@ -31,16 +31,17 @@ import {
   relabel,
   slideJoint
 } from '../core/partition.js';
+import { roomEyebrow } from './room-chrome.js';
 import './Admit.css';
 
 /** A magnet worth a chip: one cut is a tap, and a hundred is the offer. */
 const CHIP_MINIMUM = 2;
 
 const MAGNET_WORDS = {
-  title: ['title', 'titles'],
-  date: ['date', 'dates'],
-  paragraph: ['paragraph break', 'paragraph breaks'],
-  sentence: ['sentence', 'sentences']
+  title: 'title',
+  date: 'date',
+  paragraph: 'paragraph break',
+  sentence: 'sentence'
 };
 
 export class Admit {
@@ -98,16 +99,17 @@ export class Admit {
     return `
       <div class="admit-room" role="dialog" aria-label="Add your text to the Library">
         <header class="admit-header">
+          ${roomEyebrow('Add your text to the Library', 'admit-eyebrow')}
           <input class="admit-title" id="admit-title" value="${title}"
                  aria-label="Title" maxlength="120" />
-          <p class="admit-summary text-fog">${this.summary()}</p>
+          <p class="admit-summary">${this.summary()}</p>
           ${this.renderChips()}
         </header>
         <div class="admit-body">${this.renderParts()}</div>
         <footer class="admit-footer">
-          <button class="admit-action" data-action="cancel">Cancel</button>
-          <button class="admit-action" data-action="read">${escapeHtml(this.directLabel)}</button>
-          <button class="admit-action admit-action-primary" data-action="admit">
+          <button type="button" class="admit-action admit-action-ghost" data-action="cancel">Cancel</button>
+          <button type="button" class="admit-action" data-action="read">${escapeHtml(this.directLabel)}</button>
+          <button type="button" class="admit-action admit-action-primary" data-action="admit">
             Add to Library
           </button>
         </footer>
@@ -128,9 +130,9 @@ export class Admit {
       .filter(([kind, count]) => count >= CHIP_MINIMUM && MAGNET_WORDS[kind])
       .sort((a, b) => b[1] - a[1])
       .map(([kind, count]) => {
-        const [one, many] = MAGNET_WORDS[kind];
-        return `<button class="admit-chip" data-magnet="${escapeHtml(kind)}">
-            Cut at every ${escapeHtml(count === 1 ? one : many)}
+        // "every" takes the singular, whatever the count
+        return `<button type="button" class="admit-chip" data-magnet="${escapeHtml(kind)}">
+            Cut at every ${escapeHtml(MAGNET_WORDS[kind])}
             <span class="admit-chip-count">${count}</span>
           </button>`;
       });
@@ -146,7 +148,7 @@ export class Admit {
           <input class="admit-label" data-label="${index}"
                  value="${escapeHtml(part.label)}"
                  aria-label="Name of part ${part.ordinal}" maxlength="80" />
-          <span class="admit-words text-fog">${part.words} words</span>
+          <span class="admit-words">${part.words} words</span>
         </div>
         ${part.blocks.map(block => this.renderBlock(block)).join('')}
       </section>
@@ -160,7 +162,7 @@ export class Admit {
     if (!block.snap) return `<div class="admit-block">${prose}</div>`;
     return `
       <div class="admit-block" data-offset="${block.offset}">
-        <button class="admit-rule" data-place="${block.offset}"
+        <button type="button" class="admit-rule" data-place="${block.offset}"
                 aria-label="Divide here">
           <span class="admit-rule-mark">${escapeHtml(block.snap)}</span>
         </button>
@@ -173,7 +175,7 @@ export class Admit {
   renderSeam(jointIndex) {
     return `
       <div class="admit-seam" data-joint="${jointIndex}">
-        <button class="admit-join" data-join="${jointIndex}"
+        <button type="button" class="admit-join" data-join="${jointIndex}"
                 aria-label="Join these two parts">Join</button>
       </div>
     `;
@@ -263,6 +265,7 @@ export class Admit {
   close(then) {
     if (this._destroyed) return;
     this._destroyed = true;
+    this.cancelDrag();
     this.element?.remove();
     this.element = null;
     then?.();

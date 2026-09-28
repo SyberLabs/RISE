@@ -5,6 +5,7 @@ import {
     CHAMBER_ACCENT_TOKENS,
     resolveChamberAccent
 } from '../core/chamber-accent.js';
+import { roomHeader, roomIcon } from './room-chrome.js';
 import './Settings.css';
 import {
     FONT_SIZE_CHIPS,
@@ -94,25 +95,24 @@ export class Settings {
         return this.scope === BAR_SCOPE;
     }
 
+    settingInputId(key) {
+        return `setting-${this.scope}-${key}`;
+    }
+
     render() {
         if (this.inBar) return this.renderBar();
-        const backLabel = this.onClose ? 'Back' : 'Portal';
-        const backAria = this.onClose ? 'Back' : 'Back to Portal';
+        const backLabel = this.onClose ? 'Back' : 'Home';
+        const backAria = this.onClose ? 'Back' : 'Back to Home';
         this.container.innerHTML = `
       <form class="settings" role="main" aria-labelledby="settings-title">
         <a href="#settings-content" class="skip-link">Skip to settings</a>
 
         <!-- Header -->
-        <header class="settings-header">
-          <button type="button" class="btn-ghost" data-action="back" aria-label="${backAria}">
-            <span class="icon">←</span>
-            <span>${backLabel}</span>
-          </button>
-        </header>
+        ${roomHeader({ back: backLabel, backLabel: backAria, backClass: 'settings-back' })}
 
         <!-- Content -->
         <div class="settings-content" id="settings-content">
-          <h1 id="settings-title" class="settings-title text-light">Settings</h1>
+          <h1 id="settings-title" class="settings-title room-title">Settings</h1>
 
           <!-- Display Section -->
           <section class="settings-section" aria-labelledby="display-heading">
@@ -132,8 +132,8 @@ export class Settings {
 
             <div class="settings-row">
               <div class="settings-label-group">
-                <span class="settings-label" id="chamber-face-label">Chamber face</span>
-                <p class="settings-hint text-mist">Live Chamber stream only.</p>
+                <span class="settings-label" id="chamber-face-label">Reader face</span>
+                <p class="settings-hint text-mist">Live Reader stream only.</p>
               </div>
               <div class="settings-control" role="radiogroup" aria-labelledby="chamber-face-label">
                 ${this.renderChamberFaceRadios()}
@@ -153,14 +153,15 @@ export class Settings {
 
             <div class="settings-row">
               <div class="settings-label-group">
-                <label class="settings-label">Mask</label>
+                <label class="settings-label" for="${this.settingInputId('chamberMask')}">Mask</label>
                 <p class="settings-hint text-mist">
-                  Same as PREP → Presentation → Gallery in the word.
-                  Thick Word stream. Glass stays off. Phrase and sentence are unchanged.
+                  The same as Gallery in the word under Presentation in the Reader setup.
+                  Thick word stream. Glass stays off. Phrase and sentence are unchanged.
                 </p>
               </div>
               <label class="toggle">
                 <input
+                  id="${this.settingInputId('chamberMask')}"
                   type="checkbox"
                   data-setting="chamberMask"
                   ${this.settings.chamberMask === true ? 'checked' : ''}
@@ -170,9 +171,10 @@ export class Settings {
             </div>
 
             <div class="settings-row">
-              <label class="settings-label">Show Progress</label>
+              <label class="settings-label" for="${this.settingInputId('showProgress')}">Show progress</label>
               <label class="toggle">
                 <input
+                  id="${this.settingInputId('showProgress')}"
                   type="checkbox"
                   data-setting="showProgress"
                   ${this.settings.showProgress ? 'checked' : ''}
@@ -182,9 +184,10 @@ export class Settings {
             </div>
 
             <div class="settings-row">
-              <label class="settings-label">Show Duration</label>
+              <label class="settings-label" for="${this.settingInputId('showDuration')}">Show duration</label>
               <label class="toggle">
                 <input
+                  id="${this.settingInputId('showDuration')}"
                   type="checkbox"
                   data-setting="showDuration"
                   ${this.settings.showDuration ? 'checked' : ''}
@@ -195,7 +198,7 @@ export class Settings {
 
             <div class="settings-row">
               <div class="settings-label-group">
-                <label class="settings-label">Artwork Labels</label>
+                <label class="settings-label" for="${this.settingInputId('showArtworkLabels')}">Artwork labels</label>
                 <p class="settings-hint text-mist">
                   Show the title and artist while a sourced work is visible.
                   Credits required by a work's license always remain visible.
@@ -203,6 +206,7 @@ export class Settings {
               </div>
               <label class="toggle">
                 <input
+                  id="${this.settingInputId('showArtworkLabels')}"
                   type="checkbox"
                   data-setting="showArtworkLabels"
                   ${this.settings.showArtworkLabels !== false ? 'checked' : ''}
@@ -219,15 +223,16 @@ export class Settings {
             ${this.inSession ? '' : `
             <div class="settings-row">
               <div class="settings-label-group">
-                <label class="settings-label">Lobby Drone</label>
+                <label class="settings-label" for="${this.settingInputId('enableAmbient')}">Lobby drone</label>
                 <p class="settings-hint text-mist">
-                  A low drone between sessions, in the Portal and the
+                  A low drone between sessions, on Home and in the
                   other rooms. Off by default — nothing plays until you
                   ask for it.
                 </p>
               </div>
               <label class="toggle">
                 <input
+                  id="${this.settingInputId('enableAmbient')}"
                   type="checkbox"
                   data-setting="enableAmbient"
                   ${this.settings.enableAmbient ? 'checked' : ''}
@@ -238,7 +243,7 @@ export class Settings {
             `}
 
             <div class="settings-row">
-              <label class="settings-label" for="master-volume">Master Volume</label>
+              <label class="settings-label" for="master-volume">Master volume</label>
               <div class="settings-control slider-container">
                 <input
                   type="range"
@@ -258,9 +263,10 @@ export class Settings {
             </div>
 
             <div class="settings-row">
-              <label class="settings-label">Enable Binaural</label>
+              <label class="settings-label" for="${this.settingInputId('enableBinaural')}">Binaural tones</label>
               <label class="toggle">
                 <input
+                  id="${this.settingInputId('enableBinaural')}"
                   type="checkbox"
                   data-setting="enableBinaural"
                   ${this.settings.enableBinaural ? 'checked' : ''}
@@ -276,11 +282,12 @@ export class Settings {
 
             <div class="settings-row">
               <div class="settings-label-group">
-                <label class="settings-label">Photosensitivity Mode</label>
-                <span class="settings-hint text-mist">Disables all brightness oscillation</span>
+                <label class="settings-label" for="${this.settingInputId('photosensitivityMode')}">Photosensitivity mode</label>
+                <span class="settings-hint text-mist">Disables all brightness oscillation.</span>
               </div>
               <label class="toggle">
                 <input
+                  id="${this.settingInputId('photosensitivityMode')}"
                   type="checkbox"
                   data-setting="photosensitivityMode"
                   ${this.settings.photosensitivityMode ? 'checked' : ''}
@@ -291,11 +298,12 @@ export class Settings {
 
             <div class="settings-row">
               <div class="settings-label-group">
-                <label class="settings-label">Reduced Motion</label>
-                <span class="settings-hint text-mist">Minimizes animations throughout</span>
+                <label class="settings-label" for="${this.settingInputId('reducedMotion')}">Reduced motion</label>
+                <span class="settings-hint text-mist">Minimizes animation throughout.</span>
               </div>
               <label class="toggle">
                 <input
+                  id="${this.settingInputId('reducedMotion')}"
                   type="checkbox"
                   data-setting="reducedMotion"
                   ${this.settings.reducedMotion ? 'checked' : ''}
@@ -311,8 +319,8 @@ export class Settings {
             <h2 id="data-heading" class="settings-section-title text-fog">Data</h2>
 
             <div class="settings-row">
-              <button class="btn-secondary" data-action="export-data">
-                Export Personal Data
+              <button type="button" class="btn-secondary" data-action="export-data">
+                Export personal data
               </button>
             </div>
 
@@ -323,8 +331,8 @@ export class Settings {
                   browser. There is no copy elsewhere — export first if you
                   want one.
                 </p>
-                <button class="btn-secondary btn-caution" data-action="clear-history">
-                  Clear All Personal Data
+                <button type="button" class="btn-secondary btn-caution" data-action="clear-history">
+                  Clear all personal data
                 </button>
               </div>
             </div>
@@ -354,7 +362,7 @@ export class Settings {
       <form class="settings settings--bar" role="dialog" aria-labelledby="settings-title">
         <header class="settings-bar-head">
           <h1 id="settings-title" class="settings-bar-title">Settings</h1>
-          <button type="button" class="settings-bar-close" data-action="back" aria-label="Close">✕</button>
+          <button type="button" class="settings-bar-close" data-action="back" aria-label="Close">${roomIcon('close')}</button>
         </header>
 
         <section class="settings-bar-group" aria-labelledby="bar-sound-label">
@@ -389,15 +397,15 @@ export class Settings {
           <span class="settings-bar-label" id="bar-safety-label">Safety</span>
           ${[
                 { key: 'photosensitivityMode', label: 'Photosensitivity', hint: 'No brightness oscillation' },
-                { key: 'reducedMotion', label: 'Reduced Motion', hint: 'Fewer animations' }
+                { key: 'reducedMotion', label: 'Reduced motion', hint: 'Fewer animations' }
             ].map(row => `
             <div class="settings-row">
               <div class="settings-label-group">
-                <label class="settings-label">${row.label}</label>
+                <label class="settings-label" for="${this.settingInputId(row.key)}">${row.label}</label>
                 <p class="settings-hint text-mist">${row.hint}</p>
               </div>
               <label class="toggle">
-                <input type="checkbox" data-setting="${row.key}" ${this.settings[row.key] ? 'checked' : ''} />
+                <input id="${this.settingInputId(row.key)}" type="checkbox" data-setting="${row.key}" ${this.settings[row.key] ? 'checked' : ''} />
                 <span class="toggle-switch"></span>
               </label>
             </div>

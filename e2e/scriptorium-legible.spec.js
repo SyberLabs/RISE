@@ -8,7 +8,7 @@
  * Fit arrives here with a word that is a hole onto imagery a score may never
  * provide, and the reading opens invisible.
  */
-import { test, expect } from '@playwright/test';
+import { test, expect, openHomeRoom } from './fixtures.js';
 
 const GATE = { code: 'rise2025', name: 'Scriptorium', vault: null, timestamp: Date.now() };
 const SCORE = JSON.stringify({
@@ -43,8 +43,8 @@ test('a reading opens readable however the reader left the Chamber', async ({ pa
         }));
     }, GATE);
     await page.goto('/');
-    await expect(page.locator('[data-nav="library"]').first()).toBeVisible({ timeout: 15_000 });
-    await page.locator('[data-nav="scriptorium"]').first().click();
+    await expect(page.locator('.portal .portal-title').first()).toBeVisible({ timeout: 15_000 });
+    await openHomeRoom(page, 'scriptorium');
     await expect(page.locator('.scriptorium')).toBeVisible({ timeout: 15_000 });
 
     await page.locator('#scriptorium-paste').fill(SCORE);

@@ -1,0 +1,10 @@
+[
+  { "id": "mint-ink", "group": "ink", "intent": "Use pale mint green text on a dark background.", "expect": { "textColor": ["jade"] } },
+  { "id": "lilac-ink", "group": "ink", "intent": "Use soft lilac text on a dark background.", "expect": { "textColor": ["amethyst"] } },
+  { "id": "forest-ground", "group": "ground", "intent": "Put the words on a dark forest green background.", "expect": { "backgroundColor": ["jade"] } },
+  { "id": "navy-ground", "group": "ground", "intent": "Put the words on a deep navy blue background.", "expect": { "backgroundColor": ["cobalt"] } },
+  { "id": "small-serif", "group": "type", "intent": "Use small traditional literary serif text.", "expect": { "fontSize": ["small"], "chamberFace": ["literary"] } },
+  { "id": "large-mono", "group": "type", "intent": "Use large monospaced typewriter text.", "expect": { "fontSize": ["large", "fit"], "chamberFace": ["mono"] } },
+  { "id": "silent-still", "group": "senses", "intent": "Complete silence and no moving visuals.", "expect": { "audio": ["silent"], "visualStyle": ["quiet"], "visualMode": ["off", "focals"] } },
+  { "id": "rain-psychedelic", "group": "senses", "intent": "Gentle rain under a vivid psychedelic moving visual gallery.", "expect": { "audio": ["soft-rain"], "visualStyle": ["psychedelic"], "visualMode": ["interlocution"] } }
+]

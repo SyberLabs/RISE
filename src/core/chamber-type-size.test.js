@@ -12,15 +12,19 @@ import {
 import { resolveTextMaterialCapability } from './chamber-text-material.js';
 
 describe('resolveFontSize', () => {
-    it('maps s|m|l|fit to small|medium|large|fit and defaults to medium', () => {
+    it('maps fixed size chips and Fit to persisted sizes and defaults to medium', () => {
         expect(persistFontSize('s')).toBe('small');
         expect(persistFontSize('m')).toBe('medium');
         expect(persistFontSize('l')).toBe('large');
+        expect(persistFontSize('xl')).toBe('xlarge');
+        expect(persistFontSize('xlarge')).toBe('xlarge');
         expect(persistFontSize('fit')).toBe('fit');
         expect(persistFontSize('small')).toBe('small');
         expect(persistFontSize('huge')).toBeNull();
         expect(resolveFontSize('s')).toBe('small');
         expect(resolveFontSize('fit')).toBe('fit');
+        expect(resolveFontSize('xl')).toBe('xlarge');
+        expect(isChamberWordFit('xl')).toBe(false);
         expect(resolveFontSize('huge')).toBe('medium');
         expect(resolveFontSize(undefined)).toBe('medium');
         expect(isChamberWordFit('fit')).toBe(true);
@@ -128,11 +132,13 @@ describe('text material mask capability', () => {
     });
 });
 
-describe('three-step conservatism', () => {
-    it('keeps S/M/L on the old Settings steps and ignores Fit for that path', () => {
+describe('fixed size intent', () => {
+    it('keeps S/M/L and adds XL on the existing scale while Fit stays adaptive', () => {
         expect(threeStepIntent('s')).toBe(0.82);
         expect(threeStepIntent('m')).toBe(1);
         expect(threeStepIntent('l')).toBe(1.18);
+        expect(threeStepIntent('xl')).toBe(1.36);
+        expect(threeStepIntent('xlarge')).toBe(1.36);
         expect(threeStepIntent('large')).toBe(1.18);
         expect(threeStepIntent('fit')).toBe(1);
         expect(threeStepIntent('huge')).toBe(1);

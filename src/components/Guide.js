@@ -1,21 +1,19 @@
 /**
- * Guide Component
- * The "User Protocol" - onboarding and philosophical documentation.
- * 
- * Design principles:
- * - Archival/Manuscript aesthetic
- * - Structured numinosity
- * - Interactive modal experience
+ * Guide — how RISE works, in the words the rest of the product uses.
+ *
+ * A plain overlay: one heading, four short sections, a close button. The
+ * room names match the navigation (Home, Library, Sequences, Compose,
+ * Reader); an ornament, numbered eyebrows and roman numerals were deleted.
  */
 import './Guide.css';
 
-import './Guide.css';
+const ICON = 'width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"';
 
 export class Guide {
   constructor(container, options = {}) {
     this.container = container;
     this.onClose = options.onClose || (() => { });
-    
+
     this.render();
     this.attachEvents();
   }
@@ -24,93 +22,74 @@ export class Guide {
     this.container.innerHTML = `
       <div class="guide-overlay" role="dialog" aria-modal="true" aria-labelledby="guide-title">
         <div class="guide-modal">
-          <button class="guide-close" aria-label="Close guide">✕</button>
-          
           <header class="guide-header">
-            <div class="guide-sigil rise-mark" aria-hidden="true"></div>
-            <h1 id="guide-title" class="guide-title">User Protocol</h1>
-            <p class="guide-subtitle">RISE Operational Framework</p>
+            <div>
+              <h1 id="guide-title" class="guide-title">Guide</h1>
+              <p class="guide-subtitle">How to use RISE</p>
+            </div>
+            <button class="guide-close" type="button" aria-label="Close guide"><svg ${ICON}><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></svg></button>
           </header>
-          
-          <div class="guide-content">
+
+          <div class="guide-content" tabindex="0" role="region" aria-label="Guide contents">
             <section class="guide-section">
-              <h2 class="section-title">01 / Philosophical Premise</h2>
-              <p>RISE is an audiovisual reader: a reading environment for entering dense texts through pacing, sound, and curated imagery.</p>
-              <p>The goal is not passive consumption, but a designed reading session. Audio, visual, and textual streams are coordinated to create a focused browser-based experience.</p>
+              <h2 class="section-title">What RISE is</h2>
+              <p>RISE is an audiovisual reader: a place to read dense texts with pacing, sound, and chosen images around the words.</p>
+              <p>A reading is a designed session rather than a scroll. Sound, images, and text are timed together, in your browser.</p>
             </section>
-            
+
             <section class="guide-section">
-              <h2 class="section-title">02 / The Workflow</h2>
-              <div class="workflow-steps">
+              <h2 class="section-title">Where things are</h2>
+              <dl class="workflow-steps">
                 <div class="step">
-                  <span class="step-num">Ⅰ</span>
-                  <div class="step-body">
-                    <strong>The Portal</strong>
-                    <p>The entry point. Stillness before engagement. Use the sigil for quick access to your last state.</p>
-                  </div>
+                  <dt>Home</dt>
+                  <dd>Ask Jev for a reading, or continue the last one when there is one.</dd>
                 </div>
                 <div class="step">
-                  <span class="step-num">Ⅱ</span>
-                  <div class="step-body">
-                    <strong>The Library</strong>
-                    <p>The repository of source material. Browse curated texts and external archives to find your focus.</p>
-                  </div>
+                  <dt>Library</dt>
+                  <dd>Works in named editions, texts written for RISE, and files you keep on this device.</dd>
                 </div>
                 <div class="step">
-                  <span class="step-num">Ⅲ</span>
-                  <div class="step-body">
-                    <strong>The Workshop</strong>
-                    <p>Where content is transformed. Synthesize multiple sources into a unified sequence. Configure pacing and curves.</p>
-                  </div>
+                  <dt>Compose</dt>
+                  <dd>Combine text sources, set the reading pace and visuals, then save your composition.</dd>
                 </div>
                 <div class="step">
-                  <span class="step-num">Ⅳ</span>
-                  <div class="step-body">
-                    <strong>The Chamber</strong>
-                    <p>The space of the session. Fine-tune the preparation (Orbital) before descending into the reading (Immersion). A chip in the corner returns you to wherever you launched from.</p>
-                  </div>
+                  <dt>Reader</dt>
+                  <dd>Readings open here. Some start right away; others let you adjust pace and visuals first. Leaving returns you to where you opened the reading.</dd>
                 </div>
                 <div class="step">
-                  <span class="step-num">Ⅴ</span>
-                  <div class="step-body">
-                    <strong>The Vault &amp; Keystones</strong>
-                    <p>Two faster doors. The Vault holds sequences you can enter; Keystones are finished readings, each bound to one exact edition, that you can enter without preparing anything.</p>
-                  </div>
+                  <dt>Sequences</dt>
+                  <dd>Sequences are prepared readings. Try RISE opens three sample readings without a setup step.</dd>
                 </div>
                 <div class="step">
-                  <span class="step-num">Ⅵ</span>
-                  <div class="step-body">
-                    <strong>The Chapel</strong>
-                    <p>Scripture, read as an act. The Douay-Rheims in seventy-three books, with the Rosary and the Stations of the Cross prayed at a measured pace alongside sacred art shown under verified rights.</p>
-                  </div>
+                  <dt>Chapel</dt>
+                  <dd>Read the Douay-Rheims Bible, or follow a Rosary or Stations session with sacred art.</dd>
                 </div>
-              </div>
+              </dl>
             </section>
-            
+
             <section class="guide-section">
-              <h2 class="section-title">03 / Interface Mechanics</h2>
-              <ul class="mechanics-list">
-                <li><strong>WPM (Words Per Minute):</strong> Controls the baseline speed of information delivery.</li>
-                <li><strong>Temporal Curves:</strong> Modulates the speed over time (e.g., <em>Induction</em> starts slow, <em>Wave</em> pulses).</li>
-                <li><strong>Visual Modes:</strong> Choose the field around the text — a still <em>Focal</em> glyph, a continuously orbiting strange <em>Attractor</em> (Aizawa, Thomas, Halvorsen), or <em>Rhythmic</em> visual interruptions drawn from procedural patterns and museum collections.</li>
-                <li><strong>Living Response:</strong> Optionally let the text conduct the visuals — its emotional arc tints the text stream (<em>Living Text</em>) and shapes the timing, pattern, and palette of interruptions (<em>Responsive Presence</em>).</li>
-                <li><strong>Layered Audio:</strong> Configurable tones, drones, and atmosphere layers for session ambience.</li>
-              </ul>
+              <h2 class="section-title">Reading controls</h2>
+              <dl class="mechanics-list">
+                <div><dt>Speed</dt><dd>Words per minute sets the baseline pace.</dd></div>
+                <div><dt>Pace curve</dt><dd>Changes the speed over time: <em>Induction</em> starts slow, <em>Wave</em> rises and falls.</dd></div>
+                <div><dt>Visuals</dt><dd>The field around the text: a still <em>Focal</em> image, an orbiting <em>Attractor</em> (Aizawa, Thomas, Halvorsen), or <em>Rhythmic</em> interruptions drawn from patterns and museum collections.</dd></div>
+                <div><dt>Living response</dt><dd>Optionally let the text lead the visuals: its emotional arc tints the words (<em>Living Text</em>) and shapes the timing and palette of interruptions (<em>Responsive Presence</em>).</dd></div>
+                <div><dt>Sound</dt><dd>Tones, drones, and ambient layers you can set for each session.</dd></div>
+              </dl>
             </section>
-            
+
             <section class="guide-section">
-              <h2 class="section-title">04 / Keyboard Protocols</h2>
-              <div class="shortcuts-grid">
-                <div class="shortcut"><kbd>ESC</kbd> <span>Return to safety (Portal)</span></div>
-                <div class="shortcut"><kbd>SPACE</kbd> <span>Pause / Resume session</span></div>
-                <div class="shortcut"><kbd>↑/↓</kbd> <span>Adjust WPM (In-Chamber)</span></div>
-              </div>
+              <h2 class="section-title">Keyboard shortcuts</h2>
+              <dl class="shortcuts-grid">
+                <div class="shortcut"><dt><kbd>Esc</kbd></dt><dd>Go back Home</dd></div>
+                <div class="shortcut"><dt><kbd>Space</kbd></dt><dd>Pause or resume the reading</dd></div>
+                <div class="shortcut"><dt><kbd>↑</kbd> <kbd>↓</kbd></dt><dd>Change reading speed in the Reader</dd></div>
+              </dl>
             </section>
           </div>
-          
+
           <footer class="guide-footer">
-            <p>For deep heritage, consult the <a href="/liminal_archive.html" target="_blank">Oracular Archive</a>.</p>
-            <div class="guide-footer-sigil">◈</div>
+            <p>For deep heritage, consult the <a href="/liminal_archive.html" target="_blank" rel="noopener">Oracular Archive</a>.</p>
           </footer>
         </div>
       </div>
@@ -135,6 +114,8 @@ export class Guide {
       }
     };
     document.addEventListener('keydown', this._keyboardHandler);
+    // Focus starts inside the dialog, on its one control.
+    closeBtn.focus({ preventScroll: true });
   }
 
   destroy() {

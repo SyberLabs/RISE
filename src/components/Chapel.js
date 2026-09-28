@@ -27,6 +27,7 @@ import {
 import { CHAPEL_ICONS } from '../content/chapel/imagery/icons.js';
 import { REMOTE_IMAGE_ATTRS } from '../visuals/remote-image.js';
 import { MYSTERY_SETS, mysterySetForDate } from '../content/chapel/liturgy/rosary.js';
+import { roomHeader, roomEyebrow, roomIcon } from './room-chrome.js';
 import './Chapel.css';
 import { USER_DATA_KEYS } from '../core/user-data-keys.js';
 
@@ -99,18 +100,13 @@ export class Chapel {
     this.container.innerHTML = `
       <main class="chapel" aria-labelledby="chapel-title">
         <div class="chapel-scroll">
+          ${roomHeader({ back: 'Home', backClass: 'chapel-back' })}
           <div class="chapel-inner">
             <header class="chapel-header">
-              <div class="chapel-heading-row">
-                <button class="btn-ghost chapel-back" data-action="back">
-                  <span aria-hidden="true">←</span>
-                  <span>Portal</span>
-                </button>
-                <div class="chapel-heading">
-                  <p class="chapel-kicker font-mono">SCRIPTURE · ${escapeHtml(CHAPEL_TRANSLATION.name.toUpperCase())} · ${escapeHtml(CHAPEL_TRANSLATION.edition.toUpperCase())}</p>
-                  <h1 id="chapel-title">The Chapel</h1>
-                  <p class="chapel-deck">${CHAPEL_BOOKS.length} books, read slowly. Choose one; a chapter becomes the session.</p>
-                </div>
+              <div class="chapel-heading">
+                ${roomEyebrow(`SCRIPTURE · ${escapeHtml(CHAPEL_TRANSLATION.name.toUpperCase())} · ${escapeHtml(CHAPEL_TRANSLATION.edition.toUpperCase())}`, 'chapel-kicker')}
+                <h1 id="chapel-title" class="room-title">The Chapel</h1>
+                <p class="chapel-deck room-deck">${CHAPEL_BOOKS.length} books, read slowly. Choose one; a chapter becomes the session.</p>
               </div>
             </header>
 
@@ -123,7 +119,7 @@ export class Chapel {
             </div>
 
             <footer class="chapel-footer">
-              <p class="chapel-provenance font-mono">
+              <p class="chapel-provenance">
                 ${escapeHtml(CHAPEL_TRANSLATION.name)} · ${escapeHtml(CHAPEL_TRANSLATION.edition)} —
                 public domain · <a href="${escapeHtml(CHAPEL_TRANSLATION.sourceUrl)}" target="_blank" rel="noopener">${escapeHtml(CHAPEL_TRANSLATION.source)}</a>
               </p>
@@ -152,13 +148,13 @@ export class Chapel {
       >
         <img class="chapel-icon-thumb" src="${escapeHtml(icon.image)}" alt="" loading="lazy" decoding="async" ${REMOTE_IMAGE_ATTRS} />
         <span class="chapel-icon-name">${escapeHtml(icon.name)}</span>
-        <span class="chapel-icon-origin font-mono">${escapeHtml(icon.origin)} · ${escapeHtml(icon.date.split(',')[0])}</span>
+        <span class="chapel-icon-origin">${escapeHtml(icon.origin)} · ${escapeHtml(icon.date.split(',')[0])}</span>
       </button>
     `).join('');
 
     return `
       <section class="chapel-icon-section" aria-label="Icon focal">
-        <h3 class="chapel-grouping-title font-mono">The Icon</h3>
+        <h2 class="chapel-section-title">The icon</h2>
         <p class="chapel-icon-hint">A written image held at the center of the reading. Choose one, or read with each book’s own imagery.</p>
         <div class="chapel-icon-row">
           <button
@@ -166,9 +162,9 @@ export class Chapel {
             data-icon-id=""
             aria-pressed="${this.iconId === null ? 'true' : 'false'}"
           >
-            <span class="chapel-icon-none-mark" aria-hidden="true">—</span>
+            <span class="chapel-icon-none-mark" aria-hidden="true">${roomIcon('none', 24)}</span>
             <span class="chapel-icon-name">None</span>
-            <span class="chapel-icon-origin font-mono">each book’s own imagery</span>
+            <span class="chapel-icon-origin">Each book’s own imagery</span>
           </button>
           <button
             class="chapel-icon-option chapel-icon-rose${this.iconId === 'rosa-mystica' ? ' chapel-icon-selected' : ''}"
@@ -176,9 +172,9 @@ export class Chapel {
             aria-pressed="${this.iconId === 'rosa-mystica' ? 'true' : 'false'}"
             title="A procedural Gothic rose window — backlit glass held behind the reading. The wisdom books and epistles read under it by default."
           >
-            <span class="chapel-icon-none-mark chapel-rose-mark" aria-hidden="true">✾</span>
+            <span class="chapel-icon-none-mark chapel-rose-mark" aria-hidden="true">${roomIcon('rose', 32)}</span>
             <span class="chapel-icon-name">Rosa Mystica</span>
-            <span class="chapel-icon-origin font-mono">procedural rose window</span>
+            <span class="chapel-icon-origin">Procedural rose window</span>
           </button>
           ${options}
         </div>
@@ -197,13 +193,13 @@ export class Chapel {
           : `${escapeHtml(book.name)} — choose from ${book.chapters} chapters`}"
       >
         <span class="chapel-book-name">${escapeHtml(book.name)}</span>
-        <span class="chapel-book-meta font-mono">${book.chapters} ch</span>
+        <span class="chapel-book-meta">${book.chapters} ch</span>
       </button>
     `).join('');
 
     return `
       <div class="chapel-grouping">
-        <h3 class="chapel-grouping-title font-mono">${escapeHtml(grouping.name)}</h3>
+        <h3 class="chapel-grouping-title">${escapeHtml(grouping.name)}</h3>
         <div class="chapel-grouping-books">${books}</div>
       </div>
     `;
@@ -219,24 +215,22 @@ export class Chapel {
     const dayName = new Date().toLocaleDateString('en-US', { weekday: 'long' });
     return `
       <section class="chapel-rosarium" aria-label="Devotions">
-        <h3 class="chapel-grouping-title font-mono">Devotions</h3>
+        <h2 class="chapel-section-title">Devotions</h2>
         <button class="chapel-rosarium-door" data-mystery-set="${escapeHtml(todaySetId)}"
           aria-label="Enter the Rosarium — ${escapeHtml(dayName)} keeps ${escapeHtml(MYSTERY_SETS[todaySetId].name.toLowerCase())}">
-          <span class="chapel-rosarium-glyph" aria-hidden="true">📿</span>
           <span class="chapel-rosarium-body">
             <span class="chapel-rosarium-name">The Rosarium</span>
             <span class="chapel-rosarium-detail">${escapeHtml(dayName)} keeps ${escapeHtml(MYSTERY_SETS[todaySetId].name.toLowerCase())}</span>
           </span>
-          <span class="chapel-rosarium-enter" aria-hidden="true">enter ›</span>
+          <span class="chapel-rosarium-enter" aria-hidden="true">${roomIcon('forward')}</span>
         </button>
         <button class="chapel-rosarium-door" data-via-door="true"
           aria-label="Enter the Stations of the Cross">
-          <span class="chapel-rosarium-glyph" aria-hidden="true">✝</span>
           <span class="chapel-rosarium-body">
             <span class="chapel-rosarium-name">The Stations of the Cross</span>
-            <span class="chapel-rosarium-detail">fourteen stations, walked as a nave is walked — Tiepolo's Via Crucis</span>
+            <span class="chapel-rosarium-detail">Fourteen stations, walked as a nave is walked — Tiepolo's Via Crucis</span>
           </span>
-          <span class="chapel-rosarium-enter" aria-hidden="true">enter ›</span>
+          <span class="chapel-rosarium-enter" aria-hidden="true">${roomIcon('forward')}</span>
         </button>
       </section>
     `;
@@ -264,7 +258,7 @@ export class Chapel {
     return `
       <div class="chapel-chapter-panel" data-chapter-panel="${escapeHtml(book.id)}">
         <div class="chapel-chapter-head">
-          <span class="chapel-chapter-title font-mono">${escapeHtml(book.name)} · ${book.chapters} ${noun.toLowerCase()}${book.chapters === 1 ? '' : 's'}</span>
+          <span class="chapel-chapter-title">${escapeHtml(book.name)} · ${book.chapters} ${noun.toLowerCase()}${book.chapters === 1 ? '' : 's'}</span>
           <button class="chapel-read-all" data-book-id="${escapeHtml(book.id)}" data-whole-book="true">
             Read the whole book
           </button>
@@ -384,7 +378,10 @@ export class Chapel {
     };
     try {
       Promise.resolve(this.onLaunchReading(bookId, chapter, { iconId: this.iconId }))
-        .finally(release);
+        .then(release, error => {
+          release();
+          console.error('[Chapel] Failed to launch reading:', error);
+        });
     } catch (error) {
       release();
       throw error;

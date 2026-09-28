@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './fixtures.js';
 
 const GATE = {
   code: 'rise2025',
@@ -75,6 +75,7 @@ async function openPrep(page, viewport, prefs = PREFS) {
   await page.goto('/');
   await page.locator('[data-nav="chamber"]').first().click();
   await expect(page.locator('#begin-btn')).toBeEnabled({ timeout: 15_000 });
+  { const adjust = page.locator('[data-action="toggle-adjust"]'); if (await adjust.getAttribute('aria-expanded') === 'false') await adjust.click(); }
   await page.locator('[data-orbit="visual"]').click();
   await expect(page.locator('.vnav')).toBeVisible();
   await openRootNode(page, 'size');
@@ -746,7 +747,7 @@ test('material controls explain locked masks, transact Thick + Fit, and preserve
   // Browsers dispatch pointer events to aria-disabled controls; Playwright
   // suppresses them unless forced. This choice must remain explanatory.
   await page.locator('[data-word-fill="same"]').click({ force: true });
-  const dialog = page.locator('[role="dialog"]');
+  const dialog = page.locator('.vnav-dialog');
   // The refusal names the condition that is ACTUALLY missing. Fit is already
   // set and the field is a Gallery (Turrell), so the face is the only thing
   // standing in the way — and the Gallery must survive the remedy rather than

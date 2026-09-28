@@ -79,12 +79,12 @@ describe('Chamber Living Text integration', () => {
 
     it('derives Accent Living Text from the current accent token without losing its dominant hue', () => {
         const base = [60, 97, 170];
-        document.documentElement.style.setProperty('--color-accent-rgb', base.join(', '));
         const { chamber, container } = makeChamber(makeSession(
             Array(8).fill('love joy light beautiful'),
             { enabled: true },
             { mode: 'accent' }
         ));
+        container.style.setProperty('--color-accent-rgb', base.join(', '));
 
         chamber.displayAtom(chamber.session.atoms[4], 4);
         const rgb = parseRgb(container.querySelector('#atom-display').style.color);
@@ -92,6 +92,24 @@ describe('Chamber Living Text integration', () => {
         expect(rgb[2]).toBeGreaterThan(rgb[1]);
         expect(rgb[1]).toBeGreaterThan(rgb[0]);
         expect(rgb.every((channel, index) => Math.abs(channel - base[index]) <= 96)).toBe(true);
+
+        chamber.destroy();
+        container.remove();
+    });
+
+    it('uses a session-scoped Jev accent instead of the site accent', () => {
+        document.documentElement.style.setProperty('--color-accent-rgb', '200, 160, 100');
+        const { chamber, container } = makeChamber(makeSession(
+            Array(8).fill('love joy light beautiful'),
+            { enabled: true },
+            { mode: 'accent' }
+        ));
+        container.style.setProperty('--color-accent-rgb', '232, 75, 255');
+
+        chamber.displayAtom(chamber.session.atoms[4], 4);
+        const [r, g, b] = parseRgb(container.querySelector('#atom-display').style.color);
+        expect(b).toBeGreaterThan(g);
+        expect(r).toBeGreaterThan(g);
 
         chamber.destroy();
         container.remove();

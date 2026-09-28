@@ -6,7 +6,7 @@
  * contract that prevents independent HTML/SVG font rounding from separating
  * the outline from the image-filled word.
  */
-import { test, expect } from '@playwright/test';
+import { test, expect } from './fixtures.js';
 
 const GATE = { code: 'rise2025', name: 'Align', vault: null, timestamp: Date.now() };
 const SEED = { text: 'At the treacherous dream descended upon the host. '.repeat(8).trim(), textSource: 'Iliad', origin: null };

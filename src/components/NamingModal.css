@@ -1,170 +1,232 @@
 /* ═══════════════════════════════════════════════════════════
-   RISE — Naming Modal
-   Premium Asset Labeling Interface
+   RISE — System dialog
+   The naming prompt, and every Compose prompt that borrows its classes
+   (Import score, Paste, Import refused). SyberLabs system: surface panel,
+   1px hairline, radius 8, the one overlay shadow, 44px controls.
    ═══════════════════════════════════════════════════════════ */
 
 .naming-modal-overlay {
-  --modal-bg: var(--color-void, var(--void, #0A0A0C));
-  --modal-depth: var(--color-depth, var(--void-surface, #1A1A1E));
-  --modal-accent: var(--color-accent);
-  --modal-text: var(--color-light, var(--glow, #E8E8EC));
-  --modal-shadow: var(--color-shadow, var(--void-elevated, #2A2A30));
-  
   position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(10, 10, 12, 0.85); 
-  backdrop-filter: blur(8px);
-  z-index: 10000;
+  inset: 0;
+  z-index: 20000;
   display: flex;
   align-items: center;
   justify-content: center;
-  opacity: 0;
-  animation: naming-modal-fade-in 0.3s forwards cubic-bezier(0.2, 0, 0.2, 1);
+  padding: var(--sy-space-4);
+  background: rgba(5, 6, 10, 0.72);
+  animation: naming-modal-in var(--sy-dur-enter) var(--sy-ease) both;
 }
 
 .naming-modal {
-  width: 100%;
-  max-width: 440px;
-  background: rgba(26, 26, 30, 0.7);
-  border: 1px solid rgba(var(--color-accent-rgb), 0.4);
-  box-shadow: 0 0 40px rgba(0, 0, 0, 0.6), 0 0 100px rgba(var(--color-accent-rgb), 0.1);
-  padding: var(--space-xl, 48px);
-  transform: translateY(20px) scale(0.98);
-  animation: naming-modal-slide-up 0.4s forwards cubic-bezier(0.16, 1, 0.3, 1);
+  box-sizing: border-box;
   display: flex;
   flex-direction: column;
-  gap: var(--space-lg, 32px);
-  position: relative;
-  overflow: hidden;
+  gap: var(--sy-space-5);
+  width: 100%;
+  max-width: 480px;
+  max-height: calc(100svh - 2 * var(--sy-space-4));
+  overflow-y: auto;
+  padding: var(--sy-space-6);
+  background: var(--sy-surface);
+  border: 1px solid var(--sy-line);
+  border-radius: var(--sy-radius-panel);
+  box-shadow: var(--sy-shadow-overlay);
+  color: var(--sy-text);
+  font-family: var(--sy-font-sans);
+  animation: naming-modal-rise var(--sy-dur-enter) var(--sy-ease) both;
 }
 
-/* Glassmorphic Sheen */
-.naming-modal::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: -100%;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(
-    90deg, 
-    transparent, 
-    rgba(255, 255, 255, 0.05), 
-    transparent
-  );
-  animation: naming-modal-sheen 8s infinite linear;
+.naming-modal-wide {
+  max-width: 640px;
 }
 
 .naming-modal-header {
   display: flex;
   flex-direction: column;
-  gap: var(--space-xs);
+  gap: var(--sy-space-2);
+}
+
+.naming-modal-eyebrow {
+  font: 500 12px/16px var(--sy-font-mono);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--sy-text-3);
 }
 
 .naming-modal-title {
-  font-family: var(--font-display, serif);
-  font-size: 24px;
-  color: var(--modal-text);
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
+  margin: 0;
+  font-family: var(--sy-font-serif);
+  font-weight: 400;
+  font-size: 32px;
+  line-height: 36px;
+  letter-spacing: -0.01em;
+  color: var(--sy-text);
+}
+
+/* A title that carries a status: icon + word, never colour alone. */
+.naming-modal-status {
+  display: flex;
+  align-items: center;
+  gap: var(--sy-space-3);
+}
+
+.naming-modal-status svg {
+  flex: none;
+  color: var(--sy-danger);
 }
 
 .naming-modal-subtitle {
-  font-family: var(--font-primary, sans-serif);
-  font-size: 12px;
-  color: var(--color-fog, #999);
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
+  margin: calc(var(--sy-space-3) * -1) 0 0;
+  font-size: 16px;
+  line-height: 24px;
+  color: var(--sy-text-2);
 }
 
 .naming-modal-body {
   display: flex;
   flex-direction: column;
-  gap: var(--space-sm);
+  gap: var(--sy-space-2);
 }
 
-.naming-modal-input {
+.naming-modal-label {
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 500;
+  color: var(--sy-text);
+}
+
+.naming-modal-input,
+.naming-modal-code {
+  box-sizing: border-box;
   width: 100%;
-  background: rgba(10, 10, 12, 0.5);
-  border: 1px solid var(--modal-shadow);
-  color: var(--modal-text);
-  font-family: var(--font-primary, sans-serif);
-  font-size: 16px;
-  padding: var(--space-md, 24px);
-  outline: none;
-  transition: all 0.2s ease;
-  border-radius: 2px;
+  min-height: var(--sy-control-height);
+  padding: 10px var(--sy-space-4);
+  background: var(--sy-bg);
+  border: 1px solid var(--sy-line-strong);
+  border-radius: var(--sy-radius);
+  color: var(--sy-text);
+  font: 400 16px/24px var(--sy-font-sans);
+  transition: border-color var(--sy-dur-hover) var(--sy-ease);
 }
 
-.naming-modal-input:focus {
-  border-color: var(--modal-accent);
-  background: rgba(var(--color-accent-rgb), 0.05);
-  box-shadow: 0 0 15px rgba(var(--color-accent-rgb), 0.2);
+.naming-modal-code {
+  min-height: 224px;
+  padding: var(--sy-space-3) var(--sy-space-4);
+  resize: vertical;
+  font: 400 13px/20px var(--sy-font-mono);
+}
+
+.naming-modal-code[readonly] {
+  color: var(--sy-text-2);
+}
+
+.naming-modal-input::placeholder,
+.naming-modal-code::placeholder {
+  color: var(--sy-text-3);
+}
+
+.naming-modal-input:focus,
+.naming-modal-code:focus {
+  border-color: var(--sy-brand);
+  outline: none;
+}
+
+.naming-modal-input:focus-visible,
+.naming-modal-code:focus-visible {
+  outline: var(--sy-focus);
+  outline-offset: 2px;
 }
 
 .naming-modal-actions {
   display: flex;
+  flex-wrap: wrap;
   justify-content: flex-end;
-  gap: var(--space-md);
-  margin-top: var(--space-md);
+  gap: var(--sy-space-3);
+  padding-top: var(--sy-space-2);
 }
 
-.naming-btn {
-  font-family: var(--font-primary, sans-serif);
-  font-size: 12px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  padding: 12px 24px;
-  cursor: pointer;
-  transition: all 0.2s ease;
+/* Buttons: the prompt's own and the design-system ones it borrows. */
+.naming-btn,
+.naming-modal-actions .btn-primary,
+.naming-modal-actions .btn-secondary,
+.naming-modal-actions .btn-ghost {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: var(--sy-control-height);
+  padding: 0 20px;
   border: 1px solid transparent;
+  border-radius: var(--sy-radius-full);
+  font: 500 16px/24px var(--sy-font-sans);
+  cursor: pointer;
+  transition: background-color var(--sy-dur-hover) var(--sy-ease),
+    border-color var(--sy-dur-hover) var(--sy-ease),
+    color var(--sy-dur-hover) var(--sy-ease);
 }
 
-.naming-btn-cancel {
+.naming-btn-submit,
+.naming-modal-actions .btn-primary {
+  background: var(--sy-text);
+  background-image: var(--sy-primary-fill);
+  box-shadow: var(--sy-primary-glow);
+  border-color: transparent;
+  color: var(--sy-on-primary);
+}
+
+.naming-btn-submit:hover,
+.naming-modal-actions .btn-primary:hover {
+  box-shadow: var(--sy-primary-glow-hover);
+}
+
+.naming-modal-actions .btn-secondary {
   background: transparent;
-  color: var(--color-fog, #999);
-  border: 1px solid var(--modal-shadow);
+  border-color: var(--sy-line-strong);
+  color: var(--sy-text);
 }
 
-.naming-btn-cancel:hover {
-  background: rgba(255, 255, 255, 0.05);
-  color: var(--color-cloud, #CCC);
-  border-color: var(--color-mist, #666);
+.naming-modal-actions .btn-secondary:hover {
+  background: var(--sy-surface-2);
 }
 
-.naming-btn-submit {
-  background: rgba(var(--color-accent-rgb), 0.2);
-  color: var(--color-glow, white);
-  border-color: var(--modal-accent);
+.naming-btn-cancel,
+.naming-modal-actions .btn-ghost {
+  background: transparent;
+  color: var(--sy-text-2);
 }
 
-.naming-btn-submit:hover {
-  background: rgba(var(--color-accent-rgb), 0.4);
-  box-shadow: 0 0 20px rgba(var(--color-accent-rgb), 0.3);
-  transform: translateY(-1px);
+.naming-btn-cancel:hover,
+.naming-modal-actions .btn-ghost:hover {
+  color: var(--sy-text);
 }
 
-.naming-btn-submit:active {
-  transform: translateY(0);
+.naming-btn:focus-visible,
+.naming-modal-actions button:focus-visible {
+  outline: var(--sy-focus);
+  outline-offset: 2px;
 }
 
-/* Animations */
-@keyframes naming-modal-fade-in {
+@keyframes naming-modal-in {
   from { opacity: 0; }
   to { opacity: 1; }
 }
 
-@keyframes naming-modal-slide-up {
-  from { transform: translateY(20px) scale(0.98); }
-  to { transform: translateY(0) scale(1); }
+@keyframes naming-modal-rise {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: none; }
 }
 
-@keyframes naming-modal-sheen {
-  0% { left: -100%; }
-  20% { left: 100%; }
-  100% { left: 100%; }
+@media (max-width: 640px) {
+  .naming-modal {
+    padding: var(--sy-space-5);
+  }
+
+  .naming-modal-actions > * {
+    flex: 1 1 auto;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .naming-modal {
+    animation: naming-modal-in var(--sy-dur-enter) linear both;
+  }
 }

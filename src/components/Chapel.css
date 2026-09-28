@@ -1,497 +1,404 @@
 /**
- * The Chapel — quiet, candlelit register.
- * The accent is ember gold (a sanctuary lamp, not a spotlight); the
- * layout is a single reading column. No cards competing for attention:
- * groupings are typographic, books are a soft list.
+ * The Chapel — Scripture, read slowly, inside the SyberLabs frame.
+ * One reading column, hairlines not boxes. The RISE accent appears only
+ * as the identity dot and the last-read marker; selection is brand blue.
  */
 
 .chapel {
   /* The app body is overflow:hidden (the Chamber's design); scrolling
-     lives inside the view, same pattern as the Atrium: fixed-height
-     shell, scrolling interior. */
+     lives inside the view: fixed-height shell, scrolling interior. */
   height: 100vh;
+  height: 100dvh;
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  background: var(--sy-bg);
+  color: var(--sy-text);
+  font-family: var(--sy-font-sans);
 }
 
 .chapel-scroll {
   flex: 1;
   overflow-y: auto;
   scrollbar-width: thin;
-  scrollbar-color: var(--color-shadow) transparent;
+  scrollbar-color: var(--sy-line) transparent;
 }
 
 .chapel-inner {
   max-width: 880px;
   margin: 0 auto;
-  min-height: 100%;
-  padding: var(--space-xl) var(--space-lg) var(--space-2xl);
+  padding: var(--sy-space-8) var(--sy-space-8) var(--sy-space-9);
   display: flex;
   flex-direction: column;
-  gap: var(--space-xl);
+  gap: var(--sy-space-8);
 }
 
 /* ─── Header ─── */
 
-.chapel-header {
-  padding-top: var(--space-lg);
-}
-
-.chapel-heading-row {
+.chapel-heading {
   display: flex;
-  align-items: flex-start;
-  gap: var(--space-lg);
+  flex-direction: column;
 }
 
-.chapel-back {
-  flex-shrink: 0;
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-xs);
-  color: var(--color-fog);
-  margin-top: 4px;
+/* ─── Section titles (The icon, Devotions, Testaments) ─── */
+
+.chapel-section-title {
+  margin: 0 0 var(--sy-space-2);
+  font-family: var(--sy-font-sans);
+  font-size: 18px;
+  line-height: 28px;
+  font-weight: 600;
+  color: var(--sy-text);
 }
 
-.chapel-back:hover {
-  color: var(--color-light);
-}
-
-.chapel-kicker {
-  font-size: 10px;
-  letter-spacing: 0.14em;
-  color: var(--color-ember);
-  opacity: 0.85;
-  margin: 0 0 var(--space-xs);
-}
-
-.chapel-heading h1 {
-  font-size: 28px;
-  font-weight: 300;
-  letter-spacing: 0.04em;
-  color: var(--color-light);
-  margin: 0 0 var(--space-xs);
-}
-
-.chapel-deck {
-  color: var(--color-fog);
-  font-size: 14px;
-  margin: 0;
-}
-
-/* ─── The Icon — focal choice ─── */
+/* ─── The icon — focal choice ─── */
 
 .chapel-icon-section {
-  border: 1px solid rgba(212, 165, 116, 0.16);
-  border-radius: 4px;
-  background: rgba(212, 165, 116, 0.025);
-  padding: var(--space-md);
+  padding-top: var(--sy-space-6);
+  border-top: 1px solid var(--sy-line);
 }
 
 .chapel-icon-hint {
-  color: var(--color-fog);
-  font-size: 12.5px;
-  margin: 0 0 var(--space-md);
+  max-width: 60ch;
+  margin: 0 0 var(--sy-space-5);
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--sy-text-2);
 }
 
 .chapel-icon-row {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
-  gap: var(--space-sm);
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: var(--sy-space-5) var(--sy-space-4);
 }
 
 .chapel-icon-option {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 6px;
+  align-items: flex-start;
+  gap: var(--sy-space-2);
+  min-height: var(--sy-control-height);
+  padding: 0;
   background: transparent;
-  border: 1px solid var(--color-shadow);
-  border-radius: 4px;
-  padding: var(--space-sm);
+  border: 0;
+  border-radius: var(--sy-radius);
   cursor: pointer;
-  text-align: center;
-  transition: border-color 300ms var(--ease-out), background 300ms var(--ease-out);
+  text-align: left;
+  font-family: inherit;
 }
 
-.chapel-icon-option:hover,
-.chapel-icon-option:focus-visible {
-  border-color: rgba(212, 165, 116, 0.5);
-  background: rgba(212, 165, 116, 0.05);
-}
-
-.chapel-icon-selected {
-  border-color: var(--color-ember);
-  background: rgba(212, 165, 116, 0.08);
-  box-shadow: 0 0 24px rgba(212, 165, 116, 0.10);
+.chapel-icon-thumb,
+.chapel-icon-none-mark {
+  width: 100%;
+  aspect-ratio: 3 / 4;
+  height: auto;
+  border-radius: var(--sy-radius);
+  outline: 1px solid var(--sy-line);
+  outline-offset: 0;
+  transition: outline-color var(--sy-dur-hover) var(--sy-ease);
 }
 
 .chapel-icon-thumb {
-  width: 72px;
-  height: 96px;
   object-fit: cover;
   object-position: top center;
-  border-radius: 2px;
-  opacity: 0.9;
+  background: var(--sy-surface);
 }
 
 .chapel-icon-none-mark {
-  width: 72px;
-  height: 96px;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--color-mist);
-  font-size: 20px;
-  border: 1px dashed var(--color-shadow);
-  border-radius: 2px;
+  background: var(--sy-surface);
+  color: var(--sy-text-3);
 }
 
 .chapel-rose-mark {
-  color: var(--color-ember);
-  font-size: 30px;
-  border-style: solid;
-  border-color: rgba(212, 165, 116, 0.35);
+  color: var(--sy-text-2);
+}
+
+.chapel-icon-option:hover .chapel-icon-thumb,
+.chapel-icon-option:hover .chapel-icon-none-mark {
+  outline-color: var(--sy-line-strong);
+}
+
+.chapel-icon-selected .chapel-icon-thumb,
+.chapel-icon-selected .chapel-icon-none-mark,
+.chapel-icon-selected:hover .chapel-icon-thumb,
+.chapel-icon-selected:hover .chapel-icon-none-mark {
+  outline: 2px solid var(--sy-brand);
 }
 
 .chapel-icon-name {
-  color: var(--color-cloud);
-  font-size: 13px;
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 500;
+  color: var(--sy-text);
 }
 
 .chapel-icon-origin {
-  color: var(--color-mist);
-  font-size: 9.5px;
-  letter-spacing: 0.06em;
+  margin-top: calc(-1 * var(--sy-space-2));
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--sy-text-3);
 }
 
-/* ─── The Rosarium ─── */
+/* ─── Devotions: Rosarium and Stations ─── */
 
-.chapel-rosarium {
-  border: 1px solid rgba(212, 165, 116, 0.16);
-  border-radius: 4px;
-  background: rgba(212, 165, 116, 0.025);
-  padding: var(--space-md);
-}
-
-/* Each devotion is its own destination: a bordered card in the same
-   language as the icon options, separated by a quiet gap */
 .chapel-rosarium {
   display: flex;
   flex-direction: column;
-  gap: var(--space-sm);
+  padding-top: var(--sy-space-6);
+  border-top: 1px solid var(--sy-line);
 }
 
-.chapel-rosarium .chapel-grouping-title {
-  margin-bottom: 2px;
+.chapel-rosarium .chapel-section-title {
+  margin-bottom: var(--sy-space-4);
 }
 
 .chapel-rosarium-door {
   display: flex;
   align-items: center;
-  gap: var(--space-md);
+  gap: var(--sy-space-4);
   width: 100%;
+  min-height: var(--sy-control-height);
+  padding: var(--sy-space-5) var(--sy-space-4);
   background: transparent;
-  border: 1px solid var(--color-shadow);
-  border-radius: 4px;
+  border: 0;
+  border-top: 1px solid var(--sy-line);
+  border-radius: 0;
+  color: inherit;
+  font-family: inherit;
   cursor: pointer;
-  padding: var(--space-sm) var(--space-md);
   text-align: left;
-  transition: border-color 300ms var(--ease-out), background 300ms var(--ease-out), transform 300ms var(--ease-out);
+  transition: background var(--sy-dur-hover) var(--sy-ease);
 }
 
-.chapel-rosarium-door:hover,
-.chapel-rosarium-door:focus-visible {
-  border-color: rgba(212, 165, 116, 0.5);
-  background: rgba(212, 165, 116, 0.05);
-  transform: translateX(3px);
+.chapel-rosarium-door:last-child {
+  border-bottom: 1px solid var(--sy-line);
 }
 
-.chapel-rosarium-glyph { font-size: 22px; }
+.chapel-rosarium-door:hover {
+  background: var(--sy-surface-2);
+}
 
-.chapel-rosarium-body { display: flex; flex-direction: column; gap: 2px; flex: 1; }
+.chapel-rosarium-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sy-space-1);
+}
 
-.chapel-rosarium-name { color: var(--color-light); font-size: 15px; }
+.chapel-rosarium-name {
+  font-size: 18px;
+  line-height: 28px;
+  font-weight: 600;
+  color: var(--sy-text);
+}
 
-.chapel-rosarium-detail { color: var(--color-fog); font-size: 12px; }
+.chapel-rosarium-detail {
+  font-size: 16px;
+  line-height: 24px;
+  color: var(--sy-text-2);
+}
 
 .chapel-rosarium-enter {
-  color: var(--color-ember);
-  font-size: 11px;
-  letter-spacing: 0.1em;
-  opacity: 0.7;
-  transition: opacity 300ms var(--ease-out);
+  color: var(--sy-text-3);
+  transition: transform var(--sy-dur-hover) var(--sy-ease), color var(--sy-dur-hover) var(--sy-ease);
 }
 
-.chapel-rosarium-door:hover .chapel-rosarium-enter { opacity: 1; }
-
-.chapel-mystery-row {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-  gap: var(--space-sm);
-  margin-bottom: var(--space-md);
+.chapel-rosarium-door:hover .chapel-rosarium-enter {
+  color: var(--sy-text);
+  transform: translateX(4px);
 }
 
-.chapel-mystery-card {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  background: transparent;
-  border: 1px solid var(--color-shadow);
-  border-radius: 4px;
-  padding: var(--space-md) var(--space-sm);
-  cursor: pointer;
-  text-align: center;
-  transition: border-color 300ms var(--ease-out), background 300ms var(--ease-out), box-shadow 300ms var(--ease-out);
-}
-
-.chapel-mystery-card:hover,
-.chapel-mystery-card:focus-visible {
-  border-color: rgba(212, 165, 116, 0.5);
-  background: rgba(212, 165, 116, 0.05);
-}
-
-/* The day's own mysteries glow softly — the calendar's gentle offer */
-.chapel-mystery-today {
-  border-color: rgba(212, 165, 116, 0.55);
-  background: rgba(212, 165, 116, 0.06);
-  box-shadow: 0 0 26px rgba(212, 165, 116, 0.10);
-}
-
-.chapel-mystery-name {
-  color: var(--color-light);
-  font-size: 14px;
-}
-
-.chapel-mystery-days {
-  color: var(--color-mist);
-  font-size: 9.5px;
-  letter-spacing: 0.06em;
-}
-
-.chapel-mystery-flame {
-  position: absolute;
-  top: 6px;
-  right: 8px;
-  color: var(--color-ember);
-  font-size: 10px;
-  opacity: 0.8;
-}
-
-.chapel-rosary-modes {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: var(--space-sm);
-}
-
-.chapel-rosary-mode {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  background: transparent;
-  border: 1px solid var(--color-shadow);
-  border-radius: 4px;
-  padding: var(--space-sm);
-  cursor: pointer;
-  text-align: left;
-  transition: border-color 250ms var(--ease-out), background 250ms var(--ease-out);
-}
-
-.chapel-rosary-mode:hover,
-.chapel-rosary-mode:focus-visible {
-  border-color: rgba(212, 165, 116, 0.45);
-}
-
-.chapel-rosary-mode-selected {
-  border-color: var(--color-ember);
-  background: rgba(212, 165, 116, 0.07);
-}
-
-.chapel-rosary-mode-name {
-  color: var(--color-cloud);
-  font-size: 13px;
-}
-
-.chapel-rosary-mode-selected .chapel-rosary-mode-name {
-  color: var(--color-light);
-}
-
-.chapel-rosary-mode-desc {
-  color: var(--color-mist);
-  font-size: 11px;
-}
-
-/* ─── Body ─── */
+/* ─── Body: the canon ─── */
 
 .chapel-body {
   display: flex;
   flex-direction: column;
-  gap: var(--space-2xl);
+  gap: var(--sy-space-7);
 }
 
 .chapel-testament-title {
-  font-size: 15px;
+  margin: 0 0 var(--sy-space-5);
+  padding-top: var(--sy-space-6);
+  border-top: 1px solid var(--sy-line);
+  font-family: var(--sy-font-serif);
+  font-size: 32px;
+  line-height: 36px;
   font-weight: 400;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--color-cloud);
-  margin: 0 0 var(--space-lg);
-  padding-bottom: var(--space-sm);
-  border-bottom: 1px solid var(--color-shadow);
+  letter-spacing: -0.01em;
+  color: var(--sy-text);
 }
 
-.chapel-grouping {
-  margin-bottom: var(--space-xl);
+.chapel-grouping + .chapel-grouping,
+.chapel-chapter-panel + .chapel-grouping {
+  margin-top: var(--sy-space-6);
 }
 
 .chapel-grouping-title {
-  font-size: 11px;
-  letter-spacing: 0.1em;
+  margin: 0 0 var(--sy-space-2);
+  font-family: var(--sy-font-mono);
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--color-mist);
-  margin: 0 0 var(--space-sm);
+  color: var(--sy-text-3);
 }
 
 .chapel-grouping-books {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
-  gap: var(--space-xs) var(--space-md);
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  column-gap: var(--sy-space-5);
 }
 
 .chapel-book {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   justify-content: space-between;
-  gap: var(--space-sm);
+  gap: var(--sy-space-3);
+  min-height: var(--sy-control-height);
+  padding: 0 var(--sy-space-3);
   background: transparent;
-  border: none;
-  border-left: 2px solid transparent;
-  border-radius: 2px;
-  padding: var(--space-xs) var(--space-sm);
+  border: 0;
+  border-bottom: 1px solid var(--sy-line);
+  border-radius: 0;
+  font-family: inherit;
   cursor: pointer;
   text-align: left;
-  transition: border-color 300ms var(--ease-out), background 300ms var(--ease-out);
+  transition: background var(--sy-dur-hover) var(--sy-ease);
 }
 
-.chapel-book:hover,
-.chapel-book:focus-visible {
-  border-left-color: var(--color-ember);
-  background: rgba(212, 165, 116, 0.06);
+.chapel-book:hover {
+  background: var(--sy-surface-2);
 }
 
 .chapel-book-name {
-  color: var(--color-cloud);
-  font-size: 14px;
-  transition: color 300ms var(--ease-out);
+  font-size: 16px;
+  line-height: 24px;
+  color: var(--sy-text-2);
+  transition: color var(--sy-dur-hover) var(--sy-ease);
 }
 
-.chapel-book:hover .chapel-book-name,
-.chapel-book:focus-visible .chapel-book-name {
-  color: var(--color-light);
+.chapel-book:hover .chapel-book-name {
+  color: var(--sy-text);
 }
 
 .chapel-book-meta {
-  color: var(--color-mist);
-  font-size: 10px;
-  letter-spacing: 0.05em;
+  font-family: var(--sy-font-mono);
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--sy-text-3);
   white-space: nowrap;
 }
 
-/* The last book read — a quiet warm mark, not a badge */
-.chapel-book-last {
-  border-left-color: rgba(212, 165, 116, 0.45);
+/* The last book read: the RISE marker dot, not a badge */
+.chapel-book-last .chapel-book-name::before {
+  content: '';
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  margin-right: var(--sy-space-2);
+  border-radius: var(--sy-radius-full);
+  background: var(--sy-accent-rise);
+  vertical-align: 1px;
 }
 
-/* The open book holds its ember edge while its chapters are shown */
+/* The open book holds a selected state while its chapters show */
 .chapel-book-open {
-  border-left-color: var(--color-ember);
-  background: rgba(212, 165, 116, 0.06);
+  background: var(--sy-surface-2);
+  box-shadow: inset 2px 0 0 var(--sy-brand);
 }
 
 .chapel-book-open .chapel-book-name {
-  color: var(--color-light);
+  color: var(--sy-text);
 }
 
 /* ─── Chapter panel ─── */
 
 .chapel-chapter-panel {
-  margin: var(--space-sm) 0 var(--space-md);
-  padding: var(--space-md);
-  border: 1px solid rgba(212, 165, 116, 0.18);
-  border-radius: 4px;
-  background: rgba(212, 165, 116, 0.03);
+  margin: var(--sy-space-4) 0 var(--sy-space-2);
+  padding: var(--sy-space-5) 0;
+  border-top: 1px solid var(--sy-line-strong);
+  border-bottom: 1px solid var(--sy-line);
 }
 
 .chapel-chapter-head {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   justify-content: space-between;
-  gap: var(--space-md);
-  margin-bottom: var(--space-sm);
+  flex-wrap: wrap;
+  gap: var(--sy-space-3);
+  margin-bottom: var(--sy-space-4);
 }
 
 .chapel-chapter-title {
-  font-size: 10px;
-  letter-spacing: 0.1em;
+  font-family: var(--sy-font-mono);
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--color-ember);
-  opacity: 0.85;
+  color: var(--sy-text-3);
 }
 
 .chapel-read-all {
+  display: inline-flex;
+  align-items: center;
+  height: var(--sy-control-height);
+  padding: 0 var(--sy-space-5);
   background: transparent;
-  border: none;
+  border: 1px solid var(--sy-line-strong);
+  border-radius: var(--sy-radius-full);
+  color: var(--sy-text);
+  font-family: inherit;
+  font-size: 16px;
+  font-weight: 500;
   cursor: pointer;
-  color: var(--color-fog);
-  font-size: 12px;
-  padding: 2px var(--space-xs);
-  text-decoration: underline;
-  text-underline-offset: 3px;
-  text-decoration-color: rgba(155, 155, 165, 0.4);
-  transition: color 300ms var(--ease-out);
   white-space: nowrap;
+  transition: background var(--sy-dur-hover) var(--sy-ease);
 }
 
-.chapel-read-all:hover,
-.chapel-read-all:focus-visible {
-  color: var(--color-light);
+.chapel-read-all:hover {
+  background: var(--sy-surface-2);
 }
 
 .chapel-chapter-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(44px, 1fr));
-  gap: 6px;
+  gap: var(--sy-space-2);
 }
 
 .chapel-chapter {
+  min-height: var(--sy-control-height);
+  padding: 0;
   background: transparent;
-  border: 1px solid var(--color-shadow);
-  border-radius: 3px;
-  color: var(--color-cloud);
-  font-family: var(--font-mono);
-  font-size: 12px;
-  padding: 7px 0;
+  border: 1px solid var(--sy-line);
+  border-radius: var(--sy-radius);
+  color: var(--sy-text-2);
+  font-family: var(--sy-font-mono);
+  font-size: 14px;
   cursor: pointer;
   text-align: center;
-  transition: border-color 250ms var(--ease-out), background 250ms var(--ease-out), color 250ms var(--ease-out);
+  transition: border-color var(--sy-dur-hover) var(--sy-ease), background var(--sy-dur-hover) var(--sy-ease), color var(--sy-dur-hover) var(--sy-ease);
 }
 
-.chapel-chapter:hover,
-.chapel-chapter:focus-visible {
-  border-color: var(--color-ember);
-  background: rgba(212, 165, 116, 0.08);
-  color: var(--color-light);
+.chapel-chapter:hover {
+  border-color: var(--sy-line-strong);
+  background: var(--sy-surface-2);
+  color: var(--sy-text);
 }
 
-/* The last chapter read — the ember mark carried down a level */
+/* The last chapter read: the RISE marker carried down a level */
 .chapel-chapter-last {
-  border-color: rgba(212, 165, 116, 0.55);
-  color: var(--color-ember);
+  border-color: var(--sy-accent-rise);
+  color: var(--sy-text);
 }
 
 .chapel-book-loading {
-  opacity: 0.55;
+  opacity: 0.4;
   pointer-events: none;
 }
 
@@ -499,37 +406,44 @@
 
 .chapel-footer {
   margin-top: auto;
-  padding-top: var(--space-xl);
-  border-top: 1px solid var(--color-depth);
+  padding-top: var(--sy-space-5);
+  border-top: 1px solid var(--sy-line);
 }
 
 .chapel-provenance {
-  font-size: 10px;
-  letter-spacing: 0.06em;
-  color: var(--color-mist);
   margin: 0;
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--sy-text-3);
 }
 
 .chapel-provenance a {
-  color: var(--color-mist);
-  text-decoration: underline;
-  text-underline-offset: 2px;
+  color: var(--sy-brand);
+  text-decoration: none;
 }
 
 .chapel-provenance a:hover {
-  color: var(--color-fog);
+  text-decoration: underline;
+  text-underline-offset: 3px;
 }
 
 /* ─── Responsive ─── */
 
-@media (max-width: 680px) {
+@media (max-width: 1023px) {
   .chapel-inner {
-    padding: var(--space-lg) var(--space-md) var(--space-xl);
+    padding: var(--sy-space-7) var(--sy-space-6) var(--sy-space-8);
+  }
+}
+
+@media (max-width: 640px) {
+  .chapel-inner {
+    padding: var(--sy-space-6) var(--sy-space-4) var(--sy-space-7);
+    gap: var(--sy-space-6);
   }
 
-  .chapel-heading-row {
-    flex-direction: column;
-    gap: var(--space-sm);
+  .chapel-icon-row {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: var(--sy-space-4) var(--sy-space-3);
   }
 
   .chapel-grouping-books {
@@ -537,4 +451,8 @@
   }
 }
 
-
+@media (prefers-reduced-motion: reduce) {
+  .chapel-rosarium-door:hover .chapel-rosarium-enter {
+    transform: none;
+  }
+}

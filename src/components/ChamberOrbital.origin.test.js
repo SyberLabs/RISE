@@ -78,7 +78,6 @@ describe('ChamberOrbital origin chip', () => {
 
         const chip = container.querySelector('.orbital-origin-chip');
         expect(chip).not.toBeNull();
-        expect(chip.textContent).toContain('◇');
         expect(chip.textContent).toContain('Library');
         expect(chip.title).toBe('Return to Library');
 
@@ -356,25 +355,25 @@ describe('ChamberOrbital origin chip', () => {
 
         // Section renders with None active by default
         const chips = container.querySelectorAll('[data-soundscape]');
-        // None, Aurora, Faded Signal + the two chant beds
-        expect(chips).toHaveLength(5);
+        // None, Aurora, Faded Signal, Soft Rain + the two chant beds
+        expect(chips).toHaveLength(6);
         expect(container.querySelector('[data-soundscape="none"]').classList.contains('active')).toBe(true);
 
         // Selecting Aurora updates config and the orbit status
         container.querySelector('[data-soundscape="aurora"]').click();
         expect(orbital.config.soundscape).toBe('aurora');
-        expect(orbital.getAudioStatus()).toBe('✧ Aurora');
+        expect(orbital.getAudioStatus()).toBe('Aurora');
 
         // Exclusive beds: picking a pure tone rests the soundscape…
         container.querySelector('[data-audio-preset="deep"]').click();
         expect(orbital.config.soundscape).toBe('none');
-        expect(orbital.getAudioStatus()).toBe('○ Deep');
+        expect(orbital.getAudioStatus()).toBe('Deep');
         expect(container.querySelector('[data-soundscape="none"]').classList.contains('active')).toBe(true);
 
         // …and picking the soundscape back rests the tones
         container.querySelector('[data-soundscape="aurora"]').click();
         expect(orbital.config.audioPreset).toBe('silent');
-        expect(orbital.getAudioStatus()).toBe('✧ Aurora');
+        expect(orbital.getAudioStatus()).toBe('Aurora');
         expect(container.querySelector('[data-audio-preset="silent"]').classList.contains('active')).toBe(true);
 
         // Begin payload carries it

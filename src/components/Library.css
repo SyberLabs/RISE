@@ -1,12 +1,16 @@
 /* ═══════════════════════════════════════════════════════════
-   Library Component Styles
-   Browsing, discovery, metadata-rich presentation
+   Library Component Styles (Library and Sequences)
+   Browsing, discovery, metadata-rich presentation.
+   SyberLabs v2: ink with the starfield, a glass header, pill controls,
+   and the Ask Jev request on a plate.
    ═══════════════════════════════════════════════════════════ */
 
 .library {
   height: 100vh;
   overflow: hidden;
-  background: var(--color-void);
+  background-color: var(--color-void);
+  background-image: var(--sy-starfield);
+  background-size: var(--sy-starfield-size);
   display: flex;
   flex-direction: column;
 }
@@ -16,8 +20,11 @@
    ───────────────────────────────────────────────────────────── */
 
 .library-header {
-  padding: var(--space-lg);
-  border-bottom: 1px solid var(--color-shadow);
+  padding: var(--space-lg) clamp(16px, 4vw, 56px);
+  background: var(--sy-glass);
+  -webkit-backdrop-filter: blur(14px) saturate(1.3);
+  backdrop-filter: blur(14px) saturate(1.3);
+  border-bottom: 1px solid var(--sy-line);
   display: flex;
   flex-direction: column;
   gap: var(--space-lg);
@@ -31,22 +38,19 @@
 
 .library-title-section h1 {
   font-family: var(--font-display);
-  font-size: 32px;
-  font-weight: var(--font-weight-light);
+  font-size: 40px;
+  line-height: 44px;
+  font-weight: var(--font-weight-regular);
   color: var(--color-light);
-  letter-spacing: 0.02em;
+  letter-spacing: -0.01em;
 }
 
 .library-intro-panel {
-  padding: var(--space-md);
-  border-radius: var(--radius-sm);
-  background: rgba(var(--color-accent-rgb), 0.05);
-  border-left: 2px solid var(--color-threshold);
-  font-family: var(--font-literary);
+  max-width: 68ch;
+  font-family: var(--font-primary);
   font-size: 16px;
-  line-height: 1.6;
-  color: var(--color-cloud);
-  font-style: italic;
+  line-height: 24px;
+  color: var(--sy-text-2);
 }
 
 .library-nav {
@@ -81,174 +85,18 @@
 }
 
 .section-header h2 {
-  font-family: var(--font-display);
+  font-family: var(--font-primary);
   font-size: 24px;
-  font-weight: var(--font-weight-light);
+  line-height: 32px;
+  font-weight: var(--font-weight-semibold);
   margin-bottom: var(--space-xs);
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
+  letter-spacing: -0.01em;
   color: var(--color-light);
 }
 
 .section-header p {
   font-size: 14px;
-}
-
-/* ─────────────────────────────────────────────────────────────
-   FILTERS
-   ───────────────────────────────────────────────────────────── */
-
-.section-filters {
-  display: flex;
-  gap: var(--space-sm);
-  margin-bottom: var(--space-xl);
-  flex-wrap: wrap;
-}
-
-.filter-btn {
-  padding: var(--space-xs) var(--space-sm);
-  background: transparent;
-  border: 1px solid var(--color-shadow);
-  border-radius: var(--radius-none);
-  color: var(--color-fog);
-  font-size: 12px;
-  font-weight: var(--font-weight-medium);
-  letter-spacing: 0.02em;
-  text-transform: uppercase;
-  cursor: pointer;
-  transition: all var(--transition-normal) var(--ease-default);
-}
-
-.filter-btn:hover {
-  border-color: var(--color-fog);
-  color: var(--color-cloud);
-}
-
-.filter-btn.active {
-  background: rgba(var(--color-accent-rgb), 0.2);
-  border-color: var(--color-threshold);
-  color: var(--color-light);
-}
-
-/* ─────────────────────────────────────────────────────────────
-   ARCHIVE SECTION
-   ───────────────────────────────────────────────────────────── */
-
-.archive-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: var(--space-md);
-}
-
-/* Two axes of browsing, each labelled. The label is quiet — it names
-   the QUESTION the row answers, not a control. */
-.archive-axes {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-lg);
-  margin-bottom: var(--space-lg);
-}
-
-.archive-axis .section-filters {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-}
-
-/* Divisions within a shelf: classical, literary, esoteric — a canon in
-   reading order. The heading is quiet because it is orientation, not a
-   control; the reader is already standing at the shelf. */
-.archive-divisions {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-xl);
-}
-
-.archive-division-head {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: var(--space-sm);
-  margin-bottom: var(--space-md);
-  padding-bottom: var(--space-xs);
-  border-bottom: 1px solid var(--color-shadow);
-}
-
-.archive-division-name {
-  font-family: var(--font-mono);
-  font-size: 11px;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-  color: var(--color-fog);
-}
-
-.archive-division-note {
-  font-family: var(--font-literary);
-  font-size: 13px;
-  font-style: italic;
-}
-
-.archive-card {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-sm);
-}
-
-.archive-card-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.archive-status {
-  font-size: 18px;
-  color: var(--color-fog);
-}
-
-.archive-status.in-library {
-  color: var(--color-threshold);
-}
-
-.archive-type {
-  font-size: 10px;
-  letter-spacing: 0.05em;
-}
-
-.archive-title {
-  font-family: var(--font-literary);
-  font-size: 18px;
-  font-weight: var(--font-weight-regular);
-  line-height: 1.3;
-}
-
-.archive-subtitle {
-  font-family: var(--font-literary);
-  font-size: 14px;
-  font-style: italic;
-  margin-bottom: var(--space-xs);
-  color: var(--color-fog);
-}
-
-/* The editorial judgement — why a work is held. Set in the literary
-   face rather than the UI face, because it is prose written for a
-   reader and not a label. Slightly brighter than the metadata around
-   it: on a card, this is the part worth reading. */
-.archive-why {
-  font-family: var(--font-literary);
-  font-size: 14px;
-  line-height: 1.55;
-  margin-top: var(--space-sm);
-  color: var(--color-fog);
-}
-
-/* A shelf's orienting line, shown when standing in front of that shelf. */
-.archive-orientation {
-  font-family: var(--font-literary);
-  font-size: 14px;
-  font-style: italic;
-  line-height: 1.5;
-  margin-top: var(--space-sm);
-  max-width: 60ch;
+  line-height: 20px;
 }
 
 /* Resonance bar */
@@ -274,7 +122,7 @@
 .resonance-fill[data-resonance="moderate"] { width: 30%; }
 
 .resonance-label {
-  font-size: 10px;
+  font-size: 12px;
   text-transform: uppercase;
   letter-spacing: 0.05em;
   margin-top: var(--space-xs);
@@ -305,18 +153,25 @@
 }
 
 .sequence-title {
-  font-family: var(--font-literary);
-  font-size: 20px;
-  font-weight: var(--font-weight-regular);
+  font-family: var(--font-primary);
+  font-size: 18px;
+  line-height: 28px;
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: 0;
   flex: 1;
 }
 
+/* Category label: SyberLabs label style. Neutral, never the accent. */
 .sequence-intent {
-  font-size: 10px;
-  letter-spacing: 0.05em;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: var(--font-weight-medium);
+  letter-spacing: 0.08em;
   padding: 4px 8px;
-  background: rgba(var(--color-accent-rgb), 0.1);
-  border-radius: var(--radius-sm);
+  color: var(--sy-text-3);
+  border: 1px solid var(--sy-line);
+  border-radius: var(--sy-radius-sm);
   white-space: nowrap;
 }
 
@@ -335,7 +190,7 @@
    citation, not a headline. */
 .sequence-source {
   margin: calc(-1 * var(--space-xs)) 0 0;
-  font-size: 11px;
+  font-size: 12px;
   line-height: 1.5;
   letter-spacing: 0.02em;
   display: flex;
@@ -348,7 +203,7 @@
 }
 
 .sequence-card:hover .sequence-source {
-  border-left-color: var(--color-threshold);
+  border-left-color: var(--sy-line-strong);
 }
 
 .sequence-source-title {
@@ -363,10 +218,10 @@
 }
 
 .sequence-actions .btn-ghost,
-.sequence-actions .btn-primary {
-  flex: 1;
-  min-height: 40px;
-  font-size: 12px;
+.sequence-actions .btn-primary,
+.sequence-actions .btn-secondary {
+  min-height: var(--sy-control-height);
+  font-size: 16px;
 }
 
 /* ─────────────────────────────────────────────────────────────
@@ -392,76 +247,12 @@
   font-size: 14px;
 }
 
-/* ─────────────────────────────────────────────────────────────
-   LOCAL FILE UPLOAD
-   ───────────────────────────────────────────────────────────── */
-
-.personal-upload-zone {
-  margin-bottom: var(--space-xl);
-}
-
-.upload-zone-label {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: var(--space-2xl) var(--space-lg);
-  border: 2px dashed var(--color-shadow);
-  background: rgba(var(--color-accent-rgb), 0.02);
-  cursor: pointer;
-  transition: all var(--transition-normal) var(--ease-default);
-  text-align: center;
-}
-
-.upload-zone-label:hover {
-  border-color: var(--color-threshold);
-  background: rgba(var(--color-accent-rgb), 0.05);
-}
-
-.personal-upload-zone.dragover .upload-zone-label {
-  border-color: var(--color-light);
-  background: rgba(var(--color-accent-rgb), 0.1);
-  transform: scale(1.01);
-}
-
-.upload-icon {
-  font-size: 48px;
-  color: var(--color-threshold);
-  margin-bottom: var(--space-md);
-  transition: transform var(--transition-normal) var(--ease-default);
-}
-
-.upload-zone-label:hover .upload-icon {
-  transform: scale(1.1);
-}
-
-.upload-text {
-  font-size: 16px;
-  font-weight: var(--font-weight-medium);
-  margin-bottom: var(--space-xs);
-}
-
-.upload-hint {
-  font-size: 13px;
-}
-
-.personal-instructions {
-  max-width: 500px;
-  margin: 0 auto;
-  text-align: center;
-  font-size: 14px;
-  line-height: 1.6;
-  padding: var(--space-lg);
-  background: rgba(0, 0, 0, 0.2);
-  border-left: 2px solid var(--color-shadow);
-}
 
 /* ─────────────────────────────────────────────────────────────
    RESPONSIVE
    ───────────────────────────────────────────────────────────── */
 
 @media (max-width: 768px) {
-  .archive-grid,
   .sequences-grid {
     grid-template-columns: 1fr;
   }
@@ -480,90 +271,639 @@
   }
 }
 
-/* ─────────────────────────────────────────────────────────────
-   Reflections — post-session journals (the Recursion read-side)
-   ───────────────────────────────────────────────────────────── */
+/* The Sequences room on a phone (shared chrome, kept as it was): the
+   title and preamble shrink so the first sequence is on the first screen. */
+@media (max-width: 640px) {
+  /* Serif is never set below 32px: at phone density this is the sans heading. */
+  .library-title-section h1 { font-family: var(--font-primary); font-weight: var(--font-weight-semibold); font-size: 20px; line-height: 28px; }
+  .library-header { padding: var(--space-sm) var(--space-md); gap: var(--space-sm); }
+  .section-header h2 { font-size: 17px; }
+  .section-header { margin-bottom: var(--space-sm); }
+  .section-header p { display: none; }
+}
 
-.reflections-list {
+/* ═══════════════════════════════════════════════════════════
+   THE LIBRARY ROOM
+   The rules above are shared with the Sequences room (Vault.js), which
+   still paints .library-header and .library-content. Everything below is
+   scoped to the Library alone.
+
+   One column: the shared SyberLabs header, then back link, title, tabs
+   and every row on the same left edge and the same gutters as the
+   header (64 / 32 / 16).
+   ═══════════════════════════════════════════════════════════ */
+
+.library-room {
+  display: block;
+  overflow-y: auto;
+  background: var(--sy-bg);
+}
+
+.library-page {
+  width: 100%;
+  max-width: calc(1200px + 2 * var(--sy-space-8));
+  margin: 0 auto;
+  padding: 0 var(--sy-space-8) var(--sy-space-9);
+  box-sizing: border-box;
+}
+
+.library-head {
+  padding-top: var(--sy-space-6);
+}
+
+/* "← Home": label style of a link, not a button. Its left edge is the
+   gutter, so it lines up with the title and the rows below it. */
+.library-back {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sy-space-2);
+  min-height: var(--sy-control-height);
+  padding: 0;
+  border: none;
+  border-radius: var(--sy-radius-full);
+  background: transparent;
+  color: var(--sy-text-2);
+  font: 500 14px/20px var(--sy-font-sans);
+  cursor: pointer;
+  transition: color var(--sy-dur-hover) var(--sy-ease);
+}
+.library-back:hover { color: var(--sy-text); }
+
+.library-room .library-head h1 {
+  margin: var(--sy-space-2) 0 0;
+  font-family: var(--sy-font-serif);
+  font-size: 40px;
+  line-height: 44px;
+  font-weight: 400;
+  letter-spacing: -0.01em;
+  color: var(--sy-text);
+}
+
+.library-room .library-intro-panel {
+  margin: var(--sy-space-3) 0 0;
+  max-width: 68ch;
+  font: 400 16px/24px var(--sy-font-sans);
+  color: var(--sy-text-2);
+}
+
+.library-room .library-nav {
+  gap: var(--sy-space-6);
+  margin-top: var(--sy-space-5);
+  border-bottom: 1px solid var(--sy-line);
+}
+
+.library-room .library-nav .nav-item {
+  min-height: var(--sy-control-height);
+  margin-bottom: -1px;
+  padding: 0;
+  font: 500 14px/20px var(--sy-font-sans);
+  letter-spacing: 0;
+  color: var(--sy-text-2);
+  transition: color var(--sy-dur-hover) var(--sy-ease),
+    border-color var(--sy-dur-hover) var(--sy-ease);
+}
+.library-room .library-nav .nav-item:hover { color: var(--sy-text); }
+.library-room .library-nav .nav-item.active {
+  color: var(--sy-text);
+  border-bottom-color: var(--sy-brand);
+}
+
+.library-room .library-content {
+  flex: none;
+  overflow: visible;
+  padding: var(--sy-space-6) 0 0;
+}
+
+.library-room .library-section { max-width: none; }
+
+/* ── States: loading, empty, error ───────────────────────── */
+
+.library-status {
+  display: flex;
+  align-items: center;
+  gap: var(--sy-space-2);
+  margin: var(--sy-space-5) 0 0;
+  font: 400 14px/20px var(--sy-font-sans);
+  color: var(--sy-text-2);
+}
+
+.library-spinner {
+  flex: none;
+  animation: library-spin 900ms linear infinite;
+}
+@keyframes library-spin { to { transform: rotate(360deg); } }
+
+.library-alert-slot:empty { display: none; }
+
+.library-alert {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--sy-space-3);
+  max-width: 760px;
+  margin: 0 0 var(--sy-space-5);
+  padding: var(--sy-space-4);
+  border: 1px solid var(--sy-danger);
+  border-radius: var(--sy-radius-panel);
+  color: var(--sy-text);
+}
+.library-alert svg { flex: none; color: var(--sy-danger); }
+.library-alert p {
+  margin: 0;
+  font: 400 14px/20px var(--sy-font-sans);
+}
+.library-jev-result .library-alert { margin: 0; }
+
+.library-empty {
+  padding: var(--sy-space-2) 0 var(--sy-space-6);
+}
+.library-empty h2 {
+  margin: 0;
+  font: 600 18px/28px var(--sy-font-sans);
+  color: var(--sy-text);
+}
+.library-empty p {
+  margin: var(--sy-space-2) 0 0;
+  max-width: 60ch;
+  font: 400 16px/24px var(--sy-font-sans);
+  color: var(--sy-text-2);
+}
+
+.library-note {
+  font: 400 16px/24px var(--sy-font-sans);
+  color: var(--sy-text-2);
+}
+
+.library-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: var(--sy-control-height);
+  height: var(--sy-control-height);
+  padding: 0;
+  border: none;
+  border-radius: var(--sy-radius-full);
+  background: transparent;
+  color: var(--sy-text-3);
+  cursor: pointer;
+  transition: color var(--sy-dur-hover) var(--sy-ease),
+    background-color var(--sy-dur-hover) var(--sy-ease);
+}
+@media (hover: hover) {
+  .library-icon-btn:hover { color: var(--sy-text); background: var(--sy-surface-2); }
+}
+
+/* ── Jev ─────────────────────────────────────────────────── */
+
+/* Ask Jev: the featured request, on a plate — a rule-2 frame, a second
+   rule inset, and RISE-accent registration ticks. */
+.library-jev {
+  position: relative;
+  max-width: 760px;
+  margin: 6px 6px var(--sy-space-7);
+  padding: var(--sy-space-5);
+  border: 1px solid var(--sy-line-strong);
+  outline: 1px solid var(--sy-line);
+  outline-offset: -5px;
+  border-radius: 0;
+  background: var(--sy-surface);
+}
+
+.library-jev::before,
+.library-jev::after {
+  content: '';
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  border: solid var(--sy-accent-rise);
+  opacity: 0.8;
+  pointer-events: none;
+}
+
+.library-jev::before {
+  top: -6px;
+  left: -6px;
+  border-width: 1px 0 0 1px;
+}
+
+.library-jev::after {
+  bottom: -6px;
+  right: -6px;
+  border-width: 0 1px 1px 0;
+}
+
+.library-jev h2,
+.library-jev h3 {
+  margin: 0;
+  color: var(--sy-text);
+  font-family: var(--sy-font-sans);
+  font-weight: 600;
+  letter-spacing: 0;
+}
+.library-jev h2 { font-size: 22px; line-height: 30px; letter-spacing: -0.01em; }
+.library-jev h3 { font-family: var(--sy-font-serif); font-weight: 400; font-size: 40px; line-height: 44px; letter-spacing: -0.01em; }
+.library-jev p {
+  margin: var(--sy-space-1) 0 0;
+  font: 400 14px/20px var(--sy-font-sans);
+  color: var(--sy-text-2);
+}
+.library-jev form { margin-top: var(--sy-space-4); }
+.library-jev label {
+  display: block;
+  margin-bottom: var(--sy-space-2);
+  font: 500 14px/20px var(--sy-font-sans);
+  color: var(--sy-text);
+}
+.library-jev-controls { display: flex; gap: var(--sy-space-2); }
+.library-jev input {
+  flex: 1;
+  min-width: 0;
+  min-height: var(--sy-control-height);
+  padding: 0 var(--sy-space-4);
+  border: 1px solid var(--sy-line-strong);
+  border-radius: var(--sy-radius);
+  background: var(--sy-surface);
+  color: var(--sy-text);
+  font: 400 16px/24px var(--sy-font-sans);
+  transition: border-color var(--sy-dur-hover) var(--sy-ease),
+    box-shadow var(--sy-dur-hover) var(--sy-ease);
+}
+.library-jev input::placeholder { color: var(--sy-text-3); }
+.library-jev input:focus {
+  outline: none;
+  border-color: var(--sy-ice);
+  box-shadow: 0 0 0 3px rgba(144, 216, 240, 0.25);
+}
+.library-jev button:disabled { opacity: 0.4; cursor: not-allowed; }
+.library-jev-dictate {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: var(--sy-control-height);
+  min-height: var(--sy-control-height);
+  padding: 0;
+  border: 1px solid var(--sy-line-strong);
+  border-radius: var(--sy-radius-full);
+  background: rgba(6, 5, 26, 0.4);
+  color: var(--sy-text);
+  font: 500 16px/24px var(--sy-font-sans);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: border-color var(--sy-dur-hover) var(--sy-ease),
+    box-shadow var(--sy-dur-enter) var(--sy-ease);
+}
+.library-jev-dictate:hover { border-color: var(--sy-ice); box-shadow: 0 0 24px -6px var(--sy-brand); }
+.library-jev-dictate[aria-pressed="true"] { border-color: var(--sy-danger); color: var(--sy-danger); }
+.library-jev-dictate:disabled { cursor: not-allowed; }
+.library-jev .library-jev-voice-note,
+.library-jev [data-jev-dictation-status] {
+  font: 400 12px/16px var(--sy-font-sans);
+  color: var(--sy-text-3);
+}
+.library-jev .library-jev-voice-note { margin-top: var(--sy-space-2); }
+.library-jev [data-jev-dictation-status]:empty { display: none; }
+.library-jev-result:not(:empty) { margin-top: var(--sy-space-5); }
+.library-jev-result .library-status { margin: 0; }
+.library-jev-choice { display: grid; gap: var(--sy-space-1); }
+.library-jev-kicker {
+  font: 500 12px/16px var(--sy-font-mono);
+  color: var(--sy-text-2);
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+}
+.library-jev-choice .library-jev-author { margin: 0; }
+.library-jev-choice button { justify-self: start; margin-top: var(--sy-space-3); }
+.library-jev-choice details {
+  margin-top: var(--sy-space-2);
+  font: 400 12px/16px var(--sy-font-sans);
+  color: var(--sy-text-3);
+}
+
+/* ── Shelf filter ────────────────────────────────────────── */
+
+.archive-axes {
   display: flex;
   flex-direction: column;
-  gap: var(--space-md);
-  max-width: 720px;
+  gap: var(--sy-space-3);
+  margin-bottom: var(--sy-space-6);
+}
+
+.section-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sy-space-2);
+}
+
+.filter-btn {
+  min-height: 36px;
+  padding: 0 var(--sy-space-4);
+  background: rgba(6, 5, 26, 0.4);
+  border: 1px solid var(--sy-line-strong);
+  border-radius: var(--sy-radius-full);
+  color: var(--sy-text-2);
+  font: 500 14px/20px var(--sy-font-sans);
+  cursor: pointer;
+  transition: background-color var(--sy-dur-hover) var(--sy-ease),
+    color var(--sy-dur-hover) var(--sy-ease);
+}
+@media (hover: hover) {
+  .filter-btn:hover { background: var(--sy-surface-2); color: var(--sy-text); }
+}
+/* Selected is the ice signal, never the product accent. */
+.filter-btn.active {
+  background: var(--sy-surface-2);
+  border-color: var(--sy-ice);
+  color: var(--sy-text);
+}
+
+.archive-orientation {
+  margin: 0;
+  max-width: 68ch;
+  font: 400 14px/20px var(--sy-font-sans);
+  color: var(--sy-text-2);
+}
+
+/* ── The shelf: one hairline row per work ────────────────── */
+
+.archive-divisions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sy-space-7);
+}
+
+.archive-division-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--sy-space-1) var(--sy-space-3);
+  margin-bottom: var(--sy-space-3);
+}
+
+.archive-division-name {
+  margin: 0;
+  font: 500 12px/16px var(--sy-font-mono);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--sy-text-3);
+}
+
+.archive-division-note {
+  margin: 0;
+  font: 400 14px/20px var(--sy-font-sans);
+  color: var(--sy-text-3);
+}
+
+.archive-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border-bottom: 1px solid var(--sy-line);
+}
+
+.archive-card {
+  position: relative;
+  isolation: isolate;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto 20px;
+  column-gap: var(--sy-space-5);
+  row-gap: var(--sy-space-1);
+  align-items: center;
+  padding: var(--sy-space-5) 0;
+  border-top: 1px solid var(--sy-line);
+}
+
+/* The hover fill bleeds past the text so the hairlines stay on the grid. */
+.archive-card::before {
+  content: '';
+  position: absolute;
+  inset: 0 calc(-1 * var(--sy-space-3));
+  z-index: -1;
+  border-radius: var(--sy-radius);
+  background: transparent;
+  transition: background-color var(--sy-dur-hover) var(--sy-ease);
+}
+
+.archive-title {
+  grid-column: 1;
+  margin: 0;
+  font: 600 18px/28px var(--sy-font-sans);
+  letter-spacing: 0;
+  color: var(--sy-text);
+}
+
+/* The title is the row's one control; its hit area is the whole row. */
+.archive-open {
+  padding: 0;
+  border: none;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.archive-open::after {
+  content: '';
+  position: absolute;
+  inset: 0 calc(-1 * var(--sy-space-3));
+  border-radius: var(--sy-radius);
+}
+.archive-open:focus-visible { outline: none; }
+.archive-open:focus-visible::after {
+  outline: var(--sy-focus);
+  outline-offset: 2px;
+}
+
+.archive-subtitle,
+.archive-why {
+  grid-column: 1;
+  margin: 0;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.archive-subtitle {
+  font: 400 14px/20px var(--sy-font-sans);
+  color: var(--sy-text-3);
+}
+
+.archive-why {
+  font: 400 16px/24px var(--sy-font-sans);
+  color: var(--sy-text-2);
+}
+
+.archive-meta {
+  grid-column: 2;
+  grid-row: 1 / span 3;
+  font: 500 12px/16px var(--sy-font-mono);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--sy-text-3);
+  white-space: nowrap;
+}
+
+.archive-go {
+  grid-column: 3;
+  grid-row: 1 / span 3;
+  display: flex;
+  color: var(--sy-text-3);
+  transition: color var(--sy-dur-hover) var(--sy-ease),
+    transform var(--sy-dur-hover) var(--sy-ease);
+}
+.archive-go .library-spinner { display: none; width: 20px; height: 20px; }
+
+@media (hover: hover) {
+  .archive-card:hover::before { background: var(--sy-surface-2); }
+  .archive-card:hover .archive-go { color: var(--sy-text); transform: translateX(4px); }
+}
+
+/* Opening: the arrow becomes a spinner; the row stays where it is. */
+.archive-card.is-opening { pointer-events: none; }
+.archive-card.is-opening .archive-arrow { display: none; }
+.archive-card.is-opening .archive-go .library-spinner { display: block; }
+.archive-card.is-opening .archive-go { color: var(--sy-text); transform: none; }
+
+/* ── Your files ──────────────────────────────────────────── */
+
+.personal-upload-zone {
+  display: grid;
+  justify-items: start;
+  gap: var(--sy-space-2);
+  max-width: 760px;
+  margin-bottom: var(--sy-space-5);
+  padding: var(--sy-space-5);
+  border: 1px solid var(--sy-line-strong);
+  border-radius: var(--sy-radius-panel);
+  transition: background-color var(--sy-dur-hover) var(--sy-ease),
+    border-color var(--sy-dur-hover) var(--sy-ease);
+}
+.personal-upload-zone.dragover {
+  border-color: var(--sy-brand);
+  background: var(--sy-surface-2);
+}
+.personal-upload-zone .upload-text {
+  margin: 0;
+  font: 600 18px/28px var(--sy-font-sans);
+  color: var(--sy-text);
+}
+.personal-upload-zone .upload-hint {
+  margin: 0;
+  max-width: 60ch;
+  font: 400 16px/24px var(--sy-font-sans);
+  color: var(--sy-text-2);
+}
+.personal-upload-zone .btn-secondary { margin-top: var(--sy-space-2); }
+
+.local-work-shelf {
+  list-style: none;
+  margin: var(--sy-space-5) 0 0;
+  padding: 0;
+  border-bottom: 1px solid var(--sy-line);
+}
+
+.local-work {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sy-space-2) var(--sy-space-4);
+  flex-wrap: wrap;
+  padding: var(--sy-space-4) 0;
+  border-top: 1px solid var(--sy-line);
+}
+
+.local-work-body { min-width: 12rem; flex: 1; }
+.local-work-body h3 {
+  margin: 0;
+  font: 600 16px/24px var(--sy-font-sans);
+  color: var(--sy-text);
+}
+.local-work-body p {
+  margin: var(--sy-space-1) 0 0;
+  font: 400 14px/20px var(--sy-font-sans);
+  color: var(--sy-text-3);
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+
+.local-work-actions {
+  display: flex;
+  gap: var(--sy-space-2);
+  flex-wrap: wrap;
+}
+
+/* ── Reflections ─────────────────────────────────────────── */
+
+.reflections-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-width: 760px;
+  border-bottom: 1px solid var(--sy-line);
 }
 
 .reflection-card {
-  border-left: 2px solid var(--color-threshold);
+  padding: var(--sy-space-4) 0 var(--sy-space-5);
+  border-top: 1px solid var(--sy-line);
 }
 
 .reflection-meta {
   display: flex;
-  align-items: baseline;
-  gap: var(--space-sm);
-  font-size: 11px;
-  color: var(--color-mist);
-  letter-spacing: 0.05em;
-  margin-bottom: var(--space-sm);
+  align-items: center;
+  gap: var(--sy-space-3);
+}
+
+.reflection-date {
+  flex: none;
+  font: 500 12px/16px var(--sy-font-mono);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--sy-text-3);
 }
 
 .reflection-title {
   flex: 1;
+  min-width: 0;
+  font: 400 14px/20px var(--sy-font-sans);
+  color: var(--sy-text-2);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-.reflection-delete {
-  flex-shrink: 0;
-}
+.reflection-delete { margin-right: calc(-1 * var(--sy-space-3)); }
 
 .reflection-text {
-  font-family: var(--font-literary);
-  font-size: 15px;
-  line-height: 1.7;
-  color: var(--color-cloud);
+  margin: var(--sy-space-1) 0 0;
+  font: 400 16px/24px var(--sy-font-sans);
+  color: var(--sy-text);
   white-space: pre-wrap;
-}
-
-.reflections-empty {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: var(--space-sm);
-  padding: var(--space-2xl) var(--space-lg);
-  text-align: center;
-  border: 1px dashed var(--color-shadow);
-}
-
-.reflections-empty-sigil {
-  font-size: 40px;
-  color: var(--color-mist);
-  opacity: 0.6;
 }
 
 /* ── Table of contents ──────────────────────────────────────────────
  *
- * A work opening. The sheet rises rather than fading, because the
- * gesture being modelled is a book being opened on a table, not a
- * dialog being summoned.
+ * A work opening. This surface holds up to 807 rows for the Mahabharata,
+ * and anything decorative repeated 807 times stops being decoration and
+ * becomes noise. What earns its place: the work's own numeral in the
+ * margin, the division's name, and its weight in minutes — so a reader
+ * can tell a two-minute lyric from an hour of Montaigne before
+ * committing to it.
  *
- * The restraint is deliberate. This surface holds up to 807 rows for
- * the Mahabharata, and anything decorative repeated 807 times stops
- * being decoration and becomes noise. What earns its place: the work's
- * own numeral in the margin, the division's name, and its weight in
- * minutes — so a reader can tell a two-minute lyric from an hour of
- * Montaigne before committing to it.
+ * Panel on surface (ink-2), never on the hairline colour: text-3 on the
+ * hairline fell to 4.46:1 and the minutes to 2.9:1.
  */
 .toc-scrim {
   position: fixed;
   inset: 0;
   z-index: 200;
   display: flex;
-  align-items: flex-end;
+  align-items: center;
   justify-content: center;
-  background: color-mix(in srgb, var(--color-void) 72%, transparent);
-  backdrop-filter: blur(6px);
+  padding: var(--sy-space-7) var(--sy-space-5);
+  background: rgba(5, 6, 10, 0.72);
   opacity: 0;
-  transition: opacity var(--transition-normal) var(--ease-default);
+  transition: opacity var(--sy-dur-enter) var(--sy-ease);
 }
 .toc-scrim.is-open { opacity: 1; }
 
@@ -571,140 +911,142 @@
   display: flex;
   flex-direction: column;
   width: min(760px, 100%);
-  max-height: min(88vh, 900px);
-  background: var(--color-shadow);
-  border: 1px solid var(--color-threshold);
-  border-bottom: none;
-  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
-  box-shadow: 0 -24px 64px color-mix(in srgb, var(--color-void) 60%, transparent);
-  transform: translateY(24px);
-  transition: transform var(--transition-normal) var(--ease-default);
+  max-height: calc(100vh - 96px);
+  max-height: calc(100dvh - 96px);
+  overflow: hidden;
+  background: var(--sy-surface);
+  border: 1px solid var(--sy-line);
+  border-radius: var(--sy-radius-panel);
+  box-shadow: var(--sy-shadow-overlay);
+  color: var(--sy-text);
+  transform: translateY(8px);
+  transition: transform var(--sy-dur-enter) var(--sy-ease);
 }
 .toc-scrim.is-open .toc-sheet { transform: translateY(0); }
 
 .toc-head {
   display: grid;
-  grid-template-columns: auto 1fr auto;
-  align-items: start;
-  gap: var(--space-md);
-  padding: var(--space-lg) var(--space-lg) var(--space-md);
-  border-bottom: 1px solid var(--color-threshold);
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  gap: var(--sy-space-2) var(--sy-space-4);
+  padding: var(--sy-space-3) var(--sy-space-5) var(--sy-space-4);
+  border-bottom: 1px solid var(--sy-line);
 }
-.toc-close { align-self: center; white-space: nowrap; }
+.toc-close { grid-column: 1 / -1; justify-self: start; }
 .toc-identity { min-width: 0; }
 .toc-title {
-  font-family: var(--font-display);
-  font-weight: var(--font-weight-light);
-  font-size: 1.35rem;
-  line-height: 1.25;
   margin: 0;
+  font: 600 24px/32px var(--sy-font-sans);
+  letter-spacing: -0.01em;
+  color: var(--sy-text);
 }
-.toc-byline { font-size: 0.85rem; margin: 0.25rem 0 0; }
+.toc-byline {
+  margin: var(--sy-space-1) 0 0;
+  font: 400 14px/20px var(--sy-font-sans);
+  color: var(--sy-text-2);
+}
 
-/* The weight of the whole work, stacked so the number reads first. */
+/* The weight of the whole work: count, noun, time — one label line. */
 .toc-weight {
   display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  font-size: 0.75rem;
-  line-height: 1.4;
-  text-align: right;
+  align-items: baseline;
+  gap: var(--sy-space-2);
+  font: 500 12px/16px var(--sy-font-mono);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--sy-text-3);
+  white-space: nowrap;
 }
-.toc-weight-count {
-  font-size: 1.5rem;
-  line-height: 1;
-  color: var(--color-cloud);
-  font-weight: var(--font-weight-light);
-}
-.toc-weight-noun { text-transform: uppercase; letter-spacing: 0.08em; }
-.toc-weight-time { opacity: 0.7; }
+.toc-weight-count { color: var(--sy-text); }
+.toc-weight-time::before { content: '· '; }
 
 .toc-note {
   margin: 0;
-  padding: var(--space-sm) var(--space-lg);
-  font-size: 0.8rem;
-  line-height: 1.5;
-  border-bottom: 1px solid var(--color-threshold);
-  font-style: italic;
+  padding: var(--sy-space-3) var(--sy-space-5);
+  border-bottom: 1px solid var(--sy-line);
+  font: 400 14px/20px var(--sy-font-sans);
+  color: var(--sy-text-2);
 }
 
 .toc-search {
   display: flex;
   align-items: center;
-  gap: var(--space-sm);
-  padding: var(--space-sm) var(--space-lg);
-  border-bottom: 1px solid var(--color-threshold);
+  gap: var(--sy-space-3);
+  padding: var(--sy-space-3) var(--sy-space-5);
+  border-bottom: 1px solid var(--sy-line);
 }
 .toc-search-input {
   flex: 1;
   min-width: 0;
-  background: transparent;
-  border: none;
-  border-bottom: 1px solid var(--color-threshold);
-  color: var(--color-light);
-  font-family: var(--font-literary);
-  font-size: 0.95rem;
-  padding: var(--space-xs) 0;
-  transition: border-color var(--transition-fast) var(--ease-default);
+  min-height: var(--sy-control-height);
+  padding: 0 var(--sy-space-4);
+  background: var(--sy-bg);
+  border: 1px solid var(--sy-line-strong);
+  border-radius: var(--sy-radius);
+  color: var(--sy-text);
+  font: 400 16px/24px var(--sy-font-sans);
 }
-.toc-search-input::placeholder { color: var(--color-mist); }
-.toc-search-input:focus {
-  outline: none;
-  border-bottom-color: var(--color-cloud);
+.toc-search-input::placeholder { color: var(--sy-text-3); }
+.toc-search-input:focus { outline: none; border-color: var(--sy-ice); box-shadow: 0 0 0 3px rgba(144, 216, 240, 0.25); }
+.toc-search-count {
+  font: 500 12px/16px var(--sy-font-mono);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--sy-text-3);
+  white-space: nowrap;
 }
-.toc-search-count { font-size: 0.75rem; white-space: nowrap; }
 
 .toc-list {
-  flex: 1;
+  flex: 1 1 auto;
+  min-height: 0;
   overflow-y: auto;
   overscroll-behavior: contain;
-  padding: var(--space-xs) 0;
+  padding: var(--sy-space-2) 0;
 }
 
 .toc-entry {
   display: grid;
-  grid-template-columns: 3.25rem 1fr auto;
+  grid-template-columns: 48px minmax(0, 1fr) auto;
   align-items: baseline;
-  gap: var(--space-md);
+  gap: var(--sy-space-4);
   width: 100%;
-  padding: var(--space-sm) var(--space-lg);
+  min-height: var(--sy-control-height);
+  padding: var(--sy-space-3) var(--sy-space-5);
   background: transparent;
   border: none;
-  border-left: 2px solid transparent;
   color: inherit;
   font: inherit;
   text-align: left;
   cursor: pointer;
-  transition:
-    background-color var(--transition-fast) var(--ease-default),
-    border-color var(--transition-fast) var(--ease-default);
+  transition: background-color var(--sy-dur-hover) var(--sy-ease);
 }
-.toc-entry:hover,
+/* Hover only where there is a pointer that hovers: on touch the fill
+   used to stick to the last row tapped. */
+@media (hover: hover) {
+  .toc-entry:hover { background: var(--sy-surface-2); }
+}
 .toc-entry:focus-visible {
-  background: color-mix(in srgb, var(--color-threshold) 45%, transparent);
-  border-left-color: var(--color-cloud);
-  outline: none;
+  background: var(--sy-surface-2);
+  outline: var(--sy-focus);
+  outline-offset: -2px;
 }
 
 /* The numeral in the margin, as the edition wrote it. */
 .toc-entry-mark {
-  font-size: 0.8rem;
-  color: var(--color-mist);
-  text-align: right;
+  font: 500 12px/16px var(--sy-font-mono);
   letter-spacing: 0.04em;
+  color: var(--sy-text-3);
+  text-align: right;
 }
-.toc-entry:hover .toc-entry-mark,
-.toc-entry:focus-visible .toc-entry-mark { color: var(--color-cloud); }
 
-.toc-entry-body { display: flex; flex-direction: column; gap: 0.15rem; min-width: 0; }
+.toc-entry-body { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .toc-entry-label {
-  font-family: var(--font-literary);
-  font-size: 0.95rem;
-  color: var(--color-light);
+  font: 500 16px/24px var(--sy-font-sans);
+  color: var(--sy-text);
 }
 .toc-entry-title {
-  font-size: 0.82rem;
-  line-height: 1.4;
+  font: 400 14px/20px var(--sy-font-sans);
+  color: var(--sy-text-2);
   /* Chapter titles in these editions can be a full sentence. Two
    * lines is generous; a third would make every row a paragraph. */
   display: -webkit-box;
@@ -712,264 +1054,110 @@
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
-.toc-entry-time { font-size: 0.75rem; white-space: nowrap; }
+.toc-entry-time {
+  font: 500 12px/16px var(--sy-font-mono);
+  color: var(--sy-text-2);
+  text-align: right;
+  white-space: nowrap;
+}
 
-.toc-empty { padding: var(--space-xl) var(--space-lg); text-align: center; }
+.toc-empty {
+  margin: 0;
+  padding: var(--sy-space-6) var(--sy-space-5);
+  font: 400 16px/24px var(--sy-font-sans);
+  color: var(--sy-text-2);
+}
 
 .toc-foot {
-  padding: var(--space-md) var(--space-lg);
-  border-top: 1px solid var(--color-threshold);
+  padding: var(--sy-space-4) var(--sy-space-5);
+  border-top: 1px solid var(--sy-line);
 }
-.toc-whole { width: 100%; justify-content: center; }
-
-/* The card acknowledges the click while the payload is fetched — these
- * are whole books and the wait is real. */
-.archive-card.is-opening { opacity: 0.55; pointer-events: none; }
-
-@media (max-width: 600px) {
-  .toc-sheet { max-height: 94vh; }
-  .toc-head { grid-template-columns: auto 1fr; row-gap: var(--space-sm); }
-  .toc-weight { grid-column: 2; flex-direction: row; gap: var(--space-sm); align-items: baseline; }
-  .toc-weight-count { font-size: 1rem; }
-  .toc-entry { grid-template-columns: 2.5rem 1fr; padding-inline: var(--space-md); }
-  .toc-entry-time { grid-column: 2; }
-}
+.toc-whole { width: 100%; }
 
 @media (prefers-reduced-motion: reduce) {
   .toc-scrim, .toc-sheet { transition: none; }
   .toc-sheet { transform: none; }
+  .library-spinner { animation: none; }
+  .archive-go { transition: none; }
 }
 
-/* ── Card consistency ───────────────────────────────────────────────
- *
- * A grid of cards is read by scanning down a column, and that only
- * works if the same thing sits in the same place on every card. The
- * action button was positioned by an inline margin after whatever text
- * happened to precede it, so it landed at a different height on every
- * card and the grid read as ragged.
- *
- * The foot is pinned to the bottom instead: cards stretch to a shared
- * height, the description takes the slack, and holdings and action land
- * on the same line across the row however long the blurb is.
- */
-.archive-grid > .archive-card,
-.archive-division .archive-grid > .archive-card {
-  height: 100%;
+/* ── Tablet and phone ────────────────────────────────────── */
+
+@media (max-width: 1100px) {
+  .library-page { padding: 0 var(--sy-space-6) var(--sy-space-8); }
 }
-
-.archive-card-foot {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-sm);
-  flex-wrap: wrap;
-  margin-top: auto;              /* the pin */
-  padding-top: var(--space-sm);
-  border-top: 1px solid var(--color-threshold);
-}
-
-.archive-meta {
-  font-size: 0.8rem;
-  line-height: 1.4;
-  min-width: 0;
-}
-
-.archive-description {
-  font-size: 0.9rem;
-  line-height: 1.5;
-  margin: 0;
-}
-
-.archive-open { white-space: nowrap; flex-shrink: 0; }
-
-@media (max-width: 480px) {
-  .archive-card-foot { flex-direction: column; align-items: stretch; }
-  .archive-open { width: 100%; }
-}
-
-/* ═══════════════════════════════════════════════════════════════
-   THE SHELF ON A PHONE
-   ═══════════════════════════════════════════════════════════════
-
-   The density step in design-system.css moves everything expressed in
-   tokens. What it cannot reach is what was written in literal pixels,
-   and on this screen that is nearly all of the cost. Measured on an
-   iPhone 12 before this block:
-
-       the view title            32px
-       the archive preamble      four lines at 14px
-       two axes of filter chips  two wrapped rows each
-       FIRST CARD                y = 541
-       card height               401px
-
-   — which is to say a shelf on which no book fits the first screen.
-
-   Nothing here is hidden that a reader would miss: the card keeps its
-   title, its edition line and its editorial note, and the note is
-   clamped rather than cut, because the whole of it is what opening the
-   work is for. One mobile block, at the end of the file, so nothing
-   later in the cascade quietly wins — which is how the orbital ended
-   up with two contradictory stage rules in one media query.
-   ═══════════════════════════════════════════════════════════════ */
 
 @media (max-width: 640px) {
-  /* Set at 32px rather than the global h1's 48, so the root step in
-     design-system.css cannot reach it. */
-  .library-title-section h1 {
-    font-size: 21px;
+  .library-page { padding: 0 var(--sy-space-4) var(--sy-space-7); }
+  .library-head { padding-top: var(--sy-space-2); }
+  .library-room .library-head h1 {
+    margin-top: 0;
+    font-size: 32px;
+    line-height: 36px;
   }
+  /* The intro repeats what the tabs say; on a phone the shelf starts
+     on the first screen instead. */
+  .library-room .library-intro-panel { display: none; }
+  .library-room .library-nav { gap: var(--sy-space-5); margin-top: var(--sy-space-3); }
+  .library-room .library-content { padding-top: var(--sy-space-4); }
 
-  /* Intro repeats the section heading; hide on phone so the shelf starts on-screen. */
-  .library-intro-panel {
-    display: none;
+  .library-jev { padding: var(--sy-space-4); margin-bottom: var(--sy-space-5); }
+  .library-jev > p { display: none; }
+  .library-jev form { margin-top: var(--sy-space-2); }
+  .library-jev label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
   }
+  .library-jev .library-jev-voice-note { display: none; }
 
-  .library-header {
-    padding: var(--space-sm) var(--space-md);
-    gap: var(--space-sm);
-  }
+  .archive-axes { margin-bottom: var(--sy-space-5); }
+  .archive-orientation { display: none; }
+  .archive-divisions { gap: var(--sy-space-6); }
+  .archive-division-note { display: none; }
 
-  .section-header h2 {
-    font-size: 17px;
-  }
-
-  .section-header {
-    margin-bottom: var(--space-sm);
-  }
-
-  /* The Archive's preamble earns its place on a desk. On a phone it
-     is three paragraphs before the first book, and the shelf fails
-     the first-screen contract. The heading and the provenance cut
-     stay; the essays wait. */
-  .section-header p,
-  .archive-orientation,
-  .archive-review-note {
-    display: none;
-  }
-
-  .archive-axes {
-    gap: var(--space-md);
-    margin-bottom: var(--space-md);
-  }
-
-  .archive-axis .section-filters {
-    gap: 5px;
-  }
-
-  .section-filters {
-    margin-bottom: var(--space-md);
-  }
-
-  .filter-btn {
-    padding: 5px 9px;
-    font-size: 10.5px;
-    letter-spacing: 0.04em;
-  }
-
-  /* ── The card ── */
   .archive-card {
-    gap: var(--space-xs);
+    grid-template-columns: minmax(0, 1fr) 20px;
+    column-gap: var(--sy-space-3);
+    padding: var(--sy-space-4) 0;
   }
-
-  .archive-title {
-    font-size: 15px;
-  }
-
-  /* An edition statement can run to three hundred characters — the
-     Romance of the Three Kingdoms card carries a sourcing memo — and
-     at full length it is taller than the book it describes. */
-  .archive-subtitle {
-    font-size: 12px;
+  .archive-title { font-size: 16px; line-height: 24px; }
+  /* An edition statement can run long; two lines, never off-screen. */
+  .archive-subtitle,
+  .archive-why {
+    white-space: normal;
     display: -webkit-box;
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
-    overflow: hidden;
   }
+  .archive-why { font-size: 14px; line-height: 20px; }
+  .archive-meta { grid-column: 1; grid-row: auto; margin-top: var(--sy-space-1); }
+  .archive-go { grid-column: 2; grid-row: 1 / span 4; }
 
-  .archive-why {
-    font-size: 12.5px;
-    line-height: 1.45;
-    margin-top: var(--space-xs);
-    display: -webkit-box;
-    -webkit-line-clamp: 3;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
+  .personal-upload-zone { padding: var(--sy-space-4); }
+  .local-work-actions { width: 100%; }
+  .local-work-actions button { flex: 1; }
+
+  .toc-scrim { align-items: flex-end; padding: var(--sy-space-7) 0 0; }
+  .toc-sheet {
+    max-height: calc(100vh - 48px);
+    max-height: calc(100dvh - 48px);
+    border-bottom: none;
+    border-radius: var(--sy-radius-panel) var(--sy-radius-panel) 0 0;
   }
-
-  .archive-status {
-    font-size: 14px;
+  .toc-head { grid-template-columns: minmax(0, 1fr); padding: var(--sy-space-2) var(--sy-space-4) var(--sy-space-4); }
+  .toc-note, .toc-search { padding-inline: var(--sy-space-4); }
+  /* Minutes stay on the title's row: wrapping them doubled the list. */
+  .toc-entry {
+    grid-template-columns: 32px minmax(0, 1fr) auto;
+    gap: var(--sy-space-3);
+    padding-inline: var(--sy-space-4);
   }
-
-  .archive-meta {
-    font-size: 0.72rem;
-  }
-
-  .archive-card-foot {
-    padding-top: var(--space-xs);
-  }
-}
-
-/* The shelf says which state a reader is in: prepared, or certified. It
-   shrinks as records land and disappears when none are outstanding. */
-.archive-review-note {
-  margin: 0.5rem 0 0;
-  max-width: 62ch;
-  font-size: 12px;
-  line-height: 1.5;
-  padding-left: 0.75rem;
-  border-left: 2px solid var(--color-shadow);
-}
-
-/* The shelf of a reader's own works, below the drop zone. */
-
-.local-work-shelf {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-  margin: 1.5rem 0;
-}
-
-.local-work {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-  flex-wrap: wrap;
-  padding: 1rem 1.15rem;
-  background: var(--color-depth, #1A1A1E);
-  border: 1px solid var(--color-shadow, #2A2A30);
-}
-
-.local-work-body {
-  min-width: 12rem;
-  flex: 1;
-}
-
-.local-work-body h3 {
-  margin: 0 0 0.25rem;
-  font-size: 1.05rem;
-  font-weight: 500;
-}
-
-.local-work-body p {
-  margin: 0;
-  font-size: 0.8rem;
-  font-variant-numeric: tabular-nums;
-}
-
-.local-work-actions {
-  display: flex;
-  gap: 0.5rem;
-  flex-wrap: wrap;
-}
-
-@media (max-width: 30rem) {
-  .local-work-actions {
-    /* Three buttons on a phone row become three unreadable stubs. */
-    width: 100%;
-  }
-
-  .local-work-actions button {
-    flex: 1;
-  }
+  .toc-foot { padding: var(--sy-space-3) var(--sy-space-4) var(--sy-space-4); }
 }

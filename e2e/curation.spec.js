@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './fixtures.js';
 const GATE = { code: 'rise2025', name: 'Curation', vault: null, timestamp: Date.now() };
 
 // Curation-only (SOURCE-CURATION-SPEC): the searched Wikimedia families

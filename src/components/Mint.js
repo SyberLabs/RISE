@@ -1,6 +1,9 @@
 import { escapeHtml } from '../core/sanitize.js';
 import './Mint.css';
 
+const ARROW = '<svg class="mint-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"></path><path d="m13 6 6 6-6 6"></path></svg>';
+const SPINNER = '<svg class="mint-icon mint-spinner" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9" stroke-opacity=".25"></circle><path d="M21 12a9 9 0 0 0-9-9"></path></svg>';
+
 /**
  * The door a minted sequence opens onto.
  *
@@ -35,22 +38,26 @@ export class Mint {
       // code outlives the sequence it names, and a dead end is the one
       // thing a card cannot recover from.
       this.container.innerHTML = `
-        <div class="mint">
-          <p class="mint-eyebrow">Not found</p>
+        <main class="mint">
+          <p class="mint-eyebrow"><span class="mint-dot" aria-hidden="true"></span>RISE / Not found</p>
           <h1 class="mint-title">This sequence is not one RISE has minted</h1>
           <p class="mint-summary">The code may be older than the reading it names.</p>
-          <button class="mint-open" data-action="portal">Go to RISE</button>
-        </div>`;
+          <div class="mint-actions">
+            <button type="button" class="mint-open" data-action="portal"><span class="mint-label">Go to RISE</span>${ARROW}</button>
+          </div>
+        </main>`;
       return;
     }
     this.container.innerHTML = `
-      <div class="mint">
-        <p class="mint-eyebrow">A minted sequence</p>
+      <main class="mint">
+        <p class="mint-eyebrow"><span class="mint-dot" aria-hidden="true"></span>RISE / Minted sequence</p>
         <h1 class="mint-title">${escapeHtml(entry.title)}</h1>
         <p class="mint-summary">${escapeHtml(entry.summary || '')}</p>
-        <button class="mint-open" data-action="open">Begin</button>
-        <button class="mint-elsewhere" data-action="portal">Somewhere else</button>
-      </div>`;
+        <div class="mint-actions">
+          <button type="button" class="mint-open" data-action="open"><span class="mint-label">Begin</span>${ARROW}</button>
+          <button type="button" class="mint-elsewhere" data-action="portal">Go to RISE</button>
+        </div>
+      </main>`;
   }
 
   attachEvents() {
@@ -70,7 +77,8 @@ export class Mint {
     const button = this.container.querySelector('[data-action="open"]');
     if (button) {
       button.disabled = true;
-      button.textContent = 'Opening…';
+      button.setAttribute('aria-busy', 'true');
+      button.innerHTML = `<span class="mint-label">Opening…</span>${SPINNER}`;
     }
     try {
       await this.onOpen(this.entry.slug);
@@ -80,7 +88,8 @@ export class Mint {
       this.busy = false;
       if (button?.isConnected) {
         button.disabled = false;
-        button.textContent = 'Begin';
+        button.removeAttribute('aria-busy');
+        button.innerHTML = `<span class="mint-label">Begin</span>${ARROW}`;
       }
     }
   }

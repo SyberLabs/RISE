@@ -24,6 +24,7 @@ history, not a distinction; read the status column instead.
 | [PROJECT-KNOWLEDGE.md](PROJECT-KNOWLEDGE.md) | Record | The handover. Recurring defect patterns and the reasoning behind decisions that look arbitrary. Read section 2 twice. |
 | [specs/ARCHITECTURE.md](specs/ARCHITECTURE.md) | Contract | The canonical, living system design: the planes, the room register, the contracts, and every significant decision with the alternative it rejected. `src/core/system-design.test.js` fails a build when it drifts from the tree. |
 | [specs/SYSTEM-DESIGN-REVIEW-2026-08-22.md](specs/SYSTEM-DESIGN-REVIEW-2026-08-22.md) | Record | The review that produced the document above, measured against commit `bb44899` with the commands to reproduce each number. |
+| [RELEASING.md](RELEASING.md) | Contract | Production release, required approvals and secrets, and rollback for the Cloudflare host. |
 | [ENGINEERING.md](ENGINEERING.md) | Record | A short scannable summary of what the codebase is and what was engineered, for a reader who will not open the architecture document. |
 | [../AGENTS.md](../AGENTS.md) | Contract | Operating principles and project development notes, for humans and agents alike. |
 
@@ -34,6 +35,17 @@ history, not a distinction; read the status column instead.
 | [RELEASE-ROADMAP-2026-08-20.md](RELEASE-ROADMAP-2026-08-20.md) | Contract | The current release corridor. Gates checked by `npm run release:check`. |
 | [RELEASE-ACCEPTANCE-PROTOCOL.md](RELEASE-ACCEPTANCE-PROTOCOL.md) | Contract | The human gates - certification, acoustic review, device review - that no script can pass on its own. |
 | [RISE-RELEASE-REPORT-2026-08-31.md](RISE-RELEASE-REPORT-2026-08-31.md) | Record | System-wide production sweep of release readiness: machine gates, human gaps, security, state, documentation drift, and public-sharing verdict. |
+
+## Pilot
+
+| Document | Status | What it is |
+| --- | --- | --- |
+| [pilot/SEQUENCE-PILOT.md](pilot/SEQUENCE-PILOT.md) | Intent | Seven-day, invited sequence discovery protocol, manual evidence rules, rights and consent gates, and pass thresholds. |
+| [pilot/JEV-STEERING.md](pilot/JEV-STEERING.md) | Intent | Six-reader private usability gate for one optional Jev scene shift. |
+| [pilot/FIRST-READ.md](pilot/FIRST-READ.md) | Intent | Five-reader comparison of the existing and new Meditations entrances, with consent, timing, retention, and a fixed 10× decision rule. |
+| [personal-readings.md](personal-readings.md) | Contract | Create: the hosted writer boundary, quotas, persistence and import rules, and the activation evidence that keeps generation off. |
+| [personal-readings-review.md](personal-readings-review.md) | Record | The independent review of Create, what was repaired, and the decisions retained. |
+| [plans/personal-readings-plan.md](plans/personal-readings-plan.md) | Record | The implementation plan the Create slice was built from. |
 
 ## The Archive - texts and their editing
 
@@ -71,6 +83,7 @@ history, not a distinction; read the status column instead.
 | [specs/RHYTHMIC-VISUAL-PRESENCE-SPEC.md](specs/RHYTHMIC-VISUAL-PRESENCE-SPEC.md) | Contract | Rhythmic visual presence, as built. |
 | [specs/LATERAL-TRAVERSAL-SPEC.md](specs/LATERAL-TRAVERSAL-SPEC.md) | Contract | The Shuttle. Implemented in `src/core/shuttle.js`. |
 | [specs/CONTINUOUS-FIELD-SPEC.md](specs/CONTINUOUS-FIELD-SPEC.md) | Contract | Gallery's continuous field. Implemented in `src/visuals/continuous-field.js`. |
+| [specs/JEV-VARIANCE.md](specs/JEV-VARIANCE.md) | Contract | One-call Jev reading diversity, intent precedence, and bounded cache slots. |
 | [specs/PHASE-2-SAFETY-SPEC.md](specs/PHASE-2-SAFETY-SPEC.md) | Contract | Photosensitivity and reading limits. See `src/core/visual-safety.js`. |
 | [vision/SPATIAL-CHAMBER-SPEC.md](vision/SPATIAL-CHAMBER-SPEC.md) | Intent | A separate spatial room. Realised instead as the Stream/Page toggle. |
 | [specs/Premium_Mobile_Chamber.md](specs/Premium_Mobile_Chamber.md) | Intent | Mobile visual grammar. Portal adopts part of it. |
@@ -103,8 +116,21 @@ history, not a distinction; read the status column instead.
 | [vision/JOURNEYS-SPEC.md](vision/JOURNEYS-SPEC.md) | Intent | Journeys are on ice - their scores quote editions the canon no longer serves. Re-anchoring is an editorial act, not a repair. |
 | [specs/BOOK-VI-PROCEDURAL-WORKS.md](specs/BOOK-VI-PROCEDURAL-WORKS.md) | Record | Milton's Book VI mapped to the engines in `src/visuals/paradise_lost/`, for the withdrawn Journey. |
 | [vision/DREAMS.md](vision/DREAMS.md) | Intent | Unscheduled experiments. Explicitly not a plan. |
+| [journey-editorial/editorial-work.md](journey-editorial/editorial-work.md) | Draft | Unpublished source-bound Journey, editorial status, and decisions. |
+| [journey-editorial/sources.md](journey-editorial/sources.md) | Evidence | Edition identities, excerpt anchors, and checksum evidence. |
+| [journey-editorial/review.md](journey-editorial/review.md) | Review | Scope-limited review and validation evidence. |
+| [journey-editorial/validation.md](journey-editorial/validation.md) | Validation | Draft launch, source, checksum, and certification boundaries. |
 
 ---
+
+## Reading decision service and retired gate
+
+| Document | Status | What it is |
+| --- | --- | --- |
+| [KEV-DEPLOYMENT.md](KEV-DEPLOYMENT.md) | Intent | Staging procedure for the pinned, authenticated Kev-4B service, its revision attestation, and the RISE Jev/Kev evaluation. Deploys nothing by itself. |
+| [jev-core/service.md](jev-core/service.md) | Contract | Optional same-origin OpenRouter decision endpoint used by the explicit Jev preview. |
+| [jev-core/variety-evaluation.md](jev-core/variety-evaluation.md) | Record | Jev prompt-variety baseline, bounded evaluation method, and local candidate evidence. |
+| [jev-core/README.md](jev-core/README.md) | Historical record | Removed Chamber gate, prior verification evidence, and live-provider caveat. |
 
 ## Conventions
 

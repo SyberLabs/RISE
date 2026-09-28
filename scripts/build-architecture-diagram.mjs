@@ -39,8 +39,10 @@ const CAPTIONS = {
     components: 'routed views',
     content: 'texts, imagery, journeys',
     core: 'session, player, router',
+    enterprise: 'talk program, speaker rail',
     page: 'spatial projection',
     sources: 'text and visual providers',
+    vendor: 'SyberLabs design kit',
     visuals: 'procedural generation'
 };
 

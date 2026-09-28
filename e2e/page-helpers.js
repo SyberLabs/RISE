@@ -65,6 +65,12 @@ async function scrollThrough(page, ceilingMs) {
 export async function collectAcrossPages(page, options = {}) {
     const settleMs = Number.isFinite(options.settleMs) ? options.settleMs : 1200;
 
+    await page.locator('.page-article').first().waitFor({ state: 'visible' });
+    await page.waitForFunction(() => {
+        const reader = window.__RISE_TEST__?.getView('chamber-session')?.pageReader;
+        return reader?.pageIndex === 0;
+    });
+
     const total = await page.evaluate(() => {
         const r = window.__RISE_TEST__?.getView('chamber-session')?.pageReader;
         return r?.pages?.length ?? 1;
@@ -82,6 +88,10 @@ export async function collectAcrossPages(page, options = {}) {
                 return true;
             }, i);
             if (!turned) break;
+            await page.waitForFunction((index) => {
+                const reader = window.__RISE_TEST__?.getView('chamber-session')?.pageReader;
+                return reader?.pageIndex === index;
+            }, i);
         }
         // Settle page 0 as well — the walk starts there immediately.
         await settle(page, settleMs);
@@ -111,6 +121,10 @@ export async function collectAcrossPages(page, options = {}) {
         await page.evaluate(() => {
             const r = window.__RISE_TEST__?.getView('chamber-session')?.pageReader;
             r?.goToPage(0);
+        });
+        await page.waitForFunction(() => {
+            const reader = window.__RISE_TEST__?.getView('chamber-session')?.pageReader;
+            return reader?.pageIndex === 0;
         });
         await settle(page, settleMs);
     }

@@ -21,6 +21,7 @@ import { buildStationsDefinition } from '../content/chapel/liturgy/stations-litu
 import { STATIONS, STATIONS_ATTRIBUTION, stationByNumber } from '../content/chapel/liturgy/stations.js';
 import { escapeHtml } from '../core/sanitize.js';
 import { REMOTE_IMAGE_ATTRS, createRemoteImage } from '../visuals/remote-image.js';
+import { roomHeader, roomEyebrow, roomIcon } from './room-chrome.js';
 import './Via.css';
 import { USER_DATA_KEYS } from '../core/user-data-keys.js';
 
@@ -83,7 +84,7 @@ export class Via {
     this.container.innerHTML = `
       <main class="via" aria-label="The Stations of the Cross">
         <div class="via-stage" data-phase="${this.phase}"></div>
-        <p class="chant-credit font-mono" aria-live="polite" hidden></p>
+        <p class="chant-credit" aria-live="polite" hidden></p>
       </main>
     `;
     this.renderStage();
@@ -106,25 +107,35 @@ export class Via {
       </div>
     `).join('');
     const sounds = SOUNDS.map(([id, label]) => `
-      <button class="via-pill${this.sound === id ? ' via-pill-selected' : ''}" data-sound="${id}">${label}</button>
+      <button type="button" class="via-pill${this.sound === id ? ' via-pill-selected' : ''}"
+        data-sound="${id}" aria-pressed="${this.sound === id}">${label}</button>
     `).join('');
     return `
-      <button class="btn-ghost via-back" data-action="back"><span aria-hidden="true">←</span> Chapel</button>
+      ${roomHeader({ back: 'Chapel', backClass: 'via-back' })}
+      <div class="via-choose">
       <header class="via-heading">
-        <p class="via-kicker font-mono">THE STATIONS OF THE CROSS</p>
-        <p class="via-deck">Fourteen stations, walked as a nave is walked. Tiepolo's Via Crucis, San Polo, Venice.</p>
+        ${roomEyebrow('Devotion', 'via-kicker')}
+        <h1 class="room-title">The Stations of the Cross</h1>
+        <p class="via-deck room-deck">Fourteen stations, walked as a nave is walked. Tiepolo's Via Crucis, San Polo, Venice.</p>
       </header>
       <div class="via-nave">${frames}</div>
       <div class="via-panel">
         <div class="via-row">
-          <span class="via-row-label font-mono">Sound</span>
+          <span class="via-row-label">Sound</span>
           ${sounds}
-          <span class="via-row-label font-mono" style="margin-left:auto">Walked</span>
-          <button class="via-pill${!this.autoAdvance ? ' via-pill-selected' : ''}" data-advance="manual" title="You move between phases and stations yourself">By hand</button>
-          <button class="via-pill${this.autoAdvance ? ' via-pill-selected' : ''}" data-advance="auto" title="The way carries you at meditation pace">Carried</button>
         </div>
-        <button class="via-start" data-action="start">Begin the Way of the Cross</button>
-        <p class="via-attribution font-mono">${escapeHtml(STATIONS_ATTRIBUTION)}</p>
+        <div class="via-row">
+          <span class="via-row-label">Advance</span>
+          <button type="button" class="via-pill${!this.autoAdvance ? ' via-pill-selected' : ''}"
+            data-advance="manual" aria-pressed="${!this.autoAdvance}"
+            title="You move between phases and stations yourself">By hand</button>
+          <button type="button" class="via-pill${this.autoAdvance ? ' via-pill-selected' : ''}"
+            data-advance="auto" aria-pressed="${this.autoAdvance}"
+            title="The way carries you at meditation pace">Auto</button>
+        </div>
+        <button type="button" class="via-start via-primary" data-action="start">Begin the Way of the Cross</button>
+        <p class="via-attribution">${escapeHtml(STATIONS_ATTRIBUTION)}</p>
+      </div>
       </div>
     `;
   }
@@ -146,7 +157,7 @@ export class Via {
           </div>
         ` : ''}
         <p class="via-text via-text-${escapeHtml(state.phase)}">${escapeHtml(step.text).replace(/\n/g, '<br/>')}</p>
-        ${this.autoAdvance ? '' : `<span class="via-hint">${isSilence ? 'be still · then walk on ›' : 'walk on ›'}</span>`}
+        ${this.autoAdvance ? '' : `<span class="via-hint">${isSilence ? 'Be still, then walk on' : 'Walk on'}${roomIcon('forward', 16)}</span>`}
       </div>
     `;
   }
@@ -156,7 +167,7 @@ export class Via {
       <div class="via-strip" aria-hidden="true">
         ${STATIONS.map(station => `
           <span class="via-strip-mark${station.number === currentStation ? ' via-strip-here'
-            : station.number < (currentStation ?? 0) ? ' via-strip-walked' : ''}">${station.number === currentStation ? '✛' : '·'}</span>
+            : station.number < (currentStation ?? 0) ? ' via-strip-walked' : ''}"></span>
         `).join('')}
       </div>
     `;
@@ -166,7 +177,7 @@ export class Via {
     return `
       <button class="via-quiet-exit" data-action="exit-chapel"
         title="Leave the Way and return to the Chapel"
-        aria-label="Return to the Chapel">✛ Chapel</button>
+        aria-label="Return to the Chapel">${roomIcon('back', 16)}<span>Chapel</span></button>
     `;
   }
 
@@ -174,7 +185,7 @@ export class Via {
     return `
       <div class="via-complete">
         <p class="via-text">The Way of the Cross is complete.</p>
-        <button class="via-start" data-action="back">Return to the Chapel</button>
+        <button type="button" class="via-start via-primary" data-action="back">Return to the Chapel</button>
       </div>
     `;
   }
@@ -190,7 +201,7 @@ export class Via {
   }
 
   advance() {
-    if (this.phase !== 'walking' && this.phase !== 'choosing') return;
+    if (this.phase !== 'walking' || !this.compiled) return;
     clearTimeout(this._timer);
     this.stepIndex += 1;
     const step = this.compiled.steps[this.stepIndex];
@@ -250,6 +261,9 @@ export class Via {
     const { signal } = this._abort;
     this.container.addEventListener('click', event => this.handleClick(event), { signal });
     this._keyHandler = event => {
+      // Let focused controls keep their native Space behavior. Otherwise
+      // Space on the Chapel exit was interpreted as “walk on” instead.
+      if (event.target.closest?.('button, a, input, select, textarea, [contenteditable="true"]')) return;
       if ((event.code === 'Space' || event.key === 'ArrowRight')
         && this.phase === 'walking' && !this.autoAdvance) {
         event.preventDefault();
@@ -299,7 +313,11 @@ export class Via {
   }
 
   activate() { document.addEventListener('keydown', this._keyHandler); }
-  deactivate() { document.removeEventListener('keydown', this._keyHandler); }
+  deactivate() {
+    clearTimeout(this._timer);
+    this._stopSound();
+    document.removeEventListener('keydown', this._keyHandler);
+  }
 
   destroy() {
     this.deactivate();

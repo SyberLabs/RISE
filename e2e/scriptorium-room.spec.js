@@ -8,7 +8,7 @@
  * element holding the scroll offset and rebuilt it at the top. A reader who
  * pressed anything was thrown back to the first line.
  */
-import { test, expect } from '@playwright/test';
+import { test, expect } from './fixtures.js';
 
 const GATE = { code: 'rise2025', name: 'Scriptorium', vault: null, timestamp: Date.now() };
 
@@ -17,7 +17,7 @@ async function openScriptorium(page) {
         localStorage.setItem('rise-beta-session', JSON.stringify(gate));
     }, GATE);
     await page.goto('/');
-    await expect(page.locator('[data-nav="library"]').first()).toBeVisible({ timeout: 15_000 });
+    await expect(page.locator('.portal .portal-title').first()).toBeVisible({ timeout: 15_000 });
     await page.evaluate(() => window.__RISE_TEST__?.navigate('scriptorium'));
     await expect(page.locator('.scriptorium')).toBeVisible({ timeout: 15_000 });
     await page.waitForTimeout(600);
