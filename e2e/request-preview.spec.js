@@ -59,7 +59,9 @@ test('Tokyo Drift: one box, interpretation and limits before Play, local adjust,
   await intent.fill('i want something psychedelic fast tokyo drift style');
   await page.locator('.portal-jev-submit').click();
   const preview = page.locator('#portal-preview');
-  await expect(preview).toBeVisible({ timeout: 15_000 });
+  // The decision now runs in the page (catalog, then the model), each step a
+  // task behind this headless browser's software-rendered frames.
+  await expect(preview).toBeVisible({ timeout: 45_000 });
   await expect(page.locator('#chamber-display')).toBeHidden();
   await expect(preview.locator('.portal-preview-lede')).toContainText('You referenced “Tokyo Drift”');
   await expect(preview.locator('.portal-rows')).toContainText('Neon night');

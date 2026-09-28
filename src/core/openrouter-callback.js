@@ -10,8 +10,22 @@ export const PENDING_KEY = 'rise-openrouter-pkce-v1';
 
 // The one-time state rides in the callback path (/connect/openrouter/<state>),
 // so it survives however the provider appends ?code= to the URL.
+let captured = null;
+
 export function takeOpenRouterReturn(location = globalThis.location, history = globalThis.history,
   storage = globalThis.sessionStorage) {
+  captured = readReturn(location, history, storage);
+  return captured;
+}
+
+/** Hand what was found on page load to the Portal, once. */
+export function claimOpenRouterReturn() {
+  const found = captured;
+  captured = null;
+  return found;
+}
+
+function readReturn(location, history, storage) {
   const match = /^\/connect\/openrouter(?:\/([^/]*))?\/?$/u.exec(location.pathname);
   if (match) {
     const callback = { code: new URL(location.href).searchParams.get('code'), state: match[1] || null };

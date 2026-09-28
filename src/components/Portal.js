@@ -22,6 +22,7 @@ import { attachJevDictation } from './jev-dictation.js';
 import {
   connectionState, detectLocalKev, disconnect, isLocalRise, subscribeConnection, takeConnectionNotice
 } from '../core/ai-connection.js';
+import { claimOpenRouterReturn } from '../core/openrouter-callback.js';
 
 const ICON_ATTRS = 'width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"';
 const SETTINGS_PATH = '<path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path><circle cx="12" cy="12" r="3"></circle>';
@@ -455,6 +456,9 @@ export class Portal {
     };
     this.stopConnection = subscribeConnection(refresh);
     refresh();
+    // Finish an OpenRouter sign-in this page load returned from (or abandoned).
+    const returned = claimOpenRouterReturn();
+    if (returned) void import('../core/openrouter-oauth.js').then(oauth => oauth.finishOpenRouterReturn(returned));
     if (isLocalRise()) void this.watchLocalKev();
 
     this.container.querySelectorAll('[data-example]').forEach(chip => {
@@ -464,7 +468,10 @@ export class Portal {
         intentField.focus();
       });
     });
-    intentField?.addEventListener('input', () => this.rememberIntent(intentField.value));
+    intentField?.addEventListener('input', () => {
+      this.rememberIntent(intentField.value);
+      this.warmDecisions();
+    });
 
     const preview = this.container.querySelector('#portal-preview');
     preview?.addEventListener('click', event => {
@@ -770,6 +777,19 @@ export class Portal {
         <span class="portal-ai-hint">billed to your own OpenRouter account</span> ·
         <a class="portal-link" href="${LOCAL_GUIDE}" target="_blank" rel="noopener noreferrer">Run locally</a>
         <span class="portal-ai-hint">no hosted inference bill</span></p>`;
+  }
+
+  /**
+   * Once a connected reader starts typing, fetch the decision code and the
+   * public catalog so pressing Create preview waits only for the model.
+   * Nothing is sent to a model here.
+   */
+  warmDecisions() {
+    if (this._warmed || connectionState().kind === 'none') return;
+    this._warmed = true;
+    void import('../core/decision/browser.js')
+      .then(({ loadPublicCatalog }) => loadPublicCatalog())
+      .catch(() => { this._warmed = false; });
   }
 
   showAiNotice(message) {

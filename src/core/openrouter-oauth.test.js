@@ -4,6 +4,7 @@ import {
   beginOpenRouterConnect, codeChallenge, completeOpenRouterConnect, finishOpenRouterReturn, takeOpenRouterReturn
 } from './openrouter-oauth.js';
 import { takeConnectionNotice } from './ai-connection.js';
+import { claimOpenRouterReturn } from './openrouter-callback.js';
 import { connectionState, disconnect, getConnection, resetConnectionForTests } from './ai-connection.js';
 import { callDecision } from './decision/call.js';
 
@@ -59,6 +60,9 @@ describe('Connect OpenRouter (PKCE S256)', () => {
     const storage = memoryStorage();
     const taken = takeOpenRouterReturn(location, history, storage);
     expect(taken).toEqual({ callback: { code: 'abc12345', state: 's' } });
+    // The Portal claims it once.
+    expect(claimOpenRouterReturn()).toEqual(taken);
+    expect(claimOpenRouterReturn()).toBeNull();
     expect(history.replaceState).toHaveBeenCalledWith(null, '', '/');
     const elsewhere = vi.fn();
     expect(takeOpenRouterReturn({ pathname: '/', href: `${ORIGIN}/` }, { replaceState: elsewhere }, storage)).toBeNull();
