@@ -1,5 +1,6 @@
 import { handleJevDecision } from '../netlify/functions/jev-decision.mjs';
 import { handleJevRoute } from '../netlify/functions/jev-route.mjs';
+import { handleEnterpriseDecision } from './enterprise-decision.mjs';
 import { handleJevRecommend } from './jev-recommend.mjs';
 import { decisionProvider } from '../server/decision-provider.mjs';
 import { handlePersonalPiece } from './personal-piece.mjs';
@@ -43,6 +44,8 @@ export default {
         ? handleJevRecommend(request, env)
         : handleJevDecision(request, env);
     }
+
+    if (path === '/api/enterprise-decision') return handleEnterpriseDecision(request);
 
     return error(404, 'NOT_FOUND', 'API route not found.');
   }
