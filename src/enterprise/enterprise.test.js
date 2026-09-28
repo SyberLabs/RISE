@@ -4,6 +4,7 @@ import { admitToStage, permit, validateCard, validateProgram } from './gate.js';
 import { renderChart } from './chart.js';
 import { prepareTalk } from './prepare.js';
 import { embed, indexProgram, matchLexical, matchSemantic } from './match.js';
+import { indexCorpus, retrieve } from './retrieve.js';
 import {
     RAIL_POLICY,
     initialRailState,
@@ -197,6 +198,36 @@ describe('prepared talk', () => {
         expect(program.presenterId).toBe(PRESENTER);
         expect(program.entities.map(entity => entity.name)).toEqual(['Atlas', 'Northwind']);
         expect(Object.isFrozen(program.cards[0])).toBe(true);
+    });
+});
+
+describe('retrieval', () => {
+    it('retrieves a permitted sentence and skips the board memo', () => {
+        const corpus = ingestCorpus({
+            documents: [
+                {
+                    id: 'ops',
+                    title: 'Ops note',
+                    audiences: ['all-hands'],
+                    pages: [{ page: 1, text: 'The cafeteria serves soup on Tuesday.' }]
+                },
+                {
+                    id: 'board-memo',
+                    title: 'Board memo',
+                    audiences: ['board'],
+                    pages: [{ page: 1, text: 'The acquisition price is 880 million and stays in the board room.' }]
+                }
+            ],
+            tables: [],
+            entities: []
+        });
+        const found = retrieve(indexCorpus(corpus, 'all-hands'), 'cafeteria soup tuesday');
+        expect(found).toHaveLength(1);
+        expect(found[0].body).toBe('The cafeteria serves soup on Tuesday.');
+        expect(found[0].id).toBe('card:retrieval:ops:1:0');
+        expect(validateCard(found[0], corpus, 'all-hands').kind).toBe('passage');
+        expect(JSON.stringify(found)).not.toContain('880');
+        expect(retrieve(indexCorpus(corpus, 'all-hands'), 'acquisition price')).toEqual([]);
     });
 });
 
