@@ -369,6 +369,41 @@ describe('JEV rail decision', () => {
     });
 });
 
+describe('rail eviction', () => {
+    it('never evicts a promoted card to make room', () => {
+        const policy = { ...RAIL_POLICY, cooldownMs: 0, dwellMs: 0, margin: 0.1, maxRail: 2 };
+        const show = (cardId, score, at) => ({
+            type: 'verdict', action: 'show', cardId, layout: 'quote', score, title: cardId, at
+        });
+        let state = initialRailState();
+        state = reduceRail(state, show('low', 0.3, 0), policy).state;
+        state = reduceRail(state, show('mid', 0.5, 10), policy).state;
+        state = reduceRail(state, { type: 'promote', cardId: 'low', at: 20 }, policy).state;
+        const next = reduceRail(state, show('high', 0.9, 30), policy);
+        expect(next.effect).toBe('show');
+        expect(next.state.cards.map(card => card.id)).toEqual(['low', 'high']);
+        expect(next.state.stageIds).toEqual(['low']);
+
+        const promotedOnly = reduceRail(
+            reduceRail(next.state, { type: 'promote', cardId: 'high', at: 40 }, policy).state,
+            show('top', 1, 50), policy);
+        expect(promotedOnly).toMatchObject({ effect: 'hold', reason: 'full' });
+        expect(promotedOnly.state.stageIds).toEqual(['low', 'high']);
+    });
+
+    it('lets an asked card past cooldown, dwell, and margin', () => {
+        const policy = { ...RAIL_POLICY, maxRail: 1 };
+        let state = reduceRail(initialRailState(), {
+            type: 'verdict', action: 'show', cardId: 'a', layout: 'quote', score: 0.9, title: 'A', at: 0
+        }, policy).state;
+        const next = reduceRail(state, {
+            type: 'verdict', action: 'show', cardId: 'b', layout: 'quote', score: 0.2, title: 'B', at: 10, asked: true
+        }, policy);
+        expect(next.effect).toBe('show');
+        expect(next.state.cards).toMatchObject([{ id: 'b', asked: true }]);
+    });
+});
+
 describe('live session', () => {
     it('shows a prepared card from a finalized sentence and records latency', () => {
         const { corpus, program } = prepared();

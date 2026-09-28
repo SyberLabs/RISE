@@ -115,19 +115,25 @@ export function reduceRail(state, event, policy = RAIL_POLICY) {
     if (next.cards.some(card => card.id === event.cardId)) {
         return { state: next, effect: 'hold', reason: 'duplicate' };
     }
-    if (cooling(next, event.at, policy)) return { state: next, effect: 'hold', reason: 'cooldown' };
+    // An asked-for card is the presenter's own request: the waiting rules that
+    // keep speech from flickering the rail do not apply to it.
+    const asked = event.asked === true;
+    if (!asked && cooling(next, event.at, policy)) return { state: next, effect: 'hold', reason: 'cooldown' };
     const best = next.cards.reduce((score, card) => Math.max(score, card.score), 0);
     const youngest = next.cards.reduce((at, card) => Math.max(at, card.shownAt), -Infinity);
     const dwelling = next.cards.length > 0 && event.at - youngest < policy.dwellMs;
-    if (dwelling && event.score < best + policy.margin) {
+    if (!asked && dwelling && event.score < best + policy.margin) {
         return { state: next, effect: 'hold', reason: 'dwell' };
     }
     if (next.cards.length >= policy.maxRail) {
-        if (event.score < best + policy.margin) return { state: next, effect: 'hold', reason: 'margin' };
-        let lowest = 0;
+        if (!asked && event.score < best + policy.margin) return { state: next, effect: 'hold', reason: 'margin' };
+        // A promoted card is on the stage; only the presenter may take it off.
+        let lowest = -1;
         next.cards.forEach((card, index) => {
-            if (card.score < next.cards[lowest].score) lowest = index;
+            if (card.status === 'promoted') return;
+            if (lowest < 0 || card.score < next.cards[lowest].score) lowest = index;
         });
+        if (lowest < 0) return { state: next, effect: 'hold', reason: 'full' };
         next.cards.splice(lowest, 1);
     }
     next.cards.push({
@@ -136,7 +142,8 @@ export function reduceRail(state, event, policy = RAIL_POLICY) {
         layout: event.layout,
         score: event.score,
         shownAt: event.at,
-        status: 'shown'
+        status: 'shown',
+        asked
     });
     next.lastShownAt = event.at;
     next.shown += 1;
