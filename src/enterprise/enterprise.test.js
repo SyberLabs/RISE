@@ -13,6 +13,7 @@ import {
     sanitizeDecision
 } from './decision.js';
 import { openSession } from './session.js';
+import { mapRecognitionEvent } from './speech.js';
 import { renderRail } from './rail-view.js';
 import { renderStage } from './stage-view.js';
 
@@ -648,6 +649,28 @@ describe('speaker rail', () => {
         root.querySelector('[data-action="dismiss"]').click();
         expect(root.textContent).not.toContain('12.4');
         expect(session.metrics().speakerDismissed).toBe(0);
+    });
+});
+
+describe('recognition mapper', () => {
+    it('maps a labeled transcript and treats an unknown voice as the audience', () => {
+        expect(mapRecognitionEvent({
+            transcript: 'Atlas renewal price',
+            isFinal: false,
+            speakerLabel: 'ada',
+            at: 20
+        }, { presenterIds: ['ada'] })).toEqual({
+            text: 'Atlas renewal price',
+            final: false,
+            speaker: 'presenter',
+            speakerId: 'ada',
+            at: 20
+        });
+        expect(mapRecognitionEvent({
+            transcript: 'cafeteria soup tuesday',
+            isFinal: true,
+            at: 40
+        }, { presenterIds: ['ada'] }).speaker).toBe('audience');
     });
 });
 
