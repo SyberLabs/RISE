@@ -43,6 +43,7 @@ export class Vault {
     this.portableNotice = '';
     this.portableBusy = false;
     this.portableGeneration = 0;
+    this.portableCredits = new Map();
     this._active = false;
     this.boundKeyboardHandler = this.handleKeyboard.bind(this);
 
@@ -294,7 +295,7 @@ export class Vault {
           </div>
           ${bp.experienceProgram && !bp.provenance?.portableId ? `
             <label class="vault-portable-credit">Creator credit (optional)
-              <input data-portable-credit maxlength="120" autocomplete="off" placeholder="Name to show the recipient">
+              <input data-portable-credit maxlength="120" autocomplete="off" placeholder="Name to show the recipient" value="${escapeHtml(this.portableCredits.get(bp.id) || '')}">
             </label>
             <button class="btn-secondary" data-action="export-portable" data-id="${escapeHtml(bp.id)}">Export portable score</button>
             <p role="status" data-portable-status></p>` : ''}
@@ -312,6 +313,12 @@ export class Vault {
   }
 
   attachEvents() {
+    this.container.addEventListener('input', (event) => {
+      if (!event.target.matches('[data-portable-credit]')) return;
+      const id = event.target.closest('.sequence-card')?.dataset.id;
+      if (id) this.portableCredits.set(id, event.target.value);
+    });
+
     // Back button
     this.container.querySelector('[data-action="back"]')?.addEventListener('click', () => {
       this.getAudioEngine()?.playClick();

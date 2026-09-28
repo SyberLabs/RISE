@@ -42,6 +42,24 @@ it('offers file import in Custom and export only for a saved authored score', as
   vault.destroy();
 });
 
+it('retains typed creator credit when asynchronous Vault hydration redraws the card', async () => {
+  const { project } = await bundle();
+  MemoryCore.saveWorkshopBlueprint(project);
+  const container = document.createElement('div');
+  document.body.append(container);
+  const vault = new Vault(container, { initialSection: 'custom' });
+  const credit = container.querySelector('[data-portable-credit]');
+  credit.value = 'A. Reader';
+  credit.dispatchEvent(new Event('input', { bubbles: true }));
+  vault.refreshBlueprints();
+  expect(container.querySelector('[data-portable-credit]').value).toBe('A. Reader');
+  await MemoryCore.getWorkshopBlueprintsHydrated();
+  await Promise.resolve();
+  expect(container.querySelector('[data-portable-credit]').value).toBe('A. Reader');
+  expect(vault.portableCredits.get(project.id)).toBe('A. Reader');
+  vault.destroy();
+});
+
 it('inspects without saving, cancels, and saves only on an explicit second gesture', async () => {
   const { text } = await bundle();
   const container = document.createElement('div');
