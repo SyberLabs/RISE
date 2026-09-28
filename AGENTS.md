@@ -170,17 +170,23 @@ Guidance for anyone (human or agent) working on RISE. Standard commands live in
 
 ## Architecture at a glance
 
-RISE is a **client-only browser app** (vanilla-JS SPA built with Vite). There is
-**no backend, database, or external service to stand up** — user text is
-processed in the browser, and remote content (museum/text APIs) is fetched
-anonymously and degrades gracefully when unreachable. The whole product runs
-from the Vite dev server.
+RISE is a vanilla-JS SPA built with Vite. Reading and browser-local work stay
+client-side. Its production Cloudflare Worker serves the app and same-origin
+decision routes. Optional book recommendations read a held Standard Ebooks
+catalog in Neon PostgreSQL, cache public catalog rows in Upstash Redis, and
+ask the server-configured decision provider to choose a book. The migration
+code defaults to Kev with a pinned endpoint and revision; an explicit
+`DECISION_PROVIDER=jev` setting routes through OpenRouter. No live Kev endpoint
+has been confirmed. The Vite dev server runs the UI; the Worker and managed
+services are required for live recommendations.
 
 ## Environment / setup
 
 - Node: repo pins `20.19.0` (`.nvmrc`/`.node-version`); `engines` also allows
   `>=22.12`.
 - Install deps with `npm ci`.
+- Run `npm run audio:hydrate` before local recitation, full unit tests, or
+ browser tests. It restores ignored WAVs from the pinned audio branch.
 - The full test suite needs two system tools: **`ffmpeg`** and a **Playwright
   Chromium** browser (`npx playwright install chromium`, or
   `npx playwright install --with-deps chromium` if Chromium can't launch due to
@@ -197,31 +203,42 @@ from the Vite dev server.
  builds the app and starts `vite preview` on `127.0.0.1:4317` itself, with
  `VITE_RISE_ARCHIVE_REVIEW=1`. Do **not** start a server manually. It runs
  Chromium only, single worker, with autoplay forced on (Web Audio).
-- Every pull request runs the **whole** browser suite, sharded four ways
- (`Browser matrix N/4`, `--shard=N/4`), behind a `Browser gate` job that runs
- the ~134s `gate` project first as a faster no. Playwright shards by file, and
- `e2e/mobile.spec.js` alone is ~200s of the ~500s suite, so four is the smallest
- count that reaches the floor. More shards buy nothing. `npm run test:e2e:gate`
- is the same corridor to run locally before pushing.
+- Pull requests run core smoke, build, hygiene, security, and docs in one
+ required `CI` job. After a merge, a separate `CI` job builds and deploys
+ `main` directly. Full unit, Scriptorium, and sharded browser suites run
+ separately on main and manual dispatch; they do not hold deployment. Run
+ `npm run test:e2e:gate` locally before pushing.
 - There is **no lint script**. The gates a pull request has to pass are:
  `node scripts/ci-hygiene.mjs`, `npm run security:audit`, and
  `npm run security:compat`
- (`hygiene` job); `npm run measure:first-load`, which holds what
+ (`CI` on pull requests); `npm run measure:first-load`, which holds what
  `dist/index.html` fetches to a ratcheting brotli budget declared in the script
- (`build` job); and `npx vitest run src/core/system-design.test.js` plus
+ (`CI` on pull requests); and `npx vitest run src/core/system-design.test.js` plus
  `npm run docs:diagram`, which must leave `docs/specs/ARCHITECTURE.md` unchanged
- (`docs` job).
+ (`CI` on pull requests).
 - `docs/specs/ARCHITECTURE.md` §3 carries a **generated** import graph between
  `<!-- BEGIN GENERATED DIAGRAM -->` markers. Edit
  `scripts/build-architecture-diagram.mjs`, never the diagram. The rest of that
  file is hand-written and guarded by `src/core/system-design.test.js`.
-- A change touching only `docs/`, `.agents/`, `.cursor/`, a root `*.md`,
- `LICENSE`, or `NOTICE` skips the unit, build, Scriptorium, and browser jobs.
- Anything else runs everything. The system-design guard lives in the unit suite
- but is **also** run by the `docs` job, because editing that document is exactly
- when it has to run.
-- `CI` is the one job that always reports and the only name a branch ruleset
- should require. A required check that never reports blocks a merge forever.
+- Fast `CI` runs for every pull request, including prose-only changes. Main
+ runs production deployment and full validation. The system-design guard
+ lives in the unit suite but is **also** run by PR `CI`.
+- The main-branch ruleset requires two checks and no human approval: `CI` and
+ `Agentic review` (`.github/workflows/agentic-review.yml`, an AI code review
+ that fails closed and blocks on concrete correctness or security defects).
+ Requiring a check that only runs after merge blocks PRs forever.
+
+## Parallel agent work
+
+- For independent backend and client changes, use separate worktrees and
+ branches. Agree on the endpoint shape and error behavior before coding.
+- Give one agent `worker/*` and its tests, another `src/*` and its tests, and
+ a third read-only review when useful. Each coding agent owns one narrow PR.
+- Keep `.github/workflows/*`, `wrangler.production.jsonc`, the lockfile,
+ integration, and production verification with the coordinating agent.
+- Merge through the required `CI` and `Agentic review` checks, then verify the
+ exact live release. Do not add an agent service or another required check for
+ fan-out.
 
 ## Running / manual testing
 

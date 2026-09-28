@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, openHomeNav } from './fixtures.js';
 
 const GATE = { code: 'rise2025', name: 'M', vault: null, timestamp: Date.now() };
 
@@ -13,7 +13,7 @@ async function openWorkshopWithSource(page) {
         localStorage.setItem('rise-beta-session', JSON.stringify(gate));
     }, GATE);
     await page.goto('/');
-    await page.locator('[data-nav="workshop"]').first().click();
+    await openHomeNav(page, 'workshop');
     // A phone opens on the Scene Stack; passage scoring is Full studio.
     await expect(page.locator('.scenes')).toBeVisible({ timeout: 30_000 });
     await page.locator('[data-sa="more"]').first().click();

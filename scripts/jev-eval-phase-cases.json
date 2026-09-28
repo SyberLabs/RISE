@@ -1,0 +1,6 @@
+[
+  { "id": "triumph-to-silence", "group": "phase-audio", "intent": "Start with a triumphant synth theme, then let the ending be silent.", "expect": { "audio": ["triumph"], "finaleAudio": ["silent"], "visualArc": ["dual", "triple"] } },
+  { "id": "silence-to-triumph", "group": "phase-audio", "intent": "Start in complete silence, then let the ending feel triumphant.", "expect": { "audio": ["silent"], "finaleAudio": ["triumph"], "visualArc": ["dual", "triple"] } },
+  { "id": "violet-to-blue", "group": "phase-color", "intent": "Begin with violet light, then shift to electric blue at the ending.", "expect": { "colorTheme": ["amethyst"], "finaleTheme": ["cobalt"], "visualArc": ["dual", "triple"] } },
+  { "id": "blue-to-violet", "group": "phase-color", "intent": "Begin with electric blue light, then shift to violet at the ending.", "expect": { "colorTheme": ["cobalt"], "finaleTheme": ["amethyst"], "visualArc": ["dual", "triple"] } }
+]

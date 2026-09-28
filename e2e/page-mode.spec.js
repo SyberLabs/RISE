@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, openHomeRoom } from './fixtures.js';
 import { collectAcrossPages, pageCount } from './page-helpers.js';
 
 const GATE = { code: 'rise2025', name: 'Page Harness', vault: null, timestamp: Date.now() };
@@ -24,14 +24,14 @@ test('Page Mode typesets a Gospel chapter in space, and holds the stream', async
         if (req.resourceType() === 'image' && !req.url().includes('127.0.0.1')) {
             return route.abort();
         }
-        return route.continue();
+        return route.fallback();
     });
 
     await page.goto('/');
-    await expect(page.locator('[data-nav="library"]').first()).toBeVisible({ timeout: 15_000 });
+    await expect(page.locator('.portal .portal-title').first()).toBeVisible({ timeout: 15_000 });
 
     // Chapel → Matthew 27: seven Passion pericopes, the richest schedule
-    await page.locator('[data-nav="chapel"]').first().click();
+    await openHomeRoom(page, 'chapel');
     await expect(page.locator('.chapel-book[data-book-id="matthew"]')).toBeVisible({ timeout: 15_000 });
     await page.locator('.chapel-book[data-book-id="matthew"]').click();
     await page.locator('[data-book-id="matthew"][data-chapter="27"]').click();
@@ -39,8 +39,7 @@ test('Page Mode typesets a Gospel chapter in space, and holds the stream', async
     await expect(page.locator('#begin-btn')).toBeEnabled({ timeout: 20_000 });
     await page.locator('#begin-btn').click();
     // The notice appears only for a flashing presentation; Gallery opens
-    // straight into the reading. This test is not about the gate, so it
-    // accepts one if offered and proceeds if not.
+    // straight into the reading. Accept it only if offered.
     const warn = page.locator('#photosensitivity-modal');
     await warn.waitFor({ state: 'visible', timeout: 4000 }).catch(() => {});
     if (await warn.isVisible()) await warn.locator('#safety-accept').click();
@@ -55,9 +54,14 @@ test('Page Mode typesets a Gospel chapter in space, and holds the stream', async
     await btn.click();
     await expect(page.locator('.page-article')).toBeVisible({ timeout: 10_000 });
 
+    // The Page starts elongated; the reader can choose pagination when useful.
+    expect(await pageCount(page)).toBe(1);
+    await page.locator('#chamber-display').hover();
+    await page.locator('#page-elongate').click();
+    await expect.poll(() => pageCount(page), { timeout: 10_000 }).toBeGreaterThan(1);
+
     // Walk pages: assert the whole reading, not one DOM snapshot. The walk
-    // settles each page's figures to a terminal state itself; a fixed wait
-    // here would only pay for a primitive the helper already provides.
+    // settles each page's figures to a terminal state itself.
     const walked = await collectAcrossPages(page);
     const perPage = await page.evaluate(() => {
         const host = document.querySelector('#chamber-page');
@@ -80,20 +84,16 @@ test('Page Mode typesets a Gospel chapter in space, and holds the stream', async
     // is left pending/broken in the completed walk. With off-origin imagery
     // aborted above, the reverent-degradation path is the one exercised.
     expect(stats.shown + stats.absent).toBe(stats.figures);
-    // THE PUBLIC PAGE OPENS AS ONE ELONGATED COMPOSITION. It had opened
-    // paginated: the Chamber passes Number.POSITIVE_INFINITY to say "no
-    // threshold", and the reader's guard used Number.isFinite — false for
-    // Infinity — so the value was discarded for the default of 4.
-    expect(stats.pages, 'one column, not pages').toBe(1);
+    expect(stats.pages).toBeGreaterThan(1);
     expect(stats.playerState).not.toBe('playing');
 
-    // And this reading is still long enough for the two projections to
-    // differ, which is what the old page-count assertion was really for.
+    // The reader can switch back to a single continuous column and paginate
+    // again without changing the reading or its place.
     await page.locator('#chamber-display').hover();
     await page.locator('#page-elongate').click();
-    await expect.poll(() => pageCount(page), { timeout: 10_000 }).toBeGreaterThan(1);
-    await page.locator('#page-elongate').click();
     await expect.poll(() => pageCount(page), { timeout: 10_000 }).toBe(1);
+    await page.locator('#page-elongate').click();
+    await expect.poll(() => pageCount(page), { timeout: 10_000 }).toBeGreaterThan(1);
 
     // Page holds Stream: Space/Play must not start playback underneath.
     const scrollBefore = await page.evaluate(() =>

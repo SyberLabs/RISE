@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, openHomeNav } from './fixtures.js';
 
 /**
  * The phone stack at the sizes and counts where it used to break: the last
@@ -19,7 +19,7 @@ const COUNTS = [1, 2, 3, 5];
 async function openStack(page) {
     await page.addInitScript((g) => localStorage.setItem('rise-beta-session', JSON.stringify(g)), GATE);
     await page.goto('/');
-    await page.locator('[data-nav="workshop"]').first().click();
+    await openHomeNav(page, 'workshop');
     await expect(page.locator('.scenes')).toBeVisible({ timeout: 30000 });
 }
 

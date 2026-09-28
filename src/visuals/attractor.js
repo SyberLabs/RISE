@@ -115,6 +115,14 @@ const PALETTES = {
         core: [{ w: 2.8, mul: 0.5, col: '128,72,214' }, { w: 0.7, mul: 1.0, col: '224,204,255' }],
         twin: [{ w: 2.8, mul: 0.5, col: '74,40,130' }, { w: 0.7, mul: 1.0, col: '166,140,220' }],
         head: ['248,242,255', '178,132,255', '90,40,190']
+    },
+    // Night-drive neon: magenta filament, cyan mirror twin. Cores stay
+    // near-white so the travelling pulses still read as light.
+    neon: {
+        name: 'Neon',
+        core: [{ w: 3.0, mul: 0.55, col: '255,46,170' }, { w: 0.8, mul: 1.0, col: '255,206,240' }],
+        twin: [{ w: 3.0, mul: 0.55, col: '0,190,255' }, { w: 0.8, mul: 1.0, col: '190,244,255' }],
+        head: ['255,255,255', '255,120,220', '120,40,255']
     }
 };
 
@@ -154,6 +162,8 @@ const RESTORE_AT = 0.34;
 const QUALITY_SAMPLE_FRAMES = 45;
 
 const wrap01 = v => v - Math.floor(v);
+const REDUCED_STILL_SECONDS = 7.5;
+const clampSpeed = v => (Number.isFinite(v) ? Math.min(4, Math.max(0.25, v)) : 1);
 
 export class AttractorField {
     /**
@@ -163,6 +173,7 @@ export class AttractorField {
      * @param {string} options.palette - 'white' | 'red' | 'blue' | 'gold' | 'purple'
      * @param {string} options.form - 'mirror' | 'kaleido' | 'bilateral'
      * @param {number} options.intensity - master brightness multiplier (default 0.65, keeps text legible)
+     * @param {number} options.speed - motion time scale; 1 is the original pace (clamped 0.25–4)
      */
     constructor(host, options = {}) {
         this.host = host;
@@ -170,6 +181,7 @@ export class AttractorField {
         this.palette = PALETTES[options.palette] ? options.palette : DEFAULT_PALETTE;
         this.form = FORMS.includes(options.form) ? options.form : 'mirror';
         this.intensity = options.intensity ?? 0.65;
+        this.speed = clampSpeed(options.speed);
         this.onProjectionPaint = typeof options.onProjectionPaint === 'function'
             ? options.onProjectionPaint
             : () => {};
@@ -192,6 +204,7 @@ export class AttractorField {
         this.DPR = 1;
         this.rafId = null;
         this.t0 = performance.now();
+        this._motionBase = 0;
 
         this.integrate();
 
@@ -271,6 +284,7 @@ export class AttractorField {
         this.canvas.width = Math.round(this.W * this.DPR);
         this.canvas.height = Math.round(this.H * this.DPR);
         this.ctx?.setTransform(this.DPR, 0, 0, this.DPR, 0, 0);
+        this._stillDrawn = false;   // a resize clears the canvas
     }
 
     strokeForm(X, Y, bkts, passes, mul, flick) {
@@ -338,7 +352,6 @@ export class AttractorField {
             return;
         }
         const frameStart = performance.now();
-        const t = (now - this.t0) / 1000;
         const N = this.N;
 
         // Respect both the OS media query (cached) and the app's own
@@ -346,6 +359,15 @@ export class AttractorField {
         // canvas layer is invisible to CSS-based animation kill switches.
         const rootClasses = document.documentElement.classList;
         const reduced = this.reduced || rootClasses.contains('reduced-motion');
+        // Reduced motion holds one still of the same field: colour and
+        // form stay, nothing turns or travels. The loop only idles so the
+        // field comes back to life if the reader turns motion on again.
+        if (reduced && this._sampleT == null && this._stillDrawn) {
+            this.rafId = requestAnimationFrame(this.tick);
+            return;
+        }
+        this._stillDrawn = reduced && this._sampleT == null;
+        const t = this._sampleT ?? (reduced ? REDUCED_STILL_SECONDS * this.speed : this.motionTime(now));
         const photosafe = rootClasses.contains('photosensitivity-mode');
         const yawSpeed = reduced ? 0.06 : 0.16;
         const flickAmp = photosafe ? 0 : (reduced ? 0.04 : 0.12);
@@ -455,6 +477,33 @@ export class AttractorField {
         this._syncProjection();
         if (!this.projectionHost) reportProjectionPaint(this);
         this.rafId = requestAnimationFrame(this.tick);
+    }
+
+    /**
+     * Seconds of motion elapsed at `now`, scaled by `speed`. Speed
+     * changes re-anchor the clock so the figure continues from where it
+     * stood instead of jumping.
+     */
+    motionTime(now) {
+        return this._motionBase + ((now - this.t0) / 1000) * this.speed;
+    }
+
+    /** Change the motion pace in place without a jump. */
+    setSpeed(speed) {
+        const next = clampSpeed(speed);
+        if (next === this.speed) return false;
+        const now = performance.now();
+        this._motionBase = this.motionTime(now);
+        this.t0 = now;
+        this.speed = next;
+        return true;
+    }
+
+    /** Change master brightness in place (0.2–1). */
+    setIntensity(intensity) {
+        if (!Number.isFinite(intensity)) return false;
+        this.intensity = Math.min(1, Math.max(0.2, intensity));
+        return true;
     }
 
     /**
@@ -596,11 +645,13 @@ export class AttractorField {
         const pending = this.rafId;
         this.rafId = null;                       // the sample must not queue a frame
         try {
-            this.tick(this.t0 + Math.max(0, seconds) * 1000);
+            this._sampleT = Math.max(0, seconds) * this.speed;
+            this.tick(performance.now());
             return this.canvas.toDataURL('image/webp', 0.9);
         } catch {
             return null;
         } finally {
+            this._sampleT = null;
             if (this.rafId) cancelAnimationFrame(this.rafId);
             this.rafId = pending;                // restore the live loop as it was
         }

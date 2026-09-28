@@ -7,6 +7,7 @@ import { buildContentPlane } from './lib/content-plane.mjs';
  * shell -> npm -> npx preview chain can outlive the runner and retain port 4317.
  */
 export default async function prepareCandidate() {
+  const e2ePort = Number(process.env.RISE_E2E_PORT) || 4317;
   process.env.VITE_RISE_ARCHIVE_REVIEW = '1';
   process.env.VITE_RISE_TEST_API = '1';
   // The data plane is a build product, not a source file, and this setup
@@ -18,7 +19,7 @@ export default async function prepareCandidate() {
   const server = await preview({
     preview: {
       host: '127.0.0.1',
-      port: 4317,
+      port: e2ePort,
       strictPort: true
     }
   });

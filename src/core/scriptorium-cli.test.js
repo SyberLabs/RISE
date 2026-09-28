@@ -1081,7 +1081,7 @@ describe('CI runs the CLI, not a description of it', () => {
   });
 
   it('is invoked by the workflow', () => {
-    const workflow = read('.github/workflows/ci.yml');
+    const workflow = read('.github/workflows/full-validation.yml');
     expect(workflow).toContain('npm run scriptorium:ci');
     // Its own job, so a red run names which promise broke.
     expect(workflow).toMatch(/^\s{2}scriptorium:$/mu);

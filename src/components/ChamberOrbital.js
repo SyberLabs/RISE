@@ -55,6 +55,7 @@ import { leafById } from '../core/visual-taxonomy.js';
 import { USER_DATA_KEYS } from '../core/user-data-keys.js';
 import './VisualNavigator.css';
 import './ChamberOrbital.css';
+import markUrl from '../content/compositions/syberlabs-mark.png';
 
 const STANCE_NOTE_SEEN_KEY = USER_DATA_KEYS.stanceNoteSeen;
 
@@ -75,7 +76,20 @@ const AUDIO_PRESET_IDS = new Set([
 /* The padlock drawn on a chunking mode Recitation has taken. Declared
    once so the first render and the runtime toggle cannot disagree —
    the gap after it is CSS, never a text node (see the toggle). */
-const LOCK_MARK = '<span class="chunk-lock" aria-hidden="true">🔒</span>';
+const LOCK_MARK = '<svg class="chunk-lock" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="Locked" focusable="false"><rect x="5" y="11" width="14" height="10" rx="2"></rect><path d="M8 11V7a4 4 0 0 1 8 0v4"></path></svg>';
+
+const svgIcon = paths => `<svg class="reader-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">${paths}</svg>`;
+const ICON_BACK = svgIcon('<path d="M19 12H5"></path><path d="m11 18-6-6 6-6"></path>');
+const ICON_ARROW = svgIcon('<path d="M5 12h14"></path><path d="m13 6 6 6-6 6"></path>');
+const ICON_CHEVRON = svgIcon('<path d="m6 9 6 6 6-6"></path>');
+const ICON_CHEVRON_RIGHT = svgIcon('<path d="m9 6 6 6-6 6"></path>');
+const ICON_CLOSE = svgIcon('<path d="M18 6 6 18"></path><path d="m6 6 12 12"></path>');
+const ICON_PLAY = svgIcon('<path d="M7 4.5v15l12-7.5z"></path>');
+
+const PROJECTION_HELP = {
+  stream: 'Words arrive through time. Set pacing and playback.',
+  page: 'Words occupy a spatial surface you can navigate.'
+};
 
 const STATIC_VOICE_PACKS = availableVoicePacks();
 const STATIC_VOICE_IDS = new Set(STATIC_VOICE_PACKS.map(pack => pack.id));
@@ -607,68 +621,89 @@ export class ChamberOrbital {
   render() {
     console.log('[ChamberOrbital] Rendering HTML to container');
     this.container.innerHTML = `
-      <div class="chamber-orbital" role="main">
-        <!-- Back button -->
-        <button class="orbital-back btn-ghost" data-action="back">
-          <span class="icon">←</span>
-          <span>Portal</span>
-        </button>
-
-        <!-- Launch origin chip (wayfinding back to SOL / Vault / Library) -->
-        <div class="orbital-origin-slot" id="orbital-origin-slot">${this.renderOriginChip()}</div>
-
-        <!-- THE DOORWAY, ABOVE THE PARAMETERS (NORTH-STAR §4).
-             One named choice sets a coherent slice of all three orbits.
-             The orbits stay exactly where they were and still hold every
-             control a stance touched — this is disclosure, not amputation. -->
-        ${this.renderStances()}
-
-        <!-- Orbital Interface -->
-        <div class="orbital-stage">
-          <!-- Orbit container -->
-          <div class="orbit-container" id="orbit-container">
-
-            <!-- Temporal Orbit (top) - Master dimension -->
-            <div class="orbit-node orbit-temporal" data-orbit="temporal">
-              <div class="orbit-content">
-                <div class="orbit-label text-fog">Temporal</div>
-                <div class="orbit-status text-light">${this.getTemporalStatus()}</div>
-              </div>
-            </div>
-
-            <!-- Audio Orbit (bottom-left) - Sonic layer -->
-            <div class="orbit-node orbit-audio" data-orbit="audio">
-              <div class="orbit-content">
-                <div class="orbit-label text-fog">Audio</div>
-                <div class="orbit-status text-light">${this.getAudioStatus()}</div>
-              </div>
-            </div>
-
-            <!-- Visual Orbit (bottom-right) - Visual layer -->
-            <div class="orbit-node orbit-visual" data-orbit="visual">
-              <div class="orbit-content">
-                <div class="orbit-label text-fog">Visual</div>
-                <div class="orbit-status text-light">${this.getVisualPreview()}</div>
-              </div>
+      <div class="chamber-orbital reader-setup" role="main">
+        <header class="reader-header">
+          <div class="reader-header-inner">
+            <span class="reader-lockup">
+              <img src="${markUrl}" alt="" class="reader-mark">
+              <span>SYBERLABS<span class="reader-lockup-sep"> / </span>RISE</span>
+            </span>
+            <div class="reader-header-actions">
+              <!-- Launch origin chip (wayfinding back to SOL / Vault / Library) -->
+              <div class="orbital-origin-slot" id="orbital-origin-slot">${this.renderOriginChip()}</div>
+              <button type="button" class="orbital-back" data-action="back">
+                ${ICON_BACK}
+                <span>Home</span>
+              </button>
             </div>
           </div>
+        </header>
 
-          <!-- Center: TEXT -->
-          <div class="orbit-center" id="orbit-center">
-            <div class="text-source" id="text-source">
-              ${this.renderTextSource()}
+        <div class="reader-body">
+          <div class="reader-grid">
+            <aside class="reader-text" aria-label="Your text">
+              <div class="text-source" id="text-source">
+                ${this.renderTextSource()}
+              </div>
+            </aside>
+
+            <div class="reader-main">
+              <!-- THE DOORWAY, ABOVE THE PARAMETERS (NORTH-STAR §4).
+                   One named choice sets a coherent slice of timing, sound and
+                   visuals. The finer controls stay one disclosure away and
+                   still hold every setting a stance touched. -->
+              ${this.renderStances()}
+
+              <!-- Progressive disclosure: the three settings panels -->
+              <section class="orbital-stage reader-adjust">
+                <button type="button" class="reader-disclosure" data-action="toggle-adjust"
+                  aria-expanded="${this._adjustOpen ? 'true' : 'false'}" aria-controls="reader-adjust-panel">
+                  <span class="reader-disclosure-text">
+                    <span class="reader-disclosure-title">Adjust timing, sound and visuals</span>
+                    <span class="reader-disclosure-summary" id="reader-adjust-summary">${escapeHtml(this.getAdjustSummary())}</span>
+                  </span>
+                  ${ICON_CHEVRON}
+                </button>
+                <div class="reader-adjust-panel" id="reader-adjust-panel" ${this._adjustOpen ? '' : 'hidden'}>
+                  <p class="reader-help">Tune visual fields and sound around the reading.</p>
+                  <div class="orbit-container" id="orbit-container">
+                    ${this.renderAdjustRow('temporal', 'Timing', this.getTemporalStatus())}
+                    ${this.renderAdjustRow('audio', 'Sound', this.getAudioStatus())}
+                    ${this.renderAdjustRow('visual', 'Visuals', this.getVisualPreview())}
+                  </div>
+                </div>
+              </section>
+
+              <section class="reader-mode">
+                <span class="reader-label" id="reader-mode-label">Mode</span>
+                <div class="reader-segmented" role="group" aria-labelledby="reader-mode-label">
+                  <button type="button" data-projection="stream"
+                    aria-pressed="${this.config.projection !== 'page'}">Stream</button>
+                  <button type="button" data-projection="page"
+                    aria-pressed="${this.config.projection === 'page'}">Page</button>
+                </div>
+                <p class="reader-help" id="reader-mode-help">${PROJECTION_HELP[this.config.projection === 'page' ? 'page' : 'stream']}</p>
+              </section>
             </div>
           </div>
         </div>
 
-        <!-- Begin Button -->
+        <!-- Begin -->
         <div class="orbital-actions">
-          <button class="btn-primary btn-large" id="begin-btn" ${!this.config.text ? 'disabled' : ''}>
-            ${this.config.text ? 'Begin Session' : 'Load Text First'}
-          </button>
-          <button type="button" class="orbital-reset" data-action="reset-prefs" title="Restore default settings (keeps loaded text)">
-            ↺ Reset Settings
-          </button>
+          <div class="reader-actions-inner">
+            <p class="reader-summary" id="reader-summary" aria-live="polite">
+              <span class="reader-dot" aria-hidden="true"></span>
+              <span id="reader-summary-text">${escapeHtml(this.getReaderSummary())}</span>
+            </p>
+            <div class="reader-buttons">
+              <button type="button" class="orbital-reset" data-action="reset-prefs"
+                title="Restore default settings (keeps loaded text)">Reset</button>
+              <button type="button" class="btn-large" id="begin-btn" ${!this.config.text ? 'disabled' : ''}>
+                <span>Begin reading</span>
+                ${ICON_ARROW}
+              </button>
+            </div>
+          </div>
         </div>
 
         <!-- Modals (hidden by default) -->
@@ -681,45 +716,99 @@ export class ChamberOrbital {
     this.initVisualPanel();
   }
 
+  /** One row inside the disclosure: opens the matching settings panel. */
+  renderAdjustRow(orbit, label, status) {
+    return `
+      <button type="button" class="orbit-node orbit-${orbit}" data-orbit="${orbit}"
+        aria-haspopup="dialog" aria-controls="modal-${orbit}">
+        <span class="orbit-content">
+          <span class="orbit-label">${label}</span>
+          <span class="orbit-status">${escapeHtml(status)}</span>
+        </span>
+        ${ICON_CHEVRON_RIGHT}
+      </button>
+    `;
+  }
+
+  getAdjustSummary() {
+    return `${this.getTemporalStatus()} · ${this.getAudioStatus()} · ${this.getVisualPreview()}`;
+  }
+
+  getReaderSummary() {
+    if (!this.config.text) return 'Choose a text to begin.';
+    const stance = STANCES.find(s => s.id === matchStance(this.config));
+    const name = this.config.textSource || 'Your text';
+    return stance ? `${name} · ${stance.name}` : `${name} · Custom settings`;
+  }
+
+  _paintSummaries() {
+    const adjust = this.container.querySelector('#reader-adjust-summary');
+    if (adjust) adjust.textContent = this.getAdjustSummary();
+    const summary = this.container.querySelector('#reader-summary-text');
+    if (summary) summary.textContent = this.getReaderSummary();
+  }
+
+  setAdjustOpen(open) {
+    this._adjustOpen = open;
+    const toggle = this.container.querySelector('[data-action="toggle-adjust"]');
+    const panel = this.container.querySelector('#reader-adjust-panel');
+    if (toggle) toggle.setAttribute('aria-expanded', String(open));
+    if (panel) panel.hidden = !open;
+  }
+
+  setProjection(projection) {
+    this.config.projection = projection === 'page' ? 'page' : 'stream';
+    this._syncProjection();
+    // Projection belongs to the loaded reading, so it is saved with it.
+    this._persistText();
+  }
+
+  _syncProjection() {
+    const current = this.config.projection === 'page' ? 'page' : 'stream';
+    this.container.querySelectorAll('[data-projection]').forEach(button => {
+      button.setAttribute('aria-pressed', String(button.dataset.projection === current));
+    });
+    const help = this.container.querySelector('#reader-mode-help');
+    if (help) help.textContent = PROJECTION_HELP[current];
+  }
+
   /**
    * The stance row: intentions, above the parameters.
    *
    * Which one is marked is READ OFF the configuration rather than
    * remembered, so the row cannot go on claiming a posture the reader has
    * already adjusted away from. That is the whole of "a stance sets, it
-   * does not lock" — made visible instead of asserted.
+   * does not lock" — made visible instead of asserted. A real radio group:
+   * when the configuration matches no stance, no radio is checked.
    */
   renderStances() {
     const standing = matchStance(this.config);
-    // THE ROW COSTS WHAT THE RING CANNOT SPEND.
-    //
-    // Each posture used to carry its sentence permanently, and the note under
-    // the row explained the whole mechanism on every visit. Together they took
-    // roughly a third of the column — which was paid for out of the ring, by
-    // pulling the three orbits in toward the centre until they crowded it. The
-    // sentence is a thing a reader needs once, while deciding; it belongs to
-    // hover and focus, where it is asked for. The note is a thing a reader
-    // needs once ever, and says so below.
+    const group = `reader-stance-${this.visualConsentScope}`;
     const options = STANCES.map(stance => {
       const chosen = stance.id === standing;
+      const id = escapeHtml(stance.id);
       return `
-        <button type="button" class="stance-option${chosen ? ' active' : ''}"
-          data-stance="${escapeHtml(stance.id)}" aria-pressed="${chosen}"
-          aria-describedby="stance-line-${escapeHtml(stance.id)}">
-          <span class="stance-name">${escapeHtml(stance.name)}</span>
-          <span class="stance-line" id="stance-line-${escapeHtml(stance.id)}"
-            >${escapeHtml(stance.line)}</span>
-        </button>
+        <label class="stance-option${chosen ? ' active' : ''}">
+          <input type="radio" class="stance-input" name="${group}" value="${id}"
+            data-stance="${id}" ${chosen ? 'checked' : ''}
+            aria-describedby="stance-line-${id}">
+          <span class="stance-mark" aria-hidden="true"></span>
+          <span class="stance-text">
+            <span class="stance-name">${escapeHtml(stance.name)}</span>
+            <span class="stance-line" id="stance-line-${id}">${escapeHtml(stance.line)}</span>
+          </span>
+        </label>
       `;
     }).join('');
 
     return `
-      <section class="orbital-stances" aria-label="Stance">
-        <p class="stance-question text-fog">How do you want to read?</p>
-        <div class="stance-options">${options}</div>
-        ${this._stanceNoteDue() ? `<p class="stance-note text-mist" data-stance-note>
-          A stance sets the orbits below. It does not lock them — open any
-          orbit and change whatever you like.
+      <section class="orbital-stances" aria-labelledby="reader-stance-question">
+        <h1 class="stance-question" id="reader-stance-question">How do you want to read?</h1>
+        <p class="reader-lede">One text. Many ways to feel it.</p>
+        <div class="stance-options" role="radiogroup" aria-labelledby="reader-stance-question">${options}</div>
+        ${this._stanceNoteDue() ? `<p class="stance-note" data-stance-note>
+          A choice sets timing, sound and visuals. It does not lock them —
+          adjust anything below.
         </p>` : ''}
       </section>
     `;
@@ -756,11 +845,12 @@ export class ChamberOrbital {
   /** Repaint which stance the configuration is standing in. */
   _syncStanceRow() {
     const standing = matchStance(this.config);
-    this.container.querySelectorAll('[data-stance]').forEach(button => {
-      const chosen = button.dataset.stance === standing;
-      button.classList.toggle('active', chosen);
-      button.setAttribute('aria-pressed', String(chosen));
+    this.container.querySelectorAll('[data-stance]').forEach(input => {
+      const chosen = input.dataset.stance === standing;
+      input.checked = chosen;
+      input.closest('.stance-option')?.classList.toggle('active', chosen);
     });
+    this._paintSummaries();
   }
 
   /**
@@ -791,10 +881,8 @@ export class ChamberOrbital {
     const origin = this.config.origin;
     if (!origin || !origin.view) return '';
     return `
-      <button class="orbital-origin-chip" data-action="origin-return" title="Return to ${origin.name}">
-        <span class="origin-chip-icon">${origin.icon || '◇'}</span>
+      <button type="button" class="orbital-origin-chip" data-action="origin-return" title="Return to ${origin.name}">
         <span class="origin-chip-label">${origin.name}</span>
-        <span class="origin-chip-arrow">‹</span>
       </button>
     `;
   }
@@ -808,23 +896,25 @@ export class ChamberOrbital {
     if (this.config.text) {
       return `
         <div class="text-loaded">
-          <div class="text-sigil">文</div>
-          <div class="text-info">
-            <div class="text-name text-light">${escapeHtml(this.config.textSource || 'Text Loaded')}</div>
-            <div class="text-meta text-fog">${this.getWordCount()} words</div>
+          <p class="reader-eyebrow"><span class="reader-dot" aria-hidden="true"></span>Your text</p>
+          <h2 class="text-name">${escapeHtml(this.config.textSource || 'Text loaded')}</h2>
+          <dl class="text-facts">
+            <div><dt>Words</dt><dd class="text-meta">${this.getWordCount().toLocaleString('en-US')}</dd></div>
+          </dl>
+          <div class="text-actions">
+            <button type="button" class="reader-link" data-action="library">Choose another text</button>
+            <button type="button" class="reader-link reader-link-quiet text-clear" data-action="clear-text">Remove text</button>
           </div>
-          <button class="text-clear btn-ghost-sm" data-action="clear-text"
-            title="Remove this text" aria-label="Remove this text">✕</button>
         </div>
       `;
     }
 
     return `
       <div class="text-empty">
-        <button class="text-choose-btn" data-action="library">
-          <span class="choose-sigil">無</span>
-          <span class="choose-label">Choose Text</span>
-        </button>
+        <p class="reader-eyebrow"><span class="reader-dot" aria-hidden="true"></span>Your text</p>
+        <h2 class="text-name">No text chosen</h2>
+        <p class="reader-help">Pick something from the Library to read.</p>
+        <button type="button" class="reader-secondary text-choose-btn" data-action="library">Choose a text</button>
       </div>
     `;
   }
@@ -846,10 +936,10 @@ export class ChamberOrbital {
     return `
       <!-- Visual Modal -->
       <div class="orbital-modal" id="modal-visual" hidden>
-        <div class="modal-content">
+        <div class="modal-content" role="dialog" aria-modal="true" aria-labelledby="modal-visual-title">
           <div class="modal-header">
-            <h2>Visual Configuration</h2>
-            <button class="modal-close" data-close="visual">✕</button>
+            <h2 id="modal-visual-title">Visuals</h2>
+            <button type="button" class="modal-close" data-close="visual" aria-label="Close visuals settings">${ICON_CLOSE}</button>
           </div>
           <div class="modal-body">
             <!-- Visual Interlocution -->
@@ -860,17 +950,17 @@ export class ChamberOrbital {
 
       <!-- Audio Modal -->
       <div class="orbital-modal" id="modal-audio" hidden>
-        <div class="modal-content">
+        <div class="modal-content" role="dialog" aria-modal="true" aria-labelledby="modal-audio-title">
           <div class="modal-header">
-            <h2>Audio Configuration</h2>
-            <button class="modal-close" data-close="audio">✕</button>
+            <h2 id="modal-audio-title">Sound</h2>
+            <button type="button" class="modal-close" data-close="audio" aria-label="Close sound settings">${ICON_CLOSE}</button>
           </div>
           <div class="modal-body">
             <!-- Soundscapes: living compositions, synthesized in real time -->
             <div class="config-section">
               <div class="config-label-row">
                 <label class="config-label">Soundscape</label>
-                <span class="config-info" data-tooltip="Living compositions synthesized in real time — slowly evolving, never looping. Aurora: a deep just-intoned pad visited by wandering harmonics.">?</span>
+                <span class="config-info" tabindex="0" role="img" aria-label="Living compositions synthesized in real time — slowly evolving, never looping. Aurora: a deep just-intoned pad visited by wandering harmonics." data-tooltip="Living compositions synthesized in real time — slowly evolving, never looping. Aurora: a deep just-intoned pad visited by wandering harmonics.">?</span>
               </div>
               <p class="audio-bed-note">
                 A Soundscape and a Pure Tone are two ways to fill the same
@@ -879,16 +969,16 @@ export class ChamberOrbital {
               </p>
               <div class="audio-preset-options soundscape-options">
                 <button class="audio-preset-option ${this.config.soundscape === 'none' ? 'active' : ''}" data-soundscape="none">
-                  <span class="preset-icon">○</span>
                   <span class="preset-label">None</span>
                 </button>
                 <button class="audio-preset-option ${this.config.soundscape === 'aurora' ? 'active' : ''}" data-soundscape="aurora">
-                  <span class="preset-icon">✧</span>
                   <span class="preset-label">Aurora</span>
                 </button>
                 <button class="audio-preset-option ${this.config.soundscape === 'faded-signal' ? 'active' : ''}" data-soundscape="faded-signal">
-                  <span class="preset-icon">◌</span>
                   <span class="preset-label">Faded Signal</span>
+                </button>
+                <button class="audio-preset-option ${this.config.soundscape === 'soft-rain' ? 'active' : ''}" data-soundscape="soft-rain">
+                  <span class="preset-label">Soft Rain</span>
                 </button>
                 <!-- Chant is Chapel-exclusive: recorded sacred music
                      belongs to the room built for it, not to ambient
@@ -900,13 +990,11 @@ export class ChamberOrbital {
                 <button class="audio-preset-option chant-only ${this.config.soundscape === 'chant-gregorian' ? 'active' : ''}" data-soundscape="chant-gregorian"
                   ${this.isChapelSession() ? '' : 'hidden'}
                   title="Recorded Gregorian chant with long breaths of silence between pieces">
-                  <span class="preset-icon">✛</span>
                   <span class="preset-label">Gregorian</span>
                 </button>
                 <button class="audio-preset-option chant-only ${this.config.soundscape === 'chant-znamenny' ? 'active' : ''}" data-soundscape="chant-znamenny"
                   ${this.isChapelSession() ? '' : 'hidden'}
                   title="Znamenny chant of the Moscow Patriarchate choir — long breaths of silence between pieces">
-                  <span class="preset-icon">☦</span>
                   <span class="preset-label">Znamenny</span>
                 </button>
               </div>
@@ -916,23 +1004,19 @@ export class ChamberOrbital {
             <div class="config-section">
               <div class="config-label-row">
                 <label class="config-label">Pure Tones</label>
-                <span class="config-info" data-tooltip="Presets target specific brainwave frequencies. Focus (Alpha 10Hz) enhances concentration. Deep (Theta 6Hz) promotes meditation. Gateway (Delta 2Hz) yields deep flow states.">?</span>
+                <span class="config-info" tabindex="0" role="img" aria-label="Presets target specific brainwave frequencies. Focus (Alpha 10Hz) enhances concentration. Deep (Theta 6Hz) promotes meditation. Gateway (Delta 2Hz) yields deep flow states." data-tooltip="Presets target specific brainwave frequencies. Focus (Alpha 10Hz) enhances concentration. Deep (Theta 6Hz) promotes meditation. Gateway (Delta 2Hz) yields deep flow states.">?</span>
               </div>
               <div class="audio-preset-options">
                 <button class="audio-preset-option ${this.config.audioPreset === 'silent' ? 'active' : ''}" data-audio-preset="silent">
-                  <span class="preset-icon">○</span>
                   <span class="preset-label">Silent</span>
                 </button>
                 <button class="audio-preset-option ${this.config.audioPreset === 'focus' ? 'active' : ''}" data-audio-preset="focus">
-                  <span class="preset-icon">◇</span>
                   <span class="preset-label">Focus</span>
                 </button>
                 <button class="audio-preset-option ${this.config.audioPreset === 'deep' ? 'active' : ''}" data-audio-preset="deep">
-                  <span class="preset-icon">◈</span>
                   <span class="preset-label">Deep</span>
                 </button>
                 <button class="audio-preset-option ${this.config.audioPreset === 'gateway' ? 'active' : ''}" data-audio-preset="gateway">
-                  <span class="preset-icon">⬡</span>
                   <span class="preset-label">Gateway</span>
                 </button>
               </div>
@@ -943,7 +1027,7 @@ export class ChamberOrbital {
             <div class="config-subsection">
               <div class="config-label-row">
                 <label class="config-label">Entrainment Type</label>
-                <span class="config-info" data-tooltip="The method used to deliver frequency stimulation. Binaural requires headphones (different tones per ear). Monaural works on speakers. Isochronic uses rhythmic pulses. Spatial rotates the sound field around your head.">?</span>
+                <span class="config-info" tabindex="0" role="img" aria-label="The method used to deliver frequency stimulation. Binaural requires headphones (different tones per ear). Monaural works on speakers. Isochronic uses rhythmic pulses. Spatial rotates the sound field around your head." data-tooltip="The method used to deliver frequency stimulation. Binaural requires headphones (different tones per ear). Monaural works on speakers. Isochronic uses rhythmic pulses. Spatial rotates the sound field around your head.">?</span>
               </div>
               <div class="audio-mode-options">
                 <button class="audio-mode-option ${this.config.entrainmentMode === 'binaural' ? 'active' : ''}" data-entrainment="binaural">Binaural</button>
@@ -957,7 +1041,7 @@ export class ChamberOrbital {
             <div class="config-subsection">
               <div class="config-label-row">
                 <label class="config-label">Waveform</label>
-                <span class="config-info" data-tooltip="The shape of the audio wave. Sine is smooth and gentle. Triangle adds subtle harmonic texture. Saw is brighter and more present.">?</span>
+                <span class="config-info" tabindex="0" role="img" aria-label="The shape of the audio wave. Sine is smooth and gentle. Triangle adds subtle harmonic texture. Saw is brighter and more present." data-tooltip="The shape of the audio wave. Sine is smooth and gentle. Triangle adds subtle harmonic texture. Saw is brighter and more present.">?</span>
               </div>
               <div class="audio-waveform-options">
                 <button class="audio-waveform-option ${this.config.entrainmentWaveform === 'sine' ? 'active' : ''}" data-waveform="sine">Sine</button>
@@ -1019,10 +1103,10 @@ export class ChamberOrbital {
 
       <!-- Temporal Modal -->
       <div class="orbital-modal" id="modal-temporal" hidden>
-        <div class="modal-content">
+        <div class="modal-content" role="dialog" aria-modal="true" aria-labelledby="modal-temporal-title">
           <div class="modal-header">
-            <h2>Temporal Configuration</h2>
-            <button class="modal-close" data-close="temporal">✕</button>
+            <h2 id="modal-temporal-title">Timing</h2>
+            <button type="button" class="modal-close" data-close="temporal" aria-label="Close timing settings">${ICON_CLOSE}</button>
           </div>
           <div class="modal-body">
             <!-- Pacing -->
@@ -1032,8 +1116,8 @@ export class ChamberOrbital {
                 <span class="input-label-value font-mono" id="wpm-val">${this.config.wpm} WPM</span>
               </label>
               <input type="range" id="wpm-slider" class="slider" min="100" max="500" value="${this.config.wpm}" step="10">
-              <div class="config-notice text-fog font-mono" style="font-size: 9px; margin-top: 0.5rem; opacity: 0.7;">
-                ◊ Adjustable in-chamber via Arrow Keys
+              <div class="config-notice text-fog font-mono" style="font-size: 12px; margin-top: 0.5rem;">
+                Adjustable while reading with the arrow keys
               </div>
             </div>
 
@@ -1042,23 +1126,23 @@ export class ChamberOrbital {
               <label class="config-label">Pacing Curve</label>
               <div class="curve-options">
                 <button class="curve-option ${this.config.curve === 'flat' ? 'active' : ''}" data-curve="flat">
-                  <span class="curve-icon">─</span>
+                  <span class="curve-icon">${svgIcon('<path d="M3 12h18"></path>')}</span>
                   <span>Flat</span>
                 </button>
                 <button class="curve-option ${this.config.curve === 'induction' ? 'active' : ''}" data-curve="induction">
-                  <span class="curve-icon">╲</span>
+                  <span class="curve-icon">${svgIcon('<path d="M4 6l16 12"></path>')}</span>
                   <span>Induction</span>
                 </button>
                 <button class="curve-option ${this.config.curve === 'ascent' ? 'active' : ''}" data-curve="ascent">
-                  <span class="curve-icon">╱</span>
+                  <span class="curve-icon">${svgIcon('<path d="M4 18L20 6"></path>')}</span>
                   <span>Ascent</span>
                 </button>
                 <button class="curve-option ${this.config.curve === 'wave' ? 'active' : ''}" data-curve="wave">
-                  <span class="curve-icon">∿</span>
+                  <span class="curve-icon">${svgIcon('<path d="M3 12c3-6 6-6 9 0s6 6 9 0"></path>')}</span>
                   <span>Wave</span>
                 </button>
                 <button class="curve-option ${this.config.curve === 'climax' ? 'active' : ''}" data-curve="climax">
-                  <span class="curve-icon">∧</span>
+                  <span class="curve-icon">${svgIcon('<path d="M4 18l8-12 8 12"></path>')}</span>
                   <span>Climax</span>
                 </button>
               </div>
@@ -1122,7 +1206,7 @@ export class ChamberOrbital {
         this.visualNavigator = new VisualNavigator(container, {
           visualConfig: this.config.visualInterlocution,
           locked: !this.config.text,
-          lockedMessage: 'Choose a reading before bringing visuals into the Chamber.',
+          lockedMessage: 'Choose a reading before bringing visuals into the Reader.',
           programInfo: this.config.visualProgram?.segments?.length
             ? { episodes: this.config.visualProgram.segments.length }
             : null,
@@ -1178,7 +1262,7 @@ export class ChamberOrbital {
   }
 
   getVisualPreview() {
-    if (!this.config) return '◎ Configuration missing';
+    if (!this.config) return 'Configuration missing';
 
     const vi = this.config.visualInterlocution;
     const mode = vi?.visualMode || 'off';
@@ -1191,15 +1275,15 @@ export class ChamberOrbital {
           : vi.focals?.type === 'rose'
             ? 'Rosa Mystica'
             : this.capitalizeFirst(vi.focals?.standardGlyph || 'breath');
-      return `◯ Focals · ${glyph}`;
+      return `Focals · ${glyph}`;
     }
 
     if (mode === 'attractor') {
-      return `∮ Attractor · ${this.capitalizeFirst(vi.attractor?.system || 'aizawa')}`;
+      return `Attractor · ${this.capitalizeFirst(vi.attractor?.system || 'aizawa')}`;
     }
 
     if (mode === 'genesis') {
-      return `✎ Genesis · ${this.capitalizeFirst(vi.genesis?.preset || 'random')}`;
+      return `Genesis · ${this.capitalizeFirst(vi.genesis?.preset || 'random')}`;
     }
 
     if (mode === 'interlocution') {
@@ -1215,12 +1299,12 @@ export class ChamberOrbital {
       const only = (inter.procedural || []).length === 1 && !(inter.sourced || []).length
         ? leafById(inter.procedural[0])?.label
         : null;
-      if (only) return `◈ ${only}`;
+      if (only) return only;
       const family = inter.sourceFamily || 'procedural';
-      return `◈ ${this.capitalizeFirst(family)}`;
+      return this.capitalizeFirst(family);
     }
 
-    return `◎ Off`;
+    return 'Off';
   }
 
   getAudioStatus() {
@@ -1231,19 +1315,19 @@ export class ChamberOrbital {
 
     if (hasSoundscape) {
       const labels = {
-        aurora: 'Aurora', 'faded-signal': 'Faded Signal',
+        aurora: 'Aurora', 'faded-signal': 'Faded Signal', 'soft-rain': 'Soft Rain',
         'chant-gregorian': 'Gregorian', 'chant-znamenny': 'Znamenny'
       };
       const scape = labels[this.config.soundscape] || this.capitalizeFirst(this.config.soundscape);
-      return (hasPreset || hasSwell) ? `✧ ${scape} +` : `✧ ${scape}`;
+      return (hasPreset || hasSwell) ? `${scape} +` : scape;
     }
     if (hasSwell && hasPreset) {
-      return `○ Mixed`;
+      return 'Mixed';
     }
     if (hasSwell) {
-      return `○ Personal`;
+      return 'Personal';
     }
-    return `○ ${preset}`;
+    return preset;
   }
 
   getTemporalStatus() {
@@ -1335,10 +1419,23 @@ export class ChamberOrbital {
   }
 
   attachStanceEvents() {
-    this.container.querySelectorAll('[data-stance]').forEach(button => {
+    this.container.querySelectorAll('[data-stance]').forEach(input => {
+      this._listen(input, 'change', () => {
+        if (!input.checked) return;
+        this.getAudioEngine()?.playClick();
+        this.chooseStance(input.dataset.stance);
+      });
+    });
+
+    this._listen(this.container.querySelector('[data-action="toggle-adjust"]'), 'click', () => {
+      this.getAudioEngine()?.playClick();
+      this.setAdjustOpen(!this._adjustOpen);
+    });
+
+    this.container.querySelectorAll('[data-projection]').forEach(button => {
       this._listen(button, 'click', () => {
         this.getAudioEngine()?.playClick();
-        this.chooseStance(button.dataset.stance);
+        this.setProjection(button.dataset.projection);
       });
     });
   }
@@ -1415,10 +1512,11 @@ export class ChamberOrbital {
       const isSelected = this.config.selectedSwellId === swell.id;
       return `
         <div class="swell-item ${isSelected ? 'selected' : ''}" data-id="${swell.id}">
-          <span class="swell-name" title="${swell.name}">${swell.name}</span>
+          <button type="button" class="swell-name" title="${escapeHtml(swell.name)}"
+            aria-pressed="${isSelected}">${escapeHtml(swell.name)}</button>
           <div class="swell-actions">
-            <button class="swell-btn preview-btn" data-action="preview" title="Preview Swell">▶</button>
-            <button class="swell-btn delete-btn" data-action="delete" title="Delete Swell">✕</button>
+            <button type="button" class="swell-btn preview-btn" data-action="preview" title="Preview swell" aria-label="Preview ${escapeHtml(swell.name)}">${ICON_PLAY}</button>
+            <button type="button" class="swell-btn delete-btn" data-action="delete" title="Delete swell" aria-label="Delete ${escapeHtml(swell.name)}">${ICON_CLOSE}</button>
           </div>
         </div>
       `;
@@ -1646,11 +1744,7 @@ export class ChamberOrbital {
           // taken the label with it.
           const mark = chunk.querySelector('.chunk-lock');
           if (locked && !mark) {
-            const lock = document.createElement('span');
-            lock.className = 'chunk-lock';
-            lock.setAttribute('aria-hidden', 'true');
-            lock.textContent = '🔒';
-            chunk.prepend(lock);
+            chunk.insertAdjacentHTML('afterbegin', LOCK_MARK);
           } else if (!locked && mark) {
             mark.remove();
           }
@@ -1689,6 +1783,7 @@ export class ChamberOrbital {
       modal.hidden = false;
       this.activeModal = orbit;
       if (orbit === 'visual') this.visualNavigator?.enterStage();
+      modal.querySelector('.modal-close')?.focus();
     }
   }
 
@@ -1698,6 +1793,7 @@ export class ChamberOrbital {
       modal.hidden = true;
       this.activeModal = null;
       if (orbit === 'visual') this.visualNavigator?.leaveStage();
+      this.container.querySelector(`[data-orbit="${orbit}"]`)?.focus();
     }
   }
 
@@ -1722,6 +1818,7 @@ export class ChamberOrbital {
     }
 
     statusEl.textContent = status;
+    this._paintSummaries();
   }
 
   syncUIWithConfig() {
@@ -1782,6 +1879,7 @@ export class ChamberOrbital {
     if (voiceSection) voiceSection.hidden = !enabled;
     const voiceSelect = this.container.querySelector('#voice-select');
     if (voiceSelect && this.config.voiceId) voiceSelect.value = this.config.voiceId;
+    this._syncProjection();
     this._syncStanceRow();
   }
 
@@ -1977,7 +2075,6 @@ export class ChamberOrbital {
     const beginBtn = this.container.querySelector('#begin-btn');
     if (beginBtn) {
       beginBtn.disabled = false;
-      beginBtn.textContent = 'Begin Session';
       console.log('[ChamberOrbital] Begin button enabled');
     }
 
@@ -2066,8 +2163,8 @@ export class ChamberOrbital {
     const beginBtn = this.container.querySelector('#begin-btn');
     if (beginBtn) {
       beginBtn.disabled = true;
-      beginBtn.textContent = 'Load Text First';
     }
+    this._paintSummaries();
   }
 
   beginSession() {

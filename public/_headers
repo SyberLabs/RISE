@@ -1,0 +1,32 @@
+/*
+  X-Frame-Options: DENY
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: camera=(), microphone=(self), geolocation=()
+  Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob: https:; media-src 'self' blob:; worker-src 'self' blob:; connect-src 'self' https://www.gutenberg.org https://corsproxy.io https://export.arxiv.org https://commons.wikimedia.org https://upload.wikimedia.org https://api.artic.edu https://www.artic.edu https://collectionapi.metmuseum.org https://openaccess-api.clevelandart.org https://id.rijksmuseum.nl; object-src 'none'; base-uri 'self'; frame-ancestors 'none'
+
+/index.html
+  Cache-Control: public, max-age=0, must-revalidate
+
+/sequences/*
+  Cache-Control: public, max-age=0, must-revalidate
+
+/site.webmanifest
+  Content-Type: application/manifest+json
+
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable
+
+/fonts/*.woff2
+  Cache-Control: public, max-age=31536000, immutable
+
+/audio/recitation/*
+  Cache-Control: public, max-age=31536000, immutable
+
+/content/works/*
+  Cache-Control: public, max-age=31536000, immutable
+  Content-Type: application/json
+
+/content/manifest.json
+  Cache-Control: public, max-age=0, must-revalidate
+  Content-Type: application/json

@@ -110,7 +110,7 @@ when the tab hides — that is intended; state it in a test.
 blocks *future* flashes; it must also kill the *current* one.
 
 ### 4. The exit modal must be visible
-`.exit-overlay` (`premium-additions.css` ~528) sits below the cortex
+`.exit-overlay` (`Chamber.css`) sits below the cortex
 overlay (9999), so Escape during a flash opens an invisible modal.
 Raise it above both the overlay and the controls bar. Establish an
 explicit z-order comment where the values are defined:

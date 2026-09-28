@@ -133,8 +133,14 @@ export class PageReader {
             : [{ index: 0, items: [], weight: 0 }];
 
         this._bindKeys();
-        this._renderPage(0);
+        void this._showPage(0);
         return this.composition;
+    }
+
+    _showPage(index) {
+        const clamped = Math.max(0, Math.min(this.pages.length - 1, index | 0));
+        this._renderPage(clamped);
+        return true;
     }
 
     /**
@@ -148,14 +154,15 @@ export class PageReader {
         const h = this.host?.clientHeight || 664;
         const narrow = w < 640;
 
-        const font = narrow ? 18 : 20;
-        const measure = Math.min(544, Math.max(220, w - 32));
+        // The reading style (page.css): Crimson Pro 22/34, 32em measure.
+        const font = 22;
+        const lineHeight = 34;
         // ~0.5em average advance for this literary face.
+        const measure = Math.min(32 * font, Math.max(220, w - (narrow ? 32 : 64)));
         const charsPerLine = Math.max(24, Math.round(measure / (font * 0.5)));
 
         // Furniture only (running head + pager); column padding already in layout.
         const furniture = narrow ? 130 : 170;
-        const lineHeight = font * 1.72;
 
         // Slight overrun: readable amount per turn, still deliberate ends.
         const OVERRUN = 1.45;
@@ -283,7 +290,7 @@ export class PageReader {
         this.pages = chosen.pages.length
             ? chosen.pages
             : [{ index: 0, items: [], weight: 0 }];
-        this._renderPage(wanted ? pageOfItem(this.pages, anchor) : 0);
+        void this._showPage(wanted ? pageOfItem(this.pages, anchor) : 0);
         if (!wanted) this._scrollToItem(anchor);
         return this.isPaged;
     }
@@ -323,7 +330,7 @@ export class PageReader {
     goToPage(index) {
         if (index === this.pageIndex) return this.pageIndex;
         if (index < 0 || index >= this.pages.length) return this.pageIndex;
-        this._renderPage(index);
+        void this._showPage(index);
         return this.pageIndex;
     }
 
@@ -454,7 +461,8 @@ export class PageReader {
             h.textContent = this.title;
             head.appendChild(h);
         }
-        if (this.source) {
+        // A source that only repeats the title says nothing twice.
+        if (this.source && this.source !== this.title) {
             const s = document.createElement('p');
             s.className = 'page-source';
             s.textContent = this.source;
@@ -779,6 +787,10 @@ export class PageReader {
             return Promise.resolve(false);
         }
         if (this._printPreparation) return this._printPreparation;
+        return this._preparePrint();
+    }
+
+    _preparePrint() {
 
         if (!this._printState) {
             this._printState = {
@@ -813,7 +825,7 @@ export class PageReader {
         this.host.classList.remove('is-print-ready');
         this.isPaged = state.isPaged;
         this.pages = state.pages;
-        this._renderPage(state.pageIndex);
+        void this._showPage(state.pageIndex);
         if (!state.isPaged) {
             try { this.host.scrollTop = state.scrollTop; } catch { /* detached */ }
         }

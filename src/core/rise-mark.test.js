@@ -16,39 +16,45 @@ describe('the RISE mark', () => {
         expect(css).toMatch(/syber-clip\.png/);
     });
 
-    it('puts the clip mark on the first-entry gate instead of the diamond glyph', () => {
+    it('opens the first-entry gate with the SyberLabs lockup, not a glyph', () => {
         const container = document.createElement('div');
         new BetaGate(container, { onAccess: () => {} });
-        const mark = container.querySelector('.beta-sigil.rise-mark');
-        expect(mark).toBeTruthy();
-        expect(mark.textContent).not.toContain('◇');
+        const lockup = container.querySelector('.beta-gate .sl-lockup');
+        expect(lockup).toBeTruthy();
+        expect(lockup.getAttribute('aria-label')).toBe('SyberLabs RISE');
+        expect(container.querySelector('.sl-mark').getAttribute('src')).toBe('/syberlabs-mark.webp');
+        expect(container.textContent).not.toContain('◇');
     });
 
-    it('locks the entry mark, title, and subtitle as one optically centered stack', () => {
+    it('marks the gate with the RISE sigil on a plate, the clip mark holding it until drawn', () => {
         const container = document.createElement('div');
         new BetaGate(container, { onAccess: () => {} });
-        const identity = container.querySelector('.beta-identity');
-        expect(identity).toBeTruthy();
-        expect(identity.querySelector('.beta-sigil.rise-mark')).toBeTruthy();
-        expect(identity.querySelector('.beta-title')).toBeTruthy();
-        expect(identity.querySelector('.beta-subtitle')).toBeTruthy();
-
-        const css = readFileSync(join(ROOT, 'src', 'components', 'BetaGate.css'), 'utf8');
-        expect(css).toMatch(/\.beta-title\s*\{[^}]*--tracking:/s);
-        expect(css).toMatch(/\.beta-title\s*\{[^}]*padding-inline-start:\s*var\(--tracking\)/s);
-        expect(css).toMatch(/\.beta-title\s*\{[^}]*line-height:\s*1(?:\s|;|$)/s);
-        expect(css).toMatch(/\.beta-subtitle\s*\{[^}]*--tracking:/s);
-        expect(css).toMatch(/\.beta-subtitle\s*\{[^}]*padding-inline-start:\s*var\(--tracking\)/s);
-        expect(css).toMatch(/\.beta-identity\s*\{[^}]*align-items:\s*center/s);
-        expect(css).toMatch(/\.beta-sigil\.rise-mark\s*\{[^}]*200\s*\/\s*256/s);
+        const plate = container.querySelector('.beta-plate');
+        expect(plate).toBeTruthy();
+        expect(plate.getAttribute('aria-hidden')).toBe('true');
+        expect(plate.querySelector('.beta-sigil canvas.beta-sigil-canvas')).toBeTruthy();
+        expect(plate.querySelector('.beta-sigil-fallback.rise-mark')).toBeTruthy();
+        // The header lockup carries the product's 16px sigil too.
+        expect(container.querySelector('.sl-lockup canvas.sl-sigil')).toBeTruthy();
     });
 
-    it('keeps the entry-gate mark still', () => {
+    it('gives the gate one statement and one primary action', () => {
+        const container = document.createElement('div');
+        new BetaGate(container, { onAccess: () => {} });
+        expect(container.querySelector('h1.beta-title').textContent).toBe('Read beyond the page.');
+        expect(container.querySelectorAll('button')).toHaveLength(1);
+        expect(container.querySelector('#beta-enter').textContent.trim()).toBe('Enter RISE');
+    });
+
+    it('keeps the entry gate still and decorates it only through the system tokens', () => {
         const css = readFileSync(join(ROOT, 'src', 'components', 'BetaGate.css'), 'utf8');
-        const block = css.match(/\.beta-sigil\.rise-mark\s*\{[^}]+\}/);
-        expect(block, 'the clip mark must override the float').toBeTruthy();
-        expect(block[0]).toMatch(/animation:\s*none/);
-        expect(css).toMatch(/\.beta-sigil\.rise-mark::before\s*\{[^}]*animation:\s*none/s);
+        // v2 allows the spectrum and the primary glow, but only as tokens:
+        // no private gradients, grain or glows written into the gate.
+        expect(css).not.toMatch(/gradient\(/);
+        for (const [, value] of css.matchAll(/box-shadow:\s*([^;]+);/g)) {
+            expect(value.trim()).toMatch(/^var\(--sy-primary-glow(?:-hover)?\)$/);
+        }
+        expect(css).not.toMatch(/animation:[^;]*infinite/);
     });
 
     it('stamps data-accent from stored settings before the module graph runs', () => {

@@ -13,7 +13,7 @@
  * read. A value read after the thing that writes it is not a memory,
  * and nothing in the suite would have noticed.
  */
-import { test, expect } from '@playwright/test';
+import { test, expect, openHomeNav } from './fixtures.js';
 const GATE = { code: 'rise2025', name: 'M', vault: null, timestamp: Date.now() };
 
 test.skip(true, 'JOURNEYS = []; those sits are not shipped');
@@ -23,7 +23,7 @@ test('the Page keeps the reader’s place across a trip to the Stream', async ({
   await page.setViewportSize({ width: 390, height: 664 });
   await page.addInitScript((g) => localStorage.setItem('rise-beta-session', JSON.stringify(g)), GATE);
   await page.goto('/');
-  await page.locator('[data-nav="library"]').first().click();
+  await openHomeNav(page, 'library');
   await expect(page.locator('[data-text-id="middlemarch"]')).toBeVisible({ timeout: 30000 });
   await page.locator('[data-text-id="middlemarch"] [data-action="select-text"]').click();
   await expect(page.locator('.toc-entry').first()).toBeVisible({ timeout: 30000 });

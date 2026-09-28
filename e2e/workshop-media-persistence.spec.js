@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, openHomeNav } from './fixtures.js';
 
 const GATE = { code: 'rise2025', name: 'M', vault: null, timestamp: Date.now() };
 const PNG = Buffer.from(
@@ -32,7 +32,7 @@ test('project media survives a Library source arriving', async ({ page }) => {
     test.setTimeout(180_000);
     await page.addInitScript(g => localStorage.setItem('rise-beta-session', JSON.stringify(g)), GATE);
     await page.goto('/');
-    await page.locator('[data-nav="workshop"]').first().click();
+    await openHomeNav(page, 'workshop');
     // A phone opens on the Scene Stack; project media is Full studio.
     await expect(page.locator('.scenes')).toBeVisible({ timeout: 30_000 });
     await page.locator('[data-sa="more"]').first().click();

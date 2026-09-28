@@ -1,0 +1,434 @@
+{
+  "model": "typesafe/jev-1.13-20260917",
+  "rows": [
+    {
+      "id": "rest-slow",
+      "decision": {
+        "pace": "100",
+        "audio": "nocturne",
+        "visualMode": "off",
+        "visualStyle": "quiet",
+        "chamberFace": "literary",
+        "fontSize": "large"
+      }
+    },
+    {
+      "id": "sprint-fast",
+      "decision": {
+        "pace": "300",
+        "audio": "chase",
+        "visualMode": "off",
+        "visualStyle": "immersive",
+        "chamberFace": "sans",
+        "fontSize": "large"
+      }
+    },
+    {
+      "id": "silence",
+      "decision": {
+        "pace": "200",
+        "audio": "silent",
+        "visualMode": "off",
+        "visualStyle": "quiet",
+        "chamberFace": "sans",
+        "fontSize": "large"
+      }
+    },
+    {
+      "id": "soundscape",
+      "decision": {
+        "pace": "150",
+        "audio": "aurora",
+        "visualMode": "off",
+        "visualStyle": "gentle",
+        "chamberFace": "literary",
+        "fontSize": "large"
+      }
+    },
+    {
+      "id": "spare",
+      "decision": {
+        "pace": "100",
+        "audio": "silent",
+        "visualMode": "off",
+        "visualStyle": "quiet",
+        "chamberFace": "sans",
+        "fontSize": "large"
+      }
+    },
+    {
+      "id": "prismatic",
+      "decision": {
+        "pace": "200",
+        "audio": "excited",
+        "visualMode": "interlocution",
+        "visualStyle": "psychedelic",
+        "chamberFace": "thick",
+        "fontSize": "fit"
+      }
+    },
+    {
+      "id": "literary",
+      "decision": {
+        "pace": "150",
+        "audio": "aurora",
+        "visualMode": "off",
+        "visualStyle": "gentle",
+        "chamberFace": "literary",
+        "fontSize": "medium"
+      }
+    },
+    {
+      "id": "bold",
+      "decision": {
+        "pace": "200",
+        "audio": "triumph",
+        "visualMode": "off",
+        "visualStyle": "immersive",
+        "chamberFace": "thick",
+        "fontSize": "xlarge"
+      }
+    },
+    {
+      "id": "compact",
+      "decision": {
+        "pace": "150",
+        "audio": "silent",
+        "visualMode": "off",
+        "visualStyle": "quiet",
+        "chamberFace": "sans",
+        "fontSize": "small"
+      }
+    },
+    {
+      "id": "large",
+      "decision": {
+        "pace": "200",
+        "audio": "silent",
+        "visualMode": "off",
+        "visualStyle": "quiet",
+        "chamberFace": "display",
+        "fontSize": "large"
+      }
+    },
+    {
+      "id": "quiet-combined",
+      "decision": {
+        "pace": "150",
+        "audio": "silent",
+        "visualMode": "off",
+        "visualStyle": "quiet",
+        "chamberFace": "literary",
+        "fontSize": "small"
+      }
+    },
+    {
+      "id": "vivid-combined",
+      "decision": {
+        "pace": "300",
+        "audio": "chase",
+        "visualMode": "interlocution",
+        "visualStyle": "psychedelic",
+        "chamberFace": "thick",
+        "fontSize": "large"
+      }
+    },
+    {
+      "id": "rain",
+      "decision": {
+        "pace": "150",
+        "audio": "soft-rain",
+        "visualMode": "off",
+        "visualStyle": "gentle",
+        "chamberFace": "literary",
+        "fontSize": "medium"
+      }
+    },
+    {
+      "id": "electronic",
+      "decision": {
+        "pace": "150",
+        "audio": "faded-signal",
+        "visualMode": "off",
+        "visualStyle": "quiet",
+        "chamberFace": "mono",
+        "fontSize": "large"
+      }
+    },
+    {
+      "id": "monospaced",
+      "decision": {
+        "pace": "200",
+        "audio": "silent",
+        "visualMode": "off",
+        "visualStyle": "quiet",
+        "chamberFace": "mono",
+        "fontSize": "large"
+      }
+    },
+    {
+      "id": "book-serif",
+      "decision": {
+        "pace": "200",
+        "audio": "silent",
+        "visualMode": "off",
+        "visualStyle": "quiet",
+        "chamberFace": "literary",
+        "fontSize": "medium"
+      }
+    },
+    {
+      "id": "sound-piano",
+      "decision": {
+        "pace": "150",
+        "audio": "piano",
+        "visualMode": "off",
+        "visualStyle": "quiet",
+        "chamberFace": "literary",
+        "fontSize": "medium"
+      }
+    },
+    {
+      "id": "sound-jazz",
+      "decision": {
+        "pace": "150",
+        "audio": "jazz",
+        "visualMode": "off",
+        "visualStyle": "gentle",
+        "chamberFace": "sans",
+        "fontSize": "large"
+      }
+    },
+    {
+      "id": "sound-lullaby",
+      "decision": {
+        "pace": "150",
+        "audio": "lullaby",
+        "visualMode": "off",
+        "visualStyle": "gentle",
+        "chamberFace": "literary",
+        "fontSize": "large"
+      }
+    },
+    {
+      "id": "sound-nocturne",
+      "decision": {
+        "pace": "150",
+        "audio": "nocturne",
+        "visualMode": "focals",
+        "visualStyle": "quiet",
+        "chamberFace": "literary",
+        "fontSize": "large"
+      }
+    },
+    {
+      "id": "sound-waltz",
+      "decision": {
+        "pace": "150",
+        "audio": "waltz",
+        "visualMode": "interlocution",
+        "visualStyle": "gentle",
+        "chamberFace": "literary",
+        "fontSize": "large"
+      }
+    },
+    {
+      "id": "sound-blues",
+      "decision": {
+        "pace": "150",
+        "audio": "blues",
+        "visualMode": "off",
+        "visualStyle": "gentle",
+        "chamberFace": "literary",
+        "fontSize": "medium"
+      }
+    },
+    {
+      "id": "sound-bossa",
+      "decision": {
+        "pace": "150",
+        "audio": "bossa",
+        "visualMode": "off",
+        "visualStyle": "gentle",
+        "chamberFace": "sans",
+        "fontSize": "large"
+      }
+    },
+    {
+      "id": "sound-ragtime",
+      "decision": {
+        "pace": "200",
+        "audio": "ragtime",
+        "visualMode": "off",
+        "visualStyle": "immersive",
+        "chamberFace": "display",
+        "fontSize": "large"
+      }
+    },
+    {
+      "id": "sound-wonder",
+      "decision": {
+        "pace": "150",
+        "audio": "wonder",
+        "visualMode": "focals",
+        "visualStyle": "gentle",
+        "chamberFace": "literary",
+        "fontSize": "large"
+      }
+    },
+    {
+      "id": "sound-mystery",
+      "decision": {
+        "pace": "150",
+        "audio": "mystery",
+        "visualMode": "focals",
+        "visualStyle": "quiet",
+        "chamberFace": "literary",
+        "fontSize": "large"
+      }
+    },
+    {
+      "id": "sound-chase",
+      "decision": {
+        "pace": "300",
+        "audio": "chase",
+        "visualMode": "off",
+        "visualStyle": "immersive",
+        "chamberFace": "thick",
+        "fontSize": "large"
+      }
+    },
+    {
+      "id": "sound-triumph",
+      "decision": {
+        "pace": "200",
+        "audio": "happy",
+        "visualMode": "interlocution",
+        "visualStyle": "immersive",
+        "chamberFace": "display",
+        "fontSize": "large"
+      }
+    },
+    {
+      "id": "sound-haunted",
+      "decision": {
+        "pace": "150",
+        "audio": "haunted",
+        "visualMode": "focals",
+        "visualStyle": "quiet",
+        "chamberFace": "literary",
+        "fontSize": "large"
+      }
+    },
+    {
+      "id": "sound-starlight",
+      "decision": {
+        "pace": "150",
+        "audio": "starlight",
+        "visualMode": "focals",
+        "visualStyle": "gentle",
+        "chamberFace": "literary",
+        "fontSize": "large"
+      }
+    },
+    {
+      "id": "sound-sad",
+      "decision": {
+        "pace": "150",
+        "audio": "sad",
+        "visualMode": "focals",
+        "visualStyle": "quiet",
+        "chamberFace": "literary",
+        "fontSize": "large"
+      }
+    },
+    {
+      "id": "sound-happy",
+      "decision": {
+        "pace": "200",
+        "audio": "happy",
+        "visualMode": "focals",
+        "visualStyle": "immersive",
+        "chamberFace": "display",
+        "fontSize": "large"
+      }
+    },
+    {
+      "id": "sound-angry",
+      "decision": {
+        "pace": "300",
+        "audio": "angry",
+        "visualMode": "off",
+        "visualStyle": "immersive",
+        "chamberFace": "thick",
+        "fontSize": "large"
+      }
+    },
+    {
+      "id": "sound-scary",
+      "decision": {
+        "pace": "150",
+        "audio": "scary",
+        "visualMode": "focals",
+        "visualStyle": "quiet",
+        "chamberFace": "display",
+        "fontSize": "medium"
+      }
+    },
+    {
+      "id": "sound-thrilling",
+      "decision": {
+        "pace": "300",
+        "audio": "thrilling",
+        "visualMode": "focals",
+        "visualStyle": "immersive",
+        "chamberFace": "display",
+        "fontSize": "large"
+      }
+    },
+    {
+      "id": "sans-face",
+      "decision": {
+        "pace": "200",
+        "audio": "silent",
+        "visualMode": "off",
+        "visualStyle": "quiet",
+        "chamberFace": "sans",
+        "fontSize": "large"
+      }
+    },
+    {
+      "id": "book-face",
+      "decision": {
+        "pace": "150",
+        "audio": "happy",
+        "visualMode": "focals",
+        "visualStyle": "gentle",
+        "chamberFace": "book",
+        "fontSize": "large"
+      }
+    },
+    {
+      "id": "medium-size",
+      "decision": {
+        "pace": "200",
+        "audio": "silent",
+        "visualMode": "off",
+        "visualStyle": "gentle",
+        "chamberFace": "sans",
+        "fontSize": "medium"
+      }
+    },
+    {
+      "id": "extra-large-size",
+      "decision": {
+        "pace": "100",
+        "audio": "silent",
+        "visualMode": "off",
+        "visualStyle": "quiet",
+        "chamberFace": "display",
+        "fontSize": "xlarge"
+      }
+    }
+  ]
+}

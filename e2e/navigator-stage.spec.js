@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, openHomeNav } from './fixtures.js';
 
 /**
  * The phone navigator is a stage: the visual fills the screen, the rail sits
@@ -19,7 +19,7 @@ async function openStage(page, { width, height }) {
     await page.setViewportSize({ width, height });
     await page.addInitScript((g) => localStorage.setItem('rise-beta-session', JSON.stringify(g)), GATE);
     await page.goto('/');
-    await page.locator('[data-nav="library"]').first().click();
+    await openHomeNav(page, 'library');
     await expect(page.locator('.archive-card').first()).toBeVisible({ timeout: 40000 });
     await page.locator('[data-text-id="literary-meditations"] [data-action="select-text"]').click();
     // A divided work shows its contents first; an undivided one goes straight on.
@@ -28,6 +28,7 @@ async function openStage(page, { width, height }) {
     await expect(toc.or(stage)).toBeVisible({ timeout: 30000 });
     if (await toc.isVisible()) await toc.click();
     await expect(stage).toBeVisible({ timeout: 30000 });
+    { const adjust = page.locator('[data-action="toggle-adjust"]'); if (await adjust.getAttribute('aria-expanded') === 'false') await adjust.click(); }
     await page.locator('.orbit-visual').click();
     await expect(page.locator('.vstage')).toBeVisible({ timeout: 15000 });
 }

@@ -1,16 +1,18 @@
-/* The Curia — the curation surface. Chamber-dark, utilitarian.
-   The Portal door is styled in Portal.css. */
+/* The Curia — the curation surface, inside the SyberLabs frame.
+   Categories are rows, not cards; works are a dense grid because a
+   curator compares images side by side. */
 
 .curia {
     /* The app body is overflow:hidden (the Chamber's design);
-       scrolling lives inside the view — Chapel/Atrium pattern. */
+       scrolling lives inside the view — Chapel pattern. */
     height: 100vh;
     height: 100dvh;
     display: flex;
     flex-direction: column;
     overflow: hidden;
-    background: #0a0a0c;
-    color: #ddd;
+    background: var(--sy-bg);
+    color: var(--sy-text);
+    font-family: var(--sy-font-sans);
     font-size: 14px;
 }
 
@@ -18,173 +20,475 @@
     flex: 1;
     overflow-y: auto;
     scrollbar-width: thin;
-    scrollbar-color: #333 transparent;
-    padding: 28px 32px 90px;
+    scrollbar-color: var(--sy-line) transparent;
 }
 
-.curia-header h1 {
-    font-family: 'Cormorant Garamond', Georgia, serif;
-    font-weight: 500;
-    letter-spacing: 0.14em;
-    margin: 10px 0 4px;
+.curia-inner {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: var(--sy-space-8) var(--sy-space-8) 120px;
 }
 
-.curia-sub { color: #888; max-width: 62ch; margin: 0 0 26px; }
-.curia-back, .curia-detail-back {
-    background: none; border: none; color: #9a8fd0; cursor: pointer;
-    padding: 4px 0; font-size: 13px;
+.curia-header {
+    margin-bottom: var(--sy-space-7);
 }
 
-.curia-loading { color: #777; }
-.curia-error { color: #c76; }
+.curia-loading {
+    margin: 0;
+    padding: var(--sy-space-5) 0;
+    border-top: 1px solid var(--sy-line);
+    color: var(--sy-text-3);
+    font-size: 14px;
+}
 
-/* board */
+.curia-error {
+    margin-bottom: var(--sy-space-5);
+}
+
+/* ─── Board: category rows ─── */
+
 .curia-board {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-    gap: 14px;
+    display: flex;
+    flex-direction: column;
+    border-bottom: 1px solid var(--sy-line);
 }
-.curia-cat {
-    background: #141418; border: 1px solid #26262e; border-radius: 8px;
-    padding: 16px; text-align: left; cursor: pointer; color: inherit;
-    display: flex; flex-direction: column; gap: 6px;
-    transition: border-color .15s;
-}
-.curia-cat:hover { border-color: #4a4468; }
-.curia-cat-name { font-size: 16px; font-weight: 600; }
-.curia-cat-mode { font-size: 11px; letter-spacing: .08em; text-transform: uppercase; }
-.curia-cat-mode.is-live { color: #7da87d; }
-.curia-cat-mode.is-pinned { color: #c9a95c; }
-.curia-cat-stats { color: #777; font-size: 12px; }
 
-/* detail */
-.curia-detail-head {
-    display: flex; align-items: baseline; gap: 16px; margin-bottom: 10px;
+.curia-cat {
+    display: grid;
+    grid-template-columns: minmax(0, 2fr) minmax(0, 1.4fr) minmax(0, 1.4fr) 20px;
+    align-items: center;
+    gap: var(--sy-space-5);
+    min-height: var(--sy-control-height);
+    padding: var(--sy-space-5) var(--sy-space-4);
+    background: transparent;
+    border: 0;
+    border-top: 1px solid var(--sy-line);
+    border-radius: 0;
+    color: inherit;
+    font-family: inherit;
+    text-align: left;
+    cursor: pointer;
+    transition: background var(--sy-dur-hover) var(--sy-ease);
 }
-.curia-detail-head h2 { margin: 0; font-weight: 600; }
-.curia-detail-stats { color: #777; font-size: 12px; }
+
+.curia-cat:hover {
+    background: var(--sy-surface-2);
+}
+
+.curia-cat > .room-icon {
+    color: var(--sy-text-3);
+    transition: transform var(--sy-dur-hover) var(--sy-ease), color var(--sy-dur-hover) var(--sy-ease);
+}
+
+.curia-cat:hover > .room-icon {
+    color: var(--sy-text);
+    transform: translateX(4px);
+}
+
+.curia-cat-name {
+    font-size: 18px;
+    line-height: 28px;
+    font-weight: 600;
+    color: var(--sy-text);
+}
+
+/* Status badge: 8px dot + word, never color alone */
+.curia-cat-mode {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--sy-space-2);
+    font-size: 14px;
+    line-height: 20px;
+    color: var(--sy-text-2);
+}
+
+.curia-dot {
+    flex: none;
+    width: 8px;
+    height: 8px;
+    border-radius: var(--sy-radius-full);
+    background: var(--sy-text-3);
+}
+
+.curia-cat-mode.is-live .curia-dot { background: var(--sy-success); }
+.curia-cat-mode.is-pinned .curia-dot { background: var(--sy-brand); }
+.curia-cat-mode.is-record .curia-dot { background: transparent; border: 1px solid var(--sy-text-3); box-sizing: border-box; }
+
+.curia-cat-stats {
+    font-size: 14px;
+    line-height: 20px;
+    color: var(--sy-text-3);
+}
+
+/* ─── Science collections: an attribution record, not a governed canon ──
+   The room reads these and does not rule them, so they carry no verbs.
+   The credit is the point of the record rather than a footnote on it —
+   this is the destination CC BY 4.0 §3(a)(3) means by "where practical",
+   and a credit nobody can read there is a credit nobody has given. */
+
+.curia-group-break {
+    margin: var(--sy-space-8) 0 var(--sy-space-4);
+}
+
+.curia-group-break h2 {
+    margin: 0 0 var(--sy-space-2);
+    font-family: var(--sy-font-sans);
+    font-size: 24px;
+    line-height: 32px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    color: var(--sy-text);
+}
+
+.curia-group-note {
+    max-width: 76ch;
+    margin: 0 0 var(--sy-space-4);
+    font-size: 14px;
+    line-height: 20px;
+    color: var(--sy-text-2);
+}
+
+.curia-group-note code,
+.curia-group-note strong {
+    color: var(--sy-text);
+    font-weight: 500;
+}
+
+.curia-group-note code {
+    font-family: var(--sy-font-mono);
+    font-size: 13px;
+}
+
+/* ─── Detail ─── */
+
+.curia-detail-head {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: var(--sy-space-2) var(--sy-space-5);
+    padding-bottom: var(--sy-space-5);
+    margin-bottom: var(--sy-space-5);
+    border-bottom: 1px solid var(--sy-line);
+}
+
+.curia-detail-back {
+    flex-basis: 100%;
+    display: inline-flex;
+    align-items: center;
+    align-self: flex-start;
+    justify-content: flex-start;
+    gap: var(--sy-space-2);
+    width: max-content;
+    max-width: max-content;
+    height: var(--sy-control-height);
+    padding: 0;
+    background: transparent;
+    border: 0;
+    color: var(--sy-text-2);
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+}
+
+.curia-detail-back:hover {
+    color: var(--sy-text);
+}
+
+.curia-detail-head h2 {
+    margin: 0;
+    font-family: var(--sy-font-serif);
+    font-size: 40px;
+    line-height: 44px;
+    font-weight: 400;
+    letter-spacing: -0.01em;
+}
+
+.curia-detail-stats {
+    font-size: 14px;
+    line-height: 20px;
+    color: var(--sy-text-3);
+}
+
+.curia-live-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--sy-space-2);
+    min-height: var(--sy-control-height);
+    margin-left: auto;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--sy-text-2);
+    cursor: pointer;
+}
+
+.curia-live-toggle input {
+    width: 20px;
+    height: 20px;
+    accent-color: var(--sy-brand);
+}
+
 .curia-detail h3 {
-    color: #e8c66b; border-bottom: 1px solid #26262e;
-    padding-bottom: 4px; margin: 28px 0 12px; font-weight: 500;
+    margin: var(--sy-space-6) 0 var(--sy-space-4);
+    font-family: var(--sy-font-mono);
+    font-size: 12px;
+    line-height: 16px;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--sy-text-3);
 }
 
 .curia-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
-    gap: 12px;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: var(--sy-space-4);
 }
+
 .curia-work {
-    background: #141418; border-radius: 6px; overflow: hidden;
-    display: flex; flex-direction: column; position: relative;
-    transition: opacity .15s;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    background: var(--sy-surface);
+    border: 1px solid var(--sy-line);
+    border-radius: var(--sy-radius);
+    transition: opacity var(--sy-dur-hover) var(--sy-ease);
 }
+
 .curia-work img {
-    width: 100%; height: 165px; object-fit: contain; background: #000;
+    width: 100%;
+    height: 165px;
+    object-fit: contain;
+    background: var(--sy-bg);
 }
-.curia-work-meta { padding: 8px 9px 4px; }
-.curia-work-title { font-weight: 600; font-size: 12.5px; }
-.curia-work-artist { color: #99a; font-size: 11.5px; }
-.curia-work-src { color: #666; font-size: 10.5px; margin-top: 2px; }
-.curia-origin { text-transform: uppercase; letter-spacing: .06em; font-size: 9.5px; }
-.curia-origin-live { color: #7da87d; }
-.curia-origin-pin { color: #c9a95c; }
-.curia-origin-excluded { color: #b06a6a; }
+
+.curia-work-meta {
+    padding: var(--sy-space-3);
+}
+
+.curia-work-title {
+    font-size: 14px;
+    line-height: 20px;
+    font-weight: 600;
+    color: var(--sy-text);
+}
+
+.curia-work-artist {
+    font-size: 12px;
+    line-height: 16px;
+    color: var(--sy-text-2);
+}
+
+.curia-work-src {
+    margin-top: var(--sy-space-1);
+    font-size: 12px;
+    line-height: 16px;
+    color: var(--sy-text-3);
+}
+
+.curia-origin {
+    color: var(--sy-text-2);
+}
+
+.curia-origin-excluded {
+    color: var(--sy-danger);
+}
 
 .curia-work-verbs {
-    display: flex; gap: 6px; padding: 6px 9px 9px; margin-top: auto;
+    display: flex;
+    gap: var(--sy-space-2);
+    margin-top: auto;
+    padding: 0 var(--sy-space-3) var(--sy-space-3);
 }
-.curia-work-verbs button, .curia-work-verbs select {
-    background: #1d1d24; color: #bbb; border: 1px solid #2e2e38;
-    border-radius: 4px; font-size: 11px; padding: 3px 8px; cursor: pointer;
-}
-.curia-work-verbs button:hover { border-color: #4a4468; }
-.curia-work-verbs [disabled] { opacity: .45; cursor: default; }
 
-.curia-marked-exclude, .curia-marked-removePin { opacity: .35; }
-.curia-marked-unexclude { outline: 1px solid #7da87d; }
-.curia-marked-movePin { outline: 1px solid #c9a95c; }
-
-/* bar */
-.curia-bar {
-    position: fixed; left: 0; right: 0; bottom: 0;
-    background: rgba(8, 8, 10, .94); border-top: 1px solid #26262e;
-    display: flex; align-items: center; gap: 16px;
-    padding: 12px 32px calc(12px + env(safe-area-inset-bottom, 0px)); backdrop-filter: blur(6px);
+.curia-work-verbs button,
+.curia-work-verbs select {
+    min-height: var(--sy-control-height);
+    padding: 0 var(--sy-space-3);
+    background: transparent;
+    border: 1px solid var(--sy-line-strong);
+    border-radius: var(--sy-radius-full);
+    color: var(--sy-text);
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
 }
-.curia-count { color: #e8c66b; }
-.curia-apply, .curia-copy {
-    background: #253425; color: #cfc; border: 1px solid #3c503c;
-    border-radius: 5px; padding: 8px 18px; cursor: pointer; font-size: 13px;
-}
-.curia-status { color: #8c8; font-size: 12.5px; }
-[hidden] { display: none !important; }
 
-/* ── Science collections: an attribution record, not a governed canon ──
-   The room reads these and does not rule them, so they carry no verbs.
-   The credit is the point of the card rather than a footnote on it —
-   this is the destination CC BY 4.0 §3(a)(3) means by "where practical",
-   and a credit nobody can read there is a credit nobody has given. */
-
-.curia-group-break { grid-column: 1 / -1; margin: 32px 0 4px; }
-.curia-group-break h3 {
-    color: #7fa8d4; border-bottom: 1px solid #26262e;
-    padding-bottom: 4px; margin: 0 0 6px; font-weight: 500;
+.curia-work-verbs select {
+    flex: 1;
+    min-width: 0;
+    background: var(--sy-surface);
 }
-.curia-group-note { color: #777; font-size: 11.5px; line-height: 1.5; margin: 0 0 8px; max-width: 76ch; }
-.curia-group-note code { color: #99a; font-size: 11px; }
-.curia-cat-science .curia-cat-name { color: #cfe0f2; }
+
+.curia-work-verbs button:hover {
+    background: var(--sy-surface-2);
+}
+
+.curia-work-verbs [disabled] {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.curia-marked-exclude,
+.curia-marked-removePin { opacity: 0.4; }
+.curia-marked-unexclude { border-color: var(--sy-success); }
+.curia-marked-movePin { border-color: var(--sy-brand); }
 
 /* Records are wider than governance cards: a credit is a sentence, and a
-   sentence in a 210px column becomes a column of single words. */
-.curia-grid-records { grid-template-columns: repeat(auto-fill, minmax(330px, 1fr)); }
+   sentence in a 220px column becomes a column of single words. */
+.curia-grid-records { grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); }
 .curia-work-record { flex-direction: row; align-items: flex-start; }
-.curia-work-record img { width: 118px; height: 118px; flex: 0 0 118px; }
-.curia-work-record .curia-work-meta { padding: 9px 11px; min-width: 0; }
+.curia-work-record img { width: 120px; height: 120px; flex: 0 0 120px; }
+.curia-work-record .curia-work-meta { min-width: 0; }
 
 .curia-credit {
-    color: #c3c3cd; font-size: 11.5px; line-height: 1.45; margin-top: 6px;
-    padding: 5px 8px; background: #0f0f13; border-left: 2px solid #3a3a44;
+    margin-top: var(--sy-space-2);
+    padding-left: var(--sy-space-3);
+    border-left: 1px solid var(--sy-line-strong);
+    font-size: 12px;
+    line-height: 16px;
+    color: var(--sy-text-2);
     word-break: break-word;
 }
-.curia-full-credit { margin-top: 5px; font-size: 11px; color: #8b8b95; }
-.curia-full-credit summary { color: #d4a574; cursor: pointer; font-size: 10px; }
+
+.curia-full-credit {
+    margin-top: var(--sy-space-2);
+    font-size: 12px;
+    line-height: 16px;
+    color: var(--sy-text-2);
+}
+
+.curia-full-credit summary {
+    min-height: 32px;
+    display: flex;
+    align-items: center;
+    color: var(--sy-brand);
+    font-size: 12px;
+    cursor: pointer;
+}
+
 .curia-full-credit[open] {
-    background: #0f0f13; padding: 6px 8px; border-left: 2px solid #d4a574;
-    line-height: 1.5;
+    padding-left: var(--sy-space-3);
+    border-left: 1px solid var(--sy-line-strong);
 }
+
 .curia-work-links {
-    display: flex; gap: 10px; align-items: center; margin-top: 7px; flex-wrap: wrap;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--sy-space-3);
+    margin-top: var(--sy-space-2);
 }
-.curia-work-links a { color: #7fa8d4; font-size: 11px; text-decoration: none; }
-.curia-work-links a:hover { text-decoration: underline; }
-.curia-lic { font-size: 9.5px; letter-spacing: .05em; text-transform: uppercase; }
-.curia-lic-open { color: #7fb37f; }
-.curia-lic-cc-by { color: #d4a574; }
-.curia-lic-cc-by-sa { color: #c98fb0; }
-.curia-lic-public-domain-credit { color: #7fa8d4; }
-.curia-lic-undeclared { color: #d47f8b; }
+
+.curia-work-links a {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--sy-space-1);
+    color: var(--sy-brand);
+    font-size: 12px;
+    text-decoration: none;
+}
+
+.curia-work-links a:hover {
+    text-decoration: underline;
+    text-underline-offset: 3px;
+}
+
+.curia-lic {
+    font-family: var(--sy-font-mono);
+    font-size: 12px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--sy-text-3);
+}
+
+.curia-lic-undeclared { color: var(--sy-warning); }
+
+/* ─── Change bar ─── */
+
+.curia-bar {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    display: flex;
+    align-items: center;
+    gap: var(--sy-space-4);
+    padding: var(--sy-space-3) var(--sy-space-8) calc(var(--sy-space-3) + env(safe-area-inset-bottom, 0px));
+    background: var(--sy-bg);
+    border-top: 1px solid var(--sy-line);
+}
+
+.curia-bar:has(.curia-count:empty):has(.curia-status:empty) {
+    display: none;
+}
+
+.curia-count {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--sy-text);
+}
+
+.curia-apply,
+.curia-copy {
+    min-height: var(--sy-control-height);
+    padding: 0 var(--sy-space-5);
+    background: var(--sy-text);
+    background-image: var(--sy-primary-fill);
+    box-shadow: var(--sy-primary-glow);
+    border: 0;
+    border-radius: var(--sy-radius-full);
+    color: var(--sy-on-primary);
+    font-family: inherit;
+    font-size: 16px;
+    font-weight: 500;
+    cursor: pointer;
+}
+
+.curia-apply:hover,
+.curia-copy:hover {
+    box-shadow: var(--sy-primary-glow-hover);
+}
+
+.curia-status {
+    font-size: 14px;
+    color: var(--sy-text-2);
+}
+
+.curia [hidden] { display: none !important; }
+
+/* ─── Responsive ─── */
+
+@media (max-width: 1023px) {
+    .curia-inner { padding: var(--sy-space-7) var(--sy-space-6) 120px; }
+    .curia-bar { padding-left: var(--sy-space-6); padding-right: var(--sy-space-6); }
+}
 
 /* Keep the fixed change bar inside a phone's width and home-indicator inset. */
 @media (max-width: 640px) {
-    .curia-scroll { padding: 20px 16px 150px; }
+    .curia-inner { padding: var(--sy-space-6) var(--sy-space-4) 150px; }
+    .curia-cat {
+        grid-template-columns: minmax(0, 1fr) 20px;
+        gap: var(--sy-space-1) var(--sy-space-3);
+        padding: var(--sy-space-4) 0;
+    }
+    .curia-cat > .room-icon { grid-column: 2; grid-row: 1 / span 3; }
     .curia-bar {
-        gap: 8px 12px;
+        gap: var(--sy-space-2) var(--sy-space-3);
         flex-wrap: wrap;
         padding-left: max(16px, env(safe-area-inset-left, 0px));
         padding-right: max(16px, env(safe-area-inset-right, 0px));
     }
     .curia-count { flex: 1 1 auto; min-width: 8ch; }
-    .curia-apply, .curia-copy { min-height: 44px; padding-inline: 12px; }
     .curia-status { flex: 1 0 100%; min-width: 0; }
-    .curia-detail-head { align-items: flex-start; flex-direction: column; gap: 6px; }
+    .curia-detail-head h2 { font-size: 32px; line-height: 36px; }
+    .curia-live-toggle { margin-left: 0; }
     .curia-grid-records { grid-template-columns: minmax(0, 1fr); }
     .curia-work-record img { width: 88px; height: 88px; flex-basis: 88px; }
 }
 
-.curia button:focus-visible,
-.curia a:focus-visible,
-.curia select:focus-visible,
-.curia summary:focus-visible {
-    outline: 2px solid #d4a574;
-    outline-offset: 3px;
+@media (prefers-reduced-motion: reduce) {
+    .curia-cat:hover > .room-icon { transform: none; }
 }

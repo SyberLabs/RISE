@@ -421,7 +421,9 @@ export class Player {
      * Pause playback
      */
     pause() {
-        if (this.sessionState.state !== 'playing' && this.sessionState.state !== 'interlocuting') return;
+        if (this.sessionState.state !== 'playing' && this.sessionState.state !== 'interlocuting') {
+            return;
+        }
         this._clearSpeechWatchdog();
 
         const wasInterlocuting = this.sessionState.state === 'interlocuting';
@@ -758,7 +760,7 @@ export class Player {
                 this.shuttle.reset();
                 this.emit('shuttle', { velocity: 1, reason: 'start-of-text' });
             }
-            this._prepareCurrentAtom();
+            if (!this._prepareCurrentAtom()) return;
             this.scheduleNextAtom(false, { alreadyPrepared: true });
             return;
         }
@@ -776,8 +778,7 @@ export class Player {
                     if (preparedNextAtom || playbackEpoch !== this._playbackEpoch) return;
                     if (!['interlocuting', 'paused'].includes(this.sessionState.state)) return;
                     this.sessionState.advance();
-                    preparedNextAtom = true;
-                    this._prepareCurrentAtom({ concealed: true });
+                    preparedNextAtom = this._prepareCurrentAtom({ concealed: true });
                 }
             });
             if (this.sessionState.state !== 'playing') return;
@@ -863,7 +864,7 @@ export class Player {
 
         // Emit current atom only if we're not just safely resuming
         if (!isResuming && !alreadyPrepared) {
-            this._prepareCurrentAtom();
+            if (!this._prepareCurrentAtom()) return;
         }
 
         // Event-governed completion. RECITATION-SPEC §2 requires the

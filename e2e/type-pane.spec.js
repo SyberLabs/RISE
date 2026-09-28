@@ -10,7 +10,7 @@
  * silently when an ancestor scrolls instead, and only the rendered rectangle
  * can tell you which happened.
  */
-import { test, expect } from '@playwright/test';
+import { test, expect } from './fixtures.js';
 
 const GATE = { code: 'rise2025', name: 'Type Pane', vault: null, timestamp: Date.now() };
 const SEED = {
@@ -28,6 +28,7 @@ async function openType(page, settings = null) {
     await page.goto('/');
     await page.locator('[data-nav="chamber"]').first().click();
     await expect(page.locator('#begin-btn')).toBeEnabled({ timeout: 20_000 });
+    { const adjust = page.locator('[data-action="toggle-adjust"]'); if (await adjust.getAttribute('aria-expanded') === 'false') await adjust.click(); }
     await page.locator('[data-orbit="visual"]').click();
     await expect(page.locator('.vnav')).toBeVisible();
     const size = page.locator('.vnav-node[data-id="size"]');

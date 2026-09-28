@@ -40,7 +40,7 @@ import {
   catalogueTextIsSafe,
   serializeCuratorContext
 } from '../core/curator-context.js';
-import { READING_LIMITS } from '../core/reading-limits.js';
+import { READING_LIMITS, clampReadingWpm } from '../core/reading-limits.js';
 import { estimateRundownMinutes } from '../core/program-rundown.js';
 import {
   createScriptoriumSession,
@@ -52,6 +52,7 @@ import {
   downloadTextFile
 } from '../core/experience-program-io.js';
 import { escapeHtml, safeUrl } from '../core/sanitize.js';
+import { roomHeader, roomEyebrow, roomAlert } from './room-chrome.js';
 import './Scriptorium.css';
 
 async function copyText(text) {
@@ -90,8 +91,16 @@ export class Scriptorium {
       getWpm: () => readerWpm(options.getSettings?.()),
       prepareAssets: (projectId) => this.durableMaterials(projectId)
     });
+    this.readingPreferences = null;
+    this.applyHomeData({
+      intent: options.initialIntent,
+      targetWords: options.initialTargetWords,
+      readingPreferences: options.readingPreferences
+    });
     this.materialBlobs = new Map();
     this.objectUrls = new Set();
+    // Provider credentials stay on the server, never in the mounted component.
+    this.jevRouting = false;
     // Said where the reader is standing. A refusal about a file belongs beside
     // the panel that took it, not in a status line six sections further down a
     // page that scrolls.
@@ -108,6 +117,8 @@ export class Scriptorium {
   get materials() { return this.session.materials; }
   get swells() { return this.session.swells; }
   get localWorks() { return this.session.localWorks; }
+  get jevRoute() { return this.session.jevRoute; }
+  get jevRouteRequestId() { return this.session.jevRouteRequestId; }
   get context() { return this.session.context; }
   get promptText() { return this.session.promptText; }
   get pasted() { return this.session.pasted; }
@@ -131,9 +142,38 @@ export class Scriptorium {
     void this.loadMaterials();
   }
 
-  update() {
+  update(data) {
+    if (data) this.applyHomeData(data);
     // Router reuses this room; estimates must reflect the current settings.
     this.render();
+  }
+
+  applyHomeData(data) {
+    if (typeof data?.intent === 'string') this.session.setIntent(data.intent);
+    if (data?.targetWords != null) this.session.setTargetWords(data.targetWords);
+    if (data?.readingPreferences) {
+      this.readingPreferences = data.readingPreferences;
+      this.session.wpmOverride = clampReadingWpm(data.readingPreferences.wpm, null);
+    }
+  }
+
+  withReadingPreferences(project) {
+    if (!this.readingPreferences) return project;
+    const { wpm, curve, chunkMode, audioPreset, soundscape, visualMode } = this.readingPreferences;
+    const defaults = project.defaults;
+    return {
+      ...project,
+      defaults: {
+        ...defaults,
+        reading: { ...defaults.reading, wpm: clampReadingWpm(wpm), curve, chunkMode },
+        audio: { ...defaults.audio, audioPreset, soundscape },
+        visual: {
+          ...defaults.visual,
+          surface: visualMode === 'focals' ? 'focal' : 'off',
+          config: { ...defaults.visual.config, visualMode }
+        }
+      }
+    };
   }
 
   /**
@@ -384,11 +424,12 @@ export class Scriptorium {
 
     this.container.innerHTML = `
       <div class="scriptorium" role="main">
+        ${roomHeader({ back: 'Home', backClass: 'scriptorium-back' })}
         <div class="scriptorium-column">
         <header class="scriptorium-header">
-          <button type="button" class="scriptorium-back" data-action="back">← Portal</button>
-          <h1>The Scriptorium</h1>
-          <p class="scriptorium-sub">
+          ${roomEyebrow('Scored reading')}
+          <h1 class="room-title">The Scriptorium</h1>
+          <p class="scriptorium-sub room-deck">
             You state an intent and a length. A hand outside the building writes
             a score. RISE examines it before admitting it. A score may arrange
             imagery and sound, and may set the reading's own pace — though what
@@ -400,6 +441,7 @@ export class Scriptorium {
           <h2 id="scriptorium-intent-title">1. Intent</h2>
           <label class="scriptorium-label" for="scriptorium-intent">What should the reading be about?</label>
           <textarea id="scriptorium-intent" class="scriptorium-intent" rows="3"
+            maxlength="2000"
             placeholder="A sequence about memory and loss.">${escapeHtml(this.intent)}</textarea>
 
           <label class="scriptorium-label" for="scriptorium-length">How long should it be?</label>
@@ -419,6 +461,31 @@ export class Scriptorium {
             opening — whichever is the largest that fits. A score longer than
             this is refused, not trimmed.
           </p>
+          <div class="scriptorium-jev" aria-labelledby="scriptorium-jev-title">
+            <h3 id="scriptorium-jev-title">Route the composition</h3>
+            <p class="scriptorium-note" id="scriptorium-jev-privacy">
+              RISE sends only this typed intent (up to 2,000 characters)
+              and the target word count to its same-origin routing function, which
+              forwards those fields to the configured decision service. Saved texts, Library entries,
+              media, and reading history are not sent. No personal API key is needed.
+            </p>
+            <div class="scriptorium-actions">
+              <button type="button" class="btn-primary" data-action="route-jev"
+                ${this.jevRouting ? 'disabled' : ''}>
+                ${this.jevRouting ? 'Routing…' : 'Suggest a route'}
+              </button>
+            </div>
+            ${this.session.jevRoute ? `
+              <p class="scriptorium-jev-result" role="status">
+                The decision service selected <strong>${this.session.jevRoute.route === 'experience_program'
+                  ? 'Experience Program' : 'Agent Operation Set'}</strong>
+                with a ${(this.session.jevRoute.confidence * 100).toFixed(0)}% confidence score, not a measured accuracy rate.
+                This selects a prompt format; RISE still examines the result before
+                it can become a reading.
+              </p>
+            ` : ''}
+            <p class="scriptorium-note">Prefer to work locally? You can prepare the prompt without a model below.</p>
+          </div>
           ${this.renderOwnTexts()}
         </section>
 
@@ -458,9 +525,9 @@ export class Scriptorium {
 
         <section class="scriptorium-step" aria-labelledby="scriptorium-take-title">
           <h2 id="scriptorium-take-title">2. Take</h2>
-          <p class="scriptorium-note">Copy the prompt; download or copy context.json. No network leaves RISE.</p>
+          <p class="scriptorium-note">Prepare a prompt locally, then copy or download it and context.json.</p>
           <div class="scriptorium-actions">
-            <button type="button" class="btn-primary" data-action="prepare-take">Prepare prompt &amp; context</button>
+            <button type="button" class="btn-secondary" data-action="prepare-take">Prepare locally without Decision service</button>
             <button type="button" class="btn-secondary" data-action="copy-prompt" ${this.promptText ? '' : 'disabled'}>Copy prompt</button>
             <button type="button" class="btn-secondary" data-action="download-prompt" ${this.promptText ? '' : 'disabled'}>Download prompt</button>
             <button type="button" class="btn-secondary" data-action="copy-context" ${this.context ? '' : 'disabled'}>Copy context.json</button>
@@ -481,8 +548,9 @@ export class Scriptorium {
         <section class="scriptorium-step" aria-labelledby="scriptorium-verdict-title">
           <h2 id="scriptorium-verdict-title">4. Verdict</h2>
           ${verdict?.ok ? `
-            <p class="scriptorium-ok">Accepted as a proposal.</p>
+            ${roomAlert({ title: 'Accepted as a proposal.', variant: 'success', className: 'scriptorium-ok' })}
           ` : verdict?.text ? `
+            ${roomAlert({ title: 'The score was refused.', message: 'RISE examined it and could not admit it. The reasons are below.', className: 'scriptorium-refused' })}
             <pre class="scriptorium-refusal" id="scriptorium-refusal">${escapeHtml(verdict.text)}</pre>
             <button type="button" class="btn-secondary" data-action="copy-refusal">Copy refusal</button>
           ` : `
@@ -501,13 +569,13 @@ export class Scriptorium {
           <h2 id="scriptorium-accept-title">6. Begin</h2>
           <p class="scriptorium-note">
             The score is complete as it stands. Reading it loads the works it
-            names; keeping it saves a Vault draft you can return to. Neither
-            passes through the Workshop, which is for readings you compose
+            names; keeping it saves a draft in Sequences you can return to.
+            Neither passes through Compose, which is for readings you compose
             yourself.
           </p>
           <div class="scriptorium-actions">
             <button type="button" class="btn-primary" data-action="begin" ${this.program || this.operationSet ? '' : 'disabled'}>Begin reading</button>
-            <button type="button" class="btn-secondary" data-action="keep" ${this.program || this.operationSet ? '' : 'disabled'}>Keep in the Vault</button>
+            <button type="button" class="btn-secondary" data-action="keep" ${this.program || this.operationSet ? '' : 'disabled'}>Keep in Sequences</button>
           </div>
         </section>
 
@@ -545,6 +613,29 @@ export class Scriptorium {
     this.container.querySelector('#scriptorium-intent')
       ?.addEventListener('input', (event) => {
         this.session.setIntent(event.target.value);
+        const route = this.container.querySelector('.scriptorium-jev-result');
+        if (route) route.remove();
+      });
+
+    this.container.querySelector('[data-action="route-jev"]')
+      ?.addEventListener('click', async () => {
+        if (this.jevRouting) return;
+        this.jevRouting = true;
+        this.status = 'Routing this intent with Decision service…';
+        this.render();
+        try {
+          const result = await this.session.routeWithJev();
+          this.status = result.ok
+            ? 'Decision service selected a prompt route.'
+            : result.stale
+              ? 'The intent changed while Decision service was routing. Route the current intent again.'
+              : (result.message || 'Decision service could not select a route.');
+        } catch (error) {
+          this.status = error?.message || 'Decision service routing failed.';
+        } finally {
+          this.jevRouting = false;
+          this.render();
+        }
       });
 
     this.container.querySelector('#scriptorium-length')
@@ -558,6 +649,7 @@ export class Scriptorium {
         // A range reads its value aloud as a bare number, and the number here
         // is an index into a ladder — "3" tells a screen reader nothing.
         event.target.setAttribute('aria-valuetext', this.session.describeLength());
+        this.container.querySelector('.scriptorium-jev-result')?.remove();
       });
 
     // COMMIT, NOT DRAG. The budget the gate measures against lives in the
@@ -573,6 +665,7 @@ export class Scriptorium {
 
     this.container.querySelector('[data-action="prepare-take"]')
       ?.addEventListener('click', () => {
+        this.session.invalidateJevRoute();
         this.session.take();
         this.status = 'Prompt and context ready.';
         this.render();
@@ -742,7 +835,7 @@ export class Scriptorium {
     this.status = 'Opening the reading…';
     this.render();
     this.openOnReadableType();
-    await this.onCreateSession(project);
+    await this.onCreateSession(this.withReadingPreferences(project));
   }
 
   /**
@@ -951,12 +1044,12 @@ export class Scriptorium {
     // warned to the console, and saved the dangling reference — and the room
     // then told the reader it opens from the Vault whenever they want it.
     // Closing the tab made that permanent.
-    const saved = await MemoryCore.saveWorkshopBlueprintAsync(project, {
+    const saved = await MemoryCore.saveWorkshopBlueprintAsync(this.withReadingPreferences(project), {
       blobs: this.materialBlobs
     });
     this.status = saved?.id
-      ? 'Kept in the Vault. It opens from there whenever you want it.'
-      : 'Could not save the Vault draft.';
+      ? 'Kept in Sequences. It opens from there whenever you want it.'
+      : 'Could not save the draft to Sequences.';
     this.render();
   }
 }

@@ -33,6 +33,7 @@ import { RosaryStrand } from '../visuals/rosary-strand.js';
 import { escapeHtml } from '../core/sanitize.js';
 import { createRemoteImage } from '../visuals/remote-image.js';
 import { rosaryDoorHref } from '../core/rosary-door.js';
+import { roomHeader, roomEyebrow, roomIcon } from './room-chrome.js';
 import './Rosarium.css';
 import { USER_DATA_KEYS } from '../core/user-data-keys.js';
 
@@ -114,7 +115,7 @@ export class Rosarium {
         <div class="rosarium-stage" data-phase="${this.phase}">
           <canvas class="rosarium-strand" width="640" height="760" aria-hidden="true"></canvas>
           <div class="rosarium-overlay"></div>
-          <p class="chant-credit font-mono" aria-live="polite" hidden></p>
+          <p class="chant-credit" aria-live="polite" hidden></p>
         </div>
       </main>
     `;
@@ -141,8 +142,8 @@ export class Rosarium {
       <button class="rosarium-set${set.id === this.setId ? ' rosarium-set-selected' : ''}${set.id === today ? ' rosarium-set-today' : ''}"
         data-set="${escapeHtml(set.id)}" aria-pressed="${set.id === this.setId}">
         <span class="rosarium-set-name">${escapeHtml(set.name.replace('The ', '').replace(' Mysteries', ''))}</span>
-        <span class="rosarium-set-days font-mono">${escapeHtml(set.daysLabel)}</span>
-        ${set.id === today ? '<span class="rosarium-set-flame" aria-hidden="true">✦</span>' : ''}
+        <span class="rosarium-set-days">${escapeHtml(set.daysLabel)}</span>
+        ${set.id === today ? '<span class="rosarium-set-flame"><span class="rosarium-today-dot" aria-hidden="true"></span>Today</span>' : ''}
       </button>
     `).join('');
 
@@ -152,36 +153,41 @@ export class Rosarium {
     `).join('');
 
     return `
-      <button class="btn-ghost rosarium-back" data-action="back"><span aria-hidden="true">←</span> Chapel</button>
+      ${roomHeader({ back: 'Chapel', backClass: 'rosarium-back' })}
+      <div class="rosarium-choose">
       <header class="rosarium-heading">
-        <p class="rosarium-kicker font-mono">THE ROSARIUM</p>
-        <p class="rosarium-deck">${escapeHtml(new Date().toLocaleDateString('en-US', { weekday: 'long' }))} keeps ${escapeHtml(MYSTERY_SETS[today].name.toLowerCase())}.</p>
+        ${roomEyebrow('Devotion', 'rosarium-kicker')}
+        <h1 class="room-title">The Rosarium</h1>
+        <p class="rosarium-deck room-deck">${escapeHtml(new Date().toLocaleDateString('en-US', { weekday: 'long' }))} keeps ${escapeHtml(MYSTERY_SETS[today].name.toLowerCase())}.</p>
       </header>
 
       <div class="rosarium-panel">
         <div class="rosarium-sets">${sets}</div>
 
         <div class="rosarium-row">
-          <span class="rosarium-row-label font-mono">Imagery</span>
+          <span class="rosarium-row-label">Imagery</span>
           <button type="button" class="rosarium-pill${this.mode === 'plain' ? ' rosarium-pill-selected' : ''}"
             data-mode="plain" aria-pressed="${this.mode === 'plain'}"
             title="The icon holds the center through every prayer">Plain</button>
           <button type="button" class="rosarium-pill${this.mode === 'imagistic' ? ' rosarium-pill-selected' : ''}"
             data-mode="imagistic" aria-pressed="${this.mode === 'imagistic'}"
             title="Each mystery brings its painting">Imagistic</button>
-          <button class="rosarium-gallery-link" data-action="gallery">view the mysteries</button>
+          <button type="button" class="rosarium-gallery-link" data-action="gallery">View the mysteries</button>
         </div>
 
         <div class="rosarium-row">
-          <span class="rosarium-row-label font-mono">Sound</span>
+          <span class="rosarium-row-label">Sound</span>
           ${sounds}
         </div>
 
         <div class="rosarium-row">
-          <span class="rosarium-row-label font-mono">Pace</span>
+          <span class="rosarium-row-label">Pace</span>
           <input type="range" class="rosarium-pace" min="0.6" max="1.6" step="0.1" value="${this.pace}" aria-label="Prayer pace" />
-          <span class="rosarium-pace-value font-mono">${this.pace.toFixed(1)}×</span>
-          <span class="rosarium-row-label font-mono" style="margin-left:auto">Carried</span>
+          <span class="rosarium-pace-value">${this.pace.toFixed(1)}×</span>
+        </div>
+
+        <div class="rosarium-row">
+          <span class="rosarium-row-label">Advance</span>
           <button type="button" class="rosarium-pill${this.autoAdvance ? ' rosarium-pill-selected' : ''}"
             data-advance="auto" aria-pressed="${this.autoAdvance}"
             title="The rosary carries you: the strand shows briefly, then the next prayer begins">Auto</button>
@@ -190,7 +196,8 @@ export class Rosarium {
             title="You advance from bead to bead yourself">By hand</button>
         </div>
 
-        <button class="rosarium-start" data-action="start">Begin the ${escapeHtml(MYSTERY_SETS[this.setId].name)}</button>
+        <button class="rosarium-start rosarium-primary" data-action="start">Begin the ${escapeHtml(MYSTERY_SETS[this.setId].name.replace(/^The /, ''))}</button>
+      </div>
       </div>
 
       ${this._galleryOpen ? this.renderGallery() : ''}
@@ -206,8 +213,8 @@ export class Rosarium {
         <div class="rosarium-gallery-card">
           <div class="rosarium-gallery-frame" data-gallery-slot="${index}">
             ${pin
-              ? '<span class="rosarium-gallery-loading">…</span>'
-              : `<span class="rosarium-gallery-absent" title="No rights-cleared painting has been found for this mystery; during its decade the icon holds the center alone.">✛<br/>the icon holds<br/>this mystery</span>`}
+              ? '<span class="rosarium-gallery-loading">Loading…</span>'
+              : `<span class="rosarium-gallery-absent" title="No rights-cleared painting has been found for this mystery; during its decade the icon holds the center alone.">${roomIcon('cross')}<span>The icon holds this mystery</span></span>`}
           </div>
           <span class="rosarium-gallery-title">${escapeHtml(mystery.title)}</span>
         </div>
@@ -217,7 +224,7 @@ export class Rosarium {
     queueMicrotask(() => this._hydrateGallery());
     return `
       <div class="rosarium-gallery" role="dialog" aria-label="The mysteries of this set">
-        <button class="btn-ghost rosarium-gallery-close" data-action="gallery-close">✕</button>
+        <button type="button" class="rosarium-gallery-close" data-action="gallery-close" aria-label="Close the mysteries">${roomIcon('close')}</button>
         <div class="rosarium-gallery-grid">${cards}</div>
       </div>
     `;
@@ -257,7 +264,7 @@ export class Rosarium {
       ${this._renderQuietExit()}
       <button class="rosarium-advance-surface" data-action="advance" aria-label="Advance to the next prayer">
         <span class="rosarium-where">${escapeHtml(where)}</span>
-        <span class="rosarium-advance-hint">${step ? 'advance ›' : ''}</span>
+        <span class="rosarium-advance-hint">${step ? `Advance${roomIcon('forward', 16)}` : ''}</span>
       </button>
     `;
   }
@@ -267,7 +274,7 @@ export class Rosarium {
     return `
       <button class="rosarium-quiet-exit" data-action="exit-chapel"
         title="Leave the Rosary and return to the Chapel"
-        aria-label="Return to the Chapel">✛ Chapel</button>
+        aria-label="Return to the Chapel">${roomIcon('back', 16)}<span>Chapel</span></button>
     `;
   }
 
@@ -280,7 +287,7 @@ export class Rosarium {
       <div class="rosarium-prayer${this.autoAdvance ? '' : ' rosarium-prayer-unhurried'}" data-action="${this.autoAdvance ? '' : 'prayer-done'}">
         ${artSlot}
         <p class="rosarium-prayer-text">${escapeHtml(step.text)}</p>
-        ${this.autoAdvance ? '' : '<span class="rosarium-prayer-hint">click when prayed ›</span>'}
+        ${this.autoAdvance ? '' : `<span class="rosarium-prayer-hint">Click when prayed${roomIcon('forward', 16)}</span>`}
       </div>
     `;
   }
@@ -290,16 +297,18 @@ export class Rosarium {
       return `
         <div class="rosarium-complete">
           <p class="rosarium-where">The Rosary is complete.</p>
-          <button class="rosarium-start" data-action="copy-link">Copy this link</button>
-          <button class="rosarium-start" data-action="pray-again">Pray again</button>
-          <button class="rosarium-start" data-action="back">Chapel</button>
+          <div class="rosarium-complete-actions">
+            <button type="button" class="rosarium-start rosarium-primary" data-action="pray-again">Pray again</button>
+            <button type="button" class="rosarium-start" data-action="copy-link">Copy this link</button>
+            <button type="button" class="rosarium-start" data-action="back">Chapel</button>
+          </div>
         </div>
       `;
     }
     return `
       <div class="rosarium-complete">
         <p class="rosarium-where">The Rosary is complete.</p>
-        <button class="rosarium-start" data-action="back">Return to the Chapel</button>
+        <button type="button" class="rosarium-start rosarium-primary" data-action="back">Return to the Chapel</button>
       </div>
     `;
   }
@@ -672,6 +681,9 @@ export class Rosarium {
   }
 
   deactivate() {
+    clearTimeout(this._strandTimer);
+    clearTimeout(this._prayerTimer);
+    this._stopSound();
     document.removeEventListener('keydown', this._keyHandler);
   }
 

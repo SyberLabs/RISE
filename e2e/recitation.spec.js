@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './fixtures.js';
 
 const GATE = { code: 'rise2025', name: 'Recitation', vault: null, timestamp: Date.now() };
 
@@ -197,6 +197,7 @@ test('the control turns recitation on, and the choice survives a return', async 
   }, { gate: GATE, seed: SEED });
   await page.goto('/');
   await page.locator('[data-nav="chamber"]').first().click();
+  { const adjust = page.locator('[data-action="toggle-adjust"]'); if (await adjust.getAttribute('aria-expanded') === 'false') await adjust.click(); }
   await page.locator('.orbit-node[data-orbit="audio"]').click();
   await expect(page.locator('[data-recitation="on"]')).toBeVisible({ timeout: 15000 });
 

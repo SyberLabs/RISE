@@ -1,0 +1,66 @@
+// Original preview samples, not submissions or approvals from outside creators.
+export const sequences = [
+  {
+    id: 'reset',
+    version: 1,
+    title: 'Begin again',
+    promise: 'A one-minute pause before a new start.',
+    estimatedMinutes: 1,
+    tags: ['calm'],
+    source: {
+      title: 'Begin again (sample text)',
+      credit: 'Drafted with an AI assistant as a sample for RISE',
+      rights: 'Original text written for this preview; it quotes no other work.',
+      provenance: 'Original sample text written for this prototype.',
+    },
+    approvedForDemo: true,
+    allowedChoices: { pace: ['brief', 'steady'], presentation: ['plain', 'spacious'] },
+    steps: [
+      { heading: 'Arrive', body: 'Pause at the edge of this moment. Notice what is already here: a surface beneath you, some light, a place to begin.' },
+      { heading: 'Choose', body: 'Name one small action that belongs to today. Let it be small enough to do without a perfect mood or a perfect plan.' },
+      { heading: 'Begin', body: 'Take that action when you are ready. A beginning can be quiet and still count.' },
+    ],
+  },
+  {
+    id: 'focus',
+    version: 1,
+    title: 'Make room',
+    promise: 'A short sequence for choosing what gets your attention.',
+    estimatedMinutes: 1,
+    tags: ['energize'],
+    source: {
+      title: 'Make room (sample text)',
+      credit: 'Drafted with an AI assistant as a sample for RISE',
+      rights: 'Original text written for this preview; it quotes no other work.',
+      provenance: 'Original sample text written for this prototype.',
+    },
+    approvedForDemo: true,
+    allowedChoices: { pace: ['brief', 'steady'], presentation: ['plain', 'spacious'] },
+    steps: [
+      { heading: 'Notice', body: 'Several things may ask for your attention at once. You can notice each request without answering it yet.' },
+      { heading: 'Select', body: 'Pick one useful thing for the next few minutes. Set the others aside where you can find them later.' },
+      { heading: 'Return', body: 'When your attention wanders, return to the thing you chose. Returning is part of the work.' },
+    ],
+  },
+  {
+    id: 'close',
+    version: 1,
+    title: 'Leave a marker',
+    promise: 'A brief way to end one reading and invite the next.',
+    estimatedMinutes: 1,
+    tags: ['calm', 'reflect'],
+    source: {
+      title: 'Leave a marker (sample text)',
+      credit: 'Drafted with an AI assistant as a sample for RISE',
+      rights: 'Original text written for this preview; it quotes no other work.',
+      provenance: 'Original sample text written for this prototype.',
+    },
+    approvedForDemo: true,
+    allowedChoices: { pace: ['brief', 'steady'], presentation: ['plain', 'spacious'] },
+    steps: [
+      { heading: 'Look back', body: 'Think of one sentence you want to carry from this moment. It may be plain, unfinished, and entirely your own.' },
+      { heading: 'Mark it', body: 'Give that sentence a place in your memory. You do not need to make a record here.' },
+      { heading: 'Continue', body: 'Close this page. The next useful sentence can wait until you want it.' },
+    ],
+  },
+];

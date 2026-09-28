@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, openHomeNav } from './fixtures.js';
 
 const GATE = { code: 'rise2025', name: 'Journeys', vault: null, timestamp: Date.now() };
 
@@ -8,7 +8,7 @@ async function openJourneys(page) {
     localStorage.setItem('rise-beta-session', JSON.stringify(g));
   }, GATE);
   await page.goto('/');
-  await page.locator('[data-nav="vault"]').first().click();
+  await openHomeNav(page, 'vault');
   await page.locator('[data-nav="journeys"]').first().click();
   await expect(page.locator('.journeys-title')).toBeVisible({ timeout: 20000 });
 }
@@ -37,17 +37,13 @@ test('the Portal names one act, and the Vault does not offer Journeys', async ({
     localStorage.setItem('rise-beta-session', JSON.stringify(g));
   }, GATE);
   await page.goto('/');
-  // The Portal fades its nav in; wait for it rather than racing it.
-  await expect(page.locator('[data-nav="chamber"]')).toBeVisible({ timeout: 20000 });
+  await expect(page.locator('[data-nav="chamber"]')).toBeAttached({ timeout: 20000 });
 
-  // The release threshold now leads with the three Keystone readings, then
-  // the general Chamber. Journeys stay out of the Portal and the Vault.
-  const primary = await page.evaluate(() =>
-    [...document.querySelectorAll('.nav-primary .nav-item')].map(b => b.dataset.nav));
-  expect(primary).toEqual(['chamber']);
+  // Home has one primary act (Ask Jev). Journeys stay out of Home and the Vault.
+  await expect(page.locator('.portal .portal-primary')).toHaveCount(1);
   await expect(page.locator('.portal [data-nav="journeys"]')).toHaveCount(0);
 
-  await page.locator('[data-nav="vault"]').first().click();
+  await openHomeNav(page, 'vault');
   await expect(page.locator('.library.vault')).toBeVisible({ timeout: 20000 });
   await expect(page.locator('[data-nav="journeys"]')).toHaveCount(0);
   await expect(page.locator('.vault-journeys-note')).toHaveCount(0);

@@ -11,6 +11,7 @@
   "scripts": {
     "dev": "vite",
     "build": "npm run content:build && vite build",
+    "audio:hydrate": "node scripts/hydrate-recitation.mjs",
     "build:fonts": "node scripts/build-fonts.mjs",
     "verify:fonts": "node scripts/build-fonts.mjs --check",
     "build:legal": "node scripts/build-legal.mjs",
@@ -67,9 +68,12 @@
     "qrcode": "^1.5.4",
     "vite": "^7.3.6",
     "vite-node": "^3.2.4",
-    "vitest": "^3.2.7"
+    "vitest": "^3.2.7",
+    "wrangler": "4.141.0"
   },
   "dependencies": {
+    "@neondatabase/serverless": "^1.1.0",
+    "@upstash/redis": "^1.39.0",
     "sql.js": "^1.14.2"
   },
   "overrides": {

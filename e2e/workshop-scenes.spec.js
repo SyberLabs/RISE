@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, openHomeNav } from './fixtures.js';
 
 /**
  * The phone Workshop, walked with a thumb: write a scene, give it a visual,
@@ -30,7 +30,7 @@ for (const phone of PHONES) {
             test.setTimeout(180000);
             await page.addInitScript((g) => localStorage.setItem('rise-beta-session', JSON.stringify(g)), GATE);
             await page.goto('/');
-            await page.locator('[data-nav="workshop"]').first().click();
+            await openHomeNav(page, 'workshop');
             await expect(page.locator('.scenes')).toBeVisible({ timeout: 30000 });
             await expect(page.locator('.workshop-studio')).toBeHidden();
             expect(await sideways(page)).toBeNull();
@@ -76,7 +76,7 @@ for (const phone of PHONES) {
             test.setTimeout(120000);
             await page.addInitScript((g) => localStorage.setItem('rise-beta-session', JSON.stringify(g)), GATE);
             await page.goto('/');
-            await page.locator('[data-nav="workshop"]').first().click();
+            await openHomeNav(page, 'workshop');
             await expect(page.locator('.scenes')).toBeVisible({ timeout: 30000 });
             await page.locator('[data-sa="more"]').first().tap();
             await page.getByRole('button', { name: /Full studio/ }).tap();

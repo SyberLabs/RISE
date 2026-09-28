@@ -83,14 +83,14 @@ describe('Chapel Rosary door (#rosary)', () => {
     stubMedia();
   });
 
-  it('gate-then-prayer: ENTER THE SPACE then the Sign of the Cross', async () => {
+  it('ENTER THE SPACE opens the Rosary directly at the Sign of the Cross', async () => {
     window.location.hash = ROSARY_DOOR_HASH;
     app = new App();
     const opened = app.checkBetaAccess();
 
     const enter = document.querySelector('#beta-enter');
     expect(enter).toBeTruthy();
-    expect(enter.textContent).toMatch(/Enter the Space/i);
+    expect(enter.textContent).toMatch(/Enter RISE/);
     expect(prayerText()).toBeNull();
     expect(app.router).toBeNull();
 
@@ -107,7 +107,7 @@ describe('Chapel Rosary door (#rosary)', () => {
     expect(window.location.hash).toBe(ROSARY_DOOR_HASH);
   });
 
-  it('session-straight-to-prayer: no gate, first surface is the Sign of the Cross', async () => {
+  it('an existing session opens the first prayer locally', async () => {
     localStorage.setItem('rise-beta-session', JSON.stringify(openSession()));
     window.location.hash = ROSARY_DOOR_HASH;
     app = new App();
@@ -142,7 +142,6 @@ describe('Chapel Rosary door (#rosary)', () => {
     window.location.hash = ROSARY_DOOR_HASH;
     app = new App();
     await app.checkBetaAccess();
-
     const room = app.router.getViewInstance('rosarium');
     expect(room.phase).toBe('prayer');
     expect(window.location.hash).toBe(ROSARY_DOOR_HASH);
@@ -203,7 +202,6 @@ describe('Chapel Rosary door (#rosary)', () => {
     const navigate = vi.spyOn(app.router, 'navigate');
     window.location.hash = ROSARY_DOOR_HASH;
     window.dispatchEvent(new HashChangeEvent('hashchange'));
-
     await vi.waitFor(() => {
       expect(app.router.getCurrentView()).toBe('rosarium');
       expect(prayerText()).toBe(ROSARY_PRAYERS.signOfTheCross);

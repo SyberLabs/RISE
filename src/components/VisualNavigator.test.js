@@ -148,7 +148,7 @@ describe('the text', () => {
     const onTextMaterialTransaction = vi.fn();
     mount({}, { onTextMaterialTransaction });
 
-    for (const chamberFace of ['literary', 'display', 'thick', 'jp']) {
+    for (const chamberFace of ['literary', 'display', 'thick', 'jp', 'sans', 'book']) {
       for (const fontSize of ['small', 'medium', 'large', 'fit']) {
         settings = { chamberFace, fontSize };
         nav.render();
@@ -243,7 +243,7 @@ describe('the text', () => {
     }
   });
 
-  it('renders Thick in an even 2x2 Face grid and explains it before it is chosen', () => {
+  it('renders all face options and explains Thick before it is chosen', () => {
     const reveal = [
       control => control.dispatchEvent(new Event('pointerenter')),
       control => control.focus(),
@@ -256,13 +256,13 @@ describe('the text', () => {
       click(node('face'));
       const grid = nav.container.querySelector('.vnav-face-grid .vnav-opts');
       const thick = nav.container.querySelector('[data-chamber-face="thick"]');
-      expect(grid?.children).toHaveLength(4);
+      expect(grid?.children).toHaveLength(7);
       expect([...grid.children].map(control => control.textContent.trim()))
-        .toEqual(['Literary', 'Display', 'Thick ★', 'Japanese']);
+        .toEqual(['Literary', 'Display', 'Thick ★', 'Monospace', 'Japanese', 'Sans', 'Book']);
       expect(thick?.textContent.trim()).toBe('Thick ★');
       expect(thick?.getAttribute('aria-describedby')).toBe('vnav-thick-explanation');
       // The star used to be unexplained ornament until a hint fired. A
-      // reader choosing a face has to know one of the four is a
+      // reader choosing a face has to know one of the seven is a
       // prerequisite for masking, so the sentence stands from the start.
       expect(nav.container.querySelector('#vnav-thick-explanation')?.hidden).toBe(false);
 
@@ -273,7 +273,7 @@ describe('the text', () => {
         .toBe(false);
       expect(nav.container.querySelector('#vnav-thick-explanation')?.textContent
         .replace(/\s+/g, ' ').trim())
-        .toBe('Thick is the mask-ready face — the other three cannot carry a Visual mask.');
+        .toBe('Thick is the mask-ready face — the other six cannot carry a Visual mask.');
       unmount();
     }
   });
@@ -699,7 +699,7 @@ describe('reader-facing state', () => {
     mount({});
     click(nav.container.querySelector('.vnav-node[data-id="face"]'));
 
-    for (const id of ['literary', 'display', 'thick', 'jp']) {
+    for (const id of ['literary', 'display', 'thick', 'mono', 'jp']) {
       expect(nav.container.querySelector(`[data-chamber-face="${id}"]`)
         ?.getAttribute('data-face-sample'), id).toBe(id);
     }
@@ -837,7 +837,7 @@ describe('reader-facing state', () => {
     const scale = benchFor('Scale');
     expect(scale).toBeTruthy();
     expect([...scale.querySelectorAll('.vnav-opt')].map(b => b.dataset.fontSize))
-      .toEqual(['s', 'm', 'l']);
+      .toEqual(['s', 'm', 'l', 'xl']);
     expect(scale.querySelector('[data-font-size="fit"]')).toBeNull();
 
     // Fit stands on its own, still reachable, still the same control.

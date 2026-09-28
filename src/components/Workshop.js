@@ -124,6 +124,24 @@ import './SourceBrowser.css';
 import { REMOTE_IMAGE_ATTRS } from '../visuals/remote-image.js';
 import './Workshop.css';
 
+/** 20px stroke icons (SyberLabs system): currentColor, 1.5 stroke, round caps. */
+const ICON = (paths) => `<svg class="studio-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${paths}</svg>`;
+const ICONS = {
+  preview: ICON('<path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12Z"></path><circle cx="12" cy="12" r="3"></circle>'),
+  up: ICON('<path d="m18 15-6-6-6 6"></path>'),
+  down: ICON('<path d="m6 9 6 6 6-6"></path>'),
+  close: ICON('<path d="M18 6 6 18"></path><path d="m6 6 12 12"></path>'),
+  audio: ICON('<path d="M3 12h2"></path><path d="M7 8v8"></path><path d="M11 5v14"></path><path d="M15 9v6"></path><path d="M19 11v2"></path>')
+};
+/** Pacing curves drawn as the shape they describe, not as a glyph. */
+const CURVE_PATHS = {
+  flat: 'M3 12h18',
+  induction: 'M3 7c6 0 9 10 18 10',
+  ascent: 'M3 17c6 0 9-10 18-10',
+  wave: 'M3 12c3-6 6-6 9 0s6 6 9 0',
+  climax: 'M3 17c5 0 7-10 9-10s4 10 9 10'
+};
+
 const MAX_TEXT_FILE_BYTES = READING_LIMITS.maxTextCharacters;
 const MAX_IMAGE_FILE_BYTES = READING_LIMITS.maxImageFileBytes;
 const MAX_VIDEO_FILE_BYTES = READING_LIMITS.maxVideoFileBytes;
@@ -951,10 +969,10 @@ export class Workshop {
         </div>
         <div class="input-group"><label class="input-label" for="wpm-slider"><span>Pacing</span><span class="input-label-value font-mono" id="wpm-value">${this.sessionData.wpm} WPM</span></label>
           <div class="slider-container"><input type="range" id="wpm-slider" class="slider" min="100" max="500" value="${this.sessionData.wpm}" step="10" aria-describedby="wpm-chamber-note" /></div>
-          <div class="config-notice text-fog font-mono" id="wpm-chamber-note">◇ Adjustable in Chamber</div></div>
+          <div class="config-notice text-fog" id="wpm-chamber-note">You can also change pacing in the Reader.</div></div>
         <div class="input-group"><span class="input-label">Pacing curve</span>
           <div class="curve-options studio-compact-options studio-choice-grid studio-choice-grid-5">
-            ${['flat', 'induction', 'ascent', 'wave', 'climax'].map(curve => `<button type="button" class="curve-btn ${this.sessionData.curve === curve ? 'active' : ''}" data-action="set-reading-curve" data-curve="${curve}" aria-pressed="${this.sessionData.curve === curve}"><span class="curve-icon">${this.getCurveIcon(curve)}</span><span class="curve-label text-capitalize">${curve}</span></button>`).join('')}
+            ${['flat', 'induction', 'ascent', 'wave', 'climax'].map(curve => `<button type="button" class="curve-btn ${this.sessionData.curve === curve ? 'active' : ''}" data-action="set-reading-curve" data-curve="${curve}" aria-pressed="${this.sessionData.curve === curve}"><span class="curve-icon" aria-hidden="true">${this.getCurveIcon(curve)}</span><span class="curve-label text-capitalize">${curve}</span></button>`).join('')}
           </div></div>
         <div class="input-group"><span class="input-label">Chunking</span>
           <div class="chunk-options studio-choice-grid studio-choice-grid-3">
@@ -1082,7 +1100,7 @@ export class Workshop {
     const audioMedia = entry.audio.map(audio => {
       const asset = audioAssets.get(audio.assetId);
       return `<div class="studio-sequence-map-thumbnail is-audio" style="--sequence-audio-color:${asset?.editor?.color || AUDIO_SCORE_COLORS[0]}">
-        <span class="studio-sequence-audio-glyph" aria-hidden="true">${audio.lane === 'swell' ? '✦' : '◉'}</span>
+        <span class="studio-sequence-audio-glyph" aria-hidden="true">${ICONS.audio}</span>
         <span>${this.escapeHtml(asset?.name || 'Missing audio')}</span></div>`;
     }).join('');
     const visualActions = visual ? `<div class="studio-sequence-map-lane-actions">
@@ -1149,7 +1167,7 @@ export class Workshop {
             </li>`;
           }).join('')}</ol>` : '<p class="studio-sequence-source-empty">No passage media assigned yet.</p>'}
         </section>`;
-      }).join('') : `<div class="studio-sequence-map-empty"><span aria-hidden="true">◇</span>
+      }).join('') : `<div class="studio-sequence-map-empty">
         <p>Add a source to begin building the composition map.</p></div>`}
     </section>`;
   }
@@ -1228,8 +1246,8 @@ export class Workshop {
       const excerpt = source?.text.slice(selection.fromCharacter, selection.toCharacter)
         .replace(/\s+/gu, ' ').trim().slice(0, 72) || 'Selected passage';
       return `<section class="studio-selection-bar is-combined" aria-label="Selected passage media actions">
-        <p><span class="studio-kicker">Selected passage</span><strong>â€œ${this.escapeHtml(excerpt)}${excerpt.length === 72 ? 'â€¦' : ''}â€</strong>
-          <small>Visual: ${this.escapeHtml(visualAsset?.name || 'not chosen')} Â· Audio: ${this.escapeHtml(audioAsset?.name || 'not chosen')}</small></p>
+        <p><span class="studio-kicker">Selected passage</span><strong>“${this.escapeHtml(excerpt)}${excerpt.length === 72 ? '…' : ''}”</strong>
+          <small>Visual: ${this.escapeHtml(visualAsset?.name || 'not chosen')} · Audio: ${this.escapeHtml(audioAsset?.name || 'not chosen')}</small></p>
         <div>
           <button type="button" class="btn-ghost btn-compact" data-action="cancel-score-selection">Cancel</button>
           <button type="button" class="btn-secondary btn-compact" data-action="assign-score-lane" data-score-lane="visual"
@@ -1345,7 +1363,7 @@ export class Workshop {
         ${images.map(asset => `<button type="button" role="option" class="studio-personal-focal-option"
           data-action="choose-personal-focal" data-focal-target="${target}" data-project-asset-id="${this.escapeHtml(asset.id)}"
           aria-selected="${asset.id === activeId}" ${asset.uri ? '' : 'disabled'}>
-          ${asset.uri ? `<img src="${safeUrl(asset.uri)}" alt="" ${REMOTE_IMAGE_ATTRS} />` : '<span aria-hidden="true">◇</span>'}
+          ${asset.uri ? `<img src="${safeUrl(asset.uri)}" alt="" ${REMOTE_IMAGE_ATTRS} />` : '<span aria-hidden="true"></span>'}
           <strong>${this.escapeHtml(asset.name)}</strong>
         </button>`).join('')}
       </div>` : ''}
@@ -1855,7 +1873,7 @@ export class Workshop {
                 role="option" aria-selected="${selected}" tabindex="${selected ? '0' : '-1'}"
                 data-focus-key="audio-asset:${asset.id}"
                 aria-label="${this.escapeHtml(`${asset.name}, ${asset.kind}${current ? ', sounds under the whole reading' : ''}`)}">
-          <span class="studio-audio-icon" aria-hidden="true">${asset.icon}</span>
+          <span class="studio-audio-icon" aria-hidden="true">${ICONS.audio}</span>
           <span><strong>${this.escapeHtml(asset.name)}</strong><small>${this.escapeHtml(asset.description)}</small></span>
           <span class="studio-audio-badges"><em>Bed</em>${current ? '<em>Current</em>' : ''}${playing ? '<em>Previewing</em>' : ''}</span>
         </button>
@@ -1896,7 +1914,7 @@ export class Workshop {
       : workshopAudioAssetIsCurrent(this.sessionData, asset);
     const playing = this.audioPreviewState.assetId === asset.id;
     return `<div class="studio-audio-selection">
-      <div class="studio-audio-selection-title"><span aria-hidden="true">${asset.icon}</span>
+      <div class="studio-audio-selection-title"><span aria-hidden="true">${ICONS.audio}</span>
         <div><span class="studio-kicker">Whole reading</span>
           <h3>${this.escapeHtml(asset.name)}</h3></div></div>
       <p class="input-note text-fog">${this.escapeHtml(asset.description)}</p>
@@ -2174,18 +2192,10 @@ export class Workshop {
           <div class="source-item-header">
             <button type="button" class="source-name text-light" data-action="inspect-source" data-source-id="${this.escapeHtml(String(source.id))}">${this.escapeHtml(source.name)}</button>
             <div class="source-actions-mini">
-              <button type="button" class="btn-icon" data-action="preview-source" data-index="${index}" title="Preview content">
-                ◎
-              </button>
-              <button type="button" class="btn-icon" data-action="move-up" data-index="${index}" ${isFirst ? 'disabled' : ''} title="Move up">
-                ▲
-              </button>
-              <button type="button" class="btn-icon" data-action="move-down" data-index="${index}" ${isLast ? 'disabled' : ''} title="Move down">
-                ▼
-              </button>
-              <button type="button" class="btn-icon" data-action="remove-source" data-index="${index}" title="Remove">
-                ✕
-              </button>
+              <button type="button" class="btn-icon" data-action="preview-source" data-index="${index}" title="Preview content" aria-label="Preview ${this.escapeHtml(source.name)}">${ICONS.preview}</button>
+              <button type="button" class="btn-icon" data-action="move-up" data-index="${index}" ${isFirst ? 'disabled' : ''} title="Move up" aria-label="Move ${this.escapeHtml(source.name)} up">${ICONS.up}</button>
+              <button type="button" class="btn-icon" data-action="move-down" data-index="${index}" ${isLast ? 'disabled' : ''} title="Move down" aria-label="Move ${this.escapeHtml(source.name)} down">${ICONS.down}</button>
+              <button type="button" class="btn-icon" data-action="remove-source" data-index="${index}" title="Remove" aria-label="Remove ${this.escapeHtml(source.name)}">${ICONS.close}</button>
             </div>
           </div>
           <span class="source-meta">${source.words.toLocaleString()} words · ${source.providerId || 'local'}</span>
@@ -2222,7 +2232,7 @@ export class Workshop {
       <div class="source-preview-content" tabindex="-1">
         <header class="source-preview-header">
           <h3 id="source-preview-title">${this.escapeHtml(source.name)}</h3>
-          <button type="button" class="btn-icon source-preview-close" aria-label="Close source preview">✕</button>
+          <button type="button" class="btn-icon source-preview-close" aria-label="Close source preview">${ICONS.close}</button>
         </header>
         <div class="source-preview-body">
           <pre class="source-preview-text">${this.escapeHtml(typeof source.data === 'string' ? source.data : JSON.stringify(source.data, null, 2))}</pre>
@@ -2470,7 +2480,7 @@ export class Workshop {
     const status = sample?.status || 'representative';
     return `<span class="studio-preview-render is-${preview.kind}" data-preview-ref="${this.escapeHtml(preview.ref)}"
       data-preview-status="${status}"${style}>
-      <span aria-hidden="true">${this.escapeHtml(entry.symbol || asset.name.slice(0, 1))}</span>
+      <span aria-hidden="true">${this.escapeHtml(asset.name.slice(0, 1))}</span>
       ${selected ? `<small>${preview.kind === 'generator' ? 'Generator'
         : status === 'loading' ? 'Loading sample'
           : status === 'unavailable' ? 'Sample unavailable' : 'Collection sample'}</small>` : ''}
@@ -2488,7 +2498,6 @@ export class Workshop {
     });
     if (!visible.length) {
       return `<div class="studio-asset-empty">
-        <span aria-hidden="true">◇</span>
         <p>No visual assets match this view.</p>
         <button type="button" class="btn-secondary btn-compact" data-action="clear-asset-filters">Show all</button>
       </div>`;
@@ -2534,9 +2543,9 @@ export class Workshop {
           </span>
         </button>
         ${globalId ? `<button type="button" class="studio-asset-remove" data-action="remove-global"
-            data-global-id="${this.escapeHtml(globalId)}" aria-label="Remove ${this.escapeHtml(asset.name)} from shared images">×</button>` : ''}
+            data-global-id="${this.escapeHtml(globalId)}" aria-label="Remove ${this.escapeHtml(asset.name)} from shared images">${ICONS.close}</button>` : ''}
         ${projectIndex >= 0 ? `<button type="button" class="studio-asset-remove" data-action="remove-visual"
-            data-index="${projectIndex}" aria-label="Remove ${this.escapeHtml(asset.name)} from this project">×</button>` : ''}
+            data-index="${projectIndex}" aria-label="Remove ${this.escapeHtml(asset.name)} from this project">${ICONS.close}</button>` : ''}
       </article>`;
     }).join('');
   }
@@ -2544,7 +2553,6 @@ export class Workshop {
   renderSelectedVisualAsset(entry) {
     if (!entry) {
       return `<div class="studio-inspector-empty">
-        <span aria-hidden="true">◇</span>
         <p>Choose an asset to inspect its preview, capabilities, and available actions.</p>
       </div>`;
     }
@@ -3349,6 +3357,7 @@ export class Workshop {
       return `<section class="visual-score-editor is-empty" aria-labelledby="media-score-title">
         <h3 id="media-score-title">Media Score</h3>
         <p class="input-note text-fog">Add a text source to author passage visuals and audio.</p>
+        <button type="button" class="btn-secondary" data-action="open-browser">Browse sources</button>
       </section>`;
     }
     const visualAssets = this.scoreAssetLookup();
@@ -3422,6 +3431,7 @@ export class Workshop {
       return `<section class="visual-score-editor is-empty" aria-labelledby="visual-score-title">
         <h3 id="visual-score-title">Visual Score</h3>
         <p class="input-note text-fog">Add a text source to begin scoring visuals against passages.</p>
+        <button type="button" class="btn-secondary" data-action="open-browser">Browse sources</button>
       </section>`;
     }
     const assetsById = this.scoreAssetLookup();
@@ -3436,7 +3446,7 @@ export class Workshop {
     const selectionStatus = this.pendingScoreConflict
       ? 'This passage overlaps an existing visual. Replace it deliberately or select another passage.'
       : pending
-        ? `Selected â€œ${this.escapeHtml(pendingExcerpt)}${pendingExcerpt.length === 80 ? 'â€¦' : ''}â€`
+        ? `Selected “${this.escapeHtml(pendingExcerpt)}${pendingExcerpt.length === 80 ? '…' : ''}”`
         : 'Select a passage in the text.';
     return `<section class="visual-score-editor" aria-labelledby="visual-score-title">
       <div class="media-score-view-tabs" role="tablist" aria-label="Score view">
@@ -3493,37 +3503,28 @@ export class Workshop {
     const swells = await PersonalSwells.getAll();
     this.personalSwells = swells;
     if (swells.length === 0) {
-      list.innerHTML = `<div class="empty-sources text-fog" style="padding: 1rem; border: none;">No personal audio uploaded</div>`;
+      list.innerHTML = `<div class="empty-sources text-fog">No personal audio yet. Add a recording to layer it under a passage or the whole reading.</div>`;
       return;
     }
 
     list.innerHTML = swells.map((swell) => `
-      <div class="swell-item" style="display: flex; align-items: center; justify-content: space-between; padding: 0.5rem 0.8rem; background: rgba(255,255,255,0.03); border-radius: 4px; border: 1px solid var(--color-shadow);">
-        <div style="display: flex; align-items: center; gap: 10px;">
-          <span class="icon" style="color: var(--color-threshold); font-size: 0.8rem;">♪</span>
-          <span style="font-size: 13px; color: var(--color-cloud);">${this.escapeHtml(swell.name)}</span>
-        </div>
-        <div style="display: flex; gap: 5px;">
+      <div class="swell-item">
+        <span class="swell-name">${ICONS.audio}<span>${this.escapeHtml(swell.name)}</span></span>
+        <span class="swell-actions">
           <button type="button" class="btn-ghost btn-compact" data-action="select-personal-swell-asset" data-id="${swell.id}"
                   aria-label="Select ${this.escapeHtml(swell.name)}">Select</button>
           <button type="button" class="btn-icon" data-action="preview-personal-swell" data-id="${swell.id}"
-                  aria-label="Preview ${this.escapeHtml(swell.name)}" style="color: var(--color-mist); font-size: 10px;">◎</button>
+                  aria-label="Preview ${this.escapeHtml(swell.name)}">${ICONS.preview}</button>
           <button type="button" class="btn-icon" data-action="remove-personal-swell" data-id="${swell.id}"
-                  aria-label="Remove ${this.escapeHtml(swell.name)}" style="color: var(--color-rose); font-size: 10px;">✕</button>
-        </div>
+                  aria-label="Remove ${this.escapeHtml(swell.name)}">${ICONS.close}</button>
+        </span>
       </div>
     `).join('');
   }
 
   getCurveIcon(curve) {
-    const icons = {
-      flat: '─',
-      induction: '╲',
-      ascent: '╱',
-      wave: '∿',
-      climax: '∧'
-    };
-    return icons[curve] || '─';
+    const path = CURVE_PATHS[curve] || CURVE_PATHS.flat;
+    return `<svg width="24" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" preserveAspectRatio="none" aria-hidden="true"><path d="${path}"></path></svg>`;
   }
 
   getAudioIcon(preset) {
@@ -4100,7 +4101,8 @@ export class Workshop {
         this.sourceRemovalArmedId = null;
         this.sourceRemovalTimer = null;
         if (button?.isConnected) {
-          button.textContent = button.closest('#studio-source-inspector') ? 'Remove source and its clips' : '✕';
+          if (button.closest('#studio-source-inspector')) button.textContent = 'Remove source and its clips';
+          else button.innerHTML = ICONS.close;
           button.setAttribute('aria-label', `Remove ${source.name}`);
         }
       }, 5000);
@@ -5321,10 +5323,10 @@ export class Workshop {
       const overlay = document.createElement('div');
       overlay.className = 'naming-modal-overlay';
       overlay.innerHTML = `
-        <div class="naming-modal" role="dialog" aria-modal="true" aria-label="Import Experience Program">
-          <h2 class="naming-modal-title">Import score</h2>
-          <p class="naming-modal-subtitle">Paste or open a rise.experience-program.v1 JSON file. Imports land as proposed Vault drafts.</p>
-          <div class="naming-modal-actions" style="display:flex;gap:0.75rem;flex-wrap:wrap;justify-content:flex-end">
+        <div class="naming-modal" role="dialog" aria-modal="true" aria-labelledby="program-import-title">
+          <h2 class="naming-modal-title" id="program-import-title">Import score</h2>
+          <p class="naming-modal-subtitle">Paste or open a score file (rise.experience-program.v1 JSON). Imported scores are saved as drafts in Sequences.</p>
+          <div class="naming-modal-actions">
             <button type="button" class="btn-ghost" data-choice="cancel">Cancel</button>
             <button type="button" class="btn-secondary" data-choice="paste">Paste JSON</button>
             <button type="button" class="btn-primary" data-choice="file">Open file</button>
@@ -5341,6 +5343,12 @@ export class Workshop {
         const choice = button.dataset.choice;
         finish(choice === 'cancel' ? null : choice);
       });
+      overlay.addEventListener('keydown', (event) => {
+        if (event.key !== 'Escape') return;
+        // The dialog owns Escape; the router would otherwise leave Compose.
+        event.stopPropagation();
+        finish(null);
+      });
       document.body.appendChild(overlay);
       overlay.querySelector('[data-choice="file"]')?.focus();
     });
@@ -5351,13 +5359,15 @@ export class Workshop {
       const overlay = document.createElement('div');
       overlay.className = 'naming-modal-overlay';
       overlay.innerHTML = `
-        <div class="naming-modal" role="dialog" aria-modal="true" aria-label="Paste Experience Program">
-          <h2 class="naming-modal-title">Paste Experience Program</h2>
-          <p class="naming-modal-subtitle">rise.experience-program.v1 JSON</p>
-          <textarea class="input" id="program-paste-input" rows="14"
-                    style="width:min(520px,80vw);max-width:100%;font-family:ui-monospace,monospace;font-size:0.8rem"
-                    spellcheck="false"></textarea>
-          <div class="naming-modal-actions" style="display:flex;gap:0.75rem;justify-content:flex-end;margin-top:1rem">
+        <div class="naming-modal naming-modal-wide" role="dialog" aria-modal="true" aria-labelledby="program-paste-title">
+          <h2 class="naming-modal-title" id="program-paste-title">Paste score</h2>
+          <label class="naming-modal-body">
+            <span class="naming-modal-label">Score JSON</span>
+            <textarea class="naming-modal-code" id="program-paste-input" rows="12"
+                      placeholder='{ "schema": "rise.experience-program.v1", … }'
+                      spellcheck="false"></textarea>
+          </label>
+          <div class="naming-modal-actions">
             <button type="button" class="btn-ghost" data-choice="cancel">Cancel</button>
             <button type="button" class="btn-primary" data-choice="import">Import</button>
           </div>
@@ -5373,6 +5383,12 @@ export class Workshop {
         if (!button) return;
         if (button.dataset.choice === 'cancel') finish(null);
         else finish(textarea?.value || '');
+      });
+      overlay.addEventListener('keydown', (event) => {
+        if (event.key !== 'Escape') return;
+        // The dialog owns Escape; the router would otherwise leave Compose.
+        event.stopPropagation();
+        finish(null);
       });
       document.body.appendChild(overlay);
       textarea?.focus();
@@ -5454,12 +5470,19 @@ export class Workshop {
     const overlay = document.createElement('div');
     overlay.className = 'naming-modal-overlay';
     overlay.innerHTML = `
-      <div class="naming-modal" role="alertdialog" aria-modal="true" aria-label="Import refused">
-        <h2 class="naming-modal-title">Import refused</h2>
-        <textarea class="input" id="program-refusal-text" rows="12" readonly
-                  style="width:min(560px,80vw);max-width:100%;font-family:ui-monospace,monospace;font-size:0.8rem"
-                  spellcheck="false"></textarea>
-        <div class="naming-modal-actions" style="display:flex;gap:0.75rem;justify-content:flex-end;margin-top:1rem">
+      <div class="naming-modal naming-modal-wide" role="alertdialog" aria-modal="true"
+           aria-labelledby="program-refusal-title" aria-describedby="program-refusal-help">
+        <div class="naming-modal-status">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="M12 8v4"></path><path d="M12 16h.01"></path></svg>
+          <h2 class="naming-modal-title" id="program-refusal-title">Import refused</h2>
+        </div>
+        <p class="naming-modal-subtitle" id="program-refusal-help">Nothing was changed. Copy the reason below and send it to whoever wrote the score.</p>
+        <label class="naming-modal-body">
+          <span class="naming-modal-label">Reason</span>
+          <textarea class="naming-modal-code" id="program-refusal-text" rows="10" readonly
+                    spellcheck="false"></textarea>
+        </label>
+        <div class="naming-modal-actions">
           <button type="button" class="btn-secondary" data-choice="copy">Copy</button>
           <button type="button" class="btn-primary" data-choice="close">Close</button>
         </div>
@@ -5480,6 +5503,11 @@ export class Workshop {
         this.showToast('Refusal copied');
         return;
       }
+      overlay.remove();
+    });
+    overlay.addEventListener('keydown', (event) => {
+      if (event.key !== 'Escape') return;
+      event.stopPropagation();
       overlay.remove();
     });
     document.body.appendChild(overlay);

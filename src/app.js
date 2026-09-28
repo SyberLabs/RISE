@@ -19,6 +19,7 @@ import {
 import { BetaGate } from './components/BetaGate.js';
 import { isRosaryDoor } from './core/rosary-door.js';
 import { TRY_RISE_PATH, isTryRisePath } from './core/keystone-paths.js';
+import { isJevSceneDemoPath, sceneSampleFromPath } from './core/jev-demo-path.js';
 import { KEYSTONE_SESSION_ORIGIN } from './app/chamber-exit.js';
 
 import { errorBoundary, ErrorCategory, ErrorSeverity } from './core/error-boundary.js';
@@ -33,6 +34,7 @@ import { clampReadingWpm } from './core/reading-limits.js';
 import { createRouteManifest } from './app/route-manifest.js';
 import { installTestBridge } from './app/test-bridge.js';
 import { watchTabFreshness } from './core/tab-freshness.js';
+import { hasPersonalWorkInPage } from './core/personal-identity.js';
 
 // THE SHELL'S OWN STYLES, AND ONLY THOSE. app.js used to import sixteen
 // stylesheets — every room's, not the Portal's — which is 220 KB of CSS
@@ -40,7 +42,7 @@ import { watchTabFreshness } from './core/tab-freshness.js';
 // with the room's module and arrives with it, so the Portal's cost no
 // longer grows every time a room is added.
 import './design-system.css';
-import './premium-additions.css';
+import './core/visual-safety.css';
 
 /**
  * A DEPLOY MUST NOT STRAND AN OPEN TAB.
@@ -84,6 +86,9 @@ try {
 export const STALE_BUILD_SENTINEL = 'rise_reloaded_for_stale_build';
 
 window.addEventListener('vite:preloadError', (event) => {
+    // Let the rejected import restore the previous view; a reload would erase
+    // a personal draft or the thought being composed before Keep.
+    if (hasPersonalWorkInPage()) return;
     if (sessionStorage.getItem(STALE_BUILD_SENTINEL)) return;  // not a deploy: a real failure
     sessionStorage.setItem(STALE_BUILD_SENTINEL, '1');
     event.preventDefault();
@@ -272,8 +277,14 @@ class App {
         // shows reads any of them.
 
         this.router = new Router({
+            onNavigationIntent: (view, options) => this.handleNavigationIntent(view, options),
             onViewChange: (view, data) => {
                 console.log(`[RISE] View: ${view}`);
+                if (view === 'create' && window.location.pathname !== '/create') {
+                    window.history.pushState({}, '', '/create');
+                } else if (view !== 'create' && view !== 'chamber-session' && /^\/create\/?$/u.test(window.location.pathname)) {
+                    window.history.pushState({}, '', '/');
+                }
             }
         });
 
@@ -286,6 +297,7 @@ class App {
         const { keystoneSlugFromPath } = await import('./content/keystones.js');
         const directKeystone = keystoneSlugFromPath(window.location.pathname);
         const directTryRise = isTryRisePath(window.location.pathname);
+        const directJevSceneDemo = isJevSceneDemoPath(window.location.pathname);
         // A minted sequence is the same kind of public entry point. TWO
         // QUESTIONS, NOT ONE: whether this is a mint URL at all, and which
         // mint it names. A printed code outlives the sequence it names, so
@@ -321,10 +333,14 @@ class App {
             await this.router.navigate(staleTarget, { data: staleData });
         } else if (isRosaryDoor()) {
             await this.router.navigate('rosarium', { data: { door: true } });
+        } else if (/^\/create\/?$/u.test(window.location.pathname)) {
+            await this.router.navigate('create');
         } else if (directKeystone) {
             await this.router.navigate('keystones', { data: { slug: directKeystone } });
         } else if (directTryRise) {
             await this.router.navigate('keystones');
+        } else if (directJevSceneDemo) {
+            await this.router.navigate('portal', { data: { demoMode: true } });
         } else if (mintedSlug) {
             await this.router.navigate('mint', { data: { entry: houseProgram(mintedSlug) } });
         } else if (options.personalizedVault) {
@@ -461,8 +477,10 @@ class App {
     registerViews() {
         const routes = createRouteManifest({
             handleNavigate: this.handleNavigate,
-            quickAccess: () => this.quickAccess(),
+            launchJevReading: decision => this.launchJevReading(decision),
+            launchJevSample: () => this.launchJevSample(),
             launchKeystone: slug => this.launchKeystone(slug),
+            launchFirstRead: () => this.launchKeystone('meditations', { firstReadPreview: true }),
             openMintedProgram: slug => this.openMintedProgram(slug),
             handleSequenceSelection: sequenceId => this.handleSequenceSelection(sequenceId),
             handleCreateSession: this.handleCreateSession,
@@ -533,6 +551,12 @@ class App {
     /**
      * Handle navigation requests from components
      */
+    handleNavigationIntent(viewName, options = {}) {
+        if (viewName === 'chamber-session' && options.launchRevision === this.sessionLaunchRevision) return;
+        ++this.sessionLaunchRevision;
+        this.router.getViewInstance(this.router.getCurrentView())?.navigationIntent?.();
+    }
+
     handleNavigate(viewName, data, { replaceUrl = false } = {}) {
         // Keystone URLs are real entry points, not a hash painted onto an
         // unrelated view. Leaving the release corridor explicitly returns
@@ -549,6 +573,9 @@ class App {
         }
         if (viewName === 'portal'
             && /^\/(?:try-rise|keystone(?:\/|$))/u.test(window.location.pathname)) {
+            window.history.pushState({}, '', '/');
+        }
+        if (viewName !== 'portal' && isJevSceneDemoPath(window.location.pathname)) {
             window.history.pushState({}, '', '/');
         }
         // Returned so a caller can wait for the outgoing view to have
@@ -746,7 +773,7 @@ class App {
         } catch (error) {
             console.error('[RISE] Session compilation failed:', error);
             this.showToast(error.message || 'Unable to compile session', 4000);
-            return;
+            return false;
         }
 
         console.log('[RISE] Created session:', session);
@@ -758,14 +785,45 @@ class App {
         if (sessionConfig.origin) {
             session.origin = sessionConfig.origin;
         }
+        if (sessionConfig.firstReadPreview === true) {
+            session.firstReadPreview = true;
+        }
 
         // Store and navigate to chamber-session (immersion)
         this.currentSession = session;
-        this.router.navigate('chamber-session', { data: session });
+        return this.router.navigate('chamber-session', { data: session });
+    }
+
+    /** Resolve Jev's discrete choices against shipped text, then enter the reader. */
+    async launchJevReading(decision) {
+        const { resolveJevReading } = await import('./app/jev-reading.js');
+        const sessionConfig = await resolveJevReading(decision);
+        if (!await this.handleBeginSession(sessionConfig)) {
+            throw new Error('The selected reading could not be opened. Please try again.');
+        }
+    }
+
+    /** Launch a fixed sample through the released-edition gate, without a provider call. */
+    async launchJevSample() {
+        if (sceneSampleFromPath(window.location.pathname) === 'night-drive') {
+            const { nightDriveSessionInput } = await import('./app/night-drive-sample.js');
+            if (!await this.handleBeginSession(nightDriveSessionInput())) {
+                throw new Error('The sample reading could not be opened. Please try again.');
+            }
+            return;
+        }
+        const [{ sampleJevSceneDecision }, { resolveJevReading }] = await Promise.all([
+            import('./app/jev-scene-demo.js'), import('./app/jev-reading.js')
+        ]);
+        const sessionConfig = await resolveJevReading(sampleJevSceneDecision());
+        sessionConfig.origin = { ...sessionConfig.origin, experience: 'jev-sample' };
+        if (!await this.handleBeginSession(sessionConfig)) {
+            throw new Error('The sample reading could not be opened. Please try again.');
+        }
     }
 
     /** Resolve, compile, and launch an exact canonical composition. */
-    async launchKeystone(slug) {
+    async launchKeystone(slug, { firstReadPreview = false } = {}) {
         try {
             const [keystones, archive] = await Promise.all([
                 import('./content/keystones.js'),
@@ -785,7 +843,8 @@ class App {
             }
             await this.handleBeginSession({
                 ...result.sessionInput,
-                origin: KEYSTONE_SESSION_ORIGIN
+                origin: KEYSTONE_SESSION_ORIGIN,
+                firstReadPreview
             });
         } catch (error) {
             console.error('[RISE] Keystone launch refused:', error);
@@ -853,12 +912,22 @@ class App {
      * Hydrates durable sequence images before compileSession.
      */
     async handleCreateSession(sessionData) {
-        let sessionInput = isWorkshopProject(sessionData)
-            ? workshopProjectToSessionConfig(sessionData)
-            : sessionData;
+        const launchRevision = ++this.sessionLaunchRevision;
+        const isCurrent = () => launchRevision === this.sessionLaunchRevision;
+        let sessionInput;
         try {
+            if (sessionData?.provenance?.kind === 'personal-generated') {
+                const { personalSession } = await import('./core/personal-project.js');
+                if (!isCurrent()) return false;
+                sessionInput = personalSession(sessionData);
+                sessionInput.origin = { view: this.router.getCurrentView?.() === 'vault' ? 'vault' : 'create' };
+            } else {
+                sessionInput = isWorkshopProject(sessionData) ? workshopProjectToSessionConfig(sessionData) : sessionData;
+            }
             const { hydrateSessionSequenceAssets } = await import('./core/workshop-asset-durability.js');
+            if (!isCurrent()) return false;
             sessionInput = await hydrateSessionSequenceAssets(sessionInput);
+            if (!isCurrent()) return false;
             // A MISSING IMAGE IS NOT A REASON TO WITHHOLD THE TEXT. The
             // reading opens; the reader is told what is not in it. This
             // path used to return here, so one evicted blob cancelled the
@@ -880,13 +949,14 @@ class App {
                 );
             }
         } catch (error) {
+            if (!isCurrent()) return false;
             // Reserved for a payload that cannot be read at all. A missing
             // image no longer reaches here.
             console.error('[RISE] Workshop media hydrate failed:', error);
             this.showToast(error.message || 'Sequence images could not be loaded', 4000);
             return false;
         }
-        console.log('[RISE] Compiling Custom Workshop Session:', sessionInput);
+
 
         if (!sessionInput || !sessionInput.sources || sessionInput.sources.length === 0) {
             this.showToast('Cannot create session without sources', 3000);
@@ -910,8 +980,8 @@ class App {
 
         console.log(`[RISE] Workshop compiler built ${session.atomCount} atoms across ${session.sources.length} sources.`);
 
-        // 4. Route to player phase
-        const launchRevision = ++this.sessionLaunchRevision;
+        // Route only while this preparation still owns the launch.
+        if (!isCurrent()) return false;
 
         // Ensure that preview mode routing flag passes correctly if requested
         if (sessionInput.isPreview) {
@@ -920,24 +990,12 @@ class App {
 
         const navigated = await this.router.navigate('chamber-session', {
             data: session,
-            force: true
+            force: true,
+            launchRevision
         });
         if (navigated !== true || launchRevision !== this.sessionLaunchRevision) return false;
         this.currentSession = session;
         return true;
-    }
-
-    /**
-     * Quick access to last session type (from Portal sigil)
-     */
-    quickAccess() {
-        // If we have a recent session, go to Chamber
-        // Otherwise go to Vault
-        if (this.currentSession) {
-            this.router.navigate('chamber', { data: this.currentSession });
-        } else {
-            this.router.navigate('vault');
-        }
     }
 
     /**
@@ -1205,6 +1263,7 @@ class App {
         watchTabFreshness({
             router: this.router,
             isReading: () => {
+                if (hasPersonalWorkInPage()) return true;
                 const state = this.router?.views?.get('chamber')?.instance
                     ?.player?.sessionState?.state;
                 return state === 'playing' || state === 'interlocuting';
@@ -1252,6 +1311,11 @@ class App {
             // popstate alongside hashchange, and clearing the hash must not
             // pull an in-progress prayer back to the Portal.
             if (isRosaryDoor() || this.router?.getCurrentView() === 'rosarium') return;
+            this.handleNavigationIntent('history');
+            if (/^\/create\/?$/u.test(window.location.pathname)) {
+                await this.router?.navigate('create', { replace: true, skipStack: true });
+                return;
+            }
             const { keystoneSlugFromPath } = await import('./content/keystones.js');
             const slug = keystoneSlugFromPath(window.location.pathname);
             if (slug || isTryRisePath(window.location.pathname)) {
@@ -1263,6 +1327,7 @@ class App {
                 return;
             }
             await this.router?.navigate('portal', {
+                data: { demoMode: isJevSceneDemoPath(window.location.pathname) },
                 replace: true,
                 skipStack: true
              });

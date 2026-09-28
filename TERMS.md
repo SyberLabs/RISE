@@ -1,6 +1,6 @@
 # Terms of Use
 
-**Last updated: 6 September 2026**
+**Last updated: 27 September 2026**
 
 > **This document has not been reviewed by a lawyer.** Sections 3, 11 and 12
 > in particular carry real legal consequence and are worth settling with
@@ -10,8 +10,9 @@
 
 ## 1. Agreement
 
-These terms govern your use of RISE at <https://rise.syberlabs.space/> and any
-other address at which we publish it (the "Service"), operated by
+These terms govern your use of RISE at <https://rise.syberlabs.io/>, the
+still-available <https://rise.syberlabs.space/>, and any other address at which
+we publish it (the "Service"), operated by
 **Mateo Robles**, doing business as **SyberLabs** ("we", "us").
 
 By using the Service you accept these terms. If you do not accept them, do not
@@ -57,23 +58,33 @@ doing anything else that requires your attention.
 
 ---
 
-## 4. Your content stays yours — and stays with you
+## 4. Your content stays yours
 
 Anything you bring to RISE or make in it — text you paste, journals you write,
 compositions you build, media you attach — remains yours. We claim no ownership
 or licence in it.
 
-It is stored **in your browser, on your device**. We never receive it. Two
-consequences follow, and they matter:
+Your saved work is stored **in your browser, on your device**. Storage at the
+`.space` site stays at that origin and does not appear at `.io`. Chamber reading
+and pacing run locally. Choosing optional Scriptorium model routing sends the
+typed composition intent and target word count through RISE's server to its
+configured inference host. A separate, user-triggered reading request sends
+the short preference you submit and public catalog choices for a bounded
+decision. Server-held credentials are used; you do not supply a model API key.
+The Kev migration is in progress and no live Kev endpoint has been confirmed.
+An explicit Jev rollback uses OpenRouter. See the Privacy Policy. These actions
+do not create a backup of your saved work. Two
+consequences follow:
 
 - **We cannot recover it.** If you clear your browser storage, use private
-  browsing, switch device or browser, or your device fails, your work is gone
-  and we have no copy. **Use the export in Settings to keep your own backups.**
+  browsing, switch device or browser, or your device fails, your work may be
+  gone and we have no copy. **Keep independent copies of your own source files.**
 - **We cannot moderate it.** We have no access to it, so we neither review nor
   police what you keep locally.
 
 Browser storage is not a durable archive. Browsers may evict it under storage
-pressure. Treat exports as the record.
+pressure. The Settings export is incomplete and there is no complete import
+path between `.space` and `.io`; do not treat it as a full backup or migration.
 
 ---
 
@@ -237,4 +248,4 @@ ASSET-LICENSES.md, are the entire agreement between us about the Service.
 
 **Mateo Robles**, doing business as **SyberLabs**
 **syberlabs.software@gmail.com**
-<https://rise.syberlabs.space/>
+<https://rise.syberlabs.io/>

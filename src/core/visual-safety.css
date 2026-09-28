@@ -1,0 +1,142 @@
+/* ═══════════════════════════════════════════════════════════
+   Photosensitivity notice (#photosensitivity-modal in index.html,
+   opened by visual-safety.js). Scoped by id so it wins over the
+   generic modal rules in design-system.css.
+   ═══════════════════════════════════════════════════════════ */
+
+#photosensitivity-modal.modal-overlay {
+  padding: var(--sy-space-4);
+  overflow-y: auto;
+  background: rgba(5, 6, 10, 0.8);
+  backdrop-filter: none;
+  /* Consent must stay operable above everything a session paints: the
+     preparation overlay (9999), the reading bar (100000), its settings
+     (150000) and the exit question (200000). */
+  z-index: 300000;
+}
+
+#photosensitivity-modal .safety-modal-content {
+  width: min(100%, 520px);
+  max-width: none;
+  /* A safety warning must never hide its own title or its buttons.
+     Header and footer are pinned; only the body scrolls. */
+  max-height: calc(100dvh - 2 * var(--sy-space-4));
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding: 0;
+  background: var(--sy-surface);
+  border: 1px solid var(--sy-line);
+  border-radius: var(--sy-radius);
+  box-shadow: var(--sy-shadow-overlay);
+  animation: safety-enter var(--sy-dur-enter) var(--sy-ease) both;
+}
+
+@keyframes safety-enter {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: none; }
+}
+
+#photosensitivity-modal .modal-header {
+  flex: 0 0 auto;
+  flex-direction: row;
+  align-items: center;
+  gap: var(--sy-space-3);
+  padding: var(--sy-space-5) var(--sy-space-5) var(--sy-space-4);
+  border-bottom: 1px solid var(--sy-line);
+  text-align: left;
+}
+
+#photosensitivity-modal .safety-icon {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  color: var(--sy-warning);
+}
+
+#photosensitivity-modal .modal-header h2 {
+  margin: 0;
+  font: 600 24px/32px var(--sy-font-sans);
+  letter-spacing: -0.01em;
+  color: var(--sy-text);
+}
+
+#photosensitivity-modal .modal-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: var(--sy-space-4) var(--sy-space-5);
+}
+
+#photosensitivity-modal .safety-notice {
+  margin: 0 0 var(--sy-space-4);
+  font: 400 16px/24px var(--sy-font-sans);
+  color: var(--sy-text-2);
+}
+
+/* Lines, not boxes: each group opens with a hairline. */
+#photosensitivity-modal .safety-risks,
+#photosensitivity-modal .safety-protections {
+  margin: 0;
+  padding: var(--sy-space-4) 0;
+  background: none;
+  border: 0;
+  border-top: 1px solid var(--sy-line);
+}
+
+#photosensitivity-modal .risk-title,
+#photosensitivity-modal .protection-title {
+  margin: 0 0 var(--sy-space-2);
+  font: 600 14px/20px var(--sy-font-sans);
+  color: var(--sy-text);
+}
+
+#photosensitivity-modal .risk-list,
+#photosensitivity-modal .protection-list {
+  margin: 0;
+  padding-left: var(--sy-space-5);
+}
+
+#photosensitivity-modal .risk-list li,
+#photosensitivity-modal .protection-list li {
+  margin: 0 0 var(--sy-space-1);
+  font: 400 14px/20px var(--sy-font-sans);
+  color: var(--sy-text-2);
+}
+
+#photosensitivity-modal .safety-limit-note,
+#photosensitivity-modal .safety-disclaimer {
+  margin: var(--sy-space-2) 0 0;
+  padding: 0;
+  background: none;
+  border: 0;
+  font: 400 14px/20px var(--sy-font-sans);
+  color: var(--sy-text-3);
+}
+
+#photosensitivity-modal .safety-disclaimer {
+  padding-top: var(--sy-space-4);
+  border-top: 1px solid var(--sy-line);
+}
+
+#photosensitivity-modal .modal-footer {
+  flex: 0 0 auto;
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--sy-space-3);
+  padding: var(--sy-space-4) var(--sy-space-5) var(--sy-space-5);
+  border-top: 1px solid var(--sy-line);
+}
+
+@media (max-width: 640px) {
+  #photosensitivity-modal .modal-footer {
+    flex-direction: column-reverse;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #photosensitivity-modal .safety-modal-content {
+    animation: none;
+  }
+}
