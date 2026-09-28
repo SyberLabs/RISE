@@ -858,25 +858,27 @@ of `settled`, `open`, `deferred`, or `reversed`.
 
 ### 8.30 EnterpRise is a sibling rail, not a fork of the reader
 
-- **Chosen:** the narrow live room lives in `src/enterprise/`. One presenter,
-  one deck, an in-memory corpus of documents and tables, cards prepared before
-  the talk, and a speaker rail. The talk-program gate admits a card for that
-  room's audience or refuses it. A decision sees the transcript window plus
-  candidate ids, titles, scores, and layouts. A chart names a table and
-  columns; the renderer copies cells. Promote and Dismiss are the speaker's.
-  There is no public stage in this version.
+- **Chosen:** the live room lives in `src/enterprise/`. One deck, an in-memory
+  corpus of documents and tables, cards prepared before the talk, one speaker
+  rail, and one stage. Promote re-checks the talk-program gate for that room's
+  audience. An audience final that misses the program may retrieve a permitted
+  sentence onto the rail. Listed presenters share the rail. A decision sees
+  the transcript window plus candidate ids, titles, scores, and layouts. A
+  chart names a table and columns; the renderer copies cells. Promote, Dismiss,
+  and Retract are the speaker's.
 - **Rejected:** forking the reader into a second app; extracting Chamber, the
-  Experience Program, and the Worker into a shared package before a room
-  exists; putting the rail inside a reader route; a public stage; live search
-  of the whole corpus; more than one presenter.
+  Experience Program, and the Worker into a shared package; putting the rail
+  inside a reader route; mounting Chamber on the stage; a second rail; an
+  external file-host connector; an OpenRouter call on the enterprise decision
+  route.
 - **Why:** the failure that matters is a confidential document, or a number
   that was not in the source, in front of the room. The gate, the id-only
-  decision, and the cell renderer make that failure loud. Moving Chamber
-  first would churn the reader without giving the speaker a rail. Server
-  indexing, stage promotion, live questions, and multiple presenters wait on
-  this loop. The reader's lack of access control (§8.1) is unchanged: this
-  audience check belongs to the sibling, and the sibling is not on the
-  reader's first load.
+  decision, and the cell renderer make that failure loud. The phases in
+  `docs/superpowers/specs/2026-09-27-enterprise-room-design.md` are implemented
+  in `src/enterprise/` and `worker/enterprise-decision.mjs`, from
+  `docs/superpowers/plans/2026-09-27-enterprise-room.md`. The reader's lack of
+  access control (§8.1) is unchanged: this audience check belongs to the
+  sibling, and the sibling is not on the reader's first load.
 - **Status:** settled. The suite's latency ceilings are the product targets
   on this fixture, not a measurement of a live recognizer.
 
