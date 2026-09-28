@@ -70,6 +70,12 @@ export default defineConfig({
   // the dev server; production builds carry no write path.
   plugins: [curiaPlugin(), exportMp4Plugin()],
 
+  // The commit CI built from, so the Portal's Details line says which release is running.
+  // Vite replaces it at build time and vitest reads it from this same config.
+  define: {
+    __RISE_BUILD__: JSON.stringify(process.env.GITHUB_SHA?.slice(0, 7) || 'dev')
+  },
+
   // Console statements are left in: error reporting has to survive the
   // build, and the noisy paths are already gated by their own callers.
   esbuild: {

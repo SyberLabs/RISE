@@ -686,7 +686,8 @@ export class Portal {
 
     root.querySelector('.portal-details-body').textContent =
       `Interpreted by RISE’s AI decision service. Model ${decision.model} · request ${decision.requestId}`
-      + (decision.decisionCacheStatus === 'hit' ? ' · reused a recent answer' : '');
+      + (decision.decisionCacheStatus === 'hit' ? ' · reused a recent answer' : '')
+      + ` · build ${typeof __RISE_BUILD__ === 'undefined' ? 'dev' : __RISE_BUILD__}`;
 
     const kept = this.container.querySelector('#portal-jev-kept');
     if (kept) {

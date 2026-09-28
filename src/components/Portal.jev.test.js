@@ -89,6 +89,9 @@ it('asks RISE once, shows how the request was read, and plays only when asked', 
   expect(preview.querySelector('.portal-limit-body').textContent)
     .toContain('RISE can’t play the Tokyo Drift soundtrack');
   expect(container.querySelector('.portal-submit-label').textContent).toBe('Update preview');
+  // The Details line names the running build: a 7-character commit in CI, 'dev' locally.
+  expect(preview.querySelector('.portal-details-body').textContent)
+    .toMatch(/^Interpreted by RISE’s AI decision service\. Model typesafe\/jev-1\.13-20260917 · request gen-dec-test · build (dev|[0-9a-f]{7})$/);
 
   preview.querySelector('#portal-play').click();
   await vi.waitFor(() => expect(launch).toHaveBeenCalledOnce());
