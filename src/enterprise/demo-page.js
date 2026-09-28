@@ -1,12 +1,15 @@
 /**
- * The live room page: microphone → recognition → evidence → candidates →
- * decision → rail → promote → gate → stage, with the trace beside it.
+ * The live room page.
  *
- * Interim speech warms the lexical tier and shows the likely topic to the
- * presenter. A final sentence asks the chosen decider. JEV is the server
- * decision route; local rules is the explicit offline mode. A failed JEV
- * decision holds — it never falls back to rules on its own. The typed
- * transcript stays for browsers without a recognizer.
+ * Two input channels. Speech from the microphone fills the transcript and,
+ * on each final line, asks the chosen decider. Typing is the presenter's
+ * private Ask, answered through the reasoning path. Neither cancels the
+ * other. Both land on the same rail, and only Promote reaches the stage.
+ *
+ * The transcript lives in page memory only. The trace records speech as
+ * character counts; this module never adds words to it, to storage, or to
+ * an export. Status text and line notes name rail cards by title and never
+ * show card content.
  */
 
 import { createDemoSession } from './demo.js';
@@ -14,6 +17,7 @@ import { createLiveLoop, localDecider } from './live.js';
 import { renderRail } from './rail-view.js';
 import { createRecognizer, onDeviceStatus, speechRecognitionClass } from './recognition.js';
 import { createRemoteDecider } from './remote-decider.js';
+import { WINDOW_FINALS } from './session.js';
 import { mapRecognitionEvent } from './speech.js';
 import { renderStage } from './stage-view.js';
 import { createTrace } from './trace.js';
@@ -27,13 +31,16 @@ const remote = createRemoteDecider();
 const $ = (selector) => document.querySelector(selector);
 const deciderSelect = $('#decider');
 const speakerSelect = $('#speaker');
-const transcript = $('#transcript');
 const listenButton = $('#listen');
-const status = $('#status');
-const interim = $('#interim');
-const speechNote = $('#speech-note');
-const traceSummary = $('#trace-summary');
-const debrief = $('#debrief');
+const speechBadge = $('#speech-badge');
+const stateBox = $('#state');
+const stateText = $('#state-text');
+const lastDecision = $('#last-decision');
+const transcript = $('#transcript');
+const newLines = $('#new-lines');
+const askForm = $('#ask-form');
+const askInput = $('#ask');
+const askAnswer = $('#ask-answer');
 
 const loop = createLiveLoop({
     session,
@@ -41,127 +48,288 @@ const loop = createLiveLoop({
     now: clock,
     decide: (context, options) => (deciderSelect.value === 'local' ? localDecider : remote)(context, options)
 });
-const stage = renderStage($('#stage'), session);
-const rail = renderRail($('#rail'), session);
-
-$('#hints').textContent = session.hints().join(', ');
-
-const HOLD_TEXT = {
-    stale: 'Newer speech arrived first, so that decision was dropped.',
-    superseded: 'Newer speech arrived first, so that decision was dropped.',
-    timeout: 'The decision took too long. Holding.',
-    unavailable: 'The decision service is unavailable. Holding. Local rules work offline.',
-    'rate-limited': 'Too many decisions in a minute. Holding.',
-    error: 'The decision failed. Holding.',
-    invalid: 'The decision was not one of the offered options. Holding.',
-    untraced: 'A number on that card is not in its source. Holding.',
-    dismissed: 'That card was dismissed. Holding.',
-    cooldown: 'The rail is settling. Holding.',
-    dwell: 'The rail is settling. Holding.',
-    margin: 'The rail is full and nothing clearly better arrived.',
-    duplicate: 'That card is already on the rail.',
-    decider: 'Nothing offered fits. The rail stays as it is.',
-    stopped: 'Stopped.'
-};
-
-function say(text) {
-    status.textContent = text;
-}
-
-function paintDebrief() {
-    const report = session.debrief();
-    debrief.replaceChildren();
-    if (!report.followUp.length) {
-        debrief.textContent = 'No unanswered questions yet.';
-        return;
-    }
-    for (const gap of report.followUp) {
-        const item = document.createElement('li');
-        item.textContent = `${gap.speaker}: ${gap.text}`;
-        debrief.append(item);
-    }
-}
-
-function paintTrace() {
-    const summary = trace.summary();
-    const { p50Ms, p95Ms, outcomes } = summary.decisions;
-    const answered = outcomes.answered || 0;
-    const failed = Object.entries(outcomes)
-        .filter(([outcome]) => outcome !== 'answered')
-        .reduce((total, [, count]) => total + count, 0);
-    traceSummary.textContent = [
-        `${summary.events} events`,
-        `${answered} decisions answered`,
-        `${failed} held for failure or cancellation`,
-        p50Ms == null ? 'latency —' : `latency p50 ${p50Ms} ms, p95 ${p95Ms} ms`
-    ].join(' · ');
-}
-
-function repaint() {
+const refresh = () => {
     rail.update();
     stage.update();
     paintDebrief();
     paintTrace();
+};
+const rail = renderRail($('#rail'), session, { onChange: refresh });
+const stage = renderStage($('#stage'), session, { onChange: refresh });
+
+const deciderName = () => (deciderSelect.value === 'local' ? 'Local rules' : 'JEV');
+
+/* ---------- One status surface ---------- */
+
+const HELD = {
+    unavailable: () => `${deciderName()} is unavailable. Switch Decides to Local rules to keep going.`,
+    timeout: () => `${deciderName()} took too long. Keep talking, or switch Decides to Local rules.`,
+    'rate-limited': () => 'Too many decisions this minute. Pause briefly, or switch Decides to Local rules.',
+    error: () => 'The decision failed. Keep talking; switch Decides to Local rules if it repeats.',
+    invalid: () => `${deciderName()}’s answer wasn’t one of the offered cards, so nothing changed.`,
+    cooldown: () => 'The rail is settling; the next card can land in a few seconds.',
+    dwell: () => 'The rail is settling; the next card can land in a few seconds.',
+    margin: () => 'The rail is full. Dismiss a card to make room.',
+    full: () => 'The rail is full of cards on stage. Retract or dismiss one.',
+    dismissed: () => 'You dismissed that card, so it stays off.',
+    untraced: () => 'A number on that card isn’t in its source, so it stays off.'
+};
+
+const NOTE = {
+    superseded: 'skipped: newer speech',
+    stale: 'skipped: newer speech',
+    stopped: 'stopped',
+    timeout: () => `held: ${deciderName()} timed out`,
+    unavailable: () => `held: ${deciderName()} unavailable`,
+    'rate-limited': 'held: rate limited',
+    error: 'held: decision failed',
+    invalid: 'held: answer refused',
+    cooldown: 'held: rail settling',
+    dwell: 'held: rail settling',
+    margin: 'held: rail full',
+    full: 'held: rail full',
+    dismissed: 'held: you dismissed it',
+    untraced: 'held: unsourced number'
+};
+
+function setState(name, text) {
+    stateBox.dataset.state = name;
+    stateText.textContent = text;
 }
 
-function report(result) {
-    if (!result || result.action === 'ignore') return;
-    if (result.action === 'show') {
-        const card = session.rail().find(item => item.id === result.cardId);
-        say(`New suggestion on the rail: ${card?.title ?? result.cardId}. Promote it to show the room.`);
-        return;
-    }
-    say(HOLD_TEXT[result.reason] || 'Holding.');
+function idleText() {
+    return recognizer ? 'Not listening. Press L or Listen.' : 'Speech isn’t available here. Use Ask.';
 }
+
+function titleOnRail(cardId) {
+    return session.rail().find(card => card.id === cardId)?.title ?? null;
+}
+
+function stamp(started) {
+    lastDecision.textContent = `${deciderName()} ${Math.round(clock() - started)} ms`;
+}
+
+/** What happened to a line or an ask, as a short note. Never card content. */
+function outcome(result, { speaker = 'presenter', asked = false } = {}) {
+    if (!result || result.action === 'ignore') return 'ignored';
+    if (result.action === 'show') return `${titleOnRail(result.cardId) ?? 'card'} (on rail)`;
+    if (result.reason === 'decider') {
+        if (asked) return null;
+        return speaker === 'audience' ? 'follow-up' : 'held: nothing fits';
+    }
+    if (result.reason === 'duplicate') {
+        const title = titleOnRail(result.cardId);
+        return title ? `${title} (already on rail)` : 'already on rail';
+    }
+    const note = NOTE[result.reason];
+    return typeof note === 'function' ? note() : (note || 'held');
+}
+
+function reportState(result, label) {
+    if (!result || result.action === 'ignore') return;
+    if (result.reason === 'superseded' || result.reason === 'stale') return;
+    if (result.action === 'show') {
+        setState('ready', `On rail: ${titleOnRail(result.cardId) ?? 'a card'}. P promotes it.`);
+    } else if (result.reason === 'decider') {
+        setState(listening() ? 'listening' : 'idle', `${label}: nothing fits.`);
+    } else if (result.reason === 'duplicate') {
+        setState(listening() ? 'listening' : 'idle', 'Already on the rail.');
+    } else {
+        setState('held', `Held. ${(HELD[result.reason] || HELD.error)()}`);
+    }
+}
+
+/* ---------- Transcript ---------- */
+
+let interimLine = null;
+const windowLines = [];
+
+function atBottom() {
+    return transcript.scrollHeight - transcript.clientHeight - transcript.scrollTop < 8;
+}
+
+function toBottom() {
+    transcript.scrollTop = transcript.scrollHeight;
+    newLines.hidden = true;
+}
+
+function appendOrUpdate(update) {
+    const stick = atBottom();
+    update();
+    $('#transcript-hint')?.remove();
+    if (stick) toBottom();
+    else newLines.hidden = false;
+}
+
+function makeLine(speaker) {
+    const line = document.createElement('li');
+    line.dataset.final = 'false';
+    line.dataset.window = 'live';
+    if (speaker === 'audience') {
+        const who = document.createElement('span');
+        who.className = 'who';
+        who.textContent = 'Audience';
+        line.append(who);
+    }
+    const text = document.createElement('span');
+    text.className = 'text';
+    const note = document.createElement('span');
+    note.className = 'note';
+    line.append(text, note);
+    transcript.append(line);
+    return line;
+}
+
+function markWindow(line) {
+    windowLines.push(line);
+    while (windowLines.length > WINDOW_FINALS) windowLines.shift().dataset.window = 'out';
+    line.dataset.window = 'in';
+}
+
+function setNote(line, text) {
+    line.querySelector('.note').textContent = text ? `→ ${text}` : '';
+}
+
+transcript.addEventListener('scroll', () => {
+    if (atBottom()) newLines.hidden = true;
+});
+newLines.addEventListener('click', () => {
+    toBottom();
+    transcript.focus({ preventScroll: true });
+});
+
+/* ---------- Speech channel ---------- */
 
 function speakerLabel() {
     return speakerSelect.value === 'presenter' ? program.presenterId : null;
 }
 
-async function handle(raw) {
-    const event = mapRecognitionEvent(raw, { presenterIds: program.presenterIds });
-    trace.emit(event.final ? 'speech.final' : 'speech.interim', {
-        chars: event.text.length,
-        speaker: event.speaker
-    });
+function listening() {
+    return recognizer?.state === 'listening' || recognizer?.state === 'starting';
+}
+
+async function onSpeech({ transcript: words, isFinal, at }) {
+    const event = mapRecognitionEvent(
+        { transcript: words, isFinal, speakerLabel: speakerLabel(), at },
+        { presenterIds: program.presenterIds }
+    );
+    trace.emit(event.final ? 'speech.final' : 'speech.interim', { chars: event.text.length, speaker: event.speaker });
+
     if (!event.final) {
+        appendOrUpdate(() => {
+            if (!interimLine || interimLine.dataset.speaker !== event.speaker) {
+                interimLine?.remove();
+                interimLine = makeLine(event.speaker);
+                interimLine.dataset.speaker = event.speaker;
+            }
+            interimLine.querySelector('.text').textContent = event.text;
+        });
         const warmed = await loop.hear(event);
         const leader = warmed.leaders?.[0];
-        interim.textContent = leader ? `${event.text} — likely: ${leader.title}` : event.text;
-        paintTrace();
+        setState('hearing', leader ? `Hearing… likely ${leader.title}` : 'Hearing…');
         return;
     }
-    interim.textContent = '';
-    say(`Deciding with ${deciderSelect.value === 'local' ? 'local rules' : 'JEV'}…`);
+
+    let line;
+    appendOrUpdate(() => {
+        line = interimLine && interimLine.dataset.speaker === event.speaker ? interimLine : makeLine(event.speaker);
+        if (interimLine && interimLine !== line) interimLine.remove();
+        interimLine = null;
+        line.dataset.final = 'true';
+        line.querySelector('.text').textContent = event.text;
+        markWindow(line);
+        setNote(line, `deciding with ${deciderName()}…`);
+    });
+    setState('deciding', `Deciding with ${deciderName()}…`);
+    const started = clock();
     const result = await loop.hear(event);
-    report(result);
-    repaint();
+    if (result.reason !== 'superseded' && result.reason !== 'stale') stamp(started);
+    setNote(line, outcome(result, { speaker: event.speaker }));
+    reportState(result, 'That line');
+    refresh();
 }
 
-// Typed transcript: the same path the microphone takes.
-function sendTyped(final) {
-    const text = transcript.value.trim();
+/* ---------- Ask channel ---------- */
+
+askForm.addEventListener('submit', async (submitted) => {
+    submitted.preventDefault();
+    const text = askInput.value.trim();
     if (!text) return;
-    handle({ transcript: text, isFinal: final, speakerLabel: speakerLabel(), at: clock() });
+    askAnswer.textContent = `Deciding with ${deciderName()}…`;
+    const started = clock();
+    const result = await loop.reason({ text, at: clock() });
+    if (result.reason === 'superseded' || result.reason === 'stale') return;
+    stamp(started);
+    const note = outcome(result, { asked: true });
+    askAnswer.textContent = note ? `→ ${note}` : 'Nothing in this room’s sources fits.';
+    reportState(result, 'That ask');
+    refresh();
+});
+
+/* ---------- Keyboard ---------- */
+
+document.addEventListener('keydown', (event) => {
+    if (event.defaultPrevented || event.ctrlKey || event.metaKey || event.altKey) return;
+    const target = event.target;
+    if (target instanceof Element && target.closest('input, textarea, select, [contenteditable]')) {
+        if (event.key === 'Escape' && target === askInput) askInput.blur();
+        return;
+    }
+    const key = event.key.toLowerCase();
+    if (key === '/') {
+        event.preventDefault();
+        askInput.focus();
+    } else if (key === 'l' && recognizer) {
+        toggleListening();
+    } else if (key === 'p') {
+        const card = rail.promoteTarget();
+        if (card) setState(listening() ? 'listening' : 'idle', `On stage: ${card.title}. R retracts it.`);
+    } else if (key === 'd') {
+        const card = rail.dismissTarget();
+        if (card) setState(listening() ? 'listening' : 'idle', `Dismissed ${card.title}.`);
+    } else if (key === 'r') {
+        const card = session.stage().at(-1);
+        if (card) {
+            session.retract(card.id);
+            refresh();
+            setState(listening() ? 'listening' : 'idle', `Retracted ${card.title}.`);
+        }
+    }
+});
+
+/* ---------- Review surfaces ---------- */
+
+function paintDebrief() {
+    const report = session.debrief();
+    const list = $('#debrief');
+    list.replaceChildren();
+    if (!report.followUp.length) {
+        list.textContent = 'No unanswered questions yet.';
+        return;
+    }
+    for (const gap of report.followUp) {
+        const item = document.createElement('li');
+        item.textContent = `${gap.speaker}: ${gap.text}`;
+        list.append(item);
+    }
 }
 
-$('[data-action="draft"]').addEventListener('click', () => sendTyped(false));
-$('[data-action="final"]').addEventListener('click', () => sendTyped(true));
-$('#rail').addEventListener('click', () => {
-    stage.update();
-    paintTrace();
-});
-$('#stage').addEventListener('click', () => {
-    rail.update();
-    paintTrace();
-});
-deciderSelect.addEventListener('change', () => {
-    trace.emit('decider.change', { decider: deciderSelect.value });
-    say(deciderSelect.value === 'local'
-        ? 'Local rules decide. Nothing leaves this browser for a decision.'
-        : 'JEV decides through the server decision route.');
-    paintTrace();
-});
+function paintTrace() {
+    const metrics = session.metrics();
+    $('#metrics').textContent = [
+        `Shown ${metrics.shown}`,
+        `Promoted ${metrics.promoted}`,
+        `Dismissed ${metrics.speakerDismissed}`,
+        `Provenance ${metrics.provenanceComplete ? 'complete' : 'incomplete'}`
+    ].join(' · ');
+    const summary = trace.summary();
+    const { p50Ms, p95Ms, outcomes } = summary.decisions;
+    $('#trace-summary').textContent = [
+        `${summary.events} events`,
+        `${outcomes.answered || 0} decisions answered`,
+        p50Ms == null ? 'latency —' : `latency p50 ${p50Ms} ms, p95 ${p95Ms} ms`
+    ].join(' · ');
+}
 
 $('#export-trace').addEventListener('click', () => {
     const payload = JSON.stringify({ ...trace.toJSON(), metrics: session.metrics() }, null, 2);
@@ -173,58 +341,92 @@ $('#export-trace').addEventListener('click', () => {
     setTimeout(() => URL.revokeObjectURL(url), 0);
 });
 
-// Microphone.
+deciderSelect.addEventListener('change', () => {
+    trace.emit('decider.change', { decider: deciderSelect.value });
+    setState(stateBox.dataset.state === 'held' ? (listening() ? 'listening' : 'idle') : stateBox.dataset.state,
+        deciderSelect.value === 'local'
+            ? 'Local rules decide. Nothing leaves this browser for a decision.'
+            : 'JEV decides through the server.');
+});
+
+/* ---------- Microphone ---------- */
+
 const Recognition = speechRecognitionClass(window);
 const requireOnDevice = new URLSearchParams(location.search).get('speech') === 'on-device';
 let recognizer = null;
 
-function setListening(listening) {
-    listenButton.textContent = listening ? 'Stop listening' : 'Listen';
-    listenButton.setAttribute('aria-pressed', String(listening));
+const MIC_ERROR = {
+    'not-allowed': 'Microphone blocked. Allow it in this site’s settings, then press Listen.',
+    'service-not-allowed': 'Speech service blocked. Allow it in this site’s settings, then press Listen.',
+    'audio-capture': 'No microphone found. Connect one, then press Listen.',
+    'restart-limit': 'Speech keeps dropping. Check the connection, then press Listen.'
+};
+
+function toggleListening() {
+    if (listening()) recognizer.stop();
+    else recognizer.start();
 }
 
-async function prepareRecognizer() {
+function setListening(on) {
+    listenButton.replaceChildren(on ? 'Stop' : 'Listen');
+    if (on) listenButton.append(Object.assign(document.createElement('span'), { className: 'wide', textContent: ' listening' }));
+    listenButton.setAttribute('aria-pressed', String(on));
+}
+
+function speechUnavailable(message) {
+    listenButton.remove();
+    speechBadge.remove();
+    speakerSelect.remove();
+    $('#transcript-hint')?.remove();
+    const hint = document.createElement('p');
+    hint.id = 'transcript-hint';
+    hint.textContent = message;
+    $('#transcript-panel').prepend(hint);
+    transcript.hidden = true;
+    $('#key-listen').remove();
+    setState('idle', idleText());
+}
+
+async function prepareSpeech() {
     if (!Recognition) {
-        listenButton.disabled = true;
-        speechNote.textContent = 'This browser has no speech recognizer. Type the transcript below.';
+        // Browsers without a recognizer (Firefox, some Safari setups) get Ask only.
+        speechUnavailable('Speech isn’t available in this browser. Use Ask.');
         return;
     }
     const onDevice = (await onDeviceStatus(Recognition, LANG)) === 'available';
     if (requireOnDevice && !onDevice) {
-        listenButton.disabled = true;
-        speechNote.textContent = 'This room requires on-device speech recognition, and this browser cannot confirm it. '
-            + 'Type the transcript below.';
+        speechUnavailable('This room requires on-device speech, which this browser can’t confirm. Use Ask.');
         return;
     }
-    speechNote.textContent = onDevice
+    speechBadge.textContent = onDevice ? 'On-device speech' : 'Cloud speech';
+    speechBadge.title = onDevice
         ? 'Speech is recognized on this device.'
-        : 'Speech is recognized by this browser’s speech service, which may send audio to the browser vendor. '
-            + 'Only the transcript window and card titles reach the decision route.';
+        : 'This browser’s speech service may send audio to the browser vendor. Only the recent transcript and card titles reach the decision route.';
     recognizer = createRecognizer({
         Recognition,
         lang: LANG,
         processLocally: onDevice,
         now: clock,
-        onResult: ({ transcript: text, isFinal, at }) => {
-            handle({ transcript: text, isFinal, speakerLabel: speakerLabel(), at });
-        },
+        onResult: onSpeech,
         onState: (state, detail) => {
+            if (state === 'warning') return;
             trace.emit('speech.state', { state, detail });
-            if (state === 'listening') say('Listening.');
-            if (state === 'stopped') say('Stopped listening.');
-            if (state === 'error') say(`Listening stopped: ${detail}.`);
             setListening(state === 'listening' || state === 'starting');
-            paintTrace();
+            if (state === 'listening') setState('listening', 'Listening.');
+            else if (state === 'stopped') setState('idle', idleText());
+            else if (state === 'error') setState('error', MIC_ERROR[detail] || 'Speech couldn’t start. Use Ask, or press Listen to try again.');
         }
     });
+    listenButton.addEventListener('click', toggleListening);
+    const hint = document.createElement('p');
+    hint.id = 'transcript-hint';
+    hint.className = 'overlay';
+    hint.textContent = 'Press Listen and start talking.';
+    $('#transcript-panel').append(hint);
+    setState('idle', idleText());
 }
 
-listenButton.addEventListener('click', () => {
-    if (!recognizer) return;
-    if (recognizer.state === 'listening' || recognizer.state === 'starting') recognizer.stop();
-    else recognizer.start();
-});
-
 setListening(false);
-prepareRecognizer();
-repaint();
+setState('idle', 'Starting…');
+refresh();
+prepareSpeech();
