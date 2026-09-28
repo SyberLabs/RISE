@@ -110,6 +110,16 @@ describe('live loop', () => {
         expect(await loop.hear(atlas(9000))).toMatchObject({ action: 'ignore' });
     });
 
+    it('holds instead of rejecting when preparing a turn throws', async () => {
+        const { session } = room();
+        const broken = { ...session, prepare: () => { throw new Error('bad transcript'); } };
+        const decide = vi.fn();
+        const loop = createLiveLoop({ session: broken, decide });
+        expect(await loop.hear(atlas(0))).toMatchObject({ action: 'hold', reason: 'error' });
+        expect(decide).not.toHaveBeenCalled();
+        expect(session.rail()).toEqual([]);
+    });
+
     it('runs a reasoning request through the same decision path', async () => {
         const input = demoCorpusInput();
         input.documents.push({ id: 'ops', title: 'Ops note', audiences: ['all-hands'],

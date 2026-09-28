@@ -87,18 +87,37 @@ export function createLiveLoop({
         }
     }
 
+    // Preparing is synchronous and local; if it throws, nothing was decided
+    // and nothing moved, and the caller still gets a hold it can explain.
+    function prepared(make) {
+        try {
+            return { turn: make() };
+        } catch {
+            emit('decision.response', { requestId: null, outcome: 'prepare-failed', latencyMs: 0, status: null });
+            return { failed: { action: 'hold', cardId: null, reason: 'error' } };
+        }
+    }
+
     return {
-        /** Interim → warm (synchronous result). Final → a promise of the resolution. */
-        hear(event) {
-            if (stopped) return Promise.resolve({ action: 'ignore', reason: 'stopped' });
-            if (!event?.final) return Promise.resolve({ action: 'warm', ...session.warm(event) });
-            const turn = session.prepare(event);
-            if (!turn) return Promise.resolve({ action: 'ignore', reason: 'presenter' });
+        /** Interim → warm. Final → the resolution. Never rejects. */
+        async hear(event) {
+            if (stopped) return { action: 'ignore', reason: 'stopped' };
+            if (!event?.final) {
+                try {
+                    return { action: 'warm', ...session.warm(event) };
+                } catch {
+                    return { action: 'warm', tier: 'lexical', leaders: [] };
+                }
+            }
+            const { turn, failed } = prepared(() => session.prepare(event));
+            if (failed) return failed;
+            if (!turn) return { action: 'ignore', reason: 'presenter' };
             return run(turn);
         },
-        reason(request) {
-            if (stopped) return Promise.resolve({ action: 'ignore', reason: 'stopped' });
-            return run(session.prepareReasoning(request));
+        async reason(request) {
+            if (stopped) return { action: 'ignore', reason: 'stopped' };
+            const { turn, failed } = prepared(() => session.prepareReasoning(request));
+            return failed || run(turn);
         },
         pending() {
             return inflight ? inflight.turn.requestId : null;
