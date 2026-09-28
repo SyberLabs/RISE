@@ -105,10 +105,11 @@ export function reduceRail(state, event, policy = RAIL_POLICY) {
     if (event.type === 'promote') {
         const card = next.cards.find(item => item.id === event.cardId);
         if (!card) return { state: next, effect: 'hold', reason: 'unknown' };
-        if (card.status === 'promoted') return { state: next, effect: 'hold', reason: 'duplicate' };
+        if (next.stageIds.includes(event.cardId)) return { state: next, effect: 'hold', reason: 'duplicate' };
+        // A retracted card may go back on the stage; acceptance counts it once.
+        if (card.status !== 'promoted') next.promotedIds.push(event.cardId);
         card.status = 'promoted';
-        next.promotedIds.push(event.cardId);
-        if (!next.stageIds.includes(event.cardId)) next.stageIds.push(event.cardId);
+        next.stageIds.push(event.cardId);
         return { state: next, effect: 'promote' };
     }
     if (event.action !== 'show') return { state: next, effect: 'hold', reason: 'not-show' };
@@ -120,7 +121,7 @@ export function reduceRail(state, event, policy = RAIL_POLICY) {
     const asked = event.asked === true;
     if (!asked && cooling(next, event.at, policy)) return { state: next, effect: 'hold', reason: 'cooldown' };
     const best = next.cards.reduce((score, card) => Math.max(score, card.score), 0);
-    const youngest = next.cards.reduce((at, card) => Math.max(at, card.shownAt), -Infinity);
+    const youngest = next.cards.reduce((at, card) => (card.asked ? at : Math.max(at, card.shownAt)), -Infinity);
     const dwelling = next.cards.length > 0 && event.at - youngest < policy.dwellMs;
     if (!asked && dwelling && event.score < best + policy.margin) {
         return { state: next, effect: 'hold', reason: 'dwell' };
@@ -145,7 +146,8 @@ export function reduceRail(state, event, policy = RAIL_POLICY) {
         status: 'shown',
         asked
     });
-    next.lastShownAt = event.at;
+    // Asked cards do not start the cooldown that paces speech suggestions.
+    if (!asked) next.lastShownAt = event.at;
     next.shown += 1;
     return { state: next, effect: 'show' };
 }
