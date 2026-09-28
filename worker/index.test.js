@@ -125,6 +125,23 @@ describe('Cloudflare API Worker', () => {
     expect(env.DECISION_LIMITER.limit).toHaveBeenCalledOnce();
   });
 
+  it('serves the ids-only enterprise decision without a model key', async () => {
+    const response = await worker.fetch(new Request(`${SITE}/api/enterprise-decision`, {
+      method: 'POST',
+      headers: { Origin: SITE, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        window: 'Atlas renewal price',
+        speaker: 'presenter',
+        mode: 'prepared',
+        candidates: [{ id: 'a', title: 'Atlas renewal', score: 0.9, layouts: ['quote'], layout: 'quote' }],
+        rail: []
+      })
+    }), {});
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ action: 'show', cardId: 'a', layout: 'quote' });
+  });
+
   it.each([
     new Request(`${SITE}/api/unknown`, { headers: { Accept: 'application/json' } }),
     new Request(`${SITE}/api/unknown`, { headers: { Accept: 'text/html', 'Sec-Fetch-Mode': 'navigate' } })
