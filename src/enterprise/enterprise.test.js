@@ -369,6 +369,65 @@ describe('JEV rail decision', () => {
     });
 });
 
+describe('rail eviction', () => {
+    it('never evicts a promoted card to make room', () => {
+        const policy = { ...RAIL_POLICY, cooldownMs: 0, dwellMs: 0, margin: 0.1, maxRail: 2 };
+        const show = (cardId, score, at) => ({
+            type: 'verdict', action: 'show', cardId, layout: 'quote', score, title: cardId, at
+        });
+        let state = initialRailState();
+        state = reduceRail(state, show('low', 0.3, 0), policy).state;
+        state = reduceRail(state, show('mid', 0.5, 10), policy).state;
+        state = reduceRail(state, { type: 'promote', cardId: 'low', at: 20 }, policy).state;
+        const next = reduceRail(state, show('high', 0.9, 30), policy);
+        expect(next.effect).toBe('show');
+        expect(next.state.cards.map(card => card.id)).toEqual(['low', 'high']);
+        expect(next.state.stageIds).toEqual(['low']);
+
+        const promotedOnly = reduceRail(
+            reduceRail(next.state, { type: 'promote', cardId: 'high', at: 40 }, policy).state,
+            show('top', 1, 50), policy);
+        expect(promotedOnly).toMatchObject({ effect: 'hold', reason: 'full' });
+        expect(promotedOnly.state.stageIds).toEqual(['low', 'high']);
+    });
+
+    it('does not let an asked card start the waits for speech', () => {
+        const policy = { ...RAIL_POLICY, cooldownMs: 4000, dwellMs: 8000 };
+        const asked = reduceRail(initialRailState(), {
+            type: 'verdict', action: 'show', cardId: 'asked', layout: 'quote', score: 0.8, title: 'A', at: 0, asked: true
+        }, policy).state;
+        const spoken = reduceRail(asked, {
+            type: 'verdict', action: 'show', cardId: 'spoken', layout: 'quote', score: 0.5, title: 'S', at: 100
+        }, policy);
+        expect(spoken.effect).toBe('show');
+    });
+
+    it('puts a retracted card back on the stage when promoted again, counting it once', () => {
+        let state = reduceRail(initialRailState(), {
+            type: 'verdict', action: 'show', cardId: 'a', layout: 'quote', score: 0.8, title: 'A', at: 0
+        }).state;
+        state = reduceRail(state, { type: 'promote', cardId: 'a', at: 1 }).state;
+        expect(reduceRail(state, { type: 'promote', cardId: 'a', at: 2 })).toMatchObject({ effect: 'hold', reason: 'duplicate' });
+        state = reduceRail(state, { type: 'retract', cardId: 'a', at: 3 }).state;
+        const again = reduceRail(state, { type: 'promote', cardId: 'a', at: 4 });
+        expect(again.effect).toBe('promote');
+        expect(again.state.stageIds).toEqual(['a']);
+        expect(again.state.promotedIds).toEqual(['a']);
+    });
+
+    it('lets an asked card past cooldown, dwell, and margin', () => {
+        const policy = { ...RAIL_POLICY, maxRail: 1 };
+        let state = reduceRail(initialRailState(), {
+            type: 'verdict', action: 'show', cardId: 'a', layout: 'quote', score: 0.9, title: 'A', at: 0
+        }, policy).state;
+        const next = reduceRail(state, {
+            type: 'verdict', action: 'show', cardId: 'b', layout: 'quote', score: 0.2, title: 'B', at: 10, asked: true
+        }, policy);
+        expect(next.effect).toBe('show');
+        expect(next.state.cards).toMatchObject([{ id: 'b', asked: true }]);
+    });
+});
+
 describe('live session', () => {
     it('shows a prepared card from a finalized sentence and records latency', () => {
         const { corpus, program } = prepared();
@@ -627,13 +686,14 @@ describe('speaker rail', () => {
         const stageRoot = document.createElement('div');
         const rail = renderRail(railRoot, session);
         const stage = renderStage(stageRoot, session);
-        rail.hear({
+        session.hear({
             text: 'Atlas renewal price',
             final: true,
             speaker: 'presenter',
             speakerId: PRESENTER,
             at: 1000
         });
+        rail.update();
         expect(stageRoot.querySelector('[data-surface="stage"]')).not.toBeNull();
         expect(stageRoot.textContent).not.toContain('12.4');
         railRoot.querySelector('[data-action="promote"]').click();
@@ -641,6 +701,7 @@ describe('speaker rail', () => {
         expect(stageRoot.textContent).toContain('12.4');
         expect(stageRoot.textContent).toContain('pricing');
         expect(stageRoot.querySelector('[data-action="promote"]')).toBeNull();
+        expect(railRoot.querySelector('[data-action="promote"]').disabled).toBe(true);
         stageRoot.querySelector('[data-action="retract"]').click();
         expect(stageRoot.textContent).not.toContain('12.4');
         expect(railRoot.querySelector('[data-surface="stage"]')).toBeNull();
@@ -651,25 +712,49 @@ describe('speaker rail', () => {
         const session = openSession({ program, corpus, now: () => 1500 });
         const root = document.createElement('div');
         const view = renderRail(root, session);
-        view.hear({
+        session.hear({
             text: 'Atlas renewal price',
             final: true,
             speaker: 'presenter',
             speakerId: PRESENTER,
             at: 1000
         });
+        view.update();
         expect(root.textContent).toContain('12.4');
         expect(root.textContent).toContain('pricing');
-        expect(root.textContent).toContain('Promoted 0');
         expect(root.querySelector('[data-surface="stage"]')).toBeNull();
+        expect(session.stage()).toEqual([]);
 
         root.querySelector('[data-action="promote"]').click();
-        expect(root.textContent).toContain('Promoted 1');
+        expect(session.stage()).toHaveLength(1);
+        expect(root.querySelector('[data-action="promote"]').disabled).toBe(true);
         expect(session.metrics().acceptanceRate).toBe(1);
 
         root.querySelector('[data-action="dismiss"]').click();
         expect(root.textContent).not.toContain('12.4');
         expect(session.metrics().speakerDismissed).toBe(0);
+    });
+});
+
+describe('rail slots', () => {
+    it('keeps each card in its slot so a new card never moves an existing one', () => {
+        const { corpus, program } = prepared();
+        const session = openSession({ program, corpus, now: (at) => at });
+        const root = document.createElement('div');
+        const view = renderRail(root, session);
+        expect(root.querySelectorAll('li.slot')).toHaveLength(3);
+        session.hear({ text: 'Atlas renewal price', final: true, speaker: 'presenter', speakerId: PRESENTER, at: 1000 });
+        view.update();
+        const first = root.querySelector('[data-card-id]');
+        const firstButton = first.querySelector('[data-action="promote"]');
+        session.hear({ text: 'pipeline revenue by quarter', final: true, speaker: 'presenter', speakerId: PRESENTER, at: 20000 });
+        view.update();
+        expect(root.querySelectorAll('[data-card-id]')).toHaveLength(2);
+        expect(root.querySelector('[data-slot="0"]')).toBe(first);
+        expect(first.querySelector('[data-action="promote"]')).toBe(firstButton);
+        expect(root.querySelector('[data-target]').dataset.slot).toBe('1');
+        expect(view.promoteTarget().title).toBe('Quarterly revenue');
+        expect(root.querySelector('[data-target]').dataset.slot).toBe('0');
     });
 });
 

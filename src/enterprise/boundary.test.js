@@ -24,6 +24,12 @@ function javascriptFiles(dir, out = []) {
     return out;
 }
 
+// The on-device model runs in its own worker; these are the only packages
+// any enterprise module may import, and only there.
+const PACKAGE_IMPORTS = new Map([
+    [join(ENTERPRISE, 'kev-worker.js'), new Set(['onnxruntime-web/webgpu', '@ai-ecoverse/kev.js'])]
+]);
+
 describe('enterprise stays beside the reader', () => {
     it('imports only its own modules', () => {
         const files = javascriptFiles(ENTERPRISE);
@@ -33,7 +39,7 @@ describe('enterprise stays beside the reader', () => {
             const source = readFileSync(file, 'utf8');
             const specs = [...source.matchAll(/from\s+['"]([^'"]+)['"]/g)].map(match => match[1]);
             for (const spec of specs) {
-                if (!spec.startsWith('./')) outward.push(`${file} → ${spec}`);
+                if (!spec.startsWith('./') && !PACKAGE_IMPORTS.get(file)?.has(spec)) outward.push(`${file} → ${spec}`);
             }
         }
         expect(outward).toEqual([]);

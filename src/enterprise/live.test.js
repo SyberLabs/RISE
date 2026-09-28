@@ -120,6 +120,28 @@ describe('live loop', () => {
         expect(session.rail()).toEqual([]);
     });
 
+    it('keeps one decision in flight per channel, and neither cancels the other', async () => {
+        const { session } = room();
+        const pending = [];
+        const decide = vi.fn((context, { signal }) => new Promise((done) => {
+            pending.push({ context, signal, done });
+        }));
+        const loop = createLiveLoop({ session, decide });
+        const asked = loop.reason({ text: 'pipeline revenue by quarter', at: 0 });
+        const spoken = loop.hear(atlas(10));
+        const spokenAgain = loop.hear(final('Atlas plan renewal price', 20));
+        expect(pending.map(item => item.signal.aborted)).toEqual([false, true, false]);
+        pending[0].done(answer(pending[0].context));
+        pending[2].done({ raw: { action: 'hold', cardId: null, layout: null }, meta: {} });
+        expect(await asked).toMatchObject({ action: 'show', tier: 'reasoning' });
+        expect(await spoken).toMatchObject({ action: 'hold', reason: 'superseded' });
+        expect((await spokenAgain).reason).toBe('decider');
+
+        const olderAsk = loop.reason({ text: 'Atlas renewal price', at: 30 });
+        loop.reason({ text: 'pipeline revenue by quarter', at: 40 });
+        expect(await olderAsk).toMatchObject({ action: 'hold', reason: 'superseded' });
+    });
+
     it('runs a reasoning request through the same decision path', async () => {
         const input = demoCorpusInput();
         input.documents.push({ id: 'ops', title: 'Ops note', audiences: ['all-hands'],

@@ -1,6 +1,6 @@
 import { handleJevDecision } from '../netlify/functions/jev-decision.mjs';
 import { handleJevRoute } from '../netlify/functions/jev-route.mjs';
-import { handleEnterpriseDecision } from './enterprise-decision.mjs';
+import { handleEnterpriseDecision, isKevWorkerScript, serveKevWorkerScript } from './enterprise-decision.mjs';
 import { handleJevRecommend } from './jev-recommend.mjs';
 import { handleJevVisualScore } from './jev-visual-score.mjs';
 import { decisionProvider } from '../server/decision-provider.mjs';
@@ -22,6 +22,8 @@ function error(status, code, message) {
 export default {
   async fetch(request, env) {
     const path = new URL(request.url).pathname;
+
+    if (isKevWorkerScript(path)) return serveKevWorkerScript(request, env);
 
     if (path === '/api/personal-piece') return handlePersonalPiece(request, env);
 

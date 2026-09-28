@@ -164,7 +164,7 @@ flowchart LR
     components["components<br/>routed views<br/>44 modules"]
     content["content<br/>texts, imagery, journeys<br/>230 modules"]
     core["core<br/>session, player, router<br/>148 modules"]
-    enterprise["enterprise<br/>talk program, speaker rail<br/>21 modules"]
+    enterprise["enterprise<br/>talk program, speaker rail<br/>27 modules"]
     oracle["oracle<br/>2 modules"]
     page["page<br/>spatial projection<br/>4 modules"]
     sources["sources<br/>text and visual providers<br/>22 modules"]
@@ -549,8 +549,10 @@ of `settled`, `open`, `deferred`, or `reversed`.
 ### 8.10 Vanilla DOM, no UI framework
 
 - **Chosen:** direct DOM construction and template strings, one bespoke module
-  per room, three production dependencies: `sql.js` for browser-local work,
-  `@neondatabase/serverless` and `@upstash/redis` for the Worker catalog path.
+  per room, five production dependencies: `sql.js` for browser-local work,
+  `@neondatabase/serverless` and `@upstash/redis` for the Worker catalog path,
+  and `@ai-ecoverse/kev.js` with `onnxruntime-web` for on-device Kev, imported
+  only by the EnterpRise worker that runs it (§8.32).
 - **Rejected:** React, Vue, Svelte or any virtual-DOM library.
 - **Why:** the tradeoff is real in both directions. A framework would give
   declarative rendering, diffing, and would largely remove the `innerHTML`
@@ -887,16 +889,18 @@ of `settled`, `open`, `deferred`, or `reversed`.
 ### 8.31 The live room decides through JEV and holds on any doubt
 
 - **Chosen:** the room listens through the browser recognizer. Interim speech
-  warms the lexical tier; only a final asks for a decision. `session.prepare`
+  warms the lexical tier; a final, or the presenter's typed Ask, asks for a
+  decision. `session.prepare`
   builds a `rise.enterprise-context.v1` (`src/enterprise/context.js`):
   evidence (window, speaker, mode), structure (candidate ids, titles, scores,
   layouts; rail ids and titles), and authority (the actions this turn allows,
   never promotion). The live loop (`src/enterprise/live.js`) keeps one
-  decision in flight, cancels it when a newer final arrives, and bounds it
-  with a timeout. `/api/enterprise-decision` joins the other decision routes
+  decision in flight per channel (speech, ask), cancels it only when a newer
+  turn on the same channel arrives, and bounds it with a timeout. `/api/enterprise-decision` joins the other decision routes
   behind `decisionProvider` and the limiter and asks the provider one choice
   question whose options are opaque keys. `session.resolve` accepts an answer
-  only for a turn it issued, once, while no later final is pending. The
+  only for a turn it issued, once, while no later turn on its channel is
+  pending. The
   trace (`src/enterprise/trace.js`) records every step without the
   transcript. The rule decider remains for tests and an explicitly chosen
   local mode.
@@ -914,6 +918,35 @@ of `settled`, `open`, `deferred`, or `reversed`.
   recognizer and routed decisions. A live Kev or Jev decision on the
   deployed room, and field latency from a real microphone, are not yet
   measured.
+
+### 8.32 Kev can decide on the presenter's own GPU, in the browser
+
+- **Chosen:** a third decider, "Kev (device)", runs Kev through WebGPU with
+  `@ai-ecoverse/kev.js` and `onnxruntime-web` in a dedicated worker
+  (`src/enterprise/kev-worker.js`). It asks the same question and reads the
+  answer the same way as the server route (`src/enterprise/rail-question.js`).
+  `src/enterprise/device-model.js` pins what may load: a manifest naming any
+  checkpoint but the pinned one is refused before weights are fetched, and the
+  runtime binary must match the digest of the lockfile's copy. The model
+  downloads only when a presenter chooses it. Until it is ready, or after it
+  fails, decisions hold. The worker script alone may fetch model hosts and
+  compile WebAssembly: the Cloudflare Worker serves it with its own policy
+  (`worker/enterprise-decision.mjs`), and every page keeps the site policy in
+  `public/_headers`.
+  `kev-check.html` measures load, latency, and agreement on a real device.
+- **Rejected:** a local Python service for Windows users (CUDA, WSL2, and a
+  localhost port every site could reach); falling back to the server or the
+  rules when the device cannot run Kev; the CPU WebAssembly path, too slow for
+  a live rail; serving the runtime binary from this site, which is over the
+  static asset size limit.
+- **Why:** the transcript and the decision stay on the presenter's machine,
+  with nothing to install. The device checkpoint (`kev-4b@4bc64c6`) is not the
+  server's pinned revision, so agreement between them is measured, not
+  assumed.
+- **Status:** open. Loading and inference on Windows GPUs have not been run;
+  the published kev.js bundles were tested by their authors on Chrome for
+  macOS only. Hosts other than the Cloudflare Worker serve the worker script
+  with the site policy, so Kev (device) fails closed there.
 
 ---
 

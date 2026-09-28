@@ -45,6 +45,23 @@ const WORKER_HEAP_MB = 4096;
 // those heaps can be resident at once. Total, not free: free memory is a
 // snapshot, and reading it at config load turned a busy moment into a
 // one-fork crawl.
+/**
+ * The Kev worker gives ONNX Runtime its WebAssembly binary itself, after
+ * checking it against a pinned digest (src/enterprise/device-model.js). The
+ * copy the runtime's bundle points at is never fetched, and at 26 MB it is
+ * over the static asset size limit, so it is not emitted.
+ */
+function dropOnnxRuntimeBinary() {
+  return {
+    name: 'drop-onnxruntime-binary',
+    generateBundle(_, bundle) {
+      for (const name of Object.keys(bundle)) {
+        if (/ort-wasm-simd-threaded[.\w-]*\.wasm$/u.test(name)) delete bundle[name];
+      }
+    }
+  };
+}
+
 const coreCeiling = Math.floor(cpus().length / 2);
 const memoryCeiling = Math.floor(totalmem() / (WORKER_HEAP_MB * 1024 ** 2));
 
@@ -61,7 +78,8 @@ export default defineConfig({
 
   // Visual engines use module workers so Vite can bundle dependencies.
   worker: {
-    format: 'es'
+    format: 'es',
+    plugins: () => [dropOnnxRuntimeBinary()]
   },
 
   build: {
@@ -104,6 +122,7 @@ export default defineConfig({
         oracle: fileURLToPath(new URL('./oracle.html', import.meta.url)),
         // EnterpRise is served beside its decision route; it is not on the reader's first load.
         enterprise: fileURLToPath(new URL('./enterprise.html', import.meta.url)),
+        'kev-check': fileURLToPath(new URL('./kev-check.html', import.meta.url)),
       },
       /**
        * A DEFERRAL WRITTEN AT ONE SITE AND UNDONE AT ANOTHER IS NOW A BUILD

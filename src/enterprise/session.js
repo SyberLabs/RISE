@@ -6,8 +6,10 @@
  * audience final the program missed — retrieves permitted sentences. It
  * returns the context a decider may see. The decision may be local and
  * immediate or remote and slow. `resolve` accepts a decision only for a turn
- * this session issued, once, while no later final has been prepared; any
- * other answer is a hold. A decider never touches the rail directly.
+ * this session issued, once, while no later turn on the same channel has
+ * been prepared; any other answer is a hold. Speech and the presenter's asks
+ * are separate channels: neither makes the other stale. A decider never
+ * touches the rail directly.
  *
  * Draft transcripts take the lexical tier. A finalized sentence embeds the
  * rolling window and takes the semantic tier. `warm` runs the lexical tier on
@@ -15,8 +17,9 @@
  * tap, and it re-runs the gate for the room's audience before the stage
  * changes.
  *
- * An audience utterance that finalizes without a card is a gap. The debrief
- * is the follow-up pack.
+ * A finalized audience utterance that the decider declines is a gap. A
+ * failed, cancelled, or superseded decision is not. The debrief is the
+ * follow-up pack.
  */
 
 import { renderChart } from './chart.js';
@@ -26,7 +29,7 @@ import { admitToStage, auditRendered, validateProgram } from './gate.js';
 import { indexProgram, matchLexical, matchSemantic } from './match.js';
 import { indexCorpus, retrieve } from './retrieve.js';
 
-const WINDOW_FINALS = 3;
+export const WINDOW_FINALS = 3;
 const RETRIEVAL_SCORE = 0.8;
 
 function presentParts(record, layout, corpus) {
@@ -72,7 +75,7 @@ export function openSession({ program, corpus, decider = ruleDecider, policy, no
     const dismissedAt = new Map();
     let latestAt = 0;
     let seq = 0;
-    let latestDecisive = 0;
+    const latestByChannel = { speech: 0, ask: 0 };
 
     function emit(type, fields) {
         if (typeof onEvent !== 'function') return;
@@ -122,7 +125,8 @@ export function openSession({ program, corpus, decider = ruleDecider, policy, no
             chart,
             provenance: record.provenance,
             latencyMs: sample?.latencyMs ?? null,
-            decidedBy: sample?.decidedBy ?? null
+            decidedBy: sample?.decidedBy ?? null,
+            asked: cardState.asked === true
         };
     }
 
@@ -138,9 +142,9 @@ export function openSession({ program, corpus, decider = ruleDecider, policy, no
         }));
     }
 
-    function issue(ranked, { windowText, speaker, mode, tier, at, text, recordGap, decisive }) {
+    function issue(ranked, { windowText, speaker, mode, tier, at, text, recordGap, decisive, channel }) {
         seq += 1;
-        if (decisive) latestDecisive = seq;
+        if (decisive) latestByChannel[channel] = seq;
         const requestId = `${nonce}:${seq}`;
         const context = buildContext({
             window: windowText,
@@ -156,6 +160,7 @@ export function openSession({ program, corpus, decider = ruleDecider, policy, no
             at,
             final: decisive,
             speaker,
+            channel,
             context
         });
         issued.set(turn, { text, recordGap, resolved: false });
@@ -198,8 +203,9 @@ export function openSession({ program, corpus, decider = ruleDecider, policy, no
             tier,
             at: event.at,
             text: event.text,
-            recordGap: event.final === true,
-            decisive: event.final === true
+            recordGap: event.final === true && event.speaker === 'audience',
+            decisive: event.final === true,
+            channel: 'speech'
         });
     }
 
@@ -215,7 +221,8 @@ export function openSession({ program, corpus, decider = ruleDecider, policy, no
             at,
             text,
             recordGap: false,
-            decisive: true
+            decisive: true,
+            channel: 'ask'
         });
     }
 
@@ -235,13 +242,12 @@ export function openSession({ program, corpus, decider = ruleDecider, policy, no
             if (record.recordGap) gaps.push({ text: record.text, speaker: turn.speaker, at });
         };
         const hold = (reason, cardId = null) => {
-            noteGap();
             emit('rail.hold', { requestId, tier, reason, cardId });
             return held(turn, reason, cardId);
         };
 
         if (meta.reason) return hold(meta.reason);
-        if (turn.seq < latestDecisive) return hold('stale');
+        if (turn.seq < latestByChannel[turn.channel]) return hold('stale');
 
         const decision = sanitizeDecision(raw, candidates);
         if (decision.refused) return hold('invalid');
@@ -269,7 +275,8 @@ export function openSession({ program, corpus, decider = ruleDecider, policy, no
             layout: decision.layout,
             score: chosen.score,
             title: card.title,
-            at
+            at,
+            asked: turn.channel === 'ask'
         }, policy);
         state = reduced.state;
         if (reduced.effect !== 'show') return hold(reduced.reason, decision.cardId);

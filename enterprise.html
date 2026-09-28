@@ -4,181 +4,404 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="robots" content="noindex, nofollow">
+  <meta name="color-scheme" content="light dark">
   <title>EnterpRise — live room</title>
   <style>
     :root {
       color-scheme: light;
+      --bg: #f6f3ec;
+      --panel: #fffdf8;
       --ink: #1c1915;
       --muted: #5e584f;
-      --paper: #f6f3ec;
-      --card: #fffdf8;
+      --faded: #7d766b;
       --line: #ddd6c8;
       --mark: #8c3a2f;
+      --live: #2f6b3a;
+      --warn: #8a5a00;
+      --err: #a1261b;
+      --on-ink: #fffdf8;
+      --sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+      --serif: "Iowan Old Style", Palatino, Georgia, serif;
+      --slot: 11.5rem;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        color-scheme: dark;
+        --bg: #151311;
+        --panel: #1f1c19;
+        --ink: #ece6da;
+        --muted: #b3aa99;
+        --faded: #8a8274;
+        --line: #3b362f;
+        --mark: #e48a78;
+        --live: #86c98f;
+        --warn: #e4b765;
+        --err: #f19386;
+        --on-ink: #151311;
+      }
     }
     * { box-sizing: border-box; }
     body {
       margin: 0;
-      background: var(--paper);
+      background: var(--bg);
       color: var(--ink);
-      font: 17px/1.45 "Iowan Old Style", Palatino, Georgia, serif;
+      font: 16px/1.45 var(--sans);
     }
-    main {
-      max-width: 40rem;
-      margin: 0 auto;
-      padding: 1.5rem 1.1rem 3rem;
-    }
-    h1 {
-      font-size: 1.7rem;
-      font-weight: 600;
-      letter-spacing: -0.02em;
-      margin: 0 0 0.3rem;
-    }
-    .lede, .meta { color: var(--muted); margin: 0 0 1rem; }
-    .meta { font: 0.85rem/1.4 ui-sans-serif, system-ui, sans-serif; }
-    form {
-      display: grid;
-      gap: 0.6rem;
-      margin-bottom: 1.2rem;
-    }
-    textarea, select, button {
-      font: 1rem/1.4 ui-sans-serif, system-ui, sans-serif;
-    }
-    textarea {
-      width: 100%;
-      min-height: 5.5rem;
-      padding: 0.7rem 0.8rem;
-      border: 1px solid var(--line);
-      border-radius: 0.4rem;
-      background: var(--card);
-      color: inherit;
-      resize: vertical;
-    }
-    .row { display: flex; flex-wrap: wrap; gap: 0.5rem; }
-    select, button { padding: 0.55rem 0.8rem; border-radius: 0.4rem; }
-    select { border: 1px solid var(--line); background: var(--card); color: inherit; }
-    button { border: 1px solid var(--ink); background: var(--ink); color: var(--paper); cursor: pointer; }
-    button[data-action="draft"] { background: transparent; color: var(--ink); }
-    #rail p[data-metrics] {
-      font: 0.85rem/1.4 ui-sans-serif, system-ui, sans-serif;
-      color: var(--muted);
-    }
-    #rail ol { list-style: none; padding: 0; margin: 0; display: grid; gap: 0.8rem; }
-    #rail li {
-      background: var(--card);
-      border: 1px solid var(--line);
-      border-left: 4px solid var(--mark);
-      padding: 0.8rem 0.9rem 0.9rem;
-    }
-    #rail h2 { font-size: 1.05rem; margin: 0 0 0.4rem; }
-    #rail blockquote { margin: 0 0 0.6rem; }
-    #rail table { width: 100%; border-collapse: collapse; margin: 0 0 0.6rem; }
-    #rail caption {
-      text-align: left;
-      font: 0.75rem/1.3 ui-sans-serif, system-ui, sans-serif;
-      letter-spacing: 0.04em;
+    h1, h2 { margin: 0; }
+    h1 { font: 600 1.05rem/1.2 var(--sans); letter-spacing: -0.01em; }
+    h2 {
+      font: 600 0.75rem/1.3 var(--sans);
+      letter-spacing: 0.08em;
       text-transform: uppercase;
       color: var(--muted);
-      margin-bottom: 0.3rem;
+      margin-bottom: 0.45rem;
     }
-    #rail td { padding: 0.2rem 0.4rem 0.2rem 0; vertical-align: middle; }
-    #rail td .bar {
-      display: block;
-      height: 0.35rem;
-      background: var(--mark);
-      margin-bottom: 0.15rem;
-      min-width: 2px;
-    }
-    #rail li p {
-      margin: 0 0 0.6rem;
-      color: var(--muted);
-      font: 0.8rem/1.35 ui-sans-serif, system-ui, sans-serif;
-    }
-    #rail button { margin-right: 0.4rem; }
-    #rail button[data-action="dismiss"] { background: transparent; color: var(--ink); }
-    #stage { margin-top: 1rem; }
-    #stage [data-surface="stage"] { display: grid; gap: 0.8rem; }
-    #stage article {
-      background: var(--card);
+    button, select, input { font: inherit; color: inherit; }
+    button, select {
+      min-height: 2.5rem;
+      padding: 0.4rem 0.8rem;
+      border-radius: 0.4rem;
       border: 1px solid var(--line);
-      border-top: 4px solid var(--ink);
-      padding: 0.9rem;
+      background: var(--panel);
     }
-    #stage h2 { font-size: 1.2rem; margin: 0 0 0.4rem; }
-    #stage p, #stage td { font: 0.95rem/1.4 ui-sans-serif, system-ui, sans-serif; }
-    #stage button { margin-top: 0.5rem; background: transparent; color: var(--ink); }
-    #debrief { padding-left: 1.1rem; }
-    label { font: 0.9rem/1.4 ui-sans-serif, system-ui, sans-serif; }
-    .controls { display: flex; flex-wrap: wrap; gap: 0.6rem; align-items: end; margin-bottom: 0.8rem; }
-    .controls label { display: grid; gap: 0.2rem; }
-    button[aria-pressed="true"] { background: var(--mark); border-color: var(--mark); }
-    button:disabled { opacity: 0.45; cursor: not-allowed; }
-    button:focus-visible, select:focus-visible, textarea:focus-visible { outline: 3px solid var(--mark); outline-offset: 2px; }
-    #status {
-      min-height: 1.4em;
-      margin: 0 0 0.4rem;
-      font: 0.95rem/1.4 ui-sans-serif, system-ui, sans-serif;
+    button { cursor: pointer; }
+    button.primary, [data-action="promote"] {
+      background: var(--ink);
+      border-color: var(--ink);
+      color: var(--on-ink);
     }
-    #interim {
-      min-height: 1.4em;
-      margin: 0 0 1rem;
+    button:disabled { opacity: 0.5; cursor: default; }
+    :focus-visible { outline: 3px solid var(--mark); outline-offset: 2px; }
+    kbd {
+      font: 600 0.75rem/1 var(--sans);
+      border: 1px solid var(--line);
+      border-bottom-width: 2px;
+      border-radius: 0.25rem;
+      padding: 0.1rem 0.3rem;
+      background: var(--panel);
+    }
+
+    .top {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 0.5rem 0.75rem;
+      padding: 0.75rem 1rem 0.5rem;
+      max-width: 72rem;
+      margin: 0 auto;
+    }
+    .top h1 { margin-right: auto; }
+    #listen { min-width: 9.5rem; }
+    #listen[aria-pressed="true"] { background: var(--mark); border-color: var(--mark); color: var(--on-ink); }
+    .badge {
+      font-size: 0.75rem;
       color: var(--muted);
-      font: italic 0.95rem/1.4 ui-sans-serif, system-ui, sans-serif;
-      overflow-wrap: anywhere;
+      border: 1px solid var(--line);
+      border-radius: 1rem;
+      padding: 0.15rem 0.55rem;
+      white-space: nowrap;
+      min-width: 8.5rem;
+      text-align: center;
     }
-    #rail li p[data-decision] { font-style: italic; }
-    #trace-summary { font: 0.85rem/1.4 ui-sans-serif, system-ui, sans-serif; color: var(--muted); }
-    #export-trace { background: transparent; color: var(--ink); }
-    #rail li, #stage article { overflow-wrap: anywhere; }
-    h2.section {
-      font: 0.8rem/1.3 ui-sans-serif, system-ui, sans-serif;
+    .badge:empty { visibility: hidden; }
+
+    /* One status surface. Fixed height: changing text never moves anything. */
+    #state {
+      position: sticky;
+      top: 0;
+      z-index: 2;
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      height: 3.25rem;
+      padding: 0 1rem;
+      background: var(--panel);
+      border-block: 1px solid var(--line);
+    }
+    #state-inner { display: flex; align-items: center; gap: 0.6rem; width: 100%; max-width: 70rem; margin: 0 auto; }
+    #state .dot {
+      flex: none;
+      width: 0.65rem;
+      height: 0.65rem;
+      border-radius: 50%;
+      background: var(--faded);
+    }
+    #state[data-state="listening"] .dot, #state[data-state="hearing"] .dot, #state[data-state="ready"] .dot { background: var(--live); }
+    #state[data-state="hearing"] .dot { animation: pulse 1s ease-in-out infinite; }
+    #state[data-state="deciding"] .dot { background: var(--warn); animation: pulse 0.6s ease-in-out infinite; }
+    #state[data-state="held"] .dot { background: var(--warn); }
+    #state[data-state="loading"] .dot { background: var(--warn); animation: pulse 1.4s ease-in-out infinite; }
+    #state[data-state="error"] .dot { background: var(--err); }
+    /* A fixed number of lines per viewport, so a longer message never moves anything. */
+    #state-text {
+      flex: 1;
+      min-width: 0;
+      height: 1.3em;
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+      font-size: 0.95rem;
+      line-height: 1.3;
+    }
+    #last-decision {
+      flex: none;
+      font: 0.8rem/1 var(--sans);
+      font-variant-numeric: tabular-nums;
+      color: var(--muted);
+      min-width: 6.5rem;
+      text-align: right;
+    }
+    @keyframes pulse { 50% { opacity: 0.3; } }
+    @media (prefers-reduced-motion: reduce) {
+      #state .dot { animation: none !important; }
+    }
+
+    main {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+      grid-template-areas: "left right" "trace trace";
+      align-items: start;
+      gap: 1.25rem 1.5rem;
+      max-width: 72rem;
+      margin: 0 auto;
+      padding: 1rem 1rem 3rem;
+    }
+    .col { display: grid; gap: 1.25rem; min-width: 0; }
+    .col.left { grid-area: left; }
+    .col.right { grid-area: right; }
+    #trace { grid-area: trace; }
+
+    /* Transcript: fixed height, scrolls inside itself. */
+    .scroller { position: relative; }
+    #transcript {
+      list-style: none;
+      margin: 0;
+      padding: 0.5rem 0.75rem;
+      height: 22rem;
+      overflow-y: auto;
+      overscroll-behavior: contain;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 0.5rem;
+    }
+    #transcript li { padding: 0.3rem 0; border-bottom: 1px solid var(--line); overflow-wrap: anywhere; }
+    #transcript li:last-child { border-bottom: 0; }
+    #transcript li[data-window="out"] .text { color: var(--faded); }
+    #transcript li[data-final="false"] .text { color: var(--muted); font-style: italic; }
+    #transcript .who {
+      font-size: 0.7rem;
+      font-weight: 600;
       letter-spacing: 0.06em;
       text-transform: uppercase;
+      color: var(--mark);
+      margin-right: 0.35rem;
+    }
+    #transcript .note {
+      display: block;
+      min-height: 1.2rem;
+      font-size: 0.8rem;
+      line-height: 1.2rem;
       color: var(--muted);
-      margin: 1.4rem 0 0.4rem;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    #transcript-hint { color: var(--muted); margin: 0.25rem 0; }
+    #transcript-hint.overlay { position: absolute; top: 0.6rem; left: 0.85rem; right: 0.85rem; margin: 0; pointer-events: none; }
+    #new-lines {
+      position: absolute;
+      left: 50%;
+      bottom: 0.6rem;
+      transform: translateX(-50%);
+      min-height: 2rem;
+      padding: 0.2rem 0.8rem;
+      border-radius: 1rem;
+      background: var(--ink);
+      border-color: var(--ink);
+      color: var(--on-ink);
+      font-size: 0.85rem;
+    }
+    #new-lines[hidden] { display: none; }
+
+    #ask-form { display: flex; gap: 0.5rem; margin-top: 0.75rem; align-items: center; }
+    #ask-form label { font-weight: 600; font-size: 0.9rem; }
+    #ask {
+      flex: 1;
+      min-width: 0;
+      min-height: 2.5rem;
+      padding: 0.4rem 0.7rem;
+      border: 1px solid var(--line);
+      border-radius: 0.4rem;
+      background: var(--panel);
+    }
+    #ask-answer {
+      height: 1.4rem;
+      margin: 0.35rem 0 0;
+      font-size: 0.9rem;
+      color: var(--muted);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    /* Rail: fixed slots, fixed height. A card never moves another card. */
+    /* Reserved before the script paints the slots. */
+    #rail { min-height: calc(3 * var(--slot) + 1.2rem); }
+    #rail ol { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.6rem; }
+    #rail .slot {
+      position: relative;
+      height: var(--slot);
+      display: flex;
+      flex-direction: column;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-left: 4px solid var(--mark);
+      border-radius: 0.4rem;
+      padding: 0.55rem 0.75rem 0.6rem;
+      overflow: hidden;
+    }
+    #rail .slot.empty { border: 1px dashed var(--line); background: transparent; }
+    #rail .slot[data-target] { box-shadow: 0 0 0 2px var(--mark); }
+    .card-tags { position: absolute; top: 0.45rem; right: 0.7rem; display: flex; gap: 0.5rem; margin: 0; }
+    .card-body .card-title { padding-right: 6.5rem; }
+    .tag {
+      font-size: 0.68rem;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+    .tag.on { color: var(--live); }
+    .tag.key { display: none; color: var(--mark); }
+    [data-target] .tag.key { display: inline; }
+    .card-body { flex: 1; min-height: 0; overflow-y: auto; }
+    .card-title { font: 600 1rem/1.25 var(--serif); margin: 0 0 0.25rem; }
+    .card-quote { font: 0.95rem/1.35 var(--serif); margin: 0 0 0.3rem; }
+    .card-source { font-size: 0.75rem; color: var(--muted); margin: 0; }
+    .card-chart { border-collapse: collapse; font-size: 0.85rem; margin: 0 0 0.25rem; width: 100%; }
+    .card-chart th { text-align: left; font-weight: 500; padding: 0.05rem 0.5rem 0.05rem 0; width: 2.5rem; }
+    .card-chart td { padding: 0.05rem 0; font-variant-numeric: tabular-nums; }
+    .card-chart .bar { display: inline-block; height: 0.55rem; min-width: 2px; margin-right: 0.4rem; background: var(--mark); vertical-align: middle; }
+    .card-actions { display: flex; gap: 0.5rem; padding-top: 0.45rem; }
+
+    #stage { min-height: 1.5rem; }
+    #stage [data-surface="stage"] { display: grid; gap: 0.6rem; }
+    #stage article {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-top: 4px solid var(--ink);
+      border-radius: 0.4rem;
+      padding: 0.75rem;
+      overflow-wrap: anywhere;
+    }
+    #stage .card-title { font-size: 1.2rem; }
+    #stage .card-quote { font-size: 1.05rem; }
+    #stage [data-action="retract"] { margin-top: 0.5rem; }
+    .empty-note { color: var(--muted); margin: 0; }
+
+    #debrief { margin: 0; padding-left: 1.1rem; color: var(--ink); }
+    #debrief:not(:has(li)) { padding-left: 0; color: var(--muted); }
+    #trace { border-top: 1px solid var(--line); padding-top: 0.75rem; color: var(--muted); font-size: 0.9rem; }
+    #trace summary { cursor: pointer; font-weight: 600; min-height: 2rem; }
+    #trace p { margin: 0.4rem 0; }
+    #keys { margin: 0.6rem 0 0; font-size: 0.8rem; color: var(--muted); }
+    #keys kbd { margin-right: 0.2rem; }
+
+    @media (max-width: 760px) {
+      /* One column: follow-up sits below the stage so its growth moves nothing live. */
+      main {
+        grid-template-columns: minmax(0, 1fr);
+        grid-template-areas: "heard" "rail" "stage" "follow" "trace";
+      }
+      .col { display: contents; }
+      #heard { grid-area: heard; }
+      #rail-panel { grid-area: rail; }
+      #stage-panel { grid-area: stage; }
+      #follow-panel { grid-area: follow; }
+      #transcript { height: 12rem; }
+      #keys, #listen .wide { display: none; }
+      .top {
+        display: grid;
+        grid-template-columns: 5.25rem minmax(0, 1fr) minmax(0, 1fr);
+        padding: 0.6rem 0.75rem 0.5rem;
+      }
+      .top h1 { grid-row: 1; grid-column: 1 / 3; align-self: center; }
+      .badge { grid-row: 1; grid-column: 3; justify-self: end; min-width: 0; }
+      #listen { grid-row: 2; grid-column: 1; min-width: 0; padding-inline: 0.5rem; }
+      .top select { min-width: 0; padding-inline: 0.45rem; font-size: 0.9rem; }
+      #state { height: 3.6rem; padding: 0 0.75rem; }
+      #state-inner { align-items: flex-start; }
+      #state .dot { margin-top: 0.35em; }
+      #state-text {
+        height: 2.6em;
+        white-space: normal;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+      }
+      #last-decision { min-width: 5.5rem; padding-top: 0.2em; }
+      main { padding: 0.75rem 0.75rem 3rem; }
     }
   </style>
 </head>
 <body>
-  <main>
+  <header class="top">
     <h1>Speaker rail</h1>
-    <p class="lede">Prepared cards for Ada’s all-hands. Speak, and a permitted card may appear on this rail. Only Promote shows it to the room, and the room’s permissions are checked again at that tap. Dismiss sends a suggestion back. Retract takes a card off the stage.</p>
-    <p class="meta">Recognizer boost: <span id="hints"></span></p>
-    <div class="controls">
-      <button type="button" id="listen" aria-pressed="false">Listen</button>
-      <label for="speaker">
-        Speaker
-        <select id="speaker">
-          <option value="presenter">Presenter</option>
-          <option value="audience">Audience question</option>
-        </select>
-      </label>
-      <label for="decider">
-        Decides
-        <select id="decider">
-          <option value="jev">JEV (server)</option>
-          <option value="local">Local rules</option>
-        </select>
-      </label>
+    <button type="button" id="listen" class="primary" aria-pressed="false">Listen</button>
+    <span class="badge" id="speech-badge"></span>
+    <select id="speaker" aria-label="Speaker">
+      <option value="presenter">Presenter</option>
+      <option value="audience">Audience</option>
+    </select>
+    <select id="decider" aria-label="Decides">
+      <option value="jev">JEV</option>
+      <option value="local">Local rules</option>
+      <option value="device">Kev (device)</option>
+    </select>
+  </header>
+  <div id="state" data-state="idle">
+    <div id="state-inner">
+      <span class="dot" aria-hidden="true"></span>
+      <span id="state-text" role="status" aria-live="polite"></span>
+      <span id="last-decision" aria-label="Last decision time"></span>
     </div>
-    <p class="meta" id="speech-note"></p>
-    <p id="status" role="status" aria-live="polite"></p>
-    <p id="interim"></p>
-    <form>
-      <label for="transcript">Typed transcript</label>
-      <textarea id="transcript" placeholder="Atlas renewal price"></textarea>
-      <div class="row">
-        <button type="button" data-action="draft">Draft</button>
-        <button type="button" data-action="final">Final sentence</button>
-      </div>
-    </form>
-    <div id="rail"></div>
-    <h2 class="section">Stage</h2>
-    <section id="stage" aria-label="Stage"></section>
-    <h2 class="section">Follow-up</h2>
-    <ul id="debrief"></ul>
-    <h2 class="section">Trace</h2>
-    <p id="trace-summary"></p>
-    <button type="button" id="export-trace">Export trace</button>
+  </div>
+  <main>
+    <div class="col left">
+      <section id="heard" aria-labelledby="heard-h">
+        <h2 id="heard-h">Heard</h2>
+        <div id="transcript-panel" class="scroller">
+          <ol id="transcript" tabindex="0" aria-label="Transcript"></ol>
+          <button type="button" id="new-lines" hidden>↓ New lines</button>
+        </div>
+        <form id="ask-form" autocomplete="off">
+          <label for="ask">Ask</label>
+          <input id="ask" type="text" enterkeyhint="search" spellcheck="false">
+        </form>
+        <p id="ask-answer" aria-live="polite"></p>
+        <p id="keys"><span id="key-listen"><kbd>L</kbd>listen · </span><kbd>P</kbd>promote marked · <kbd>D</kbd>dismiss marked · <kbd>R</kbd>retract · <kbd>/</kbd>ask</p>
+      </section>
+      <section id="follow-panel" aria-labelledby="follow-h">
+        <h2 id="follow-h">Follow-up</h2>
+        <ul id="debrief">No unanswered questions yet.</ul>
+      </section>
+    </div>
+    <div class="col right">
+      <section id="rail-panel" aria-labelledby="rail-h">
+        <h2 id="rail-h">Rail</h2>
+        <div id="rail"></div>
+      </section>
+      <section id="stage-panel" aria-labelledby="stage-h">
+        <h2 id="stage-h">Stage</h2>
+        <div id="stage"></div>
+      </section>
+    </div>
+    <details id="trace">
+      <summary>Trace</summary>
+      <p id="metrics"></p>
+      <p id="trace-summary"></p>
+      <button type="button" id="export-trace">Export trace</button>
+    </details>
   </main>
   <script type="module" src="/src/enterprise/demo-page.js"></script>
 </body>
