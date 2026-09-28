@@ -1,3 +1,5 @@
+import { normalizeLivingFlameConfig } from './flame-recipe.js';
+
 export const ATTRACTOR_SYSTEMS = Object.freeze([
   Object.freeze({ id: 'aizawa', name: 'Aizawa', icon: '∮', description: 'Toroidal bloom — orbits folding through a luminous sphere' }),
   Object.freeze({ id: 'thomas', name: 'Thomas', icon: '∿', description: 'Cyclically symmetric weave — slow, looping lattice' }),
@@ -119,6 +121,9 @@ export const VISUAL_STYLE_DEFINITIONS = Object.freeze({
 
 export function normalizeFieldStyle(renderer, value = {}) {
   const source = value && typeof value === 'object' && !Array.isArray(value) ? value : {};
+  // A Living Flame's style is its full recipe, checked by the one recipe
+  // boundary; there is no partial default to fall back to.
+  if (renderer === 'living-flame') return normalizeLivingFlameConfig(source) || Object.freeze({});
   if (renderer === 'focal') {
     const personalAssetId = typeof source.personalAssetId === 'string'
       ? source.personalAssetId.trim().slice(0, 160)
@@ -205,6 +210,9 @@ export function personalFocalAssetIdFromCue(cue) {
 }
 
 export function visualCueStyleSummary(cue) {
+  if (cue?.kind === 'field' && cue.renderer === 'living-flame') {
+    return normalizeLivingFlameConfig(cue.config)?.recipe.name || 'Living Flame';
+  }
   if (cue?.kind === 'field' && cue.renderer === 'focal') {
     const config = normalizeFieldStyle('focal', cue.config);
     if (config.type === 'personal') return 'Personal image';

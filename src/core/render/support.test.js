@@ -72,7 +72,12 @@ describe('render-support registry', () => {
     expect(PROGRAM_VISUAL_KINDS).toEqual([
       'still', 'focal', 'field', 'sourced', 'procedural', 'video'
     ]);
-    expect(PROGRAM_VISUAL_FIELD_RENDERERS).toEqual(['focal', 'attractor', 'genesis']);
+    expect(PROGRAM_VISUAL_FIELD_RENDERERS).toEqual(['focal', 'attractor', 'genesis', 'living-flame']);
+    // Living Flame exports honestly as a deterministic still, never omitted.
+    expect(RENDER_SUPPORT['visual:field:living-flame']).toMatchObject({
+      render: 'degraded', degradation: 'deterministic-still'
+    });
+    expect(RENDER_SUPPORT['visual:field:living-flame'].reason).toMatch(/live GPU motion is not exported/);
     expect(PROGRAM_AUDIO_KINDS).toEqual(['hold', 'silence', 'soundscape', 'tone']);
     expect(PROGRAM_READING_KINDS).toEqual(['pace']);
     for (const renderer of PROGRAM_VISUAL_FIELD_RENDERERS) {

@@ -21,5 +21,9 @@
     "name": "DECISION_LIMITER",
     "namespace_id": "2026092601",
     "simple": { "limit": 30, "period": 60 }
+  }, {
+    "name": "VISUAL_SCORE_LIMITER",
+    "namespace_id": "2026092702",
+    "simple": { "limit": 6, "period": 60 }
   }]
 }

@@ -53,6 +53,26 @@ describe('compileJevVisualProgram', () => {
       .toEqual(['classic', 'amethyst', 'prism']);
   });
 
+  it('keeps an energetic arc off the calm engines', () => {
+    for (const visualStyle of ['psychedelic', 'immersive']) {
+      const program = buildJevVisualProgram(input('triple', {
+        visualStyle, visualEngine: 'fractal', middleEngine: 'fractal', finaleEngine: 'fractal'
+      }));
+      expect(program.segments.map(segment => segment.cue.collections[0]))
+        .toEqual(['fractal', 'apparitio', 'ostensoria']);
+    }
+    const calm = buildJevVisualProgram(input('dual', {
+      visualStyle: 'psychedelic', visualEngine: 'turrell', finaleEngine: 'harmonograph'
+    }));
+    expect(calm.segments.map(segment => segment.cue.collections[0])).toEqual(['fractal', 'apparitio']);
+  });
+
+  it('leaves quiet and gentle arcs exactly as Jev chose them', () => {
+    const program = buildJevVisualProgram(input('triple', { visualStyle: 'gentle' }));
+    expect(program.segments.map(segment => segment.cue.collections[0]))
+      .toEqual(['klee', 'harmonograph', 'ostensoria']);
+  });
+
   it('chooses the next fixed engine when a later answer repeats an earlier one', () => {
     const program = buildJevVisualProgram(input('triple', {
       middleEngine: 'klee',

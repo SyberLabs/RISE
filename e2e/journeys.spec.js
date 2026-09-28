@@ -39,8 +39,9 @@ test('the Portal names one act, and the Vault does not offer Journeys', async ({
   await page.goto('/');
   await expect(page.locator('[data-nav="chamber"]')).toBeAttached({ timeout: 20000 });
 
-  // Home has one primary act (Ask Jev). Journeys stay out of Home and the Vault.
-  await expect(page.locator('.portal .portal-primary')).toHaveCount(1);
+  // Home has one visible primary act (Create preview; Play appears only
+  // inside a preview). Journeys stay out of Home and the Vault.
+  await expect(page.locator('.portal .portal-primary:visible')).toHaveCount(1);
   await expect(page.locator('.portal [data-nav="journeys"]')).toHaveCount(0);
 
   await openHomeNav(page, 'vault');

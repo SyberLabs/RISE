@@ -45,7 +45,6 @@ test('cold sample deep link admits a preset Gallery, then returns to its thresho
     return route.abort();
   });
   await page.goto('/jev-scene-demo');
-  await page.locator('#beta-enter').click();
   await expect(page.locator('#jev-scene-demo-start')).toBeVisible();
   await expect(page.locator('#portal-jev-demo')).toContainText('No live RISE request');
   await expect(page.locator('#portal-jev-form')).toHaveCount(0);
@@ -88,6 +87,8 @@ test('reader shifts Jev’s next visual scene without moving the text or pace', 
   await expect(page.locator('#portal-jev-form')).toBeVisible({ timeout: 15_000 });
   await page.locator('#portal-jev-intent').fill('A reflective reading with changing visual scenes.');
   await page.locator('#portal-jev-form button[type="submit"]').click();
+  // Home previews Jev's answer; the reading starts only from Play.
+  await page.locator('#portal-play').click();
   await expect(page.locator('#chamber-display')).toBeVisible({ timeout: 20_000 });
 
   const shift = page.locator('#jev-next-scene');
@@ -200,6 +201,8 @@ test('spoken Jev request opens a reading whose look can be changed live', async 
   await expect(page.locator('#portal-jev-intent'))
     .toHaveValue('A reflective reading with visual scenes');
   await page.locator('#portal-jev-form button[type="submit"]').click();
+  // Home previews Jev's answer; the reading starts only from Play.
+  await page.locator('#portal-play').click();
   expect(requestBody).toEqual({
     intent: 'A reflective reading with visual scenes', schemaVersion: 3
   });
@@ -247,6 +250,8 @@ test.describe('touch reader', () => {
     await page.goto('/');
     await page.locator('#portal-jev-intent').fill('A reading with a visual scene I can change.');
     await page.locator('#portal-jev-form button[type="submit"]').click();
+    // Home previews Jev's answer; the reading starts only from Play.
+    await page.locator('#portal-play').click();
     const shift = page.locator('#jev-next-scene');
     await expect(shift).toBeEnabled({ timeout: 20_000 });
     await page.locator('#chamber-display').tap({ position: { x: 40, y: 120 } });

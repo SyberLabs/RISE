@@ -1,5 +1,6 @@
 import { expect, it } from 'vitest';
 import releaseInventory from '../content/archive/release-inventory.json' with { type: 'json' };
+import modernManifest from '../content/modern-readings-manifest.json' with { type: 'json' };
 import { jevColors, jevPalette } from '../core/jev-palette.js';
 import { resolveJevChamberConfig } from '../core/jev-config.js';
 import {
@@ -10,8 +11,8 @@ import { resolveJevReading } from './jev-reading.js';
 import { compileSession } from '../core/session-compiler.js';
 import { cueForAtom } from '../core/visual-scheduler.js';
 
-it('opens an existing playable division for every released book and section choice', async () => {
-  for (const released of Object.values(releaseInventory)) {
+it('opens an existing playable division for every released book and original reading', async () => {
+  for (const released of [...Object.values(releaseInventory), ...Object.values(modernManifest)]) {
     for (const section of ['first', 'shortest', 'longest']) {
       const selectors = {
         section, wpm: 200, curve: 'flat', chunkMode: 'phrase',
@@ -91,8 +92,9 @@ it('compiles a psychedelic Jev plan into a visible, scoped Chamber session', asy
     .toEqual(['aurora', 'faded-signal', 'silence']);
   expect(cueForAtom(session.visualProgram, { sourceId: 'primary', sourceProgress: 0.2 }).cue.collections)
     .toEqual(['fractal']);
+  // An energetic arc never spends a phase on a calm engine.
   expect(cueForAtom(session.visualProgram, { sourceId: 'primary', sourceProgress: 0.5 }).cue.collections)
-    .toEqual(['harmonograph']);
+    .toEqual(['apparitio']);
   expect(cueForAtom(session.visualProgram, { sourceId: 'primary', sourceProgress: 0.8 }).cue.collections)
     .toEqual(['ostensoria']);
 });

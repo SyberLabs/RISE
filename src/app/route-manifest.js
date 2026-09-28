@@ -101,7 +101,6 @@ export function createRouteManifest(operations) {
         onNavigate: operations.handleNavigate,
         onSelectText: operations.handleTextSelection,
         getAudioEngine: operations.getAudioEngine,
-        initialIntent: data?.jevIntent,
         readingPreferences: data?.readingPreferences
       })
     },
@@ -187,6 +186,18 @@ export function createRouteManifest(operations) {
       create: (container, _data, { Via }) => new Via(container, {
         onNavigate: operations.handleNavigate,
         getAudioEngine: operations.getAudioEngine
+      })
+    },
+    {
+      id: 'visual-lab',
+      containerId: 'view-visual-lab',
+      load: () => import('../components/VisualLab.js'),
+      create: (container, data, { VisualLab }) => new VisualLab(container, {
+        mode: 'route',
+        recipe: data?.recipe || null,
+        onUseInReading: operations.useRecipeInReading,
+        onEditInWorkshop: () => operations.handleNavigate('workshop'),
+        onClose: () => operations.handleNavigate('portal')
       })
     },
     {
