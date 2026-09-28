@@ -28,11 +28,21 @@ describe('hold a key to mark audience speech', () => {
         expect(key.audience(true)).toBe(false);
     });
 
-    it('marks the next utterance too while the key stays down across a final', () => {
+    it('does not carry the mark past a final that lands while the key is held', () => {
+        const key = createSpeakerKey();
+        key.press();
+        expect(key.audience(false)).toBe(true);
+        expect(key.audience(true)).toBe(true);
+        key.release();
+        expect(key.audience(false)).toBe(false);
+        expect(key.audience(true)).toBe(false);
+    });
+
+    it('marks the next utterance while the key stays down across a final', () => {
         const key = createSpeakerKey();
         key.press();
         expect(key.audience(true)).toBe(true);
-        expect(key.audience(true)).toBe(true);
+        expect(key.audience(false)).toBe(true);
         key.release();
         expect(key.audience(true)).toBe(true);
         expect(key.audience(true)).toBe(false);

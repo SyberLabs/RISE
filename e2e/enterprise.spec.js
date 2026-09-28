@@ -133,6 +133,16 @@ test.describe('EnterpRise live room', () => {
         await expect(lines(page).last().locator('.note')).toHaveText('→ held: nothing fits');
         await expect(lines(page).last().locator('.who')).toHaveCount(0);
 
+        // A final that lands while Q is still held does not mark what follows the release.
+        await page.keyboard.down('q');
+        await say(page, 'Who owns the Atlas contract');
+        await expect(lines(page)).toHaveCount(3);
+        await expect(lines(page).last().locator('.who')).toHaveText('Audience');
+        await page.keyboard.up('q');
+        await say(page, 'Good question, let me answer that');
+        await expect(lines(page)).toHaveCount(4);
+        await expect(lines(page).last().locator('.who')).toHaveCount(0);
+
         await page.keyboard.press('/');
         await page.keyboard.type('q');
         await expect(ask(page)).toHaveValue('q');
