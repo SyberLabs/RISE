@@ -209,7 +209,7 @@ describe('Portal', () => {
         const visible = [...footer.querySelectorAll('.portal-footer-link')]
             .filter(link => !moreList.contains(link))
             .map(link => link.textContent.trim());
-        expect(visible).toEqual(['Guide', 'Short readings', 'Reader setup', 'More', 'Privacy', 'Terms']);
+        expect(visible).toEqual(['Guide', 'Reader setup', 'More', 'Privacy', 'Terms']);
 
         const more = footer.querySelector('.portal-more-toggle');
         expect(moreList.hidden).toBe(true);

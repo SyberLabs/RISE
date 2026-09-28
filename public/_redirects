@@ -1,0 +1,3 @@
+# Short sequences was removed. Keep old links (including syberlabs.io) landing on RISE.
+/sequences / 301
+/sequences/* / 301

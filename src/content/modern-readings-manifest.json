@@ -1,0 +1,146 @@
+{
+  "the-prompt-and-the-pencil": {
+    "workId": "the-prompt-and-the-pencil",
+    "title": "The Prompt and the Pencil",
+    "author": "RISE",
+    "editionId": "rise-original:the-prompt-and-the-pencil",
+    "sourceRevision": "sha256:b5f0115c45ee1f40537fe55c90f66b592784ff9f85d74d937b03db08f4e9f95c",
+    "fitDescription": "A student tests what an AI answer can and cannot do for her thinking.",
+    "decisionCriterion": "Choose for a reader interested in AI, school, creative work, or learning without outsourcing their judgment."
+  },
+  "the-group-chat-went-quiet": {
+    "workId": "the-group-chat-went-quiet",
+    "title": "The Group Chat Went Quiet",
+    "author": "RISE",
+    "editionId": "rise-original:the-group-chat-went-quiet",
+    "sourceRevision": "sha256:0105be5cf5eb4a1aa1df0041fc6a4d3e466aff90a31f9a8689d6de76c9ed32c7",
+    "fitDescription": "A small story about silence, friendship, and the limits of read receipts.",
+    "decisionCriterion": "Choose for a reader asking about group chats, friendship, anxiety, being left on read, or digital communication."
+  },
+  "who-taught-the-feed": {
+    "workId": "who-taught-the-feed",
+    "title": "Who Taught the Feed?",
+    "author": "RISE",
+    "editionId": "rise-original:who-taught-the-feed",
+    "sourceRevision": "sha256:b02f7d04aeae2b8083e716bdeb3be919d2796abd30de30393cc53f171ef8df95",
+    "fitDescription": "An accessible reflection on recommendation algorithms and attention.",
+    "decisionCriterion": "Choose for a reader curious about algorithms, feeds, social media, attention, or why certain videos keep appearing."
+  },
+  "the-last-save-point": {
+    "workId": "the-last-save-point",
+    "title": "The Last Save Point",
+    "author": "RISE",
+    "editionId": "rise-original:the-last-save-point",
+    "sourceRevision": "sha256:8afd3049196d40c696510c766a0c61d4ebc11f823421347323e33906d05677d7",
+    "fitDescription": "A game player learns why retrying is different from repeating.",
+    "decisionCriterion": "Choose for a reader interested in games, challenge, practice, failure, or learning through retries."
+  },
+  "a-video-is-a-small-business": {
+    "workId": "a-video-is-a-small-business",
+    "title": "A Video Is a Small Business",
+    "author": "RISE",
+    "editionId": "rise-original:a-video-is-a-small-business",
+    "sourceRevision": "sha256:6d2b0546170094735ce01dd12e024c12651ab26e11e70fd5ddd43bbdc5a8edab",
+    "fitDescription": "The invisible labor behind a creator’s thirty-second clip.",
+    "decisionCriterion": "Choose for a reader curious about creators, making videos, online work, or the economics of attention."
+  },
+  "the-photo-that-knew-your-street": {
+    "workId": "the-photo-that-knew-your-street",
+    "title": "The Photo That Knew Your Street",
+    "author": "RISE",
+    "editionId": "rise-original:the-photo-that-knew-your-street",
+    "sourceRevision": "sha256:323b4623027fd123dcd8300324d526456bf5bc5d13897eb7f5dbf3802621d349",
+    "fitDescription": "A practical story about location clues and sharing safely.",
+    "decisionCriterion": "Choose for a reader interested in online privacy, photos, location sharing, or protecting personal information."
+  },
+  "the-repair-table": {
+    "workId": "the-repair-table",
+    "title": "The Repair Table",
+    "author": "RISE",
+    "editionId": "rise-original:the-repair-table",
+    "sourceRevision": "sha256:cb72f0ba41ff08942c143ded29d758bff81b341fdfbd0c75a49ffef95738cb6d",
+    "fitDescription": "Friends keep an old device useful and learn where its materials came from.",
+    "decisionCriterion": "Choose for a reader interested in gadgets, repair, climate, electronics, or making technology last."
+  },
+  "robot-in-the-hallway": {
+    "workId": "robot-in-the-hallway",
+    "title": "Robot in the Hallway",
+    "author": "RISE",
+    "editionId": "rise-original:robot-in-the-hallway",
+    "sourceRevision": "sha256:5e7188d42e1a8bcb6e197729f71ccbde1da514724920f06ed47d5954df6af87b",
+    "fitDescription": "A school delivery robot reveals that useful automation still needs people.",
+    "decisionCriterion": "Choose for a reader interested in robots, automation, school technology, or what machines can do in the real world."
+  },
+  "signal-from-the-moon": {
+    "workId": "signal-from-the-moon",
+    "title": "Signal from the Moon",
+    "author": "RISE",
+    "editionId": "rise-original:signal-from-the-moon",
+    "sourceRevision": "sha256:dcbd3c94d0602cca4fe0354b3cb2c604d893c1a6fcda1ec4052aaccae6c16d00",
+    "fitDescription": "A young radio listener thinks about distance, delay, and space exploration.",
+    "decisionCriterion": "Choose for a reader interested in space, the Moon, communications, exploration, or science wonder."
+  },
+  "the-fan-edit": {
+    "workId": "the-fan-edit",
+    "title": "The Fan Edit",
+    "author": "RISE",
+    "editionId": "rise-original:the-fan-edit",
+    "sourceRevision": "sha256:4a5bc28506fd7e3c4f213b7fc277d2a8111feb6a5668590dbaeddbeca31f4336",
+    "fitDescription": "An editor learns to credit collaborators and respect borrowed material.",
+    "decisionCriterion": "Choose for a reader interested in fandom, remixing, edits, creative credit, or sharing art online."
+  },
+  "the-deepfake-in-the-chat": {
+    "workId": "the-deepfake-in-the-chat",
+    "title": "The Deepfake in the Chat",
+    "author": "RISE",
+    "editionId": "rise-original:the-deepfake-in-the-chat",
+    "sourceRevision": "sha256:3db330d353bc9e40a40a508ebdd4dfc7651d8459a88d8e24c05f01025e2faf2e",
+    "fitDescription": "A convincing clip prompts a class to verify before forwarding.",
+    "decisionCriterion": "Choose for a reader concerned with deepfakes, misinformation, viral clips, or checking a shocking claim."
+  },
+  "captions-on": {
+    "workId": "captions-on",
+    "title": "Captions On",
+    "author": "RISE",
+    "editionId": "rise-original:captions-on",
+    "sourceRevision": "sha256:dfcb18a3669b0b0b02500da15bd8fce423464c08b6b574c96a496b8919b4a976",
+    "fitDescription": "A film night shows how accessibility changes the experience for everyone.",
+    "decisionCriterion": "Choose for a reader interested in captions, accessibility, inclusive design, video, or communication."
+  },
+  "a-map-made-of-heat": {
+    "workId": "a-map-made-of-heat",
+    "title": "A Map Made of Heat",
+    "author": "RISE",
+    "editionId": "rise-original:a-map-made-of-heat",
+    "sourceRevision": "sha256:248a57f7d6afe3b9f626f1c060aa390d71c02dae8aeea790795d375a044ee568",
+    "fitDescription": "Students compare two neighborhood streets on a hot afternoon.",
+    "decisionCriterion": "Choose for a reader interested in climate, city design, heat, maps, or local science."
+  },
+  "the-smallest-app": {
+    "workId": "the-smallest-app",
+    "title": "The Smallest App",
+    "author": "RISE",
+    "editionId": "rise-original:the-smallest-app",
+    "sourceRevision": "sha256:26b02d6a21548ddd4f7dba7970c279ae4f1c870d630e386c03fea03969d0d96a",
+    "fitDescription": "A beginner writes software to solve one real problem for a friend.",
+    "decisionCriterion": "Choose for a reader interested in coding, apps, building things, or solving a small everyday problem."
+  },
+  "the-online-friend": {
+    "workId": "the-online-friend",
+    "title": "The Online Friend",
+    "author": "RISE",
+    "editionId": "rise-original:the-online-friend",
+    "sourceRevision": "sha256:7ded8bd6a104fc4a62f0d5a692a91f8b6a0eb73d9c8a1724aa08dbdac7245588",
+    "fitDescription": "Two friends keep a real connection while setting clear boundaries online.",
+    "decisionCriterion": "Choose for a reader interested in online friendships, gaming friends, trust, or boundaries in digital spaces."
+  },
+  "when-the-screen-goes-dark": {
+    "workId": "when-the-screen-goes-dark",
+    "title": "When the Screen Goes Dark",
+    "author": "RISE",
+    "editionId": "rise-original:when-the-screen-goes-dark",
+    "sourceRevision": "sha256:35adc42b471f62e51834ae95e43db2bcb45fe438cc42a9f2b272df3435366d8e",
+    "fitDescription": "A power outage turns a digital project into a shared real-world plan.",
+    "decisionCriterion": "Choose for a reader interested in resilience, offline life, digital tools, community, or what happens when technology fails."
+  }
+}

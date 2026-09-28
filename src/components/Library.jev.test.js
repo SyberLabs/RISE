@@ -6,6 +6,7 @@ import { resolveJevChamberConfig } from '../core/jev-config.js';
 import { compileJevAudioProgram, compileJevVisualProgram } from '../core/jev-sequence.js';
 
 const book = LIBRARY_TEXTS.find(text => text.id === 'literary-meditations');
+const original = LIBRARY_TEXTS.find(text => text.id === 'the-prompt-and-the-pencil');
 let library;
 let container;
 
@@ -59,6 +60,21 @@ describe('RISE recommendation in the reader-facing Library', () => {
     expect(form.querySelector('[data-jev-dictate]')).not.toBeNull();
     expect(form.querySelector('[data-jev-dictation-status]')).not.toBeNull();
     expect(form.textContent).toMatch(/browser.s speech service/i);
+  });
+  it('shows and opens a released original as an original reading', async () => {
+    const form = mount();
+    const open = vi.spyOn(library, 'handleTextSelection').mockResolvedValue();
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, json: async () => response({
+      workId: original.id, editionId: original.editionId,
+      sourceRevision: original.sourceRevision, reason: original.description
+    }) }));
+    form.elements.intent.value = 'AI and school';
+    await library.recommendWithJev(form);
+    expect(container.querySelector('.library-jev-choice h3').textContent).toBe(original.title);
+    expect(container.querySelector('.library-jev-author').textContent).toContain('RISE Original');
+    expect(container.querySelector('[data-action="open-jev"]').textContent).toBe('Open this reading');
+    container.querySelector('[data-action="open-jev"]').click();
+    await vi.waitFor(() => expect(open).toHaveBeenCalled());
   });
   it('asks RISE from a home-page intent and carries reader choices to the selected text', async () => {
     const fetch = vi.fn().mockResolvedValue({ ok: true, json: async () => response() });

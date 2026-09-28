@@ -1,10 +1,11 @@
 /**
- * Run once against a Neon PostgreSQL database with NEON_DATABASE_URL set.
- * The release inventory pins the exact Standard Ebooks edition and bytes;
+ * Deploy the matching Worker and client, then run against Neon with NEON_DATABASE_URL set.
+ * Release manifests pin the exact editions or original readings and bytes;
  * this editorial list supplies short, public recommendation metadata.
  */
 import { neon } from '@neondatabase/serverless';
 import releaseInventory from '../src/content/archive/release-inventory.json' with { type: 'json' };
+import modernManifest from '../src/content/modern-readings-manifest.json' with { type: 'json' };
 
 const EDITORIAL = {
   middlemarch: ['Middlemarch', 'George Eliot', 'A rich novel of relationships, ambition, and life in a provincial town.', 'Choose for a reader seeking a long, psychologically detailed social novel about relationships, choices, and community.'],
@@ -32,25 +33,40 @@ if (released.length !== Object.keys(EDITORIAL).length
   throw new Error('Editorial seed must match every served Standard Ebooks edition.');
 }
 
+const CATALOG = [
+  ...Object.entries(EDITORIAL).map(([workId, [title, author, fit, criterion]]) => ({
+    workId, title, author, fit, criterion, edition: releaseInventory[workId]
+  })),
+  ...Object.values(modernManifest).map(edition => ({
+    workId: edition.workId, title: edition.title, author: edition.author,
+    fit: edition.fitDescription, criterion: edition.decisionCriterion, edition
+  }))
+];
+if (new Set(CATALOG.map(item => item.workId)).size !== CATALOG.length) {
+  throw new Error('The reading seed contains duplicate work IDs.');
+}
+
 const createTable = `CREATE TABLE IF NOT EXISTS rise_books (
   work_id TEXT PRIMARY KEY,
   title TEXT NOT NULL,
   author TEXT NOT NULL,
-  edition_id TEXT NOT NULL CHECK (edition_id LIKE 'standard-ebooks:%'),
+  edition_id TEXT NOT NULL CHECK (edition_id LIKE 'standard-ebooks:%' OR edition_id LIKE 'rise-original:%'),
   source_revision TEXT NOT NULL CHECK (source_revision ~ '^sha256:[0-9a-f]{64}$'),
   fit_description TEXT NOT NULL,
   decision_criterion TEXT NOT NULL,
   active BOOLEAN NOT NULL DEFAULT TRUE
 );`;
+const widenEditionConstraint = `ALTER TABLE rise_books DROP CONSTRAINT IF EXISTS rise_books_edition_id_check;
+ALTER TABLE rise_books ADD CONSTRAINT rise_books_edition_id_check
+  CHECK (edition_id LIKE 'standard-ebooks:%' OR edition_id LIKE 'rise-original:%');`;
 
 if (process.argv.includes('--print-sql')) {
   const quote = value => `'${String(value).replaceAll("'", "''")}'`;
-  const values = Object.entries(EDITORIAL).map(([workId, [title, author, fit, criterion]]) => {
-    const edition = releaseInventory[workId];
+  const values = CATALOG.map(({ workId, title, author, fit, criterion, edition }) => {
     return `  (${[workId, title, author, edition.editionId, edition.sourceRevision, fit, criterion]
       .map(quote).join(', ')}, TRUE)`;
   }).join(',\n');
-  process.stdout.write(`${createTable}\n\nINSERT INTO rise_books
+  process.stdout.write(`-- Deploy the matching Worker and client before applying this seed.\n${createTable}\n\n${widenEditionConstraint}\n\nINSERT INTO rise_books
   (work_id, title, author, edition_id, source_revision, fit_description, decision_criterion, active)
 VALUES\n${values}
 ON CONFLICT (work_id) DO UPDATE SET
@@ -68,19 +84,17 @@ await sql`CREATE TABLE IF NOT EXISTS rise_books (
   work_id TEXT PRIMARY KEY,
   title TEXT NOT NULL,
   author TEXT NOT NULL,
-  edition_id TEXT NOT NULL CHECK (edition_id LIKE 'standard-ebooks:%'),
+  edition_id TEXT NOT NULL CHECK (edition_id LIKE 'standard-ebooks:%' OR edition_id LIKE 'rise-original:%'),
   source_revision TEXT NOT NULL CHECK (source_revision ~ '^sha256:[0-9a-f]{64}$'),
   fit_description TEXT NOT NULL,
   decision_criterion TEXT NOT NULL,
   active BOOLEAN NOT NULL DEFAULT TRUE
 )`;
+await sql`ALTER TABLE rise_books DROP CONSTRAINT IF EXISTS rise_books_edition_id_check`;
+await sql`ALTER TABLE rise_books ADD CONSTRAINT rise_books_edition_id_check
+  CHECK (edition_id LIKE 'standard-ebooks:%' OR edition_id LIKE 'rise-original:%')`;
 
-for (const [workId, [title, author, fit, criterion]] of Object.entries(EDITORIAL)) {
-  const edition = releaseInventory[workId];
-  if (!edition || !edition.editionId.startsWith('standard-ebooks:')
-    || !edition.source?.url?.startsWith('https://standardebooks.org/ebooks/')) {
-    throw new Error(`Release inventory does not admit ${workId}.`);
-  }
+for (const { workId, title, author, fit, criterion, edition } of CATALOG) {
   await sql`INSERT INTO rise_books
     (work_id, title, author, edition_id, source_revision, fit_description, decision_criterion, active)
     VALUES (${workId}, ${title}, ${author}, ${edition.editionId}, ${edition.sourceRevision}, ${fit}, ${criterion}, TRUE)
@@ -92,7 +106,7 @@ for (const [workId, [title, author, fit, criterion]] of Object.entries(EDITORIAL
 }
 
 const count = await sql`SELECT count(*)::integer AS count FROM rise_books WHERE active = TRUE`;
-if (count[0]?.count !== Object.keys(EDITORIAL).length) {
-  throw new Error('Active catalog must contain exactly the released Standard Ebooks seed set.');
+if (count[0]?.count !== CATALOG.length) {
+  throw new Error('Active catalog must contain exactly the released reading seed set.');
 }
-process.stdout.write(`Seeded ${count[0].count} Standard Ebooks works.\n`);
+process.stdout.write(`Seeded ${count[0].count} released readings.\n`);
