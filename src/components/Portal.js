@@ -187,7 +187,6 @@ export class Portal {
 
         <footer class="portal-footer">
           <button class="portal-footer-link" type="button" data-action="guide">Guide</button>
-          <a href="/sequences/" class="portal-footer-link">Short readings</a>
           <button class="portal-footer-link" type="button" data-nav="chamber">Reader setup</button>
           <!-- The header holds at most four destinations and the footer stays
                plain; the remaining rooms are one disclosure away, never gone. -->

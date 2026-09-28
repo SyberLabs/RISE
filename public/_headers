@@ -8,9 +8,6 @@
 /index.html
   Cache-Control: public, max-age=0, must-revalidate
 
-/sequences/*
-  Cache-Control: public, max-age=0, must-revalidate
-
 /site.webmanifest
   Content-Type: application/manifest+json
 
