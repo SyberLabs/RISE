@@ -13,7 +13,7 @@ export const DEVICE_MODELS = Object.freeze({
     'kev-4b': Object.freeze({
         label: 'Kev-4B',
         base: 'https://huggingface.co/ai-ecoverse/kev.js/resolve/main/kev-4b',
-        // The same checkpoint local RISE serves (local/kev_server.py).
+        // The same checkpoint local RISE serves (deploy/kev/local_app.py).
         run: 'jaredpalmer/kev-4b@139fdd94f1b6a6ad80cc15e08fcb99cac885a101',
         variant: 'q8f32',
         bytes: 4_700_000_000

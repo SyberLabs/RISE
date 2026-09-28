@@ -32,7 +32,10 @@ test('live mode refuses to run without the operator’s own key', () => {
 });
 
 test('compare keeps the scorer gates and never counts mocked captures', () => {
-  assert.equal(compareRuns(cases, options, baseline, candidate, 'cases', 'options').passed, true);
+  const result = compareRuns(cases, options, baseline, candidate, 'cases', 'options');
+  assert.equal(result.passed, true);
+  assert.deepEqual([result.candidate.p50WallMs, result.candidate.p95WallMs, result.candidate.maxWallMs], [100, 100, 100]);
+  assert.deepEqual(result.candidate.notAccepted, []);
   assert.throws(() => compareRuns(cases, options, { ...baseline, mode: 'mock' }, candidate, 'cases', 'options'), /mocked/u);
   assert.throws(() => compareRuns(cases, options, baseline, { ...candidate, mode: 'mock' }, 'cases', 'options'), /local capture/u);
   assert.throws(() => compareRuns(cases, options, baseline,

@@ -44,7 +44,7 @@ export function decisionIdentity(provider) {
 
 /**
  * The local Kev server adds this header only after it has loaded and checked
- * the pinned checkpoint and base (local/kev_server.py). An answer without it
+ * the pinned checkpoint and base (deploy/kev/local_app.py). An answer without it
  * is not the model RISE pinned.
  */
 export function validProviderResponse(response, provider) {

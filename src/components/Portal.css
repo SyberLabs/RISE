@@ -1207,29 +1207,31 @@
 
 /* The reader's own AI connection. Quiet: reading needs none of it. */
 .portal-ai {
-  margin-top: var(--sy-space-4, 16px);
-  padding-top: var(--sy-space-3, 12px);
-  border-top: 1px solid var(--sy-line, rgba(255, 255, 255, 0.12));
-}
-
-.portal-ai-title {
-  margin: 0 0 var(--sy-space-2, 8px);
+  margin-top: var(--sy-space-3, 12px);
   font-size: 0.875rem;
-  font-weight: 600;
+  line-height: 1.5;
+  color: var(--sy-text-2);
 }
 
-.portal-ai-choices {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--sy-space-2, 8px);
-  margin-bottom: var(--sy-space-2, 8px);
+.portal-ai-line {
+  margin: 0;
 }
 
-.portal-ai .portal-chip {
-  text-decoration: none;
+.portal-ai .portal-link {
+  font-size: inherit;
+  line-height: inherit;
+  text-underline-offset: 3px;
+}
+
+.portal-ai-hint {
+  opacity: 0.75;
+}
+
+.portal-ai-about summary {
+  cursor: pointer;
+  opacity: 0.75;
 }
 
 .portal-ai-notice {
-  margin: var(--sy-space-2, 8px) 0 0;
-  font-size: 0.875rem;
+  margin: var(--sy-space-1, 4px) 0 0;
 }

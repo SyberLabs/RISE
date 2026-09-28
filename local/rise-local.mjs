@@ -3,8 +3,9 @@
  * Run RISE and Kev on this computer: `npm run local`.
  *
  * 1. Checks the GPU and memory (never falls back to CPU or a smaller model).
- * 2. Installs pinned Kev once into an isolated environment in .rise-local/
- *    (ignored by git); the system Python is used only to create it.
+ * 2. Installs pinned Kev once into an isolated environment outside the
+ *    repository (%LOCALAPPDATA%\\rise-kev or ~/.cache/rise-kev, shared with
+ *    deploy/kev/local.ps1); the system Python is used only to create it.
  * 3. Starts the local bridge on 127.0.0.1 and opens RISE. Reading works at once.
  * 4. Rechecks free memory, then starts pinned Kev on another loopback port with
  *    a per-run key. The page shows installing / downloading / loading / ready.
@@ -20,6 +21,7 @@ import { randomBytes } from 'node:crypto';
 import { existsSync } from 'node:fs';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { createServer } from 'node:net';
+import { homedir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { createBridge } from './bridge.mjs';
@@ -33,7 +35,9 @@ export const KEV_PACKAGE = `kev[serve] @ https://github.com/jaredpalmer/kev/arch
 export const CUDA_TORCH = ['torch==2.8.0', '--index-url', 'https://download.pytorch.org/whl/cu128'];
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
-const HOME = join(ROOT, '.rise-local');
+// Outside the repository, and the same place deploy/kev/local.ps1 keeps its
+// venv and model cache, so the two never download Kev twice.
+const HOME = process.env.LOCALAPPDATA ? join(process.env.LOCALAPPDATA, 'rise-kev') : join(homedir(), '.cache', 'rise-kev');
 const VENV = join(HOME, 'venv');
 const IS_WINDOWS = process.platform === 'win32';
 const VENV_PYTHON = IS_WINDOWS ? join(VENV, 'Scripts', 'python.exe') : join(VENV, 'bin', 'python');
@@ -101,7 +105,7 @@ async function ensureKev(status, gpuKind) {
   const marker = join(VENV, 'rise-install.json');
   const wanted = JSON.stringify({ kev: KEV_CODE_REVISION, gpu: gpuKind, torch: gpuKind === 'nvidia' ? CUDA_TORCH[0] : 'pypi' });
   if (existsSync(VENV_PYTHON) && existsSync(marker) && await readFile(marker, 'utf8') === wanted) return;
-  status.set('installing', 'Creating the isolated Kev environment in .rise-local (first run only).');
+  status.set('installing', `Creating the isolated Kev environment in ${HOME} (first run only).`);
   const python = await findPython();
   if (!python) throw new Error('Python 3.12 or 3.13 is required to install Kev. Install it, or pass --python PATH.');
   if (!existsSync(VENV_PYTHON)) await run(python.command, [...python.prefix, '-m', 'venv', VENV]);
@@ -155,7 +159,7 @@ function startKev({ status, port, token, offline, gpu }) {
     PYTHONUNBUFFERED: '1',
     ...(offline ? { HF_HUB_OFFLINE: '1', TRANSFORMERS_OFFLINE: '1' } : {})
   };
-  const child = spawn(VENV_PYTHON, [join(ROOT, 'local', 'kev_server.py'), '--host', '127.0.0.1', '--port', String(port)],
+  const child = spawn(VENV_PYTHON, [join(ROOT, 'deploy', 'kev', 'local_app.py'), '--port', String(port)],
     { env, stdio: ['ignore', 'pipe', 'inherit'], windowsHide: true });
   let buffer = '';
   child.stdout.on('data', chunk => {

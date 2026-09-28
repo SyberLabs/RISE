@@ -89,7 +89,5 @@ scratch/
 /apparitio (2).html
 public/content/
 
-# Local RISE: isolated Kev environment and model cache (npm run local)
-.rise-local/
 __pycache__/
 *.pyc

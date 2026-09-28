@@ -137,7 +137,9 @@ export function compareRuns(cases, options, baseline, candidate, casesHash, opti
     || candidate.identity.revision !== KEV.revision) fail('Candidate must be a local capture of the pinned Kev revision.');
   const baseScore = scoreDecisions(cases, baseline.rows, options);
   const kevScore = scoreDecisions(cases, candidate.rows, options);
-  const maxMs = Math.max(...candidate.rows.map(row => row.wallMs));
+  const times = candidate.rows.map(row => row.wallMs).sort((a, b) => a - b);
+  const percentile = p => times[Math.min(times.length - 1, Math.ceil(p * times.length) - 1)];
+  const maxMs = times.at(-1);
   const gates = {
     allCasesReturned: candidate.rows.every(row => row.status === 'ok'),
     zeroInvalidAcceptedChoices: kevScore.invalid === 0,
@@ -152,7 +154,9 @@ export function compareRuns(cases, options, baseline, candidate, casesHash, opti
     baseline: { mode: baseline.mode, returned: baseScore.returned, invalid: baseScore.invalid,
       explicit: baseScore.explicit, contrast: baseScore.contrast },
     candidate: { mode: candidate.mode, returned: kevScore.returned, invalid: kevScore.invalid,
-      explicit: kevScore.explicit, contrast: kevScore.contrast, maxWallMs: maxMs },
+      explicit: kevScore.explicit, contrast: kevScore.contrast,
+      p50WallMs: percentile(0.5), p95WallMs: percentile(0.95), maxWallMs: maxMs,
+      notAccepted: candidate.rows.filter(row => row.status !== 'ok').map(row => ({ id: row.id, status: row.status, error: row.error })) },
     gates, passed: Object.values(gates).every(Boolean)
   };
 }

@@ -228,6 +228,7 @@ it('offers the two reader-owned choices, and sends nothing without one', async (
   const panel = container.querySelector('#portal-ai');
   expect(panel.querySelector('[data-ai="connect"]').textContent).toBe('Connect OpenRouter');
   expect(panel.querySelector('a').textContent).toBe('Run locally');
+  expect(panel.querySelector('a').getAttribute('rel')).toContain('noopener');
   expect(panel.textContent).toContain('billed to your own OpenRouter account');
   expect(panel.textContent).toContain('no hosted inference bill');
   await request(container, 'A slow, quiet reading.');
@@ -244,7 +245,8 @@ it('shows a connected OpenRouter account, its billing, and disconnects', async (
   const { portal, container } = mount();
   acceptOpenRouterKey('sk-or-v1-portal-test-key-0123456789');
   const panel = container.querySelector('#portal-ai');
-  expect(panel.textContent).toContain('billed to that account');
+  expect(panel.textContent).toContain('billed to you');
+  expect(panel.textContent).toContain('billed to your OpenRouter account');
   expect(panel.textContent).not.toContain('sk-or-v1-portal-test-key');
   expect(panel.textContent).toContain('browser extensions');
   panel.querySelector('[data-ai="disconnect"]').click();

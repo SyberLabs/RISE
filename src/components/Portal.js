@@ -206,8 +206,7 @@ export class Portal {
               <div class="portal-examples" aria-label="Example requests">
                 ${EXAMPLES.map(text => `<button class="portal-chip" type="button" data-example="${escapeHtml(text)}">${escapeHtml(text)}</button>`).join('')}
               </div>
-              <div class="portal-ai" id="portal-ai" aria-labelledby="portal-ai-title">
-                <p class="portal-ai-title" id="portal-ai-title">AI suggestions use your own model</p>
+              <div class="portal-ai" id="portal-ai" role="group" aria-label="Your AI connection">
                 <div class="portal-ai-body"></div>
                 <p class="portal-ai-notice" role="status" aria-live="polite" hidden></p>
               </div>
@@ -746,32 +745,31 @@ export class Portal {
     if (!body) return;
     const state = connectionState();
     if (state.kind === 'openrouter') {
-      body.innerHTML = `<p class="portal-help"><strong>Connected:</strong> Jev through your OpenRouter account.
-          Each request is billed to that account, including visual direction while you read a released text.
-          The key stays in this tab’s memory and is forgotten when you
-          disconnect, reload, or close the tab. It is never sent to SyberLabs, but browser extensions you have
-          installed can read what a page holds. Each connection creates a key in your OpenRouter account;
-          revoke old ones in your OpenRouter settings.</p>
-        <button class="portal-chip" type="button" data-ai="disconnect">Disconnect OpenRouter</button>`;
+      body.innerHTML = `<p class="portal-ai-line">Jev through your OpenRouter account, billed to you.
+          <button class="portal-link" type="button" data-ai="disconnect">Disconnect</button></p>
+        <details class="portal-ai-about"><summary>About your key</summary><p class="portal-help">Each request is
+          billed to your OpenRouter account, including visual direction while you read a released text. The key stays
+          in this tab’s memory and is forgotten when you disconnect, reload, or close the tab. It is never sent to
+          SyberLabs, but browser extensions you have installed can read what a page holds. Each connection creates a
+          key in your OpenRouter account; revoke old ones in your OpenRouter settings.</p></details>`;
       return;
     }
     if (state.kind === 'local') {
-      body.innerHTML = `<p class="portal-help"><strong>Running locally:</strong> Kev on this computer${
+      body.innerHTML = `<p class="portal-ai-line">Kev on this computer${
         state.device ? ` (${escapeHtml(state.device)})` : ''}. No hosted inference bill.</p>`;
       return;
     }
     if (this.localStatus?.local || isLocalRise()) {
-      body.innerHTML = `<p class="portal-help">${escapeHtml(KEV_STATES[this.localStatus.kev?.state] || KEV_STATES.checking)}${
-        this.localStatus.kev?.message ? ` ${escapeHtml(String(this.localStatus.kev.message).slice(0, 240))}` : ''}</p>`;
+      const kev = this.localStatus?.kev;
+      body.innerHTML = `<p class="portal-ai-line">${escapeHtml(KEV_STATES[kev?.state] || KEV_STATES.checking)}${
+        kev?.message ? ` ${escapeHtml(String(kev.message).slice(0, 240))}` : ''}</p>`;
       return;
     }
-    body.innerHTML = `<div class="portal-ai-choices">
-        <button class="portal-chip" type="button" data-ai="connect">Connect OpenRouter</button>
-        <a class="portal-chip" href="${LOCAL_GUIDE}" target="_blank" rel="noopener noreferrer">Run locally</a>
-      </div>
-      <p class="portal-help"><strong>Connect OpenRouter:</strong> hosted Jev, billed to your own OpenRouter account.
-        <strong>Run locally:</strong> RISE and Kev on your computer, with no hosted inference bill.
-        Reading and choosing settings yourself need neither.</p>`;
+    body.innerHTML = `<p class="portal-ai-line">AI uses your own model:
+        <button class="portal-link" type="button" data-ai="connect">Connect OpenRouter</button>
+        <span class="portal-ai-hint">billed to your own OpenRouter account</span> ·
+        <a class="portal-link" href="${LOCAL_GUIDE}" target="_blank" rel="noopener noreferrer">Run locally</a>
+        <span class="portal-ai-hint">no hosted inference bill</span></p>`;
   }
 
   showAiNotice(message) {

@@ -163,7 +163,7 @@ flowchart LR
     audio["audio<br/>Web Audio, recitation<br/>10 modules"]
     components["components<br/>routed views<br/>44 modules"]
     content["content<br/>texts, imagery, journeys<br/>230 modules"]
-    core["core<br/>session, player, router<br/>159 modules"]
+    core["core<br/>session, player, router<br/>160 modules"]
     enterprise["enterprise<br/>talk program, speaker rail<br/>28 modules"]
     oracle["oracle<br/>2 modules"]
     page["page<br/>spatial projection<br/>4 modules"]
@@ -182,7 +182,7 @@ flowchart LR
     components -.-> |1 lazy| app
     components --> |2| audio
     components --> |23| content
-    components --> |162| core
+    components --> |164| core
     components -.-> |1 lazy| page
     components --> |4| sources
     components -.-> |2 lazy| vendor
@@ -192,7 +192,7 @@ flowchart LR
     content --> |17| sources
     content --> |1| visuals
     core --> |6| audio
-    core --> |15| content
+    core --> |16| content
     core --> |4| sources
     core --> |23| visuals
     page --> |2| core
@@ -952,7 +952,7 @@ of `settled`, `open`, `deferred`, or `reversed`.
   Kev-4B's 4.7 GB on a 16 GB Windows machine.
 - **Why:** the transcript and the decision stay on the presenter's machine,
   with nothing to install. Kev-4B on the device is pinned to the checkpoint
-  local RISE serves (`local/kev_server.py`), and a test keeps the two
+  local RISE serves (`deploy/kev/local_app.py`), and a test keeps the two
   pins equal.
 - **Status:** open. Kev-0.8B loads and decides on Chrome 153 for Windows with
   an AMD RX 5700 (30 of 30 questions, 214 ms median). While a model is

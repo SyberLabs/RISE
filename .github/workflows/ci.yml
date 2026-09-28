@@ -29,7 +29,7 @@ jobs:
           set -euo pipefail
           node scripts/ci-hygiene.mjs
           node --test scripts/decision-eval.test.mjs local/bridge.test.mjs local/hardware.test.mjs local/launcher.test.mjs
-          python3 -m unittest discover -s local -p 'test_*.py'
+          python3 -m unittest discover -s deploy/kev -p 'test_*.py'
           npm run security:audit &
           audit=$!
           npm run security:compat
