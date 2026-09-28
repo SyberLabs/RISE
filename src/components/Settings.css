@@ -21,20 +21,34 @@
 
 /* Header: the system room header (room-chrome.js). */
 
-/* Content */
+/* Content: the Atlas header's own column and gutter (.sl-header,
+   design-system.css), so the title starts on the lockup's line as it does
+   on Home; the form keeps a reading measure inside it. */
 .settings-content {
-    max-width: 560px;
+    --settings-gutter: clamp(16px, 4vw, 56px);
+    box-sizing: content-box;
+    max-width: 1320px;
     margin: 0 auto;
-    padding: var(--sy-space-8) var(--sy-space-6) var(--sy-space-9);
+    padding: var(--sy-space-8) var(--settings-gutter) var(--sy-space-9);
+}
+
+.settings-form {
+    max-width: 640px;
 }
 
 .settings .settings-title {
     margin-bottom: var(--sy-space-7);
 }
 
+@media (max-width: 1100px) {
+    .settings-content {
+        padding: var(--sy-space-7) var(--settings-gutter) var(--sy-space-8);
+    }
+}
+
 @media (max-width: 640px) {
     .settings-content {
-        padding: var(--sy-space-6) var(--sy-space-4) var(--sy-space-8);
+        padding: var(--sy-space-6) var(--settings-gutter) var(--sy-space-8);
     }
 }
 
@@ -109,8 +123,11 @@
 }
 
 .settings-label {
-    font-size: 14px;
-    color: var(--color-cloud);
+    font-family: var(--sy-font-sans);
+    font-size: 16px;
+    line-height: 24px;
+    font-weight: 500;
+    color: var(--sy-text);
 }
 
 .settings-label-group {
@@ -120,13 +137,18 @@
 }
 
 .settings-hint {
-    font-size: 12px;
+    margin: 0;
+    max-width: 52ch;
+    font-family: var(--sy-font-sans);
+    font-size: 14px;
+    line-height: 20px;
+    color: var(--sy-text-2);
 }
 
 .settings-fail {
     margin: 6px 0 0;
-    font-size: 12px;
-    color: var(--color-fog);
+    font-size: 14px;
+    color: var(--sy-text-2);
 }
 
 .settings-fail[hidden] {
@@ -178,7 +200,7 @@
 }
 
 .settings .radio:has(input:checked) .radio-label {
-    color: var(--color-light);
+    color: var(--sy-text);
 }
 
 .settings .radio:has(input:focus-visible) {
@@ -189,7 +211,7 @@
 .settings .radio-label {
     font-size: 14px;
     line-height: 20px;
-    color: var(--color-cloud);
+    color: var(--sy-text-2);
 }
 
 /* THE SWATCH IS THE ARGUMENT. A sitting is a colour, so the chip wears it:
@@ -225,8 +247,12 @@
 }
 
 .settings-row .slider-value {
-    min-width: 60px;
+    min-width: 48px;
     text-align: right;
+    font-family: var(--sy-font-sans);
+    font-size: 14px;
+    font-variant-numeric: tabular-nums;
+    color: var(--sy-text-2);
 }
 
 /* Toggle switch */
@@ -241,18 +267,16 @@
     display: none;
 }
 
-/* A MACHINED SWITCH, NOT A BORROWED PILL. The 12px track and its round knob
-   were an iOS component sitting in a system whose tokens read "Sharp corners
-   = intention" and cap the radius at 2px. It is the most repeated control on
-   this screen — seven of them — so it sets the panel's whole texture. It now
-   carries the same recessed track and lit bevel as the Portal's tiles. */
+/* A PILL, LIKE EVERY OTHER ATLAS CONTROL. It is the most repeated control on
+   this screen, so it sets the panel's texture: the same full radius as the
+   buttons and chips around it, ink-2 track, a brand fill when on. */
 .toggle-switch {
     position: relative;
     width: 46px;
     height: 24px;
     background: var(--sy-surface);
     border: 1px solid var(--sy-line-strong);
-    border-radius: var(--sy-radius);
+    border-radius: var(--sy-radius-full);
     transition: background var(--transition-normal) var(--ease-default),
         border-color var(--transition-normal) var(--ease-default),
         box-shadow var(--transition-normal) var(--ease-default);
@@ -266,7 +290,7 @@
     width: 18px;
     height: 18px;
     background: var(--sy-text-3);
-    border-radius: var(--sy-radius-sm);
+    border-radius: 50%;
     transition: left var(--sy-dur-enter) var(--sy-ease),
         background-color var(--sy-dur-enter) var(--sy-ease);
 }
@@ -286,42 +310,26 @@
     outline-offset: 2px;
 }
 
-/* Buttons in settings */
-.settings-row .btn-secondary {
+/* Data actions: what the action does on the left, the button on the right. */
+.settings-action .btn-secondary {
+    flex: none;
     width: auto;
-    min-width: 232px;
 }
 
-/* Clearing every trace of a reader is not the same act as exporting it, and
-   sat in an identical row saying so only in rose text. It keeps its distance
-   and states what it does before it is pressed. */
-.settings-danger {
-    margin-top: var(--space-lg);
-    padding-top: var(--space-md);
-    border-top: 1px solid rgba(212, 127, 139, 0.22);
+/* Clearing is the one destructive act on the page. It is a secondary
+   button like Export, set apart only by its danger text and border. No
+   fill: the system has no coloured backgrounds. The confirm dialog is
+   the second step. */
+.settings .settings-btn-danger {
+    color: var(--sy-danger);
+    border-color: var(--sy-danger);
+    background: transparent;
 }
 
-.settings-danger .settings-label-group {
-    width: 100%;
-    gap: var(--space-sm);
-}
-
-.settings-danger .settings-hint {
-    color: var(--color-fog);
-    margin: 0;
-    max-width: 62ch;
-    line-height: 1.6;
-}
-
-.btn-caution {
-    border-color: rgba(212, 127, 139, 0.55);
-    color: var(--color-rose);
-    background: rgba(212, 127, 139, 0.05);
-}
-
-.btn-caution:hover {
-    background: rgba(212, 127, 139, 0.14);
-    border-color: var(--color-rose);
+.settings .settings-btn-danger:hover {
+    color: var(--sy-danger);
+    border-color: var(--sy-danger);
+    background: var(--sy-surface-2);
 }
 
 /* About section */
@@ -329,23 +337,11 @@
     padding-top: var(--space-sm);
 }
 
-.about-content {
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-xs);
-}
-
-.about-version {
-    font-size: 14px;
-}
-
 .about-tagline {
+    margin: 0;
     font-size: 14px;
-}
-
-.about-attribution {
-    font-size: 12px;
-    margin-top: var(--space-sm);
+    line-height: 20px;
+    color: var(--sy-text-2);
 }
 
 /* Responsive */
@@ -356,7 +352,12 @@
         padding: 0;
     }
 
-    .settings-row {
+    /* A switch stays on the right of its name; everything else stacks. */
+    .settings-row:has(> .toggle) {
+        align-items: flex-start;
+    }
+
+    .settings-row:not(:has(> .toggle)) {
         flex-direction: column;
         align-items: flex-start;
         gap: var(--space-sm);
@@ -367,7 +368,12 @@
         width: 100%;
     }
 
-    .settings-row .btn-secondary {
+    .settings-row .slider {
+        flex: 1;
+        max-width: none;
+    }
+
+    .settings-action .btn-secondary {
         width: 100%;
     }
 }

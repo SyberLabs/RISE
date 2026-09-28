@@ -106,7 +106,6 @@ describe('Settings display type', () => {
             '[data-setting="showProgress"]',
             '[data-setting="showArtworkLabels"]',
             '#master-volume',
-            '[data-setting="enableBinaural"]',
             '[data-setting="photosensitivityMode"]',
             '[data-setting="reducedMotion"]'
         ]) expect(container.querySelector(kept), kept).toBeTruthy();
@@ -176,7 +175,7 @@ describe('Settings display type', () => {
         expect(container.textContent).not.toMatch(/Inter|JetBrains/);
         expect(container.textContent).not.toMatch(/Crimson Pro|Marcellus|Space Grotesk|Noto Serif/);
         expect(container.querySelector('#chamber-face-fail')?.textContent.trim())
-            .toBe('Face did not take.');
+            .toBe('Typeface did not take.');
         expect(container.querySelector('#chamber-face-fail')?.hidden).toBe(true);
 
         radios.find((radio) => radio.value === 'thick').click();
@@ -201,7 +200,7 @@ describe('Settings display type', () => {
         settings.destroy();
     });
 
-    it('places Accent after Face/Size with the eleven chrome chips and fail copy', () => {
+    it('places Accent after Face/Size with the four offered chips and fail copy', () => {
         const { container, settings, onChange } = mountSettings();
         const radios = [...container.querySelectorAll('input[name="chamber-accent"]')];
         const faceRow = container.querySelector('#chamber-face-label')?.closest('.settings-row');
@@ -217,23 +216,16 @@ describe('Settings display type', () => {
         ])).toEqual([
             ['default', 'Default'],
             ['slate', 'Slate'],
-            ['ivory', 'Ivory'],
-            ['purple', 'Amethyst'],
-            ['cobalt', 'Cobalt'],
             ['amber', 'Amber'],
-            ['sunset', 'Sunset'],
-            ['gecko', 'Jade'],
-            ['garnet', 'Garnet'],
-            ['teal', 'Teal'],
-            ['orchid', 'Orchid']
+            ['gecko', 'Jade']
         ]);
         expect(radios.find((radio) => radio.value === 'default').checked).toBe(true);
         expect(container.querySelector('#chamber-accent-fail')?.textContent.trim())
             .toBe('Accent did not take.');
         expect(container.querySelector('#chamber-accent-fail')?.hidden).toBe(true);
 
-        radios.find((radio) => radio.value === 'cobalt').click();
-        expect(onChange).toHaveBeenCalledWith('chamberAccent', 'cobalt');
+        radios.find((radio) => radio.value === 'amber').click();
+        expect(onChange).toHaveBeenCalledWith('chamberAccent', 'amber');
         expect(radios.every((radio) => radio.closest('[role="radiogroup"]')
             === radios[0].closest('[role="radiogroup"]'))).toBe(true);
         settings.destroy();
@@ -248,12 +240,33 @@ describe('Settings display type', () => {
         expect(rule).toMatch(/overflow-y:\s*auto/);
         expect(rule).toMatch(/-webkit-overflow-scrolling:\s*touch/);
         expect(rule).toMatch(/height:\s*100(?:vh|dvh)/);
-        // Eleven accent chips have to wrap rather than run off a phone. They
+        // Chip groups have to wrap rather than run off a phone. They
         // wrap as every chip group does now — Size and Face included — so the
         // rule is asserted where all three read it from.
         expect(css).toMatch(
             /\.settings-control\[role="radiogroup"\]\s*\{[^}]*flex-wrap:\s*wrap/s
         );
+    });
+
+    it('keeps a stored accent that is no longer offered visible and chosen', () => {
+        const { container, settings } = mountSettings({ chamberAccent: 'cobalt' });
+        const radios = [...container.querySelectorAll('input[name="chamber-accent"]')];
+
+        expect(radios.map((radio) => radio.value)).toEqual(['default', 'slate', 'cobalt', 'amber', 'gecko']);
+        expect(radios.find((radio) => radio.value === 'cobalt').checked).toBe(true);
+        settings.destroy();
+    });
+
+    it('shows the destructive action as a plain secondary button, sentence case', () => {
+        const { container, settings } = mountSettings();
+        const clear = container.querySelector('[data-action="clear-history"]');
+
+        expect(clear.classList.contains('btn-secondary')).toBe(true);
+        expect(clear.textContent.trim()).toBe('Clear data');
+        expect(container.querySelector('main')).toBeTruthy();
+        expect(container.querySelector('[role="main"]')).toBeNull();
+        expect(container.querySelector('[data-setting="enableBinaural"]')).toBeNull();
+        settings.destroy();
     });
 
     it('coerces an unknown persisted accent to the default and ignores a forged radio value', () => {
