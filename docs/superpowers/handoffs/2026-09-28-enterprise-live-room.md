@@ -39,6 +39,8 @@ Invariants (each has tests): nothing reaches the stage without Promote, and Prom
 
 ## Open work, in priority order
 
+> **Update, later on 2026-09-28:** items 1 and 2 are addressed. The worker now streams weights to Cache Storage and hands ORT's JSPI build disk-backed Blobs (`src/enterprise/kev-store.js`, ARCHITECTURE §8.32). Kev-0.8B loads and decides on the user's RX 5700. Chrome's GPU process still holds about 1.4× the model's size in system memory, so Kev-4B needs roughly 6 GB free; the user's machine had about 2.5 GB free with its usual apps open.
+
 1. **Kev-4B runs out of memory in Chrome on Windows** (AMD RDNA1, probably 8 GB VRAM, Chrome 153): the tab crashes with "Out of Memory" during load. Likely cause: kev.js `loadKev` fetches every weight file into a JS `Uint8Array` (about 4.7 GB) and passes them all to `InferenceSession.create` as `externalData`, so the worker's memory holds the whole model at once, plus copies. Options to try, cheapest first:
    - Confirm with 0.8B that the pipeline works end to end (re-pinned on the `enterprise/handoff` branch; see below).
    - Check whether ORT `externalData` accepts a URL/path so it streams to the GPU instead of taking JS buffers, or load from OPFS (`ModelSource` as a `FileSystemDirectoryHandle`) to avoid a second copy.

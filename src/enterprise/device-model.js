@@ -30,8 +30,8 @@ export const DEVICE_MODELS = Object.freeze({
 export const DEFAULT_DEVICE_MODEL = 'kev-4b';
 
 export const ORT_WASM = Object.freeze({
-    url: 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.30.0/dist/ort-wasm-simd-threaded.asyncify.wasm',
-    sha256: '39f9f0894d478800487ed9f7dbe92618498db320cf55c8e3d89adff8dce658da'
+    url: 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.30.0/dist/ort-wasm-simd-threaded.jspi.wasm',
+    sha256: 'a54c76f86b0f0d9572380cf1c6292a7b3903716ffcbcd6b0e5c7050bf430eb93'
 });
 
 /** A manifest `run` matches when it is the pinned repo at a commit that begins with the pinned hash. */
