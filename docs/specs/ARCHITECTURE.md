@@ -164,7 +164,7 @@ flowchart LR
     components["components<br/>routed views<br/>44 modules"]
     content["content<br/>texts, imagery, journeys<br/>230 modules"]
     core["core<br/>session, player, router<br/>148 modules"]
-    enterprise["enterprise<br/>talk program, speaker rail<br/>21 modules"]
+    enterprise["enterprise<br/>talk program, speaker rail<br/>22 modules"]
     oracle["oracle<br/>2 modules"]
     page["page<br/>spatial projection<br/>4 modules"]
     sources["sources<br/>text and visual providers<br/>22 modules"]
@@ -887,16 +887,18 @@ of `settled`, `open`, `deferred`, or `reversed`.
 ### 8.31 The live room decides through JEV and holds on any doubt
 
 - **Chosen:** the room listens through the browser recognizer. Interim speech
-  warms the lexical tier; only a final asks for a decision. `session.prepare`
+  warms the lexical tier; a final, or the presenter's typed Ask, asks for a
+  decision. `session.prepare`
   builds a `rise.enterprise-context.v1` (`src/enterprise/context.js`):
   evidence (window, speaker, mode), structure (candidate ids, titles, scores,
   layouts; rail ids and titles), and authority (the actions this turn allows,
   never promotion). The live loop (`src/enterprise/live.js`) keeps one
-  decision in flight, cancels it when a newer final arrives, and bounds it
-  with a timeout. `/api/enterprise-decision` joins the other decision routes
+  decision in flight per channel (speech, ask), cancels it only when a newer
+  turn on the same channel arrives, and bounds it with a timeout. `/api/enterprise-decision` joins the other decision routes
   behind `decisionProvider` and the limiter and asks the provider one choice
   question whose options are opaque keys. `session.resolve` accepts an answer
-  only for a turn it issued, once, while no later final is pending. The
+  only for a turn it issued, once, while no later turn on its channel is
+  pending. The
   trace (`src/enterprise/trace.js`) records every step without the
   transcript. The rule decider remains for tests and an explicitly chosen
   local mode.

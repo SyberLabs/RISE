@@ -59,7 +59,8 @@ reduces the rail.
 `resolve` refuses (holds) when:
 
 - the turn was not issued by this session, or was already resolved;
-- a later final turn has been prepared (`stale`);
+- a later turn on the same channel has been prepared (`stale`). Speech and
+  the presenter's typed Ask (`prepareReasoning`) are separate channels;
 - the decider failed (`meta.reason`: `timeout`, `cancelled`, `error`,
   `invalid`, `unavailable`);
 - the chosen card was dismissed after the turn was prepared.
@@ -82,7 +83,10 @@ returns the leaders' ids, titles, and scores. It does not touch the rail.
 `src/enterprise/live.js` owns concurrency. An interim result calls `warm`. A
 final calls `prepare`, aborts any decision still in flight, calls
 `decide(context, { signal })` under a timeout (default 3_500 ms), and passes
-the answer to `resolve`. At most one decision is in flight.
+the answer to `resolve`. At most one decision is in flight per channel, and
+an Ask never cancels speech or the reverse. A card from an Ask skips the
+rail's cooldown, dwell, and margin, and does not start them for speech.
+Follow-up records only audience speech the decider declined.
 
 A cancelled decision resolves with the reason `superseded`; `stop()` uses
 `stopped`. `decide` returns `{ raw, meta }`. `localDecider` wraps `ruleDecider`.
