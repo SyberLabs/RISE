@@ -1,4 +1,5 @@
 import { createOrb, CAMERA, FOCAL } from './orb.js';
+import { requestComposedReading } from '../app/invocation.js';
 
 // Suggestions surface from the fluid when the Oracle is shaken. Each names moods
 // and sounds Jev can actually choose (worker/jev-recommend.mjs, src/core/jev-config.js).
@@ -97,9 +98,7 @@ async function ask() {
   askKey.setAttribute('aria-busy', 'true'); field.readOnly = true;
   status.textContent = 'Jev is choosing…';
   try {
-    const res = await fetch('/api/jev-recommend', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ intent, schemaVersion: 2 }) });
-    const data = await res.json().catch(() => ({}));
-    if (!res.ok) throw new Error(data?.error?.message || `Jev is unavailable here (${res.status}).`);
+    const data = await requestComposedReading(intent);
     showAnswer(data);
     status.textContent = 'Jev chose a reading.';
   } catch (e) {
@@ -117,7 +116,7 @@ function showAnswer(d) {
   answer.querySelector('.oracle-answer-title').textContent = d.title || d.workTitle || d.workId || 'A reading';
   answer.querySelector('.oracle-answer-reason').textContent = d.reason || '';
   answer.querySelector('.oracle-answer-plan').textContent =
-    [c.pace && `${c.pace} wpm`, c.audio && c.audio !== 'silent' && c.audio, c.visualMode && c.visualMode !== 'off' && c.visualMode].filter(Boolean).join(' · ');
+    [c.wpm && `${c.wpm} wpm`, c.audio && c.audio !== 'silent' && c.audio, c.visualMode && c.visualMode !== 'off' && c.visualMode].filter(Boolean).join(' · ');
   glass.classList.add('is-sinking');
   setTimeout(() => { answer.hidden = false; glass.classList.remove('is-sinking'); glass.classList.add('is-rising'); setTimeout(() => glass.classList.remove('is-rising'), 900); }, reduced.matches ? 0 : 700);
 }

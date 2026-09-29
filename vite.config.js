@@ -120,6 +120,7 @@ export default defineConfig({
       input: {
         main: fileURLToPath(new URL('./index.html', import.meta.url)),
         oracle: fileURLToPath(new URL('./oracle.html', import.meta.url)),
+        wormhole: fileURLToPath(new URL('./wormhole.html', import.meta.url)),
         // EnterpRise is served beside its decision route; it is not on the reader's first load.
         enterprise: fileURLToPath(new URL('./enterprise.html', import.meta.url)),
         'kev-check': fileURLToPath(new URL('./kev-check.html', import.meta.url)),

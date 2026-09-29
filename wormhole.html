@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#080d16">
+  <meta name="robots" content="noindex">
+  <title>RISE · Wormhole prototype</title>
+  <link rel="icon" href="/favicon.ico" sizes="any">
+  <link rel="stylesheet" href="/src/fonts.css">
+  <link rel="stylesheet" href="/src/wormhole/wormhole.css">
+</head>
+<body>
+  <main class="wormhole">
+    <header class="wh-header">
+      <a class="wh-brand" href="/" aria-label="RISE home"><img src="/syberlabs-mark.webp" width="16" height="18" alt=""> RISE<span class="wh-brand-divider">/</span> NAVIGATION</a>
+      <span class="wh-serial">EXPERIMENTAL INSTRUMENT <span>№ 02</span></span>
+    </header>
+
+    <div class="wh-console" aria-label="Wormhole navigation instrument">
+      <div class="wh-toprail"><span>SYBERLABS · RISE</span><span>FIELD TRANSIT / 01</span></div>
+      <div class="wh-viewport">
+        <canvas id="starfield" aria-hidden="true"></canvas>
+        <div class="wh-grid" aria-hidden="true"></div>
+        <div class="wh-gate" aria-hidden="true"><div class="wh-gate-inner"></div></div>
+        <svg class="wh-ship" viewBox="0 0 280 210" aria-hidden="true" focusable="false">
+          <polygon points="140,10 118,132 140,110" fill="#c6d9d4"/><polygon points="140,10 162,132 140,110" fill="#6e9397"/>
+          <polygon points="140,110 118,132 30,162 100,177" fill="#607987"/><polygon points="140,110 162,132 250,162 180,177" fill="#2c5265"/>
+          <polygon points="30,162 100,177 114,154" fill="#9aaca6"/><polygon points="250,162 180,177 166,154" fill="#4c7481"/>
+          <polygon points="118,132 140,110 140,186 100,177" fill="#203d50"/><polygon points="162,132 140,110 140,186 180,177" fill="#102d43"/>
+          <polygon points="140,109 128,139 140,149" fill="#f5b687"/><polygon points="140,109 152,139 140,149" fill="#bb653f"/>
+          <polygon points="113,173 130,188 118,193" fill="#eac392"/><polygon points="167,173 150,188 162,193" fill="#a85d42"/>
+          <path d="M140 10 118 132 30 162 100 177 140 186 180 177 250 162 162 132Z" fill="none" stroke="#d4e5df" stroke-opacity=".58" stroke-width="1"/>
+        </svg>
+        <div class="wh-reticle" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+        <span class="wh-viewport-id" aria-hidden="true">CAM / 001 <span>■ REC</span></span>
+        <span class="wh-coordinate" aria-hidden="true">X: 00.000 &nbsp; Y: ∞</span>
+        <div class="wh-horizon" aria-hidden="true"></div>
+        <div class="wh-scan" aria-hidden="true"></div>
+      </div>
+      <div class="wh-bottomrail"><span>TRAVEL WITHOUT A MAP</span><span>RISE / 2026</span></div>
+    </div>
+
+    <section class="wh-interface" aria-label="Navigation controls">
+      <div class="wh-prompt" id="prompt">
+        <span class="wh-eyebrow">UNKNOWN COORDINATES <span class="wh-blink">◆</span></span>
+        <h1>Somewhere<br><em>to begin.</em></h1>
+        <p>One passage. A world around it.</p>
+        <button class="wh-primary" id="jump" type="button"><span>ENTER WORMHOLE</span><span aria-hidden="true">↗</span></button>
+      </div>
+      <div class="wh-destination" id="destination" hidden>
+        <span class="wh-eyebrow">SIGNAL ACQUIRED <span>·</span> DESTINATION</span>
+        <h2 id="title"></h2>
+        <p id="reason"></p>
+        <span class="wh-plan" id="coordinates"></span>
+        <div class="wh-actions">
+          <button class="wh-primary" id="dock" type="button"><span>DOCK</span><span aria-hidden="true">↗</span></button>
+          <button class="wh-secondary" id="again" type="button">JUMP AGAIN</button>
+          <button class="wh-link" id="adjust" type="button">ADJUST COURSE <span aria-hidden="true">↗</span></button>
+        </div>
+      </div>
+      <p class="wh-status" id="status" role="status" aria-live="polite"></p>
+    </section>
+    <footer class="wh-footer"><span>NO DESTINATION IS FINAL.</span><button id="sound" type="button" aria-pressed="false">SOUND OFF</button></footer>
+  </main>
+  <script type="module" src="/src/wormhole/main.js"></script>
+</body>
+</html>

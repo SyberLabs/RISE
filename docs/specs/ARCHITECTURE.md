@@ -195,6 +195,7 @@ flowchart LR
     core --> |14| content
     core --> |4| sources
     core --> |23| visuals
+    oracle --> |1| app
     page --> |2| core
     page --> |3| visuals
     sources --> |2| content
