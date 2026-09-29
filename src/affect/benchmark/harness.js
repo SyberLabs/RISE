@@ -4,29 +4,28 @@
  * unavailable rather than filled with published numbers.
  */
 
-import { DIMENSIONS } from '../dimensions.js';
+import { DIMENSION_BY_ID, DIMENSIONS } from '../dimensions.js';
+import { experienceState, slot } from '../schema.js';
 import { CORPUS, PROBES } from './corpus.js';
+import { cachedEncoders } from './external.js';
 import { hostedTeacher } from './teacher.js';
 import { TEXT_ENCODER_MANIFEST, encodeText } from '../text/encode.js';
 import { LEXICAL_MANIFEST, encodeLexical } from '../text/lexical.js';
 
-export const EXTERNAL_MODELS = Object.freeze([
-    Object.freeze({
-        id: 'emopair-family',
-        role: 'external-candidate',
-        available: false,
-        reason: 'No EmoPair checkpoint is vendored. Published scores were not copied in as RISE results.'
-    }),
-    Object.freeze({
-        id: 'minilm-distillation',
-        role: 'external-candidate',
-        available: false,
-        reason: 'A MiniLM-class distillation was not trained. There is no human preference set here to supervise it, and author-invented targets were refused as labels.'
-    })
-]);
+export function unavailableModels() {
+    return cachedEncoders()
+        .filter(model => model.available === false)
+        .map(model => ({
+            id: model.id,
+            role: model.role,
+            available: false,
+            parameters: null,
+            reason: model.reason
+        }));
+}
 
 export function runnableModels() {
-    return [
+    const base = [
         {
             id: LEXICAL_MANIFEST.id,
             role: 'weak-baseline',
@@ -42,6 +41,36 @@ export function runnableModels() {
             encode: encodeText
         }
     ];
+    const cached = cachedEncoders().filter(model => model.available && typeof model.encode === 'function');
+    return [...base, ...cached];
+}
+
+function teacherOutput(judged) {
+    const body = judged?.body;
+    if (judged?.status !== 'ok' || !body?.dimensions) return null;
+    const dimensions = {};
+    for (const [id, value] of Object.entries(body.dimensions)) {
+        if (!DIMENSION_BY_ID[id] || typeof value !== 'number' || !Number.isFinite(value)) continue;
+        dimensions[id] = slot(value, 0.35, 'inferred');
+    }
+    if (Object.keys(dimensions).length === 0) return null;
+    return {
+        modelId: body.modelId || judged.id || 'hosted-teacher',
+        role: 'teacher',
+        parameters: body.parameters ?? null,
+        trained: false,
+        ms: Number.isFinite(body.ms) ? body.ms : 0,
+        confidence: 0.35,
+        state: experienceState({
+            modality: 'text',
+            dimensions,
+            caveats: ['language-model-teacher', body.note || 'teacher-response'].filter(item => typeof item === 'string').slice(0, 8),
+            provenance: {
+                method: 'hosted-teacher',
+                modelId: body.modelId || 'hosted-teacher'
+            }
+        })
+    };
 }
 
 function meanConfidence(state) {
@@ -92,8 +121,9 @@ export async function runBenchmark(options = {}) {
         for (const model of models) {
             const before = memory();
             const start = now();
-            const state = model.encode(passage.text);
-            const ms = now() - start;
+            const state = model.encode(passage.text, passage.id);
+            const recorded = state.measurements?.ms;
+            const ms = typeof recorded === 'number' ? recorded : now() - start;
             totals[model.id] += ms;
             outputs.push({
                 modelId: model.id,
@@ -107,6 +137,8 @@ export async function runBenchmark(options = {}) {
             });
         }
         const judged = options.skipTeacher ? null : await teacher(passage, env);
+        const taught = teacherOutput(judged);
+        if (taught) outputs.push(taught);
         passages.push({
             id: passage.id,
             origin: passage.origin || 'rise-archive',
@@ -130,7 +162,7 @@ export async function runBenchmark(options = {}) {
                 available: true,
                 totalMs: totals[model.id]
             })),
-            ...EXTERNAL_MODELS
+            ...unavailableModels()
         ]
     };
 }

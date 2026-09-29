@@ -3,6 +3,7 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import { CORPUS, PROBES, REQUIRED_CASES } from './benchmark/corpus.js';
+import { mapPert } from './benchmark/external.js';
 import { renderReport, runBenchmark } from './index.js';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
@@ -27,14 +28,12 @@ describe('RISE affect benchmark', () => {
         expect(PROBES[0].origin).toBe('constructed-probe');
     });
 
-    it('records model outputs, a negation disagreement, and the models that were not run', async () => {
+    it('records model outputs and a negation disagreement', async () => {
         const result = await runBenchmark({ env: {} });
         const probe = result.passages.find(passage => passage.id === 'probe-negation');
         expect(probe.disagreements.some(item => item.dimension === 'valence' && item.delta > 0.5)).toBe(true);
         expect(probe.teacher.status).toBe('unavailable');
         expect(probe.teacher.reason).toMatch(/No hosted model was called/);
-        const missing = result.models.filter(model => model.available === false).map(model => model.id);
-        expect(missing).toEqual(['emopair-family', 'minilm-distillation']);
         const crime = result.passages.find(passage => passage.id === 'crime-question');
         const neutral = result.passages.find(passage => passage.id === 'vitruvius-order');
         const tension = (passage) => passage.outputs
@@ -58,7 +57,20 @@ describe('RISE affect benchmark', () => {
         expect(report).toContain('## dickinson-death');
         expect(report).toContain('## austen-opening');
         expect(report).toContain('Disagreement');
-        expect(report).toContain('emopair-family');
-        expect(report).toContain('Models not executed');
+        expect(report).toContain('pert-emopair');
+        expect(report).toContain('minilm-l6-probe');
+        expect(report).toContain('hosted-teacher: unavailable');
+        const pert = (passage) => passage.outputs
+            .find(output => output.modelId === 'pert-emopair')
+            .state.dimensions.valence.value;
+        expect(pert(paradise)).toBeLessThan(pert(whitman));
+        expect(pert(paradise)).toBeLessThan(0);
+        expect(pert(whitman)).toBeGreaterThan(0);
+        const missing = result.models.filter(model => model.available === false);
+        expect(missing).toEqual([]);
+        expect(mapPert({ valence: 4.287, arousal: -0.474, dominance: -0.5 }).valence).toBeGreaterThan(0.5);
+        expect(mapPert({ valence: 1.563, arousal: 0.758, dominance: -0.15 }).valence).toBeLessThan(0);
+        expect(mapPert({ valence: 3, arousal: 0.758, dominance: 0 }).arousal)
+            .toBeGreaterThan(mapPert({ valence: 3, arousal: -0.474, dominance: 0 }).arousal);
     });
 });

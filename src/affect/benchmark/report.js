@@ -13,7 +13,7 @@ export function renderReport(result) {
         '# RISE affect benchmark',
         '',
         'Runnable models were executed on passages held in the RISE archive.',
-        'External models listed as unavailable were not run. Their published scores are not repeated here.',
+        '`pert-emopair` and `reward-emopair` are cached CPU scores from roberta-large checkpoints. `minilm-l6-probe` is a frozen all-MiniLM-L6-v2 embedding plus a linear head; the cell is the leave-one-out prediction, not the in-sample fit. A teacher column appears only when `AFFECT_TEACHER_URL` returned axes. None of these models run inside the player. A model listed under "Models not executed" was not scored, and its published numbers are not copied here.',
         ''
     ];
     for (const passage of result.passages) {

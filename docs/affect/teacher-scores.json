@@ -1,0 +1,247 @@
+{
+  "modelId": "Qwen/Qwen2.5-1.5B-Instruct",
+  "parameters": 1500000000,
+  "note": "local-cpu-no-hosted-credential",
+  "passages": [
+    {
+      "id": "meditations-temper",
+      "ms": 6385.438636999879,
+      "completion": "{\"valence\": 0.5, \"arousal\": 0.7, \"dominance\": 0.3}",
+      "dimensions": {
+        "valence": 0.5,
+        "arousal": 0.7,
+        "dominance": 0.3
+      }
+    },
+    {
+      "id": "dickinson-death",
+      "ms": 5474.095733000013,
+      "completion": "{\"valence\": 0.9857, \"arousal\": 0.9643, \"dominance\": 0.9286}",
+      "dimensions": {
+        "valence": 0.9857,
+        "arousal": 0.9643,
+        "dominance": 0.9286
+      }
+    },
+    {
+      "id": "austen-opening",
+      "ms": 5042.354250999779,
+      "completion": "{\"valence\": 0.583, \"arousal\": 0.964, \"dominance\": 0.273}",
+      "dimensions": {
+        "valence": 0.583,
+        "arousal": 0.964,
+        "dominance": 0.273
+      }
+    },
+    {
+      "id": "ishmael-water",
+      "ms": 5090.894294999998,
+      "completion": "{\"valence\": 0.583, \"arousal\": 0.964, \"dominance\": 0.273}",
+      "dimensions": {
+        "valence": 0.583,
+        "arousal": 0.964,
+        "dominance": 0.273
+      }
+    },
+    {
+      "id": "eyre-will",
+      "ms": 4729.496143000233,
+      "completion": "{\"valence\": 0.98, \"arousal\": 0.97, \"dominance\": 0.96}",
+      "dimensions": {
+        "valence": 0.98,
+        "arousal": 0.97,
+        "dominance": 0.96
+      }
+    },
+    {
+      "id": "dalloway-morning",
+      "ms": 4512.517531999947,
+      "completion": "{\"valence\": 0.5, \"arousal\": 0.75, \"dominance\": 0.25}",
+      "dimensions": {
+        "valence": 0.5,
+        "arousal": 0.75,
+        "dominance": 0.25
+      }
+    },
+    {
+      "id": "paradise-woe",
+      "ms": 4091.280697000002,
+      "completion": "{\"valence\":-0.98,\"arousal\":0.75,\"dominance\":-0.26}",
+      "dimensions": {
+        "valence": -0.98,
+        "arousal": 0.75,
+        "dominance": -0.26
+      }
+    },
+    {
+      "id": "comedy-dark",
+      "ms": 4023.499145999722,
+      "completion": "{\"valence\": 0.5, \"arousal\": 0.7, \"dominance\": 0.3}",
+      "dimensions": {
+        "valence": 0.5,
+        "arousal": 0.7,
+        "dominance": 0.3
+      }
+    },
+    {
+      "id": "blake-tyger",
+      "ms": 4115.356378999877,
+      "completion": "{\"valence\": 0.5, \"arousal\": 0.9, \"dominance\": -0.2}",
+      "dimensions": {
+        "valence": 0.5,
+        "arousal": 0.9,
+        "dominance": -0.2
+      }
+    },
+    {
+      "id": "whitman-celebrate",
+      "ms": 5266.7615450000085,
+      "completion": "{\"valence\": 0.9857, \"arousal\": 0.9634, \"dominance\": 0.9286}",
+      "dimensions": {
+        "valence": 0.9857,
+        "arousal": 0.9634,
+        "dominance": 0.9286
+      }
+    },
+    {
+      "id": "heights-souls",
+      "ms": 4074.121248999745,
+      "completion": "{\"valence\": 0.5, \"arousal\": 0.75, \"dominance\": 0.25}",
+      "dimensions": {
+        "valence": 0.5,
+        "arousal": 0.75,
+        "dominance": 0.25
+      }
+    },
+    {
+      "id": "spoon-hill",
+      "ms": 4655.334898000092,
+      "completion": "{\"valence\": 0.583, \"arousal\": 0.964, \"dominance\": 0.727}",
+      "dimensions": {
+        "valence": 0.583,
+        "arousal": 0.964,
+        "dominance": 0.727
+      }
+    },
+    {
+      "id": "tao-unnamed",
+      "ms": 3294.6931070000574,
+      "completion": "{\"valence\": 0, \"arousal\": 0, \"dominance\": 0}",
+      "dimensions": {
+        "valence": 0.0,
+        "arousal": 0.0,
+        "dominance": 0.0
+      }
+    },
+    {
+      "id": "hamlet-question",
+      "ms": 4678.040568000142,
+      "completion": "{\"valence\": 0.583, \"arousal\": 0.964, \"dominance\": 0.727}",
+      "dimensions": {
+        "valence": 0.583,
+        "arousal": 0.964,
+        "dominance": 0.727
+      }
+    },
+    {
+      "id": "crime-question",
+      "ms": 4229.098797000006,
+      "completion": "{\"valence\": -0.67, \"arousal\": 0.83, \"dominance\": -0.5}",
+      "dimensions": {
+        "valence": -0.67,
+        "arousal": 0.83,
+        "dominance": -0.5
+      }
+    },
+    {
+      "id": "doll-tricks",
+      "ms": 3462.307096999666,
+      "completion": "{\"valence\":-0.5,\"arousal\":0.7,\"dominance\":-0.3}",
+      "dimensions": {
+        "valence": -0.5,
+        "arousal": 0.7,
+        "dominance": -0.3
+      }
+    },
+    {
+      "id": "epictetus-power",
+      "ms": 2907.552811000187,
+      "completion": "{\"valence\":-1,\"arousal\":0.5,\"dominance\":-1}",
+      "dimensions": {
+        "valence": -1.0,
+        "arousal": 0.5,
+        "dominance": -1.0
+      }
+    },
+    {
+      "id": "analects-learn",
+      "ms": 3928.176818999873,
+      "completion": "{\"valence\": 0.9, \"arousal\": 0.85, \"dominance\": 0.7}",
+      "dimensions": {
+        "valence": 0.9,
+        "arousal": 0.85,
+        "dominance": 0.7
+      }
+    },
+    {
+      "id": "vitruvius-order",
+      "ms": 3806.8338669995683,
+      "completion": "{\"valence\": 0.5, \"arousal\": 0.7, \"dominance\": 0.3}",
+      "dimensions": {
+        "valence": 0.5,
+        "arousal": 0.7,
+        "dominance": 0.3
+      }
+    },
+    {
+      "id": "dow-balance",
+      "ms": 4221.981744000004,
+      "completion": "{\"valence\": 0.5, \"arousal\": 0.75, \"dominance\": 0.25}",
+      "dimensions": {
+        "valence": 0.5,
+        "arousal": 0.75,
+        "dominance": 0.25
+      }
+    },
+    {
+      "id": "gita-universe",
+      "ms": 4577.983710000353,
+      "completion": "{\"valence\": 0.985, \"arousal\": 0.976, \"dominance\": 0.984}",
+      "dimensions": {
+        "valence": 0.985,
+        "arousal": 0.976,
+        "dominance": 0.984
+      }
+    },
+    {
+      "id": "faustus-wrath",
+      "ms": 2599.970239999948,
+      "completion": "{\"valence\":-1,\"arousal\":1,\"dominance\":-1}",
+      "dimensions": {
+        "valence": -1.0,
+        "arousal": 1.0,
+        "dominance": -1.0
+      }
+    },
+    {
+      "id": "koan-difference",
+      "ms": 4260.005257000103,
+      "completion": "{\"valence\": 0.25, \"arousal\": 0.75, \"dominance\": 0.25}",
+      "dimensions": {
+        "valence": 0.25,
+        "arousal": 0.75,
+        "dominance": 0.25
+      }
+    },
+    {
+      "id": "probe-negation",
+      "ms": 3114.247267999872,
+      "completion": "{\"valence\": -1, \"arousal\": 0, \"dominance\": -1}",
+      "dimensions": {
+        "valence": -1.0,
+        "arousal": 0.0,
+        "dominance": -1.0
+      }
+    }
+  ]
+}

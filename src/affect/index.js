@@ -28,7 +28,8 @@ export {
     detectMovement
 } from './temporal.js';
 export { CORPUS, PROBES, REQUIRED_CASES } from './benchmark/corpus.js';
-export { runBenchmark, EXTERNAL_MODELS } from './benchmark/harness.js';
+export { runBenchmark } from './benchmark/harness.js';
+export { mapPert, mapReward } from './benchmark/external.js';
 export { renderReport } from './benchmark/report.js';
 export { hostedTeacher } from './benchmark/teacher.js';
 export { runReadoutSession, onnxUnavailable } from './inference.js';

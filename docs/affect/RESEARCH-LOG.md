@@ -12,13 +12,37 @@ On the constructed probe "I am not happy.", the baseline stays positive and the 
 
 Directional checks that held on the archive sample: Paradise Lost's opening woe is negative in valence; Whitman's "I celebrate myself" is positive; the Dostoevsky sentence scores higher tension than the Vitruvius sentence about order. Irony was not solved. Austen and Dickinson are in the report so a person can see the outputs. Dickinson's "kindly" sits next to "Death". The encoder has no figure of speech.
 
+## Runs on 2026-09-29
+
+No hosted API credential was in the environment. The three missing runs were executed locally and stored. They are not imported by the player.
+
+**PERT-EmoPair** (`edsi-umd/PERT-EmoPair`, roberta-large, prompted, CPU). Mean forward about 143 ms. Valence lands on the EmoBank 1–5 scale and orders the sample: Whitman 3.68, Paradise Lost 2.37, the negation probe 1.76. Mapped with `(raw - 3) / 2`. Arousal and dominance are not on that scale. Calibration sentences put a still room near arousal −0.47 and fury near 0.76, so arousal is shifted by `(raw + 0.6) / 1.6`. Dominance already sat inside about −0.6 to 0.5 and is only clamped. Raw scores are in `docs/affect/emopair-scores.json`.
+
+**Reward-EmoPair** (`edsi-umd/Reward-EmoPair`, CPU). Mean forward about 312 ms. The 4.2 GB checkpoint includes optimizer state and did load. Valence is a compressed 1–5 regression (Whitman 3.63, Paradise Lost 2.46). Arousal and dominance are mapped through the checkpoint's published `norm_params.json`. Crime and Faustus score high arousal; Vitruvius scores low. The same file holds both models.
+
+**Local teacher.** `Qwen/Qwen2.5-0.5B-Instruct` emitted JSON for every passage and was not usable: it rated Whitman's celebration at valence −0.9 and several passages outside the requested range. `Qwen/Qwen2.5-1.5B-Instruct` replaced it. That run is `docs/affect/teacher-scores.json`, served by `scripts/affect/teacher-server.mjs` and called through `AFFECT_TEACHER_URL`. It separates Whitman (0.99) from Paradise Lost (−0.98) and marks the negation probe −1. It also rates Dickinson's death poem at valence 0.99, so it is a weak judge, not a norm. The hook still records `unavailable` when the URL is unset.
+
+**MiniLM probe.** Frozen `Xenova/all-MiniLM-L6-v2` (q8) embeddings, linear head, ridge λ = 0.01 chosen by leave-one-out against mapped PERT targets. Leave-one-out mean absolute error: valence 0.136, arousal 0.149, dominance 0.276. Correlation of those predictions with the targets: valence −0.19, arousal 0.55, dominance 0.37. The valence probe does not generalize. Whitman's leave-one-out valence is −0.04 against a target of 0.34, and the negation probe flips from −0.62 to 0.09. The benchmark column is the leave-one-out prediction. Weights and errors are in `docs/affect/minilm-probe.json`. This is not a distillation from human preferences.
+
+`scripts/affect/fit-readout.mjs` still exits with status 2 until 24 judgments are marked `annotatorKind: "human"`. The window encoder was not refit.
+
+Reproduce:
+
+```
+python3 scripts/affect/score-emopair.py
+node scripts/affect/distill-minilm.mjs
+python3 scripts/affect/score-teacher.py
+node scripts/affect/teacher-server.mjs
+AFFECT_TEACHER_URL=http://127.0.0.1:8765 npm run affect:benchmark
+```
+
 ## Rejected
 
-**Generative model as an online judge.** A hosted model asked whether an experience is good would be opaque, off-device, and aimed at the wrong question. The thesis is a shared state, not a grade. The teacher hook exists and records `unavailable` when `AFFECT_TEACHER_URL` is unset. No hosted call was made in this run.
+**Generative model as an online judge of quality.** A hosted model asked whether an experience is good would be opaque and aimed at the wrong question. The teacher above returns axes. It is not a grade, and it is not consulted by the player.
 
-**Published numbers as if they were RISE numbers.** EmoPair-family and other continuous-affect checkpoints were not downloaded and not scored on these passages. The benchmark lists them as not executed. Copying a paper's correlation onto Meditations would be a false measurement.
+**Published numbers as if they were RISE numbers.** The EmoPair columns are this corpus scored on this machine. They are not the paper's correlations copied onto Meditations.
 
-**MiniLM distillation in this change.** The intended later encoder is a small contextual network, in the MiniLM or small-BERT class, distilled from a teacher and from human preferences, exported to ONNX, with WASM as the reliable runtime and WebGPU only as acceleration. Training it here would require labels. Fitting a probe to scores invented by the same author who wrote the probe would manufacture agreement. `scripts/affect/fit-readout.mjs` exits with status 2 until 24 judgments are marked `annotatorKind: "human"`. It still does not estimate coefficients after that count; the estimator is future work, and the refusal is the current result.
+**Invented labels for the window readout.** Fitting `contextual-window-v1` to scores written in order to have labels was refused. The MiniLM probe uses PERT outputs as targets and reports leave-one-out error, including the failure on valence.
 
 **Hue to sadness.** Blue's swatch is a light blue. The adapter records colorimetric warmth and leaves valence unset. White has no stable hue, so warmth is omitted. That is a scale choice about color temperature, stated as a measurement of the swatch, not a law about mood.
 
@@ -38,4 +62,4 @@ The lexicon itself is an authoring prior for this repository. It is not the NRC 
 
 ## What would change the readout
 
-Human pairwise judgments, stored with `recordJudgment` and never edited, fitted with Bradley–Terry per question. A teacher URL that returns continuous axes for the same passages, stored beside the local outputs rather than averaged into them. Only then a distillation into a small transformer, with the current window encoder kept as the baseline it already is.
+Human pairwise judgments, stored with `recordJudgment` and never edited, fitted with Bradley–Terry per question. The local teacher and the EmoPair scores are evidence beside the window encoder, not a replacement for those judgments. A MiniLM-class probe on 24 passages did not carry PERT valence out of sample. A larger labeled set would be required before that probe could replace the window.

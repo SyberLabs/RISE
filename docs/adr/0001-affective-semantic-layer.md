@@ -33,7 +33,7 @@ What is production-ready: the schema, the flag, the immutable judgment log, the 
 
 What is a prior, not a finding: every coefficient that maps a feature onto an axis, including pace to arousal and hue to warmth.
 
-What was not run: EmoPair-family checkpoints, a MiniLM distillation, a hosted teacher (no URL was configured), and a music-emotion network.
+What was run offline, and is not part of the player: PERT-EmoPair and Reward-EmoPair scored the 24 passages on CPU; a frozen MiniLM-L6 linear probe was fit to the mapped PERT scores and failed leave-one-out on valence; a local Qwen2.5-1.5B teacher answered the existing HTTP hook because no hosted API credential was present. A music-emotion network was not run. Human pairwise judgments were not collected, so the window readout is still unfitted.
 
 ## Rejected
 
