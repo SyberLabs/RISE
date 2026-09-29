@@ -17,7 +17,7 @@ describeAdapterConformance('mock', (name) => {
     return {
         clock,
         request: ASK,
-        interruptAfterMs: 9_000,
+        interruptAfterMs: 300,
         adapter: createMockAdapter({ clock, faults: FAULTS[name] })
     };
 });

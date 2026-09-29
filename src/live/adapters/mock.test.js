@@ -74,7 +74,7 @@ describe('the answer', () => {
         expect(snap.segments.flatMap(s => s.evidence.map(e => e.id)))
             .toEqual(['eht-2019', 'ligo-2016', 'hawking-1974']);
         expect(snap.segments.flatMap(s => s.dives.map(d => d.id))).toEqual(['horizon-note', 'hawking-note']);
-        expect(snap.segments.every(s => s.speech.started && s.speech.ended)).toBe(true);
+        expect(snap.segments.every(s => !s.speech.started)).toBe(true);
         expect(snap.origin).toEqual(BLACK_HOLES.origin);
     });
 
@@ -98,15 +98,19 @@ describe('the answer', () => {
 });
 
 describe('time', () => {
-    it('commits the first words almost at once, and speaks before the answer is finished', async () => {
+    it('commits the first words almost at once, and has written the whole answer within two seconds', async () => {
         const run = await play();
         await run.reader;
         const firstText = run.arrivals.find(a => a.event.type === 'segment.text');
-        const firstSpeech = run.arrivals.find(a => a.event.type === 'speech.start');
         const complete = run.arrivals.find(a => a.event.type === 'current.complete');
         expect(firstText.at).toBeLessThanOrEqual(100);
-        expect(firstSpeech.at).toBeLessThanOrEqual(100);
-        expect(complete.at).toBeGreaterThan(firstSpeech.at + 5_000);
+        expect(complete.at).toBeLessThan(2_000);
+    });
+
+    it('says nothing of speech: a voice is the runtime\'s, and reports through record', async () => {
+        const run = await play();
+        await run.reader;
+        expect(run.arrivals.filter(a => a.event.type.startsWith('speech.'))).toEqual([]);
     });
 
     it('streams a segment in chunks, not all at once', async () => {
@@ -118,26 +122,13 @@ describe('time', () => {
         expect(chunks.map(a => a.event.text).join('')).toBe(BLACK_HOLES.segments[0].text);
     });
 
-    it('speaks one segment after another, each as long as its words take', async () => {
-        const run = await play({ options: { msPerChar: 60 } });
-        await run.reader;
-        const speech = run.stream.snapshot().segments.map(s => s.speech);
-        const starts = run.arrivals.filter(a => a.event.type === 'speech.start').map(a => a.at);
-        const ends = run.arrivals.filter(a => a.event.type === 'speech.end').map(a => a.at);
-        for (let i = 1; i < starts.length; i += 1) expect(starts[i]).toBeGreaterThanOrEqual(ends[i - 1]);
-        BLACK_HOLES.segments.forEach((segment, i) => {
-            expect(speech[i].durationMs).toBe(segment.text.length * 60);
-            expect(speech[i].marks.length).toBeGreaterThan(2);
-            expect(speech[i].marks.every(m => m.charIndex < segment.text.length)).toBe(true);
-        });
-    });
-
-    it('composes ahead of the voice: a later segment is written while an earlier one is still being spoken', async () => {
+    it('composes ahead: the last segment is written long before a voice could have said the first', async () => {
         const run = await play();
         await run.reader;
-        const laterText = run.arrivals.find(a => a.event.type === 'segment.end' && a.event.segmentId === 'size');
-        const earlierSpeechEnd = run.arrivals.find(a => a.event.type === 'speech.end' && a.event.segmentId === 'what');
-        expect(laterText.at).toBeLessThan(earlierSpeechEnd.at);
+        const lastEnd = run.arrivals.find(a => a.event.type === 'segment.end' && a.event.segmentId === 'hawking');
+        // Speaking the first segment alone takes several seconds at any natural pace.
+        expect(lastEnd.at).toBeLessThan(2_000);
+        expect(BLACK_HOLES.segments[0].text.length * 40).toBeGreaterThan(lastEnd.at);
     });
 
     it('takes proportionally longer when it is slow, and ends up the same', async () => {
@@ -154,16 +145,16 @@ describe('time', () => {
 describe('interruption and cleanup', () => {
     it('stops when the reader interrupts, says so in order, and leaves nothing running', async () => {
         const run = await play({ until: 'later' });
-        await run.clock.advance(9_000);
+        await run.clock.advance(300);
         await run.connection.interrupt({ text: 'wait, dive on the horizon' });
         await run.clock.runAll();
         const snap = run.stream.snapshot();
         expect(snap.phase).toBe('cancelled');
         expect(snap.cancelReason).toBe('interrupted');
         expect(snap.interruptions).toEqual([{ seq: expect.any(Number), reason: 'user', text: 'wait, dive on the horizon' }]);
-        // The words were all written long ago; it is the speaking that was stopped.
-        expect(snap.segments.at(-1).speech.ended).toBe(false);
-        expect(snap.segments.some(s => s.speech.ended)).toBe(true);
+        // It stopped writing: only part of the answer was ever committed.
+        expect(snap.segments.length).toBeGreaterThan(0);
+        expect(snap.segments.length).toBeLessThan(BLACK_HOLES.segments.length);
         expect(run.arrivals.some(a => a.event.type === 'current.complete')).toBe(false);
         expect(run.clock.pending()).toBe(0);
         expect(await run.reader).toBeNull();

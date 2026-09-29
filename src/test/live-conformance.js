@@ -51,7 +51,6 @@ export function expectBlackHoles(snapshot) {
         .toEqual(BLACK_HOLES.segments.flatMap(s => (s.evidence ?? []).map(e => [e.id, e.kind, e.uri])));
     expect(snapshot.segments.flatMap(s => s.dives.map(d => d.id)))
         .toEqual(BLACK_HOLES.segments.flatMap(s => (s.dives ?? []).map(d => d.id)));
-    expect(snapshot.segments.every(s => s.speech.started && s.speech.ended)).toBe(true);
     expect(snapshot.origin.kind).toBe('model');
 }
 

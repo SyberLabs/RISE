@@ -7,14 +7,14 @@
  * send one malformed, drop its connection, fail, or be interrupted, and every
  * other adapter is held to the same conformance fixture it is.
  *
- * SPEECH. This adapter has no audio of its own. It reports a synthetic speech
- * timeline (`speech.start`, `speech.mark`, `speech.end`) as a provider that
- * supplies audio would, at a fixed number of milliseconds per character, so the
- * runtime's one clock has something exact to follow in tests.
+ * NO SPEECH. This adapter has no voice. Speech is a renderer the runtime owns,
+ * because it has to be able to hold and resume (a Dive holds it) and a
+ * provider's event stream cannot be held. A voice reports its progress into the
+ * ordered stream through `record`, so it is still one stream, in one order.
  *
- * COMPOSING AHEAD. Text is written far faster than it is spoken, so later
- * segments, their state, their evidence and their Dives arrive while earlier
- * ones are still being said.
+ * COMPOSING AHEAD. Text is written far faster than any voice speaks it, so
+ * later segments, their state, their evidence and their Dives arrive while
+ * earlier ones are still being said.
  */
 
 import {
@@ -27,29 +27,20 @@ import { createRealClock } from '../clock.js';
 import { scriptFor } from '../fixtures/black-holes.js';
 import { validateEvent } from '../protocol.js';
 
-/** What a host may write into the ordered stream. Provider content it may not. */
+/** What a host may write into the ordered stream: its own actions and its voice's progress. */
 const HOST_TYPES = Object.freeze([
     'interrupt', 'branch.open', 'branch.close', 'speech.start', 'speech.mark', 'speech.end'
 ]);
 
-/** The gap left between one utterance and the next. */
-const BREATH_MS = 150;
-
-function wordStarts(text) {
-    return [...text.matchAll(/\S+/gu)].map(match => match.index);
-}
-
 /** The whole answer as timed events, in the order they happen. */
-function timeline(script, { chunkChars, chunkMs, latencyMs, msPerChar, faults }) {
+function timeline(script, { chunkChars, chunkMs, latencyMs, faults }) {
     const items = [];
     const add = (at, type, body = {}) => items.push({ at, type, body, order: items.length });
 
     add(0, 'current.open', { title: script.title, origin: script.origin });
     let writing = latencyMs;
-    let audioFree = 0;
 
     for (const segment of script.segments) {
-        const began = writing;
         add(writing, 'segment.begin', { segmentId: segment.id, ...(segment.visual ? { visual: segment.visual } : {}) });
         add(writing, 'state.set', { segmentId: segment.id, state: segment.state });
         let offset = 0;
@@ -62,20 +53,9 @@ function timeline(script, { chunkChars, chunkMs, latencyMs, msPerChar, faults })
         add(writing, 'segment.end', { segmentId: segment.id });
         for (const evidence of segment.evidence ?? []) add(writing + 1, 'evidence.add', { segmentId: segment.id, evidence });
         for (const dive of segment.dives ?? []) add(writing + 1, 'dive.attach', { segmentId: segment.id, dive });
-
-        // The voice starts when it is free and there is something to say, and never sooner.
-        const speakAt = Math.max(audioFree, began + chunkMs);
-        const duration = segment.text.length * msPerChar;
-        add(speakAt, 'speech.start', { segmentId: segment.id });
-        wordStarts(segment.text).filter((_, index) => index > 0 && index % 3 === 0).forEach(charIndex => {
-            add(speakAt + charIndex * msPerChar, 'speech.mark', { segmentId: segment.id, charIndex, tMs: charIndex * msPerChar });
-        });
-        add(speakAt + duration, 'speech.end', { segmentId: segment.id, durationMs: duration });
-        audioFree = speakAt + duration + BREATH_MS;
         writing += 30;
     }
-    const end = Math.max(audioFree, writing) + 10;
-    add(end, 'current.complete');
+    add(writing + 10, 'current.complete');
 
     items.sort((a, b) => a.at - b.at || a.order - b.order);
     const slow = faults.slow ?? 1;
@@ -87,7 +67,6 @@ export function createMockAdapter({
     chunkChars = 24,
     chunkMs = 40,
     latencyMs = 20,
-    msPerChar = 62,
     capacity = 64,
     faults = {}
 } = {}) {
@@ -96,7 +75,6 @@ export function createMockAdapter({
     return {
         id: 'mock',
         capabilities: Object.freeze({
-            speech: 'synthetic-timeline',
             providerAudio: false,
             interruption: true,
             resume: true,
@@ -112,7 +90,7 @@ export function createMockAdapter({
             const writer = createEventWriter(currentId);
             const log = [];
             const controller = new AbortController();
-            const plan = timeline(script, { chunkChars, chunkMs, latencyMs, msPerChar, faults });
+            const plan = timeline(script, { chunkChars, chunkMs, latencyMs, faults });
             let channel = createChannel({ capacity });
             let closed = false;
             let finished = false;
