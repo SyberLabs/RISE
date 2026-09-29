@@ -1040,8 +1040,10 @@ of `settled`, `open`, `deferred`, or `reversed`.
   `docs/specs/LIVE-CURRENT-EVENTS-V1.md`.
 - **Status:** open. The protocol, the reducer, the adapter boundary, a
   deterministic mock and a conformance suite every adapter must pass are built
-  and unit tested. The Player's live mode, speech as the clock, the runtime, a
-  host and a live provider are not.
+  and unit tested, and the one Player has a live mode (`setLive`, `extend`): it
+  holds at the end of its words, takes no reading time while it waits, and is
+  extended by a longer Session whose earlier atoms are unchanged. Speech as the
+  clock, the runtime, a host and a live provider are not built.
 
 ---
 
