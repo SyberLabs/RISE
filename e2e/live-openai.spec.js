@@ -21,7 +21,7 @@ const expectShown = (page, phrase, timeout = 12_000) =>
     expect.poll(() => shown(page).catch(() => ''), { timeout, message: `waiting to see “${phrase}”` }).toContain(phrase);
 
 /** A fake peer whose data channel speaks the documented Realtime events, from the fixtures. */
-async function installFakePeer(page) {
+async function installFakePeer(page, { answer = scriptToLines(BLACK_HOLES), dive = scriptToLines(HORIZON_DIVE) } = {}) {
     await page.addInitScript(({ answer, dive }) => {
         window.__rtc = { peers: 0, sent: [] };
         class Channel extends EventTarget {
@@ -66,10 +66,7 @@ async function installFakePeer(page) {
             removeEventListener() {}
             close() { this.connectionState = 'closed'; }
         };
-    }, {
-        answer: scriptToLines(BLACK_HOLES),
-        dive: scriptToLines(HORIZON_DIVE)
-    });
+    }, { answer, dive });
 }
 
 /** Answer the site's relay route, recording what it was asked. */
@@ -172,6 +169,33 @@ test.describe('the OpenAI provider with the reader’s own key', () => {
         await page.locator('.live-start').click();
         await expect(page.locator('.live-error')).toContainText('Live answers are not switched on for this site.');
         await expect(page.locator('.live-error')).not.toContainText(KEY);
+    });
+
+    test('a passage the model marks literal shows its bars and marker words as written, and an unmarked one has them neutralised', async ({ page }) => {
+        const errors = watchErrors(page);
+        const answer = [
+            '@passage visual=still literal=yes',
+            'To pause a reading write [PAUSE], and to split a phrase write a | b.',
+            '@end',
+            '@passage visual=still',
+            'Here a | b and [PAUSE] were not marked, so they are made ordinary.',
+            '@end',
+            ''
+        ].join('\n');
+        await installFakePeer(page, { answer });
+        await relay(page);
+        await page.goto(OPEN);
+        await page.locator('#live-key').fill(KEY);
+        await page.locator('.live-start').click();
+        await expectShown(page, 'To pause a reading write [PAUSE]', 15_000);
+        await expectShown(page, 'a | b', 15_000);
+        // Neither the words nor the bars were obeyed: the reading did not stop for a pause it was only told about.
+        await page.locator('.live-controls__transcript summary').click();
+        const lines = page.locator('.live-controls__lines li');
+        await expect(lines.first()).toHaveText('To pause a reading write [PAUSE], and to split a phrase write a | b.');
+        await expectShown(page, 'Here a / b and (PAUSE) were not marked', 30_000);
+        await expect(lines.nth(1)).toHaveText('Here a / b and (PAUSE) were not marked, so they are made ordinary.');
+        expect(errors).toEqual([]);
     });
 
     test('the default page offers no key field and reaches nothing: the provider is opt-in', async ({ page }) => {

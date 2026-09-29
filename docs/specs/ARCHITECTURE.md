@@ -1073,6 +1073,38 @@ of `settled`, `open`, `deferred`, or `reversed`.
   suite. A real speech engine and a live provider are not verified: the OpenAI
   wire is written from its documentation and has never been run against it.
 
+### 8.35 Literal text is escaped where the controls are read
+
+- **Chosen:** a source, and a segment of a Current or of a live Current, may say
+  `literal: true`: its `|` and `[PAUSE]`, `[FLASH]`, `[HOLD]` are words. The
+  chunker is the only reader of those controls (with the span aligner, which
+  must agree with it), so the escape is made there and nowhere else. Before
+  chunking, each bar becomes U+E010 and the `[` that opens a marker becomes
+  U+E011; after chunking, each is swapped back into what the author wrote
+  (`escapeLiteral`, `restoreLiteral` in `src/core/chunker.js`). The compiler
+  escapes a literal source once, when its sources are normalized, and restores
+  the exact text it keeps for Page and the Dive panel.
+- **Rejected:** weakening the refusal for every text; replacing the bar with a
+  look-alike (which changes what was written); teaching each downstream reader
+  about a second kind of text; and letting a provider adapter decide, which
+  can only rewrite what the model said.
+- **Why:** the swap is one UTF-16 unit for one, so no character offset, and so
+  no Dive anchored to one, moves. It is reversible, which is what makes it
+  unambiguous: text that already holds a stand-in or the score cut cannot be
+  escaped and is refused, so no two different texts escape alike. The rest of
+  the compiler never learns that a text is literal; a source that is not
+  literal is compiled byte for byte as before, and a test holds that for the
+  same words. The strict refusal in `rise.current.v1` and the live protocol is
+  unchanged for every segment that does not say `literal`, and the flag is
+  decided once, when a segment begins.
+- **Status:** open. Built and tested at every layer: the escape (round trip, length,
+  fuzzed), the chunker in all four modes, a Session, the sealed Current, Dives
+  anchored over literal words, the live protocol and reducer, the model line
+  format (`literal=yes`), and the host's whole-answer path; and in a real
+  browser, where a literal passage is shown as written. Not a feature of any
+  provider: a model says a passage is literal only if its instructions allow
+  it, which they now do, narrowly.
+
 ---
 
 ## 9. What this design costs

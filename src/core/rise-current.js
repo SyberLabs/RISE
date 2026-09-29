@@ -1,7 +1,7 @@
 import { compileSession } from './session-compiler.js';
 import { createExperienceProgram, EXPERIENCE_PROGRAM_SCHEMA } from './experience-program.js';
 import { snapCharacterRangeToTokens } from './source-span.js';
-import { SOURCE_MARKER, SOURCE_SCORE_CUT } from './chunker.js';
+import { hasLiteralForbidden, SOURCE_MARKER, SOURCE_SCORE_CUT } from './chunker.js';
 
 export const RISE_CURRENT_SCHEMA = 'rise.current.v1';
 
@@ -88,6 +88,9 @@ function anchor(value, text, path) {
   return { fromCharacter, toCharacter, quoteStart, quoteEnd };
 }
 
+/** True when a literal text holds what is never text: the score cut, or a stand-in that escapes a control. */
+export { hasLiteralForbidden };
+
 /** True when text contains a playback marker the chunker would read as an instruction. */
 export function hasReservedMarker(text) {
   return new RegExp(SOURCE_MARKER.source, 'i').test(text)
@@ -134,13 +137,21 @@ export function validateRiseCurrent(input) {
   const segments = Array.from(source.segments, (item, index) => {
     const path = `$.segments[${index}]`;
     const segment = object(item, path);
-    keys(segment, ['id', 'text', 'visual', 'dives'], path);
+    keys(segment, ['id', 'text', 'visual', 'dives', 'literal'], path);
+    if (segment.literal !== undefined && typeof segment.literal !== 'boolean') {
+      fail('CURRENT_LITERAL', `${path}.literal`, 'literal is true or false');
+    }
+    const literal = segment.literal === true;
     const segmentId = id(segment.id, `${path}.id`);
     if (seen.has(segmentId)) fail('CURRENT_DUPLICATE_ID', `${path}.id`, 'Duplicate segment id');
     seen.add(segmentId);
     const text = label(segment.text, RISE_CURRENT_LIMITS.segmentText, `${path}.text`);
-    if (hasReservedMarker(text)) {
-      fail('CURRENT_RESERVED_TEXT', `${path}.text`, 'Text contains a reserved playback marker');
+    // A literal segment says its bars and bracketed words are words; it still cannot carry the score cut
+    // or the stand-ins that escape it, which are never text.
+    if (literal ? hasLiteralForbidden(text) : hasReservedMarker(text)) {
+      fail('CURRENT_RESERVED_TEXT', `${path}.text`, literal
+        ? 'Literal text cannot contain the score cut or the stand-ins that escape it'
+        : 'Text contains a reserved playback marker');
     }
     total += text.length;
     if (total > RISE_CURRENT_LIMITS.totalText) {
@@ -168,7 +179,7 @@ export function validateRiseCurrent(input) {
         anchor: anchor(dive.anchor, text, `${divePath}.anchor`)
       };
     });
-    return { id: segmentId, text, visual, dives };
+    return { id: segmentId, text, visual, dives, ...(literal ? { literal: true } : {}) };
   });
   return freeze({ schema: RISE_CURRENT_SCHEMA, id: currentId, title, origin: cleanOrigin, segments });
 }
@@ -222,7 +233,8 @@ export function compileRiseCurrent(input, { projection = 'stream' } = {}) {
       type: 'text/plain',
       providerId: current.origin.kind === 'model' ? current.origin.provider : 'local',
       provenance: { origin: current.origin, currentId: current.id },
-      data: segment.text
+      data: segment.text,
+      ...(segment.literal ? { literal: true } : {})
     })),
     experienceProgram: program,
     visualConfig: {

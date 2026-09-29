@@ -24,6 +24,7 @@ export const REALTIME_INSTRUCTIONS = [
     '- Begin with a passage of one short sentence, so the answer starts at once.',
     '- At most eight passages.',
     '- Plain prose only: no markdown, no lists, no headings, no links, and never the characters | [ ] { } < >.',
+    '- The one exception: a passage that must show the characters | or [PAUSE] themselves says literal=yes in its header, and only then.',
     '- visual says what the passage is like: still (calm, explanatory), attractor (flowing, energetic), genesis (growing, expansive).',
     '- Give motionEnergy or perceptualDensity only where the number honestly describes the passage; otherwise leave them out.',
     '- Do not name or cite sources. RISE shows sources separately, and you cannot show any.',

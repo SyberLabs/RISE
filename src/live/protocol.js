@@ -20,6 +20,7 @@
 import {
     RISE_CURRENT_LIMITS,
     RISE_CURRENT_VISUALS,
+    hasLiteralForbidden,
     hasReservedMarker
 } from '../core/rise-current.js';
 
@@ -233,10 +234,21 @@ function dive(value, path) {
     };
 }
 
-function chunk(value, path) {
+/** `literal` is optional and only ever `true`: an event does not say a thing is not literal. */
+function literalFlag(e, p) {
+    if (!Object.hasOwn(e, 'literal') || e.literal === undefined) return {};
+    if (typeof e.literal !== 'boolean') fail('EVENT_LITERAL', `${p}.literal`, 'literal is true or false');
+    return e.literal ? { literal: true } : {};
+}
+
+function chunk(value, path, literal = false) {
     const clean = text(value, EVENT_LIMITS.textChunk, path);
-    if (hasReservedMarker(clean)) {
-        fail('EVENT_RESERVED_TEXT', path, 'Text contains a reserved playback marker');
+    // A literal chunk's bars and bracketed words are words; the score cut and the stand-ins that
+    // escape them are never text.
+    if (literal ? hasLiteralForbidden(clean) : hasReservedMarker(clean)) {
+        fail('EVENT_RESERVED_TEXT', path, literal
+            ? 'Literal text cannot contain the score cut or the stand-ins that escape it'
+            : 'Text contains a reserved playback marker');
     }
     return clean;
 }
@@ -248,9 +260,9 @@ const BODIES = {
         read: (e, p) => ({ title: text(e.title, RISE_CURRENT_LIMITS.title, `${p}.title`), origin: origin(e.origin, `${p}.origin`) })
     },
     'segment.begin': {
-        fields: ['segmentId', 'visual'],
+        fields: ['segmentId', 'visual', 'literal'],
         read: (e, p) => {
-            const clean = { segmentId: id(e.segmentId, `${p}.segmentId`) };
+            const clean = { segmentId: id(e.segmentId, `${p}.segmentId`), ...literalFlag(e, p) };
             if (Object.hasOwn(e, 'visual') && e.visual !== undefined) {
                 if (!RISE_CURRENT_VISUALS.includes(e.visual)) fail('EVENT_VISUAL', `${p}.visual`, 'Unknown visual selection');
                 clean.visual = e.visual;
@@ -259,12 +271,16 @@ const BODIES = {
         }
     },
     'segment.text': {
-        fields: ['segmentId', 'offset', 'text'],
-        read: (e, p) => ({
-            segmentId: id(e.segmentId, `${p}.segmentId`),
-            offset: count(e.offset, RISE_CURRENT_LIMITS.segmentText, `${p}.offset`, 'EVENT_OFFSET'),
-            text: chunk(e.text, `${p}.text`)
-        })
+        fields: ['segmentId', 'offset', 'text', 'literal'],
+        read: (e, p) => {
+            const literal = literalFlag(e, p);
+            return {
+                segmentId: id(e.segmentId, `${p}.segmentId`),
+                offset: count(e.offset, RISE_CURRENT_LIMITS.segmentText, `${p}.offset`, 'EVENT_OFFSET'),
+                text: chunk(e.text, `${p}.text`, literal.literal === true),
+                ...literal
+            };
+        }
     },
     'segment.end': { fields: ['segmentId'], read: (e, p) => ({ segmentId: id(e.segmentId, `${p}.segmentId`) }) },
     'state.set': {

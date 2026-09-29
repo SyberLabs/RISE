@@ -21,12 +21,13 @@ export function currentToEvents(input) {
     const current = validateRiseCurrent(input);
     const events = [{ type: 'current.open', body: { title: current.title, origin: current.origin } }];
     for (const segment of current.segments) {
-        events.push({ type: 'segment.begin', body: { segmentId: segment.id, visual: segment.visual } });
+        const literal = segment.literal ? { literal: true } : {};
+        events.push({ type: 'segment.begin', body: { segmentId: segment.id, visual: segment.visual, ...literal } });
         for (let offset = 0; offset < segment.text.length;) {
             // A chunk is never blank, however the whitespace in the text falls.
             let end = Math.min(segment.text.length, offset + EVENT_LIMITS.textChunk);
             while (end < segment.text.length && !segment.text.slice(offset, end).trim()) end += 1;
-            events.push({ type: 'segment.text', body: { segmentId: segment.id, offset, text: segment.text.slice(offset, end) } });
+            events.push({ type: 'segment.text', body: { segmentId: segment.id, offset, text: segment.text.slice(offset, end), ...literal } });
             offset = end;
         }
         events.push({ type: 'segment.end', body: { segmentId: segment.id } });

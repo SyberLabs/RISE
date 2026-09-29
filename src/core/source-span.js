@@ -7,7 +7,7 @@
  * are checked after whitespace normalization before any atom is annotated.
  */
 
-import { isDroppedWordToken, SOURCE_MARKER, SOURCE_SCORE_CUT } from './chunker.js';
+import { isDroppedWordToken, restoreLiteral, SOURCE_MARKER, SOURCE_SCORE_CUT } from './chunker.js';
 import { prepareChunkText } from './chunk-profiles.js';
 
 const SOURCE_TOKEN = /\S+/gu;
@@ -331,7 +331,7 @@ export function resolveSourceSpan(anchor, text, path = '$.anchor', options = {})
   });
 }
 
-function alignmentTokens(text, omissions = []) {
+function alignmentTokens(text, omissions = [], literal = false) {
   const raw = sourceTokens(text);
   const aligned = [];
   let omissionIndex = 0;
@@ -348,7 +348,10 @@ function alignmentTokens(text, omissions = []) {
           index: token.index,
           start: offset + match.index,
           end: offset + match.index + match[0].length,
-          comparable: match[0]
+          // What an atom's words are compared with: for a literal source, what the author wrote.
+          comparable: literal ? restoreLiteral(match[0]) : match[0],
+          // What the chunker saw, which is what decided whether it kept the token.
+          seen: match[0]
         });
       }
       offset += part.length;
@@ -362,9 +365,9 @@ function alignmentTokens(text, omissions = []) {
  * Match the chunker's declared controls and display fragments. A source
  * profile reports its own omitted ranges; literal lookalikes remain text.
  */
-export function alignSourceAtoms(text, atoms, path = '$.sources', { chunkProfile = null } = {}) {
+export function alignSourceAtoms(text, atoms, path = '$.sources', { chunkProfile = null, literal = false } = {}) {
   const omissions = prepareChunkText(text, chunkProfile).sourceOmissions || [];
-  const tokens = alignmentTokens(text, omissions);
+  const tokens = alignmentTokens(text, omissions, literal === true);
   let cursor = 0;
   let characterCursor = 0;
 
@@ -381,7 +384,7 @@ export function alignSourceAtoms(text, atoms, path = '$.sources', { chunkProfile
     // Keep it when the current display atom actually carries that mark.
     while (expected && cursor < tokens.length
       && tokens[cursor].comparable !== expected
-      && isDroppedWordToken(tokens[cursor].comparable)) {
+      && isDroppedWordToken(tokens[cursor].seen, literal === true)) {
       characterCursor = tokens[cursor].end;
       cursor += 1;
     }
@@ -481,27 +484,37 @@ function authoredSpanAnchors(program, kinds = MEDIA_TRACK_KINDS) {
  * only misses retain the reader's existing soft-omission policy; explicit
  * coordinates fail closed. Returned offsets are exact token boundaries.
  */
+/**
+ * The text a span is measured and quoted against. For a literal source the
+ * compiler holds the escaped form; an author's quotation is of what they wrote,
+ * and the two have the same length, so every offset means the same in both.
+ */
+function spanText(source) {
+  return source.literal === true ? restoreLiteral(source.raw) : source.raw;
+}
+
 export function sourceSpanCutPoints(program, source) {
   if (!source?.id || typeof source?.raw !== 'string') return Object.freeze([]);
+  const text = spanText(source);
   const offsets = new Set();
   let normalizedIndex = null;
   for (const { clip, path, quotationOnly } of authoredSpanAnchors(program)) {
     if (clip.anchor?.sourceIds?.[0] !== source.id) continue;
     if (quotationOnly && !normalizedIndex) {
-      normalizedIndex = buildNormalizedSourceIndex(source.raw);
+      normalizedIndex = buildNormalizedSourceIndex(text);
     }
     let span;
     try {
-      span = resolveSourceSpan(clip.anchor, source.raw, path, { normalizedIndex });
+      span = resolveSourceSpan(clip.anchor, text, path, { normalizedIndex });
     } catch (error) {
       if (quotationOnly && (error?.code === 'SOURCE_SPAN_QUOTE_NOT_FOUND'
         || error?.code === 'SOURCE_SPAN_QUOTE_AMBIGUOUS')) continue;
       throw error;
     }
     if (!span) continue;
-    span = assertResolvedTokenBoundary(span, source.raw, path, { snap: quotationOnly });
+    span = assertResolvedTokenBoundary(span, text, path, { snap: quotationOnly });
     if (span.fromCharacter > 0) offsets.add(span.fromCharacter);
-    if (span.toCharacter < source.raw.length) offsets.add(span.toCharacter);
+    if (span.toCharacter < text.length) offsets.add(span.toCharacter);
   }
   return Object.freeze([...offsets].sort((left, right) => left - right));
 }
@@ -553,13 +566,14 @@ export function compileSourceSpans(program, sources, atoms) {
       alignSourceAtoms(source.raw, sourceAtoms, `$.sources[${sourceId}]`, source);
       aligned.add(sourceId);
     }
+    const text = spanText(source);
     if (quotationOnly && !normalizedBySource.has(sourceId)) {
-      normalizedBySource.set(sourceId, buildNormalizedSourceIndex(source.raw));
+      normalizedBySource.set(sourceId, buildNormalizedSourceIndex(text));
     }
 
     let span;
     try {
-      span = resolveSourceSpan(clip.anchor, source.raw, path, {
+      span = resolveSourceSpan(clip.anchor, text, path, {
         normalizedIndex: normalizedBySource.get(sourceId) || null
       });
     } catch (error) {
@@ -577,7 +591,7 @@ export function compileSourceSpans(program, sources, atoms) {
       throw error;
     }
     if (!span) continue;
-    span = assertResolvedTokenBoundary(span, source.raw, path, { snap: quotationOnly });
+    span = assertResolvedTokenBoundary(span, text, path, { snap: quotationOnly });
 
     const matchedAtoms = sourceAtoms.filter(atom => atomIntersects(atom, span));
     if (matchedAtoms.length === 0) {

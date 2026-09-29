@@ -13,8 +13,12 @@
  * Anything the format does not name is ignored, never guessed at and never
  * passed on. Specifically:
  *   - a header may set `visual` (only from the closed catalog) and any of the
- *     ten condition dimensions (a number from 0 to 1); every other key, and any
- *     value that is not what it should be, is dropped;
+ *     ten condition dimensions (a number from 0 to 1), and `literal=yes`; every
+ *     other key, and any value that is not what it should be, is dropped;
+ *   - a passage that says `literal=yes` keeps its bars and bracketed words as
+ *     words (nothing is neutralised) and is sent as literal text, which the whole
+ *     path knows how to show without obeying; it still loses the score cut and
+ *     the stand-ins that escape it, which are never text;
  *   - the playback markers the chunker reads (`|`, `[PAUSE]`, `[FLASH]`,
  *     `[HOLD]`, U+E000) are neutralised here, upstream of the strict refusal in
  *     the protocol, which is not weakened; a marker split across two deltas is
@@ -35,6 +39,11 @@ import { EVENT_LIMITS, EXPERIENCE_DIMENSIONS } from '../protocol.js';
 
 export const PARSER_LIMITS = Object.freeze({ passages: RISE_CURRENT_LIMITS.segments });
 
+/** What a literal passage may never hold: the score cut and the stand-ins that escape the controls. */
+export function stripForbidden(text) {
+    return text.replace(/[\uE000\uE010\uE011]/gu, '');
+}
+
 /** Marker characters and tokens the chunker reads, made ordinary. Idempotent. */
 export function neutralise(text) {
     return text
@@ -47,7 +56,7 @@ const VALUE = /^[A-Za-z0-9.+-]{1,24}$/u;
 
 /** A header's settings: only what is allowed, only in range. */
 function readHeader(line) {
-    const settings = { visual: 'still', state: {} };
+    const settings = { visual: 'still', state: {}, literal: false };
     for (const token of line.split(/\s+/u).slice(1)) {
         const at = token.indexOf('=');
         if (at <= 0) continue;
@@ -56,6 +65,8 @@ function readHeader(line) {
         if (!VALUE.test(value)) continue;
         if (key === 'visual') {
             if (RISE_CURRENT_VISUALS.includes(value)) settings.visual = value;
+        } else if (key === 'literal') {
+            if (value === 'yes') settings.literal = true;
         } else if (EXPERIENCE_DIMENSIONS.includes(key)) {
             const level = Number(value);
             if (Number.isFinite(level) && level >= 0 && level <= 1) settings.state[key] = level;
@@ -111,10 +122,10 @@ export function createSegmentParser(write) {
             rest = rest.slice(room);
             if (!current.began) {
                 current.began = true;
-                write('segment.begin', { segmentId: current.id, visual: current.visual });
+                write('segment.begin', { segmentId: current.id, visual: current.visual, ...(current.literal ? { literal: true } : {}) });
                 if (Object.keys(current.state).length) write('state.set', { segmentId: current.id, state: current.state });
             }
-            write('segment.text', { segmentId: current.id, offset: current.length, text: piece });
+            write('segment.text', { segmentId: current.id, offset: current.length, text: piece, ...(current.literal ? { literal: true } : {}) });
             current.length += piece.length;
             totalText += piece.length;
         }
@@ -124,14 +135,16 @@ export function createSegmentParser(write) {
     function text(raw) {
         if (!raw) return;
         if (current?.dropped) return;
+        const literal = current?.literal === true;
         let joined = held + raw;
         held = '';
-        // The start of "[PAUSE]" at the very end may become one with the next delta.
-        const partial = /\[[A-Za-z]{0,5}$/u.exec(joined);
+        // The start of "[PAUSE]" at the very end may become one with the next delta. A literal
+        // passage has nothing to hold back: its markers are words.
+        const partial = literal ? null : /\[[A-Za-z]{0,5}$/u.exec(joined);
         if (partial) { held = partial[0]; joined = joined.slice(0, partial.index); }
         // Whitespace is one space, and belongs between words: it is sent with the words after it,
         // never on its own (the protocol refuses a blank chunk) and never at either end.
-        const body = neutralise(joined).replace(/\s+/gu, ' ');
+        const body = (literal ? stripForbidden(joined) : neutralise(joined)).replace(/\s+/gu, ' ');
         const core = body.trim();
         const started = current?.began === true;
         if (!core) {

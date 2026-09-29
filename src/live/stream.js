@@ -24,6 +24,7 @@
 import {
     RISE_CURRENT_LIMITS,
     RISE_CURRENT_SCHEMA,
+    hasLiteralForbidden,
     hasReservedMarker,
     validateDiveAnchor,
     validateRiseCurrent
@@ -144,6 +145,7 @@ export function createCurrentStream({ refusals: refusalBudget = STREAM_LIMITS.re
                     speech: { started: false, ended: false, marks: [] }
                 };
                 if (event.visual !== undefined) segment.visual = event.visual;
+                if (event.literal === true) segment.literal = true;
                 segments.push(segment);
                 byId.set(segment.id, segment);
                 openSegment = segment;
@@ -153,6 +155,10 @@ export function createCurrentStream({ refusals: refusalBudget = STREAM_LIMITS.re
             case 'segment.text': {
                 const segment = segmentFor(event.segmentId);
                 if (segment.ended) refuse('SEGMENT_CLOSED', `Segment ${segment.id} has ended`);
+                // Whether words are literal is decided once, when the segment begins, and every chunk agrees.
+                if ((event.literal === true) !== (segment.literal === true)) {
+                    refuse('LITERAL_MISMATCH', 'A chunk must be literal exactly when its segment is');
+                }
                 if (event.offset !== segment.text.length) {
                     refuse('TEXT_OFFSET', `Expected text at offset ${segment.text.length}, not ${event.offset}`);
                 }
@@ -161,7 +167,9 @@ export function createCurrentStream({ refusals: refusalBudget = STREAM_LIMITS.re
                     refuse('TEXT_TOO_LONG', 'The text is past its limit');
                 }
                 // A marker can be split across two chunks; only the joined text shows it.
-                if (hasReservedMarker(joined)) refuse('RESERVED_TEXT', 'The text contains a reserved playback marker');
+                if (segment.literal ? hasLiteralForbidden(joined) : hasReservedMarker(joined)) {
+                    refuse('RESERVED_TEXT', 'The text contains a reserved playback marker');
+                }
                 segment.text = joined;
                 break;
             }
@@ -433,6 +441,7 @@ export function createCurrentStream({ refusals: refusalBudget = STREAM_LIMITS.re
                     text: segment.text,
                     ended: segment.ended,
                     visual: segment.visual,
+                    ...(segment.literal ? { literal: true } : {}),
                     state: { ...segment.state },
                     evidence: segment.evidence.map(item => ({ ...item })),
                     dives: segment.dives.map(item => ({ ...item, anchor: { ...item.anchor } })),
@@ -465,6 +474,7 @@ export function createCurrentStream({ refusals: refusalBudget = STREAM_LIMITS.re
                     id: segment.id,
                     text: segment.text,
                     ...(segment.visual === undefined ? {} : { visual: segment.visual }),
+                    ...(segment.literal ? { literal: true } : {}),
                     dives: segment.dives.map(dive => ({ id: dive.id, text: dive.text, anchor: { ...dive.anchor } }))
                 }))
             });
