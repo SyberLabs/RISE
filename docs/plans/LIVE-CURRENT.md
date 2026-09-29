@@ -140,8 +140,8 @@ Budgets, all measured with the virtual clock and stated in the architecture deci
 
 | Piece | Implemented | Unit | Browser | Mock provider | Live provider |
 |---|---|---|---|---|---|
-| Protocol, validator, reducer | yes | yes | no | n/a | n/a |
-| Mock adapter and conformance fixture | no | no | no | no | no |
+| Protocol, validator, reducer | yes | yes | no | yes | n/a |
+| Mock adapter and conformance fixture | yes | yes | no | yes | n/a |
 | Player live mode | no | no | no | no | no |
 | Speech clock and voice renderers | no | no | no | no | no |
 | Runtime, Dive and Surface | no | no | no | no | no |

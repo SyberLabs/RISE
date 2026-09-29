@@ -37,7 +37,8 @@ describe('the live layer', () => {
     it('is reached statically from nowhere outside itself', () => {
         const offenders = [];
         for (const file of all) {
-            if (posix(file).startsWith('live/')) continue;
+            // The conformance harness under src/test exists to test the layer, so it may import it.
+            if (posix(file).startsWith('live/') || posix(file).startsWith('test/')) continue;
             for (const target of staticImports(readFileSync(file, 'utf8'))) {
                 if (/(^|\/)live\//u.test(target)) offenders.push(`${posix(file)} -> ${target}`);
             }

@@ -165,7 +165,7 @@ flowchart LR
     content["content<br/>texts, imagery, journeys<br/>231 modules"]
     core["core<br/>session, player, router<br/>153 modules"]
     enterprise["enterprise<br/>talk program, speaker rail<br/>28 modules"]
-    live["live<br/>realtime Current: events, runtime, providers<br/>2 modules"]
+    live["live<br/>realtime Current: events, runtime, providers<br/>6 modules"]
     oracle["oracle<br/>2 modules"]
     page["page<br/>spatial projection<br/>4 modules"]
     sources["sources<br/>text and visual providers<br/>22 modules"]
@@ -1038,9 +1038,10 @@ of `settled`, `open`, `deferred`, or `reversed`.
   and a reducer that spends a malformed event's sequence number cannot be
   stalled by one. The plan is `docs/plans/LIVE-CURRENT.md`; the contract is
   `docs/specs/LIVE-CURRENT-EVENTS-V1.md`.
-- **Status:** open. The protocol and the reducer are built and unit tested.
-  Adapters, the Player's live mode, speech as the clock, the runtime and a host
-  are not.
+- **Status:** open. The protocol, the reducer, the adapter boundary, a
+  deterministic mock and a conformance suite every adapter must pass are built
+  and unit tested. The Player's live mode, speech as the clock, the runtime, a
+  host and a live provider are not.
 
 ---
 
