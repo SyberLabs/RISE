@@ -58,7 +58,10 @@ function fakePlayer(head = 1, state = 'playing') {
         play: vi.fn(() => { player.state = 'playing'; }),
         stop: vi.fn(),
         on: vi.fn(),
-        setInterlocutionHandler: vi.fn()
+        setInterlocutionHandler: vi.fn(),
+        // ↑ and ↓ are pace and reach the real handler, which needs these.
+        setSpeedFactor: vi.fn(),
+        shuttleAvailable: false
     };
     return player;
 }
@@ -258,12 +261,15 @@ describe('the keyboard', () => {
     });
 
     it('leaves the arrow keys to pace and the shuttle', () => {
-        const { chamber, panel } = mount();
+        const { chamber, panel, player } = mount();
         for (const name of ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown']) {
             key('keydown', { key: name, code: name });
             key('keyup', { key: name, code: name });
         }
         expect(panel.hidden).toBe(true);
+        expect(player.pause).not.toHaveBeenCalled();
+        // ↑ and ↓ still did their own job.
+        expect(player.setSpeedFactor).toHaveBeenCalled();
         chamber.destroy();
     });
 
