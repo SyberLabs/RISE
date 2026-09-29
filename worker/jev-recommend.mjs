@@ -432,7 +432,10 @@ export function requestsNoSound(intent) {
 
 export function requestsNightDrive(intent) {
   const text = String(intent || '').normalize('NFKC').toLowerCase();
-  return /\b(?:drift(?:s|ing)?|night[\s-]?driv(?:e|es|ing)|racing|race\s*cars?|street\s*rac\w*|highway|synthwave|outrun|tokyo|neon)\b/u.test(text);
+  // A reader asking for less (slow, sleep, calm) never gets the fast look.
+  if (/\b(?:slow(?:ly|er)?|sleep(?:s|y|ing)?|asleep|calm(?:ly|er|ing)?|relax(?:ed|ing)?|gentl[ey]|quiet(?:ly|er)?|soft(?:ly|er)?|hushed)\b/u.test(text)) return false;
+  // "Drift off" is falling asleep, not a drift.
+  return /\b(?:drift(?:s|ing)?(?!\s+off\b)|night[\s-]?driv(?:e|es|ing)|racing|race\s*cars?|street\s*rac\w*|highway|synthwave|outrun|tokyo|neon)\b/u.test(text);
 }
 
 function requestsNoVisualMotion(intent) {
@@ -721,7 +724,7 @@ export async function handleJevRecommend(request, env) {
     return error(503, 'DECISION_CACHE_UNAVAILABLE', 'Reading suggestions are unavailable.');
   }
 
-  let provider;
+  let providerBody;
   try {
     const response = await fetch(connection.url, {
       method: 'POST',
@@ -752,12 +755,19 @@ export async function handleJevRecommend(request, env) {
     });
     if (!response.ok) return error(502, 'DECISION_UPSTREAM_ERROR', 'Jev returned an error.');
     if (!validProviderResponse(response, connection)) return error(502, 'DECISION_INVALID_RESPONSE', 'Decision service returned an unexpected checkpoint.');
-    provider = await response.json();
+    providerBody = await response.text();
   } catch (cause) {
     if (cause?.name === 'TimeoutError' || cause?.name === 'AbortError') {
       return error(504, 'DECISION_TIMEOUT', 'Jev timed out.');
     }
     return error(502, 'DECISION_UNAVAILABLE', 'Jev could not be reached.');
+  }
+  // A body that arrived but does not parse is a bad answer, not an outage.
+  let provider;
+  try {
+    provider = JSON.parse(providerBody);
+  } catch {
+    return error(502, 'DECISION_INVALID_RESPONSE', 'Jev returned an invalid response.');
   }
 
   const decision = validDecision(provider, hints.eligibleBooks, intent, choices, connection);
