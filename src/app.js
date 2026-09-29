@@ -11,13 +11,8 @@
 
 import { Router } from './core/router.js';
 import { compileSession } from './core/session-compiler.js';
-import { successorConfig } from './core/session-successor.js';
 import { PACE_CURVE_IDS } from './core/pacing.js';
 import { resolveNextLibraryDivision } from './core/reading-continuation.js';
-import {
-    isWorkshopProject,
-    workshopProjectToSessionConfig
-} from './core/workshop-project.js';
 import { BetaGate } from './components/BetaGate.js';
 import { isRosaryDoor } from './core/rosary-door.js';
 import { TRY_RISE_PATH, isTryRisePath } from './core/keystone-paths.js';
@@ -707,7 +702,10 @@ class App {
             // Session through createLibraryContinuation, so the module is in
             // the main chunk whatever this line says. Only the provider is
             // genuinely deferrable.
-            const { ArchiveTextProvider } = await import('./sources/text/archive.js');
+            const [{ ArchiveTextProvider }, { successorConfig }] = await Promise.all([
+                import('./sources/text/archive.js'),
+                import('./core/session-successor.js')
+            ]);
             const provider = new ArchiveTextProvider();
             const contents = await provider.getContents(session?.continuation?.workId);
             const next = resolveNextLibraryDivision(session?.continuation, contents);
@@ -935,6 +933,11 @@ class App {
                 sessionInput = personalSession(sessionData);
                 sessionInput.origin = { view: this.router.getCurrentView?.() === 'vault' ? 'vault' : 'create' };
             } else {
+                // The project model is a room's, and nothing on the way to the
+                // Portal needs it, so it is not part of first load.
+                const { isWorkshopProject, workshopProjectToSessionConfig } =
+                    await import('./core/workshop-project.js');
+                if (!isCurrent()) return false;
                 sessionInput = isWorkshopProject(sessionData) ? workshopProjectToSessionConfig(sessionData) : sessionData;
             }
             const { hydrateSessionSequenceAssets } = await import('./core/workshop-asset-durability.js');
