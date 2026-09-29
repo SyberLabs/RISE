@@ -17,7 +17,7 @@
     "not_found_handling": "single-page-application",
     "binding": "ASSETS",
     // The Kev worker script carries its own policy (worker/enterprise-decision.mjs).
-    "run_worker_first": ["/api/*", "/assets/kev-worker-*"]
+    "run_worker_first": ["/api/*", "/assets/kev-worker-*", "/assets/embed-worker-*"]
   },
   "secrets": {
     "required": [

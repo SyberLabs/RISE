@@ -47,7 +47,7 @@ function fakeWorker({ answer, fail } = {}) {
     return worker;
 }
 
-const choose = (choice, confidence = 0.7) => () => ({ answers: { [RAIL_QUESTION]: { type: 'choice', choice, confidence, probabilities: {} } } });
+const choose = (choice, confidence = 0.7) => () => ({ answers: { [RAIL_QUESTION]: { type: 'choice', choice, confidence } } });
 
 describe('device model pins', () => {
     it('match only the pinned repo at a commit with the pinned prefix', () => {
@@ -99,7 +99,7 @@ describe('device decider', () => {
     });
 
     it('asks the shared question with titles only and maps the choice back', async () => {
-        const worker = fakeWorker({ answer: choose('show_1_quote') });
+        const worker = fakeWorker({ answer: choose('source_1') });
         const device = createDeviceDecider({ createWorker: () => worker });
         await device.load();
         const context = room().prepare(atlas).context;
@@ -112,10 +112,20 @@ describe('device decider', () => {
         expect(request).not.toContain('880');
     });
 
+    it('dismisses a turn with nothing to pick without asking the model', async () => {
+        const worker = fakeWorker({ answer: choose('source_1') });
+        const device = createDeviceDecider({ createWorker: () => worker });
+        await device.load();
+        const context = room().prepareReasoning({ text: 'cafeteria menu', at: 0 }).context;
+        expect(context.structure.candidates).toEqual([]);
+        expect((await device.decide(context)).raw).toEqual({ action: 'dismiss', cardId: null, layout: null });
+        expect(worker.sent.some(message => message.type === 'ask')).toBe(false);
+    });
+
     it.each([
-        ['an option that was not offered', choose('show_9_quote')],
+        ['an option that was not offered', choose('source_9')],
         ['a raw card id', choose('card:atlas-renewal:passage:pricing:1')],
-        ['a confidence above one', choose('hold', 3)],
+        ['a confidence above one', choose('none', 3)],
         ['a missing answer', () => ({ answers: {} })],
         ['a non-choice answer', () => ({ answers: { [RAIL_QUESTION]: { type: 'noul', noul: 0.9 } } })]
     ])('refuses %s', async (_, answer) => {
@@ -135,7 +145,7 @@ describe('device decider', () => {
 
     it('shows through the live loop and records the device as the decider', async () => {
         const session = room();
-        const device = createDeviceDecider({ createWorker: () => fakeWorker({ answer: choose('show_1_quote') }) });
+        const device = createDeviceDecider({ createWorker: () => fakeWorker({ answer: choose('source_1') }) });
         await device.load();
         const loop = createLiveLoop({ session, decide: device.decide });
         expect(await loop.hear(atlas)).toMatchObject({ action: 'show' });

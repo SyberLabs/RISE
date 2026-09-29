@@ -1,20 +1,21 @@
 import { decisionProvider, validProviderResult, validProviderResponse } from '../server/decision-provider.mjs';
 import { DECISION_SCHEMA, validateContext } from '../src/enterprise/context.js';
-import { RAIL_QUESTION, railQuestion, readRailAnswer } from '../src/enterprise/rail-question.js';
+import { emptyRailDecision, RAIL_QUESTION, railQuestion, readRailAnswer } from '../src/enterprise/rail-question.js';
 
 export { railQuestion };
 
-// The on-device Kev worker is the only document allowed to fetch model hosts
-// and compile WebAssembly. A dedicated worker is governed by the policy on its
-// own script, so the pages that start it keep the site policy.
+// The on-device model workers (Kev, and the matcher's embedder) are the only
+// documents allowed to fetch model hosts and compile WebAssembly. A dedicated
+// worker is governed by the policy on its own script, so the pages that start
+// it keep the site policy.
 export const KEV_WORKER_POLICY = "default-src 'none'; script-src 'self' 'wasm-unsafe-eval'; "
     + 'connect-src https://huggingface.co https://*.huggingface.co https://*.hf.co https://cdn.jsdelivr.net';
 
 export function isKevWorkerScript(path) {
-    return /^\/assets\/kev-worker-[\w-]+\.js$/u.test(path);
+    return /^\/assets\/(?:kev|embed)-worker-[\w-]+\.js$/u.test(path);
 }
 
-/** Serve the Kev worker script from static assets with its own policy in place of the site's. */
+/** Serve a model worker script from static assets with its own policy in place of the site's. */
 export async function serveKevWorkerScript(request, env) {
     const asset = await env.ASSETS.fetch(request);
     const headers = new Headers(asset.headers);
@@ -114,6 +115,13 @@ export async function handleEnterpriseDecision(request, env, { log = console.log
     providerName = provider.name;
 
     const { options, question, state } = railQuestion(context);
+    if (!question) {
+        const decision = emptyRailDecision();
+        return finish(200, decision.action, {
+            schema: DECISION_SCHEMA, requestId, ...decision,
+            model: provider.model, provider: provider.name, revision: provider.revision
+        });
+    }
     let result;
     try {
         const upstream = await fetch(provider.url, {

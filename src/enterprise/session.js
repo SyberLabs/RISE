@@ -12,7 +12,10 @@
  * touches the rail directly.
  *
  * Draft transcripts take the lexical tier. A finalized sentence embeds the
- * rolling window and takes the semantic tier. `warm` runs the lexical tier on
+ * rolling window and takes the semantic tier. When the room's sentence
+ * vectors are attached and a final or ask arrives with its own `vector`,
+ * matching and retrieval rank by that vector instead; `prepare` stays
+ * synchronous because the caller embeds before it. `warm` runs the lexical tier on
  * an interim transcript without deciding anything. Promote is a presenter's
  * tap, and it re-runs the gate for the room's audience before the stage
  * changes.
@@ -24,10 +27,10 @@
 
 import { renderChart } from './chart.js';
 import { buildContext, viewOf } from './context.js';
-import { reduceRail, ruleDecider, sanitizeDecision, initialRailState } from './decision.js';
+import { RAIL_POLICY, reduceRail, ruleDecider, sanitizeDecision, initialRailState } from './decision.js';
 import { admitToStage, auditRendered, validateProgram } from './gate.js';
-import { indexProgram, matchLexical, matchSemantic } from './match.js';
-import { indexCorpus, retrieve } from './retrieve.js';
+import { attachDense as attachCardVectors, indexProgram, matchLexical, matchSemantic } from './match.js';
+import { attachDense as attachEntryVectors, indexCorpus, retrieve, retrieveDense } from './retrieve.js';
 
 export const WINDOW_FINALS = 3;
 const RETRIEVAL_SCORE = 0.8;
@@ -130,12 +133,28 @@ export function openSession({ program, corpus, decider = ruleDecider, policy, no
         };
     }
 
-    function retrievedRanking(cards, tier) {
-        for (const card of cards) retrieved.set(card.id, card);
-        return cards.map(card => ({
+    let dense = false;
+
+    /** Retrieved cards and their scores: calibrated cosine with a vector, a fixed score without. */
+    function retrieveFor(text, vector) {
+        if (dense && vector) return retrieveDense(permitted, text, vector, { floor: RAIL_POLICY.holdThreshold });
+        return retrieve(permitted, text).map(card => ({ card, score: RETRIEVAL_SCORE }));
+    }
+
+    /** Whether a prepared card already shows this retrieved card's source. */
+    function preparedCovers(card) {
+        return program.cards.some(prepared => (card.kind === 'chart'
+            ? prepared.kind === 'chart' && prepared.chart.tableId === card.chart.tableId
+            : prepared.kind === 'passage' && prepared.body === card.body
+                && prepared.provenance[0].documentId === card.provenance[0].documentId));
+    }
+
+    function retrievedRanking(hits, tier) {
+        for (const { card } of hits) retrieved.set(card.id, card);
+        return hits.map(({ card, score }) => ({
             id: card.id,
             title: card.title,
-            score: RETRIEVAL_SCORE,
+            score,
             tier,
             layouts: card.layouts,
             layout: card.layout
@@ -188,13 +207,21 @@ export function openSession({ program, corpus, decider = ruleDecider, policy, no
             while (finals.length > WINDOW_FINALS) finals.shift();
             windowText = finals.join(' ');
         }
+        const vector = dense && event.final ? event.vector ?? null : null;
         let ranked = tier === 'semantic'
-            ? matchSemantic(index, windowText, { lexicalText: event.text })
+            ? matchSemantic(index, windowText, { lexicalText: event.text, vector })
             : matchLexical(index, event.text);
-        if (event.speaker === 'audience' && event.final && (ranked[0]?.score ?? 0) < 0.22) {
-            const cards = retrieve(permitted, event.text);
-            emit('retrieve', { tier, hits: cards.length, ids: cards.map(card => card.id) });
-            if (cards.length) ranked = [...retrievedRanking(cards, 'semantic'), ...ranked];
+        if (vector) {
+            // With vectors, every permitted sentence and table competes with
+            // the prepared cards; a prepared card keeps its slide's title.
+            const hits = retrieveFor(event.text, vector).filter(hit => !preparedCovers(hit.card));
+            emit('retrieve', { tier, hits: hits.length, ids: hits.map(hit => hit.card.id) });
+            ranked = [...ranked, ...retrievedRanking(hits, 'semantic')]
+                .sort((a, b) => (b.score - a.score) || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
+        } else if (event.speaker === 'audience' && event.final && (ranked[0]?.score ?? 0) < RAIL_POLICY.holdThreshold) {
+            const hits = retrieveFor(event.text, vector);
+            emit('retrieve', { tier, hits: hits.length, ids: hits.map(hit => hit.card.id) });
+            if (hits.length) ranked = [...retrievedRanking(hits, 'semantic'), ...ranked];
         }
         return issue(ranked, {
             windowText,
@@ -210,10 +237,10 @@ export function openSession({ program, corpus, decider = ruleDecider, policy, no
     }
 
     /** An explicit request: retrieve even when the program already matches. */
-    function prepareReasoning({ text, at }) {
-        const cards = retrieve(permitted, text);
-        emit('retrieve', { tier: 'reasoning', hits: cards.length, ids: cards.map(card => card.id) });
-        return issue(retrievedRanking(cards, 'reasoning'), {
+    function prepareReasoning({ text, at, vector = null }) {
+        const hits = retrieveFor(text, vector);
+        emit('retrieve', { tier: 'reasoning', hits: hits.length, ids: hits.map(hit => hit.card.id) });
+        return issue(retrievedRanking(hits, 'reasoning'), {
             windowText: text,
             speaker: 'presenter',
             mode: 'prepared',
@@ -341,6 +368,21 @@ export function openSession({ program, corpus, decider = ruleDecider, policy, no
         id: nonce,
         prepare,
         prepareReasoning,
+        /** The texts to embed once: prepared cards and permitted corpus entries, by id. */
+        embeddingTexts() {
+            return {
+                cards: index.cards.map(card => ({ id: card.id, text: card.text })),
+                entries: permitted.entries.map(entry => ({ id: entry.id, text: entry.text }))
+            };
+        },
+        /** Attach every vector at once; from then on a line's own vector is used. */
+        attachVectors({ cards, entries, scale }) {
+            attachCardVectors(index, cards, scale);
+            attachEntryVectors(permitted, entries, scale);
+            dense = index.cards.every(card => card.dense) && permitted.entries.every(entry => entry.dense);
+            emit('vectors', { cards: index.cards.length, entries: permitted.entries.length, attached: dense });
+            return dense;
+        },
         resolve,
         warm,
         hear,

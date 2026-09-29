@@ -7,12 +7,17 @@
  * ask cancels only an older ask. Neither channel cancels the other. The session resolves whatever comes back — a late, cancelled,
  * failed, or malformed answer is a hold. A decider that ignores its abort
  * signal still loses the race to the timeout.
+ *
+ * With an embedder, a final or an ask is embedded before it is prepared, for
+ * at most EMBED_TIMEOUT_MS. A slow or failed embedding prepares the turn
+ * without a vector; the room never waits on the embedder.
  */
 
 import { viewOf } from './context.js';
 import { ruleDecider } from './decision.js';
 
 export const DECISION_TIMEOUT_MS = 3_500;
+export const EMBED_TIMEOUT_MS = 300;
 
 /** Explicit local mode: the rule decider behind the async contract. */
 export async function localDecider(context) {
@@ -31,11 +36,27 @@ export function createLiveLoop({
     session,
     decide = localDecider,
     timeoutMs = DECISION_TIMEOUT_MS,
+    embed = null,
+    embedTimeoutMs = EMBED_TIMEOUT_MS,
     trace = null,
     now = () => performance.now()
 }) {
     const inflight = { speech: null, ask: null };
     let stopped = false;
+
+    async function vectorFor(text) {
+        let timer;
+        try {
+            return await Promise.race([
+                Promise.resolve(embed(text)),
+                new Promise((resolve) => { timer = setTimeout(() => resolve(null), embedTimeoutMs); })
+            ]) ?? null;
+        } catch {
+            return null;
+        } finally {
+            clearTimeout(timer);
+        }
+    }
 
     function emit(type, fields) {
         trace?.emit(type, fields);
@@ -112,14 +133,19 @@ export function createLiveLoop({
                     return { action: 'warm', tier: 'lexical', leaders: [] };
                 }
             }
-            const { turn, failed } = prepared(() => session.prepare(event));
+            // Without an embedder a final is prepared at once, as it always was.
+            const vector = embed ? await vectorFor(event.text) : null;
+            if (stopped) return { action: 'ignore', reason: 'stopped' };
+            const { turn, failed } = prepared(() => session.prepare(vector ? { ...event, vector } : event));
             if (failed) return failed;
             if (!turn) return { action: 'ignore', reason: 'presenter' };
             return run(turn);
         },
         async reason(request) {
             if (stopped) return { action: 'ignore', reason: 'stopped' };
-            const { turn, failed } = prepared(() => session.prepareReasoning(request));
+            const vector = embed ? await vectorFor(request.text) : null;
+            if (stopped) return { action: 'ignore', reason: 'stopped' };
+            const { turn, failed } = prepared(() => session.prepareReasoning(vector ? { ...request, vector } : request));
             return failed || run(turn);
         },
         pending(channel = 'speech') {

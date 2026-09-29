@@ -164,7 +164,7 @@ flowchart LR
     components["components<br/>routed views<br/>44 modules"]
     content["content<br/>texts, imagery, journeys<br/>231 modules"]
     core["core<br/>session, player, router<br/>149 modules"]
-    enterprise["enterprise<br/>talk program, speaker rail<br/>28 modules"]
+    enterprise["enterprise<br/>talk program, speaker rail<br/>32 modules"]
     oracle["oracle<br/>2 modules"]
     page["page<br/>spatial projection<br/>4 modules"]
     sources["sources<br/>text and visual providers<br/>22 modules"]
@@ -899,13 +899,12 @@ of `settled`, `open`, `deferred`, or `reversed`.
   never promotion). The live loop (`src/enterprise/live.js`) keeps one
   decision in flight per channel (speech, ask), cancels it only when a newer
   turn on the same channel arrives, and bounds it with a timeout. `/api/enterprise-decision` joins the other decision routes
-  behind `decisionProvider` and the limiter and asks the provider one choice
-  question whose options are opaque keys. `session.resolve` accepts an answer
+  behind `decisionProvider` and the limiter and asks the provider to pick one
+  candidate title or none, by opaque keys (§8.34). `session.resolve` accepts an answer
   only for a turn it issued, once, while no later turn on its channel is
   pending. The
   trace (`src/enterprise/trace.js`) records every step without the
-  transcript. The rule decider remains for tests and an explicitly chosen
-  local mode.
+  transcript. The rule decider is the room's default, with no key (§8.34).
 - **Rejected:** falling back from a failed JEV decision to rules; letting the
   provider name a card id or write text; sending documents, tenants, or the
   audience to the route; deciding on interim speech; a speech vendor SDK; a
@@ -955,9 +954,47 @@ of `settled`, `open`, `deferred`, or `reversed`.
 - **Status:** open. Kev-0.8B loads and decides on Chrome 153 for Windows with
   an AMD RX 5700 (30 of 30 questions, 214 ms median). While a model is
   loaded, Chrome's GPU process holds system memory about 1.4 times the
-  model's size, so Kev-4B needs roughly 6 GB of free memory; it has not yet
-  been run on Windows. Hosts other than the Cloudflare Worker serve the
-  worker script with the site policy, so Kev (device) fails closed there.
+  model's size, so Kev-4B needs roughly 6 GB of free memory; with that free
+  it loads from cache in about 35 seconds and decides in about 650 ms on the
+  same machine. Hosts other than the Cloudflare Worker serve the worker
+  script with the site policy, so Kev (device) fails closed there.
+
+### 8.34 The room matches by meaning on the device, and Kev picks one source or none
+
+- **Chosen:** a 34 MB sentence embedding model (`bge-small-en-v1.5`, int8,
+  pinned by revision and SHA-256 in `src/enterprise/embed-model.js`) runs in
+  its own worker (`src/enterprise/embed-worker.js`) on the WebAssembly CPU
+  build of the `onnxruntime-web` already in use, with the tokenizer package
+  already in use. When the room opens it embeds the prepared cards and every
+  sentence and table the audience is permitted; board-only documents are
+  never embedded. The live loop embeds each final and each Ask before
+  `prepare`, so the session stays synchronous; with a vector, prepared cards
+  and permitted entries compete by calibrated cosine, and a prepared card
+  keeps its slide title. Without a vector (model loading, failed, or slow
+  past 300 ms) the room matches by words as before. Kev, on the device or the
+  server, is asked to pick one candidate title or none; its probability for
+  each source is blended half and half with the match score, and the best
+  source shows when the blend reaches a cut (`src/enterprise/rail-question.js`).
+  Rail titles and scores are no longer sent to any model. The room starts on
+  Local rules, which needs no key and no server.
+- **Rejected:** word overlap as the matcher, which found none of 16 paraphrases
+  on the benchmark; `@huggingface/transformers` in the browser, a second copy
+  of the runtime for one model call and a mean; a WebGPU embedder, when the
+  CPU answers in about 20 ms and the GPU is Kev's; making `prepare`
+  asynchronous; the three-way show/hold/dismiss question, under which Kev
+  dismissed answerable lines at every size; an always-on server as the
+  default.
+- **Why:** on 62 labelled lines (`spike/kev-benchmark`, labels drafted and not
+  yet reviewed), the production room went from 52% to 84% with the embedder
+  and Local rules, and to 85% (Kev-0.8B, 145 ms) and 87% (Kev-4B, 650 ms)
+  with Kev deciding, against 48% for Kev under the old question. Kev's gain
+  is in staying quiet on questions the sources do not answer. None of it
+  needs a key, and the transcript still never leaves the browser unless a
+  presenter chooses JEV. Spec:
+  `docs/superpowers/specs/2026-09-28-enterprise-embedding-matcher-design.md`.
+- **Status:** open. The benchmark is one invented fixture and one author's
+  labels; the calibration and the cut were fitted on it. The server route asks
+  the new question but has not been measured with it.
 
 ---
 

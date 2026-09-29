@@ -144,7 +144,7 @@ describe('Cloudflare API Worker', () => {
     });
     const fetcher = vi.fn(async () => Response.json({
       provider: 'TypeSafe', model: 'typesafe/jev-1.13',
-      answers: { rail_action: { type: 'choice', choice: 'show_1_quote', confidence: 0.9 } }
+      answers: { rail_pick: { type: 'choice', choice: 'source_1', confidence: 0.9 } }
     }));
     vi.stubGlobal('fetch', fetcher);
 
