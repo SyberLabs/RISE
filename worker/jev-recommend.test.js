@@ -34,7 +34,7 @@ vi.mock('@upstash/redis/cloudflare', () => ({
   }
 }));
 
-import { handleJevRecommend } from './jev-recommend.mjs';
+import { handleJevRecommend, requestsNightDrive } from './jev-recommend.mjs';
 import worker from './index.mjs';
 
 const SITE = 'https://rise.example';
@@ -833,6 +833,31 @@ describe('Jev reading recommendation', () => {
     expect(config.audio).toBe('silent');
   });
 
+  it.each([
+    ['Help me drift off to sleep.', '100'],
+    ['Read slowly while I drift off, no music.', '150'],
+    ['A slow, calm night drive.', '150']
+  ])('keeps the reader\'s slow pace for %j instead of the night-drive look', async (intent, pace) => {
+    vi.stubGlobal('fetch', vi.fn(async () => Response.json({
+      model: 'typesafe/jev-1.13', provider: 'TypeSafe',
+      answers: answers('middlemarch', { pace: { type: 'choice', choice: pace } })
+    })));
+    const response = await handleJevRecommend(request({ intent, schemaVersion: 3 }), env);
+    expect(response.status).toBe(200);
+    const { config } = await response.json();
+    expect(config.wpm).toBe(Number(pace));
+    expect(config.visualPalette).not.toBe('neon');
+    expect(config.audio).not.toBe('night-drive');
+    expect(config.soundscape).not.toBe('night-drive');
+  });
+
+  it('reads "drift off" as falling asleep, not as a drift reference', () => {
+    expect(requestsNightDrive('Something to drift off with.')).toBe(false);
+    expect(requestsNightDrive('Something for drifting off.')).toBe(false);
+    expect(requestsNightDrive('tokyo drift')).toBe(true);
+    expect(requestsNightDrive('A night drive through neon racing streets.')).toBe(true);
+  });
+
   it('never sends the new neon values to a version 2 client', async () => {
     const provider = vi.fn(async () => Response.json({
       model: 'typesafe/jev-1.13', provider: 'TypeSafe', answers: answers('middlemarch')
@@ -1175,6 +1200,29 @@ describe('Jev reading recommendation', () => {
     const response = await handleJevRecommend(request(), env);
     expect(response.status).toBe(502);
     expect((await response.json()).error.code).toBe('DECISION_INVALID_RESPONSE');
+  });
+
+  it('reports a truncated provider body as an invalid response', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => new Response('{"model":"typesafe/jev-1.13","answers":{"bo', {
+      headers: { 'Content-Type': 'application/json' }
+    })));
+    const response = await handleJevRecommend(request(), env);
+    expect(response.status).toBe(502);
+    expect((await response.json()).error.code).toBe('DECISION_INVALID_RESPONSE');
+  });
+
+  it('reports an unreachable provider as unavailable', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => { throw new TypeError('fetch failed'); }));
+    const response = await handleJevRecommend(request(), env);
+    expect(response.status).toBe(502);
+    expect((await response.json()).error.code).toBe('DECISION_UNAVAILABLE');
+  });
+
+  it('reports a provider timeout as a timeout', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => { throw new DOMException('timed out', 'TimeoutError'); }));
+    const response = await handleJevRecommend(request(), env);
+    expect(response.status).toBe(504);
+    expect((await response.json()).error.code).toBe('DECISION_TIMEOUT');
   });
 
   it('honors an explicit no-motion request even when Jev picks psychedelic visuals', async () => {
