@@ -119,16 +119,10 @@ export function createLiveRuntime({
         }
         const segments = ended.map(({ id, text }) => ({ id, text }));
         run.governor.update({ atoms: session.atoms, segments });
-        for (const segment of fresh) {
-            if (!run.voice) break;
-            try {
-                run.voice.enqueue({ id: segment.id, text: segment.text });
-            } catch (caught) {
-                run.governor.standDown('voice-refused');
-                note('voice.failed', { role: run.role, message: String(caught?.message ?? caught).slice(0, 200) });
-                break;
-            }
-        }
+        // Words are given to the voice once the reading is on screen (see speak): a voice
+        // that began while the host was still mounting would say the first words unseen.
+        run.unspoken.push(...fresh);
+        if (run.presented) speak(run);
         run.lowered = ended.length;
         set(status);
 
@@ -141,12 +135,32 @@ export function createLiveRuntime({
             if (run.role === 'main') set('live');
             // The host may need a moment to put the Player on screen; the reading starts when it has.
             run.presenting = Promise.resolve(host.present?.({ role: run.role, session, player: run.player, run: summary(run) }))
-                .then(() => { if (!run.closed && run.player.sessionState.state === 'idle') run.player.play(); })
+                .then(() => {
+                    if (run.closed) return;
+                    run.presented = true;
+                    speak(run);
+                    if (run.player.sessionState.state === 'idle') run.player.play();
+                })
                 .catch(caught => failRun(run, caught));
         } else {
             run.player.extend(session);
         }
         if (run.stream.terminal) run.player.setLive(false);
+    }
+
+    /** Give the voice what has been committed and not yet handed to it. */
+    function speak(run) {
+        const fresh = run.unspoken.splice(0);
+        if (!run.voice) return;
+        for (const segment of fresh) {
+            try {
+                run.voice.enqueue({ id: segment.id, text: segment.text });
+            } catch (caught) {
+                run.governor.standDown('voice-refused');
+                note('voice.failed', { role: run.role, message: String(caught?.message ?? caught).slice(0, 200) });
+                return;
+            }
+        }
     }
 
     function watchPlayer(run) {
@@ -211,7 +225,7 @@ export function createLiveRuntime({
     async function openRun(request, role) {
         const run = {
             role, request, stream: createCurrentStream(), connection: null, player: null, voice: null, governor: null,
-            lowered: 0, presenting: null, closed: false, finished: false, error: null, speaking: null, abort: new AbortController(), pumping: null
+            lowered: 0, presenting: null, presented: false, unspoken: [], closed: false, finished: false, error: null, speaking: null, abort: new AbortController(), pumping: null
         };
         run.connection = await adapter.open(request);
         run.voice = voices ? voices.create() : null;

@@ -514,6 +514,7 @@ class App {
                 continueLibraryReading: session => this.continueLibraryReading(session),
                 takeLivePlayer: session => this.takeLivePlayer(session),
                 liveExited: () => this.router.getViewInstance('live')?.ended?.(),
+                liveMounted: session => this.liveMounted?.(session),
                 handleSettingsChange: this.handleSettingsChange,
                 handleDataCleared: this.handleDataCleared,
                 showLoading: title => this.showLoading(title),
@@ -556,6 +557,7 @@ class App {
         session.origin = { view: 'live' };
         this.liveHandoff = { session, player };
         this.currentSession = session;
+        const mounted = new Promise(resolve => { this.liveMounted = resolve; });
         // The router remounts a view only when it has none: the Chamber that was
         // showing goes first, and lets go of its Player as it does.
         const showing = this.router.views.get('chamber-session');
@@ -563,12 +565,16 @@ class App {
             showing.instance.destroy?.();
             showing.instance = null;
         }
-        await this.router.navigate('chamber-session', {
+        const navigation = this.router.navigate('chamber-session', {
             data: session,
             force: true,
             replace: true,
             skipStack: true
         });
+        // The reading begins as soon as the Chamber exists, not when the router has finished
+        // fading it in; a navigation that then fails is still reported.
+        navigation.catch(error => console.error('[RISE] Live presentation failed:', error));
+        await Promise.race([mounted, navigation]);
         if (player.sessionState.state === 'paused') player.replayCurrent();
     }
 

@@ -439,7 +439,7 @@ export async function createChamberSession(operations, container, sessionData) {
         // set — so it is named for what it is.
         const presentationLens = createPresentationLens(session, operations.getSettings);
 
-        return new Chamber(container, {
+        const chamber = new Chamber(container, {
             session: session,
             player: player,
             voice: recitationVoice,
@@ -508,6 +508,10 @@ export async function createChamberSession(operations, container, sessionData) {
                 }
             }
         });
+        // Its listeners are bound, so the reading can begin while the router is
+        // still fading the view in.
+        if (live) operations.liveMounted?.(session);
+        return chamber;
     } catch (error) {
         if (error?.name !== 'AbortError') console.error('[RISE] Session initialization failed:', error);
         preparedPlayer?.stop();

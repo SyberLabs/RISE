@@ -9,7 +9,9 @@
  * The provider is the deterministic mock unless the page is configured
  * otherwise (`?provider=`), and only the mock exists yet, so nothing here can
  * spend money or leave the device. `?voice=paced` makes the reading silent and
- * paced as if spoken, which is what every automated test uses.
+ * paced as if spoken, which is what every automated test uses. `?measure=1`
+ * exposes a read-only record of when atoms were shown and when the voice spoke
+ * (`window.__riseLive`), which is how sync error is measured in a real browser.
  */
 
 import { describeDegradations, detectCapabilities } from '../capabilities.js';
@@ -44,7 +46,22 @@ export class LiveHost {
         this.voiceCount = 0;
         this.destroyed = false;
         this.starting = false;
+        this.atomLog = [];
         this.render();
+        // While the reader is typing, fetch what starting will need, so that the time from
+        // Start to the first words is the answer’s and not the network’s.
+        this.modules = this.loadModules();
+        this.modules.catch(() => {});
+        void import('../../components/Chamber.js').catch(() => {});
+    }
+
+    loadModules() {
+        return Promise.all([
+            import('../runtime.js'),
+            import('../adapters/mock.js'),
+            import('../../app/chamber-session-factory.js'),
+            import('../clock.js')
+        ]);
     }
 
     render() {
@@ -118,6 +135,7 @@ export class LiveHost {
             return;
         }
         this.starting = true;
+        this.startedAt = performance.now();
         this.errorLine.hidden = true;
         this.startButton.disabled = true;
         this.startButton.textContent = 'Asking…';
@@ -144,24 +162,35 @@ export class LiveHost {
 
     /** Everything the runtime needs, loaded now and not before: none of it is in the first load. */
     async buildRuntime() {
-        const [{ createLiveRuntime }, { createMockAdapter }, { createSessionPlayer }] = await Promise.all([
-            import('../runtime.js'),
-            import('../adapters/mock.js'),
-            import('../../app/chamber-session-factory.js')
-        ]);
-        const { createRealClock } = await import('../clock.js');
+        const [{ createLiveRuntime }, { createMockAdapter }, { createSessionPlayer }, { createRealClock }] = await this.modules;
         const clock = createRealClock();
         const voices = await this.buildVoices(clock);
-        return createLiveRuntime({
+        const runtime = createLiveRuntime({
             adapter: createMockAdapter({ clock }),
             clock,
             createPlayer: session => createSessionPlayer(session),
             voices,
             host: {
-                present: ({ session, player }) => this.presentInChamber(session, player),
+                present: ({ role, session, player }) => {
+                    if (this.params.has('measure')) {
+                        player.on('atom', ({ index, concealed, replayed }) => {
+                            if (!concealed && !replayed) this.atomLog.push({ at: performance.now(), index, role });
+                        });
+                    }
+                    return this.presentInChamber(session, player);
+                },
                 dismiss: () => {}
             }
         });
+        if (this.params.has('measure')) {
+            this.env.__riseLive = Object.freeze({
+                journal: () => runtime.journal(),
+                atoms: () => this.atomLog.map(entry => ({ ...entry })),
+                startedAt: () => this.startedAt,
+                now: () => performance.now()
+            });
+        }
+        return runtime;
     }
 
     async buildVoices(clock) {

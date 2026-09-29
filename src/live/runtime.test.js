@@ -39,7 +39,7 @@ afterEach(async () => {
     vi.useRealTimers();
 });
 
-function build({ faults = {}, voice = true, voiceOptions = {}, graceMs } = {}) {
+function build({ faults = {}, voice = true, voiceOptions = {}, graceMs, presentMs = 0 } = {}) {
     presented = [];
     shown = { main: [], side: [] };
     runtime = createLiveRuntime({
@@ -53,7 +53,10 @@ function build({ faults = {}, voice = true, voiceOptions = {}, graceMs } = {}) {
         },
         voices: voice ? { create: () => createSyntheticVoice({ clock, msPerChar: MS_PER_CHAR, breathMs: 150, ...voiceOptions }) } : null,
         host: {
-            present: ({ role }) => presented.push(['present', role]),
+            present: ({ role }) => {
+                presented.push(['present', role]);
+                return presentMs ? clock.sleep(presentMs) : undefined;
+            },
             dismiss: ({ role }) => presented.push(['dismiss', role])
         }
     });
@@ -77,6 +80,21 @@ describe('asking', () => {
         expect(shown.main[0].at - began - committed).toBeLessThanOrEqual(100);
         expect(speechStarts().length).toBeGreaterThan(0);
         expect(speechStarts()[0].at - began - committed).toBeLessThanOrEqual(100);
+    });
+
+    it('does not let the voice begin while the host is still putting the reading on screen', async () => {
+        build({ presentMs: 1_000 });
+        const began = performance.now();
+        await runtime.start(ASK);
+        await tick(900);
+        expect(shown.main).toEqual([]);
+        expect(speechStarts()).toEqual([]);
+        await tick(600);
+        // The first words are shown and the voice starts together, and neither before the host was ready.
+        expect(shown.main.length).toBeGreaterThan(0);
+        expect(speechStarts().length).toBeGreaterThan(0);
+        expect(Math.abs(shown.main[0].at - speechStarts()[0].at)).toBeLessThanOrEqual(50);
+        expect(speechStarts()[0].at - began).toBeGreaterThanOrEqual(1_000);
     });
 
     it('speaks each segment in order and reads every atom exactly once, then ends', async () => {

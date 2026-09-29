@@ -49,7 +49,9 @@ export function createSyntheticVoice({ clock = createRealClock(), msPerChar = 62
         phase.since = clock.now();
         phase.cancel = clock.setTimer(() => {
             phase.cancel = null;
-            phase.played = next.at;
+            // Played time is what the clock says it is, not what this event was due at: a timer
+            // that fires late must not make every later event late by the same amount again.
+            phase.played = played();
             phase.since = clock.now();
             phase.index += 1;
             next.run();

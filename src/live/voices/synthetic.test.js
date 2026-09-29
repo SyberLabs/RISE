@@ -107,6 +107,21 @@ describe('speaking', () => {
         expect(() => voice.enqueue({ id: 'a', text: 'again' })).toThrow(/already/u);
     });
 
+    it('does not let a late timer make everything after it late again', async () => {
+        // Browsers fire timers late. Each event may be late by its own timer's lateness,
+        // but the lateness of one must not be carried into all that follow it.
+        const virtual = createVirtualClock();
+        const jittery = { ...virtual, setTimer: (fn, ms) => virtual.setTimer(fn, ms + 7) };
+        const log = [];
+        const voice = createSyntheticVoice({ clock: jittery, msPerChar: 10, breathMs: 100 });
+        voice.attach({ start: () => log.push(virtual.now()), mark: () => log.push(virtual.now()), end: () => log.push(virtual.now()) });
+        const long = 'one two three four five six seven eight nine ten eleven twelve thirteen fourteen fifteen';
+        voice.enqueue({ id: 'a', text: long });
+        await virtual.runAll();
+        expect(log.length).toBeGreaterThan(5);
+        expect(log.at(-1)).toBeLessThanOrEqual(long.length * 10 + 7 * 2);
+    });
+
     it('is the same every time', async () => {
         const run = async () => {
             const { clock, voice, log } = setup();
