@@ -161,11 +161,10 @@ it, and CI fails when the committed copy is not what `src/` produces.
 flowchart LR
     app["app<br/>composition root<br/>8 modules"]
     audio["audio<br/>Web Audio, recitation<br/>10 modules"]
-    components["components<br/>routed views<br/>44 modules"]
+    components["components<br/>routed views<br/>46 modules"]
     content["content<br/>texts, imagery, journeys<br/>231 modules"]
-    core["core<br/>session, player, router<br/>149 modules"]
+    core["core<br/>session, player, router<br/>150 modules"]
     enterprise["enterprise<br/>talk program, speaker rail<br/>28 modules"]
-    oracle["oracle<br/>2 modules"]
     page["page<br/>spatial projection<br/>4 modules"]
     sources["sources<br/>text and visual providers<br/>22 modules"]
     vendor["vendor<br/>SyberLabs design kit<br/>2 modules"]
