@@ -11,6 +11,7 @@
 
 import { Router } from './core/router.js';
 import { compileSession } from './core/session-compiler.js';
+import { successorConfig } from './core/session-successor.js';
 import { resolveNextLibraryDivision } from './core/reading-continuation.js';
 import {
     isWorkshopProject,
@@ -725,30 +726,14 @@ class App {
                 // a work. A flashing successor must cross the boundary again.
                 consentScope: crypto.randomUUID()
             };
-            const nextSession = compileSession({
+            const nextSession = compileSession(successorConfig(session, {
                 title: `${itemName} · ${entryLabel}`,
                 text: next.entry.content,
                 textSource: `${itemName} · ${entryLabel}`,
-                wpm: session.wpm,
-                chunkMode: session.chunkMode,
-                curve: session.curve,
-                displayMode: session.displayMode,
                 verseLines: next.entry.verse === true,
-                revealMode: session.revealMode,
-                audioPreset: session.audioPreset,
-                soundscape: session.soundscape,
-                entrainmentMode: session.entrainmentMode,
-                entrainmentWaveform: session.entrainmentWaveform,
                 visualConfig,
-                origin: session.origin,
-                provenance: session.provenance,
-                continuation: next.continuation,
-                capabilities: session.capabilities,
-                recitation: session.recitation,
-                voiceId: session.voiceId,
-                selectedSwellId: session.selectedSwellId,
-                projection: session.projection
-            });
+                continuation: next.continuation
+            }));
 
             this.currentSession = nextSession;
             await this.router.navigate('chamber-session', {

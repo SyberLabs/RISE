@@ -19,9 +19,11 @@ the second group is presented as fact.
    in `compileSession` (`src/core/session-compiler.js:653`). `new Player(` appears
    once, in the chamber factory (`src/app/chamber-session-factory.js:187`).
    Phase 1a is therefore mostly a **contract and a test**, not a build. The rule
-   is stated in `session-compiler.js`'s own header, but **`ARCHITECTURE.md` does
-   not state it anywhere** (search: no `compileSession` in that file), so nothing
-   yet guards it as a design law.
+   is stated in `ARCHITECTURE.md` §5 ("the only way a reading is built") and in
+   the compiler's own header, but **nothing checked it**: no test failed when a
+   second constructor appeared. (An earlier draft of this plan said the document
+   was silent. It is not; it names the module rather than the function, which is
+   why a search for `compileSession` missed it.)
 2. **Rosarium and Via are not on the Current at all.** They run their own timer
    clock and never build a Session or a Player (`Rosarium.js:348, 434, 459`).
    This is the one real exception to the thesis. It needs a creator ruling (§1.3).
@@ -358,8 +360,8 @@ off, would change shipped behaviour.
 Not part of this deliverable. These are the findings each phase's plan will start
 from, so approval can be given with them in view.
 
-**1a (one contract).** Mostly a new paragraph in `ARCHITECTURE.md` §5 (which is
-silent on this today) plus the equivalence test of §2.2, and replacing the
+**1a (one contract).** Mostly a guard for a rule `ARCHITECTURE.md` §5 already
+states, plus the equivalence test of §2.2, and replacing the
 hand-copied successor (G5). The host operations that feed the compiler
 (`handleBeginSession`, `handleCreateSession`, `handleTextSelection`,
 `handleSequenceSelection`, `handleArchetypeLaunch`, `launchKeystone`,

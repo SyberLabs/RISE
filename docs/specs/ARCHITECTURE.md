@@ -174,7 +174,7 @@ flowchart LR
     app -.-> |3 lazy| audio
     app --> |1| components
     app --> |5| content
-    app --> |36| core
+    app --> |37| core
     app -.-> |1 lazy| sources
     app -.-> |1 lazy| visuals
     audio --> |1| content
@@ -253,6 +253,14 @@ transition lock held or the previous view hidden.
 
 **`src/core/session-compiler.js`** is the only way a reading is built. Every
 launch surface calls it. Do not recreate chunk or pacing logic in a component.
+
+**The Current** is what every entrance arrives at: a compiled Session and the
+Player that runs it. It is not a further type. `new Session` appears only in
+the compiler and `new Player` only in `src/app/chamber-session-factory.js`,
+and `src/core/current.test.js` fails if either appears anywhere else. The
+reading that follows a division of a work is not copied field by field: every
+field of a Session is classified in `src/core/session-successor.js` as
+identity, source, or reading, and a field that is none of them fails a test.
 
 **`src/core/player.js`** owns the authoritative reading clock and the playback
 state machine: `idle`, `playing`, `paused`, `interlocuting`, `complete`.
@@ -958,6 +966,29 @@ of `settled`, `open`, `deferred`, or `reversed`.
   model's size, so Kev-4B needs roughly 6 GB of free memory; it has not yet
   been run on Windows. Hosts other than the Cloudflare Worker serve the
   worker script with the site policy, so Kev (device) fails closed there.
+
+### 8.33 One reading, many entrances: the Current
+
+- **Chosen:** RISE is one instrument that turns any source into a compiled,
+  paced, time-based reading, the Current. A room is an entrance (it chooses a
+  source, a pace and layers and hands them to `compileSession`), a contributor
+  (it adds a source, a layer, a projection or a pace), or a rail beside the
+  reading (Curia, Settings). The two constructors are guarded by a test, every
+  entrance's output is checked against one contract, and the reading that follows
+  a division is derived from the Current by classifying each Session field
+  rather than by copying a list.
+- **Rejected:** a new Current type beside Session (a second vocabulary for the
+  same object); folding the Rosarium and Via into it, which run their own fixed
+  clock by covenant and must not gain a layer, a dive or an affect signal;
+  keeping the hand-copied field list, which drops any field the Session learns
+  later without saying so.
+- **Why:** every entrance already converged on one compiler, so the work was to
+  make that convergence something a test can break. The successor list was the
+  one place the reading was rebuilt by hand, which is the defect of a
+  vocabulary in two places where only one learns a new word.
+- **Status:** open. Guards and the successor are built. Position that survives
+  a projection change, anchored threads, dive and surface, and a breath pace
+  follow, in that order. The plan is `docs/plans/CURRENT-CONSOLIDATION.md`.
 
 ---
 
