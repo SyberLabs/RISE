@@ -159,7 +159,7 @@ it, and CI fails when the committed copy is not what `src/` produces.
 
 ```mermaid
 flowchart LR
-    app["app<br/>composition root<br/>8 modules"]
+    app["app<br/>composition root<br/>10 modules"]
     audio["audio<br/>Web Audio, recitation<br/>10 modules"]
     components["components<br/>routed views<br/>45 modules"]
     content["content<br/>texts, imagery, journeys<br/>231 modules"]
