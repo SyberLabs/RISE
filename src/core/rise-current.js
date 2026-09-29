@@ -5,6 +5,21 @@ import { SOURCE_MARKER, SOURCE_SCORE_CUT } from './chunker.js';
 
 export const RISE_CURRENT_SCHEMA = 'rise.current.v1';
 
+/** The bounds of a sealed Current. The realtime protocol lowers through them, so it shares them. */
+export const RISE_CURRENT_LIMITS = Object.freeze({
+  segments: 16,
+  segmentText: 4_000,
+  totalText: 20_000,
+  dives: 8,
+  diveText: 600,
+  title: 200,
+  name: 120,
+  id: 120
+});
+
+/** The closed visual catalog. A Current names one of these and nothing else. */
+export const RISE_CURRENT_VISUALS = Object.freeze(['still', 'attractor', 'genesis']);
+
 export class RiseCurrentError extends Error {
   constructor(code, path, message) {
     super(`${message} (${path})`);
@@ -40,8 +55,8 @@ function label(value, max, path, code = 'CURRENT_TEXT') {
 }
 
 function id(value, path) {
-  if (typeof value !== 'string' || !value || value !== value.trim() || value.length > 120) {
-    fail('CURRENT_ID', path, 'Expected a trimmed id of at most 120 characters');
+  if (typeof value !== 'string' || !value || value !== value.trim() || value.length > RISE_CURRENT_LIMITS.id) {
+    fail('CURRENT_ID', path, `Expected a trimmed id of at most ${RISE_CURRENT_LIMITS.id} characters`);
   }
   return value;
 }
@@ -73,6 +88,17 @@ function anchor(value, text, path) {
   return { fromCharacter, toCharacter, quoteStart, quoteEnd };
 }
 
+/** True when text contains a playback marker the chunker would read as an instruction. */
+export function hasReservedMarker(text) {
+  return new RegExp(SOURCE_MARKER.source, 'i').test(text)
+    || text.includes(SOURCE_SCORE_CUT) || text.includes('|');
+}
+
+/** Check one Dive's anchor against the text it points into; returns the clean anchor. */
+export function validateDiveAnchor(value, text, path) {
+  return anchor(value, text, path);
+}
+
 function freeze(value) {
   if (value && typeof value === 'object') {
     Object.values(value).forEach(freeze);
@@ -87,20 +113,21 @@ export function validateRiseCurrent(input) {
   keys(source, ['schema', 'id', 'title', 'origin', 'segments'], '$');
   if (source.schema !== RISE_CURRENT_SCHEMA) fail('CURRENT_SCHEMA', '$.schema', 'Unknown Current schema');
   const currentId = id(source.id, '$.id');
-  const title = label(source.title, 200, '$.title');
+  const title = label(source.title, RISE_CURRENT_LIMITS.title, '$.title');
 
   const origin = object(source.origin, '$.origin');
   keys(origin, ['kind', 'name', 'provider'], '$.origin');
   if (!['model', 'human'].includes(origin.kind)) fail('CURRENT_ORIGIN', '$.origin.kind', 'Unknown origin kind');
-  const cleanOrigin = { kind: origin.kind, name: label(origin.name, 120, '$.origin.name') };
+  const cleanOrigin = { kind: origin.kind, name: label(origin.name, RISE_CURRENT_LIMITS.name, '$.origin.name') };
   if (origin.kind === 'model') {
-    cleanOrigin.provider = label(origin.provider, 120, '$.origin.provider', 'CURRENT_PROVIDER');
+    cleanOrigin.provider = label(origin.provider, RISE_CURRENT_LIMITS.name, '$.origin.provider', 'CURRENT_PROVIDER');
   } else if (origin.provider !== undefined) {
     fail('CURRENT_PROVIDER', '$.origin.provider', 'A human origin cannot name a model provider');
   }
 
-  if (!Array.isArray(source.segments) || source.segments.length < 1 || source.segments.length > 16) {
-    fail('CURRENT_SEGMENTS', '$.segments', 'Expected 1 to 16 segments');
+  if (!Array.isArray(source.segments) || source.segments.length < 1
+    || source.segments.length > RISE_CURRENT_LIMITS.segments) {
+    fail('CURRENT_SEGMENTS', '$.segments', `Expected 1 to ${RISE_CURRENT_LIMITS.segments} segments`);
   }
   let total = 0;
   const seen = new Set();
@@ -111,19 +138,20 @@ export function validateRiseCurrent(input) {
     const segmentId = id(segment.id, `${path}.id`);
     if (seen.has(segmentId)) fail('CURRENT_DUPLICATE_ID', `${path}.id`, 'Duplicate segment id');
     seen.add(segmentId);
-    const text = label(segment.text, 4_000, `${path}.text`);
-    if (new RegExp(SOURCE_MARKER.source, 'i').test(text)
-      || text.includes(SOURCE_SCORE_CUT) || text.includes('|')) {
+    const text = label(segment.text, RISE_CURRENT_LIMITS.segmentText, `${path}.text`);
+    if (hasReservedMarker(text)) {
       fail('CURRENT_RESERVED_TEXT', `${path}.text`, 'Text contains a reserved playback marker');
     }
     total += text.length;
-    if (total > 20_000) fail('CURRENT_TOTAL_TEXT', '$.segments', 'Current exceeds 20,000 characters');
+    if (total > RISE_CURRENT_LIMITS.totalText) {
+      fail('CURRENT_TOTAL_TEXT', '$.segments', `Current exceeds ${RISE_CURRENT_LIMITS.totalText.toLocaleString('en-US')} characters`);
+    }
     const visual = segment.visual === undefined ? 'still' : segment.visual;
-    if (!['still', 'attractor', 'genesis'].includes(visual)) {
+    if (!RISE_CURRENT_VISUALS.includes(visual)) {
       fail('CURRENT_VISUAL', `${path}.visual`, 'Unknown visual selection');
     }
     const rawDives = segment.dives === undefined ? [] : segment.dives;
-    if (!Array.isArray(rawDives) || rawDives.length > 8) {
+    if (!Array.isArray(rawDives) || rawDives.length > RISE_CURRENT_LIMITS.dives) {
       fail('CURRENT_DIVES', `${path}.dives`, 'Expected at most eight Dive notes');
     }
     const diveIds = new Set();
@@ -136,7 +164,7 @@ export function validateRiseCurrent(input) {
       diveIds.add(diveId);
       return {
         id: diveId,
-        text: label(dive.text, 600, `${divePath}.text`),
+        text: label(dive.text, RISE_CURRENT_LIMITS.diveText, `${divePath}.text`),
         anchor: anchor(dive.anchor, text, `${divePath}.anchor`)
       };
     });

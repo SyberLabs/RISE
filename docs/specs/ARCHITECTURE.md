@@ -165,6 +165,7 @@ flowchart LR
     content["content<br/>texts, imagery, journeys<br/>231 modules"]
     core["core<br/>session, player, router<br/>153 modules"]
     enterprise["enterprise<br/>talk program, speaker rail<br/>28 modules"]
+    live["live<br/>realtime Current: events, runtime, providers<br/>2 modules"]
     oracle["oracle<br/>2 modules"]
     page["page<br/>spatial projection<br/>4 modules"]
     sources["sources<br/>text and visual providers<br/>22 modules"]
@@ -195,6 +196,7 @@ flowchart LR
     core --> |14| content
     core --> |4| sources
     core --> |23| visuals
+    live --> |2| core
     page --> |2| core
     page --> |3| visuals
     sources --> |2| content
@@ -1017,6 +1019,28 @@ of `settled`, `open`, `deferred`, or `reversed`.
   under a passage, dive and surface, and the breath pace are built. Emotions, as
   a projection, and Confluence follow. The plan is
   `docs/plans/CURRENT-CONSOLIDATION.md`.
+
+### 8.34 A live Current is events that lower to the sealed one
+
+- **Chosen:** `src/live/` is a layer above the sealed `rise.current.v1`. A provider,
+  behind an adapter, yields `rise.current-events.v1` events; a pure reducer
+  (`src/live/stream.js`) orders and bounds them and lowers the words that have
+  ended to a sealed Current, which `compileRiseCurrent` turns into the one
+  Session for the one Player. Nothing below `live` imports it, and it reaches
+  only `core` and `audio` (`src/live/boundary.test.js`); a host loads it with
+  `import()`, so first load is unchanged.
+- **Rejected:** widening `rise.current.v1` to carry realtime; a second player for
+  live readings; letting provider events reach the runtime; a renderer,
+  shader, style or URL field a model could fill; building the demo as a room.
+- **Why:** committed words are immutable, so each lowering is a prefix of the
+  next and the Player can be extended without being replaced. A protocol whose
+  every field is named and bounded gives a provider nothing executable to send,
+  and a reducer that spends a malformed event's sequence number cannot be
+  stalled by one. The plan is `docs/plans/LIVE-CURRENT.md`; the contract is
+  `docs/specs/LIVE-CURRENT-EVENTS-V1.md`.
+- **Status:** open. The protocol and the reducer are built and unit tested.
+  Adapters, the Player's live mode, speech as the clock, the runtime and a host
+  are not.
 
 ---
 

@@ -46,6 +46,7 @@ history, not a distinction; read the status column instead.
 | [personal-readings.md](personal-readings.md) | Contract | Create: the hosted writer boundary, quotas, persistence and import rules, and the activation evidence that keeps generation off. |
 | [personal-readings-review.md](personal-readings-review.md) | Record | The independent review of Create, what was repaired, and the decisions retained. |
 | [plans/personal-readings-plan.md](plans/personal-readings-plan.md) | Record | The implementation plan the Create slice was built from. |
+| [plans/LIVE-CURRENT.md](plans/LIVE-CURRENT.md) | Intent | The plan for a live Current: an event protocol above the sealed one, one clock with speech as its authority, a runtime boundary, provider adapters, Dive and Surface as a branch, evidence, budgets, and the decisions that wait on the creator. A status table says what is built. |
 | [plans/CURRENT-CONSOLIDATION.md](plans/CURRENT-CONSOLIDATION.md) | Intent | Phase 0 map for consolidating every entrance around one compiled reading: the room inventory, the gaps in the contract, who scores affect, and the decisions that wait on the creator. Nothing in it is built. |
 
 ## The Archive - texts and their editing
@@ -68,6 +69,7 @@ history, not a distinction; read the status column instead.
 | Document | Status | What it is |
 | --- | --- | --- |
 | [vision/EXPERIENCE-PROGRAM-SPEC.md](vision/EXPERIENCE-PROGRAM-SPEC.md) | Contract | `rise.experience-program.v1`, the score format everything authored compiles into. |
+| [specs/LIVE-CURRENT-EVENTS-V1.md](specs/LIVE-CURRENT-EVENTS-V1.md) | Contract | `rise.current-events.v1`: the events, limits, ordering and failure rules of a live Current, and how committed words lower to `rise.current.v1`. Matches `src/live/protocol.js` and `src/live/stream.js`. |
 | [specs/RISE-CURRENT-V1-SLICE.md](specs/RISE-CURRENT-V1-SLICE.md) | Contract | The bounded external Current input that compiles through the Experience Program and Session. Sealed response only; realtime events and voice are outside this slice. |
 | [vision/SCRIPTORIUM-SPEC.md](vision/SCRIPTORIUM-SPEC.md) | Contract | The room where a model composes against an exported capability document, and the gate that admits the result. Cited by eleven source files. |
 | [vision/WORKSHOP-COMPOSITION-STUDIO-SPEC.md](vision/WORKSHOP-COMPOSITION-STUDIO-SPEC.md) | Contract | The authoring room. |
