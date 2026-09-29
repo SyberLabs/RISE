@@ -45,3 +45,4 @@ export {
     affectProgramPrompt,
     passageProposalsFor
 } from './brief.js';
+export { modulatePlateColorsAt, modulateFlameColorsAt } from './modulate-color.js';

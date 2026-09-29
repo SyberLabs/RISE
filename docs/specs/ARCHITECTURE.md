@@ -159,7 +159,7 @@ it, and CI fails when the committed copy is not what `src/` produces.
 
 ```mermaid
 flowchart LR
-    affect["affect<br/>experience-state evaluation<br/>27 modules"]
+    affect["affect<br/>experience-state evaluation<br/>28 modules"]
     app["app<br/>composition root<br/>8 modules"]
     audio["audio<br/>Web Audio, recitation<br/>10 modules"]
     components["components<br/>routed views<br/>44 modules"]
@@ -172,7 +172,7 @@ flowchart LR
     vendor["vendor<br/>SyberLabs design kit<br/>2 modules"]
     visuals["visuals<br/>procedural generation<br/>61 modules"]
 
-    affect --> |5| core
+    affect --> |6| core
     app -.-> |3 lazy| audio
     app --> |1| components
     app --> |5| content
@@ -986,7 +986,9 @@ of `settled`, `open`, `deferred`, or `reversed`.
   benchmark harness run in unit tests. The text readout is an explicit prior,
   not a trained network. `rise.affect-program.v1` is a phrase-addressed file
   the player does not read. A person exports a brief and a prompt, and a
-  returned program is admitted or refused. Save marks it `user`. EmoPair,
+  returned program is admitted or refused. Save marks it `user`. A modulator
+  can turn procedural plate hue and Living Flame vibrancy from that program.
+  The visual engines do not import it. EmoPair,
   the MiniLM probe, and a local teacher were scored offline and remain
   witnesses, not the runtime.
 

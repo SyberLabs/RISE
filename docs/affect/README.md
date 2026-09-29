@@ -29,6 +29,8 @@ node scripts/affect/fit-readout.mjs
 
 `affect:export-brief` writes `affect-brief.json` and `affect-prompt.md`. The brief is a proposal list. The prompt asks for `rise.affect-program.v1`. A returned program is admitted with `admitAffectProgram` and becomes `user` only when `saveAffectProgram` is called. The player does not read either file.
 
+`modulatePlateColorsAt(look, program, phraseIndex)` turns a procedural plate's `hue` by warmth and scales its `sat` by arousal. `modulateFlameColorsAt` does the same to a Living Flame recipe's `macros.hue` and `tone.vibrancy`. Arousal at 0.5 leaves the authored strength. Valence does not move hue. A phrase with no span returns the same object. Palette names, grain, chroma, geometry, and motion stay put. The visual engines do not import this layer.
+
 `fit-readout` exits 2 until a JSON file of judgments contains 24 records with `annotatorKind` of `human`. It does not invent weights.
 
 ## Calling it
