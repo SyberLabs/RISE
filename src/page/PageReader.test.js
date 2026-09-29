@@ -394,6 +394,45 @@ describe('PageReader pagination', () => {
         reader.destroy();
     });
 
+    it('opens on the page that holds a given atom', () => {
+        const { reader, host } = paged({ session: longSession(60) });
+        const target = 40;
+        expect(reader.pageIndex).toBe(0);
+
+        const item = reader.showAtom(target);
+
+        expect(item.atoms[0]).toBeLessThanOrEqual(target);
+        expect(item.atoms[1]).toBeGreaterThanOrEqual(target);
+        expect(reader.pageIndex).toBeGreaterThan(0);
+        expect(host.textContent).toContain(`Paragraph ${target} `);
+        reader.destroy();
+    });
+
+    it('opens the last page for an atom past the end, and the first for one before it', () => {
+        const { reader } = paged({ session: longSession(60) });
+        reader.showAtom(10_000);
+        expect(reader.pageIndex).toBe(reader.pages.length - 1);
+        reader.showAtom(-5);
+        expect(reader.pageIndex).toBe(0);
+        reader.destroy();
+    });
+
+    it('brings the paragraph into view in a reading that scrolls', () => {
+        const { reader } = paged({ session: longSession(6) });
+        const scroll = vi.spyOn(reader, '_scrollToItem');
+        const item = reader.showAtom(4);
+        expect(reader.isPaged).toBe(false);
+        expect(scroll).toHaveBeenCalledWith(item);
+        expect(item.atoms).toEqual([4, 4]);
+        reader.destroy();
+    });
+
+    it('answers null when the reading holds no text to open on', () => {
+        const { reader } = paged({ session: { atoms: [], visualProgram: null } });
+        expect(reader.showAtom(0)).toBeNull();
+        reader.destroy();
+    });
+
     it('refuses to turn past either end rather than erroring', () => {
         const { reader } = paged({ session: longSession(60) });
         expect(reader.prevPage()).toBe(0);

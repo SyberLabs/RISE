@@ -8,7 +8,7 @@
 import { Atom, Session } from './models.js';
 import { chunkText, countWords, insertSourceScoreCuts } from './chunker.js';
 import { prepareChunkText } from './chunk-profiles.js';
-import { PacingEngine, StateCurve } from './pacing.js';
+import { PACE_CURVE_IDS, PacingEngine, StateCurve } from './pacing.js';
 import {
     normalizeGlobalPoolSelection,
     normalizeVisualSelection,
@@ -64,13 +64,21 @@ function isSessionImageUri(uri) {
 }
 
 const CHUNK_MODES = new Set(['word', 'phrase', 'sentence', 'paragraph']);
-const CURVES = Object.freeze({
+// The profile ids are the one list in pacing.js; a profile without a factory
+// here would be named and not playable, and fails as soon as it is chosen.
+const CURVE_STATES = {
     flat: () => StateCurve.flat(),
     induction: () => StateCurve.induction(),
     ascent: () => StateCurve.ascent(),
     wave: () => StateCurve.wave(),
-    climax: () => StateCurve.climax()
-});
+    climax: () => StateCurve.climax(),
+    // Breath is not a curve of the reading: it holds the pace flat and swells
+    // atoms by the pacing engine's own breath (see pacing.js).
+    breath: () => StateCurve.flat()
+};
+const CURVES = Object.freeze(Object.fromEntries(
+    PACE_CURVE_IDS.map(id => [id, CURVE_STATES[id]])
+));
 const VISUAL_MODES = new Set(['off', 'focals', 'attractor', 'genesis', 'interlocution']);
 const ATTRACTOR_SYSTEM_IDS = new Set(['aizawa', 'thomas', 'halvorsen']);
 const ATTRACTOR_PALETTE_SET = new Set(ATTRACTOR_PALETTES.map(item => item.id));
@@ -648,6 +656,11 @@ export function compileSession(input = {}) {
 
     const pacing = new PacingEngine({ baseWpm: config.wpm });
     pacing.setStateCurve(CURVES[config.curve]());
+    if (config.curve === 'breath') {
+        pacing.setBreath({
+            totalMs: atoms.reduce((sum, atom) => sum + (Number(atom.duration) || 0), 0)
+        });
+    }
     const pacedAtoms = pacing.paceAtoms(atoms);
 
     const session = new Session({

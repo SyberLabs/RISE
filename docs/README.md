@@ -46,6 +46,7 @@ history, not a distinction; read the status column instead.
 | [personal-readings.md](personal-readings.md) | Contract | Create: the hosted writer boundary, quotas, persistence and import rules, and the activation evidence that keeps generation off. |
 | [personal-readings-review.md](personal-readings-review.md) | Record | The independent review of Create, what was repaired, and the decisions retained. |
 | [plans/personal-readings-plan.md](plans/personal-readings-plan.md) | Record | The implementation plan the Create slice was built from. |
+| [plans/CURRENT-CONSOLIDATION.md](plans/CURRENT-CONSOLIDATION.md) | Intent | Phase 0 map for consolidating every entrance around one compiled reading: the room inventory, the gaps in the contract, who scores affect, and the decisions that wait on the creator. Nothing in it is built. |
 
 ## The Archive - texts and their editing
 

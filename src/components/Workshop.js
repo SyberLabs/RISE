@@ -37,6 +37,7 @@ import {
   VisualScoreLaneError
 } from '../core/visual-score-lane.js';
 import { READING_LIMITS } from '../core/reading-limits.js';
+import { PACE_CURVE_IDS } from '../core/pacing.js';
 import {
   dataImageUriToBlob,
   WorkshopMedia
@@ -137,12 +138,13 @@ const ICONS = {
   audio: ICON('<path d="M3 12h2"></path><path d="M7 8v8"></path><path d="M11 5v14"></path><path d="M15 9v6"></path><path d="M19 11v2"></path>')
 };
 /** Pacing curves drawn as the shape they describe, not as a glyph. */
-const CURVE_PATHS = {
+export const CURVE_PATHS = {
   flat: 'M3 12h18',
   induction: 'M3 7c6 0 9 10 18 10',
   ascent: 'M3 17c6 0 9-10 18-10',
   wave: 'M3 12c3-6 6-6 9 0s6 6 9 0',
-  climax: 'M3 17c5 0 7-10 9-10s4 10 9 10'
+  climax: 'M3 17c5 0 7-10 9-10s4 10 9 10',
+  breath: 'M3 12c3-3 6-3 9 0s6 3 9 0'
 };
 
 const MAX_TEXT_FILE_BYTES = READING_LIMITS.maxTextCharacters;
@@ -1000,7 +1002,7 @@ export class Workshop {
           <div class="config-notice text-fog" id="wpm-chamber-note">You can also change pacing in the Reader.</div></div>
         <div class="input-group"><span class="input-label">Pacing curve</span>
           <div class="curve-options studio-compact-options studio-choice-grid studio-choice-grid-5">
-            ${['flat', 'induction', 'ascent', 'wave', 'climax'].map(curve => `<button type="button" class="curve-btn ${this.sessionData.curve === curve ? 'active' : ''}" data-action="set-reading-curve" data-curve="${curve}" aria-pressed="${this.sessionData.curve === curve}"><span class="curve-icon" aria-hidden="true">${this.getCurveIcon(curve)}</span><span class="curve-label text-capitalize">${curve}</span></button>`).join('')}
+            ${PACE_CURVE_IDS.map(curve => `<button type="button" class="curve-btn ${this.sessionData.curve === curve ? 'active' : ''}" data-action="set-reading-curve" data-curve="${curve}" aria-pressed="${this.sessionData.curve === curve}"><span class="curve-icon" aria-hidden="true">${this.getCurveIcon(curve)}</span><span class="curve-label text-capitalize">${curve}</span></button>`).join('')}
           </div></div>
         <div class="input-group"><span class="input-label">Chunking</span>
           <div class="chunk-options studio-choice-grid studio-choice-grid-3">

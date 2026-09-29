@@ -67,7 +67,7 @@ describe('render-support registry', () => {
 
   it('covers the experience-program vocabularies without a second list of kinds', () => {
     expect(PROGRAM_TRACK_KINDS).toEqual([
-      'movement', 'transition', 'visual', 'audio', 'swell', 'reading', 'narration'
+      'movement', 'transition', 'visual', 'audio', 'swell', 'reading', 'narration', 'thread'
     ]);
     expect(PROGRAM_VISUAL_KINDS).toEqual([
       'still', 'focal', 'field', 'sourced', 'procedural', 'video'
@@ -162,5 +162,43 @@ describe('render-support registry', () => {
     expect(kinds).toContain('visual:still');
     expect(classified.some(item => item.role === 'fallback' && item.cueKind === 'visual:still'))
       .toBe(true);
+  });
+
+  it('declares a thread not painted, so a glossed reading still exports and says so', () => {
+    const program = validateExperienceProgram({
+      schema: EXPERIENCE_PROGRAM_SCHEMA,
+      id: 'thread-probe',
+      authority: 'user',
+      editable: true,
+      tracks: [
+        {
+          id: 'movements',
+          kind: 'movement',
+          clips: [{ id: 'm1', anchor: { sourceIds: ['src'] }, data: { index: 0, title: 'One' } }]
+        },
+        {
+          id: 'threads',
+          kind: 'thread',
+          clips: [
+            {
+              id: 'g1',
+              anchor: { sourceIds: ['src'], quoteStart: 'The first', quoteEnd: 'first division' },
+              cue: { kind: 'gloss', text: 'The opening.' }
+            },
+            {
+              id: 'e1',
+              anchor: { sourceIds: ['src'], quoteStart: 'It says', quoteEnd: 'plainly' },
+              cue: { kind: 'echo', of: { sourceId: 'src', quoteStart: 'The first', quoteEnd: 'first division' } }
+            }
+          ]
+        }
+      ]
+    });
+    const kinds = classifyProgramCues(program).map(item => item.cueKind);
+    expect(kinds).toEqual(expect.arrayContaining(['thread:gloss', 'thread:echo']));
+    expect(kinds.filter(kind => kind.startsWith('undeclared'))).toEqual([]);
+    for (const kind of ['thread:gloss', 'thread:echo']) {
+      expect(renderSupportFor(kind)).toMatchObject({ render: 'degraded', degradation: 'not-painted' });
+    }
   });
 });

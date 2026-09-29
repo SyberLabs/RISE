@@ -67,7 +67,8 @@ describe('the system design document describes this tree', () => {
         'VisualNavigator.js',    // visual and text controls, embedded in ChamberOrbital
         'jev-dictation.js',      // voice input shared by Portal and Library
         'room-chrome.js',        // SyberLabs header, icons and Alert shared by the quieter rooms
-        'atlas.js'               // SyberLabs atmosphere and sigil, shared by Portal and BetaGate
+        'atlas.js',              // SyberLabs atmosphere and sigil, shared by Portal and BetaGate
+        'chamber-undercurrent.js' // the panel a dive opens, inside the Chamber
     ]);
 
     const roomsOnDisk = () => readdirSync(join(ROOT, 'src/components'))

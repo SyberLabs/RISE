@@ -28,6 +28,7 @@ export const EXPERIENCE_PROGRAM_LIMITS = Object.freeze({
   maxSourceCharacters: 2_000_000,
   maxSourceTokens: 2_000_000,
   maxQuoteLength: 500,
+  maxThreadTextLength: 600,
   maxCollections: 32,
   maxEngines: 32,
   maxDurationMs: 60_000,
@@ -46,8 +47,16 @@ const AUTHORITIES = new Set(['published', 'user', 'proposed']);
 
 /** Canonical track/cue vocabularies. The render-support registry must cover every value. */
 export const PROGRAM_TRACK_KINDS = Object.freeze([
-  'movement', 'transition', 'visual', 'audio', 'swell', 'reading', 'narration'
+  'movement', 'transition', 'visual', 'audio', 'swell', 'reading', 'narration', 'thread'
 ]);
+/**
+ * What may lie under a passage that is not already a visual or an audio clip.
+ * An image or a sound anchored to a span is a `visual` or `audio` clip; a
+ * thread is words. A gloss is written by whoever authored the program. An echo
+ * names an earlier passage of the reading and stores none of it, so it can
+ * only ever be received text.
+ */
+export const PROGRAM_THREAD_KINDS = Object.freeze(['gloss', 'echo']);
 export const PROGRAM_VISUAL_KINDS = Object.freeze([
   'still', 'focal', 'field', 'sourced', 'procedural', 'video'
 ]);
@@ -72,6 +81,7 @@ const VISUAL_KINDS = new Set(PROGRAM_VISUAL_KINDS);
 const VISUAL_FIELD_RENDERERS = new Set(PROGRAM_VISUAL_FIELD_RENDERERS);
 const AUDIO_KINDS = new Set(PROGRAM_AUDIO_KINDS);
 const READING_KINDS = new Set(PROGRAM_READING_KINDS);
+const THREAD_KINDS = new Set(PROGRAM_THREAD_KINDS);
 
 /** Mirrors `models.js`; a score may not ask for a cut the chunker cannot make. */
 export const READING_CHUNK_MODES = Object.freeze(['word', 'phrase', 'sentence', 'paragraph']);
@@ -84,7 +94,8 @@ const TRACK_LIMITS = Object.freeze({
   audio: EXPERIENCE_PROGRAM_LIMITS.maxClipsPerTrack,
   swell: EXPERIENCE_PROGRAM_LIMITS.maxClipsPerTrack,
   reading: EXPERIENCE_PROGRAM_LIMITS.maxClipsPerTrack,
-  narration: EXPERIENCE_PROGRAM_LIMITS.maxClipsPerTrack
+  narration: EXPERIENCE_PROGRAM_LIMITS.maxClipsPerTrack,
+  thread: EXPERIENCE_PROGRAM_LIMITS.maxClipsPerTrack
 });
 
 export class ExperienceProgramValidationError extends Error {
@@ -510,6 +521,53 @@ function assertReadingAnchorSupportsCue(clip, path) {
     { clipId: clip.id, coordinate: system });
 }
 
+/**
+ * A thread names a span of words, so its anchor must be one: a fraction of the
+ * reading is derived from the cut the reader chose and would move under a
+ * gloss, and a whole source has no place to put one.
+ */
+function assertThreadAnchor(clip, path) {
+  const system = anchorCoordinateSystem(clip.anchor);
+  if (system === 'progress' || system === 'unranged') {
+    fail('PROGRAM_THREAD_ANCHOR',
+      'A thread needs a character, token, or quotation anchor', `${path}.anchor`,
+      { clipId: clip.id, coordinate: system });
+  }
+}
+
+function validateThreadCue(value, path) {
+  const source = record(value, path);
+  if (!THREAD_KINDS.has(source.kind)) {
+    fail('PROGRAM_THREAD_KIND', `Unknown thread cue kind: ${String(source.kind)}`, `${path}.kind`);
+  }
+  if (source.kind === 'gloss') {
+    onlyKeys(source, new Set(['kind', 'text']), path);
+    const text = typeof source.text === 'string' ? source.text.trim() : '';
+    if (!text || text.length > EXPERIENCE_PROGRAM_LIMITS.maxThreadTextLength) {
+      fail('PROGRAM_THREAD_TEXT',
+        `A gloss needs text of at most ${EXPERIENCE_PROGRAM_LIMITS.maxThreadTextLength} characters`,
+        `${path}.text`);
+    }
+    return { kind: 'gloss', text };
+  }
+  onlyKeys(source, new Set(['kind', 'of']), path);
+  const of = record(source.of, `${path}.of`);
+  onlyKeys(of, new Set(['sourceId', 'quoteStart', 'quoteEnd']), `${path}.of`);
+  if (of.sourceId === undefined || of.quoteStart === undefined || of.quoteEnd === undefined) {
+    fail('PROGRAM_THREAD_ECHO',
+      'An echo names the source and the opening and closing quotes of what it echoes',
+      `${path}.of`);
+  }
+  return {
+    kind: 'echo',
+    of: {
+      sourceId: exactId(of.sourceId, `${path}.of.sourceId`),
+      quoteStart: quoteFingerprint(of.quoteStart, `${path}.of.quoteStart`),
+      quoteEnd: quoteFingerprint(of.quoteEnd, `${path}.of.quoteEnd`)
+    }
+  };
+}
+
 function validateClip(value, path, kind, index) {
   const source = record(value, path);
   const clipFields = new Set(['id', 'anchor', 'syncGroup', 'metadata']);
@@ -519,7 +577,7 @@ function validateClip(value, path, kind, index) {
     clipFields.add('durationMs');
   }
   if (kind === 'visual' || kind === 'audio' || kind === 'swell' || kind === 'reading'
-    || kind === 'narration') {
+    || kind === 'narration' || kind === 'thread') {
     clipFields.add('cue');
   }
   onlyKeys(source, clipFields, path);
@@ -566,6 +624,9 @@ function validateClip(value, path, kind, index) {
   } else if (kind === 'reading') {
     clip.cue = validateReadingCue(source.cue, `${path}.cue`);
     assertReadingAnchorSupportsCue(clip, path);
+  } else if (kind === 'thread') {
+    clip.cue = validateThreadCue(source.cue, `${path}.cue`);
+    assertThreadAnchor(clip, path);
   } else if (kind === 'narration') {
     try {
       clip.cue = validateNarrationCue(source.cue, `${path}.cue`);
@@ -644,7 +705,7 @@ function validateRelationships(tracks) {
   const knownAnchors = new Set([...sourceOwners.keys(), ...transitionSources]);
   for (const track of tracks.filter(item =>
     item.kind === 'visual' || item.kind === 'audio' || item.kind === 'swell'
-    || item.kind === 'reading' || item.kind === 'narration')) {
+    || item.kind === 'reading' || item.kind === 'narration' || item.kind === 'thread')) {
     for (const clip of track.clips) {
       const ranged = clip.anchor.fromProgress !== undefined
         || clip.anchor.fromCharacter !== undefined
@@ -659,6 +720,11 @@ function validateRelationships(tracks) {
             `Clip ${clip.id} names unknown source ${sourceId}`, '$.tracks');
         }
       }
+      const echoed = clip.cue?.kind === 'echo' ? clip.cue.of.sourceId : null;
+      if (echoed !== null && !knownAnchors.has(echoed)) {
+        fail('PROGRAM_UNKNOWN_SOURCE',
+          `Echo ${clip.id} names unknown source ${echoed}`, '$.tracks');
+      }
     }
   }
 
@@ -668,6 +734,11 @@ function validateRelationships(tracks) {
     // track kind — including ones added later — must demonstrate
     // non-overlap or refuse (fail-closed, not an allowlist).
     if (track.kind === 'movement' || track.kind === 'transition') continue;
+    // A thread lane is a list, not an output. Exclusivity exists because a
+    // visual or audio lane can present one thing at a time and array order
+    // would otherwise be a silent mix law; every thread at an atom is shown
+    // together, so there is nothing to mix.
+    if (track.kind === 'thread') continue;
     assertSameLaneExclusivity(track, '$.tracks');
   }
 }

@@ -161,9 +161,9 @@ it, and CI fails when the committed copy is not what `src/` produces.
 flowchart LR
     app["app<br/>composition root<br/>8 modules"]
     audio["audio<br/>Web Audio, recitation<br/>10 modules"]
-    components["components<br/>routed views<br/>44 modules"]
+    components["components<br/>routed views<br/>45 modules"]
     content["content<br/>texts, imagery, journeys<br/>231 modules"]
-    core["core<br/>session, player, router<br/>149 modules"]
+    core["core<br/>session, player, router<br/>152 modules"]
     enterprise["enterprise<br/>talk program, speaker rail<br/>28 modules"]
     oracle["oracle<br/>2 modules"]
     page["page<br/>spatial projection<br/>4 modules"]
@@ -182,7 +182,7 @@ flowchart LR
     components -.-> |1 lazy| app
     components --> |2| audio
     components --> |24| content
-    components --> |162| core
+    components --> |166| core
     components -.-> |1 lazy| page
     components --> |4| sources
     components -.-> |2 lazy| vendor
@@ -253,6 +253,41 @@ transition lock held or the previous view hidden.
 
 **`src/core/session-compiler.js`** is the only way a reading is built. Every
 launch surface calls it. Do not recreate chunk or pacing logic in a component.
+
+**The Current** is what every entrance arrives at: a compiled Session and the
+Player that runs it. It is not a further type. `new Session` appears only in
+the compiler and `new Player` only in `src/app/chamber-session-factory.js`,
+and `src/core/current.test.js` fails if either appears anywhere else. The
+reading that follows a division of a work is not copied field by field: every
+field of a Session is classified in `src/core/session-successor.js` as
+identity, source, or reading, and a field that is none of them fails a test.
+
+The Current has one place: the head of the Stream, `player.sessionState
+.currentIndex`. A projection is another way of looking at it. The Page opens
+on the paragraph that holds the head (`PageReader.showAtom`, fed by the atom
+range each text block carries), and nothing done in a projection moves the head,
+because there is no seeking (LATERAL-TRAVERSAL-SPEC §1). The names
+**Constellation** and **Stage** are reserved for projections that do not exist
+yet.
+
+Under a span of the reading's words there may be a thread: a gloss (written, by
+the program's authority) or an echo (received: it stores no words and names
+where the edition's are), both anchored to source text in the canonical
+program's `thread` track, plus the image and sound the score already anchors
+there. `src/core/undercurrent.js` gathers what lies under one atom. A dive
+looks there: a hold is a glance, a tap an anchor (`src/core/dive.js`). It holds
+the Player as pausing does and never moves the head, and it is offered only on a
+reading that has threads.
+
+A reading's pace has one vocabulary of profiles, `PACE_CURVE_IDS` in
+`src/core/pacing.js`, and the compiler, the Reader Setup, the Workshop, saved
+projects and the settings a reader keeps are each held to it by
+`src/core/pace-profiles.test.js`. Jev's list is a smaller contract with the
+Worker and must stay inside it. `breath` is the newest: atoms swell and ease
+about every ten seconds, a whole number of cycles per reading, phased from the
+authored clock so the reading is as long as it was. An atom at or near the
+shortest an atom can be does not swell, so a reading too fast to swell is left
+exactly as it was. It measures nothing about the reader.
 
 **`src/core/player.js`** owns the authoritative reading clock and the playback
 state machine: `idle`, `playing`, `paused`, `interlocuting`, `complete`.
@@ -958,6 +993,30 @@ of `settled`, `open`, `deferred`, or `reversed`.
   model's size, so Kev-4B needs roughly 6 GB of free memory; it has not yet
   been run on Windows. Hosts other than the Cloudflare Worker serve the
   worker script with the site policy, so Kev (device) fails closed there.
+
+### 8.33 One reading, many entrances: the Current
+
+- **Chosen:** RISE is one instrument that turns any source into a compiled,
+  paced, time-based reading, the Current. A room is an entrance (it chooses a
+  source, a pace and layers and hands them to `compileSession`), a contributor
+  (it adds a source, a layer, a projection or a pace), or a rail beside the
+  reading (Curia, Settings). The two constructors are guarded by a test, every
+  entrance's output is checked against one contract, and the reading that follows
+  a division is derived from the Current by classifying each Session field
+  rather than by copying a list.
+- **Rejected:** a new Current type beside Session (a second vocabulary for the
+  same object); folding the Rosarium and Via into it, which run their own fixed
+  clock by covenant and must not gain a layer, a dive or an affect signal;
+  keeping the hand-copied field list, which drops any field the Session learns
+  later without saying so.
+- **Why:** every entrance already converged on one compiler, so the work was to
+  make that convergence something a test can break. The successor list was the
+  one place the reading was rebuilt by hand, which is the defect of a
+  vocabulary in two places where only one learns a new word.
+- **Status:** open. Guards, the successor, one place for the reading, threads
+  under a passage, dive and surface, and the breath pace are built. Emotions, as
+  a projection, and Confluence follow. The plan is
+  `docs/plans/CURRENT-CONSOLIDATION.md`.
 
 ---
 

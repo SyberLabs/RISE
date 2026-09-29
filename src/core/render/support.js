@@ -15,6 +15,7 @@ import {
   PROGRAM_AUDIO_KINDS,
   PROGRAM_NARRATION_KINDS,
   PROGRAM_READING_KINDS,
+  PROGRAM_THREAD_KINDS,
   PROGRAM_VISUAL_FIELD_RENDERERS,
   PROGRAM_VISUAL_KINDS
 } from '../experience-program.js';
@@ -181,7 +182,21 @@ export const RENDER_SUPPORT = Object.freeze({
     'offline spoken mix',
     'authored bed duck',
     'source-span captions'
-  ])
+  ]),
+
+  // A thread is what a reader dives to under a passage. A film has no dive, so
+  // it is not painted, and the preflight report says so rather than refusing
+  // a reading that merely carries one.
+  'thread:gloss': entry('thread:gloss', 'degraded', {
+    degradation: 'not-painted',
+    reason: 'A gloss is read by diving under a passage; an exported film has no dive, so it is not painted.',
+    realtimeDependencies: ['a dive under a passage']
+  }),
+  'thread:echo': entry('thread:echo', 'degraded', {
+    degradation: 'not-painted',
+    reason: 'An echo is read by diving under a passage; an exported film has no dive, so it is not painted.',
+    realtimeDependencies: ['a dive under a passage']
+  })
 });
 
 export const RENDER_SUPPORT_KINDS = Object.freeze(Object.keys(RENDER_SUPPORT));
@@ -219,6 +234,7 @@ export function requiredRenderCueKinds() {
   for (const kind of PROGRAM_AUDIO_KINDS) kinds.add(`audio:${kind}`);
   for (const kind of PROGRAM_READING_KINDS) kinds.add(`reading:${kind}`);
   for (const kind of PROGRAM_NARRATION_KINDS) kinds.add(`narration:${kind}`);
+  for (const kind of PROGRAM_THREAD_KINDS) kinds.add(`thread:${kind}`);
   return kinds;
 }
 
@@ -272,6 +288,7 @@ export function classifyCue(cue, trackKind = null) {
   if (trackKind === 'transition' || kind === 'transition') return 'structural:transition';
   if (trackKind === 'swell' || kind === 'swell') return 'swell:swell';
   if (trackKind === 'narration' || kind === 'spoken') return 'narration:spoken';
+  if (trackKind === 'thread') return `thread:${kind}`;
   if (trackKind === 'reading' || kind === 'pace') return `reading:${kind || 'pace'}`;
   if (trackKind === 'audio' || PROGRAM_AUDIO_KINDS.includes(kind)) return `audio:${kind}`;
   if (kind === 'still') return 'visual:still';

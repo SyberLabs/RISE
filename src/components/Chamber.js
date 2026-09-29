@@ -13,6 +13,9 @@ import { NightStreaks } from '../visuals/night-streaks.js';
 import { KleeField } from '../visuals/klee-field.js';
 import { VisualFieldDirector } from '../visuals/visual-field-director.js';
 import { escapeHtml } from '../core/sanitize.js';
+import { createDive } from '../core/dive.js';
+import { undercurrentAt } from '../core/undercurrent.js';
+import { renderUndercurrent } from './chamber-undercurrent.js';
 // The reveal and its emphasis notation are pure logic — no DOM, no
 // audio — so they live in core and are tested without a browser.
 import {
@@ -70,7 +73,9 @@ export const ICONS = Object.freeze({
   spark: svg('<path d="M12 4v4M12 16v4M4 12h4M16 12h4M7.1 7.1l2.1 2.1M14.8 14.8l2.1 2.1'
     + 'M16.9 7.1l-2.1 2.1M9.2 14.8l-2.1 2.1"/>'),
   check: svg('<circle cx="12" cy="12" r="9"/><path d="m8 12 3 3 5-6"/>'),
-  arrow: svg('<path d="M5 12h14M13 6l6 6-6 6"/>')
+  arrow: svg('<path d="M5 12h14M13 6l6 6-6 6"/>'),
+  dive: svg('<path d="M4.5 9.5c2.5-2 5-2 7.5 0s5 2 7.5 0"/>'
+    + '<path d="M4.5 15c2.5-2 5-2 7.5 0s5 2 7.5 0"/>')
 });
 
 import { livingTextAppearance, ensureTextContrast, scoreAtoms, planInterlocution } from '../core/conductor.js';
@@ -211,7 +216,7 @@ export class Chamber {
     this.pageReader = null;
     this.pageModeActive = false;
     // The reader's place in the Page, kept across a trip to the Stream.
-    this._lastPageIndex = 0;
+    this._lastPage = null;
 
     // Voice and text arrival are separate reader choices. An instant spoken
     // reading and a silent progressive reading are both valid contracts.
@@ -246,6 +251,20 @@ export class Chamber {
      */
     this.offersVisualsToggle = this.hasRhythmicVisuals
         && !isContinuousPresentation(this.session?.visualConfig?.interlocution?.presentation);
+    /**
+     * A dive looks under the passage the reading is at, so it is offered only
+     * where something was written to lie there. An ordinary reading carries
+     * no threads and gains no control.
+     */
+    this.offersDive = this.session?.experienceProgram?.tracks
+        ?.some(track => track.kind === 'thread') === true;
+    this._dive = createDive();
+    // Whether this dive paused a reading that was playing, so that surfacing
+    // resumes exactly what it stopped and nothing else.
+    this._diveHeld = false;
+    this._diveKeyDown = false;
+    this._divePointerUpAt = -Infinity;
+    this.boundKeyupHandler = this.handleKeyup.bind(this);
     this._spokenIndex = null;
     this._spokenPlayback = null;
     this._spokenMs = null;
@@ -566,6 +585,11 @@ export class Chamber {
             </div>
           ` : ''}
 
+          ${this.offersDive ? `
+            <section class="chamber-undercurrent" id="chamber-undercurrent" role="region"
+              aria-label="Under this passage" aria-live="polite" hidden></section>
+          ` : ''}
+
           <!-- Hidden controls - appear on mouse movement -->
           <div class="chamber-controls" id="chamber-controls" style="opacity: 0;">
             <button class="control-btn" id="play-pause-btn" type="button" aria-label="Play or pause" title="Play or pause (Space)">
@@ -623,6 +647,16 @@ export class Chamber {
               <span class="icon" aria-hidden="true">${ICONS.elongate}</span>
               <span class="control-label">Elongate</span>
             </button>
+
+            ${this.offersDive ? `
+              <button class="control-btn dive-btn" id="dive-btn" type="button"
+                aria-pressed="false" aria-expanded="false" aria-controls="chamber-undercurrent"
+                aria-label="Look under this passage"
+                title="Look under this passage (D). Hold to glance, tap to stay.">
+                <span class="icon" aria-hidden="true">${ICONS.dive}</span>
+                <span class="control-label">Dive</span>
+              </button>
+            ` : ''}
 
             <!-- Stream ⇄ Page: the two projections of one reading -->
             <button class="control-btn page-mode-toggle" id="page-mode-btn"
@@ -1026,6 +1060,7 @@ export class Chamber {
       this.audioEngine?.playHiss();
       this.togglePlayPause();
     });
+    this._bindDive();
     this.container.querySelector('#page-prev')?.addEventListener('click', () => {
       this.pageReader?.prevPage();
     });
@@ -1413,6 +1448,13 @@ export class Chamber {
             e.preventDefault();
             this.audioEngine?.playHiss();
             this.toggleKaleidoscope();
+        } else if ((e.key === 'd' || e.key === 'D') && this.offersDive
+            && !e.ctrlKey && !e.metaKey && !e.altKey) {
+            e.preventDefault();
+            if (!e.repeat && !this._diveKeyDown) {
+                this._diveKeyDown = true;
+                this._diveApply(this._dive.press(performance.now()));
+            }
         }
     }
   }
@@ -3338,10 +3380,26 @@ export class Chamber {
     if (!ignoreDebounce && this._lastToggleTime && now - this._lastToggleTime < 200) return;
     this._lastToggleTime = now;
 
+    // Asking to play while looking under a passage means: read on.
+    if (this._dive.state !== 'surface') {
+      this._diveApply(this._dive.surface());
+      if (this.player.state === 'playing' || this.player.state === 'interlocuting') return;
+      this._holdReading(false);
+      return;
+    }
+
+    this._holdReading(this.player.state === 'playing' || this.player.state === 'interlocuting');
+  }
+
+  /**
+   * Hold the reading (pause it) or let it go (play it), with the fades and the
+   * bar's icons that pausing and playing have always had. The one place the
+   * Chamber does either, so a dive holds a reading exactly as the reader does.
+   */
+  _holdReading(held) {
     const playIcon = this.container.querySelector('#play-icon');
     const pauseIcon = this.container.querySelector('#pause-icon');
-
-    if (this.player.state === 'playing' || this.player.state === 'interlocuting') {
+    if (held) {
       this.player.pause();
       this.audioEngine?.fadeOutSession(0.4);
       playIcon?.classList.remove('hidden');
@@ -3352,6 +3410,100 @@ export class Chamber {
       playIcon?.classList.add('hidden');
       pauseIcon?.classList.remove('hidden');
     }
+  }
+
+  // ─── Diving: looking under the passage the reading is at ───
+  //
+  // A dive holds the reading the way pausing does and never moves it, so
+  // surfacing returns to the same atom with everything still scheduled. There
+  // is no seek here to get wrong (LATERAL-TRAVERSAL-SPEC §1). It is a button
+  // and a key, and takes neither pair of arrows.
+
+  _bindDive() {
+    const button = this.container.querySelector('#dive-btn');
+    if (!button) return;
+    const press = () => this._diveApply(this._dive.press(performance.now()));
+    const release = () => this._diveApply(this._dive.release(performance.now()));
+    const isActivation = event => event.key === 'Enter' || event.key === ' ';
+
+    button.addEventListener('pointerdown', (event) => {
+      if (event.button !== 0) return;
+      // The release belongs to this control wherever the pointer is by then:
+      // the panel opens near it, and a release that landed on the panel
+      // instead would leave a glance open with nobody holding it.
+      try { button.setPointerCapture(event.pointerId); } catch { /* synthetic or already released */ }
+      press();
+    });
+    const pointerRelease = () => {
+      this._divePointerUpAt = performance.now();
+      release();
+    };
+    button.addEventListener('pointerup', pointerRelease);
+    button.addEventListener('pointercancel', pointerRelease);
+
+    // Enter and Space are a press and a release, like the pointer. Both are
+    // taken over so the click the browser would follow them with never arrives.
+    button.addEventListener('keydown', (event) => {
+      if (!isActivation(event)) return;
+      event.preventDefault();
+      if (!event.repeat) press();
+    });
+    button.addEventListener('keyup', (event) => {
+      if (!isActivation(event)) return;
+      event.preventDefault();
+      release();
+    });
+
+    // A long press must be a glance, not the browser's own long-press menu.
+    button.addEventListener('contextmenu', event => event.preventDefault());
+
+    // A click with no press before it is how a screen reader, a switch, or a
+    // script activates a button: it has no hold, so it is a tap.
+    button.addEventListener('click', () => {
+      if (performance.now() - this._divePointerUpAt < 500) return;
+      this._diveApply(this._dive.tap());
+    });
+  }
+
+  /** Act on a change of state: hold or release the reading, and show it. */
+  _diveApply(change) {
+    if (!change) return;
+    const panel = this.container.querySelector('#chamber-undercurrent');
+    const button = this.container.querySelector('#dive-btn');
+    if (!panel || !button) return;
+
+    if (change.from === 'surface') {
+      const reading = this.player?.state === 'playing' || this.player?.state === 'interlocuting';
+      this._diveHeld = reading;
+      if (reading) this._holdReading(true);
+      // Sit just above the bar wherever it is: on a phone it wraps to two rows
+      // and a fixed offset would cover the control that opened this.
+      const barTop = this.container.querySelector('#chamber-controls')?.getBoundingClientRect().top;
+      if (barTop > 0) panel.style.bottom = `${Math.max(16, window.innerHeight - barTop + 12)}px`;
+      // Shown before it is filled, so the region announces what arrives.
+      panel.hidden = false;
+      renderUndercurrent(panel, undercurrentAt(this.session, this._pageHead()));
+    } else if (change.to === 'surface') {
+      panel.hidden = true;
+      if (this._diveHeld) {
+        this._diveHeld = false;
+        this._holdReading(false);
+      }
+    }
+
+    const open = change.to !== 'surface';
+    button.setAttribute('aria-expanded', String(open));
+    button.setAttribute('aria-pressed', String(change.to === 'anchored'));
+    const label = button.querySelector('.control-label');
+    if (label) label.textContent = open ? 'Surface' : 'Dive';
+    button.setAttribute('aria-label', open ? 'Return to the reading' : 'Look under this passage');
+  }
+
+  handleKeyup(e) {
+    if (e.key !== 'd' && e.key !== 'D') return;
+    if (!this._diveKeyDown) return;
+    this._diveKeyDown = false;
+    this._diveApply(this._dive.release(performance.now()));
   }
 
   _pauseLikePlay(ignoreDebounce = false) {
@@ -3591,6 +3743,9 @@ export class Chamber {
     if (next === this.pageModeActive) return next;
     if (next && this.session?.firstReadPreview === true) this.dismissFirstReadChoice();
     this.pageModeActive = next;
+    if (next) this._diveApply(this._dive.surface());
+    const diveButton = this.container.querySelector('#dive-btn');
+    if (diveButton) diveButton.hidden = next;
     const jevFace = this.container.querySelector('[name="jev-face"]');
     if (jevFace) jevFace.disabled = next;
     const jevSize = this.container.querySelector('[name="jev-font-size"]');
@@ -3705,25 +3860,26 @@ export class Chamber {
         resolveCollection: (id, count) =>
           this._resolvePageCollection(id, count, abort.signal, visualCortex)
       });
-      // RETURN THE READER TO WHERE THEY WERE. Page Mode builds a fresh
-      // PageReader every time it opens, so leaving for the Stream and
-      // coming back landed on page one — the reading was held, and the
-      // reader's PLACE in it was not.
+      // OPEN WHERE THE READING IS. The Stream's head is the reading's one
+      // place, and nothing done in the Page moves it. While the head is
+      // where it was when the Page was left, the page the reader had
+      // reached is still right; once the head has moved that page is
+      // stale and the Page opens on the head.
       //
-      // READ THE MEMORY BEFORE RENDERING, NOT AFTER. The first attempt
-      // at this restored after render() and did nothing at all, because
-      // render() lands on page 0 and reports it through onPageChange —
-      // which is the same callback that RECORDS the position. The
-      // render erased the memory a line before it was consulted. A
-      // value read after the thing that writes it is not a memory.
-      const resume = this._lastPageIndex;
+      // Read before render(): render() reports page 0 through
+      // onPageChange, and that same callback is what records the page.
+      const head = this._pageHead();
+      const kept = this._lastPage?.head === head ? this._lastPage.index : null;
       this.pageReader.render();
-      if (resume > 0) this.pageReader.goToPage(resume);
+      if (kept !== null) this.pageReader.goToPage(kept);
+      else this.pageReader.showAtom(head);
     } catch (error) {
       console.warn('[Chamber] Page Mode unavailable:', error);
       if (generation !== this._pageGeneration) return this.pageModeActive;
       host.hidden = true;
       this.pageModeActive = false;
+      const unavailableDive = this.container.querySelector('#dive-btn');
+      if (unavailableDive) unavailableDive.hidden = false;
       const jevFace = this.container.querySelector('[name="jev-face"]');
       if (jevFace) jevFace.disabled = false;
       const jevSize = this.container.querySelector('[name="jev-font-size"]');
@@ -4253,14 +4409,21 @@ export class Chamber {
    * Hidden entirely when there is nothing to turn — a single-page
    * reading should not carry disabled arrows.
    */
+  /** The atom the Stream is at: the reading's one place. */
+  _pageHead() {
+    return this.player?.sessionState?.currentIndex ?? 0;
+  }
+
   _syncPageTurn(state = {}) {
     // The reader's own report, taken whole. Inferring `isPaged` and
     // `canPage` from `total` is what made Elongate a one-way door: an
     // elongated reading is ONE page and reads as "nothing to paginate".
     const { index = 0, total = 0, isPaged = false, canPage = false } = state;
     // Remembered here rather than read back on close: by the time Page
-    // Mode is torn down the reader is already gone.
-    if (total > 1) this._lastPageIndex = index;
+    // Mode is torn down the reader is already gone. It is kept with the
+    // head it was reached under, because it means nothing once the head
+    // has moved.
+    if (total > 1) this._lastPage = { index, head: this._pageHead() };
 
     const elongate = this.container.querySelector('#page-elongate');
     if (elongate) {
@@ -4289,6 +4452,11 @@ export class Chamber {
   }
 
   handleEscape() {
+    // Looking under a passage is the topmost thing a reader can be doing.
+    if (this._dive.state !== 'surface') {
+      this._diveApply(this._dive.surface());
+      return true;
+    }
     // The router dispatches Escape here first; an open Lab is the top layer.
     if (this._labOpen) {
       this.closeVisualLab();
@@ -4505,6 +4673,7 @@ export class Chamber {
     if (this._active) return;
     this._active = true;
     document.addEventListener('keydown', this.boundKeyboardHandler);
+    document.addEventListener('keyup', this.boundKeyupHandler);
     this._onVisualVisibility ||= () => this._syncScoringActivity();
     document.addEventListener('visibilitychange', this._onVisualVisibility);
     this._syncScoringActivity();
@@ -4524,6 +4693,7 @@ export class Chamber {
     if (!this._active) return;
     this._active = false;
     document.removeEventListener('keydown', this.boundKeyboardHandler);
+    document.removeEventListener('keyup', this.boundKeyupHandler);
     if (this._onVisualVisibility) document.removeEventListener('visibilitychange', this._onVisualVisibility);
     this._syncScoringActivity();
   }
