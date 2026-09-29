@@ -159,18 +159,18 @@ function rethrow(error) {
 function passagePairs(program) {
   const clips = kind => program.tracks.find(track => track.kind === kind)?.clips || [];
   const audio = clips('audio');
-  return clips('visual').flatMap(visual => {
-    const sound = audio.find(clip => JSON.stringify(clip.anchor) === JSON.stringify(visual.anchor));
+  return clips('visual').filter(visual => visual.cue.kind === 'procedural').flatMap(visual => {
+    const sound = audio.find(clip => clip.cue.kind === 'soundscape'
+      && JSON.stringify(clip.anchor) === JSON.stringify(visual.anchor));
     return sound ? [{ visual, sound }] : [];
   });
 }
 
-/** Passages a recipient can remix: a visual clip and the audio clip on exactly its span. */
+/** Passages a recipient can remix: a procedural visual and a soundscape on exactly one span. */
 export function remixablePassages(program) {
   return passagePairs(program).map(({ visual, sound }) => ({
     id: visual.id, span: describeSpan(visual.anchor),
-    collection: visual.cue.kind === 'procedural' ? visual.cue.collections[0] : null,
-    soundscapeId: sound.cue.kind === 'soundscape' ? sound.cue.soundscapeId : null
+    collection: visual.cue.collections[0], soundscapeId: sound.cue.soundscapeId
   }));
 }
 
@@ -179,17 +179,17 @@ export function remixablePassages(program) {
  * sources, and every other cue stay as they were; the result passes the same
  * gates as an import, so a cue this file could not carry is refused here.
  */
-export function remixPassage(program, passageId, { collection, soundscapeId }) {
+export function remixPassage(program, passageId, { collection, soundscapeId } = {}) {
   try {
     const pair = passagePairs(program).find(({ visual }) => visual.id === passageId);
     if (!pair) refuse('PORTABLE_REMIX_PASSAGE', 'That passage cannot be remixed.');
     const { visual, sound } = pair;
-    if (visual.cue.kind === 'procedural' && visual.cue.collections.join() === collection
+    if (visual.cue.collections.length === 1 && visual.cue.collections[0] === collection
       && sound.cue.soundscapeId === soundscapeId) return program;
+    // A pattern's engines and config belong to that pattern; the sound keeps its gain and fade.
     const cues = new Map([
       [visual, { kind: 'procedural', collections: [collection] }],
-      [sound, { kind: 'soundscape', soundscapeId,
-        ...(sound.cue.gain === undefined ? {} : { gain: sound.cue.gain }) }]
+      [sound, { ...sound.cue, soundscapeId }]
     ]);
     const next = { ...program, tracks: program.tracks.map(track => ({
       ...track, clips: track.clips.map(clip => (cues.has(clip) ? { ...clip, cue: cues.get(clip) } : clip))

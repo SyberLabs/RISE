@@ -114,6 +114,9 @@ import {
   workshopProjectFromImportedProgram
 } from '../core/experience-program-io.js';
 import { resolveProgramLibrarySources } from '../core/scriptorium-resolve.js';
+import { remixablePassages, remixPassage } from '../core/portable-sequence.js';
+import { PROCEDURAL_PATTERNS } from '../core/visual-registry.js';
+import { SOUNDSCAPES } from '../audio/soundscapes.js';
 import {
   EXPORT_MP4_PATH,
   kernelRequestFromWorkshopPayload,
@@ -575,6 +578,7 @@ export class Workshop {
     this.activeDraftKind = options.kind || (this.activeBlueprintId ? 'saved' : 'new');
     this.editorDirty = options.dirty === true;
     this.activeScoreSourceId = this.sessionData.sources[0]?.id || null;
+    this.remixPassageId = null;
     this.selectedScoreAssetId = this.sessionData.sequenceVisualAssets[0]?.id
       || this.sessionData.visualScoreAssignments[0]?.assetId
       || null;
@@ -722,7 +726,7 @@ export class Workshop {
       return 'New from Recursion · not saved';
     }
     if (this.activeDraftKind === 'variation') {
-      return 'Variation of an imported score · change title or pace, then Save to Vault';
+      return 'Variation of an imported score · remix a passage, title, or pace, then keep it';
     }
     if (this.isCurrentDraftDirty()) {
       return 'Unsaved draft · available only while this app remains open';
@@ -741,7 +745,9 @@ export class Workshop {
   /* ─── The phone's Scene Stack: a second view of this one draft ───────── */
 
   usesSceneStack() {
-    return this.studioViewport === 'phone' && this.phoneMode === 'scenes';
+    // Scenes edit lanes, which a proposed score ignores; its remix lives in the studio.
+    return this.studioViewport === 'phone' && this.phoneMode === 'scenes'
+      && this.sessionData.experienceProgram?.authority !== 'proposed';
   }
 
   setPhoneMode(mode) {
@@ -3387,7 +3393,65 @@ export class Workshop {
     return `${clips}<p class="visual-score-lane-limit" role="status">Showing ${rendered.length} of ${assignments.length} clips. Every passage remains available from its source highlight.</p>`;
   }
 
+  remixParent() {
+    const { parentPortableId, portableId } = this.sessionData.provenance || {};
+    const id = parentPortableId || portableId;
+    return this.savedBlueprints.find(item => id && item.provenance?.portableId === id) || null;
+  }
+
+  // A proposed score plays as its program says; lane edits never reach it
+  // (prepareSessionPayload), so this panel replaces the score editor for it.
+  renderPassageRemix() {
+    const esc = value => this.escapeHtml(value);
+    const parent = this.remixParent();
+    const credit = parent?.provenance?.creatorCredit || 'Unattributed';
+    const heading = `<h3 id="passage-remix-title">Remix a passage</h3>`;
+    if (this.sessionData.provenance?.kind !== 'portable-sequence-variation') {
+      const canVary = Boolean(this.activeBlueprintId && this.sessionData.provenance?.portableId);
+      return `<section class="visual-score-editor passage-remix" id="passage-remix" aria-labelledby="passage-remix-title">
+        ${heading}
+        <p data-remix-lineage>“${esc(this.sessionData.title || 'Untitled')}” · credit: ${esc(this.sessionData.provenance?.creatorCredit || 'Unattributed')} (declared, unverified). Its visuals and sound play as proposed.</p>
+        ${canVary ? `<p class="input-note text-fog">To change a passage, make your own copy. This one stays as it is.</p>
+        <button type="button" class="btn-primary" data-action="vary-as-new">Vary as new</button>` : ''}
+      </section>`;
+    }
+    const passages = remixablePassages(this.sessionData.experienceProgram);
+    const current = passages.find(item => item.id === this.remixPassageId) || passages[0];
+    const changed = !parent
+      || JSON.stringify(parent.experienceProgram) !== JSON.stringify(this.sessionData.experienceProgram);
+    const select = (field, label, entries, value) => `<div class="input-group">
+        <label class="input-label" for="remix-${field}">${label}</label>
+        <select class="input" id="remix-${field}" data-remix-${field}>
+          ${entries.map(([id, name]) => `<option value="${esc(id)}" ${id === value ? 'selected' : ''}>${esc(name)}</option>`).join('')}
+        </select></div>`;
+    return `<section class="visual-score-editor passage-remix" id="passage-remix" aria-labelledby="passage-remix-title">
+      ${heading}
+      <p data-remix-lineage>Remix of “${esc(parent?.title || 'an imported score')}” · original credit: ${esc(credit)} (declared, unverified). Your copy carries no credit until you add your credit when you export it.</p>
+      ${current ? `${select('passage', 'Passage', passages.map((item, index) => [item.id, `Passage ${index + 1} · ${item.span}`]), current.id)}
+      ${select('visual', 'Visual', PROCEDURAL_PATTERNS.map(pattern => [pattern.id, pattern.name]), current.collection)}
+      ${select('soundscape', 'Soundscape', Object.entries(SOUNDSCAPES).map(([id, entry]) => [id, entry.name]), current.soundscapeId)}
+      <p class="input-note text-fog">Preview plays your change. Nothing is saved until you keep it.</p>
+      <div class="studio-selected-actions studio-choice-grid studio-choice-grid-2">
+        <button type="button" class="btn-ghost" data-action="reset-remix" ${parent && changed ? '' : 'disabled'}>Reset to original</button>
+        <button type="button" class="btn-primary" data-action="keep-remix" ${changed ? '' : 'disabled'}>${this.activeBlueprintId ? 'Save remix' : 'Keep as new child'}</button>
+      </div>` : '<p class="input-note text-fog">This score has no passage with a built-in visual and soundscape to remix.</p>'}
+    </section>`;
+  }
+
+  applyPassageRemix(target) {
+    this.remixPassageId = this.container.querySelector('[data-remix-passage]').value;
+    if (!target.matches('[data-remix-passage]')) {
+      this.sessionData.experienceProgram = remixPassage(this.sessionData.experienceProgram, this.remixPassageId, {
+        collection: this.container.querySelector('[data-remix-visual]').value,
+        soundscapeId: this.container.querySelector('[data-remix-soundscape]').value
+      });
+      this.markEditorDirty();
+    }
+    this.updateVisualScoreEditor();
+  }
+
   renderMediaScoreEditor() {
+    if (this.sessionData.experienceProgram?.authority === 'proposed') return this.renderPassageRemix();
     if (this.scoreView === 'visual') return this.renderVisualScoreEditor();
     const source = this.activeScoreSource();
     const lane = this.scoreAuthoringLane();
@@ -4376,6 +4440,10 @@ export class Workshop {
         this.selectEditorAsset(event.target.value, { navigate: false });
         return;
       }
+      if (event.type === 'change' && event.target.matches('#passage-remix select')) {
+        this.applyPassageRemix(event.target);
+        return;
+      }
       if (event.type === 'change' && event.target.matches('[data-passage-audio-picker]')) {
         this.selectPassageAudioAsset(event.target.value);
         return;
@@ -4752,9 +4820,15 @@ export class Workshop {
         this.getAudioEngine()?.playHiss();
         const id = target.dataset.id;
         this.removePersonalSwell(id);
-      } else if (action === 'save-draft') {
+      } else if (action === 'save-draft' || action === 'keep-remix') {
         this.getAudioEngine()?.playHiss();
         void this.saveSequenceToVault();
+      } else if (action === 'reset-remix') {
+        this.sessionData.experienceProgram = structuredClone(this.remixParent().experienceProgram);
+        this.markEditorDirty();
+        this.updateVisualScoreEditor();
+      } else if (action === 'vary-as-new') {
+        void this.openSavedBlueprintAsync(this.activeBlueprintId, { varyAsNew: true });
       } else if (action === 'reset-workshop') {
         this.getAudioEngine()?.playHiss();
         this.armOrResetSequence();

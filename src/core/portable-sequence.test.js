@@ -267,6 +267,16 @@ describe('recipient passage remix', () => {
     expect(cues(carried.project.experienceProgram)).toEqual(cues(program));
   });
 
+  it('offers only procedural and soundscape passages, and keeps the sound\'s gain and fade', async () => {
+    expect(remixablePassages((await authoredProject()).experienceProgram)).toEqual([]);
+    const { project } = await inspectPortableSequence(JSON.stringify(quietExample));
+    const faded = structuredClone(project.experienceProgram);
+    faded.tracks.find(track => track.kind === 'audio').clips[0].cue.fadeMs = 1500;
+    const program = remixPassage(faded, 'visual-1', { collection: 'klee', soundscapeId: 'piano' });
+    expect(program.tracks.find(track => track.kind === 'audio').clips[0].cue)
+      .toEqual({ kind: 'soundscape', soundscapeId: 'piano', gain: 0.35, fadeMs: 1500 });
+  });
+
   it('returns the same program when the passage keeps its visual and soundscape', async () => {
     const { project } = await inspectPortableSequence(JSON.stringify(quietExample));
     expect(remixPassage(project.experienceProgram, 'visual-2',
