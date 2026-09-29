@@ -15,7 +15,7 @@ async function openRoom(page, width, height) {
     await page.setViewportSize({ width, height });
     await page.addInitScript(g => localStorage.setItem('rise-beta-session', JSON.stringify(g)), GATE);
     await page.goto('/');
-    await expect(page.locator('.portal .portal-title').first()).toBeVisible({ timeout: 15_000 });
+    await expect(page.locator('.portal h1').first()).toBeVisible({ timeout: 15_000 });
     await openHomeRoom(page, 'scriptorium');
     await expect(page.locator('.scriptorium')).toBeVisible({ timeout: 15_000 });
 }

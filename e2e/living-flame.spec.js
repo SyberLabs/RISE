@@ -48,7 +48,7 @@ async function mockScoring(page, { delayMs = 0, treatmentId = EMPTY_TREATMENT, s
 /** Library → Middlemarch → first chapter → Read with imagery → Begin. */
 async function beginChapter(page, { wpm = 1000, text = null } = {}) {
   await page.goto('/');
-  await expect(page.locator('.portal .portal-title').first()).toBeVisible({ timeout: 15_000 });
+  await expect(page.locator('.portal h1').first()).toBeVisible({ timeout: 15_000 });
   if (text) {
     await page.evaluate(t => window.__RISE_TEST__.navigate('chamber', { text: t, source: 'Pasted' }), text);
   } else {

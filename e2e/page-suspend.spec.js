@@ -20,7 +20,7 @@ async function boot(page, prefs = PREFS) {
     localStorage.setItem('rise_orbital_prefs_v1', JSON.stringify(g.prefs));
   }, { gate: GATE, seed: SEED, prefs });
   await page.goto('/');
-  await expect(page.locator('.portal .portal-title').first()).toBeVisible({ timeout: 15000 });
+  await expect(page.locator('.portal h1').first()).toBeVisible({ timeout: 15000 });
   await openHomeNav(page, 'chamber');
   await expect(page.locator('#begin-btn')).toBeEnabled({ timeout: 15000 });
 }
