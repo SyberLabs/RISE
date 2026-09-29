@@ -163,7 +163,7 @@ flowchart LR
     audio["audio<br/>Web Audio, recitation<br/>10 modules"]
     components["components<br/>routed views<br/>46 modules"]
     content["content<br/>texts, imagery, journeys<br/>231 modules"]
-    core["core<br/>session, player, router<br/>150 modules"]
+    core["core<br/>session, player, router<br/>151 modules"]
     enterprise["enterprise<br/>talk program, speaker rail<br/>28 modules"]
     page["page<br/>spatial projection<br/>4 modules"]
     sources["sources<br/>text and visual providers<br/>22 modules"]
