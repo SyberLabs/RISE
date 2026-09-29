@@ -1,5 +1,6 @@
 import { expect, it } from 'vitest';
 import { JEV_INKS, JEV_PALETTES, jevColors } from './jev-palette.js';
+import { JEV_COLOR_THEMES, isJevColorTheme } from './jev-color-themes.js';
 
 function luminance(hex) {
   const [red, green, blue] = [1, 3, 5].map(index => {
@@ -21,4 +22,11 @@ it('keeps every offered text and background pairing readable', () => {
   }
   expect(jevColors('classic', 'unknown', 'classic')).toBeNull();
   expect(jevColors('prism')).toEqual(JEV_PALETTES.prism);
+});
+
+it('names exactly the themes the palettes and inks define, so the light copy of the names cannot drift', () => {
+  expect([...JEV_COLOR_THEMES].sort()).toEqual(Object.keys(JEV_PALETTES).sort());
+  expect([...JEV_COLOR_THEMES].sort()).toEqual(Object.keys(JEV_INKS).sort());
+  for (const id of JEV_COLOR_THEMES) expect(isJevColorTheme(id)).toBe(true);
+  for (const id of ['', 'neon', 'toString', '__proto__', undefined, null, 7]) expect(isJevColorTheme(id)).toBe(false);
 });
