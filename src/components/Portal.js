@@ -14,7 +14,9 @@
  * answers into the same three keys. What RISE cannot do for a request is
  * said before anything plays (src/core/jev-describe.js).
  *
- * The result, rolled or asked, survives navigation and reload in the tab.
+ * The result, rolled or asked, lives with Home while it is open: coming back
+ * from a reading finds it waiting. A fresh load starts empty, so the first
+ * roll is the reader's own.
  * Every other room is one Menu away; Privacy and Terms stay posted.
  */
 
@@ -27,29 +29,10 @@ import { OracleObject } from './oracle/OracleObject.js';
 const ICON_ATTRS = 'width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"';
 const SETTINGS_PATH = '<path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path><circle cx="12" cy="12" r="3"></circle>';
 const MIC_ICON = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"></rect><path d="M5 11a7 7 0 0 0 14 0"></path><path d="M12 18v3"></path></svg>';
-const ORACLE_KEY = 'rise-oracle-v1';
 const ASK_HELP = 'Only your request is sent, to RISE’s AI decision service. Your reading and saved work stay here. Voice input may use your browser’s speech service.';
 
 const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, c =>
   ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-
-function readStored() {
-  try {
-    const value = JSON.parse(sessionStorage.getItem(ORACLE_KEY) || 'null');
-    return value && typeof value === 'object' ? value : null;
-  } catch {
-    return null;
-  }
-}
-
-function writeStored(value) {
-  try {
-    if (value) sessionStorage.setItem(ORACLE_KEY, JSON.stringify(value));
-    else sessionStorage.removeItem(ORACLE_KEY);
-  } catch {
-    // Private windows may refuse storage; the result still holds in memory.
-  }
-}
 
 export class Portal {
   constructor(container, options = {}) {
@@ -67,13 +50,11 @@ export class Portal {
     // { decision, source: 'roll' | 'ask', intent, temper }
     this.result = null;
     this.rolled = false;
-    this.draft = '';
     this.tools = null;
 
     this.render();
     this.attachEvents();
     this.syncContinue();
-    this.restore();
   }
 
   /** Router re-entry hook — refresh the living entries on return */
@@ -86,7 +67,6 @@ export class Portal {
       this.demoMode = demoMode;
       this.render();
       this.attachEvents();
-      this.restore();
       if (wasActive) this.activate();
     }
     // Returning from a reading is precisely when this changes.
@@ -215,7 +195,6 @@ export class Portal {
             </details>
           </div>
         </div>
-        <button class="oracle-ask-link" type="button" data-oracle="ask-open" hidden>or ask for something specific</button>
       </form>
     </section>`;
   }
@@ -256,18 +235,22 @@ export class Portal {
     const busy = this.state === 'rolling' || this.state === 'asking' || this.launching;
     const key = (action, label, extra = '') =>
       `<button class="oracle-key ${extra}" type="${action === 'ask' ? 'submit' : 'button'}" data-oracle="${action}"${busy ? ' disabled' : ''}>${label}</button>`;
-    // One key leads and the rest follow beneath it, smaller: the lit key keeps
-    // one place (ROLL, then ENTER, then ASK) and what else can be done sits below.
-    const minor = (...keysHtml) => `<div class="oracle-keys-minor">${keysHtml.join('')}</div>`;
-    if (this.state === 'result') {
-      keys.innerHTML = key('enter', 'Enter', 'oracle-key-primary oracle-key-roll')
-        + minor(key('roll', 'Roll again', 'oracle-key-minor'), key('adjust', 'Adjust', 'oracle-key-minor'));
-    } else if (this.state === 'ask' || this.state === 'asking') {
-      keys.innerHTML = key('ask', 'Ask', 'oracle-key-primary oracle-key-roll')
-        + minor(
-          `<button class="oracle-key oracle-key-minor oracle-key-icon" type="button" data-jev-dictate="icon" aria-label="Speak your request" aria-pressed="false">${MIC_ICON}</button>`,
-          key('roll', 'Roll', 'oracle-key-minor')
-        );
+    // Nothing is loaded at first: one key, ROLL. Once there is something to
+    // enter, rolling again and entering are two keys of one size (chance in
+    // beige, the commitment lit), and what else can be done is small text below.
+    const pair = (...keysHtml) => `<div class="oracle-keys-pair">${keysHtml.join('')}</div>`;
+    const quiet = (...itemsHtml) => `<div class="oracle-keys-quiet">${itemsHtml.filter(Boolean).join('')}</div>`;
+    const text = (action, label) =>
+      `<button class="oracle-quiet" type="button" data-oracle="${action}"${busy ? ' disabled' : ''}>${label}</button>`;
+    // The layout follows whether there is something to enter, not the moment's
+    // state, so the keys do not collapse and reappear in the middle of a roll.
+    const asking = this.state === 'ask' || this.state === 'asking';
+    if (!asking && this.result) {
+      keys.innerHTML = pair(key('roll', 'Roll again', 'oracle-key-pair'), key('enter', 'Enter', 'oracle-key-primary oracle-key-pair'))
+        + quiet(text('adjust', 'Adjust'), text('ask-open', 'or ask for something specific'));
+    } else if (asking) {
+      keys.innerHTML = pair(key('roll', 'Roll', 'oracle-key-pair'), key('ask', 'Ask', 'oracle-key-primary oracle-key-pair'))
+        + quiet(`<button class="oracle-quiet oracle-quiet-icon" type="button" data-jev-dictate="icon" aria-label="Speak your request" aria-pressed="false">${MIC_ICON}</button>`);
     } else {
       keys.innerHTML = key('roll', 'Roll', 'oracle-key-primary oracle-key-roll');
     }
@@ -292,7 +275,6 @@ export class Portal {
     field.hidden = !asking;
     field.readOnly = this.state === 'asking';
     root.querySelector('.oracle-help').hidden = !asking;
-    root.querySelector('.oracle-ask-link').hidden = asking || !this.rolled;
     // The result is already in the window; the status line only speaks it.
     root.querySelector('.oracle-status').classList.toggle('sr-only', Boolean(showing));
     const note = root.querySelector('.oracle-note');
@@ -384,38 +366,6 @@ export class Portal {
     };
   }
 
-  keep() {
-    if (!this.result) {
-      writeStored({ rolled: this.rolled, draft: this.draft });
-      return;
-    }
-    const { decision, source, intent, temper } = this.result;
-    writeStored({ rolled: this.rolled, draft: this.draft, result: { decision, source, intent, temper } });
-  }
-
-  /** Bring back the result, and the reader's draft, after navigation or reload. */
-  async restore() {
-    const stored = readStored();
-    if (!stored || this.demoMode) return;
-    this.rolled = stored.rolled === true;
-    this.draft = typeof stored.draft === 'string' ? stored.draft : '';
-    const field = this.container.querySelector('.oracle-intent');
-    if (field) field.value = this.draft;
-    if (stored.result?.decision) {
-      try {
-        const tools = await this.loadTools();
-        tools.validateJevRecommendation(stored.result.decision);
-        this.result = this.describe(tools, stored.result.decision, stored.result);
-        this.setState('result');
-        return;
-      } catch {
-        this.result = null;
-        this.keep();
-      }
-    }
-    this.setState('idle');
-  }
-
   shake() {
     if (this.state === 'ask' || this.state === 'asking') return;
     void this.roll();
@@ -447,9 +397,10 @@ export class Portal {
     const { decision, temper } = tools.rollReading({ previous });
     this.result = this.describe(tools, decision, { source: 'roll', temper });
     this.rolled = true;
-    this.keep();
     this.setState('result', { focus: first ? '[data-oracle="enter"]' : '[data-oracle="roll"]' });
     this.setStatus(`${this.result.title}. ${this.result.meta}. ${this.result.plan.join(', ')}.`);
+    // A small tick as the answer surfaces, on phones that can give one.
+    navigator.vibrate?.(10);
     await this.object?.rise();
   }
 
@@ -482,7 +433,6 @@ export class Portal {
       const decision = await tools.requestComposedReading(intent, { admit: tools.validateJevRecommendation });
       await this.object?.sink();
       this.result = this.describe(tools, decision, { source: 'ask', intent });
-      this.keep();
       this.setState('result', { focus: '[data-oracle="enter"]' });
       this.setStatus(`Jev chose ${this.result.title}. ${this.result.plan.join(', ')}.`);
       await this.object?.rise();
@@ -542,10 +492,6 @@ export class Portal {
           event.preventDefault();
           form.requestSubmit();
         }
-      });
-      field.addEventListener('input', () => {
-        this.draft = field.value;
-        this.keep();
       });
     }
 

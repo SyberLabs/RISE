@@ -133,7 +133,6 @@ test('ROLL, the keys that follow it, and Ask are reachable on a desk and a phone
     for (const viewport of [{ width: 1280, height: 800 }, { width: 390, height: 844 }]) {
         await page.setViewportSize(viewport);
         await openPortal(page);
-        await page.evaluate(() => sessionStorage.removeItem('rise-oracle-v1'));
         await page.reload();
         await expect(page.locator('[data-oracle="roll"]')).toBeVisible({ timeout: 15_000 });
         const check = async selector => {
@@ -162,6 +161,9 @@ const SITTINGS = ['default', 'slate', 'ivory', 'purple', 'cobalt', 'amber',
 
 test('Home text keeps AA contrast in every sitting', async ({ page }) => {
     await openPortal(page);
+    // The small text (Adjust, Ask) appears once there is a reading to speak of.
+    await page.locator('[data-oracle="roll"]').click();
+    await expect(page.locator('[data-oracle="adjust"]')).toBeVisible({ timeout: 10_000 });
     const results = await page.evaluate((sittings) => {
         const rgb = colour => {
             const ctx = document.createElement('canvas').getContext('2d');
@@ -177,7 +179,7 @@ test('Home text keeps AA contrast in every sitting', async ({ page }) => {
         for (const id of sittings) {
             if (id === 'default') document.documentElement.removeAttribute('data-accent');
             else document.documentElement.setAttribute('data-accent', id);
-            for (const sel of ['.portal-nav-link', '.oracle-title', '.oracle-ask-link', '.oracle-status', '.portal-footer-link']) {
+            for (const sel of ['.portal-nav-link', '.oracle-title', '.oracle-quiet', '.oracle-status', '.portal-footer-link']) {
                 out.push({ id, sel, ratio: +ratio(rgb(getComputedStyle(document.querySelector(sel)).color), ground).toFixed(2) });
             }
         }

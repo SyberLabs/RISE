@@ -7,8 +7,7 @@ import { compileJevAudioProgram, compileJevVisualProgram } from '../src/core/jev
 /**
  * The Tokyo Drift reproduction (docs: request-to-playback design, 2026-09-27),
  * through the Oracle: a request asked after a first roll → what RISE cannot
- * do, stated before anything plays → kept across a reload with no new
- * request → Enter → no automatic fullscreen.
+ * do, stated before anything plays → Enter → no automatic fullscreen.
  */
 const releaseInventory = JSON.parse(readFileSync(
   new URL('../src/content/archive/release-inventory.json', import.meta.url), 'utf8'
@@ -36,7 +35,7 @@ const decision = {
   }
 };
 
-test('Tokyo Drift: asked after a roll, limits before Enter, kept on reload, no auto fullscreen', async ({ page }) => {
+test('Tokyo Drift: asked after a roll, limits before Enter, no auto fullscreen', async ({ page }) => {
   let jevRequests = 0;
   await page.route('**/api/jev-recommend', route => {
     jevRequests += 1;
@@ -58,12 +57,6 @@ test('Tokyo Drift: asked after a roll, limits before Enter, kept on reload, no a
   const note = page.locator('.oracle-note');
   await expect(note).toBeVisible();
   await expect(note).toContainText('You referenced “Tokyo Drift”');
-  await expect(note).toContainText('can’t play the Tokyo Drift soundtrack');
-  expect(jevRequests).toBe(1);
-
-  // Reload keeps the answer and its limits without asking again.
-  await page.reload();
-  await expect(page.locator('.oracle-answer-title')).toHaveText('Ulysses', { timeout: 15_000 });
   await expect(note).toContainText('can’t play the Tokyo Drift soundtrack');
   expect(jevRequests).toBe(1);
 

@@ -48,7 +48,10 @@ describe('Home, waiting', () => {
         expect(container.querySelector('h1').textContent).toBe('What will you encounter?');
         expect(keys(container)).toEqual(['Roll']);
         expect(container.querySelector('.oracle-intent').hidden).toBe(true);
-        expect(container.querySelector('[data-oracle="ask-open"]').hidden).toBe(true);
+        // Nothing to ask about, or to adjust, until there is something rolled.
+        expect(container.querySelector('[data-oracle="ask-open"]')).toBeNull();
+        expect(container.querySelector('[data-oracle="adjust"]')).toBeNull();
+        expect(container.querySelector('.oracle-answer').hidden).toBe(true);
         expect(container.querySelector('.oracle-answer').hidden).toBe(true);
         portal.destroy();
     });
@@ -81,7 +84,7 @@ describe('a roll', () => {
         expect(container.querySelector('.oracle-answer-mood').hidden).toBe(false);
         expect(answer.textContent).not.toMatch(/section|wpm|phrases|sentences|words/u);
         expect(answer.children).toHaveLength(3);
-        expect(keys(container)).toEqual(['Enter', 'Roll again', 'Adjust']);
+        expect(keys(container)).toEqual(['Roll again', 'Enter', 'Adjust', 'or ask for something specific']);
         // The whole description is spoken, not shown: section and plan reach the status line.
         const spoken = container.querySelector('[data-oracle-status]').textContent;
         expect(spoken).toContain(portal.result.title);
@@ -90,28 +93,37 @@ describe('a roll', () => {
         portal.destroy();
     });
 
-    it('leads with one key and puts the rest beneath it: ENTER alone, then Roll again and Adjust', async () => {
+    it('gives rolling again and entering one size, and puts Adjust and Ask beneath as small text', async () => {
         const { portal, container } = makePortal();
         await roll(container);
-        const keysBox = container.querySelector('.oracle-keys');
-        const lead = [...keysBox.children].filter(child => child.matches('button'));
-        expect(lead.map(key => key.dataset.oracle)).toEqual(['enter']);
-        expect(lead[0].classList.contains('oracle-key-primary')).toBe(true);
-        const minor = keysBox.querySelector('.oracle-keys-minor');
-        expect([...minor.querySelectorAll('button')].map(key => key.dataset.oracle)).toEqual(['roll', 'adjust']);
-        expect(minor.querySelector('.oracle-key-primary')).toBeNull();
-        // The waiting ROLL and the resulting ENTER are the same large key in the same place.
-        expect(lead[0].classList.contains('oracle-key-roll')).toBe(true);
+        const box = container.querySelector('.oracle-keys');
+        const pair = box.querySelector('.oracle-keys-pair');
+        expect([...pair.querySelectorAll('button')].map(key => key.dataset.oracle)).toEqual(['roll', 'enter']);
+        // The same class of key, so the same size; only the commitment is lit.
+        for (const key of pair.querySelectorAll('button')) expect(key.classList.contains('oracle-key-pair')).toBe(true);
+        expect([...pair.querySelectorAll('.oracle-key-primary')].map(key => key.dataset.oracle)).toEqual(['enter']);
+        const quiet = box.querySelector('.oracle-keys-quiet');
+        expect([...quiet.querySelectorAll('button')].map(key => key.dataset.oracle)).toEqual(['adjust', 'ask-open']);
+        for (const item of quiet.querySelectorAll('button')) expect(item.classList.contains('oracle-key')).toBe(false);
+        portal.destroy();
+    });
+
+    it('keeps the pair through a roll instead of collapsing to one key and back', async () => {
+        const { portal, container } = makePortal();
+        await roll(container);
+        container.querySelector('[data-oracle="roll"]').click();
+        await vi.waitFor(() => expect(portal.state).toBe('rolling'));
+        expect(container.querySelectorAll('.oracle-keys-pair button')).toHaveLength(2);
+        expect(container.querySelector('[data-oracle="roll"]').getAttribute('aria-busy')).toBe('true');
+        await vi.waitFor(() => expect(portal.state).toBe('result'), { timeout: 3000 });
         portal.destroy();
     });
 
     it('opens the way to asking only after a first roll', async () => {
         const { portal, container } = makePortal();
-        const link = container.querySelector('[data-oracle="ask-open"]');
-        expect(link.hidden).toBe(true);
+        expect(container.querySelector('[data-oracle="ask-open"]')).toBeNull();
         await roll(container);
-        expect(link.hidden).toBe(false);
-        expect(link.textContent).toBe('or ask for something specific');
+        expect(container.querySelector('[data-oracle="ask-open"]').textContent).toBe('or ask for something specific');
         portal.destroy();
     });
 
@@ -171,27 +183,34 @@ describe('a roll', () => {
         portal.destroy();
     });
 
-    it('is still there after navigating away and back, or a reload', async () => {
-        const first = makePortal();
-        await roll(first.container);
-        const { title, decision } = first.portal.result;
-        first.portal.destroy();
-
-        const second = makePortal();
-        await vi.waitFor(() => expect(second.portal.state).toBe('result'));
-        expect(second.portal.result.decision).toEqual(decision);
-        expect(second.container.querySelector('.oracle-answer-title').textContent).toBe(title);
-        expect(second.container.querySelector('[data-oracle="ask-open"]').hidden).toBe(false);
-        second.portal.destroy();
+    it('is still there when the reader comes back from a reading', async () => {
+        const { portal, container } = makePortal();
+        await roll(container);
+        const { title, decision } = portal.result;
+        portal.activate();
+        // Leaving Home for a reading, and returning: the same instance, the same result.
+        portal.deactivate();
+        portal.update();
+        portal.activate();
+        expect(portal.result.decision).toEqual(decision);
+        expect(container.querySelector('.oracle-answer-title').textContent).toBe(title);
+        expect(keys(container)).toEqual(['Roll again', 'Enter', 'Adjust', 'or ask for something specific']);
+        portal.destroy();
     });
 
-    it('drops a stored result that no longer passes admission', async () => {
-        sessionStorage.setItem('rise-oracle-v1', JSON.stringify({ rolled: true, result: { decision: { model: 'forged' }, source: 'roll' } }));
-        const { portal, container } = makePortal();
-        await vi.waitFor(() => expect(JSON.parse(sessionStorage.getItem('rise-oracle-v1')).result).toBeUndefined());
-        expect(portal.state).toBe('idle');
-        expect(keys(container)).toEqual(['Roll']);
-        portal.destroy();
+    it("starts empty on a fresh load, so the first roll is the reader's own", async () => {
+        const first = makePortal();
+        await roll(first.container);
+        first.portal.destroy();
+        // A tab that once held a result, from this version or an older one, still loads empty.
+        sessionStorage.setItem('rise-oracle-v1', JSON.stringify({ rolled: true, result: { decision: {}, source: 'roll' } }));
+        const second = makePortal();
+        expect(second.portal.state).toBe('idle');
+        expect(second.portal.result).toBeNull();
+        expect(keys(second.container)).toEqual(['Roll']);
+        expect(second.container.querySelector('.oracle-answer').hidden).toBe(true);
+        expect(second.container.querySelector('.oracle-cursor').hidden).toBe(false);
+        second.portal.destroy();
     });
 });
 

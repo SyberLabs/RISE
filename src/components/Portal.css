@@ -677,8 +677,7 @@ a.portal-nav-link {
 }
 
 .oracle-help[hidden],
-.oracle-note[hidden],
-.oracle-ask-link[hidden] {
+.oracle-note[hidden] {
   display: none;
 }
 
@@ -695,24 +694,6 @@ a.portal-nav-link {
 .oracle-alert {
   width: 100%;
   max-width: 34rem;
-}
-
-.oracle-ask-link {
-  margin-top: var(--sy-space-3);
-  min-height: 44px;
-  padding: 0 var(--sy-space-2);
-  border: 0;
-  background: transparent;
-  font-family: var(--sy-font-mono);
-  font-size: 13px;
-  letter-spacing: 0.04em;
-  color: var(--sy-text-2);
-  cursor: pointer;
-  transition: color var(--sy-dur-hover) var(--sy-ease);
-}
-
-.oracle-ask-link:hover {
-  color: var(--sy-ice);
 }
 
 .portal-oracle .portal-continue {

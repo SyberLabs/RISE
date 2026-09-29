@@ -236,12 +236,59 @@
   width: 100%;
 }
 
-/* What else can be done sits beneath the lit key, smaller. */
-.oracle-keys-minor {
+/* Rolling again and entering are one size: chance in beige, the commitment lit. */
+.oracle-keys-pair {
   display: flex;
   justify-content: center;
-  gap: 14px;
+  gap: 16px;
   width: 100%;
+}
+
+/* What else can be done is small text beneath, never a rival to the keys. */
+.oracle-keys-quiet {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0 8px;
+  margin-top: -4px;
+}
+
+.oracle-quiet {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 12px;
+  border: 0;
+  background: transparent;
+  color: #93a4cf;
+  font: 500 12px/1.3 var(--sy-font-mono);
+  letter-spacing: 0.06em;
+  cursor: pointer;
+  transition: color 0.15s;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.oracle-quiet:hover:not(:disabled) {
+  color: var(--sy-ice);
+}
+
+.oracle-quiet:disabled {
+  cursor: progress;
+  opacity: 0.6;
+}
+
+.oracle-quiet:focus-visible {
+  outline: 2px solid var(--sy-ice);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+.oracle-quiet-icon {
+  justify-content: center;
+  min-width: 44px;
+  border: 1px solid #93a4cf55;
+  border-radius: 50%;
 }
 
 .oracle-key {
@@ -284,22 +331,14 @@
   letter-spacing: 0.32em;
 }
 
-/* A secondary key: a shorter cap on a shallower stem. */
-.oracle-key-minor {
-  min-width: 116px;
-  min-height: 46px;
-  padding: 0 16px 3px;
-  border-radius: 9px;
-  font-size: 12px;
-  letter-spacing: 0.12em;
-  box-shadow: inset 0 2px 0 #fffaf0, inset 0 -3px 6px #0000001f,
-    0 4px 0 #b7ad98, 0 5px 0 #7d7462, 0 10px 16px #0008;
-}
-
-.oracle-key-minor:active {
-  transform: translateY(3px);
-  box-shadow: inset 0 2px 0 #fffaf0, inset 0 -2px 4px #0000001f,
-    0 1px 0 #b7ad98, 0 2px 0 #7d7462, 0 4px 8px #0008;
+/* Two keys of one height, sharing the row. */
+.oracle-key-pair {
+  flex: 0 1 172px;
+  min-width: 0;
+  min-height: 68px;
+  padding: 0 12px 4px;
+  font-size: 15px;
+  letter-spacing: 0.2em;
 }
 
 .oracle-key:active,
@@ -324,11 +363,6 @@
   outline-offset: 6px;
 }
 
-.oracle-key-icon {
-  min-width: 56px;
-  padding: 0 0 3px;
-}
-
 @keyframes oracle-cursor {
   50% { opacity: 0.35; }
 }
@@ -340,15 +374,22 @@
 }
 
 @media (max-width: 420px) {
-  .oracle-keys-minor {
-    gap: 10px;
-    max-width: 320px;
+  .oracle-keys-pair {
+    gap: 12px;
+    max-width: 350px;
   }
 
-  .oracle-key-minor:not(.oracle-key-icon) {
+  .oracle-key-pair {
     flex: 1 1 0;
-    min-width: 0;
-    padding: 0 10px 3px;
+    padding: 0 8px 4px;
+    font-size: 14px;
+    letter-spacing: 0.14em;
+  }
+
+  /* Adjust and Ask stay on one line down to a 360px phone. */
+  .oracle-quiet {
+    padding: 0 8px;
+    letter-spacing: 0.04em;
   }
 }
 

@@ -54,7 +54,7 @@ function mount(options = {}) {
 /** Asking is an escape hatch: it opens after a first roll. */
 async function openAsk(container) {
   container.querySelector('[data-oracle="roll"]').click();
-  await vi.waitFor(() => expect(container.querySelector('[data-oracle="ask-open"]').hidden).toBe(false), { timeout: 3000 });
+  await vi.waitFor(() => expect(container.querySelector('[data-oracle="ask-open"]')).not.toBeNull(), { timeout: 3000 });
   container.querySelector('[data-oracle="ask-open"]').click();
   await vi.waitFor(() => expect(container.querySelector('.oracle-intent').hidden).toBe(false), { timeout: 3000 });
 }
@@ -69,12 +69,12 @@ it('turns the window into a request, and the keys into Ask, a microphone and Rol
   await openAsk(container);
   expect(document.activeElement).toBe(container.querySelector('.oracle-intent'));
   expect([...container.querySelectorAll('.oracle-keys button')].map(key => key.getAttribute('aria-label') || key.textContent.trim()))
-    .toEqual(['Ask', 'Speak your request', 'Roll']);
+    .toEqual(['Roll', 'Ask', 'Speak your request']);
   expect(container.querySelector('[data-jev-dictation-status]')).not.toBeNull();
   expect(container.querySelector('.oracle-help').hidden).toBe(false);
   expect(container.querySelector('.oracle-help').textContent).toMatch(/Only your request is sent/u);
   expect(container.querySelector('.oracle-help').textContent).toMatch(/browser.s speech service/iu);
-  expect(container.querySelector('[data-oracle="ask-open"]').hidden).toBe(true);
+  expect(container.querySelector('[data-oracle="ask-open"]')).toBeNull();
   portal.destroy();
 });
 
@@ -155,16 +155,16 @@ it('refuses an answer that fails admission', async () => {
   portal.destroy();
 });
 
-it('keeps the draft across a reload', async () => {
-  const first = mount();
-  await openAsk(first.container);
-  const field = first.container.querySelector('.oracle-intent');
+it('keeps what was typed while Home is open, and lets a roll leave the request without losing it', async () => {
+  const { portal, container } = mount();
+  await openAsk(container);
+  const field = container.querySelector('.oracle-intent');
   field.value = 'something slow about the sea';
-  field.dispatchEvent(new Event('input', { bubbles: true }));
-  first.portal.destroy();
-  document.body.innerHTML = '';
-
-  const second = mount();
-  await vi.waitFor(() => expect(second.container.querySelector('.oracle-intent').value).toBe('something slow about the sea'));
-  second.portal.destroy();
+  // Rolling instead leaves the request; asking again finds the words where they were.
+  container.querySelector('[data-oracle="roll"]').click();
+  await vi.waitFor(() => expect(portal.state).toBe('result'), { timeout: 3000 });
+  container.querySelector('[data-oracle="ask-open"]').click();
+  await vi.waitFor(() => expect(container.querySelector('.oracle-intent').hidden).toBe(false), { timeout: 3000 });
+  expect(container.querySelector('.oracle-intent').value).toBe('something slow about the sea');
+  portal.destroy();
 });

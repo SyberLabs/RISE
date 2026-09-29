@@ -16,7 +16,7 @@ async function openHome(page) {
 async function roll(page) {
   await page.locator('[data-oracle="roll"]').click();
   await expect(page.locator('[data-oracle="enter"]')).toBeVisible({ timeout: 10_000 });
-  return page.evaluate(() => JSON.parse(sessionStorage.getItem('rise-oracle-v1')).result.decision);
+  return page.evaluate(() => window.__RISE_TEST__.getView('portal').result.decision);
 }
 
 const view = page => page.evaluate(() => window.__RISE_TEST__.getRouterState().currentView);
@@ -48,27 +48,46 @@ for (const viewport of [{ width: 390, height: 844 }, { width: 1280, height: 800 
 }
 
 for (const viewport of [{ width: 390, height: 844 }, { width: 360, height: 640 }, { width: 1280, height: 800 }]) {
-  test(`at ${viewport.width}x${viewport.height} ENTER leads and the other two keys sit beneath it, smaller`, async ({ page }) => {
+  test(`at ${viewport.width}x${viewport.height} rolling again and entering are two keys of one size, and Adjust and Ask are small text beneath`, async ({ page }) => {
     await page.setViewportSize(viewport);
     await openHome(page);
+    // First load: nothing in the ball, one key, and nothing to adjust or ask about yet.
+    await expect(page.locator('.oracle-keys button')).toHaveCount(1);
+    await expect(page.locator('[data-oracle="ask-open"], [data-oracle="adjust"]')).toHaveCount(0);
+    await expect(page.locator('.oracle-answer')).toBeHidden();
     await roll(page);
     await page.waitForTimeout(1200);
     const box = selector => page.locator(selector).boundingBox();
-    const [enter, again, adjust] = [await box('[data-oracle="enter"]'), await box('[data-oracle="roll"]'), await box('[data-oracle="adjust"]')];
-    // One lead key, above the other two, which sit side by side and are smaller in both directions.
-    expect(enter.y + enter.height, 'ENTER is above the others').toBeLessThanOrEqual(Math.min(again.y, adjust.y));
-    expect(enter.width).toBeGreaterThan(again.width);
-    expect(enter.height).toBeGreaterThan(again.height);
-    expect(Math.abs(again.y - adjust.y)).toBeLessThan(2);
-    expect(again.x + again.width).toBeLessThan(adjust.x);
-    // The lead key is centred, and the pair is centred beneath it.
-    const centre = b => b.x + b.width / 2;
-    expect(Math.abs(centre(enter) - (again.x + adjust.x + adjust.width) / 2)).toBeLessThan(2);
-    // Smaller, but still a touch target.
-    expect(Math.min(again.height, adjust.height)).toBeGreaterThanOrEqual(44);
-    expect(Math.min(again.width, adjust.width)).toBeGreaterThanOrEqual(44);
+    const [again, enter, adjust, ask] = [await box('[data-oracle="roll"]'), await box('[data-oracle="enter"]'),
+      await box('[data-oracle="adjust"]'), await box('[data-oracle="ask-open"]')];
+    // One size, one row, ROLL AGAIN to the left of ENTER, and the pair centred on the page.
+    expect(Math.abs(again.width - enter.width)).toBeLessThan(1);
+    expect(Math.abs(again.height - enter.height)).toBeLessThan(1);
+    expect(Math.abs(again.y - enter.y)).toBeLessThan(1);
+    expect(again.x + again.width).toBeLessThan(enter.x);
+    expect(Math.abs((again.x + enter.x + enter.width) / 2 - viewport.width / 2)).toBeLessThan(2);
+    // Adjust and Ask sit beneath, side by side, as small text: shorter than the keys, still touch targets.
+    for (const item of [adjust, ask]) {
+      expect(item.y).toBeGreaterThanOrEqual(again.y + again.height);
+      expect(item.height).toBeLessThan(again.height);
+      expect(item.height).toBeGreaterThanOrEqual(44);
+    }
+    expect(Math.abs(adjust.y - ask.y)).toBeLessThan(2);
+    // Only the commitment is lit.
+    await expect(page.locator('.oracle-key-primary')).toHaveCount(1);
+    await expect(page.locator('.oracle-key-primary')).toHaveAttribute('data-oracle', 'enter');
   });
 }
+
+test('a reload starts with nothing in the ball, so the first roll is always the reader\'s own', async ({ page }) => {
+  await openHome(page);
+  await roll(page);
+  await page.reload();
+  await expect(page.locator('[data-oracle="roll"]')).toBeVisible({ timeout: 15_000 });
+  await expect(page.locator('.oracle-keys button')).toHaveCount(1);
+  await expect(page.locator('.oracle-answer')).toBeHidden();
+  await expect(page.locator('[data-oracle="enter"]')).toHaveCount(0);
+});
 
 test('the worst results (the longest author, a two-line title, the widest plan) sit inside the window', async ({ page }) => {
   for (const viewport of [{ width: 390, height: 844 }, { width: 1280, height: 800 }]) {
