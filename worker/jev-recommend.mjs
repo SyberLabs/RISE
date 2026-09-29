@@ -581,6 +581,7 @@ function validCachedDecision(value, books, choices, provider) {
     requestId: value.requestId,
     model: value.model, ...decisionIdentity(provider),
     workId: book.work_id,
+    title: book.title,
     editionId: book.edition_id,
     sourceRevision: book.source_revision,
     reason: book.fit_description,
@@ -599,6 +600,7 @@ function validDecision(value, books, intent, choices, provider) {
     requestId: typeof value.id === 'string' && value.id.length <= 100 ? value.id : crypto.randomUUID(),
     model: value.model, ...decisionIdentity(provider),
     workId: selected.work_id,
+    title: selected.title,
     editionId: selected.edition_id,
     sourceRevision: selected.source_revision,
     // Jev is a choice model, not a prose generator. This is reviewed catalog copy.

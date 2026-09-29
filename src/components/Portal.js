@@ -28,10 +28,6 @@ const ICON_ATTRS = 'width="20" height="20" viewBox="0 0 24 24" fill="none" strok
 const SETTINGS_PATH = '<path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path><circle cx="12" cy="12" r="3"></circle>';
 const MIC_ICON = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"></rect><path d="M5 11a7 7 0 0 0 14 0"></path><path d="M12 18v3"></path></svg>';
 const ORACLE_KEY = 'rise-oracle-v1';
-const SECTION_WORDS = Object.freeze({
-  first: 'opening section', middle: 'middle section', last: 'final section',
-  shortest: 'shortest section', longest: 'longest section'
-});
 const ASK_HELP = 'Only your request is sent, to RISE’s AI decision service. Your reading and saved work stay here. Voice input may use your browser’s speech service.';
 
 const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, c =>
@@ -142,6 +138,9 @@ export class Portal {
               <button class="portal-nav-settings" type="button" data-action="settings" aria-label="Settings" title="Settings">
                 <svg ${ICON_ATTRS}>${SETTINGS_PATH}</svg><span class="portal-nav-settings-label">Settings</span>
               </button>
+              <p class="portal-nav-group" aria-hidden="true">Other ways in</p>
+              <!-- A page of its own: another skin over the same roll (src/wormhole). -->
+              <a class="portal-nav-link portal-nav-minor" href="/wormhole.html">Wormhole</a>
               <p class="portal-nav-group" aria-hidden="true">More rooms</p>
               <button class="portal-nav-link portal-nav-minor" type="button" data-nav="chapel">Chapel</button>
               <button class="portal-nav-link portal-nav-minor" type="button" data-nav="scriptorium">Scriptorium</button>
@@ -328,6 +327,7 @@ export class Portal {
       import('../core/roll.js'),
       import('../core/jev-describe.js'),
       import('../app/jev-reading.js'),
+      import('../app/invocation.js'),
       import('../content/library.js')
     ]).then(modules => Object.assign({}, ...modules));
     return this.tools;
@@ -347,7 +347,7 @@ export class Portal {
     return {
       decision, source, intent, temper, note,
       title: work?.title || decision.workId,
-      meta: [work?.author, SECTION_WORDS[decision.config.section]].filter(Boolean).join(' · '),
+      meta: [work?.author, tools.SECTION_WORDS[decision.config.section]].filter(Boolean).join(' · '),
       plan: tools.summarizeJevPlan(decision.config)
     };
   }
@@ -445,15 +445,9 @@ export class Portal {
     this.object?.setBusy(true);
     this.setStatus('Interpreting your request. This usually takes a few seconds.');
     try {
-      const response = await fetch('/api/jev-recommend', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ intent, schemaVersion: 3 })
-      });
-      const decision = await response.json().catch(() => ({}));
-      if (!response.ok) throw new Error(decision?.error?.message || 'RISE is unavailable.');
+      // The one decision route every way in shares (src/app/invocation.js).
       const tools = await this.loadTools();
-      tools.validateJevRecommendation(decision);
+      const decision = await tools.requestComposedReading(intent, { admit: tools.validateJevRecommendation });
       await this.object?.sink();
       this.result = this.describe(tools, decision, { source: 'ask', intent });
       this.keep();
@@ -561,7 +555,7 @@ export class Portal {
         return;
       }
       if (event.key !== 'Tab') return;
-      const stops = [toggle, ...nav.querySelectorAll('button')];
+      const stops = [toggle, ...nav.querySelectorAll('button, a[href]')];
       const first = stops[0];
       const last = stops[stops.length - 1];
       if (event.shiftKey && document.activeElement === first) {

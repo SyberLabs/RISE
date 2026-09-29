@@ -23,6 +23,55 @@ import { compileJevAudioProgram, compileJevVisualProgram } from './jev-sequence.
 const SECTIONS = Object.freeze(['first', 'middle', 'last', 'shortest', 'longest']);
 
 /**
+ * What a released work is called, without loading the Library.
+ *
+ * A roll names its reading, and so does the wormhole page, which is a page of its
+ * own and cannot afford the Library's corpora to print a title. The table is a
+ * copy, so a test holds it to the Library: a work released without a name here,
+ * or renamed there, fails until this is updated.
+ */
+const TITLES = Object.freeze({
+  'middlemarch': ["Middlemarch", "George Eliot"],
+  'the-brothers-karamazov': ["The Brothers Karamazov", "Fyodor Dostoevsky"],
+  'literary-meditations': ["Meditations", "Marcus Aurelius"],
+  'sacred-tao-te-ching': ["Tao Te Ching", "Laozi"],
+  'the-iliad': ["The Iliad", "Homer"],
+  'the-divine-comedy': ["The Divine Comedy", "Dante Alighieri"],
+  'metamorphoses': ["Metamorphoses", "Ovid"],
+  'spoon-river-anthology': ["Spoon River Anthology", "Edgar Lee Masters"],
+  'oedipus-rex': ["Oedipus Rex", "Sophocles"],
+  'literary-walden': ["Walden", "Henry David Thoreau"],
+  'ulysses': ["Ulysses", "James Joyce"],
+  'paradise-lost': ["Paradise Lost", "John Milton"],
+  'literary-essays-emerson': ["Essays", "Ralph Waldo Emerson"],
+  'confucius-analects': ["Analects", "Confucius"],
+  'lyrical-ballads': ["Lyrical Ballads", "William Wordsworth and Samuel Taylor Coleridge"],
+  // RISE originals, all by RISE.
+  'the-prompt-and-the-pencil': ["The Prompt and the Pencil", 'RISE'],
+  'the-group-chat-went-quiet': ["The Group Chat Went Quiet", 'RISE'],
+  'who-taught-the-feed': ["Who Taught the Feed?", 'RISE'],
+  'the-last-save-point': ["The Last Save Point", 'RISE'],
+  'a-video-is-a-small-business': ["A Video Is a Small Business", 'RISE'],
+  'the-photo-that-knew-your-street': ["The Photo That Knew Your Street", 'RISE'],
+  'the-repair-table': ["The Repair Table", 'RISE'],
+  'robot-in-the-hallway': ["Robot in the Hallway", 'RISE'],
+  'signal-from-the-moon': ["Signal from the Moon", 'RISE'],
+  'the-fan-edit': ["The Fan Edit", 'RISE'],
+  'the-deepfake-in-the-chat': ["The Deepfake in the Chat", 'RISE'],
+  'captions-on': ["Captions On", 'RISE'],
+  'a-map-made-of-heat': ["A Map Made of Heat", 'RISE'],
+  'the-smallest-app': ["The Smallest App", 'RISE'],
+  'the-online-friend': ["The Online Friend", 'RISE'],
+  'when-the-screen-goes-dark': ["When the Screen Goes Dark", 'RISE']
+});
+
+/** The name and author of a released work, or null. */
+export function rollTitleOf(workId) {
+  const named = TITLES[workId];
+  return named ? { title: named[0], author: named[1] } : null;
+}
+
+/**
  * Each list is a closed choice; the first entry is the temper's centre.
  * Values are exactly those validateJevRecommendation admits.
  */
@@ -124,6 +173,7 @@ export function composeRoll({ temper, workId, section, random = Math.random }) {
     provider: 'RISE',
     reason: '',
     workId: edition.workId,
+    ...rollTitleOf(edition.workId),
     editionId: edition.editionId,
     sourceRevision: edition.sourceRevision,
     temper: temper.id,

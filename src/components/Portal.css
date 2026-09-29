@@ -227,6 +227,13 @@
   color: var(--sy-text-3);
 }
 
+/* A link in the sheet is laid out like the buttons around it. */
+a.portal-nav-link {
+  display: flex;
+  align-items: center;
+  text-decoration: none;
+}
+
 .portal-nav-minor {
   height: 48px;
   font-size: 15px;

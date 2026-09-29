@@ -20,6 +20,12 @@ const FACE_WORDS = Object.freeze({
   mono: 'Monospaced', sans: 'Clean sans', book: 'Book serif'
 });
 
+/** Where in a work a reading opens, in words. */
+export const SECTION_WORDS = Object.freeze({
+  first: 'opening section', middle: 'middle section', last: 'final section',
+  shortest: 'shortest section', longest: 'longest section'
+});
+
 const SHORT_PACE = Object.freeze({ 100: 'very slow', 150: 'slow', 200: 'steady', 250: 'brisk', 300: 'fast', 400: 'very fast', 500: 'fastest' });
 const UNIT_WORDS = Object.freeze({ word: 'words', phrase: 'phrases', sentence: 'sentences', paragraph: 'paragraphs' });
 const IMAGERY_WORDS = Object.freeze({

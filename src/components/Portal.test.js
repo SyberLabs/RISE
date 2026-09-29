@@ -232,6 +232,18 @@ describe('the rest of Home', () => {
         portal.destroy();
     });
 
+    it('offers the wormhole, a page of its own, as another way in', () => {
+        const { portal, container } = makePortal();
+        const link = container.querySelector('.portal-nav a[href="/wormhole.html"]');
+        expect(link.textContent.trim()).toBe('Wormhole');
+        expect(link.closest('.portal-nav').textContent).toContain('Other ways in');
+        // The demo pages are for a fixed sample; they keep the same Menu.
+        portal.destroy();
+        const demo = makePortal({ demoMode: true });
+        expect(demo.container.querySelector('.portal-nav a[href="/wormhole.html"]')).not.toBeNull();
+        demo.portal.destroy();
+    });
+
     it('opens Guide and Settings from the Menu', () => {
         const { portal, container } = makePortal();
         for (const [action, event] of [['guide', 'rise-open-guide'], ['settings', 'rise-open-settings']]) {

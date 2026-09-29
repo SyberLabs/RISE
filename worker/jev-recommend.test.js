@@ -167,8 +167,11 @@ describe('Jev reading recommendation', () => {
     expect(first.status).toBe(200);
     const decision = await first.json();
     expect(decision).toMatchObject({ provider: 'Kev', revision: kev.KEV_REVISION, model: 'kev-latest' });
+    expect(decision.title).toBe('Middlemarch');
     expect(() => validateJevRecommendation(decision)).not.toThrow();
-    expect((await (await handleJevRecommend(request({ intent: 'A thoughtful reading.' }), kev)).json()).decisionCacheStatus).toBe('hit');
+    const cached = await (await handleJevRecommend(request({ intent: 'A thoughtful reading.' }), kev)).json();
+    expect(cached.decisionCacheStatus).toBe('hit');
+    expect(cached.title).toBe('Middlemarch');
     expect(fetcher).toHaveBeenCalledTimes(1);
     servedRevision = 'b'.repeat(40);
     const changed = await handleJevRecommend(request({ intent: 'A thoughtful reading.' }), { ...kev, KEV_REVISION: servedRevision });
@@ -507,7 +510,7 @@ describe('Jev reading recommendation', () => {
     expect(await response.json()).toEqual({
       schemaVersion: 2,
       requestId: 'gen-dec-live-1', model: 'typesafe/jev-1.13-20260917',
-      workId: 'middlemarch', editionId: books[0].edition_id,
+      workId: 'middlemarch', title: 'Middlemarch', editionId: books[0].edition_id,
       sourceRevision: books[0].source_revision,
       reason: books[0].fit_description, config: chosenConfig,
       cacheStatus: 'miss', decisionCacheStatus: 'miss'

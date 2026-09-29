@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { TEMPERS, rollReading, composeRoll } from './roll.js';
+import { TEMPERS, rollReading, composeRoll, rollTitleOf } from './roll.js';
+import { getTextById } from '../content/library.js';
 import { validateJevRecommendation } from '../app/jev-reading.js';
 import { jevReleasedWorkIds, summarizeJevPlan } from './jev-describe.js';
 
@@ -75,6 +76,29 @@ describe('a roll', () => {
     const seen = new Set();
     for (let i = 0; i < 400; i += 1) seen.add(rollReading({ random }).temper);
     expect([...seen].sort()).toEqual(TEMPERS.map(temper => temper.id).sort());
+  });
+});
+
+describe('a roll names its reading', () => {
+  it('carries the title and author of every released work, as the Library has them', () => {
+    for (const workId of jevReleasedWorkIds()) {
+      const held = getTextById(workId);
+      expect(rollTitleOf(workId), workId).toEqual({ title: held.title, author: held.author });
+    }
+  });
+
+  it('puts them on the decision, and still passes admission', () => {
+    const random = seeded(21);
+    for (let i = 0; i < 100; i += 1) {
+      const { decision } = rollReading({ random });
+      expect(decision.title).toBe(rollTitleOf(decision.workId).title);
+      expect(decision.author).toBe(rollTitleOf(decision.workId).author);
+      expect(() => validateJevRecommendation(decision)).not.toThrow();
+    }
+  });
+
+  it('knows no title for a work that is not released', () => {
+    expect(rollTitleOf('a-doll-s-house')).toBeNull();
   });
 });
 
