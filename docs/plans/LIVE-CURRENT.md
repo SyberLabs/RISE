@@ -138,24 +138,29 @@ Budgets, all measured with the virtual clock and stated in the architecture deci
 | Atom position error inside a segment with no marks | at most 250 ms, reset at every boundary |
 | Applying one maximum-size event | at most 2 ms at p95 |
 | Memory growth over a five-minute synthetic Current | at most 5 MB, and back to baseline after cleanup |
-| First load | 0 bytes added; the budget number is not moved |
+| First load | as near 0 bytes added as the route itself; the budget number is not moved |
 
 | Piece | Implemented | Unit | Browser | Mock provider | Live provider |
 |---|---|---|---|---|---|
 | Protocol, validator, reducer | yes | yes | no | yes | n/a |
 | Mock adapter and conformance fixture | yes | yes | no | yes | n/a |
 | Player live mode | yes | yes | no | n/a | n/a |
-| Speech clock and synthetic voice renderer | yes | yes | no | yes | n/a |
-| Runtime, Dive and Surface | yes | yes | no | yes | n/a |
-| Browser voice (`speechSynthesis`) | no | no | no | no | no |
-| `/live` host | no | no | no | no | no |
-| Capability negotiation | no | no | no | no | no |
+| Speech clock and synthetic voice renderer | yes | yes | yes (silent, paced) | yes | n/a |
+| Runtime, Dive and Surface | yes | yes | yes | yes | n/a |
+| Browser voice (`speechSynthesis`) | yes | yes, against a fake device | **no** (no real voice has been heard) | n/a | n/a |
+| `/live` host | yes | yes | yes | yes | n/a |
+| Capability negotiation | yes | yes | yes (each degradation observed) | yes | n/a |
+| Speaking to interrupt (microphone) | no, typed only | no | no | no | no |
 | Evidence and experiential state | no | no | no | no | no |
 | OpenAI Realtime adapter | no | no | no | no | no |
 | MCP host | no | no | no | no | no |
 | Evaluation harness | no | no | no | no | no |
 
-**Measured so far (virtual clock, mock provider, synthetic voice; `src/live/runtime.test.js`, `speech-governor.test.js`).** The segment-boundary budget (a segment's first atom within 100 ms of the voice starting it) and the in-segment budget (every atom within 250 ms of where the voice was) hold, asserted per atom. After a Dive, every later segment begins later by the length of the Dive to within 400 ms, and the voice's own times shift by it exactly. Time to first visible atom and to first audio are the moment the first *segment* is committed plus one event turn, because only a finished segment is lowered. That makes **first-segment length the lever on time to first response**: the mock's 120-character opening finishes at 220 ms; a real provider writes more slowly, so it should open with a short segment. This is a finding about the design, not a solved problem, and it has not been measured against a live provider.
+**Measured in a real browser (headless Chromium, production build, deterministic provider, silent paced voice; `e2e/live.spec.js`, one machine, one run).** Click to first atom on the page: **about 0.73 s**, of which the mock’s first segment is 0.22 s and the rest is fetching what the reading needs and mounting the Chamber. Segment boundaries: the first atom is within **−33 to +16 ms** of the voice starting the segment. Inside a segment: within **−54 to +22 ms** of where the voice was. Both are inside the budgets above, which the suite asserts with margin for slower machines. First load moved from 59.8 to 59.9 KB brotli (Player’s `govern` and `replayCurrent`, and the route); the 64.0 KB budget is unmoved. Reduced motion was checked by comparing screenshots of the imagery 1.5 s apart (identical under reduced motion, different otherwise), not by reading the CSS.
+
+**Not verified, and known limits of the platform.** No real speech engine has been used, so every claim about `speechSynthesis` is against a fake device that models the behaviours a renderer depends on. Chrome’s network voices report no word boundaries, in which case the reading is corrected only at segment starts and ends, and a Dive that holds such a voice restarts its segment when it is released. Some Chrome builds cut a long utterance off after about fifteen seconds; the speech clock then stands down to the Player’s timer, as it does for any voice that stops. A microphone is not used: interrupting is typed, and the page says so where speech recognition is unavailable.
+
+**Measured so far on a virtual clock (mock provider, synthetic voice; `src/live/runtime.test.js`, `speech-governor.test.js`).** The segment-boundary budget (a segment's first atom within 100 ms of the voice starting it) and the in-segment budget (every atom within 250 ms of where the voice was) hold, asserted per atom. After a Dive, every later segment begins later by the length of the Dive to within 400 ms, and the voice's own times shift by it exactly. Time to first visible atom and to first audio are the moment the first *segment* is committed plus one event turn, because only a finished segment is lowered. That makes **first-segment length the lever on time to first response**: the mock's 120-character opening finishes at 220 ms; a real provider writes more slowly, so it should open with a short segment. This is a finding about the design, not a solved problem, and it has not been measured against a live provider.
 
 ## 12. Decisions that are the creator's
 

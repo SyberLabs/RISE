@@ -491,8 +491,7 @@ class App {
             handleArchetypeLaunch: data => this.handleArchetypeLaunch(data),
             handleBeginSession: session => this.handleBeginSession(session),
             useRecipeInReading: recipe => this.useRecipeInReading(recipe),
-            presentLive: (session, player) => this.presentLive(session, player),
-            leaveLive: () => this.router.navigate('live', { replace: true, skipStack: true }),
+            router: this.router,
             getAudioEngine: () => this.audioEngine,
             getCurrentSession: () => this.currentSession,
             getSettings: () => this.settings,
@@ -512,9 +511,6 @@ class App {
                 ensureVisualCortex: () => this.ensureVisualCortex(),
                 ensureAudioEngine: () => this.ensureAudioEngine(),
                 continueLibraryReading: session => this.continueLibraryReading(session),
-                takeLivePlayer: session => this.takeLivePlayer(session),
-                liveExited: () => this.router.getViewInstance('live')?.ended?.(),
-                liveMounted: session => this.liveMounted?.(session),
                 handleSettingsChange: this.handleSettingsChange,
                 handleDataCleared: this.handleDataCleared,
                 showLoading: title => this.showLoading(title),
@@ -544,46 +540,6 @@ class App {
                 init: async (container, data) => route.create(container, data, await route.load())
             });
         }
-    }
-
-    /**
-     * Put a live reading on screen. The Player is the one the live runtime
-     * built for this Current; the factory adopts it (takeLivePlayer) instead of
-     * making another. The view replaces whatever reading is showing, the way a
-     * successor division does; and a Player that was held part way (a Dive that
-     * has come back) is shown its atom again, since the view is new.
-     */
-    async presentLive(session, player) {
-        session.origin = { view: 'live' };
-        this.liveHandoff = { session, player };
-        this.currentSession = session;
-        const mounted = new Promise(resolve => { this.liveMounted = resolve; });
-        // The router remounts a view only when it has none: the Chamber that was
-        // showing goes first, and lets go of its Player as it does.
-        const showing = this.router.views.get('chamber-session');
-        if (showing?.instance) {
-            showing.instance.destroy?.();
-            showing.instance = null;
-        }
-        const navigation = this.router.navigate('chamber-session', {
-            data: session,
-            force: true,
-            replace: true,
-            skipStack: true
-        });
-        // The reading begins as soon as the Chamber exists, not when the router has finished
-        // fading it in; a navigation that then fails is still reported.
-        navigation.catch(error => console.error('[RISE] Live presentation failed:', error));
-        await Promise.race([mounted, navigation]);
-        if (player.sessionState.state === 'paused') player.replayCurrent();
-    }
-
-    /** The factory asks once, for the Session it has been handed. */
-    takeLivePlayer(session) {
-        const handoff = this.liveHandoff;
-        if (!handoff || handoff.session !== session) return null;
-        this.liveHandoff = null;
-        return handoff.player;
     }
 
     async launchChapelReading(bookId, chapter, extras) {

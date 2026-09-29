@@ -207,8 +207,7 @@ export function createRouteManifest(operations) {
       containerId: 'view-live',
       load: () => import('../live/host/LiveHost.js'),
       create: (container, _data, { LiveHost }) => new LiveHost(container, {
-        present: operations.presentLive,
-        leave: operations.leaveLive
+        router: operations.router
       })
     },
     {

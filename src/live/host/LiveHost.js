@@ -28,15 +28,13 @@ export class LiveHost {
     /**
      * @param {HTMLElement} container
      * @param {object} options
-     * @param {(session: object, player: object) => Promise<void>} options.present put a Session and its Player on screen
-     * @param {() => Promise<void>|void} [options.leave] go back to this page from the reading
+     * @param {object} options.router the shell’s router, to put a reading on screen and to come back
      * @param {string} [options.search] the query string
      * @param {object} [options.env] window-like, for capability detection
      */
-    constructor(container, { present, leave = () => {}, search = globalThis.location?.search ?? '', env = globalThis } = {}) {
+    constructor(container, { router, search = globalThis.location?.search ?? '', env = globalThis } = {}) {
         this.container = container;
-        this.presentInChamber = present;
-        this.leave = leave;
+        this.router = router;
         this.params = new URLSearchParams(search);
         this.env = env;
         this.caps = detectCapabilities(env);
@@ -60,7 +58,9 @@ export class LiveHost {
             import('../runtime.js'),
             import('../adapters/mock.js'),
             import('../../app/chamber-session-factory.js'),
-            import('../clock.js')
+            import('../clock.js'),
+            import('../../app/live-present.js'),
+            import('../../app/live-handoff.js')
         ]);
     }
 
@@ -162,7 +162,11 @@ export class LiveHost {
 
     /** Everything the runtime needs, loaded now and not before: none of it is in the first load. */
     async buildRuntime() {
-        const [{ createLiveRuntime }, { createMockAdapter }, { createSessionPlayer }, { createRealClock }] = await this.modules;
+        const [{ createLiveRuntime }, { createMockAdapter }, { createSessionPlayer }, { createRealClock }, present, handoff] = await this.modules;
+        this.present = present;
+        // Hear when the reader leaves the Chamber by its own control.
+        this.stopHearingExit?.();
+        this.stopHearingExit = handoff.onLiveExit(() => { void this.ended(); });
         const clock = createRealClock();
         const voices = await this.buildVoices(clock);
         const runtime = createLiveRuntime({
@@ -177,7 +181,7 @@ export class LiveHost {
                             if (!concealed && !replayed) this.atomLog.push({ at: performance.now(), index, role });
                         });
                     }
-                    return this.presentInChamber(session, player);
+                    return this.present.presentLive(this.router, session, player);
                 },
                 dismiss: () => {}
             }
@@ -221,7 +225,7 @@ export class LiveHost {
         this.controls = null;
         await runtime?.stop();
         this.resetButton();
-        await this.leave();
+        await this.present?.leaveLive(this.router);
     }
 
     /** The reader left the Chamber by its own control: end what was running. */
@@ -243,6 +247,7 @@ export class LiveHost {
     destroy() {
         if (this.destroyed) return;
         this.destroyed = true;
+        this.stopHearingExit?.();
         void this.ended();
         this.container.replaceChildren();
     }

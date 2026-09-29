@@ -165,7 +165,7 @@ flowchart LR
     content["content<br/>texts, imagery, journeys<br/>231 modules"]
     core["core<br/>session, player, router<br/>153 modules"]
     enterprise["enterprise<br/>talk program, speaker rail<br/>28 modules"]
-    live["live<br/>realtime Current: events, runtime, providers<br/>10 modules"]
+    live["live<br/>realtime Current: events, runtime, providers<br/>14 modules"]
     oracle["oracle<br/>2 modules"]
     page["page<br/>spatial projection<br/>4 modules"]
     sources["sources<br/>text and visual providers<br/>22 modules"]
@@ -176,6 +176,7 @@ flowchart LR
     app --> |1| components
     app --> |5| content
     app --> |36| core
+    app -.-> |1 lazy| live
     app -.-> |1 lazy| sources
     app -.-> |1 lazy| visuals
     audio --> |1| content
@@ -196,6 +197,8 @@ flowchart LR
     core --> |14| content
     core --> |4| sources
     core --> |23| visuals
+    live -.-> |3 lazy| app
+    live -.-> |1 lazy| components
     live --> |3| core
     page --> |2| core
     page --> |3| visuals
@@ -1050,9 +1053,15 @@ of `settled`, `open`, `deferred`, or `reversed`.
   parent go from the same atom. Speech belongs to the runtime, not the provider,
   and what the reader lived through is kept in the runtime's journal, because
   the reducer's stream is sealed at `current.complete`, long before speech
-  ends. It is proven only with the deterministic mock and a synthetic voice
-  under a virtual clock. A browser voice, a host, and a live provider are not
-  built.
+  ends. A standalone host at `/live` (`src/live/host/`, deliberately not in
+  `src/components/`, because it is a host and not a room) presents the reading
+  in the one Chamber: the factory adopts the Player the runtime built
+  (`src/app/live-handoff.js`), the Chamber follows a longer Session and lets go
+  of its Player when torn down, and the Player accepts more than one governor
+  of atom timing (`Player.govern`) so the speech clock and Recitation coexist.
+  It is proven with the deterministic mock and a silent paced voice, in unit
+  tests on a virtual clock and in a real browser; a real speech engine and a
+  live provider are not verified.
 
 ---
 

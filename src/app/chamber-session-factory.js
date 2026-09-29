@@ -18,6 +18,7 @@ import { chamberExitTarget } from './chamber-exit.js';
 import { createPresentationLens, sessionColorTheme } from '../core/session-presentation.js';
 import { sessionImageryCollections } from '../core/visual-selection.js';
 import { audioDiag } from '../core/audio-diagnostics.js';
+import { liveExited, liveMounted, takeLivePlayer } from './live-handoff.js';
 
 /**
  * The one place a Player is made. A host that needs a Player for a Session it
@@ -34,7 +35,7 @@ export async function createChamberSession(operations, container, sessionData) {
     // one Player for the whole Current, so it is adopted, not rebuilt; and
     // because the view replaces one already on screen (a Dive, coming back), the
     // preparation overlay and its settling delay are skipped.
-    const live = operations.takeLivePlayer?.(session) ?? null;
+    const live = takeLivePlayer(session);
     const ui = live ? { showLoading() {}, updateLoadingStatus() {}, hideLoading() {} } : operations;
     const revision = operations.router.navigationRevision;
     const assertCurrent = () => {
@@ -460,7 +461,7 @@ export async function createChamberSession(operations, container, sessionData) {
             pendingVisualRecipe: operations.takePendingVisualRecipe?.() || null,
             onExit: (reason, data) => {
                 // Cleanup
-                if (live) operations.liveExited?.(session);
+                if (live) liveExited(session);
                 player.stop();
                 endVisualInterlocutionSession();
                 visualCortex.updateConfig({ enabled: false });
@@ -510,7 +511,7 @@ export async function createChamberSession(operations, container, sessionData) {
         });
         // Its listeners are bound, so the reading can begin while the router is
         // still fading the view in.
-        if (live) operations.liveMounted?.(session);
+        if (live) liveMounted();
         return chamber;
     } catch (error) {
         if (error?.name !== 'AbortError') console.error('[RISE] Session initialization failed:', error);
