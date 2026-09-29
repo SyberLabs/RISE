@@ -1105,6 +1105,34 @@ of `settled`, `open`, `deferred`, or `reversed`.
   provider: a model says a passage is literal only if its instructions allow
   it, which they now do, narrowly.
 
+### 8.36 Speaking to it is a press, a closed grammar, and a hold
+
+- **Chosen:** the reader speaks by pressing Speak (`src/live/mic/`), one
+  utterance at a time, using the browser's own speech recognition. The press
+  holds the reading first (`runtime.hold`: the reading and the voice stop, the
+  provider is left composing), so the voice does not talk over the reader and
+  nothing they say is lost; the microphone is let go of when the utterance ends,
+  on every error, on a timeout, on any other button, and on Stop. What was heard
+  is matched against a short closed grammar (`interpret.js`): surface, resume,
+  hold, and dive on an unmistakable question ("wait, dive on event horizon",
+  "what is the event horizon?"). Anything else is not acted on: it is held,
+  shown in the box as words, and left for the reader to send.
+- **Rejected:** always listening (a microphone the reader did not ask for);
+  a model deciding what the reader meant (a network call, a cost, and a wrong
+  guess that spends a question or loses a place); interrupting the provider on
+  a press (`interrupt` cancels composing, so a mistaken press would cost the
+  rest of the answer); a consent dialog of our own (the browser asks for the
+  microphone; the page says, in a line beside the button, where the voice
+  goes).
+- **Why:** a misheard word must not cost a reader their place, so the only
+  things done on speech are things a button already does and that can be
+  undone by another. The transcript is untrusted text: it is matched, clipped,
+  and only ever shown as words. Speech recognition in Chrome sends audio to a
+  third party, which is why the sentence is on the page and not in a document.
+- **Status:** open. Built and tested with a fake recogniser at every layer
+  (grammar, listener, runtime hold, controls, host, and a real browser running
+  the built page). Not verified with any real recogniser; English only.
+
 ---
 
 ## 9. What this design costs

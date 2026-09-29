@@ -293,6 +293,18 @@ export function createLiveRuntime({
             startPumping(main);
         },
 
+        /**
+         * Hold everything where it is, and nothing more: the reading and the voice stop, and the
+         * provider is left to go on composing. This is what a reader who starts to speak needs (the
+         * voice must not talk over them), and it costs nothing they cannot undo with resume.
+         */
+        hold({ text } = {}) {
+            if (!main?.player || status !== 'live') throw new LiveRuntimeError('NOT_LIVE', 'There is nothing to hold');
+            main.player.pause();
+            note('hold', { reason: 'user', ...(text ? { text: clip(text, 200) } : {}) });
+            set('interrupted');
+        },
+
         /** Barge in: hold everything where it is, and tell the provider to stop composing if it still is. */
         async interrupt({ text } = {}) {
             if (!main?.player || status !== 'live') throw new LiveRuntimeError('NOT_LIVE', 'There is nothing to interrupt');

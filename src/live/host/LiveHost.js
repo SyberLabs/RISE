@@ -68,6 +68,8 @@ export class LiveHost {
         this.modules = this.loadModules();
         this.modules.catch(() => {});
         void import('../../components/Chamber.js').catch(() => {});
+        // Speaking to it is fetched only where the browser can recognise speech; a failure is no mic.
+        this.micModules = this.caps.speechRecognition ? Promise.all([import('../mic/listener.js'), import('../mic/interpret.js')]).catch(() => null) : null;
     }
 
     loadModules() {
@@ -185,7 +187,7 @@ export class LiveHost {
         try {
             const runtime = await this.buildRuntime();
             this.runtime = runtime;
-            this.controls = createLiveControls({ runtime, onStop: () => this.stop(), audible: this.voiceKind === 'browser' });
+            this.controls = createLiveControls({ runtime, onStop: () => this.stop(), audible: this.voiceKind === 'browser', mic: await this.buildMic() });
             await runtime.start(prompt);
         } catch (error) {
             this.controls?.destroy();
@@ -246,6 +248,25 @@ export class LiveHost {
             });
         }
         return runtime;
+    }
+
+    /**
+     * Speaking to it, or nothing. The grammar is English, so the recogniser is asked for English
+     * whatever the page's language: words in another language would only ever be "not understood".
+     */
+    async buildMic() {
+        const loaded = await this.micModules;
+        if (!loaded) return null;
+        const [{ createSpeechListener, describeMic, MIC_PRIVACY, MIC_PRIVACY_LEAD }, { interpret }] = loaded;
+        const scope = this.env.window ?? this.env;
+        const Recognition = scope.SpeechRecognition ?? scope.webkitSpeechRecognition;
+        return {
+            createListener: handlers => createSpeechListener({ Recognition, ...handlers }),
+            interpret,
+            describe: describeMic,
+            privacy: MIC_PRIVACY,
+            privacyLead: MIC_PRIVACY_LEAD
+        };
     }
 
     /** The provider's adapter. OpenAI's is loaded only if it is the one asked for. */

@@ -49,9 +49,11 @@ export function describeStatus(snapshot, { audible = true, question = '' } = {})
  * @param {object} options.runtime a live runtime
  * @param {() => void} options.onStop what Stop does (the host ends the session)
  * @param {boolean} [options.audible] whether the voice makes sound; a silent one is said to be pacing
+ * @param {object} [options.mic] speaking to it, where the browser can listen: `{ createListener, interpret, describe, privacy, privacyLead }`
+ *   (src/live/mic); without it there is no Speak button at all
  * @param {Document} [options.doc]
  */
-export function createLiveControls({ runtime, onStop, audible = true, doc = document }) {
+export function createLiveControls({ runtime, onStop, audible = true, mic = null, doc = document }) {
     const root = doc.createElement('section');
     root.id = 'live-controls';
     root.className = 'live-controls';
@@ -67,9 +69,12 @@ export function createLiveControls({ runtime, onStop, audible = true, doc = docu
       </form>
       <div class="live-controls__buttons">
         <button type="button" data-live="interrupt">Interrupt</button>
+        <button type="button" data-live="listen" aria-pressed="false" aria-describedby="live-controls-mic-privacy" hidden>Speak</button>
         <button type="button" data-live="surface" hidden>Surface</button>
         <button type="button" data-live="stop">Stop</button>
       </div>
+      <p class="live-controls__mic" hidden></p>
+      <details class="live-controls__mic-note" hidden><summary></summary><p id="live-controls-mic-privacy"></p></details>
       <details class="live-controls__passage">
         <summary>About this passage</summary>
         <div class="live-passage">
@@ -97,6 +102,9 @@ export function createLiveControls({ runtime, onStop, audible = true, doc = docu
     const dive = $('[data-live="dive"]');
     const interrupt = $('[data-live="interrupt"]');
     const surface = $('[data-live="surface"]');
+    const listen = $('[data-live="listen"]');
+    const micLine = $('.live-controls__mic');
+    const micNote = $('.live-controls__mic-note');
     const lines = $('.live-controls__lines');
     const passageOrigin = $('.live-passage__origin');
     const passageCondition = $('.live-passage__condition');
@@ -106,6 +114,8 @@ export function createLiveControls({ runtime, onStop, audible = true, doc = docu
     let shownLines = '';
     let shownPassage = '';
     let destroyed = false;
+    let listener = null;
+    let heldByMic = false;
 
     const show = message => {
         errorLine.textContent = message ?? '';
@@ -201,12 +211,111 @@ export function createLiveControls({ runtime, onStop, audible = true, doc = docu
         interrupt.hidden = status === 'diving' || status === 'ended' || status === 'failed' || status === 'stopped' || status === 'starting';
         interrupt.textContent = status === 'interrupted' ? 'Resume' : 'Interrupt';
         interrupt.dataset.live = status === 'interrupted' ? 'resume' : 'interrupt';
+        if (listener) {
+            listen.hidden = !(canAsk || status === 'diving');
+            if (status === 'failed' || status === 'stopped') listener.cancel();
+        }
         if (status === 'failed' && snapshot.error) show(snapshot.error.message);
         transcript(snapshot);
         passage(snapshot);
     }
 
+    // ─── speaking to it ────────────────────────────────────────────────
+    // Only where the browser can listen (`mic`); it does nothing the buttons do not. What is heard is
+    // matched against a closed list (src/live/mic/interpret.js) and anything else is put in the box
+    // for the reader to read, change, and send themselves.
+
+    const say = message => {
+        micLine.textContent = message;
+        micLine.hidden = !message;
+    };
+
+    /** Give up listening, and let go of a reading that only the microphone was holding. */
+    const stopListening = () => {
+        listener?.cancel();
+        heldByMic = false;
+    };
+
+    const letGo = () => {
+        if (heldByMic && runtime.status === 'interrupted') runtime.resume();
+        heldByMic = false;
+    };
+
+    const ask = async asked => {
+        question = asked;
+        input.value = '';
+        await runtime.dive({ question: asked });
+        surface.focus();
+    };
+
+    function heard(words) {
+        const said = mic.interpret(words);
+        const held = heldByMic;
+        heldByMic = false;
+        say('');
+        void attempt(async () => {
+            switch (said.intent) {
+                case 'none':
+                    if (held && runtime.status === 'interrupted') runtime.resume();
+                    break;
+                case 'surface':
+                    if (runtime.status === 'diving') await runtime.surface();
+                    else if (runtime.status === 'interrupted') runtime.resume();
+                    question = '';
+                    break;
+                case 'resume':
+                    if (runtime.status === 'interrupted') runtime.resume();
+                    break;
+                case 'hold':
+                    if (runtime.status === 'live') runtime.hold({ text: said.heard });
+                    break;
+                case 'dive':
+                    await ask(said.question);
+                    break;
+                default:
+                    if (runtime.status === 'live') runtime.hold({ text: said.heard });
+                    input.value = said.heard;
+                    input.focus();
+                    say(`Heard “${said.heard.slice(0, 120)}”. Press Dive to ask it, or Resume.`);
+            }
+        });
+    }
+
+    if (mic) {
+        listener = mic.createListener({
+            onInterim: words => say(`Hearing: “${words.slice(0, 120)}”`),
+            onFinal: heard,
+            onState: state => {
+                const active = state === 'starting' || state === 'listening';
+                listen.setAttribute('aria-pressed', String(active));
+                say(state === 'idle' ? '' : mic.describe(state));
+                if (!active && state !== 'idle') letGo();
+            }
+        });
+        micLine.setAttribute('role', 'status');
+        micLine.setAttribute('aria-live', 'polite');
+        micNote.querySelector('summary').textContent = mic.privacyLead;
+        micNote.querySelector('p').textContent = mic.privacy;
+        micNote.hidden = false;
+        listen.addEventListener('click', () => {
+            if (listener.listening) {
+                listener.stop();
+                return;
+            }
+            show('');
+            heldByMic = false;
+            if (runtime.status === 'live') {
+                try {
+                    runtime.hold();
+                    heldByMic = true;
+                } catch { /* it is no longer live; listening still works */ }
+            }
+            listener.start();
+        });
+    }
+
     interrupt.addEventListener('click', () => {
+        stopListening();
         void attempt(async () => {
             if (runtime.status === 'interrupted') runtime.resume();
             else await runtime.interrupt({ text: input.value.trim() || undefined });
@@ -219,14 +328,11 @@ export function createLiveControls({ runtime, onStop, audible = true, doc = docu
             input.focus();
             return;
         }
-        void attempt(async () => {
-            question = asked;
-            input.value = '';
-            await runtime.dive({ question: asked });
-            surface.focus();
-        });
+        stopListening();
+        void attempt(() => ask(asked));
     });
     surface.addEventListener('click', () => {
+        stopListening();
         void attempt(async () => {
             await runtime.surface();
             question = '';
@@ -242,6 +348,7 @@ export function createLiveControls({ runtime, onStop, audible = true, doc = docu
         destroy() {
             if (destroyed) return;
             destroyed = true;
+            listener?.destroy();
             off();
             root.remove();
         }

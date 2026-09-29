@@ -215,6 +215,68 @@ describe('interrupting', () => {
     });
 });
 
+describe('holding', () => {
+    it('holds the reading and the voice, leaves the provider composing, and carries on to the very end', async () => {
+        build();
+        await runtime.start(ASK);
+        await tick(300);
+        runtime.hold({ text: 'wait' });
+        expect(runtime.status).toBe('interrupted');
+        const at = runtime.snapshot().main.atomIndex;
+        const count = shown.main.length;
+        await tick(60_000);
+        // The reader is still holding it, however long the provider took to finish.
+        expect(runtime.status).toBe('interrupted');
+        expect(runtime.snapshot().main.atomIndex).toBe(at);
+        expect(shown.main.length).toBe(count);
+        expect(runtime.composed().phase).not.toBe('cancelled');
+        expect(runtime.snapshot().main.committedSegments).toBe(BLACK_HOLES.segments.length);
+        runtime.resume();
+        await tick(120_000);
+        expect(runtime.status).toBe('ended');
+        expect(orderedOnce(shown.main)).toBe(true);
+        expect(runtime.snapshot().main.committedSegments).toBe(BLACK_HOLES.segments.length);
+        const held = runtime.journal().find(e => e.type === 'hold');
+        expect(held).toMatchObject({ reason: 'user', text: 'wait' });
+        expect(runtime.journal().some(e => e.type === 'interrupt')).toBe(false);
+    });
+
+    it('is the difference from interrupting: interrupting stops the provider, holding does not', async () => {
+        build();
+        await runtime.start(ASK);
+        await tick(300);
+        await runtime.interrupt({ text: 'wait' });
+        await tick(5_000);
+        expect(runtime.composed().phase).toBe('cancelled');
+    });
+
+    it('says there is nothing to hold before there is a reading, and after it has ended', async () => {
+        build();
+        expect(() => runtime.hold()).toThrow(LiveRuntimeError);
+        await runtime.start(ASK);
+        await tick(120_000);
+        expect(runtime.status).toBe('ended');
+        expect(() => runtime.hold()).toThrow(expect.objectContaining({ code: 'NOT_LIVE' }));
+    });
+
+    it('cannot be held twice, and does not disturb a reading that is already held', async () => {
+        build();
+        await runtime.start(ASK);
+        await tick(300);
+        runtime.hold();
+        expect(() => runtime.hold()).toThrow(expect.objectContaining({ code: 'NOT_LIVE' }));
+        expect(runtime.status).toBe('interrupted');
+    });
+
+    it('clips what was heard in the journal', async () => {
+        build();
+        await runtime.start(ASK);
+        await tick(300);
+        runtime.hold({ text: 'x'.repeat(5_000) });
+        expect(runtime.journal().find(e => e.type === 'hold').text.length).toBeLessThanOrEqual(200);
+    });
+});
+
 describe('diving and surfacing', () => {
     it('suspends the parent without moving it, answers in a Current of its own, and returns to the same atom', async () => {
         build();

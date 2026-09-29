@@ -252,6 +252,7 @@ test.describe('when the device cannot do what a Current would like', () => {
         await expect(page.locator('.live-notes')).toContainText('Speaking to interrupt is unavailable here. Type instead.');
         await page.locator('.live-start').click();
         await expectShown(page, 'A black hole is a region of space');
+        await expect(page.locator('[data-live="listen"]')).toBeHidden();
         await page.locator('#live-controls-question').fill('dive on event horizon');
         await page.locator('#live-controls-question').press('Enter');
         await expect(status(page)).toContainText('Diving');

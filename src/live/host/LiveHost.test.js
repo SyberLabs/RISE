@@ -212,3 +212,36 @@ describe('the OpenAI provider, with the reader\u2019s own key', () => {
         expect(container.querySelector('.live-provider').textContent).not.toContain('sk-');
     });
 });
+
+describe('speaking to it', () => {
+    it('is fetched and offered only where the browser can recognise speech', async () => {
+        mount('', env());
+        expect(host.micModules).toBeNull();
+        expect(await host.buildMic()).toBeNull();
+
+        host.destroy();
+        mount('', env({ recognition: true }));
+        const mic = await host.buildMic();
+        expect(mic).toMatchObject({ privacy: expect.stringMatching(/browser maker/u) });
+        for (const name of ['createListener', 'interpret', 'describe']) expect(typeof mic[name], name).toBe('function');
+    });
+
+    it('listens with the browser’s own recogniser, in English because the grammar is English', async () => {
+        const seen = [];
+        const environment = env();
+        environment.window.SpeechRecognition = function Recognition() { seen.push(this); };
+        mount('', environment);
+        const mic = await host.buildMic();
+        const listener = mic.createListener({});
+        listener.start();
+        expect(seen).toHaveLength(1);
+        expect(seen[0].lang).toBe('en-US');
+        listener.destroy();
+    });
+
+    it('says, on the page before Start, that speaking is unavailable when it is, and offers no button then', () => {
+        mount('', env());
+        expect(notes()).toContain('speechRecognition');
+        expect(document.querySelector('[data-live="listen"]')).toBeNull();
+    });
+});

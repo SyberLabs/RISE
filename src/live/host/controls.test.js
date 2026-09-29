@@ -8,6 +8,10 @@
  * a failure is said in words, and the buttons are the ones the state allows.
  */
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { createVirtualClock } from '../clock.js';
+import { createFakeRecognition, open } from '../../test/fake-recognition.js';
+import { createSpeechListener, describeMic, MIC_PRIVACY, MIC_PRIVACY_LEAD } from '../mic/listener.js';
+import { interpret } from '../mic/interpret.js';
 import { createLiveControls, describeStatus } from './controls.js';
 
 const snapshot = (status, extra = {}) => ({
@@ -62,8 +66,9 @@ function fakeRuntime(initial = 'live') {
         subscribe: fn => { listeners.add(fn); return () => listeners.delete(fn); },
         composed: role => ({ segments: role === 'side' ? [{ text: 'a dive line', ended: true }] : [{ text: 'first line', ended: true }, { text: 'second line', ended: true }, { text: 'still being written', ended: false }] }),
         interrupt: vi.fn(async body => { calls.push(['interrupt', body]); runtime.set('interrupted'); }),
+        hold: vi.fn(body => { if (state.status !== 'live') throw new Error('There is nothing to hold'); calls.push(['hold', body]); runtime.set('interrupted'); }),
         resume: vi.fn(() => { calls.push(['resume']); runtime.set('live'); }),
-        dive: vi.fn(async body => { calls.push(['dive', body]); runtime.set('diving'); }),
+        dive: vi.fn(async body => { if (state.status === 'diving') throw new Error('A Dive inside a Dive is not built'); calls.push(['dive', body]); runtime.set('diving'); }),
         surface: vi.fn(async () => { calls.push(['surface']); runtime.set('live'); }),
         set(status, extra) { state = snapshot(status, extra); for (const fn of [...listeners]) fn(state); },
         calls
@@ -285,5 +290,215 @@ describe('leaving', () => {
         controls.destroy();
         expect($('#live-controls')).toBeNull();
         expect(() => runtime.set('diving')).not.toThrow();
+    });
+});
+
+describe('speaking to it', () => {
+    const CLOCK = createVirtualClock();
+    let Recognition;
+
+    /** Real listener and grammar, a fake recogniser: everything but the browser's own hearing. */
+    function withMic(status = 'live') {
+        Recognition = createFakeRecognition();
+        const runtime = fakeRuntime(status);
+        const mic = {
+            createListener: handlers => createSpeechListener({ Recognition, clock: CLOCK, ...handlers }),
+            interpret, describe: describeMic, privacy: MIC_PRIVACY, privacyLead: MIC_PRIVACY_LEAD
+        };
+        controls = createLiveControls({ runtime, onStop: () => {}, mic });
+        return runtime;
+    }
+    const recogniser = () => Recognition.instances.at(-1);
+    const press = () => $('[data-live="listen"]').click();
+    const hear = words => { recogniser().begin(); recogniser().say(words, { final: true }); };
+    const micLine = () => $('.live-controls__mic');
+
+    it('has no Speak button, and no privacy text, where there is no microphone to use', () => {
+        controls = createLiveControls({ runtime: fakeRuntime('live'), onStop: () => {} });
+        expect($('[data-live="listen"]').hidden).toBe(true);
+        expect($('.live-controls__mic-note').hidden).toBe(true);
+    });
+
+    it('says, before anyone presses, where their voice goes, and adds one live region for what it hears and no more', () => {
+        withMic();
+        expect(document.querySelectorAll('[aria-live]').length).toBe(2);
+        expect(document.querySelector('.live-controls__lines').closest('[aria-live]')).toBeNull();
+        expect($('.live-controls__mic-note').hidden).toBe(false);
+        expect($('.live-controls__mic-note summary').textContent).toBe(MIC_PRIVACY_LEAD);
+        expect($('.live-controls__mic-note p').textContent).toBe(MIC_PRIVACY);
+        // The button is described by the full text, for anyone who cannot see the disclosure.
+        expect($('[data-live="listen"]').getAttribute('aria-describedby')).toBe($('.live-controls__mic-note p').id);
+        expect(MIC_PRIVACY_LEAD.length).toBeLessThan(60);
+        expect(Recognition.instances).toHaveLength(0);
+    });
+
+    it('is offered when there is something to speak to, and not otherwise', () => {
+        const runtime = withMic('live');
+        const button = $('[data-live="listen"]');
+        expect(button.hidden).toBe(false);
+        for (const status of ['interrupted', 'diving', 'ended']) { runtime.set(status); expect(button.hidden, status).toBe(false); }
+        for (const status of ['starting', 'failed', 'stopped', 'idle']) { runtime.set(status); expect(button.hidden, status).toBe(true); }
+    });
+
+    it('holds the reading before it listens, so the voice does not talk over the reader, and says it is listening', () => {
+        const runtime = withMic('live');
+        press();
+        expect(runtime.calls).toEqual([['hold', undefined]]);
+        expect($('[data-live="listen"]').getAttribute('aria-pressed')).toBe('true');
+        recogniser().begin();
+        expect(micLine().textContent).toMatch(/Listening/u);
+        expect(micLine().hidden).toBe(false);
+        recogniser().say('wait dive');
+        expect(micLine().textContent).toBe('Hearing: “wait dive”');
+    });
+
+    it('takes the second press as "that is all I wanted to say"', () => {
+        withMic('live');
+        press();
+        recogniser().begin();
+        press();
+        expect(recogniser().stopped).toBe(true);
+        expect(Recognition.instances).toHaveLength(1);
+    });
+
+    it('dives on "wait, dive on event horizon", asking with the reader’s own words, and lets go of the microphone first', async () => {
+        const runtime = withMic('live');
+        press();
+        hear('Wait — dive on event horizon');
+        await flush();
+        expect(runtime.calls.at(-1)).toEqual(['dive', { question: 'dive on event horizon' }]);
+        expect(runtime.status).toBe('diving');
+        expect(open(Recognition)).toEqual([]);
+        expect($('[data-live="listen"]').getAttribute('aria-pressed')).toBe('false');
+        expect(micLine().hidden).toBe(true);
+    });
+
+    it('dives on a plain question, from a reading that was already held', async () => {
+        const runtime = withMic('interrupted');
+        press();
+        expect(runtime.hold).not.toHaveBeenCalled();
+        hear('why does light not escape?');
+        await flush();
+        expect(runtime.calls.at(-1)).toEqual(['dive', { question: 'why does light not escape?' }]);
+    });
+
+    it('surfaces on "go back", from inside a Dive', async () => {
+        const runtime = withMic('diving');
+        press();
+        expect(runtime.hold).not.toHaveBeenCalled();
+        hear('go back');
+        await flush();
+        expect(runtime.surface).toHaveBeenCalledTimes(1);
+        expect(runtime.status).toBe('live');
+    });
+
+    it('resumes on "continue", and on a press that turned out to say nothing', async () => {
+        const runtime = withMic('live');
+        press();
+        hear('continue');
+        await flush();
+        expect(runtime.calls.map(call => call[0])).toEqual(['hold', 'resume']);
+
+        press();
+        hear('um');
+        await flush();
+        expect(runtime.calls.map(call => call[0])).toEqual(['hold', 'resume', 'hold', 'resume']);
+        expect(runtime.status).toBe('live');
+    });
+
+    it('stays held on "wait", and does not ask anything', async () => {
+        const runtime = withMic('live');
+        press();
+        hear('wait');
+        await flush();
+        expect(runtime.status).toBe('interrupted');
+        expect(runtime.dive).not.toHaveBeenCalled();
+        expect(runtime.resume).not.toHaveBeenCalled();
+    });
+
+    it('does not act on what it cannot be sure of: it holds, shows the words in the box, and leaves asking to the reader', async () => {
+        const runtime = withMic('live');
+        press();
+        hear('the horizon is interesting');
+        await flush();
+        expect(runtime.dive).not.toHaveBeenCalled();
+        expect(runtime.status).toBe('interrupted');
+        expect($('input[name="question"]').value).toBe('the horizon is interesting');
+        expect(micLine().textContent).toBe('Heard “the horizon is interesting”. Press Dive to ask it, or Resume.');
+        // The reader then decides.
+        $('.live-controls__ask').requestSubmit();
+        await flush();
+        expect(runtime.dive).toHaveBeenCalledWith({ question: 'the horizon is interesting' });
+    });
+
+    it('shows what it heard as words, never as markup', async () => {
+        withMic('live');
+        press();
+        hear('<img src=x onerror=alert(1)> banana');
+        await flush();
+        expect(micLine().querySelector('img')).toBeNull();
+        expect(micLine().textContent).toContain('<img src=x onerror=alert(1)> banana');
+        expect($('input[name="question"]').value).toBe('<img src=x onerror=alert(1)> banana');
+    });
+
+    it('says a Dive cannot be asked from inside a Dive, and does not lose the reader’s place', async () => {
+        const runtime = withMic('diving');
+        press();
+        hear('what is the shadow?');
+        await flush();
+        expect($('.live-controls__error').textContent).toBe('A Dive inside a Dive is not built');
+        expect(runtime.status).toBe('diving');
+    });
+
+    for (const [error, sentence] of [['not-allowed', /blocked/u], ['audio-capture', /No microphone/u], ['no-speech', /Nothing was heard/u], ['network', /could not be reached/u]]) {
+        it(`when the microphone says ${error}, says so in words and lets go of a reading it held`, async () => {
+            const runtime = withMic('live');
+            press();
+            recogniser().begin();
+            recogniser().fail(error);
+            await flush();
+            expect(micLine().textContent).toMatch(sentence);
+            expect(runtime.status).toBe('live');
+            expect(open(Recognition)).toEqual([]);
+            expect($('[data-live="listen"]').getAttribute('aria-pressed')).toBe('false');
+        });
+    }
+
+    it('does not resume a reading the reader had held themselves, when the microphone fails', async () => {
+        const runtime = withMic('interrupted');
+        press();
+        recogniser().begin();
+        recogniser().fail('network');
+        await flush();
+        expect(runtime.status).toBe('interrupted');
+        expect(runtime.resume).not.toHaveBeenCalled();
+    });
+
+    it('stops listening when the reader uses a button instead, or when it ends', async () => {
+        const runtime = withMic('live');
+        press();
+        recogniser().begin();
+        const first = recogniser();
+        $('[data-live="resume"]').click();
+        await flush();
+        expect(first.aborted).toBe(true);
+        expect(runtime.calls.at(-1)).toEqual(['resume']);
+        expect(micLine().hidden).toBe(true);
+
+        press();
+        recogniser().begin();
+        const second = recogniser();
+        runtime.set('stopped');
+        expect(second.aborted).toBe(true);
+        expect(open(Recognition)).toEqual([]);
+    });
+
+    it('lets go of the microphone when the controls are destroyed', () => {
+        withMic('live');
+        press();
+        recogniser().begin();
+        controls.destroy();
+        expect(open(Recognition)).toEqual([]);
+        controls = null;
     });
 });
