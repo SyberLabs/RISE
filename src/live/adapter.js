@@ -19,7 +19,7 @@
  * adapter that is ahead of it waits. That is the backpressure.
  */
 
-import { RISE_CURRENT_EVENTS_SCHEMA } from './protocol.js';
+import { RISE_CURRENT_EVENTS_SCHEMA, validateEvent } from './protocol.js';
 
 export class AdapterError extends Error {
     constructor(code, message, { recoverable = false } = {}) {
@@ -180,6 +180,27 @@ function parent(value) {
  * What a host may ask an adapter for: an answer, or a Dive taken from a place
  * in a parent. It is data and nothing else: no model name, no tool, no URL.
  */
+/** What a host may write into the ordered stream: its own actions and its voice’s progress. */
+export const HOST_EVENT_TYPES = Object.freeze([
+    'interrupt', 'branch.open', 'branch.close', 'speech.start', 'speech.mark', 'speech.end'
+]);
+
+/**
+ * Number and record one host event in a connection’s stream. Refused, as an
+ * AdapterError, if the type is not one a host may write or the event would not
+ * validate; the sequence number is only spent on an event that will be sent.
+ */
+export function recordHostEvent({ currentId, writer, type, body = {} }) {
+    if (!HOST_EVENT_TYPES.includes(type)) throw new AdapterError('RECORD', `A host may not write ${type}`);
+    const candidate = { schema: RISE_CURRENT_EVENTS_SCHEMA, currentId, seq: writer.nextSeq, type, ...body };
+    try {
+        validateEvent(candidate);
+    } catch (error) {
+        throw new AdapterError('RECORD', error.message);
+    }
+    return writer.next(type, body);
+}
+
 export function validateOpenRequest(input) {
     const source = plain(input, 'request');
     only(source, ['intent', 'prompt', 'parent'], 'request');

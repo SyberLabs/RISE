@@ -21,16 +21,11 @@ import {
     AdapterError,
     createChannel,
     createEventWriter,
+    recordHostEvent,
     validateOpenRequest
 } from '../adapter.js';
 import { createRealClock } from '../clock.js';
 import { scriptFor } from '../fixtures/black-holes.js';
-import { validateEvent } from '../protocol.js';
-
-/** What a host may write into the ordered stream: its own actions and its voice's progress. */
-const HOST_TYPES = Object.freeze([
-    'interrupt', 'branch.open', 'branch.close', 'speech.start', 'speech.mark', 'speech.end'
-]);
 
 /** The whole answer as timed events, in the order they happen. */
 function timeline(script, { chunkChars, chunkMs, latencyMs, faults }) {
@@ -147,14 +142,7 @@ export function createMockAdapter({
                 /** A host event, numbered in order with everything else. */
                 record(type, body = {}) {
                     if (closed || finished) throw new AdapterError('CLOSED', 'The connection is closed');
-                    if (!HOST_TYPES.includes(type)) throw new AdapterError('RECORD', `A host may not write ${type}`);
-                    const candidate = { schema: 'rise.current-events.v1', currentId, seq: writer.nextSeq, type, ...body };
-                    try {
-                        validateEvent(candidate);
-                    } catch (error) {
-                        throw new AdapterError('RECORD', error.message);
-                    }
-                    const event = writer.next(type, body);
+                    const event = recordHostEvent({ currentId, writer, type, body });
                     log.push(event);
                     channel.pushNow(event);
                     return event;
