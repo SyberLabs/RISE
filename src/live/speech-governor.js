@@ -35,13 +35,13 @@ const POLL_MS = 20;
 const LONGEST_WAIT_MS = 250;
 const SHORTEST_ATOM_MS = 50;
 
-export function createSpeechGovernor({ player, voice, clock, graceMs = 1500, defaultMsPerChar = 65, onDegrade = () => {} }) {
+export function createSpeechGovernor({ voice, clock, graceMs = 1500, defaultMsPerChar = 65, onDegrade = () => {} }) {
     let map = [];
     let segments = new Map();
     /** id -> { marks: [[charIndex, tMs]], durationMs: number|null } */
     const timing = new Map();
     let degraded = false;
-    let installed = false;
+    let player = null;
     let waiting = null;
     let stopWatchingState = null;
 
@@ -136,9 +136,10 @@ export function createSpeechGovernor({ player, voice, clock, graceMs = 1500, def
             }
         },
 
-        install() {
-            if (installed) return;
-            installed = true;
+        /** Take over the Player’s clock. */
+        install(target) {
+            if (player) return;
+            player = target;
             player.atomDurationOverride = estimate;
             player.atomCompletionOverride = complete;
             // A paused reading is waiting on nothing; the Player will not ask again for this atom.
@@ -151,11 +152,26 @@ export function createSpeechGovernor({ player, voice, clock, graceMs = 1500, def
             cancelWait();
             stopWatchingState?.();
             stopWatchingState = null;
-            if (installed) {
+            if (player) {
                 if (player.atomDurationOverride === estimate) player.atomDurationOverride = null;
                 if (player.atomCompletionOverride === complete) player.atomCompletionOverride = null;
             }
-            installed = false;
+            player = null;
+        },
+
+        /** The host found the voice unusable (it threw, or is gone). The reading carries on by its own timer. */
+        standDown(reason) { degrade(reason); },
+
+        /** Where in a segment the reader is when the head is on this atom: its first character. */
+        positionOf(index) {
+            if (index >= map.length) {
+                // Past the last atom: the reading has ended, at the end of the last words.
+                const last = map.findLast(item => !item.seam && item.segmentId);
+                return last ? { segmentId: last.segmentId, atCharacter: last.end } : null;
+            }
+            const entry = map[index];
+            if (!entry?.segmentId) return null;
+            return { segmentId: entry.segmentId, atCharacter: entry.seam ? 0 : entry.start };
         },
 
         get degraded() { return degraded; },

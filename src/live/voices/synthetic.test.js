@@ -63,6 +63,20 @@ describe('speaking', () => {
         expect(at('end', 'b')).toBe(210 + 120);
     });
 
+    it('starts and ends every utterance exactly once, however many are queued', async () => {
+        const { clock, voice, log } = setup();
+        const ids = ['a', 'b', 'c', 'd'];
+        for (const id of ids) voice.enqueue({ id, text: TEXT });
+        await clock.runAll();
+        for (const id of ids) {
+            expect(log.filter(e => e[1] === 'start' && e[2] === id), id).toHaveLength(1);
+            expect(log.filter(e => e[1] === 'end' && e[2] === id), id).toHaveLength(1);
+        }
+        const marks = ids.map(id => log.filter(e => e[1] === 'mark' && e[2] === id).map(e => e[3]));
+        for (const each of marks) expect(each).toEqual(marks[0]);
+        expect(clock.pending()).toBe(0);
+    });
+
     it('starts at once when something is queued while it is idle, and later ones follow', async () => {
         const { clock, voice, log } = setup();
         voice.enqueue({ id: 'a', text: 'short' });

@@ -399,6 +399,10 @@ export function createCurrentStream({ refusals: refusalBudget = STREAM_LIMITS.re
         },
 
         get phase() { return phase; },
+        /** True once the Current has ended, one way or another. */
+        get terminal() { return terminal(); },
+        /** How many segments have ended: what a lowering would carry. */
+        get endedCount() { return segments.reduce((count, segment) => count + (segment.ended ? 1 : 0), 0); },
         get currentId() { return currentId; },
         get openSegmentId() { return openSegment ? openSegment.id : null; },
         /** How many events are waiting on an earlier one. Zero when the stream is keeping up. */

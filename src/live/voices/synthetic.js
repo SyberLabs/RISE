@@ -57,6 +57,7 @@ export function createSyntheticVoice({ clock = createRealClock(), msPerChar = 62
         }, Math.max(0, next.at - phase.played));
     }
 
+    /** Make `next` the current phase. Whoever is running the clock schedules it. */
     function begin(next) {
         if (!next) { phase = null; return; }
         const duration = next.text.length * msPerChar;
@@ -76,7 +77,6 @@ export function createSyntheticVoice({ clock = createRealClock(), msPerChar = 62
             }
         ];
         phase = { id: next.id, played: 0, since: null, cancel: null, index: 0, events, speaking: true };
-        schedule();
     }
 
     /** The silence between utterances is played time too, so a hold holds it. */
@@ -103,8 +103,12 @@ export function createSyntheticVoice({ clock = createRealClock(), msPerChar = 62
             if (seen.has(id)) throw new RangeError(`Utterance ${id} is already queued`);
             seen.add(id);
             const utterance = { id, text };
-            if (phase) queue.push(utterance);
-            else begin(utterance);
+            if (phase) {
+                queue.push(utterance);
+            } else {
+                begin(utterance);
+                schedule();
+            }
         },
 
         hold() {

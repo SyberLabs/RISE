@@ -57,14 +57,14 @@ function setup({ count = 3, speak = true, voiceOptions = {} } = {}) {
     const voiceLog = {};
     voice = createSyntheticVoice({ clock, msPerChar: MS_PER_CHAR, breathMs: 150, ...voiceOptions });
     const degraded = [];
-    governor = createSpeechGovernor({ player, voice, clock, onDegrade: info => degraded.push(info) });
+    governor = createSpeechGovernor({ voice, clock, onDegrade: info => degraded.push(info) });
     voice.attach({
         start: id => { voiceLog[id] = { startedAt: now() }; },
         mark: (id, charIndex, tMs) => governor.observe('mark', id, charIndex, tMs),
         end: (id, durationMs) => { voiceLog[id].endedAt = now(); governor.observe('end', id, durationMs); }
     });
     governor.update({ atoms: session.atoms, segments });
-    governor.install();
+    governor.install(player);
     if (speak) for (const segment of segments) voice.enqueue({ id: segment.id, text: segment.text });
     return { segments, session, shown, voiceLog, degraded, map: mapAtoms(session.atoms, segments) };
 }
