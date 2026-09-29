@@ -165,7 +165,7 @@ flowchart LR
     content["content<br/>texts, imagery, journeys<br/>231 modules"]
     core["core<br/>session, player, router<br/>153 modules"]
     enterprise["enterprise<br/>talk program, speaker rail<br/>28 modules"]
-    live["live<br/>realtime Current: events, runtime, providers<br/>6 modules"]
+    live["live<br/>realtime Current: events, runtime, providers<br/>10 modules"]
     oracle["oracle<br/>2 modules"]
     page["page<br/>spatial projection<br/>4 modules"]
     sources["sources<br/>text and visual providers<br/>22 modules"]
@@ -196,7 +196,7 @@ flowchart LR
     core --> |14| content
     core --> |4| sources
     core --> |23| visuals
-    live --> |2| core
+    live --> |3| core
     page --> |2| core
     page --> |3| visuals
     sources --> |2| content
@@ -1042,8 +1042,17 @@ of `settled`, `open`, `deferred`, or `reversed`.
   deterministic mock and a conformance suite every adapter must pass are built
   and unit tested, and the one Player has a live mode (`setLive`, `extend`): it
   holds at the end of its words, takes no reading time while it waits, and is
-  extended by a longer Session whose earlier atoms are unchanged. Speech as the
-  clock, the runtime, a host and a live provider are not built.
+  extended by a longer Session whose earlier atoms are unchanged. The runtime
+  (`src/live/runtime.js`) drives it: it reads a provider's events into the
+  reducer, lowers each ended segment into the one Player, and lets a voice
+  renderer be the clock (`speech-governor.js`) while a voice speaks. A Dive holds
+  the parent's Player and voice, runs a Current of its own, and Surface lets the
+  parent go from the same atom. Speech belongs to the runtime, not the provider,
+  and what the reader lived through is kept in the runtime's journal, because
+  the reducer's stream is sealed at `current.complete`, long before speech
+  ends. It is proven only with the deterministic mock and a synthetic voice
+  under a virtual clock. A browser voice, a host, and a live provider are not
+  built.
 
 ---
 

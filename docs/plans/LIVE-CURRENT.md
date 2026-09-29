@@ -78,6 +78,8 @@ The Player already lets a consumer govern an atom's completion (`atomCompletionO
 
 **Transcript to speech.** A voice renderer reports, per segment: `start`, optional `mark(charIndex, t)`, `end`. Boundaries are exact at segment level (a segment begins at its first sample and ends at its last). Inside a segment, atoms are placed by `mark`s where the renderer has them (browser `speechSynthesis` boundary events do), otherwise proportionally by character count across the segment's measured audio duration, and reconciled at the segment end. Approximate timing therefore never accumulates: the error is bounded by one segment and reset at every boundary.
 
+**Who speaks.** Speech is the runtime's, not the provider's. A provider stream cannot be held, and a Dive has to hold the voice, so the runtime owns a voice renderer (`src/live/voices/`) that says each committed segment, can be held and released, and reports where it has got to. A provider that voices its own answer (a realtime model) reports the same thing as `speech.*` events; the runtime treats both the same way. The reducer's stream is the record of what was *composed* and is sealed at `current.complete`, which happens long before speech finishes, so what the reader lived through (speech progress, interruptions, Dives) is kept in the runtime's own bounded journal, not in the stream.
+
 **Pause / interrupt / Dive.** Pause holds the Player and the voice at the same position. Interrupt stops the voice, keeps the head where the audio stopped, and either resumes or opens a branch. A Dive suspends the parent (the head does not move) and runs a child Current; Surface releases the parent from the same atom, re-speaking nothing that was already spoken and skipping nothing.
 
 **Tab suspension and sleep.** A hidden tab or a suspended `AudioContext` is treated as a pause, as the Player already does. On return the voice renderer reports where its audio actually is, and the Player continues from there. Wall-clock time never advances the reading.
@@ -143,14 +145,17 @@ Budgets, all measured with the virtual clock and stated in the architecture deci
 | Protocol, validator, reducer | yes | yes | no | yes | n/a |
 | Mock adapter and conformance fixture | yes | yes | no | yes | n/a |
 | Player live mode | yes | yes | no | n/a | n/a |
-| Speech clock and voice renderers | no | no | no | no | no |
-| Runtime, Dive and Surface | no | no | no | no | no |
+| Speech clock and synthetic voice renderer | yes | yes | no | yes | n/a |
+| Runtime, Dive and Surface | yes | yes | no | yes | n/a |
+| Browser voice (`speechSynthesis`) | no | no | no | no | no |
 | `/live` host | no | no | no | no | no |
 | Capability negotiation | no | no | no | no | no |
 | Evidence and experiential state | no | no | no | no | no |
 | OpenAI Realtime adapter | no | no | no | no | no |
 | MCP host | no | no | no | no | no |
 | Evaluation harness | no | no | no | no | no |
+
+**Measured so far (virtual clock, mock provider, synthetic voice; `src/live/runtime.test.js`, `speech-governor.test.js`).** The segment-boundary budget (a segment's first atom within 100 ms of the voice starting it) and the in-segment budget (every atom within 250 ms of where the voice was) hold, asserted per atom. After a Dive, every later segment begins later by the length of the Dive to within 400 ms, and the voice's own times shift by it exactly. Time to first visible atom and to first audio are the moment the first *segment* is committed plus one event turn, because only a finished segment is lowered. That makes **first-segment length the lever on time to first response**: the mock's 120-character opening finishes at 220 ms; a real provider writes more slowly, so it should open with a short segment. This is a finding about the design, not a solved problem, and it has not been measured against a live provider.
 
 ## 12. Decisions that are the creator's
 
