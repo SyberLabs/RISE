@@ -6,9 +6,11 @@
  * place, Surface, stop) and a status line. No product chrome. It owns the
  * runtime; the Chamber owns the screen; the runtime owns time.
  *
- * The provider is the deterministic mock unless the page is configured
- * otherwise (`?provider=`), and only the mock exists yet, so nothing here can
- * spend money or leave the device. `?voice=paced` makes the reading silent and
+ * The provider is the deterministic mock unless the page is explicitly
+ * configured otherwise (`?provider=openai`), so by default nothing here can
+ * spend money or leave the device. OpenAI Realtime uses the reader's own key,
+ * typed into this page, held in memory, sent once to this site to open each
+ * session, and forgotten when the session ends. `?voice=paced` makes the reading silent and
  * paced as if spoken, which is what every automated test uses. `?measure=1`
  * exposes a read-only record of when atoms were shown and when the voice spoke
  * (`window.__riseLive`), which is how sync error is measured in a real browser.
@@ -19,7 +21,10 @@ import { createLiveControls } from './controls.js';
 import './LiveHost.css';
 
 const DEFAULT_PROMPT = 'Explain black holes with RISE.';
-const PROVIDERS = Object.freeze({ mock: 'Deterministic demo provider (offline)' });
+const PROVIDERS = Object.freeze({
+    mock: 'Deterministic demo provider (offline)',
+    openai: 'OpenAI Realtime, with your own key'
+});
 const VOICES = Object.freeze({ auto: 'Speak if this device can', browser: 'Speak', paced: 'Silent, paced as if spoken' });
 
 const text = (value, fallback = '') => (typeof value === 'string' ? value : fallback);
@@ -45,6 +50,8 @@ export class LiveHost {
         this.destroyed = false;
         this.starting = false;
         this.atomLog = [];
+        // The reader's own key, in memory and nowhere else; see forgetKey.
+        this.key = '';
         this.render();
         // While the reader is typing, fetch what starting will need, so that the time from
         // Start to the first words is the answer’s and not the network’s.
@@ -64,8 +71,15 @@ export class LiveHost {
         ]);
     }
 
+    /** The provider asked for, which is always one this host knows. */
+    chosenProvider() {
+        const asked = this.params.get('provider') || 'mock';
+        return Object.hasOwn(PROVIDERS, asked) ? asked : 'mock';
+    }
+
     render() {
-        const provider = this.params.get('provider') || 'mock';
+        const asked = this.params.get('provider') || 'mock';
+        const provider = this.chosenProvider();
         const voice = this.params.get('voice');
         const chosen = Object.hasOwn(VOICES, voice) ? voice : 'auto';
         this.container.innerHTML = `
@@ -75,6 +89,13 @@ export class LiveHost {
         <form class="live-ask" novalidate>
           <label class="live-label" for="live-prompt">Prompt</label>
           <textarea id="live-prompt" name="prompt" rows="3" maxlength="2000" autocomplete="off">${DEFAULT_PROMPT}</textarea>
+          ${provider === 'openai' ? `
+          <div class="live-key">
+            <label class="live-label" for="live-key">Your OpenAI API key
+              <input id="live-key" name="key" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" maxlength="300">
+            </label>
+            <p class="live-key-note">Held in this page's memory only: it is sent once, to this site, to open each session, and is never stored. Your prompt goes to OpenAI and is billed to your key. RISE pays for nothing.</p>
+          </div>` : ''}
           <div class="live-row">
             <label class="live-label live-voice">Voice
               <select name="voice">
@@ -99,10 +120,10 @@ export class LiveHost {
             event.preventDefault();
             void this.start();
         });
-        this.providerName = Object.hasOwn(PROVIDERS, provider) ? provider : 'mock';
-        this.providerLine.textContent = Object.hasOwn(PROVIDERS, provider)
-            ? `Provider: ${PROVIDERS[provider]}`
-            : `Provider “${provider.slice(0, 40)}” is not available yet. Using: ${PROVIDERS.mock}`;
+        this.providerName = provider;
+        this.providerLine.textContent = Object.hasOwn(PROVIDERS, asked)
+            ? `Provider: ${PROVIDERS[asked]}`
+            : `Provider “${asked.slice(0, 40)}” is not available. Using: ${PROVIDERS.mock}`;
         this.showNotes();
     }
 
@@ -134,6 +155,16 @@ export class LiveHost {
             this.fail('Ask something first.');
             return;
         }
+        if (this.providerName === 'openai') {
+            const typed = text(this.form.elements.key?.value).trim();
+            if (typed) this.key = typed;
+            if (!this.key) {
+                this.fail('Enter your OpenAI key to use this provider.');
+                return;
+            }
+            // Out of the page as soon as it is in memory: the field is not where it is kept.
+            this.form.elements.key.value = '';
+        }
         this.starting = true;
         this.startedAt = performance.now();
         this.errorLine.hidden = true;
@@ -149,10 +180,17 @@ export class LiveHost {
             this.controls = null;
             this.runtime = null;
             this.fail(`Could not start: ${text(error?.message, 'unknown error').slice(0, 200)}`);
+            // A key that was refused is no use to keep; one that failed for another reason is kept for a retry.
+            if (error?.code === 'KEY_REFUSED') this.forgetKey();
             this.resetButton();
         } finally {
             this.starting = false;
         }
+    }
+
+    /** The key is forgotten when the session ends, or is refused. */
+    forgetKey() {
+        this.key = '';
     }
 
     resetButton() {
@@ -170,7 +208,7 @@ export class LiveHost {
         const clock = createRealClock();
         const voices = await this.buildVoices(clock);
         const runtime = createLiveRuntime({
-            adapter: createMockAdapter({ clock }),
+            adapter: await this.buildAdapter(clock, createMockAdapter),
             clock,
             createPlayer: session => createSessionPlayer(session),
             voices,
@@ -197,6 +235,16 @@ export class LiveHost {
         return runtime;
     }
 
+    /** The provider's adapter. OpenAI's is loaded only if it is the one asked for. */
+    async buildAdapter(clock, createMockAdapter) {
+        if (this.providerName !== 'openai') return createMockAdapter({ clock });
+        const [{ createOpenAIRealtimeAdapter }, { createOpenAIWebRtcTransport }] = await Promise.all([
+            import('../adapters/openai-realtime.js'),
+            import('../adapters/openai-webrtc.js')
+        ]);
+        return createOpenAIRealtimeAdapter({ transport: createOpenAIWebRtcTransport({ getKey: () => this.key, clock }) });
+    }
+
     async buildVoices(clock) {
         const wants = this.selectedVoice();
         if (wants === 'browser') {
@@ -221,6 +269,7 @@ export class LiveHost {
     async stop() {
         const runtime = this.runtime;
         this.runtime = null;
+        this.forgetKey();
         this.controls?.destroy();
         this.controls = null;
         await runtime?.stop();
@@ -232,6 +281,7 @@ export class LiveHost {
     async ended() {
         const runtime = this.runtime;
         this.runtime = null;
+        this.forgetKey();
         this.controls?.destroy();
         this.controls = null;
         await runtime?.stop();

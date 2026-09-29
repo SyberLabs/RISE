@@ -106,8 +106,8 @@ A small capability record is negotiated once: `speech` (none, synthesis, provide
 An adapter is `{ open(request), events(): AsyncIterable<RiseEvent>, interrupt(), resume(fromSeq), close() }` and nothing else. Provider peculiarities stay behind it. Every adapter runs the same conformance fixture (semantic order, interruption, cancel, duplicate, late event, failure).
 
 1. **Mock** (deterministic, first, offline): scripted streams with a virtual clock; can inject slow packets, duplicates, reordering, failure, and Dive answers. All CI uses it.
-2. **OpenAI Realtime**: WebRTC in the browser, ephemeral client secret only. Following the rule already in ARCHITECTURE §8.28, the reader supplies their own key, it lives in page memory, and a same-origin Worker route exchanges it for a short-lived client secret and stores nothing. No RISE-funded inference. *Decision D1 below.*
-3. A second provider or a fixture-only proof of independence, after the first flagship demo.
+2. **OpenAI Realtime**, as built: text over a WebRTC data channel, spoken by RISE's own voice (so a Dive can hold it). The reader supplies their own key, it lives in page memory, and a same-origin Worker route (`worker/live-realtime.mjs`) uses it for one request to OpenAI's unified Realtime interface to open the session with RISE's own instructions and returns only the SDP answer. It mints no client secret, because the browser never needs a credential: it talks to OpenAI with the SDP answer. The key is sent in one header, to this site only, and is never stored, logged, put in a URL, echoed in an error or returned. RISE funds no inference. The route is **off** unless `LIVE_REALTIME_ENABLED` is `'true'`, is limited per address, and the page reaches it only when the address asks for `?provider=openai`. *Decision D1 below.*
+3. **A generic text-stream adapter** (`text-stream.js`), which OpenAI's is one `connect` function of. Provider independence is shown by conformance: the mock, the generic adapter over a fake provider, and the OpenAI adapter over a fake data channel all pass the same suite (`src/test/live-conformance.js`). A model's words are read only through a defensive line format (`segment-parser.js`); it carries no evidence and no Dives, and a stream that drops cannot be continued, so it says so and ends failed with every whole passage intact.
 
 ## 8. Semantic state, evidence, and depth
 
@@ -152,7 +152,8 @@ Budgets, all measured with the virtual clock and stated in the architecture deci
 | Capability negotiation | yes | yes | yes (each degradation observed) | yes | n/a |
 | Speaking to interrupt (microphone) | no, typed only | no | no | no | no |
 | Evidence and experiential state | yes | yes | yes | yes | n/a |
-| OpenAI Realtime adapter | no | no | no | no | no |
+| Text-stream adapter, segment parser | yes | yes (parser fuzzed, chunk-invariant) | yes (through the OpenAI path) | yes (fake provider) | n/a |
+| OpenAI Realtime adapter, WebRTC transport, relay route | yes | yes | yes, with a fake peer and a stubbed relay | n/a | **not verified: no key, no live session** |
 | MCP host | no | no | no | no | no |
 | Evaluation harness | no | no | no | no | no |
 
@@ -166,6 +167,6 @@ Budgets, all measured with the virtual clock and stated in the architecture deci
 
 ## 12. Decisions that are the creator's
 
-- **D1. Live provider key.** I recommend the §8.28 pattern: the reader's own key, held in page memory, exchanged once through the same-origin Worker for a short-lived client secret, never stored. A developer-only local token script is the alternative for self-hosting. Neither exists yet.
+- **D1. Live provider key.** Built as the narrowest form of the §8.28 pattern: the reader's own key, held in page memory, used once per session by the same-origin Worker to open it, never stored. No client secret is minted, so there is nothing to expose. It ships switched off; enabling it (`LIVE_REALTIME_ENABLED`) is the creator's decision, and so is whether the reader-supplied-key page should ever be public. A developer-only local script for self-hosting was not built. Nothing has been run against OpenAI.
 - **D2. Literal text.** `rise.current.v1` refuses `[PAUSE]`, `|` and U+E000 because the chunker reads them. The safe path I propose is a per-segment `literal: true` that escapes those tokens at the chunker boundary, which needs a chunker option and its own review. It is not needed for the demo and I will not weaken the refusal first.
 - **D3. Order.** I propose: protocol and reducer, mock and conformance, Player live mode, speech clock, runtime with Dive, the `/live` host with browser tests, capabilities, evidence and state, the OpenAI adapter, the MCP host, the harness. Each is its own pull request.

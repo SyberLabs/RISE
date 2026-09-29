@@ -5,6 +5,7 @@ import { handleJevRecommend } from './jev-recommend.mjs';
 import { handleJevVisualScore } from './jev-visual-score.mjs';
 import { decisionProvider } from '../server/decision-provider.mjs';
 import { handlePersonalPiece } from './personal-piece.mjs';
+import { handleLiveRealtime } from './live-realtime.mjs';
 
 const JSON_HEADERS = {
   'Content-Type': 'application/json; charset=utf-8',
@@ -26,6 +27,9 @@ export default {
     if (isKevWorkerScript(path)) return serveKevWorkerScript(request, env);
 
     if (path === '/api/personal-piece') return handlePersonalPiece(request, env);
+
+    // A live answer, with the reader's own key. Off unless switched on; see live-realtime.mjs.
+    if (path === '/api/live/realtime') return handleLiveRealtime(request, env);
 
     if (path === '/api/jev-decision' || path === '/api/jev-recommend' || path === '/api/jev/route'
       || path === '/api/enterprise-decision') {

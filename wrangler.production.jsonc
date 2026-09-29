@@ -9,7 +9,9 @@
   // CI overrides DECISION_PROVIDER at deploy; Jev (explicit rollback) stays the
   // production choice until KEV_PRODUCTION_VERIFIED=true. Kev secrets are then
   // checked by CI before deploy.
-  "vars": { "PERSONAL_PIECE_ENABLED": "false", "DECISION_PROVIDER": "jev" },
+  // A live answer with the reader's own OpenAI key (worker/live-realtime.mjs). Off until
+  // the creator switches it on; RISE funds no inference and stores no key.
+  "vars": { "PERSONAL_PIECE_ENABLED": "false", "DECISION_PROVIDER": "jev", "LIVE_REALTIME_ENABLED": "false" },
   // rise.syberlabs.io is attached to this Worker in the Cloudflare dashboard.
   "observability": { "enabled": true },
   "assets": {

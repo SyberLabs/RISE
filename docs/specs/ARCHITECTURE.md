@@ -165,7 +165,7 @@ flowchart LR
     content["content<br/>texts, imagery, journeys<br/>231 modules"]
     core["core<br/>session, player, router<br/>153 modules"]
     enterprise["enterprise<br/>talk program, speaker rail<br/>28 modules"]
-    live["live<br/>realtime Current: events, runtime, providers<br/>16 modules"]
+    live["live<br/>realtime Current: events, runtime, providers<br/>22 modules"]
     oracle["oracle<br/>2 modules"]
     page["page<br/>spatial projection<br/>4 modules"]
     sources["sources<br/>text and visual providers<br/>22 modules"]
@@ -199,7 +199,7 @@ flowchart LR
     core --> |23| visuals
     live -.-> |3 lazy| app
     live -.-> |1 lazy| components
-    live --> |3| core
+    live --> |4| core
     page --> |2| core
     page --> |3| visuals
     sources --> |2| content
@@ -1063,8 +1063,14 @@ of `settled`, `open`, `deferred`, or `reversed`.
   attractor and is shown as words; sources are shown with where each came from,
   as links only when plain https, and their absence is said. It is proven with
   the deterministic mock and a silent paced voice, in unit tests on a virtual
-  clock and in a real browser; a real speech engine and a live provider are not
-  verified.
+  clock and in a real browser. A provider that streams text is one `connect`
+  function (`src/live/adapters/text-stream.js`), read only through a defensive
+  line format; an OpenAI Realtime adapter is built on it, with a same-origin
+  Worker route that uses the reader's own key for one request and stores
+  nothing (`worker/live-realtime.mjs`, off unless `LIVE_REALTIME_ENABLED`).
+  The mock, the generic adapter and the OpenAI adapter pass one conformance
+  suite. A real speech engine and a live provider are not verified: the OpenAI
+  wire is written from its documentation and has never been run against it.
 
 ---
 

@@ -44,6 +44,7 @@
 
 .live-host textarea,
 .live-host select,
+.live-host input[type="password"],
 .live-controls input[type="text"] {
   box-sizing: border-box;
   width: 100%;
@@ -58,6 +59,9 @@
 }
 
 .live-host textarea { resize: vertical; line-height: 1.45; }
+
+.live-key { display: flex; flex-direction: column; gap: 0.35rem; }
+.live-key-note { margin: 0; color: var(--color-fog); font-size: 0.8rem; line-height: 1.45; }
 
 .live-row {
   display: flex;
@@ -90,6 +94,7 @@
 .live-host button:focus-visible,
 .live-host textarea:focus-visible,
 .live-host select:focus-visible,
+.live-host input:focus-visible,
 .live-controls button:focus-visible,
 .live-controls input:focus-visible {
   outline: 2px solid var(--color-light);
