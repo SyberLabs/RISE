@@ -97,7 +97,9 @@ it('asks RISE once, says what it cannot do before anything plays, and plays only
   }));
   expect(launch).not.toHaveBeenCalled();
   expect(container.querySelector('.oracle-answer-title').textContent).toBe('Ulysses');
-  expect(container.querySelector('.oracle-answer-plan').textContent).toContain('fractal light');
+  // A Jev answer has no temper: the window holds a name and an author, and no third word.
+  expect(container.querySelector('.oracle-answer-mood').hidden).toBe(true);
+  expect(container.querySelector('[data-oracle-status]').textContent).toContain('fractal light');
   const note = container.querySelector('.oracle-note');
   expect(note.hidden).toBe(false);
   expect(note.textContent).toContain('You referenced “Tokyo Drift”. RISE treated it as a style');

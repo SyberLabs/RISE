@@ -646,7 +646,7 @@ a.portal-nav-link {
 /* The object takes what the page leaves it: header, title, keys and
    footer stay on screen on a phone without scrolling. */
 .oracle-stage {
-  height: clamp(300px, calc(100svh - 340px), 700px);
+  height: clamp(300px, calc(100svh - 400px), 700px);
   /* No taller than the sphere needs at this width (orb.js caps its fit at
      1.2, reached at height = 1.07 × width). */
   max-height: calc(min(100vw - 32px, 980px) * 1.07);

@@ -131,42 +131,46 @@
   pointer-events: none;
 }
 
+/* The window is wider than the box the words are laid in; a long result
+   scales to fit it (--fit, set by Portal) and wraps rather than overflowing. */
 .oracle-answer {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: calc(var(--r, 160px) * 0.03);
+  gap: calc(var(--r, 160px) * 0.03 * var(--fit, 1));
+  width: 122%;
 }
 
 .oracle-answer-title {
-  font: 400 clamp(22px, calc(var(--r, 160px) * 0.13), 40px)/1.05 var(--sy-font-serif);
+  font: 400 calc(clamp(22px, calc(var(--r, 160px) * 0.13), 40px) * var(--fit, 1))/1.05 var(--sy-font-serif);
   color: #fff;
   text-shadow: 0 0 18px #4890f0;
   text-wrap: balance;
 }
 
 .oracle-answer-meta,
-.oracle-answer-plan {
-  font: 500 clamp(11px, calc(var(--r, 160px) * 0.05), 14px)/1.35 var(--sy-font-mono);
+.oracle-answer-mood {
+  font-family: var(--sy-font-mono);
+  font-weight: 500;
+  font-size: max(10px, calc(clamp(11px, calc(var(--r, 160px) * 0.05), 14px) * var(--fit, 1)));
+  line-height: 1.35;
   letter-spacing: 0.08em;
   color: var(--sy-ice);
   text-shadow: 0 0 10px #0048f0;
-}
-
-/* A part of the plan never breaks inside itself. */
-.oracle-answer-plan span {
-  white-space: nowrap;
-}
-
-.oracle-answer-plan {
-  max-width: 94%;
-  color: #c9d8f5;
-  letter-spacing: 0.04em;
   text-wrap: balance;
+}
+
+/* One quiet word, dimmer than the rest: how the reading will feel. */
+.oracle-answer-mood {
+  color: #7f97c8;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  text-shadow: 0 0 8px #0048f088;
 }
 
 .oracle-cursor[hidden],
 .oracle-intent[hidden],
+.oracle-answer-mood[hidden],
 .oracle-answer[hidden] {
   display: none;
 }
@@ -226,6 +230,15 @@
 
 .oracle-keys {
   display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 22px;
+  width: 100%;
+}
+
+/* What else can be done sits beneath the lit key, smaller. */
+.oracle-keys-minor {
+  display: flex;
   justify-content: center;
   gap: 14px;
   width: 100%;
@@ -253,12 +266,14 @@
   -webkit-tap-highlight-color: transparent;
 }
 
-/* The one lit key: ROLL, then ENTER, then ASK. */
+/* The one lit key: ROLL, then ENTER, then ASK. Its blue is the fluid's own, taken
+   down to sit on the shell (a lit cap, not a neon sign), and its lettering is the
+   pale phosphor of the words in the window, not white. */
 .oracle-key-primary {
-  color: #f3f6ff;
-  background: linear-gradient(180deg, #2a64ff 0%, #0048f0 55%, #0035b8 100%);
-  box-shadow: inset 0 2px 0 #7aa4ff, inset 0 -3px 6px #0003,
-    0 6px 0 #00268a, 0 7px 0 #001a5e, 0 14px 22px #0009, 0 0 32px #0048f055;
+  color: #c9d7f2;
+  background: linear-gradient(180deg, #3550b8 0%, #263f9c 55%, #1b3080 100%);
+  box-shadow: inset 0 2px 0 #6a82d4, inset 0 -3px 6px #0003,
+    0 6px 0 #142457, 0 7px 0 #0b1638, 0 14px 22px #0009, 0 0 26px #2a48b433;
 }
 
 /* Alone, ROLL is the whole instrument: wide and tall. */
@@ -267,6 +282,24 @@
   min-height: 68px;
   font-size: 18px;
   letter-spacing: 0.32em;
+}
+
+/* A secondary key: a shorter cap on a shallower stem. */
+.oracle-key-minor {
+  min-width: 116px;
+  min-height: 46px;
+  padding: 0 16px 3px;
+  border-radius: 9px;
+  font-size: 12px;
+  letter-spacing: 0.12em;
+  box-shadow: inset 0 2px 0 #fffaf0, inset 0 -3px 6px #0000001f,
+    0 4px 0 #b7ad98, 0 5px 0 #7d7462, 0 10px 16px #0008;
+}
+
+.oracle-key-minor:active {
+  transform: translateY(3px);
+  box-shadow: inset 0 2px 0 #fffaf0, inset 0 -2px 4px #0000001f,
+    0 1px 0 #b7ad98, 0 2px 0 #7d7462, 0 4px 8px #0008;
 }
 
 .oracle-key:active,
@@ -278,8 +311,8 @@
 
 .oracle-key-primary:active,
 .oracle-key-primary[aria-busy="true"] {
-  box-shadow: inset 0 2px 0 #7aa4ff, 0 1px 0 #00268a, 0 2px 0 #001a5e,
-    0 5px 10px #0009, 0 0 40px #0048f088;
+  box-shadow: inset 0 2px 0 #6a82d4, 0 1px 0 #142457, 0 2px 0 #0b1638,
+    0 5px 10px #0009, 0 0 32px #2a48b466;
 }
 
 .oracle-key:disabled {
@@ -293,7 +326,7 @@
 
 .oracle-key-icon {
   min-width: 56px;
-  padding: 0 0 4px;
+  padding: 0 0 3px;
 }
 
 @keyframes oracle-cursor {
@@ -307,16 +340,15 @@
 }
 
 @media (max-width: 420px) {
-  .oracle-keys {
+  .oracle-keys-minor {
     gap: 10px;
+    max-width: 320px;
   }
 
-  .oracle-key:not(.oracle-key-roll):not(.oracle-key-icon) {
+  .oracle-key-minor:not(.oracle-key-icon) {
     flex: 1 1 0;
     min-width: 0;
-    padding: 0 10px 4px;
-    font-size: 13px;
-    letter-spacing: 0.1em;
+    padding: 0 10px 3px;
   }
 }
 

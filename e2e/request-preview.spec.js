@@ -54,7 +54,7 @@ test('Tokyo Drift: asked after a roll, limits before Enter, kept on reload, no a
   await expect(enter).toBeVisible({ timeout: 15_000 });
   await expect(page.locator('#chamber-display')).toBeHidden();
   await expect(page.locator('.oracle-answer-title')).toHaveText('Ulysses');
-  await expect(page.locator('.oracle-answer-plan')).toContainText('fractal light');
+  await expect(page.locator('[data-oracle-status]')).toContainText('fractal light');
   const note = page.locator('.oracle-note');
   await expect(note).toBeVisible();
   await expect(note).toContainText('You referenced “Tokyo Drift”');

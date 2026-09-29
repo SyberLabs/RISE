@@ -116,6 +116,8 @@ export class OracleObject {
     this.radiusPx = (FOCAL / CAMERA) * this.fit * box.height / 2;
     this.stage.style.setProperty('--r', `${this.radiusPx}px`);
     this.stage.style.setProperty('--persp', `${CAMERA * this.radiusPx}px`);
+    // What sits in the window is sized against the object, so it re-fits too.
+    this.stage.dispatchEvent(new CustomEvent('oracle-layout'));
   }
 
   frame(now) {

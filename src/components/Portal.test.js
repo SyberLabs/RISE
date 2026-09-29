@@ -66,7 +66,7 @@ describe('Home, waiting', () => {
 });
 
 describe('a roll', () => {
-    it('rises in the window with its title, author and section, and one plan line', async () => {
+    it('rises in the window with only a title, an author and one word, and speaks the rest', async () => {
         const { portal, container } = makePortal();
         await roll(container);
         const { decision } = portal.result;
@@ -74,10 +74,34 @@ describe('a roll', () => {
         expect(decision.model).toBe('rise/roll-1');
         expect(container.querySelector('.oracle-answer').hidden).toBe(false);
         expect(container.querySelector('.oracle-answer-title').textContent).toBe(portal.result.title);
-        expect(container.querySelector('.oracle-answer-meta').textContent).toMatch(/ section$/u);
-        expect(container.querySelector('.oracle-answer-plan').textContent.split(' · ')).toHaveLength(4);
+        // Restrained: a name, an author, and the temper's one word. No section, no plan.
+        const answer = container.querySelector('.oracle-answer');
+        expect(container.querySelector('.oracle-answer-meta').textContent).toBe(portal.result.author);
+        expect(container.querySelector('.oracle-answer-mood').textContent).toBe(portal.result.temper);
+        expect(container.querySelector('.oracle-answer-mood').hidden).toBe(false);
+        expect(answer.textContent).not.toMatch(/section|wpm|phrases|sentences|words/u);
+        expect(answer.children).toHaveLength(3);
         expect(keys(container)).toEqual(['Enter', 'Roll again', 'Adjust']);
-        expect(container.querySelector('[data-oracle-status]').textContent).toContain(portal.result.title);
+        // The whole description is spoken, not shown: section and plan reach the status line.
+        const spoken = container.querySelector('[data-oracle-status]').textContent;
+        expect(spoken).toContain(portal.result.title);
+        expect(spoken).toContain(portal.result.meta);
+        for (const part of portal.result.plan) expect(spoken).toContain(part);
+        portal.destroy();
+    });
+
+    it('leads with one key and puts the rest beneath it: ENTER alone, then Roll again and Adjust', async () => {
+        const { portal, container } = makePortal();
+        await roll(container);
+        const keysBox = container.querySelector('.oracle-keys');
+        const lead = [...keysBox.children].filter(child => child.matches('button'));
+        expect(lead.map(key => key.dataset.oracle)).toEqual(['enter']);
+        expect(lead[0].classList.contains('oracle-key-primary')).toBe(true);
+        const minor = keysBox.querySelector('.oracle-keys-minor');
+        expect([...minor.querySelectorAll('button')].map(key => key.dataset.oracle)).toEqual(['roll', 'adjust']);
+        expect(minor.querySelector('.oracle-key-primary')).toBeNull();
+        // The waiting ROLL and the resulting ENTER are the same large key in the same place.
+        expect(lead[0].classList.contains('oracle-key-roll')).toBe(true);
         portal.destroy();
     });
 

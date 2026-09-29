@@ -47,6 +47,57 @@ for (const viewport of [{ width: 390, height: 844 }, { width: 1280, height: 800 
   });
 }
 
+for (const viewport of [{ width: 390, height: 844 }, { width: 360, height: 640 }, { width: 1280, height: 800 }]) {
+  test(`at ${viewport.width}x${viewport.height} ENTER leads and the other two keys sit beneath it, smaller`, async ({ page }) => {
+    await page.setViewportSize(viewport);
+    await openHome(page);
+    await roll(page);
+    await page.waitForTimeout(1200);
+    const box = selector => page.locator(selector).boundingBox();
+    const [enter, again, adjust] = [await box('[data-oracle="enter"]'), await box('[data-oracle="roll"]'), await box('[data-oracle="adjust"]')];
+    // One lead key, above the other two, which sit side by side and are smaller in both directions.
+    expect(enter.y + enter.height, 'ENTER is above the others').toBeLessThanOrEqual(Math.min(again.y, adjust.y));
+    expect(enter.width).toBeGreaterThan(again.width);
+    expect(enter.height).toBeGreaterThan(again.height);
+    expect(Math.abs(again.y - adjust.y)).toBeLessThan(2);
+    expect(again.x + again.width).toBeLessThan(adjust.x);
+    // The lead key is centred, and the pair is centred beneath it.
+    const centre = b => b.x + b.width / 2;
+    expect(Math.abs(centre(enter) - (again.x + adjust.x + adjust.width) / 2)).toBeLessThan(2);
+    // Smaller, but still a touch target.
+    expect(Math.min(again.height, adjust.height)).toBeGreaterThanOrEqual(44);
+    expect(Math.min(again.width, adjust.width)).toBeGreaterThanOrEqual(44);
+  });
+}
+
+test('the worst results (the longest author, a two-line title, the widest plan) sit inside the window', async ({ page }) => {
+  for (const viewport of [{ width: 390, height: 844 }, { width: 1280, height: 800 }]) {
+    await page.setViewportSize(viewport);
+    await openHome(page);
+    // The object lays out a moment after Home appears; results are sized against it.
+    await expect.poll(() => page.evaluate(() => document.querySelector('.oracle-stage').style.getPropertyValue('--r'))).not.toBe('');
+    for (const [work, temper, section] of [['lyrical-ballads', 'revel', 'shortest'], ['the-photo-that-knew-your-street', 'ember', 'longest'], ['spoon-river-anthology', 'signal', 'first']]) {
+      const fit = await page.evaluate(async ([work, temper, section]) => {
+        const portal = window.__RISE_TEST__.getView('portal');
+        const tools = await portal.loadTools();
+        const decision = tools.composeRoll({ temper: tools.TEMPERS.find(t => t.id === temper), workId: work, section });
+        portal.result = portal.describe(tools, decision, { source: 'roll', temper });
+        portal.rolled = true;
+        portal.setState('result');
+        await new Promise(resolve => setTimeout(resolve, 300));
+        const answer = document.querySelector('.oracle-answer');
+        const radius = parseFloat(document.querySelector('.oracle-stage').style.getPropertyValue('--r'));
+        // Nothing may fall below a readable size, however far it was scaled.
+        const smallest = Math.min(...[...answer.querySelectorAll('.oracle-answer-meta, .oracle-answer-mood')]
+          .map(el => parseFloat(getComputedStyle(el).fontSize)));
+        return { height: answer.offsetHeight, room: radius * 0.86, smallest };
+      }, [work, temper, section]);
+      expect(fit.height, `${work} at ${viewport.width}px`).toBeLessThanOrEqual(fit.room + 1);
+      expect(fit.smallest, `${work} at ${viewport.width}px`).toBeGreaterThanOrEqual(10);
+    }
+  }
+});
+
 test('a small phone never scrolls sideways, in any state', async ({ page }) => {
   await page.setViewportSize({ width: 360, height: 640 });
   await openHome(page);

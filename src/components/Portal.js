@@ -173,7 +173,10 @@ export class Portal {
     this._marksDrawn = false;
     this.object = null;
     const stage = this.container.querySelector('.oracle-stage');
-    if (stage) this.object = new OracleObject(stage, { onShake: () => this.shake() });
+    if (stage) {
+      this.object = new OracleObject(stage, { onShake: () => this.shake() });
+      stage.addEventListener('oracle-layout', () => this.fitAnswer());
+    }
     if (this._active) this.drawMarks();
   }
 
@@ -190,7 +193,7 @@ export class Portal {
               <div class="oracle-answer" hidden>
                 <strong class="oracle-answer-title"></strong>
                 <span class="oracle-answer-meta"></span>
-                <span class="oracle-answer-plan"></span>
+                <span class="oracle-answer-mood"></span>
               </div>
               <label class="oracle-label sr-only" for="oracle-intent">Ask for a reading</label>
               <textarea class="oracle-intent" id="oracle-intent" name="intent" rows="4" maxlength="240"
@@ -253,13 +256,18 @@ export class Portal {
     const busy = this.state === 'rolling' || this.state === 'asking' || this.launching;
     const key = (action, label, extra = '') =>
       `<button class="oracle-key ${extra}" type="${action === 'ask' ? 'submit' : 'button'}" data-oracle="${action}"${busy ? ' disabled' : ''}>${label}</button>`;
+    // One key leads and the rest follow beneath it, smaller: the lit key keeps
+    // one place (ROLL, then ENTER, then ASK) and what else can be done sits below.
+    const minor = (...keysHtml) => `<div class="oracle-keys-minor">${keysHtml.join('')}</div>`;
     if (this.state === 'result') {
-      keys.innerHTML = key('enter', 'Enter', 'oracle-key-primary')
-        + key('roll', 'Roll again') + key('adjust', 'Adjust');
+      keys.innerHTML = key('enter', 'Enter', 'oracle-key-primary oracle-key-roll')
+        + minor(key('roll', 'Roll again', 'oracle-key-minor'), key('adjust', 'Adjust', 'oracle-key-minor'));
     } else if (this.state === 'ask' || this.state === 'asking') {
-      keys.innerHTML = key('ask', 'Ask', 'oracle-key-primary')
-        + `<button class="oracle-key oracle-key-icon" type="button" data-jev-dictate="icon" aria-label="Speak your request" aria-pressed="false">${MIC_ICON}</button>`
-        + key('roll', 'Roll');
+      keys.innerHTML = key('ask', 'Ask', 'oracle-key-primary oracle-key-roll')
+        + minor(
+          `<button class="oracle-key oracle-key-minor oracle-key-icon" type="button" data-jev-dictate="icon" aria-label="Speak your request" aria-pressed="false">${MIC_ICON}</button>`,
+          key('roll', 'Roll', 'oracle-key-minor')
+        );
     } else {
       keys.innerHTML = key('roll', 'Roll', 'oracle-key-primary oracle-key-roll');
     }
@@ -292,10 +300,31 @@ export class Portal {
     note.textContent = showing ? this.result.note || '' : '';
     if (showing) {
       root.querySelector('.oracle-answer-title').textContent = this.result.title;
-      root.querySelector('.oracle-answer-meta').textContent = this.result.meta;
-      // Lines break between parts, never inside one.
-      root.querySelector('.oracle-answer-plan').innerHTML = this.result.plan
-        .map((part, i, all) => `<span>${escapeHtml(part)}${i < all.length - 1 ? ' ·' : ''}</span>`).join(' ');
+      // The window says little: a name, an author, and the one word for a roll's
+      // temper. Section and plan are spoken by the status line and shown in Reader
+      // Setup, where the reader can change them.
+      root.querySelector('.oracle-answer-meta').textContent = this.result.author;
+      const mood = root.querySelector('.oracle-answer-mood');
+      mood.textContent = this.result.mood;
+      mood.hidden = !this.result.mood;
+      this.fitAnswer();
+    }
+  }
+
+  /**
+   * A long result (a two-line title, a long plan) must sit inside the window,
+   * not run over its bezel. Step the whole answer down until it fits; the
+   * stylesheet keeps the small type from going below a readable size.
+   */
+  fitAnswer() {
+    const stage = this.container.querySelector('.oracle-stage');
+    const answer = this.container.querySelector('.oracle-answer');
+    const radius = parseFloat(stage?.style.getPropertyValue('--r'));
+    if (!answer || answer.hidden || !radius) return;
+    const room = radius * 0.86;
+    answer.style.setProperty('--fit', '1');
+    for (let fit = 1; fit > 0.6 && answer.offsetHeight > room; fit -= 0.05) {
+      answer.style.setProperty('--fit', fit.toFixed(2));
     }
   }
 
@@ -347,6 +376,9 @@ export class Portal {
     return {
       decision, source, intent, temper, note,
       title: work?.title || decision.workId,
+      author: work?.author || '',
+      mood: source === 'roll' ? temper : '',
+      // The whole description, for the status line that speaks it.
       meta: [work?.author, tools.SECTION_WORDS[decision.config.section]].filter(Boolean).join(' · '),
       plan: tools.summarizeJevPlan(decision.config)
     };
