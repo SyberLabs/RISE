@@ -434,8 +434,8 @@ export function requestsNightDrive(intent) {
   const text = String(intent || '').normalize('NFKC').toLowerCase();
   // A reader asking for less (slow, sleep, calm) never gets the fast look.
   if (/\b(?:slow(?:ly|er)?|sleep(?:s|y|ing)?|asleep|calm(?:ly|er|ing)?|relax(?:ed|ing)?|gentl[ey]|quiet(?:ly|er)?|soft(?:ly|er)?|hushed)\b/u.test(text)) return false;
-  // "Drift off" is falling asleep, not a drift.
-  return /\b(?:drift(?:s|ing)?(?!\s+off\b)|night[\s-]?driv(?:e|es|ing)|racing|race\s*cars?|street\s*rac\w*|highway|synthwave|outrun|tokyo|neon)\b/u.test(text);
+  // "Drift off" (also "drift-off", "drift–off") is falling asleep, not a drift.
+  return /\b(?:drift(?:s|ing)?(?![\s\-‐-—]+off\b)|night[\s-]?driv(?:e|es|ing)|racing|race\s*cars?|street\s*rac\w*|highway|synthwave|outrun|tokyo|neon)\b/u.test(text);
 }
 
 function requestsNoVisualMotion(intent) {

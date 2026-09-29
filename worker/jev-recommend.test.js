@@ -854,6 +854,10 @@ describe('Jev reading recommendation', () => {
   it('reads "drift off" as falling asleep, not as a drift reference', () => {
     expect(requestsNightDrive('Something to drift off with.')).toBe(false);
     expect(requestsNightDrive('Something for drifting off.')).toBe(false);
+    expect(requestsNightDrive('Something to drift-off with.')).toBe(false);
+    expect(requestsNightDrive('Something to drift–off with.')).toBe(false);
+    expect(requestsNightDrive('Drifting-off music.')).toBe(false);
+    expect(requestsNightDrive('drift offroad racing')).toBe(true);
     expect(requestsNightDrive('tokyo drift')).toBe(true);
     expect(requestsNightDrive('A night drive through neon racing streets.')).toBe(true);
   });
