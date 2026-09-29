@@ -398,7 +398,19 @@ export class Portal {
     this.setState('rolling');
     this.setStatus('Rolling…');
     this.object?.kick(1.1);
-    const [tools] = await Promise.all([this.loadTools(), this.object?.sink()]);
+    let tools;
+    try {
+      [tools] = await Promise.all([this.loadTools(), this.object?.sink()]);
+    } catch (error) {
+      // The roll's code did not arrive (a dropped connection); whatever was
+      // showing rises again and the key is live.
+      this.tools = null;
+      this.setState(this.result ? 'result' : 'idle');
+      this.setStatus('');
+      this.showError('Couldn’t roll just now. Try again.', error?.message || '');
+      await this.object?.rise();
+      return;
+    }
     const previous = this.result?.source === 'roll' ? this.result : null;
     const { decision, temper } = tools.rollReading({ previous });
     this.result = this.describe(tools, decision, { source: 'roll', temper });
@@ -589,6 +601,8 @@ export class Portal {
     this._active = true;
     if (!this._marksDrawn) this.drawMarks();
     this.object?.start();
+    // Leaving Home stopped dictation; an open request gets it back.
+    if (this.state === 'ask') this.renderKeys();
   }
 
   deactivate() {

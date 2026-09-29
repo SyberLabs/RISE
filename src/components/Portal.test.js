@@ -132,6 +132,21 @@ describe('a roll', () => {
         portal.destroy();
     });
 
+    it('recovers when the roll cannot load, and keeps what was showing', async () => {
+        const { portal, container } = makePortal();
+        await roll(container);
+        const shown = portal.result;
+        portal.tools = null;
+        vi.spyOn(portal, 'loadTools').mockRejectedValueOnce(new Error('chunk failed'));
+        container.querySelector('[data-oracle="roll"]').click();
+        await vi.waitFor(() => expect(container.querySelector('.oracle-alert').hidden).toBe(false));
+        expect(portal.state).toBe('result');
+        expect(portal.result).toBe(shown);
+        expect(container.querySelector('[data-oracle="roll"]').disabled).toBe(false);
+        expect(container.querySelector('.portal-alert-message').textContent).toBe('chunk failed');
+        portal.destroy();
+    });
+
     it('is still there after navigating away and back, or a reload', async () => {
         const first = makePortal();
         await roll(first.container);
