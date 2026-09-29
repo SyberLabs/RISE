@@ -31,6 +31,8 @@ node scripts/affect/fit-readout.mjs
 
 `modulatePlateColorsAt(look, program, phraseIndex)` turns a procedural plate's `hue` by warmth and scales its `sat` by arousal. `modulateFlameColorsAt` does the same to a Living Flame recipe's `macros.hue` and `tone.vibrancy`. Arousal at 0.5 leaves the authored strength. Valence does not move hue. A phrase with no span returns the same object. Palette names, grain, chroma, geometry, and motion stay put. The visual engines do not import this layer.
 
+`modulateEnergyAt(engine, parameters, program, phraseIndex)` scales the one energy parameter attractor, night-streaks, and Living Flame already expose. The signal is `motionEnergy`. At 0.5 the authored value stays. Attractor and night-streak `speed` stay between 0.25 and 4. Living Flame `energy` stays between 0 and 1, on the field or on the recipe. Arousal does not move it. Apparitio, Ostensoria, Harmonograph, Klee, and Genesis are not channels. Brightness, hue, palette, and transforms stay put.
+
 `fit-readout` exits 2 until a JSON file of judgments contains 24 records with `annotatorKind` of `human`. It does not invent weights.
 
 ## Calling it

@@ -46,3 +46,4 @@ export {
     passageProposalsFor
 } from './brief.js';
 export { modulatePlateColorsAt, modulateFlameColorsAt } from './modulate-color.js';
+export { ENERGY_ENGINES, modulateEnergyAt } from './modulate-energy.js';

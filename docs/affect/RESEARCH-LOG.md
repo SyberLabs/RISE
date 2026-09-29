@@ -66,6 +66,8 @@ The lexicon itself is an authoring prior for this repository. It is not the NRC 
 
 `modulatePlateColorsAt` and `modulateFlameColorsAt` apply one span to the fine color parameters those engines already read. Warmth turns hue. Arousal scales saturation or vibrancy around the authored value. Valence is not a hue. The engines do not call the modulator, so a reading with no program is unchanged.
 
+`modulateEnergyAt` applies the same span to attractor and night-streak `speed` and to Living Flame `energy`. The signal is `motionEnergy`, so arousal is not counted twice. 0.5 leaves the authored value. Harmonograph and Klee already read arousal inside the conductor, and plate bloom, sparkle, chroma, and grain are not one energy number, so those engines are not channels.
+
 ## What would change the readout
 
 Human pairwise judgments, stored with `recordJudgment` and never edited, fitted with Bradley–Terry per question. The local teacher and the EmoPair scores are evidence beside the window encoder, not a replacement for those judgments. A MiniLM-class probe on 24 passages did not carry PERT valence out of sample. A larger labeled set would be required before that probe could replace the window.
