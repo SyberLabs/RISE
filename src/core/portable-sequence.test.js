@@ -287,10 +287,10 @@ describe('recipient passage remix', () => {
     expect(remixablePassages(program)[0].soundscapeId).toBe('piano');
   });
 
-  it('returns the same program when the passage keeps its visual and soundscape', async () => {
+  it('returns an equal program when the passage keeps its visual and soundscape', async () => {
     const { project } = await inspectPortableSequence(JSON.stringify(quietExample));
     expect(remixPassage(project.experienceProgram, 'visual-2',
-      { collection: 'rockgarden', soundscapeId: 'nocturne' })).toBe(project.experienceProgram);
+      { collection: 'rockgarden', soundscapeId: 'nocturne' })).toEqual(project.experienceProgram);
   });
 
   it('refuses a passage, visual, or soundscape this build does not offer', async () => {

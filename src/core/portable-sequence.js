@@ -187,7 +187,6 @@ export function remixPassage(program, passageId, { collection, soundscapeId } = 
     // The shown visual keeps its whole cue; a new pattern drops the old one's engines and config.
     const visualCue = visual.cue.collections[0] === collection
       ? visual.cue : { kind: 'procedural', collections: [collection] };
-    if (visualCue === visual.cue && sound.cue.soundscapeId === soundscapeId) return program;
     const cues = new Map([[visual, visualCue], [sound, { ...sound.cue, soundscapeId }]]);
     const next = { ...program, tracks: program.tracks.map(track => ({
       ...track, clips: track.clips.map(clip => (cues.has(clip) ? { ...clip, cue: cues.get(clip) } : clip))
