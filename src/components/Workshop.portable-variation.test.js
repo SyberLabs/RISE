@@ -56,10 +56,10 @@ async function importedParent() {
   return inspected;
 }
 
-function makeWorkshop(onCreateSession = vi.fn()) {
+function makeWorkshop(onCreateSession = vi.fn(), options = {}) {
   const container = document.createElement('div');
   document.body.append(container);
-  return { workshop: new Workshop(container, { onCreateSession }), container };
+  return { workshop: new Workshop(container, { onCreateSession, ...options }), container };
 }
 
 it('opens a local child draft and leaves the original untouched on cancellation', async () => {
@@ -200,6 +200,40 @@ it('previews a remixed passage, resets it, and keeps it only on request', async 
   expect(carried.parentPortableId).toBe(parent.id);
   expect(carried.creatorCredit).toBe('Remixer');
   expect(passageCues(carried.project.experienceProgram)).toEqual(passageCues(child.experienceProgram));
+  workshop.destroy();
+});
+
+it('shows the remix on a phone instead of hiding the studio behind absent scenes', async () => {
+  const parent = await importedQuietExample();
+  const { workshop, container } = makeWorkshop(vi.fn(), { viewportWidth: 390 });
+  workshop.update({ varyBlueprintId: parent.id });
+  await vi.waitFor(() => expect(container.querySelector('#passage-remix')).not.toBeNull());
+  expect(container.querySelector('.workshop-studio').dataset.phoneMode).toBe('studio');
+  expect(container.querySelector('.scene-stack-host')).toBeNull();
+  workshop.destroy();
+});
+
+it('lets a kept remix be reopened, reset, and saved back to the original cues', async () => {
+  const parent = await importedQuietExample();
+  const { workshop, container } = makeWorkshop();
+  workshop.update({ varyBlueprintId: parent.id });
+  await vi.waitFor(() => expect(container.querySelector('#passage-remix')).not.toBeNull());
+  choose(container, '[data-remix-visual]', 'klee');
+  container.querySelector('[data-action="keep-remix"]').click();
+  await vi.waitFor(() => expect(MemoryCore.getWorkshopBlueprints()).toHaveLength(2));
+  const childId = MemoryCore.getWorkshopBlueprints().find(item => item.id !== parent.id).id;
+
+  workshop.update({ blueprintId: childId });
+  await vi.waitFor(() => expect(container.querySelector('[data-action="keep-remix"]')?.textContent)
+    .toBe('Save remix'));
+  expect(container.querySelector('[data-action="keep-remix"]').disabled).toBe(true);
+  container.querySelector('[data-action="reset-remix"]').click();
+  expect(document.activeElement?.id).toBe('remix-passage');
+  expect(container.querySelector('[data-action="keep-remix"]').disabled).toBe(false);
+  container.querySelector('[data-action="keep-remix"]').click();
+  await vi.waitFor(() => expect(passageCues(MemoryCore.getWorkshopBlueprints()
+    .find(item => item.id === childId).project.experienceProgram))
+    .toEqual([['turrell', 'rockgarden'], ['aurora', 'nocturne']]));
   workshop.destroy();
 });
 

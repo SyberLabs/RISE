@@ -184,13 +184,11 @@ export function remixPassage(program, passageId, { collection, soundscapeId } = 
     const pair = passagePairs(program).find(({ visual }) => visual.id === passageId);
     if (!pair) refuse('PORTABLE_REMIX_PASSAGE', 'That passage cannot be remixed.');
     const { visual, sound } = pair;
-    if (visual.cue.collections.length === 1 && visual.cue.collections[0] === collection
-      && sound.cue.soundscapeId === soundscapeId) return program;
-    // A pattern's engines and config belong to that pattern; the sound keeps its gain and fade.
-    const cues = new Map([
-      [visual, { kind: 'procedural', collections: [collection] }],
-      [sound, { ...sound.cue, soundscapeId }]
-    ]);
+    // The shown visual keeps its whole cue; a new pattern drops the old one's engines and config.
+    const visualCue = visual.cue.collections[0] === collection
+      ? visual.cue : { kind: 'procedural', collections: [collection] };
+    if (visualCue === visual.cue && sound.cue.soundscapeId === soundscapeId) return program;
+    const cues = new Map([[visual, visualCue], [sound, { ...sound.cue, soundscapeId }]]);
     const next = { ...program, tracks: program.tracks.map(track => ({
       ...track, clips: track.clips.map(clip => (cues.has(clip) ? { ...clip, cue: cues.get(clip) } : clip))
     })) };

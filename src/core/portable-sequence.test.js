@@ -277,6 +277,16 @@ describe('recipient passage remix', () => {
       .toEqual({ kind: 'soundscape', soundscapeId: 'piano', gain: 0.35, fadeMs: 1500 });
   });
 
+  it('keeps a blended visual whole when only the soundscape changes', async () => {
+    const { project } = await inspectPortableSequence(JSON.stringify(quietExample));
+    const blended = structuredClone(project.experienceProgram);
+    blended.tracks.find(track => track.kind === 'visual').clips[0].cue.collections = ['turrell', 'klee'];
+    const program = remixPassage(blended, 'visual-1', { collection: 'turrell', soundscapeId: 'piano' });
+    expect(program.tracks.find(track => track.kind === 'visual').clips[0].cue.collections)
+      .toEqual(['turrell', 'klee']);
+    expect(remixablePassages(program)[0].soundscapeId).toBe('piano');
+  });
+
   it('returns the same program when the passage keeps its visual and soundscape', async () => {
     const { project } = await inspectPortableSequence(JSON.stringify(quietExample));
     expect(remixPassage(project.experienceProgram, 'visual-2',
