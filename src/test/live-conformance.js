@@ -22,6 +22,10 @@
  * Things an adapter may honestly not do, stated when it is described:
  *   carries.evidence, carries.dives  a text-only provider carries neither
  *   carries.ids   false when the provider does not name segments (it is numbered)
+ *   carries.state false when the provider has no way to say what a segment is meant to be like
+ *   skip          scenarios that cannot happen to this adapter, by name: 'interrupt' for a provider
+ *                 whose answer arrives whole, 'transport-loss' for one with no transport to lose.
+ *                 Each skip is stated where the adapter is described, and held by its own test.
  *   resume        'full' or 'replay'. 'replay' is a provider whose dropped stream
  *                 cannot be continued: resume replays what was received, then the
  *                 Current ends failed with everything already committed intact.
@@ -48,13 +52,14 @@ async function consume(connection, stream, seen) {
 }
 
 /** The fixed answer, as the reducer should hold it once an adapter has delivered it. */
-export function expectBlackHoles(snapshot, { evidence = true, dives = true, ids = true } = {}) {
+export function expectBlackHoles(snapshot, { evidence = true, dives = true, ids = true, state = true } = {}) {
     expect(snapshot.phase).toBe('complete');
     expect(snapshot.refusals).toBe(0);
     expect(snapshot.segments.map(s => [ids ? s.id : null, s.text, s.ended]))
         .toEqual(BLACK_HOLES.segments.map(s => [ids ? s.id : null, s.text, true]));
     expect(snapshot.segments.map(s => s.visual)).toEqual(BLACK_HOLES.segments.map(s => s.visual));
-    expect(snapshot.segments.map(s => s.state)).toEqual(BLACK_HOLES.segments.map(s => s.state));
+    if (state) expect(snapshot.segments.map(s => s.state)).toEqual(BLACK_HOLES.segments.map(s => s.state));
+    else expect(snapshot.segments.every(s => Object.keys(s.state).length === 0)).toBe(true);
     if (evidence) {
         expect(snapshot.segments.flatMap(s => s.evidence.map(e => [e.id, e.kind, e.uri])))
             .toEqual(BLACK_HOLES.segments.flatMap(s => (s.evidence ?? []).map(e => [e.id, e.kind, e.uri])));
@@ -71,7 +76,7 @@ export function expectBlackHoles(snapshot, { evidence = true, dives = true, ids 
     expect(snapshot.origin.kind).toBe('model');
 }
 
-export function describeAdapterConformance(name, scenario, { carries = {}, resume = 'full' } = {}) {
+export function describeAdapterConformance(name, scenario, { carries = {}, resume = 'full', skip = [] } = {}) {
     describe(`adapter conformance: ${name}`, () => {
         it('meets the adapter and connection contracts', async () => {
             const { adapter, request, clock } = scenario('black-holes');
@@ -130,7 +135,7 @@ export function describeAdapterConformance(name, scenario, { carries = {}, resum
             expect(stream.toCurrent().segments.map(s => s.text)).toEqual(BLACK_HOLES.segments.map(s => s.text));
         });
 
-        it('stops when the reader interrupts, tells the stream in order, and frees what it held', async () => {
+        (skip.includes('interrupt') ? it.skip : it)('stops when the reader interrupts, tells the stream in order, and frees what it held', async () => {
             const { adapter, clock, request, interruptAfterMs } = scenario('interrupt');
             const connection = await adapter.open(request);
             const stream = createCurrentStream();
@@ -145,7 +150,9 @@ export function describeAdapterConformance(name, scenario, { carries = {}, resum
             expect(clock.pending()).toBe(0);
         });
 
-        if (resume === 'full') {
+        if (skip.includes('transport-loss')) {
+            // Nothing to lose: held by the adapter's own test.
+        } else if (resume === 'full') {
             it('says so when the connection is lost, and continues after a resume without repeating itself', async () => {
                 const { adapter, clock, request } = scenario('transport-loss');
                 const connection = await adapter.open(request);
