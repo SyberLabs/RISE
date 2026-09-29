@@ -29,6 +29,7 @@ import { compileRiseCurrent } from '../core/rise-current.js';
 import { AdapterError, OPEN_LIMITS, assertAdapter } from './adapter.js';
 import { createRealClock } from './clock.js';
 import { createSpeechGovernor } from './speech-governor.js';
+import { withExperientialState } from './state-visuals.js';
 import { createCurrentStream } from './stream.js';
 
 export const RUNTIME_LIMITS = Object.freeze({ reconnects: 3, backoffMs: 250, journal: 500 });
@@ -75,6 +76,7 @@ export function createLiveRuntime({
             playerState: run.player ? run.player.sessionState.state : null,
             voiceDegraded: run.governor ? run.governor.degraded : false,
             speaking: run.speaking,
+            segmentId: run.segmentId,
             finished: run.finished,
             error: run.error
         };
@@ -117,6 +119,10 @@ export function createLiveRuntime({
             failRun(run, caught);
             return;
         }
+        // The intended condition of each passage adjusts the imagery beneath it, within bounds;
+        // the sealed Current itself never carries it.
+        const conditions = new Map(ended.map(segment => [segment.id, segment.state]));
+        session.visualProgram = withExperientialState(session.visualProgram, id => conditions.get(id));
         const segments = ended.map(({ id, text }) => ({ id, text }));
         run.governor.update({ atoms: session.atoms, segments });
         // Words are given to the voice once the reading is on screen (see speak): a voice
@@ -164,6 +170,15 @@ export function createLiveRuntime({
     }
 
     function watchPlayer(run) {
+        // Which passage the reader is in, for whatever wants to say more about it.
+        run.player.on('atom', ({ index, concealed }) => {
+            if (run.closed || concealed) return;
+            const at = run.governor.positionOf(index);
+            if (at && at.segmentId !== run.segmentId) {
+                run.segmentId = at.segmentId;
+                set(status);
+            }
+        });
         run.player.on('state', ({ state }) => {
             if (run.closed) return;
             if (state === 'paused') run.voice?.hold();
@@ -225,7 +240,7 @@ export function createLiveRuntime({
     async function openRun(request, role) {
         const run = {
             role, request, stream: createCurrentStream(), connection: null, player: null, voice: null, governor: null,
-            lowered: 0, presenting: null, presented: false, unspoken: [], closed: false, finished: false, error: null, speaking: null, abort: new AbortController(), pumping: null
+            lowered: 0, presenting: null, presented: false, unspoken: [], segmentId: null, closed: false, finished: false, error: null, speaking: null, abort: new AbortController(), pumping: null
         };
         run.connection = await adapter.open(request);
         run.voice = voices ? voices.create() : null;

@@ -78,6 +78,8 @@ test.describe('the canonical flow', () => {
         await page.getByRole('button', { name: /Dive: ask about this place/u }).click();
         await expect(status(page)).toContainText('Diving');
         await expectShown(page, 'The event horizon is where the speed needed to escape');
+        // A question asked now is marked as written now, by the model, and as leaving the parent alone.
+        await expect(page.locator('.live-passage__origin')).toContainText('Written when you asked, by Scripted answer (mock). It does not change what you left.');
         await expect(page.getByRole('button', { name: 'Surface', exact: true })).toBeVisible();
         await expect(status(page)).toContainText('answered', { timeout: 20_000 });
 
@@ -121,6 +123,44 @@ test.describe('the canonical flow', () => {
         await page.locator('.live-start').click();
         await expect(page.locator('.live-error')).toContainText('Ask something first.');
         await expect(page.locator('#live-controls')).toHaveCount(0);
+    });
+});
+
+test.describe('what is known about the passage the reader is in', () => {
+    test('follows the reading: its condition reaches the imagery, its sources are shown as sources, and none is said to be none', async ({ page }) => {
+        test.setTimeout(90_000);
+        const errors = watchErrors(page);
+        await start(page);
+        await expectShown(page, 'A black hole is a region of space');
+        await page.locator('.live-controls__passage summary').click();
+        const sources = page.locator('.live-passage__sources');
+        const condition = page.locator('.live-passage__condition');
+
+        // The opening passage cites nothing, and says so; it is meant to be low in motion, and the
+        // attractor beneath it was given exactly the pace and brightness that condition maps to.
+        await expect(sources).toHaveText('No source was given for this passage.');
+        await expect(condition).toContainText('Motion: low');
+        await expect(condition).toContainText('Solemnity: medium');
+        const attractor = page.locator('.chamber-attractor').last();
+        await expect(attractor).toHaveAttribute('data-attractor-speed', '0.8');
+        const firstIntensity = Number(await attractor.getAttribute('data-attractor-intensity'));
+        expect(firstIntensity).toBeCloseTo(0.558, 2);
+
+        // The passage about the first image of a black hole cites the paper, as supplied, with a link.
+        await expectShown(page, 'In 2019, the Event Horizon Telescope', 30_000);
+        await expect(sources).toContainText('Provided with the answer');
+        await expect(sources).toContainText('The Shadow of the Supermassive Black Hole');
+        const link = sources.locator('a');
+        await expect(link).toHaveAttribute('href', 'https://doi.org/10.3847/2041-8213/ab0ec7');
+        await expect(link).toHaveAttribute('rel', 'noopener noreferrer');
+        await expect(link).toHaveAttribute('target', '_blank');
+        await expect(condition).toContainText('Expansiveness: high');
+
+        // The gravitational-wave passage is the same authored visual, moving faster.
+        await expectShown(page, 'In 2015, detectors on Earth', 30_000);
+        await expect(page.locator('.chamber-attractor').last()).toHaveAttribute('data-attractor-speed', '1.3');
+        await expect(condition).toContainText('Motion: high');
+        expect(errors).toEqual([]);
     });
 });
 

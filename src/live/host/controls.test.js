@@ -174,6 +174,82 @@ describe('what is said so far', () => {
     });
 });
 
+describe('about this passage', () => {
+    const richRuntime = () => {
+        const runtime = fakeRuntime('live');
+        const state = { status: 'live', main: { segmentId: 'a', voiceDegraded: false }, side: null, error: null };
+        runtime.snapshot = () => state;
+        runtime.composed = role => ({
+            origin: { kind: 'model', name: 'Scripted answer', provider: 'mock' },
+            segments: role === 'main' ? [
+                {
+                    id: 'a', text: 'In 2019 a telescope took an image.', ended: true,
+                    state: { solemnity: 0.8, motionEnergy: 0.1 },
+                    evidence: [
+                        { id: 'e1', kind: 'supplied', title: 'The paper', location: 'Letters 875', uri: 'https://doi.org/10.3847/x', supports: { fromCharacter: 0, toCharacter: 7 } },
+                        { id: 'e2', kind: 'model-proposed', title: 'Something remembered', uri: 'javascript:alert(1)' }
+                    ],
+                    dives: [{ id: 'n1', text: 'A note.', anchor: { fromCharacter: 8, toCharacter: 17 } }]
+                },
+                { id: 'b', text: 'Nothing cited here.', ended: true, state: {}, evidence: [], dives: [] }
+            ] : [{ id: 's', text: 'A dive line', ended: true, state: {}, evidence: [], dives: [] }]
+        });
+        return { runtime, state };
+    };
+
+    it('says what a passage is meant to be, in coarse words, and that it says nothing about the reader', () => {
+        const { runtime } = richRuntime();
+        controls = createLiveControls({ runtime, onStop: () => {} });
+        expect([...$('.live-passage__condition').children].map(li => li.textContent)).toEqual(['Motion: low', 'Solemnity: high']);
+        expect($('.live-passage__note').textContent).toMatch(/says nothing about you/u);
+    });
+
+    it('lists sources with where they came from, links only a plain https address, and never a script address', () => {
+        const { runtime } = richRuntime();
+        controls = createLiveControls({ runtime, onStop: () => {} });
+        const items = [...$('.live-passage__sources').children];
+        expect(items).toHaveLength(2);
+        expect(items[0].textContent).toContain('Provided with the answer');
+        expect(items[0].textContent).toContain('The paper');
+        expect(items[0].textContent).toContain('supports “In 2019”');
+        const link = items[0].querySelector('a');
+        expect(link.getAttribute('href')).toBe('https://doi.org/10.3847/x');
+        expect(link.rel).toBe('noopener noreferrer');
+        expect(link.target).toBe('_blank');
+        expect(items[1].textContent).toContain('Proposed by the model, not checked');
+        expect(items[1].querySelector('a')).toBeNull();
+        expect(document.querySelector('#live-controls a[href^="javascript"]')).toBeNull();
+    });
+
+    it('says there is no source, in words, when there is none', () => {
+        const { runtime, state } = richRuntime();
+        state.main.segmentId = 'b';
+        controls = createLiveControls({ runtime, onStop: () => {} });
+        expect($('.live-passage__sources').textContent).toBe('No source was given for this passage.');
+        expect($('.live-passage__condition').textContent).toMatch(/Nothing was said about how this passage is meant to be/u);
+    });
+
+    it('tells stable depth (a note written with the answer) from generative depth (a question asked now)', () => {
+        const { runtime } = richRuntime();
+        controls = createLiveControls({ runtime, onStop: () => {} });
+        const depth = [...$('.live-passage__depth').children].map(li => li.textContent);
+        expect(depth[0]).toMatch(/^Note written with the answer, about “.*”: A note.$/u);
+        expect(depth.at(-1)).toMatch(/written now, for you, and marked as the model/u);
+    });
+
+    it('says a Dive was written when it was asked, and follows the reader to the side Current', () => {
+        const { runtime, state } = richRuntime();
+        controls = createLiveControls({ runtime, onStop: () => {} });
+        expect($('.live-passage__origin').hidden).toBe(true);
+        controls.destroy();
+        state.status = 'diving';
+        state.side = { segmentId: 's', finished: false };
+        controls = createLiveControls({ runtime, onStop: () => {} });
+        expect($('.live-passage__origin').hidden).toBe(false);
+        expect($('.live-passage__origin').textContent).toBe('Written when you asked, by Scripted answer (mock). It does not change what you left.');
+    });
+});
+
 describe('hostile words', () => {
     it('are shown as words: nothing a model says becomes an element, a handler or a style', () => {
         const runtime = fakeRuntime('live');

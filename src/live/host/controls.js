@@ -1,3 +1,5 @@
+import { describeOrigin, describePassage } from './passage.js';
+
 /**
  * What the reader has in their hands while a Current is on screen.
  *
@@ -68,6 +70,19 @@ export function createLiveControls({ runtime, onStop, audible = true, doc = docu
         <button type="button" data-live="surface" hidden>Surface</button>
         <button type="button" data-live="stop">Stop</button>
       </div>
+      <details class="live-controls__passage">
+        <summary>About this passage</summary>
+        <div class="live-passage">
+          <p class="live-passage__origin" hidden></p>
+          <h3>Meant to be</h3>
+          <p class="live-passage__note">What this passage is meant to be like. It says nothing about you.</p>
+          <ul class="live-passage__condition"></ul>
+          <h3>Sources</h3>
+          <ul class="live-passage__sources"></ul>
+          <h3>Going deeper</h3>
+          <ul class="live-passage__depth"></ul>
+        </div>
+      </details>
       <details class="live-controls__transcript">
         <summary>Transcript</summary>
         <ol class="live-controls__lines" aria-label="What has been said so far"></ol>
@@ -83,8 +98,13 @@ export function createLiveControls({ runtime, onStop, audible = true, doc = docu
     const interrupt = $('[data-live="interrupt"]');
     const surface = $('[data-live="surface"]');
     const lines = $('.live-controls__lines');
+    const passageOrigin = $('.live-passage__origin');
+    const passageCondition = $('.live-passage__condition');
+    const passageSources = $('.live-passage__sources');
+    const passageDepth = $('.live-passage__depth');
     let question = '';
     let shownLines = '';
+    let shownPassage = '';
     let destroyed = false;
 
     const show = message => {
@@ -114,6 +134,62 @@ export function createLiveControls({ runtime, onStop, audible = true, doc = docu
         }));
     }
 
+    const item = (text, className) => {
+        const node = doc.createElement('li');
+        node.textContent = text;
+        if (className) node.className = className;
+        return node;
+    };
+
+    /** Everything said about the passage the reader is in, drawn as words. */
+    function passage(snapshot) {
+        const role = snapshot.status === 'diving' ? 'side' : 'main';
+        const view = runtime.composed(role);
+        const described = describePassage(view, snapshot[role]?.segmentId ?? null);
+        const origin = role === 'side' ? describeOrigin(view?.origin) : '';
+        const key = JSON.stringify([role, origin, described]);
+        if (key === shownPassage) return;
+        shownPassage = key;
+        passageOrigin.textContent = origin;
+        passageOrigin.hidden = !origin;
+
+        passageCondition.replaceChildren(...(described?.condition.length
+            ? described.condition.map(entry => item(`${entry.label}: ${entry.word}`))
+            : [item('Nothing was said about how this passage is meant to be.', 'live-passage__none')]));
+
+        passageSources.replaceChildren(...(described?.sources.length
+            ? described.sources.map(source => {
+                const li = doc.createElement('li');
+                li.dataset.kind = source.kind;
+                const kind = doc.createElement('strong');
+                kind.className = 'live-passage__kind';
+                kind.textContent = source.kindLabel;
+                li.append(kind);
+                const title = doc.createElement('cite');
+                title.textContent = source.title;
+                li.append(': ', title);
+                if (source.location) li.append(`, ${source.location}`);
+                if (source.supports) li.append(` — supports “${source.supports}”`);
+                if (source.href) {
+                    const link = doc.createElement('a');
+                    link.href = source.href;
+                    link.target = '_blank';
+                    link.rel = 'noopener noreferrer';
+                    link.textContent = 'Open the source';
+                    li.append(' ', link);
+                } else if (source.uri) {
+                    li.append(` (address: ${source.uri})`);
+                }
+                return li;
+            })
+            : [item('No source was given for this passage.', 'live-passage__none')]));
+
+        passageDepth.replaceChildren(
+            ...(described?.notes ?? []).map(note => item(`Note written with the answer${note.about ? `, about “${note.about}”` : ''}: ${note.text}`)),
+            item('Ask your own question above: the answer is written now, for you, and marked as the model’s.')
+        );
+    }
+
     function render(snapshot) {
         if (destroyed) return;
         const { status } = snapshot;
@@ -127,6 +203,7 @@ export function createLiveControls({ runtime, onStop, audible = true, doc = docu
         interrupt.dataset.live = status === 'interrupted' ? 'resume' : 'interrupt';
         if (status === 'failed' && snapshot.error) show(snapshot.error.message);
         transcript(snapshot);
+        passage(snapshot);
     }
 
     interrupt.addEventListener('click', () => {

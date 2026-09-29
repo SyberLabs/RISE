@@ -111,7 +111,7 @@ An adapter is `{ open(request), events(): AsyncIterable<RiseEvent>, interrupt(),
 
 ## 8. Semantic state, evidence, and depth
 
-**Experiential state** is the intended condition of a segment, never a claim about the reader: `tension`, `warmth`, `expansiveness`, `perceptualDensity`, `motionEnergy`, `solemnity`, `novelty`, `uncertainty`, `intimacy`, `arousal`, each 0 to 1 and each optional (absent is not zero). A trusted mapping modulates an authored visual's own bounded parameters; it never selects a renderer and never flattens two visuals into one generic animation.
+**Experiential state** is the intended condition of a segment, never a claim about the reader: `tension`, `warmth`, `expansiveness`, `perceptualDensity`, `motionEnergy`, `solemnity`, `novelty`, `uncertainty`, `intimacy`, `arousal`, each 0 to 1 and each optional (absent is not zero). A trusted mapping modulates an authored visual's own bounded parameters; it never selects a renderer and never flattens two visuals into one generic animation. As built (`src/live/state-visuals.js`), only two dimensions have a renderer that can express them honestly: `motionEnergy` sets an attractor's speed (0.6 to 1.6) and `perceptualDensity` its brightness (0.4 to 0.75), both narrower than the renderer's own limits so the words stay legible. Every other dimension, and every other renderer, is left alone and is shown to the reader as coarse words (low, medium, high) in “About this passage”, never as a claim about them. The sealed Current never carries state: the runtime adjusts the compiled visual program.
 
 **Evidence** is a bounded record: source identity, title, an optional location or span, a URI only through a validated `https` path, the claim or segment it supports, and whether it was `supplied`, `retrieved` or `model-proposed`. A model's origin is attribution, not evidence. Absent evidence is represented as absent and shown as absent. Evidence is reachable through Dive, never forced into the primary stream.
 
@@ -151,7 +151,7 @@ Budgets, all measured with the virtual clock and stated in the architecture deci
 | `/live` host | yes | yes | yes | yes | n/a |
 | Capability negotiation | yes | yes | yes (each degradation observed) | yes | n/a |
 | Speaking to interrupt (microphone) | no, typed only | no | no | no | no |
-| Evidence and experiential state | no | no | no | no | no |
+| Evidence and experiential state | yes | yes | yes | yes | n/a |
 | OpenAI Realtime adapter | no | no | no | no | no |
 | MCP host | no | no | no | no | no |
 | Evaluation harness | no | no | no | no | no |

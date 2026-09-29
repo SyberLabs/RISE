@@ -31,7 +31,7 @@ export const BLACK_HOLES = Object.freeze({
     segments: Object.freeze([
         {
             id: 'what', text: s1, visual: 'attractor',
-            state: { solemnity: 0.4, expansiveness: 0.5, tension: 0.3 }
+            state: { solemnity: 0.4, expansiveness: 0.5, tension: 0.3, motionEnergy: 0.2, perceptualDensity: 0.45 }
         },
         {
             id: 'horizon', text: s2, visual: 'still',
@@ -58,7 +58,7 @@ export const BLACK_HOLES = Object.freeze({
         },
         {
             id: 'waves', text: s5, visual: 'attractor',
-            state: { motionEnergy: 0.7, arousal: 0.6, novelty: 0.5 },
+            state: { motionEnergy: 0.7, arousal: 0.6, novelty: 0.5, perceptualDensity: 0.7 },
             evidence: [{
                 id: 'ligo-2016', kind: 'supplied',
                 title: 'Observation of Gravitational Waves from a Binary Black Hole Merger',

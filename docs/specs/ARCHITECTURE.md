@@ -165,7 +165,7 @@ flowchart LR
     content["content<br/>texts, imagery, journeys<br/>231 modules"]
     core["core<br/>session, player, router<br/>153 modules"]
     enterprise["enterprise<br/>talk program, speaker rail<br/>28 modules"]
-    live["live<br/>realtime Current: events, runtime, providers<br/>14 modules"]
+    live["live<br/>realtime Current: events, runtime, providers<br/>16 modules"]
     oracle["oracle<br/>2 modules"]
     page["page<br/>spatial projection<br/>4 modules"]
     sources["sources<br/>text and visual providers<br/>22 modules"]
@@ -1059,9 +1059,12 @@ of `settled`, `open`, `deferred`, or `reversed`.
   (`src/app/live-handoff.js`), the Chamber follows a longer Session and lets go
   of its Player when torn down, and the Player accepts more than one governor
   of atom timing (`Player.govern`) so the speech clock and Recitation coexist.
-  It is proven with the deterministic mock and a silent paced voice, in unit
-  tests on a virtual clock and in a real browser; a real speech engine and a
-  live provider are not verified.
+  The intended condition of a passage adjusts two bounded numbers of an
+  attractor and is shown as words; sources are shown with where each came from,
+  as links only when plain https, and their absence is said. It is proven with
+  the deterministic mock and a silent paced voice, in unit tests on a virtual
+  clock and in a real browser; a real speech engine and a live provider are not
+  verified.
 
 ---
 

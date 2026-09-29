@@ -2410,6 +2410,9 @@ export class Chamber {
         ...(Number.isFinite(config.speed) ? { speed: config.speed } : {})
       });
       this.attractorField = attractor;
+      // What the field was actually given, where a test or an inspector can read it.
+      host.dataset.attractorSpeed = String(attractor.speed);
+      host.dataset.attractorIntensity = String(attractor.intensity);
       this.nightStreaks = streaks;
       controller = streaks ? {
         pause: () => { streaks.pause(); return attractor.pause(); },

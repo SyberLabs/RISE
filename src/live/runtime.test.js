@@ -134,6 +134,51 @@ describe('asking', () => {
     });
 });
 
+describe('the condition of each passage', () => {
+    it('adjusts the imagery of that passage, within bounds, and leaves every other visual as authored', async () => {
+        build();
+        await runtime.start(ASK);
+        await tick(400);
+        const program = () => runtime.playerFor().sessionState.session.visualProgram;
+        const first = program().segments[0];
+        expect(first.cue).toMatchObject({ kind: 'field', renderer: 'attractor' });
+        expect(first.cue.config.speed).toBeCloseTo(0.8, 5);
+        expect(first.cue.config.intensity).toBeCloseTo(0.558, 3);
+        await tick(120_000);
+        const waves = program().segments.find(segment => segment.match.sourceIds.includes('waves'));
+        expect(waves.cue.config.speed).toBeCloseTo(1.3, 5);
+        expect(waves.cue.config.intensity).toBeCloseTo(0.645, 3);
+        // The same authored visual, at a different pace; everything else is as compiled.
+        expect(waves.cue.renderer).toBe(first.cue.renderer);
+        const others = program().segments.filter(segment => segment.cue.kind === 'still' || segment.cue.renderer === 'genesis');
+        expect(others.length).toBeGreaterThan(0);
+        for (const segment of others) expect(segment.cue.config ?? {}).not.toHaveProperty('speed');
+    });
+
+    it('never enters the sealed Current, which is unchanged by it', async () => {
+        build();
+        await runtime.start(ASK);
+        await tick(120_000);
+        const view = runtime.composed();
+        expect(view.segments.every(segment => segment.state && Object.keys(segment.state).length > 0)).toBe(true);
+        expect(JSON.stringify(runtime.playerFor().sessionState.session.experienceProgram)).not.toMatch(/motionEnergy|perceptualDensity/u);
+    });
+
+    it('says which passage the reader is in, as the reading moves through them', async () => {
+        build();
+        await runtime.start(ASK);
+        await tick(2_000);
+        expect(runtime.snapshot().main.segmentId).toBe('what');
+        await tick(3_000);
+        expect(runtime.snapshot().main.segmentId).toBe('horizon');
+        const seen = [];
+        const off = runtime.subscribe(view => seen.push(view.main?.segmentId));
+        await tick(120_000);
+        off();
+        expect(seen.filter((id, i) => id !== seen[i - 1]).slice(-4)).toEqual(['size', 'shadow', 'waves', 'hawking']);
+    });
+});
+
 describe('interrupting', () => {
     it('holds the reading and the voice where they are, and carries on from there', async () => {
         build();
