@@ -45,7 +45,9 @@ async function adapterInfo() {
 async function fetchChecked(url, label) {
     let response;
     try {
-        response = await fetch(url, { cache: 'no-store', credentials: 'omit' });
+        // Same-origin keeps a staging Access cookie on the bundled runtime and
+        // still sends nothing to the model host.
+        response = await fetch(url, { cache: 'no-store', credentials: 'same-origin' });
     } catch {
         throw new LoadFailure('network', label);
     }
