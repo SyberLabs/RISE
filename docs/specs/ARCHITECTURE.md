@@ -159,6 +159,7 @@ it, and CI fails when the committed copy is not what `src/` produces.
 
 ```mermaid
 flowchart LR
+    affect["affect<br/>experience-state evaluation<br/>24 modules"]
     app["app<br/>composition root<br/>8 modules"]
     audio["audio<br/>Web Audio, recitation<br/>10 modules"]
     components["components<br/>routed views<br/>44 modules"]
@@ -171,6 +172,7 @@ flowchart LR
     vendor["vendor<br/>SyberLabs design kit<br/>2 modules"]
     visuals["visuals<br/>procedural generation<br/>61 modules"]
 
+    affect --> |3| core
     app -.-> |3 lazy| audio
     app --> |1| components
     app --> |5| content
@@ -958,6 +960,31 @@ of `settled`, `open`, `deferred`, or `reversed`.
   model's size, so Kev-4B needs roughly 6 GB of free memory; it has not yet
   been run on Windows. Hosts other than the Cloudflare Worker serve the
   worker script with the site policy, so Kev (device) fails closed there.
+
+### 8.33 Affect is an optional evaluator, not a judge of the session
+
+- **Chosen:** `src/affect/index.js` is a versioned experience-state layer.
+  It is not imported by `src/app.js`. A caller turns it on with `RISE_AFFECT`.
+  Text uses a contextual window and an unfitted linear prior
+  (`scripts/affect/run-benchmark.mjs` writes the inspection report). Visuals,
+  pace, type, and audio contribute from parameters RISE already holds, or
+  from measured features the caller supplies. Hue is not mapped to valence.
+  The value function returns components and an explanation. It does not write
+  a session config. No production dependency was added.
+- **Rejected:** asking a generative model, at read time, whether an experience
+  is good; a discrete emotion label as the primary state; hue-to-sadness
+  rules; vendoring a transformer into the first load; fitting the readout to
+  labels invented for the fit; entangling the layer with JEV or Kev; one
+  opaque scalar.
+- **Why:** composition needs a shared description of what a reading is doing
+  across meaning, image, sound, and time. That description has to stay
+  inspectable, and it has to keep working when no model is present. A
+  distilled encoder is the intended later model. It is not honest to ship
+  one before human judgments exist. The record of what was refused, and the
+  benchmark that shows the gap, live in `docs/affect/RESEARCH-LOG.md`.
+- **Status:** open. The schema, adapters, evaluator, pairwise store, and
+  benchmark harness run in unit tests. The text readout is an explicit prior,
+  not a trained network. Hosted teachers and EmoPair weights were not run.
 
 ---
 

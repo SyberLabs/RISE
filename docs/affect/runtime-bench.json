@@ -1,0 +1,21 @@
+{
+  "js": {
+    "calls": 1150,
+    "ms": 52.026574999999994,
+    "perCallMs": 0.045240499999999996,
+    "heapUsed": 5010896
+  },
+  "wasm": {
+    "status": "ran",
+    "provider": "wasm",
+    "calls": 20,
+    "ms": 7.1343989999999735,
+    "perCallMs": 0.3567199499999987,
+    "maxAbsDeltaVersusJs": 2.8610229518832853e-8,
+    "featureCount": 20
+  },
+  "webgpu": {
+    "status": "not-used",
+    "reason": "The readout is a few hundred parameters. CPU JavaScript is the reliable path. WebGPU stays an acceleration option for a future transformer-class encoder."
+  }
+}

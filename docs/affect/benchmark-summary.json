@@ -1,0 +1,35 @@
+{
+  "passages": 24,
+  "models": [
+    {
+      "id": "lexical-vad-v1",
+      "available": true,
+      "totalMs": 2.7231490000000065,
+      "parameters": 0,
+      "reason": null
+    },
+    {
+      "id": "contextual-window-v1",
+      "available": true,
+      "totalMs": 3.629823999999992,
+      "parameters": 40,
+      "reason": null
+    },
+    {
+      "id": "emopair-family",
+      "available": false,
+      "totalMs": null,
+      "parameters": null,
+      "reason": "No EmoPair checkpoint is vendored. Published scores were not copied in as RISE results."
+    },
+    {
+      "id": "minilm-distillation",
+      "available": false,
+      "totalMs": null,
+      "parameters": null,
+      "reason": "A MiniLM-class distillation was not trained. There is no human preference set here to supervise it, and author-invented targets were refused as labels."
+    }
+  ],
+  "disagreements": 4,
+  "teacher": "unavailable"
+}

@@ -56,7 +56,10 @@
     "align:voice-pack": "node scripts/align-voice-pack.mjs",
     "mint:qr": "node scripts/mint-program-qr.mjs",
     "align:narration": "node scripts/align-narration.mjs",
-    "verify:narration": "node scripts/verify-narration-alignment.mjs"
+    "verify:narration": "node scripts/verify-narration-alignment.mjs",
+    "affect:benchmark": "node scripts/affect/run-benchmark.mjs",
+    "affect:export-onnx": "node scripts/affect/export-onnx.mjs",
+    "affect:bench-runtime": "node scripts/affect/bench-runtime.mjs"
   },
   "devDependencies": {
     "@huggingface/transformers": "^3.8.1",
