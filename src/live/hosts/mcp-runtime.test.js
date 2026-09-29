@@ -4,8 +4,8 @@
  * Nothing in the runtime knows a host is an MCP host: it is handed an adapter.
  * This drives the real runtime, Player, speech clock and a voice with the MCP
  * adapter over a fake host model, and holds the canonical flow to what it is
- * everywhere else: the answer is read, a Dive is asked of the model and answered
- * with its reference, Surface returns to the same atom, and it all ends clean.
+ * everywhere else: the answer is read, a Dive is put to the model through the host
+ * and answered in the same call, Surface returns to the same atom, and it all ends clean.
  * A whole answer arrives at once, so the first words wait for it; that is the
  * one thing a host's model changes.
  */
@@ -32,9 +32,9 @@ afterEach(async () => {
     vi.useRealTimers();
 });
 
-function build() {
+function build({ sampling = true } = {}) {
     const shown = [];
-    const port = createFakeMcpPort({ clock, answerAfterMs: 300 });
+    const port = createFakeMcpPort({ clock, answerAfterMs: 300, sampling });
     runtime = createLiveRuntime({
         adapter: createMcpAppAdapter({ port, clock }),
         clock,
@@ -74,8 +74,8 @@ describe('the canonical flow through a host’s model', () => {
         const parentShown = shown.length;
 
         await runtime.dive({ question: 'dive on event horizon' });
-        expect(port.messages).toHaveLength(1);
-        expect(port.messages[0]).toMatch(/rise_present/u);
+        expect(port.asked).toHaveLength(1);
+        expect(port.asked[0].text).toContain('dive on event horizon');
         await tick(3_000);
         expect(runtime.snapshot().side.committedSegments).toBeGreaterThan(0);
         await tick(20_000);
@@ -102,6 +102,21 @@ describe('the canonical flow through a host’s model', () => {
         await runtime.surface();
         await tick(120_000);
         expect(runtime.status).toBe('ended');
+    });
+
+    it('says, in words and without a wait, that a Dive is not available when the host will not put a question to its model, and the reading is untouched', async () => {
+        const { port, shown } = build({ sampling: false });
+        await runtime.start('Explain black holes.');
+        port.deliver({ current: BLACK_HOLES_CURRENT });
+        await tick(3_000);
+        const before = runtime.snapshot().main.atomIndex;
+        await expect(runtime.dive({ question: 'dive on event horizon' })).rejects.toMatchObject({ code: 'DIVE_UNAVAILABLE' });
+        expect(port.asked).toEqual([]);
+        expect(runtime.status).toBe('live');
+        expect(runtime.snapshot().main.atomIndex).toBeGreaterThanOrEqual(before);
+        await tick(120_000);
+        expect(runtime.status).toBe('ended');
+        expect(once(shown)).toBe(true);
     });
 
     it('releases every timer when stopped, from any moment', async () => {
