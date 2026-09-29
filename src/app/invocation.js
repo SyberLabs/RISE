@@ -42,6 +42,29 @@ export function takeInvocationHandoff() {
 }
 
 /**
+ * The app's front door for a skin's page. Called at startup when the address
+ * carries `?invocation=`: takes the one-use handoff, cleans the address, and
+ * opens the reading through the app's own operations. Returns true when a
+ * reading was opened (or refused, with `fail` told why), false when there was
+ * nothing to open and startup should go on as usual. It lives here, beside the
+ * handoff, so that the app's entry carries only the check for the parameter.
+ */
+export async function enterFromInvocation(search, { home, launch, adjust, fail }) {
+  if (new URLSearchParams(search).get('invocation') !== 'wormhole') return false;
+  const handoff = takeInvocationHandoff();
+  window.history.replaceState({}, '', '/');
+  if (!handoff) return false;
+  await home();
+  try {
+    await openInvocationDecision(handoff, { launch, adjust });
+  } catch (error) {
+    console.error('[RISE] Invocation handoff failed:', error);
+    fail(error?.message || 'The destination could not be opened.');
+  }
+  return true;
+}
+
+/**
  * The app owns both destinations; a skin never compiles or starts a session.
  * `launch` plays the reading, `adjust` opens it in Reader Setup; Home's own
  * ENTER and ADJUST are the same two operations.

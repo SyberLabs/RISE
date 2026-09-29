@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { afterEach, expect, it, vi } from 'vitest';
-import { requestComposedReading, saveInvocationHandoff, takeInvocationHandoff, openInvocationDecision } from './invocation.js';
+import { enterFromInvocation, requestComposedReading, saveInvocationHandoff, takeInvocationHandoff, openInvocationDecision } from './invocation.js';
 
 afterEach(() => { sessionStorage.clear(); vi.restoreAllMocks(); });
 
@@ -51,4 +51,45 @@ it('docks through the app launch and adjusts through Reader Setup, the same two 
   expect(adjust).toHaveBeenCalledWith(decision);
   expect(launch).toHaveBeenCalledOnce();
   await expect(openInvocationDecision({ decision, action: 'delete' }, { launch, adjust })).rejects.toThrow('Unknown');
+});
+
+function entry() {
+  return { home: vi.fn(async () => {}), launch: vi.fn(async () => {}), adjust: vi.fn(async () => {}), fail: vi.fn() };
+}
+
+it('opens a handed-over reading at startup, once, and cleans the address', async () => {
+  const decision = { workId: 'ulysses' };
+  saveInvocationHandoff(decision, 'adjust');
+  window.history.replaceState({}, '', '/?invocation=wormhole');
+  const ops = entry();
+  await expect(enterFromInvocation(window.location.search, ops)).resolves.toBe(true);
+  expect(ops.home).toHaveBeenCalledOnce();
+  expect(ops.adjust).toHaveBeenCalledWith(decision);
+  expect(ops.launch).not.toHaveBeenCalled();
+  expect(window.location.pathname + window.location.search).toBe('/');
+  expect(takeInvocationHandoff()).toBeNull();
+});
+
+it('tells the reader why when the reading cannot be opened, and still counts as handled', async () => {
+  saveInvocationHandoff({ workId: 'ulysses' }, 'dock');
+  window.history.replaceState({}, '', '/?invocation=wormhole');
+  const ops = entry();
+  ops.launch.mockRejectedValueOnce(new Error('The selected edition is not available in this RISE release.'));
+  vi.spyOn(console, 'error').mockImplementation(() => {});
+  await expect(enterFromInvocation(window.location.search, ops)).resolves.toBe(true);
+  expect(ops.fail).toHaveBeenCalledWith('The selected edition is not available in this RISE release.');
+});
+
+it('lets startup go on as usual when there is nothing to open', async () => {
+  const ops = entry();
+  // No handoff (a reload after it was taken): the address is cleaned, nothing opens.
+  window.history.replaceState({}, '', '/?invocation=wormhole');
+  await expect(enterFromInvocation(window.location.search, ops)).resolves.toBe(false);
+  expect(window.location.search).toBe('');
+  expect(ops.home).not.toHaveBeenCalled();
+  // Some other address is none of its business, and a stored handoff is left alone.
+  saveInvocationHandoff({ workId: 'ulysses' }, 'dock');
+  window.history.replaceState({}, '', '/?utm=1');
+  await expect(enterFromInvocation(window.location.search, ops)).resolves.toBe(false);
+  expect(takeInvocationHandoff()).not.toBeNull();
 });

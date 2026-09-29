@@ -330,23 +330,17 @@ class App {
         // Navigate to the recovered destination, the Rosary door, a
         // personalized vault, or the portal. `#rosary` is read here
         // because the router does not own hashes.
-        // A prototype's one-use decision is admitted again by the normal app
+        // A skin's page hands over one decision, admitted again by the normal
         // launch or Reader Setup resolver. The URL carries no reading data.
-        const invocationEntry = new URLSearchParams(window.location.search).get('invocation') === 'wormhole';
-        const invocationTools = invocationEntry ? await import('./app/invocation.js') : null;
-        const invocation = invocationTools?.takeInvocationHandoff() || null;
-        if (invocationEntry) window.history.replaceState({}, '', '/');
-        if (invocation) {
-            await this.router.navigate('portal');
-            try {
-                await invocationTools.openInvocationDecision(invocation, {
-                    launch: decision => this.launchJevReading(decision),
-                    adjust: decision => this.adjustJevReading(decision)
-                });
-            } catch (error) {
-                console.error('[RISE] Invocation handoff failed:', error);
-                this.showToast(error?.message || 'The destination could not be opened.', 5000);
-            }
+        const opened = window.location.search.includes('invocation=')
+            && await (await import('./app/invocation.js')).enterFromInvocation(window.location.search, {
+                home: () => this.router.navigate('portal'),
+                launch: decision => this.launchJevReading(decision),
+                adjust: decision => this.adjustJevReading(decision),
+                fail: message => this.showToast(message, 5000)
+            });
+        if (opened) {
+            // The reading is open; nothing else to recover.
         } else if (staleTarget && this.router.views.has(staleTarget)) {
             console.log('[RISE] Recovering navigation after stale build:', staleTarget);
             await this.router.navigate(staleTarget, { data: staleData });
