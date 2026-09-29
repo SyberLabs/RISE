@@ -6,6 +6,7 @@ import { importExperienceProgram, programCapabilities, programSourceIds,
   workshopProjectFromImportedProgram } from './experience-program-io.js';
 import { validateExperienceProgram } from './experience-program.js';
 import { parseLibraryExtent } from './library-extent.js';
+import { describeSpan } from './program-rundown.js';
 import { READING_PACE } from './reading-limits.js';
 import { contentHashOf } from './render/hash.js';
 import { resolveProgramLibrarySources } from './scriptorium-resolve.js';
@@ -153,6 +154,48 @@ async function portableId(program, sources, { parent = null, title, wpm } = {}) 
 function rethrow(error) {
   if (error instanceof PortableSequenceError) throw error;
   throw new PortableSequenceError('PORTABLE_SCORE_INVALID', error?.message || 'The score was refused.');
+}
+
+function passagePairs(program) {
+  const clips = kind => program.tracks.find(track => track.kind === kind)?.clips || [];
+  const audio = clips('audio');
+  return clips('visual').flatMap(visual => {
+    const sound = audio.find(clip => JSON.stringify(clip.anchor) === JSON.stringify(visual.anchor));
+    return sound ? [{ visual, sound }] : [];
+  });
+}
+
+/** Passages a recipient can remix: a visual clip and the audio clip on exactly its span. */
+export function remixablePassages(program) {
+  return passagePairs(program).map(({ visual, sound }) => ({
+    id: visual.id, span: describeSpan(visual.anchor),
+    collection: visual.cue.kind === 'procedural' ? visual.cue.collections[0] : null,
+    soundscapeId: sound.cue.kind === 'soundscape' ? sound.cue.soundscapeId : null
+  }));
+}
+
+/**
+ * Replace one passage's visual and soundscape with built-in ones. Anchors,
+ * sources, and every other cue stay as they were; the result passes the same
+ * gates as an import, so a cue this file could not carry is refused here.
+ */
+export function remixPassage(program, passageId, { collection, soundscapeId }) {
+  try {
+    const pair = passagePairs(program).find(({ visual }) => visual.id === passageId);
+    if (!pair) refuse('PORTABLE_REMIX_PASSAGE', 'That passage cannot be remixed.');
+    const { visual, sound } = pair;
+    if (visual.cue.kind === 'procedural' && visual.cue.collections.join() === collection
+      && sound.cue.soundscapeId === soundscapeId) return program;
+    const cues = new Map([
+      [visual, { kind: 'procedural', collections: [collection] }],
+      [sound, { kind: 'soundscape', soundscapeId,
+        ...(sound.cue.gain === undefined ? {} : { gain: sound.cue.gain }) }]
+    ]);
+    const next = { ...program, tracks: program.tracks.map(track => ({
+      ...track, clips: track.clips.map(clip => (cues.has(clip) ? { ...clip, cue: cues.get(clip) } : clip))
+    })) };
+    return importExperienceProgram(portableProgram(next), { context: context() });
+  } catch (error) { rethrow(error); }
 }
 
 export async function exportPortableSequence(value, { creatorCredit = null } = {}) {

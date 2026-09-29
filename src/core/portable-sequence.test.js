@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { resolveLibrarySourceIds } from './scriptorium-resolve.js';
 import { validateWorkshopProject, WORKSHOP_PROJECT_SCHEMA } from './workshop-project.js';
-import { exportPortableSequence, inspectPortableSequence } from './portable-sequence.js';
+import { exportPortableSequence, inspectPortableSequence, remixablePassages, remixPassage }
+  from './portable-sequence.js';
+import quietExample from '../content/portable-examples/quiet.json' with { type: 'json' };
 
 const SOURCE_ID = 'spoon-river-anthology#12';
 
@@ -220,5 +222,69 @@ describe('portable Archive sequences', () => {
     bundle.unexpected = true;
     await expect(inspectPortableSequence(JSON.stringify(bundle)))
       .rejects.toMatchObject({ code: 'PORTABLE_UNKNOWN_FIELD' });
+  });
+});
+
+describe('recipient passage remix', () => {
+  const cues = program => program.tracks.filter(track => ['visual', 'audio'].includes(track.kind))
+    .map(track => track.clips.map(clip => clip.cue));
+
+  it('lists each passage with its span, visual, and soundscape', async () => {
+    const { project } = await inspectPortableSequence(JSON.stringify(quietExample));
+    expect(remixablePassages(project.experienceProgram)).toEqual([
+      { id: 'visual-1', span: 'the first 50%', collection: 'turrell', soundscapeId: 'aurora' },
+      { id: 'visual-2', span: 'the last 50%', collection: 'rockgarden', soundscapeId: 'nocturne' }
+    ]);
+  });
+
+  it('changes one passage and carries it as a distinct child without touching the parent', async () => {
+    const parent = await inspectPortableSequence(JSON.stringify(quietExample));
+    const before = structuredClone(parent.project);
+    const program = remixPassage(parent.project.experienceProgram, 'visual-1',
+      { collection: 'fractal', soundscapeId: 'soft-rain' });
+    expect(parent.project).toEqual(before);
+    expect(remixablePassages(program)).toEqual([
+      { id: 'visual-1', span: 'the first 50%', collection: 'fractal', soundscapeId: 'soft-rain' },
+      { id: 'visual-2', span: 'the last 50%', collection: 'rockgarden', soundscapeId: 'nocturne' }
+    ]);
+    expect(program.tracks.find(track => track.kind === 'audio').clips[0].cue.gain).toBe(0.35);
+    expect(program.tracks.map(track => track.clips.map(clip => clip.anchor)))
+      .toEqual(parent.project.experienceProgram.tracks.map(track => track.clips.map(clip => clip.anchor)));
+
+    const child = {
+      ...structuredClone(parent.project), experienceProgram: program,
+      provenance: { kind: 'portable-sequence-variation', parentPortableId: parent.id }
+    };
+    const unchanged = { ...child, experienceProgram: parent.project.experienceProgram };
+    const text = await exportPortableSequence(child, { creatorCredit: 'Remix author' });
+    const bundle = JSON.parse(text);
+    expect(bundle.id).not.toBe(parent.id);
+    expect(bundle.id).not.toBe(JSON.parse(await exportPortableSequence(unchanged)).id);
+    expect(bundle.sources).toEqual(quietExample.sources);
+    const carried = await inspectPortableSequence(text);
+    expect(carried.parentPortableId).toBe(parent.id);
+    expect(carried.creatorCredit).toBe('Remix author');
+    expect(cues(carried.project.experienceProgram)).toEqual(cues(program));
+  });
+
+  it('returns the same program when the passage keeps its visual and soundscape', async () => {
+    const { project } = await inspectPortableSequence(JSON.stringify(quietExample));
+    expect(remixPassage(project.experienceProgram, 'visual-2',
+      { collection: 'rockgarden', soundscapeId: 'nocturne' })).toBe(project.experienceProgram);
+  });
+
+  it('refuses a passage, visual, or soundscape this build does not offer', async () => {
+    const { project } = await inspectPortableSequence(JSON.stringify(quietExample));
+    const program = project.experienceProgram;
+    const valid = { collection: 'klee', soundscapeId: 'aurora' };
+    expect(() => remixPassage(program, 'audio-1', valid)).toThrow(/passage/i);
+    expect(() => remixPassage(program, 'visual-1', { ...valid, collection: 'attractor' }))
+      .toThrow(expect.objectContaining({ code: 'PORTABLE_CAPABILITY' }));
+    expect(() => remixPassage(program, 'visual-1', { ...valid, collection: 'aic-paintings' }))
+      .toThrow(expect.objectContaining({ code: 'PORTABLE_CAPABILITY' }));
+    expect(() => remixPassage(program, 'visual-1', { ...valid, soundscapeId: 'https://x.test/a.mp3' }))
+      .toThrow(expect.objectContaining({ code: 'PORTABLE_SCORE_INVALID' }));
+    expect(() => remixPassage(program, 'visual-1', { ...valid, soundscapeId: 'not-a-soundscape' }))
+      .toThrow(expect.objectContaining({ code: 'PORTABLE_SCORE_INVALID' }));
   });
 });
