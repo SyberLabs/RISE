@@ -159,7 +159,7 @@ it, and CI fails when the committed copy is not what `src/` produces.
 
 ```mermaid
 flowchart LR
-    app["app<br/>composition root<br/>8 modules"]
+    app["app<br/>composition root<br/>9 modules"]
     audio["audio<br/>Web Audio, recitation<br/>10 modules"]
     components["components<br/>routed views<br/>46 modules"]
     content["content<br/>texts, imagery, journeys<br/>231 modules"]
@@ -169,6 +169,7 @@ flowchart LR
     sources["sources<br/>text and visual providers<br/>22 modules"]
     vendor["vendor<br/>SyberLabs design kit<br/>2 modules"]
     visuals["visuals<br/>procedural generation<br/>61 modules"]
+    wormhole["wormhole<br/>2 modules"]
 
     app -.-> |3 lazy| audio
     app --> |1| components
@@ -178,7 +179,7 @@ flowchart LR
     app -.-> |1 lazy| visuals
     audio --> |1| content
     audio --> |5| core
-    components -.-> |1 lazy| app
+    components -.-> |2 lazy| app
     components --> |2| audio
     components --> |24| content
     components --> |162| core
@@ -194,7 +195,6 @@ flowchart LR
     core --> |14| content
     core --> |4| sources
     core --> |23| visuals
-    oracle --> |1| app
     page --> |2| core
     page --> |3| visuals
     sources --> |2| content
@@ -202,6 +202,8 @@ flowchart LR
     visuals -.-> |5 lazy| content
     visuals --> |18| core
     visuals --> |4| sources
+    wormhole --> |1| app
+    wormhole --> |2| core
 ```
 
 Solid is a static import and travels in the first load; dashed is reached
