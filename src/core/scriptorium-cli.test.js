@@ -794,7 +794,10 @@ describe('every refusal the session can phrase has a status', () => {
     FlameRecipeError:
       'experience-program.js rethrows a flame recipe refusal as '
       + 'PROGRAM_FLAME_RECIPE and editor-asset.js as EDITOR_ASSET_FLAME; the '
-      + 'other readers normalize to null, so the raw class never escapes'
+      + 'other readers normalize to null, so the raw class never escapes',
+    RiseCurrentError:
+      'rise-current.js validates external sealed answers; the Scriptorium '
+      + 'does not call compileRiseCurrent or accept rise.current.v1 inputs'
   });
 
   it('names every error class under src/core, or excuses it here', () => {
