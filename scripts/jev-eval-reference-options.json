@@ -1,0 +1,7 @@
+{
+  "pace": ["100", "150", "200", "250", "300", "400", "500"],
+  "audio": ["silent", "aurora", "faded-signal", "soft-rain", "sad", "angry", "happy", "excited", "thrilling", "scary", "piano", "jazz", "lullaby", "nocturne", "waltz", "blues", "bossa", "ragtime", "wonder", "mystery", "chase", "triumph", "haunted", "starlight", "night-drive"],
+  "visualMode": ["off", "focals", "genesis", "attractor", "interlocution"],
+  "visualStyle": ["quiet", "gentle", "immersive", "psychedelic"],
+  "colorTheme": ["classic", "amethyst", "prism", "ember", "cobalt", "jade"]
+}
