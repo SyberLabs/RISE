@@ -161,9 +161,9 @@ it, and CI fails when the committed copy is not what `src/` produces.
 flowchart LR
     app["app<br/>composition root<br/>8 modules"]
     audio["audio<br/>Web Audio, recitation<br/>10 modules"]
-    components["components<br/>routed views<br/>44 modules"]
+    components["components<br/>routed views<br/>45 modules"]
     content["content<br/>texts, imagery, journeys<br/>231 modules"]
-    core["core<br/>session, player, router<br/>151 modules"]
+    core["core<br/>session, player, router<br/>152 modules"]
     enterprise["enterprise<br/>talk program, speaker rail<br/>28 modules"]
     oracle["oracle<br/>2 modules"]
     page["page<br/>spatial projection<br/>4 modules"]
@@ -174,7 +174,7 @@ flowchart LR
     app -.-> |3 lazy| audio
     app --> |1| components
     app --> |5| content
-    app --> |37| core
+    app --> |38| core
     app -.-> |1 lazy| sources
     app -.-> |1 lazy| visuals
     audio --> |1| content
@@ -182,7 +182,7 @@ flowchart LR
     components -.-> |1 lazy| app
     components --> |2| audio
     components --> |24| content
-    components --> |164| core
+    components --> |166| core
     components -.-> |1 lazy| page
     components --> |4| sources
     components -.-> |2 lazy| vendor
@@ -278,6 +278,16 @@ there. `src/core/undercurrent.js` gathers what lies under one atom. A dive
 looks there: a hold is a glance, a tap an anchor (`src/core/dive.js`). It holds
 the Player as pausing does and never moves the head, and it is offered only on a
 reading that has threads.
+
+A reading's pace has one vocabulary of profiles, `PACE_CURVE_IDS` in
+`src/core/pacing.js`, and the compiler, the Reader Setup, the Workshop, saved
+projects and the settings a reader keeps are each held to it by
+`src/core/pace-profiles.test.js`. Jev's list is a smaller contract with the
+Worker and must stay inside it. `breath` is the newest: atoms swell and ease
+about every ten seconds, a whole number of cycles per reading, phased from the
+authored clock so the reading is as long as it was. An atom at or near the
+shortest an atom can be does not swell, so a reading too fast to swell is left
+exactly as it was. It measures nothing about the reader.
 
 **`src/core/player.js`** owns the authoritative reading clock and the playback
 state machine: `idle`, `playing`, `paused`, `interlocuting`, `complete`.
@@ -1004,8 +1014,9 @@ of `settled`, `open`, `deferred`, or `reversed`.
   one place the reading was rebuilt by hand, which is the defect of a
   vocabulary in two places where only one learns a new word.
 - **Status:** open. Guards, the successor, one place for the reading, threads
-  under a passage, and dive and surface are built. A breath pace follows. The
-  plan is `docs/plans/CURRENT-CONSOLIDATION.md`.
+  under a passage, dive and surface, and the breath pace are built. Emotions, as
+  a projection, and Confluence follow. The plan is
+  `docs/plans/CURRENT-CONSOLIDATION.md`.
 
 ---
 

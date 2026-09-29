@@ -12,6 +12,7 @@
 import { Router } from './core/router.js';
 import { compileSession } from './core/session-compiler.js';
 import { successorConfig } from './core/session-successor.js';
+import { PACE_CURVE_IDS } from './core/pacing.js';
 import { resolveNextLibraryDivision } from './core/reading-continuation.js';
 import {
     isWorkshopProject,
@@ -1049,7 +1050,7 @@ class App {
             const candidate = parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {};
             const merged = { ...defaultSettings, ...candidate };
             merged.bandOffset = clampBandFraction(merged.bandOffset);
-            const curves = new Set(['flat', 'induction', 'ascent', 'wave', 'climax']);
+            const curves = new Set(PACE_CURVE_IDS);
             const booleanKeys = [
                 'showProgress',
                 'showDuration',
