@@ -15,7 +15,8 @@ export const SOURCES = Object.freeze([
     'inferred',
     'derived',
     'prior',
-    'absent'
+    'absent',
+    'authored'
 ]);
 
 export const EMOTION_LABELS = Object.freeze([

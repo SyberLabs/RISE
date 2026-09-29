@@ -159,7 +159,7 @@ it, and CI fails when the committed copy is not what `src/` produces.
 
 ```mermaid
 flowchart LR
-    affect["affect<br/>experience-state evaluation<br/>24 modules"]
+    affect["affect<br/>experience-state evaluation<br/>27 modules"]
     app["app<br/>composition root<br/>8 modules"]
     audio["audio<br/>Web Audio, recitation<br/>10 modules"]
     components["components<br/>routed views<br/>44 modules"]
@@ -172,7 +172,7 @@ flowchart LR
     vendor["vendor<br/>SyberLabs design kit<br/>2 modules"]
     visuals["visuals<br/>procedural generation<br/>61 modules"]
 
-    affect --> |3| core
+    affect --> |5| core
     app -.-> |3 lazy| audio
     app --> |1| components
     app --> |5| content
@@ -984,7 +984,11 @@ of `settled`, `open`, `deferred`, or `reversed`.
   benchmark that shows the gap, live in `docs/affect/RESEARCH-LOG.md`.
 - **Status:** open. The schema, adapters, evaluator, pairwise store, and
   benchmark harness run in unit tests. The text readout is an explicit prior,
-  not a trained network. Hosted teachers and EmoPair weights were not run.
+  not a trained network. `rise.affect-program.v1` is a phrase-addressed file
+  the player does not read. A person exports a brief and a prompt, and a
+  returned program is admitted or refused. Save marks it `user`. EmoPair,
+  the MiniLM probe, and a local teacher were scored offline and remain
+  witnesses, not the runtime.
 
 ---
 

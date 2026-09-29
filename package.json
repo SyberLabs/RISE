@@ -58,6 +58,7 @@
     "align:narration": "node scripts/align-narration.mjs",
     "verify:narration": "node scripts/verify-narration-alignment.mjs",
     "affect:benchmark": "node scripts/affect/run-benchmark.mjs",
+    "affect:export-brief": "node scripts/affect/export-brief.mjs",
     "affect:export-onnx": "node scripts/affect/export-onnx.mjs",
     "affect:bench-runtime": "node scripts/affect/bench-runtime.mjs"
   },

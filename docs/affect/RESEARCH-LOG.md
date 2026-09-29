@@ -60,6 +60,10 @@ Negation is not syntax. "Not very happy" works only because the intensifier does
 
 The lexicon itself is an authoring prior for this repository. It is not the NRC VAD lexicon. Those tables were not copied.
 
+## Affect program
+
+`rise.affect-program.v1` names phrases from the chunker and may attach an experience state to some of them. A phrase it skips stays absent. `admitAffectProgram` re-chunks the text and refuses a drifted cut, a hash mismatch, a measured source, or a value outside range. It does not clamp. `saveAffectProgram` sets authority to `user` and leaves slot sources as written. `npm run affect:export-brief` writes a brief and a prompt generated from the same axes and refusal codes. The player does not import the program.
+
 ## What would change the readout
 
 Human pairwise judgments, stored with `recordJudgment` and never edited, fitted with Bradley–Terry per question. The local teacher and the EmoPair scores are evidence beside the window encoder, not a replacement for those judgments. A MiniLM-class probe on 24 passages did not carry PERT valence out of sample. A larger labeled set would be required before that probe could replace the window.

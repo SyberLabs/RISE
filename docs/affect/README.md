@@ -12,7 +12,8 @@ Read `docs/adr/0001-affective-semantic-layer.md` for the decision and `docs/affe
 | Inferred | Text valence and the other lexicon-backed axes |
 | Derived | Tension from several text features, perceptual density from type-token ratio, cross-modal contrast |
 | Prior | The numeric map from pace onto arousal, from hue onto warmth, from letter-spacing onto expansiveness |
-| Not run | EmoPair-family models, MiniLM distillation, hosted teachers, music-emotion networks |
+| Authored | A number a person wrote on an affect program |
+| Offline witnesses | EmoPair checkpoints, the MiniLM probe, and the local teacher. They are benchmark columns. The player does not load them. |
 
 A prior is a scale choice. It is not a result from this corpus.
 
@@ -22,8 +23,11 @@ A prior is a scale choice. It is not a result from this corpus.
 npm run affect:benchmark
 npm run affect:export-onnx
 npm run affect:bench-runtime
+npm run affect:export-brief -- path/to/text.txt path/to/outdir
 node scripts/affect/fit-readout.mjs
 ```
+
+`affect:export-brief` writes `affect-brief.json` and `affect-prompt.md`. The brief is a proposal list. The prompt asks for `rise.affect-program.v1`. A returned program is admitted with `admitAffectProgram` and becomes `user` only when `saveAffectProgram` is called. The player does not read either file.
 
 `fit-readout` exits 2 until a JSON file of judgments contains 24 records with `annotatorKind` of `human`. It does not invent weights.
 

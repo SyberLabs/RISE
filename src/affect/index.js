@@ -33,3 +33,15 @@ export { mapPert, mapReward } from './benchmark/external.js';
 export { renderReport } from './benchmark/report.js';
 export { hostedTeacher } from './benchmark/teacher.js';
 export { runReadoutSession, onnxUnavailable } from './inference.js';
+export {
+    AFFECT_PROGRAM_SCHEMA,
+    PROGRAM_REFUSALS,
+    admitAffectProgram,
+    saveAffectProgram
+} from './program.js';
+export {
+    AFFECT_BRIEF_SCHEMA,
+    buildAffectBrief,
+    affectProgramPrompt,
+    passageProposalsFor
+} from './brief.js';
