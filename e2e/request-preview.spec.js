@@ -1,13 +1,14 @@
 import { readFileSync } from 'node:fs';
-import { test, expect } from './fixtures.js';
+import { test, expect, openHomeAsk } from './fixtures.js';
 import { resolveJevChamberConfig } from '../src/core/jev-config.js';
 import { jevColors } from '../src/core/jev-palette.js';
 import { compileJevAudioProgram, compileJevVisualProgram } from '../src/core/jev-sequence.js';
 
 /**
- * The Tokyo Drift reproduction (docs: request-to-playback design, 2026-09-27).
- * One request box → an interpretation stated before anything plays →
- * local adjustment with no new request → Play → no automatic fullscreen.
+ * The Tokyo Drift reproduction (docs: request-to-playback design, 2026-09-27),
+ * through the Oracle: a request asked after a first roll → what RISE cannot
+ * do, stated before anything plays → kept across a reload with no new
+ * request → Enter → no automatic fullscreen.
  */
 const releaseInventory = JSON.parse(readFileSync(
   new URL('../src/content/archive/release-inventory.json', import.meta.url), 'utf8'
@@ -35,7 +36,7 @@ const decision = {
   }
 };
 
-test('Tokyo Drift: one box, interpretation and limits before Play, local adjust, no auto fullscreen', async ({ page }) => {
+test('Tokyo Drift: asked after a roll, limits before Enter, kept on reload, no auto fullscreen', async ({ page }) => {
   let jevRequests = 0;
   await page.route('**/api/jev-recommend', route => {
     jevRequests += 1;
@@ -44,34 +45,29 @@ test('Tokyo Drift: one box, interpretation and limits before Play, local adjust,
   // A cold first visit: no stored session and no intro screen.
   await page.goto('/');
   await expect(page.locator('#beta-enter')).toHaveCount(0);
-  const intent = page.locator('#portal-jev-intent');
-  await expect(intent).toBeVisible({ timeout: 15_000 });
-  await expect(page.locator('h1')).toHaveText('What do you want to experience?');
+  await expect(page.locator('h1')).toHaveText('What will you encounter?', { timeout: 15_000 });
 
-  await intent.fill('i want something psychedelic fast tokyo drift style');
-  await page.locator('.portal-jev-submit').click();
-  const preview = page.locator('#portal-preview');
-  await expect(preview).toBeVisible({ timeout: 15_000 });
+  await openHomeAsk(page);
+  await page.locator('#oracle-intent').fill('i want something psychedelic fast tokyo drift style');
+  await page.locator('[data-oracle="ask"]').click();
+  const enter = page.locator('[data-oracle="enter"]');
+  await expect(enter).toBeVisible({ timeout: 15_000 });
   await expect(page.locator('#chamber-display')).toBeHidden();
-  await expect(preview.locator('.portal-preview-lede')).toContainText('You referenced “Tokyo Drift”');
-  await expect(preview.locator('.portal-rows')).toContainText('Neon night');
-  await expect(preview.locator('.portal-rows')).toContainText('Fast, flowing fractal light');
-  await expect(preview.locator('.portal-limit')).toBeVisible();
-  await expect(preview.locator('.portal-limit-body')).toContainText('can’t play the Tokyo Drift soundtrack');
-  await expect(preview.locator('.portal-read-title')).toHaveText('Ulysses');
-
-  await preview.locator('[data-adjust-kind="speed"][data-adjust-value="fastest"]').click();
-  await expect(preview.locator('.portal-rows')).toContainText('400 words a minute');
+  await expect(page.locator('.oracle-answer-title')).toHaveText('Ulysses');
+  await expect(page.locator('.oracle-answer-plan')).toContainText('fractal light');
+  const note = page.locator('.oracle-note');
+  await expect(note).toBeVisible();
+  await expect(note).toContainText('You referenced “Tokyo Drift”');
+  await expect(note).toContainText('can’t play the Tokyo Drift soundtrack');
   expect(jevRequests).toBe(1);
 
-  // Reload keeps the request and the preview without asking again.
+  // Reload keeps the answer and its limits without asking again.
   await page.reload();
-  await expect(page.locator('#portal-jev-intent')).toHaveValue('i want something psychedelic fast tokyo drift style');
-  await expect(preview).toBeVisible({ timeout: 15_000 });
-  await expect(preview.locator('.portal-rows')).toContainText('400 words a minute');
+  await expect(page.locator('.oracle-answer-title')).toHaveText('Ulysses', { timeout: 15_000 });
+  await expect(note).toContainText('can’t play the Tokyo Drift soundtrack');
   expect(jevRequests).toBe(1);
 
-  await preview.locator('#portal-play').click();
+  await enter.click();
   await expect(page.locator('#chamber-display')).toBeVisible({ timeout: 30_000 });
   await page.waitForTimeout(1500);
   expect(await page.evaluate(() => Boolean(document.fullscreenElement))).toBe(false);
@@ -79,5 +75,5 @@ test('Tokyo Drift: one box, interpretation and limits before Play, local adjust,
   await expect(page.locator('#page-mode-btn .control-label')).toHaveText('Page view');
   await expect(page.locator('#fullscreen-btn')).toBeVisible();
   const played = await page.evaluate(() => window.__RISE_TEST__?.getView('chamber-session')?.session?.wpm);
-  if (played !== undefined) expect(played).toBe(400);
+  if (played !== undefined) expect(played).toBe(300);
 });

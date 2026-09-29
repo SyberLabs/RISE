@@ -1,5 +1,5 @@
 import { readFileSync } from 'node:fs';
-import { test, expect } from './fixtures.js';
+import { test, expect, askHome, openHomeAsk } from './fixtures.js';
 import { resolveJevChamberConfig } from '../src/core/jev-config.js';
 import { jevPalette } from '../src/core/jev-palette.js';
 import { compileJevAudioProgram, compileJevVisualProgram } from '../src/core/jev-sequence.js';
@@ -47,7 +47,7 @@ test('cold sample deep link admits a preset Gallery, then returns to its thresho
   await page.goto('/jev-scene-demo');
   await expect(page.locator('#jev-scene-demo-start')).toBeVisible();
   await expect(page.locator('#portal-jev-demo')).toContainText('No live RISE request');
-  await expect(page.locator('#portal-jev-form')).toHaveCount(0);
+  await expect(page.locator('#oracle-form')).toHaveCount(0);
   await page.locator('#jev-scene-demo-start').click();
   await expect(page.locator('#chamber-display')).toBeVisible({ timeout: 20_000 });
   await expect(page.locator('#jev-next-scene')).toBeEnabled({ timeout: 20_000 });
@@ -84,11 +84,7 @@ test('reader shifts Jev’s next visual scene without moving the text or pace', 
     });
   });
   await page.goto('/');
-  await expect(page.locator('#portal-jev-form')).toBeVisible({ timeout: 15_000 });
-  await page.locator('#portal-jev-intent').fill('A reflective reading with changing visual scenes.');
-  await page.locator('#portal-jev-form button[type="submit"]').click();
-  // Home previews Jev's answer; the reading starts only from Play.
-  await page.locator('#portal-play').click();
+  await askHome(page, 'A reflective reading with changing visual scenes.');
   await expect(page.locator('#chamber-display')).toBeVisible({ timeout: 20_000 });
 
   const shift = page.locator('#jev-next-scene');
@@ -197,12 +193,13 @@ test('spoken Jev request opens a reading whose look can be changed live', async 
     });
   });
   await page.goto('/');
-  await page.locator('#portal-jev-form [data-jev-dictate]').click();
-  await expect(page.locator('#portal-jev-intent'))
+  await openHomeAsk(page);
+  await page.locator('#oracle-form [data-jev-dictate]').click();
+  await expect(page.locator('#oracle-intent'))
     .toHaveValue('A reflective reading with visual scenes');
-  await page.locator('#portal-jev-form button[type="submit"]').click();
-  // Home previews Jev's answer; the reading starts only from Play.
-  await page.locator('#portal-play').click();
+  await page.locator('[data-oracle="ask"]').click();
+  // Nothing plays on arrival; the reading starts only from Enter.
+  await page.locator('[data-oracle="enter"]').click();
   expect(requestBody).toEqual({
     intent: 'A reflective reading with visual scenes', schemaVersion: 3
   });
@@ -248,10 +245,7 @@ test.describe('touch reader', () => {
       status: 200, contentType: 'application/json', body: JSON.stringify(decision)
     }));
     await page.goto('/');
-    await page.locator('#portal-jev-intent').fill('A reading with a visual scene I can change.');
-    await page.locator('#portal-jev-form button[type="submit"]').click();
-    // Home previews Jev's answer; the reading starts only from Play.
-    await page.locator('#portal-play').click();
+    await askHome(page, 'A reading with a visual scene I can change.');
     const shift = page.locator('#jev-next-scene');
     await expect(shift).toBeEnabled({ timeout: 20_000 });
     await page.locator('#chamber-display').tap({ position: { x: 40, y: 120 } });

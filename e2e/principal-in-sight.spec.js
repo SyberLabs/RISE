@@ -17,7 +17,7 @@ async function openNavigator(page) {
         localStorage.setItem('rise_orbital_text_v1', JSON.stringify(seed));
     }, { gate: GATE, seed: SEED });
     await page.goto('/');
-    await page.locator('[data-nav="chamber"]').first().click();
+    await openHomeNav(page, 'chamber');
     await expect(page.locator('[data-action="toggle-adjust"]')).toBeVisible({ timeout: 20_000 });
     { const adjust = page.locator('[data-action="toggle-adjust"]'); if (await adjust.getAttribute('aria-expanded') === 'false') await adjust.click(); }
     await page.locator('[data-orbit="visual"]').click();

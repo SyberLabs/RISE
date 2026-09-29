@@ -5,7 +5,7 @@
  * walk the tree, open a leaf, and meet the refusal only at the end, at a
  * disabled "Bring into the room" with no cause attached.
  */
-import { test, expect } from './fixtures.js';
+import { test, expect, openHomeNav } from './fixtures.js';
 
 const GATE = { code: 'rise2025', name: 'Nav Gate', vault: null, timestamp: Date.now() };
 const SEED = { text: 'Light enters form and returns through measure. '.repeat(30).trim(), textSource: 'Gate', origin: null };
@@ -17,7 +17,7 @@ async function openNavigator(page, { withText }) {
         else localStorage.removeItem('rise_orbital_text_v1');
     }, { gate: GATE, seed: SEED, withText });
     await page.goto('/');
-    await page.locator('[data-nav="chamber"]').first().click();
+    await openHomeNav(page, 'chamber');
     await expect(page.locator('[data-action="toggle-adjust"]')).toBeVisible({ timeout: 20_000 });
     { const adjust = page.locator('[data-action="toggle-adjust"]'); if (await adjust.getAttribute('aria-expanded') === 'false') await adjust.click(); }
     await page.locator('[data-orbit="visual"]').click();

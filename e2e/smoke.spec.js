@@ -12,7 +12,7 @@
  *      (the additive-arrays regression)
  *   6. The loaded text and settings survive a refresh
  */
-import { test, expect } from './fixtures.js';
+import { test, expect, openHomeNav } from './fixtures.js';
 import { FLASHING_ENABLED } from '../src/core/visual-presence.js';
 
 const GATE_SESSION = {
@@ -36,11 +36,11 @@ async function boot(page, { text = true, prefs = null } = {}) {
         if (seedPrefs) localStorage.setItem('rise_orbital_prefs_v1', JSON.stringify(seedPrefs));
     }, { gate: GATE_SESSION, seedText: text ? SEED_TEXT : null, seedPrefs: prefs });
     await page.goto('/');
-    await expect(page.locator('.portal .portal-title').first()).toBeVisible({ timeout: 15_000 });
+    await expect(page.locator('.portal .oracle-title').first()).toBeVisible({ timeout: 15_000 });
 }
 
 async function enterChamber(page) {
-    await page.locator('[data-nav="chamber"]').first().click();
+    await openHomeNav(page, 'chamber');
     await expect(page.locator('#begin-btn')).toBeEnabled({ timeout: 10_000 });
 }
 
@@ -79,13 +79,13 @@ async function exitSession(page) {
     await expect(page.locator('#begin-btn')).toBeVisible({ timeout: 20_000 });
 }
 
-test('1 · Home presents Library, Sequences and Compose', async ({ page }) => {
+test('1 · Home presents one key, and every room behind Menu', async ({ page }) => {
     await boot(page, { text: false });
-    // The nav row is the tools you own. The two pavilions that used to flank
-    // the centre — the Atrium and the Solarium — are gone with their rooms,
-    // so the entrance is the nav and nothing beside it.
+    // Home is the Oracle: one key. The rooms you own sit behind the one
+    // Menu; the Atrium and the Solarium are gone with their rooms.
+    await expect(page.locator('[data-oracle="roll"]')).toBeVisible();
     const nav = page.locator('.portal-nav [data-nav]');
-    await expect(nav).toHaveCount(4);
+    await expect(nav).toHaveCount(9);
     await expect(page.locator('.portal-nav [data-nav="create"]')).toContainText('Create');
     for (const gone of ['atrium', 'sol']) {
         await expect(page.locator(`[data-nav="${gone}"]`)).toHaveCount(0);
@@ -176,7 +176,7 @@ test('6 · text and settings survive a refresh', async ({ page }) => {
     await expect(page.locator('.chamber-orbital')).toContainText('Smoke Seed');
 
     await page.reload();
-    await expect(page.locator('.portal .portal-title').first()).toBeVisible({ timeout: 15_000 });
+    await expect(page.locator('.portal .oracle-title').first()).toBeVisible({ timeout: 15_000 });
     await enterChamber(page);
 
     await expect(page.locator('.chamber-orbital')).toContainText('Smoke Seed');

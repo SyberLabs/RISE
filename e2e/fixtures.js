@@ -13,11 +13,25 @@ export async function openHomeNav(page, destination) {
 }
 
 /**
- * Open a Home footer room that sits behind "More" (chapel, scriptorium, curia).
+ * Open one of Home's minor rooms (chapel, scriptorium, curia). Every room
+ * sits in the one Menu, so this is the same walk as a header destination.
  */
 export async function openHomeRoom(page, destination) {
-  const link = page.locator(`.portal-footer [data-nav="${destination}"]`);
-  await link.waitFor({ state: 'attached' });
-  if (!(await link.isVisible())) await page.locator('.portal-more-toggle').click();
-  await link.click();
+  await openHomeNav(page, destination);
+}
+
+/** Open Home's ask. Asking is the escape hatch: a first roll reveals it. */
+export async function openHomeAsk(page) {
+  await page.locator('[data-oracle="roll"]').click();
+  await page.locator('[data-oracle="ask-open"]').click();
+  await page.locator('#oracle-intent').waitFor();
+}
+
+/** Ask Home for a reading in words, then enter what Jev chose. */
+export async function askHome(page, intent) {
+  await openHomeAsk(page);
+  await page.locator('#oracle-intent').fill(intent);
+  await page.locator('[data-oracle="ask"]').click();
+  // Nothing plays on arrival; the reading starts only from Enter.
+  await page.locator('[data-oracle="enter"]').click();
 }

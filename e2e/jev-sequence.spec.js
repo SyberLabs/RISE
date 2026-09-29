@@ -1,4 +1,4 @@
-import { test, expect } from './fixtures.js';
+import { test, expect, askHome } from './fixtures.js';
 import releaseInventory from '../src/content/archive/release-inventory.json' with { type: 'json' };
 import { jevColors, jevPalette } from '../src/core/jev-palette.js';
 import { resolveJevChamberConfig } from '../src/core/jev-config.js';
@@ -43,10 +43,7 @@ for (const identity of [
     localStorage.setItem('rise-beta-session', JSON.stringify(gate));
   }, GATE_SESSION);
   await page.goto('/');
-  await page.locator('#portal-jev-intent').fill('Give me a visual journey through this reading.');
-  await page.locator('.portal-jev-submit').click();
-  // Home previews Jev's answer; the reading starts only from Play.
-  await page.locator('#portal-play').click();
+  await askHome(page, 'Give me a visual journey through this reading.');
   await expect(page.locator('#chamber-continuous-field')).toBeVisible({ timeout: 30_000 });
   expect(calls).toBe(1);
 
