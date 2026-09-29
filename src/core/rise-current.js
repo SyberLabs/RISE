@@ -1,0 +1,208 @@
+import { compileSession } from './session-compiler.js';
+import { createExperienceProgram, EXPERIENCE_PROGRAM_SCHEMA } from './experience-program.js';
+import { snapCharacterRangeToTokens } from './source-span.js';
+import { SOURCE_MARKER, SOURCE_SCORE_CUT } from './chunker.js';
+
+export const RISE_CURRENT_SCHEMA = 'rise.current.v1';
+
+export class RiseCurrentError extends Error {
+  constructor(code, path, message) {
+    super(`${message} (${path})`);
+    this.name = 'RiseCurrentError';
+    this.code = code;
+    this.path = path;
+  }
+}
+
+const fail = (code, path, message) => { throw new RiseCurrentError(code, path, message); };
+
+function object(value, path) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)
+    || (Object.getPrototypeOf(value) !== Object.prototype && Object.getPrototypeOf(value) !== null)) {
+    fail('CURRENT_OBJECT', path, 'Expected a plain object');
+  }
+  return value;
+}
+
+function keys(value, allowed, path) {
+  for (const key of Object.keys(value)) {
+    if (!allowed.includes(key) || ['__proto__', 'constructor', 'prototype'].includes(key)) {
+      fail('CURRENT_UNKNOWN_FIELD', `${path}.${key}`, `Unknown field: ${key}`);
+    }
+  }
+}
+
+function label(value, max, path, code = 'CURRENT_TEXT') {
+  if (typeof value !== 'string' || !value.trim() || value.length > max) {
+    fail(code, path, `Expected nonblank text of at most ${max} characters`);
+  }
+  return value;
+}
+
+function id(value, path) {
+  if (typeof value !== 'string' || !value || value !== value.trim() || value.length > 120) {
+    fail('CURRENT_ID', path, 'Expected a trimmed id of at most 120 characters');
+  }
+  return value;
+}
+
+function anchor(value, text, path) {
+  const source = object(value, path);
+  keys(source, ['fromCharacter', 'toCharacter', 'quoteStart', 'quoteEnd'], path);
+  const { fromCharacter, toCharacter } = source;
+  if (!Number.isInteger(fromCharacter) || !Number.isInteger(toCharacter)
+    || fromCharacter < 0 || toCharacter <= fromCharacter || toCharacter > text.length) {
+    fail('CURRENT_ANCHOR', path, 'Expected an exact half-open character span inside the segment');
+  }
+  const snapped = snapCharacterRangeToTokens(text, fromCharacter, toCharacter);
+  if (!snapped || snapped.fromCharacter !== fromCharacter || snapped.toCharacter !== toCharacter) {
+    fail('CURRENT_ANCHOR', path, 'Dive spans must cover complete whitespace tokens');
+  }
+  const quoteStart = label(source.quoteStart, 500, `${path}.quoteStart`);
+  const quoteEnd = label(source.quoteEnd, 500, `${path}.quoteEnd`);
+  if (quoteStart !== quoteStart.trim() || quoteEnd !== quoteEnd.trim()) {
+    fail('CURRENT_QUOTE', path, 'Quote fingerprints must be trimmed');
+  }
+  if (quoteStart.includes('\0') || quoteEnd.includes('\0')) {
+    fail('CURRENT_QUOTE', path, 'Quote fingerprints cannot contain NUL');
+  }
+  const selected = text.slice(fromCharacter, toCharacter);
+  if (!selected.startsWith(quoteStart) || !selected.endsWith(quoteEnd)) {
+    fail('CURRENT_QUOTE', path, 'Quote fingerprints do not match the selected text');
+  }
+  return { fromCharacter, toCharacter, quoteStart, quoteEnd };
+}
+
+function freeze(value) {
+  if (value && typeof value === 'object') {
+    Object.values(value).forEach(freeze);
+    Object.freeze(value);
+  }
+  return value;
+}
+
+/** Strict, detached input from an author or model. No runtime objects are accepted. */
+export function validateRiseCurrent(input) {
+  const source = object(input, '$');
+  keys(source, ['schema', 'id', 'title', 'origin', 'segments'], '$');
+  if (source.schema !== RISE_CURRENT_SCHEMA) fail('CURRENT_SCHEMA', '$.schema', 'Unknown Current schema');
+  const currentId = id(source.id, '$.id');
+  const title = label(source.title, 200, '$.title');
+
+  const origin = object(source.origin, '$.origin');
+  keys(origin, ['kind', 'name', 'provider'], '$.origin');
+  if (!['model', 'human'].includes(origin.kind)) fail('CURRENT_ORIGIN', '$.origin.kind', 'Unknown origin kind');
+  const cleanOrigin = { kind: origin.kind, name: label(origin.name, 120, '$.origin.name') };
+  if (origin.kind === 'model') {
+    cleanOrigin.provider = label(origin.provider, 120, '$.origin.provider', 'CURRENT_PROVIDER');
+  } else if (origin.provider !== undefined) {
+    fail('CURRENT_PROVIDER', '$.origin.provider', 'A human origin cannot name a model provider');
+  }
+
+  if (!Array.isArray(source.segments) || source.segments.length < 1 || source.segments.length > 16) {
+    fail('CURRENT_SEGMENTS', '$.segments', 'Expected 1 to 16 segments');
+  }
+  let total = 0;
+  const seen = new Set();
+  const segments = Array.from(source.segments, (item, index) => {
+    const path = `$.segments[${index}]`;
+    const segment = object(item, path);
+    keys(segment, ['id', 'text', 'visual', 'dives'], path);
+    const segmentId = id(segment.id, `${path}.id`);
+    if (seen.has(segmentId)) fail('CURRENT_DUPLICATE_ID', `${path}.id`, 'Duplicate segment id');
+    seen.add(segmentId);
+    const text = label(segment.text, 4_000, `${path}.text`);
+    if (new RegExp(SOURCE_MARKER.source, 'i').test(text)
+      || text.includes(SOURCE_SCORE_CUT) || text.includes('|')) {
+      fail('CURRENT_RESERVED_TEXT', `${path}.text`, 'Text contains a reserved playback marker');
+    }
+    total += text.length;
+    if (total > 20_000) fail('CURRENT_TOTAL_TEXT', '$.segments', 'Current exceeds 20,000 characters');
+    const visual = segment.visual === undefined ? 'still' : segment.visual;
+    if (!['still', 'attractor', 'genesis'].includes(visual)) {
+      fail('CURRENT_VISUAL', `${path}.visual`, 'Unknown visual selection');
+    }
+    const rawDives = segment.dives === undefined ? [] : segment.dives;
+    if (!Array.isArray(rawDives) || rawDives.length > 8) {
+      fail('CURRENT_DIVES', `${path}.dives`, 'Expected at most eight Dive notes');
+    }
+    const diveIds = new Set();
+    const dives = Array.from(rawDives, (item, diveIndex) => {
+      const divePath = `${path}.dives[${diveIndex}]`;
+      const dive = object(item, divePath);
+      keys(dive, ['id', 'text', 'anchor'], divePath);
+      const diveId = id(dive.id, `${divePath}.id`);
+      if (diveIds.has(diveId)) fail('CURRENT_DUPLICATE_ID', `${divePath}.id`, 'Duplicate Dive id');
+      diveIds.add(diveId);
+      return {
+        id: diveId,
+        text: label(dive.text, 600, `${divePath}.text`),
+        anchor: anchor(dive.anchor, text, `${divePath}.anchor`)
+      };
+    });
+    return { id: segmentId, text, visual, dives };
+  });
+  return freeze({ schema: RISE_CURRENT_SCHEMA, id: currentId, title, origin: cleanOrigin, segments });
+}
+
+/** Lower a sealed external answer into the existing score and Session path. */
+export function compileRiseCurrent(input, { projection = 'stream' } = {}) {
+  if (!['stream', 'page'].includes(projection)) {
+    fail('CURRENT_PROJECTION', '$.projection', 'Unknown projection');
+  }
+  const current = validateRiseCurrent(input);
+  const sourceIds = current.segments.map(segment => segment.id);
+  const program = createExperienceProgram({
+    schema: EXPERIENCE_PROGRAM_SCHEMA,
+    id: current.id,
+    authority: current.origin.kind === 'model' ? 'proposed' : 'user',
+    editable: true,
+    tracks: [
+      {
+        id: 'current-movements', kind: 'movement',
+        clips: current.segments.map((segment, index) => ({
+          id: `movement-${index}`, anchor: { sourceIds: [segment.id] },
+          data: { index, title: null }
+        }))
+      },
+      {
+        id: 'current-visuals', kind: 'visual',
+        clips: current.segments.map((segment, index) => ({
+          id: `visual-${index}`, anchor: { sourceIds: [segment.id] },
+          cue: segment.visual === 'still'
+            ? { kind: 'still' }
+            : { kind: 'field', renderer: segment.visual, config: {} }
+        })),
+        fallback: { kind: 'still' }
+      },
+      {
+        id: 'current-dives', kind: 'thread',
+        clips: current.segments.flatMap((segment, index) => segment.dives.map((dive, noteIndex) => ({
+          id: `dive-${index}-${noteIndex}`,
+          anchor: { sourceIds: [segment.id], ...dive.anchor },
+          cue: { kind: 'gloss', text: dive.text },
+          metadata: { externalId: dive.id }
+        })))
+      }
+    ]
+  });
+  return compileSession({
+    title: current.title,
+    sources: current.segments.map((segment, index) => ({
+      id: segment.id,
+      name: `${current.title} · ${index + 1}`,
+      type: 'text/plain',
+      providerId: current.origin.kind === 'model' ? current.origin.provider : 'local',
+      provenance: { origin: current.origin, currentId: current.id },
+      data: segment.text
+    })),
+    experienceProgram: program,
+    visualConfig: {
+      visualMode: current.segments.some(segment => segment.visual !== 'still') ? 'interlocution' : 'off',
+      interlocution: { presentation: 'continuous', procedural: [], sourced: [] }
+    },
+    provenance: { origin: current.origin, currentId: current.id },
+    chunkMode: 'sentence',
+    projection
+  });
+}
