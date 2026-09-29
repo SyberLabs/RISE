@@ -186,13 +186,13 @@ describe('the doorway (seam)', () => {
   const routeManifestSource = readFileSync(resolve('src/app/route-manifest.js'), 'utf8');
   const indexHtml = readFileSync(resolve('index.html'), 'utf8');
 
-  it('Home keeps a labelled Chapel door outside the header nav', () => {
-    expect(portalSource).toMatch(/portal-footer-link[^>]*data-nav="chapel"[^>]*>Chapel</s);
-    const navBlock = portalSource.slice(
+  it('Home keeps a labelled Chapel door among the minor rooms, never the primary ones', () => {
+    expect(portalSource).toMatch(/portal-nav-minor[^>]*data-nav="chapel"[^>]*>Chapel</s);
+    const primary = portalSource.slice(
       portalSource.indexOf('class="portal-nav"'),
-      portalSource.indexOf('</nav>')
+      portalSource.indexOf('portal-nav-group')
     );
-    expect(navBlock).not.toContain('chapel');
+    expect(primary).not.toContain('chapel');
     expect(chapelCss).not.toMatch(/\.portal-chapel-lamp\s*\{/);
   });
 

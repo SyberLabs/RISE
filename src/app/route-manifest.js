@@ -24,7 +24,7 @@ export function createRouteManifest(operations) {
         onNavigate: operations.handleNavigate,
         onLaunchJevReading: operations.launchJevReading,
         onLaunchJevSample: operations.launchJevSample,
-        onLaunchFirstRead: operations.launchFirstRead,
+        onAdjustReading: operations.adjustJevReading,
         getAudioEngine: operations.getAudioEngine,
         getCurrentSession: operations.getCurrentSession
       })

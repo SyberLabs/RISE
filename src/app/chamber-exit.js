@@ -77,5 +77,13 @@ export function chamberExitTarget(reason, session = {}, data = null) {
         return { kind: 'navigate', view: 'portal' };
     }
 
+    // A reading proposed on Home and entered from there goes back to Home,
+    // where the proposal still waits. One opened through Reader Setup
+    // (Adjust) returns there, like any other reading.
+    if (session?.origin?.experience === 'jev' && session.origin.view === 'portal'
+        && session.origin.adjusted !== true) {
+        return { kind: 'navigate', view: 'portal' };
+    }
+
     return { kind: 'navigate', view: 'chamber' };
 }

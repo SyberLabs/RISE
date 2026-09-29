@@ -115,11 +115,10 @@ export default defineConfig({
     // splitting already follows the dynamic imports we write.
 
     rollupOptions: {
-      // The Oracle prototype is a second page; without an explicit input the
-      // build emits only index.html and /oracle.html falls back to the app.
+      // Each extra page needs an explicit input, or the build emits only
+      // index.html and the page's URL falls back to the app.
       input: {
         main: fileURLToPath(new URL('./index.html', import.meta.url)),
-        oracle: fileURLToPath(new URL('./oracle.html', import.meta.url)),
         // EnterpRise is served beside its decision route; it is not on the reader's first load.
         enterprise: fileURLToPath(new URL('./enterprise.html', import.meta.url)),
         'kev-check': fileURLToPath(new URL('./kev-check.html', import.meta.url)),

@@ -54,6 +54,20 @@ describe('every other surface leaves exactly as it did', () => {
             })).toEqual({ kind: 'navigate', view: 'portal' });
         }
     });
+    it('returns a reading entered from Home to Home, where its proposal still waits', () => {
+        for (const reason of LEAVING) {
+            expect(chamberExitTarget(reason, {
+                origin: { view: 'portal', experience: 'jev' }
+            }), reason).toEqual({ kind: 'navigate', view: 'portal' });
+        }
+    });
+    it('returns a Home reading opened through Adjust to Reader Setup', () => {
+        for (const reason of LEAVING) {
+            expect(chamberExitTarget(reason, {
+                origin: { view: 'portal', experience: 'jev', adjusted: true }
+            }), reason).toEqual({ kind: 'navigate', view: 'chamber' });
+        }
+    });
     it('sends a Library reading back to the orbital prep screen', () => {
         for (const reason of LEAVING) {
             expect(chamberExitTarget(reason, {}), reason)

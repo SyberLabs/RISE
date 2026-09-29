@@ -484,7 +484,7 @@ class App {
             launchJevReading: decision => this.launchJevReading(decision),
             launchJevSample: () => this.launchJevSample(),
             launchKeystone: slug => this.launchKeystone(slug),
-            launchFirstRead: () => this.launchKeystone('meditations', { firstReadPreview: true }),
+            adjustJevReading: decision => this.adjustJevReading(decision),
             openMintedProgram: slug => this.openMintedProgram(slug),
             handleSequenceSelection: sequenceId => this.handleSequenceSelection(sequenceId),
             handleCreateSession: this.handleCreateSession,
@@ -828,6 +828,17 @@ class App {
         if (!await this.handleBeginSession(sessionConfig)) {
             throw new Error('The selected reading could not be opened. Please try again.');
         }
+    }
+
+    /**
+     * Open a proposed reading (rolled or asked) in Reader Setup with
+     * everything already set, through the same edition gate as Enter.
+     */
+    async adjustJevReading(decision) {
+        const { resolveJevReading } = await import('./app/jev-reading.js');
+        const { text, textSource, ...config } = await resolveJevReading(decision);
+        config.origin = { ...config.origin, adjusted: true };
+        return this.router.navigate('chamber', { data: { text, source: textSource, config } });
     }
 
     /** Launch a fixed sample through the released-edition gate, without a provider call. */
