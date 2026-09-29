@@ -58,4 +58,4 @@
 
 - [x] Add a two-segment fixture and a short import/compile example, labeling live audio and ChatGPT integration as future work.
 - [x] Run the fixture through the exported compiler; run full unit suite, build, hygiene and first-load checks, and report any environment-dependent gates accurately.
-- [ ] Commit only scoped files and open a reviewable PR.
+- [x] Commit only scoped files and open a reviewable PR.

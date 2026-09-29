@@ -68,6 +68,7 @@ history, not a distinction; read the status column instead.
 | Document | Status | What it is |
 | --- | --- | --- |
 | [vision/EXPERIENCE-PROGRAM-SPEC.md](vision/EXPERIENCE-PROGRAM-SPEC.md) | Contract | `rise.experience-program.v1`, the score format everything authored compiles into. |
+| [specs/RISE-CURRENT-V1-SLICE.md](specs/RISE-CURRENT-V1-SLICE.md) | Contract | The bounded external Current input that compiles through the Experience Program and Session. Sealed response only; realtime events and voice are outside this slice. |
 | [vision/SCRIPTORIUM-SPEC.md](vision/SCRIPTORIUM-SPEC.md) | Contract | The room where a model composes against an exported capability document, and the gate that admits the result. Cited by eleven source files. |
 | [vision/WORKSHOP-COMPOSITION-STUDIO-SPEC.md](vision/WORKSHOP-COMPOSITION-STUDIO-SPEC.md) | Contract | The authoring room. |
 | [vision/AGENT-COMPOSITION-AND-RENDER-SPEC.md](vision/AGENT-COMPOSITION-AND-RENDER-SPEC.md) | Contract | What may be published and rendered, and under what policy. |
