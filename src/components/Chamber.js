@@ -1264,7 +1264,7 @@ export class Chamber {
         }
       }, reason => visualCortex.cancelPresentation(reason));
 
-      this.player.on('atom', (data) => {
+      this._onPlayer('atom', (data) => {
         // ORDER IS THE CONTRACT (JOURNEYS-SPEC §8.4): movement, then
         // visual, then audio, then recitation, then display. The
         // movement is announced before the cues it explains, and the
@@ -1324,13 +1324,15 @@ export class Chamber {
       this.player.atomCompletionOverride = (_atom, index) =>
         this._startSpokenAtom(index)?.finished ?? null;
 
-      this.player.on('progress', (progress) => this.updateProgress(progress));
-      this.player.on('complete', () => this.onSessionComplete());
-      this.player.on('state', (state) => this.onStateChange(state));
+      this._onPlayer('progress', (progress) => this.updateProgress(progress));
+      this._onPlayer('complete', () => this.onSessionComplete());
+      this._onPlayer('state', (state) => this.onStateChange(state));
+      // A live reading is longer each time a segment arrives.
+      this._onPlayer('extended', () => this._adoptExtendedSession());
       // Shuttle transitions the Player makes on its own (pause drops
       // home; rewind clamps home at atom 0) carry the same subsystem
       // contract and HUD as key-initiated steps
-      this.player.on('shuttle', ({ velocity }) => {
+      this._onPlayer('shuttle', ({ velocity }) => {
         // Speech has no meaningful 2×/4× representation. Leaving home
         // stops the current utterance; its completion promise degrades
         // to the shuttle timer, and narration may resume next atom once
@@ -4719,7 +4721,35 @@ export class Chamber {
     clearVisualViewportBottom(document.documentElement);
   }
 
+  /**
+   * Listen to the Player, and let go of it in destroy(). A Player can outlive
+   * a Chamber (a Dive that has come back is mounted on again), and a torn-down
+   * Chamber must not go on painting into DOM that is no longer there.
+   */
+  _onPlayer(event, callback) {
+    const off = this.player.on(event, callback);
+    if (typeof off === 'function') (this._playerOffs ||= []).push(off);
+  }
+
+  /**
+   * The Player was given a longer Session (live reading). The schedules that
+   * follow the reading take the longer programs; what was already cued or
+   * announced stays as it was.
+   */
+  _adoptExtendedSession() {
+    const next = this.player?.sessionState?.session;
+    if (!next || next === this.session) return;
+    this.session = next;
+    this._atomStartsMs = null;
+    if (this._visualSchedule && this._visualSchedule !== this._directedSchedule && next.visualProgram) {
+      this._visualSchedule.extend(next.visualProgram, next.atoms);
+    }
+    if (this._movementSchedule && next.movementProgram) this._movementSchedule.extend(next.movementProgram);
+  }
+
   destroy() {
+    for (const off of this._playerOffs || []) off();
+    this._playerOffs = [];
     this._destroyed = true;
     if (this._syncFullscreenControl) {
       document.removeEventListener('fullscreenchange', this._syncFullscreenControl);

@@ -10,7 +10,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { MovementScheduleController, AudioScheduleController } from './journey-schedulers.js';
 import { compileJourney, boundarySourceId } from './journey-compiler.js';
-import { cueForAtom } from './visual-scheduler.js';
+import { cueForAtom, VisualScheduleController } from './visual-scheduler.js';
 
 const program = () => compileJourney({
     schemaVersion: 'rise.journey.v1',
@@ -317,5 +317,44 @@ describe('the visual scheduler reads the source coordinate', () => {
         // pick up a Journey's cue.
         const { visualProgram } = program();
         expect(cueForAtom(visualProgram, { chapter: 1, verse: 1 }).cue).toEqual({ kind: 'still' });
+    });
+});
+
+describe('taking a longer program (a live reading grows at its end)', () => {
+    const movement = (id, sourceId) => ({ id, sourceIds: [sourceId], title: id });
+
+    it('the movement controller knows the new movements and keeps where the reading is', () => {
+        const seen = [];
+        const controller = new MovementScheduleController({ movements: [movement('m1', 'a')], boundaries: [] }, (found, meta) => seen.push(meta.id));
+        controller.observe({ sourceId: 'a' });
+        expect(seen).toEqual(['m1']);
+        expect(controller.observe({ sourceId: 'b' })?.movement?.id).toBe('m1');
+
+        controller.extend({ movements: [movement('m1', 'a'), movement('m2', 'b')], boundaries: [] });
+        controller.observe({ sourceId: 'a' });
+        expect(seen).toEqual(['m1']);
+        controller.observe({ sourceId: 'b' });
+        expect(seen).toEqual(['m1', 'm2']);
+        expect(controller.generation).toBe(2);
+    });
+
+    it('the visual controller keeps its active cue and generation, and cues the new segment once', () => {
+        const program = count => ({
+            coordinateSpace: 'source',
+            segments: ['a', 'b'].slice(0, count).map((id, i) => ({ id: `v${i}`, match: { sourceIds: [id] }, cue: { kind: i ? 'still' : 'field', renderer: 'attractor', config: {} } })),
+            fallback: { kind: 'still' }
+        });
+        const cues = [];
+        const controller = new VisualScheduleController(program(1), (cue, meta) => cues.push(meta.cueId), { atoms: [] });
+        controller.observe({ sourceId: 'a', duration: 100 });
+        expect(cues).toEqual(['v0']);
+        const generation = controller.generation;
+
+        controller.extend(program(2), []);
+        controller.observe({ sourceId: 'a', duration: 100 });
+        expect(cues).toEqual(['v0']);
+        expect(controller.generation).toBe(generation);
+        controller.observe({ sourceId: 'b', duration: 100 });
+        expect(cues).toEqual(['v0', 'v1']);
     });
 });

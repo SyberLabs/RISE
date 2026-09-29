@@ -164,6 +164,9 @@ export class Player {
         // example AudioBufferSourceNode.onended). The timer remains the
         // fallback for unavailable or failed media.
         this.atomCompletionOverride = null;
+        // Further governors, asked in order after the two above when they decline.
+        // See govern().
+        this._governors = [];
         this.progressFrameId = null; // For smooth progress animation
         this.transitionDuration = 300; // ms for fade transitions
         this.atomStartTime = null;
@@ -259,7 +262,7 @@ export class Player {
      * has already had its chance to start whatever governs the timing.
      */
     _atomDisplayMs(atom) {
-        const governed = this.atomDurationOverride?.(atom, this.sessionState.currentIndex);
+        const governed = this._governedDuration(atom);
         if (Number.isFinite(governed) && governed > 0) {
             return governed / this.shuttle.durationDivisor;
         }
@@ -267,6 +270,47 @@ export class Player {
             (atom.duration * this.speedFactor) / this.shuttle.durationDivisor,
             50
         );
+    }
+
+    /**
+     * Add a governor of atom timing that can coexist with whatever else
+     * governs it. `atomDurationOverride` and `atomCompletionOverride` are
+     * single slots that a view assigns to for its own reasons (the Chamber
+     * does, for Recitation); a second consumer that assigned them too would
+     * silently replace the first. A governor is asked only when those decline
+     * (return null), in the order added, and the first to answer wins.
+     *
+     * @param {{duration?: Function, completion?: Function}} governor
+     * @returns {() => void} release
+     */
+    govern(governor) {
+        this._governors.push(governor);
+        return () => {
+            const at = this._governors.indexOf(governor);
+            if (at >= 0) this._governors.splice(at, 1);
+        };
+    }
+
+    _governedDuration(atom) {
+        const index = this.sessionState.currentIndex;
+        const own = this.atomDurationOverride?.(atom, index);
+        if (Number.isFinite(own) && own > 0) return own;
+        for (const governor of this._governors) {
+            const value = governor.duration?.(atom, index);
+            if (Number.isFinite(value) && value > 0) return value;
+        }
+        return null;
+    }
+
+    _governedCompletion(atom) {
+        const index = this.sessionState.currentIndex;
+        const own = this.atomCompletionOverride?.(atom, index);
+        if (own && typeof own.then === 'function') return own;
+        for (const governor of [...this._governors]) {
+            const promised = governor.completion?.(atom, index);
+            if (promised && typeof promised.then === 'function') return promised;
+        }
+        return null;
     }
 
     /** Live presentation fraction of the current atom, including pause state. */
@@ -685,6 +729,26 @@ export class Player {
     }
 
     /**
+     * Show the atom the head is on again, to a view that has just been
+     * mounted on a Player already part way through (a Dive that has come
+     * back). Nothing about the reading changes: the head, the timers, the
+     * state and the high-water mark are as they were, and the atom is the
+     * same one, so a listener that has not seen it can draw it.
+     */
+    replayCurrent() {
+        const atom = this.sessionState.currentAtom;
+        if (!atom) return false;
+        this.emit('atom', {
+            atom,
+            index: this.sessionState.currentIndex,
+            total: this.sessionState.session.atomCount,
+            concealed: false,
+            replayed: true
+        });
+        return true;
+    }
+
+    /**
      * Manually advance to next atom (used by voice sync callback)
      */
     advanceToNext() {
@@ -970,7 +1034,7 @@ export class Player {
         let completion = null;
         if (!isResuming && this.shuttle.atHome) {
             try {
-                completion = this.atomCompletionOverride?.(atom, this.sessionState.currentIndex);
+                completion = this._governedCompletion(atom);
             } catch {
                 completion = null;
             }

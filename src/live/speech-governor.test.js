@@ -176,8 +176,7 @@ describe('when the voice cannot be the clock', () => {
     it('lets go of the Player when disposed', () => {
         setup();
         governor.dispose();
-        expect(player.atomCompletionOverride).toBeNull();
-        expect(player.atomDurationOverride).toBeNull();
+        expect(player._governors).toEqual([]);
     });
 });
 

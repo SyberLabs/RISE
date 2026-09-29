@@ -138,8 +138,10 @@ export function createLiveRuntime({
             // With no voice there is no clock but the Player’s own.
             if (run.voice) run.governor.install(run.player);
             if (run.role === 'main') set('live');
-            host.present?.({ role: run.role, session, player: run.player, run: summary(run) });
-            run.player.play();
+            // The host may need a moment to put the Player on screen; the reading starts when it has.
+            run.presenting = Promise.resolve(host.present?.({ role: run.role, session, player: run.player, run: summary(run) }))
+                .then(() => { if (!run.closed && run.player.sessionState.state === 'idle') run.player.play(); })
+                .catch(caught => failRun(run, caught));
         } else {
             run.player.extend(session);
         }
@@ -208,7 +210,7 @@ export function createLiveRuntime({
     async function openRun(request, role) {
         const run = {
             role, request, stream: createCurrentStream(), connection: null, player: null, voice: null, governor: null,
-            lowered: 0, closed: false, finished: false, error: null, speaking: null, abort: new AbortController(), pumping: null
+            lowered: 0, presenting: null, closed: false, finished: false, error: null, speaking: null, abort: new AbortController(), pumping: null
         };
         run.connection = await adapter.open(request);
         run.voice = voices ? voices.create() : null;
@@ -322,7 +324,7 @@ export function createLiveRuntime({
             side = null;
             await closeRun(child);
             note('branch.close', { currentId: child.stream.currentId });
-            host.present?.({ role: 'main', session: main.player.sessionState.session, player: main.player, run: summary(main) });
+            await host.present?.({ role: 'main', session: main.player.sessionState.session, player: main.player, run: summary(main) });
             set(main.finished ? 'ended' : 'live');
             if (main.player.sessionState.state === 'paused') main.player.play();
         },

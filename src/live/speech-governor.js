@@ -42,6 +42,7 @@ export function createSpeechGovernor({ voice, clock, graceMs = 1500, defaultMsPe
     const timing = new Map();
     let degraded = false;
     let player = null;
+    let releaseGovernor = null;
     let waiting = null;
     let stopWatchingState = null;
 
@@ -140,8 +141,7 @@ export function createSpeechGovernor({ voice, clock, graceMs = 1500, defaultMsPe
         install(target) {
             if (player) return;
             player = target;
-            player.atomDurationOverride = estimate;
-            player.atomCompletionOverride = complete;
+            releaseGovernor = player.govern({ duration: estimate, completion: complete });
             // A paused reading is waiting on nothing; the Player will not ask again for this atom.
             stopWatchingState = player.on('state', ({ state }) => {
                 if (state === 'paused' || state === 'idle' || state === 'complete') cancelWait();
@@ -152,10 +152,8 @@ export function createSpeechGovernor({ voice, clock, graceMs = 1500, defaultMsPe
             cancelWait();
             stopWatchingState?.();
             stopWatchingState = null;
-            if (player) {
-                if (player.atomDurationOverride === estimate) player.atomDurationOverride = null;
-                if (player.atomCompletionOverride === complete) player.atomCompletionOverride = null;
-            }
+            releaseGovernor?.();
+            releaseGovernor = null;
             player = null;
         },
 

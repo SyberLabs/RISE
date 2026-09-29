@@ -237,6 +237,49 @@ describe('what may be extended, and with what', () => {
     });
 });
 
+describe('showing the same atom again', () => {
+    it('emits the atom the head is on, and changes nothing about the reading', async () => {
+        player = new Player(current(3));
+        player.setLive(true);
+        watch(player);
+        player.play();
+        await tick(1_500);
+        player.pause();
+        const before = { index: player.sessionState.currentIndex, state: player.state, remaining: player.currentAtomRemainingTime };
+        const replays = [];
+        player.on('atom', data => { if (data.replayed) replays.push(data); });
+        expect(player.replayCurrent()).toBe(true);
+        expect(replays).toHaveLength(1);
+        expect(replays[0].index).toBe(before.index);
+        expect(replays[0].atom).toBe(player.sessionState.currentAtom);
+        expect({ index: player.sessionState.currentIndex, state: player.state, remaining: player.currentAtomRemainingTime }).toEqual(before);
+        expect(vi.getTimerCount()).toBe(0);
+    });
+
+    it('lets the reading carry on afterwards without repeating an atom', async () => {
+        const session = current(3);
+        player = new Player(session);
+        watch(player);
+        player.play();
+        await tick(1_500);
+        player.pause();
+        const firsts = [...seen];
+        player.on('atom', ({ index, concealed, replayed }) => { if (!concealed && !replayed) firsts.push(index); });
+        player.replayCurrent();
+        player.play();
+        await tick(60_000);
+        // The replay is shown once more, and only that: every other atom is shown once, in order.
+        expect(firsts).toEqual(session.atoms.map((_, i) => i));
+    });
+
+    it('says there is nothing to show when the head is past the end', async () => {
+        player = new Player(current(1));
+        player.play();
+        await tick(60_000);
+        expect(player.replayCurrent()).toBe(false);
+    });
+});
+
 describe('finishing', () => {
     it('completes, once, when told there is no more, while it is waiting', async () => {
         const session = current(2);
