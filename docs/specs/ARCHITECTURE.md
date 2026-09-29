@@ -169,7 +169,7 @@ flowchart LR
     sources["sources<br/>text and visual providers<br/>22 modules"]
     vendor["vendor<br/>SyberLabs design kit<br/>2 modules"]
     visuals["visuals<br/>procedural generation<br/>61 modules"]
-    wormhole["wormhole<br/>6 modules"]
+    wormhole["wormhole<br/>7 modules"]
 
     app -.-> |3 lazy| audio
     app --> |1| components
