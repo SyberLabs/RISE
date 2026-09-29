@@ -900,6 +900,7 @@ export class Workshop {
       readingDuration: this.readingDurationLabel(),
       studioViewport: this.studioViewport,
       studioSurface: this.studioSurface,
+      scenesAvailable: this.sessionData.experienceProgram?.authority !== 'proposed',
       selectionActionHtml: this.renderSelectionActionBar(),
       selectionPopoverHtml: this.renderScoreSelectionPopover(),
       wpm: this.sessionData.wpm,

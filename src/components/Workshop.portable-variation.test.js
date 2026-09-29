@@ -210,6 +210,7 @@ it('shows the remix on a phone instead of hiding the studio behind absent scenes
   await vi.waitFor(() => expect(container.querySelector('#passage-remix')).not.toBeNull());
   expect(container.querySelector('.workshop-studio').dataset.phoneMode).toBe('studio');
   expect(container.querySelector('.scene-stack-host')).toBeNull();
+  expect(container.querySelector('[data-action="show-scenes"]')).toBeNull();
   workshop.destroy();
 });
 
