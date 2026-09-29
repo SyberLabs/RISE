@@ -336,3 +336,76 @@ test.describe('sync between what is shown and what is said', () => {
         for (const error of inside) expect(Math.abs(error)).toBeLessThanOrEqual(IN_SEGMENT_BUDGET_MS);
     });
 });
+
+test.describe('what it costs the browser', () => {
+    test('never holds the main thread, and drops no frames, through a whole reading with a Dive', async ({ page }) => {
+        test.setTimeout(75_000);
+        await page.goto(`${OPEN}&measure=1`);
+        await page.evaluate(() => {
+            window.__long = [];
+            window.__frames = [];
+            new PerformanceObserver(list => {
+                for (const entry of list.getEntries()) window.__long.push(Math.round(entry.duration));
+            }).observe({ entryTypes: ['longtask'] });
+            let last = performance.now();
+            const tick = now => { window.__frames.push(now - last); last = now; requestAnimationFrame(tick); };
+            requestAnimationFrame(tick);
+        });
+        await page.locator('.live-start').click();
+        await expectShown(page, 'that nothing, not even light');
+        await page.locator('#live-controls-question').fill('dive on event horizon');
+        await page.locator('#live-controls-question').press('Enter');
+        await expectShown(page, 'The event horizon is where');
+        await page.waitForTimeout(6_000);
+        await page.getByRole('button', { name: 'Surface', exact: true }).click();
+        await page.waitForTimeout(20_000);
+        const { long, frames } = await page.evaluate(() => ({ long: window.__long, frames: window.__frames.slice(5) }));
+        const worstFrame = Math.round(Math.max(...frames));
+        test.info().annotations.push({
+            type: 'main-thread',
+            description: `long tasks ${long.length} (longest ${Math.max(0, ...long)} ms) | ${frames.length} frames, worst ${worstFrame} ms`
+        });
+        // Nothing the runtime does may stall the page. Measured: two long tasks, the longest 52 ms,
+        // and a worst frame of 50 ms; the thresholds leave room for a slower machine and still
+        // catch a real stall.
+        expect(Math.max(0, ...long)).toBeLessThanOrEqual(250);
+        expect(frames.filter(gap => gap > 250)).toEqual([]);
+        expect(frames.length).toBeGreaterThan(600);
+    });
+
+    test('gives its memory back: a reading, a Dive, Surface and Stop, repeated, leave the heap where it was', async ({ page }) => {
+        test.setTimeout(120_000);
+        const cdp = await page.context().newCDPSession(page);
+        await cdp.send('Performance.enable');
+        await cdp.send('HeapProfiler.enable');
+        const heapMB = async () => {
+            await cdp.send('HeapProfiler.collectGarbage');
+            await cdp.send('HeapProfiler.collectGarbage');
+            const { metrics } = await cdp.send('Performance.getMetrics');
+            return metrics.find(metric => metric.name === 'JSHeapUsedSize').value / 1e6;
+        };
+        await page.goto(OPEN);
+        const cycle = async () => {
+            await page.locator('.live-start').click();
+            await expectShown(page, 'A black hole is a region of space');
+            await page.locator('#live-controls-question').fill('dive on event horizon');
+            await page.locator('#live-controls-question').press('Enter');
+            await expectShown(page, 'The event horizon is where');
+            await page.waitForTimeout(2_000);
+            await page.getByRole('button', { name: 'Surface', exact: true }).click();
+            await page.waitForTimeout(1_500);
+            await page.getByRole('button', { name: 'Stop', exact: true }).click();
+            await expect(page.locator('.live-start')).toBeEnabled();
+            await page.waitForTimeout(1_000);
+            return heapMB();
+        };
+        const afterFirst = await cycle(); // loads code and caches once; that is not a leak
+        await cycle();
+        const afterThird = await cycle();
+        test.info().annotations.push({
+            type: 'heap-mb',
+            description: `after first cycle ${afterFirst.toFixed(2)}, after third ${afterThird.toFixed(2)}, growth ${(afterThird - afterFirst).toFixed(2)}`
+        });
+        expect(afterThird - afterFirst).toBeLessThanOrEqual(5);
+    });
+});
