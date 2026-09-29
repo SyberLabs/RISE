@@ -195,6 +195,26 @@ persists and their chant beds ride through, per §5.)
 
 ---
 
+## 11. Diving is not traversal
+
+A **dive** is looking under the passage the reading is at (`src/core/dive.js`,
+`src/core/undercurrent.js`). It never moves the head. It holds the Player the
+way pausing does, and surfacing releases it, so the atom is the same, every
+schedule still stands, and there is nothing to seek to or from. It is therefore
+outside §1 rather than an exception to it.
+
+✦ **Buttons and keys only.** The deferral in §9 stands: there are no touch or
+gesture bindings on the reading. A dive is one control in the Chamber's bar and
+one key, D. Press-and-hold on that control (or holding D) is a **glance**: open
+while held, surfaced on release. A tap is an **anchor**: it stays open until
+pressed again, or Escape. The arrow keys keep the two axes of §2, so pace and
+the shuttle are never overloaded. The control exists only on a reading that has
+something under it.
+
+*Ruled by the creator, 2026-09-29.*
+
+---
+
 *The frame of this spec is the creator's: traversal as an extension
 of the pacing mechanism — no jumps, only motion — with rewind
 grounded in sequence awareness against a high-water mark, and

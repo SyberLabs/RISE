@@ -163,7 +163,7 @@ flowchart LR
     audio["audio<br/>Web Audio, recitation<br/>10 modules"]
     components["components<br/>routed views<br/>44 modules"]
     content["content<br/>texts, imagery, journeys<br/>231 modules"]
-    core["core<br/>session, player, router<br/>150 modules"]
+    core["core<br/>session, player, router<br/>151 modules"]
     enterprise["enterprise<br/>talk program, speaker rail<br/>28 modules"]
     oracle["oracle<br/>2 modules"]
     page["page<br/>spatial projection<br/>4 modules"]
@@ -182,7 +182,7 @@ flowchart LR
     components -.-> |1 lazy| app
     components --> |2| audio
     components --> |24| content
-    components --> |162| core
+    components --> |164| core
     components -.-> |1 lazy| page
     components --> |4| sources
     components -.-> |2 lazy| vendor
@@ -269,6 +269,15 @@ range each text block carries), and nothing done in a projection moves the head,
 because there is no seeking (LATERAL-TRAVERSAL-SPEC §1). The names
 **Constellation** and **Stage** are reserved for projections that do not exist
 yet.
+
+Under a span of the reading's words there may be a thread: a gloss (written, by
+the program's authority) or an echo (received: it stores no words and names
+where the edition's are), both anchored to source text in the canonical
+program's `thread` track, plus the image and sound the score already anchors
+there. `src/core/undercurrent.js` gathers what lies under one atom. A dive
+looks there: a hold is a glance, a tap an anchor (`src/core/dive.js`). It holds
+the Player as pausing does and never moves the head, and it is offered only on a
+reading that has threads.
 
 **`src/core/player.js`** owns the authoritative reading clock and the playback
 state machine: `idle`, `playing`, `paused`, `interlocuting`, `complete`.
@@ -994,9 +1003,9 @@ of `settled`, `open`, `deferred`, or `reversed`.
   make that convergence something a test can break. The successor list was the
   one place the reading was rebuilt by hand, which is the defect of a
   vocabulary in two places where only one learns a new word.
-- **Status:** open. Guards, the successor, and one place for the reading are
-  built. Anchored threads, dive and surface, and a breath pace follow, in that
-  order. The plan is `docs/plans/CURRENT-CONSOLIDATION.md`.
+- **Status:** open. Guards, the successor, one place for the reading, threads
+  under a passage, and dive and surface are built. A breath pace follows. The
+  plan is `docs/plans/CURRENT-CONSOLIDATION.md`.
 
 ---
 
