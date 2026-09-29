@@ -163,7 +163,7 @@ flowchart LR
     audio["audio<br/>Web Audio, recitation<br/>10 modules"]
     components["components<br/>routed views<br/>44 modules"]
     content["content<br/>texts, imagery, journeys<br/>231 modules"]
-    core["core<br/>session, player, router<br/>149 modules"]
+    core["core<br/>session, player, router<br/>150 modules"]
     enterprise["enterprise<br/>talk program, speaker rail<br/>28 modules"]
     oracle["oracle<br/>2 modules"]
     page["page<br/>spatial projection<br/>4 modules"]
@@ -261,6 +261,14 @@ and `src/core/current.test.js` fails if either appears anywhere else. The
 reading that follows a division of a work is not copied field by field: every
 field of a Session is classified in `src/core/session-successor.js` as
 identity, source, or reading, and a field that is none of them fails a test.
+
+The Current has one place: the head of the Stream, `player.sessionState
+.currentIndex`. A projection is another way of looking at it. The Page opens
+on the paragraph that holds the head (`PageReader.showAtom`, fed by the atom
+range each text block carries), and nothing done in a projection moves the head,
+because there is no seeking (LATERAL-TRAVERSAL-SPEC §1). The names
+**Constellation** and **Stage** are reserved for projections that do not exist
+yet.
 
 **`src/core/player.js`** owns the authoritative reading clock and the playback
 state machine: `idle`, `playing`, `paused`, `interlocuting`, `complete`.
@@ -986,9 +994,9 @@ of `settled`, `open`, `deferred`, or `reversed`.
   make that convergence something a test can break. The successor list was the
   one place the reading was rebuilt by hand, which is the defect of a
   vocabulary in two places where only one learns a new word.
-- **Status:** open. Guards and the successor are built. Position that survives
-  a projection change, anchored threads, dive and surface, and a breath pace
-  follow, in that order. The plan is `docs/plans/CURRENT-CONSOLIDATION.md`.
+- **Status:** open. Guards, the successor, and one place for the reading are
+  built. Anchored threads, dive and surface, and a breath pace follow, in that
+  order. The plan is `docs/plans/CURRENT-CONSOLIDATION.md`.
 
 ---
 

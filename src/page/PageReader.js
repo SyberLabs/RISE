@@ -326,6 +326,31 @@ export class PageReader {
         try { this.host.scrollTop = el.offsetTop; } catch { /* detached */ }
     }
 
+    /**
+     * Open the reading where the Stream is: on the paragraph that holds
+     * this atom. The Page keeps no place of its own between visits. The
+     * Current has one, the head the Stream stopped at, and the Page is a
+     * second way of looking at it, so it opens there, and nothing the
+     * reader does here moves that head.
+     *
+     * An atom before the first paragraph opens the first; one after the
+     * last opens the last.
+     *
+     * @param {number} index an atom index in the session
+     * @returns {object|null} the composition item shown, or null when the
+     *   reading holds no text
+     */
+    showAtom(index) {
+        const texts = (this.composition?.items || [])
+            .filter(item => item.type === 'text' && Array.isArray(item.atoms));
+        if (!texts.length) return null;
+        const item = texts.find(candidate => candidate.atoms[1] >= index)
+            || texts[texts.length - 1];
+        if (this.isPaged) this.goToPage(pageOfItem(this.pages, item));
+        this._scrollToItem(item);
+        return item;
+    }
+
     /** Move by pages. Out-of-range is a no-op, not an error. */
     goToPage(index) {
         if (index === this.pageIndex) return this.pageIndex;

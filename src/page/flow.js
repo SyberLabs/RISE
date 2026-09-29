@@ -247,13 +247,17 @@ export function compileFlow(session, options = {}) {
                 verse: run.verse,
                 weight: run.weightMax,
                 tags: run.tags.length ? [...new Set(run.tags)] : [],
-                episodeId: run.episodeId
+                episodeId: run.episodeId,
+                // The atoms this paragraph was made from, by index: what
+                // lets the Page open on the one the Stream is showing.
+                atoms: [run.from, run.to]
             });
         }
         run = null;
     };
 
-    for (const atom of atoms) {
+    for (let atomIndex = 0; atomIndex < atoms.length; atomIndex += 1) {
+        const atom = atoms[atomIndex];
         // Structural silence closes the current run and may mark a pause.
         if (isStructuralSilence(atom)) {
             flushRun();
@@ -363,9 +367,12 @@ export function compileFlow(session, options = {}) {
                 verse: includeVerseMarks ? (coord?.verse ?? null) : null,
                 weightMax: 0,
                 tags: [],
-                episodeId: activeCueId
+                episodeId: activeCueId,
+                from: atomIndex,
+                to: atomIndex
             };
         }
+        run.to = atomIndex;
         run.parts.push(atom.content.trim());
         if (Number.isFinite(atom.weight)) run.weightMax = Math.max(run.weightMax, atom.weight);
         if (Array.isArray(atom.tags) && atom.tags.length) run.tags.push(...atom.tags);

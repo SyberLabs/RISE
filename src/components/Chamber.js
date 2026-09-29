@@ -211,7 +211,7 @@ export class Chamber {
     this.pageReader = null;
     this.pageModeActive = false;
     // The reader's place in the Page, kept across a trip to the Stream.
-    this._lastPageIndex = 0;
+    this._lastPage = null;
 
     // Voice and text arrival are separate reader choices. An instant spoken
     // reading and a silent progressive reading are both valid contracts.
@@ -3705,20 +3705,19 @@ export class Chamber {
         resolveCollection: (id, count) =>
           this._resolvePageCollection(id, count, abort.signal, visualCortex)
       });
-      // RETURN THE READER TO WHERE THEY WERE. Page Mode builds a fresh
-      // PageReader every time it opens, so leaving for the Stream and
-      // coming back landed on page one — the reading was held, and the
-      // reader's PLACE in it was not.
+      // OPEN WHERE THE READING IS. The Stream's head is the reading's one
+      // place, and nothing done in the Page moves it. While the head is
+      // where it was when the Page was left, the page the reader had
+      // reached is still right; once the head has moved that page is
+      // stale and the Page opens on the head.
       //
-      // READ THE MEMORY BEFORE RENDERING, NOT AFTER. The first attempt
-      // at this restored after render() and did nothing at all, because
-      // render() lands on page 0 and reports it through onPageChange —
-      // which is the same callback that RECORDS the position. The
-      // render erased the memory a line before it was consulted. A
-      // value read after the thing that writes it is not a memory.
-      const resume = this._lastPageIndex;
+      // Read before render(): render() reports page 0 through
+      // onPageChange, and that same callback is what records the page.
+      const head = this._pageHead();
+      const kept = this._lastPage?.head === head ? this._lastPage.index : null;
       this.pageReader.render();
-      if (resume > 0) this.pageReader.goToPage(resume);
+      if (kept !== null) this.pageReader.goToPage(kept);
+      else this.pageReader.showAtom(head);
     } catch (error) {
       console.warn('[Chamber] Page Mode unavailable:', error);
       if (generation !== this._pageGeneration) return this.pageModeActive;
@@ -4253,14 +4252,21 @@ export class Chamber {
    * Hidden entirely when there is nothing to turn — a single-page
    * reading should not carry disabled arrows.
    */
+  /** The atom the Stream is at: the reading's one place. */
+  _pageHead() {
+    return this.player?.sessionState?.currentIndex ?? 0;
+  }
+
   _syncPageTurn(state = {}) {
     // The reader's own report, taken whole. Inferring `isPaged` and
     // `canPage` from `total` is what made Elongate a one-way door: an
     // elongated reading is ONE page and reads as "nothing to paginate".
     const { index = 0, total = 0, isPaged = false, canPage = false } = state;
     // Remembered here rather than read back on close: by the time Page
-    // Mode is torn down the reader is already gone.
-    if (total > 1) this._lastPageIndex = index;
+    // Mode is torn down the reader is already gone. It is kept with the
+    // head it was reached under, because it means nothing once the head
+    // has moved.
+    if (total > 1) this._lastPage = { index, head: this._pageHead() };
 
     const elongate = this.container.querySelector('#page-elongate');
     if (elongate) {
