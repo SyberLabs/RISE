@@ -66,6 +66,8 @@ The lexicon itself is an authoring prior for this repository. It is not the NRC 
 
 `modulatePlateColorsAt` and `modulateFlameColorsAt` apply one span to the fine color parameters those engines already read. Warmth turns hue. Arousal scales saturation or vibrancy around the authored value. Valence is not a hue. The engines do not call the modulator, so a reading with no program is unchanged.
 
+The Emotions room places corpus passages, attractor swatches, and Living Flame scenes on one Thomas attractor. Position uses valence and arousal when both exist. Hue uses warmth. The chamber still does not import the layer.
+
 `modulateEnergyAt` applies the same span to attractor and night-streak `speed` and to Living Flame `energy`. The signal is `motionEnergy`, so arousal is not counted twice. 0.5 leaves the authored value. Harmonograph and Klee already read arousal inside the conductor, and plate bloom, sparkle, chroma, and grain are not one energy number, so those engines are not channels.
 
 ## What would change the readout

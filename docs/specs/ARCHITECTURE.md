@@ -159,10 +159,10 @@ it, and CI fails when the committed copy is not what `src/` produces.
 
 ```mermaid
 flowchart LR
-    affect["affect<br/>experience-state evaluation<br/>29 modules"]
+    affect["affect<br/>experience-state evaluation<br/>30 modules"]
     app["app<br/>composition root<br/>8 modules"]
     audio["audio<br/>Web Audio, recitation<br/>10 modules"]
-    components["components<br/>routed views<br/>44 modules"]
+    components["components<br/>routed views<br/>45 modules"]
     content["content<br/>texts, imagery, journeys<br/>231 modules"]
     core["core<br/>session, player, router<br/>149 modules"]
     enterprise["enterprise<br/>talk program, speaker rail<br/>28 modules"]
@@ -181,14 +181,15 @@ flowchart LR
     app -.-> |1 lazy| visuals
     audio --> |1| content
     audio --> |5| core
+    components --> |3| affect
     components -.-> |1 lazy| app
     components --> |2| audio
     components --> |24| content
-    components --> |162| core
+    components --> |164| core
     components -.-> |1 lazy| page
     components --> |4| sources
     components -.-> |2 lazy| vendor
-    components --> |18| visuals
+    components --> |19| visuals
     content --> |3| audio
     content --> |16| core
     content --> |17| sources
@@ -298,6 +299,7 @@ outliving its room, fails a build.
 | Via | `src/components/Via.js` | the Stations of the Cross |
 | Workshop | `src/components/Workshop.js` | authoring a composition |
 | Visual Lab | `src/components/VisualLab.js` | exploring, saving, and reusing Living Flame scenes |
+| Emotions | `src/components/Emotions.js` | the affect map: texts, colors, and visuals on a spectral attractor |
 | Vault | `src/components/Vault.js` | saved compositions and archetypes |
 | Scriptorium | `src/components/Scriptorium.js` | a model composes; a gate refuses |
 | Curia | `src/components/Curia.js` | the source and rights record |
@@ -989,7 +991,9 @@ of `settled`, `open`, `deferred`, or `reversed`.
   returned program is admitted or refused. Save marks it `user`. A modulator
   can turn procedural plate hue and Living Flame vibrancy from that program,
   and can scale attractor speed, night-streak speed, and Living Flame energy
-  from motion energy. The visual engines do not import it. EmoPair,
+  from motion energy. The Emotions room draws that state as a spectral
+  Thomas attractor. Hue follows warmth. The visual engines do not import
+  the layer, and the chamber does not either. EmoPair,
   the MiniLM probe, and a local teacher were scored offline and remain
   witnesses, not the runtime.
 
