@@ -22,7 +22,8 @@ async function jump(page) {
   await expect(page.locator('#destination')).toBeVisible({ timeout: 10_000 });
 }
 
-const view = page => page.evaluate(() => window.__RISE_TEST__.getRouterState().currentView);
+// A page in the middle of navigating has no test bridge yet; that is "not there yet", not a failure.
+const view = page => page.evaluate(() => window.__RISE_TEST__?.getRouterState().currentView).catch(() => null);
 
 test('Home reaches the wormhole from its Menu, and the page brings the reader back', async ({ page }) => {
   await authorize(page);
@@ -48,9 +49,9 @@ test('DOCK plays the destination, and leaving the reading returns to Home', asyn
   await expect(page.locator('#chamber-display')).toBeVisible({ timeout: 30_000 });
   const session = await page.evaluate(() => {
     const s = window.__RISE_TEST__.getCurrentSession();
-    return { source: s.textSource, experience: s.origin?.experience, adjusted: s.origin?.adjusted ?? false };
+    return { name: s.name, experience: s.origin?.experience, adjusted: s.origin?.adjusted ?? false };
   });
-  expect(session.source).toContain(title);
+  expect(session.name.startsWith(title)).toBe(true);
   expect(session).toMatchObject({ experience: 'jev', adjusted: false });
   // The handoff is one-use and carries no reading in the address.
   expect(page.url()).not.toContain('invocation');

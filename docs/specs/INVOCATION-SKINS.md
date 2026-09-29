@@ -1,11 +1,103 @@
-# Experimental invocation skins
+# Invocation skins
 
-`/wormhole.html` is an isolated prototype entry, like `/oracle.html`. Neither is a second reader. A skin may choose an intent, call `requestComposedReading` in `src/app/invocation.js`, and present the returned decision. The adapter calls the same `/api/jev-recommend` route as Portal with schema version 3 and checks the response envelope for presentation. The Worker owns recommendation and composition; its release metadata and selector constraints are authoritative. The app validates the full plan through `resolveJevReading` before use.
+RISE opens on an action, not a form. A **skin** is a way of presenting that
+one interaction; it is never a second reader.
 
-The shared interaction is **invoke → receive composed reading → enter / jump again / adjust course**. A response is a preview, never an automatically playing session. A skin may animate this transition but must keep the controls usable without the animation or graphics. JUMP AGAIN sends another intent to the canonical route; it is not guaranteed to pick a distinct work.
+> **invoke → receive a composed reading → enter / go again / adjust**
 
-DOCK and ADJUST COURSE store the admitted decision in a one-use `sessionStorage` handoff and load `/?invocation=wormhole`. The URL carries no plan or text. On app initialization the handoff is removed before use. DOCK calls `App.launchJevReading`, which resolves a released edition via `resolveJevReading` and goes through `handleBeginSession` and `compileSession`. ADJUST COURSE resolves the same decision and opens the existing `chamber` Reader Setup with its text and configuration; Visual Navigator remains owned by `ChamberOrbital`. Both paths revalidate the decision and edition after crossing the page boundary. If the browser refuses storage, the skin reports the failed transfer instead of silently launching an unrelated reading.
+| Skin | Where | Invoke | Enter | Go again | Adjust |
+|---|---|---|---|---|---|
+| **Oracle** | Home, in the app (`src/components/Portal.js`, `src/components/oracle/`) | ROLL | ENTER | ROLL AGAIN | ADJUST |
+| **Wormhole** | a page of its own, `/wormhole.html` (`src/wormhole/`), reached from Home's Menu → *Other ways in* | ENTER WORMHOLE | DOCK | JUMP AGAIN | ADJUST COURSE |
 
-Future skins can use `requestComposedReading(intent)` and `saveInvocationHandoff(decision, action)` with `action` equal to `dock` or `adjust`. An app-owned entry token should be added to the startup branch for each new separate page; do not make the URL or the skin authoritative for session configuration. Keep decorative rendering and optional sound local to the skin. For an in-app skin, call the same app launch and Reader Setup operations directly and skip the storage handoff.
+See `docs/superpowers/specs/2026-09-28-oracle-home-design.md` for the Oracle.
 
-The Worker includes its held catalog title with the decision for the destination display; the skin does not import the content library or trust model-authored title text. The decision service requires the production Worker and configured provider. The standalone Vite preview can render and report an unavailable route, but it cannot manufacture a reading. The wormhole scene uses a small pixelated Canvas 2D starfield, CSS geometry, and an SVG low-poly craft. No WebGL support is required; if canvas fails, the instrument and controls remain visible. Motion reduction halts scene motion and skips the transit wait; sound starts off and requires an explicit opt-in.
+## One engine
+
+Both skins compose with **the roll** (`src/core/roll.js`): a reading on the
+device, by chance inside bounds (work × section × temper). It is the decision
+shape Jev returns, passes the same admission (`validateJevRecommendation`), and
+says what it is (`model: rise/roll-1`, `provider: RISE`). Nothing is sent; no
+provider is called. It never repeats the previous work or temper, so going
+again always changes something. A roll carries `title` and `author`, from a
+small table held to the Library by a test, so a standalone page can name a work
+without loading the Library.
+
+The plan is put into words by `summarizeJevPlan` and `SECTION_WORDS` in
+`src/core/jev-describe.js`, derived from the plan, so every skin says the same
+thing about the same reading.
+
+## One decision route, for a request in words
+
+Asking is the escape hatch from the roll. Home's *ask for something specific*
+calls `requestComposedReading` (`src/app/invocation.js`), which posts to
+`/api/jev-recommend` with schema version 3 and admits the answer before anything
+is shown. The Worker owns that recommendation: its release metadata and
+selector constraints are authoritative, and the app validates the full plan
+again through `resolveJevReading` before use. A skin with no text field does
+not use it.
+
+## One way to open a reading
+
+A response is a preview, never an automatically playing session. The enter and
+adjust actions are the app's own, and a skin never compiles or starts a session:
+
+* **enter** → `App.launchJevReading` → `resolveJevReading` →
+  `handleBeginSession` → `compileSession`;
+* **adjust** → `App.adjustJevReading` → the existing Reader Setup (`chamber`)
+  with the text, the plan and the reading's opening look (face, size, colours)
+  already set. Visual Navigator stays owned by `ChamberOrbital`.
+
+Leaving a reading entered from Home returns to Home, where the proposal still
+waits; one opened through adjust returns to Reader Setup (`origin.adjusted`),
+wherever it began (`src/app/chamber-exit.js`).
+
+### Crossing a page boundary
+
+A separate page cannot call the app, so it hands the decision over.
+`saveInvocationHandoff(decision, action)` (`action` is `dock` or `adjust`)
+stores it in a one-use `sessionStorage` entry and the page loads
+`/?invocation=wormhole`. The URL carries no plan or text. On app initialization
+the handoff is removed before use, then `openInvocationDecision` calls the same
+`launch` or `adjust` operation Home uses, revalidating the decision and the
+edition. If the browser refuses storage, the skin says the transfer failed
+rather than launching an unrelated reading.
+
+A new separate page needs its own entry token in the startup branch of
+`src/app.js`; the URL and the skin are never authoritative for session
+configuration. An in-app skin calls the operations directly and skips the
+handoff.
+
+## The wormhole
+
+A small pixelated Canvas 2D starfield, CSS geometry, and an SVG low-poly craft.
+No WebGL is required; if canvas fails, the instrument and controls remain. The
+crossing is a designed length (about 0.9 s), not a wait, because the roll is
+instant; the starfield's speed eases in and out of it. On arrival the gate warms
+and the ship holds nearer to it. Sound starts off and requires an explicit
+opt-in.
+
+### Accessibility contract
+
+Held by `e2e/wormhole.spec.js` at 1280×800, 390×844 and 360×640, and by
+`src/wormhole/wormhole.test.js`:
+
+* Landmarks: `header`, one `main`, `footer`; one `h1` that stays while the
+  visible `h2` changes; `lang` set.
+* The console is a picture and is `aria-hidden`; everything it says is said
+  again in words by the controls beside it.
+* Every control is at least 44×44. Text a reader must read is 12px or more;
+  decorative furniture is 10px or more.
+* AA contrast on the lightest ground the text can sit on.
+* A busy control keeps focus and says so (`aria-disabled`, `aria-busy`); it is
+  never `disabled`, which would drop focus to the page. After a jump, focus
+  lands on DOCK; after a failure, on the launch key. The result is announced by
+  a polite live region.
+* Sound is one toggle with a constant name, **Sound**, and the state in
+  `aria-pressed`, shown as a hollow or a lit dot.
+* Reduced motion removes motion (`animation: none`) and skips the crossing.
+  It does not shorten animations to a fraction of a millisecond, which leaves an
+  infinite animation repeating fast enough to flicker.
+* The primary key is on the first screen, including a 360×640 phone.
+
+A future skin should meet the same contract.

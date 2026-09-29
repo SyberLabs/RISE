@@ -103,6 +103,15 @@ The stage clips its overflow (`overflow: clip`, which keeps the 3D): the
 projected words and plate otherwise gave the page a sideways overflow that
 focusing the ask field scrolled to.
 
+## A second skin: the wormhole
+
+`/wormhole.html` (another branch's rocket-and-wormhole page) is the same
+interaction in another skin, and was merged into this work. It composes with
+the same roll, opens readings through the same two app operations as ENTER and
+ADJUST, and is reached from the Menu under *Other ways in*. Home's Ask and the
+wormhole's handoff share `src/app/invocation.js`. See
+`docs/specs/INVOCATION-SKINS.md`.
+
 ## Removed
 
 * The request form, example chips, interpretation panel with its Energy /
