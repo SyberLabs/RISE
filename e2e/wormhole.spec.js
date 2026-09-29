@@ -334,3 +334,88 @@ test('the console stays a picture: nothing in it is reachable by keyboard or ass
   });
   expect(inside).toEqual({ hidden: 'true', focusable: 0 });
 });
+
+// ─── The ship rides a ring round the gate, and follows the pointer along it ───
+
+/** The gate's centre, in page coordinates, and a ring radius that is clearly outside it. */
+async function gate(page) {
+  const box = await page.locator('.wh-viewport').boundingBox();
+  return { x: box.x + box.width * 0.5, y: box.y + box.height * 0.42, radius: Math.min(box.width, box.height) * 0.36 };
+}
+const shipAngle = page => page.evaluate(() => Number(document.querySelector('.wormhole').dataset.shipAngle));
+/** The shorter way round from one angle to another. */
+const arcBetween = (from, to) => { let d = (to - from) % (2 * Math.PI); if (d > Math.PI) d -= 2 * Math.PI; if (d <= -Math.PI) d += 2 * Math.PI; return d; };
+
+test('the ship waits at the bottom of the ring, and follows the pointer round the gate', async ({ page }) => {
+  await openWormhole(page);
+  await needsWebGL(page);
+  await expect.poll(() => shipAngle(page)).toBeCloseTo(-Math.PI / 2, 1);
+  const { x, y, radius } = await gate(page);
+  for (const [name, dx, dy, expected] of [['right', 1, 0, 0], ['top', 0, -1, Math.PI / 2], ['left', -1, 0, Math.PI], ['bottom', 0, 1, -Math.PI / 2]]) {
+    await page.mouse.move(x + dx * radius, y + dy * radius, { steps: 6 });
+    await expect.poll(async () => Math.abs(arcBetween(await shipAngle(page), expected)), { message: name, timeout: 4000 }).toBeLessThan(0.08);
+  }
+});
+
+test('the ship never jumps: sweeping the pointer clean round the gate, its angle changes a little every frame', async ({ page }) => {
+  await openWormhole(page);
+  await needsWebGL(page);
+  const { x, y, radius } = await gate(page);
+  // Sample the ship's angle every frame while the pointer makes a fast, full circuit, twice over the far side.
+  await page.evaluate(() => {
+    const root = document.querySelector('.wormhole');
+    window.__samples = [];
+    const tick = () => { window.__samples.push(Number(root.dataset.shipAngle)); window.__watch = requestAnimationFrame(tick); };
+    tick();
+  });
+  for (let lap = 0; lap < 2; lap += 1) {
+    for (let step = 0; step <= 40; step += 1) {
+      const angle = (step / 40) * Math.PI * 2 + lap * 0.3;
+      await page.mouse.move(x + Math.cos(angle) * radius, y - Math.sin(angle) * radius);
+      await page.waitForTimeout(16);
+    }
+  }
+  const samples = await page.evaluate(() => { cancelAnimationFrame(window.__watch); return window.__samples; });
+  expect(samples.length, 'frames sampled').toBeGreaterThan(30);
+  // A frame is at most a little over a sixtieth of a second on a busy machine; be generous, and still far below a jump.
+  const worst = Math.max(...samples.slice(1).map((v, i) => Math.abs(arcBetween(samples[i], v))));
+  expect(worst, 'the largest change of angle in one frame').toBeLessThan(0.45);
+  // It really did travel round: it was not merely still.
+  const travelled = samples.slice(1).reduce((sum, v, i) => sum + Math.abs(arcBetween(samples[i], v)), 0);
+  expect(travelled).toBeGreaterThan(Math.PI);
+});
+
+test('pointing at the gate itself does not send the ship anywhere', async ({ page }) => {
+  await openWormhole(page);
+  await needsWebGL(page);
+  const { x, y, radius } = await gate(page);
+  await page.mouse.move(x, y - radius, { steps: 4 });
+  await expect.poll(async () => Math.abs(arcBetween(await shipAngle(page), Math.PI / 2))).toBeLessThan(0.08);
+  const held = await shipAngle(page);
+  // Crossing the gate's own centre has no bearing, so the ship keeps its last one.
+  await page.mouse.move(x + 1, y - 1, { steps: 4 });
+  await page.waitForTimeout(400);
+  expect(Math.abs(arcBetween(await shipAngle(page), held))).toBeLessThan(0.05);
+});
+
+test('under reduced motion the ship does not follow the pointer', async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await openWormhole(page);
+  await needsWebGL(page);
+  const { x, y, radius } = await gate(page);
+  await page.mouse.move(x + radius, y, { steps: 6 });
+  await page.waitForTimeout(600);
+  expect(await shipAngle(page)).toBeCloseTo(-Math.PI / 2, 2);
+});
+
+test.describe('on a touchscreen', () => {
+  test.use({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true });
+
+  test('a tap sends the ship to that side of the gate, along the ring', async ({ page }) => {
+    await openWormhole(page);
+    await needsWebGL(page);
+    const { x, y, radius } = await gate(page);
+    await page.touchscreen.tap(x + radius * 0.9, y);
+    await expect.poll(async () => Math.abs(arcBetween(await shipAngle(page), 0)), { timeout: 4000 }).toBeLessThan(0.1);
+  });
+});

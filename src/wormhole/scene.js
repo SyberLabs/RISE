@@ -12,7 +12,7 @@
  */
 
 import { FLAME_BASE_Z, buildShip } from './ship.js';
-import { multiply, normalMatrix, perspective, rotationX, rotationY, rotationZ, translation } from './gl-math.js';
+import { multiply, normalMatrix, perspective, rotationX, rotationY, rotationZ, scaling, translation } from './gl-math.js';
 
 const FOV = (38 * Math.PI) / 180;
 const MAX_PIXELS = 1.7e6;
@@ -28,7 +28,7 @@ void main(){
 const THROAT = `#version 300 es
 precision highp float;
 in vec2 uv; out vec4 o;
-uniform vec2 res; uniform float t; uniform float flow; uniform float warp; uniform float open; uniform vec2 look;
+uniform vec2 res; uniform float t; uniform float flow; uniform float warp; uniform float open;
 
 float h3(vec3 p){ p = fract(p * .3183099 + .1); p *= 17.; return fract(p.x * p.y * p.z * (p.x + p.y + p.z)); }
 float n3(vec3 x){ vec3 i = floor(x), f = fract(x); f = f * f * (3. - 2. * f);
@@ -39,7 +39,6 @@ float h1(float x){ return fract(sin(x * 127.1) * 43758.5453); }
 
 void main(){
   vec2 p = uv * vec2(res.x / res.y, 1.);
-  p -= look * .04;                       // the picture leans a little with the reader's gaze
   p.y -= .16;                            // the gate sits above the ship
   p *= 1. - warp * .3;                   // the crossing pulls the view into the gate
   float r = length(p), a = atan(p.y, p.x);
@@ -217,8 +216,8 @@ export function createScene(canvas) {
       gl.viewport(0, 0, width, height);
     },
 
-    /** scene: { time, flow, thrust, open }; pose: from shipPose; look: [-1..1, -1..1]. */
-    draw(scene, pose, look = [0, 0]) {
+    /** scene: { time, flow, thrust, open }; pose: from shipPose. */
+    draw(scene, pose) {
       if (lost) return;
       gl.disable(gl.DEPTH_TEST);
       gl.disable(gl.BLEND);
@@ -228,11 +227,11 @@ export function createScene(canvas) {
       gl.uniform1f(gl.getUniformLocation(throat, 'flow'), scene.flow);
       gl.uniform1f(gl.getUniformLocation(throat, 'warp'), scene.thrust);
       gl.uniform1f(gl.getUniformLocation(throat, 'open'), scene.open);
-      gl.uniform2f(gl.getUniformLocation(throat, 'look'), look[0], look[1]);
       gl.drawArrays(gl.TRIANGLES, 0, 3);
 
+      // Rolled first, then pitched in its own frame: the nose tilts toward the gate wherever it is on its ring.
       const model = multiply(translation(pose.x, pose.y, pose.z),
-        multiply(rotationY(pose.yaw), multiply(rotationX(pose.pitch), rotationZ(pose.bank))));
+        multiply(rotationZ(pose.bank), multiply(rotationX(pose.pitch), multiply(rotationY(pose.yaw), scaling(pose.scale)))));
       const mvp = multiply(perspective(FOV, aspect, 0.1, 60), model);
       gl.enable(gl.DEPTH_TEST);
       gl.clear(gl.DEPTH_BUFFER_BIT);

@@ -84,8 +84,16 @@ Drawn in depth, the way the Oracle's ball is, and with no dependency: `src/wormh
 * **Motion** is a small state (`scene-state.js`, also pure): thrust, flow and the
   gate's opening ease toward their targets instead of snapping. The crossing is a
   designed length (about 0.9 s), not a wait, because the roll is instant. On
-  arrival the gate warms and the ship holds nearer it. The reader's pointer leans
-  the view a little.
+  arrival the gate warms and the ship holds nearer it.
+* **The ship rides a fixed ring round the gate** and follows the pointer's bearing
+  from it (`bearing.js`), whether the pointer is over the picture or anywhere on
+  the page; a tap sends it on a touchscreen. It never leaves the ring, its top
+  always faces the gate (upright at the bottom, on its side at the edges, inverted
+  at the top), and it never jumps: it has an angular speed, capped and smoothed,
+  and its angle follows the speed, so its position is continuous even when the
+  pointer crosses the point straight opposite, where the shorter way round flips.
+  Pointing at the gate itself, which has no bearing, leaves it where it is. Under
+  reduced motion it stays at the bottom of the ring.
 * **Without WebGL2**, or after the GPU drops its context, the page keeps a flat
   picture: a pixel starfield, CSS geometry and an SVG craft. The swap needs no
   reload. Neither picture is needed to use the controls.

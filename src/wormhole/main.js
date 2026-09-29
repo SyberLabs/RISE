@@ -2,6 +2,7 @@ import './wormhole.css';
 import { mountWormhole } from './wormhole.js';
 import { createScene } from './scene.js';
 import { initialScene, shipPose, stepScene } from './scene-state.js';
+import { bearingOf } from './bearing.js';
 
 const root = document.querySelector('.wormhole');
 mountWormhole(root);
@@ -94,19 +95,27 @@ function startDeep(canvas) {
   if (!scene) return false;
 
   const state = initialScene();
-  const look = [0, 0], aim = [0, 0];
+  // Where the reader is pointing, as a bearing round the gate; undefined until they point.
+  let aim;
   let last = 0, running = false, frameId = 0;
 
   const flags = () => ({
     jumping: root.classList.contains('is-jumping'),
     arrived: root.classList.contains('has-destination'),
-    reduced: reduced.matches
+    reduced: reduced.matches,
+    aim
   });
   const fit = () => {
     const rect = canvas.getBoundingClientRect();
     if (rect.width && rect.height) scene.resize(rect.width, rect.height, Math.min(devicePixelRatio || 1, 2));
   };
-  const render = () => scene.draw(state, shipPose(state, look), look);
+  const render = () => {
+    scene.draw(state, shipPose(state));
+    // The bearing the ship has reached, for anything that wants to watch it (a test, a reader's tools);
+    // written only when it changes, so a ship at rest costs the page nothing.
+    const shown = state.angle.toFixed(3);
+    if (root.dataset.shipAngle !== shown) root.dataset.shipAngle = shown;
+  };
 
   // A still frame when motion is reduced: redrawn only when something changes.
   const stillFrame = () => { stepScene(state, 0, flags()); render(); };
@@ -117,8 +126,6 @@ function startDeep(canvas) {
     if (document.hidden) { last = now; return; }
     const dt = (now - last) / 1000 || 0;
     last = now;
-    look[0] += (aim[0] - look[0]) * Math.min(1, dt * 4);
-    look[1] += (aim[1] - look[1]) * Math.min(1, dt * 4);
     stepScene(state, dt, flags());
     render();
   };
@@ -136,12 +143,16 @@ function startDeep(canvas) {
   new ResizeObserver(() => { fit(); if (reduced.matches) stillFrame(); }).observe(canvas);
   new MutationObserver(() => { if (reduced.matches) stillFrame(); }).observe(root, { attributes: true, attributeFilter: ['class'] });
   reduced.addEventListener?.('change', start);
-  viewport.addEventListener('pointermove', event => {
-    const rect = viewport.getBoundingClientRect();
-    aim[0] = ((event.clientX - rect.left) / rect.width) * 2 - 1;
-    aim[1] = ((event.clientY - rect.top) / rect.height) * 2 - 1;
-  });
-  viewport.addEventListener('pointerleave', () => { aim[0] = aim[1] = 0; });
+  // The ship rides a ring round the gate and follows the pointer's bearing from it.
+  // A mouse or pen is followed wherever it is on the page; a finger sends it with a tap.
+  // Under reduced motion it does not follow: nothing moves until the reader asks for something.
+  const point = event => {
+    if (reduced.matches) return;
+    const bearing = bearingOf(event.clientX, event.clientY, viewport.getBoundingClientRect());
+    if (bearing !== null) aim = bearing;
+  };
+  window.addEventListener('pointermove', event => { if (event.pointerType !== 'touch') point(event); });
+  viewport.addEventListener('pointerdown', event => { if (event.pointerType === 'touch') point(event); });
   canvas.addEventListener('scene-lost', () => { running = false; cancelAnimationFrame(frameId); startFlat(); });
   canvas.addEventListener('scene-restored', () => { flat?.stop(); root.classList.add('has-gl'); start(); });
 
