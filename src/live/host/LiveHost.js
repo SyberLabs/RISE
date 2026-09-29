@@ -10,7 +10,9 @@
  * configured otherwise (`?provider=openai`), so by default nothing here can
  * spend money or leave the device. OpenAI Realtime uses the reader's own key,
  * typed into this page, held in memory, sent once to this site to open each
- * session, and forgotten when the session ends. `?voice=paced` makes the reading silent and
+ * session, and forgotten when the session ends. `?eval=1` replaces the prompt with a study
+ * instrument (src/live/eval/study.js) and `?eval=later` with its later questions.
+ * `?voice=paced` makes the reading silent and
  * paced as if spoken, which is what every automated test uses. `?measure=1`
  * exposes a read-only record of when atoms were shown and when the voice spoke
  * (`window.__riseLive`), which is how sync error is measured in a real browser.
@@ -18,6 +20,7 @@
 
 import { describeDegradations, detectCapabilities } from '../capabilities.js';
 import { createLiveControls } from './controls.js';
+import { DelayedRunner, EvalRunner } from './EvalRunner.js';
 import './LiveHost.css';
 
 const DEFAULT_PROMPT = 'Explain black holes with RISE.';
@@ -52,6 +55,13 @@ export class LiveHost {
         this.atomLog = [];
         // The reader's own key, in memory and nowhere else; see forgetKey.
         this.key = '';
+        if (this.params.has('eval')) {
+            // A study instrument, not a prompt. Everything it needs is fetched as it is needed.
+            this.modules = this.loadModules();
+            this.modules.catch(() => {});
+            this.startEval();
+            return;
+        }
         this.render();
         // While the reader is typing, fetch what starting will need, so that the time from
         // Start to the first words is the answer’s and not the network’s.
@@ -128,6 +138,7 @@ export class LiveHost {
     }
 
     showNotes() {
+        if (!this.notes) return;
         const notes = describeDegradations(this.caps, { voice: this.selectedVoice() === 'browser' ? 'browser' : 'paced', voices: this.voiceCount || 1 });
         this.notes.replaceChildren(...notes.map(note => {
             const item = document.createElement('li');
@@ -138,12 +149,13 @@ export class LiveHost {
     }
 
     selectedVoice() {
-        const chosen = this.form.elements.voice.value;
+        const chosen = this.form?.elements.voice.value ?? this.params.get('voice');
         if (chosen === 'paced') return 'paced';
         return this.caps.speechOutput === 'synthesis' ? 'browser' : 'paced';
     }
 
     fail(message) {
+        if (!this.errorLine) return;
         this.errorLine.textContent = message;
         this.errorLine.hidden = false;
     }
@@ -194,6 +206,7 @@ export class LiveHost {
     }
 
     resetButton() {
+        if (!this.startButton) return;
         this.startButton.disabled = false;
         this.startButton.textContent = 'Start';
     }
@@ -263,6 +276,80 @@ export class LiveHost {
         this.voiceKind = 'paced';
         this.showNotes();
         return { create: () => createSyntheticVoice({ clock }) };
+    }
+
+    // ─── the study instrument ───────────────────────────────────────────
+
+    startEval() {
+        if (this.params.get('eval') === 'later') {
+            this.eval = new DelayedRunner(this.container);
+            return;
+        }
+        const voices = async () => {
+            const { createRealClock } = await this.modules.then(loaded => loaded[3]);
+            return this.buildVoices(createRealClock());
+        };
+        import('../eval/presenters.js').then(({ createPresenters: make }) => {
+            const presenters = make({ voices, voiceKind: () => this.voiceKind, note: () => {} });
+            presenters['rise-current'] = context => this.presentEvalCurrent(context);
+            this.eval = new EvalRunner(this.container, {
+                params: this.params,
+                presenters,
+                environment: () => ({
+                    viewport: `${globalThis.innerWidth}x${globalThis.innerHeight}`,
+                    reducedMotion: this.caps.reducedMotion,
+                    touch: this.caps.touch,
+                    webgl2: this.caps.webgl2
+                })
+            });
+        });
+    }
+
+    /** The live Current condition: the real runtime, with the fixed answer and a prompt to ask about the horizon. */
+    presentEvalCurrent({ container, done, note }) {
+        this.providerName = 'mock';
+        let finished = false;
+        const guide = document.createElement('section');
+        guide.id = 'live-eval-guide';
+        guide.className = 'live-eval__guide';
+        guide.innerHTML = '<p class="live-eval__guide-text"></p>';
+        const text = guide.querySelector('p');
+        text.textContent = 'Listen to the answer. When it reaches the size of the horizon, type “dive on event horizon” below and press Dive, read the side answer, then press Surface. Then let the answer carry on to the end.';
+        const carry = document.createElement('button');
+        carry.type = 'button';
+        carry.className = 'live-start';
+        carry.hidden = true;
+        carry.textContent = 'Continue to the questions';
+        guide.append(carry);
+        document.body.append(guide);
+
+        const finish = async () => {
+            if (finished) return;
+            finished = true;
+            guide.remove();
+            await this.stop();
+            done();
+        };
+        carry.addEventListener('click', finish);
+
+        (async () => {
+            try {
+                const runtime = await this.buildRuntime();
+                this.runtime = runtime;
+                note('voice', this.voiceKind);
+                this.controls = createLiveControls({ runtime, onStop: finish, audible: this.voiceKind === 'browser' });
+                runtime.subscribe(view => {
+                    if (runtime.journal().some(entry => entry.type === 'branch.open')) note('dived', true);
+                    if (view.status === 'ended' && !view.side) carry.hidden = false;
+                });
+                await runtime.start('Explain black holes with RISE.');
+            } catch (error) {
+                note('voice', 'failed');
+                text.textContent = `It could not start: ${String(error?.message ?? error).slice(0, 160)}`;
+                carry.hidden = false;
+            }
+        })();
+        return { destroy() { guide.remove(); } };
     }
 
     /** The reader pressed Stop, or asked to leave. */

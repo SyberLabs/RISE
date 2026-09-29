@@ -165,3 +165,26 @@
 @media (prefers-reduced-motion: reduce) {
   .live-controls { backdrop-filter: none; }
 }
+
+/* The study instrument. It looks like the rest of the host and asks for nothing more. */
+
+.live-eval__terms { margin: 0; padding-left: 1.1rem; color: var(--color-fog); line-height: 1.6; }
+.live-eval__agree { flex-direction: row; align-items: center; gap: 0.5rem; }
+.live-eval__note,
+.live-eval__status { margin: 0; color: var(--color-fog); font-size: 0.9rem; }
+.live-eval__form { display: flex; flex-direction: column; gap: 1.25rem; }
+.live-eval__question { border: 1px solid color-mix(in srgb, var(--color-light) 22%, transparent); border-radius: 0.4rem; padding: 0.75rem 1rem; display: flex; flex-direction: column; gap: 0.5rem; }
+.live-eval__question legend { padding: 0 0.4rem; line-height: 1.4; }
+.live-eval__choice { display: flex; align-items: flex-start; gap: 0.5rem; line-height: 1.4; min-height: 2.75rem; align-items: center; }
+.live-eval__rating { flex-direction: row; flex-wrap: wrap; align-items: center; }
+.live-eval__rating .live-eval__note { flex: 1 1 100%; }
+.live-eval__article { line-height: 1.7; display: flex; flex-direction: column; gap: 0.9rem; font-size: 1.05rem; }
+.live-eval__article p { margin: 0; }
+.live-eval__you,
+.live-eval__side { border-left: 2px solid color-mix(in srgb, var(--color-light) 40%, transparent); padding-left: 0.75rem; color: var(--color-fog); }
+.live-eval__source { color: var(--color-fog); font-size: 0.9rem; }
+.live-eval__voice { min-height: 60vh; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1rem; position: relative; z-index: 1; }
+.live-eval__field { position: fixed; inset: 0; z-index: 0; }
+.live-eval__field canvas { width: 100%; height: 100%; display: block; }
+.live-eval__guide { position: fixed; z-index: 200001; top: 0; left: 0; right: 0; padding: 0.6rem max(0.75rem, env(safe-area-inset-right)) 0.6rem max(0.75rem, env(safe-area-inset-left)); background: color-mix(in srgb, var(--color-void) 85%, transparent); color: var(--color-light); font-family: var(--sy-font-sans); display: flex; flex-wrap: wrap; gap: 0.5rem 1rem; align-items: center; border-bottom: 1px solid color-mix(in srgb, var(--color-light) 18%, transparent); }
+.live-eval__guide-text { margin: 0; flex: 1 1 22rem; font-size: 0.9rem; line-height: 1.45; }
