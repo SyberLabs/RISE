@@ -258,12 +258,17 @@ built.
 
 Two constraints the new kind must respect:
 
-- The validator gives **each lane one authority** (`experience-program.js:828`),
-  so a lane is `published`, `user`, or `proposed` as a whole. That maps cleanly to
-  "models flag, humans dispose": a lane of proposed glosses becomes a `user` lane
-  only when a person accepts it. It does **not** give per-thread provenance, so
-  received quotations (a gloss that quotes the edition) must carry their quote
-  fingerprints, while written ones do not.
+- Authority is **per program**, not per lane (`experience-program.js`: one
+  `authority` on the whole score; one track per kind). That still maps to "models
+  flag, humans dispose": a program of proposed glosses becomes a `user` program
+  when a person accepts it. It gives no per-thread provenance, so the kind of
+  cue carries it instead. A gloss is written, by the program's authority. An echo
+  stores no text and names where the received words are, so it can only be received.
+  (An earlier draft said "each lane one authority"; that was a misreading of the
+  comment beside the one-track-per-kind rule.)
+- Same-lane clips may not overlap (fail-closed for every kind). That rule exists
+  because a media lane presents one thing at a time. A thread lane is a list, so
+  the thread kind is exempted with that reason stated where the exemption is made.
 - Track kinds are a closed list (`PROGRAM_TRACK_KINDS`), and the file says the
   render-support registry "must cover every value". A new kind means a registry
   entry and a test, not just a string.

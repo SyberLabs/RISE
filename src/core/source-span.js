@@ -447,10 +447,18 @@ function atomIntersects(atom, span) {
     : to > span.fromToken && from < span.toToken;
 }
 
-function authoredSpanAnchors(program) {
+/**
+ * Media reshape the reading: an image that begins mid-phrase makes the phrase
+ * end there, so their edges are cut points. A thread does not. It is stamped on
+ * whatever atoms its words fall in and leaves the cut, and the timing, alone.
+ */
+const MEDIA_TRACK_KINDS = Object.freeze(['visual', 'audio', 'swell']);
+const SPAN_TRACK_KINDS = Object.freeze([...MEDIA_TRACK_KINDS, 'thread']);
+
+function authoredSpanAnchors(program, kinds = MEDIA_TRACK_KINDS) {
   const out = [];
   program?.tracks?.forEach((track, trackIndex) => {
-    if (!['visual', 'audio', 'swell'].includes(track.kind)) return;
+    if (!kinds.includes(track.kind)) return;
     track.clips.forEach((clip, clipIndex) => {
       const anchor = clip.anchor || {};
       const hasOffsets = anchor.fromCharacter !== undefined || anchor.fromToken !== undefined;
@@ -459,6 +467,7 @@ function authoredSpanAnchors(program) {
       out.push({
         clip,
         trackId: track.id,
+        trackKind: track.kind,
         path: `$.tracks[${trackIndex}].clips[${clipIndex}].anchor`,
         quotationOnly: !hasOffsets && !!hasQuotes
       });
@@ -508,7 +517,7 @@ export function sourceSpanCutPoints(program, source) {
  * (where the curator can extend the quote); the reading must not die on it.
  */
 export function compileSourceSpans(program, sources, atoms) {
-  const authored = authoredSpanAnchors(program);
+  const authored = authoredSpanAnchors(program, SPAN_TRACK_KINDS);
   if (authored.length === 0) {
     return Object.freeze({ resolutions: Object.freeze([]), omitted: Object.freeze([]) });
   }
@@ -532,7 +541,7 @@ export function compileSourceSpans(program, sources, atoms) {
   const normalizedBySource = new Map();
   const resolutions = [];
   const omitted = [];
-  for (const { clip, trackId, path, quotationOnly } of authored) {
+  for (const { clip, trackId, trackKind, path, quotationOnly } of authored) {
     const sourceId = clip.anchor.sourceIds[0];
     const source = sourceMap.get(sourceId);
     if (!source) {
@@ -584,7 +593,7 @@ export function compileSourceSpans(program, sources, atoms) {
     }
     const spanId = `${trackId}:${clip.id}`;
     for (const atom of matchedAtoms) {
-      const sameTrack = (atom.sourceSpanIds || [])
+      const sameTrack = trackKind === 'thread' ? null : (atom.sourceSpanIds || [])
         .find(id => id.startsWith(`${trackId}:`));
       if (sameTrack && sameTrack !== spanId) {
         fail('SOURCE_SPAN_ATOM_CONFLICT',
@@ -635,7 +644,7 @@ export function assertQuotationAnchorsAgainstSources(program, sources = []) {
   /** @type {Map<string, ReturnType<typeof buildNormalizedSourceIndex>>} */
   const normalizedBySource = new Map();
 
-  for (const { clip, path, quotationOnly } of authoredSpanAnchors(program)) {
+  for (const { clip, path, quotationOnly } of authoredSpanAnchors(program, SPAN_TRACK_KINDS)) {
     if (!quotationOnly) continue;
     const sourceId = clip.anchor.sourceIds[0];
     const text = sourceMap.get(sourceId);
