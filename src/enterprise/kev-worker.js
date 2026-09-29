@@ -16,6 +16,7 @@
 import * as ort from 'onnxruntime-web/jspi';
 import { Kev, PointerHead } from '@ai-ecoverse/kev.js';
 import { Tokenizer } from '@huggingface/tokenizers';
+import ortWasmUrl from 'onnxruntime-web/ort-wasm-simd-threaded.jspi.wasm?url';
 import { DEVICE_MODELS, ORT_WASM, runMatches } from './device-model.js';
 import { CACHE_NAME, dropOtherRevisions, LoadFailure, storedFile } from './kev-store.js';
 
@@ -85,7 +86,7 @@ async function load(modelId) {
 
     post({ type: 'phase', phase: 'runtime' });
     if (typeof WebAssembly.Suspending !== 'function') throw new LoadFailure('no-jspi');
-    const wasm = new Uint8Array(await (await fetchChecked(ORT_WASM.url, 'runtime')).arrayBuffer());
+    const wasm = new Uint8Array(await (await fetchChecked(ortWasmUrl, 'runtime')).arrayBuffer());
     if (await sha256(wasm) !== ORT_WASM.sha256) throw new LoadFailure('runtime-digest');
     ort.env.wasm.wasmBinary = wasm;
     ort.env.wasm.numThreads = 1;
