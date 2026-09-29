@@ -398,7 +398,8 @@ export class Player {
             this.listeners.set(event, new Set());
         }
         this.listeners.get(event).add(callback);
-        return () => this.listeners.get(event).delete(callback);
+        // A Player destroyed before a view lets go of it has no listeners left to leave.
+        return () => this.listeners.get(event)?.delete(callback);
     }
 
     /**

@@ -32,6 +32,7 @@ import { createRouteManifest } from './app/route-manifest.js';
 import { installTestBridge } from './app/test-bridge.js';
 
 const VISUAL_LAB_PATH = '/visual-lab';
+const LIVE_PATH = '/live';
 import { watchTabFreshness } from './core/tab-freshness.js';
 import { hasPersonalWorkInPage } from './core/personal-identity.js';
 
@@ -344,6 +345,8 @@ class App {
             await this.router.navigate('mint', { data: { entry: houseProgram(mintedSlug) } });
         } else if (window.location.pathname === VISUAL_LAB_PATH) {
             await this.router.navigate('visual-lab');
+        } else if (window.location.pathname === LIVE_PATH) {
+            await this.router.navigate('live');
         } else if (options.personalizedVault) {
             console.log('[RISE] Navigating directly to personalized vault:', options.personalizedVault);
             await this.router.navigate('vault', { data: { personalizedVault: options.personalizedVault } });
@@ -488,6 +491,8 @@ class App {
             handleArchetypeLaunch: data => this.handleArchetypeLaunch(data),
             handleBeginSession: session => this.handleBeginSession(session),
             useRecipeInReading: recipe => this.useRecipeInReading(recipe),
+            presentLive: (session, player) => this.presentLive(session, player),
+            leaveLive: () => this.router.navigate('live', { replace: true, skipStack: true }),
             getAudioEngine: () => this.audioEngine,
             getCurrentSession: () => this.currentSession,
             getSettings: () => this.settings,
@@ -507,6 +512,8 @@ class App {
                 ensureVisualCortex: () => this.ensureVisualCortex(),
                 ensureAudioEngine: () => this.ensureAudioEngine(),
                 continueLibraryReading: session => this.continueLibraryReading(session),
+                takeLivePlayer: session => this.takeLivePlayer(session),
+                liveExited: () => this.router.getViewInstance('live')?.ended?.(),
                 handleSettingsChange: this.handleSettingsChange,
                 handleDataCleared: this.handleDataCleared,
                 showLoading: title => this.showLoading(title),
@@ -536,6 +543,41 @@ class App {
                 init: async (container, data) => route.create(container, data, await route.load())
             });
         }
+    }
+
+    /**
+     * Put a live reading on screen. The Player is the one the live runtime
+     * built for this Current; the factory adopts it (takeLivePlayer) instead of
+     * making another. The view replaces whatever reading is showing, the way a
+     * successor division does; and a Player that was held part way (a Dive that
+     * has come back) is shown its atom again, since the view is new.
+     */
+    async presentLive(session, player) {
+        session.origin = { view: 'live' };
+        this.liveHandoff = { session, player };
+        this.currentSession = session;
+        // The router remounts a view only when it has none: the Chamber that was
+        // showing goes first, and lets go of its Player as it does.
+        const showing = this.router.views.get('chamber-session');
+        if (showing?.instance) {
+            showing.instance.destroy?.();
+            showing.instance = null;
+        }
+        await this.router.navigate('chamber-session', {
+            data: session,
+            force: true,
+            replace: true,
+            skipStack: true
+        });
+        if (player.sessionState.state === 'paused') player.replayCurrent();
+    }
+
+    /** The factory asks once, for the Session it has been handed. */
+    takeLivePlayer(session) {
+        const handoff = this.liveHandoff;
+        if (!handoff || handoff.session !== session) return null;
+        this.liveHandoff = null;
+        return handoff.player;
     }
 
     async launchChapelReading(bookId, chapter, extras) {
@@ -590,6 +632,11 @@ class App {
         if (viewName === 'visual-lab' && window.location.pathname !== VISUAL_LAB_PATH) {
             window.history[replaceUrl ? 'replaceState' : 'pushState']({}, '', VISUAL_LAB_PATH);
         } else if (viewName !== 'visual-lab' && window.location.pathname === VISUAL_LAB_PATH) {
+            window.history.pushState({}, '', '/');
+        }
+        if (viewName === 'live' && window.location.pathname !== LIVE_PATH) {
+            window.history[replaceUrl ? 'replaceState' : 'pushState']({}, '', LIVE_PATH);
+        } else if (viewName !== 'live' && window.location.pathname === LIVE_PATH) {
             window.history.pushState({}, '', '/');
         }
         // Returned so a caller can wait for the outgoing view to have
@@ -1335,6 +1382,10 @@ class App {
             const { keystoneSlugFromPath } = await import('./content/keystones.js');
             if (window.location.pathname === VISUAL_LAB_PATH) {
                 await this.router?.navigate('visual-lab', { replace: true, skipStack: true });
+                return;
+            }
+            if (window.location.pathname === LIVE_PATH) {
+                await this.router?.navigate('live', { replace: true, skipStack: true });
                 return;
             }
             const slug = keystoneSlugFromPath(window.location.pathname);

@@ -37,6 +37,15 @@ afterEach(() => {
     vi.useRealTimers();
 });
 
+describe('leaving a Player that has been destroyed', () => {
+    it('lets a listener unsubscribe after the Player cleared them, without throwing', () => {
+        player = new Player(session());
+        const off = player.on('atom', () => {});
+        player.destroy();
+        expect(() => off()).not.toThrow();
+    });
+});
+
 describe('governing the duration of an atom', () => {
     it('asks a governor only when the slot declines, and uses the first answer', () => {
         player = new Player(session());

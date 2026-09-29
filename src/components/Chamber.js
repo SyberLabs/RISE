@@ -174,7 +174,11 @@ export class Chamber {
     this.container = container;
     this.session = options.session;
     this.player = options.player;
-    this.autoStart = options.autoStart !== undefined ? options.autoStart : false;
+    // A host that runs the reading itself (a live Current, whose Player is
+    // started by the runtime once this view is up) wants the reading shown
+    // and not gated behind Begin, but must not have the Chamber start it.
+    this.hostPlays = options.hostPlays === true;
+    this.autoStart = this.hostPlays || (options.autoStart !== undefined ? options.autoStart : false);
     this.onExit = options.onExit || (() => { });
     this.onEnterStream = typeof options.onEnterStream === 'function'
       ? options.onEnterStream : async () => true;
@@ -449,7 +453,7 @@ export class Chamber {
         this._pageOpenTimer = null;
         this.togglePageMode(true);
       }, 120);
-    } else if (this.autoStart) {
+    } else if (this.autoStart && !this.hostPlays) {
       // Auto-start if requested (skip pre-session screen). Tracked and
       // Page-aware: a reader who opens the Page inside this delay must
       // not have a stream start underneath them when it fires.

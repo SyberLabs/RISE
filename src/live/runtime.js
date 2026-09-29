@@ -130,6 +130,7 @@ export function createLiveRuntime({
             }
         }
         run.lowered = ended.length;
+        set(status);
 
         if (!run.player) {
             run.player = createPlayer(session, { role: run.role });
@@ -296,6 +297,8 @@ export function createLiveRuntime({
             const position = where(main, segmentId, atCharacter);
             const before = status;
             main.player.pause();
+            // Something else is about to speak, and a device speaks one thing at a time.
+            main.voice?.hold({ exclusive: true });
             const view = main.stream.snapshot();
             const index = view.segments.findIndex(segment => segment.id === position.segmentId);
             const context = view.segments.slice(Math.max(0, index - 1), index + 1)
@@ -309,6 +312,7 @@ export function createLiveRuntime({
                 }, 'side');
             } catch (caught) {
                 note('branch.failed', { code: caught?.code ?? 'OPEN_FAILED' });
+                // Playing again releases the voice with it; a reader who had held it keeps it held.
                 if (before === 'live') main.player.play();
                 throw caught;
             }
@@ -346,12 +350,17 @@ export function createLiveRuntime({
     function attachVoice(run) {
         if (!run.voice) return;
         run.voice.attach({
-            start: id => { run.speaking = id; note('speech.start', { role: run.role, segmentId: id }); },
+            start: id => { run.speaking = id; note('speech.start', { role: run.role, segmentId: id }); set(status); },
             mark: (id, charIndex, tMs) => run.governor.observe('mark', id, charIndex, tMs),
+            fail: (id, reason) => {
+                run.governor.standDown('voice-failed');
+                note('voice.failed', { role: run.role, segmentId: id, message: String(reason).slice(0, 200) });
+            },
             end: (id, durationMs) => {
                 run.governor.observe('end', id, durationMs);
                 if (run.speaking === id) run.speaking = null;
                 note('speech.end', { role: run.role, segmentId: id, durationMs });
+                set(status);
             }
         });
     }

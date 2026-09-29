@@ -19,8 +19,23 @@ import { createPresentationLens, sessionColorTheme } from '../core/session-prese
 import { sessionImageryCollections } from '../core/visual-selection.js';
 import { audioDiag } from '../core/audio-diagnostics.js';
 
+/**
+ * The one place a Player is made. A host that needs a Player for a Session it
+ * will present later (the live runtime, which builds its Player as the words
+ * arrive) asks for it here, and hands it back through `takeLivePlayer`.
+ */
+export function createSessionPlayer(session) {
+    return new Player(session);
+}
+
 export async function createChamberSession(operations, container, sessionData) {
     const session = sessionData || operations.getCurrentSession();
+    // A LIVE READING ARRIVES WITH ITS PLAYER, ALREADY RUNNING OR HELD. It is the
+    // one Player for the whole Current, so it is adopted, not rebuilt; and
+    // because the view replaces one already on screen (a Dive, coming back), the
+    // preparation overlay and its settling delay are skipped.
+    const live = operations.takeLivePlayer?.(session) ?? null;
+    const ui = live ? { showLoading() {}, updateLoadingStatus() {}, hideLoading() {} } : operations;
     const revision = operations.router.navigationRevision;
     const assertCurrent = () => {
         if (revision !== operations.router.navigationRevision) throw new DOMException('Launch cancelled', 'AbortError');
@@ -116,7 +131,7 @@ export async function createChamberSession(operations, container, sessionData) {
 
         // Only enter the non-interactive preparation phase after
         // the safety decision has completed.
-        operations.showLoading('Preparing Session');
+        ui.showLoading('Preparing Session');
 
         // Start the selected neural voice during preparation, not
         // after the first atom is already on screen. It builds a
@@ -125,7 +140,7 @@ export async function createChamberSession(operations, container, sessionData) {
         // lead is ready (or preparation degrades cleanly).
         let recitationReady = Promise.resolve(false);
         if (session.recitation?.enabled === true) {
-            operations.updateLoadingStatus('Preparing spoken voice...');
+            ui.updateLoadingStatus('Preparing spoken voice...');
             const { Voice } = await import('../audio/voice.js');
             assertCurrent();
             recitationVoice = new Voice({
@@ -153,7 +168,7 @@ export async function createChamberSession(operations, container, sessionData) {
             || session.recitation?.enabled === true;
 
         if (hasAudio) {
-            operations.updateLoadingStatus('Stabilizing carrier frequencies...');
+            ui.updateLoadingStatus('Stabilizing carrier frequencies...');
             audioEngine.stopAmbient();
             audioEngine.sessionActive = true;
             const durationSec = (session.totalDuration || 0) / 1000;
@@ -183,8 +198,8 @@ export async function createChamberSession(operations, container, sessionData) {
             audioEngine.sessionActive = true;
         }
 
-        operations.updateLoadingStatus('Creating player...');
-        const player = new Player(session);
+        ui.updateLoadingStatus('Creating player...');
+        const player = live ?? createSessionPlayer(session);
         preparedPlayer = player;
 
         // The player is the sole clock: entrainment ramps
@@ -209,7 +224,7 @@ export async function createChamberSession(operations, container, sessionData) {
 
         // Configure visual cortex based on the consented mode.
         if (visualSetupMode === 'interlocution') {
-            operations.updateLoadingStatus('Loading visual engine...');
+            ui.updateLoadingStatus('Loading visual engine...');
             const activeTypes = [];
             const rawInterlocution = session.visualConfig.interlocution || {};
             const interlocution = {
@@ -385,13 +400,13 @@ export async function createChamberSession(operations, container, sessionData) {
 
 
 
-        operations.updateLoadingStatus('Entering chamber...');
+        ui.updateLoadingStatus('Entering chamber...');
 
         const { Chamber } = await import('../components/Chamber.js');
         assertCurrent();
 
         if (recitationVoice) {
-            operations.updateLoadingStatus('Building the spoken lead...');
+            ui.updateLoadingStatus('Building the spoken lead...');
             // THE ANSWER WAS AWAITED AND THROWN AWAY. A reading whose
             // voice could not be prepared entered anyway, with the voice
             // attached and enabled, and every phrase then came up silent
@@ -414,10 +429,10 @@ export async function createChamberSession(operations, container, sessionData) {
         }
 
         // Brief delay for smooth transition
-        await new Promise(resolve => setTimeout(resolve, 300));
+        if (!live) await new Promise(resolve => setTimeout(resolve, 300));
         assertCurrent();
 
-        operations.hideLoading();
+        ui.hideLoading();
 
         // `presentation` already means the VISUAL presentation mode in
         // this file (line 76). This is the other kind — how the type is
@@ -428,7 +443,9 @@ export async function createChamberSession(operations, container, sessionData) {
             session: session,
             player: player,
             voice: recitationVoice,
-            autoStart: true,
+            // A live reading is shown at once and started by its host, after this view is up.
+            autoStart: !live,
+            hostPlays: live !== null,
             audioEngine,
             // A composed reading opens in the presentation it was
             // composed for; the reader's own settings answer for
@@ -443,6 +460,7 @@ export async function createChamberSession(operations, container, sessionData) {
             pendingVisualRecipe: operations.takePendingVisualRecipe?.() || null,
             onExit: (reason, data) => {
                 // Cleanup
+                if (live) operations.liveExited?.(session);
                 player.stop();
                 endVisualInterlocutionSession();
                 visualCortex.updateConfig({ enabled: false });
