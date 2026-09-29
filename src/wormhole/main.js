@@ -1,28 +1,40 @@
 import './wormhole.css';
 import { mountWormhole } from './wormhole.js';
+import { createScene } from './scene.js';
+import { initialScene, shipPose, stepScene } from './scene-state.js';
 
 const root = document.querySelector('.wormhole');
 mountWormhole(root);
 
-// A small, low resolution 2D scene: no WebGL dependency, no animation required
-// for the controls. If canvas is unavailable the CSS horizon and polygon ship
-// remain a complete instrument.
-const canvas = document.querySelector('#starfield');
-const context = canvas?.getContext?.('2d');
 const reduced = matchMedia('(prefers-reduced-motion: reduce)');
+const viewport = document.querySelector('.wh-viewport');
 
-if (context) {
-  const CELL = 2;                 // CSS pixels per drawn pixel: fine, but still pixels
-  const IDLE = 0.03;              // a slow drift while the reader decides
-  const CROSSING = 1.3;           // and a rush while the wormhole is entered
+/**
+ * The picture is drawn in depth (scene.js) where WebGL2 is available. Where it
+ * is not, or after the GPU drops its context, the page keeps a small 2D scene:
+ * a pixel starfield, CSS geometry and an SVG craft. Neither is ever needed to
+ * use the controls.
+ */
+let flat = null;
+
+function startFlat() {
+  root.classList.remove('has-gl');
+  if (flat) return flat.start();
+  const canvas = document.querySelector('#starfield');
+  const context = canvas?.getContext?.('2d');
+  if (!context) { root.classList.add('no-canvas'); return undefined; }
+
+  const CELL = 2;
+  const IDLE = 0.03;
+  const CROSSING = 1.3;
   const TINTS = ['#bad7d1', '#bad7d1', '#bad7d1', '#e8dec4', '#f1a472'];
   const stars = Array.from({ length: 150 }, (_, i) => ({
-    angle: i * 2.39996,           // the golden angle spreads them evenly
+    angle: i * 2.39996,
     depth: ((i * 37) % 97) / 97,
     size: i % 9 === 0 ? 2 : 1,
     tint: TINTS[(i * 7) % TINTS.length]
   }));
-  let last = 0, phase = 0, speed = IDLE, width = 0, height = 0;
+  let last = 0, phase = 0, speed = IDLE, width = 0, height = 0, running = false;
 
   const fit = () => {
     const rect = canvas.getBoundingClientRect();
@@ -37,7 +49,6 @@ if (context) {
     fit();
     context.clearRect(0, 0, width, height);
     const cx = width * 0.5, cy = height * 0.43;
-    // Streaks only once the rush is well under way, so idle stars stay points.
     const streak = speed > 0.25 ? speed : 0;
     for (const star of stars) {
       const depth = (star.depth + phase) % 1;
@@ -47,8 +58,6 @@ if (context) {
       context.fillStyle = star.tint;
       context.globalAlpha = 0.2 + depth * 0.72;
       const length = 1 + Math.round(streak * depth * 6);
-      // The streak trails back toward the gate along the star's own bearing.
-      // Half-pixel steps, so a diagonal stays one line and not a row of dashes.
       const dx = Math.cos(star.angle), dy = Math.sin(star.angle);
       for (let step = 0; step <= length * 2; step += 1) {
         context.fillRect(Math.round(x - dx * step / 2), Math.round(y - dy * step / 2), star.size, star.size);
@@ -57,27 +66,91 @@ if (context) {
     context.globalAlpha = 1;
   }
 
-  if (reduced.matches) {
-    // One still frame; it is redrawn only when the picture changes size.
-    draw();
-    addEventListener('resize', draw);
-  } else {
-    const frame = now => {
-      requestAnimationFrame(frame);
-      if (document.hidden || now - last < 33) return;
-      const dt = Math.min(0.05, (now - last) / 1000 || 0);
-      last = now;
-      // Speed eases toward the crossing and back, instead of snapping.
-      const target = root.classList.contains('is-jumping') ? CROSSING : IDLE;
-      speed += (target - speed) * Math.min(1, dt * 3);
-      phase += dt * speed;
-      draw();
-    };
+  const frame = now => {
+    if (!running) return;
     requestAnimationFrame(frame);
-  }
-} else {
-  root.classList.add('no-canvas');
+    if (document.hidden || now - last < 33) return;
+    const dt = Math.min(0.05, (now - last) / 1000 || 0);
+    last = now;
+    const target = root.classList.contains('is-jumping') ? CROSSING : IDLE;
+    speed += (target - speed) * Math.min(1, dt * 3);
+    phase += dt * speed;
+    draw();
+  };
+
+  flat = {
+    start() {
+      if (reduced.matches) { draw(); addEventListener('resize', draw); return; }
+      running = true;
+      requestAnimationFrame(frame);
+    },
+    stop() { running = false; removeEventListener('resize', draw); }
+  };
+  return flat.start();
 }
+
+function startDeep(canvas) {
+  const scene = createScene(canvas);
+  if (!scene) return false;
+
+  const state = initialScene();
+  const look = [0, 0], aim = [0, 0];
+  let last = 0, running = false, frameId = 0;
+
+  const flags = () => ({
+    jumping: root.classList.contains('is-jumping'),
+    arrived: root.classList.contains('has-destination'),
+    reduced: reduced.matches
+  });
+  const fit = () => {
+    const rect = canvas.getBoundingClientRect();
+    if (rect.width && rect.height) scene.resize(rect.width, rect.height, Math.min(devicePixelRatio || 1, 2));
+  };
+  const render = () => scene.draw(state, shipPose(state, look), look);
+
+  // A still frame when motion is reduced: redrawn only when something changes.
+  const stillFrame = () => { stepScene(state, 0, flags()); render(); };
+
+  const frame = now => {
+    if (!running) return;
+    frameId = requestAnimationFrame(frame);
+    if (document.hidden) { last = now; return; }
+    const dt = (now - last) / 1000 || 0;
+    last = now;
+    look[0] += (aim[0] - look[0]) * Math.min(1, dt * 4);
+    look[1] += (aim[1] - look[1]) * Math.min(1, dt * 4);
+    stepScene(state, dt, flags());
+    render();
+  };
+
+  const start = () => {
+    running = false;
+    cancelAnimationFrame(frameId);
+    fit();
+    if (reduced.matches) { stillFrame(); return; }
+    running = true;
+    last = performance.now();
+    frameId = requestAnimationFrame(frame);
+  };
+
+  new ResizeObserver(() => { fit(); if (reduced.matches) stillFrame(); }).observe(canvas);
+  new MutationObserver(() => { if (reduced.matches) stillFrame(); }).observe(root, { attributes: true, attributeFilter: ['class'] });
+  reduced.addEventListener?.('change', start);
+  viewport.addEventListener('pointermove', event => {
+    const rect = viewport.getBoundingClientRect();
+    aim[0] = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+    aim[1] = ((event.clientY - rect.top) / rect.height) * 2 - 1;
+  });
+  viewport.addEventListener('pointerleave', () => { aim[0] = aim[1] = 0; });
+  canvas.addEventListener('scene-lost', () => { running = false; cancelAnimationFrame(frameId); startFlat(); });
+  canvas.addEventListener('scene-restored', () => { flat?.stop(); root.classList.add('has-gl'); start(); });
+
+  root.classList.add('has-gl');
+  start();
+  return true;
+}
+
+if (!startDeep(document.querySelector('#scene'))) startFlat();
 
 // Silent by default; only a deliberate opt-in enables a brief synthesized cue.
 const sound = document.querySelector('#sound');

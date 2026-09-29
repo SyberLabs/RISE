@@ -137,6 +137,18 @@ button:focus-visible, a:focus-visible { outline: 2px solid var(--orange); outlin
   mix-blend-mode: multiply;
 }
 
+/* The deep scene, where WebGL2 provides it; it replaces the flat picture below. */
+#scene {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  display: none;
+  width: 100%;
+  height: 100%;
+}
+.has-gl #scene { display: block; }
+.has-gl #starfield, .has-gl .wh-grid, .has-gl .wh-gate, .has-gl .wh-ship, .has-gl .wh-horizon { display: none; }
+
 #starfield {
   position: absolute;
   inset: 0;

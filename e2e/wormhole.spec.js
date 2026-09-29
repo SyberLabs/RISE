@@ -250,3 +250,87 @@ test('the Menu link is reachable at its own pixel, on a desk and a phone', async
     expect(reach.height).toBeGreaterThanOrEqual(44);
   }
 });
+
+// ─── The picture: in depth where WebGL2 allows, flat where it does not ───
+
+const viewportShot = page => page.locator('.wh-viewport').screenshot();
+
+/** A browser with no WebGL2 is not a failure (the flat picture is tested below); it just cannot show the deep one. */
+async function needsWebGL(page) {
+  const available = await page.evaluate(() => Boolean(document.createElement('canvas').getContext('webgl2')));
+  test.skip(!available, 'this browser has no WebGL2');
+}
+
+test('the deep scene draws, and moves under full motion', async ({ page }) => {
+  await openWormhole(page);
+  await needsWebGL(page);
+  await expect(page.locator('.wormhole')).toHaveClass(/has-gl/u);
+  await expect(page.locator('#scene')).toBeVisible();
+  const first = await viewportShot(page);
+  // A blank or uniform frame compresses to almost nothing; a lit scene does not.
+  expect(first.length, 'the viewport is not blank').toBeGreaterThan(20_000);
+  await page.waitForTimeout(500);
+  const later = await viewportShot(page);
+  expect(later.equals(first), 'the scene is moving').toBe(false);
+  // The flat picture's layers stand down while the deep one is on.
+  for (const hidden of ['#starfield', '.wh-gate', '.wh-ship']) await expect(page.locator(hidden)).toBeHidden();
+});
+
+test('under reduced motion the deep scene is a still frame, and still shows the arrival', async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await openWormhole(page);
+  await needsWebGL(page);
+  await expect(page.locator('.wormhole')).toHaveClass(/has-gl/u);
+  const first = await viewportShot(page);
+  await page.waitForTimeout(700);
+  expect((await viewportShot(page)).equals(first), 'nothing moves').toBe(true);
+  await jump(page);
+  await page.waitForTimeout(300);
+  const arrived = await viewportShot(page);
+  expect(arrived.equals(first), 'the arrival is shown').toBe(false);
+  await page.waitForTimeout(700);
+  expect((await viewportShot(page)).equals(arrived), 'and then it holds still').toBe(true);
+});
+
+test('without WebGL2 the flat picture stands in, and the controls work as ever', async ({ page }) => {
+  await page.addInitScript(() => {
+    const original = HTMLCanvasElement.prototype.getContext;
+    HTMLCanvasElement.prototype.getContext = function getContext(type, ...rest) {
+      return type === 'webgl2' ? null : original.call(this, type, ...rest);
+    };
+  });
+  await openWormhole(page);
+  await expect(page.locator('.wormhole')).not.toHaveClass(/has-gl/u);
+  await expect(page.locator('#scene')).toBeHidden();
+  await expect(page.locator('#starfield')).toBeVisible();
+  await expect(page.locator('.wh-ship')).toBeVisible();
+  await jump(page);
+  await expect(page.locator('#dock')).toBeFocused();
+});
+
+test('if the GPU drops its context, the flat picture takes over without a reload', async ({ page }) => {
+  await openWormhole(page);
+  await needsWebGL(page);
+  await expect(page.locator('.wormhole')).toHaveClass(/has-gl/u);
+  const lost = await page.evaluate(() => {
+    const extension = document.querySelector('#scene').getContext('webgl2')?.getExtension('WEBGL_lose_context');
+    extension?.loseContext();
+    return Boolean(extension);
+  });
+  test.skip(!lost, 'this browser cannot simulate a lost context');
+  await expect(page.locator('.wormhole')).not.toHaveClass(/has-gl/u, { timeout: 5000 });
+  await expect(page.locator('#starfield')).toBeVisible();
+  await jump(page);
+});
+
+test('the console stays a picture: nothing in it is reachable by keyboard or assistive technology', async ({ page }) => {
+  await openWormhole(page);
+  const inside = await page.evaluate(() => {
+    const consoleBox = document.querySelector('.wh-console');
+    return {
+      hidden: consoleBox.getAttribute('aria-hidden'),
+      focusable: consoleBox.querySelectorAll('a, button, input, select, textarea, [tabindex]').length
+    };
+  });
+  expect(inside).toEqual({ hidden: 'true', focusable: 0 });
+});

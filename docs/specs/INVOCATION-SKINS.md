@@ -70,12 +70,26 @@ handoff.
 
 ## The wormhole
 
-A small pixelated Canvas 2D starfield, CSS geometry, and an SVG low-poly craft.
-No WebGL is required; if canvas fails, the instrument and controls remain. The
-crossing is a designed length (about 0.9 s), not a wait, because the roll is
-instant; the starfield's speed eases in and out of it. On arrival the gate warms
-and the ship holds nearer to it. Sound starts off and requires an explicit
-opt-in.
+Drawn in depth, the way the Oracle's ball is, and with no dependency: `src/wormhole/scene.js` is WebGL2.
+
+* **The throat** is one fragment shader in true perspective. Depth is the inverse
+  of the distance from the gate, so rings, spiralling veins and dust all converge
+  on it and rush past faster toward the rim; light gathers where it narrows into
+  an event horizon with a thin chromatic ring. In the crossing the view is pulled
+  into the gate and the dust becomes streaks.
+* **The rocket** is real geometry (`ship.js`): low-poly, flat-shaded, lit by the
+  gate (an amber rim on every edge), a cool key from above and its own engine. It
+  is seen from above and behind, nose toward the gate. Its flame lengthens in the
+  crossing. `ship.js` and `gl-math.js` are pure and unit-tested.
+* **Motion** is a small state (`scene-state.js`, also pure): thrust, flow and the
+  gate's opening ease toward their targets instead of snapping. The crossing is a
+  designed length (about 0.9 s), not a wait, because the roll is instant. On
+  arrival the gate warms and the ship holds nearer it. The reader's pointer leans
+  the view a little.
+* **Without WebGL2**, or after the GPU drops its context, the page keeps a flat
+  picture: a pixel starfield, CSS geometry and an SVG craft. The swap needs no
+  reload. Neither picture is needed to use the controls.
+* Sound starts off and requires an explicit opt-in.
 
 ### Accessibility contract
 
@@ -95,9 +109,11 @@ Held by `e2e/wormhole.spec.js` at 1280×800, 390×844 and 360×640, and by
   a polite live region.
 * Sound is one toggle with a constant name, **Sound**, and the state in
   `aria-pressed`, shown as a hollow or a lit dot.
-* Reduced motion removes motion (`animation: none`) and skips the crossing.
-  It does not shorten animations to a fraction of a millisecond, which leaves an
-  infinite animation repeating fast enough to flicker.
+* Reduced motion removes motion and skips the crossing: CSS animation is off
+  (`animation: none`), and the deep scene is a single still frame, redrawn only
+  when the state changes (a destination arriving). It never shortens animations
+  to a fraction of a millisecond, which leaves an infinite animation repeating
+  fast enough to flicker.
 * The primary key is on the first screen, including a 360×640 phone.
 
 A future skin should meet the same contract.
