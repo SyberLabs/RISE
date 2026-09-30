@@ -33,6 +33,11 @@ import { installTestBridge } from './app/test-bridge.js';
 
 const VISUAL_LAB_PATH = '/visual-lab';
 const LIVE_PATH = '/live';
+const EMOTIONS_PATH = '/emotions';
+const PUBLIC_ROOM_PATHS = Object.freeze({
+    'visual-lab': VISUAL_LAB_PATH,
+    emotions: EMOTIONS_PATH
+});
 import { watchTabFreshness } from './core/tab-freshness.js';
 import { hasPersonalWorkInPage } from './core/personal-identity.js';
 import { takeOpenRouterReturn } from './core/openrouter-callback.js';
@@ -357,6 +362,8 @@ class App {
             await this.router.navigate('visual-lab');
         } else if (window.location.pathname === LIVE_PATH) {
             await this.router.navigate('live');
+        } else if (window.location.pathname === EMOTIONS_PATH) {
+            await this.router.navigate('emotions');
         } else if (options.personalizedVault) {
             console.log('[RISE] Navigating directly to personalized vault:', options.personalizedVault);
             await this.router.navigate('vault', { data: { personalizedVault: options.personalizedVault } });
@@ -601,9 +608,11 @@ class App {
         if (viewName !== 'portal' && isJevSceneDemoPath(window.location.pathname)) {
             window.history.pushState({}, '', '/');
         }
-        if (viewName === 'visual-lab' && window.location.pathname !== VISUAL_LAB_PATH) {
-            window.history[replaceUrl ? 'replaceState' : 'pushState']({}, '', VISUAL_LAB_PATH);
-        } else if (viewName !== 'visual-lab' && window.location.pathname === VISUAL_LAB_PATH) {
+        const publicPath = PUBLIC_ROOM_PATHS[viewName] || null;
+        const onPublicPath = Object.values(PUBLIC_ROOM_PATHS).includes(window.location.pathname);
+        if (publicPath && window.location.pathname !== publicPath) {
+            window.history[replaceUrl ? 'replaceState' : 'pushState']({}, '', publicPath);
+        } else if (!publicPath && onPublicPath) {
             window.history.pushState({}, '', '/');
         }
         if (viewName === 'live' && window.location.pathname !== LIVE_PATH) {
@@ -1358,6 +1367,10 @@ class App {
             }
             if (window.location.pathname === LIVE_PATH) {
                 await this.router?.navigate('live', { replace: true, skipStack: true });
+                return;
+            }
+            if (window.location.pathname === EMOTIONS_PATH) {
+                await this.router?.navigate('emotions', { replace: true, skipStack: true });
                 return;
             }
             const slug = keystoneSlugFromPath(window.location.pathname);

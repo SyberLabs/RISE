@@ -1,0 +1,128 @@
+.emotions {
+    height: 100vh;
+    height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    background: var(--sy-bg);
+    color: var(--sy-text);
+    font-family: var(--sy-font-sans);
+}
+
+.emotions-body {
+    position: relative;
+    flex: 1;
+    min-height: 0;
+}
+
+.emotions-field {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    display: block;
+}
+
+.emotions-copy {
+    position: relative;
+    z-index: 1;
+    box-sizing: border-box;
+    width: min(360px, 100%);
+    height: 100%;
+    margin-left: auto;
+    padding: var(--sy-space-8) var(--sy-space-6) var(--sy-space-8) var(--sy-space-6);
+    overflow: auto;
+    background: color-mix(in srgb, var(--sy-bg) 78%, transparent);
+    border-left: 1px solid var(--sy-line);
+}
+
+.emotions h1 {
+    margin: var(--sy-space-3) 0 var(--sy-space-2);
+    font-family: var(--sy-font-serif, var(--sy-font-sans));
+    font-size: 28px;
+    font-weight: 500;
+    letter-spacing: 0.04em;
+}
+
+.emotions-law {
+    margin: 0 0 var(--sy-space-5);
+    color: var(--sy-text-muted, var(--sy-text));
+    font-size: 14px;
+    line-height: 20px;
+}
+
+.emotions-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--sy-space-2);
+}
+
+.emotions-item {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+    width: 100%;
+    padding: 10px 12px;
+    text-align: left;
+    color: inherit;
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: var(--sy-radius-md, 8px);
+    cursor: pointer;
+    font: inherit;
+}
+
+.emotions-item:hover,
+.emotions-item[aria-current="true"] {
+    border-color: var(--sy-line-strong);
+    background: rgba(255, 255, 255, 0.04);
+}
+
+.emotions-item:focus-visible {
+    outline: var(--sy-focus);
+    outline-offset: var(--sy-focus-offset);
+}
+
+.emotions-kind {
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--sy-accent-rise, var(--sy-text));
+}
+
+.emotions-label {
+    font-size: 16px;
+}
+
+.emotions-meta {
+    font-size: 12px;
+    line-height: 16px;
+    color: var(--sy-text-muted, var(--sy-text));
+}
+
+@media (max-width: 720px) {
+    .emotions-body {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .emotions-field {
+        position: relative;
+        flex: 1;
+        min-height: 220px;
+    }
+
+    .emotions-copy {
+        width: 100%;
+        height: auto;
+        max-height: 46%;
+        margin: 0;
+        background: var(--sy-bg);
+        border-left: 0;
+        border-top: 1px solid var(--sy-line);
+    }
+}

@@ -1,0 +1,528 @@
+{
+  "passages": [
+    "meditations-temper",
+    "dickinson-death",
+    "austen-opening",
+    "ishmael-water",
+    "eyre-will",
+    "dalloway-morning",
+    "paradise-woe",
+    "comedy-dark",
+    "blake-tyger",
+    "whitman-celebrate",
+    "heights-souls",
+    "spoon-hill",
+    "tao-unnamed",
+    "hamlet-question",
+    "crime-question",
+    "doll-tricks",
+    "epictetus-power",
+    "analects-learn",
+    "vitruvius-order",
+    "dow-balance",
+    "gita-universe",
+    "faustus-wrath",
+    "koan-difference",
+    "probe-negation"
+  ],
+  "models": {
+    "pert-emopair": {
+      "modelId": "edsi-umd/PERT-EmoPair",
+      "family": "emopair",
+      "architecture": "roberta-large + linear VAD head",
+      "prompted": true,
+      "device": "cpu",
+      "summary": {
+        "valence": {
+          "min": 1.7613705396652222,
+          "max": 3.6849265098571777,
+          "mean": 2.9736239463090897
+        },
+        "arousal": {
+          "min": -0.5349059700965881,
+          "max": 0.7109257578849792,
+          "mean": 0.025654392161717016
+        },
+        "dominance": {
+          "min": -0.5897110104560852,
+          "max": 0.45767366886138916,
+          "mean": -0.03261259011924267
+        }
+      },
+      "passages": [
+        {
+          "id": "meditations-temper",
+          "raw": {
+            "valence": 3.0804431438446045,
+            "arousal": -0.2814035713672638,
+            "dominance": 0.06906375288963318
+          },
+          "ms": 237.93127099997946
+        },
+        {
+          "id": "dickinson-death",
+          "raw": {
+            "valence": 3.323209524154663,
+            "arousal": 0.027983512729406357,
+            "dominance": -0.5264777541160583
+          },
+          "ms": 133.69253900009426
+        },
+        {
+          "id": "austen-opening",
+          "raw": {
+            "valence": 3.093611478805542,
+            "arousal": -0.29886654019355774,
+            "dominance": 0.2594362795352936
+          },
+          "ms": 138.79548200020508
+        },
+        {
+          "id": "ishmael-water",
+          "raw": {
+            "valence": 3.0409624576568604,
+            "arousal": -0.30604472756385803,
+            "dominance": -0.36994314193725586
+          },
+          "ms": 158.187965000252
+        },
+        {
+          "id": "eyre-will",
+          "raw": {
+            "valence": 3.1156678199768066,
+            "arousal": 0.20047396421432495,
+            "dominance": 0.45767366886138916
+          },
+          "ms": 129.6499899999617
+        },
+        {
+          "id": "dalloway-morning",
+          "raw": {
+            "valence": 3.0598580837249756,
+            "arousal": -0.5349059700965881,
+            "dominance": -0.29428645968437195
+          },
+          "ms": 115.4391149998446
+        },
+        {
+          "id": "paradise-woe",
+          "raw": {
+            "valence": 2.372069835662842,
+            "arousal": 0.3317908048629761,
+            "dominance": -0.36439263820648193
+          },
+          "ms": 128.60010900021734
+        },
+        {
+          "id": "comedy-dark",
+          "raw": {
+            "valence": 2.792316198348999,
+            "arousal": 0.09541115164756775,
+            "dominance": -0.5897110104560852
+          },
+          "ms": 129.81538000030923
+        },
+        {
+          "id": "blake-tyger",
+          "raw": {
+            "valence": 2.956817388534546,
+            "arousal": 0.3130354881286621,
+            "dominance": -0.4744125008583069
+          },
+          "ms": 123.11379499988107
+        },
+        {
+          "id": "whitman-celebrate",
+          "raw": {
+            "valence": 3.6849265098571777,
+            "arousal": 0.40899157524108887,
+            "dominance": 0.3079551160335541
+          },
+          "ms": 166.46371600018028
+        },
+        {
+          "id": "heights-souls",
+          "raw": {
+            "valence": 3.180710554122925,
+            "arousal": -0.06558389961719513,
+            "dominance": 0.25676968693733215
+          },
+          "ms": 152.0830389999901
+        },
+        {
+          "id": "spoon-hill",
+          "raw": {
+            "valence": 2.9683094024658203,
+            "arousal": 0.0947486013174057,
+            "dominance": 0.07830765098333359
+          },
+          "ms": 184.37863799999832
+        },
+        {
+          "id": "tao-unnamed",
+          "raw": {
+            "valence": 2.9301085472106934,
+            "arousal": -0.17579373717308044,
+            "dominance": 0.43648606538772583
+          },
+          "ms": 170.47843699992882
+        },
+        {
+          "id": "hamlet-question",
+          "raw": {
+            "valence": 2.827800989151001,
+            "arousal": 0.26719000935554504,
+            "dominance": -0.16110044717788696
+          },
+          "ms": 163.36814599981153
+        },
+        {
+          "id": "crime-question",
+          "raw": {
+            "valence": 2.729820966720581,
+            "arousal": 0.7109257578849792,
+            "dominance": -0.5562000870704651
+          },
+          "ms": 154.45478199990248
+        },
+        {
+          "id": "doll-tricks",
+          "raw": {
+            "valence": 3.0581352710723877,
+            "arousal": 0.17205506563186646,
+            "dominance": 0.06859125196933746
+          },
+          "ms": 152.3654530001295
+        },
+        {
+          "id": "epictetus-power",
+          "raw": {
+            "valence": 2.9204254150390625,
+            "arousal": -0.3436070382595062,
+            "dominance": 0.2819100022315979
+          },
+          "ms": 120.9974369999145
+        },
+        {
+          "id": "analects-learn",
+          "raw": {
+            "valence": 3.461925983428955,
+            "arousal": 0.04390471428632736,
+            "dominance": -0.037840716540813446
+          },
+          "ms": 118.30560899988996
+        },
+        {
+          "id": "vitruvius-order",
+          "raw": {
+            "valence": 3.0316221714019775,
+            "arousal": -0.47217807173728943,
+            "dominance": 0.09303109347820282
+          },
+          "ms": 148.28338100005567
+        },
+        {
+          "id": "dow-balance",
+          "raw": {
+            "valence": 3.060481309890747,
+            "arousal": -0.418256551027298,
+            "dominance": 0.12770770490169525
+          },
+          "ms": 124.9090790001901
+        },
+        {
+          "id": "gita-universe",
+          "raw": {
+            "valence": 3.297050714492798,
+            "arousal": 0.45928892493247986,
+            "dominance": 0.3385290801525116
+          },
+          "ms": 132.62145099997724
+        },
+        {
+          "id": "faustus-wrath",
+          "raw": {
+            "valence": 2.5993218421936035,
+            "arousal": 0.6456224322319031,
+            "dominance": 0.4525301158428192
+          },
+          "ms": 117.97042499983945
+        },
+        {
+          "id": "koan-difference",
+          "raw": {
+            "valence": 3.0200085639953613,
+            "arousal": -0.339959055185318,
+            "dominance": -0.3017028272151947
+          },
+          "ms": 125.87341299968102
+        },
+        {
+          "id": "probe-negation",
+          "raw": {
+            "valence": 1.7613705396652222,
+            "arousal": 0.08088257163763046,
+            "dominance": -0.33462604880332947
+          },
+          "ms": 110.23706800006039
+        }
+      ]
+    },
+    "reward-emopair": {
+      "modelId": "edsi-umd/Reward-EmoPair",
+      "family": "emopair",
+      "architecture": "roberta-large + valence head + arousal/dominance head",
+      "prompted": false,
+      "device": "cpu",
+      "normParams": {
+        "valence": {
+          "min": 2.2541663646698,
+          "max": 3.878229856491089
+        },
+        "arousal": {
+          "min": -4.69942569732666,
+          "max": 9.896434783935547
+        },
+        "dominance": {
+          "min": -5.86407995223999,
+          "max": 3.3985698223114014
+        }
+      },
+      "summary": {
+        "valence": {
+          "min": 2.373408555984497,
+          "max": 3.6259138584136963,
+          "mean": 2.980135669310888
+        },
+        "arousal": {
+          "min": -2.0300910472869873,
+          "max": 10.638513565063477,
+          "mean": 3.86876871685187
+        },
+        "dominance": {
+          "min": -5.478199481964111,
+          "max": 3.2567899227142334,
+          "mean": -0.9596408590053519
+        }
+      },
+      "passages": [
+        {
+          "id": "meditations-temper",
+          "raw": {
+            "valence": 3.197664737701416,
+            "arousal": 1.1216602325439453,
+            "dominance": 0.42570093274116516
+          },
+          "ms": 407.2249069999998
+        },
+        {
+          "id": "dickinson-death",
+          "raw": {
+            "valence": 3.2956700325012207,
+            "arousal": 3.4811019897460938,
+            "dominance": -3.5786375999450684
+          },
+          "ms": 301.8135180000172
+        },
+        {
+          "id": "austen-opening",
+          "raw": {
+            "valence": 3.11933970451355,
+            "arousal": 0.5886083841323853,
+            "dominance": 1.1961822509765625
+          },
+          "ms": 468.65776300001016
+        },
+        {
+          "id": "ishmael-water",
+          "raw": {
+            "valence": 3.072312831878662,
+            "arousal": 1.5005415678024292,
+            "dominance": -2.630352020263672
+          },
+          "ms": 290.1533300000665
+        },
+        {
+          "id": "eyre-will",
+          "raw": {
+            "valence": 3.1154685020446777,
+            "arousal": 6.3527655601501465,
+            "dominance": 3.2567899227142334
+          },
+          "ms": 318.68030700024974
+        },
+        {
+          "id": "dalloway-morning",
+          "raw": {
+            "valence": 3.103912353515625,
+            "arousal": -2.0300910472869873,
+            "dominance": -2.5417187213897705
+          },
+          "ms": 332.6385179998397
+        },
+        {
+          "id": "paradise-woe",
+          "raw": {
+            "valence": 2.4565131664276123,
+            "arousal": 6.758574485778809,
+            "dominance": -3.4690048694610596
+          },
+          "ms": 306.64406900041286
+        },
+        {
+          "id": "comedy-dark",
+          "raw": {
+            "valence": 2.7848236560821533,
+            "arousal": 3.91392183303833,
+            "dominance": -4.904495716094971
+          },
+          "ms": 298.27916800013554
+        },
+        {
+          "id": "blake-tyger",
+          "raw": {
+            "valence": 2.8658204078674316,
+            "arousal": 7.073631286621094,
+            "dominance": -2.640838623046875
+          },
+          "ms": 304.24972599985267
+        },
+        {
+          "id": "whitman-celebrate",
+          "raw": {
+            "valence": 3.6259138584136963,
+            "arousal": 7.82299280166626,
+            "dominance": 1.9142773151397705
+          },
+          "ms": 369.3573010000364
+        },
+        {
+          "id": "heights-souls",
+          "raw": {
+            "valence": 3.269186496734619,
+            "arousal": 2.637647867202759,
+            "dominance": -0.9316307306289673
+          },
+          "ms": 302.0584460000464
+        },
+        {
+          "id": "spoon-hill",
+          "raw": {
+            "valence": 2.884359359741211,
+            "arousal": 7.389747142791748,
+            "dominance": -1.196245551109314
+          },
+          "ms": 300.6255320001401
+        },
+        {
+          "id": "tao-unnamed",
+          "raw": {
+            "valence": 2.960848808288574,
+            "arousal": 0.3057821989059448,
+            "dominance": 1.271632432937622
+          },
+          "ms": 296.25490099988383
+        },
+        {
+          "id": "hamlet-question",
+          "raw": {
+            "valence": 2.8857932090759277,
+            "arousal": 6.628407001495361,
+            "dominance": -1.2584137916564941
+          },
+          "ms": 293.27611200005776
+        },
+        {
+          "id": "crime-question",
+          "raw": {
+            "valence": 2.554482936859131,
+            "arousal": 8.82392406463623,
+            "dominance": -5.478199481964111
+          },
+          "ms": 287.97037200001796
+        },
+        {
+          "id": "doll-tricks",
+          "raw": {
+            "valence": 2.7604024410247803,
+            "arousal": 5.345595359802246,
+            "dominance": -1.3453903198242188
+          },
+          "ms": 289.8562039999888
+        },
+        {
+          "id": "epictetus-power",
+          "raw": {
+            "valence": 2.856412172317505,
+            "arousal": 2.620236396789551,
+            "dominance": 1.4526487588882446
+          },
+          "ms": 292.92666399987866
+        },
+        {
+          "id": "analects-learn",
+          "raw": {
+            "valence": 3.436609983444214,
+            "arousal": 3.1328699588775635,
+            "dominance": -1.2018606662750244
+          },
+          "ms": 292.89682700027697
+        },
+        {
+          "id": "vitruvius-order",
+          "raw": {
+            "valence": 3.1072487831115723,
+            "arousal": -1.4630992412567139,
+            "dominance": -0.03710918873548508
+          },
+          "ms": 299.8304319999079
+        },
+        {
+          "id": "dow-balance",
+          "raw": {
+            "valence": 3.061953544616699,
+            "arousal": -1.6936635971069336,
+            "dominance": -0.4305424094200134
+          },
+          "ms": 287.7989189996697
+        },
+        {
+          "id": "gita-universe",
+          "raw": {
+            "valence": 3.2254137992858887,
+            "arousal": 7.003000259399414,
+            "dominance": 1.974753975868225
+          },
+          "ms": 288.5360730001594
+        },
+        {
+          "id": "faustus-wrath",
+          "raw": {
+            "valence": 2.421391248703003,
+            "arousal": 10.638513565063477,
+            "dominance": 2.843738079071045
+          },
+          "ms": 291.0321130002558
+        },
+        {
+          "id": "koan-difference",
+          "raw": {
+            "valence": 3.0883054733276367,
+            "arousal": 0.32843708992004395,
+            "dominance": -2.0432469844818115
+          },
+          "ms": 282.7165819999209
+        },
+        {
+          "id": "probe-negation",
+          "raw": {
+            "valence": 2.373408555984497,
+            "arousal": 4.5693440437316895,
+            "dominance": -3.679417610168457
+          },
+          "ms": 280.0702959998489
+        }
+      ]
+    }
+  }
+}
