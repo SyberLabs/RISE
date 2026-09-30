@@ -288,13 +288,6 @@ export class Router {
     }
 
     /**
-     * Check if can go back
-     */
-    canGoBack() {
-        return this.viewStack.length > 0;
-    }
-
-    /**
      * Get the instance of a view (if initialized)
      * @param {string} viewName - View identifier
      * @returns {object|null} - The view instance or null

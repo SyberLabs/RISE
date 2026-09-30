@@ -162,16 +162,6 @@ export function countInNormalizedIndex(index, needle) {
 }
 
 /**
- * Find a whitespace-normalized needle inside original text; return the
- * UTF-16 half-open range covering the matched region, or null.
- * Prefer buildNormalizedSourceIndex + findInNormalizedIndex when scanning
- * the same source more than once.
- */
-export function findNormalizedSubstring(text, needle, fromIndex = 0) {
-  return findInNormalizedIndex(buildNormalizedSourceIndex(text), needle, fromIndex);
-}
-
-/**
  * Derive a character span from quote fingerprints alone (Scriptorium /
  * Live Curator). Returns null when either endpoint cannot be located —
  * absence, never a substitute.

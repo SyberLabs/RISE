@@ -8,9 +8,7 @@
 
 import { looksLikeUri } from './render/hash.js';
 
-export const NARRATION_LANE_SCHEMA = 'rise.narration-lane.v1';
 export const PROGRAM_NARRATION_KINDS = Object.freeze(['spoken']);
-export const NARRATION_DUCK_TARGETS = Object.freeze(['bed']);
 
 export const NARRATION_LIMITS = Object.freeze({
   maxIdLength: 160,

@@ -88,37 +88,6 @@ const title = value => typeof value === 'string' && value
   ? value.charAt(0).toUpperCase() + value.slice(1)
   : '';
 
-export const VISUAL_STYLE_DEFINITIONS = Object.freeze({
-  focal: Object.freeze({
-    id: 'focal', label: 'Focal', group: 'fields', configurable: true,
-    defaults: Object.freeze({ type: 'standard', standardGlyph: 'breath', roseMode: 'vitrum' })
-  }),
-  attractor: Object.freeze({
-    id: 'attractor', label: 'Attractor', group: 'fields', configurable: true,
-    defaults: Object.freeze({ system: 'aizawa', palette: 'white', form: 'mirror' })
-  }),
-  genesis: Object.freeze({
-    id: 'genesis', label: 'Genesis', group: 'fields', configurable: true,
-    defaults: Object.freeze({ preset: 'random', glass: true })
-  }),
-  klee: Object.freeze({
-    id: 'klee', label: 'Klee Lines', group: 'procedural', configurable: true,
-    defaults: Object.freeze({ preset: 'random' })
-  }),
-  harmonograph: Object.freeze({
-    id: 'harmonograph', label: 'Harmonograph', group: 'procedural', configurable: true,
-    defaults: Object.freeze({ climate: 'auto' })
-  }),
-  ostensoria: Object.freeze({
-    id: 'ostensoria', label: 'Iris Plates', group: 'procedural', configurable: true,
-    defaults: Object.freeze({ palette: 'auto' })
-  }),
-  apparitio: Object.freeze({
-    id: 'apparitio', label: 'Spectral Plates', group: 'procedural', configurable: true,
-    defaults: Object.freeze({ palette: 'auto' })
-  })
-});
-
 export function normalizeFieldStyle(renderer, value = {}) {
   const source = value && typeof value === 'object' && !Array.isArray(value) ? value : {};
   // A Living Flame's style is its full recipe, checked by the one recipe

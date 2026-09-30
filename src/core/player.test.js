@@ -443,23 +443,6 @@ describe('Player', () => {
     });
   });
 
-  describe('voice sync mode', () => {
-    it('can enable voice sync', () => {
-      const speakFn = vi.fn();
-      player.setVoiceSync(true, speakFn);
-
-      expect(player.voiceSyncEnabled).toBe(true);
-      expect(player.speakFn).toBe(speakFn);
-    });
-
-    it('can disable voice sync', () => {
-      player.setVoiceSync(true, vi.fn());
-      player.setVoiceSync(false);
-
-      expect(player.voiceSyncEnabled).toBe(false);
-    });
-  });
-
   describe('interlocution handler', () => {
     it('can set interlocution handler', () => {
       const handler = vi.fn();
@@ -834,48 +817,6 @@ describe('Player', () => {
       expect(player.state).toBe('playing');
       expect(player.atomStartTime).not.toBeNull();
       expect(atomListener).toHaveBeenCalledTimes(2);
-    });
-
-    it('speaks a concealed next atom after reveal without emitting it twice', async () => {
-      session = new Session({
-        atoms: [
-          new Atom({ content: 'Completed thought.', duration: 100 }),
-          new Atom({ content: 'Spoken next thought.', duration: 100 })
-        ],
-        visualConfig: {
-          visualMode: 'interlocution',
-          interlocution: { frequency: 1, duration: 200 }
-        }
-      });
-      player.destroy();
-      player = new Player(session);
-      const speak = vi.fn();
-      const atomListener = vi.fn();
-      player.setVoiceSync(true, speak);
-      player.setInterlocutionHandler(vi.fn((_duration, _signal, lifecycle) => {
-        lifecycle.onCovered();
-        return Promise.resolve({
-          presented: true,
-          requestedDurationMs: 200,
-          presentedDurationMs: 200,
-          reason: 'presented'
-        });
-      }));
-      player.on('atom', atomListener);
-      player.sessionState.state = 'playing';
-
-      await player.processNextNode();
-
-      expect(atomListener).toHaveBeenCalledTimes(1);
-      expect(atomListener.mock.calls[0][0]).toMatchObject({
-        atom: { content: 'Spoken next thought.' },
-        concealed: true
-      });
-      expect(speak).toHaveBeenCalledTimes(1);
-      expect(speak).toHaveBeenCalledWith(
-        'Spoken next thought.',
-        expect.objectContaining({ onEnd: expect.any(Function) })
-      );
     });
 
     it('does not create opportunities across authored pause boundaries', async () => {

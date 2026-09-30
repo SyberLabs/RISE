@@ -673,17 +673,6 @@ export class MemoryCore {
     }
   }
 
-  static deleteWorkshopBlueprint(id) {
-    try {
-      const ids = this._removeWorkshopBlueprint(id);
-      void this._deleteUnreferencedWorkshopAssets(ids);
-      return true;
-    } catch (error) {
-      console.error('[Memory] Fail delete workshop blueprint:', error);
-      return false;
-    }
-  }
-
   static deleteWorkshopBlueprintAsync(id) {
     return this._queueWorkshopMutation(() => this._deleteWorkshopBlueprintDurable(id));
   }

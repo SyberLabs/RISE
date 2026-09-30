@@ -132,50 +132,6 @@ export class Atom {
     this.phase = typeof phase === 'string' ? phase : '';
     this.timingLocked = timingLocked === true;
   }
-
-  /**
-   * Create a text atom
-   */
-  static text(content, options = {}) {
-    return new Atom({ content, modality: 'text', ...options });
-  }
-
-  /**
-   * Create an image atom
-   */
-  static image(url, options = {}) {
-    return new Atom({
-      content: url,
-      url,
-      modality: 'image',
-      duration: options.duration || 2000,
-      ...options
-    });
-  }
-
-  /**
-   * Create a symbol atom
-   */
-  static symbol(symbol, options = {}) {
-    return new Atom({
-      content: symbol,
-      modality: 'symbol',
-      duration: options.duration || 400,
-      ...options
-    });
-  }
-
-  /**
-   * Create a pause atom
-   */
-  static pause(duration = 1000) {
-    return new Atom({
-      content: '',
-      modality: 'text',
-      duration,
-      weight: 0
-    });
-  }
 }
 
 /**

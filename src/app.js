@@ -19,7 +19,7 @@ import { TRY_RISE_PATH, isTryRisePath } from './core/keystone-paths.js';
 import { isJevSceneDemoPath, sceneSampleFromPath } from './core/jev-demo-path.js';
 import { KEYSTONE_SESSION_ORIGIN } from './app/chamber-exit.js';
 
-import { errorBoundary, ErrorCategory, ErrorSeverity } from './core/error-boundary.js';
+import { errorBoundary, ErrorCategory } from './core/error-boundary.js';
 import {
     endVisualInterlocutionSession
 } from './core/visual-safety.js';
