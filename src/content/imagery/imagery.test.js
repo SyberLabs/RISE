@@ -178,29 +178,14 @@ describe('Chamber isolation (spec §5)', () => {
   it('does not change the Chamber\'s browsable category vocabulary', async () => {
     // The service is additive. Importing it must not add, remove, or
     // rename a single category a Chamber reader can browse.
-    const { WIKIMEDIA_CATEGORIES } = await import('../../sources/visual/wikimedia.js');
     const { MUSEUM_CATEGORIES } = await import('../../sources/visual/museum.js');
-    const before = [
-      ...Object.keys(WIKIMEDIA_CATEGORIES),
-      ...Object.keys(MUSEUM_CATEGORIES)
-    ].sort();
+    const before = Object.keys(MUSEUM_CATEGORIES).sort();
 
     await import('./service.js');
     await import('./adapters/met.js');
 
-    const after = [
-      ...Object.keys(WIKIMEDIA_CATEGORIES),
-      ...Object.keys(MUSEUM_CATEGORIES)
-    ].sort();
+    const after = Object.keys(MUSEUM_CATEGORIES).sort();
     expect(after).toEqual(before);
-  });
-
-  it('registers no resolver with the Chamber provider registry', async () => {
-    // Pinned imagery must arrive only with the launch that curated it —
-    // never as a browsable option in the Visual panel.
-    const wikimedia = await import('../../sources/visual/wikimedia.js');
-    const resolved = wikimedia.resolveCategory?.('met:436105');
-    expect(resolved == null || resolved === false).toBe(true);
   });
 });
 
@@ -232,10 +217,8 @@ describe('Pinned collections', () => {
     // Same contract the atr- categories hold: curated imagery arrives
     // only with the launch that chose it, never as a generic option.
     const { ATRIUM_PINNED_COLLECTIONS } = await import('./collections.js');
-    const { WIKIMEDIA_CATEGORIES } = await import('../../sources/visual/wikimedia.js');
     const { MUSEUM_CATEGORIES } = await import('../../sources/visual/museum.js');
     for (const id of Object.keys(ATRIUM_PINNED_COLLECTIONS)) {
-      expect(WIKIMEDIA_CATEGORIES[id]).toBeUndefined();
       expect(MUSEUM_CATEGORIES[id.replace(/^atr-/, '')]).toBeUndefined();
     }
   });

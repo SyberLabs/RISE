@@ -68,15 +68,6 @@ export class FractalFlameGenerator {
         this._normalizeWeights();
     }
 
-    setFinalTransform(transform) {
-        this.finalTransform = {
-            affine: transform.affine || [1, 0, 0, 0, 1, 0],
-            variations: transform.variations || { linear: 1.0 },
-            params: transform.params || {},
-            symmetry: transform.symmetry || 0
-        };
-    }
-
     setCamera(centerX, centerY, zoom, rotation = 0) {
         this.camera = { centerX, centerY, zoom, rotation };
     }
@@ -678,25 +669,6 @@ export class FractalFlameGenerator {
     clearTransforms() {
         this.transforms = [];
         this.finalTransform = null;
-    }
-
-    exportJSON() {
-        return JSON.stringify({
-            transforms: this.transforms,
-            finalTransform: this.finalTransform,
-            camera: this.camera,
-            palette: this.palette,
-            backgroundColor: this.backgroundColor
-        }, null, 2);
-    }
-
-    importJSON(json) {
-        const data = JSON.parse(json);
-        this.transforms = data.transforms || [];
-        this.finalTransform = data.finalTransform || null;
-        this.camera = data.camera || { centerX: 0, centerY: 0, zoom: 1, rotation: 0 };
-        this.palette = data.palette || this.generateDefaultPalette();
-        this.backgroundColor = data.backgroundColor || [0, 0, 0];
     }
 
     /**

@@ -294,46 +294,6 @@ export function sampleImageData(imageData, columns, rows, fit = 'contain') {
   return output;
 }
 
-export function compileImageDataToAscii(imageData, options = {}) {
-  const { columns, rows } = resolveAsciiGrid(imageData?.width, imageData?.height, options);
-  const sampled = sampleImageData(imageData, columns, rows, options.fit || 'contain');
-  return compileSampledRaster(sampled, columns, rows, options);
-}
-
-/**
- * Downsample an HTML image/canvas into a fresh origin-clean scratch canvas.
- * Cross-origin images without CORS permission deliberately throw here; the
- * caller can skip the frame without poisoning the visible ASCII surface.
- */
-export function compileDrawableToAscii(source, options = {}) {
-  if (!source) return null;
-  const sourceWidth = finite(source.naturalWidth || source.videoWidth || source.width, 0);
-  const sourceHeight = finite(source.naturalHeight || source.videoHeight || source.height, 0);
-  if (sourceWidth <= 0 || sourceHeight <= 0) return null;
-  const displayWidth = finite(options.displayWidth, sourceWidth);
-  const displayHeight = finite(options.displayHeight, sourceHeight);
-  const { columns, rows } = resolveAsciiGrid(displayWidth, displayHeight, options);
-  const scratch = options.scratchCanvas
-    || (typeof OffscreenCanvas !== 'undefined'
-      ? new OffscreenCanvas(columns, rows)
-      : document.createElement('canvas'));
-  scratch.width = columns;
-  scratch.height = rows;
-  const ctx = scratch.getContext('2d', { willReadFrequently: true });
-  if (!ctx) return null;
-  ctx.clearRect(0, 0, columns, rows);
-
-  const fit = options.fit || 'contain';
-  const scale = fit === 'cover'
-    ? Math.max(columns / sourceWidth, rows / sourceHeight)
-    : Math.min(columns / sourceWidth, rows / sourceHeight);
-  const width = sourceWidth * scale;
-  const height = sourceHeight * scale;
-  ctx.drawImage(source, (columns - width) / 2, (rows - height) / 2, width, height);
-  const sampled = ctx.getImageData(0, 0, columns, rows).data;
-  return compileSampledRaster(sampled, columns, rows, options);
-}
-
 /**
  * Async facade for the expensive density/edge/palette stage. Sampling a DOM
  * drawable remains a tiny main-thread canvas operation because DOM elements

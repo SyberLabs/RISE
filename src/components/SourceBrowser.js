@@ -695,16 +695,6 @@ export class SourceBrowser {
                 return;
             }
 
-            // Visual category browse
-            const browseBtn = e.target.closest('.sb-visual-browse');
-            if (browseBtn) {
-                const categoryId = browseBtn.dataset.category;
-                if (categoryId && this.activeProvider.id === 'wikimedia-commons') {
-                    this.loadCategoryImages(categoryId);
-                }
-                return;
-            }
-
             // Visual item add (procedural or image)
             const visualAddBtn = e.target.closest('.sb-visual-add');
             if (visualAddBtn) {

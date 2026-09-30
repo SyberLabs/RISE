@@ -4,11 +4,10 @@
  * THIS USED TO HAPPEN AT BOOT. `initializeApp` awaited a function that
  * constructed all seven providers before the Portal could paint, and the
  * providers are not thin: `sacred.js` carries 22 KB of verse inline,
- * `local.js` wraps the 32 KB starter set, `archive.js` reaches
+ * `local.js` wraps the 32 KB starter set, and `archive.js` reaches
  * `content/library.js` and through it `sacred_deep.js` and
- * `literary_deep.js`, and `wikimedia.js` is 21 KB around a category
- * registry that an audit emptied. A registry needs ids; it was loading
- * payloads. Nothing the Portal shows reads any of them.
+ * `literary_deep.js`. A registry needs ids; it was loading payloads.
+ * Nothing the Portal shows reads any of them.
  *
  * There is no metadata manifest here, and that is deliberate.
  * `work-engines.js` keeps one because the curator context and diagnostics
@@ -36,9 +35,7 @@ const LOADERS = Object.freeze({
     'arxiv-research': () => import('./text/arxiv.js')
         .then(m => new m.ArxivProvider()),
     'generated-visuals': () => import('./visual/generated.js')
-        .then(m => new m.GeneratedVisualProvider()),
-    'wikimedia-commons': () => import('./visual/wikimedia.js')
-        .then(m => new m.WikimediaProvider())
+        .then(m => new m.GeneratedVisualProvider())
 });
 
 /** The providers RISE promises to have once the system is up. */
