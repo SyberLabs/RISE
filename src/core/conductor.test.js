@@ -7,8 +7,7 @@ import {
     responsiveFrequency,
     sampleTrackSignals,
     scoreAtoms,
-    scoreChunk,
-    summarizeTrack
+    scoreChunk
 } from './conductor.js';
 import { CHAMBER_ACCENT_TOKENS } from './chamber-accent.js';
 
@@ -414,19 +413,6 @@ describe('sampleTrackSignals', () => {
         expect(sampleTrackSignals(null, 8)).toEqual([]);
         const tiny = [{ valence: 0, arousal: 0.3 }];
         expect(sampleTrackSignals(tiny, 8)).toHaveLength(1);
-    });
-});
-
-describe('summarizeTrack', () => {
-    it('summarizes mean and peak', () => {
-        const track = scoreAtoms(mkAtoms(...Array(10).fill('war terror scream')));
-        const summary = summarizeTrack(track);
-        expect(summary.meanValence).toBeLessThan(0);
-        expect(summary.peakArousal).toBeGreaterThan(0.5);
-    });
-
-    it('handles empty tracks', () => {
-        expect(summarizeTrack([]).meanValence).toBe(0);
     });
 });
 

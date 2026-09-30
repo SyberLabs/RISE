@@ -445,11 +445,6 @@ function splitWords(text, literal = false) {
 }
 
 /**
- * Split text into phrases (comma/semicolon separated chunks)
- * @param {string} text 
- * @returns {string[]}
- */
-/**
  * A parenthetical is masked so that no rule can split INSIDE it.
  *
  * Sentinel is a visible character; control bytes are forbidden by
@@ -555,11 +550,6 @@ function splitPhrases(text, preserveSpeakerHead = false) {
 }
 
 /**
- * Split text into sentences
- * @param {string} text 
- * @returns {string[]}
- */
-/**
  * Where one sentence ends and the next begins: sentence-ending punctuation,
  * whitespace, a capital. Exported because the Scriptorium cuts excerpts on
  * these same boundaries and a second copy would drift from this one.
@@ -570,15 +560,6 @@ function splitSentences(text) {
     // We remove the pipe (|) split to distinguish this from Phrase mode
     const sentences = text.split(SENTENCE_BOUNDARY);
     return sentences.map(s => s ? s.trim() : '').filter(s => s.length > 0);
-}
-
-/**
- * Split text into paragraphs
- * @param {string} text 
- * @returns {string[]}
- */
-function splitParagraphs(text) {
-    return text.split(/\n\s*\n/).map(p => p.trim()).filter(p => p.length > 0);
 }
 
 /**

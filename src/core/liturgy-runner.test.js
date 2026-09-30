@@ -1,8 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { compileLiturgy, liturgyToAtoms, liturgyStepIdFromAtom, liturgyStepState } from './liturgy-runner.js';
+import { compileLiturgy } from './liturgy-runner.js';
 import { buildRosaryDefinition, ROSARY_BEAD_COUNT } from '../content/chapel/liturgy/rosary-liturgy.js';
 import { ROSARY_PRAYERS, MYSTERY_SETS, mysterySetForDate } from '../content/chapel/liturgy/rosary.js';
-import { Atom } from './models.js';
 
 describe('LiturgyRunner (non-negotiable #3: fixed forms are fixed)', () => {
   it('is perfectly deterministic: the same definition compiles identically every time', () => {
@@ -38,20 +37,6 @@ describe('LiturgyRunner (non-negotiable #3: fixed forms are fixed)', () => {
     expect(compileLiturgy(definition, { paceMultiplier: 0.5 }).steps[0].durationMs).toBe(20000);
     expect(() => compileLiturgy({ id: 'x', steps: [{ id: 'bad', text: '' , durationMs: 5 }] })).toThrow(/no text/);
     expect(() => compileLiturgy({ id: 'x', steps: [{ id: 'bad', text: 'T' }] })).toThrow(/fixed duration/);
-  });
-
-  it('compiles to timing-locked atoms carrying their step ids', () => {
-    const compiled = compileLiturgy(buildRosaryDefinition('joyful'));
-    const atoms = liturgyToAtoms(compiled, Atom);
-    expect(atoms.length).toBe(compiled.steps.length);
-    expect(atoms.every(atom => atom.timingLocked)).toBe(true);
-    expect(liturgyStepIdFromAtom(atoms[0])).toBe('sign-opening');
-    const hail7 = atoms.find(atom => liturgyStepIdFromAtom(atom) === 'decade-2-hail-mary-7');
-    expect(hail7).toBeTruthy();
-    expect(hail7.duration).toBe(13000);
-    // Decade 2's Our Father is bead 16 (5 + 11); its Hail Marys run
-    // 17–26, so the seventh is bead 23.
-    expect(liturgyStepState(compiled, 'decade-2-hail-mary-7').bead).toBe(23);
   });
 });
 

@@ -873,24 +873,3 @@ export function sampleTrackSignals(track, count = 8) {
     }
     return out;
 }
-
-/**
- * Session-level summary of a track (mean/peak) — useful for choosing
- * presets or logging. Not required by subscribers.
- */
-export function summarizeTrack(track) {
-    if (!track || track.length === 0) {
-        return { meanValence: 0, meanArousal: 0.3, peakArousal: 0.3 };
-    }
-    let v = 0, a = 0, peak = 0;
-    for (const s of track) {
-        v += s.valence;
-        a += s.arousal;
-        if (s.arousal > peak) peak = s.arousal;
-    }
-    return {
-        meanValence: v / track.length,
-        meanArousal: a / track.length,
-        peakArousal: peak
-    };
-}

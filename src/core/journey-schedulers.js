@@ -223,50 +223,6 @@ export class AudioScheduleController {
         return null;
     }
 
-    /**
-     * Bounded commands only. Anything the engine cannot do is a no-op
-     * rather than an approximation — a missing soundscape degrades to
-     * silence at runtime (§8.5), it does not substitute a different one.
-     */
-    _applyLegacy(cue, generation) {
-        if (!this.engine || !cue) return;
-        // A late command from a movement the reader has already left
-        // must not publish into the one they are in.
-        const current = () => generation === this._generation;
-
-        switch (cue.kind) {
-            case 'hold':
-                return;
-            case 'silence':
-                if (current()) this._command('stopSoundscape')?.(false);
-                return;
-            case 'soundscape': {
-                if (!current()) return;
-                const start = this._command('startSoundscape');
-                if (!start) return;
-                // The engine warns by name on an id it does not know,
-                // and plays nothing — which is the right degradation. A
-                // soundscape that does not exist must not become a
-                // different soundscape.
-                start(cue.soundscapeId);
-                // Gain rides on the layer, because startSoundscape takes
-                // an id and nothing else. `fadeMs` has no engine control
-                // at all: one handle stops before the next starts, so a
-                // V1 boundary fades to silence and back (see the class
-                // comment) and there is no crossfade to time.
-                if (typeof cue.gain === 'number') {
-                    this._command('setLayerVolume')?.('soundscape', cue.gain, true);
-                }
-                return;
-            }
-            case 'swell':
-                if (current()) this._command('playSwell')?.(cue.swellId);
-                return;
-            default:
-                return;
-        }
-    }
-
     _cancelBed(cue = this._activeBedCue) {
         if (!cue || cue.kind === 'hold') return;
         if (cue.kind === 'soundscape') this._command('stopSoundscape')?.(cue.fadeMs === 0);
