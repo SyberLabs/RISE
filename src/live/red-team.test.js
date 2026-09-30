@@ -607,6 +607,18 @@ describe('MCP: who a host’s model may say it is', () => {
         expect(compileRiseCurrent(stream.toCurrent()).experienceProgram.authority).toBe('proposed');
     });
 
+    it('says which page framed it, since that page is the host and nothing else vouches for it', async () => {
+        const clock = createVirtualClock();
+        const port = createFakeMcpPort({ clock });
+        const connection = await createMcpAppAdapter({ port, clock, host: 'https://any.example' }).open({ intent: 'answer', prompt: 'q' });
+        port.answer();
+        const stream = createCurrentStream();
+        const read = (async () => { for await (const raw of connection.events) stream.apply(raw); })();
+        await clock.advance(1_000);
+        await read;
+        expect(describeOrigin(stream.snapshot().origin)).toContain('MCP host at https://any.example');
+    });
+
     it('an answer the host hands over cannot present itself as a human author either', async () => {
         const clock = createVirtualClock();
         const port = createFakeMcpPort({ clock });

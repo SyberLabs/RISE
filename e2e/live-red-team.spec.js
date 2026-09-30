@@ -120,8 +120,9 @@ test.describe('the embedded page under a parent it cannot identify', () => {
     });
 
     test('the host’s model cannot have its Dive shown to the reader as a person’s words', async ({ page, baseURL }) => {
-        const { app } = await framedByAnySite(page, baseURL);
+        const { app, elsewhere } = await framedByAnySite(page, baseURL);
         await expect(app.locator('.live-passage__origin')).toHaveText(/^Written when you asked, by /u, { timeout: 3_000 });
+        await expect(app.locator('.live-passage__origin')).toContainText(`MCP host at ${elsewhere.origin}`);
     });
 });
 

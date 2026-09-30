@@ -39,6 +39,17 @@ const VOICES = Object.freeze({ auto: 'Speak if this device can', browser: 'Speak
 
 const text = (value, fallback = '') => (typeof value === 'string' ? value : fallback);
 
+/** The page that framed this one, as far as the browser says. Any page may, so the reader is told which. */
+export function framedBy(frame) {
+    const ancestor = frame.location?.ancestorOrigins?.[0];
+    if (ancestor && ancestor !== 'null') return ancestor;
+    try {
+        const referrer = frame.document?.referrer;
+        if (referrer) return new URL(referrer).origin;
+    } catch { /* not an address */ }
+    return 'an unidentified page';
+}
+
 export class LiveHost {
     /**
      * @param {HTMLElement} container
@@ -292,7 +303,7 @@ export class LiveHost {
     async buildAdapter(clock, createMockAdapter) {
         if (this.providerName === 'mcp') {
             const { createMcpAppAdapter } = await import('../adapters/mcp-app.js');
-            return createMcpAppAdapter({ port: this.port, clock });
+            return createMcpAppAdapter({ port: this.port, clock, host: framedBy(this.env.window ?? this.env) });
         }
         if (this.providerName !== 'openai') return createMockAdapter({ clock });
         const [{ createOpenAIRealtimeAdapter }, { createOpenAIWebRtcTransport }] = await Promise.all([

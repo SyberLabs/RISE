@@ -35,7 +35,6 @@ import { currentToEvents } from './current-events.js';
 import { DIVE_INSTRUCTIONS, TOOL_NAME } from './current-guide.js';
 
 export { TOOL_NAME };
-const HOST_ORIGIN = Object.freeze({ kind: 'model', name: 'Host model', provider: 'MCP host' });
 const clip = (text, length) => (text.length <= length ? text : `${text.slice(0, length - 1)}…`);
 
 /** What a Dive puts to the host's model. Everything quoted is quoted, not instruction. */
@@ -67,10 +66,18 @@ export function currentFromText(text) {
     throw new Error('It was not a Current: it was not one JSON object');
 }
 
-export function createMcpAppAdapter({ port, clock = createRealClock(), timeoutMs = 60_000, capacity = 256 }) {
+/**
+ * @param {object} options
+ * @param {string} [options.host] the page that framed RISE, as the reader should see it: it is the host,
+ *   and nothing but the page itself vouches for which host it is
+ */
+export function createMcpAppAdapter({ port, clock = createRealClock(), timeoutMs = 60_000, capacity = 256, host }) {
     if (!port || typeof port.onCurrent !== 'function') {
         throw new TypeError('The MCP adapter is given a port that delivers Currents');
     }
+    const hostOrigin = Object.freeze({
+        kind: 'model', name: 'Host model', provider: typeof host === 'string' && host.trim() ? clip(`MCP host at ${host.trim()}`, 120) : 'MCP host'
+    });
     let opened = 0;
 
     return {
@@ -105,7 +112,7 @@ export function createMcpAppAdapter({ port, clock = createRealClock(), timeoutMs
             /** Anything said about a Current that never arrived still needs a Current to be said about. */
             const ensureOpen = () => {
                 if (log.some(event => event.type === 'current.open')) return;
-                put('current.open', { title: 'Answer', origin: HOST_ORIGIN });
+                put('current.open', { title: 'Answer', origin: hostOrigin });
             };
             const fail = (code, message) => {
                 if (finished) return;
@@ -124,7 +131,7 @@ export function createMcpAppAdapter({ port, clock = createRealClock(), timeoutMs
                     return true;
                 }
                 // Whatever it says of itself, it came through the host, and a claim of a person's authorship cannot be checked.
-                for (const event of events) put(event.type, event.type === 'current.open' ? { ...event.body, origin: HOST_ORIGIN } : event.body);
+                for (const event of events) put(event.type, event.type === 'current.open' ? { ...event.body, origin: hostOrigin } : event.body);
                 end();
                 return true;
             };

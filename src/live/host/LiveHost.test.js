@@ -7,7 +7,7 @@
  * what the reader is told, what is refused, and that nothing starts by itself.
  */
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { LiveHost } from './LiveHost.js';
+import { LiveHost, framedBy } from './LiveHost.js';
 
 const env = ({ speech = false, recognition = false, motion = false } = {}) => ({
     window: {
@@ -329,5 +329,14 @@ describe('inside an MCP host', () => {
         expect(host.embedded).toBe(false);
         await vi.waitFor(() => expect(host.eval).toBeDefined());
         expect(container.querySelector('.live-embed')).toBeNull();
+    });
+});
+
+describe('the page that framed an embedded reading', () => {
+    it('is named from the first ancestor, or the referrer, and otherwise said to be unidentified', () => {
+        expect(framedBy({ location: { ancestorOrigins: ['https://host.example'] }, document: { referrer: 'https://other.example/x' } })).toBe('https://host.example');
+        expect(framedBy({ location: { ancestorOrigins: ['null'] }, document: { referrer: 'https://other.example/x?q=1' } })).toBe('https://other.example');
+        expect(framedBy({ location: {}, document: { referrer: '' } })).toBe('an unidentified page');
+        expect(framedBy({ location: {}, document: { referrer: 'not a url' } })).toBe('an unidentified page');
     });
 });
