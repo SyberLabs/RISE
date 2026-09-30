@@ -46,7 +46,7 @@ function prng(seed) {
 // ─── 1. the event protocol ──────────────────────────────────────────────
 
 describe('protocol: validateEvent returns what it checked', () => {
-    it.fails('DEFECT: an accessor can return a visual outside the closed catalog after it was checked', () => {
+    it('an accessor cannot return a visual outside the closed catalog after it was checked', () => {
         let reads = 0;
         const raw = { schema: RISE_CURRENT_EVENTS_SCHEMA, currentId: 'c', seq: 1, type: 'segment.begin', segmentId: 's' };
         Object.defineProperty(raw, 'visual', {
@@ -58,7 +58,7 @@ describe('protocol: validateEvent returns what it checked', () => {
         expect(['still', 'attractor', 'genesis']).toContain(clean.visual);
     });
 
-    it.fails('DEFECT: an accessor can change an evidence kind between the check and the copy', () => {
+    it('an accessor cannot change an evidence kind between the check and the copy', () => {
         let reads = 0;
         const evidence = { id: 'e', title: 'A source' };
         Object.defineProperty(evidence, 'kind', {
@@ -67,6 +67,20 @@ describe('protocol: validateEvent returns what it checked', () => {
         });
         const clean = validateEvent(event(1, 'evidence.add', { segmentId: 's', evidence }));
         expect(['supplied', 'retrieved', 'model-proposed']).toContain(clean.evidence.kind);
+    });
+
+    it('holds: a proxy that changes its prototype yields a plain copy, and nesting cannot exhaust the stack', () => {
+        let asked = 0;
+        const shifty = new Proxy({ id: 'e', kind: 'supplied', title: 'A source' }, {
+            getPrototypeOf() { asked += 1; return asked === 1 ? Object.prototype : Array.prototype; }
+        });
+        const clean = validateEvent(event(1, 'evidence.add', { segmentId: 's', evidence: shifty }));
+        expect(Object.getPrototypeOf(clean.evidence)).toBe(Object.prototype);
+        expect(clean.evidence.kind).toBe('supplied');
+
+        let deep = {};
+        for (let i = 0; i < 100_000; i += 1) deep = { deeper: deep };
+        expect(() => validateEvent(event(1, 'evidence.add', { segmentId: 's', evidence: deep }))).toThrow(expect.objectContaining({ name: 'LiveProtocolError' }));
     });
 
     it('holds: JSON-shaped hostile input (prototype keys, sparse arrays, nulls, deep nesting) is refused', () => {
