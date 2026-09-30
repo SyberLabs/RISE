@@ -56,7 +56,8 @@ describe('a well-formed answer', () => {
     it('begins a passage only when it has words, and sends chunks the protocol allows', () => {
         const { sent } = run([ANSWER]);
         const types = sent.map(e => e.type);
-        expect(types.slice(0, 4)).toEqual(['segment.begin', 'state.set', 'segment.text', 'segment.text']);
+        // A passage's words are gathered, and sent in as few chunks as the protocol allows.
+        expect(types.slice(0, 4)).toEqual(['segment.begin', 'state.set', 'segment.text', 'segment.end']);
         for (const event of sent.filter(e => e.type === 'segment.text')) {
             expect(event.text.trim()).not.toBe('');
             expect(event.text.length).toBeLessThanOrEqual(1000);

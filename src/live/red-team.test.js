@@ -297,7 +297,7 @@ describe('segment parser: what a model can make it hold', () => {
     });
 });
 
-describe('text-stream adapter: the outcome depends on how the provider cuts its words', () => {
+describe('text-stream adapter: the outcome does not depend on how the provider cuts its words', () => {
     async function run(deltas, { burst = false } = {}) {
         let sink;
         const adapter = createTextStreamAdapter({
@@ -325,11 +325,11 @@ describe('text-stream adapter: the outcome depends on how the provider cuts its 
         expect(await run(poem.split(/(?<=\n)/u))).toMatchObject({ phase: 'complete', ended: 1 });
     });
 
-    it.fails('DEFECT: the same answer arriving in one delta overflows the adapter’s queue and nothing is shown', async () => {
+    it('the same answer arriving in one delta completes', async () => {
         expect(await run([poem], { burst: true })).toMatchObject({ phase: 'complete', ended: 1 });
     });
 
-    it.fails('DEFECT: an answer within every text limit fails TOO_MANY_EVENTS when a provider sends one character per delta', async () => {
+    it('an answer within every text limit completes when a provider sends one character per delta', async () => {
         const passage = n => `@passage visual=still\n${Array.from({ length: 330 }, (_, i) => `abcdefgh${(i + n) % 10}`).join(' ')}.\n@end\n`;
         const answer = passage(0) + passage(1) + passage(2);
         expect(answer.length).toBeLessThan(10_000);

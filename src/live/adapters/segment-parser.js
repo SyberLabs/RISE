@@ -92,7 +92,15 @@ export function createSegmentParser(write) {
     let totalText = 0;
     let finished = false;
 
+    /** What a passage has gathered, as one chunk. */
+    const flush = () => {
+        if (!current?.pending) return;
+        write('segment.text', { segmentId: current.id, offset: current.length - current.pending.length, text: current.pending, ...(current.literal ? { literal: true } : {}) });
+        current.pending = '';
+    };
+
     const closeCurrent = () => {
+        flush();
         if (current?.began) write('segment.end', { segmentId: current.id });
         current = null;
         space = '';
@@ -102,42 +110,39 @@ export function createSegmentParser(write) {
         closeCurrent();
         if (passages >= PARSER_LIMITS.passages) { current = { dropped: true }; return; }
         passages += 1;
-        current = { id: `p${passages}`, ...settings, began: false, length: 0, dropped: false };
+        current = { id: `p${passages}`, ...settings, began: false, length: 0, pending: '', dropped: false };
     };
 
-    /** Send words, in chunks the protocol allows, never past a limit. */
+    /**
+     * Words are gathered and sent in chunks as large as the protocol allows, so a passage costs
+     * a handful of events however finely the provider cuts it: only ended passages are shown,
+     * and the reader's queue and the Current's event budget are not spent on single letters.
+     * Never past a limit.
+     */
     function send(words) {
         if (current === null) open({ visual: 'still', state: {} });
         if (current.dropped) return;
-        let rest = words;
+        const room = Math.min(RISE_CURRENT_LIMITS.segmentText - current.length, RISE_CURRENT_LIMITS.totalText - totalText);
+        // What does not fit is dropped with the space before it: the protocol refuses a blank chunk.
+        const fits = words.length <= room;
+        let rest = fits ? words : words.slice(0, Math.max(0, room)).trimEnd();
+        if (rest && !current.began) {
+            current.began = true;
+            write('segment.begin', { segmentId: current.id, visual: current.visual, ...(current.literal ? { literal: true } : {}) });
+            if (Object.keys(current.state).length) write('state.set', { segmentId: current.id, state: current.state });
+        }
         while (rest) {
-            const room = Math.min(
-                RISE_CURRENT_LIMITS.segmentText - current.length,
-                RISE_CURRENT_LIMITS.totalText - totalText,
-                EVENT_LIMITS.textChunk
-            );
-            if (room <= 0) {
-                // A limit was reached: this passage ends where it is, and the rest of it is dropped.
-                closeCurrent();
-                current = { dropped: true };
-                return;
-            }
-            const piece = rest.slice(0, room);
-            rest = rest.slice(room);
-            // Only the space before the next word fits: the protocol refuses a blank chunk, so the passage is full.
-            if (!piece.trim()) {
-                closeCurrent();
-                current = { dropped: true };
-                return;
-            }
-            if (!current.began) {
-                current.began = true;
-                write('segment.begin', { segmentId: current.id, visual: current.visual, ...(current.literal ? { literal: true } : {}) });
-                if (Object.keys(current.state).length) write('state.set', { segmentId: current.id, state: current.state });
-            }
-            write('segment.text', { segmentId: current.id, offset: current.length, text: piece, ...(current.literal ? { literal: true } : {}) });
+            const piece = rest.slice(0, EVENT_LIMITS.textChunk - current.pending.length);
+            rest = rest.slice(piece.length);
+            current.pending += piece;
             current.length += piece.length;
             totalText += piece.length;
+            if (current.pending.length >= EVENT_LIMITS.textChunk) flush();
+        }
+        if (!fits) {
+            // A limit was reached: this passage ends where it is, and the rest of it is dropped.
+            closeCurrent();
+            current = { dropped: true };
         }
     }
 
