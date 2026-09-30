@@ -8,7 +8,7 @@ import { isRosaryDoor, rosaryDoorHref, ROSARY_DOOR_HASH } from './core/rosary-do
 
 const VIEW_IDS = [
   'view-portal', 'view-vault', 'view-chamber', 'view-library',
-  'view-journeys', 'view-workshop', 'view-sol', 'view-chapel',
+  'view-journeys', 'view-workshop', 'view-chapel',
   'view-rosarium', 'view-via', 'view-curia', 'view-scriptorium',
   'view-settings'
 ];

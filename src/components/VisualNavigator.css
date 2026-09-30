@@ -158,9 +158,6 @@
 .vnav-dialog-actions button { border: 1px solid var(--vnav-edge); border-radius: 4px; padding: 0.42rem 0.65rem;
   background: var(--vnav-raise); color: var(--color-cloud, #C5C5CD); font: inherit; font-size: 0.72rem; cursor: pointer; }
 
-.vnav-glass { display: flex; align-items: center; gap: 0.5rem; font-size: 0.76rem; color: var(--color-fog, #9B9BA5);
-  margin: 0.2rem 0 0.9rem; cursor: pointer; }
-
 /* PRINCIPAL IN SIGHT.
    The control that commits a choice is not something a reader should have to
    go looking for. This was the last child of a 26rem scrollport full of

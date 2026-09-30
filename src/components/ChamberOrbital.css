@@ -7,7 +7,6 @@
 
 .chamber-orbital {
   --rs-bg: var(--sy-bg);
-  --rs-surface: var(--sy-surface);
   --rs-surface-2: var(--sy-surface-2);
   --rs-line: var(--sy-line);
   --rs-line-strong: var(--sy-line-strong);
@@ -1178,42 +1177,6 @@
   box-shadow: 0 0 12px rgba(var(--color-accent-rgb), 0.6);
 }
 
-/* Mode options (Display) */
-.mode-options {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: var(--space-md);
-}
-
-.mode-option {
-  background: transparent;
-  border: 1px solid var(--color-shadow);
-  padding: var(--space-md);
-  cursor: pointer;
-  transition: all var(--transition-fast) var(--ease-default);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: var(--space-xs);
-  color: var(--color-cloud);
-  font-size: 12px;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
-
-.mode-option:hover {
-  border-color: var(--color-threshold);
-  color: var(--color-light);
-  background: rgba(var(--color-accent-rgb), 0.05);
-}
-
-.mode-option.active {
-  border-color: var(--color-threshold);
-  background: rgba(var(--color-accent-rgb), 0.15);
-  color: var(--color-light);
-  box-shadow: inset 0 0 16px rgba(var(--color-accent-rgb), 0.2);
-}
-
 /* Audio preset options */
 .audio-preset-options {
   display: grid;
@@ -2276,7 +2239,6 @@
 }
 
 @media (max-width: 768px) {
-  .mode-options,
   .audio-preset-options,
   .audio-mode-options,
   .audio-waveform-options {
@@ -2308,7 +2270,6 @@
   /* Phone panels: list-style options (row), not picture tiles. */
 
   /* Compact grids so mode/preset choices fit a phone panel. */
-  .mode-options,
   .audio-preset-options,
   .audio-mode-options,
   .audio-waveform-options {

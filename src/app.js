@@ -940,7 +940,7 @@ class App {
     }
 
     /**
-     * Handle session creation from Workshop / Vault / SOL blueprints.
+     * Handle session creation from Workshop / Vault blueprints.
      * Hydrates durable sequence images before compileSession.
      */
     async handleCreateSession(sessionData) {
