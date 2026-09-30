@@ -37,7 +37,7 @@ function request(body = context(), headers = {}) {
 }
 
 function kev(answer, { revision = REVISION, model = 'kev-latest', status = 200 } = {}) {
-    return vi.fn(async () => Response.json({ model, answers: { rail_action: answer } }, {
+    return vi.fn(async () => Response.json({ model, answers: { rail_pick: answer } }, {
         status, headers: revision ? { 'x-kev-revision': revision } : {}
     }));
 }
@@ -47,8 +47,9 @@ const quiet = { log: () => {} };
 afterEach(() => vi.unstubAllGlobals());
 
 describe('enterprise decision route', () => {
-    it('asks the provider to choose among opaque legal options and maps the choice back', async () => {
-        const fetcher = kev({ type: 'choice', choice: 'show_2_bar', confidence: 0.71 });
+    it('asks the provider to pick one source or none, by opaque keys, and maps the pick back', async () => {
+        const fetcher = kev({ type: 'choice', choice: 'source_1', confidence: 0.71,
+            probabilities: { none: 0.2, source_1: 0.7, source_2: 0.1 } });
         vi.stubGlobal('fetch', fetcher);
         const response = await handleEnterpriseDecision(request(), env, quiet);
         expect(response.status).toBe(200);
@@ -56,8 +57,8 @@ describe('enterprise decision route', () => {
             schema: 'rise.enterprise-decision.v1',
             requestId: 'room1:4',
             action: 'show',
-            cardId: CHART,
-            layout: 'bar',
+            cardId: CARD,
+            layout: 'quote',
             confidence: 0.71,
             model: 'kev-latest',
             provider: 'Kev',
@@ -69,23 +70,28 @@ describe('enterprise decision route', () => {
         expect(init.headers.Authorization).toBe('Bearer server-kev-secret');
         expect(init.redirect).toBe('manual');
         const sent = JSON.parse(init.body);
-        expect(Object.keys(sent.questions.rail_action.criteria)).toEqual([
-            'hold', 'dismiss', 'show_1_quote', 'show_2_bar', 'show_2_line', 'show_2_table'
-        ]);
-        expect(sent.state).toEqual({
-            window: 'Atlas renewal price', speaker: 'presenter', mode: 'prepared', rail: ['Earlier card']
+        expect(sent.questions.rail_pick.criteria).toEqual({
+            none: 'No source clearly answers or supports it.',
+            source_1: 'Atlas renewal',
+            source_2: 'Quarterly revenue'
         });
-        // The provider sees titles and scores, never card ids or documents.
+        expect(sent.state).toEqual({ window: 'Atlas renewal price', speaker: 'presenter', mode: 'prepared' });
+        // The provider sees titles, never card ids, documents, scores, or the rail.
         expect(init.body).not.toContain(CARD);
         expect(init.body).not.toContain('pricing');
+        expect(init.body).not.toContain('Earlier card');
+        expect(init.body).not.toContain('0.62');
     });
 
-    it('offers only hold and dismiss when nothing matched', () => {
-        const empty = context({
-            structure: { candidates: [], rail: [] },
-            authority: { actions: ['hold', 'dismiss'] }
-        });
-        expect(Object.keys(railQuestion(empty).question.criteria)).toEqual(['hold', 'dismiss']);
+    it('asks no provider when nothing matched, and dismisses', async () => {
+        const fetcher = vi.fn();
+        vi.stubGlobal('fetch', fetcher);
+        const empty = context({ structure: { candidates: [], rail: [] }, authority: { actions: ['hold', 'dismiss'] } });
+        expect(railQuestion(empty).question).toBeNull();
+        const response = await handleEnterpriseDecision(request(empty), env, quiet);
+        expect(response.status).toBe(200);
+        expect(await response.json()).toMatchObject({ action: 'dismiss', cardId: null, layout: null, provider: 'Kev' });
+        expect(fetcher).not.toHaveBeenCalled();
     });
 
     it('does not call a provider that is not configured', async () => {
@@ -116,11 +122,13 @@ describe('enterprise decision route', () => {
     });
 
     it.each([
-        ['an option that was not offered', { type: 'choice', choice: 'show_3_quote' }],
+        ['an option that was not offered', { type: 'choice', choice: 'source_3' }],
         ['a raw card id', { type: 'choice', choice: CARD }],
         ['a publish verb', { type: 'choice', choice: 'promote' }],
         ['free text', { type: 'text', text: 'The acquisition price is 880 million' }],
-        ['a confidence above one', { type: 'choice', choice: 'hold', confidence: 4 }],
+        ['a confidence above one', { type: 'choice', choice: 'none', confidence: 4 }],
+        ['a probability above one', { type: 'choice', choice: 'none', probabilities: { none: 2, source_1: 0, source_2: 0 } }],
+        ['a missing probability', { type: 'choice', choice: 'none', probabilities: { none: 1, source_1: 0 } }],
         ['no answer', undefined]
     ])('fails closed on %s', async (_, answer) => {
         vi.stubGlobal('fetch', kev(answer));
@@ -129,18 +137,12 @@ describe('enterprise decision route', () => {
         expect(await response.text()).not.toContain('880');
     });
 
-    it('refuses a show the turn does not authorize', async () => {
-        vi.stubGlobal('fetch', kev({ type: 'choice', choice: 'show_1_quote' }));
-        const empty = context({ structure: { candidates: [], rail: [] }, authority: { actions: ['hold', 'dismiss'] } });
-        expect((await handleEnterpriseDecision(request(empty), env, quiet)).status).toBe(502);
-    });
-
     it.each([
         ['a different checkpoint', { revision: 'b'.repeat(40) }],
         ['an unattested checkpoint', { revision: null }],
         ['a different model', { model: 'jev-latest' }]
     ])('rejects %s', async (_, options) => {
-        vi.stubGlobal('fetch', kev({ type: 'choice', choice: 'hold' }, options));
+        vi.stubGlobal('fetch', kev({ type: 'choice', choice: 'none' }, options));
         expect((await handleEnterpriseDecision(request(), env, quiet)).status).toBe(502);
     });
 
@@ -163,13 +165,14 @@ describe('enterprise decision route', () => {
     });
 
     it('logs one line per request without the transcript', async () => {
-        vi.stubGlobal('fetch', kev({ type: 'choice', choice: 'hold', confidence: 0.4 }));
+        vi.stubGlobal('fetch', kev({ type: 'choice', choice: 'none', confidence: 0.4,
+            probabilities: { none: 0.9, source_1: 0.05, source_2: 0.05 } }));
         const log = vi.fn();
         await handleEnterpriseDecision(request(), env, { log });
         expect(log).toHaveBeenCalledOnce();
         const line = JSON.parse(log.mock.calls[0][0]);
         expect(line).toMatchObject({
-            event: 'enterprise.decision', requestId: 'room1:4', status: 200, outcome: 'hold', candidates: 2, provider: 'Kev'
+            event: 'enterprise.decision', requestId: 'room1:4', status: 200, outcome: 'dismiss', candidates: 2, provider: 'Kev'
         });
         expect(log.mock.calls[0][0]).not.toContain('Atlas renewal price');
     });
@@ -177,7 +180,7 @@ describe('enterprise decision route', () => {
     it('accepts the explicit Jev provider', async () => {
         vi.stubGlobal('fetch', vi.fn(async () => Response.json({
             provider: 'TypeSafe', model: 'typesafe/jev-1.13',
-            answers: { rail_action: { type: 'choice', choice: 'dismiss' } }
+            answers: { rail_pick: { type: 'choice', choice: 'none', probabilities: { none: 1, source_1: 0, source_2: 0 } } }
         })));
         const response = await handleEnterpriseDecision(request(), { DECISION_PROVIDER: 'jev', OPENROUTER_API_KEY: 'k' }, quiet);
         expect(response.status).toBe(200);
@@ -188,7 +191,9 @@ describe('enterprise decision route', () => {
 describe('Kev worker script', () => {
     it('is recognised only at its hashed asset path', () => {
         expect(isKevWorkerScript('/assets/kev-worker-B1YReAsQ.js')).toBe(true);
-        for (const path of ['/assets/kev-worker-x.js/../index.js', '/assets/kev-check-1.js', '/enterprise', '/assets/kev-worker-.css']) {
+        expect(isKevWorkerScript('/assets/embed-worker-CVK-xa4T.js')).toBe(true);
+        for (const path of ['/assets/kev-worker-x.js/../index.js', '/assets/kev-check-1.js', '/enterprise', '/assets/kev-worker-.css',
+            '/assets/embedder-1.js', '/assets/embed-worker-.js']) {
             expect(isKevWorkerScript(path)).toBe(false);
         }
     });

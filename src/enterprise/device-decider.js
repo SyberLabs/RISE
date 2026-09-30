@@ -79,6 +79,9 @@ export function createDeviceDecider({ model = DEFAULT_DEVICE_MODEL, createWorker
         if (status.state === 'loading') throw new DecisionError('loading');
         if (status.state !== 'ready') throw new DecisionError('unavailable');
         const { options, question, state } = railQuestion(context);
+        if (!question) {
+            return { raw: { action: 'dismiss', cardId: null, layout: null }, meta: { provider: DEVICE_PROVIDER, model: status.info.run, revision: status.info.revision, confidence: null, inferenceMs: 0 } };
+        }
         const id = ++nextId;
         const reply = await new Promise((resolve, reject) => {
             pending.set(id, { resolve, reject });

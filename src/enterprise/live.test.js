@@ -142,6 +142,37 @@ describe('live loop', () => {
         expect(await olderAsk).toMatchObject({ action: 'hold', reason: 'superseded' });
     });
 
+    it('embeds a final and an ask before preparing them, and hands the vector over', async () => {
+        const { session } = room();
+        const prepare = vi.spyOn(session, 'prepare');
+        const reasoning = vi.spyOn(session, 'prepareReasoning');
+        const vector = new Float32Array([1, 0]);
+        const embed = vi.fn(async () => vector);
+        const loop = createLiveLoop({ session, decide: localDecider, embed });
+        await loop.hear({ ...atlas(1), final: false });
+        expect(embed).not.toHaveBeenCalled();
+        await loop.hear(atlas(2));
+        await loop.reason({ text: 'Pipeline revenue by quarter', at: 3 });
+        expect(embed.mock.calls.map(call => call[0])).toEqual(['Atlas renewal price', 'Pipeline revenue by quarter']);
+        expect(prepare.mock.calls[0][0].vector).toBe(vector);
+        expect(reasoning.mock.calls[0][0].vector).toBe(vector);
+    });
+
+    it('prepares without a vector when embedding fails or is too slow', async () => {
+        vi.useFakeTimers();
+        const { session } = room();
+        const prepare = vi.spyOn(session, 'prepare');
+        const failing = createLiveLoop({ session, decide: localDecider, embed: async () => { throw new Error('unavailable'); } });
+        await failing.hear(atlas(1));
+        expect(prepare.mock.calls[0][0]).not.toHaveProperty('vector');
+
+        const slow = createLiveLoop({ session, decide: localDecider, embed: () => new Promise(() => {}), embedTimeoutMs: 300 });
+        const heard = slow.hear(atlas(2));
+        await vi.advanceTimersByTimeAsync(300);
+        expect((await heard).action).not.toBe('ignore');
+        expect(prepare.mock.calls[1][0]).not.toHaveProperty('vector');
+    });
+
     it('runs a reasoning request through the same decision path', async () => {
         const input = demoCorpusInput();
         input.documents.push({ id: 'ops', title: 'Ops note', audiences: ['all-hands'],

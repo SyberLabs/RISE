@@ -11,7 +11,12 @@ import { expect, test } from './fixtures.js';
 const ROUTE = '**/api/enterprise-decision';
 const SECRET = /880/u;
 
-async function openRoom(page, { speech = true, listen = true } = {}) {
+// Model hosts are blocked so no test downloads a model: the embedder fails to
+// load and the room matches by words, as it does until an embedder is ready.
+const MODEL_HOSTS = /huggingface\.co|\.hf\.co|cdn\.jsdelivr\.net/u;
+
+async function openRoom(page, { speech = true, listen = true, decider = 'jev' } = {}) {
+    await page.context().route(MODEL_HOSTS, (route) => route.abort());
     await page.addInitScript((withSpeech) => {
         window.__shift = 0;
         new PerformanceObserver((list) => {
@@ -35,6 +40,7 @@ async function openRoom(page, { speech = true, listen = true } = {}) {
         };
     }, speech);
     await page.goto('/enterprise.html');
+    if (decider) await page.locator('#decider').selectOption(decider);
     if (speech && listen) {
         await page.getByRole('button', { name: 'Listen' }).click();
         await expect(state(page)).toHaveAttribute('data-state', 'listening');
@@ -97,6 +103,17 @@ test.describe('EnterpRise live room', () => {
         await page.getByRole('button', { name: /^Retract/ }).click();
         await expect(stage(page)).toHaveText('Nothing on stage.');
         await expect(page.locator('body')).not.toContainText(SECRET);
+    });
+
+    test('starts on local rules with no key, and never calls the decision route', async ({ page }) => {
+        const sent = [];
+        await page.route(ROUTE, (route) => { sent.push(route.request().url()); return route.abort(); });
+        await openRoom(page, { decider: null });
+        await expect(page.locator('#decider')).toHaveValue('local');
+        await say(page, 'What was the Atlas renewal price');
+        await expect(rail(page)).toHaveCount(1);
+        await expect(page.locator('#last-decision')).toHaveText(/^Local rules \d+ ms$/u);
+        expect(sent).toEqual([]);
     });
 
     test('presenter speech never lands in follow-up; a declined audience question does', async ({ page }) => {

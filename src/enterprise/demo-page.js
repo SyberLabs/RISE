@@ -15,6 +15,8 @@
 import { createDemoSession } from './demo.js';
 import { createDeviceDecider } from './device-decider.js';
 import { DEFAULT_DEVICE_MODEL, DEVICE_MODELS, formatBytes } from './device-model.js';
+import { EMBED_MODEL } from './embed-model.js';
+import { createEmbedder } from './embedder.js';
 import { createLiveLoop, localDecider } from './live.js';
 import { openProjector } from './projector.js';
 import { renderRail } from './rail-view.js';
@@ -54,11 +56,13 @@ const DECIDERS = {
     local: (context, options) => localDecider(context, options),
     device: (context, options) => device.decide(context, options)
 };
+const embedder = createEmbedder();
 const loop = createLiveLoop({
     session,
     trace,
     now: clock,
-    decide: (context, options) => DECIDERS[deciderSelect.value](context, options)
+    decide: (context, options) => DECIDERS[deciderSelect.value](context, options),
+    embed: (text) => embedder.embed([text], { query: true }).then(([vector]) => vector)
 });
 let projector = null;
 const refresh = () => {
@@ -453,6 +457,28 @@ deciderSelect.addEventListener('change', () => {
         : 'JEV decides through the server.');
 });
 
+/* ---------- Matching by meaning ---------- */
+
+// The room matches by words until the embedder is ready, and keeps doing so
+// if it never is. Only the room's own cards and permitted sentences are embedded.
+async function useEmbeddings() {
+    const loaded = await embedder.load();
+    trace.emit('embed.load', { state: loaded.state, code: loaded.code, loadMs: loaded.loadMs });
+    if (loaded.state !== 'ready') return;
+    try {
+        const { cards, entries } = session.embeddingTexts();
+        const cardVectors = await embedder.embed(cards.map(card => card.text));
+        const entryVectors = await embedder.embed(entries.map(entry => entry.text));
+        session.attachVectors({
+            cards: new Map(cards.map((card, i) => [card.id, cardVectors[i]])),
+            entries: new Map(entries.map((entry, i) => [entry.id, entryVectors[i]])),
+            scale: EMBED_MODEL.scale
+        });
+    } catch {
+        trace.emit('embed.failed', {});
+    }
+}
+
 /* ---------- Microphone ---------- */
 
 const Recognition = speechRecognitionClass(window);
@@ -534,3 +560,4 @@ setListening(false);
 setState('idle', 'Starting…');
 refresh();
 prepareSpeech();
+useEmbeddings();

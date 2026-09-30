@@ -6,10 +6,12 @@
  * with the lexical score. Both are local. The ceilings in the suite are the
  * product targets (under a second, under two), not a field measurement.
  *
- * The embedding here is a hashed bag of tokens. A hosted embedding model can
- * replace `embed` without changing the neighbour search.
+ * The embedding here is a hashed bag of tokens. When the room's sentence
+ * vectors are attached (`attachDense`) and a line arrives with its own
+ * vector, the semantic tier scores by calibrated cosine instead.
  */
 
+import { calibrate, cosine } from './embedding.js';
 import { covers, tokenize } from './text.js';
 
 const DIM = 64;
@@ -90,11 +92,20 @@ export function indexProgram(program, corpus, embedder = embed) {
                 title: card.title,
                 layout: card.layout,
                 layouts: card.layouts,
+                text,
                 terms: new Set(tokenize(text)),
-                vector: unit(embedder(text))
+                vector: unit(embedder(text)),
+                dense: null
             };
-        })
+        }),
+        scale: null
     };
+}
+
+/** Attach sentence vectors by card id. Cards without one keep the hashed tier. */
+export function attachDense(index, vectors, scale) {
+    for (const card of index.cards) card.dense = vectors.get(card.id) ?? null;
+    index.scale = scale;
 }
 
 export function matchLexical(index, text, options = {}) {
@@ -124,6 +135,18 @@ function dot(left, right) {
 }
 
 export function matchSemantic(index, text, options = {}) {
+    if (options.vector && index.scale && index.cards.every(card => card.dense)) {
+        const ranked = index.cards.map(card => ({
+            id: card.id,
+            title: card.title,
+            score: calibrate(cosine(options.vector, card.dense), index.scale),
+            tier: 'semantic',
+            layouts: card.layouts,
+            layout: card.layout
+        }));
+        ranked.sort(byRank);
+        return ranked.slice(0, options.limit ?? 5);
+    }
     const embedder = options.embed || index.embedder || embed;
     const query = unit(embedder(text));
     // The window is what gets embedded. Rerank uses the sentence that just
