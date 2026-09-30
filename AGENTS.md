@@ -135,11 +135,8 @@ own key or the host's model and remain switched off by default. See
   Any relative Markdown link in it must point at a file in the tree, or the
   wiki build fails.
 - The main-branch ruleset requires one check and no human approval: `CI`.
-  `Agentic review` (`.github/workflows/agentic-review.yml`, an AI code review)
-  is advisory: without an `OPENAI_API_KEY` secret it passes with a notice that
-  no review ran; with one it blocks on concrete correctness or security
-  defects. Never make a check that only runs after merge required; it blocks
-  pull requests forever.
+  Never make a check that only runs after merge required; it blocks pull
+  requests forever.
 
 ## Parallel agent work
 
