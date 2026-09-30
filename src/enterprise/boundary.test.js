@@ -20,7 +20,7 @@ function javascriptFiles(dir, out = []) {
     return out;
 }
 
-// The on-device model runs in its own worker; these are the only packages
+// The on-device models run in their own workers; these are the only packages
 // any enterprise module may import, and only there.
 const PACKAGE_IMPORTS = new Map([
     [join(ENTERPRISE, 'kev-worker.js'), new Set([
@@ -28,7 +28,8 @@ const PACKAGE_IMPORTS = new Map([
         'onnxruntime-web/ort-wasm-simd-threaded.jspi.wasm?url',
         '@ai-ecoverse/kev.js',
         '@huggingface/tokenizers'
-    ])]
+    ])],
+    [join(ENTERPRISE, 'embed-worker.js'), new Set(['onnxruntime-web/wasm', '@huggingface/tokenizers'])]
 ]);
 
 describe('enterprise stays beside the reader', () => {

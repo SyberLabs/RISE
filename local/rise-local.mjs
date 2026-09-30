@@ -59,9 +59,9 @@ function run(command, args, options = {}) {
   });
 }
 
-function capture(command, args) {
+function capture(command, args, options = {}) {
   return new Promise(resolve => {
-    const child = spawn(command, args, { windowsHide: true });
+    const child = spawn(command, args, { windowsHide: true, ...options });
     let out = '';
     child.stdout?.on('data', chunk => { out += chunk; });
     child.on('error', () => resolve(null));
@@ -95,10 +95,27 @@ function openBrowser(url) {
   spawn(command, args, { stdio: 'ignore', detached: true, windowsHide: true }).unref();
 }
 
-async function ensureBuild() {
-  if (existsSync(join(ROOT, 'dist', 'index.html'))) return;
-  say('Building RISE once (npm run build)…');
-  await run(IS_WINDOWS ? 'npm.cmd' : 'npm', ['run', 'build'], { cwd: ROOT, shell: IS_WINDOWS });
+export async function ensureBuild({ root = ROOT, markerPath = join(HOME, 'dist-build-revision.json'),
+  revision: suppliedRevision, clean: suppliedClean, build = () => run(IS_WINDOWS ? 'npm.cmd' : 'npm', ['run', 'build'], { cwd: root, shell: IS_WINDOWS }),
+  log = say } = {}) {
+  const revision = suppliedRevision ?? await capture('git', ['rev-parse', 'HEAD'], { cwd: root });
+  const clean = suppliedClean ?? (await capture('git', ['status', '--porcelain'], { cwd: root }) === '');
+  const html = join(root, 'dist', 'index.html');
+  const marker = JSON.stringify({ root, revision });
+  if (revision && clean && existsSync(html)) {
+    try {
+      if ((await readFile(markerPath, 'utf8')) === marker) return false;
+    } catch {
+      // No stamp means the existing shell cannot be tied to this checkout.
+    }
+  }
+  log('Building RISE (npm run build)…');
+  await build();
+  if (revision && clean) {
+    await mkdir(dirname(markerPath), { recursive: true });
+    await writeFile(markerPath, marker);
+  }
+  return true;
 }
 
 async function ensureKev(status, gpuKind) {

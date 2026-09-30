@@ -7,6 +7,7 @@ const ORIGIN = 'https://rise.example';
 describe('Kev worker script', () => {
     it('is recognised only at its hashed asset path', () => {
         expect(isKevWorkerScript('/assets/kev-worker-B1YReAsQ.js')).toBe(true);
+        expect(isKevWorkerScript('/assets/embed-worker-B1YReAsQ.js')).toBe(true);
         for (const path of ['/assets/kev-worker-x.js/../index.js', '/assets/kev-check-1.js', '/enterprise', '/assets/kev-worker-.css']) {
             expect(isKevWorkerScript(path)).toBe(false);
         }
@@ -22,6 +23,8 @@ describe('Kev worker script', () => {
         expect(response.headers.get('Content-Security-Policy')).toBe(KEV_WORKER_POLICY);
         expect(response.headers.get('Cache-Control')).toBe('immutable');
         expect(await response.text()).toBe('self.onmessage=()=>{}');
+        const embed = await worker.fetch(new Request(`${ORIGIN}/assets/embed-worker-B1YReAsQ.js`), env);
+        expect(embed.headers.get('Content-Security-Policy')).toBe(KEV_WORKER_POLICY);
         expect(KEV_WORKER_POLICY).toContain("default-src 'none'");
         expect(KEV_WORKER_POLICY).not.toContain("'unsafe-eval'");
         expect(KEV_WORKER_POLICY).not.toMatch(/script-src[^;]*https:/u);

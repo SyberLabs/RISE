@@ -1,5 +1,6 @@
 /**
- * Kev's weights live on disk, never whole in the worker's memory.
+ * Model files live on disk, never whole in a worker's memory. Kev and the
+ * matcher's embedder both load through here.
  *
  * Kev-4B is 4.7 GB; held as buffers it overflows the tab. Each file is
  * streamed straight into Cache Storage and handed back as a Blob backed by

@@ -1,6 +1,9 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { CUDA_TORCH, KEV_CODE_REVISION, KEV_PACKAGE, KEV_REVISION, selfTest } from './rise-local.mjs';
+import { mkdtemp, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { CUDA_TORCH, KEV_CODE_REVISION, KEV_PACKAGE, KEV_REVISION, ensureBuild, selfTest } from './rise-local.mjs';
 import { KEV_CODE_REVISION as CONTRACT_CODE, KEV_REVISION as CONTRACT_REVISION } from '../src/core/decision/providers.js';
 
 const TOKEN = 'k'.repeat(43);
@@ -36,5 +39,31 @@ describe('local launcher', () => {
     const open = await selfTest({ port: 1, kevPort: 2, token: TOKEN, fetchImpl: fakeServices({ foreign: 200 }) });
     assert.equal(open.find(result => /another website/u.test(result.name)).ok, false);
     console.log = log;
+  });
+
+  it('rebuilds an existing dist tree after a checkout or when the worktree is dirty', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'rise-local-build-'));
+    const markerPath = join(root, 'outside-repo', 'build.json');
+    const html = join(root, 'dist', 'index.html');
+    let builds = 0;
+    const build = async () => { builds += 1; await mkdir(join(root, 'dist'), { recursive: true }); await writeFile(html, '<html>current</html>'); };
+    const options = { root, markerPath, revision: 'new-head', clean: true, build, log: () => {} };
+    try {
+      await mkdir(join(root, 'dist'), { recursive: true });
+      await writeFile(html, '<html>stale</html>');
+      await mkdir(join(root, 'outside-repo'), { recursive: true });
+      await writeFile(markerPath, JSON.stringify({ root, revision: 'old-head' }));
+
+      assert.equal(await ensureBuild(options), true);
+      assert.equal(builds, 1);
+      assert.equal(await readFile(html, 'utf8'), '<html>current</html>');
+      assert.equal(await ensureBuild(options), false);
+      assert.equal(builds, 1);
+      assert.equal(await ensureBuild({ ...options, clean: false }), true);
+      assert.equal(builds, 2);
+      assert.equal(await readFile(markerPath, 'utf8'), JSON.stringify({ root, revision: 'new-head' }));
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
   });
 });

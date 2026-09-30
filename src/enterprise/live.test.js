@@ -142,6 +142,88 @@ describe('live loop', () => {
         expect(await olderAsk).toMatchObject({ action: 'hold', reason: 'superseded' });
     });
 
+    it('embeds a final and an ask before preparing them, and hands the vector over', async () => {
+        const { session } = room();
+        const prepare = vi.spyOn(session, 'prepare');
+        const reasoning = vi.spyOn(session, 'prepareReasoning');
+        const vector = new Float32Array([1, 0]);
+        const embed = vi.fn(async () => vector);
+        const loop = createLiveLoop({ session, decide: localDecider, embed });
+        await loop.hear({ ...atlas(1), final: false });
+        expect(embed).not.toHaveBeenCalled();
+        await loop.hear(atlas(2));
+        await loop.reason({ text: 'Pipeline revenue by quarter', at: 3 });
+        expect(embed.mock.calls.map(call => call[0])).toEqual(['Atlas renewal price', 'Pipeline revenue by quarter']);
+        expect(prepare.mock.calls[0][0].vector).toBe(vector);
+        expect(reasoning.mock.calls[0][0].vector).toBe(vector);
+    });
+
+    it('cancels the older decision before awaiting a newer speech embedding', async () => {
+        const { session } = room();
+        const slowDecision = deferred();
+        const slowEmbed = deferred();
+        const decisionSignals = [];
+        const vectors = [new Float32Array([1, 0]), slowEmbed.promise];
+        const embed = vi.fn(() => vectors.shift());
+        const decide = vi.fn((context, { signal }) => {
+            decisionSignals.push(signal);
+            return decisionSignals.length === 1
+                ? slowDecision.promise.then(() => answer(context))
+                : Promise.resolve(answer(context));
+        });
+        const loop = createLiveLoop({ session, decide, embed });
+
+        const first = loop.hear(atlas(1));
+        await vi.waitFor(() => expect(decide).toHaveBeenCalledOnce());
+        const second = loop.hear(final('pipeline revenue by quarter', 2));
+        expect(decisionSignals[0].aborted).toBe(true);
+        slowEmbed.resolve(new Float32Array([0, 1]));
+
+        expect(await first).toMatchObject({ action: 'hold', reason: 'superseded' });
+        expect(await second).toMatchObject({ action: 'show' });
+        expect(decide).toHaveBeenCalledTimes(2);
+        expect(session.rail().map(card => card.kind)).toEqual(['chart']);
+    });
+
+    it('discards an older embedding that completes after a newer final', async () => {
+        const { session } = room();
+        const olderEmbed = deferred();
+        const newerEmbed = deferred();
+        const prepare = vi.spyOn(session, 'prepare');
+        const vectors = [olderEmbed.promise, newerEmbed.promise];
+        const loop = createLiveLoop({
+            session,
+            decide: localDecider,
+            embed: () => vectors.shift()
+        });
+
+        const first = loop.hear(atlas(1));
+        const second = loop.hear(final('pipeline revenue by quarter', 2));
+        newerEmbed.resolve(new Float32Array([0, 1]));
+        await second;
+        olderEmbed.resolve(new Float32Array([1, 0]));
+
+        expect(await first).toMatchObject({ action: 'ignore', reason: 'superseded' });
+        expect(prepare).toHaveBeenCalledOnce();
+        expect(prepare.mock.calls[0][0].text).toBe('pipeline revenue by quarter');
+        expect(prepare.mock.calls[0][0].vector).toEqual(new Float32Array([0, 1]));
+    });
+
+    it('prepares without a vector when embedding fails or is too slow', async () => {
+        vi.useFakeTimers();
+        const { session } = room();
+        const prepare = vi.spyOn(session, 'prepare');
+        const failing = createLiveLoop({ session, decide: localDecider, embed: async () => { throw new Error('unavailable'); } });
+        await failing.hear(atlas(1));
+        expect(prepare.mock.calls[0][0]).not.toHaveProperty('vector');
+
+        const slow = createLiveLoop({ session, decide: localDecider, embed: () => new Promise(() => {}), embedTimeoutMs: 300 });
+        const heard = slow.hear(atlas(2));
+        await vi.advanceTimersByTimeAsync(300);
+        expect((await heard).action).not.toBe('ignore');
+        expect(prepare.mock.calls[1][0]).not.toHaveProperty('vector');
+    });
+
     it('runs a reasoning request through the same decision path', async () => {
         const input = demoCorpusInput();
         input.documents.push({ id: 'ops', title: 'Ops note', audiences: ['all-hands'],
@@ -160,7 +242,7 @@ describe('local Kev decider', () => {
     const context = () => room().session.prepare(atlas(0)).context;
     const REVISION = '139fdd94f1b6a6ad80cc15e08fcb99cac885a101';
     const kev = (answer, { revision = REVISION, model = 'kev-latest', status = 200 } = {}) =>
-        vi.fn(async () => new Response(JSON.stringify({ model, answers: { rail_action: answer } }), {
+        vi.fn(async () => new Response(JSON.stringify({ model, answers: { rail_pick: answer } }), {
             status, headers: { 'Content-Type': 'application/json', ...(revision ? { 'x-kev-revision': revision } : {}) }
         }));
 
@@ -172,7 +254,7 @@ describe('local Kev decider', () => {
     it('asks one opaque rail question on the same-origin bridge and maps the choice back', async () => {
         const ctx = context();
         const first = ctx.structure.candidates[0];
-        const fetch = kev({ type: 'choice', choice: `show_1_${first.layouts[0]}`, confidence: 0.8 });
+        const fetch = kev({ type: 'choice', choice: 'source_1', confidence: 0.8 });
         const result = await createRemoteDecider({ fetch })(ctx, {});
         expect(result.raw).toEqual({ action: 'show', cardId: first.id, layout: first.layouts[0] });
         expect(result.meta).toMatchObject({ provider: 'Kev', revision: REVISION, confidence: 0.8 });
@@ -182,9 +264,22 @@ describe('local Kev decider', () => {
         expect(init.headers).not.toHaveProperty('Authorization');
         const sent = JSON.parse(init.body);
         expect(sent.model).toBe('kev-latest');
-        expect(Object.keys(sent.questions)).toEqual(['rail_action']);
+        expect(Object.keys(sent.questions)).toEqual(['rail_pick']);
         // Titles and scores only, never card ids.
         expect(init.body).not.toContain(first.id);
+    });
+
+    it('does not call Kev when there is no candidate to choose', async () => {
+        const fetch = vi.fn();
+        const prepared = context();
+        const withoutCandidates = {
+            ...prepared,
+            structure: { ...prepared.structure, candidates: [] },
+            authority: { actions: ['hold', 'dismiss'] }
+        };
+        const result = await createRemoteDecider({ fetch })(withoutCandidates, {});
+        expect(result.raw).toEqual({ action: 'dismiss', cardId: null, layout: null });
+        expect(fetch).not.toHaveBeenCalled();
     });
 
     it.each([

@@ -12,7 +12,7 @@
  */
 
 import { validateContext } from './context.js';
-import { RAIL_QUESTION, railQuestion, readRailAnswer } from './rail-question.js';
+import { emptyRailDecision, RAIL_QUESTION, railQuestion, readRailAnswer } from './rail-question.js';
 
 export const LOCAL_KEV_ENDPOINT = '/api/local/kev/systemone';
 // Must equal src/core/decision/providers.js KEV_REVISION (enforced by test);
@@ -47,6 +47,13 @@ export function createRemoteDecider({ endpoint = LOCAL_KEV_ENDPOINT, fetch: fetc
             throw new DecisionError('invalid');
         }
         const { options, question, state } = railQuestion(checked);
+        if (!question) {
+            const decision = emptyRailDecision();
+            return {
+                raw: { action: decision.action, cardId: decision.cardId, layout: decision.layout },
+                meta: { provider: 'Kev', model: KEV_MODEL, revision: KEV_REVISION }
+            };
+        }
         let deadline;
         let response;
         try {

@@ -9,9 +9,15 @@ import { expect, test } from './fixtures.js';
  */
 
 const ROUTE = '**/api/local/kev/systemone';
+const RAIL_QUESTION = 'rail_pick';
 const SECRET = /880/u;
 
-async function openRoom(page, { speech = true, listen = true } = {}) {
+// Model hosts are blocked so no test downloads a model: the embedder fails to
+// load and the room matches by words, as it does until an embedder is ready.
+const MODEL_HOSTS = /huggingface\.co|\.hf\.co|cdn\.jsdelivr\.net/u;
+
+async function openRoom(page, { speech = true, listen = true, decider = 'jev' } = {}) {
+    await page.context().route(MODEL_HOSTS, (route) => route.abort());
     await page.addInitScript((withSpeech) => {
         window.__shift = 0;
         new PerformanceObserver((list) => {
@@ -35,6 +41,7 @@ async function openRoom(page, { speech = true, listen = true } = {}) {
         };
     }, speech);
     await page.goto('/enterprise.html');
+    if (decider) await page.locator('#decider').selectOption(decider);
     if (speech && listen) {
         await page.getByRole('button', { name: 'Listen' }).click();
         await expect(state(page)).toHaveAttribute('data-state', 'listening');
@@ -47,17 +54,19 @@ const REVISION = '139fdd94f1b6a6ad80cc15e08fcb99cac885a101';
 function kev(choice, { revision = REVISION, answer } = {}) {
     return {
         headers: revision ? { 'x-kev-revision': revision } : {},
-        json: { model: 'kev-latest', answers: { rail_action: answer || { type: 'choice', choice, confidence: 0.8 } } }
+        json: { model: 'kev-latest', answers: { [RAIL_QUESTION]: answer || { type: 'choice', choice, confidence: 0.8 } } }
     };
 }
 
 /** Choose the first offered source, as a well-behaved model would. */
 function showFirst(body, options) {
-    const offered = Object.keys(body.questions.rail_action.criteria);
-    return kev(offered.find(key => key.startsWith('show_1_')) || 'dismiss', options);
+    const question = body.questions[RAIL_QUESTION];
+    if (!question) return kev('none', options);
+    const offered = Object.keys(question.criteria);
+    return kev(offered.find(key => key.startsWith('source_')) || 'none', options);
 }
 
-const decline = () => kev('dismiss');
+const decline = () => kev('none');
 const say = (page, text, final = true) => page.evaluate(([t, f]) => window.__say(t, f), [text, final]);
 const state = (page) => page.locator('#state');
 const lines = (page) => page.locator('#transcript li');
@@ -101,6 +110,17 @@ test.describe('EnterpRise live room', () => {
         await page.getByRole('button', { name: /^Retract/ }).click();
         await expect(stage(page)).toHaveText('Nothing on stage.');
         await expect(page.locator('body')).not.toContainText(SECRET);
+    });
+
+    test('starts on local rules with no key, and never calls the decision route', async ({ page }) => {
+        const sent = [];
+        await page.route(ROUTE, (route) => { sent.push(route.request().url()); return route.abort(); });
+        await openRoom(page, { decider: null });
+        await expect(page.locator('#decider')).toHaveValue('local');
+        await say(page, 'What was the Atlas renewal price');
+        await expect(rail(page)).toHaveCount(1);
+        await expect(page.locator('#last-decision')).toHaveText(/^Local rules \d+ ms$/u);
+        expect(sent).toEqual([]);
     });
 
     test('presenter speech never lands in follow-up; a declined audience question does', async ({ page }) => {

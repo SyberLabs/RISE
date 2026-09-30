@@ -7,12 +7,17 @@
  * ask cancels only an older ask. Neither channel cancels the other. The session resolves whatever comes back — a late, cancelled,
  * failed, or malformed answer is a hold. A decider that ignores its abort
  * signal still loses the race to the timeout.
+ *
+ * With an embedder, a final or an ask is embedded before it is prepared, for
+ * at most EMBED_TIMEOUT_MS. A slow or failed embedding prepares the turn
+ * without a vector; the room never waits on the embedder.
  */
 
 import { viewOf } from './context.js';
 import { ruleDecider } from './decision.js';
 
 export const DECISION_TIMEOUT_MS = 3_500;
+export const EMBED_TIMEOUT_MS = 300;
 
 /** Explicit local mode: the rule decider behind the async contract. */
 export async function localDecider(context) {
@@ -31,11 +36,41 @@ export function createLiveLoop({
     session,
     decide = localDecider,
     timeoutMs = DECISION_TIMEOUT_MS,
+    embed = null,
+    embedTimeoutMs = EMBED_TIMEOUT_MS,
     trace = null,
     now = () => performance.now()
 }) {
     const inflight = { speech: null, ask: null };
+    const generation = { speech: 0, ask: 0 };
     let stopped = false;
+
+    function reserve(channel) {
+        // A new input owns the channel as soon as it arrives, before an
+        // optional embedding can delay preparation of its decision turn.
+        generation[channel] += 1;
+        inflight[channel]?.controller.abort('superseded');
+        inflight[channel] = null;
+        return generation[channel];
+    }
+
+    function current(channel, token) {
+        return !stopped && generation[channel] === token;
+    }
+
+    async function vectorFor(text) {
+        let timer;
+        try {
+            return await Promise.race([
+                Promise.resolve(embed(text)),
+                new Promise((resolve) => { timer = setTimeout(() => resolve(null), embedTimeoutMs); })
+            ]) ?? null;
+        } catch {
+            return null;
+        } finally {
+            clearTimeout(timer);
+        }
+    }
 
     function emit(type, fields) {
         trace?.emit(type, fields);
@@ -43,7 +78,6 @@ export function createLiveLoop({
 
     async function run(turn) {
         const channel = turn.channel;
-        inflight[channel]?.controller.abort('superseded');
         const controller = new AbortController();
         const entry = { controller, turn };
         inflight[channel] = entry;
@@ -112,14 +146,21 @@ export function createLiveLoop({
                     return { action: 'warm', tier: 'lexical', leaders: [] };
                 }
             }
-            const { turn, failed } = prepared(() => session.prepare(event));
+            const token = reserve('speech');
+            // Without an embedder a final is prepared at once, as it always was.
+            const vector = embed ? await vectorFor(event.text) : null;
+            if (!current('speech', token)) return { action: 'ignore', reason: stopped ? 'stopped' : 'superseded' };
+            const { turn, failed } = prepared(() => session.prepare(vector ? { ...event, vector } : event));
             if (failed) return failed;
             if (!turn) return { action: 'ignore', reason: 'presenter' };
             return run(turn);
         },
         async reason(request) {
             if (stopped) return { action: 'ignore', reason: 'stopped' };
-            const { turn, failed } = prepared(() => session.prepareReasoning(request));
+            const token = reserve('ask');
+            const vector = embed ? await vectorFor(request.text) : null;
+            if (!current('ask', token)) return { action: 'ignore', reason: stopped ? 'stopped' : 'superseded' };
+            const { turn, failed } = prepared(() => session.prepareReasoning(vector ? { ...request, vector } : request));
             return failed || run(turn);
         },
         pending(channel = 'speech') {
@@ -127,6 +168,8 @@ export function createLiveLoop({
         },
         stop() {
             stopped = true;
+            generation.speech += 1;
+            generation.ask += 1;
             inflight.speech?.controller.abort('stopped');
             inflight.ask?.controller.abort('stopped');
         }
