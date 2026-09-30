@@ -274,7 +274,6 @@ export class Vault {
            <p>Writer provenance is declared, not independently verified.</p>
            <div class="sequence-actions">
              <button class="btn-primary" data-action="begin-custom" data-id="${escapeHtml(bp.id)}">Launch</button>
-             <button class="btn-secondary" data-action="revise-personal" data-id="${escapeHtml(bp.id)}">Revise</button>
              <button class="btn-secondary" data-action="export-personal-json" data-id="${escapeHtml(bp.id)}">Export JSON</button>
              <button class="btn-secondary" data-action="export-personal-text" data-id="${escapeHtml(bp.id)}">Export text</button>
              <button class="btn-secondary" data-action="delete-custom" data-id="${escapeHtml(bp.id)}">Delete</button>
@@ -429,9 +428,6 @@ export class Vault {
          this.getAudioEngine()?.playClick();
          const bp = this.blueprints.find(b => b.id === target.dataset.id);
          if (bp) this.onSelectBlueprint(isPersonalProject(bp.project || bp) ? (bp.project || bp) : bp);
-      } else if (action === 'revise-personal') {
-         const bp = this.blueprints.find(b => b.id === target.dataset.id);
-         if (bp) this.onNavigate('create', { project: bp.project || bp });
       } else if (action === 'export-personal-json' || action === 'export-personal-text') {
          const bp = this.blueprints.find(b => b.id === target.dataset.id);
          try {
@@ -463,9 +459,7 @@ export class Vault {
          this.updateContent();
       } else if (action === 'edit-custom') {
          this.getAudioEngine()?.playHiss();
-         const bp = this.blueprints.find(b => b.id === target.dataset.id);
-         if (isPersonalProject(bp?.project || bp)) this.onNavigate('create', { project: bp.project || bp });
-         else this.onNavigate('workshop', { blueprintId: target.dataset.id });
+         this.onNavigate('workshop', { blueprintId: target.dataset.id });
       } else if (action === 'vary-portable') {
          const bp = this.blueprints.find(item => item.id === target.dataset.id);
          if (bp?.provenance?.portableId) {

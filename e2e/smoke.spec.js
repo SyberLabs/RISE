@@ -84,7 +84,6 @@ test('1 · Home presents one key, and every room behind Menu', async ({ page }) 
     await expect(page.locator('[data-oracle="roll"]')).toBeVisible();
     const nav = page.locator('.portal-nav [data-nav]');
     await expect(nav).toHaveCount(9);
-    await expect(page.locator('.portal-nav [data-nav="create"]')).toContainText('Create');
     for (const gone of ['atrium', 'sol']) {
         await expect(page.locator(`[data-nav="${gone}"]`)).toHaveCount(0);
     }
