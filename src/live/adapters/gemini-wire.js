@@ -17,6 +17,11 @@
  * Only the words of the first candidate, a finish reason, a prompt block and an
  * error are read. Nothing else is kept, nothing is passed on, and nothing the
  * provider says is ever executed.
+ *
+ * WHAT THE PROVIDER SAYS ABOUT A FAILURE is shown only after the transport's
+ * scrubber (which knows the reader's key) has cleaned what was decoded. The wire
+ * never sees the key, so without a scrubber, or if the scrubber fails, it says
+ * only that the provider reported an error, and none of the provider's words.
  */
 
 import { promptFor, REALTIME_INSTRUCTIONS } from './openai-instructions.js';
@@ -49,16 +54,29 @@ export function buildBody(request) {
     };
 }
 
+const PROVIDER_ERROR = 'The provider reported an error';
+
 const object = value => (value && typeof value === 'object' && !Array.isArray(value) ? value : null);
 
 /**
  * @param {object} options
  * @param {{delta: Function, done: Function, error: Function}} options.sink
  * @param {() => void} options.abort stop the request
+ * @param {(text: string) => string} [options.scrub] cleans the provider's words about a failure; none means none are shown
  */
-export function createGeminiWire({ sink, abort }) {
+export function createGeminiWire({ sink, abort, scrub }) {
     let finished = false;
     let cancelled = false;
+
+    /** A provider's words about a failure, cleaned; the plain sentence if they cannot be vouched for. */
+    const cleaned = text => {
+        try {
+            const out = scrub(text);
+            return typeof out === 'string' && out.trim() ? out : PROVIDER_ERROR;
+        } catch {
+            return PROVIDER_ERROR;
+        }
+    };
 
     const fail = (code, message) => {
         finished = true;
@@ -85,7 +103,7 @@ export function createGeminiWire({ sink, abort }) {
             if (event.error !== undefined && event.error !== null) {
                 const error = object(event.error);
                 const status = typeof error?.status === 'string' && NAME.test(error.status) ? error.status : 'PROVIDER_ERROR';
-                fail(status, typeof error?.message === 'string' ? error.message : 'The provider reported an error');
+                fail(status, typeof error?.message === 'string' && error.message ? cleaned(error.message) : PROVIDER_ERROR);
                 return;
             }
 

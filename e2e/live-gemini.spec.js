@@ -203,6 +203,21 @@ test.describe('the Gemini provider with the reader’s own key', () => {
         await expect(page.locator('#atom-display')).toHaveCount(0);
     });
 
+    test('never shows the key when Google says it back in the middle of an otherwise good stream', async ({ page }) => {
+        await page.route(GOOGLE, async route => {
+            if (route.request().method() === 'OPTIONS') { await route.fulfill({ status: 204, headers: CORS }); return; }
+            const frame = { error: { code: 500, message: `Something failed for ${KEY}, sorry.`, status: 'INTERNAL' } };
+            await route.fulfill({ status: 200, headers: CORS, contentType: 'text/event-stream', body: `data: ${JSON.stringify(frame)}\r\n\r\n` });
+        });
+        await page.goto(OPEN);
+        await page.locator('#live-key').fill(KEY);
+        await page.locator('.live-start').click();
+        await expect(page.locator('.live-controls__status')).toContainText('could not be answered');
+        await expect(page.locator('.live-controls__error')).toContainText('Something failed for [key], sorry.');
+        expect(await page.content()).not.toContain(KEY);
+        await expect(page.locator('body')).not.toContainText(KEY);
+    });
+
     test('Stop while Google is still answering shows nothing of what arrives afterwards', async ({ page }) => {
         let release;
         const hold = new Promise(resolve => { release = resolve; });

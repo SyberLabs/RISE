@@ -4,11 +4,13 @@
  * A text-stream adapter (text-stream.js) whose provider is Google's streaming
  * text generation over a transport it is handed. The transport is anything with
  *
- *     open({ body, signal }) -> Promise<{ onMessage(fn), onClose(fn), start(), close() }>
+ *     open({ body, signal }) -> Promise<{ scrub(text), onMessage(fn), onClose(fn), start(), close() }>
  *
  * where `onMessage` hears the data of each server-sent event, `onClose` hears
  * the stream end, and nothing is read until `start()` (so a handler is always
- * in place before the first word). The adapter is tested with a fake one and
+ * in place before the first word). `scrub` cleans the provider's own words about
+ * a failure of anything the transport must keep from the reader (their key); a
+ * transport with none is trusted with none of them (gemini-wire.js). The adapter is tested with a fake one and
  * shipped with the browser's `fetch` (gemini-fetch.js). Unlike OpenAI's data
  * channel, the request is made by `open` itself: a refused key or a missing model
  * is refused there, before there is any answer to mistake it for.
@@ -40,7 +42,7 @@ export function createGeminiAdapter({ transport, capacity } = {}) {
                 try { connection.close(); } catch { /* it was never used */ }
                 throw new AdapterError('ABORTED', 'The live answer was stopped before it began.');
             }
-            const wire = createGeminiWire({ sink, abort: () => connection.close() });
+            const wire = createGeminiWire({ sink, abort: () => connection.close(), scrub: connection.scrub });
             connection.onMessage(raw => wire.receive(raw));
             connection.onClose(() => wire.closed());
             connection.start();

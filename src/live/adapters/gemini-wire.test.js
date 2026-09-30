@@ -23,10 +23,10 @@ const frame = (parts, extra = {}) => JSON.stringify({
 const words = (text, extra) => frame([{ text }], extra);
 const finish = reason => frame([{ text: '' }], { finishReason: reason });
 
-function setup() {
+function setup(scrub = text => text) {
     const sink = { delta: vi.fn(), done: vi.fn(), error: vi.fn() };
     const abort = vi.fn();
-    const wire = createGeminiWire({ sink, abort });
+    const wire = createGeminiWire({ sink, abort, scrub });
     return { sink, abort, wire };
 }
 const heard = sink => sink.delta.mock.calls.map(call => call[0]).join('');
@@ -178,6 +178,57 @@ describe('the end of the answer', () => {
         wire.closed();
         expect(sink.error).not.toHaveBeenCalled();
         expect(sink.done).toHaveBeenCalledTimes(1);
+    });
+});
+
+describe('what the provider says about a failure is scrubbed before anyone sees it', () => {
+    const SECRET = 'AIzaSyD-not-a-real-key-000000000000000';
+    const scrub = text => text.split(SECRET).join('[key]');
+    const errorFrame = message => JSON.stringify({ error: { code: 500, message, status: 'INTERNAL' } });
+
+    it('gives the scrubber what an error frame said, and says what comes back', () => {
+        const { sink, wire } = setup(scrub);
+        wire.receive(errorFrame(`Something failed for ${SECRET}, sorry.`));
+        expect(sink.error).toHaveBeenCalledWith({ code: 'INTERNAL', message: 'Something failed for [key], sorry.', recoverable: false });
+    });
+
+    it('scrubs before it clips, so a key cut by the limit is not left half showing', () => {
+        const { sink, wire } = setup(scrub);
+        wire.receive(errorFrame('x'.repeat(GEMINI_LIMITS.text - 10) + SECRET));
+        const { message } = sink.error.mock.calls[0][0];
+        expect(message).not.toContain('AIza');
+        expect(message.length).toBeLessThanOrEqual(GEMINI_LIMITS.text);
+    });
+
+    it('scrubs a key that the provider wrote with JSON escapes, because it scrubs what was decoded', () => {
+        const { sink, wire } = setup(scrub);
+        const escaped = [...SECRET].map(ch => `\\u${ch.charCodeAt(0).toString(16).padStart(4, '0')}`).join('');
+        wire.receive(`{"error":{"status":"INTERNAL","message":"echo ${escaped}"}}`);
+        expect(sink.error.mock.calls[0][0].message).toBe('echo [key]');
+    });
+
+    it('says nothing the provider said, and only that it failed, when it is given no scrubber', () => {
+        const sink = { delta: vi.fn(), done: vi.fn(), error: vi.fn() };
+        const wire = createGeminiWire({ sink, abort: () => {} });
+        wire.receive(errorFrame(`Something failed for ${SECRET}.`));
+        expect(sink.error).toHaveBeenCalledWith({ code: 'INTERNAL', message: 'The provider reported an error', recoverable: false });
+    });
+
+    it('says nothing the provider said when the scrubber throws or answers with something that is not text', () => {
+        for (const broken of [() => { throw new Error('bad'); }, () => undefined, () => null, () => 5, () => ({}), () => '']) {
+            const { sink, wire } = setup(broken);
+            wire.receive(errorFrame(`Something failed for ${SECRET}.`));
+            expect(sink.error, String(broken)).toHaveBeenCalledWith({ code: 'INTERNAL', message: 'The provider reported an error', recoverable: false });
+        }
+    });
+
+    it('does not hand the scrubber anything the provider did not say: an error with no message says the plain sentence', () => {
+        const seen = [];
+        const { sink, wire } = setup(text => { seen.push(text); return text; });
+        wire.receive(JSON.stringify({ error: { status: 'INTERNAL' } }));
+        wire.receive(JSON.stringify({ error: 'text' }));
+        expect(seen).toEqual([]);
+        expect(sink.error.mock.calls.map(call => call[0].message)).toEqual(['The provider reported an error']);
     });
 });
 

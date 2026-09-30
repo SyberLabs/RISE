@@ -24,6 +24,10 @@ Speaking to RISE already works with any provider: the Speak button turns the rea
 
 It travels in the `x-goog-api-key` header and nowhere else: never in a URL, never logged, never put in an error (any error text has the key scrubbed as a last defence). It goes from the reader's browser to Google; RISE's Worker does not see it. Google's own preflight allows exactly that header from a browser origin, and returns its CORS header on errors too, so the page can read Google's reason for a refusal (checked against the live endpoint without a key on 2026-09-30).
 
+### What Google says about a failure
+
+The reader's key must not appear in anything the reader, the journal or a log can see, however Google words a failure. Refusals at the HTTP level are scrubbed by the transport. A failure reported *inside* a successful stream is decoded by the wire, which never sees the key, so the wire shows Google's words only after a scrubber the transport supplies has cleaned the decoded text (which also defeats a key written with JSON escapes), and it scrubs before it clips. A transport that supplies none, or a scrubber that fails, gets only "The provider reported an error", never Google's words: the wire fails closed. (Found in review of #347 and fixed.)
+
 ### The model
 
 A free-text model id, checked against `^[a-z0-9][a-z0-9.-]{0,63}$` so that it cannot leave the URL path. The default is `gemini-3.5-flash`, which the creator asked for and which **has not been checked against Google's model list** (that needs a key). Google renames models, and a fixed list would go stale.
@@ -34,7 +38,7 @@ A free-text model id, checked against `^[a-z0-9][a-z0-9.-]{0,63}$` so that it ca
 
 ### Stop
 
-The runtime's abort signal reaches `fetch`, so Stop while connecting sends nothing further and shows nothing, the same guarantee the red team required of the OpenAI path (`docs/plans/LIVE-RED-TEAM.md`).
+The runtime's abort signal reaches `fetch`, so Stop while connecting sends nothing further and shows nothing, the same guarantee the red team required of the OpenAI path (`docs/plans/LIVE-RED-TEAM.md`). This holds after Google has refused too: the transport stays wired to Stop until a refusal's body has been read, and reading it ends at once on Stop, so a refusal whose body stalls cannot hold the request open or block the next Start (also found in review of #347).
 
 ### The site's security policy changes, once
 
@@ -62,12 +66,12 @@ Each task starts with a failing test, and ends with the targeted tests passing a
 | | How | Result |
 |---|---|---|
 | Event-stream parser | 20 tests, including every single and every pair of cuts of a transcript and seeded random cuts; 9 deliberate breaks | pass, all caught |
-| Wire | 34 tests over a transcript in the shape of Google's published response schema; 14 deliberate breaks | pass, all caught |
-| Adapter, and the **shared conformance suite unchanged** | 22 tests; a fake stream speaking the documented wire | pass |
-| Fetch transport | 36 tests with a stubbed `fetch`, including the key's whole path and Stop at every moment; about 30 deliberate breaks | pass, all caught |
+| Wire | 40 tests over a transcript in the shape of Google's published response schema; 18 deliberate breaks | pass, all caught |
+| Adapter, and the **shared conformance suite unchanged** | 25 tests (14 adapter, 11 conformance); a fake stream speaking the documented wire | pass |
+| Fetch transport | 42 tests with a stubbed `fetch`, including the key's whole path and Stop at every moment (a stalled refusal included); about 35 deliberate breaks | pass, all caught |
 | Host | 9 new tests (39 in the file, OpenAI's unchanged); 10 deliberate breaks | pass, all caught |
 | Security policy | the header tests, plus an exact-origin pin; a wildcard break | pass, caught |
-| Browser, production build, Google stubbed | `e2e/live-gemini.spec.js`, 9 tests; three deliberate breaks | pass, all caught |
+| Browser, production build, Google stubbed | `e2e/live-gemini.spec.js`, 10 tests; four deliberate breaks | pass, all caught |
 | **Google's real service** | not run | **unverified** |
 | Google's preflight from a browser origin | `curl` against the live endpoint without a key: it allows our origin and the `x-goog-api-key` header, and returns its CORS header on an error too | as expected, 2026-09-30 |
 

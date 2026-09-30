@@ -302,6 +302,77 @@ describe('when Google refuses', () => {
     });
 });
 
+describe('what the connection lets the adapter scrub with', () => {
+    it('scrubs the reader’s own key, and any Google-shaped key, from whatever it is given', async () => {
+        const { transport } = setup(() => streamed([]));
+        const connection = await transport.open({ body: {} });
+        expect(connection.scrub(`a ${KEY} b AIzaSyOTHERKEYOTHERKEYOTHERKEYOTHERKEY1 c`)).toBe('a [key] b [key] c');
+        expect(connection.scrub('nothing to hide')).toBe('nothing to hide');
+    });
+
+    it('knows the key the request was made with, and not another', async () => {
+        const first = setup(() => streamed([]));
+        const second = createGeminiFetchTransport({ getKey: () => 'a-second-key-0000000000000000', fetch: async () => streamed([]) });
+        const a = await first.transport.open({ body: {} });
+        const b = await second.open({ body: {} });
+        expect(a.scrub(KEY)).toBe('[key]');
+        expect(a.scrub('a-second-key-0000000000000000')).toBe('a-second-key-0000000000000000');
+        expect(b.scrub('a-second-key-0000000000000000')).toBe('[key]');
+    });
+});
+
+describe('Stop after Google has refused', () => {
+    /** A refusal whose body never finishes. `reacts` says whether the body notices the request being stopped, as a real one does. */
+    function stalled({ reacts }) {
+        return (url, init) => new Response(new ReadableStream({
+            start(controller) {
+                if (reacts) init.signal.addEventListener('abort', () => controller.error(Object.assign(new Error('aborted'), { name: 'AbortError' })));
+            },
+            pull: () => new Promise(() => {})
+        }), { status: 503 });
+    }
+
+    for (const reacts of [false, true]) {
+        it(`lets go of a stalled refusal when stopped, whether or not the body notices (${reacts ? 'it does' : 'it does not'}), and says it was stopped`, async () => {
+            const controller = new AbortController();
+            const { transport, calls } = setup(stalled({ reacts }));
+            const opening = transport.open({ body: {}, signal: controller.signal });
+            let settled = null;
+            opening.then(() => { settled = 'resolved'; }, error => { settled = error.code; });
+            await new Promise(resolve => setTimeout(resolve, 20));
+            expect(settled).toBeNull();
+            controller.abort();
+            await new Promise(resolve => setTimeout(resolve, 20));
+            expect(settled).toBe('ABORTED');
+            expect(calls[0].init.signal.aborted).toBe(true);
+        });
+    }
+
+    it('still says why Google refused when nothing stops it, and does not keep listening afterwards', async () => {
+        const signal = { aborted: false, addEventListener: vi.fn(), removeEventListener: vi.fn() };
+        const { transport } = setup(() => json(503, errorBody(503, 'UNAVAILABLE', 'The model is overloaded.')));
+        const error = await transport.open({ body: {}, signal }).catch(problem => problem);
+        expect(error.code).toBe('PROVIDER_UNAVAILABLE');
+        expect(signal.addEventListener).toHaveBeenCalledWith('abort', expect.any(Function), { once: true });
+        expect(signal.removeEventListener).toHaveBeenCalledWith('abort', expect.any(Function));
+    });
+
+    it('keeps listening for Stop until the refusal has been read, and not a moment less', async () => {
+        const signal = { aborted: false, addEventListener: vi.fn(), removeEventListener: vi.fn() };
+        let finish;
+        const body = new ReadableStream({
+            start(controller) { finish = () => { controller.enqueue(encoder.encode(errorBody(503, 'UNAVAILABLE', 'Overloaded.'))); controller.close(); }; }
+        });
+        const { transport } = setup(() => new Response(body, { status: 503 }));
+        const opening = transport.open({ body: {}, signal }).catch(problem => problem);
+        await new Promise(resolve => setTimeout(resolve, 20));
+        expect(signal.removeEventListener).not.toHaveBeenCalled();
+        finish();
+        expect((await opening).code).toBe('PROVIDER_UNAVAILABLE');
+        expect(signal.removeEventListener).toHaveBeenCalledTimes(1);
+    });
+});
+
 describe('the key is never written anywhere', () => {
     it('is not logged, whatever happens', async () => {
         const console_ = watchConsole();

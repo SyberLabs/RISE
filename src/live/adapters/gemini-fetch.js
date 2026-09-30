@@ -60,13 +60,16 @@ function refusal(status, text, { model, scrub }) {
     return new AdapterError(code, `${lead}: ${clip(said, 240)}`);
 }
 
-/** At most `limit` bytes of a body, as text; the rest is not read. */
-async function readSome(response, limit) {
+/** At most `limit` bytes of a body, as text; the rest is not read, and a stop ends the reading at once. */
+async function readSome(response, limit, signal) {
     const reader = response.body?.getReader();
     if (!reader) return '';
     const decoder = new TextDecoder();
     let text = '';
     let bytes = 0;
+    const stop = () => { void reader.cancel().catch(() => {}); };
+    signal.addEventListener('abort', stop, { once: true });
+    if (signal.aborted) stop();
     try {
         while (bytes < limit) {
             const { done, value } = await reader.read();
@@ -124,8 +127,14 @@ export function createGeminiFetchTransport({ getKey, getModel = () => undefined,
             }
 
             if (!response.ok) {
-                release();
-                const text = await readSome(response, FETCH_LIMITS.error);
+                // Stop stays wired until the refusal has been read: a body that stalls must not hold the request.
+                let text = '';
+                try {
+                    text = await readSome(response, FETCH_LIMITS.error, controller.signal);
+                } finally {
+                    release();
+                }
+                if (controller.signal.aborted) throw new AdapterError('ABORTED', 'The live answer was stopped before it began.');
                 throw refusal(response.status, text, { model, scrub });
             }
             if (!response.body) {
@@ -169,6 +178,8 @@ export function createGeminiFetchTransport({ getKey, getModel = () => undefined,
             }
 
             connection = {
+                /** Cleans provider words of this request's key, for whatever shows them. */
+                scrub,
                 onMessage(fn) { listeners.message.push(fn); },
                 onClose(fn) { listeners.close.push(fn); },
                 start() {

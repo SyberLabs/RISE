@@ -11,6 +11,7 @@ import { AdapterError } from '../adapter.js';
 import { createVirtualClock } from '../clock.js';
 import { createCurrentStream } from '../stream.js';
 import { createFakeGeminiTransport } from '../../test/fake-gemini-transport.js';
+import { createGeminiFetchTransport } from './gemini-fetch.js';
 import { buildBody } from './gemini-wire.js';
 import { createGeminiAdapter } from './gemini.js';
 
@@ -122,6 +123,41 @@ describe('stopping', () => {
         await connection.close();
         expect(transport.connections[0].closed).toBe(true);
         expect(clock.pending()).toBe(0);
+    });
+});
+
+describe('a failure the provider reports in the middle of a stream', () => {
+    const KEY = 'AIzaSyD-not-a-real-key-000000000000000';
+    const escaped = [...KEY].map(ch => `\\u${ch.charCodeAt(0).toString(16).padStart(4, '0')}`).join('');
+    const failing = message => async () => new Response(`data: {"error":{"status":"INTERNAL","message":"${message}"}}\n\n`, { status: 200 });
+
+    it('never shows the reader’s key, said plainly or written with JSON escapes, in the Current the reader sees', async () => {
+        for (const message of [`oops ${KEY} again`, `oops ${escaped} again`]) {
+            const transport = createGeminiFetchTransport({ getKey: () => KEY, fetch: failing(message) });
+            const view = await read(await createGeminiAdapter({ transport }).open(ASK));
+            expect(view.phase).toBe('failed');
+            expect(view.error.code).toBe('INTERNAL');
+            expect(view.error.message).toBe('oops [key] again');
+            expect(JSON.stringify(view)).not.toContain(KEY);
+        }
+    });
+
+    it('says only that it failed, and none of the provider’s words, when the transport cannot vouch for them', async () => {
+        const clock = createVirtualClock();
+        const transport = createFakeGeminiTransport({ clock, errorAfter: 2, scrub: null });
+        const reading = read(await createGeminiAdapter({ transport }).open(ASK));
+        await clock.runAll();
+        const view = await reading;
+        expect(view.error.message).toBe('The provider reported an error');
+        expect(JSON.stringify(view)).not.toContain('Something went wrong');
+    });
+
+    it('shows the provider’s words when the transport scrubs them', async () => {
+        const clock = createVirtualClock();
+        const transport = createFakeGeminiTransport({ clock, errorAfter: 2 });
+        const reading = read(await createGeminiAdapter({ transport }).open(ASK));
+        await clock.runAll();
+        expect((await reading).error.message).toBe('Something went wrong.');
     });
 });
 
