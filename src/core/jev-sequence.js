@@ -160,8 +160,6 @@ export function compileJevAudioProgram(value = {}) {
   };
 }
 
-export { PROCEDURAL_ENGINES as JEV_PROCEDURAL_ENGINES };
-
 export const compileJevVisualProgram = buildJevVisualProgram;
 
 /** Bring the next admitted Jev scene forward to a point within the current scene. */
