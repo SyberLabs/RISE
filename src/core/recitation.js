@@ -89,11 +89,6 @@ export function sizeAtomScale(content) {
     return scale;
 }
 
-/** Does this text carry any authored emphasis? */
-export function hasEmphasis(text) {
-    return typeof text === 'string' && EMPHASIS.test(text.replace(EMPHASIS, m => m));
-}
-
 /**
  * Split an atom into words, each marked as emphasised or not.
  *

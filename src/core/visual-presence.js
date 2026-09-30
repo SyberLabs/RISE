@@ -326,10 +326,6 @@ export function nearestVisualPresenceStep(value) {
     ), VISUAL_PRESENCE_STEPS_MS[0]);
 }
 
-export function visualPresenceStepIndex(value) {
-    return VISUAL_PRESENCE_STEPS_MS.indexOf(nearestVisualPresenceStep(value));
-}
-
 export function formatVisualPresence(value) {
     const duration = normalizeVisualPresence(value);
     if (duration < 1000) return `${duration} ms`;

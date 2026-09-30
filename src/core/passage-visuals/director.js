@@ -52,10 +52,6 @@ function fingerprint(text, edge) {
   return trimmed || slice;
 }
 
-function sameChoice(a, b) {
-  return a?.treatmentId === b?.treatmentId && a?.intensityBand === b?.intensityBand;
-}
-
 export class PassageDirector {
   /**
    * @param {object} options
@@ -265,9 +261,5 @@ export class PassageDirector {
         cue: this._cueFor(this.pendingChoice(index))
       }))
     };
-  }
-
-  sameAsPrevious(index) {
-    return index > 0 && sameChoice(this.blocks[index].admitted, this.blocks[index - 1].admitted);
   }
 }

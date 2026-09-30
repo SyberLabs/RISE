@@ -22,12 +22,3 @@ export const PINNED_RENDERER = Object.freeze({
    */
   determinismCriterion: 'decoded-identity'
 });
-
-export function pinnedRendererRecord() {
-  return Object.freeze({
-    version: PINNED_RENDERER.version,
-    environment: PINNED_RENDERER.environment,
-    fontPackHash: PINNED_RENDERER.fontPackHash,
-    codecProfile: PINNED_RENDERER.codecProfile
-  });
-}

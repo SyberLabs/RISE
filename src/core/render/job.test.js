@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { RENDER_JOB_SCHEMA, PINNED_RENDERER } from './environment.js';
 import { admitRenderJob, pinnedRendererForProfile, validateRenderJob } from './job.js';
-import { RenderError } from './errors.js';
 import { contentHashOf, looksLikeUri } from './hash.js';
 
 const HASH_A = `sha256:${'ab'.repeat(32)}`;

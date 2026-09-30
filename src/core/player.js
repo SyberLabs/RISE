@@ -525,10 +525,6 @@ export class Player {
 
         this.stopProgressAnimation();
         
-        if (this.voiceSyncEnabled && this.speakFn) {
-            this.speakFn(null, { stop: true });
-        }
-        
         this.emit('state', { state: 'paused' });
     }
 
@@ -576,17 +572,6 @@ export class Player {
         this.interlocutionStats = createInterlocutionStats();
         this.sessionState.reset();
         this.emit('state', { state: 'idle' });
-    }
-
-    /**
-     * Enable voice-synced progression
-     * @param {boolean} enabled 
-     * @param {Function} speakFn - Function to call to speak text, receives (text, options)
-     */
-    setVoiceSync(enabled, speakFn = null) {
-        this.voiceSyncEnabled = enabled;
-        this.speakFn = speakFn;
-        console.log(`[Player] Voice sync: ${enabled ? 'enabled' : 'disabled'}`);
     }
 
     /**
@@ -747,22 +732,6 @@ export class Player {
             replayed: true
         });
         return true;
-    }
-
-    /**
-     * Manually advance to next atom (used by voice sync callback)
-     */
-    advanceToNext() {
-        if (this.sessionState.state !== 'playing') return;
-        this.currentAtomRemainingTime = null;
-        this.currentAtomDisplayTime = null;
-        
-        if (this.timerId) {
-            cancelAnimationFrame(this.timerId);
-            this.timerId = null;
-        }
-
-        this.processNextNode();
     }
 
     /**
@@ -1106,66 +1075,6 @@ export class Player {
             return;
         }
 
-        // Voice sync mode: let speech control timing. Voice belongs
-        // to home velocity only (spec §5 — speech cannot render at
-        // 4×): off home, the timer path below carries the atoms and
-        // speech resumes with the next home-velocity atom.
-        if (this.voiceSyncEnabled && this.speakFn && this.shuttle.atHome) {
-            this.atomStartTime = performance.now();
-            // Increment sync ID to orphan any callbacks from previous atoms
-            const currentSyncId = ++this.speechSyncId;
-
-            // Speak the atom text, advance when speech ends
-            if (!isResuming) {
-                this.speakFn(atom.content, {
-                    onEnd: () => {
-                        // Guard: Only proceed if we haven't advanced/paused/synced to a new ID
-                        if (this.speechSyncId !== currentSyncId) return;
-                        if (this.sessionState.state !== 'playing') return;
-
-                        // Small buffer after speech ends
-                        const targetTime = performance.now() + 200;
-                        const checkBuffer = (timestamp) => {
-                            if (this.speechSyncId !== currentSyncId) return;
-                            if (this.sessionState.state !== 'playing') return;
-                            
-                            if (timestamp >= targetTime) {
-                                this.currentAtomRemainingTime = null;
-                                this.currentAtomDisplayTime = null;
-                                this.processNextNode();
-                            } else {
-                                this.timerId = requestAnimationFrame(checkBuffer);
-                            }
-                        };
-                        this.timerId = requestAnimationFrame(checkBuffer);
-                    }
-                });
-            } else {
-                // If resuming, we don't restart the text (could be jarring), 
-                // BUT we need to ensure the timer still knows how to advance.
-                // In voice sync, if we pause, we stop speaking. 
-                // Technically we should resume the text from where it was, 
-                // but SpeechSynthesis makes that hard. For now, we will 
-                // just advance after the normal duration if resuming.
-                const remaining = this.currentAtomRemainingTime || 2000; // Fallback to 2s if no remaining time
-                const targetTime = performance.now() + remaining;
-
-                const checkTime = (timestamp) => {
-                    if (this.speechSyncId !== currentSyncId) return;
-                    if (this.sessionState.state !== 'playing') return;
-                    
-                    if (timestamp >= targetTime) {
-                        this.currentAtomRemainingTime = null;
-                        this.currentAtomDisplayTime = null;
-                        this.processNextNode();
-                    } else {
-                        this.timerId = requestAnimationFrame(checkTime);
-                    }
-                };
-                this.timerId = requestAnimationFrame(checkTime);
-            }
-            return;
-        }
         // Timer mode: preserve the atom as one uninterrupted perceptual unit.
         // Any visual opportunity is evaluated only after this timer completes,
         // inside processNextNode, before the next atom is emitted.

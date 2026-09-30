@@ -152,15 +152,6 @@ function deepFreeze(value) {
   return value;
 }
 
-function kindFromMime(mimeType) {
-  if (mimeType === 'video/mp4') return 'video';
-  if (IMAGE_MIME.test(mimeType)) return 'image';
-  if (AUDIO_MIME.test(mimeType)) return 'audio';
-  if (FONT_MIME.test(mimeType)) return 'font';
-  if (DOCUMENT_MIME.test(mimeType)) return 'document';
-  return null;
-}
-
 function assertMimeForKind(kind, mimeType, path) {
   const ok = kind === 'image' ? IMAGE_MIME.test(mimeType)
     : kind === 'video' ? mimeType === 'video/mp4'

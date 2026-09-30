@@ -325,20 +325,3 @@ export async function hydrateSessionSequenceAssets(sessionData) {
   }
   return next;
 }
-
-export async function migrateAndHydrateWorkshopProject(project) {
-  const formal = validateWorkshopProject(
-    isWorkshopProject(project) ? project : project
-  );
-  const durableAssets = await ensureWorkshopAssetsDurable(
-    formal.id,
-    formal.assets,
-    null
-  );
-  const migrated = validateWorkshopProject({
-    ...formal,
-    assets: durableAssets
-  });
-  const view = await hydrateWorkshopProjectView(migrated);
-  return { project: migrated, view };
-}

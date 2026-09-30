@@ -47,39 +47,6 @@ describe('Atom', () => {
       expect(atom1.id).not.toBe(atom2.id);
     });
   });
-
-  describe('static factory methods', () => {
-    it('creates a text atom', () => {
-      const atom = Atom.text('hello world');
-
-      expect(atom.content).toBe('hello world');
-      expect(atom.modality).toBe('text');
-    });
-
-    it('creates an image atom with default duration', () => {
-      const atom = Atom.image('https://example.com/img.png');
-
-      expect(atom.url).toBe('https://example.com/img.png');
-      expect(atom.modality).toBe('image');
-      expect(atom.duration).toBe(2000);
-    });
-
-    it('creates a symbol atom', () => {
-      const atom = Atom.symbol('無');
-
-      expect(atom.content).toBe('無');
-      expect(atom.modality).toBe('symbol');
-      expect(atom.duration).toBe(400);
-    });
-
-    it('creates a pause atom', () => {
-      const atom = Atom.pause(500);
-
-      expect(atom.content).toBe('');
-      expect(atom.duration).toBe(500);
-      expect(atom.weight).toBe(0);
-    });
-  });
 });
 
 describe('Source', () => {
