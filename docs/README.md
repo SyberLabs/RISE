@@ -130,6 +130,15 @@ history, not a distinction; read the status column instead.
 
 ---
 
+## Affect and the Emotions room
+
+| Document | Status | What it is |
+| --- | --- | --- |
+| [affect/AFFECT-LAYER.md](affect/AFFECT-LAYER.md) | Record | The optional affect evaluator, phrase-addressed programs, and Emotions map; not a model of a reader's feelings. |
+| [affect/BENCHMARK.md](affect/BENCHMARK.md) | Record | Inspection results for the lexicon-backed text priors and offline comparison probes. |
+| [affect/RESEARCH-LOG.md](affect/RESEARCH-LOG.md) | Record | Research limitations, unavailable human judgments, and the reasons the probe is not a trained runtime. |
+| [adr/0001-affective-semantic-layer.md](adr/0001-affective-semantic-layer.md) | Record | The architecture decision and alternatives for the inspectable affect layer. |
+
 ## Reading decision service and retired gate
 
 | Document | Status | What it is |
