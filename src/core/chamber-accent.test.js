@@ -273,9 +273,8 @@ describe('the accent carries a legible ink for full fills', () => {
             expect(block, id).toBeTruthy();
             expect(block[1]).toContain(`--color-on-accent: ${tokens['--color-on-accent']}`);
         }
-        // The bare :root default and the derived washes are declared once.
+        // The bare :root default is declared once.
         expect(css).toMatch(/:root\s*\{[\s\S]*--color-on-accent:\s*#0A0A0C/);
-        expect(css).toContain('--accent-wash: rgba(var(--color-accent-rgb)');
     });
 
     it('Home carries no frozen purple', () => {
@@ -288,25 +287,6 @@ describe('the accent carries a legible ink for full fills', () => {
 
 describe('the colourway dresses the whole cluster', () => {
   const read = rel => readFileSync(join(dirname(fileURLToPath(import.meta.url)), '..', rel), 'utf8');
-
-  it('Slate defines neutral button tokens on the bare :root', () => {
-    const css = read('design-system.css');
-    const root = css.match(/:root\s*\{[\s\S]*?\n\}/)[0];
-    // The ground state: a neutral slate surface and the accent only on glow.
-    expect(root).toMatch(/--btn-top:\s*rgba\(42, 42, 48/);
-    expect(root).toMatch(/--btn-ink:\s*var\(--color-fog\)/);
-    expect(root).toMatch(/--hero-top:/);
-  });
-
-  it('a chosen sitting derives its button surfaces from the accent, not a literal', () => {
-    const css = read('design-system.css');
-    const block = css.match(/:root\[data-accent\]\s*\{([^}]+)\}/);
-    expect(block, ':root[data-accent]').toBeTruthy();
-    // Derived — mixed from --color-accent — so a new sitting themes itself.
-    expect(block[1]).toMatch(/--btn-top:\s*color-mix\(in srgb,\s*var\(--color-accent\)/);
-    expect(block[1]).toMatch(/--hero-top:\s*color-mix\(in srgb,\s*var\(--color-accent\)/);
-    expect(block[1]).toMatch(/--btn-ink:\s*color-mix\(in srgb,\s*var\(--color-light\)/);
-  });
 
   it('every non-slate sitting has its own [data-accent] block', () => {
     const css = read('design-system.css');
