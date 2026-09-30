@@ -25,7 +25,6 @@ history, not a distinction; read the status column instead.
 | [specs/ARCHITECTURE.md](specs/ARCHITECTURE.md) | Contract | The canonical, living system design: the planes, the room register, the contracts, and every significant decision with the alternative it rejected. `src/core/system-design.test.js` fails a build when it drifts from the tree. |
 | [specs/SYSTEM-DESIGN-REVIEW-2026-08-22.md](specs/SYSTEM-DESIGN-REVIEW-2026-08-22.md) | Record | The review that produced the document above, measured against commit `bb44899` with the commands to reproduce each number. |
 | [RELEASING.md](RELEASING.md) | Contract | Production release, required approvals and secrets, and rollback for the Cloudflare host. |
-| [ENGINEERING.md](ENGINEERING.md) | Record | A short scannable summary of what the codebase is and what was engineered, for a reader who will not open the architecture document. |
 | [../AGENTS.md](../AGENTS.md) | Contract | Operating principles and project development notes, for humans and agents alike. |
 
 ## Release
@@ -42,7 +41,6 @@ history, not a distinction; read the status column instead.
 | --- | --- | --- |
 | [pilot/SEQUENCE-PILOT.md](pilot/SEQUENCE-PILOT.md) | Intent | Seven-day, invited sequence discovery protocol, manual evidence rules, rights and consent gates, and pass thresholds. |
 | [pilot/JEV-STEERING.md](pilot/JEV-STEERING.md) | Intent | Six-reader private usability gate for one optional Jev scene shift. |
-| [pilot/FIRST-READ.md](pilot/FIRST-READ.md) | Intent | Five-reader comparison of the existing and new Meditations entrances, with consent, timing, retention, and a fixed 10× decision rule. |
 | [plans/LIVE-CURRENT.md](plans/LIVE-CURRENT.md) | Intent | The plan for a live Current: an event protocol above the sealed one, one clock with speech as its authority, a runtime boundary, provider adapters, Dive and Surface as a branch, evidence, budgets, and the decisions that wait on the creator. A status table says what is built. |
 | [plans/LIVE-HANDOFF.md](plans/LIVE-HANDOFF.md) | Intent | Where the live Current stands at the end of the first build: the ten stacked pull requests, the architecture, what is implemented, tested, browser tested, tested only against fakes, and not verified; the commands run and what they said; the measurements; how to see it; whether it differs from a visualizer (unknown); the open risks; and the next smallest experiment. |
 | [plans/LIVE-MCP.md](plans/LIVE-MCP.md) | Intent | How a live Current runs inside an MCP host: the host's model as the provider, a server with one tool, an app that frames RISE's own page, and a Dive asked through sampling. Built and checked against the SDK's client and the reference package's own host class; off by default; no product host tried. |
@@ -60,7 +58,6 @@ history, not a distinction; read the status column instead.
 | [specs/TYPESETTING-CANON.md](specs/TYPESETTING-CANON.md) | Contract | Compositor rules. Matches `src/page/compositor.js`. |
 | [vision/PHRASE-CHUNKING-STUDY.md](vision/PHRASE-CHUNKING-STUDY.md) | Record | Measured, not assumed. Reproduce with `npm run study:chunking`. |
 | [vision/CHUNKER-AWARENESS-STUDY.md](vision/CHUNKER-AWARENESS-STUDY.md) | Record | Reproduce with `npm run study:awareness`. |
-| [investigations/workshop-markdown-alignment.md](investigations/workshop-markdown-alignment.md) | Record | Why a Markdown table's separator row broke source alignment in every chunk mode, and what now stands in the way of the class returning. |
 | [vision/LIBRARY-SPEC.md](vision/LIBRARY-SPEC.md) | Record | The critique that produced the canon. Superseded as policy by ARCHIVE-CANON-SPEC. |
 | [ingest-records/SOL-PD-ACQUISITIONS-DOSSIER-LITERATURE-2026-07-28.md](ingest-records/SOL-PD-ACQUISITIONS-DOSSIER-LITERATURE-2026-07-28.md) | Record | The acquisitions dossier the shelf was assembled from. Read by `scripts/archive-dossier.mjs`. |
 | [ingest-records/](ingest-records/) | Record | Dated ingest and audit artifacts alongside it. Read by `scripts/legacy-ingest.mjs` and `scripts/literature-ingest.mjs`; JSON, not prose. |
@@ -84,7 +81,6 @@ history, not a distinction; read the status column instead.
 | Document | Status | What it is |
 | --- | --- | --- |
 | [vision/PAGE-MODE-SPEC.md](vision/PAGE-MODE-SPEC.md) | Contract | Page projection, v1. Matches `src/page/`. |
-| [vision/VISUAL-NAVIGATOR-MIGRATION.md](vision/VISUAL-NAVIGATOR-MIGRATION.md) | Record | The completed migration from the Chamber's Visual Interlocution Panel to the Visual Navigator. |
 | [specs/RHYTHMIC-VISUAL-PRESENCE-SPEC.md](specs/RHYTHMIC-VISUAL-PRESENCE-SPEC.md) | Contract | Rhythmic visual presence, as built. |
 | [specs/LATERAL-TRAVERSAL-SPEC.md](specs/LATERAL-TRAVERSAL-SPEC.md) | Contract | The Shuttle. Implemented in `src/core/shuttle.js`. |
 | [specs/CONTINUOUS-FIELD-SPEC.md](specs/CONTINUOUS-FIELD-SPEC.md) | Contract | Gallery's continuous field. Implemented in `src/visuals/continuous-field.js`. |
@@ -102,7 +98,6 @@ history, not a distinction; read the status column instead.
 | [vision/SOURCE-CURATION-SPEC.md](vision/SOURCE-CURATION-SPEC.md) | Contract | Curated pins only, no keyword search. The invariant that retired the searched categories. |
 | [vision/SOURCE-EXPANSION-SPEC.md](vision/SOURCE-EXPANSION-SPEC.md) | Contract | The science and Audubon collections. |
 | [specs/ATRIUM-IMAGERY-SPEC.md](specs/ATRIUM-IMAGERY-SPEC.md) | Contract | The museum imagery subsystem. Named for a deleted room; the `atr-` accessions it governs are live data. |
-| [specs/ATRIUM-IMAGERY-CLASSIFICATION.md](specs/ATRIUM-IMAGERY-CLASSIFICATION.md) | Contract | The imagery taxonomy read by `src/visuals/visual-cortex.js`. |
 | [specs/PERICOPE-IMAGERY-SPEC.md](specs/PERICOPE-IMAGERY-SPEC.md) | Contract | Gospel pericope imagery. Implemented in `src/content/chapel/imagery/`. |
 | [icon-museum-permission.txt](icon-museum-permission.txt) | Record | Written permission, verbatim. The rights basis for every Icon Museum pin. Do not edit. |
 | [icon-museum-request-draft.md](icon-museum-request-draft.md) | Record | What was described when that permission was asked for, and therefore the scope it was granted against. |
@@ -144,9 +139,7 @@ history, not a distinction; read the status column instead.
 | --- | --- | --- |
 | [USER-OWNED-AI.md](USER-OWNED-AI.md) | Intent | RISE spends no shared inference: hosted Jev on the reader's own OpenRouter account, the shared decision contract, retired routes, release order, and the mocked/local/live evaluation. |
 | [LOCAL-RISE.md](LOCAL-RISE.md) | Intent | Run RISE and pinned Kev-4B on your own computer: requirements, launcher states, bridge security, and network dependencies. |
-| [jev-core/service.md](jev-core/service.md) | Historical record | The retired server-side OpenRouter decision route. |
 | [jev-core/variety-evaluation.md](jev-core/variety-evaluation.md) | Record | Jev prompt-variety baseline, bounded evaluation method, and local candidate evidence. |
-| [jev-core/README.md](jev-core/README.md) | Historical record | Removed Chamber gate, prior verification evidence, and live-provider caveat. |
 
 ## Conventions
 
