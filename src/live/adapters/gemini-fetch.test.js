@@ -70,10 +70,13 @@ describe('the request', () => {
         expect(init.body).toBe(JSON.stringify({ contents: [], generationConfig: {} }));
     });
 
-    it('sends no cookies and no referrer, and asks for nothing to be cached', async () => {
+    it('sends no cookies, asks for nothing to be cached, and leaves the referrer to the browser', async () => {
         const { transport, calls } = setup(() => streamed([]));
         await transport.open({ body: {} });
-        expect(calls[0].init).toMatchObject({ credentials: 'omit', referrerPolicy: 'no-referrer', cache: 'no-store', mode: 'cors' });
+        expect(calls[0].init).toMatchObject({ credentials: 'omit', cache: 'no-store', mode: 'cors' });
+        // Google checks a key that was restricted to a site against the Referer header, so omitting it would
+        // fail exactly the keys that are restricted as they should be, and hides nothing Origin does not already say.
+        expect(calls[0].init).not.toHaveProperty('referrerPolicy');
     });
 
     it('uses the model it is told, in the address, and the default when it is told none', async () => {

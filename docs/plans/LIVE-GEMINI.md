@@ -32,6 +32,18 @@ The reader's key must not appear in anything the reader, the journal or a log ca
 
 When a response reaches `maxOutputTokens`, Google reports `MAX_TOKENS`. Treating that as a finish would close the passage that was being written and mark the Current complete, so a half sentence would be read as the end of the answer. It is a failure instead, worded "The answer reached its length limit and was cut off." The runtime still reads every passage that was whole (what arrived is worth reading), and the controls now say so in words: while it reads, "The answer stopped early: …", and when it is done, "Finished reading what arrived. The answer stopped early: …", not "Finished." This applies to any provider whose Current fails after some of it arrived, not only Gemini's. (Raised in the Codex review of #347; the wire was fixed as it asked, and the controls gap behind it was found while testing it in a browser.)
 
+### What the browser sends along
+
+Cookies are omitted and the response is not cached. The referrer is left to the browser's default (only the page's origin, across sites). An earlier version sent no referrer, which hid nothing that the `Origin` header of a cross-site request does not already say, and would have failed a key restricted to a site: Google checks such a key against the `Referer` header, and restricting a key that is used in a browser is the recommended practice.
+
+### Where it is loaded
+
+The page's own chunk holds only the default model's name (`gemini-model.js`). The wire and the transport are separate chunks, loaded with `import()` only when `?provider=gemini` is asked for; `boundary.test.js` holds that the host imports nothing else from the adapters statically. (An earlier version imported the name from the wire, which put the whole wire in every `/live` visit. It was never in the first page load.)
+
+### The shared suite and an answer cut off
+
+The conformance suite has a scenario every adapter must stage in its own provider's words: the provider stops at its length limit part way through a passage, after a whole one. Whatever the words (Gemini's `MAX_TOKENS`, OpenAI's `incomplete`, an error), the Current ends failed, never complete, the whole passages stay, and the passage being written is never ended or lowered into what is read. MCP skips it: an answer arrives whole. Reintroducing either provider's original mistake (counting the cut as a finish) fails this scenario alone, which is how a third provider is kept from repeating it.
+
 ### The model
 
 A free-text model id, checked against `^[a-z0-9][a-z0-9.-]{0,63}$` so that it cannot leave the URL path. The default is `gemini-3.5-flash`, which the creator asked for and which **has not been checked against Google's model list** (that needs a key). Google renames models, and a fixed list would go stale.
@@ -46,7 +58,7 @@ The runtime's abort signal reaches `fetch`, so Stop while connecting sends nothi
 
 ### The site's security policy changes, once
 
-`https://generativelanguage.googleapis.com` is added to `connect-src` in `netlify.toml` and in `public/_headers` (which a test holds equal to it), and a test pins it to that exact origin: no other Google host and no wildcard, as OpenRouter's is. This is what lets RISE's own pages contact Google. `script-src 'self'` is unchanged, so only RISE's own code can. It is allowed for every page, not just `/live`, because the policy is static. `local/bridge.mjs` is **not** changed: its policy is the production one minus what local RISE never needs, which already leaves out OpenRouter. **The creator approved this** ("3. (a)").
+`https://generativelanguage.googleapis.com` is added to `connect-src` in `netlify.toml` and in `public/_headers` (which a test holds equal to it), and a test pins it to that exact origin: no other Google host and no wildcard, as OpenRouter's is. This is what lets RISE's own pages contact Google. `script-src 'self'` is unchanged, so only RISE's own code can. It is allowed for every page, not just `/live`, because the policy is static. `local/bridge.mjs` is **not** changed, on purpose: its policy is the production one minus the hosts local RISE never needs, which already leaves out OpenRouter, because local RISE keeps the reader's prompts on their own computer. It now leaves out Google's Gemini API too, a test holds that, and `?provider=gemini` therefore cannot reach Google when RISE is served by the local bridge. **The creator approved this** ("3. (a)").
 
 ## Left out, on purpose
 
@@ -61,7 +73,7 @@ Each task starts with a failing test, and ends with the targeted tests passing a
 3. **Adapter and conformance** (`gemini.js`, a fake transport). The shared conformance suite passes unchanged, with the same scenarios as OpenAI (read, interrupt, transport loss, provider failure). Stop before open resolves sends nothing.
 4. **Fetch transport** (`gemini-fetch.js`). Tests with a stubbed `fetch`: the URL and headers (key only in `x-goog-api-key`), abort before and during, HTTP 400/401/403/404/429/5xx each mapped to a refusal in words with the key scrubbed, a body streamed in odd chunk sizes, a body that never ends is cut off by abort.
 5. **Host** (`LiveHost`). Tests: `?provider=gemini` shows the key and model fields and the plain statement of where the key goes; an empty key is refused; a refused key is forgotten; the key is never in the page after Start.
-6. **Security policy.** The three files and the tests that hold them. The dev and preview servers do not apply the site's headers, so a browser test cannot enforce the policy; whether a real browser permits the call under the real headers is checked in the real-key run below.
+6. **Security policy.** The two files (`netlify.toml`, `public/_headers`) and the tests that hold them. The dev and preview servers do not apply the site's headers, so a browser test cannot enforce the policy; whether a real browser permits the call under the real headers is checked in the real-key run below.
 7. **Browser test** with a stubbed Google endpoint: ask, read, interrupt, Dive, Surface, Stop; the key appears in one request header and nowhere else in any request; Stop during connect sends nothing.
 8. **Mutation checks** on the parser, wire, adapter, transport, host, policy and the browser test; docs (`LIVE-CURRENT.md` status row, `ARCHITECTURE.md` §8.40, this file's status); hygiene and targeted suites.
 
@@ -70,8 +82,8 @@ Each task starts with a failing test, and ends with the targeted tests passing a
 | | How | Result |
 |---|---|---|
 | Event-stream parser | 20 tests, including every single and every pair of cuts of a transcript and seeded random cuts; 9 deliberate breaks | pass, all caught |
-| Wire | 40 tests over a transcript in the shape of Google's published response schema; 18 deliberate breaks | pass, all caught |
-| Adapter, and the **shared conformance suite unchanged** | 27 tests (16 adapter, 11 conformance); a fake stream speaking the documented wire | pass |
+| Wire | 38 tests over a transcript in the shape of Google's published response schema; 18 deliberate breaks | pass, all caught |
+| Adapter, and the **shared conformance suite** | 29 tests (17 adapter, 12 conformance); a fake stream speaking the documented wire. The suite passed unchanged for Gemini, then gained a `cut-short` scenario (below), which Gemini, OpenAI, the generic adapter and the mock all pass | pass |
 | Fetch transport | 42 tests with a stubbed `fetch`, including the key's whole path and Stop at every moment (a stalled refusal included); about 35 deliberate breaks | pass, all caught |
 | Host | 9 new tests (39 in the file, OpenAI's unchanged); 10 deliberate breaks | pass, all caught |
 | Security policy | the header tests, plus an exact-origin pin; a wildcard break | pass, caught |
@@ -92,15 +104,18 @@ Each task starts with a failing test, and ends with the targeted tests passing a
 
 Until this is done the integration is **unverified**.
 
-1. `npm run dev`, open `http://localhost:5173/live?provider=gemini`.
+Run it where the site's real security headers apply, which `npm run dev` and `vite preview` do not: the pull request's Netlify deploy preview, or the deployed site once merged. `npm run dev` is fine for trying the flow, but it cannot show whether the policy lets the call through.
+
+1. Open `<the deploy preview or site>/live?provider=gemini`. First check with `curl -sI <that address>/live` that the `content-security-policy` header names `https://generativelanguage.googleapis.com` in `connect-src`. (Locally: `npm run dev`, `http://localhost:5173/live?provider=gemini`, without the policy.)
 2. Paste your Gemini API key. Leave the model as `gemini-3.5-flash` or type another.
 3. Press Start. Expect words within a couple of seconds and the reading to begin.
 4. Press Interrupt, type `dive on <something in the answer>`, press Dive, then Surface.
 5. Press Speak and say "go back" (Chrome).
 6. In the browser's network panel, check that the request goes to `generativelanguage.googleapis.com`, that the key is only in the `x-goog-api-key` header, and that nothing goes to this site carrying it.
 7. Try a wrong key and a wrong model name; each should say so in words.
-8. Report anything that differs from the above, including the exact model list your key can see. The wire is one table in `gemini-wire.js`.
+8. Then try a key **restricted to this site's address** (an HTTP-referrer restriction in Google's console, for the address you are testing from). The request carries the browser's default referrer, which Google checks. If it answers 403, tell me: a 403 is treated as a refused key and the key is forgotten.
+9. Report anything that differs from the above, including the exact model list your key can see. The wire is one table in `gemini-wire.js`.
 
 ## Where things are
 
-`src/live/adapters/gemini-*.js` and their tests, `src/test/fake-gemini-transport.js`, `src/live/host/LiveHost.js`, `e2e/live-gemini.spec.js`, and the three policy files above.
+`src/live/adapters/gemini-*.js` and their tests, `src/test/fake-gemini-transport.js`, `src/live/host/LiveHost.js`, `e2e/live-gemini.spec.js`, and the two policy files above (`netlify.toml`, `public/_headers`). `local/bridge.mjs` is deliberately not one of them.

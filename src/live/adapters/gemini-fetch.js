@@ -22,7 +22,7 @@
 
 import { AdapterError } from '../adapter.js';
 import { createSseParser } from './gemini-sse.js';
-import { GEMINI_DEFAULT_MODEL, isModelId } from './gemini-wire.js';
+import { GEMINI_DEFAULT_MODEL, isModelId } from './gemini-model.js';
 
 export const GEMINI_ORIGIN = 'https://generativelanguage.googleapis.com';
 export const FETCH_LIMITS = Object.freeze({ error: 4_096, message: 300, stream: 4 * 1024 * 1024 });
@@ -116,7 +116,6 @@ export function createGeminiFetchTransport({ getKey, getModel = () => undefined,
                     body: JSON.stringify(body),
                     signal: controller.signal,
                     credentials: 'omit',
-                    referrerPolicy: 'no-referrer',
                     cache: 'no-store',
                     mode: 'cors'
                 });

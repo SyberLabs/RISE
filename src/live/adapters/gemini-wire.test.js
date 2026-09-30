@@ -12,7 +12,7 @@
  */
 import { describe, expect, it, vi } from 'vitest';
 import { promptFor, REALTIME_INSTRUCTIONS } from './openai-instructions.js';
-import { buildBody, createGeminiWire, GEMINI_DEFAULT_MODEL, GEMINI_LIMITS, isModelId } from './gemini-wire.js';
+import { buildBody, createGeminiWire, GEMINI_LIMITS } from './gemini-wire.js';
 
 const frame = (parts, extra = {}) => JSON.stringify({
     candidates: [{ content: { role: 'model', parts }, index: 0, ...extra }],
@@ -51,19 +51,6 @@ describe('the request', () => {
     it('is plain data: it survives being sent as JSON unchanged', () => {
         const body = buildBody({ intent: 'answer', prompt: 'x' });
         expect(JSON.parse(JSON.stringify(body))).toEqual(body);
-    });
-});
-
-describe('the model', () => {
-    it('is the one the creator asked for unless the reader names another', () => {
-        expect(GEMINI_DEFAULT_MODEL).toBe('gemini-3.5-flash');
-    });
-
-    it('is a name and nothing that can leave the address it is put in', () => {
-        for (const good of ['gemini-3.5-flash', 'gemini-2.0-pro', 'a', 'x1.2-3']) expect(isModelId(good), good).toBe(true);
-        for (const bad of ['', ' ', '../x', 'a/b', 'a?b', 'a#b', 'a:streamGenerateContent', 'Gemini', 'a b', '-a', '.a', 'a'.repeat(65), 'é', '%2e', 'a\nb', null, undefined, 5, {}]) {
-            expect(isModelId(bad), String(bad)).toBe(false);
-        }
     });
 });
 

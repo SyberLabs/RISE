@@ -28,9 +28,10 @@ export function requestFrom(text) {
  * @param {number} [options.failAfter] the response ends `failed` after this many deltas
  * @param {number} [options.errorAfter] an `error` event after this many deltas
  * @param {number} [options.lossAfter] the connection drops after this many deltas
+ * @param {number} [options.cutAfter] the response ends `incomplete`, at its token limit, after this many deltas
  * @param {(text: string) => string} [options.textFor] the line-format answer for the reader's message
  */
-export function createFakeOpenAITransport({ clock, everyMs = 30, failAfter, errorAfter, lossAfter, textFor }) {
+export function createFakeOpenAITransport({ clock, everyMs = 30, failAfter, errorAfter, lossAfter, cutAfter, textFor }) {
     return {
         async open() {
             const listeners = { message: [], close: [] };
@@ -55,6 +56,10 @@ export function createFakeOpenAITransport({ clock, everyMs = 30, failAfter, erro
                         count += 1;
                         if (failAfter === count) {
                             emit({ type: 'response.done', response: { id: 'resp_1', status: 'failed', status_details: { type: 'failed', error: { type: 'server_error', code: 'server_error', message: 'The model failed to respond.' } } } });
+                            return;
+                        }
+                        if (cutAfter === count) {
+                            emit({ type: 'response.done', response: { id: 'resp_1', status: 'incomplete', status_details: { type: 'incomplete', reason: 'max_output_tokens' } } });
                             return;
                         }
                         if (errorAfter === count) {

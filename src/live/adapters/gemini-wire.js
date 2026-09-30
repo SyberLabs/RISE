@@ -32,18 +32,10 @@ export const WIRE = Object.freeze({
     blockNone: 'BLOCK_REASON_UNSPECIFIED'
 });
 
-export const GEMINI_DEFAULT_MODEL = 'gemini-3.5-flash';
-
 export const GEMINI_LIMITS = Object.freeze({ message: 131_072, text: 300, maxOutputTokens: 4096 });
 
-const MODEL = /^[a-z0-9][a-z0-9.-]{0,63}$/u;
 const NAME = /^[A-Z][A-Z0-9_]{0,59}$/u;
 const clip = (text, length) => (text.length <= length ? text : `${text.slice(0, length - 1)}…`);
-
-/** A model name, and nothing that can leave the address it is put in. */
-export function isModelId(value) {
-    return typeof value === 'string' && MODEL.test(value);
-}
 
 /** The request that asks a question: RISE's instructions, the reader's words, and a cap on what can be spent. */
 export function buildBody(request) {

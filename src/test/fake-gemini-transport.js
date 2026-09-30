@@ -31,13 +31,14 @@ const frame = (text, extra = {}) => JSON.stringify({
  * @param {number} [options.failAfter] the answer ends in a refusal after this many frames
  * @param {number} [options.errorAfter] an error frame after this many frames
  * @param {number} [options.lossAfter] the stream stops with no finish reason after this many frames
+ * @param {number} [options.cutAfter] the answer ends with MAX_TOKENS, at its length limit, after this many frames
  * @param {((text: string) => string) | null} [options.scrub] what the connection scrubs with; null is a transport that has none
  * @param {string} [options.finishWith] the finish reason of the last frame, STOP unless a test says otherwise
  * @param {Error} [options.openError] opening is refused with this
  * @param {() => void} [options.beforeOpen] runs while the connection is being made
  * @param {(text: string) => string} [options.textFor] the line-format answer for the reader's message
  */
-export function createFakeGeminiTransport({ clock, everyMs = 30, failAfter, errorAfter, lossAfter, openError, beforeOpen, textFor, scrub = text => text, finishWith = 'STOP' }) {
+export function createFakeGeminiTransport({ clock, everyMs = 30, failAfter, errorAfter, lossAfter, cutAfter, openError, beforeOpen, textFor, scrub = text => text, finishWith = 'STOP' }) {
     const requests = [];
     const connections = [];
     return {
@@ -66,6 +67,7 @@ export function createFakeGeminiTransport({ clock, everyMs = 30, failAfter, erro
                         at += SIZES[count % SIZES.length];
                         count += 1;
                         if (failAfter === count) { emit(frame('', { finishReason: 'SAFETY' })); end(); return; }
+                        if (cutAfter === count) { emit(frame('', { finishReason: 'MAX_TOKENS' })); end(); return; }
                         if (errorAfter === count) { emit(JSON.stringify({ error: { code: 500, message: 'Something went wrong.', status: 'INTERNAL' } })); end(); return; }
                         if (lossAfter === count) { end(); return; }
                     }

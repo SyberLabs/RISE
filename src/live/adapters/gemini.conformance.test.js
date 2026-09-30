@@ -15,7 +15,9 @@ const FAULTS = {
     'black-holes': {},
     interrupt: {},
     'transport-loss': { lossAfter: 30 },
-    'provider-failure': { failAfter: 10 }
+    'provider-failure': { failAfter: 10 },
+    // The last frame says MAX_TOKENS, part way through a passage.
+    'cut-short': { cutAfter: 30 }
 };
 
 describeAdapterConformance('gemini (fake stream, documented wire)', (name) => {

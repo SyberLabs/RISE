@@ -23,7 +23,7 @@
  * runtime, Chamber, controls and voice play it.
  */
 
-import { GEMINI_DEFAULT_MODEL } from '../adapters/gemini-wire.js';
+import { GEMINI_DEFAULT_MODEL } from '../adapters/gemini-model.js';
 import { describeDegradations, detectCapabilities } from '../capabilities.js';
 import { createLiveControls } from './controls.js';
 import { DelayedRunner, EvalRunner } from './EvalRunner.js';

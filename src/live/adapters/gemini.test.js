@@ -178,6 +178,17 @@ describe('an answer that reached its length limit', () => {
         expect(JSON.stringify(view)).not.toContain('and it is');
     });
 
+    it('says it was cut off, and not that it said nothing, when the limit is reached before any words came', async () => {
+        const clock = createVirtualClock();
+        const transport = createFakeGeminiTransport({ clock, textFor: () => '', finishWith: 'MAX_TOKENS' });
+        const reading = read(await createGeminiAdapter({ transport }).open(ASK));
+        await clock.runAll();
+        const view = await reading;
+        expect(view.phase).toBe('failed');
+        expect(view.error.code).toBe('RESPONSE_MAX_TOKENS');
+        expect(view.error.message).not.toMatch(/without saying anything/u);
+    });
+
     it('is a finished answer when the model stopped of its own accord', async () => {
         const clock = createVirtualClock();
         const whole = '@passage visual=still\nFirst, whole.\n@end\n@passage visual=still\nSecond, whole.\n@end\n';
