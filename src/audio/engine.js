@@ -301,15 +301,6 @@ export class AudioEngine {
         this.currentPreset = null;
         this.currentBand = 'theta';
 
-        // Voice synthesis (TTS)
-        this.voiceEnabled = false;
-        this.voiceSynth = window.speechSynthesis || null;
-        this.selectedVoice = null;
-        this.currentUtterance = null;
-        this.voiceRate = 0.9;  // Slightly slower for hypnotic effect
-        this.voicePitch = 1.0;
-        this.voiceVolume = 0.8;
-
         // Conflict Management
         this.ambienceActive = false;
         this.sessionActive = false;
@@ -798,28 +789,6 @@ export class AudioEngine {
         return CARRIER_TUNINGS[resolveCarrierTuning(this.config.carrierTuning)];
     }
 
-    /**
-     * Set carrier tuning
-     * @param {'standard' | 'concert' | 'a432_low' | 'a432'} tuning  (legacy 'verdi'/'sacred' accepted)
-     */
-    setCarrierTuning(tuning) {
-        const id = resolveCarrierTuning(tuning);
-        if (CARRIER_TUNINGS[id]) {
-            this.config.carrierTuning = id;
-
-            // Restart entrainment if playing
-            if (this.layers.binaural) {
-                this.startEntrainment(this.config.binauralBeatFreq, {
-                    mode: this.config.entrainmentMode,
-                    waveform: this.config.entrainmentWaveform,
-                    spatial: this.config.entrainmentSpatial,
-                    spatialRate: this.config.entrainmentSpatialRate,
-                    spatialRadius: this.config.entrainmentSpatialRadius
-                });
-            }
-        }
-    }
-
     // ═══════════════════════════════════════════════════════════
     // LAYER: BINAURAL BEATS
     // ═══════════════════════════════════════════════════════════
@@ -1065,14 +1034,6 @@ export class AudioEngine {
     }
 
     /**
-     * Start binaural beat generator
-     * @param {number} beatFrequency - Desired beat frequency in Hz
-     */
-    startBinaural(beatFrequency = 6) {
-        this.startEntrainment(beatFrequency, { mode: 'binaural' });
-    }
-
-    /**
      * Stop entrainment generator
      */
     stopEntrainment(instant = false) {
@@ -1191,21 +1152,6 @@ export class AudioEngine {
         }
     }
 
-    /**
-     * Set the spoken voice's level against the bed.
-     *
-     * Separate from the master volume, which moves both together. This is
-     * the balance between them.
-     */
-    setVoiceVolume(volume) {
-        this.config.voiceVolume = Math.max(0, Math.min(1, Number(volume) || 0));
-        if (!this.voiceGain || !this.context) return;
-        const now = this.context.currentTime;
-        this.voiceGain.gain.cancelScheduledValues(now);
-        this.voiceGain.gain.setValueAtTime(this.voiceGain.gain.value, now);
-        this.voiceGain.gain.linearRampToValueAtTime(this.config.voiceVolume, now + 0.1);
-    }
-
     setShuttleSuspension(suspended) {
         const gain = this.layerGains?.binaural?.gain;
         if (!gain || !this.context) return;
@@ -1223,13 +1169,6 @@ export class AudioEngine {
             gain.linearRampToValueAtTime(this._shuttleSuspendedGain, now + 0.8);
             this._shuttleSuspendedGain = null;
         }
-    }
-
-    /**
-     * Stop binaural beat generator
-     */
-    stopBinaural(instant = false) {
-        this.stopEntrainment(instant);
     }
 
     // ═══════════════════════════════════════════════════════════
@@ -2026,13 +1965,6 @@ export class AudioEngine {
         }
     }
 
-    /**
-     * Get current layer volumes
-     */
-    getLayerVolumes() {
-        return { ...this.config.layerVolumes };
-    }
-
     // ═══════════════════════════════════════════════════════════
     // PRESETS
     // ═══════════════════════════════════════════════════════════
@@ -2301,65 +2233,6 @@ export class AudioEngine {
             default:
                 return null;
         }
-    }
-
-    // TRIGGERS & EFFECTS
-    // ═══════════════════════════════════════════════════════════
-
-    /**
-     * Play a trigger sound (chime, tone, etc.)
-     * @param {'chime' | 'tone' | 'click'} type
-     */
-    playTrigger(type = 'tone') {
-        if (!this.isInitialized) return;
-
-        const osc = this.context.createOscillator();
-        const gain = this.context.createGain();
-        const now = this.context.currentTime;
-
-        // Use 432Hz tuning for triggers too
-        const baseA = this.getCarrierFrequency() >= 432 ? 432 : 440;
-
-        switch (type) {
-            case 'chime':
-                osc.frequency.value = baseA * 2; // A5
-                osc.type = 'sine';
-                gain.gain.setValueAtTime(0.3, now);
-                gain.gain.exponentialRampToValueAtTime(0.001, now + 1.5);
-                break;
-
-            case 'click':
-                osc.frequency.value = 1000;
-                osc.type = 'square';
-                gain.gain.setValueAtTime(0.2, now);
-                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
-                break;
-
-            case 'tone':
-            default:
-                osc.frequency.value = baseA; // A4
-                osc.type = 'sine';
-                gain.gain.setValueAtTime(0.2, now);
-                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
-                break;
-        }
-
-        osc.connect(gain);
-        gain.connect(this.masterGain);
-        osc.start(now);
-        osc.stop(now + 2);
-    }
-
-    /**
-     * Create a pulse effect synchronized to a frequency
-     * @param {number} frequency - Pulse frequency in Hz
-     * @param {Function} callback - Called on each pulse
-     * @returns {Function} Stop function
-     */
-    createPulse(frequency, callback) {
-        const intervalMs = 1000 / frequency;
-        const intervalId = setInterval(callback, intervalMs);
-        return () => clearInterval(intervalId);
     }
 
     // ═══════════════════════════════════════════════════════════
@@ -2646,7 +2519,6 @@ export class AudioEngine {
         this.stopSwell(true);
         this.stopSoundscape(true);
         this.stopAmbient(true);
-        this.stopSpeaking();
         this._unbindContextLifecycle();
         if (this.context) {
             this.context.close().catch(() => {});
@@ -2662,211 +2534,6 @@ export class AudioEngine {
         this.lifecycleGate = null;
         this.sessionGain = null;
         this.voiceGain = null;
-    }
-
-    /**
-     * Get current audio state for UI
-     */
-    getState() {
-        return {
-            isInitialized: this.isInitialized,
-            isPlaying: this.isPlaying,
-            currentPreset: this.currentPreset,
-            currentBand: this.currentBand,
-            carrierTuning: this.config.carrierTuning,
-            carrierFrequency: this.getCarrierFrequency(),
-            entrainmentMode: this.config.entrainmentMode,
-            entrainmentWaveform: this.config.entrainmentWaveform,
-            layerVolumes: this.getLayerVolumes(),
-            activeLayers: {
-                binaural: !!this.layers.binaural,
-                harmonics: !!this.layers.harmonics,
-                noise: !!this.layers.noise,
-                drone: !!this.layers.drone,
-                ambient: !!this.layers.ambient,
-                typing: !!this.layers.typing,
-                ui: !!this.layers.ui,
-                swell: !!this.layers.swell
-            },
-            // Voice state
-            voiceEnabled: this.voiceEnabled,
-            voiceAvailable: !!this.voiceSynth,
-            selectedVoice: this.selectedVoice ? this.selectedVoice.name : null,
-            voiceRate: this.voiceRate
-        };
-    }
-
-    // ═══════════════════════════════════════════════════════════
-    // VOICE SYNTHESIS (TTS)
-    // ═══════════════════════════════════════════════════════════
-
-    /**
-     * Check if voice synthesis is available
-     */
-    isVoiceAvailable() {
-        return !!this.voiceSynth;
-    }
-
-    /**
-     * Get available voices
-     * @returns {Promise<SpeechSynthesisVoice[]>}
-     */
-    getVoices() {
-        return new Promise((resolve) => {
-            if (!this.voiceSynth) {
-                resolve([]);
-                return;
-            }
-
-            let voices = this.voiceSynth.getVoices();
-            if (voices.length > 0) {
-                resolve(voices);
-                return;
-            }
-
-            // Chrome loads voices async
-            this.voiceSynth.onvoiceschanged = () => {
-                voices = this.voiceSynth.getVoices();
-                resolve(voices);
-            };
-
-            // Fallback timeout
-            setTimeout(() => {
-                resolve(this.voiceSynth.getVoices());
-            }, 100);
-        });
-    }
-
-    /**
-     * Set the voice to use
-     * @param {SpeechSynthesisVoice | string} voice - Voice object or voice name
-     */
-    async setVoice(voice) {
-        if (typeof voice === 'string') {
-            const voices = await this.getVoices();
-            this.selectedVoice = voices.find(v => v.name === voice) || null;
-        } else {
-            this.selectedVoice = voice;
-        }
-        console.log(`[Voice] Selected: ${this.selectedVoice?.name || 'default'}`);
-    }
-
-    /**
-     * Set voice rate (speech speed)
-     * @param {number} rate - 0.1 to 2.0, default 1.0
-     */
-    setVoiceRate(rate) {
-        this.voiceRate = Math.max(0.1, Math.min(2.0, rate));
-    }
-
-    /**
-     * Calculate voice rate from WPM setting
-     * @param {number} wpm - Words per minute
-     */
-    setVoiceRateFromWpm(wpm) {
-        // Map WPM to speech rate: 120 WPM → 0.7, 220 WPM → 1.0, 300 WPM → 1.3
-        this.voiceRate = 0.4 + (wpm / 350);
-        this.voiceRate = Math.max(0.5, Math.min(1.5, this.voiceRate));
-        console.log(`[Voice] Rate from WPM ${wpm}: ${this.voiceRate.toFixed(2)}`);
-    }
-
-    /**
-     * Enable/disable voice
-     * @param {boolean} enabled
-     */
-    setVoiceEnabled(enabled) {
-        this.voiceEnabled = enabled;
-        if (!enabled) {
-            this.stopSpeaking();
-        }
-        console.log(`[Voice] ${enabled ? 'Enabled' : 'Disabled'}`);
-    }
-
-    /**
-     * Speak text
-     * @param {string} text - Text to speak
-     * @param {Object} options
-     * @param {Function} [options.onEnd] - Callback when speech ends
-     * @param {Function} [options.onStart] - Callback when speech starts
-     * @param {number} [options.rate] - Override rate
-     * @returns {SpeechSynthesisUtterance | null}
-     */
-    speak(text, options = {}) {
-        if (!this.voiceSynth || !this.voiceEnabled) {
-            // Not available or disabled, call onEnd immediately
-            if (options.onEnd) options.onEnd();
-            return null;
-        }
-
-        // Guard against empty text - use fallback timing instead
-        // Also strip phrase break markers (|) and [PAUSE] that shouldn't be spoken
-        const cleanText = (text || '')
-            .replace(/\|/g, '')        // Remove pipe characters
-            .replace(/\[PAUSE\]/gi, '')  // Remove [PAUSE] markers
-            .replace(/\s+/g, ' ')       // Normalize whitespace
-            .trim();
-        if (!cleanText) {
-            console.log('[Voice] Skipping empty text, using fallback timing');
-            // Use a short delay for pause-like atoms
-            setTimeout(() => {
-                if (options.onEnd) options.onEnd();
-            }, 300); // 300ms for empty/pause atoms
-            return null;
-        }
-
-        // Cancel any current speech
-        this.stopSpeaking();
-
-        const utterance = new SpeechSynthesisUtterance(cleanText);
-
-        // Configure
-        utterance.rate = options.rate || this.voiceRate;
-        utterance.pitch = this.voicePitch;
-        utterance.volume = this.voiceVolume;
-
-        if (this.selectedVoice) {
-            utterance.voice = this.selectedVoice;
-        }
-
-        // Events
-        utterance.onstart = () => {
-            console.log(`[Voice] Speaking: "${cleanText.substring(0, 40)}..."`);
-            if (options.onStart) options.onStart();
-        };
-
-        utterance.onend = () => {
-            this.currentUtterance = null;
-            if (options.onEnd) options.onEnd();
-        };
-
-        utterance.onerror = (event) => {
-            console.warn('[Voice] Speech error:', event.error);
-            this.currentUtterance = null;
-            if (options.onEnd) options.onEnd(); // Advance anyway on error
-        };
-
-        // Speak
-        this.currentUtterance = utterance;
-        this.voiceSynth.speak(utterance);
-
-        return utterance;
-    }
-
-    /**
-     * Stop current speech
-     */
-    stopSpeaking() {
-        if (this.voiceSynth) {
-            this.voiceSynth.cancel();
-        }
-        this.currentUtterance = null;
-    }
-
-    /**
-     * Check if currently speaking
-     */
-    isSpeaking() {
-        return this.voiceSynth?.speaking || false;
     }
 }
 

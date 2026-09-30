@@ -574,13 +574,4 @@ export class NeuralNetwork {
             }
         }
     }
-
-    /**
-     * Get a pregenerated frame from a pool (similar to fractal.js pattern)
-     * For now, just regenerate - can add pooling later if needed
-     */
-    getFrame() {
-        this.generate();
-        return this.canvas;
-    }
 }

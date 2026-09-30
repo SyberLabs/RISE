@@ -301,29 +301,6 @@ export class SourceCacheClass {
     }
 
     /**
-     * Get all entries by content type
-     * @param {string} contentType
-     * @returns {Promise<CacheEntry[]>}
-     */
-    async getByType(contentType) {
-        await this.init();
-
-        if (!this.db) {
-            return [...this._memory.values()].filter(entry => entry.contentType === contentType);
-        }
-
-        return new Promise((resolve, reject) => {
-            const transaction = this.db.transaction([STORE_NAME], 'readonly');
-            const store = transaction.objectStore(STORE_NAME);
-            const index = store.index('contentType');
-            const request = index.getAll(contentType);
-
-            request.onsuccess = () => resolve(request.result || []);
-            request.onerror = () => reject(request.error);
-        });
-    }
-
-    /**
      * Clear all entries for a provider
      * @param {string} providerId
      * @returns {Promise<number>} Number of entries deleted
