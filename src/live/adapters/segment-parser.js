@@ -258,6 +258,12 @@ export function createSegmentParser(write) {
             current = null;
         },
 
-        get passages() { return passages; }
+        get passages() { return passages; },
+
+        /** True once a limit means that nothing more the model writes can become words. */
+        get full() {
+            return totalText >= RISE_CURRENT_LIMITS.totalText
+                || (passages >= PARSER_LIMITS.passages && (current === null || current.dropped === true));
+        }
     };
 }

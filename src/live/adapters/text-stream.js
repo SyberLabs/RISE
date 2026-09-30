@@ -108,6 +108,11 @@ export function createTextStreamAdapter({ id, provider, connect, capacity = 64 }
                 delta(text) {
                     if (finished || closed) return;
                     parser.push(text);
+                    // Nothing more it writes can be shown: stop spending the reader's key on it, and finish with what was.
+                    if (parser.full) {
+                        try { transport?.cancel?.(); } catch { /* it is finished here either way */ }
+                        sink.done();
+                    }
                 },
                 done() {
                     if (finished || closed) return;

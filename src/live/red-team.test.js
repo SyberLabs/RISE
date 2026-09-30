@@ -325,6 +325,21 @@ describe('text-stream adapter: the outcome does not depend on how the provider c
         expect(await run(poem.split(/(?<=\n)/u))).toMatchObject({ phase: 'complete', ended: 1 });
     });
 
+    it('asks the provider to stop, once, when nothing more it writes can be shown', async () => {
+        let cancels = 0;
+        let sink;
+        const adapter = createTextStreamAdapter({
+            id: 't', provider: 'p',
+            connect: async (_request, providerSink) => { sink = providerSink; return { cancel() { cancels += 1; }, close() {} }; }
+        });
+        await adapter.open({ intent: 'answer', prompt: 'q' });
+        const passage = `@passage\n${'word '.repeat(700)}\n@end\n`;
+        sink.delta(passage);
+        expect(cancels).toBe(0);
+        for (let i = 0; i < 8; i += 1) sink.delta(passage);
+        expect(cancels).toBe(1);
+    });
+
     it('the same answer arriving in one delta completes', async () => {
         expect(await run([poem], { burst: true })).toMatchObject({ phase: 'complete', ended: 1 });
     });
