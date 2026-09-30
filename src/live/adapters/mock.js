@@ -44,10 +44,13 @@ function timeline(script, { chunkChars, chunkMs, latencyMs, faults }) {
             add(writing, 'segment.text', { segmentId: segment.id, offset, text: segment.text.slice(offset, offset + chunkChars) });
             offset += chunkChars;
         }
-        writing += 5;
-        add(writing, 'segment.end', { segmentId: segment.id });
+        // Lowering-affecting metadata must arrive before the segment is sealed.
+        // Otherwise a caller could lower a Current after segment.end and see
+        // its Dive/source anchors change later.
         for (const evidence of segment.evidence ?? []) add(writing + 1, 'evidence.add', { segmentId: segment.id, evidence });
         for (const dive of segment.dives ?? []) add(writing + 1, 'dive.attach', { segmentId: segment.id, dive });
+        writing += 5;
+        add(writing, 'segment.end', { segmentId: segment.id });
         writing += 30;
     }
     add(writing + 10, 'current.complete');

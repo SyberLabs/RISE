@@ -83,6 +83,7 @@ export function createTextStreamAdapter({ id, provider, connect, capacity = 64 }
             function end(error) {
                 if (finished) return;
                 finished = true;
+                try { transport?.close?.(); } catch { /* terminal cleanup must not block channel closure */ }
                 if (error) channel.fail(error);
                 else channel.close();
             }

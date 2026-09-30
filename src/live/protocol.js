@@ -382,13 +382,32 @@ export function validateEvent(input) {
     });
 }
 
+function exceedsWireByteLimit(wire) {
+    let bytes = 0;
+    for (let index = 0; index < wire.length; index += 1) {
+        const code = wire.charCodeAt(index);
+        if (code <= 0x7f) bytes += 1;
+        else if (code <= 0x7ff) bytes += 2;
+        else if (code >= 0xd800 && code <= 0xdbff
+            && index + 1 < wire.length
+            && wire.charCodeAt(index + 1) >= 0xdc00
+            && wire.charCodeAt(index + 1) <= 0xdfff) {
+            bytes += 4;
+            index += 1;
+        } else bytes += 3;
+        if (bytes > EVENT_LIMITS.wireBytes) return true;
+    }
+    return false;
+}
+
 /**
- * An event as it arrives off a wire. Size is checked before anything is parsed,
- * so an oversized message costs one length comparison.
+ * An event as it arrives off a wire. Size is checked before anything is parsed.
  */
 export function decodeEvent(wire) {
     if (typeof wire !== 'string') fail('EVENT_JSON', '$', 'Expected an event as text');
-    if (wire.length > EVENT_LIMITS.wireBytes) {
+    // Keep the constant-time fast path for oversized ASCII; shorter strings
+    // still need byte accounting because UTF-8 can exceed UTF-16 code units.
+    if (wire.length > EVENT_LIMITS.wireBytes || exceedsWireByteLimit(wire)) {
         fail('EVENT_TOO_LARGE', '$', `An event is at most ${EVENT_LIMITS.wireBytes} bytes`);
     }
     let parsed;

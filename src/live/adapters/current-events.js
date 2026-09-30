@@ -30,10 +30,10 @@ export function currentToEvents(input) {
             events.push({ type: 'segment.text', body: { segmentId: segment.id, offset, text: segment.text.slice(offset, end), ...literal } });
             offset = end;
         }
-        events.push({ type: 'segment.end', body: { segmentId: segment.id } });
         for (const dive of segment.dives) {
             events.push({ type: 'dive.attach', body: { segmentId: segment.id, dive: { id: dive.id, text: dive.text, anchor: { ...dive.anchor } } } });
         }
+        events.push({ type: 'segment.end', body: { segmentId: segment.id } });
     }
     events.push({ type: 'current.complete', body: {} });
     return events;

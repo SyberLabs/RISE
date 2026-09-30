@@ -37,10 +37,15 @@ function opened() {
     return { stream, send };
 }
 
-/** A whole segment: begin, text, end. */
-const segment = (send, segmentId, text, extra = {}) => {
+/** A segment whose words are still being written. */
+const writingSegment = (send, segmentId, text, extra = {}) => {
     send('segment.begin', { segmentId, ...extra });
     send('segment.text', { segmentId, offset: 0, text });
+};
+
+/** A whole segment: begin, text, end. */
+const segment = (send, segmentId, text, extra = {}) => {
+    writingSegment(send, segmentId, text, extra);
     return send('segment.end', { segmentId });
 };
 
@@ -86,6 +91,16 @@ describe('a Current that arrives in order', () => {
         expect(s1.evidence.map(e => e.id)).toEqual(['e1']);
         expect(s1.speech).toEqual({ started: true, ended: true, marks: [{ charIndex: 2, tMs: 200 }], durationMs: 2100 });
     });
+
+    it('refuses a later speech mark that moves backward in the text', () => {
+        const { stream, send } = opened();
+        segment(send, 's1', 'A long reading moves forward.');
+        send('speech.start', { segmentId: 's1' });
+        send('speech.mark', { segmentId: 's1', charIndex: 10, tMs: 100 });
+        const result = send('speech.mark', { segmentId: 's1', charIndex: 2, tMs: 200 });
+        expect(result).toMatchObject({ status: 'refused', code: 'SPEECH_ORDER' });
+        expect(stream.snapshot().segments[0].speech.marks).toEqual([{ charIndex: 10, tMs: 100 }]);
+    });
 });
 
 describe('lowering to the sealed Current', () => {
@@ -100,6 +115,22 @@ describe('lowering to the sealed Current', () => {
         expect(doc.origin).toEqual({ kind: 'model', name: 'An answer', provider: 'mock' });
     });
 
+    it('refuses a Dive attached after its segment has been lowered', () => {
+        const { stream, send } = opened();
+        segment(send, 's1', 'The event horizon marks a boundary.');
+        const before = stream.toCurrent();
+        const result = send('dive.attach', {
+            segmentId: 's1',
+            dive: {
+                id: 'd1',
+                text: 'A boundary.',
+                anchor: { fromCharacter: 4, toCharacter: 17, quoteStart: 'event horizon', quoteEnd: 'event horizon' }
+            }
+        });
+        expect(result).toMatchObject({ status: 'refused', code: 'SEGMENT_CLOSED' });
+        expect(stream.toCurrent()).toEqual(before);
+    });
+
     it('compiles through the canonical Session, and keeps every word', () => {
         const { stream, send } = opened();
         segment(send, 's1', 'A black hole is a region of space.');
@@ -111,11 +142,12 @@ describe('lowering to the sealed Current', () => {
 
     it('carries anchored Dives into the thread lane', () => {
         const { stream, send } = opened();
-        segment(send, 's1', 'The event horizon is the edge.');
+        writingSegment(send, 's1', 'The event horizon is the edge.');
         send('dive.attach', {
             segmentId: 's1',
             dive: { id: 'd1', text: 'The point of no return.', anchor: { fromCharacter: 4, toCharacter: 17, quoteStart: 'event horizon', quoteEnd: 'event horizon' } }
         });
+        send('segment.end', { segmentId: 's1' });
         const session = compileRiseCurrent(stream.toCurrent());
         const thread = session.experienceProgram.tracks.find(t => t.kind === 'thread');
         expect(thread.clips).toHaveLength(1);
@@ -248,8 +280,8 @@ describe('meaning', () => {
         'a branch from nowhere': [(s) => s('branch.open', { branchId: 'b1', parentSegmentId: 'nope', atCharacter: 0 }), 'UNKNOWN_SEGMENT'],
         'a branch at a place with no words': [(s) => { segment(s, 's1', 'One.'); return s('branch.open', { branchId: 'b1', parentSegmentId: 's1', atCharacter: 40 }); }, 'BRANCH_POSITION'],
         'closing a branch never opened': [(s) => s('branch.close', { branchId: 'b1' }), 'UNKNOWN_BRANCH'],
-        'a Dive quoting words the segment does not hold': [(s) => { segment(s, 's1', 'The event horizon is the edge.'); return s('dive.attach', { segmentId: 's1', dive: { id: 'd1', text: 'Note.', anchor: { fromCharacter: 4, toCharacter: 17, quoteStart: 'event horizon', quoteEnd: 'something else' } } }); }, 'DIVE_ANCHOR'],
-        'a Dive spanning past the words': [(s) => { segment(s, 's1', 'Short.'); return s('dive.attach', { segmentId: 's1', dive: { id: 'd1', text: 'Note.', anchor: { fromCharacter: 0, toCharacter: 40, quoteStart: 'Short.', quoteEnd: 'Short.' } } }); }, 'DIVE_ANCHOR'],
+        'a Dive quoting words the segment does not hold': [(s) => { writingSegment(s, 's1', 'The event horizon is the edge.'); return s('dive.attach', { segmentId: 's1', dive: { id: 'd1', text: 'Note.', anchor: { fromCharacter: 4, toCharacter: 17, quoteStart: 'event horizon', quoteEnd: 'something else' } } }); }, 'DIVE_ANCHOR'],
+        'a Dive spanning past the words': [(s) => { writingSegment(s, 's1', 'Short.'); return s('dive.attach', { segmentId: 's1', dive: { id: 'd1', text: 'Note.', anchor: { fromCharacter: 0, toCharacter: 40, quoteStart: 'Short.', quoteEnd: 'Short.' } } }); }, 'DIVE_ANCHOR'],
         'evidence supporting words that are not there': [(s) => { segment(s, 's1', 'Short.'); return s('evidence.add', { segmentId: 's1', evidence: { id: 'e1', kind: 'supplied', title: 'T', supports: { fromCharacter: 0, toCharacter: 90 } } }); }, 'EVIDENCE_SPAN']
     };
     for (const [name, [run, code]] of Object.entries(refusals)) {
@@ -292,12 +324,13 @@ describe('meaning', () => {
 
     it('refuses more than eight Dives or eight pieces of evidence for one segment', () => {
         const { send } = opened();
-        segment(send, 's1', 'The event horizon is the edge of it.');
+        writingSegment(send, 's1', 'The event horizon is the edge of it.');
         let last;
         for (let i = 0; i < 9; i += 1) {
             last = send('dive.attach', { segmentId: 's1', dive: { id: `d${i}`, text: 'Note.', anchor: { fromCharacter: 4, toCharacter: 17, quoteStart: 'event horizon', quoteEnd: 'event horizon' } } });
         }
         expect(last).toMatchObject({ status: 'refused', code: 'TOO_MANY_DIVES' });
+        send('segment.end', { segmentId: 's1' });
         for (let i = 0; i < 9; i += 1) {
             last = send('evidence.add', { segmentId: 's1', evidence: { id: `e${i}`, kind: 'supplied', title: 'T' } });
         }
@@ -360,6 +393,37 @@ describe('whose event it is', () => {
 });
 
 describe('a malformed event', () => {
+    it('does not spend this Current sequence for a malformed event from another Current', () => {
+        const { stream, send } = opened();
+        const stray = stream.apply({
+            schema: RISE_CURRENT_EVENTS_SCHEMA,
+            currentId: 'someone-else',
+            seq: 1,
+            type: 'segment.begin'
+        });
+        expect(stray).toMatchObject({ status: 'refused', code: 'WRONG_CURRENT', applied: 0 });
+        expect(stream.snapshot().nextSeq).toBe(1);
+        expect(send('segment.begin', { segmentId: 's1' })).toMatchObject({ status: 'applied' });
+        expect(stream.snapshot().segments.map(item => item.id)).toEqual(['s1']);
+    });
+
+    it('reports the triggering valid event outcome while draining a malformed buffered event', () => {
+        const { stream, send } = opened();
+        const buffered = stream.apply({
+            schema: RISE_CURRENT_EVENTS_SCHEMA,
+            currentId: ID,
+            seq: 2,
+            type: 'segment.begin',
+            segmentId: 'bad',
+            extra: true
+        });
+        expect(buffered).toMatchObject({ status: 'buffered', applied: 0 });
+        const result = send('segment.begin', { segmentId: 's1' });
+        expect(result).toMatchObject({ status: 'applied', applied: 1 });
+        expect(stream.snapshot()).toMatchObject({ nextSeq: 3, refusals: 1 });
+        expect(stream.snapshot().segments[0]).toMatchObject({ id: 's1', ended: false });
+    });
+
     it('is refused with its protocol code, and its sequence number is spent so the stream does not stall', () => {
         const stream = createCurrentStream();
         const send = feed(stream);

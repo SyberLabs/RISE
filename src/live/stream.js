@@ -204,6 +204,7 @@ export function createCurrentStream({ refusals: refusalBudget = STREAM_LIMITS.re
 
             case 'dive.attach': {
                 const segment = segmentFor(event.segmentId);
+                if (segment.ended) refuse('SEGMENT_CLOSED', `Segment ${segment.id} has ended`);
                 if (segment.dives.length >= STREAM_LIMITS.dives) {
                     refuse('TOO_MANY_DIVES', `A segment has at most ${STREAM_LIMITS.dives} Dives`);
                 }
@@ -235,7 +236,7 @@ export function createCurrentStream({ refusals: refusalBudget = STREAM_LIMITS.re
                 const { speech } = segment;
                 if (!speech.started || speech.ended) refuse('SPEECH_STATE', 'There is no speech in progress');
                 const last = speech.marks[speech.marks.length - 1];
-                if (event.charIndex > segment.text.length || (last && event.tMs < last.tMs)) {
+                if (event.charIndex > segment.text.length || (last && (event.tMs < last.tMs || event.charIndex < last.charIndex))) {
                     refuse('SPEECH_ORDER', 'A speech mark must fall inside the words and never run backwards');
                 }
                 speech.marks.push({ charIndex: event.charIndex, tMs: event.tMs });
@@ -320,7 +321,7 @@ export function createCurrentStream({ refusals: refusalBudget = STREAM_LIMITS.re
             if (terminal()) break;
             const seq = nextSeq;
             if (current.invalid) {
-                outcome = { status: 'refused', code: current.invalid.code };
+                if (outcome === null) outcome = { status: 'refused', code: current.invalid.code };
                 noteRefusal(current.invalid.code);
                 recent.set(seq, `invalid:${current.invalid.code}`);
             } else {
@@ -375,6 +376,18 @@ export function createCurrentStream({ refusals: refusalBudget = STREAM_LIMITS.re
     }
 
     function receiveInvalid(raw, problem) {
+        if (phase !== 'idle') {
+            let suppliedCurrentId;
+            try { suppliedCurrentId = raw?.currentId; } catch { suppliedCurrentId = null; }
+            if (typeof suppliedCurrentId !== 'string' || suppliedCurrentId.length === 0) {
+                noteRefusal(problem.code);
+                return { status: 'refused', code: problem.code, applied: 0 };
+            }
+            if (suppliedCurrentId !== currentId) {
+                noteRefusal('WRONG_CURRENT');
+                return { status: 'refused', code: 'WRONG_CURRENT', applied: 0 };
+            }
+        }
         let seq = null;
         try { if (Number.isInteger(raw?.seq) && raw.seq >= 0) seq = raw.seq; } catch { seq = null; }
         const refused = { status: 'refused', code: problem.code, applied: 0 };

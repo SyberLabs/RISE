@@ -331,6 +331,20 @@ describe('an event off the wire', () => {
         expect(parsed).toBe(false);
     });
 
+    it('measures the wire limit in UTF-8 bytes before parsing', () => {
+        const huge = JSON.stringify({ ...VALID['segment.end'], padding: '🙂'.repeat(EVENT_LIMITS.wireBytes / 4) });
+        expect(huge.length).toBeLessThan(EVENT_LIMITS.wireBytes);
+        let parsed = false;
+        const original = JSON.parse;
+        JSON.parse = (...args) => { parsed = true; return original(...args); };
+        try {
+            expect(() => decodeEvent(huge)).toThrowError(expect.objectContaining({ code: 'EVENT_TOO_LARGE' }));
+        } finally {
+            JSON.parse = original;
+        }
+        expect(parsed).toBe(false);
+    });
+
     it('is refused when it is not JSON, or not a string at all', () => {
         expect(() => decodeEvent('{nope')).toThrowError(expect.objectContaining({ code: 'EVENT_JSON' }));
         expect(() => decodeEvent(undefined)).toThrowError(expect.objectContaining({ code: 'EVENT_JSON' }));
