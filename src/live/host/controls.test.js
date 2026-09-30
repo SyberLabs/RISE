@@ -10,7 +10,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { createVirtualClock } from '../clock.js';
 import { createFakeRecognition, open } from '../../test/fake-recognition.js';
-import { createSpeechListener, describeMic, MIC_PRIVACY, MIC_PRIVACY_LEAD } from '../mic/listener.js';
+import { createSpeechListener, describeMic, LISTEN_LIMITS, MIC_PRIVACY, MIC_PRIVACY_LEAD } from '../mic/listener.js';
 import { interpret } from '../mic/interpret.js';
 import { createLiveControls, describeStatus } from './controls.js';
 
@@ -352,7 +352,8 @@ describe('speaking to it', () => {
     }
     const recogniser = () => Recognition.instances.at(-1);
     const press = () => $('[data-live="listen"]').click();
-    const hear = words => { recogniser().begin(); recogniser().say(words, { final: true }); };
+    /** Said, then the quiet that ends it. */
+    const hear = async words => { recogniser().begin(); recogniser().say(words, { final: true }); await CLOCK.advance(LISTEN_LIMITS.silenceMs); };
     const micLine = () => $('.live-controls__mic');
 
     it('has no Speak button, and no privacy text, where there is no microphone to use', () => {
@@ -406,7 +407,7 @@ describe('speaking to it', () => {
     it('dives on "wait, dive on event horizon", asking with the reader’s own words, and lets go of the microphone first', async () => {
         const runtime = withMic('live');
         press();
-        hear('Wait — dive on event horizon');
+        await hear('Wait — dive on event horizon');
         await flush();
         expect(runtime.calls.at(-1)).toEqual(['dive', { question: 'dive on event horizon' }]);
         expect(runtime.status).toBe('diving');
@@ -419,7 +420,7 @@ describe('speaking to it', () => {
         const runtime = withMic('interrupted');
         press();
         expect(runtime.hold).not.toHaveBeenCalled();
-        hear('why does light not escape?');
+        await hear('why does light not escape?');
         await flush();
         expect(runtime.calls.at(-1)).toEqual(['dive', { question: 'why does light not escape?' }]);
     });
@@ -428,7 +429,7 @@ describe('speaking to it', () => {
         const runtime = withMic('diving');
         press();
         expect(runtime.hold).not.toHaveBeenCalled();
-        hear('go back');
+        await hear('go back');
         await flush();
         expect(runtime.surface).toHaveBeenCalledTimes(1);
         expect(runtime.status).toBe('live');
@@ -437,12 +438,12 @@ describe('speaking to it', () => {
     it('resumes on "continue", and on a press that turned out to say nothing', async () => {
         const runtime = withMic('live');
         press();
-        hear('continue');
+        await hear('continue');
         await flush();
         expect(runtime.calls.map(call => call[0])).toEqual(['hold', 'resume']);
 
         press();
-        hear('um');
+        await hear('um');
         await flush();
         expect(runtime.calls.map(call => call[0])).toEqual(['hold', 'resume', 'hold', 'resume']);
         expect(runtime.status).toBe('live');
@@ -451,7 +452,7 @@ describe('speaking to it', () => {
     it('stays held on "wait", and does not ask anything', async () => {
         const runtime = withMic('live');
         press();
-        hear('wait');
+        await hear('wait');
         await flush();
         expect(runtime.status).toBe('interrupted');
         expect(runtime.dive).not.toHaveBeenCalled();
@@ -461,7 +462,7 @@ describe('speaking to it', () => {
     it('does not act on what it cannot be sure of: it holds, shows the words in the box, and leaves asking to the reader', async () => {
         const runtime = withMic('live');
         press();
-        hear('the horizon is interesting');
+        await hear('the horizon is interesting');
         await flush();
         expect(runtime.dive).not.toHaveBeenCalled();
         expect(runtime.status).toBe('interrupted');
@@ -476,7 +477,7 @@ describe('speaking to it', () => {
     it('shows what it heard as words, never as markup', async () => {
         withMic('live');
         press();
-        hear('<img src=x onerror=alert(1)> banana');
+        await hear('<img src=x onerror=alert(1)> banana');
         await flush();
         expect(micLine().querySelector('img')).toBeNull();
         expect(micLine().textContent).toContain('<img src=x onerror=alert(1)> banana');
@@ -486,7 +487,7 @@ describe('speaking to it', () => {
     it('says a Dive cannot be asked from inside a Dive, and does not lose the reader’s place', async () => {
         const runtime = withMic('diving');
         press();
-        hear('what is the shadow?');
+        await hear('what is the shadow?');
         await flush();
         expect($('.live-controls__error').textContent).toBe('A Dive inside a Dive is not built');
         expect(runtime.status).toBe('diving');

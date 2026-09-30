@@ -101,7 +101,8 @@ test('"wait, dive on event horizon" holds, dives, and "go back" surfaces to the 
     const heldAt = await shown(page);
     await page.evaluate(() => window.__mic.interim('wait dive'));
     await expect(micLine(page)).toContainText('Hearing: “wait dive”');
-    await page.waitForTimeout(1_500);
+    // Held, and well inside the quiet that would end the utterance.
+    await page.waitForTimeout(1_000);
     expect(await shown(page)).toBe(heldAt);
 
     await say(page, 'Wait — dive on event horizon');
