@@ -70,6 +70,7 @@
     "fake-indexeddb": "^6.2.5",
     "jsdom": "^26.0.0",
     "kokoro-js": "^1.2.1",
+    "onnxruntime-web": "1.30.0",
     "qrcode": "^1.5.4",
     "vite": "^7.3.6",
     "vite-node": "^3.2.4",
