@@ -1,49 +1,78 @@
 # A live Current inside an MCP host
 
-**Status:** the adapter, the messaging port and the proof that the real runtime works through them are built and tested against a **fake** host. The MCP server, the embeddable app bundle, and any trial in a real MCP host are **not built and not done**. Nothing here has run inside ChatGPT, Claude, or any other host.
+**Status:** built and tested end to end against **fakes and against the reference package's own host class**: the MCP server, the app a host is given, the page it frames, the port, the adapter, and the runtime through them. **Not tried in any product host** (ChatGPT, Claude, VS Code, or any other). **Off by default**, and not reachable on the deployed site until the creator turns it on (see *Turning it on*).
 
 ## The idea, and why it needs so little
 
-In an MCP host the provider is the host's own model. It does not stream to RISE; it calls a tool whose argument is a sealed Current (`rise.current.v1`). That is exactly the seam RISE already has: an external declarative answer, validated, lowered, and played by the existing Player. So the host adds no runtime logic. It adds an *adapter*:
+In an MCP host the provider is the host's own model. It does not stream to RISE; it calls a tool whose argument is a sealed Current (`rise.current.v1`). That is exactly the seam RISE already has: an external declarative answer, validated, lowered, and played by the existing Player. So the host adds no runtime logic. It adds an *adapter*, a *server* that says what the tool is, and an *app* the host shows for the tool call.
 
 ```
-host model ─ rise_present({ current, replyTo? }) ─▶ port.onCurrent ─▶ mcp-app adapter
-   ▲                                                                        │ validateRiseCurrent (strict, fail closed)
-   │                                                                        ▼
- ui/message (a Dive, with a one-time reference) ◀── runtime.dive       events ─▶ the same reducer, runtime, Player, voice
+host model ─ rise_present({ current }) ─▶ host ─ tool-input ─▶ app (RISE's page in a frame)
+                                                                   │ port ─▶ mcp-app adapter ─▶ validateRiseCurrent (strict)
+                                                                   ▼
+                              the same reducer, runtime, Player, Chamber, voice, controls, microphone
+
+a Dive:  app ─ sampling/createMessage ─▶ host ─▶ host model ─▶ its words come back in the same call
 ```
 
-- `src/live/adapters/current-events.js` turns a sealed Current into the events a streaming provider would have sent, after `validateRiseCurrent`, so a hostile field, marker, anchor or oversize answer is refused before one event exists. Nothing is added: a sealed Current has no evidence and no condition, and none is invented.
-- `src/live/adapters/mcp-app.js` is the adapter. A Dive is asked of the model as a message that quotes the place (as quoted, not as instruction) and carries a one-time reference the model must send back as `replyTo`; only a Current carrying that reference answers it. A model that never answers is timed out, the Dive fails, and the parent is untouched.
-- `src/live/hosts/mcp-port.js` is the app's side of the host's messaging: JSON-RPC over `postMessage`, listening only to the frame's parent, ignoring anything malformed or oversize, reading a Current only from the two places one is expected, matching requests to answers, bounded and timed out. Every method name is in one table (`METHODS`).
-- The voice is **RISE's own**. A host's voice timing is not something an app can rely on, and a Dive has to hold the voice, so the runtime's voice renderer speaks, exactly as everywhere else.
+## The pieces
 
-## The tool contract (as designed, unverified)
+- **The server** (`worker/mcp-server.mjs`, at `/api/mcp`). MCP's Streamable HTTP in its simplest legal form: every request a POST, one JSON body back, no stream, no session, nothing kept. It says what the one tool is (`rise_present`, with the guide to writing a Current in its description), **refuses a Current that is not valid and tells the model why** so it can try again, and serves the app as the resource `ui://rise/current` (`text/html;profile=mcp-app`). It calls no model, holds no key, spends nothing. It answers only requests with no `Origin` (a host's own server sends none) or from its own origin, reads a body of at most 256 KB, and echoes back only a validator's message, clipped.
+- **The app** (`src/live/hosts/mcp-relay.js`). What the host is given is a small HTML document that does one thing: it frames RISE's own page, `/live?embed=mcp`, and passes the host's JSON-RPC messages between the two. It understands nothing it passes, sends to the page only at the page's origin, and takes from it only what that origin, from that frame, sent. This is what lets the app be the *real* shell, Player, Chamber, controls and microphone, with no second presenter and no new room, and nothing inlined or fetched cross-origin.
+- **The page** (`/live?embed=mcp`, `src/live/host/LiveHost.js`). No prompt and no provider to choose. It says hello to its parent, receives the Current, and plays it with the same runtime. Opened directly in a browser with no host, it says what it is for and does nothing.
+- **The port** (`src/live/hosts/mcp-port.js`). The page's side of the host's messaging: JSON-RPC over `postMessage`, listening only to its parent, ignoring anything malformed or oversize, reading a Current only from the two notifications one arrives in and handing it over once, answering the host's own requests (`ping`, `ui/resource-teardown`), asking the host's model (`sampling/createMessage`), and telling the host its size.
+- **The adapter** (`src/live/adapters/mcp-app.js`) turns a sealed Current into the events a streaming provider would have sent, after `validateRiseCurrent`, so a hostile field, marker, anchor or oversize answer is refused before one event exists. Nothing is added: a sealed Current has no evidence and no condition, and none is invented.
+- **The guide** (`src/live/adapters/current-guide.js`): what a model that has never seen RISE is told a Current is. Its numbers come from the validator's own limits, and its example is a real Current the validator accepts, held by a test.
+- The voice is **RISE's own**. A host's voice timing is not something an app can rely on, and a Dive has to hold the voice.
 
-`rise_present` takes `{ current: <rise.current.v1>, replyTo?: string }`. `replyTo`, when present, is a reference RISE gave for a Dive and must be echoed exactly. The host's model is told this in the message RISE sends; a Current without the reference is not shown for a Dive. The sealed Current stays strict and unchanged: `replyTo` lives on the tool's argument, not in the Current.
+## What was wrong in the first design, and is fixed
 
-## What is tested
+The first design (PR #315) had a Dive asked as a `ui/message` carrying a one-time reference, expecting the model to answer by calling `rise_present` again with that reference and the answer to reach the same view. Reading the specification and the reference package showed it cannot: `ui/message` is answered with only whether the host took it, and a model's reply goes to the conversation as a new tool call, which a host shows in a view of its own. **A Dive now asks the model through sampling** (`sampling/createMessage`), which returns the words in the same call. Sampling is an optional host capability; the host says whether it offers it when the app says hello. **Where it does not, there is no Dive, and the page says so in words before anything is asked.** The message, the reference and their machinery are gone.
 
-| | Tested against a fake host |
-|---|---|
-| The same conformance suite every adapter passes (two scenarios cannot happen to it and are held by its own tests: an answer arrives whole so cannot be interrupted part way; there is no transport to lose) | yes |
-| Answer read whole; refused whole, with nothing partly applied, if hostile; timed out if the host never answers | yes |
-| Dive answered only by its reference; wrong, missing or hostile references ignored; host refusing the question | yes |
-| The real runtime, Player, speech clock and voice through the adapter: read, Dive, Surface to the same atom, stop from any moment leaves no timer | yes |
-| The port: only the parent, malformed and oversize ignored, requests matched, bounded, timed out, closed cleanly | yes |
-| A real MCP host | **no** |
+Three smaller things were also wrong against the reference: the handshake sent protocol version `2025-11-21` (the extension's is `2026-01-26`); the host's own requests `ping` and `ui/resource-teardown` were ignored, so a host waiting on them would wait; and the same Current arrives twice, as a tool's input and again as its result, so the second copy would have been handed to whatever opened next as its answer.
 
-## What is not built
+A test in a sandboxed frame found one more: a frame sandboxed without `allow-forms` never fires a form's `submit` event, so the Dive input did nothing. The controls now ask by the button and by Enter, and no longer depend on the form being submitted.
 
-1. **The MCP server**: the tool definition, and the `ui://` resource that serves the app. It needs an MCP SDK dependency and somewhere to run; it is not a thing to add without a decision about both.
-2. **The app bundle that runs inside the frame.** The Chamber is wired to the shell's router and factory. Embedding it means either a standalone Chamber mount without the router, or a slimmer presenter; the second would not be "the existing Player and Chamber runtime", so I have not chosen it silently. This is the largest remaining piece.
-3. **Streaming.** An answer arrives whole, so the first words wait for the whole answer, unlike the standalone host. A host that streams a tool's partial input could be used later; the adapter states `streaming: false`.
-4. **Evidence and conditions.** A sealed Current carries neither. If a host's model should be able to supply them, that is a change to the sealed schema, which I have kept strict on purpose.
+## The tool contract
 
-## Platform limits to expect (from the extension as I understand it; unverified)
+`rise_present` takes `{ current: <rise.current.v1> }` and nothing else. A valid Current gets `RISE is presenting this to the reader.` An invalid one gets a tool error (`isError`), not a protocol error, saying what was wrong and where, so the model can correct it. The tool is read-only and idempotent. It points at the app in the extension's key (`_meta.ui.resourceUri`) and its older flat spelling (`_meta["ui/resourceUri"]`), which the reference server helper also emits.
 
-The app runs in a sandboxed frame. Whether it may use the microphone, `speechSynthesis`, autoplay or fullscreen depends on the frame's `allow` attributes and the host's policy, not on RISE. If speech is not available the reading is paced silently and says so, as it does in the standalone host. Network access from the frame is bounded by the host's policy; RISE needs none here, since the model's answer arrives through the host. Audio will need a user gesture. The host, not RISE, decides whether a message can be put into the conversation; a refused Dive says so in words.
+## What was verified, and how
+
+| | How | Result |
+|---|---|---|
+| Server handler | 32 Node tests with real `Request` objects; ten mutations of its guards each caught | pass |
+| Server, against the **official SDK client** (`@modelcontextprotocol/sdk` 1.31) over real HTTP | a local one-off; the SDK is not a dependency of this repo | 14 of 14: connects, negotiates `2025-11-25`, lists and calls the tool, refuses an invalid Current as a tool error, lists and reads the resource, errors correctly |
+| The tool's `_meta` against the reference server helper (`registerAppTool`) | same one-off | identical |
+| App, page and port against the **reference package's own host class** (`AppBridge`, `@modelcontextprotocol/ext-apps` 2.0.3), in Chromium | a local one-off; not a dependency of this repo | 23 of 23 across a host that offers sampling and one that does not: it validated the handshake, received the app's size, was handed the answer (input and result), answered a Dive as a sampling request that passed its own schema, accepted the teardown reply, and reported no protocol errors |
+| The same flows against a fake host page in the repo's browser suite | `e2e/live-mcp.spec.js`, 7 tests | pass |
+| Relay: passes JSON-RPC only, from the right window and origin only | 11 unit tests, and a browser test where the app's frame navigates to another origin and cannot speak (its check removed, the test fails) | pass |
+| Port, adapter, guide, controls, host | unit tests with mutation checks | pass |
+| The worker bundles for Cloudflare | esbuild with the `workerd` conditions (Wrangler needs Node 22; this machine has 20) | 119 KB gzipped |
+
+The two reference checks are one-off local runs, not part of the test suite, because they need packages RISE does not depend on. They are described here so they can be repeated.
+
+## Turning it on (the creator's decision)
+
+It is **off**. `MCP_ENABLED` is `"false"` in `wrangler.production.jsonc` and absent in staging. Nothing about the deployed site changes until both of these are done:
+
+1. Set `MCP_ENABLED` to `"true"`.
+2. Add `"/live"` to `assets.run_worker_first` in that Wrangler config, so the Worker sees `/live?embed=mcp` and can serve it framable. **This is a change to the site's framing posture**: every response says `X-Frame-Options: DENY` and `frame-ancestors 'none'`, and a test holds that. With MCP on, exactly one request shape, `GET /live?embed=mcp`, is served without `X-Frame-Options` and with `frame-ancestors *`, because a host's sandbox is on an origin RISE cannot know. Every other request is the asset, untouched. What that page can do when framed by a stranger is display a Current it is handed, and offer the microphone button, which needs the reader's own press and the browser's own permission. That is a judgment for the creator, not for me.
+
+Then a host adds `https://<site>/api/mcp` as a connector. How each product does that is the product's business.
+
+## What is not verified, and known limits
+
+1. **No product host.** ChatGPT, Claude, VS Code and others each implement the extension their own way. The reference package is the specification's own implementation, not a product. Whether a product lets a view frame another page (the `frameDomains` this asks for), passes the microphone through, offers sampling, or sizes an inline frame as asked, is that product's policy.
+2. **Sampling may be absent.** A host that does not offer it has no Dive here. That may be most of them today. The answer itself does not depend on it.
+3. **Sampling may ask the reader.** The specification lets a host show the request to the reader and let them refuse. A refused Dive says so in words.
+4. **Streaming.** An answer arrives whole, so the first words wait for the whole answer, unlike the standalone host. The adapter states `streaming: false`.
+5. **Evidence and conditions.** A sealed Current carries neither. A Dive's answer is a sealed Current too. Changing that is a change to the sealed schema, which I have kept strict on purpose.
+6. **A model has to follow the guide.** A model that returns something that is not a Current is refused and told why, on the tool; for a Dive there is no retry, and the Dive fails in words.
+7. **Size.** The app asks its host for 640 px of height once. A host may ignore it.
+8. **The origin rule.** The server refuses a request that carries another site's `Origin`, so a page on another site cannot use a browser to make it talk to this one. A browser-based MCP client on another origin therefore cannot connect. Server-side connectors send no `Origin` and are unaffected.
+9. **Audio needs a gesture.** Autoplay and speech synthesis inside a host's frame are the frame's `allow` policy; if speech is unavailable the reading is paced silently and says so.
 
 ## Where things are
 
-`src/live/adapters/current-events.js`, `mcp-app.js`, `src/live/hosts/mcp-port.js`, tests beside them, `src/test/fake-mcp-port.js` and `sealed-current.js`.
+`worker/mcp-server.mjs` (+ test), `src/live/hosts/mcp-relay.js`, `src/live/hosts/mcp-port.js`, `src/live/adapters/mcp-app.js`, `src/live/adapters/current-guide.js`, `src/live/host/LiveHost.js` (`?embed=mcp`), tests beside them, `e2e/live-mcp.spec.js`, `src/test/fake-mcp-port.js` and `sealed-current.js`.

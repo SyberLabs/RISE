@@ -6,7 +6,7 @@
  * the browser suite (e2e/live.spec.js); this holds what is decided before it:
  * what the reader is told, what is refused, and that nothing starts by itself.
  */
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { LiveHost } from './LiveHost.js';
 
 const env = ({ speech = false, recognition = false, motion = false } = {}) => ({
@@ -243,5 +243,91 @@ describe('speaking to it', () => {
         mount('', env());
         expect(notes()).toContain('speechRecognition');
         expect(document.querySelector('[data-live="listen"]')).toBeNull();
+    });
+});
+
+describe('inside an MCP host', () => {
+    /** A window with a parent that records what it is sent, and can answer. */
+    function framed({ answer } = {}) {
+        const listeners = new Set();
+        const sent = [];
+        const environment = env();
+        const host = {
+            postMessage(message) {
+                sent.push(message);
+                const reply = answer?.(message);
+                if (reply) queueMicrotask(() => { for (const fn of [...listeners]) fn({ source: host, data: { jsonrpc: '2.0', id: message.id, ...reply } }); });
+            }
+        };
+        Object.assign(environment.window, {
+            parent: host,
+            innerWidth: 390,
+            addEventListener: (type, fn) => { if (type === 'message') listeners.add(fn); },
+            removeEventListener: (type, fn) => { if (type === 'message') listeners.delete(fn); }
+        });
+        return { environment, sent, listeners };
+    }
+    const line = () => container.querySelector('.live-embed');
+
+    it('has no prompt, no Start and no provider to choose: the host’s model has already written the answer', async () => {
+        const { environment } = framed();
+        mount('?embed=mcp&voice=paced', environment);
+        expect(container.querySelector('.live-ask')).toBeNull();
+        expect(container.querySelector('.live-start')).toBeNull();
+        expect(container.querySelector('.live-key')).toBeNull();
+        expect(host.embedded).toBe(true);
+        await vi.waitFor(() => expect(line().textContent).toBe('Waiting for the answer…'));
+    });
+
+    it('says hello to its parent, with the extension’s protocol version and nothing that names a key or a prompt', async () => {
+        const { environment, sent } = framed();
+        mount('?embed=mcp', environment);
+        await vi.waitFor(() => expect(sent).toHaveLength(1));
+        expect(sent[0]).toMatchObject({ jsonrpc: '2.0', method: 'ui/initialize', params: { appInfo: { name: 'RISE' }, protocolVersion: '2026-01-26' } });
+        expect(JSON.stringify(sent[0])).not.toMatch(/key|prompt/iu);
+    });
+
+    it('says in words why it could not start, when the host refuses to say hello', async () => {
+        const { environment } = framed({ answer: message => (message.method === 'ui/initialize' ? { error: { code: -1, message: 'not for you' } } : null) });
+        mount('?embed=mcp', environment);
+        await vi.waitFor(() => expect(line().textContent).toBe('Could not start: not for you'));
+        expect(line().closest('main').querySelector('[role="alert"]')).not.toBeNull();
+        expect(host.runtime).toBeNull();
+    });
+
+    it('says it is meant to be opened by an assistant, and sends nothing, when there is no host to say hello to', () => {
+        const environment = env();
+        environment.window.parent = environment.window;
+        mount('?embed=mcp', environment);
+        expect(line().textContent).toMatch(/Open it from one/u);
+        expect(line().closest('[role="alert"]') ?? line().getAttribute('role')).toBeTruthy();
+    });
+
+    it('lets go of the host’s messages when it is destroyed', async () => {
+        const { environment, listeners, sent } = framed();
+        mount('?embed=mcp', environment);
+        await vi.waitFor(() => expect(sent).toHaveLength(1));
+        expect(listeners.size).toBe(1);
+        host.destroy();
+        expect(listeners.size).toBe(0);
+    });
+
+    it('is not an embedded page when it is anything but exactly mcp', () => {
+        for (const search of ['?embed=other', '?embed=', '?embed=MCP']) {
+            const { environment } = framed();
+            mount(search, environment);
+            expect(host.embedded, search).toBe(false);
+            expect(container.querySelector('.live-ask'), search).not.toBeNull();
+            host.destroy();
+            document.body.replaceChildren();
+        }
+    });
+
+    it('is the study instrument, not an embedded page, when it is asked to be both', async () => {
+        const { environment } = framed();
+        mount('?embed=mcp&eval=1', environment);
+        expect(host.embedded).toBe(false);
+        await vi.waitFor(() => expect(host.eval).toBeDefined());
+        expect(container.querySelector('.live-embed')).toBeNull();
     });
 });

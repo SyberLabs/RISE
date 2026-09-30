@@ -44,7 +44,7 @@ export function validSdp(text) {
   return lines.every(line => SDP_LINE.test(line)) && lines.some(line => line.startsWith('m='));
 }
 
-async function readText(message, limit) {
+export async function readText(message, limit) {
   const reader = message.body?.getReader();
   if (!reader) throw new Error('body');
   const chunks = [];

@@ -6,6 +6,7 @@ import { handleJevVisualScore } from './jev-visual-score.mjs';
 import { decisionProvider } from '../server/decision-provider.mjs';
 import { handlePersonalPiece } from './personal-piece.mjs';
 import { handleLiveRealtime } from './live-realtime.mjs';
+import { handleLive, handleMcp, MCP_PATH } from './mcp-server.mjs';
 
 const JSON_HEADERS = {
   'Content-Type': 'application/json; charset=utf-8',
@@ -27,6 +28,10 @@ export default {
     if (isKevWorkerScript(path)) return serveKevWorkerScript(request, env);
 
     if (path === '/api/personal-piece') return handlePersonalPiece(request, env);
+
+    // RISE as an MCP server, and the one page its app frames. Off unless switched on; see mcp-server.mjs.
+    if (path === MCP_PATH) return handleMcp(request, env);
+    if (path === '/live') return handleLive(request, env);
 
     // A live answer, with the reader's own key. Off unless switched on; see live-realtime.mjs.
     if (path === '/api/live/realtime') return handleLiveRealtime(request, env);

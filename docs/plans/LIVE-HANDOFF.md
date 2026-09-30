@@ -54,9 +54,9 @@ Contracts: `docs/plans/LIVE-CURRENT.md` (plan and decisions), `docs/specs/LIVE-C
 | Evidence, condition, depth | yes | yes | yes | yes | n/a |
 | Text-stream adapter, parser (fuzzed) | yes | yes | yes | yes | n/a |
 | OpenAI Realtime, relay route | yes | yes | yes, fake peer | n/a | **not verified** |
-| MCP adapter and port | yes | yes, fake host | n/a | n/a | **not verified; no real host** |
-| MCP server, embeddable app | **no** | no | no | no | no |
-| Microphone input | **no** (typed only) | no | no | no | no |
+| MCP adapter and port | yes | yes, fake host | n/a | n/a | **not verified; no product host** |
+| MCP server, relay app, embedded page | yes, **off by default** | yes | yes, fake host page | yes, SDK client and the reference host class (local one-offs) | **not verified; no product host** |
+| Microphone input | yes | yes, fake recogniser | yes, fake recogniser | yes | **not verified; no real recogniser** |
 | Evaluation instrument | yes | yes | yes | yes | **study not run** |
 | Literal-text path (D2) | **no** | no | no | no | no |
 
@@ -92,7 +92,7 @@ The brief asked that this be recorded honestly. What is established: the imagery
 1. **No real speech engine has been heard.** Chrome's network voices give no word boundaries (the clock then corrects only at segment edges); some builds cut a long utterance off near fifteen seconds; a Dive that holds a boundary-less voice restarts its segment when released. All from knowledge of the platform, none observed here.
 2. **OpenAI has never been reached.** The wire names, the unified-interface request, and whether a text-only session accepts a receive-only audio section are unconfirmed. Every name is in one table. One key and ten minutes would settle it.
 3. **The reader-supplied-key page.** The relay is narrow (one request, key never stored or echoed, off unless `LIVE_REALTIME_ENABLED`), but whether such a page should ever be public is your decision, and nothing here turns it on.
-4. **MCP is a design and a fake.** No server, no app bundle, no host. The largest gap is embedding the Chamber without the shell's router.
+4. **MCP is built and checked against the reference, not a product.** It is off by default, and turning it on loosens the site's framing for one page, which is your decision (`docs/plans/LIVE-MCP.md`, *Turning it on*). No product host has been tried, and a Dive needs the host to offer sampling.
 5. **Time to first response** depends on how short a provider's first segment is; the OpenAI instructions ask for one short sentence, unverified.
 6. **Surfacing rebuilds the Chamber**, so the parent's attractor restarts its trajectory: same visual identity, not the same instant. And a Dive is visually quiet (a still), which may read as plain rather than as "deeper".
 7. **Accessibility is checked structurally, not with a screen reader**: labelled regions, one live region, real buttons, 44 px targets, reduced motion measured. No assistive-technology session, no automated audit.

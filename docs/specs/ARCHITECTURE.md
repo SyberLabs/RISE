@@ -165,7 +165,7 @@ flowchart LR
     content["content<br/>texts, imagery, journeys<br/>231 modules"]
     core["core<br/>session, player, router<br/>153 modules"]
     enterprise["enterprise<br/>talk program, speaker rail<br/>28 modules"]
-    live["live<br/>realtime Current: events, runtime, providers<br/>29 modules"]
+    live["live<br/>realtime Current: events, runtime, providers<br/>32 modules"]
     oracle["oracle<br/>2 modules"]
     page["page<br/>spatial projection<br/>4 modules"]
     sources["sources<br/>text and visual providers<br/>22 modules"]
@@ -199,7 +199,7 @@ flowchart LR
     core --> |23| visuals
     live -.-> |3 lazy| app
     live -.-> |1 lazy| components
-    live --> |5| core
+    live --> |6| core
     live -.-> |1 lazy| visuals
     page --> |2| core
     page --> |3| visuals
@@ -1132,6 +1132,39 @@ of `settled`, `open`, `deferred`, or `reversed`.
 - **Status:** open. Built and tested with a fake recogniser at every layer
   (grammar, listener, runtime hold, controls, host, and a real browser running
   the built page). Not verified with any real recogniser; English only.
+
+### 8.37 In an MCP host, RISE is a relay that frames its own page
+
+- **Chosen:** the app a host is given (`ui://rise/current`) is a small HTML
+  document that frames RISE's own page, `/live?embed=mcp`, and relays the
+  host's JSON-RPC messages between the two (`src/live/hosts/mcp-relay.js`).
+  The page is the existing `/live` host in an embedded mode: the same
+  runtime, Chamber, controls and microphone, with the host's model as the
+  provider (`src/live/adapters/mcp-app.js`). A server with one tool
+  (`worker/mcp-server.mjs`) says what the tool is, refuses an invalid Current
+  with a reason the model can act on, and serves the app. A Dive is put to the
+  host's model through sampling, and is absent where the host offers none.
+- **Rejected:** a second presenter for the Chamber, or a Chamber mounted
+  without the shell (a second way to show a reading, and the thing this
+  design exists to avoid); bundling the shell into one inlined HTML file (a
+  megabyte or more of code a host must carry, or cross-origin script loading
+  under a policy RISE does not control); an MCP SDK dependency in the Worker
+  (the server needs six methods and no stream, and the SDK's own client is
+  used as a check instead, not shipped); and a Dive asked as a conversation
+  message, which a host answers in a new view and never in the one that asked.
+- **Why:** the app should be the reading RISE already is. A relay is a few
+  lines that understand nothing and are tested as the text a host will run; the
+  page inside speaks to it as to any parent, through a port that reads only
+  that parent. The server keeps nothing, so there is nothing to secure but a
+  validator and a document. It is off unless `MCP_ENABLED` is `'true'`, and
+  the framing of the one page a host needs is loosened only then and only for
+  that request (`GET /live?embed=mcp`), never in the site's headers, which stay
+  `frame-ancestors 'none'` and are held by a test.
+- **Status:** open. Built, and checked against the SDK's client and the
+  reference package's own host class (local one-offs, not dependencies). Not
+  tried in any product host. Not switched on: doing so needs `MCP_ENABLED` and
+  one Wrangler line, and changes the site's framing posture for one page,
+  which is the creator's decision (`docs/plans/LIVE-MCP.md`).
 
 ---
 

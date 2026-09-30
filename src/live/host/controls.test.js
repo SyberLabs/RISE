@@ -502,3 +502,50 @@ describe('speaking to it', () => {
         controls = null;
     });
 });
+
+describe('asking without submitting a form', () => {
+    it('asks with the button, and with Enter, though the form is never submitted (a frame sandboxed without allow-forms never fires it)', async () => {
+        const runtime = fakeRuntime('live');
+        controls = createLiveControls({ runtime, onStop: () => {} });
+        const box = $('input[name="question"]');
+        const submitted = vi.fn();
+        $('.live-controls__ask').addEventListener('submit', submitted, { capture: true });
+
+        box.value = 'first question';
+        $('[data-live="dive"]').click();
+        await flush();
+        expect(runtime.dive).toHaveBeenLastCalledWith({ question: 'first question' });
+        expect(submitted).not.toHaveBeenCalled();
+
+        runtime.set('live');
+        box.value = 'second question';
+        const enter = new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true });
+        box.dispatchEvent(enter);
+        await flush();
+        expect(enter.defaultPrevented).toBe(true);
+        expect(runtime.dive).toHaveBeenLastCalledWith({ question: 'second question' });
+        expect(runtime.dive).toHaveBeenCalledTimes(2);
+    });
+
+    it('does not ask on any other key, while a word is being composed, or with nothing typed', async () => {
+        const runtime = fakeRuntime('live');
+        controls = createLiveControls({ runtime, onStop: () => {} });
+        const box = $('input[name="question"]');
+        box.value = 'something';
+        for (const init of [{ key: 'a' }, { key: 'Tab' }, { key: 'Enter', isComposing: true }]) box.dispatchEvent(new KeyboardEvent('keydown', { ...init, bubbles: true, cancelable: true }));
+        box.value = '   ';
+        box.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }));
+        $('[data-live="dive"]').click();
+        await flush();
+        expect(runtime.dive).not.toHaveBeenCalled();
+    });
+
+    it('still asks when the form is submitted, once', async () => {
+        const runtime = fakeRuntime('live');
+        controls = createLiveControls({ runtime, onStop: () => {} });
+        $('input[name="question"]').value = 'via the form';
+        $('.live-controls__ask').requestSubmit();
+        await flush();
+        expect(runtime.dive).toHaveBeenCalledTimes(1);
+    });
+});

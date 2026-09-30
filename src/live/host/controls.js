@@ -65,7 +65,7 @@ export function createLiveControls({ runtime, onStop, audible = true, mic = null
         <label class="live-controls__sr" for="live-controls-question">Ask about this place</label>
         <input id="live-controls-question" name="question" type="text" maxlength="500" autocomplete="off"
                placeholder="Wait — dive on the event horizon">
-        <button type="submit" data-live="dive" aria-label="Dive: ask about this place">Dive</button>
+        <button type="button" data-live="dive" aria-label="Dive: ask about this place">Dive</button>
       </form>
       <div class="live-controls__buttons">
         <button type="button" data-live="interrupt">Interrupt</button>
@@ -321,8 +321,9 @@ export function createLiveControls({ runtime, onStop, audible = true, mic = null
             else await runtime.interrupt({ text: input.value.trim() || undefined });
         });
     });
-    form.addEventListener('submit', event => {
-        event.preventDefault();
+    // Asked by the button and by Enter, and not by submitting the form: a frame that is sandboxed
+    // without `allow-forms` (as an MCP host may make it) never fires a form's submit event.
+    const submitAsk = () => {
         const asked = input.value.trim();
         if (!asked) {
             input.focus();
@@ -330,6 +331,16 @@ export function createLiveControls({ runtime, onStop, audible = true, mic = null
         }
         stopListening();
         void attempt(() => ask(asked));
+    };
+    dive.addEventListener('click', submitAsk);
+    input.addEventListener('keydown', event => {
+        if (event.key !== 'Enter' || event.isComposing) return;
+        event.preventDefault();
+        submitAsk();
+    });
+    form.addEventListener('submit', event => {
+        event.preventDefault();
+        submitAsk();
     });
     surface.addEventListener('click', () => {
         stopListening();

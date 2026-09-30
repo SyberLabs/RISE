@@ -16,6 +16,11 @@
  * paced as if spoken, which is what every automated test uses. `?measure=1`
  * exposes a read-only record of when atoms were shown and when the voice spoke
  * (`window.__riseLive`), which is how sync error is measured in a real browser.
+ *
+ * `?embed=mcp` is the page an MCP host's app frames (worker/mcp-server.mjs,
+ * src/live/hosts/mcp-relay.js): no prompt, no provider to choose. The host's own
+ * model wrote the answer and hands it over through the frame's parent; the same
+ * runtime, Chamber, controls and voice play it.
  */
 
 import { describeDegradations, detectCapabilities } from '../capabilities.js';
@@ -24,6 +29,8 @@ import { DelayedRunner, EvalRunner } from './EvalRunner.js';
 import './LiveHost.css';
 
 const DEFAULT_PROMPT = 'Explain black holes with RISE.';
+/** What an embedded app asks its host for: enough for the Chamber and the controls on a phone. */
+const EMBED_HEIGHT = 640;
 const PROVIDERS = Object.freeze({
     mock: 'Deterministic demo provider (offline)',
     openai: 'OpenAI Realtime, with your own key'
@@ -55,6 +62,14 @@ export class LiveHost {
         this.atomLog = [];
         // The reader's own key, in memory and nowhere else; see forgetKey.
         this.key = '';
+        this.embedded = this.params.get('embed') === 'mcp' && !this.params.has('eval');
+        if (this.embedded) {
+            this.modules = this.loadModules();
+            this.modules.catch(() => {});
+            this.prefetchMic();
+            void this.startEmbedded();
+            return;
+        }
         if (this.params.has('eval')) {
             // A study instrument, not a prompt. Everything it needs is fetched as it is needed.
             this.modules = this.loadModules();
@@ -68,7 +83,11 @@ export class LiveHost {
         this.modules = this.loadModules();
         this.modules.catch(() => {});
         void import('../../components/Chamber.js').catch(() => {});
-        // Speaking to it is fetched only where the browser can recognise speech; a failure is no mic.
+        this.prefetchMic();
+    }
+
+    /** Speaking to it is fetched only where the browser can recognise speech; a failure is no mic. */
+    prefetchMic() {
         this.micModules = this.caps.speechRecognition ? Promise.all([import('../mic/listener.js'), import('../mic/interpret.js')]).catch(() => null) : null;
     }
 
@@ -269,8 +288,12 @@ export class LiveHost {
         };
     }
 
-    /** The provider's adapter. OpenAI's is loaded only if it is the one asked for. */
+    /** The provider's adapter. OpenAI's is loaded only if it is the one asked for, and the host's model only inside a host. */
     async buildAdapter(clock, createMockAdapter) {
+        if (this.providerName === 'mcp') {
+            const { createMcpAppAdapter } = await import('../adapters/mcp-app.js');
+            return createMcpAppAdapter({ port: this.port, clock });
+        }
         if (this.providerName !== 'openai') return createMockAdapter({ clock });
         const [{ createOpenAIRealtimeAdapter }, { createOpenAIWebRtcTransport }] = await Promise.all([
             import('../adapters/openai-realtime.js'),
@@ -373,6 +396,51 @@ export class LiveHost {
         return { destroy() { guide.remove(); } };
     }
 
+    // ─── inside an MCP host ─────────────────────────────────────────────
+
+    /** What the reader is told in the frame, before and after the reading. */
+    say(message, { alert = false } = {}) {
+        this.container.innerHTML = `
+      <main class="live-host live-host--embedded" aria-label="RISE">
+        <p class="live-embed" role="${alert ? 'alert' : 'status'}"></p>
+      </main>`;
+        this.container.querySelector('.live-embed').textContent = message;
+    }
+
+    /**
+     * Say hello to the host, and play what its model hands over. The frame's parent is the host (or
+     * the relay that stands for it); a page opened directly has no host, and says so.
+     */
+    async startEmbedded() {
+        const frame = this.env.window ?? this.env;
+        if (!frame.parent || frame.parent === frame) {
+            this.say('This is the RISE app for an assistant that can show it. Open it from one.', { alert: true });
+            return;
+        }
+        this.say('Waiting for the answer…');
+        this.providerName = 'mcp';
+        this.startedAt = performance.now();
+        try {
+            const [{ createMcpGuestPort }] = await Promise.all([import('../hosts/mcp-port.js'), this.modules]);
+            this.port = createMcpGuestPort({ frame });
+            this.port.onTeardown(() => { void this.ended(); });
+            await this.port.connect();
+            // The host sizes a frame from what the app says it wants; the Chamber fills what it is given.
+            this.port.sizeChanged({ width: frame.innerWidth, height: EMBED_HEIGHT });
+            const runtime = await this.buildRuntime();
+            this.runtime = runtime;
+            this.controls = createLiveControls({ runtime, onStop: () => this.stop(), audible: this.voiceKind === 'browser', mic: await this.buildMic() });
+            await runtime.start('The answer the assistant presents');
+        } catch (error) {
+            this.controls?.destroy();
+            this.controls = null;
+            this.runtime = null;
+            this.port?.close();
+            this.port = null;
+            this.say(`Could not start: ${text(error?.message, 'unknown error').slice(0, 200)}`, { alert: true });
+        }
+    }
+
     /** The reader pressed Stop, or asked to leave. */
     async stop() {
         const runtime = this.runtime;
@@ -383,6 +451,7 @@ export class LiveHost {
         await runtime?.stop();
         this.resetButton();
         await this.present?.leaveLive(this.router);
+        if (this.embedded && !this.destroyed) this.say('Stopped. Ask the assistant again to see it.');
     }
 
     /** The reader left the Chamber by its own control: end what was running. */
@@ -394,6 +463,7 @@ export class LiveHost {
         this.controls = null;
         await runtime?.stop();
         this.resetButton();
+        if (this.embedded && !this.destroyed) this.say('Finished. Ask the assistant again to see it.');
     }
 
     activate() {
@@ -407,6 +477,8 @@ export class LiveHost {
         this.destroyed = true;
         this.stopHearingExit?.();
         void this.ended();
+        this.port?.close();
+        this.port = null;
         this.container.replaceChildren();
     }
 }

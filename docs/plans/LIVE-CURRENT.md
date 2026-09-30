@@ -120,7 +120,7 @@ An adapter is `{ open(request), events(): AsyncIterable<RiseEvent>, interrupt(),
 ## 9. Hosts
 
 - **Standalone `/live`** (first): a prompt, start, microphone state, the presentation, speaking state, interrupt or Dive, Surface, stop, and a clear error state. No product chrome. Deterministic provider by default; the live provider only by explicit configuration.
-- **MCP app** (after the runtime is proven standalone): a thin host exposing present, start/continue, Dive, Surface and adjust. It contains no runtime logic. Where a platform cannot expose host-owned voice timing, RISE's own voice is used and the limitation is stated.
+- **MCP app**, as built (`docs/plans/LIVE-MCP.md`): a server with one tool, `rise_present`, and an app that frames RISE's own `/live?embed=mcp` page and relays the host's messages to it. It contains no runtime logic. Where a platform cannot expose host-owned voice timing, RISE's own voice is used and the limitation is stated.
 
 ## 10. Evaluation
 
@@ -154,7 +154,7 @@ Budgets, all measured with the virtual clock and stated in the architecture deci
 | Evidence and experiential state | yes | yes | yes | yes | n/a |
 | Text-stream adapter, segment parser | yes | yes (parser fuzzed, chunk-invariant) | yes (through the OpenAI path) | yes (fake provider) | n/a |
 | OpenAI Realtime adapter, WebRTC transport, relay route | yes | yes | yes, with a fake peer and a stubbed relay | n/a | **not verified: no key, no live session** |
-| MCP host: adapter, messaging port, runtime through them (`docs/plans/LIVE-MCP.md`) | yes | yes, against a fake host | n/a | n/a | **not verified: no real MCP host**. The MCP server and the embeddable app bundle are **not built** |
+| MCP: server, relay app, embedded page, port, adapter, runtime through them (`docs/plans/LIVE-MCP.md`) | yes, **off by default** | yes, against a fake host | yes, against a fake host page, with the real Chamber | yes, against the SDK's client and the reference package's own host class (local one-offs) | **not verified: no product MCP host** |
 | Evaluation instrument (`docs/plans/LIVE-EVALUATION.md`) | yes | yes | yes, one participant per condition | yes | n/a; **the study has not been run** |
 
 **Measured in a real browser (headless Chromium, production build, deterministic provider, silent paced voice; `e2e/live.spec.js`, one machine, one run).** Click to first atom on the page: **about 0.73 s**, of which the mock’s first segment is 0.22 s and the rest is fetching what the reading needs and mounting the Chamber. Segment boundaries: the first atom is within **−33 to +16 ms** of the voice starting the segment. Inside a segment: within **−54 to +22 ms** of where the voice was. Both are inside the budgets above, which the suite asserts with margin for slower machines. First load moved from 59.8 to 59.9 KB brotli (Player’s `govern` and `replayCurrent`, and the route); the 64.0 KB budget is unmoved. Reduced motion was checked by comparing screenshots of the imagery 1.5 s apart (identical under reduced motion, different otherwise), not by reading the CSS.
