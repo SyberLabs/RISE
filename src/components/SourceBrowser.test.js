@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { SourceBrowser } from './SourceBrowser.js';
-import { SourceRegistry } from '../sources/index.js';
+import { SourceRegistry } from '../sources/registry.js';
 import { ArchiveTextProvider } from '../sources/text/archive.js';
 
 function deferred() {
@@ -33,11 +33,9 @@ describe('SourceBrowser request ownership', () => {
     const get = vi.spyOn(SourceRegistry, 'get').mockImplementation(id =>
       id === provider.id ? provider : undefined);
     const textProviders = vi.spyOn(SourceRegistry, 'getTextProviders').mockReturnValue([provider]);
-    const visualProviders = vi.spyOn(SourceRegistry, 'getVisualProviders').mockReturnValue([]);
 
     const onSelect = vi.fn();
     const browser = new SourceBrowser({
-      mode: 'text',
       providerIds: ['library-archive'],
       autoSelectProviderId: 'library-archive',
       onSelect
@@ -77,6 +75,5 @@ describe('SourceBrowser request ownership', () => {
     browser.destroy();
     get.mockRestore();
     textProviders.mockRestore();
-    visualProviders.mockRestore();
   });
 });
