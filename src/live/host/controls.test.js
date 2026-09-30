@@ -43,7 +43,14 @@ describe('the sentence for each state', () => {
         const text = describeStatus(snapshot('diving'), { question: 'dive on event horizon' });
         expect(text).toContain('“dive on event horizon”');
         expect(text).toMatch(/held exactly where it was/u);
-        expect(describeStatus(snapshot('diving'), { question: 'x'.repeat(500) }).length).toBeLessThan(260);
+        expect(describeStatus(snapshot('diving'), { question: 'x'.repeat(500) }).length).toBeLessThan(300);
+    });
+
+    it('says, while a Dive is open, that another question waits until the reader surfaces, both while it is being answered and once it is', () => {
+        const writing = describeStatus(snapshot('diving'), { question: 'q' });
+        const answered = describeStatus(snapshot('diving', { side: { finished: true } }), { question: 'q' });
+        for (const text of [writing, answered]) expect(text).toMatch(/Surface.*ask (again|about another place)/u);
+        expect(describeStatus(snapshot('diving', { side: { error: { message: 'no answer' } } }), { question: 'q' })).toBe('The Dive could not be answered (no answer). Surface to go back.');
     });
 
     it('says a Dive is answered when it is, and that it could not be when it could not', () => {

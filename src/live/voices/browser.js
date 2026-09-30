@@ -13,8 +13,13 @@
  *  - an exclusive hold (a Dive is about to speak): the device can only speak
  *    one thing at a time, so the held utterance is cancelled and remembered at
  *    the last word boundary heard, and on release it is spoken again from that
- *    word. A voice with no boundaries restarts its segment; that is the one
+ *    word. A voice with no boundaries restarts its segment, which is the one
  *    place this can say something twice, and it is a limit of the platform.
+ *    The hold can be told where to take up instead (`resumeAt`: the segment, a
+ *    character, and the time at that character), which is what the reading on
+ *    screen knows and the voice does not: it lets the voice begin again exactly
+ *    where the phrase the reader is looking at begins, whether or not it ever
+ *    reported a boundary.
  *
  * Time is `playedMs`: speaking time only, so a hold takes none of it.
  */
@@ -39,6 +44,15 @@ export function createBrowserVoice({ speech, clock = createRealClock(), lang = '
     };
 
     const playedNow = item => item.played + (item.startedAt === null ? 0 : clock.now() - item.startedAt);
+
+    /** A place to take up again, if it is one in the segment being held; otherwise nothing. */
+    const placeIn = (item, place) => {
+        if (!place || typeof place !== 'object' || place.segmentId !== item.id) return null;
+        const { charIndex, tMs } = place;
+        if (!Number.isInteger(charIndex) || charIndex < 0 || charIndex >= item.text.length) return null;
+        if (typeof tMs !== 'number' || !Number.isFinite(tMs) || tMs < 0) return null;
+        return { charIndex, tMs };
+    };
 
     function speakFrom(item, offset) {
         const utterance = new Utterance(item.text.slice(offset));
@@ -114,10 +128,15 @@ export function createBrowserVoice({ speech, clock = createRealClock(), lang = '
         },
 
         /**
-         * @param {{exclusive?: boolean}} [how] exclusive: something else is about to speak
+         * @param {{exclusive?: boolean, resumeAt?: {segmentId: string, charIndex: number, tMs: number}}} [how]
+         *   exclusive: something else is about to speak. resumeAt: where to take up again, which an exclusive
+         *   hold uses in place of the last word heard.
+         * @returns {boolean} whether it will take up at the place it was told, so that whatever shows the words
+         *   can begin that phrase again too
          */
-        hold({ exclusive: wantsExclusive = false } = {}) {
-            if (closed) return;
+        hold({ exclusive: wantsExclusive = false, resumeAt } = {}) {
+            if (closed) return false;
+            let tookPlace = false;
             if (!held) {
                 held = true;
                 if (current?.started) {
@@ -131,12 +150,19 @@ export function createBrowserVoice({ speech, clock = createRealClock(), lang = '
                 if (current) {
                     // Spoken again from the last word heard; time is what it was there.
                     current.utterance = null;
+                    const place = placeIn(current, resumeAt);
+                    if (place) {
+                        current.lastMark = place.charIndex;
+                        current.lastMarkAt = place.tMs;
+                        tookPlace = true;
+                    }
                     current.played = current.lastMarkAt;
                     current.startedAt = null;
                 }
                 synth.cancel();
                 synth.resume();
             }
+            return tookPlace;
         },
 
         release() {

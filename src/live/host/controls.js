@@ -32,8 +32,8 @@ export function describeStatus(snapshot, { audible = true, question = '' } = {})
             const asked = question ? ` “${question.slice(0, 120)}”` : '';
             if (side?.error) return `The Dive could not be answered (${side.error.message}). Surface to go back.`;
             return side?.finished
-                ? `Dive${asked}: answered. Surface to go back to where you were.`
-                : `Diving${asked}. The reading you left is held exactly where it was.${quiet}`;
+                ? `Dive${asked}: answered. Surface to go back to where you were; you can ask about another place from there.`
+                : `Diving${asked}. The reading you left is held exactly where it was. Surface to go back, then ask again.${quiet}`;
         }
         case 'ended':
             return main?.error

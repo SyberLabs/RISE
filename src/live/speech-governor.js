@@ -9,7 +9,9 @@
  * Which character time that is comes from the voice's own reports:
  *   - the segment's marks (word boundaries with their time), interpolated
  *     between, when the voice has them;
- *   - otherwise a rate learned from what has been said so far;
+ *   - otherwise the speed learned from the segments already said (their total
+ *     time over their total length), so a voice that reports no boundaries is
+ *     only approximate in its first segment;
  *   - otherwise a default rate.
  * When the voice reports a segment's end, the answer is exact. So approximate
  * timing never accumulates: it is corrected at every mark and reset at every
@@ -40,6 +42,8 @@ export function createSpeechGovernor({ voice, clock, graceMs = 1500, defaultMsPe
     let segments = new Map();
     /** id -> { marks: [[charIndex, tMs]], durationMs: number|null } */
     const timing = new Map();
+    /** What every segment heard so far says about how fast this voice goes: characters, and the time they took. */
+    const learned = { chars: 0, ms: 0, from: new Set() };
     let degraded = false;
     let player = null;
     let releaseGovernor = null;
@@ -50,6 +54,9 @@ export function createSpeechGovernor({ voice, clock, graceMs = 1500, defaultMsPe
         if (!timing.has(id)) timing.set(id, { marks: [], durationMs: null });
         return timing.get(id);
     };
+
+    /** Milliseconds per character for speech nothing has been heard of yet: this voice's own speed if it has been heard, else the default. */
+    const speed = () => (learned.chars > 0 ? learned.ms / learned.chars : defaultMsPerChar);
 
     /** How far into a segment's speech, in ms, the voice is when it reaches `charIndex`. */
     function charTime(id, charIndex) {
@@ -65,7 +72,7 @@ export function createSpeechGovernor({ voice, clock, graceMs = 1500, defaultMsPe
             }
         }
         const [lastC, lastT] = points.at(-1);
-        const rate = lastC > 0 ? lastT / lastC : defaultMsPerChar;
+        const rate = lastC > 0 ? lastT / lastC : speed();
         return lastT + (charIndex - lastC) * rate;
     }
 
@@ -134,6 +141,13 @@ export function createSpeechGovernor({ voice, clock, graceMs = 1500, defaultMsPe
                 if (!marks.length || marks.at(-1)[0] < a) marks.push([a, b]);
             } else if (kind === 'end') {
                 model(id).durationMs = a;
+                // Each segment teaches its voice's speed once, by its length.
+                const length = segments.get(id)?.length ?? 0;
+                if (length > 0 && typeof a === 'number' && Number.isFinite(a) && a > 0 && !learned.from.has(id)) {
+                    learned.from.add(id);
+                    learned.chars += length;
+                    learned.ms += a;
+                }
             }
         },
 
@@ -170,6 +184,20 @@ export function createSpeechGovernor({ voice, clock, graceMs = 1500, defaultMsPe
             const entry = map[index];
             if (!entry?.segmentId) return null;
             return { segmentId: entry.segmentId, atCharacter: entry.seam ? 0 : entry.start };
+        },
+
+        /**
+         * Where the phrase the reader is on begins, and when the voice is there: the segment, its first
+         * character, and the voice's time at that character. For a voice that is about to say it again.
+         */
+        restartPoint(index) {
+            const entry = map[index];
+            if (degraded || !entry?.segmentId || entry.seam) return null;
+            // A voice started from a time that is only a guess says its segment's length wrongly when it ends, so
+            // there has to be something the time rests on: marks heard, a duration known, or a speed learned.
+            const { marks, durationMs } = model(entry.segmentId);
+            if (!marks.length && durationMs === null && learned.chars === 0) return null;
+            return { segmentId: entry.segmentId, charIndex: entry.start, tMs: Math.round(charTime(entry.segmentId, entry.start)) };
         },
 
         get degraded() { return degraded; },

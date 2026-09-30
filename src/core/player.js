@@ -735,6 +735,18 @@ export class Player {
     }
 
     /**
+     * While paused on an atom, take it up again from its start when played, instead of from what remained
+     * of its time: it is shown once more and timed afresh (by whatever governs it). For a reading whose
+     * clock was moved while it was held, such as a voice that was cancelled and will say the phrase again.
+     * Returns whether there was an atom to take up. A plain play after a plain pause is unchanged.
+     */
+    restartCurrentAtom() {
+        if (this.sessionState.state !== 'paused' || !this.sessionState.currentAtom) return false;
+        this.currentAtomRemainingTime = null;
+        return true;
+    }
+
+    /**
      * Attempt one boundary-locked interlocution opportunity without advancing
      * the text. The caller owns the completed-atom -> presence -> next-atom
      * sequence.

@@ -358,9 +358,12 @@ export function createLiveRuntime({
             }
             const position = where(main, segmentId, atCharacter);
             const before = status;
+            // Where the phrase on screen begins, for a voice that will have to say it again: the screen
+            // knows, and a voice with no word boundaries does not.
+            const phrase = main.governor?.restartPoint(main.player.sessionState.currentIndex) ?? null;
             main.player.pause();
             // Something else is about to speak, and a device speaks one thing at a time.
-            main.voice?.hold({ exclusive: true });
+            main.restartPhrase = main.voice?.hold({ exclusive: true, ...(phrase ? { resumeAt: phrase } : {}) }) === true;
             const view = main.stream.snapshot();
             const index = view.segments.findIndex(segment => segment.id === position.segmentId);
             const context = view.segments.slice(Math.max(0, index - 1), index + 1)
@@ -394,6 +397,10 @@ export function createLiveRuntime({
             await host.present?.({ role: 'main', session: main.player.sessionState.session, player: main.player, run: summary(main) });
             if (stopped) return;
             set(main.finished ? 'ended' : 'live');
+            // A voice that took up at the start of the phrase begins it again, so the phrase is shown again and
+            // timed by that voice: they begin it together, and nothing is skipped or shown ahead of the words.
+            if (main.restartPhrase) main.player.restartCurrentAtom();
+            main.restartPhrase = false;
             if (main.player.sessionState.state === 'paused') main.player.play();
         },
 
