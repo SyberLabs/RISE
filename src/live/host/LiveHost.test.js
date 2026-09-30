@@ -206,6 +206,20 @@ describe('the OpenAI provider, with the reader\u2019s own key', () => {
         expect(container.querySelector('.live-start').disabled).toBe(false);
     });
 
+    it('starts nothing, and keeps no key, when the page is left while it is still getting ready', async () => {
+        mount('?provider=openai&voice=paced');
+        let ready;
+        const runtime = { ...fakeRuntime(), start: vi.fn(async () => {}) };
+        host.buildRuntime = () => new Promise(resolve => { ready = () => resolve(runtime); });
+        container.querySelector('#live-key').value = 'sk-test-0123456789abcdefghijklmnop';
+        const starting = host.start();
+        host.destroy();
+        ready();
+        await starting;
+        expect(runtime.start).not.toHaveBeenCalled();
+        expect({ runtime: host.runtime, controls: host.controls, key: host.key }).toEqual({ runtime: null, controls: null, key: '' });
+    });
+
     it('keeps the key out of everything it renders, including a hostile provider name', () => {
         mount('?provider=openai');
         container.querySelector('#live-key').value = 'sk-test-0123456789abcdefghijklmnop';
@@ -310,6 +324,19 @@ describe('inside an MCP host', () => {
         expect(listeners.size).toBe(1);
         host.destroy();
         expect(listeners.size).toBe(0);
+    });
+
+    it('builds nothing and writes nothing once it is destroyed while the host is still saying hello', async () => {
+        let hello;
+        const { environment, sent } = framed({ answer: message => (message.method === 'ui/initialize' ? hello : null) });
+        mount('?embed=mcp&voice=paced', environment);
+        host.buildRuntime = vi.fn(async () => { throw new Error('built after it was destroyed'); });
+        await vi.waitFor(() => expect(sent).toHaveLength(1));
+        host.destroy();
+        hello = { result: { protocolVersion: '2026-01-26', hostCapabilities: {}, hostContext: {} } };
+        await new Promise(resolve => setTimeout(resolve, 20));
+        expect(host.buildRuntime).not.toHaveBeenCalled();
+        expect(container.textContent).toBe('');
     });
 
     it('is not an embedded page when it is anything but exactly mcp', () => {

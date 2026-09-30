@@ -215,11 +215,16 @@ export class LiveHost {
         this.startButton.disabled = true;
         this.startButton.textContent = 'Asking…';
         try {
+            // The reader may leave while this is getting ready; nothing is started for a page that is gone.
             const runtime = await this.buildRuntime();
+            if (this.destroyed) return;
             this.runtime = runtime;
-            this.controls = createLiveControls({ runtime, onStop: () => this.stop(), audible: this.voiceKind === 'browser', mic: await this.buildMic() });
+            const mic = await this.buildMic();
+            if (this.destroyed) return;
+            this.controls = createLiveControls({ runtime, onStop: () => this.stop(), audible: this.voiceKind === 'browser', mic });
             await runtime.start(prompt);
         } catch (error) {
+            if (this.destroyed) return;
             this.controls?.destroy();
             this.controls = null;
             this.runtime = null;
@@ -436,13 +441,18 @@ export class LiveHost {
             this.port = createMcpGuestPort({ frame });
             this.port.onTeardown(() => { void this.ended(); });
             await this.port.connect();
+            if (this.destroyed) return;
             // The host sizes a frame from what the app says it wants; the Chamber fills what it is given.
             this.port.sizeChanged({ width: frame.innerWidth, height: EMBED_HEIGHT });
             const runtime = await this.buildRuntime();
+            if (this.destroyed) return;
             this.runtime = runtime;
-            this.controls = createLiveControls({ runtime, onStop: () => this.stop(), audible: this.voiceKind === 'browser', mic: await this.buildMic() });
+            const mic = await this.buildMic();
+            if (this.destroyed) return;
+            this.controls = createLiveControls({ runtime, onStop: () => this.stop(), audible: this.voiceKind === 'browser', mic });
             await runtime.start('The answer the assistant presents');
         } catch (error) {
+            if (this.destroyed) return;
             this.controls?.destroy();
             this.controls = null;
             this.runtime = null;
