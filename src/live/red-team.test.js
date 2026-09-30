@@ -1,15 +1,11 @@
 /**
  * Adversarial tests for the live layer (see docs/plans/LIVE-RED-TEAM.md).
  *
- * Two kinds of test live here, and the difference matters:
- *
- *   it(...)        an invariant that was attacked and HELD. These are the false
- *                  alarms of the review, kept so that the attack stays refuted.
- *   it.fails(...)  an invariant that was attacked and BROKE. Each asserts what
- *                  should be true, so it fails today and vitest reports that as a
- *                  pass. When the defect is fixed the test starts to pass, vitest
- *                  reports that as a failure, and the fix turns `it.fails` into
- *                  `it`. Production behaviour is not changed here.
+ * Each test is an invariant that was attacked. Those named "holds:" held when
+ * they were attacked, and are kept so that the attack stays refuted. The rest
+ * broke, were fixed, and are kept so that they stay fixed. A defect found later
+ * is added as `it.fails(...)`, which asserts what should be true and passes
+ * while it is not; the fix turns it into `it`.
  */
 import { describe, expect, it } from 'vitest';
 import { compileRiseCurrent } from '../core/rise-current.js';

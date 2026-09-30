@@ -1,10 +1,10 @@
 /**
  * Adversarial browser checks for the live layer (docs/plans/LIVE-RED-TEAM.md).
  *
- * `test.fail()` marks an invariant that was attacked and broke: the test asserts
- * what should be true, fails today, and is reported as passing. When the defect
- * is fixed it is reported as failing, and the fix removes the annotation.
- * Production behaviour is not changed here.
+ * Each test is an invariant that was attacked. The one named "risk:" proves an
+ * accepted exposure rather than a defect. A defect found later is added with
+ * `test.fail()`, which asserts what should be true and passes while it is not;
+ * the fix removes the annotation.
  */
 import { scriptToLines } from '../src/test/fake-text-transport.js';
 import { BLACK_HOLES } from '../src/live/fixtures/black-holes.js';
