@@ -159,12 +159,13 @@ it, and CI fails when the committed copy is not what `src/` produces.
 
 ```mermaid
 flowchart LR
-    app["app<br/>composition root<br/>8 modules"]
+    app["app<br/>composition root<br/>10 modules"]
     audio["audio<br/>Web Audio, recitation<br/>10 modules"]
-    components["components<br/>routed views<br/>44 modules"]
+    components["components<br/>routed views<br/>45 modules"]
     content["content<br/>texts, imagery, journeys<br/>231 modules"]
-    core["core<br/>session, player, router<br/>149 modules"]
+    core["core<br/>session, player, router<br/>153 modules"]
     enterprise["enterprise<br/>talk program, speaker rail<br/>32 modules"]
+    live["live<br/>realtime Current: events, runtime, providers<br/>33 modules"]
     oracle["oracle<br/>2 modules"]
     page["page<br/>spatial projection<br/>4 modules"]
     sources["sources<br/>text and visual providers<br/>22 modules"]
@@ -175,14 +176,15 @@ flowchart LR
     app --> |1| components
     app --> |5| content
     app --> |36| core
+    app -.-> |1 lazy| live
     app -.-> |1 lazy| sources
     app -.-> |1 lazy| visuals
     audio --> |1| content
     audio --> |5| core
     components -.-> |1 lazy| app
-    components --> |2| audio
+    components --> |3| audio
     components --> |24| content
-    components --> |162| core
+    components --> |168| core
     components -.-> |1 lazy| page
     components --> |4| sources
     components -.-> |2 lazy| vendor
@@ -195,6 +197,10 @@ flowchart LR
     core --> |14| content
     core --> |4| sources
     core --> |23| visuals
+    live -.-> |3 lazy| app
+    live -.-> |1 lazy| components
+    live --> |6| core
+    live -.-> |1 lazy| visuals
     page --> |2| core
     page --> |3| visuals
     sources --> |2| content
@@ -253,6 +259,41 @@ transition lock held or the previous view hidden.
 
 **`src/core/session-compiler.js`** is the only way a reading is built. Every
 launch surface calls it. Do not recreate chunk or pacing logic in a component.
+
+**The Current** is what every entrance arrives at: a compiled Session and the
+Player that runs it. It is not a further type. `new Session` appears only in
+the compiler and `new Player` only in `src/app/chamber-session-factory.js`,
+and `src/core/current.test.js` fails if either appears anywhere else. The
+reading that follows a division of a work is not copied field by field: every
+field of a Session is classified in `src/core/session-successor.js` as
+identity, source, or reading, and a field that is none of them fails a test.
+
+The Current has one place: the head of the Stream, `player.sessionState
+.currentIndex`. A projection is another way of looking at it. The Page opens
+on the paragraph that holds the head (`PageReader.showAtom`, fed by the atom
+range each text block carries), and nothing done in a projection moves the head,
+because there is no seeking (LATERAL-TRAVERSAL-SPEC §1). The names
+**Constellation** and **Stage** are reserved for projections that do not exist
+yet.
+
+Under a span of the reading's words there may be a thread: a gloss (written, by
+the program's authority) or an echo (received: it stores no words and names
+where the edition's are), both anchored to source text in the canonical
+program's `thread` track, plus the image and sound the score already anchors
+there. `src/core/undercurrent.js` gathers what lies under one atom. A dive
+looks there: a hold is a glance, a tap an anchor (`src/core/dive.js`). It holds
+the Player as pausing does and never moves the head, and it is offered only on a
+reading that has threads.
+
+A reading's pace has one vocabulary of profiles, `PACE_CURVE_IDS` in
+`src/core/pacing.js`, and the compiler, the Reader Setup, the Workshop, saved
+projects and the settings a reader keeps are each held to it by
+`src/core/pace-profiles.test.js`. Jev's list is a smaller contract with the
+Worker and must stay inside it. `breath` is the newest: atoms swell and ease
+about every ten seconds, a whole number of cycles per reading, phased from the
+authored clock so the reading is as long as it was. An atom at or near the
+shortest an atom can be does not swell, so a reading too fast to swell is left
+exactly as it was. It measures nothing about the reader.
 
 **`src/core/player.js`** owns the authoritative reading clock and the playback
 state machine: `idle`, `playing`, `paused`, `interlocuting`, `complete`.
@@ -899,12 +940,13 @@ of `settled`, `open`, `deferred`, or `reversed`.
   never promotion). The live loop (`src/enterprise/live.js`) keeps one
   decision in flight per channel (speech, ask), cancels it only when a newer
   turn on the same channel arrives, and bounds it with a timeout. `/api/enterprise-decision` joins the other decision routes
-  behind `decisionProvider` and the limiter and asks the provider to pick one
-  candidate title or none, by opaque keys (§8.34). `session.resolve` accepts an answer
+  behind `decisionProvider` and the limiter and asks the provider one choice
+  question whose options are opaque keys. `session.resolve` accepts an answer
   only for a turn it issued, once, while no later turn on its channel is
   pending. The
   trace (`src/enterprise/trace.js`) records every step without the
-  transcript. The rule decider is the room's default, with no key (§8.34).
+  transcript. The rule decider remains for tests and an explicitly chosen
+  local mode.
 - **Rejected:** falling back from a failed JEV decision to rules; letting the
   provider name a card id or write text; sending documents, tenants, or the
   audience to the route; deciding on interim speech; a speech vendor SDK; a
@@ -943,8 +985,11 @@ of `settled`, `open`, `deferred`, or `reversed`.
 - **Rejected:** a local Python service for Windows users (CUDA, WSL2, and a
   localhost port every site could reach); falling back to the server or the
   rules when the device cannot run Kev; the CPU WebAssembly path, too slow for
-  a live rail; serving the runtime binary from this site, which is over the
-  static asset size limit; kev.js's own `loadKev`, which reads every weight
+  a live rail; fetching the runtime binary from a public package host, which
+  put a third party in the load path of a binary this site can serve itself
+  (the JSPI build is 16.8 MB, under Cloudflare's 25 MiB static asset limit,
+  and `vite.config.js` fails any build that emits a larger file); kev.js's
+  own `loadKev`, which reads every weight
   file into memory before the session exists and crashed the tab loading
   Kev-4B's 4.7 GB on a 16 GB Windows machine.
 - **Why:** the transcript and the decision stay on the presenter's machine,
@@ -954,47 +999,175 @@ of `settled`, `open`, `deferred`, or `reversed`.
 - **Status:** open. Kev-0.8B loads and decides on Chrome 153 for Windows with
   an AMD RX 5700 (30 of 30 questions, 214 ms median). While a model is
   loaded, Chrome's GPU process holds system memory about 1.4 times the
-  model's size, so Kev-4B needs roughly 6 GB of free memory; with that free
-  it loads from cache in about 35 seconds and decides in about 650 ms on the
-  same machine. Hosts other than the Cloudflare Worker serve the worker
-  script with the site policy, so Kev (device) fails closed there.
+  model's size, so Kev-4B needs roughly 6 GB of free memory; it has not yet
+  been run on Windows. Hosts other than the Cloudflare Worker serve the
+  worker script with the site policy, so Kev (device) fails closed there.
 
-### 8.34 The room matches by meaning on the device, and Kev picks one source or none
+### 8.33 One reading, many entrances: the Current
 
-- **Chosen:** a 34 MB sentence embedding model (`bge-small-en-v1.5`, int8,
-  pinned by revision and SHA-256 in `src/enterprise/embed-model.js`) runs in
-  its own worker (`src/enterprise/embed-worker.js`) on the WebAssembly CPU
-  build of the `onnxruntime-web` already in use, with the tokenizer package
-  already in use. When the room opens it embeds the prepared cards and every
-  sentence and table the audience is permitted; board-only documents are
-  never embedded. The live loop embeds each final and each Ask before
-  `prepare`, so the session stays synchronous; with a vector, prepared cards
-  and permitted entries compete by calibrated cosine, and a prepared card
-  keeps its slide title. Without a vector (model loading, failed, or slow
-  past 300 ms) the room matches by words as before. Kev, on the device or the
-  server, is asked to pick one candidate title or none; its probability for
-  each source is blended half and half with the match score, and the best
-  source shows when the blend reaches a cut (`src/enterprise/rail-question.js`).
-  Rail titles and scores are no longer sent to any model. The room starts on
-  Local rules, which needs no key and no server.
-- **Rejected:** word overlap as the matcher, which found none of 16 paraphrases
-  on the benchmark; `@huggingface/transformers` in the browser, a second copy
-  of the runtime for one model call and a mean; a WebGPU embedder, when the
-  CPU answers in about 20 ms and the GPU is Kev's; making `prepare`
-  asynchronous; the three-way show/hold/dismiss question, under which Kev
-  dismissed answerable lines at every size; an always-on server as the
-  default.
-- **Why:** on 62 labelled lines (`spike/kev-benchmark`, labels drafted and not
-  yet reviewed), the production room went from 52% to 84% with the embedder
-  and Local rules, and to 85% (Kev-0.8B, 145 ms) and 87% (Kev-4B, 650 ms)
-  with Kev deciding, against 48% for Kev under the old question. Kev's gain
-  is in staying quiet on questions the sources do not answer. None of it
-  needs a key, and the transcript still never leaves the browser unless a
-  presenter chooses JEV. Spec:
-  `docs/superpowers/specs/2026-09-28-enterprise-embedding-matcher-design.md`.
-- **Status:** open. The benchmark is one invented fixture and one author's
-  labels; the calibration and the cut were fitted on it. The server route asks
-  the new question but has not been measured with it.
+- **Chosen:** RISE is one instrument that turns any source into a compiled,
+  paced, time-based reading, the Current. A room is an entrance (it chooses a
+  source, a pace and layers and hands them to `compileSession`), a contributor
+  (it adds a source, a layer, a projection or a pace), or a rail beside the
+  reading (Curia, Settings). The two constructors are guarded by a test, every
+  entrance's output is checked against one contract, and the reading that follows
+  a division is derived from the Current by classifying each Session field
+  rather than by copying a list.
+- **Rejected:** a new Current type beside Session (a second vocabulary for the
+  same object); folding the Rosarium and Via into it, which run their own fixed
+  clock by covenant and must not gain a layer, a dive or an affect signal;
+  keeping the hand-copied field list, which drops any field the Session learns
+  later without saying so.
+- **Why:** every entrance already converged on one compiler, so the work was to
+  make that convergence something a test can break. The successor list was the
+  one place the reading was rebuilt by hand, which is the defect of a
+  vocabulary in two places where only one learns a new word.
+- **Status:** open. Guards, the successor, one place for the reading, threads
+  under a passage, dive and surface, and the breath pace are built. Emotions, as
+  a projection, and Confluence follow. The plan is
+  `docs/plans/CURRENT-CONSOLIDATION.md`.
+
+### 8.34 A live Current is events that lower to the sealed one
+
+- **Chosen:** `src/live/` is a layer above the sealed `rise.current.v1`. A provider,
+  behind an adapter, yields `rise.current-events.v1` events; a pure reducer
+  (`src/live/stream.js`) orders and bounds them and lowers the words that have
+  ended to a sealed Current, which `compileRiseCurrent` turns into the one
+  Session for the one Player. Nothing below `live` imports it, and it reaches
+  only `core` and `audio` (`src/live/boundary.test.js`); a host loads it with
+  `import()`, so first load is unchanged.
+- **Rejected:** widening `rise.current.v1` to carry realtime; a second player for
+  live readings; letting provider events reach the runtime; a renderer,
+  shader, style or URL field a model could fill; building the demo as a room.
+- **Why:** committed words are immutable, so each lowering is a prefix of the
+  next and the Player can be extended without being replaced. A protocol whose
+  every field is named and bounded gives a provider nothing executable to send,
+  and a reducer that spends a malformed event's sequence number cannot be
+  stalled by one. The plan is `docs/plans/LIVE-CURRENT.md`; the contract is
+  `docs/specs/LIVE-CURRENT-EVENTS-V1.md`.
+- **Status:** open. The protocol, the reducer, the adapter boundary, a
+  deterministic mock and a conformance suite every adapter must pass are built
+  and unit tested, and the one Player has a live mode (`setLive`, `extend`): it
+  holds at the end of its words, takes no reading time while it waits, and is
+  extended by a longer Session whose earlier atoms are unchanged. The runtime
+  (`src/live/runtime.js`) drives it: it reads a provider's events into the
+  reducer, lowers each ended segment into the one Player, and lets a voice
+  renderer be the clock (`speech-governor.js`) while a voice speaks. A Dive holds
+  the parent's Player and voice, runs a Current of its own, and Surface lets the
+  parent go from the same atom. Speech belongs to the runtime, not the provider,
+  and what the reader lived through is kept in the runtime's journal, because
+  the reducer's stream is sealed at `current.complete`, long before speech
+  ends. A standalone host at `/live` (`src/live/host/`, deliberately not in
+  `src/components/`, because it is a host and not a room) presents the reading
+  in the one Chamber: the factory adopts the Player the runtime built
+  (`src/app/live-handoff.js`), the Chamber follows a longer Session and lets go
+  of its Player when torn down, and the Player accepts more than one governor
+  of atom timing (`Player.govern`) so the speech clock and Recitation coexist.
+  The intended condition of a passage adjusts two bounded numbers of an
+  attractor and is shown as words; sources are shown with where each came from,
+  as links only when plain https, and their absence is said. It is proven with
+  the deterministic mock and a silent paced voice, in unit tests on a virtual
+  clock and in a real browser. A provider that streams text is one `connect`
+  function (`src/live/adapters/text-stream.js`), read only through a defensive
+  line format; an OpenAI Realtime adapter is built on it, with a same-origin
+  Worker route that uses the reader's own key for one request and stores
+  nothing (`worker/live-realtime.mjs`, off unless `LIVE_REALTIME_ENABLED`).
+  The mock, the generic adapter and the OpenAI adapter pass one conformance
+  suite. A real speech engine and a live provider are not verified: the OpenAI
+  wire is written from its documentation and has never been run against it.
+
+### 8.35 Literal text is escaped where the controls are read
+
+- **Chosen:** a source, and a segment of a Current or of a live Current, may say
+  `literal: true`: its `|` and `[PAUSE]`, `[FLASH]`, `[HOLD]` are words. The
+  chunker is the only reader of those controls (with the span aligner, which
+  must agree with it), so the escape is made there and nowhere else. Before
+  chunking, each bar becomes U+E010 and the `[` that opens a marker becomes
+  U+E011; after chunking, each is swapped back into what the author wrote
+  (`escapeLiteral`, `restoreLiteral` in `src/core/chunker.js`). The compiler
+  escapes a literal source once, when its sources are normalized, and restores
+  the exact text it keeps for Page and the Dive panel.
+- **Rejected:** weakening the refusal for every text; replacing the bar with a
+  look-alike (which changes what was written); teaching each downstream reader
+  about a second kind of text; and letting a provider adapter decide, which
+  can only rewrite what the model said.
+- **Why:** the swap is one UTF-16 unit for one, so no character offset, and so
+  no Dive anchored to one, moves. It is reversible, which is what makes it
+  unambiguous: text that already holds a stand-in or the score cut cannot be
+  escaped and is refused, so no two different texts escape alike. The rest of
+  the compiler never learns that a text is literal; a source that is not
+  literal is compiled byte for byte as before, and a test holds that for the
+  same words. The strict refusal in `rise.current.v1` and the live protocol is
+  unchanged for every segment that does not say `literal`, and the flag is
+  decided once, when a segment begins.
+- **Status:** open. Built and tested at every layer: the escape (round trip, length,
+  fuzzed), the chunker in all four modes, a Session, the sealed Current, Dives
+  anchored over literal words, the live protocol and reducer, the model line
+  format (`literal=yes`), and the host's whole-answer path; and in a real
+  browser, where a literal passage is shown as written. Not a feature of any
+  provider: a model says a passage is literal only if its instructions allow
+  it, which they now do, narrowly.
+
+### 8.36 Speaking to it is a press, a closed grammar, and a hold
+
+- **Chosen:** the reader speaks by pressing Speak (`src/live/mic/`), one
+  utterance at a time, using the browser's own speech recognition. The press
+  holds the reading first (`runtime.hold`: the reading and the voice stop, the
+  provider is left composing), so the voice does not talk over the reader and
+  nothing they say is lost; the microphone is let go of when the utterance ends,
+  on every error, on a timeout, on any other button, and on Stop. What was heard
+  is matched against a short closed grammar (`interpret.js`): surface, resume,
+  hold, and dive on an unmistakable question ("wait, dive on event horizon",
+  "what is the event horizon?"). Anything else is not acted on: it is held,
+  shown in the box as words, and left for the reader to send.
+- **Rejected:** always listening (a microphone the reader did not ask for);
+  a model deciding what the reader meant (a network call, a cost, and a wrong
+  guess that spends a question or loses a place); interrupting the provider on
+  a press (`interrupt` cancels composing, so a mistaken press would cost the
+  rest of the answer); a consent dialog of our own (the browser asks for the
+  microphone; the page says, in a line beside the button, where the voice
+  goes).
+- **Why:** a misheard word must not cost a reader their place, so the only
+  things done on speech are things a button already does and that can be
+  undone by another. The transcript is untrusted text: it is matched, clipped,
+  and only ever shown as words. Speech recognition in Chrome sends audio to a
+  third party, which is why the sentence is on the page and not in a document.
+- **Status:** open. Built and tested with a fake recogniser at every layer
+  (grammar, listener, runtime hold, controls, host, and a real browser running
+  the built page). Not verified with any real recogniser; English only.
+
+### 8.37 In an MCP host, RISE is a relay that frames its own page
+
+- **Chosen:** the app a host is given (`ui://rise/current`) is a small HTML
+  document that frames RISE's own page, `/live?embed=mcp`, and relays the
+  host's JSON-RPC messages between the two (`src/live/hosts/mcp-relay.js`).
+  The page is the existing `/live` host in an embedded mode: the same
+  runtime, Chamber, controls and microphone, with the host's model as the
+  provider (`src/live/adapters/mcp-app.js`). A server with one tool
+  (`worker/mcp-server.mjs`) says what the tool is, refuses an invalid Current
+  with a reason the model can act on, and serves the app. A Dive is put to the
+  host's model through sampling, and is absent where the host offers none.
+- **Rejected:** a second presenter for the Chamber, or a Chamber mounted
+  without the shell (a second way to show a reading, and the thing this
+  design exists to avoid); bundling the shell into one inlined HTML file (a
+  megabyte or more of code a host must carry, or cross-origin script loading
+  under a policy RISE does not control); an MCP SDK dependency in the Worker
+  (the server needs six methods and no stream, and the SDK's own client is
+  used as a check instead, not shipped); and a Dive asked as a conversation
+  message, which a host answers in a new view and never in the one that asked.
+- **Why:** the app should be the reading RISE already is. A relay is a few
+  lines that understand nothing and are tested as the text a host will run; the
+  page inside speaks to it as to any parent, through a port that reads only
+  that parent. The server keeps nothing, so there is nothing to secure but a
+  validator and a document. It is off unless `MCP_ENABLED` is `'true'`, and
+  the framing of the one page a host needs is loosened only then and only for
+  that request (`GET /live?embed=mcp`), never in the site's headers, which stay
+  `frame-ancestors 'none'` and are held by a test.
+- **Status:** open. Built, and checked against the SDK's client and the
+  reference package's own host class (local one-offs, not dependencies). Not
+  tried in any product host. Not switched on: doing so needs `MCP_ENABLED` and
+  one Wrangler line, and changes the site's framing posture for one page,
+  which is the creator's decision (`docs/plans/LIVE-MCP.md`).
 
 ---
 

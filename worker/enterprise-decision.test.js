@@ -211,5 +211,7 @@ describe('Kev worker script', () => {
         expect(KEV_WORKER_POLICY).toContain("default-src 'none'");
         expect(KEV_WORKER_POLICY).not.toContain("'unsafe-eval'");
         expect(KEV_WORKER_POLICY).not.toMatch(/script-src[^;]*https:/u);
+        expect(KEV_WORKER_POLICY).toMatch(/connect-src 'self' /u);
+        expect(KEV_WORKER_POLICY).not.toContain('jsdelivr');
     });
 });

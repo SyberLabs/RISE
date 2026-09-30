@@ -2475,3 +2475,82 @@
     width: auto;
   }
 }
+
+/* DIVE. A press-and-hold is how a reader glances under a passage, so the
+   control must not offer the browser's own long-press: no selection, no
+   callout, no context menu. */
+.control-btn.dive-btn {
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+
+.control-btn.dive-btn[aria-expanded="true"] {
+  color: var(--sy-text);
+  background: var(--sy-surface-2);
+}
+
+/* What lies under the passage the reading is held at. Above the text and
+   clear of the bar, and readable on whatever the field is doing. */
+.chamber-undercurrent {
+  position: fixed;
+  left: 50%;
+  bottom: calc(6rem + env(safe-area-inset-bottom));
+  z-index: 150000;
+  transform: translateX(-50%);
+  width: min(34rem, calc(100vw - 2rem));
+  max-height: min(50dvh, calc(100dvh - 8rem));
+  overflow-y: auto;
+  padding: 1rem 1.25rem;
+  color: var(--color-light);
+  background: color-mix(in srgb, var(--color-void) 94%, black);
+  border: 1px solid color-mix(in srgb, var(--color-light) 22%, transparent);
+  border-radius: 1rem;
+  box-shadow: 0 1rem 3rem rgba(0, 0, 0, 0.55);
+}
+
+.chamber-undercurrent[hidden] { display: none; }
+
+.chamber-undercurrent .under-list {
+  display: grid;
+  gap: 1rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.chamber-undercurrent .under-text {
+  margin: 0;
+  font: 400 1.0625rem/1.55 var(--sy-font-serif, Georgia, serif);
+}
+
+.chamber-undercurrent blockquote.under-text {
+  padding-left: 0.9rem;
+  border-left: 2px solid color-mix(in srgb, var(--color-light) 35%, transparent);
+  font-style: italic;
+}
+
+.chamber-undercurrent .under-provenance,
+.chamber-undercurrent .under-score,
+.chamber-undercurrent .under-nothing {
+  margin: 0.35rem 0 0;
+  color: color-mix(in srgb, var(--color-light) 72%, transparent);
+  font: 500 0.75rem/1.4 var(--font-mono, monospace);
+  letter-spacing: 0.02em;
+}
+
+.chamber-undercurrent .under-nothing,
+.chamber-undercurrent .under-score { margin-top: 0; }
+
+/* It arrives; it does not slide. A reader who asked for less motion gets none. */
+@media (prefers-reduced-motion: no-preference) {
+  .chamber-undercurrent:not([hidden]) {
+    animation: under-arrive 160ms ease-out;
+  }
+}
+
+@keyframes under-arrive {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}

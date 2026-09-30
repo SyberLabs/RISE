@@ -37,6 +37,7 @@ import {
   VisualScoreLaneError
 } from '../core/visual-score-lane.js';
 import { READING_LIMITS } from '../core/reading-limits.js';
+import { PACE_CURVE_IDS } from '../core/pacing.js';
 import {
   dataImageUriToBlob,
   WorkshopMedia
@@ -113,6 +114,9 @@ import {
   workshopProjectFromImportedProgram
 } from '../core/experience-program-io.js';
 import { resolveProgramLibrarySources } from '../core/scriptorium-resolve.js';
+import { remixablePassages, remixPassage } from '../core/portable-sequence.js';
+import { PROCEDURAL_PATTERNS } from '../core/visual-registry.js';
+import { SOUNDSCAPES } from '../audio/soundscapes.js';
 import {
   EXPORT_MP4_PATH,
   kernelRequestFromWorkshopPayload,
@@ -137,12 +141,13 @@ const ICONS = {
   audio: ICON('<path d="M3 12h2"></path><path d="M7 8v8"></path><path d="M11 5v14"></path><path d="M15 9v6"></path><path d="M19 11v2"></path>')
 };
 /** Pacing curves drawn as the shape they describe, not as a glyph. */
-const CURVE_PATHS = {
+export const CURVE_PATHS = {
   flat: 'M3 12h18',
   induction: 'M3 7c6 0 9 10 18 10',
   ascent: 'M3 17c6 0 9-10 18-10',
   wave: 'M3 12c3-6 6-6 9 0s6 6 9 0',
-  climax: 'M3 17c5 0 7-10 9-10s4 10 9 10'
+  climax: 'M3 17c5 0 7-10 9-10s4 10 9 10',
+  breath: 'M3 12c3-3 6-3 9 0s6 3 9 0'
 };
 
 const MAX_TEXT_FILE_BYTES = READING_LIMITS.maxTextCharacters;
@@ -573,6 +578,7 @@ export class Workshop {
     this.activeDraftKind = options.kind || (this.activeBlueprintId ? 'saved' : 'new');
     this.editorDirty = options.dirty === true;
     this.activeScoreSourceId = this.sessionData.sources[0]?.id || null;
+    this.remixPassageId = null;
     this.selectedScoreAssetId = this.sessionData.sequenceVisualAssets[0]?.id
       || this.sessionData.visualScoreAssignments[0]?.assetId
       || null;
@@ -720,7 +726,7 @@ export class Workshop {
       return 'New from Recursion · not saved';
     }
     if (this.activeDraftKind === 'variation') {
-      return 'Variation of an imported score · change title or pace, then Save to Vault';
+      return 'Variation of an imported score · remix a passage, title, or pace, then keep it';
     }
     if (this.isCurrentDraftDirty()) {
       return 'Unsaved draft · available only while this app remains open';
@@ -739,7 +745,9 @@ export class Workshop {
   /* ─── The phone's Scene Stack: a second view of this one draft ───────── */
 
   usesSceneStack() {
-    return this.studioViewport === 'phone' && this.phoneMode === 'scenes';
+    // Scenes edit lanes, which a proposed score ignores; its remix lives in the studio.
+    return this.studioViewport === 'phone' && this.phoneMode === 'scenes'
+      && this.sessionData.experienceProgram?.authority !== 'proposed';
   }
 
   setPhoneMode(mode) {
@@ -754,7 +762,10 @@ export class Workshop {
    */
   syncSceneStack() {
     const studio = this.container.querySelector('.workshop-studio');
-    if (studio) studio.dataset.phoneMode = this.studioViewport === 'phone' ? this.phoneMode : '';
+    if (studio) {
+      studio.dataset.phoneMode = this.studioViewport !== 'phone' ? ''
+        : this.usesSceneStack() ? 'scenes' : 'studio';
+    }
     if (!this.usesSceneStack()) {
       this.sceneStack?.destroy();
       this.sceneStack = null;
@@ -889,6 +900,7 @@ export class Workshop {
       readingDuration: this.readingDurationLabel(),
       studioViewport: this.studioViewport,
       studioSurface: this.studioSurface,
+      scenesAvailable: this.sessionData.experienceProgram?.authority !== 'proposed',
       selectionActionHtml: this.renderSelectionActionBar(),
       selectionPopoverHtml: this.renderScoreSelectionPopover(),
       wpm: this.sessionData.wpm,
@@ -980,7 +992,9 @@ export class Workshop {
         </div>
         <div class="studio-next-action">
           <span class="studio-kicker">Next useful action</span>
-          <p>${this.sessionData.sources.length ? 'Highlight the source text in the Visual, Audio, or Combined tab to assign character assets.' : 'Browse the Archive or import a text source.'}</p>
+          <p>${!this.sessionData.sources.length ? 'Browse the Archive or import a text source.'
+            : this.sessionData.experienceProgram?.authority === 'proposed' ? 'Open Score to remix a passage\'s visual and sound.'
+              : 'Highlight the source text in the Visual, Audio, or Combined tab to assign character assets.'}</p>
           <button type="button" class="btn-secondary btn-compact" data-action="${this.sessionData.sources.length ? 'show-score-surface' : 'open-browser'}">${this.sessionData.sources.length ? 'Open Score' : 'Browse sources'}</button>
         </div>
       </div>
@@ -1000,7 +1014,7 @@ export class Workshop {
           <div class="config-notice text-fog" id="wpm-chamber-note">You can also change pacing in the Reader.</div></div>
         <div class="input-group"><span class="input-label">Pacing curve</span>
           <div class="curve-options studio-compact-options studio-choice-grid studio-choice-grid-5">
-            ${['flat', 'induction', 'ascent', 'wave', 'climax'].map(curve => `<button type="button" class="curve-btn ${this.sessionData.curve === curve ? 'active' : ''}" data-action="set-reading-curve" data-curve="${curve}" aria-pressed="${this.sessionData.curve === curve}"><span class="curve-icon" aria-hidden="true">${this.getCurveIcon(curve)}</span><span class="curve-label text-capitalize">${curve}</span></button>`).join('')}
+            ${PACE_CURVE_IDS.map(curve => `<button type="button" class="curve-btn ${this.sessionData.curve === curve ? 'active' : ''}" data-action="set-reading-curve" data-curve="${curve}" aria-pressed="${this.sessionData.curve === curve}"><span class="curve-icon" aria-hidden="true">${this.getCurveIcon(curve)}</span><span class="curve-label text-capitalize">${curve}</span></button>`).join('')}
           </div></div>
         <div class="input-group"><span class="input-label">Chunking</span>
           <div class="chunk-options studio-choice-grid studio-choice-grid-3">
@@ -3385,7 +3399,82 @@ export class Workshop {
     return `${clips}<p class="visual-score-lane-limit" role="status">Showing ${rendered.length} of ${assignments.length} clips. Every passage remains available from its source highlight.</p>`;
   }
 
+  remixParent() {
+    const { parentPortableId, portableId } = this.sessionData.provenance || {};
+    const id = parentPortableId || portableId;
+    return this.savedBlueprints.find(item => id && item.provenance?.portableId === id) || null;
+  }
+
+  // A proposed score plays as its program says; lane edits never reach it
+  // (prepareSessionPayload), so this panel replaces the score editor for it.
+  renderPassageRemix() {
+    const esc = value => this.escapeHtml(value);
+    const provenance = this.sessionData.provenance || {};
+    const parent = this.remixParent();
+    const section = body => `<section class="visual-score-editor passage-remix" id="passage-remix" aria-labelledby="passage-remix-title">
+      <h3 id="passage-remix-title">Remix a passage</h3>${body}</section>`;
+    if (provenance.kind !== 'portable-sequence-variation') {
+      if (!provenance.portableId) {
+        return section('<p data-remix-lineage>This proposed score plays its visuals and sound as written.</p>');
+      }
+      return section(`<p data-remix-lineage>“${esc(this.sessionData.title)}” · credit: ${esc(provenance.creatorCredit || 'Unattributed')} (declared, unverified). Its visuals and sound play as proposed.</p>
+        ${this.activeBlueprintId ? `<p class="input-note text-fog">To change a passage, make your own copy. This one stays as it is.</p>
+        <button type="button" class="btn-primary" data-action="vary-as-new">Vary as new</button>` : ''}`);
+    }
+    const lineage = `<p data-remix-lineage>${parent
+      ? `Remix of “${esc(parent.title)}” · original credit: ${esc(parent.provenance.creatorCredit || 'Unattributed')} (declared, unverified).`
+      : `Remix of score ${esc(provenance.parentPortableId)}, which is not in this Vault.`}
+      Your copy carries no credit until you add your credit when you export it.</p>`;
+    const passages = remixablePassages(this.sessionData.experienceProgram);
+    const current = passages.find(item => item.id === this.remixPassageId) || passages[0];
+    if (!current) {
+      return section(`${lineage}<p class="input-note text-fog">This score has no passage with a built-in visual and soundscape to remix.</p>`);
+    }
+    const differs = !parent
+      || JSON.stringify(parent.experienceProgram) !== JSON.stringify(this.sessionData.experienceProgram);
+    // A new child needs a real change; a kept one may be saved back to anything, the original included.
+    const canKeep = this.activeBlueprintId ? this.editorDirty : differs;
+    const select = (field, label, entries, value) => `<div class="input-group">
+        <label class="input-label" for="remix-${field}">${label}</label>
+        <select class="input" id="remix-${field}" data-remix-${field}>
+          ${entries.map(([id, name]) => `<option value="${esc(id)}" ${id === value ? 'selected' : ''}>${esc(name)}</option>`).join('')}
+        </select></div>`;
+    return section(`${lineage}
+      ${select('passage', 'Passage', passages.map((item, index) => [item.id, `Passage ${index + 1} · ${item.span}`]), current.id)}
+      ${select('visual', 'Visual', PROCEDURAL_PATTERNS.map(pattern => [pattern.id, pattern.name]), current.collection)}
+      ${select('soundscape', 'Soundscape', Object.entries(SOUNDSCAPES).map(([id, entry]) => [id, entry.name]), current.soundscapeId)}
+      <p class="input-note text-fog">Preview plays your change. Nothing is saved until you keep it.</p>
+      <div class="studio-selected-actions studio-choice-grid studio-choice-grid-2">
+        <button type="button" class="btn-ghost" data-action="reset-remix" ${parent && differs ? '' : 'disabled'}>Reset to original</button>
+        <button type="button" class="btn-primary" data-action="keep-remix" ${canKeep ? '' : 'disabled'}>${this.activeBlueprintId ? 'Save remix' : 'Keep as new child'}</button>
+      </div>`);
+  }
+
+  applyPassageRemix(target) {
+    this.remixPassageId = this.container.querySelector('[data-remix-passage]').value;
+    if (!target.matches('[data-remix-passage]')) {
+      const collection = this.container.querySelector('[data-remix-visual]').value;
+      const soundscapeId = this.container.querySelector('[data-remix-soundscape]').value;
+      this.sessionData.experienceProgram = remixPassage(
+        this.sessionData.experienceProgram, this.remixPassageId, { collection, soundscapeId });
+      this.markEditorDirty();
+      this.announce(`${PROCEDURAL_PATTERNS.find(pattern => pattern.id === collection).name} with ${SOUNDSCAPES[soundscapeId].name}`);
+    }
+    this.updateVisualScoreEditor();
+  }
+
+  resetPassageRemix() {
+    const parent = this.remixParent();
+    if (!parent) return;
+    this.sessionData.experienceProgram = structuredClone(parent.experienceProgram);
+    this.markEditorDirty();
+    this.updateVisualScoreEditor();
+    this.container.querySelector('#remix-passage')?.focus();
+    this.announce('Reset to the original visuals and sound');
+  }
+
   renderMediaScoreEditor() {
+    if (this.sessionData.experienceProgram?.authority === 'proposed') return this.renderPassageRemix();
     if (this.scoreView === 'visual') return this.renderVisualScoreEditor();
     const source = this.activeScoreSource();
     const lane = this.scoreAuthoringLane();
@@ -4374,6 +4463,10 @@ export class Workshop {
         this.selectEditorAsset(event.target.value, { navigate: false });
         return;
       }
+      if (event.type === 'change' && event.target.matches('#passage-remix select')) {
+        this.applyPassageRemix(event.target);
+        return;
+      }
       if (event.type === 'change' && event.target.matches('[data-passage-audio-picker]')) {
         this.selectPassageAudioAsset(event.target.value);
         return;
@@ -4750,9 +4843,13 @@ export class Workshop {
         this.getAudioEngine()?.playHiss();
         const id = target.dataset.id;
         this.removePersonalSwell(id);
-      } else if (action === 'save-draft') {
+      } else if (action === 'save-draft' || action === 'keep-remix') {
         this.getAudioEngine()?.playHiss();
         void this.saveSequenceToVault();
+      } else if (action === 'reset-remix') {
+        this.resetPassageRemix();
+      } else if (action === 'vary-as-new') {
+        void this.openSavedBlueprintAsync(this.activeBlueprintId, { varyAsNew: true });
       } else if (action === 'reset-workshop') {
         this.getAudioEngine()?.playHiss();
         this.armOrResetSequence();

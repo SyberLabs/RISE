@@ -87,6 +87,33 @@ keep the sound. Where clips genuinely must move together, they share a
 A first-party Journey is simply a published program with stricter
 authorship. That is the whole difference.
 
+### Threads — what lies under a passage
+
+The undercurrent of a reading is the set of things anchored to a span of its
+words that the reader can dive to. Two of its kinds need no vocabulary: an
+image or a sound anchored to a span is already a `visual` or an `audio` clip.
+What had no home was words, so there is one further track kind, `thread`, whose
+clips carry one of two cues:
+
+| cue | carries | provenance |
+|---|---|---|
+| `gloss` | `text`, at most 600 characters | **written**, by whoever authored the program (`authority`) |
+| `echo` | `of`: `sourceId`, `quoteStart`, `quoteEnd` and no text | **received**: the words shown are the edition's, read from the source at the moment they are shown |
+
+A thread's anchor must be a span of words: character, token, or quotation
+coordinates. A fraction of the reading is derived from the cut the reader chose,
+so it would move under a gloss, and a whole source has nowhere to put one. An
+echo stores none of the text it echoes, so it cannot misquote; an echo whose
+words are not found, or whose opening words occur twice, is left out rather than
+guessed. Threads may overlap, unlike the clips of a visual or audio lane: those
+lanes present one thing at a time and array order would otherwise be a silent mix
+law, while every thread at an atom is shown together. A thread adds no cut to the
+reading and changes no duration. It is stamped on the atoms its words fall in as
+`sourceSpanIds`, and `src/core/undercurrent.js` gathers what lies under one atom.
+
+An exported film has no dive, so both cues are declared `degraded`
+(`not-painted`) in the render-support registry, and the preflight report says so.
+
 ### Implementation status — 2026-08-03
 
 The foundation is now implemented in `src/core/experience-program.js`:

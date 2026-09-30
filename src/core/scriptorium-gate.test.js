@@ -320,8 +320,11 @@ describe('the budget spends exactly what the reading will load', () => {
       join(process.cwd(), 'src/core/experience-program.js'), 'utf8'
     );
     const body = source.slice(source.indexOf('function validateAnchor'));
+    // The file has CRLF endings, so the longer form of this needle never matched
+    // and the scan ran to the end of the file, reading quoted names out of
+    // functions that are not validateAnchor.
     const found = new Set();
-    for (const match of body.slice(0, body.indexOf('\n}\n')).matchAll(
+    for (const match of body.slice(0, body.indexOf('\n}')).matchAll(
       /'([A-Za-z]*[Ss]ource(?:Id|Ids))'/gu
     )) found.add(match[1]);
     return [...found];

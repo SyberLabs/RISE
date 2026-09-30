@@ -8,6 +8,7 @@ import { PROCEDURAL_PATTERNS } from '../core/visual-registry.js';
 import { WORKSHOP_AUDIO_ASSETS } from '../core/workshop-audio.js';
 import { PersonalSwells } from '../core/personal-swells.js';
 import { FLASHING_ENABLED } from '../core/visual-presence.js';
+import { PACE_CURVE_IDS } from '../core/pacing.js';
 import {
     endVisualInterlocutionSession,
     grantVisualInterlocutionConsent
@@ -206,7 +207,8 @@ describe('Workshop Composition Studio architecture', () => {
         // FLASHING_ENABLED false, that is Gallery alone.
         expect(container.querySelectorAll('.studio-presentation-options > button'))
             .toHaveLength(FLASHING_ENABLED ? 3 : 1);
-        expect(container.querySelectorAll('.curve-options.studio-compact-options > button')).toHaveLength(5);
+        expect(container.querySelectorAll('.curve-options.studio-compact-options > button'))
+            .toHaveLength(PACE_CURVE_IDS.length);
         expect(container.querySelector('#studio-visual-frequency')).toBeNull();
 
         const cadence = container.querySelector('#studio-gallery-cadence');

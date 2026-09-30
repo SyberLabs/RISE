@@ -201,6 +201,16 @@ export function createRouteManifest(operations) {
       })
     },
     {
+      // The host for a live Current: a prompt, and the controls over the Chamber.
+      // Loaded whole on demand, so first load does not carry it.
+      id: 'live',
+      containerId: 'view-live',
+      load: () => import('../live/host/LiveHost.js'),
+      create: (container, _data, { LiveHost }) => new LiveHost(container, {
+        router: operations.router
+      })
+    },
+    {
       id: 'chapel',
       containerId: 'view-chapel',
       load: () => import('../components/Chapel.js'),

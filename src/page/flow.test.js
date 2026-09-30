@@ -540,3 +540,33 @@ describe('a Journey has its authored imagery reach the page at all', () => {
         expect(flow.blocks.filter(b => b.collections?.length)).toHaveLength(0);
     });
 });
+
+/**
+ * WHERE IN THE READING A BLOCK IS. The Page merges atoms into paragraphs, so
+ * without a range on each block nothing could say which paragraph holds the
+ * atom the Stream is showing, and the Page could only open at its own top.
+ */
+describe('compileFlow — which atoms a block holds', () => {
+    const readingAtoms = () => [
+        atom('And when', { chapter: 27, verse: 1 }),
+        atom('morning was come,', { chapter: 27, verse: 1 }),
+        silence(),
+        atom('they brought him', { chapter: 27, verse: 2 }),
+        atom('to Pilate.', { chapter: 27, verse: 2 })
+    ];
+
+    it('stamps each text block with the first and last atom it was made from', () => {
+        const texts = compileFlow({ atoms: readingAtoms(), visualProgram: null })
+            .blocks.filter(b => b.kind === BLOCK.TEXT);
+        expect(texts.map(b => b.atoms)).toEqual([[0, 1], [3, 4]]);
+    });
+
+    it('accounts for every text atom exactly once', () => {
+        const atoms = readingAtoms();
+        const covered = compileFlow({ atoms, visualProgram: null }).blocks
+            .filter(b => b.kind === BLOCK.TEXT)
+            .flatMap(b => Array.from({ length: b.atoms[1] - b.atoms[0] + 1 }, (_, i) => b.atoms[0] + i))
+            .filter(i => atoms[i].content !== '');
+        expect(covered).toEqual([0, 1, 3, 4]);
+    });
+});

@@ -9,6 +9,7 @@
  * uniformly — the reader sets the tempo, the score keeps its contour.
  */
 
+import { restoreLiteral } from './chunker.js';
 import { resolveSourceSpan, buildNormalizedSourceIndex } from './source-span.js';
 import { anchorCoordinateSystem } from './experience-program.js';
 
@@ -53,7 +54,9 @@ export function paceFactor(fromWpm, toWpm) {
  *             recut: boolean }}
  */
 export function buildReadingPlan(readingProgram, source, defaults = {}) {
-  const text = typeof source?.raw === 'string' ? source.raw : '';
+  // A literal source is held escaped; a quotation is of what the author wrote, and the two are the same length.
+  const held = typeof source?.raw === 'string' ? source.raw : '';
+  const text = source?.literal === true ? restoreLiteral(held) : held;
   const defaultMode = defaults.chunkMode || 'word';
   const defaultWpm = Number(defaults.wpm) || 320;
   const whole = [{ fromCharacter: 0, toCharacter: text.length, mode: defaultMode, wpm: defaultWpm }];

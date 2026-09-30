@@ -77,5 +77,8 @@ export function chamberExitTarget(reason, session = {}, data = null) {
         return { kind: 'navigate', view: 'portal' };
     }
 
+    // A live reading returns to where it was asked for.
+    if (session?.origin?.view === 'live') return { kind: 'navigate', view: 'live' };
+
     return { kind: 'navigate', view: 'chamber' };
 }

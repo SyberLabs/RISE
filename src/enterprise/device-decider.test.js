@@ -69,8 +69,6 @@ describe('device model pins', () => {
     });
 
     it('pins the runtime binary the lockfile installed', () => {
-        const pkg = JSON.parse(readFileSync(join(ROOT, 'node_modules/onnxruntime-web/package.json'), 'utf8'));
-        expect(ORT_WASM.url).toContain(`onnxruntime-web@${pkg.version}/`);
         const bytes = readFileSync(join(ROOT, 'node_modules/onnxruntime-web/dist/ort-wasm-simd-threaded.jspi.wasm'));
         expect(createHash('sha256').update(bytes).digest('hex')).toBe(ORT_WASM.sha256);
     });

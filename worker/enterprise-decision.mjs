@@ -9,7 +9,7 @@ export { railQuestion };
 // worker is governed by the policy on its own script, so the pages that start
 // it keep the site policy.
 export const KEV_WORKER_POLICY = "default-src 'none'; script-src 'self' 'wasm-unsafe-eval'; "
-    + 'connect-src https://huggingface.co https://*.huggingface.co https://*.hf.co https://cdn.jsdelivr.net';
+    + "connect-src 'self' https://huggingface.co https://*.huggingface.co https://*.hf.co";
 
 export function isKevWorkerScript(path) {
     return /^\/assets\/(?:kev|embed)-worker-[\w-]+\.js$/u.test(path);

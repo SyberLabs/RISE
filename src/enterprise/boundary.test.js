@@ -27,7 +27,12 @@ function javascriptFiles(dir, out = []) {
 // The on-device models run in their own workers; these are the only packages
 // any enterprise module may import, and only there.
 const PACKAGE_IMPORTS = new Map([
-    [join(ENTERPRISE, 'kev-worker.js'), new Set(['onnxruntime-web/jspi', '@ai-ecoverse/kev.js', '@huggingface/tokenizers'])],
+    [join(ENTERPRISE, 'kev-worker.js'), new Set([
+        'onnxruntime-web/jspi',
+        'onnxruntime-web/ort-wasm-simd-threaded.jspi.wasm?url',
+        '@ai-ecoverse/kev.js',
+        '@huggingface/tokenizers'
+    ])],
     [join(ENTERPRISE, 'embed-worker.js'), new Set(['onnxruntime-web/wasm', '@huggingface/tokenizers'])]
 ]);
 

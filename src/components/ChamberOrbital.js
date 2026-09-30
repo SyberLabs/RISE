@@ -12,6 +12,7 @@ import { VisualNavigator } from './VisualNavigator.js';
 import { PersonalSwells } from '../core/personal-swells.js';
 import { namingModal } from './NamingModal.js';
 import { escapeHtml } from '../core/sanitize.js';
+import { PACE_CURVE_IDS } from '../core/pacing.js';
 import {
   hasVisualSelectionFields,
   normalizeVisualSelection
@@ -79,6 +80,17 @@ const AUDIO_PRESET_IDS = new Set([
 const LOCK_MARK = '<svg class="chunk-lock" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="Locked" focusable="false"><rect x="5" y="11" width="14" height="10" rx="2"></rect><path d="M8 11V7a4 4 0 0 1 8 0v4"></path></svg>';
 
 const svgIcon = paths => `<svg class="reader-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">${paths}</svg>`;
+// One entry per pace profile, in the order pacing.js lists them: what a reader
+// reads on the button. A profile without an entry fails the test that holds
+// this table to PACE_CURVE_IDS, so none can be offered unnamed or named unoffered.
+export const CURVE_OPTIONS = Object.freeze({
+  flat: { label: 'Flat', path: 'M3 12h18' },
+  induction: { label: 'Induction', path: 'M4 6l16 12' },
+  ascent: { label: 'Ascent', path: 'M4 18L20 6' },
+  wave: { label: 'Wave', path: 'M3 12c3-6 6-6 9 0s6 6 9 0' },
+  climax: { label: 'Climax', path: 'M4 18l8-12 8 12' },
+  breath: { label: 'Breath', path: 'M3 12c3-3 6-3 9 0s6 3 9 0' }
+});
 const ICON_BACK = svgIcon('<path d="M19 12H5"></path><path d="m11 18-6-6 6-6"></path>');
 const ICON_ARROW = svgIcon('<path d="M5 12h14"></path><path d="m13 6 6 6-6 6"></path>');
 const ICON_CHEVRON = svgIcon('<path d="m6 9 6 6 6-6"></path>');
@@ -1125,26 +1137,11 @@ export class ChamberOrbital {
             <div class="config-section">
               <label class="config-label">Pacing Curve</label>
               <div class="curve-options">
-                <button class="curve-option ${this.config.curve === 'flat' ? 'active' : ''}" data-curve="flat">
-                  <span class="curve-icon">${svgIcon('<path d="M3 12h18"></path>')}</span>
-                  <span>Flat</span>
-                </button>
-                <button class="curve-option ${this.config.curve === 'induction' ? 'active' : ''}" data-curve="induction">
-                  <span class="curve-icon">${svgIcon('<path d="M4 6l16 12"></path>')}</span>
-                  <span>Induction</span>
-                </button>
-                <button class="curve-option ${this.config.curve === 'ascent' ? 'active' : ''}" data-curve="ascent">
-                  <span class="curve-icon">${svgIcon('<path d="M4 18L20 6"></path>')}</span>
-                  <span>Ascent</span>
-                </button>
-                <button class="curve-option ${this.config.curve === 'wave' ? 'active' : ''}" data-curve="wave">
-                  <span class="curve-icon">${svgIcon('<path d="M3 12c3-6 6-6 9 0s6 6 9 0"></path>')}</span>
-                  <span>Wave</span>
-                </button>
-                <button class="curve-option ${this.config.curve === 'climax' ? 'active' : ''}" data-curve="climax">
-                  <span class="curve-icon">${svgIcon('<path d="M4 18l8-12 8 12"></path>')}</span>
-                  <span>Climax</span>
-                </button>
+                ${PACE_CURVE_IDS.map(id => `
+                <button class="curve-option ${this.config.curve === id ? 'active' : ''}" data-curve="${id}">
+                  <span class="curve-icon">${svgIcon(`<path d="${CURVE_OPTIONS[id].path}"></path>`)}</span>
+                  <span>${CURVE_OPTIONS[id].label}</span>
+                </button>`).join('')}
               </div>
             </div>
 
