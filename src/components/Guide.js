@@ -87,10 +87,6 @@ export class Guide {
               </dl>
             </section>
           </div>
-
-          <footer class="guide-footer">
-            <p>For deep heritage, consult the <a href="/liminal_archive.html" target="_blank" rel="noopener">Oracular Archive</a>.</p>
-          </footer>
         </div>
       </div>
     `;

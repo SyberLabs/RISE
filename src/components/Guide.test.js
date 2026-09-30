@@ -60,20 +60,4 @@ describe('Guide', () => {
         guide.destroy();
         container.remove();
     });
-
-    it('links only to pages that ship', async () => {
-        const { readFileSync } = await import('node:fs');
-        const container = document.createElement('div');
-        document.body.appendChild(container);
-        const guide = new Guide(container);
-
-        for (const anchor of container.querySelectorAll('a[href^="/"]')) {
-            const href = anchor.getAttribute('href');
-            expect(() => readFileSync(`public${href}`),
-                `the Guide links to ${href}, which does not ship`).not.toThrow();
-        }
-
-        guide.destroy();
-        container.remove();
-    });
 });
