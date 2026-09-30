@@ -21,7 +21,6 @@ const PLAIN = {
 
 async function installVoiceWorkerStub(page) {
   // Legacy Worker stub — Voice no longer uses Workers; kept for callers not yet rewritten.
-  // Live-model/CSP coverage: csp-live.spec.js.
   await page.addInitScript(() => {
     class VoiceWorkerStub {
       postMessage(message) {
