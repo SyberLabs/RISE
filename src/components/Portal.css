@@ -325,13 +325,6 @@ a.portal-nav-link {
   color: var(--sy-text-body);
 }
 
-.portal-help.is-error {
-  display: flex;
-  align-items: center;
-  gap: var(--sy-space-2);
-  color: var(--sy-danger);
-}
-
 .portal-help svg {
   flex: none;
 }
@@ -488,10 +481,6 @@ a.portal-nav-link {
 .portal-link:disabled {
   opacity: 0.4;
   cursor: not-allowed;
-}
-
-.portal-alert-retry {
-  flex: none;
 }
 
 .portal-alt {

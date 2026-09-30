@@ -65,8 +65,7 @@
 }
 
 .scriptorium-intent,
-.scriptorium-paste,
-.scriptorium-jev-key {
+.scriptorium-paste {
   width: 100%;
   box-sizing: border-box;
   min-height: var(--sy-control-height);
@@ -93,8 +92,7 @@
 }
 
 .scriptorium-intent:focus,
-.scriptorium-paste:focus,
-.scriptorium-jev-key:focus {
+.scriptorium-paste:focus {
   border-color: var(--sy-brand);
 }
 
@@ -146,11 +144,6 @@
   line-height: 24px;
   font-weight: 600;
   color: var(--sy-text);
-}
-
-.scriptorium-jev-key {
-  width: min(100%, 480px);
-  margin-bottom: var(--sy-space-2);
 }
 
 .scriptorium-jev-result {

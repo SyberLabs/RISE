@@ -111,21 +111,7 @@ export class Library {
   constructor(container, options = {}) {
     this.container = container;
     this.onNavigate = options.onNavigate || (() => { });
-    this.readingPreferences = options.readingPreferences || null;
-    const selectText = options.onSelectText || (() => { });
-    this.onSelectText = (...args) => {
-      const preferences = this.readingPreferences;
-      if (!preferences) return selectText(...args);
-      const [text, source, config = {}] = args;
-      const { visualMode, ...reading } = preferences;
-      return selectText(text, source, {
-        ...config,
-        ...reading,
-        visualConfig: visualMode
-          ? { ...config.visualConfig, visualMode }
-          : config.visualConfig
-      });
-    };
+    this.onSelectText = options.onSelectText || (() => { });
     this.getAudioEngine = options.getAudioEngine || (() => null);
 
     this.currentSection = 'archive'; // archive, sequences, personal
@@ -145,10 +131,6 @@ export class Library {
     this.render();
     this.attachEvents();
     this.refreshLocalWorks();
-  }
-
-  update(data) {
-    this.readingPreferences = data?.readingPreferences || null;
   }
 
   render() {

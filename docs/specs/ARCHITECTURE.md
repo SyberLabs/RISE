@@ -167,7 +167,6 @@ flowchart LR
     core["core<br/>session, player, router<br/>166 modules"]
     enterprise["enterprise<br/>talk program, speaker rail<br/>34 modules"]
     live["live<br/>realtime Current: events, runtime, providers<br/>33 modules"]
-    oracle["oracle<br/>1 module"]
     page["page<br/>spatial projection<br/>4 modules"]
     sources["sources<br/>text and visual providers<br/>22 modules"]
     vendor["vendor<br/>SyberLabs design kit<br/>2 modules"]
@@ -188,7 +187,7 @@ flowchart LR
     components -.-> |2 lazy| app
     components --> |3| audio
     components --> |24| content
-    components --> |173| core
+    components --> |175| core
     components -.-> |1 lazy| page
     components --> |4| sources
     components -.-> |2 lazy| vendor
@@ -1214,8 +1213,7 @@ of `settled`, `open`, `deferred`, or `reversed`.
   when the reader entered from Adjust.
 - **Status:** open. The roll, Oracle object, invocation handoff, and Wormhole
   are covered by unit and browser tests. The first-read Page/Stream choice is
-  preserved for the first rolled reading. The existing `/oracle.html` page
-  remains available as a compatibility entry.
+  preserved for the first rolled reading.
 
 ---
 

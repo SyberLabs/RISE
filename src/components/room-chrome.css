@@ -84,17 +84,6 @@
   color: var(--sy-text-2);
 }
 
-.room-section-label {
-  margin: 0 0 var(--sy-space-4);
-  font-family: var(--sy-font-mono);
-  font-size: 12px;
-  line-height: 16px;
-  font-weight: 500;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--sy-text-2);
-}
-
 /* ─── Alert (system pattern) ─── */
 
 .room-alert {

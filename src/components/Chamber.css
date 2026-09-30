@@ -473,18 +473,6 @@
 
 /* Display Mode: Focal (RSVP - default) */
 
-/* Display Mode: Chamber (Immersive) */
-.chamber-field-chamber {
-  background: linear-gradient(180deg,
-      rgba(26, 26, 30, 0.3) 0%,
-      var(--color-void) 50%,
-      rgba(26, 26, 30, 0.3) 100%);
-}
-
-.chamber-field-chamber .atom-display {
-  text-shadow: 0 0 40px rgba(232, 232, 236, 0.1);
-}
-
 /* Display Mode: Orbital */
 
 /* ─── Progress Indicator ─── */
@@ -1588,12 +1576,6 @@
 :root.hide-session-duration .time-separator {
   display: none;
 }
-
-/* Leftover Settings steps. Phrase uses --font-size-intent on
-   #atom-display instead. Word uses --atom-fit-px. Do not route
-   Chamber type through these. */
-:root[data-font-size="small"] .atom-text { font-size: 0.82em; }
-:root[data-font-size="large"] .atom-text { font-size: 1.18em; }
 
 /* Behind-stream rhythmic reuses the Genesis glass pane so the text
    stays legible over presenting imagery — one grammar, one rule set. */

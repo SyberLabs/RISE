@@ -1097,12 +1097,6 @@
   background: var(--color-light);
 }
 
-.toggle-label {
-  font-size: 14px;
-  color: var(--color-cloud);
-  font-weight: var(--font-weight-medium);
-}
-
 /* Input groups (sliders with labels) */
 .input-group {
   margin-bottom: var(--space-lg);
@@ -1220,22 +1214,6 @@
   box-shadow: inset 0 0 16px rgba(var(--color-accent-rgb), 0.2);
 }
 
-.mode-icon {
-  font-size: 28px;
-}
-
-/* Interlocution controls */
-.interlocution-controls {
-  margin-top: var(--space-lg);
-  padding-top: var(--space-lg);
-  border-top: 1px solid var(--color-shadow);
-}
-
-.interlocution-controls.disabled {
-  opacity: 0.4;
-  pointer-events: none;
-}
-
 /* Audio preset options */
 .audio-preset-options {
   display: grid;
@@ -1330,10 +1308,6 @@
   background: rgba(var(--color-accent-rgb), 0.15);
   color: var(--color-light);
   box-shadow: inset 0 0 12px rgba(var(--color-accent-rgb), 0.2);
-}
-
-.preset-icon {
-  font-size: 32px;
 }
 
 .preset-label {
@@ -2062,7 +2036,6 @@
 }
 
 #modal-visual .vnav-kind b,
-#modal-visual .vnav-glyph,
 #modal-visual .vnav-preview-glyph {
   color: var(--rs-text-3);
 }
@@ -2113,9 +2086,7 @@
 
 #modal-visual .vnav-control-explanation,
 #modal-visual .vnav-program,
-#modal-visual .vnav-lock,
 #modal-visual .vnav-held,
-#modal-visual .vnav-text-locked,
 #modal-visual .vnav-reading-collections,
 #modal-visual .vnav-global-picker,
 #modal-visual .vnav-size-note,
@@ -2126,13 +2097,11 @@
 }
 
 #modal-visual .vnav-program,
-#modal-visual .vnav-lock,
 #modal-visual .vnav-reading-collections {
   background: none;
 }
 
-#modal-visual .vnav-held,
-#modal-visual .vnav-text-locked {
+#modal-visual .vnav-held {
   background: none;
   border-color: var(--rs-line);
   border-radius: 8px;
@@ -2375,11 +2344,6 @@
   /* Three waveforms, one row, not two and a stray. */
   .orbital-modal .audio-waveform-options {
     grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-
-  .orbital-modal .mode-icon {
-    font-size: 15px;
-    line-height: 1;
   }
 
   .orbital-modal .config-section {

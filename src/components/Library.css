@@ -128,36 +128,6 @@
   line-height: 20px;
 }
 
-/* Resonance bar */
-.resonance-bar {
-  width: 100%;
-  height: 4px;
-  background: var(--color-shadow);
-  margin-top: var(--space-sm);
-  position: relative;
-}
-
-.resonance-fill {
-  height: 100%;
-  background: var(--color-threshold);
-  transition: width var(--transition-normal) var(--ease-default);
-}
-
-.resonance-fill[data-resonance="maximal"] { width: 100%; }
-.resonance-fill[data-resonance="near-maximal"] { width: 90%; }
-.resonance-fill[data-resonance="high"] { width: 75%; }
-.resonance-fill[data-resonance="strong"] { width: 60%; }
-.resonance-fill[data-resonance="moderate-strong"] { width: 45%; }
-.resonance-fill[data-resonance="moderate"] { width: 30%; }
-
-.resonance-label {
-  font-size: 12px;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  margin-top: var(--space-xs);
-  display: block;
-}
-
 /* ─────────────────────────────────────────────────────────────
    SEQUENCES SECTION
    ───────────────────────────────────────────────────────────── */

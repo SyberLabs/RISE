@@ -260,15 +260,6 @@ class App {
     }
 
     /**
-     * Load a personalized vault for an invitee
-     */
-    loadPersonalizedVault(vaultId) {
-        console.log('[RISE] Loading personalized vault:', vaultId);
-        // Navigate to vault view - the Vault component will handle personalized content
-        this.router.navigate('vault', { data: { personalizedVault: vaultId } });
-    }
-
-    /**
      * Full application initialization (after beta access granted)
      * @param {Object} options - Init options
      * @param {string} options.personalizedVault - Vault ID to load directly (skips portal)
@@ -785,27 +776,6 @@ class App {
             this.showToast(error.message || 'The next Archive division could not be opened.', 5000);
             await this.router.navigate('library', { replace: true });
         }
-    }
-
-    /**
-     * Create a full Session object from a starter sequence
-     * @param {Object} sequence - Starter sequence data
-     * @returns {Session} - Full session with atoms
-     */
-    async createSessionFromSequence(sequence) {
-        return compileSession({
-            title: sequence.name,
-            text: sequence.content,
-            textSource: sequence.name,
-            wpm: sequence.wpm ?? sequence.config?.wpm,
-            chunkMode: sequence.chunkMode ?? sequence.config?.chunkMode,
-            curve: sequence.curve ?? sequence.config?.curve,
-            displayMode: 'focal',
-            audioPreset: 'silent',
-            visualConfig: {
-                enabled: false
-            }
-        });
     }
 
     /**
