@@ -116,7 +116,7 @@ export function createDefaultConfig() {
     text: null,
     textSource: null, // 'drop', 'paste', 'library', 'starter'
     // Launch origin (wayfinding): { view, icon, name } set by app.js
-    // launch handlers (SOL / Vault / Library); null for plain sessions
+    // launch handlers (Vault / Library); null for plain sessions
     origin: null,
     // Optional canonical multi-source payload and bounded provenance. A
     // packaged launch uses these to keep passage boundaries intact through
@@ -174,7 +174,7 @@ export function createDefaultConfig() {
 
       // Interlocution config (probabilistic interrupts).
       // Nothing pre-checked: visual packages arrive only through explicit
-      // configs (Vault archetypes, SOL sequences) — never implied by a text.
+      // configs (Vault archetypes) — never implied by a text.
       interlocution: {
         sourceFamily: 'procedural',
         procedural: [],
@@ -239,7 +239,7 @@ export class ChamberOrbital {
 
     // Restore the loaded text too — without it the saved visual and
     // audio settings are stranded behind an empty text card after a
-    // refresh. A launch that carries fresh text (SOL, Vault, Library)
+    // refresh. A launch that carries fresh text (Vault, Library)
     // overwrites this via loadText immediately after construction.
     this._applySavedText();
 
@@ -645,7 +645,7 @@ export class ChamberOrbital {
               <span>SYBERLABS<span class="reader-lockup-sep"> / </span>RISE</span>
             </span>
             <div class="reader-header-actions">
-              <!-- Launch origin chip (wayfinding back to SOL / Vault / Library) -->
+              <!-- Launch origin chip (wayfinding back to Vault / Library) -->
               <div class="orbital-origin-slot" id="orbital-origin-slot">${this.renderOriginChip()}</div>
               <button type="button" class="orbital-back" data-action="back">
                 ${ICON_BACK}
