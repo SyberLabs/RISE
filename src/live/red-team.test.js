@@ -194,7 +194,7 @@ describe('protocol: the reducer under a generated hostile stream', () => {
 // ─── 2. model text streaming ────────────────────────────────────────────
 
 describe('segment parser: what a model can make it hold', () => {
-    it.fails('DEFECT: a line that begins with @ is buffered without any bound, independent of the Current’s text limits', () => {
+    it('a line that begins with @ is not buffered past the length of any header', () => {
         const parser = createSegmentParser(() => {});
         const before = process.memoryUsage().heapUsed;
         parser.push('@');
@@ -207,7 +207,7 @@ describe('segment parser: what a model can make it hold', () => {
         parser.finish();
     });
 
-    it.fails('DEFECT: a line ending in "[" and up to five letters loses them at @end, or glues them to the next line', () => {
+    it('a line ending in "[" and up to five letters keeps them, in its own passage and line', () => {
         const said = [];
         const parser = createSegmentParser((type, body) => { if (type === 'segment.text') said.push(body.text); });
         parser.push('@passage\nThe index is x[i\n@end\n@passage\nSee [note\nand then more.\n@end\n');
@@ -217,7 +217,7 @@ describe('segment parser: what a model can make it hold', () => {
         expect(words).toContain('[note and');
     });
 
-    it.fails('DEFECT: a passage that reaches 3,999 characters sends a blank chunk, which the reducer refuses', () => {
+    it('a passage that reaches 3,999 characters ends without sending a blank chunk', () => {
         const stream = createCurrentStream();
         const writer = createEventWriter('c');
         stream.apply(writer.next('current.open', OPEN));
@@ -227,6 +227,22 @@ describe('segment parser: what a model can make it hold', () => {
         parser.push(' more words');
         parser.finish();
         expect(statuses.filter(status => status !== 'applied')).toEqual([]);
+    });
+
+    it('an @ line too long to be a header is dropped the same whether it arrives whole or a character at a time', () => {
+        const answer = `@passage visual=attractor\nBefore.\n@${'x'.repeat(600)} tail\nAfter.\n@end\n`;
+        const passages = deltas => {
+            const out = [];
+            const parser = createSegmentParser((type, body) => {
+                if (type === 'segment.begin') out.push({ visual: body.visual, text: '' });
+                if (type === 'segment.text') out.at(-1).text += body.text;
+            });
+            for (const delta of deltas) parser.push(delta);
+            parser.finish();
+            return out;
+        };
+        expect(passages([answer])).toEqual([{ visual: 'attractor', text: 'Before. After.' }]);
+        expect(passages([...answer])).toEqual(passages([answer]));
     });
 
     it('holds: a hostile corpus cut into arbitrary deltas never makes the parser emit an event the reducer refuses', () => {

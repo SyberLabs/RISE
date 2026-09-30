@@ -26,7 +26,9 @@
  *   - text before any header becomes one plain passage rather than being lost;
  *   - what exceeds a limit (passages, characters) is dropped, and the passage
  *     that reached it is ended where it is;
- *   - a passage is begun only when it has words, so an empty one is nothing.
+ *   - a passage is begun only when it has words, so an empty one is nothing;
+ *   - an @ line longer than any header is ignored, like any other directive, and
+ *     is never held waiting for its end.
  *
  * It is chunk-invariant: however the same text is cut into deltas, the reducer
  * ends with the same passages. It carries no evidence and no Dives: a model
@@ -37,7 +39,8 @@
 import { RISE_CURRENT_LIMITS, RISE_CURRENT_VISUALS } from '../../core/rise-current.js';
 import { EVENT_LIMITS, EXPERIENCE_DIMENSIONS } from '../protocol.js';
 
-export const PARSER_LIMITS = Object.freeze({ passages: RISE_CURRENT_LIMITS.segments });
+/** `header`: an @ line longer than this is not a header (ten dimensions and a visual fit in far less). */
+export const PARSER_LIMITS = Object.freeze({ passages: RISE_CURRENT_LIMITS.segments, header: 512 });
 
 /** What a literal passage may never hold: the score cut and the stand-ins that escape the controls. */
 export function stripForbidden(text) {
@@ -81,6 +84,7 @@ function readHeader(line) {
 export function createSegmentParser(write) {
     let buffer = '';
     let midLine = false;
+    let skipping = false;          // inside an @ line too long to be a header, until its newline
     let held = '';                 // the start of what might be a playback marker
     let space = '';                // whitespace waiting for the words that follow it
     let current = null;
@@ -120,6 +124,12 @@ export function createSegmentParser(write) {
             }
             const piece = rest.slice(0, room);
             rest = rest.slice(room);
+            // Only the space before the next word fits: the protocol refuses a blank chunk, so the passage is full.
+            if (!piece.trim()) {
+                closeCurrent();
+                current = { dropped: true };
+                return;
+            }
             if (!current.began) {
                 current.began = true;
                 write('segment.begin', { segmentId: current.id, visual: current.visual, ...(current.literal ? { literal: true } : {}) });
@@ -156,23 +166,33 @@ export function createSegmentParser(write) {
         space = body.endsWith(' ') ? ' ' : '';
     }
 
+    /** A line has ended. A marker cannot continue past it, so what was held back is words of this line. */
+    function endLine() {
+        if (held) {
+            const rest = held;
+            held = '';
+            if (!current?.dropped) send((current?.began ? space : '') + rest);
+        }
+        if (current?.began) space = ' ';
+    }
+
     function line(content) {
         if (midLine) {
             text(content);
             midLine = false;
-            if (current?.began) space = ' ';
+            endLine();
             return;
         }
         if (content.startsWith('@')) {
             const word = content.split(/\s+/u, 1)[0].toLowerCase();
-            // What was waiting to become a marker belongs to the passage that is ending.
-            if (word === '@passage') { held = ''; open(readHeader(content)); }
-            else if (word === '@end') { held = ''; closeCurrent(); }
+            if (content.length > PARSER_LIMITS.header) return;
+            if (word === '@passage') open(readHeader(content));
+            else if (word === '@end') closeCurrent();
             // Any other directive is not part of the format and is ignored.
             return;
         }
         text(content);
-        if (current?.began) space = ' ';
+        endLine();
     }
 
     return {
@@ -180,6 +200,12 @@ export function createSegmentParser(write) {
         push(delta) {
             if (finished || typeof delta !== 'string' || !delta) return;
             buffer += delta.replace(/\r/gu, '');
+            if (skipping) {
+                const newline = buffer.indexOf('\n');
+                if (newline < 0) { buffer = ''; return; }
+                buffer = buffer.slice(newline + 1);
+                skipping = false;
+            }
             for (;;) {
                 const newline = buffer.indexOf('\n');
                 if (newline < 0) break;
@@ -189,7 +215,10 @@ export function createSegmentParser(write) {
             }
             if (buffer) {
                 // The start of a line that might be a header waits for its newline; anything else is words.
-                if (!midLine && buffer.startsWith('@')) return;
+                if (!midLine && buffer.startsWith('@')) {
+                    if (buffer.length > PARSER_LIMITS.header) { buffer = ''; skipping = true; }
+                    return;
+                }
                 text(buffer);
                 buffer = '';
                 midLine = true;
@@ -204,7 +233,7 @@ export function createSegmentParser(write) {
                 else line(buffer);
                 buffer = '';
             }
-            if (held) { const rest = held; held = ''; if (!current?.dropped) send((current?.began ? space : '') + rest); }
+            endLine();
             closeCurrent();
             finished = true;
             return { passages };
@@ -218,6 +247,7 @@ export function createSegmentParser(write) {
         abandon() {
             finished = true;
             buffer = '';
+            skipping = false;
             held = '';
             space = '';
             current = null;
