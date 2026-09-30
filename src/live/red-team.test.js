@@ -177,7 +177,7 @@ describe('protocol: the reducer under a generated hostile stream', () => {
         expect(stream.snapshot().error.code).toBe('TOO_MANY_EVENTS');
     });
 
-    it.fails('DEFECT: an ended segment’s condition and sources can still be changed, which the plan says is refused', () => {
+    it('an ended segment’s condition and sources cannot be changed afterwards', () => {
         const stream = createCurrentStream();
         stream.apply(event(0, 'current.open', OPEN));
         stream.apply(event(1, 'segment.begin', { segmentId: 'a', visual: 'attractor' }));
