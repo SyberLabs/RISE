@@ -75,7 +75,7 @@ const refresh = () => {
 const rail = renderRail($('#rail'), session, { onChange: refresh });
 const stage = renderStage($('#stage'), session, { onChange: refresh });
 
-const DECIDER_NAMES = { jev: 'JEV', local: 'Local rules', device: 'Kev (device)' };
+const DECIDER_NAMES = { jev: 'Kev (local RISE)', local: 'Local rules', device: 'Kev (device)' };
 const deciderName = () => DECIDER_NAMES[deciderSelect.value];
 
 /* ---------- One status surface ---------- */
@@ -404,11 +404,11 @@ $('#export-trace').addEventListener('click', () => {
 /* ---------- Kev on this device ---------- */
 
 const DEVICE_FAILED = {
-    'no-webgpu': 'This browser has no WebGPU, so Kev can’t run here. Choose JEV or Local rules.',
-    'no-adapter': 'No usable GPU for WebGPU, so Kev can’t run here. Choose JEV or Local rules.',
+    'no-webgpu': 'This browser has no WebGPU, so Kev can’t run here. Choose Local rules, or open this room in local RISE.',
+    'no-adapter': 'No usable GPU for WebGPU, so Kev can’t run here. Choose Local rules, or open this room in local RISE.',
     'wrong-model': 'The published Kev bundle isn’t the pinned checkpoint, so it wasn’t loaded.',
     'runtime-digest': 'The downloaded runtime didn’t match its pinned digest, so it wasn’t used.',
-    'no-jspi': 'This browser can’t stream Kev to the GPU. Use a current Chrome or Edge, or choose JEV or Local rules.',
+    'no-jspi': 'This browser can’t stream Kev to the GPU. Use a current Chrome or Edge, or choose Local rules.',
     storage: 'There isn’t enough disk space to keep Kev. Free some space, then choose Kev (device) again.',
     network: 'Kev couldn’t be downloaded. Check the connection, then choose Kev (device) again.'
 };
@@ -427,7 +427,7 @@ function onDeviceChange(status) {
     } else if (status.state === 'failed') {
         lastDecision.textContent = 'Kev failed';
         trace.emit('device.failed', { code: status.code });
-        setState('error', DEVICE_FAILED[status.code] || 'Kev couldn’t start on this device. Choose JEV or Local rules.');
+        setState('error', DEVICE_FAILED[status.code] || 'Kev couldn’t start on this device. Choose Local rules, or open this room in local RISE.');
     }
 }
 
@@ -454,7 +454,7 @@ deciderSelect.addEventListener('change', () => {
         : stateBox.dataset.state;
     setState(settled, deciderSelect.value === 'local'
         ? 'Local rules decide. Nothing leaves this browser for a decision.'
-        : 'JEV decides through the server.');
+        : 'Kev decides on this computer through local RISE. On the public site it is unavailable; choose Local rules.');
 });
 
 /* ---------- Matching by meaning ---------- */

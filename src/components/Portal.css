@@ -1204,3 +1204,34 @@
     transform: none;
   }
 }
+
+/* The reader's own AI connection. Quiet: reading needs none of it. */
+.portal-ai {
+  margin-top: var(--sy-space-3, 12px);
+  font-size: 0.875rem;
+  line-height: 1.5;
+  color: var(--sy-text-2);
+}
+
+.portal-ai-line {
+  margin: 0;
+}
+
+.portal-ai .portal-link {
+  font-size: inherit;
+  line-height: inherit;
+  text-underline-offset: 3px;
+}
+
+.portal-ai-hint {
+  opacity: 0.75;
+}
+
+.portal-ai-about summary {
+  cursor: pointer;
+  opacity: 0.75;
+}
+
+.portal-ai-notice {
+  margin: var(--sy-space-1, 4px) 0 0;
+}

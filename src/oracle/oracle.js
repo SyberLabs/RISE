@@ -1,7 +1,7 @@
 import { createOrb, CAMERA, FOCAL } from './orb.js';
 
 // Suggestions surface from the fluid when the Oracle is shaken. Each names moods
-// and sounds Jev can actually choose (worker/jev-recommend.mjs, src/core/jev-config.js).
+// and sounds Jev can actually choose (src/core/decision/recommend.js, src/core/jev-config.js).
 const SUGGESTIONS = [
   'Something slow and calm tonight, with soft rain under the words.',
   'Fast phrases, bold type, and vivid psychedelic visuals.',
@@ -18,7 +18,7 @@ const SUGGESTIONS = [
 const reduced = matchMedia('(prefers-reduced-motion: reduce)');
 const $ = s => document.querySelector(s);
 const stage = $('.oracle-stage'), canvas = $('.oracle-canvas'), glass = $('.oracle-glass'), plate = $('.oracle-plate');
-const field = $('#oracle-intent'), answer = $('.oracle-answer'), status = $('.oracle-status');
+const field = $('#oracle-intent'), status = $('.oracle-status');
 const shakeKey = $('.oracle-key-shake'), askKey = $('.oracle-key-ask');
 
 const orb = (() => { try { return createOrb(canvas); } catch (e) { console.warn('Oracle renderer unavailable', e); return null; } })();
@@ -72,7 +72,6 @@ async function shake() {
   if (shaking || busy) return;
   shaking = true;
   kick(1.1);
-  answer.hidden = true;
   glass.classList.add('is-sinking');
   status.textContent = '';
   await wait(reduced.matches ? 150 : 820);
@@ -86,8 +85,12 @@ async function shake() {
   shaking = false;
 }
 
-// Ask: the same request the Portal makes today (src/components/Portal.js).
-async function ask() {
+// Ask: hand the request to RISE Home, where the reader's own AI connection
+// lives (their OpenRouter account, or Kev in local RISE). This page holds no
+// model connection of its own, so it never asks a model itself.
+// Same key and shape as Portal.js rememberIntent.
+const HOME_DRAFT_KEY = 'rise-jev-preview-v1';
+function ask() {
   const intent = field.value.trim();
   if (intent.length < 3 || intent.length > 240) {
     status.textContent = intent ? 'Keep it under 240 characters.' : 'Type what you would like to read, or shake for an idea.';
@@ -95,31 +98,15 @@ async function ask() {
   }
   busy = true; glow = 1; churn = Math.max(churn, .6);
   askKey.setAttribute('aria-busy', 'true'); field.readOnly = true;
-  status.textContent = 'Jev is choosing…';
   try {
-    const res = await fetch('/api/jev-recommend', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ intent, schemaVersion: 2 }) });
-    const data = await res.json().catch(() => ({}));
-    if (!res.ok) throw new Error(data?.error?.message || `Jev is unavailable here (${res.status}).`);
-    showAnswer(data);
-    status.textContent = 'Jev chose a reading.';
-  } catch (e) {
-    status.textContent = e.message.includes('Failed to fetch') || /404|405/.test(e.message)
-      ? 'Jev is not connected in this preview. Nothing was chosen.'
-      : e.message;
-    kick(.3);
-  } finally {
+    sessionStorage.setItem(HOME_DRAFT_KEY, JSON.stringify({ intent: '', draft: intent }));
+    status.textContent = 'Taking your request to RISE Home. Connect OpenRouter or run RISE locally there to ask Jev.';
+    setTimeout(() => location.assign('/'), reduced.matches ? 0 : 700);
+  } catch {
+    status.textContent = 'This browser blocked the handoff. Copy your request to the RISE home page.';
     busy = false; askKey.removeAttribute('aria-busy'); field.readOnly = false;
+    kick(.3);
   }
-}
-
-function showAnswer(d) {
-  const c = d.config || {};
-  answer.querySelector('.oracle-answer-title').textContent = d.title || d.workTitle || d.workId || 'A reading';
-  answer.querySelector('.oracle-answer-reason').textContent = d.reason || '';
-  answer.querySelector('.oracle-answer-plan').textContent =
-    [c.pace && `${c.pace} wpm`, c.audio && c.audio !== 'silent' && c.audio, c.visualMode && c.visualMode !== 'off' && c.visualMode].filter(Boolean).join(' · ');
-  glass.classList.add('is-sinking');
-  setTimeout(() => { answer.hidden = false; glass.classList.remove('is-sinking'); glass.classList.add('is-rising'); setTimeout(() => glass.classList.remove('is-rising'), 900); }, reduced.matches ? 0 : 700);
 }
 
 const wait = ms => new Promise(r => setTimeout(r, ms));
@@ -157,7 +144,6 @@ addEventListener('devicemotion', e => {
 shakeKey.addEventListener('click', shake);
 askKey.addEventListener('click', ask);
 field.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); ask(); } });
-field.addEventListener('input', () => { answer.hidden = true; });
 addEventListener('resize', layout);
 layout();
 requestAnimationFrame(frame);

@@ -88,3 +88,6 @@ scratch/
 /ostensoria (1).html
 /apparitio (2).html
 public/content/
+
+__pycache__/
+*.pyc

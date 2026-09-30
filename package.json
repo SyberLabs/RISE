@@ -17,6 +17,7 @@
     "build:legal": "node scripts/build-legal.mjs",
     "verify:legal": "node scripts/build-legal.mjs --check",
     "preview": "vite preview",
+    "local": "node local/rise-local.mjs",
     "test": "npm run content:build && vitest",
     "test:run": "npm run content:build && vitest run",
     "test:coverage": "npm run content:build && vitest run --coverage",

@@ -82,15 +82,12 @@ unusual decisions live in `docs/PROJECT-KNOWLEDGE.md`.
 
 RISE is a vanilla-JS single-page app built with Vite. Reading and
 browser-local work stay client-side. Its production Cloudflare Worker serves
-the app and same-origin decision routes. Optional book recommendations read a
-held Standard Ebooks catalog in Neon PostgreSQL, cache public catalog rows in
-Upstash Redis, and ask the server-configured decision provider to choose a
-book. The migration code defaults to Kev with a pinned endpoint and revision;
-an explicit `DECISION_PROVIDER=jev` setting routes through OpenRouter. No live
-Kev endpoint has been confirmed, so production deploys with `jev` until the
-`KEV_PRODUCTION_VERIFIED` repository variable is `true`. The Vite dev server
-runs the UI; the Worker and managed services are required for live
-recommendations.
+the app and a public decision catalog (Neon PostgreSQL through Upstash Redis).
+RISE spends no shared inference: reader recommendations use the reader's own
+OpenRouter account or pinned Kev on the reader's computer. Former shared model
+routes return 410. Optional live Realtime and MCP integrations use the reader's
+own key or the host's model and remain switched off by default. See
+`docs/USER-OWNED-AI.md` and `docs/plans/LIVE-MCP.md`.
 
 ## Environment / setup
 

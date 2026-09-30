@@ -1,6 +1,6 @@
 /**
- * The version-1 contract for POST /api/jev-visual-score, shared verbatim by
- * the browser and the Worker so both sides refuse exactly the same shapes.
+ * The version-1 contract for section visual direction. The browser checks
+ * both its own request and the model's admitted answer against it.
  *
  * Request: { schemaVersion, sourceDigest, sectionDigest,
  *            treatmentCatalogVersion, blocks: [{ id, text }],
@@ -29,7 +29,8 @@ export const VISUAL_SCORE_LIMITS = Object.freeze({
 
 const DIGEST = /^[0-9a-f]{64}$/u;
 const BLOCK_ID = /^[A-Za-z0-9_-]{1,64}$/u;
-const MODEL = /^typesafe\/jev-1\.13(?:-\d{8})?$/u;
+// Jev through the reader's OpenRouter account, or pinned Kev on their computer.
+const MODEL = /^(?:typesafe\/jev-1\.13(?:-\d{8})?|kev-latest)$/u;
 const REQUEST_KEYS = new Set(['schemaVersion', 'sourceDigest', 'sectionDigest',
   'treatmentCatalogVersion', 'blocks', 'previousTreatmentId']);
 const RESPONSE_KEYS = new Set(['schemaVersion', 'sourceDigest', 'sectionDigest',

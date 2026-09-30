@@ -465,9 +465,10 @@ export class Scriptorium {
             <h3 id="scriptorium-jev-title">Route the composition</h3>
             <p class="scriptorium-note" id="scriptorium-jev-privacy">
               RISE sends only this typed intent (up to 2,000 characters)
-              and the target word count to its same-origin routing function, which
-              forwards those fields to the configured decision service. Saved texts, Library entries,
-              media, and reading history are not sent. No personal API key is needed.
+              and the target word count, straight from this page to your own decision model:
+              Jev through your OpenRouter account (billed to you) or Kev running on your computer.
+              Saved texts, Library entries, media, and reading history are not sent. Without a
+              connection, nothing is sent.
             </p>
             <div class="scriptorium-actions">
               <button type="button" class="btn-primary" data-action="route-jev"
@@ -477,7 +478,7 @@ export class Scriptorium {
             </div>
             ${this.session.jevRoute ? `
               <p class="scriptorium-jev-result" role="status">
-                The decision service selected <strong>${this.session.jevRoute.route === 'experience_program'
+                Your decision model selected <strong>${this.session.jevRoute.route === 'experience_program'
                   ? 'Experience Program' : 'Agent Operation Set'}</strong>
                 with a ${(this.session.jevRoute.confidence * 100).toFixed(0)}% confidence score, not a measured accuracy rate.
                 This selects a prompt format; RISE still examines the result before
@@ -527,7 +528,7 @@ export class Scriptorium {
           <h2 id="scriptorium-take-title">2. Take</h2>
           <p class="scriptorium-note">Prepare a prompt locally, then copy or download it and context.json.</p>
           <div class="scriptorium-actions">
-            <button type="button" class="btn-secondary" data-action="prepare-take">Prepare locally without Decision service</button>
+            <button type="button" class="btn-secondary" data-action="prepare-take">Prepare without a model</button>
             <button type="button" class="btn-secondary" data-action="copy-prompt" ${this.promptText ? '' : 'disabled'}>Copy prompt</button>
             <button type="button" class="btn-secondary" data-action="download-prompt" ${this.promptText ? '' : 'disabled'}>Download prompt</button>
             <button type="button" class="btn-secondary" data-action="copy-context" ${this.context ? '' : 'disabled'}>Copy context.json</button>
@@ -621,17 +622,17 @@ export class Scriptorium {
       ?.addEventListener('click', async () => {
         if (this.jevRouting) return;
         this.jevRouting = true;
-        this.status = 'Routing this intent with Decision service…';
+        this.status = 'Routing this intent with your decision model…';
         this.render();
         try {
           const result = await this.session.routeWithJev();
           this.status = result.ok
-            ? 'Decision service selected a prompt route.'
+            ? 'Your decision model selected a prompt route.'
             : result.stale
-              ? 'The intent changed while Decision service was routing. Route the current intent again.'
-              : (result.message || 'Decision service could not select a route.');
+              ? 'The intent changed while routing. Route the current intent again.'
+              : (result.message || 'No route was selected.');
         } catch (error) {
-          this.status = error?.message || 'Decision service routing failed.';
+          this.status = error?.message || 'Routing failed.';
         } finally {
           this.jevRouting = false;
           this.render();

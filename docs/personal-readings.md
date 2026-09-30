@@ -1,10 +1,13 @@
 # Personal readings: writer boundary and release evidence
 
-**Status: disabled, no paid calls or owner evaluation performed.** The committed
-`worker/personal-piece-release.mjs` exports `RELEASE_VERIFIED = false`.
-`PERSONAL_PIECE_ENABLED=true` alone cannot enable the route. Change the source gate
-only after the release owner records the evidence below and approves activation.
-Do not substitute another model/provider if any prerequisite fails.
+**Status: retired.** The server writer never ran for readers: it was gated off
+(`RELEASE_VERIFIED = false`) and was removed with every other route that could
+spend SyberLabs inference credentials ([USER-OWNED-AI.md](USER-OWNED-AI.md)).
+`POST /api/personal-piece` now answers `410 SHARED_INFERENCE_RETIRED`, and Create
+tells the reader that new personal readings are unavailable. Existing pieces can
+still be read, imported, and kept. A future writer would have to run on the
+reader's own connection. The contract below is kept as the record of what the
+retired route accepted.
 
 ## Contract and privacy
 

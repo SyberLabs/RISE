@@ -42,7 +42,21 @@ export function createLiveLoop({
     now = () => performance.now()
 }) {
     const inflight = { speech: null, ask: null };
+    const generation = { speech: 0, ask: 0 };
     let stopped = false;
+
+    function reserve(channel) {
+        // A new input owns the channel as soon as it arrives, before an
+        // optional embedding can delay preparation of its decision turn.
+        generation[channel] += 1;
+        inflight[channel]?.controller.abort('superseded');
+        inflight[channel] = null;
+        return generation[channel];
+    }
+
+    function current(channel, token) {
+        return !stopped && generation[channel] === token;
+    }
 
     async function vectorFor(text) {
         let timer;
@@ -64,7 +78,6 @@ export function createLiveLoop({
 
     async function run(turn) {
         const channel = turn.channel;
-        inflight[channel]?.controller.abort('superseded');
         const controller = new AbortController();
         const entry = { controller, turn };
         inflight[channel] = entry;
@@ -133,9 +146,10 @@ export function createLiveLoop({
                     return { action: 'warm', tier: 'lexical', leaders: [] };
                 }
             }
+            const token = reserve('speech');
             // Without an embedder a final is prepared at once, as it always was.
             const vector = embed ? await vectorFor(event.text) : null;
-            if (stopped) return { action: 'ignore', reason: 'stopped' };
+            if (!current('speech', token)) return { action: 'ignore', reason: stopped ? 'stopped' : 'superseded' };
             const { turn, failed } = prepared(() => session.prepare(vector ? { ...event, vector } : event));
             if (failed) return failed;
             if (!turn) return { action: 'ignore', reason: 'presenter' };
@@ -143,8 +157,9 @@ export function createLiveLoop({
         },
         async reason(request) {
             if (stopped) return { action: 'ignore', reason: 'stopped' };
+            const token = reserve('ask');
             const vector = embed ? await vectorFor(request.text) : null;
-            if (stopped) return { action: 'ignore', reason: 'stopped' };
+            if (!current('ask', token)) return { action: 'ignore', reason: stopped ? 'stopped' : 'superseded' };
             const { turn, failed } = prepared(() => session.prepareReasoning(vector ? { ...request, vector } : request));
             return failed || run(turn);
         },
@@ -153,6 +168,8 @@ export function createLiveLoop({
         },
         stop() {
             stopped = true;
+            generation.speech += 1;
+            generation.ask += 1;
             inflight.speech?.controller.abort('stopped');
             inflight.ask?.controller.abort('stopped');
         }

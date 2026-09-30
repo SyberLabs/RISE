@@ -24,7 +24,7 @@ body { background: radial-gradient(120% 70% at 50% 42%, #0a0f24 0%, var(--void) 
 .oracle-glass { width: calc(var(--r) * .78); height: calc(var(--r) * .7); margin: calc(var(--r) * -.35) 0 0 calc(var(--r) * -.39); display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
 .oracle-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
 
-#oracle-intent, .oracle-answer { width: 100%; transition: opacity .7s ease, filter .7s ease, translate .8s cubic-bezier(.2, .7, .2, 1); }
+#oracle-intent { width: 100%; transition: opacity .7s ease, filter .7s ease, translate .8s cubic-bezier(.2, .7, .2, 1); }
 #oracle-intent {
   resize: none; border: 0; outline: 0; background: transparent; padding: 0;
   color: var(--phosphor); caret-color: var(--ice); text-align: center;
@@ -41,11 +41,6 @@ body { background: radial-gradient(120% 70% at 50% 42%, #0a0f24 0%, var(--void) 
 .oracle-glass.is-rising > :not(.oracle-label) { animation: rise .9s cubic-bezier(.2, .7, .2, 1) both; }
 @keyframes rise { from { opacity: 0; filter: blur(10px); translate: 0 0 calc(var(--r) * -.9); } 60% { opacity: 1; } to { opacity: 1; filter: none; translate: 0 0 0; } }
 
-.oracle-answer[hidden] { display: none; }
-.oracle-answer { display: flex; flex-direction: column; align-items: center; gap: 6px; margin-top: 4px; }
-.oracle-answer-eyebrow, .oracle-answer-plan { font: 500 clamp(9px, calc(var(--r) * .045), 12px)/1.3 'JetBrains Mono', monospace; letter-spacing: .16em; color: var(--ice); text-shadow: 0 0 10px #0048f0; }
-.oracle-answer-title { font: 400 clamp(18px, calc(var(--r) * .11), 34px)/1.05 'Instrument Serif', serif; color: #fff; text-shadow: 0 0 18px #4890f0; }
-.oracle-answer-reason { max-width: 92%; font: 400 clamp(10px, calc(var(--r) * .05), 13px)/1.4 'Instrument Sans', sans-serif; color: #c9d8f5; }
 
 /* A model plate moulded into the underside of the shell. */
 .oracle-plate { width: calc(var(--r) * 1.2); margin-left: calc(var(--r) * -.6); margin-top: -.6em; text-align: center; font: 600 clamp(7px, calc(var(--r) * .032), 10px)/1 'Space Grotesk', sans-serif; letter-spacing: .32em; color: #ffffff33; text-shadow: 0 1px 0 #0009, 0 -1px 0 #ffffff14; pointer-events: none; }
@@ -75,8 +70,7 @@ body { background: radial-gradient(120% 70% at 50% 42%, #0a0f24 0%, var(--void) 
   .oracle-keys { width: 100%; max-width: 360px; }
 }
 @media (prefers-reduced-motion: reduce) {
-  #oracle-intent, .oracle-answer { transition: opacity .2s; }
-  .oracle-glass.is-sinking > :not(.oracle-label) { filter: none; translate: none; }
+  #oracle-intent,   .oracle-glass.is-sinking > :not(.oracle-label) { filter: none; translate: none; }
   .oracle-glass.is-rising > :not(.oracle-label) { animation: none; }
   #oracle-intent::placeholder { animation: none; }
 }

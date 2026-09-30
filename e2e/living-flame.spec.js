@@ -8,6 +8,7 @@
  * an exact pixel hash.
  */
 import { test, expect, openHomeNav } from './fixtures.js';
+import { connectOpenRouter, E2E_READER_KEY } from './reader-connection.js';
 
 const GATE = { code: 'rise2025', name: 'Flame', vault: null, timestamp: Date.now() };
 const EMPTY_TREATMENT = 'violet-nebula';
@@ -21,26 +22,23 @@ async function gate(page) {
 /** Answer visual-score requests with a fixed, valid direction. */
 async function mockScoring(page, { delayMs = 0, treatmentId = EMPTY_TREATMENT, status = 200 } = {}) {
   const requests = [];
-  await page.route('**/api/jev-visual-score', async (route) => {
+  // Jev answers on the reader's own OpenRouter connection, straight from the page.
+  await page.route('https://openrouter.ai/api/alpha/decisions', async (route) => {
     const body = JSON.parse(route.request().postData() || '{}');
-    requests.push(body);
+    requests.push({ blocks: body.state?.passage_blocks || [], questions: body.questions || {}, model: body.model,
+      authorization: route.request().headers().authorization });
     if (delayMs) await new Promise(resolve => setTimeout(resolve, delayMs));
     if (status !== 200) {
       await route.fulfill({ status, contentType: 'application/json', body: '{"error":{"code":"X"}}' });
       return;
     }
-    await route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify({
-        schemaVersion: 1,
-        sourceDigest: body.sourceDigest,
-        sectionDigest: body.sectionDigest,
-        treatmentCatalogVersion: body.treatmentCatalogVersion,
-        model: 'typesafe/jev-1.13',
-        choices: body.blocks.map(block => ({ blockId: block.id, treatmentId, intensityBand: 'balanced' }))
-      })
-    }).catch(() => {});
+    const answers = {};
+    (body.state?.passage_blocks || []).forEach((_block, i) => {
+      answers[`block${i + 1}Treatment`] = { type: 'choice', choice: treatmentId };
+      answers[`block${i + 1}Intensity`] = { type: 'choice', choice: 'balanced' };
+    });
+    await route.fulfill({ status: 200, contentType: 'application/json',
+      body: JSON.stringify({ provider: 'TypeSafe', model: 'typesafe/jev-1.13', answers }) }).catch(() => {});
   });
   return requests;
 }
@@ -49,6 +47,7 @@ async function mockScoring(page, { delayMs = 0, treatmentId = EMPTY_TREATMENT, s
 async function beginChapter(page, { wpm = 1000, text = null } = {}) {
   await page.goto('/');
   await expect(page.locator('.portal .portal-title').first()).toBeVisible({ timeout: 15_000 });
+  await connectOpenRouter(page);
   if (text) {
     await page.evaluate(t => window.__RISE_TEST__.navigate('chamber', { text: t, source: 'Pasted' }), text);
   } else {
@@ -132,7 +131,9 @@ test.describe('passage-directed visuals', () => {
     await expect.poll(() => requests.length, { timeout: 15_000 }).toBeGreaterThanOrEqual(1);
     for (const request of requests) {
       expect(request.blocks.length).toBeLessThanOrEqual(8);
-      expect(Object.keys(request).sort()).toEqual(expect.arrayContaining(['blocks', 'schemaVersion', 'sectionDigest', 'sourceDigest']));
+      expect(Object.keys(request.questions)).toHaveLength(request.blocks.length * 2);
+      expect(request.model).toBe('typesafe/jev-1.13');
+      expect(request.authorization).toBe(`Bearer ${E2E_READER_KEY}`);
     }
     // The first block was entered before the reply and keeps its choice.
     await expect.poll(async () => (await direction(page)).staged, { timeout: 15_000 }).toBeGreaterThan(0);

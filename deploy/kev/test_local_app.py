@@ -15,11 +15,14 @@ class FakeCheckpoint:
     meta_base = EXPECTED_BASE
     meta_base_revision = BASE_REVISION
     requested_override = None
+    fetched_override = None
     load_error = None
     loads = []
 
     def __init__(self, run):
         self.requested = self.requested_override or run
+        self.path = os.path.join("hf", "hub", "models--jaredpalmer--kev-4b", "snapshots",
+                                 self.fetched_override or KEV_MODEL_REVISION)
         self.meta = types.SimpleNamespace(base=self.meta_base, base_revision=self.meta_base_revision)
 
     def load(self, device, options):
@@ -91,7 +94,7 @@ def call(app, path):
 
 class LocalAppTests(unittest.TestCase):
     def setUp(self):
-        FakeCheckpoint.requested_override = FakeCheckpoint.load_error = None
+        FakeCheckpoint.requested_override = FakeCheckpoint.fetched_override = FakeCheckpoint.load_error = None
         FakeCheckpoint.meta_base, FakeCheckpoint.meta_base_revision = EXPECTED_BASE, BASE_REVISION
         FakeCheckpoint.loads, FakeServer.instances = [], []
 
@@ -119,6 +122,7 @@ class LocalAppTests(unittest.TestCase):
 
     def test_rejects_unexpected_checkpoint_metadata_before_loading(self):
         cases = [("requested_override", "jaredpalmer/kev-4b@main"),
+                 ("fetched_override", "a" * 40),
                  ("meta_base", "Qwen/Qwen3.5-0.8B-Base"),
                  ("meta_base_revision", "main")]
         for attribute, value in cases:
@@ -161,8 +165,29 @@ class LocalAppTests(unittest.TestCase):
         with patch.object(local_app, "build", return_value=("app", server)), \
                 patch.dict(sys.modules, {"uvicorn": uvicorn}):
             local_app.main()
-        self.assertEqual(runs, [{"host": "127.0.0.1", "port": 8009, "workers": 1, "reload": False}])
+            local_app.main(["--port", "43121"])
+        self.assertEqual(runs, [{"host": "127.0.0.1", "port": 8009, "workers": 1, "reload": False},
+                                {"host": "127.0.0.1", "port": 43121, "workers": 1, "reload": False}])
         self.assertTrue(server.closed)
+
+    def test_reports_a_startup_failure_to_the_launcher(self):
+        with patch.object(local_app, "build", side_effect=RuntimeError("CUDA is unavailable")), \
+                patch("builtins.print") as printed:
+            with self.assertRaises(RuntimeError):
+                local_app.main()
+        self.assertIn("RISE_KEV_STATE error RuntimeError: CUDA is unavailable", printed.call_args[0][0])
+
+    def test_refuses_to_load_under_memory_pressure_without_closing_anything(self):
+        self.assertIsNone(local_app.memory_verdict(20000, 6144, 15000, 10240))
+        self.assertIn("did not close anything", local_app.memory_verdict(2000, 6144, 15000, 10240))
+        self.assertIn("GPU memory", local_app.memory_verdict(20000, 6144, 4000, 10240))
+
+    def test_pins_match_the_reader_contract(self):
+        root = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..")
+        with open(os.path.join(root, "src", "core", "decision", "providers.js"), encoding="utf-8") as source:
+            text = source.read()
+        for value in (local_app.KEV_CODE_REVISION, KEV_MODEL_REVISION, EXPECTED_BASE, BASE_REVISION):
+            self.assertIn(value, text)
 
 
 if __name__ == "__main__":

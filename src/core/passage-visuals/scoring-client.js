@@ -2,12 +2,13 @@
  * Section-by-section Jev visual direction for one reading (browser side).
  *
  * Reading never waits for this. Local direction is always present; this
- * coordinator only asks for richer direction ahead of the reader:
+ * coordinator only asks for richer direction ahead of the reader, and only
+ * on the reader's own connection (their OpenRouter account or local Kev):
  *
  * - the current section first, then only the next one;
  * - at most one request in flight and six per minute from this client;
  * - no new request while paused, hidden, outside the Chamber, in Hold or
- *   Off, or without permission to send this text;
+ *   Off, without a reader connection, or without permission to send this text;
  * - a failed section is not retried in the same session;
  * - a response is accepted only for the exact source and section it was
  *   asked about, and only if its generation is still current;
@@ -23,8 +24,9 @@ import {
   validateScoreResponse
 } from './score-protocol.js';
 import { TREATMENT_CATALOG_VERSION } from './treatments.js';
+import { getConnection } from '../ai-connection.js';
+import { scoreSection } from './score-provider.js';
 
-export const VISUAL_SCORE_ENDPOINT = '/api/jev-visual-score';
 export const VISUAL_SCORE_CACHE_KEY = 'rise:visual-scores:v1';
 export const VISUAL_SCORE_CACHE_LIMIT = 100;
 export const CLIENT_REQUESTS_PER_MINUTE = 6;
@@ -85,17 +87,21 @@ export class VisualScoreCoordinator {
    * @param {object} options
    * @param {import('./director.js').PassageDirector} options.director
    * @param {{ id: string, text: string }[]} options.sources exact source text
-   * @param {typeof fetch} [options.fetchImpl]
+   * @param {(request: object, signal: AbortSignal) => Promise<object>} [options.score]
+   * @param {() => boolean} [options.canScore]
    * @param {VisualScoreCache} [options.cache]
    * @param {() => number} [options.now]
    * @param {(event: object) => void} [options.onEvent]
    */
-  constructor({ director, sources, fetchImpl = globalThis.fetch?.bind(globalThis), cache = null,
+  constructor({ director, sources,
+    score = (request, signal) => scoreSection(getConnection(), request, { signal }),
+    canScore = () => getConnection() !== null, cache = null,
     now = () => Date.now(), setTimer = (fn, ms) => setTimeout(fn, ms), clearTimer = id => clearTimeout(id),
     onEvent = () => {} }) {
     this.director = director;
     this.sources = sources;
-    this.fetchImpl = fetchImpl;
+    this.score = score;
+    this.canScore = canScore;
     this.cache = cache || new VisualScoreCache();
     this.now = now;
     this.setTimer = setTimer;
@@ -231,7 +237,7 @@ export class VisualScoreCoordinator {
     const target = !this.status.has(current.key)
       ? current
       : (wanted[1] && !this.status.has(wanted[1].key) ? wanted[1] : null);
-    if (!target || !this.permitted.has(target.sourceDigest)) return;
+    if (!target || !this.permitted.has(target.sourceDigest) || !this.canScore()) return;
 
     const since = this.now() - 60_000;
     this.sent = this.sent.filter(time => time > since);
@@ -270,22 +276,11 @@ export class VisualScoreCoordinator {
     const timeout = this.setTimer(() => controller.abort(), CLIENT_TIMEOUT_MS);
     let outcome;
     try {
-      const response = await this.fetchImpl(VISUAL_SCORE_ENDPOINT, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-        body: JSON.stringify(request),
-        signal: controller.signal,
-        credentials: 'same-origin',
-        cache: 'no-store'
-      });
-      if (!response.ok) {
-        outcome = { ok: false, code: `HTTP_${response.status}` };
-      } else {
-        const checked = validateScoreResponse(await response.json(), request);
-        outcome = checked.ok ? { ok: true, response: checked.response } : { ok: false, code: `INVALID_${checked.code}` };
-      }
+      const checked = validateScoreResponse(await this.score(request, controller.signal), request);
+      outcome = checked.ok ? { ok: true, response: checked.response } : { ok: false, code: `INVALID_${checked.code}` };
     } catch (cause) {
-      outcome = { ok: false, code: cause?.name === 'AbortError' ? 'ABORTED' : 'NETWORK' };
+      outcome = { ok: false, code: cause?.name === 'AbortError' || cause?.code === 'CANCELED' ? 'ABORTED'
+        : (typeof cause?.code === 'string' ? cause.code : 'NETWORK') };
     } finally {
       this.clearTimer(timeout);
     }

@@ -18,10 +18,11 @@ administrator bypass is disabled. Set these environment values before a release:
 | `production` | A separate secret `CLOUDFLARE_API_TOKEN`; variable `CLOUDFLARE_ACCOUNT_ID`. |
 
 Scope each Cloudflare token to only the account and deployment permissions it
-needs. Keep `OPENROUTER_API_KEY` in the production Worker as a Cloudflare Secret
-with a spend cap. It never belongs in GitHub, the browser,
-or the build artifact. The declared required secret makes Wrangler refuse a
-deployment when the Worker lacks it.
+needs. The production Worker holds no model credential: readers bring their own
+OpenRouter account or run Kev locally ([USER-OWNED-AI.md](USER-OWNED-AI.md)).
+Its only secrets are the catalog's `NEON_DATABASE_URL`, `UPSTASH_REDIS_REST_URL`
+and `UPSTASH_REDIS_REST_TOKEN`; the declared required secrets make Wrangler refuse
+a deployment when the Worker lacks them. The release check never calls a model.
 
 The production job checks the current main commit again after approval, verifies
 the artifact digest and release marker, and checks public pages and API errors

@@ -795,6 +795,9 @@ describe('every refusal the session can phrase has a status', () => {
       'experience-program.js rethrows a flame recipe refusal as '
       + 'PROGRAM_FLAME_RECIPE and editor-asset.js as EDITOR_ASSET_FLAME; the '
       + 'other readers normalize to null, so the raw class never escapes',
+    DecisionError:
+      'model routing is optional and runs before a sequence exists; '
+      + 'scriptorium-session.js routeWithJev catches it into { ok: false, message }',
     RiseCurrentError:
       'rise-current.js validates external sealed answers; the Scriptorium '
       + 'does not call compileRiseCurrent or accept rise.current.v1 inputs'

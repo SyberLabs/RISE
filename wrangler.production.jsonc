@@ -4,26 +4,21 @@
   "compatibility_date": "2026-09-26",
   "workers_dev": false,
   "preview_urls": false,
-  // Optional pilot remains off. Provision PERSONAL_PIECE_IP_SECRET as a Worker
-  // secret (at least 32 characters) before activation; never put its value here.
-  // CI overrides DECISION_PROVIDER at deploy; Jev (explicit rollback) stays the
-  // production choice until KEV_PRODUCTION_VERIFIED=true. Kev secrets are then
-  // checked by CI before deploy.
-  // A live answer with the reader's own OpenAI key (worker/live-realtime.mjs). Off until
-  // the creator switches it on; RISE funds no inference and stores no key.
-  "vars": { "PERSONAL_PIECE_ENABLED": "false", "DECISION_PROVIDER": "jev", "LIVE_REALTIME_ENABLED": "false", "MCP_ENABLED": "false" },
+  // Shared model inference is retired. Readers use their own OpenRouter account
+  // or run Kev locally; the optional live integrations remain switched off.
+  "vars": { "PERSONAL_PIECE_ENABLED": "false", "LIVE_REALTIME_ENABLED": "false", "MCP_ENABLED": "false" },
   // rise.syberlabs.io is attached to this Worker in the Cloudflare dashboard.
   "observability": { "enabled": true },
   "assets": {
     "directory": "./dist",
     "not_found_handling": "single-page-application",
     "binding": "ASSETS",
-    // The Kev worker script carries its own policy (worker/enterprise-decision.mjs).
+    // The Kev worker script carries its own policy (worker/kev-worker-script.mjs).
     "run_worker_first": ["/api/*", "/assets/kev-worker-*", "/assets/embed-worker-*"]
   },
+  // Only the public catalog reads these. Provider credentials are not required.
   "secrets": {
     "required": [
-      "OPENROUTER_API_KEY",
       "NEON_DATABASE_URL",
       "UPSTASH_REDIS_REST_URL",
       "UPSTASH_REDIS_REST_TOKEN"
@@ -33,9 +28,5 @@
     "name": "DECISION_LIMITER",
     "namespace_id": "2026092602",
     "simple": { "limit": 30, "period": 60 }
-  }, {
-    "name": "VISUAL_SCORE_LIMITER",
-    "namespace_id": "2026092701",
-    "simple": { "limit": 6, "period": 60 }
   }]
 }

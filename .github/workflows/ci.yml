@@ -28,7 +28,7 @@ jobs:
         run: |
           set -euo pipefail
           node scripts/ci-hygiene.mjs
-          node --test deploy/kev/staging-eval.test.mjs scripts/verify-decision-identity.test.mjs
+          node --test scripts/decision-eval.test.mjs local/bridge.test.mjs local/hardware.test.mjs local/launcher.test.mjs
           python3 -m unittest discover -s deploy/kev -p 'test_*.py'
           npm run security:audit &
           audit=$!
@@ -39,17 +39,21 @@ jobs:
           npx vitest run \
             src/core/system-design.test.js \
             worker/index.test.js \
-            worker/kev-migration.test.js \
+            worker/kev-worker-script.test.js \
+            src/core/decision \
+            src/core/openrouter-oauth.test.js \
             src/core/kev-client.test.js \
-            src/core/jev-decision.test.js \
-            worker/jev-recommend.test.js \
+            src/core/csp.test.js \
+            src/core/passage-visuals/score-provider.test.js \
+            src/core/passage-visuals/scoring-client.test.js \
+            src/components/Portal.jev.test.js \
+            src/components/Portal.test.js \
             src/components/Library.jev.test.js \
             src/core/content-store.test.js \
             src/core/journey-session.test.js \
             src/audio/engine.lifecycle.test.js \
             src/content/keystones.test.js \
-            src/enterprise \
-            worker/enterprise-decision.test.js &
+            src/enterprise &
           tests=$!
           npx vite build
           npm run measure:first-load
@@ -65,9 +69,8 @@ jobs:
       url: https://rise.syberlabs.io
     env:
       TESTED_SHA: ${{ github.sha }}
-      # Releases always ship. Production serves the explicit Jev rollback until the pinned
-      # Kev deployment passes the documented live gates and KEV_PRODUCTION_VERIFIED=true.
-      DECISION_PROVIDER: ${{ vars.KEV_PRODUCTION_VERIFIED == 'true' && (vars.DECISION_PROVIDER || 'kev') || 'jev' }}
+      # The Worker runs no model and holds no model credential; readers bring their
+      # own OpenRouter account or run Kev locally.
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
       CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
     steps:
@@ -103,21 +106,8 @@ jobs:
           set -euo pipefail
           current=$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/main" --jq '.object.sha')
           test "$TESTED_SHA" = "$current"
-          case "$DECISION_PROVIDER" in
-            jev) ;;
-            kev)
-              names=$(./node_modules/.bin/wrangler secret list --config wrangler.production.jsonc --format json | jq -r '.[].name')
-              for name in KEV_API_KEY KEV_BASE_URL KEV_REVISION; do
-                grep -qx "$name" <<< "$names" || { echo "Kev is selected but Worker secret $name is not set."; exit 1; }
-              done ;;
-            *) echo "Unsupported DECISION_PROVIDER=$DECISION_PROVIDER"; exit 1 ;;
-          esac
-          ./node_modules/.bin/wrangler deploy --config wrangler.production.jsonc \
-            --var "DECISION_PROVIDER:$DECISION_PROVIDER" --message "RISE $TESTED_SHA ($DECISION_PROVIDER)"
+          ./node_modules/.bin/wrangler deploy --config wrangler.production.jsonc --message "RISE $TESTED_SHA"
       - name: Verify public production serves the exact release
-        env:
-          KEV_MODEL: ${{ vars.KEV_MODEL || 'kev-latest' }}
-          KEV_REVISION: ${{ vars.KEV_REVISION }}
         run: |
           set -euo pipefail
           # Cloudflare can serve the prior version for a few seconds after deploy.
@@ -146,147 +136,33 @@ jobs:
           test "$status" = 404 || { echo "Expected JSON 404 for unknown API; got HTTP $status"; exit 1; }
           grep -Eiq '^content-type: application/json' "$RUNNER_TEMP/public-headers"
           jq -e '.error.code == "NOT_FOUND"' "$RUNNER_TEMP/public-body" > /dev/null
-          # The decision route calls a live model. One upstream error must not fail a release that
-          # already deployed, so retry transient failures and show the answer.
-          jev_post() {
-            local out=$1 data=$2 status=
-            for attempt in 1 2 3; do
-              status=$(curl -sS --max-time 30 -o "$out" -w '%{http_code}' \
-                -H 'Origin: https://rise.syberlabs.io' -H 'Content-Type: application/json' \
-                --data "$data" 'https://rise.syberlabs.io/api/jev-recommend' || true)
-              [ "$status" = 200 ] && return 0
-              echo "Decision recommendation attempt $attempt returned HTTP ${status:-none}: $(head -c 600 "$out" 2>/dev/null)"
-              sleep $((attempt * 5))
-            done
-            return 1
-          }
-          jev_post "$RUNNER_TEMP/jev-recommend-body" '{"intent":"A thoughtful classic about self-examination"}'
-          node scripts/verify-decision-identity.mjs "$RUNNER_TEMP/jev-recommend-body"
-          node --input-type=module -e "import { JEV_PALETTES } from './src/core/jev-palette.js'; console.log(JSON.stringify(JEV_PALETTES))" \
-            > "$RUNNER_TEMP/jev-palettes.json"
-          JEV_RESPONSE_FILE="$RUNNER_TEMP/jev-recommend-body" node --input-type=module -e '
+          # No release check may spend inference: the catalog is read-only public data,
+          # and every retired model route must answer 410 without calling a model.
+          status=$(curl -sS --max-time 20 --retry 5 --retry-delay 3 --retry-all-errors \
+            -o "$RUNNER_TEMP/catalog-body" -w '%{http_code}' 'https://rise.syberlabs.io/api/decision-catalog')
+          test "$status" = 200 || { echo "Expected the public decision catalog; got HTTP $status"; head -c 600 "$RUNNER_TEMP/catalog-body"; exit 1; }
+          CATALOG_FILE="$RUNNER_TEMP/catalog-body" node --input-type=module -e '
             import { readFileSync } from "node:fs";
-            import { resolveJevChamberConfig } from "./src/core/jev-config.js";
-            import { compileJevAudioProgram, compileJevVisualProgram } from "./src/core/jev-sequence.js";
-            const config = JSON.parse(readFileSync(process.env.JEV_RESPONSE_FILE, "utf8")).config;
-            const resolved = resolveJevChamberConfig(config);
-            // The original response shape omits the independent v2 color choices.
-            delete resolved.presentation.textColor;
-            delete resolved.presentation.backgroundColor;
-            console.log(JSON.stringify({ ...resolved,
-              visualProgram: compileJevVisualProgram(config),
-              audioProgram: compileJevAudioProgram(config) }));
-          ' > "$RUNNER_TEMP/jev-resolved.json"
-          jq -e --slurpfile editions src/content/archive/release-inventory.json \
-            --slurpfile palettes "$RUNNER_TEMP/jev-palettes.json" \
-            --slurpfile resolved "$RUNNER_TEMP/jev-resolved.json" '
-            . as $result
-            | $editions[0][$result.workId] as $edition
-            | ($result.requestId | type == "string" and length > 0)
-              and ($edition != null)
-              and ($result.editionId == $edition.editionId)
-              and ($result.sourceRevision == $edition.sourceRevision)
-              and ($result.config | keys | sort) ==
-                (["section", "wpm", "curve", "chunkMode", "audio", "visualMode", "visualStyle",
-                  "visualEngine", "visualArc", "arcSplit", "middleEngine", "finaleEngine",
-                  "middleTheme", "finaleTheme", "middleAudio", "finaleAudio",
-                  "visualPalette", "kleePreset", "galleryCadence", "chamberFace",
-                  "fontSize", "colorTheme", "colors", "wordFill", "projection", "revealMode",
-                  "audioPreset", "soundscape", "entrainmentMode", "entrainmentWaveform",
-                  "recitation", "voiceId", "visualConfig", "presentation", "visualProgram", "audioProgram"] | sort)
-              and ([100, 150, 200, 250, 300, 400, 500] | index($result.config.wpm)) != null
-              and (["flat", "induction", "ascent", "wave", "climax"] | index($result.config.curve)) != null
-              and (["word", "phrase", "sentence", "paragraph"] | index($result.config.chunkMode)) != null
-              and (["silent", "aurora", "faded-signal", "sad", "angry", "happy", "excited", "thrilling", "scary", "soft-rain", "piano", "jazz", "lullaby", "nocturne", "waltz", "blues", "bossa", "ragtime", "wonder", "mystery", "chase", "triumph", "haunted", "starlight"] | index($result.config.audio)) != null
-              and (["silent", "aurora", "faded-signal", "sad", "angry", "happy", "excited", "thrilling", "scary", "soft-rain", "piano", "jazz", "lullaby", "nocturne", "waltz", "blues", "bossa", "ragtime", "wonder", "mystery", "chase", "triumph", "haunted", "starlight"] | index($result.config.middleAudio)) != null
-              and (["silent", "aurora", "faded-signal", "sad", "angry", "happy", "excited", "thrilling", "scary", "soft-rain", "piano", "jazz", "lullaby", "nocturne", "waltz", "blues", "bossa", "ragtime", "wonder", "mystery", "chase", "triumph", "haunted", "starlight"] | index($result.config.finaleAudio)) != null
-              and (["off", "focals", "genesis", "attractor", "interlocution"] | index($result.config.visualMode)) != null
-              and (["quiet", "gentle", "immersive", "psychedelic"] | index($result.config.visualStyle)) != null
-              and (["klee", "turrell", "fractal", "harmonograph", "ostensoria", "apparitio"] | index($result.config.visualEngine)) != null
-              and (["single", "dual", "triple"] | index($result.config.visualArc)) != null
-              and (["30", "50", "70"] | index($result.config.arcSplit)) != null
-              and (["klee", "turrell", "fractal", "harmonograph", "ostensoria", "apparitio"] | index($result.config.middleEngine)) != null
-              and (["klee", "turrell", "fractal", "harmonograph", "ostensoria", "apparitio"] | index($result.config.finaleEngine)) != null
-              and (["white", "red", "blue", "gold", "purple"] | index($result.config.visualPalette)) != null
-              and (["random", "architectural", "chaotic", "harmonic", "gravitational", "twittering"] | index($result.config.kleePreset)) != null
-              and (["slow", "balanced", "lively"] | index($result.config.galleryCadence)) != null
-              and (["literary", "display", "thick", "jp", "mono", "sans", "book"] | index($result.config.chamberFace)) != null
-              and (["small", "medium", "large", "xlarge", "fit"] | index($result.config.fontSize)) != null
-              and (["plain", "accent", "same"] | index($result.config.wordFill)) != null
-              and ($result.config.colors == $palettes[0][$result.config.colorTheme])
-              and ($palettes[0][$result.config.middleTheme] != null)
-              and ($palettes[0][$result.config.finaleTheme] != null)
-              and (["stream", "page"] | index($result.config.projection)) != null
-              and (["instant", "progressive"] | index($result.config.revealMode)) != null
-              and (["first", "middle", "last", "shortest", "longest"] | index($result.config.section)) != null
-              and ($result.config.audioPreset == $resolved[0].audioPreset)
-              and ($result.config.soundscape == $resolved[0].soundscape)
-              and ($result.config.entrainmentMode == $resolved[0].entrainmentMode)
-              and ($result.config.entrainmentWaveform == $resolved[0].entrainmentWaveform)
-              and ($result.config.recitation == $resolved[0].recitation)
-              and ($result.config.voiceId == $resolved[0].voiceId)
-              and ($result.config.visualConfig == $resolved[0].visualConfig)
-              and ($result.config.visualProgram == $resolved[0].visualProgram)
-              and ($result.config.audioProgram == $resolved[0].audioProgram)
-              and (if $result.config.visualArc == "single" then
-                $result.config.visualProgram == null and $result.config.audioProgram == null
-              else $result.config.audioProgram != null
-                and (if $result.config.visualMode == "off" then
-                  $result.config.visualProgram == null
-                else $result.config.visualProgram != null end) end)
-              and ($result.config.presentation == $resolved[0].presentation)
-              and ($result.config.projection == $resolved[0].projection)
-              and (if $result.config.visualStyle == "psychedelic" then
-                $result.config.visualMode == "interlocution"
-                and $result.config.visualEngine == "fractal"
-                and $result.config.galleryCadence == "lively"
-                and $result.config.colorTheme == "prism"
-                and $result.config.projection == "stream"
-              else true end)
-              and (if $result.config.visualStyle == "immersive"
-                or $result.config.visualMode == "genesis"
-                or $result.config.visualMode == "attractor"
-                or $result.config.visualMode == "interlocution"
-                then $result.config.projection == "stream" else true end)
-              and (if $result.config.wordFill == "same" then
-                $result.config.visualMode == "interlocution"
-                and $result.config.chamberFace == "thick"
-                and $result.config.fontSize == "fit"
-                and $result.config.chunkMode == "word"
-              else true end)
-              and ($result | has("text") | not)
-              and ($result | has("reading") | not)
-          ' "$RUNNER_TEMP/jev-recommend-body" > /dev/null || {
-            echo "Live decision v1 answer did not match the request contract:"; cat "$RUNNER_TEMP/jev-recommend-body"; exit 1; }
-          jev_post "$RUNNER_TEMP/jev-recommend-v2-body" \
-            '{"intent":"A warm gold reading on a dark forest background with large text and gentle piano","schemaVersion":2}'
-          node scripts/verify-decision-identity.mjs "$RUNNER_TEMP/jev-recommend-v2-body"
-          JEV_RESPONSE_FILE="$RUNNER_TEMP/jev-recommend-v2-body" node --input-type=module -e '
-            import { readFileSync } from "node:fs";
-            import { JEV_INKS, JEV_PALETTES, jevColors } from "./src/core/jev-palette.js";
-            import { resolveJevChamberConfig } from "./src/core/jev-config.js";
-            const result = JSON.parse(readFileSync(process.env.JEV_RESPONSE_FILE, "utf8"));
-            const config = result.config;
-            const colors = config && jevColors(config.colorTheme, config.textColor, config.backgroundColor);
-            const expected = config && resolveJevChamberConfig(config).presentation;
-            if (result.schemaVersion !== 2
-              || !result.requestId || !colors || !expected
-              || !Object.hasOwn(JEV_INKS, config.textColor)
-              || !Object.hasOwn(JEV_PALETTES, config.backgroundColor)
-              || JSON.stringify(config.colors) !== JSON.stringify(colors)
-              || JSON.stringify(config.presentation) !== JSON.stringify(expected)) {
-              console.error("Live decision v2 visual and audio choices did not match the request contract:");
-              console.error(JSON.stringify(result));
-              process.exit(1);
-            }
-          '
-          status=$(curl -sS --max-time 20 -o "$RUNNER_TEMP/release-after-jev" \
+            import { readPublicCatalog } from "./src/core/decision/catalog.js";
+            if (!readPublicCatalog(JSON.parse(readFileSync(process.env.CATALOG_FILE, "utf8")))) {
+              console.error("The live decision catalog does not pass the browser contract."); process.exit(1);
+            }'
+          for path in /api/jev-recommend /api/jev-decision /api/jev/route /api/jev-visual-score /api/enterprise-decision /api/personal-piece; do
+            status=$(curl -sS --max-time 20 --retry 3 --retry-delay 2 --retry-all-errors \
+              -o "$RUNNER_TEMP/retired-body" -w '%{http_code}' -X POST \
+              -H 'Origin: https://rise.syberlabs.io' -H 'Content-Type: application/json' \
+              --data '{"intent":"A thoughtful classic about self-examination","schemaVersion":3}' \
+              "https://rise.syberlabs.io$path")
+            test "$status" = 410 || { echo "Retired route $path answered HTTP $status"; exit 1; }
+            jq -e '.error.code == "SHARED_INFERENCE_RETIRED"' "$RUNNER_TEMP/retired-body" > /dev/null
+          done
+          status=$(curl -sS --max-time 20 -o "$RUNNER_TEMP/release-after-checks" \
             -w '%{http_code}' "https://rise.syberlabs.io/release-$TESTED_SHA.txt")
-          test "$status" = 200 && test "$(cat "$RUNNER_TEMP/release-after-jev")" = "$TESTED_SHA" || {
-            echo "Production changed during the decision smoke check; expected release $TESTED_SHA."
+          test "$status" = 200 && test "$(cat "$RUNNER_TEMP/release-after-checks")" = "$TESTED_SHA" || {
+            echo "Production changed during the release checks; expected release $TESTED_SHA."
             exit 1
           }
           {
-            echo "Deployed production artifact $TESTED_SHA; public pages, exact release marker, JSON API 404, and both live decision response versions verified."
-            echo 'Owner acceptance: ask RISE for a reading at https://rise.syberlabs.io/ and check that Chamber starts with the selected text and settings.'
+            echo "Deployed production artifact $TESTED_SHA; public pages, exact release marker, JSON API 404, public decision catalog, and every retired inference route (410) verified. No model was called."
+            echo 'Owner acceptance: connect your own OpenRouter account at https://rise.syberlabs.io/, ask for a reading, and check that Chamber starts with the selected text and settings.'
           } >> "$GITHUB_STEP_SUMMARY"

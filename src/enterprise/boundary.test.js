@@ -10,10 +10,6 @@ import { describe, expect, it } from 'vitest';
 
 const ROOT = join(import.meta.dirname, '..', '..');
 const ENTERPRISE = join(ROOT, 'src/enterprise');
-const DECISION_ROUTE = new Set([
-    join(ROOT, 'worker/enterprise-decision.mjs'),
-    join(ROOT, 'worker/enterprise-decision.test.js')
-]);
 
 function javascriptFiles(dir, out = []) {
     for (const entry of readdirSync(dir)) {
@@ -64,7 +60,7 @@ describe('enterprise stays beside the reader', () => {
                 }
                 if (!entry.endsWith('.js') && !entry.endsWith('.mjs')) continue;
                 const source = readFileSync(full, 'utf8');
-                if (/enterprise\//u.test(source) && !DECISION_ROUTE.has(full)) offenders.push(full);
+                if (/enterprise\//u.test(source)) offenders.push(full);
             }
         };
         walk(join(ROOT, 'src'));

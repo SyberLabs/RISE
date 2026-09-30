@@ -23,6 +23,7 @@ export async function requestPersonalPiece(input, { signal, fetcher = fetch, dea
         body: JSON.stringify({ requestId, ...input }), signal: controller.signal
       });
       if (!response.ok) {
+        if (response.status === 410) throw new Error('RISE no longer pays for AI writing, so new personal readings are not available. You can still read, import, and keep existing pieces.');
         if (response.status === 503) throw new Error('The writer is currently unavailable. You can still read, import, and keep existing pieces.');
         if (response.status === 409) throw new Error('This request was already used; its response cannot be recovered. No automatic retry was made.');
         if (response.status === 429) throw new Error('The writing limit has been reached. Please try later.');

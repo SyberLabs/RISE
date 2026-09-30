@@ -1,7 +1,7 @@
 /**
  * The bounded choice, and the rules that keep the rail from flickering.
  *
- * A decider — JEV, or the rule stand-in — may return show, hold, or dismiss,
+ * A decider — local Kev, on-device Kev, or the rule stand-in — may return show, hold, or dismiss,
  * a candidate id, and a layout. Any other field refuses the decision. The
  * decider is not given documents. Hysteresis lives here, outside the model:
  * a cooldown, a dwell, and a margin.

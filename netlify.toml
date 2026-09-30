@@ -57,13 +57,15 @@
     Referrer-Policy = "strict-origin-when-cross-origin"
     Permissions-Policy = "camera=(), microphone=(self), geolocation=()"
     # CSP: self-hosted scripts only; APIs limited to the content providers the app
-    # actually calls (Gutenberg, arXiv, Wikimedia Commons, Met, Art Institute, corsproxy).
+    # actually calls (Gutenberg, arXiv, Wikimedia Commons, Met, Art Institute, corsproxy),
+    # plus openrouter.ai: a reader who connects their own OpenRouter account calls
+    # its OAuth key exchange and Decisions API directly from this page.
     # img-src allows any https CDN because museum APIs return varied image hosts.
     #
     # Runtime Recitation is static and same-origin. Kokoro is used only by
     # the local pack builder, so deployed readers need no model host, API,
     # third-party script, or WebAssembly policy exception.
-    Content-Security-Policy = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob: https:; media-src 'self' blob:; worker-src 'self' blob:; connect-src 'self' https://www.gutenberg.org https://corsproxy.io https://export.arxiv.org https://commons.wikimedia.org https://upload.wikimedia.org https://api.artic.edu https://www.artic.edu https://collectionapi.metmuseum.org https://openaccess-api.clevelandart.org https://id.rijksmuseum.nl; object-src 'none'; base-uri 'self'; frame-ancestors 'none'"
+    Content-Security-Policy = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob: https:; media-src 'self' blob:; worker-src 'self' blob:; connect-src 'self' https://www.gutenberg.org https://corsproxy.io https://export.arxiv.org https://commons.wikimedia.org https://upload.wikimedia.org https://api.artic.edu https://www.artic.edu https://collectionapi.metmuseum.org https://openaccess-api.clevelandart.org https://id.rijksmuseum.nl https://openrouter.ai; object-src 'none'; base-uri 'self'; frame-ancestors 'none'"
 
 # The shell must never be cached: it names the hashed chunks, so a
 # stale index.html sends a browser after files the current deploy has
@@ -75,6 +77,14 @@
   for = "/index.html"
   [headers.values]
     Cache-Control = "public, max-age=0, must-revalidate"
+
+# The OpenRouter sign-in returns here with a one-time code in the URL; no
+# request made from this page may carry that URL as a Referer.
+[[headers]]
+  for = "/connect/*"
+  [headers.values]
+    Referrer-Policy = "no-referrer"
+    Cache-Control = "no-store"
 
 # Netlify serves .webmanifest as application/octet-stream; Chrome requires
 # a JSON media type or it declines to parse the manifest.
