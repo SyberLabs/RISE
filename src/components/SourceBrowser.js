@@ -1,12 +1,12 @@
 /**
  * Source Browser
  * Slide-in panel for exploring and selecting content from providers
- * Supports both text and visual content with appropriate rendering
+ * Lists the Archive and lets a reader add a work or chapter to the Workshop
  */
 
 import { SourceRegistry } from '../sources/registry.js';
 import { ensureSourceSystem } from '../sources/bootstrap.js';
-import { escapeHtml, safeUrl } from '../core/sanitize.js';
+import { escapeHtml } from '../core/sanitize.js';
 import { isAbortError } from '../sources/visual/request.js';
 
 export class SourceBrowser {
@@ -14,8 +14,6 @@ export class SourceBrowser {
         this.onSelect = options.onSelect || (() => { });
         this.onClose = options.onClose || (() => { });
 
-        // Mode: 'all' shows both text and visual, 'text' shows only text providers
-        this.browserMode = options.mode || 'all';
         this.providerIds = Array.isArray(options.providerIds) ? new Set(options.providerIds) : null;
         this.autoSelectProviderId = options.autoSelectProviderId || null;
 
@@ -33,14 +31,11 @@ export class SourceBrowser {
         this._destroyed = false;
         this.returnFocus = document.activeElement;
 
-        // Track expanded visual categories for browsing individual images
-        this.expandedCategory = null;
-        this.categoryImages = [];
         this.activeTextItem = null;
         this.textContents = null;
         this.contentsQuery = '';
 
-        // Mode: provider items, visual-category images, or a work's contents
+        // Mode: provider items or a work's contents
         this.viewMode = 'categories';
 
         this.create();
@@ -85,10 +80,6 @@ export class SourceBrowser {
                                 <span class="sb-group-label">Text</span>
                                 <ul class="sb-provider-list" data-type="text"></ul>
                             </div>
-                            <div class="sb-provider-group">
-                                <span class="sb-group-label">Visual</span>
-                                <ul class="sb-provider-list" data-type="visual"></ul>
-                            </div>
                         </nav>
                         <nav class="sb-library-navigation" aria-label="Archive shelves" hidden></nav>
                     </aside>
@@ -114,7 +105,7 @@ export class SourceBrowser {
 
         // The source system is built here rather than at application boot:
         // this panel is the only reader of the registry, so this is the
-        // first moment anything needs seven providers and their payloads.
+        // first moment anything needs the Archive provider and its payload.
         // The shell is already on screen, so the list fills in behind it.
         this._providersReady = ensureSourceSystem()
             .catch(error => {
@@ -137,12 +128,9 @@ export class SourceBrowser {
 
     renderProviders() {
         const textList = this.element.querySelector('[data-type="text"]');
-        const visualList = this.element.querySelector('[data-type="visual"]');
-        const visualGroup = this.element.querySelector('.sb-provider-group:has([data-type="visual"])');
 
         const includeProvider = provider => !this.providerIds || this.providerIds.has(provider.id);
         const textProviders = SourceRegistry.getTextProviders().filter(includeProvider);
-        const visualProviders = SourceRegistry.getVisualProviders().filter(includeProvider);
 
         textList.innerHTML = textProviders.map(p => `
             <li>
@@ -152,20 +140,6 @@ export class SourceBrowser {
                 </button>
             </li>
         `).join('');
-
-        // Hide visual providers in text-only mode
-        if (this.browserMode === 'text') {
-            if (visualGroup) visualGroup.hidden = true;
-        } else {
-            visualList.innerHTML = visualProviders.map(p => `
-                <li>
-                    <button class="sb-provider-btn" data-provider="${p.id}">
-                        <span class="sb-provider-name">${p.name}</span>
-                        <span class="sb-provider-tier tier-${p.tier}">${p.tier}</span>
-                    </button>
-                </li>
-            `).join('');
-        }
     }
 
     renderLibraryNavigation(provider = this.activeProvider) {
@@ -199,13 +173,6 @@ export class SourceBrowser {
         if (providerNavigation) providerNavigation.hidden = true;
     }
 
-    /**
-     * Check if provider is visual type
-     */
-    isVisualProvider(provider) {
-        return provider && ['image', 'diagram', 'fractal'].includes(provider.contentType);
-    }
-
     async loadProviderContent(providerId) {
         const provider = SourceRegistry.get(providerId);
         if (!provider || this._destroyed) return;
@@ -216,7 +183,6 @@ export class SourceBrowser {
 
         // Reset view mode
         this.viewMode = 'categories';
-        this.expandedCategory = null;
 
         // Update header
         const header = this.element.querySelector('.sb-content-title');
@@ -268,58 +234,7 @@ export class SourceBrowser {
         }
     }
 
-    /**
-     * Load individual images from a visual category
-     */
-    async loadCategoryImages(categoryId) {
-        if (!this.activeProvider || this._destroyed) return;
-        const provider = this.activeProvider;
-        const { version, signal } = this._beginRequest();
-        const contentList = this.element.querySelector('.sb-content-list');
-        contentList.innerHTML = '<div class="sb-loading"><div class="sb-loading-spinner"></div>Loading images...</div>';
-
-        try {
-            const categoryData = await provider.get(categoryId, { signal });
-
-            if (!this._isCurrentRequest(version, provider)) return;
-            if (categoryData?.data?.images) {
-                this.categoryImages = categoryData.data.images;
-                this.expandedCategory = categoryId;
-                this.viewMode = 'images';
-                this.renderCategoryImages(categoryData.name);
-            } else {
-                contentList.innerHTML = '<div class="sb-empty">No images found in this category</div>';
-            }
-        } catch (error) {
-            if (isAbortError(error) || !this._isCurrentRequest(version, provider)) return;
-            contentList.textContent = `Failed to load images: ${error.message || 'Unknown error'}`;
-            contentList.className = 'sb-content-list sb-error';
-            console.error('[SourceBrowser] Category load error:', error);
-        }
-    }
-
-    /**
-     * Go back from image view to category view
-     */
-    goBackToCategories() {
-        this.viewMode = 'categories';
-        this.expandedCategory = null;
-        this.categoryImages = [];
-
-        const backBtn = this.element.querySelector('.sb-back-btn');
-        if (backBtn) backBtn.hidden = true;
-
-        const header = this.element.querySelector('.sb-content-title');
-        header.textContent = this.activeProvider.name;
-
-        this.renderContent();
-    }
-
     goBack() {
-        if (this.viewMode !== 'contents') {
-            this.goBackToCategories();
-            return;
-        }
         this.viewMode = 'categories';
         this.activeTextItem = null;
         this.textContents = null;
@@ -343,11 +258,7 @@ export class SourceBrowser {
             return;
         }
 
-        if (this.isVisualProvider(this.activeProvider)) {
-            contentList.innerHTML = this.renderVisualContent();
-        } else {
-            contentList.innerHTML = this.renderTextContent();
-        }
+        contentList.innerHTML = this.renderTextContent();
     }
 
     /**
@@ -510,98 +421,6 @@ export class SourceBrowser {
         }
     }
 
-    /**
-     * Render visual content with thumbnails
-     */
-    renderVisualContent() {
-        return `
-            <div class="sb-visual-grid">
-                ${this.contentItems.map((item, index) => this.renderVisualItem(item, index)).join('')}
-            </div>
-        `;
-    }
-
-    /**
-     * Render a single visual item card
-     */
-    renderVisualItem(item, index) {
-        const isGenerative = item.metadata?.generative || item.data?.isGenerative;
-        const isCategory = item.metadata?.isCategory || item.data?.isCategory;
-        const previewUrl = item.metadata?.previewUrl || item.data?.previewUrl;
-        const previewGradient = item.metadata?.previewGradient || item.data?.previewGradient;
-        const previewIcon = item.metadata?.previewIcon || item.data?.previewIcon;
-
-        let previewStyle = '';
-        let previewContent = '';
-
-        const cleanPreviewUrl = safeUrl(previewUrl);
-        if (cleanPreviewUrl) {
-            previewStyle = `background-image: url('${cleanPreviewUrl}'); background-size: cover; background-position: center;`;
-        } else if (previewGradient) {
-            previewStyle = `background: ${previewGradient};`;
-            previewContent = `<span class="sb-visual-icon">${previewIcon || '◈'}</span>`;
-        } else {
-            previewStyle = 'background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);';
-            previewContent = `<span class="sb-visual-icon">◈</span>`;
-        }
-
-        const typeLabel = isGenerative ? 'Procedural' : (isCategory ? 'Category' : 'Image');
-        const actionLabel = isCategory ? 'Browse' : 'Add';
-        const actionClass = isCategory ? 'sb-visual-browse' : 'sb-visual-add';
-
-        return `
-            <div class="sb-visual-card" data-index="${index}" data-type="${isCategory ? 'category' : 'item'}">
-                <div class="sb-visual-preview" style="${previewStyle}">
-                    ${previewContent}
-                    ${isGenerative ? '<span class="sb-visual-badge">Procedural</span>' : ''}
-                    ${isCategory ? '<span class="sb-visual-badge sb-badge-category">Collection</span>' : ''}
-                </div>
-                <div class="sb-visual-info">
-                    <span class="sb-visual-name">${escapeHtml(item.name)}</span>
-                    <span class="sb-visual-type">${typeLabel}</span>
-                </div>
-                <button class="${actionClass}" type="button" data-index="${index}" data-category="${escapeHtml(item.id || '')}">
-                    ${actionLabel}
-                </button>
-            </div>
-        `;
-    }
-
-    /**
-     * Render individual images from a category
-     */
-    renderCategoryImages(categoryName) {
-        const contentList = this.element.querySelector('.sb-content-list');
-        const header = this.element.querySelector('.sb-content-title');
-        const backBtn = this.element.querySelector('.sb-back-btn');
-
-        header.textContent = categoryName;
-        if (backBtn) backBtn.hidden = false;
-
-        if (this.categoryImages.length === 0) {
-            contentList.innerHTML = '<div class="sb-empty">No images found</div>';
-            return;
-        }
-
-        contentList.innerHTML = `
-            <div class="sb-visual-grid sb-image-grid">
-                ${this.categoryImages.map((img, index) => `
-                    <div class="sb-visual-card sb-image-card" data-img-index="${index}">
-                        <div class="sb-visual-preview" style="background-image: url('${safeUrl(img.url)}'); background-size: cover; background-position: center;">
-                        </div>
-                        <div class="sb-visual-info">
-                            <span class="sb-visual-name">${escapeHtml(this.truncate(img.title, 30))}</span>
-                            ${img.artist ? `<span class="sb-visual-artist">${escapeHtml(this.truncate(img.artist.replace(/<[^>]*>/g, ''), 25))}</span>` : ''}
-                        </div>
-                        <button class="sb-visual-add" type="button" data-img-index="${index}">
-                            Add
-                        </button>
-                    </div>
-                `).join('')}
-            </div>
-        `;
-    }
-
     truncate(text, maxLen) {
         if (!text || text.length <= maxLen) return text || '';
         return text.substring(0, maxLen).trim() + '...';
@@ -638,7 +457,7 @@ export class SourceBrowser {
                 return;
             }
             if (e.key === 'Escape') {
-                if (this.viewMode === 'images' || this.viewMode === 'contents') {
+                if (this.viewMode === 'contents') {
                     this.goBack();
                 } else {
                     this.close();
@@ -695,20 +514,6 @@ export class SourceBrowser {
                 return;
             }
 
-            // Visual item add (procedural or image)
-            const visualAddBtn = e.target.closest('.sb-visual-add');
-            if (visualAddBtn) {
-                if (visualAddBtn.dataset.imgIndex !== undefined) {
-                    // Adding individual image from category
-                    const imgIndex = parseInt(visualAddBtn.dataset.imgIndex);
-                    this.selectCategoryImage(imgIndex, visualAddBtn);
-                } else {
-                    // Adding visual item (procedural)
-                    const index = parseInt(visualAddBtn.dataset.index);
-                    this.selectVisualItem(index, visualAddBtn);
-                }
-                return;
-            }
         });
 
         // Search
@@ -771,80 +576,6 @@ export class SourceBrowser {
                 addBtn.textContent = 'Error';
                 addBtn.disabled = false;
             }
-        }
-    }
-
-    /**
-     * Select a visual item (procedural generator)
-     */
-    async selectVisualItem(index, btn) {
-        const item = this.contentItems[index];
-        if (!item) return;
-        const provider = this.activeProvider;
-        if (!provider) return;
-        this._selectionController?.abort();
-        const selectionController = new AbortController();
-        this._selectionController = selectionController;
-
-        btn.textContent = 'Adding...';
-        btn.disabled = true;
-
-        try {
-            const fullItem = await provider.get(item.id, { signal: selectionController.signal });
-            if (this._destroyed || selectionController.signal.aborted) return;
-            this.onSelect(fullItem || item, provider);
-
-            btn.textContent = 'Added';
-            btn.closest('.sb-visual-card')?.classList.add('added');
-        } catch (error) {
-            if (isAbortError(error)) return;
-            console.error('[SourceBrowser] Failed to add visual item:', error);
-            btn.textContent = 'Error';
-            btn.disabled = false;
-        }
-    }
-
-    /**
-     * Select an individual image from a category
-     */
-    async selectCategoryImage(imgIndex, btn) {
-        const img = this.categoryImages[imgIndex];
-        if (!img) return;
-        const provider = this.activeProvider;
-        if (!provider) return;
-
-        btn.textContent = 'Adding...';
-        btn.disabled = true;
-
-        try {
-            // Create a visual item from the image
-            const visualItem = {
-                id: img.id,
-                type: 'image',
-                name: img.title,
-                data: {
-                    url: img.url,
-                    fullUrl: img.fullUrl,
-                    isImage: true
-                },
-                providerId: provider.id,
-                tier: provider.tier,
-                metadata: {
-                    url: img.url,
-                    artist: img.artist,
-                    license: img.license,
-                    categoryId: this.expandedCategory
-                }
-            };
-
-            this.onSelect(visualItem, provider);
-
-            btn.textContent = 'Added';
-            btn.closest('.sb-visual-card')?.classList.add('added');
-        } catch (error) {
-            console.error('[SourceBrowser] Failed to add image:', error);
-            btn.textContent = 'Error';
-            btn.disabled = false;
         }
     }
 
