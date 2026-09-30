@@ -32,7 +32,6 @@ export { runBenchmark } from './benchmark/harness.js';
 export { mapPert, mapReward } from './benchmark/external.js';
 export { renderReport } from './benchmark/report.js';
 export { hostedTeacher } from './benchmark/teacher.js';
-export { runReadoutSession, onnxUnavailable } from './inference.js';
 export {
     AFFECT_PROGRAM_SCHEMA,
     PROGRAM_REFUSALS,
