@@ -35,6 +35,7 @@ import { currentToEvents } from './current-events.js';
 import { DIVE_INSTRUCTIONS, TOOL_NAME } from './current-guide.js';
 
 export { TOOL_NAME };
+const HOST_ORIGIN = Object.freeze({ kind: 'model', name: 'Host model', provider: 'MCP host' });
 const clip = (text, length) => (text.length <= length ? text : `${text.slice(0, length - 1)}…`);
 
 /** What a Dive puts to the host's model. Everything quoted is quoted, not instruction. */
@@ -104,7 +105,7 @@ export function createMcpAppAdapter({ port, clock = createRealClock(), timeoutMs
             /** Anything said about a Current that never arrived still needs a Current to be said about. */
             const ensureOpen = () => {
                 if (log.some(event => event.type === 'current.open')) return;
-                put('current.open', { title: 'Answer', origin: { kind: 'model', name: 'Host model', provider: 'MCP host' } });
+                put('current.open', { title: 'Answer', origin: HOST_ORIGIN });
             };
             const fail = (code, message) => {
                 if (finished) return;
@@ -122,7 +123,8 @@ export function createMcpAppAdapter({ port, clock = createRealClock(), timeoutMs
                     fail('INVALID_CURRENT', `The Current was refused: ${String(error?.message ?? error)}`);
                     return true;
                 }
-                for (const event of events) put(event.type, event.body);
+                // Whatever it says of itself, it came through the host, and a claim of a person's authorship cannot be checked.
+                for (const event of events) put(event.type, event.type === 'current.open' ? { ...event.body, origin: HOST_ORIGIN } : event.body);
                 end();
                 return true;
             };

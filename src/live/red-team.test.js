@@ -13,7 +13,7 @@
  */
 import { describe, expect, it } from 'vitest';
 import { compileRiseCurrent } from '../core/rise-current.js';
-import { toSealedCurrent } from '../test/sealed-current.js';
+import { BLACK_HOLES_CURRENT, toSealedCurrent } from '../test/sealed-current.js';
 import { createFakeMcpPort } from '../test/fake-mcp-port.js';
 import { createChannel, createEventWriter } from './adapter.js';
 import { createMcpAppAdapter } from './adapters/mcp-app.js';
@@ -555,10 +555,23 @@ describe('MCP: who a host’s model may say it is', () => {
         return stream;
     }
 
-    it.fails('DEFECT: a Dive written by the host’s model can present itself as a human author', async () => {
+    it('a Dive written by the host’s model cannot present itself as a human author', async () => {
         const stream = await diveAnswer({ kind: 'human', name: 'Your teacher' });
         const origin = stream.snapshot().origin;
         expect(describeOrigin(origin)).toMatch(/^Written when you asked, by /u);
+        expect(compileRiseCurrent(stream.toCurrent()).experienceProgram.authority).toBe('proposed');
+    });
+
+    it('an answer the host hands over cannot present itself as a human author either', async () => {
+        const clock = createVirtualClock();
+        const port = createFakeMcpPort({ clock });
+        const connection = await createMcpAppAdapter({ port, clock }).open({ intent: 'answer', prompt: 'q' });
+        port.answer({ ...BLACK_HOLES_CURRENT, origin: { kind: 'human', name: 'The RISE editors' } });
+        const stream = createCurrentStream();
+        const read = (async () => { for await (const raw of connection.events) stream.apply(raw); })();
+        await clock.advance(1_000);
+        await read;
+        expect(stream.snapshot().origin.kind).toBe('model');
         expect(compileRiseCurrent(stream.toCurrent()).experienceProgram.authority).toBe('proposed');
     });
 });

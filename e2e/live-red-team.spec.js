@@ -119,8 +119,7 @@ test.describe('the embedded page under a parent it cannot identify', () => {
         expect(asked.params.messages[0].content.text).toContain('something only the reader knows');
     });
 
-    test('DEFECT: the host’s model can have its Dive shown to the reader as a person’s words', async ({ page, baseURL }) => {
-        test.fail(true, 'mcp-app passes the Current’s self-declared origin through');
+    test('the host’s model cannot have its Dive shown to the reader as a person’s words', async ({ page, baseURL }) => {
         const { app } = await framedByAnySite(page, baseURL);
         await expect(app.locator('.live-passage__origin')).toHaveText(/^Written when you asked, by /u, { timeout: 3_000 });
     });
