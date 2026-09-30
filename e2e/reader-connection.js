@@ -93,31 +93,3 @@ export async function answerDecisions(page, plans, { status, onRequest = () => {
   });
   return seen;
 }
-
-export const KEV_REVISION = '139fdd94f1b6a6ad80cc15e08fcb99cac885a101';
-
-/**
- * Serve the page the way local RISE does (the bridge marks its HTML and
- * reports Kev ready) and answer the same-origin Kev route with attestation.
- */
-export async function runAsLocalRise(page, plans) {
-  const list = Array.isArray(plans) ? plans : [plans];
-  const seen = [];
-  await page.route(url => url.pathname === '/' || url.pathname === '/index.html', async route => {
-    const response = await route.fetch();
-    const body = (await response.text()).replace('<head>', '<head>\n    <meta name="rise-local" content="1">');
-    return route.fulfill({ response, body });
-  });
-  await page.route('**/api/local/status', route => route.fulfill({ json: {
-    rise: 'local', kev: { state: 'ready', revision: KEV_REVISION, device: 'Test GPU' }
-  } }));
-  const sounds = list.flatMap(plan => [plan.config.audio, plan.config.middleAudio, plan.config.finaleAudio]);
-  await page.route('**/api/decision-catalog', route => route.fulfill({ json: catalogWith(sounds) }));
-  await page.route('**/api/local/kev/systemone', route => {
-    seen.push({ body: route.request().postDataJSON(), authorization: route.request().headers().authorization });
-    const plan = list[Math.min(seen.length - 1, list.length - 1)];
-    return route.fulfill({ headers: { 'x-kev-revision': KEV_REVISION },
-      json: { model: 'kev-latest', answers: answersFor(plan), latency_ms: 42 } });
-  });
-  return seen;
-}

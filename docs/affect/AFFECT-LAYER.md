@@ -21,8 +21,6 @@ A prior is a scale choice. It is not a result from this corpus.
 
 ```bash
 npm run affect:benchmark
-npm run affect:export-onnx
-npm run affect:bench-runtime
 npm run affect:export-brief -- path/to/text.txt path/to/outdir
 node scripts/affect/fit-readout.mjs
 ```

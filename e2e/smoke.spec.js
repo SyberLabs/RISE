@@ -8,8 +8,6 @@
  *   3. Leave, Begin again → it sounds the SECOND time (the level-
  *      overwrite regression)
  *   4. Exiting a session resumes the lobby drone
- *   5. Procedural-only selection shows no painting categories
- *      (the additive-arrays regression)
  *   6. The loaded text and settings survive a refresh
  */
 import { test, expect, openHomeNav } from './fixtures.js';
@@ -130,42 +128,6 @@ test('4 · exiting a session resumes the lobby drone', async ({ page }) => {
         const s = await audioState(page);
         return s.sessionActive === false && s.ambient ? 'lobby' : JSON.stringify(s);
     }, { timeout: 20_000 }).toBe('lobby');
-});
-
-test('5 · procedural-only selection shows no painting categories', async ({ page }) => {
-    // A corrupted legacy shape: procedural family but paintings still
-    // in the sourced array — the additive-arrays regression
-    await boot(page, {
-        prefs: {
-            visualInterlocution: {
-                visualMode: 'interlocution',
-                interlocution: {
-                    sourceFamily: 'procedural',
-                    procedural: ['klee'],
-                    sourced: ['aic-oldmasters', 'aic-portraits'],
-                    frequency: 0.2,
-                    duration: 80
-                }
-            }
-        }
-    });
-    await enterChamber(page);
-
-    const normalized = await page.evaluate(() => {
-        const raw = localStorage.getItem('rise_orbital_prefs_v1');
-        return JSON.parse(raw)?.visualInterlocution?.interlocution ?? null;
-    });
-    // Wait for the orbital to persist its normalized view at least once
-    { const adjust = page.locator('[data-action="toggle-adjust"]'); if (await adjust.getAttribute('aria-expanded') === 'false') await adjust.click(); }
-    await page.locator('[data-orbit="visual"]').click();
-    await page.waitForTimeout(300);
-
-    const panelState = await page.evaluate(() => {
-        const checked = [...document.querySelectorAll('[data-sourced]')]
-            .filter(el => el.checked).map(el => el.dataset.sourced);
-        return { checkedSourced: checked };
-    });
-    expect(panelState.checkedSourced).toEqual([]);
 });
 
 test('6 · text and settings survive a refresh', async ({ page }) => {

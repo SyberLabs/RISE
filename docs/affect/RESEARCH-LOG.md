@@ -50,7 +50,7 @@ AFFECT_TEACHER_URL=http://127.0.0.1:8765 npm run affect:benchmark
 
 **One scalar value.** Fused alignment can look acceptable while pace is not. The 520 WPM case is the demonstration: text, a still image, and quiet audio can sit at low arousal while pace is near the top of the logistic. The result keeps per-modality alignment so the pace can fail on its own. Conflict is zero when the intent marks contrast as deliberate.
 
-**WebGPU as a requirement.** The readout is small enough that the JavaScript core is the runtime. On this machine `npm run affect:bench-runtime` encoded the archive passages in about 0.045 ms each in JavaScript. The exported Gemm, run through `onnxruntime-web` on WASM, matched the JavaScript matrix product to within 3e-8 and took about 0.36 ms per call, slower than the JavaScript path. WebGPU was not requested. The snapshot is `docs/affect/runtime-bench.json`. Prefer the JavaScript core until a larger encoder exists.
+**WebGPU as a requirement.** The readout is small enough that the JavaScript core is the runtime. On this machine a benchmark encoded the archive passages in about 0.045 ms each in JavaScript. The exported Gemm, run through `onnxruntime-web` on WASM, matched the JavaScript matrix product to within 3e-8 and took about 0.36 ms per call, slower than the JavaScript path. WebGPU was not requested. The snapshot is `docs/affect/runtime-bench.json`. Prefer the JavaScript core until a larger encoder exists.
 
 **Importing the layer from the player.** Manual configuration must keep working with no model. The module is reached by an explicit import and by `RISE_AFFECT`. It is not on the first-load path.
 

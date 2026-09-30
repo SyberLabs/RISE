@@ -1,7 +1,7 @@
 """Pinned, authenticated Kev-4B System One endpoint on this machine's GPU, loopback only.
 
-The one local Kev server for RISE: `npm run local` (local/rise-local.mjs) and
-deploy/kev/local.ps1 both start it. It keeps the retired hosted wrapper's rules:
+The one local Kev server for RISE: `npm run local` (local/rise-local.mjs)
+starts it. It keeps the retired hosted wrapper's rules:
 immutable model pins, a required bearer key, synthetic warm-up, and
 X-Kev-Revision attestation, served by upstream kev.serve in one process on
 127.0.0.1. It fails at startup rather than falling back to CPU, another
