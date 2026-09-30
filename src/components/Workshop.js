@@ -2035,7 +2035,6 @@ export class Workshop {
      only authoring surface; compatibility now lives at the project boundary. */
   openSourceBrowser() {
     this.sourceBrowser = new SourceBrowser({
-      mode: 'text', // Workshop only needs text sources; visuals are handled separately
       providerIds: ['library-archive'],
       autoSelectProviderId: 'library-archive',
       onSelect: (item, provider) => {

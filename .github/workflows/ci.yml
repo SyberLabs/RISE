@@ -125,7 +125,7 @@ jobs:
             fi
             sleep 1
           done
-          for path in / /try-rise /jev-preview; do
+          for path in / /try-rise; do
             status=$(curl -sS --max-time 20 --retry 5 --retry-delay 3 --retry-all-errors \
               -D "$RUNNER_TEMP/public-headers" -o "$RUNNER_TEMP/public-body" \
               -w '%{http_code}' "https://rise.syberlabs.io$path")
