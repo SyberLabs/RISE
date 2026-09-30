@@ -679,39 +679,6 @@ export class Library {
         return;
       }
 
-      // Handle async collections (e.g. ArXiv)
-      if (text.isCollection && text.provider === 'arxiv-research') {
-        const btn = this.container.querySelector(`button[data-id="${textId}"]`);
-        const originalText = btn ? btn.textContent : '';
-        if (btn) btn.textContent = 'Fetching...';
-
-        const { ArxivProvider } = await import('../sources/text/arxiv.js');
-        const provider = new ArxivProvider();
-
-        try {
-          const result = await provider.get(text.arxivCategory);
-          if (btn) btn.textContent = originalText;
-
-          if (!result || !result.data || result.data.length === 0) {
-            console.error('[Library] No papers found in category:', text.arxivCategory);
-            this.setArchiveAlert(failed);
-            return;
-          }
-
-          // Just picking the first recent paper for the chamber
-          const paper = result.data[0];
-          this.onSelectText(paper.content, `${paper.name} — Abstract`, {
-            wpm: text.defaultWpm,
-            curve: text.defaultCurve
-          });
-        } catch (err) {
-          console.error('[Library] Failed to fetch ArXiv category:', err);
-          if (btn) btn.textContent = originalText;
-          this.setArchiveAlert(failed);
-        }
-        return;
-      }
-
       // A long work opens at its contents, not at its first word.
       // openWork returns false for anything with no verified divisions,
       // which falls through to the whole-text path below unchanged.

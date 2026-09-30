@@ -156,44 +156,4 @@ export class SourceProvider {
         if (!this.supportsPreload) return;
         // Default: no-op, override in subclass
     }
-
-    /**
-     * Get provider metadata for UI display
-     * @returns {Object}
-     */
-    getMetadata() {
-        return {
-            id: this.id,
-            name: this.name,
-            contentType: this.contentType,
-            tier: this.tier,
-            description: this.description,
-            supportsSearch: this.supportsSearch,
-            supportsPreload: this.supportsPreload,
-            ready: this.ready
-        };
-    }
 }
-
-/**
- * Tier labels for display
- */
-export const TIER_LABELS = {
-    1: 'Curated',
-    2: 'Sacred',
-    3: 'Literary',
-    4: 'Research',
-    5: 'Live'
-};
-
-/**
- * Content type labels for display
- */
-export const CONTENT_TYPE_LABELS = {
-    text: 'Text',
-    image: 'Image',
-    diagram: 'Diagram',
-    fractal: 'Fractal',
-    audio: 'Audio',
-    sequence: 'Sequence'
-};

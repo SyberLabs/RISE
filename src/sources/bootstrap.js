@@ -25,17 +25,7 @@ import { SourceRegistry } from './registry.js';
 /** id → () => Promise<SourceProvider> */
 const LOADERS = Object.freeze({
     'library-archive': () => import('./text/archive.js')
-        .then(m => new m.ArchiveTextProvider()),
-    'local-starters': () => import('./text/local.js')
-        .then(m => new m.LocalTextProvider()),
-    'gutenberg': () => import('./text/gutenberg.js')
-        .then(m => new m.GutenbergProvider()),
-    'sacred-texts': () => import('./text/sacred.js')
-        .then(m => new m.SacredTextProvider()),
-    'arxiv-research': () => import('./text/arxiv.js')
-        .then(m => new m.ArxivProvider()),
-    'generated-visuals': () => import('./visual/generated.js')
-        .then(m => new m.GeneratedVisualProvider())
+        .then(m => new m.ArchiveTextProvider())
 });
 
 /** The providers RISE promises to have once the system is up. */
@@ -78,7 +68,6 @@ export function ensureSourceSystem() {
 
         const status = await SourceRegistry.initAll();
         console.log('[Sources] Source system ready');
-        console.log('[Sources] Stats:', SourceRegistry.getStats());
         return status;
     })();
     return bootstrap;

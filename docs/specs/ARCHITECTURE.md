@@ -120,9 +120,9 @@ else is a recommendation.
 ║  │  Vault      │                                                             ║
 ║  │  Scriptorium│   ┌──────────────────────────────────────────────────────┐  ║
 ║  │  Curia      │   │  SOURCES  registry + providers + IndexedDB cache      │  ║
-║  │  Journeys   │   │  archive · local · gutenberg · sacred · arxiv ·       │  ║
-║  │  Keystones  │   │  generated · wikimedia   (failure degrades one, not   │  ║
-║  │  Settings   │   │  the app)                                             │  ║
+║  │  Journeys   │   │  archive   (failure degrades one, not the app)        │  ║
+║  │  Keystones  │   │                                                       │  ║
+║  │  Settings   │   │                                                       │  ║
 ║  └─────────────┘   └──────────────────────────────────────────────────────┘  ║
 ║                                                                               ║
 ║   STORAGE  localStorage (settings, journals, blueprints, images, orbital) ·   ║
@@ -134,9 +134,9 @@ else is a recommendation.
         │  anonymous · no-referrer · abort + timeout        ▲
         ▼                                                   │ failure ⇒ stillness
   ┌────────────────────────────────────────────────────────────────────────┐
-  │  THIRD PARTIES  Met · Art Institute · Cleveland · Rijksmuseum ·         │
-  │  Wikimedia · Gutenberg · arXiv.  Pinned catalogs are preferred to live  │
-  │  search; a live call is a convenience, never a dependency.              │
+  │  THIRD PARTIES  Met · Art Institute · Cleveland · Rijksmuseum.          │
+  │  Pinned catalogs are preferred to live search; a live call is a         │
+  │  convenience, never a dependency.                                       │
   └────────────────────────────────────────────────────────────────────────┘
 
   OFFLINE RENDER — a separate path, deliberately not the live one
@@ -167,9 +167,9 @@ flowchart LR
     enterprise["enterprise<br/>talk program, speaker rail<br/>34 modules"]
     live["live<br/>realtime Current: events, runtime, providers<br/>33 modules"]
     page["page<br/>spatial projection<br/>4 modules"]
-    sources["sources<br/>text and visual providers<br/>21 modules"]
+    sources["sources<br/>text and visual providers<br/>13 modules"]
     vendor["vendor<br/>SyberLabs design kit<br/>2 modules"]
-    visuals["visuals<br/>procedural generation<br/>61 modules"]
+    visuals["visuals<br/>procedural generation<br/>59 modules"]
     wormhole["wormhole<br/>7 modules"]
 
     app -.-> |3 lazy| audio
@@ -203,8 +203,7 @@ flowchart LR
     live -.-> |1 lazy| visuals
     page --> |2| core
     page --> |3| visuals
-    sources --> |2| content
-    sources -.-> |3 lazy| visuals
+    sources --> |1| content
     visuals -.-> |4 lazy| content
     visuals --> |18| core
     visuals --> |4| sources
