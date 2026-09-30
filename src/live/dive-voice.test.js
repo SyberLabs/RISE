@@ -207,7 +207,7 @@ for (const boundaries of [true, false]) {
         });
 
         // A voice with no boundaries has no place in the phrase to be left at: it says its passage again from the start, as it always did.
-        it.runIf(boundaries)('leaves the voice where it was when the Dive lands in a flash between two phrases', async () => {
+        for (const how of ['directly', 'after the reader held the reading']) it.runIf(boundaries)(`leaves the voice where it was when the Dive lands in a flash between two phrases, ${how}`, async () => {
             const { atoms, spoken, players } = build({ boundaries, flash: true });
             Math.random.mockReturnValue(0);
             await runtime.start('Explain black holes.');
@@ -215,6 +215,10 @@ for (const boundaries of [true, false]) {
             for (let waited = 0; players[0].sessionState.state !== 'interlocuting' && waited < 20_000; waited += 20) await tick(20);
             expect(players[0].sessionState.state).toBe('interlocuting');
             const flashed = main(atoms).at(-1);
+            if (how !== 'directly') {
+                runtime.hold();
+                expect(players[0].sessionState.state).toBe('paused');
+            }
             await runtime.dive({ question: 'dive on event horizon' });
             await tick(3_000);
             const since = main(atoms).length;

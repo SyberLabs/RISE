@@ -359,9 +359,9 @@ export function createLiveRuntime({
             const position = where(main, segmentId, atCharacter);
             const before = status;
             // Where the phrase on screen begins, for a voice that will have to say it again: the screen
-            // knows, and a voice with no word boundaries does not. Between two phrases (a flash) the phrase
-            // on screen has already been said, and the Player will go past it, so there is none to say again.
-            const phrase = main.player.sessionState.state === 'interlocuting'
+            // knows, and a voice with no word boundaries does not. Between two phrases (in a flash, or held
+            // during one) the phrase on screen has already been said, and the Player will go past it, so there is none to say again.
+            const phrase = main.player.betweenPhrases
                 ? null
                 : main.governor?.restartPoint(main.player.sessionState.currentIndex) ?? null;
             main.player.pause();

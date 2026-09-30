@@ -735,6 +735,15 @@ export class Player {
     }
 
     /**
+     * Whether the atom the reading is on has already been shown in full, and the reading is between it and
+     * the next: in a flash of imagery, or held during one (play then moves past it, never back to it).
+     */
+    get betweenPhrases() {
+        const { state, currentIndex } = this.sessionState;
+        return state === 'interlocuting' || (state === 'paused' && this._boundaryFlash?.index === currentIndex);
+    }
+
+    /**
      * While paused on an atom, take it up again from its start when played, instead of from what remained
      * of its time: it is shown once more and timed afresh (by whatever governs it). For a reading whose
      * clock was moved while it was held, such as a voice that was cancelled and will say the phrase again.
