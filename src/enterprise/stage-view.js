@@ -1,17 +1,18 @@
 /**
  * The public stage. It shows only cards a presenter has promoted, and the
- * only control is Retract. Promote stays on the rail.
+ * only control is Retract. Promote stays on the rail. With `controls: false`
+ * it is the projector's copy: no Retract, and an empty stage is blank.
  */
 
 import { cardContent } from './card-view.js';
 
-export function renderStage(root, session, { onChange } = {}) {
+export function renderStage(root, session, { onChange, controls = true } = {}) {
     function draw() {
         root.replaceChildren();
         const surface = document.createElement('div');
         surface.dataset.surface = 'stage';
         const cards = session.stage();
-        if (!cards.length) {
+        if (!cards.length && controls) {
             const empty = document.createElement('p');
             empty.className = 'empty-note';
             empty.textContent = 'Nothing on stage.';
@@ -21,6 +22,8 @@ export function renderStage(root, session, { onChange } = {}) {
             const item = document.createElement('article');
             item.dataset.cardId = card.id;
             item.append(...cardContent(card));
+            surface.append(item);
+            if (!controls) continue;
             const retract = document.createElement('button');
             retract.type = 'button';
             retract.dataset.action = 'retract';
@@ -32,7 +35,6 @@ export function renderStage(root, session, { onChange } = {}) {
                 onChange?.();
             });
             item.append(retract);
-            surface.append(item);
         }
         root.append(surface);
     }

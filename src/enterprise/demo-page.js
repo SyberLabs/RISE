@@ -16,10 +16,12 @@ import { createDemoSession } from './demo.js';
 import { createDeviceDecider } from './device-decider.js';
 import { DEFAULT_DEVICE_MODEL, DEVICE_MODELS, formatBytes } from './device-model.js';
 import { createLiveLoop, localDecider } from './live.js';
+import { openProjector } from './projector.js';
 import { renderRail } from './rail-view.js';
 import { createRecognizer, onDeviceStatus, speechRecognitionClass } from './recognition.js';
 import { createRemoteDecider } from './remote-decider.js';
 import { WINDOW_FINALS } from './session.js';
+import { createSpeakerKey } from './speaker-key.js';
 import { mapRecognitionEvent } from './speech.js';
 import { renderStage } from './stage-view.js';
 import { createTrace } from './trace.js';
@@ -58,9 +60,11 @@ const loop = createLiveLoop({
     now: clock,
     decide: (context, options) => DECIDERS[deciderSelect.value](context, options)
 });
+let projector = null;
 const refresh = () => {
     rail.update();
     stage.update();
+    projector?.update();
     paintDebrief();
     paintTrace();
 };
@@ -213,8 +217,26 @@ newLines.addEventListener('click', () => {
 
 /* ---------- Speech channel ---------- */
 
-function speakerLabel() {
-    return speakerSelect.value === 'presenter' ? program.presenterId : null;
+const speakerKey = createSpeakerKey();
+let speakerBeforeHold = null;
+
+function holdAudience(on) {
+    if (on) {
+        speakerKey.press();
+        speakerBeforeHold = speakerSelect.value;
+        speakerSelect.value = 'audience';
+        setState(listening() ? 'listening' : 'idle', 'Audience speaking. Release Q when they finish.');
+    } else {
+        speakerKey.release();
+        speakerSelect.value = speakerBeforeHold ?? speakerSelect.value;
+        speakerBeforeHold = null;
+        setState(listening() ? 'listening' : 'idle', listening() ? 'Listening.' : idleText());
+    }
+}
+
+function speakerLabel(isFinal) {
+    const audience = speakerKey.audience(isFinal) || speakerSelect.value === 'audience';
+    return audience ? null : program.presenterId;
 }
 
 function listening() {
@@ -223,7 +245,7 @@ function listening() {
 
 async function onSpeech({ transcript: words, isFinal, at }) {
     const event = mapRecognitionEvent(
-        { transcript: words, isFinal, speakerLabel: speakerLabel(), at },
+        { transcript: words, isFinal, speakerLabel: speakerLabel(isFinal), at },
         { presenterIds: program.presenterIds }
     );
     trace.emit(event.final ? 'speech.final' : 'speech.interim', { chars: event.text.length, speaker: event.speaker });
@@ -294,6 +316,8 @@ document.addEventListener('keydown', (event) => {
         askInput.focus();
     } else if (key === 'l' && recognizer) {
         toggleListening();
+    } else if (key === 'q' && recognizer) {
+        if (!event.repeat && !speakerKey.down) holdAudience(true);
     } else if (key === 'p') {
         const card = rail.promoteTarget();
         if (card) setState(listening() ? 'listening' : 'idle', `On stage: ${card.title}. R retracts it.`);
@@ -308,6 +332,25 @@ document.addEventListener('keydown', (event) => {
             setState(listening() ? 'listening' : 'idle', `Retracted ${card.title}.`);
         }
     }
+});
+
+// A key-up can land anywhere, or nowhere if the window loses focus mid-hold.
+document.addEventListener('keyup', (event) => {
+    if (event.key.toLowerCase() === 'q' && speakerKey.down) holdAudience(false);
+});
+window.addEventListener('blur', () => {
+    if (speakerKey.down) holdAudience(false);
+});
+
+/* ---------- Stage window ---------- */
+
+$('#stage-window').addEventListener('click', () => {
+    projector = openProjector(session);
+    if (!projector) {
+        setState('error', 'The browser blocked the stage window. Allow pop-ups for this site, then try again.');
+        return;
+    }
+    setState(listening() ? 'listening' : 'idle', 'Stage window open. Drag it to the projector and press F11.');
 });
 
 /* ---------- Review surfaces ---------- */
