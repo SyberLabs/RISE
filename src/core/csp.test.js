@@ -67,6 +67,14 @@ describe('content security policy', () => {
         expect(hosts.some(host => host.includes('*'))).toBe(false);
     });
 
+    it('lets only the exact Google Gemini origin receive a reader-owned key, and no Google host beside it', () => {
+        const hosts = directive('connect-src').split(/\s+/u);
+        expect(hosts).toContain('https://generativelanguage.googleapis.com');
+        expect(hosts.filter(host => /google/u.test(host))).toEqual(['https://generativelanguage.googleapis.com']);
+        expect(hosts).not.toContain('https:');
+        expect(hosts.some(host => host.includes('*'))).toBe(false);
+    });
+
     it('keeps scripts self-hosted, with no executable CDN', () => {
         const script = directive('script-src');
         expect(script).toBe("script-src 'self'");
