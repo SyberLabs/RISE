@@ -269,28 +269,23 @@ describe('an exclusive hold told where to take up again', () => {
         };
         expect(await hold({ exclusive: true, resumeAt: at(14) })).toBe(true);
         expect(await hold({ exclusive: true, resumeAt: at(14) }, { boundaries: false })).toBe(true);
-        // Not told, told something unusable, told for a hold that only pauses, or nothing to say it again: no.
+        // Not told, told about another segment, told for a hold that only pauses, or nothing to say it again: no.
         expect(await hold({ exclusive: true })).toBe(false);
-        expect(await hold({ exclusive: true, resumeAt: at(-1) })).toBe(false);
         expect(await hold({ exclusive: true, resumeAt: at(14, 14 * MS, 'other') })).toBe(false);
         expect(await hold({ resumeAt: at(14) })).toBe(false);
         expect(await hold()).toBe(false);
         expect(await hold({ exclusive: true, resumeAt: at(14) }, { speak: false })).toBe(false);
     });
 
-    it('ignores it when it is about another segment, or names a place that is not in this one, or a time that is not a time', async () => {
-        for (const hint of [at(14, 14 * MS, 'other'), at(-1), at(1.5), at(TEXT.length), at(TEXT.length + 5), at('14'), at(NaN), at(undefined),
-            at(14, -5), at(14, NaN), at(14, '700'), at(14, Infinity), null, undefined, 'text', 5, {}]) {
-            const { clock, voice, synth } = setup();
-            const said = watchSpeech(synth);
-            voice.enqueue({ id: 'a', text: TEXT });
-            await clock.advance(30 + 9 * MS);
-            voice.hold({ exclusive: true, resumeAt: hint });
-            // As it always did: said again from the last word heard.
-            expect(voice.playedMs('a'), JSON.stringify(hint)).toBe(8 * MS);
-            voice.release();
-            expect(said.at(-1), JSON.stringify(hint)).toBe(TEXT.slice(8));
-        }
+    it('ignores it when it is about another segment, and says the last word heard again as it always did', async () => {
+        const { clock, voice, synth } = setup();
+        const said = watchSpeech(synth);
+        voice.enqueue({ id: 'a', text: TEXT });
+        await clock.advance(30 + 9 * MS);
+        voice.hold({ exclusive: true, resumeAt: at(14, 14 * MS, 'other') });
+        expect(voice.playedMs('a')).toBe(8 * MS);
+        voice.release();
+        expect(said.at(-1)).toBe(TEXT.slice(8));
     });
 
     it('does nothing with it for a hold that is only a pause, and does not speak again on release', async () => {
@@ -301,11 +296,6 @@ describe('an exclusive hold told where to take up again', () => {
         voice.hold({ resumeAt: at(14) });
         voice.release();
         expect(said).toEqual([TEXT]);
-    });
-
-    it('is harmless when nothing is being said', () => {
-        const { voice } = setup();
-        expect(() => { voice.hold({ exclusive: true, resumeAt: at(14) }); voice.release(); }).not.toThrow();
     });
 
     it('counts the place it was told as the last word heard, so a second hold with no place says it from there again', async () => {

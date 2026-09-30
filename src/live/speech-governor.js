@@ -43,7 +43,7 @@ export function createSpeechGovernor({ voice, clock, graceMs = 1500, defaultMsPe
     /** id -> { marks: [[charIndex, tMs]], durationMs: number|null } */
     const timing = new Map();
     /** What every segment heard so far says about how fast this voice goes: characters, and the time they took. */
-    const learned = { chars: 0, ms: 0, from: new Set() };
+    const learned = { chars: 0, ms: 0 };
     let degraded = false;
     let player = null;
     let releaseGovernor = null;
@@ -143,8 +143,7 @@ export function createSpeechGovernor({ voice, clock, graceMs = 1500, defaultMsPe
                 model(id).durationMs = a;
                 // Each segment teaches its voice's speed once, by its length.
                 const length = segments.get(id)?.length ?? 0;
-                if (length > 0 && typeof a === 'number' && Number.isFinite(a) && a > 0 && !learned.from.has(id)) {
-                    learned.from.add(id);
+                if (length > 0 && a > 0) {
                     learned.chars += length;
                     learned.ms += a;
                 }

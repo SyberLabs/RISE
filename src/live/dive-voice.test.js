@@ -6,7 +6,9 @@
  * network voices of Chrome and the online "Natural" voices of Edge). What is
  * held: when the reader surfaces, the voice takes up at the start of the phrase
  * on screen, and that phrase is shown again and is timed by the voice, so the
- * two begin it together; and all of it holds for a second Dive and Surface.
+ * two begin it together; that holds for a second Dive and Surface, and for the
+ * other ways back from a Dive (one that fails to open, then a resume), and a
+ * Dive landing in a flash between two phrases leaves the voice where it was.
  * A voice with no boundaries has no known speed until it has said a whole
  * passage, so in the first one nothing is changed from what it always did.
  */
@@ -34,17 +36,26 @@ afterEach(async () => {
     vi.useRealTimers();
 });
 
-function build({ boundaries, paced = false }) {
+function build({ boundaries, paced = false, failDive = false, flash = false }) {
     const synth = createFakeSpeech(clock, { msPerChar: MS_PER_CHAR, latencyMs: 30, boundaries });
     const spoken = [];
     const speak = synth.speak.bind(synth);
     synth.speak = utterance => { spoken.push({ at: performance.now(), text: utterance.text }); speak(utterance); };
     const atoms = [];
+    const players = [];
+    const mock = createMockAdapter({ clock });
+    const adapter = { ...mock, open: async input => { if (failDive && input.intent === 'dive') throw new Error('no route'); return mock.open(input); } };
     runtime = createLiveRuntime({
-        adapter: createMockAdapter({ clock }),
+        adapter,
         clock,
         createPlayer: (session, { role }) => {
             const player = new Player(session);
+            if (role === 'main') players.push(player);
+            if (role === 'main' && flash) {
+                // A flash of moving imagery between phrases, as the Chamber shows during a Live reading.
+                session.visualConfig = { visualMode: 'interlocution', interlocution: { frequency: 1 } };
+                player.setInterlocutionHandler(() => new Promise(resolve => setTimeout(() => resolve({ presented: true, durationMs: 1_200 }), 1_200)));
+            }
             player.on('atom', ({ index, atom, concealed }) => {
                 if (!concealed) atoms.push({ at: performance.now(), role, index, text: atom?.content ?? '' });
             });
@@ -53,11 +64,24 @@ function build({ boundaries, paced = false }) {
         voices: { create: () => (paced ? createSyntheticVoice({ clock, msPerChar: MS_PER_CHAR }) : createBrowserVoice({ speech: { synth, Utterance: synth.Utterance }, clock })) },
         host: { present: async () => {}, dismiss: () => {} }
     });
-    return { atoms, spoken };
+    return { atoms, spoken, players };
 }
 
 const main = atoms => atoms.filter(entry => entry.role === 'main');
 const passageOf = id => runtime.composed('main').segments.find(segment => segment.id === id).text;
+
+/** How long after the voice reached the start of a phrase the text showed it, in ms (negative: the text was ahead of the voice). */
+function lagOf(spoken, segment, shown) {
+    const passage = passageOf(segment);
+    const start = passage.indexOf(shown.text);
+    // Said from some character on: what the voice spoke is always the rest of the passage from there.
+    const said = spoken.filter(entry => entry.at <= shown.at && entry.text.length > 0 && passage.endsWith(entry.text) && passage.length - entry.text.length <= start).at(-1);
+    return shown.at - (said.at + 30 + (start - (passage.length - said.text.length)) * MS_PER_CHAR);
+}
+
+/** The first new phrase shown after the reader came back, in the passage they were in. */
+const nextPhrase = (atoms, since, passageId, after) => main(atoms).slice(since)
+    .find(entry => entry.index > after.index && entry.text !== '' && passageOf(passageId).includes(entry.text));
 
 /** Read on until the text is on a later phrase of a passage, not its first; `afterFirst`: and not in the first passage. */
 async function readUntilMidPassage(atoms, { afterFirst = false } = {}) {
@@ -150,3 +174,57 @@ describe('a voice that only pauses and carries on (the paced one)', () => {
         expect(indexes).toEqual([...new Set(indexes)].sort((a, b) => a - b));
     });
 });
+
+for (const boundaries of [true, false]) {
+    describe(`${boundaries ? 'a voice that reports word boundaries' : 'a voice that reports none'}, on the other ways back from a Dive`, () => {
+        it('keeps the text and the voice together after a Dive that fails to open', async () => {
+            const { atoms, spoken } = build({ boundaries, failDive: true });
+            await runtime.start('Explain black holes.');
+            const { segment, atom } = await readUntilMidPassage(atoms, { afterFirst: true });
+            // Well into the phrase, so that a text clock left running from before would be well ahead of the voice.
+            await tick(Math.round(atom.text.length * MS_PER_CHAR * 0.6));
+            const since = main(atoms).length;
+            await expect(runtime.dive({ question: 'dive on event horizon' })).rejects.toThrow();
+            await tick(8_000);
+            const next = nextPhrase(atoms, since, segment, atom);
+            expect(Math.abs(lagOf(spoken, segment, next))).toBeLessThan(400);
+        });
+
+        it('keeps them together on a resume, after the reader held the reading and the Dive failed to open', async () => {
+            const { atoms, spoken } = build({ boundaries, failDive: true });
+            await runtime.start('Explain black holes.');
+            const { segment, atom } = await readUntilMidPassage(atoms, { afterFirst: true });
+            await tick(Math.round(atom.text.length * MS_PER_CHAR * 0.6));
+            runtime.hold();
+            await expect(runtime.dive({ question: 'dive on event horizon' })).rejects.toThrow();
+            expect(runtime.snapshot().status).toBe('interrupted');
+            await tick(2_000);
+            const since = main(atoms).length;
+            runtime.resume();
+            await tick(8_000);
+            const next = nextPhrase(atoms, since, segment, atom);
+            expect(Math.abs(lagOf(spoken, segment, next))).toBeLessThan(400);
+        });
+
+        // A voice with no boundaries has no place in the phrase to be left at: it says its passage again from the start, as it always did.
+        it.runIf(boundaries)('leaves the voice where it was when the Dive lands in a flash between two phrases', async () => {
+            const { atoms, spoken, players } = build({ boundaries, flash: true });
+            Math.random.mockReturnValue(0);
+            await runtime.start('Explain black holes.');
+            const { segment, atom } = await readUntilMidPassage(atoms, { afterFirst: true });
+            for (let waited = 0; players[0].sessionState.state !== 'interlocuting' && waited < 20_000; waited += 20) await tick(20);
+            expect(players[0].sessionState.state).toBe('interlocuting');
+            const flashed = main(atoms).at(-1);
+            await runtime.dive({ question: 'dive on event horizon' });
+            await tick(3_000);
+            const since = main(atoms).length;
+            await runtime.surface();
+            await tick(10_000);
+            // The phrase that had finished is not shown again, and the next one is not shown ahead of the voice.
+            const next = nextPhrase(atoms, since, segment, flashed);
+            expect(main(atoms).slice(since).some(entry => entry.index === flashed.index && entry.text === flashed.text)).toBe(false);
+            expect(lagOf(spoken, segment, next)).toBeGreaterThan(-400);
+            expect(atom.index).toBeLessThanOrEqual(flashed.index);
+        });
+    });
+}

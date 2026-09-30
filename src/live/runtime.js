@@ -359,11 +359,16 @@ export function createLiveRuntime({
             const position = where(main, segmentId, atCharacter);
             const before = status;
             // Where the phrase on screen begins, for a voice that will have to say it again: the screen
-            // knows, and a voice with no word boundaries does not.
-            const phrase = main.governor?.restartPoint(main.player.sessionState.currentIndex) ?? null;
+            // knows, and a voice with no word boundaries does not. Between two phrases (a flash) the phrase
+            // on screen has already been said, and the Player will go past it, so there is none to say again.
+            const phrase = main.player.sessionState.state === 'interlocuting'
+                ? null
+                : main.governor?.restartPoint(main.player.sessionState.currentIndex) ?? null;
             main.player.pause();
-            // Something else is about to speak, and a device speaks one thing at a time.
-            main.restartPhrase = main.voice?.hold({ exclusive: true, ...(phrase ? { resumeAt: phrase } : {}) }) === true;
+            // Something else is about to speak, and a device speaks one thing at a time. A voice that will
+            // take up at the start of the phrase is decided here, once, so that every way back (Surface, a
+            // Dive that fails to open, a resume after one) shows that phrase again and times it by the voice.
+            if (main.voice?.hold({ exclusive: true, ...(phrase ? { resumeAt: phrase } : {}) }) === true) main.player.restartCurrentAtom();
             const view = main.stream.snapshot();
             const index = view.segments.findIndex(segment => segment.id === position.segmentId);
             const context = view.segments.slice(Math.max(0, index - 1), index + 1)
@@ -397,10 +402,6 @@ export function createLiveRuntime({
             await host.present?.({ role: 'main', session: main.player.sessionState.session, player: main.player, run: summary(main) });
             if (stopped) return;
             set(main.finished ? 'ended' : 'live');
-            // A voice that took up at the start of the phrase begins it again, so the phrase is shown again and
-            // timed by that voice: they begin it together, and nothing is skipped or shown ahead of the words.
-            if (main.restartPhrase) main.player.restartCurrentAtom();
-            main.restartPhrase = false;
             if (main.player.sessionState.state === 'paused') main.player.play();
         },
 

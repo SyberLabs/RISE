@@ -45,15 +45,6 @@ export function createBrowserVoice({ speech, clock = createRealClock(), lang = '
 
     const playedNow = item => item.played + (item.startedAt === null ? 0 : clock.now() - item.startedAt);
 
-    /** A place to take up again, if it is one in the segment being held; otherwise nothing. */
-    const placeIn = (item, place) => {
-        if (!place || typeof place !== 'object' || place.segmentId !== item.id) return null;
-        const { charIndex, tMs } = place;
-        if (!Number.isInteger(charIndex) || charIndex < 0 || charIndex >= item.text.length) return null;
-        if (typeof tMs !== 'number' || !Number.isFinite(tMs) || tMs < 0) return null;
-        return { charIndex, tMs };
-    };
-
     function speakFrom(item, offset) {
         const utterance = new Utterance(item.text.slice(offset));
         utterance.lang = lang;
@@ -150,10 +141,10 @@ export function createBrowserVoice({ speech, clock = createRealClock(), lang = '
                 if (current) {
                     // Spoken again from the last word heard; time is what it was there.
                     current.utterance = null;
-                    const place = placeIn(current, resumeAt);
-                    if (place) {
-                        current.lastMark = place.charIndex;
-                        current.lastMarkAt = place.tMs;
+                    // Only a place in the segment being held is one to take up at.
+                    if (resumeAt?.segmentId === current.id) {
+                        current.lastMark = resumeAt.charIndex;
+                        current.lastMarkAt = resumeAt.tMs;
                         tookPlace = true;
                     }
                     current.played = current.lastMarkAt;

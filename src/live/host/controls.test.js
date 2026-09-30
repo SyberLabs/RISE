@@ -43,7 +43,7 @@ describe('the sentence for each state', () => {
         const text = describeStatus(snapshot('diving'), { question: 'dive on event horizon' });
         expect(text).toContain('“dive on event horizon”');
         expect(text).toMatch(/held exactly where it was/u);
-        expect(describeStatus(snapshot('diving'), { question: 'x'.repeat(500) }).length).toBeLessThan(300);
+        expect(describeStatus(snapshot('diving'), { question: 'x'.repeat(500) }).length).toBeLessThan(260);
     });
 
     it('says, while a Dive is open, that another question waits until the reader surfaces, both while it is being answered and once it is', () => {
