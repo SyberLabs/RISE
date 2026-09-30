@@ -1,7 +1,7 @@
 /**
  * STORM OF STEEL (Ernst Jünger) — Visual Pattern Engines Catalog
  * 
- * 7 published procedural engines (of 8 authored) interpreting high-intensity mechanical warfare,
+ * 7 procedural engines interpreting high-intensity mechanical warfare,
  * trench geometry, ballistic vectors, chemical clouds, entoptic flare phenomena, and ASCII soldier art.
  */
 
@@ -27,21 +27,8 @@ export {
 /**
  * The engines, named by engines.meta.js and drawn by the classes above.
  *
- * 4. MUSTARD GAS TURING PATTERNS — WITHHELD, not deleted.
- *
- * StormReactionDiffusionEngine still exists on disk. Reaction-diffusion
- * resolves at the grid it simulates on, and behind a full-bleed reading at
- * DPR 2 that grid reads as pixellation rather than as gas.
- *
- * IT IS NO LONGER IMPORTED. Withholding it from the array alone withheld
- * it from the field, the gallery, the Page, the Journey and the
- * Demonstration — but the import still pulled its 190 lines into the
- * family chunk, so every reader who opened Under Steel downloaded 2,562
- * bytes (684 gzipped) of an engine nothing could select. A runtime filter
- * cannot remove a build-time dependency; the import was the dependency.
- *
- * The gap in numbering is deliberate. To restore: add the import back, add
- * its entry to engines.meta.js, and add the class here.
+ * The numbering gap at 4 is deliberate: Mustard Gas Turing Patterns was
+ * withheld and its engine deleted.
  */
 const CLASSES = {
     voronoi: StormVoronoiEngine,

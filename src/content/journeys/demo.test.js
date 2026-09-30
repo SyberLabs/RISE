@@ -214,12 +214,6 @@ describe.skip('a withheld engine is withheld everywhere', () => {
         expect(first.fromLine).toBe(0);
         expect(first.engines).toEqual(['ascii_soldier']);
     });
-
-    it('leaves the class itself in place, so restoring it is one line', async () => {
-        // Withheld, not deleted. The engine is still exported.
-        const storm = await import('../../visuals/storm/index.js');
-        expect(typeof storm.StormReactionDiffusionEngine).toBe('function');
-    });
 });
 
 describe.skip('the reel plays in order, and each movement opens on its own engine', () => {
