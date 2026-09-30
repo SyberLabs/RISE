@@ -256,7 +256,7 @@ describe('the rest of Home', () => {
         expect(items[0].getAttribute('aria-current')).toBe('page');
         expect(document.activeElement).toBe(items[0]);
         expect([...container.querySelectorAll('.portal-nav [data-nav]')].map(item => item.dataset.nav))
-            .toEqual(['create', 'library', 'vault', 'workshop', 'chamber', 'chapel', 'scriptorium', 'visual-lab', 'emotions', 'curia']);
+            .toEqual(['create', 'library', 'vault', 'workshop', 'chamber', 'chapel', 'scriptorium', 'visual-lab', 'curia']);
 
         const last = items[items.length - 1];
         last.focus();

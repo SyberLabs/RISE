@@ -133,7 +133,6 @@ export class Portal {
               <button class="portal-nav-link portal-nav-minor" type="button" data-nav="chapel">Chapel</button>
               <button class="portal-nav-link portal-nav-minor" type="button" data-nav="scriptorium">Scriptorium</button>
               <button class="portal-nav-link portal-nav-minor" type="button" data-nav="visual-lab">Visual Lab</button>
-              <button class="portal-nav-link portal-nav-minor" type="button" data-nav="emotions">Emotions</button>
               <button class="portal-nav-link portal-nav-minor" type="button" data-nav="curia">Curia</button>
             </nav>
           </div>

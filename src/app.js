@@ -33,10 +33,8 @@ import { installTestBridge } from './app/test-bridge.js';
 
 const VISUAL_LAB_PATH = '/visual-lab';
 const LIVE_PATH = '/live';
-const EMOTIONS_PATH = '/emotions';
 const PUBLIC_ROOM_PATHS = Object.freeze({
-    'visual-lab': VISUAL_LAB_PATH,
-    emotions: EMOTIONS_PATH
+    'visual-lab': VISUAL_LAB_PATH
 });
 import { watchTabFreshness } from './core/tab-freshness.js';
 import { hasPersonalWorkInPage } from './core/personal-identity.js';
@@ -364,8 +362,6 @@ class App {
             await this.router.navigate('visual-lab');
         } else if (window.location.pathname === LIVE_PATH) {
             await this.router.navigate('live');
-        } else if (window.location.pathname === EMOTIONS_PATH) {
-            await this.router.navigate('emotions');
         } else if (options.personalizedVault) {
             console.log('[RISE] Navigating directly to personalized vault:', options.personalizedVault);
             await this.router.navigate('vault', { data: { personalizedVault: options.personalizedVault } });
@@ -1360,10 +1356,6 @@ class App {
             }
             if (window.location.pathname === LIVE_PATH) {
                 await this.router?.navigate('live', { replace: true, skipStack: true });
-                return;
-            }
-            if (window.location.pathname === EMOTIONS_PATH) {
-                await this.router?.navigate('emotions', { replace: true, skipStack: true });
                 return;
             }
             const slug = keystoneSlugFromPath(window.location.pathname);
