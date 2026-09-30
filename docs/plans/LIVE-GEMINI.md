@@ -1,6 +1,6 @@
 # A live Current from Gemini, with the reader's own key
 
-**Status:** design approved; being built. Nothing here has run against Google's service. It ships **off**: the page reaches Gemini only when the address asks for `?provider=gemini`, and the reader types their own key.
+**Status:** built and tested against fakes and in a real browser with Google's endpoint stubbed. **Never run against Google's service**, so treat it as unverified until the steps at the end of this page have been done with a real key. It ships **off**: the page reaches Gemini only when the address asks for `?provider=gemini`, and the reader types their own key.
 
 ## What it is, and what it is not
 
@@ -38,7 +38,7 @@ The runtime's abort signal reaches `fetch`, so Stop while connecting sends nothi
 
 ### The site's security policy changes, once
 
-`https://generativelanguage.googleapis.com` is added to `connect-src` in the three places that must agree: `public/_headers`, `netlify.toml`, and `local/bridge.mjs`, with the tests that hold them. This is what lets RISE's own pages contact Google. `script-src 'self'` is unchanged, so only RISE's own code can. It is allowed for every page, not just `/live`, because the policy is static. **The creator approved this** ("3. (a)").
+`https://generativelanguage.googleapis.com` is added to `connect-src` in `netlify.toml` and in `public/_headers` (which a test holds equal to it), and a test pins it to that exact origin: no other Google host and no wildcard, as OpenRouter's is. This is what lets RISE's own pages contact Google. `script-src 'self'` is unchanged, so only RISE's own code can. It is allowed for every page, not just `/live`, because the policy is static. `local/bridge.mjs` is **not** changed: its policy is the production one minus what local RISE never needs, which already leaves out OpenRouter. **The creator approved this** ("3. (a)").
 
 ## Left out, on purpose
 
@@ -55,7 +55,30 @@ Each task starts with a failing test, and ends with the targeted tests passing a
 5. **Host** (`LiveHost`). Tests: `?provider=gemini` shows the key and model fields and the plain statement of where the key goes; an empty key is refused; a refused key is forgotten; the key is never in the page after Start.
 6. **Security policy.** The three files and the tests that hold them. The dev and preview servers do not apply the site's headers, so a browser test cannot enforce the policy; whether a real browser permits the call under the real headers is checked in the real-key run below.
 7. **Browser test** with a stubbed Google endpoint: ask, read, interrupt, Dive, Surface, Stop; the key appears in one request header and nowhere else in any request; Stop during connect sends nothing.
-8. **Mutation checks** on the parser, wire, transport, host; docs (`LIVE-CURRENT.md` status row, `ARCHITECTURE.md` decision, this file's status); hygiene and targeted suites.
+8. **Mutation checks** on the parser, wire, adapter, transport, host, policy and the browser test; docs (`LIVE-CURRENT.md` status row, `ARCHITECTURE.md` §8.40, this file's status); hygiene and targeted suites.
+
+## What was verified, and how
+
+| | How | Result |
+|---|---|---|
+| Event-stream parser | 20 tests, including every single and every pair of cuts of a transcript and seeded random cuts; 9 deliberate breaks | pass, all caught |
+| Wire | 34 tests over a transcript in the shape of Google's published response schema; 14 deliberate breaks | pass, all caught |
+| Adapter, and the **shared conformance suite unchanged** | 22 tests; a fake stream speaking the documented wire | pass |
+| Fetch transport | 36 tests with a stubbed `fetch`, including the key's whole path and Stop at every moment; about 30 deliberate breaks | pass, all caught |
+| Host | 9 new tests (39 in the file, OpenAI's unchanged); 10 deliberate breaks | pass, all caught |
+| Security policy | the header tests, plus an exact-origin pin; a wildcard break | pass, caught |
+| Browser, production build, Google stubbed | `e2e/live-gemini.spec.js`, 9 tests; three deliberate breaks | pass, all caught |
+| **Google's real service** | not run | **unverified** |
+| Google's preflight from a browser origin | `curl` against the live endpoint without a key: it allows our origin and the `x-goog-api-key` header, and returns its CORS header on an error too | as expected, 2026-09-30 |
+
+### Known limits
+
+- The wire is written from Google's published API description (v1beta, revision 20260928) and not from a captured session. Every name is in one table in `gemini-wire.js`.
+- The default model, `gemini-3.5-flash`, was chosen by the creator and has not been checked against Google's model list.
+- Thinking settings are left at the model's default, which may add delay before the first word on a thinking model. Not measured.
+- The whole of an answer is limited by `maxOutputTokens: 4096`; a Dive is a second request.
+- A refused key is forgotten; Google's permission errors (403) are treated as a refused key too, so a key that lacks access to the chosen model is forgotten and must be typed again.
+- Voice input works as with every provider (browser speech recognition to text). Native audio input is not built.
 
 ## Verifying it with a real key (about ten minutes, a few cents)
 

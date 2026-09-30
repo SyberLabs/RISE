@@ -166,7 +166,7 @@ flowchart LR
     content["content<br/>texts, imagery, journeys<br/>230 modules"]
     core["core<br/>session, player, router<br/>164 modules"]
     enterprise["enterprise<br/>talk program, speaker rail<br/>34 modules"]
-    live["live<br/>realtime Current: events, runtime, providers<br/>33 modules"]
+    live["live<br/>realtime Current: events, runtime, providers<br/>37 modules"]
     page["page<br/>spatial projection<br/>4 modules"]
     sources["sources<br/>text and visual providers<br/>22 modules"]
     vendor["vendor<br/>SyberLabs design kit<br/>2 modules"]
@@ -1214,6 +1214,34 @@ of `settled`, `open`, `deferred`, or `reversed`.
 - **Status:** open. The roll, Oracle object, invocation handoff, and Wormhole
   are covered by unit and browser tests. The first-read Page/Stream choice is
   preserved for the first rolled reading.
+
+### 8.40 A second live provider is a second connect function, called from the reader's browser
+
+- **Chosen:** Gemini is a provider behind the same text-stream seam as OpenAI
+  (`src/live/adapters/gemini*.js`), using Google's streaming text generation
+  (`streamGenerateContent`, server-sent events), not its Live API. The reader's
+  own key goes from their browser to Google in one header, straight, so the
+  site's `connect-src` names Google's exact origin as it names OpenRouter's,
+  and RISE's Worker is not involved. The runtime, the parser and the seam are
+  unchanged; the shared conformance suite passes for it unchanged.
+- **Rejected:** the Live API (its current models answer in audio, text is only a
+  transcript, sessions are capped, and the browser credential for it is a
+  preview feature); a relay through the Worker (the server would see the key
+  and there would be a route to secure, for no gain when Google allows the
+  browser to call it); a fixed list of models (Google renames them, and the
+  list cannot be checked without a key); and a shared credential-broker or
+  producer abstraction (two providers that differ this much have nothing to
+  put in it).
+- **Why:** RISE wants Google's words, and speaks them with its own voice so a
+  Dive can hold the voice; a plain stream is the smallest thing that gives it
+  that. Voice input does not need Live either: speech is turned into text in the
+  browser, and a recorded clip could ride the same request later as an added
+  optional field. A Live session, if ever wanted for a conversational mode, is a
+  sibling adapter, not a change to this one.
+- **Status:** open. Built and tested with fakes at every layer and in a real
+  browser with Google's endpoint stubbed. Never run against Google's service,
+  and the default model has not been checked against its model list
+  (`docs/plans/LIVE-GEMINI.md` says how to verify both with a real key).
 
 ---
 
