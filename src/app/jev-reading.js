@@ -82,7 +82,9 @@ export function validateJevRecommendation(decision) {
     || !((decision.model === 'kev-latest' && decision.provider === 'Kev'
       && /^[a-f0-9]{40}$/.test(decision.revision || ''))
       || (/^typesafe\/jev-1\.13(?:-\d{8})?$/.test(decision.model)
-        && (!decision.provider || decision.provider === 'TypeSafe')))
+        && (!decision.provider || decision.provider === 'TypeSafe'))
+      // A roll composed on this device (src/core/roll.js), under its own name.
+      || (decision.model === 'rise/roll-1' && decision.provider === 'RISE'))
     || typeof decision.workId !== 'string' || typeof decision.editionId !== 'string'
     || typeof decision.sourceRevision !== 'string' || typeof decision.reason !== 'string') {
     throw new TypeError('Jev returned an invalid reading plan.');

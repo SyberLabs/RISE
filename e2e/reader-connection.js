@@ -74,14 +74,16 @@ export async function connectOpenRouter(page, { key = E2E_READER_KEY } = {}) {
  * Answer the reader's Decisions requests from scripted plans. Returns the
  * list of request bodies and Authorization headers OpenRouter would see.
  */
-export async function answerDecisions(page, plans, { status } = {}) {
+export async function answerDecisions(page, plans, { status, onRequest = () => {} } = {}) {
   const list = Array.isArray(plans) ? plans : [plans];
   const seen = [];
   const sounds = list.flatMap(plan => [plan.config.audio, plan.config.middleAudio, plan.config.finaleAudio]);
   await page.route('**/api/decision-catalog', route => route.fulfill({ json: catalogWith(sounds) }));
   await page.route(DECISIONS, route => {
     const request = route.request();
-    seen.push({ body: request.postDataJSON(), authorization: request.headers().authorization });
+    const observation = { body: request.postDataJSON(), authorization: request.headers().authorization };
+    seen.push(observation);
+    onRequest(observation);
     if (status) return route.fulfill({ status, json: { error: { message: 'Scripted failure.' } } });
     const plan = list[Math.min(seen.length - 1, list.length - 1)];
     return route.fulfill({ json: {

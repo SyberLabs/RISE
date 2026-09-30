@@ -212,3 +212,62 @@ describe('orbital lifecycle round trip', () => {
         unmount({ orbital, container });
     });
 });
+
+/**
+ * A rolled or asked reading opened with ADJUST brings its look: face,
+ * size and colours. It is the reading's opening position, so it travels
+ * like the rest of its identity and dies with its text, and it never
+ * becomes the reader's preference.
+ */
+describe('a reading\'s opening look', () => {
+    const LOOK = Object.freeze({
+        chamberFace: 'book', fontSize: 'large', colorTheme: 'jade', textColor: 'jade', backgroundColor: 'jade',
+        colors: { background: '#06120D', text: '#CFF5DF', accent: '#4FD39A' }
+    });
+
+    beforeEach(() => {
+        localStorage.removeItem(PREFS_KEY);
+        localStorage.removeItem(TEXT_KEY);
+    });
+
+    function mountBegin() {
+        const begun = [];
+        const container = document.createElement('div');
+        document.body.appendChild(container);
+        const orbital = new ChamberOrbital(container, { onNavigate: () => {}, onBeginSession: data => begun.push(data) });
+        return { orbital, container, begun };
+    }
+
+    it('reaches Begin untouched', () => {
+        const view = mountBegin();
+        view.orbital.loadText('Waste no more time.', 'Meditations', { presentation: { ...LOOK }, origin: { view: 'portal', name: 'Home' } });
+        view.orbital.beginSession();
+        expect(view.begun[0].presentation).toEqual(LOOK);
+        unmount(view);
+    });
+
+    it('survives a reconstruction and a reset, and is never a preference', () => {
+        const first = mountBegin();
+        first.orbital.loadText('Waste no more time.', 'Meditations', { presentation: { ...LOOK } });
+        first.orbital.resetPrefs();
+        expect(first.orbital.config.presentation).toEqual(LOOK);
+        unmount(first);
+        expect(localStorage.getItem(PREFS_KEY) || '').not.toContain('jade');
+
+        const second = mountBegin();
+        expect(second.orbital.config.presentation).toEqual(LOOK);
+        unmount(second);
+    });
+
+    it('dies with its text, and a plain text never inherits it', () => {
+        const view = mountBegin();
+        view.orbital.loadText('Waste no more time.', 'Meditations', { presentation: { ...LOOK } });
+        view.orbital.clearText();
+        expect(view.orbital.config.presentation).toBeNull();
+        view.orbital.loadText('Waste no more time.', 'Meditations', { presentation: { ...LOOK } });
+        view.orbital.loadText('A plain page.', 'Library text', {});
+        view.orbital.beginSession();
+        expect(view.begun[0].presentation).toBeUndefined();
+        unmount(view);
+    });
+});

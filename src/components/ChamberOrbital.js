@@ -366,6 +366,7 @@ export class ChamberOrbital {
       text,
       textSource,
       origin,
+      presentation,
       sources,
       provenance,
       continuation,
@@ -379,6 +380,7 @@ export class ChamberOrbital {
       text,
       textSource,
       origin,
+      presentation,
       sources,
       provenance,
       continuation,
@@ -434,6 +436,7 @@ export class ChamberOrbital {
         // Stream.
         this.config.projection = saved.projection === 'page' ? 'page' : 'stream';
         this.config.origin = saved.origin || null;
+        this.config.presentation = saved.presentation || null;
         this.config.provenance = saved.provenance || null;
         this.config.continuation = saved.continuation || null;
         this.config.capabilities = normalizeSequenceCapabilities(saved.capabilities);
@@ -514,6 +517,7 @@ export class ChamberOrbital {
           textSource: this.config.textSource,
           projection: this.config.projection === 'page' ? 'page' : 'stream',
           origin: this.config.origin,
+          presentation: this.config.presentation,
           sources,
           provenance: this.config.provenance,
           continuation: this.config.continuation,
@@ -891,7 +895,8 @@ export class ChamberOrbital {
    */
   renderOriginChip() {
     const origin = this.config.origin;
-    if (!origin || !origin.view) return '';
+    // The back button already says Home; a chip for Home would say it twice.
+    if (!origin || !origin.view || origin.view === 'portal') return '';
     return `
       <button type="button" class="orbital-origin-chip" data-action="origin-return" title="Return to ${origin.name}">
         <span class="origin-chip-label">${origin.name}</span>
@@ -1952,6 +1957,10 @@ export class ChamberOrbital {
 
     // Launch origin for the wayfinding chip (null when launched plainly)
     this.config.origin = config.origin || null;
+    // A composed reading's opening look (face, size, colours), carried to
+    // Begin untouched. The Chamber holds it as a lens the reader can take
+    // back key by key (session-presentation.js); it is never a preference.
+    this.config.presentation = config.presentation || null;
     this.updateOriginChip();
 
     // Apply optional config parameters from source
@@ -2130,6 +2139,7 @@ export class ChamberOrbital {
     this.config.text = null;
     this.config.textSource = null;
     this.config.origin = null;
+    this.config.presentation = null;
     this.config.sources = null;
     this.config.provenance = null;
     this.config.capabilities = [];
@@ -2205,6 +2215,7 @@ export class ChamberOrbital {
       // scheduler (PERICOPE-IMAGERY-SPEC §6) — carried through, never
       // edited here.
       ...(this.config.visualProgram ? { visualProgram: this.config.visualProgram } : {}),
+      ...(this.config.presentation ? { presentation: this.config.presentation } : {}),
       // Which MEDIUM renders this reading (SPATIAL-CHAMBER-SPEC §3). The
       // two chambers share every field above; they differ only here.
       // Absent or unknown means the Stream — today's reading, unchanged.

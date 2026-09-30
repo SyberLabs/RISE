@@ -1,4 +1,4 @@
-import { test, expect } from './fixtures.js';
+import { test, expect, openHomeNav } from './fixtures.js';
 import { acceptFlashWarningIfShown, collectAcrossPages } from './page-helpers.js';
 const GATE = { code: 'rise2025', name: 'Fidelity', vault: null, timestamp: Date.now() };
 const SEED = {
@@ -24,8 +24,8 @@ test('a PROCEDURAL reading with no program typesets rendered stills', async ({ p
     localStorage.setItem('rise_orbital_prefs_v1', JSON.stringify(g.prefs));
   }, { gate: GATE, seed: SEED, prefs: PREFS });
   await page.goto('/');
-  await expect(page.locator('.portal .portal-title').first()).toBeVisible({ timeout: 15000 });
-  await page.locator('[data-nav="chamber"]').first().click();
+  await expect(page.locator('.portal h1').first()).toBeVisible({ timeout: 15000 });
+  await openHomeNav(page, 'chamber');
   await expect(page.locator('#begin-btn')).toBeEnabled({ timeout: 15000 });
   await page.locator('#begin-btn').click();
   await acceptFlashWarningIfShown(page);

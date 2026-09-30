@@ -17,7 +17,7 @@
  * Measured on the painted pixels, because both faults were invisible to any
  * assertion about state: the panel was doing exactly what it was told.
  */
-import { test, expect } from './fixtures.js';
+import { test, expect, openHomeNav } from './fixtures.js';
 
 const GATE = { code: 'rise2025', name: 'Leaf Preview', vault: null, timestamp: Date.now() };
 const SEED = { text: 'Light enters form. '.repeat(40).trim(), textSource: 'Leaf Preview', origin: null };
@@ -28,7 +28,7 @@ async function openDynamic(page) {
         localStorage.setItem('rise_orbital_text_v1', JSON.stringify(seed));
     }, { gate: GATE, seed: SEED });
     await page.goto('/');
-    await page.locator('[data-nav="chamber"]').first().click();
+    await openHomeNav(page, 'chamber');
     await expect(page.locator('#begin-btn')).toBeEnabled({ timeout: 20_000 });
     { const adjust = page.locator('[data-action="toggle-adjust"]'); if (await adjust.getAttribute('aria-expanded') === 'false') await adjust.click(); }
     await page.locator('[data-orbit="visual"]').click();

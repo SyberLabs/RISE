@@ -1,4 +1,4 @@
-import { test, expect } from './fixtures.js';
+import { test, expect, openHomeNav } from './fixtures.js';
 const GATE = { code: 'rise2025', name: 'Curation', vault: null, timestamp: Date.now() };
 
 // Curation-only (SOURCE-CURATION-SPEC): the searched Wikimedia families
@@ -19,7 +19,7 @@ test('the panel offers no searched category, and none is fetched', async ({ page
     }));
   }, { gate: GATE });
   await page.goto('/');
-  await page.locator('[data-nav="chamber"]').first().click();
+  await openHomeNav(page, 'chamber');
   await expect(page.locator('#begin-btn')).toBeEnabled({ timeout: 20000 });
 
   const r = await page.evaluate(() => {

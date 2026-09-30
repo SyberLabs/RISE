@@ -1,12 +1,8 @@
 import { readFileSync } from 'node:fs';
-import { test, expect } from './fixtures.js';
-import { answerDecisions, connectOpenRouter } from './reader-connection.js';
+import { test, expect, askHome, openHomeAsk, connectTestOpenRouter, routeTestOpenRouter } from './fixtures.js';
 import { resolveJevChamberConfig } from '../src/core/jev-config.js';
 import { jevPalette } from '../src/core/jev-palette.js';
 import { compileJevAudioProgram, compileJevVisualProgram } from '../src/core/jev-sequence.js';
-
-// Connecting OpenRouter adds one real OAuth redirect and page load to each flow.
-test.describe.configure({ timeout: 120_000 });
 
 const releaseInventory = JSON.parse(readFileSync(
   new URL('../src/content/archive/release-inventory.json', import.meta.url), 'utf8'
@@ -43,19 +39,15 @@ const decision = {
 };
 
 test('cold sample deep link admits a preset Gallery, then returns to its threshold', async ({ page }) => {
-  let jevRequests = 0;
-  await page.route(/openrouter\.ai|\/api\/decision-catalog/u, route => {
-    jevRequests += 1;
-    return route.abort();
-  });
+  const jevRequests = await routeTestOpenRouter(page, decision);
   await page.goto('/jev-scene-demo');
   await expect(page.locator('#jev-scene-demo-start')).toBeVisible();
   await expect(page.locator('#portal-jev-demo')).toContainText('No live RISE request');
-  await expect(page.locator('#portal-jev-form')).toHaveCount(0);
+  await expect(page.locator('#oracle-form')).toHaveCount(0);
   await page.locator('#jev-scene-demo-start').click();
   await expect(page.locator('#chamber-display')).toBeVisible({ timeout: 20_000 });
   await expect(page.locator('#jev-next-scene')).toBeEnabled({ timeout: 20_000 });
-  expect(jevRequests).toBe(0);
+  expect(jevRequests()).toBe(0);
   await page.locator('#chamber-display').hover();
   await page.locator('#jev-next-scene').click();
   await expect(page.locator('#jev-scene-status')).toContainText('Next scene selected');
@@ -65,7 +57,7 @@ test('cold sample deep link admits a preset Gallery, then returns to its thresho
         && canvas.getContext('2d')?.getImageData(0, 0, canvas.width, canvas.height).data
           .some((value, index) => index % 4 === 3 && value > 0));
   }), { timeout: 10_000 }).toBe(true);
-  expect(jevRequests).toBe(0);
+  expect(jevRequests()).toBe(0);
   await page.locator('#exit-btn').click();
   await page.locator('#exit-confirm').click();
   await expect(page.locator('#jev-scene-demo-start')).toBeVisible();
@@ -74,6 +66,7 @@ test('cold sample deep link admits a preset Gallery, then returns to its thresho
 
 test('reader shifts Jev’s next visual scene without moving the text or pace', async ({ page }) => {
   const visualCues = [];
+  const jevRequests = await routeTestOpenRouter(page, decision);
   page.on('console', message => {
     if (message.text().includes('[Visual Cortex] Cue activated:')) visualCues.push(message.text());
   });
@@ -81,13 +74,7 @@ test('reader shifts Jev’s next visual scene without moving the text or pace', 
     code: 'rise2025', name: 'Jev steering harness', vault: null, timestamp: Date.now()
   })));
   await page.goto('/');
-  await connectOpenRouter(page);
-  const seen = await answerDecisions(page, decision);
-  await expect(page.locator('#portal-jev-form')).toBeVisible({ timeout: 15_000 });
-  await page.locator('#portal-jev-intent').fill('A reflective reading with changing visual scenes.');
-  await page.locator('#portal-jev-form button[type="submit"]').click();
-  // Home previews Jev's answer; the reading starts only from Play.
-  await page.locator('#portal-play').click();
+  await askHome(page, 'A reflective reading with changing visual scenes.');
   await expect(page.locator('#chamber-display')).toBeVisible({ timeout: 20_000 });
 
   const shift = page.locator('#jev-next-scene');
@@ -154,7 +141,7 @@ test('reader shifts Jev’s next visual scene without moving the text or pace', 
         return pixels && pixels.some((value, index) => index % 4 === 3 && value > 0);
       });
   }), { timeout: 10_000 }).toBe(true);
-  expect(seen).toHaveLength(1);
+  expect(jevRequests()).toBe(1);
 
   const after = await page.evaluate(() => {
     const chamber = window.__RISE_TEST__.getView('chamber-session');
@@ -173,7 +160,7 @@ test('reader shifts Jev’s next visual scene without moving the text or pace', 
 });
 
 test('spoken Jev request opens a reading whose look can be changed live', async ({ page }) => {
-
+  let requestBody;
   await page.addInitScript(() => {
     localStorage.setItem('rise-beta-session', JSON.stringify({
       code: 'rise2025', name: 'Jev voice harness', vault: null, timestamp: Date.now()
@@ -189,17 +176,19 @@ test('spoken Jev request opens a reading whose look can be changed live', async 
       abort() {}
     };
   });
+  await routeTestOpenRouter(page, decision, seen => { requestBody = seen.body; });
   await page.goto('/');
-  await connectOpenRouter(page);
-  const seen = await answerDecisions(page, decision);
-  await page.locator('#portal-jev-form [data-jev-dictate]').click();
-  await expect(page.locator('#portal-jev-intent'))
+  await connectTestOpenRouter(page);
+  await openHomeAsk(page);
+  await page.locator('#oracle-form [data-jev-dictate]').click();
+  await expect(page.locator('#oracle-intent'))
     .toHaveValue('A reflective reading with visual scenes');
-  await page.locator('#portal-jev-form button[type="submit"]').click();
-  // Home previews Jev's answer; the reading starts only from Play.
-  await page.locator('#portal-play').click();
-  expect(seen).toHaveLength(1);
-  expect(seen[0].body.state.reader_intent).toBe('A reflective reading with visual scenes');
+  await page.locator('[data-oracle="ask"]').click();
+  // Nothing plays on arrival; the reading starts only from Enter.
+  await page.locator('[data-oracle="enter"]').click();
+  expect(requestBody.state.reader_intent).toBe('A reflective reading with visual scenes');
+  expect(requestBody.model).toBe('typesafe/jev-1.13');
+  expect(requestBody.questions.book.type).toBe('choice');
   await expect(page.locator('#chamber-display')).toBeVisible({ timeout: 20_000 });
   await page.locator('#chamber-display').hover();
   await page.locator('#jev-look-btn').click();
@@ -238,13 +227,9 @@ test.describe('touch reader', () => {
     await page.addInitScript(() => localStorage.setItem('rise-beta-session', JSON.stringify({
       code: 'rise2025', name: 'Jev touch harness', vault: null, timestamp: Date.now()
     })));
+    await routeTestOpenRouter(page, decision);
     await page.goto('/');
-    await connectOpenRouter(page);
-    await answerDecisions(page, decision);
-    await page.locator('#portal-jev-intent').fill('A reading with a visual scene I can change.');
-    await page.locator('#portal-jev-form button[type="submit"]').click();
-    // Home previews Jev's answer; the reading starts only from Play.
-    await page.locator('#portal-play').click();
+    await askHome(page, 'A reading with a visual scene I can change.');
     const shift = page.locator('#jev-next-scene');
     await expect(shift).toBeEnabled({ timeout: 20_000 });
     await page.locator('#chamber-display').tap({ position: { x: 40, y: 120 } });

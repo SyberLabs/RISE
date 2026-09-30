@@ -1,77 +1,40 @@
 /**
- * Portal Component — RISE Home.
+ * Portal Component — RISE Home: the Oracle.
  *
- * SyberLabs design system: one request box, one primary action (Create
- * preview), one secondary text link (the Meditations starter), and a header
- * nav of plain words. The Atlas atmosphere sits behind it while it is the
- * active room, and the RISE sigil is its brand mark (and, drawing in, its
- * loading state).
+ * RISE is a machine you approach. Home is one object and one key, ROLL,
+ * which composes a reading by chance inside bounds (src/core/roll.js).
+ * The reading rises in the object's window, and three keys follow it:
+ * ENTER plays it, ROLL AGAIN draws another, ADJUST opens Reader Setup with
+ * everything already set, where the Visual Navigator, Timing and Sound are.
  *
- * REQUEST → PREVIEW → PLAY. Jev's answer is not played on arrival. Home
- * shows how the request was read, in words derived from the exact plan
- * (src/core/jev-describe.js), says what RISE cannot do before anything
- * plays, and lets the reader change one part at a time without asking Jev
- * again. The request and the preview survive navigation and reload.
+ *   Oracle proposes → Reader Setup alters → Chamber performs.
+ *
+ * Asking is the escape hatch, not the front door: after a first roll, "or
+ * ask for something specific" turns the window into a text field and Jev
+ * answers into the same three keys. What RISE cannot do for a request is
+ * said before anything plays (src/core/jev-describe.js).
+ *
+ * The result, rolled or asked, lives with Home while it is open: coming back
+ * from a reading finds it waiting. A fresh load starts empty, so the first
+ * roll is the reader's own.
+ * Every other room is one Menu away; Privacy and Terms stay posted.
  */
 
-
 import './Portal.css';
-import { drawRiseSigil, mountAtmosphere } from './atlas.js';
+import { drawRiseSigil } from './atlas.js';
 import { isJevSceneDemoPath, sceneSampleFromPath } from '../core/jev-demo-path.js';
 import { attachJevDictation } from './jev-dictation.js';
-import {
-  connectionState, detectLocalKev, disconnect, isLocalRise, subscribeConnection, takeConnectionNotice
-} from '../core/ai-connection.js';
+import { OracleObject } from './oracle/OracleObject.js';
+import { connectionState, detectLocalKev, disconnect, isLocalRise, subscribeConnection, takeConnectionNotice } from '../core/ai-connection.js';
 import { claimOpenRouterReturn } from '../core/openrouter-callback.js';
 
 const ICON_ATTRS = 'width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"';
 const SETTINGS_PATH = '<path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path><circle cx="12" cy="12" r="3"></circle>';
-const ALERT_ICON_16 = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="M12 8v4"></path><path d="M12 16h.01"></path></svg>';
-const HELP = 'RISE turns your words into a reading with visuals, pace and sound. You’ll see how it was read before anything plays. Only this request goes to your own AI connection; your reading and saved work stay local.';
-const LOCAL_GUIDE = 'https://github.com/SyberLabs/RISE/blob/main/docs/LOCAL-RISE.md';
-const KEV_STATES = Object.freeze({
-  checking: 'Checking this computer for Kev…',
-  installing: 'Installing Kev’s isolated environment. This happens once.',
-  downloading: 'Downloading the pinned Kev and Qwen weights. This happens once.',
-  loading: 'Loading Kev onto your GPU…',
-  error: 'Kev could not start. The terminal that launched RISE says why.',
-  stopped: 'Kev is stopped.'
-});
-const PREVIEW_KEY = 'rise-jev-preview-v1';
-const EXAMPLES = Object.freeze([
-  'Neon and fast, like a night drive',
-  'Slow and quiet, something to think about',
-  'An epic battle with a big sound'
-]);
-const ADJUST_GROUPS = Object.freeze([
-  ['energy', 'Energy'], ['speed', 'Speed'], ['colors', 'Colors'], ['sound', 'Sound']
-]);
-const SECTION_WORDS = Object.freeze({
-  first: 'opening section', middle: 'middle section', last: 'final section',
-  shortest: 'shortest section', longest: 'longest section'
-});
-const KIND_WORDS = Object.freeze({ energy: 'Energy', speed: 'Speed', colors: 'Colors', sound: 'Sound', workId: 'Text' });
+const MIC_ICON = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"></rect><path d="M5 11a7 7 0 0 0 14 0"></path><path d="M12 18v3"></path></svg>';
+const ASK_HELP = 'Only your request is sent, to your connected OpenRouter account or local Kev. Your reading and saved work stay here. Voice input may use your browser’s speech service.';
 
 const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, c =>
   ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-
-function readStoredPreview() {
-  try {
-    const value = JSON.parse(sessionStorage.getItem(PREVIEW_KEY) || 'null');
-    return value && typeof value.intent === 'string' ? value : null;
-  } catch {
-    return null;
-  }
-}
-
-function writeStoredPreview(value) {
-  try {
-    if (value) sessionStorage.setItem(PREVIEW_KEY, JSON.stringify(value));
-    else sessionStorage.removeItem(PREVIEW_KEY);
-  } catch {
-    // Private windows may refuse storage; the preview still works in memory.
-  }
-}
 
 export class Portal {
   constructor(container, options = {}) {
@@ -80,68 +43,68 @@ export class Portal {
     this.getAudioEngine = options.getAudioEngine || (() => null);
     this.getCurrentSession = options.getCurrentSession || (() => null);
     this.onLaunchJevReading = options.onLaunchJevReading || (async () => {});
+    this.onAdjustReading = options.onAdjustReading || (async () => {});
     this.onLaunchJevSample = options.onLaunchJevSample || (async () => {});
     this.demoMode = options.demoMode === true;
-    this.onLaunchFirstRead = options.onLaunchFirstRead || (async () => {});
     this._active = false;
-    this.boundKeyboardHandler = this.handleKeyboard.bind(this);
-    // The preview: Jev's admitted answer, and the reader's own changes on top.
-    this.preview = null;
-    this.previewTools = null;
+    // idle → rolling → result; result → ask → asking → result.
+    this.state = 'idle';
+    // { decision, source: 'roll' | 'ask', intent, temper }
+    this.result = null;
+    this.rolled = false;
+    this.firstReadChoiceUsed = false;
+    this.tools = null;
+    this.stopConnection = subscribeConnection(() => this.renderConnection());
+    if (isLocalRise()) void detectLocalKev();
+    const returned = claimOpenRouterReturn();
+    if (returned) {
+      void import('../core/openrouter-oauth.js')
+        .then(({ finishOpenRouterReturn }) => finishOpenRouterReturn(returned));
+    }
 
     this.render();
     this.attachEvents();
     this.syncContinue();
-    this.restorePreview();
   }
-
 
   /** Router re-entry hook — refresh the living entries on return */
   update() {
     const demoMode = isJevSceneDemoPath(window.location.pathname);
     if (demoMode !== this.demoMode) {
+      const wasActive = this._active;
+      this.deactivate();
+      this.object?.destroy();
       this.demoMode = demoMode;
       this.render();
       this.attachEvents();
-      this.restorePreview();
+      if (wasActive) this.activate();
     }
     // Returning from a reading is precisely when this changes.
     this.syncContinue();
   }
 
   /**
-   * Show the Continue strip only when there is genuinely something to
-   * continue (Premium_Mobile_Chamber P6).
-   *
-   * The session is IN MEMORY ONLY. A cold load has none, so a first
-   * visit shows no strip — which is correct, because a first visit has
-   * nothing to resume.
+   * Show Continue only when there is genuinely something to continue
+   * (Premium_Mobile_Chamber P6). The session is in memory only, so a cold
+   * load has none.
    */
   syncContinue() {
     const strip = this.container.querySelector('.portal-continue');
     if (!strip) return;
-
-    // Session label: title || name (Chamber uses title; compiled journeys use name).
     const session = this.getCurrentSession();
     const named = session?.title || session?.name;
     const title = typeof named === 'string' ? named.trim() : '';
-    if (!title) {
-      strip.hidden = true;
-      return;
-    }
-
+    strip.hidden = !title;
+    if (!title) return;
     strip.querySelector('.continue-title').textContent = title;
     strip.setAttribute('aria-label', `Continue reading — ${title}`);
-    strip.hidden = false;
   }
 
-
   render() {
-    this.stopJevDictation?.();
-    const demo = this.demoMode;
-    const nightDrive = demo && sceneSampleFromPath(window.location.pathname) === 'night-drive';
+    this.stopDictation?.();
+    this.stopDictation = null;
     this.container.innerHTML = `
-      <div class="portal">
+      <div class="portal${this.demoMode ? '' : ' portal-oracle'}">
         <header class="sl-header">
           <div class="sl-header-inner">
             <span class="sl-lockup" role="img" aria-label="SyberLabs RISE">
@@ -160,154 +123,35 @@ export class Portal {
               <button class="portal-nav-link" type="button" data-nav="library">Library</button>
               <button class="portal-nav-link" type="button" data-nav="vault">Sequences</button>
               <button class="portal-nav-link" type="button" data-nav="workshop">Compose</button>
+              <button class="portal-nav-link" type="button" data-nav="chamber">Reader setup</button>
+              <button class="portal-nav-link" type="button" data-action="guide">Guide</button>
               <button class="portal-nav-settings" type="button" data-action="settings" aria-label="Settings" title="Settings">
                 <svg ${ICON_ATTRS}>${SETTINGS_PATH}</svg><span class="portal-nav-settings-label">Settings</span>
               </button>
+              <p class="portal-nav-group" aria-hidden="true">Other ways in</p>
+              <!-- A page of its own: another skin over the same roll (src/wormhole). -->
+              <a class="portal-nav-link portal-nav-minor" href="/wormhole.html">Wormhole</a>
+              <p class="portal-nav-group" aria-hidden="true">More rooms</p>
+              <button class="portal-nav-link portal-nav-minor" type="button" data-nav="chapel">Chapel</button>
+              <button class="portal-nav-link portal-nav-minor" type="button" data-nav="scriptorium">Scriptorium</button>
+              <button class="portal-nav-link portal-nav-minor" type="button" data-nav="visual-lab">Visual Lab</button>
+              <button class="portal-nav-link portal-nav-minor" type="button" data-nav="emotions">Emotions</button>
+              <button class="portal-nav-link portal-nav-minor" type="button" data-nav="curia">Curia</button>
             </nav>
           </div>
         </header>
 
         <main class="portal-main">
-          <section class="portal-ask" aria-labelledby="portal-ask-title">
-            <p class="portal-eyebrow"><span class="portal-dot" aria-hidden="true"></span>${nightDrive ? 'Night Drive sample' : demo ? 'RISE scene sample' : 'Read with RISE'}</p>
-            ${nightDrive ? `<h1 class="portal-title" id="portal-ask-title">Neon, at speed.</h1>
-            <div class="portal-jev-form" id="portal-jev-demo">
-              <p class="portal-help">Neon light, rushing light streaks and a driving electronic beat, over Walt Whitman’s “Song of the Open Road”. About 25 seconds.</p>
-              <p class="portal-help">This is the fixed look RISE chooses for night-drive, racing, drifting or neon requests. No live RISE request is made here. RISE makes its own visuals and music; it uses no film footage or soundtrack.</p>
-              <p class="portal-help">Sound starts when you press Start. If your device asks for reduced motion, the scene holds one still frame.</p>
-              <div class="portal-actions">
-                <button class="portal-primary" id="jev-scene-demo-start" type="button">Start Night Drive</button>
-                <p class="portal-status" id="jev-scene-demo-status" role="status" aria-live="polite"></p>
-              </div>
-              <p class="portal-alt"><a class="portal-link portal-jev-demo-live" href="/">Ask RISE live for a personal reading</a></p>
-            </div>` : demo ? `<h1 class="portal-title" id="portal-ask-title">Make the scene respond.</h1>
-            <div class="portal-jev-form" id="portal-jev-demo">
-              <p class="portal-help">Read a released passage from Middlemarch, then bring its next visual scene forward while the words keep moving.</p>
-              <p class="portal-help">This is a fixed sample preset of choices RISE may make. No live RISE request is made here.</p>
-              <p class="portal-help">Source: <em>Middlemarch</em> by George Eliot ·
-                <a class="portal-link" href="https://standardebooks.org/ebooks/george-eliot/middlemarch" target="_blank" rel="noopener noreferrer">Standard Ebooks edition</a></p>
-              <div class="portal-actions">
-                <button class="portal-primary" id="jev-scene-demo-start" type="button">Start sample reading</button>
-                <p class="portal-status" id="jev-scene-demo-status" role="status" aria-live="polite"></p>
-              </div>
-              <p class="portal-alt"><a class="portal-link portal-jev-demo-live" href="/">Ask RISE live for a personal reading</a></p>
-            </div>` : `<h1 class="portal-title"><label id="portal-ask-title" for="portal-jev-intent">What do you want to <em class="sy-spectrum">experience</em>?</label></h1>
-            <form class="portal-jev-form" id="portal-jev-form" novalidate>
-              <textarea id="portal-jev-intent" name="intent" rows="4" maxlength="240" required
-                aria-describedby="portal-jev-help"
-                placeholder="Describe a mood, a style, a text, or all three."></textarea>
-              <p class="portal-help" id="portal-jev-help">${HELP}</p>
-              <p class="portal-kept" id="portal-jev-kept" hidden></p>
-              <div class="portal-actions">
-                <button class="portal-primary portal-jev-submit" type="submit"><span class="portal-submit-label">Create preview</span><svg class="portal-spinner" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9" stroke-opacity=".25"></circle><path d="M21 12a9 9 0 0 0-9-9"></path></svg></button>
-                <button class="portal-icon-btn portal-jev-dictate" data-jev-dictate="icon" type="button" aria-label="Speak your request" aria-pressed="false" aria-describedby="portal-jev-voice-note"><svg ${ICON_ATTRS}><rect x="9" y="3" width="6" height="11" rx="3"></rect><path d="M5 11a7 7 0 0 0 14 0"></path><path d="M12 18v3"></path></svg></button>
-                <p class="portal-status" id="portal-jev-hint" role="status" aria-live="polite"></p>
-              </div>
-              <p class="portal-voice" id="portal-jev-voice-note"><span data-jev-dictation-status role="status" aria-live="polite"></span><span class="portal-voice-note">Voice input may use your browser’s speech service. Review the text before creating a preview.</span></p>
-              <div class="portal-examples" aria-label="Example requests">
-                ${EXAMPLES.map(text => `<button class="portal-chip" type="button" data-example="${escapeHtml(text)}">${escapeHtml(text)}</button>`).join('')}
-              </div>
-              <div class="portal-ai" id="portal-ai" role="group" aria-label="Your AI connection">
-                <div class="portal-ai-body"></div>
-                <p class="portal-ai-notice" role="status" aria-live="polite" hidden></p>
-              </div>
-              <div class="portal-alert" id="portal-jev-error" role="alert" hidden>
-                <svg ${ICON_ATTRS}><circle cx="12" cy="12" r="10"></circle><path d="M12 8v4"></path><path d="M12 16h.01"></path></svg>
-                <div class="portal-alert-body">
-                  <p class="portal-alert-title">Couldn’t create a preview. Your request is saved.</p>
-                  <details class="portal-alert-details">
-                    <summary>Details<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></summary>
-                    <p class="portal-alert-message"></p>
-                  </details>
-                </div>
-                <button class="portal-link portal-alert-retry" type="button">Try again</button>
-              </div>
-            </form>`}
-            ${demo ? '' : `<p class="portal-alt">Or start with
-              <button class="portal-link portal-first-read" type="button">Meditations · Marcus Aurelius</button>
-            </p>`}
-          </section>
-
-          <section class="portal-aside" aria-label="Your reading">
-            <figure class="portal-plate" aria-hidden="true">
-              <div class="portal-sigil sy-plate"><canvas class="portal-sigil-canvas"></canvas></div>
-              <figcaption class="portal-plate-caption"><b>Plate · RISE</b><span class="portal-plate-params"></span></figcaption>
-            </figure>
-            <div class="portal-skeleton" aria-hidden="true" hidden>
-              <span class="sk" style="width:96px;height:12px"></span>
-              <span class="sk" style="width:280px;height:40px;margin-top:24px"></span>
-              <span class="sk" style="width:140px;height:16px;margin-top:12px"></span>
-              <span class="sk" style="width:100%;height:16px;margin-top:24px"></span>
-              <span class="sk" style="width:72%;height:16px;margin-top:8px"></span>
-              <span class="sk-row"><span class="sk" style="width:64px;height:12px"></span><span class="sk" style="width:120px;height:16px"></span></span>
-              <span class="sk-row"><span class="sk" style="width:80px;height:12px"></span><span class="sk" style="width:132px;height:16px"></span></span>
-              <span class="sk-row"><span class="sk" style="width:48px;height:12px"></span><span class="sk" style="width:72px;height:16px"></span></span>
-            </div>
-            <section class="portal-preview" id="portal-preview" hidden aria-labelledby="portal-preview-title">
-              <p class="portal-eyebrow" id="portal-preview-title">Interpretation</p>
-              <p class="portal-preview-lede"></p>
-              <dl class="portal-rows"></dl>
-              <div class="portal-read">
-                <p class="portal-read-label">What you’ll read</p>
-                <p class="portal-read-title"></p>
-                <p class="portal-read-meta"></p>
-                <p class="portal-read-why" hidden>You didn’t name a text, so RISE picked one from the readings it holds.</p>
-              </div>
-              <div class="portal-limit" role="note" hidden>
-                <svg ${ICON_ATTRS}><circle cx="12" cy="12" r="10"></circle><path d="M12 16v-4"></path><path d="M12 8h.01"></path></svg>
-                <div>
-                  <p class="portal-limit-title">What RISE can’t do here</p>
-                  <p class="portal-limit-body"></p>
-                </div>
-              </div>
-              <div class="portal-adjust" aria-labelledby="portal-adjust-title">
-                <div class="portal-adjust-head">
-                  <h2 id="portal-adjust-title">Adjust</h2>
-                  <p>Changes apply instantly. Nothing is sent again.</p>
-                </div>
-                <div class="portal-adjust-groups"></div>
-                <label class="portal-adjust-label" for="portal-adjust-text">Text</label>
-                <select id="portal-adjust-text" class="portal-select" data-adjust-kind="workId"></select>
-                <div class="portal-adjust-foot">
-                  <p class="portal-adjust-note" role="status" aria-live="polite"></p>
-                  <button class="portal-link portal-adjust-reset" type="button" hidden>Reset to interpretation</button>
-                </div>
-              </div>
-              <div class="portal-actions portal-play-row">
-                <button class="portal-primary portal-play" id="portal-play" type="button">Play with sound</button>
-                <p class="portal-help">Plays here. Fullscreen only if you choose it.</p>
-              </div>
-              <details class="portal-details">
-                <summary>Details</summary>
-                <p class="portal-details-body"></p>
-              </details>
-            </section>
-
-            <!-- Continue: title only (the session is in memory). Hidden when
-                 there is nothing to resume. -->
-            <button class="portal-continue" type="button" data-action="continue" hidden>
-              <span class="continue-label">Continue reading</span>
-              <span class="continue-title"></span>
-              <svg class="continue-go" ${ICON_ATTRS}><path d="M5 12h14"></path><path d="m13 6 6 6-6 6"></path></svg>
-            </button>
-          </section>
+          ${this.demoMode ? this.renderDemo() : this.renderOracle()}
+          ${this.demoMode ? '' : this.renderConnectionPanel()}
+          <button class="portal-continue" type="button" data-action="continue" hidden>
+            <span class="continue-label">Continue reading</span>
+            <span class="continue-title"></span>
+            <svg class="continue-go" ${ICON_ATTRS}><path d="M5 12h14"></path><path d="m13 6 6 6-6 6"></path></svg>
+          </button>
         </main>
 
         <footer class="portal-footer">
-          <button class="portal-footer-link" type="button" data-action="guide">Guide</button>
-          <button class="portal-footer-link" type="button" data-nav="chamber">Reader setup</button>
-          <!-- The header holds at most four destinations and the footer stays
-               plain; the remaining rooms are one disclosure away, never gone. -->
-          <div class="portal-more">
-            <button class="portal-footer-link portal-more-toggle" type="button" aria-expanded="false" aria-controls="portal-more-list">More<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></button>
-            <ul class="portal-more-list" id="portal-more-list" hidden>
-              <li><button class="portal-footer-link" type="button" data-nav="chapel">Chapel</button></li>
-              <li><button class="portal-footer-link" type="button" data-nav="scriptorium">Scriptorium</button></li>
-              <li><button class="portal-footer-link" type="button" data-nav="visual-lab">Visual Lab</button></li>
-              <li><button class="portal-footer-link" type="button" data-nav="emotions">Emotions</button></li>
-              <li><button class="portal-footer-link" type="button" data-nav="curia">Curia</button></li>
-            </ul>
-          </div>
           <!-- Conspicuously posted, which is the standard CalOPPA sets and
                the reason these sit on the Portal rather than inside a room.
                Generated from PRIVACY.md and TERMS.md by build-legal.mjs. -->
@@ -318,187 +162,408 @@ export class Portal {
         </footer>
       </div>
     `;
-    // Drawn when the room is shown: a hidden canvas has no size to draw at.
     this._marksDrawn = false;
+    this.object = null;
+    const stage = this.container.querySelector('.oracle-stage');
+    if (stage) {
+      this.object = new OracleObject(stage, { onShake: () => this.shake() });
+      stage.addEventListener('oracle-layout', () => this.fitAnswer());
+    }
     if (this._active) this.drawMarks();
-    if (this._atmosphere) {
-      this._atmosphere.destroy();
-      this._atmosphere = null;
-      if (this._active) this._atmosphere = mountAtmosphere(this.container.querySelector('.portal'));
+  }
+
+  renderOracle() {
+    return `<section class="oracle-home" aria-labelledby="oracle-title">
+      <h1 class="oracle-title" id="oracle-title">What will you encounter?</h1>
+      <form class="oracle" id="oracle-form" novalidate>
+        <div class="oracle-stage" aria-label="The Oracle. Flick it, or shake your phone, to roll.">
+          <canvas class="oracle-canvas" aria-hidden="true"></canvas>
+          <div class="oracle-shadow" aria-hidden="true"></div>
+          <div class="oracle-space">
+            <div class="oracle-glass">
+              <p class="oracle-cursor" aria-hidden="true">_</p>
+              <div class="oracle-answer" hidden>
+                <strong class="oracle-answer-title"></strong>
+                <span class="oracle-answer-meta"></span>
+                <span class="oracle-answer-mood"></span>
+              </div>
+              <label class="oracle-label sr-only" for="oracle-intent">Ask for a reading</label>
+              <textarea class="oracle-intent" id="oracle-intent" name="intent" rows="4" maxlength="240"
+                spellcheck="false" placeholder="ask for a reading_" aria-describedby="oracle-help" hidden></textarea>
+            </div>
+            <div class="oracle-plate" aria-hidden="true"><b>RISE</b> MODEL J-82 · PHOSPHOR VOLUME</div>
+          </div>
+        </div>
+        <div class="oracle-keys"></div>
+        <p class="oracle-help" id="oracle-help" hidden>${ASK_HELP}</p>
+        <p class="oracle-note" role="note" hidden></p>
+        <p class="oracle-status" role="status" aria-live="polite"><span data-oracle-status></span><span data-jev-dictation-status></span></p>
+        <div class="portal-alert oracle-alert" role="alert" hidden>
+          <div class="portal-alert-body">
+            <p class="portal-alert-title"></p>
+            <details class="portal-alert-details">
+              <summary>Details</summary>
+              <p class="portal-alert-message"></p>
+            </details>
+          </div>
+        </div>
+      </form>
+    </section>`;
+  }
+
+  renderDemo() {
+    const nightDrive = sceneSampleFromPath(window.location.pathname) === 'night-drive';
+    return `<section class="portal-ask" aria-labelledby="portal-ask-title">
+      <p class="portal-eyebrow"><span class="portal-dot" aria-hidden="true"></span>${nightDrive ? 'Night Drive sample' : 'RISE scene sample'}</p>
+      ${nightDrive ? `<h1 class="portal-title" id="portal-ask-title">Neon, at speed.</h1>
+      <div class="portal-jev-form" id="portal-jev-demo">
+        <p class="portal-help">Neon light, rushing light streaks and a driving electronic beat, over Walt Whitman’s “Song of the Open Road”. About 25 seconds.</p>
+        <p class="portal-help">This is the fixed look RISE chooses for night-drive, racing, drifting or neon requests. No live RISE request is made here. RISE makes its own visuals and music; it uses no film footage or soundtrack.</p>
+        <p class="portal-help">Sound starts when you press Start. If your device asks for reduced motion, the scene holds one still frame.</p>
+        <div class="portal-actions">
+          <button class="portal-primary" id="jev-scene-demo-start" type="button">Start Night Drive</button>
+          <p class="portal-status" id="jev-scene-demo-status" role="status" aria-live="polite"></p>
+        </div>
+        <p class="portal-alt"><a class="portal-link portal-jev-demo-live" href="/">Ask RISE live for a personal reading</a></p>
+      </div>` : `<h1 class="portal-title" id="portal-ask-title">Make the scene respond.</h1>
+      <div class="portal-jev-form" id="portal-jev-demo">
+        <p class="portal-help">Read a released passage from Middlemarch, then bring its next visual scene forward while the words keep moving.</p>
+        <p class="portal-help">This is a fixed sample preset of choices RISE may make. No live RISE request is made here.</p>
+        <p class="portal-help">Source: <em>Middlemarch</em> by George Eliot ·
+          <a class="portal-link" href="https://standardebooks.org/ebooks/george-eliot/middlemarch" target="_blank" rel="noopener noreferrer">Standard Ebooks edition</a></p>
+        <div class="portal-actions">
+          <button class="portal-primary" id="jev-scene-demo-start" type="button">Start sample reading</button>
+          <p class="portal-status" id="jev-scene-demo-status" role="status" aria-live="polite"></p>
+        </div>
+        <p class="portal-alt"><a class="portal-link portal-jev-demo-live" href="/">Ask RISE live for a personal reading</a></p>
+      </div>`}
+    </section>`;
+  }
+
+  renderConnectionPanel() {
+    const state = connectionState();
+    const label = state.kind === 'openrouter' ? 'Jev through your OpenRouter account, billed to your OpenRouter account.'
+      : state.kind === 'local' ? 'Kev on this computer. No hosted inference bill.'
+        : 'AI is optional. Connect your OpenRouter account or run Kev locally to ask for a reading.';
+    return `<section class="portal-ai" id="portal-ai" aria-label="AI connection">
+      <p class="portal-ai-line" id="portal-ai-status">${escapeHtml(label)}</p>
+      ${state.kind === 'openrouter' ? '<button class="portal-link" type="button" data-ai="disconnect">Disconnect</button>'
+        : state.kind === 'none' ? '<button class="portal-link" type="button" data-ai="connect">Connect OpenRouter</button> <span class="portal-ai-hint">billed to your own OpenRouter account</span> · <a class="portal-link" href="https://github.com/SyberLabs/RISE/blob/main/docs/LOCAL-RISE.md" target="_blank" rel="noopener noreferrer">Run locally</a> <span class="portal-ai-hint">no hosted inference bill</span>' : ''}
+      <details class="portal-ai-about"><summary>About your connection</summary><p class="portal-help">OpenRouter requests are billed to your account. The key stays in this tab’s memory and is forgotten when you disconnect, reload, or close the tab. It is never sent to SyberLabs. browser extensions can read page memory; revoke keys in your OpenRouter settings.</p></details>
+      <p class="portal-ai-notice" role="status" hidden></p>
+    </section>`;
+  }
+
+  renderConnection() {
+    const current = this.container.querySelector('.portal-ai');
+    if (!current) return;
+    const wrapper = document.createElement('div');
+    wrapper.innerHTML = this.renderConnectionPanel();
+    current.innerHTML = wrapper.firstElementChild.innerHTML;
+    const notice = takeConnectionNotice();
+    if (notice) this.showConnectionNotice(notice.message);
+  }
+
+  showConnectionNotice(message) {
+    const node = this.container.querySelector('.portal-ai-notice');
+    if (node) { node.textContent = message; node.hidden = !message; }
+  }
+
+  async connectOpenRouter() {
+    try {
+      const { beginOpenRouterConnect } = await import('../core/openrouter-oauth.js');
+      await beginOpenRouterConnect();
+    } catch {
+      this.showConnectionNotice('OpenRouter could not be connected in this browser.');
     }
   }
 
-  /** The RISE sigil in the header lockup and on the plate beside the ask. */
-  drawMarks({ animate = true } = {}) {
-    this._marksDrawn = true;
-    drawRiseSigil(this.container.querySelector('.sl-sigil'), { animate: false });
-    this.drawPlate({ animate });
+  /** The keys under the object, for the current state. */
+  renderKeys() {
+    const keys = this.container.querySelector('.oracle-keys');
+    if (!keys) return;
+    const busy = this.state === 'rolling' || this.state === 'asking' || this.launching;
+    const key = (action, label, extra = '') =>
+      `<button class="oracle-key ${extra}" type="${action === 'ask' ? 'submit' : 'button'}" data-oracle="${action}"${busy ? ' disabled' : ''}>${label}</button>`;
+    // Nothing is loaded at first: one key, ROLL. Once there is something to
+    // enter, rolling again and entering are two keys of one size (chance in
+    // beige, the commitment lit), and what else can be done is small text below.
+    const pair = (...keysHtml) => `<div class="oracle-keys-pair">${keysHtml.join('')}</div>`;
+    const quiet = (...itemsHtml) => `<div class="oracle-keys-quiet">${itemsHtml.filter(Boolean).join('')}</div>`;
+    const text = (action, label) =>
+      `<button class="oracle-quiet" type="button" data-oracle="${action}"${busy ? ' disabled' : ''}>${label}</button>`;
+    // The layout follows whether there is something to enter, not the moment's
+    // state, so the keys do not collapse and reappear in the middle of a roll.
+    const asking = this.state === 'ask' || this.state === 'asking';
+    if (!asking && this.result) {
+      keys.innerHTML = pair(key('roll', 'Roll again', 'oracle-key-pair'), key('enter', 'Enter', 'oracle-key-primary oracle-key-pair'))
+        + quiet(text('adjust', 'Adjust'), text('ask-open', 'or ask for something specific'));
+    } else if (asking) {
+      keys.innerHTML = pair(key('roll', 'Roll', 'oracle-key-pair'), key('ask', 'Ask', 'oracle-key-primary oracle-key-pair'))
+        + quiet(`<button class="oracle-quiet oracle-quiet-icon" type="button" data-jev-dictate="icon" aria-label="Speak your request" aria-pressed="false">${MIC_ICON}</button>`);
+    } else {
+      keys.innerHTML = key('roll', 'Roll', 'oracle-key-primary oracle-key-roll');
+    }
+    if (busy) {
+      const active = { rolling: 'roll', asking: 'ask' }[this.state] || this.launching;
+      keys.querySelector(`[data-oracle="${active}"]`)?.setAttribute('aria-busy', 'true');
+    }
+    const form = this.container.querySelector('#oracle-form');
+    this.stopDictation?.();
+    this.stopDictation = form?.querySelector('[data-jev-dictate]') ? attachJevDictation(form) : null;
   }
 
-  drawPlate({ animate = true } = {}) {
-    this._plateDraw?.cancel?.();
-    const canvas = this.container.querySelector('.portal-sigil-canvas');
-    drawRiseSigil(canvas, { animate }).then(result => {
-      if (!result) return;
-      this._plateDraw = result;
-      const params = this.container.querySelector('.portal-plate-params');
-      if (params) params.textContent = result.caption;
-    });
-  }
-
-  /** Loading state: busy button, disabled field, skeleton where the reading lands. */
-  setJevBusy(busy) {
-    const form = this.container.querySelector('#portal-jev-form');
-    if (!form) return;
-    const submit = form.querySelector('.portal-jev-submit');
-    submit.disabled = busy;
-    submit.toggleAttribute('aria-busy', busy);
-    form.querySelector('#portal-jev-intent').readOnly = busy;
-    const first = this.container.querySelector('.portal-first-read');
-    if (first) first.disabled = busy;
-    this.container.querySelector('.portal-skeleton').hidden = !busy;
-    // Loading is the sigil drawing in again while Jev interprets.
-    if (busy) this.drawPlate();
-    this.container.querySelector('#portal-jev-hint').textContent = busy ? 'Interpreting your request. This usually takes a few seconds.' : '';
-    // While asking, the old preview steps aside; if asking fails, it returns.
-    const preview = this.container.querySelector('#portal-preview');
-    if (preview) preview.hidden = busy || !this.preview;
-  }
-
-  showJevFieldError(show) {
-    const form = this.container.querySelector('#portal-jev-form');
-    const intent = form.querySelector('#portal-jev-intent');
-    const help = form.querySelector('#portal-jev-help');
-    intent.setAttribute('aria-invalid', String(show));
-    help.classList.toggle('is-error', show);
-    help.innerHTML = show ? `${ALERT_ICON_16}Add a few words: a mood, a style, a text, or all three.` : HELP;
+  /** The window, the notes and the ask link, for the current state. */
+  renderGlass() {
+    const root = this.container.querySelector('#oracle-form');
+    if (!root) return;
+    const asking = this.state === 'ask' || this.state === 'asking';
+    const showing = this.state === 'result' && this.result;
+    root.querySelector('.oracle-cursor').hidden = asking || Boolean(showing);
+    root.querySelector('.oracle-answer').hidden = !showing;
+    const field = root.querySelector('.oracle-intent');
+    field.hidden = !asking;
+    field.readOnly = this.state === 'asking';
+    root.querySelector('.oracle-help').hidden = !asking;
+    // The result is already in the window; the status line only speaks it.
+    root.querySelector('.oracle-status').classList.toggle('sr-only', Boolean(showing));
+    const note = root.querySelector('.oracle-note');
+    note.hidden = !(showing && this.result.note);
+    note.textContent = showing ? this.result.note || '' : '';
+    if (showing) {
+      root.querySelector('.oracle-answer-title').textContent = this.result.title;
+      // The window says little: a name, an author, and the one word for a roll's
+      // temper. Section and plan are spoken by the status line and shown in Reader
+      // Setup, where the reader can change them.
+      root.querySelector('.oracle-answer-meta').textContent = this.result.author;
+      const mood = root.querySelector('.oracle-answer-mood');
+      mood.textContent = this.result.mood;
+      mood.hidden = !this.result.mood;
+      this.fitAnswer();
+    }
   }
 
   /**
-   * The alert always says the SPEC sentence. A raw cause (an API message, a
-   * network error) is kept for whoever needs it, one "Details" click away.
+   * A long result (a two-line title, a long plan) must sit inside the window,
+   * not run over its bezel. Step the whole answer down until it fits; the
+   * stylesheet keeps the small type from going below a readable size.
    */
-  showJevError(show, details = '') {
-    const alert = this.container.querySelector('#portal-jev-error');
+  fitAnswer() {
+    const stage = this.container.querySelector('.oracle-stage');
+    const answer = this.container.querySelector('.oracle-answer');
+    const radius = parseFloat(stage?.style.getPropertyValue('--r'));
+    if (!answer || answer.hidden || !radius) return;
+    const room = radius * 0.86;
+    answer.style.setProperty('--fit', '1');
+    for (let fit = 1; fit > 0.6 && answer.offsetHeight > room; fit -= 0.05) {
+      answer.style.setProperty('--fit', fit.toFixed(2));
+    }
+  }
+
+  setStatus(text) {
+    const status = this.container.querySelector('[data-oracle-status]');
+    if (status) status.textContent = text;
+  }
+
+  showError(title, details = '') {
+    const alert = this.container.querySelector('.oracle-alert');
     if (!alert) return;
-    alert.hidden = !show;
+    alert.hidden = !title;
+    alert.querySelector('.portal-alert-title').textContent = title;
     const more = alert.querySelector('.portal-alert-details');
     more.open = false;
     more.hidden = !details;
     alert.querySelector('.portal-alert-message').textContent = details;
   }
 
-  attachEvents() {
-    const firstRead = this.container.querySelector('.portal-first-read');
-    firstRead?.addEventListener('click', async () => {
-      if (firstRead.disabled) return;
-      firstRead.disabled = true;
-      this.getAudioEngine()?.playClick();
-      try {
-        await this.onLaunchFirstRead();
-      } finally {
-        firstRead.disabled = false;
-      }
-    });
+  setState(state, { focus } = {}) {
+    this.state = state;
+    this.renderKeys();
+    this.renderGlass();
+    if (focus) this.container.querySelector(focus)?.focus({ preventScroll: true });
+  }
 
-    const form = this.container.querySelector('#portal-jev-form');
-    if (form) this.stopJevDictation = attachJevDictation(form);
-    const intentField = form?.querySelector('#portal-jev-intent');
-    intentField?.addEventListener('input', () => {
-      if (intentField.getAttribute('aria-invalid') === 'true') this.showJevFieldError(false);
-    });
-    form?.querySelector('.portal-alert-retry').addEventListener('click', () => form.requestSubmit());
-    form?.addEventListener('submit', async event => {
-      event.preventDefault();
-      const intent = intentField.value.trim();
-      if (intent.length < 3 || intent.length > 240) {
-        this.showJevFieldError(true);
-        intentField.focus();
-        return;
-      }
-      const submit = form.querySelector('.portal-jev-submit');
-      if (submit.disabled) return;
-      this.showJevFieldError(false);
-      this.showJevError(false);
-      this.setJevBusy(true);
-      this.getAudioEngine()?.playClick();
-      try {
-        // Decided in this page on the reader's own connection (their
-        // OpenRouter account, or Kev on their computer). Never a SyberLabs model.
-        const { recommendReading } = await import('../core/decision/browser.js');
-        const decision = await recommendReading(intent, { nightDrive: true });
-        // The reader's own changes survive a new request (they are theirs).
-        await this.showPreview(intent, decision, this.preview?.changes || []);
-      } catch (error) {
-        if (error?.code === 'NOT_CONNECTED') {
-          // Not a failure: nothing was sent. Point at the two ways to connect.
-          this.showAiNotice(error.message);
-          this.container.querySelector('#portal-ai [data-ai="connect"]')?.focus();
-        } else {
-          this.showJevError(true, error?.message || '');
-        }
-      } finally {
-        this.setJevBusy(false);
-      }
-    });
+  async loadTools() {
+    this.tools ||= Promise.all([
+      import('../core/roll.js'),
+      import('../core/jev-describe.js'),
+      import('../app/jev-reading.js'),
+      import('../app/invocation.js'),
+      import('../content/library.js')
+    ]).then(modules => Object.assign({}, ...modules));
+    return this.tools;
+  }
 
-    this.container.querySelector('#portal-ai')?.addEventListener('click', event => {
-      const action = event.target.closest('[data-ai]')?.dataset.ai;
-      if (action === 'connect') void this.connectOpenRouter();
-      if (action === 'disconnect') {
-        disconnect();
-        this.showAiNotice('OpenRouter disconnected. RISE forgot the key.');
-      }
-    });
-    const refresh = () => {
-      this.renderAiPanel();
-      const notice = takeConnectionNotice();
-      if (notice) this.showAiNotice(notice.message);
+  /** Words for a decision, all derived from the plan and the edition. */
+  describe(tools, decision, { source, intent = '', temper = null }) {
+    const work = tools.getTextById(decision.workId);
+    let note = '';
+    if (source === 'ask') {
+      const { reference, limits } = tools.readJevRequest(intent);
+      const parts = [];
+      if (reference) parts.push(`You referenced “${reference.name}”. RISE treated it as a style (${reference.reads}), not as a ${reference.kind} to play.`);
+      if (limits.length) parts.push(`RISE can’t ${limits.join(', or ')}. It matches the mood with its own synthesized music and abstract visuals instead.`);
+      note = parts.join(' ');
+    }
+    return {
+      decision, source, intent, temper, note,
+      title: work?.title || decision.workId,
+      author: work?.author || '',
+      mood: source === 'roll' ? temper : '',
+      // The whole description, for the status line that speaks it.
+      meta: [work?.author, tools.SECTION_WORDS[decision.config.section]].filter(Boolean).join(' · '),
+      plan: tools.summarizeJevPlan(decision.config)
     };
-    this.stopConnection = subscribeConnection(refresh);
-    refresh();
-    // Finish an OpenRouter sign-in this page load returned from (or abandoned).
-    const returned = claimOpenRouterReturn();
-    if (returned) void import('../core/openrouter-oauth.js').then(oauth => oauth.finishOpenRouterReturn(returned));
-    if (isLocalRise()) void this.watchLocalKev();
+  }
 
-    this.container.querySelectorAll('[data-example]').forEach(chip => {
-      chip.addEventListener('click', () => {
-        intentField.value = chip.dataset.example;
-        intentField.dispatchEvent(new Event('input', { bubbles: true }));
-        intentField.focus();
-      });
-    });
-    intentField?.addEventListener('input', () => {
-      this.rememberIntent(intentField.value);
-      this.warmDecisions();
-    });
+  shake() {
+    if (this.state === 'ask' || this.state === 'asking') return;
+    void this.roll();
+  }
 
-    const preview = this.container.querySelector('#portal-preview');
-    preview?.addEventListener('click', event => {
-      const option = event.target.closest('[data-adjust-value]');
-      if (option) void this.adjust(option.dataset.adjustKind, option.dataset.adjustValue);
-    });
-    preview?.querySelector('#portal-adjust-text').addEventListener('change', event => {
-      void this.adjust('workId', event.target.value);
-    });
-    preview?.querySelector('.portal-adjust-reset').addEventListener('click', () => {
-      if (!this.preview) return;
-      void this.showPreview(this.preview.intent, this.preview.base, [], 'Back to the original interpretation.');
-    });
-    preview?.querySelector('#portal-play').addEventListener('click', async () => {
-      const play = preview.querySelector('#portal-play');
-      if (!this.preview || play.disabled) return;
-      play.disabled = true;
-      this.getAudioEngine()?.playClick();
-      try {
-        await this.onLaunchJevReading(this.preview.decision);
-      } catch (error) {
-        this.showJevError(true, error?.message || '');
-      } finally {
-        play.disabled = false;
+  async roll() {
+    if (this.state === 'rolling' || this.state === 'asking' || this.launching) return;
+    this.object?.requestMotion();
+    this.getAudioEngine()?.playClick();
+    this.showError('');
+    const first = !this.rolled;
+    this.setState('rolling');
+    this.setStatus('Rolling…');
+    this.object?.kick(1.1);
+    let tools;
+    try {
+      [tools] = await Promise.all([this.loadTools(), this.object?.sink()]);
+    } catch (error) {
+      // The roll's code did not arrive (a dropped connection); whatever was
+      // showing rises again and the key is live.
+      this.tools = null;
+      this.setState(this.result ? 'result' : 'idle');
+      this.setStatus('');
+      this.showError('Couldn’t roll just now. Try again.', error?.message || '');
+      await this.object?.rise();
+      return;
+    }
+    const previous = this.result?.source === 'roll' ? this.result : null;
+    const { decision, temper } = tools.rollReading({ previous });
+    this.result = this.describe(tools, decision, { source: 'roll', temper });
+    this.rolled = true;
+    this.setState('result', { focus: first ? '[data-oracle="enter"]' : '[data-oracle="roll"]' });
+    this.setStatus(`${this.result.title}. ${this.result.meta}. ${this.result.plan.join(', ')}.`);
+    // A small tick as the answer surfaces, on phones that can give one.
+    navigator.vibrate?.(10);
+    await this.object?.rise();
+  }
+
+  async openAsk() {
+    this.showError('');
+    if (this.result) await this.object?.sink();
+    this.setState('ask', { focus: '.oracle-intent' });
+    this.setStatus('Ask for a mood, a style, a text, or all three.');
+    await this.object?.rise();
+  }
+
+  async ask() {
+    const field = this.container.querySelector('.oracle-intent');
+    const intent = field.value.trim();
+    if (this.state !== 'ask') return;
+    if (intent.length < 3 || intent.length > 240) {
+      this.setStatus(intent ? 'Keep it under 240 characters.' : 'Add a few words: a mood, a style, a text, or all three.');
+      this.object?.kick(0.25);
+      field.focus();
+      return;
+    }
+    this.showError('');
+    this.getAudioEngine()?.playClick();
+    this.setState('asking');
+    this.object?.setBusy(true);
+    this.setStatus('Interpreting your request. This usually takes a few seconds.');
+    try {
+      // The one decision route every way in shares (src/app/invocation.js).
+      const tools = await this.loadTools();
+      const decision = await tools.requestComposedReading(intent, { admit: tools.validateJevRecommendation });
+      await this.object?.sink();
+      this.result = this.describe(tools, decision, { source: 'ask', intent });
+      this.setState('result', { focus: '[data-oracle="enter"]' });
+      this.setStatus(`Jev chose ${this.result.title}. ${this.result.plan.join(', ')}.`);
+      await this.object?.rise();
+    } catch (error) {
+      this.setState('ask', { focus: '.oracle-intent' });
+      this.setStatus('');
+      if (error?.code === 'NOT_CONNECTED') {
+        this.showConnectionNotice('Connect OpenRouter or run RISE locally to ask for a specific reading. ROLL works without AI.');
       }
-    });
+      this.showError('Couldn’t interpret that here. Your request is kept.', error?.message || '');
+      this.object?.kick(0.3);
+    } finally {
+      this.object?.setBusy(false);
+    }
+  }
+
+  /** ENTER plays the reading; ADJUST opens it in Reader Setup. */
+  async proceed(action) {
+    if (!this.result || this.launching) return;
+    this.launching = action;
+    this.renderKeys();
+    this.getAudioEngine()?.playClick();
+    this.showError('');
+    try {
+      if (action === 'enter') {
+        const firstReadPreview = this.result.source === 'roll' && !this.firstReadChoiceUsed;
+        await this.onLaunchJevReading(this.result.decision, { firstReadPreview });
+        if (firstReadPreview) this.firstReadChoiceUsed = true;
+      }
+      else await this.onAdjustReading(this.result.decision);
+    } catch (error) {
+      this.showError('That reading couldn’t be opened. Try again, or roll another.', error?.message || '');
+    } finally {
+      this.launching = null;
+      this.renderKeys();
+    }
+  }
+
+  /** The RISE sigil in the header lockup. */
+  drawMarks() {
+    this._marksDrawn = true;
+    drawRiseSigil(this.container.querySelector('.sl-sigil'), { animate: false });
+  }
+
+  attachEvents() {
+    const form = this.container.querySelector('#oracle-form');
+    if (form) {
+      this.renderKeys();
+      this.renderGlass();
+      form.addEventListener('submit', event => {
+        event.preventDefault();
+        void this.ask();
+      });
+      form.addEventListener('click', event => {
+        const action = event.target.closest('[data-oracle]')?.dataset.oracle;
+        if (!action || event.target.closest('button')?.disabled) return;
+        if (action === 'roll') void this.roll();
+        else if (action === 'ask-open') void this.openAsk();
+        else if (action === 'enter' || action === 'adjust') void this.proceed(action);
+      });
+      const field = form.querySelector('.oracle-intent');
+      field.addEventListener('keydown', event => {
+        if (event.key === 'Enter' && !event.shiftKey) {
+          event.preventDefault();
+          form.requestSubmit();
+        }
+      });
+    }
+
+    if (!this._aiEventsAttached) {
+      this._aiEventsAttached = true;
+      this.container.addEventListener('click', event => {
+        const button = event.target.closest('[data-ai]');
+        if (!button) return;
+        if (button.dataset.ai === 'connect') void this.connectOpenRouter();
+        else if (button.dataset.ai === 'disconnect') {
+          disconnect();
+          this.showConnectionNotice('Disconnected. RISE forgot the key.');
+        }
+      });
+    }
 
     const sample = this.container.querySelector('#jev-scene-demo-start');
     sample?.addEventListener('click', async () => {
@@ -515,8 +580,8 @@ export class Portal {
       }
     });
 
-    // Phone header: one Menu button opens the same nav as a sheet. While it
-    // is open, Tab stays inside it and Escape closes it.
+    // One Menu button opens every room as a sheet. While it is open, Tab
+    // stays inside it and Escape closes it.
     const header = this.container.querySelector('.sl-header');
     const toggle = this.container.querySelector('.portal-menu-toggle');
     const nav = header.querySelector('.portal-nav');
@@ -538,7 +603,7 @@ export class Portal {
         return;
       }
       if (event.key !== 'Tab') return;
-      const stops = [toggle, ...nav.querySelectorAll('button')];
+      const stops = [toggle, ...nav.querySelectorAll('button, a[href]')];
       const first = stops[0];
       const last = stops[stops.length - 1];
       if (event.shiftKey && document.activeElement === first) {
@@ -551,315 +616,49 @@ export class Portal {
     });
     nav.querySelector('[data-action="home"]').addEventListener('click', () => setMenu(false, { restoreFocus: true }));
 
-    // Footer "More": the rooms without a plain everyday name, one click away.
-    const more = this.container.querySelector('.portal-more');
-    const moreToggle = more.querySelector('.portal-more-toggle');
-    const moreList = more.querySelector('.portal-more-list');
-    const setMore = open => {
-      moreList.hidden = !open;
-      moreToggle.setAttribute('aria-expanded', String(open));
-    };
-    moreToggle.addEventListener('click', () => setMore(moreList.hidden));
-    more.addEventListener('keydown', event => {
-      if (event.key === 'Escape' && !moreList.hidden) {
-        event.preventDefault();
-        setMore(false);
-        moreToggle.focus();
-      }
-    });
-    // Tabbing away or clicking elsewhere closes it. (A null relatedTarget
-    // is a click that moved no focus, as Safari does; the click handler has it.)
-    more.addEventListener('focusout', event => {
-      if (event.relatedTarget && !more.contains(event.relatedTarget)) setMore(false);
-    });
-    this.container.querySelector('.portal').addEventListener('click', event => {
-      if (!more.contains(event.target)) setMore(false);
-    });
-
-    // Navigation
-    const navItems = this.container.querySelectorAll('[data-nav]');
-    navItems.forEach(item => {
+    this.container.querySelectorAll('[data-nav]').forEach(item => {
       item.addEventListener('click', () => {
         this.getAudioEngine()?.playClick();
         this.closeMenu?.();
-        const destination = item.dataset.nav;
-        this.onNavigate(destination);
+        this.onNavigate(item.dataset.nav);
       });
     });
 
-    // Continue resumes the compiled reading.
-    const cont = this.container.querySelector('.portal-continue');
-    if (cont) {
-      cont.addEventListener('click', () => {
-        this.getAudioEngine()?.playClick();
-        this.onNavigate('chamber-session', this.getCurrentSession());
-      });
-    }
+    this.container.querySelector('.portal-continue')?.addEventListener('click', () => {
+      this.getAudioEngine()?.playClick();
+      this.onNavigate('chamber-session', this.getCurrentSession());
+    });
 
-    // Utility actions
-    const utilLinks = this.container.querySelectorAll('[data-action="guide"], [data-action="settings"]');
-    utilLinks.forEach(link => {
+    this.container.querySelectorAll('[data-action="guide"], [data-action="settings"]').forEach(link => {
       link.addEventListener('click', () => {
         this.getAudioEngine()?.playClick();
         this.closeMenu?.();
-        const action = link.dataset.action;
-        if (action === 'guide') {
-          window.dispatchEvent(new CustomEvent('rise-open-guide'));
-        } else if (action === 'settings') {
-          window.dispatchEvent(new CustomEvent('rise-open-settings'));
-        }
+        window.dispatchEvent(new CustomEvent(link.dataset.action === 'guide' ? 'rise-open-guide' : 'rise-open-settings'));
       });
     });
-  }
-
-  /** Keep the request in the tab's session, so leaving Home cannot lose it. */
-  rememberIntent(intent) {
-    const stored = readStoredPreview();
-    writeStoredPreview(stored ? { ...stored, draft: intent } : { intent: '', draft: intent });
-  }
-
-  /** Bring back the request, and the preview, after navigation or reload. */
-  restorePreview() {
-    const stored = readStoredPreview();
-    const field = this.container.querySelector('#portal-jev-intent');
-    if (!stored || !field) return;
-    field.value = stored.draft ?? stored.intent;
-    if (stored.base && stored.intent) {
-      void this.showPreview(stored.intent, stored.base, stored.changes || []).catch(() => {
-        writeStoredPreview({ intent: '', draft: field.value });
-      });
-    }
-  }
-
-  async loadPreviewTools() {
-    this.previewTools ||= Promise.all([
-      import('../core/jev-describe.js'),
-      import('../app/jev-reading.js'),
-      import('../content/library.js')
-    ]).then(([describe, reading, library]) => ({ ...describe, ...reading, ...library }));
-    return this.previewTools;
-  }
-
-  /**
-   * Admit Jev's answer, re-apply the reader's own changes, and show the
-   * interpretation. Nothing plays here.
-   */
-  async showPreview(intent, base, changes = [], note = '') {
-    const tools = await this.loadPreviewTools();
-    tools.validateJevRecommendation(base);
-    let decision = base;
-    const kept = [];
-    for (const [kind, value] of changes) {
-      try {
-        decision = tools.adjustJevDecision(decision, kind, value);
-        kept.push([kind, value]);
-      } catch {
-        // A change that no longer applies is dropped, not forced.
-      }
-    }
-    tools.validateJevRecommendation(decision);
-    this.preview = { intent, base, decision, changes: kept };
-    const field = this.container.querySelector('#portal-jev-intent');
-    writeStoredPreview({ intent, draft: field?.value ?? intent, base, changes: kept });
-    this.renderPreview(tools, note);
-  }
-
-  async adjust(kind, value) {
-    if (!this.preview) return;
-    const changes = this.preview.changes.filter(([k]) => k !== kind);
-    changes.push([kind, value]);
-    const tools = await this.loadPreviewTools();
-    const label = kind === 'workId'
-      ? tools.getTextById(value)?.title || 'another text'
-      : tools.JEV_ADJUSTMENTS[kind]?.[value]?.label || value;
-    await this.showPreview(this.preview.intent, this.preview.base, changes,
-      `${KIND_WORDS[kind]}: ${label}. Updated instantly, nothing sent.`);
-  }
-
-  renderPreview(tools, note) {
-    const root = this.container.querySelector('#portal-preview');
-    if (!root || !this.preview) return;
-    const { intent, decision, changes } = this.preview;
-    const config = decision.config;
-    const work = tools.getTextById(decision.workId);
-    const named = tools.namesWork(intent, work);
-    const { reference, limits } = tools.readJevRequest(intent);
-    const changed = new Set(changes.map(([kind]) => kind));
-    const rowChanged = { colors: ['colors'], energy: ['energy'], speed: ['speed', 'sound'], text: [] };
-
-    root.querySelector('.portal-preview-lede').innerHTML = reference
-      ? `You referenced <strong>“${escapeHtml(reference.name)}”</strong>. RISE treated it as a style (${escapeHtml(reference.reads)}), not as a ${escapeHtml(reference.kind)} to play.`
-      : named
-        ? `You asked for <strong>${escapeHtml(work?.title)}</strong>. Here’s the presentation RISE chose for it. Change anything below.`
-        : 'Here’s how RISE read your request. Change anything below.';
-
-    root.querySelector('.portal-rows').innerHTML = tools.describeJevPlan(config).map(row => `
-      <div class="portal-row">
-        <dt>${escapeHtml(row.label)}</dt>
-        <dd><span class="portal-row-value">${escapeHtml(row.value)}${rowChanged[row.key]?.some(k => changed.has(k)) ? '<span class="portal-yours">Yours</span>' : ''}</span>
-        <span class="portal-row-detail">${escapeHtml(row.detail)}</span></dd>
-      </div>`).join('');
-
-    root.querySelector('.portal-read-title').innerHTML = `${escapeHtml(work?.title || decision.workId)}${changed.has('workId') ? '<span class="portal-yours">Yours</span>' : ''}`;
-    root.querySelector('.portal-read-meta').textContent =
-      `${work?.author || ''} · ${SECTION_WORDS[config.section] || 'a section'}`;
-    root.querySelector('.portal-read-why').hidden = named || changed.has('workId');
-
-    const limit = root.querySelector('.portal-limit');
-    limit.hidden = limits.length === 0;
-    root.querySelector('.portal-limit-body').textContent = limits.length
-      ? `RISE can’t ${limits.join(', or ')}. It matches the mood with its own synthesized music and abstract visuals instead.`
-      : '';
-
-    root.querySelector('.portal-adjust-groups').innerHTML = ADJUST_GROUPS.map(([kind, label]) => {
-      const current = tools.currentJevAdjustment(config, kind);
-      return `<div class="portal-adjust-group" role="group" aria-label="${label}">
-        <span class="portal-adjust-label">${label}</span>
-        <div class="portal-segments">${Object.entries(tools.JEV_ADJUSTMENTS[kind]).map(([value, option]) =>
-          `<button type="button" class="portal-segment" data-adjust-kind="${kind}" data-adjust-value="${value}" aria-pressed="${current === value}">${escapeHtml(option.label)}</button>`).join('')}</div>
-      </div>`;
-    }).join('');
-    const select = root.querySelector('#portal-adjust-text');
-    select.innerHTML = tools.jevReleasedWorkIds().map(id => {
-      const text = tools.getTextById(id);
-      return `<option value="${escapeHtml(id)}">${escapeHtml(text?.title || id)}${text?.author ? ` · ${escapeHtml(text.author)}` : ''}</option>`;
-    }).join('');
-    select.value = decision.workId;
-    root.querySelector('.portal-adjust-note').textContent = note;
-    root.querySelector('.portal-adjust-reset').hidden = changes.length === 0;
-
-    root.querySelector('.portal-details-body').textContent =
-      `Interpreted by ${decision.provider === 'Kev' ? 'Kev on this computer' : 'Jev through your OpenRouter account'}. `
-      + `Model ${decision.model} · request ${decision.requestId}`
-      + (decision.decisionCacheStatus === 'hit' ? ' · reused a recent answer, no new charge' : '');
-
-    const kept = this.container.querySelector('#portal-jev-kept');
-    if (kept) {
-      kept.hidden = changes.length === 0;
-      kept.textContent = changes.length
-        ? `Updating keeps your changes: ${changes.map(([kind]) => KIND_WORDS[kind]).join(', ')}.` : '';
-    }
-    const label = this.container.querySelector('.portal-submit-label');
-    if (label) label.textContent = 'Update preview';
-    root.hidden = false;
-  }
-
-  /**
-   * The two ways to use AI in RISE, and which one this tab is using. Both
-   * are the reader's own; neither is required to read.
-   */
-  renderAiPanel() {
-    const body = this.container.querySelector('#portal-ai .portal-ai-body');
-    if (!body) return;
-    const state = connectionState();
-    if (state.kind === 'openrouter') {
-      body.innerHTML = `<p class="portal-ai-line">Jev through your OpenRouter account, billed to you.
-          <button class="portal-link" type="button" data-ai="disconnect">Disconnect</button></p>
-        <details class="portal-ai-about"><summary>About your key</summary><p class="portal-help">Each request is
-          billed to your OpenRouter account, including visual direction while you read a released text. The key stays
-          in this tab’s memory and is forgotten when you disconnect, reload, or close the tab. It is never sent to
-          SyberLabs, but browser extensions you have installed can read what a page holds. Each connection creates a
-          key in your OpenRouter account; revoke old ones in your OpenRouter settings.</p></details>`;
-      return;
-    }
-    if (state.kind === 'local') {
-      body.innerHTML = `<p class="portal-ai-line">Kev on this computer${
-        state.device ? ` (${escapeHtml(state.device)})` : ''}. No hosted inference bill.</p>`;
-      return;
-    }
-    if (this.localStatus?.local || isLocalRise()) {
-      const kev = this.localStatus?.kev;
-      body.innerHTML = `<p class="portal-ai-line">${escapeHtml(KEV_STATES[kev?.state] || KEV_STATES.checking)}${
-        kev?.message ? ` ${escapeHtml(String(kev.message).slice(0, 240))}` : ''}</p>`;
-      return;
-    }
-    body.innerHTML = `<p class="portal-ai-line">AI uses your own model:
-        <button class="portal-link" type="button" data-ai="connect">Connect OpenRouter</button>
-        <span class="portal-ai-hint">billed to your own OpenRouter account</span> ·
-        <a class="portal-link" href="${LOCAL_GUIDE}" target="_blank" rel="noopener noreferrer">Run locally</a>
-        <span class="portal-ai-hint">no hosted inference bill</span></p>`;
-  }
-
-  /**
-   * Once a connected reader starts typing, fetch the decision code and the
-   * public catalog so pressing Create preview waits only for the model.
-   * Nothing is sent to a model here.
-   */
-  warmDecisions() {
-    if (this._warmed || connectionState().kind === 'none') return;
-    this._warmed = true;
-    void import('../core/decision/browser.js')
-      .then(({ loadPublicCatalog }) => loadPublicCatalog())
-      .catch(() => { this._warmed = false; });
-  }
-
-  showAiNotice(message) {
-    const notice = this.container.querySelector('#portal-ai .portal-ai-notice');
-    if (!notice) return;
-    notice.textContent = message || '';
-    notice.hidden = !message;
-  }
-
-  async connectOpenRouter() {
-    try {
-      const { beginOpenRouterConnect } = await import('../core/openrouter-oauth.js');
-      await beginOpenRouterConnect();
-    } catch {
-      this.showAiNotice('This browser blocked the sign-in state RISE needs. Allow site storage for this tab, then try again.');
-    }
-  }
-
-  /** Local RISE: follow Kev from install to ready, then stop asking. */
-  async watchLocalKev() {
-    if (this._watchingLocal) return;
-    this._watchingLocal = true;
-    try {
-      for (let attempt = 0; attempt < 600 && !this._destroyed; attempt += 1) {
-        this.localStatus = await detectLocalKev();
-        this.renderAiPanel();
-        if (!this.localStatus.local || this.localStatus.ready || this.localStatus.kev?.state === 'error') return;
-        await new Promise(resolve => setTimeout(resolve, 2000));
-      }
-    } finally {
-      this._watchingLocal = false;
-    }
-  }
-
-  handleKeyboard(e) {
-    // Escape returns to Portal (this is the root, so no action)
-    if (e.key === 'Escape') {
-      // Already at Portal
-    }
   }
 
   activate() {
     if (this._active) return;
     this._active = true;
-    this._atmosphere ||= mountAtmosphere(this.container.querySelector('.portal'));
     if (!this._marksDrawn) this.drawMarks();
-    if (!this.stopJevDictation) {
-      const form = this.container.querySelector('#portal-jev-form');
-      if (form) this.stopJevDictation = attachJevDictation(form);
-    }
-    document.addEventListener('keydown', this.boundKeyboardHandler);
+    this.object?.start();
+    // Leaving Home stopped dictation; an open request gets it back.
+    if (this.state === 'ask') this.renderKeys();
   }
 
   deactivate() {
     if (!this._active) return;
     this._active = false;
     // Every other room — and above all the Chamber — runs without it.
-    this._atmosphere?.destroy();
-    this._atmosphere = null;
-    this.stopJevDictation?.();
-    this.stopJevDictation = null;
-    document.removeEventListener('keydown', this.boundKeyboardHandler);
+    this.object?.stop();
+    this.stopDictation?.();
+    this.stopDictation = null;
   }
 
   destroy() {
-    this._destroyed = true;
-    this.stopConnection?.();
-    this.stopJevDictation?.();
     this.deactivate();
-    this._plateDraw?.cancel?.();
+    this.stopConnection?.();
+    this.object?.destroy();
   }
 }

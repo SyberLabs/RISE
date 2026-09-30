@@ -9,7 +9,7 @@
  * Measured as geometry rather than inspected: two rectangles either intersect
  * or they do not, and no amount of shrinking type is an answer to overlap.
  */
-import { test, expect } from './fixtures.js';
+import { test, expect, openHomeNav } from './fixtures.js';
 
 const GATE = { code: 'rise2025', name: 'Header', vault: null, timestamp: Date.now() };
 const SEED = {
@@ -38,7 +38,7 @@ test('the prompt and the Library chip never occupy the same pixels', async ({ pa
         localStorage.setItem('rise_orbital_text_v1', JSON.stringify(seed));
     }, { gate: GATE, seed: SEED });
     await page.goto('/');
-    await page.locator('[data-nav="chamber"]').first().click();
+    await openHomeNav(page, 'chamber');
     await expect(page.locator('.stance-question')).toBeVisible({ timeout: 20_000 });
 
     const collisions = [];
@@ -84,7 +84,7 @@ test('the Library chip keeps a real touch target on a phone', async ({ page }) =
     }, { gate: GATE, seed: SEED });
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto('/');
-    await page.locator('[data-nav="chamber"]').first().click();
+    await openHomeNav(page, 'chamber');
     await expect(page.locator('.orbital-origin-chip')).toBeVisible({ timeout: 20_000 });
 
     for (const selector of ['.orbital-origin-chip', '.orbital-back']) {

@@ -1,4 +1,4 @@
-import { test, expect } from './fixtures.js';
+import { test, expect, openHomeNav } from './fixtures.js';
 
 const GATE = {
   code: 'rise2025',
@@ -73,7 +73,7 @@ async function openPrep(page, viewport, prefs = PREFS) {
     localStorage.setItem('rise_orbital_prefs_v1', JSON.stringify(prefs));
   }, { gate: GATE, seed: SEED, prefs });
   await page.goto('/');
-  await page.locator('[data-nav="chamber"]').first().click();
+  await openHomeNav(page, 'chamber');
   await expect(page.locator('#begin-btn')).toBeEnabled({ timeout: 15_000 });
   { const adjust = page.locator('[data-action="toggle-adjust"]'); if (await adjust.getAttribute('aria-expanded') === 'false') await adjust.click(); }
   await page.locator('[data-orbit="visual"]').click();
@@ -118,7 +118,7 @@ async function hardReloadPrep(page) {
   await page.reload({ waitUntil: 'domcontentloaded' });
   const beginButton = page.locator('#begin-btn');
   if (!await beginButton.isVisible()) {
-    await page.locator('[data-nav="chamber"]').first().click();
+    await openHomeNav(page, 'chamber');
   }
   await expect(beginButton).toBeEnabled({ timeout: 15_000 });
 }

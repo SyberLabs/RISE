@@ -1,4 +1,4 @@
-import { test, expect } from './fixtures.js';
+import { test, expect, openHomeNav } from './fixtures.js';
 
 const GATE = { code: 'rise2025', name: 'Recitation', vault: null, timestamp: Date.now() };
 
@@ -77,7 +77,7 @@ async function enterChamber(page, recitation, seed = SEED) {
     }));
   }, { gate: GATE, seed, recitation });
   await page.goto('/');
-  await page.locator('[data-nav="chamber"]').first().click();
+  await openHomeNav(page, 'chamber');
   await expect(page.locator('#begin-btn')).toBeEnabled({ timeout: 20000 });
   await page.locator('#begin-btn').click();
   const warn = page.locator('#photosensitivity-modal');
@@ -196,7 +196,7 @@ test('the control turns recitation on, and the choice survives a return', async 
     localStorage.setItem('rise_orbital_text_v1', JSON.stringify(g.seed));
   }, { gate: GATE, seed: SEED });
   await page.goto('/');
-  await page.locator('[data-nav="chamber"]').first().click();
+  await openHomeNav(page, 'chamber');
   { const adjust = page.locator('[data-action="toggle-adjust"]'); if (await adjust.getAttribute('aria-expanded') === 'false') await adjust.click(); }
   await page.locator('.orbit-node[data-orbit="audio"]').click();
   await expect(page.locator('[data-recitation="on"]')).toBeVisible({ timeout: 15000 });

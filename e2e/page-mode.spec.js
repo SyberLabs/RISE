@@ -28,7 +28,7 @@ test('Page Mode typesets a Gospel chapter in space, and holds the stream', async
     });
 
     await page.goto('/');
-    await expect(page.locator('.portal .portal-title').first()).toBeVisible({ timeout: 15_000 });
+    await expect(page.locator('.portal h1').first()).toBeVisible({ timeout: 15_000 });
 
     // Chapel → Matthew 27: seven Passion pericopes, the richest schedule
     await openHomeRoom(page, 'chapel');

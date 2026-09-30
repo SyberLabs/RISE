@@ -1,4 +1,4 @@
-import { test, expect } from './fixtures.js';
+import { test, expect, openHomeNav } from './fixtures.js';
 const GATE = { code: 'rise2025', name: 'Suspend', vault: null, timestamp: Date.now() };
 const SEED = { text: 'The pendulum draws the chord it hears. '.repeat(60).trim(), textSource: 'Seed', origin: null };
 
@@ -20,8 +20,8 @@ async function boot(page, prefs = PREFS) {
     localStorage.setItem('rise_orbital_prefs_v1', JSON.stringify(g.prefs));
   }, { gate: GATE, seed: SEED, prefs });
   await page.goto('/');
-  await expect(page.locator('.portal .portal-title').first()).toBeVisible({ timeout: 15000 });
-  await page.locator('[data-nav="chamber"]').first().click();
+  await expect(page.locator('.portal h1').first()).toBeVisible({ timeout: 15000 });
+  await openHomeNav(page, 'chamber');
   await expect(page.locator('#begin-btn')).toBeEnabled({ timeout: 15000 });
 }
 
