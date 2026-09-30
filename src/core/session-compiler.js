@@ -6,9 +6,9 @@
  */
 
 import { Atom, Session } from './models.js';
-import { chunkText, countWords, insertSourceScoreCuts } from './chunker.js';
+import { chunkText, countWords, escapeLiteral, insertSourceScoreCuts, restoreLiteral } from './chunker.js';
 import { prepareChunkText } from './chunk-profiles.js';
-import { PacingEngine, StateCurve } from './pacing.js';
+import { PACE_CURVE_IDS, PacingEngine, StateCurve } from './pacing.js';
 import {
     normalizeGlobalPoolSelection,
     normalizeVisualSelection,
@@ -64,13 +64,21 @@ function isSessionImageUri(uri) {
 }
 
 const CHUNK_MODES = new Set(['word', 'phrase', 'sentence', 'paragraph']);
-const CURVES = Object.freeze({
+// The profile ids are the one list in pacing.js; a profile without a factory
+// here would be named and not playable, and fails as soon as it is chosen.
+const CURVE_STATES = {
     flat: () => StateCurve.flat(),
     induction: () => StateCurve.induction(),
     ascent: () => StateCurve.ascent(),
     wave: () => StateCurve.wave(),
-    climax: () => StateCurve.climax()
-});
+    climax: () => StateCurve.climax(),
+    // Breath is not a curve of the reading: it holds the pace flat and swells
+    // atoms by the pacing engine's own breath (see pacing.js).
+    breath: () => StateCurve.flat()
+};
+const CURVES = Object.freeze(Object.fromEntries(
+    PACE_CURVE_IDS.map(id => [id, CURVE_STATES[id]])
+));
 const VISUAL_MODES = new Set(['off', 'focals', 'attractor', 'genesis', 'interlocution']);
 const ATTRACTOR_SYSTEM_IDS = new Set(['aizawa', 'thomas', 'halvorsen']);
 const ATTRACTOR_PALETTE_SET = new Set(ATTRACTOR_PALETTES.map(item => item.id));
@@ -332,7 +340,13 @@ function normalizeSources(config) {
 
     let totalChars = 0;
     return candidates.map((source, index) => {
-        const raw = sourceText(source);
+        // A LITERAL SOURCE is escaped here, once, so that every reader of `raw` below (the
+        // chunker, the span aligner, the reading plan) sees text with nothing in it to
+        // obey; the escape is one unit for one, so offsets are unchanged, and it is
+        // undone where the reading is made (chunker) and where the text is kept.
+        const literal = source.literal === true;
+        const supplied = sourceText(source);
+        const raw = literal ? escapeLiteral(supplied) : supplied;
         if (raw.length > SESSION_LIMITS.maxTextCharacters) {
             throw new RangeError(`Source ${index + 1} exceeds the ${SESSION_LIMITS.maxTextCharacters.toLocaleString()} character limit`);
         }
@@ -356,6 +370,7 @@ function normalizeSources(config) {
             // verse; its second and third are prose translations. One
             // session-wide flag would have to be wrong about two of them.
             verseLines: source.verseLines === true,
+            ...(literal ? { literal: true } : {}),
             raw
         };
     }).filter(source => source.raw.trim().length > 0);
@@ -580,7 +595,8 @@ export function compileSession(input = {}) {
                         || Number.isInteger(config.phraseFloor)
                         ? config.phraseFloor
                         : true),
-                verseLines: source.verseLines === true
+                verseLines: source.verseLines === true,
+                literal: source.literal === true
             });
             // Concat, never spread: 120k atoms as `push(...)` overflows the
             // call stack before the budget check below can refuse the session.
@@ -648,6 +664,11 @@ export function compileSession(input = {}) {
 
     const pacing = new PacingEngine({ baseWpm: config.wpm });
     pacing.setStateCurve(CURVES[config.curve]());
+    if (config.curve === 'breath') {
+        pacing.setBreath({
+            totalMs: atoms.reduce((sum, atom) => sum + (Number(atom.duration) || 0), 0)
+        });
+    }
     const pacedAtoms = pacing.paceAtoms(atoms);
 
     const session = new Session({
@@ -670,7 +691,7 @@ export function compileSession(input = {}) {
     // session only. Non-enumerable: it is never serialized, cloned, or
     // persisted with the session, and nothing sends it anywhere by itself.
     Object.defineProperty(session, 'sourceTexts', {
-        value: new Map(sources.map(source => [source.id, source.raw])),
+        value: new Map(sources.map(source => [source.id, source.literal ? restoreLiteral(source.raw) : source.raw])),
         enumerable: false
     });
     return session;

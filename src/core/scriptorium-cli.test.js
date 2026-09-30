@@ -797,7 +797,10 @@ describe('every refusal the session can phrase has a status', () => {
       + 'other readers normalize to null, so the raw class never escapes',
     DecisionError:
       'model routing is optional and runs before a sequence exists; '
-      + 'scriptorium-session.js routeWithJev catches it into { ok: false, message }'
+      + 'scriptorium-session.js routeWithJev catches it into { ok: false, message }',
+    RiseCurrentError:
+      'rise-current.js validates external sealed answers; the Scriptorium '
+      + 'does not call compileRiseCurrent or accept rise.current.v1 inputs'
   });
 
   it('names every error class under src/core, or excuses it here', () => {

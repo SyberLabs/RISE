@@ -44,6 +44,16 @@ npm run dev        # http://localhost:5173/
 
 In the app: **Try RISE** → pick a reading → **Begin**. Use **Page** to switch to the paginated view.
 
+### External Current experiment
+
+`rise.current.v1` is an experimental, sealed input for bringing a structured answer into the existing Session Compiler. It accepts bounded segments, a closed visual selection, and exact-span Dive notes. See the [contract](docs/specs/RISE-CURRENT-V1-SLICE.md) and [sample document](docs/examples/current-v1.json). To compile the sample locally:
+
+```bash
+node --input-type=module -e "import fs from 'node:fs'; import { compileRiseCurrent } from './src/core/rise-current.js'; const input = JSON.parse(fs.readFileSync('docs/examples/current-v1.json', 'utf8')); const session = compileRiseCurrent(input); console.log(session.atoms.length, session.experienceProgram.schema);"
+```
+
+This input is provider-neutral and offline. It does not yet stream model tokens, synthesize or synchronize speech, or run inside ChatGPT.
+
 ## Contributing
 
 Read [AGENTS.md](AGENTS.md) (working principles) and [docs/PROJECT-KNOWLEDGE.md](docs/PROJECT-KNOWLEDGE.md) (known pitfalls and the reasoning behind non-obvious decisions) before changing anything.

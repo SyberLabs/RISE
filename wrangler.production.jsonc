@@ -4,8 +4,9 @@
   "compatibility_date": "2026-09-26",
   "workers_dev": false,
   "preview_urls": false,
-  // This Worker runs no model and holds no model credential. Readers connect
-  // their own OpenRouter account or run Kev locally (docs/USER-OWNED-AI.md).
+  // Shared model inference is retired. Readers use their own OpenRouter account
+  // or run Kev locally; the optional live integrations remain switched off.
+  "vars": { "PERSONAL_PIECE_ENABLED": "false", "LIVE_REALTIME_ENABLED": "false", "MCP_ENABLED": "false" },
   // rise.syberlabs.io is attached to this Worker in the Cloudflare dashboard.
   "observability": { "enabled": true },
   "assets": {
@@ -15,9 +16,7 @@
     // The Kev worker script carries its own policy (worker/kev-worker-script.mjs).
     "run_worker_first": ["/api/*", "/assets/kev-worker-*"]
   },
-  // Only the public decision catalog reads these. Model credentials such as
-  // OPENROUTER_API_KEY are no longer required; delete them only after this
-  // release is verified serving 410 on every retired route (docs/USER-OWNED-AI.md).
+  // Only the public catalog reads these. Provider credentials are not required.
   "secrets": {
     "required": [
       "NEON_DATABASE_URL",

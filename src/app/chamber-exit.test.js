@@ -54,6 +54,13 @@ describe('every other surface leaves exactly as it did', () => {
             })).toEqual({ kind: 'navigate', view: 'portal' });
         }
     });
+    it('returns a live reading to the page it was asked for on', () => {
+        for (const reason of LEAVING) {
+            expect(chamberExitTarget(reason, { origin: { view: 'live' } }), reason)
+                .toEqual({ kind: 'navigate', view: 'live' });
+        }
+    });
+
     it('sends a Library reading back to the orbital prep screen', () => {
         for (const reason of LEAVING) {
             expect(chamberExitTarget(reason, {}), reason)

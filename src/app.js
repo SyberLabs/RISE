@@ -11,11 +11,8 @@
 
 import { Router } from './core/router.js';
 import { compileSession } from './core/session-compiler.js';
+import { PACE_CURVE_IDS } from './core/pacing.js';
 import { resolveNextLibraryDivision } from './core/reading-continuation.js';
-import {
-    isWorkshopProject,
-    workshopProjectToSessionConfig
-} from './core/workshop-project.js';
 import { BetaGate } from './components/BetaGate.js';
 import { isRosaryDoor } from './core/rosary-door.js';
 import { TRY_RISE_PATH, isTryRisePath } from './core/keystone-paths.js';
@@ -35,6 +32,7 @@ import { createRouteManifest } from './app/route-manifest.js';
 import { installTestBridge } from './app/test-bridge.js';
 
 const VISUAL_LAB_PATH = '/visual-lab';
+const LIVE_PATH = '/live';
 import { watchTabFreshness } from './core/tab-freshness.js';
 import { hasPersonalWorkInPage } from './core/personal-identity.js';
 import { takeOpenRouterReturn } from './core/openrouter-callback.js';
@@ -357,6 +355,8 @@ class App {
             await this.router.navigate('mint', { data: { entry: houseProgram(mintedSlug) } });
         } else if (window.location.pathname === VISUAL_LAB_PATH) {
             await this.router.navigate('visual-lab');
+        } else if (window.location.pathname === LIVE_PATH) {
+            await this.router.navigate('live');
         } else if (options.personalizedVault) {
             console.log('[RISE] Navigating directly to personalized vault:', options.personalizedVault);
             await this.router.navigate('vault', { data: { personalizedVault: options.personalizedVault } });
@@ -501,6 +501,7 @@ class App {
             handleArchetypeLaunch: data => this.handleArchetypeLaunch(data),
             handleBeginSession: session => this.handleBeginSession(session),
             useRecipeInReading: recipe => this.useRecipeInReading(recipe),
+            router: this.router,
             getAudioEngine: () => this.audioEngine,
             getCurrentSession: () => this.currentSession,
             getSettings: () => this.settings,
@@ -603,6 +604,11 @@ class App {
         if (viewName === 'visual-lab' && window.location.pathname !== VISUAL_LAB_PATH) {
             window.history[replaceUrl ? 'replaceState' : 'pushState']({}, '', VISUAL_LAB_PATH);
         } else if (viewName !== 'visual-lab' && window.location.pathname === VISUAL_LAB_PATH) {
+            window.history.pushState({}, '', '/');
+        }
+        if (viewName === 'live' && window.location.pathname !== LIVE_PATH) {
+            window.history[replaceUrl ? 'replaceState' : 'pushState']({}, '', LIVE_PATH);
+        } else if (viewName !== 'live' && window.location.pathname === LIVE_PATH) {
             window.history.pushState({}, '', '/');
         }
         // Returned so a caller can wait for the outgoing view to have
@@ -715,7 +721,10 @@ class App {
             // Session through createLibraryContinuation, so the module is in
             // the main chunk whatever this line says. Only the provider is
             // genuinely deferrable.
-            const { ArchiveTextProvider } = await import('./sources/text/archive.js');
+            const [{ ArchiveTextProvider }, { successorConfig }] = await Promise.all([
+                import('./sources/text/archive.js'),
+                import('./core/session-successor.js')
+            ]);
             const provider = new ArchiveTextProvider();
             const contents = await provider.getContents(session?.continuation?.workId);
             const next = resolveNextLibraryDivision(session?.continuation, contents);
@@ -735,30 +744,14 @@ class App {
                 // a work. A flashing successor must cross the boundary again.
                 consentScope: crypto.randomUUID()
             };
-            const nextSession = compileSession({
+            const nextSession = compileSession(successorConfig(session, {
                 title: `${itemName} · ${entryLabel}`,
                 text: next.entry.content,
                 textSource: `${itemName} · ${entryLabel}`,
-                wpm: session.wpm,
-                chunkMode: session.chunkMode,
-                curve: session.curve,
-                displayMode: session.displayMode,
                 verseLines: next.entry.verse === true,
-                revealMode: session.revealMode,
-                audioPreset: session.audioPreset,
-                soundscape: session.soundscape,
-                entrainmentMode: session.entrainmentMode,
-                entrainmentWaveform: session.entrainmentWaveform,
                 visualConfig,
-                origin: session.origin,
-                provenance: session.provenance,
-                continuation: next.continuation,
-                capabilities: session.capabilities,
-                recitation: session.recitation,
-                voiceId: session.voiceId,
-                selectedSwellId: session.selectedSwellId,
-                projection: session.projection
-            });
+                continuation: next.continuation
+            }));
 
             this.currentSession = nextSession;
             await this.router.navigate('chamber-session', {
@@ -959,6 +952,11 @@ class App {
                 sessionInput = personalSession(sessionData);
                 sessionInput.origin = { view: this.router.getCurrentView?.() === 'vault' ? 'vault' : 'create' };
             } else {
+                // The project model is a room's, and nothing on the way to the
+                // Portal needs it, so it is not part of first load.
+                const { isWorkshopProject, workshopProjectToSessionConfig } =
+                    await import('./core/workshop-project.js');
+                if (!isCurrent()) return false;
                 sessionInput = isWorkshopProject(sessionData) ? workshopProjectToSessionConfig(sessionData) : sessionData;
             }
             const { hydrateSessionSequenceAssets } = await import('./core/workshop-asset-durability.js');
@@ -1074,7 +1072,7 @@ class App {
             const candidate = parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {};
             const merged = { ...defaultSettings, ...candidate };
             merged.bandOffset = clampBandFraction(merged.bandOffset);
-            const curves = new Set(['flat', 'induction', 'ascent', 'wave', 'climax']);
+            const curves = new Set(PACE_CURVE_IDS);
             const booleanKeys = [
                 'showProgress',
                 'showDuration',
@@ -1356,6 +1354,10 @@ class App {
             const { keystoneSlugFromPath } = await import('./content/keystones.js');
             if (window.location.pathname === VISUAL_LAB_PATH) {
                 await this.router?.navigate('visual-lab', { replace: true, skipStack: true });
+                return;
+            }
+            if (window.location.pathname === LIVE_PATH) {
+                await this.router?.navigate('live', { replace: true, skipStack: true });
                 return;
             }
             const slug = keystoneSlugFromPath(window.location.pathname);

@@ -163,6 +163,17 @@ export class VisualScheduleController {
         return durations;
     }
 
+    /**
+     * Take a longer program. A live reading is compiled again as each
+     * segment arrives, and the program grows at its end; what has already
+     * been cued is unchanged, so the active cue and its generation carry over
+     * and the next atom does not re-emit what is already showing.
+     */
+    extend(program, atoms = []) {
+        this.program = program || null;
+        this._cueDurations = this._indexCueDurations(atoms);
+    }
+
     /** True when there is a program that is enabled. */
     get active() {
         return !!this.program && this.program.enabled !== false;

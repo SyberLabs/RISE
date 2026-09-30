@@ -1,260 +1,174 @@
 # Agent operating principles
 
-Always apply Superpowers, then both frameworks below, in every session on this repository. This file is the shared source of truth for Cursor, Grok, Claude Code, Codex, and any other agent that reads `AGENTS.md`. Do not wait to be asked. Do not summarize or soften these principles. Run every decision, feature, plan, or problem through the Master Reference Checklist. Call out what should be questioned, deleted, or simplified before anything is built.
+This file is the shared source of truth for every agent working on RISE
+(Cursor, Grok, Claude Code, Codex, and any other agent that reads `AGENTS.md`)
+and for humans. It is loaded into every session, so it holds only what applies
+to every task. The full frameworks live in skills:
 
-Slash-command copies of the Karpathy and Elon material live in `.cursor/skills/karpathy-guidelines` and `.cursor/skills/elon-principles`. Superpowers skills live in `.agents/skills/`.
+- Superpowers workflow: `.agents/skills/` (pinned in `.agents/skills/SOURCE.txt`)
+- First-principles engineering: `.cursor/skills/elon-principles/SKILL.md`
+- Karpathy coding guidelines: `.cursor/skills/karpathy-guidelines/SKILL.md`
 
----
+Precedence: the human partner's direct instructions, then this file, then
+skills, then your defaults.
 
-# Superpowers
+## 1. Skills first
 
-Before any response or action — including clarifying questions — read and follow `.agents/skills/using-superpowers/SKILL.md`. If there is even a 1% chance a skill in `.agents/skills/` applies, read that skill and follow it exactly. Announce "Using [skill] to [purpose]". If a skill has a checklist, create a todo per item.
+Before any response or action, including clarifying questions, read
+`.agents/skills/using-superpowers/SKILL.md` and follow it. If a skill in
+`.agents/skills/` could apply, read it and follow it exactly. Announce "Using
+[skill] to [purpose]". If the skill has a checklist, make one todo per item.
+Skip a skill workflow only when the human partner has said to.
 
-User instructions in this file take precedence over skills. Only skip a skill workflow when the human partner has explicitly said to.
+## 2. Reason from first principles
 
-Upstream: https://github.com/obra/superpowers (vendored snapshot in `.agents/skills/SOURCE.txt`).
+- Reduce the problem to what must be true. Everything else, including existing
+  code, convention, and "how it is usually done", is a recommendation.
+- Apply these steps in order. Never skip ahead:
+  1. Question every requirement. Name who needs it and why.
+  2. Delete the part or process that fails that question.
+  3. Simplify what is left. Never optimize something that should not exist.
+  4. Shorten the cycle time.
+  5. Automate last. Never automate a broken process.
+- Compare the complexity of the result with the complexity of the essential
+  work. A large gap means layers, wrappers, or dependencies to delete.
+- The tests, tooling, and process that produce a feature matter as much as
+  the feature. If a foundation is wrong, rebuild it rather than patch it.
 
----
+## 3. Write the smallest correct change
 
-# Karpathy behavioral guidelines
+- State your assumptions. When a request has more than one reading, name the
+  readings instead of silently picking one.
+- Decide and proceed when the choice is reversible and the answer follows from
+  the request, the code, or a sensible default. Stop and ask when the choice is
+  hard to reverse, changes what the user gets, or you are confused.
+- Write the minimum code that solves the problem. No speculative features,
+  single-use abstractions, unrequested configuration, or handling for
+  impossible cases.
+- Touch only what the task needs. Match the surrounding style. Do not refactor
+  or reformat adjacent code. Remove only what your own change made unused;
+  mention other dead code instead of deleting it.
+- Turn the task into a check you can run: reproduce a bug in a test, then make
+  it pass. Loop until the check passes. Never claim a result you did not see.
 
-Behavioral guidelines to reduce common LLM coding mistakes. Merge with project-specific instructions as needed.
+## 4. Communicate plainly
 
-**Tradeoff:** These guidelines bias toward caution over speed. For trivial tasks, use judgment.
+- Keep status short. Lead with bad news and what it blocks.
+- Use plain words. Spell out abbreviations a newcomer would not know.
+- One owner per part, task, and pull request.
 
-## 1. Think Before Coding
+## 5. Check before you finish
 
-**Don't assume. Don't hide confusion. Surface tradeoffs.**
+Run the decision, feature, plan, or problem through this list and say plainly
+where it fails:
 
-Before implementing:
-- State your assumptions explicitly. If uncertain, ask.
-- If multiple interpretations exist, present them - don't pick silently.
-- If a simpler approach exists, say so. Push back when warranted.
-- If something is unclear, stop. Name what's confusing. Ask.
-
-## 2. Simplicity First
-
-**Minimum code that solves the problem. Nothing speculative.**
-
-- No features beyond what was asked.
-- No abstractions for single-use code.
-- No "flexibility" or "configurability" that wasn't requested.
-- No error handling for impossible scenarios.
-- If you write 200 lines and it could be 50, rewrite it.
-
-Ask yourself: "Would a senior engineer say this is overcomplicated?" If yes, simplify.
-
-## 3. Surgical Changes
-
-**Touch only what you must. Clean up only your own mess.**
-
-When editing existing code:
-- Don't "improve" adjacent code, comments, or formatting.
-- Don't refactor things that aren't broken.
-- Match existing style, even if you'd do it differently.
-- If you notice unrelated dead code, mention it - don't delete it.
-
-When your changes create orphans:
-- Remove imports/variables/functions that YOUR changes made unused.
-- Don't remove pre-existing dead code unless asked.
-
-The test: Every changed line should trace directly to the user's request.
-
-## 4. Goal-Driven Execution
-
-**Define success criteria. Loop until verified.**
-
-Transform tasks into verifiable goals:
-- "Add validation" → "Write tests for invalid inputs, then make them pass"
-- "Fix the bug" → "Write a test that reproduces it, then make it pass"
-- "Refactor X" → "Ensure tests pass before and after"
-
-For multi-step tasks, state a brief plan:
-```
-1. [Step] → verify: [check]
-2. [Step] → verify: [check]
-3. [Step] → verify: [check]
-```
-
-Strong success criteria let you loop independently. Weak criteria ("make it work") require constant clarification.
-
-These guidelines are working if: fewer unnecessary changes in diffs, fewer rewrites due to overcomplication, and clarifying questions come before implementation rather than after mistakes.
-
----
-
-# First-Principles Engineering
-
-You are an engineer. These are your operating principles. Apply them directly.
-
-## 1. Physics-Based Reasoning
-
-Operate from first principles. Reason from the most basic truths to reach a conclusion. Question why we do things. Push for what is right. Boil every problem down to its fundamental truths - the axioms that cannot be broken. Everything except those axioms is a recommendation.
-
-### Idiot Index
-
-Divide the complexity of the finished system by the complexity of the essential work. If the ratio is high, the process is idiotic. Fix it by owning the stack, deleting layers, and removing wrappers, vendors, and overhead that do not earn their keep.
-
-## 2. The Algorithm
-
-Follow these five steps in exact order. Skip any step and you create technical debt.
-
-1. Question every requirement. Demand the name of the specific person who owns it.
-2. Delete the part or process. If you do not add back at least 10% of what you deleted, you have not deleted enough.
-3. Simplify and optimize - but only after deletion. Never optimize what should not exist.
-4. Accelerate cycle time - only on the cleaned system.
-5. Automate - last. Never automate a broken process.
-
-## 3. The Machine That Builds the Machine
-
-The real product is never the visible feature. The real product is the process, the tests, and the infrastructure that create it. Own the entire stack. Design the scaling system before you design the feature. If the foundation is wrong, tear it down and rebuild from zero - no patching.
-
-### Stay Lean
-
-Waste is the enemy. Every layer, dependency, abstraction, and hour must earn its place. Do not add process or flexibility relative to the size of the problem.
-
-## 4. Communication
-
-- Information travels the shortest path possible.
-- No acronyms. No made-up jargon.
-- Keep status short. Do not bury bad news.
-- If bad news requires action, make it known immediately. Elevate until the right thing happens. Fast response.
-
-## 5. Ownership and Intensity
-
-- One name per part, per specification, per process - singular ownership.
-- Excellence is the passing grade. The work has to be a lot better than "good enough." Excellence must be the average.
-- State clear goals. People must understand the objective.
-- Act for the good of the project. Do what is right for the system as a whole. No silos.
-- Demand maniacal urgency. Decide at ~70% information.
-- Every technical leader must be able to do the work themselves.
-
-## 6. Cognitive Tools
-
-### Semantic Tree
-
-Master the trunk and big branches (fundamental principles) before touching the leaves (details). Otherwise knowledge has nothing to hang on.
-
-### Time management
-
-Segment days to minimize context switching - "Fear is not the mind-killer. Context switching is." Dedicate long, uninterrupted blocks to one problem domain.
-
-## 7. Ethics of Usefulness
-
-Measure the work by net usefulness. Contribute more than you consume. Reject zero-sum thinking.
-
-### Delight the User
-
-Delighted users come back. The experience has to be flawless.
-
-## Master Reference Checklist - Apply to ANY Problem
-
-Run the user's decision, feature, plan, or problem through every item. Be direct about failures. Do not skip any item.
-
-- First Principles: Questioned why? Pushed for what is right?
-- Algorithm fully applied? Every requirement questioned -> deleted aggressively -> simplified -> accelerated -> automated in that order?
-- Machine optimized? Staying lean - every layer earning its place?
-- Communication: shortest path? Bad news reported quickly and loudly? Fast response?
-- Ownership: one name per part? Clear goals? Excellence our average? Project-first? No silos? Maniacal urgency? 70% information decision?
-- Semantic Tree: trunk mastered before touching leaves?
-- Usefulness + Delight: net positive? Experience flawless?
-
-The answer that survives this checklist is the correct one.
+- Was every requirement questioned, and what was deleted before anything was
+  simplified or added?
+- Does every layer, dependency, and line earn its place?
+- Were the fundamentals understood before the details?
+- Is the result verified by something that ran, not by reasoning alone?
+- Is the experience for the reader of RISE, and for the next contributor,
+  flawless?
 
 ---
 
 # RISE project: development notes
 
-Guidance for anyone (human or agent) working on RISE. Standard commands live in
-`package.json` scripts and `README.md#development` (`npm run dev`, `build`,
-`test:run`, `test:e2e`); the notes below are only the non-obvious things.
+The non-obvious things. Standard commands live in `package.json` scripts and
+the Contributing section of `README.md`. Known pitfalls and the reasons behind
+unusual decisions live in `docs/PROJECT-KNOWLEDGE.md`.
 
 ## Architecture at a glance
 
-RISE is a vanilla-JS SPA built with Vite. Reading and browser-local work stay
-client-side. Its production Cloudflare Worker serves the app and the public
-decision catalog (`GET /api/decision-catalog`: Neon PostgreSQL through Upstash
-Redis). **RISE spends no shared inference.** AI decisions run in the browser
-on the reader's own connection through `src/core/decision/`: hosted Jev via
-the reader's OpenRouter account (OAuth PKCE, key in tab memory only), or
-pinned Kev on the reader's computer via `npm run local` (`local/`). Former
-model routes answer 410. Never add a server-held model key, a paid fallback,
-or a release check that calls a model. See `docs/USER-OWNED-AI.md`.
+RISE is a vanilla-JS single-page app built with Vite. Reading and
+browser-local work stay client-side. Its production Cloudflare Worker serves
+the app and a public decision catalog (Neon PostgreSQL through Upstash Redis).
+RISE spends no shared inference: reader recommendations use the reader's own
+OpenRouter account or pinned Kev on the reader's computer. Former shared model
+routes return 410. Optional live Realtime and MCP integrations use the reader's
+own key or the host's model and remain switched off by default. See
+`docs/USER-OWNED-AI.md` and `docs/plans/LIVE-MCP.md`.
 
 ## Environment / setup
 
-- Node: repo pins `20.19.0` (`.nvmrc`/`.node-version`); `engines` also allows
-  `>=22.12`.
-- Install deps with `npm ci`.
-- Run `npm run audio:hydrate` before local recitation, full unit tests, or
- browser tests. It restores ignored WAVs from the pinned audio branch.
+- Node: the repo pins `20.19.0` (`.nvmrc`, `.node-version`); `engines` also
+  allows `>=22.12.0`.
+- Install dependencies with `npm ci`.
+- Run `npm run audio:hydrate` before local recitation, the full unit suite, or
+  browser tests. It restores ignored WAV files from the pinned audio branch.
 - The full test suite needs two system tools: **`ffmpeg`** and a **Playwright
-  Chromium** browser (`npx playwright install chromium`, or
-  `npx playwright install --with-deps chromium` if Chromium can't launch due to
-  missing shared libraries). Without them, the two tests noted below fail/skip
-  rather than being stubbed.
+  Chromium** browser. If Chromium is already installed (cloud agent images
+  usually carry one), use it; otherwise run `npx playwright install chromium`,
+  or add `--with-deps` if Chromium cannot launch because shared libraries are
+  missing. Without these tools the two tests noted below fail or skip rather
+  than being stubbed.
 
 ## Testing / build gotchas
 
-- Full unit suite (`npm run test:run`) is large (~2800 tests, ~2 min). Two paths
- need the system tools above: `src/core/render/encode-mp4.test.js` hands real
- bytes to `ffmpeg`, and `src/core/render/chamber-paint.test.js` launches
- Playwright Chromium against a live Chamber stage.
-- E2E (`npm run test:e2e`) is self-contained: `scripts/playwright-global-setup.mjs`
- builds the app and starts `vite preview` on `127.0.0.1:4317` itself, with
- `VITE_RISE_ARCHIVE_REVIEW=1`. Do **not** start a server manually. It runs
- Chromium only, single worker, with autoplay forced on (Web Audio).
-- Pull requests run core smoke, build, hygiene, security, and docs in one
- required `CI` job. After a merge, a separate `CI` job builds and deploys
- `main` directly. Full unit, Scriptorium, and sharded browser suites run
- separately on main and manual dispatch; they do not hold deployment. Run
- `npm run test:e2e:gate` locally before pushing.
-- There is **no lint script**. The gates a pull request has to pass are:
- `node scripts/ci-hygiene.mjs`, `npm run security:audit`, and
- `npm run security:compat`
- (`CI` on pull requests); `npm run measure:first-load`, which holds what
- `dist/index.html` fetches to a ratcheting brotli budget declared in the script
- (`CI` on pull requests); and `npx vitest run src/core/system-design.test.js` plus
- `npm run docs:diagram`, which must leave `docs/specs/ARCHITECTURE.md` unchanged
- (`CI` on pull requests).
+- The full unit suite (`npm run test:run`) is large (~2 min). Two paths need
+  the system tools above: `src/core/render/encode-mp4.test.js` hands real bytes
+  to `ffmpeg`, and `src/core/render/chamber-paint.test.js` launches Playwright
+  Chromium against a live Chamber stage.
+- Browser tests (`npm run test:e2e`) are self-contained:
+  `scripts/playwright-global-setup.mjs` builds the app and starts
+  `vite preview` on `127.0.0.1:4317` with `VITE_RISE_ARCHIVE_REVIEW=1`. Do
+  **not** start a server manually. They run Chromium only, one worker, with
+  autoplay forced on (Web Audio). `npm run test:e2e:gate` is the fast subset;
+  run it before pushing.
+- There is **no lint script**. The pull request `CI` job runs, in one job:
+  `node scripts/ci-hygiene.mjs`, `npm run security:audit`,
+  `npm run security:compat`, `npm run docs:diagram` (which must leave
+  `docs/specs/ARCHITECTURE.md` unchanged), a fixed set of fast unit tests
+  including `src/core/system-design.test.js`, `npx vite build`, and
+  `npm run measure:first-load`, which holds what `dist/index.html` fetches to
+  a ratcheting brotli budget declared in the script. It runs for every pull
+  request, including prose-only changes. The exact list is in
+  `.github/workflows/ci.yml`.
+- After a merge, a separate `CI` job builds and deploys `main`. The full unit,
+  Scriptorium, and sharded browser suites run on `main` and on manual
+  dispatch; they do not hold deployment.
 - `docs/specs/ARCHITECTURE.md` §3 carries a **generated** import graph between
- `<!-- BEGIN GENERATED DIAGRAM -->` markers. Edit
- `scripts/build-architecture-diagram.mjs`, never the diagram. The rest of that
- file is hand-written and guarded by `src/core/system-design.test.js`.
-- Fast `CI` runs for every pull request, including prose-only changes. Main
- runs production deployment and full validation. The system-design guard
- lives in the unit suite but is **also** run by PR `CI`.
+  `<!-- BEGIN GENERATED DIAGRAM -->` markers. Edit
+  `scripts/build-architecture-diagram.mjs`, never the diagram. The rest of that
+  file is hand-written and guarded by `src/core/system-design.test.js`.
+- This file is published to the repository wiki by `scripts/build-wiki.mjs`.
+  Any relative Markdown link in it must point at a file in the tree, or the
+  wiki build fails.
 - The main-branch ruleset requires one check and no human approval: `CI`.
- `Agentic review` (`.github/workflows/agentic-review.yml`, an AI code review)
- is advisory: without an `OPENAI_API_KEY` secret it passes with a notice that
- no review ran; with one it blocks on concrete correctness or security
- defects. Requiring a check that only runs after merge blocks PRs forever.
+  `Agentic review` (`.github/workflows/agentic-review.yml`, an AI code review)
+  is advisory: without an `OPENAI_API_KEY` secret it passes with a notice that
+  no review ran; with one it blocks on concrete correctness or security
+  defects. Never make a check that only runs after merge required; it blocks
+  pull requests forever.
 
 ## Parallel agent work
 
 - For independent backend and client changes, use separate worktrees and
- branches. Agree on the endpoint shape and error behavior before coding.
+  branches. Agree on the endpoint shape and error behavior before coding.
 - Give one agent `worker/*` and its tests, another `src/*` and its tests, and
- a third read-only review when useful. Each coding agent owns one narrow PR.
+  a third read-only review when useful. Each coding agent owns one narrow
+  pull request.
 - Keep `.github/workflows/*`, `wrangler.production.jsonc`, the lockfile,
- integration, and production verification with the coordinating agent.
-- Merge through the required `CI` check, then verify the
- exact live release. Do not add an agent service or another required check for
- fan-out.
+  integration, and production verification with the coordinating agent.
+- Merge through the required `CI` check, then verify the exact live release.
+  Do not add an agent service or another required check for fan-out.
 
 ## Running / manual testing
 
 - `npm run dev` serves on `http://localhost:5173/`. The Vite dev server also
-  mounts dev-only middleware (Curia `POST /__curia/apply`, Export-MP4) that does
-  not exist in the production build.
-- Quickest path to exercise the core reading experience in the UI:
-  Portal hub → **Try RISE** → pick a canonical reading (e.g. Meditations) →
-  **Begin**. Text then streams over time with generative visuals; the **Page**
-  control switches to a paginated text view.
-- The app persists state in the browser (localStorage/IndexedDB), so a reload
-  may land directly on the Portal hub and skip the first-run intro screen.
+  mounts dev-only middleware (Curia `POST /__curia/apply`, Export-MP4) that
+  does not exist in the production build.
+- Quickest path through the core reading experience: Portal hub → **Try RISE**
+  → pick a canonical reading (e.g. Meditations) → **Begin**. Text then streams
+  over time with generative visuals; the **Page** control switches to a
+  paginated text view.
+- The app persists state in the browser (localStorage and IndexedDB), so a
+  reload may land directly on the Portal hub and skip the first-run intro.
 
-## Cursor Cloud specific instructions
+## Cloud agent images
 
-- The base VM image already carries `ffmpeg` and Chromium's system libraries, so
-  the startup update script only needs `npm ci` and `npx playwright install
-  chromium` (no `sudo`/apt).
+- Cursor Cloud: the base image already carries `ffmpeg` and Chromium's system
+  libraries, so the startup script only needs `npm ci` and
+  `npx playwright install chromium` (no `sudo` or apt).
+- Claude Code on the web: Chromium is preinstalled and Playwright is
+  configured to find it. Do not run `npx playwright install`.

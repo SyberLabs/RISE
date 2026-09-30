@@ -4,9 +4,8 @@
  * Each model is named by its published bundle and the checkpoint its
  * manifest must report. A manifest naming any other checkpoint is refused
  * before a byte of weights is fetched. The ONNX Runtime WebAssembly binary
- * is too large to serve from this site, so it is fetched from a
- * version-pinned address and must hash to the value of the copy in the
- * lockfile before the runtime sees it.
+ * is served from this site, from the copy in the lockfile, and must hash to
+ * the pinned value before the runtime sees it.
  */
 
 export const DEVICE_MODELS = Object.freeze({
@@ -30,7 +29,6 @@ export const DEVICE_MODELS = Object.freeze({
 export const DEFAULT_DEVICE_MODEL = 'kev-4b';
 
 export const ORT_WASM = Object.freeze({
-    url: 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.30.0/dist/ort-wasm-simd-threaded.jspi.wasm',
     sha256: 'a54c76f86b0f0d9572380cf1c6292a7b3903716ffcbcd6b0e5c7050bf430eb93'
 });
 
