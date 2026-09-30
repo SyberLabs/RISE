@@ -20,7 +20,7 @@ const SCORE = JSON.stringify({
 async function openHome(page) {
   await page.addInitScript(gate => localStorage.setItem('rise-beta-session', JSON.stringify(gate)), GATE);
   await page.goto('/');
-  await expect(page.locator('.portal .portal-title').first()).toBeVisible({ timeout: 15_000 });
+  await expect(page.locator('.portal h1').first()).toBeVisible({ timeout: 15_000 });
 }
 
 test('an authored score travels, then a recipient carries a local variation', async ({ page, browser }) => {

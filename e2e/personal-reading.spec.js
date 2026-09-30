@@ -1,4 +1,4 @@
-import { test, expect } from './fixtures.js';
+import { test, expect, openHomeNav } from './fixtures.js';
 import { readFile } from 'node:fs/promises';
 
 const paragraphs = ['A quiet word. '.repeat(20).trim(), 'Another moment. '.repeat(20).trim()];
@@ -17,7 +17,7 @@ test('create, revise, keep, Vault export, fresh-browser import and explicit Star
       paragraphs, writerModel: 'qwen/qwen3.5-9b', promptVersion: 'personal-v1' } });
   });
   await page.goto('/');
-  await page.locator('[data-nav="create"]').click();
+  await openHomeNav(page, 'create');
   await expect(page.locator('.personal-create')).toBeVisible();
   await page.getByLabel('Your thought', { exact: true }).fill('PRIVATE thought');
   await page.getByLabel('Optional detail', { exact: true }).fill('PRIVATE detail');

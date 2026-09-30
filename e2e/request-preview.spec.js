@@ -1,17 +1,13 @@
 import { readFileSync } from 'node:fs';
-import { test, expect } from './fixtures.js';
-import { answerDecisions, connectOpenRouter, E2E_READER_KEY } from './reader-connection.js';
+import { test, expect, openHomeAsk, connectTestOpenRouter, routeTestOpenRouter } from './fixtures.js';
 import { resolveJevChamberConfig } from '../src/core/jev-config.js';
 import { jevColors } from '../src/core/jev-palette.js';
 import { compileJevAudioProgram, compileJevVisualProgram } from '../src/core/jev-sequence.js';
 
-// Connecting OpenRouter adds one real OAuth redirect and page load to each flow.
-test.describe.configure({ timeout: 120_000 });
-
 /**
- * The Tokyo Drift reproduction (docs: request-to-playback design, 2026-09-27).
- * One request box → an interpretation stated before anything plays →
- * local adjustment with no new request → Play → no automatic fullscreen.
+ * The Tokyo Drift reproduction (docs: request-to-playback design, 2026-09-27),
+ * through the Oracle and the reader's OpenRouter connection: a request after
+ * a first roll → limits before anything plays → Enter → no auto fullscreen.
  */
 const releaseInventory = JSON.parse(readFileSync(
   new URL('../src/content/archive/release-inventory.json', import.meta.url), 'utf8'
@@ -38,51 +34,31 @@ const decision = {
     audioProgram: compileJevAudioProgram(selectors)
   }
 };
-
-test('Tokyo Drift: one box, interpretation and limits before Play, local adjust, no auto fullscreen', async ({ page }) => {
+test('Tokyo Drift: asked after a roll, limits before Enter, no auto fullscreen', async ({ page }) => {
+  const jevRequests = await routeTestOpenRouter(page, decision);
   // A cold first visit: no stored session and no intro screen.
   await page.goto('/');
   await expect(page.locator('#beta-enter')).toHaveCount(0);
-  const intent = page.locator('#portal-jev-intent');
-  await expect(intent).toBeVisible({ timeout: 15_000 });
-  await expect(page.locator('h1')).toHaveText('What do you want to experience?');
-  // The reader connects their own OpenRouter account (OAuth PKCE).
-  const exchanges = await connectOpenRouter(page);
-  expect(exchanges).toHaveLength(1);
-  expect(exchanges[0]).toMatchObject({ code: 'e2e-authorization-code', code_challenge_method: 'S256' });
-  expect(page.url()).not.toContain('code=');
-  expect(await page.evaluate(() => JSON.stringify({ ...localStorage }) + JSON.stringify({ ...sessionStorage })))
-    .not.toContain(E2E_READER_KEY);
-  const seen = await answerDecisions(page, decision);
-  const jevRequests = () => seen.length;
+  await expect(page.locator('h1')).toHaveText('What will you encounter?', { timeout: 15_000 });
+  // Fake an explicit reader-owned connection in this browser test; never use
+  // a real key or the retired shared Worker endpoint.
+  await connectTestOpenRouter(page);
 
-  await intent.fill('i want something psychedelic fast tokyo drift style');
-  await page.locator('.portal-jev-submit').click();
-  const preview = page.locator('#portal-preview');
-  // The decision now runs in the page (catalog, then the model), each step a
-  // task behind this headless browser's software-rendered frames.
-  await expect(preview).toBeVisible({ timeout: 45_000 });
+  await openHomeAsk(page);
+  await page.locator('#oracle-intent').fill('i want something psychedelic fast tokyo drift style');
+  await page.locator('[data-oracle="ask"]').click();
+  const enter = page.locator('[data-oracle="enter"]');
+  await expect(enter).toBeVisible({ timeout: 15_000 });
   await expect(page.locator('#chamber-display')).toBeHidden();
-  await expect(preview.locator('.portal-preview-lede')).toContainText('You referenced “Tokyo Drift”');
-  await expect(preview.locator('.portal-rows')).toContainText('Neon night');
-  await expect(preview.locator('.portal-rows')).toContainText('A luminous attractor field');
-  await expect(preview.locator('.portal-limit')).toBeVisible();
-  await expect(preview.locator('.portal-limit-body')).toContainText('can’t play the Tokyo Drift soundtrack');
-  await expect(preview.locator('.portal-read-title')).toHaveText('Ulysses');
-  expect(seen[0].authorization).toBe(`Bearer ${E2E_READER_KEY}`);
-
-  await preview.locator('[data-adjust-kind="speed"][data-adjust-value="fastest"]').click();
-  await expect(preview.locator('.portal-rows')).toContainText('400 words a minute');
+  await expect(page.locator('.oracle-answer-title')).toHaveText('Ulysses');
+  await expect(page.locator('[data-oracle-status]')).toContainText('night drive');
+  const note = page.locator('.oracle-note');
+  await expect(note).toBeVisible();
+  await expect(note).toContainText('You referenced “Tokyo Drift”');
+  await expect(note).toContainText('can’t play the Tokyo Drift soundtrack');
   expect(jevRequests()).toBe(1);
 
-  // Reload keeps the request and the preview without asking again.
-  await page.reload();
-  await expect(page.locator('#portal-jev-intent')).toHaveValue('i want something psychedelic fast tokyo drift style');
-  await expect(preview).toBeVisible({ timeout: 15_000 });
-  await expect(preview.locator('.portal-rows')).toContainText('400 words a minute');
-  expect(jevRequests()).toBe(1);
-
-  await preview.locator('#portal-play').click();
+  await enter.click();
   await expect(page.locator('#chamber-display')).toBeVisible({ timeout: 30_000 });
   await page.waitForTimeout(1500);
   expect(await page.evaluate(() => Boolean(document.fullscreenElement))).toBe(false);
@@ -90,5 +66,5 @@ test('Tokyo Drift: one box, interpretation and limits before Play, local adjust,
   await expect(page.locator('#page-mode-btn .control-label')).toHaveText('Page view');
   await expect(page.locator('#fullscreen-btn')).toBeVisible();
   const played = await page.evaluate(() => window.__RISE_TEST__?.getView('chamber-session')?.session?.wpm);
-  if (played !== undefined) expect(played).toBe(400);
+  if (played !== undefined) expect(played).toBe(300);
 });

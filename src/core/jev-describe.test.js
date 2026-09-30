@@ -1,18 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import releaseInventory from '../content/archive/release-inventory.json' with { type: 'json' };
 import modernManifest from '../content/modern-readings-manifest.json' with { type: 'json' };
-import { validateJevRecommendation } from '../app/jev-reading.js';
 import { resolveJevChamberConfig } from './jev-config.js';
 import { jevColors } from './jev-palette.js';
 import { compileJevAudioProgram, compileJevVisualProgram } from './jev-sequence.js';
 import {
-  JEV_ADJUSTMENTS,
-  adjustJevDecision,
-  currentJevAdjustment,
-  describeJevPlan,
+  jevReleasedEdition,
   jevReleasedWorkIds,
-  namesWork,
-  readJevRequest
+  readJevRequest,
+  summarizeJevPlan
 } from './jev-describe.js';
 
 function decision(overrides = {}, workId = 'ulysses') {
@@ -41,27 +37,20 @@ function decision(overrides = {}, workId = 'ulysses') {
   };
 }
 
-describe('describeJevPlan', () => {
-  it('describes the live Tokyo Drift plan in words that match its values', () => {
-    const rows = describeJevPlan(decision().config);
-    expect(rows.map(row => row.label)).toEqual(['Colors', 'Motion', 'Pace & sound', 'Text']);
-    expect(rows[0]).toMatchObject({ value: 'Neon night', detail: 'magenta light, lilac text on dark purple' });
-    expect(rows[1].value).toBe('Fast, flowing fractal light');
-    expect(rows[1].detail).toBe('a new scene about every 10 seconds, in 3 changing phases');
-    expect(rows[2]).toMatchObject({ value: 'Fast: 300 words a minute', detail: 'with an energetic chase theme' });
-    expect(rows[3]).toMatchObject({ value: 'Japanese serif, large', detail: 'short phrases' });
+
+describe('summarizeJevPlan', () => {
+  it('says the live Tokyo Drift plan in four parts that match its values', () => {
+    expect(summarizeJevPlan(decision().config)).toEqual(
+      ['fast phrases', 'fractal light', 'chase', 'large japanese serif']);
   });
 
-  it('says plainly when a plan has no motion or is a page', () => {
-    const dark = describeJevPlan(decision({ visualMode: 'off', visualStyle: 'quiet', visualArc: 'single', projection: 'page', audio: 'silent' }).config);
-    expect(dark[1].value).toBe('No motion in page view');
-    expect(dark[2]).toMatchObject({ value: 'Your own pace', detail: 'with no sound' });
-  });
-
-  it('names every sound phase when the sound changes partway', () => {
-    const phased = decision({ audio: 'silent', middleAudio: 'silent', finaleAudio: 'triumph', visualArc: 'dual', arcSplit: '70', visualStyle: 'immersive', visualEngine: 'klee', finaleEngine: 'apparitio' }).config;
-    expect(describeJevPlan(phased)[2].detail).toBe('with no sound, then a triumphant theme');
-    expect(describeJevPlan(decision().config)[2].detail).toBe('with an energetic chase theme');
+  it('says plainly when a plan has no imagery, no sound, or is a page', () => {
+    const quiet = decision({ visualMode: 'off', visualStyle: 'quiet', audio: 'silent',
+      middleAudio: 'silent', finaleAudio: 'silent', visualArc: 'single', fontSize: 'medium',
+      chunkMode: 'sentence', wpm: 150 }).config;
+    expect(summarizeJevPlan(quiet)).toEqual(['slow sentences', 'no imagery', 'silence', 'japanese serif']);
+    const page = decision({ visualMode: 'off', visualStyle: 'quiet', visualArc: 'single', projection: 'page' }).config;
+    expect(summarizeJevPlan(page)[1]).toBe('no motion');
   });
 });
 
@@ -82,53 +71,17 @@ describe('readJevRequest', () => {
     expect(readJevRequest('Something reflective and slow')).toEqual({ reference: null, limits: [] });
   });
 
-  it('knows whether the reader named the chosen text', () => {
-    expect(namesWork('read me the iliad, fast', { title: 'The Iliad', author: 'Homer' })).toBe(true);
-    expect(namesWork('tokyo drift', { title: 'Ulysses', author: 'James Joyce' })).toBe(false);
-  });
 });
 
-describe('adjustJevDecision', () => {
-  it('produces plans the reader admits exactly like a Jev answer, for every option', () => {
-    for (const [kind, options] of Object.entries(JEV_ADJUSTMENTS)) {
-      for (const value of Object.keys(options)) {
-        for (const base of [decision(), decision({ visualStyle: 'gentle', visualMode: 'off', visualArc: 'single', projection: 'page', colorTheme: 'classic', textColor: 'classic', backgroundColor: 'classic' }, 'the-iliad')]) {
-          const next = adjustJevDecision(base, kind, value);
-          expect(() => validateJevRecommendation(next), `${kind}:${value}`).not.toThrow();
-          expect(currentJevAdjustment(next.config, kind), `${kind}:${value}`).toBe(value);
-        }
-      }
-    }
-  });
-
-  it('keeps fast motion when the reader recolors a psychedelic plan', () => {
-    const next = adjustJevDecision(decision(), 'colors', 'ember');
-    expect(next.config.presentation.colorTheme).toBe('ember');
-    expect(next.config.visualStyle).toBe('immersive');
-    expect(next.config.visualConfig.interlocution).toMatchObject({ procedural: ['fractal'], galleryCadence: 0.85 });
-    expect(describeJevPlan(next.config)[1].value).toBe('Fast, flowing fractal light');
-  });
-
-  it('turns a dark page into a moving stream when the reader raises the energy', () => {
-    const page = decision({ visualStyle: 'quiet', visualMode: 'off', visualArc: 'single', projection: 'page' });
-    const next = adjustJevDecision(page, 'energy', 'intense');
-    expect(next.config.projection).toBe('stream');
-    expect(next.config.visualConfig.visualMode).toBe('interlocution');
-  });
-
-  it('changes the text only among released editions, without touching presentation', () => {
+describe('the released editions a reading may use', () => {
+  it('are the released classics and the RISE originals, nothing else', () => {
     expect(jevReleasedWorkIds()).toHaveLength(15 + Object.keys(modernManifest).length);
-    const next = adjustJevDecision(decision(), 'workId', 'the-iliad');
-    expect(next).toMatchObject({ workId: 'the-iliad', editionId: releaseInventory['the-iliad'].editionId });
-    expect(next.config).toEqual(decision().config);
-    expect(() => validateJevRecommendation(next)).not.toThrow();
-    expect(() => adjustJevDecision(decision(), 'workId', 'a-doll-s-house')).toThrow(/not available/);
+    expect(jevReleasedEdition('the-iliad')).toMatchObject({ workId: 'the-iliad', editionId: releaseInventory['the-iliad'].editionId });
+    expect(jevReleasedEdition('a-doll-s-house')).toBeNull();
   });
 
-  it('lets the reader pick a released RISE original, which RISE can still open', () => {
+  it('include a RISE original under its own edition', () => {
     const original = modernManifest['the-prompt-and-the-pencil'];
-    const next = adjustJevDecision(decision(), 'workId', original.workId);
-    expect(next).toMatchObject({ workId: original.workId, editionId: original.editionId, sourceRevision: original.sourceRevision });
-    expect(() => validateJevRecommendation(next)).not.toThrow();
+    expect(jevReleasedEdition(original.workId)).toMatchObject({ editionId: original.editionId, sourceRevision: original.sourceRevision });
   });
 });

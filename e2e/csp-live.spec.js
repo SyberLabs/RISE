@@ -1,4 +1,4 @@
-import { test, expect } from './fixtures.js';
+import { test, expect, openHomeNav } from './fixtures.js';
 
 /**
  * The deployed policy, checked against the deployed site.
@@ -82,7 +82,7 @@ test('the voice actually loads on the deployed site', async ({ page }) => {
       }));
   });
   await page.goto(LIVE);
-  await page.locator('[data-nav="chamber"]').first().click();
+  await openHomeNav(page, 'chamber');
   await page.locator('#begin-btn').click({ timeout: 30000 });
   const warn = page.locator('#photosensitivity-modal');
   if (await warn.isVisible({ timeout: 3000 }).catch(() => false)) {

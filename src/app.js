@@ -343,7 +343,18 @@ class App {
         // Navigate to the recovered destination, the Rosary door, a
         // personalized vault, or the portal. `#rosary` is read here
         // because the router does not own hashes.
-        if (staleTarget && this.router.views.has(staleTarget)) {
+        // A skin's page hands over one decision, admitted again by the normal
+        // launch or Reader Setup resolver. The URL carries no reading data.
+        const opened = window.location.search.includes('invocation=')
+            && await (await import('./app/invocation.js')).enterFromInvocation(window.location.search, {
+                home: () => this.router.navigate('portal'),
+                launch: decision => this.launchJevReading(decision),
+                adjust: decision => this.adjustJevReading(decision),
+                fail: message => this.showToast(message, 5000)
+            });
+        if (opened) {
+            // The reading is open; nothing else to recover.
+        } else if (staleTarget && this.router.views.has(staleTarget)) {
             console.log('[RISE] Recovering navigation after stale build:', staleTarget);
             await this.router.navigate(staleTarget, { data: staleData });
         } else if (isRosaryDoor()) {
@@ -498,10 +509,10 @@ class App {
     registerViews() {
         const routes = createRouteManifest({
             handleNavigate: this.handleNavigate,
-            launchJevReading: decision => this.launchJevReading(decision),
+            launchJevReading: (decision, options) => this.launchJevReading(decision, options),
             launchJevSample: () => this.launchJevSample(),
             launchKeystone: slug => this.launchKeystone(slug),
-            launchFirstRead: () => this.launchKeystone('meditations', { firstReadPreview: true }),
+            adjustJevReading: decision => this.adjustJevReading(decision),
             openMintedProgram: slug => this.openMintedProgram(slug),
             handleSequenceSelection: sequenceId => this.handleSequenceSelection(sequenceId),
             handleCreateSession: this.handleCreateSession,
@@ -834,12 +845,24 @@ class App {
     }
 
     /** Resolve Jev's discrete choices against shipped text, then enter the reader. */
-    async launchJevReading(decision) {
+    async launchJevReading(decision, { firstReadPreview = false } = {}) {
         const { resolveJevReading } = await import('./app/jev-reading.js');
         const sessionConfig = await resolveJevReading(decision);
+        if (firstReadPreview) sessionConfig.firstReadPreview = true;
         if (!await this.handleBeginSession(sessionConfig)) {
             throw new Error('The selected reading could not be opened. Please try again.');
         }
+    }
+
+    /**
+     * Open a proposed reading (rolled or asked) in Reader Setup with
+     * everything already set, through the same edition gate as Enter.
+     */
+    async adjustJevReading(decision) {
+        const { resolveJevReading } = await import('./app/jev-reading.js');
+        const { text, textSource, ...config } = await resolveJevReading(decision);
+        config.origin = { ...config.origin, adjusted: true };
+        return this.router.navigate('chamber', { data: { text, source: textSource, config } });
     }
 
     /** Launch a fixed sample through the released-edition gate, without a provider call. */

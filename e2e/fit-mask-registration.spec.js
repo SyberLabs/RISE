@@ -6,7 +6,7 @@
  * contract that prevents independent HTML/SVG font rounding from separating
  * the outline from the image-filled word.
  */
-import { test, expect } from './fixtures.js';
+import { test, expect, openHomeNav } from './fixtures.js';
 
 const GATE = { code: 'rise2025', name: 'Align', vault: null, timestamp: Date.now() };
 const SEED = { text: 'At the treacherous dream descended upon the host. '.repeat(8).trim(), textSource: 'Iliad', origin: null };
@@ -30,7 +30,7 @@ async function enterChamber(page) {
     localStorage.setItem('rise-settings', JSON.stringify({ chamberFace: 'thick', fontSize: 'fit' }));
   }, { g: GATE, s: SEED, p: PREFS });
   await page.goto('/');
-  await page.locator('[data-nav="chamber"]').first().click();
+  await openHomeNav(page, 'chamber');
   await expect(page.locator('#begin-btn')).toBeEnabled({ timeout: 25_000 });
   await page.locator('#begin-btn').click();
   const warn = page.locator('#photosensitivity-modal');

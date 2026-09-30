@@ -34,7 +34,22 @@ async function openPortal(page) {
         localStorage.setItem('rise-beta-session', JSON.stringify(gate));
     }, GATE_SESSION);
     await page.goto('/');
-    await expect(page.locator('.portal .portal-title').first()).toBeVisible({ timeout: 15_000 });
+    await expect(page.locator('.portal .oracle-title').first()).toBeVisible({ timeout: 15_000 });
+}
+
+/** Press at a door's centre with a real mouse, the way a hand does. */
+async function pressAt(page, selector) {
+    const box = await page.locator(selector).first().boundingBox();
+    expect(box, `${selector} has no box to press`).toBeTruthy();
+    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+    await page.mouse.down();
+    await page.mouse.up();
+}
+
+/** Every room sits behind the one Menu; open it by pressing it. */
+async function openMenu(page) {
+    await pressAt(page, '.portal-menu-toggle');
+    await expect(page.locator('.portal-nav')).toBeVisible();
 }
 
 /**
@@ -65,6 +80,7 @@ test.describe('the Portal has no overlay between a cursor and a door', () => {
         // reachable after a delay is still a defect, so the delay is
         // bounded and the assertion is made once, not polled.
         await page.waitForTimeout(3000);
+        await openMenu(page);
 
         const destinations = await page.$$eval('[data-nav]', nodes => nodes
             .filter(n => n.getBoundingClientRect().width > 0
@@ -84,9 +100,8 @@ test.describe('the Portal has no overlay between a cursor and a door', () => {
         await openPortal(page);
         await page.waitForTimeout(3000);
 
-        // The reader-setup door sits in the Home footer, below the fold on
-        // a short window; a reader scrolls to it.
-        await page.locator('[data-nav="chamber"]').first().scrollIntoViewIfNeeded();
+        // The reader-setup door sits in the Menu.
+        await openMenu(page);
         const box = await page.locator('[data-nav="chamber"]').first().boundingBox();
         expect(box, 'the Chamber button has no box to press').toBeTruthy();
         expect(box.y + box.height / 2, 'the Chamber button centre is below the viewport')
@@ -107,20 +122,34 @@ test.describe('the Portal has no overlay between a cursor and a door', () => {
         await page.setViewportSize({ width: 390, height: 844 });
         await openPortal(page);
         await page.waitForTimeout(3000);
+        await openMenu(page);
 
         const { reachable, hit } = await hitTest(page, '[data-nav="chamber"]');
         expect(reachable, `the Chamber entrance is covered by ${hit} at 390x844`).toBe(true);
     });
 });
 
-test('Ask Jev and the Meditations starter are reachable on a desk and a phone', async ({ page }) => {
+test('ROLL, the keys that follow it, and Ask are reachable on a desk and a phone', async ({ page }) => {
     for (const viewport of [{ width: 1280, height: 800 }, { width: 390, height: 844 }]) {
         await page.setViewportSize(viewport);
         await openPortal(page);
-        for (const selector of ['.portal-jev-submit', '.portal-first-read', '#portal-jev-intent']) {
+        await page.reload();
+        await expect(page.locator('[data-oracle="roll"]')).toBeVisible({ timeout: 15_000 });
+        const check = async selector => {
             const { reachable, hit } = await hitTest(page, selector);
             expect(reachable, `${selector} is covered by ${hit} at ${viewport.width}px`).toBe(true);
+        };
+        await check('[data-oracle="roll"]');
+        await pressAt(page, '[data-oracle="roll"]');
+        await expect(page.locator('[data-oracle="enter"]')).toBeVisible({ timeout: 10_000 });
+        await page.waitForTimeout(1200);
+        for (const selector of ['[data-oracle="enter"]', '[data-oracle="roll"]', '[data-oracle="adjust"]', '[data-oracle="ask-open"]']) {
+            await check(selector);
         }
+        await pressAt(page, '[data-oracle="ask-open"]');
+        await expect(page.locator('#oracle-intent')).toBeVisible();
+        await page.waitForTimeout(1200);
+        for (const selector of ['#oracle-intent', '[data-oracle="ask"]']) await check(selector);
     }
 });
 
@@ -132,6 +161,9 @@ const SITTINGS = ['default', 'slate', 'ivory', 'purple', 'cobalt', 'amber',
 
 test('Home text keeps AA contrast in every sitting', async ({ page }) => {
     await openPortal(page);
+    // The small text (Adjust, Ask) appears once there is a reading to speak of.
+    await page.locator('[data-oracle="roll"]').click();
+    await expect(page.locator('[data-oracle="adjust"]')).toBeVisible({ timeout: 10_000 });
     const results = await page.evaluate((sittings) => {
         const rgb = colour => {
             const ctx = document.createElement('canvas').getContext('2d');
@@ -147,7 +179,7 @@ test('Home text keeps AA contrast in every sitting', async ({ page }) => {
         for (const id of sittings) {
             if (id === 'default') document.documentElement.removeAttribute('data-accent');
             else document.documentElement.setAttribute('data-accent', id);
-            for (const sel of ['.portal-nav-link', '.portal-title', '.portal-help', '.portal-first-read', '.portal-footer-link', '.portal-eyebrow']) {
+            for (const sel of ['.portal-nav-link', '.oracle-title', '.oracle-quiet', '.oracle-status', '.portal-footer-link']) {
                 out.push({ id, sel, ratio: +ratio(rgb(getComputedStyle(document.querySelector(sel)).color), ground).toFixed(2) });
             }
         }

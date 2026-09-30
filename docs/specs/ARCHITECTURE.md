@@ -160,18 +160,19 @@ it, and CI fails when the committed copy is not what `src/` produces.
 ```mermaid
 flowchart LR
     affect["affect<br/>experience-state evaluation<br/>30 modules"]
-    app["app<br/>composition root<br/>10 modules"]
+    app["app<br/>composition root<br/>11 modules"]
     audio["audio<br/>Web Audio, recitation<br/>10 modules"]
-    components["components<br/>routed views<br/>46 modules"]
+    components["components<br/>routed views<br/>48 modules"]
     content["content<br/>texts, imagery, journeys<br/>231 modules"]
-    core["core<br/>session, player, router<br/>164 modules"]
+    core["core<br/>session, player, router<br/>167 modules"]
     enterprise["enterprise<br/>talk program, speaker rail<br/>34 modules"]
     live["live<br/>realtime Current: events, runtime, providers<br/>33 modules"]
-    oracle["oracle<br/>2 modules"]
+    oracle["oracle<br/>1 module"]
     page["page<br/>spatial projection<br/>4 modules"]
     sources["sources<br/>text and visual providers<br/>22 modules"]
     vendor["vendor<br/>SyberLabs design kit<br/>2 modules"]
     visuals["visuals<br/>procedural generation<br/>61 modules"]
+    wormhole["wormhole<br/>7 modules"]
 
     affect --> |7| core
     app -.-> |3 lazy| audio
@@ -184,7 +185,7 @@ flowchart LR
     audio --> |1| content
     audio --> |5| core
     components --> |3| affect
-    components -.-> |1 lazy| app
+    components -.-> |2 lazy| app
     components --> |3| audio
     components --> |24| content
     components --> |173| core
@@ -211,6 +212,8 @@ flowchart LR
     visuals -.-> |5 lazy| content
     visuals --> |18| core
     visuals --> |4| sources
+    wormhole --> |1| app
+    wormhole --> |2| core
 ```
 
 Solid is a static import and travels in the first load; dashed is reached
@@ -1193,6 +1196,26 @@ of `settled`, `open`, `deferred`, or `reversed`.
   Emotions room are covered by unit tests. The player does not read affect
   programs, and the experience remains feature-gated. See
   `docs/affect/RESEARCH-LOG.md` for limitations and the record of evidence.
+
+### 8.39 Home proposes; the reader decides where to enter
+
+- **Chosen:** Home's Oracle composes a bounded reading on-device by chance
+  (`src/core/roll.js`). The reader can enter it, adjust it in Reader Setup, or
+  ask for a specific reading through the same reader-owned OpenRouter or local
+  Kev connection used by the rest of the app. The standalone Wormhole is a
+  second invocation skin over the same roll and app-owned launch operations.
+- **Rejected:** restoring the retired shared recommendation Worker for Home;
+  making the reader's first action a text prompt; letting a skin launch a
+  Chamber session directly; storing a reader's connection key or proposal.
+- **Why:** an empty first load invites an unprompted roll, while a connected
+  reader still has a deliberate path to an AI-assisted proposal. Only their
+  request goes to their chosen provider; a local roll sends nothing. Home
+  keeps its proposal while the Chamber is open, and returns to Reader Setup
+  when the reader entered from Adjust.
+- **Status:** open. The roll, Oracle object, invocation handoff, and Wormhole
+  are covered by unit and browser tests. The first-read Page/Stream choice is
+  preserved for the first rolled reading. The existing `/oracle.html` page
+  remains available as a compatibility entry.
 
 ---
 

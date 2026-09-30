@@ -99,6 +99,7 @@ jobs:
           [[ "$TESTED_SHA" =~ ^[0-9a-f]{40}$ ]]
           test "$(find dist/audio/recitation -type f -name '*.wav' | wc -l)" -eq 877
           printf '%s\n' "$TESTED_SHA" > "dist/release-$TESTED_SHA.txt"
+          printf '%s\n' "$TESTED_SHA" > dist/release.txt
       - name: Deploy production
         env:
           GH_TOKEN: ${{ github.token }}

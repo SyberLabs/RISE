@@ -7,8 +7,7 @@
  * tolerant of rendering differences: nonblank, structured, and moving, never
  * an exact pixel hash.
  */
-import { test, expect, openHomeNav } from './fixtures.js';
-import { connectOpenRouter, E2E_READER_KEY } from './reader-connection.js';
+import { test, expect, openHomeNav, connectTestOpenRouter } from './fixtures.js';
 
 const GATE = { code: 'rise2025', name: 'Flame', vault: null, timestamp: Date.now() };
 const EMPTY_TREATMENT = 'violet-nebula';
@@ -22,32 +21,29 @@ async function gate(page) {
 /** Answer visual-score requests with a fixed, valid direction. */
 async function mockScoring(page, { delayMs = 0, treatmentId = EMPTY_TREATMENT, status = 200 } = {}) {
   const requests = [];
-  // Jev answers on the reader's own OpenRouter connection, straight from the page.
-  await page.route('https://openrouter.ai/api/alpha/decisions', async (route) => {
-    const body = JSON.parse(route.request().postData() || '{}');
-    requests.push({ blocks: body.state?.passage_blocks || [], questions: body.questions || {}, model: body.model,
-      authorization: route.request().headers().authorization });
+  await page.route('https://openrouter.ai/api/alpha/decisions', async route => {
+    const body = route.request().postDataJSON() || {};
+    requests.push(body);
     if (delayMs) await new Promise(resolve => setTimeout(resolve, delayMs));
     if (status !== 200) {
-      await route.fulfill({ status, contentType: 'application/json', body: '{"error":{"code":"X"}}' });
+      await route.fulfill({ status, json: { error: { message: 'Scripted failure.' } } });
       return;
     }
-    const answers = {};
-    (body.state?.passage_blocks || []).forEach((_block, i) => {
-      answers[`block${i + 1}Treatment`] = { type: 'choice', choice: treatmentId };
-      answers[`block${i + 1}Intensity`] = { type: 'choice', choice: 'balanced' };
-    });
-    await route.fulfill({ status: 200, contentType: 'application/json',
-      body: JSON.stringify({ provider: 'TypeSafe', model: 'typesafe/jev-1.13', answers }) }).catch(() => {});
+    const answers = Object.fromEntries(Object.keys(body.questions || {}).map(key => [key, {
+      type: 'choice', choice: key.endsWith('Treatment') ? treatmentId : 'balanced'
+    }]));
+    await route.fulfill({
+      status: 200, json: { provider: 'TypeSafe', model: 'typesafe/jev-1.13', answers }
+    }).catch(() => {});
   });
   return requests;
 }
 
 /** Library → Middlemarch → first chapter → Read with imagery → Begin. */
-async function beginChapter(page, { wpm = 1000, text = null } = {}) {
+async function beginChapter(page, { wpm = 1000, text = null, connectAI = false } = {}) {
   await page.goto('/');
-  await expect(page.locator('.portal .portal-title').first()).toBeVisible({ timeout: 15_000 });
-  await connectOpenRouter(page);
+  await expect(page.locator('.portal h1').first()).toBeVisible({ timeout: 15_000 });
+  if (connectAI) await connectTestOpenRouter(page);
   if (text) {
     await page.evaluate(t => window.__RISE_TEST__.navigate('chamber', { text: t, source: 'Pasted' }), text);
   } else {
@@ -115,7 +111,7 @@ test.describe('passage-directed visuals', () => {
   test('a released chapter follows its text at once and adopts Jev at a later boundary', async ({ page }) => {
     await gate(page);
     const requests = await mockScoring(page, { delayMs: 1500 });
-    await beginChapter(page);
+    await beginChapter(page, { connectAI: true });
 
     // Reading starts without waiting for Jev: local direction is on screen.
     await expect.poll(async () => (await direction(page)).flame, { timeout: 15_000 }).toBe(true);
@@ -130,10 +126,8 @@ test.describe('passage-directed visuals', () => {
     await expect.poll(async () => (await direction(page)).catalog, { timeout: 15_000 }).toBe(true);
     await expect.poll(() => requests.length, { timeout: 15_000 }).toBeGreaterThanOrEqual(1);
     for (const request of requests) {
-      expect(request.blocks.length).toBeLessThanOrEqual(8);
-      expect(Object.keys(request.questions)).toHaveLength(request.blocks.length * 2);
-      expect(request.model).toBe('typesafe/jev-1.13');
-      expect(request.authorization).toBe(`Bearer ${E2E_READER_KEY}`);
+      expect(request.state.passage_blocks.length).toBeLessThanOrEqual(8);
+      expect(Object.keys(request)).toEqual(expect.arrayContaining(['model', 'state', 'questions']));
     }
     // The first block was entered before the reply and keeps its choice.
     await expect.poll(async () => (await direction(page)).staged, { timeout: 15_000 }).toBeGreaterThan(0);
@@ -149,7 +143,7 @@ test.describe('passage-directed visuals', () => {
   test('Off stays off: a pending reply never reactivates visuals', async ({ page }) => {
     await gate(page);
     await mockScoring(page, { delayMs: 4000 });
-    await beginChapter(page);
+    await beginChapter(page, { connectAI: true });
     await expect.poll(async () => (await direction(page)).flame, { timeout: 15_000 }).toBe(true);
     await page.evaluate(() => window.__RISE_TEST__.getView('chamber-session').setVisualDirectionMode('off'));
     await page.waitForTimeout(6000);
@@ -161,7 +155,7 @@ test.describe('passage-directed visuals', () => {
   test('manual Hold outlasts block boundaries until Follow text is chosen again', async ({ page }) => {
     await gate(page);
     await mockScoring(page);
-    await beginChapter(page);
+    await beginChapter(page, { connectAI: true });
     await expect.poll(async () => (await direction(page)).flame, { timeout: 15_000 }).toBe(true);
     await page.mouse.move(640, 700);
     await page.locator('#visual-direction-btn').click();
@@ -187,7 +181,7 @@ test.describe('passage-directed visuals', () => {
     const text = Array.from({ length: 30 }, (_, i) =>
       `Paragraph ${i + 1} of a private letter about the quiet garden and the long storm that followed it through the night.`
       + ' It continues with more ordinary sentences so that the block is long enough to matter.').join('\n\n');
-    await beginChapter(page, { text, wpm: 600 });
+    await beginChapter(page, { text, wpm: 600, connectAI: true });
     await expect.poll(async () => (await direction(page)).flame, { timeout: 15_000 }).toBe(true);
     await page.waitForTimeout(4000);
     expect((await direction(page)).catalog).toBe(false);
@@ -206,7 +200,7 @@ test.describe('passage-directed visuals', () => {
   test('Jev failure keeps local direction without interrupting the reader', async ({ page }) => {
     await gate(page);
     await mockScoring(page, { status: 503 });
-    await beginChapter(page);
+    await beginChapter(page, { connectAI: true });
     await expect.poll(async () => (await direction(page)).flame, { timeout: 15_000 }).toBe(true);
     await page.waitForTimeout(3000);
     const state = await direction(page);

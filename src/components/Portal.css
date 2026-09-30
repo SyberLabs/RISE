@@ -1,8 +1,8 @@
 /* ═══════════════════════════════════════════════════════════
-   RISE Home (Portal) — SyberLabs design system v2 ("Atlas")
-   One primary action (Ask Jev), one secondary text link. The ambient
-   atmosphere sits behind everything (atlas.js), the RISE sigil is the
-   plate beside the ask, and the words stay in front on ink.
+   RISE Home (Portal) — the Oracle.
+   One object and one key. The object and its keycaps live in
+   oracle/oracle.css; this file is the page around them: the header and
+   its Menu sheet, the fixed demo pages, Continue, and the legal footer.
    Tokens and the shared .sl-header live in design-system.css.
    ═══════════════════════════════════════════════════════════ */
 
@@ -40,7 +40,6 @@
 .portal-nav-link,
 .portal-nav-settings,
 .portal-menu-toggle,
-.portal-icon-btn,
 .portal-link,
 .portal-footer-link,
 .portal-continue {
@@ -63,15 +62,12 @@
 
 .portal-nav-link:hover,
 .portal-nav-settings:hover,
-.portal-icon-btn:hover,
 .portal-menu-toggle:hover {
   color: var(--sy-text);
 }
 
-/* The header's one secondary control, and the voice button beside Ask
-   Jev: round "line" buttons — a rule-2 hairline on glass ink. */
+/* Round "line" buttons — a rule-2 hairline on glass ink. */
 .portal-nav-settings,
-.portal-icon-btn,
 .portal-menu-toggle {
   width: var(--sy-control-height);
   height: var(--sy-control-height);
@@ -89,7 +85,6 @@
 }
 
 .portal-nav-settings:hover,
-.portal-icon-btn:hover:not(:disabled),
 .portal-menu-toggle:hover {
   border-color: var(--sy-ice);
   box-shadow: 0 0 24px -6px var(--sy-brand);
@@ -125,6 +120,134 @@
   display: block;
 }
 
+/* ─── Menu: one button, every room, as a sheet ─── */
+
+.portal-menu-toggle {
+  display: inline-flex;
+}
+
+.portal-nav {
+  display: none;
+  position: fixed;
+  top: var(--sy-header-height);
+  right: 0;
+  bottom: 0;
+  z-index: 30;
+  width: min(100%, 380px);
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0;
+  padding: var(--sy-space-2) var(--sy-space-4) var(--sy-space-6);
+  overflow-y: auto;
+  background: rgba(11, 10, 38, 0.97);
+  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(14px);
+  border-top: 1px solid var(--sy-line);
+  border-left: 1px solid var(--sy-line);
+  box-shadow: var(--sy-shadow-overlay);
+  animation: portal-enter var(--sy-dur-enter) var(--sy-ease) both;
+}
+
+.portal.is-menu-open {
+  overflow: hidden;
+}
+
+.portal-nav-home {
+  display: flex;
+  align-items: center;
+}
+
+.portal-nav-home[aria-current="page"]::after {
+  content: "";
+  width: 8px;
+  height: 8px;
+  margin-left: auto;
+  border-radius: var(--sy-radius-full);
+  background: var(--sy-accent-rise);
+  box-shadow: 0 0 12px var(--sy-accent-rise);
+}
+
+.sl-header.is-open .portal-nav {
+  display: flex;
+}
+
+/* A backdrop filter makes the header the containing block of its fixed
+   children, which would fold the sheet into the header's 64px. While the
+   Menu is open the header gives up its blur, and the sheet brings its own. */
+.sl-header.is-open {
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  background: rgb(11, 10, 38);
+}
+
+.portal-nav-link,
+.portal-nav-settings {
+  width: auto;
+  height: 56px;
+  margin: 0;
+  padding: 0;
+  justify-content: flex-start;
+  gap: var(--sy-space-3);
+  font-size: 17px;
+  line-height: 24px;
+  font-weight: 400;
+  color: var(--sy-text);
+  text-align: left;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
+.portal-nav-settings:hover {
+  box-shadow: none;
+}
+
+.portal-nav > * + * {
+  border-top: 1px solid var(--sy-line);
+}
+
+.portal-nav-settings {
+  display: flex;
+  align-items: center;
+  color: var(--sy-text-2);
+}
+
+.portal-nav-settings-label {
+  display: inline;
+}
+
+.portal-nav-group {
+  margin: var(--sy-space-5) 0 0;
+  padding: var(--sy-space-3) 0 var(--sy-space-2);
+  font-family: var(--sy-font-mono);
+  font-size: 12px;
+  line-height: 16px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--sy-text-3);
+}
+
+/* A link in the sheet is laid out like the buttons around it. */
+a.portal-nav-link {
+  display: flex;
+  align-items: center;
+  text-decoration: none;
+}
+
+.portal-nav-minor {
+  height: 48px;
+  font-size: 15px;
+  color: var(--sy-text-2);
+}
+
+@media (max-width: 640px) {
+  .portal-nav {
+    left: 0;
+    width: auto;
+    border-left: 0;
+  }
+}
+
 /* ─── Main: ask on the left, the reading lands on the right ─── */
 
 .portal-main {
@@ -134,7 +257,7 @@
   margin: 0 auto;
   padding: var(--sy-space-9) clamp(16px, 4vw, 56px);
   display: grid;
-  grid-template-columns: minmax(0, 600px) minmax(0, 1fr);
+  grid-template-columns: minmax(0, 600px);
   gap: var(--sy-space-9);
   align-items: center;
 }
@@ -186,44 +309,6 @@
 .portal-jev-form {
   display: flex;
   flex-direction: column;
-}
-
-.portal-jev-form textarea {
-  display: block;
-  width: 100%;
-  min-height: 112px;
-  resize: vertical;
-  background: var(--sy-surface);
-  border: 1px solid var(--sy-line-strong);
-  border-radius: var(--sy-radius);
-  padding: 12px 14px;
-  font-family: var(--sy-font-sans);
-  font-size: 16px;
-  line-height: 24px;
-  color: var(--sy-text);
-  transition: border-color var(--sy-dur-hover) var(--sy-ease),
-    box-shadow var(--sy-dur-hover) var(--sy-ease);
-}
-
-.portal-jev-form textarea::placeholder {
-  color: var(--sy-text-3);
-}
-
-.portal-jev-form textarea:focus {
-  outline: none;
-  border-color: var(--sy-ice);
-  box-shadow: 0 0 0 3px rgba(144, 216, 240, 0.25);
-}
-
-.portal-jev-form textarea[aria-invalid="true"] {
-  border-color: var(--sy-danger);
-}
-
-/* Loading: the request stays readable (text-2, not a fade); only the button
-   says busy. */
-.portal-jev-form textarea:read-only {
-  color: var(--sy-text-2);
-  cursor: progress;
 }
 
 .portal-help {
@@ -290,20 +375,6 @@
   cursor: not-allowed;
 }
 
-/* Loading keeps the label legible: the spinner says busy, not a fade. */
-.portal-primary[aria-busy] {
-  opacity: 1;
-}
-
-.portal-spinner {
-  display: none;
-  animation: portal-spin 800ms linear infinite;
-}
-
-.portal-primary[aria-busy] .portal-spinner {
-  display: block;
-}
-
 .portal-status {
   margin: 0;
   font-size: 14px;
@@ -313,32 +384,6 @@
 
 .portal-status:empty {
   display: none;
-}
-
-.portal-icon-btn[aria-pressed="true"] {
-  color: var(--sy-danger);
-  border-color: var(--sy-danger);
-}
-
-.portal-icon-btn:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
-}
-
-.portal-voice {
-  margin: var(--sy-space-3) 0 0;
-  font-size: 14px;
-  line-height: 20px;
-  color: var(--sy-text-3);
-}
-
-/* A live dictation message replaces the standing disclosure. */
-.portal-voice [data-jev-dictation-status]:not(:empty) + .portal-voice-note {
-  display: none;
-}
-
-.portal-voice [data-jev-dictation-status]:not(:empty) {
-  color: var(--sy-text-2);
 }
 
 .portal-alert {
@@ -458,89 +503,6 @@
   color: var(--sy-text-2);
 }
 
-/* ─── Aside: the plate, then the skeleton or Continue ─── */
-
-.portal-aside {
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: var(--sy-space-7);
-}
-
-/* The plate: the RISE sigil, framed, with a mono caption. */
-.portal-plate {
-  margin: 0;
-  align-self: center;
-  width: min(100%, 320px);
-}
-
-.portal-sigil {
-  --sy-plate-tick: var(--sy-accent-rise);
-  aspect-ratio: 1;
-  margin: 6px;
-}
-
-.portal-sigil-canvas {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  display: block;
-}
-
-.portal-plate-caption {
-  margin-top: var(--sy-space-5);
-  font-family: var(--sy-font-mono);
-  font-size: 12px;
-  line-height: 1.65;
-  letter-spacing: 0.04em;
-  color: var(--sy-text-3);
-}
-
-.portal-plate-caption b {
-  display: block;
-  font-weight: 500;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--sy-text-2);
-}
-
-.portal-plate-params {
-  display: block;
-  font-variant-numeric: tabular-nums;
-  letter-spacing: 0;
-}
-
-.portal-skeleton {
-  border-top: 1px solid var(--sy-line);
-  padding-top: var(--sy-space-5);
-  display: flex;
-  flex-direction: column;
-}
-
-.portal-skeleton[hidden] {
-  display: none;
-}
-
-.portal-skeleton .sk {
-  display: block;
-  max-width: 100%;
-  border-radius: var(--sy-radius-sm);
-  background: var(--sy-surface-2);
-  animation: portal-pulse 1.2s ease-in-out infinite;
-}
-
-.portal-skeleton .sk-row {
-  display: flex;
-  justify-content: space-between;
-  border-top: 1px solid var(--sy-line);
-  padding: var(--sy-space-4) 0;
-}
-
-.portal-skeleton .sk-row:first-of-type {
-  margin-top: var(--sy-space-6);
-}
-
 .portal-continue {
   width: 100%;
   display: grid;
@@ -594,10 +556,6 @@
   transform: translateX(4px);
 }
 
-.portal-skeleton:not([hidden]) ~ .portal-continue {
-  display: none;
-}
-
 /* ─── Footer ─── */
 
 .portal-footer {
@@ -624,55 +582,8 @@
   transition: color var(--sy-dur-hover) var(--sy-ease);
 }
 
-.portal-footer-link:hover,
-.portal-more-toggle[aria-expanded="true"] {
+.portal-footer-link:hover {
   color: var(--sy-text);
-}
-
-.portal-more {
-  position: relative;
-}
-
-.portal-more-toggle svg {
-  transition: transform var(--sy-dur-hover) var(--sy-ease);
-}
-
-.portal-more-toggle[aria-expanded="true"] svg {
-  transform: rotate(180deg);
-}
-
-/* Opens upward: the footer is the bottom of the page. */
-.portal-more-list {
-  position: absolute;
-  bottom: calc(100% + var(--sy-space-3));
-  left: calc(-1 * var(--sy-space-4));
-  z-index: 10;
-  min-width: 200px;
-  margin: 0;
-  padding: var(--sy-space-2) 0;
-  list-style: none;
-  background: rgba(11, 10, 38, 0.96);
-  border: 1px solid var(--sy-line-strong);
-  border-radius: var(--sy-radius-panel);
-  box-shadow: var(--sy-shadow-overlay);
-  animation: portal-enter var(--sy-dur-enter) var(--sy-ease) both;
-}
-
-.portal-more-list[hidden] {
-  display: none;
-}
-
-.portal-more-list .portal-footer-link {
-  width: 100%;
-  min-height: var(--sy-control-height);
-  padding: 0 var(--sy-space-4);
-  color: var(--sy-text-2);
-  text-align: left;
-}
-
-.portal-more-list .portal-footer-link:hover {
-  color: var(--sy-text);
-  background: var(--sy-surface-2);
 }
 
 .portal-legal {
@@ -695,436 +606,128 @@
   border-radius: var(--sy-radius-sm);
 }
 
-/* ─── Request: examples and kept changes ─── */
+/* ─── The Oracle page ─── */
 
-.portal-examples {
-  margin-top: var(--sy-space-5);
+.portal-oracle .portal-main {
   display: flex;
-  flex-wrap: wrap;
-  gap: var(--sy-space-2);
-}
-
-.portal-chip {
-  min-height: 36px;
-  padding: 0 var(--sy-space-4);
-  border: 1px solid var(--sy-line-strong);
-  border-radius: var(--sy-radius-full);
-  background: transparent;
-  color: var(--sy-text-2);
-  font-family: inherit;
-  font-size: 14px;
-  line-height: 20px;
-  cursor: pointer;
-  transition: color var(--sy-dur-hover) var(--sy-ease), border-color var(--sy-dur-hover) var(--sy-ease);
-}
-
-.portal-chip:hover {
-  color: var(--sy-text);
-  border-color: var(--sy-ice);
-}
-
-.portal-kept {
-  margin: var(--sy-space-2) 0 0;
-  font-size: 14px;
-  line-height: 20px;
-  color: var(--sy-text-2);
-}
-
-/* ─── Preview: interpretation, limits, adjust, play ─── */
-
-.portal-preview {
-  border-top: 1px solid var(--sy-line);
-  padding-top: var(--sy-space-5);
-  margin-bottom: var(--sy-space-6);
-}
-
-.portal-preview[hidden] {
-  display: none;
-}
-
-.portal-preview-lede {
-  margin: 0 0 var(--sy-space-4);
-  font-size: 16px;
-  line-height: 24px;
-  color: var(--sy-text-2);
-}
-
-.portal-preview-lede strong {
-  color: var(--sy-text);
-  font-weight: 600;
-}
-
-.portal-rows {
-  margin: 0;
-  border-top: 1px solid var(--sy-line);
-}
-
-.portal-row {
-  display: grid;
-  grid-template-columns: 112px minmax(0, 1fr);
-  gap: var(--sy-space-3);
-  padding: var(--sy-space-3) 0;
-  border-bottom: 1px solid var(--sy-line);
-}
-
-.portal-row dt {
-  font-size: 14px;
-  line-height: 24px;
-  color: var(--sy-text-3);
-}
-
-.portal-row dd {
-  margin: 0;
-  min-width: 0;
-}
-
-.portal-row-value {
-  display: block;
-  font-size: 16px;
-  line-height: 24px;
-  color: var(--sy-text);
-}
-
-.portal-row-detail {
-  display: block;
-  font-size: 14px;
-  line-height: 20px;
-  color: var(--sy-text-3);
-}
-
-.portal-yours {
-  margin-left: var(--sy-space-2);
-  padding: 0 6px;
-  border: 1px solid var(--sy-line-strong);
-  border-radius: var(--sy-radius-sm);
-  font-family: var(--sy-font-mono);
-  font-size: 12px;
-  line-height: 18px;
-  color: var(--sy-ice);
-  vertical-align: 1px;
-}
-
-.portal-read {
-  margin-top: var(--sy-space-4);
-}
-
-.portal-read p {
-  margin: 0;
-}
-
-.portal-read-label {
-  font-size: 14px;
-  line-height: 20px;
-  color: var(--sy-text-3);
-}
-
-.portal-read-title {
-  font-size: 18px;
-  line-height: 28px;
-  font-weight: 600;
-  color: var(--sy-text);
-}
-
-.portal-read-meta,
-.portal-read-why {
-  font-size: 14px;
-  line-height: 20px;
-  color: var(--sy-text-2);
-}
-
-.portal-read-why {
-  margin-top: var(--sy-space-1) !important;
-}
-
-.portal-limit {
-  margin-top: var(--sy-space-5);
-  display: flex;
-  gap: var(--sy-space-3);
-  padding: var(--sy-space-4);
-  border: 1px solid var(--sy-warning);
-  border-radius: var(--sy-radius);
-  background: var(--sy-surface);
-}
-
-.portal-limit[hidden] {
-  display: none;
-}
-
-.portal-limit svg {
-  flex: none;
-  color: var(--sy-warning);
-}
-
-.portal-limit p {
-  margin: 0;
-  font-size: 14px;
-  line-height: 20px;
-  color: var(--sy-text-2);
-}
-
-.portal-limit .portal-limit-title {
-  margin-bottom: var(--sy-space-1);
-  font-size: 16px;
-  line-height: 24px;
-  font-weight: 600;
-  color: var(--sy-text);
-}
-
-.portal-adjust {
-  margin-top: var(--sy-space-5);
-  padding: var(--sy-space-4);
-  border: 1px solid var(--sy-line);
-  border-radius: var(--sy-radius);
-  background: var(--sy-surface);
-}
-
-.portal-adjust-head {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: var(--sy-space-2);
-}
-
-.portal-adjust-head h2 {
-  margin: 0;
-  font-family: inherit;
-  letter-spacing: 0;
-  font-size: 16px;
-  line-height: 24px;
-  font-weight: 600;
-}
-
-.portal-adjust-head p,
-.portal-adjust-note {
-  margin: 0;
-  font-size: 14px;
-  line-height: 20px;
-  color: var(--sy-text-3);
-}
-
-.portal-adjust-note:not(:empty) {
-  color: var(--sy-success);
-}
-
-.portal-adjust-group {
-  margin-top: var(--sy-space-4);
-}
-
-.portal-adjust-label {
-  display: block;
-  margin: var(--sy-space-4) 0 var(--sy-space-2);
-  font-size: 14px;
-  line-height: 20px;
-  color: var(--sy-text-3);
-}
-
-.portal-adjust-group .portal-adjust-label {
-  margin-top: 0;
-}
-
-.portal-segments {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--sy-space-2);
-}
-
-.portal-segment {
-  min-height: 36px;
-  padding: 0 var(--sy-space-4);
-  border: 1px solid var(--sy-line-strong);
-  border-radius: var(--sy-radius-full);
-  background: transparent;
-  color: var(--sy-text-2);
-  font-family: inherit;
-  font-size: 14px;
-  line-height: 20px;
-  cursor: pointer;
-}
-
-.portal-segment:hover {
-  color: var(--sy-text);
-  border-color: var(--sy-ice);
-}
-
-.portal-segment[aria-pressed="true"] {
-  background: var(--sy-text);
-  border-color: var(--sy-text);
-  color: var(--sy-on-primary);
-  font-weight: 600;
-}
-
-.portal-select {
-  width: 100%;
-  min-height: var(--sy-control-height);
-  padding: 0 var(--sy-space-3);
-  border: 1px solid var(--sy-line-strong);
-  border-radius: var(--sy-radius);
-  background: var(--sy-bg);
-  color: var(--sy-text);
-  font-family: inherit;
-  font-size: 16px;
-}
-
-.portal-adjust-foot {
-  margin-top: var(--sy-space-3);
-  display: flex;
-  flex-wrap: wrap;
+  flex-direction: column;
   align-items: center;
-  justify-content: space-between;
-  gap: var(--sy-space-2);
-  min-height: 24px;
+  justify-content: center;
+  gap: var(--sy-space-5);
+  max-width: 980px;
+  padding: var(--sy-space-5) var(--sy-space-4) var(--sy-space-6);
 }
 
-.portal-play-row .portal-help {
+.oracle-home {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+}
+
+.oracle-title {
   margin: 0;
+  font-family: var(--sy-font-serif);
+  font-weight: 400;
+  font-size: clamp(32px, 4.4vw, 52px);
+  line-height: 1.05;
+  letter-spacing: -0.01em;
+  text-align: center;
+  color: var(--sy-text);
 }
 
-.portal-details {
-  margin-top: var(--sy-space-4);
+.oracle {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+}
+
+/* The object takes what the page leaves it: header, title, keys and
+   footer stay on screen on a phone without scrolling. */
+.oracle-stage {
+  height: clamp(300px, calc(100svh - 400px), 700px);
+  /* No taller than the sphere needs at this width (orb.js caps its fit at
+     1.2, reached at height = 1.07 × width). */
+  max-height: calc(min(100vw - 32px, 980px) * 1.07);
+  max-width: 980px;
+}
+
+@media (min-width: 641px) {
+  .oracle-stage {
+    height: clamp(300px, calc(100svh - 480px), 620px);
+  }
+}
+
+.oracle-help,
+.oracle-note,
+.oracle-status {
+  max-width: 34rem;
+  margin: var(--sy-space-4) 0 0;
   font-size: 14px;
   line-height: 20px;
+  text-align: center;
+  color: var(--sy-text-2);
+}
+
+.oracle-help {
+  font-size: 13px;
   color: var(--sy-text-3);
 }
 
-.portal-details summary {
-  cursor: pointer;
-  color: var(--sy-text-2);
-  min-height: 32px;
+.oracle-note {
+  padding: var(--sy-space-3) var(--sy-space-4);
+  border: 1px solid var(--sy-line-strong);
+  border-radius: var(--sy-radius);
+  color: var(--sy-text-body, var(--sy-text));
 }
 
-.portal-details-body {
-  margin: var(--sy-space-2) 0 0;
+.oracle-help[hidden],
+.oracle-note[hidden] {
+  display: none;
+}
+
+.oracle-status {
+  min-height: 20px;
   font-family: var(--sy-font-mono);
-  font-size: 12px;
-  overflow-wrap: anywhere;
+  font-size: 13px;
+}
+
+.oracle-status [data-jev-dictation-status]:not(:empty)::before {
+  content: " ";
+}
+
+.oracle-alert {
+  width: 100%;
+  max-width: 34rem;
+}
+
+.portal-oracle .portal-continue {
+  max-width: 34rem;
+  padding: var(--sy-space-3) var(--sy-space-2);
+}
+
+.portal-oracle .continue-title {
+  font-size: 22px;
+  line-height: 28px;
+}
+
+.portal-oracle .portal-footer {
+  justify-content: center;
+  border-top: 0;
+  padding: var(--sy-space-2) 0 var(--sy-space-4);
+}
+
+.portal-oracle .portal-legal {
+  margin-left: 0;
+}
+
+@keyframes portal-enter {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: none; }
 }
 
 @media (max-width: 640px) {
-  .portal-row {
-    grid-template-columns: 88px minmax(0, 1fr);
-  }
-}
-
-/* ─── Tablet ─── */
-
-@media (max-width: 1100px) {
-  .portal-main {
-    grid-template-columns: minmax(0, 1fr);
-    gap: var(--sy-space-7);
-    max-width: calc(600px + 2 * clamp(16px, 4vw, 56px));
-    padding: var(--sy-space-8) clamp(16px, 4vw, 56px);
-    align-items: start;
-  }
-
-  .portal-footer {
-    max-width: 600px;
-  }
-
-  /* The plate steps down to a small figure beside its caption. */
-  .portal-plate {
-    display: grid;
-    grid-template-columns: 112px minmax(0, 1fr);
-    gap: var(--sy-space-5);
-    align-items: center;
-    align-self: stretch;
-    width: 100%;
-  }
-
-  .portal-plate-caption {
-    margin: 0;
-  }
-}
-
-/* ─── Phone: Menu button discloses the nav ─── */
-
-@media (max-width: 640px) {
-  .portal-menu-toggle {
-    display: inline-flex;
-  }
-
-  /* An overlay sheet under the header: it covers the page (nothing bleeds
-     through), keeps the 16px gutter and carries the overlay shadow. */
-  .portal-nav {
-    display: none;
-    position: fixed;
-    top: var(--sy-header-height);
-    left: 0;
-    right: 0;
-    bottom: 0;
-    z-index: 30;
-    flex-direction: column;
-    align-items: stretch;
-    gap: 0;
-    padding: var(--sy-space-2) var(--sy-space-4) var(--sy-space-6);
-    overflow-y: auto;
-    background: rgba(11, 10, 38, 0.97);
-    -webkit-backdrop-filter: blur(14px);
-    backdrop-filter: blur(14px);
-    border-top: 1px solid var(--sy-line);
-    box-shadow: var(--sy-shadow-overlay);
-    animation: portal-enter var(--sy-dur-enter) var(--sy-ease) both;
-  }
-
-  .portal.is-menu-open {
-    overflow: hidden;
-  }
-
-  .portal-nav-home {
-    display: flex;
-    align-items: center;
-  }
-
-  .portal-nav-home[aria-current="page"]::after {
-    content: "";
-    width: 8px;
-    height: 8px;
-    margin-left: auto;
-    border-radius: var(--sy-radius-full);
-    background: var(--sy-accent-rise);
-    box-shadow: 0 0 12px var(--sy-accent-rise);
-  }
-
-  .sl-header.is-open .portal-nav {
-    display: flex;
-  }
-
-  .portal-nav-link,
-  .portal-nav-settings {
-    width: auto;
-    height: 56px;
-    margin: 0;
-    padding: 0;
-    justify-content: flex-start;
-    gap: var(--sy-space-3);
-    font-size: 17px;
-    line-height: 24px;
-    font-weight: 400;
-    color: var(--sy-text);
-    text-align: left;
-    border: 0;
-    border-radius: 0;
-    background: transparent;
-  }
-
-  .portal-nav-settings:hover {
-    box-shadow: none;
-  }
-
-  .portal-nav > * + * {
-    border-top: 1px solid var(--sy-line);
-  }
-
-  .portal-nav-settings {
-    display: flex;
-    align-items: center;
-    color: var(--sy-text-2);
-  }
-
-  .portal-nav-settings-label {
-    display: inline;
-  }
-
   .portal-main {
     padding: var(--sy-space-7) var(--sy-space-4) var(--sy-space-8);
   }
@@ -1141,62 +744,13 @@
 
   .portal-footer {
     width: calc(100% - 2 * var(--sy-space-4));
-    gap: var(--sy-space-3) var(--sy-space-5);
   }
-
-  /* On a phone the list spans the footer instead of hanging off "More",
-     which can wrap to the right edge. */
-  .portal-footer {
-    position: relative;
-  }
-
-  .portal-more {
-    position: static;
-  }
-
-  .portal-more-list {
-    left: 0;
-    right: 0;
-    bottom: calc(100% - var(--sy-space-3));
-  }
-
-  .portal-legal {
-    margin-left: 0;
-    width: 100%;
-  }
-}
-
-@keyframes portal-spin {
-  to { transform: rotate(360deg); }
-}
-
-@keyframes portal-pulse {
-  0%, 100% { opacity: 0.5; }
-  50% { opacity: 1; }
-}
-
-@keyframes portal-enter {
-  from { opacity: 0; transform: translateY(8px); }
-  to { opacity: 1; transform: none; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .portal-spinner {
-    animation: portal-pulse 1.2s ease-in-out infinite;
-  }
-
-  .portal-skeleton .sk {
-    animation: none;
-  }
-
   .portal-alert,
-  .portal-nav,
-  .portal-more-list {
+  .portal-nav {
     animation: none;
-  }
-
-  .portal-more-toggle svg {
-    transition: none;
   }
 
   .portal-continue:hover .continue-go,

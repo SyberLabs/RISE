@@ -9,7 +9,7 @@
  */
 
 import { normalizeProceduralStyle } from './visual-style-definitions.js';
-import { jevPalette } from './jev-palette.js';
+import { isJevColorTheme } from './jev-color-themes.js';
 import { normalizeLivingFlameConfig } from './flame-recipe.js';
 
 const INFINITY_TOKEN = '__rise_infinity__';
@@ -109,7 +109,7 @@ export function normalizeVisualCue(value) {
     const cue = engines.length
       ? { kind: 'procedural', collections, engines }
       : { kind: 'procedural', collections };
-    if (jevPalette(value.colorTheme)) cue.colorTheme = value.colorTheme;
+    if (isJevColorTheme(value.colorTheme)) cue.colorTheme = value.colorTheme;
     const config = normalizeProceduralStyle(collections, value.config);
     if (Object.keys(config).length) cue.config = config;
     return cue;

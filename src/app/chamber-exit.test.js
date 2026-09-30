@@ -47,6 +47,12 @@ describe('leaving a reading opened from try-rise', () => {
 });
 
 describe('every other surface leaves exactly as it did', () => {
+    it('returns a live reading to the live surface', () => {
+        for (const reason of LEAVING) {
+            expect(chamberExitTarget(reason, { origin: { view: 'live' } }), reason)
+                .toEqual({ kind: 'navigate', view: 'live' });
+        }
+    });
     it('returns a disclosed Jev sample to its threshold on every leave action', () => {
         for (const reason of LEAVING) {
             expect(chamberExitTarget(reason, {
@@ -54,13 +60,20 @@ describe('every other surface leaves exactly as it did', () => {
             })).toEqual({ kind: 'navigate', view: 'portal' });
         }
     });
-    it('returns a live reading to the page it was asked for on', () => {
+    it('returns a reading entered from Home to Home, where its proposal still waits', () => {
         for (const reason of LEAVING) {
-            expect(chamberExitTarget(reason, { origin: { view: 'live' } }), reason)
-                .toEqual({ kind: 'navigate', view: 'live' });
+            expect(chamberExitTarget(reason, {
+                origin: { view: 'portal', experience: 'jev' }
+            }), reason).toEqual({ kind: 'navigate', view: 'portal' });
         }
     });
-
+    it('returns a Home reading opened through Adjust to Reader Setup', () => {
+        for (const reason of LEAVING) {
+            expect(chamberExitTarget(reason, {
+                origin: { view: 'portal', experience: 'jev', adjusted: true }
+            }), reason).toEqual({ kind: 'navigate', view: 'chamber' });
+        }
+    });
     it('sends a Library reading back to the orbital prep screen', () => {
         for (const reason of LEAVING) {
             expect(chamberExitTarget(reason, {}), reason)

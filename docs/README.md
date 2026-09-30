@@ -91,6 +91,7 @@ history, not a distinction; read the status column instead.
 | [specs/LATERAL-TRAVERSAL-SPEC.md](specs/LATERAL-TRAVERSAL-SPEC.md) | Contract | The Shuttle. Implemented in `src/core/shuttle.js`. |
 | [specs/CONTINUOUS-FIELD-SPEC.md](specs/CONTINUOUS-FIELD-SPEC.md) | Contract | Gallery's continuous field. Implemented in `src/visuals/continuous-field.js`. |
 | [specs/JEV-VARIANCE.md](specs/JEV-VARIANCE.md) | Contract | One-call Jev reading diversity, intent precedence, and bounded cache slots. |
+| [specs/INVOCATION-SKINS.md](specs/INVOCATION-SKINS.md) | Contract | Home's Oracle and the wormhole: one roll, one decision route, one way to open a reading, and the accessibility contract a new skin meets. Implemented in `src/core/roll.js`, `src/app/invocation.js` and `src/wormhole/`. |
 | [specs/PHASE-2-SAFETY-SPEC.md](specs/PHASE-2-SAFETY-SPEC.md) | Contract | Photosensitivity and reading limits. See `src/core/visual-safety.js`. |
 | [vision/SPATIAL-CHAMBER-SPEC.md](vision/SPATIAL-CHAMBER-SPEC.md) | Intent | A separate spatial room. Realised instead as the Stream/Page toggle. |
 | [specs/Premium_Mobile_Chamber.md](specs/Premium_Mobile_Chamber.md) | Intent | Mobile visual grammar. Portal adopts part of it. |

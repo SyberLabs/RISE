@@ -1,4 +1,4 @@
-import { test, expect } from './fixtures.js';
+import { test, expect, openHomeNav } from './fixtures.js';
 
 /**
  * The reading band can be moved out of the picture's way.
@@ -17,7 +17,7 @@ async function reading(page, width = 390, height = 844) {
         localStorage.setItem('rise_orbital_text_v1', JSON.stringify(s));
     }, { g: GATE, s: SEED });
     await page.goto('/');
-    await page.locator('[data-nav="chamber"]').first().click();
+    await openHomeNav(page, 'chamber');
     await expect(page.locator('#begin-btn')).toBeEnabled({ timeout: 15_000 });
     await page.locator('#begin-btn').click();
     const warn = page.locator('#photosensitivity-modal');
