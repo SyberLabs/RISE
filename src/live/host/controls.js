@@ -205,8 +205,10 @@ export function createLiveControls({ runtime, onStop, audible = true, mic = null
         const { status } = snapshot;
         statusLine.textContent = describeStatus(snapshot, { audible, question });
         const canAsk = status === 'live' || status === 'interrupted' || status === 'ended';
-        input.disabled = !canAsk;
-        dive.disabled = !canAsk;
+        // A Dive that is still connecting is already the runtime's side run.
+        const canDive = canAsk && !snapshot.side;
+        input.disabled = !canDive;
+        dive.disabled = !canDive;
         surface.hidden = status !== 'diving';
         interrupt.hidden = status === 'diving' || status === 'ended' || status === 'failed' || status === 'stopped' || status === 'starting';
         interrupt.textContent = status === 'interrupted' ? 'Resume' : 'Interrupt';

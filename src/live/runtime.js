@@ -237,12 +237,31 @@ export function createLiveRuntime({
         }
     }
 
+    /**
+     * The run is the runtime's before its provider has answered, so Stop can close it and a
+     * second Dive is refused while the first is still connecting. Resolves null if it was
+     * closed meanwhile; the connection that arrives too late is closed, never used.
+     */
     async function openRun(request, role) {
         const run = {
             role, request, stream: createCurrentStream(), connection: null, player: null, voice: null, governor: null,
             lowered: 0, presenting: null, presented: false, unspoken: [], segmentId: null, closed: false, finished: false, error: null, speaking: null, abort: new AbortController(), pumping: null
         };
-        run.connection = await adapter.open(request);
+        if (role === 'main') main = run;
+        else side = run;
+        set(status);
+        try {
+            run.connection = await adapter.open(request, { signal: run.abort.signal });
+        } catch (caught) {
+            if (run.closed) return null;
+            if (role === 'main') main = null;
+            else side = null;
+            throw caught;
+        }
+        if (run.closed) {
+            try { await run.connection.close(); } catch { /* it was never used */ }
+            return null;
+        }
         run.voice = voices ? voices.create() : null;
         run.governor = createSpeechGovernor({
             voice: run.voice ?? { playedMs: () => undefined },
@@ -282,12 +301,14 @@ export function createLiveRuntime({
         async start(prompt) {
             if (status !== 'idle') throw new LiveRuntimeError('ALREADY_STARTED', 'A runtime carries one conversation');
             set('starting');
+            let run;
             try {
-                main = await openRun({ intent: 'answer', prompt }, 'main');
+                run = await openRun({ intent: 'answer', prompt }, 'main');
             } catch (caught) {
                 set('failed', { code: caught?.code ?? 'OPEN_FAILED', message: String(caught?.message ?? caught).slice(0, 300) });
                 throw caught;
             }
+            if (!run) return;
             note('start', { prompt: clip(prompt, 200) });
             attachVoice(main);
             startPumping(main);
@@ -346,11 +367,11 @@ export function createLiveRuntime({
                 .map(segment => clip(segment.text, OPEN_LIMITS.contextText));
             note('branch.open', { question: clip(question, 200), ...position });
             try {
-                side = await openRun({
+                if (!await openRun({
                     intent: 'dive',
                     prompt: question,
                     parent: { currentId: main.stream.currentId, ...position, context }
-                }, 'side');
+                }, 'side')) return;
             } catch (caught) {
                 note('branch.failed', { code: caught?.code ?? 'OPEN_FAILED' });
                 // Playing again releases the voice with it; a reader who had held it keeps it held.
@@ -368,8 +389,10 @@ export function createLiveRuntime({
             const child = side;
             side = null;
             await closeRun(child);
+            if (stopped) return;
             note('branch.close', { currentId: child.stream.currentId });
             await host.present?.({ role: 'main', session: main.player.sessionState.session, player: main.player, run: summary(main) });
+            if (stopped) return;
             set(main.finished ? 'ended' : 'live');
             if (main.player.sessionState.state === 'paused') main.player.play();
         },
@@ -390,14 +413,20 @@ export function createLiveRuntime({
 
     function attachVoice(run) {
         if (!run.voice) return;
+        // A renderer is not trusted to stop calling once its run has closed.
         run.voice.attach({
-            start: id => { run.speaking = id; note('speech.start', { role: run.role, segmentId: id }); set(status); },
-            mark: (id, charIndex, tMs) => run.governor.observe('mark', id, charIndex, tMs),
+            start: id => {
+                if (run.closed) return;
+                run.speaking = id; note('speech.start', { role: run.role, segmentId: id }); set(status);
+            },
+            mark: (id, charIndex, tMs) => { if (!run.closed) run.governor.observe('mark', id, charIndex, tMs); },
             fail: (id, reason) => {
+                if (run.closed) return;
                 run.governor.standDown('voice-failed');
                 note('voice.failed', { role: run.role, segmentId: id, message: String(reason).slice(0, 200) });
             },
             end: (id, durationMs) => {
+                if (run.closed) return;
                 run.governor.observe('end', id, durationMs);
                 if (run.speaking === id) run.speaking = null;
                 note('speech.end', { role: run.role, segmentId: id, durationMs });

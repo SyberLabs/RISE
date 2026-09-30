@@ -183,12 +183,16 @@ export function createCurrentStream({ refusals: refusalBudget = STREAM_LIMITS.re
                 break;
             }
 
-            case 'state.set':
-                Object.assign(segmentFor(event.segmentId).state, event.state);
+            case 'state.set': {
+                const segment = segmentFor(event.segmentId);
+                if (segment.ended) refuse('SEGMENT_CLOSED', `Segment ${segment.id} has ended`);
+                Object.assign(segment.state, event.state);
                 break;
+            }
 
             case 'evidence.add': {
                 const segment = segmentFor(event.segmentId);
+                if (segment.ended) refuse('SEGMENT_CLOSED', `Segment ${segment.id} has ended`);
                 if (segment.evidence.length >= STREAM_LIMITS.evidence) {
                     refuse('TOO_MANY_EVIDENCE', `A segment has at most ${STREAM_LIMITS.evidence} pieces of evidence`);
                 }

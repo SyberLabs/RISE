@@ -196,3 +196,35 @@ describe('when it cannot', () => {
         expect(closing.clock.pending()).toBe(0);
     });
 });
+
+describe('when the reader stops while it is still connecting', () => {
+    it('does not reach the site, or make anything, when it was stopped before it began', async () => {
+        const { transport, made, fetchImpl } = setup();
+        const stop = new AbortController();
+        stop.abort();
+        await expect(transport.open({ signal: stop.signal })).rejects.toMatchObject({ code: 'ABORTED' });
+        expect(fetchImpl).not.toHaveBeenCalled();
+        expect(made).toHaveLength(0);
+    });
+
+    it('does not take the answer, and closes what it opened, when it is stopped while the site is asked', async () => {
+        const stop = new AbortController();
+        const fetchImpl = vi.fn(async () => { stop.abort(); return new Response(ANSWER_SDP, { status: 200 }); });
+        const { transport, made } = setup({ fetchImpl });
+        await expect(transport.open({ signal: stop.signal })).rejects.toMatchObject({ code: 'ABORTED' });
+        expect(made[0].remoteDescription).toBeUndefined();
+        expect(made[0].closed).toBe(true);
+    });
+
+    it('closes the channel and says so when it is stopped while the channel is opening', async () => {
+        const stop = new AbortController();
+        const { transport, made, clock } = setup({}, { opens: false });
+        const attempt = transport.open({ signal: stop.signal });
+        await vi.waitFor(() => expect(made[0]?.remoteDescription).toBeDefined());
+        stop.abort();
+        await expect(attempt).rejects.toMatchObject({ code: 'ABORTED' });
+        expect(made[0].closed).toBe(true);
+        expect(made[0].channel.closed).toBe(true);
+        expect(clock.pending()).toBe(0);
+    });
+});

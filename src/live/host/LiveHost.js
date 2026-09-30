@@ -39,6 +39,17 @@ const VOICES = Object.freeze({ auto: 'Speak if this device can', browser: 'Speak
 
 const text = (value, fallback = '') => (typeof value === 'string' ? value : fallback);
 
+/** The page that framed this one, as far as the browser says. Any page may, so the reader is told which. */
+export function framedBy(frame) {
+    const ancestor = frame.location?.ancestorOrigins?.[0];
+    if (ancestor && ancestor !== 'null') return ancestor;
+    try {
+        const referrer = frame.document?.referrer;
+        if (referrer) return new URL(referrer).origin;
+    } catch { /* not an address */ }
+    return 'an unidentified page';
+}
+
 export class LiveHost {
     /**
      * @param {HTMLElement} container
@@ -204,11 +215,16 @@ export class LiveHost {
         this.startButton.disabled = true;
         this.startButton.textContent = 'Asking…';
         try {
+            // The reader may leave while this is getting ready; nothing is started for a page that is gone.
             const runtime = await this.buildRuntime();
+            if (this.destroyed) return;
             this.runtime = runtime;
-            this.controls = createLiveControls({ runtime, onStop: () => this.stop(), audible: this.voiceKind === 'browser', mic: await this.buildMic() });
+            const mic = await this.buildMic();
+            if (this.destroyed) return;
+            this.controls = createLiveControls({ runtime, onStop: () => this.stop(), audible: this.voiceKind === 'browser', mic });
             await runtime.start(prompt);
         } catch (error) {
+            if (this.destroyed) return;
             this.controls?.destroy();
             this.controls = null;
             this.runtime = null;
@@ -292,7 +308,7 @@ export class LiveHost {
     async buildAdapter(clock, createMockAdapter) {
         if (this.providerName === 'mcp') {
             const { createMcpAppAdapter } = await import('../adapters/mcp-app.js');
-            return createMcpAppAdapter({ port: this.port, clock });
+            return createMcpAppAdapter({ port: this.port, clock, host: framedBy(this.env.window ?? this.env) });
         }
         if (this.providerName !== 'openai') return createMockAdapter({ clock });
         const [{ createOpenAIRealtimeAdapter }, { createOpenAIWebRtcTransport }] = await Promise.all([
@@ -425,13 +441,18 @@ export class LiveHost {
             this.port = createMcpGuestPort({ frame });
             this.port.onTeardown(() => { void this.ended(); });
             await this.port.connect();
+            if (this.destroyed) return;
             // The host sizes a frame from what the app says it wants; the Chamber fills what it is given.
             this.port.sizeChanged({ width: frame.innerWidth, height: EMBED_HEIGHT });
             const runtime = await this.buildRuntime();
+            if (this.destroyed) return;
             this.runtime = runtime;
-            this.controls = createLiveControls({ runtime, onStop: () => this.stop(), audible: this.voiceKind === 'browser', mic: await this.buildMic() });
+            const mic = await this.buildMic();
+            if (this.destroyed) return;
+            this.controls = createLiveControls({ runtime, onStop: () => this.stop(), audible: this.voiceKind === 'browser', mic });
             await runtime.start('The answer the assistant presents');
         } catch (error) {
+            if (this.destroyed) return;
             this.controls?.destroy();
             this.controls = null;
             this.runtime = null;

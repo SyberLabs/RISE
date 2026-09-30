@@ -109,7 +109,10 @@ export async function handleLiveRealtime(request, env) {
     type: 'realtime',
     model,
     instructions: REALTIME_INSTRUCTIONS,
-    output_modalities: ['text']
+    output_modalities: ['text'],
+    // The most OpenAI allows (the default is unbounded): about what a Current's 20,000 characters can hold, so the
+    // reader's key is not spent on words the parser would drop.
+    max_output_tokens: 4096
   })], { type: 'application/json' }));
 
   let upstream;

@@ -106,6 +106,14 @@ describe('the buttons', () => {
         expect($('[data-live="interrupt"]').hidden).toBe(true);
     });
 
+    it('cannot ask a second Dive while the first is still connecting', () => {
+        const runtime = fakeRuntime('live');
+        controls = createLiveControls({ runtime, onStop: () => {} });
+        runtime.set('live', { side: { phase: 'open', finished: false, error: null } });
+        expect($('[data-live="dive"]').disabled).toBe(true);
+        expect($('input[name="question"]').disabled).toBe(true);
+    });
+
     it('turns Interrupt into Resume while held, and Resume carries on', async () => {
         const runtime = fakeRuntime('live');
         controls = createLiveControls({ runtime, onStop: () => {} });
