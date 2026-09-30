@@ -68,40 +68,12 @@ class SourceRegistryClass {
     }
 
     /**
-     * Get providers by content type
-     * @param {string} contentType
-     * @returns {SourceProvider[]}
-     */
-    getByType(contentType) {
-        return this.getAll().filter(p => p.contentType === contentType);
-    }
-
-    /**
-     * Get providers by tier
-     * @param {number} tier
-     * @returns {SourceProvider[]}
-     */
-    getByTier(tier) {
-        return this.getAll().filter(p => p.tier === tier);
-    }
-
-    /**
      * Get all text providers
      * @returns {SourceProvider[]}
      */
     getTextProviders() {
         return this.getAll().filter(p =>
             p.contentType === 'text' || p.contentType === 'sequence'
-        );
-    }
-
-    /**
-     * Get all visual providers
-     * @returns {SourceProvider[]}
-     */
-    getVisualProviders() {
-        return this.getAll().filter(p =>
-            ['image', 'diagram', 'fractal'].includes(p.contentType)
         );
     }
 
@@ -149,62 +121,6 @@ class SourceRegistryClass {
         return {
             failures,
             ready: this.getAll().filter(provider => provider.ready)
-        };
-    }
-
-    /**
-     * Search across all providers that support search
-     * @param {string} query
-     * @param {Object} [options]
-     * @param {string} [options.contentType] - Filter by content type
-     * @param {number} [options.tier] - Filter by tier
-     * @returns {Promise<Array<{provider: SourceProvider, items: ContentItem[]}>>}
-     */
-    async searchAll(query, options = {}) {
-        const providers = this.getAll()
-            .filter(p => p.supportsSearch)
-            .filter(p => !options.contentType || p.contentType === options.contentType)
-            .filter(p => !options.tier || p.tier === options.tier);
-
-        const results = await Promise.all(
-            providers.map(async (provider) => {
-                try {
-                    const items = await provider.search(query);
-                    return { provider, items };
-                } catch (error) {
-                    console.error(`[SourceRegistry] Search failed for ${provider.name}:`, error);
-                    return { provider, items: [] };
-                }
-            })
-        );
-
-        return results.filter(r => r.items.length > 0);
-    }
-
-    /**
-     * Get registry stats
-     * @returns {Object}
-     */
-    getStats() {
-        const providers = this.getAll();
-        return {
-            total: providers.length,
-            ready: providers.filter(p => p.ready).length,
-            byType: {
-                text: this.getByType('text').length,
-                sequence: this.getByType('sequence').length,
-                image: this.getByType('image').length,
-                diagram: this.getByType('diagram').length,
-                fractal: this.getByType('fractal').length,
-                audio: this.getByType('audio').length
-            },
-            byTier: {
-                1: this.getByTier(1).length,
-                2: this.getByTier(2).length,
-                3: this.getByTier(3).length,
-                4: this.getByTier(4).length,
-                5: this.getByTier(5).length
-            }
         };
     }
 }
