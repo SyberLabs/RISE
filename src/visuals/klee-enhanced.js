@@ -1296,27 +1296,6 @@ class KleeEngine {
     return canvasElement.toDataURL(format);
   }
 
-  saveConfig() {
-    return JSON.stringify({
-      seeds: this.seeds,
-      palette: this.palette,
-      width: this.width,
-      height: this.height,
-      stepLength: this.stepLength,
-      maxSteps: this.maxSteps
-    }, null, 2);
-  }
-
-  loadConfig(jsonString) {
-    const config = JSON.parse(jsonString);
-    this.seeds = config.seeds || [];
-    this.palette = config.palette || [];
-    this.width = config.width || 1024;
-    this.height = config.height || 1024;
-    this.stepLength = config.stepLength || 5;
-    this.maxSteps = config.maxSteps || 500;
-  }
-
   generateRandom(theme = 'harmonic', options = {}) {
     this._generationEpoch += 1;
     this.seeds = [];

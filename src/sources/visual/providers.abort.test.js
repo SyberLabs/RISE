@@ -1,6 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { MuseumProvider } from './museum.js';
-import { WikimediaProvider } from './wikimedia.js';
 
 function abortingFetch() {
     return vi.spyOn(globalThis, 'fetch').mockImplementation((url, options = {}) =>
@@ -48,21 +47,5 @@ describe('external visual provider cancellation', () => {
         await vi.advanceTimersByTimeAsync(25);
 
         await assertion;
-    });
-
-    it('propagates cancellation through Wikimedia rate pacing and fetch', async () => {
-        abortingFetch();
-        const provider = new WikimediaProvider();
-        provider._lastRequestTime = Date.now() + 1000; // force the abortable pacing delay
-        const controller = new AbortController();
-
-        const request = provider._fetch({ action: 'query' }, {
-            signal: controller.signal,
-            timeoutMs: 5000
-        });
-        controller.abort();
-
-        await expect(request).rejects.toMatchObject({ name: 'AbortError' });
-        expect(globalThis.fetch).not.toHaveBeenCalled();
     });
 });

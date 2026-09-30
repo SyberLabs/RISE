@@ -163,12 +163,12 @@ flowchart LR
     app["app<br/>composition root<br/>11 modules"]
     audio["audio<br/>Web Audio, recitation<br/>10 modules"]
     components["components<br/>routed views<br/>48 modules"]
-    content["content<br/>texts, imagery, journeys<br/>230 modules"]
+    content["content<br/>texts, imagery, journeys<br/>229 modules"]
     core["core<br/>session, player, router<br/>164 modules"]
     enterprise["enterprise<br/>talk program, speaker rail<br/>34 modules"]
     live["live<br/>realtime Current: events, runtime, providers<br/>37 modules"]
     page["page<br/>spatial projection<br/>4 modules"]
-    sources["sources<br/>text and visual providers<br/>22 modules"]
+    sources["sources<br/>text and visual providers<br/>21 modules"]
     vendor["vendor<br/>SyberLabs design kit<br/>2 modules"]
     visuals["visuals<br/>procedural generation<br/>61 modules"]
     wormhole["wormhole<br/>7 modules"]
@@ -194,7 +194,7 @@ flowchart LR
     components --> |19| visuals
     content --> |3| audio
     content --> |16| core
-    content --> |17| sources
+    content --> |10| sources
     content --> |1| visuals
     core --> |6| audio
     core --> |14| content
@@ -208,7 +208,7 @@ flowchart LR
     page --> |3| visuals
     sources --> |2| content
     sources -.-> |3 lazy| visuals
-    visuals -.-> |5 lazy| content
+    visuals -.-> |4 lazy| content
     visuals --> |18| core
     visuals --> |4| sources
     wormhole --> |1| app
