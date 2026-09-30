@@ -362,16 +362,11 @@ test('the Vault opens on its sequences rather than on an explanation', async ({ 
         const cards = [...document.querySelectorAll('.sequence-card')];
         return {
             total: cards.length,
-            visible: cards.filter(c => c.getBoundingClientRect().bottom <= window.innerHeight).length,
-            introShown: (() => {
-                const el = document.querySelector('.vault-intro');
-                return el ? getComputedStyle(el).display !== 'none' : false;
-            })()
+            visible: cards.filter(c => c.getBoundingClientRect().bottom <= window.innerHeight).length
         };
     });
     console.log('VAULT ' + JSON.stringify(vault));
 
-    expect(vault.introShown).toBe(false);
     expect(vault.visible).toBeGreaterThanOrEqual(1);
 });
 

@@ -170,12 +170,6 @@ export default defineConfig({
     maxWorkers: Math.max(1, Math.min(coreCeiling, memoryCeiling)),
     minWorkers: 1,
 
-    include: ['src/**/*.{test,spec}.js', 'worker/**/*.{test,spec}.js'],
-    coverage: {
-      provider: 'v8',
-      reporter: ['text', 'html', 'lcov'],
-      include: ['src/core/**/*.js', 'src/audio/**/*.js', 'src/components/**/*.js', 'src/sources/**/*.js', 'src/visuals/**/*.js'],
-      exclude: ['src/**/*.test.js', 'src/content/**', 'src/sources/text/data/**']
-    }
+    include: ['src/**/*.{test,spec}.js', 'worker/**/*.{test,spec}.js']
   }
 });

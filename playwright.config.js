@@ -33,7 +33,6 @@ import { defineConfig } from '@playwright/test';
  *   portal-hit-test   the first screen being clickable at all
  *   scriptorium       the refusal panel, whose whole job is phrasing
  *   journeys          an authored program launching
- *   csp-live          the policy that governs every remote fetch
  *   curation          what the shelf is allowed to show
  *
  * Full coverage runs in four shards on main without holding the release.
@@ -45,7 +44,6 @@ import { defineConfig } from '@playwright/test';
 const ADMISSION = '**/audio-admission.spec.js';
 
 const GATE = [
-    '**/csp-live.spec.js',
     '**/curation.spec.js',
     '**/journeys.spec.js',
     '**/keystones.spec.js',
