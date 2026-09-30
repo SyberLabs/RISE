@@ -15,7 +15,7 @@ Speaking to RISE already works with any provider: the Speak button turns the rea
 ## The design
 
 - `src/live/adapters/gemini-sse.js`: a bounded server-sent-events parser. Fed text in any cut (CRLF, LF, CR; a field split across chunks; comments; multi-line `data`), it calls back once per event. An unterminated line or event over a limit is dropped, never buffered without bound.
-- `src/live/adapters/gemini-wire.js`: the request body, and Google's response chunks as text-stream events. Every provider-specific name is in one table. Only `candidates[0].content.parts[].text` (skipping parts marked as thoughts) is read as words. A `finishReason` of `STOP` or `MAX_TOKENS` ends the answer; a safety or other stop, a `promptFeedback.blockReason`, and an in-stream `error` object end it failed, in words. A stream that ends without a finish reason is a lost connection.
+- `src/live/adapters/gemini-wire.js`: the request body, and Google's response chunks as text-stream events. Every provider-specific name is in one table. Only `candidates[0].content.parts[].text` (skipping parts marked as thoughts) is read as words. A `finishReason` of `STOP` ends the answer. `MAX_TOKENS` is an answer **cut off** at its length limit, so it is a failure, not a finish: the whole passages stay and the one being written is let go (as for a lost connection), and the reader is told the answer stopped early. A safety or other stop, a `promptFeedback.blockReason`, and an in-stream `error` object end it failed, in words. A stream that ends without a finish reason is a lost connection.
 - `src/live/adapters/gemini-fetch.js`: the browser transport. `open({ body, signal })` does the `fetch` and resolves once Google has answered with headers, so a refused key or a missing model is refused *at open*, exactly where the OpenAI transport refuses its key, and the host already forgets a refused key there. It then streams the body through the parser.
 - `src/live/adapters/gemini.js`: about forty lines, the twin of `openai-realtime.js`, handing `connect` to the text-stream adapter.
 - `LiveHost` (`?provider=gemini`): a key field held in page memory only, forgotten when the session ends or the key is refused, and a model field. The page says where the key goes: to Google, from this browser, and never to RISE.
@@ -27,6 +27,10 @@ It travels in the `x-goog-api-key` header and nowhere else: never in a URL, neve
 ### What Google says about a failure
 
 The reader's key must not appear in anything the reader, the journal or a log can see, however Google words a failure. Refusals at the HTTP level are scrubbed by the transport. A failure reported *inside* a successful stream is decoded by the wire, which never sees the key, so the wire shows Google's words only after a scrubber the transport supplies has cleaned the decoded text (which also defeats a key written with JSON escapes), and it scrubs before it clips. A transport that supplies none, or a scrubber that fails, gets only "The provider reported an error", never Google's words: the wire fails closed. (Found in review of #347 and fixed.)
+
+### An answer that is cut off
+
+When a response reaches `maxOutputTokens`, Google reports `MAX_TOKENS`. Treating that as a finish would close the passage that was being written and mark the Current complete, so a half sentence would be read as the end of the answer. It is a failure instead, worded "The answer reached its length limit and was cut off." The runtime still reads every passage that was whole (what arrived is worth reading), and the controls now say so in words: while it reads, "The answer stopped early: …", and when it is done, "Finished reading what arrived. The answer stopped early: …", not "Finished." This applies to any provider whose Current fails after some of it arrived, not only Gemini's. (Raised in the Codex review of #347; the wire was fixed as it asked, and the controls gap behind it was found while testing it in a browser.)
 
 ### The model
 
@@ -67,11 +71,11 @@ Each task starts with a failing test, and ends with the targeted tests passing a
 |---|---|---|
 | Event-stream parser | 20 tests, including every single and every pair of cuts of a transcript and seeded random cuts; 9 deliberate breaks | pass, all caught |
 | Wire | 40 tests over a transcript in the shape of Google's published response schema; 18 deliberate breaks | pass, all caught |
-| Adapter, and the **shared conformance suite unchanged** | 25 tests (14 adapter, 11 conformance); a fake stream speaking the documented wire | pass |
+| Adapter, and the **shared conformance suite unchanged** | 27 tests (16 adapter, 11 conformance); a fake stream speaking the documented wire | pass |
 | Fetch transport | 42 tests with a stubbed `fetch`, including the key's whole path and Stop at every moment (a stalled refusal included); about 35 deliberate breaks | pass, all caught |
 | Host | 9 new tests (39 in the file, OpenAI's unchanged); 10 deliberate breaks | pass, all caught |
 | Security policy | the header tests, plus an exact-origin pin; a wildcard break | pass, caught |
-| Browser, production build, Google stubbed | `e2e/live-gemini.spec.js`, 10 tests; four deliberate breaks | pass, all caught |
+| Browser, production build, Google stubbed | `e2e/live-gemini.spec.js`, 11 tests; four deliberate breaks | pass, all caught |
 | **Google's real service** | not run | **unverified** |
 | Google's preflight from a browser origin | `curl` against the live endpoint without a key: it allows our origin and the `x-goog-api-key` header, and returns its CORS header on an error too | as expected, 2026-09-30 |
 

@@ -22,7 +22,7 @@ const expectShown = (page, phrase, timeout = 12_000) =>
     expect.poll(() => shown(page).catch(() => ''), { timeout, message: `waiting to see “${phrase}”` }).toContain(phrase);
 
 /** Google's answer: the words in pieces, then a frame that says it is finished. */
-function stream(text) {
+function stream(text, finishReason = 'STOP') {
     const sizes = [7, 19, 3, 31, 11, 23];
     const frames = [];
     for (let at = 0, count = 0; at < text.length; count += 1) {
@@ -30,14 +30,14 @@ function stream(text) {
         frames.push({ candidates: [{ content: { role: 'model', parts: [{ text: text.slice(at, at + size) }] }, index: 0 }], modelVersion: 'fake' });
         at += size;
     }
-    frames.push({ candidates: [{ content: { role: 'model', parts: [{ text: '' }] }, finishReason: 'STOP', index: 0 }] });
+    frames.push({ candidates: [{ content: { role: 'model', parts: [{ text: '' }] }, finishReason, index: 0 }] });
     return frames.map(frame => `data: ${JSON.stringify(frame)}\r\n\r\n`).join('');
 }
 
 const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'content-type,x-goog-api-key', 'Access-Control-Allow-Methods': 'POST, OPTIONS' };
 
 /** Answer Google, recording what it was asked. */
-async function google(page, { answer = scriptToLines(BLACK_HOLES), dive = scriptToLines(HORIZON_DIVE), status = 200, error, hold } = {}) {
+async function google(page, { answer = scriptToLines(BLACK_HOLES), dive = scriptToLines(HORIZON_DIVE), status = 200, error, hold, finishWith = 'STOP' } = {}) {
     const asked = [];
     await page.route(GOOGLE, async route => {
         const request = route.request();
@@ -50,7 +50,7 @@ async function google(page, { answer = scriptToLines(BLACK_HOLES), dive = script
             return;
         }
         const text = body.contents[0].parts[0].text.startsWith('The reader stopped') ? dive : answer;
-        await route.fulfill({ status: 200, headers: CORS, contentType: 'text/event-stream', body: stream(text) });
+        await route.fulfill({ status: 200, headers: CORS, contentType: 'text/event-stream', body: stream(text, finishWith) });
     });
     return asked;
 }
@@ -201,6 +201,18 @@ test.describe('the Gemini provider with the reader’s own key', () => {
         await expect(page.locator('.live-controls__status')).toContainText('could not be answered');
         await expect(page.locator('.live-controls__error')).toContainText('The provider stopped the answer (SAFETY)');
         await expect(page.locator('#atom-display')).toHaveCount(0);
+    });
+
+    test('says in words that an answer was cut off at its length limit, and never shows the passage it cut through', async ({ page }) => {
+        await google(page, { answer: '@passage visual=still\nFirst, whole.\n@end\n@passage visual=still\nSecond, and it is cut o', finishWith: 'MAX_TOKENS' });
+        await page.goto(OPEN);
+        await page.locator('#live-key').fill(KEY);
+        await page.locator('.live-start').click();
+        // What arrived is still read, and the reader is told the answer stopped early, not that it finished.
+        await expect(page.locator('.live-controls__status')).toContainText('The answer stopped early: The answer reached its length limit and was cut off.');
+        await expect(page.locator('.live-controls__status')).not.toHaveText(/^Finished\. /u);
+        await page.waitForTimeout(500);
+        expect(await page.content()).not.toContain('and it is');
     });
 
     test('never shows the key when Google says it back in the middle of an otherwise good stream', async ({ page }) => {

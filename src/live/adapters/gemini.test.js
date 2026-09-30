@@ -161,6 +161,35 @@ describe('a failure the provider reports in the middle of a stream', () => {
     });
 });
 
+describe('an answer that reached its length limit', () => {
+    const cutOff = '@passage visual=still\nFirst, whole.\n@end\n@passage visual=still\nSecond, and it is cut o';
+
+    it('keeps every passage that was whole, lets go of the one that was being written, and is not a finished answer', async () => {
+        const clock = createVirtualClock();
+        const transport = createFakeGeminiTransport({ clock, textFor: () => cutOff, finishWith: 'MAX_TOKENS' });
+        const reading = read(await createGeminiAdapter({ transport }).open(ASK));
+        await clock.runAll();
+        const view = await reading;
+        expect(view.phase).toBe('failed');
+        expect(view.error).toMatchObject({ code: 'RESPONSE_MAX_TOKENS' });
+        // The one being written is let go: never ended, and none of its words are kept.
+        expect(view.segments.filter(segment => segment.ended).map(segment => segment.text)).toEqual(['First, whole.']);
+        expect(view.segments.filter(segment => !segment.ended).every(segment => segment.text === '')).toBe(true);
+        expect(JSON.stringify(view)).not.toContain('and it is');
+    });
+
+    it('is a finished answer when the model stopped of its own accord', async () => {
+        const clock = createVirtualClock();
+        const whole = '@passage visual=still\nFirst, whole.\n@end\n@passage visual=still\nSecond, whole.\n@end\n';
+        const transport = createFakeGeminiTransport({ clock, textFor: () => whole });
+        const reading = read(await createGeminiAdapter({ transport }).open(ASK));
+        await clock.runAll();
+        const view = await reading;
+        expect(view.phase).toBe('complete');
+        expect(view.segments.map(segment => segment.text)).toEqual(['First, whole.', 'Second, whole.']);
+    });
+});
+
 describe('when it cannot connect', () => {
     it('says what the transport refused, as its own error, without changing it', async () => {
         const clock = createVirtualClock();

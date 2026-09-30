@@ -56,6 +56,40 @@ describe('the sentence for each state', () => {
     });
 });
 
+describe('an answer that stopped early', () => {
+    const cut = { code: 'RESPONSE_MAX_TOKENS', message: 'The answer reached its length limit and was cut off.' };
+
+    it('says so when the reading that arrived is finished, and that it can still be asked about', () => {
+        const text = describeStatus(snapshot('ended', { main: { error: cut } }));
+        expect(text).toBe('Finished reading what arrived. The answer stopped early: The answer reached its length limit and was cut off. You can still ask about any place in it.');
+    });
+
+    it('says so while what arrived is still being read, and keeps saying the voice stopped if it did', () => {
+        expect(describeStatus(snapshot('live', { main: { error: cut, speaking: 'a' } }), { audible: false }))
+            .toBe('Reading, paced as if spoken. The answer stopped early: The answer reached its length limit and was cut off.');
+        expect(describeStatus(snapshot('live', { main: { error: cut, voiceDegraded: true } }), { audible: true }))
+            .toBe('Reading. The answer stopped early: The answer reached its length limit and was cut off. The voice stopped; the reading carries on at its own pace.');
+    });
+
+    it('says nothing of it when nothing stopped early, in any state that says anything of it', () => {
+        expect(describeStatus(snapshot('ended'))).toBe('Finished. You can still ask about any place in it.');
+        expect(describeStatus(snapshot('live', { main: { speaking: 'a' } }), { audible: true })).toBe('Speaking.');
+    });
+
+    it('does not mix a Dive’s failure into the main answer’s: a Dive says its own', () => {
+        const text = describeStatus(snapshot('diving', { side: { error: { message: 'no answer' } }, main: { error: cut } }), { question: 'q' });
+        expect(text).toBe('The Dive could not be answered (no answer). Surface to go back.');
+    });
+
+    it('is only ever words: a hostile or missing message is clipped, or replaced by a plain one', () => {
+        const long = describeStatus(snapshot('ended', { main: { error: { message: `${'x'.repeat(500)}.` } } }));
+        expect(long.length).toBeLessThan(330);
+        expect(describeStatus(snapshot('ended', { main: { error: {} } }))).toBe('Finished reading what arrived. The answer stopped early: the provider failed. You can still ask about any place in it.');
+        expect(describeStatus(snapshot('ended', { main: { error: { message: 'Ends with no full stop' } } }))).toContain('stopped early: Ends with no full stop. You');
+        expect(describeStatus(snapshot('ended', { main: { error: cut } }))).not.toMatch(/undefined|null|\[object/u);
+    });
+});
+
 function fakeRuntime(initial = 'live') {
     const listeners = new Set();
     let state = snapshot(initial);

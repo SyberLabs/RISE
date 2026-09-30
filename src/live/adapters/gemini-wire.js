@@ -28,7 +28,7 @@ import { promptFor, REALTIME_INSTRUCTIONS } from './openai-instructions.js';
 
 /** Every provider-specific name, in one place. */
 export const WIRE = Object.freeze({
-    finish: Object.freeze({ good: ['STOP', 'MAX_TOKENS'], none: ['FINISH_REASON_UNSPECIFIED', ''] }),
+    finish: Object.freeze({ good: ['STOP'], truncated: 'MAX_TOKENS', none: ['FINISH_REASON_UNSPECIFIED', ''] }),
     blockNone: 'BLOCK_REASON_UNSPECIFIED'
 });
 
@@ -128,6 +128,9 @@ export function createGeminiWire({ sink, abort, scrub }) {
             if (WIRE.finish.good.includes(reason)) {
                 finished = true;
                 sink.done();
+            } else if (reason === WIRE.finish.truncated) {
+                // Cut off at the length limit: the passage being written is unfinished, and is not shown as though it were.
+                fail(`RESPONSE_${reason}`, 'The answer reached its length limit and was cut off.');
             } else {
                 const name = NAME.test(reason) ? reason : 'UNKNOWN';
                 fail(`RESPONSE_${name}`, `The provider stopped the answer (${name}).`);

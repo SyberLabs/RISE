@@ -32,11 +32,12 @@ const frame = (text, extra = {}) => JSON.stringify({
  * @param {number} [options.errorAfter] an error frame after this many frames
  * @param {number} [options.lossAfter] the stream stops with no finish reason after this many frames
  * @param {((text: string) => string) | null} [options.scrub] what the connection scrubs with; null is a transport that has none
+ * @param {string} [options.finishWith] the finish reason of the last frame, STOP unless a test says otherwise
  * @param {Error} [options.openError] opening is refused with this
  * @param {() => void} [options.beforeOpen] runs while the connection is being made
  * @param {(text: string) => string} [options.textFor] the line-format answer for the reader's message
  */
-export function createFakeGeminiTransport({ clock, everyMs = 30, failAfter, errorAfter, lossAfter, openError, beforeOpen, textFor, scrub = text => text }) {
+export function createFakeGeminiTransport({ clock, everyMs = 30, failAfter, errorAfter, lossAfter, openError, beforeOpen, textFor, scrub = text => text, finishWith = 'STOP' }) {
     const requests = [];
     const connections = [];
     return {
@@ -69,7 +70,7 @@ export function createFakeGeminiTransport({ clock, everyMs = 30, failAfter, erro
                         if (lossAfter === count) { end(); return; }
                     }
                     await clock.sleep(everyMs, { signal: controller.signal });
-                    emit(frame('', { finishReason: 'STOP' }));
+                    emit(frame('', { finishReason: finishWith }));
                     end();
                 } catch (error) {
                     if (error?.name !== 'AbortError') throw error;

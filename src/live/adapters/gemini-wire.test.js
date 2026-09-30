@@ -101,15 +101,22 @@ describe('reading the answer', () => {
 });
 
 describe('the end of the answer', () => {
-    for (const reason of ['STOP', 'MAX_TOKENS']) {
-        it(`${reason} finishes the answer, and the words in the same frame are heard first`, () => {
-            const { sink, wire } = setup();
-            wire.receive(words('last words', { finishReason: reason }));
-            expect(heard(sink)).toBe('last words');
-            expect(sink.done).toHaveBeenCalledTimes(1);
-            expect(sink.error).not.toHaveBeenCalled();
-        });
-    }
+    it('STOP finishes the answer, and the words in the same frame are heard first', () => {
+        const { sink, wire } = setup();
+        wire.receive(words('last words', { finishReason: 'STOP' }));
+        expect(heard(sink)).toBe('last words');
+        expect(sink.done).toHaveBeenCalledTimes(1);
+        expect(sink.error).not.toHaveBeenCalled();
+    });
+
+    it('MAX_TOKENS is an answer cut off, said in plain words, and never a finished one', () => {
+        const { sink, wire } = setup();
+        wire.receive(words('half a sen', { finishReason: 'MAX_TOKENS' }));
+        expect(heard(sink)).toBe('half a sen');
+        expect(sink.done).not.toHaveBeenCalled();
+        expect(sink.error).toHaveBeenCalledTimes(1);
+        expect(sink.error.mock.calls[0][0]).toEqual({ code: 'RESPONSE_MAX_TOKENS', message: 'The answer reached its length limit and was cut off.', recoverable: false });
+    });
 
     it('reads an unspecified reason as no reason: the answer is not over', () => {
         const { sink, wire } = setup();
