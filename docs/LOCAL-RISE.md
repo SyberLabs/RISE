@@ -24,7 +24,7 @@ The launcher:
 1. Reports the GPU and memory it found (`npm run local -- --check` stops here).
 2. Builds RISE once if `dist/` is missing, starts the local bridge at `http://127.0.0.1:5780/`, and opens it. Reading works immediately.
 3. On first run, creates the isolated environment in that folder and installs pinned Kev (`jaredpalmer/kev` at `9c41005b2180347c3c646dfc9e50c4428483ec6b`). On NVIDIA it first installs PyTorch 2.8 built for CUDA 12.8, which supports RTX 50-series GPUs. Your system Python and any other environment are left untouched.
-4. Rechecks memory, then starts `deploy/kev/local_app.py` (the one local Kev server; `deploy/kev/local.ps1` starts the same file) on a random loopback port. It downloads and loads:
+4. Rechecks memory, then starts `deploy/kev/local_app.py` on a random loopback port. It downloads and loads:
    - Kev-4B adapter `jaredpalmer/kev-4b@139fdd94f1b6a6ad80cc15e08fcb99cac885a101`
    - base `Qwen/Qwen3.5-4B-Base@1001bb4d826a52d1f399e183466143f4da7b741b`
 
@@ -32,8 +32,6 @@ The launcher:
 5. The Home panel follows Kev through its states (checking, installing, downloading, loading, then ready, or an error that says why). Ctrl+C stops the bridge and Kev. The launcher stops only the processes it started, and it never reboots or auto-starts anything.
 
 Options: `--port N`, `--no-open`, `--python PATH`, and `--self-test`. Once Kev is ready, `--self-test` checks that Kev refuses missing and wrong keys, reports the pinned checkpoint and base, and attests the revision, and that the bridge returns an attested choice and refuses another website.
-
-To qualify Kev on its own without RISE, `deploy/kev/local.ps1 setup | start | smoke` (Windows PowerShell) runs the same server on `http://127.0.0.1:8009` with a persistent per-user key, then runs `deploy/kev/smoke.py` and `probe.py` against it (`--allow-loopback`).
 
 ## Security
 

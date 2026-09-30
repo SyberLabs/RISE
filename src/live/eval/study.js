@@ -167,9 +167,6 @@ export function presentedChoices(item, seed) {
     return shuffle(shown, mulberry32(hash(`${seed}:${item.id}`)));
 }
 
-const ids = list => list.map(item => item.id);
-const ANSWER_IDS = Object.freeze([...ids(COMPREHENSION), ...ids(SECONDARY)]);
-
 const isChoice = (item, value) => Number.isInteger(value) && value >= 0 && value < item.choices.length;
 const isRating = value => Number.isInteger(value) && value >= RATING_SCALE.min && value <= RATING_SCALE.max;
 const isTime = value => typeof value === 'string' && value.length <= 40 && !Number.isNaN(Date.parse(value));
