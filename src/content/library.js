@@ -270,7 +270,5 @@ registerModernReadings();        // Original contemporary short readings
 //   cannot be curated, cannot carry an editorial judgement, and cannot
 //   rhyme with anything. Whatever else the Archive is, it holds works
 //   somebody selected.
-//
-// The provider modules remain on disk; only the shelving is retired.
 
 console.log(`[Library] Registered ${LIBRARY_TEXTS.length} texts`);
