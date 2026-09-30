@@ -1,7 +1,6 @@
 /**
- * Model hosts and WebAssembly compilation are admitted for the on-device Kev
- * worker script only, and only by the Cloudflare Worker that serves it. The
- * static header file, which every host reads, grants them to nothing.
+ * The static header file, which every host reads, grants model hosts and
+ * WebAssembly compilation to nothing.
  */
 
 import { readFileSync } from 'node:fs';

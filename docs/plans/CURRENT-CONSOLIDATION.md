@@ -99,7 +99,6 @@ that the brief's list leaves out.
 | **Visual Lab** | Explore and save Living Flame scenes | `useRecipeInReading` holds a scene for the *next* reading, once (`app.js:607`) | **Surface layer** | Keep |
 | **Curia** | The source and rights record | None. It never launches a reading | None: it is the **provenance ledger** the sources point at | Keep. See §1.4 |
 | **Settings, Guide, BetaGate, Admit** | Shell | None | None. Not features of a reading | Keep. Outside the taxonomy |
-| **Enterprise** (`src/enterprise/`) | Kev, talk programs | No `compileSession` caller in the directory (verified by search) | Out of scope per the brief | Leave alone |
 | **Offline renderers** (`render/plan`, `artifact`, `vertical-slice`, `producer`, `scriptorium-cli`, five scripts) | Turn a Current into video, audio, or a check | `compileSession` at 10 files under `src/` and 5 under `scripts/` | A **projection** (export). Not in the brief's list | Note it. Reserve the projection names with this in mind |
 
 **Emotions** (pull request 296, unmerged) adds a room and the path `/emotions`.

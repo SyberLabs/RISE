@@ -17,7 +17,7 @@ connection the reader owns, and reading and manual settings need none.
 - `providers.js` accepts a Jev answer only as `provider: TypeSafe` with the `typesafe/jev-1.13` family, and a Kev answer only with the pinned `X-Kev-Revision` attestation.
 - `catalog.js` validates the public catalog in the Worker, the browser, and the local bridge.
 
-The same connection serves the auxiliary features: Scriptorium routing (`route.js`), section visual direction (`src/core/passage-visuals/score-provider.js`), and the EnterpRise "Kev (local RISE)" decider (`src/enterprise/remote-decider.js`, local only).
+The same connection serves the auxiliary features: Scriptorium routing (`route.js`) and section visual direction (`src/core/passage-visuals/score-provider.js`).
 
 ## Connect OpenRouter (OAuth PKCE)
 
@@ -40,7 +40,7 @@ The Worker (`worker/index.mjs`) holds no model credential and calls no model:
 - `GET /api/decision-catalog` publishes released books, active sounds, and active type options from Neon through a 30-second Redis cache, with public columns only. It is rate limited, and Neon and Upstash credentials never leave the Worker. Deactivating a row in Neon withdraws it from every reader within a minute.
 - `/api/jev-recommend`, `/api/jev-decision`, `/api/jev/route`, `/api/jev-visual-score`, `/api/enterprise-decision`, and `/api/personal-piece` answer `410 SHARED_INFERENCE_RETIRED` with instructions to reload and connect. Netlify previews answer the same way (`netlify/functions/retired-inference.mjs`).
 
-Features that depended on a shared model are now either on the reader's connection (recommendations, Scriptorium routing, visual direction), local only (the EnterpRise room's Kev decider; the public room keeps Local rules and on-device Kev), or explicitly unavailable: personal readings (`/create`) were never released and now say that RISE no longer pays for AI writing.
+Features that depended on a shared model are now either on the reader's connection (recommendations, Scriptorium routing, visual direction) or explicitly unavailable: personal readings (`/create`) were never released and now say that RISE no longer pays for AI writing.
 
 ## Release order
 

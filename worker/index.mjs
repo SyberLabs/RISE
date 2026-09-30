@@ -1,4 +1,3 @@
-import { isKevWorkerScript, serveKevWorkerScript } from './kev-worker-script.mjs';
 import { handleDecisionCatalog } from './decision-catalog.mjs';
 import { isRetiredInferenceRoute, retiredInference } from './retired-inference.mjs';
 import { handleLiveRealtime } from './live-realtime.mjs';
@@ -23,7 +22,6 @@ export default {
   async fetch(request, env) {
     const path = new URL(request.url).pathname;
 
-    if (isKevWorkerScript(path)) return serveKevWorkerScript(request, env);
     if (isRetiredInferenceRoute(path)) return retiredInference();
 
     // Optional integration routes remain available but are disabled by default.

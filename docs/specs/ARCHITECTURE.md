@@ -165,7 +165,6 @@ flowchart LR
     components["components<br/>routed views<br/>48 modules"]
     content["content<br/>texts, imagery, journeys<br/>231 modules"]
     core["core<br/>session, player, router<br/>167 modules"]
-    enterprise["enterprise<br/>talk program, speaker rail<br/>34 modules"]
     live["live<br/>realtime Current: events, runtime, providers<br/>33 modules"]
     oracle["oracle<br/>1 module"]
     page["page<br/>spatial projection<br/>4 modules"]
@@ -316,12 +315,6 @@ provider failure degrades that provider, not startup.
 **Layering, checked by §10:** `src/core` and `src/visuals` never import from
 `src/components`, statically or dynamically. Rooms communicate with the
 application through callbacks passed in at construction.
-
-**`src/enterprise/`** is a sibling of the reader, not a room. The reader does
-not import it, and it imports nothing outside itself.
-`src/enterprise/boundary.test.js` fails if either side reaches across. What a
-speaker may see is admitted by the talk-program gate in that directory, not by
-the Experience Program. §8.30.
 
 ### The rooms
 
@@ -597,12 +590,9 @@ of `settled`, `open`, `deferred`, or `reversed`.
 ### 8.10 Vanilla DOM, no UI framework
 
 - **Chosen:** direct DOM construction and template strings, one bespoke module
-  per room, six production dependencies: `sql.js` for browser-local work,
-  `@neondatabase/serverless` and `@upstash/redis` for the Worker catalog path,
-  and `@ai-ecoverse/kev.js`, `onnxruntime-web` and `@huggingface/tokenizers`
-  for on-device Kev, imported only by the EnterpRise worker that runs it
-  (§8.32). The tokenizer already shipped inside kev.js; it is named because
-  the worker builds Kev's session itself.
+  per room, three production dependencies: `sql.js` for browser-local work,
+  and `@neondatabase/serverless` and `@upstash/redis` for the Worker catalog
+  path.
 - **Rejected:** React, Vue, Svelte or any virtual-DOM library.
 - **Why:** the tradeoff is real in both directions. A framework would give
   declarative rendering, diffing, and would largely remove the `innerHTML`
@@ -908,107 +898,6 @@ of `settled`, `open`, `deferred`, or `reversed`.
   generate prose.
 - **Status:** open. The same-origin production request and book opening were
   verified; the five-minute decision cache still requires production verification.
-
-### 8.30 EnterpRise is a sibling rail, not a fork of the reader
-
-- **Chosen:** the live room lives in `src/enterprise/`. One deck, an in-memory
-  corpus of documents and tables, cards prepared before the talk, one speaker
-  rail, and one stage. Promote re-checks the talk-program gate for that room's
-  audience. An audience final that misses the program may retrieve a permitted
-  sentence onto the rail. Listed presenters share the rail. A decision sees
-  the transcript window plus candidate ids, titles, scores, and layouts. A
-  chart names a table and columns; the renderer copies cells. Promote, Dismiss,
-  and Retract are the speaker's.
-- **Rejected:** forking the reader into a second app; extracting Chamber, the
-  Experience Program, and the Worker into a shared package; putting the rail
-  inside a reader route; mounting Chamber on the stage; a second rail; an
-  external file-host connector; an OpenRouter call on the enterprise decision
-  route.
-- **Why:** the failure that matters is a confidential document, or a number
-  that was not in the source, in front of the room. The gate, the id-only
-  decision, and the cell renderer make that failure loud. The phases in
-  `docs/superpowers/specs/2026-09-27-enterprise-room-design.md` are implemented
-  in `src/enterprise/` and `worker/enterprise-decision.mjs`, from
-  `docs/superpowers/plans/2026-09-27-enterprise-room.md`. The reader's lack of
-  access control (§8.1) is unchanged: this audience check belongs to the
-  sibling, and the sibling is not on the reader's first load.
-- **Status:** settled, except the rejected provider call on the enterprise
-  decision route, which §8.31 reverses. The suite's latency ceilings are the
-  product targets on this fixture, not a measurement of a live recognizer.
-
-### 8.31 The live room decides through JEV and holds on any doubt
-
-- **Chosen:** the room listens through the browser recognizer. Interim speech
-  warms the lexical tier; a final, or the presenter's typed Ask, asks for a
-  decision. `session.prepare`
-  builds a `rise.enterprise-context.v1` (`src/enterprise/context.js`):
-  evidence (window, speaker, mode), structure (candidate ids, titles, scores,
-  layouts; rail ids and titles), and authority (the actions this turn allows,
-  never promotion). The live loop (`src/enterprise/live.js`) keeps one
-  decision in flight per channel (speech, ask), cancels it only when a newer
-  turn on the same channel arrives, and bounds it with a timeout. `/api/enterprise-decision` joins the other decision routes
-  behind `decisionProvider` and the limiter and asks the provider one choice
-  question whose options are opaque keys. `session.resolve` accepts an answer
-  only for a turn it issued, once, while no later turn on its channel is
-  pending. The
-  trace (`src/enterprise/trace.js`) records every step without the
-  transcript. The rule decider remains for tests and an explicitly chosen
-  local mode.
-- **Rejected:** falling back from a failed JEV decision to rules; letting the
-  provider name a card id or write text; sending documents, tenants, or the
-  audience to the route; deciding on interim speech; a speech vendor SDK; a
-  server-side trace store; a vector store.
-- **Why:** the model is useful for choosing which permitted card fits what
-  was just said, and harmful anywhere else. Every failure mode — timeout,
-  cancellation, a late answer, a malformed answer, an outage — resolves to
-  the rail as it was, and the stage still moves only on a presenter's tap
-  after the gate runs again. Spec:
-  `docs/superpowers/specs/2026-09-28-enterprise-live-loop-design.md`.
-- **Status:** open. The loop, route, and page are verified with a scripted
-  recognizer and routed decisions. A live Kev or Jev decision on the
-  deployed room, and field latency from a real microphone, are not yet
-  measured.
-
-### 8.32 Kev can decide on the presenter's own GPU, in the browser
-
-- **Chosen:** a third decider, "Kev (device)", runs Kev through WebGPU with
-  `@ai-ecoverse/kev.js` and `onnxruntime-web` in a dedicated worker
-  (`src/enterprise/kev-worker.js`). It asks the same question and reads the
-  answer the same way as the server route (`src/enterprise/rail-question.js`).
-  `src/enterprise/device-model.js` pins what may load: a manifest naming any
-  checkpoint but the pinned one is refused before weights are fetched, and the
-  runtime binary must match the digest of the lockfile's copy. The model
-  downloads only when a presenter chooses it. Until it is ready, or after it
-  fails, decisions hold. The worker script alone may fetch model hosts and
-  compile WebAssembly: the Cloudflare Worker serves it with its own policy
-  (`worker/enterprise-decision.mjs`), and every page keeps the site policy in
-  `public/_headers`.
-  `kev-check.html` measures load, latency, and agreement on a real device.
-  The weights never sit whole in the worker: each file streams into Cache
-  Storage (`src/enterprise/kev-store.js`) and reaches the runtime as a
-  disk-backed Blob, which the JSPI build of `onnxruntime-web` reads one
-  tensor at a time on its way to the GPU. A browser without JSPI loads
-  nothing.
-- **Rejected:** a local Python service for Windows users (CUDA, WSL2, and a
-  localhost port every site could reach); falling back to the server or the
-  rules when the device cannot run Kev; the CPU WebAssembly path, too slow for
-  a live rail; fetching the runtime binary from a public package host, which
-  put a third party in the load path of a binary this site can serve itself
-  (the JSPI build is 16.8 MB, under Cloudflare's 25 MiB static asset limit,
-  and `vite.config.js` fails any build that emits a larger file); kev.js's
-  own `loadKev`, which reads every weight
-  file into memory before the session exists and crashed the tab loading
-  Kev-4B's 4.7 GB on a 16 GB Windows machine.
-- **Why:** the transcript and the decision stay on the presenter's machine,
-  with nothing to install. Kev-4B on the device is pinned to the checkpoint
-  the server Kev serves (`deploy/kev/modal_app.py`), and a test keeps the two
-  pins equal.
-- **Status:** open. Kev-0.8B loads and decides on Chrome 153 for Windows with
-  an AMD RX 5700 (30 of 30 questions, 214 ms median). While a model is
-  loaded, Chrome's GPU process holds system memory about 1.4 times the
-  model's size, so Kev-4B needs roughly 6 GB of free memory; it has not yet
-  been run on Windows. Hosts other than the Cloudflare Worker serve the
-  worker script with the site policy, so Kev (device) fails closed there.
 
 ### 8.33 One reading, many entrances: the Current
 
