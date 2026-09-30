@@ -6,12 +6,6 @@
 import { STARTER_SEQUENCES, SEQUENCE_CATEGORIES } from './starters.js';
 import { MODERN_READINGS } from './modern-readings.js';
 import modernManifest from './modern-readings-manifest.json' with { type: 'json' };
-import { SACRED_TEXTS } from '../sources/text/sacred.js';
-import { SACRED_DEEP } from '../sources/text/data/sacred_deep.js';
-import { LITERARY_DEEP } from '../sources/text/data/literary_deep.js';
-import { DECLASSIFIED_LIBRARY } from '../sources/text/declassified.js';
-import { ARXIV_CATEGORIES } from '../sources/text/arxiv.js';
-import EXTENDED_SACRED from '../sources/text/data/sacred_texts.json';
 // Editorial judgement lives beside the corpus, not inside the provider
 // adapters: a registration loop knows where a file came from, never why
 // a work is worth an hour. See library-curation.js.
@@ -163,96 +157,6 @@ function registerModernReadings() {
 }
 
 /**
- * Register High-Fidelity Deep Texts (Priority 1)
- */
-function registerDeepSacredTexts() {
-    for (const [id, text] of Object.entries(SACRED_DEEP)) {
-        registerText({
-            id: `sacred-${id}`,
-            title: text.title,
-            author: text.author,
-            category: 'sacred',
-            tradition: text.tradition,
-            description: text.description,
-            chapterCount: text.sequences.length,
-            defaultCurve: text.defaultCurve || 'induction',
-            defaultWpm: text.defaultWpm || 120,
-            tags: text.tags || ['sacred', 'deep'],
-            verses: text.sequences,
-            provider: 'sacred-deep',
-            getSequences: () => text.sequences
-        });
-    }
-}
-
-/**
- * Register Simplified Sacred Texts (Priority 3 - Fallback)
- */
-function registerSimplifiedSacredTexts() {
-    for (const [id, text] of Object.entries(SACRED_TEXTS)) {
-        const textId = `sacred-${id}`;
-
-        // The verified Arnold Gita keeps the historical extended id.
-        // Retire the unverified simplified alias instead of exposing the
-        // same work twice under incompatible provenance.
-        if (textId === 'sacred-bhagavad-gita') continue;
-        
-        // Skip if ID already exists
-        if (LIBRARY_TEXTS.find(t => t.id === textId)) continue;
-        
-        // Skip if a title-match exists (Deep or Extended version covers it)
-        if (LIBRARY_TEXTS.find(t => t.title.toLowerCase().includes(text.title.toLowerCase()))) continue;
-
-        const structuredVerses = text.verses.map((verseText, idx) => ({
-            name: `Verse ${idx + 1}`,
-            description: verseText.substring(0, 60) + (verseText.length > 60 ? '...' : ''),
-            content: verseText,
-            wpm: 220,
-            curve: 'induction'
-        }));
-
-        registerText({
-            id: textId,
-            title: text.title,
-            author: text.author,
-            category: 'sacred',
-            tradition: text.tradition,
-            description: `${text.verses.length} verses from ${text.tradition} tradition`,
-            chapterCount: text.verses.length,
-            defaultCurve: 'induction',
-            defaultWpm: 220,
-            tags: text.tags,
-            verses: structuredVerses,
-            provider: 'sacred-texts',
-            getSequences: () => structuredVerses
-        });
-    }
-}
-
-/**
- * Register curated local literary texts (replaces Gutenberg)
- */
-function registerLiteraryTexts() {
-    for (const [id, text] of Object.entries(LITERARY_DEEP)) {
-        registerText({
-            id: `literary-${id}`,
-            title: text.title,
-            author: text.author,
-            category: 'literary',
-            tradition: text.tradition,
-            description: text.description,
-            chapterCount: text.sequences.length,
-            defaultCurve: 'induction',
-            defaultWpm: 190,
-            tags: ['literary', 'curated'],
-            verses: text.sequences,
-            provider: 'literary-local',
-            getSequences: () => text.sequences
-        });
-    }
-}
-
-/**
  * Register works ingested from verified public-domain sources.
  *
  * Unlike every other registration here, these arrive with their rights
@@ -262,108 +166,6 @@ function registerLiteraryTexts() {
  */
 function registerIngestedWorks() {
     for (const text of releaseArchiveTexts()) registerText(text);
-}
-
-/**
- * Register Declassified Documents
- */
-function registerDeclassifiedDocs() {
-    for (const [id, doc] of Object.entries(DECLASSIFIED_LIBRARY)) {
-        const verseObj = {
-            name: 'Full Document',
-            content: doc.content,
-            wpm: 260,
-            curve: 'induction',
-            description: 'Declassified Text'
-        };
-
-        registerText({
-            id: `cia-${id}`,
-            title: doc.title,
-            author: doc.author,
-            category: 'declassified',
-            tradition: 'Intelligence',
-            description: doc.summary,
-            chapterCount: 1,
-            defaultCurve: 'induction',
-            defaultWpm: 260,
-            tags: doc.tags,
-            provider: 'cia-declassified',
-            verses: [verseObj],
-            getSequences: () => [verseObj]
-        });
-    }
-}
-
-/**
- * Register ArXiv Categories as Collections
- */
-function registerResearchPapers() {
-    for (const [id, cat] of Object.entries(ARXIV_CATEGORIES)) {
-        registerText({
-            id: `arxiv-${id}`,
-            title: cat.name,
-            author: 'ArXiv.org',
-            category: 'research',
-            tradition: 'Scientific',
-            description: `Live research abstracts on ${cat.name}`,
-            chapterCount: 0, // Dynamic
-            defaultCurve: 'flat',
-            defaultWpm: 360,
-            tags: cat.tags,
-            provider: 'arxiv-research',
-            isCollection: true,
-            arxivCategory: id
-        });
-    }
-}
-
-/**
- * Register Extended Sacred Texts from JSON
- */
-function registerExtendedSacredTexts() {
-    if (!EXTENDED_SACRED) return;
-
-    for (const [id, text] of Object.entries(EXTENDED_SACRED)) {
-        const textId = `extended-${id}`;
-
-        // This alias carried the same unverified modernized Tao payload
-        // as the legacy sacred record. The exact Legge ingest now owns
-        // the stable public entry, so the duplicate alias is retired.
-        if (textId === 'extended-tao-te-ching-full') continue;
-        
-        // Skip if ID already exists
-        if (LIBRARY_TEXTS.find(t => t.id === textId)) continue;
-        
-        // Skip if a title-match exists (Deep version covers it) 
-        // We match loosely for "(Complete)" or "(Extended)" suffixes
-        const normalizedTitle = text.title.replace(/\s*\((Complete|Extended|Selected)\)\s*/i, '').toLowerCase();
-        if (LIBRARY_TEXTS.find(t => t.title.toLowerCase().includes(normalizedTitle))) continue;
-
-        const structuredVerses = text.chapters.map((chapter, idx) => ({
-            name: `Part ${idx + 1}`,
-            description: chapter.substring(0, 80) + '...',
-            content: chapter,
-            wpm: 220,
-            curve: 'induction'
-        }));
-
-        registerText({
-            id: textId,
-            title: text.title,
-            author: text.author,
-            category: text.category || 'sacred',
-            tradition: text.tradition,
-            description: text.description,
-            chapterCount: text.chapters.length,
-            defaultCurve: 'induction',
-            defaultWpm: 220,
-            tags: text.tags,
-            verses: structuredVerses,
-            provider: 'extended-sacred',
-            getSequences: () => structuredVerses
-        });
-    }
 }
 
 /**
@@ -415,15 +217,6 @@ function registerText(text) {
 }
 
 /**
- * Get all texts in a category
- * @param {string} categoryId - Category ID
- * @returns {SacredText[]}
- */
-export function getTextsByCategory(categoryId) {
-    return LIBRARY_TEXTS.filter(t => t.category === categoryId);
-}
-
-/**
  * Get a specific text by ID
  * @param {string} textId - Text ID
  * @returns {SacredText|undefined}
@@ -438,28 +231,6 @@ export function getTextById(textId) {
  */
 export function getAllTexts() {
     return [...LIBRARY_TEXTS];
-}
-
-/**
- * Format verse/chapter number for display
- * @param {number} num - Chapter number
- * @param {string} style - 'arabic' | 'roman'
- * @returns {string}
- */
-export function formatChapterNumber(num, style = 'arabic') {
-    if (style === 'roman') {
-        const romanNumerals = ['', 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X',
-            'XI', 'XII', 'XIII', 'XIV', 'XV', 'XVI', 'XVII', 'XVIII', 'XIX', 'XX',
-            'XXI', 'XXII', 'XXIII', 'XXIV', 'XXV', 'XXVI', 'XXVII', 'XXVIII', 'XXIX', 'XXX',
-            'XXXI', 'XXXII', 'XXXIII', 'XXXIV', 'XXXV', 'XXXVI', 'XXXVII', 'XXXVIII', 'XXXIX', 'XL',
-            'XLI', 'XLII', 'XLIII', 'XLIV', 'XLV', 'XLVI', 'XLVII', 'XLVIII', 'XLIX', 'L',
-            'LI', 'LII', 'LIII', 'LIV', 'LV', 'LVI', 'LVII', 'LVIII', 'LIX', 'LX',
-            'LXI', 'LXII', 'LXIII', 'LXIV', 'LXV', 'LXVI', 'LXVII', 'LXVIII', 'LXIX', 'LXX',
-            'LXXI', 'LXXII', 'LXXIII', 'LXXIV', 'LXXV', 'LXXVI', 'LXXVII', 'LXXVIII', 'LXXIX', 'LXXX',
-            'LXXXI'];
-        return romanNumerals[num] || String(num);
-    }
-    return String(num);
 }
 
 console.log('[Library] System initialized');
@@ -479,15 +250,12 @@ registerIngestedWorks();         // Verified public-domain ingests
 //
 // RISE serves Standard Ebooks editions and its own compositions. An excerpt
 // of unknown provenance is neither (ARCHIVE-CANON-SPEC §6).
-// registerDeepSacredTexts();
 
 // Legacy extended texts remain import/compatibility material only. They are
 // not registered for discovery: received works enter through the exact,
 // certification-gated Archive projection above or they do not enter at all.
-// registerSimplifiedSacredTexts();
 registerStarterTexts();          // Original RISE compositions
 registerModernReadings();        // Original contemporary short readings
-// registerLiteraryTexts();
 
 // RETIRED (LIBRARY-SPEC §0). Two registrations are deliberately absent:
 //
