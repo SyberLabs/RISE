@@ -167,7 +167,6 @@ export class VisualCortex {
         this._destroyed = false;
 
         // External providers (lazy loaded)
-        this._wikimediaProvider = null;
         this._museumProvider = null;
         // Retained per-category asset pools: images are sampled with
         // rotation, never consumed, so a warm pool serves any flash
@@ -1144,10 +1143,6 @@ export class VisualCortex {
     _reportContinuousFieldProjectionPaint(host) {
         if (!host || host !== this._continuousFieldProjectionHost) return;
         this._projectionReadiness.reportPaint(host);
-    }
-
-    hasContinuousFieldProjectionHost() {
-        return !!this._continuousFieldProjectionHost;
     }
 
     /**
@@ -2321,24 +2316,6 @@ export class VisualCortex {
     }
 
     /**
-     * Get or initialize the Wikimedia provider
-     * @private
-     */
-    async _getWikimediaProvider() {
-        if (this._wikimediaProvider) return this._wikimediaProvider;
-
-        try {
-            const { WikimediaProvider } = await import('../sources/visual/wikimedia.js');
-            this._wikimediaProvider = new WikimediaProvider();
-            await this._wikimediaProvider.init();
-            return this._wikimediaProvider;
-        } catch (error) {
-            console.error('[Visual Cortex] Failed to load WikimediaProvider:', error);
-            return null;
-        }
-    }
-
-    /**
      * Get or initialize the Museum provider (Art Institute)
      * @private
      */
@@ -2361,9 +2338,9 @@ export class VisualCortex {
      * @private
      */
     async _getProviderForCategory(categoryId) {
-        // No category (a bare 'diagram' flash) draws from Wikimedia
+        // No category (a bare 'diagram' flash) has no provider: stillness
         if (!categoryId) {
-            return this._getWikimediaProvider();
+            return null;
         }
         // Chapel-scoped collections (chapel-*): pinned sacred works,
         // with NO fallback of any kind. Spec non-negotiable #5 —
@@ -2396,14 +2373,12 @@ export class VisualCortex {
             return null;
         }
         // The atr- prefix names a real museum accession. Its room is
-        // deleted; the namespace is data, and resolving it needs the
-        // imagery module to have registered its resolver first. A
+        // deleted; the namespace is data, and only a pinned collection
+        // (specific museum works, chosen and reviewed) resolves it. A
         // restored session can carry atr- ids without that module having
-        // loaded this visit — import lazily so registration precedes
-        // resolution.
+        // loaded this visit, so import lazily. An id no collection pins
+        // has no provider: stillness, never a keyword search.
         if (categoryId.startsWith('atr-')) {
-            // A pinned collection wins: specific museum works, chosen and
-            // reviewed, rather than whatever a keyword returned today.
             try {
                 const pinned = await import('../content/imagery/provider.js');
                 if (pinned.hasPinnedCollection(categoryId)) {
@@ -2412,12 +2387,7 @@ export class VisualCortex {
             } catch (e) {
                 console.warn('[Visual Cortex] Pinned works unavailable:', e);
             }
-            try {
-                await import('../content/imagery/atrium-categories.js');
-            } catch (e) {
-                console.warn('[Visual Cortex] Atrium categories unavailable:', e);
-            }
-            return this._getWikimediaProvider();
+            return null;
         }
         // Art Institute of Chicago — prefixed with 'aic-' (panel-issued ids)
         if (categoryId.startsWith('aic-')) {
@@ -2448,8 +2418,8 @@ export class VisualCortex {
         if (museumCategories.includes(categoryId)) {
             return this._getMuseumProvider();
         }
-        // Default to Wikimedia for diagrams and others
-        return this._getWikimediaProvider();
+        // Anything else is not a curated collection: no provider, no search
+        return null;
     }
 
     /**
@@ -2943,19 +2913,14 @@ export class VisualCortex {
             let requestedUrl = null;
             try {
                 if (signal.aborted || version !== this._configVersion) throw createAbortError();
-                const provider = categoryId === ANY_POOL
-                    ? await this._getWikimediaProvider()
-                    : await this._getProviderForCategory(categoryId);
+                const provider = await this._getProviderForCategory(categoryId);
                 if (!provider) throw new Error(`No provider for category ${categoryId}`);
 
-                const image = await provider.getRandom(
-                    categoryId === ANY_POOL
-                        ? { signal, timeoutMs: 8000 }
-                        : {
-                            category: this._providerCategory(categoryId),
-                            signal,
-                            timeoutMs: 8000
-                        });
+                const image = await provider.getRandom({
+                    category: this._providerCategory(categoryId),
+                    signal,
+                    timeoutMs: 8000
+                });
                 if (!image?.data?.url) throw new Error(`Provider returned no image URL for ${categoryId}`);
                 requestedUrl = image.data.url;
                 if (signal.aborted || version !== this._configVersion) throw createAbortError();

@@ -19,6 +19,5 @@ export { GUTENBERG_CATALOG, SACRED_TEXTS, ARXIV_CATEGORIES } from './text/index.
 
 // Visual providers
 export { GeneratedVisualProvider, VISUAL_TYPES } from './visual/index.js';
-export { WikimediaProvider, WIKIMEDIA_CATEGORIES } from './visual/index.js';
 
 export { SOURCE_PROVIDER_IDS, ensureSourceSystem, resetSourceSystem } from './bootstrap.js';
