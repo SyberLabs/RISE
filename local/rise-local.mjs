@@ -4,8 +4,8 @@
  *
  * 1. Checks the GPU and memory (never falls back to CPU or a smaller model).
  * 2. Installs pinned Kev once into an isolated environment outside the
- *    repository (%LOCALAPPDATA%\\rise-kev or ~/.cache/rise-kev, shared with
- *    deploy/kev/local.ps1); the system Python is used only to create it.
+ *    repository (%LOCALAPPDATA%\\rise-kev or ~/.cache/rise-kev); the system
+ *    Python is used only to create it.
  * 3. Starts the local bridge on 127.0.0.1 and opens RISE. Reading works at once.
  * 4. Rechecks free memory, then starts pinned Kev on another loopback port with
  *    a per-run key. The page shows installing / downloading / loading / ready.
@@ -35,8 +35,7 @@ export const KEV_PACKAGE = `kev[serve] @ https://github.com/jaredpalmer/kev/arch
 export const CUDA_TORCH = ['torch==2.8.0', '--index-url', 'https://download.pytorch.org/whl/cu128'];
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
-// Outside the repository, and the same place deploy/kev/local.ps1 keeps its
-// venv and model cache, so the two never download Kev twice.
+// Outside the repository.
 const HOME = process.env.LOCALAPPDATA ? join(process.env.LOCALAPPDATA, 'rise-kev') : join(homedir(), '.cache', 'rise-kev');
 const VENV = join(HOME, 'venv');
 const IS_WINDOWS = process.platform === 'win32';

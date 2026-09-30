@@ -34,8 +34,7 @@ const CATALOG = {
 };
 
 function environment(success = true) {
-  return { ...LEGACY, ...CATALOG, DECISION_LIMITER: { limit: vi.fn(async () => ({ success })) },
-    VISUAL_SCORE_LIMITER: { limit: vi.fn(async () => ({ success })) } };
+  return { ...LEGACY, ...CATALOG, DECISION_LIMITER: { limit: vi.fn(async () => ({ success })) } };
 }
 
 const books = Object.values(releaseInventory)
