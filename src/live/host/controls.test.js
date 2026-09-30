@@ -341,7 +341,7 @@ describe('speaking to it', () => {
 
     /** Real listener and grammar, a fake recogniser: everything but the browser's own hearing. */
     function withMic(status = 'live') {
-        Recognition = createFakeRecognition();
+        Recognition = createFakeRecognition({ endsOnStop: true });
         const runtime = fakeRuntime(status);
         const mic = {
             createListener: handlers => createSpeechListener({ Recognition, clock: CLOCK, ...handlers }),

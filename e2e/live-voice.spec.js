@@ -46,7 +46,10 @@ test.beforeEach(async ({ page }) => {
                 this.started = true;
                 queueMicrotask(() => this.onstart?.({}));
             }
-            stop() { this.stopped = true; }
+            stop() {
+                this.stopped = true;
+                queueMicrotask(() => this.onend?.({}));
+            }
             abort() { this.aborted = true; }
         }
         const last = () => instances[instances.length - 1];

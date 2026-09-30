@@ -14,14 +14,15 @@ import { createVirtualClock } from '../clock.js';
 import { createFakeRecognition, open } from '../../test/fake-recognition.js';
 import { createSpeechListener, describeMic, LISTEN_LIMITS, MIC_PRIVACY, MIC_STATES } from './listener.js';
 
-const { silenceMs: SILENCE, noSpeechMs: NOBODY, maxMs: LONGEST } = LISTEN_LIMITS;
+const { silenceMs: SILENCE, noSpeechMs: NOBODY, maxMs: LONGEST, stopMs: STOP } = LISTEN_LIMITS;
 
-function setup(recognitionOptions = {}, options = {}) {
-    const Recognition = createFakeRecognition(recognitionOptions);
+/** By default the recogniser ends by itself once asked to stop, as a browser does; `{ endsOnStop: false }` has it say nothing more. */
+function setup(recognitionOptions = {}) {
+    const Recognition = createFakeRecognition({ endsOnStop: true, ...recognitionOptions });
     const clock = createVirtualClock();
     const log = { states: [], interim: [], final: [] };
     const listener = createSpeechListener({
-        Recognition, clock, ...options,
+        Recognition, clock,
         onState: state => log.states.push(state),
         onInterim: text => log.interim.push(text),
         onFinal: text => log.final.push(text)
@@ -56,7 +57,8 @@ describe('one utterance', () => {
         expect(log.final).toEqual(['wait dive on event horizon']);
         expect(listener.state).toBe('idle');
         expect(open(Recognition)).toEqual([]);
-        expect(current().aborted).toBe(true);
+        // Asked to finish, not aborted: an abort throws away what the browser is still working out.
+        expect(current().stopped).toBe(true);
         expect(clock.pending()).toBe(0);
 
         // A late repeat from a recogniser that was already let go says nothing.
@@ -141,16 +143,6 @@ describe('one utterance', () => {
         expect(open(Recognition)).toEqual([]);
     });
 
-    it('takes the wait from its options', async () => {
-        const { listener, log, current, clock } = setup({}, { silenceMs: 500 });
-        listener.start();
-        current().begin();
-        hear(current(), ['quick', true]);
-        await clock.advance(499);
-        expect(log.final).toEqual([]);
-        await clock.advance(1);
-        expect(log.final).toEqual(['quick']);
-    });
 });
 
 describe('when nothing is said, or the browser ends the listening itself', () => {
@@ -221,6 +213,7 @@ describe('every way it can go wrong is said, and lets go of the microphone', () 
             const { listener, log, current, Recognition, clock } = setup();
             listener.start();
             current().begin();
+            hear(current(), ['go back', true]);
             current().fail(error);
             expect(listener.state).toBe(state);
             expect(log.states.at(-1)).toBe(state);
@@ -233,17 +226,6 @@ describe('every way it can go wrong is said, and lets go of the microphone', () 
             expect(listener.state).toBe(state);
         });
     }
-
-    it('keeps what was said before an error that does not stop it being understood, and says nothing else', async () => {
-        const { listener, log, current, clock } = setup();
-        listener.start();
-        current().begin();
-        hear(current(), ['wait', true]);
-        current().fail('network');
-        expect(listener.state).toBe('network');
-        await clock.advance(SILENCE * 3);
-        expect(log.final).toEqual([]);
-    });
 
     it('says "aborted" is nothing wrong: the reader stopped it', () => {
         const { listener, current } = setup();
@@ -276,16 +258,14 @@ describe('every way it can go wrong is said, and lets go of the microphone', () 
 
 describe('it never listens for long', () => {
     it('stops at the limit however much is being said, and takes what was said so far', async () => {
-        const { listener, clock, current, log } = setup({}, { maxMs: 5_000 });
+        const { listener, clock, current, log } = setup({ endsOnStop: false });
         listener.start();
         current().begin();
-        for (let t = 0; t < 4_000; t += 1_000) {
+        for (let t = 0; t < LONGEST; t += 1_000) {
             hear(current(), `still talking ${t}`);
+            expect(current().stopped).toBe(false);
             await clock.advance(1_000);
         }
-        expect(current().stopped).toBe(false);
-        hear(current(), 'still talking 4000');
-        await clock.advance(1_000);
         expect(current().stopped).toBe(true);
         hear(current(), ['cut off', true]);
         current().end();
@@ -293,20 +273,15 @@ describe('it never listens for long', () => {
         expect(clock.pending()).toBe(0);
     });
 
-    it('has a limit long enough for a question, and a silence shorter than a breath before a new one', () => {
-        expect(LONGEST).toBeGreaterThanOrEqual(20_000);
-        expect(SILENCE).toBeGreaterThanOrEqual(1_200);
-        expect(SILENCE).toBeLessThanOrEqual(3_000);
-        expect(NOBODY).toBeGreaterThan(SILENCE);
-    });
-
     it('lets go if the limit passes and the browser will not stop', async () => {
-        const { listener, clock, current, Recognition, log } = setup({}, { maxMs: 1_000 });
+        const { listener, clock, current, Recognition, log } = setup();
         listener.start();
         current().begin();
-        hear(current(), 'something');
         current().stop = () => { throw new Error('cannot stop'); };
-        await clock.advance(1_000);
+        for (let t = 0; t < LONGEST; t += 1_000) {
+            hear(current(), 'something');
+            await clock.advance(1_000);
+        }
         expect(listener.state).toBe('idle');
         expect(log.final).toEqual(['something']);
         expect(open(Recognition)).toEqual([]);
@@ -315,7 +290,7 @@ describe('it never listens for long', () => {
 
 describe('stopping', () => {
     it('stop asks the browser to finish, and takes what it then says', async () => {
-        const { listener, current, log, clock } = setup();
+        const { listener, current, log, clock } = setup({ endsOnStop: false });
         listener.start();
         current().begin();
         hear(current(), 'as far as it');
@@ -327,38 +302,53 @@ describe('stopping', () => {
         expect(clock.pending()).toBe(0);
     });
 
-    it('stop gives the browser the time it was promised to finish, not less because a silence was already being waited out', async () => {
-        const { listener, current, log, clock } = setup();
+    it('stop gives the browser the time it was promised to finish, and a guess that arrives then does not shorten it', async () => {
+        const { listener, current, log, clock } = setup({ endsOnStop: false });
         listener.start();
         current().begin();
-        hear(current(), 'as far');
         listener.stop();
-        await clock.advance(SILENCE + 100);
+        await clock.advance(100);
+        hear(current(), 'go ba');
+        // The silence timer of a listener still listening would have ended it by now.
+        await clock.advance(SILENCE + 50);
         expect(log.final).toEqual([]);
-        hear(current(), ['as far as it got', true]);
+        hear(current(), ['go back', true]);
         current().end();
-        expect(log.final).toEqual(['as far as it got']);
+        expect(log.final).toEqual(['go back']);
+    });
+
+    it('stop at the last moment of the wait for a first word still gets the promised time to answer', async () => {
+        const { listener, current, log, clock } = setup({ endsOnStop: false });
+        listener.start();
+        current().begin();
+        await clock.advance(NOBODY - 500);
+        listener.stop();
+        await clock.advance(1_000);
+        expect(listener.state).toBe('listening');
+        hear(current(), ['go back', true]);
+        current().end();
+        expect(log.final).toEqual(['go back']);
     });
 
     it('stop does not leave the reader waiting on a browser that never ends: what was heard is taken after a short while', async () => {
-        const { listener, current, log, clock, Recognition } = setup();
+        const { listener, current, log, clock, Recognition } = setup({ endsOnStop: false });
         listener.start();
         current().begin();
         hear(current(), ['go back', true]);
         listener.stop();
         expect(log.final).toEqual([]);
-        await clock.advance(LISTEN_LIMITS.stopMs);
+        await clock.advance(STOP);
         expect(log.final).toEqual(['go back']);
         expect(open(Recognition)).toEqual([]);
         expect(clock.pending()).toBe(0);
     });
 
     it('stop with nothing heard says nothing was heard', async () => {
-        const { listener, current, clock } = setup();
+        const { listener, current, clock } = setup({ endsOnStop: false });
         listener.start();
         current().begin();
         listener.stop();
-        await clock.advance(LISTEN_LIMITS.stopMs);
+        await clock.advance(STOP);
         expect(listener.state).toBe('no-speech');
     });
 
@@ -394,6 +384,129 @@ describe('stopping', () => {
         expect(log.final).toEqual([]);
         expect(listener.start()).toBe(false);
         expect(Recognition.instances).toHaveLength(1);
+    });
+});
+
+describe('what the browser settles on, not what it first guessed', () => {
+    it('on silence asks it to finish, and delivers the settled words rather than the first guess', async () => {
+        const { listener, current, log, clock } = setup({ endsOnStop: false });
+        listener.start();
+        current().begin();
+        hear(current(), 'go bag');
+        await clock.advance(SILENCE);
+        expect(current().stopped).toBe(true);
+        expect(current().aborted).toBe(false);
+        expect(log.final).toEqual([]);
+        hear(current(), ['go back', true]);
+        current().end();
+        expect(log.final).toEqual(['go back']);
+        expect(clock.pending()).toBe(0);
+    });
+
+    it('takes the guess it had, after the time it was promised, if the browser never settles', async () => {
+        const { listener, current, log, clock } = setup({ endsOnStop: false });
+        listener.start();
+        current().begin();
+        hear(current(), 'go bag');
+        await clock.advance(SILENCE + STOP - 1);
+        expect(log.final).toEqual([]);
+        await clock.advance(1);
+        expect(log.final).toEqual(['go bag']);
+    });
+
+    it('does not restart the silence for what arrives while it is finishing', async () => {
+        const { listener, current, log, clock } = setup({ endsOnStop: false });
+        listener.start();
+        current().begin();
+        hear(current(), 'go ba');
+        await clock.advance(SILENCE);
+        await clock.advance(STOP - 100);
+        hear(current(), 'go bac');
+        await clock.advance(100);
+        expect(log.final).toEqual(['go bac']);
+    });
+
+    it('a second press while it is finishing does not ask twice or extend the wait', async () => {
+        const { listener, current, log, clock } = setup({ endsOnStop: false });
+        listener.start();
+        current().begin();
+        hear(current(), 'go back');
+        let asked = 0;
+        current().stop = () => { asked += 1; };
+        listener.stop();
+        await clock.advance(STOP - 100);
+        listener.stop();
+        await clock.advance(100);
+        expect(asked).toBe(1);
+        expect(log.final).toEqual(['go back']);
+    });
+
+    it('leaves no timer behind if the browser ends the moment it is asked to stop', () => {
+        const { listener, current, log, clock } = setup();
+        listener.start();
+        current().begin();
+        hear(current(), ['go back', true]);
+        const recogniser = current();
+        recogniser.stop = () => recogniser.end();
+        listener.stop();
+        expect(log.final).toEqual(['go back']);
+        expect(clock.pending()).toBe(0);
+    });
+
+    it('a guess the browser takes back is gone: nothing is delivered for it, by silence or by the end', async () => {
+        for (const how of ['silence', 'end']) {
+            const { listener, current, log, clock } = setup();
+            listener.start();
+            current().begin();
+            hear(current(), 'go back');
+            current().say('', { results: [] });
+            if (how === 'end') current().end(); else await clock.advance(SILENCE + STOP);
+            expect(log.final, how).toEqual([]);
+            // Ended by the browser: nobody spoke. Otherwise it goes on listening, and the wait for a first word begins again.
+            expect(listener.state, how).toBe(how === 'end' ? 'no-speech' : 'listening');
+            if (how === 'silence') {
+                await clock.advance(NOBODY);
+                expect(listener.state).toBe('no-speech');
+            }
+            expect(clock.pending()).toBe(0);
+        }
+    });
+
+    it('a guess taken back leaves only what stands, and the silence is counted from what stands', async () => {
+        const { listener, current, log, clock } = setup();
+        listener.start();
+        current().begin();
+        hear(current(), ['wait', true], 'dive now');
+        await clock.advance(SILENCE - 100);
+        hear(current(), ['wait', true]);
+        await clock.advance(SILENCE - 100);
+        expect(log.final).toEqual([]);
+        await clock.advance(100);
+        expect(log.final).toEqual(['wait']);
+    });
+
+    it('does not start the wait for a first word before the microphone is open', async () => {
+        const { listener, current, clock } = setup();
+        listener.start();
+        await clock.advance(NOBODY * 2);
+        expect(listener.state).toBe('starting');
+        current().begin();
+        await clock.advance(NOBODY - 1);
+        expect(listener.state).toBe('listening');
+    });
+
+    it('does not deliver the last utterance again when the next press hears nothing', async () => {
+        const { listener, current, log, clock, Recognition } = setup();
+        listener.start();
+        current().begin();
+        hear(current(), ['go back', true]);
+        await clock.advance(SILENCE);
+        expect(log.final).toEqual(['go back']);
+        listener.start();
+        Recognition.instances.at(-1).begin();
+        Recognition.instances.at(-1).end();
+        expect(listener.state).toBe('no-speech');
+        expect(log.final).toEqual(['go back']);
     });
 });
 

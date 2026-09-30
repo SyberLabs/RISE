@@ -69,10 +69,6 @@ const ERRORS = Object.freeze({
  * @param {object} options
  * @param {new () => object} [options.Recognition] SpeechRecognition (or its prefixed form); absent means unavailable
  * @param {string} [options.lang]
- * @param {number} [options.silenceMs] quiet after the last word that ends the utterance
- * @param {number} [options.noSpeechMs] how long to wait for a first word
- * @param {number} [options.maxMs] the most one press may listen for
- * @param {number} [options.stopMs] how long a browser asked to stop has to say what it heard
  * @param {(text: string) => void} [options.onInterim] everything heard so far, whenever it changes
  * @param {(text: string) => void} [options.onFinal] the utterance, once
  * @param {(state: string) => void} [options.onState]
@@ -80,10 +76,6 @@ const ERRORS = Object.freeze({
 export function createSpeechListener({
     Recognition = globalThis.SpeechRecognition ?? globalThis.webkitSpeechRecognition,
     lang = 'en-US',
-    silenceMs = LISTEN_LIMITS.silenceMs,
-    noSpeechMs = LISTEN_LIMITS.noSpeechMs,
-    maxMs = LISTEN_LIMITS.maxMs,
-    stopMs = LISTEN_LIMITS.stopMs,
     clock = createRealClock(),
     onInterim = () => {},
     onFinal = () => {},
@@ -93,6 +85,8 @@ export function createSpeechListener({
     let recognition = null;
     let timers = [];
     let silence = null;
+    let nobody = null;
+    let stopping = false;
     let heard = '';
     let destroyed = false;
 
@@ -102,15 +96,13 @@ export function createSpeechListener({
         try { onState(next); } catch { /* a listener may not break the microphone */ }
     };
 
-    const clear = timer => {
-        timer?.();
-        timers = timers.filter(item => item !== timer);
-    };
-
     const release = () => {
         for (const timer of timers) timer();
         timers = [];
-        silence = null;
+        silence?.();
+        nobody?.();
+        silence = nobody = null;
+        stopping = false;
         const done = recognition;
         recognition = null;
         if (!done) return;
@@ -127,18 +119,26 @@ export function createSpeechListener({
     /** The utterance is over: let the microphone go before anything acts on it, then deliver what was heard, or say nothing was. */
     function conclude() {
         const text = heard;
-        const was = recognition;
         release();
-        if (!was) return;
         if (!text) { set('no-speech'); return; }
         set('idle');
         onFinal(text);
     }
 
-    /** Ask the browser to finish, and take what it had if it does not. */
+    /**
+     * The one way an utterance is ended from here: a silence, a second press and the longest time all come through it. The browser is asked to
+     * finish, not aborted, which would throw away what it is still working out; its own end delivers what it settled on, and only if that does
+     * not come within LISTEN_LIMITS.stopMs are the words heard so far taken. No silence or first-word timer runs while it finishes.
+     */
     function askToStop(mine) {
+        if (stopping) return;
+        stopping = true;
+        silence?.();
+        nobody?.();
+        silence = nobody = null;
         try { mine.stop(); } catch { conclude(); return; }
-        timers.push(clock.setTimer(() => { if (recognition === mine) conclude(); }, stopMs));
+        if (recognition !== mine) return;
+        timers.push(clock.setTimer(() => { if (recognition === mine) conclude(); }, LISTEN_LIMITS.stopMs));
     }
 
     return {
@@ -166,7 +166,12 @@ export function createSpeechListener({
             heard = '';
             set('starting');
 
-            created.onstart = () => { if (recognition === mine) set('listening'); };
+            created.onstart = () => {
+                if (recognition !== mine) return;
+                set('listening');
+                // The wait for a first word starts once the microphone is open, not while the browser is still asking permission.
+                nobody = clock.setTimer(() => { if (recognition === mine) finish('no-speech'); }, LISTEN_LIMITS.noSpeechMs);
+            };
             created.onresult = event => {
                 if (recognition !== mine) return;
                 // The results are cumulative: every one so far, each final or still being revised.
@@ -176,13 +181,18 @@ export function createSpeechListener({
                     if (words) parts.push(words);
                 }
                 const text = parts.join(' ');
-                if (!text) return;
-                clear(silence);
-                silence = clock.setTimer(() => { if (recognition === mine) conclude(); }, silenceMs);
-                timers.push(silence);
-                if (text === heard) return;
+                const changed = text !== heard;
+                // What the browser holds now is all there is: a guess it has taken back is gone, not kept.
                 heard = text;
-                try { onInterim(text); } catch { /* as above */ }
+                if (!stopping) {
+                    silence?.();
+                    nobody?.();
+                    silence = nobody = null;
+                    if (text) silence = clock.setTimer(() => { if (recognition === mine) askToStop(mine); }, LISTEN_LIMITS.silenceMs);
+                    // With nothing standing, it is as if nothing had been said yet.
+                    else nobody = clock.setTimer(() => { if (recognition === mine) finish('no-speech'); }, LISTEN_LIMITS.noSpeechMs);
+                }
+                if (text && changed) { try { onInterim(text); } catch { /* as above */ } }
             };
             created.onerror = event => {
                 if (recognition !== mine) return;
@@ -193,8 +203,7 @@ export function createSpeechListener({
                 // The browser ended it: take what was heard, or say nobody spoke.
                 conclude();
             };
-            timers.push(clock.setTimer(() => { if (recognition === mine && !heard) finish('no-speech'); }, noSpeechMs));
-            timers.push(clock.setTimer(() => { if (recognition === mine) askToStop(mine); }, maxMs));
+            timers.push(clock.setTimer(() => { if (recognition === mine) askToStop(mine); }, LISTEN_LIMITS.maxMs));
             try {
                 created.start();
             } catch {
@@ -207,10 +216,7 @@ export function createSpeechListener({
         /** Stop listening and take what was said so far as the utterance, if the browser can. */
         stop() {
             const mine = recognition;
-            if (!mine) return;
-            clear(silence);
-            silence = null;
-            askToStop(mine);
+            if (mine) askToStop(mine);
         },
 
         /** Stop at once and take nothing. */
