@@ -47,7 +47,6 @@
     "verify:render": "node scripts/verify-render-package.mjs",
     "render:mp4": "node scripts/render-mp4.mjs",
     "render:mill": "node scripts/render-mill.mjs",
-    "cursor:skills": "node scripts/install-cursor-skills.mjs",
     "content:build": "vite-node scripts/build-content-plane.mjs",
     "test:e2e:gate": "playwright test --project=gate",
     "wiki:build": "node scripts/build-wiki.mjs",

@@ -3,3 +3,4 @@ Commit: b36e0829c6d0140e93cfef2ca599b1b07d4a7797
 License: MIT
 Local trim: writing-skills, systematic-debugging test transcripts, and every references/ tool map except codex-tools.md. Keep the trim when replacing.
 Copied the skills/ tree only. Update by replacing this directory from a newer checkout.
+Local trim: brainstorming/scripts/ and brainstorming/visual-companion.md removed, and the Visual Companion step and section dropped from brainstorming/SKILL.md. Keep the trim when replacing.
