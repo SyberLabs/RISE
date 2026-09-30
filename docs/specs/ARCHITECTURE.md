@@ -181,9 +181,9 @@ flowchart LR
     audio --> |1| content
     audio --> |5| core
     components -.-> |1 lazy| app
-    components --> |2| audio
+    components --> |3| audio
     components --> |24| content
-    components --> |166| core
+    components --> |168| core
     components -.-> |1 lazy| page
     components --> |4| sources
     components -.-> |2 lazy| vendor
@@ -981,8 +981,11 @@ of `settled`, `open`, `deferred`, or `reversed`.
 - **Rejected:** a local Python service for Windows users (CUDA, WSL2, and a
   localhost port every site could reach); falling back to the server or the
   rules when the device cannot run Kev; the CPU WebAssembly path, too slow for
-  a live rail; serving the runtime binary from this site, which is over the
-  static asset size limit; kev.js's own `loadKev`, which reads every weight
+  a live rail; fetching the runtime binary from a public package host, which
+  put a third party in the load path of a binary this site can serve itself
+  (the JSPI build is 16.8 MB, under Cloudflare's 25 MiB static asset limit,
+  and `vite.config.js` fails any build that emits a larger file); kev.js's
+  own `loadKev`, which reads every weight
   file into memory before the session exists and crashed the tab loading
   Kev-4B's 4.7 GB on a 16 GB Windows machine.
 - **Why:** the transcript and the decision stay on the presenter's machine,

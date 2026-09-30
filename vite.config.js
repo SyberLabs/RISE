@@ -1,8 +1,10 @@
 import { cpus, totalmem } from 'node:os';
+import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { defineConfig } from 'vite';
 import { curiaPlugin } from './scripts/curia-plugin.js';
 import { exportMp4Plugin } from './scripts/export-mp4-plugin.js';
+import { oversizedFiles } from './scripts/asset-size-limit.mjs';
 
 // A FORK DIES AT ITS HEAP CEILING, NOT AT THE MACHINE'S.
 //
@@ -45,19 +47,18 @@ const WORKER_HEAP_MB = 4096;
 // those heaps can be resident at once. Total, not free: free memory is a
 // snapshot, and reading it at config load turned a busy moment into a
 // one-fork crawl.
-/**
- * The Kev worker gives ONNX Runtime its WebAssembly binary itself, after
- * checking it against a pinned digest (src/enterprise/device-model.js). The
- * copy the runtime's bundle points at is never fetched, and at 26 MB it is
- * over the static asset size limit, so it is not emitted.
- */
-function dropOnnxRuntimeBinary() {
+/** Fail any build that emits a file Cloudflare would refuse (scripts/asset-size-limit.mjs). */
+function refuseOversizedAssets() {
+  let outDir;
   return {
-    name: 'drop-onnxruntime-binary',
-    generateBundle(_, bundle) {
-      for (const name of Object.keys(bundle)) {
-        if (/ort-wasm-simd-threaded[.\w-]*\.wasm$/u.test(name)) delete bundle[name];
-      }
+    name: 'refuse-oversized-assets',
+    apply: 'build',
+    configResolved(config) {
+      outDir = resolve(config.root, config.build.outDir);
+    },
+    closeBundle() {
+      const oversized = oversizedFiles(outDir);
+      if (oversized.length) throw new Error(`Over Cloudflare's 25 MiB asset limit: ${oversized.join(', ')}`);
     }
   };
 }
@@ -68,7 +69,7 @@ const memoryCeiling = Math.floor(totalmem() / (WORKER_HEAP_MB * 1024 ** 2));
 export default defineConfig({
   // Curia / Export MP4: apply:'serve' means the endpoints exist only on
   // the dev server; production builds carry no write path.
-  plugins: [curiaPlugin(), exportMp4Plugin()],
+  plugins: [curiaPlugin(), exportMp4Plugin(), refuseOversizedAssets()],
 
   // Console statements are left in: error reporting has to survive the
   // build, and the noisy paths are already gated by their own callers.
@@ -78,8 +79,7 @@ export default defineConfig({
 
   // Visual engines use module workers so Vite can bundle dependencies.
   worker: {
-    format: 'es',
-    plugins: () => [dropOnnxRuntimeBinary()]
+    format: 'es'
   },
 
   build: {
