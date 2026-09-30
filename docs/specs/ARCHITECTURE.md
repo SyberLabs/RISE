@@ -572,10 +572,6 @@ of `settled`, `open`, `deferred`, or `reversed`.
   derivatives over pools too shallow to hold a reading. The cost is a smaller,
   slower-moving collection.
 - **Status:** settled.
-- **Loose end:** `netlify.toml` still grants `connect-src` to `corsproxy.io`,
-  and **no module under `src/`, `scripts/` or `e2e/` calls it.** It is a stale
-  allowance rather than a live dependency — a CSP grant nothing needs is a
-  surface with no purpose, and it should be removed.
 
 ### 8.9 Fifteen certified editions, not eighty-eight acquired ones
 
@@ -926,7 +922,7 @@ of `settled`, `open`, `deferred`, or `reversed`.
   that was not in the source, in front of the room. The gate, the id-only
   decision, and the cell renderer make that failure loud. The phases in
   `docs/superpowers/specs/2026-09-27-enterprise-room-design.md` are implemented
-  in `src/enterprise/` and `worker/enterprise-decision.mjs`, from
+  in `src/enterprise/`, from
   `docs/superpowers/plans/2026-09-27-enterprise-room.md`. The reader's lack of
   access control (§8.1) is unchanged: this audience check belongs to the
   sibling, and the sibling is not on the reader's first load.
@@ -979,7 +975,7 @@ of `settled`, `open`, `deferred`, or `reversed`.
   downloads only when a presenter chooses it. Until it is ready, or after it
   fails, decisions hold. The worker script alone may fetch model hosts and
   compile WebAssembly: the Cloudflare Worker serves it with its own policy
-  (`worker/enterprise-decision.mjs`), and every page keeps the site policy in
+  (`worker/kev-worker-script.mjs`), and every page keeps the site policy in
   `public/_headers`.
   `kev-check.html` measures load, latency, and agreement on a real device.
   The weights never sit whole in the worker: each file streams into Cache
@@ -999,7 +995,7 @@ of `settled`, `open`, `deferred`, or `reversed`.
   Kev-4B's 4.7 GB on a 16 GB Windows machine.
 - **Why:** the transcript and the decision stay on the presenter's machine,
   with nothing to install. Kev-4B on the device is pinned to the checkpoint
-  the server Kev serves (`deploy/kev/modal_app.py`), and a test keeps the two
+  the local server Kev serves (`deploy/kev/local_app.py`), and a test keeps the two
   pins equal.
 - **Status:** open. Kev-0.8B loads and decides on Chrome 153 for Windows with
   an AMD RX 5700 (30 of 30 questions, 214 ms median). While a model is
@@ -1260,7 +1256,6 @@ Stated plainly so it is never rediscovered as a surprise.
 - **Access control does not exist**, by choice. §8.1, §7.
 - **The public shelf serves uncertified candidates** under an override that is
   explicitly temporary and should not become permanent by neglect. §8.21.
-- **The CSP grants an origin nothing calls.** §8.8.
 - **The release is gated on people**, and cannot be hurried by engineering.
   §8.15.
 

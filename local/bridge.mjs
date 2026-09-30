@@ -25,7 +25,7 @@ const LOOPBACK = new Set(['127.0.0.1', 'localhost']);
 // computer, so `/live?provider=gemini` cannot reach Google from here (a hosted RISE page can).
 export const LOCAL_CSP = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; "
   + "img-src 'self' data: blob: https:; media-src 'self' blob:; worker-src 'self' blob:; "
-  + "connect-src 'self' https://www.gutenberg.org https://corsproxy.io https://export.arxiv.org https://commons.wikimedia.org "
+  + "connect-src 'self' https://www.gutenberg.org https://export.arxiv.org "
   + 'https://upload.wikimedia.org https://api.artic.edu https://www.artic.edu https://collectionapi.metmuseum.org '
   + "https://openaccess-api.clevelandart.org https://id.rijksmuseum.nl; object-src 'none'; base-uri 'self'; frame-ancestors 'none'";
 
