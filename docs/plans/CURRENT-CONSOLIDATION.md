@@ -91,7 +91,7 @@ that the brief's list leaves out.
 | **Via** | Stations of the Cross | Same as Rosarium | None of the four | Same |
 | **Journeys** | Authored argument across works | `compileJourney` → `handleBeginSession` (`Journeys.js:219`) | Entrance + **layers** across several **sources** | Keep on ice (§8.24). Phase 3's base |
 | **Workshop** | The authoring studio | `handleCreateSession` (`app.js:941`, compiles at `:997`) | Entrance. Authors **layers** and **pace** | Keep |
-| **Create** | Personal readings | `handleCreateSession`; its duration estimate calls `compileSession` directly (`Create.js:114`) | **Source** (the reader's own) + entrance | Keep. Generation stays off per `personal-readings.md` |
+| **Create** | Personal readings | `handleCreateSession`; its duration estimate calls `compileSession` directly (`Create.js:114`) | **Source** (the reader's own) + entrance | Keep. Generation stays off |
 | **Vault** | Saved compositions and examples | `handleCreateSession`; calls `compileSession` only to show a duration (`Vault.js:269`) | Store of Current *inputs* + entrance | Keep |
 | **Scriptorium** | A model composes; a gate refuses | `handleCreateSession` | **Layers**, as *proposals* | Keep. It is the existing "models flag, humans dispose" mechanism, and 1c should reuse it |
 | **Keystones** | Composed pieces | `launchKeystone` → `keystones.js` `compileSession` (`app.js:853`) | Entrance over authored **source** + presentation | Keep |
