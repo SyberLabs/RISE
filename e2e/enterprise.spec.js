@@ -129,6 +129,68 @@ test.describe('EnterpRise live room', () => {
         await expect(page.locator('#debrief li')).toHaveText(['audience: What is the cafeteria menu tomorrow']);
     });
 
+    test('holding Q marks audience speech, including a final that lands after release', async ({ page }) => {
+        await page.route(ROUTE, (route) => route.fulfill({ json: decline(route.request().postDataJSON()) }));
+        await openRoom(page);
+        const speaker = page.locator('#speaker');
+
+        await page.keyboard.down('q');
+        await expect(speaker).toHaveValue('audience');
+        await expect(state(page)).toContainText('Audience speaking');
+        await say(page, 'Is the cafeteria', false);
+        await page.keyboard.up('q');
+        await expect(speaker).toHaveValue('presenter');
+        await say(page, 'Is the cafeteria open on Friday');
+        await expect(lines(page).last().locator('.note')).toHaveText('→ follow-up');
+        await expect(lines(page).last().locator('.who')).toHaveText('Audience');
+        await expect(page.locator('#debrief li')).toHaveText(['audience: Is the cafeteria open on Friday']);
+
+        await say(page, 'Thanks for that question');
+        await expect(lines(page)).toHaveCount(2);
+        await expect(lines(page).last().locator('.note')).toHaveText('→ held: nothing fits');
+        await expect(lines(page).last().locator('.who')).toHaveCount(0);
+
+        // A final that lands while Q is still held does not mark what follows the release.
+        await page.keyboard.down('q');
+        await say(page, 'Who owns the Atlas contract');
+        await expect(lines(page)).toHaveCount(3);
+        await expect(lines(page).last().locator('.who')).toHaveText('Audience');
+        await page.keyboard.up('q');
+        await say(page, 'Good question, let me answer that');
+        await expect(lines(page)).toHaveCount(4);
+        await expect(lines(page).last().locator('.who')).toHaveCount(0);
+
+        await page.keyboard.press('/');
+        await page.keyboard.type('q');
+        await expect(ask(page)).toHaveValue('q');
+        await expect(speaker).toHaveValue('presenter');
+    });
+
+    test('the stage window shows only promoted cards, has no controls, and blanks when the presenter leaves', async ({ page }) => {
+        await page.route(ROUTE, (route) => route.fulfill({ json: showFirst(route.request().postDataJSON()) }));
+        await openRoom(page);
+        const opened = page.waitForEvent('popup');
+        await page.getByRole('button', { name: 'Stage window' }).click();
+        const popup = await opened;
+        const projected = popup.locator('#stage');
+        await expect(projected).toHaveText('');
+
+        await say(page, 'Atlas renewal price');
+        await expect(rail(page)).toHaveCount(1);
+        await expect(projected).not.toContainText('12.4');
+        await page.getByRole('button', { name: /^Promote/ }).click();
+        await expect(projected).toContainText('12.4');
+        await expect(popup.locator('button')).toHaveCount(0);
+        await expect(popup.locator('body')).not.toContainText(SECRET);
+
+        await page.keyboard.press('r');
+        await expect(projected).toHaveText('');
+        await page.keyboard.press('p');
+        await expect(projected).toContainText('12.4');
+        await page.goto('about:blank');
+        await expect(projected).toHaveText('');
+    });
+
     test('an ask returns while speech keeps streaming, and neither cancels the other', async ({ page }) => {
         const aborted = [];
         await page.route(ROUTE, async (route) => {

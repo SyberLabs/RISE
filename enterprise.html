@@ -307,8 +307,25 @@
     #keys { margin: 0.6rem 0 0; font-size: 0.8rem; color: var(--muted); }
     #keys kbd { margin-right: 0.2rem; }
 
+    /* The stage window (projector.js): read from across the room. */
+    [data-view="projector"] body {
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      padding: 4vh 5vw;
+    }
+    [data-view="projector"] #stage { width: min(100%, 90rem); }
+    [data-view="projector"] #stage article { padding: 2.5vh 3vw; border-top-width: 0.5rem; }
+    [data-view="projector"] #stage .card-title { font-size: clamp(1.8rem, 4vw, 4rem); margin-bottom: 0.4em; }
+    [data-view="projector"] #stage .card-quote { font-size: clamp(1.4rem, 3vw, 3rem); }
+    [data-view="projector"] #stage .card-source { font-size: clamp(1rem, 1.5vw, 1.5rem); }
+    [data-view="projector"] #stage .card-chart { font-size: clamp(1.2rem, 2.2vw, 2.2rem); }
+    [data-view="projector"] #stage .card-chart th { width: 4em; }
+    [data-view="projector"] #stage .card-chart .bar { height: 0.7em; }
+
     @media (max-width: 760px) {
       /* One column: follow-up sits below the stage so its growth moves nothing live. */
+      #stage-window { display: none; }
       main {
         grid-template-columns: minmax(0, 1fr);
         grid-template-areas: "heard" "rail" "stage" "follow" "trace";
@@ -358,6 +375,7 @@
       <option value="device">Kev (device)</option>
       <option value="jev">JEV</option>
     </select>
+    <button type="button" id="stage-window">Stage window</button>
   </header>
   <div id="state" data-state="idle">
     <div id="state-inner">
@@ -379,7 +397,7 @@
           <input id="ask" type="text" enterkeyhint="search" spellcheck="false">
         </form>
         <p id="ask-answer" aria-live="polite"></p>
-        <p id="keys"><span id="key-listen"><kbd>L</kbd>listen · </span><kbd>P</kbd>promote marked · <kbd>D</kbd>dismiss marked · <kbd>R</kbd>retract · <kbd>/</kbd>ask</p>
+        <p id="keys"><span id="key-listen"><kbd>L</kbd>listen · <kbd>Q</kbd>hold while the audience speaks · </span><kbd>P</kbd>promote marked · <kbd>D</kbd>dismiss marked · <kbd>R</kbd>retract · <kbd>/</kbd>ask</p>
       </section>
       <section id="follow-panel" aria-labelledby="follow-h">
         <h2 id="follow-h">Follow-up</h2>

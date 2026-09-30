@@ -736,6 +736,27 @@ describe('speaker rail', () => {
         expect(railRoot.querySelector('[data-surface="stage"]')).toBeNull();
     });
 
+    it('draws a projector stage with no controls, from the same promoted cards', () => {
+        const { corpus, program } = prepared();
+        const session = openSession({ program, corpus, now: () => 1500 });
+        const railRoot = document.createElement('div');
+        const projectorRoot = document.createElement('div');
+        const rail = renderRail(railRoot, session);
+        const projector = renderStage(projectorRoot, session, { controls: false });
+        expect(projectorRoot.textContent).toBe('');
+        session.hear({ text: 'Atlas renewal price', final: true, speaker: 'presenter', speakerId: PRESENTER, at: 1000 });
+        rail.update();
+        projector.update();
+        expect(projectorRoot.textContent).not.toContain('12.4');
+        railRoot.querySelector('[data-action="promote"]').click();
+        projector.update();
+        expect(projectorRoot.textContent).toContain('12.4');
+        expect(projectorRoot.querySelector('button')).toBeNull();
+        session.retract(session.stage()[0].id);
+        projector.update();
+        expect(projectorRoot.textContent).toBe('');
+    });
+
     it('promotes and dismisses only from the speaker controls', () => {
         const { corpus, program } = prepared();
         const session = openSession({ program, corpus, now: () => 1500 });
