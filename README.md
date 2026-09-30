@@ -2,7 +2,7 @@
 
 **A browser-based audiovisual reader.** RISE presents text through time, image, sound, and procedural visuals, so a book can be read as a timed stream or a typeset page.
 
-[**Live app →**](https://rise.syberlabs.io/) · [Engineering overview](docs/ENGINEERING.md) · [Architecture](docs/specs/ARCHITECTURE.md) · [Documentation](docs/README.md)
+[**Live app →**](https://rise.syberlabs.io/) · [Architecture](docs/specs/ARCHITECTURE.md) · [Documentation](docs/README.md)
 
 **Status:** Open beta · **License:** Apache 2.0 · **Built by** Mateo Robles (SyberLabs), with engineering infrastructure by Seth Carlson
 
