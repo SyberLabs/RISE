@@ -130,17 +130,6 @@
     display: none;
 }
 
-.sb-shelf-axis {
-    display: block;
-    margin-top: var(--space-sm);
-    padding: var(--space-sm) var(--space-md) var(--space-xs);
-    color: var(--color-mist);
-    font-family: var(--font-mono);
-    font-size: 8px;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-}
-
 .sb-shelf-btn {
     display: grid;
     width: 100%;
@@ -338,8 +327,7 @@
     margin-bottom: 2px;
 }
 
-.sb-item-author,
-.sb-item-category {
+.sb-item-author {
     font-size: 12px;
     color: var(--color-fog);
     margin-right: var(--space-sm);
@@ -398,17 +386,6 @@
     background: var(--color-threshold);
     border-color: var(--color-threshold);
     color: var(--color-light);
-}
-
-/* Item count badge */
-.sb-item-count {
-    display: inline-block;
-    font-size: 11px;
-    color: var(--color-mist);
-    background: var(--color-shadow);
-    padding: 2px 6px;
-    border-radius: 2px;
-    margin-top: 4px;
 }
 
 /* Back button */
@@ -601,7 +578,6 @@
     }
 
     .sb-library-navigation > .sb-group-label,
-    .sb-shelf-axis,
     .sb-shelf-btn small {
         display: none;
     }

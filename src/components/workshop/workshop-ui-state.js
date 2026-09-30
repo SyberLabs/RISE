@@ -24,12 +24,6 @@ export function normalizeInspectorContext(context) {
   });
 }
 
-export function workshopChoiceGridClass(count) {
-  const value = Number(count);
-  if (!Number.isInteger(value) || value < 1 || value > 8) return 'studio-choice-grid';
-  return `studio-choice-grid studio-choice-grid-${value}`;
-}
-
 export function inspectorContextLabel(context) {
   return ({
     project: 'Project',

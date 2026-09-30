@@ -2248,20 +2248,6 @@
   content: '';
 }
 
-.workshop-studio .studio-combined-inspector-grid {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 0;
-}
-
-.workshop-studio .studio-combined-inspector-grid .studio-context-card {
-  padding: var(--sy-space-4) 0;
-}
-
-.workshop-studio .studio-combined-inspector-grid > div:last-child .studio-context-card {
-  border-bottom: 0;
-}
-
 /* ─── Composition map ─── */
 
 .workshop-studio .studio-sequence-map {

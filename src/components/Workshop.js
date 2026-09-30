@@ -1055,55 +1055,6 @@ export class Workshop {
     </section>`;
   }
 
-  renderVisualClipInspector(assignmentId = this.inspectorContext.id) {
-    const assignment = this.sessionData.visualScoreAssignments.find(item => item.id === assignmentId);
-    if (!assignment) return this.renderProjectInspector();
-    const source = this.scoreSources().find(item => item.id === assignment.sourceId);
-    const asset = this.scoreAsset(assignment.assetId, assignment);
-    const excerpt = source?.text.slice(assignment.fromCharacter, assignment.toCharacter).replace(/\s+/gu, ' ').trim() || '';
-    return `<section class="studio-context-card studio-clip-inspector" id="studio-visual-clip-inspector">
-      <span class="studio-kicker">Passage visual</span><h3>${this.escapeHtml(asset?.name || 'Missing visual')}</h3>
-      <blockquote>“${this.escapeHtml(excerpt.slice(0, 220))}${excerpt.length > 220 ? '…' : ''}”</blockquote>
-      <p class="font-mono">Characters ${assignment.fromCharacter}–${assignment.toCharacter}</p>
-      ${asset?.entry ? this.renderVisualStyleControls(asset.entry) : ''}
-      <div class="studio-selected-actions studio-choice-grid studio-choice-grid-3">
-        <button type="button" class="btn-secondary btn-compact" data-action="preview-score-assignment" data-assignment-id="${this.escapeHtml(assignment.id)}">Preview</button>
-        <button type="button" class="btn-secondary btn-compact" data-action="choose-score-asset" data-score-lane="visual">Replace</button>
-        <button type="button" class="btn-ghost btn-compact" data-action="erase-score-assignment" data-assignment-id="${this.escapeHtml(assignment.id)}">Erase</button>
-      </div>
-    </section>`;
-  }
-
-  renderAudioClipInspector(assignmentId = this.inspectorContext.id) {
-    const assignment = this.sessionData.audioScoreAssignments.find(item => item.id === assignmentId);
-    if (!assignment) return this.renderProjectInspector();
-    const source = this.scoreSources().find(item => item.id === assignment.sourceId);
-    const asset = this.audioScoreAssets().find(item => item.id === assignment.assetId);
-    const excerpt = source?.text.slice(assignment.fromCharacter, assignment.toCharacter).replace(/\s+/gu, ' ').trim() || '';
-    return `<section class="studio-context-card studio-clip-inspector" id="studio-audio-clip-inspector">
-      <span class="studio-kicker">${assignment.lane === 'swell' ? 'Layered over the reading' : 'Audio bed clip'}</span><h3>${this.escapeHtml(asset?.name || 'Missing audio')}</h3>
-      <blockquote>“${this.escapeHtml(excerpt.slice(0, 220))}${excerpt.length > 220 ? '…' : ''}”</blockquote>
-      <p class="font-mono">Characters ${assignment.fromCharacter}–${assignment.toCharacter}</p>
-      <div class="studio-selected-actions studio-choice-grid studio-choice-grid-3">
-        <button type="button" class="btn-secondary btn-compact" data-action="preview-audio-score-asset">Preview</button>
-        <button type="button" class="btn-secondary btn-compact" data-action="choose-score-asset" data-score-lane="audio">Replace</button>
-        <button type="button" class="btn-ghost btn-compact" data-action="erase-audio-assignment" data-assignment-id="${this.escapeHtml(assignment.id)}">Erase</button>
-      </div>
-    </section>`;
-  }
-
-  renderCombinedClipInspector() {
-    const visualId = this.inspectorContext.visualId || this.selectedScoreAssignmentId;
-    const audioId = this.inspectorContext.audioId || this.selectedAudioAssignmentId;
-    return `<section class="studio-context-card studio-combined-clip-inspector" id="studio-combined-clip-inspector">
-      <span class="studio-kicker">Synchronized passage</span><h3>Visual + audio</h3>
-      <div class="studio-combined-inspector-grid">
-        <div>${this.renderVisualClipInspector(visualId)}</div>
-        <div>${this.renderAudioClipInspector(audioId)}</div>
-      </div>
-    </section>`;
-  }
-
   sequenceMapGroups() {
     const proposal = this.pendingAgentProposal;
     const proposedVisual = proposal?.proposedVisual || [];
@@ -3268,36 +3219,6 @@ export class Workshop {
     this.updateVisualAssetsList();
     this.announce(`${asset.name} removed${references ? ` with ${references} referenced clip${references === 1 ? '' : 's'}` : ''}.`);
     return true;
-  }
-
-  renderLegacyHighlightedScoreText(source, assetsById = this.scoreAssetLookup()) {
-    const assignments = this.sessionData.visualScoreAssignments
-      .filter(item => item.sourceId === source.id)
-      .sort((a, b) => a.fromCharacter - b.fromCharacter);
-    let cursor = 0;
-    const fragments = [];
-    for (const assignment of assignments) {
-      if (!Number.isInteger(assignment.fromCharacter)
-        || !Number.isInteger(assignment.toCharacter)
-        || assignment.fromCharacter < cursor
-        || assignment.toCharacter > source.text.length) continue;
-      fragments.push(this.escapeHtml(source.text.slice(cursor, assignment.fromCharacter)));
-      const asset = assetsById.get(assignment.assetId);
-      const excerpt = source.text.slice(assignment.fromCharacter, assignment.toCharacter)
-        .replace(/\s+/gu, ' ').trim().slice(0, 72);
-      fragments.push(`<mark class="visual-score-mark ${assignment.id === this.selectedScoreAssignmentId ? 'active' : ''}"
-        data-action="select-score-assignment" data-assignment-id="${this.escapeHtml(assignment.id)}"
-        data-focus-key="score-highlight:${this.escapeHtml(assignment.id)}" tabindex="0" role="button"
-        aria-pressed="${assignment.id === this.selectedScoreAssignmentId}"
-        aria-label="${this.escapeHtml(`${asset?.name || 'Missing visual'} assigned to “${excerpt}${excerpt.length === 72 ? '…' : ''}”`)}"
-        style="--score-color: ${asset?.color || VISUAL_SCORE_COLORS[0]};"
-        title="${this.escapeHtml(asset?.name || 'Assigned visual')}">${this.escapeHtml(
-          source.text.slice(assignment.fromCharacter, assignment.toCharacter)
-        )}</mark>`);
-      cursor = assignment.toCharacter;
-    }
-    fragments.push(this.escapeHtml(source.text.slice(cursor)));
-    return fragments.join('');
   }
 
   renderHighlightedScoreText(source, assetsById = this.scoreAssetLookup()) {

@@ -81,7 +81,6 @@ that the brief's list leaves out.
 |---|---|---|---|---|
 | **Portal** (Home) | Prompt box plus a Jev request; on 297, the Oracle and its ROLL | `launchJevReading` → `handleBeginSession` → `compileSession` (`app.js:825`); also `launchFirstRead`, `launchJevSample` | Entrance. Chooses source + pace + layer preset | Keep. Routed already |
 | **Wormhole** (297, unmerged) | A second skin over the same roll | Hands off to the same `launchJevReading` (`INVOCATION-SKINS.md`) | Entrance | Keep. Routed already |
-| **Oracle widget** (`src/oracle/oracle.js`) | Shake-the-fluid prompt suggestions inside Portal | Fills the Jev request | Entrance helper | Keep. Not verified beyond its header |
 | **Library** | The shelf of received works | `handleTextSelection` → Reader Setup → `handleBeginSession` (`app.js:682`) | **Source** + entrance | Keep. Routed already |
 | **ChamberOrbital** ("Reader Setup", route `chamber`) | Where pace and surface layers are chosen | `handleBeginSession` (`route-manifest.js`) | Entrance. Chooses **pace** and **surface layers** | Keep. Routed already |
 | **Chamber** (route `chamber-session`) | **The Current's runtime**: hosts the Player, the Stream, and the Page toggle | It *is* the destination, built by `createChamberSession` | **Projection host** (Stream, Page) | Keep. Not an entrance; it is where every entrance ends |
@@ -503,6 +502,5 @@ Each has my recommendation. None proceeds without an answer.
   beyond their compile calls.
 - Whether `PageReader`'s composition items carry an atom position (G1).
 - That Paradise Lost and Genesis in Douay-Rheims are served in a public build.
-- The behaviour of `src/oracle/oracle.js` beyond its header comment.
 - I ran no tests. This phase adds a document only. The wiki build reads
   `docs/README.md`, so the plan is listed there.

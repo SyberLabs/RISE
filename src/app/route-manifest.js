@@ -100,8 +100,7 @@ export function createRouteManifest(operations) {
       create: (container, data, { Library }) => new Library(container, {
         onNavigate: operations.handleNavigate,
         onSelectText: operations.handleTextSelection,
-        getAudioEngine: operations.getAudioEngine,
-        readingPreferences: data?.readingPreferences
+        getAudioEngine: operations.getAudioEngine
       })
     },
     {
@@ -170,10 +169,7 @@ export function createRouteManifest(operations) {
           onNavigate: operations.handleNavigate,
           onCreateSession: operations.handleCreateSession,
           getSettings: operations.getSettings,
-          onSettingsTransaction: operations.handleSettingsTransaction,
-          initialIntent: data?.intent,
-          initialTargetWords: data?.targetWords,
-          readingPreferences: data?.readingPreferences
+          onSettingsTransaction: operations.handleSettingsTransaction
         });
         room.mount();
         return room;

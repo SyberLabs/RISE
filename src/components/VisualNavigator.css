@@ -201,9 +201,7 @@
 .vnav-commit-label { font-size: 0.72rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-fog, #9B9BA5); }
 
 .vnav-program,
-.vnav-lock,
-.vnav-held,
-.vnav-text-locked {
+.vnav-held {
   border-bottom: 1px solid var(--vnav-edge);
   background: rgba(var(--color-accent-rgb, 228,210,174), 0.055);
   color: var(--color-fog, #9B9BA5);
@@ -226,9 +224,7 @@
   white-space: nowrap;
   cursor: pointer;
 }
-.vnav-lock { padding: 0.65rem 0.9rem; }
-.vnav-held,
-.vnav-text-locked {
+.vnav-held {
   border: 1px solid rgba(var(--color-accent-rgb, 228,210,174), 0.22);
   border-radius: 4px;
   padding: 0.7rem 0.8rem;

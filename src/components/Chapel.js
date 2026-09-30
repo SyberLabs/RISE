@@ -30,6 +30,7 @@ import { MYSTERY_SETS, mysterySetForDate } from '../content/chapel/liturgy/rosar
 import { roomHeader, roomEyebrow, roomIcon } from './room-chrome.js';
 import './Chapel.css';
 import { USER_DATA_KEYS } from '../core/user-data-keys.js';
+import { escapeHtml } from '../core/sanitize.js';
 
 /** The reader's chosen icon focal, kept across visits. */
 export const CHAPEL_ICON_PREF_KEY = USER_DATA_KEYS.chapelIcon;
@@ -45,14 +46,6 @@ export function loadChapelIconPref() {
   } catch {
     return null;
   }
-}
-
-function escapeHtml(value) {
-  return String(value ?? '')
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
 }
 
 const TESTAMENT_TITLES = Object.freeze({
