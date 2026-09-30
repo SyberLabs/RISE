@@ -159,9 +159,10 @@ it, and CI fails when the committed copy is not what `src/` produces.
 
 ```mermaid
 flowchart LR
+    affect["affect<br/>experience-state evaluation<br/>30 modules"]
     app["app<br/>composition root<br/>10 modules"]
     audio["audio<br/>Web Audio, recitation<br/>10 modules"]
-    components["components<br/>routed views<br/>45 modules"]
+    components["components<br/>routed views<br/>46 modules"]
     content["content<br/>texts, imagery, journeys<br/>231 modules"]
     core["core<br/>session, player, router<br/>164 modules"]
     enterprise["enterprise<br/>talk program, speaker rail<br/>34 modules"]
@@ -172,6 +173,7 @@ flowchart LR
     vendor["vendor<br/>SyberLabs design kit<br/>2 modules"]
     visuals["visuals<br/>procedural generation<br/>61 modules"]
 
+    affect --> |7| core
     app -.-> |3 lazy| audio
     app --> |1| components
     app --> |5| content
@@ -181,14 +183,15 @@ flowchart LR
     app -.-> |1 lazy| visuals
     audio --> |1| content
     audio --> |5| core
+    components --> |3| affect
     components -.-> |1 lazy| app
     components --> |3| audio
     components --> |24| content
-    components --> |171| core
+    components --> |173| core
     components -.-> |1 lazy| page
     components --> |4| sources
     components -.-> |2 lazy| vendor
-    components --> |18| visuals
+    components --> |19| visuals
     content --> |3| audio
     content --> |16| core
     content --> |17| sources
@@ -326,6 +329,7 @@ outliving its room, fails a build.
 | Room | Module | What it is |
 |---|---|---|
 | Portal | `src/components/Portal.js` | the hub, and the first screen |
+| Emotions | `src/components/Emotions.js` | the optional affect map and inspectable list |
 | Create | `src/components/Create.js` | original personal readings, private revisions, and portable text |
 | Keystones | `src/components/Keystones.js` | the public entry corridor |
 | Mint | `src/components/Mint.js` | the door a minted sequence opens onto |
@@ -1168,6 +1172,27 @@ of `settled`, `open`, `deferred`, or `reversed`.
   tried in any product host. Not switched on: doing so needs `MCP_ENABLED` and
   one Wrangler line, and changes the site's framing posture for one page,
   which is the creator's decision (`docs/plans/LIVE-MCP.md`).
+
+### 8.38 Affect is an optional evaluator, not a judge of the session
+
+- **Chosen:** `src/affect/index.js` is a versioned, inspectable experience-state
+  layer. The player does not import it; `/emotions` is a separate room. Text
+  uses a contextual window and an unfitted linear prior. Visual, pace, type,
+  and audio dimensions come from existing parameters or caller-supplied
+  measurements. Hue maps to warmth, never valence. Evaluation cannot write a
+  session configuration.
+- **Rejected:** a generative model judging a live reading; one opaque score;
+  hue-to-sadness rules; a transformer in the first-load bundle; fabricated
+  labels used to fit a model; coupling the evaluator to JEV or Kev.
+- **Why:** a shared description of meaning, image, sound, and time must remain
+  inspectable and usable without a model. The available affect labels do not
+  support a reliable valence model; the documented probes remain evidence,
+  not runtime dependencies.
+- **Status:** open. The schema, evaluator, pairwise judgments, benchmark
+  harness, phrase-addressed programs, optional modulation functions, and
+  Emotions room are covered by unit tests. The player does not read affect
+  programs, and the experience remains feature-gated. See
+  `docs/affect/RESEARCH-LOG.md` for limitations and the record of evidence.
 
 ---
 

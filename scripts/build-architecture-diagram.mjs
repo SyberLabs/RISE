@@ -34,6 +34,7 @@ const NOT_SHIPPED = new Set(['test']);
 // reader open the directory; a caption makes it answer on its own. A subsystem
 // with no entry here still appears — it just speaks for itself.
 const CAPTIONS = {
+    affect: 'experience-state evaluation',
     app: 'composition root',
     audio: 'Web Audio, recitation',
     components: 'routed views',
