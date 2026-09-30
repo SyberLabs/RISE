@@ -39,8 +39,6 @@ history, not a distinction; read the status column instead.
 
 | Document | Status | What it is |
 | --- | --- | --- |
-| [pilot/SEQUENCE-PILOT.md](pilot/SEQUENCE-PILOT.md) | Intent | Seven-day, invited sequence discovery protocol, manual evidence rules, rights and consent gates, and pass thresholds. |
-| [pilot/JEV-STEERING.md](pilot/JEV-STEERING.md) | Intent | Six-reader private usability gate for one optional Jev scene shift. |
 | [plans/LIVE-CURRENT.md](plans/LIVE-CURRENT.md) | Intent | The plan for a live Current: an event protocol above the sealed one, one clock with speech as its authority, a runtime boundary, provider adapters, Dive and Surface as a branch, evidence, budgets, and the decisions that wait on the creator. A status table says what is built. |
 | [plans/LIVE-HANDOFF.md](plans/LIVE-HANDOFF.md) | Intent | Where the live Current stands at the end of the first build: the ten stacked pull requests, the architecture, what is implemented, tested, browser tested, tested only against fakes, and not verified; the commands run and what they said; the measurements; how to see it; whether it differs from a visualizer (unknown); the open risks; and the next smallest experiment. |
 | [plans/LIVE-MCP.md](plans/LIVE-MCP.md) | Intent | How a live Current runs inside an MCP host: the host's model as the provider, a server with one tool, an app that frames RISE's own page, and a Dive asked through sampling. Built and checked against the SDK's client and the reference package's own host class; off by default; no product host tried. |
