@@ -5,7 +5,8 @@
  * (segment-parser.js), and what it sends becomes protocol events through the
  * parser. Everything provider-specific is one function the caller hands in:
  *
- *   connect(request, sink) -> Promise<{ cancel(), close() }>
+ *   connect(request, sink, { signal }) -> Promise<{ cancel(), close() }>
+ *     `signal`             aborted when the reader stops before it has connected
  *     `sink.delta(text)`   more words arrived
  *     `sink.done()`        the provider has finished
  *     `sink.error(e)`      it failed: { code, message, recoverable }
@@ -59,7 +60,7 @@ export function createTextStreamAdapter({ id, provider, connect, capacity = 64 }
             dives: false
         }),
 
-        async open(input) {
+        async open(input, { signal } = {}) {
             const request = validateOpenRequest(input);
             const currentId = `${request.intent === 'dive' ? 'dive' : 'answer'}-${id}-${opened}`;
             opened += 1;
@@ -134,7 +135,7 @@ export function createTextStreamAdapter({ id, provider, connect, capacity = 64 }
             };
 
             try {
-                transport = await connect(request, sink);
+                transport = await connect(request, sink, { signal });
             } catch (error) {
                 throw error instanceof AdapterError
                     ? error

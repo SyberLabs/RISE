@@ -17,6 +17,7 @@ import { toSealedCurrent } from '../test/sealed-current.js';
 import { createFakeMcpPort } from '../test/fake-mcp-port.js';
 import { createChannel, createEventWriter } from './adapter.js';
 import { createMcpAppAdapter } from './adapters/mcp-app.js';
+import { createOpenAIRealtimeAdapter } from './adapters/openai-realtime.js';
 import { createSegmentParser } from './adapters/segment-parser.js';
 import { createTextStreamAdapter } from './adapters/text-stream.js';
 import { createVirtualClock } from './clock.js';
@@ -316,7 +317,7 @@ function slowAdapter() {
         adapter: {
             id: 'slow',
             capabilities: {},
-            open(request) {
+            open(request, { signal } = {}) {
                 const currentId = `c${opens.length}`;
                 const channel = createChannel({ capacity: 64 });
                 const writer = createEventWriter(currentId);
@@ -328,7 +329,7 @@ function slowAdapter() {
                 let release;
                 const opened = new Promise(resolve => { release = () => resolve(connection); });
                 const say = (type, body = {}) => channel.pushNow(writer.next(type, body));
-                opens.push({ request, connection, release, say });
+                opens.push({ request, signal, connection, release, say });
                 return opened;
             }
         }
@@ -394,7 +395,7 @@ async function diveIn({ runtime, opens }) {
 }
 
 describe('runtime: Stop, Dive and Surface racing an open that has not finished', () => {
-    it.fails('DEFECT: Stop while the provider is still connecting; the answer is presented afterwards and its connection is never closed', async () => {
+    it('Stop while the provider is still connecting: nothing is presented and the late connection is closed', async () => {
         const { runtime, opens, players, presented } = build();
         const started = runtime.start('q');
         await flush();
@@ -407,7 +408,7 @@ describe('runtime: Stop, Dive and Surface racing an open that has not finished',
             .toEqual({ status: 'stopped', players: 0, presented: 0, closed: true });
     });
 
-    it.fails('DEFECT: two Dives asked before the first has opened both open; the first is orphaned and never closed', async () => {
+    it('a second Dive asked before the first has opened is refused, and nothing is orphaned', async () => {
         const built = build();
         const { runtime, opens } = built;
         await begin(built);
@@ -423,7 +424,7 @@ describe('runtime: Stop, Dive and Surface racing an open that has not finished',
         expect({ opened: sides.length, allClosed: sides.every(open => open.connection.closed) }).toEqual({ opened: 1, allClosed: true });
     });
 
-    it.fails('DEFECT: Stop while a Dive is still opening; the Dive is started afterwards and never closed', async () => {
+    it('Stop while a Dive is still opening: the Dive is never started and its connection is closed', async () => {
         const built = build();
         const { runtime, opens, players } = built;
         await begin(built);
@@ -438,7 +439,7 @@ describe('runtime: Stop, Dive and Surface racing an open that has not finished',
             .toEqual({ status: 'stopped', sidePlayers: 0, closed: true });
     });
 
-    it.fails('DEFECT: Stop during Surface; the destroyed parent Player is handed to the host to present again', async () => {
+    it('Stop during Surface: the destroyed parent Player is not presented again', async () => {
         const built = build();
         const { runtime, presented, players } = built;
         await begin(built);
@@ -463,6 +464,50 @@ describe('runtime: Stop, Dive and Surface racing an open that has not finished',
         expect(runtime.composed()?.segments.map(s => s.id) ?? ['a']).toEqual(['a']);
         expect(players[0].destroyed).toBe(true);
         expect(opens[0].connection.closed).toBe(true);
+    });
+
+    it('Stop tells an open that has not finished to give up, so a provider can abandon it before it asks', async () => {
+        const { runtime, opens } = build();
+        const started = runtime.start('q');
+        await flush();
+        expect(opens[0].signal?.aborted).toBe(false);
+        await runtime.stop();
+        expect(opens[0].signal.aborted).toBe(true);
+        opens[0].release();
+        await started;
+    });
+
+    it('the OpenAI adapter hands the signal to its transport, and never asks once it has been stopped', async () => {
+        const sent = [];
+        let closed = 0;
+        let given;
+        const stop = new AbortController();
+        const transport = {
+            async open(options) {
+                given = options?.signal;
+                stop.abort();
+                return { send: text => sent.push(text), onMessage() {}, onClose() {}, close: () => { closed += 1; } };
+            }
+        };
+        const adapter = createOpenAIRealtimeAdapter({ transport });
+        await expect(adapter.open({ intent: 'answer', prompt: 'q' }, { signal: stop.signal })).rejects.toMatchObject({ code: 'ABORTED' });
+        expect({ given: given === stop.signal, sent, closed }).toEqual({ given: true, sent: [], closed: 1 });
+    });
+
+    it('a voice that calls back after Stop changes nothing the runtime keeps', async () => {
+        const { adapter, opens } = slowAdapter();
+        let callbacks = null;
+        const voice = { attach(cb) { callbacks = cb; }, enqueue() {}, hold() {}, release() {}, close() {}, playedMs: () => undefined };
+        const runtime = createLiveRuntime({
+            adapter, createPlayer: fakePlayers().factory, clock: createVirtualClock(), voices: { create: () => voice }
+        });
+        await begin({ runtime, opens });
+        await runtime.stop();
+        const kept = runtime.journal().length;
+        callbacks.start('a');
+        callbacks.end('a', 100);
+        callbacks.fail('a', 'late');
+        expect(runtime.journal().length).toBe(kept);
     });
 });
 

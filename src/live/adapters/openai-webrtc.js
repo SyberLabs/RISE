@@ -39,7 +39,9 @@ function gathered(connection, { timeoutMs, clock }) {
     });
 }
 
-function opened(channel, { timeoutMs, clock }) {
+const stopped = () => new AdapterError('ABORTED', 'The live answer was stopped before it began.');
+
+function opened(channel, { timeoutMs, clock, signal }) {
     if (channel.readyState === 'open') return Promise.resolve();
     return new Promise((resolve, reject) => {
         let cancel = null;
@@ -47,12 +49,15 @@ function opened(channel, { timeoutMs, clock }) {
             cancel?.();
             channel.removeEventListener('open', onOpen);
             channel.removeEventListener('close', onClose);
+            signal?.removeEventListener('abort', onAbort);
             fn(value);
         };
         const onOpen = settle(resolve);
         const onClose = settle(() => reject(new AdapterError('CONNECT_FAILED', 'The connection closed before it opened')));
+        const onAbort = settle(() => reject(stopped()));
         channel.addEventListener('open', onOpen);
         channel.addEventListener('close', onClose);
+        signal?.addEventListener('abort', onAbort);
         cancel = clock.setTimer(settle(() => reject(new AdapterError('CONNECT_TIMEOUT', 'The connection did not open in time'))), timeoutMs);
     });
 }
@@ -77,7 +82,9 @@ export function createOpenAIWebRtcTransport({
 } = {}) {
     if (typeof getKey !== 'function') throw new TypeError('The transport is told where the key is kept');
     return {
-        async open() {
+        /** `signal` is the reader stopping: nothing is asked of the site or OpenAI after it. */
+        async open({ signal } = {}) {
+            if (signal?.aborted) throw stopped();
             const key = getKey();
             if (typeof key !== 'string' || !key.trim()) throw new AdapterError('KEY_REQUIRED', 'Your OpenAI key is needed to start a live answer.');
             if (typeof PeerConnection !== 'function') throw new AdapterError('NO_WEBRTC', 'This browser cannot make the connection a live answer needs.');
@@ -94,6 +101,7 @@ export function createOpenAIWebRtcTransport({
                 connection.addTransceiver('audio', { direction: 'recvonly' });
                 await connection.setLocalDescription(await connection.createOffer());
                 await gathered(connection, { timeoutMs: iceTimeoutMs, clock });
+                if (signal?.aborted) throw stopped();
 
                 let response;
                 try {
@@ -111,8 +119,10 @@ export function createOpenAIWebRtcTransport({
                     const [code, message] = REFUSALS[response.status] ?? ['PROVIDER_FAILED', 'The live answer could not be started.'];
                     throw new AdapterError(code, message);
                 }
-                await connection.setRemoteDescription({ type: 'answer', sdp: await response.text() });
-                await opened(channel, { timeoutMs: openTimeoutMs, clock });
+                const answer = await response.text();
+                if (signal?.aborted) throw stopped();
+                await connection.setRemoteDescription({ type: 'answer', sdp: answer });
+                await opened(channel, { timeoutMs: openTimeoutMs, clock, signal });
             } catch (error) {
                 closeAll(channel);
                 throw error instanceof AdapterError ? error : new AdapterError('CONNECT_FAILED', 'The connection could not be made.');
