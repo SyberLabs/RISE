@@ -1,22 +1,19 @@
 /**
  * Adversarial tests for the live layer (see docs/plans/LIVE-RED-TEAM.md).
  *
- * Two kinds of test live here, and the difference matters:
- *
- *   it(...)        an invariant that was attacked and HELD. These are the false
- *                  alarms of the review, kept so that the attack stays refuted.
- *   it.fails(...)  an invariant that was attacked and BROKE. Each asserts what
- *                  should be true, so it fails today and vitest reports that as a
- *                  pass. When the defect is fixed the test starts to pass, vitest
- *                  reports that as a failure, and the fix turns `it.fails` into
- *                  `it`. Production behaviour is not changed here.
+ * Each test is an invariant that was attacked. Those named "holds:" held when
+ * they were attacked, and are kept so that the attack stays refuted. The rest
+ * broke, were fixed, and are kept so that they stay fixed. A defect found later
+ * is added as `it.fails(...)`, which asserts what should be true and passes
+ * while it is not; the fix turns it into `it`.
  */
 import { describe, expect, it } from 'vitest';
 import { compileRiseCurrent } from '../core/rise-current.js';
-import { toSealedCurrent } from '../test/sealed-current.js';
+import { BLACK_HOLES_CURRENT, toSealedCurrent } from '../test/sealed-current.js';
 import { createFakeMcpPort } from '../test/fake-mcp-port.js';
 import { createChannel, createEventWriter } from './adapter.js';
 import { createMcpAppAdapter } from './adapters/mcp-app.js';
+import { createOpenAIRealtimeAdapter } from './adapters/openai-realtime.js';
 import { createSegmentParser } from './adapters/segment-parser.js';
 import { createTextStreamAdapter } from './adapters/text-stream.js';
 import { createVirtualClock } from './clock.js';
@@ -45,7 +42,7 @@ function prng(seed) {
 // ─── 1. the event protocol ──────────────────────────────────────────────
 
 describe('protocol: validateEvent returns what it checked', () => {
-    it.fails('DEFECT: an accessor can return a visual outside the closed catalog after it was checked', () => {
+    it('an accessor cannot return a visual outside the closed catalog after it was checked', () => {
         let reads = 0;
         const raw = { schema: RISE_CURRENT_EVENTS_SCHEMA, currentId: 'c', seq: 1, type: 'segment.begin', segmentId: 's' };
         Object.defineProperty(raw, 'visual', {
@@ -57,7 +54,7 @@ describe('protocol: validateEvent returns what it checked', () => {
         expect(['still', 'attractor', 'genesis']).toContain(clean.visual);
     });
 
-    it.fails('DEFECT: an accessor can change an evidence kind between the check and the copy', () => {
+    it('an accessor cannot change an evidence kind between the check and the copy', () => {
         let reads = 0;
         const evidence = { id: 'e', title: 'A source' };
         Object.defineProperty(evidence, 'kind', {
@@ -66,6 +63,20 @@ describe('protocol: validateEvent returns what it checked', () => {
         });
         const clean = validateEvent(event(1, 'evidence.add', { segmentId: 's', evidence }));
         expect(['supplied', 'retrieved', 'model-proposed']).toContain(clean.evidence.kind);
+    });
+
+    it('holds: a proxy that changes its prototype yields a plain copy, and nesting cannot exhaust the stack', () => {
+        let asked = 0;
+        const shifty = new Proxy({ id: 'e', kind: 'supplied', title: 'A source' }, {
+            getPrototypeOf() { asked += 1; return asked === 1 ? Object.prototype : Array.prototype; }
+        });
+        const clean = validateEvent(event(1, 'evidence.add', { segmentId: 's', evidence: shifty }));
+        expect(Object.getPrototypeOf(clean.evidence)).toBe(Object.prototype);
+        expect(clean.evidence.kind).toBe('supplied');
+
+        let deep = {};
+        for (let i = 0; i < 100_000; i += 1) deep = { deeper: deep };
+        expect(() => validateEvent(event(1, 'evidence.add', { segmentId: 's', evidence: deep }))).toThrow(expect.objectContaining({ name: 'LiveProtocolError' }));
     });
 
     it('holds: JSON-shaped hostile input (prototype keys, sparse arrays, nulls, deep nesting) is refused', () => {
@@ -162,7 +173,7 @@ describe('protocol: the reducer under a generated hostile stream', () => {
         expect(stream.snapshot().error.code).toBe('TOO_MANY_EVENTS');
     });
 
-    it.fails('DEFECT: an ended segment’s condition and sources can still be changed, which the plan says is refused', () => {
+    it('an ended segment’s condition and sources cannot be changed afterwards', () => {
         const stream = createCurrentStream();
         stream.apply(event(0, 'current.open', OPEN));
         stream.apply(event(1, 'segment.begin', { segmentId: 'a', visual: 'attractor' }));
@@ -179,7 +190,7 @@ describe('protocol: the reducer under a generated hostile stream', () => {
 // ─── 2. model text streaming ────────────────────────────────────────────
 
 describe('segment parser: what a model can make it hold', () => {
-    it.fails('DEFECT: a line that begins with @ is buffered without any bound, independent of the Current’s text limits', () => {
+    it('a line that begins with @ is not buffered past the length of any header', () => {
         const parser = createSegmentParser(() => {});
         const before = process.memoryUsage().heapUsed;
         parser.push('@');
@@ -192,7 +203,7 @@ describe('segment parser: what a model can make it hold', () => {
         parser.finish();
     });
 
-    it.fails('DEFECT: a line ending in "[" and up to five letters loses them at @end, or glues them to the next line', () => {
+    it('a line ending in "[" and up to five letters keeps them, in its own passage and line', () => {
         const said = [];
         const parser = createSegmentParser((type, body) => { if (type === 'segment.text') said.push(body.text); });
         parser.push('@passage\nThe index is x[i\n@end\n@passage\nSee [note\nand then more.\n@end\n');
@@ -202,7 +213,7 @@ describe('segment parser: what a model can make it hold', () => {
         expect(words).toContain('[note and');
     });
 
-    it.fails('DEFECT: a passage that reaches 3,999 characters sends a blank chunk, which the reducer refuses', () => {
+    it('a passage that reaches 3,999 characters ends without sending a blank chunk', () => {
         const stream = createCurrentStream();
         const writer = createEventWriter('c');
         stream.apply(writer.next('current.open', OPEN));
@@ -212,6 +223,22 @@ describe('segment parser: what a model can make it hold', () => {
         parser.push(' more words');
         parser.finish();
         expect(statuses.filter(status => status !== 'applied')).toEqual([]);
+    });
+
+    it('an @ line too long to be a header is dropped the same whether it arrives whole or a character at a time', () => {
+        const answer = `@passage visual=attractor\nBefore.\n@${'x'.repeat(600)} tail\nAfter.\n@end\n`;
+        const passages = deltas => {
+            const out = [];
+            const parser = createSegmentParser((type, body) => {
+                if (type === 'segment.begin') out.push({ visual: body.visual, text: '' });
+                if (type === 'segment.text') out.at(-1).text += body.text;
+            });
+            for (const delta of deltas) parser.push(delta);
+            parser.finish();
+            return out;
+        };
+        expect(passages([answer])).toEqual([{ visual: 'attractor', text: 'Before. After.' }]);
+        expect(passages([...answer])).toEqual(passages([answer]));
     });
 
     it('holds: a hostile corpus cut into arbitrary deltas never makes the parser emit an event the reducer refuses', () => {
@@ -266,7 +293,7 @@ describe('segment parser: what a model can make it hold', () => {
     });
 });
 
-describe('text-stream adapter: the outcome depends on how the provider cuts its words', () => {
+describe('text-stream adapter: the outcome does not depend on how the provider cuts its words', () => {
     async function run(deltas, { burst = false } = {}) {
         let sink;
         const adapter = createTextStreamAdapter({
@@ -294,11 +321,26 @@ describe('text-stream adapter: the outcome depends on how the provider cuts its 
         expect(await run(poem.split(/(?<=\n)/u))).toMatchObject({ phase: 'complete', ended: 1 });
     });
 
-    it.fails('DEFECT: the same answer arriving in one delta overflows the adapter’s queue and nothing is shown', async () => {
+    it('asks the provider to stop, once, when nothing more it writes can be shown', async () => {
+        let cancels = 0;
+        let sink;
+        const adapter = createTextStreamAdapter({
+            id: 't', provider: 'p',
+            connect: async (_request, providerSink) => { sink = providerSink; return { cancel() { cancels += 1; }, close() {} }; }
+        });
+        await adapter.open({ intent: 'answer', prompt: 'q' });
+        const passage = `@passage\n${'word '.repeat(700)}\n@end\n`;
+        sink.delta(passage);
+        expect(cancels).toBe(0);
+        for (let i = 0; i < 8; i += 1) sink.delta(passage);
+        expect(cancels).toBe(1);
+    });
+
+    it('the same answer arriving in one delta completes', async () => {
         expect(await run([poem], { burst: true })).toMatchObject({ phase: 'complete', ended: 1 });
     });
 
-    it.fails('DEFECT: an answer within every text limit fails TOO_MANY_EVENTS when a provider sends one character per delta', async () => {
+    it('an answer within every text limit completes when a provider sends one character per delta', async () => {
         const passage = n => `@passage visual=still\n${Array.from({ length: 330 }, (_, i) => `abcdefgh${(i + n) % 10}`).join(' ')}.\n@end\n`;
         const answer = passage(0) + passage(1) + passage(2);
         expect(answer.length).toBeLessThan(10_000);
@@ -316,7 +358,7 @@ function slowAdapter() {
         adapter: {
             id: 'slow',
             capabilities: {},
-            open(request) {
+            open(request, { signal } = {}) {
                 const currentId = `c${opens.length}`;
                 const channel = createChannel({ capacity: 64 });
                 const writer = createEventWriter(currentId);
@@ -328,7 +370,7 @@ function slowAdapter() {
                 let release;
                 const opened = new Promise(resolve => { release = () => resolve(connection); });
                 const say = (type, body = {}) => channel.pushNow(writer.next(type, body));
-                opens.push({ request, connection, release, say });
+                opens.push({ request, signal, connection, release, say });
                 return opened;
             }
         }
@@ -394,7 +436,7 @@ async function diveIn({ runtime, opens }) {
 }
 
 describe('runtime: Stop, Dive and Surface racing an open that has not finished', () => {
-    it.fails('DEFECT: Stop while the provider is still connecting; the answer is presented afterwards and its connection is never closed', async () => {
+    it('Stop while the provider is still connecting: nothing is presented and the late connection is closed', async () => {
         const { runtime, opens, players, presented } = build();
         const started = runtime.start('q');
         await flush();
@@ -407,7 +449,7 @@ describe('runtime: Stop, Dive and Surface racing an open that has not finished',
             .toEqual({ status: 'stopped', players: 0, presented: 0, closed: true });
     });
 
-    it.fails('DEFECT: two Dives asked before the first has opened both open; the first is orphaned and never closed', async () => {
+    it('a second Dive asked before the first has opened is refused, and nothing is orphaned', async () => {
         const built = build();
         const { runtime, opens } = built;
         await begin(built);
@@ -423,7 +465,7 @@ describe('runtime: Stop, Dive and Surface racing an open that has not finished',
         expect({ opened: sides.length, allClosed: sides.every(open => open.connection.closed) }).toEqual({ opened: 1, allClosed: true });
     });
 
-    it.fails('DEFECT: Stop while a Dive is still opening; the Dive is started afterwards and never closed', async () => {
+    it('Stop while a Dive is still opening: the Dive is never started and its connection is closed', async () => {
         const built = build();
         const { runtime, opens, players } = built;
         await begin(built);
@@ -438,7 +480,7 @@ describe('runtime: Stop, Dive and Surface racing an open that has not finished',
             .toEqual({ status: 'stopped', sidePlayers: 0, closed: true });
     });
 
-    it.fails('DEFECT: Stop during Surface; the destroyed parent Player is handed to the host to present again', async () => {
+    it('Stop during Surface: the destroyed parent Player is not presented again', async () => {
         const built = build();
         const { runtime, presented, players } = built;
         await begin(built);
@@ -463,6 +505,50 @@ describe('runtime: Stop, Dive and Surface racing an open that has not finished',
         expect(runtime.composed()?.segments.map(s => s.id) ?? ['a']).toEqual(['a']);
         expect(players[0].destroyed).toBe(true);
         expect(opens[0].connection.closed).toBe(true);
+    });
+
+    it('Stop tells an open that has not finished to give up, so a provider can abandon it before it asks', async () => {
+        const { runtime, opens } = build();
+        const started = runtime.start('q');
+        await flush();
+        expect(opens[0].signal?.aborted).toBe(false);
+        await runtime.stop();
+        expect(opens[0].signal.aborted).toBe(true);
+        opens[0].release();
+        await started;
+    });
+
+    it('the OpenAI adapter hands the signal to its transport, and never asks once it has been stopped', async () => {
+        const sent = [];
+        let closed = 0;
+        let given;
+        const stop = new AbortController();
+        const transport = {
+            async open(options) {
+                given = options?.signal;
+                stop.abort();
+                return { send: text => sent.push(text), onMessage() {}, onClose() {}, close: () => { closed += 1; } };
+            }
+        };
+        const adapter = createOpenAIRealtimeAdapter({ transport });
+        await expect(adapter.open({ intent: 'answer', prompt: 'q' }, { signal: stop.signal })).rejects.toMatchObject({ code: 'ABORTED' });
+        expect({ given: given === stop.signal, sent, closed }).toEqual({ given: true, sent: [], closed: 1 });
+    });
+
+    it('a voice that calls back after Stop changes nothing the runtime keeps', async () => {
+        const { adapter, opens } = slowAdapter();
+        let callbacks = null;
+        const voice = { attach(cb) { callbacks = cb; }, enqueue() {}, hold() {}, release() {}, close() {}, playedMs: () => undefined };
+        const runtime = createLiveRuntime({
+            adapter, createPlayer: fakePlayers().factory, clock: createVirtualClock(), voices: { create: () => voice }
+        });
+        await begin({ runtime, opens });
+        await runtime.stop();
+        const kept = runtime.journal().length;
+        callbacks.start('a');
+        callbacks.end('a', 100);
+        callbacks.fail('a', 'late');
+        expect(runtime.journal().length).toBe(kept);
     });
 });
 
@@ -510,10 +596,35 @@ describe('MCP: who a host’s model may say it is', () => {
         return stream;
     }
 
-    it.fails('DEFECT: a Dive written by the host’s model can present itself as a human author', async () => {
+    it('a Dive written by the host’s model cannot present itself as a human author', async () => {
         const stream = await diveAnswer({ kind: 'human', name: 'Your teacher' });
         const origin = stream.snapshot().origin;
         expect(describeOrigin(origin)).toMatch(/^Written when you asked, by /u);
+        expect(compileRiseCurrent(stream.toCurrent()).experienceProgram.authority).toBe('proposed');
+    });
+
+    it('says which page framed it, since that page is the host and nothing else vouches for it', async () => {
+        const clock = createVirtualClock();
+        const port = createFakeMcpPort({ clock });
+        const connection = await createMcpAppAdapter({ port, clock, host: 'https://any.example' }).open({ intent: 'answer', prompt: 'q' });
+        port.answer();
+        const stream = createCurrentStream();
+        const read = (async () => { for await (const raw of connection.events) stream.apply(raw); })();
+        await clock.advance(1_000);
+        await read;
+        expect(describeOrigin(stream.snapshot().origin)).toContain('MCP host at https://any.example');
+    });
+
+    it('an answer the host hands over cannot present itself as a human author either', async () => {
+        const clock = createVirtualClock();
+        const port = createFakeMcpPort({ clock });
+        const connection = await createMcpAppAdapter({ port, clock }).open({ intent: 'answer', prompt: 'q' });
+        port.answer({ ...BLACK_HOLES_CURRENT, origin: { kind: 'human', name: 'The RISE editors' } });
+        const stream = createCurrentStream();
+        const read = (async () => { for await (const raw of connection.events) stream.apply(raw); })();
+        await clock.advance(1_000);
+        await read;
+        expect(stream.snapshot().origin.kind).toBe('model');
         expect(compileRiseCurrent(stream.toCurrent()).experienceProgram.authority).toBe('proposed');
     });
 });

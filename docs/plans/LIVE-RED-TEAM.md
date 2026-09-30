@@ -1,6 +1,25 @@
 # Red team of the live Current
 
-**Status:** an adversarial review of the live layer as merged in [#319](https://github.com/SyberLabs/RISE/pull/319), on `main` at `c4e31ff`. It changes no production behaviour. Every confirmed defect below has a test that asserts the invariant and is marked as an expected failure (`it.fails` in [`src/live/red-team.test.js`](../../src/live/red-team.test.js), `test.fail()` in [`e2e/live-red-team.spec.js`](../../e2e/live-red-team.spec.js)). When a defect is fixed, its test starts failing and the fix removes the mark. Nothing here was tried against a real OpenAI session or a product MCP host.
+**Status:** an adversarial review of the live layer as merged in [#319](https://github.com/SyberLabs/RISE/pull/319), on `main` at `c4e31ff`, and the fixes that followed it. **Every confirmed defect is fixed.** Each was first committed as a test asserting the invariant and marked as an expected failure. The mark was then removed, the test watched failing, and the code fixed until it passed. The tests are in [`src/live/red-team.test.js`](../../src/live/red-team.test.js) and [`e2e/live-red-team.spec.js`](../../e2e/live-red-team.spec.js). What still needs a real OpenAI session, a product MCP host, or a decision about a second origin is in §G and §H. Nothing here was tried against a real provider or host. §A to §F below are the review as it was written, before the fixes; the table that follows says how each finding was resolved.
+
+## Resolution
+
+| Finding | Resolution |
+|---|---|
+| F-1 to F-4, runtime races | A run is the runtime's before its provider answers: it is registered as main or side before `adapter.open`, which is handed an `AbortSignal`. Stop aborts and closes a run that is still opening. A connection that arrives after Stop is closed unused. Surface re-checks Stop after each wait. A second Dive is refused at once, and the controls disable Dive while one is connecting. The signal reaches the WebRTC transport, which asks nothing of the site or OpenAI once it is aborted, and the OpenAI adapter never sends the question after it. Verified in the browser: Stop during connect asks nothing, shows nothing, and leaves no peer open. |
+| F-5, F-6, queue overflow and event budget | The line parser gathers a passage's words and sends them in chunks of up to 1,000 characters. Only ended passages are shown, so nothing is delayed for the reader, and a whole Current is now at most about 114 events however the provider cuts it. |
+| F-7, forged author | `mcp-app.js` sets the origin of everything that comes through the host (`kind: 'model'`) for both the answer and a Dive. |
+| F-8, unbounded `@` buffer | An `@` line longer than 512 characters is not a header. It is ignored like any other unknown directive and never held, and the result is the same whole or chunked. |
+| F-9, check-then-copy | `validateEvent` copies the input's own enumerable data once, each property read once and nesting capped at eight levels, and validates the copy. Non-plain objects become a value every check refuses, so today's plain-object rules are unchanged. |
+| F-10, blank chunk | What does not fit is dropped with the space before it, so a passage at its limit ends instead of sending a blank chunk. |
+| F-11, `[` and letters | A partial marker held back at the end of a line is sent as words of that line: a marker cannot continue past a line break. |
+| F-12, ended metadata | `state.set` and `evidence.add` for an ended segment are refused (`SEGMENT_CLOSED`), and the events spec says so. No producer relied on the old behaviour. |
+| R-1, any page can host | **Not resolved; it needs a decision.** Serving the embed from a separate origin needs a new domain. What code can do is done: the answer's attribution names the page that framed RISE ("MCP host at https://…"), taken from the frame's first ancestor or the referrer, or says the page is unidentified. The embed takes no key. |
+| R-2, spend after RISE stops reading | The Worker's session sets `max_output_tokens: 4096`, the most OpenAI allows. When a limit means nothing more can be shown, the text adapter cancels the provider and completes the Current. The call id is still not kept: the browser closing the peer ends the call, and a server-side hangup is only for an unclean close. |
+| R-3, stale voice callbacks | The runtime ignores a voice's callbacks once its run has closed. |
+| R-4, atom ids | Deferred, as recommended: nothing keys on them yet. |
+| Also fixed | The live page itself had the same race one layer up. A reader who leaves while it is still getting ready no longer has a runtime started, and an embedded page destroyed while its host says hello writes nothing. |
+| U-1 to U-6 | Unchanged: they need a real provider, host, voice, or Cloudflare log (§G). |
 
 The invariant under attack: *models, hosts, plugins, and providers may propose information and events; they must never directly mutate authoritative playback or runtime state outside the bounded operations RISE explicitly permits.*
 
@@ -207,8 +226,9 @@ The smallest capability model:
 
 ## F. Adversarial tests added
 
-- **`src/live/red-team.test.js`:** 22 tests. Thirteen are expected failures, one per confirmed defect: F-1 to F-12 (F-9 has two). The other nine hold, including the 400-seed delivery fuzz, the 150-seed parser corpus, the disconnect sweep, and the atom-prefix check. It runs in the full unit suite, not in the pull-request fast set.
-- **`e2e/live-red-team.spec.js`:** three browser tests in the `full` project. One is a passing proof of R-1 (a cross-origin host reads the question). Two are expected failures, for F-7 (a forged author is displayed) and F-1 (a question is sent and an answer shown after Stop, against a counting fake peer).
+- **`src/live/red-team.test.js`:** 30 tests. The review added 22: thirteen were expected failures, one per confirmed defect (F-9 has two), and nine held, including the 400-seed delivery fuzz, the 150-seed parser corpus, the disconnect sweep, and the atom-prefix check. The fixes turned the thirteen into ordinary tests and added eight: the abort signal reaching `open`, the OpenAI adapter sending nothing after it, voice callbacks after Stop, a proxy and a hundred-thousand-level nesting, a long `@` line whole and chunked, cancelling a provider once nothing more can be shown, naming the framing page, and the host's main answer claiming a person. The file runs in the full unit suite, not in the pull-request fast set.
+- **`e2e/live-red-team.spec.js`:** three browser tests in the `full` project. One is a passing proof of R-1: a cross-origin host still reads the question, which is the accepted exposure. The other two were expected failures and now pass. One checks that the attribution says the host's model wrote the Dive and names the framing page. The other checks that Stop during connect asks nothing, shows nothing, and leaves no peer open.
+- Beside them: the WebRTC transport's abort paths (`openai-webrtc.test.js`), the controls during a connecting Dive (`controls.test.js`), `framedBy` and the page left while it was getting ready (`LiveHost.test.js`), the reducer's refusals for ended segments (`stream.test.js`), and the Worker's output cap (`worker/live-realtime.test.js`).
 
 Run them with `npx vitest run src/live/red-team.test.js` and `npx playwright test e2e/live-red-team.spec.js --project=full`.
 
@@ -228,6 +248,11 @@ Each experiment is one real OpenAI Realtime session (a few cents on a test key) 
 | U-6: real speech | One Current on Chrome and Safari with real voices | Whether boundary events arrive and cancellation is clean |
 
 ## H. Prioritized actions
+
+As written before the fixes. Everything in it is done except R-1's separate origin, R-4, and the experiments. What still stands between each flag and switching it on:
+
+- **OpenAI Live:** experiments U-2, U-3 and U-4.
+- **MCP:** R-1's origin decision and experiment U-5.
 
 **Block before enabling OpenAI Live (`LIVE_REALTIME_ENABLED`):**
 1. F-1 to F-4: re-check `stopped` after every await in the runtime, close orphaned connections, add a synchronous pending-Dive guard, and pass an abort signal into `adapter.open`.

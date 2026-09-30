@@ -22,12 +22,16 @@ export function createOpenAIRealtimeAdapter({ transport, capacity } = {}) {
         id: 'openai-realtime',
         provider: 'OpenAI Realtime',
         capacity,
-        async connect(request, sink) {
+        async connect(request, sink, { signal } = {}) {
             let connection;
             try {
-                connection = await transport.open();
+                connection = await transport.open({ signal });
             } catch (error) {
                 throw error instanceof AdapterError ? error : new AdapterError('CONNECT_FAILED', String(error?.message ?? error).slice(0, 300));
+            }
+            if (signal?.aborted) {
+                try { connection.close(); } catch { /* it was never used */ }
+                throw new AdapterError('ABORTED', 'The live answer was stopped before it began.');
             }
             const wire = createOpenAIWire({ send: event => connection.send(JSON.stringify(event)), sink });
             connection.onMessage(raw => wire.receive(raw));

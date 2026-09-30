@@ -8,7 +8,9 @@
  * adapter too, by `record`, so there is one source of order and no two writers
  * can collide on a sequence number. Provider peculiarities stop here.
  *
- *   adapter    { id, capabilities, open(request) -> Promise<connection> }
+ *   adapter    { id, capabilities, open(request, { signal }) -> Promise<connection> }
+ *              `signal` is aborted if the reader stops before the open resolves;
+ *              an adapter should then ask its provider nothing more
  *   connection { events: AsyncIterable<raw event>,
  *                record(type, body),      a host event, numbered in order
  *                interrupt(info),         stop generating what remains

@@ -360,9 +360,29 @@ function deepFreeze(value) {
     return value;
 }
 
+const NOT_PLAIN = Object.freeze([]);
+const DETACH_DEPTH = 8;
+
+/**
+ * The input's own enumerable data, each property read once, so that what is checked is what
+ * is returned even when the input has getters or is a proxy. Anything that is not a plain
+ * object becomes a value every check refuses.
+ */
+function detach(value, depth = 0) {
+    if (value === null || typeof value !== 'object') return value;
+    const proto = Object.getPrototypeOf(value);
+    if (Array.isArray(value) || (proto !== Object.prototype && proto !== null)) return NOT_PLAIN;
+    if (depth >= DETACH_DEPTH) fail('EVENT_OBJECT', '$', 'Nested too deeply');
+    const copy = {};
+    for (const key of Object.keys(value)) {
+        Object.defineProperty(copy, key, { value: detach(value[key], depth + 1), enumerable: true, writable: true, configurable: true });
+    }
+    return copy;
+}
+
 /** Strict, detached, frozen. Anything not named here is refused. */
 export function validateEvent(input) {
-    const source = object(input, '$');
+    const source = object(detach(input), '$');
     if (source.schema !== RISE_CURRENT_EVENTS_SCHEMA) fail('EVENT_SCHEMA', '$.schema', 'Unknown event schema');
     if (typeof source.type !== 'string' || !Object.hasOwn(BODIES, source.type)) {
         fail('EVENT_TYPE', '$.type', 'Unknown event type');

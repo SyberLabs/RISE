@@ -76,13 +76,14 @@ describe('a Current that arrives in order', () => {
 
     it('holds the experiential state, evidence and speech marks a segment gathers', () => {
         const { stream, send } = opened();
-        segment(send, 's1', 'A black hole is a region of space.');
+        writingSegment(send, 's1', 'A black hole is a region of space.');
         send('state.set', { segmentId: 's1', state: { tension: 0.3, warmth: 0.1 } });
         send('state.set', { segmentId: 's1', state: { tension: 0.6 } });
         send('evidence.add', {
             segmentId: 's1',
             evidence: { id: 'e1', kind: 'supplied', title: 'A textbook', supports: { fromCharacter: 0, toCharacter: 12 } }
         });
+        send('segment.end', { segmentId: 's1' });
         send('speech.start', { segmentId: 's1' });
         send('speech.mark', { segmentId: 's1', charIndex: 2, tMs: 200 });
         send('speech.end', { segmentId: 's1', durationMs: 2100 });
@@ -282,7 +283,7 @@ describe('meaning', () => {
         'closing a branch never opened': [(s) => s('branch.close', { branchId: 'b1' }), 'UNKNOWN_BRANCH'],
         'a Dive quoting words the segment does not hold': [(s) => { writingSegment(s, 's1', 'The event horizon is the edge.'); return s('dive.attach', { segmentId: 's1', dive: { id: 'd1', text: 'Note.', anchor: { fromCharacter: 4, toCharacter: 17, quoteStart: 'event horizon', quoteEnd: 'something else' } } }); }, 'DIVE_ANCHOR'],
         'a Dive spanning past the words': [(s) => { writingSegment(s, 's1', 'Short.'); return s('dive.attach', { segmentId: 's1', dive: { id: 'd1', text: 'Note.', anchor: { fromCharacter: 0, toCharacter: 40, quoteStart: 'Short.', quoteEnd: 'Short.' } } }); }, 'DIVE_ANCHOR'],
-        'evidence supporting words that are not there': [(s) => { segment(s, 's1', 'Short.'); return s('evidence.add', { segmentId: 's1', evidence: { id: 'e1', kind: 'supplied', title: 'T', supports: { fromCharacter: 0, toCharacter: 90 } } }); }, 'EVIDENCE_SPAN']
+        'evidence supporting words that are not there': [(s) => { writingSegment(s, 's1', 'Short.'); return s('evidence.add', { segmentId: 's1', evidence: { id: 'e1', kind: 'supplied', title: 'T', supports: { fromCharacter: 0, toCharacter: 90 } } }); }, 'EVIDENCE_SPAN']
     };
     for (const [name, [run, code]] of Object.entries(refusals)) {
         it(`refuses ${name}, and changes nothing`, () => {
@@ -330,7 +331,6 @@ describe('meaning', () => {
             last = send('dive.attach', { segmentId: 's1', dive: { id: `d${i}`, text: 'Note.', anchor: { fromCharacter: 4, toCharacter: 17, quoteStart: 'event horizon', quoteEnd: 'event horizon' } } });
         }
         expect(last).toMatchObject({ status: 'refused', code: 'TOO_MANY_DIVES' });
-        send('segment.end', { segmentId: 's1' });
         for (let i = 0; i < 9; i += 1) {
             last = send('evidence.add', { segmentId: 's1', evidence: { id: `e${i}`, kind: 'supplied', title: 'T' } });
         }
@@ -339,16 +339,17 @@ describe('meaning', () => {
 
     it('refuses a repeated evidence or Dive id within a segment', () => {
         const { send } = opened();
-        segment(send, 's1', 'The event horizon is the edge of it.');
+        writingSegment(send, 's1', 'The event horizon is the edge of it.');
         send('evidence.add', { segmentId: 's1', evidence: { id: 'e1', kind: 'supplied', title: 'T' } });
         expect(send('evidence.add', { segmentId: 's1', evidence: { id: 'e1', kind: 'retrieved', title: 'U' } }))
             .toMatchObject({ status: 'refused', code: 'DUPLICATE_EVIDENCE' });
     });
 
-    it('lets state, evidence and Dives arrive after a segment has ended, but not after the Current has', () => {
+    it('refuses state, evidence and Dives for a segment that has ended, and ignores them after the Current has', () => {
         const { send } = opened();
         segment(send, 's1', 'The event horizon is the edge of it.');
-        expect(send('state.set', { segmentId: 's1', state: { solemnity: 0.8 } }).status).toBe('applied');
+        expect(send('state.set', { segmentId: 's1', state: { solemnity: 0.8 } })).toMatchObject({ status: 'refused', code: 'SEGMENT_CLOSED' });
+        expect(send('evidence.add', { segmentId: 's1', evidence: { id: 'e1', kind: 'supplied', title: 'T' } })).toMatchObject({ status: 'refused', code: 'SEGMENT_CLOSED' });
         send('current.complete');
         expect(send('state.set', { segmentId: 's1', state: { solemnity: 0.1 } })).toMatchObject({ status: 'ignored', code: 'AFTER_TERMINAL' });
     });

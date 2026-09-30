@@ -1,10 +1,10 @@
 /**
  * Adversarial browser checks for the live layer (docs/plans/LIVE-RED-TEAM.md).
  *
- * `test.fail()` marks an invariant that was attacked and broke: the test asserts
- * what should be true, fails today, and is reported as passing. When the defect
- * is fixed it is reported as failing, and the fix removes the annotation.
- * Production behaviour is not changed here.
+ * Each test is an invariant that was attacked. The one named "risk:" proves an
+ * accepted exposure rather than a defect. A defect found later is added with
+ * `test.fail()`, which asserts what should be true and passes while it is not;
+ * the fix removes the annotation.
  */
 import { scriptToLines } from '../src/test/fake-text-transport.js';
 import { BLACK_HOLES } from '../src/live/fixtures/black-holes.js';
@@ -119,16 +119,15 @@ test.describe('the embedded page under a parent it cannot identify', () => {
         expect(asked.params.messages[0].content.text).toContain('something only the reader knows');
     });
 
-    test('DEFECT: the host’s model can have its Dive shown to the reader as a person’s words', async ({ page, baseURL }) => {
-        test.fail(true, 'mcp-app passes the Current’s self-declared origin through');
-        const { app } = await framedByAnySite(page, baseURL);
+    test('the host’s model cannot have its Dive shown to the reader as a person’s words', async ({ page, baseURL }) => {
+        const { app, elsewhere } = await framedByAnySite(page, baseURL);
         await expect(app.locator('.live-passage__origin')).toHaveText(/^Written when you asked, by /u, { timeout: 3_000 });
+        await expect(app.locator('.live-passage__origin')).toContainText(`MCP host at ${elsewhere.origin}`);
     });
 });
 
 test.describe('the live runtime against a reader who stops while it connects', () => {
-    test('DEFECT: Stop pressed while the OpenAI session is connecting; the question is still asked and the answer is presented', async ({ page }) => {
-        test.fail(true, 'runtime.start does not check for Stop after adapter.open resolves');
+    test('Stop pressed while the OpenAI session is connecting: nothing is asked, nothing is shown, and the connection is closed', async ({ page }) => {
         await installCountingPeer(page);
         let answerRelay;
         const relayAsked = new Promise(resolve => {
@@ -148,9 +147,8 @@ test.describe('the live runtime against a reader who stops while it connects', (
         await page.waitForTimeout(3_000);
 
         const rtc = await page.evaluate(() => ({ ...window.__rtc }));
-        const shown = await page.locator('#atom-display').innerText().catch(() => '');
-        // The peer does close in the end, but only because the answer finished, not because of Stop.
-        expect({ askedAfterStop: rtc.responses, shownAfterStop: shown.trim().length > 0 })
-            .toEqual({ askedAfterStop: 0, shownAfterStop: false });
+        const shown = (await page.locator('#atom-display').allInnerTexts()).join('');
+        expect({ askedAfterStop: rtc.responses, shownAfterStop: shown.trim().length > 0, unclosedPeers: rtc.peers - rtc.closed })
+            .toEqual({ askedAfterStop: 0, shownAfterStop: false, unclosedPeers: 0 });
     });
 });
