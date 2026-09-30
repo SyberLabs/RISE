@@ -1,0 +1,129 @@
+{
+  "schema": "rise.portable-sequence.v1",
+  "id": "portable-84fbb3ffd710505341a01da61735cfbe",
+  "title": "The Unmarked Name",
+  "creatorCredit": "RISE",
+  "sources": [
+    {
+      "id": "spoon-river-anthology#12",
+      "workId": "spoon-river-anthology",
+      "editionId": "standard-ebooks:edgar-lee-masters/spoon-river-anthology",
+      "sourceRevision": "sha256:c017904d7f16ac841dce0b600de8e8c0eb121954e3935d34c8ac44ce23b68834",
+      "basis": "pre-1930-us",
+      "title": "Spoon River Anthology",
+      "author": "Edgar Lee Masters"
+    }
+  ],
+  "program": {
+    "schema": "rise.experience-program.v1",
+    "id": "rise-example-quiet",
+    "authority": "proposed",
+    "editable": true,
+    "tracks": [
+      {
+        "id": "movement",
+        "kind": "movement",
+        "clips": [
+          {
+            "id": "opening",
+            "anchor": {
+              "sourceIds": [
+                "spoon-river-anthology#12"
+              ]
+            },
+            "data": {
+              "index": 0,
+              "title": "The Unmarked Name"
+            }
+          }
+        ]
+      },
+      {
+        "id": "visual",
+        "kind": "visual",
+        "clips": [
+          {
+            "id": "visual-1",
+            "anchor": {
+              "sourceIds": [
+                "spoon-river-anthology#12"
+              ],
+              "fromProgress": 0,
+              "toProgress": 0.5
+            },
+            "cue": {
+              "kind": "procedural",
+              "collections": [
+                "turrell"
+              ]
+            }
+          },
+          {
+            "id": "visual-2",
+            "anchor": {
+              "sourceIds": [
+                "spoon-river-anthology#12"
+              ],
+              "fromProgress": 0.5,
+              "toProgress": 1
+            },
+            "cue": {
+              "kind": "procedural",
+              "collections": [
+                "rockgarden"
+              ]
+            }
+          }
+        ],
+        "fallback": {
+          "kind": "still"
+        }
+      },
+      {
+        "id": "audio",
+        "kind": "audio",
+        "clips": [
+          {
+            "id": "audio-1",
+            "anchor": {
+              "sourceIds": [
+                "spoon-river-anthology#12"
+              ],
+              "fromProgress": 0,
+              "toProgress": 0.5
+            },
+            "cue": {
+              "kind": "soundscape",
+              "soundscapeId": "aurora",
+              "gain": 0.35
+            }
+          },
+          {
+            "id": "audio-2",
+            "anchor": {
+              "sourceIds": [
+                "spoon-river-anthology#12"
+              ],
+              "fromProgress": 0.5,
+              "toProgress": 1
+            },
+            "cue": {
+              "kind": "soundscape",
+              "soundscapeId": "nocturne",
+              "gain": 0.5
+            }
+          }
+        ],
+        "fallback": {
+          "kind": "silence"
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "live-curator-import"
+    }
+  },
+  "reading": {
+    "wpm": 180
+  }
+}

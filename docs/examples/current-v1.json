@@ -1,0 +1,30 @@
+{
+  "schema": "rise.current.v1",
+  "id": "geometry-example",
+  "title": "A short explanation",
+  "origin": { "kind": "human", "name": "RISE example" },
+  "segments": [
+    {
+      "id": "first",
+      "text": "A route can be shown on a map. The map helps us see its turns.",
+      "visual": "attractor",
+      "dives": [
+        {
+          "id": "map-note",
+          "text": "This is a note attached to a precise part of the source sentence.",
+          "anchor": {
+            "fromCharacter": 31,
+            "toCharacter": 38,
+            "quoteStart": "The map",
+            "quoteEnd": "The map"
+          }
+        }
+      ]
+    },
+    {
+      "id": "second",
+      "text": "The same route can also be described one step at a time.",
+      "visual": "still"
+    }
+  ]
+}

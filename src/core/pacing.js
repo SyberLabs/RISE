@@ -28,6 +28,47 @@ export const IntentType = {
 };
 
 /**
+ * Every pace profile a reading may choose. The one list: the compiler, the
+ * settings a reader keeps, and the rooms that offer a choice all read it, so a
+ * profile added here is offered everywhere or named nowhere.
+ */
+export const PACE_CURVE_IDS = Object.freeze([
+    'flat', 'induction', 'ascent', 'wave', 'climax', 'breath'
+]);
+
+/**
+ * BREATH is a rhythm, not a curve of the reading's length, so it is not a
+ * StateCurve: how much an atom may swell depends on how close it already is to
+ * the shortest an atom can be, and a curve sees only position.
+ *
+ * It swells and eases about every ten seconds. The reading makes a whole number
+ * of cycles, and the phase is read off the authored clock, so the swell and the
+ * ease cancel and the reading is as long as it was. Where an atom has no room
+ * to swell, because it is at the floor or the ceiling, it does not; a reading
+ * too fast to swell is left exactly as it was. Nothing here measures the reader
+ * or claims anything about them: it is only how long each phrase is held.
+ */
+export const BREATH = Object.freeze({ periodMs: 10_000, depth: 0.15 });
+
+/** Whole cycles a reading of this authored length makes. */
+export function breathCycles(totalMs) {
+    const ms = Number(totalMs);
+    return Number.isFinite(ms) && ms > 0 ? Math.max(1, Math.round(ms / BREATH.periodMs)) : 1;
+}
+
+/** How far an atom of this length may swell or ease without leaving [min, max]. */
+export function breathDepth(durationMs, { min = 100, max = 10_000 } = {}) {
+    const d = Number(durationMs);
+    if (!(d > 0)) return 0;
+    return Math.max(0, Math.min(BREATH.depth, 1 - min / d, max / d - 1));
+}
+
+/** The factor on an atom's authored length at `position` (0 to 1) of the reading. */
+export function breathMultiplier(position, { cycles, depth }) {
+    return 1 + depth * Math.sin(2 * Math.PI * cycles * position);
+}
+
+/**
  * State curve presets for pacing variation
  */
 export class StateCurve {
@@ -137,6 +178,8 @@ export class PacingEngine {
             semanticTexture: config.semanticTexture === true,
             position: config.usePosition !== false
         };
+        // Off unless a reading chose the breath profile (see setBreath).
+        this.breath = null;
 
         // Duration limits
         this.minDuration = config.minDuration || 100;   // ms
@@ -216,6 +259,14 @@ export class PacingEngine {
             duration *= curveMultiplier;
         }
 
+        // Words only: an image or a sign is held as long as it was authored.
+        if (this.breath && atom.modality === Modality.TEXT) {
+            duration *= breathMultiplier(position, {
+                cycles: this.breath.cycles,
+                depth: breathDepth(duration, { min: this.minDuration, max: this.maxDuration })
+            });
+        }
+
         // Clamp to limits
         return Math.round(Math.max(this.minDuration, Math.min(this.maxDuration, duration)));
     }
@@ -229,8 +280,17 @@ export class PacingEngine {
     }
 
     /**
+     * Give the reading a breath. `totalMs` is its authored length, from which
+     * the whole number of cycles follows.
+     * @param {{ totalMs: number }} options
+     */
+    setBreath({ totalMs }) {
+        this.breath = { cycles: breathCycles(totalMs) };
+    }
+
+    /**
      * Set base WPM
-     * @param {number} wpm 
+     * @param {number} wpm
      */
     setWpm(wpm) {
         this.baseWpm = this.normalizeWpm(wpm);

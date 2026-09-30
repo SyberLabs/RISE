@@ -1,5 +1,6 @@
 import { validateExperienceProgram } from './experience-program.js';
 import { clampReadingWpm, READING_LIMITS } from './reading-limits.js';
+import { PACE_CURVE_IDS } from './pacing.js';
 import {
   compileVisualScoreProgram,
   createSequenceVisualAsset,
@@ -24,7 +25,7 @@ export const WORKSHOP_PROJECT_LIMITS = Object.freeze({
 });
 
 const CHUNK_MODES = new Set(['word', 'phrase', 'sentence']);
-const CURVES = new Set(['flat', 'induction', 'ascent', 'wave', 'climax']);
+const CURVES = new Set(PACE_CURVE_IDS);
 const VISUAL_SURFACES = new Set(['off', 'focal', 'attractor', 'genesis', 'scored']);
 
 export class WorkshopProjectError extends Error {

@@ -1,0 +1,129 @@
+{
+  "schema": "rise.portable-sequence.v1",
+  "id": "portable-8cd62918fcd03f2f8b5030e35d3635c9",
+  "title": "At the Palace Doors",
+  "creatorCredit": "RISE",
+  "sources": [
+    {
+      "id": "oedipus-rex#1:200",
+      "workId": "oedipus-rex",
+      "editionId": "standard-ebooks:sophocles/oedipus-rex_francis-storr",
+      "sourceRevision": "sha256:eb2e082803731ad073425e03cc59d2c1ec8dbf1b257510838582136c0341e53e",
+      "basis": "pre-1930-us",
+      "title": "Oedipus Rex",
+      "author": "Sophocles"
+    }
+  ],
+  "program": {
+    "schema": "rise.experience-program.v1",
+    "id": "rise-example-energetic",
+    "authority": "proposed",
+    "editable": true,
+    "tracks": [
+      {
+        "id": "movement",
+        "kind": "movement",
+        "clips": [
+          {
+            "id": "opening",
+            "anchor": {
+              "sourceIds": [
+                "oedipus-rex#1:200"
+              ]
+            },
+            "data": {
+              "index": 0,
+              "title": "At the Palace Doors"
+            }
+          }
+        ]
+      },
+      {
+        "id": "visual",
+        "kind": "visual",
+        "clips": [
+          {
+            "id": "visual-1",
+            "anchor": {
+              "sourceIds": [
+                "oedipus-rex#1:200"
+              ],
+              "fromProgress": 0,
+              "toProgress": 0.5
+            },
+            "cue": {
+              "kind": "procedural",
+              "collections": [
+                "fractal"
+              ]
+            }
+          },
+          {
+            "id": "visual-2",
+            "anchor": {
+              "sourceIds": [
+                "oedipus-rex#1:200"
+              ],
+              "fromProgress": 0.5,
+              "toProgress": 1
+            },
+            "cue": {
+              "kind": "procedural",
+              "collections": [
+                "neural"
+              ]
+            }
+          }
+        ],
+        "fallback": {
+          "kind": "still"
+        }
+      },
+      {
+        "id": "audio",
+        "kind": "audio",
+        "clips": [
+          {
+            "id": "audio-1",
+            "anchor": {
+              "sourceIds": [
+                "oedipus-rex#1:200"
+              ],
+              "fromProgress": 0,
+              "toProgress": 0.5
+            },
+            "cue": {
+              "kind": "soundscape",
+              "soundscapeId": "thrilling",
+              "gain": 0.35
+            }
+          },
+          {
+            "id": "audio-2",
+            "anchor": {
+              "sourceIds": [
+                "oedipus-rex#1:200"
+              ],
+              "fromProgress": 0.5,
+              "toProgress": 1
+            },
+            "cue": {
+              "kind": "soundscape",
+              "soundscapeId": "chase",
+              "gain": 0.5
+            }
+          }
+        ],
+        "fallback": {
+          "kind": "silence"
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "live-curator-import"
+    }
+  },
+  "reading": {
+    "wpm": 280
+  }
+}

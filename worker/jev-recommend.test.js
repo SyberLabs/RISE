@@ -34,10 +34,13 @@ vi.mock('@upstash/redis/cloudflare', () => ({
   }
 }));
 
-import { handleJevRecommend } from './jev-recommend.mjs';
+import { handleJevRecommend, requestsNightDrive } from './jev-recommend.mjs';
 import worker from './index.mjs';
 
 const SITE = 'https://rise.example';
+// Captured before DECISION_CACHE_NAMESPACE existed: an unset namespace must keep production's keys.
+const GOLDEN_PRODUCTION_DECISION_KEY =
+  'rise:jev-decision:v13:6d367a864421a6464055456926152681e6fdf6e8a71700314d2fc1cb78683bd8:0';
 const env = {
   DECISION_PROVIDER: 'jev',
   OPENROUTER_API_KEY: 'openrouter-server-secret',
@@ -830,6 +833,35 @@ describe('Jev reading recommendation', () => {
     expect(config.audio).toBe('silent');
   });
 
+  it.each([
+    ['Help me drift off to sleep.', '100'],
+    ['Read slowly while I drift off, no music.', '150'],
+    ['A slow, calm night drive.', '150']
+  ])('keeps the reader\'s slow pace for %j instead of the night-drive look', async (intent, pace) => {
+    vi.stubGlobal('fetch', vi.fn(async () => Response.json({
+      model: 'typesafe/jev-1.13', provider: 'TypeSafe',
+      answers: answers('middlemarch', { pace: { type: 'choice', choice: pace } })
+    })));
+    const response = await handleJevRecommend(request({ intent, schemaVersion: 3 }), env);
+    expect(response.status).toBe(200);
+    const { config } = await response.json();
+    expect(config.wpm).toBe(Number(pace));
+    expect(config.visualPalette).not.toBe('neon');
+    expect(config.audio).not.toBe('night-drive');
+    expect(config.soundscape).not.toBe('night-drive');
+  });
+
+  it('reads "drift off" as falling asleep, not as a drift reference', () => {
+    expect(requestsNightDrive('Something to drift off with.')).toBe(false);
+    expect(requestsNightDrive('Something for drifting off.')).toBe(false);
+    expect(requestsNightDrive('Something to drift-off with.')).toBe(false);
+    expect(requestsNightDrive('Something to drift–off with.')).toBe(false);
+    expect(requestsNightDrive('Drifting-off music.')).toBe(false);
+    expect(requestsNightDrive('drift offroad racing')).toBe(true);
+    expect(requestsNightDrive('tokyo drift')).toBe(true);
+    expect(requestsNightDrive('A night drive through neon racing streets.')).toBe(true);
+  });
+
   it('never sends the new neon values to a version 2 client', async () => {
     const provider = vi.fn(async () => Response.json({
       model: 'typesafe/jev-1.13', provider: 'TypeSafe', answers: answers('middlemarch')
@@ -922,6 +954,34 @@ describe('Jev reading recommendation', () => {
     expect(mocks.set).toHaveBeenCalledWith(decisionKey, expect.objectContaining({
       workId: 'literary-walden'
     }), { ex: 3600 });
+  });
+
+  it('separates decision and turn state by DECISION_CACHE_NAMESPACE and leaves unnamespaced keys unchanged', async () => {
+    const cache = new Map();
+    const turns = [];
+    mocks.get.mockImplementation(async key => cache.get(key) ?? (key.startsWith('rise:books:') ? books : null));
+    mocks.set.mockImplementation(async (key, value) => { cache.set(key, value); return 'OK'; });
+    mocks.incr.mockImplementation(async key => { turns.push(key); return 1; });
+    const provider = vi.fn(async () => Response.json({
+      id: 'gen-dec-ns', model: 'typesafe/jev-1.13', provider: 'TypeSafe',
+      answers: answers('literary-walden')
+    }));
+    vi.stubGlobal('fetch', provider);
+    const decisionKeys = () => [...cache.keys()].filter(key => key.startsWith('rise:jev-decision:'));
+
+    const unnamespaced = await handleJevRecommend(request({ intent: 'Nature and quiet.' }), env);
+    const [productionKey] = decisionKeys();
+    const evaluation = await handleJevRecommend(request({ intent: 'Nature and quiet.' }),
+      { ...env, DECISION_CACHE_NAMESPACE: 'kev-eval-1' });
+    const evaluationKey = decisionKeys().find(key => key !== productionKey);
+
+    expect((await unnamespaced.json()).decisionCacheStatus).toBe('miss');
+    expect((await evaluation.json()).decisionCacheStatus).toBe('miss');
+    expect(provider).toHaveBeenCalledTimes(2);
+    expect(productionKey).toBe(GOLDEN_PRODUCTION_DECISION_KEY);
+    expect(evaluationKey).toMatch(/^rise:jev-decision:v13:[0-9a-f]{64}:0$/u);
+    expect(new Set(turns).size).toBe(2);
+    expect(turns.every(key => key.startsWith('rise:jev-turn:v4:'))).toBe(true);
   });
 
   it('uses the Gallery host for a visual arc and keeps explicit darkness dark', async () => {
@@ -1144,6 +1204,29 @@ describe('Jev reading recommendation', () => {
     const response = await handleJevRecommend(request(), env);
     expect(response.status).toBe(502);
     expect((await response.json()).error.code).toBe('DECISION_INVALID_RESPONSE');
+  });
+
+  it('reports a truncated provider body as an invalid response', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => new Response('{"model":"typesafe/jev-1.13","answers":{"bo', {
+      headers: { 'Content-Type': 'application/json' }
+    })));
+    const response = await handleJevRecommend(request(), env);
+    expect(response.status).toBe(502);
+    expect((await response.json()).error.code).toBe('DECISION_INVALID_RESPONSE');
+  });
+
+  it('reports an unreachable provider as unavailable', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => { throw new TypeError('fetch failed'); }));
+    const response = await handleJevRecommend(request(), env);
+    expect(response.status).toBe(502);
+    expect((await response.json()).error.code).toBe('DECISION_UNAVAILABLE');
+  });
+
+  it('reports a provider timeout as a timeout', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => { throw new DOMException('timed out', 'TimeoutError'); }));
+    const response = await handleJevRecommend(request(), env);
+    expect(response.status).toBe(504);
+    expect((await response.json()).error.code).toBe('DECISION_TIMEOUT');
   });
 
   it('honors an explicit no-motion request even when Jev picks psychedelic visuals', async () => {

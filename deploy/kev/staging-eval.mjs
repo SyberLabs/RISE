@@ -27,6 +27,15 @@ export function stagingOrigin(value) {
   return url.origin;
 }
 
+// A Cloudflare Access service token for an Access-protected staging Worker. Never printed or recorded.
+export function accessHeaders(env = process.env) {
+  const id = env.CF_ACCESS_CLIENT_ID;
+  const secret = env.CF_ACCESS_CLIENT_SECRET;
+  if (!id && !secret) return {};
+  if (!id || !secret) fail('Set both CF_ACCESS_CLIENT_ID and CF_ACCESS_CLIENT_SECRET, or neither.');
+  return { 'CF-Access-Client-Id': id, 'CF-Access-Client-Secret': secret };
+}
+
 async function fixtures(casesPath, optionsPath) {
   if (!casesPath || !optionsPath) fail('Both --cases and --options are required.');
   const [casesText, optionsText] = await Promise.all([
@@ -105,12 +114,13 @@ export function compareRuns(cases, options, baseline, candidate, casesHash, opti
   };
 }
 
-export async function captureCase(origin, selected, item, options, observedIdentity, fetchImpl = fetch) {
+export async function captureCase(origin, selected, item, options, observedIdentity, fetchImpl = fetch,
+  access = {}) {
   const started = performance.now();
   try {
     const response = await fetchImpl(`${origin}/api/jev-recommend`, {
       method: 'POST',
-      headers: { Origin: origin, 'Content-Type': 'application/json' },
+      headers: { ...access, Origin: origin, 'Content-Type': 'application/json' },
       body: JSON.stringify({ intent: item.intent, schemaVersion: 2 }),
       redirect: 'error',
       signal: AbortSignal.timeout(15000),
@@ -169,8 +179,10 @@ async function capture(args) {
     fail('Batch has already been recorded. Use a new output path for a repeat.');
   }
   let observedIdentity = saved?.identity;
+  const access = accessHeaders();
   for (const item of cases.slice(start, start + count)) {
-    const { row, identity: nextIdentity } = await captureCase(origin, selected, item, options, observedIdentity);
+    const { row, identity: nextIdentity } = await captureCase(origin, selected, item, options, observedIdentity,
+      fetch, access);
     observedIdentity = nextIdentity;
     rows.push(row);
   }

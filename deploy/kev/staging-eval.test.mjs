@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { setTimeout as delay } from 'node:timers/promises';
-import { captureCase, compareRuns, stagingOrigin } from './staging-eval.mjs';
+import { accessHeaders, captureCase, compareRuns, stagingOrigin } from './staging-eval.mjs';
 
 const sha = '139fdd94f1b6a6ad80cc15e08fcb99cac885a101';
 const cases = [
@@ -64,4 +64,37 @@ test('capture rejects redirects and times the parsed response body', async () =>
   assert.ok(row.wallMs >= 30);
   assert.equal(row.decision.audio, 'piano');
   assert.equal(identity.revision, sha);
+});
+
+test('sends a Cloudflare Access service token only when both parts are set', async () => {
+  assert.deepEqual(accessHeaders({}), {});
+  assert.deepEqual(accessHeaders({ CF_ACCESS_CLIENT_ID: 'id.access', CF_ACCESS_CLIENT_SECRET: 'secret' }),
+    { 'CF-Access-Client-Id': 'id.access', 'CF-Access-Client-Secret': 'secret' });
+  assert.throws(() => accessHeaders({ CF_ACCESS_CLIENT_ID: 'id.access' }), /both/u);
+  assert.throws(() => accessHeaders({ CF_ACCESS_CLIENT_SECRET: 'secret' }), /both/u);
+  let sent;
+  await captureCase('https://rise-jev-preview.example.workers.dev', 'kev', cases[1], options, null,
+    async (_, init) => { sent = init.headers; return { status: 503 }; },
+    { 'CF-Access-Client-Id': 'id.access', 'CF-Access-Client-Secret': 'secret' });
+  assert.equal(sent['CF-Access-Client-Id'], 'id.access');
+  assert.equal(sent['CF-Access-Client-Secret'], 'secret');
+  assert.equal(sent.Origin, 'https://rise-jev-preview.example.workers.dev');
+});
+
+test('summarizes gates, latency and rows that were not accepted', async () => {
+  const { summary, latency } = await import('./staging-eval-summary.mjs');
+  const slow = { ...candidate, rows: [row('quiet', 'silent'), { ...row('music', 'piano'), wallMs: 9100 }] };
+  const text = summary(baseline, slow, compareRuns(cases, options, baseline, slow, 'cases', 'options'));
+  assert.match(text, /\*\*FAILED\*\*/u);
+  assert.match(text, /withinWorkerDeadline \| \*\*fail\*\*/u);
+  assert.match(text, /Kev full-request wall time: p50 100 ms, p95 9100 ms, max 9100 ms over 2 rows\n/u);
+  assert.deepEqual(latency(baseline), { p50: 100, p95: 100, max: 100 });
+  assert.match(summary(baseline, candidate, compareRuns(cases, options, baseline, candidate, 'cases', 'options')),
+    /\*\*PASSED\*\*/u);
+  const timedOut = { ...candidate, rows: [row('quiet', 'silent'),
+    { id: 'music', httpStatus: 0, wallMs: 15000, error: 'timeout' }] };
+  const incomplete = summary(baseline, timedOut, null);
+  assert.match(incomplete, /No comparison result/u);
+  assert.match(incomplete, /max 100 ms over 2 rows; not accepted: music \(0 timeout\)/u);
+  assert.doesNotMatch(text + incomplete, /Quiet reading|Piano reading/u);
 });
