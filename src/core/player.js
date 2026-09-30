@@ -164,6 +164,9 @@ export class Player {
         // example AudioBufferSourceNode.onended). The timer remains the
         // fallback for unavailable or failed media.
         this.atomCompletionOverride = null;
+        // Further governors, asked in order after the two above when they decline.
+        // See govern().
+        this._governors = [];
         this.progressFrameId = null; // For smooth progress animation
         this.transitionDuration = 300; // ms for fade transitions
         this.atomStartTime = null;
@@ -204,16 +207,13 @@ export class Player {
         // separate, honest metric (sessionWallStartTime).
         this._reading = { accumulatedMs: 0, tickAnchor: null };
 
-        // Prefix duration sums make remaining-time O(1) per progress
-        // frame instead of a per-frame scan of every remaining atom.
-        const atoms = session?.atoms || [];
-        this._prefixDurations = new Float64Array(atoms.length + 1);
-        for (let i = 0; i < atoms.length; i++) {
-            const duration = Number(atoms[i]?.duration);
-            this._prefixDurations[i + 1] = this._prefixDurations[i]
-                + (Number.isFinite(duration) ? Math.max(0, duration) : 0);
-        }
-        this._totalAuthoredMs = this._prefixDurations[atoms.length];
+        // A LIVE reading is one whose words are still arriving. It holds at
+        // the end of what it has instead of finishing, and is extended (see
+        // setLive and extend). Off unless a host turns it on.
+        this.live = false;
+        this._awaitingAtoms = false;
+
+        this._buildPrefixDurations();
 
         // Hidden tabs suspend RAF while wall time races ahead. Policy:
         // auto-pause when hidden, auto-resume only if WE paused it.
@@ -222,6 +222,21 @@ export class Player {
         if (typeof document !== 'undefined' && document.addEventListener) {
             document.addEventListener('visibilitychange', this._boundVisibility);
         }
+    }
+
+    /**
+     * Prefix duration sums make remaining-time O(1) per progress frame
+     * instead of a per-frame scan of every remaining atom.
+     */
+    _buildPrefixDurations() {
+        const atoms = this.sessionState.session?.atoms || [];
+        this._prefixDurations = new Float64Array(atoms.length + 1);
+        for (let i = 0; i < atoms.length; i++) {
+            const duration = Number(atoms[i]?.duration);
+            this._prefixDurations[i + 1] = this._prefixDurations[i]
+                + (Number.isFinite(duration) ? Math.max(0, duration) : 0);
+        }
+        this._totalAuthoredMs = this._prefixDurations[atoms.length];
     }
 
     /**
@@ -247,7 +262,7 @@ export class Player {
      * has already had its chance to start whatever governs the timing.
      */
     _atomDisplayMs(atom) {
-        const governed = this.atomDurationOverride?.(atom, this.sessionState.currentIndex);
+        const governed = this._governedDuration(atom);
         if (Number.isFinite(governed) && governed > 0) {
             return governed / this.shuttle.durationDivisor;
         }
@@ -255,6 +270,47 @@ export class Player {
             (atom.duration * this.speedFactor) / this.shuttle.durationDivisor,
             50
         );
+    }
+
+    /**
+     * Add a governor of atom timing that can coexist with whatever else
+     * governs it. `atomDurationOverride` and `atomCompletionOverride` are
+     * single slots that a view assigns to for its own reasons (the Chamber
+     * does, for Recitation); a second consumer that assigned them too would
+     * silently replace the first. A governor is asked only when those decline
+     * (return null), in the order added, and the first to answer wins.
+     *
+     * @param {{duration?: Function, completion?: Function}} governor
+     * @returns {() => void} release
+     */
+    govern(governor) {
+        this._governors.push(governor);
+        return () => {
+            const at = this._governors.indexOf(governor);
+            if (at >= 0) this._governors.splice(at, 1);
+        };
+    }
+
+    _governedDuration(atom) {
+        const index = this.sessionState.currentIndex;
+        const own = this.atomDurationOverride?.(atom, index);
+        if (Number.isFinite(own) && own > 0) return own;
+        for (const governor of this._governors) {
+            const value = governor.duration?.(atom, index);
+            if (Number.isFinite(value) && value > 0) return value;
+        }
+        return null;
+    }
+
+    _governedCompletion(atom) {
+        const index = this.sessionState.currentIndex;
+        const own = this.atomCompletionOverride?.(atom, index);
+        if (own && typeof own.then === 'function') return own;
+        for (const governor of [...this._governors]) {
+            const promised = governor.completion?.(atom, index);
+            if (promised && typeof promised.then === 'function') return promised;
+        }
+        return null;
     }
 
     /** Live presentation fraction of the current atom, including pause state. */
@@ -342,7 +398,8 @@ export class Player {
             this.listeners.set(event, new Set());
         }
         this.listeners.get(event).add(callback);
-        return () => this.listeners.get(event).delete(callback);
+        // A Player destroyed before a view lets go of it has no listeners left to leave.
+        return () => this.listeners.get(event)?.delete(callback);
     }
 
     /**
@@ -372,7 +429,8 @@ export class Player {
     play() {
         this._clearSpeechWatchdog();
         if (this.sessionState.state === 'playing' || this.sessionState.state === 'interlocuting') return;
-        if (this.sessionState.isComplete) return;
+        // A live reading at the end of its words is waiting, not finished.
+        if (this.sessionState.isComplete && !this.live) return;
 
         // Clear any pending timer from previous state
         if (this.timerId) {
@@ -512,6 +570,7 @@ export class Player {
         this.sessionWallStartTime = null;
         this._reading = { accumulatedMs: 0, tickAnchor: null };
         this._autoPausedByVisibility = false;
+        this._awaitingAtoms = false;
         this._boundaryFlash = null;
         this._hazardRolledMs = 0;
         this.interlocutionStats = createInterlocutionStats();
@@ -601,6 +660,93 @@ export class Player {
         }
         this.emit('shuttle', { velocity, reason: 'step' });
         return velocity;
+    }
+
+    // ─── A live reading: words still arriving ───
+
+    /**
+     * Turn the live hold on or off. While on, the Player waits at the end
+     * of the words it has. Turning it off says there are no more: a Player
+     * that is waiting then finishes, and one that is not finishes when it
+     * reaches the end, exactly as any reading does.
+     */
+    setLive(live) {
+        this.live = live === true;
+        if (!this.live && this._awaitingAtoms && this.sessionState.state === 'playing') {
+            this._awaitingAtoms = false;
+            this.scheduleNextAtom();
+        }
+    }
+
+    /** No more words yet: hold, and take no reading time while doing so. */
+    _holdForAtoms() {
+        this._awaitingAtoms = true;
+        this.stopProgressAnimation();
+        this._readingPause();
+        if (!this.shuttle.atHome) {
+            this.shuttle.reset();
+            this.emit('shuttle', { velocity: 1, reason: 'live-end' });
+        }
+        this.emit('waiting', { index: this.sessionState.currentIndex });
+    }
+
+    /**
+     * Take a longer Session in place of the one being read.
+     *
+     * The words already there come back unchanged (committed words never
+     * change), so the head, the atom on screen and everything scheduled for
+     * it are untouched; only the end moves. A Session whose earlier atoms
+     * differ in any way is refused and nothing changes, because it would be a
+     * different reading, not a longer one.
+     *
+     * @param {import('./models.js').Session} next
+     */
+    extend(next) {
+        if (!this.live) throw new RangeError('Only a live Player can be extended');
+        const current = this.sessionState.session.atoms;
+        const atoms = next?.atoms;
+        if (!Array.isArray(atoms) || atoms.length < current.length) {
+            throw new RangeError('An extended Session cannot be shorter than the one it extends');
+        }
+        for (let i = 0; i < current.length; i += 1) {
+            const before = current[i];
+            const after = atoms[i];
+            if (before.content !== after.content || before.duration !== after.duration
+                || before.position !== after.position || before.sourceId !== after.sourceId) {
+                throw new RangeError(`The first ${current.length} atoms must be unchanged (atom ${i} differs)`);
+            }
+        }
+        const grew = atoms.length > current.length;
+        this.sessionState.session = next;
+        this._buildPrefixDurations();
+        const resumed = grew && this._awaitingAtoms && this.sessionState.state === 'playing';
+        this.emit('extended', { atomCount: atoms.length, resumed });
+        if (resumed) {
+            this._awaitingAtoms = false;
+            this._readingResume();
+            this.startProgressAnimation();
+            this.scheduleNextAtom();
+        }
+    }
+
+    /**
+     * Show the atom the head is on again, to a view that has just been
+     * mounted on a Player already part way through (a Dive that has come
+     * back). Nothing about the reading changes: the head, the timers, the
+     * state and the high-water mark are as they were, and the atom is the
+     * same one, so a listener that has not seen it can draw it.
+     */
+    replayCurrent() {
+        const atom = this.sessionState.currentAtom;
+        if (!atom) return false;
+        this.emit('atom', {
+            atom,
+            index: this.sessionState.currentIndex,
+            total: this.sessionState.session.atomCount,
+            concealed: false,
+            replayed: true
+        });
+        return true;
     }
 
     /**
@@ -830,6 +976,12 @@ export class Player {
 
         const atom = this.sessionState.currentAtom;
 
+        if (!atom && this.live) {
+            this._holdForAtoms();
+            return;
+        }
+        if (atom) this._awaitingAtoms = false;
+
         if (!atom) {
             // Session complete — reading time from the monotonic clock,
             // wall time honestly separate
@@ -883,7 +1035,7 @@ export class Player {
         let completion = null;
         if (!isResuming && this.shuttle.atHome) {
             try {
-                completion = this.atomCompletionOverride?.(atom, this.sessionState.currentIndex);
+                completion = this._governedCompletion(atom);
             } catch {
                 completion = null;
             }

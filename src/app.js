@@ -32,6 +32,7 @@ import { createRouteManifest } from './app/route-manifest.js';
 import { installTestBridge } from './app/test-bridge.js';
 
 const VISUAL_LAB_PATH = '/visual-lab';
+const LIVE_PATH = '/live';
 import { watchTabFreshness } from './core/tab-freshness.js';
 import { hasPersonalWorkInPage } from './core/personal-identity.js';
 
@@ -344,6 +345,8 @@ class App {
             await this.router.navigate('mint', { data: { entry: houseProgram(mintedSlug) } });
         } else if (window.location.pathname === VISUAL_LAB_PATH) {
             await this.router.navigate('visual-lab');
+        } else if (window.location.pathname === LIVE_PATH) {
+            await this.router.navigate('live');
         } else if (options.personalizedVault) {
             console.log('[RISE] Navigating directly to personalized vault:', options.personalizedVault);
             await this.router.navigate('vault', { data: { personalizedVault: options.personalizedVault } });
@@ -488,6 +491,7 @@ class App {
             handleArchetypeLaunch: data => this.handleArchetypeLaunch(data),
             handleBeginSession: session => this.handleBeginSession(session),
             useRecipeInReading: recipe => this.useRecipeInReading(recipe),
+            router: this.router,
             getAudioEngine: () => this.audioEngine,
             getCurrentSession: () => this.currentSession,
             getSettings: () => this.settings,
@@ -590,6 +594,11 @@ class App {
         if (viewName === 'visual-lab' && window.location.pathname !== VISUAL_LAB_PATH) {
             window.history[replaceUrl ? 'replaceState' : 'pushState']({}, '', VISUAL_LAB_PATH);
         } else if (viewName !== 'visual-lab' && window.location.pathname === VISUAL_LAB_PATH) {
+            window.history.pushState({}, '', '/');
+        }
+        if (viewName === 'live' && window.location.pathname !== LIVE_PATH) {
+            window.history[replaceUrl ? 'replaceState' : 'pushState']({}, '', LIVE_PATH);
+        } else if (viewName !== 'live' && window.location.pathname === LIVE_PATH) {
             window.history.pushState({}, '', '/');
         }
         // Returned so a caller can wait for the outgoing view to have
@@ -1335,6 +1344,10 @@ class App {
             const { keystoneSlugFromPath } = await import('./content/keystones.js');
             if (window.location.pathname === VISUAL_LAB_PATH) {
                 await this.router?.navigate('visual-lab', { replace: true, skipStack: true });
+                return;
+            }
+            if (window.location.pathname === LIVE_PATH) {
+                await this.router?.navigate('live', { replace: true, skipStack: true });
                 return;
             }
             const slug = keystoneSlugFromPath(window.location.pathname);

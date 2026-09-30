@@ -35,10 +35,14 @@ export class MovementScheduleController {
         this.onChange = typeof onChange === 'function' ? onChange : () => {};
         this._activeId = null;
         this._generation = 0;
+        this._index();
+    }
 
-        // O(1) lookup (§8.1). Built once at construction rather than
-        // scanned per atom: a Journey emits thousands of atoms and the
-        // movement rarely changes.
+    /**
+     * O(1) lookup (§8.1). Built once at construction rather than scanned per
+     * atom: a Journey emits thousands of atoms and the movement rarely changes.
+     */
+    _index() {
         this._bySource = new Map();
         for (const movement of this.program?.movements || []) {
             for (const sourceId of movement.sourceIds) {
@@ -48,6 +52,12 @@ export class MovementScheduleController {
         for (const boundary of this.program?.boundaries || []) {
             this._bySource.set(boundary.sourceId, { kind: 'boundary', boundary });
         }
+    }
+
+    /** Take a longer program (a live reading grows at its end); where the reading is stays as it was. */
+    extend(movementProgram) {
+        this.program = movementProgram || null;
+        this._index();
     }
 
     get active() { return !!this.program; }
