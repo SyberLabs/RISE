@@ -166,11 +166,11 @@ flowchart LR
     content["content<br/>texts, imagery, journeys<br/>228 modules"]
     core["core<br/>session, player, router<br/>163 modules"]
     enterprise["enterprise<br/>talk program, speaker rail<br/>34 modules"]
-    live["live<br/>realtime Current: events, runtime, providers<br/>38 modules"]
+    live["live<br/>realtime Current: events, runtime, providers<br/>39 modules"]
     page["page<br/>spatial projection<br/>4 modules"]
     sources["sources<br/>text and visual providers<br/>13 modules"]
     vendor["vendor<br/>SyberLabs design kit<br/>2 modules"]
-    visuals["visuals<br/>procedural generation<br/>59 modules"]
+    visuals["visuals<br/>procedural generation<br/>60 modules"]
     wormhole["wormhole<br/>7 modules"]
 
     affect --> |7| core
@@ -203,12 +203,13 @@ flowchart LR
     live -.-> |3 lazy| app
     live -.-> |1 lazy| components
     live --> |6| core
-    live -.-> |1 lazy| visuals
+    live --> |2| visuals
     page --> |2| core
     page --> |3| visuals
     sources --> |1| content
     visuals -.-> |4 lazy| content
     visuals --> |18| core
+    visuals --> |2| live
     visuals --> |4| sources
     wormhole --> |1| app
     wormhole --> |2| core
