@@ -133,10 +133,12 @@ export function createLiveControls({ runtime, onStop, audible = true, mic = null
     let micMode = null;
     let visualOutcome = '';
     let visualIdentity = null;
+    let visualError = false;
 
-    const show = message => {
+    const show = (message, fromVisual = false) => {
         errorLine.textContent = message ?? '';
         errorLine.hidden = !message;
+        visualError = Boolean(message) && fromVisual;
     };
 
     const attempt = async work => {
@@ -226,6 +228,7 @@ export function createLiveControls({ runtime, onStop, audible = true, mic = null
         if (identity !== visualIdentity) {
             visualIdentity = identity;
             visualOutcome = '';
+            if (visualError) show('');
         }
         statusLine.textContent = [describeStatus(snapshot, { audible, question }), visualOutcome].filter(Boolean).join(' ');
         const canAsk = status === 'live' || status === 'interrupted' || status === 'ended';
@@ -368,7 +371,7 @@ export function createLiveControls({ runtime, onStop, audible = true, mic = null
         const target = discovery?.target?.intensity ?? discovery?.current?.intensity;
         if (!Number.isFinite(target)) {
             visualOutcome = visualRefusalMessage('NO_ACTIVE_VISUAL');
-            show(visualOutcome);
+            show(visualOutcome, true);
             render(runtime.snapshot());
             return;
         }
@@ -381,7 +384,7 @@ export function createLiveControls({ runtime, onStop, audible = true, mic = null
             show('');
         } else {
             visualOutcome = visualRefusalMessage(receipt?.code);
-            show(visualOutcome);
+            show(visualOutcome, true);
         }
         render(runtime.snapshot());
     }
@@ -391,7 +394,7 @@ export function createLiveControls({ runtime, onStop, audible = true, mic = null
         if (!interpretVisualControl(words)) {
             const message = 'Only “more vibrant” is available for visual changes.';
             visualOutcome = '';
-            show(message);
+            show(message, true);
             return;
         }
         visualOutcome = '';

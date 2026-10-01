@@ -265,6 +265,30 @@ describe('visual control', () => {
         expect($('.live-controls__error').textContent).toBe('There is no adjustable visual on screen right now.');
     });
 
+    it('clears only its own refusal alert when the active field changes', async () => {
+        const runtime = fakeRuntime('live');
+        runtime.set('live', { main: { currentId: 'main-1', segmentId: 'segment-1' } });
+        runtime.discoverVisual.mockReturnValue(null);
+        controls = createLiveControls({ runtime, onStop: () => {} });
+        $('input[name="visual"]').value = 'more vibrant';
+        $('[data-live="visual-submit"]').click();
+        expect($('.live-controls__error').textContent).toBe('There is no adjustable visual on screen right now.');
+
+        runtime.set('live', { main: { currentId: 'main-1', segmentId: 'segment-1' } });
+        expect($('.live-controls__error').hidden).toBe(false);
+
+        runtime.set('live', { main: { currentId: 'main-1', segmentId: 'segment-2' } });
+        expect($('.live-controls__error').hidden).toBe(true);
+
+        runtime.dive = vi.fn(async () => { throw new Error('Question failed'); });
+        $('input[name="question"]').value = 'why?';
+        $('.live-controls__ask').requestSubmit();
+        await flush();
+        expect($('.live-controls__error').textContent).toBe('Question failed');
+        runtime.set('live', { main: { currentId: 'main-1', segmentId: 'segment-3' } });
+        expect($('.live-controls__error').textContent).toBe('Question failed');
+    });
+
     it('keeps outcome feedback for the active segment and clears it when the selected run or segment changes', () => {
         const runtime = fakeRuntime('live');
         runtime.discoverVisual.mockReturnValue({ target: { intensity: 0.75 }, current: { intensity: 0.75 } });
