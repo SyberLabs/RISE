@@ -232,6 +232,26 @@ it('ignores an older variation lookup after a newer parent is selected', async (
   workshop.destroy();
 });
 
+it('keeps a new draft selected while an older saved sequence lookup is pending', async () => {
+  const parent = await importedParent();
+  const pendingLookup = deferred();
+  const { workshop, container } = makeWorkshop();
+  vi.spyOn(workshop, 'loadSavedBlueprints').mockReturnValue(pendingLookup.promise);
+
+  workshop.update({ varyBlueprintId: parent.id });
+  workshop.handleSequenceSelection('new');
+  const newDraft = workshop.sessionData;
+  pendingLookup.resolve(MemoryCore.getWorkshopBlueprints());
+  await Promise.resolve();
+
+  expect(workshop.sessionData).toBe(newDraft);
+  expect(workshop.activeDraftKind).toBe('new');
+  expect(workshop.blueprintLoadInProgress).toBe(false);
+  expect(container.querySelector('#workshop-sequence-status').textContent)
+    .toBe('A clean canvas for a new sequence');
+  workshop.destroy();
+});
+
 it('does not install a selected project after Workshop is destroyed during loading', async () => {
   const parent = await importedParent();
   const pendingLookup = deferred();

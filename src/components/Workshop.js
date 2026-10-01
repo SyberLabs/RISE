@@ -483,6 +483,7 @@ export class Workshop {
     }
 
     if (data.text) {
+      this.cancelPendingBlueprintLoad();
       const suspended = this.suspendCurrentDraft();
       this.pendingMediaBlobs.clear();
       const blank = createDefaultSessionData();
@@ -620,6 +621,7 @@ export class Workshop {
   }
 
   startNewSequence({ preserveCurrent = true, notify = false } = {}) {
+    this.cancelPendingBlueprintLoad();
     if (preserveCurrent) this.suspendCurrentDraft();
     this.pendingMediaBlobs.clear();
     const blank = createDefaultSessionData();
@@ -712,10 +714,17 @@ export class Workshop {
     if (status) status.textContent = isLoading ? 'Loading selected sequence' : this.getEditorStatus();
   }
 
+  cancelPendingBlueprintLoad() {
+    if (!this.blueprintLoadInProgress) return;
+    this.blueprintLoadRequestId += 1;
+    this.setBlueprintLoadInProgress(false);
+  }
+
   restoreSuspendedDraft(draftId) {
     const index = this.suspendedDrafts.findIndex(draft => draft.id === draftId);
     if (index < 0) return false;
 
+    this.cancelPendingBlueprintLoad();
     const [draft] = this.suspendedDrafts.splice(index, 1);
     this.suspendCurrentDraft();
     this.pendingMediaBlobs = new Map(draft.pendingMediaBlobs || []);
@@ -874,7 +883,11 @@ export class Workshop {
   }
 
   handleSequenceSelection(value) {
-    if (!value || value === 'current') return;
+    if (!value) return;
+    if (value === 'current') {
+      this.cancelPendingBlueprintLoad();
+      return;
+    }
     if (value === 'new') {
       this.startNewSequence({ preserveCurrent: true });
       return;
