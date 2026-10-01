@@ -111,6 +111,8 @@ function fakeRuntime(initial = 'live') {
         resume: vi.fn(() => { calls.push(['resume']); runtime.set('live'); }),
         dive: vi.fn(async body => { if (state.status === 'diving') throw new Error('A Dive inside a Dive is not built'); calls.push(['dive', body]); runtime.set('diving'); }),
         surface: vi.fn(async () => { calls.push(['surface']); runtime.set('live'); }),
+        discoverVisual: vi.fn(() => ({ manifest: { surface: 'attractor' }, current: { intensity: 0.65 }, target: { intensity: 0.65 } })),
+        controlVisual: vi.fn(command => ({ status: 'accepted', surface: 'attractor', parameter: 'intensity', requested: command.value, effective: command.value })),
         set(status, extra) { state = snapshot(status, extra); for (const fn of [...listeners]) fn(state); },
         calls
     };
@@ -206,6 +208,43 @@ describe('the buttons', () => {
         expect($('.live-controls__error').hidden).toBe(false);
         expect($('.live-controls__error').textContent).toBe('A Dive inside a Dive is not built');
         expect($('[data-live="dive"]').disabled).toBe(false);
+    });
+});
+
+describe('visual control', () => {
+    it('applies the closed typed phrase and reports the target', async () => {
+        const runtime = fakeRuntime('live');
+        controls = createLiveControls({ runtime, onStop: () => {} });
+        const field = $('input[name="visual"]');
+        field.value = ' Please MORE   VIBRANT! ';
+        $('[data-live="visual-submit"]').click();
+        await flush();
+        expect(runtime.controlVisual).toHaveBeenCalledWith({ surface: 'attractor', parameter: 'intensity', value: 0.75 });
+        expect($('.live-controls__status').textContent).toContain('0.75');
+        expect(runtime.status).toBe('live');
+    });
+
+    it('keeps an unsupported phrase visible and never turns it into a Dive', async () => {
+        const runtime = fakeRuntime('live');
+        controls = createLiveControls({ runtime, onStop: () => {} });
+        const field = $('input[name="visual"]');
+        field.value = 'more vibrant and stop';
+        $('[data-live="visual-submit"]').click();
+        await flush();
+        expect(runtime.controlVisual).not.toHaveBeenCalled();
+        expect(runtime.dive).not.toHaveBeenCalled();
+        expect(field.value).toBe('more vibrant and stop');
+        expect($('.live-controls__error').textContent).toBe('Only “more vibrant” is available for visual changes.');
+    });
+
+    it('reports the intensity limit without claiming another change', () => {
+        const runtime = fakeRuntime('live');
+        runtime.discoverVisual.mockReturnValue({ target: { intensity: 0.75 }, current: { intensity: 0.75 } });
+        controls = createLiveControls({ runtime, onStop: () => {} });
+        $('input[name="visual"]').value = 'more vibrant';
+        $('[data-live="visual-submit"]').click();
+        expect(runtime.controlVisual).not.toHaveBeenCalled();
+        expect($('.live-controls__status').textContent).toContain('already at its brightness limit');
     });
 });
 
@@ -400,6 +439,44 @@ describe('speaking to it', () => {
         expect(micLine().hidden).toBe(false);
         recogniser().say('wait dive');
         expect(micLine().textContent).toBe('Hearing: “wait dive”');
+    });
+
+    it('listens for the closed visual phrase without holding the reading', async () => {
+        const runtime = withMic('live');
+        $('[data-live="listen-visual"]').click();
+        expect(runtime.calls).toEqual([]);
+        expect(recogniser().started).toBe(true);
+        await hear('please more vibrant');
+        expect(runtime.controlVisual).toHaveBeenCalledWith({ surface: 'attractor', parameter: 'intensity', value: 0.75 });
+        expect(runtime.status).toBe('live');
+    });
+
+    it('keeps unrecognized visual words visible and does not interpret them as a question', async () => {
+        const runtime = withMic('live');
+        $('[data-live="listen-visual"]').click();
+        await hear('make it blue');
+        expect(runtime.controlVisual).not.toHaveBeenCalled();
+        expect(runtime.dive).not.toHaveBeenCalled();
+        expect(micLine().textContent).toContain('make it blue');
+        expect(runtime.status).toBe('live');
+    });
+
+    it('cancels visual listening without holding or changing playback', () => {
+        const runtime = withMic('live');
+        $('[data-live="listen-visual"]').click();
+        controls.destroy();
+        expect(recogniser().aborted).toBe(true);
+        expect(runtime.calls).toEqual([]);
+        expect(runtime.status).toBe('live');
+    });
+
+    it('shows visual recognition failure while playback continues', () => {
+        const runtime = withMic('live');
+        $('[data-live="listen-visual"]').click();
+        recogniser().fail('network');
+        expect(micLine().textContent).toMatch(/speech service could not be reached/u);
+        expect(runtime.calls).toEqual([]);
+        expect(runtime.status).toBe('live');
     });
 
     it('takes the second press as "that is all I wanted to say"', () => {

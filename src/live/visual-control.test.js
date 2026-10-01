@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { validateVisualCommand } from './visual-control.js';
+import { interpretVisualControl, validateVisualCommand } from './visual-control.js';
 
 describe('validateVisualCommand', () => {
   it('clamps a finite readable intensity while retaining the requested value', () => {
@@ -24,5 +24,13 @@ describe('validateVisualCommand', () => {
       .toEqual({ ok: false, code: 'UNSUPPORTED_SURFACE' });
     expect(validateVisualCommand({ surface: 'attractor', parameter: 'hue', value: 0.7 }))
       .toEqual({ ok: false, code: 'UNSUPPORTED_SURFACE' });
+  });
+});
+
+describe('interpretVisualControl', () => {
+  it('accepts only the closed more-vibrant phrase after harmless normalization', () => {
+    expect(interpretVisualControl(' Please MORE   VIBRANT! ')).toBe(true);
+    expect(interpretVisualControl('not more vibrant')).toBe(false);
+    expect(interpretVisualControl('more vibrant and stop')).toBe(false);
   });
 });
