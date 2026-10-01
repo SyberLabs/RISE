@@ -456,6 +456,45 @@ describe('speaking to it', () => {
         expect(runtime.status).toBe('live');
     });
 
+    it('releases a microphone-owned question hold when switching to visual listening', async () => {
+        const runtime = withMic('live');
+        press();
+        const questionRecognition = recogniser();
+        expect(runtime.status).toBe('interrupted');
+        $('[data-live="listen-visual"]').click();
+        expect(questionRecognition.aborted).toBe(true);
+        expect(runtime.calls).toEqual([['hold', undefined], ['resume']]);
+        expect(runtime.status).toBe('live');
+        expect(recogniser()).not.toBe(questionRecognition);
+        await hear('more vibrant');
+        expect(runtime.controlVisual).toHaveBeenCalledWith({ surface: 'attractor', parameter: 'intensity', value: 0.75 });
+        expect(runtime.status).toBe('live');
+    });
+
+    it('keeps a resumed reading live when visual recognition then fails', () => {
+        const runtime = withMic('live');
+        press();
+        $('[data-live="listen-visual"]').click();
+        recogniser().fail('network');
+        expect(runtime.status).toBe('live');
+        expect(runtime.calls).toEqual([['hold', undefined], ['resume']]);
+        expect(micLine().textContent).toMatch(/speech service could not be reached/u);
+    });
+
+    it('preserves a reader-owned hold when switching from Speak to visual listening', () => {
+        const runtime = withMic('live');
+        runtime.hold();
+        press();
+        const questionRecognition = recogniser();
+        $('[data-live="listen-visual"]').click();
+        expect(questionRecognition.aborted).toBe(true);
+        expect(runtime.calls).toEqual([['hold', undefined]]);
+        expect(runtime.status).toBe('interrupted');
+        recogniser().fail('network');
+        expect(runtime.status).toBe('interrupted');
+        expect(runtime.calls).toEqual([['hold', undefined]]);
+    });
+
     it('keeps unrecognized visual words visible and does not interpret them as a question', async () => {
         const runtime = withMic('live');
         $('[data-live="listen-visual"]').click();

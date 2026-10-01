@@ -330,7 +330,9 @@ export function createLiveControls({ runtime, onStop, audible = true, mic = null
         const startListening = mode => {
             if (listener.listening) {
                 if (micMode === mode) { listener.stop(); return; }
+                const abandonedMode = micMode;
                 listener.cancel();
+                if (abandonedMode === 'question') letGo();
             }
             show('');
             micMode = mode;
