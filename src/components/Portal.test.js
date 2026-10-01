@@ -256,7 +256,7 @@ describe('the rest of Home', () => {
         expect(items[0].getAttribute('aria-current')).toBe('page');
         expect(document.activeElement).toBe(items[0]);
         expect([...container.querySelectorAll('.portal-nav [data-nav]')].map(item => item.dataset.nav))
-            .toEqual(['live', 'create', 'library', 'vault', 'workshop', 'chamber', 'chapel', 'scriptorium', 'visual-lab', 'emotions', 'curia']);
+            .toEqual(['create', 'library', 'vault', 'workshop', 'chamber', 'live', 'chapel', 'scriptorium', 'visual-lab', 'emotions', 'curia']);
 
         const last = items[items.length - 1];
         last.focus();
@@ -330,11 +330,13 @@ describe('the rest of Home', () => {
         portal.destroy();
     });
 
-    it('opens a door onto the live Current', () => {
+    it('opens a door onto the live Current, as a minor room until Stage 2 is complete', () => {
         const { portal, container, onNavigate } = makePortal();
         const door = container.querySelector('.portal-nav [data-nav="live"]');
-        expect(door, 'the live Current has no door in the primary nav').not.toBeNull();
-        expect(door.classList.contains('portal-nav-minor'), 'the live Current is not a minor room').toBe(false);
+        expect(door, 'the live Current has no door at all').not.toBeNull();
+        // Reachable without a typed URL, but not promoted: the runtime is mid-build
+        // (docs/VISION.md Stage 2). Promote it, and flip this, when Stage 2's shown-by holds.
+        expect(door.classList.contains('portal-nav-minor'), 'the live Current is promoted before Stage 2').toBe(true);
         door.click();
         expect(onNavigate).toHaveBeenCalledWith('live');
         portal.destroy();
