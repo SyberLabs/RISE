@@ -94,7 +94,7 @@ export class LiveHost {
         this.hasCatalogChoice = this.params.has('catalog');
         this.catalogId = this.params.get('catalog');
         this.catalogConflict = this.hasCatalogChoice && (
-            this.embedded || this.params.has('eval') || (this.params.get('provider') || 'mock') !== 'mock'
+            this.embedded || this.params.has('eval') || this.chosenProvider() !== 'mock'
         );
         if (this.catalogConflict) {
             this.renderCatalogRefusal('Catalog sample choices are only available in the offline demonstration.');

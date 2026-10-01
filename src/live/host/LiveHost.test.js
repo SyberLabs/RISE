@@ -155,6 +155,16 @@ describe('refusing, in words', () => {
         }
     });
 
+    it('admits catalog choices when an unknown provider falls back to mock, including differently cased names', async () => {
+        for (const search of ['?catalog=klee&provider=GEMINI', '?catalog=klee&provider=nonsense']) {
+            mount(search);
+            expect(host.chosenProvider()).toBe('mock');
+            expect(container.querySelector('.live-error').hidden).toBe(true);
+            expect(container.querySelector('.live-catalog-note').textContent).toBe('This sample begins with klee.');
+            expect(host.catalogConflict).toBe(false);
+        }
+    });
+
     it('revalidates the sample inside the mock-adapter path and chooses genesis or still', async () => {
         for (const [search, environment, expected] of [
             ['?catalog=klee', env(), 'genesis'],

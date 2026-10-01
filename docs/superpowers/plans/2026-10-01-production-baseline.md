@@ -40,7 +40,19 @@ Both authored tests must preserve their existing assertions, including exported 
 
 - [ ] Inspect the diff, document root cause and red/green evidence, and commit only the narrow test fix plus this specification and plan.
 
-### Task 2: Verify and integrate production (coordinator)
+### Task 2: Close existing production review defects
+
+**Files:** Modify `src/live/host/controls.js`, `src/live/host/LiveHost.js`; tests `src/live/host/controls.test.js`, `src/live/host/LiveHost.test.js` (or existing catalog host test file discovered in the repository).
+
+**Interfaces:** Consumes existing `submitVisual`, runtime snapshots with main/side run and segment identity, and `chosenProvider()`. Produces lifecycle-correct feedback and catalog admission preserving the existing unknown-provider mock fallback.
+
+- [ ] Write and run failing tests for direct visual-form submit cancellation and exactly one visual command; stale brightness-limit feedback disappearing on active run/segment change; unknown/differently-cased provider catalog requests falling back to mock while known real providers still refuse catalog.
+- [ ] Add a submit listener to `.live-controls__visual` that prevents default and calls the existing `submitVisual` function. Preserve the intercepted Enter and button paths.
+- [ ] Track active run/segment identity in `render(snapshot)` and clear visual outcome only when that identity changes; retain feedback across ordinary same-segment snapshots. Cover Dive and Surface selection.
+- [ ] Replace the catalog conflict's raw provider comparison with `this.chosenProvider() !== 'mock'`. Preserve embed/eval conflicts and all invalid catalog refusals.
+- [ ] Run targeted host tests and `e2e/live-control.spec.js` plus `e2e/visual-catalog.spec.js`; record real red/green evidence, self-review and commit only task files. If snapshot identity differs from this description, use the actual existing runtime identifiers and report them.
+
+### Task 3: Verify and integrate production (coordinator)
 
 **Files:** No intended production code changes. Existing `.github/workflows/ci.yml` and `full-validation.yml` own deployment and full validation.
 

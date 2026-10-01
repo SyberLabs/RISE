@@ -212,6 +212,19 @@ describe('the buttons', () => {
 });
 
 describe('visual control', () => {
+    it('cancels a direct form submit and applies the visual change exactly once', () => {
+        const runtime = fakeRuntime('live');
+        controls = createLiveControls({ runtime, onStop: () => {} });
+        $('input[name="visual"]').value = 'more vibrant';
+        const submit = new Event('submit', { bubbles: true, cancelable: true });
+
+        const notCancelled = $('.live-controls__visual').dispatchEvent(submit);
+
+        expect(notCancelled).toBe(false);
+        expect(submit.defaultPrevented).toBe(true);
+        expect(runtime.controlVisual).toHaveBeenCalledTimes(1);
+    });
+
     it('applies the closed typed phrase and reports the target', async () => {
         const runtime = fakeRuntime('live');
         controls = createLiveControls({ runtime, onStop: () => {} });
@@ -250,6 +263,47 @@ describe('visual control', () => {
         $('[data-live="visual-submit"]').click();
         expect($('.live-controls__status').textContent).not.toContain('already at its brightness limit');
         expect($('.live-controls__error').textContent).toBe('There is no adjustable visual on screen right now.');
+    });
+
+    it('keeps outcome feedback for the active segment and clears it when the selected run or segment changes', () => {
+        const runtime = fakeRuntime('live');
+        runtime.discoverVisual.mockReturnValue({ target: { intensity: 0.75 }, current: { intensity: 0.75 } });
+        runtime.set('live', { main: { currentId: 'main-1', segmentId: 'main-segment-1' } });
+        controls = createLiveControls({ runtime, onStop: () => {} });
+        $('input[name="visual"]').value = 'more vibrant';
+        $('[data-live="visual-submit"]').click();
+        expect($('.live-controls__status').textContent).toContain('already at its brightness limit');
+
+        runtime.set('live', { main: { currentId: 'main-1', segmentId: 'main-segment-1', speaking: 'main-segment-1' } });
+        expect($('.live-controls__status').textContent).toContain('already at its brightness limit');
+
+        runtime.set('live', { main: { currentId: 'main-1', segmentId: 'main-segment-2' } });
+        expect($('.live-controls__status').textContent).not.toContain('already at its brightness limit');
+
+        runtime.set('live', { main: { currentId: 'main-1', segmentId: 'main-segment-2' } });
+        $('input[name="visual"]').value = 'more vibrant';
+        $('[data-live="visual-submit"]').click();
+        runtime.set('diving', {
+            main: { currentId: 'main-1', segmentId: 'main-segment-2' },
+            side: { currentId: 'side-1', segmentId: 'side-segment-1' }
+        });
+        expect($('.live-controls__status').textContent).not.toContain('already at its brightness limit');
+
+        $('input[name="visual"]').value = 'more vibrant';
+        $('[data-live="visual-submit"]').click();
+        runtime.set('diving', {
+            main: { currentId: 'main-1', segmentId: 'main-segment-2' },
+            side: { currentId: 'side-1', segmentId: 'side-segment-1' }
+        });
+        expect($('.live-controls__status').textContent).toContain('already at its brightness limit');
+        runtime.set('live', { main: { currentId: 'main-1', segmentId: 'main-segment-2' } });
+        expect($('.live-controls__status').textContent).not.toContain('already at its brightness limit');
+
+        runtime.set('live', { main: { currentId: 'main-1', segmentId: 'main-segment-2' } });
+        $('input[name="visual"]').value = 'more vibrant';
+        $('[data-live="visual-submit"]').click();
+        runtime.set('live', { main: { currentId: 'main-2', segmentId: 'main-segment-2' } });
+        expect($('.live-controls__status').textContent).not.toContain('already at its brightness limit');
     });
 });
 

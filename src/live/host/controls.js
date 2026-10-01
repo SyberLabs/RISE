@@ -109,6 +109,7 @@ export function createLiveControls({ runtime, onStop, audible = true, mic = null
     const statusLine = $('.live-controls__status');
     const errorLine = $('.live-controls__error');
     const form = $('.live-controls__ask');
+    const visualForm = $('.live-controls__visual');
     const input = $('input[name="question"]');
     const visualInput = $('input[name="visual"]');
     const dive = $('[data-live="dive"]');
@@ -131,6 +132,7 @@ export function createLiveControls({ runtime, onStop, audible = true, mic = null
     let heldByMic = false;
     let micMode = null;
     let visualOutcome = '';
+    let visualIdentity = null;
 
     const show = message => {
         errorLine.textContent = message ?? '';
@@ -218,6 +220,13 @@ export function createLiveControls({ runtime, onStop, audible = true, mic = null
     function render(snapshot) {
         if (destroyed) return;
         const { status } = snapshot;
+        const role = status === 'diving' ? 'side' : 'main';
+        const active = snapshot[role];
+        const identity = JSON.stringify([role, active?.currentId ?? null, active?.segmentId ?? null]);
+        if (identity !== visualIdentity) {
+            visualIdentity = identity;
+            visualOutcome = '';
+        }
         statusLine.textContent = [describeStatus(snapshot, { audible, question }), visualOutcome].filter(Boolean).join(' ');
         const canAsk = status === 'live' || status === 'interrupted' || status === 'ended';
         // A Dive that is still connecting is already the runtime's side run.
@@ -389,6 +398,10 @@ export function createLiveControls({ runtime, onStop, audible = true, mic = null
         show('');
         applyVisualControl();
     };
+    visualForm.addEventListener('submit', event => {
+        event.preventDefault();
+        submitVisual();
+    });
     $('[data-live="visual-submit"]').addEventListener('click', submitVisual);
     visualInput.addEventListener('keydown', event => {
         if (event.key !== 'Enter' || event.isComposing) return;
