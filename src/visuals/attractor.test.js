@@ -281,6 +281,17 @@ describe('Attractor visual control', () => {
       .toEqual({ status: 'refused', code: 'NO_ACTIVE_VISUAL' });
   });
 
+  it('refuses discovery and control when the connected canvas has no 2D context', () => {
+    vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(null);
+    const field = new AttractorField(makeHost(), { intensity: 0.65, adaptive: false });
+
+    expect(field.canvas.isConnected).toBe(true);
+    expect(field.discoverVisual()).toBeNull();
+    expect(field.controlVisual({ surface: 'attractor', parameter: 'intensity', value: 0.75 }))
+      .toEqual({ status: 'refused', code: 'NO_ACTIVE_VISUAL' });
+    field.destroy();
+  });
+
   it('repaints a paused field once without restarting its frame loop', () => {
     const field = new AttractorField(makeHost(), { intensity: 0.65, adaptive: false });
     const paintedAt = performance.now();

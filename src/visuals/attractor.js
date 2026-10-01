@@ -539,7 +539,7 @@ export class AttractorField {
     }
 
     discoverVisual() {
-        if (this.destroyed || !this.canvas?.isConnected || !this.host?.isConnected) return null;
+        if (this.destroyed || !this.ctx || !this.canvas?.isConnected || !this.host?.isConnected) return null;
         return Object.freeze({
             manifest: ATTRACTOR_VISUAL_MANIFEST,
             current: Object.freeze({ intensity: this.intensity }),
@@ -550,7 +550,7 @@ export class AttractorField {
     controlVisual(command) {
         const validated = validateVisualCommand(command);
         if (!validated.ok) return { status: 'refused', code: validated.code };
-        if (this.destroyed || !this.canvas?.isConnected || !this.host?.isConnected) {
+        if (this.destroyed || !this.ctx || !this.canvas?.isConnected || !this.host?.isConnected) {
             return { status: 'refused', code: 'NO_ACTIVE_VISUAL' };
         }
 
