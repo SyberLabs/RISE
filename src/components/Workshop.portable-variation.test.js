@@ -62,6 +62,16 @@ function makeWorkshop(onCreateSession = vi.fn(), options = {}) {
   return { workshop: new Workshop(container, { onCreateSession, ...options }), container };
 }
 
+function deferred() {
+  let resolve;
+  let reject;
+  const promise = new Promise((resolvePromise, rejectPromise) => {
+    resolve = resolvePromise;
+    reject = rejectPromise;
+  });
+  return { promise, resolve, reject };
+}
+
 it('opens a local child draft and leaves the original untouched on cancellation', async () => {
   const parent = await importedParent();
   const before = MemoryCore.getWorkshopBlueprints()[0].project;
@@ -125,6 +135,118 @@ it('saves a changed title and pace as a distinct proposed child with parent line
   expect(carried.creatorCredit).toBeNull();
   expect(carried.id).not.toBe(parent.id);
   workshop.destroy();
+});
+
+it('locks a variation editor until its selected parent is loaded', async () => {
+  const parent = await importedParent();
+  const parentProject = MemoryCore.getWorkshopBlueprints()[0].project;
+  const pendingLookup = deferred();
+  const onCreateSession = vi.fn();
+  const { workshop, container } = makeWorkshop(onCreateSession);
+  vi.spyOn(workshop, 'loadSavedBlueprints').mockReturnValue(pendingLookup.promise);
+
+  workshop.update({ varyBlueprintId: parent.id });
+
+  expect(container.querySelector('#workshop-sequence-status').textContent).toContain('Loading selected sequence');
+  expect(container.querySelector('#session-title').disabled).toBe(true);
+  expect(container.querySelector('[data-action="save-draft"]').disabled).toBe(true);
+  expect(container.querySelector('[data-action="preview"]').disabled).toBe(true);
+  expect(await workshop.saveSequenceToVault()).toBeNull();
+  expect(await workshop.createSession()).toBe(false);
+  expect(workshop.previewSession()).toBe(false);
+  expect(onCreateSession).not.toHaveBeenCalled();
+  expect(MemoryCore.getWorkshopBlueprints()).toHaveLength(1);
+
+  pendingLookup.resolve(MemoryCore.getWorkshopBlueprints());
+  await vi.waitFor(() => expect(container.querySelector('#workshop-sequence-status').textContent)
+    .toContain('Variation of an imported score'));
+
+  const title = container.querySelector('#session-title');
+  title.value = 'A Palace Variation';
+  title.dispatchEvent(new Event('input', { bubbles: true }));
+  workshop.setInspectorContext({ kind: 'pacing' });
+  const pace = container.querySelector('#wpm-slider');
+  pace.value = '240';
+  pace.dispatchEvent(new Event('input', { bubbles: true }));
+  expect(pace.disabled).toBe(false);
+
+  const saved = await workshop.saveSequenceToVault();
+  const projects = MemoryCore.getWorkshopBlueprints().map(item => item.project);
+  expect(projects).toHaveLength(2);
+  expect(projects.find(item => item.id === parent.id)).toEqual(parentProject);
+  const child = projects.find(item => item.id === saved.id);
+  expect(child.title).toBe('A Palace Variation');
+  expect(child.defaults.reading.wpm).toBe(240);
+  expect(child.experienceProgram.authority).toBe('proposed');
+  expect(child.provenance).toEqual({
+    kind: 'portable-sequence-variation', parentPortableId: parent.id
+  });
+  const exported = await inspectPortableSequence(await exportPortableSequence(child));
+  expect(exported.parentPortableId).toBe(parent.id);
+  expect(exported.project.defaults.reading.wpm).toBe(240);
+  workshop.destroy();
+});
+
+it('clears the loading state when a saved sequence lookup fails', async () => {
+  const pendingLookup = deferred();
+  const { workshop, container } = makeWorkshop();
+  vi.spyOn(workshop, 'loadSavedBlueprints').mockReturnValue(pendingLookup.promise);
+  vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+  workshop.update({ blueprintId: 'missing-blueprint' });
+  expect(container.querySelector('#session-title').disabled).toBe(true);
+  pendingLookup.reject(new Error('Vault unavailable'));
+
+  await vi.waitFor(() => expect(container.querySelector('#workshop-sequence-status').textContent)
+    .not.toContain('Loading selected sequence'));
+  expect(container.querySelector('#session-title').disabled).toBe(false);
+  expect(container.querySelector('[data-action="save-draft"]').disabled).toBe(false);
+  expect(workshop.activeBlueprintId).toBeNull();
+  expect(workshop.activeDraftKind).toBe('new');
+  workshop.destroy();
+});
+
+it('ignores an older variation lookup after a newer parent is selected', async () => {
+  const firstParent = await importedParent();
+  const secondParent = await importedQuietExample();
+  const firstLookup = deferred();
+  const secondLookup = deferred();
+  const { workshop, container } = makeWorkshop();
+  vi.spyOn(workshop, 'loadSavedBlueprints')
+    .mockReturnValueOnce(firstLookup.promise)
+    .mockReturnValueOnce(secondLookup.promise);
+
+  workshop.update({ varyBlueprintId: firstParent.id });
+  workshop.update({ varyBlueprintId: secondParent.id });
+  firstLookup.resolve(MemoryCore.getWorkshopBlueprints());
+  await Promise.resolve();
+
+  expect(workshop.sessionData.provenance?.parentPortableId).toBeUndefined();
+  expect(container.querySelector('#workshop-sequence-status').textContent)
+    .toContain('Loading selected sequence');
+
+  secondLookup.resolve(MemoryCore.getWorkshopBlueprints());
+  await vi.waitFor(() => expect(workshop.sessionData.provenance?.parentPortableId)
+    .toBe(secondParent.id));
+  expect(workshop.activeDraftKind).toBe('variation');
+  workshop.destroy();
+});
+
+it('does not install a selected project after Workshop is destroyed during loading', async () => {
+  const parent = await importedParent();
+  const pendingLookup = deferred();
+  const { workshop } = makeWorkshop();
+  vi.spyOn(workshop, 'loadSavedBlueprints').mockReturnValue(pendingLookup.promise);
+  const originalSession = workshop.sessionData;
+
+  workshop.update({ varyBlueprintId: parent.id });
+  workshop.destroy();
+  pendingLookup.resolve(MemoryCore.getWorkshopBlueprints());
+  await Promise.resolve();
+
+  expect(workshop.sessionData).toBe(originalSession);
+  expect(workshop.activeDraftKind).toBe('new');
+  expect(workshop.activeBlueprintId).toBeNull();
 });
 
 async function importedQuietExample() {

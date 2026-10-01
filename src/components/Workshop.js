@@ -367,6 +367,10 @@ export class Workshop {
     this.activeDraftKind = 'new';
     this.editorDirty = false;
     this.saveInProgress = false;
+    this.blueprintLoadRequestId = 0;
+    this.blueprintLoadInProgress = false;
+    this.blueprintLoadControlStates = null;
+    this.destroyed = false;
     this.savedBlueprints = MemoryCore.getWorkshopBlueprints();
     /** @type {Map<string, Blob>} */
     this.pendingMediaBlobs = new Map();
@@ -631,42 +635,81 @@ export class Workshop {
   }
 
   async openSavedBlueprintAsync(blueprintId, { preserveCurrent = true, varyAsNew = false } = {}) {
-    this.savedBlueprints = await this.loadSavedBlueprints();
-    const blueprint = this.savedBlueprints.find(item => item.id === blueprintId);
-    if (!blueprint) {
-      this.showToast('That sequence is no longer in the Vault');
-      this.updateSequencePicker();
-      return false;
-    }
-    if (varyAsNew && !blueprint.provenance?.portableId) {
-      this.showToast('Only imported portable scores can start this variation');
-      return false;
-    }
+    const requestId = ++this.blueprintLoadRequestId;
+    this.setBlueprintLoadInProgress(true);
+    try {
+      const savedBlueprints = await this.loadSavedBlueprints();
+      if (!this.isCurrentBlueprintLoad(requestId)) return false;
+      this.savedBlueprints = savedBlueprints;
+      const blueprint = this.savedBlueprints.find(item => item.id === blueprintId);
+      if (!blueprint) {
+        this.showToast('That sequence is no longer in the Vault');
+        this.updateSequencePicker();
+        return false;
+      }
+      if (varyAsNew && !blueprint.provenance?.portableId) {
+        this.showToast('Only imported portable scores can start this variation');
+        return false;
+      }
 
-    if (preserveCurrent) this.suspendCurrentDraft();
-    this.pendingMediaBlobs.clear();
-    const editable = normalizeSessionData(blueprint);
-    // `schema` AND `id` LEAVE TOGETHER. A blueprint view carries
-    // `schema: rise.workshop-project.v1`, and dropping only the id leaves
-    // a payload that answers isWorkshopProject() and cannot pass
-    // validateWorkshopProject — which is what handleCreateSession calls
-    // when it sees the schema. An editor draft is a session config, not a
-    // project.
-    delete editable.schema;
-    delete editable.project;
-    delete editable.id;
-    delete editable.updatedAt;
-    if (varyAsNew) {
-      editable.provenance = {
-        kind: 'portable-sequence-variation',
-        parentPortableId: blueprint.provenance.portableId
-      };
+      if (preserveCurrent) this.suspendCurrentDraft();
+      this.pendingMediaBlobs.clear();
+      const editable = normalizeSessionData(blueprint);
+      // `schema` AND `id` LEAVE TOGETHER. A blueprint view carries
+      // `schema: rise.workshop-project.v1`, and dropping only the id leaves
+      // a payload that answers isWorkshopProject() and cannot pass
+      // validateWorkshopProject — which is what handleCreateSession calls
+      // when it sees the schema. An editor draft is a session config, not a
+      // project.
+      delete editable.schema;
+      delete editable.project;
+      delete editable.id;
+      delete editable.updatedAt;
+      if (varyAsNew) {
+        editable.provenance = {
+          kind: 'portable-sequence-variation',
+          parentPortableId: blueprint.provenance.portableId
+        };
+      }
+      this.replaceEditorData(editable, {
+        blueprintId: varyAsNew ? null : blueprintId,
+        kind: varyAsNew ? 'variation' : 'saved'
+      });
+      return true;
+    } catch (error) {
+      if (this.isCurrentBlueprintLoad(requestId)) {
+        console.warn('[Workshop] Could not load selected sequence:', error);
+        this.showToast('Could not load that sequence. Choose another sequence or retry.');
+      }
+      return false;
+    } finally {
+      if (this.isCurrentBlueprintLoad(requestId)) this.setBlueprintLoadInProgress(false);
     }
-    this.replaceEditorData(editable, {
-      blueprintId: varyAsNew ? null : blueprintId,
-      kind: varyAsNew ? 'variation' : 'saved'
-    });
-    return true;
+  }
+
+  isCurrentBlueprintLoad(requestId) {
+    return !this.destroyed && this.blueprintLoadRequestId === requestId;
+  }
+
+  setBlueprintLoadInProgress(isLoading) {
+    if (isLoading) {
+      if (!this.blueprintLoadInProgress) {
+        const controls = [...this.container.querySelectorAll('input, select, textarea, button')]
+          .filter(control => control.id !== 'workshop-sequence-select'
+            && control.dataset.action !== 'back');
+        this.blueprintLoadControlStates = new Map(controls.map(control => [control, control.disabled]));
+        controls.forEach(control => { control.disabled = true; });
+      }
+      this.blueprintLoadInProgress = true;
+    } else {
+      this.blueprintLoadInProgress = false;
+      this.blueprintLoadControlStates?.forEach((wasDisabled, control) => {
+        if (control.isConnected) control.disabled = wasDisabled;
+      });
+      this.blueprintLoadControlStates = null;
+    }
+    const status = this.container.querySelector('#workshop-sequence-status');
+    if (status) status.textContent = isLoading ? 'Loading selected sequence' : this.getEditorStatus();
   }
 
   restoreSuspendedDraft(draftId) {
@@ -717,6 +760,7 @@ export class Workshop {
   }
 
   getEditorStatus() {
+    if (this.blueprintLoadInProgress) return 'Loading selected sequence';
     if (this.activeBlueprintId) {
       return this.isCurrentDraftDirty()
         ? 'Editing a saved sequence · changes remain private until saved'
@@ -809,6 +853,7 @@ export class Workshop {
 
   /** Preview compiles the draft it is given and enters the Chamber the launch path uses. */
   previewSession(data = this.sessionData) {
+    if (this.blueprintLoadInProgress) return false;
     this.audioPreview.stop();
     this.getAudioEngine()?.playHiss();
     try {
@@ -4518,6 +4563,10 @@ export class Workshop {
       target.closest('.studio-project-menu')?.removeAttribute('open');
 
       const action = target.dataset.action;
+      if (this.blueprintLoadInProgress && action !== 'back') {
+        e.preventDefault();
+        return;
+      }
       if (action === 'open-browser') {
         this.getAudioEngine()?.playHiss();
         this.openSourceBrowser();
@@ -4883,6 +4932,7 @@ export class Workshop {
   }
 
   handleStudioKeydown(event) {
+    if (this.blueprintLoadInProgress) return;
     const actionTarget = event.target.closest?.('[data-action]:not(button)');
     if (actionTarget && ['Enter', ' '].includes(event.key)) {
       event.preventDefault();
@@ -4920,6 +4970,7 @@ export class Workshop {
 
   handleKeyboard(e) {
     const target = e.target;
+    if (this.blueprintLoadInProgress && e.key !== 'Escape') return;
     const editingText = target instanceof HTMLInputElement
       || target instanceof HTMLTextAreaElement
       || target instanceof HTMLSelectElement
@@ -5208,6 +5259,7 @@ export class Workshop {
   }
 
   async persistSequenceToVault(transaction = null) {
+    if (this.blueprintLoadInProgress) return null;
     const editorData = this.sessionData;
     const editorSnapshot = JSON.stringify(editorData);
     const blueprintId = this.activeBlueprintId;
@@ -5715,6 +5767,7 @@ export class Workshop {
   }
 
   async saveSequenceToVault() {
+    if (this.blueprintLoadInProgress) return null;
     if (this.saveInProgress) {
       this.showToast('A save or launch is already underway');
       return null;
@@ -5749,6 +5802,7 @@ export class Workshop {
   }
 
   async createSession() {
+    if (this.blueprintLoadInProgress) return false;
     if (this.saveInProgress) {
       this.showToast('A save or launch is already underway');
       return false;
@@ -5853,6 +5907,10 @@ export class Workshop {
   }
 
   destroy() {
+    this.destroyed = true;
+    this.blueprintLoadRequestId += 1;
+    this.blueprintLoadInProgress = false;
+    this.blueprintLoadControlStates = null;
     if (this.resetTimer) {
       clearTimeout(this.resetTimer);
       this.resetTimer = null;

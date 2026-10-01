@@ -73,13 +73,25 @@ Both authored tests must preserve their existing assertions, including exported 
 - [x] Keep all unordered pairwise distinctness comparisons in a separate case, retaining the `1e-4` sample delta and `differing / length > 0.5` threshold.
 - [x] Run the focused `audio-mix.test.js` suite once with the supported Node runtime; record the exact command, result and workload allocation. Review all soundscape and pair coverage, then commit only the test, plan/spec updates and task report.
 
-### Task 5: Verify and integrate production (coordinator)
+### Task 5: Lock Workshop while a saved sequence loads
+
+**Files:** Modify `src/components/Workshop.js`, `src/components/Workshop.portable-variation.test.js`, and `e2e/authored-examples.spec.js`; update this plan and the production-baseline spec. Touch `e2e/recipient-remix.spec.js` only if its variation readiness is not already established by a loaded remix panel.
+
+**Interfaces:** Consumes the existing asynchronous Vault lookup in `openSavedBlueprintAsync`. Produces a locked editor until the selected project is ready, while preserving variation title, pace, lineage, and proposed authority.
+
+- [x] Defer `loadSavedBlueprints()` in the portable-variation suite, start a variation, and verify that title/pace editing plus save and preview are unavailable while the plain loading status is shown. Resolve the lookup, edit title and pace to 240 through the editor controls, then verify save/export keeps 240, parent lineage, and proposed authority.
+- [x] Run that focused regression before the production fix and record the expected failure. Add request-scoped loading state so selection changes supersede older lookups, loading failure unlocks the editor, and a destroyed Workshop ignores completion.
+- [x] Run `Workshop.portable-variation.test.js` and the related Workshop component tests with the supported Node runtime.
+- [x] Keep the authored-example exported pace expectation at 240 and wait for `#workshop-sequence-status` to contain `Variation of an imported score` before editing.
+- [x] Run the focused authored-example and recipient-remix browser files once through the standard Playwright harness. Record exact commands and pass/fail counts, review the diff and commit only task files, report and baseline plan/spec updates.
+
+### Task 6: Verify and integrate production (coordinator)
 
 **Files:** No intended production code changes. Existing `.github/workflows/ci.yml` and `full-validation.yml` own deployment and full validation.
 
-**Interfaces:** Consumes reviewed PR364 then PR365 then baseline fix PR. Produces an exact deployed SHA and live verification evidence.
+**Interfaces:** Consumes reviewed PR364 then PR365 then the baseline fix PR. Produces an exact deployed SHA and live verification evidence.
 
-- [ ] Review Task 1 against its brief and diff; resolve actionable findings.
+- [ ] Review Tasks 1–5 against their briefs and diffs; resolve actionable findings.
 - [ ] Run `npm run test:run`, `npm run test:e2e:gate`, existing slice browser tests, CI hygiene/security/architecture checks and production build using the pinned compatible Node runtime. Inspect every result.
 - [ ] Push baseline branch and create a PR stacked on PR365; attach it to this chat. Verify required CI.
 - [ ] Merge PR364 through CI, retarget PR365 to main, wait for its current-base CI, merge it, retarget baseline PR to main and merge through its current-base CI. Never bypass required checks or use force pushes.
