@@ -35,7 +35,7 @@ A test in a sandboxed frame found one more: a frame sandboxed without `allow-for
 
 ## The tool contract
 
-`rise_present` takes `{ current: <rise.current.v1> }` and nothing else. A valid Current gets `RISE is presenting this to the reader.` An invalid one gets a tool error (`isError`), not a protocol error, saying what was wrong and where, so the model can correct it. The tool is read-only and idempotent. It points at the app in the extension's key (`_meta.ui.resourceUri`) and its older flat spelling (`_meta["ui/resourceUri"]`), which the reference server helper also emits.
+`rise_present` takes `{ current: <rise.current.v1> }` and nothing else. A valid Current returns the validated object in `structuredContent.current` with text saying it was accepted for presentation. The server does not acknowledge playback. An invalid one gets a tool error (`isError`), not a protocol error, saying what was wrong and where, so the model can correct it. The tool is read-only and idempotent. It points at the app in the extension's key (`_meta.ui.resourceUri`) and its older flat spelling (`_meta["ui/resourceUri"]`), which the reference server helper also emits.
 
 ## What was verified, and how
 
@@ -57,7 +57,7 @@ The two reference checks are one-off local runs, not part of the test suite, bec
 It is **off**. `MCP_ENABLED` is `"false"` in `wrangler.production.jsonc` and absent in staging. Nothing about the deployed site changes until both of these are done:
 
 1. Set `MCP_ENABLED` to `"true"`.
-2. Add `"/live"` to `assets.run_worker_first` in that Wrangler config, so the Worker sees `/live?embed=mcp` and can serve it framable. **This is a change to the site's framing posture**: every response says `X-Frame-Options: DENY` and `frame-ancestors 'none'`, and a test holds that. With MCP on, exactly one request shape, `GET /live?embed=mcp`, is served without `X-Frame-Options` and with `frame-ancestors *`, because a host's sandbox is on an origin RISE cannot know. Every other request is the asset, untouched. What that page can do when framed by a stranger is display a Current it is handed, and offer the microphone button, which needs the reader's own press and the browser's own permission. That is a judgment for the creator, not for me.
+2. Add `"/live"` to `assets.run_worker_first` in that Wrangler config, so the Worker sees `/live?embed=mcp` and can serve it framable. **This is a change to the site's framing posture**: every response says `X-Frame-Options: DENY` and `frame-ancestors 'none'`, and a test holds that. With MCP on, exactly one request shape, `GET/HEAD /live?embed=mcp`, is served without `X-Frame-Options` and with `frame-ancestors *`, because a host's sandbox is on an origin RISE cannot know. Every other request is the asset, untouched. What that page can do when framed by a stranger is display a Current it is handed, and offer the microphone button, which needs the reader's own press and the browser's own permission. That is a judgment for the creator, not for me.
 
 Then a host adds `https://<site>/api/mcp` as a connector. How each product does that is the product's business.
 
@@ -76,3 +76,7 @@ Then a host adds `https://<site>/api/mcp` as a connector. How each product does 
 ## Where things are
 
 `worker/mcp-server.mjs` (+ test), `src/live/hosts/mcp-relay.js`, `src/live/hosts/mcp-port.js`, `src/live/adapters/mcp-app.js`, `src/live/adapters/current-guide.js`, `src/live/host/LiveHost.js` (`?embed=mcp`), tests beside them, `e2e/live-mcp.spec.js`, `src/test/fake-mcp-port.js` and `sealed-current.js`.
+
+## ChatGPT demonstration
+
+The reader-controlled demo uses a dedicated configuration; production MCP remains disabled. Setup, ten acceptance cases and the evidence requirements are in [CHATGPT-DEMO.md](CHATGPT-DEMO.md). Engineering tests and reference-host results are separate from real ChatGPT acceptance. A signed-in developer-mode account and explicit isolated deployment approval are required before the live demonstration.

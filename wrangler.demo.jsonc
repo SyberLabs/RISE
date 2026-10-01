@@ -1,0 +1,18 @@
+{
+  "name": "rise-chatgpt-demo",
+  "main": "./worker/index.mjs",
+  "compatibility_date": "2026-09-26",
+  "workers_dev": true,
+  "preview_urls": false,
+  "vars": {
+    "PERSONAL_PIECE_ENABLED": "false",
+    "LIVE_REALTIME_ENABLED": "false",
+    "MCP_ENABLED": "true"
+  },
+  "assets": {
+    "directory": "./dist",
+    "not_found_handling": "single-page-application",
+    "binding": "ASSETS",
+    "run_worker_first": ["/api/*", "/live", "/assets/kev-worker-*", "/assets/embed-worker-*"]
+  }
+}
