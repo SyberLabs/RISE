@@ -85,7 +85,7 @@ Severity is the harm if the flag in question were switched on today: **High** me
 **F-2 · High · CONFIRMED DEFECT: two Dives can open, and the first is orphaned.**
 - *Where:* `runtime.js` `dive()` checks `if (side)` (line 331) before `side = await openRun(...)` (line 349). The Dive button stays enabled until the status becomes `diving`, which happens only after the open resolves (`controls.js` lines 208–209).
 - *Reproduce:* unit test "two Dives asked before the first has opened".
-- *Expected:* a second Dive is refused while one is opening (`NESTED_DIVE`).
+- *Expected:* a second Dive is refused while one is opening (`DIVE_BUSY`).
 - *Observed:* both open. The first is overwritten and never closed, and it keeps generating on the reader's key.
 - *Smallest fix:* set a pending-Dive marker synchronously before the await and clear it on failure. Same re-check as F-1.
 

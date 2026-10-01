@@ -168,6 +168,19 @@
 .live-controls__transcript summary { cursor: pointer; font-size: 0.8rem; color: var(--color-fog); min-height: 1.75rem; display: flex; align-items: center; }
 .live-controls__lines { margin: 0.25rem 0 0; padding-left: 1.25rem; max-height: 30vh; overflow: auto; font-size: 0.9rem; line-height: 1.5; }
 
+/* Where the reader is in a Dive, the places they dived from, and every Dive they have taken. */
+.live-controls__crumb { flex: 1 1 100%; margin: 0; font-size: 0.8rem; color: var(--color-fog); }
+.live-controls__trail { color: var(--color-light); }
+.live-controls__forks { list-style: none; margin: 0.15rem 0 0.35rem; padding: 0 0 0 0.75rem; }
+.live-controls__forks button { background: none; border: 0; padding: 0.25rem 0; min-height: 1.75rem; font: inherit; font-size: 0.8rem; color: var(--color-fog); text-align: left; cursor: pointer; text-decoration: underline; }
+.live-controls__undercurrent { flex: 1 1 100%; }
+.live-controls__undercurrent > summary { cursor: pointer; font-size: 0.8rem; color: var(--color-fog); min-height: 1.75rem; display: flex; align-items: center; }
+.live-undercurrent { list-style: none; margin: 0.25rem 0 0; padding: 0; max-height: 30vh; overflow: auto; font-size: 0.9rem; line-height: 1.5; }
+.live-undercurrent summary { cursor: pointer; min-height: 1.75rem; }
+.live-undercurrent__place, .live-undercurrent__how { margin: 0.15rem 0; font-size: 0.8rem; color: var(--color-fog); }
+.live-undercurrent__turn { margin: 0.4rem 0 0.4rem 0.75rem; }
+.live-undercurrent__asked, .live-undercurrent__answer { margin: 0.2rem 0; }
+
 @media (prefers-reduced-motion: reduce) {
   .live-controls { backdrop-filter: none; }
 }
