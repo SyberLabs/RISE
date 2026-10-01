@@ -1,3 +1,5 @@
+import { validateVisualCommand } from '../live/visual-control.js';
+
 /**
  * Exclusive lifecycle owner for schedulable persistent visual fields.
  *
@@ -21,6 +23,7 @@ export class VisualFieldDirector {
     this.timers = new Map();
     this.generation = 0;
     this.paused = false;
+    this.destroyed = false;
   }
 
   applyCue(cue, { transitionMs = this.transitionMs } = {}) {
@@ -30,7 +33,10 @@ export class VisualFieldDirector {
       return false;
     }
     const key = JSON.stringify([cue.renderer, cue.config || {}]);
-    if (this.active?.key === key) return true;
+    if (this.active?.key === key) {
+      this.active.cancelVisualControl?.();
+      return true;
+    }
     // A field that can reach its successor by interpolation keeps its layer:
     // compatible Living Flame recipes morph rather than crossfade.
     if (this.active && this.active.renderer === cue.renderer
@@ -72,8 +78,31 @@ export class VisualFieldDirector {
     return !!previous;
   }
 
+  discoverVisual() {
+    const record = this.active;
+    if (this.destroyed || !record || record.generation !== this.generation
+      || record.node?.isConnected === false || typeof record.discoverVisual !== 'function'
+      || typeof record.controlVisual !== 'function') return null;
+    return record.discoverVisual();
+  }
+
+  controlVisual(command) {
+    const validated = validateVisualCommand(command);
+    if (!validated.ok) return { status: 'refused', code: validated.code };
+    const record = this.active;
+    if (this.destroyed || !record || record.generation !== this.generation
+      || record.node?.isConnected === false) {
+      return { status: 'refused', code: 'NO_ACTIVE_VISUAL' };
+    }
+    if (typeof record.controlVisual !== 'function') {
+      return { status: 'refused', code: 'UNSUPPORTED_SURFACE' };
+    }
+    return record.controlVisual(command);
+  }
+
   retire(record, immediate = false, transitionMs = this.transitionMs) {
     if (!record || this.retiring.has(record)) return;
+    record.cancelVisualControl?.();
     // At most two layers: the incoming field and one outgoing field. An
     // older layer still fading out is disposed now rather than stacking.
     [...this.retiring].forEach(previous => this.dispose(previous));
@@ -111,6 +140,7 @@ export class VisualFieldDirector {
   }
 
   destroy() {
+    this.destroyed = true;
     this.generation += 1;
     if (this.active) this.dispose(this.active);
     this.active = null;
