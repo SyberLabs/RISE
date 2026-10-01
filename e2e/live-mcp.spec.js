@@ -128,7 +128,7 @@ test('calmer lowers the held visual target and resumes the same atom without sam
   const heldAt = await shown(app);
   expect((await log(page)).filter(entry => entry.method === 'sampling/createMessage')).toHaveLength(0);
 
-  await app.locator('#live-controls-visual').fill('calmer');
+  await app.locator('#live-controls-visual').fill('please make it calmer');
   await app.getByRole('button', { name: 'Change visual', exact: true }).click();
   await expect(app.locator('.live-controls__status')).toContainText('brightness target changed to 0.55');
   expect(await shown(app)).toBe(heldAt);

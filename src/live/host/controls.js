@@ -74,7 +74,7 @@ export function createLiveControls({ runtime, onStop, audible = true, mic = null
       </form>
       <form class="live-controls__visual" novalidate>
         <label class="live-controls__sr" for="live-controls-visual">Visual change</label>
-        <input id="live-controls-visual" name="visual" type="text" maxlength="120" autocomplete="off" placeholder="more vibrant or calmer">
+        <input id="live-controls-visual" name="visual" type="text" maxlength="120" autocomplete="off" placeholder="more vibrant or make it calmer">
         <button type="button" data-live="visual-submit">Change visual</button>
       </form>
       <div class="live-controls__buttons">
@@ -285,7 +285,7 @@ export function createLiveControls({ runtime, onStop, audible = true, mic = null
             say(`Heard “${words.slice(0, 120)}”.`);
             const direction = interpretVisualControl(words);
             if (direction) applyVisualControl(direction);
-            else say(`Heard “${words.slice(0, 120)}”. Only “more vibrant” or “calmer” are available to change brightness.`);
+            else say(`Heard “${words.slice(0, 120)}”. Only “more vibrant” or “make it calmer” are available to change brightness.`);
             return;
         }
         const said = mic.interpret(words);
@@ -366,7 +366,7 @@ export function createLiveControls({ runtime, onStop, audible = true, mic = null
         const reason = code === 'NOT_LIVE'
             ? 'Visual changes are available while a reading is playing.'
             : 'There is no adjustable visual on screen right now.';
-        return `${reason} Use “more vibrant” to brighten or “calmer” to lower brightness.`;
+        return `${reason} Use “more vibrant” to brighten or “make it calmer” to lower brightness.`;
     }
 
     function applyVisualControl(direction) {
@@ -386,7 +386,7 @@ export function createLiveControls({ runtime, onStop, audible = true, mic = null
             visualOutcome = next === target
                 ? `Visual brightness is already at its ${direction === 'calmer' ? 'minimum' : 'maximum'}.`
                 : `Visual brightness target changed to ${receipt.effective.toFixed(2)}.`;
-            visualOutcome += ' Use “more vibrant” to brighten or “calmer” to lower brightness.';
+            visualOutcome += ' Use “more vibrant” to brighten or “make it calmer” to lower brightness.';
             show('');
         } else {
             visualOutcome = visualRefusalMessage(receipt?.code);
@@ -399,7 +399,7 @@ export function createLiveControls({ runtime, onStop, audible = true, mic = null
         const words = visualInput.value;
         const direction = interpretVisualControl(words);
         if (!direction) {
-            const message = 'Only “more vibrant” or “calmer” are available to change brightness.';
+            const message = 'Only “more vibrant” or “make it calmer” are available to change brightness.';
             visualOutcome = '';
             show(message, true);
             return;

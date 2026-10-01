@@ -242,7 +242,7 @@ describe('visual control', () => {
     it('lowers brightness by one tenth and reports the bounded target', () => {
         const runtime = fakeRuntime('live');
         controls = createLiveControls({ runtime, onStop: () => {} });
-        $('input[name="visual"]').value = 'please calmer';
+        $('input[name="visual"]').value = 'please make it calmer';
         $('[data-live="visual-submit"]').click();
         expect(runtime.controlVisual).toHaveBeenCalledWith({ surface: 'attractor', parameter: 'intensity', value: 0.55 });
         expect($('.live-controls__status').textContent).toContain('brightness target changed to 0.55');
@@ -252,7 +252,7 @@ describe('visual control', () => {
         const runtime = fakeRuntime('live');
         runtime.discoverVisual.mockReturnValue({ manifest: { surface: 'attractor', parameters: { intensity: { minimum: 0.4, maximum: 0.75 } } }, current: { intensity: 0.4 }, target: { intensity: 0.4 } });
         controls = createLiveControls({ runtime, onStop: () => {} });
-        $('input[name="visual"]').value = 'calmer';
+        $('input[name="visual"]').value = 'make it calmer';
         $('[data-live="visual-submit"]').click();
         expect(runtime.controlVisual).toHaveBeenCalledWith({ surface: 'attractor', parameter: 'intensity', value: 0.4 });
         expect($('.live-controls__status').textContent).toContain('brightness is already at its minimum');
@@ -262,12 +262,12 @@ describe('visual control', () => {
         const runtime = fakeRuntime('live');
         controls = createLiveControls({ runtime, onStop: () => {} });
         const field = $('input[name="visual"]');
-        field.value = 'more vibrant and stop';
+        field.value = 'make it calmer and stop';
         $('[data-live="visual-submit"]').click();
         await flush();
         expect(runtime.controlVisual).not.toHaveBeenCalled();
         expect(runtime.dive).not.toHaveBeenCalled();
-        expect(field.value).toBe('more vibrant and stop');
+        expect(field.value).toBe('make it calmer and stop');
         expect($('.live-controls__error').textContent).toContain('more vibrant');
         expect($('.live-controls__error').textContent).toContain('calmer');
         expect($('.live-controls__error').textContent).toContain('brightness');
@@ -553,7 +553,7 @@ describe('speaking to it', () => {
         $('[data-live="listen-visual"]').click();
         expect(runtime.calls).toEqual([]);
         expect(recogniser().started).toBe(true);
-        await hear('please calmer');
+        await hear('please make it calmer');
         expect(runtime.controlVisual).toHaveBeenCalledWith({ surface: 'attractor', parameter: 'intensity', value: 0.55 });
         expect(runtime.status).toBe('live');
         expect(runtime.calls).toEqual([]);
