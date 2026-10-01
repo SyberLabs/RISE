@@ -237,14 +237,19 @@ describe('visual control', () => {
         expect($('.live-controls__error').textContent).toBe('Only “more vibrant” is available for visual changes.');
     });
 
-    it('reports the intensity limit without claiming another change', () => {
+    it('requests the capped target and reports a no-change outcome only after acceptance', () => {
         const runtime = fakeRuntime('live');
         runtime.discoverVisual.mockReturnValue({ target: { intensity: 0.75 }, current: { intensity: 0.75 } });
         controls = createLiveControls({ runtime, onStop: () => {} });
         $('input[name="visual"]').value = 'more vibrant';
         $('[data-live="visual-submit"]').click();
-        expect(runtime.controlVisual).not.toHaveBeenCalled();
+        expect(runtime.controlVisual).toHaveBeenCalledWith({ surface: 'attractor', parameter: 'intensity', value: 0.75 });
         expect($('.live-controls__status').textContent).toContain('already at its brightness limit');
+
+        runtime.controlVisual.mockReturnValue({ status: 'refused', code: 'NO_ACTIVE_VISUAL' });
+        $('[data-live="visual-submit"]').click();
+        expect($('.live-controls__status').textContent).not.toContain('already at its brightness limit');
+        expect($('.live-controls__error').textContent).toBe('There is no adjustable visual on screen right now.');
     });
 });
 

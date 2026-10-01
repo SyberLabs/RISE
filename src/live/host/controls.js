@@ -362,15 +362,11 @@ export function createLiveControls({ runtime, onStop, audible = true, mic = null
             return;
         }
         const next = Math.min(0.75, target + 0.1);
-        if (next === target) {
-            visualOutcome = 'The visual is already at its brightness limit.';
-            show('');
-            render(runtime.snapshot());
-            return;
-        }
         const receipt = runtime.controlVisual?.({ surface: 'attractor', parameter: 'intensity', value: next });
         if (receipt?.status === 'accepted') {
-            visualOutcome = `Visual brightness target changed to ${receipt.effective.toFixed(2)}.`;
+            visualOutcome = next === target
+                ? 'The visual is already at its brightness limit.'
+                : `Visual brightness target changed to ${receipt.effective.toFixed(2)}.`;
             show('');
         } else {
             visualOutcome = visualRefusalMessage(receipt?.code);

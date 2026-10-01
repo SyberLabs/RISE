@@ -31,8 +31,7 @@ import { createRealClock } from './clock.js';
 import { createSpeechGovernor } from './speech-governor.js';
 import { withExperientialState } from './state-visuals.js';
 import { createCurrentStream } from './stream.js';
-import { validateVisualCommand } from './visual-control.js';
-import { ATTRACTOR_VISUAL_MANIFEST } from '../visuals/attractor-manifest.js';
+import { ATTRACTOR_VISUAL_MANIFEST, validateVisualCommand } from '../core/visual-control-contract.js';
 
 export const RUNTIME_LIMITS = Object.freeze({ reconnects: 3, backoffMs: 250, journal: 500 });
 

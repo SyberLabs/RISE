@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { interpretVisualControl, validateVisualCommand } from './visual-control.js';
+import { validateVisualCommand } from '../core/visual-control-contract.js';
+import { interpretVisualControl } from './visual-control.js';
 
 describe('validateVisualCommand', () => {
   it('clamps a finite readable intensity while retaining the requested value', () => {

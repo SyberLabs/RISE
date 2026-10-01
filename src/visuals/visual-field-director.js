@@ -1,4 +1,4 @@
-import { validateVisualCommand } from '../live/visual-control.js';
+import { validateVisualCommand } from '../core/visual-control-contract.js';
 
 /**
  * Exclusive lifecycle owner for schedulable persistent visual fields.

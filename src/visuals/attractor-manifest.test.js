@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { ATTRACTOR_VISUAL_MANIFEST } from './attractor-manifest.js';
+import { ATTRACTOR_VISUAL_MANIFEST } from '../core/visual-control-contract.js';
 
 describe('Attractor visual manifest', () => {
   it('describes only the readable canvas intensity control and is immutable', () => {

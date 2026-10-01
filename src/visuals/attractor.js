@@ -15,8 +15,7 @@
  */
 
 import { reportProjectionPaint } from './projection-paint.js';
-import { ATTRACTOR_VISUAL_MANIFEST } from './attractor-manifest.js';
-import { validateVisualCommand } from '../live/visual-control.js';
+import { ATTRACTOR_VISUAL_MANIFEST, validateVisualCommand } from '../core/visual-control-contract.js';
 import {
     ATTRACTOR_FORMS,
     ATTRACTOR_PALETTES,
