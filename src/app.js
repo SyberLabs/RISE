@@ -1363,8 +1363,16 @@ class App {
                 return;
             }
             if (window.location.pathname === VISUAL_CATALOG_PATH) {
+                const data = { search: window.location.search };
+                if (this.router?.getCurrentView?.() === 'visual-catalog') {
+                    const catalog = this.router.getViewInstance?.('visual-catalog');
+                    if (catalog?.update) {
+                        catalog.update(data);
+                        return;
+                    }
+                }
                 await this.router?.navigate('visual-catalog', {
-                    data: { search: window.location.search }, replace: true, skipStack: true
+                    data, replace: true, skipStack: true
                 });
                 return;
             }

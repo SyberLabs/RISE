@@ -15,17 +15,28 @@ function canDraw(env) {
   }
 }
 
+function queryFrom(search) {
+  if (search instanceof URLSearchParams) return search.get('q') || '';
+  return typeof search === 'string' ? new URLSearchParams(search).get('q') || '' : '';
+}
+
 export class VisualCatalog {
   constructor(container, { search = globalThis.location?.search ?? '', onNavigate = () => {}, env = globalThis } = {}) {
     this.container = container;
     this.onNavigate = onNavigate;
     this.capabilities = Object.freeze({ canvas: canDraw(env) });
-    this.search = search instanceof URLSearchParams
-      ? search.get('q') || ''
-      : (typeof search === 'string' ? new URLSearchParams(search).get('q') || '' : '');
+    this.search = queryFrom(search);
     this.destroyed = false;
     this.previewController = null;
+    this.previewButton = null;
     this.render();
+  }
+
+  update(data = {}) {
+    this.search = queryFrom(data.search ?? globalThis.location?.search ?? '');
+    const input = this.container.querySelector('#visual-catalog-search');
+    if (input) input.value = this.search;
+    this.renderCards();
   }
 
   render() {
@@ -80,8 +91,7 @@ export class VisualCatalog {
 
   renderCards() {
     if (!this.cards || this.destroyed) return;
-    this.previewController?.abort();
-    this.previewController = null;
+    this.cancelPreview();
     const results = queryVisualCatalog({
       query: this.search,
       capabilities: this.capabilities,
@@ -153,9 +163,10 @@ export class VisualCatalog {
   }
 
   async preview(id, slot, button) {
-    this.previewController?.abort();
+    this.cancelPreview();
     const controller = new AbortController();
     this.previewController = controller;
+    this.previewButton = button;
     button.disabled = true;
     button.textContent = 'Preparing preview…';
     const key = `catalog:specimen:${id}`;
@@ -165,8 +176,7 @@ export class VisualCatalog {
     }, { serial: true, signal: controller.signal });
     if (this.destroyed || controller.signal.aborted || this.previewController !== controller) return;
     this.previewController = null;
-    button.disabled = false;
-    button.textContent = 'Preview specimen';
+    this.resetPreviewButton();
     const safe = safeUrl(url || '');
     if (!safe) {
       slot.textContent = 'This preview is unavailable.';
@@ -178,9 +188,25 @@ export class VisualCatalog {
     slot.replaceChildren(image);
   }
 
-  deactivate() {
+  resetPreviewButton() {
+    if (!this.previewButton) return;
+    this.previewButton.disabled = !this.capabilities.canvas;
+    this.previewButton.textContent = 'Preview specimen';
+    this.previewButton = null;
+  }
+
+  cancelPreview() {
     this.previewController?.abort();
     this.previewController = null;
+    this.resetPreviewButton();
+  }
+
+  activate() {
+    this.resetPreviewButton();
+  }
+
+  deactivate() {
+    this.cancelPreview();
   }
 
   destroy() {

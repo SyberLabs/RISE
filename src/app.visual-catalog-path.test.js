@@ -44,15 +44,16 @@ describe('the Visual Catalog public path', () => {
     expect(document.querySelectorAll('[data-visual-id]')).toHaveLength(1);
   });
 
-  it('resolves a browser history visit to the catalog path with its current query', async () => {
-    window.history.replaceState({}, '', '/');
+  it('updates the reused catalog view when history changes its search query', async () => {
+    window.history.replaceState({}, '', '/visual-catalog?q=network');
     app = new App();
     await app.checkBetaAccess();
-    const navigate = vi.spyOn(app.router, 'navigate');
-    window.history.pushState({}, '', '/visual-catalog?q=light');
+    expect(document.querySelector('#visual-catalog-search').value).toBe('network');
+    window.history.pushState({}, '', '/visual-catalog?q=atmosphere');
     window.dispatchEvent(new PopStateEvent('popstate'));
-    await vi.waitFor(() => expect(navigate).toHaveBeenCalledWith('visual-catalog', {
-      data: { search: '?q=light' }, replace: true, skipStack: true
-    }));
+    await vi.waitFor(() => {
+      expect(document.querySelector('#visual-catalog-search').value).toBe('atmosphere');
+      expect([...document.querySelectorAll('[data-visual-id]')].map(card => card.dataset.visualId)).toEqual(['turrell']);
+    });
   });
 });

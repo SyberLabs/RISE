@@ -66,6 +66,29 @@ describe('the searchable visual catalog', () => {
     expect(container.querySelector('img')).toBeNull();
   });
 
+  it('restores an aborted preview button on reentry and never paints the departed result', async () => {
+    mount();
+    const gate = {};
+    gate.promise = new Promise(resolve => { gate.resolve = resolve; });
+    vi.spyOn(visualCortex, 'renderLeafStill').mockReturnValue(gate.promise);
+    const button = container.querySelector('[data-preview="klee"]');
+    button.click();
+    await vi.waitFor(() => expect(visualCortex.renderLeafStill).toHaveBeenCalledWith('klee'));
+
+    view.deactivate();
+    expect(button.disabled).toBe(false);
+    expect(button.textContent).toBe('Preview specimen');
+    view.activate();
+
+    gate.resolve({ url: 'data:image/png;base64,AAAA' });
+    await vi.waitFor(() => expect(stillQueue.cached('catalog:specimen:klee')).toBe('data:image/png;base64,AAAA'));
+    expect(container.querySelector('.visual-catalog__preview img')).toBeNull();
+
+    button.click();
+    await vi.waitFor(() => expect(container.querySelector('.visual-catalog__preview img')).not.toBeNull());
+    expect(visualCortex.renderLeafStill).toHaveBeenCalledTimes(1);
+  });
+
   it('rejects a preview URL outside the sanitizer allowlist', async () => {
     mount();
     vi.spyOn(visualCortex, 'renderLeafStill').mockResolvedValue({ url: 'javascript:alert(1)' });
