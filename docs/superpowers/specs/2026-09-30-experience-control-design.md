@@ -32,7 +32,7 @@ Base: origin/main at 64c046a (merged PR 362).
 
 The live runtime gains discovery and control operations independent of the composition stream. The renderer/host reports actual active capability; a manifest alone is insufficient evidence that it is mounted.
 
-Discovery returns an immutable description of the currently controllable surface. Initially this is Attractor with one numeric intensity parameter: minimum 0.4, maximum 0.75, default 0.65, readable over text, canvas required. The manifest lives beside the trusted renderer and is tested against its accepted parameter and the live readable bounds. A device with no canvas, an unsupported active surface, or no presented run exposes no adjustable surface.
+Discovery returns an immutable description of the currently controllable surface. Initially this is Attractor with one numeric intensity parameter: minimum 0.4, maximum 0.75, default 0.65, readable over text, canvas required. The immutable manifest and numeric validator live in core, shared by the trusted renderer and live runtime without either layer depending on the other. They are tested against the renderer's accepted parameter and the live readable bounds. A device with no canvas, an unsupported active surface, or no presented run exposes no adjustable surface.
 
 The command shape is a closed data object: { surface: 'attractor', parameter: 'intensity', value: number }. Reject unknown fields, unknown names, non-finite values, and executable data. Finite values outside the readable range are clamped; the receipt distinguishes requested and effective targets. Transition duration is a RISE policy, not a caller parameter.
 
