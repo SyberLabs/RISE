@@ -63,7 +63,17 @@ Both authored tests must preserve their existing assertions, including exported 
 - [ ] Extend the existing phone browser test to verify a lower control remains operable when the panel overflows, alongside its original height, touch and no-horizontal-overflow checks.
 - [ ] Run both focused phone tests and complete live-control/visual-catalog suites. Record red/green evidence, inspect the diff and commit the small responsive fix plus these plan/spec updates.
 
-### Task 4: Verify and integrate production (coordinator)
+### Task 4: Bound named-bed audio correctness tests
+
+**Files:** Modify `src/core/render/audio-mix.test.js`; update this plan and the production-baseline spec. No renderer changes.
+
+**Interfaces:** Preserves the existing 8 kHz, 2-second `bedPlan` PCM evidence for every offline soundscape.
+
+- [x] Split audibility and full repeated-render PCM determinism into one named case per offline soundscape. Keep the exact `peakAmplitude > 1e-4` and whole-array PCM equality assertions.
+- [x] Keep all unordered pairwise distinctness comparisons in a separate case, retaining the `1e-4` sample delta and `differing / length > 0.5` threshold.
+- [x] Run the focused `audio-mix.test.js` suite once with the supported Node runtime; record the exact command, result and workload allocation. Review all soundscape and pair coverage, then commit only the test, plan/spec updates and task report.
+
+### Task 5: Verify and integrate production (coordinator)
 
 **Files:** No intended production code changes. Existing `.github/workflows/ci.yml` and `full-validation.yml` own deployment and full validation.
 

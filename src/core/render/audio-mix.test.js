@@ -279,15 +279,17 @@ describe('named soundscape beds', () => {
     expect(differing / aurora.pcm.length).toBeGreaterThan(0.9);
   });
 
-  it('renders every shipped bed as audible, deterministic, and distinct audio', () => {
+  it.each([...OFFLINE_SOUNDSCAPE_IDS])('renders %s as an audible, deterministic bed', (id) => {
+    const mix = mixAudio(bedPlan(id), { sampleRate: 8_000 });
+    expect(peakAmplitude(mix.pcm), id).toBeGreaterThan(1e-4);
+    expect(mix.pcm).toEqual(mixAudio(bedPlan(id), { sampleRate: 8_000 }).pcm);
+  });
+
+  it('keeps every shipped bed pair distinct', () => {
     const mixes = Object.fromEntries([...OFFLINE_SOUNDSCAPE_IDS].map(id => [
       id,
       mixAudio(bedPlan(id), { sampleRate: 8_000 })
     ]));
-    for (const id of OFFLINE_SOUNDSCAPE_IDS) {
-      expect(peakAmplitude(mixes[id].pcm), id).toBeGreaterThan(1e-4);
-      expect(mixes[id].pcm).toEqual(mixAudio(bedPlan(id), { sampleRate: 8_000 }).pcm);
-    }
     for (let i = 0; i < OFFLINE_SOUNDSCAPE_IDS.length; i += 1) {
       for (let j = i + 1; j < OFFLINE_SOUNDSCAPE_IDS.length; j += 1) {
         const left = mixes[OFFLINE_SOUNDSCAPE_IDS[i]].pcm;
