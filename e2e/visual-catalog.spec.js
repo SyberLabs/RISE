@@ -2,11 +2,30 @@ import { expect, test } from './fixtures.js';
 
 const shown = async page => (await page.locator('#atom-display').innerText()).replace(/\s+/gu, ' ').trim();
 
-async function paintedBytes(canvas) {
+function rgbVariation(rgba) {
+  let nonBlackPixels = 0;
+  const colors = new Set();
+  for (let offset = 0; offset + 3 < rgba.length; offset += 4) {
+    const red = rgba[offset];
+    const green = rgba[offset + 1];
+    const blue = rgba[offset + 2];
+    if (red + green + blue < 24) continue;
+    nonBlackPixels += 1;
+    if (colors.size < 4) colors.add((red << 16) | (green << 8) | blue);
+  }
+  return { nonBlackPixels, distinctRgbColors: colors.size };
+}
+
+function hasMeaningfulRgbVariation(pixelsOrSummary) {
+  const summary = Array.isArray(pixelsOrSummary) ? rgbVariation(pixelsOrSummary) : pixelsOrSummary;
+  return (summary?.nonBlackPixels ?? 0) >= 8 && (summary?.distinctRgbColors ?? 0) >= 4;
+}
+
+async function paintedVariation(canvas) {
   return canvas.evaluate(element => {
     const { width, height } = element;
     const context = element.getContext('2d');
-    if (!context || !width || !height) return [];
+    if (!context || !width || !height) return { width, height, sampled: null, full: null };
     const pixels = context.getImageData(0, 0, width, height).data;
     const sampled = [];
     for (let y = 0; y < 64; y += 1) {
@@ -17,12 +36,35 @@ async function paintedBytes(canvas) {
         sampled.push(pixels[offset], pixels[offset + 1], pixels[offset + 2], pixels[offset + 3]);
       }
     }
-    return sampled;
+    const summarize = rgba => {
+      let nonBlackPixels = 0;
+      const colors = new Set();
+      for (let offset = 0; offset + 3 < rgba.length; offset += 4) {
+        const red = rgba[offset];
+        const green = rgba[offset + 1];
+        const blue = rgba[offset + 2];
+        if (red + green + blue < 24) continue;
+        nonBlackPixels += 1;
+        if (colors.size < 4) colors.add((red << 16) | (green << 8) | blue);
+      }
+      return { nonBlackPixels, distinctRgbColors: colors.size };
+    };
+    return { width, height, sampled: summarize(sampled), full: summarize(pixels) };
   });
 }
 
-async function openCatalogSample(page, id, rendererSelector) {
-  await page.goto(`/live?catalog=${id}&voice=paced`);
+async function openCatalogSample(page, id, rendererSelector, { fromCatalog = false } = {}) {
+  if (fromCatalog) {
+    await page.goto(`/visual-catalog?q=${id}`);
+    const card = page.locator(`[data-visual-id="${id}"]`);
+    const link = card.getByRole('link', { name: 'Open as a live reading' });
+    await expect(link).toHaveAttribute('href', `/live?catalog=${id}`);
+    await link.click();
+    await expect(page).toHaveURL(new RegExp(`/live\\?catalog=${id}$`, 'u'));
+    await page.locator('select[name="voice"]').selectOption('paced');
+  } else {
+    await page.goto(`/live?catalog=${id}&voice=paced`);
+  }
   await expect(page.locator('.live-catalog-note')).toContainText(`This sample begins with ${id}.`);
   await page.getByRole('button', { name: 'Start', exact: true }).click();
   await expect(page.locator('#live-controls')).toBeVisible();
@@ -31,12 +73,25 @@ async function openCatalogSample(page, id, rendererSelector) {
   const renderer = page.locator(rendererSelector).first();
   await expect(renderer).toBeVisible({ timeout: 15_000 });
   const initialText = await shown(page);
-  const before = await paintedBytes(renderer);
-  expect(before.some(byte => byte !== 0), `${id} paints nonzero bytes to its mounted canvas`).toBe(true);
+  const samples = [];
+  const paintStartedAt = await page.evaluate(() => performance.now());
+  try {
+    await expect.poll(async () => {
+      const metrics = await paintedVariation(renderer);
+      samples.push({
+        elapsedMs: Math.round((await page.evaluate(() => performance.now()) - paintStartedAt)),
+        ...metrics
+      });
+      return hasMeaningfulRgbVariation(metrics.full);
+    }, { timeout: 8_000, message: `${id} rendered RGB variation from full canvas pixels` }).toBe(true);
+  } catch (error) {
+    console.log(`${id} renderer paint samples: ${JSON.stringify(samples)}`);
+    throw error;
+  }
 
   await expect.poll(() => shown(page), { timeout: 20_000 }).not.toBe(initialText);
-  const after = await paintedBytes(renderer);
-  expect(after.some(byte => byte !== 0), `${id} keeps painting while narration advances`).toBe(true);
+  const after = await paintedVariation(renderer);
+  expect(hasMeaningfulRgbVariation(after.full), `${id} keeps painting while narration advances`).toBe(true);
   await expect(renderer).toBeVisible();
   await page.getByRole('button', { name: 'Stop', exact: true }).click();
   await expect(page.locator('#live-controls')).toHaveCount(0);
@@ -61,7 +116,18 @@ test('search loads a rendered Klee specimen with real image pixels', async ({ pa
     context.drawImage(image, 0, 0, canvas.width, canvas.height);
     return [...context.getImageData(0, 0, canvas.width, canvas.height).data];
   });
-  expect(pixels.some(byte => byte !== 0), 'the loaded specimen contains rendered pixel data').toBe(true);
+  expect(hasMeaningfulRgbVariation(pixels), 'the loaded specimen contains varied rendered RGB pixels').toBe(true);
+});
+
+test('the pixel proof rejects a uniform opaque blank', () => {
+  const black = [];
+  const flatColor = [];
+  for (let pixel = 0; pixel < 64 * 64; pixel += 1) {
+    black.push(0, 0, 0, 255);
+    flatColor.push(17, 17, 17, 255);
+  }
+  expect(hasMeaningfulRgbVariation(black), 'opaque black has no image detail').toBe(false);
+  expect(hasMeaningfulRgbVariation(flatColor), 'a uniform opaque fill has no image detail').toBe(false);
 });
 
 test('catalog query and same-path browser history restore the visible search and results', async ({ page }) => {
@@ -86,8 +152,8 @@ test('catalog query and same-path browser history restore the visible search and
   await expect(page.locator('[data-visual-id="attractor"]')).toHaveCount(0);
 });
 
-test('the Klee catalog choice mounts its Genesis canvas while live narration advances', async ({ page }) => {
-  await openCatalogSample(page, 'klee', '.chamber-genesis canvas.klee-field-canvas');
+test('the Klee card opens a live reading that mounts Genesis while narration advances', async ({ page }) => {
+  await openCatalogSample(page, 'klee', '.chamber-genesis canvas.klee-field-canvas', { fromCatalog: true });
 });
 
 test('the Attractor catalog choice mounts its canvas while live narration advances', async ({ page }) => {
