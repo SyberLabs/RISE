@@ -283,13 +283,25 @@ describe('Attractor visual control', () => {
 
   it('repaints a paused field once without restarting its frame loop', () => {
     const field = new AttractorField(makeHost(), { intensity: 0.65, adaptive: false });
+    const paintedAt = performance.now();
+    field.tick(paintedAt);
+    const heldX = field.sx.slice();
+    const heldY = field.sy.slice();
     field.pause();
     const paintsBefore = field.ctx.clearRect.mock.calls.length;
     field.controlVisual({ surface: 'attractor', parameter: 'intensity', value: 0.75 });
 
     expect(field.intensity).toBe(0.75);
     expect(field.ctx.clearRect).toHaveBeenCalledTimes(paintsBefore + 1);
+    expect(Array.from(field.sx)).toEqual(Array.from(heldX));
+    expect(Array.from(field.sy)).toEqual(Array.from(heldY));
     expect(field.rafId).toBeNull();
+    field.resume();
+    const resumedAt = field.t0;
+    field.tick(resumedAt);
+    expect(Array.from(field.sx)).toEqual(Array.from(heldX));
+    field.tick(resumedAt + 1000);
+    expect(Array.from(field.sx)).not.toEqual(Array.from(heldX));
     field.destroy();
   });
 
@@ -314,6 +326,26 @@ describe('Attractor visual control', () => {
     expect(field.intensity).toBe(0.6);
     expect(field.targetIntensity).toBe(0.6);
     expect(field._intensityTransition).toBeNull();
+    field.destroy();
+  });
+
+  it('repaints reduced-motion output when a cue cancels its local target', () => {
+    window.matchMedia = () => ({ matches: true });
+    const field = new AttractorField(makeHost(), { intensity: 0.6, adaptive: false });
+    const styles = [];
+    vi.spyOn(field.ctx, 'stroke').mockImplementation(function () {
+      styles.push(this.strokeStyle);
+    });
+    field.tick(performance.now());
+    const authoredStyles = styles.slice();
+
+    field.controlVisual({ surface: 'attractor', parameter: 'intensity', value: 0.75 });
+    expect(styles.slice(-authoredStyles.length)).not.toEqual(authoredStyles);
+    const beforeCancel = styles.length;
+    field.cancelVisualControl();
+
+    expect(styles.length).toBeGreaterThan(beforeCancel);
+    expect(styles.slice(-authoredStyles.length)).toEqual(authoredStyles);
     field.destroy();
   });
 });

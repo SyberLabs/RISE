@@ -213,6 +213,8 @@ export class AttractorField {
         this.rafId = null;
         this.t0 = performance.now();
         this._motionBase = 0;
+        this._lastMotionTime = null;
+        this._pausedMotionTime = null;
 
         this.integrate();
 
@@ -383,7 +385,12 @@ export class AttractorField {
             return;
         }
         this._stillDrawn = reduced && this._sampleT == null;
-        const t = this._sampleT ?? (reduced ? REDUCED_STILL_SECONDS * this.speed : this.motionTime(now));
+        const t = this._sampleT ?? (reduced
+            ? REDUCED_STILL_SECONDS * this.speed
+            : this.paused
+                ? (this._pausedMotionTime ?? this._lastMotionTime ?? this.motionTime(now))
+                : this.motionTime(now));
+        if (this._sampleT == null) this._lastMotionTime = t;
         const photosafe = rootClasses.contains('photosensitivity-mode');
         const yawSpeed = reduced ? 0.06 : 0.16;
         const flickAmp = photosafe ? 0 : (reduced ? 0.04 : 0.12);
@@ -577,11 +584,16 @@ export class AttractorField {
     }
 
     cancelVisualControl() {
+        const needsPaint = this.intensity !== this._controlBaseIntensity;
         this.targetIntensity = this._controlBaseIntensity;
         this._intensityTransition = null;
         if (this.destroyed) return;
         this.intensity = this._controlBaseIntensity;
-        if (this.paused) this.paintOnce(performance.now());
+        const reduced = this.reduced || document.documentElement.classList.contains('reduced-motion');
+        if (needsPaint && (this.paused || reduced)) {
+            if (reduced) this._stillDrawn = false;
+            this.paintOnce(performance.now());
+        }
     }
 
     paintOnce(now) {
@@ -750,16 +762,22 @@ export class AttractorField {
      * can suspend every persistent field the same way.
      */
     pause() {
-        if (!this.rafId) return false;
-        cancelAnimationFrame(this.rafId);
+        if (this.paused) return false;
+        if (this.rafId) cancelAnimationFrame(this.rafId);
         this.rafId = null;
         this.paused = true;
+        this._pausedMotionTime = this._lastMotionTime ?? this.motionTime(performance.now());
         return true;
     }
 
     /** Resume integrating from wherever the field stood. */
     resume() {
         if (this.rafId) return;              // already running
+        if (this.paused && this._pausedMotionTime != null) {
+            this._motionBase = this._pausedMotionTime;
+            this.t0 = performance.now();
+        }
+        this._pausedMotionTime = null;
         this.paused = false;
         this.rafId = requestAnimationFrame(this.tick);
     }
