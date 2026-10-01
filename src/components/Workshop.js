@@ -900,6 +900,8 @@ export class Workshop {
       const blueprintId = value.slice('saved:'.length);
       if (blueprintId !== this.activeBlueprintId) {
         this.openSavedBlueprint(blueprintId);
+      } else {
+        this.cancelPendingBlueprintLoad();
       }
     }
   }
@@ -5133,13 +5135,25 @@ export class Workshop {
         event.target.value = '';
         return;
       }
+      const sessionData = this.sessionData;
+      const blueprintLoadRequestId = this.blueprintLoadRequestId;
       try {
         const durationMs = await probeVideoDurationMs(file);
-        this.addSequenceVideoAssetFromBlob(file, file.name, durationMs);
-        this.updateVisualAssetsList();
-        this.updateCreateButton();
+        if (!this.destroyed
+          && !this.blueprintLoadInProgress
+          && this.sessionData === sessionData
+          && this.blueprintLoadRequestId === blueprintLoadRequestId) {
+          this.addSequenceVideoAssetFromBlob(file, file.name, durationMs);
+          this.updateVisualAssetsList();
+          this.updateCreateButton();
+        }
       } catch {
-        this.showToast('Could not read MP4 metadata');
+        if (!this.destroyed
+          && !this.blueprintLoadInProgress
+          && this.sessionData === sessionData
+          && this.blueprintLoadRequestId === blueprintLoadRequestId) {
+          this.showToast('Could not read MP4 metadata');
+        }
       }
       event.target.value = '';
       return;

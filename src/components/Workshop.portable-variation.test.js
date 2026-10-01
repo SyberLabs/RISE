@@ -198,17 +198,19 @@ it('clears the loading state when a saved sequence lookup fails', async () => {
   const { workshop, container } = makeWorkshop();
   vi.spyOn(workshop, 'loadSavedBlueprints').mockReturnValue(pendingLookup.promise);
   vi.spyOn(console, 'warn').mockImplementation(() => {});
-  container.querySelector('[data-action="preview"]').disabled = true;
+  const originallyDisabledPreview = container.querySelector('[data-action="preview"]');
+  originallyDisabledPreview.disabled = true;
 
   workshop.update({ blueprintId: 'missing-blueprint' });
   expect(container.querySelector('#session-title').disabled).toBe(true);
+  expect(originallyDisabledPreview.disabled).toBe(true);
   pendingLookup.reject(new Error('Vault unavailable'));
 
   await vi.waitFor(() => expect(container.querySelector('#workshop-sequence-status').textContent)
     .not.toContain('Loading selected sequence'));
   expect(container.querySelector('#session-title').disabled).toBe(false);
   expect(container.querySelector('[data-action="save-draft"]').disabled).toBe(false);
-  expect(container.querySelector('[data-action="preview"]').disabled).toBe(true);
+  expect(originallyDisabledPreview.disabled).toBe(true);
   expect(workshop.activeBlueprintId).toBeNull();
   expect(workshop.activeDraftKind).toBe('new');
   workshop.destroy();
@@ -237,6 +239,91 @@ it('ignores an older variation lookup after a newer parent is selected', async (
   await vi.waitFor(() => expect(workshop.sessionData.provenance?.parentPortableId)
     .toBe(secondParent.id));
   expect(workshop.activeDraftKind).toBe('variation');
+  workshop.destroy();
+});
+
+it('cancels a pending saved selection when the active saved sequence is reselected', async () => {
+  const firstParent = await importedParent();
+  const secondParent = await importedQuietExample();
+  const pendingLookup = deferred();
+  const { workshop, container } = makeWorkshop();
+  workshop.update({ blueprintId: firstParent.id });
+  await vi.waitFor(() => expect(workshop.activeBlueprintId).toBe(firstParent.id));
+  vi.spyOn(workshop, 'loadSavedBlueprints').mockReturnValue(pendingLookup.promise);
+
+  workshop.handleSequenceSelection(`saved:${secondParent.id}`);
+  expect(workshop.blueprintLoadInProgress).toBe(true);
+  workshop.handleSequenceSelection(`saved:${firstParent.id}`);
+  const firstSession = workshop.sessionData;
+
+  expect(workshop.blueprintLoadInProgress).toBe(false);
+  expect(container.querySelector('#workshop-sequence-status').textContent)
+    .not.toContain('Loading selected sequence');
+  pendingLookup.resolve(MemoryCore.getWorkshopBlueprints());
+  await Promise.resolve();
+
+  expect(workshop.activeBlueprintId).toBe(firstParent.id);
+  expect(workshop.sessionData).toBe(firstSession);
+  expect(workshop.blueprintLoadInProgress).toBe(false);
+  workshop.destroy();
+});
+
+it('ignores a file-picker video probe after another saved sequence is selected', async () => {
+  const firstParent = await importedParent();
+  const secondParent = await importedQuietExample();
+  const { workshop } = makeWorkshop();
+  workshop.update({ blueprintId: firstParent.id });
+  await vi.waitFor(() => expect(workshop.activeBlueprintId).toBe(firstParent.id));
+  const createElement = document.createElement.bind(document);
+  let metadataVideo;
+  vi.spyOn(document, 'createElement').mockImplementation((tagName, options) => {
+    const element = createElement(tagName, options);
+    if (tagName === 'video') {
+      metadataVideo = element;
+      vi.spyOn(element, 'load').mockImplementation(() => {});
+    }
+    return element;
+  });
+  const file = new File([new Uint8Array([0, 0, 0, 24])], 'upload.mp4', { type: 'video/mp4' });
+  const input = { files: [file], value: 'fake-path' };
+  const upload = workshop.handleFileUpload({ target: input });
+  expect(metadataVideo).toBeTruthy();
+
+  workshop.handleSequenceSelection(`saved:${secondParent.id}`);
+  await vi.waitFor(() => expect(workshop.activeBlueprintId).toBe(secondParent.id));
+  Object.defineProperty(metadataVideo, 'duration', { configurable: true, value: 12 });
+  metadataVideo.onloadedmetadata();
+  await upload;
+
+  expect(workshop.sessionData.sequenceVisualAssets).toHaveLength(0);
+  expect(workshop.pendingMediaBlobs.size).toBe(0);
+  expect(input.value).toBe('');
+  workshop.destroy();
+});
+
+it('still adds a valid MP4 selected through the file picker', async () => {
+  const { workshop } = makeWorkshop();
+  const createElement = document.createElement.bind(document);
+  let metadataVideo;
+  vi.spyOn(document, 'createElement').mockImplementation((tagName, options) => {
+    const element = createElement(tagName, options);
+    if (tagName === 'video') {
+      metadataVideo = element;
+      vi.spyOn(element, 'load').mockImplementation(() => {});
+    }
+    return element;
+  });
+  const file = new File([new Uint8Array([0, 0, 0, 24])], 'upload.mp4', { type: 'video/mp4' });
+  const input = { files: [file], value: 'fake-path' };
+  const upload = workshop.handleFileUpload({ target: input });
+  expect(metadataVideo).toBeTruthy();
+  Object.defineProperty(metadataVideo, 'duration', { configurable: true, value: 12 });
+  metadataVideo.onloadedmetadata();
+  await upload;
+
+  expect(workshop.sessionData.sequenceVisualAssets).toHaveLength(1);
+  expect(workshop.pendingMediaBlobs.size).toBe(1);
+  expect(input.value).toBe('');
   workshop.destroy();
 });
 
