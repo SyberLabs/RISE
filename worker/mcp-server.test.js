@@ -165,7 +165,8 @@ describe('the tool', () => {
   it('takes a valid Current, and says it is being presented', async () => {
     const { result } = await json(await post(rpc('tools/call', { name: 'rise_present', arguments: { current: BLACK_HOLES_CURRENT } })));
     expect(result.isError).toBeUndefined();
-    expect(result.content).toEqual([{ type: 'text', text: 'RISE is presenting this to the reader.' }]);
+    expect(result.structuredContent).toEqual({ current: BLACK_HOLES_CURRENT });
+    expect(result.content[0].text).toContain('accepted');
   });
 
   it('refuses one that is not valid, in words the model can act on, and does not send back what it was given', async () => {
@@ -173,6 +174,7 @@ describe('the tool', () => {
     for (const current of [hostile, { ...BLACK_HOLES_CURRENT, schema: 'other' }, { ...BLACK_HOLES_CURRENT, segments: [] }, { ...BLACK_HOLES_CURRENT, [`x${'y'.repeat(2_000)}`]: 1 }]) {
       const { result } = await json(await post(rpc('tools/call', { name: 'rise_present', arguments: { current } })));
       expect(result.isError).toBe(true);
+      expect(result.structuredContent?.current).toBeUndefined();
       const text = result.content[0].text;
       expect(text).toMatch(/^RISE refused this Current: /u);
       expect(text).toContain('call rise_present again');

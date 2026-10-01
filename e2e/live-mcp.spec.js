@@ -17,12 +17,13 @@
 import { BLACK_HOLES_CURRENT, toSealedCurrent } from '../src/test/sealed-current.js';
 import { HORIZON_DIVE } from '../src/live/fixtures/black-holes.js';
 import { relayHtml } from '../src/live/hosts/mcp-relay.js';
+import { handleMcp } from '../worker/mcp-server.mjs';
 import { expect, test } from './fixtures.js';
 
 const HOST = '/__mcp-host';
 
 /** The fake host's page: a frame for the relay, and a script that plays the host. */
-function hostPage({ relay, current, sampling = true, dive }) {
+function hostPage({ relay, current, sampling = true, dive, resultOnly = false }) {
     const escaped = relay.replace(/&/gu, '&amp;').replace(/"/gu, '&quot;');
     return `<!doctype html><meta charset="utf-8"><title>fake host</title>
 <style>html,body{margin:0;height:100%}iframe{border:0;width:100%;height:640px}</style>
@@ -31,6 +32,7 @@ function hostPage({ relay, current, sampling = true, dive }) {
 const CURRENT = ${JSON.stringify(current)};
 const DIVE = ${JSON.stringify(dive)};
 const SAMPLING = ${JSON.stringify(sampling)};
+const RESULT_ONLY = ${JSON.stringify(resultOnly)};
 const log = [];
 window.__host = { log, send: null };
 const view = document.getElementById('view');
@@ -48,9 +50,12 @@ window.addEventListener('message', event => {
     reply(message.id, { result: { protocolVersion: '2026-01-26', hostInfo: { name: 'fake host', version: '1' },
       hostCapabilities: SAMPLING ? { sampling: {} } : {}, hostContext: {} } });
   } else if (message.method === 'ui/notifications/initialized') {
-    // The model called the tool: its arguments, and then, as hosts do, the same again as its result.
-    tell('ui/notifications/tool-input', { arguments: { current: CURRENT } });
-    tell('ui/notifications/tool-result', { content: [{ type: 'text', text: 'RISE is presenting this to the reader.' }], structuredContent: { current: CURRENT } });
+    if (!RESULT_ONLY) tell('ui/notifications/tool-input', { arguments: { current: CURRENT } });
+    fetch('/api/mcp', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'tools/call', params: { name: 'rise_present', arguments: { current: CURRENT } } })
+    }).then(response => response.json()).then(({ result }) => {
+      tell('ui/notifications/tool-result', result);
+    });
   } else if (message.method === 'sampling/createMessage') {
     setTimeout(() => reply(message.id, { result: { role: 'assistant', model: 'fake', stopReason: 'endTurn', content: { type: 'text', text: JSON.stringify(DIVE) } } }), 300);
   } else if (message.method === 'ping') {
@@ -62,8 +67,13 @@ window.addEventListener('message', event => {
 
 async function openHost(page, baseURL, options = {}) {
   const origin = new URL(baseURL).origin;
+  await page.route('**/api/mcp', async route => {
+    const request = route.request();
+    const response = await handleMcp(new Request(request.url(), { method: request.method(), headers: request.headers(), body: request.postData() }), { MCP_ENABLED: 'true' });
+    await route.fulfill({ status: response.status, headers: Object.fromEntries(response.headers), body: await response.text() });
+  });
   const relay = relayHtml({ origin, path: '/live?embed=mcp&voice=paced' });
-  await page.route(`**${HOST}`, route => route.fulfill({ contentType: 'text/html', body: hostPage({ relay, current: options.current ?? BLACK_HOLES_CURRENT, sampling: options.sampling ?? true, dive: toSealedCurrent(HORIZON_DIVE, 'dive-answer') }) }));
+  await page.route(`**${HOST}`, route => route.fulfill({ contentType: 'text/html', body: hostPage({ relay, current: options.current ?? BLACK_HOLES_CURRENT, sampling: options.sampling ?? true, resultOnly: options.resultOnly ?? false, dive: toSealedCurrent(HORIZON_DIVE, 'dive-answer') }) }));
   await page.goto(HOST);
   // The app is a page in a frame in the relay's frame.
   return page.frameLocator('#view').frameLocator('#app');
@@ -89,6 +99,19 @@ test('the host’s model answers, and the app says hello, gets the answer, and p
   // The answer came twice, as the tool's input and again as its result, and was played once.
   await expectShown(app, 'that nothing, not even light', 20_000);
   expect(errors).toEqual([]);
+});
+
+test('a validated tool result alone delivers the Current for playback', async ({ page, baseURL }) => {
+  const app = await openHost(page, baseURL, { resultOnly: true });
+  await expectShown(app, 'A black hole is a region of space');
+  await expectShown(app, 'that nothing, not even light', 20_000);
+});
+
+test('an invalid worker result has no playable Current', async ({ page, baseURL }) => {
+  const serverResponse = page.waitForResponse('**/api/mcp');
+  const app = await openHost(page, baseURL, { resultOnly: true, current: { ...BLACK_HOLES_CURRENT, segments: [{ id: 's1', text: 'Fine words.' }, { id: 's2', text: 'a | b' }] } });
+  expect((await (await serverResponse).json()).result.isError).toBe(true);
+  await expect(app.locator('#atom-display')).toHaveCount(0);
 });
 
 test('a Dive is a question put to the host’s model, answered in the same call, and Surface returns to the very atom', async ({ page, baseURL }) => {

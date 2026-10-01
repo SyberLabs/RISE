@@ -51,6 +51,7 @@ export const PORT_LIMITS = Object.freeze({ message: 262_144, buffered: 8, pendin
 
 /** A Current from the two places a host puts one. Nothing else is read. */
 export function currentFrom(method, params) {
+    if (method === METHODS.toolResult && params?.isError === true) return null;
     if (!params || typeof params !== 'object' || Array.isArray(params)) return null;
     const holder = method === METHODS.toolInput ? params.arguments : method === METHODS.toolResult ? params.structuredContent : null;
     if (!holder || typeof holder !== 'object' || Array.isArray(holder)) return null;

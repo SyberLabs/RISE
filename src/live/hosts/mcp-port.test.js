@@ -46,6 +46,7 @@ describe('reading a Current out of what the host sends', () => {
     it('finds one in a tool’s input and in a tool’s structured result, and nowhere else', () => {
         expect(currentFrom(METHODS.toolInput, { arguments: { current: CURRENT } })).toEqual({ current: CURRENT });
         expect(currentFrom(METHODS.toolResult, { structuredContent: { current: CURRENT } })).toEqual({ current: CURRENT });
+        expect(currentFrom(METHODS.toolResult, { isError: true, structuredContent: { current: CURRENT } })).toBeNull();
         expect(currentFrom(METHODS.toolInput, { structuredContent: { current: CURRENT } })).toBeNull();
         expect(currentFrom(METHODS.toolResult, { arguments: { current: CURRENT } })).toBeNull();
         expect(currentFrom(METHODS.toolInput, { arguments: { text: CURRENT } })).toBeNull();

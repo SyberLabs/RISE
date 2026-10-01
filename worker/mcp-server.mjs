@@ -84,7 +84,10 @@ function call(id, params) {
   } catch (error) {
     return result(id, { content: [{ type: 'text', text: refusal(error) }], isError: true });
   }
-  return result(id, { content: [{ type: 'text', text: 'RISE is presenting this to the reader.' }] });
+  return result(id, {
+    content: [{ type: 'text', text: 'RISE accepted this Current for presentation to the reader.' }],
+    structuredContent: { current: args.current }
+  });
 }
 
 function read(id, params, origin) {
