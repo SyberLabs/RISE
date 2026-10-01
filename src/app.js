@@ -295,6 +295,10 @@ class App {
 
         // Register views
         this.registerViews();
+        // A direct public route is visible during the Router's fade-in. Install
+        // history listeners before entering it so Back/Forward in that window
+        // cannot be lost.
+        this.setupUtilityListeners();
 
         // Finish "Connect OpenRouter". The key goes to memory only; the
         // Portal shows the outcome. A failure changes nothing else.
@@ -377,7 +381,6 @@ class App {
             await this.router.navigate('portal');
         }
 
-        this.setupUtilityListeners();
         this.watchTabFreshness();
 
         // Audio interaction listener is already set up in init()
@@ -1364,12 +1367,14 @@ class App {
             }
             if (window.location.pathname === VISUAL_CATALOG_PATH) {
                 const data = { search: window.location.search };
-                if (this.router?.getCurrentView?.() === 'visual-catalog') {
-                    const catalog = this.router.getViewInstance?.('visual-catalog');
-                    if (catalog?.update) {
-                        catalog.update(data);
-                        return;
-                    }
+                const route = this.router?.views?.get('visual-catalog');
+                const catalog = this.router?.getViewInstance?.('visual-catalog');
+                const isCurrentCatalog = this.router?.getCurrentView?.() === 'visual-catalog';
+                const isEnteringCatalog = this.router?.transitioning === true
+                    && route?.container && !route.container.hidden;
+                if (catalog?.update && (isCurrentCatalog || isEnteringCatalog)) {
+                    catalog.update(data);
+                    return;
                 }
                 await this.router?.navigate('visual-catalog', {
                     data, replace: true, skipStack: true

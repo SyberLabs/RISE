@@ -56,4 +56,22 @@ describe('the Visual Catalog public path', () => {
       expect([...document.querySelectorAll('[data-visual-id]')].map(card => card.dataset.visualId)).toEqual(['turrell']);
     });
   });
+
+  it('handles same-path history changes while a cold catalog route is entering', async () => {
+    window.history.replaceState({}, '', '/visual-catalog?q=klee');
+    app = new App();
+    const opening = app.checkBetaAccess();
+    await vi.waitFor(() => expect(document.querySelector('#visual-catalog-search')).not.toBeNull());
+    expect(document.querySelector('#visual-catalog-search').value).toBe('klee');
+
+    window.history.pushState({}, '', '/visual-catalog?q=attractor');
+    window.history.pushState({}, '', '/visual-catalog?q=turrell');
+    window.history.back();
+    await vi.waitFor(() => expect(window.location.search).toBe('?q=attractor'));
+    await vi.waitFor(() => {
+      expect(document.querySelector('#visual-catalog-search').value).toBe('attractor');
+      expect([...document.querySelectorAll('[data-visual-id]')].map(card => card.dataset.visualId)).toEqual(['ostensoria', 'attractor']);
+    });
+    await opening;
+  });
 });
