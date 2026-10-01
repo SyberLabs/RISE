@@ -6,7 +6,7 @@ Status: proposed for written review. Direction approved in chat; implementation 
 
 RISE's reader needs to change a running experience without losing the words or their place. A provider model will need the same operation through a plugin. The renderer needs sole authority over frames and safe transitions. These needs justify a small provider-independent control boundary in the existing live runtime.
 
-The first deliverable implements VISION section 7: an Attractor reading, the phrase **more vibrant**, and a first visible brightness change within 1,000 ms of a submitted local command. Composition may already be complete. Playback must continue through the adjustment.
+The first deliverable is a scoped subset of VISION section 7: an Attractor reading, the phrase **more vibrant**, and a first visible brightness change within 1,000 ms of a submitted local command. Composition may already be complete. Playback must continue through the adjustment. The full voice-demo claim also needs a real-recognizer measurement from the end of the spoken phrase; that measurement is deferred until a real device is available and cannot be replaced by typed or fake-recognizer evidence.
 
 Brightness is an experiment in what feels more vibrant, not a proven perceptual equivalence. Real speech-recognition latency and perceived quality must be reported separately from deterministic control latency.
 
@@ -38,7 +38,9 @@ The command shape is a closed data object: { surface: 'attractor', parameter: 'i
 
 The runtime selects the visible run itself. Controls work during main playback, an explicitly held main reading, and side playback in a Dive, including after composition completes. Starting, ended, failed, and stopped runs refuse controls. A refusal neither pauses playback nor opens a provider request.
 
-Use the existing runtime-to-Player-to-Chamber ownership path for delivery. Only the mounted renderer can confirm availability and acceptance. Do not resolve acceptance merely because an event was emitted or a manifest was found.
+Extend the existing runtime-to-Player-to-Chamber ownership path with a small active-field control seam. VisualFieldDirector validates that its active record is still current and delegates to that record's control method; the mounted Attractor record performs the bounded intensity update without remounting. Its transition cancellation shares the record's existing destroy lifecycle and generation ownership. The current scalar setter and director do not already provide interpolation; that is new work. Only the mounted renderer can confirm availability and acceptance. Do not resolve acceptance merely because an event was emitted or a manifest was found.
+
+Discovery is advisory until delivery: if presentation is pending, the visible run changed, the Chamber was destroyed, page mode removed the field, or playback ended between discovery and delivery, return a refusal. Recheck run and field identity at delivery. A command must never be accepted for an orphaned renderer.
 
 ## Receipts and local observation
 
@@ -54,7 +56,7 @@ A repeated command retargets from the current effective intensity toward the nex
 
 The adjustment is local to the active passage/field lifetime. A successor authored cue replaces it; it does not rewrite composed content or modify future passages. Dive, Surface, field replacement, and Stop cancel the departing field's transition. A late callback cannot affect a successor field.
 
-Reduced-motion mode must preserve the renderer's existing stillness policy. A brightness change may refresh the still image without introducing motion; if the renderer cannot support that honestly, it exposes no control and gives a visible refusal. Do not create a crossfade by remounting the Attractor for a parameter change.
+Reduced-motion mode must preserve the renderer's existing stillness policy: apply brightness in one repaint, without the 320 ms tween or advancing the field simulation. If the renderer cannot support that honestly, it exposes no control and gives a visible refusal. Do not create a crossfade by remounting the Attractor for a parameter change.
 
 Narration remains the authority for reading position. Control delivery never calls pause, play, restart, replay, extend, or voice enqueue. Rendering uses its own frame timing without becoming a second reading clock.
 
@@ -72,7 +74,7 @@ Report actual outcomes accessibly in the existing status/error presentation. Do 
 
 - Closed grammar accepts the intended phrase and rejects negation, extra instructions, lookalikes, and arbitrary executable text.
 - Manifest validation and control parsing reject unknown fields and unsupported surfaces; numeric bounds are verified at the renderer boundary.
-- Runtime tests apply controls after composition completion while playback remains live; the same Player and voice remain active and no adapter request is opened.
+- Runtime tests apply controls after composition completion while playback remains live; the same Player and voice remain active and no adapter request is opened. Delivery refuses when presentation is pending or the run/field disappears after discovery, including playback completion, Chamber destruction, and page-mode departure.
 - Temporal tests verify interpolation, rapid retargeting, limit behavior, field replacement, reduced-motion behavior, and cleanup after Stop/Dive/Surface.
 - Controls tests verify typed delivery, non-holding visual speech, preserved existing question speech, failure visibility, and cancellation.
 - A real browser test drives the actual live host, Player, Chamber, and Attractor with the deterministic provider. It verifies painted output changes within 1,000 ms, the renderer instance remains mounted, and playback advances across the adjustment. Dataset values alone are not visual evidence.
