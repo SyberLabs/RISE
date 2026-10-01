@@ -1,6 +1,6 @@
 # Addressable visual catalog: first admission slice
 
-Status: proposed for review. This is the next stage after PR #364, based on its verified commit `450341fb`. It does not claim that all of VISION.md Stage 1 is complete.
+Status: approved by the reader's “proceed” on 1 October 2026. This is the next stage after PR #364, based on its verified commit `450341fb`. It does not claim that all of VISION.md Stage 1 is complete.
 
 ## Objective and requirements
 
