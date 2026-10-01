@@ -255,6 +255,16 @@ describe('a Dive that cannot be opened', () => {
         expect(runtime.undercurrent()[0].id).toBe('dive-2');
     });
 
+    it('tells whoever is watching that the Dive is gone, from a reading that was held or had ended, which nothing else restarts', async () => {
+        build({ failOn: [1] });
+        await reading();
+        runtime.hold();
+        const seen = [];
+        runtime.subscribe(view => seen.push(view));
+        await expect(runtime.dive({ question: HORIZON })).rejects.toThrow('no route');
+        expect(seen.at(-1)).toMatchObject({ status: 'interrupted', dive: null, side: null });
+    });
+
     it('says the undercurrent is full, before anything is held, when it is', async () => {
         build();
         await reading();

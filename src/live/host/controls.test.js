@@ -676,6 +676,18 @@ describe('the undercurrent', () => {
         expect(entry('dive-1').textContent).toContain('and a third?');
     });
 
+    it('keeps the keyboard on the Dive the reader selected when an answer grows', () => {
+        const runtime = fakeRuntime('live');
+        runtime.dives = [DIVES[0], DIVES[1]];
+        controls = createLiveControls({ runtime, onStop: () => {} });
+        entry('dive-2').open = true;
+        entry('dive-2').querySelector('summary').focus();
+        expect(document.activeElement).toBe(entry('dive-2').querySelector('summary'));
+        runtime.setDives([DIVES[0], { ...DIVES[1], turns: [turn('why second?', { paragraphs: ['one', 'two'] })] }]);
+        expect(entry('dive-2').textContent).toContain('two');
+        expect(document.activeElement).toBe(entry('dive-2').querySelector('summary'));
+    });
+
     it('marks, under the passage a Dive was taken from, that there was one, and the marker opens that Dive', () => {
         const runtime = fakeRuntime('live');
         runtime.dives = DIVES;

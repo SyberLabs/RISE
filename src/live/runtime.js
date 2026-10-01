@@ -420,6 +420,8 @@ export function createLiveRuntime({
                 // Nothing was answered, so nothing is kept.
                 kept.drop(turn.id);
                 current = null;
+                // Whoever is watching saw the Dive begin; if nothing restarts the reading, nothing else would say it is gone.
+                set(status);
                 // Playing again releases the voice with it; a reader who had held it keeps it held.
                 if (before === 'live') main.player.play();
                 throw caught;

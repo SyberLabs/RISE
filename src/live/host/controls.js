@@ -208,6 +208,8 @@ export function createLiveControls({ runtime, onStop, audible = true, mic = null
         shownDives = key;
         undercurrent.querySelector('summary').textContent = `Undercurrent (${all.length})`;
         const open = new Set([...dives.querySelectorAll('details[open]')].map(node => node.dataset.dive));
+        // A rebuilt summary is a new element: the keyboard stays on the Dive it was on.
+        const focused = doc.activeElement?.matches?.('summary') ? doc.activeElement.parentElement?.dataset?.dive : null;
         for (const id of wanted) open.add(id);
         wanted.clear();
         dives.replaceChildren(...all.map(dive => {
@@ -250,6 +252,7 @@ export function createLiveControls({ runtime, onStop, audible = true, mic = null
             entry.append(details);
             return entry;
         }));
+        if (focused) dives.querySelector(`details[data-dive="${focused}"] > summary`)?.focus();
         return all;
     }
 
