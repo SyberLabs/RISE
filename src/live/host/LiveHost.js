@@ -33,6 +33,7 @@ import './LiveHost.css';
 const DEFAULT_PROMPT = 'Explain black holes with RISE.';
 /** What an embedded app asks its host for: enough for the Chamber and the controls on a phone. */
 const EMBED_HEIGHT = 640;
+const EMBED_REPLAY_NOTICE = 'Reopening starts this reading from the beginning';
 const PROVIDERS = Object.freeze({
     mock: 'Deterministic demo provider (offline)',
     openai: 'OpenAI Realtime, with your own key',
@@ -554,7 +555,7 @@ export class LiveHost {
             this.runtime = runtime;
             const mic = await this.buildMic();
             if (this.destroyed) return;
-            this.controls = createLiveControls({ runtime, onStop: () => this.stop(), audible: this.voiceKind === 'browser', mic });
+            this.controls = createLiveControls({ runtime, onStop: () => this.stop(), audible: this.voiceKind === 'browser', mic, notice: EMBED_REPLAY_NOTICE });
             await runtime.start('The answer the assistant presents');
         } catch (error) {
             if (this.destroyed) return;
@@ -577,7 +578,7 @@ export class LiveHost {
         await runtime?.stop();
         this.resetButton();
         await this.present?.leaveLive(this.router);
-        if (this.embedded && !this.destroyed) this.say('Stopped. Ask the assistant again to see it.');
+        if (this.embedded && !this.destroyed) this.say(`Stopped. Ask the assistant again to see it. ${EMBED_REPLAY_NOTICE}.`);
     }
 
     /** The reader left the Chamber by its own control: end what was running. */
@@ -589,7 +590,7 @@ export class LiveHost {
         this.controls = null;
         await runtime?.stop();
         this.resetButton();
-        if (this.embedded && !this.destroyed) this.say('Finished. Ask the assistant again to see it.');
+        if (this.embedded && !this.destroyed) this.say(`Finished. Ask the assistant again to see it. ${EMBED_REPLAY_NOTICE}.`);
     }
 
     activate() {

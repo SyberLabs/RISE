@@ -129,6 +129,15 @@ const $ = selector => document.querySelector(selector);
 const flush = () => new Promise(resolve => setTimeout(resolve, 0));
 
 describe('the buttons', () => {
+    it('keeps an embedded replay notice visible alongside the controls', () => {
+        controls = createLiveControls({ runtime: fakeRuntime('live'), onStop: () => {}, notice: 'Reopening starts this reading from the beginning' });
+        expect($('#live-controls').textContent).toContain('Reopening starts this reading from the beginning');
+
+        controls.destroy();
+        controls = createLiveControls({ runtime: fakeRuntime('live'), onStop: () => {} });
+        expect($('#live-controls').textContent).not.toContain('Reopening starts this reading from the beginning');
+    });
+
     it('shows only what the state allows', () => {
         const runtime = fakeRuntime('live');
         controls = createLiveControls({ runtime, onStop: () => {} });

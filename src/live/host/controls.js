@@ -54,11 +54,12 @@ export function describeStatus(snapshot, { audible = true, question = '' } = {})
  * @param {object} options.runtime a live runtime
  * @param {() => void} options.onStop what Stop does (the host ends the session)
  * @param {boolean} [options.audible] whether the voice makes sound; a silent one is said to be pacing
+ * @param {string} [options.notice] an optional persistent note for an embedded host
  * @param {object} [options.mic] speaking to it, where the browser can listen: `{ createListener, interpret, describe, privacy, privacyLead }`
  *   (src/live/mic); without it there is no Speak button at all
  * @param {Document} [options.doc]
  */
-export function createLiveControls({ runtime, onStop, audible = true, mic = null, doc = document }) {
+export function createLiveControls({ runtime, onStop, audible = true, mic = null, notice = '', doc = document }) {
     const root = doc.createElement('section');
     root.id = 'live-controls';
     root.className = 'live-controls';
@@ -103,6 +104,13 @@ export function createLiveControls({ runtime, onStop, audible = true, mic = null
         <summary>Transcript</summary>
         <ol class="live-controls__lines" aria-label="What has been said so far"></ol>
       </details>`;
+    if (notice) {
+        const note = doc.createElement('p');
+        note.className = 'live-controls__notice';
+        note.setAttribute('role', 'note');
+        note.textContent = notice;
+        root.prepend(note);
+    }
     doc.body.appendChild(root);
 
     const $ = selector => root.querySelector(selector);

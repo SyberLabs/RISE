@@ -120,6 +120,20 @@ test('a validated tool result alone delivers the Current for playback', async ({
   await expectShown(app, 'that nothing, not even light', 20_000);
 });
 
+test('reopening the nested frame reinitializes and plays the host result from its first passage', async ({ page, baseURL }) => {
+  const app = await openHost(page, baseURL);
+  await expectShown(app, 'A black hole is a region of space');
+  await expect(app.locator('#live-controls')).toContainText('Reopening starts this reading from the beginning');
+  await expectShown(app, 'Its boundary is called the event horizon', 20_000);
+
+  await app.locator('body').evaluate(body => body.ownerDocument.defaultView.location.reload());
+  const reopened = page.frameLocator('#view').frameLocator('#app');
+  await expectShown(reopened, 'A black hole is a region of space');
+  await expect(reopened.locator('#live-controls')).toContainText('Reopening starts this reading from the beginning');
+  await expect.poll(async () => (await log(page)).filter(entry => entry.method === 'ui/initialize').length).toBe(2);
+  expect((await log(page)).filter(entry => entry.method === 'sampling/createMessage')).toHaveLength(0);
+});
+
 test('calmer lowers the held visual target and resumes the same atom without sampling', async ({ page, baseURL }) => {
   const app = await openHost(page, baseURL);
   await expectShown(app, 'A black hole is a region of space');
@@ -143,7 +157,7 @@ test('an invalid worker result has no playable Current', async ({ page, baseURL 
   const serverResponse = page.waitForResponse('**/api/mcp');
   const app = await openHost(page, baseURL, { resultOnly: true, current: { ...BLACK_HOLES_CURRENT, segments: [{ id: 's1', text: 'Fine words.' }, { id: 's2', text: 'a | b' }] } });
   expect((await (await serverResponse).json()).result.isError).toBe(true);
-  await expect(app.locator('#atom-display')).toHaveCount(0);
+  await expect(app.locator('.atom-word')).toHaveCount(0);
 });
 
 test('a Dive is a question put to the host’s model, answered in the same call, and Surface returns to the very atom', async ({ page, baseURL }) => {
@@ -188,7 +202,8 @@ test('a Current that is not valid is refused whole, in words, and nothing of it 
   const app = await openHost(page, baseURL, { current: { ...BLACK_HOLES_CURRENT, segments: [{ id: 's1', text: 'Fine words.' }, { id: 's2', text: 'a | b' }] } });
   await expect(app.locator('.live-controls__status')).toContainText('could not be answered', { timeout: 15_000 });
   await expect(app.locator('.live-controls__error')).toContainText('refused');
-  await expect(app.locator('#atom-display')).toHaveCount(0);
+  await expect(app.locator('.live-controls__error')).toContainText('Ask the assistant again');
+  await expect(app.locator('.atom-word')).toHaveCount(0);
 });
 
 test('the host’s ping is answered, and its request to tear down is answered and ends the reading', async ({ page, baseURL }) => {
@@ -199,6 +214,7 @@ test('the host’s ping is answered, and its request to tear down is answered an
   await page.evaluate(() => { window.__host.request('t1', 'ui/resource-teardown', {}); });
   await expect.poll(async () => (await log(page)).some(entry => entry.id === 't1' && entry.result !== undefined)).toBe(true);
   await expect(app.locator('#live-controls')).toHaveCount(0);
+  await expect(app.locator('.live-embed')).toContainText('Reopening starts this reading from the beginning');
 });
 
 test('a document at another origin in the app’s frame cannot speak to the host through the relay, though RISE’s own page can', async ({ page, baseURL }) => {

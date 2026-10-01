@@ -117,6 +117,7 @@ describe('an answer from the host’s model', () => {
         const view = stream.snapshot();
         expect(view.phase).toBe('failed');
         expect(view.error.code).toBe('INVALID_CURRENT');
+        expect(view.error.message).toContain('Ask the assistant again');
         expect(view.segments).toEqual([]);
         expect(seen.some(event => event.type === 'segment.text')).toBe(false);
     });
