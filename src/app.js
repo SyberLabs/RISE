@@ -32,10 +32,12 @@ import { createRouteManifest } from './app/route-manifest.js';
 import { installTestBridge } from './app/test-bridge.js';
 
 const VISUAL_LAB_PATH = '/visual-lab';
+const VISUAL_CATALOG_PATH = '/visual-catalog';
 const LIVE_PATH = '/live';
 const EMOTIONS_PATH = '/emotions';
 const PUBLIC_ROOM_PATHS = Object.freeze({
     'visual-lab': VISUAL_LAB_PATH,
+    'visual-catalog': VISUAL_CATALOG_PATH,
     emotions: EMOTIONS_PATH
 });
 import { watchTabFreshness } from './core/tab-freshness.js';
@@ -362,6 +364,8 @@ class App {
             await this.router.navigate('mint', { data: { entry: houseProgram(mintedSlug) } });
         } else if (window.location.pathname === VISUAL_LAB_PATH) {
             await this.router.navigate('visual-lab');
+        } else if (window.location.pathname === VISUAL_CATALOG_PATH) {
+            await this.router.navigate('visual-catalog', { data: { search: window.location.search } });
         } else if (window.location.pathname === LIVE_PATH) {
             await this.router.navigate('live');
         } else if (window.location.pathname === EMOTIONS_PATH) {
@@ -1356,6 +1360,12 @@ class App {
             const { keystoneSlugFromPath } = await import('./content/keystones.js');
             if (window.location.pathname === VISUAL_LAB_PATH) {
                 await this.router?.navigate('visual-lab', { replace: true, skipStack: true });
+                return;
+            }
+            if (window.location.pathname === VISUAL_CATALOG_PATH) {
+                await this.router?.navigate('visual-catalog', {
+                    data: { search: window.location.search }, replace: true, skipStack: true
+                });
                 return;
             }
             if (window.location.pathname === LIVE_PATH) {

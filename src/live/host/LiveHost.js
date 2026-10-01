@@ -25,6 +25,7 @@
 
 import { GEMINI_DEFAULT_MODEL } from '../adapters/gemini-model.js';
 import { describeDegradations, detectCapabilities } from '../capabilities.js';
+import { admitCatalogVisual } from '../../core/visual-catalog.js';
 import { createLiveControls } from './controls.js';
 import { DelayedRunner, EvalRunner } from './EvalRunner.js';
 import './LiveHost.css';
@@ -71,9 +72,10 @@ export class LiveHost {
      * @param {string} [options.search] the query string
      * @param {object} [options.env] window-like, for capability detection
      */
-    constructor(container, { router, search = globalThis.location?.search ?? '', env = globalThis } = {}) {
+    constructor(container, { router, onNavigate = () => {}, search = globalThis.location?.search ?? '', env = globalThis } = {}) {
         this.container = container;
         this.router = router;
+        this.onNavigate = onNavigate;
         this.params = new URLSearchParams(search);
         this.env = env;
         this.caps = detectCapabilities(env);
@@ -89,6 +91,15 @@ export class LiveHost {
         // Which Gemini model to ask, if the reader named one; not secret, and empty means the default.
         this.model = undefined;
         this.embedded = this.params.get('embed') === 'mcp' && !this.params.has('eval');
+        this.hasCatalogChoice = this.params.has('catalog');
+        this.catalogId = this.params.get('catalog');
+        this.catalogConflict = this.hasCatalogChoice && (
+            this.embedded || this.params.has('eval') || (this.params.get('provider') || 'mock') !== 'mock'
+        );
+        if (this.catalogConflict) {
+            this.renderCatalogRefusal('Catalog sample choices are only available in the offline demonstration.');
+            return;
+        }
         if (this.embedded) {
             this.modules = this.loadModules();
             this.modules.catch(() => {});
@@ -168,6 +179,8 @@ export class LiveHost {
           </div>
         </form>
         <p class="live-error" role="alert" hidden></p>
+        <p class="live-catalog-note" role="status"></p>
+        <p><a class="live-catalog-link" href="/visual-catalog">Browse visuals</a></p>
         <section class="live-facts" aria-label="What is being used">
           <p class="live-provider"></p>
           <ul class="live-notes" aria-label="What this device cannot do"></ul>
@@ -175,6 +188,7 @@ export class LiveHost {
       </main>`;
         this.form = this.container.querySelector('.live-ask');
         this.errorLine = this.container.querySelector('.live-error');
+        this.catalogNote = this.container.querySelector('.live-catalog-note');
         this.providerLine = this.container.querySelector('.live-provider');
         this.notes = this.container.querySelector('.live-notes');
         this.startButton = this.container.querySelector('.live-start');
@@ -187,6 +201,38 @@ export class LiveHost {
             ? `Provider: ${PROVIDERS[asked]}`
             : `Provider “${asked.slice(0, 40)}” is not available. Using: ${PROVIDERS.mock}`;
         this.showNotes();
+        if (this.hasCatalogChoice) {
+            const admission = admitCatalogVisual(this.catalogId, this.caps);
+            if (admission.status === 'accepted') {
+                this.openingVisual = admission.visual;
+                this.catalogNote.textContent = `This sample begins with ${this.catalogId}.`;
+            } else if (admission.code === 'CAPABILITY_UNAVAILABLE') {
+                this.openingVisual = 'still';
+                this.catalogNote.textContent = 'Drawing is unavailable. This reading begins without imagery.';
+            }
+        }
+        this.container.querySelector('.live-catalog-link').addEventListener('click', event => {
+            event.preventDefault();
+            this.onNavigate('visual-catalog');
+        });
+    }
+
+    renderCatalogRefusal(message) {
+        this.container.replaceChildren();
+        const main = document.createElement('main');
+        main.className = 'live-host';
+        const title = document.createElement('h1');
+        title.className = 'live-title';
+        title.textContent = 'Live Current';
+        const error = document.createElement('p');
+        error.className = 'live-error';
+        error.setAttribute('role', 'alert');
+        error.textContent = message;
+        const link = document.createElement('a');
+        link.href = '/visual-catalog';
+        link.textContent = 'Browse visuals';
+        main.append(title, error, link);
+        this.container.append(main);
     }
 
     showNotes() {
@@ -214,6 +260,17 @@ export class LiveHost {
 
     async start() {
         if (this.starting || this.runtime) return;
+        if (this.catalogConflict) return;
+        if (this.hasCatalogChoice) {
+            const admission = admitCatalogVisual(this.catalogId, this.caps);
+            if (admission.status === 'refused' && admission.code !== 'CAPABILITY_UNAVAILABLE') {
+                this.fail(admission.code === 'UNKNOWN_VISUAL'
+                    ? 'That choice is not in the visual catalog.'
+                    : 'That visual is a specimen only and has no live opening.');
+                return;
+            }
+            this.openingVisual = admission.status === 'accepted' ? admission.visual : 'still';
+        }
         const prompt = text(this.form.elements.prompt.value).trim();
         if (!prompt) {
             this.fail('Ask something first.');
@@ -348,7 +405,17 @@ export class LiveHost {
             // The key and the model are asked for at each request, so a forgotten key is not used again.
             return createGeminiAdapter({ transport: createGeminiFetchTransport({ getKey: () => this.key, getModel: () => this.model }) });
         }
-        if (this.providerName !== 'openai') return createMockAdapter({ clock });
+        if (this.providerName !== 'openai') {
+            if (!this.hasCatalogChoice) return createMockAdapter({ clock });
+            const admission = admitCatalogVisual(this.catalogId, this.caps);
+            if (admission.status === 'refused' && admission.code !== 'CAPABILITY_UNAVAILABLE') {
+                throw new Error('The catalog choice is unavailable.');
+            }
+            return createMockAdapter({
+                clock,
+                openingVisual: admission.status === 'accepted' ? admission.visual : 'still'
+            });
+        }
         const [{ createOpenAIRealtimeAdapter }, { createOpenAIWebRtcTransport }] = await Promise.all([
             import('../adapters/openai-realtime.js'),
             import('../adapters/openai-webrtc.js')

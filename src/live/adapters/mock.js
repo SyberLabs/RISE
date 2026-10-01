@@ -66,8 +66,12 @@ export function createMockAdapter({
     chunkMs = 40,
     latencyMs = 20,
     capacity = 64,
-    faults = {}
+    faults = {},
+    openingVisual
 } = {}) {
+    if (openingVisual !== undefined && !['still', 'attractor', 'genesis'].includes(openingVisual)) {
+        throw new TypeError('opening visual must be still, attractor, or genesis');
+    }
     let opened = 0;
 
     return {
@@ -81,7 +85,15 @@ export function createMockAdapter({
 
         async open(input) {
             const request = validateOpenRequest(input);
-            const script = scriptFor(request);
+            const sourceScript = scriptFor(request);
+            const script = openingVisual && request.intent === 'answer'
+                ? {
+                    ...sourceScript,
+                    segments: sourceScript.segments.map((segment, index) => index === 0
+                        ? { ...segment, visual: openingVisual }
+                        : segment)
+                }
+                : sourceScript;
             const currentId = `${request.intent === 'dive' ? 'dive' : 'answer'}-${opened}`;
             opened += 1;
 
