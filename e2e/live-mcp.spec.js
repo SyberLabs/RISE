@@ -23,7 +23,7 @@ import { expect, test } from './fixtures.js';
 const HOST = '/__mcp-host';
 
 /** The fake host's page: a frame for the relay, and a script that plays the host. */
-function hostPage({ relay, current, sampling = true, dive, resultOnly = false }) {
+function hostPage({ relay, current, sampling = true, dive, resultOnly = false, deferToolResult = false }) {
     const escaped = relay.replace(/&/gu, '&amp;').replace(/"/gu, '&quot;');
     return `<!doctype html><meta charset="utf-8"><title>fake host</title>
 <style>html,body{margin:0;height:100%}iframe{border:0;width:100%;height:640px}</style>
@@ -33,8 +33,9 @@ const CURRENT = ${JSON.stringify(current)};
 const DIVE = ${JSON.stringify(dive)};
 const SAMPLING = ${JSON.stringify(sampling)};
 const RESULT_ONLY = ${JSON.stringify(resultOnly)};
+const DEFER_TOOL_RESULT = ${JSON.stringify(deferToolResult)};
 const log = [];
-window.__host = { log, send: null };
+window.__host = { log, send: null, workerResult: null, releaseToolResult: null };
 const view = document.getElementById('view');
 // The relay's frame holds the app; messages from the relay's frame are the app's.
 function reply(id, body) { view.contentWindow.postMessage({ jsonrpc: '2.0', id, ...body }, '*'); }
@@ -54,7 +55,9 @@ window.addEventListener('message', event => {
     fetch('/api/mcp', { method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'tools/call', params: { name: 'rise_present', arguments: { current: CURRENT } } })
     }).then(response => response.json()).then(({ result }) => {
-      tell('ui/notifications/tool-result', result);
+      window.__host.workerResult = result;
+      if (DEFER_TOOL_RESULT) window.__host.releaseToolResult = () => tell('ui/notifications/tool-result', result);
+      else tell('ui/notifications/tool-result', result);
     });
   } else if (message.method === 'sampling/createMessage') {
     setTimeout(() => reply(message.id, { result: { role: 'assistant', model: 'fake', stopReason: 'endTurn', content: { type: 'text', text: JSON.stringify(DIVE) } } }), 300);
@@ -73,7 +76,7 @@ async function openHost(page, baseURL, options = {}) {
     await route.fulfill({ status: response.status, headers: Object.fromEntries(response.headers), body: await response.text() });
   });
   const relay = relayHtml({ origin, path: '/live?embed=mcp&voice=paced' });
-  await page.route(`**${HOST}`, route => route.fulfill({ contentType: 'text/html', body: hostPage({ relay, current: options.current ?? BLACK_HOLES_CURRENT, sampling: options.sampling ?? true, resultOnly: options.resultOnly ?? false, dive: toSealedCurrent(HORIZON_DIVE, 'dive-answer') }) }));
+  await page.route(`**${HOST}`, route => route.fulfill({ contentType: 'text/html', body: hostPage({ relay, current: options.current ?? BLACK_HOLES_CURRENT, sampling: options.sampling ?? true, resultOnly: options.resultOnly ?? false, deferToolResult: options.deferToolResult ?? false, dive: toSealedCurrent(HORIZON_DIVE, 'dive-answer') }) }));
   await page.goto(HOST);
   // The app is a page in a frame in the relay's frame.
   return page.frameLocator('#view').frameLocator('#app');
@@ -83,10 +86,10 @@ const log = page => page.evaluate(() => window.__host.log);
 const shown = async app => (await app.locator('#atom-display').innerText()).replace(/\s+/gu, ' ').trim();
 const expectShown = (app, phrase, timeout = 15_000) => expect.poll(() => shown(app).catch(() => ''), { timeout, message: `waiting to see “${phrase}”` }).toContain(phrase);
 
-test('the host’s model answers, and the app says hello, gets the answer, and plays it once', async ({ page, baseURL }) => {
+test('the input and matching worker result play once without restarting a held reading', async ({ page, baseURL }) => {
   const errors = [];
   page.on('pageerror', error => errors.push(error.message));
-  const app = await openHost(page, baseURL);
+  const app = await openHost(page, baseURL, { deferToolResult: true });
   await expectShown(app, 'A black hole is a region of space');
   await expect(app.locator('.live-controls__status')).toContainText(/paced as if spoken/u);
 
@@ -96,8 +99,18 @@ test('the host’s model answers, and the app says hello, gets the answer, and p
   expect(hello[0].params).toMatchObject({ appInfo: { name: 'RISE' }, protocolVersion: '2026-01-26' });
   expect(sent.some(entry => entry.method === 'ui/notifications/initialized')).toBe(true);
   expect(sent.find(entry => entry.method === 'ui/notifications/size-changed').params.height).toBe(640);
-  // The answer came twice, as the tool's input and again as its result, and was played once.
-  await expectShown(app, 'that nothing, not even light', 20_000);
+  // Hold later in the Current, then release its real worker result.
+  await expectShown(app, 'Its boundary is called the event horizon', 20_000);
+  await app.getByRole('button', { name: 'Interrupt', exact: true }).click();
+  await expect(app.locator('.live-controls__status')).toContainText('Held where you are');
+  const heldAt = await shown(app);
+  await expect.poll(() => page.evaluate(() => window.__host.workerResult?.structuredContent?.current?.id ?? null)).toBe('black-holes');
+  await expect.poll(() => page.evaluate(() => typeof window.__host.releaseToolResult)).toBe('function');
+  await page.evaluate(() => window.__host.releaseToolResult());
+  await expect(app.locator('.live-controls__status')).toContainText('Held where you are');
+  expect(await shown(app)).toBe(heldAt);
+  await app.getByRole('button', { name: 'Resume', exact: true }).click();
+  await expectShown(app, 'It is not a surface you could touch', 20_000);
   expect(errors).toEqual([]);
 });
 
