@@ -120,6 +120,25 @@ test('a validated tool result alone delivers the Current for playback', async ({
   await expectShown(app, 'that nothing, not even light', 20_000);
 });
 
+test('calmer lowers the held visual target and resumes the same atom without sampling', async ({ page, baseURL }) => {
+  const app = await openHost(page, baseURL);
+  await expectShown(app, 'A black hole is a region of space');
+  await app.getByRole('button', { name: 'Interrupt', exact: true }).click();
+  await expect(app.locator('.live-controls__status')).toContainText('Held where you are');
+  const heldAt = await shown(app);
+  expect((await log(page)).filter(entry => entry.method === 'sampling/createMessage')).toHaveLength(0);
+
+  await app.locator('#live-controls-visual').fill('calmer');
+  await app.getByRole('button', { name: 'Change visual', exact: true }).click();
+  await expect(app.locator('.live-controls__status')).toContainText('brightness target changed to 0.55');
+  expect(await shown(app)).toBe(heldAt);
+  expect((await log(page)).filter(entry => entry.method === 'sampling/createMessage')).toHaveLength(0);
+
+  await app.getByRole('button', { name: 'Resume', exact: true }).click();
+  await expect.poll(() => shown(app), { timeout: 5_000 }).not.toBe(heldAt);
+  expect((await log(page)).filter(entry => entry.method === 'sampling/createMessage')).toHaveLength(0);
+});
+
 test('an invalid worker result has no playable Current', async ({ page, baseURL }) => {
   const serverResponse = page.waitForResponse('**/api/mcp');
   const app = await openHost(page, baseURL, { resultOnly: true, current: { ...BLACK_HOLES_CURRENT, segments: [{ id: 's1', text: 'Fine words.' }, { id: 's2', text: 'a | b' }] } });

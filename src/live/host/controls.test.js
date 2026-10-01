@@ -111,7 +111,7 @@ function fakeRuntime(initial = 'live') {
         resume: vi.fn(() => { calls.push(['resume']); runtime.set('live'); }),
         dive: vi.fn(async body => { if (state.status === 'diving') throw new Error('A Dive inside a Dive is not built'); calls.push(['dive', body]); runtime.set('diving'); }),
         surface: vi.fn(async () => { calls.push(['surface']); runtime.set('live'); }),
-        discoverVisual: vi.fn(() => ({ manifest: { surface: 'attractor' }, current: { intensity: 0.65 }, target: { intensity: 0.65 } })),
+        discoverVisual: vi.fn(() => ({ manifest: { surface: 'attractor', parameters: { intensity: { minimum: 0.4, maximum: 0.75 } } }, current: { intensity: 0.65 }, target: { intensity: 0.65 } })),
         controlVisual: vi.fn(command => ({ status: 'accepted', surface: 'attractor', parameter: 'intensity', requested: command.value, effective: command.value })),
         set(status, extra) { state = snapshot(status, extra); for (const fn of [...listeners]) fn(state); },
         calls
@@ -234,7 +234,28 @@ describe('visual control', () => {
         await flush();
         expect(runtime.controlVisual).toHaveBeenCalledWith({ surface: 'attractor', parameter: 'intensity', value: 0.75 });
         expect($('.live-controls__status').textContent).toContain('0.75');
+        expect($('.live-controls__status').textContent).toContain('more vibrant');
+        expect($('.live-controls__status').textContent).toContain('calmer');
         expect(runtime.status).toBe('live');
+    });
+
+    it('lowers brightness by one tenth and reports the bounded target', () => {
+        const runtime = fakeRuntime('live');
+        controls = createLiveControls({ runtime, onStop: () => {} });
+        $('input[name="visual"]').value = 'please calmer';
+        $('[data-live="visual-submit"]').click();
+        expect(runtime.controlVisual).toHaveBeenCalledWith({ surface: 'attractor', parameter: 'intensity', value: 0.55 });
+        expect($('.live-controls__status').textContent).toContain('brightness target changed to 0.55');
+    });
+
+    it('does not lower brightness beneath the active visual manifest minimum', () => {
+        const runtime = fakeRuntime('live');
+        runtime.discoverVisual.mockReturnValue({ manifest: { surface: 'attractor', parameters: { intensity: { minimum: 0.4, maximum: 0.75 } } }, current: { intensity: 0.4 }, target: { intensity: 0.4 } });
+        controls = createLiveControls({ runtime, onStop: () => {} });
+        $('input[name="visual"]').value = 'calmer';
+        $('[data-live="visual-submit"]').click();
+        expect(runtime.controlVisual).toHaveBeenCalledWith({ surface: 'attractor', parameter: 'intensity', value: 0.4 });
+        expect($('.live-controls__status').textContent).toContain('brightness is already at its minimum');
     });
 
     it('keeps an unsupported phrase visible and never turns it into a Dive', async () => {
@@ -247,22 +268,25 @@ describe('visual control', () => {
         expect(runtime.controlVisual).not.toHaveBeenCalled();
         expect(runtime.dive).not.toHaveBeenCalled();
         expect(field.value).toBe('more vibrant and stop');
-        expect($('.live-controls__error').textContent).toBe('Only “more vibrant” is available for visual changes.');
+        expect($('.live-controls__error').textContent).toContain('more vibrant');
+        expect($('.live-controls__error').textContent).toContain('calmer');
+        expect($('.live-controls__error').textContent).toContain('brightness');
     });
 
     it('requests the capped target and reports a no-change outcome only after acceptance', () => {
         const runtime = fakeRuntime('live');
-        runtime.discoverVisual.mockReturnValue({ target: { intensity: 0.75 }, current: { intensity: 0.75 } });
+        runtime.discoverVisual.mockReturnValue({ manifest: { surface: 'attractor', parameters: { intensity: { minimum: 0.4, maximum: 0.75 } } }, target: { intensity: 0.75 }, current: { intensity: 0.75 } });
         controls = createLiveControls({ runtime, onStop: () => {} });
         $('input[name="visual"]').value = 'more vibrant';
         $('[data-live="visual-submit"]').click();
         expect(runtime.controlVisual).toHaveBeenCalledWith({ surface: 'attractor', parameter: 'intensity', value: 0.75 });
-        expect($('.live-controls__status').textContent).toContain('already at its brightness limit');
+        expect($('.live-controls__status').textContent).toContain('brightness is already at its maximum');
 
         runtime.controlVisual.mockReturnValue({ status: 'refused', code: 'NO_ACTIVE_VISUAL' });
         $('[data-live="visual-submit"]').click();
-        expect($('.live-controls__status').textContent).not.toContain('already at its brightness limit');
-        expect($('.live-controls__error').textContent).toBe('There is no adjustable visual on screen right now.');
+        expect($('.live-controls__status').textContent).not.toContain('brightness is already at its maximum');
+        expect($('.live-controls__error').textContent).toContain('There is no adjustable visual on screen right now.');
+        expect($('.live-controls__error').textContent).toContain('brightness');
     });
 
     it('clears only its own refusal alert when the active field changes', async () => {
@@ -272,7 +296,7 @@ describe('visual control', () => {
         controls = createLiveControls({ runtime, onStop: () => {} });
         $('input[name="visual"]').value = 'more vibrant';
         $('[data-live="visual-submit"]').click();
-        expect($('.live-controls__error').textContent).toBe('There is no adjustable visual on screen right now.');
+        expect($('.live-controls__error').textContent).toContain('There is no adjustable visual on screen right now.');
 
         runtime.set('live', { main: { currentId: 'main-1', segmentId: 'segment-1' } });
         expect($('.live-controls__error').hidden).toBe(false);
@@ -291,18 +315,18 @@ describe('visual control', () => {
 
     it('keeps outcome feedback for the active segment and clears it when the selected run or segment changes', () => {
         const runtime = fakeRuntime('live');
-        runtime.discoverVisual.mockReturnValue({ target: { intensity: 0.75 }, current: { intensity: 0.75 } });
+        runtime.discoverVisual.mockReturnValue({ manifest: { surface: 'attractor', parameters: { intensity: { minimum: 0.4, maximum: 0.75 } } }, target: { intensity: 0.75 }, current: { intensity: 0.75 } });
         runtime.set('live', { main: { currentId: 'main-1', segmentId: 'main-segment-1' } });
         controls = createLiveControls({ runtime, onStop: () => {} });
         $('input[name="visual"]').value = 'more vibrant';
         $('[data-live="visual-submit"]').click();
-        expect($('.live-controls__status').textContent).toContain('already at its brightness limit');
+        expect($('.live-controls__status').textContent).toContain('brightness is already at its maximum');
 
         runtime.set('live', { main: { currentId: 'main-1', segmentId: 'main-segment-1', speaking: 'main-segment-1' } });
-        expect($('.live-controls__status').textContent).toContain('already at its brightness limit');
+        expect($('.live-controls__status').textContent).toContain('brightness is already at its maximum');
 
         runtime.set('live', { main: { currentId: 'main-1', segmentId: 'main-segment-2' } });
-        expect($('.live-controls__status').textContent).not.toContain('already at its brightness limit');
+        expect($('.live-controls__status').textContent).not.toContain('brightness is already at its maximum');
 
         runtime.set('live', { main: { currentId: 'main-1', segmentId: 'main-segment-2' } });
         $('input[name="visual"]').value = 'more vibrant';
@@ -311,7 +335,7 @@ describe('visual control', () => {
             main: { currentId: 'main-1', segmentId: 'main-segment-2' },
             side: { currentId: 'side-1', segmentId: 'side-segment-1' }
         });
-        expect($('.live-controls__status').textContent).not.toContain('already at its brightness limit');
+        expect($('.live-controls__status').textContent).not.toContain('brightness is already at its maximum');
 
         $('input[name="visual"]').value = 'more vibrant';
         $('[data-live="visual-submit"]').click();
@@ -319,15 +343,15 @@ describe('visual control', () => {
             main: { currentId: 'main-1', segmentId: 'main-segment-2' },
             side: { currentId: 'side-1', segmentId: 'side-segment-1' }
         });
-        expect($('.live-controls__status').textContent).toContain('already at its brightness limit');
+        expect($('.live-controls__status').textContent).toContain('brightness is already at its maximum');
         runtime.set('live', { main: { currentId: 'main-1', segmentId: 'main-segment-2' } });
-        expect($('.live-controls__status').textContent).not.toContain('already at its brightness limit');
+        expect($('.live-controls__status').textContent).not.toContain('brightness is already at its maximum');
 
         runtime.set('live', { main: { currentId: 'main-1', segmentId: 'main-segment-2' } });
         $('input[name="visual"]').value = 'more vibrant';
         $('[data-live="visual-submit"]').click();
         runtime.set('live', { main: { currentId: 'main-2', segmentId: 'main-segment-2' } });
-        expect($('.live-controls__status').textContent).not.toContain('already at its brightness limit');
+        expect($('.live-controls__status').textContent).not.toContain('brightness is already at its maximum');
     });
 });
 
@@ -524,14 +548,15 @@ describe('speaking to it', () => {
         expect(micLine().textContent).toBe('Hearing: “wait dive”');
     });
 
-    it('listens for the closed visual phrase without holding the reading', async () => {
+    it('uses the shared calmer phrase through visual listening without holding the reading', async () => {
         const runtime = withMic('live');
         $('[data-live="listen-visual"]').click();
         expect(runtime.calls).toEqual([]);
         expect(recogniser().started).toBe(true);
-        await hear('please more vibrant');
-        expect(runtime.controlVisual).toHaveBeenCalledWith({ surface: 'attractor', parameter: 'intensity', value: 0.75 });
+        await hear('please calmer');
+        expect(runtime.controlVisual).toHaveBeenCalledWith({ surface: 'attractor', parameter: 'intensity', value: 0.55 });
         expect(runtime.status).toBe('live');
+        expect(runtime.calls).toEqual([]);
     });
 
     it('releases a microphone-owned question hold when switching to visual listening', async () => {
