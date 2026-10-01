@@ -4897,6 +4897,7 @@ export class Workshop {
     });
 
     dropZone.addEventListener('drop', (e) => {
+      if (this.blueprintLoadInProgress) return;
       const files = e.dataTransfer?.files;
       if (!files || files.length === 0) return;
 
@@ -4915,6 +4916,7 @@ export class Workshop {
    * Process a dropped image file
    */
   processDroppedImage(file) {
+    if (this.blueprintLoadInProgress) return;
     if (file.size > MAX_IMAGE_FILE_BYTES) {
       this.showToast('Images must be 8 MB or smaller');
       return;
@@ -4929,17 +4931,25 @@ export class Workshop {
   }
 
   async processDroppedVideo(file) {
+    if (this.blueprintLoadInProgress) return;
+    const sessionData = this.sessionData;
+    const blueprintLoadRequestId = this.blueprintLoadRequestId;
     if (file.size > MAX_VIDEO_FILE_BYTES) {
       this.showToast('MP4 files must be 96 MB or smaller');
       return;
     }
     try {
       const durationMs = await probeVideoDurationMs(file);
+      if (this.blueprintLoadInProgress
+        || this.sessionData !== sessionData
+        || this.blueprintLoadRequestId !== blueprintLoadRequestId) return;
       if (this.addSequenceVideoAssetFromBlob(file, file.name, durationMs)) {
         this.updateVisualAssetsList();
         this.updateCreateButton();
       }
     } catch {
+      if (this.sessionData !== sessionData
+        || this.blueprintLoadRequestId !== blueprintLoadRequestId) return;
       this.showToast('Could not read MP4 metadata');
     }
   }

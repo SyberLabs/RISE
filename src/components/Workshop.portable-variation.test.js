@@ -9,6 +9,12 @@ if (typeof globalThis.indexedDB === 'undefined') {
   globalThis.indexedDB = { open: () => ({ onsuccess: null, onerror: null, onupgradeneeded: null }) };
 }
 
+if (typeof URL.createObjectURL !== 'function') {
+  let objectUrlId = 0;
+  URL.createObjectURL = () => `blob:${location.origin}/workshop-test-${++objectUrlId}`;
+  URL.revokeObjectURL = () => {};
+}
+
 const { Workshop } = await import('./Workshop.js');
 const { WorkshopMedia } = await import('../core/workshop-media.js');
 
@@ -192,6 +198,7 @@ it('clears the loading state when a saved sequence lookup fails', async () => {
   const { workshop, container } = makeWorkshop();
   vi.spyOn(workshop, 'loadSavedBlueprints').mockReturnValue(pendingLookup.promise);
   vi.spyOn(console, 'warn').mockImplementation(() => {});
+  container.querySelector('[data-action="preview"]').disabled = true;
 
   workshop.update({ blueprintId: 'missing-blueprint' });
   expect(container.querySelector('#session-title').disabled).toBe(true);
@@ -201,6 +208,7 @@ it('clears the loading state when a saved sequence lookup fails', async () => {
     .not.toContain('Loading selected sequence'));
   expect(container.querySelector('#session-title').disabled).toBe(false);
   expect(container.querySelector('[data-action="save-draft"]').disabled).toBe(false);
+  expect(container.querySelector('[data-action="preview"]').disabled).toBe(true);
   expect(workshop.activeBlueprintId).toBeNull();
   expect(workshop.activeDraftKind).toBe('new');
   workshop.destroy();
@@ -267,6 +275,58 @@ it('does not install a selected project after Workshop is destroyed during loadi
   expect(workshop.sessionData).toBe(originalSession);
   expect(workshop.activeDraftKind).toBe('new');
   expect(workshop.activeBlueprintId).toBeNull();
+});
+
+it('ignores image files dropped while a saved sequence is loading', async () => {
+  const parent = await importedParent();
+  const pendingLookup = deferred();
+  const { workshop, container } = makeWorkshop();
+  vi.spyOn(workshop, 'loadSavedBlueprints').mockReturnValue(pendingLookup.promise);
+  workshop.update({ varyBlueprintId: parent.id });
+  const file = new File([new Uint8Array([1])], 'dropped.png', { type: 'image/png' });
+  const drop = new Event('drop', { bubbles: true, cancelable: true });
+  Object.defineProperty(drop, 'dataTransfer', { value: { files: [file] } });
+
+  container.querySelector('#visual-drop-zone').dispatchEvent(drop);
+
+  expect(drop.defaultPrevented).toBe(true);
+  expect(workshop.sessionData.sequenceVisualAssets).toHaveLength(0);
+  expect(workshop.pendingMediaBlobs.size).toBe(0);
+  pendingLookup.resolve(MemoryCore.getWorkshopBlueprints());
+  await vi.waitFor(() => expect(workshop.sessionData.provenance?.parentPortableId).toBe(parent.id));
+  expect(workshop.sessionData.sequenceVisualAssets).toHaveLength(0);
+  workshop.destroy();
+});
+
+it('does not apply a dropped video probe to a newly selected project', async () => {
+  const parent = await importedParent();
+  const pendingLookup = deferred();
+  const { workshop, container } = makeWorkshop();
+  vi.spyOn(workshop, 'loadSavedBlueprints').mockReturnValue(pendingLookup.promise);
+  const createElement = document.createElement.bind(document);
+  let metadataVideo;
+  vi.spyOn(document, 'createElement').mockImplementation((tagName, options) => {
+    const element = createElement(tagName, options);
+    if (tagName === 'video') {
+      metadataVideo = element;
+      vi.spyOn(element, 'load').mockImplementation(() => {});
+    }
+    return element;
+  });
+  const file = new Blob([new Uint8Array([0, 0, 0, 24])], { type: 'video/mp4' });
+  const processing = workshop.processDroppedVideo(file);
+  expect(metadataVideo).toBeTruthy();
+
+  workshop.update({ varyBlueprintId: parent.id });
+  pendingLookup.resolve(MemoryCore.getWorkshopBlueprints());
+  await vi.waitFor(() => expect(workshop.sessionData.provenance?.parentPortableId).toBe(parent.id));
+  Object.defineProperty(metadataVideo, 'duration', { configurable: true, value: 12 });
+  metadataVideo.onloadedmetadata();
+  await processing;
+
+  expect(workshop.sessionData.sequenceVisualAssets).toHaveLength(0);
+  expect(workshop.pendingMediaBlobs.size).toBe(0);
+  workshop.destroy();
 });
 
 async function importedQuietExample() {
