@@ -1374,7 +1374,10 @@ class App {
                     && route?.container && !route.container.hidden;
                 if (catalog?.update && (isCurrentCatalog || isEnteringCatalog)) {
                     catalog.update(data);
-                    return;
+                    // A settled same-view query only needs a content update.
+                    // During a transition, still queue navigation below: the
+                    // catalog may be leaving and become the latest destination.
+                    if (isCurrentCatalog && !this.router.transitioning) return;
                 }
                 await this.router?.navigate('visual-catalog', {
                     data, replace: true, skipStack: true

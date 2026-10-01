@@ -74,4 +74,44 @@ describe('the Visual Catalog public path', () => {
     });
     await opening;
   });
+
+  it('queues a catalog Back destination received while leaving for the Portal', async () => {
+    window.history.replaceState({}, '', '/visual-catalog?q=klee');
+    app = new App();
+    await app.checkBetaAccess();
+
+    let releaseFadeOut;
+    let announceFadeOut;
+    let holdFirstFadeOut = true;
+    const fadeOutStarted = new Promise(resolve => { announceFadeOut = resolve; });
+    vi.spyOn(app.router, 'fadeOut').mockImplementation(() => {
+      if (!holdFirstFadeOut) return Promise.resolve();
+      holdFirstFadeOut = false;
+      return new Promise(resolve => {
+        releaseFadeOut = resolve;
+        announceFadeOut();
+      });
+    });
+
+    window.history.pushState({}, '', '/');
+    window.dispatchEvent(new PopStateEvent('popstate'));
+    await fadeOutStarted;
+    expect(app.router.getCurrentView()).toBe('visual-catalog');
+
+    window.history.pushState({}, '', '/visual-catalog?q=attractor');
+    window.dispatchEvent(new PopStateEvent('popstate'));
+    await vi.waitFor(() => expect(document.querySelector('#visual-catalog-search').value).toBe('attractor'));
+
+    releaseFadeOut();
+    await vi.waitFor(() => expect(document.querySelector('#view-portal').hidden).toBe(false));
+    await vi.waitFor(() => {
+      expect(window.location.pathname).toBe('/visual-catalog');
+      expect(window.location.search).toBe('?q=attractor');
+      expect(app.router.getCurrentView()).toBe('visual-catalog');
+      expect(app.router.transitioning).toBe(false);
+      expect(document.querySelector('#view-visual-catalog').hidden).toBe(false);
+      expect(document.querySelector('#view-portal').hidden).toBe(true);
+      expect([...document.querySelectorAll('[data-visual-id]')].map(card => card.dataset.visualId)).toEqual(['ostensoria', 'attractor']);
+    });
+  });
 });
