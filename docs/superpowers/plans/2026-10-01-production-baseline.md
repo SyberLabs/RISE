@@ -52,7 +52,18 @@ Both authored tests must preserve their existing assertions, including exported 
 - [ ] Replace the catalog conflict's raw provider comparison with `this.chosenProvider() !== 'mock'`. Preserve embed/eval conflicts and all invalid catalog refusals.
 - [ ] Run targeted host tests and `e2e/live-control.spec.js` plus `e2e/visual-catalog.spec.js`; record real red/green evidence, self-review and commit only task files. If snapshot identity differs from this description, use the actual existing runtime identifiers and report them.
 
-### Task 3: Verify and integrate production (coordinator)
+### Task 3: Restore the mobile reading viewport
+
+**Files:** Modify `src/live/host/LiveHost.css`; strengthen `e2e/live-voice.spec.js` phone test only if needed to verify reachability.
+
+**Interfaces:** Existing `#live-controls` and its form, microphone disclosure and buttons. No changes to runtime commands or playback.
+
+- [ ] Reproduce the existing phone tests at 390 by 844: normal controls height 368.8 exceeds its less-than-281.333 contract in `e2e/live.spec.js`, and expanded height 537.8 exceeds its less-than-422 contract in `e2e/live-voice.spec.js`.
+- [ ] Restore space for the reading with a bounded, internally scrollable controls panel. Use viewport-relative sizing with a fallback where needed, retain minimum 44 px touch targets, prevent horizontal overflow, and keep every control and disclosure reachable by touch and keyboard. Follow existing CSS spacing and styles; do not hide commands or loosen the height assertion.
+- [ ] Extend the existing phone browser test to verify a lower control remains operable when the panel overflows, alongside its original height, touch and no-horizontal-overflow checks.
+- [ ] Run both focused phone tests and complete live-control/visual-catalog suites. Record red/green evidence, inspect the diff and commit the small responsive fix plus these plan/spec updates.
+
+### Task 4: Verify and integrate production (coordinator)
 
 **Files:** No intended production code changes. Existing `.github/workflows/ci.yml` and `full-validation.yml` own deployment and full validation.
 

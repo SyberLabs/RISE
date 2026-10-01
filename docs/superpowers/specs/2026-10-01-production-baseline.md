@@ -8,4 +8,6 @@ Integrate PR364 (bounded Attractor control) and PR365 (visual catalog and admitt
 
 Close existing review defects before release: visual form submission must not navigate; visual outcome feedback must belong to the active run/segment; catalog conflicts must use the resolved provider, preserving unknown-provider mock fallback. Known real providers and embed/eval modes continue to refuse offline catalog samples.
 
+Preserve the existing phone contracts: at 390 by 844 the normal controls bar stays below one third of the screen, and below half the screen even with the longest microphone message and disclosure open. Touch targets remain at least 44 px, all controls remain operable, and the page does not scroll horizontally. Bound and scroll the panel rather than hiding functionality or weakening the tests.
+
 Acceptance: focused authored/remix browser tests, browser gate, full unit suite, required CI and production build pass. Merge through required CI in dependency order; verify the exact deployed release and live sample/control behavior without spending inference. Full main validation must establish the integrated baseline. Any remaining environmental or product failure must be reported explicitly.
