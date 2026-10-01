@@ -117,6 +117,8 @@ export class Portal {
             </button>
             <nav id="main-content" class="portal-nav" aria-label="Primary">
               <button class="portal-nav-link portal-nav-home" type="button" data-action="home" aria-current="page">Home</button>
+              <!-- The live Current: a reading a reader redirects in words while it runs. -->
+              <button class="portal-nav-link" type="button" data-nav="live">Live reading</button>
               <button class="portal-nav-link" type="button" data-nav="create">Create</button>
               <button class="portal-nav-link" type="button" data-nav="library">Library</button>
               <button class="portal-nav-link" type="button" data-nav="vault">Sequences</button>
