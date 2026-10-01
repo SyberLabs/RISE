@@ -46,7 +46,10 @@ test.beforeEach(async ({ page }) => {
                 this.started = true;
                 queueMicrotask(() => this.onstart?.({}));
             }
-            stop() { this.stopped = true; }
+            stop() {
+                this.stopped = true;
+                queueMicrotask(() => this.onend?.({}));
+            }
             abort() { this.aborted = true; }
         }
         const last = () => instances[instances.length - 1];
@@ -101,7 +104,8 @@ test('"wait, dive on event horizon" holds, dives, and "go back" surfaces to the 
     const heldAt = await shown(page);
     await page.evaluate(() => window.__mic.interim('wait dive'));
     await expect(micLine(page)).toContainText('Hearing: “wait dive”');
-    await page.waitForTimeout(1_500);
+    // Held, and well inside the quiet that would end the utterance.
+    await page.waitForTimeout(1_000);
     expect(await shown(page)).toBe(heldAt);
 
     await say(page, 'Wait — dive on event horizon');
