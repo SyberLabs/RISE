@@ -1,6 +1,6 @@
 # Experience control: the first governed runtime loop
 
-Status: proposed for written review. Direction approved in chat; implementation awaits this document's review.
+Status: approved for implementation in chat on 30 September 2026.
 
 ## Purpose and requirements
 
@@ -50,7 +50,7 @@ Use the existing bounded in-memory runtime journal for accepted/refused controls
 
 ## Temporal semantics
 
-The renderer interpolates intensity over 320 ms using its own animation timing. The first painted change must occur within 1,000 ms of local submission in the supported browser test. Duration is deliberately shorter than the latency budget; a target scheduled exactly at the deadline is insufficient.
+During normal playback the renderer interpolates intensity over 320 ms using its own animation timing. A held field applies the target in one repaint without advancing its held simulation; this avoids scheduling a new animation while the reading is held. The first painted change must occur within 1,000 ms of local submission in the supported browser test. Duration is deliberately shorter than the latency budget; a target scheduled exactly at the deadline is insufficient.
 
 A repeated command retargets from the current effective intensity toward the next bounded target. The newest target replaces the previous target; transitions do not queue. The phrase increases the current target by 0.1, capped at 0.75. At the cap it returns a truthful no-change acceptance.
 

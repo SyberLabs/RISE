@@ -15,7 +15,7 @@
 - Single existing live runtime and Player; narration remains reading-clock authority.
 - No new provider transport, persistent store, executable model data, SDK, or observation upload.
 - Attractor intensity min 0.4, max 0.75, default 0.65; phrase increases current target by 0.1.
-- RISE-owned transition 320 ms; reduced motion uses one repaint without simulation advancement or refuses.
+- RISE-owned transition 320 ms during playback; held and reduced-motion fields use one repaint without simulation advancement (or refuse if unavailable).
 - First painted local change within 1,000 ms; real recognizer end-to-end latency remains unverified.
 - Unknown fields/names and non-finite values refused; finite out-of-range values clamped.
 - A control applies only to the current field lifetime; replacement, destruction, Dive and Surface cancel departing work.
@@ -68,7 +68,7 @@ expect(director.controlVisual({surface:'attractor', parameter:'intensity', value
 
 ### Task 3: Browser proof, documentation, and acceptance
 
-**Files:** Extend existing live Playwright suite under tests (locate current suite), and existing live documentation in docs/plans/LIVE-CURRENT.md; update docs/specs/ARCHITECTURE.md prose only if its contract description changes. Do not hand-edit generated graph.
+**Files:** Extend existing live Playwright suite under e2e (e2e/live.spec.js and e2e/live-voice.spec.js, or a focused e2e/live-control.spec.js sharing existing fixtures), and existing live documentation in docs/plans/LIVE-CURRENT.md; update docs/specs/ARCHITECTURE.md prose only if its contract description changes. Do not hand-edit generated graph.
 
 **Interfaces:** Consume Tasks 1/2 through real `/live` UI with deterministic mock provider. No test-only production methods or renderer globals.
 
