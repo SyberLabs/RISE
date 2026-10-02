@@ -682,6 +682,8 @@ export class LiveHost {
         if (this.embedded) {
             this.embeddedStartupCancelled = true;
             this.cancelEmbeddedPending();
+            this.port?.close();
+            this.port = null;
         }
         const runtime = this.runtime;
         this.runtime = null;

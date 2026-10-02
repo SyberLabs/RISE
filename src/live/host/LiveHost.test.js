@@ -574,7 +574,7 @@ describe('inside an MCP host', () => {
         expect(begin.getAttribute('type')).toBe('button');
         expect(begin.getAttribute('aria-label')).toBeNull();
         expect(host.runtime).toBeNull();
-        expect(container.querySelector('#live-controls')).toBeNull();
+        expect(document.querySelector('#live-controls')).toBeNull();
 
         const runtime = { start: vi.fn(async () => {}), stop: vi.fn(async () => {}), status: 'live', snapshot: () => ({ status: 'live' }), subscribe: () => () => {}, composed: () => null };
         host.buildRuntime = vi.fn(async () => runtime);
@@ -684,6 +684,27 @@ describe('inside an MCP host', () => {
         expect(listeners.size).toBe(0);
     });
 
+    it('closes the guest port and discards its messages when the reader ends', async () => {
+        const { environment, sent, listeners, hostSays } = framed({
+            initialCurrent: true,
+            answer: message => (message.method === 'ui/initialize' ? { result: { protocolVersion: '2026-01-26', hostCapabilities: {}, hostContext: {} } } : null)
+        });
+        mount('?embed=mcp&voice=paced', environment);
+        await vi.waitFor(() => expect(container.querySelector('.live-start')?.textContent).toBe('Begin'));
+
+        await host.ended();
+
+        expect(host.embeddedEvents).toBeNull();
+        expect(host.stopListeningCurrent).toBeNull();
+        expect(host.port).toBeNull();
+        expect(listeners.size).toBe(0);
+        expect(document.querySelector('#live-controls')).toBeNull();
+        const sentAfterEnd = sent.length;
+        hostSays({ jsonrpc: '2.0', id: 'after-ended-ping', method: 'ping', params: {} });
+        answerCurrent(hostSays);
+        expect(sent).toHaveLength(sentAfterEnd);
+    });
+
     it('does not recreate playback after teardown during delayed runtime startup', async () => {
         let releaseRuntime;
         const runtime = {
@@ -711,7 +732,7 @@ describe('inside an MCP host', () => {
         releaseRuntime();
         await new Promise(resolve => setTimeout(resolve, 0));
         expect(runtime.start).not.toHaveBeenCalled();
-        expect(container.querySelector('#live-controls')).toBeNull();
+        expect(document.querySelector('#live-controls')).toBeNull();
         expect(runtime.stop).toHaveBeenCalledTimes(1);
         expect(host.runtime).toBeNull();
         expect(host.port).toBeNull();
@@ -746,7 +767,7 @@ describe('inside an MCP host', () => {
 
         expect(runtime.stop).toHaveBeenCalledTimes(1);
         expect(runtime.start).not.toHaveBeenCalled();
-        expect(container.querySelector('#live-controls')).toBeNull();
+        expect(document.querySelector('#live-controls')).toBeNull();
         expect(host.runtime).toBeNull();
         expect(host.port).toBeNull();
     });
