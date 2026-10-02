@@ -56,14 +56,16 @@ Engineering readiness requires reviewed code, required CI, affected unit/browser
 
 ## Engineering evidence and remaining acceptance
 
-The baseline at `a4ece2d3` passed required CI and all 21 full-validation jobs: four unit shards, Scriptorium and sixteen browser shards. The demo adds these focused checks:
+The baseline at `a4ece2d3` passed required CI and all 21 full-validation jobs. A later demo run at `856a0852` passed 19 jobs but failed the authored 240 WPM export and live canvas-control checks. The final fix candidate at `c320e33c` adds startup cancellation and preserves retry guidance within the runtime display limit; its focused evidence follows. Full remote validation of the candidate is still required.
 
 | Area | Evidence | Status |
 |---|---|---|
 | Validated tool delivery | Worker/port 59 unit tests; real worker responses feed the browser fake host | Passed |
 | Duplicate delivery | Port guard removal produces two deliveries; restored guard passes. A delayed matching result preserves held browser text and state | Passed |
 | Exact calmer commands | 84 affected unit tests; browser target 0.65 → 0.55, held text unchanged, resume and no sampling | Passed |
-| Replay and refusal | 134 affected unit tests; 11 MCP browser cases including nested reload and teardown | Passed |
+| Replay, teardown and refusal | 172 affected unit tests; 16 affected browser cases, including delayed-startup unit regressions and displayed long-error guidance | Passed locally |
+| Canvas response | Existing active-field readiness marker precedes actual pixel measurement; response remains below one second | Passed locally |
+| Authored pace and portable review | Captured slider/save/project/export values all 240; full clean-browser journey passed. Earlier 240-to-280 failure remains unexplained | Open concern; remote validation pending |
 | Isolated serving | Wrangler dry-run; actual local HTTP handshake, tools, resource origin, results/refusal, GET/HEAD framing and six retired routes | Passed locally |
 | Build and repository checks | Hygiene, security compatibility, unchanged diagram and build; first load 59.5 KB brotli against 64 KB | Passed |
 | Public endpoint and exact release | Explicit deployment approval, HTTPS checks and release marker | Pending |
