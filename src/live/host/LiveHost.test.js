@@ -584,6 +584,77 @@ describe('inside an MCP host', () => {
         expect(listeners.size).toBe(0);
     });
 
+    it('does not recreate playback after teardown during delayed runtime startup', async () => {
+        let releaseRuntime;
+        const runtime = {
+            status: 'live',
+            snapshot: () => ({ status: 'live', error: null, main: {}, side: null }),
+            subscribe: () => () => {},
+            composed: () => null,
+            start: vi.fn(async () => {}),
+            stop: vi.fn(async () => {})
+        };
+        const { environment, sent, listeners } = framed({ answer: () => null });
+        mount('?embed=mcp&voice=paced', environment);
+        await vi.waitFor(() => expect(sent).toHaveLength(1));
+        host.buildRuntime = () => new Promise(resolve => { releaseRuntime = () => resolve(runtime); });
+        for (const listener of [...listeners]) listener({
+            source: environment.window.parent,
+            data: { jsonrpc: '2.0', id: sent[0].id, result: { protocolVersion: '2026-01-26', hostCapabilities: {}, hostContext: {} } }
+        });
+        await vi.waitFor(() => expect(releaseRuntime).toBeTypeOf('function'));
+
+        for (const listener of [...listeners]) listener({
+            source: environment.window.parent,
+            data: { jsonrpc: '2.0', id: 'teardown-startup', method: 'ui/resource-teardown', params: {} }
+        });
+        expect(sent.some(message => message.id === 'teardown-startup' && message.result)).toBe(true);
+
+        releaseRuntime();
+        await new Promise(resolve => setTimeout(resolve, 0));
+        expect(runtime.start).not.toHaveBeenCalled();
+        expect(container.querySelector('#live-controls')).toBeNull();
+        expect(runtime.stop).toHaveBeenCalledTimes(1);
+        expect(host.runtime).toBeNull();
+        expect(host.port).toBeNull();
+    });
+
+    it('does not recreate controls if teardown arrives while microphone startup is delayed', async () => {
+        let releaseMic;
+        const runtime = {
+            status: 'live',
+            snapshot: () => ({ status: 'live', error: null, main: {}, side: null }),
+            subscribe: () => () => {},
+            composed: () => null,
+            start: vi.fn(async () => {}),
+            stop: vi.fn(async () => {})
+        };
+        const { environment, sent, listeners } = framed({ answer: () => null });
+        mount('?embed=mcp&voice=paced', environment);
+        await vi.waitFor(() => expect(sent).toHaveLength(1));
+        host.buildRuntime = async () => runtime;
+        host.buildMic = () => new Promise(resolve => { releaseMic = () => resolve(null); });
+        for (const listener of [...listeners]) listener({
+            source: environment.window.parent,
+            data: { jsonrpc: '2.0', id: sent[0].id, result: { protocolVersion: '2026-01-26', hostCapabilities: {}, hostContext: {} } }
+        });
+        await vi.waitFor(() => expect(releaseMic).toBeTypeOf('function'));
+
+        for (const listener of [...listeners]) listener({
+            source: environment.window.parent,
+            data: { jsonrpc: '2.0', id: 'teardown-mic', method: 'ui/resource-teardown', params: {} }
+        });
+        expect(sent.some(message => message.id === 'teardown-mic' && message.result)).toBe(true);
+        releaseMic();
+        await new Promise(resolve => setTimeout(resolve, 0));
+
+        expect(runtime.stop).toHaveBeenCalledTimes(1);
+        expect(runtime.start).not.toHaveBeenCalled();
+        expect(container.querySelector('#live-controls')).toBeNull();
+        expect(host.runtime).toBeNull();
+        expect(host.port).toBeNull();
+    });
+
     it('builds nothing and writes nothing once it is destroyed while the host is still saying hello', async () => {
         let hello;
         const { environment, sent } = framed({ answer: message => (message.method === 'ui/initialize' ? hello : null) });

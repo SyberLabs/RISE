@@ -119,8 +119,8 @@ export function createMcpAppAdapter({ port, clock = createRealClock(), timeoutMs
                 ensureOpen();
                 const invalidCurrent = code === 'INVALID_CURRENT';
                 const detail = invalidCurrent ? clip(message, 370) : message;
-                const guidance = invalidCurrent ? ' Ask the assistant again.' : '';
-                put('error', { code, message: clip(`${detail}${guidance}`, 400), recoverable: false });
+                const guidance = invalidCurrent ? 'Ask the assistant again. ' : '';
+                put('error', { code, message: clip(`${guidance}${detail}`, 400), recoverable: false });
                 end();
             };
 

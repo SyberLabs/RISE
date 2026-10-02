@@ -86,6 +86,7 @@ export class LiveHost {
         this.voiceCount = 0;
         this.destroyed = false;
         this.starting = false;
+        this.embeddedStartupCancelled = false;
         this.atomLog = [];
         // The reader's own key, in memory and nowhere else; see forgetKey.
         this.key = '';
@@ -545,20 +546,28 @@ export class LiveHost {
         try {
             const [{ createMcpGuestPort }] = await Promise.all([import('../hosts/mcp-port.js'), this.modules]);
             this.port = createMcpGuestPort({ frame });
-            this.port.onTeardown(() => { void this.ended(); });
+            this.port.onTeardown(() => {
+                this.embeddedStartupCancelled = true;
+                this.port?.close();
+                this.port = null;
+                void this.ended();
+            });
             await this.port.connect();
-            if (this.destroyed) return;
+            if (this.destroyed || this.embeddedStartupCancelled) return;
             // The host sizes a frame from what the app says it wants; the Chamber fills what it is given.
             this.port.sizeChanged({ width: frame.innerWidth, height: EMBED_HEIGHT });
             const runtime = await this.buildRuntime();
-            if (this.destroyed) return;
+            if (this.destroyed || this.embeddedStartupCancelled) {
+                await runtime.stop();
+                return;
+            }
             this.runtime = runtime;
             const mic = await this.buildMic();
-            if (this.destroyed) return;
+            if (this.destroyed || this.embeddedStartupCancelled) return;
             this.controls = createLiveControls({ runtime, onStop: () => this.stop(), audible: this.voiceKind === 'browser', mic, notice: EMBED_REPLAY_NOTICE });
             await runtime.start('The answer the assistant presents');
         } catch (error) {
-            if (this.destroyed) return;
+            if (this.destroyed || this.embeddedStartupCancelled) return;
             this.controls?.destroy();
             this.controls = null;
             this.runtime = null;

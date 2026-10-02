@@ -198,11 +198,14 @@ test('where the host will not put a question to its model, a Dive says so in wor
   await expect(app.locator('.live-controls__status')).toContainText(/paced as if spoken/u);
 });
 
-test('a Current that is not valid is refused whole, in words, and nothing of it is shown', async ({ page, baseURL }) => {
-  const app = await openHost(page, baseURL, { current: { ...BLACK_HOLES_CURRENT, segments: [{ id: 's1', text: 'Fine words.' }, { id: 's2', text: 'a | b' }] } });
+test('a long invalid Current is refused whole with recovery guidance within the runtime limit', async ({ page, baseURL }) => {
+  const invalid = { ...BLACK_HOLES_CURRENT, ['x'.repeat(400)]: true };
+  const app = await openHost(page, baseURL, { current: invalid });
   await expect(app.locator('.live-controls__status')).toContainText('could not be answered', { timeout: 15_000 });
-  await expect(app.locator('.live-controls__error')).toContainText('refused');
-  await expect(app.locator('.live-controls__error')).toContainText('Ask the assistant again');
+  const error = app.locator('.live-controls__error');
+  await expect(error).toContainText('refused');
+  await expect(error).toContainText('Ask the assistant again');
+  expect((await error.textContent()).length).toBeLessThanOrEqual(300);
   await expect(app.locator('.atom-word')).toHaveCount(0);
 });
 
