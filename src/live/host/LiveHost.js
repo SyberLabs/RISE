@@ -343,9 +343,13 @@ export class LiveHost {
         const [{ createLiveRuntime }, { createMockAdapter }, { createSessionPlayer }, { createRealClock }, present, handoff] = await this.modules;
         this.present = present;
         // Hear when the reader leaves the Chamber by its own control.
-        this.stopHearingExitListener();
-        this.stopHearingExit = handoff.onLiveExit(() => { void this.ended(); });
-        if (this.destroyed || this.embeddedStartupCancelled) this.stopHearingExitListener();
+        if (this.destroyed || this.embeddedStartupCancelled) {
+            this.stopHearingExitListener();
+        } else {
+            this.stopHearingExitListener();
+            this.stopHearingExit = handoff.onLiveExit(() => { void this.ended(); });
+            if (this.destroyed || this.embeddedStartupCancelled) this.stopHearingExitListener();
+        }
         const clock = createRealClock();
         const voices = await this.buildVoices(clock);
         const mountedChamber = player => {

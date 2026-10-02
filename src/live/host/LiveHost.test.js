@@ -802,6 +802,46 @@ describe('inside an MCP host', () => {
         }
     });
 
+    it('keeps a replacement host exit callback when an older cancelled runtime finishes late', async () => {
+        const { liveExited } = await import('../../app/live-handoff.js');
+        const { environment, sent, hostSays } = framed();
+        mount('?embed=mcp&voice=paced', environment);
+        const oldHost = host;
+        await vi.waitFor(() => expect(sent).toHaveLength(1));
+        hostSays({ jsonrpc: '2.0', id: sent[0].id, result: { protocolVersion: '2026-01-26', hostCapabilities: {}, hostContext: {} } });
+        await vi.waitFor(() => expect(sent.some(message => message.method === 'ui/notifications/size-changed')).toBe(true));
+        answerCurrent(hostSays);
+        await vi.waitFor(() => expect(container.querySelector('.live-start')?.textContent).toBe('Begin'));
+
+        const loadedModules = await oldHost.modules;
+        let releaseModules;
+        oldHost.modules = new Promise(resolve => { releaseModules = () => resolve(loadedModules); });
+        oldHost.buildVoices = async () => null;
+        oldHost.buildAdapter = async () => ({ id: 'test', capabilities: {}, open: async () => { throw new Error('not started'); } });
+        const oldStartup = oldHost.beginEmbedded();
+        await oldHost.stop();
+
+        const replacementContainer = document.createElement('div');
+        document.body.append(replacementContainer);
+        const replacement = new LiveHost(replacementContainer, {
+            router: { navigate: async () => true, views: new Map() }, search: '?voice=paced', env: env()
+        });
+        replacement.buildVoices = async () => null;
+        replacement.buildAdapter = async () => ({ id: 'test', capabilities: {}, open: async () => { throw new Error('not started'); } });
+        await replacement.buildRuntime();
+        const oldEnded = vi.spyOn(oldHost, 'ended');
+        const replacementEnded = vi.spyOn(replacement, 'ended');
+
+        releaseModules();
+        await oldStartup;
+        liveExited();
+        expect(oldEnded).not.toHaveBeenCalled();
+        expect(replacementEnded).toHaveBeenCalledTimes(1);
+
+        replacement.destroy();
+        oldHost.destroy();
+    });
+
     it('builds nothing and writes nothing once it is destroyed while the host is still saying hello', async () => {
         let hello;
         const { environment, sent } = framed({ answer: message => (message.method === 'ui/initialize' ? hello : null) });
