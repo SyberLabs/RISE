@@ -10,6 +10,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { LiveHost, framedBy } from './LiveHost.js';
 import { createVirtualClock } from '../clock.js';
 import { createMockAdapter } from '../adapters/mock.js';
+import { BLACK_HOLES_CURRENT } from '../../test/sealed-current.js';
 
 const env = ({ speech = false, recognition = false, motion = false } = {}) => ({
     window: {
@@ -520,13 +521,16 @@ describe('the runtime visual bridge', () => {
 
 describe('inside an MCP host', () => {
     /** A window with a parent that records what it is sent, and can answer. */
-    function framed({ answer } = {}) {
+    function framed({ answer, initialCurrent = false } = {}) {
         const listeners = new Set();
         const sent = [];
         const environment = env();
         const host = {
             postMessage(message) {
                 sent.push(message);
+                if (initialCurrent && message.method === 'ui/notifications/initialized') {
+                    queueMicrotask(() => answerCurrent(hostSays));
+                }
                 const reply = answer?.(message);
                 if (reply) queueMicrotask(() => { for (const fn of [...listeners]) fn({ source: host, data: { jsonrpc: '2.0', id: message.id, ...reply } }); });
             }
@@ -537,11 +541,16 @@ describe('inside an MCP host', () => {
             addEventListener: (type, fn) => { if (type === 'message') listeners.add(fn); },
             removeEventListener: (type, fn) => { if (type === 'message') listeners.delete(fn); }
         });
-        return { environment, sent, listeners };
+        const hostSays = data => { for (const fn of [...listeners]) fn({ source: host, data }); };
+        return { environment, sent, listeners, hostSays };
     }
+    const answerCurrent = (hostSays, current = BLACK_HOLES_CURRENT, method = 'ui/notifications/tool-input') => hostSays({
+        jsonrpc: '2.0', method,
+        params: method === 'ui/notifications/tool-input' ? { arguments: { current } } : { structuredContent: { current } }
+    });
     const line = () => container.querySelector('.live-embed');
 
-    it('has no prompt, no Start and no provider to choose: the host’s model has already written the answer', async () => {
+    it('has no prompt, no provider to choose, and waits for a reader click after the host’s answer is ready', async () => {
         const { environment } = framed();
         mount('?embed=mcp&voice=paced', environment);
         expect(container.querySelector('.live-ask')).toBeNull();
@@ -549,6 +558,97 @@ describe('inside an MCP host', () => {
         expect(container.querySelector('.live-key')).toBeNull();
         expect(host.embedded).toBe(true);
         await vi.waitFor(() => expect(line().textContent).toBe('Waiting for the answer…'));
+    });
+
+    it('holds the admitted Current until Begin, then starts that answer once despite duplicate delivery and clicks', async () => {
+        const { environment, sent, listeners, hostSays } = framed();
+        mount('?embed=mcp&voice=paced', environment);
+        await vi.waitFor(() => expect(sent).toHaveLength(1));
+        const hello = sent[0];
+        hostSays({ jsonrpc: '2.0', id: hello.id, result: { protocolVersion: '2026-01-26', hostCapabilities: {}, hostContext: {} } });
+        await vi.waitFor(() => expect(sent.some(message => message.method === 'ui/notifications/size-changed')).toBe(true));
+        answerCurrent(hostSays);
+        await vi.waitFor(() => expect(container.querySelector('.live-start')?.disabled).toBe(false));
+        const begin = container.querySelector('.live-start');
+        expect(begin.textContent).toBe('Begin');
+        expect(begin.getAttribute('type')).toBe('button');
+        expect(begin.getAttribute('aria-label')).toBeNull();
+        expect(host.runtime).toBeNull();
+        expect(container.querySelector('#live-controls')).toBeNull();
+
+        const runtime = { start: vi.fn(async () => {}), stop: vi.fn(async () => {}), status: 'live', snapshot: () => ({ status: 'live' }), subscribe: () => () => {}, composed: () => null };
+        host.buildRuntime = vi.fn(async () => runtime);
+        host.buildMic = async () => null;
+        // The same sealed Current may be delivered in both MCP notifications.
+        answerCurrent(hostSays, BLACK_HOLES_CURRENT, 'ui/notifications/tool-result');
+        begin.click();
+        begin.click();
+        await vi.waitFor(() => expect(runtime.start).toHaveBeenCalledTimes(1));
+        expect(host.buildRuntime).toHaveBeenCalledTimes(1);
+        expect(runtime.start).toHaveBeenCalledWith('The answer the assistant presents');
+        expect(listeners.size).toBe(1);
+        await host.stop();
+    });
+
+    it('removes the Current listener when a buffered answer is delivered during subscription', async () => {
+        const { environment, sent } = framed({
+            initialCurrent: true,
+            answer: message => (message.method === 'ui/initialize' ? { result: { protocolVersion: '2026-01-26', hostCapabilities: {}, hostContext: {} } } : null)
+        });
+        mount('?embed=mcp&voice=paced', environment);
+        await vi.waitFor(() => expect(sent.some(message => message.method === 'ui/notifications/initialized')).toBe(true));
+        await vi.waitFor(() => expect(container.querySelector('.live-start')?.textContent).toBe('Begin'));
+        expect(host.stopListeningCurrent).toBeNull();
+    });
+
+    it('does not offer Begin for an invalid Current', async () => {
+        const { environment, sent, hostSays } = framed();
+        mount('?embed=mcp&voice=paced', environment);
+        await vi.waitFor(() => expect(sent).toHaveLength(1));
+        hostSays({ jsonrpc: '2.0', id: sent[0].id, result: { protocolVersion: '2026-01-26', hostCapabilities: {}, hostContext: {} } });
+        await vi.waitFor(() => expect(sent.some(message => message.method === 'ui/notifications/size-changed')).toBe(true));
+        const invalid = { ...BLACK_HOLES_CURRENT, segments: [{ id: 'bad', text: 'left | right' }] };
+        answerCurrent(hostSays, invalid);
+        await vi.waitFor(() => expect(line().getAttribute('role')).toBe('alert'));
+        expect(line().textContent).toMatch(/refused/u);
+        expect(line().textContent).toMatch(/Ask the assistant again/u);
+        expect(container.querySelector('.live-start')).toBeNull();
+        expect(host.runtime).toBeNull();
+    });
+
+    it('discards a ready Current when the reader stops before Begin', async () => {
+        const { environment, sent, listeners, hostSays } = framed();
+        mount('?embed=mcp&voice=paced', environment);
+        await vi.waitFor(() => expect(sent).toHaveLength(1));
+        hostSays({ jsonrpc: '2.0', id: sent[0].id, result: { protocolVersion: '2026-01-26', hostCapabilities: {}, hostContext: {} } });
+        await vi.waitFor(() => expect(sent.some(message => message.method === 'ui/notifications/size-changed')).toBe(true));
+        answerCurrent(hostSays);
+        await vi.waitFor(() => expect(container.querySelector('.live-start')?.textContent).toBe('Begin'));
+
+        await host.stop();
+        expect(host.embeddedEvents).toBeNull();
+        expect(host.port).toBeNull();
+        expect(listeners.size).toBe(0);
+        expect(container.querySelector('.live-start')).toBeNull();
+        expect(host.runtime).toBeNull();
+    });
+
+    it('discards a ready Current when the host tears down before Begin', async () => {
+        const { environment, sent, listeners, hostSays } = framed();
+        mount('?embed=mcp&voice=paced', environment);
+        await vi.waitFor(() => expect(sent).toHaveLength(1));
+        hostSays({ jsonrpc: '2.0', id: sent[0].id, result: { protocolVersion: '2026-01-26', hostCapabilities: {}, hostContext: {} } });
+        await vi.waitFor(() => expect(sent.some(message => message.method === 'ui/notifications/size-changed')).toBe(true));
+        answerCurrent(hostSays);
+        await vi.waitFor(() => expect(container.querySelector('.live-start')?.textContent).toBe('Begin'));
+
+        hostSays({ jsonrpc: '2.0', id: 'teardown-before-begin', method: 'ui/resource-teardown', params: {} });
+        await vi.waitFor(() => expect(line().textContent).toContain('Finished.'));
+        expect(host.embeddedEvents).toBeNull();
+        expect(host.port).toBeNull();
+        expect(listeners.size).toBe(0);
+        expect(container.querySelector('.live-start')).toBeNull();
+        expect(host.runtime).toBeNull();
     });
 
     it('says hello to its parent, with the extension’s protocol version and nothing that names a key or a prompt', async () => {
@@ -594,20 +694,18 @@ describe('inside an MCP host', () => {
             start: vi.fn(async () => {}),
             stop: vi.fn(async () => {})
         };
-        const { environment, sent, listeners } = framed({ answer: () => null });
+        const { environment, sent, listeners, hostSays } = framed({ answer: () => null });
         mount('?embed=mcp&voice=paced', environment);
         await vi.waitFor(() => expect(sent).toHaveLength(1));
+        hostSays({ jsonrpc: '2.0', id: sent[0].id, result: { protocolVersion: '2026-01-26', hostCapabilities: {}, hostContext: {} } });
+        await vi.waitFor(() => expect(sent.some(message => message.method === 'ui/notifications/size-changed')).toBe(true));
+        answerCurrent(hostSays);
+        await vi.waitFor(() => expect(container.querySelector('.live-start')?.disabled).toBe(false));
         host.buildRuntime = () => new Promise(resolve => { releaseRuntime = () => resolve(runtime); });
-        for (const listener of [...listeners]) listener({
-            source: environment.window.parent,
-            data: { jsonrpc: '2.0', id: sent[0].id, result: { protocolVersion: '2026-01-26', hostCapabilities: {}, hostContext: {} } }
-        });
+        container.querySelector('.live-start').click();
         await vi.waitFor(() => expect(releaseRuntime).toBeTypeOf('function'));
 
-        for (const listener of [...listeners]) listener({
-            source: environment.window.parent,
-            data: { jsonrpc: '2.0', id: 'teardown-startup', method: 'ui/resource-teardown', params: {} }
-        });
+        hostSays({ jsonrpc: '2.0', id: 'teardown-startup', method: 'ui/resource-teardown', params: {} });
         expect(sent.some(message => message.id === 'teardown-startup' && message.result)).toBe(true);
 
         releaseRuntime();
@@ -629,21 +727,19 @@ describe('inside an MCP host', () => {
             start: vi.fn(async () => {}),
             stop: vi.fn(async () => {})
         };
-        const { environment, sent, listeners } = framed({ answer: () => null });
+        const { environment, sent, listeners, hostSays } = framed({ answer: () => null });
         mount('?embed=mcp&voice=paced', environment);
         await vi.waitFor(() => expect(sent).toHaveLength(1));
+        hostSays({ jsonrpc: '2.0', id: sent[0].id, result: { protocolVersion: '2026-01-26', hostCapabilities: {}, hostContext: {} } });
+        await vi.waitFor(() => expect(sent.some(message => message.method === 'ui/notifications/size-changed')).toBe(true));
+        answerCurrent(hostSays);
+        await vi.waitFor(() => expect(container.querySelector('.live-start')?.disabled).toBe(false));
         host.buildRuntime = async () => runtime;
         host.buildMic = () => new Promise(resolve => { releaseMic = () => resolve(null); });
-        for (const listener of [...listeners]) listener({
-            source: environment.window.parent,
-            data: { jsonrpc: '2.0', id: sent[0].id, result: { protocolVersion: '2026-01-26', hostCapabilities: {}, hostContext: {} } }
-        });
+        container.querySelector('.live-start').click();
         await vi.waitFor(() => expect(releaseMic).toBeTypeOf('function'));
 
-        for (const listener of [...listeners]) listener({
-            source: environment.window.parent,
-            data: { jsonrpc: '2.0', id: 'teardown-mic', method: 'ui/resource-teardown', params: {} }
-        });
+        hostSays({ jsonrpc: '2.0', id: 'teardown-mic', method: 'ui/resource-teardown', params: {} });
         expect(sent.some(message => message.id === 'teardown-mic' && message.result)).toBe(true);
         releaseMic();
         await new Promise(resolve => setTimeout(resolve, 0));

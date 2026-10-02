@@ -71,7 +71,7 @@ export function currentFromText(text) {
  * @param {string} [options.host] the page that framed RISE, as the reader should see it: it is the host,
  *   and nothing but the page itself vouches for which host it is
  */
-export function createMcpAppAdapter({ port, clock = createRealClock(), timeoutMs = 60_000, capacity = 256, host }) {
+export function createMcpAppAdapter({ port, clock = createRealClock(), timeoutMs = 60_000, capacity = 256, host, admittedEvents = null }) {
     if (!port || typeof port.onCurrent !== 'function') {
         throw new TypeError('The MCP adapter is given a port that delivers Currents');
     }
@@ -124,25 +124,29 @@ export function createMcpAppAdapter({ port, clock = createRealClock(), timeoutMs
                 end();
             };
 
-            const accept = ({ current }) => {
+            const acceptEvents = events => {
                 if (finished || closed) return false;
-                let events;
-                try {
-                    events = currentToEvents(current);
-                } catch (error) {
-                    fail('INVALID_CURRENT', `The Current was refused: ${String(error?.message ?? error)}`);
-                    return true;
-                }
                 // Whatever it says of itself, it came through the host, and a claim of a person's authorship cannot be checked.
                 for (const event of events) put(event.type, event.type === 'current.open' ? { ...event.body, origin: hostOrigin } : event.body);
                 end();
                 return true;
             };
 
+            const accept = ({ current }) => {
+                if (finished || closed) return false;
+                try {
+                    return acceptEvents(currentToEvents(current));
+                } catch (error) {
+                    fail('INVALID_CURRENT', `The Current was refused: ${String(error?.message ?? error)}`);
+                    return true;
+                }
+            };
+
             // An answer is handed to the app by the host. A Dive is asked for, and answers in the same call.
-            const off = isDive ? null : port.onCurrent(accept);
+            const off = isDive ? null : admittedEvents ? null : port.onCurrent(accept);
             const timer = clock.setTimer(() => fail('NO_ANSWER', 'The host did not answer in time'), timeoutMs);
             stopWaiting = () => { off?.(); timer(); };
+            if (!isDive && admittedEvents) acceptEvents(admittedEvents);
             // A Current the host had already handed over was delivered as we subscribed.
             if (finished) stopWaiting();
 

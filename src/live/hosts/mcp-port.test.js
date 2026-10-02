@@ -120,6 +120,15 @@ describe('handing Currents to the app', () => {
         expect(heard.at(-1)).toBe(`c${PORT_LIMITS.buffered + 2}`);
     });
 
+    it('discards buffered Currents on close and does not deliver them to a later listener', () => {
+        const { port, hostSays } = setup();
+        hostSays(notification(METHODS.toolInput, { arguments: { current: CURRENT } }));
+        port.close();
+        const heard = [];
+        port.onCurrent(item => { heard.push(item); });
+        expect(heard).toEqual([]);
+    });
+
     it('stops handing over once a listener takes one, and stops listening when told', () => {
         const { port, hostSays } = setup();
         const first = [];

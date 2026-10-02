@@ -26,6 +26,7 @@
 import { GEMINI_DEFAULT_MODEL } from '../adapters/gemini-model.js';
 import { describeDegradations, detectCapabilities } from '../capabilities.js';
 import { admitCatalogVisual } from '../../core/visual-catalog.js';
+import { currentToEvents } from '../adapters/current-events.js';
 import { createLiveControls } from './controls.js';
 import { DelayedRunner, EvalRunner } from './EvalRunner.js';
 import './LiveHost.css';
@@ -87,6 +88,10 @@ export class LiveHost {
         this.destroyed = false;
         this.starting = false;
         this.embeddedStartupCancelled = false;
+        this.embeddedCurrentHandled = false;
+        this.embeddedBeginStarted = false;
+        this.embeddedEvents = null;
+        this.stopListeningCurrent = null;
         this.atomLog = [];
         // The reader's own key, in memory and nowhere else; see forgetKey.
         this.key = '';
@@ -397,7 +402,7 @@ export class LiveHost {
     async buildAdapter(clock, createMockAdapter) {
         if (this.providerName === 'mcp') {
             const { createMcpAppAdapter } = await import('../adapters/mcp-app.js');
-            return createMcpAppAdapter({ port: this.port, clock, host: framedBy(this.env.window ?? this.env) });
+            return createMcpAppAdapter({ port: this.port, clock, host: framedBy(this.env.window ?? this.env), admittedEvents: this.embeddedEvents });
         }
         if (this.providerName === 'gemini') {
             const [{ createGeminiAdapter }, { createGeminiFetchTransport }] = await Promise.all([
@@ -545,9 +550,11 @@ export class LiveHost {
         this.startedAt = performance.now();
         try {
             const [{ createMcpGuestPort }] = await Promise.all([import('../hosts/mcp-port.js'), this.modules]);
+            if (this.destroyed || this.embeddedStartupCancelled) return;
             this.port = createMcpGuestPort({ frame });
             this.port.onTeardown(() => {
                 this.embeddedStartupCancelled = true;
+                this.cancelEmbeddedPending();
                 this.port?.close();
                 this.port = null;
                 void this.ended();
@@ -556,6 +563,52 @@ export class LiveHost {
             if (this.destroyed || this.embeddedStartupCancelled) return;
             // The host sizes a frame from what the app says it wants; the Chamber fills what it is given.
             this.port.sizeChanged({ width: frame.innerWidth, height: EMBED_HEIGHT });
+            const stopListeningCurrent = this.port.onCurrent(({ current }) => this.admitEmbeddedCurrent(current));
+            if (this.embeddedCurrentHandled || this.destroyed || this.embeddedStartupCancelled) stopListeningCurrent();
+            else this.stopListeningCurrent = stopListeningCurrent;
+        } catch (error) {
+            if (this.destroyed || this.embeddedStartupCancelled) return;
+            this.controls?.destroy();
+            this.controls = null;
+            this.runtime = null;
+            this.port?.close();
+            this.port = null;
+            this.say(`Could not start: ${text(error?.message, 'unknown error').slice(0, 200)}`, { alert: true });
+        }
+    }
+
+    /** Validate the host's sealed answer once, then wait for the reader to begin it. */
+    admitEmbeddedCurrent(current) {
+        if (this.destroyed || this.embeddedStartupCancelled || this.embeddedCurrentHandled) return true;
+        this.embeddedCurrentHandled = true;
+        this.stopListeningCurrent?.();
+        this.stopListeningCurrent = null;
+        try {
+            this.embeddedEvents = currentToEvents(current);
+        } catch (error) {
+            this.say(`Ask the assistant again. The Current was refused: ${text(error?.message, 'invalid Current').slice(0, 220)}`, { alert: true });
+            return true;
+        }
+        this.say('Answer ready.');
+        const begin = document.createElement('button');
+        begin.type = 'button';
+        begin.className = 'live-start';
+        begin.textContent = 'Begin';
+        begin.addEventListener('click', () => { void this.beginEmbedded(); });
+        this.container.querySelector('.live-host--embedded').append(begin);
+        return true;
+    }
+
+    async beginEmbedded() {
+        if (!this.embeddedEvents || this.embeddedBeginStarted || this.destroyed || this.embeddedStartupCancelled) return;
+        this.embeddedBeginStarted = true;
+        this.starting = true;
+        const begin = this.container.querySelector('.live-start');
+        if (begin) {
+            begin.disabled = true;
+            begin.textContent = 'Starting…';
+        }
+        try {
             const runtime = await this.buildRuntime();
             if (this.destroyed || this.embeddedStartupCancelled) {
                 await runtime.stop();
@@ -571,14 +624,29 @@ export class LiveHost {
             this.controls?.destroy();
             this.controls = null;
             this.runtime = null;
+            this.embeddedEvents = null;
+            this.say(`Could not start: ${text(error?.message, 'unknown error').slice(0, 200)}`, { alert: true });
             this.port?.close();
             this.port = null;
-            this.say(`Could not start: ${text(error?.message, 'unknown error').slice(0, 200)}`, { alert: true });
+        } finally {
+            this.starting = false;
         }
+    }
+
+    cancelEmbeddedPending() {
+        this.stopListeningCurrent?.();
+        this.stopListeningCurrent = null;
+        this.embeddedEvents = null;
     }
 
     /** The reader pressed Stop, or asked to leave. */
     async stop() {
+        if (this.embedded) {
+            this.embeddedStartupCancelled = true;
+            this.cancelEmbeddedPending();
+            this.port?.close();
+            this.port = null;
+        }
         const runtime = this.runtime;
         this.runtime = null;
         this.forgetKey();
@@ -592,6 +660,10 @@ export class LiveHost {
 
     /** The reader left the Chamber by its own control: end what was running. */
     async ended() {
+        if (this.embedded) {
+            this.embeddedStartupCancelled = true;
+            this.cancelEmbeddedPending();
+        }
         const runtime = this.runtime;
         this.runtime = null;
         this.forgetKey();
@@ -611,6 +683,8 @@ export class LiveHost {
     destroy() {
         if (this.destroyed) return;
         this.destroyed = true;
+        this.embeddedStartupCancelled = true;
+        this.cancelEmbeddedPending();
         this.stopHearingExit?.();
         void this.ended();
         this.port?.close();

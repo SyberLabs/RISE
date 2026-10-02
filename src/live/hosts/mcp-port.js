@@ -144,6 +144,7 @@ export function createMcpGuestPort({ frame, host = frame.parent, appName = 'RISE
 
         /** Currents the host hands the app. Those that arrived before anyone was listening are given first. */
         onCurrent(listener) {
+            if (closed) return () => {};
             listeners.add(listener);
             for (const item of buffered.splice(0)) if (listener(item) === true) break;
             return () => listeners.delete(listener);
@@ -194,6 +195,8 @@ export function createMcpGuestPort({ frame, host = frame.parent, appName = 'RISE
             pending.clear();
             listeners.clear();
             teardowns.clear();
+            buffered.length = 0;
+            remembered.length = 0;
         }
     };
 }

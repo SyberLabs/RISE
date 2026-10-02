@@ -33,7 +33,7 @@ This is a private developer-mode demonstration. RISE owns validation, rendering 
 
 | Case | Action or prompt | Expected outcome |
 |---|---|---|
-| 1. Direct presentation | “Use RISE to explain why a black hole is black in three short passages. Make the first passage an attractor. Keep the words plain.” | ChatGPT calls rise_present with a valid Current. RISE renders readable text and an attractor field. |
+| 1. Direct presentation | “Use RISE to explain why a black hole is black in three short passages. Make the first passage an attractor. Keep the words plain.” | ChatGPT calls rise_present with a valid Current. RISE offers Begin; after the reader presses it, RISE renders readable text and an attractor field. |
 | 2. Indirect presentation | “Give me a short spoken, visual explanation of tides through RISE. Start with an attractor passage.” | The host selects the same tool, without the reader supplying JSON. |
 | 3. Malformed proposal | Inspector calls rise_present with schema rise.invalid.v1. | Tool error names the schema problem, no structured Current or playback. Corrected valid call succeeds. |
 | 4. Unsupported visual | Inspector calls with visual unknown-surface. | Strict refusal; no silent substitution. A valid supported visual succeeds. |

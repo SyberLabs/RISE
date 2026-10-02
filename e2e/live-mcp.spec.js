@@ -85,11 +85,16 @@ async function openHost(page, baseURL, options = {}) {
 const log = page => page.evaluate(() => window.__host.log);
 const shown = async app => (await app.locator('#atom-display').innerText()).replace(/\s+/gu, ' ').trim();
 const expectShown = (app, phrase, timeout = 15_000) => expect.poll(() => shown(app).catch(() => ''), { timeout, message: `waiting to see “${phrase}”` }).toContain(phrase);
+const begin = app => app.getByRole('button', { name: 'Begin', exact: true }).click();
 
-test('the input and matching worker result play once without restarting a held reading', async ({ page, baseURL }) => {
+test('the reader begins the held Current once despite the matching tool result arriving later', async ({ page, baseURL }) => {
   const errors = [];
   page.on('pageerror', error => errors.push(error.message));
   const app = await openHost(page, baseURL, { deferToolResult: true });
+  await expect(app.getByRole('button', { name: 'Begin', exact: true })).toBeVisible();
+  await expect(app.locator('.atom-word')).toHaveCount(0);
+  await expect(app.locator('#live-controls')).toHaveCount(0);
+  await begin(app);
   await expectShown(app, 'A black hole is a region of space');
   await expect(app.locator('.live-controls__status')).toContainText(/paced as if spoken/u);
 
@@ -116,18 +121,24 @@ test('the input and matching worker result play once without restarting a held r
 
 test('a validated tool result alone delivers the Current for playback', async ({ page, baseURL }) => {
   const app = await openHost(page, baseURL, { resultOnly: true });
+  await expect(app.getByRole('button', { name: 'Begin', exact: true })).toBeVisible();
+  await begin(app);
   await expectShown(app, 'A black hole is a region of space');
   await expectShown(app, 'that nothing, not even light', 20_000);
 });
 
 test('reopening the nested frame reinitializes and plays the host result from its first passage', async ({ page, baseURL }) => {
   const app = await openHost(page, baseURL);
+  await expect(app.getByRole('button', { name: 'Begin', exact: true })).toBeVisible();
+  await begin(app);
   await expectShown(app, 'A black hole is a region of space');
   await expect(app.locator('#live-controls')).toContainText('Reopening starts this reading from the beginning');
   await expectShown(app, 'Its boundary is called the event horizon', 20_000);
 
   await app.locator('body').evaluate(body => body.ownerDocument.defaultView.location.reload());
   const reopened = page.frameLocator('#view').frameLocator('#app');
+  await expect(reopened.getByRole('button', { name: 'Begin', exact: true })).toBeVisible();
+  await begin(reopened);
   await expectShown(reopened, 'A black hole is a region of space');
   await expect(reopened.locator('#live-controls')).toContainText('Reopening starts this reading from the beginning');
   await expect.poll(async () => (await log(page)).filter(entry => entry.method === 'ui/initialize').length).toBe(2);
@@ -136,6 +147,8 @@ test('reopening the nested frame reinitializes and plays the host result from it
 
 test('calmer lowers the held visual target and resumes the same atom without sampling', async ({ page, baseURL }) => {
   const app = await openHost(page, baseURL);
+  await expect(app.getByRole('button', { name: 'Begin', exact: true })).toBeVisible();
+  await begin(app);
   await expectShown(app, 'A black hole is a region of space');
   await app.getByRole('button', { name: 'Interrupt', exact: true }).click();
   await expect(app.locator('.live-controls__status')).toContainText('Held where you are');
@@ -157,11 +170,14 @@ test('an invalid worker result has no playable Current', async ({ page, baseURL 
   const serverResponse = page.waitForResponse('**/api/mcp');
   const app = await openHost(page, baseURL, { resultOnly: true, current: { ...BLACK_HOLES_CURRENT, segments: [{ id: 's1', text: 'Fine words.' }, { id: 's2', text: 'a | b' }] } });
   expect((await (await serverResponse).json()).result.isError).toBe(true);
+  await expect(app.getByRole('button', { name: 'Begin', exact: true })).toHaveCount(0);
   await expect(app.locator('.atom-word')).toHaveCount(0);
 });
 
 test('a Dive is a question put to the host’s model, answered in the same call, and Surface returns to the very atom', async ({ page, baseURL }) => {
   const app = await openHost(page, baseURL);
+  await expect(app.getByRole('button', { name: 'Begin', exact: true })).toBeVisible();
+  await begin(app);
   await expectShown(app, 'that nothing, not even light');
   await app.getByRole('button', { name: 'Interrupt', exact: true }).click();
   await expect(app.locator('.live-controls__status')).toContainText('Held where you are');
@@ -186,6 +202,8 @@ test('a Dive is a question put to the host’s model, answered in the same call,
 
 test('where the host will not put a question to its model, a Dive says so in words and the reading is untouched', async ({ page, baseURL }) => {
   const app = await openHost(page, baseURL, { sampling: false });
+  await expect(app.getByRole('button', { name: 'Begin', exact: true })).toBeVisible();
+  await begin(app);
   await expectShown(app, 'that nothing, not even light');
   await app.getByRole('button', { name: 'Interrupt', exact: true }).click();
   const heldAt = await shown(app);
@@ -201,8 +219,8 @@ test('where the host will not put a question to its model, a Dive says so in wor
 test('a long invalid Current is refused whole with recovery guidance within the runtime limit', async ({ page, baseURL }) => {
   const invalid = { ...BLACK_HOLES_CURRENT, ['x'.repeat(400)]: true };
   const app = await openHost(page, baseURL, { current: invalid });
-  await expect(app.locator('.live-controls__status')).toContainText('could not be answered', { timeout: 15_000 });
-  const error = app.locator('.live-controls__error');
+  await expect(app.getByRole('button', { name: 'Begin', exact: true })).toHaveCount(0);
+  const error = app.locator('.live-embed[role="alert"]');
   await expect(error).toContainText('refused');
   await expect(error).toContainText('Ask the assistant again');
   expect((await error.textContent()).length).toBeLessThanOrEqual(300);
@@ -211,6 +229,8 @@ test('a long invalid Current is refused whole with recovery guidance within the 
 
 test('the host’s ping is answered, and its request to tear down is answered and ends the reading', async ({ page, baseURL }) => {
   const app = await openHost(page, baseURL);
+  await expect(app.getByRole('button', { name: 'Begin', exact: true })).toBeVisible();
+  await begin(app);
   await expectShown(app, 'A black hole is a region of space');
   await page.evaluate(() => { window.__host.request('p1', 'ping'); });
   await expect.poll(async () => (await log(page)).some(entry => entry.id === 'p1' && entry.result !== undefined)).toBe(true);
