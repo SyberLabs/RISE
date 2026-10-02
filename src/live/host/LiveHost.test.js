@@ -751,6 +751,57 @@ describe('inside an MCP host', () => {
         expect(host.port).toBeNull();
     });
 
+    it('unregisters a late global exit callback when Stop or destroy wins before runtime modules resolve', async () => {
+        const { liveExited } = await import('../../app/live-handoff.js');
+        for (const cancellation of ['stop', 'destroy']) {
+            const { environment, sent, hostSays } = framed();
+            mount('?embed=mcp&voice=paced', environment);
+            await vi.waitFor(() => expect(sent).toHaveLength(1));
+            hostSays({ jsonrpc: '2.0', id: sent[0].id, result: { protocolVersion: '2026-01-26', hostCapabilities: {}, hostContext: {} } });
+            await vi.waitFor(() => expect(sent.some(message => message.method === 'ui/notifications/size-changed')).toBe(true));
+            answerCurrent(hostSays);
+            await vi.waitFor(() => expect(container.querySelector('.live-start')?.textContent).toBe('Begin'));
+
+            const loadedModules = await host.modules;
+            let releaseModules;
+            host.modules = new Promise(resolve => { releaseModules = () => resolve(loadedModules); });
+            host.buildVoices = async () => null;
+            host.buildAdapter = async () => ({ id: 'test', capabilities: {}, open: async () => { throw new Error('not started'); } });
+            const startup = host.beginEmbedded();
+            if (cancellation === 'stop') await host.stop();
+            else host.destroy();
+            releaseModules();
+            await startup;
+
+            const ended = vi.spyOn(host, 'ended');
+            liveExited();
+            expect(ended, cancellation).not.toHaveBeenCalled();
+            expect(host.stopHearingExit, cancellation).toBeNull();
+            if (!host.destroyed) host.destroy();
+            host = null;
+            document.body.replaceChildren();
+        }
+    });
+
+    it('unregisters the global exit callback on Stop and on end of a built runtime', async () => {
+        const { liveExited } = await import('../../app/live-handoff.js');
+        for (const ending of ['stop', 'ended']) {
+            mount(ending === 'stop' ? '?voice=paced' : '?embed=mcp&voice=paced');
+            host.buildVoices = async () => null;
+            host.buildAdapter = async () => ({ id: 'test', capabilities: {}, open: async () => { throw new Error('not started'); } });
+            await host.buildRuntime();
+            expect(host.stopHearingExit).toBeTypeOf('function');
+            const callback = vi.spyOn(host, 'ended');
+            await host[ending]();
+            const callsAfterEnding = callback.mock.calls.length;
+            liveExited();
+            expect(callback).toHaveBeenCalledTimes(callsAfterEnding);
+            expect(host.stopHearingExit).toBeNull();
+            host.destroy();
+            document.body.replaceChildren();
+        }
+    });
+
     it('builds nothing and writes nothing once it is destroyed while the host is still saying hello', async () => {
         let hello;
         const { environment, sent } = framed({ answer: message => (message.method === 'ui/initialize' ? hello : null) });

@@ -41,7 +41,7 @@ This is a private developer-mode demonstration. RISE owns validation, rendering 
 | 6. Lower bound | Repeat the exact calmer command until the lower bound. | Target remains at least 0.4; a further change reports the limit. |
 | 7. Unsupported compound | Type “make it calmer and stop” in Visual change. | Specific refusal naming supported phrases; playback and brightness unchanged. |
 | 8. Pause and resume | Interrupt during a passage, inspect the held words, then Resume. | Same place is retained; the reading continues. Stop ends playback. |
-| 9. Reopen and teardown | Reopen or reload the widget; later close it. | If the host redelivers the result, replay starts from the beginning, as the visible notice says. Teardown stops playback; no continuing voice or controls. |
+| 9. Reopen and teardown | Reopen or reload the widget, press Begin, then later close it. | If the host redelivers the result, it waits for Begin and starts from the beginning, as the visible notice says. Teardown stops playback; no continuing voice or controls. |
 | 10. Capability and duplicate delivery | Inspect host capabilities; engineer sends identical input/result in the browser harness. | Answer and calmer work without sampling. Unsupported Dive explains its limit. Duplicate Current plays once. |
 
 Cases 3,4 and duplicate injection use protocol/browser checks, not an instruction to persuade ChatGPT to violate its schema. Run cases 1,2,5,6,7,8,9 and sampling observation in actual ChatGPT. Keep host and fake-harness evidence separately labeled.

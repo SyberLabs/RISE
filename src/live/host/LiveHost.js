@@ -26,7 +26,6 @@
 import { GEMINI_DEFAULT_MODEL } from '../adapters/gemini-model.js';
 import { describeDegradations, detectCapabilities } from '../capabilities.js';
 import { admitCatalogVisual } from '../../core/visual-catalog.js';
-import { currentToEvents } from '../adapters/current-events.js';
 import { createLiveControls } from './controls.js';
 import { DelayedRunner, EvalRunner } from './EvalRunner.js';
 import './LiveHost.css';
@@ -334,13 +333,19 @@ export class LiveHost {
         this.startButton.textContent = 'Start';
     }
 
+    stopHearingExitListener() {
+        this.stopHearingExit?.();
+        this.stopHearingExit = null;
+    }
+
     /** Everything the runtime needs, loaded now and not before: none of it is in the first load. */
     async buildRuntime() {
         const [{ createLiveRuntime }, { createMockAdapter }, { createSessionPlayer }, { createRealClock }, present, handoff] = await this.modules;
         this.present = present;
         // Hear when the reader leaves the Chamber by its own control.
-        this.stopHearingExit?.();
+        this.stopHearingExitListener();
         this.stopHearingExit = handoff.onLiveExit(() => { void this.ended(); });
+        if (this.destroyed || this.embeddedStartupCancelled) this.stopHearingExitListener();
         const clock = createRealClock();
         const voices = await this.buildVoices(clock);
         const mountedChamber = player => {
@@ -583,19 +588,27 @@ export class LiveHost {
         this.embeddedCurrentHandled = true;
         this.stopListeningCurrent?.();
         this.stopListeningCurrent = null;
-        try {
-            this.embeddedEvents = currentToEvents(current);
-        } catch (error) {
-            this.say(`Ask the assistant again. The Current was refused: ${text(error?.message, 'invalid Current').slice(0, 220)}`, { alert: true });
-            return true;
-        }
-        this.say('Answer ready.');
-        const begin = document.createElement('button');
-        begin.type = 'button';
-        begin.className = 'live-start';
-        begin.textContent = 'Begin';
-        begin.addEventListener('click', () => { void this.beginEmbedded(); });
-        this.container.querySelector('.live-host--embedded').append(begin);
+        void import('../adapters/current-events.js').then(({ currentToEvents }) => {
+            if (this.destroyed || this.embeddedStartupCancelled) return;
+            try {
+                this.embeddedEvents = currentToEvents(current);
+            } catch (error) {
+                this.say(`Ask the assistant again. The Current was refused: ${text(error?.message, 'invalid Current').slice(0, 220)}`, { alert: true });
+                return;
+            }
+            if (this.destroyed || this.embeddedStartupCancelled) return;
+            this.say('Answer ready.');
+            const begin = document.createElement('button');
+            begin.type = 'button';
+            begin.className = 'live-start';
+            begin.textContent = 'Begin';
+            begin.addEventListener('click', () => { void this.beginEmbedded(); });
+            this.container.querySelector('.live-host--embedded').append(begin);
+        }).catch(error => {
+            if (!this.destroyed && !this.embeddedStartupCancelled) {
+                this.say(`Could not validate the answer: ${text(error?.message, 'unknown error').slice(0, 200)}`, { alert: true });
+            }
+        });
         return true;
     }
 
@@ -641,6 +654,7 @@ export class LiveHost {
 
     /** The reader pressed Stop, or asked to leave. */
     async stop() {
+        this.stopHearingExitListener();
         if (this.embedded) {
             this.embeddedStartupCancelled = true;
             this.cancelEmbeddedPending();
@@ -660,6 +674,7 @@ export class LiveHost {
 
     /** The reader left the Chamber by its own control: end what was running. */
     async ended() {
+        this.stopHearingExitListener();
         if (this.embedded) {
             this.embeddedStartupCancelled = true;
             this.cancelEmbeddedPending();
@@ -685,7 +700,7 @@ export class LiveHost {
         this.destroyed = true;
         this.embeddedStartupCancelled = true;
         this.cancelEmbeddedPending();
-        this.stopHearingExit?.();
+        this.stopHearingExitListener();
         void this.ended();
         this.port?.close();
         this.port = null;
