@@ -1,4 +1,5 @@
 import { validateRiseCurrent } from '../src/core/rise-current.js';
+import { MCP_CURRENT_BYTES, serializedUtf8Bytes } from '../src/live/hosts/mcp-size.js';
 import { CURRENT_GUIDE, TOOL_NAME } from '../src/live/adapters/current-guide.js';
 import { EMBED_PATH, relayHtml } from '../src/live/hosts/mcp-relay.js';
 import { readText } from './live-realtime.mjs';
@@ -80,6 +81,9 @@ function call(id, params) {
     return result(id, { content: [{ type: 'text', text: `Call ${TOOL_NAME} with {"current": <a Current>}.` }], isError: true });
   }
   try {
+    if (serializedUtf8Bytes(args.current) > MCP_CURRENT_BYTES) {
+      throw new Error(`The Current exceeds the ${MCP_CURRENT_BYTES.toLocaleString('en-US')}-byte MCP limit`);
+    }
     validateRiseCurrent(args.current);
   } catch (error) {
     return result(id, { content: [{ type: 'text', text: refusal(error) }], isError: true });

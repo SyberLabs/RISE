@@ -616,6 +616,37 @@ describe('inside an MCP host', () => {
         expect(host.runtime).toBeNull();
     });
 
+    it('keeps listening after refusing one proposal so a corrected Current can be played', async () => {
+        const { environment, sent, hostSays } = framed();
+        mount('?embed=mcp&voice=paced', environment);
+        await vi.waitFor(() => expect(sent).toHaveLength(1));
+        hostSays({ jsonrpc: '2.0', id: sent[0].id, result: { protocolVersion: '2026-01-26', hostCapabilities: {}, hostContext: {} } });
+        await vi.waitFor(() => expect(sent.some(message => message.method === 'ui/notifications/size-changed')).toBe(true));
+        answerCurrent(hostSays, { ...BLACK_HOLES_CURRENT, segments: [{ id: 'bad', text: 'left | right' }] });
+        await vi.waitFor(() => expect(line().getAttribute('role')).toBe('alert'));
+        expect(container.querySelector('.live-start')).toBeNull();
+        answerCurrent(hostSays, { ...BLACK_HOLES_CURRENT, id: 'corrected' });
+        await vi.waitFor(() => expect(container.querySelector('.live-start')?.textContent).toBe('Begin'));
+        expect(host.embeddedEvents).not.toBeNull();
+        await host.stop();
+    });
+
+    it('does not let a refused oversized trusted envelope leave stale Begin content', async () => {
+        const { environment, sent, hostSays } = framed();
+        mount('?embed=mcp&voice=paced', environment);
+        await vi.waitFor(() => expect(sent).toHaveLength(1));
+        hostSays({ jsonrpc: '2.0', id: sent[0].id, result: { protocolVersion: '2026-01-26', hostCapabilities: {}, hostContext: {} } });
+        await vi.waitFor(() => expect(sent.some(message => message.method === 'ui/notifications/size-changed')).toBe(true));
+        answerCurrent(hostSays);
+        await vi.waitFor(() => expect(container.querySelector('.live-start')?.textContent).toBe('Begin'));
+        hostSays({ jsonrpc: '2.0', method: 'ui/notifications/tool-input', params: { arguments: { current: BLACK_HOLES_CURRENT }, metadata: 'x'.repeat(262_144) } });
+        await vi.waitFor(() => expect(line().getAttribute('role')).toBe('alert'));
+        expect(line().textContent).toContain('too large');
+        expect(container.querySelector('.live-start')).toBeNull();
+        expect(host.embeddedEvents).toBeNull();
+        await host.stop();
+    });
+
     it('discards a ready Current when the reader stops before Begin', async () => {
         const { environment, sent, listeners, hostSays } = framed();
         mount('?embed=mcp&voice=paced', environment);

@@ -87,6 +87,22 @@ const shown = async app => (await app.locator('#atom-display').innerText()).repl
 const expectShown = (app, phrase, timeout = 15_000) => expect.poll(() => shown(app).catch(() => ''), { timeout, message: `waiting to see “${phrase}”` }).toContain(phrase);
 const begin = app => app.getByRole('button', { name: 'Begin', exact: true }).click();
 
+function oversizedMcpCurrent() {
+  return {
+    ...BLACK_HOLES_CURRENT,
+    segments: Array.from({ length: 16 }, (_, segmentIndex) => ({
+      id: `s${segmentIndex}`,
+      text: '界 '.repeat(625),
+      visual: 'still',
+      dives: Array.from({ length: 8 }, (_, diveIndex) => ({
+        id: `d${segmentIndex}-${diveIndex}`,
+        text: '界'.repeat(200),
+        anchor: { fromCharacter: 0, toCharacter: 1, quoteStart: '界', quoteEnd: '界' }
+      }))
+    }))
+  };
+}
+
 test('the reader begins the held Current once despite the matching tool result arriving later', async ({ page, baseURL }) => {
   const errors = [];
   page.on('pageerror', error => errors.push(error.message));
@@ -171,6 +187,17 @@ test('an invalid worker result has no playable Current', async ({ page, baseURL 
   const app = await openHost(page, baseURL, { resultOnly: true, current: { ...BLACK_HOLES_CURRENT, segments: [{ id: 's1', text: 'Fine words.' }, { id: 's2', text: 'a | b' }] } });
   expect((await (await serverResponse).json()).result.isError).toBe(true);
   await expect(app.getByRole('button', { name: 'Begin', exact: true })).toHaveCount(0);
+  await expect(app.locator('.atom-word')).toHaveCount(0);
+});
+
+test('a valid Current over the MCP payload budget is refused by the Worker and explained in the app', async ({ page, baseURL }) => {
+  const serverResponse = page.waitForResponse('**/api/mcp');
+  const app = await openHost(page, baseURL, { resultOnly: true, current: oversizedMcpCurrent() });
+  const result = (await (await serverResponse).json()).result;
+  expect(result.isError).toBe(true);
+  expect(result.content[0].text).toContain('65,536-byte MCP limit');
+  await expect(app.getByRole('button', { name: 'Begin', exact: true })).toHaveCount(0);
+  await expect(app.locator('.live-embed[role="alert"]')).toContainText('correct the answer');
   await expect(app.locator('.atom-word')).toHaveCount(0);
 });
 

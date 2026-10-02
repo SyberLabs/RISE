@@ -88,9 +88,11 @@ export class LiveHost {
         this.starting = false;
         this.embeddedStartupCancelled = false;
         this.embeddedCurrentHandled = false;
+        this.embeddedCurrentProcessing = false;
         this.embeddedBeginStarted = false;
         this.embeddedEvents = null;
         this.stopListeningCurrent = null;
+        this.stopListeningError = null;
         this.atomLog = [];
         // The reader's own key, in memory and nowhere else; see forgetKey.
         this.key = '';
@@ -561,6 +563,7 @@ export class LiveHost {
             const [{ createMcpGuestPort }] = await Promise.all([import('../hosts/mcp-port.js'), this.modules]);
             if (this.destroyed || this.embeddedStartupCancelled) return;
             this.port = createMcpGuestPort({ frame });
+            this.stopListeningError = this.port.onError(error => this.refuseEmbeddedProposal(error));
             this.port.onTeardown(() => {
                 this.embeddedStartupCancelled = true;
                 this.cancelEmbeddedPending();
@@ -572,9 +575,7 @@ export class LiveHost {
             if (this.destroyed || this.embeddedStartupCancelled) return;
             // The host sizes a frame from what the app says it wants; the Chamber fills what it is given.
             this.port.sizeChanged({ width: frame.innerWidth, height: EMBED_HEIGHT });
-            const stopListeningCurrent = this.port.onCurrent(({ current }) => this.admitEmbeddedCurrent(current));
-            if (this.embeddedCurrentHandled || this.destroyed || this.embeddedStartupCancelled) stopListeningCurrent();
-            else this.stopListeningCurrent = stopListeningCurrent;
+            this.listenEmbeddedCurrent();
         } catch (error) {
             if (this.destroyed || this.embeddedStartupCancelled) return;
             this.controls?.destroy();
@@ -586,21 +587,41 @@ export class LiveHost {
         }
     }
 
+    listenEmbeddedCurrent() {
+        if (!this.port || this.stopListeningCurrent || this.embeddedStartupCancelled || this.destroyed) return;
+        const stopListeningCurrent = this.port.onCurrent(({ current }) => this.admitEmbeddedCurrent(current));
+        if (this.embeddedCurrentHandled || this.destroyed || this.embeddedStartupCancelled) stopListeningCurrent();
+        else this.stopListeningCurrent = stopListeningCurrent;
+    }
+
+    refuseEmbeddedProposal(error) {
+        if (this.destroyed || this.embeddedStartupCancelled || this.embeddedBeginStarted) return;
+        this.embeddedEvents = null;
+        this.embeddedCurrentHandled = false;
+        this.embeddedCurrentProcessing = false;
+        this.container.querySelector('.live-start')?.remove();
+        this.say(`Ask the assistant again. The Current was refused: ${text(error?.message, 'invalid Current').slice(0, 220)}`, { alert: true });
+        this.listenEmbeddedCurrent();
+    }
+
     /** Validate the host's sealed answer once, then wait for the reader to begin it. */
     admitEmbeddedCurrent(current) {
-        if (this.destroyed || this.embeddedStartupCancelled || this.embeddedCurrentHandled) return true;
-        this.embeddedCurrentHandled = true;
-        this.stopListeningCurrent?.();
-        this.stopListeningCurrent = null;
+        if (this.destroyed || this.embeddedStartupCancelled || this.embeddedCurrentHandled || this.embeddedCurrentProcessing) return true;
+        this.embeddedCurrentProcessing = true;
         void import('../adapters/current-events.js').then(({ currentToEvents }) => {
             if (this.destroyed || this.embeddedStartupCancelled) return;
             try {
                 this.embeddedEvents = currentToEvents(current);
             } catch (error) {
+                this.embeddedCurrentProcessing = false;
                 this.say(`Ask the assistant again. The Current was refused: ${text(error?.message, 'invalid Current').slice(0, 220)}`, { alert: true });
                 return;
             }
             if (this.destroyed || this.embeddedStartupCancelled) return;
+            this.embeddedCurrentProcessing = false;
+            this.embeddedCurrentHandled = true;
+            this.stopListeningCurrent?.();
+            this.stopListeningCurrent = null;
             this.say('Answer ready.');
             const begin = document.createElement('button');
             begin.type = 'button';
@@ -610,6 +631,7 @@ export class LiveHost {
             this.container.querySelector('.live-host--embedded').append(begin);
         }).catch(error => {
             if (!this.destroyed && !this.embeddedStartupCancelled) {
+                this.embeddedCurrentProcessing = false;
                 this.say(`Could not validate the answer: ${text(error?.message, 'unknown error').slice(0, 200)}`, { alert: true });
             }
         });
@@ -653,7 +675,10 @@ export class LiveHost {
     cancelEmbeddedPending() {
         this.stopListeningCurrent?.();
         this.stopListeningCurrent = null;
+        this.stopListeningError?.();
+        this.stopListeningError = null;
         this.embeddedEvents = null;
+        this.embeddedCurrentProcessing = false;
     }
 
     /** The reader pressed Stop, or asked to leave. */

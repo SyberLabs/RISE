@@ -12,6 +12,7 @@
 import { describe, expect, it } from 'vitest';
 import { createVirtualClock } from '../clock.js';
 import { createMcpGuestPort, currentFrom, METHODS, PORT_LIMITS, PROTOCOL_VERSION } from './mcp-port.js';
+import { serializedUtf8Bytes } from './mcp-size.js';
 
 const CURRENT = { schema: 'rise.current.v1', id: 'c', title: 'T', origin: { kind: 'human', name: 'n' }, segments: [{ id: 's', text: 'Words.' }] };
 
@@ -106,6 +107,53 @@ describe('who it listens to', () => {
         const cyclic = notification(METHODS.toolInput, {});
         cyclic.params.self = cyclic;
         expect(() => hostSays(cyclic)).not.toThrow();
+    });
+
+    it('reports a trusted oversized Current envelope instead of silently waiting', () => {
+        const { port, hostSays } = setup();
+        const errors = [];
+        port.onError(error => errors.push(error));
+        const envelope = notification(METHODS.toolInput, { arguments: { current: CURRENT }, metadata: '界'.repeat(Math.floor(PORT_LIMITS.message / 3) + 100) });
+        expect(JSON.stringify(envelope).length).toBeLessThan(PORT_LIMITS.message);
+        expect(serializedUtf8Bytes(envelope)).toBeGreaterThan(PORT_LIMITS.message);
+        hostSays(envelope);
+        expect(errors).toHaveLength(1);
+        expect(errors[0].message).toContain('too large');
+    });
+});
+
+describe('the MCP Current payload budget', () => {
+    it('rejects an over-budget Current from either delivery method with one bounded error', () => {
+        const { port, hostSays } = setup();
+        const currents = [];
+        const errors = [];
+        port.onCurrent(item => currents.push(item));
+        port.onError(error => errors.push(error));
+        const overBudget = { ...CURRENT, segments: [{ id: 's', text: '界'.repeat(22_000) }] };
+        hostSays(notification(METHODS.toolInput, { arguments: { current: overBudget } }));
+        hostSays(notification(METHODS.toolResult, { structuredContent: { current: overBudget } }));
+        expect(currents).toEqual([]);
+        expect(errors).toHaveLength(1);
+        expect(errors[0].message).toContain('65,536-byte MCP limit');
+        expect(errors[0].message.length).toBeLessThanOrEqual(300);
+    });
+
+    it('measures serialized UTF-8 bytes, including non-ASCII and JSON escapes at the boundary', () => {
+        const { port, hostSays } = setup();
+        const currents = [];
+        const errors = [];
+        port.onCurrent(item => currents.push(item));
+        port.onError(error => errors.push(error));
+        const base = { ...CURRENT, segments: [{ id: 's', text: '' }] };
+        const padding = PORT_LIMITS.current - serializedUtf8Bytes(base);
+        const fitting = { ...CURRENT, segments: [{ id: 's', text: '界'.repeat(Math.floor(padding / 3)) + 'x'.repeat(padding % 3) }] };
+        const oversized = { ...fitting, segments: [{ ...fitting.segments[0], text: `${fitting.segments[0].text}"` }] };
+        expect(serializedUtf8Bytes(fitting)).toBe(PORT_LIMITS.current);
+        expect(serializedUtf8Bytes(oversized)).toBeGreaterThan(PORT_LIMITS.current);
+        hostSays(notification(METHODS.toolInput, { arguments: { current: fitting } }));
+        hostSays(notification(METHODS.toolInput, { arguments: { current: oversized } }));
+        expect(currents).toHaveLength(1);
+        expect(errors).toHaveLength(1);
     });
 });
 

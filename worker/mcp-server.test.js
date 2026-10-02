@@ -169,6 +169,27 @@ describe('the tool', () => {
     expect(result.content[0].text).toContain('accepted');
   });
 
+  it('refuses a valid Current whose serialized UTF-8 payload exceeds the MCP-only budget', async () => {
+    const current = {
+      ...BLACK_HOLES_CURRENT,
+      segments: Array.from({ length: 16 }, (_, segmentIndex) => ({
+        id: `s${segmentIndex}`,
+        text: '界 '.repeat(625),
+        visual: 'still',
+        dives: Array.from({ length: 8 }, (_, diveIndex) => ({
+          id: `d${segmentIndex}-${diveIndex}`,
+          text: '界'.repeat(200),
+          anchor: { fromCharacter: 0, toCharacter: 1, quoteStart: '界', quoteEnd: '界' }
+        }))
+      }))
+    };
+    const { result } = await json(await post(rpc('tools/call', { name: 'rise_present', arguments: { current } })));
+    expect(result.isError).toBe(true);
+    expect(result.structuredContent?.current).toBeUndefined();
+    expect(result.content[0].text).toContain('65,536-byte MCP limit');
+    expect(result.content[0].text).toContain('call rise_present again');
+  });
+
   it('refuses one that is not valid, in words the model can act on, and does not send back what it was given', async () => {
     const hostile = { ...BLACK_HOLES_CURRENT, segments: [{ id: 's', text: 'a | b' }], onclick: '<script>alert(1)</script>' };
     for (const current of [hostile, { ...BLACK_HOLES_CURRENT, schema: 'other' }, { ...BLACK_HOLES_CURRENT, segments: [] }, { ...BLACK_HOLES_CURRENT, [`x${'y'.repeat(2_000)}`]: 1 }]) {
