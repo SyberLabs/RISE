@@ -1,160 +1,31 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="description"
-    content="RISE — an audiovisual reader. Curated texts, paced reading, and museum imagery arranged around the words.">
-  <meta name="theme-color" content="#06051A">
-  <title>RISE — Audiovisual Reader</title>
-  <link rel="icon" href="/favicon.ico" sizes="any">
-  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
-  <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
-  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
-  <link rel="manifest" href="/site.webmanifest">
-  <meta property="og:type" content="website">
-  <meta property="og:site_name" content="RISE">
-  <meta property="og:title" content="RISE — Audiovisual Reader">
-  <meta property="og:description"
-    content="A text does not have to appear only as a page. Curated texts, paced reading, and museum imagery arranged around the words.">
-  <meta property="og:url" content="https://rise.syberlabs.io/">
-  <meta property="og:image" content="https://rise.syberlabs.io/og-cover.png">
-  <meta property="og:image:width" content="1200">
-  <meta property="og:image:height" content="630">
-  <meta property="og:image:alt" content="RISE — Audiovisual Reader">
-  <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="RISE — Audiovisual Reader">
-  <meta name="twitter:description"
-    content="A text does not have to appear only as a page. Curated texts, paced reading, and museum imagery arranged around the words.">
-  <meta name="twitter:image" content="https://rise.syberlabs.io/og-cover.png">
-  <link rel="canonical" href="https://rise.syberlabs.io/">
-  <!-- The chrome's two faces, latin only: Instrument Sans (one variable file
-       for 400/500/600) and Instrument Serif. Everything else swaps in. -->
-  <link rel="preload" href="/fonts/instrument-sans-normal-2ee17598.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="preload" href="/fonts/instrument-serif-normal-5eb09b5a.woff2" as="font" type="font/woff2" crossorigin>
-
-  <!-- Styles imported via app.js module -->
-  <script>
-    (function () {
-      try {
-        // Colourways only. Default is the ABSENCE of the attribute (bare
-        // :root). Slate is a stamped hue. Unknown or unset removes it —
-        // this runs before the app to beat the flash. Keep in step with
-        // CHAMBER_ACCENT_TOKENS.
-        var allowed = { slate: 1, ivory: 1, purple: 1, cobalt: 1, amber: 1, sunset: 1, gecko: 1, garnet: 1, teal: 1, orchid: 1 };
-        var stored = JSON.parse(localStorage.getItem('rise-settings') || '{}');
-        var id = stored && stored.chamberAccent;
-        if (allowed[id]) document.documentElement.dataset.accent = id;
-        else document.documentElement.removeAttribute('data-accent');
-      } catch (e) {
-        document.documentElement.removeAttribute('data-accent');
-      }
-    })();
-  </script>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="robots" content="noindex,follow">
+  <meta name="theme-color" content="#07070a">
+  <title>RISE has moved</title>
+  <style>
+    :root{color-scheme:dark;--bg:#07070a;--fg:#f2efe8;--muted:#9b98a3;--line:#27272d}
+    *{box-sizing:border-box}
+    html,body{margin:0;min-height:100%;background:var(--bg);color:var(--fg)}
+    body{min-height:100vh;display:grid;place-items:center;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;padding:28px}
+    main{width:min(760px,100%);border-top:1px solid var(--line);padding-top:28px}
+    .eyebrow{font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);margin-bottom:64px}
+    h1{font-family:Georgia,"Times New Roman",serif;font-weight:400;font-size:clamp(54px,10vw,112px);line-height:.9;letter-spacing:-.055em;margin:0 0 34px}
+    p{max-width:580px;font-size:16px;line-height:1.65;color:var(--muted);margin:0 0 34px}
+    a{display:inline-block;color:var(--fg);text-decoration:none;border-bottom:1px solid var(--fg);padding-bottom:5px;letter-spacing:.04em}
+    .foot{margin-top:92px;padding-top:18px;border-top:1px solid var(--line);font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:#6f6d78}
+  </style>
 </head>
-
 <body>
-  <!-- View Containers -->
-  <div id="view-portal" class="view-container" hidden></div>
-  <div id="view-create" class="view-container" hidden></div>
-  <div id="view-keystones" class="view-container" hidden></div>
-  <div id="view-mint" class="view-container" hidden></div>
-  <div id="view-vault" class="view-container" hidden></div>
-  <div id="view-chamber" class="view-container" hidden></div>
-  <div id="view-library" class="view-container" hidden></div>
-  <div id="view-journeys" class="view-container" hidden></div>
-  <div id="view-workshop" class="view-container" hidden></div>
-  <div id="view-chapel" class="view-container" hidden></div>
-  <div id="view-rosarium" class="view-container" hidden></div>
-  <div id="view-via" class="view-container" hidden></div>
-  <div id="view-curia" class="view-container" hidden></div>
-  <div id="view-scriptorium" class="view-container" hidden></div>
-  <div id="view-settings" class="view-container" hidden></div>
-  <div id="view-visual-lab" class="view-container" hidden></div>
-  <div id="view-live" class="view-container" hidden></div>
-  <div id="view-emotions" class="view-container" hidden></div>
-
-  <!-- Toast notifications -->
-  <div id="toast-container" class="toast-container"></div>
-
-  <!-- Loading Overlay -->
-  <div id="loading-overlay" class="loading-overlay hidden" role="status" aria-live="polite">
-    <div class="loading-content">
-      <div class="loading-sigil rise-mark" aria-hidden="true"></div>
-      <div class="loading-text">Preparing Session</div>
-      <div class="loading-status" id="loading-status">Initializing...</div>
-    </div>
-  </div>
-
-  <!-- Photosensitivity Safety Modal -->
-  <div id="photosensitivity-modal" class="modal-overlay hidden" role="alertdialog" aria-modal="true"
-    aria-labelledby="safety-title">
-    <div class="modal-content safety-modal-content">
-      <div class="modal-header">
-        <svg class="safety-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-          stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
-          <path d="M10.3 3.9 2.4 17.5A2 2 0 0 0 4.1 20.5h15.8a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/>
-          <path d="M12 9v4.5M12 17h.01"/>
-        </svg>
-        <h2 id="safety-title">Photosensitivity warning</h2>
-      </div>
-
-      <div class="modal-body">
-        <p class="safety-notice">
-          Rhythmic Visuals introduces brief flashes and visual exposures between moments of
-          reading. Presence can range from 150 milliseconds to 2 seconds. The system limits
-          rapid recurrence, but high-contrast visual changes may still affect photosensitive
-          individuals.
-        </p>
-
-        <div class="safety-risks">
-          <p class="risk-title">This feature may cause issues for individuals with:</p>
-          <ul class="risk-list">
-            <li>Photosensitive epilepsy or seizure disorders</li>
-            <li>Migraine sensitivity to light</li>
-            <li>Visual processing sensitivities</li>
-            <li>Motion sickness susceptibility</li>
-          </ul>
-        </div>
-
-        <div class="safety-protections">
-          <p class="protection-title">Limits and controls:</p>
-          <ul class="protection-list">
-            <li>Rapid recurrence remains constrained even when Frequency is 100%</li>
-            <li>Presence is configurable from 150 milliseconds to 2 seconds</li>
-            <li>Rhythmic visuals can be disabled at any time during the session</li>
-            <li>The global Photosensitivity setting completely disables these visuals</li>
-          </ul>
-          <p class="safety-limit-note">
-            These engineering measures are designed to reduce risk; they are not a medical safeguard or guarantee.
-          </p>
-        </div>
-
-        <p class="safety-disclaimer">
-          By enabling this feature, you acknowledge that you have read this warning and
-          accept responsibility for any effects. If you experience discomfort, dizziness,
-          or visual disturbances, disable this feature immediately.
-        </p>
-      </div>
-
-      <div class="modal-footer">
-        <button class="btn-secondary" id="safety-cancel" type="button">Cancel</button>
-        <button class="btn-primary" id="safety-accept" type="button">Enable visuals</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Visual Cortex (shared layer for rhythmic visual presence) -->
-  <div id="visual-cortex" class="visual-cortex" hidden>
-    <canvas id="klee-canvas" width="1920" height="1080" hidden></canvas>
-    <div id="turrell-field" hidden></div>
-    <canvas id="fractal-canvas" width="1920" height="1080" hidden></canvas>
-    <!-- diagram-display created dynamically by visual-cortex.js -->
-  </div>
-
-  <!-- App Orchestrator -->
-  <script type="module" src="/src/app.js"></script>
+  <main>
+    <div class="eyebrow">RISE · Legacy address</div>
+    <h1>New<br>coordinates.</h1>
+    <p>RISE has moved from <strong>rise.syberlabs.space</strong> to <strong>rise.syberlabs.io</strong>.</p>
+    <a href="https://rise.syberlabs.io/">ENTER RISE →</a>
+    <div class="foot">Continue · rise.syberlabs.io</div>
+  </main>
 </body>
-
 </html>
