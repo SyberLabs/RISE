@@ -631,6 +631,67 @@ describe('inside an MCP host', () => {
         await host.stop();
     });
 
+    it('does not restore Begin when an oversized refusal wins while validation is pending', async () => {
+        const { environment, sent, hostSays } = framed();
+        mount('?embed=mcp&voice=paced', environment);
+        await vi.waitFor(() => expect(sent).toHaveLength(1));
+        hostSays({ jsonrpc: '2.0', id: sent[0].id, result: { protocolVersion: '2026-01-26', hostCapabilities: {}, hostContext: {} } });
+        await vi.waitFor(() => expect(sent.some(message => message.method === 'ui/notifications/size-changed')).toBe(true));
+        let resolveValidation;
+        host.validateEmbeddedCurrent = vi.fn(() => new Promise(resolve => { resolveValidation = resolve; }));
+        answerCurrent(hostSays);
+        await vi.waitFor(() => expect(host.validateEmbeddedCurrent).toHaveBeenCalledTimes(1));
+        hostSays({ jsonrpc: '2.0', method: 'ui/notifications/tool-input', params: { arguments: { current: BLACK_HOLES_CURRENT }, metadata: 'x'.repeat(262_144) } });
+        await vi.waitFor(() => expect(line().getAttribute('role')).toBe('alert'));
+        resolveValidation(null);
+        await vi.waitFor(() => expect(host.embeddedCurrentProcessing).toBe(false));
+        expect(line().textContent).toContain('too large');
+        expect(container.querySelector('.live-start')).toBeNull();
+        expect(host.embeddedEvents).toBeNull();
+        await host.stop();
+    });
+
+    it('discards queued unbegun proposals when a transport refusal arrives', async () => {
+        const { environment, sent, hostSays } = framed();
+        mount('?embed=mcp&voice=paced', environment);
+        await vi.waitFor(() => expect(sent).toHaveLength(1));
+        hostSays({ jsonrpc: '2.0', id: sent[0].id, result: { protocolVersion: '2026-01-26', hostCapabilities: {}, hostContext: {} } });
+        await vi.waitFor(() => expect(sent.some(message => message.method === 'ui/notifications/size-changed')).toBe(true));
+        let resolveValidation;
+        host.validateEmbeddedCurrent = vi.fn(() => new Promise(resolve => { resolveValidation = resolve; }));
+        answerCurrent(hostSays);
+        await vi.waitFor(() => expect(host.validateEmbeddedCurrent).toHaveBeenCalledTimes(1));
+        answerCurrent(hostSays, { ...BLACK_HOLES_CURRENT, id: 'queued' });
+        hostSays({ jsonrpc: '2.0', method: 'ui/notifications/tool-input', params: { arguments: { current: BLACK_HOLES_CURRENT }, metadata: 'x'.repeat(262_144) } });
+        await vi.waitFor(() => expect(line().getAttribute('role')).toBe('alert'));
+        resolveValidation({ stale: true });
+        await vi.waitFor(() => expect(host.embeddedCurrentProcessing).toBe(false));
+        expect(host.validateEmbeddedCurrent).toHaveBeenCalledTimes(1);
+        expect(container.querySelector('.live-start')).toBeNull();
+        expect(host.embeddedEvents).toBeNull();
+        await host.stop();
+    });
+
+    it('keeps an immediate corrected proposal while the first proposal is still validating', async () => {
+        const { environment, sent, hostSays } = framed();
+        mount('?embed=mcp&voice=paced', environment);
+        await vi.waitFor(() => expect(sent).toHaveLength(1));
+        hostSays({ jsonrpc: '2.0', id: sent[0].id, result: { protocolVersion: '2026-01-26', hostCapabilities: {}, hostContext: {} } });
+        await vi.waitFor(() => expect(sent.some(message => message.method === 'ui/notifications/size-changed')).toBe(true));
+        let rejectFirst;
+        host.validateEmbeddedCurrent = vi.fn()
+            .mockImplementationOnce(() => new Promise((_, reject) => { rejectFirst = reject; }))
+            .mockResolvedValueOnce({ corrected: true });
+        answerCurrent(hostSays, { ...BLACK_HOLES_CURRENT, segments: [{ id: 'bad', text: 'left | right' }] });
+        await vi.waitFor(() => expect(host.validateEmbeddedCurrent).toHaveBeenCalledTimes(1));
+        answerCurrent(hostSays, { ...BLACK_HOLES_CURRENT, id: 'corrected' });
+        rejectFirst(new Error('refused first proposal'));
+        await vi.waitFor(() => expect(host.validateEmbeddedCurrent).toHaveBeenCalledTimes(2));
+        await vi.waitFor(() => expect(container.querySelector('.live-start')?.textContent).toBe('Begin'));
+        expect(line().textContent).toBe('Answer ready.');
+        await host.stop();
+    });
+
     it('does not let a refused oversized trusted envelope leave stale Begin content', async () => {
         const { environment, sent, hostSays } = framed();
         mount('?embed=mcp&voice=paced', environment);

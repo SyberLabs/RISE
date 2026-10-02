@@ -120,6 +120,36 @@ describe('who it listens to', () => {
         expect(errors).toHaveLength(1);
         expect(errors[0].message).toContain('too large');
     });
+
+    it('discards buffered content and its duplicate key when an oversized envelope refuses it', () => {
+        const { port, hostSays } = setup();
+        const envelope = notification(METHODS.toolInput, { arguments: { current: CURRENT }, metadata: 'x'.repeat(PORT_LIMITS.message) });
+        hostSays(notification(METHODS.toolInput, { arguments: { current: CURRENT } }));
+        hostSays(envelope);
+        const heard = [];
+        port.onCurrent(item => { heard.push(item); });
+        expect(heard).toEqual([]);
+        hostSays(notification(METHODS.toolInput, { arguments: { current: CURRENT } }));
+        expect(heard).toEqual([{ current: CURRENT }]);
+    });
+
+    it('discards buffered content for Current-budget and tool-error refusals, then accepts a retry', () => {
+        const oversized = { ...CURRENT, segments: [{ id: 's', text: '界'.repeat(22_000) }] };
+        const refusals = [
+            hostSays => hostSays(notification(METHODS.toolInput, { arguments: { current: oversized } })),
+            hostSays => hostSays(notification(METHODS.toolResult, { isError: true, content: [{ type: 'text', text: 'refused' }] }))
+        ];
+        for (const refuse of refusals) {
+            const { port, hostSays } = setup();
+            hostSays(notification(METHODS.toolInput, { arguments: { current: CURRENT } }));
+            refuse(hostSays);
+            const heard = [];
+            port.onCurrent(item => { heard.push(item); });
+            expect(heard).toEqual([]);
+            hostSays(notification(METHODS.toolInput, { arguments: { current: CURRENT } }));
+            expect(heard).toEqual([{ current: CURRENT }]);
+        }
+    });
 });
 
 describe('the MCP Current payload budget', () => {

@@ -80,7 +80,26 @@ export function createMcpGuestPort({ frame, host = frame.parent, appName = 'RISE
 
     const send = message => host.postMessage({ jsonrpc: '2.0', ...message }, '*');
 
+    function currentKey(current) {
+        try { return JSON.stringify({ current }); } catch { return null; }
+    }
+
+    function forgetCurrent(current) {
+        const key = currentKey(current);
+        if (key === null) return;
+        for (let index = remembered.indexOf(key); index !== -1; index = remembered.indexOf(key)) remembered.splice(index, 1);
+        for (let index = buffered.length - 1; index >= 0; index -= 1) {
+            if (currentKey(buffered[index].current) === key) buffered.splice(index, 1);
+        }
+    }
+
+    function discardBuffered() {
+        for (const item of buffered) forgetCurrent(item.current);
+        buffered.length = 0;
+    }
+
     function reportError(message) {
+        discardBuffered();
         const error = new Error(String(message).slice(0, 220));
         if (errorListeners.size === 0) {
             if (bufferedErrors.length === 0) bufferedErrors.push(error);
@@ -98,7 +117,8 @@ export function createMcpGuestPort({ frame, host = frame.parent, appName = 'RISE
         if (size === null) return;
         if (size > PORT_LIMITS.message) {
             if (data.id === undefined && [METHODS.toolInput, METHODS.toolResult].includes(data.method)) {
-                buffered.length = 0;
+                const found = currentFrom(data.method, data.params);
+                if (found) forgetCurrent(found.current);
                 reportError(`The assistant's MCP message is too large for RISE (${PORT_LIMITS.message.toLocaleString('en-US')} bytes). Ask it to shorten the answer and try again.`);
             }
             return;
@@ -130,8 +150,8 @@ export function createMcpGuestPort({ frame, host = frame.parent, appName = 'RISE
         const found = currentFrom(data.method, data.params);
         if (!found) return;
         // The same Current arrives as a tool's input and again as its result.
-        let key = null;
-        try { key = JSON.stringify(found); } catch { return; }
+        const key = currentKey(found.current);
+        if (key === null) return;
         if (remembered.includes(key)) return;
         const currentSize = serializedUtf8Bytes(found.current);
         if (currentSize === null) return;
@@ -188,6 +208,9 @@ export function createMcpGuestPort({ frame, host = frame.parent, appName = 'RISE
             for (const error of bufferedErrors.splice(0)) { try { listener(error); } catch { /* keep delivery bounded */ } }
             return () => errorListeners.delete(listener);
         },
+
+        /** Forget a Current that the reader has not begun, so a refused proposal can be retried. */
+        forgetCurrent,
 
         /** The host is about to remove the app; it has already been answered. */
         onTeardown(listener) {

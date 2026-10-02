@@ -89,6 +89,9 @@ export class LiveHost {
         this.embeddedStartupCancelled = false;
         this.embeddedCurrentHandled = false;
         this.embeddedCurrentProcessing = false;
+        this.embeddedProposalRevision = 0;
+        this.embeddedProposalCurrent = null;
+        this.embeddedQueuedCurrent = null;
         this.embeddedBeginStarted = false;
         this.embeddedEvents = null;
         this.stopListeningCurrent = null;
@@ -596,45 +599,90 @@ export class LiveHost {
 
     refuseEmbeddedProposal(error) {
         if (this.destroyed || this.embeddedStartupCancelled || this.embeddedBeginStarted) return;
+        this.embeddedProposalRevision += 1;
+        if (this.embeddedProposalCurrent) this.port?.forgetCurrent(this.embeddedProposalCurrent);
+        if (this.embeddedQueuedCurrent) this.port?.forgetCurrent(this.embeddedQueuedCurrent);
+        this.embeddedQueuedCurrent = null;
+        this.embeddedProposalCurrent = null;
         this.embeddedEvents = null;
         this.embeddedCurrentHandled = false;
-        this.embeddedCurrentProcessing = false;
         this.container.querySelector('.live-start')?.remove();
         this.say(`Ask the assistant again. The Current was refused: ${text(error?.message, 'invalid Current').slice(0, 220)}`, { alert: true });
         this.listenEmbeddedCurrent();
     }
 
+    async validateEmbeddedCurrent(current) {
+        const { currentToEvents } = await import('../adapters/current-events.js');
+        return currentToEvents(current);
+    }
+
+    async processEmbeddedCurrent(current, revision) {
+        let events;
+        let failure = null;
+        try {
+            events = await this.validateEmbeddedCurrent(current);
+        } catch (error) {
+            failure = error;
+        }
+        if (this.destroyed || this.embeddedStartupCancelled) return;
+
+        if (revision !== this.embeddedProposalRevision) {
+            this.port?.forgetCurrent(current);
+            const queued = this.embeddedQueuedCurrent;
+            this.embeddedQueuedCurrent = null;
+            if (queued) {
+                this.embeddedProposalCurrent = queued;
+                void this.processEmbeddedCurrent(queued, this.embeddedProposalRevision);
+            } else {
+                this.embeddedProposalCurrent = null;
+                this.embeddedCurrentProcessing = false;
+            }
+            return;
+        }
+
+        const queued = this.embeddedQueuedCurrent;
+        if (queued) {
+            this.port?.forgetCurrent(current);
+            this.embeddedQueuedCurrent = null;
+            this.embeddedProposalCurrent = queued;
+            void this.processEmbeddedCurrent(queued, revision);
+            return;
+        }
+
+        this.embeddedCurrentProcessing = false;
+        if (failure) {
+            this.port?.forgetCurrent(current);
+            this.embeddedProposalCurrent = null;
+            this.embeddedEvents = null;
+            this.say(`Ask the assistant again. The Current was refused: ${text(failure?.message, 'invalid Current').slice(0, 220)}`, { alert: true });
+            return;
+        }
+
+        this.embeddedEvents = events;
+        this.embeddedCurrentHandled = true;
+        this.stopListeningCurrent?.();
+        this.stopListeningCurrent = null;
+        this.say('Answer ready.');
+        const begin = document.createElement('button');
+        begin.type = 'button';
+        begin.className = 'live-start';
+        begin.textContent = 'Begin';
+        begin.addEventListener('click', () => { void this.beginEmbedded(); });
+        this.container.querySelector('.live-host--embedded').append(begin);
+    }
+
     /** Validate the host's sealed answer once, then wait for the reader to begin it. */
     admitEmbeddedCurrent(current) {
-        if (this.destroyed || this.embeddedStartupCancelled || this.embeddedCurrentHandled || this.embeddedCurrentProcessing) return true;
+        if (this.destroyed || this.embeddedStartupCancelled || this.embeddedCurrentHandled) return true;
+        if (this.embeddedCurrentProcessing) {
+            if (this.embeddedQueuedCurrent) this.port?.forgetCurrent(this.embeddedQueuedCurrent);
+            this.embeddedQueuedCurrent = current;
+            return true;
+        }
+        this.embeddedProposalRevision += 1;
+        this.embeddedProposalCurrent = current;
         this.embeddedCurrentProcessing = true;
-        void import('../adapters/current-events.js').then(({ currentToEvents }) => {
-            if (this.destroyed || this.embeddedStartupCancelled) return;
-            try {
-                this.embeddedEvents = currentToEvents(current);
-            } catch (error) {
-                this.embeddedCurrentProcessing = false;
-                this.say(`Ask the assistant again. The Current was refused: ${text(error?.message, 'invalid Current').slice(0, 220)}`, { alert: true });
-                return;
-            }
-            if (this.destroyed || this.embeddedStartupCancelled) return;
-            this.embeddedCurrentProcessing = false;
-            this.embeddedCurrentHandled = true;
-            this.stopListeningCurrent?.();
-            this.stopListeningCurrent = null;
-            this.say('Answer ready.');
-            const begin = document.createElement('button');
-            begin.type = 'button';
-            begin.className = 'live-start';
-            begin.textContent = 'Begin';
-            begin.addEventListener('click', () => { void this.beginEmbedded(); });
-            this.container.querySelector('.live-host--embedded').append(begin);
-        }).catch(error => {
-            if (!this.destroyed && !this.embeddedStartupCancelled) {
-                this.embeddedCurrentProcessing = false;
-                this.say(`Could not validate the answer: ${text(error?.message, 'unknown error').slice(0, 200)}`, { alert: true });
-            }
-        });
+        void this.processEmbeddedCurrent(current, this.embeddedProposalRevision);
         return true;
     }
 
@@ -673,12 +721,15 @@ export class LiveHost {
     }
 
     cancelEmbeddedPending() {
+        this.embeddedProposalRevision += 1;
         this.stopListeningCurrent?.();
         this.stopListeningCurrent = null;
         this.stopListeningError?.();
         this.stopListeningError = null;
         this.embeddedEvents = null;
         this.embeddedCurrentProcessing = false;
+        this.embeddedProposalCurrent = null;
+        this.embeddedQueuedCurrent = null;
     }
 
     /** The reader pressed Stop, or asked to leave. */
