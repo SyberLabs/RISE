@@ -94,7 +94,7 @@ export function createMcpGuestPort({ frame, host = frame.parent, appName = 'RISE
     }
 
     function discardBuffered() {
-        for (const item of buffered) forgetCurrent(item.current);
+        for (const item of [...buffered]) forgetCurrent(item.current);
         buffered.length = 0;
     }
 

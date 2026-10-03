@@ -133,7 +133,7 @@ describe('who it listens to', () => {
         expect(heard).toEqual([{ current: CURRENT }]);
     });
 
-    it('discards buffered content for Current-budget and tool-error refusals, then accepts a retry', () => {
+    it('discards buffered content and duplicate keys for Current-budget and tool-error refusals', () => {
         const oversized = { ...CURRENT, segments: [{ id: 's', text: '界'.repeat(22_000) }] };
         const refusals = [
             hostSays => hostSays(notification(METHODS.toolInput, { arguments: { current: oversized } })),
@@ -141,13 +141,17 @@ describe('who it listens to', () => {
         ];
         for (const refuse of refusals) {
             const { port, hostSays } = setup();
+            const first = CURRENT;
+            const second = { ...CURRENT, id: 'buffered-second' };
             hostSays(notification(METHODS.toolInput, { arguments: { current: CURRENT } }));
+            hostSays(notification(METHODS.toolInput, { arguments: { current: second } }));
             refuse(hostSays);
             const heard = [];
             port.onCurrent(item => { heard.push(item); });
             expect(heard).toEqual([]);
-            hostSays(notification(METHODS.toolInput, { arguments: { current: CURRENT } }));
-            expect(heard).toEqual([{ current: CURRENT }]);
+            hostSays(notification(METHODS.toolInput, { arguments: { current: first } }));
+            hostSays(notification(METHODS.toolInput, { arguments: { current: second } }));
+            expect(heard).toEqual([{ current: first }, { current: second }]);
         }
     });
 });
