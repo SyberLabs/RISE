@@ -21,6 +21,7 @@ history, not a distinction; read the status column instead.
 
 | Document | Status | What it is |
 | --- | --- | --- |
+| [VISION.md](VISION.md) | Intent | Where RISE is going: the harness a model performs in. The reader redirects the room in words while it runs, the model searches a catalog of procedural imagery and sees what the reader does, and scenes let the reader act inside the explanation. Says plainly what is built (little of it), the order to build the rest, and what we refuse. Supersedes the `vision/` folder as direction. |
 | [PROJECT-KNOWLEDGE.md](PROJECT-KNOWLEDGE.md) | Record | The handover. Recurring defect patterns and the reasoning behind decisions that look arbitrary. Read section 2 twice. |
 | [specs/ARCHITECTURE.md](specs/ARCHITECTURE.md) | Contract | The canonical, living system design: the planes, the room register, the contracts, and every significant decision with the alternative it rejected. `src/core/system-design.test.js` fails a build when it drifts from the tree. |
 | [specs/SYSTEM-DESIGN-REVIEW-2026-08-22.md](specs/SYSTEM-DESIGN-REVIEW-2026-08-22.md) | Record | The review that produced the document above, measured against commit `bb44899` with the commands to reproduce each number. |
@@ -42,6 +43,7 @@ history, not a distinction; read the status column instead.
 | [plans/LIVE-CURRENT.md](plans/LIVE-CURRENT.md) | Intent | The plan for a live Current: an event protocol above the sealed one, one clock with speech as its authority, a runtime boundary, provider adapters, Dive and Surface as a branch, evidence, budgets, and the decisions that wait on the creator. A status table says what is built. |
 | [plans/LIVE-HANDOFF.md](plans/LIVE-HANDOFF.md) | Intent | Where the live Current stands at the end of the first build: the ten stacked pull requests, the architecture, what is implemented, tested, browser tested, tested only against fakes, and not verified; the commands run and what they said; the measurements; how to see it; whether it differs from a visualizer (unknown); the open risks; and the next smallest experiment. |
 | [plans/LIVE-MCP.md](plans/LIVE-MCP.md) | Intent | How a live Current runs inside an MCP host: the host's model as the provider, a server with one tool, an app that frames RISE's own page, and a Dive asked through sampling. Built and checked against the SDK's client and the reference package's own host class; off by default; no product host tried. |
+| [plans/LIVE-GEMINI.md](plans/LIVE-GEMINI.md) | Intent | A live Current from Gemini with the reader's own key: streaming text generation (not the Live API) behind the existing text-stream seam, called straight from the reader's browser; what is left out, the one security-policy change, the build plan, and how to verify it with a real key. Off by default; unverified against Google. |
 | [plans/LIVE-EVALUATION.md](plans/LIVE-EVALUATION.md) | Intent | The instrument for asking whether a live Current differs from text, ordinary voice, and voice over a generic visualizer: a between-participants design, its measures, how to run it, what a record holds, and an analysis written so it cannot overclaim. The study has not been run. |
 | [plans/LIVE-RED-TEAM.md](plans/LIVE-RED-TEAM.md) | Record | An adversarial review of the live layer and its fixes: the trust boundary, twelve confirmed defects and how each was fixed, the architectural risks, what held, streaming and plugin readiness, the experiments a real provider must settle, and what still blocks switching Live or MCP on. |
 | [plans/CURRENT-CONSOLIDATION.md](plans/CURRENT-CONSOLIDATION.md) | Intent | Phase 0 map for consolidating every entrance around one compiled reading: the room inventory, the gaps in the contract, who scores affect, and the decisions that wait on the creator. Nothing in it is built. |
@@ -111,7 +113,7 @@ history, not a distinction; read the status column instead.
 
 | Document | Status | What it is |
 | --- | --- | --- |
-| [vision/NORTH-STAR.md](vision/NORTH-STAR.md) | Intent | Product philosophy. |
+| [vision/NORTH-STAR.md](vision/NORTH-STAR.md) | Intent | Product philosophy of the engine era. Superseded as direction by [VISION.md](VISION.md); kept as a record of that era and not re-reviewed against it. |
 | [vision/JOURNEYS-SPEC.md](vision/JOURNEYS-SPEC.md) | Intent | Journeys are on ice - their scores quote editions the canon no longer serves. Re-anchoring is an editorial act, not a repair. |
 | [specs/BOOK-VI-PROCEDURAL-WORKS.md](specs/BOOK-VI-PROCEDURAL-WORKS.md) | Record | Milton's Book VI mapped to the engines in `src/visuals/paradise_lost/`, for the withdrawn Journey. |
 | [vision/DREAMS.md](vision/DREAMS.md) | Intent | Unscheduled experiments. Explicitly not a plan. |

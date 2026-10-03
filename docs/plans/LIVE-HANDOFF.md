@@ -89,7 +89,7 @@ The brief asked that this be recorded honestly. What is established: the imagery
 
 ## Open risks
 
-1. **No real speech engine has been heard.** Chrome's network voices give no word boundaries (the clock then corrects only at segment edges); some builds cut a long utterance off near fifteen seconds; a Dive that holds a boundary-less voice restarts its segment when released. All from knowledge of the platform, none observed here.
+1. **No real speech engine has been heard.** Chrome's network voices give no word boundaries (the clock then corrects only at segment edges); some builds cut a long utterance off near fifteen seconds; a Dive that holds a boundary-less voice restarts its segment when released, except that once a speed is known the voice takes up at the start of the phrase on screen (docs/plans/LIVE-CURRENT.md). All from knowledge of the platform, none observed here.
 2. **OpenAI has never been reached.** The wire names, the unified-interface request, and whether a text-only session accepts a receive-only audio section are unconfirmed. Every name is in one table. One key and ten minutes would settle it.
 3. **The reader-supplied-key page.** The relay is narrow (one request, key never stored or echoed, off unless `LIVE_REALTIME_ENABLED`), but whether such a page should ever be public is your decision, and nothing here turns it on.
 4. **MCP is built and checked against the reference, not a product.** It is off by default, and turning it on loosens the site's framing for one page, which is your decision (`docs/plans/LIVE-MCP.md`, *Turning it on*). No product host has been tried, and a Dive needs the host to offer sampling.

@@ -14,7 +14,9 @@ const FAULTS = {
     'black-holes': {},
     interrupt: {},
     'transport-loss': { lossAfter: 30 },
-    'provider-failure': { failAfter: 10 }
+    'provider-failure': { failAfter: 10 },
+    // The response ends `incomplete` at its token limit, part way through a passage.
+    'cut-short': { cutAfter: 30 }
 };
 
 describeAdapterConformance('openai-realtime (fake data channel, documented wire)', (name) => {

@@ -218,6 +218,101 @@ describe('an exclusive hold, when something else is about to speak', () => {
     });
 });
 
+describe('an exclusive hold told where to take up again', () => {
+    /** Every utterance the device was given, so a test can say what was said again and from where. */
+    function watchSpeech(synth) {
+        const said = [];
+        const speak = synth.speak.bind(synth);
+        synth.speak = utterance => { said.push(utterance.text); speak(utterance); };
+        return said;
+    }
+    const at = (charIndex, tMs = charIndex * MS, segmentId = 'a') => ({ segmentId, charIndex, tMs });
+
+    for (const boundaries of [true, false]) {
+        describe(boundaries ? 'a voice that reports boundaries' : 'a voice that reports none', () => {
+            it('says the segment again from the character it was told, not from its last word or its start, in the same time', async () => {
+                const { clock, voice, log, synth } = setup({ boundaries });
+                const said = watchSpeech(synth);
+                voice.enqueue({ id: 'a', text: TEXT });
+                await clock.advance(30 + 9 * MS);
+                voice.hold();
+                voice.hold({ exclusive: true, resumeAt: at(14) });
+                expect(voice.playedMs('a')).toBe(14 * MS);
+                voice.release();
+                await clock.runAll();
+                expect(said.at(-1)).toBe(TEXT.slice(14));
+                expect(kinds(log, 'start', 'a')).toHaveLength(1);
+                expect(kinds(log, 'end', 'a')).toEqual([[expect.any(Number), 'end', 'a', TEXT.length * MS]]);
+                if (boundaries) expect(kinds(log, 'mark', 'a').map(m => m[3]).filter(charIndex => charIndex > 8)).toEqual([14, 19, 24, 28].filter(charIndex => charIndex > 14));
+            });
+
+            it('can take up earlier than the last word heard, and later', async () => {
+                for (const charIndex of [4, 24]) {
+                    const { clock, voice, synth } = setup({ boundaries });
+                    const said = watchSpeech(synth);
+                    voice.enqueue({ id: 'a', text: TEXT });
+                    await clock.advance(30 + 9 * MS);
+                    voice.hold({ exclusive: true, resumeAt: at(charIndex) });
+                    voice.release();
+                    await clock.runAll();
+                    expect(said.at(-1), String(charIndex)).toBe(TEXT.slice(charIndex));
+                }
+            });
+        });
+    }
+
+    it('says whether it took up the place it was told, so what shows the words can begin the same phrase again', async () => {
+        const hold = async (how, { speak = true, boundaries = true } = {}) => {
+            const { clock, voice } = setup({ boundaries });
+            if (speak) { voice.enqueue({ id: 'a', text: TEXT }); await clock.advance(30 + 9 * MS); }
+            return voice.hold(how);
+        };
+        expect(await hold({ exclusive: true, resumeAt: at(14) })).toBe(true);
+        expect(await hold({ exclusive: true, resumeAt: at(14) }, { boundaries: false })).toBe(true);
+        // Not told, told about another segment, told for a hold that only pauses, or nothing to say it again: no.
+        expect(await hold({ exclusive: true })).toBe(false);
+        expect(await hold({ exclusive: true, resumeAt: at(14, 14 * MS, 'other') })).toBe(false);
+        expect(await hold({ resumeAt: at(14) })).toBe(false);
+        expect(await hold()).toBe(false);
+        expect(await hold({ exclusive: true, resumeAt: at(14) }, { speak: false })).toBe(false);
+    });
+
+    it('ignores it when it is about another segment, and says the last word heard again as it always did', async () => {
+        const { clock, voice, synth } = setup();
+        const said = watchSpeech(synth);
+        voice.enqueue({ id: 'a', text: TEXT });
+        await clock.advance(30 + 9 * MS);
+        voice.hold({ exclusive: true, resumeAt: at(14, 14 * MS, 'other') });
+        expect(voice.playedMs('a')).toBe(8 * MS);
+        voice.release();
+        expect(said.at(-1)).toBe(TEXT.slice(8));
+    });
+
+    it('does nothing with it for a hold that is only a pause, and does not speak again on release', async () => {
+        const { clock, voice, synth } = setup();
+        const said = watchSpeech(synth);
+        voice.enqueue({ id: 'a', text: TEXT });
+        await clock.advance(30 + 9 * MS);
+        voice.hold({ resumeAt: at(14) });
+        voice.release();
+        expect(said).toEqual([TEXT]);
+    });
+
+    it('counts the place it was told as the last word heard, so a second hold with no place says it from there again', async () => {
+        const { clock, voice, synth } = setup();
+        const said = watchSpeech(synth);
+        voice.enqueue({ id: 'a', text: TEXT });
+        await clock.advance(30 + 9 * MS);
+        voice.hold({ exclusive: true, resumeAt: at(14) });
+        voice.release();
+        await clock.advance(30 + 3 * MS);
+        voice.hold({ exclusive: true });
+        expect(voice.playedMs('a')).toBe(14 * MS);
+        voice.release();
+        expect(said.at(-1)).toBe(TEXT.slice(14));
+    });
+});
+
 describe('stopping', () => {
     for (const cancelReports of ['error', 'end']) {
         it(`never reports again after a cancel, whether the browser reports it as ${cancelReports === 'error' ? 'an error' : 'an end'}`, async () => {

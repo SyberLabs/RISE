@@ -227,6 +227,142 @@ describe('the OpenAI provider, with the reader\u2019s own key', () => {
     });
 });
 
+describe('the Gemini provider, with the reader’s own key', () => {
+    const KEY = 'AIzaSyD-test-key-0000000000000000000000';
+    const fakeRuntime = () => ({
+        status: 'live',
+        snapshot: () => ({ status: 'live', error: null, main: {}, side: null }),
+        subscribe: () => () => {},
+        composed: () => null,
+        start: async () => {},
+        stop: async () => {}
+    });
+
+    it('asks for the key in a password field that nothing may remember, and says the key goes from this browser to Google and not to this site', () => {
+        mount('?provider=gemini&voice=paced');
+        const field = container.querySelector('#live-key');
+        expect(field.type).toBe('password');
+        expect(field.autocomplete).toBe('off');
+        expect(field.getAttribute('spellcheck')).toBe('false');
+        expect(container.querySelector('label[for="live-key"]').textContent).toMatch(/Your Gemini API key/u);
+        const note = container.querySelector('.live-key-note').textContent;
+        expect(note).toMatch(/memory only/u);
+        expect(note).toMatch(/never stored/u);
+        expect(note).toMatch(/straight to Google/u);
+        expect(note).toMatch(/never to this site/u);
+        expect(note).toMatch(/billed to your key/u);
+        expect(note).toMatch(/RISE pays for nothing/u);
+        expect(container.querySelector('.live-provider').textContent).toMatch(/Google Gemini, with your own key/u);
+    });
+
+    it('offers a model, named for what it is, with the default filled in, and only for this provider', () => {
+        mount('?provider=gemini&voice=paced');
+        const model = container.querySelector('#live-model');
+        expect(model.type).toBe('text');
+        expect(model.value).toBe('gemini-3.5-flash');
+        expect(model.maxLength).toBe(64);
+        expect(model.autocomplete).toBe('off');
+        expect(container.querySelector('label[for="live-model"]').textContent).toMatch(/Model/u);
+        mount('?provider=openai&voice=paced');
+        expect(container.querySelector('#live-model')).toBeNull();
+        mount('?voice=paced');
+        expect(container.querySelector('#live-model')).toBeNull();
+        expect(container.querySelector('#live-key')).toBeNull();
+    });
+
+    it('will not start without a key, says why, and builds nothing', async () => {
+        mount('?provider=gemini&voice=paced');
+        let built = 0;
+        host.buildRuntime = async () => { built += 1; return fakeRuntime(); };
+        await host.start();
+        expect(container.querySelector('.live-error').textContent).toBe('Enter your Gemini key to use this provider.');
+        expect(built).toBe(0);
+        expect(host.key).toBe('');
+    });
+
+    it('takes the key into memory and empties the field at once, keeps the model as typed, and forgets the key when the session ends', async () => {
+        mount('?provider=gemini&voice=paced');
+        host.buildRuntime = async () => fakeRuntime();
+        container.querySelector('#live-key').value = `  ${KEY}  `;
+        container.querySelector('#live-model').value = ' gemini-2.0-pro ';
+        await host.start();
+        expect(host.key).toBe(KEY);
+        expect(host.model).toBe('gemini-2.0-pro');
+        expect(container.querySelector('#live-key').value).toBe('');
+        expect(container.innerHTML).not.toContain('AIza');
+        await host.stop();
+        expect(host.key).toBe('');
+    });
+
+    it('uses the default model when the field is emptied', async () => {
+        mount('?provider=gemini&voice=paced');
+        host.buildRuntime = async () => fakeRuntime();
+        container.querySelector('#live-key').value = KEY;
+        container.querySelector('#live-model').value = '   ';
+        await host.start();
+        expect(host.model).toBeUndefined();
+    });
+
+    it('forgets a key that was refused, keeps one that failed for another reason, and says what happened', async () => {
+        mount('?provider=gemini&voice=paced');
+        host.buildRuntime = async () => { throw Object.assign(new Error('Google did not accept that key: API key not valid.'), { code: 'KEY_REFUSED' }); };
+        container.querySelector('#live-key').value = KEY;
+        await host.start();
+        expect(host.key).toBe('');
+        expect(container.querySelector('.live-error').textContent).toContain('Google did not accept that key');
+
+        mount('?provider=gemini&voice=paced');
+        host.buildRuntime = async () => { throw Object.assign(new Error('Could not reach Google.'), { code: 'CONNECT_FAILED' }); };
+        container.querySelector('#live-key').value = KEY;
+        await host.start();
+        expect(host.key).toBe(KEY);
+        expect(container.querySelector('.live-start').disabled).toBe(false);
+    });
+
+    it('builds an adapter that makes its request with the key and the model as they are at that moment, straight to Google', async () => {
+        mount('?provider=gemini&voice=paced');
+        const requests = [];
+        vi.stubGlobal('fetch', vi.fn(async (url, init) => {
+            requests.push({ url, key: init.headers['x-goog-api-key'] });
+            return new Response('data: {"candidates":[{"content":{"parts":[{"text":"@passage visual=still\\nHi.\\n@end\\n"}]},"finishReason":"STOP"}]}\n\n', { status: 200 });
+        }));
+        try {
+            host.providerName = 'gemini';
+            host.key = KEY;
+            host.model = 'gemini-2.0-pro';
+            const adapter = await host.buildAdapter({}, () => { throw new Error('the mock must not be used'); });
+            expect(adapter.id).toBe('gemini-stream');
+            await adapter.open({ intent: 'answer', prompt: 'Hello' });
+            // The key and model can change, or be forgotten, after the adapter is built.
+            host.key = 'a-different-key-000000000000000';
+            host.model = undefined;
+            await adapter.open({ intent: 'answer', prompt: 'Again' });
+            expect(requests).toEqual([
+                { url: 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-pro:streamGenerateContent?alt=sse', key: KEY },
+                { url: 'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:streamGenerateContent?alt=sse', key: 'a-different-key-000000000000000' }
+            ]);
+        } finally {
+            vi.unstubAllGlobals();
+        }
+    });
+
+    it('is one of the providers the page knows, and the others are unchanged', () => {
+        mount('?provider=gemini');
+        expect(host.chosenProvider()).toBe('gemini');
+        mount('?provider=openai');
+        expect(host.chosenProvider()).toBe('openai');
+        mount('?provider=GEMINI');
+        expect(host.chosenProvider()).toBe('mock');
+    });
+
+    it('keeps the key out of everything it renders', () => {
+        mount('?provider=gemini');
+        container.querySelector('#live-key').value = KEY;
+        expect(container.querySelector('.live-provider').textContent).not.toContain('AIza');
+        expect(container.querySelector('.live-key-note').textContent).not.toContain('AIza');
+    });
+});
+
 describe('speaking to it', () => {
     it('is fetched and offered only where the browser can recognise speech', async () => {
         mount('', env());

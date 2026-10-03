@@ -32,7 +32,7 @@ import { defineConfig } from '@playwright/test';
  *   recitation        the voice, which is the other thing with a device
  *   portal-hit-test   the first screen being clickable at all
  *   scriptorium       the refusal panel, whose whole job is phrasing
- *   journeys          an authored program launching
+ *   journeys          Home and the Vault offer no Journeys door
  *   curation          what the shelf is allowed to show
  *
  * Full coverage runs in four shards on main without holding the release.

@@ -358,9 +358,17 @@ export function createLiveRuntime({
             }
             const position = where(main, segmentId, atCharacter);
             const before = status;
+            // Where the phrase on screen begins, for a voice that will have to say it again: the screen
+            // knows, and a voice with no word boundaries does not. Between two phrases (in a flash, or held
+            // during one) the phrase on screen has already been said, and the Player will go past it, so there is none to say again.
+            const phrase = main.player.betweenPhrases
+                ? null
+                : main.governor?.restartPoint(main.player.sessionState.currentIndex) ?? null;
             main.player.pause();
-            // Something else is about to speak, and a device speaks one thing at a time.
-            main.voice?.hold({ exclusive: true });
+            // Something else is about to speak, and a device speaks one thing at a time. A voice that will
+            // take up at the start of the phrase is decided here, once, so that every way back (Surface, a
+            // Dive that fails to open, a resume after one) shows that phrase again and times it by the voice.
+            if (main.voice?.hold({ exclusive: true, ...(phrase ? { resumeAt: phrase } : {}) }) === true) main.player.restartCurrentAtom();
             const view = main.stream.snapshot();
             const index = view.segments.findIndex(segment => segment.id === position.segmentId);
             const context = view.segments.slice(Math.max(0, index - 1), index + 1)
