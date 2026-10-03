@@ -5,7 +5,7 @@
  * and a speech worker. Their absence is now a security and cost boundary.
  */
 import { describe, expect, it } from 'vitest';
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { resolve } from 'node:path';
 
 const toml = readFileSync(resolve(process.cwd(), 'netlify.toml'), 'utf8');
@@ -80,5 +80,21 @@ describe('content security policy', () => {
         expect(script).toBe("script-src 'self'");
         expect(directive('object-src')).toBe("object-src 'none'");
         expect(directive('frame-ancestors')).toBe("frame-ancestors 'none'");
+    });
+
+    it("meets script-src 'self' on every page it serves: no inline script", () => {
+        const pages = [
+            'index.html', 'wormhole.html', 'enterprise.html', 'kev-check.html',
+            ...readdirSync(resolve(process.cwd(), 'public'))
+                .filter(name => name.endsWith('.html'))
+                .map(name => `public/${name}`)
+        ];
+        for (const page of pages) {
+            const html = readFileSync(resolve(process.cwd(), page), 'utf8');
+            const inline = [...html.matchAll(/<script\b([^>]*)>/giu)]
+                .filter(([, attributes]) => !/\ssrc=/iu.test(attributes))
+                .map(([tag]) => tag);
+            expect(inline, `${page} carries an inline script the policy refuses`).toEqual([]);
+        }
     });
 });
