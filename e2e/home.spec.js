@@ -1,28 +1,41 @@
 import { test, expect } from './fixtures.js';
+import { openAskDialog } from './reader-connection.js';
 
 /**
- * Home is the night library: a sky of works behind a text panel. Roll a
- * reading, or pick a star; a result names the text, the mood and the passage,
- * each with its own Redraw. Start reading plays it; Adjust first opens it in
- * Reader Setup with everything already set, and Begin plays exactly what was
- * rolled, look included.
+ * Home is already reading: today's poem plays silently, full-screen, under
+ * its own engine, named in the bar below. Read it with sound opens it through
+ * the app's launchToday, as /today does; Another reading rolls a vivid one in its place,
+ * which Adjust opens in Reader Setup. Leaving a reading comes back to Home
+ * and the same reading.
  */
 const GATE = { code: 'rise2025', name: 'Home Harness', vault: null, timestamp: Date.now() };
 
 async function openHome(page) {
   await page.addInitScript(gate => localStorage.setItem('rise-beta-session', JSON.stringify(gate)), GATE);
   await page.goto('/');
-  await expect(page.locator('[data-home="roll"]')).toBeVisible({ timeout: 15_000 });
+  await expect(page.locator('h1')).toContainText(', by ', { timeout: 15_000 });
 }
 
-async function roll(page) {
+const reading = page => page.evaluate(() => {
+  const portal = window.__RISE_TEST__.getView('portal');
+  const { decision, heading } = portal.reading;
+  return { decision, heading, text: portal.opening?.text };
+});
+
+async function another(page) {
+  const before = await page.locator('h1').textContent();
   await page.locator('[data-home="roll"]').click();
-  await expect(page.locator('[data-home="enter"]')).toBeVisible({ timeout: 10_000 });
-  return page.evaluate(() => window.__RISE_TEST__.getView('portal').result.decision);
+  await expect(page.locator('h1')).not.toHaveText(before, { timeout: 10_000 });
+  await expect(page.locator('[data-home="adjust"]')).toBeVisible();
+  return (await reading(page)).decision;
 }
 
-/** A star the sky drew for this work, once the sky has loaded. */
-const star = (page, workId) => page.locator(`.home-sky .sky-star[data-work-id="${workId}"]`);
+/** The unit the stream is showing now, once it shows one. */
+async function streaming(page) {
+  const current = page.locator('.home-stream .reading-stream-current');
+  await expect(current).not.toBeEmpty({ timeout: 15_000 });
+  return current.textContent();
+}
 
 const view = page => page.evaluate(() => window.__RISE_TEST__.getRouterState().currentView);
 
@@ -30,129 +43,106 @@ const view = page => page.evaluate(() => window.__RISE_TEST__.getRouterState().c
 const sideways = page => page.evaluate(() =>
   Math.max(document.documentElement.scrollWidth, document.querySelector('.portal').scrollWidth) - innerWidth);
 
+const bottom = (page, selector) => page.evaluate(sel => document.querySelector(sel).getBoundingClientRect().bottom, selector);
+
 for (const viewport of [{ width: 390, height: 844 }, { width: 360, height: 640 }, { width: 1280, height: 800 }]) {
-  test(`at ${viewport.width}x${viewport.height} Roll a reading is on the first screen, and nothing scrolls sideways in any state`, async ({ page }) => {
+  test(`at ${viewport.width}x${viewport.height} the reading and Read it with sound are on the first screen, and nothing scrolls sideways`, async ({ page }) => {
     await page.setViewportSize(viewport);
     await openHome(page);
-    await expect(page.locator('h1')).toHaveText('Every star is a text you can read.');
-    const bottom = selector => page.evaluate(sel => document.querySelector(sel).getBoundingClientRect().bottom, selector);
-    expect(await bottom('[data-home="roll"]')).toBeLessThanOrEqual(viewport.height);
-    expect(await bottom('[data-home="ask-open"]')).toBeLessThanOrEqual(viewport.height);
-    if (viewport.width >= 900) expect(await bottom('.portal-legal')).toBeLessThanOrEqual(viewport.height + 1);
-    // Only one solid key.
-    await expect(page.locator('.home .btn-primary')).toHaveCount(1);
+    await expect(page.locator('.home-label')).toHaveText('Today’s poem');
+    await streaming(page);
+    for (const selector of ['[data-home="enter"]', '[data-home="roll"]', '[data-home="library"]', '.portal-legal-link']) {
+      expect(await bottom(page, selector), selector).toBeLessThanOrEqual(viewport.height);
+    }
+    // One solid key.
+    await expect(page.locator('.home .btn-primary')).toHaveText('Read it with sound');
     expect(await sideways(page)).toBeLessThanOrEqual(0);
-    await star(page, 'oedipus-rex').waitFor({ state: 'attached', timeout: 15_000 });
+    await another(page);
+    expect(await bottom(page, '[data-home="enter"]')).toBeLessThanOrEqual(viewport.height);
     expect(await sideways(page)).toBeLessThanOrEqual(0);
-    await roll(page);
-    expect(await sideways(page)).toBeLessThanOrEqual(0);
-    await page.locator('[data-home="ask-open"]').click();
-    await expect(page.locator('h1')).toHaveText('Asking needs your own AI.');
+    await openAskDialog(page);
+    await expect(page.locator('dialog.home-ask h2')).toHaveText('Asking needs your own AI.');
     expect(await sideways(page)).toBeLessThanOrEqual(0);
   });
 }
 
-test('on a phone the sky is a band above the panel; on a desk it fills the page behind it', async ({ page }) => {
-  await page.setViewportSize({ width: 390, height: 844 });
+test('on a desk the bar sits under the stream; on a phone the key spans the width over a row of two', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 800 });
   await openHome(page);
   const boxes = () => page.evaluate(() => {
     const box = sel => document.querySelector(sel).getBoundingClientRect().toJSON();
-    return { sky: box('.home-sky'), panel: box('.home-panel') };
+    return { stage: box('.home-stage'), enter: box('[data-home="enter"]'), roll: box('[data-home="roll"]'), link: box('.home-link'), caption: box('.home-caption'), bar: box('.home-bar') };
   });
-  let { sky, panel } = await boxes();
-  expect(sky.height).toBeGreaterThanOrEqual(220);
-  expect(sky.bottom).toBeLessThanOrEqual(panel.top + 1);
-  await page.setViewportSize({ width: 1280, height: 800 });
-  ({ sky, panel } = await boxes());
-  expect(sky.left).toBeLessThanOrEqual(panel.left);
-  expect(sky.top).toBeLessThanOrEqual(panel.top);
-  expect(sky.right).toBeGreaterThan(panel.right);
-  expect(sky.bottom).toBeGreaterThanOrEqual(panel.bottom - 1);
+  let b = await boxes();
+  expect(b.stage.bottom).toBeLessThanOrEqual(b.bar.top + 1);
+  // Caption on the left, the keys on the right, on one line.
+  expect(b.caption.right).toBeLessThan(b.enter.left);
+  expect(Math.abs(b.enter.top - b.roll.top)).toBeLessThan(2);
+  await page.setViewportSize({ width: 390, height: 844 });
+  b = await boxes();
+  expect(b.caption.bottom).toBeLessThanOrEqual(b.enter.top);
+  expect(b.enter.width).toBeGreaterThan(390 - 2 * 16 - 2);
+  expect(b.roll.top).toBeGreaterThanOrEqual(b.enter.bottom);
+  expect(Math.abs(b.roll.top - b.link.top)).toBeLessThan(4);
 });
 
-test('a star opens its work with the three parts, the opening lines, and a Redraw for the text and the mood', async ({ page }) => {
+test('the opening is real text for a screen reader, and focus runs header, key, Another reading, link', async ({ page }) => {
   await openHome(page);
-  await star(page, 'oedipus-rex').click({ timeout: 15_000 });
-  await expect(page.locator('h1')).toHaveText('Oedipus Rex', { timeout: 10_000 });
-  await expect(page.locator('.home-byline')).toContainText('Sophocles, from the');
-  await expect(page.locator('.home-part-label')).toHaveText(['The text', 'The mood', 'The passage']);
-  for (const part of ['text', 'mood']) {
-    await expect(page.locator(`[data-home="redraw-${part}"]`)).toHaveAccessibleName(`Redraw the ${part}`);
+  const { heading, text } = await reading(page);
+  await expect(page.locator('[role="status"] [data-home-status]')).toHaveText(`Today’s poem: ${heading}`);
+  await expect(page.locator('[data-home-opening]')).toHaveText(text);
+  await expect(page.locator('.home-stream')).toHaveAttribute('aria-hidden', 'true');
+  await page.locator('body').focus();
+  const order = [];
+  for (let i = 0; i < 4; i++) {
+    await page.keyboard.press('Tab');
+    order.push(await page.evaluate(() => document.activeElement.dataset.home || document.activeElement.className));
   }
-  await expect(page.locator('[data-home="redraw-passage"]')).toHaveCount(0);
-  // The opening lines, in the reading face, once they load.
-  const lines = page.locator('.home-lines');
-  await expect(lines).not.toBeEmpty({ timeout: 15_000 });
-  expect(await lines.evaluate(el => getComputedStyle(el).fontFamily)).toContain('Crimson Pro');
-  await expect(page.locator('.home .btn-primary')).toHaveText('Start reading');
-  await expect(page.locator('.home-actions button')).toHaveText(['Start reading', 'Roll again', 'Adjust first']);
-  await expect(page.locator('[data-home="ask-open"]')).toHaveText('Ask for something specific instead');
-});
-
-test('Redraw changes one part and keeps the other two', async ({ page }) => {
-  await openHome(page);
-  await star(page, 'middlemarch').click({ timeout: 15_000 });
-  await expect(page.locator('h1')).toHaveText('Middlemarch', { timeout: 10_000 });
-  const state = () => page.evaluate(() => {
-    const { decision, temper } = window.__RISE_TEST__.getView('portal').result;
-    return { workId: decision.workId, temper, section: decision.config.section };
-  });
-  let before = await state();
-  await page.locator('[data-home="redraw-mood"]').click();
-  await expect.poll(async () => (await state()).temper).not.toBe(before.temper);
-  let after = await state();
-  expect([after.workId, after.section]).toEqual([before.workId, before.section]);
-  await expect(page.locator('[data-home="redraw-mood"]')).toBeFocused();
-
-  before = after;
-  await page.locator('[data-home="redraw-text"]').click();
-  await expect.poll(async () => (await state()).workId).not.toBe(before.workId);
-  after = await state();
-  expect([after.temper, after.section]).toEqual([before.temper, before.section]);
-});
-
-test('Home still rolls when the sky cannot load', async ({ page }) => {
-  await page.route(/\/assets\/(NightSky|library-sky)-[^/]+\.js$/u, route => route.abort());
-  await openHome(page);
-  await page.waitForTimeout(1000);
-  await expect(page.locator('.home-sky .sky-star')).toHaveCount(0);
-  await roll(page);
-  await expect(page.locator('.home-alert')).toBeHidden();
-});
-
-test("a reload starts with nothing chosen, so the first roll is always the reader's own", async ({ page }) => {
-  await openHome(page);
-  await roll(page);
-  await page.reload();
-  await expect(page.locator('[data-home="roll"]')).toBeVisible({ timeout: 15_000 });
-  await expect(page.locator('h1')).toHaveText('Every star is a text you can read.');
-  await expect(page.locator('[data-home="enter"]')).toHaveCount(0);
-});
-
-test('the longest titles and plans stay on a small phone without scrolling sideways', async ({ page }) => {
-  await page.setViewportSize({ width: 360, height: 640 });
-  await openHome(page);
-  for (const [work, temper, section] of [['lyrical-ballads', 'revel', 'shortest'], ['the-photo-that-knew-your-street', 'ember', 'longest'], ['spoon-river-anthology', 'signal', 'first']]) {
-    await page.evaluate(async ([work, temper, section]) => {
-      const portal = window.__RISE_TEST__.getView('portal');
-      const tools = await portal.loadTools();
-      const decision = tools.composeRoll({ temper: tools.TEMPERS.find(t => t.id === temper), workId: work, section });
-      portal.showResult(tools, decision, { source: 'roll', temper });
-    }, [work, temper, section]);
-    await expect(page.locator('[data-home="enter"]')).toBeVisible();
-    expect(await sideways(page), work).toBeLessThanOrEqual(0);
-    // Nothing a reader must read is under 12px.
-    const smallest = await page.evaluate(() => Math.min(...[...document.querySelectorAll('.home-panel *')]
+  expect(order).toEqual(['portal-menu-toggle', 'enter', 'roll', 'library']);
+  // Nothing a reader must read is under 12px, and every key is a 44px target.
+  const sizes = await page.evaluate(() => ({
+    text: Math.min(...[...document.querySelectorAll('.home-bar *, .portal-footer *')]
       .filter(el => el.textContent.trim() && el.getClientRects().length)
-      .map(el => parseFloat(getComputedStyle(el).fontSize))));
-    expect(smallest, work).toBeGreaterThanOrEqual(12);
-  }
+      .map(el => parseFloat(getComputedStyle(el).fontSize))),
+    targets: Math.min(...[...document.querySelectorAll('.home-actions button, .portal-legal-link')]
+      .map(el => el.getBoundingClientRect().height))
+  }));
+  expect(sizes.text).toBeGreaterThanOrEqual(12);
+  expect(sizes.targets).toBeGreaterThanOrEqual(44);
 });
 
-test('Start reading plays the reading, and Home still holds it on return', async ({ page }) => {
+test('Read it with sound plays today\'s exact poem, and leaving it returns to Home on the same poem', async ({ page }) => {
   await openHome(page);
-  const decision = await roll(page);
-  const title = await page.locator('h1').textContent();
+  const { heading, text } = await reading(page);
+  await page.locator('[data-home="enter"]').click();
+  await page.waitForFunction(() => window.__RISE_TEST__.getRouterState().currentView === 'chamber-session'
+    && !window.__RISE_TEST__.getRouterState().transitioning, null, { timeout: 30_000 });
+  const session = await page.evaluate(() => {
+    const s = window.__RISE_TEST__.getCurrentSession();
+    return { text: [...s.sourceTexts.values()].join(' '), origin: s.origin?.view, visualMode: s.visualConfig?.visualMode ?? 'off' };
+  });
+  expect(session.origin).toBe('portal');
+  expect(session.visualMode).not.toBe('off');
+  // The poem played is the one whose opening Home was streaming.
+  const flat = value => value.replace(/\s+/gu, ' ').trim();
+  expect(flat(session.text).startsWith(flat(text).slice(0, 60))).toBe(true);
+
+  await page.keyboard.press('Escape');
+  await page.locator('#exit-confirm-overlay').getByRole('button', { name: 'End reading' }).click();
+  await expect.poll(() => view(page), { timeout: 15_000 }).toBe('portal');
+  await expect(page.locator('h1')).toHaveText(heading);
+  await expect(page.locator('[data-home="enter"]')).toBeEnabled();
+  await streaming(page);
+});
+
+test('Another reading rolls a vivid one with its plan in the caption; Read it with sound plays it, and Home holds it on return', async ({ page }) => {
+  await openHome(page);
+  const decision = await another(page);
+  expect(['signal', 'ember', 'revel']).toContain(decision.temper);
+  await expect(page.locator('.home-label')).toHaveText(new RegExp(`^${decision.temper[0].toUpperCase()}${decision.temper.slice(1)}: `, 'u'));
+  await expect(page.locator('[data-home="library"]')).toHaveCount(0);
+  await streaming(page);
+  const heading = await page.locator('h1').textContent();
   await page.locator('[data-home="enter"]').click();
   await expect(page.locator('#chamber-display')).toBeVisible({ timeout: 30_000 });
   const session = await page.evaluate(() => {
@@ -165,12 +155,12 @@ test('Start reading plays the reading, and Home still holds it on return', async
   await page.locator('#exit-btn').click();
   await page.locator('#exit-confirm').click();
   await expect.poll(() => view(page), { timeout: 15_000 }).toBe('portal');
-  await expect(page.locator('h1')).toHaveText(title);
+  await expect(page.locator('h1')).toHaveText(heading);
 });
 
-test('Adjust first opens Reader Setup with the rolled reading set, and Begin plays it as rolled', async ({ page }) => {
+test('Adjust opens Reader Setup with the rolled reading set, and Begin plays it as rolled', async ({ page }) => {
   await openHome(page);
-  const decision = await roll(page);
+  const decision = await another(page);
   await page.locator('[data-home="adjust"]').click();
   await expect.poll(() => view(page), { timeout: 20_000 }).toBe('chamber');
   await expect(page.locator('#begin-btn')).toBeEnabled({ timeout: 20_000 });
@@ -191,25 +181,57 @@ test('Adjust first opens Reader Setup with the rolled reading set, and Begin pla
   await expect(page.locator('#chamber-display')).toBeVisible({ timeout: 30_000 });
   const begun = await page.evaluate(() => window.__RISE_TEST__.getCurrentSession().presentation);
   expect(begun).toEqual(decision.config.presentation);
-  await expect.poll(() => page.evaluate(() => document.querySelector('#atom-display')?.dataset.chamberFace))
-    .toBe(decision.config.presentation.chamberFace);
 });
 
-test('under reduced motion a roll is quick and the passage placeholder holds still', async ({ page }) => {
+test('Home still reads on ink on a device with no WebGL', async ({ page }) => {
+  const errors = [];
+  page.on('pageerror', error => errors.push(error.message));
+  await page.addInitScript(() => {
+    const getContext = HTMLCanvasElement.prototype.getContext;
+    HTMLCanvasElement.prototype.getContext = function (kind, ...rest) {
+      return /^webgl/u.test(kind) ? null : getContext.call(this, kind, ...rest);
+    };
+  });
+  await openHome(page);
+  await streaming(page);
+  await another(page);
+  await streaming(page);
+  await expect(page.locator('[data-home="enter"]')).toBeEnabled();
+  await expect(page.locator('.home-alert')).toBeHidden();
+  expect(errors).toEqual([]);
+});
+
+test('under reduced motion the opening holds still', async ({ page }) => {
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await openHome(page);
-  const started = Date.now();
-  await roll(page);
-  expect(Date.now() - started).toBeLessThan(2000);
-  // The lines may already have arrived, so check the placeholder's own rule on a fresh one.
-  const animation = await page.evaluate(() => {
-    const probe = document.createElement('span');
-    probe.className = 'home-passage-loading';
-    probe.append(document.createElement('span'));
-    document.querySelector('.home-passage').append(probe);
-    const name = getComputedStyle(probe.firstChild).animationName;
-    probe.remove();
-    return name;
-  });
-  expect(animation).toBe('none');
+  const first = await streaming(page);
+  await page.waitForTimeout(2500);
+  await expect(page.locator('.home-stream .reading-stream-current')).toHaveText(first);
+  // The engine swaps without a fade.
+  expect(parseFloat(await page.locator('.reading-stage-layer').first().evaluate(el => getComputedStyle(el).transitionDuration))).toBeLessThan(0.01);
+});
+
+test('a reload starts on today\'s poem again', async ({ page }) => {
+  await openHome(page);
+  const { heading } = await reading(page);
+  await another(page);
+  await page.reload();
+  await expect(page.locator('h1')).toHaveText(heading, { timeout: 15_000 });
+  await expect(page.locator('.home-label')).toHaveText('Today’s poem');
+});
+
+test('the longest titles and plans stay on a small phone with the key on screen', async ({ page }) => {
+  await page.setViewportSize({ width: 360, height: 640 });
+  await openHome(page);
+  for (const [work, temper, section] of [['lyrical-ballads', 'revel', 'shortest'], ['the-photo-that-knew-your-street', 'ember', 'longest'], ['spoon-river-anthology', 'signal', 'first']]) {
+    await page.evaluate(async ([work, temper, section]) => {
+      const portal = window.__RISE_TEST__.getView('portal');
+      const tools = await portal.loadTools();
+      const decision = tools.composeRoll({ temper: tools.TEMPERS.find(t => t.id === temper), workId: work, section });
+      portal.showDecision(tools, decision, { temper });
+    }, [work, temper, section]);
+    await expect(page.locator('[data-home="adjust"]')).toBeVisible();
+    expect(await sideways(page), work).toBeLessThanOrEqual(0);
+    expect(await bottom(page, '[data-home="enter"]'), work).toBeLessThanOrEqual(640);
+  }
 });

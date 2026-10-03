@@ -1,6 +1,8 @@
 /**
- * The first line, title and poet of every division in today's poem's works,
- * so Home can show today's poem without downloading a whole work.
+ * The opening passage, title and poet of every division in today's poem's
+ * works, so Home can stream a few lines of today's poem without downloading a
+ * whole work. An opening is openingOf(content, 240), the same preview cut the
+ * reader makes: verse keeps its line breaks as '\n'.
  *
  *   node scripts/build-today-openings.mjs
  *
@@ -10,6 +12,7 @@
  */
 import { writeFileSync } from 'node:fs';
 import { pathToFileURL } from 'node:url';
+import { openingOf } from '../src/app/jev-reading.js';
 import { divideSections } from '../src/content/archive/divisions.js';
 import { releaseArchiveMetadata } from '../src/content/archive/index.js';
 import { TODAY_WORKS } from '../src/core/today-poem.js';
@@ -32,7 +35,7 @@ export async function buildTodayOpenings() {
     const sections = Object.values(module).find(Array.isArray);
     works[workId] = { title, author };
     openings[workId] = divideSections(sections, { declared: true }).entries
-      .map(entry => entry.content.split('\n').find(line => line.trim())?.trim() ?? '');
+      .map(entry => openingOf(entry.content, 240));
   }
   return { works, openings };
 }

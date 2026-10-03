@@ -1,11 +1,9 @@
 /* ═══════════════════════════════════════════════════════════
-   RISE Home (Portal) — the night library.
-   A sky of works under the header with a text panel over it (on a phone,
-   a band of sky above the panel). The sky draws itself
-   (night-library/) and the panel over it is portal-home.css; this file is
-   the page around it: the header and its Menu sheet, the fixed demo pages,
-   Continue, and the footer. Tokens and the shared .sl-header live in
-   design-system.css.
+   RISE Home (Portal) — the page around the reading.
+   Home itself (the engine, the stream, the bar that names the reading, and
+   the ask dialog) is portal-home.css; this file is the page around it: the
+   header and its Menu sheet, the fixed demo pages, Continue, and the footer.
+   Tokens and the shared .sl-header live in design-system.css.
    ═══════════════════════════════════════════════════════════ */
 
 .portal {
@@ -638,7 +636,7 @@ a.portal-nav-link {
   }
 }
 
-/* The reader's own AI connection. Quiet: reading needs none of it. */
+/* The reader's own AI connection, in the ask dialog. Quiet: reading needs none of it. */
 .portal-ai {
   margin: 0;
   font-size: 0.875rem;

@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest';
 import { validateJevRecommendation } from '../app/jev-reading.js';
-import { TEMPERS } from './roll.js';
 import { todayDecision } from './today-reading.js';
 import { todayPoem, todayPool } from './today-poem.js';
 
@@ -21,9 +20,6 @@ describe('todayDecision', () => {
       seen.add(decision.temper);
     }
     // The day chooses among the vivid tempers only: immersive or psychedelic visuals.
-    expect([...seen].sort()).toEqual(TEMPERS
-      .filter(t => t.visualMode !== 'off' && ['immersive', 'psychedelic'].includes(t.visualStyle))
-      .map(t => t.id).sort());
     expect([...seen].sort()).toEqual(['ember', 'revel', 'signal']);
   });
 

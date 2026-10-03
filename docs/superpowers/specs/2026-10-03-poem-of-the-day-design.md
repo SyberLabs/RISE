@@ -4,6 +4,14 @@
 **Mockups:** [RISE Poem of the Day canvas](https://claude.ai/artifact/6WM6M9uDFsDTGEgStuWp3G),
 pages Round 1–3
 
+> **Update (#388):** Home is now a reading already under way
+> ([design](2026-10-03-home-already-reading-design.md)): it opens on today's
+> poem, playing silently over its engine, and **Read it with sound** begins it
+> through the same `launchToday` as `/today` and the Menu's *Today's poem*.
+> Home's card and its engine stills are gone, and the day's engine runs live
+> behind Home itself (the "live backdrop" row below no longer holds); the rest
+> of this document stands.
+
 ## Why
 
 Home asks a reader to choose: roll, ask, or pick a star. A reader who comes
