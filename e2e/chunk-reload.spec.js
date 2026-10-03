@@ -45,8 +45,9 @@ test('a chunk missing once, as after a deploy, reloads once, and the view then o
 
   await openLibrary(page);
 
-  // One reload fetches the new build; the Menu's navigation is not remembered
-  // across it, so the reader lands Home and the view opens from there.
+  // One reload fetches the new build. Known gap (main has it too): the
+  // vite:preloadError reload does not record where the reader was going, so
+  // they land Home and open the view again from there.
   await expect.poll(() => loads, { timeout: 15_000 }).toBe(2);
   await expect(page.locator('.portal [data-home="enter"]')).toBeVisible({ timeout: 15_000 });
   await openHomeNav(page, 'library');

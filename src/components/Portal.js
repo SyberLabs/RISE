@@ -94,7 +94,7 @@ export class Portal {
     this.onLaunchJevSample = options.onLaunchJevSample || (async () => {});
     this.demoMode = options.demoMode === true;
     this._active = false;
-    // The data-home hook of the work in progress (roll, ask, enter, adjust), or null.
+    // The work in progress, or null: a data-home hook (roll, ask, enter, adjust), or 'today' from the Menu.
     this.busy = null;
     // The reading Home shows (homeReading), and its opening ({ text, verse }, null while it loads).
     this.reading = null;
@@ -510,7 +510,7 @@ export class Portal {
       if (action === 'adjust') await this.onAdjustReading(reading.decision);
       else if (reading.today) await this.onLaunchToday();
       else {
-        const preview = reading.firstReadPreview === true && !this.firstReadChoiceUsed;
+        const preview = reading.firstReadPreview && !this.firstReadChoiceUsed;
         await this.onLaunchJevReading(reading.decision, { firstReadPreview: preview });
         if (preview) this.firstReadChoiceUsed = true;
       }

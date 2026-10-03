@@ -100,6 +100,31 @@ describe('the reading backdrop', () => {
     vi.useRealTimers();
   });
 
+  it('keeps one fractal loop when paused and resumed, or destroyed, while the next flame loads', async () => {
+    vi.useFakeTimers();
+    const backdrop = await mountReadingBackdrop(host, decision({
+      visualMode: 'interlocution', interlocution: { procedural: ['fractal'] }
+    }));
+    const [flame] = made.flames;
+    let release;
+    flame.fillQueue.mockImplementationOnce(() => new Promise(resolve => { release = resolve; }));
+    await vi.advanceTimersByTimeAsync(18_000);   // the next flame starts loading
+    backdrop.pause();
+    backdrop.resume();
+    release();
+    await vi.advanceTimersByTimeAsync(0);
+    expect(flame.generate).toHaveBeenCalledTimes(1);   // the overtaken load does not draw
+    await vi.advanceTimersByTimeAsync(18_000);
+    expect(flame.generate).toHaveBeenCalledTimes(2);   // exactly one loop goes on
+    flame.fillQueue.mockImplementationOnce(() => new Promise(resolve => { release = resolve; }));
+    await vi.advanceTimersByTimeAsync(18_000);
+    backdrop.destroy();
+    release();
+    await vi.advanceTimersByTimeAsync(0);
+    expect(flame.generate).toHaveBeenCalledTimes(2);   // nothing draws on a destroyed flame
+    vi.useRealTimers();
+  });
+
   it('holds one fractal still under reduced motion', async () => {
     vi.useFakeTimers();
     reduce(true);
