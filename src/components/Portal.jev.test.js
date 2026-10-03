@@ -21,7 +21,7 @@ vi.mock('../core/decision/browser.js', () => ({
     return body;
   }
 }));
-// CORE extends rollReading and adds openingLines; Home is held to the calls.
+// Home is held to the calls it makes to rollReading; the real roll answers them.
 vi.mock('../core/roll.js', async importOriginal => {
   const actual = await importOriginal();
   return { ...actual, rollReading: vi.fn(actual.rollReading) };
@@ -44,6 +44,7 @@ afterEach(() => {
   document.body.innerHTML = '';
   sessionStorage.clear();
   vi.unstubAllGlobals();
+  vi.doUnmock('../app/invocation.js');
 });
 
 /** The plan the live service returned for the Tokyo Drift request (2026-09-27). */
@@ -82,11 +83,12 @@ function mount(options = {}) {
 const hook = (container, name) => container.querySelector(`[data-home="${name}"]`);
 const field = container => container.querySelector('#home-intent');
 const status = container => container.querySelector('[data-home-status]').textContent;
+const shown = container => container.querySelector('.home-panel').dataset.state;
 
 /** Asking is offered from the start, beside Roll a reading. */
 async function openAsk(container) {
   hook(container, 'ask-open').click();
-  await vi.waitFor(() => expect(container.querySelector('.home-panel').dataset.state).toBe('ask'));
+  await vi.waitFor(() => expect(shown(container)).toBe('ask'));
 }
 
 function ask(container, intent) {
@@ -117,7 +119,10 @@ it('says what asking needs when there is no AI, sends nothing, and leaves rollin
   expect(about.textContent).toContain('It is never sent to SyberLabs. Browser extensions can read page memory');
 
   hook(container, 'roll-instead').click();
-  await vi.waitFor(() => expect(portal.state).toBe('result'), { timeout: 3000 });
+  // The request stays on the panel while it rolls.
+  expect(shown(container)).toBe('ask');
+  expect(hook(container, 'roll-instead').getAttribute('aria-busy')).toBe('true');
+  await vi.waitFor(() => expect(shown(container)).toBe('result'), { timeout: 3000 });
   hook(container, 'enter').click();
   await vi.waitFor(() => expect(launch).toHaveBeenCalledOnce());
   expect(launch).toHaveBeenCalledWith(portal.result.decision, { firstReadPreview: true });
@@ -192,7 +197,7 @@ it('redraws one part of an asked reading as a roll, drawing a mood when it had n
   const asked = portal.result;
   hook(container, 'redraw-passage').click();
   await vi.waitFor(() => expect(portal.result).not.toBe(asked), { timeout: 3000 });
-  expect(rollReading).toHaveBeenLastCalledWith({ previous: asked, workId: 'ulysses' });
+  expect(rollReading).toHaveBeenLastCalledWith({ previous: asked, workId: 'ulysses', temper: null });
   expect(portal.result.source).toBe('roll');
   expect(container.querySelector('.home-note')).toBeNull();
   portal.destroy();
@@ -260,8 +265,8 @@ it('refuses an answer that fails admission', async () => {
   await openAsk(container);
   ask(container, 'tokyo drift');
   await vi.waitFor(() => expect(container.querySelector('.home-alert').hidden).toBe(false));
-  expect(portal.result).toBeNull();
-  expect(portal.state).toBe('ask');
+  expect(container.querySelector('h1').textContent).toBe('What would you like to read?');
+  expect(shown(container)).toBe('ask');
   portal.destroy();
 });
 
@@ -272,10 +277,25 @@ it('keeps what was typed while Home is open, and lets a roll leave the request w
   field(container).value = 'something slow about the sea';
   field(container).dispatchEvent(new Event('input', { bubbles: true }));
   hook(container, 'roll-instead').click();
-  await vi.waitFor(() => expect(portal.state).toBe('result'), { timeout: 3000 });
+  await vi.waitFor(() => expect(shown(container)).toBe('result'), { timeout: 3000 });
   hook(container, 'ask-open').click();
   await vi.waitFor(() => expect(field(container)).not.toBeNull());
   expect(field(container).value).toBe('something slow about the sea');
+  portal.destroy();
+});
+
+it('loads again on the next roll when asking could not load', async () => {
+  acceptOpenRouterKey(KEY);
+  vi.doMock('../app/invocation.js', () => { throw new Error('chunk failed'); });
+  const { portal, container } = mount();
+  await openAsk(container);
+  ask(container, 'tokyo drift');
+  await vi.waitFor(() => expect(container.querySelector('.home-alert').hidden).toBe(false));
+  expect(shown(container)).toBe('ask');
+  vi.doUnmock('../app/invocation.js');
+  hook(container, 'roll-instead').click();
+  await vi.waitFor(() => expect(shown(container)).toBe('result'), { timeout: 3000 });
+  expect(container.querySelector('.home-alert').hidden).toBe(true);
   portal.destroy();
 });
 

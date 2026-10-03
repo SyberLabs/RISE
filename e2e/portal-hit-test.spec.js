@@ -129,6 +129,25 @@ test.describe('the Portal has no overlay between a cursor and a door', () => {
     });
 });
 
+test('every star takes a press at its own centre, with a target of at least 24px, on a desk and the smallest phones', async ({ page }) => {
+    for (const viewport of [{ width: 1280, height: 800 }, { width: 390, height: 844 }, { width: 360, height: 640 }]) {
+        await page.setViewportSize(viewport);
+        await openPortal(page);
+        await page.reload();
+        await page.locator('.home-sky .sky-star').first().waitFor({ state: 'attached', timeout: 15_000 });
+        const stars = await page.evaluate(() => [...document.querySelectorAll('.home-sky .sky-star')].map(el => {
+            const box = el.getBoundingClientRect();
+            const top = document.elementFromPoint(box.left + box.width / 2, box.top + box.height / 2);
+            return { id: el.dataset.workId, size: Math.min(box.width, box.height), hit: top === el || el.contains(top), by: top?.closest('[data-work-id]')?.dataset.workId || top?.className?.toString() || 'nothing' };
+        }));
+        expect(stars.length).toBeGreaterThan(0);
+        for (const star of stars) {
+            expect(star.hit, `${star.id} is covered by ${star.by} at ${viewport.width}×${viewport.height}`).toBe(true);
+            expect(star.size, `${star.id}'s target at ${viewport.width}×${viewport.height}`).toBeGreaterThanOrEqual(24);
+        }
+    }
+});
+
 test('Roll, the controls that follow it, a star, and Ask are reachable on a desk and a phone', async ({ page }) => {
     for (const viewport of [{ width: 1280, height: 800 }, { width: 390, height: 844 }]) {
         await page.setViewportSize(viewport);

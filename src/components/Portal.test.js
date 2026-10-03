@@ -12,7 +12,7 @@ import { openingLines, validateJevRecommendation } from '../app/jev-reading.js';
 import { composeRoll, rollReading, TEMPERS } from '../core/roll.js';
 import { SECTION_WORDS } from '../core/jev-describe.js';
 
-// The sky and its data are built elsewhere (SKY and CORE); Home codes against
+// NightSky and librarySky are stood in for; Home codes against
 // their contracts. The stand-in records what Home asks of it.
 const sky = vi.hoisted(() => ({ instances: [], fail: false }));
 const SKY = vi.hoisted(() => Object.freeze({
@@ -40,7 +40,7 @@ vi.mock('./today/today-card.js', () => ({
     }),
     drawTodayCardMark: vi.fn()
 }));
-// roll.js and jev-reading.js are real; CORE extends them. Home is held to the
+// roll.js and jev-reading.js are real. Home is held to the
 // call it makes (rollReading's kept parts) and to the lines it shows.
 vi.mock('../core/roll.js', async importOriginal => {
     const actual = await importOriginal();
@@ -52,10 +52,9 @@ vi.mock('../app/jev-reading.js', async importOriginal => ({
     openingLines: vi.fn(async () => LINES)
 }));
 
-const portalCss = readFileSync(
-    join(dirname(fileURLToPath(import.meta.url)), 'Portal.css'),
-    'utf8'
-);
+const portalCss = ['Portal.css', 'portal-home.css']
+    .map(file => readFileSync(join(dirname(fileURLToPath(import.meta.url)), file), 'utf8'))
+    .join('\n');
 
 beforeEach(() => {
     sessionStorage.clear();
@@ -68,6 +67,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+    vi.doUnmock('../content/library.js');
     delete window.matchMedia;
     document.body.innerHTML = '';
 });
@@ -83,6 +83,8 @@ function makePortal(options = {}) {
 const hook = (container, name) => container.querySelector(`[data-home="${name}"]`);
 const words = node => node.textContent.replace(/\s+/gu, ' ').trim();
 const actions = container => [...container.querySelectorAll('.home-actions button')].map(words);
+/** What the panel shows: idle, result or ask. */
+const shown = container => container.querySelector('.home-panel').dataset.state;
 
 async function roll(container) {
     hook(container, 'roll').click();
@@ -112,8 +114,6 @@ describe('Home, waiting', () => {
         expect([...container.querySelectorAll('.home .btn-primary')]).toEqual([hook(container, 'roll')]);
         expect(hook(container, 'ask-open').classList.contains('btn-secondary')).toBe(true);
         for (const absent of ['enter', 'adjust', 'redraw-text']) expect(hook(container, absent)).toBeNull();
-        // The orb is gone with its plate and keys.
-        expect(container.querySelector('canvas.oracle-canvas, .oracle-plate, .oracle-key')).toBeNull();
         expect(sky.instances).toHaveLength(0);
         portal.destroy();
     });
@@ -181,7 +181,7 @@ describe('Home, waiting', () => {
         portal.activate();
         await new Promise(resolve => setTimeout(resolve, 50));
         await roll(container);
-        expect(portal.state).toBe('result');
+        expect(shown(container)).toBe('result');
         expect(container.querySelector('.home-alert').hidden).toBe(true);
         portal.destroy();
     });
@@ -243,14 +243,16 @@ describe('a roll', () => {
         portal.destroy();
     });
 
-    it('marks the roll busy, quiets the sky while it rolls, and lights the chosen star', async () => {
+    it('marks the roll busy, quickens the sky while it rolls, and lights the chosen star', async () => {
         const { portal, container } = makePortal();
         const night = await withSky(portal);
         hook(container, 'roll').click();
-        expect(portal.state).toBe('rolling');
+        expect(shown(container)).toBe('idle');
         expect(hook(container, 'roll').getAttribute('aria-busy')).toBe('true');
+        expect(hook(container, 'ask-open').disabled).toBe(true);
         expect(night.setBusy).toHaveBeenLastCalledWith(true);
-        await vi.waitFor(() => expect(portal.state).toBe('result'), { timeout: 3000 });
+        await vi.waitFor(() => expect(shown(container)).toBe('result'), { timeout: 3000 });
+        expect(container.querySelector('[aria-busy]')).toBeNull();
         expect(night.setBusy).toHaveBeenLastCalledWith(false);
         expect(night.flare).toHaveBeenLastCalledWith(portal.result.decision.workId);
         expect(document.activeElement).toBe(hook(container, 'enter'));
@@ -285,7 +287,7 @@ describe('a roll', () => {
             hook(container, redraw).click();
             await vi.waitFor(() => expect(portal.result).not.toBe(previous), { timeout: 3000 });
             expect(rollReading).toHaveBeenLastCalledWith(kept(previous)[redraw]);
-            expect(portal.state).toBe('result');
+            expect(shown(container)).toBe('result');
             expect(document.activeElement, redraw).toBe(hook(container, redraw));
         }
         portal.destroy();
@@ -309,13 +311,13 @@ describe('a roll', () => {
     it('says so when a roll is refused, and keeps what was showing', async () => {
         const { portal, container } = makePortal();
         await roll(container);
-        const shown = portal.result;
+        const kept = portal.result;
         vi.mocked(rollReading).mockImplementationOnce(() => { throw new TypeError('middle-ish is not a section.'); });
         hook(container, 'redraw-text').click();
         await vi.waitFor(() => expect(container.querySelector('.home-alert').hidden).toBe(false));
         expect(container.querySelector('.portal-alert-title').textContent).toBe('Couldn’t roll just now. Try again.');
-        expect(portal.state).toBe('result');
-        expect(portal.result).toBe(shown);
+        expect(shown(container)).toBe('result');
+        expect(portal.result).toBe(kept);
         portal.destroy();
     });
 
@@ -323,11 +325,11 @@ describe('a roll', () => {
         const { portal, container } = makePortal();
         const night = await withSky(portal);
         night.options.onPick('middlemarch');
-        expect(portal.state).toBe('rolling');
+        expect(hook(container, 'roll').getAttribute('aria-busy')).toBe('true');
         night.options.onPick('ulysses');
-        await vi.waitFor(() => expect(portal.state).toBe('result'), { timeout: 3000 });
+        await vi.waitFor(() => expect(shown(container)).toBe('result'), { timeout: 3000 });
         expect(rollReading).toHaveBeenCalledOnce();
-        expect(rollReading).toHaveBeenCalledWith({ workId: 'middlemarch' });
+        expect(rollReading).toHaveBeenCalledWith({ previous: null, workId: 'middlemarch' });
         expect(night.flare).toHaveBeenLastCalledWith(portal.result.decision.workId);
         portal.destroy();
     });
@@ -357,7 +359,7 @@ describe('a roll', () => {
         hook(container, 'enter').click();
         night.options.onPick('middlemarch');
         expect(onLaunchJevReading).toHaveBeenCalledOnce();
-        expect(portal.state).toBe('result');
+        expect(shown(container)).toBe('result');
         fail(new Error('edition missing'));
         await vi.waitFor(() => expect(container.querySelector('.home-alert').hidden).toBe(false));
         expect(container.querySelector('.portal-alert-message').textContent).toBe('edition missing');
@@ -366,18 +368,17 @@ describe('a roll', () => {
         portal.destroy();
     });
 
-    it('recovers when the roll cannot load, and keeps what was showing', async () => {
+    it('recovers when the roll cannot load, keeps what was showing, and loads it on the next press', async () => {
+        vi.doMock('../content/library.js', () => { throw new Error('chunk failed'); });
         const { portal, container } = makePortal();
-        await roll(container);
-        const shown = portal.result;
-        portal.tools = null;
-        vi.spyOn(portal, 'loadTools').mockRejectedValueOnce(new Error('chunk failed'));
         hook(container, 'roll').click();
         await vi.waitFor(() => expect(container.querySelector('.home-alert').hidden).toBe(false));
-        expect(portal.state).toBe('result');
-        expect(portal.result).toBe(shown);
+        expect(container.querySelector('.portal-alert-title').textContent).toBe('Couldn’t roll just now. Try again.');
+        expect(shown(container)).toBe('idle');
         expect(hook(container, 'roll').disabled).toBe(false);
-        expect(container.querySelector('.portal-alert-message').textContent).toBe('chunk failed');
+        vi.doUnmock('../content/library.js');
+        await roll(container);
+        expect(container.querySelector('.home-alert').hidden).toBe(true);
         portal.destroy();
     });
 
@@ -399,11 +400,8 @@ describe('a roll', () => {
         const first = makePortal();
         await roll(first.container);
         first.portal.destroy();
-        // A tab that once held an Oracle result still loads empty.
-        sessionStorage.setItem('rise-oracle-v1', JSON.stringify({ rolled: true, result: { decision: {}, source: 'roll' } }));
         const second = makePortal();
-        expect(second.portal.state).toBe('idle');
-        expect(second.portal.result).toBeNull();
+        expect(shown(second.container)).toBe('idle');
         expect(actions(second.container)).toEqual(['Roll a reading', 'Ask for one']);
         second.portal.destroy();
     });
@@ -561,7 +559,5 @@ describe('the rest of Home', () => {
         expect(portalCss).toMatch(/linear-gradient\(90deg, color-mix\(in srgb, var\(--sy-bg\)/u);
         expect(portalCss).toMatch(/var\(--sy-accent-rise\)/);
         expect(portalCss).not.toMatch(/font-size:\s*(?:[0-9]|1[01])px/);
-        // The orb and its keycaps are gone from the stylesheet too.
-        expect(portalCss).not.toMatch(/oracle/u);
     });
 });
