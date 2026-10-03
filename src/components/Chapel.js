@@ -65,6 +65,8 @@ export class Chapel {
     this.lastChapter = Number.isInteger(options.chapter) ? options.chapter : null;
     // The chosen icon focal, persisted across visits
     this.iconId = loadChapelIconPref();
+    // The chosen book and chapter are part of the room's address.
+    this.onAddressChange = options.onAddressChange || (() => {});
     this.onLaunchRosary = options.onLaunchRosary || (() => {});
     this.openBookId = this.lastBookId && (findChapelBook(this.lastBookId)?.chapters || 0) > 1
       ? this.lastBookId
@@ -357,6 +359,7 @@ export class Chapel {
 
   launch(button, bookId, chapter) {
     if (this._launching) return;
+    this.onAddressChange(chapter == null ? { bookId } : { bookId, chapter });
     // One launch at a time — a double-click must not race two handoffs
     this._launching = true;
     this.getAudioEngine()?.playClick();

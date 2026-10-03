@@ -42,6 +42,8 @@ export class Router {
         this.onNavigationIntent = options.onNavigationIntent || (() => {});
         this.onViewChange = options.onViewChange || (() => { });
         this.history = options.history || globalThis.history;
+        this.location = options.location || globalThis.location;
+        this.currentData = undefined;
 
         this.handleKeydown = this.handleKeydown.bind(this);
         document.addEventListener('keydown', this.handleKeydown);
@@ -138,9 +140,10 @@ export class Router {
 
             if (!options.replace && !options.skipStack && previousViewName
                 && previousViewName !== viewName) {
-                this.viewStack.push(previousViewName);
+                this.viewStack.push({ viewName: previousViewName, data: this.currentData });
             }
             this.currentView = viewName;
+            this.currentData = options.data;
             this.writeAddress(viewName, options);
             this.onViewChange(viewName, options.data);
             succeeded = true;
@@ -215,16 +218,18 @@ export class Router {
      */
     writeAddress(id, options) {
         if (options.keepUrl === true) return;
+        const here = this.location;
         // A hash is a door the router does not own (`#rosary`); rewriting the
         // path would drop it.
-        if (globalThis.location?.hash) return;
+        if (here?.hash) return;
         const target = pathForRoute(id, options.data);
-        const here = globalThis.location;
         if (!target || !this.history || !here) return;
         if (target === here.pathname + here.search) return;
         if (addressIsOwnTo(id, here.pathname)) return;
         // The state is for the next reader of history, not a copy of the
         // room: data too large to be an address (a session) is left out.
+        // Browsers cap serialized history state (640 KB in Firefox, less
+        // elsewhere); 4000 characters stays far under any of them.
         let data = {};
         try {
             const text = JSON.stringify(options.data ?? {});
@@ -238,17 +243,28 @@ export class Router {
     }
 
     /**
-     * Go back to previous view
+     * The active view's data changed in a way that is part of its address
+     * (a Chapel chapter): rewrite the address in place, adding no entry.
+     */
+    updateAddress(data) {
+        if (!this.currentView) return;
+        this.currentData = data;
+        this.writeAddress(this.currentView, { data, replaceUrl: true });
+    }
+
+    /**
+     * Go back to the previous view, with the data it had. The address is
+     * rewritten rather than pushed, and history.back() is not called: it
+     * would re-enter popstate and handle the same move twice.
      */
     async back() {
-        if (this.viewStack.length === 0) {
+        const entry = this.viewStack.pop();
+        if (!entry) {
             // If no stack, go to Portal
-            await this.navigate('portal', { skipStack: true });
+            await this.navigate('portal', { replace: true });
             return;
         }
-
-        const previousView = this.viewStack.pop();
-        await this.navigate(previousView, { skipStack: true });
+        await this.navigate(entry.viewName, { data: entry.data, replace: true });
     }
 
     /**

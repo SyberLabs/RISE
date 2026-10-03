@@ -292,7 +292,7 @@ class App {
             // The reading is open; nothing else to recover.
         } else if (staleTarget && this.router.views.has(staleTarget)) {
             console.log('[RISE] Recovering navigation after stale build:', staleTarget);
-            await this.router.navigate(staleTarget, { data: staleData });
+            await this.router.navigate(staleTarget, { data: staleData, keepUrl: true });
         } else if (isRosaryDoor()) {
             await this.router.navigate('rosarium', { data: { door: true } });
         } else if (mintedSlug) {
@@ -1216,10 +1216,15 @@ class App {
             // Hash navigation belongs to the Rosary door. Browsers may emit
             // popstate alongside hashchange, and clearing the hash must not
             // pull an in-progress prayer back to the Portal.
-            if (isRosaryDoor() || this.router?.getCurrentView() === 'rosarium') return;
+            if (isRosaryDoor()) return;
             this.handleNavigationIntent('history');
             const route = await this.resolveAddress();
             if (historyGeneration !== this._historyNavigationGeneration) return;
+            if (route.rewrite && this.router?.getCurrentView() === route.id && !this.router.transitioning) {
+                // Already showing the room the address should have named.
+                this.router.updateAddress(route.data);
+                return;
+            }
             const catalog = route.id === 'visual-catalog'
                 ? this.router?.getViewInstance?.('visual-catalog') : null;
             const isCurrentCatalog = this.router?.getCurrentView?.() === 'visual-catalog';
@@ -1259,7 +1264,10 @@ class App {
             const { keystoneSlugFromPath } = await import('./content/keystones.js');
             if (!keystoneSlugFromPath(here.pathname)) route = null;
         }
-        if (route?.id === 'chamber-session' && !this.currentSession) {
+        // History never resurrects a reading: the Chamber is only the answer
+        // while it is still on screen with its session.
+        if (route?.id === 'chamber-session'
+            && !(this.router?.getCurrentView() === 'chamber-session' && this.currentSession)) {
             route = { id: 'chamber', data: {}, rewrite: true };
         }
         if (!route || !this.router?.views?.has(route.id)) route = { id: 'portal', data: {} };

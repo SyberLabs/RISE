@@ -92,3 +92,41 @@ describe('Router addresses', () => {
     }
   });
 });
+
+describe('Router back and updateAddress', () => {
+  it('goes back with the previous data, rewriting the address and adding no entry', async () => {
+    document.body.innerHTML = '<main id="a"></main><main id="b"></main>';
+    window.history.replaceState({}, '', '/');
+    const history = { pushState: vi.fn(), replaceState: vi.fn() };
+    const location = { pathname: '/', search: '', hash: '' };
+    history.pushState.mockImplementation((_s, _t, url) => { location.pathname = url; });
+    history.replaceState.mockImplementation((_s, _t, url) => { location.pathname = url; });
+    const router = new Router({ history, location });
+    router.transitionDuration = 0;
+    router.registerView('library', { container: document.querySelector('#a'), init: () => ({}) });
+    router.registerView('chapel', { container: document.querySelector('#b'), init: () => ({}) });
+    await router.navigate('library');
+    await router.navigate('chapel', { data: { bookId: 'genesis', chapter: 1 } });
+    expect(history.pushState).toHaveBeenCalledTimes(2);
+    await router.back();
+    expect(router.currentView).toBe('library');
+    expect(history.pushState).toHaveBeenCalledTimes(2);
+    expect(history.replaceState).toHaveBeenLastCalledWith({ id: 'library', data: {} }, '', '/library');
+    router.destroy();
+  });
+
+  it('rewrites the address in place when the view data changes', async () => {
+    document.body.innerHTML = '<main id="a"></main>';
+    window.history.replaceState({}, '', '/');
+    const history = { pushState: vi.fn(), replaceState: vi.fn() };
+    const router = new Router({ history });
+    router.transitionDuration = 0;
+    router.registerView('chapel', { container: document.querySelector('#a'), init: () => ({}) });
+    await router.navigate('chapel');
+    router.updateAddress({ bookId: 'john', chapter: 3 });
+    expect(history.replaceState).toHaveBeenLastCalledWith(
+      { id: 'chapel', data: { bookId: 'john', chapter: 3 } }, '', '/library/chapel/john/3'
+    );
+    router.destroy();
+  });
+});

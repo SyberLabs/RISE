@@ -221,6 +221,7 @@ export function createRouteManifest(operations) {
         getAudioEngine: operations.getAudioEngine,
         bookId: data?.bookId,
         chapter: data?.chapter,
+        onAddressChange: next => operations.router?.updateAddress(next),
         onLaunchRosary: operations.launchRosary,
         onLaunchReading: operations.launchChapelReading
       })
