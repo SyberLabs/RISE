@@ -187,6 +187,12 @@ export class NightSky {
   start() {
     if (this.destroyed || this.running) return;
     this.running = true;
+    // Target sizes are layout, so they follow the size even with no canvas to paint.
+    if (typeof ResizeObserver === 'function') {
+      this.ro = new ResizeObserver(() => this.resize());
+      this.ro.observe(this.root);
+    }
+    this.resize();
     if (!this.ctx) return;
     document.addEventListener('visibilitychange', this.onVisibility);
     if (typeof IntersectionObserver === 'function') {
@@ -197,12 +203,7 @@ export class NightSky {
       });
       this.io.observe(this.root);
     }
-    if (typeof ResizeObserver === 'function') {
-      this.ro = new ResizeObserver(() => this.resize());
-      this.ro.observe(this.root);
-    }
-    // resize() paints a still sky; go() animates any other.
-    this.resize();
+    // resize() painted a still sky; go() animates any other.
     this.go();
   }
 
@@ -249,22 +250,24 @@ export class NightSky {
     const W = Math.max(1, this.root.clientWidth);
     const H = Math.max(1, this.root.clientHeight);
     const dpr = Math.min(2, globalThis.devicePixelRatio || 1);
-    if (W !== this.W || H !== this.H || dpr !== this.dpr) {
-      this.W = W;
-      this.H = H;
-      this.dpr = dpr;
+    const changed = W !== this.W || H !== this.H || dpr !== this.dpr;
+    this.W = W;
+    this.H = H;
+    this.dpr = dpr;
+    if (changed) this.fitTargets();
+    if (!this.ctx) return;
+    if (changed) {
       this.canvas.width = Math.round(W * dpr);
       this.canvas.height = Math.round(H * dpr);
       this.lastPaint = -Infinity;
-      this.fitTargets();
       if (this.still) this.paint(performance.now());
     }
     this.build();
   }
 
   /**
-   * Size every star's target so it never covers another star's centre: 44px
-   * where the stars have room, down to WCAG's 24px minimum in a short phone
+   * Size every star's target box so it never covers another star's centre:
+   * 44px where the stars have room, never a box under 24px in a short phone
    * band. Targets are compared as squares, which is safe for round ones.
    */
   fitTargets() {

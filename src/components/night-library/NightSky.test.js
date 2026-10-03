@@ -198,6 +198,8 @@ describe('the night sky', () => {
     expect(onPick).toHaveBeenCalledWith('iliad');
     sky.flare('iliad');
     expect(container.querySelector('.is-flared').dataset.workId).toBe('iliad');
+    // Target sizes are layout: a flat sky still sizes them to its box.
+    expect(container.querySelector('.night-sky').style.getPropertyValue('--star-target')).toMatch(/^\d+px$/);
     expect(requestAnimationFrame).not.toHaveBeenCalled();
   });
 
