@@ -360,7 +360,8 @@ export class Portal {
       this.stream.play(opening.text, { chunkMode, wpm, curve, verse: opening.verse });
       // The first word shows: fetch Another reading's code while the reader reads, so the press waits on nothing.
       // A failed fetch stays silent; loadTools forgets it and the press tries again.
-      if (!this.tools) whenIdle(() => { if (this._active && !this.demoMode) this.loadTools().catch(() => {}); });
+      // A reader who asked to save data (Save-Data) fetches it only on the press.
+      if (!this.tools && !globalThis.navigator?.connection?.saveData) whenIdle(() => { if (this._active && !this.demoMode) this.loadTools().catch(() => {}); });
     } catch (error) {
       console.warn('[Home] the stream could not run; the opening holds still.', error);
       const still = document.createElement('p');

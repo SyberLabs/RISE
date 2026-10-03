@@ -388,6 +388,17 @@ describe('Another reading, warmed while Home reads', () => {
         portal.destroy();
     });
 
+    it('fetches nothing ahead when the reader asked to save data', async () => {
+        vi.stubGlobal('navigator', { ...navigator, connection: { saveData: true } });
+        const { portal, container } = makePortal();
+        const loadTools = vi.spyOn(portal, 'loadTools');
+        await arrive(portal, container);
+        runIdle();
+        expect(idle).not.toHaveBeenCalled();
+        expect(loadTools).not.toHaveBeenCalled();
+        portal.destroy();
+    });
+
     it('fetches nothing in the scene demo', async () => {
         const { portal } = makePortal({ demoMode: true });
         const loadTools = vi.spyOn(portal, 'loadTools');
