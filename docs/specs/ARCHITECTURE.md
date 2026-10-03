@@ -349,7 +349,7 @@ routed rooms: `src/components/Admit.js`,
 `src/components/room-chrome.js` (header, icons, Alert), and the SyberLabs
 chrome helper `src/components/atlas.js`, which lazily imports the vendored
 design-system kit in `src/vendor/syber/` (the ambient atmosphere behind Home
-and the gate, and the RISE sigil) so neither engine is part of first load.
+and the RISE sigil) so neither engine is part of first load.
 The Navigator's columns, text material, preview, and Chapel trays live in `src/components/visual-navigator/` so the
 shell stays a mount point. Chamber mounts a Fit-mask runtime from
 `src/core/fit-mask-runtime.js` rather than owning the glyph-mask state machine.
