@@ -336,9 +336,10 @@ export class LiveHost {
         this.stopHearingExit = handoff.onLiveExit(() => { void this.ended(); });
         const clock = createRealClock();
         const voices = await this.buildVoices(clock);
+        // The Chamber itself refuses while its view is hidden (Chamber.visualShown), so the host only
+        // asks for the instance playing this runtime's Player.
         const mountedChamber = player => {
-            if (this.router?.getCurrentView?.() !== 'chamber-session') return null;
-            const chamber = this.router.getViewInstance?.('chamber-session');
+            const chamber = this.router?.getViewInstance?.('chamber-session');
             return chamber?.player === player ? chamber : null;
         };
         const runtime = createLiveRuntime({

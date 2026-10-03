@@ -97,10 +97,9 @@ test('Keep reviews the exact score; a saved child exports and plays in a clean b
   await expect(page.locator('.workshop-studio')).toBeVisible();
   await page.locator('#session-title').fill('A Palace Variation');
   await page.locator('[data-action="focus-reading-inspector"]').click();
-  await page.locator('#wpm-slider').evaluate(input => {
-    input.value = '240';
-    input.dispatchEvent(new Event('input', { bubbles: true }));
-  });
+  // fill acts on the live slider; an evaluate can land on one the Workshop
+  // has just re-rendered on activation, and that input never reaches it.
+  await page.locator('#wpm-slider').fill('240');
   await page.locator('[data-action="save-draft"]').click();
   await expect.poll(() => page.evaluate(() => JSON.parse(localStorage.getItem('rise_workshop_v1')).length)).toBe(2);
   await page.goto('/');

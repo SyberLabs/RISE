@@ -33,6 +33,8 @@ export class Vault {
 
     this.render();
     this.attachEvents();
+    // Hydrate before the router shows the view; update() does the same for a cached Vault.
+    this.refreshBlueprints();
   }
 
   render() {
@@ -158,11 +160,15 @@ export class Vault {
             </div>` : ''}
           <p role="status" class="text-fog">${escapeHtml(this.portableNotice)}</p>
         </div>
-        <div class="sequences-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1.5rem; margin-top: 1.5rem;">
-          ${this.blueprints.length > 0 ? this.renderCustomItems() : this.renderEmptyCustomState()}
+        <div class="sequences-grid" data-custom-list style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1.5rem; margin-top: 1.5rem;">
+          ${this.renderCustomList()}
         </div>
       </div>
     `;
+  }
+
+  renderCustomList() {
+    return this.blueprints.length > 0 ? this.renderCustomItems() : this.renderEmptyCustomState();
   }
 
   renderEmptyCustomState() {
@@ -375,8 +381,7 @@ export class Vault {
       } else if (action === 'delete-custom') {
          this.getAudioEngine()?.playHiss();
          if (await MemoryCore.deleteWorkshopBlueprintAsync(target.dataset.id)) {
-           this.blueprints = MemoryCore.getWorkshopBlueprints();
-           this.updateContent();
+           this.refreshBlueprints();
          }
       } else if (action === 'route-workshop') {
          this.getAudioEngine()?.playHiss();
@@ -429,6 +434,7 @@ export class Vault {
       this.portableNotice = error.message || 'Could not keep this sequence. Try again.';
     }
     this.portableBusy = false;
+    this.updateContent();
     this.refreshBlueprints();
   }
 
@@ -464,24 +470,34 @@ export class Vault {
    */
   refreshBlueprints() {
     this.blueprints = MemoryCore.getWorkshopBlueprints();
-    if (this.currentSection === 'custom') {
-      this.updateContent();
-    }
+    this.updateCustomList();
     void MemoryCore.getWorkshopBlueprintsHydrated().then((views) => {
       this.blueprints = views;
-      if (this.currentSection === 'custom') this.updateContent();
+      this.updateCustomList();
     });
+  }
+
+  /**
+   * Redraw only the kept list. Hydration can resolve after the view has faded
+   * in, while the reader may already be using the import controls above it;
+   * redrawing those controls would replace the file input and silently drop
+   * a file being chosen. Refreshes start before the view is shown (the
+   * constructor and update()), never from activate().
+   */
+  updateCustomList() {
+    const list = this.container.querySelector('[data-custom-list]');
+    if (list) list.innerHTML = this.renderCustomList();
   }
 
   activate() {
     if (this._active) return;
     this._active = true;
-    this.refreshBlueprints();
     document.addEventListener('keydown', this.boundKeyboardHandler);
   }
 
   update(data) {
     if (data?.section === 'custom') this.currentSection = 'custom';
+    if (this.currentSection === 'custom') this.updateContent();
     this.refreshBlueprints();
     this.updateActiveNav();
   }
