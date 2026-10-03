@@ -17,6 +17,7 @@ import {
   validateSequenceAssetReferences
 } from './visual-score-lane.js';
 import { createLibraryContinuation } from './reading-continuation.js';
+import { recitationPackUrl } from '../audio/voice-pack-key.js';
 import {
   normalizeSequenceCapabilities,
   sequenceHasCapability,
@@ -275,11 +276,13 @@ export class Session {
     this.capabilities = normalizeSequenceCapabilities(capabilities);
     // Frozen so a consumer cannot flip a reading into recitation after
     // compilation — the same discipline the visual config follows.
+    const recitationEnabled = sequenceHasCapability(
+      this.capabilities,
+      SEQUENCE_CAPABILITIES.RECITATION_AUDIO
+    ) && recitation?.enabled === true;
     this.recitation = Object.freeze({
-      enabled: sequenceHasCapability(
-        this.capabilities,
-        SEQUENCE_CAPABILITIES.RECITATION_AUDIO
-      ) && recitation?.enabled === true
+      enabled: recitationEnabled,
+      pack: recitationEnabled ? recitationPackUrl(recitation?.pack) : null
     });
     this.revealMode = revealMode === 'progressive' ? 'progressive' : 'instant';
     this.isCustom = isCustom;

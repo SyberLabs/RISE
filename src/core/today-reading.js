@@ -9,8 +9,14 @@
 import { VISUAL_TEMPERS, composeRoll } from './roll.js';
 import { seededRandom } from './today-poem.js';
 
-export function todayDecision(pick) {
+/**
+ * A recited day is read a line at a time (the voice comes one clip per line);
+ * every other draw (temper, engine, sound, colours) is the same, because the
+ * chunk mode still takes its one draw from the same sequence.
+ */
+export function todayDecision(pick, { recited = false } = {}) {
   const random = seededRandom(`rise-today-reading:${pick.seed}`);
-  const temper = VISUAL_TEMPERS[Math.floor(random() * VISUAL_TEMPERS.length)];
+  const drawn = VISUAL_TEMPERS[Math.floor(random() * VISUAL_TEMPERS.length)];
+  const temper = recited ? { ...drawn, chunkMode: ['phrase'] } : drawn;
   return composeRoll({ temper, workId: pick.workId, section: 'first', random });
 }

@@ -79,6 +79,37 @@ describe('session admission and reverent degradation', () => {
         expect(warn).toHaveBeenCalledTimes(1);
     });
 
+    it('loads a reading\'s own pack by its address, and reads from it', async () => {
+        const pack = fixtureManifest(['Out of me unworthy and unknown', 'The vibrations of deathless music;'], 'el_reader');
+        const packUrl = '/audio/recitation/el_reader/0123456789abcdef.json';
+        const fetchImpl = vi.fn(url => Promise.resolve(url === packUrl
+            ? { ok: true, status: 200, text: () => Promise.resolve(JSON.stringify(pack)) }
+            : response()));
+        const voice = new Voice({ voiceId: 'el_reader', packUrl, fetchImpl });
+        voice.enabled = true;
+        const atoms = [{ content: 'Out of me unworthy and unknown' }, { content: 'The vibrations of deathless music;' }];
+
+        await expect(voice.prepare(atoms)).resolves.toBe(true);
+        expect(fetchImpl).toHaveBeenCalledWith(packUrl, expect.anything());
+        expect(voice.coverage(atoms)).toEqual({ speakable: 2, missing: 0, complete: true });
+    });
+
+    it.each([
+        ['the app shell, served for a missing file', { ok: true, status: 200, text: () => Promise.resolve('<!doctype html><html></html>') }],
+        ['a 404', { ok: false, status: 404, text: () => Promise.resolve('not found') }],
+        ['another schema', { ok: true, status: 200, text: () => Promise.resolve('{"schema":"something-else","voices":{}}') }]
+    ])('stays silent when a reading\'s pack is %s', async (_, packResponse) => {
+        const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+        const fetchImpl = vi.fn(() => Promise.resolve(packResponse));
+        const voice = new Voice({ voiceId: 'el_reader', packUrl: '/audio/recitation/el_reader/0123456789abcdef.json', fetchImpl });
+        voice.enabled = true;
+
+        await expect(voice.load()).resolves.toBe(false);
+        expect(voice.available).toBe(false);
+        expect(fetchImpl).toHaveBeenCalledTimes(1);
+        expect(warn).toHaveBeenCalled();
+    });
+
     it('rejects a partially packed reading before fetching audio', async () => {
         const fetchImpl = vi.fn(() => Promise.resolve(response()));
         const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
