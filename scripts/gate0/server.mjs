@@ -152,7 +152,7 @@ async function readJson(request) {
   } catch { return { invalid: true }; }
 }
 
-export async function handleMcp(request, state, widgetHtml, expectedOrigin) {
+export async function handleMcp(request, state, widgetHtml, expectedOrigin, dispatchRequest = dispatch) {
   const url = new URL(request.url);
   if (url.pathname !== MCP_PATH) return new Response('Not found', { status: 404 });
   if (request.headers.get('origin') !== null && request.headers.get('origin') !== expectedOrigin) return new Response('Origin denied', { status: 403 });
@@ -162,7 +162,7 @@ export async function handleMcp(request, state, widgetHtml, expectedOrigin) {
   if (body.tooLarge) return new Response('Request body too large', { status: 413 });
   if (body.invalid) return error(null, -32700, 'Parse error');
   if (Array.isArray(body.value)) return error(null, -32600, 'Batches are not supported');
-  return dispatch(body.value, state, widgetHtml);
+  return dispatchRequest(body.value, state, widgetHtml);
 }
 
 export async function buildWidgetHtml() {
@@ -181,9 +181,9 @@ export async function buildWidgetHtml() {
 
 const WIDGET_CSS = `:root{font:14px/1.45 system-ui,sans-serif;color:#eee;background:#111}*{box-sizing:border-box}body{margin:0;padding:12px}main{max-width:720px;margin:auto}h1,h2{font-weight:600}h1{font-size:1.1rem}h2{font-size:1rem;margin:.8em 0 .4em}p{margin:.45em 0;color:#bbb}button{margin:.25em .35em .25em 0;padding:.45em .65em;border:1px solid #555;border-radius:6px;background:#222;color:#eee}#surface{height:260px;position:relative;overflow:hidden;background:#050609;border:1px solid #333;border-radius:8px}#surface .attractor-canvas{position:absolute;inset:0;width:100%;height:100%}.still-surface{position:absolute;inset:0;display:grid;place-items:center;color:#777;background:#090a0d}#log{max-height:150px;overflow:auto;padding-left:2em;font:11px/1.35 ui-monospace,monospace}#log li{margin:.2em 0;overflow-wrap:anywhere}`;
 
-export async function startGate0Server({ port = 4319, testHarnessHtml = null } = {}) {
-  const widgetHtml = await buildWidgetHtml();
-  const state = createRunState();
+export async function startGate0Server({ port = 4319, testHarnessHtml = null, state: suppliedState, dispatchRequest = dispatch, widgetHtml: suppliedWidgetHtml } = {}) {
+  const widgetHtml = suppliedWidgetHtml ?? await buildWidgetHtml();
+  const state = suppliedState ?? createRunState();
   let allowedOrigin;
   const server = createServer(async (incoming, response) => {
     try {
@@ -200,7 +200,7 @@ export async function startGate0Server({ port = 4319, testHarnessHtml = null } =
       const url = `${allowedOrigin}${incoming.url}`;
       const init = { method: incoming.method, headers: incoming.headers, duplex: 'half' };
       if (!['GET', 'HEAD'].includes(incoming.method)) init.body = incoming;
-      const result = await handleMcp(new Request(url, init), state, widgetHtml, allowedOrigin);
+      const result = await handleMcp(new Request(url, init), state, widgetHtml, allowedOrigin, dispatchRequest);
       response.writeHead(result.status, Object.fromEntries(result.headers));
       response.end(await result.text());
     } catch {
