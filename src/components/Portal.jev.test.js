@@ -21,11 +21,10 @@ vi.mock('../core/decision/browser.js', () => ({
     return body;
   }
 }));
-// CORE extends rollReading and adds openingLines; Home is held to the calls.
-// rollReading draws a part given as null (CORE's contract), as an asked reading's temper.
+// Home is held to the calls it makes to rollReading; the real roll answers them.
 vi.mock('../core/roll.js', async importOriginal => {
   const actual = await importOriginal();
-  return { ...actual, rollReading: vi.fn(({ temper, ...parts } = {}) => actual.rollReading({ ...parts, temper: temper ?? undefined })) };
+  return { ...actual, rollReading: vi.fn(actual.rollReading) };
 });
 vi.mock('../app/jev-reading.js', async importOriginal => ({
   ...(await importOriginal()),
