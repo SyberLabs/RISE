@@ -59,19 +59,23 @@ describe('the Visual Catalog public path', () => {
 
   it('applies the newest query when history changes before cold catalog initialization settles', async () => {
     window.history.replaceState({}, '', '/visual-catalog?q=klee');
-    app = new App();
-
-    const route = app.router.views.get('visual-catalog');
-    const init = route.init;
     let releaseInit;
     const gate = new Promise(resolve => { releaseInit = resolve; });
-    route.init = async (...args) => {
-      await gate;
-      return init(...args);
-    };
+    const registerViews = App.prototype.registerViews;
+    vi.spyOn(App.prototype, 'registerViews').mockImplementation(function (...args) {
+      const result = registerViews.apply(this, args);
+      const route = this.router.views.get('visual-catalog');
+      const init = route.init;
+      route.init = async (...initArgs) => {
+        await gate;
+        return init(...initArgs);
+      };
+      return result;
+    });
+    app = new App();
 
     const opening = app.checkBetaAccess();
-    await vi.waitFor(() => expect(app.router.transitioning).toBe(true));
+    await vi.waitFor(() => expect(app.router?.transitioning).toBe(true));
 
     window.history.pushState({}, '', '/visual-catalog?q=attractor');
     window.dispatchEvent(new PopStateEvent('popstate'));
@@ -142,5 +146,8 @@ describe('the Visual Catalog public path', () => {
       expect(document.querySelector('#view-portal').hidden).toBe(true);
       expect([...document.querySelectorAll('[data-visual-id]')].map(card => card.dataset.visualId)).toEqual(['ostensoria', 'attractor']);
     });
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(document.querySelector('#visual-catalog-search').value).toBe('attractor');
   });
 });
