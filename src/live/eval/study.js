@@ -33,7 +33,6 @@
 
 import { BLACK_HOLES, HORIZON_DIVE } from '../fixtures/black-holes.js';
 
-export const STUDY_SCHEMA = 'rise.live-study.v1';
 export const RECORD_SCHEMA = 'rise.live-study-record.v1';
 
 export const CONDITIONS = Object.freeze([

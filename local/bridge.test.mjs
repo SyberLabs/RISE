@@ -80,6 +80,8 @@ describe('local RISE bridge', () => {
       assert.match(res.text, /<meta name="rise-local" content="1">/u);
       assert.match(res.headers['content-security-policy'], /connect-src 'self'/u);
       assert.doesNotMatch(res.headers['content-security-policy'], /openrouter/u);
+      // Nor Google's Gemini API: local RISE keeps the reader's prompts on their own computer.
+      assert.doesNotMatch(res.headers['content-security-policy'], /googleapis/u);
     }
     assert.equal((await call('/assets/app-abc.js')).status, 200);
     assert.equal((await call('/assets/missing.js')).status, 404);

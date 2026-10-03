@@ -20,10 +20,12 @@ const UPSTREAM_TIMEOUT_MS = 30_000;
 const MAX_QUESTIONS = 64;
 const LOOPBACK = new Set(['127.0.0.1', 'localhost']);
 
-// The production policy minus the one host local RISE never needs (OpenRouter).
+/// The production policy minus the two hosts local RISE never needs: OpenRouter's and Google's Gemini API.
+// Both take a reader-owned key for hosted inference, and local RISE keeps the reader's prompts on their own
+// computer, so `/live?provider=gemini` cannot reach Google from here (a hosted RISE page can).
 export const LOCAL_CSP = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; "
   + "img-src 'self' data: blob: https:; media-src 'self' blob:; worker-src 'self' blob:; "
-  + "connect-src 'self' https://www.gutenberg.org https://corsproxy.io https://export.arxiv.org https://commons.wikimedia.org "
+  + "connect-src 'self' https://www.gutenberg.org https://export.arxiv.org "
   + 'https://upload.wikimedia.org https://api.artic.edu https://www.artic.edu https://collectionapi.metmuseum.org '
   + "https://openaccess-api.clevelandart.org https://id.rijksmuseum.nl; object-src 'none'; base-uri 'self'; frame-ancestors 'none'";
 

@@ -3,7 +3,7 @@
  * cannot see. Each of these encodes a regression that was actually
  * shipped (or nearly shipped) and was caught only by ear or eye:
  *
- *   1. The portal presents its triad and the living SOL strip
+ *   1. The portal presents its triad and its one key
  *   2. Begin with Aurora → the soundscape truly sounds
  *   3. Leave, Begin again → it sounds the SECOND time (the level-
  *      overwrite regression)

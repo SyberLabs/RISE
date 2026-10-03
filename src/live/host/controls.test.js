@@ -10,7 +10,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { createVirtualClock } from '../clock.js';
 import { createFakeRecognition, open } from '../../test/fake-recognition.js';
-import { createSpeechListener, describeMic, MIC_PRIVACY, MIC_PRIVACY_LEAD } from '../mic/listener.js';
+import { createSpeechListener, describeMic, LISTEN_LIMITS, MIC_PRIVACY, MIC_PRIVACY_LEAD } from '../mic/listener.js';
 import { interpret } from '../mic/interpret.js';
 import { createLiveControls, describeStatus } from './controls.js';
 
@@ -46,6 +46,13 @@ describe('the sentence for each state', () => {
         expect(describeStatus(snapshot('diving'), { question: 'x'.repeat(500) }).length).toBeLessThan(260);
     });
 
+    it('says, while a Dive is open, that another question waits until the reader surfaces, both while it is being answered and once it is', () => {
+        const writing = describeStatus(snapshot('diving'), { question: 'q' });
+        const answered = describeStatus(snapshot('diving', { side: { finished: true } }), { question: 'q' });
+        for (const text of [writing, answered]) expect(text).toMatch(/Surface.*ask (again|about another place)/u);
+        expect(describeStatus(snapshot('diving', { side: { error: { message: 'no answer' } } }), { question: 'q' })).toBe('The Dive could not be answered (no answer). Surface to go back.');
+    });
+
     it('says a Dive is answered when it is, and that it could not be when it could not', () => {
         expect(describeStatus(snapshot('diving', { side: { finished: true } }), { question: 'q' })).toMatch(/answered\. Surface/u);
         expect(describeStatus(snapshot('diving', { side: { error: { message: 'no answer' } } }), { question: 'q' })).toMatch(/could not be answered \(no answer\)/u);
@@ -53,6 +60,40 @@ describe('the sentence for each state', () => {
 
     it('says why it failed, in the provider’s words and not a code', () => {
         expect(describeStatus(snapshot('failed', { error: { code: 'X', message: 'the key was refused' } }))).toBe('It could not be answered: the key was refused.');
+    });
+});
+
+describe('an answer that stopped early', () => {
+    const cut = { code: 'RESPONSE_MAX_TOKENS', message: 'The answer reached its length limit and was cut off.' };
+
+    it('says so when the reading that arrived is finished, and that it can still be asked about', () => {
+        const text = describeStatus(snapshot('ended', { main: { error: cut } }));
+        expect(text).toBe('Finished reading what arrived. The answer stopped early: The answer reached its length limit and was cut off. You can still ask about any place in it.');
+    });
+
+    it('says so while what arrived is still being read, and keeps saying the voice stopped if it did', () => {
+        expect(describeStatus(snapshot('live', { main: { error: cut, speaking: 'a' } }), { audible: false }))
+            .toBe('Reading, paced as if spoken. The answer stopped early: The answer reached its length limit and was cut off.');
+        expect(describeStatus(snapshot('live', { main: { error: cut, voiceDegraded: true } }), { audible: true }))
+            .toBe('Reading. The answer stopped early: The answer reached its length limit and was cut off. The voice stopped; the reading carries on at its own pace.');
+    });
+
+    it('says nothing of it when nothing stopped early, in any state that says anything of it', () => {
+        expect(describeStatus(snapshot('ended'))).toBe('Finished. You can still ask about any place in it.');
+        expect(describeStatus(snapshot('live', { main: { speaking: 'a' } }), { audible: true })).toBe('Speaking.');
+    });
+
+    it('does not mix a Dive’s failure into the main answer’s: a Dive says its own', () => {
+        const text = describeStatus(snapshot('diving', { side: { error: { message: 'no answer' } }, main: { error: cut } }), { question: 'q' });
+        expect(text).toBe('The Dive could not be answered (no answer). Surface to go back.');
+    });
+
+    it('is only ever words: a hostile or missing message is clipped, or replaced by a plain one', () => {
+        const long = describeStatus(snapshot('ended', { main: { error: { message: `${'x'.repeat(500)}.` } } }));
+        expect(long.length).toBeLessThan(330);
+        expect(describeStatus(snapshot('ended', { main: { error: {} } }))).toBe('Finished reading what arrived. The answer stopped early: the provider failed. You can still ask about any place in it.');
+        expect(describeStatus(snapshot('ended', { main: { error: { message: 'Ends with no full stop' } } }))).toContain('stopped early: Ends with no full stop. You');
+        expect(describeStatus(snapshot('ended', { main: { error: cut } }))).not.toMatch(/undefined|null|\[object/u);
     });
 });
 
@@ -307,7 +348,7 @@ describe('speaking to it', () => {
 
     /** Real listener and grammar, a fake recogniser: everything but the browser's own hearing. */
     function withMic(status = 'live') {
-        Recognition = createFakeRecognition();
+        Recognition = createFakeRecognition({ endsOnStop: true });
         const runtime = fakeRuntime(status);
         const mic = {
             createListener: handlers => createSpeechListener({ Recognition, clock: CLOCK, ...handlers }),
@@ -318,7 +359,8 @@ describe('speaking to it', () => {
     }
     const recogniser = () => Recognition.instances.at(-1);
     const press = () => $('[data-live="listen"]').click();
-    const hear = words => { recogniser().begin(); recogniser().say(words, { final: true }); };
+    /** Said, then the quiet that ends it. */
+    const hear = async words => { recogniser().begin(); recogniser().say(words, { final: true }); await CLOCK.advance(LISTEN_LIMITS.silenceMs); };
     const micLine = () => $('.live-controls__mic');
 
     it('has no Speak button, and no privacy text, where there is no microphone to use', () => {
@@ -372,7 +414,7 @@ describe('speaking to it', () => {
     it('dives on "wait, dive on event horizon", asking with the reader’s own words, and lets go of the microphone first', async () => {
         const runtime = withMic('live');
         press();
-        hear('Wait — dive on event horizon');
+        await hear('Wait — dive on event horizon');
         await flush();
         expect(runtime.calls.at(-1)).toEqual(['dive', { question: 'dive on event horizon' }]);
         expect(runtime.status).toBe('diving');
@@ -385,7 +427,7 @@ describe('speaking to it', () => {
         const runtime = withMic('interrupted');
         press();
         expect(runtime.hold).not.toHaveBeenCalled();
-        hear('why does light not escape?');
+        await hear('why does light not escape?');
         await flush();
         expect(runtime.calls.at(-1)).toEqual(['dive', { question: 'why does light not escape?' }]);
     });
@@ -394,7 +436,7 @@ describe('speaking to it', () => {
         const runtime = withMic('diving');
         press();
         expect(runtime.hold).not.toHaveBeenCalled();
-        hear('go back');
+        await hear('go back');
         await flush();
         expect(runtime.surface).toHaveBeenCalledTimes(1);
         expect(runtime.status).toBe('live');
@@ -403,12 +445,12 @@ describe('speaking to it', () => {
     it('resumes on "continue", and on a press that turned out to say nothing', async () => {
         const runtime = withMic('live');
         press();
-        hear('continue');
+        await hear('continue');
         await flush();
         expect(runtime.calls.map(call => call[0])).toEqual(['hold', 'resume']);
 
         press();
-        hear('um');
+        await hear('um');
         await flush();
         expect(runtime.calls.map(call => call[0])).toEqual(['hold', 'resume', 'hold', 'resume']);
         expect(runtime.status).toBe('live');
@@ -417,7 +459,7 @@ describe('speaking to it', () => {
     it('stays held on "wait", and does not ask anything', async () => {
         const runtime = withMic('live');
         press();
-        hear('wait');
+        await hear('wait');
         await flush();
         expect(runtime.status).toBe('interrupted');
         expect(runtime.dive).not.toHaveBeenCalled();
@@ -427,7 +469,7 @@ describe('speaking to it', () => {
     it('does not act on what it cannot be sure of: it holds, shows the words in the box, and leaves asking to the reader', async () => {
         const runtime = withMic('live');
         press();
-        hear('the horizon is interesting');
+        await hear('the horizon is interesting');
         await flush();
         expect(runtime.dive).not.toHaveBeenCalled();
         expect(runtime.status).toBe('interrupted');
@@ -442,7 +484,7 @@ describe('speaking to it', () => {
     it('shows what it heard as words, never as markup', async () => {
         withMic('live');
         press();
-        hear('<img src=x onerror=alert(1)> banana');
+        await hear('<img src=x onerror=alert(1)> banana');
         await flush();
         expect(micLine().querySelector('img')).toBeNull();
         expect(micLine().textContent).toContain('<img src=x onerror=alert(1)> banana');
@@ -452,7 +494,7 @@ describe('speaking to it', () => {
     it('says a Dive cannot be asked from inside a Dive, and does not lose the reader’s place', async () => {
         const runtime = withMic('diving');
         press();
-        hear('what is the shadow?');
+        await hear('what is the shadow?');
         await flush();
         expect($('.live-controls__error').textContent).toBe('A Dive inside a Dive is not built');
         expect(runtime.status).toBe('diving');

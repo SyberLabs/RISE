@@ -6,10 +6,8 @@
  * them, work-engines.js reads it alone, and a name cannot drift because
  * there is only one of it.
  *
- * The numbering gap at 4 is deliberate and is documented at the import
- * block in index.js: Mustard Gas Turing Patterns is withheld, not deleted.
- * It is absent here for the same reason it is absent there — an entry
- * without a class would be a promise nothing can keep.
+ * The numbering gap at 4 is deliberate: Mustard Gas Turing Patterns was
+ * withheld and its engine deleted.
  */
 
 export const STORM_OF_STEEL_ENGINE_META = Object.freeze([

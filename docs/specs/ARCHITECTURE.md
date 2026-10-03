@@ -120,9 +120,9 @@ else is a recommendation.
 ║  │  Vault      │                                                             ║
 ║  │  Scriptorium│   ┌──────────────────────────────────────────────────────┐  ║
 ║  │  Curia      │   │  SOURCES  registry + providers + IndexedDB cache      │  ║
-║  │  Journeys   │   │  archive · local · gutenberg · sacred · arxiv ·       │  ║
-║  │  Keystones  │   │  generated · wikimedia   (failure degrades one, not   │  ║
-║  │  Settings   │   │  the app)                                             │  ║
+║  │  Journeys   │   │  archive   (failure degrades one, not the app)        │  ║
+║  │  Keystones  │   │                                                       │  ║
+║  │  Settings   │   │                                                       │  ║
 ║  └─────────────┘   └──────────────────────────────────────────────────────┘  ║
 ║                                                                               ║
 ║   STORAGE  localStorage (settings, journals, blueprints, images, orbital) ·   ║
@@ -134,9 +134,9 @@ else is a recommendation.
         │  anonymous · no-referrer · abort + timeout        ▲
         ▼                                                   │ failure ⇒ stillness
   ┌────────────────────────────────────────────────────────────────────────┐
-  │  THIRD PARTIES  Met · Art Institute · Cleveland · Rijksmuseum ·         │
-  │  Wikimedia · Gutenberg · arXiv.  Pinned catalogs are preferred to live  │
-  │  search; a live call is a convenience, never a dependency.              │
+  │  THIRD PARTIES  Met · Art Institute · Cleveland · Rijksmuseum.          │
+  │  Pinned catalogs are preferred to live search; a live call is a         │
+  │  convenience, never a dependency.                                       │
   └────────────────────────────────────────────────────────────────────────┘
 
   OFFLINE RENDER — a separate path, deliberately not the live one
@@ -159,18 +159,18 @@ it, and CI fails when the committed copy is not what `src/` produces.
 
 ```mermaid
 flowchart LR
-    affect["affect<br/>experience-state evaluation<br/>30 modules"]
+    affect["affect<br/>experience-state evaluation<br/>29 modules"]
     app["app<br/>composition root<br/>11 modules"]
     audio["audio<br/>Web Audio, recitation<br/>10 modules"]
     components["components<br/>routed views<br/>47 modules"]
     content["content<br/>texts, imagery, journeys<br/>228 modules"]
     core["core<br/>session, player, router<br/>162 modules"]
     enterprise["enterprise<br/>talk program, speaker rail<br/>34 modules"]
-    live["live<br/>realtime Current: events, runtime, providers<br/>33 modules"]
+    live["live<br/>realtime Current: events, runtime, providers<br/>38 modules"]
     page["page<br/>spatial projection<br/>4 modules"]
-    sources["sources<br/>text and visual providers<br/>21 modules"]
+    sources["sources<br/>text and visual providers<br/>13 modules"]
     vendor["vendor<br/>SyberLabs design kit<br/>2 modules"]
-    visuals["visuals<br/>procedural generation<br/>61 modules"]
+    visuals["visuals<br/>procedural generation<br/>59 modules"]
     wormhole["wormhole<br/>7 modules"]
 
     affect --> |7| core
@@ -206,8 +206,7 @@ flowchart LR
     live -.-> |1 lazy| visuals
     page --> |2| core
     page --> |3| visuals
-    sources --> |2| content
-    sources -.-> |3 lazy| visuals
+    sources --> |1| content
     visuals -.-> |4 lazy| content
     visuals --> |18| core
     visuals --> |4| sources
@@ -572,10 +571,6 @@ of `settled`, `open`, `deferred`, or `reversed`.
   derivatives over pools too shallow to hold a reading. The cost is a smaller,
   slower-moving collection.
 - **Status:** settled.
-- **Loose end:** `netlify.toml` still grants `connect-src` to `corsproxy.io`,
-  and **no module under `src/`, `scripts/` or `e2e/` calls it.** It is a stale
-  allowance rather than a live dependency — a CSP grant nothing needs is a
-  surface with no purpose, and it should be removed.
 
 ### 8.9 Fifteen certified editions, not eighty-eight acquired ones
 
@@ -926,7 +921,7 @@ of `settled`, `open`, `deferred`, or `reversed`.
   that was not in the source, in front of the room. The gate, the id-only
   decision, and the cell renderer make that failure loud. The phases in
   `docs/superpowers/specs/2026-09-27-enterprise-room-design.md` are implemented
-  in `src/enterprise/` and `worker/enterprise-decision.mjs`, from
+  in `src/enterprise/`, from
   `docs/superpowers/plans/2026-09-27-enterprise-room.md`. The reader's lack of
   access control (§8.1) is unchanged: this audience check belongs to the
   sibling, and the sibling is not on the reader's first load.
@@ -979,7 +974,7 @@ of `settled`, `open`, `deferred`, or `reversed`.
   downloads only when a presenter chooses it. Until it is ready, or after it
   fails, decisions hold. The worker script alone may fetch model hosts and
   compile WebAssembly: the Cloudflare Worker serves it with its own policy
-  (`worker/enterprise-decision.mjs`), and every page keeps the site policy in
+  (`worker/kev-worker-script.mjs`), and every page keeps the site policy in
   `public/_headers`.
   `kev-check.html` measures load, latency, and agreement on a real device.
   The weights never sit whole in the worker: each file streams into Cache
@@ -999,7 +994,7 @@ of `settled`, `open`, `deferred`, or `reversed`.
   Kev-4B's 4.7 GB on a 16 GB Windows machine.
 - **Why:** the transcript and the decision stay on the presenter's machine,
   with nothing to install. Kev-4B on the device is pinned to the checkpoint
-  the server Kev serves (`deploy/kev/modal_app.py`), and a test keeps the two
+  the local server Kev serves (`deploy/kev/local_app.py`), and a test keeps the two
   pins equal.
 - **Status:** open. Kev-0.8B loads and decides on Chrome 153 for Windows with
   an AMD RX 5700 (30 of 30 questions, 214 ms median). While a model is
@@ -1214,6 +1209,34 @@ of `settled`, `open`, `deferred`, or `reversed`.
   are covered by unit and browser tests. The first-read Page/Stream choice is
   preserved for the first rolled reading.
 
+### 8.40 A second live provider is a second connect function, called from the reader's browser
+
+- **Chosen:** Gemini is a provider behind the same text-stream seam as OpenAI
+  (`src/live/adapters/gemini*.js`), using Google's streaming text generation
+  (`streamGenerateContent`, server-sent events), not its Live API. The reader's
+  own key goes from their browser to Google in one header, straight, so the
+  site's `connect-src` names Google's exact origin as it names OpenRouter's,
+  and RISE's Worker is not involved. The runtime, the parser and the seam are
+  unchanged; the shared conformance suite passes for it unchanged.
+- **Rejected:** the Live API (its current models answer in audio, text is only a
+  transcript, sessions are capped, and the browser credential for it is a
+  preview feature); a relay through the Worker (the server would see the key
+  and there would be a route to secure, for no gain when Google allows the
+  browser to call it); a fixed list of models (Google renames them, and the
+  list cannot be checked without a key); and a shared credential-broker or
+  producer abstraction (two providers that differ this much have nothing to
+  put in it).
+- **Why:** RISE wants Google's words, and speaks them with its own voice so a
+  Dive can hold the voice; a plain stream is the smallest thing that gives it
+  that. Voice input does not need Live either: speech is turned into text in the
+  browser, and a recorded clip could ride the same request later as an added
+  optional field. A Live session, if ever wanted for a conversational mode, is a
+  sibling adapter, not a change to this one.
+- **Status:** open. Built and tested with fakes at every layer and in a real
+  browser with Google's endpoint stubbed. Never run against Google's service,
+  and the default model has not been checked against its model list
+  (`docs/plans/LIVE-GEMINI.md` says how to verify both with a real key).
+
 ---
 
 ## 9. What this design costs
@@ -1232,7 +1255,6 @@ Stated plainly so it is never rediscovered as a surprise.
 - **Access control does not exist**, by choice. §8.1, §7.
 - **The public shelf serves uncertified candidates** under an override that is
   explicitly temporary and should not become permanent by neglect. §8.21.
-- **The CSP grants an origin nothing calls.** §8.8.
 - **The release is gated on people**, and cannot be hurried by engineering.
   §8.15.
 
