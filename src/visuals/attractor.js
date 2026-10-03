@@ -86,7 +86,7 @@ const HEADS = [
  * palettes keep their cores near-white at the very center so the pulse
  * still reads as light rather than as paint; the hue lives in the halo.
  */
-const PALETTES = {
+export const PALETTES = {
     white: {
         name: 'White',
         core: [{ w: 2.6, mul: 0.5, col: '200,222,255' }, { w: 0.7, mul: 1.0, col: '255,255,255' }],
@@ -124,6 +124,30 @@ const PALETTES = {
         core: [{ w: 3.0, mul: 0.55, col: '255,46,170' }, { w: 0.8, mul: 1.0, col: '255,206,240' }],
         twin: [{ w: 3.0, mul: 0.55, col: '0,190,255' }, { w: 0.8, mul: 1.0, col: '190,244,255' }],
         head: ['255,255,255', '255,120,220', '120,40,255']
+    },
+    jade: {
+        name: 'Jade',
+        core: [{ w: 2.8, mul: 0.5, col: '28,168,112' }, { w: 0.7, mul: 1.0, col: '204,255,228' }],
+        twin: [{ w: 2.8, mul: 0.5, col: '16,100,66' }, { w: 0.7, mul: 1.0, col: '124,210,168' }],
+        head: ['240,255,246', '110,240,170', '10,120,70']
+    },
+    rose: {
+        name: 'Rose',
+        core: [{ w: 2.8, mul: 0.5, col: '206,26,100' }, { w: 0.7, mul: 1.0, col: '255,160,200' }],
+        twin: [{ w: 2.8, mul: 0.5, col: '124,14,60' }, { w: 0.7, mul: 1.0, col: '226,112,160' }],
+        head: ['255,236,244', '255,96,164', '150,10,64']
+    },
+    citrine: {
+        name: 'Citrine',
+        core: [{ w: 2.8, mul: 0.5, col: '138,156,12' }, { w: 0.7, mul: 1.0, col: '232,248,130' }],
+        twin: [{ w: 2.8, mul: 0.5, col: '82,94,8' }, { w: 0.7, mul: 1.0, col: '190,204,96' }],
+        head: ['252,255,224', '222,240,80', '110,128,6']
+    },
+    silver: {
+        name: 'Silver',
+        core: [{ w: 2.8, mul: 0.5, col: '88,100,124' }, { w: 0.7, mul: 1.0, col: '190,200,218' }],
+        twin: [{ w: 2.8, mul: 0.5, col: '52,60,78' }, { w: 0.7, mul: 1.0, col: '140,150,170' }],
+        head: ['246,248,252', '176,188,210', '70,82,110']
     }
 };
 
@@ -171,15 +195,15 @@ export class AttractorField {
      * @param {HTMLElement} host - positioned container the canvas fills
      * @param {Object} options
      * @param {string} options.system - 'aizawa' | 'thomas' | 'halvorsen'
-     * @param {string} options.palette - 'white' | 'red' | 'blue' | 'gold' | 'purple'
+     * @param {string} options.palette - 'white' | 'red' | 'blue' | 'gold' | 'purple' | 'neon' | 'jade' | 'rose' | 'citrine' | 'silver'
      * @param {string} options.form - 'mirror' | 'kaleido' | 'bilateral'
      * @param {number} options.intensity - master brightness multiplier (default 0.65, keeps text legible)
      * @param {number} options.speed - motion time scale; 1 is the original pace (clamped 0.25–4)
      */
     constructor(host, options = {}) {
         this.host = host;
-        this.system = SYSTEMS[options.system] ? options.system : 'aizawa';
-        this.palette = PALETTES[options.palette] ? options.palette : DEFAULT_PALETTE;
+        this.system = Object.hasOwn(SYSTEMS, options.system) ? options.system : 'aizawa';
+        this.palette = Object.hasOwn(PALETTES, options.palette) ? options.palette : DEFAULT_PALETTE;
         this.form = FORMS.includes(options.form) ? options.form : 'mirror';
         this.intensity = options.intensity ?? 0.65;
         this._controlBaseIntensity = this.intensity;
@@ -192,8 +216,10 @@ export class AttractorField {
         this.onProjectionPaint = typeof options.onProjectionPaint === 'function'
             ? options.onProjectionPaint
             : () => {};
-        this.reduced = typeof window.matchMedia === 'function'
-            && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        // Kept, not read once: the reader may turn reduced motion on mid-reading.
+        this.reducedQuery = typeof window.matchMedia === 'function'
+            ? window.matchMedia('(prefers-reduced-motion: reduce)')
+            : null;
 
         this.canvas = document.createElement('canvas');
         this.canvas.className = 'attractor-canvas';
@@ -365,11 +391,11 @@ export class AttractorField {
         const frameStart = performance.now();
         const N = this.N;
 
-        // Respect both the OS media query (cached) and the app's own
+        // Respect both the OS media query (live) and the app's own
         // accessibility settings (root classes set by Settings) — the
         // canvas layer is invisible to CSS-based animation kill switches.
         const rootClasses = document.documentElement.classList;
-        const reduced = this.reduced || rootClasses.contains('reduced-motion');
+        const reduced = this.reducedQuery?.matches === true || rootClasses.contains('reduced-motion');
         if (reduced && this._intensityTransition) {
             this.intensity = this._intensityTransition.to;
             this.targetIntensity = this.intensity;
@@ -525,6 +551,7 @@ export class AttractorField {
         this._motionBase = this.motionTime(now);
         this.t0 = now;
         this.speed = next;
+        this._stillDrawn = false;
         return true;
     }
 
@@ -534,6 +561,7 @@ export class AttractorField {
         this.intensity = Math.min(1, Math.max(0.2, intensity));
         this.targetIntensity = this.intensity;
         this._intensityTransition = null;
+        this._stillDrawn = false;
         return true;
     }
 
@@ -562,7 +590,7 @@ export class AttractorField {
             effective
         };
         const now = performance.now();
-        const reduced = this.reduced || document.documentElement.classList.contains('reduced-motion');
+        const reduced = this.reducedQuery?.matches === true || document.documentElement.classList.contains('reduced-motion');
         this.targetIntensity = effective;
         if (reduced || this.paused) {
             this.intensity = effective;
@@ -588,7 +616,7 @@ export class AttractorField {
         this._intensityTransition = null;
         if (this.destroyed) return;
         this.intensity = this._controlBaseIntensity;
-        const reduced = this.reduced || document.documentElement.classList.contains('reduced-motion');
+        const reduced = this.reducedQuery?.matches === true || document.documentElement.classList.contains('reduced-motion');
         if (needsPaint && (this.paused || reduced)) {
             if (reduced) this._stillDrawn = false;
             this.paintOnce(performance.now());
@@ -676,9 +704,10 @@ export class AttractorField {
      * Switch to a different attractor system in place
      */
     setSystem(system) {
-        if (!SYSTEMS[system] || system === this.system) return;
+        if (!Object.hasOwn(SYSTEMS, system) || system === this.system) return;
         this.system = system;
         this.integrate();
+        this._stillDrawn = false;
     }
 
     /**
@@ -687,8 +716,9 @@ export class AttractorField {
      * @returns {boolean} whether the palette changed
      */
     setPalette(palette) {
-        if (!PALETTES[palette] || palette === this.palette) return false;
+        if (!Object.hasOwn(PALETTES, palette) || palette === this.palette) return false;
         this.palette = palette;
+        this._stillDrawn = false;
         return true;
     }
 
@@ -702,6 +732,7 @@ export class AttractorField {
     setForm(form) {
         if (!FORMS.includes(form) || form === this.form) return false;
         this.form = form;
+        this._stillDrawn = false;
         return true;
     }
 

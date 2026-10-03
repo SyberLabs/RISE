@@ -1,6 +1,7 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
 import {
   AttractorField,
+  PALETTES,
   ATTRACTOR_PALETTES,
   ATTRACTOR_PALETTE_IDS,
   ATTRACTOR_FORMS,
@@ -45,8 +46,8 @@ afterEach(() => {
 });
 
 describe('Attractor palettes', () => {
-  it('offers exactly the six selectable filament colors', () => {
-    expect(ATTRACTOR_PALETTE_IDS).toEqual(['white', 'red', 'blue', 'gold', 'purple', 'neon']);
+  it('offers exactly the ten selectable filament colors', () => {
+    expect(ATTRACTOR_PALETTE_IDS).toEqual(['white', 'red', 'blue', 'gold', 'purple', 'neon', 'jade', 'rose', 'citrine', 'silver']);
     for (const p of ATTRACTOR_PALETTES) {
       expect(p.name).toBeTruthy();
       expect(p.swatch).toMatch(/^#[0-9a-f]{6}$/i);
@@ -77,6 +78,18 @@ describe('Attractor palettes', () => {
     field.destroy();
   });
 
+  it('takes no inherited name for a palette or a system', () => {
+    const field = new AttractorField(makeHost(), { palette: 'constructor', system: 'toString' });
+    expect(field.palette).toBe('white');
+    expect(field.system).toBe('aizawa');
+    expect(field.setPalette('constructor')).toBe(false);
+    expect(field.palette).toBe('white');
+    field.setSystem('toString');
+    expect(field.system).toBe('aizawa');
+    expect(() => field.tick(performance.now())).not.toThrow();
+    field.destroy();
+  });
+
   it('keeps every palette luminous: a wide dim halo under a bright core', () => {
     // A single-pass filament reads as a thin line, not as light. The
     // halo/core pairing is what makes it glow.
@@ -86,6 +99,41 @@ describe('Attractor palettes', () => {
       field.tick(performance.now());
     }
     field.destroy();
+  });
+
+  it('draws every offered palette, and offers every palette it draws', () => {
+    for (const id of ATTRACTOR_PALETTE_IDS) {
+      expect(Object.hasOwn(PALETTES, id), id).toBe(true);
+      const field = new AttractorField(makeHost(), { palette: id });
+      expect(field.palette).toBe(id);
+      field.destroy();
+    }
+    for (const id of Object.keys(PALETTES)) expect(ATTRACTOR_PALETTE_IDS).toContain(id);
+  });
+
+  it('keeps every palette legible: none draws more light than the default white', () => {
+    // WCAG relative luminance of an 'r,g,b' stroke colour.
+    const relLum = col => {
+      const [r, g, b] = col.split(',').map(Number).map(value => {
+        const c = value / 255;
+        return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+      });
+      return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+    };
+    const light = passes => passes.reduce((sum, pass) => sum + pass.w * pass.mul * relLum(pass.col), 0);
+    const white = PALETTES.white;
+    expect(light(white.core)).toBeCloseTo(1.633, 3);
+    expect(light(white.core) + 0.6 * light(white.twin)).toBeCloseTo(2.123, 3);
+    for (const [id, palette] of Object.entries(PALETTES)) {
+      const [halo, core] = palette.core;
+      expect(halo.w, id).toBeLessThanOrEqual(3.0);
+      expect(core.w, id).toBeLessThanOrEqual(0.8);
+      expect(halo.mul, id).toBeLessThanOrEqual(0.55);
+      expect(relLum(core.col), id).toBeGreaterThan(relLum(halo.col));
+      expect(light(palette.core), id).toBeLessThanOrEqual(light(white.core));
+      expect(light(palette.core) + 0.6 * light(palette.twin), id)
+        .toBeLessThanOrEqual(light(white.core) + 0.6 * light(white.twin));
+    }
   });
 });
 
@@ -357,6 +405,50 @@ describe('Attractor visual control', () => {
 
     expect(styles.length).toBeGreaterThan(beforeCancel);
     expect(styles.slice(-authoredStyles.length)).toEqual(authoredStyles);
+    field.destroy();
+  });
+});
+
+describe('Attractor reduced motion', () => {
+  const paints = field => field.ctx.clearRect.mock.calls.length;
+
+  it('reads the system setting live, so turning it on mid-reading stills the field', () => {
+    const media = { matches: false };
+    window.matchMedia = () => media;
+    const field = new AttractorField(makeHost(), { adaptive: false });
+    field.tick(1000);
+    field.tick(1016);
+    const moving = paints(field);
+
+    media.matches = true;
+    field.tick(1032);
+    field.tick(1048);
+    field.tick(1064);
+    expect(paints(field)).toBe(moving + 1);
+    field.destroy();
+  });
+
+  it('repaints the still once when what it shows changes', () => {
+    window.matchMedia = () => ({ matches: true });
+    const field = new AttractorField(makeHost(), { adaptive: false });
+    field.tick(1000);
+    field.tick(1016);
+    const still = paints(field);
+
+    for (const change of [
+      () => field.toggleKaleidoscope(),
+      () => field.setPalette('gold'),
+      () => field.setSystem('thomas'),
+      () => field.setIntensity(0.4),
+      () => field.setSpeed(2)
+    ]) {
+      const before = paints(field);
+      change();
+      field.tick(2000);
+      field.tick(2016);
+      expect(paints(field)).toBe(before + 1);
+    }
+    expect(paints(field)).toBe(still + 5);
     field.destroy();
   });
 });

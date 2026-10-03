@@ -72,6 +72,7 @@ export function createCurrentStream({ refusals: refusalBudget = STREAM_LIMITS.re
     let currentId = null;
     let title = null;
     let origin = null;
+    let theme = null;
     let nextSeq = 0;
     let resumeFrom = null;
     let received = 0;
@@ -121,6 +122,7 @@ export function createCurrentStream({ refusals: refusalBudget = STREAM_LIMITS.re
             currentId = event.currentId;
             title = event.title;
             origin = event.origin;
+            theme = event.theme ?? null;
             phase = 'open';
             return;
         }
@@ -448,6 +450,7 @@ export function createCurrentStream({ refusals: refusalBudget = STREAM_LIMITS.re
                 phase,
                 title,
                 origin: origin ? { ...origin } : null,
+                theme,
                 nextSeq,
                 refusals: refusalCount,
                 error: error ? { ...error } : null,
@@ -486,6 +489,7 @@ export function createCurrentStream({ refusals: refusalBudget = STREAM_LIMITS.re
                 schema: RISE_CURRENT_SCHEMA,
                 id: currentId,
                 title,
+                ...(theme === null ? {} : { theme }),
                 origin,
                 segments: ended.map(segment => ({
                     id: segment.id,

@@ -165,7 +165,29 @@ describe('the tool', () => {
   it('takes a valid Current, and says it is being presented', async () => {
     const { result } = await json(await post(rpc('tools/call', { name: 'rise_present', arguments: { current: BLACK_HOLES_CURRENT } })));
     expect(result.isError).toBeUndefined();
-    expect(result.content).toEqual([{ type: 'text', text: 'RISE is presenting this to the reader.' }]);
+    expect(result.structuredContent).toEqual({ current: BLACK_HOLES_CURRENT });
+    expect(result.content[0].text).toContain('accepted');
+  });
+
+  it('refuses a valid Current whose serialized UTF-8 payload exceeds the MCP-only budget', async () => {
+    const current = {
+      ...BLACK_HOLES_CURRENT,
+      segments: Array.from({ length: 16 }, (_, segmentIndex) => ({
+        id: `s${segmentIndex}`,
+        text: '界 '.repeat(625),
+        visual: 'still',
+        dives: Array.from({ length: 8 }, (_, diveIndex) => ({
+          id: `d${segmentIndex}-${diveIndex}`,
+          text: '界'.repeat(200),
+          anchor: { fromCharacter: 0, toCharacter: 1, quoteStart: '界', quoteEnd: '界' }
+        }))
+      }))
+    };
+    const { result } = await json(await post(rpc('tools/call', { name: 'rise_present', arguments: { current } })));
+    expect(result.isError).toBe(true);
+    expect(result.structuredContent?.current).toBeUndefined();
+    expect(result.content[0].text).toContain('65,536-byte MCP limit');
+    expect(result.content[0].text).toContain('call rise_present again');
   });
 
   it('refuses one that is not valid, in words the model can act on, and does not send back what it was given', async () => {
@@ -173,6 +195,7 @@ describe('the tool', () => {
     for (const current of [hostile, { ...BLACK_HOLES_CURRENT, schema: 'other' }, { ...BLACK_HOLES_CURRENT, segments: [] }, { ...BLACK_HOLES_CURRENT, [`x${'y'.repeat(2_000)}`]: 1 }]) {
       const { result } = await json(await post(rpc('tools/call', { name: 'rise_present', arguments: { current } })));
       expect(result.isError).toBe(true);
+      expect(result.structuredContent?.current).toBeUndefined();
       const text = result.content[0].text;
       expect(text).toMatch(/^RISE refused this Current: /u);
       expect(text).toContain('call rise_present again');
@@ -191,6 +214,23 @@ describe('the tool', () => {
       expect((await json(await post(rpc('tools/call', { name, arguments: {} })))).error, String(name)).toMatchObject({ code: -32602 });
     }
     expect((await json(await post(rpc('tools/call', undefined)))).error).toMatchObject({ code: -32602 });
+  });
+
+  it('refuses an argument beside the Current, says a theme goes inside it, and echoes only a clipped name', async () => {
+    const call = async args => (await json(await post(rpc('tools/call', { name: 'rise_present', arguments: args })))).result;
+    const misplaced = await call({ current: BLACK_HOLES_CURRENT, theme: 'jade' });
+    expect(misplaced.isError).toBe(true);
+    expect(misplaced.structuredContent).toBeUndefined();
+    expect(misplaced.content[0].text).toBe('RISE refused these arguments: "theme" belongs inside the Current, not beside it. Call rise_present with {"current": <a Current>} only.');
+    const unknown = await call({ current: BLACK_HOLES_CURRENT, [`mood\u0000\n${'x'.repeat(2_000)}`]: 'calm' });
+    expect(unknown.isError).toBe(true);
+    expect(unknown.structuredContent).toBeUndefined();
+    expect(unknown.content[0].text).toBe(`RISE refused these arguments: unknown argument "mood${'x'.repeat(35)}…". Call rise_present with {"current": <a Current>} only.`);
+    for (const current of [BLACK_HOLES_CURRENT, { ...BLACK_HOLES_CURRENT, theme: 'jade' }]) {
+      const accepted = await call({ current });
+      expect(accepted.isError).toBeUndefined();
+      expect(accepted.structuredContent).toEqual({ current });
+    }
   });
 
   it('keeps nothing between calls: the same call answers the same, in any order', async () => {

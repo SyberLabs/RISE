@@ -172,7 +172,14 @@ export function createLiveRuntime({
         const fresh = ended.slice(run.lowered);
         let session;
         try {
-            session = compileRiseCurrent(run.stream.toCurrent());
+            let current = run.stream.toCurrent();
+            // A Dive keeps the colors of the answer it comes from, whatever it said of itself.
+            if (run.role === 'side') {
+                const { theme: _own, ...rest } = current;
+                const theme = main.stream.snapshot().theme;
+                current = theme === null ? rest : { ...rest, theme };
+            }
+            session = compileRiseCurrent(current);
         } catch (caught) {
             failRun(run, caught);
             return;
