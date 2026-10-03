@@ -4,9 +4,9 @@
  * Every released work is a star in a sky (src/components/night-library/),
  * and a text panel sits over it. **Roll a reading** composes one by chance
  * inside bounds (src/core/roll.js); picking a star rolls for that work.
- * A result names three parts, each with its own Redraw: the text, the mood
- * (the temper, in plan words) and the passage (the opening lines the reading
- * will start on). **Start reading** plays it; **Adjust first** opens Reader
+ * A result names three parts: the text and the mood (the temper, in plan
+ * words), each with its own Redraw, and the passage (the opening lines the
+ * reading will start on). **Start reading** plays it; **Adjust first** opens Reader
  * Setup with everything already set.
  *
  *   Home proposes → Reader Setup alters → Chamber performs.
@@ -64,7 +64,7 @@ export class Portal {
     this.view = 'idle';
     // The data-home hook of the work in progress (roll, roll-instead, redraw-*, ask, enter, adjust), or null.
     this.busy = null;
-    // { decision, source: 'roll' | 'ask', temper, note, title, author, mood, byline, meta, plan, single, lines }
+    // { decision, source: 'roll' | 'ask', temper, note, title, author, mood, byline, meta, plan, lines }
     this.result = null;
     this.firstReadChoiceUsed = false;
     this.draft = '';
@@ -322,7 +322,7 @@ export class Portal {
   }
 
   resultView() {
-    const { title, author, mood, byline, plan, note, single } = this.result;
+    const { title, author, mood, byline, plan, note } = this.result;
     const part = (name, value, redraw = true) => `<li class="home-part">
         <div class="home-part-body"><p class="home-part-label">The ${name}</p>${value}</div>
         ${redraw ? `<button class="btn btn-ghost home-redraw" type="button" data-home="redraw-${name}" aria-label="Redraw the ${name}">${REDRAW_ICON}Redraw</button>` : ''}
@@ -333,7 +333,7 @@ export class Portal {
       <ul class="home-parts">
         ${part('text', `<p class="home-part-value">${escapeHtml([title, author].filter(Boolean).join(' · '))}</p>`)}
         ${part('mood', `<p class="home-part-value"><strong class="home-part-name">${escapeHtml(mood)}</strong> <span>${escapeHtml(capital(plan.join(', ')))}</span></p>`)}
-        ${part('passage', '<div class="home-passage"></div>', !single)}
+        ${part('passage', '<div class="home-passage"></div>', false)}
       </ul>
       ${note ? `<p class="home-note" role="note">${escapeHtml(note)}</p>` : ''}
       <div class="home-actions">${button('enter', 'Start reading', 'primary')}${button('roll', 'Roll again', 'secondary')}${button('adjust', 'Adjust first', 'ghost')}</div>
@@ -487,9 +487,7 @@ export class Portal {
       byline: capital([author, where && `from the ${where}`].filter(Boolean).join(', ')),
       // The whole description, for the status line that speaks it.
       meta: [author, where].filter(Boolean).join(' · '),
-      plan: tools.summarizeJevPlan(decision.config),
-      // A RISE original is one division, so there is no other passage to draw.
-      single: tools.isRiseOriginal(decision.workId)
+      plan: tools.summarizeJevPlan(decision.config)
     };
   }
 
@@ -544,7 +542,7 @@ export class Portal {
     const previous = this.result;
     if (!previous) return;
     const { workId, config: { section } } = previous.decision;
-    const keep = { text: { temper: previous.temper, section }, mood: { workId, section }, passage: { workId, temper: previous.temper } }[part];
+    const keep = { text: { temper: previous.temper, section }, mood: { workId, section } }[part];
     void this.roll({ previous, ...keep }, { from: `redraw-${part}` });
   }
 
