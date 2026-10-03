@@ -1,8 +1,8 @@
 import { test, expect } from './fixtures.js';
 
 /**
- * Today's poem: Home's quiet link and the /today address both open one poem
- * under the day's mark. Begin plays exactly the poem shown, as verse, and
+ * Today's poem: Home opens on it, and the Menu and the /today address open
+ * it under the day's mark. Begin plays exactly the poem shown, as verse, and
  * leaving the reading comes back to the poem.
  */
 const GATE = { code: 'rise2025', name: 'Today Harness', vault: null, timestamp: Date.now() };
@@ -14,26 +14,18 @@ async function openToday(page, path) {
   await page.goto(path);
 }
 
-test('Home shows today\'s poem as a card that opens it, and the address names it', async ({ page }) => {
+test('Home opens on today\'s poem, the one the Today view shows', async ({ page }) => {
   await openToday(page, '/');
-  const card = page.locator('.home-today-card');
-  await expect(card).toBeVisible({ timeout: 15_000 });
-  const title = await card.locator('.home-today-title').textContent();
-  const line = await card.locator('.home-today-line').textContent();
-  await card.click();
-  await expect(page.locator('.today-line').first()).toBeVisible({ timeout: 15_000 });
-  await expect.poll(() => view(page)).toBe('today');
-  await expect(page).toHaveURL(/\/today$/u);
-  // The card names the poem the view opens, and quotes its first line.
-  await expect(page.locator('#today-title')).toHaveText(title);
-  await expect(page.locator('.today-line').first()).toHaveText(line);
-});
-
-test('the Menu opens today\'s poem', async ({ page }) => {
-  await openToday(page, '/');
+  await expect(page.locator('.home-label')).toHaveText('Today’s poem', { timeout: 15_000 });
+  await expect(page.locator('h1')).toContainText(', by ', { timeout: 15_000 });
+  const heading = await page.locator('h1').textContent();
   await page.locator('.portal-menu-toggle').click();
   await page.locator('.portal-nav [data-nav="today"]').click();
   await expect.poll(() => view(page)).toBe('today');
+  await expect(page).toHaveURL(/\/today$/u);
+  // Home names the poem the view opens.
+  const title = await page.locator('#today-title').textContent();
+  expect(heading.startsWith(`${title}, by `)).toBe(true);
 });
 
 for (const viewport of [{ width: 390, height: 844 }, { width: 1280, height: 800 }]) {

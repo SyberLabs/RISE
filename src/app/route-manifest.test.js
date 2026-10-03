@@ -91,6 +91,18 @@ describe('createRouteManifest', () => {
     expect(received).toEqual({ onNavigate: handleNavigate, onBegin: handleBeginSession });
   });
 
+  it('gives Home the session starter Today begins its poem with', () => {
+    const handleBeginSession = vi.fn();
+    let received;
+    class Portal {
+      constructor(_container, options) {
+        received = options;
+      }
+    }
+    createRouteManifest({ handleBeginSession }).find(route => route.id === 'portal').create({}, null, { Portal });
+    expect(received.onBeginSession).toBe(handleBeginSession);
+  });
+
   it('creates the catalog with the navigation callback and address search', () => {
     const handleNavigate = vi.fn();
     const route = createRouteManifest({ handleNavigate }).find(item => item.id === 'visual-catalog');

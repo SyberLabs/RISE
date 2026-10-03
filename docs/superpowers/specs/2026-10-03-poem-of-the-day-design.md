@@ -1,5 +1,11 @@
 # Today's poem
 
+> **Home's card is superseded (2026-10-03).** Home now opens on today's poem
+> itself, playing silently under its engine, and the card
+> (`today-card.js`) is deleted. See
+> [2026-10-03-home-already-reading-design.md](2026-10-03-home-already-reading-design.md).
+> The pool, the day, the mood and the Today view below still hold.
+
 **Date:** 2026-10-03 · **Status:** as built ·
 **Mockups:** [RISE Poem of the Day canvas](https://claude.ai/artifact/6WM6M9uDFsDTGEgStuWp3G)
 (direction B, "Kaleidoscope sigil", chosen by the owner)

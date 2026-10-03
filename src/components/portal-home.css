@@ -1,15 +1,77 @@
 /* ═══════════════════════════════════════════════════════════
-   RISE Home — the night library's panel and its sky.
-   The sky draws itself (night-library/); this file places it (a band
-   above the panel on a phone, the page behind it on a desk) and lays out
-   the panel: its views, the three parts and their Redraws, and the ask
-   field. The page around it is Portal.css.
+   RISE Home — already reading.
+   The reading's engine fills the page (reading-backdrop.js draws it into
+   .home-engine), one ink scrim keeps every word on it legible, its opening
+   streams in the centre (reading-stream.js), and the bar below names it.
+   Asking is a dialog the Menu opens. The page around it is Portal.css.
    ═══════════════════════════════════════════════════════════ */
+
+.portal-home {
+  position: relative;
+  isolation: isolate;
+  background-image: none;
+}
+
+/* The engine, full-bleed behind everything. Each reading's engine mounts in
+   its own layer and fades in over the last, which goes once it has. */
+.home-engine,
+.home-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.home-engine {
+  overflow: hidden;
+}
+
+.home-engine-layer {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  transition: opacity 900ms var(--sy-ease);
+}
+
+.home-engine-layer.is-shown {
+  opacity: 1;
+}
+
+.home-engine-layer canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+/* The one gradient: ink pooled under the stream, and at the top and bottom
+   under the header and the bar, so text keeps 4.5:1 over any engine, even a
+   white one (86% ink under the stream, 92% under the bar). A phone moves
+   the pool and the bar's ink up with them. */
+.home-scrim {
+  --scrim-pool: ellipse 55% 42% at 50% 46%;
+  --scrim-bar: 62%;
+  background:
+    radial-gradient(var(--scrim-pool), color-mix(in srgb, var(--sy-bg) 86%, transparent), color-mix(in srgb, var(--sy-bg) 86%, transparent) 35%, color-mix(in srgb, var(--sy-bg) 40%, transparent) 75%, transparent),
+    linear-gradient(180deg, color-mix(in srgb, var(--sy-bg) 72%, transparent), transparent 18%, transparent var(--scrim-bar), color-mix(in srgb, var(--sy-bg) 92%, transparent) calc(var(--scrim-bar) + 18%));
+}
+
+/* The header floats over the reading. The open Menu brings its own ground. */
+.portal-home .sl-header:not(.is-open) {
+  background: transparent;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  border-bottom-color: transparent;
+}
 
 .portal-home .portal-main {
   display: flex;
+  align-items: stretch;
+  flex: 1 1 auto;
+  min-height: 0;
   max-width: none;
-  padding: 0;
+  padding: 0 clamp(16px, 4vw, 56px);
 }
 
 .home {
@@ -17,71 +79,129 @@
   display: flex;
   flex-direction: column;
   min-width: 0;
-  overflow-x: clip;
+  min-height: 0;
 }
 
-/* The sky host: NightSky draws inside it. On a phone, a band above the panel. */
-.home-sky {
-  position: relative;
-  order: -1;
-  flex: none;
-  height: max(220px, 34svh);
+/* The stream, centred in whatever height the bar leaves. */
+.home-stage {
+  flex: 1 1 auto;
+  min-height: 160px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   overflow: hidden;
+  padding: var(--sy-space-5) 0;
 }
 
-/* The sky's layout leaves its left side clear for the desk panel. On a phone
-   the panel sits below the band, so stretch the sky until its stars (x from
-   --sky-x0 to --sky-x1, in percent, set by NightSky) span the band edge to
-   edge (4–96%); NightSky then sizes each star's target (--star-target) so
-   none covers another's centre. */
-.home-sky > .night-sky {
-  width: calc(92% * 100 / (var(--sky-x1) - var(--sky-x0)));
-  left: calc(4% - var(--sky-x0) * (92% / (var(--sky-x1) - var(--sky-x0))));
-  right: auto;
+.home-stream {
+  width: 100%;
 }
 
-.home-panel {
-  display: flex;
-  flex-direction: column;
-  gap: var(--sy-space-5);
+.home-stream .reading-stream-previous {
+  color: var(--sy-text-3);
+}
+
+.home-stream .reading-stream-current,
+.home-still {
+  text-shadow: 0 0 40px var(--sy-bg);
+}
+
+/* The opening's first line, held still if the stream cannot run. */
+.home-still {
+  margin: 0;
+  max-width: 18ch;
+  margin-inline: auto;
+  text-align: center;
+  font-family: var(--sy-font-reading);
+  font-size: clamp(40px, 6vw, 76px);
+  line-height: 1.08;
+  font-weight: 500;
+  color: var(--sy-text);
+}
+
+.home-alert {
+  order: 1;
+  margin: 0 0 var(--sy-space-4);
+}
+
+/* Continue is after the keys in focus order, and drawn above the bar as a pill. */
+.portal-home .portal-continue {
+  order: 2;
+  align-self: flex-start;
+  width: auto;
+  max-width: 100%;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sy-space-3);
+  margin-bottom: var(--sy-space-4);
+  padding: 0 var(--sy-space-3) 0 var(--sy-space-4);
+  border: 1px solid var(--sy-line-strong);
+  border-radius: var(--sy-radius-full);
+  background: rgba(6, 5, 26, 0.4);
+}
+
+.portal-home .portal-continue[hidden] {
+  display: none;
+}
+
+.portal-home .continue-title {
   min-width: 0;
-  padding: var(--sy-space-5) var(--sy-space-4) var(--sy-space-6);
-  background: var(--sy-bg);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--sy-font-sans);
+  font-size: 15px;
+  line-height: 20px;
+  letter-spacing: 0;
 }
 
-.home-view {
+.home-bar {
+  order: 3;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--sy-space-5);
+}
+
+.home-caption {
   display: flex;
   flex-direction: column;
-  gap: var(--sy-space-4);
+  gap: var(--sy-space-1);
+  min-width: 0;
+  max-width: 60ch;
 }
 
-/* Display: Instrument Serif, never below 32px. */
+.home-label {
+  margin: 0;
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--sy-text-2);
+  overflow-wrap: anywhere;
+}
+
+/* The reading's name: the page's one heading, set as a caption. */
 .home-title {
   margin: 0;
-  font-family: var(--sy-font-serif);
+  min-height: 26px;
+  font-family: var(--sy-font-sans);
+  font-size: 18px;
+  line-height: 26px;
   font-weight: 400;
-  font-size: clamp(40px, 5.4vw, 76px);
-  line-height: 0.95;
-  letter-spacing: -0.02em;
   color: var(--sy-text);
-  overflow-wrap: break-word;
+  overflow-wrap: anywhere;
 }
 
-.home-title-result {
-  font-size: clamp(40px, 5vw, 72px);
-}
-
-.home-title-ask {
-  font-size: clamp(36px, 3.6vw, 52px);
-  line-height: 1.05;
-}
-
-.home-lede {
-  margin: 0;
-  max-width: 34ch;
-  font-size: clamp(17px, 1.4vw, 20px);
-  line-height: 1.5;
+.home-note {
+  margin: var(--sy-space-1) 0 0;
+  font-size: 14px;
+  line-height: 20px;
   color: var(--sy-text-body);
+}
+
+.home-note[hidden] {
+  display: none;
 }
 
 .home-actions {
@@ -91,240 +211,25 @@
   gap: var(--sy-space-3);
 }
 
-/* Today's poem: a card under the keys (src/components/today/today-card.js).
-   A plain link stands in until it loads. The sky stays the live plate; the
-   card's mark is drawn once and still. */
-.home-today {
-  margin: 0;
+.home-actions .btn {
+  font-size: 16px;
+  padding: 0 22px;
 }
 
-.home-today-card {
-  --sy-plate-tick: var(--sy-accent-rise);
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
-  align-items: center;
-  gap: var(--sy-space-4);
-  box-sizing: border-box;
-  width: 100%;
-  padding: var(--sy-space-4) var(--sy-space-5) var(--sy-space-4) var(--sy-space-4);
-  color: inherit;
-  font: inherit;
-  text-align: left;
-  cursor: pointer;
-  transition: border-color var(--sy-dur-hover) var(--sy-ease);
-}
-
-.home-today-card:hover {
-  border-color: var(--sy-ice);
-}
-
-.home-today-mark {
-  display: block;
-  width: 88px;
-  height: 88px;
-}
-
-.home-today-body {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  min-width: 0;
-}
-
-.home-today-eyebrow {
-  font-family: var(--sy-font-mono);
-  font-size: 12px;
-  font-weight: 500;
-  letter-spacing: 0.14em;
-  line-height: 1.6;
-  text-transform: uppercase;
-  color: var(--sy-text-2);
-}
-
-/* A narrow card breaks between the label and the date, never inside either. */
-.home-today-eyebrow > span {
-  white-space: nowrap;
-}
-
-/* Display: Instrument Serif, never below 32px. */
-.home-today-title {
-  font-family: var(--sy-font-serif);
-  font-size: 32px;
-  line-height: 1.05;
-  color: var(--sy-text);
-  overflow-wrap: break-word;
-}
-
-.home-today-poet {
-  font-size: 14px;
-  line-height: 20px;
-  color: var(--sy-text-2);
-}
-
-.home-today-line {
-  margin-top: var(--sy-space-1);
-  font-family: var(--sy-font-reading);
-  font-style: italic;
-  font-size: 17px;
-  line-height: 1.4;
-  color: var(--sy-text-body);
-  overflow-wrap: anywhere;
-}
-
-.home-today-go {
-  color: var(--sy-text-2);
-  transition: transform var(--sy-dur-enter) var(--sy-ease), color var(--sy-dur-hover) var(--sy-ease);
-}
-
-.home-today-card:hover .home-today-go {
-  color: var(--sy-text);
-  transform: translateX(4px);
-}
-
-@media (max-width: 640px) {
-  .home-today-card {
-    gap: var(--sy-space-3);
-    padding: var(--sy-space-3) var(--sy-space-4) var(--sy-space-3) var(--sy-space-3);
-  }
-
-  .home-today-mark {
-    width: 64px;
-    height: 64px;
-  }
-}
-
-/* The mood, as a pill with the spectrum's one dot. */
-.home-mood {
-  align-self: flex-start;
-  margin: 0;
-  display: inline-flex;
-  align-items: center;
-  gap: var(--sy-space-2);
-  padding: var(--sy-space-1) var(--sy-space-3);
-  border: 1px solid var(--sy-line-strong);
-  border-radius: var(--sy-radius-full);
-  font-size: 15px;
-  line-height: 20px;
-  font-weight: 500;
-  color: var(--sy-text);
-}
-
-.home-mood-dot {
-  width: 8px;
-  height: 8px;
-  flex: none;
-  border-radius: var(--sy-radius-full);
-  background: var(--sy-spectrum);
-}
-
-.home-byline {
-  margin: calc(-1 * var(--sy-space-2)) 0 0;
-  font-size: 18px;
-  line-height: 26px;
-  color: var(--sy-text-2);
-}
-
-/* Three parts between hairline rules; the text and the mood have a Redraw. */
-.home-parts {
-  margin: 0;
-  padding: 0;
-  list-style: none;
-  border-top: 1px solid var(--sy-line);
-}
-
-.home-part {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: var(--sy-space-3);
-  padding: var(--sy-space-3) 0;
-  border-bottom: 1px solid var(--sy-line);
-}
-
-.home-part-body {
-  flex: 1;
-  min-width: 0;
-}
-
-.home-part-label {
-  margin: 0 0 var(--sy-space-1);
-  font-size: 13px;
-  line-height: 18px;
-  font-weight: 500;
-  color: var(--sy-text-2);
-}
-
-.home-part-value {
-  margin: 0;
-  font-size: 15px;
-  line-height: 22px;
-  color: var(--sy-text-body);
-  overflow-wrap: anywhere;
-}
-
-.home-part-name {
-  display: block;
-  font-weight: 500;
-  color: var(--sy-text);
-}
-
-.home-redraw {
-  flex: none;
-  padding: 0 var(--sy-space-3) 0 var(--sy-space-2);
-}
-
-.home-lines {
-  margin: var(--sy-space-1) 0 0;
-  font-family: var(--sy-font-reading);
-  font-style: italic;
-  font-size: 19px;
-  line-height: 1.45;
-  color: var(--sy-text);
-  white-space: pre-line;
-  overflow-wrap: anywhere;
-}
-
-.home-passage-loading {
-  display: flex;
-  flex-direction: column;
-  gap: var(--sy-space-2);
-  margin-top: var(--sy-space-2);
-}
-
-.home-passage-loading span {
-  height: 14px;
-  border-radius: var(--sy-radius-sm);
-  background: var(--sy-surface-2);
-  animation: home-pulse 1.4s var(--sy-ease) infinite;
-}
-
-.home-passage-loading span:nth-child(2) { width: 85%; }
-.home-passage-loading span:nth-child(3) { width: 60%; }
-
-@keyframes home-pulse {
-  50% { opacity: 0.45; }
-}
-
-.home-note {
-  margin: 0;
-  padding: var(--sy-space-3) var(--sy-space-4);
-  border: 1px solid var(--sy-line-strong);
-  border-radius: var(--sy-radius);
-  font-size: 14px;
-  line-height: 20px;
-  color: var(--sy-text-body);
+.home-actions .btn-primary {
+  padding: 0 28px;
+  font-weight: 600;
 }
 
 .home-link {
-  align-self: flex-start;
   min-height: 44px;
-  font-size: 15px;
+  padding: 0 var(--sy-space-2);
+  font-size: 16px;
   line-height: 20px;
-  font-weight: 500;
   color: var(--sy-text-2);
   text-decoration: underline;
   text-decoration-color: var(--sy-line-strong);
-  text-underline-offset: 5px;
+  text-underline-offset: 4px;
   transition: color var(--sy-dur-hover) var(--sy-ease);
 }
 
@@ -335,6 +240,96 @@
 .home-link:disabled {
   opacity: 0.4;
   cursor: not-allowed;
+}
+
+/* A hairline under the bar that follows the stream. */
+.home-progress {
+  order: 4;
+  margin-top: 20px;
+  height: 1px;
+  background: var(--sy-line);
+}
+
+.home-progress-fill {
+  display: block;
+  height: 1px;
+  background: var(--sy-spectrum);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 300ms linear;
+}
+
+.portal-home .portal-footer {
+  width: auto;
+  max-width: none;
+  margin: 0;
+  padding: 0 clamp(16px, 4vw, 56px) var(--sy-space-1);
+  border-top: 0;
+}
+
+.portal-home .portal-legal-link {
+  min-height: 44px;
+  font-size: 13px;
+}
+
+/* ─── Ask for a reading: a dialog ─── */
+
+.home-ask {
+  box-sizing: border-box;
+  width: min(560px, calc(100% - 32px));
+  max-height: calc(100svh - 32px);
+  padding: 0;
+  border: 1px solid var(--sy-line-strong);
+  border-radius: var(--sy-radius-panel);
+  background: rgb(11, 10, 38);
+  color: var(--sy-text);
+  box-shadow: var(--sy-shadow-overlay);
+}
+
+.home-ask::backdrop {
+  background: rgba(6, 5, 26, 0.72);
+}
+
+.home-ask-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sy-space-4);
+  padding: var(--sy-space-5);
+}
+
+.home-view {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sy-space-4);
+}
+
+/* Display: Instrument Serif, never below 32px. */
+.home-ask-title {
+  margin: 0;
+  font-family: var(--sy-font-serif);
+  font-weight: 400;
+  font-size: clamp(32px, 4vw, 44px);
+  line-height: 1.05;
+  letter-spacing: -0.01em;
+  color: var(--sy-text);
+}
+
+.home-ask-title label {
+  cursor: inherit;
+}
+
+.home-lede {
+  margin: 0;
+  font-size: 17px;
+  line-height: 1.5;
+  color: var(--sy-text-body);
+}
+
+.home-ask-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sy-space-3);
 }
 
 .home-field {
@@ -357,88 +352,94 @@
   color: var(--sy-text-2);
 }
 
-.home-panel .portal-ai-about {
+.home-ask .portal-ai-about {
   font-size: 14px;
   line-height: 20px;
   color: var(--sy-text-2);
 }
 
-.home-panel .portal-ai-about .home-help {
+.home-ask .portal-ai-about .home-help {
   margin-top: var(--sy-space-2);
 }
 
-.home-status {
+.home-ask-status {
   margin: 0;
-  min-height: 20px;
   font-size: 14px;
   line-height: 20px;
   color: var(--sy-text-2);
 }
 
-.home-status [data-jev-dictation-status]:not(:empty)::before {
+.home-ask-status:has(span:empty + span:empty) {
+  display: none;
+}
+
+.home-ask-status [data-jev-dictation-status]:not(:empty)::before {
   content: " ";
 }
 
-.home-alert {
+.home-ask-alert {
   margin-top: 0;
 }
 
-.portal-home .portal-continue {
-  padding: var(--sy-space-3) var(--sy-space-2);
-}
-
-.portal-home .portal-footer {
-  justify-content: space-between;
-}
-
-/* A desk: the sky fills the page under the header, and the panel sits on
-   the left over an ink scrim that fades out before the stars begin. */
-@media (min-width: 900px) {
-  .home {
-    position: relative;
-    isolation: isolate;
-    flex-direction: row;
-    align-items: center;
+/* ─── A phone: the caption, then a full-width key, then a row of two ─── */
+@media (max-width: 899px) {
+  .home-scrim {
+    --scrim-pool: ellipse 80% 30% at 50% 42%;
+    --scrim-bar: 46%;
   }
 
-  .home-sky {
-    position: absolute;
-    inset: 0;
-    z-index: 0;
-    height: auto;
+  .home-bar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--sy-space-3);
   }
 
-  .home-sky > .night-sky {
-    left: 0;
-    right: 0;
-    width: auto;
+  .home-caption {
+    display: block;
   }
 
-  .home::before {
-    content: "";
-    position: absolute;
-    inset: 0;
-    z-index: 1;
-    pointer-events: none;
-    background: linear-gradient(90deg, color-mix(in srgb, var(--sy-bg) 94%, transparent) 0%, color-mix(in srgb, var(--sy-bg) 82%, transparent) 30%, transparent 46%);
+  .home-label,
+  .home-title {
+    display: inline;
+    font-size: 15px;
+    line-height: 22px;
   }
 
-  .home-panel {
-    position: relative;
-    z-index: 2;
-    box-sizing: border-box;
-    width: min(540px, 100%);
-    padding: var(--sy-space-7) clamp(16px, 4vw, 56px);
-    background: transparent;
+  .home-label::after {
+    content: ". ";
+  }
+
+  .home-actions {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .home-actions .btn-primary {
+    grid-column: 1 / -1;
+    min-height: 50px;
+    font-size: 17px;
+  }
+
+  .home-progress {
+    margin-top: var(--sy-space-4);
+  }
+
+  .home-stream .reading-stream-previous {
+    font-size: 20px;
+  }
+
+  .home-stream .reading-stream-current,
+  .home-still {
+    font-size: clamp(34px, 10.5vw, 42px);
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .home-passage-loading span {
-    animation: none;
+  .home-engine-layer {
+    transition: none;
   }
 
-  .home-today-card:hover .home-today-go {
-    transform: none;
+  .home-progress-fill {
+    transition: none;
   }
 }
