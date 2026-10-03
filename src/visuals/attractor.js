@@ -186,10 +186,11 @@ const KALEIDO_MUL = 0.52;
 // Sustained frame rates below DEGRADE_BELOW_FPS step down, above
 // RESTORE_ABOVE_FPS step back up. The floor sits under 30fps, so a
 // display or power saver that caps animation at 30fps is not mistaken
-// for load. The gap is wider than one step's gain (about 1.5-1.8x on a
-// software canvas), so a restored step does not fall straight back.
+// for load. One step measured 1.78-1.85x faster on a software canvas;
+// the band is 2.2x, so a restored step does not fall straight back, and
+// a 60Hz display still restores.
 const DEGRADE_BELOW_FPS = 25;
-const RESTORE_ABOVE_FPS = 45;
+const RESTORE_ABOVE_FPS = 55;
 const QUALITY_SAMPLE_FRAMES = 45;
 // A longer gap is a hidden tab, an offscreen frame or a pause, not a frame.
 const LONG_GAP_MS = 500;

@@ -350,6 +350,22 @@ describe('Attractor adaptive quality', () => {
     field.destroy();
   });
 
+  it('does not cycle when one step down speeds frames past where it stepped', () => {
+    const { field, frames } = liveField({ form: 'kaleido' });
+    // Just under the floor at full detail; each step measured 1.78-1.85x
+    // faster in the headless shell, so take the largest.
+    const fps = quality => 24.5 * 1.85 ** quality;
+    frames(46, 1000 / fps(0));
+    expect(field.quality).toBe(1);
+    const seen = new Set();
+    for (let i = 0; i < 45 * 10; i++) {
+      frames(1, 1000 / fps(field.quality));
+      seen.add(field.quality);
+    }
+    expect([...seen]).toEqual([1]);
+    field.destroy();
+  });
+
   it('does not count a tab switch or a pause as a slow frame', () => {
     const { field, frames, wait } = liveField({ form: 'kaleido' });
     // A hidden tab gets no frames at all: one long gap in a smooth window.
