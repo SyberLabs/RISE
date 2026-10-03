@@ -1,5 +1,5 @@
 import { expect, it } from 'vitest';
-import { JEV_INKS, JEV_PALETTES, jevColors } from './jev-palette.js';
+import { JEV_COLOR_NAMES, JEV_INKS, JEV_PALETTES, jevColors } from './jev-palette.js';
 import { JEV_COLOR_THEMES, isJevColorTheme } from './jev-color-themes.js';
 
 function luminance(hex) {
@@ -9,6 +9,16 @@ function luminance(hex) {
   });
   return 0.2126 * red + 0.7152 * green + 0.0722 * blue;
 }
+
+it('keeps palette names on exactly the same closed theme vocabulary', () => {
+  expect(Object.keys(JEV_COLOR_NAMES)).toEqual(Object.keys(JEV_PALETTES));
+  for (const [id, names] of Object.entries(JEV_COLOR_NAMES)) {
+    expect(names).toEqual({
+      ink: `${id[0].toUpperCase() + id.slice(1)} text`,
+      ground: `${id[0].toUpperCase() + id.slice(1)} backdrop`
+    });
+  }
+});
 
 it('keeps every offered text and background pairing readable', () => {
   expect(new Set(Object.values(JEV_INKS)).size).toBe(6);
