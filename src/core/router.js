@@ -24,6 +24,8 @@ function isStaleChunkError(error) {
         .test(message);
 }
 
+import { ROUTE_ALIASES, pathForRoute, routeFromPath } from './route-url.js';
+
 export class Router {
     constructor(options = {}) {
         this.views = new Map();
@@ -39,6 +41,7 @@ export class Router {
         // Callbacks
         this.onNavigationIntent = options.onNavigationIntent || (() => {});
         this.onViewChange = options.onViewChange || (() => { });
+        this.history = options.history || globalThis.history;
 
         this.handleKeydown = this.handleKeydown.bind(this);
         document.addEventListener('keydown', this.handleKeydown);
@@ -63,7 +66,10 @@ export class Router {
      * @param {string} viewName - Target view
      * @param {object} options - { data, replace, skipStack }
      */
-    async navigate(viewName, options = {}, queuedRevision) {
+    async navigate(requestedView, options = {}, queuedRevision) {
+        // Old ids stay valid forever: the table in route-url.js says where
+        // each one lives now.
+        const viewName = ROUTE_ALIASES[requestedView] ?? requestedView;
         const revision = queuedRevision ?? ++this.navigationRevision;
         if (queuedRevision === undefined) this.onNavigationIntent(viewName, options);
         console.log(`[Router] Navigate to: ${viewName}, from: ${this.currentView}`);
@@ -135,6 +141,7 @@ export class Router {
                 this.viewStack.push(previousViewName);
             }
             this.currentView = viewName;
+            this.writeAddress(viewName, options);
             this.onViewChange(viewName, options.data);
             succeeded = true;
         } catch (error) {
@@ -194,6 +201,41 @@ export class Router {
             pending.resolve(pendingSucceeded === true);
         }
         return succeeded;
+    }
+
+    /**
+     * Give the active view its address. Nothing is written when the id has
+     * none, or when the address bar already names this room, so a cold load
+     * on a public path and a Back that landed here leave history alone.
+     * `keepUrl` is for a navigation that follows the address bar (a cold load,
+     * Back): the bar is already the truth, and a slower navigation settling
+     * late must not write an older address over a newer one.
+     * `replaceUrl` overrides `replace` for the address alone, since `replace`
+     * also keeps the view out of the back stack.
+     */
+    writeAddress(id, options) {
+        if (options.keepUrl === true) return;
+        // A hash is a door the router does not own (`#rosary`); rewriting the
+        // path would drop it.
+        if (globalThis.location?.hash) return;
+        const target = pathForRoute(id, options.data);
+        const here = globalThis.location;
+        if (!target || !this.history || !here) return;
+        if (target === here.pathname + here.search) return;
+        const current = routeFromPath(here.pathname, here.search);
+        if (current?.id === id && pathForRoute(id, current.data) === target) return;
+        // The state is for the next reader of history, not a copy of the
+        // room: data too large to be an address (a session) is left out.
+        let data = {};
+        try {
+            const text = JSON.stringify(options.data ?? {});
+            if (text.length <= 4000) data = JSON.parse(text);
+        } catch { /* unserializable data stays out of history */ }
+        try {
+            this.history[(options.replaceUrl ?? options.replace) ? 'replaceState' : 'pushState']({ id, data }, '', target);
+        } catch (error) {
+            console.warn('[Router] Could not write the address:', error);
+        }
     }
 
     /**

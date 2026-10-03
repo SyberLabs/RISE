@@ -18,7 +18,7 @@
  * exist; the app asks the manifest before it trusts a slug.
  */
 
-import { KEYSTONE_ROUTE_PREFIX, TRY_RISE_PATH, keystonePath } from './keystone-paths.js';
+import { KEYSTONE_ROUTE_PREFIX, TRY_RISE_PATH } from './keystone-paths.js';
 
 export const VISUAL_LAB_PATH = '/visual-lab';
 export const VISUAL_CATALOG_PATH = '/visual-catalog';
@@ -83,7 +83,7 @@ const ROUTES = [
     {
         id: 'keystones',
         pattern: TRY_RISE_PATH,
-        build: data => (data?.slug ? keystonePath(data.slug) : TRY_RISE_PATH),
+        build: () => TRY_RISE_PATH,
         parse: () => ({})
     },
     {

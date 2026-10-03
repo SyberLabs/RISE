@@ -14,8 +14,8 @@ import { compileSession } from './core/session-compiler.js';
 import { PACE_CURVE_IDS } from './core/pacing.js';
 import { resolveNextLibraryDivision } from './core/reading-continuation.js';
 import { isRosaryDoor } from './core/rosary-door.js';
-import { TRY_RISE_PATH, isTryRisePath } from './core/keystone-paths.js';
-import { isJevSceneDemoPath, sceneSampleFromPath } from './core/jev-demo-path.js';
+import { routeFromPath } from './core/route-url.js';
+import { sceneSampleFromPath } from './core/jev-demo-path.js';
 import { KEYSTONE_SESSION_ORIGIN } from './app/chamber-exit.js';
 
 import { errorBoundary, ErrorCategory } from './core/error-boundary.js';
@@ -30,17 +30,6 @@ import { clampReadingWpm } from './core/reading-limits.js';
 import { createRouteManifest } from './app/route-manifest.js';
 import { installTestBridge } from './app/test-bridge.js';
 
-const VISUAL_LAB_PATH = '/visual-lab';
-const VISUAL_CATALOG_PATH = '/visual-catalog';
-const LIVE_PATH = '/live';
-const EMOTIONS_PATH = '/emotions';
-const TODAY_PATH = '/today';
-const PUBLIC_ROOM_PATHS = Object.freeze({
-    'visual-lab': VISUAL_LAB_PATH,
-    'visual-catalog': VISUAL_CATALOG_PATH,
-    emotions: EMOTIONS_PATH,
-    today: TODAY_PATH
-});
 import { watchTabFreshness } from './core/tab-freshness.js';
 import { takeOpenRouterReturn } from './core/openrouter-callback.js';
 
@@ -260,10 +249,6 @@ class App {
         // Keystone paths are durable public entry points.  They resolve to a
         // threshold view first; admission and launch still happen through the
         // exact manifest gate rather than from URL text alone.
-        const { keystoneSlugFromPath } = await import('./content/keystones.js');
-        const directKeystone = keystoneSlugFromPath(window.location.pathname);
-        const directTryRise = isTryRisePath(window.location.pathname);
-        const directJevSceneDemo = isJevSceneDemoPath(window.location.pathname);
         // A minted sequence is the same kind of public entry point. TWO
         // QUESTIONS, NOT ONE: whether this is a mint URL at all, and which
         // mint it names. A printed code outlives the sequence it names, so
@@ -310,26 +295,15 @@ class App {
             await this.router.navigate(staleTarget, { data: staleData });
         } else if (isRosaryDoor()) {
             await this.router.navigate('rosarium', { data: { door: true } });
-        } else if (directKeystone) {
-            await this.router.navigate('keystones', { data: { slug: directKeystone } });
-        } else if (directTryRise) {
-            await this.router.navigate('keystones');
-        } else if (directJevSceneDemo) {
-            await this.router.navigate('portal', { data: { demoMode: true } });
         } else if (mintedSlug) {
             await this.router.navigate('mint', { data: { entry: houseProgram(mintedSlug) } });
-        } else if (window.location.pathname === VISUAL_LAB_PATH) {
-            await this.router.navigate('visual-lab');
-        } else if (window.location.pathname === VISUAL_CATALOG_PATH) {
-            await this.router.navigate('visual-catalog', { data: { search: window.location.search } });
-        } else if (window.location.pathname === LIVE_PATH) {
-            await this.router.navigate('live');
-        } else if (window.location.pathname === EMOTIONS_PATH) {
-            await this.router.navigate('emotions');
-        } else if (window.location.pathname === TODAY_PATH) {
-            await this.router.navigate('today');
         } else {
-            await this.router.navigate('portal');
+            // Every other address is the table's to resolve (route-url.js);
+            // the cases above are not addresses: a hash, a query code, a
+            // stale-build recovery, and the minted /p/ path, which opens a
+            // reading through the register rather than naming a room.
+            const route = await this.resolveAddress();
+            await this.router.navigate(route.id, { data: route.data, replace: true, keepUrl: !route.rewrite });
         }
 
         this.watchTabFreshness();
@@ -547,41 +521,10 @@ class App {
     }
 
     handleNavigate(viewName, data, { replaceUrl = false } = {}) {
-        // Keystone URLs are real entry points, not a hash painted onto an
-        // unrelated view. Leaving the release corridor explicitly returns
-        // the browser to the application root so reload and Back agree with
-        // the surface the reader can actually see.
-        //
-        // The try-rise screen is also where a keystone reading returns to,
-        // and it returns from `/keystone/<slug>` — a path this used to treat
-        // as already correct, which left the address bar naming a reading
-        // that had been closed. The test is now whether the browser is on
-        // try-rise, not whether it is somewhere in the corridor.
-        if (viewName === 'keystones' && !isTryRisePath(window.location.pathname)) {
-            window.history[replaceUrl ? 'replaceState' : 'pushState']({}, '', TRY_RISE_PATH);
-        }
-        if (viewName === 'portal'
-            && /^\/(?:try-rise|keystone(?:\/|$))/u.test(window.location.pathname)) {
-            window.history.pushState({}, '', '/');
-        }
-        if (viewName !== 'portal' && isJevSceneDemoPath(window.location.pathname)) {
-            window.history.pushState({}, '', '/');
-        }
-        const publicPath = PUBLIC_ROOM_PATHS[viewName] || null;
-        const onPublicPath = Object.values(PUBLIC_ROOM_PATHS).includes(window.location.pathname);
-        if (publicPath && window.location.pathname !== publicPath) {
-            window.history[replaceUrl ? 'replaceState' : 'pushState']({}, '', publicPath);
-        } else if (!publicPath && onPublicPath) {
-            window.history.pushState({}, '', '/');
-        }
-        if (viewName === 'live' && window.location.pathname !== LIVE_PATH) {
-            window.history[replaceUrl ? 'replaceState' : 'pushState']({}, '', LIVE_PATH);
-        } else if (viewName !== 'live' && window.location.pathname === LIVE_PATH) {
-            window.history.pushState({}, '', '/');
-        }
+        // The router writes the address (src/core/route-url.js owns it).
         // Returned so a caller can wait for the outgoing view to have
         // faded out before disposing of it. See chamber-session-factory.
-        return this.router.navigate(viewName, { data });
+        return this.router.navigate(viewName, { data, replaceUrl });
     }
 
     /**
@@ -734,6 +677,8 @@ class App {
         if (sessionConfig.firstReadPreview === true) {
             session.firstReadPreview = true;
         }
+        // The address the reading keeps while it is open (see route-url.js).
+        if (sessionConfig.publicPath) session.publicPath = sessionConfig.publicPath;
 
         // Store and navigate to chamber-session (immersion)
         this.currentSession = session;
@@ -795,12 +740,9 @@ class App {
                 this.showToast(reason, 5000);
                 return;
             }
-            const path = keystones.keystonePath(slug);
-            if (window.location.pathname !== path) {
-                window.history.pushState({}, '', path);
-            }
             await this.handleBeginSession({
                 ...result.sessionInput,
+                publicPath: keystones.keystonePath(slug),
                 origin: KEYSTONE_SESSION_ORIGIN,
                 firstReadPreview
             });
@@ -854,11 +796,7 @@ class App {
             });
 
             const { programPath } = await import('./core/program-paths.js');
-            const path = programPath(slug);
-            if (window.location.pathname !== path) {
-                window.history.replaceState({}, '', path);
-            }
-            await this.handleCreateSession(project);
+            await this.handleCreateSession({ ...project, publicPath: programPath(slug) });
         } catch (error) {
             console.error('[RISE] Minted sequence refused:', error);
             this.showToast(error.message || 'This sequence could not be opened.', 5000);
@@ -945,6 +883,8 @@ class App {
 
         // Route only while this preparation still owns the launch.
         if (!isCurrent()) return false;
+
+        if (sessionData?.publicPath) session.publicPath = sessionData.publicPath;
 
         // Ensure that preview mode routing flag passes correctly if requested
         if (sessionInput.isPreview) {
@@ -1275,61 +1215,52 @@ class App {
             // pull an in-progress prayer back to the Portal.
             if (isRosaryDoor() || this.router?.getCurrentView() === 'rosarium') return;
             this.handleNavigationIntent('history');
-            const { keystoneSlugFromPath } = await import('./content/keystones.js');
+            const route = await this.resolveAddress();
             if (historyGeneration !== this._historyNavigationGeneration) return;
-            if (window.location.pathname === VISUAL_LAB_PATH) {
-                await this.router?.navigate('visual-lab', { replace: true, skipStack: true });
-                return;
+            const catalog = route.id === 'visual-catalog'
+                ? this.router?.getViewInstance?.('visual-catalog') : null;
+            const isCurrentCatalog = this.router?.getCurrentView?.() === 'visual-catalog';
+            const isEnteringCatalog = this.router?.transitioning === true
+                && this.router.views.get('visual-catalog')?.container
+                && !this.router.views.get('visual-catalog').container.hidden;
+            if (catalog?.update && (isCurrentCatalog || isEnteringCatalog)) {
+                catalog.update(route.data);
+                if (isCurrentCatalog && !this.router.transitioning) return;
             }
-            if (window.location.pathname === VISUAL_CATALOG_PATH) {
-                const data = { search: window.location.search };
-                const route = this.router?.views?.get('visual-catalog');
-                const catalog = this.router?.getViewInstance?.('visual-catalog');
-                const isCurrentCatalog = this.router?.getCurrentView?.() === 'visual-catalog';
-                const isEnteringCatalog = this.router?.transitioning === true
-                    && route?.container && !route.container.hidden;
-                if (catalog?.update && (isCurrentCatalog || isEnteringCatalog)) {
-                    catalog.update(data);
-                    if (isCurrentCatalog && !this.router.transitioning) return;
+            await this.router?.navigate(route.id, {
+                data: route.data, replace: true, skipStack: true, keepUrl: !route.rewrite
+            });
+            // Router deliberately collapses a queued same-route navigation.
+            // Apply the newest address data once the entry has settled.
+            if (route.id === 'visual-catalog'
+                && historyGeneration === this._historyNavigationGeneration
+                && window.location.search === route.data.search) {
+                const settled = this.router?.getViewInstance?.('visual-catalog');
+                if (settled?.update && this.router?.getCurrentView?.() === 'visual-catalog') {
+                    await settled.update(route.data);
                 }
-                await this.router?.navigate('visual-catalog', {
-                    data, replace: true, skipStack: true
-                });
-                // Router deliberately collapses a queued same-route navigation.
-                // Apply the newest address data once the entry has settled.
-                const settledCatalog = this.router?.getViewInstance?.('visual-catalog');
-                if (historyGeneration === this._historyNavigationGeneration
-                    && window.location.pathname === VISUAL_CATALOG_PATH
-                    && window.location.search === data.search
-                    && settledCatalog?.update
-                    && this.router?.getCurrentView?.() === 'visual-catalog') {
-                    await settledCatalog.update(data);
-                }
-                return;
             }
-            if (window.location.pathname === LIVE_PATH) {
-                await this.router?.navigate('live', { replace: true, skipStack: true });
-                return;
-            }
-            if (window.location.pathname === EMOTIONS_PATH) {
-                await this.router?.navigate('emotions', { replace: true, skipStack: true });
-                return;
-            }
-            const slug = keystoneSlugFromPath(window.location.pathname);
-            if (slug || isTryRisePath(window.location.pathname)) {
-                await this.router?.navigate('keystones', {
-                    data: slug ? { slug } : undefined,
-                    replace: true,
-                    skipStack: true
-                });
-                return;
-            }
-            await this.router?.navigate('portal', {
-                data: { demoMode: isJevSceneDemoPath(window.location.pathname) },
-                replace: true,
-                skipStack: true
-             });
          }, options);
+    }
+
+    /**
+     * The room the address bar names, always a room that can open.
+     * Unknown addresses, rooms this build does not register, Keystone slugs
+     * the manifest does not carry, and a reading address with no reading to
+     * show all land somewhere real: the Portal, or the Chamber's setup.
+     */
+    async resolveAddress() {
+        const here = window.location;
+        let route = routeFromPath(here.pathname, here.search);
+        if (route?.id === 'keystones' && route.data.slug) {
+            const { keystoneSlugFromPath } = await import('./content/keystones.js');
+            if (!keystoneSlugFromPath(here.pathname)) route = null;
+        }
+        if (route?.id === 'chamber-session' && !this.currentSession) {
+            route = { id: 'chamber', data: {}, rewrite: true };
+        }
+        if (!route || !this.router?.views?.has(route.id)) route = { id: 'portal', data: {} };
+        return route;
     }
 
     /**

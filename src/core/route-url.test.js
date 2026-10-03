@@ -21,7 +21,7 @@ describe('route urls', () => {
     it('keeps the public paths exactly as they were', () => {
         expect(routeFromPath('/try-rise')).toEqual({ id: 'keystones', data: {} });
         expect(routeFromPath('/keystone/meditations')).toEqual({ id: 'keystones', data: { slug: 'meditations' } });
-        expect(pathForRoute('keystones', { slug: 'meditations' })).toBe('/keystone/meditations');
+        expect(pathForRoute('keystones', { slug: 'meditations' })).toBe('/try-rise');
         expect(pathForRoute('keystones')).toBe('/try-rise');
         expect(pathForRoute('live')).toBe('/live');
         expect(pathForRoute('visual-lab')).toBe('/visual-lab');
