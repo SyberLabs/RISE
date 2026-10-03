@@ -471,15 +471,15 @@ describe('speaking to it', () => {
 });
 
 describe('the runtime visual bridge', () => {
-    it('only discovers and controls the mounted Chamber for the exact runtime Player', async () => {
+    it('only discovers and controls the Chamber playing the exact runtime Player', async () => {
         mount('?voice=paced');
+        // Like the real router while it fades the Chamber in: its reading has begun, but the
+        // previous view is still the current one. The host must not wait for that to change.
         const router = {
-            current: 'live',
             views: new Map(),
-            getCurrentView() { return this.current; },
+            getCurrentView() { return 'live'; },
             getViewInstance(name) { return this.views.get(name)?.instance ?? null; },
             async navigate(name, options = {}) {
-                this.current = name;
                 if (name === 'chamber-session') {
                     const { takeLivePlayer } = await import('../../app/live-handoff.js');
                     const player = takeLivePlayer(options.data);
@@ -505,11 +505,6 @@ describe('the runtime visual bridge', () => {
         expect(chamber.controlVisual).toHaveBeenCalledWith({ surface: 'attractor', parameter: 'intensity', value: 0.7 });
 
         chamber.player = {};
-        expect(host.runtime.discoverVisual()).toBeNull();
-        expect(host.runtime.controlVisual({ surface: 'attractor', parameter: 'intensity', value: 0.7 }))
-            .toEqual({ status: 'refused', code: 'NO_ACTIVE_VISUAL' });
-        chamber.player = player;
-        router.current = 'portal';
         expect(host.runtime.discoverVisual()).toBeNull();
         expect(host.runtime.controlVisual({ surface: 'attractor', parameter: 'intensity', value: 0.7 }))
             .toEqual({ status: 'refused', code: 'NO_ACTIVE_VISUAL' });
