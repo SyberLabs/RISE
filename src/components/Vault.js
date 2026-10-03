@@ -245,11 +245,15 @@ export class Vault {
             </div>` : ''}
           <p role="status" class="text-fog">${escapeHtml(this.portableNotice)}</p>
         </div>
-        <div class="sequences-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1.5rem; margin-top: 1.5rem;">
-          ${this.blueprints.length > 0 ? this.renderCustomItems() : this.renderEmptyCustomState()}
+        <div class="sequences-grid" data-custom-list style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1.5rem; margin-top: 1.5rem;">
+          ${this.renderCustomList()}
         </div>
       </div>
     `;
+  }
+
+  renderCustomList() {
+    return this.blueprints.length > 0 ? this.renderCustomItems() : this.renderEmptyCustomState();
   }
 
   renderEmptyCustomState() {
@@ -522,6 +526,7 @@ export class Vault {
       this.portableNotice = error.message || 'Could not keep this sequence. Try again.';
     }
     this.portableBusy = false;
+    this.updateContent();
     this.refreshBlueprints();
   }
 
@@ -588,13 +593,22 @@ export class Vault {
    */
   refreshBlueprints() {
     this.blueprints = MemoryCore.getWorkshopBlueprints();
-    if (this.currentSection === 'custom') {
-      this.updateContent();
-    }
+    this.updateCustomList();
     void MemoryCore.getWorkshopBlueprintsHydrated().then((views) => {
       this.blueprints = views;
-      if (this.currentSection === 'custom') this.updateContent();
+      this.updateCustomList();
     });
+  }
+
+  /**
+   * Redraw only the kept list. A refresh lands while the reader may already
+   * be using the import controls above it (activate() runs after the view
+   * has faded in; hydration whenever it resolves). Redrawing those controls
+   * would replace the file input and silently drop a file being chosen.
+   */
+  updateCustomList() {
+    const list = this.container.querySelector('[data-custom-list]');
+    if (list) list.innerHTML = this.renderCustomList();
   }
 
   activate() {
@@ -606,6 +620,7 @@ export class Vault {
 
   update(data) {
     if (data?.section === 'custom') this.currentSection = 'custom';
+    if (this.currentSection === 'custom') this.updateContent();
     this.refreshBlueprints();
     this.updateActiveNav();
   }
