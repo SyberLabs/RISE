@@ -68,7 +68,7 @@ test('Keystone corridor has durable cold, reload, launch, and Back behavior', as
   await expect(page).toHaveURL(/\/$/u);
   await expect.poll(() => page.evaluate(() => window.__RISE_TEST__?.getRouterState().currentView), {
     timeout: 15_000
-  }).toBe('portal');
+  }).toBe('home');
 
   // Re-enter, so the Back-from-a-live-reading behaviour below is still
   // exercised from inside a reading.
@@ -90,7 +90,7 @@ test('Keystone corridor has durable cold, reload, launch, and Back behavior', as
   await expect(page).toHaveURL(/\/$/u);
   await expect.poll(() => page.evaluate(() => window.__RISE_TEST__?.getRouterState().currentView), {
     timeout: 15_000
-  }).toBe('portal');
+  }).toBe('home');
 
   await page.goto('/try-rise');
   await expect(page.locator('#keystone-meditations')).toBeVisible({ timeout: 15_000 });
@@ -129,7 +129,7 @@ test('pilot completion offers a consented answer and one next reading', async ({
   await expect(page.locator('#chamber-display')).toBeVisible({ timeout: 20_000 });
 
   // Exercise the real completion UI without waiting for the full timed reading.
-  await page.evaluate(() => window.__RISE_TEST__.getView('chamber-session').onSessionComplete());
+  await page.evaluate(() => window.__RISE_TEST__.getView('read').paneInstance('chamber').onSessionComplete());
   const answer = page.locator('[data-pilot-feedback="yes"]');
   await expect(answer).toBeVisible();
   await expect(answer).toBeDisabled();

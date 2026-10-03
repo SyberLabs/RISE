@@ -21,7 +21,11 @@ async function jump(page) {
 }
 
 // A page in the middle of navigating has no test bridge yet; that is "not there yet", not a failure.
-const view = page => page.evaluate(() => window.__RISE_TEST__?.getRouterState().currentView).catch(() => null);
+// Read's panes are named as `read/setup`, `read/chamber`.
+const view = page => page.evaluate(() => {
+  const currentView = window.__RISE_TEST__?.getRouterState().currentView;
+  return currentView === 'read' ? `read/${window.__RISE_TEST__.getView('read')?.activePane}` : currentView;
+}).catch(() => null);
 
 test('Home reaches the wormhole from its Menu, and the page brings the reader back', async ({ page }) => {
   await authorize(page);
@@ -59,7 +63,7 @@ test('DOCK plays the destination, and leaving the reading returns to Home', asyn
   await page.locator('#chamber-display').hover();
   await page.locator('#exit-btn').click();
   await page.locator('#exit-confirm').click();
-  await expect.poll(() => view(page), { timeout: 15_000 }).toBe('portal');
+  await expect.poll(() => view(page), { timeout: 15_000 }).toBe('home');
 });
 
 test('ADJUST COURSE opens Reader Setup with the destination set, and leaving a reading from there returns to it', async ({ page }) => {
@@ -67,10 +71,10 @@ test('ADJUST COURSE opens Reader Setup with the destination set, and leaving a r
   await jump(page);
   await page.locator('#adjust').click();
 
-  await expect.poll(() => view(page), { timeout: 30_000 }).toBe('chamber');
+  await expect.poll(() => view(page), { timeout: 30_000 }).toBe('read/setup');
   await expect(page.locator('#begin-btn')).toBeEnabled({ timeout: 20_000 });
   const setup = await page.evaluate(() => {
-    const c = window.__RISE_TEST__.getView('chamber').config;
+    const c = window.__RISE_TEST__.getView('read').paneInstance('setup').config;
     return { presentation: !!c.presentation?.chamberFace, adjusted: c.origin?.adjusted, hasText: !!c.text };
   });
   expect(setup).toEqual({ presentation: true, adjusted: true, hasText: true });
@@ -81,7 +85,7 @@ test('ADJUST COURSE opens Reader Setup with the destination set, and leaving a r
   await page.locator('#chamber-display').hover();
   await page.locator('#exit-btn').click();
   await page.locator('#exit-confirm').click();
-  await expect.poll(() => view(page), { timeout: 15_000 }).toBe('chamber');
+  await expect.poll(() => view(page), { timeout: 15_000 }).toBe('read/setup');
 });
 
 test('JUMP AGAIN always changes the destination', async ({ page }) => {

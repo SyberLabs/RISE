@@ -35,7 +35,7 @@ for (const identity of [{ model: 'typesafe/jev-1.13' }]) test(`one ${identity.mo
   expect(calls()).toBe(1);
 
   const result = await page.evaluate(() => {
-    const chamber = window.__RISE_TEST__?.getView('chamber-session');
+    const chamber = window.__RISE_TEST__?.getView('read')?.paneInstance('chamber');
     const last = chamber?.session?.atoms?.find(atom => atom.sourceProgress >= 0.8);
     if (!chamber || !last) return null;
     const visual = chamber._visualSchedule.observe(last);

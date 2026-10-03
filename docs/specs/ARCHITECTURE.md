@@ -24,10 +24,11 @@ of sound. The same compiled session can instead be projected into **Page**, a
 spatial typographic composition. An **Experience Program** can author what
 appears when.
 
-Around that engine sit rooms: Portal, Library, Make, Settings. The Library
+Around that engine sit five rooms: Home, Read, Library, Make, Settings. Read
+holds the reader setup, the Chamber and the live host as panes; the Library
 opens the scripture, the liturgies, the journeys, the keystones and the day's
 poem as panes; Make opens the Workshop, the Vault, the Scriptorium, the Visual
-Lab and the Visual Catalog as tabs.
+Lab and the Visual Catalog as tabs. The Guide is an overlay, not a room.
 
 Cloudflare serves the app shell and the static catalog. The Library's optional
 recommendation runs in the reader's browser, on the reader's own provider: it
@@ -105,14 +106,14 @@ else is a recommendation.
 ║       ▼              │               ▼              ▼                ▼       ║
 ║  ┌─────────────┐     │        ┌────────────────────────────────────────────┐ ║
 ║  │   ROOMS     │     │        │  SURFACES                                  │ ║
-║  │  Portal     │     └───────▶│  Chamber (stream, in time)                 │ ║
-║  │  Library    │              │  Page    (spatial, same Session)           │ ║
+║  │  Home       │     └───────▶│  Chamber (stream, in time)                 │ ║
+║  │  Read       │              │  Page    (spatial, same Session)           │ ║
 ║  │  + its panes│              └────────────────────────────────────────────┘ ║
+║  │  Library    │                                                             ║
+║  │  + its panes│   each room is lazily imported with its own stylesheet      ║
 ║  │  Make       │                                                             ║
-║  │  + its tabs │   each room is lazily imported with its own stylesheet      ║
-║  │  Settings   │                                                             ║
-║  │             │   ┌──────────────────────────────────────────────────────┐  ║
-║  │             │   │  SOURCES  registry + providers + IndexedDB cache      │  ║
+║  │  + its tabs │   ┌──────────────────────────────────────────────────────┐  ║
+║  │  Settings   │   │  SOURCES  registry + providers + IndexedDB cache      │  ║
 ║  │             │   │  archive   (failure degrades one, not the app)        │  ║
 ║  │             │   │                                                       │  ║
 ║  │             │   │                                                       │  ║
@@ -255,7 +256,7 @@ make document-level listeners lifecycle-aware with `activate()`,
 `deactivate()`, `destroy()`. A rejected async initializer must not leave the
 transition lock held or the previous view hidden. Every route has a path,
 declared once in `src/core/route-url.js`; old route ids remain valid as
-aliases there. Library and Make host their panes through
+aliases there. Read, Library and Make host their panes through
 `src/components/room-panes.js`; the router updates such a room in place.
 
 **`src/core/session-compiler.js`** is the only way a reading is built. Every
@@ -331,7 +332,9 @@ outliving its room, fails a build.
 | Library | `src/components/Library.js` | the prepared editions, scripture, liturgies, journeys, keystones and the day's poem, with provenance on every edition |
 | Make | `src/components/Make.js` | authoring: composition, saved work, the Scriptorium, the visual lab and catalog |
 | Settings | `src/components/Settings.js` | preferences, affect, export and erase |
-| Guide | `src/components/Guide.js` | onboarding, as an overlay rather than a route |
+
+`src/components/Guide.js` is onboarding, opened as an overlay over any room
+rather than routed; it is listed here because it is a place a reader can be.
 
 Eight modules in `src/components/` are deliberately not rooms; they support
 routed rooms: `src/components/Admit.js`,
@@ -343,30 +346,68 @@ routed rooms: `src/components/Admit.js`,
 chrome helper `src/components/atlas.js`, which lazily imports the vendored
 design-system kit in `src/vendor/syber/` (the ambient atmosphere behind Home
 and the RISE sigil) so neither engine is part of first load.
-The Library's programs are panes it mounts, not rooms (§8.43):
-`src/components/library/Chapel.js` (the scripture corpus),
-`src/components/library/Rosarium.js` (the Rosary, on the liturgy engine),
-`src/components/library/Via.js` (the Stations of the Cross),
-`src/components/library/Journeys.js` (authored long-form experiences),
-`src/components/library/Keystones.js` (the public entry corridor),
-`src/components/library/Mint.js` (the door a minted sequence opens onto),
-`src/components/today/TodayPoem.js` (the day's poem) and
-`src/components/library/Curia.js` (the source and rights record). Their old
-route ids and paths still work: `src/core/route-url.js` maps each to the
-Library with the pane named in `data.pane`.
-Make's tabs are panes too (§8.44): `src/components/make/Workshop.js`
-(authoring a composition), `src/components/make/Vault.js` (saved compositions
-and archetypes), `src/components/make/Scriptorium.js` (a model composes; a gate
-refuses), `src/components/make/VisualLab.js` (exploring, saving and reusing
-Living Flame scenes) and `src/components/make/VisualCatalog.js` (searching the
-procedural surfaces and opening admitted local live samples). Their old ids and
-paths map to Make the same way.
-The Emotions map (`src/components/settings/Emotions.js`, the optional affect
-map and inspectable list) is the Affect section of Settings, mounted when its
-toggle is turned on; `/emotions` opens Settings with that section open.
-The Navigator's columns, text material, preview, and Chapel trays live in `src/components/visual-navigator/` so the
-shell stays a mount point. Chamber mounts a Fit-mask runtime from
-`src/core/fit-mask-runtime.js` rather than owning the glyph-mask state machine.
+
+Everything else in `src/components/` sits in a directory, by the room it
+serves:
+
+- `src/components/read/` is Read's panes and the engine's Stream projection
+  (§8.45): `src/components/read/ChamberOrbital.js` (the reader setup),
+  `src/components/read/Chamber.js` (a reading, in time) and
+  `src/components/read/chamber-undercurrent.js` (the panel a dive opens). The
+  live host is Read's third pane but lives in `src/live/host/`, outside the
+  components, because it is a host for the live layer and not a room.
+- `src/components/library/` is the Library's programs, panes it mounts rather
+  than rooms (§8.43): `src/components/library/Chapel.js` (the scripture
+  corpus), `src/components/library/Rosarium.js` (the Rosary, on the liturgy
+  engine), `src/components/library/Via.js` (the Stations of the Cross),
+  `src/components/library/Journeys.js` (authored long-form experiences),
+  `src/components/library/Keystones.js` (the public entry corridor),
+  `src/components/library/Mint.js` (the door a minted sequence opens onto) and
+  `src/components/library/Curia.js` (the source and rights record).
+- `src/components/today/` is the day's poem, the Library's Today pane:
+  `src/components/today/TodayPoem.js`, with its card
+  `src/components/today/today-card.js`, backdrop
+  `src/components/today/backdrop.js` and mark
+  `src/components/today/mandala.js`.
+- `src/components/make/` is Make's tabs (§8.44):
+  `src/components/make/Workshop.js` (authoring a composition),
+  `src/components/make/Vault.js` (saved compositions and archetypes),
+  `src/components/make/Scriptorium.js` (a model composes; a gate refuses),
+  `src/components/make/VisualLab.js` (exploring, saving and reusing Living
+  Flame scenes) and `src/components/make/VisualCatalog.js` (searching the
+  procedural surfaces and opening admitted local live samples).
+- `src/components/workshop/` is the Workshop's parts:
+  `src/components/workshop/WorkshopStudioShell.js`,
+  `src/components/workshop/StudioInspector.js`,
+  `src/components/workshop/StudioTransport.js`,
+  `src/components/workshop/ScoreCanvas.js`,
+  `src/components/workshop/SceneStack.js` and its
+  `src/components/workshop/scene-api.js`,
+  `src/components/workshop/sequence-map.js`,
+  `src/components/workshop/AssetLibrary.js`,
+  `src/components/workshop/PassageAssignmentCard.js`,
+  `src/components/workshop/workshop-ui-state.js` and
+  `src/components/workshop/workshop-visual-assets.js`.
+- `src/components/settings/` is the Emotions map
+  (`src/components/settings/Emotions.js`, the optional affect map and
+  inspectable list), the Affect section of Settings, mounted when its toggle
+  is turned on; `/emotions` opens Settings with that section open.
+- `src/components/visual-navigator/` is the Navigator's columns, text
+  material, preview and Chapel trays, so `src/components/VisualNavigator.js`
+  stays a mount point: `src/components/visual-navigator/directory.js`,
+  `src/components/visual-navigator/text.js`,
+  `src/components/visual-navigator/preview.js`,
+  `src/components/visual-navigator/chapel.js`,
+  `src/components/visual-navigator/markup.js`,
+  `src/components/visual-navigator/live-stage.js` and
+  `src/components/visual-navigator/world-stage.js`.
+- `src/components/night-library/` is the star map behind Home's text:
+  `src/components/night-library/NightSky.js`.
+
+Every old route id and path still works: `src/core/route-url.js` maps each to
+one of the five rooms, with the pane it opens named in `data.pane`. The Chamber
+mounts a Fit-mask runtime from `src/core/fit-mask-runtime.js` rather than
+owning the glyph-mask state machine.
 
 ---
 
@@ -797,8 +838,9 @@ of `settled`, `open`, `deferred`, or `reversed`.
   so it is what an unasked reader should meet, and it needs no consent prompt.
   Raising a photosensitivity warning over a surface that does not carry the
   risk asks a reader to accept a danger that is not there. A domain that
-  authors its own surface — Chapel, a Vault program — still wins, per the
-  three-layer law: content authors, the runtime follows, the cortex renders.
+  authors its own surface — a Chapel book, a program saved in Make's Vault —
+  still wins, per the three-layer law: content authors, the runtime follows,
+  the cortex renders.
 - **Status:** settled.
 
 ### 8.23 Production carries no write path
@@ -843,9 +885,10 @@ of `settled`, `open`, `deferred`, or `reversed`.
 ### 8.26 The doorway is a preset over the engine, not a second engine
 
 - **Chosen:** a stance (`src/core/stances.js`) is a named partial of the
-  configuration the Orbital already builds. It writes fields in the visual,
-  audio and temporal orbits, and what it emits takes the same road as a
-  hand-built configuration: the Orbital's persistence normalizers, then
+  configuration Read's setup pane (the Orbital) already builds. It writes
+  fields in the visual, audio and temporal orbits, and what it emits takes the
+  same road as a hand-built configuration: the Orbital's persistence
+  normalizers, then
   `normalizeVisualConfig` in the session compiler. Which stance a reader is
   standing in is derived from the configuration, never stored.
 - **Rejected:** a simplified reading mode with its own path to the cortex; and
@@ -1025,7 +1068,7 @@ of `settled`, `open`, `deferred`, or `reversed`.
   paced, time-based reading, the Current. A room is an entrance (it chooses a
   source, a pace and layers and hands them to `compileSession`), a contributor
   (it adds a source, a layer, a projection or a pace), or a rail beside the
-  reading (Curia, Settings). The two constructors are guarded by a test, every
+  reading (the Library's provenance pane, Settings). The two constructors are guarded by a test, every
   entrance's output is checked against one contract, and the reading that follows
   a division is derived from the Current by classifying each Session field
   rather than by copying a list.
@@ -1073,9 +1116,9 @@ of `settled`, `open`, `deferred`, or `reversed`.
   parent go from the same atom. Speech belongs to the runtime, not the provider,
   and what the reader lived through is kept in the runtime's journal, because
   the reducer's stream is sealed at `current.complete`, long before speech
-  ends. A standalone host at `/live` (`src/live/host/`, deliberately not in
-  `src/components/`, because it is a host and not a room) presents the reading
-  in the one Chamber: the factory adopts the Player the runtime built
+  ends. The host at `/live` (`src/live/host/`, deliberately not in
+  `src/components/`, because it is a host and not a room; Read mounts it as its
+  live pane, §8.45) presents the reading in Read's chamber pane: the factory adopts the Player the runtime built
   (`src/app/live-handoff.js`), the Chamber follows a longer Session and lets go
   of its Player when torn down, and the Player accepts more than one governor
   of atom timing (`Player.govern`) so the speech clock and Recitation coexist.
@@ -1296,21 +1339,47 @@ of `settled`, `open`, `deferred`, or `reversed`.
   the tabs cost no new mechanism. §8.43.
 - **Status:** settled.
 
+### 8.45 Reading is one room with three panes
+
+- **Chosen:** one Read room (`src/components/Read.js`) hosting three panes —
+  `setup` (the reader setup), `chamber` (a compiled session in the Chamber) and
+  `live` (the host of a live Current) — behind the old ids `chamber`,
+  `chamber-session` and `live`, which stay valid as aliases. Setup and chamber
+  never coexist, as when they shared a container; the live host is kept while
+  its readings show. A session travels whole under `data.session` and is never
+  written into history state.
+- **Rejected:** three rooms sharing one container, each a route of its own.
+- **Why:** they are one lifecycle — set up, read, come back — in one
+  container, with one address family (`/read`, `/read/session`, `/live`). One
+  room says so, and the router no longer has to special-case a route that
+  disposes another's instance. The Player is still built in one place: the
+  chamber pane calls `src/app/chamber-session-factory.js` exactly as the route
+  table did, and `src/core/current.test.js` still holds it there.
+- **Status:** settled.
+
 ---
 
 ## 9. What this design costs
 
 Stated plainly so it is never rediscovered as a surprise.
 
+- **Twenty-one old route ids must stay valid forever.** Links, bookmarks,
+  printed cards and code all name rooms that are now panes, so
+  `ROUTE_ALIASES` and `ROUTE_PANES` in `src/core/route-url.js` map each of them
+  onto one of the five rooms. The table only grows; deleting an entry breaks
+  an address somebody holds.
+- **The build needs ffmpeg.** Recitation is encoded to Opus
+  (`scripts/lib/opus.mjs`), and the offline render path encodes with it too
+  (§8.5, §8.6). A machine without it cannot rebuild the voice assets.
 - **The corpus is still versioned in the application repository**, even though
   it no longer travels through the module graph. §8.2 removed the build-time
   cost; *where the bytes live* is a separate question and is still open.
 - **There is no single timeline.** §8.7.
-- **Access control does not exist**, by choice. §8.1, §8.41.
 - **The public shelf serves uncertified candidates** under an override that is
   explicitly temporary and should not become permanent by neglect. §8.21.
 - **The release is gated on people**, and cannot be hurried by engineering.
   §8.15.
+- **Access control does not exist**, by choice. §8.1, §8.41.
 
 ---
 

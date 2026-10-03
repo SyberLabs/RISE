@@ -159,12 +159,12 @@ own key or the host's model and remain switched off by default. See
 - `npm run dev` serves on `http://localhost:5173/`. The Vite dev server also
   mounts dev-only middleware (Curia `POST /__curia/apply`, Export-MP4) that
   does not exist in the production build.
-- Quickest path through the core reading experience: Portal hub → **Try RISE**
-  → pick a canonical reading (e.g. Meditations) → **Begin**. Text then streams
-  over time with generative visuals; the **Page** control switches to a
-  paginated text view.
+- Quickest path through the core reading experience: Home → **Library** →
+  **Keystones** (or open `/try-rise`) → pick a canonical reading (e.g.
+  Meditations) → **Enter reading**. Text then streams over time with
+  generative visuals; the **Page** control switches to a paginated text view.
 - The app persists state in the browser (localStorage and IndexedDB), so a
-  reload may land directly on the Portal hub and skip the first-run intro.
+  reload may land directly on Home and skip the first-run intro.
 
 ## Cloud agent images
 

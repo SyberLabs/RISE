@@ -58,7 +58,7 @@ test('GENESIS samples itself at intervals, and pauses under the page', async ({ 
   // Paginated: figure counts belong to the reading, not to one page.
   const walked = await collectAcrossPages(page);
   const r = await page.evaluate(() => {
-    const ch = window.__RISE_TEST__.getView('chamber-session');
+    const ch = window.__RISE_TEST__.getView('read')?.paneInstance('chamber');
     const imgs = [...document.querySelectorAll('.page-figure.is-shown img')];
     return {
       distinct: new Set(imgs.map(i => i.src)).size,
@@ -84,7 +84,7 @@ test('ATTRACTOR samples itself, and its rAF is halted under the page', async ({ 
   await scrollThrough(page);
   const walked = await collectAcrossPages(page);
   const r = await page.evaluate(() => {
-    const ch = window.__RISE_TEST__.getView('chamber-session');
+    const ch = window.__RISE_TEST__.getView('read')?.paneInstance('chamber');
     const imgs = [...document.querySelectorAll('.page-figure.is-shown img')];
     return {
       distinct: new Set(imgs.map(i => i.src)).size,

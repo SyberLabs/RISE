@@ -66,7 +66,7 @@ test('Page Mode typesets a Gospel chapter in space, and holds the stream', async
             chapters: document.querySelectorAll('.page-chapter').length,
             breaks: document.querySelectorAll('.page-break').length,
             scrollable: host.scrollHeight > host.clientHeight,
-            playerState: window.__RISE_TEST__?.getView('chamber-session')?.player?.state
+            playerState: window.__RISE_TEST__?.getView('read')?.paneInstance('chamber')?.player?.state
         };
     });
     const stats = { ...perPage, ...walked };
@@ -103,7 +103,7 @@ test('Page Mode typesets a Gospel chapter in space, and holds the stream', async
     await page.waitForTimeout(300);
 
     const held = await page.evaluate(() => {
-        const ch = window.__RISE_TEST__?.getView('chamber-session');
+        const ch = window.__RISE_TEST__?.getView('read')?.paneInstance('chamber');
         const host = document.querySelector('#chamber-page');
         const vis = (sel) => {
             const el = document.querySelector(sel);
@@ -142,6 +142,6 @@ test('Page Mode typesets a Gospel chapter in space, and holds the stream', async
     await page.locator('#play-pause-btn').click();
     await page.waitForTimeout(500);
     const resumed = await page.evaluate(() =>
-        window.__RISE_TEST__?.getView('chamber-session')?.player?.state);
+        window.__RISE_TEST__?.getView('read')?.paneInstance('chamber')?.player?.state);
     expect(['playing', 'interlocuting']).toContain(resumed);
 });

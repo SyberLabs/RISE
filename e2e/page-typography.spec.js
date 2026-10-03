@@ -102,7 +102,7 @@ test('no figure stands beside a heading, on any page', async ({ page }) => {
     for (let i = 0; i < total; i++) {
         if (i > 0) {
             await page.evaluate((index) => {
-                window.__RISE_TEST__?.getView('chamber-session')?.pageReader?.goToPage(index);
+                window.__RISE_TEST__?.getView('read')?.paneInstance('chamber')?.pageReader?.goToPage(index);
             }, i);
             await page.waitForTimeout(900);
         }
@@ -121,7 +121,7 @@ test('an inline CHAPTER heading opens its page rather than closing the last one'
     await ensurePaginated(page);
 
     const where = await page.evaluate(() => {
-        const r = window.__RISE_TEST__?.getView('chamber-session')?.pageReader;
+        const r = window.__RISE_TEST__?.getView('read')?.paneInstance('chamber')?.pageReader;
         const pages = r?.pages || [];
         const hit = [];
         pages.forEach((p, i) => {

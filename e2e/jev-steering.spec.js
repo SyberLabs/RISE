@@ -78,7 +78,7 @@ test('reader shifts Jev’s next visual scene without moving the text or pace', 
   await expect(shift).toBeVisible();
   await expect(shift).toBeEnabled({ timeout: 20_000 });
   const before = await page.evaluate(() => {
-    const chamber = window.__RISE_TEST__.getView('chamber-session');
+    const chamber = window.__RISE_TEST__.getView('read')?.paneInstance('chamber');
     return {
       index: chamber.player.sessionState.currentIndex,
       progress: chamber._jevCurrentAtom?.sourceProgress,
@@ -95,7 +95,7 @@ test('reader shifts Jev’s next visual scene without moving the text or pace', 
 
   await page.locator('#chamber-display').hover();
   const immediate = await page.evaluate(() => {
-    const chamber = window.__RISE_TEST__.getView('chamber-session');
+    const chamber = window.__RISE_TEST__.getView('read')?.paneInstance('chamber');
     const beforeClick = {
       index: chamber.player.sessionState.currentIndex,
       progress: chamber._jevCurrentAtom?.sourceProgress,
@@ -141,7 +141,7 @@ test('reader shifts Jev’s next visual scene without moving the text or pace', 
   expect(jevRequests()).toBe(1);
 
   const after = await page.evaluate(() => {
-    const chamber = window.__RISE_TEST__.getView('chamber-session');
+    const chamber = window.__RISE_TEST__.getView('read')?.paneInstance('chamber');
     return {
       index: chamber.player.sessionState.currentIndex,
       progress: chamber._jevCurrentAtom?.sourceProgress,

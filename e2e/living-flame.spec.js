@@ -45,18 +45,18 @@ async function beginChapter(page, { wpm = 1000, text = null, connectAI = false }
     await expect(page.locator('.toc-sheet')).toBeVisible({ timeout: 30_000 });
     await page.locator('.toc-entry').first().click();
   }
-  await page.waitForFunction(() => !!window.__RISE_TEST__?.getView('chamber')?.config?.text, null, { timeout: 20_000 });
+  await page.waitForFunction(() => !!window.__RISE_TEST__?.getView('read')?.paneInstance('setup')?.config?.text, null, { timeout: 20_000 });
   await page.locator('[data-stance="imagery"]').first().check({ force: true });
   await page.evaluate((value) => {
-    window.__RISE_TEST__.getView('chamber').config.wpm = value;
+    window.__RISE_TEST__.getView('read').paneInstance('setup').config.wpm = value;
   }, wpm);
   await page.locator('#begin-btn').click();
-  await page.waitForFunction(() => window.__RISE_TEST__?.getView('chamber-session')?._direction,
+  await page.waitForFunction(() => window.__RISE_TEST__?.getView('read')?.paneInstance('chamber')?._direction,
     null, { timeout: 30_000 });
 }
 
 const direction = page => page.evaluate(() => {
-  const chamber = window.__RISE_TEST__.getView('chamber-session');
+  const chamber = window.__RISE_TEST__.getView('read')?.paneInstance('chamber');
   const state = chamber?._direction;
   return {
     mode: state?.mode,
@@ -74,7 +74,7 @@ const direction = page => page.evaluate(() => {
 
 /** Draw the flame canvas into a 2D canvas and measure lit pixels. */
 const litFraction = page => page.evaluate(() => {
-  const field = window.__RISE_TEST__.getView('chamber-session')?.livingFlameField
+  const field = window.__RISE_TEST__.getView('read')?.paneInstance('chamber')?.livingFlameField
     || window.__RISE_TEST__.getView('make')?.tabInstance('visual-lab')?.field;
   const url = field?.capture?.();
   if (!url) return Promise.resolve(0);
@@ -136,7 +136,7 @@ test.describe('passage-directed visuals', () => {
     await mockScoring(page, { delayMs: 4000 });
     await beginChapter(page, { connectAI: true });
     await expect.poll(async () => (await direction(page)).flame, { timeout: 15_000 }).toBe(true);
-    await page.evaluate(() => window.__RISE_TEST__.getView('chamber-session').setVisualDirectionMode('off'));
+    await page.evaluate(() => window.__RISE_TEST__.getView('read').paneInstance('chamber').setVisualDirectionMode('off'));
     await page.waitForTimeout(6000);
     const state = await direction(page);
     expect(state.mode).toBe('off');
@@ -154,11 +154,11 @@ test.describe('passage-directed visuals', () => {
       input.dispatchEvent(new Event('input', { bubbles: true }));
       input.dispatchEvent(new Event('change', { bubbles: true }));
     });
-    const held = await page.evaluate(() => window.__RISE_TEST__.getView('chamber-session')._currentFlameConfig().recipe);
+    const held = await page.evaluate(() => window.__RISE_TEST__.getView('read').paneInstance('chamber')._currentFlameConfig().recipe);
     expect(held.macros.hue).toBe(120);
     await expect(page.locator('#vd-provenance')).toHaveText(/Manual/);
     await page.waitForTimeout(15_000);
-    const after = await page.evaluate(() => window.__RISE_TEST__.getView('chamber-session')._currentFlameConfig()?.recipe);
+    const after = await page.evaluate(() => window.__RISE_TEST__.getView('read').paneInstance('chamber')._currentFlameConfig()?.recipe);
     expect((await direction(page)).mode).toBe('hold');
     expect(after?.macros.hue).toBe(120);
     await page.locator('[name="vd-mode"][value="follow"]').check();
@@ -209,8 +209,8 @@ test.describe('passage-directed visuals', () => {
     await expect(page.locator('.visual-lab')).toHaveCount(0);
     // The reading's exit confirmation must not have been opened underneath.
     await expect(page.locator('#exit-confirm-overlay')).not.toBeVisible();
-    expect(await page.evaluate(() => window.__RISE_TEST__.getRouterState().currentView))
-      .toBe('chamber-session');
+    expect(await page.evaluate(() => `${window.__RISE_TEST__.getRouterState().currentView}/${window.__RISE_TEST__.getView('read')?.activePane}`))
+      .toBe('read/chamber');
   });
 
   test('Chamber to Lab to reading: the scene is held, saved, and still saved after reload', async ({ page }) => {
@@ -227,7 +227,7 @@ test.describe('passage-directed visuals', () => {
     await expect(page.locator('#vl-status')).toHaveText(/Saved/);
     await page.locator('[data-vl="use"]').click();
     await expect(page.locator('.visual-lab')).toHaveCount(0);
-    const held = await page.evaluate(() => window.__RISE_TEST__.getView('chamber-session')._currentFlameConfig()?.recipe.name);
+    const held = await page.evaluate(() => window.__RISE_TEST__.getView('read').paneInstance('chamber')._currentFlameConfig()?.recipe.name);
     expect(held).toMatch(/Prismatic Knot/);
     expect((await direction(page)).mode).toBe('hold');
     // Returning never resumes audio silently.
@@ -255,10 +255,10 @@ test.describe('passage-directed visuals', () => {
     await expect(picker).toBeVisible({ timeout: 10_000 });
     await picker.selectOption('solar-bloom');
     await page.locator('#view-make [data-pane="workshop"]').getByRole('button', { name: 'Run' }).click();
-    await page.waitForFunction(() => window.__RISE_TEST__.getView('chamber-session')?._direction?.eligibility?.composite,
+    await page.waitForFunction(() => window.__RISE_TEST__.getView('read')?.paneInstance('chamber')?._direction?.eligibility?.composite,
       null, { timeout: 30_000 });
     await expect.poll(() => page.evaluate(() =>
-      window.__RISE_TEST__.getView('chamber-session')._currentFlameConfig()?.recipe.id), { timeout: 20_000 })
+      window.__RISE_TEST__.getView('read').paneInstance('chamber')._currentFlameConfig()?.recipe.id), { timeout: 20_000 })
       .toBe('solar-bloom');
   });
 
@@ -268,7 +268,7 @@ test.describe('passage-directed visuals', () => {
     await beginChapter(page);
     await expect.poll(async () => (await direction(page)).flame, { timeout: 15_000 }).toBe(true);
     const loop = await page.evaluate(() => {
-      const field = window.__RISE_TEST__.getView('chamber-session').livingFlameField;
+      const field = window.__RISE_TEST__.getView('read').paneInstance('chamber').livingFlameField;
       return { reduced: field.reducedMotion, raf: field.raf };
     });
     expect(loop).toEqual({ reduced: true, raf: null });
@@ -279,7 +279,7 @@ test.describe('passage-directed visuals', () => {
     await beginChapter(page);
     await expect.poll(async () => (await direction(page)).flame, { timeout: 15_000 }).toBe(true);
     await page.evaluate(async () => {
-      const chamber = window.__RISE_TEST__.getView('chamber-session');
+      const chamber = window.__RISE_TEST__.getView('read')?.paneInstance('chamber');
       for (let i = 0; i < 12; i += 1) {
         chamber.setVisualDirectionMode(i % 3 === 0 ? 'off' : i % 3 === 1 ? 'follow' : 'hold');
         chamber._editHeldFlame(recipe => ({ ...recipe, symmetry: 1 + (i % 8) }));

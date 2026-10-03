@@ -17,7 +17,7 @@ async function openNavigator(page) {
     await openHomeNav(page, 'chamber');
     await page.waitForFunction(() => {
         const state = window.__RISE_TEST__?.getRouterState();
-        return state?.currentView === 'chamber' && state.transitioning === false;
+        return state?.currentView === 'read' && window.__RISE_TEST__.getView('read')?.activePane === 'setup' && state.transitioning === false;
     });
     await expect(page.locator('[data-action="toggle-adjust"]')).toBeVisible({ timeout: 20_000 });
     { const adjust = page.locator('[data-action="toggle-adjust"]'); if (await adjust.getAttribute('aria-expanded') === 'false') await adjust.click(); }

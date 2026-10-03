@@ -36,7 +36,7 @@ test('the Page keeps the reader’s place across a trip to the Stream', async ({
 
   const wake = async () => { await page.mouse.move(195, 620); await page.waitForTimeout(350); };
   const idx = () => page.evaluate(() =>
-    window.__RISE_TEST__?.getView('chamber-session')?.pageReader?.pageIndex ?? -1);
+    window.__RISE_TEST__?.getView('read')?.paneInstance('chamber')?.pageReader?.pageIndex ?? -1);
 
   await wake();
   await page.locator('#page-mode-btn').click({ timeout: 15000 });
@@ -45,7 +45,7 @@ test('the Page keeps the reader’s place across a trip to the Stream', async ({
 
   // Turn a few pages.
   await page.evaluate(() => {
-    const r = window.__RISE_TEST__.getView('chamber-session').pageReader;
+    const r = window.__RISE_TEST__.getView('read').paneInstance('chamber').pageReader;
     r.goToPage(3);
   });
   await page.waitForTimeout(800);

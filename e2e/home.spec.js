@@ -15,13 +15,17 @@ async function openHome(page) {
 async function roll(page) {
   await page.locator('[data-home="roll"]').click();
   await expect(page.locator('[data-home="enter"]')).toBeVisible({ timeout: 10_000 });
-  return page.evaluate(() => window.__RISE_TEST__.getView('portal').result.decision);
+  return page.evaluate(() => window.__RISE_TEST__.getView('home').result.decision);
 }
 
 /** A star the sky drew for this work, once the sky has loaded. */
 const star = (page, workId) => page.locator(`.home-sky .sky-star[data-work-id="${workId}"]`);
 
-const view = page => page.evaluate(() => window.__RISE_TEST__.getRouterState().currentView);
+// Read's panes are named as `read/setup`, `read/chamber`.
+const view = page => page.evaluate(() => {
+  const { currentView } = window.__RISE_TEST__.getRouterState();
+  return currentView === 'read' ? `read/${window.__RISE_TEST__.getView('read')?.activePane}` : currentView;
+});
 
 /** Horizontal overflow of the page, in px; no state may cause any. */
 const sideways = page => page.evaluate(() =>
@@ -91,7 +95,7 @@ test('Redraw changes one part and keeps the other two', async ({ page }) => {
   await star(page, 'middlemarch').click({ timeout: 15_000 });
   await expect(page.locator('h1')).toHaveText('Middlemarch', { timeout: 10_000 });
   const state = () => page.evaluate(() => {
-    const { decision, temper } = window.__RISE_TEST__.getView('portal').result;
+    const { decision, temper } = window.__RISE_TEST__.getView('home').result;
     return { workId: decision.workId, temper, section: decision.config.section };
   });
   let before = await state();
@@ -131,7 +135,7 @@ test('the longest titles and plans stay on a small phone without scrolling sidew
   await openHome(page);
   for (const [work, temper, section] of [['lyrical-ballads', 'revel', 'shortest'], ['the-photo-that-knew-your-street', 'ember', 'longest'], ['spoon-river-anthology', 'signal', 'first']]) {
     await page.evaluate(async ([work, temper, section]) => {
-      const portal = window.__RISE_TEST__.getView('portal');
+      const portal = window.__RISE_TEST__.getView('home');
       const tools = await portal.loadTools();
       const decision = tools.composeRoll({ temper: tools.TEMPERS.find(t => t.id === temper), workId: work, section });
       portal.showResult(tools, decision, { source: 'roll', temper });
@@ -161,7 +165,7 @@ test('Start reading plays the reading, and Home still holds it on return', async
   await page.locator('#chamber-display').hover();
   await page.locator('#exit-btn').click();
   await page.locator('#exit-confirm').click();
-  await expect.poll(() => view(page), { timeout: 15_000 }).toBe('portal');
+  await expect.poll(() => view(page), { timeout: 15_000 }).toBe('home');
   await expect(page.locator('h1')).toHaveText(title);
 });
 
@@ -169,17 +173,17 @@ test('Adjust first opens Reader Setup with the rolled reading set, and Begin pla
   await openHome(page);
   const decision = await roll(page);
   await page.locator('[data-home="adjust"]').click();
-  await expect.poll(() => view(page), { timeout: 20_000 }).toBe('chamber');
+  await expect.poll(() => view(page), { timeout: 20_000 }).toBe('read/setup');
   await expect(page.locator('#begin-btn')).toBeEnabled({ timeout: 20_000 });
   const setup = await page.evaluate(() => {
-    const c = window.__RISE_TEST__.getView('chamber').config;
+    const c = window.__RISE_TEST__.getView('read').paneInstance('setup').config;
     return { wpm: c.wpm, chunkMode: c.chunkMode, presentation: c.presentation, origin: c.origin?.view };
   });
   expect(setup).toEqual({
     wpm: decision.config.wpm,
     chunkMode: decision.config.chunkMode,
     presentation: decision.config.presentation,
-    origin: 'portal'
+    origin: 'home'
   });
   // The back button already says Home; no chip repeats it.
   await expect(page.locator('.orbital-origin-chip')).toHaveCount(0);

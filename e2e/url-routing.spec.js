@@ -39,7 +39,7 @@ test('a Chapel chapter address opens the Chapel at that chapter, and reload keep
 
 test('a reading address with no reading falls back to the Chamber setup', async ({ page }) => {
   await page.goto('/read/session');
-  await expect(page.locator('#view-chamber')).toBeVisible({ timeout: 15_000 });
+  await expect(page.locator('#view-read [data-pane="setup"]')).toBeVisible({ timeout: 15_000 });
   await expect.poll(() => pathOf(page)).toBe('/read');
 });
 

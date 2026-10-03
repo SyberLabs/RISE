@@ -94,7 +94,7 @@ test('emphasis is coloured, and marks never reach the reader', async ({ page }) 
       text: d.textContent,
       words: [...d.querySelectorAll('.atom-word')].map(w => w.textContent),
       emphasised: [...d.querySelectorAll('.atom-word.is-emphasised')].map(w => w.textContent),
-      recitation: window.__RISE_TEST__?.getView('chamber-session')?.recitationEnabled
+      recitation: window.__RISE_TEST__?.getView('read')?.paneInstance('chamber')?.recitationEnabled
     };
   });
   console.log('EMPHASIS ' + JSON.stringify(r));
@@ -111,7 +111,7 @@ test('an ordinary reading pays nothing — no spans, no timers', async ({ page }
 
   const r = await page.evaluate(() => {
     const d = document.querySelector('#atom-display');
-    const ch = window.__RISE_TEST__?.getView('chamber-session');
+    const ch = window.__RISE_TEST__?.getView('read')?.paneInstance('chamber');
     return {
       spans: d.querySelectorAll('.atom-word').length,
       text: d.textContent,
@@ -138,7 +138,7 @@ test('the voice never blocks the reading, and never ships unasked', async ({ pag
   await page.waitForTimeout(3000);
 
   const r = await page.evaluate(() => {
-    const ch = window.__RISE_TEST__?.getView('chamber-session');
+    const ch = window.__RISE_TEST__?.getView('read')?.paneInstance('chamber');
     return { voice: !!ch?.voice, recitation: ch?.recitationEnabled };
   });
   console.log('NO_VOICE ' + JSON.stringify(r) + ' model requests: ' + fetched.length);
@@ -155,7 +155,7 @@ test('an uncovered reading is read silently rather than stalled', async ({ page 
 
   // Atom index (empty display is a valid pause atom).
   const at = () => page.evaluate(() =>
-    window.__RISE_TEST__?.getView('chamber-session')?.player?.sessionState?.currentIndex ?? -1);
+    window.__RISE_TEST__?.getView('read')?.paneInstance('chamber')?.player?.sessionState?.currentIndex ?? -1);
   const before = await at();
 
   // Poll rAF-driven progress; wall-clock sleep is the wrong clock when frames throttle.
@@ -167,7 +167,7 @@ test('an uncovered reading is read silently rather than stalled', async ({ page 
   const after = await at();
 
   const r = await page.evaluate(() => {
-    const ch = window.__RISE_TEST__?.getView('chamber-session');
+    const ch = window.__RISE_TEST__?.getView('read')?.paneInstance('chamber');
     return {
       hasVoice: !!ch?.voice,
       failed: ch?.voice?._failed,
@@ -202,7 +202,7 @@ test('the control turns recitation on, and the choice survives a return', async 
   await page.locator('[data-recitation="on"]').click();
 
   const after = await page.evaluate(() => {
-    const o = window.__RISE_TEST__?.getView('chamber');
+    const o = window.__RISE_TEST__?.getView('read')?.paneInstance('setup');
     return {
       config: o?.config?.recitation,
       noteShown: !document.querySelector('[data-recitation-note]')?.hidden,
@@ -278,7 +278,7 @@ test('the voice makes no request storm around preparation and playback', async (
   await page.waitForTimeout(9000);
 
   const state = await page.evaluate(() => {
-    const ch = window.__RISE_TEST__?.getView('chamber-session');
+    const ch = window.__RISE_TEST__?.getView('read')?.paneInstance('chamber');
     const v = ch?.voice;
     return {
       hasVoice: !!v,

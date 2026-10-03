@@ -49,7 +49,7 @@ for (const viewport of [{ width: 390, height: 844 }, { width: 1280, height: 800 
     const begin = page.locator('[data-begin]');
     await begin.scrollIntoViewIfNeeded();
     await begin.click();
-    await page.waitForFunction(() => window.__RISE_TEST__.getRouterState().currentView === 'chamber-session'
+    await page.waitForFunction(() => window.__RISE_TEST__.getRouterState().currentView === 'read' && window.__RISE_TEST__.getView('read')?.activePane === 'chamber'
       && !window.__RISE_TEST__.getRouterState().transitioning, null, { timeout: 20_000 });
     const session = await page.evaluate(() => {
       const s = window.__RISE_TEST__.getCurrentSession();

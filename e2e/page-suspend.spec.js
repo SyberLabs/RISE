@@ -67,7 +67,7 @@ test('a spatial launch runs no temporal visual machinery', async ({ page }) => {
   await boot(page);
   // choose the page projection directly on the orbital config
   await page.evaluate(() => {
-    const inst = window.__RISE_TEST__.getView('chamber');
+    const inst = window.__RISE_TEST__.getView('read')?.paneInstance('setup');
     inst.config.projection = 'page';
   });
   await page.locator('#begin-btn').click();
@@ -78,7 +78,7 @@ test('a spatial launch runs no temporal visual machinery', async ({ page }) => {
   await page.waitForTimeout(2500);
 
   const state = await page.evaluate(() => {
-    const ch = window.__RISE_TEST__.getView('chamber-session');
+    const ch = window.__RISE_TEST__.getView('read')?.paneInstance('chamber');
     return {
       projection: window.__RISE_TEST__.getCurrentSession()?.projection,
       visualMode: window.__RISE_TEST__.getCurrentSession()?.visualConfig?.visualMode,
@@ -105,7 +105,7 @@ test('a focal survives a direct Page launch and renders above the reading', asyn
     }
   });
   await page.evaluate(() => {
-    window.__RISE_TEST__.getView('chamber').config.projection = 'page';
+    window.__RISE_TEST__.getView('read').paneInstance('setup').config.projection = 'page';
   });
   await page.locator('#begin-btn').click();
   await expect(page.locator('.page-article')).toBeVisible({ timeout: 20000 });
