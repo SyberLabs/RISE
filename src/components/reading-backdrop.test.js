@@ -3,7 +3,7 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-const made = vi.hoisted(() => ({ attractor: [], plates: [], flames: [], gate: null }));
+const made = vi.hoisted(() => ({ attractor: [], plates: [], flames: [], gate: null, plateGate: null }));
 vi.mock('../visuals/attractor.js', () => ({
   AttractorField: class {
     constructor(host, options) {
@@ -19,7 +19,8 @@ vi.mock('../visuals/plate-field.js', () => ({
   PlateField: class {
     constructor(host, options) {
       Object.assign(this, { host, options });
-      for (const method of ['start', 'pause', 'resume', 'destroy']) this[method] = vi.fn();
+      for (const method of ['pause', 'resume', 'destroy']) this[method] = vi.fn();
+      this.start = vi.fn(() => made.plateGate ?? Promise.resolve(true));
       made.plates.push(this);
     }
   }
@@ -73,9 +74,28 @@ describe('the reading backdrop', () => {
       visualMode: 'interlocution', interlocution: { procedural: ['ostensoria'] }
     }));
     const [plates] = made.plates;
-    expect(plates.options).toMatchObject({ families: ['ostensoria'], reducedMotion: true });
+    expect(plates.options).toMatchObject({ families: ['ostensoria'], reducedMotion: true, sliceFirstPlate: true });
     expect(plates.start).toHaveBeenCalledOnce();
     backdrop.destroy();
+    expect(plates.destroy).toHaveBeenCalledOnce();
+  });
+
+  it('resolves a plate mount only once its first plate, baked in slices, is drawn', async () => {
+    let release;
+    made.plateGate = new Promise(resolve => { release = resolve; });
+    let mounted = null;
+    const mounting = mountReadingBackdrop(host, decision({
+      visualMode: 'interlocution', interlocution: { procedural: ['apparitio'] }
+    })).then(backdrop => { mounted = backdrop; });
+    await vi.waitFor(() => expect(made.plates).toHaveLength(1));
+    const [plates] = made.plates;
+    expect(plates.options).toMatchObject({ families: ['apparitio'], sliceFirstPlate: true });
+    await new Promise(resolve => setTimeout(resolve, 0));
+    expect(mounted).toBeNull();
+    release(true);
+    made.plateGate = null;
+    await mounting;
+    mounted.destroy();
     expect(plates.destroy).toHaveBeenCalledOnce();
   });
 

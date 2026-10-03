@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { Ostensoria } from './ostensoria.js';
 import { Apparitio } from './apparitio.js';
 import { PlateField } from './plate-field.js';
+import { PLATE_BAKE_BUDGET_MS } from './plate-bake.js';
 
 let host;
 let rafQueue;
@@ -381,5 +382,141 @@ describe('PlateField', () => {
         expect(Apparitio.prototype.stepBake).toHaveBeenCalledWith(1e9);
         expect(progresses.at(-1)).toBe(0);
         field.destroy();
+    });
+});
+
+describe('PlateField, first plate baked in slices', () => {
+    // A plate costs WORK_MS of engine time. generate() pays it in one call;
+    // stepBake(budget) pays at most `budget` of it. The fake clock records
+    // the cost of each animation frame, so a frame that ran generate() or
+    // drained the bake shows up as one long frame.
+    const WORK_MS = 600;
+    let clock;
+    let frameCosts;
+
+    beforeEach(() => {
+        clock = 0;
+        frameCosts = [];
+        vi.spyOn(performance, 'now').mockImplementation(() => clock);
+        vi.spyOn(Apparitio.prototype, 'generate').mockImplementation(function generate() {
+            clock += WORK_MS;
+            this.ready = true;
+            return true;
+        });
+        vi.spyOn(Apparitio.prototype, 'beginBake').mockImplementation(function beginBake() {
+            this.ready = false;
+            this._left = WORK_MS;
+        });
+        vi.spyOn(Apparitio.prototype, 'stepBake').mockImplementation(function stepBake(budget) {
+            const spent = Math.min(budget, this._left);
+            clock += spent;
+            this._left -= spent;
+            if (this._left <= 0) this.ready = true;
+            return this.ready;
+        });
+    });
+
+    function timedFrame() {
+        const before = clock;
+        frame(clock);
+        frameCosts.push(clock - before);
+        clock += 16;
+    }
+
+    const settled = promise => {
+        const state = { done: false, value: undefined };
+        promise.then((value) => { state.done = true; state.value = value; });
+        return state;
+    };
+    const flush = () => new Promise(resolve => setTimeout(resolve, 0));
+
+    it('never freezes a frame, and is ready only once the first plate is drawn', async () => {
+        const field = new PlateField(host, {
+            families: ['apparitio'],
+            dwellMs: 8_000,
+            crossfadeMs: 1_200,
+            sliceFirstPlate: true
+        });
+        const startCost = clock;
+        const ready = settled(field.start());
+        expect(clock - startCost).toBeLessThanOrEqual(PLATE_BAKE_BUDGET_MS);
+        expect(Apparitio.prototype.generate).not.toHaveBeenCalled();
+        expect(Apparitio.prototype.beginBake.mock.calls[0][1]).toBe('gallery-plate:apparitio:1');
+
+        const planes = [...host.querySelectorAll('.plate-plane')];
+        let frames = 0;
+        while (!planes.some(plane => plane.style.opacity === '1') && frames < 500) {
+            await flush();
+            expect(ready.done).toBe(false);
+            timedFrame();
+            frames += 1;
+        }
+        expect(frames).toBeGreaterThan(WORK_MS / PLATE_BAKE_BUDGET_MS - 1);
+        expect(Math.max(...frameCosts)).toBeLessThanOrEqual(PLATE_BAKE_BUDGET_MS);
+        expect(Apparitio.prototype.generate).not.toHaveBeenCalled();
+        expect(progresses[0]).toBe(0);
+        await flush();
+        expect(ready).toEqual({ done: true, value: true });
+
+        // The plate after it is baked the old way: in slices, during the dwell.
+        expect(Apparitio.prototype.beginBake.mock.calls[1][1]).toBe('gallery-plate:apparitio:2');
+        for (let i = 0; i < 100; i++) timedFrame();
+        expect(Math.max(...frameCosts)).toBeLessThanOrEqual(PLATE_BAKE_BUDGET_MS);
+        expect(planes[0].style.opacity).toBe('1');
+        field.destroy();
+    });
+
+    it('holds one finished still under reduced motion, also in slices', async () => {
+        const field = new PlateField(host, {
+            families: ['apparitio'],
+            dwellMs: 8_000,
+            reducedMotion: true,
+            sliceFirstPlate: true
+        });
+        const ready = settled(field.start());
+        for (let i = 0; i < 500 && rafQueue.length; i++) timedFrame();
+        await flush();
+        expect(ready).toEqual({ done: true, value: true });
+        expect(Math.max(...frameCosts)).toBeLessThanOrEqual(PLATE_BAKE_BUDGET_MS);
+        expect(Apparitio.prototype.generate).not.toHaveBeenCalled();
+        expect(Apparitio.prototype.beginBake).toHaveBeenCalledTimes(1);
+        expect(progresses).toEqual([1]);
+        expect(rafQueue).toHaveLength(0);
+        field.destroy();
+    });
+
+    it('keeps baking across a pause under reduced motion', async () => {
+        const field = new PlateField(host, {
+            families: ['apparitio'],
+            reducedMotion: true,
+            sliceFirstPlate: true
+        });
+        const ready = settled(field.start());
+        timedFrame();
+        field.pause();
+        rafQueue.length = 0;
+        field.resume();
+        for (let i = 0; i < 500 && rafQueue.length; i++) timedFrame();
+        await flush();
+        expect(ready).toEqual({ done: true, value: true });
+        field.destroy();
+    });
+
+    it('cancels the bake when destroyed before the first plate, and settles unready', async () => {
+        const field = new PlateField(host, {
+            families: ['apparitio'],
+            sliceFirstPlate: true
+        });
+        const ready = settled(field.start());
+        timedFrame();
+        timedFrame();
+        const steps = Apparitio.prototype.stepBake.mock.calls.length;
+        field.destroy();
+        while (rafQueue.length) timedFrame();
+        await flush();
+        expect(ready).toEqual({ done: true, value: false });
+        expect(Apparitio.prototype.stepBake).toHaveBeenCalledTimes(steps);
+        expect(Apparitio.prototype.generate).not.toHaveBeenCalled();
+        expect(progresses).toHaveLength(0);
     });
 });
