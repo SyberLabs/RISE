@@ -1,0 +1,16 @@
+/* The reading backdrop (reading-backdrop.js), wherever it runs: Today, Home.
+   The page that hosts it places and shades it. */
+
+/* The fractal is a still flame: it drifts, slowly, while it shows. */
+.reading-backdrop-flame {
+  animation: reading-backdrop-drift 90s ease-in-out infinite alternate;
+}
+
+@keyframes reading-backdrop-drift {
+  from { transform: scale(1.04) rotate(-1.5deg); }
+  to { transform: scale(1.14) rotate(1.5deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reading-backdrop-flame { animation: none; }
+}

@@ -9,7 +9,7 @@
   background: var(--sy-bg);
 }
 
-/* The day's engine behind the page (backdrop.js), under a scrim that keeps
+/* The day's engine behind the page (reading-backdrop.js), under a scrim that keeps
    the middle column on ink: the engine shows at the sides and through the
    gaps, and no line of text sits on it unshaded. */
 .today-backdrop {
@@ -46,16 +46,6 @@
 .today-room > .today {
   position: relative;
   z-index: 1;
-}
-
-/* The fractal is a still flame: it drifts, slowly, while it shows. */
-.today-backdrop-flame {
-  animation: today-drift 90s ease-in-out infinite alternate;
-}
-
-@keyframes today-drift {
-  from { transform: scale(1.04) rotate(-1.5deg); }
-  to { transform: scale(1.14) rotate(1.5deg); }
 }
 
 .today {
@@ -207,8 +197,4 @@
 
 .today-status:empty {
   display: none;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .today-backdrop-flame { animation: none; }
 }

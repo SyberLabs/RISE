@@ -48,8 +48,8 @@ const READING = {
 };
 vi.mock('../../app/jev-reading.js', () => ({ resolveJevReading: vi.fn(async () => READING) }));
 const backdrops = vi.hoisted(() => []);
-vi.mock('./backdrop.js', () => ({
-  mountTodayBackdrop: vi.fn(async (host, decision) => {
+vi.mock('../reading-backdrop.js', () => ({
+  mountReadingBackdrop: vi.fn(async (host, decision) => {
     const backdrop = { host, decision, pause: vi.fn(), resume: vi.fn(), destroy: vi.fn() };
     backdrops.push(backdrop);
     return backdrop;

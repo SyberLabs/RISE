@@ -1,7 +1,10 @@
+import { readFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const made = vi.hoisted(() => ({ attractor: [], plates: [], flames: [] }));
-vi.mock('../../visuals/attractor.js', () => ({
+vi.mock('../visuals/attractor.js', () => ({
   AttractorField: class {
     constructor(host, options) {
       Object.assign(this, { host, options });
@@ -10,7 +13,7 @@ vi.mock('../../visuals/attractor.js', () => ({
     }
   }
 }));
-vi.mock('../../visuals/plate-field.js', () => ({
+vi.mock('../visuals/plate-field.js', () => ({
   PlateField: class {
     constructor(host, options) {
       Object.assign(this, { host, options });
@@ -19,7 +22,7 @@ vi.mock('../../visuals/plate-field.js', () => ({
     }
   }
 }));
-vi.mock('../../visuals/fractal.js', () => ({
+vi.mock('../visuals/fractal.js', () => ({
   FractalFlame: class {
     constructor(canvas) {
       this.canvas = canvas;
@@ -33,12 +36,12 @@ vi.mock('../../visuals/fractal.js', () => ({
   }
 }));
 
-import { mountTodayBackdrop } from './backdrop.js';
+import { mountReadingBackdrop } from './reading-backdrop.js';
 
 const decision = visualConfig => ({ config: { visualConfig, colors: { background: '#08090F', text: '#F4EEE4', accent: '#C8AE83' } } });
 const reduce = matches => vi.stubGlobal('matchMedia', vi.fn(() => ({ matches })));
 
-describe('the Today backdrop', () => {
+describe('the reading backdrop', () => {
   let host;
   beforeEach(() => {
     host = document.createElement('div');
@@ -48,7 +51,7 @@ describe('the Today backdrop', () => {
   afterEach(() => vi.unstubAllGlobals());
 
   it('runs the day\'s attractor, and pauses, resumes and ends with it', async () => {
-    const backdrop = await mountTodayBackdrop(host, decision({
+    const backdrop = await mountReadingBackdrop(host, decision({
       visualMode: 'attractor', attractor: { system: 'aizawa', palette: 'blue', form: 'kaleido' }
     }));
     const [field] = made.attractor;
@@ -64,7 +67,7 @@ describe('the Today backdrop', () => {
 
   it('runs the day\'s plate engine, still under reduced motion', async () => {
     reduce(true);
-    const backdrop = await mountTodayBackdrop(host, decision({
+    const backdrop = await mountReadingBackdrop(host, decision({
       visualMode: 'interlocution', interlocution: { procedural: ['ostensoria'] }
     }));
     const [plates] = made.plates;
@@ -76,11 +79,12 @@ describe('the Today backdrop', () => {
 
   it('paints the day\'s fractal in the reading\'s colours, and turns to the next flame while running', async () => {
     vi.useFakeTimers();
-    const backdrop = await mountTodayBackdrop(host, decision({
+    const backdrop = await mountReadingBackdrop(host, decision({
       visualMode: 'interlocution', interlocution: { procedural: ['fractal'] }
     }));
     const [flame] = made.flames;
     expect(host.contains(flame.canvas)).toBe(true);
+    expect(flame.canvas.className).toBe('reading-backdrop-flame');
     expect(flame.setColorTheme).toHaveBeenCalledWith({ background: '#08090F', text: '#F4EEE4', accent: '#C8AE83' });
     expect(flame.generate).toHaveBeenCalledTimes(1);
     await vi.advanceTimersByTimeAsync(20_000);
@@ -97,14 +101,30 @@ describe('the Today backdrop', () => {
   it('holds one fractal still under reduced motion', async () => {
     vi.useFakeTimers();
     reduce(true);
-    await mountTodayBackdrop(host, decision({ visualMode: 'interlocution', interlocution: { procedural: ['fractal'] } }));
+    await mountReadingBackdrop(host, decision({ visualMode: 'interlocution', interlocution: { procedural: ['fractal'] } }));
     await vi.advanceTimersByTimeAsync(60_000);
     expect(made.flames[0].generate).toHaveBeenCalledTimes(1);
     vi.useRealTimers();
   });
 
   it('draws nothing for a reading with no engine it knows', async () => {
-    expect(await mountTodayBackdrop(host, decision({ visualMode: 'off' }))).toBeNull();
+    expect(await mountReadingBackdrop(host, decision({ visualMode: 'off' }))).toBeNull();
     expect(host.children).toHaveLength(0);
+  });
+});
+
+describe('the reading backdrop\'s own stylesheet', () => {
+  const here = dirname(fileURLToPath(import.meta.url));
+  const css = name => readFileSync(join(here, name), 'utf8');
+
+  it('drifts the fractal slowly, and holds it still under reduced motion', () => {
+    const own = css('reading-backdrop.css');
+    expect(own).toMatch(/\.reading-backdrop-flame\s*\{[^}]*animation:\s*reading-backdrop-drift 90s ease-in-out infinite alternate/u);
+    expect(own).toMatch(/@media \(prefers-reduced-motion: reduce\)\s*\{\s*\.reading-backdrop-flame\s*\{\s*animation:\s*none/u);
+    expect(readFileSync(join(here, 'reading-backdrop.js'), 'utf8')).toContain("import './reading-backdrop.css';");
+  });
+
+  it('is the only place the drift is written, so Today and Home cannot drift apart', () => {
+    expect(css('today/today-poem.css')).not.toMatch(/flame|drift/u);
   });
 });
