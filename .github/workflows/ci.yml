@@ -51,9 +51,9 @@ jobs:
             src/core/passage-visuals/scoring-client.test.js \
             src/components/Portal.jev.test.js \
             src/components/Portal.test.js \
-            src/components/night-library \
+            src/components/reading-stream.test.js \
+            src/components/reading-backdrop.test.js \
             src/core/roll.test.js \
-            src/core/library-sky.test.js \
             src/components/Library.jev.test.js \
             src/core/content-store.test.js \
             src/core/journey-session.test.js \
