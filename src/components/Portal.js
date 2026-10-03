@@ -63,7 +63,7 @@ export class Portal {
     this.view = 'idle';
     // The data-home hook of the work in progress (roll, redraw-*, ask, enter, adjust), or null.
     this.busy = null;
-    // { decision, source: 'roll' | 'ask', intent, temper, title, author, mood, byline, meta, plan, lines }
+    // { decision, source: 'roll' | 'ask', temper, note, title, author, mood, byline, meta, plan, single, lines }
     this.result = null;
     this.firstReadChoiceUsed = false;
     this.draft = '';
@@ -264,10 +264,6 @@ export class Portal {
     }
   }
 
-  isBusy() {
-    return !!this.busy;
-  }
-
   idleView() {
     return `<h1 class="home-title" id="home-title">Every <span class="sy-spectrum">star</span> is a text you can read.</h1>
       <p class="home-lede">Roll, and RISE picks one with a mood to read it in: its pace, imagery and sound. Or choose a star yourself.</p>
@@ -350,13 +346,13 @@ export class Portal {
     const panel = this.container.querySelector('.home-panel');
     if (!panel) return;
     for (const control of panel.querySelectorAll('[data-home], .home-view [data-ai]')) {
-      control.disabled = this.isBusy();
+      control.disabled = !!this.busy;
       if (control.dataset.home === this.busy) control.setAttribute('aria-busy', 'true');
       else control.removeAttribute('aria-busy');
     }
     const field = panel.querySelector('#home-intent');
     if (field) field.readOnly = this.busy === 'ask';
-    this.sky?.setBusy(this.isBusy());
+    this.sky?.setBusy(!!this.busy);
     this.sky?.flare(this.view === 'result' ? this.result.decision.workId : null);
   }
 
@@ -451,7 +447,7 @@ export class Portal {
     const author = work?.author || '';
     const where = tools.SECTION_WORDS[decision.config.section];
     return {
-      decision, source, intent, temper, note,
+      decision, source, temper, note,
       title: work?.title || decision.workId,
       author,
       // An asked reading has no temper; its mood is the reader's own words.
@@ -461,22 +457,18 @@ export class Portal {
       meta: [author, where].filter(Boolean).join(' · '),
       plan: tools.summarizeJevPlan(decision.config),
       // A RISE original is one division, so there is no other passage to draw.
-      single: decision.editionId.startsWith('rise-original:')
+      single: tools.isRiseOriginal(decision.workId)
     };
   }
 
-  /** Hold a result, and fetch the lines it opens on. */
-  present(tools, result) {
+  /** Describe a decision, show it as the result, fetch the lines it opens on, and speak it. */
+  showResult(tools, decision, how) {
+    const result = this.describe(tools, decision, how);
     this.result = result;
-    void tools.openingLines(result.decision).catch(() => '').then(lines => {
+    void tools.openingLines(decision).catch(() => '').then(lines => {
       result.lines = lines;
       if (this.result === result) this.renderPassage();
     });
-  }
-
-  /** Describe a decision, show it as the result, and speak it on the status line. */
-  showResult(tools, decision, how) {
-    this.present(tools, this.describe(tools, decision, how));
     this.show('result');
     const { title, meta, plan } = this.result;
     this.setStatus(how.source === 'ask' ? `Jev chose ${title}. ${plan.join(', ')}.` : `${title}. ${meta}. ${plan.join(', ')}.`);
@@ -488,7 +480,7 @@ export class Portal {
    * gives its work. `from` names the control that asked, for focus after.
    */
   async roll(parts, { from = null } = {}) {
-    if (this.isBusy()) return;
+    if (this.busy) return;
     this.getAudioEngine()?.playClick();
     this.showError('');
     this.setBusy(from || 'roll');
@@ -510,13 +502,9 @@ export class Portal {
     const again = this.view === 'result' && from;
     this.setBusy(null);
     this.showResult(tools, rolled.decision, { source: 'roll', temper: rolled.temper });
-    this.focus(again && this.container.querySelector(`[data-home="${again}"]`) ? `[data-home="${again}"]` : '[data-home="enter"]');
+    this.focus(again ? `[data-home="${again}"]` : '[data-home="enter"]');
     // A small tick as the answer arrives, on phones that can give one.
     navigator.vibrate?.(10);
-  }
-
-  rollAgain(from) {
-    return this.roll(this.result ? { previous: this.result } : {}, { from });
   }
 
   /** Draw one part again and keep the other two. A missing (null) temper is drawn. */
@@ -529,7 +517,7 @@ export class Portal {
   }
 
   openAsk() {
-    if (this.isBusy()) return;
+    if (this.busy) return;
     this.showError('');
     const connected = connectionState().kind !== 'none';
     this.show('ask', { focus: connected ? '#home-intent' : '.home-view [data-ai="connect"]' });
@@ -538,7 +526,7 @@ export class Portal {
 
   async ask() {
     const field = this.container.querySelector('#home-intent');
-    if (this.view !== 'ask' || this.isBusy() || !field) return;
+    if (this.view !== 'ask' || this.busy || !field) return;
     this.draft = field.value;
     const intent = field.value.trim();
     if (intent.length < 3 || intent.length > 240) {
@@ -573,7 +561,7 @@ export class Portal {
 
   /** Start reading plays the reading; Adjust first opens it in Reader Setup. */
   async proceed(action) {
-    if (!this.result || this.isBusy()) return;
+    if (!this.result || this.busy) return;
     this.setBusy(action);
     this.getAudioEngine()?.playClick();
     this.showError('');
@@ -609,7 +597,7 @@ export class Portal {
         const control = event.target.closest('[data-home]');
         if (!control || control.disabled) return;
         const action = control.dataset.home;
-        if (action === 'roll' || action === 'roll-instead') void this.rollAgain(action);
+        if (action === 'roll' || action === 'roll-instead') void this.roll({ previous: this.result }, { from: action });
         else if (action.startsWith('redraw-')) this.redraw(action.slice('redraw-'.length));
         else if (action === 'ask-open') this.openAsk();
         else if (action === 'enter' || action === 'adjust') void this.proceed(action);
@@ -718,8 +706,7 @@ export class Portal {
     if (this.sky) this.sky.start();
     else if (!this.demoMode) {
       // After first paint: the panel is already usable, and the sky is extra.
-      const afterPaint = globalThis.requestAnimationFrame || (next => setTimeout(next, 0));
-      afterPaint(() => setTimeout(() => void this.loadSky(), 0));
+      requestAnimationFrame(() => setTimeout(() => void this.loadSky(), 0));
     }
     // Leaving Home stopped dictation; an open request gets it back.
     if (this.view === 'ask') this.attachDictation();

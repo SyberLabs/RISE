@@ -32,11 +32,10 @@
 /* The sky's layout leaves its left side clear for the desk panel. On a phone
    the panel sits below the band, so stretch the sky until its stars (x from
    --sky-x0 to --sky-x1, in percent, set by NightSky) span the band edge to
-   edge (4–96%) and their 44px targets stop overlapping. The fallbacks are
-   the library's own span. */
+   edge (4–96%) and their 44px targets stop overlapping. */
 .home-sky > .night-sky {
-  width: calc(92% * 100 / (var(--sky-x1, 97) - var(--sky-x0, 42)));
-  left: calc(4% - var(--sky-x0, 42) * (92% / (var(--sky-x1, 97) - var(--sky-x0, 42))));
+  width: calc(92% * 100 / (var(--sky-x1) - var(--sky-x0)));
+  left: calc(4% - var(--sky-x0) * (92% / (var(--sky-x1) - var(--sky-x0))));
   right: auto;
 }
 

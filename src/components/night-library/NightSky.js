@@ -201,9 +201,9 @@ export class NightSky {
       this.ro = new ResizeObserver(() => this.resize());
       this.ro.observe(this.root);
     }
+    // resize() paints a still sky; go() animates any other.
     this.resize();
-    if (this.still) this.paint(performance.now());
-    else this.go();
+    this.go();
   }
 
   stop() {
