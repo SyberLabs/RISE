@@ -39,8 +39,7 @@ const TODAY_PATH = '/today';
 const PUBLIC_ROOM_PATHS = Object.freeze({
     'visual-lab': VISUAL_LAB_PATH,
     'visual-catalog': VISUAL_CATALOG_PATH,
-    emotions: EMOTIONS_PATH,
-    today: TODAY_PATH
+    emotions: EMOTIONS_PATH
 });
 import { watchTabFreshness } from './core/tab-freshness.js';
 import { takeOpenRouterReturn } from './core/openrouter-callback.js';
@@ -367,7 +366,15 @@ class App {
         } else if (window.location.pathname === EMOTIONS_PATH) {
             await this.router.navigate('emotions');
         } else if (window.location.pathname === TODAY_PATH) {
-            await this.router.navigate('today');
+            // The address opens the reading itself; once it is open the
+            // address is Home's, so leaving it does not open it again.
+            window.history.replaceState({}, '', '/');
+            try {
+                await this.launchToday();
+            } catch (error) {
+                this.showToast(error.message || 'Today’s poem could not be opened.', 5000);
+                await this.router.navigate('portal');
+            }
         } else if (options.personalizedVault) {
             console.log('[RISE] Navigating directly to personalized vault:', options.personalizedVault);
             await this.router.navigate('vault', { data: { personalizedVault: options.personalizedVault } });
@@ -505,6 +512,7 @@ class App {
             launchJevSample: () => this.launchJevSample(),
             launchKeystone: slug => this.launchKeystone(slug),
             adjustJevReading: decision => this.adjustJevReading(decision),
+            launchToday: () => this.launchToday(),
             openMintedProgram: slug => this.openMintedProgram(slug),
             handleSequenceSelection: sequenceId => this.handleSequenceSelection(sequenceId),
             handleCreateSession: this.handleCreateSession,
@@ -834,6 +842,18 @@ class App {
         const { text, textSource, ...config } = await resolveJevReading(decision);
         config.origin = { ...config.origin, adjusted: true };
         return this.router.navigate('chamber', { data: { text, source: textSource, config } });
+    }
+
+    /**
+     * Today's poem goes straight into the reader: the day's exact poem in the
+     * day's look. A tap on Home's card is the gesture that lets it play at
+     * once; a cold load of /today stops on the reader's Ready screen.
+     */
+    async launchToday() {
+        const { todaySession } = await import('./app/today.js');
+        if (!await this.handleBeginSession(await todaySession())) {
+            throw new Error('Today’s poem could not be opened. Please try again.');
+        }
     }
 
     /** Launch a fixed sample through the released-edition gate, without a provider call. */

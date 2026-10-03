@@ -57,6 +57,7 @@ export class Portal {
     this.getCurrentSession = options.getCurrentSession || (() => null);
     this.onLaunchJevReading = options.onLaunchJevReading || (async () => {});
     this.onAdjustReading = options.onAdjustReading || (async () => {});
+    this.onLaunchToday = options.onLaunchToday || (async () => {});
     this.onLaunchJevSample = options.onLaunchJevSample || (async () => {});
     this.demoMode = options.demoMode === true;
     this._active = false;
@@ -136,7 +137,7 @@ export class Portal {
             </button>
             <nav id="main-content" class="portal-nav" aria-label="Primary">
               <button class="portal-nav-link portal-nav-home" type="button" data-action="home" aria-current="page">Home</button>
-              <button class="portal-nav-link" type="button" data-nav="today">Today's poem</button>
+              <button class="portal-nav-link" type="button" data-action="today">Today's poem</button>
               <button class="portal-nav-link" type="button" data-nav="library">Library</button>
               <button class="portal-nav-link" type="button" data-nav="vault">Sequences</button>
               <button class="portal-nav-link" type="button" data-nav="workshop">Compose</button>
@@ -270,7 +271,7 @@ export class Portal {
     return `<h1 class="home-title" id="home-title">Every <span class="sy-spectrum">star</span> is a text you can read.</h1>
       <p class="home-lede">Roll, and RISE picks one with a mood to read it in: its pace, imagery and sound. Or choose a star yourself.</p>
       <div class="home-actions">${button('roll', 'Roll a reading', 'primary')}${button('ask-open', 'Ask for one', 'secondary')}</div>
-      <div class="home-today">${this._todayHtml || button('today', 'Read today\'s poem', 'ghost')}</div>`;
+      <div class="home-today">${this._todayHtml || button('today', 'Begin today\'s poem', 'ghost')}</div>`;
   }
 
   /** Today's poem card, after first paint. Until it loads, or if it cannot, the plain link stays. */
@@ -296,8 +297,23 @@ export class Portal {
     if (!slot) return;
     const hadFocus = slot.contains(document.activeElement);
     slot.innerHTML = this._todayHtml;
-    this.todayCard.drawTodayCardMark(slot);
     if (hadFocus) slot.querySelector('[data-home="today"]')?.focus({ preventScroll: true });
+  }
+
+  /** Today's poem goes straight into the reader, like a roll's Start reading. */
+  async beginToday() {
+    if (this.busy) return;
+    this.closeMenu?.();
+    this.setBusy('today');
+    this.getAudioEngine()?.playClick();
+    this.showError('');
+    try {
+      await this.onLaunchToday();
+    } catch (error) {
+      this.showError('Today’s poem couldn’t be opened. Try again.', error?.message || '');
+    } finally {
+      this.setBusy(null);
+    }
   }
 
   askView(connected) {
@@ -360,8 +376,6 @@ export class Portal {
       : this.view === 'ask' ? this.askView(connected) : this.idleView();
     const field = panel.querySelector('#home-intent');
     if (field) field.value = this.draft;
-    const today = panel.querySelector('.home-today');
-    if (today && this.todayCard) this.todayCard.drawTodayCardMark(today);
     // The result is on the panel; the status line only speaks it.
     panel.querySelector('.home-status').classList.toggle('sr-only', this.view === 'result');
     this.renderPassage();
@@ -631,7 +645,7 @@ export class Portal {
         else if (action.startsWith('redraw-')) this.redraw(action.slice('redraw-'.length));
         else if (action === 'ask-open') this.openAsk();
         else if (action === 'enter' || action === 'adjust') void this.proceed(action);
-        else if (action === 'today') this.onNavigate('today');
+        else if (action === 'today') void this.beginToday();
       });
       form.addEventListener('input', event => {
         if (event.target.id === 'home-intent') this.draft = event.target.value;
@@ -728,6 +742,9 @@ export class Portal {
         window.dispatchEvent(new CustomEvent(link.dataset.action === 'guide' ? 'rise-open-guide' : 'rise-open-settings'));
       });
     });
+
+    this.container.querySelector('.portal-nav [data-action="today"]')
+      ?.addEventListener('click', () => void this.beginToday());
   }
 
   activate() {
