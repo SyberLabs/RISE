@@ -79,8 +79,8 @@ minute.
 The Today view previews the look the poem will be read in (owner decision,
 2026-10-03): the day's own engine runs behind the page, under a scrim that
 keeps the middle column mostly ink and lets the engine show at the sides and
-between the parts. `mountTodayBackdrop(host, decision)`
-(`src/components/today/backdrop.js`) chooses it from the day's roll:
+between the parts. `mountReadingBackdrop(host, decision)`
+(`src/components/reading-backdrop.js`, shared with Home) chooses it from the day's roll:
 
 | Mood | Engine behind the page |
 |---|---|

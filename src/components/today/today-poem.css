@@ -9,7 +9,7 @@
   background: var(--sy-bg);
 }
 
-/* The day's engine behind the page (backdrop.js), under a scrim that keeps
+/* The day's engine behind the page (reading-backdrop.js), under a scrim that keeps
    the middle column on ink: the engine shows at the sides and through the
    gaps, and no line of text sits on it unshaded. */
 .today-backdrop {

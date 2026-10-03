@@ -11,7 +11,7 @@ import { localDateKey, watchLocalDay } from '../../core/local-day.js';
 import { poemTitle, todayPoem } from '../../core/today-poem.js';
 import { todayDecision } from '../../core/today-reading.js';
 import { roomAlert, roomEyebrow, roomHeader } from '../room-chrome.js';
-import { mountTodayBackdrop } from './backdrop.js';
+import { mountReadingBackdrop } from '../reading-backdrop.js';
 import { drawMandala } from './mandala.js';
 import './today-poem.css';
 
@@ -181,7 +181,7 @@ export class TodayPoem {
     if (!host) return;
     const ticket = ++this._backdropTicket;
     try {
-      const backdrop = await mountTodayBackdrop(host, this.decision);
+      const backdrop = await mountReadingBackdrop(host, this.decision);
       if (ticket !== this._backdropTicket || !host.isConnected) {
         backdrop?.destroy();
         return;
