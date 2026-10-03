@@ -246,6 +246,20 @@ describe('Home on arrival', () => {
         await vi.waitFor(() => expect(words(container.querySelector('h1'))).toBe(today(new Date(2026, 9, 4)).heading));
         portal.destroy();
     });
+
+    it('shows the new day\'s poem when Home comes back after midnight', async () => {
+        vi.useFakeTimers({ toFake: ['Date', 'setTimeout', 'clearTimeout'] });
+        vi.setSystemTime(new Date(2026, 9, 3, 23, 50));
+        const { portal, container } = makePortal();
+        await arrive(portal, container);
+        // Away in another room across midnight: the day's watcher is stopped meanwhile.
+        portal.deactivate();
+        vi.setSystemTime(new Date(2026, 9, 4, 0, 10));
+        portal.activate();
+        vi.advanceTimersByTime(50);
+        await vi.waitFor(() => expect(words(container.querySelector('h1'))).toBe(today(new Date(2026, 9, 4)).heading));
+        portal.destroy();
+    });
 });
 
 describe('Another reading', () => {
