@@ -20,9 +20,9 @@
  *   excluded — a live work currently held out by CATEGORY_EXCLUSIONS
  */
 
-import { escapeHtml } from '../core/sanitize.js';
-import { REMOTE_IMAGE_ATTRS } from '../visuals/remote-image.js';
-import { roomHeader, roomEyebrow, roomIcon, roomAlert } from './room-chrome.js';
+import { escapeHtml } from '../../core/sanitize.js';
+import { REMOTE_IMAGE_ATTRS } from '../../visuals/remote-image.js';
+import { roomHeader, roomEyebrow, roomIcon, roomAlert } from '../room-chrome.js';
 import './Curia.css';
 
 const VERB_LABELS = {
@@ -66,8 +66,8 @@ export class Curia {
 
     async load() {
         const [museumMod, pinsMod] = await Promise.all([
-            import('../sources/visual/museum.js'),
-            import('../sources/visual/museum-pins.js')
+            import('../../sources/visual/museum.js'),
+            import('../../sources/visual/museum-pins.js')
         ]);
         const MUSEUM_CATEGORIES = museumMod.MUSEUM_CATEGORIES || {};
         const MUSEUM_CATEGORY_PINS = pinsMod.MUSEUM_CATEGORY_PINS || {};
@@ -101,8 +101,8 @@ export class Curia {
     async _loadScience() {
         try {
             const [pins, catalog] = await Promise.all([
-                import('../content/science/imagery/science-pins.js'),
-                import('../sources/visual/science-catalog.generated.json')
+                import('../../content/science/imagery/science-pins.js'),
+                import('../../sources/visual/science-catalog.generated.json')
             ]);
             const doc = catalog.default || catalog;
             this._science = doc;
@@ -125,7 +125,7 @@ export class Curia {
         const inv = { live: [], pins: [], excluded: [], loading: true };
         this.inventory.set(categoryId, inv);
 
-        const { MuseumProvider, MUSEUM_CATEGORIES } = await import('../sources/visual/museum.js');
+        const { MuseumProvider, MUSEUM_CATEGORIES } = await import('../../sources/visual/museum.js');
         const cat = MUSEUM_CATEGORIES[categoryId];
         const provider = new MuseumProvider();
 
@@ -149,7 +149,7 @@ export class Curia {
         const pins = this._pins[categoryId] || [];
         if (pins.length) {
             try {
-                const { resolveCollection } = await import('../content/imagery/service.js');
+                const { resolveCollection } = await import('../../content/imagery/service.js');
                 const CHUNK = 10;
                 for (let i = 0; i < pins.length; i += CHUNK) {
                     const batch = await resolveCollection({ works: pins.slice(i, i + CHUNK) }, {});

@@ -10,6 +10,12 @@ describe('Router addresses', () => {
     container: document.querySelector(`#${container}`),
     init: () => ({})
   });
+  // The Library as the router sees it: a room whose panes change in place.
+  const registerLibrary = (container = 'a') => {
+    const library = { showPane: vi.fn(), update: vi.fn() };
+    router.registerView('library', { container: document.querySelector(`#${container}`), init: () => library });
+    return library;
+  };
 
   beforeEach(() => {
     document.body.innerHTML = '<main id="a"></main><main id="b"></main>';
@@ -20,14 +26,39 @@ describe('Router addresses', () => {
   });
 
   it('pushes the route address once the view is active', async () => {
-    register('library', 'a');
-    register('chapel', 'b');
+    registerLibrary();
     await router.navigate('library');
     expect(history.pushState).toHaveBeenCalledWith({ id: 'library', data: {} }, '', '/library');
-    await router.navigate('chapel', { data: { bookId: 'genesis', chapter: 1 } });
+    router.destroy();
+  });
+
+  it('reaches a Library pane through its old id, in place, with an address', async () => {
+    const library = registerLibrary();
+    await router.navigate('library');
+    expect(await router.navigate('chapel', { data: { bookId: 'genesis', chapter: 1 } })).toBe(true);
+    expect(router.currentView).toBe('library');
+    expect(router.currentData).toEqual({ bookId: 'genesis', chapter: 1, pane: 'chapel' });
+    expect(library.update).toHaveBeenLastCalledWith({ bookId: 'genesis', chapter: 1, pane: 'chapel' });
     expect(history.pushState).toHaveBeenLastCalledWith(
-      { id: 'chapel', data: { bookId: 'genesis', chapter: 1 } }, '', '/library/chapel/genesis/1'
+      { id: 'library', data: { bookId: 'genesis', chapter: 1, pane: 'chapel' } }, '', '/library/chapel/genesis/1'
     );
+    expect(router.viewStack).toEqual([{ viewName: 'library', data: undefined }]);
+    // The same pane with the same data is no move at all.
+    await router.navigate('chapel', { data: { bookId: 'genesis', chapter: 1 } });
+    expect(library.update).toHaveBeenCalledTimes(1);
+    router.destroy();
+  });
+
+  it('opens a pane when the Library is entered through an old id', async () => {
+    register('portal', 'b');
+    registerLibrary();
+    await router.navigate('portal');
+    await router.navigate('rosarium', { data: { door: true } });
+    expect(router.currentView).toBe('library');
+    expect(router.currentData).toEqual({ door: true, pane: 'rosary' });
+    await router.navigate('today');
+    expect(router.currentData).toEqual({ pane: 'today' });
+    expect(history.pushState).toHaveBeenLastCalledWith({ id: 'library', data: { pane: 'today' } }, '', '/today');
     router.destroy();
   });
 
@@ -62,20 +93,22 @@ describe('Router addresses', () => {
 
   it('rewrites a Keystone reading address to the threshold when leaving the reading', async () => {
     window.history.replaceState({}, '', '/keystone/meditations');
-    register('keystones', 'a');
+    registerLibrary();
     await router.navigate('keystones', { data: { slug: 'meditations' }, replaceUrl: true });
-    expect(history.replaceState).toHaveBeenCalledWith({ id: 'keystones', data: { slug: 'meditations' } }, '', '/try-rise');
+    expect(history.replaceState).toHaveBeenCalledWith(
+      { id: 'library', data: { slug: 'meditations', pane: 'keystones' } }, '', '/try-rise'
+    );
     router.destroy();
   });
 
   it('leaves the address alone while a hash door is open, and for keepUrl', async () => {
     window.history.replaceState({}, '', '/#rosary');
     register('library', 'a');
-    register('via', 'b');
+    register('settings', 'b');
     await router.navigate('library');
     expect(history.pushState).not.toHaveBeenCalled();
     window.history.replaceState({}, '', '/');
-    await router.navigate('via', { keepUrl: true });
+    await router.navigate('settings', { keepUrl: true });
     expect(history.pushState).not.toHaveBeenCalled();
     router.destroy();
   });
@@ -103,8 +136,9 @@ describe('Router back and updateAddress', () => {
     history.replaceState.mockImplementation((_s, _t, url) => { location.pathname = url; });
     const router = new Router({ history, location });
     router.transitionDuration = 0;
-    router.registerView('library', { container: document.querySelector('#a'), init: () => ({}) });
-    router.registerView('chapel', { container: document.querySelector('#b'), init: () => ({}) });
+    router.registerView('library', {
+      container: document.querySelector('#a'), init: () => ({ showPane: vi.fn(), update: vi.fn() })
+    });
     await router.navigate('library');
     await router.navigate('chapel', { data: { bookId: 'genesis', chapter: 1 } });
     expect(history.pushState).toHaveBeenCalledTimes(2);
@@ -121,11 +155,11 @@ describe('Router back and updateAddress', () => {
     const history = { pushState: vi.fn(), replaceState: vi.fn() };
     const router = new Router({ history });
     router.transitionDuration = 0;
-    router.registerView('chapel', { container: document.querySelector('#a'), init: () => ({}) });
+    router.registerView('library', { container: document.querySelector('#a'), init: () => ({}) });
     await router.navigate('chapel');
-    router.updateAddress({ bookId: 'john', chapter: 3 });
+    router.updateAddress({ pane: 'chapel', bookId: 'john', chapter: 3 });
     expect(history.replaceState).toHaveBeenLastCalledWith(
-      { id: 'chapel', data: { bookId: 'john', chapter: 3 } }, '', '/library/chapel/john/3'
+      { id: 'library', data: { pane: 'chapel', bookId: 'john', chapter: 3 } }, '', '/library/chapel/john/3'
     );
     router.destroy();
   });

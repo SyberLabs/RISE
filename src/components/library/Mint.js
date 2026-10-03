@@ -1,4 +1,4 @@
-import { escapeHtml } from '../core/sanitize.js';
+import { escapeHtml } from '../../core/sanitize.js';
 import './Mint.css';
 
 const ARROW = '<svg class="mint-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"></path><path d="m13 6 6 6-6 6"></path></svg>';

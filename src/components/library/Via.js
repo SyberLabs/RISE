@@ -16,14 +16,14 @@
  * LiturgyRunner; this room decides nothing.
  */
 
-import { compileLiturgy } from '../core/liturgy-runner.js';
-import { buildStationsDefinition } from '../content/chapel/liturgy/stations-liturgy.js';
-import { STATIONS, STATIONS_ATTRIBUTION, stationByNumber } from '../content/chapel/liturgy/stations.js';
-import { escapeHtml } from '../core/sanitize.js';
-import { REMOTE_IMAGE_ATTRS, createRemoteImage } from '../visuals/remote-image.js';
-import { roomHeader, roomEyebrow, roomIcon } from './room-chrome.js';
+import { compileLiturgy } from '../../core/liturgy-runner.js';
+import { buildStationsDefinition } from '../../content/chapel/liturgy/stations-liturgy.js';
+import { STATIONS, STATIONS_ATTRIBUTION, stationByNumber } from '../../content/chapel/liturgy/stations.js';
+import { escapeHtml } from '../../core/sanitize.js';
+import { REMOTE_IMAGE_ATTRS, createRemoteImage } from '../../visuals/remote-image.js';
+import { roomHeader, roomEyebrow, roomIcon } from '../room-chrome.js';
 import './Via.css';
-import { USER_DATA_KEYS } from '../core/user-data-keys.js';
+import { USER_DATA_KEYS } from '../../core/user-data-keys.js';
 
 const ADVANCE_KEY = USER_DATA_KEYS.viaAdvance;
 const SOUND_KEY = USER_DATA_KEYS.viaSound;

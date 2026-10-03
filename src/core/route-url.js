@@ -24,7 +24,6 @@ export const VISUAL_LAB_PATH = '/visual-lab';
 export const VISUAL_CATALOG_PATH = '/visual-catalog';
 export const LIVE_PATH = '/live';
 export const EMOTIONS_PATH = '/emotions';
-export const TODAY_PATH = '/today';
 
 /**
  * Old ids stay valid forever. Each right-hand side is the id the room has
@@ -32,25 +31,41 @@ export const TODAY_PATH = '/today';
  */
 export const ROUTE_ALIASES = {
     portal: 'portal',
-    keystones: 'keystones',
-    mint: 'mint',
+    keystones: 'library',
+    mint: 'library',
     vault: 'vault',
     chamber: 'chamber',
     'chamber-session': 'chamber-session',
     library: 'library',
-    journeys: 'journeys',
+    journeys: 'library',
     workshop: 'workshop',
     settings: 'settings',
-    rosarium: 'rosarium',
-    curia: 'curia',
+    rosarium: 'library',
+    curia: 'library',
     scriptorium: 'scriptorium',
-    via: 'via',
+    via: 'library',
     emotions: 'emotions',
     'visual-lab': 'visual-lab',
     'visual-catalog': 'visual-catalog',
     live: 'live',
+    chapel: 'library',
+    today: 'library'
+};
+
+/**
+ * The Library pane each old room id opens. The router merges `{ pane }` into
+ * the data when it resolves one of these ids, so `navigate('chapel', data)`
+ * still reaches the Chapel.
+ */
+export const ROUTE_PANES = {
     chapel: 'chapel',
-    today: 'today'
+    rosarium: 'rosary',
+    via: 'stations',
+    journeys: 'journeys',
+    keystones: 'keystones',
+    mint: 'mint',
+    today: 'today',
+    curia: 'provenance'
 };
 
 const enc = encodeURIComponent;
@@ -76,24 +91,35 @@ function fixed(id, path, extra = {}) {
     return { id, pattern: path, build: () => path, parse: () => ({}), ...extra };
 }
 
+/**
+ * A Library pane's address: the row builds only for `data.pane === pane`
+ * and its parsed data names the pane.
+ */
+function pane(name, row) {
+    const parse = row.parse || (() => ({}));
+    return {
+        ...row,
+        id: 'library',
+        pane: name,
+        parse: (found, search) => {
+            const data = parse(found, search);
+            return data ? { pane: name, ...data } : null;
+        }
+    };
+}
+
 const ROUTES = [
     fixed('portal', '/'),
     { id: 'portal', pattern: '/jev-scene-demo', build: null, own: true, parse: () => ({ demoMode: true }) },
     { id: 'portal', pattern: '/night-drive', build: null, own: true, parse: () => ({ demoMode: true }) },
 
-    {
-        id: 'keystones',
-        pattern: TRY_RISE_PATH,
-        build: () => TRY_RISE_PATH,
-        parse: () => ({})
-    },
-    {
-        id: 'keystones',
+    pane('keystones', { pattern: TRY_RISE_PATH, build: () => TRY_RISE_PATH }),
+    pane('keystones', {
         pattern: `${KEYSTONE_ROUTE_PREFIX}:slug`,
         build: null,
         parse: ({ slug }) => (slug ? { slug } : null)
-    },
-    fixed('keystones', '/library/keystones', { build: null }),
+    }),
+    pane('keystones', { pattern: '/library/keystones', build: null }),
 
     fixed('chamber', '/read'),
     {
@@ -107,8 +133,7 @@ const ROUTES = [
     },
 
     fixed('library', '/library'),
-    {
-        id: 'chapel',
+    pane('chapel', {
         pattern: '/library/chapel/:bookId?/:chapter?',
         build: (data) => {
             const chapter = Number(data?.chapter);
@@ -127,21 +152,20 @@ const ROUTES = [
             }
             return data;
         }
-    },
-    {
-        id: 'rosarium',
+    }),
+    pane('rosary', {
         pattern: '/library/rosary',
         build: data => `/library/rosary${query({ set: data?.setId, icon: data?.iconId })}`,
         parse: (_m, search) => ({
             setId: search.get('set') || undefined,
             iconId: search.get('icon') || undefined
         })
-    },
-    fixed('via', '/library/stations'),
-    fixed('journeys', '/library/journeys'),
-    fixed('mint', '/library/mint'),
-    fixed('today', TODAY_PATH),
-    fixed('curia', '/library/provenance'),
+    }),
+    pane('stations', { pattern: '/library/stations', build: () => '/library/stations' }),
+    pane('journeys', { pattern: '/library/journeys', build: () => '/library/journeys' }),
+    pane('mint', { pattern: '/library/mint', build: () => '/library/mint' }),
+    pane('today', { pattern: '/today', build: () => '/today' }),
+    pane('provenance', { pattern: '/library/provenance', build: () => '/library/provenance' }),
 
     fixed('workshop', '/make/workshop'),
     {
@@ -194,7 +218,8 @@ function match(pattern, pathname) {
 
 /** The address for a room, or null when the id has none. */
 export function pathForRoute(id, data = {}) {
-    const row = ROUTES.find(item => item.id === id && item.build);
+    const row = ROUTES.find(item => item.id === id && item.build
+        && (id !== 'library' || item.pane === (data?.pane || undefined)));
     return row ? row.build(data || {}) : null;
 }
 

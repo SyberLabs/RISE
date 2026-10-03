@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 
-vi.mock('../content/keystones.js', async importOriginal => ({
+vi.mock('../../content/keystones.js', async importOriginal => ({
   ...await importOriginal(),
   resolveKeystone: vi.fn(async () => ({
     admitted: true,

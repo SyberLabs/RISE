@@ -271,6 +271,8 @@
   overflow-y: auto;
   background: var(--sy-bg);
 }
+/* A pane is open: the shelves step aside (Library.showPane). */
+.library-room[hidden] { display: none; }
 
 .library-page {
   width: 100%;
@@ -318,6 +320,26 @@
   font: 400 16px/24px var(--sy-font-sans);
   color: var(--sy-text-2);
 }
+
+.library-room .library-programs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sy-space-2) var(--sy-space-5);
+  margin-top: var(--sy-space-4);
+}
+.library-room .library-programs button {
+  min-height: var(--sy-control-height);
+  padding: 0;
+  border: 0;
+  background: none;
+  font: 400 14px/20px var(--sy-font-sans);
+  color: var(--sy-text-2);
+  text-decoration: underline;
+  text-decoration-color: var(--sy-line);
+  text-underline-offset: 4px;
+  cursor: pointer;
+}
+.library-room .library-programs button:hover { color: var(--sy-text); }
 
 .library-room .library-nav {
   gap: var(--sy-space-6);

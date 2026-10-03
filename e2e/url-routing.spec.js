@@ -102,3 +102,21 @@ test('Back never resurrects a finished reading', async ({ page }) => {
   await expect(page.locator('.chapel-book[data-book-id="matthew"], .portal-nav [data-nav="library"]').first())
     .toBeAttached({ timeout: 15_000 });
 });
+
+test('the Library opens its programs as panes, each with an address, and Back returns to the shelves', async ({ page }) => {
+  await page.goto('/library');
+  await expect(page.locator('[data-filter="received"]')).toBeVisible({ timeout: 15_000 });
+  await page.locator('#view-library [data-open-pane="stations"]').click();
+  await expect(page.locator('#view-library [data-pane="stations"]')).toBeVisible({ timeout: 15_000 });
+  await expect.poll(() => pathOf(page)).toBe('/library/stations');
+  await expect(page.locator('[data-filter="received"]')).toBeHidden();
+
+  await page.goBack();
+  await expect.poll(() => pathOf(page)).toBe('/library');
+  await expect(page.locator('[data-filter="received"]')).toBeVisible({ timeout: 15_000 });
+  await expect(page.locator('#view-library [data-pane="stations"]')).toBeHidden();
+
+  await page.goto('/library/provenance');
+  await expect(page.locator('#view-library [data-pane="provenance"]')).toBeVisible({ timeout: 15_000 });
+  await expect.poll(() => pathOf(page)).toBe('/library/provenance');
+});

@@ -1,9 +1,9 @@
-import { KEYSTONE_MANIFESTS, resolveKeystone } from '../content/keystones.js';
-import { SEQUENCE_PILOT } from '../content/sequence-pilot.js';
-import { archiveReviewEnabled } from '../content/archive/index.js';
-import { countWords } from '../core/chunker.js';
-import { escapeHtml } from '../core/sanitize.js';
-import { shippedStillUrl } from '../visuals/engine-stills.js';
+import { KEYSTONE_MANIFESTS, resolveKeystone } from '../../content/keystones.js';
+import { SEQUENCE_PILOT } from '../../content/sequence-pilot.js';
+import { archiveReviewEnabled } from '../../content/archive/index.js';
+import { countWords } from '../../core/chunker.js';
+import { escapeHtml } from '../../core/sanitize.js';
+import { shippedStillUrl } from '../../visuals/engine-stills.js';
 import './Keystones.css';
 
 const DISTRIBUTION_MANIFEST_PATH = '/media/keystones/distribution.json';

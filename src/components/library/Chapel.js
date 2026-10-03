@@ -23,14 +23,14 @@ import {
   CHAPEL_BOOKS,
   chapelBooksInGrouping,
   findChapelBook
-} from '../content/chapel/corpus/manifest.js';
-import { CHAPEL_ICONS } from '../content/chapel/imagery/icons.js';
-import { REMOTE_IMAGE_ATTRS } from '../visuals/remote-image.js';
-import { MYSTERY_SETS, mysterySetForDate } from '../content/chapel/liturgy/rosary.js';
-import { roomHeader, roomEyebrow, roomIcon } from './room-chrome.js';
+} from '../../content/chapel/corpus/manifest.js';
+import { CHAPEL_ICONS } from '../../content/chapel/imagery/icons.js';
+import { REMOTE_IMAGE_ATTRS } from '../../visuals/remote-image.js';
+import { MYSTERY_SETS, mysterySetForDate } from '../../content/chapel/liturgy/rosary.js';
+import { roomHeader, roomEyebrow, roomIcon } from '../room-chrome.js';
 import './Chapel.css';
-import { USER_DATA_KEYS } from '../core/user-data-keys.js';
-import { escapeHtml } from '../core/sanitize.js';
+import { USER_DATA_KEYS } from '../../core/user-data-keys.js';
+import { escapeHtml } from '../../core/sanitize.js';
 
 /** The reader's chosen icon focal, kept across visits. */
 export const CHAPEL_ICON_PREF_KEY = USER_DATA_KEYS.chapelIcon;

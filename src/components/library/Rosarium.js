@@ -24,18 +24,18 @@
  * slow crossfades — lowering and raising the eyes.
  */
 
-import { compileLiturgy } from '../core/liturgy-runner.js';
-import { buildRosaryDefinition } from '../content/chapel/liturgy/rosary-liturgy.js';
-import { MYSTERY_SETS, mysterySetForDate } from '../content/chapel/liturgy/rosary.js';
-import { mysteryWork, ROSARY_MYSTERY_WORKS } from '../content/chapel/liturgy/rosary-imagery.js';
-import { CHAPEL_ICONS, CHAPEL_ICON_DEFAULTS, findChapelIcon } from '../content/chapel/imagery/icons.js';
-import { RosaryStrand } from '../visuals/rosary-strand.js';
-import { escapeHtml } from '../core/sanitize.js';
-import { createRemoteImage } from '../visuals/remote-image.js';
-import { rosaryDoorHref } from '../core/rosary-door.js';
-import { roomHeader, roomEyebrow, roomIcon } from './room-chrome.js';
+import { compileLiturgy } from '../../core/liturgy-runner.js';
+import { buildRosaryDefinition } from '../../content/chapel/liturgy/rosary-liturgy.js';
+import { MYSTERY_SETS, mysterySetForDate } from '../../content/chapel/liturgy/rosary.js';
+import { mysteryWork, ROSARY_MYSTERY_WORKS } from '../../content/chapel/liturgy/rosary-imagery.js';
+import { CHAPEL_ICONS, CHAPEL_ICON_DEFAULTS, findChapelIcon } from '../../content/chapel/imagery/icons.js';
+import { RosaryStrand } from '../../visuals/rosary-strand.js';
+import { escapeHtml } from '../../core/sanitize.js';
+import { createRemoteImage } from '../../visuals/remote-image.js';
+import { rosaryDoorHref } from '../../core/rosary-door.js';
+import { roomHeader, roomEyebrow, roomIcon } from '../room-chrome.js';
 import './Rosarium.css';
-import { USER_DATA_KEYS } from '../core/user-data-keys.js';
+import { USER_DATA_KEYS } from '../../core/user-data-keys.js';
 
 const MODE_KEY = USER_DATA_KEYS.rosaryMode;
 const SOUND_KEY = USER_DATA_KEYS.rosarySound;
@@ -247,7 +247,7 @@ export class Rosarium {
         const work = await this._resolvePin(pin);
         if (generation !== this._visualGeneration || setId !== this.setId) return;
         if (!work || !this._galleryOpen) continue;
-        const { mountSacredImage } = await import('../content/chapel/imagery/sacred-image.js');
+        const { mountSacredImage } = await import('../../content/chapel/imagery/sacred-image.js');
         await mountSacredImage(slot, work, {
           stillAlive: () => generation === this._visualGeneration && this._galleryOpen
         });
@@ -384,7 +384,7 @@ export class Rosarium {
         sourceUrl: pin.sourceUrl
       };
     }
-    const { resolveCollection } = await import('../content/imagery/service.js');
+    const { resolveCollection } = await import('../../content/imagery/service.js');
     const resolved = await resolveCollection(
       { works: [pin] },
       { signal: this._visualAbort?.signal }
@@ -499,7 +499,7 @@ export class Rosarium {
           && this.phase === 'prayer'
           && this.compiled?.steps[this.stepIndex]?.id === stepId;
         if (work && liveSlot && momentStands()) {
-          const { mountSacredImage } = await import('../content/chapel/imagery/sacred-image.js');
+          const { mountSacredImage } = await import('../../content/chapel/imagery/sacred-image.js');
           await mountSacredImage(liveSlot, work, { stillAlive: momentStands });
           return;
         }
@@ -507,7 +507,7 @@ export class Rosarium {
       }
     }
     const icon = findChapelIcon(this.iconId) || CHAPEL_ICONS[CHAPEL_ICON_DEFAULTS.marian];
-    const { mountSacredImage } = await import('../content/chapel/imagery/sacred-image.js');
+    const { mountSacredImage } = await import('../../content/chapel/imagery/sacred-image.js');
     await mountSacredImage(slot, {
       imageUrl: icon.image, title: icon.name, attribution: icon.attribution
     }, {

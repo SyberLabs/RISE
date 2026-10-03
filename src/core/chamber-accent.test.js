@@ -186,7 +186,7 @@ describe('Chamber accent allowlist', () => {
             'components/ChamberOrbital.css',
             'components/Library.css',
             'components/Guide.css',
-            'components/Keystones.css',
+            'components/library/Keystones.css',
             'components/NamingModal.css',
             'components/NamingModal.js',
             'components/Settings.css',

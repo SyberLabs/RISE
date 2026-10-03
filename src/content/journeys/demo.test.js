@@ -18,7 +18,7 @@ import { compileSession } from '../../core/session-compiler.js';
  * these passages were written against. Every quotation anchor into them
  * refuses, which is the anchoring working. The score stays in the tree with
  * its tests so re-authoring it later starts from what it was, and nothing here
- * reaches a reader or the Scriptorium (src/components/Journeys.js).
+ * reaches a reader or the Scriptorium (src/components/library/Journeys.js).
  */
 describe.skip('a disclosed route through a reading unit', () => {
     const scene = WAR_PASSAGES.find(p => p.id === 'pass-iliad-hector-household');

@@ -54,9 +54,9 @@ test('Keystone corridor has durable cold, reload, launch, and Back behavior', as
   await page.locator('#exit-btn').click();
   await page.locator('#exit-confirm').click();
   await expect(page).toHaveURL(/\/try-rise$/u);
-  await expect.poll(() => page.evaluate(() => window.__RISE_TEST__?.getRouterState().currentView), {
+  await expect.poll(() => page.evaluate(() => `${window.__RISE_TEST__?.getRouterState().currentView}/${window.__RISE_TEST__?.getView('library')?.activePane}`), {
     timeout: 15_000
-  }).toBe('keystones');
+  }).toBe('library/keystones');
   await expect(page.locator('#keystone-meditations')).toBeVisible({ timeout: 15_000 });
 
   // The closed reading is not left behind in history: Back reaches the
@@ -81,9 +81,9 @@ test('Keystone corridor has durable cold, reload, launch, and Back behavior', as
 
   await page.goBack();
   await expect(page).toHaveURL(/\/try-rise$/u);
-  await expect.poll(() => page.evaluate(() => window.__RISE_TEST__?.getRouterState().currentView), {
+  await expect.poll(() => page.evaluate(() => `${window.__RISE_TEST__?.getRouterState().currentView}/${window.__RISE_TEST__?.getView('library')?.activePane}`), {
     timeout: 15_000
-  }).toBe('keystones');
+  }).toBe('library/keystones');
   await expect(page.locator('#keystone-meditations')).toBeVisible({ timeout: 15_000 });
 
   await page.goBack();

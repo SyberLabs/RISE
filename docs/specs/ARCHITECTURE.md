@@ -24,8 +24,9 @@ of sound. The same compiled session can instead be projected into **Page**, a
 spatial typographic composition. An **Experience Program** can author what
 appears when.
 
-Around that engine sit rooms: Portal, Library, Chapel and Rosarium, Workshop,
-Vault, Scriptorium, Curia, Journeys, Via, Keystones, Settings.
+Around that engine sit rooms: Portal, Library, Workshop, Vault, Scriptorium,
+Settings. The Library opens the scripture, the liturgies, the journeys, the
+keystones and the day's poem as panes.
 
 Cloudflare serves the app shell and the static catalog. The Library's optional
 recommendation runs in the reader's browser, on the reader's own provider: it
@@ -105,15 +106,15 @@ else is a recommendation.
 ║  │   ROOMS     │     │        │  SURFACES                                  │ ║
 ║  │  Portal     │     └───────▶│  Chamber (stream, in time)                 │ ║
 ║  │  Library    │              │  Page    (spatial, same Session)           │ ║
-║  │  Chapel/Via │              └────────────────────────────────────────────┘ ║
-║  │  Rosarium   │                                                             ║
-║  │  Workshop   │   each room is lazily imported with its own stylesheet      ║
-║  │  Vault      │                                                             ║
-║  │  Scriptorium│   ┌──────────────────────────────────────────────────────┐  ║
-║  │  Curia      │   │  SOURCES  registry + providers + IndexedDB cache      │  ║
-║  │  Journeys   │   │  archive   (failure degrades one, not the app)        │  ║
-║  │  Keystones  │   │                                                       │  ║
-║  │  Settings   │   │                                                       │  ║
+║  │  + its panes│              └────────────────────────────────────────────┘ ║
+║  │  Workshop   │                                                             ║
+║  │  Vault      │   each room is lazily imported with its own stylesheet      ║
+║  │  Scriptorium│                                                             ║
+║  │  Settings   │   ┌──────────────────────────────────────────────────────┐  ║
+║  │             │   │  SOURCES  registry + providers + IndexedDB cache      │  ║
+║  │             │   │  archive   (failure degrades one, not the app)        │  ║
+║  │             │   │                                                       │  ║
+║  │             │   │                                                       │  ║
 ║  └─────────────┘   └──────────────────────────────────────────────────────┘  ║
 ║                                                                               ║
 ║   STORAGE  localStorage (settings, journals, blueprints, images, orbital) ·   ║
@@ -166,7 +167,7 @@ flowchart LR
 
     affect --> |7| core
     app -.-> |3 lazy| audio
-    app -.-> |20 lazy| components
+    app -.-> |12 lazy| components
     app --> |3| content
     app --> |38| core
     app -.-> |1 lazy| live
@@ -325,21 +326,14 @@ outliving its room, fails a build.
 |---|---|---|
 | Portal | `src/components/Portal.js` | the hub, and the first screen |
 | Emotions | `src/components/Emotions.js` | the optional affect map and inspectable list |
-| Keystones | `src/components/Keystones.js` | the public entry corridor |
-| Mint | `src/components/Mint.js` | the door a minted sequence opens onto |
 | Chamber | `src/components/Chamber.js` | a reading, in time |
 | ChamberOrbital | `src/components/ChamberOrbital.js` | tuning a reading before it starts |
-| Library | `src/components/Library.js` | the prepared editions |
-| Chapel | `src/components/Chapel.js` | the scripture corpus |
-| Rosarium | `src/components/Rosarium.js` | the Rosary, on the liturgy engine |
-| Via | `src/components/Via.js` | the Stations of the Cross |
+| Library | `src/components/Library.js` | the prepared editions, scripture, liturgies, journeys, keystones and the day's poem, with provenance on every edition |
 | Workshop | `src/components/Workshop.js` | authoring a composition |
 | Visual Lab | `src/components/VisualLab.js` | exploring, saving, and reusing Living Flame scenes |
 | Visual Catalog | `src/components/VisualCatalog.js` | searching nine procedural surfaces, requesting specimens, and opening admitted local live samples |
 | Vault | `src/components/Vault.js` | saved compositions and archetypes |
 | Scriptorium | `src/components/Scriptorium.js` | a model composes; a gate refuses |
-| Curia | `src/components/Curia.js` | the source and rights record |
-| Journeys | `src/components/Journeys.js` | authored long-form experiences |
 | Settings | `src/components/Settings.js` | preferences, export and erase |
 | Guide | `src/components/Guide.js` | onboarding, as an overlay rather than a route |
 
@@ -352,6 +346,17 @@ routed rooms: `src/components/Admit.js`,
 chrome helper `src/components/atlas.js`, which lazily imports the vendored
 design-system kit in `src/vendor/syber/` (the ambient atmosphere behind Home
 and the RISE sigil) so neither engine is part of first load.
+The Library's programs are panes it mounts, not rooms (§8.43):
+`src/components/library/Chapel.js` (the scripture corpus),
+`src/components/library/Rosarium.js` (the Rosary, on the liturgy engine),
+`src/components/library/Via.js` (the Stations of the Cross),
+`src/components/library/Journeys.js` (authored long-form experiences),
+`src/components/library/Keystones.js` (the public entry corridor),
+`src/components/library/Mint.js` (the door a minted sequence opens onto),
+`src/components/today/TodayPoem.js` (the day's poem) and
+`src/components/library/Curia.js` (the source and rights record). Their old
+route ids and paths still work: `src/core/route-url.js` maps each to the
+Library with the pane named in `data.pane`.
 The Navigator's columns, text material, preview, and Chapel trays live in `src/components/visual-navigator/` so the
 shell stays a mount point. Chamber mounts a Fit-mask runtime from
 `src/core/fit-mask-runtime.js` rather than owning the glyph-mask state machine.
@@ -1260,6 +1265,16 @@ of `settled`, `open`, `deferred`, or `reversed`.
   content. It needs no database, no cache, no secrets and no limiter, and
   removing them removes the Worker's only state and two of six production
   dependencies.
+- **Status:** settled.
+
+### 8.43 Liturgies, journeys and keystones are programs in the Library, not rooms
+
+- **Chosen:** one Library room with panes; the Rosary, the Stations, a journey,
+  a keystone sequence and the day's poem are catalog entries that open a pane.
+- **Rejected:** a routed room per corpus, nine in all.
+- **Why:** each was a different door onto the same engine with the same
+  compiler behind it. A room costs a container, a route, a lifecycle and a
+  row in this table; a program costs a line of data. §2.3.
 - **Status:** settled.
 
 ---

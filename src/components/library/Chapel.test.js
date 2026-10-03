@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { Chapel } from './Chapel.js';
-import { CHAPEL_BOOKS, CHAPEL_GROUPINGS } from '../content/chapel/corpus/manifest.js';
+import { CHAPEL_BOOKS, CHAPEL_GROUPINGS } from '../../content/chapel/corpus/manifest.js';
 
 function mount(options = {}) {
   const container = document.createElement('div');
@@ -42,7 +42,7 @@ describe('Chapel view', () => {
   it('scrolls inside the view: fixed shell, scrolling interior (the app body is overflow hidden)', () => {
     const { container } = mount();
     expect(container.querySelector('.chapel-scroll .chapel-inner .chapel-body')).not.toBeNull();
-    const css = readFileSync(resolve('src/components/Chapel.css'), 'utf8');
+    const css = readFileSync(resolve('src/components/library/Chapel.css'), 'utf8');
     const shell = css.slice(css.indexOf('.chapel {'), css.indexOf('.chapel-scroll'));
     expect(shell).toContain('overflow: hidden');
     expect(shell).not.toContain('min-height');
@@ -181,9 +181,9 @@ describe('Chapel view', () => {
 
 describe('the doorway (seam)', () => {
   const portalSource = readFileSync(resolve('src/components/Portal.js'), 'utf8');
-  const chapelCss = readFileSync(resolve('src/components/Chapel.css'), 'utf8');
+  const chapelCss = readFileSync(resolve('src/components/library/Chapel.css'), 'utf8');
   const appSource = readFileSync(resolve('src/app.js'), 'utf8');
-  const routeManifestSource = readFileSync(resolve('src/app/route-manifest.js'), 'utf8');
+  const librarySource = readFileSync(resolve('src/components/Library.js'), 'utf8');
   const indexHtml = readFileSync(resolve('index.html'), 'utf8');
 
   it('Home keeps a labelled Chapel door among the minor rooms, never the primary ones', () => {
@@ -196,11 +196,11 @@ describe('the doorway (seam)', () => {
     expect(chapelCss).not.toMatch(/\.portal-chapel-lamp\s*\{/);
   });
 
-  it('the route manifest registers the chapel lazily and app owns reverent handoff failure', () => {
-    expect(routeManifestSource).toContain("id: 'chapel'");
-    expect(routeManifestSource).toContain("import('../components/Chapel.js')");
+  it('the Library opens the chapel lazily as a pane and app owns reverent handoff failure', () => {
+    expect(librarySource).toContain("import('./library/Chapel.js')");
     expect(appSource).toContain("import('./content/chapel/handoff.js')");
     expect(appSource).toContain('CHAPEL_PAYLOAD_INTEGRITY');
-    expect(indexHtml).toContain('id="view-chapel"');
+    expect(indexHtml).toContain('id="view-library"');
+    expect(indexHtml).not.toContain('id="view-chapel"');
   });
 });

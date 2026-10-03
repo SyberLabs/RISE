@@ -5,7 +5,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { STATIONS, STATIONS_VERSICLE, STATIONS_RESPONSE, STATIONS_ATTRIBUTION, stationByNumber } from './stations.js';
 import { buildStationsDefinition } from './stations-liturgy.js';
 import { compileLiturgy } from '../../../core/liturgy-runner.js';
-import { Via } from '../../../components/Via.js';
+import { Via } from '../../../components/library/Via.js';
 
 describe('The Stations (fourteen fixed steps)', () => {
   it('holds exactly fourteen stations, each with title, meditation, pinned image, and SHA-1', () => {
@@ -133,7 +133,7 @@ describe('The Via room', () => {
   });
 
   it('contains no probabilistic machinery', () => {
-    for (const path of ['src/components/Via.js', 'src/content/chapel/liturgy/stations-liturgy.js', 'src/content/chapel/liturgy/stations.js']) {
+    for (const path of ['src/components/library/Via.js', 'src/content/chapel/liturgy/stations-liturgy.js', 'src/content/chapel/liturgy/stations.js']) {
       const source = readFileSync(resolve(path), 'utf8');
       expect(source, path).not.toMatch(/Math\.random\s*\(|new ShuffleBag|\.draw\(/);
     }

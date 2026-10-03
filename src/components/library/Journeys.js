@@ -25,8 +25,8 @@
  * So Begin compiles the authored config and enters the reading.
  */
 
-import { createJourneyHandoff, journeyIntroduction } from '../content/journeys/handoff.js';
-import { resolveJourneyPassages } from '../content/journeys/passages.js';
+import { createJourneyHandoff, journeyIntroduction } from '../../content/journeys/handoff.js';
+import { resolveJourneyPassages } from '../../content/journeys/passages.js';
 import './Journeys.css';
 
 /**

@@ -5,7 +5,11 @@ import { test, expect } from './fixtures.js';
  * under the day's mark. Begin plays exactly the poem shown, as verse, and
  * leaving the reading comes back to the poem.
  */
-const view = page => page.evaluate(() => window.__RISE_TEST__.getRouterState().currentView);
+// The poem is a pane of the Library: name it as `library/today`.
+const view = page => page.evaluate(() => {
+  const { currentView } = window.__RISE_TEST__.getRouterState();
+  return currentView === 'library' ? `library/${window.__RISE_TEST__.getView('library')?.activePane}` : currentView;
+});
 
 async function openToday(page, path) {
   await page.goto(path);
@@ -19,7 +23,7 @@ test('Home shows today\'s poem as a card that opens it, and the address names it
   const line = await card.locator('.home-today-line').textContent();
   await card.click();
   await expect(page.locator('.today-line').first()).toBeVisible({ timeout: 15_000 });
-  await expect.poll(() => view(page)).toBe('today');
+  await expect.poll(() => view(page)).toBe('library/today');
   await expect(page).toHaveURL(/\/today$/u);
   // The card names the poem the view opens, and quotes its first line.
   await expect(page.locator('#today-title')).toHaveText(title);
@@ -30,7 +34,7 @@ test('the Menu opens today\'s poem', async ({ page }) => {
   await openToday(page, '/');
   await page.locator('.portal-menu-toggle').click();
   await page.locator('.portal-nav [data-nav="today"]').click();
-  await expect.poll(() => view(page)).toBe('today');
+  await expect.poll(() => view(page)).toBe('library/today');
 });
 
 for (const viewport of [{ width: 390, height: 844 }, { width: 1280, height: 800 }]) {
@@ -63,7 +67,7 @@ for (const viewport of [{ width: 390, height: 844 }, { width: 1280, height: 800 
 
     await page.keyboard.press('Escape');
     await page.locator('#exit-confirm-overlay').getByRole('button', { name: 'End reading' }).click();
-    await page.waitForFunction(() => window.__RISE_TEST__.getRouterState().currentView === 'today', null, { timeout: 10_000 });
+    await expect.poll(() => view(page), { timeout: 10_000 }).toBe('library/today');
     await expect(begin).toBeEnabled();
   });
 }

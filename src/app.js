@@ -14,7 +14,7 @@ import { compileSession } from './core/session-compiler.js';
 import { PACE_CURVE_IDS } from './core/pacing.js';
 import { resolveNextLibraryDivision } from './core/reading-continuation.js';
 import { isRosaryDoor } from './core/rosary-door.js';
-import { routeFromPath } from './core/route-url.js';
+import { ROUTE_ALIASES, routeFromPath } from './core/route-url.js';
 import { sceneSampleFromPath } from './core/jev-demo-path.js';
 import { KEYSTONE_SESSION_ORIGIN } from './app/chamber-exit.js';
 
@@ -290,7 +290,7 @@ class App {
             });
         if (opened) {
             // The reading is open; nothing else to recover.
-        } else if (staleTarget && this.router.views.has(staleTarget)) {
+        } else if (staleTarget && this.router.views.has(ROUTE_ALIASES[staleTarget] ?? staleTarget)) {
             console.log('[RISE] Recovering navigation after stale build:', staleTarget);
             await this.router.navigate(staleTarget, { data: staleData, keepUrl: true });
         } else if (isRosaryDoor()) {
@@ -1260,7 +1260,7 @@ class App {
     async resolveAddress() {
         const here = window.location;
         let route = routeFromPath(here.pathname, here.search);
-        if (route?.id === 'keystones' && route.data.slug) {
+        if (route?.data?.pane === 'keystones' && route.data.slug) {
             const { keystoneSlugFromPath } = await import('./content/keystones.js');
             if (!keystoneSlugFromPath(here.pathname)) route = null;
         }
@@ -1280,8 +1280,10 @@ class App {
      */
     handleRosaryDoorHash() {
         if (!isRosaryDoor() || !this.router) return;
-        const onDoorSit = this.router.getCurrentView() === 'rosarium'
-            && this.router.getViewInstance('rosarium')?.door === true;
+        const library = this.router.getViewInstance('library');
+        const onDoorSit = this.router.getCurrentView() === 'library'
+            && library?.activePane === 'rosary'
+            && library.paneInstance('rosary')?.door === true;
         if (onDoorSit) return;
         return this.router.navigate('rosarium', { data: { door: true } });
     }

@@ -24,7 +24,15 @@ function isStaleChunkError(error) {
         .test(message);
 }
 
-import { ROUTE_ALIASES, addressIsOwnTo, pathForRoute } from './route-url.js';
+import { ROUTE_ALIASES, ROUTE_PANES, addressIsOwnTo, pathForRoute } from './route-url.js';
+
+function sameData(a, b) {
+    try {
+        return JSON.stringify(a ?? {}) === JSON.stringify(b ?? {});
+    } catch {
+        return false;
+    }
+}
 
 export class Router {
     constructor(options = {}) {
@@ -71,7 +79,11 @@ export class Router {
     async navigate(requestedView, options = {}, queuedRevision) {
         // Old ids stay valid forever: the table in route-url.js says where
         // each one lives now.
+        // An old id that became a Library pane carries the pane's name.
         const viewName = ROUTE_ALIASES[requestedView] ?? requestedView;
+        if (viewName !== requestedView && ROUTE_PANES[requestedView]) {
+            options = { ...options, data: { ...options.data, pane: ROUTE_PANES[requestedView] } };
+        }
         const revision = queuedRevision ?? ++this.navigationRevision;
         if (queuedRevision === undefined) this.onNavigationIntent(viewName, options);
         console.log(`[Router] Navigate to: ${viewName}, from: ${this.currentView}`);
@@ -86,7 +98,12 @@ export class Router {
         // A completed division may hand the same immersive surface a fresh
         // Session. Same-route navigation is normally a no-op; `force` is the
         // explicit remount contract for that bounded continuation case.
-        if (viewName === this.currentView && options.force !== true) return true;
+        // A room with panes (the Library) changes pane in place: no fade,
+        // but a back-stack entry and an address like any other move.
+        const inPlace = viewName === this.currentView && options.force !== true
+            && typeof this.views.get(viewName)?.instance?.showPane === 'function';
+        if (viewName === this.currentView && options.force !== true
+            && (!inPlace || sameData(options.data, this.currentData))) return true;
 
         const newView = this.views.get(viewName);
         if (!newView) {
@@ -105,41 +122,45 @@ export class Router {
         };
 
         try {
-            previousView?.instance?.deactivate?.();
-            if (previousView?.container) {
-                await this.fadeOut(previousView.container);
-                previousView.container.hidden = true;
-            }
-
-            assertCurrentLaunch();
-
-            // Views sharing a container cannot coexist. Dispose the old owner
-            // only after it has been deactivated and visually removed.
-            for (const [viewKey, viewData] of this.views.entries()) {
-                if (viewKey !== viewName && viewData.container === newView.container && viewData.instance) {
-                    viewData.instance.destroy?.();
-                    viewData.instance = null;
-                }
-            }
-
-            if (!newView.instance) {
-                if (newView.init) {
-                    newView.instance = await newView.init(newView.container, options.data);
-                } else if (newView.component) {
-                    newView.instance = new newView.component(newView.container, options.data);
-                }
+            if (inPlace) {
+                await newView.instance.update(options.data);
             } else {
-                await newView.instance.update?.(options.data);
-            }
+                previousView?.instance?.deactivate?.();
+                if (previousView?.container) {
+                    await this.fadeOut(previousView.container);
+                    previousView.container.hidden = true;
+                }
 
-            assertCurrentLaunch();
-            newView.container.hidden = false;
-            await this.fadeIn(newView.container);
-            assertCurrentLaunch();
-            newView.instance?.activate?.();
+                assertCurrentLaunch();
+
+                // Views sharing a container cannot coexist. Dispose the old owner
+                // only after it has been deactivated and visually removed.
+                for (const [viewKey, viewData] of this.views.entries()) {
+                    if (viewKey !== viewName && viewData.container === newView.container && viewData.instance) {
+                        viewData.instance.destroy?.();
+                        viewData.instance = null;
+                    }
+                }
+
+                if (!newView.instance) {
+                    if (newView.init) {
+                        newView.instance = await newView.init(newView.container, options.data);
+                    } else if (newView.component) {
+                        newView.instance = new newView.component(newView.container, options.data);
+                    }
+                } else {
+                    await newView.instance.update?.(options.data);
+                }
+
+                assertCurrentLaunch();
+                newView.container.hidden = false;
+                await this.fadeIn(newView.container);
+                assertCurrentLaunch();
+                newView.instance?.activate?.();
+            }
 
             if (!options.replace && !options.skipStack && previousViewName
-                && previousViewName !== viewName) {
+                && (previousViewName !== viewName || inPlace)) {
                 this.viewStack.push({ viewName: previousViewName, data: this.currentData });
             }
             this.currentView = viewName;
@@ -197,10 +218,9 @@ export class Router {
         const pending = this._pendingNav;
         this._pendingNav = null;
         if (pending) {
-            const pendingSucceeded = pending.viewName === this.currentView
-                && pending.options.force !== true
-                ? true
-                : await this.navigate(pending.viewName, pending.options, pending.revision);
+            // A queued move to the room already showing is a no-op inside
+            // navigate(), unless it names another pane of that room.
+            const pendingSucceeded = await this.navigate(pending.viewName, pending.options, pending.revision);
             pending.resolve(pendingSucceeded === true);
         }
         return succeeded;

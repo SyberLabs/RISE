@@ -3,25 +3,17 @@ import { createRouteManifest } from './route-manifest.js';
 
 const ROUTE_IDS = [
   'portal',
-  'keystones',
-  'mint',
   'vault',
   'chamber',
   'chamber-session',
   'library',
-  'journeys',
   'workshop',
   'settings',
-  'rosarium',
-  'curia',
   'scriptorium',
-  'via',
   'emotions',
   'visual-lab',
   'visual-catalog',
-  'live',
-  'chapel',
-  'today'
+  'live'
 ];
 
 describe('createRouteManifest', () => {
@@ -55,6 +47,8 @@ describe('createRouteManifest', () => {
         constructor(_container, options) {
           received = options;
         }
+
+        update() {}
       }
       routes.find(route => route.id === id).create({}, null, { [exportName]: Room });
       return received;
@@ -64,31 +58,45 @@ describe('createRouteManifest', () => {
       ['portal', 'Portal'],
       ['vault', 'Vault'],
       ['chamber', 'ChamberOrbital'],
-      ['library', 'Library'],
-      ['journeys', 'Journeys'],
-      ['rosarium', 'Rosarium'],
-      ['via', 'Via'],
-      ['chapel', 'Chapel']
+      ['library', 'Library']
     ]) {
       expect(roomOptions(id, exportName).getAudioEngine, `${id} audio boundary`).toBe(getAudioEngine);
+    }
+    const panes = roomOptions('library', 'Library').paneCapabilities;
+    for (const pane of ['chapel', 'rosary', 'stations', 'journeys']) {
+      expect(panes[pane].getAudioEngine, `${pane} audio boundary`).toBe(getAudioEngine);
     }
     expect(roomOptions('portal', 'Portal').getCurrentSession).toBe(getCurrentSession);
     expect(roomOptions('settings', 'Settings').notify).toBe(notify);
   });
 
-  it('creates Today with navigation and the session starter', () => {
-    const handleNavigate = vi.fn();
-    const handleBeginSession = vi.fn();
+  it('hands each Library pane what its own room was given', async () => {
+    const operations = {
+      handleNavigate: vi.fn(),
+      handleBeginSession: vi.fn(),
+      launchKeystone: vi.fn(),
+      openMintedProgram: vi.fn(),
+      router: { updateAddress: vi.fn() }
+    };
     let received;
-    class TodayPoem {
-      constructor(_container, options) {
-        received = options;
-      }
+    const shown = [];
+    class Library {
+      constructor(_container, options) { received = options; }
+      update(data) { shown.push(data); }
     }
-    createRouteManifest({ handleNavigate, handleBeginSession })
-      .find(route => route.id === 'today')
-      .create({}, null, { TodayPoem });
-    expect(received).toEqual({ onNavigate: handleNavigate, onBegin: handleBeginSession });
+    await createRouteManifest(operations).find(route => route.id === 'library')
+      .create({}, { pane: 'today' }, { Library });
+    const panes = received.paneCapabilities;
+    expect(Object.keys(panes).sort()).toEqual(
+      ['chapel', 'journeys', 'keystones', 'mint', 'provenance', 'rosary', 'stations', 'today']
+    );
+    expect(panes.today).toEqual({ onNavigate: operations.handleNavigate, onBegin: operations.handleBeginSession });
+    expect(panes.keystones.onLaunch).toBe(operations.launchKeystone);
+    expect(panes.mint.onOpen).toBe(operations.openMintedProgram);
+    expect(shown).toEqual([{ pane: 'today' }]);
+    // A Chapel chapter's address stays a Chapel address.
+    panes.chapel.onAddressChange({ bookId: 'john', chapter: 3 });
+    expect(operations.router.updateAddress).toHaveBeenCalledWith({ bookId: 'john', chapter: 3, pane: 'chapel' });
   });
 
   it('creates the catalog with the navigation callback and address search', () => {

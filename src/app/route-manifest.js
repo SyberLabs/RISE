@@ -20,26 +20,6 @@ export function createRouteManifest(operations) {
       })
     },
     {
-      id: 'keystones',
-      containerId: 'view-keystones',
-      load: () => import('../components/Keystones.js'),
-      create: (container, data, { Keystones }) => new Keystones(container, {
-        initialSlug: data?.slug || null,
-        onNavigate: operations.handleNavigate,
-        onLaunch: operations.launchKeystone
-      })
-    },
-    {
-      id: 'mint',
-      containerId: 'view-mint',
-      load: () => import('../components/Mint.js'),
-      create: (container, data, { Mint }) => new Mint(container, {
-        entry: data?.entry || null,
-        onNavigate: operations.handleNavigate,
-        onOpen: operations.openMintedProgram
-      })
-    },
-    {
       id: 'vault',
       containerId: 'view-vault',
       load: () => import('../components/Vault.js'),
@@ -85,21 +65,55 @@ export function createRouteManifest(operations) {
       id: 'library',
       containerId: 'view-library',
       load: () => import('../components/Library.js'),
-      create: (container, data, { Library }) => new Library(container, {
-        onNavigate: operations.handleNavigate,
-        onSelectText: operations.handleTextSelection,
-        getAudioEngine: operations.getAudioEngine
-      })
-    },
-    {
-      id: 'journeys',
-      containerId: 'view-journeys',
-      load: () => import('../components/Journeys.js'),
-      create: (container, _data, { Journeys }) => new Journeys(container, {
-        onNavigate: operations.handleNavigate,
-        onBeginSession: operations.handleBeginSession,
-        getAudioEngine: operations.getAudioEngine
-      })
+      // The Library hosts the corpus programs as panes (§8.43). Each pane
+      // gets what its own room was given; the address data (a Chapel
+      // chapter, a Rosary icon) reaches it through `data`.
+      create: async (container, data, { Library }) => {
+        const library = new Library(container, {
+          onNavigate: operations.handleNavigate,
+          onSelectText: operations.handleTextSelection,
+          getAudioEngine: operations.getAudioEngine,
+          paneCapabilities: {
+            chapel: {
+              onNavigate: operations.handleNavigate,
+              getAudioEngine: operations.getAudioEngine,
+              onAddressChange: next => operations.router?.updateAddress({ ...next, pane: 'chapel' }),
+              onLaunchRosary: operations.launchRosary,
+              onLaunchReading: operations.launchChapelReading
+            },
+            rosary: {
+              onNavigate: operations.handleNavigate,
+              getAudioEngine: operations.getAudioEngine
+            },
+            stations: {
+              onNavigate: operations.handleNavigate,
+              getAudioEngine: operations.getAudioEngine
+            },
+            journeys: {
+              onNavigate: operations.handleNavigate,
+              onBeginSession: operations.handleBeginSession,
+              getAudioEngine: operations.getAudioEngine
+            },
+            keystones: {
+              onNavigate: operations.handleNavigate,
+              onLaunch: operations.launchKeystone
+            },
+            mint: {
+              onNavigate: operations.handleNavigate,
+              onOpen: operations.openMintedProgram
+            },
+            today: {
+              onNavigate: operations.handleNavigate,
+              onBegin: operations.handleBeginSession
+            },
+            provenance: {
+              onNavigate: operations.handleNavigate
+            }
+          }
+        });
+        await library.update(data);
+        return library;
+      }
     },
     {
       id: 'workshop',
@@ -129,26 +143,6 @@ export function createRouteManifest(operations) {
       })
     },
     {
-      id: 'rosarium',
-      containerId: 'view-rosarium',
-      load: () => import('../components/Rosarium.js'),
-      create: (container, data, { Rosarium }) => new Rosarium(container, {
-        onNavigate: operations.handleNavigate,
-        getAudioEngine: operations.getAudioEngine,
-        setId: data?.setId,
-        iconId: data?.iconId,
-        door: data?.door === true
-      })
-    },
-    {
-      id: 'curia',
-      containerId: 'view-curia',
-      load: () => import('../components/Curia.js'),
-      create: (container, _data, { Curia }) => new Curia(container, {
-        onNavigate: operations.handleNavigate
-      })
-    },
-    {
       id: 'scriptorium',
       containerId: 'view-scriptorium',
       load: () => import('../components/Scriptorium.js'),
@@ -162,15 +156,6 @@ export function createRouteManifest(operations) {
         room.mount();
         return room;
       }
-    },
-    {
-      id: 'via',
-      containerId: 'view-via',
-      load: () => import('../components/Via.js'),
-      create: (container, _data, { Via }) => new Via(container, {
-        onNavigate: operations.handleNavigate,
-        getAudioEngine: operations.getAudioEngine
-      })
     },
     {
       id: 'emotions',
@@ -210,29 +195,6 @@ export function createRouteManifest(operations) {
       create: (container, _data, { LiveHost }) => new LiveHost(container, {
         router: operations.router,
         onNavigate: (...args) => operations.handleNavigate(...args)
-      })
-    },
-    {
-      id: 'chapel',
-      containerId: 'view-chapel',
-      load: () => import('../components/Chapel.js'),
-      create: (container, data, { Chapel }) => new Chapel(container, {
-        onNavigate: operations.handleNavigate,
-        getAudioEngine: operations.getAudioEngine,
-        bookId: data?.bookId,
-        chapter: data?.chapter,
-        onAddressChange: next => operations.router?.updateAddress(next),
-        onLaunchRosary: operations.launchRosary,
-        onLaunchReading: operations.launchChapelReading
-      })
-    },
-    {
-      id: 'today',
-      containerId: 'view-today',
-      load: () => import('../components/today/TodayPoem.js'),
-      create: (container, _data, { TodayPoem }) => new TodayPoem(container, {
-        onNavigate: operations.handleNavigate,
-        onBegin: operations.handleBeginSession
       })
     }
   ];

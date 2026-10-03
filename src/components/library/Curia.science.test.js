@@ -15,7 +15,7 @@
  */
 import { describe, expect, it, vi } from 'vitest';
 import { Curia } from './Curia.js';
-import catalog from '../sources/visual/science-catalog.generated.json';
+import catalog from '../../sources/visual/science-catalog.generated.json';
 
 const mount = async () => {
     const host = document.createElement('div');
