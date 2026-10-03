@@ -39,7 +39,6 @@ const PUBLIC_ROOM_PATHS = Object.freeze({
     emotions: EMOTIONS_PATH
 });
 import { watchTabFreshness } from './core/tab-freshness.js';
-import { hasPersonalWorkInPage } from './core/personal-identity.js';
 import { takeOpenRouterReturn } from './core/openrouter-callback.js';
 
 // FIRST, before any other work: an OpenRouter sign-in returns here with a
@@ -98,9 +97,6 @@ try {
 export const STALE_BUILD_SENTINEL = 'rise_reloaded_for_stale_build';
 
 window.addEventListener('vite:preloadError', (event) => {
-    // Let the rejected import restore the previous view; a reload would erase
-    // a personal draft or the thought being composed before Keep.
-    if (hasPersonalWorkInPage()) return;
     if (sessionStorage.getItem(STALE_BUILD_SENTINEL)) return;  // not a deploy: a real failure
     sessionStorage.setItem(STALE_BUILD_SENTINEL, '1');
     event.preventDefault();
@@ -283,11 +279,6 @@ class App {
             onNavigationIntent: (view, options) => this.handleNavigationIntent(view, options),
             onViewChange: (view, data) => {
                 console.log(`[RISE] View: ${view}`);
-                if (view === 'create' && window.location.pathname !== '/create') {
-                    window.history.pushState({}, '', '/create');
-                } else if (view !== 'create' && view !== 'chamber-session' && /^\/create\/?$/u.test(window.location.pathname)) {
-                    window.history.pushState({}, '', '/');
-                }
             }
         });
 
@@ -350,8 +341,6 @@ class App {
             await this.router.navigate(staleTarget, { data: staleData });
         } else if (isRosaryDoor()) {
             await this.router.navigate('rosarium', { data: { door: true } });
-        } else if (/^\/create\/?$/u.test(window.location.pathname)) {
-            await this.router.navigate('create');
         } else if (directKeystone) {
             await this.router.navigate('keystones', { data: { slug: directKeystone } });
         } else if (directTryRise) {
@@ -952,7 +941,7 @@ class App {
                 const { personalSession } = await import('./core/personal-project.js');
                 if (!isCurrent()) return false;
                 sessionInput = personalSession(sessionData);
-                sessionInput.origin = { view: this.router.getCurrentView?.() === 'vault' ? 'vault' : 'create' };
+                sessionInput.origin = { view: 'vault' };
             } else {
                 // The project model is a room's, and nothing on the way to the
                 // Portal needs it, so it is not part of first load.
@@ -1300,7 +1289,6 @@ class App {
         watchTabFreshness({
             router: this.router,
             isReading: () => {
-                if (hasPersonalWorkInPage()) return true;
                 const state = this.router?.views?.get('chamber')?.instance
                     ?.player?.sessionState?.state;
                 return state === 'playing' || state === 'interlocuting';
@@ -1349,10 +1337,6 @@ class App {
             // pull an in-progress prayer back to the Portal.
             if (isRosaryDoor() || this.router?.getCurrentView() === 'rosarium') return;
             this.handleNavigationIntent('history');
-            if (/^\/create\/?$/u.test(window.location.pathname)) {
-                await this.router?.navigate('create', { replace: true, skipStack: true });
-                return;
-            }
             const { keystoneSlugFromPath } = await import('./content/keystones.js');
             if (window.location.pathname === VISUAL_LAB_PATH) {
                 await this.router?.navigate('visual-lab', { replace: true, skipStack: true });

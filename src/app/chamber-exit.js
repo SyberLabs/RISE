@@ -55,7 +55,7 @@ export function chamberExitTarget(reason, session = {}, data = null) {
     if (!LEAVING.has(reason)) return null;
 
     if (session?.provenance?.kind === 'personal-generated') {
-        return { kind: 'navigate', view: session.origin?.view === 'vault' ? 'vault' : 'create' };
+        return { kind: 'navigate', view: 'vault' };
     }
 
     // A preview belongs to the room that is previewing it, whatever the

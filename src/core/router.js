@@ -18,8 +18,6 @@
  * view it has not already loaded. A reader in the Vault could not get
  * back to the Portal at all.
  */
-import { hasPersonalWorkInPage } from './personal-identity.js';
-
 function isStaleChunkError(error) {
     const message = String(error?.message || error || '');
     return /dynamically imported module|Importing a module script failed|error loading dynamically imported module/i
@@ -152,7 +150,6 @@ export class Router {
             // reader lands where they were going. The guard prevents a
             // reload loop if something else produces the same error.
             if (isStaleChunkError(error) && !this._reloadedForStaleChunk
-                && !hasPersonalWorkInPage()
                 && options.data?.provenance?.kind !== 'personal-generated') {
                 this._reloadedForStaleChunk = true;
                 try {

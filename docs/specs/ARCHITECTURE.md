@@ -162,9 +162,9 @@ flowchart LR
     affect["affect<br/>experience-state evaluation<br/>29 modules"]
     app["app<br/>composition root<br/>11 modules"]
     audio["audio<br/>Web Audio, recitation<br/>10 modules"]
-    components["components<br/>routed views<br/>48 modules"]
+    components["components<br/>routed views<br/>47 modules"]
     content["content<br/>texts, imagery, journeys<br/>228 modules"]
-    core["core<br/>session, player, router<br/>163 modules"]
+    core["core<br/>session, player, router<br/>162 modules"]
     enterprise["enterprise<br/>talk program, speaker rail<br/>34 modules"]
     live["live<br/>realtime Current: events, runtime, providers<br/>38 modules"]
     page["page<br/>spatial projection<br/>4 modules"]
@@ -177,7 +177,7 @@ flowchart LR
     app -.-> |3 lazy| audio
     app --> |1| components
     app --> |5| content
-    app --> |37| core
+    app --> |36| core
     app -.-> |1 lazy| live
     app -.-> |1 lazy| sources
     app -.-> |1 lazy| visuals
@@ -187,7 +187,7 @@ flowchart LR
     components -.-> |2 lazy| app
     components --> |3| audio
     components --> |24| content
-    components --> |175| core
+    components --> |170| core
     components -.-> |1 lazy| page
     components --> |4| sources
     components -.-> |2 lazy| vendor
@@ -331,7 +331,6 @@ outliving its room, fails a build.
 |---|---|---|
 | Portal | `src/components/Portal.js` | the hub, and the first screen |
 | Emotions | `src/components/Emotions.js` | the optional affect map and inspectable list |
-| Create | `src/components/Create.js` | original personal readings, private revisions, and portable text |
 | Keystones | `src/components/Keystones.js` | the public entry corridor |
 | Mint | `src/components/Mint.js` | the door a minted sequence opens onto |
 | Chamber | `src/components/Chamber.js` | a reading, in time |

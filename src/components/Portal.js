@@ -117,7 +117,6 @@ export class Portal {
             </button>
             <nav id="main-content" class="portal-nav" aria-label="Primary">
               <button class="portal-nav-link portal-nav-home" type="button" data-action="home" aria-current="page">Home</button>
-              <button class="portal-nav-link" type="button" data-nav="create">Create</button>
               <button class="portal-nav-link" type="button" data-nav="library">Library</button>
               <button class="portal-nav-link" type="button" data-nav="vault">Sequences</button>
               <button class="portal-nav-link" type="button" data-nav="workshop">Compose</button>
