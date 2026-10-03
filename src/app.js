@@ -1230,6 +1230,13 @@ class App {
             await this.router?.navigate(route.id, {
                 data: route.data, replace: true, skipStack: true, keepUrl: !route.rewrite
             });
+            // A move to the room already showing writes nothing, so an
+            // address that must be rewritten (a finished reading's) is
+            // rewritten here once the room has settled.
+            if (route.rewrite && historyGeneration === this._historyNavigationGeneration
+                && this.router?.getCurrentView() === route.id) {
+                this.router.updateAddress(route.data);
+            }
          }, options);
     }
 
@@ -1247,9 +1254,11 @@ class App {
             if (!keystoneSlugFromPath(here.pathname)) route = null;
         }
         // History never resurrects a reading: the Chamber is only the answer
-        // while it is still on screen with its session.
+        // while it is still on screen with its session, and not while the
+        // reader is already leaving it (the address changes as a move begins).
         if (route?.id === 'chamber-session'
-            && !(this.router?.getCurrentView() === 'chamber-session' && this.currentSession)) {
+            && !(this.router?.getCurrentView() === 'chamber-session' && this.currentSession
+                && !this.router.transitioning)) {
             route = { id: 'chamber', data: {}, rewrite: true };
         }
         if (!route || !this.router?.views?.has(route.id)) route = { id: 'portal', data: {} };

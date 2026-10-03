@@ -509,8 +509,8 @@ export class Settings {
 
     /**
      * The Emotions map, below its toggle. Loaded the first time it is turned
-     * on, and taken down when it is turned off, so its animation never runs
-     * unseen.
+     * on and taken down when it is turned off. Leaving Settings takes it down
+     * too (`deactivate`), and returning brings it back while the toggle is on.
      */
     async showAffect(on) {
         const section = this.container.querySelector('[data-section="affect"]');
@@ -528,6 +528,15 @@ export class Settings {
         const { Emotions } = await import('./settings/Emotions.js');
         if (!toggle.checked || this.emotions) return;
         this.emotions = new Emotions(section);
+    }
+
+    /**
+     * The router's mark of a room with panes (router.js, in place): the
+     * affect section is Settings' one pane, so `/settings` and `/emotions`
+     * move within the room.
+     */
+    showPane(name, data = {}) {
+        return this.update({ ...data, pane: name });
     }
 
     /**
@@ -606,6 +615,7 @@ export class Settings {
         if (this._active) return;
         this._active = true;
         document.addEventListener('keydown', this.boundKeyboardHandler);
+        if (this.container.querySelector('[data-affect-toggle]')?.checked) void this.showAffect(true);
         this.scrollToAffect();
     }
 
@@ -613,6 +623,9 @@ export class Settings {
         if (!this._active) return;
         this._active = false;
         document.removeEventListener('keydown', this.boundKeyboardHandler);
+        this.emotions?.destroy();
+        this.emotions = null;
+        this.container.querySelector('[data-section="affect"]')?.replaceChildren();
     }
 
     destroy() {

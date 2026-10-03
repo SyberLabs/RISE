@@ -21,8 +21,9 @@ function queryFrom(search) {
 }
 
 export class VisualCatalog {
-  constructor(container, { search = globalThis.location?.search ?? '', onNavigate = () => {}, env = globalThis } = {}) {
+  constructor(container, { search = globalThis.location?.search ?? '', onNavigate = () => {}, env = globalThis, embedded = false } = {}) {
     this.container = container;
+    this.embedded = embedded;
     this.onNavigate = onNavigate;
     this.capabilities = Object.freeze({ canvas: canDraw(env) });
     this.search = queryFrom(search);
@@ -45,14 +46,16 @@ export class VisualCatalog {
     main.className = 'visual-catalog';
     main.setAttribute('aria-labelledby', 'visual-catalog-title');
 
-    const back = document.createElement('a');
-    back.href = '/';
-    back.textContent = 'Back to RISE';
-    back.addEventListener('click', event => {
-      event.preventDefault();
-      this.onNavigate('portal');
-    });
-    main.append(back);
+    if (!this.embedded) {
+      const back = document.createElement('a');
+      back.href = '/';
+      back.textContent = 'Back to RISE';
+      back.addEventListener('click', event => {
+        event.preventDefault();
+        this.onNavigate('portal');
+      });
+      main.append(back);
+    }
 
     const title = document.createElement('h1');
     title.id = 'visual-catalog-title';

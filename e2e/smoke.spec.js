@@ -133,9 +133,9 @@ test('6 · text and settings survive a refresh', async ({ page }) => {
     await enterChamber(page);
     await expect(page.locator('.chamber-orbital')).toContainText('Smoke Seed');
 
+    // The address is the Chamber setup's (/read), so a reload stays there.
     await page.reload();
-    await expect(page.locator('.portal .home-title').first()).toBeVisible({ timeout: 15_000 });
-    await enterChamber(page);
+    await expect(page.locator('#begin-btn')).toBeEnabled({ timeout: 15_000 });
 
     await expect(page.locator('.chamber-orbital')).toContainText('Smoke Seed');
     const restored = await page.evaluate(() =>

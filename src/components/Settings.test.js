@@ -389,6 +389,53 @@ describe('Settings affect section', () => {
         settings.destroy();
     });
 
+    it('stops the Emotions animation when Settings is left, and brings it back on return', async () => {
+        // A stub that keeps the browser's promise: a cancelled frame never runs.
+        const frames = new Map();
+        let next = 0;
+        vi.stubGlobal('requestAnimationFrame', vi.fn(callback => { frames.set(++next, callback); return next; }));
+        vi.stubGlobal('cancelAnimationFrame', vi.fn(id => frames.delete(id)));
+        const container = document.createElement('div');
+        document.body.appendChild(container);
+        const settings = new Settings(container);
+        settings.activate();
+        await settings.update({ pane: 'affect' });
+        expect(frames.size).toBeGreaterThan(0);
+
+        settings.deactivate();
+        const scheduled = requestAnimationFrame.mock.calls.length;
+        const pending = [...frames.values()];
+        frames.clear();
+        for (const frame of pending) frame(16);
+        expect(requestAnimationFrame.mock.calls.length).toBe(scheduled);
+        expect(container.querySelector('[data-section="affect"] .emotions')).toBeNull();
+
+        settings.activate();
+        await vi.waitFor(() => expect(container.querySelector('[data-section="affect"] canvas.emotions-field')).not.toBeNull());
+        settings.destroy();
+        vi.unstubAllGlobals();
+    });
+
+    it('opens the affect section in place when the router moves from Settings to Emotions', async () => {
+        document.body.innerHTML = '<main id="settings-view"></main>';
+        const { Router } = await import('../core/router.js');
+        const router = new Router({ history: { pushState: vi.fn(), replaceState: vi.fn() } });
+        router.transitionDuration = 0;
+        const made = [];
+        router.registerView('settings', {
+            container: document.querySelector('#settings-view'),
+            init: (el, data) => { const room = new Settings(el); made.push(room); return room.update(data).then(() => room); }
+        });
+        await router.navigate('settings');
+        const update = vi.spyOn(made[0], 'update');
+        await router.navigate('emotions');
+        expect(made).toHaveLength(1);
+        expect(update).toHaveBeenCalledWith({ pane: 'affect' });
+        expect(document.querySelector('[data-affect-toggle]').checked).toBe(true);
+        made[0].destroy();
+        router.destroy();
+    });
+
     it('leaves affect out of the panel opened over a reading', () => {
         const container = document.createElement('div');
         document.body.appendChild(container);

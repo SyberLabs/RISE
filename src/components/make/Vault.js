@@ -20,6 +20,7 @@ export class Vault {
     this.onSelectSequence = options.onSelectSequence || (() => {});
     this.onSelectBlueprint = options.onSelectBlueprint || (() => {});
     this.getAudioEngine = options.getAudioEngine || (() => null);
+    this.embedded = options.embedded === true;
 
     this.currentSection = options.initialSection === 'custom' ? 'custom' : 'sequences';
     this.blueprints = MemoryCore.getWorkshopBlueprints();
@@ -43,10 +44,10 @@ export class Vault {
         <!-- Header -->
         <header class="library-header">
           <div class="library-title-section">
-            <button class="btn-ghost" data-action="back">
+            ${this.embedded ? '' : `<button class="btn-ghost" data-action="back">
               <span class="icon" aria-hidden="true">←</span>
               <span>Home</span>
-            </button>
+            </button>`}
             <h1>Sequences</h1>
           </div>
 

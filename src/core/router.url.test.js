@@ -62,6 +62,45 @@ describe('Router addresses', () => {
     router.destroy();
   });
 
+  it('writes the address when the move begins, before a slow room has finished initialising', async () => {
+    register('portal', 'b');
+    let finish;
+    router.registerView('library', {
+      container: document.querySelector('#a'),
+      init: () => new Promise(resolve => { finish = () => resolve({}); })
+    });
+    await router.navigate('portal');
+    const moving = router.navigate('library');
+    await vi.waitFor(() => expect(finish).toBeTypeOf('function'));
+    expect(history.pushState).toHaveBeenLastCalledWith({ id: 'library', data: {} }, '', '/library');
+    finish();
+    expect(await moving).toBe(true);
+    expect(history.pushState).toHaveBeenCalledTimes(1);
+    router.destroy();
+  });
+
+  it('puts the address back where the reader is when a room fails to open', async () => {
+    window.history.replaceState({}, '', '/settings');
+    const location = { pathname: '/settings', search: '', hash: '' };
+    history.pushState.mockImplementation((_s, _t, url) => { location.pathname = url; });
+    history.replaceState.mockImplementation((_s, _t, url) => { location.pathname = url; });
+    router.destroy();
+    router = new Router({ history, location });
+    router.transitionDuration = 0;
+    register('settings', 'b');
+    router.registerView('library', {
+      container: document.querySelector('#a'),
+      init: async () => { throw new Error('room broke'); }
+    });
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    await router.navigate('settings');
+    expect(await router.navigate('library')).toBe(false);
+    expect(history.pushState).toHaveBeenLastCalledWith({ id: 'library', data: {} }, '', '/library');
+    expect(history.replaceState).toHaveBeenLastCalledWith({ id: 'settings', data: {} }, '', '/settings');
+    expect(router.currentView).toBe('settings');
+    router.destroy();
+  });
+
   it('replaces instead of pushing when asked, and keeps transient data out of state', async () => {
     register('library', 'a');
     register('chamber-session', 'b');
@@ -163,6 +202,32 @@ describe('Router back and updateAddress', () => {
     await router.back();
     expect(router.currentView).toBe('library');
     expect(library.update).toHaveBeenLastCalledWith({ bookId: 'genesis', chapter: 1, pane: 'chapel' });
+    router.destroy();
+  });
+
+  it('updates a pane-hosting room in place, and leaves a room with only update alone', async () => {
+    document.body.innerHTML = '<main id="a"></main><main id="b"></main>';
+    window.history.replaceState({}, '', '/');
+    const history = { pushState: vi.fn(), replaceState: vi.fn() };
+    const router = new Router({ history });
+    router.transitionDuration = 0;
+    const plain = [];
+    router.registerView('portal', {
+      container: document.querySelector('#b'),
+      init: () => { const room = { update: vi.fn(), destroy: vi.fn() }; plain.push(room); return room; }
+    });
+    const make = { showPane: vi.fn(), update: vi.fn() };
+    router.registerView('make', { container: document.querySelector('#a'), init: () => make });
+
+    await router.navigate('portal');
+    expect(await router.navigate('portal', { data: { demoMode: true } })).toBe(true);
+    expect(plain).toHaveLength(1);
+    expect(plain[0].update).not.toHaveBeenCalled();
+    expect(plain[0].destroy).not.toHaveBeenCalled();
+
+    await router.navigate('workshop');
+    await router.navigate('vault');
+    expect(make.update).toHaveBeenLastCalledWith({ pane: 'vault' });
     router.destroy();
   });
 

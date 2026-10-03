@@ -75,7 +75,8 @@ export class Make {
       container: container.querySelector('.make-tabs'),
       loaders: LOADERS,
       factories: Object.fromEntries(Object.entries(FACTORIES).map(([name, create]) => [
-        name, (el, module, data) => create(el, module, data, tabCapabilities[name] || {})
+        // `embedded`: Make's header is the way home, so a tab draws none.
+        name, (el, module, data) => create(el, module, data, { ...tabCapabilities[name], embedded: true })
       ]))
     });
   }
@@ -98,6 +99,11 @@ export class Make {
       else button.removeAttribute('aria-current');
     }
     return changed;
+  }
+
+  /** The router's mark of a pane-hosting room (router.js, in place). */
+  showPane(name, data) {
+    return this.showTab(name, data);
   }
 
   /**

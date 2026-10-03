@@ -4,9 +4,9 @@ export function renderStudioTransport(view) {
   return `
     <header class="workshop-header studio-header">
       <div class="studio-header-primary">
-        <button class="btn-ghost studio-back" type="button" data-action="back">
+        ${view.embedded ? '' : `<button class="btn-ghost studio-back" type="button" data-action="back">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5"></path><path d="m11 18-6-6 6-6"></path></svg><span>Home</span>
-        </button>
+        </button>`}
         ${view.scenesAvailable ? `<button class="btn-ghost studio-show-scenes" type="button" data-action="show-scenes"
                 aria-label="Back to scenes"><span aria-hidden="true">‹</span> Scenes</button>` : ''}
         <div class="studio-brand">

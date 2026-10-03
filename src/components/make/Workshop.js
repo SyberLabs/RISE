@@ -360,6 +360,7 @@ export class Workshop {
     this.onCreateSession = options.onCreateSession || (() => { });
     this.getAudioEngine = options.audioEngineProvider || (() => null);
     this.onBlueprintsChanged = options.onBlueprintsChanged || (() => {});
+    this.embedded = options.embedded === true;
     this.visualConsentScope = crypto.randomUUID();
 
     this.sessionData = createDefaultSessionData();
@@ -900,6 +901,7 @@ export class Workshop {
       readingDuration: this.readingDurationLabel(),
       studioViewport: this.studioViewport,
       studioSurface: this.studioSurface,
+      embedded: this.embedded,
       scenesAvailable: this.sessionData.experienceProgram?.authority !== 'proposed',
       selectionActionHtml: this.renderSelectionActionBar(),
       selectionPopoverHtml: this.renderScoreSelectionPopover(),

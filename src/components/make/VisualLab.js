@@ -23,11 +23,13 @@ export class VisualLab {
    * @param {(recipe: object) => void} [options.onUseInReading]
    * @param {() => void} [options.onEditInWorkshop]
    * @param {() => void} [options.onClose]
+   * @param {boolean} [options.embedded] a tab of Make: no Close of its own
    */
   constructor(container, {
-    mode = 'route', recipe = null, onUseInReading = null, onEditInWorkshop = null, onClose = null
+    mode = 'route', recipe = null, onUseInReading = null, onEditInWorkshop = null, onClose = null, embedded = false
   } = {}) {
     this.container = container;
+    this.embedded = embedded;
     this.mode = mode;
     this.onUseInReading = onUseInReading;
     this.onEditInWorkshop = onEditInWorkshop;
@@ -51,7 +53,7 @@ export class VisualLab {
         <aside class="vl-panel" id="vl-panel" aria-label="Scene controls">
           <header class="vl-head">
             <h1 class="vl-title">Visual Lab</h1>
-            <button type="button" class="vl-close" data-vl="close">${overlay ? 'Return to reading' : 'Close'}</button>
+            ${this.embedded ? '' : `<button type="button" class="vl-close" data-vl="close">${overlay ? 'Return to reading' : 'Close'}</button>`}
           </header>
           <label class="vl-field">Composition
             <select name="vl-preset"></select>

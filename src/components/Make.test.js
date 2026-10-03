@@ -58,6 +58,22 @@ describe('Make tabs', () => {
         expect(onNavigate).toHaveBeenCalledWith('make', { pane: 'scriptorium' });
     });
 
+    it('draws no way home inside a tab: the room header is the one way home', async () => {
+        make = new Make(container, { tabCapabilities });
+        await make.showTab('vault');
+        await make.showTab('visual-catalog');
+        expect(container.querySelector('[data-pane="vault"] .vault')).not.toBeNull();
+        expect(container.querySelector('[data-pane="vault"] [data-action="back"]')).toBeNull();
+        expect(container.querySelector('[data-pane="visual-catalog"] a[href="/"]')).toBeNull();
+        expect(container.querySelectorAll('[data-action="back"]')).toHaveLength(1);
+    });
+
+    it('is a pane-hosting room to the router', async () => {
+        make = new Make(container, { tabCapabilities });
+        await make.showPane('vault');
+        expect(make.activeTab).toBe('vault');
+    });
+
     it('refreshes the open tab when the room is entered again with the same address', async () => {
         make = new Make(container, { tabCapabilities });
         await make.update({ pane: 'vault' });

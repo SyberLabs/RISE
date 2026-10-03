@@ -91,12 +91,11 @@ export class Router {
         // A completed division may hand the same immersive surface a fresh
         // Session. Same-route navigation is normally a no-op; `force` is the
         // explicit remount contract for that bounded continuation case.
-        // A room that takes new data through `update(data)` changes in
-        // place: no fade, but a back-stack entry and an address like any
-        // other move. Pane-hosting rooms (room-panes.js) expose it, and so
-        // does Settings, whose Affect section has its own address.
+        // A room that hosts panes exposes showPane and takes new data through
+        // update; every other room ignores a move to itself. An in-place move
+        // has no fade, but a back-stack entry and an address like any other.
         const inPlace = viewName === this.currentView && options.force !== true
-            && typeof this.views.get(viewName)?.instance?.update === 'function';
+            && typeof this.views.get(viewName)?.instance?.showPane === 'function';
         if (viewName === this.currentView && options.force !== true
             && (!inPlace || sameData(options.data, this.currentData))) return true;
 
@@ -109,7 +108,11 @@ export class Router {
         this.transitioning = true;
         const previousViewName = this.currentView;
         const previousView = previousViewName ? this.views.get(previousViewName) : null;
+        const previousData = this.currentData;
         let succeeded = false;
+        // The address states where the reader is going, so it is written as
+        // the move begins, not after a slow room (a reading) has initialised.
+        this.writeAddress(viewName, options);
         const assertCurrentLaunch = () => {
             if (viewName === 'chamber-session' && revision !== this.navigationRevision) {
                 throw new DOMException('Launch cancelled', 'AbortError');
@@ -160,7 +163,6 @@ export class Router {
             }
             this.currentView = viewName;
             this.currentData = options.data;
-            this.writeAddress(viewName, options);
             this.onViewChange(viewName, options.data);
             succeeded = true;
         } catch (error) {
@@ -206,6 +208,10 @@ export class Router {
                 previousView.instance?.activate?.();
             }
             this.currentView = previousViewName;
+            // The move failed: the address goes back to where the reader is.
+            if (previousViewName) {
+                this.writeAddress(previousViewName, { data: previousData, replaceUrl: true });
+            }
         } finally {
             this.transitioning = false;
         }
