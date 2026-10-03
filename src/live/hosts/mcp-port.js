@@ -32,6 +32,7 @@
  */
 
 import { createRealClock } from '../clock.js';
+import { MCP_CURRENT_BYTES, MCP_MESSAGE_BYTES, serializedUtf8Bytes } from './mcp-size.js';
 
 export const METHODS = Object.freeze({
     initialize: 'ui/initialize',
@@ -47,13 +48,15 @@ export const METHODS = Object.freeze({
 /** The extension's protocol version this was written against (ext-apps `LATEST_PROTOCOL_VERSION`). */
 export const PROTOCOL_VERSION = '2026-01-26';
 
-export const PORT_LIMITS = Object.freeze({ message: 262_144, buffered: 8, pending: 8, remembered: 8, answer: 100_000 });
+export const PORT_LIMITS = Object.freeze({ message: MCP_MESSAGE_BYTES, current: MCP_CURRENT_BYTES, buffered: 8, pending: 8, remembered: 8, answer: 100_000 });
 
 /** A Current from the two places a host puts one. Nothing else is read. */
 export function currentFrom(method, params) {
+    if (method === METHODS.toolResult && params?.isError === true) return null;
     if (!params || typeof params !== 'object' || Array.isArray(params)) return null;
     const holder = method === METHODS.toolInput ? params.arguments : method === METHODS.toolResult ? params.structuredContent : null;
     if (!holder || typeof holder !== 'object' || Array.isArray(holder)) return null;
+    if (method === METHODS.toolInput && Object.keys(holder).some(key => key !== 'current')) return null;
     if (!holder.current || typeof holder.current !== 'object') return null;
     return { current: holder.current };
 }
@@ -66,7 +69,9 @@ export function currentFrom(method, params) {
  */
 export function createMcpGuestPort({ frame, host = frame.parent, appName = 'RISE', clock = createRealClock(), timeoutMs = 10_000 }) {
     const listeners = new Set();
+    const errorListeners = new Set();
     const buffered = [];
+    const bufferedErrors = [];
     const pending = new Map();
     const teardowns = new Set();
     const remembered = [];
@@ -76,13 +81,49 @@ export function createMcpGuestPort({ frame, host = frame.parent, appName = 'RISE
 
     const send = message => host.postMessage({ jsonrpc: '2.0', ...message }, '*');
 
+    function currentKey(current) {
+        try { return JSON.stringify({ current }); } catch { return null; }
+    }
+
+    function forgetCurrent(current) {
+        const key = currentKey(current);
+        if (key === null) return;
+        for (let index = remembered.indexOf(key); index !== -1; index = remembered.indexOf(key)) remembered.splice(index, 1);
+        for (let index = buffered.length - 1; index >= 0; index -= 1) {
+            if (currentKey(buffered[index].current) === key) buffered.splice(index, 1);
+        }
+    }
+
+    function discardBuffered() {
+        for (const item of [...buffered]) forgetCurrent(item.current);
+        buffered.length = 0;
+    }
+
+    function reportError(message) {
+        discardBuffered();
+        const error = new Error(String(message).slice(0, 220));
+        if (errorListeners.size === 0) {
+            if (bufferedErrors.length === 0) bufferedErrors.push(error);
+            return;
+        }
+        for (const listener of [...errorListeners]) { try { listener(error); } catch { /* one listener cannot block the others */ } }
+    }
+
     function onMessage(event) {
         if (closed || event.source !== host) return;
         const data = event.data;
         if (!data || typeof data !== 'object' || Array.isArray(data) || data.jsonrpc !== '2.0') return;
-        let size = 0;
-        try { size = JSON.stringify(data).length; } catch { return; }
-        if (size > PORT_LIMITS.message) return;
+        let size;
+        try { size = serializedUtf8Bytes(data); } catch { return; }
+        if (size === null) return;
+        if (size > PORT_LIMITS.message) {
+            if (data.id === undefined && [METHODS.toolInput, METHODS.toolResult].includes(data.method)) {
+                const found = currentFrom(data.method, data.params);
+                if (found) forgetCurrent(found.current);
+                reportError(`The assistant's MCP message is too large for RISE (${PORT_LIMITS.message.toLocaleString('en-US')} bytes). Ask it to shorten the answer and try again.`);
+            }
+            return;
+        }
 
         if (data.id !== undefined && data.method === undefined) {
             const waiting = pending.get(data.id);
@@ -103,12 +144,24 @@ export function createMcpGuestPort({ frame, host = frame.parent, appName = 'RISE
             } else send({ id: data.id, error: { code: -32601, message: 'Method not found' } });
             return;
         }
+        if (data.method === METHODS.toolResult && data.params?.isError === true) {
+            reportError('The assistant’s Current was refused. Ask it to correct the answer and try again.');
+            return;
+        }
         const found = currentFrom(data.method, data.params);
         if (!found) return;
         // The same Current arrives as a tool's input and again as its result.
-        let key = null;
-        try { key = JSON.stringify(found); } catch { return; }
+        const key = currentKey(found.current);
+        if (key === null) return;
         if (remembered.includes(key)) return;
+        const currentSize = serializedUtf8Bytes(found.current);
+        if (currentSize === null) return;
+        if (currentSize > PORT_LIMITS.current) {
+            remembered.push(key);
+            if (remembered.length > PORT_LIMITS.remembered) remembered.shift();
+            reportError(`The assistant's Current exceeds the ${PORT_LIMITS.current.toLocaleString('en-US')}-byte MCP limit. Ask it to shorten the answer and try again.`);
+            return;
+        }
         remembered.push(key);
         if (remembered.length > PORT_LIMITS.remembered) remembered.shift();
         if (listeners.size === 0) {
@@ -143,10 +196,22 @@ export function createMcpGuestPort({ frame, host = frame.parent, appName = 'RISE
 
         /** Currents the host hands the app. Those that arrived before anyone was listening are given first. */
         onCurrent(listener) {
+            if (closed) return () => {};
             listeners.add(listener);
             for (const item of buffered.splice(0)) if (listener(item) === true) break;
             return () => listeners.delete(listener);
         },
+
+        /** Actionable failures for oversized trusted Currents or host envelopes. */
+        onError(listener) {
+            if (closed) return () => {};
+            errorListeners.add(listener);
+            for (const error of bufferedErrors.splice(0)) { try { listener(error); } catch { /* keep delivery bounded */ } }
+            return () => errorListeners.delete(listener);
+        },
+
+        /** Forget a Current that the reader has not begun, so a refused proposal can be retried. */
+        forgetCurrent,
 
         /** The host is about to remove the app; it has already been answered. */
         onTeardown(listener) {
@@ -192,7 +257,11 @@ export function createMcpGuestPort({ frame, host = frame.parent, appName = 'RISE
             for (const waiting of pending.values()) { waiting.cancel(); waiting.reject(new Error('Closed')); }
             pending.clear();
             listeners.clear();
+            errorListeners.clear();
             teardowns.clear();
+            buffered.length = 0;
+            bufferedErrors.length = 0;
+            remembered.length = 0;
         }
     };
 }

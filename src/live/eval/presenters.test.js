@@ -167,6 +167,19 @@ describe('spoken, over a generic visualizer', () => {
         expect(new Set(fields[0].calls)).toEqual(new Set([0.85, 0.5]));
     });
 
+    it.each(['reduced-motion', 'photosensitivity-mode'])('does not pulse the field under %s', async mode => {
+        document.documentElement.classList.add(mode);
+        try {
+            const { clock } = speak({ visualizer: true });
+            await flush();
+            expect(fields).toHaveLength(1);
+            await clock.runAll();
+            expect(fields[0].calls).toEqual([]);
+        } finally {
+            document.documentElement.classList.remove(mode);
+        }
+    });
+
     it('is destroyed with the presenter, and the plain spoken condition has no field at all', async () => {
         const visual = speak({ visualizer: true });
         await flush();

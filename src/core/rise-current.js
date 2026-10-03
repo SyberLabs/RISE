@@ -2,6 +2,8 @@ import { compileSession } from './session-compiler.js';
 import { createExperienceProgram, EXPERIENCE_PROGRAM_SCHEMA } from './experience-program.js';
 import { snapCharacterRangeToTokens } from './source-span.js';
 import { hasLiteralForbidden, SOURCE_MARKER, SOURCE_SCORE_CUT } from './chunker.js';
+import { JEV_COLOR_THEMES } from './jev-color-themes.js';
+import { jevColors } from './jev-palette.js';
 
 export const RISE_CURRENT_SCHEMA = 'rise.current.v1';
 
@@ -19,6 +21,9 @@ export const RISE_CURRENT_LIMITS = Object.freeze({
 
 /** The closed visual catalog. A Current names one of these and nothing else. */
 export const RISE_CURRENT_VISUALS = Object.freeze(['still', 'attractor', 'genesis']);
+
+/** The closed theme choice: the shipped color themes, so RISE has one color vocabulary. */
+export const RISE_CURRENT_THEME_IDS = JEV_COLOR_THEMES;
 
 export class RiseCurrentError extends Error {
   constructor(code, path, message) {
@@ -110,13 +115,30 @@ function freeze(value) {
   return value;
 }
 
+/**
+ * What each theme draws with: renderer ids only, never a number or a color.
+ * Page colors come from the theme's own Jev palette (jevColors), not from here.
+ */
+export const RISE_CURRENT_THEMES = freeze({
+  classic: { attractor: { system: 'aizawa', palette: 'gold', form: 'mirror' }, genesis: { preset: 'harmonic' } },
+  amethyst: { attractor: { system: 'thomas', palette: 'purple', form: 'kaleido' }, genesis: { preset: 'chaotic' } },
+  prism: { attractor: { system: 'halvorsen', palette: 'neon', form: 'mirror' }, genesis: { preset: 'chaotic' } },
+  ember: { attractor: { system: 'halvorsen', palette: 'red', form: 'bilateral' }, genesis: { preset: 'twittering' } },
+  cobalt: { attractor: { system: 'thomas', palette: 'blue', form: 'mirror' }, genesis: { preset: 'architectural' } },
+  jade: { attractor: { system: 'aizawa', palette: 'jade', form: 'bilateral' }, genesis: { preset: 'gravitational' } }
+});
+
 /** Strict, detached input from an author or model. No runtime objects are accepted. */
 export function validateRiseCurrent(input) {
   const source = object(input, '$');
-  keys(source, ['schema', 'id', 'title', 'origin', 'segments'], '$');
+  keys(source, ['schema', 'id', 'title', 'theme', 'origin', 'segments'], '$');
   if (source.schema !== RISE_CURRENT_SCHEMA) fail('CURRENT_SCHEMA', '$.schema', 'Unknown Current schema');
   const currentId = id(source.id, '$.id');
   const title = label(source.title, RISE_CURRENT_LIMITS.title, '$.title');
+  const theme = source.theme;
+  if (theme !== undefined && !RISE_CURRENT_THEME_IDS.includes(theme)) {
+    fail('CURRENT_THEME', '$.theme', `Unknown theme; use one of ${RISE_CURRENT_THEME_IDS.join(', ')}`);
+  }
 
   const origin = object(source.origin, '$.origin');
   keys(origin, ['kind', 'name', 'provider'], '$.origin');
@@ -181,7 +203,10 @@ export function validateRiseCurrent(input) {
     });
     return { id: segmentId, text, visual, dives, ...(literal ? { literal: true } : {}) };
   });
-  return freeze({ schema: RISE_CURRENT_SCHEMA, id: currentId, title, origin: cleanOrigin, segments });
+  return freeze({
+    schema: RISE_CURRENT_SCHEMA, id: currentId, title, ...(theme === undefined ? {} : { theme }),
+    origin: cleanOrigin, segments
+  });
 }
 
 /** Lower a sealed external answer into the existing score and Session path. */
@@ -190,6 +215,7 @@ export function compileRiseCurrent(input, { projection = 'stream' } = {}) {
     fail('CURRENT_PROJECTION', '$.projection', 'Unknown projection');
   }
   const current = validateRiseCurrent(input);
+  const look = current.theme === undefined ? null : RISE_CURRENT_THEMES[current.theme];
   const sourceIds = current.segments.map(segment => segment.id);
   const program = createExperienceProgram({
     schema: EXPERIENCE_PROGRAM_SCHEMA,
@@ -210,7 +236,7 @@ export function compileRiseCurrent(input, { projection = 'stream' } = {}) {
           id: `visual-${index}`, anchor: { sourceIds: [segment.id] },
           cue: segment.visual === 'still'
             ? { kind: 'still' }
-            : { kind: 'field', renderer: segment.visual, config: {} }
+            : { kind: 'field', renderer: segment.visual, config: look ? { ...look[segment.visual] } : {} }
         })),
         fallback: { kind: 'still' }
       },
@@ -243,6 +269,7 @@ export function compileRiseCurrent(input, { projection = 'stream' } = {}) {
     },
     provenance: { origin: current.origin, currentId: current.id },
     chunkMode: 'sentence',
-    projection
+    projection,
+    ...(look ? { presentation: { colorTheme: current.theme, colors: jevColors(current.theme) } } : {})
   });
 }

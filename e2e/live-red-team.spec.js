@@ -102,6 +102,8 @@ async function framedByAnySite(page, baseURL) {
     }));
     await page.goto(`${elsewhere.origin}/__any-site`);
     const app = page.frameLocator('#app');
+    // The embedded page holds a delivered Current until the reader presses Begin (#368).
+    await app.getByRole('button', { name: 'Begin', exact: true }).click();
     await expect(app.locator('#atom-display')).toContainText('whichever page framed RISE', { timeout: 15_000 });
     await app.locator('#live-controls-question').fill('something only the reader knows');
     await app.getByRole('button', { name: /Dive: ask about this place/u }).click();

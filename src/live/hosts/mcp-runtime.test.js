@@ -12,7 +12,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { Player } from '../../core/player.js';
 import { createFakeMcpPort } from '../../test/fake-mcp-port.js';
-import { BLACK_HOLES_CURRENT } from '../../test/sealed-current.js';
+import { BLACK_HOLES_CURRENT, toSealedCurrent } from '../../test/sealed-current.js';
+import { jevColors } from '../../core/jev-palette.js';
+import { RISE_CURRENT_THEMES } from '../../core/rise-current.js';
+import { HORIZON_DIVE } from '../fixtures/black-holes.js';
 import { createMcpAppAdapter } from '../adapters/mcp-app.js';
 import { createRealClock } from '../clock.js';
 import { createLiveRuntime } from '../runtime.js';
@@ -129,5 +132,58 @@ describe('the canonical flow through a host’s model', () => {
             await runtime.stop();
             expect(vi.getTimerCount(), `after ${moment} ms`).toBe(0);
         }
+    });
+});
+
+describe('a Dive keeps the colors of the answer it comes from', () => {
+    function buildThemed() {
+        const made = [];
+        const port = createFakeMcpPort({
+            clock, answerAfterMs: 300, dive: { ...toSealedCurrent(HORIZON_DIVE, 'dive-answer'), theme: 'ember' }
+        });
+        runtime = createLiveRuntime({
+            adapter: createMcpAppAdapter({ port, clock }),
+            clock,
+            createPlayer: (session, { role }) => {
+                const player = new Player(session);
+                made.push({ role, session, player });
+                return player;
+            },
+            voices: { create: () => createSyntheticVoice({ clock, msPerChar: 20 }) }
+        });
+        return { port, made };
+    }
+
+    const sideOf = made => made.find(item => item.role === 'side');
+    const attractorCue = session => session.visualProgram.segments
+        .map(segment => segment.cue).find(cue => cue.renderer === 'attractor');
+
+    it('compiles the Dive in the answer’s theme, whatever the Dive said', async () => {
+        const { port, made } = buildThemed();
+        await runtime.start('Explain black holes.');
+        port.deliver({ current: { ...BLACK_HOLES_CURRENT, theme: 'jade' } });
+        await tick(5_000);
+        expect(made.find(item => item.role === 'main').session.presentation)
+            .toEqual({ colorTheme: 'jade', colors: jevColors('jade') });
+
+        await runtime.dive({ question: 'dive on event horizon' });
+        await tick(3_000);
+        const side = sideOf(made);
+        expect(side.session.presentation).toEqual({ colorTheme: 'jade', colors: jevColors('jade') });
+        expect(attractorCue(side.player.sessionState.session).config).toEqual(RISE_CURRENT_THEMES.jade.attractor);
+        await runtime.surface();
+    });
+
+    it('compiles the Dive with no theme when the answer named none', async () => {
+        const { port, made } = buildThemed();
+        await runtime.start('Explain black holes.');
+        port.deliver({ current: BLACK_HOLES_CURRENT });
+        await tick(5_000);
+        await runtime.dive({ question: 'dive on event horizon' });
+        await tick(3_000);
+        const side = sideOf(made);
+        expect(side.session.presentation).toBeNull();
+        expect(attractorCue(side.player.sessionState.session).config).toEqual({});
+        await runtime.surface();
     });
 });

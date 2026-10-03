@@ -1034,8 +1034,8 @@ export class Workshop {
     if (!host) return false;
     this.withFocusPreserved(() => {
       host.dataset.inspectorKind = this.inspectorContext.kind;
-      // Late refreshes must not replace a control the reader is holding when
-      // the inspector's serialized state has not actually changed.
+      // Late refreshes (a Vault lookup, a museum preview) must not swap out
+      // a control the reader is holding when nothing it shows has changed.
       const html = this.renderContextualInspector();
       const next = document.createElement('template');
       next.innerHTML = html;
@@ -2047,6 +2047,13 @@ export class Workshop {
     setText('[data-reading-curve]', `${this.sessionData.curve} curve`);
     setText('[data-reading-inspector-summary]', `${this.sessionData.wpm} WPM`);
     setText('#wpm-value', `${this.sessionData.wpm} WPM`);
+    // The slider shows the pace the sequence holds, and its markup says so too,
+    // so a later inspector refresh sees nothing changed and leaves it in the reader's hand.
+    this.container.querySelectorAll('#wpm-slider').forEach(slider => {
+      const wpm = String(this.sessionData.wpm);
+      slider.setAttribute('value', wpm);
+      if (slider.value !== wpm) slider.value = wpm;
+    });
     setText('[data-reading-word-count]', `${this.readingWordCount()} words`);
     setText('[data-reading-duration]', this.readingDurationLabel());
     this.container.querySelectorAll('[data-curve]').forEach(button => {

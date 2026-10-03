@@ -88,6 +88,22 @@ afterEach(() => {
   vi.restoreAllMocks();
   vi.unstubAllGlobals();
   document.body.replaceChildren();
+  document.documentElement.classList.remove('reduced-motion');
+});
+
+describe('the word-by-word reveal', () => {
+  it('is off under RISE’s own Reduced motion setting, as it is under the system’s', () => {
+    vi.useFakeTimers();
+    stubMotionAndViewport();
+    document.documentElement.classList.add('reduced-motion');
+    const { chamber, atomDisplay } = makeProgressiveGlassChamber();
+
+    chamber.displayAtom({ content: 'First second third fourth', duration: 3000 }, 0);
+
+    expect(atomDisplay.textContent.replace(/\s+/gu, ' ')).toContain('First second third fourth');
+    expect(atomDisplay.querySelectorAll('[data-pending]')).toHaveLength(0);
+    chamber.destroy();
+  });
 });
 
 describe('the word a phrase ends on', () => {

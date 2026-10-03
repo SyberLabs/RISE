@@ -18,6 +18,17 @@ export const JEV_INKS = Object.freeze({
   jade: '#AFFFCE'
 });
 
+/**
+ * Human labels for the same closed color vocabulary. Derived from the shipped
+ * palette ids so the Chamber picker cannot invent a seventh color family.
+ */
+export const JEV_COLOR_NAMES = Object.freeze(Object.fromEntries(
+  Object.keys(JEV_PALETTES).map(id => {
+    const name = id[0].toUpperCase() + id.slice(1);
+    return [id, Object.freeze({ ink: `${name} text`, ground: `${name} backdrop` })];
+  })
+));
+
 export function jevPalette(id) {
   return Object.hasOwn(JEV_PALETTES, id) ? JEV_PALETTES[id] : null;
 }

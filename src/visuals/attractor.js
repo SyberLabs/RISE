@@ -86,7 +86,7 @@ const HEADS = [
  * palettes keep their cores near-white at the very center so the pulse
  * still reads as light rather than as paint; the hue lives in the halo.
  */
-const PALETTES = {
+export const PALETTES = {
     white: {
         name: 'White',
         core: [{ w: 2.6, mul: 0.5, col: '200,222,255' }, { w: 0.7, mul: 1.0, col: '255,255,255' }],
@@ -124,6 +124,30 @@ const PALETTES = {
         core: [{ w: 3.0, mul: 0.55, col: '255,46,170' }, { w: 0.8, mul: 1.0, col: '255,206,240' }],
         twin: [{ w: 3.0, mul: 0.55, col: '0,190,255' }, { w: 0.8, mul: 1.0, col: '190,244,255' }],
         head: ['255,255,255', '255,120,220', '120,40,255']
+    },
+    jade: {
+        name: 'Jade',
+        core: [{ w: 2.8, mul: 0.5, col: '28,168,112' }, { w: 0.7, mul: 1.0, col: '204,255,228' }],
+        twin: [{ w: 2.8, mul: 0.5, col: '16,100,66' }, { w: 0.7, mul: 1.0, col: '124,210,168' }],
+        head: ['240,255,246', '110,240,170', '10,120,70']
+    },
+    rose: {
+        name: 'Rose',
+        core: [{ w: 2.8, mul: 0.5, col: '206,26,100' }, { w: 0.7, mul: 1.0, col: '255,160,200' }],
+        twin: [{ w: 2.8, mul: 0.5, col: '124,14,60' }, { w: 0.7, mul: 1.0, col: '226,112,160' }],
+        head: ['255,236,244', '255,96,164', '150,10,64']
+    },
+    citrine: {
+        name: 'Citrine',
+        core: [{ w: 2.8, mul: 0.5, col: '138,156,12' }, { w: 0.7, mul: 1.0, col: '232,248,130' }],
+        twin: [{ w: 2.8, mul: 0.5, col: '82,94,8' }, { w: 0.7, mul: 1.0, col: '190,204,96' }],
+        head: ['252,255,224', '222,240,80', '110,128,6']
+    },
+    silver: {
+        name: 'Silver',
+        core: [{ w: 2.8, mul: 0.5, col: '88,100,124' }, { w: 0.7, mul: 1.0, col: '190,200,218' }],
+        twin: [{ w: 2.8, mul: 0.5, col: '52,60,78' }, { w: 0.7, mul: 1.0, col: '140,150,170' }],
+        head: ['246,248,252', '176,188,210', '70,82,110']
     }
 };
 
@@ -150,17 +174,26 @@ const KALEIDO_MUL = 0.52;
  * is not, and a stuttering mandala is worse than a simpler smooth one.
  *
  * Rather than ask the reader to classify their own computer, the field
- * measures its own frame cost and steps quality down only when it is
- * actually missing frames — and steps back up if conditions improve.
+ * measures how far apart its frames actually arrive and steps quality
+ * down only when it is actually missing frames — and steps back up if
+ * conditions improve. It times the frame, not its own drawing code: the
+ * canvas rasterizes after the callback returns, and without a GPU that
+ * is most of the frame.
  * Quality is reduced by drawing a coarser filament (skipping brightness
  * buckets, which removes the dimmest strands first) before ever reducing
  * the symmetry, because the SHAPE is the thing worth preserving.
  */
-const FRAME_BUDGET_MS = 1000 / 60;
-// Sustained cost above this fraction of the budget triggers a step down
-const DEGRADE_AT = 0.62;
-const RESTORE_AT = 0.34;
+// Sustained frame rates below DEGRADE_BELOW_FPS step down, above
+// RESTORE_ABOVE_FPS step back up. The floor sits under 30fps, so a
+// display or power saver that caps animation at 30fps is not mistaken
+// for load. One step measured 1.78-1.85x faster on a software canvas;
+// the band is 2.2x, so a restored step does not fall straight back, and
+// a 60Hz display still restores.
+const DEGRADE_BELOW_FPS = 25;
+const RESTORE_ABOVE_FPS = 55;
 const QUALITY_SAMPLE_FRAMES = 45;
+// A longer gap is a hidden tab, an offscreen frame or a pause, not a frame.
+const LONG_GAP_MS = 500;
 
 const wrap01 = v => v - Math.floor(v);
 const REDUCED_STILL_SECONDS = 7.5;
@@ -171,15 +204,15 @@ export class AttractorField {
      * @param {HTMLElement} host - positioned container the canvas fills
      * @param {Object} options
      * @param {string} options.system - 'aizawa' | 'thomas' | 'halvorsen'
-     * @param {string} options.palette - 'white' | 'red' | 'blue' | 'gold' | 'purple'
+     * @param {string} options.palette - 'white' | 'red' | 'blue' | 'gold' | 'purple' | 'neon' | 'jade' | 'rose' | 'citrine' | 'silver'
      * @param {string} options.form - 'mirror' | 'kaleido' | 'bilateral'
      * @param {number} options.intensity - master brightness multiplier (default 0.65, keeps text legible)
      * @param {number} options.speed - motion time scale; 1 is the original pace (clamped 0.25–4)
      */
     constructor(host, options = {}) {
         this.host = host;
-        this.system = SYSTEMS[options.system] ? options.system : 'aizawa';
-        this.palette = PALETTES[options.palette] ? options.palette : DEFAULT_PALETTE;
+        this.system = Object.hasOwn(SYSTEMS, options.system) ? options.system : 'aizawa';
+        this.palette = Object.hasOwn(PALETTES, options.palette) ? options.palette : DEFAULT_PALETTE;
         this.form = FORMS.includes(options.form) ? options.form : 'mirror';
         this.intensity = options.intensity ?? 0.65;
         this._controlBaseIntensity = this.intensity;
@@ -192,8 +225,10 @@ export class AttractorField {
         this.onProjectionPaint = typeof options.onProjectionPaint === 'function'
             ? options.onProjectionPaint
             : () => {};
-        this.reduced = typeof window.matchMedia === 'function'
-            && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        // Kept, not read once: the reader may turn reduced motion on mid-reading.
+        this.reducedQuery = typeof window.matchMedia === 'function'
+            ? window.matchMedia('(prefers-reduced-motion: reduce)')
+            : null;
 
         this.canvas = document.createElement('canvas');
         this.canvas.className = 'attractor-canvas';
@@ -231,8 +266,9 @@ export class AttractorField {
         this.quality = 0;
         this.maxQuality = 3;
         this.adaptive = options.adaptive !== false;
-        this._frameCostMs = 0;
+        this._frameIntervalMs = 0;
         this._sampleCount = 0;
+        this._lastFrameAt = null;
 
         this.tick = this.tick.bind(this);
         this.rafId = requestAnimationFrame(this.tick);
@@ -362,14 +398,13 @@ export class AttractorField {
             if (!this.paused && !this.destroyed && !oneShot) this.rafId = requestAnimationFrame(this.tick);
             return;
         }
-        const frameStart = performance.now();
         const N = this.N;
 
-        // Respect both the OS media query (cached) and the app's own
+        // Respect both the OS media query (live) and the app's own
         // accessibility settings (root classes set by Settings) — the
         // canvas layer is invisible to CSS-based animation kill switches.
         const rootClasses = document.documentElement.classList;
-        const reduced = this.reduced || rootClasses.contains('reduced-motion');
+        const reduced = this.reducedQuery?.matches === true || rootClasses.contains('reduced-motion');
         if (reduced && this._intensityTransition) {
             this.intensity = this._intensityTransition.to;
             this.targetIntensity = this.intensity;
@@ -502,7 +537,13 @@ export class AttractorField {
 
         ctx.globalCompositeOperation = 'source-over';
         this._hasPaintedFrame = true;
-        this.measureQuality(performance.now() - frameStart);
+        // Only the live loop's frames count: not a one-shot repaint, a
+        // Page sample or a reduced-motion still.
+        if (!oneShot && !reduced && this._sampleT == null) {
+            const last = this._lastFrameAt;
+            this._lastFrameAt = now;
+            if (last != null && now - last < LONG_GAP_MS) this.measureQuality(now - last);
+        }
         this._syncProjection();
         if (!this.projectionHost) reportProjectionPaint(this);
         if (!this.paused && !this.destroyed && !oneShot) this.rafId = requestAnimationFrame(this.tick);
@@ -525,6 +566,7 @@ export class AttractorField {
         this._motionBase = this.motionTime(now);
         this.t0 = now;
         this.speed = next;
+        this._stillDrawn = false;
         return true;
     }
 
@@ -534,6 +576,7 @@ export class AttractorField {
         this.intensity = Math.min(1, Math.max(0.2, intensity));
         this.targetIntensity = this.intensity;
         this._intensityTransition = null;
+        this._stillDrawn = false;
         return true;
     }
 
@@ -562,7 +605,7 @@ export class AttractorField {
             effective
         };
         const now = performance.now();
-        const reduced = this.reduced || document.documentElement.classList.contains('reduced-motion');
+        const reduced = this.reducedQuery?.matches === true || document.documentElement.classList.contains('reduced-motion');
         this.targetIntensity = effective;
         if (reduced || this.paused) {
             this.intensity = effective;
@@ -588,7 +631,7 @@ export class AttractorField {
         this._intensityTransition = null;
         if (this.destroyed) return;
         this.intensity = this._controlBaseIntensity;
-        const reduced = this.reduced || document.documentElement.classList.contains('reduced-motion');
+        const reduced = this.reducedQuery?.matches === true || document.documentElement.classList.contains('reduced-motion');
         if (needsPaint && (this.paused || reduced)) {
             if (reduced) this._stillDrawn = false;
             this.paintOnce(performance.now());
@@ -648,26 +691,26 @@ export class AttractorField {
     }
 
     /**
-     * Watch this field's own drawing cost and step quality to match the
-     * hardware it is actually running on.
+     * Watch how far apart this field's frames arrive and step quality to
+     * match the hardware it is actually running on.
      *
      * Averaged over a window so a single slow frame (a GC pause, a tab
      * regaining focus) never degrades the field, and recovery is allowed
      * so a machine that was briefly busy gets its detail back.
-     * @param {number} costMs - milliseconds this frame spent drawing
+     * @param {number} intervalMs - milliseconds since the previous frame
      */
-    measureQuality(costMs) {
+    measureQuality(intervalMs) {
         if (!this.adaptive) return;
-        this._frameCostMs += costMs;
+        this._frameIntervalMs += intervalMs;
         if (++this._sampleCount < QUALITY_SAMPLE_FRAMES) return;
 
-        const mean = this._frameCostMs / this._sampleCount;
-        this._frameCostMs = 0;
+        const mean = this._frameIntervalMs / this._sampleCount;
+        this._frameIntervalMs = 0;
         this._sampleCount = 0;
 
-        if (mean > FRAME_BUDGET_MS * DEGRADE_AT && this.quality < this.maxQuality) {
+        if (mean > 1000 / DEGRADE_BELOW_FPS && this.quality < this.maxQuality) {
             this.quality++;
-        } else if (mean < FRAME_BUDGET_MS * RESTORE_AT && this.quality > 0) {
+        } else if (mean < 1000 / RESTORE_ABOVE_FPS && this.quality > 0) {
             this.quality--;
         }
     }
@@ -676,9 +719,10 @@ export class AttractorField {
      * Switch to a different attractor system in place
      */
     setSystem(system) {
-        if (!SYSTEMS[system] || system === this.system) return;
+        if (!Object.hasOwn(SYSTEMS, system) || system === this.system) return;
         this.system = system;
         this.integrate();
+        this._stillDrawn = false;
     }
 
     /**
@@ -687,8 +731,9 @@ export class AttractorField {
      * @returns {boolean} whether the palette changed
      */
     setPalette(palette) {
-        if (!PALETTES[palette] || palette === this.palette) return false;
+        if (!Object.hasOwn(PALETTES, palette) || palette === this.palette) return false;
         this.palette = palette;
+        this._stillDrawn = false;
         return true;
     }
 
@@ -702,6 +747,7 @@ export class AttractorField {
     setForm(form) {
         if (!FORMS.includes(form) || form === this.form) return false;
         this.form = form;
+        this._stillDrawn = false;
         return true;
     }
 
@@ -765,6 +811,7 @@ export class AttractorField {
         if (this.rafId) cancelAnimationFrame(this.rafId);
         this.rafId = null;
         this.paused = true;
+        this._lastFrameAt = null;
         this._pausedMotionTime = this._lastMotionTime ?? this.motionTime(performance.now());
         return true;
     }

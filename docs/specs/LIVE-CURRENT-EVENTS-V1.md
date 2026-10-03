@@ -16,7 +16,7 @@ Nothing in an event is executable. Every field is named below; a field that is n
 
 | `type` | Fields | Notes |
 |---|---|---|
-| `current.open` | `title` (≤200), `origin` `{kind: "human"\|"model", name, provider?}` | First event. A model origin must name its provider; a human origin must not. Origin is attribution, never evidence. |
+| `current.open` | `title` (≤200), `origin` `{kind: "human"\|"model", name, provider?}`, `theme?` | First event. A model origin must name its provider; a human origin must not. Origin is attribution, never evidence. `theme` is one of the shipped color themes of `rise.current.v1` (`JEV_COLOR_THEMES` in `src/core/jev-color-themes.js`); any other value is refused (`EVENT_THEME`). |
 | `segment.begin` | `segmentId`, `visual?`, `literal?` | `visual` is `still`, `attractor` or `genesis`, the same closed catalog as `rise.current.v1`. One segment is open at a time. `literal` is `true` or absent: it says the segment's `\|` and `[PAUSE]`, `[FLASH]`, `[HOLD]` are words (see Literal text). It is decided here, once. |
 | `segment.text` | `segmentId`, `offset`, `text` (≤1,000), `literal?` | `offset` must equal the characters already committed, so a repeat is detectable. Text may not contain `[PAUSE]`, `[FLASH]`, `[HOLD]`, `\|` or U+E000, checked on the joined text so a split marker is caught. In a literal segment only U+E000 and the stand-ins U+E010 and U+E011 are refused. `literal` must be present exactly when the segment began literal, or the chunk is refused (`LITERAL_MISMATCH`). |
 | `segment.end` | `segmentId` | Its words, condition, evidence and Dives are then immutable: a later `segment.text`, `state.set`, `evidence.add` or `dive.attach` for it is refused (`SEGMENT_CLOSED`). Refused if nothing was said. |
@@ -49,6 +49,6 @@ An event is at most 16 KB when serialised, and `decodeEvent` checks that before 
 
 ## Error codes
 
-Protocol: `EVENT_LITERAL`, `EVENT_OBJECT`, `EVENT_SCHEMA`, `EVENT_TYPE`, `EVENT_ID`, `EVENT_SEQ`, `EVENT_UNKNOWN_FIELD`, `EVENT_ORIGIN`, `EVENT_VISUAL`, `EVENT_TEXT`, `EVENT_RESERVED_TEXT`, `EVENT_OFFSET`, `EVENT_STATE`, `EVENT_EVIDENCE_KIND`, `EVENT_EVIDENCE_URI`, `EVENT_SPAN`, `EVENT_TIMING`, `EVENT_INTERRUPT`, `EVENT_ERROR`, `EVENT_TOO_LARGE`, `EVENT_JSON`.
+Protocol: `EVENT_LITERAL`, `EVENT_OBJECT`, `EVENT_SCHEMA`, `EVENT_TYPE`, `EVENT_ID`, `EVENT_SEQ`, `EVENT_UNKNOWN_FIELD`, `EVENT_ORIGIN`, `EVENT_THEME`, `EVENT_VISUAL`, `EVENT_TEXT`, `EVENT_RESERVED_TEXT`, `EVENT_OFFSET`, `EVENT_STATE`, `EVENT_EVIDENCE_KIND`, `EVENT_EVIDENCE_URI`, `EVENT_SPAN`, `EVENT_TIMING`, `EVENT_INTERRUPT`, `EVENT_ERROR`, `EVENT_TOO_LARGE`, `EVENT_JSON`.
 
 Meaning: `NOT_OPEN`, `DUPLICATE_OPEN`, `WRONG_CURRENT`, `UNKNOWN_SEGMENT`, `SEGMENT_OPEN`, `SEGMENT_CLOSED`, `DUPLICATE_SEGMENT`, `TOO_MANY_SEGMENTS`, `TEXT_OFFSET`, `TEXT_TOO_LONG`, `RESERVED_TEXT`, `LITERAL_MISMATCH`, `EMPTY_SEGMENT`, `TOO_MANY_EVIDENCE`, `DUPLICATE_EVIDENCE`, `EVIDENCE_SPAN`, `TOO_MANY_DIVES`, `DUPLICATE_DIVE`, `DIVE_ANCHOR`, `SPEECH_STATE`, `SPEECH_ORDER`, `BRANCH_OPEN`, `DUPLICATE_BRANCH`, `BRANCH_POSITION`, `UNKNOWN_BRANCH`, `EMPTY_CURRENT`, `SEQ_CONFLICT`, `SEQUENCE_GAP`, `TOO_MANY_REFUSALS`, `TOO_MANY_EVENTS`, `AFTER_TERMINAL`.
