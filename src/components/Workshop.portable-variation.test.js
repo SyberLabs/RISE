@@ -222,6 +222,29 @@ it('keeps the pace slider in place when activation refreshes an unchanged inspec
   workshop.destroy();
 });
 
+it('keeps the pace slider in step with the sequence, so a later refresh leaves it in place', async () => {
+  const parent = await importedParent();
+  const { workshop, container } = makeWorkshop();
+  workshop.update({ varyBlueprintId: parent.id });
+  await vi.waitFor(() => expect(container.querySelector('#workshop-sequence-status').textContent)
+    .toContain('Variation of an imported score'));
+  container.querySelector('[data-action="focus-reading-inspector"]').click();
+  const pace = container.querySelector('#wpm-slider');
+
+  // After the reader moves the slider, a refresh that changes nothing else keeps it.
+  pace.value = '260';
+  pace.dispatchEvent(new Event('input', { bubbles: true }));
+  workshop.refreshContextualInspector();
+  expect(container.querySelector('#wpm-slider')).toBe(pace);
+
+  // A pace set elsewhere (the phone scene stack) moves the slider the reader sees.
+  workshop.sceneApi.setPace({ wpm: 200 });
+  workshop.refreshContextualInspector();
+  expect(container.querySelector('#wpm-slider').value).toBe('200');
+  expect(workshop.sessionData.wpm).toBe(200);
+  workshop.destroy();
+});
+
 it('clears the loading state when a saved sequence lookup fails', async () => {
   const pendingLookup = deferred();
   const { workshop, container } = makeWorkshop();
