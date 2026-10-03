@@ -72,20 +72,23 @@ export function createLiveControls({ runtime, onStop, audible = true, mic = null
                placeholder="Wait — dive on the event horizon">
         <button type="button" data-live="dive" aria-label="Dive: ask about this place">Dive</button>
       </form>
-      <form class="live-controls__visual" novalidate>
-        <label class="live-controls__sr" for="live-controls-visual">Visual change</label>
-        <input id="live-controls-visual" name="visual" type="text" maxlength="120" autocomplete="off" placeholder="more vibrant">
-        <button type="button" data-live="visual-submit">Change visual</button>
-      </form>
       <div class="live-controls__buttons">
         <button type="button" data-live="interrupt">Interrupt</button>
         <button type="button" data-live="listen" aria-pressed="false" aria-describedby="live-controls-mic-privacy" hidden>Speak</button>
-        <button type="button" data-live="listen-visual" aria-pressed="false" aria-describedby="live-controls-mic-privacy" hidden>Listen for a visual change</button>
         <button type="button" data-live="surface" hidden>Surface</button>
         <button type="button" data-live="stop">Stop</button>
       </div>
       <p class="live-controls__mic" hidden></p>
       <details class="live-controls__mic-note" hidden><summary></summary><p id="live-controls-mic-privacy"></p></details>
+      <details class="live-controls__visual-change">
+        <summary>Visual change</summary>
+        <form class="live-controls__visual" novalidate>
+          <label class="live-controls__sr" for="live-controls-visual">Visual change</label>
+          <input id="live-controls-visual" name="visual" type="text" maxlength="120" autocomplete="off" placeholder="more vibrant">
+          <button type="button" data-live="visual-submit">Change visual</button>
+          <button type="button" data-live="listen-visual" aria-pressed="false" aria-describedby="live-controls-mic-privacy" hidden>Listen for a visual change</button>
+        </form>
+      </details>
       <details class="live-controls__passage">
         <summary>About this passage</summary>
         <div class="live-passage">
