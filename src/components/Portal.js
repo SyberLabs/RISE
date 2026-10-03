@@ -129,6 +129,9 @@ export class Portal {
               <!-- A page of its own: another skin over the same roll (src/wormhole). -->
               <a class="portal-nav-link portal-nav-minor" href="/wormhole.html">Wormhole</a>
               <p class="portal-nav-group" aria-hidden="true">More rooms</p>
+              <!-- The live Current: a reading a reader redirects in words while it runs. A minor room
+                   until Stage 2 of docs/VISION.md is complete; promote it to the primary nav then. -->
+              <button class="portal-nav-link portal-nav-minor" type="button" data-nav="live">Live reading</button>
               <button class="portal-nav-link portal-nav-minor" type="button" data-nav="chapel">Chapel</button>
               <button class="portal-nav-link portal-nav-minor" type="button" data-nav="scriptorium">Scriptorium</button>
               <button class="portal-nav-link portal-nav-minor" type="button" data-nav="visual-lab">Visual Lab</button>
