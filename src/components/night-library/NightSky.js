@@ -256,9 +256,26 @@ export class NightSky {
       this.canvas.width = Math.round(W * dpr);
       this.canvas.height = Math.round(H * dpr);
       this.lastPaint = -Infinity;
+      this.fitTargets();
       if (this.still) this.paint(performance.now());
     }
     this.build();
+  }
+
+  /**
+   * Size every star's target so it never covers another star's centre: 44px
+   * where the stars have room, down to WCAG's 24px minimum in a short phone
+   * band. Targets are compared as squares, which is safe for round ones.
+   */
+  fitTargets() {
+    const at = this.stars.map(s => [s.x / 100 * this.W, s.y / 100 * this.H]);
+    let room = Infinity;
+    for (let i = 0; i < at.length; i += 1) {
+      for (let j = i + 1; j < at.length; j += 1) {
+        room = Math.min(room, Math.max(Math.abs(at[i][0] - at[j][0]), Math.abs(at[i][1] - at[j][1])));
+      }
+    }
+    this.root.style.setProperty('--star-target', `${Math.max(24, Math.min(44, Math.floor(2 * room) - 2))}px`);
   }
 
   /** The cloud sits over the stars: centred on them, a little wider than they spread. */
