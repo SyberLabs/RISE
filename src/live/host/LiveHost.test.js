@@ -140,7 +140,9 @@ describe('refusing, in words', () => {
     it('uses the resolved provider when deciding whether an offline catalog sample is allowed', () => {
         mount('?catalog=klee&provider=GEMINI');
         expect(host.chosenProvider()).toBe('mock');
-        expect(container.querySelector('.live-error')).toBeNull();
+        const error = container.querySelector('.live-error');
+        expect(error.hidden).toBe(true);
+        expect(error.textContent).toBe('');
         expect(host.catalogConflict).toBe(false);
     });
 
