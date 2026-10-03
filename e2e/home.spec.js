@@ -235,3 +235,97 @@ test('the longest titles and plans stay on a small phone with the key on screen'
     expect(await bottom(page, '[data-home="enter"]'), work).toBeLessThanOrEqual(640);
   }
 });
+
+test('each unit of the stream arrives settled: at full strength, moving in for at most 160ms', async ({ page }) => {
+  await openHome(page);
+  await streaming(page);
+  const entrance = await page.locator('.home-stream .reading-stream-current').evaluate(el => {
+    const { animationName, animationDuration } = getComputedStyle(el);
+    const keyframes = [...document.styleSheets].flatMap(sheet => [...sheet.cssRules])
+      .find(rule => rule instanceof CSSKeyframesRule && rule.name === animationName);
+    return { ms: parseFloat(animationDuration) * 1000, from: Number(keyframes.findRule('from').style.opacity || 1) };
+  });
+  expect(entrance.ms).toBeLessThanOrEqual(160);
+  expect(entrance.from).toBe(1);
+});
+
+test('on a desk a long name stays on one line, whole for a screen reader and as a tooltip', async ({ page }) => {
+  await openHome(page);
+  const keyTop = () => page.locator('[data-home="enter"]').evaluate(el => el.getBoundingClientRect().top);
+  const before = await keyTop();
+  const long = 'Animal Tranquillity and Decay, by William Wordsworth and Samuel Taylor Coleridge, a Sketch';
+  await page.evaluate(long => {
+    const portal = window.__RISE_TEST__.getView('portal');
+    portal.present({ ...portal.reading, heading: long }, portal.opening);
+  }, long);
+  const title = page.locator('h1');
+  await expect(title).toHaveText(long);
+  await expect(title).toHaveAttribute('title', long);
+  const lineHeight = await title.evaluate(el => parseFloat(getComputedStyle(el).lineHeight));
+  expect((await title.boundingBox()).height).toBeLessThan(lineHeight * 1.5);
+  expect(await keyTop()).toBe(before);
+  expect(await sideways(page)).toBeLessThanOrEqual(0);
+});
+
+/**
+ * With the text hidden and the stream held: the contrast of each selector's
+ * text against the brightest pixel behind its box, and the luminance at points.
+ */
+async function behind(page, selectors, points) {
+  const boxes = await page.evaluate(selectors => {
+    window.__RISE_TEST__.getView('portal').stream.stop();
+    const style = document.createElement('style');
+    style.id = 'hide-text';
+    style.textContent = `${selectors.join(', ')} { color: transparent !important; text-shadow: none !important; text-decoration-color: transparent !important; transition: none !important; animation: none !important; }`;
+    const boxes = selectors.map(selector => {
+      const el = document.querySelector(selector);
+      const { x, y, width, height } = el.getBoundingClientRect();
+      return { selector, x, y, width, height, color: getComputedStyle(el).color };
+    });
+    document.head.append(style);
+    return boxes;
+  }, selectors);
+  const png = (await page.screenshot()).toString('base64');
+  return page.evaluate(async ({ png, boxes, points }) => {
+    document.getElementById('hide-text').remove();
+    const image = await createImageBitmap(await (await fetch(`data:image/png;base64,${png}`)).blob());
+    const ctx = new OffscreenCanvas(image.width, image.height).getContext('2d');
+    ctx.drawImage(image, 0, 0);
+    const channel = v => (v /= 255) <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4;
+    const luminance = (r, g, b) => 0.2126 * channel(r) + 0.7152 * channel(g) + 0.0722 * channel(b);
+    const brightest = ({ x, y, width, height }) => {
+      const data = ctx.getImageData(Math.floor(x), Math.floor(y), Math.ceil(width), Math.ceil(height)).data;
+      let max = 0;
+      for (let i = 0; i < data.length; i += 4) max = Math.max(max, luminance(data[i], data[i + 1], data[i + 2]));
+      return max;
+    };
+    const ratio = box => (luminance(...box.color.match(/[\d.]+/gu).map(Number)) + 0.05) / (brightest(box) + 0.05);
+    return {
+      contrast: Object.fromEntries(boxes.map(box => [box.selector, Math.round(ratio(box) * 100) / 100])),
+      light: points.map(({ x, y }) => luminance(...ctx.getImageData(x, y, 1, 1).data))
+    };
+  }, { png, boxes, points });
+}
+
+for (const viewport of [{ width: 390, height: 844 }, { width: 1280, height: 800 }]) {
+  test(`at ${viewport.width}x${viewport.height}, over a white engine, every word keeps 4.5:1 and the engine shows around the stream`, async ({ page }) => {
+    await page.setViewportSize(viewport);
+    await openHome(page);
+    await page.locator('.home-engine').evaluate(engine => {
+      const white = document.createElement('div');
+      white.style.cssText = 'position:absolute;inset:0;z-index:1;background:#fff';
+      engine.append(white);
+    });
+    // A unit with one before it, so both lines of the stream are measured.
+    await expect(page.locator('.home-stream .reading-stream-previous')).not.toBeEmpty({ timeout: 15_000 });
+    const stream = await page.locator('.home-stream').boundingBox();
+    const x = Math.round(viewport.width / 2);
+    const { contrast, light } = await behind(page, [
+      '.home-stream .reading-stream-current', '.home-stream .reading-stream-previous',
+      '.home-label', '.home-title', '.home-link', '[data-home="roll"]', '.portal-legal-link'
+    ], [{ x, y: Math.round(stream.y - 120) }, { x, y: Math.round(stream.y + stream.height + 120) }]);
+    for (const [selector, value] of Object.entries(contrast)) expect(value, selector).toBeGreaterThanOrEqual(4.5);
+    // Above and below the stream, the engine shows at better than half its light.
+    for (const value of light) expect(value).toBeGreaterThan(0.5);
+  });
+}
