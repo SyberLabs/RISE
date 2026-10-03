@@ -27,7 +27,7 @@
  */
 
 import { createHash } from 'node:crypto';
-import { mkdir, rm, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import {
     CORE_WORKS,
@@ -36,6 +36,7 @@ import {
 } from '../../src/content/archive/index.js';
 import { LITERATURE_WORKS } from '../../src/content/archive/literature-catalog.js';
 import { LEGACY_REINGESTED_WORKS } from '../../src/content/archive/legacy-catalog.js';
+import { publicCatalog, readPublicCatalog } from '../../src/core/decision/catalog.js';
 import { CHAPEL_BOOKS } from '../../src/content/chapel/corpus/manifest.js';
 
 export const CONTENT_MANIFEST_SCHEMA = 'rise.content-manifest.v1';
@@ -168,6 +169,14 @@ export async function buildContentPlane({ write = true } = {}) {
             resolve(OUT, 'manifest.json'),
             `${JSON.stringify(manifest, null, 2)}\n`
         );
+        // The decision catalog is editorial content: a row that fails the
+        // browser's contract must fail the build, not ship.
+        const source = JSON.parse(await readFile(resolve(ROOT, 'src/content/decision-catalog.json'), 'utf8'));
+        const catalog = publicCatalog(source);
+        if (!readPublicCatalog(catalog)) {
+            throw new Error('src/content/decision-catalog.json does not pass the public catalog contract.');
+        }
+        await writeFile(resolve(OUT, 'catalog.json'), `${JSON.stringify(catalog, null, 2)}\n`);
     }
     return manifest;
 }
