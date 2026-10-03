@@ -115,6 +115,21 @@ describe('TodayPoem', () => {
     view.destroy();
   });
 
+  it('turns over by itself at midnight while it is shown, and stops watching when hidden', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(2026, 9, 3, 23, 59, 30));
+    work.getDivisions.mockResolvedValue({ entries: [hill, anne] });
+    const view = new TodayPoem(container, {});
+    view.activate();
+    vi.advanceTimersByTime(60_000);
+    expect(container.querySelector('[data-caption]').textContent).toContain('Seed 2026-10-04');
+    view.deactivate();
+    vi.advanceTimersByTime(24 * 60 * 60 * 1000);
+    expect(container.querySelector('[data-caption]').textContent).toContain('Seed 2026-10-04');
+    vi.useRealTimers();
+    view.destroy();
+  });
+
   it('turns to the next day\'s poem when opened after midnight', async () => {
     vi.useFakeTimers({ toFake: ['Date'] });
     vi.setSystemTime(new Date(2026, 9, 3, 23, 50));

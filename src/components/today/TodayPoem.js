@@ -5,7 +5,7 @@
  */
 import { releaseArchiveTexts } from '../../content/archive/index.js';
 import { escapeHtml } from '../../core/sanitize.js';
-import { localDateKey, poemTitle, todayPoem } from '../../core/today-poem.js';
+import { localDateKey, poemTitle, todayPoem, watchLocalDay } from '../../core/today-poem.js';
 import { roomAlert, roomEyebrow, roomHeader } from '../room-chrome.js';
 import { drawMandala } from './mandala.js';
 import './today-poem.css';
@@ -139,10 +139,19 @@ export class TodayPoem {
     }
   }
 
-  /** Draws the mark once the view is visible, and turns to a new day's poem after midnight. */
+  /** Draws the mark once the view is visible; while shown, turns to each new day's poem. */
   activate() {
     const now = new Date();
     if (localDateKey(now) !== this.pick.seed) this.show(now);
+    this.drawMark();
+    this._stopDay?.();
+    this._stopDay = watchLocalDay(date => {
+      this.show(date);
+      this.drawMark();
+    });
+  }
+
+  drawMark() {
     if (this._mark) return;
     const canvas = this.container.querySelector('.today-mandala');
     this._mark = canvas && drawMandala(canvas, this.pick.seed, { folds: FOLDS });
@@ -150,9 +159,13 @@ export class TodayPoem {
     if (this._mark && caption) caption.textContent = `Seed ${this.pick.seed} · ${this._mark.caption} · ${FOLDS} folds`;
   }
 
-  deactivate() {}
+  deactivate() {
+    this._stopDay?.();
+    this._stopDay = null;
+  }
 
   destroy() {
+    this.deactivate();
     this._ticket++;
     this._events?.abort();
     this._mark?.cancel();
