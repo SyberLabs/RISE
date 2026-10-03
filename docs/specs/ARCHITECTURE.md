@@ -1202,9 +1202,11 @@ of `settled`, `open`, `deferred`, or `reversed`.
 
 ### 8.39 Home proposes; the reader decides where to enter
 
-- **Chosen:** Home, the night library, composes a bounded reading on-device by
-  chance, or for a star the reader picks (`src/core/roll.js`). The reader can enter it, adjust it in Reader Setup, or
-  ask for a specific reading through the same reader-owned OpenRouter or local
+- **Chosen:** Home opens on a reading already under way, silently: today's
+  poem under its own engine, begun with sound through the app's `launchToday`
+  (as `/today` is). Another reading composes a bounded, vivid reading
+  on-device by chance (`src/core/roll.js`). The reader can enter it with sound,
+  adjust it in Reader Setup, or ask (from the Menu) for a specific reading through the same reader-owned OpenRouter or local
   Kev connection used by the rest of the app. The standalone Wormhole is a
   second invocation skin over the same roll and app-owned launch operations.
 - **Rejected:** restoring the retired shared recommendation Worker for Home;
@@ -1215,7 +1217,7 @@ of `settled`, `open`, `deferred`, or `reversed`.
   request goes to their chosen provider; a local roll sends nothing. Home
   keeps its proposal while the Chamber is open, and returns to Reader Setup
   when the reader entered from Adjust.
-- **Status:** open. The roll, the night-library sky, invocation handoff, and Wormhole
+- **Status:** open. The roll, Home's silent reading, invocation handoff, and Wormhole
   are covered by unit and browser tests. The first-read Page/Stream choice is
   preserved for the first rolled reading.
 
