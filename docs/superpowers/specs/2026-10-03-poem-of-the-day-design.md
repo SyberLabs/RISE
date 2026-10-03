@@ -27,7 +27,7 @@ minute.
 * **The Today view** (`/today`), on one vertical axis:
   1. Eyebrow: *Today's poem, Saturday 3 October* (the reader's locale, their
      local date).
-  2. The mandala: today's mark, folded twelve ways, turning slowly. Under it,
+  2. The mandala: today's mark, folded twelve ways, still once drawn. Under it,
      in mono: *Seed 2026-10-03 · a −2.048 · b … · 12 folds*.
   3. The poem's title (`Instrument Serif`), then *Author, from Work*.
   4. The poem in a plate (double rule, registration ticks in `accent-rise`),
@@ -70,10 +70,31 @@ minute.
   `ink` with log density, so dense cores burn toward white, as the kit's
   sigils do.
 * It draws in over about sixteen frames as the loading state, then stays
-  still. The canvas turns slowly (CSS, 240 s per turn). Under
-  `prefers-reduced-motion` it draws at once and does not turn.
-* It is the view's one live plate. It is `aria-hidden`; the caption is real
-  text.
+  still (it turned slowly until the backdrop below became the view's live
+  plate). Under `prefers-reduced-motion` it draws at once.
+* It is `aria-hidden`; the caption is real text.
+
+## The day's engine behind the page
+
+The Today view previews the look the poem will be read in (owner decision,
+2026-10-03): the day's own engine runs behind the page, under a scrim that
+keeps the middle column mostly ink and lets the engine show at the sides and
+between the parts. `mountTodayBackdrop(host, decision)`
+(`src/components/today/backdrop.js`) chooses it from the day's roll:
+
+| Mood | Engine behind the page |
+|---|---|
+| signal (attractor mode) | `AttractorField`, the reader's own system, palette and form |
+| ember (ostensoria or apparitio) | `PlateField` with that one family |
+| revel (fractal) | One `FractalFlame` in the reading's colours, the next every 18 s, drifting slowly |
+
+* **One live plate:** the backdrop is the view's live plate, so the mandala is
+  now still once drawn, like every sigil.
+* **Cost:** engines load on demand after the view shows. The backdrop pauses
+  when the view is hidden or the tab goes to the background, resumes on
+  return, and is rebuilt at midnight with the new day's mood. Under reduced
+  motion each engine holds one still frame. If an engine cannot start, the
+  page stays on ink.
 
 ## Begin this poem
 
