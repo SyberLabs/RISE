@@ -32,8 +32,22 @@ vi.mock('../../core/today-poem.js', async importOriginal => ({
 vi.mock('./mandala.js', () => ({
   drawMandala: vi.fn(() => ({ caption: 'a 1 · b 2 · c 3 · d 4', cancel: vi.fn() }))
 }));
+// The edition gate and session shape are resolveJevReading's (tested with the
+// real content in today-poem.integration.test.js); the view is held to the call.
+const READING = {
+  text: anne.content,
+  textSource: 'Spoon River Anthology · Anne Rutledge',
+  verseLines: true,
+  visualConfig: { visualMode: 'interlocution' },
+  soundscape: 'blues',
+  origin: { view: 'portal', icon: '✧', name: 'Home', experience: 'jev' },
+  continuation: { kind: 'library-division', workId: 'spoon-river-anthology', entryId: '1', entryIndex: 1, entryCount: 2, noun: 'entry' }
+};
+vi.mock('../../app/jev-reading.js', () => ({ resolveJevReading: vi.fn(async () => READING) }));
 
 import { TodayPoem } from './TodayPoem.js';
+import { resolveJevReading } from '../../app/jev-reading.js';
+import { todayDecision } from '../../core/today-reading.js';
 
 const flush = () => new Promise(resolve => setTimeout(resolve, 0));
 
@@ -48,7 +62,7 @@ describe('TodayPoem', () => {
     vi.clearAllMocks();
   });
 
-  it('shows today\'s poem with its lines, then begins exactly that division', async () => {
+  it('shows today\'s poem and its mood, then begins exactly that division in the day\'s look', async () => {
     work.getDivisions.mockResolvedValue({ entries: [hill, anne] });
     const onBegin = vi.fn(async () => true);
     const view = new TodayPoem(container, { onBegin });
@@ -56,27 +70,25 @@ describe('TodayPoem', () => {
     expect(container.querySelector('#today-title').textContent).toBe('Anne Rutledge');
     expect(container.querySelector('.today-byline').textContent).toBe('Edgar Lee Masters, from Spoon River Anthology');
     expect(container.querySelector('[data-begin]').disabled).toBe(true);
+    // The day's mood, named before anything plays.
+    const decision = todayDecision(view.pick);
+    expect(container.querySelector('.today-mood-name').textContent.toLowerCase()).toBe(decision.temper);
+    expect(container.querySelector('.today-mood-plan').textContent).toBeTruthy();
     await flush();
     const lines = [...container.querySelectorAll('.today-line')].map(node => node.textContent);
     expect(lines).toEqual(['Out of me unworthy and unknown', 'The vibrations of deathless music;']);
     expect(container.querySelector('[data-caption]').textContent).toMatch(/^Seed \d{4}-\d\d-\d\d · a 1 · b 2 · c 3 · d 4 · 12 folds$/);
     container.querySelector('[data-begin]').click();
     await flush();
-    expect(onBegin).toHaveBeenCalledWith(expect.objectContaining({
-      text: anne.content,
-      textSource: 'Spoon River Anthology · Anne Rutledge',
-      verseLines: true,
+    expect(resolveJevReading).toHaveBeenCalledWith(
+      expect.objectContaining({ workId: 'spoon-river-anthology', temper: decision.temper }),
+      { entryId: 1, label: 'Anne Rutledge' }
+    );
+    expect(onBegin).toHaveBeenCalledWith({
+      ...READING,
       origin: { view: 'today', name: 'Today\'s poem' },
-      continuation: expect.objectContaining({
-        kind: 'library-division',
-        workId: 'spoon-river-anthology',
-        editionId: 'ed',
-        sourceRevision: 'rev',
-        entryId: '1',
-        entryIndex: 1,
-        entryCount: 2
-      })
-    }));
+      continuation: { ...READING.continuation, noun: 'poem' }
+    });
     // Leaving the reading returns here; the poem can be begun again.
     expect(container.querySelector('[data-begin]').disabled).toBe(false);
     expect(container.querySelector('[data-begin]').hasAttribute('aria-busy')).toBe(false);
@@ -89,6 +101,21 @@ describe('TodayPoem', () => {
     await flush();
     container.querySelector('[data-begin]').click();
     await flush();
+    expect(container.querySelector('[data-begin]').disabled).toBe(false);
+    view.destroy();
+  });
+
+  it('says so when the edition gate refuses, and keeps the poem on screen', async () => {
+    work.getDivisions.mockResolvedValue({ entries: [hill, anne] });
+    vi.mocked(resolveJevReading).mockRejectedValueOnce(new TypeError('The division changed.'));
+    const onBegin = vi.fn(async () => true);
+    const view = new TodayPoem(container, { onBegin });
+    await flush();
+    container.querySelector('[data-begin]').click();
+    await flush();
+    expect(onBegin).not.toHaveBeenCalled();
+    expect(container.querySelector('[data-begin-status]').textContent).toBe('This poem could not be opened. Try again.');
+    expect(container.querySelectorAll('.today-line')).toHaveLength(2);
     expect(container.querySelector('[data-begin]').disabled).toBe(false);
     view.destroy();
   });
@@ -112,6 +139,21 @@ describe('TodayPoem', () => {
     const view = new TodayPoem(container, { onNavigate });
     container.querySelector('[data-action="back"]').click();
     expect(onNavigate).toHaveBeenCalledWith('portal');
+    view.destroy();
+  });
+
+  it('turns over by itself at midnight while it is shown, and stops watching when hidden', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(2026, 9, 3, 23, 59, 30));
+    work.getDivisions.mockResolvedValue({ entries: [hill, anne] });
+    const view = new TodayPoem(container, {});
+    view.activate();
+    vi.advanceTimersByTime(60_000);
+    expect(container.querySelector('[data-caption]').textContent).toContain('Seed 2026-10-04');
+    view.deactivate();
+    vi.advanceTimersByTime(24 * 60 * 60 * 1000);
+    expect(container.querySelector('[data-caption]').textContent).toContain('Seed 2026-10-04');
+    vi.useRealTimers();
     view.destroy();
   });
 

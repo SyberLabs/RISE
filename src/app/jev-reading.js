@@ -134,10 +134,25 @@ async function openJevDivision(decision) {
   return { ...admitted, work, divisions, ...selectJevDivision(divisions, admitted.plan.section) };
 }
 
-/** Resolve an exact released edition into the existing Chamber session input. */
-export async function resolveJevReading(decision) {
-  const { plan, resolved, visualProgram, audioProgram, work, divisions, entry, index } =
-    await openJevDivision(decision);
+/** One exact division, by id, whose label must still be the one the caller named. */
+function exactDivision(divisions, entryId, label) {
+  const index = divisions.entries.findIndex(entry => String(entry.id) === String(entryId));
+  const entry = divisions.entries[index];
+  if (!entry || entry.label !== label) {
+    throw new TypeError(`The division changed: expected “${label}”, found “${entry?.label ?? 'nothing'}”.`);
+  }
+  return { entry, index };
+}
+
+/**
+ * Resolve an exact released edition into the existing Chamber session input.
+ * `exact` ({ entryId, label }) opens that division instead of the plan's
+ * section, under the same edition gate (today's poem).
+ */
+export async function resolveJevReading(decision, exact = null) {
+  const opened = await openJevDivision(decision);
+  const { plan, resolved, visualProgram, audioProgram, work, divisions } = opened;
+  const { entry, index } = exact ? exactDivision(divisions, exact.entryId, exact.label) : opened;
   const label = entry.title ? `${entry.label} — ${entry.title}` : entry.label;
   const input = {
     text: entry.content,

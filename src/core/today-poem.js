@@ -3,6 +3,7 @@
  * reader on that date. Pure; reads the static division index, never text.
  */
 import DIVISION_INDEX from '../content/archive/division-index.json' with { type: 'json' };
+import { localDateKey } from './local-day.js';
 
 export const TODAY_WORKS = Object.freeze(['spoon-river-anthology', 'lyrical-ballads']);
 export const TODAY_MAX_WORDS = 400;
@@ -24,6 +25,9 @@ function random(seed) {
   };
 }
 
+/** A repeatable random sequence for a string seed. */
+export const seededRandom = text => random(hash(text));
+
 export function todayPool(index = DIVISION_INDEX) {
   const pool = [];
   for (const workId of TODAY_WORKS) {
@@ -32,7 +36,7 @@ export function todayPool(index = DIVISION_INDEX) {
       if (work.divisionWords[entryId] <= TODAY_MAX_WORDS) pool.push({ workId, entryId, label });
     });
   }
-  const next = random(hash(SHUFFLE_SEED));
+  const next = seededRandom(SHUFFLE_SEED);
   for (let i = pool.length - 1; i > 0; i--) {
     const j = Math.floor(next() * (i + 1));
     [pool[i], pool[j]] = [pool[j], pool[i]];
@@ -40,9 +44,7 @@ export function todayPool(index = DIVISION_INDEX) {
   return pool;
 }
 
-const pad = n => String(n).padStart(2, '0');
-export const localDateKey = date =>
-  `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+export { localDateKey };
 export const dayNumber = date =>
   Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()) / 86400000;
 

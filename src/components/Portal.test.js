@@ -31,6 +31,15 @@ vi.mock('./night-library/NightSky.js', () => ({
     }
 }));
 vi.mock('../core/library-sky.js', () => ({ librarySky: () => SKY }));
+// Today's poem card: Home codes against its two calls.
+const today = vi.hoisted(() => ({ fail: false }));
+vi.mock('./today/today-card.js', () => ({
+    todayCardMarkup: vi.fn(date => {
+        if (today.fail) throw new Error('no card here');
+        return `<button class="home-today-card" type="button" data-home="today">Card ${date.getDate()}</button>`;
+    }),
+    drawTodayCardMark: vi.fn()
+}));
 // roll.js and jev-reading.js are real. Home is held to the
 // call it makes (rollReading's kept parts) and to the lines it shows.
 vi.mock('../core/roll.js', async importOriginal => {
@@ -51,6 +60,7 @@ beforeEach(() => {
     sessionStorage.clear();
     sky.instances.length = 0;
     sky.fail = false;
+    today.fail = false;
     vi.mocked(rollReading).mockClear();
     vi.mocked(openingLines).mockClear();
     window.matchMedia = () => ({ matches: true, addEventListener() {}, removeEventListener() {} });
@@ -108,13 +118,44 @@ describe('Home, waiting', () => {
         portal.destroy();
     });
 
-    it('offers today\'s poem as a quiet link that opens the Today view', () => {
+    it('offers today\'s poem as a link at once, then as its card after Home shows', async () => {
         const { portal, container, onNavigate } = makePortal();
         const link = hook(container, 'today');
         expect(words(link)).toBe('Read today\'s poem');
-        expect(link.classList.contains('btn-ghost')).toBe(true);
-        link.click();
+        portal.activate();
+        await vi.waitFor(() => expect(container.querySelector('.home-today-card')).not.toBeNull());
+        const card = hook(container, 'today');
+        expect(card.classList.contains('home-today-card')).toBe(true);
+        const { drawTodayCardMark } = await import('./today/today-card.js');
+        expect(drawTodayCardMark).toHaveBeenCalledWith(container.querySelector('.home-today'));
+        // Still under the keys, and Roll is still the one solid key.
+        expect([...container.querySelectorAll('.home .btn-primary')]).toEqual([hook(container, 'roll')]);
+        card.click();
         expect(onNavigate).toHaveBeenCalledWith('today');
+        portal.destroy();
+    });
+
+    it('turns the card over at midnight while Home is shown', async () => {
+        vi.useFakeTimers({ toFake: ['Date', 'setTimeout', 'clearTimeout'] });
+        vi.setSystemTime(new Date(2026, 9, 3, 23, 59, 30));
+        const { portal, container } = makePortal();
+        portal.activate();
+        await vi.waitFor(() => expect(container.querySelector('.home-today-card')).not.toBeNull());
+        expect(words(container.querySelector('.home-today-card'))).toBe('Card 3');
+        vi.advanceTimersByTime(60_000);
+        expect(words(container.querySelector('.home-today-card'))).toBe('Card 4');
+        vi.useRealTimers();
+        portal.destroy();
+    });
+
+    it('keeps the link when the card cannot load', async () => {
+        today.fail = true;
+        const { portal, container } = makePortal();
+        portal.activate();
+        await new Promise(resolve => setTimeout(resolve, 50));
+        expect(container.querySelector('.home-today-card')).toBeNull();
+        expect(words(hook(container, 'today'))).toBe('Read today\'s poem');
+        today.fail = false;
         portal.destroy();
     });
 
@@ -410,7 +451,8 @@ describe('the rest of Home', () => {
         expect(items[0].getAttribute('aria-current')).toBe('page');
         expect(document.activeElement).toBe(items[0]);
         expect([...container.querySelectorAll('.portal-nav [data-nav]')].map(item => item.dataset.nav))
-            .toEqual(['library', 'vault', 'workshop', 'chamber', 'live', 'chapel', 'scriptorium', 'visual-lab', 'emotions', 'curia']);
+            .toEqual(['today', 'library', 'vault', 'workshop', 'chamber', 'live', 'chapel', 'scriptorium', 'visual-lab', 'emotions', 'curia']);
+        expect(container.querySelector('.portal-nav [data-nav="today"]').textContent.trim()).toBe('Today\'s poem');
 
         const last = items[items.length - 1];
         last.focus();

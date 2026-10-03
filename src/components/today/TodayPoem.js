@@ -3,14 +3,19 @@
  * date. Loads only the chosen work and checks the division's label against
  * the index, so a changed edition is an error rather than a different poem.
  */
+import { resolveJevReading } from '../../app/jev-reading.js';
 import { releaseArchiveTexts } from '../../content/archive/index.js';
+import { summarizeJevPlan } from '../../core/jev-describe.js';
 import { escapeHtml } from '../../core/sanitize.js';
-import { localDateKey, poemTitle, todayPoem } from '../../core/today-poem.js';
+import { localDateKey, watchLocalDay } from '../../core/local-day.js';
+import { poemTitle, todayPoem } from '../../core/today-poem.js';
+import { todayDecision } from '../../core/today-reading.js';
 import { roomAlert, roomEyebrow, roomHeader } from '../room-chrome.js';
 import { drawMandala } from './mandala.js';
 import './today-poem.css';
 
 const FOLDS = 12;
+const capital = text => (text ? text[0].toLocaleUpperCase('en') + text.slice(1) : '');
 const SKELETON = '<span class="today-skeleton"></span>'.repeat(6);
 
 export class TodayPoem {
@@ -29,6 +34,7 @@ export class TodayPoem {
     this._events = new AbortController();
     this.date = date;
     this.pick = todayPoem(date);
+    this.decision = todayDecision(this.pick);
     this.work = releaseArchiveTexts().find(item => item.id === this.pick.workId) || null;
     this.entry = null;
     this.render();
@@ -53,8 +59,11 @@ export class TodayPoem {
         </header>
         <div class="today-plate sy-plate"><div class="today-poem" data-poem aria-busy="true">${SKELETON}</div></div>
         <div class="today-actions">
+          <p class="today-mood"><span class="today-mood-dot" aria-hidden="true"></span><span class="today-mood-name">${escapeHtml(capital(this.decision.temper))}</span></p>
+          <p class="today-mood-plan">${escapeHtml(capital(summarizeJevPlan(this.decision.config).join(', ')))}</p>
           <button type="button" class="btn btn-primary" data-begin disabled>Begin this poem</button>
-          <p class="today-note">A new poem, and a new mark, at midnight.</p>
+          <p class="today-status" data-begin-status role="status" aria-live="polite"></p>
+          <p class="today-note">A new poem, a new mark and a new mood at midnight.</p>
         </div>
       </main></div>`;
   }
@@ -107,42 +116,48 @@ export class TodayPoem {
     }
   }
 
+  /**
+   * Opens the day's exact poem in the day's look: the roll's visual, sound,
+   * pace and type, through the same edition gate as Home's rolls.
+   */
   async begin() {
-    const { work, entry, entryIndex, divisions } = this;
     const button = this.container.querySelector('[data-begin]');
-    if (!entry || !button || button.disabled) return;
+    const status = this.container.querySelector('[data-begin-status]');
+    if (!this.entry || !button || button.disabled) return;
     button.disabled = true;
     button.setAttribute('aria-busy', 'true');
-    // Busy until the reader opens (or fails to). Either way the view is
-    // where the reader comes back to, so Begin is ready again after.
-    await this.onBegin({
-      text: entry.content,
-      textSource: `${work.title} · ${poemTitle(entry.label)}`,
-      wpm: work.defaultWpm,
-      curve: work.defaultCurve,
-      verseLines: entry.verse === true,
-      continuation: {
-        kind: 'library-division',
-        workId: work.id,
-        editionId: work.editionId,
-        sourceRevision: work.sourceRevision,
-        entryId: String(entry.id),
-        entryIndex,
-        entryCount: divisions.entries.length,
-        noun: 'poem'
-      },
-      origin: { view: 'today', name: 'Today\'s poem' }
-    });
+    if (status) status.textContent = '';
+    try {
+      const reading = await resolveJevReading(this.decision, { entryId: this.pick.entryId, label: this.pick.label });
+      // Busy until the reader opens (or fails to). Either way the view is
+      // where the reader comes back to, so Begin is ready again after.
+      await this.onBegin({
+        ...reading,
+        origin: { view: 'today', name: 'Today\'s poem' },
+        continuation: reading.continuation && { ...reading.continuation, noun: 'poem' }
+      });
+    } catch {
+      if (status) status.textContent = 'This poem could not be opened. Try again.';
+    }
     if (button.isConnected) {
       button.disabled = false;
       button.removeAttribute('aria-busy');
     }
   }
 
-  /** Draws the mark once the view is visible, and turns to a new day's poem after midnight. */
+  /** Draws the mark once the view is visible; while shown, turns to each new day's poem. */
   activate() {
     const now = new Date();
     if (localDateKey(now) !== this.pick.seed) this.show(now);
+    this.drawMark();
+    this._stopDay?.();
+    this._stopDay = watchLocalDay(date => {
+      this.show(date);
+      this.drawMark();
+    });
+  }
+
+  drawMark() {
     if (this._mark) return;
     const canvas = this.container.querySelector('.today-mandala');
     this._mark = canvas && drawMandala(canvas, this.pick.seed, { folds: FOLDS });
@@ -150,9 +165,13 @@ export class TodayPoem {
     if (this._mark && caption) caption.textContent = `Seed ${this.pick.seed} · ${this._mark.caption} · ${FOLDS} folds`;
   }
 
-  deactivate() {}
+  deactivate() {
+    this._stopDay?.();
+    this._stopDay = null;
+  }
 
   destroy() {
+    this.deactivate();
     this._ticket++;
     this._events?.abort();
     this._mark?.cancel();

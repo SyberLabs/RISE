@@ -128,6 +128,42 @@
   gap: var(--sy-space-3);
 }
 
+/* The day's mood, as Home names a roll's: a pill with the spectrum's one dot. */
+.today-mood {
+  margin: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sy-space-2);
+  padding: var(--sy-space-1) var(--sy-space-3);
+  border: 1px solid var(--sy-line-strong);
+  border-radius: var(--sy-radius-full);
+  font-size: 15px;
+  line-height: 20px;
+  font-weight: 500;
+  color: var(--sy-text);
+}
+
+.today-mood-dot {
+  width: 8px;
+  height: 8px;
+  flex: none;
+  border-radius: var(--sy-radius-full);
+  background: var(--sy-spectrum);
+}
+
+.today-mood-plan,
+.today-status {
+  margin: 0;
+  max-width: 44ch;
+  font-size: 15px;
+  line-height: 22px;
+  color: var(--sy-text-2);
+}
+
+.today-status:empty {
+  display: none;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .today-mandala { animation: none; }
 }

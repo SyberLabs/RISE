@@ -162,9 +162,9 @@ flowchart LR
     affect["affect<br/>experience-state evaluation<br/>29 modules"]
     app["app<br/>composition root<br/>11 modules"]
     audio["audio<br/>Web Audio, recitation<br/>10 modules"]
-    components["components<br/>routed views<br/>49 modules"]
+    components["components<br/>routed views<br/>50 modules"]
     content["content<br/>texts, imagery, journeys<br/>228 modules"]
-    core["core<br/>session, player, router<br/>166 modules"]
+    core["core<br/>session, player, router<br/>168 modules"]
     enterprise["enterprise<br/>talk program, speaker rail<br/>34 modules"]
     live["live<br/>realtime Current: events, runtime, providers<br/>39 modules"]
     page["page<br/>spatial projection<br/>4 modules"]
@@ -184,10 +184,10 @@ flowchart LR
     audio --> |1| content
     audio --> |5| core
     components --> |3| affect
-    components -.-> |2 lazy| app
+    components --> |1| app
     components --> |3| audio
-    components --> |25| content
-    components --> |174| core
+    components --> |26| content
+    components --> |180| core
     components -.-> |1 lazy| page
     components --> |4| sources
     components --> |1| vendor

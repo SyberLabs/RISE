@@ -14,12 +14,26 @@ async function openToday(page, path) {
   await page.goto(path);
 }
 
-test('Home links to today\'s poem, and the address names it', async ({ page }) => {
+test('Home shows today\'s poem as a card that opens it, and the address names it', async ({ page }) => {
   await openToday(page, '/');
-  await page.locator('[data-home="today"]').click();
+  const card = page.locator('.home-today-card');
+  await expect(card).toBeVisible({ timeout: 15_000 });
+  const title = await card.locator('.home-today-title').textContent();
+  const line = await card.locator('.home-today-line').textContent();
+  await card.click();
   await expect(page.locator('.today-line').first()).toBeVisible({ timeout: 15_000 });
   await expect.poll(() => view(page)).toBe('today');
   await expect(page).toHaveURL(/\/today$/u);
+  // The card names the poem the view opens, and quotes its first line.
+  await expect(page.locator('#today-title')).toHaveText(title);
+  await expect(page.locator('.today-line').first()).toHaveText(line);
+});
+
+test('the Menu opens today\'s poem', async ({ page }) => {
+  await openToday(page, '/');
+  await page.locator('.portal-menu-toggle').click();
+  await page.locator('.portal-nav [data-nav="today"]').click();
+  await expect.poll(() => view(page)).toBe('today');
 });
 
 for (const viewport of [{ width: 390, height: 844 }, { width: 1280, height: 800 }]) {
@@ -38,9 +52,16 @@ for (const viewport of [{ width: 390, height: 844 }, { width: 1280, height: 800 
       && !window.__RISE_TEST__.getRouterState().transitioning, null, { timeout: 20_000 });
     const session = await page.evaluate(() => {
       const s = window.__RISE_TEST__.getCurrentSession();
-      return { text: [...s.sourceTexts.values()].join(' '), origin: s.origin };
+      return {
+        text: [...s.sourceTexts.values()].join(' '),
+        origin: s.origin,
+        visualMode: s.visualConfig?.visualMode ?? null
+      };
     });
     expect(session.origin).toEqual({ view: 'today', name: 'Today\'s poem' });
+    // Every poem of the day is read under a procedural visual, never on plain black.
+    expect(session.visualMode).toBeTruthy();
+    expect(session.visualMode).not.toBe('off');
     expect(session.text.replace(/\s+/gu, ' ').trim()).toBe(shown.replace(/\s+/gu, ' ').trim());
 
     await page.keyboard.press('Escape');
