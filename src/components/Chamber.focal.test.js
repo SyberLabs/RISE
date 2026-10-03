@@ -150,6 +150,13 @@ describe('Chamber mounted visual control', () => {
     expect(chamber.attractorField).toBe(mounted);
     expect(mounted.targetIntensity).toBe(0.65);
 
+    // Hidden by the router (the reader left): nothing to discover or control.
+    container.hidden = true;
+    expect(chamber.discoverVisual()).toBeNull();
+    expect(chamber.controlVisual({ surface: 'attractor', parameter: 'intensity', value: 0.7 }))
+      .toEqual({ status: 'refused', code: 'NO_ACTIVE_VISUAL' });
+    container.hidden = false;
+
     chamber.destroy();
     expect(chamber.discoverVisual()).toBeNull();
     expect(chamber.controlVisual({ surface: 'attractor', parameter: 'intensity', value: 0.7 }))

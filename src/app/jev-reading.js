@@ -1,11 +1,10 @@
 import { getTextById } from '../content/library.js';
-import releaseInventory from '../content/archive/release-inventory.json' with { type: 'json' };
-import modernManifest from '../content/modern-readings-manifest.json' with { type: 'json' };
 import { firstBodyOrdinal } from '../content/archive/divisions.js';
 import { READING_LIMITS } from '../core/reading-limits.js';
 import { CHAMBER_STREAM_FACES } from '../core/chamber-stream-face.js';
 import { FONT_SIZE_CHIPS } from '../core/chamber-type-size.js';
 import { JEV_AUDIO_IDS, resolveJevChamberConfig } from '../core/jev-config.js';
+import { isRiseOriginal, jevReleasedEdition } from '../core/jev-describe.js';
 import { JEV_PALETTES, jevColors } from '../core/jev-palette.js';
 import {
   compileJevAudioProgram,
@@ -114,16 +113,13 @@ export function selectJevDivision(divisions, section) {
   });
 }
 
-/** Resolve an exact released edition into the existing Chamber session input. */
-export async function resolveJevReading(decision) {
-  const { plan, resolved, visualProgram, audioProgram } = validateJevRecommendation(decision);
-  const released = releaseInventory[decision.workId] || modernManifest[decision.workId];
+/** Admit a decision, then find the exact division of the exact released edition it names. */
+async function openJevDivision(decision) {
+  const admitted = validateJevRecommendation(decision);
+  // One release rule for rolls, Jev and admission (jev-describe.js).
+  const released = jevReleasedEdition(decision.workId);
   const work = getTextById(decision.workId);
-  const admittedSource = released?.editionId?.startsWith('standard-ebooks:')
-    ? released.source?.url?.startsWith('https://standardebooks.org/ebooks/')
-      && work?.provider === 'archive-ingest'
-    : released?.editionId === `rise-original:${decision.workId}`
-      && work?.provider === 'rise-original';
+  const admittedSource = work?.provider === (isRiseOriginal(decision.workId) ? 'rise-original' : 'archive-ingest');
   if (!released || !admittedSource
     || released.workId !== decision.workId
     || released.editionId !== decision.editionId
@@ -135,7 +131,28 @@ export async function resolveJevReading(decision) {
   }
 
   const divisions = await work.getDivisions();
-  const { entry, index } = selectJevDivision(divisions, plan.section);
+  return { ...admitted, work, divisions, ...selectJevDivision(divisions, admitted.plan.section) };
+}
+
+/** One exact division, by id, whose label must still be the one the caller named. */
+function exactDivision(divisions, entryId, label) {
+  const index = divisions.entries.findIndex(entry => String(entry.id) === String(entryId));
+  const entry = divisions.entries[index];
+  if (!entry || entry.label !== label) {
+    throw new TypeError(`The division changed: expected “${label}”, found “${entry?.label ?? 'nothing'}”.`);
+  }
+  return { entry, index };
+}
+
+/**
+ * Resolve an exact released edition into the existing Chamber session input.
+ * `exact` ({ entryId, label }) opens that division instead of the plan's
+ * section, under the same edition gate (today's poem).
+ */
+export async function resolveJevReading(decision, exact = null) {
+  const opened = await openJevDivision(decision);
+  const { plan, resolved, visualProgram, audioProgram, work, divisions } = opened;
+  const { entry, index } = exact ? exactDivision(divisions, exact.entryId, exact.label) : opened;
   const label = entry.title ? `${entry.label} — ${entry.title}` : entry.label;
   const input = {
     text: entry.content,
@@ -163,4 +180,33 @@ export async function resolveJevReading(decision) {
     } } : {})
   };
   return input;
+}
+
+/**
+ * The opening of a passage, for a preview: cut at the last line break or
+ * sentence end that fits in maxChars. Verse keeps its line breaks. When
+ * nothing ends in reach, it cuts between words and ends with an ellipsis.
+ */
+export function openingOf(text, maxChars = 240) {
+  text = text.replace(/^(?:[^\S\n]*\n)+/u, '').trimEnd();
+  if (text.length <= maxChars) return text;
+  const head = text.slice(0, maxChars + 1);
+  let end = 0;
+  // A title such as "Mr." does not end a sentence.
+  for (const match of head.matchAll(/\n|(?<!\b(?:Mr|Mrs|Ms|Dr|St))[.!?][’”"')\]]*(?=\s)/gu)) {
+    const stop = match[0] === '\n' ? match.index : match.index + match[0].length;
+    if (stop <= maxChars) end = stop;
+  }
+  if (end) return text.slice(0, end).trimEnd();
+  const space = head.search(/\s\S*$/u);
+  return `${text.slice(0, space > 0 ? space : maxChars - 1).trimEnd()}…`;
+}
+
+/**
+ * The opening of the same division resolveJevReading opens, for a preview,
+ * and whether that division is verse, so the Chamber reads it by line.
+ */
+export async function openingLines(decision) {
+  const { entry } = await openJevDivision(decision);
+  return { text: openingOf(entry.content, 240), verse: entry.verse === true };
 }

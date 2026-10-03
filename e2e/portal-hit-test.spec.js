@@ -20,7 +20,7 @@
  * retrying until it cleared; `elementFromPoint` is the same test the
  * browser runs for a human, with no retry and no synthetic events.
  */
-import { test, expect } from './fixtures.js';
+import { test, expect, connectTestOpenRouter } from './fixtures.js';
 
 const GATE_SESSION = {
     code: 'rise2025',
@@ -34,7 +34,7 @@ async function openPortal(page) {
         localStorage.setItem('rise-beta-session', JSON.stringify(gate));
     }, GATE_SESSION);
     await page.goto('/');
-    await expect(page.locator('.portal .oracle-title').first()).toBeVisible({ timeout: 15_000 });
+    await expect(page.locator('.portal .home-title').first()).toBeVisible({ timeout: 15_000 });
 }
 
 /** Press at a door's centre with a real mouse, the way a hand does. */
@@ -129,27 +129,27 @@ test.describe('the Portal has no overlay between a cursor and a door', () => {
     });
 });
 
-test('ROLL, the keys that follow it, and Ask are reachable on a desk and a phone', async ({ page }) => {
+test('Read it with sound, Another reading, the link, the legal links and Ask are reachable on a desk and a phone', async ({ page }) => {
     for (const viewport of [{ width: 1280, height: 800 }, { width: 390, height: 844 }]) {
         await page.setViewportSize(viewport);
         await openPortal(page);
         await page.reload();
-        await expect(page.locator('[data-oracle="roll"]')).toBeVisible({ timeout: 15_000 });
+        await expect(page.locator('h1')).toContainText(', by ', { timeout: 15_000 });
         const check = async selector => {
             const { reachable, hit } = await hitTest(page, selector);
             expect(reachable, `${selector} is covered by ${hit} at ${viewport.width}px`).toBe(true);
         };
-        await check('[data-oracle="roll"]');
-        await pressAt(page, '[data-oracle="roll"]');
-        await expect(page.locator('[data-oracle="enter"]')).toBeVisible({ timeout: 10_000 });
-        await page.waitForTimeout(1200);
-        for (const selector of ['[data-oracle="enter"]', '[data-oracle="roll"]', '[data-oracle="adjust"]', '[data-oracle="ask-open"]']) {
-            await check(selector);
-        }
-        await pressAt(page, '[data-oracle="ask-open"]');
-        await expect(page.locator('#oracle-intent')).toBeVisible();
-        await page.waitForTimeout(1200);
-        for (const selector of ['#oracle-intent', '[data-oracle="ask"]']) await check(selector);
+        // The engine and its scrim lie under the bar; every key must still take the press.
+        for (const selector of ['[data-home="enter"]', '[data-home="roll"]', '[data-home="library"]', '.portal-legal-link']) await check(selector);
+        await pressAt(page, '[data-home="roll"]');
+        await expect(page.locator('[data-home="adjust"]')).toBeVisible({ timeout: 10_000 });
+        for (const selector of ['[data-home="enter"]', '[data-home="roll"]', '[data-home="adjust"]']) await check(selector);
+        await connectTestOpenRouter(page);
+        await openMenu(page);
+        await check('[data-home="ask-open"]');
+        await pressAt(page, '[data-home="ask-open"]');
+        await expect(page.locator('#home-intent')).toBeVisible();
+        for (const selector of ['#home-intent', '[data-home="ask"]', '[data-home="ask-cancel"]']) await check(selector);
     }
 });
 
@@ -161,9 +161,10 @@ const SITTINGS = ['default', 'slate', 'ivory', 'purple', 'cobalt', 'amber',
 
 test('Home text keeps AA contrast in every sitting', async ({ page }) => {
     await openPortal(page);
-    // The small text (Adjust, Ask) appears once there is a reading to speak of.
-    await page.locator('[data-oracle="roll"]').click();
-    await expect(page.locator('[data-oracle="adjust"]')).toBeVisible({ timeout: 10_000 });
+    // The quieter text (the caption's plan words, Adjust) appears once there is a rolled reading.
+    await page.locator('[data-home="roll"]').click();
+    await expect(page.locator('[data-home="adjust"]')).toBeVisible({ timeout: 10_000 });
+    await expect(page.locator('.home-stream .reading-stream-current')).not.toBeEmpty({ timeout: 15_000 });
     const results = await page.evaluate((sittings) => {
         const rgb = colour => {
             const ctx = document.createElement('canvas').getContext('2d');
@@ -179,7 +180,7 @@ test('Home text keeps AA contrast in every sitting', async ({ page }) => {
         for (const id of sittings) {
             if (id === 'default') document.documentElement.removeAttribute('data-accent');
             else document.documentElement.setAttribute('data-accent', id);
-            for (const sel of ['.portal-nav-link', '.oracle-title', '.oracle-quiet', '.oracle-status', '.portal-footer-link']) {
+            for (const sel of ['.portal-nav-link', '.home-title', '.home-label', '.home-link', '[data-home="adjust"]', '.portal-footer-link', '.home-stream .reading-stream-current', '.home-stream .reading-stream-previous']) {
                 out.push({ id, sel, ratio: +ratio(rgb(getComputedStyle(document.querySelector(sel)).color), ground).toFixed(2) });
             }
         }

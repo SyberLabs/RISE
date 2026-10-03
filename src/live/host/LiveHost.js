@@ -369,12 +369,13 @@ export class LiveHost {
         }
         const clock = createRealClock();
         const voices = await this.buildVoices(clock);
-        // The Chamber is on screen from when the router shows its container, which is before the
-        // router reports it current at the end of its fade-in, until the router hides it on leaving.
+        // The container is shown before the router finishes its fade-in. Stop exposing controls as
+        // soon as it is hidden, and resolve the instance through the router's public API.
         const mountedChamber = player => {
             const view = this.router?.views?.get('chamber-session');
             if (view?.container?.hidden !== false) return null;
-            return view.instance?.player === player ? view.instance : null;
+            const chamber = this.router?.getViewInstance?.('chamber-session');
+            return chamber?.player === player ? chamber : null;
         };
         const runtime = createLiveRuntime({
             adapter: await this.buildAdapter(clock, createMockAdapter),

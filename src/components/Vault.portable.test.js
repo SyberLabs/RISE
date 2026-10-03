@@ -60,6 +60,25 @@ it('retains typed creator credit when asynchronous Vault hydration redraws the c
   vault.destroy();
 });
 
+it('keeps the file input a reader is choosing into when the kept list refreshes', async () => {
+  const { project } = await bundle();
+  const container = document.createElement('div');
+  document.body.append(container);
+  const vault = new Vault(container, { initialSection: 'custom' });
+  MemoryCore.saveWorkshopBlueprint(project);
+  // The router's order on a return visit: update() while hidden, then activate() once shown.
+  vault.update();
+  const shown = container.querySelector('[data-portable-file]');
+  expect(container.querySelector('[data-action="export-portable"]')).not.toBeNull();
+  vault.activate();
+  expect(container.querySelector('[data-portable-file]')).toBe(shown);
+  // Hydration resolves after the view is shown; it redraws only the list.
+  await MemoryCore.getWorkshopBlueprintsHydrated();
+  await Promise.resolve();
+  expect(container.querySelector('[data-portable-file]')).toBe(shown);
+  vault.destroy();
+});
+
 it('inspects without saving, cancels, and saves only on an explicit second gesture', async () => {
   const { text } = await bundle();
   const container = document.createElement('div');

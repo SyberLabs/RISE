@@ -263,6 +263,7 @@ test('calmer lowers the held visual target and resumes the same atom without sam
   const heldAt = await shown(app);
   expect((await log(page)).filter(entry => entry.method === 'sampling/createMessage')).toHaveLength(0);
 
+  await app.locator('.live-controls__visual-change summary').click();
   await app.locator('#live-controls-visual').fill('please make it calmer');
   await app.getByRole('button', { name: 'Change visual', exact: true }).click();
   await expect(app.locator('.live-controls__status')).toContainText('brightness target changed to 0.55');
@@ -388,6 +389,7 @@ test('in a short frame the reader keeps status, Interrupt and Stop in view, and 
     await expect.poll(() => app.locator('body').evaluate(body => body.ownerDocument.defaultView.innerWidth)).toBe(width);
     expect.soft(await controlsHead(app), `at ${width} px wide`).toEqual({ scrollTop: 0, names: expect.arrayContaining(['status', 'Interrupt', 'Stop']), cut: [] });
   }
+  await app.locator('.live-controls__visual-change summary').click();
   const note = app.locator('.live-controls__notes [data-capability="reducedMotion"]');
   for (const selector of ['#live-controls-question', '#live-controls-visual', '.live-controls__notes [data-capability="reducedMotion"]']) {
     const element = app.locator(selector);

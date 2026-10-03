@@ -55,8 +55,7 @@ export function describeStatus(snapshot, { audible = true, question = '' } = {})
  * @param {() => void} options.onStop what Stop does (the host ends the session)
  * @param {boolean} [options.audible] whether the voice makes sound; a silent one is said to be pacing
  * @param {string} [options.notice] an optional persistent note for an embedded host
- * @param {{capability: string, effect: string}[]} [options.notes] what this device cannot do, for a host
- *   with no page before the reading to say it on (src/live/capabilities.js)
+ * @param {{capability: string, effect: string}[]} [options.notes] what this device cannot do, for an embedded host
  * @param {object} [options.mic] speaking to it, where the browser can listen: `{ createListener, interpret, describe, privacy, privacyLead }`
  *   (src/live/mic); without it there is no Speak button at all
  * @param {Document} [options.doc]
@@ -71,7 +70,6 @@ export function createLiveControls({ runtime, onStop, audible = true, mic = null
       <div class="live-controls__buttons">
         <button type="button" data-live="interrupt">Interrupt</button>
         <button type="button" data-live="listen" aria-pressed="false" aria-describedby="live-controls-mic-privacy" hidden>Speak</button>
-        <button type="button" data-live="listen-visual" aria-pressed="false" aria-describedby="live-controls-mic-privacy" hidden>Listen for a visual change</button>
         <button type="button" data-live="surface" hidden>Surface</button>
         <button type="button" data-live="stop">Stop</button>
       </div>
@@ -82,13 +80,18 @@ export function createLiveControls({ runtime, onStop, audible = true, mic = null
                placeholder="Wait — dive on the event horizon">
         <button type="button" data-live="dive" aria-label="Dive: ask about this place">Dive</button>
       </form>
-      <form class="live-controls__visual" novalidate>
-        <label class="live-controls__sr" for="live-controls-visual">Visual change</label>
-        <input id="live-controls-visual" name="visual" type="text" maxlength="120" autocomplete="off" placeholder="more vibrant or make it calmer">
-        <button type="button" data-live="visual-submit">Change visual</button>
-      </form>
+
       <p class="live-controls__mic" hidden></p>
       <details class="live-controls__mic-note" hidden><summary></summary><p id="live-controls-mic-privacy"></p></details>
+      <details class="live-controls__visual-change">
+        <summary>Visual change</summary>
+        <form class="live-controls__visual" novalidate>
+          <label class="live-controls__sr" for="live-controls-visual">Visual change</label>
+          <input id="live-controls-visual" name="visual" type="text" maxlength="120" autocomplete="off" placeholder="more vibrant or make it calmer">
+          <button type="button" data-live="visual-submit">Change visual</button>
+          <button type="button" data-live="listen-visual" aria-pressed="false" aria-describedby="live-controls-mic-privacy" hidden>Listen for a visual change</button>
+        </form>
+      </details>
       <details class="live-controls__passage">
         <summary>About this passage</summary>
         <div class="live-passage">
@@ -116,8 +119,6 @@ export function createLiveControls({ runtime, onStop, audible = true, mic = null
             item.dataset.capability = capability;
             return item;
         }));
-        // Below the buttons and the microphone's lines: in a short frame the panel scrolls, and Interrupt and
-        // Stop must stay in view without it.
         root.querySelector('.live-controls__mic-note').after(list);
     }
     if (notice) {

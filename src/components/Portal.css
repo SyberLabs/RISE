@@ -1,8 +1,8 @@
 /* ═══════════════════════════════════════════════════════════
-   RISE Home (Portal) — the Oracle.
-   One object and one key. The object and its keycaps live in
-   oracle/oracle.css; this file is the page around them: the header and
-   its Menu sheet, the fixed demo pages, Continue, and the legal footer.
+   RISE Home (Portal) — the page around the reading.
+   Home itself (the engine, the stream, the bar that names the reading, and
+   the ask dialog) is portal-home.css; this file is the page around it: the
+   header and its Menu sheet, the fixed demo pages, Continue, and the footer.
    Tokens and the shared .sl-header live in design-system.css.
    ═══════════════════════════════════════════════════════════ */
 
@@ -15,6 +15,9 @@
   height: 100vh;
   height: 100svh;
   overflow-y: auto;
+  /* Whatever scrolls into view (a focused Redraw, a found control) lands
+     below the sticky header, never under it. */
+  scroll-padding-top: var(--sy-header-height);
   background-color: var(--sy-bg);
   background-image: var(--sy-starfield);
   background-size: var(--sy-starfield-size);
@@ -42,6 +45,7 @@
 .portal-menu-toggle,
 .portal-link,
 .portal-footer-link,
+.home-link,
 .portal-continue {
   font-family: inherit;
   background: transparent;
@@ -595,122 +599,6 @@ a.portal-nav-link {
   border-radius: var(--sy-radius-sm);
 }
 
-/* ─── The Oracle page ─── */
-
-.portal-oracle .portal-main {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: var(--sy-space-5);
-  max-width: 980px;
-  padding: var(--sy-space-5) var(--sy-space-4) var(--sy-space-6);
-}
-
-.oracle-home {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  width: 100%;
-}
-
-.oracle-title {
-  margin: 0;
-  font-family: var(--sy-font-serif);
-  font-weight: 400;
-  font-size: clamp(32px, 4.4vw, 52px);
-  line-height: 1.05;
-  letter-spacing: -0.01em;
-  text-align: center;
-  color: var(--sy-text);
-}
-
-.oracle {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  width: 100%;
-}
-
-/* The object takes what the page leaves it: header, title, keys and
-   footer stay on screen on a phone without scrolling. */
-.oracle-stage {
-  height: clamp(300px, calc(100svh - 400px), 700px);
-  /* No taller than the sphere needs at this width (orb.js caps its fit at
-     1.2, reached at height = 1.07 × width). */
-  max-height: calc(min(100vw - 32px, 980px) * 1.07);
-  max-width: 980px;
-}
-
-@media (min-width: 641px) {
-  .oracle-stage {
-    height: clamp(300px, calc(100svh - 480px), 620px);
-  }
-}
-
-.oracle-help,
-.oracle-note,
-.oracle-status {
-  max-width: 34rem;
-  margin: var(--sy-space-4) 0 0;
-  font-size: 14px;
-  line-height: 20px;
-  text-align: center;
-  color: var(--sy-text-2);
-}
-
-.oracle-help {
-  font-size: 13px;
-  color: var(--sy-text-3);
-}
-
-.oracle-note {
-  padding: var(--sy-space-3) var(--sy-space-4);
-  border: 1px solid var(--sy-line-strong);
-  border-radius: var(--sy-radius);
-  color: var(--sy-text-body, var(--sy-text));
-}
-
-.oracle-help[hidden],
-.oracle-note[hidden] {
-  display: none;
-}
-
-.oracle-status {
-  min-height: 20px;
-  font-family: var(--sy-font-mono);
-  font-size: 13px;
-}
-
-.oracle-status [data-jev-dictation-status]:not(:empty)::before {
-  content: " ";
-}
-
-.oracle-alert {
-  width: 100%;
-  max-width: 34rem;
-}
-
-.portal-oracle .portal-continue {
-  max-width: 34rem;
-  padding: var(--sy-space-3) var(--sy-space-2);
-}
-
-.portal-oracle .continue-title {
-  font-size: 22px;
-  line-height: 28px;
-}
-
-.portal-oracle .portal-footer {
-  justify-content: center;
-  border-top: 0;
-  padding: var(--sy-space-2) 0 var(--sy-space-4);
-}
-
-.portal-oracle .portal-legal {
-  margin-left: 0;
-}
-
 @keyframes portal-enter {
   from { opacity: 0; transform: translateY(8px); }
   to { opacity: 1; transform: none; }
@@ -748,9 +636,9 @@ a.portal-nav-link {
   }
 }
 
-/* The reader's own AI connection. Quiet: reading needs none of it. */
+/* The reader's own AI connection, in the ask dialog. Quiet: reading needs none of it. */
 .portal-ai {
-  margin-top: var(--sy-space-3, 12px);
+  margin: 0;
   font-size: 0.875rem;
   line-height: 1.5;
   color: var(--sy-text-2);
@@ -764,10 +652,6 @@ a.portal-nav-link {
   font-size: inherit;
   line-height: inherit;
   text-underline-offset: 3px;
-}
-
-.portal-ai-hint {
-  opacity: 0.75;
 }
 
 .portal-ai-about summary {

@@ -75,6 +75,20 @@ describe('createRouteManifest', () => {
     expect(roomOptions('settings', 'Settings').notify).toBe(notify);
   });
 
+  it('lets Home begin today\'s poem', () => {
+    const launchToday = vi.fn();
+    let received;
+    class Portal {
+      constructor(_container, options) {
+        received = options;
+      }
+    }
+    createRouteManifest({ launchToday })
+      .find(route => route.id === 'portal')
+      .create({}, null, { Portal });
+    expect(received.onLaunchToday).toBe(launchToday);
+  });
+
   it('creates the catalog with the navigation callback and address search', () => {
     const handleNavigate = vi.fn();
     const route = createRouteManifest({ handleNavigate }).find(item => item.id === 'visual-catalog');

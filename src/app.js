@@ -9,7 +9,7 @@
  * - Components (Portal, Chamber, Library, Workshop, Settings)
  */
 
-import { Router } from './core/router.js';
+import { Router, claimStaleBuildReload } from './core/router.js';
 import { compileSession } from './core/session-compiler.js';
 import { PACE_CURVE_IDS } from './core/pacing.js';
 import { resolveNextLibraryDivision } from './core/reading-continuation.js';
@@ -35,6 +35,7 @@ const VISUAL_LAB_PATH = '/visual-lab';
 const VISUAL_CATALOG_PATH = '/visual-catalog';
 const LIVE_PATH = '/live';
 const EMOTIONS_PATH = '/emotions';
+const TODAY_PATH = '/today';
 const PUBLIC_ROOM_PATHS = Object.freeze({
     'visual-lab': VISUAL_LAB_PATH,
     'visual-catalog': VISUAL_CATALOG_PATH,
@@ -96,11 +97,8 @@ try {
     }
 } catch (e) { /* private mode: the flag lasts as long as the URL does */ }
 
-export const STALE_BUILD_SENTINEL = 'rise_reloaded_for_stale_build';
-
 window.addEventListener('vite:preloadError', (event) => {
-    if (sessionStorage.getItem(STALE_BUILD_SENTINEL)) return;  // not a deploy: a real failure
-    sessionStorage.setItem(STALE_BUILD_SENTINEL, '1');
+    if (!claimStaleBuildReload(import.meta.url)) return;  // reloaded once already: not a deploy
     event.preventDefault();
     console.warn('[RISE] Build changed underneath this tab — reloading once.');
     window.location.reload();
@@ -279,6 +277,7 @@ class App {
         // shows reads any of them.
 
         this.router = new Router({
+            build: import.meta.url,
             onNavigationIntent: (view, options) => this.handleNavigationIntent(view, options),
             onViewChange: (view, data) => {
                 console.log(`[RISE] View: ${view}`);
@@ -364,22 +363,29 @@ class App {
             await this.router.navigate('live');
         } else if (window.location.pathname === EMOTIONS_PATH) {
             await this.router.navigate('emotions');
+        } else if (window.location.pathname === TODAY_PATH) {
+            // The address opens the reading itself; once it is open the
+            // address is Home's, so leaving it does not open it again.
+            window.history.replaceState({}, '', '/');
+            try {
+                await this.launchToday();
+            } catch (error) {
+                this.showToast(error.message || 'Today’s poem could not be opened.', 5000);
+                await this.router.navigate('portal');
+            }
         } else if (options.personalizedVault) {
             console.log('[RISE] Navigating directly to personalized vault:', options.personalizedVault);
             await this.router.navigate('vault', { data: { personalizedVault: options.personalizedVault } });
         } else {
             await this.router.navigate('portal');
         }
+        // A start route whose code will not load (blocked, or still
+        // missing after the one reload) leaves nothing on screen. Home.
+        if (!this.router.currentView) await this.handleNavigate('portal');
 
         this.watchTabFreshness();
 
         // Audio interaction listener is already set up in init()
-
-        // The tab is now running a build it fetched itself, so the
-        // one-reload guard is spent and may be released. Without this a
-        // reader who leaves a tab open across TWO deploys is stranded by
-        // the second one, the sentinel having been set by the first.
-        sessionStorage.removeItem(STALE_BUILD_SENTINEL);
 
         console.log('[RISE] Application initialized');
     }
@@ -501,6 +507,7 @@ class App {
             launchJevSample: () => this.launchJevSample(),
             launchKeystone: slug => this.launchKeystone(slug),
             adjustJevReading: decision => this.adjustJevReading(decision),
+            launchToday: () => this.launchToday(),
             openMintedProgram: slug => this.openMintedProgram(slug),
             handleSequenceSelection: sequenceId => this.handleSequenceSelection(sequenceId),
             handleCreateSession: this.handleCreateSession,
@@ -830,6 +837,18 @@ class App {
         const { text, textSource, ...config } = await resolveJevReading(decision);
         config.origin = { ...config.origin, adjusted: true };
         return this.router.navigate('chamber', { data: { text, source: textSource, config } });
+    }
+
+    /**
+     * Today's poem goes straight into the reader: the day's exact poem in the
+     * day's look. A tap on Home's card is the gesture that lets it play at
+     * once; a cold load of /today stops on the reader's Ready screen.
+     */
+    async launchToday() {
+        const { todaySession } = await import('./app/today.js');
+        if (!await this.handleBeginSession(await todaySession())) {
+            throw new Error('Today’s poem could not be opened. Please try again.');
+        }
     }
 
     /** Launch a fixed sample through the released-edition gate, without a provider call. */

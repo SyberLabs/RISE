@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { TEMPERS, rollReading, composeRoll, rollTitleOf } from './roll.js';
+import { TEMPERS, VISUAL_TEMPERS, rollReading, composeRoll, rollTitleOf } from './roll.js';
 import { getTextById } from '../content/library.js';
 import { validateJevRecommendation } from '../app/jev-reading.js';
 import { jevReleasedWorkIds, summarizeJevPlan } from './jev-describe.js';
@@ -61,6 +61,17 @@ describe('a roll', () => {
     }
   });
 
+  it('never repeats the previous section', () => {
+    const sectionOf = roll => roll.decision.config.section;
+    const random = seeded(37);
+    let previous = rollReading({ random });
+    for (let i = 0; i < 300; i += 1) {
+      const next = rollReading({ random, previous });
+      expect(sectionOf(next)).not.toBe(sectionOf(previous));
+      previous = next;
+    }
+  });
+
   it('plays one sound and one visual for the whole reading', () => {
     const random = seeded(5);
     for (let i = 0; i < 200; i += 1) {
@@ -76,6 +87,28 @@ describe('a roll', () => {
     const seen = new Set();
     for (let i = 0; i < 400; i += 1) seen.add(rollReading({ random }).temper);
     expect([...seen].sort()).toEqual(TEMPERS.map(temper => temper.id).sort());
+  });
+});
+
+describe('a vivid roll', () => {
+  it('names the tempers whose visuals are immersive or psychedelic', () => {
+    expect(VISUAL_TEMPERS.map(item => item.id).sort()).toEqual(['ember', 'revel', 'signal']);
+  });
+
+  it('draws only vivid tempers, and never the previous one', () => {
+    const random = seeded(53);
+    const vivid = new Set(VISUAL_TEMPERS.map(item => item.id));
+    const seen = new Set();
+    let previous = rollReading({ random, vivid: true });
+    for (let i = 0; i < 300; i += 1) {
+      const next = rollReading({ random, previous, vivid: true });
+      expect(vivid.has(next.temper), next.temper).toBe(true);
+      expect(next.temper).not.toBe(previous.temper);
+      expect(next.decision.config.visualMode).not.toBe('off');
+      seen.add(next.temper);
+      previous = next;
+    }
+    expect([...seen].sort()).toEqual([...vivid].sort());
   });
 });
 

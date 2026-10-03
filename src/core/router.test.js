@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { Router } from './router.js';
+import { Router, claimStaleBuildReload } from './router.js';
 
 describe('Router failure containment', () => {
   let router;
@@ -164,6 +164,73 @@ describe('Router stale-build recovery', () => {
 
     expect(reload).toHaveBeenCalledTimes(1);
     router.destroy();
+  });
+
+  it('does not reload again after the reload, when the same build still fails', async () => {
+    // A blocked chunk fails on every load. The reload builds a new Router,
+    // so a guard that lives on the instance is reset by the very reload it
+    // guards, and the page reloads forever.
+    const load = () => {
+      const r = new Router();
+      r.transitionDuration = 0;
+      r.registerView('a', { container: document.querySelector('#a'), init: () => ({}) });
+      r.registerView('b', { container: document.querySelector('#b'), init: staleError });
+      return r;
+    };
+    for (let i = 0; i < 3; i += 1) {
+      const r = load();
+      await r.navigate('a');
+      await r.navigate('b');
+      r.destroy();
+    }
+
+    expect(reload).toHaveBeenCalledTimes(1);
+  });
+
+  it('reloads once more for a later build, so a second deploy still recovers', () => {
+    expect(claimStaleBuildReload('/assets/index-A.js')).toBe(true);
+    expect(claimStaleBuildReload('/assets/index-A.js')).toBe(false);
+    expect(claimStaleBuildReload('/assets/index-B.js')).toBe(true);
+    expect(claimStaleBuildReload('/assets/index-B.js')).toBe(false);
+  });
+
+  it('lets the same build reload again once the last reload is old', () => {
+    // A reload spent on a network blip must not strand the tab when a
+    // deploy lands hours later on the build it is still running.
+    vi.useFakeTimers();
+    try {
+      expect(claimStaleBuildReload('/assets/index-A.js')).toBe(true);
+      vi.advanceTimersByTime(60_000);
+      expect(claimStaleBuildReload('/assets/index-A.js')).toBe(false);
+      vi.advanceTimersByTime(5 * 60_000);
+      expect(claimStaleBuildReload('/assets/index-A.js')).toBe(true);
+      expect(claimStaleBuildReload('/assets/index-A.js')).toBe(false);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('never reloads when session storage cannot remember the reload', async () => {
+    // Without a record, nothing could stop the next load from reloading too.
+    const getItem = vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => {
+      throw new DOMException('denied', 'SecurityError');
+    });
+    const setItem = vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+      throw new DOMException('denied', 'SecurityError');
+    });
+    try {
+      const router = new Router();
+      router.transitionDuration = 0;
+      router.registerView('a', { container: document.querySelector('#a'), init: () => ({}) });
+      router.registerView('b', { container: document.querySelector('#b'), init: staleError });
+      await router.navigate('a');
+      expect(await router.navigate('b')).toBe(false);
+      expect(reload).not.toHaveBeenCalled();
+      router.destroy();
+    } finally {
+      getItem.mockRestore();
+      setItem.mockRestore();
+    }
   });
 
   it('leaves ordinary failures to the existing containment path', async () => {

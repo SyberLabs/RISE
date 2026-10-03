@@ -1,6 +1,6 @@
 import { expect } from '@playwright/test';
 export { expect, test } from '@playwright/test';
-import { answerDecisions, connectOpenRouter } from './reader-connection.js';
+import { answerDecisions, connectOpenRouter, openAskDialog } from './reader-connection.js';
 
 /**
  * Open a Home header destination (library, vault, workshop). On a phone the
@@ -22,17 +22,21 @@ export async function openHomeRoom(page, destination) {
   await openHomeNav(page, destination);
 }
 
-/** Open Home's ask. Asking is the escape hatch: a first roll reveals it. */
+/** Open Home's ask: the Menu's "Ask for a reading". The field needs a connected AI. */
 export async function openHomeAsk(page) {
-  await page.locator('[data-oracle="roll"]').click();
-  await page.locator('[data-oracle="ask-open"]').click();
-  await page.locator('#oracle-intent').waitFor();
+  await openAskDialog(page);
+  await page.locator('#home-intent').waitFor();
 }
 
-/** Add a fake reader-owned OpenRouter key in this browser context. */
+/**
+ * Add a fake reader-owned OpenRouter key in this browser context. Connecting
+ * happens in the ask dialog, which Home reopens on return; this closes it again.
+ */
 export async function connectTestOpenRouter(page) {
   await connectOpenRouter(page);
   await expect(page.locator('#portal-ai')).toContainText('billed to your OpenRouter account', { timeout: 15_000 });
+  await page.locator('[data-home="ask-cancel"]').click();
+  await expect(page.locator('dialog.home-ask')).toBeHidden();
 }
 
 /** Route a TypeSafe Decisions request without bypassing the browser contract. */
@@ -45,10 +49,11 @@ export async function routeTestOpenRouter(page, decision, onRequest = () => {}) 
 export async function askHome(page, intent) {
   await connectTestOpenRouter(page);
   await openHomeAsk(page);
-  await page.locator('#oracle-intent').fill(intent);
-  await page.locator('[data-oracle="ask"]').click();
-  // Nothing plays on arrival; the reading starts only from Enter.
-  await page.locator('[data-oracle="enter"]').click();
+  await page.locator('#home-intent').fill(intent);
+  await page.locator('[data-home="ask"]').click();
+  // Nothing plays with sound on arrival; the asked reading starts only from Read it with sound.
+  await expect(page.locator('dialog.home-ask')).toBeHidden({ timeout: 15_000 });
+  await page.locator('[data-home="enter"]').click();
 }
 
 /** Turn an admitted decision fixture into the provider's choices-only reply. */

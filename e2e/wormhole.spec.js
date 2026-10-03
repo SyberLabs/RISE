@@ -28,14 +28,14 @@ const view = page => page.evaluate(() => window.__RISE_TEST__?.getRouterState().
 test('Home reaches the wormhole from its Menu, and the page brings the reader back', async ({ page }) => {
   await authorize(page);
   await page.goto('/');
-  await expect(page.locator('[data-oracle="roll"]')).toBeVisible({ timeout: 15_000 });
+  await expect(page.locator('[data-home="roll"]')).toBeVisible({ timeout: 15_000 });
   await page.locator('.portal-menu-toggle').click();
   await page.locator('.portal-nav a[href="/wormhole.html"]').click();
   await expect(page).toHaveURL(/\/wormhole\.html$/u);
   await expect(page.locator('#jump')).toBeVisible();
   await page.locator('.wh-brand').click();
   await expect(page).toHaveURL(/\/$/u);
-  await expect(page.locator('[data-oracle="roll"]')).toBeVisible({ timeout: 15_000 });
+  await expect(page.locator('[data-home="roll"]')).toBeVisible({ timeout: 15_000 });
 });
 
 test('DOCK plays the destination, and leaving the reading returns to Home', async ({ page }) => {
@@ -236,7 +236,7 @@ test('the Menu link is reachable at its own pixel, on a desk and a phone', async
   for (const viewport of [{ width: 1280, height: 800 }, { width: 390, height: 844 }]) {
     await page.setViewportSize(viewport);
     await page.goto('/');
-    await expect(page.locator('[data-oracle="roll"]')).toBeVisible({ timeout: 15_000 });
+    await expect(page.locator('[data-home="roll"]')).toBeVisible({ timeout: 15_000 });
     await page.locator('.portal-menu-toggle').click();
     await expect(page.locator('.portal-nav')).toBeVisible();
     await page.waitForTimeout(400);

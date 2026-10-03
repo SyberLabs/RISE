@@ -5,6 +5,7 @@ import { resolveJevChamberConfig } from './jev-config.js';
 import { jevColors } from './jev-palette.js';
 import { compileJevAudioProgram, compileJevVisualProgram } from './jev-sequence.js';
 import {
+  isRiseOriginal,
   jevReleasedEdition,
   jevReleasedWorkIds,
   readJevRequest,
@@ -83,5 +84,13 @@ describe('the released editions a reading may use', () => {
   it('include a RISE original under its own edition', () => {
     const original = modernManifest['the-prompt-and-the-pencil'];
     expect(jevReleasedEdition(original.workId)).toMatchObject({ editionId: original.editionId, sourceRevision: original.sourceRevision });
+  });
+
+  it('tell a RISE original by its edition', () => {
+    expect(isRiseOriginal('the-prompt-and-the-pencil')).toBe(true);
+    expect(isRiseOriginal('the-iliad')).toBe(false);
+    expect(isRiseOriginal('a-doll-s-house')).toBe(false);
+    const originals = jevReleasedWorkIds().filter(isRiseOriginal);
+    expect(originals).toEqual(Object.keys(modernManifest));
   });
 });

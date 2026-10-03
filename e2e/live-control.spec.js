@@ -18,6 +18,8 @@ async function start(page) {
     await expect(page.locator('#live-controls')).toBeVisible();
     await expect.poll(() => shown(page)).toContain('A black hole is a region of space');
     await expect.poll(() => canvas(page).evaluate(element => Boolean(element.closest('.chamber-scheduled-field.is-active')))).toBe(true);
+    // The visual control is folded into its own disclosure, as a reader finds it.
+    await page.locator('.live-controls__visual-change summary').click();
 }
 
 // Read a grid of RGBA bytes from the rendered canvas. Sampling distributed
@@ -84,9 +86,6 @@ test('rapid typed retargets leave playback advancing on the same renderer', asyn
     await start(page);
     const field = await canvas(page).elementHandle();
     expect((await paint(page)).length).toBeGreaterThan(0);
-    // The visible canvas can mount just before the runtime publishes its
-    // controllable active-field record.
-    await page.waitForTimeout(150);
     const textBefore = await shown(page);
 
     // Deliver two commands through the actual form synchronously, so the

@@ -1,0 +1,417 @@
+/* ═══════════════════════════════════════════════════════════
+   RISE Home — already reading.
+   The reading's engine fills the page (reading-backdrop.js's stage draws it
+   into .home-engine, cross-fading one reading's into the next), one ink scrim keeps every word on it legible, its opening
+   streams in the centre (reading-stream.js), and the bar below names it.
+   Asking is a dialog the Menu opens. The page around it is Portal.css.
+   ═══════════════════════════════════════════════════════════ */
+
+.portal-home {
+  position: relative;
+  isolation: isolate;
+  background-image: none;
+}
+
+/* The engine, full-bleed behind everything. */
+.home-engine,
+.home-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.home-engine {
+  overflow: hidden;
+}
+
+/* The one gradient: ink pooled under the stream, and at the top and bottom
+   under the header and the bar, so text keeps 4.5:1 over any engine, even a
+   white one (86% ink under the stream, 92% under the bar). A phone moves
+   the pool and the bar's ink up with them. */
+.home-scrim {
+  --scrim-pool: ellipse 55% 42% at 50% 46%;
+  --scrim-bar: 62%;
+  background:
+    radial-gradient(var(--scrim-pool), color-mix(in srgb, var(--sy-bg) 86%, transparent), color-mix(in srgb, var(--sy-bg) 86%, transparent) 35%, color-mix(in srgb, var(--sy-bg) 40%, transparent) 75%, transparent),
+    linear-gradient(180deg, color-mix(in srgb, var(--sy-bg) 72%, transparent), transparent 18%, transparent var(--scrim-bar), color-mix(in srgb, var(--sy-bg) 92%, transparent) calc(var(--scrim-bar) + 18%));
+}
+
+/* The header floats over the reading. The open Menu brings its own ground. */
+.portal-home .sl-header:not(.is-open) {
+  background: transparent;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  border-bottom-color: transparent;
+}
+
+.portal-home .portal-main {
+  display: flex;
+  align-items: stretch;
+  flex: 1 1 auto;
+  min-height: 0;
+  max-width: none;
+  padding: 0 clamp(16px, 4vw, 56px);
+}
+
+.home {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+
+/* The stream, centred in whatever height the bar leaves. */
+.home-stage {
+  flex: 1 1 auto;
+  min-height: 160px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  padding: var(--sy-space-5) 0;
+}
+
+.home-stream {
+  width: 100%;
+}
+
+.home-stream .reading-stream-previous {
+  color: var(--sy-text-3);
+}
+
+.home-stream .reading-stream-current,
+.home-still {
+  text-shadow: 0 0 40px var(--sy-bg);
+}
+
+/* The opening's first line, held still if the stream cannot run. */
+.home-still {
+  margin: 0;
+  max-width: 18ch;
+  margin-inline: auto;
+  text-align: center;
+  font-family: var(--sy-font-reading);
+  font-size: clamp(40px, 6vw, 76px);
+  line-height: 1.08;
+  font-weight: 500;
+  color: var(--sy-text);
+}
+
+.home-alert {
+  order: 1;
+  margin: 0 0 var(--sy-space-4);
+}
+
+/* Continue is after the keys in focus order, and drawn above the bar as a pill. */
+.portal-home .portal-continue {
+  order: 2;
+  align-self: flex-start;
+  width: auto;
+  max-width: 100%;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sy-space-3);
+  margin-bottom: var(--sy-space-4);
+  padding: 0 var(--sy-space-3) 0 var(--sy-space-4);
+  border: 1px solid var(--sy-line-strong);
+  border-radius: var(--sy-radius-full);
+  background: rgba(6, 5, 26, 0.4);
+}
+
+.portal-home .portal-continue[hidden] {
+  display: none;
+}
+
+.portal-home .continue-title {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--sy-font-sans);
+  font-size: 15px;
+  line-height: 20px;
+  letter-spacing: 0;
+}
+
+.home-bar {
+  order: 3;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--sy-space-5);
+}
+
+.home-caption {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sy-space-1);
+  min-width: 0;
+  max-width: 60ch;
+}
+
+.home-label {
+  margin: 0;
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--sy-text-2);
+  overflow-wrap: anywhere;
+}
+
+/* The reading's name: the page's one heading, set as a caption. */
+.home-title {
+  margin: 0;
+  min-height: 26px;
+  font-family: var(--sy-font-sans);
+  font-size: 18px;
+  line-height: 26px;
+  font-weight: 400;
+  color: var(--sy-text);
+  overflow-wrap: anywhere;
+}
+
+.home-note {
+  margin: var(--sy-space-1) 0 0;
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--sy-text-body);
+}
+
+.home-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sy-space-3);
+}
+
+.home-actions .btn {
+  font-size: 16px;
+  padding: 0 22px;
+}
+
+.home-actions .btn-primary {
+  padding: 0 28px;
+  font-weight: 600;
+}
+
+.home-link {
+  min-height: 44px;
+  padding: 0 var(--sy-space-2);
+  font-size: 16px;
+  line-height: 20px;
+  color: var(--sy-text-2);
+  text-decoration: underline;
+  text-decoration-color: var(--sy-line-strong);
+  text-underline-offset: 4px;
+  transition: color var(--sy-dur-hover) var(--sy-ease);
+}
+
+.home-link:hover {
+  color: var(--sy-text);
+}
+
+.home-link:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* A hairline under the bar that follows the stream. */
+.home-progress {
+  order: 4;
+  margin-top: 20px;
+  height: 1px;
+  background: var(--sy-line);
+}
+
+.home-progress-fill {
+  display: block;
+  height: 1px;
+  background: var(--sy-spectrum);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 300ms linear;
+}
+
+.portal-home .portal-footer {
+  width: auto;
+  max-width: none;
+  margin: 0;
+  padding: 0 clamp(16px, 4vw, 56px) var(--sy-space-1);
+  border-top: 0;
+}
+
+.portal-home .portal-legal-link {
+  min-height: 44px;
+  font-size: 13px;
+}
+
+/* ─── Ask for a reading: a dialog ─── */
+
+.home-ask {
+  box-sizing: border-box;
+  width: min(560px, calc(100% - 32px));
+  max-height: calc(100svh - 32px);
+  padding: 0;
+  border: 1px solid var(--sy-line-strong);
+  border-radius: var(--sy-radius-panel);
+  background: rgb(11, 10, 38);
+  color: var(--sy-text);
+  box-shadow: var(--sy-shadow-overlay);
+}
+
+.home-ask::backdrop {
+  background: rgba(6, 5, 26, 0.72);
+}
+
+.home-ask-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sy-space-4);
+  padding: var(--sy-space-5);
+}
+
+.home-view {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sy-space-4);
+}
+
+/* Display: Instrument Serif, never below 32px. */
+.home-ask-title {
+  margin: 0;
+  font-family: var(--sy-font-serif);
+  font-weight: 400;
+  font-size: clamp(32px, 4vw, 44px);
+  line-height: 1.05;
+  letter-spacing: -0.01em;
+  color: var(--sy-text);
+}
+
+.home-ask-title label {
+  cursor: inherit;
+}
+
+.home-lede {
+  margin: 0;
+  font-size: 17px;
+  line-height: 1.5;
+  color: var(--sy-text-body);
+}
+
+.home-ask-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sy-space-3);
+}
+
+.home-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sy-space-2);
+}
+
+.home-intent {
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 96px;
+  resize: vertical;
+}
+
+.home-help {
+  margin: 0;
+  font-size: 13px;
+  line-height: 20px;
+  color: var(--sy-text-2);
+}
+
+.home-ask .portal-ai-about {
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--sy-text-2);
+}
+
+.home-ask .portal-ai-about .home-help {
+  margin-top: var(--sy-space-2);
+}
+
+.home-ask-status {
+  margin: 0;
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--sy-text-2);
+}
+
+.home-ask-status:has(span:empty + span:empty) {
+  display: none;
+}
+
+.home-ask-status [data-jev-dictation-status]:not(:empty)::before {
+  content: " ";
+}
+
+.home-ask-alert {
+  margin-top: 0;
+}
+
+/* ─── A phone: the caption, then a full-width key, then a row of two ─── */
+@media (max-width: 899px) {
+  .home-scrim {
+    --scrim-pool: ellipse 80% 30% at 50% 42%;
+    --scrim-bar: 46%;
+  }
+
+  .home-bar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--sy-space-3);
+  }
+
+  .home-caption {
+    display: block;
+  }
+
+  .home-label,
+  .home-title {
+    display: inline;
+    font-size: 15px;
+    line-height: 22px;
+  }
+
+  .home-label::after {
+    content: ". ";
+  }
+
+  .home-actions {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .home-actions .btn-primary {
+    grid-column: 1 / -1;
+    min-height: 50px;
+    font-size: 17px;
+  }
+
+  .home-progress {
+    margin-top: var(--sy-space-4);
+  }
+
+  .home-stream .reading-stream-previous {
+    font-size: 20px;
+  }
+
+  .home-stream .reading-stream-current,
+  .home-still {
+    font-size: clamp(34px, 10.5vw, 42px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .home-progress-fill {
+    transition: none;
+  }
+}

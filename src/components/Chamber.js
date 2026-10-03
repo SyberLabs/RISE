@@ -2561,13 +2561,23 @@ export class Chamber {
     };
   }
 
+  /**
+   * Whether this Chamber's visual is on screen to discover or control. The
+   * router shows the view (hidden = false) before fading it in and naming it
+   * current, and the reading and its field start then, so visibility is the
+   * view's own `hidden`, not the router's current view.
+   */
+  visualShown() {
+    return !this._destroyed && !this.pageModeActive && !this._temporalVisualsDeferred && !this.container?.hidden;
+  }
+
   discoverVisual() {
-    if (this._destroyed || this.pageModeActive || this._temporalVisualsDeferred) return null;
+    if (!this.visualShown()) return null;
     return this._visualFieldDirector?.discoverVisual() || null;
   }
 
   controlVisual(command) {
-    if (this._destroyed || this.pageModeActive || this._temporalVisualsDeferred) {
+    if (!this.visualShown()) {
       return { status: 'refused', code: 'NO_ACTIVE_VISUAL' };
     }
     return this._visualFieldDirector?.controlVisual(command)

@@ -1,6 +1,12 @@
 # The Oracle as RISE's home
 
-**Date:** 2026-09-28 · **Status:** built on branch `oracle-home`
+> **Superseded (2026-10-03).** Home is now the night library, and the orb
+> described here is deleted. See
+> [2026-10-03-night-library-home-design.md](2026-10-03-night-library-home-design.md).
+> The roll, the tempers, the ADJUST hand-off and the wormhole below still
+> hold.
+
+**Date:** 2026-09-28 · **Status:** superseded; was built on branch `oracle-home`
 
 ## Why
 

@@ -126,6 +126,13 @@ export const TEMPERS = Object.freeze([
   }
 ].map(temper => Object.freeze(temper)));
 
+/**
+ * The vivid tempers: those whose procedural visuals are immersive or
+ * psychedelic, so a reading drawn from them is never plain black or quiet.
+ */
+export const VISUAL_TEMPERS = Object.freeze(TEMPERS.filter(temper => temper.visualMode !== 'off'
+  && ['immersive', 'psychedelic'].includes(temper.visualStyle)));
+
 const pick = (list, random) => list[Math.min(list.length - 1, Math.floor(random() * list.length))];
 
 let serial = 0;
@@ -182,13 +189,18 @@ export function composeRoll({ temper, workId, section, random = Math.random }) {
 }
 
 /**
- * Roll a reading. Given the previous roll, never the same work or temper
- * twice running, so Roll Again always visibly changes something.
+ * Roll a reading. Given the previous roll, no part (work, temper, section)
+ * repeats, so Roll Again always visibly changes. A vivid roll draws its
+ * temper from VISUAL_TEMPERS only.
  */
-export function rollReading({ random = Math.random, previous = null } = {}) {
-  const tempers = TEMPERS.filter(temper => temper.id !== previous?.temper);
-  const works = jevReleasedWorkIds().filter(id => id !== previous?.decision?.workId);
-  const temper = pick(tempers, random);
-  const decision = composeRoll({ temper, workId: pick(works, random), section: pick(SECTIONS, random), random });
+export function rollReading({ random = Math.random, previous = null, vivid = false } = {}) {
+  const draw = (list, last) => pick(list.filter(item => item !== last), random);
+  const temper = draw(vivid ? VISUAL_TEMPERS : TEMPERS, TEMPERS.find(item => item.id === previous?.temper));
+  const decision = composeRoll({
+    temper,
+    workId: draw(jevReleasedWorkIds(), previous?.decision.workId),
+    section: draw(SECTIONS, previous?.decision.config.section),
+    random
+  });
   return { temper: temper.id, decision };
 }

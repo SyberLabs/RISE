@@ -1,38 +1,86 @@
 /**
- * Portal Component — RISE Home: the Oracle.
+ * Portal Component — RISE Home: already reading.
  *
- * RISE is a machine you approach. Home is one object and one key, ROLL,
- * which composes a reading by chance inside bounds (src/core/roll.js).
- * The reading rises in the object's window, and three keys follow it:
- * ENTER plays it, ROLL AGAIN draws another, ADJUST opens Reader Setup with
- * everything already set, where the Visual Navigator, Timing and Sound are.
+ * Home is a reading in progress. On arrival the day's poem (the reading
+ * launchToday opens) runs silently, full-screen: its own engine behind
+ * (reading-backdrop.js), its opening streaming in the centre
+ * (reading-stream.js), named in the bar below. **Read it with sound** opens
+ * it; **Another reading** rolls a vivid one in its place (src/core/roll.js),
+ * which **Adjust** opens in Reader Setup with everything already set.
  *
- *   Oracle proposes → Reader Setup alters → Chamber performs.
+ *   Home proposes → Reader Setup alters → Chamber performs.
  *
- * Asking is the escape hatch, not the front door: after a first roll, "or
- * ask for something specific" turns the window into a text field and Jev
- * answers into the same three keys. What RISE cannot do for a request is
- * said before anything plays (src/core/jev-describe.js).
+ * **Ask for a reading** sits in the Menu and opens a dialog (home-ask.js).
+ * What RISE cannot do for a request is said before anything plays
+ * (src/core/jev-describe.js). An asked reading becomes the one Home shows.
+ * Today's poem opens through the app's launchToday (the day's exact poem,
+ * as /today and the Menu open it); a rolled or asked one through
+ * launchJevReading.
  *
- * The result, rolled or asked, lives with Home while it is open: coming back
- * from a reading finds it waiting. A fresh load starts empty, so the first
- * roll is the reader's own.
+ * Every word and control is in the first paint; the poem, the engine (on the
+ * shared ReadingStage) and the stream load right after it, and Home works on
+ * ink if the engine cannot run. Nothing runs while another room shows. The
+ * reading lives with Home while it is open; a fresh load starts on today's poem.
  * Every other room is one Menu away; Privacy and Terms stay posted.
  */
 
 import './Portal.css';
+import './portal-home.css';
 import { drawRiseSigil } from './atlas.js';
 import { isJevSceneDemoPath, sceneSampleFromPath } from '../core/jev-demo-path.js';
-import { attachJevDictation } from './jev-dictation.js';
-import { OracleObject } from './oracle/OracleObject.js';
-import { connectionState, detectLocalKev, disconnect, isLocalRise, subscribeConnection, takeConnectionNotice } from '../core/ai-connection.js';
+import { HomeAsk, alertMarkup, showAlert } from './home-ask.js';
 import { claimOpenRouterReturn } from '../core/openrouter-callback.js';
-import { escapeHtml } from '../core/sanitize.js';
+import { localDateKey, watchLocalDay } from '../core/local-day.js';
 
 const ICON_ATTRS = 'width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"';
 const SETTINGS_PATH = '<path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path><circle cx="12" cy="12" r="3"></circle>';
-const MIC_ICON = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"></rect><path d="M5 11a7 7 0 0 0 14 0"></path><path d="M12 18v3"></path></svg>';
-const ASK_HELP = 'Only your request is sent, to your connected OpenRouter account or local Kev. Your reading and saved work stay here. Voice input may use your browser’s speech service.';
+const TODAY = 'Today’s poem';
+const CONTINUE = `<button class="portal-continue" type="button" data-action="continue" hidden>
+            <span class="continue-label">Continue reading</span>
+            <span class="continue-title"></span>
+            <svg class="continue-go" ${ICON_ATTRS}><path d="M5 12h14"></path><path d="m13 6 6 6-6 6"></path></svg>
+          </button>`;
+const capital = text => text ? text[0].toLocaleUpperCase('en') + text.slice(1) : '';
+const button = (hook, label, variant, extra = '') =>
+  `<button class="btn btn-${variant}" type="button" data-home="${hook}"${extra}>${label}</button>`;
+const afterPaint = next => (globalThis.requestAnimationFrame || (run => setTimeout(run, 0)))(() => setTimeout(next, 0));
+
+/**
+ * The reading on screen, from a decision and how it came: today's poem
+ * (`today`, the day's pick, with its `title` and `author`), a roll (`temper`)
+ * or an ask (`intent`). All Home says about it and how it opens; `tools`
+ * names the work and the plan of a rolled or asked one.
+ */
+function homeReading(decision, { today, title, author, temper = null, intent = '' }, tools) {
+  if (today) {
+    const heading = [title, author].filter(Boolean).join(', by ');
+    return {
+      decision, temper: decision.temper, heading, label: TODAY, spoken: `${TODAY}: ${heading}`, note: '', link: 'library',
+      // The day's exact poem, as /today and the Menu open it.
+      today: true
+    };
+  }
+  const work = tools.getTextById(decision.workId);
+  const heading = [work?.title || decision.workId, work?.author].filter(Boolean).join(', by ');
+  // An asked reading has no temper; its mood is the reader's own words.
+  const mood = temper ? capital(temper) : 'As you asked';
+  const plan = tools.summarizeJevPlan(decision.config).join(', ');
+  let note = '';
+  if (intent) {
+    const { reference, limits } = tools.readJevRequest(intent);
+    const parts = [];
+    if (reference) parts.push(`You referenced “${reference.name}”. RISE treated it as a style (${reference.reads}), not as a ${reference.kind} to play.`);
+    if (limits.length) parts.push(`RISE can’t ${limits.join(', or ')}. It matches the mood with its own synthesized music and abstract visuals instead.`);
+    note = parts.join(' ');
+  }
+  return {
+    decision, temper, heading, note, link: 'adjust',
+    label: `${mood}: ${plan}`,
+    spoken: `${mood}. ${heading}. ${capital(plan)}.`,
+    // A rolled reading offers the first-read preview, the first time one plays.
+    firstReadPreview: !intent
+  };
+}
 
 export class Portal {
   constructor(container, options = {}) {
@@ -41,23 +89,33 @@ export class Portal {
     this.getAudioEngine = options.getAudioEngine || (() => null);
     this.getCurrentSession = options.getCurrentSession || (() => null);
     this.onLaunchJevReading = options.onLaunchJevReading || (async () => {});
+    this.onLaunchToday = options.onLaunchToday || (async () => {});
     this.onAdjustReading = options.onAdjustReading || (async () => {});
     this.onLaunchJevSample = options.onLaunchJevSample || (async () => {});
     this.demoMode = options.demoMode === true;
     this._active = false;
-    // idle → rolling → result; result → ask → asking → result.
-    this.state = 'idle';
-    // { decision, source: 'roll' | 'ask', intent, temper }
-    this.result = null;
-    this.rolled = false;
+    // The work in progress, or null: a data-home hook (roll, ask, enter, adjust), or 'today' from the Menu.
+    this.busy = null;
+    // The reading Home shows (homeReading), and its opening ({ text, verse }, null while it loads).
+    this.reading = null;
+    this.opening = null;
+    // Whether the reader chose the reading (rolled or asked); today's poem then stays out.
+    this.chosen = false;
+    // The day whose poem Home loaded, so it loads once a day.
+    this.todayKey = null;
+    this.stage = null;
+    this.stream = null;
     this.firstReadChoiceUsed = false;
     this.tools = null;
-    this.stopConnection = subscribeConnection(() => this.renderConnection());
-    if (isLocalRise()) void detectLocalKev();
     const returned = claimOpenRouterReturn();
     if (returned) {
+      // The reader connected from the ask dialog; bring them back to it.
       void import('../core/openrouter-oauth.js')
-        .then(({ finishOpenRouterReturn }) => finishOpenRouterReturn(returned));
+        .then(({ finishOpenRouterReturn }) => finishOpenRouterReturn(returned))
+        .then(() => {
+          if (this._active) this.asking?.open();
+          else this._askOnShow = true;
+        });
     }
 
     this.render();
@@ -71,10 +129,13 @@ export class Portal {
     if (demoMode !== this.demoMode) {
       const wasActive = this._active;
       this.deactivate();
-      this.object?.destroy();
+      this.stage?.destroy();
+      this.stream?.destroy();
+      this.stage = this.stream = null;
       this.demoMode = demoMode;
       this.render();
       this.attachEvents();
+      if (this.reading) this.present(this.reading, this.opening);
       if (wasActive) this.activate();
     }
     // Returning from a reading is precisely when this changes.
@@ -99,10 +160,11 @@ export class Portal {
   }
 
   render() {
-    this.stopDictation?.();
-    this.stopDictation = null;
+    this.asking?.destroy();
     this.container.innerHTML = `
-      <div class="portal${this.demoMode ? '' : ' portal-oracle'}">
+      <div class="portal${this.demoMode ? '' : ' portal-home'}">
+        ${this.demoMode ? '' : `<div class="home-engine" aria-hidden="true"></div>
+        <div class="home-scrim" aria-hidden="true"></div>`}
         <header class="sl-header">
           <div class="sl-header-inner">
             <span class="sl-lockup" role="img" aria-label="SyberLabs RISE">
@@ -117,6 +179,8 @@ export class Portal {
             </button>
             <nav id="main-content" class="portal-nav" aria-label="Primary">
               <button class="portal-nav-link portal-nav-home" type="button" data-action="home" aria-current="page">Home</button>
+              ${this.demoMode ? '' : '<button class="portal-nav-link" type="button" data-home="ask-open">Ask for a reading</button>'}
+              <button class="portal-nav-link" type="button" data-action="today">Today's poem</button>
               <button class="portal-nav-link" type="button" data-nav="library">Library</button>
               <button class="portal-nav-link" type="button" data-nav="vault">Sequences</button>
               <button class="portal-nav-link" type="button" data-nav="workshop">Compose</button>
@@ -129,6 +193,9 @@ export class Portal {
               <!-- A page of its own: another skin over the same roll (src/wormhole). -->
               <a class="portal-nav-link portal-nav-minor" href="/wormhole.html">Wormhole</a>
               <p class="portal-nav-group" aria-hidden="true">More rooms</p>
+              <!-- The live Current: a reading a reader redirects in words while it runs. A minor room
+                   until Stage 2 of docs/VISION.md is complete; promote it to the primary nav then. -->
+              <button class="portal-nav-link portal-nav-minor" type="button" data-nav="live">Live reading</button>
               <button class="portal-nav-link portal-nav-minor" type="button" data-nav="chapel">Chapel</button>
               <button class="portal-nav-link portal-nav-minor" type="button" data-nav="scriptorium">Scriptorium</button>
               <button class="portal-nav-link portal-nav-minor" type="button" data-nav="visual-lab">Visual Lab</button>
@@ -139,13 +206,7 @@ export class Portal {
         </header>
 
         <main class="portal-main">
-          ${this.demoMode ? this.renderDemo() : this.renderOracle()}
-          ${this.demoMode ? '' : this.renderConnectionPanel()}
-          <button class="portal-continue" type="button" data-action="continue" hidden>
-            <span class="continue-label">Continue reading</span>
-            <span class="continue-title"></span>
-            <svg class="continue-go" ${ICON_ATTRS}><path d="M5 12h14"></path><path d="m13 6 6 6-6 6"></path></svg>
-          </button>
+          ${this.demoMode ? `${this.renderDemo()}${CONTINUE}` : this.renderHome()}
         </main>
 
         <footer class="portal-footer">
@@ -159,52 +220,44 @@ export class Portal {
         </footer>
       </div>
     `;
+    this.asking = this.demoMode ? null : new HomeAsk(this.container.querySelector('.portal'), {
+      getAudioEngine: this.getAudioEngine,
+      loadTools: () => this.loadTools(),
+      onAnswer: (decision, intent) => this.answered(decision, intent),
+      onFailure: (title, details) => this.showError(title, details),
+      onBusy: pending => this.setBusy(pending ? 'ask' : null)
+    });
     this._marksDrawn = false;
-    this.object = null;
-    const stage = this.container.querySelector('.oracle-stage');
-    if (stage) {
-      this.object = new OracleObject(stage, { onShake: () => this.shake() });
-      stage.addEventListener('oracle-layout', () => this.fitAnswer());
-    }
     if (this._active) this.drawMarks();
   }
 
-  renderOracle() {
-    return `<section class="oracle-home" aria-labelledby="oracle-title">
-      <h1 class="oracle-title" id="oracle-title">What will you encounter?</h1>
-      <form class="oracle" id="oracle-form" novalidate>
-        <div class="oracle-stage" aria-label="The Oracle. Flick it, or shake your phone, to roll.">
-          <canvas class="oracle-canvas" aria-hidden="true"></canvas>
-          <div class="oracle-shadow" aria-hidden="true"></div>
-          <div class="oracle-space">
-            <div class="oracle-glass">
-              <p class="oracle-cursor" aria-hidden="true">_</p>
-              <div class="oracle-answer" hidden>
-                <strong class="oracle-answer-title"></strong>
-                <span class="oracle-answer-meta"></span>
-                <span class="oracle-answer-mood"></span>
-              </div>
-              <label class="oracle-label sr-only" for="oracle-intent">Ask for a reading</label>
-              <textarea class="oracle-intent" id="oracle-intent" name="intent" rows="4" maxlength="240"
-                spellcheck="false" placeholder="ask for a reading_" aria-describedby="oracle-help" hidden></textarea>
-            </div>
-            <div class="oracle-plate" aria-hidden="true"><b>RISE</b> MODEL J-82 · PHOSPHOR VOLUME</div>
-          </div>
+  /**
+   * The reading under way: the stream in the centre, the bar that names it
+   * below. Every word and control is here before the poem loads. Continue is
+   * after the bar in focus order and drawn above it.
+   */
+  renderHome() {
+    return `<section class="home" aria-labelledby="home-title">
+      <div class="home-stage">
+        <div class="home-stream" aria-hidden="true"></div>
+        <p class="sr-only" data-home-opening></p>
+      </div>
+      ${alertMarkup('home-alert')}
+      <div class="home-bar">
+        <div class="home-caption">
+          <p class="home-label">${TODAY}</p>
+          <h1 class="home-title" id="home-title"></h1>
+          <p class="home-note" role="note" hidden></p>
         </div>
-        <div class="oracle-keys"></div>
-        <p class="oracle-help" id="oracle-help" hidden>${ASK_HELP}</p>
-        <p class="oracle-note" role="note" hidden></p>
-        <p class="oracle-status" role="status" aria-live="polite"><span data-oracle-status></span><span data-jev-dictation-status></span></p>
-        <div class="portal-alert oracle-alert" role="alert" hidden>
-          <div class="portal-alert-body">
-            <p class="portal-alert-title"></p>
-            <details class="portal-alert-details">
-              <summary>Details</summary>
-              <p class="portal-alert-message"></p>
-            </details>
-          </div>
+        <div class="home-actions">
+          ${button('enter', 'Read it with sound', 'primary', ' disabled')}
+          ${button('roll', 'Another reading', 'secondary')}
+          <button class="home-link" type="button" data-home="library">Library</button>
         </div>
-      </form>
+      </div>
+      ${CONTINUE}
+      <div class="home-progress" aria-hidden="true"><span class="home-progress-fill"></span></div>
+      <p class="sr-only" role="status" aria-live="polite"><span data-home-status></span></p>
     </section>`;
   }
 
@@ -237,149 +290,141 @@ export class Portal {
     </section>`;
   }
 
-  renderConnectionPanel() {
-    const state = connectionState();
-    const label = state.kind === 'openrouter' ? 'Jev through your OpenRouter account, billed to your OpenRouter account.'
-      : state.kind === 'local' ? 'Kev on this computer. No hosted inference bill.'
-        : 'AI is optional. Connect your OpenRouter account or run Kev locally to ask for a reading.';
-    return `<section class="portal-ai" id="portal-ai" aria-label="AI connection">
-      <p class="portal-ai-line" id="portal-ai-status">${escapeHtml(label)}</p>
-      ${state.kind === 'openrouter' ? '<button class="portal-link" type="button" data-ai="disconnect">Disconnect</button>'
-        : state.kind === 'none' ? '<button class="portal-link" type="button" data-ai="connect">Connect OpenRouter</button> <span class="portal-ai-hint">billed to your own OpenRouter account</span> · <a class="portal-link" href="https://github.com/SyberLabs/RISE/blob/main/docs/LOCAL-RISE.md" target="_blank" rel="noopener noreferrer">Run locally</a> <span class="portal-ai-hint">no hosted inference bill</span>' : ''}
-      <details class="portal-ai-about"><summary>About your connection</summary><p class="portal-help">OpenRouter requests are billed to your account. The key stays in this tab’s memory and is forgotten when you disconnect, reload, or close the tab. It is never sent to SyberLabs. browser extensions can read page memory; revoke keys in your OpenRouter settings.</p></details>
-      <p class="portal-ai-notice" role="status" hidden></p>
-    </section>`;
+  /** Name the reading in the bar, speak it, and play it if Home is showing. */
+  present(reading, opening = null) {
+    this.reading = reading;
+    this.opening = opening;
+    const home = this.container.querySelector('.home');
+    if (!home) return;
+    home.querySelector('.home-label').textContent = reading.label;
+    home.querySelector('.home-title').textContent = reading.heading;
+    const note = home.querySelector('.home-note');
+    note.textContent = reading.note;
+    note.hidden = !reading.note;
+    // Today's poem points on into the Library; a rolled or asked reading can be adjusted.
+    const link = home.querySelector('.home-link');
+    link.dataset.home = reading.link;
+    link.textContent = reading.link === 'adjust' ? 'Adjust' : 'Library';
+    this.setStatus(reading.spoken);
+    this.renderOpening();
+    this.renderBusy();
+    if (this._active) this.play();
   }
 
-  renderConnection() {
-    const current = this.container.querySelector('.portal-ai');
-    if (!current) return;
-    const wrapper = document.createElement('div');
-    wrapper.innerHTML = this.renderConnectionPanel();
-    current.innerHTML = wrapper.firstElementChild.innerHTML;
-    const notice = takeConnectionNotice();
-    if (notice) this.showConnectionNotice(notice.message);
+  /** The opening as text for assistive technology; the stream beside it is decoration. */
+  renderOpening() {
+    const node = this.container.querySelector('[data-home-opening]');
+    if (node) node.textContent = this.opening?.text || '';
   }
 
-  showConnectionNotice(message) {
-    const node = this.container.querySelector('.portal-ai-notice');
-    if (node) { node.textContent = message; node.hidden = !message; }
+  /** Run the shown reading: its engine behind, its opening in the stream. */
+  play() {
+    if (!this.reading) return;
+    void this.showEngine();
+    void this.playStream();
   }
 
-  async connectOpenRouter() {
+  /** The reading's engine on the stage, which cross-fades it in over the last. */
+  async showEngine() {
     try {
-      const { beginOpenRouterConnect } = await import('../core/openrouter-oauth.js');
-      await beginOpenRouterConnect();
-    } catch {
-      this.showConnectionNotice('OpenRouter could not be connected in this browser.');
-    }
-  }
-
-  /** The keys under the object, for the current state. */
-  renderKeys() {
-    const keys = this.container.querySelector('.oracle-keys');
-    if (!keys) return;
-    const busy = this.state === 'rolling' || this.state === 'asking' || this.launching;
-    const key = (action, label, extra = '') =>
-      `<button class="oracle-key ${extra}" type="${action === 'ask' ? 'submit' : 'button'}" data-oracle="${action}"${busy ? ' disabled' : ''}>${label}</button>`;
-    // Nothing is loaded at first: one key, ROLL. Once there is something to
-    // enter, rolling again and entering are two keys of one size (chance in
-    // beige, the commitment lit), and what else can be done is small text below.
-    const pair = (...keysHtml) => `<div class="oracle-keys-pair">${keysHtml.join('')}</div>`;
-    const quiet = (...itemsHtml) => `<div class="oracle-keys-quiet">${itemsHtml.filter(Boolean).join('')}</div>`;
-    const text = (action, label) =>
-      `<button class="oracle-quiet" type="button" data-oracle="${action}"${busy ? ' disabled' : ''}>${label}</button>`;
-    // The layout follows whether there is something to enter, not the moment's
-    // state, so the keys do not collapse and reappear in the middle of a roll.
-    const asking = this.state === 'ask' || this.state === 'asking';
-    if (!asking && this.result) {
-      keys.innerHTML = pair(key('roll', 'Roll again', 'oracle-key-pair'), key('enter', 'Enter', 'oracle-key-primary oracle-key-pair'))
-        + quiet(text('adjust', 'Adjust'), text('ask-open', 'or ask for something specific'));
-    } else if (asking) {
-      keys.innerHTML = pair(key('roll', 'Roll', 'oracle-key-pair'), key('ask', 'Ask', 'oracle-key-primary oracle-key-pair'))
-        + quiet(`<button class="oracle-quiet oracle-quiet-icon" type="button" data-jev-dictate="icon" aria-label="Speak your request" aria-pressed="false">${MIC_ICON}</button>`);
-    } else {
-      keys.innerHTML = key('roll', 'Roll', 'oracle-key-primary oracle-key-roll');
-    }
-    if (busy) {
-      const active = { rolling: 'roll', asking: 'ask' }[this.state] || this.launching;
-      keys.querySelector(`[data-oracle="${active}"]`)?.setAttribute('aria-busy', 'true');
-    }
-    const form = this.container.querySelector('#oracle-form');
-    this.stopDictation?.();
-    this.stopDictation = form?.querySelector('[data-jev-dictate]') ? attachJevDictation(form) : null;
-  }
-
-  /** The window, the notes and the ask link, for the current state. */
-  renderGlass() {
-    const root = this.container.querySelector('#oracle-form');
-    if (!root) return;
-    const asking = this.state === 'ask' || this.state === 'asking';
-    const showing = this.state === 'result' && this.result;
-    root.querySelector('.oracle-cursor').hidden = asking || Boolean(showing);
-    root.querySelector('.oracle-answer').hidden = !showing;
-    const field = root.querySelector('.oracle-intent');
-    field.hidden = !asking;
-    field.readOnly = this.state === 'asking';
-    root.querySelector('.oracle-help').hidden = !asking;
-    // The result is already in the window; the status line only speaks it.
-    root.querySelector('.oracle-status').classList.toggle('sr-only', Boolean(showing));
-    const note = root.querySelector('.oracle-note');
-    note.hidden = !(showing && this.result.note);
-    note.textContent = showing ? this.result.note || '' : '';
-    if (showing) {
-      root.querySelector('.oracle-answer-title').textContent = this.result.title;
-      // The window says little: a name, an author, and the one word for a roll's
-      // temper. Section and plan are spoken by the status line and shown in Reader
-      // Setup, where the reader can change them.
-      root.querySelector('.oracle-answer-meta').textContent = this.result.author;
-      const mood = root.querySelector('.oracle-answer-mood');
-      mood.textContent = this.result.mood;
-      mood.hidden = !this.result.mood;
-      this.fitAnswer();
+      const { ReadingStage } = await import('./reading-backdrop.js');
+      if (!this._active) return;
+      this.stage ||= new ReadingStage(this.container.querySelector('.home-engine'));
+      void this.stage.show(this.reading.decision);
+    } catch (error) {
+      console.warn('[Home] the engine could not load; the reading shows on ink.', error);
     }
   }
 
   /**
-   * A long result (a two-line title, a long plan) must sit inside the window,
-   * not run over its bezel. Step the whole answer down until it fits; the
-   * stylesheet keeps the small type from going below a readable size.
+   * Stream the opening once it is here, in the reading's own unit, pace and
+   * curve, and verse a line at a time as the Chamber reads it. Until then, or
+   * if it cannot stream, the stage holds still.
    */
-  fitAnswer() {
-    const stage = this.container.querySelector('.oracle-stage');
-    const answer = this.container.querySelector('.oracle-answer');
-    const radius = parseFloat(stage?.style.getPropertyValue('--r'));
-    if (!answer || answer.hidden || !radius) return;
-    const room = radius * 0.86;
-    answer.style.setProperty('--fit', '1');
-    for (let fit = 1; fit > 0.6 && answer.offsetHeight > room; fit -= 0.05) {
-      answer.style.setProperty('--fit', fit.toFixed(2));
+  async playStream() {
+    const { reading, opening } = this;
+    const host = this.container.querySelector('.home-stream');
+    if (!host) return;
+    this.stream?.stop();
+    this.setProgress(0);
+    if (!opening?.text) {
+      host.replaceChildren();
+      return;
+    }
+    try {
+      const { ReadingStream } = await import('./reading-stream.js');
+      if (this.opening !== opening || !this._active) return;
+      this.stream ||= new ReadingStream(host, { onProgress: fraction => this.setProgress(fraction) });
+      const { chunkMode, wpm, curve } = reading.decision.config;
+      this.stream.play(opening.text, { chunkMode, wpm, curve, verse: opening.verse });
+    } catch (error) {
+      console.warn('[Home] the stream could not run; the opening holds still.', error);
+      const still = document.createElement('p');
+      still.className = 'home-still';
+      still.textContent = opening.text.split('\n')[0];
+      host.replaceChildren(still);
+    }
+  }
+
+  setProgress(fraction) {
+    const fill = this.container.querySelector('.home-progress-fill');
+    if (fill) fill.style.transform = `scaleX(${fraction})`;
+  }
+
+  /** Today's poem, the reading Home opens on: loaded after first paint, once a day. */
+  async loadToday(date = new Date()) {
+    const key = localDateKey(date);
+    if (key === this.todayKey) return;
+    this.todayKey = key;
+    try {
+      const [{ todayPoem, poemTitle }, { todayDecision }, { default: openings }] = await Promise.all([
+        import('../core/today-poem.js'),
+        import('../core/today-reading.js'),
+        import('../content/archive/today-openings.json')
+      ]);
+      if (this._destroyed) return;
+      const pick = todayPoem(date);
+      const poem = homeReading(todayDecision(pick), {
+        today: pick, title: poemTitle(pick.label), author: openings.works[pick.workId]?.author
+      });
+      // A reading the reader chose stays; only today's poem turns over.
+      if (!this.chosen) this.present(poem, { text: openings.openings[pick.workId]?.[pick.entryId] || '', verse: true });
+    } catch (error) {
+      this.todayKey = null;
+      console.warn('[Home] today\'s poem could not load.', error);
+      if (!this.reading) this.showError('Today’s poem couldn’t load. Try another reading.', error?.message || '');
     }
   }
 
   setStatus(text) {
-    const status = this.container.querySelector('[data-oracle-status]');
+    const status = this.container.querySelector('[data-home-status]');
     if (status) status.textContent = text;
   }
 
   showError(title, details = '') {
-    const alert = this.container.querySelector('.oracle-alert');
-    if (!alert) return;
-    alert.hidden = !title;
-    alert.querySelector('.portal-alert-title').textContent = title;
-    const more = alert.querySelector('.portal-alert-details');
-    more.open = false;
-    more.hidden = !details;
-    alert.querySelector('.portal-alert-message').textContent = details;
+    showAlert(this.container.querySelector('.home-alert'), title, details);
   }
 
-  setState(state, { focus } = {}) {
-    this.state = state;
-    this.renderKeys();
-    this.renderGlass();
-    if (focus) this.container.querySelector(focus)?.focus({ preventScroll: true });
+  /** Mark the control `hook` names busy; null when nothing is in progress. */
+  setBusy(hook) {
+    this.busy = hook;
+    this.renderBusy();
   }
 
+  /** Every control holds while work is in progress, and the one pressed says it is busy. The dialog holds its own. */
+  renderBusy() {
+    for (const control of this.container.querySelectorAll('.home [data-home], .portal-nav [data-home]')) {
+      control.disabled = !!this.busy || (control.dataset.home === 'enter' && !this.reading);
+      if (control.dataset.home === this.busy) control.setAttribute('aria-busy', 'true');
+      else control.removeAttribute('aria-busy');
+    }
+  }
+
+  focus(selector) {
+    this.container.querySelector(selector)?.focus({ preventScroll: true });
+  }
+
+  /** The roll's and the ask's code, loaded once. A load that fails is tried again next time. */
   async loadTools() {
     this.tools ||= Promise.all([
       import('../core/roll.js'),
@@ -387,134 +432,92 @@ export class Portal {
       import('../app/jev-reading.js'),
       import('../app/invocation.js'),
       import('../content/library.js')
-    ]).then(modules => Object.assign({}, ...modules));
+    ]).then(modules => Object.assign({}, ...modules)).catch(error => {
+      this.tools = null;
+      throw error;
+    });
     return this.tools;
   }
 
-  /** Words for a decision, all derived from the plan and the edition. */
-  describe(tools, decision, { source, intent = '', temper = null }) {
-    const work = tools.getTextById(decision.workId);
-    let note = '';
-    if (source === 'ask') {
-      const { reference, limits } = tools.readJevRequest(intent);
-      const parts = [];
-      if (reference) parts.push(`You referenced “${reference.name}”. RISE treated it as a style (${reference.reads}), not as a ${reference.kind} to play.`);
-      if (limits.length) parts.push(`RISE can’t ${limits.join(', or ')}. It matches the mood with its own synthesized music and abstract visuals instead.`);
-      note = parts.join(' ');
-    }
-    return {
-      decision, source, intent, temper, note,
-      title: work?.title || decision.workId,
-      author: work?.author || '',
-      mood: source === 'roll' ? temper : '',
-      // The whole description, for the status line that speaks it.
-      meta: [work?.author, tools.SECTION_WORDS[decision.config.section]].filter(Boolean).join(' · '),
-      plan: tools.summarizeJevPlan(decision.config)
-    };
+  /** Make a decision the reader chose Home's reading, then fetch the opening it streams. */
+  showDecision(tools, decision, how) {
+    this.chosen = true;
+    const reading = homeReading(decision, how, tools);
+    this.present(reading);
+    void tools.openingLines(decision).catch(() => null).then(opening => {
+      if (this.reading !== reading || !opening) return;
+      this.opening = opening;
+      this.renderOpening();
+      if (this._active) void this.playStream();
+    });
   }
 
-  shake() {
-    if (this.state === 'ask' || this.state === 'asking') return;
-    void this.roll();
-  }
-
+  /** Another reading: a vivid roll, never the one showing. */
   async roll() {
-    if (this.state === 'rolling' || this.state === 'asking' || this.launching) return;
-    this.object?.requestMotion();
+    if (this.busy) return;
     this.getAudioEngine()?.playClick();
     this.showError('');
-    const first = !this.rolled;
-    this.setState('rolling');
-    this.setStatus('Rolling…');
-    this.object?.kick(1.1);
+    this.setBusy('roll');
     let tools;
     try {
-      [tools] = await Promise.all([this.loadTools(), this.object?.sink()]);
+      tools = await this.loadTools();
     } catch (error) {
       // The roll's code did not arrive (a dropped connection); whatever was
-      // showing rises again and the key is live.
-      this.tools = null;
-      this.setState(this.result ? 'result' : 'idle');
-      this.setStatus('');
+      // showing stays and the controls are live.
+      this.setBusy(null);
       this.showError('Couldn’t roll just now. Try again.', error?.message || '');
-      await this.object?.rise();
       return;
     }
-    const previous = this.result?.source === 'roll' ? this.result : null;
-    const { decision, temper } = tools.rollReading({ previous });
-    this.result = this.describe(tools, decision, { source: 'roll', temper });
-    this.rolled = true;
-    this.setState('result', { focus: first ? '[data-oracle="enter"]' : '[data-oracle="roll"]' });
-    this.setStatus(`${this.result.title}. ${this.result.meta}. ${this.result.plan.join(', ')}.`);
-    // A small tick as the answer surfaces, on phones that can give one.
+    this.setBusy(null);
+    const previous = this.reading && { temper: this.reading.temper, decision: this.reading.decision };
+    const rolled = tools.rollReading({ previous, vivid: true });
+    this.showDecision(tools, rolled.decision, { temper: rolled.temper });
+    // Busy, the key was disabled and lost focus; the reader stays on it.
+    this.focus('[data-home="roll"]');
+    // A small tick as the answer arrives, on phones that can give one.
     navigator.vibrate?.(10);
-    await this.object?.rise();
   }
 
-  async openAsk() {
-    this.showError('');
-    if (this.result) await this.object?.sink();
-    this.setState('ask', { focus: '.oracle-intent' });
-    this.setStatus('Ask for a mood, a style, a text, or all three.');
-    await this.object?.rise();
+  /** An admitted answer from the ask dialog becomes Home's reading. */
+  async answered(decision, intent) {
+    this.showDecision(await this.loadTools(), decision, { intent });
+    this.focus('[data-home="enter"]');
   }
 
-  async ask() {
-    const field = this.container.querySelector('.oracle-intent');
-    const intent = field.value.trim();
-    if (this.state !== 'ask') return;
-    if (intent.length < 3 || intent.length > 240) {
-      this.setStatus(intent ? 'Keep it under 240 characters.' : 'Add a few words: a mood, a style, a text, or all three.');
-      this.object?.kick(0.25);
-      field.focus();
-      return;
-    }
-    this.showError('');
+  /** The Menu's Today's poem: the day's exact poem, straight into the reader. */
+  async beginToday() {
+    if (this.busy) return;
+    this.setBusy('today');
     this.getAudioEngine()?.playClick();
-    this.setState('asking');
-    this.object?.setBusy(true);
-    this.setStatus('Interpreting your request. This usually takes a few seconds.');
+    this.showError('');
     try {
-      // The one decision route every way in shares (src/app/invocation.js).
-      const tools = await this.loadTools();
-      const decision = await tools.requestComposedReading(intent, { admit: tools.validateJevRecommendation });
-      await this.object?.sink();
-      this.result = this.describe(tools, decision, { source: 'ask', intent });
-      this.setState('result', { focus: '[data-oracle="enter"]' });
-      this.setStatus(`Jev chose ${this.result.title}. ${this.result.plan.join(', ')}.`);
-      await this.object?.rise();
+      await this.onLaunchToday();
     } catch (error) {
-      this.setState('ask', { focus: '.oracle-intent' });
-      this.setStatus('');
-      if (error?.code === 'NOT_CONNECTED') {
-        this.showConnectionNotice('Connect OpenRouter or run RISE locally to ask for a specific reading. ROLL works without AI.');
-      }
-      this.showError('Couldn’t interpret that here. Your request is kept.', error?.message || '');
-      this.object?.kick(0.3);
+      this.showError('Today’s poem couldn’t be opened. Try again.', error?.message || '');
     } finally {
-      this.object?.setBusy(false);
+      this.setBusy(null);
     }
   }
 
-  /** ENTER plays the reading; ADJUST opens it in Reader Setup. */
+  /** Read it with sound opens the reading (launchToday or launchJevReading); Adjust opens it in Reader Setup. */
   async proceed(action) {
-    if (!this.result || this.launching) return;
-    this.launching = action;
-    this.renderKeys();
+    const reading = this.reading;
+    if (!reading || this.busy) return;
+    this.setBusy(action);
     this.getAudioEngine()?.playClick();
     this.showError('');
     try {
-      if (action === 'enter') {
-        const firstReadPreview = this.result.source === 'roll' && !this.firstReadChoiceUsed;
-        await this.onLaunchJevReading(this.result.decision, { firstReadPreview });
-        if (firstReadPreview) this.firstReadChoiceUsed = true;
+      if (action === 'adjust') await this.onAdjustReading(reading.decision);
+      else if (reading.today) await this.onLaunchToday();
+      else {
+        const preview = reading.firstReadPreview && !this.firstReadChoiceUsed;
+        await this.onLaunchJevReading(reading.decision, { firstReadPreview: preview });
+        if (preview) this.firstReadChoiceUsed = true;
       }
-      else await this.onAdjustReading(this.result.decision);
     } catch (error) {
-      this.showError('That reading couldn’t be opened. Try again, or roll another.', error?.message || '');
+      this.showError('That reading couldn’t be opened. Try again, or try another reading.', error?.message || '');
     } finally {
-      this.launching = null;
-      this.renderKeys();
+      this.setBusy(null);
     }
   }
 
@@ -525,42 +528,18 @@ export class Portal {
   }
 
   attachEvents() {
-    const form = this.container.querySelector('#oracle-form');
-    if (form) {
-      this.renderKeys();
-      this.renderGlass();
-      form.addEventListener('submit', event => {
-        event.preventDefault();
-        void this.ask();
-      });
-      form.addEventListener('click', event => {
-        const action = event.target.closest('[data-oracle]')?.dataset.oracle;
-        if (!action || event.target.closest('button')?.disabled) return;
-        if (action === 'roll') void this.roll();
-        else if (action === 'ask-open') void this.openAsk();
-        else if (action === 'enter' || action === 'adjust') void this.proceed(action);
-      });
-      const field = form.querySelector('.oracle-intent');
-      field.addEventListener('keydown', event => {
-        if (event.key === 'Enter' && !event.shiftKey) {
-          event.preventDefault();
-          form.requestSubmit();
-        }
-      });
-    }
-
-    if (!this._aiEventsAttached) {
-      this._aiEventsAttached = true;
-      this.container.addEventListener('click', event => {
-        const button = event.target.closest('[data-ai]');
-        if (!button) return;
-        if (button.dataset.ai === 'connect') void this.connectOpenRouter();
-        else if (button.dataset.ai === 'disconnect') {
-          disconnect();
-          this.showConnectionNotice('Disconnected. RISE forgot the key.');
-        }
-      });
-    }
+    const home = this.container.querySelector('.home');
+    home?.addEventListener('click', event => {
+      const control = event.target.closest('[data-home]');
+      if (!control || control.disabled) return;
+      const action = control.dataset.home;
+      if (action === 'roll') void this.roll();
+      else if (action === 'enter' || action === 'adjust') void this.proceed(action);
+      else if (action === 'library') {
+        this.getAudioEngine()?.playClick();
+        this.onNavigate('library');
+      }
+    });
 
     const sample = this.container.querySelector('#jev-scene-demo-start');
     sample?.addEventListener('click', async () => {
@@ -612,6 +591,12 @@ export class Portal {
       }
     });
     nav.querySelector('[data-action="home"]').addEventListener('click', () => setMenu(false, { restoreFocus: true }));
+    // Closing the dialog returns focus to the Menu button, where asking began.
+    nav.querySelector('[data-home="ask-open"]')?.addEventListener('click', () => {
+      this.getAudioEngine()?.playClick();
+      setMenu(false, { restoreFocus: true });
+      if (!this.busy) this.asking.open();
+    });
 
     this.container.querySelectorAll('[data-nav]').forEach(item => {
       item.addEventListener('click', () => {
@@ -624,6 +609,12 @@ export class Portal {
     this.container.querySelector('.portal-continue')?.addEventListener('click', () => {
       this.getAudioEngine()?.playClick();
       this.onNavigate('chamber-session', this.getCurrentSession());
+    });
+
+    // Today's poem from the Menu begins the day's exact poem, whatever Home is showing.
+    nav.querySelector('[data-action="today"]').addEventListener('click', () => {
+      this.closeMenu?.();
+      void this.beginToday();
     });
 
     this.container.querySelectorAll('[data-action="guide"], [data-action="settings"]').forEach(link => {
@@ -639,23 +630,35 @@ export class Portal {
     if (this._active) return;
     this._active = true;
     if (!this._marksDrawn) this.drawMarks();
-    this.object?.start();
-    // Leaving Home stopped dictation; an open request gets it back.
-    if (this.state === 'ask') this.renderKeys();
+    if (this.demoMode) return;
+    // After first paint: the bar is already there; the poem, engine and stream follow.
+    this.stage?.resume();
+    this.play();
+    afterPaint(() => void this.loadToday());
+    this._stopDay = watchLocalDay(date => void this.loadToday(date));
+    if (this._askOnShow) {
+      this._askOnShow = false;
+      this.asking.open();
+    }
   }
 
   deactivate() {
     if (!this._active) return;
     this._active = false;
     // Every other room — and above all the Chamber — runs without it.
-    this.object?.stop();
-    this.stopDictation?.();
-    this.stopDictation = null;
+    this.stage?.pause();
+    this.stream?.stop();
+    this._stopDay?.();
+    this._stopDay = null;
+    this.asking?.close();
   }
 
   destroy() {
     this.deactivate();
-    this.stopConnection?.();
-    this.object?.destroy();
+    this._destroyed = true;
+    this.asking?.destroy();
+    this.stage?.destroy();
+    this.stream?.destroy();
+    this.stage = this.stream = null;
   }
 }

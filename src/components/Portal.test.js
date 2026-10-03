@@ -1,28 +1,74 @@
 /**
- * RISE Home: the Oracle. One object, one key (ROLL); a reading rises with
- * ENTER · ROLL AGAIN · ADJUST; every room is one Menu away.
+ * RISE Home, already reading: the day's poem plays silently, full-screen,
+ * under its own engine. Read it with sound opens it; Another reading rolls a
+ * vivid one in its place. Every room is one Menu away.
  */
 import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { Portal } from './Portal.js';
-import { validateJevRecommendation } from '../app/jev-reading.js';
+import { createRouteManifest } from '../app/route-manifest.js';
+import { openingLines, validateJevRecommendation } from '../app/jev-reading.js';
+import { composeRoll, rollReading, TEMPERS } from '../core/roll.js';
+import { summarizeJevPlan } from '../core/jev-describe.js';
+import { poemTitle, todayPoem } from '../core/today-poem.js';
+import { todayDecision } from '../core/today-reading.js';
+import OPENINGS from '../content/archive/today-openings.json' with { type: 'json' };
 
-const portalCss = readFileSync(
-    join(dirname(fileURLToPath(import.meta.url)), 'Portal.css'),
-    'utf8'
-);
+// The stage and the stream are stood in for; Home codes against their
+// contracts (reading-backdrop.js, reading-stream.js), and the stage's own
+// tests hold it to its fades, stale mounts and pauses. Each records what Home asks of it.
+const stages = vi.hoisted(() => ({ made: [], refuse: false }));
+vi.mock('./reading-backdrop.js', () => ({
+    ReadingStage: class {
+        constructor(host) {
+            if (stages.refuse) throw new Error('the engine module did not load');
+            // A mount stays pending, as a slow engine's would.
+            Object.assign(this, { host, show: vi.fn(() => new Promise(() => {})), pause: vi.fn(), resume: vi.fn(), destroy: vi.fn() });
+            stages.made.push(this);
+        }
+    }
+}));
+const shown = () => stages.made[0].show.mock.calls.map(([decision]) => decision);
+const streams = vi.hoisted(() => []);
+vi.mock('./reading-stream.js', () => ({
+    ReadingStream: class {
+        constructor(host, options) {
+            Object.assign(this, { host, options, play: vi.fn(), stop: vi.fn(), destroy: vi.fn() });
+            streams.push(this);
+        }
+    }
+}));
+// roll.js and the day's pick are real. Home is held to the call it makes
+// (rollReading's vivid roll) and to the passage and session it is handed.
+vi.mock('../core/roll.js', async importOriginal => {
+    const actual = await importOriginal();
+    return { ...actual, rollReading: vi.fn(actual.rollReading) };
+});
+const LINES = 'My children, latest born to Cadmus old,\nWhy sit ye here as suppliants, in your hands';
+vi.mock('../app/jev-reading.js', async importOriginal => ({
+    ...(await importOriginal()),
+    openingLines: vi.fn(async () => ({ text: LINES, verse: false }))
+}));
+
+const portalCss = ['Portal.css', 'portal-home.css']
+    .map(file => readFileSync(join(dirname(fileURLToPath(import.meta.url)), file), 'utf8'))
+    .join('\n');
 
 beforeEach(() => {
-    // Home keeps its result for the tab's session; each test starts clean.
     sessionStorage.clear();
-    vi.restoreAllMocks();
-    // Reduced motion: the sink and rise are short fades, so tests run fast.
-    window.matchMedia = () => ({ matches: true, addEventListener() {}, removeEventListener() {} });
+    stages.made.length = 0;
+    stages.refuse = false;
+    streams.length = 0;
+    vi.mocked(rollReading).mockClear();
+    vi.mocked(openingLines).mockClear();
+    window.matchMedia = () => ({ matches: false, addEventListener() {}, removeEventListener() {} });
 });
 
 afterEach(() => {
+    vi.doUnmock('../content/library.js');
+    vi.useRealTimers();
     delete window.matchMedia;
     document.body.innerHTML = '';
 });
@@ -35,198 +81,366 @@ function makePortal(options = {}) {
     return { portal, container, onNavigate };
 }
 
-const keys = container => [...container.querySelectorAll('.oracle-keys button')].map(key => key.textContent.trim());
+const hook = (container, name) => container.querySelector(`[data-home="${name}"]`);
+const words = node => node.textContent.replace(/\s+/gu, ' ').trim();
+const actions = container => [...container.querySelectorAll('.home-actions button')].map(words);
+const caption = container => [words(container.querySelector('.home-label')), words(container.querySelector('h1'))];
+const status = container => container.querySelector('[data-home-status]').textContent;
+const capital = text => text[0].toUpperCase() + text.slice(1);
 
-async function roll(container) {
-    container.querySelector('[data-oracle="roll"]').click();
-    await vi.waitFor(() => expect(container.querySelector('[data-oracle="enter"]')).not.toBeNull(), { timeout: 3000 });
+/** Today's poem, as Home names it. */
+function today(date = new Date()) {
+    const pick = todayPoem(date);
+    const decision = todayDecision(pick);
+    const heading = `${poemTitle(pick.label)}, by ${OPENINGS.works[pick.workId].author}`;
+    return { pick, decision, heading, passage: OPENINGS.openings[pick.workId][pick.entryId] };
 }
 
-describe('Home, waiting', () => {
-    it('asks what you will encounter and offers one key', () => {
+/** Show Home and wait for today's poem to arrive under the stream. */
+async function arrive(portal, container) {
+    portal.activate();
+    await vi.waitFor(() => expect(words(container.querySelector('h1'))).toBe(today().heading));
+    await vi.waitFor(() => expect(streams[0]?.play).toHaveBeenCalled());
+}
+
+/** A rolled classic. */
+const classic = (workId, temper = 'revel') => ({
+    temper,
+    decision: composeRoll({ temper: TEMPERS.find(t => t.id === temper), workId, section: 'first' })
+});
+
+async function another(container, portal) {
+    const before = portal.reading;
+    hook(container, 'roll').click();
+    await vi.waitFor(() => expect(portal.reading).not.toBe(before), { timeout: 3000 });
+}
+
+/** What Home rolls from: the reading showing, by its temper and decision. */
+const from = reading => ({ temper: reading.temper, decision: reading.decision });
+
+describe('Home on arrival', () => {
+    it('names today\'s poem under the stream, with one solid key, before anything loads', () => {
         const { portal, container } = makePortal();
-        expect(container.querySelector('h1').textContent).toBe('What will you encounter?');
-        expect(keys(container)).toEqual(['Roll']);
-        expect(container.querySelector('.oracle-intent').hidden).toBe(true);
-        // Nothing to ask about, or to adjust, until there is something rolled.
-        expect(container.querySelector('[data-oracle="ask-open"]')).toBeNull();
-        expect(container.querySelector('[data-oracle="adjust"]')).toBeNull();
-        expect(container.querySelector('.oracle-answer').hidden).toBe(true);
-        expect(container.querySelector('.oracle-answer').hidden).toBe(true);
+        expect(words(container.querySelector('.home-label'))).toBe('Today’s poem');
+        expect(actions(container)).toEqual(['Read it with sound', 'Another reading', 'Library']);
+        expect([...container.querySelectorAll('.home .btn-primary')]).toEqual([hook(container, 'enter')]);
+        expect(hook(container, 'roll').classList.contains('btn-secondary')).toBe(true);
+        expect(hook(container, 'library').classList.contains('home-link')).toBe(true);
+        // The stream is decoration; the opening is real text beside it.
+        expect(container.querySelector('.home-stream').getAttribute('aria-hidden')).toBe('true');
+        expect(container.querySelector('.home-engine').getAttribute('aria-hidden')).toBe('true');
+        // Nothing loads until Home shows.
+        expect(stages.made).toHaveLength(0);
+        expect(streams).toHaveLength(0);
         portal.destroy();
     });
 
-    it('draws only while Home is the room shown', () => {
-        const { portal } = makePortal();
-        const start = vi.spyOn(portal.object, 'start');
-        const stop = vi.spyOn(portal.object, 'stop');
-        portal.activate();
-        expect(start).toHaveBeenCalledOnce();
+    it('plays today\'s poem silently: its engine behind, its opening streaming at its own pace, as verse', async () => {
+        const { portal, container } = makePortal();
+        await arrive(portal, container);
+        const { pick, decision, heading, passage } = today();
+        expect(caption(container)).toEqual(['Today’s poem', heading]);
+        expect(status(container)).toBe(`Today’s poem: ${heading}`);
+        expect(container.querySelector('[data-home-opening]').textContent).toBe(passage);
+        expect(container.querySelector('[data-home-opening]').classList.contains('sr-only')).toBe(true);
+
+        const [stream] = streams;
+        expect(stream.host).toBe(container.querySelector('.home-stream'));
+        // The unit, pace and curve the Chamber will read it at, verse a line at a time.
+        const { chunkMode, wpm, curve } = decision.config;
+        expect(stream.play).toHaveBeenCalledWith(passage, { chunkMode, wpm, curve, verse: true });
+        // The same reading launchToday opens: the day's work, mood and engine.
+        await vi.waitFor(() => expect(stages.made).toHaveLength(1));
+        expect(stages.made[0].host).toBe(container.querySelector('.home-engine'));
+        const [engine] = shown();
+        expect(engine.workId).toBe(pick.workId);
+        expect(engine.temper).toBe(decision.temper);
+        expect(engine.config).toEqual(decision.config);
+
+        // The hairline follows the stream.
+        stream.options.onProgress(0.25);
+        expect(container.querySelector('.home-progress-fill').style.transform).toBe('scaleX(0.25)');
+        portal.destroy();
+    });
+
+    it('keeps the header, then Read it with sound, Another reading and the link, in that order', async () => {
+        const { portal, container } = makePortal();
+        await arrive(portal, container);
+        const order = [...container.querySelectorAll('button:not([hidden]), a[href]')]
+            .filter(node => !node.closest('.portal-nav, dialog'));
+        expect(order.map(node => node.dataset.home || node.className)).toEqual(
+            ['portal-menu-toggle', 'enter', 'roll', 'library', 'portal-footer-link portal-legal-link', 'portal-footer-link portal-legal-link']);
+        portal.destroy();
+    });
+
+    it('still works on ink with the text when the engine cannot load', async () => {
+        stages.refuse = true;
+        vi.spyOn(console, 'warn').mockImplementation(() => {});
+        const { portal, container } = makePortal();
+        await arrive(portal, container);
+        await new Promise(resolve => setTimeout(resolve, 20));
+        expect(container.querySelector('.home-alert').hidden).toBe(true);
+        expect(hook(container, 'enter').disabled).toBe(false);
+        await another(container, portal);
+        expect(words(container.querySelector('h1'))).toContain(', by ');
+        portal.destroy();
+        vi.mocked(console.warn).mockRestore();
+    });
+
+    it('runs nothing behind a reading: leaving Home pauses the engine and stops the stream; returning resumes', async () => {
+        const { portal, container } = makePortal();
+        await arrive(portal, container);
+        await vi.waitFor(() => expect(stages.made).toHaveLength(1));
+        const [stage] = stages.made;
+        const [stream] = streams;
+        const heading = words(container.querySelector('h1'));
+        // Left while its engine is still mounting: the stage holds it still.
         portal.deactivate();
-        expect(stop).toHaveBeenCalledOnce();
+        expect(stage.pause).toHaveBeenCalledOnce();
+        expect(stream.stop).toHaveBeenCalled();
+        portal.update();
+        portal.activate();
+        expect(stage.resume).toHaveBeenCalledOnce();
+        await vi.waitFor(() => expect(stream.play).toHaveBeenCalledTimes(2));
+        // The same reading's engine: the stage shows it again without mounting it.
+        expect(stages.made).toHaveLength(1);
+        expect(new Set(shown()).size).toBe(1);
+        expect(words(container.querySelector('h1'))).toBe(heading);
+        portal.destroy();
+        expect(stage.destroy).toHaveBeenCalledOnce();
+        expect(stream.destroy).toHaveBeenCalledOnce();
+    });
+
+    it('loads today\'s poem once, even when Home is left and shown again before it arrives', async () => {
+        const { portal, container } = makePortal();
+        portal.activate();
+        portal.deactivate();
+        portal.activate();
+        await vi.waitFor(() => expect(words(container.querySelector('h1'))).toBe(today().heading));
+        await new Promise(resolve => setTimeout(resolve, 50));
+        await vi.waitFor(() => expect(stages.made).toHaveLength(1));
+        expect(new Set(shown()).size).toBe(1);
+        portal.destroy();
+    });
+
+    it('keeps a reading rolled before today\'s poem arrived', async () => {
+        vi.mocked(rollReading).mockImplementationOnce(() => classic('oedipus-rex'));
+        const { portal, container } = makePortal();
+        await another(container, portal);
+        expect(rollReading).toHaveBeenCalledWith({ previous: null, vivid: true });
+        portal.activate();
+        await vi.waitFor(() => expect(streams[0]?.play).toHaveBeenCalled());
+        await new Promise(resolve => setTimeout(resolve, 50));
+        expect(words(container.querySelector('h1'))).toBe('Oedipus Rex, by Sophocles');
+        expect(hook(container, 'adjust')).not.toBeNull();
+        portal.destroy();
+    });
+
+    it('turns to the next day\'s poem at midnight while it is showing', async () => {
+        vi.useFakeTimers({ toFake: ['Date', 'setTimeout', 'clearTimeout'] });
+        vi.setSystemTime(new Date(2026, 9, 3, 23, 59, 30));
+        const { portal, container } = makePortal();
+        await arrive(portal, container);
+        expect(words(container.querySelector('h1'))).toBe(today(new Date(2026, 9, 3)).heading);
+        vi.advanceTimersByTime(60_000);
+        await vi.waitFor(() => expect(words(container.querySelector('h1'))).toBe(today(new Date(2026, 9, 4)).heading));
+        portal.destroy();
+    });
+
+    it('shows the new day\'s poem when Home comes back after midnight', async () => {
+        vi.useFakeTimers({ toFake: ['Date', 'setTimeout', 'clearTimeout'] });
+        vi.setSystemTime(new Date(2026, 9, 3, 23, 50));
+        const { portal, container } = makePortal();
+        await arrive(portal, container);
+        // Away in another room across midnight: the day's watcher is stopped meanwhile.
+        portal.deactivate();
+        vi.setSystemTime(new Date(2026, 9, 4, 0, 10));
+        portal.activate();
+        vi.advanceTimersByTime(50);
+        await vi.waitFor(() => expect(words(container.querySelector('h1'))).toBe(today(new Date(2026, 9, 4)).heading));
         portal.destroy();
     });
 });
 
-describe('a roll', () => {
-    it('rises in the window with only a title, an author and one word, and speaks the rest', async () => {
+describe('Another reading', () => {
+    it('rolls a vivid reading, cross-fades to its engine and streams its opening', async () => {
+        vi.mocked(rollReading).mockImplementationOnce(() => classic('oedipus-rex'));
         const { portal, container } = makePortal();
-        await roll(container);
-        const { decision } = portal.result;
+        await arrive(portal, container);
+        const first = portal.reading;
+        await another(container, portal);
+        expect(rollReading).toHaveBeenCalledWith({ previous: from(first), vivid: true });
+        const { decision } = portal.reading;
         expect(() => validateJevRecommendation(decision)).not.toThrow();
-        expect(decision.model).toBe('rise/roll-1');
-        expect(container.querySelector('.oracle-answer').hidden).toBe(false);
-        expect(container.querySelector('.oracle-answer-title').textContent).toBe(portal.result.title);
-        // Restrained: a name, an author, and the temper's one word. No section, no plan.
-        const answer = container.querySelector('.oracle-answer');
-        expect(container.querySelector('.oracle-answer-meta').textContent).toBe(portal.result.author);
-        expect(container.querySelector('.oracle-answer-mood').textContent).toBe(portal.result.temper);
-        expect(container.querySelector('.oracle-answer-mood').hidden).toBe(false);
-        expect(answer.textContent).not.toMatch(/section|wpm|phrases|sentences|words/u);
-        expect(answer.children).toHaveLength(3);
-        expect(keys(container)).toEqual(['Roll again', 'Enter', 'Adjust', 'or ask for something specific']);
-        // The whole description is spoken, not shown: section and plan reach the status line.
-        const spoken = container.querySelector('[data-oracle-status]').textContent;
-        expect(spoken).toContain(portal.result.title);
-        expect(spoken).toContain(portal.result.meta);
-        for (const part of portal.result.plan) expect(spoken).toContain(part);
+        const plan = summarizeJevPlan(decision.config).join(', ');
+        expect(caption(container)).toEqual([`Revel: ${plan}`, 'Oedipus Rex, by Sophocles']);
+        expect(status(container)).toBe(`Revel. Oedipus Rex, by Sophocles. ${capital(plan)}.`);
+        // The link is Adjust now, and the reader stays on the key they pressed.
+        expect(actions(container)).toEqual(['Read it with sound', 'Another reading', 'Adjust']);
+        expect(document.activeElement).toBe(hook(container, 'roll'));
+
+        expect(openingLines).toHaveBeenCalledWith(decision);
+        await vi.waitFor(() => expect(streams[0].play).toHaveBeenLastCalledWith(LINES,
+            { chunkMode: decision.config.chunkMode, wpm: decision.config.wpm, curve: decision.config.curve, verse: false }));
+        expect(container.querySelector('[data-home-opening]').textContent).toBe(LINES);
+
+        // The stage cross-fades to the new reading's engine.
+        await vi.waitFor(() => expect(shown().at(-1)).toBe(decision));
+        expect(stages.made).toHaveLength(1);
         portal.destroy();
     });
 
-    it('gives rolling again and entering one size, and puts Adjust and Ask beneath as small text', async () => {
+    it('streams a rolled verse division a line at a time, as the Chamber reads it', async () => {
+        vi.mocked(rollReading).mockImplementationOnce(() => classic('spoon-river-anthology', 'signal'));
+        vi.mocked(openingLines).mockImplementationOnce(async () => ({ text: LINES, verse: true }));
         const { portal, container } = makePortal();
-        await roll(container);
-        const box = container.querySelector('.oracle-keys');
-        const pair = box.querySelector('.oracle-keys-pair');
-        expect([...pair.querySelectorAll('button')].map(key => key.dataset.oracle)).toEqual(['roll', 'enter']);
-        // The same class of key, so the same size; only the commitment is lit.
-        for (const key of pair.querySelectorAll('button')) expect(key.classList.contains('oracle-key-pair')).toBe(true);
-        expect([...pair.querySelectorAll('.oracle-key-primary')].map(key => key.dataset.oracle)).toEqual(['enter']);
-        const quiet = box.querySelector('.oracle-keys-quiet');
-        expect([...quiet.querySelectorAll('button')].map(key => key.dataset.oracle)).toEqual(['adjust', 'ask-open']);
-        for (const item of quiet.querySelectorAll('button')) expect(item.classList.contains('oracle-key')).toBe(false);
+        await arrive(portal, container);
+        await another(container, portal);
+        const { chunkMode, wpm, curve } = portal.reading.decision.config;
+        await vi.waitFor(() => expect(streams[0].play).toHaveBeenLastCalledWith(LINES, { chunkMode, wpm, curve, verse: true }));
         portal.destroy();
     });
 
-    it('keeps the pair through a roll instead of collapsing to one key and back', async () => {
+    it('shows the last of several quick rolls, while the engines still mount', async () => {
         const { portal, container } = makePortal();
-        await roll(container);
-        container.querySelector('[data-oracle="roll"]').click();
-        await vi.waitFor(() => expect(portal.state).toBe('rolling'));
-        expect(container.querySelectorAll('.oracle-keys-pair button')).toHaveLength(2);
-        expect(container.querySelector('[data-oracle="roll"]').getAttribute('aria-busy')).toBe('true');
-        await vi.waitFor(() => expect(portal.state).toBe('result'), { timeout: 3000 });
+        await arrive(portal, container);
+        await another(container, portal);
+        await another(container, portal);
+        await another(container, portal);
+        await vi.waitFor(() => expect(shown().at(-1)).toBe(portal.reading.decision));
+        expect(stages.made).toHaveLength(1);
         portal.destroy();
+        expect(stages.made[0].destroy).toHaveBeenCalledOnce();
     });
 
-    it('opens the way to asking only after a first roll', async () => {
+    it('rolls again from the reading it replaced', async () => {
         const { portal, container } = makePortal();
-        expect(container.querySelector('[data-oracle="ask-open"]')).toBeNull();
-        await roll(container);
-        expect(container.querySelector('[data-oracle="ask-open"]').textContent).toBe('or ask for something specific');
+        await arrive(portal, container);
+        await another(container, portal);
+        const first = portal.reading;
+        await another(container, portal);
+        expect(rollReading).toHaveBeenLastCalledWith({ previous: from(first), vivid: true });
+        expect(portal.reading.decision.workId).not.toBe(first.decision.workId);
         portal.destroy();
     });
 
-    it('rolls again to a different work and temper', async () => {
+    it('holds the stream on ink while the opening loads, and leaves it out if it cannot be read', async () => {
+        vi.mocked(openingLines).mockImplementationOnce(async () => { throw new Error('edition unavailable'); });
         const { portal, container } = makePortal();
-        await roll(container);
-        const first = portal.result;
-        container.querySelector('[data-oracle="roll"]').click();
-        await vi.waitFor(() => expect(portal.result).not.toBe(first), { timeout: 3000 });
-        await vi.waitFor(() => expect(portal.state).toBe('result'), { timeout: 3000 });
-        expect(portal.result.decision.workId).not.toBe(first.decision.workId);
-        expect(portal.result.temper).not.toBe(first.temper);
+        await arrive(portal, container);
+        await another(container, portal);
+        await new Promise(resolve => setTimeout(resolve, 20));
+        expect(streams[0].play).toHaveBeenCalledOnce();
+        expect(container.querySelector('.home-stream').children).toHaveLength(0);
+        expect(container.querySelector('.home-alert').hidden).toBe(true);
         portal.destroy();
     });
 
-    it('ENTER plays the rolled reading, and ADJUST opens it to change', async () => {
+    it('recovers when the roll cannot load, and loads it on the next press', async () => {
+        vi.doMock('../content/library.js', () => { throw new Error('chunk failed'); });
+        const { portal, container } = makePortal();
+        hook(container, 'roll').click();
+        await vi.waitFor(() => expect(container.querySelector('.home-alert').hidden).toBe(false));
+        expect(hook(container, 'roll').disabled).toBe(false);
+        vi.doUnmock('../content/library.js');
+        await another(container, portal);
+        expect(container.querySelector('.home-alert').hidden).toBe(true);
+        portal.destroy();
+    });
+});
+
+describe('Read it with sound', () => {
+    it('opens today\'s exact poem through the app\'s launchToday, and comes back to Home', async () => {
+        const onLaunchToday = vi.fn().mockResolvedValue(undefined);
+        const onLaunchJevReading = vi.fn().mockResolvedValue(undefined);
+        const { portal, container } = makePortal({ onLaunchToday, onLaunchJevReading });
+        await arrive(portal, container);
+        hook(container, 'enter').click();
+        await vi.waitFor(() => expect(onLaunchToday).toHaveBeenCalledOnce());
+        expect(onLaunchJevReading).not.toHaveBeenCalled();
+        await vi.waitFor(() => expect(hook(container, 'enter').disabled).toBe(false));
+        portal.destroy();
+    });
+
+    it('the Menu\'s Today\'s poem begins the day\'s poem even while another reading shows', async () => {
+        const onLaunchToday = vi.fn().mockResolvedValue(undefined);
+        const onLaunchJevReading = vi.fn().mockResolvedValue(undefined);
+        const { portal, container } = makePortal({ onLaunchToday, onLaunchJevReading });
+        await arrive(portal, container);
+        await another(container, portal);
+        container.querySelector('.portal-nav [data-action="today"]').click();
+        await vi.waitFor(() => expect(onLaunchToday).toHaveBeenCalledOnce());
+        expect(onLaunchJevReading).not.toHaveBeenCalled();
+        portal.destroy();
+    });
+
+    it('plays a rolled reading, and Adjust opens it to change', async () => {
         const onLaunchJevReading = vi.fn().mockResolvedValue(undefined);
         const onAdjustReading = vi.fn().mockResolvedValue(undefined);
         const { portal, container } = makePortal({ onLaunchJevReading, onAdjustReading });
-        await roll(container);
-        container.querySelector('[data-oracle="enter"]').click();
-        await vi.waitFor(() => expect(onLaunchJevReading).toHaveBeenCalledWith(portal.result.decision, { firstReadPreview: true }));
-        await vi.waitFor(() => expect(container.querySelector('[data-oracle="adjust"]').disabled).toBe(false));
-        container.querySelector('[data-oracle="adjust"]').click();
-        await vi.waitFor(() => expect(onAdjustReading).toHaveBeenCalledWith(portal.result.decision));
+        await arrive(portal, container);
+        await another(container, portal);
+        hook(container, 'enter').click();
+        await vi.waitFor(() => expect(onLaunchJevReading).toHaveBeenCalledWith(portal.reading.decision, { firstReadPreview: true }));
+        await vi.waitFor(() => expect(hook(container, 'adjust').disabled).toBe(false));
+        // The first-read preview is offered once.
+        hook(container, 'enter').click();
+        await vi.waitFor(() => expect(onLaunchJevReading).toHaveBeenLastCalledWith(portal.reading.decision, { firstReadPreview: false }));
+        await vi.waitFor(() => expect(hook(container, 'adjust').disabled).toBe(false));
+        hook(container, 'adjust').click();
+        await vi.waitFor(() => expect(onAdjustReading).toHaveBeenCalledWith(portal.reading.decision));
         portal.destroy();
     });
 
-    it('holds its keys while a reading opens, and says so if it cannot', async () => {
+    it('holds its controls while a reading opens, and says so if it cannot', async () => {
         let fail;
         const onLaunchJevReading = vi.fn(() => new Promise((_, reject) => { fail = reject; }));
         const { portal, container } = makePortal({ onLaunchJevReading });
-        await roll(container);
-        container.querySelector('[data-oracle="enter"]').click();
-        await vi.waitFor(() => expect(container.querySelector('[data-oracle="enter"]').getAttribute('aria-busy')).toBe('true'));
-        container.querySelector('[data-oracle="enter"]').click();
+        await arrive(portal, container);
+        await another(container, portal);
+        hook(container, 'enter').click();
+        await vi.waitFor(() => expect(hook(container, 'enter').getAttribute('aria-busy')).toBe('true'));
+        expect(hook(container, 'roll').disabled).toBe(true);
+        hook(container, 'enter').click();
         expect(onLaunchJevReading).toHaveBeenCalledOnce();
         fail(new Error('edition missing'));
-        await vi.waitFor(() => expect(container.querySelector('.oracle-alert').hidden).toBe(false));
+        await vi.waitFor(() => expect(container.querySelector('.home-alert').hidden).toBe(false));
         expect(container.querySelector('.portal-alert-message').textContent).toBe('edition missing');
-        expect(container.querySelector('[data-oracle="enter"]').disabled).toBe(false);
+        expect(hook(container, 'enter').disabled).toBe(false);
         portal.destroy();
     });
 
-    it('recovers when the roll cannot load, and keeps what was showing', async () => {
+    it('waits for today\'s poem before it can be pressed', () => {
         const { portal, container } = makePortal();
-        await roll(container);
-        const shown = portal.result;
-        portal.tools = null;
-        vi.spyOn(portal, 'loadTools').mockRejectedValueOnce(new Error('chunk failed'));
-        container.querySelector('[data-oracle="roll"]').click();
-        await vi.waitFor(() => expect(container.querySelector('.oracle-alert').hidden).toBe(false));
-        expect(portal.state).toBe('result');
-        expect(portal.result).toBe(shown);
-        expect(container.querySelector('[data-oracle="roll"]').disabled).toBe(false);
-        expect(container.querySelector('.portal-alert-message').textContent).toBe('chunk failed');
+        expect(hook(container, 'enter').disabled).toBe(true);
+        expect(hook(container, 'roll').disabled).toBe(false);
         portal.destroy();
-    });
-
-    it('is still there when the reader comes back from a reading', async () => {
-        const { portal, container } = makePortal();
-        await roll(container);
-        const { title, decision } = portal.result;
-        portal.activate();
-        // Leaving Home for a reading, and returning: the same instance, the same result.
-        portal.deactivate();
-        portal.update();
-        portal.activate();
-        expect(portal.result.decision).toEqual(decision);
-        expect(container.querySelector('.oracle-answer-title').textContent).toBe(title);
-        expect(keys(container)).toEqual(['Roll again', 'Enter', 'Adjust', 'or ask for something specific']);
-        portal.destroy();
-    });
-
-    it("starts empty on a fresh load, so the first roll is the reader's own", async () => {
-        const first = makePortal();
-        await roll(first.container);
-        first.portal.destroy();
-        // A tab that once held a result, from this version or an older one, still loads empty.
-        sessionStorage.setItem('rise-oracle-v1', JSON.stringify({ rolled: true, result: { decision: {}, source: 'roll' } }));
-        const second = makePortal();
-        expect(second.portal.state).toBe('idle');
-        expect(second.portal.result).toBeNull();
-        expect(keys(second.container)).toEqual(['Roll']);
-        expect(second.container.querySelector('.oracle-answer').hidden).toBe(true);
-        expect(second.container.querySelector('.oracle-cursor').hidden).toBe(false);
-        second.portal.destroy();
     });
 });
 
 describe('the rest of Home', () => {
-    it('reads session and audio capabilities from its owner', () => {
+    it('the Library link opens the Library', async () => {
+        const { portal, container, onNavigate } = makePortal();
+        hook(container, 'library').click();
+        expect(onNavigate).toHaveBeenCalledWith('library');
+        portal.destroy();
+    });
+
+    it('offers Continue reading as a pill when there is a session, and reads audio from its owner', () => {
         const audio = { playClick: vi.fn() };
-        const { portal, container } = makePortal({
+        const { portal, container, onNavigate } = makePortal({
             getAudioEngine: () => audio,
             getCurrentSession: () => ({ title: 'Meditations' })
         });
         const continuation = container.querySelector('.portal-continue');
         expect(continuation.hidden).toBe(false);
         expect(continuation.textContent).toContain('Meditations');
+        continuation.click();
+        expect(onNavigate).toHaveBeenCalledWith('chamber-session', { title: 'Meditations' });
         container.querySelector('[data-nav="library"]').click();
-        expect(audio.playClick).toHaveBeenCalledOnce();
+        expect(audio.playClick).toHaveBeenCalledTimes(2);
         portal.destroy();
+        expect(makePortal().container.querySelector('.portal-continue').hidden).toBe(true);
     });
 
     it('offers a disclosed preset scene sample and a separate live RISE link', async () => {
@@ -234,8 +448,11 @@ describe('the rest of Home', () => {
         const { portal, container } = makePortal({ demoMode: true, onLaunchJevSample });
         expect(container.textContent).toContain('preset');
         expect(container.textContent).toContain('No live RISE request');
-        expect(container.querySelector('#oracle-form')).toBeNull();
-        expect(portal.object).toBeNull();
+        expect(container.querySelector('.home-ask, .home-engine, [data-home="ask-open"]')).toBeNull();
+        portal.activate();
+        await new Promise(resolve => setTimeout(resolve, 50));
+        expect(stages.made).toHaveLength(0);
+        expect(streams).toHaveLength(0);
         expect(container.querySelector('#portal-jev-demo').textContent).toContain('George Eliot');
         expect(container.querySelector('#portal-jev-demo a[href="https://standardebooks.org/ebooks/george-eliot/middlemarch"]')).not.toBeNull();
         container.querySelector('#jev-scene-demo-start').click();
@@ -243,7 +460,7 @@ describe('the rest of Home', () => {
         portal.destroy();
     });
 
-    it('the Menu holds every room, starts at Home, keeps focus and closes on Escape', () => {
+    it('the Menu holds every room and Ask for a reading, starts at Home, keeps focus and closes on Escape', () => {
         const { portal, container, onNavigate } = makePortal();
         const header = container.querySelector('.sl-header');
         const toggle = container.querySelector('.portal-menu-toggle');
@@ -252,11 +469,16 @@ describe('the rest of Home', () => {
         expect(container.querySelector('.portal').classList.contains('is-menu-open')).toBe(true);
 
         const items = [...container.querySelectorAll('.portal-nav button')];
-        expect(items[0].textContent.trim()).toBe('Home');
+        expect(items.slice(0, 3).map(words)).toEqual(['Home', 'Ask for a reading', 'Today\'s poem']);
         expect(items[0].getAttribute('aria-current')).toBe('page');
         expect(document.activeElement).toBe(items[0]);
         expect([...container.querySelectorAll('.portal-nav [data-nav]')].map(item => item.dataset.nav))
-            .toEqual(['library', 'vault', 'workshop', 'chamber', 'chapel', 'scriptorium', 'visual-lab', 'emotions', 'curia']);
+            .toEqual(['library', 'vault', 'workshop', 'chamber', 'live', 'chapel', 'scriptorium', 'visual-lab', 'emotions', 'curia']);
+        // Today's poem is not a room: it begins the day's exact poem through the app's launchToday.
+        expect(items[2].dataset.action).toBe('today');
+        // Every room the Menu names is a route the app has, so no Menu button goes nowhere.
+        const routes = new Set(createRouteManifest({}).map(route => route.id));
+        for (const item of container.querySelectorAll('.portal-nav [data-nav]')) expect(routes, item.dataset.nav).toContain(item.dataset.nav);
 
         const last = items[items.length - 1];
         last.focus();
@@ -280,7 +502,6 @@ describe('the rest of Home', () => {
         const link = container.querySelector('.portal-nav a[href="/wormhole.html"]');
         expect(link.textContent.trim()).toBe('Wormhole');
         expect(link.closest('.portal-nav').textContent).toContain('Other ways in');
-        // The demo pages are for a fixed sample; they keep the same Menu.
         portal.destroy();
         const demo = makePortal({ demoMode: true });
         expect(demo.container.querySelector('.portal-nav a[href="/wormhole.html"]')).not.toBeNull();
@@ -299,34 +520,50 @@ describe('the rest of Home', () => {
         portal.destroy();
     });
 
-    it('keeps Privacy and Terms posted, and nothing else in the footer', () => {
+    it('keeps Privacy and Terms posted on Home itself', () => {
         const { portal, container } = makePortal();
         const footer = container.querySelector('.portal-footer');
-        expect([...footer.querySelectorAll('a, button')].map(link => link.textContent.trim())).toEqual(['Privacy', 'Terms']);
+        expect(footer.closest('.portal-nav, dialog')).toBeNull();
+        expect([...footer.querySelectorAll('.portal-legal a')].map(link => link.textContent.trim())).toEqual(['Privacy', 'Terms']);
         expect(footer.querySelector('a[href="/privacy.html"]')).not.toBeNull();
         expect(footer.querySelector('a[href="/terms.html"]')).not.toBeNull();
         portal.destroy();
     });
 
-    it('names the lockup as one image and keeps one main landmark', () => {
+    it('names the lockup as one image and keeps one main landmark and one h1', () => {
         const { portal, container } = makePortal();
         const lockup = container.querySelector('.sl-lockup');
         expect(lockup.getAttribute('role')).toBe('img');
         expect(lockup.getAttribute('aria-label')).toBe('SyberLabs RISE');
         expect(container.querySelector('main .sl-header, main .portal-footer')).toBeNull();
         expect(container.querySelectorAll('main')).toHaveLength(1);
+        expect(container.querySelectorAll('h1')).toHaveLength(1);
+        expect(container.querySelector('[role="status"] [data-home-status]')).not.toBeNull();
         portal.destroy();
     });
 
     it('names every control and uses no glyph or emoji text', async () => {
         const { portal, container } = makePortal();
-        await roll(container);
+        await arrive(portal, container);
+        await another(container, portal);
         expect(container.querySelector('.sl-wordmark').textContent).toBe('SYBERLABS / RISE');
         expect(container.textContent).not.toMatch(/[←-⯿\u{1F300}-\u{1FAFF}]/u);
         for (const button of container.querySelectorAll('button')) {
             const named = button.getAttribute('aria-label') || button.textContent.trim();
             expect(named, button.outerHTML).not.toBe('');
         }
+        portal.destroy();
+    });
+
+    it('opens a door onto the live Current, as a minor room until Stage 2 is complete', () => {
+        const { portal, container, onNavigate } = makePortal();
+        const door = container.querySelector('.portal-nav [data-nav="live"]');
+        expect(door, 'the live Current has no door at all').not.toBeNull();
+        // Reachable without a typed URL, but not promoted: the runtime is mid-build
+        // (docs/VISION.md Stage 2). Promote it, and flip this, when Stage 2's shown-by holds.
+        expect(door.classList.contains('portal-nav-minor'), 'the live Current is promoted before Stage 2').toBe(true);
+        door.click();
+        expect(onNavigate).toHaveBeenCalledWith('live');
         portal.destroy();
     });
 
@@ -338,8 +575,10 @@ describe('the rest of Home', () => {
         portal.destroy();
     });
 
-    it('styles the page around the object from the SyberLabs tokens only', () => {
-        expect(portalCss).not.toMatch(/gradient/);
+    it('styles Home from the SyberLabs tokens, with one ink scrim as its only gradient, and nothing under 12px', () => {
+        const gradients = portalCss.match(/[a-z-]*gradient\(/gu) ?? [];
+        expect(gradients).toEqual(['radial-gradient(', 'linear-gradient(']);
+        expect(portalCss).toMatch(/\.home-scrim \{[^}]*radial-gradient\([^}]*linear-gradient\(/u);
         expect(portalCss).toMatch(/var\(--sy-accent-rise\)/);
         expect(portalCss).not.toMatch(/font-size:\s*(?:[0-9]|1[01])px/);
     });

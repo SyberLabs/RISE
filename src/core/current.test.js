@@ -2,7 +2,7 @@
  * The Current: what every way into a reading arrives at.
  *
  * RISE has many entrances (Library, Reader Setup, Workshop, Keystones, the
- * Chapel, Jev, the Oracle) and one destination. That is only true while
+ * Chapel, Jev, Home's roll) and one destination. That is only true while
  * nothing else constructs the destination, and while each entrance's output
  * satisfies the same contract. Both are checked here, because a reading has
  * more than one door and a test written against the door just built proves
@@ -177,7 +177,7 @@ describe('every entrance yields a Current', () => {
         }))).toEqual([]);
     }, 60_000);
 
-    it('Jev and the Oracle: a decision resolved against the shelf', async () => {
+    it('Jev and Home\'s roll: a decision resolved against the shelf', async () => {
         const released = releaseInventory.middlemarch;
         const selectors = {
             section: 'first', wpm: 250, curve: 'flat', chunkMode: 'phrase',
