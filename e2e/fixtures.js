@@ -22,11 +22,10 @@ export async function openHomeRoom(page, destination) {
   await openHomeNav(page, destination);
 }
 
-/** Open Home's ask. Asking is the escape hatch: a first roll reveals it. */
+/** Open Home's ask (offered from the start). The field needs a connected AI. */
 export async function openHomeAsk(page) {
-  await page.locator('[data-oracle="roll"]').click();
-  await page.locator('[data-oracle="ask-open"]').click();
-  await page.locator('#oracle-intent').waitFor();
+  await page.locator('[data-home="ask-open"]').click();
+  await page.locator('#home-intent').waitFor();
 }
 
 /** Add a fake reader-owned OpenRouter key in this browser context. */
@@ -45,10 +44,10 @@ export async function routeTestOpenRouter(page, decision, onRequest = () => {}) 
 export async function askHome(page, intent) {
   await connectTestOpenRouter(page);
   await openHomeAsk(page);
-  await page.locator('#oracle-intent').fill(intent);
-  await page.locator('[data-oracle="ask"]').click();
-  // Nothing plays on arrival; the reading starts only from Enter.
-  await page.locator('[data-oracle="enter"]').click();
+  await page.locator('#home-intent').fill(intent);
+  await page.locator('[data-home="ask"]').click();
+  // Nothing plays on arrival; the reading starts only from Start reading.
+  await page.locator('[data-home="enter"]').click();
 }
 
 /** Turn an admitted decision fixture into the provider's choices-only reply. */

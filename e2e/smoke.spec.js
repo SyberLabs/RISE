@@ -34,7 +34,7 @@ async function boot(page, { text = true, prefs = null } = {}) {
         if (seedPrefs) localStorage.setItem('rise_orbital_prefs_v1', JSON.stringify(seedPrefs));
     }, { gate: GATE_SESSION, seedText: text ? SEED_TEXT : null, seedPrefs: prefs });
     await page.goto('/');
-    await expect(page.locator('.portal .oracle-title').first()).toBeVisible({ timeout: 15_000 });
+    await expect(page.locator('.portal .home-title').first()).toBeVisible({ timeout: 15_000 });
 }
 
 async function enterChamber(page) {
@@ -79,9 +79,9 @@ async function exitSession(page) {
 
 test('1 · Home presents one key, and every room behind Menu', async ({ page }) => {
     await boot(page, { text: false });
-    // Home is the Oracle: one key. The rooms you own sit behind the one
+    // Home is the night library: one solid key. The rooms you own sit behind the one
     // Menu; the Atrium and the Solarium are gone with their rooms.
-    await expect(page.locator('[data-oracle="roll"]')).toBeVisible();
+    await expect(page.locator('[data-home="roll"]')).toBeVisible();
     const nav = page.locator('.portal-nav [data-nav]');
     await expect(nav).toHaveCount(10);
     // The live Current is reachable from the Portal, not only by typing /live.
@@ -139,7 +139,7 @@ test('6 · text and settings survive a refresh', async ({ page }) => {
     await expect(page.locator('.chamber-orbital')).toContainText('Smoke Seed');
 
     await page.reload();
-    await expect(page.locator('.portal .oracle-title').first()).toBeVisible({ timeout: 15_000 });
+    await expect(page.locator('.portal .home-title').first()).toBeVisible({ timeout: 15_000 });
     await enterChamber(page);
 
     await expect(page.locator('.chamber-orbital')).toContainText('Smoke Seed');
