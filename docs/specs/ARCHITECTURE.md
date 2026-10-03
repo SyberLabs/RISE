@@ -35,28 +35,19 @@ source text, proposal validation, and reading pipeline remain in the browser.
 
 ---
 
-## 2. The four constraints that decide everything else
+## 2. The three constraints that decide everything else
 
 Every decision in §8 is downstream of these. They are the axioms; everything
 else is a recommendation.
 
-1. **Reader material stays local by default.** Source text, reading history and
-   personal media stay in the browser. When the reader explicitly routes a
-   Scriptorium request with JEV, only the intent they entered and target word
-   count are sent to the RISE function and TypeSafe. The reader supplies the
-   TypeSafe key for that request; RISE does not persist it. When the reader
-   asks for a Library recommendation, only their entered intent is sent to
-   the RISE Worker and, on a decision-cache miss, OpenRouter. PostgreSQL holds
-   public catalog metadata. Redis holds that catalog and validated choices for
-   five minutes; its decision key is a keyed digest of the intent and catalog,
-   and it does not store the raw intent.
-2. **Reverent degradation.** A work, image or sound that will not resolve is
-   *absent* — never a broken frame, never a substitute. Silence outranks
-   approximation.
-3. **Provenance travels with the work.** A reader should always be able to tell
-   a received text from one written here, and every visual carries its rights.
-4. **Structure is read, never inferred.** An ingest may not destroy a
-   distinction the source made, and may not re-guess one it discarded.
+1. **No shared inference.** Every model call runs on the reader's own key or
+   on the reader's own machine. RISE never pays for a reader's thinking.
+2. **A browser, no account.** There is no identity service and no server-side
+   reader state. Nothing a reader types or reads leaves their device unless
+   they send it.
+3. **Content is static and content-addressed.** Editions, recitation, imagery
+   and programs are files named by their hash, built from a content branch
+   into `dist/`, and never part of the module graph.
 
 ---
 
@@ -235,9 +226,10 @@ and it is the same set the first-load measurement prices.
 | **Data** | works, chapel books, catalogs, recitation audio, pinned imagery | an editorial act occurs | yes; currently **through** the control plane (see §8.2) |
 | **Build** | `scripts/` — ingest, harvest, audit, render, release gate | a process changes | no |
 
-The build plane is the one that enforces the §2 constraints. Its refusals —
-word-count mismatch, missing rights basis, an uncertified work on a public
-shelf — are the reason those constraints are properties rather than intentions.
+The build plane is the one that enforces the §2 constraints and the §7
+contracts. Its refusals — word-count mismatch, missing rights basis, an
+uncertified work on a public shelf — are the reason those constraints are
+properties rather than intentions.
 
 ---
 
@@ -393,6 +385,18 @@ shell stays a mount point. Chamber mounts a Fit-mask runtime from
 
 ## 7. Contracts that must hold
 
+- **Reverent degradation.** A work, image or sound that will not resolve is
+  *absent* — never a broken frame, never a substitute. Silence outranks
+  approximation.
+- **Provenance travels with the work.** A reader can always tell a received
+  text from one written here, and every visual carries its rights. The build
+  scripts refuse a work without a rights basis.
+- **Structure is read, never inferred.** An ingest may not destroy a
+  distinction the source made, and may not re-guess one it discarded.
+- **A routed request carries only what the reader typed.** When the reader
+  routes a Scriptorium request with JEV, only the intent they entered and the
+  target word count are sent to the RISE function and TypeSafe; the reader
+  supplies the key for that request and RISE never persists it.
 - **Visual safety is an execution-time veto**, including when photosensitivity
   mode is enabled during a running session. Never auto-grant consent from a
   preset or a saved configuration.
@@ -426,7 +430,7 @@ of `settled`, `open`, `deferred`, or `reversed`.
 - **Rejected:** a server tier with accounts, sync, and server-side identity.
 - **Why:** the tradeoff is unusually lopsided. A backend buys cross-device sync,
   real access control, server-side rate limiting toward museum APIs, and
-  telemetry. It costs the §2.1 constraint outright — "nothing leaves" stops
+  telemetry. It costs the §2.2 constraint outright — "nothing leaves" stops
   being a property of the architecture and becomes a promise about conduct —
   and it imports availability, consistency, replication, authentication,
   authorization and an operational budget into a project that currently has
@@ -457,7 +461,7 @@ of `settled`, `open`, `deferred`, or `reversed`.
   **What the old design could not buy at any price** is what this one gets for
   nothing: a payload is re-verified in the reader's browser on every read, so a
   silently corrupted object is unreadable rather than readable-and-wrong. A
-  work that will not verify is *absent*, per §2.2 — never substituted.
+  work that will not verify is *absent*, per §7 — never substituted.
 - **Status:** settled. Recorded as `open` when this register was written, and
   closed by the change that cut the seam.
 
@@ -525,7 +529,7 @@ of `settled`, `open`, `deferred`, or `reversed`.
   — the acoustic ledger binds a human verdict to exact audio bytes, which
   runtime synthesis could not support. The governing rule was written as
   "treat speech as unavailable rather than choosing a backend by feature
-  detection alone," which is §2.2 applied to sound. **The cost is size**: the
+  detection alone," which is §7 applied to sound. **The cost is size**: the
   packs ship uncompressed, and that is the second-largest known cost (§9).
 - **Status:** settled for the mechanism; the delivery format is **open**.
 
@@ -564,7 +568,7 @@ of `settled`, `open`, `deferred`, or `reversed`.
 - **Why:** live search cannot be rate-limited across readers, cannot be
   rights-checked before display, and puts a third party on the reading path.
   Harvest-and-pin means a human approved every image and its rights before a
-  reader could meet it, which §2.3 requires. Two rejections are recorded with
+  reader could meet it, which §7 requires. Two rejections are recorded with
   their evidence: the Wikimedia category registry is **empty by design** after
   an audit found a category silently returning nothing for its whole life —
   "a searched source can rot invisibly, and a pinned one cannot" — and the Met

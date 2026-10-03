@@ -148,6 +148,19 @@ describe('the system design document describes this tree', () => {
         expect(text, `${DOC} 8.10 should say "six production dependencies"`)
             .toMatch(/six production dependencies/u);
     });
+
+    it('states three constraints, and the four old policies live in §7', () => {
+        const section = text.split(/^## 2\. /mu)[1].split(/^## 3\. /mu)[0];
+        const items = section.match(/^\d+\. \*\*/gmu) || [];
+        expect(items.length, '§2 must list exactly three constraints').toBe(3);
+        expect(section).toMatch(/\*\*No shared inference\.\*\*/u);
+        expect(section).toMatch(/\*\*A browser, no account\.\*\*/u);
+        expect(section).toMatch(/\*\*Content is static and content-addressed\.\*\*/u);
+        const contracts = text.split(/^## 7\. /mu)[1].split(/^## 8\. /mu)[0];
+        for (const policy of ['Reverent degradation', 'Provenance travels with the work', 'Structure is read, never inferred']) {
+            expect(contracts, `${policy} belongs in §7`).toContain(policy);
+        }
+    });
 });
 
 describe('every decision records what it rejected and why', () => {
