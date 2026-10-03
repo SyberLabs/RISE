@@ -396,6 +396,53 @@ describe('speaking to it', () => {
     });
 });
 
+describe('the runtime visual bridge', () => {
+    it('only discovers and controls the mounted Chamber for the exact runtime Player', async () => {
+        mount('?voice=paced');
+        const router = {
+            current: 'live',
+            views: new Map(),
+            getCurrentView() { return this.current; },
+            getViewInstance(name) { return this.views.get(name)?.instance ?? null; },
+            async navigate(name, options = {}) {
+                this.current = name;
+                if (name === 'chamber-session') {
+                    const { takeLivePlayer } = await import('../../app/live-handoff.js');
+                    const player = takeLivePlayer(options.data);
+                    this.views.set(name, { instance: {
+                        player,
+                        discoverVisual: () => ({ manifest: { surface: 'attractor' }, current: { intensity: 0.65 }, target: { intensity: 0.65 } }),
+                        controlVisual: vi.fn(command => ({ status: 'accepted', effective: command.value }))
+                    } });
+                }
+                return true;
+            }
+        };
+        host.router = router;
+        host.buildVoices = async () => null;
+        await host.start();
+        await new Promise(resolve => setTimeout(resolve, 250));
+        const player = host.runtime.playerFor();
+        const chamber = router.getViewInstance('chamber-session');
+        expect(chamber.player).toBe(player);
+        expect(host.runtime.discoverVisual()).toMatchObject({ current: { intensity: 0.65 } });
+        expect(host.runtime.controlVisual({ surface: 'attractor', parameter: 'intensity', value: 0.7 }))
+            .toMatchObject({ status: 'accepted', requested: 0.7, effective: 0.7 });
+        expect(chamber.controlVisual).toHaveBeenCalledWith({ surface: 'attractor', parameter: 'intensity', value: 0.7 });
+
+        chamber.player = {};
+        expect(host.runtime.discoverVisual()).toBeNull();
+        expect(host.runtime.controlVisual({ surface: 'attractor', parameter: 'intensity', value: 0.7 }))
+            .toEqual({ status: 'refused', code: 'NO_ACTIVE_VISUAL' });
+        chamber.player = player;
+        router.current = 'portal';
+        expect(host.runtime.discoverVisual()).toBeNull();
+        expect(host.runtime.controlVisual({ surface: 'attractor', parameter: 'intensity', value: 0.7 }))
+            .toEqual({ status: 'refused', code: 'NO_ACTIVE_VISUAL' });
+        await host.stop();
+    });
+});
+
 describe('inside an MCP host', () => {
     /** A window with a parent that records what it is sent, and can answer. */
     function framed({ answer } = {}) {

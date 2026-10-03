@@ -33,7 +33,7 @@ const ctxStub = () => ({
 
 beforeEach(() => {
   globalThis.ResizeObserver = class { observe() {} disconnect() {} };
-  window.matchMedia = window.matchMedia || (() => ({ matches: false }));
+  window.matchMedia = () => ({ matches: false });
   vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockImplementation(ctxStub);
   vi.spyOn(globalThis, 'requestAnimationFrame').mockImplementation(() => 1);
   vi.spyOn(globalThis, 'cancelAnimationFrame').mockImplementation(() => {});
@@ -243,6 +243,120 @@ describe('Attractor forms', () => {
     field.tick(performance.now());
     expect(field.sx2.some(v => v !== 0)).toBe(true);
 
+    field.destroy();
+  });
+});
+
+describe('Attractor visual control', () => {
+  it('interpolates and retargets brightness inside its frame loop', () => {
+    let frame;
+    vi.spyOn(globalThis, 'requestAnimationFrame').mockImplementation(callback => {
+      frame = callback;
+      return 2;
+    });
+    const field = new AttractorField(makeHost(), { intensity: 0.65, adaptive: false });
+    const start = performance.now();
+    expect(field.controlVisual({ surface: 'attractor', parameter: 'intensity', value: 0.75 }))
+      .toMatchObject({ status: 'accepted', requested: 0.75, effective: 0.75 });
+    field.tick(start);
+    expect(field.intensity).toBe(0.65);
+    field.tick(start + 160);
+    expect(field.intensity).toBeCloseTo(0.7, 2);
+    field.controlVisual({ surface: 'attractor', parameter: 'intensity', value: 0.4 });
+    const retargetStart = performance.now();
+    field.tick(retargetStart);
+    expect(field.intensity).toBeCloseTo(0.7, 2);
+    field.tick(retargetStart + 160);
+    expect(field.intensity).toBeCloseTo(0.55, 2);
+    field.tick(retargetStart + 320);
+    expect(field.intensity).toBe(0.4);
+    field.destroy();
+  });
+
+  it('cancels a pending transition when the owning record is retired', () => {
+    const field = new AttractorField(makeHost(), { intensity: 0.65, adaptive: false });
+    field.controlVisual({ surface: 'attractor', parameter: 'intensity', value: 0.75 });
+    field.destroy();
+    expect(field.controlVisual({ surface: 'attractor', parameter: 'intensity', value: 0.7 }))
+      .toEqual({ status: 'refused', code: 'NO_ACTIVE_VISUAL' });
+  });
+
+  it('refuses discovery and control when the connected canvas has no 2D context', () => {
+    vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(null);
+    const field = new AttractorField(makeHost(), { intensity: 0.65, adaptive: false });
+
+    expect(field.canvas.isConnected).toBe(true);
+    expect(field.discoverVisual()).toBeNull();
+    expect(field.controlVisual({ surface: 'attractor', parameter: 'intensity', value: 0.75 }))
+      .toEqual({ status: 'refused', code: 'NO_ACTIVE_VISUAL' });
+    field.destroy();
+  });
+
+  it('repaints a paused field once without restarting its frame loop', () => {
+    const field = new AttractorField(makeHost(), { intensity: 0.65, adaptive: false });
+    const paintedAt = performance.now();
+    field.tick(paintedAt);
+    const heldX = field.sx.slice();
+    const heldY = field.sy.slice();
+    field.pause();
+    const paintsBefore = field.ctx.clearRect.mock.calls.length;
+    field.controlVisual({ surface: 'attractor', parameter: 'intensity', value: 0.75 });
+
+    expect(field.intensity).toBe(0.75);
+    expect(field.ctx.clearRect).toHaveBeenCalledTimes(paintsBefore + 1);
+    expect(Array.from(field.sx)).toEqual(Array.from(heldX));
+    expect(Array.from(field.sy)).toEqual(Array.from(heldY));
+    expect(field.rafId).toBeNull();
+    field.resume();
+    const resumedAt = field.t0;
+    field.tick(resumedAt);
+    expect(Array.from(field.sx)).toEqual(Array.from(heldX));
+    field.tick(resumedAt + 1000);
+    expect(Array.from(field.sx)).not.toEqual(Array.from(heldX));
+    field.destroy();
+  });
+
+  it('uses one still repaint for a reduced-motion adjustment', () => {
+    window.matchMedia = () => ({ matches: true });
+    const field = new AttractorField(makeHost(), { intensity: 0.65, adaptive: false });
+    const paintsBefore = field.ctx.clearRect.mock.calls.length;
+    field.controlVisual({ surface: 'attractor', parameter: 'intensity', value: 0.75 });
+
+    expect(field.intensity).toBe(0.75);
+    expect(field._intensityTransition).toBeNull();
+    expect(field.ctx.clearRect).toHaveBeenCalledTimes(paintsBefore + 1);
+    expect(field.rafId).toBe(1);
+    field.destroy();
+  });
+
+  it('resets a local target to its authored value when its cue is canceled', () => {
+    const field = new AttractorField(makeHost(), { intensity: 0.6, adaptive: false });
+    field.controlVisual({ surface: 'attractor', parameter: 'intensity', value: 0.75 });
+    field.cancelVisualControl();
+
+    expect(field.intensity).toBe(0.6);
+    expect(field.targetIntensity).toBe(0.6);
+    expect(field._intensityTransition).toBeNull();
+    field.destroy();
+  });
+
+  it('repaints reduced-motion output when a cue cancels its local target', () => {
+    window.matchMedia = () => ({ matches: true });
+    const field = new AttractorField(makeHost(), { intensity: 0.6, adaptive: false });
+    const styles = [];
+    vi.spyOn(field.ctx, 'stroke').mockImplementation(function () {
+      styles.push(this.strokeStyle);
+    });
+    field.tick(performance.now());
+    const authoredStyles = styles.slice();
+
+    field.controlVisual({ surface: 'attractor', parameter: 'intensity', value: 0.75 });
+    expect(styles.slice(-authoredStyles.length)).not.toEqual(authoredStyles);
+    const beforeCancel = styles.length;
+    field.cancelVisualControl();
+
+    expect(styles.length).toBeGreaterThan(beforeCancel);
+    expect(styles.slice(-authoredStyles.length)).toEqual(authoredStyles);
     field.destroy();
   });
 });

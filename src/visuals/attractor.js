@@ -15,6 +15,7 @@
  */
 
 import { reportProjectionPaint } from './projection-paint.js';
+import { ATTRACTOR_VISUAL_MANIFEST, validateVisualCommand } from '../core/visual-control-contract.js';
 import {
     ATTRACTOR_FORMS,
     ATTRACTOR_PALETTES,
@@ -181,6 +182,12 @@ export class AttractorField {
         this.palette = PALETTES[options.palette] ? options.palette : DEFAULT_PALETTE;
         this.form = FORMS.includes(options.form) ? options.form : 'mirror';
         this.intensity = options.intensity ?? 0.65;
+        this._controlBaseIntensity = this.intensity;
+        this.targetIntensity = this.intensity;
+        this._intensityTransition = null;
+        this._oneShotPaint = false;
+        this.paused = false;
+        this.destroyed = false;
         this.speed = clampSpeed(options.speed);
         this.onProjectionPaint = typeof options.onProjectionPaint === 'function'
             ? options.onProjectionPaint
@@ -205,6 +212,8 @@ export class AttractorField {
         this.rafId = null;
         this.t0 = performance.now();
         this._motionBase = 0;
+        this._lastMotionTime = null;
+        this._pausedMotionTime = null;
 
         this.integrate();
 
@@ -347,8 +356,10 @@ export class AttractorField {
     }
 
     tick(now) {
+        const oneShot = this._oneShotPaint;
+        this._oneShotPaint = false;
         if (!this.ctx) {
-            this.rafId = requestAnimationFrame(this.tick);
+            if (!this.paused && !this.destroyed && !oneShot) this.rafId = requestAnimationFrame(this.tick);
             return;
         }
         const frameStart = performance.now();
@@ -359,18 +370,36 @@ export class AttractorField {
         // canvas layer is invisible to CSS-based animation kill switches.
         const rootClasses = document.documentElement.classList;
         const reduced = this.reduced || rootClasses.contains('reduced-motion');
+        if (reduced && this._intensityTransition) {
+            this.intensity = this._intensityTransition.to;
+            this.targetIntensity = this.intensity;
+            this._intensityTransition = null;
+            this._stillDrawn = false;
+        }
         // Reduced motion holds one still of the same field: colour and
         // form stay, nothing turns or travels. The loop only idles so the
         // field comes back to life if the reader turns motion on again.
-        if (reduced && this._sampleT == null && this._stillDrawn) {
-            this.rafId = requestAnimationFrame(this.tick);
+        if (reduced && this._sampleT == null && this._stillDrawn && !oneShot) {
+            if (!this.paused && !this.destroyed) this.rafId = requestAnimationFrame(this.tick);
             return;
         }
         this._stillDrawn = reduced && this._sampleT == null;
-        const t = this._sampleT ?? (reduced ? REDUCED_STILL_SECONDS * this.speed : this.motionTime(now));
+        const t = this._sampleT ?? (reduced
+            ? REDUCED_STILL_SECONDS * this.speed
+            : this.paused
+                ? (this._pausedMotionTime ?? this._lastMotionTime ?? this.motionTime(now))
+                : this.motionTime(now));
+        if (this._sampleT == null) this._lastMotionTime = t;
         const photosafe = rootClasses.contains('photosensitivity-mode');
         const yawSpeed = reduced ? 0.06 : 0.16;
         const flickAmp = photosafe ? 0 : (reduced ? 0.04 : 0.12);
+
+        if (this._intensityTransition) {
+            const { from, to, startedAt, duration } = this._intensityTransition;
+            const progress = Math.min(1, Math.max(0, (now - startedAt) / duration));
+            this.intensity = from + (to - from) * progress;
+            if (progress === 1) this._intensityTransition = null;
+        }
 
         // gentle, never-fully-dark flicker — a living filament, not a strobe
         const flick = 1 - flickAmp * (0.5 + 0.5 * Math.sin(t * 2.3))
@@ -476,7 +505,7 @@ export class AttractorField {
         this.measureQuality(performance.now() - frameStart);
         this._syncProjection();
         if (!this.projectionHost) reportProjectionPaint(this);
-        this.rafId = requestAnimationFrame(this.tick);
+        if (!this.paused && !this.destroyed && !oneShot) this.rafId = requestAnimationFrame(this.tick);
     }
 
     /**
@@ -503,7 +532,72 @@ export class AttractorField {
     setIntensity(intensity) {
         if (!Number.isFinite(intensity)) return false;
         this.intensity = Math.min(1, Math.max(0.2, intensity));
+        this.targetIntensity = this.intensity;
+        this._intensityTransition = null;
         return true;
+    }
+
+    discoverVisual() {
+        if (this.destroyed || !this.ctx || !this.canvas?.isConnected || !this.host?.isConnected) return null;
+        return Object.freeze({
+            manifest: ATTRACTOR_VISUAL_MANIFEST,
+            current: Object.freeze({ intensity: this.intensity }),
+            target: Object.freeze({ intensity: this.targetIntensity })
+        });
+    }
+
+    controlVisual(command) {
+        const validated = validateVisualCommand(command);
+        if (!validated.ok) return { status: 'refused', code: validated.code };
+        if (this.destroyed || !this.ctx || !this.canvas?.isConnected || !this.host?.isConnected) {
+            return { status: 'refused', code: 'NO_ACTIVE_VISUAL' };
+        }
+
+        const { effective } = validated;
+        const receipt = {
+            status: 'accepted',
+            surface: 'attractor',
+            parameter: 'intensity',
+            requested: validated.requested,
+            effective
+        };
+        const now = performance.now();
+        const reduced = this.reduced || document.documentElement.classList.contains('reduced-motion');
+        this.targetIntensity = effective;
+        if (reduced || this.paused) {
+            this.intensity = effective;
+            this._intensityTransition = null;
+            if (reduced) this._stillDrawn = false;
+            this.paintOnce(now);
+        } else if (effective === this.intensity) {
+            this._intensityTransition = null;
+        } else {
+            this._intensityTransition = {
+                from: this.intensity,
+                to: effective,
+                startedAt: now,
+                duration: 320
+            };
+        }
+        return receipt;
+    }
+
+    cancelVisualControl() {
+        const needsPaint = this.intensity !== this._controlBaseIntensity;
+        this.targetIntensity = this._controlBaseIntensity;
+        this._intensityTransition = null;
+        if (this.destroyed) return;
+        this.intensity = this._controlBaseIntensity;
+        const reduced = this.reduced || document.documentElement.classList.contains('reduced-motion');
+        if (needsPaint && (this.paused || reduced)) {
+            if (reduced) this._stillDrawn = false;
+            this.paintOnce(performance.now());
+        }
+    }
+
+    paintOnce(now) {
+        this._oneShotPaint = true;
+        this.tick(now);
     }
 
     /**
@@ -667,19 +761,29 @@ export class AttractorField {
      * can suspend every persistent field the same way.
      */
     pause() {
-        if (!this.rafId) return false;
-        cancelAnimationFrame(this.rafId);
+        if (this.paused) return false;
+        if (this.rafId) cancelAnimationFrame(this.rafId);
         this.rafId = null;
+        this.paused = true;
+        this._pausedMotionTime = this._lastMotionTime ?? this.motionTime(performance.now());
         return true;
     }
 
     /** Resume integrating from wherever the field stood. */
     resume() {
         if (this.rafId) return;              // already running
+        if (this.paused && this._pausedMotionTime != null) {
+            this._motionBase = this._pausedMotionTime;
+            this.t0 = performance.now();
+        }
+        this._pausedMotionTime = null;
+        this.paused = false;
         this.rafId = requestAnimationFrame(this.tick);
     }
 
     destroy() {
+        this.destroyed = true;
+        this._intensityTransition = null;
         if (this.rafId) cancelAnimationFrame(this.rafId);
         this.rafId = null;
         this.resizeObserver?.disconnect();
