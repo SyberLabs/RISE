@@ -145,6 +145,13 @@ test('leaving a Fit reading never undresses the word on screen', async ({ page }
   await clearWarning(page);
   await expect(page.locator('#atom-display'))
     .toHaveAttribute('data-mask-state', 'ready', { timeout: 30_000 });
+  // The mask can be ready while the router is still fading the Chamber in,
+  // and an Escape in that window cancels the launch instead of asking to
+  // end the reading. Leave only once the Chamber owns the screen.
+  await page.waitForFunction(() => {
+    const router = window.__RISE_TEST__.getRouterState();
+    return router.currentView === 'chamber-session' && !router.transitioning;
+  }, null, { timeout: 20_000 });
 
   await startSampler(page);
   await page.keyboard.press('Escape');
