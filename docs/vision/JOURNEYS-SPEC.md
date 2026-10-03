@@ -230,43 +230,6 @@ Session controls.
 
 ## 4. Current architecture — what already exists
 
-### 4.1 Existing Atrium Journeys
-
-The Atrium already has records named Journeys:
-
-- `src/content/atrium/history.js`
-- `src/content/atrium/philosophy.js`
-
-They contain:
-
-```js
-{
-  id,
-  domain,
-  kind: 'journey',
-  title,
-  anchorIds,
-  description,
-  segments: [{ passageId, role }],
-  estimatedMinutes,
-  status
-}
-```
-
-Their strengths are substantial:
-
-- exact passage and source records;
-- a controlled segment-role vocabulary;
-- edition-, rights-, and payload-level readiness;
-- checksum verification before launch;
-- stable provenance in the Session;
-- an itinerary calculated from the actual compiler profile.
-
-Their runtime limitation is equally precise: they are **editorial playlists**.
-`createAtriumJourneyHandoff()` flattens the ready segments into ordinary text
-sources, applies one domain-wide sensory config, and gives the result to
-`compileSession()`.
-
 ### 4.2 The Chapel pericope engine is the direct predecessor
 
 The strongest existing model is not the Atrium Journey handoff. It is the
@@ -331,9 +294,6 @@ There are two important differences:
 
 | Layer | Existing behavior | Journey requirement | Ruling |
 |---|---|---|---|
-| Atrium record | flat `segments[]` with argument roles | movements containing segments, thesis, transformation, world states, and boundaries | extend compatibly; do not discard current roles |
-| Readiness | excellent source, rights, payload, checksum, word-count checks | image/audio asset readiness and movement completeness | extend the same fail-closed pattern |
-| Handoff | verified sources plus one global sensory config | lower an authored Journey into several independent runtime programs | add a Journey compiler above the canonical Session compiler |
 | Session compiler | chunks multiple sources and inserts one generic three-beat break | authored boundary duration and identity between each source | add a bounded generic source-boundary contract |
 | Atom | carries `sourceId`, position, tags, phase, duration | stable movement and boundary address | use `sourceId` for V1 movement matching; give boundary atoms stable synthetic source ids |
 | Player | sole reading clock; blank timing-locked atoms already pause progression correctly | boundaries must own time and pause cleanly | retain Player authority; do not use wall-time side schedulers |
@@ -342,17 +302,6 @@ There are two important differences:
 | Recitation | one static voice id per Session; complete-pack admission; speech owns atom duration | reliable Journey narration | V1 uses one voice for the complete Journey |
 | Page Mode | consumes atoms plus visual program spatially | multi-work spatial edition | defer; source-coordinate program should remain serializable |
 | Persistence | Session carries serialized scripture visual program | Journey programs must survive Chamber creation/destruction | normalize and store programs on Session |
-| `Sequencer` | unused heuristic strategies, including positional “ritual” phases | authored editorial transformation | do not revive it for Journeys |
-
-### 4.4 Why the existing `Sequencer` is not the answer
-
-`src/core/sequencer.js` contains useful early vocabulary, but its thematic,
-emergent, and ritual strategies rearrange atoms through tags, shuffling, or
-positional ratios. A Journey's movement cannot be inferred from being in the
-first 10% or the “climax” 15% of a text.
-
-Journeys are authored above the runtime. The runtime validates and follows;
-it does not discover their argument.
 
 ---
 
@@ -1052,55 +1001,6 @@ Only after the skeleton is proven:
 5. add the Journey introduction, credits, and contextual apparatus;
 6. conduct accessibility and photosensitivity review;
 7. publish only when the complete production manifest is ready.
-
----
-
-## 12. Expected file changes
-
-First implementation slice:
-
-```text
-src/core/journey-program.js                 new
-src/core/journey-program.test.js            new
-src/core/movement-scheduler.js              new
-src/core/movement-scheduler.test.js         new
-src/core/session-compiler.js                extend source boundaries
-src/core/session-compiler.test.js           boundary proofs
-src/core/models.js                          carry movementProgram
-src/content/atrium/journey-structure.js     new compatibility/flattening helper
-src/content/atrium/validate.js              validate authored movements
-src/content/atrium/readiness.js             read both journey shapes
-src/content/atrium/itinerary.js             movement-aware itinerary
-src/content/atrium/handoff.js               lower authored Journey
-src/content/atrium/handoff.test.js          three-movement vertical fixture
-src/components/Chamber.js                   wire movement observer only
-```
-
-Second slice:
-
-```text
-src/core/visual-program.js
-src/core/visual-scheduler.js
-src/core/visual-program.test.js
-src/core/visual-scheduler.test.js
-src/page/flow.js                             only if source programs reach Page
-```
-
-Third slice:
-
-```text
-src/core/audio-program.js                    new
-src/core/audio-program.test.js               new
-src/core/audio-scheduler.js                  new
-src/core/audio-scheduler.test.js             new
-src/audio/engine.js                          bounded cue facade
-src/audio/engine.lifecycle.test.js
-src/components/Chamber.js
-src/core/models.js
-```
-
-Content and asset files for **War** are intentionally excluded from the first
-slice.
 
 ---
 

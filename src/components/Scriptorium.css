@@ -7,7 +7,6 @@
   --scriptorium-fog: var(--sy-text-2);
   --scriptorium-rule: var(--sy-line);
   --scriptorium-panel: var(--sy-surface);
-  --scriptorium-accent: var(--sy-brand);
   /* A viewport height, not a percentage: `body` is `overflow: hidden` and
      `.view-container` sets no height, so `height: 100%` resolves against
      an auto-height parent and establishes no scroll context at all. `dvh`

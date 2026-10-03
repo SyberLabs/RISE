@@ -9,7 +9,9 @@ const FAULTS = {
     'black-holes': {},
     interrupt: {},
     'transport-loss': { transportLossAfter: 9 },
-    'provider-failure': { failAfter: 6 }
+    'provider-failure': { failAfter: 6 },
+    // Part way through the second passage, after the first has ended.
+    'cut-short': { failAfter: 13 }
 };
 
 describeAdapterConformance('mock', (name) => {

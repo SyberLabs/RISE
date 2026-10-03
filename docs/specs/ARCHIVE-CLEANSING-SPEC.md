@@ -282,7 +282,7 @@ Shahnama and the Corpus Hermeticum, which are the volume.
 
 Asked for by Mateo, 2026-08-05: all-capital words, punctuation in series like
 `;;;....`, and brackets. Swept exhaustively over 1,710,281 lines of 91 works
-(`scripts/audit-text-artifacts.mjs`).
+(a one-shot audit script, since deleted).
 
 **The headline is that the counts are misleading, and acting on them would have
 been the largest mistake of this pass.** Three of the four biggest buckets are
