@@ -7,7 +7,7 @@ import { localDateKey } from './local-day.js';
 
 export const TODAY_WORKS = Object.freeze(['spoon-river-anthology', 'lyrical-ballads']);
 export const TODAY_MAX_WORDS = 400;
-const SHUFFLE_SEED = 'rise-today-v1';
+const SHUFFLE_SEED = 'rise-today-v2';
 
 function hash(text) {
   let h = 2166136261 >>> 0;
@@ -28,31 +28,43 @@ function random(seed) {
 /** A repeatable random sequence for a string seed. */
 export const seededRandom = text => random(hash(text));
 
-export function todayPool(index = DIVISION_INDEX) {
-  const pool = [];
+/**
+ * Each work's short divisions, each shuffled once with its own fixed seed.
+ * The works take turns day by day (todayPoem), so the 244 Spoon River
+ * epitaphs no longer outnumber Lyrical Ballads' 31 poems eight days to one.
+ */
+export function todayPools(index = DIVISION_INDEX) {
+  const pools = {};
   for (const workId of TODAY_WORKS) {
     const work = index[workId];
+    const list = [];
     work?.labels.forEach((label, entryId) => {
-      if (work.divisionWords[entryId] <= TODAY_MAX_WORDS) pool.push({ workId, entryId, label });
+      if (work.divisionWords[entryId] <= TODAY_MAX_WORDS) list.push({ workId, entryId, label });
     });
+    const next = seededRandom(`${SHUFFLE_SEED}:${workId}`);
+    for (let i = list.length - 1; i > 0; i--) {
+      const j = Math.floor(next() * (i + 1));
+      [list[i], list[j]] = [list[j], list[i]];
+    }
+    pools[workId] = list;
   }
-  const next = seededRandom(SHUFFLE_SEED);
-  for (let i = pool.length - 1; i > 0; i--) {
-    const j = Math.floor(next() * (i + 1));
-    [pool[i], pool[j]] = [pool[j], pool[i]];
-  }
-  return pool;
+  return pools;
 }
+
+/** Every poem the day can choose, across the works. */
+export const todayPool = (index = DIVISION_INDEX) => Object.values(todayPools(index)).flat();
 
 export { localDateKey };
 export const dayNumber = date =>
   Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()) / 86400000;
 
-let pool = null;
+const mod = (n, m) => ((n % m) + m) % m;
+let pools = null;
 export function todayPoem(date = new Date()) {
-  pool ??= todayPool();
+  pools ??= todayPools();
   const day = dayNumber(date);
-  return { ...pool[((day % pool.length) + pool.length) % pool.length], seed: localDateKey(date), dayNumber: day };
+  const list = pools[TODAY_WORKS[mod(day, TODAY_WORKS.length)]];
+  return { ...list[mod(Math.floor(day / TODAY_WORKS.length), list.length)], seed: localDateKey(date), dayNumber: day };
 }
 
 export const poemTitle = label => String(label).replace(/^Volume [IVX]+ · /u, '');

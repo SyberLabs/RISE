@@ -1,4 +1,4 @@
-/* The reading backdrop (reading-backdrop.js), wherever it runs: Today, Home.
+/* The reading backdrop (reading-backdrop.js), behind Home's reading.
    The page that hosts it places and shades it. */
 
 /* Each reading's engine in its own layer, faded in over the last. The stage

@@ -20,21 +20,8 @@ it('opens a proposed reading as resolved, returning Home', async () => {
   const launched = app();
   const decision = { workId: 'oedipus-rex' };
   await launched.launchJevReading(decision, { firstReadPreview: true });
-  expect(resolveJevReading).toHaveBeenCalledWith(decision, null);
+  expect(resolveJevReading).toHaveBeenCalledWith(decision);
   expect(launched.handleBeginSession).toHaveBeenCalledWith({ ...SESSION, firstReadPreview: true });
-});
-
-it('opens today\'s exact poem, named a poem, returning where it was opened', async () => {
-  const launched = app();
-  const decision = { workId: 'spoon-river-anthology' };
-  const exact = { entryId: 1, label: 'Anne Rutledge' };
-  await launched.launchJevReading(decision, { exact, noun: 'poem', origin: { view: 'today', name: 'Today\'s poem' } });
-  expect(resolveJevReading).toHaveBeenCalledWith(decision, exact);
-  expect(launched.handleBeginSession).toHaveBeenCalledWith({
-    ...SESSION,
-    origin: { view: 'today', name: 'Today\'s poem' },
-    continuation: { ...SESSION.continuation, noun: 'poem' }
-  });
 });
 
 it('says so when the reading could not open', async () => {

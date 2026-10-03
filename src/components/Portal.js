@@ -13,8 +13,9 @@
  * **Ask for a reading** sits in the Menu and opens a dialog (home-ask.js).
  * What RISE cannot do for a request is said before anything plays
  * (src/core/jev-describe.js). An asked reading becomes the one Home shows.
- * Today's poem and a rolled or asked reading open through the app's one
- * launch, as the Today page's Begin does.
+ * Today's poem opens through the app's launchToday (the day's exact poem,
+ * as /today and the Menu open it); a rolled or asked one through
+ * launchJevReading.
  *
  * Every word and control is in the first paint; the poem, the engine (on the
  * shared ReadingStage) and the stream load right after it, and Home works on
@@ -55,8 +56,8 @@ function homeReading(decision, { today, title, author, temper = null, intent = '
     const heading = [title, author].filter(Boolean).join(', by ');
     return {
       decision, temper: decision.temper, heading, label: TODAY, spoken: `${TODAY}: ${heading}`, note: '', link: 'library',
-      // The day's exact division, as a poem: what the Today page's Begin opens.
-      launch: { exact: { entryId: today.entryId, label: today.label }, noun: 'poem' }
+      // The day's exact poem, as /today and the Menu open it.
+      launch: { today: true }
     };
   }
   const work = tools.getTextById(decision.workId);
@@ -88,6 +89,7 @@ export class Portal {
     this.getAudioEngine = options.getAudioEngine || (() => null);
     this.getCurrentSession = options.getCurrentSession || (() => null);
     this.onLaunchJevReading = options.onLaunchJevReading || (async () => {});
+    this.onLaunchToday = options.onLaunchToday || (async () => {});
     this.onAdjustReading = options.onAdjustReading || (async () => {});
     this.onLaunchJevSample = options.onLaunchJevSample || (async () => {});
     this.demoMode = options.demoMode === true;
@@ -491,6 +493,7 @@ export class Portal {
     this.showError('');
     try {
       if (action === 'adjust') await this.onAdjustReading(reading.decision);
+      else if (reading.launch.today) await this.onLaunchToday();
       else {
         const { firstReadPreview, ...launch } = reading.launch;
         const preview = firstReadPreview === true && !this.firstReadChoiceUsed;

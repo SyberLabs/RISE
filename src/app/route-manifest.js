@@ -15,6 +15,7 @@ export function createRouteManifest(operations) {
         onLaunchJevReading: operations.launchJevReading,
         onLaunchJevSample: operations.launchJevSample,
         onAdjustReading: operations.adjustJevReading,
+        onLaunchToday: operations.launchToday,
         getAudioEngine: operations.getAudioEngine,
         getCurrentSession: operations.getCurrentSession
       })
@@ -225,15 +226,6 @@ export function createRouteManifest(operations) {
         chapter: data?.chapter,
         onLaunchRosary: operations.launchRosary,
         onLaunchReading: operations.launchChapelReading
-      })
-    },
-    {
-      id: 'today',
-      containerId: 'view-today',
-      load: () => import('../components/today/TodayPoem.js'),
-      create: (container, _data, { TodayPoem }) => new TodayPoem(container, {
-        onNavigate: operations.handleNavigate,
-        onLaunchJevReading: operations.launchJevReading
       })
     }
   ];

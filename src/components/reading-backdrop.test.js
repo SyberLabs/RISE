@@ -288,8 +288,4 @@ describe('the reading backdrop\'s own stylesheet', () => {
     expect(own).toMatch(/@media \(prefers-reduced-motion: reduce\)\s*\{\s*\.reading-backdrop-flame\s*\{\s*animation:\s*none/u);
     expect(readFileSync(join(here, 'reading-backdrop.js'), 'utf8')).toContain("import './reading-backdrop.css';");
   });
-
-  it('is the only place the drift is written, so Today and Home cannot drift apart', () => {
-    expect(css('today/today-poem.css')).not.toMatch(/flame|drift/u);
-  });
 });

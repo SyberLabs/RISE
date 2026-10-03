@@ -83,9 +83,9 @@ test('1 · Home presents one key, and every room behind Menu', async ({ page }) 
     // Menu; the Atrium and the Solarium are gone with their rooms.
     await expect(page.locator('[data-home="roll"]')).toBeVisible();
     const nav = page.locator('.portal-nav [data-nav]');
-    await expect(nav).toHaveCount(11);
-    // Today's poem is first after Home.
-    await expect(nav.first()).toHaveAttribute('data-nav', 'today');
+    await expect(nav).toHaveCount(10);
+    // Today's poem begins a reading from the Menu; it is not a room.
+    await expect(page.locator('.portal-nav [data-action="today"]')).toHaveText('Today\'s poem');
     // The live Current is reachable from the Portal, not only by typing /live.
     await expect(page.locator('.portal-nav [data-nav="live"]')).toContainText('Live reading');
     for (const gone of ['atrium', 'sol']) {

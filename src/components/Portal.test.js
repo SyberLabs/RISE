@@ -335,17 +335,14 @@ describe('Another reading', () => {
 });
 
 describe('Read it with sound', () => {
-    it('opens today\'s exact poem through the launch the Today page uses, and comes back to Home', async () => {
+    it('opens today\'s exact poem through the app\'s launchToday, and comes back to Home', async () => {
+        const onLaunchToday = vi.fn().mockResolvedValue(undefined);
         const onLaunchJevReading = vi.fn().mockResolvedValue(undefined);
-        const { portal, container } = makePortal({ onLaunchJevReading });
+        const { portal, container } = makePortal({ onLaunchToday, onLaunchJevReading });
         await arrive(portal, container);
         hook(container, 'enter').click();
-        await vi.waitFor(() => expect(onLaunchJevReading).toHaveBeenCalledOnce());
-        const { pick } = today();
-        // No origin: the launch's own is Home's, so leaving the reading returns here.
-        expect(onLaunchJevReading).toHaveBeenCalledWith(portal.reading.decision, {
-            exact: { entryId: pick.entryId, label: pick.label }, noun: 'poem', firstReadPreview: false
-        });
+        await vi.waitFor(() => expect(onLaunchToday).toHaveBeenCalledOnce());
+        expect(onLaunchJevReading).not.toHaveBeenCalled();
         await vi.waitFor(() => expect(hook(container, 'enter').disabled).toBe(false));
         portal.destroy();
     });

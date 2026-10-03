@@ -20,8 +20,7 @@ const ROUTE_IDS = [
   'visual-lab',
   'visual-catalog',
   'live',
-  'chapel',
-  'today'
+  'chapel'
 ];
 
 describe('createRouteManifest', () => {
@@ -76,18 +75,18 @@ describe('createRouteManifest', () => {
     expect(roomOptions('settings', 'Settings').notify).toBe(notify);
   });
 
-  it('gives Today and Home the one launch a reading opens through', () => {
-    const handleNavigate = vi.fn();
-    const launchJevReading = vi.fn();
-    const received = {};
-    class TodayPoem { constructor(_container, options) { received.today = options; } }
-    class Portal { constructor(_container, options) { received.portal = options; } }
-    const routes = createRouteManifest({ handleNavigate, launchJevReading });
-    routes.find(route => route.id === 'today').create({}, null, { TodayPoem });
-    routes.find(route => route.id === 'portal').create({}, null, { Portal });
-    expect(received.today).toEqual({ onNavigate: handleNavigate, onLaunchJevReading: launchJevReading });
-    expect(received.portal.onLaunchJevReading).toBe(launchJevReading);
-    expect(received.portal).not.toHaveProperty('onBeginSession');
+  it('lets Home begin today\'s poem', () => {
+    const launchToday = vi.fn();
+    let received;
+    class Portal {
+      constructor(_container, options) {
+        received = options;
+      }
+    }
+    createRouteManifest({ launchToday })
+      .find(route => route.id === 'portal')
+      .create({}, null, { Portal });
+    expect(received.onLaunchToday).toBe(launchToday);
   });
 
   it('creates the catalog with the navigation callback and address search', () => {

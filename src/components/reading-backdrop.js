@@ -1,7 +1,7 @@
 /**
  * A reading's backdrop: its own engine, live behind a page that previews the
- * look the reading will have. Today runs it faint behind the day's poem; Home
- * runs it full-screen behind the reading it opens on. The engine is the one
+ * look the reading will have. Home runs it full-screen behind the reading it
+ * opens on. The engine is the one
  * the reading itself uses:
  *
  *   attractor mode      -> AttractorField (signal), at the reader's own intensity
