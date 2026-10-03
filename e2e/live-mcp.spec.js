@@ -308,9 +308,12 @@ test('once the reading has ended, its field draws nothing more behind the closin
   expect(await picturesOverASecond(field)).toBeLessThanOrEqual(1);
 });
 
-/** Where the status line and each button in the row lie against the panel, in the next painted frame, and inside the frame. */
+/** Where the status line and each button in the row lie against the panel, once it has settled, and inside the frame. */
 const controlsHead = app => app.locator('#live-controls').evaluate(async panel => {
   await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+  // Reduced motion gives every property a 0.01 ms transition (src/design-system.css), so the panel reaches the
+  // height its status and buttons ask for a frame or two after they ask.
+  await Promise.allSettled(panel.getAnimations().map(animation => animation.finished));
   const box = panel.getBoundingClientRect();
   const top = box.top + panel.clientTop;
   const bottom = Math.min(top + panel.clientHeight, innerHeight);
@@ -343,12 +346,36 @@ test('in a short frame of any width the reader keeps what is happening, Interrup
   }
   await expect(app.locator('.live-controls__notes [data-capability="reducedMotion"]')).toHaveText('Reduced motion is on. Imagery stays still.');
 
-  // A two-line status, a Dive under way, at the narrowest width, with Surface in the row.
-  await app.locator('#live-controls-question').fill('dive on event horizon');
+  // Sent from a box the reader scrolled down to, a Dive and a visual change report on the status line, and
+  // the status line comes back into view to say so.
+  const status = app.locator('.live-controls__status');
+  const scrolledTo = async (box, label) => {
+    await box.evaluate(node => node.scrollIntoView({ block: 'center' }));
+    expect(await app.locator('#live-controls').evaluate(panel => panel.scrollTop), `${label}: the panel is scrolled`).toBeGreaterThan(0);
+  };
+
+  // A Dive from the live reading, at the narrowest width: a one-line status becomes two, with Surface in the row.
+  const question = app.locator('#live-controls-question');
+  await scrolledTo(question, 'question box');
+  await question.fill('dive on event horizon');
   await app.getByRole('button', { name: /Dive: ask about this place/u }).click();
-  await expect(app.locator('.live-controls__status')).toContainText('The reading you left is held exactly where it was');
-  await app.locator('#live-controls').evaluate(panel => { panel.scrollTop = 0; });
-  expect(await controlsHead(app)).toEqual({ scrollTop: 0, names: expect.arrayContaining(['status', 'Surface', 'Stop']), cut: [] });
+  await expect(status).toContainText('The reading you left is held exactly where it was');
+  expect.soft(await controlsHead(app), 'during a Dive').toMatchObject({ names: expect.arrayContaining(['status', 'Surface', 'Stop']), cut: [] });
+  await app.getByRole('button', { name: 'Surface', exact: true }).click();
+
+  // Held, so the reading cannot move on and clear what the status line says about the visual.
+  await app.getByRole('button', { name: 'Interrupt', exact: true }).click();
+  await expect(status).toContainText('Held where you are');
+  for (const [width, brightness] of [[600, '0.55'], [420, '0.45']]) {
+    await page.setViewportSize({ width, height: 420 });
+    await expect.poll(() => app.locator('body').evaluate(body => body.ownerDocument.defaultView.innerWidth)).toBe(width);
+    const visual = app.locator('#live-controls-visual');
+    await scrolledTo(visual, `visual box at ${width} px wide`);
+    await visual.fill('make it calmer');
+    await visual.press('Enter');
+    await expect(status).toContainText(`Visual brightness target changed to ${brightness}`);
+    expect.soft(await controlsHead(app), `after a visual change at ${width} px wide`).toMatchObject({ names: expect.arrayContaining(['status', 'Resume', 'Stop']), cut: [] });
+  }
 });
 
 test('an invalid worker result has no playable Current', async ({ page, baseURL }) => {

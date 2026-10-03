@@ -297,11 +297,17 @@ export function createLiveControls({ runtime, onStop, audible = true, mic = null
         heldByMic = false;
     };
 
+    /** In a short frame the panel scrolls, and a reader who scrolled down to a form must see what it did. */
+    const showStatus = () => { root.scrollTop = 0; };
+
     const ask = async asked => {
         question = asked;
         input.value = '';
         await runtime.dive({ question: asked });
+        // Reset after focusing: the panel grows to hold the Dive's longer status only before the next paint,
+        // so until then Surface lies below it and focusing scrolls the status's top line out.
         surface.focus();
+        showStatus();
     };
 
     function heard(words) {
@@ -402,6 +408,7 @@ export function createLiveControls({ runtime, onStop, audible = true, mic = null
             visualOutcome = visualRefusalMessage('NO_ACTIVE_VISUAL');
             show(visualOutcome, true);
             render(runtime.snapshot());
+            showStatus();
             return;
         }
         const step = direction === 'calmer' ? -0.1 : 0.1;
@@ -418,6 +425,7 @@ export function createLiveControls({ runtime, onStop, audible = true, mic = null
             show(visualOutcome, true);
         }
         render(runtime.snapshot());
+        showStatus();
     }
 
     const submitVisual = () => {
