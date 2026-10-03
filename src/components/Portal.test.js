@@ -349,6 +349,70 @@ describe('Another reading', () => {
     });
 });
 
+// On a slow phone the first press waited most of a second for the roll's
+// code; Home fetches it in idle time once the stream is showing.
+describe('Another reading, warmed while Home reads', () => {
+    let idle;
+    beforeEach(() => {
+        idle = vi.fn();
+        vi.stubGlobal('requestIdleCallback', idle);
+    });
+    afterEach(() => vi.unstubAllGlobals());
+    const runIdle = () => idle.mock.calls.forEach(([run]) => run());
+
+    it('loads the roll\'s code once in idle time after the stream shows, and the press reuses it', async () => {
+        const { portal, container } = makePortal();
+        const loadTools = vi.spyOn(portal, 'loadTools');
+        await arrive(portal, container);
+        // Home's text and engine come first: nothing is fetched until the browser is idle.
+        expect(loadTools).not.toHaveBeenCalled();
+        expect(idle).toHaveBeenCalledOnce();
+        runIdle();
+        expect(loadTools).toHaveBeenCalledOnce();
+        const warmed = portal.tools;
+        await warmed;
+        await another(container, portal);
+        expect(portal.tools).toBe(warmed);
+        // Warm already: the rolled reading's stream asks for no second warm-up.
+        expect(idle).toHaveBeenCalledOnce();
+        portal.destroy();
+    });
+
+    it('fetches nothing when Home is left before the browser is idle', async () => {
+        const { portal, container } = makePortal();
+        const loadTools = vi.spyOn(portal, 'loadTools');
+        await arrive(portal, container);
+        portal.deactivate();
+        runIdle();
+        expect(loadTools).not.toHaveBeenCalled();
+        portal.destroy();
+    });
+
+    it('fetches nothing in the scene demo', async () => {
+        const { portal } = makePortal({ demoMode: true });
+        const loadTools = vi.spyOn(portal, 'loadTools');
+        portal.activate();
+        await new Promise(resolve => setTimeout(resolve, 50));
+        runIdle();
+        expect(loadTools).not.toHaveBeenCalled();
+        portal.destroy();
+    });
+
+    it('fails silently, and the press loads it again', async () => {
+        const { portal, container } = makePortal();
+        await arrive(portal, container);
+        vi.doMock('../content/library.js', () => { throw new Error('chunk failed'); });
+        runIdle();
+        expect(portal.tools).not.toBeNull();
+        await vi.waitFor(() => expect(portal.tools).toBeNull());
+        expect(container.querySelector('.home-alert').hidden).toBe(true);
+        vi.doUnmock('../content/library.js');
+        await another(container, portal);
+        expect(container.querySelector('.home-alert').hidden).toBe(true);
+        portal.destroy();
+    });
+});
+
 describe('Read it with sound', () => {
     it('opens today\'s exact poem through the app\'s launchToday, and comes back to Home', async () => {
         const onLaunchToday = vi.fn().mockResolvedValue(undefined);
