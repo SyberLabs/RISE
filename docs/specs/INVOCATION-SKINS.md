@@ -7,7 +7,7 @@ one interaction; it is never a second reader.
 
 | Skin | Where | Invoke | Enter | Go again | Adjust |
 |---|---|---|---|---|---|
-| **Night library** | Home, in the app (`src/components/Portal.js`, `src/components/night-library/`) | Roll a reading, or pick a star | Start reading | Roll again, or Redraw one part (the text, the mood, the passage) | Adjust first |
+| **Night library** | Home, in the app (`src/components/Portal.js`, `src/components/night-library/`) | Roll a reading, or pick a star | Start reading | Roll again, or Redraw the text or the mood | Adjust first |
 | **Wormhole** | a page of its own, `/wormhole.html` (`src/wormhole/`), reached from Home's Menu → *Other ways in* | ENTER WORMHOLE | DOCK | JUMP AGAIN | ADJUST COURSE |
 
 See `docs/superpowers/specs/2026-10-03-night-library-home-design.md` for the
