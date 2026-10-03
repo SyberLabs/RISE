@@ -128,3 +128,21 @@ export async function startDecoupledServer({ port = 4320, widgetHtml, testHarnes
     widgetHtml
   });
 }
+
+if (process.argv[1]) {
+  const { fileURLToPath } = await import('node:url');
+  const { resolve } = await import('node:path');
+  if (fileURLToPath(import.meta.url) === resolve(process.argv[1])) {
+    const { buildDecoupledWidgetHtml } = await import('./widget-build.mjs');
+    const { server, state, address } = await startDecoupledServer({ port: 4320, widgetHtml: await buildDecoupledWidgetHtml() });
+    console.log(`RISE Gate 0 decoupled run ${state.runId} at http://127.0.0.1:${address.port}/mcp`);
+    let stopping = false;
+    const stop = () => {
+      if (stopping) return;
+      stopping = true;
+      server.close(() => process.exit(0));
+    };
+    process.on('SIGINT', stop);
+    process.on('SIGTERM', stop);
+  }
+}
