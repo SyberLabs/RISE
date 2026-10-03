@@ -336,12 +336,11 @@ export class LiveHost {
         this.stopHearingExit = handoff.onLiveExit(() => { void this.ended(); });
         const clock = createRealClock();
         const voices = await this.buildVoices(clock);
-        // The Chamber is on screen while its view is shown. The router names it the current view only
-        // after fading it in, and the reading (and its field) begins before that, so ask the view.
+        // The Chamber itself refuses while its view is hidden (Chamber.visualShown), so the host only
+        // asks for the instance playing this runtime's Player.
         const mountedChamber = player => {
-            const view = this.router?.views?.get('chamber-session');
-            if (!view?.container || view.container.hidden) return null;
-            return view.instance?.player === player ? view.instance : null;
+            const chamber = this.router?.getViewInstance?.('chamber-session');
+            return chamber?.player === player ? chamber : null;
         };
         const runtime = createLiveRuntime({
             adapter: await this.buildAdapter(clock, createMockAdapter),
