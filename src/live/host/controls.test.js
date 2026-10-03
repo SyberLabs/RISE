@@ -138,6 +138,15 @@ describe('the buttons', () => {
         expect($('#live-controls').textContent).not.toContain('Reopening starts this reading from the beginning');
     });
 
+    it('opens with what is happening and the buttons, so a short panel shows them unscrolled and the keyboard reaches them first', () => {
+        const notes = [{ capability: 'reducedMotion', effect: 'Reduced motion is on. Imagery stays still.' }];
+        controls = createLiveControls({ runtime: fakeRuntime('live'), onStop: () => {}, notice: 'Reopening starts this reading from the beginning', notes });
+        expect([...$('#live-controls').children].slice(0, 2).map(child => child.className)).toEqual(['live-controls__status', 'live-controls__buttons']);
+        for (const later of ['.live-controls__notice', '.live-controls__ask', '.live-controls__visual', '.live-controls__notes']) {
+            expect($('.live-controls__buttons').compareDocumentPosition($(later)) & Node.DOCUMENT_POSITION_FOLLOWING, later).toBeTruthy();
+        }
+    });
+
     it('says what this device cannot do, where there is no page before the reading to say it on', () => {
         const notes = [{ capability: 'reducedMotion', effect: 'Reduced motion is on. Imagery stays still.' }];
         controls = createLiveControls({ runtime: fakeRuntime('live'), onStop: () => {}, notes });

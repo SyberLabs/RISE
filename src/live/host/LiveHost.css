@@ -217,6 +217,7 @@
 .live-controls__mic-note summary { font-size: 0.8rem; color: var(--color-fog); }
 .live-controls__mic-note p { margin: 0.25rem 0 0; font-size: 0.8rem; line-height: 1.4; color: var(--color-fog); }
 .live-controls__notes { flex: 1 1 100%; margin: 0; padding-left: 1.1rem; font-size: 0.8rem; line-height: 1.4; color: var(--color-fog); }
+.live-controls__notice { flex: 1 1 100%; margin: 0; font-size: 0.8rem; line-height: 1.4; color: var(--color-fog); }
 
 .live-controls__sr {
   position: absolute;

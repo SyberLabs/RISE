@@ -68,6 +68,13 @@ export function createLiveControls({ runtime, onStop, audible = true, mic = null
     root.setAttribute('aria-label', 'Live Current controls');
     root.innerHTML = `
       <p class="live-controls__status" role="status" aria-live="polite"></p>
+      <div class="live-controls__buttons">
+        <button type="button" data-live="interrupt">Interrupt</button>
+        <button type="button" data-live="listen" aria-pressed="false" aria-describedby="live-controls-mic-privacy" hidden>Speak</button>
+        <button type="button" data-live="listen-visual" aria-pressed="false" aria-describedby="live-controls-mic-privacy" hidden>Listen for a visual change</button>
+        <button type="button" data-live="surface" hidden>Surface</button>
+        <button type="button" data-live="stop">Stop</button>
+      </div>
       <p class="live-controls__error" role="alert" hidden></p>
       <form class="live-controls__ask" novalidate>
         <label class="live-controls__sr" for="live-controls-question">Ask about this place</label>
@@ -80,13 +87,6 @@ export function createLiveControls({ runtime, onStop, audible = true, mic = null
         <input id="live-controls-visual" name="visual" type="text" maxlength="120" autocomplete="off" placeholder="more vibrant or make it calmer">
         <button type="button" data-live="visual-submit">Change visual</button>
       </form>
-      <div class="live-controls__buttons">
-        <button type="button" data-live="interrupt">Interrupt</button>
-        <button type="button" data-live="listen" aria-pressed="false" aria-describedby="live-controls-mic-privacy" hidden>Speak</button>
-        <button type="button" data-live="listen-visual" aria-pressed="false" aria-describedby="live-controls-mic-privacy" hidden>Listen for a visual change</button>
-        <button type="button" data-live="surface" hidden>Surface</button>
-        <button type="button" data-live="stop">Stop</button>
-      </div>
       <p class="live-controls__mic" hidden></p>
       <details class="live-controls__mic-note" hidden><summary></summary><p id="live-controls-mic-privacy"></p></details>
       <details class="live-controls__passage">
@@ -125,7 +125,8 @@ export function createLiveControls({ runtime, onStop, audible = true, mic = null
         note.className = 'live-controls__notice';
         note.setAttribute('role', 'note');
         note.textContent = notice;
-        root.prepend(note);
+        // Below the buttons for the same reason, just before what this device cannot do.
+        root.querySelector('.live-controls__mic-note').after(note);
     }
     doc.body.appendChild(root);
 
@@ -480,6 +481,16 @@ export function createLiveControls({ runtime, onStop, audible = true, mic = null
     });
     $('[data-live="stop"]').addEventListener('click', () => { void attempt(async () => onStop()); });
 
+    // In a frame too short for the panel's cap, the panel grows to hold the status line and the buttons
+    // (min-height wins over max-height), so only what follows them scrolls.
+    const buttonsRow = $('.live-controls__buttons');
+    const head = typeof ResizeObserver === 'function' ? new ResizeObserver(() => {
+        const below = buttonsRow.getBoundingClientRect().bottom - root.getBoundingClientRect().top + root.scrollTop;
+        root.style.minHeight = `${below + parseFloat(getComputedStyle(root).paddingBottom)}px`;
+    }) : null;
+    head?.observe(statusLine);
+    head?.observe(buttonsRow);
+
     const off = runtime.subscribe(render);
     render(runtime.snapshot());
 
@@ -488,6 +499,7 @@ export function createLiveControls({ runtime, onStop, audible = true, mic = null
         destroy() {
             if (destroyed) return;
             destroyed = true;
+            head?.disconnect();
             listener?.destroy();
             off();
             root.remove();

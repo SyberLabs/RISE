@@ -306,27 +306,47 @@ test('once the reading has ended, its field draws nothing more behind the closin
   expect(await picturesOverASecond(field)).toBeLessThanOrEqual(1);
 });
 
-test('in a short frame the reader keeps Interrupt and Stop in view, and can still reach what this device cannot do', async ({ page, baseURL }) => {
+/** Where the status line and each button in the row lie against the panel, in the next painted frame, and inside the frame. */
+const controlsHead = app => app.locator('#live-controls').evaluate(async panel => {
+  await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+  const box = panel.getBoundingClientRect();
+  const top = box.top + panel.clientTop;
+  const bottom = Math.min(top + panel.clientHeight, innerHeight);
+  const shown = [panel.querySelector('.live-controls__status'), ...panel.querySelectorAll('.live-controls__buttons button:not([hidden])')]
+    .map(element => ({ name: element.matches('.live-controls__status') ? 'status' : element.textContent, top: element.getBoundingClientRect().top, bottom: element.getBoundingClientRect().bottom }));
+  const cut = shown
+    .filter(element => element.top < top || element.bottom > bottom)
+    .map(element => `${element.name} ${element.top}-${element.bottom} outside ${top}-${bottom}`);
+  return { scrollTop: panel.scrollTop, names: shown.map(element => element.name), cut };
+});
+
+test('in a short frame of any width the reader keeps what is happening, Interrupt and Stop in view, and can still reach the rest', async ({ page, baseURL }) => {
   await page.emulateMedia({ reducedMotion: 'reduce' });
+  // ChatGPT's inline frames are narrower than the default 1280 px viewport, where the row once fitted by luck.
+  await page.setViewportSize({ width: 900, height: 420 });
   const app = await openHost(page, baseURL, { height: 420 });
   await begin(app);
   await expectShown(app, 'A black hole is a region of space');
-  // Every button in the row lies wholly inside the panel as it first opens, unscrolled, and inside the frame.
-  const row = await app.locator('#live-controls').evaluate(panel => {
-    const box = panel.getBoundingClientRect();
-    const top = box.top + panel.clientTop;
-    const bottom = Math.min(top + panel.clientHeight, innerHeight);
-    const cut = [...panel.querySelectorAll('.live-controls__buttons button:not([hidden])')]
-      .map(button => ({ name: button.textContent, top: button.getBoundingClientRect().top, bottom: button.getBoundingClientRect().bottom }))
-      .filter(button => button.top < top || button.bottom > bottom)
-      .map(button => `${button.name} ${button.top}-${button.bottom} outside ${top}-${bottom}`);
-    return { scrollTop: panel.scrollTop, cut };
-  });
-  expect(row).toEqual({ scrollTop: 0, cut: [] });
-  const note = app.locator('.live-controls__notes [data-capability="reducedMotion"]');
-  await note.scrollIntoViewIfNeeded();
-  await expect(note).toBeInViewport({ ratio: 1 });
-  await expect(note).toHaveText('Reduced motion is on. Imagery stays still.');
+  for (const width of [900, 600, 420]) {
+    await page.setViewportSize({ width, height: 420 });
+    await expect.poll(() => app.locator('body').evaluate(body => body.ownerDocument.defaultView.innerWidth)).toBe(width);
+    // As the panel first opens, unscrolled.
+    expect.soft(await controlsHead(app), `at ${width} px wide`).toEqual({ scrollTop: 0, names: expect.arrayContaining(['status', 'Interrupt', 'Stop']), cut: [] });
+  }
+  // What sits below the row is still reachable by scrolling the panel.
+  for (const selector of ['#live-controls-question', '#live-controls-visual', '.live-controls__notes [data-capability="reducedMotion"]']) {
+    const element = app.locator(selector);
+    await element.evaluate(node => node.scrollIntoView({ block: 'center' }));
+    await expect(element, selector).toBeInViewport({ ratio: 1 });
+  }
+  await expect(app.locator('.live-controls__notes [data-capability="reducedMotion"]')).toHaveText('Reduced motion is on. Imagery stays still.');
+
+  // A two-line status, a Dive under way, at the narrowest width, with Surface in the row.
+  await app.locator('#live-controls-question').fill('dive on event horizon');
+  await app.getByRole('button', { name: /Dive: ask about this place/u }).click();
+  await expect(app.locator('.live-controls__status')).toContainText('The reading you left is held exactly where it was');
+  await app.locator('#live-controls').evaluate(panel => { panel.scrollTop = 0; });
+  expect(await controlsHead(app)).toEqual({ scrollTop: 0, names: expect.arrayContaining(['status', 'Surface', 'Stop']), cut: [] });
 });
 
 test('an invalid worker result has no playable Current', async ({ page, baseURL }) => {
