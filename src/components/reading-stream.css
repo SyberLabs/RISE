@@ -29,7 +29,8 @@
   font-weight: 500;
   color: var(--sy-text);
   text-wrap: balance;
-  animation: reading-stream-in 220ms ease-out;
+  /* It moves in but never fades: a word at 400 a minute shows for 150ms, and is never caught grey. */
+  animation: reading-stream-in 120ms ease-out;
 }
 
 /* One word at a time reads as a signal: the sans face, bold. */
@@ -44,8 +45,8 @@
 }
 
 @keyframes reading-stream-in {
-  from { opacity: 0; transform: translateY(6px); }
-  to { opacity: 1; transform: none; }
+  from { transform: translateY(4px); }
+  to { transform: none; }
 }
 
 @media (prefers-reduced-motion: reduce) {
