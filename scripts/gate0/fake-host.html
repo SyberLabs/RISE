@@ -1,0 +1,46 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Gate 0 fake MCP host harness</title></head><body>
+<iframe id="widget" src="/__gate0/widget" title="Gate 0 widget"></iframe>
+<iframe id="outsider" srcdoc="<script>addEventListener('message',e=>{if(e.data?.gate0Forward)parent.document.querySelector('#widget').contentWindow.postMessage(e.data.message,'*')})<\/script>" title="Untrusted sender"></iframe>
+<script>
+let widget = document.querySelector('#widget');
+const calls = [];
+let dropNextAck = false;
+window.gate0Host = {
+  calls,
+  set dropNextAck(value) { dropNextAck = value; },
+  sendResult(snapshot) {
+    widget.contentWindow.postMessage({ jsonrpc: '2.0', method: 'ui/notifications/tool-result', params: { structuredContent: snapshot } }, '*');
+  },
+  async deliverTool(arguments_) {
+    const response = await fetch('/mcp', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ jsonrpc: '2.0', id: 41, method: 'tools/call', params: { name: 'rise_set_visual', arguments: arguments_ } }) });
+    const message = await response.json();
+    const snapshot = message.result?.structuredContent;
+    this.sendResult(snapshot);
+    return snapshot;
+  },
+  sendTeardown(id = 700) {
+    widget.contentWindow.postMessage({ jsonrpc: '2.0', id, method: 'ui/resource-teardown', params: {} }, '*');
+  },
+  replaceWidget() {
+    const replacement = document.createElement('iframe');
+    replacement.id = 'widget';
+    replacement.src = '/__gate0/widget';
+    replacement.title = 'Gate 0 widget replacement';
+    widget.replaceWith(replacement);
+    widget = replacement;
+  },
+  sendFromOtherFrame(snapshot) {
+    document.querySelector('#outsider').contentWindow.postMessage({ gate0Forward: true, message: { jsonrpc: '2.0', method: 'ui/notifications/tool-result', params: { structuredContent: snapshot } } }, '*');
+  }
+};
+window.addEventListener('message', event => {
+  if (event.source !== widget.contentWindow) return;
+  const message = event.data;
+  if (!message || message.jsonrpc !== '2.0') return;
+  calls.push(message);
+  if (message.id !== undefined) {
+    if (dropNextAck) dropNextAck = false;
+    else event.source.postMessage({ jsonrpc: '2.0', id: message.id, result: {} }, '*');
+  }
+});
+</script></body></html>
