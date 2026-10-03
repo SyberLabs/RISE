@@ -5,7 +5,8 @@
  */
 import { releaseArchiveTexts } from '../../content/archive/index.js';
 import { escapeHtml } from '../../core/sanitize.js';
-import { localDateKey, poemTitle, todayPoem, watchLocalDay } from '../../core/today-poem.js';
+import { localDateKey, watchLocalDay } from '../../core/local-day.js';
+import { poemTitle, todayPoem } from '../../core/today-poem.js';
 import { roomAlert, roomEyebrow, roomHeader } from '../room-chrome.js';
 import { drawMandala } from './mandala.js';
 import './today-poem.css';

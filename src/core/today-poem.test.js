@@ -1,8 +1,6 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import DIVISION_INDEX from '../content/archive/division-index.json' with { type: 'json' };
-import {
-  TODAY_MAX_WORDS, TODAY_WORKS, dayNumber, localDateKey, poemTitle, todayPoem, todayPool, watchLocalDay
-} from './today-poem.js';
+import { TODAY_MAX_WORDS, TODAY_WORKS, dayNumber, localDateKey, poemTitle, todayPoem, todayPool } from './today-poem.js';
 
 describe('the pool', () => {
   it('holds every short division of the two works, once', () => {
@@ -54,40 +52,5 @@ describe('poemTitle', () => {
   it('drops the volume prefix of Lyrical Ballads', () => {
     expect(poemTitle('Volume II · Lucy Gray')).toBe('Lucy Gray');
     expect(poemTitle('Anne Rutledge')).toBe('Anne Rutledge');
-  });
-});
-
-describe('watchLocalDay', () => {
-  afterEach(() => vi.useRealTimers());
-
-  it('calls back once at local midnight, and again the next midnight', () => {
-    vi.useFakeTimers();
-    vi.setSystemTime(new Date(2026, 9, 3, 23, 59, 0));
-    const onNewDay = vi.fn();
-    const stop = watchLocalDay(onNewDay);
-    vi.advanceTimersByTime(30_000);
-    expect(onNewDay).not.toHaveBeenCalled();
-    vi.advanceTimersByTime(60_000);
-    expect(onNewDay).toHaveBeenCalledOnce();
-    expect(localDateKey(onNewDay.mock.calls[0][0])).toBe('2026-10-04');
-    vi.advanceTimersByTime(24 * 60 * 60 * 1000);
-    expect(onNewDay).toHaveBeenCalledTimes(2);
-    stop();
-  });
-
-  it('notices a new day when the tab comes back, as after a sleep', () => {
-    vi.useFakeTimers({ toFake: ['Date'] });
-    vi.setSystemTime(new Date(2026, 9, 3, 22, 0));
-    const onNewDay = vi.fn();
-    const stop = watchLocalDay(onNewDay);
-    document.dispatchEvent(new Event('visibilitychange'));
-    expect(onNewDay).not.toHaveBeenCalled();
-    vi.setSystemTime(new Date(2026, 9, 4, 7, 0));
-    document.dispatchEvent(new Event('visibilitychange'));
-    expect(onNewDay).toHaveBeenCalledOnce();
-    stop();
-    vi.setSystemTime(new Date(2026, 9, 5, 7, 0));
-    document.dispatchEvent(new Event('visibilitychange'));
-    expect(onNewDay).toHaveBeenCalledOnce();
   });
 });

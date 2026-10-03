@@ -3,6 +3,7 @@
  * reader on that date. Pure; reads the static division index, never text.
  */
 import DIVISION_INDEX from '../content/archive/division-index.json' with { type: 'json' };
+import { localDateKey } from './local-day.js';
 
 export const TODAY_WORKS = Object.freeze(['spoon-river-anthology', 'lyrical-ballads']);
 export const TODAY_MAX_WORDS = 400;
@@ -40,9 +41,7 @@ export function todayPool(index = DIVISION_INDEX) {
   return pool;
 }
 
-const pad = n => String(n).padStart(2, '0');
-export const localDateKey = date =>
-  `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+export { localDateKey };
 export const dayNumber = date =>
   Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()) / 86400000;
 
@@ -54,36 +53,3 @@ export function todayPoem(date = new Date()) {
 }
 
 export const poemTitle = label => String(label).replace(/^Volume [IVX]+ · /u, '');
-
-/**
- * Calls `onNewDay(now)` when the local date changes: at local midnight, and
- * when the tab becomes visible again (a sleeping laptop's timer runs late).
- * Returns a function that stops watching.
- */
-export function watchLocalDay(onNewDay) {
-  let key = localDateKey(new Date());
-  let timer = 0;
-  const check = () => {
-    const now = new Date();
-    if (localDateKey(now) !== key) {
-      key = localDateKey(now);
-      onNewDay(now);
-    }
-    schedule();
-  };
-  const schedule = () => {
-    clearTimeout(timer);
-    const now = new Date();
-    const midnight = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
-    timer = setTimeout(check, midnight - now + 1000);
-  };
-  const onVisible = () => {
-    if (document.visibilityState !== 'hidden') check();
-  };
-  document.addEventListener('visibilitychange', onVisible);
-  schedule();
-  return () => {
-    clearTimeout(timer);
-    document.removeEventListener('visibilitychange', onVisible);
-  };
-}
