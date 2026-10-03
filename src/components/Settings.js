@@ -210,6 +210,22 @@ export class Settings {
           </section>
 
           ${this.inSession ? '' : `
+          <section class="settings-section" aria-labelledby="affect-heading">
+            <h2 id="affect-heading" class="settings-section-title">Affect</h2>
+
+            <div class="settings-row">
+              <div class="settings-label-group">
+                <label class="settings-label" for="${this.settingInputId('affect')}">Emotions map</label>
+                <p class="settings-hint">Where texts, colours and Living Flame scenes sit by valence, arousal and warmth.</p>
+              </div>
+              <label class="toggle">
+                <input id="${this.settingInputId('affect')}" type="checkbox" data-affect-toggle />
+                <span class="toggle-switch"></span>
+              </label>
+            </div>
+            <div class="settings-affect" data-section="affect" hidden></div>
+          </section>
+
           <section class="settings-section" aria-labelledby="data-heading">
             <h2 id="data-heading" class="settings-section-title">Your data</h2>
 
@@ -476,6 +492,10 @@ export class Settings {
             this.onChange('masterVolume', volume / 100);
         });
 
+        this.container.querySelector('[data-affect-toggle]')?.addEventListener('change', (e) => {
+            void this.showAffect(e.target.checked);
+        });
+
         // Data actions
         this.container.querySelector('[data-action="export-data"]')?.addEventListener('click', () => {
             this.exportData();
@@ -485,6 +505,36 @@ export class Settings {
             this.clearHistory();
         });
 
+    }
+
+    /**
+     * The Emotions map, below its toggle. Loaded the first time it is turned
+     * on, and taken down when it is turned off, so its animation never runs
+     * unseen.
+     */
+    async showAffect(on) {
+        const section = this.container.querySelector('[data-section="affect"]');
+        const toggle = this.container.querySelector('[data-affect-toggle]');
+        if (!section || !toggle) return;
+        toggle.checked = on;
+        section.hidden = !on;
+        if (!on) {
+            this.emotions?.destroy();
+            this.emotions = null;
+            section.replaceChildren();
+            return;
+        }
+        if (this.emotions) return;
+        const { Emotions } = await import('./settings/Emotions.js');
+        if (!toggle.checked || this.emotions) return;
+        this.emotions = new Emotions(section);
+    }
+
+    /** Router entry and re-entry: `/emotions` names the affect section. */
+    async update(data) {
+        if (data?.pane !== 'affect') return;
+        await this.showAffect(true);
+        this.container.querySelector('[data-section="affect"]')?.scrollIntoView?.({ block: 'start' });
     }
 
     handleKeyboard(e) {
@@ -553,6 +603,8 @@ export class Settings {
 
     destroy() {
         this.deactivate();
+        this.emotions?.destroy();
+        this.emotions = null;
     }
 }
 

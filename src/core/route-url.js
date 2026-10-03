@@ -45,7 +45,7 @@ export const ROUTE_ALIASES = {
     curia: 'library',
     scriptorium: 'make',
     via: 'library',
-    emotions: 'emotions',
+    emotions: 'settings',
     'visual-lab': 'make',
     'visual-catalog': 'make',
     live: 'live',
@@ -72,7 +72,8 @@ export const ROUTE_PANES = {
     vault: 'vault',
     scriptorium: 'scriptorium',
     'visual-lab': 'visual-lab',
-    'visual-catalog': 'visual-catalog'
+    'visual-catalog': 'visual-catalog',
+    emotions: 'affect'
 };
 
 /** The pane a room opens when its data names none. */
@@ -192,7 +193,7 @@ const ROUTES = [
     }, 'make'),
 
     fixed('settings', '/settings'),
-    fixed('emotions', EMOTIONS_PATH),
+    pane('affect', { pattern: EMOTIONS_PATH, build: () => EMOTIONS_PATH }, 'settings'),
     fixed('live', LIVE_PATH)
 ];
 

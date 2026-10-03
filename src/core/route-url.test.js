@@ -59,6 +59,14 @@ describe('route urls', () => {
             .toEqual({ id: 'make', data: { pane: 'visual-catalog', search: '?q=moon' } });
     });
 
+    it('opens the affect section of Settings at the Emotions path', () => {
+        expect(ROUTE_ALIASES.emotions).toBe('settings');
+        expect(ROUTE_PANES.emotions).toBe('affect');
+        expect(routeFromPath('/emotions')).toEqual({ id: 'settings', data: { pane: 'affect' } });
+        expect(pathForRoute('settings')).toBe('/settings');
+        expect(routeFromPath('/settings')).toEqual({ id: 'settings', data: {} });
+    });
+
     it('carries chapel data', () => {
         const path = pathForRoute('library', { pane: 'chapel', bookId: 'genesis', chapter: 1 });
         expect(path).toBe('/library/chapel/genesis/1');
@@ -75,7 +83,7 @@ describe('route urls', () => {
         expect(pathForRoute('live')).toBe('/live');
         expect(pathForRoute('make', { pane: 'visual-lab' })).toBe('/visual-lab');
         expect(pathForRoute('make', { pane: 'visual-catalog' })).toBe('/visual-catalog');
-        expect(pathForRoute('emotions')).toBe('/emotions');
+        expect(pathForRoute('settings', { pane: 'affect' })).toBe('/emotions');
         expect(routeFromPath('/night-drive').data).toEqual({ demoMode: true });
     });
 

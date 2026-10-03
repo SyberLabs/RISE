@@ -155,7 +155,7 @@ flowchart LR
     affect["affect<br/>experience-state evaluation<br/>29 modules"]
     app["app<br/>composition root<br/>11 modules"]
     audio["audio<br/>Web Audio, recitation<br/>10 modules"]
-    components["components<br/>routed views<br/>51 modules"]
+    components["components<br/>routed views<br/>52 modules"]
     content["content<br/>texts, imagery, journeys<br/>228 modules"]
     core["core<br/>session, player, router<br/>170 modules"]
     enterprise["enterprise<br/>talk program, speaker rail<br/>34 modules"]
@@ -168,7 +168,7 @@ flowchart LR
 
     affect --> |7| core
     app -.-> |3 lazy| audio
-    app -.-> |8 lazy| components
+    app -.-> |7 lazy| components
     app --> |3| content
     app --> |38| core
     app -.-> |1 lazy| live
@@ -326,12 +326,11 @@ outliving its room, fails a build.
 | Room | Module | What it is |
 |---|---|---|
 | Portal | `src/components/Portal.js` | the hub, and the first screen |
-| Emotions | `src/components/Emotions.js` | the optional affect map and inspectable list |
 | Chamber | `src/components/Chamber.js` | a reading, in time |
 | ChamberOrbital | `src/components/ChamberOrbital.js` | tuning a reading before it starts |
 | Library | `src/components/Library.js` | the prepared editions, scripture, liturgies, journeys, keystones and the day's poem, with provenance on every edition |
 | Make | `src/components/Make.js` | authoring: composition, saved work, the Scriptorium, the visual lab and catalog |
-| Settings | `src/components/Settings.js` | preferences, export and erase |
+| Settings | `src/components/Settings.js` | preferences, affect, export and erase |
 | Guide | `src/components/Guide.js` | onboarding, as an overlay rather than a route |
 
 Eight modules in `src/components/` are deliberately not rooms; they support
@@ -362,6 +361,9 @@ refuses), `src/components/make/VisualLab.js` (exploring, saving and reusing
 Living Flame scenes) and `src/components/make/VisualCatalog.js` (searching the
 procedural surfaces and opening admitted local live samples). Their old ids and
 paths map to Make the same way.
+The Emotions map (`src/components/settings/Emotions.js`, the optional affect
+map and inspectable list) is the Affect section of Settings, mounted when its
+toggle is turned on; `/emotions` opens Settings with that section open.
 The Navigator's columns, text material, preview, and Chapel trays live in `src/components/visual-navigator/` so the
 shell stays a mount point. Chamber mounts a Fit-mask runtime from
 `src/core/fit-mask-runtime.js` rather than owning the glyph-mask state machine.

@@ -72,7 +72,7 @@ export class Router {
     async navigate(requestedView, options = {}, queuedRevision) {
         // Old ids stay valid forever: the table in route-url.js says where
         // each one lives now.
-        // An old id that became a Library pane carries the pane's name.
+        // An old id that became a pane of a room carries the pane's name.
         const viewName = ROUTE_ALIASES[requestedView] ?? requestedView;
         if (viewName !== requestedView && ROUTE_PANES[requestedView]) {
             options = { ...options, data: { ...options.data, pane: ROUTE_PANES[requestedView] } };
@@ -93,7 +93,8 @@ export class Router {
         // explicit remount contract for that bounded continuation case.
         // A room that takes new data through `update(data)` changes in
         // place: no fade, but a back-stack entry and an address like any
-        // other move. Pane-hosting rooms (room-panes.js) expose it.
+        // other move. Pane-hosting rooms (room-panes.js) expose it, and so
+        // does Settings, whose Affect section has its own address.
         const inPlace = viewName === this.currentView && options.force !== true
             && typeof this.views.get(viewName)?.instance?.update === 'function';
         if (viewName === this.currentView && options.force !== true

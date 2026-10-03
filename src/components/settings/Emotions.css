@@ -1,6 +1,5 @@
 .emotions {
-    height: 100vh;
-    height: 100dvh;
+    height: min(640px, 80dvh);
     display: flex;
     flex-direction: column;
     overflow: hidden;
@@ -36,7 +35,7 @@
     border-left: 1px solid var(--sy-line);
 }
 
-.emotions h1 {
+.emotions h3 {
     margin: var(--sy-space-3) 0 var(--sy-space-2);
     font-family: var(--sy-font-serif, var(--sy-font-sans));
     font-size: 28px;

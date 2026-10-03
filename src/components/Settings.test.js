@@ -331,3 +331,53 @@ describe('Settings display type', () => {
     });
 });
 
+
+describe('Settings affect section', () => {
+    afterEach(() => {
+        document.body.replaceChildren();
+    });
+
+    it('mounts the Emotions map below its toggle when the toggle is turned on, and removes it when off', async () => {
+        const container = document.createElement('div');
+        document.body.appendChild(container);
+        const settings = new Settings(container);
+        const section = container.querySelector('[data-section="affect"]');
+        expect(section.hidden).toBe(true);
+        expect(section.querySelector('.emotions')).toBeNull();
+
+        const toggle = container.querySelector('[data-affect-toggle]');
+        toggle.checked = true;
+        toggle.dispatchEvent(new Event('change'));
+        await vi.waitFor(() => expect(section.querySelector('canvas.emotions-field')).not.toBeNull());
+        expect(section.hidden).toBe(false);
+
+        toggle.checked = false;
+        toggle.dispatchEvent(new Event('change'));
+        expect(section.hidden).toBe(true);
+        expect(section.querySelector('.emotions')).toBeNull();
+        settings.destroy();
+    });
+
+    it('opens the affect section when the router names it', async () => {
+        const container = document.createElement('div');
+        document.body.appendChild(container);
+        const settings = new Settings(container);
+        const section = container.querySelector('[data-section="affect"]');
+        const scroll = vi.fn();
+        section.scrollIntoView = scroll;
+        await settings.update({ pane: 'affect' });
+        expect(container.querySelector('[data-affect-toggle]').checked).toBe(true);
+        expect(section.hidden).toBe(false);
+        expect(section.querySelector('canvas.emotions-field')).not.toBeNull();
+        expect(scroll).toHaveBeenCalled();
+        settings.destroy();
+    });
+
+    it('leaves affect out of the panel opened over a reading', () => {
+        const container = document.createElement('div');
+        document.body.appendChild(container);
+        const settings = new Settings(container, { scope: 'session' });
+        expect(container.querySelector('[data-section="affect"]')).toBeNull();
+        settings.destroy();
+    });
+});

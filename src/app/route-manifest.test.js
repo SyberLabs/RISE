@@ -8,7 +8,6 @@ const ROUTE_IDS = [
   'library',
   'make',
   'settings',
-  'emotions',
   'live'
 ];
 

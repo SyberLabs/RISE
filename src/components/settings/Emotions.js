@@ -4,16 +4,16 @@
  * Texts that carry valence and arousal sit in the plane. Colors and
  * Living Flame scenes that carry warmth sit on the spectral ring.
  * Hue follows warmth. The Thomas filament is the wheel in motion.
- * The chamber does not import this room.
+ * It is the Affect section of Settings; the chamber does not import it.
  */
 
-import { CORPUS } from '../affect/benchmark/corpus.js';
-import { placeEmotion, swatchWarmth, thomasFilament } from '../affect/emotion-map.js';
-import { encodeText } from '../affect/text/encode.js';
-import { escapeHtml } from '../core/sanitize.js';
-import { ATTRACTOR_PALETTES } from '../core/visual-style-definitions.js';
-import { FLAME_PRESETS } from '../visuals/living-flame/flame-presets.js';
-import { roomEyebrow, roomHeader } from './room-chrome.js';
+import { CORPUS } from '../../affect/benchmark/corpus.js';
+import { placeEmotion, swatchWarmth, thomasFilament } from '../../affect/emotion-map.js';
+import { encodeText } from '../../affect/text/encode.js';
+import { escapeHtml } from '../../core/sanitize.js';
+import { ATTRACTOR_PALETTES } from '../../core/visual-style-definitions.js';
+import { FLAME_PRESETS } from '../../visuals/living-flame/flame-presets.js';
+import { roomEyebrow } from '../room-chrome.js';
 import './Emotions.css';
 
 const KIND_LABEL = Object.freeze({
@@ -77,9 +77,8 @@ function figure(value) {
 }
 
 export class Emotions {
-    constructor(container, options = {}) {
+    constructor(container) {
         this.container = container;
-        this.onNavigate = options.onNavigate || (() => {});
         this.inhabitants = emotionInhabitants();
         this.filament = thomasFilament();
         this.selected = null;
@@ -109,26 +108,21 @@ export class Emotions {
             </li>
         `).join('');
         this.container.innerHTML = `
-          <main class="emotions" aria-label="RISE EMOTIONS">
-            ${roomHeader({ back: 'Home' })}
+          <section class="emotions" aria-label="RISE EMOTIONS">
             <div class="emotions-body">
               <canvas class="emotions-field" aria-hidden="true"></canvas>
               <section class="emotions-copy">
                 ${roomEyebrow('AFFECT')}
-                <h1>RISE EMOTIONS</h1>
+                <h3>RISE EMOTIONS</h3>
                 <p class="emotions-law">Hue follows warmth. A missing axis stays absent.</p>
                 <ul class="emotions-list">${items}</ul>
               </section>
             </div>
-          </main>
+          </section>
         `;
     }
 
     onClick(event) {
-        if (event.target.closest('[data-action="back"]')) {
-            this.onNavigate('portal');
-            return;
-        }
         const button = event.target.closest('.emotions-item');
         if (!button) return;
         this.selected = button.dataset.id;

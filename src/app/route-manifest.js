@@ -151,21 +151,18 @@ export function createRouteManifest(operations) {
       id: 'settings',
       containerId: 'view-settings',
       load: () => import('../components/Settings.js'),
-      create: (container, _data, { Settings }) => new Settings(container, {
-        settings: operations.getSettings(),
-        onNavigate: operations.handleNavigate,
-        onChange: operations.handleSettingsChange,
-        onDataCleared: operations.handleDataCleared,
-        notify: operations.showToast
-      })
-    },
-    {
-      id: 'emotions',
-      containerId: 'view-emotions',
-      load: () => import('../components/Emotions.js'),
-      create: (container, _data, { Emotions }) => new Emotions(container, {
-        onNavigate: operations.handleNavigate
-      })
+      // `/emotions` opens the Affect section (data.pane === 'affect').
+      create: async (container, data, { Settings }) => {
+        const settings = new Settings(container, {
+          settings: operations.getSettings(),
+          onNavigate: operations.handleNavigate,
+          onChange: operations.handleSettingsChange,
+          onDataCleared: operations.handleDataCleared,
+          notify: operations.showToast
+        });
+        await settings.update(data);
+        return settings;
+      }
     },
     {
       // The host for a live Current: a prompt, and the controls over the Chamber.
