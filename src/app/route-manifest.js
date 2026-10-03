@@ -185,14 +185,6 @@ export function createRouteManifest(operations) {
       })
     },
     {
-      id: 'emotions',
-      containerId: 'view-emotions',
-      load: () => import('../components/Emotions.js'),
-      create: (container, _data, { Emotions }) => new Emotions(container, {
-        onNavigate: operations.handleNavigate
-      })
-    },
-    {
       id: 'visual-lab',
       containerId: 'view-visual-lab',
       load: () => import('../components/VisualLab.js'),
