@@ -53,6 +53,12 @@ describe('every other surface leaves exactly as it did', () => {
                 .toEqual({ kind: 'navigate', view: 'live' });
         }
     });
+    it('returns a reading opened from today\'s poem to that poem', () => {
+        for (const reason of LEAVING) {
+            expect(chamberExitTarget(reason, { origin: { view: 'today', name: 'Today\'s poem' } }), reason)
+                .toEqual({ kind: 'navigate', view: 'today' });
+        }
+    });
     it('returns a disclosed Jev sample to its threshold on every leave action', () => {
         for (const reason of LEAVING) {
             expect(chamberExitTarget(reason, {

@@ -673,6 +673,11 @@ a.portal-nav-link {
   gap: var(--sy-space-3);
 }
 
+/* Today's poem: a quiet way in, under the keys. */
+.home-today {
+  margin: 0;
+}
+
 /* The mood, as a pill with the spectrum's one dot. */
 .home-mood {
   align-self: flex-start;
