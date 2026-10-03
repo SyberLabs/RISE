@@ -91,22 +91,27 @@
   gap: var(--sy-space-3);
 }
 
-/* Today's poem: a card under the keys (src/components/today/today-card.js).
-   A plain link stands in until it loads. The sky stays the live plate; the
-   card's mark is drawn once and still. */
+/* Today's poem: a card under the keys (src/components/today/today-card.js),
+   beside a still of the day's engine. Pressing it begins the reading. A plain
+   link stands in until it loads. Roll stays the one solid key: the card's
+   own Begin is a line button. */
 .home-today {
   margin: 0;
 }
 
+/* Words on ink at the left, the engine at full strength at the right: two
+   panes, no shade, so Home keeps its one gradient (the ink scrim). */
 .home-today-card {
-  --sy-plate-tick: var(--sy-accent-rise);
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
-  align-items: center;
-  gap: var(--sy-space-4);
+  grid-template-columns: minmax(0, 1fr) minmax(112px, 34%);
   box-sizing: border-box;
   width: 100%;
-  padding: var(--sy-space-4) var(--sy-space-5) var(--sy-space-4) var(--sy-space-4);
+  min-height: 184px;
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid var(--sy-line-strong);
+  border-radius: var(--sy-radius-panel);
+  background: var(--sy-bg);
   color: inherit;
   font: inherit;
   text-align: left;
@@ -118,17 +123,31 @@
   border-color: var(--sy-ice);
 }
 
-.home-today-mark {
+.home-today-still {
+  grid-column: 2;
+  grid-row: 1;
   display: block;
-  width: 88px;
-  height: 88px;
+  width: 100%;
+  height: 100%;
+  min-height: 184px;
+  object-fit: cover;
+  transition: transform var(--sy-dur-page) var(--sy-ease);
+}
+
+.home-today-card:hover .home-today-still {
+  transform: scale(1.06);
 }
 
 .home-today-body {
+  grid-column: 1;
+  grid-row: 1;
+  position: relative;
+  z-index: 1;
   display: flex;
   flex-direction: column;
-  gap: 2px;
-  min-width: 0;
+  gap: var(--sy-space-1);
+  padding: var(--sy-space-5);
+  background: var(--sy-bg);
 }
 
 .home-today-eyebrow {
@@ -138,15 +157,19 @@
   letter-spacing: 0.14em;
   line-height: 1.6;
   text-transform: uppercase;
-  color: var(--sy-text-2);
+  color: var(--sy-text-body);
 }
 
-/* A narrow card breaks between the label and the date, never inside either. */
-.home-today-eyebrow > span {
-  white-space: nowrap;
+/* Display: Instrument Serif, never below 32px. Some Lyrical Ballads titles run
+   to thirty words, so the card holds two lines; the button's name has all of it. */
+.home-today-title,
+.home-today-line {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
 }
 
-/* Display: Instrument Serif, never below 32px. */
 .home-today-title {
   font-family: var(--sy-font-serif);
   font-size: 32px;
@@ -155,41 +178,40 @@
   overflow-wrap: break-word;
 }
 
-.home-today-poet {
-  font-size: 14px;
-  line-height: 20px;
-  color: var(--sy-text-2);
-}
-
 .home-today-line {
-  margin-top: var(--sy-space-1);
   font-family: var(--sy-font-reading);
   font-style: italic;
   font-size: 17px;
-  line-height: 1.4;
+  line-height: 1.35;
   color: var(--sy-text-body);
   overflow-wrap: anywhere;
 }
 
 .home-today-go {
-  color: var(--sy-text-2);
-  transition: transform var(--sy-dur-enter) var(--sy-ease), color var(--sy-dur-hover) var(--sy-ease);
-}
-
-.home-today-card:hover .home-today-go {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  margin-top: auto;
+  padding: 0 var(--sy-space-5);
+  border: 1px solid var(--sy-text);
+  border-radius: var(--sy-radius-full);
+  font-weight: 600;
+  font-size: 15px;
   color: var(--sy-text);
-  transform: translateX(4px);
 }
 
 @media (max-width: 640px) {
   .home-today-card {
-    gap: var(--sy-space-3);
-    padding: var(--sy-space-3) var(--sy-space-4) var(--sy-space-3) var(--sy-space-3);
+    grid-template-columns: minmax(0, 1fr) 30%;
   }
 
-  .home-today-mark {
-    width: 64px;
-    height: 64px;
+  .home-today-body {
+    padding: var(--sy-space-4);
+  }
+
+  .home-today-title {
+    font-size: 32px;
   }
 }
 
@@ -438,7 +460,7 @@
     animation: none;
   }
 
-  .home-today-card:hover .home-today-go {
+  .home-today-card:hover .home-today-still {
     transform: none;
   }
 }
