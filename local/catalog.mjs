@@ -1,15 +1,23 @@
 /**
  * Local RISE's decision catalog, read from the committed editorial file
- * `src/content/decision-catalog.json` (the same rows the build publishes at
- * `/content/catalog.json`). No network and no database.
+ * `src/content/decision-catalog.json` and validated exactly as the build does
+ * for `/content/catalog.json`. No network and no database.
  */
-import { readFileSync } from 'node:fs';
+import { mkdtemp, readFile, rm } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { publicCatalog, readPublicCatalog } from '../src/core/decision/catalog.js';
+import { buildDecisionCatalog } from '../scripts/lib/content-plane.mjs';
 
-export function seedCatalog() {
-  const source = JSON.parse(readFileSync(fileURLToPath(new URL('../src/content/decision-catalog.json', import.meta.url)), 'utf8'));
-  const catalog = publicCatalog(source);
-  if (!readPublicCatalog(catalog)) throw new Error('The committed catalog does not pass the decision contract.');
-  return catalog;
+const SOURCE = fileURLToPath(new URL('../src/content/decision-catalog.json', import.meta.url));
+
+export async function committedCatalog() {
+  const dir = await mkdtemp(join(tmpdir(), 'rise-catalog-'));
+  try {
+    const out = join(dir, 'catalog.json');
+    await buildDecisionCatalog({ source: SOURCE, out });
+    return JSON.parse(await readFile(out, 'utf8'));
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
 }

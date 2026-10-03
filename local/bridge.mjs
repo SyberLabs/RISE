@@ -1,6 +1,6 @@
 /**
- * The local RISE bridge: one loopback HTTP server that serves the built app,
- * (its static catalog included), and exactly one model route, POST /api/local/kev/systemone,
+ * The local RISE bridge: one loopback HTTP server that serves the built app
+ * (its static catalog included) and exactly one model route, POST /api/local/kev/systemone,
  * which it forwards to the pinned Kev server on another loopback port with a
  * per-run bearer key the page never sees.
  *

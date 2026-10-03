@@ -437,62 +437,74 @@
     {
       "kind": "chamberFace",
       "id": "literary",
-      "description": "Literary serif letterforms for prose and classic reading."
+      "description": "Literary serif letterforms for prose and classic reading.",
+      "active": true
     },
     {
       "kind": "chamberFace",
       "id": "display",
-      "description": "Display serif letterforms for a formal, monumental tone."
+      "description": "Display serif letterforms for a formal, monumental tone.",
+      "active": true
     },
     {
       "kind": "chamberFace",
       "id": "thick",
-      "description": "Bold geometric letterforms for strong, vivid readings."
+      "description": "Bold geometric letterforms for strong, vivid readings.",
+      "active": true
     },
     {
       "kind": "chamberFace",
       "id": "mono",
-      "description": "Evenly spaced monospaced letterforms for technical, archival, or machine-like tone."
+      "description": "Evenly spaced monospaced letterforms for technical, archival, or machine-like tone.",
+      "active": true
     },
     {
       "kind": "chamberFace",
       "id": "jp",
-      "description": "Japanese serif letterforms for Japanese-language text."
+      "description": "Japanese serif letterforms for Japanese-language text.",
+      "active": true
     },
     {
       "kind": "chamberFace",
       "id": "sans",
-      "description": "Clean regular sans letterforms for modern or minimal reading."
+      "description": "Clean regular sans letterforms for modern or minimal reading.",
+      "active": true
     },
     {
       "kind": "chamberFace",
       "id": "book",
-      "description": "Stronger book serif letterforms for readable emphasis."
+      "description": "Stronger book serif letterforms for readable emphasis.",
+      "active": true
     },
     {
       "kind": "fontSize",
       "id": "small",
-      "description": "Small text for a dense, restrained field."
+      "description": "Small text for a dense, restrained field.",
+      "active": true
     },
     {
       "kind": "fontSize",
       "id": "medium",
-      "description": "Medium text for balanced reading."
+      "description": "Medium text for balanced reading.",
+      "active": true
     },
     {
       "kind": "fontSize",
       "id": "large",
-      "description": "Large text for emphatic or accessible reading."
+      "description": "Large text for emphatic or accessible reading.",
+      "active": true
     },
     {
       "kind": "fontSize",
       "id": "xlarge",
-      "description": "Extra large text for strong emphasis or easier reading at a distance."
+      "description": "Extra large text for strong emphasis or easier reading at a distance.",
+      "active": true
     },
     {
       "kind": "fontSize",
       "id": "fit",
-      "description": "Fit each word to the Chamber; choose only with one-word chunks."
+      "description": "Fit each word to the Chamber; choose only with one-word chunks.",
+      "active": true
     }
   ]
 }

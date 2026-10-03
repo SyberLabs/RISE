@@ -28,7 +28,7 @@
 
 import { createHash } from 'node:crypto';
 import { mkdir, readFile, rm, writeFile } from 'node:fs/promises';
-import { resolve } from 'node:path';
+import { dirname, resolve } from 'node:path';
 import {
     CORE_WORKS,
     WITHHELD_WORKS,
@@ -37,6 +37,7 @@ import {
 import { LITERATURE_WORKS } from '../../src/content/archive/literature-catalog.js';
 import { LEGACY_REINGESTED_WORKS } from '../../src/content/archive/legacy-catalog.js';
 import { publicCatalog, readPublicCatalog } from '../../src/core/decision/catalog.js';
+import { choiceMenu } from '../../src/core/decision/recommend.js';
 import { CHAPEL_BOOKS } from '../../src/content/chapel/corpus/manifest.js';
 
 export const CONTENT_MANIFEST_SCHEMA = 'rise.content-manifest.v1';
@@ -66,6 +67,25 @@ async function readWork(id) {
     // only the browsing fields and never repeated it — a second copy would
     // be a second thing to keep true.
     return { sections, meta: module[metaExportName(id)] ?? null };
+}
+
+/**
+ * Validate the editorial decision catalog and write the public file. A row
+ * that fails the browser's contract must fail the build, not ship; a row with
+ * `active: false` is withdrawn (left out) and the build still succeeds.
+ */
+export async function buildDecisionCatalog({ source, out }) {
+    const rows = JSON.parse(await readFile(source, 'utf8'));
+    const active = list => (Array.isArray(list) ? list.filter(row => row?.active === true) : list);
+    const catalog = publicCatalog({
+        books: active(rows.books), sounds: active(rows.sounds), options: active(rows.options)
+    });
+    if (!readPublicCatalog(catalog) || !choiceMenu(catalog.options)) {
+        throw new Error(`${source} does not pass the public catalog contract.`);
+    }
+    await mkdir(dirname(out), { recursive: true });
+    await writeFile(out, `${JSON.stringify(catalog, null, 2)}\n`);
+    return catalog;
 }
 
 export async function buildContentPlane({ write = true } = {}) {
@@ -169,14 +189,10 @@ export async function buildContentPlane({ write = true } = {}) {
             resolve(OUT, 'manifest.json'),
             `${JSON.stringify(manifest, null, 2)}\n`
         );
-        // The decision catalog is editorial content: a row that fails the
-        // browser's contract must fail the build, not ship.
-        const source = JSON.parse(await readFile(resolve(ROOT, 'src/content/decision-catalog.json'), 'utf8'));
-        const catalog = publicCatalog(source);
-        if (!readPublicCatalog(catalog)) {
-            throw new Error('src/content/decision-catalog.json does not pass the public catalog contract.');
-        }
-        await writeFile(resolve(OUT, 'catalog.json'), `${JSON.stringify(catalog, null, 2)}\n`);
+        await buildDecisionCatalog({
+            source: resolve(ROOT, 'src/content/decision-catalog.json'),
+            out: resolve(OUT, 'catalog.json')
+        });
     }
     return manifest;
 }

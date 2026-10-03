@@ -897,8 +897,8 @@ of `settled`, `open`, `deferred`, or `reversed`.
   and source revision checks keep the model inside the release inventory. The brief
   description shown after the decision is curated catalog copy; JEV does not
   generate prose.
-- **Status:** open. The same-origin production request and book opening were
-  verified; the five-minute decision cache still requires production verification.
+- **Status:** settled. The recommendation runs in the reader's browser; the
+  Worker caches no decisions, and the catalog is a static file (§8.42).
 
 ### 8.30 EnterpRise is a sibling rail, not a fork of the reader
 

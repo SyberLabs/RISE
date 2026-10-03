@@ -37,7 +37,7 @@ What the reader is billed for: each Home request, each Scriptorium route, and, w
 
 The Worker (`worker/index.mjs`) holds no model credential and calls no model:
 
-- `GET /content/catalog.json` is a static file the build writes from `src/content/decision-catalog.json`: released books, active sounds, and active type options, public columns only. Withdrawing a row is an editorial commit and a release.
+- `GET /content/catalog.json` is a static file the build writes from `src/content/decision-catalog.json`: released books, active sounds, and active type options, public columns only. Withdrawing a row is an editorial commit and a release: set its `active` field to `false` and the build leaves it out.
 - `/api/jev-recommend`, `/api/jev-decision`, `/api/jev/route`, `/api/jev-visual-score`, `/api/enterprise-decision`, and `/api/personal-piece` answer `410 SHARED_INFERENCE_RETIRED` with instructions to reload and connect. Netlify previews answer the same way (`netlify/functions/retired-inference.mjs`).
 
 Features that depended on a shared model are now either on the reader's connection (recommendations, Scriptorium routing, visual direction), local only (the EnterpRise room's Kev decider; the public room keeps Local rules and on-device Kev), or explicitly unavailable: personal readings written by a hosted model were never released, and RISE no longer pays for AI writing.
