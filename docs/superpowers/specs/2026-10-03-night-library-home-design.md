@@ -35,9 +35,9 @@ Chamber         performs it            (Start reading, or Begin)
 
 Two fields. `Portal.view` is what the panel shows: `idle | result | ask`.
 `Portal.busy` is the `data-home` hook of the work in progress, or null.
-While busy, every control holds, the pressed one carries `aria-busy`, the
-ask field is read-only, and the sky quickens; the view does not change until
-the work lands.
+While busy, every control holds, the pressed one carries `aria-busy`, and
+the sky quickens; while asking, the ask field is also read-only. The view
+does not change until the work lands.
 
 | View | The panel |
 |---|---|
@@ -46,7 +46,8 @@ the work lands.
 | ask, connected | "What would you like to read?" field (240 characters, microphone, help) · **Ask** · **Roll instead**. Enter asks; Shift+Enter is a new line |
 | ask, not connected | "Asking needs your own AI." · **Connect OpenRouter** · **Run RISE locally** · *Roll instead* · About your connection |
 
-* **A star** rolls for its work (`rollReading({ workId })`). Picks are ignored
+* **A star** rolls for its work (`rollReading({ previous, workId })`), so
+  picking the star already shown still changes its mood and passage. Picks are ignored
   while Home is rolling, asking or opening a reading.
 * **Redraw** keeps the other two parts: the text keeps the temper and section,
   the mood keeps the work and section, the passage keeps the work and temper.
