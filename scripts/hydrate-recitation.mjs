@@ -1,6 +1,6 @@
 import { execFileSync } from 'node:child_process';
 
-const source = 'refs/heads/rise/audio-assets';
+const source = 'refs/heads/rise/audio-assets-opus';
 const expectedTree = '1373a337cb8e72411d67bb8269cb92711c3441b4';
 
 execFileSync('git', [
