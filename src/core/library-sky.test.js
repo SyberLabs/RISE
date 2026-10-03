@@ -53,9 +53,10 @@ describe('the library sky', () => {
     }));
   });
 
-  it('leaves room for a 26px target per star in the shortest phone band', () => {
-    // Home stretches the stars across a 320px-wide, 220px-tall band; NightSky
-    // sizes targets to twice the closest Chebyshev gap, so 13px keeps them 26px.
+  it('leaves room for a 24px target per star in the shortest phone band', () => {
+    // Home stretches the stars across a 320px-wide, 220px-tall band. NightSky
+    // sizes targets to twice the closest Chebyshev gap less 2px, so a 13px gap
+    // gives 24px targets without the 24px floor kicking in.
     const xs = sky.stars.map(s => s.x);
     const x0 = Math.min(...xs);
     const width = 320 * 0.92 / ((Math.max(...xs) - x0) / 100);

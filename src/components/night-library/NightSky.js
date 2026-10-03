@@ -244,7 +244,7 @@ export class NightSky {
     this.buttons.clear();
   }
 
-  /** The canvas follows the root's size at no more than two device pixels per CSS pixel. */
+  /** Follow the root's size: fit the star targets, then (with a canvas) resize it at ≤ 2 device pixels per CSS pixel. */
   resize() {
     if (!this.running) return;
     const W = Math.max(1, this.root.clientWidth);
