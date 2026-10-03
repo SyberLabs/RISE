@@ -24,6 +24,8 @@ test('a chunk that always fails reloads the page once, not forever', async ({ pa
   expect(loads).toBeLessThanOrEqual(2);
   // The reader is left with a working app, not a blank page.
   await expect(page.locator('.portal .home-title').first()).toBeVisible();
+  // …and an address that names what is shown.
+  await expect(page).not.toHaveURL(/\/today$/u);
 });
 
 test('a chunk missing once, as after a deploy, reloads once and opens the view', async ({ page }) => {

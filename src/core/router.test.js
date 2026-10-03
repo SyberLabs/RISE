@@ -194,6 +194,45 @@ describe('Router stale-build recovery', () => {
     expect(claimStaleBuildReload('/assets/index-B.js')).toBe(false);
   });
 
+  it('lets the same build reload again once the last reload is old', () => {
+    // A reload spent on a network blip must not strand the tab when a
+    // deploy lands hours later on the build it is still running.
+    vi.useFakeTimers();
+    try {
+      expect(claimStaleBuildReload('/assets/index-A.js')).toBe(true);
+      vi.advanceTimersByTime(60_000);
+      expect(claimStaleBuildReload('/assets/index-A.js')).toBe(false);
+      vi.advanceTimersByTime(5 * 60_000);
+      expect(claimStaleBuildReload('/assets/index-A.js')).toBe(true);
+      expect(claimStaleBuildReload('/assets/index-A.js')).toBe(false);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('never reloads when session storage cannot remember the reload', async () => {
+    // Without a record, nothing could stop the next load from reloading too.
+    const getItem = vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => {
+      throw new DOMException('denied', 'SecurityError');
+    });
+    const setItem = vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+      throw new DOMException('denied', 'SecurityError');
+    });
+    try {
+      const router = new Router();
+      router.transitionDuration = 0;
+      router.registerView('a', { container: document.querySelector('#a'), init: () => ({}) });
+      router.registerView('b', { container: document.querySelector('#b'), init: staleError });
+      await router.navigate('a');
+      expect(await router.navigate('b')).toBe(false);
+      expect(reload).not.toHaveBeenCalled();
+      router.destroy();
+    } finally {
+      getItem.mockRestore();
+      setItem.mockRestore();
+    }
+  });
+
   it('leaves ordinary failures to the existing containment path', async () => {
     // An init that throws for its own reasons is recoverable in-session;
     // reloading would be a violent response to a contained error.

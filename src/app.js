@@ -99,7 +99,7 @@ try {
 } catch (e) { /* private mode: the flag lasts as long as the URL does */ }
 
 window.addEventListener('vite:preloadError', (event) => {
-    if (!claimStaleBuildReload()) return;  // reloaded once already: not a deploy
+    if (!claimStaleBuildReload(import.meta.url)) return;  // reloaded once already: not a deploy
     event.preventDefault();
     console.warn('[RISE] Build changed underneath this tab — reloading once.');
     window.location.reload();
@@ -278,6 +278,7 @@ class App {
         // shows reads any of them.
 
         this.router = new Router({
+            build: import.meta.url,
             onNavigationIntent: (view, options) => this.handleNavigationIntent(view, options),
             onViewChange: (view, data) => {
                 console.log(`[RISE] View: ${view}`);
@@ -373,7 +374,7 @@ class App {
         }
         // A start route whose code will not load (blocked, or still
         // missing after the one reload) leaves nothing on screen. Home.
-        if (!this.router.currentView) await this.router.navigate('portal');
+        if (!this.router.currentView) await this.handleNavigate('portal');
 
         this.watchTabFreshness();
 
