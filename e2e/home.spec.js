@@ -136,8 +136,7 @@ test('the longest titles and plans stay on a small phone without scrolling sidew
       const portal = window.__RISE_TEST__.getView('portal');
       const tools = await portal.loadTools();
       const decision = tools.composeRoll({ temper: tools.TEMPERS.find(t => t.id === temper), workId: work, section });
-      portal.present(tools, portal.describe(tools, decision, { source: 'roll', temper }));
-      portal.setState('result');
+      portal.showResult(tools, decision, { source: 'roll', temper });
     }, [work, temper, section]);
     await expect(page.locator('[data-home="enter"]')).toBeVisible();
     expect(await sideways(page), work).toBeLessThanOrEqual(0);

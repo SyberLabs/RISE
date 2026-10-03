@@ -142,6 +142,13 @@ describe('a roll keeps the parts it is given', () => {
     expect(() => rollReading({ workId: 'a-doll-s-house' })).toThrow('a-doll-s-house is not a released reading.');
     expect(() => rollReading({ section: 'second' })).toThrow('second is not a section.');
   });
+
+  it('draws a part that is null, as it does one that is missing', () => {
+    const previous = rollReading({ random: seeded(39) });
+    const roll = rollReading({ random: seeded(41), previous, temper: null, workId: 'the-iliad', section: 'first' });
+    expect(TEMPERS.map(item => item.id)).toContain(roll.temper);
+    expect(roll.temper).not.toBe(previous.temper);
+  });
 });
 
 describe('a roll names its reading', () => {
