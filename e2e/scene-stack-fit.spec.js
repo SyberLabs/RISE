@@ -62,8 +62,9 @@ for (const phone of PHONES) {
                 const overflow = await page.evaluate(() => document.documentElement.scrollWidth - innerWidth);
                 expect(overflow).toBeLessThanOrEqual(0);
 
-                // Scrolled to the end, the last card clears the fixed transport bar.
-                await page.evaluate(() => window.scrollTo({ top: document.documentElement.scrollHeight, behavior: 'instant' }));
+                // Scrolled to the end (the Workshop tab of Make scrolls), the last
+                // card clears the fixed transport bar.
+                await page.evaluate(() => { const tab = document.querySelector('#view-make [data-pane="workshop"]'); tab.scrollTo({ top: tab.scrollHeight, behavior: 'instant' }); });
                 await page.waitForTimeout(200);
                 const barTop = await page.locator('.scenes-thumb').evaluate((el) => el.getBoundingClientRect().top);
                 const last = ".scene-card:last-of-type";
@@ -76,7 +77,7 @@ for (const phone of PHONES) {
                 }
 
                 // Scrolled to the top, the first card's controls are not under the title bar.
-                await page.evaluate(() => window.scrollTo({ top: 0, behavior: 'instant' }));
+                await page.evaluate(() => document.querySelector('#view-make [data-pane="workshop"]').scrollTo({ top: 0, behavior: 'instant' }));
                 await page.waitForTimeout(200);
                 const barBottom = await page.locator('.scenes-bar').evaluate((el) => el.getBoundingClientRect().bottom);
                 const first = await page.locator('.scene-card').first().evaluate((el) => el.getBoundingClientRect().top);

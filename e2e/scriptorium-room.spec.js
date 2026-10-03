@@ -61,7 +61,7 @@ test('an action leaves the reader where they were standing', async ({ page }) =>
         const field = document.querySelector('#scriptorium-intent');
         field.value = 'A sequence about memory and loss.';
         field.dispatchEvent(new Event('input', { bubbles: true }));
-        window.__RISE_TEST__?.getView('scriptorium')?.render?.();
+        window.__RISE_TEST__?.getView('make')?.tabInstance('scriptorium')?.render?.();
     });
     await page.waitForTimeout(300);
 

@@ -530,11 +530,24 @@ export class Settings {
         this.emotions = new Emotions(section);
     }
 
-    /** Router entry and re-entry: `/emotions` names the affect section. */
+    /**
+     * Router entry and re-entry: `/emotions` names the affect section. A
+     * room entered from elsewhere is still hidden here, so the scroll waits
+     * for `activate()`.
+     */
     async update(data) {
         if (data?.pane !== 'affect') return;
         await this.showAffect(true);
-        this.container.querySelector('[data-section="affect"]')?.scrollIntoView?.({ block: 'start' });
+        this.affectScrollPending = true;
+        this.scrollToAffect();
+    }
+
+    scrollToAffect() {
+        const section = this.container.querySelector('[data-section="affect"]');
+        if (!this.affectScrollPending || !section || section.closest('[hidden]')) return;
+        this.affectScrollPending = false;
+        // The whole section, so its heading and toggle are in view too.
+        (section.closest('.settings-section') || section).scrollIntoView?.({ block: 'start' });
     }
 
     handleKeyboard(e) {
@@ -593,6 +606,7 @@ export class Settings {
         if (this._active) return;
         this._active = true;
         document.addEventListener('keydown', this.boundKeyboardHandler);
+        this.scrollToAffect();
     }
 
     deactivate() {

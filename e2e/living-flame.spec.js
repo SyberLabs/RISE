@@ -75,7 +75,7 @@ const direction = page => page.evaluate(() => {
 /** Draw the flame canvas into a 2D canvas and measure lit pixels. */
 const litFraction = page => page.evaluate(() => {
   const field = window.__RISE_TEST__.getView('chamber-session')?.livingFlameField
-    || window.__RISE_TEST__.getView('visual-lab')?.field;
+    || window.__RISE_TEST__.getView('make')?.tabInstance('visual-lab')?.field;
   const url = field?.capture?.();
   if (!url) return Promise.resolve(0);
   return new Promise((resolve) => {
@@ -246,14 +246,15 @@ test.describe('passage-directed visuals', () => {
     await page.mouse.move(640, 700);
     await page.locator('#visual-direction-btn').click();
     await page.locator('[data-vd="workshop"]').click();
-    await page.waitForFunction(() => window.__RISE_TEST__.getRouterState().currentView === 'workshop', null, { timeout: 20_000 });
+    await page.waitForFunction(() => window.__RISE_TEST__.getRouterState().currentView === 'make'
+      && window.__RISE_TEST__.getView('make').activeTab === 'workshop', null, { timeout: 20_000 });
     // The assignment list's own button, not the inline text mark (which the
     // sticky score header can cover when scrolled to the edge).
-    await page.locator('#view-workshop button.visual-score-clip-main[data-action="select-score-assignment"]').first().click();
-    const picker = page.locator('#view-workshop [data-visual-style-setting="flame-composition"]');
+    await page.locator('#view-make [data-pane="workshop"] button.visual-score-clip-main[data-action="select-score-assignment"]').first().click();
+    const picker = page.locator('#view-make [data-pane="workshop"] [data-visual-style-setting="flame-composition"]');
     await expect(picker).toBeVisible({ timeout: 10_000 });
     await picker.selectOption('solar-bloom');
-    await page.locator('#view-workshop').getByRole('button', { name: 'Run' }).click();
+    await page.locator('#view-make [data-pane="workshop"]').getByRole('button', { name: 'Run' }).click();
     await page.waitForFunction(() => window.__RISE_TEST__.getView('chamber-session')?._direction?.eligibility?.composite,
       null, { timeout: 30_000 });
     await expect.poll(() => page.evaluate(() =>
@@ -299,16 +300,16 @@ test.describe('Visual Lab', () => {
     await page.waitForTimeout(1500);
     const lit = await litFraction(page);
     expect(lit).toBeGreaterThan(0.005);
-    const before = await page.evaluate(() => window.__RISE_TEST__.getView('visual-lab').currentRecipe.id);
+    const before = await page.evaluate(() => window.__RISE_TEST__.getView('make').tabInstance('visual-lab').currentRecipe.id);
     await page.setInputFiles('[name="vl-import"]', {
       name: 'broken.json', mimeType: 'application/json', buffer: Buffer.from('{"schema":"nope"}')
     });
     await expect(page.locator('#vl-status')).toHaveText(/unsupported Living Flame version.*unchanged/);
-    expect(await page.evaluate(() => window.__RISE_TEST__.getView('visual-lab').currentRecipe.id)).toBe(before);
+    expect(await page.evaluate(() => window.__RISE_TEST__.getView('make').tabInstance('visual-lab').currentRecipe.id)).toBe(before);
     await page.locator('[data-vl="mutate"]').click();
     await expect(page.locator('[data-vl="undo"]')).toBeEnabled();
     await page.locator('[data-vl="undo"]').click();
-    expect(await page.evaluate(() => window.__RISE_TEST__.getView('visual-lab').currentRecipe.id)).toBe(before);
+    expect(await page.evaluate(() => window.__RISE_TEST__.getView('make').tabInstance('visual-lab').currentRecipe.id)).toBe(before);
   });
 
   test('falls back to a still when WebGL2 is unavailable', async ({ page }) => {
@@ -338,7 +339,7 @@ test.describe('Visual Lab', () => {
     await page.goto('/visual-lab');
     await expect(page.locator('.visual-lab .living-flame-canvas')).toBeVisible({ timeout: 20_000 });
     const recovered = await page.evaluate(async () => {
-      const field = window.__RISE_TEST__.getView('visual-lab').field;
+      const field = window.__RISE_TEST__.getView('make').tabInstance('visual-lab').field;
       const loss = field.gpu.gl.getExtension('WEBGL_lose_context');
       loss.loseContext();
       await new Promise(resolve => setTimeout(resolve, 300));

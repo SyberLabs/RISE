@@ -120,3 +120,33 @@ test('the Library opens its programs as panes, each with an address, and Back re
   await expect(page.locator('#view-library [data-pane="provenance"]')).toBeVisible({ timeout: 15_000 });
   await expect.poll(() => pathOf(page)).toBe('/library/provenance');
 });
+
+test('Make opens each authoring tool as a tab, each with its old address, and Back moves between them', async ({ page }) => {
+  await page.goto('/');
+  await openHomeNav(page, 'vault');
+  await expect(page.locator('#view-make [data-pane="vault"]')).toBeVisible({ timeout: 15_000 });
+  await expect.poll(() => pathOf(page)).toBe('/make/vault');
+
+  await page.locator('#view-make .make-nav [data-tab="visual-catalog"]').click();
+  await expect(page.locator('#view-make [data-pane="visual-catalog"]')).toBeVisible({ timeout: 15_000 });
+  await expect(page.locator('#view-make [data-pane="vault"]')).toBeHidden();
+  await expect.poll(() => pathOf(page)).toBe('/visual-catalog');
+
+  await page.goBack();
+  await expect.poll(() => pathOf(page)).toBe('/make/vault');
+  await expect(page.locator('#view-make [data-pane="vault"]')).toBeVisible({ timeout: 15_000 });
+
+  await page.goto('/make/scriptorium');
+  await expect(page.locator('#view-make [data-pane="scriptorium"] .scriptorium')).toBeVisible({ timeout: 15_000 });
+  await page.reload();
+  await expect(page.locator('#view-make [data-pane="scriptorium"] .scriptorium')).toBeVisible({ timeout: 15_000 });
+  await expect.poll(() => pathOf(page)).toBe('/make/scriptorium');
+});
+
+test('the Emotions address opens the Affect section of Settings', async ({ page }) => {
+  await page.goto('/emotions');
+  await expect(page.locator('#view-settings [data-section="affect"] canvas.emotions-field')).toBeAttached({ timeout: 15_000 });
+  await expect(page.locator('#view-settings [data-affect-toggle]')).toBeChecked();
+  await expect(page.locator('#view-settings [data-section="affect"]')).toBeInViewport({ timeout: 5_000 });
+  await expect.poll(() => pathOf(page)).toBe('/emotions');
+});

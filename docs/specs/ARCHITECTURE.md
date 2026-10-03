@@ -108,10 +108,10 @@ else is a recommendation.
 ║  │  Portal     │     └───────▶│  Chamber (stream, in time)                 │ ║
 ║  │  Library    │              │  Page    (spatial, same Session)           │ ║
 ║  │  + its panes│              └────────────────────────────────────────────┘ ║
-║  │  Workshop   │                                                             ║
-║  │  Vault      │   each room is lazily imported with its own stylesheet      ║
-║  │  Scriptorium│                                                             ║
-║  │  Settings   │   ┌──────────────────────────────────────────────────────┐  ║
+║  │  Make       │                                                             ║
+║  │  + its tabs │   each room is lazily imported with its own stylesheet      ║
+║  │  Settings   │                                                             ║
+║  │             │   ┌──────────────────────────────────────────────────────┐  ║
 ║  │             │   │  SOURCES  registry + providers + IndexedDB cache      │  ║
 ║  │             │   │  archive   (failure degrades one, not the app)        │  ║
 ║  │             │   │                                                       │  ║
@@ -255,7 +255,8 @@ make document-level listeners lifecycle-aware with `activate()`,
 `deactivate()`, `destroy()`. A rejected async initializer must not leave the
 transition lock held or the previous view hidden. Every route has a path,
 declared once in `src/core/route-url.js`; old route ids remain valid as
-aliases there.
+aliases there. Library and Make host their panes through
+`src/components/room-panes.js`; the router updates such a room in place.
 
 **`src/core/session-compiler.js`** is the only way a reading is built. Every
 launch surface calls it. Do not recreate chunk or pacing logic in a component.
@@ -1202,7 +1203,7 @@ of `settled`, `open`, `deferred`, or `reversed`.
   not runtime dependencies.
 - **Status:** open. The schema, evaluator, pairwise judgments, benchmark
   harness, phrase-addressed programs, optional modulation functions, and
-  Emotions room are covered by unit tests. The player does not read affect
+  the Emotions map in Settings are covered by unit tests. The player does not read affect
   programs, and the experience remains feature-gated. See
   `docs/affect/RESEARCH-LOG.md` for limitations and the record of evidence.
 

@@ -364,12 +364,28 @@ describe('Settings affect section', () => {
         const settings = new Settings(container);
         const section = container.querySelector('[data-section="affect"]');
         const scroll = vi.fn();
-        section.scrollIntoView = scroll;
+        section.closest('.settings-section').scrollIntoView = scroll;
         await settings.update({ pane: 'affect' });
         expect(container.querySelector('[data-affect-toggle]').checked).toBe(true);
         expect(section.hidden).toBe(false);
         expect(section.querySelector('canvas.emotions-field')).not.toBeNull();
         expect(scroll).toHaveBeenCalled();
+        settings.destroy();
+    });
+
+    it('waits until the room is shown to scroll to the affect section', async () => {
+        const container = document.createElement('div');
+        container.hidden = true;
+        document.body.appendChild(container);
+        const settings = new Settings(container);
+        const section = container.querySelector('[data-section="affect"]');
+        const scroll = vi.fn();
+        section.closest('.settings-section').scrollIntoView = scroll;
+        await settings.update({ pane: 'affect' });
+        expect(scroll).not.toHaveBeenCalled();
+        container.hidden = false;
+        settings.activate();
+        expect(scroll).toHaveBeenCalledTimes(1);
         settings.destroy();
     });
 
