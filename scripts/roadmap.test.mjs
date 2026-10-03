@@ -10,7 +10,7 @@ import test from 'node:test';
 import { createTrackerServer, loadTasks, updateTask, validateTasks } from './lib/roadmap.mjs';
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const node = 'C:/Users/MATEO/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/bin/node.exe';
+const node = process.execPath;
 const execFile = promisify(execFileCallback);
 
 function task(id, overrides = {}) {
