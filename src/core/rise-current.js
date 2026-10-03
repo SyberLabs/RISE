@@ -125,10 +125,7 @@ export const RISE_CURRENT_THEMES = freeze({
   prism: { attractor: { system: 'halvorsen', palette: 'neon', form: 'mirror' }, genesis: { preset: 'chaotic' } },
   ember: { attractor: { system: 'halvorsen', palette: 'red', form: 'bilateral' }, genesis: { preset: 'twittering' } },
   cobalt: { attractor: { system: 'thomas', palette: 'blue', form: 'mirror' }, genesis: { preset: 'architectural' } },
-  jade: { attractor: { system: 'aizawa', palette: 'jade', form: 'bilateral' }, genesis: { preset: 'gravitational' } },
-  rose: { attractor: { system: 'aizawa', palette: 'rose', form: 'kaleido' }, genesis: { preset: 'harmonic' } },
-  citrine: { attractor: { system: 'thomas', palette: 'citrine', form: 'bilateral' }, genesis: { preset: 'twittering' } },
-  silver: { attractor: { system: 'halvorsen', palette: 'silver', form: 'kaleido' }, genesis: { preset: 'architectural' } }
+  jade: { attractor: { system: 'aizawa', palette: 'jade', form: 'bilateral' }, genesis: { preset: 'gravitational' } }
 });
 
 /** Strict, detached input from an author or model. No runtime objects are accepted. */

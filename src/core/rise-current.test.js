@@ -143,7 +143,7 @@ describe('external Current compilation', () => {
 });
 
 describe('the theme a Current may name', () => {
-  const IDS = ['classic', 'amethyst', 'prism', 'ember', 'cobalt', 'jade', 'rose', 'citrine', 'silver'];
+  const IDS = ['classic', 'amethyst', 'prism', 'ember', 'cobalt', 'jade'];
   const themed = theme => current({
     theme,
     segments: [
@@ -169,7 +169,7 @@ describe('the theme a Current may name', () => {
     try { validateRiseCurrent(current({ theme })); } catch (caught) { error = caught; }
     expect(error).toMatchObject({ code: 'CURRENT_THEME', path: '$.theme' });
     for (const id of IDS) expect(error.message).toContain(id);
-    expect(error.message).toBe('Unknown theme; use one of classic, amethyst, prism, ember, cobalt, jade, rose, citrine, silver ($.theme)');
+    expect(error.message).toBe('Unknown theme; use one of classic, amethyst, prism, ember, cobalt, jade ($.theme)');
   });
 
   it('reads the theme once, so what is checked is what is compiled', () => {
@@ -237,16 +237,6 @@ describe('the theme a Current may name', () => {
       .toEqual({ colorTheme: 'cobalt', colors: { background: '#071326', text: '#EDF6FF', accent: '#58B8FF' } });
   });
 
-  it('compiles rose exactly as the contract shows it', () => {
-    const session = compileRiseCurrent(themed('rose'));
-    expect(session.visualProgram.segments[0].cue)
-      .toEqual({ kind: 'field', renderer: 'attractor', config: { system: 'aizawa', palette: 'rose', form: 'kaleido' } });
-    expect(session.visualProgram.segments[1].cue)
-      .toEqual({ kind: 'field', renderer: 'genesis', config: { preset: 'harmonic' } });
-    expect(session.presentation)
-      .toEqual({ colorTheme: 'rose', colors: { background: '#1A0414', text: '#FFF0F4', accent: '#FF5C93' } });
-  });
-
   describe('the table it compiles through', () => {
     it('holds renderer ids only, one row per theme, in theme order', () => {
       expect(Object.keys(RISE_CURRENT_THEMES)).toEqual([...RISE_CURRENT_THEME_IDS]);
@@ -256,10 +246,7 @@ describe('the theme a Current may name', () => {
         prism: { attractor: { system: 'halvorsen', palette: 'neon', form: 'mirror' }, genesis: { preset: 'chaotic' } },
         ember: { attractor: { system: 'halvorsen', palette: 'red', form: 'bilateral' }, genesis: { preset: 'twittering' } },
         cobalt: { attractor: { system: 'thomas', palette: 'blue', form: 'mirror' }, genesis: { preset: 'architectural' } },
-        jade: { attractor: { system: 'aizawa', palette: 'jade', form: 'bilateral' }, genesis: { preset: 'gravitational' } },
-        rose: { attractor: { system: 'aizawa', palette: 'rose', form: 'kaleido' }, genesis: { preset: 'harmonic' } },
-        citrine: { attractor: { system: 'thomas', palette: 'citrine', form: 'bilateral' }, genesis: { preset: 'twittering' } },
-        silver: { attractor: { system: 'halvorsen', palette: 'silver', form: 'kaleido' }, genesis: { preset: 'architectural' } }
+        jade: { attractor: { system: 'aizawa', palette: 'jade', form: 'bilateral' }, genesis: { preset: 'gravitational' } }
       });
     });
 

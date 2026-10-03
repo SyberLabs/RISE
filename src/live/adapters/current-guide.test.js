@@ -50,7 +50,7 @@ describe('the numbers it states are the validator’s', () => {
         for (const id of RISE_CURRENT_THEME_IDS) expect(CURRENT_GUIDE).toContain(`${id} (${THEME_HINTS[id]})`);
         const lines = CURRENT_GUIDE.split('\n');
         const visual = lines.findIndex(line => line.startsWith('- "visual"'));
-        expect(lines[visual + 1]).toBe('- "theme" colors the whole answer: its page, its moving light and its drawings. Choose the one that suits the subject: classic (ivory and gold, for history, literature and ideas), amethyst (violet, for the mind, dreams and music), prism (magenta and cyan, for technology, cities and speed), ember (fire red, for warmth, conflict and passion), cobalt (deep blue, for space, the sea and physics), jade (green, for nature, life and health), rose (rose pink, for love, family, poetry and art), citrine (lemon yellow, for food, travel and play), silver (silver grey, for money, law, mathematics and the news). Leave it out only if none suits.');
+        expect(lines[visual + 1]).toBe('- "theme" colors the whole answer: its page, its moving light and its drawings. Choose the one that suits the subject: classic (ivory and gold, for history, literature and ideas), amethyst (violet, for the mind, dreams and music), prism (magenta and cyan, for technology, cities and speed), ember (fire red, for warmth, conflict and passion), cobalt (deep blue, for space, the sea and physics), jade (green, for nature, life and health). Leave it out only if none suits.');
     });
 
     it('names the tool the server offers, once, in one place', () => {

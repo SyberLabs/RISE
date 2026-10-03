@@ -38,10 +38,7 @@ export const THEME_HINTS = Object.freeze({
     prism: 'magenta and cyan, for technology, cities and speed',
     ember: 'fire red, for warmth, conflict and passion',
     cobalt: 'deep blue, for space, the sea and physics',
-    jade: 'green, for nature, life and health',
-    rose: 'rose pink, for love, family, poetry and art',
-    citrine: 'lemon yellow, for food, travel and play',
-    silver: 'silver grey, for money, law, mathematics and the news'
+    jade: 'green, for nature, life and health'
 });
 
 export const CURRENT_GUIDE = [
