@@ -29,6 +29,7 @@ import { attachJevDictation } from './jev-dictation.js';
 import { connectionState, detectLocalKev, disconnect, isLocalRise, subscribeConnection, takeConnectionNotice } from '../core/ai-connection.js';
 import { claimOpenRouterReturn } from '../core/openrouter-callback.js';
 import { escapeHtml } from '../core/sanitize.js';
+import { watchLocalDay } from '../core/local-day.js';
 
 const ICON_ATTRS = 'width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"';
 const SETTINGS_PATH = '<path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path><circle cx="12" cy="12" r="3"></circle>';
@@ -136,6 +137,7 @@ export class Portal {
             </button>
             <nav id="main-content" class="portal-nav" aria-label="Primary">
               <button class="portal-nav-link portal-nav-home" type="button" data-action="home" aria-current="page">Home</button>
+              <button class="portal-nav-link" type="button" data-nav="today">Today's poem</button>
               <button class="portal-nav-link" type="button" data-nav="library">Library</button>
               <button class="portal-nav-link" type="button" data-nav="vault">Sequences</button>
               <button class="portal-nav-link" type="button" data-nav="workshop">Compose</button>
@@ -273,7 +275,34 @@ export class Portal {
     return `<h1 class="home-title" id="home-title">Every <span class="sy-spectrum">star</span> is a text you can read.</h1>
       <p class="home-lede">Roll, and RISE picks one with a mood to read it in: its pace, imagery and sound. Or choose a star yourself.</p>
       <div class="home-actions">${button('roll', 'Roll a reading', 'primary')}${button('ask-open', 'Ask for one', 'secondary')}</div>
-      <p class="home-today">${button('today', 'Read today\'s poem', 'ghost')}</p>`;
+      <div class="home-today">${this._todayHtml || button('today', 'Read today\'s poem', 'ghost')}</div>`;
+  }
+
+  /** Today's poem card, after first paint. Until it loads, or if it cannot, the plain link stays. */
+  async loadToday() {
+    if (this.todayCard || this._todayLoading || this._destroyed) return;
+    this._todayLoading = true;
+    try {
+      this.todayCard = await import('./today/today-card.js');
+      this.showToday(new Date());
+    } catch (error) {
+      this.todayCard = null;
+      console.warn('[Home] today\'s poem card could not load; the link stays.', error);
+    } finally {
+      this._todayLoading = false;
+    }
+  }
+
+  /** Puts the day's card in the idle panel without redrawing the rest, so focus stays put. */
+  showToday(date) {
+    if (!this.todayCard || this._destroyed) return;
+    this._todayHtml = this.todayCard.todayCardMarkup(date);
+    const slot = this.container.querySelector('.home-today');
+    if (!slot) return;
+    const hadFocus = slot.contains(document.activeElement);
+    slot.innerHTML = this._todayHtml;
+    this.todayCard.drawTodayCardMark(slot);
+    if (hadFocus) slot.querySelector('[data-home="today"]')?.focus({ preventScroll: true });
   }
 
   askView(connected) {
@@ -342,6 +371,8 @@ export class Portal {
         : view === 'ask' ? this.askView(connected) : this.idleView();
       const field = panel.querySelector('#home-intent');
       if (field) field.value = this.draft;
+      const today = panel.querySelector('.home-today');
+      if (today && this.todayCard) this.todayCard.drawTodayCardMark(today);
       this.renderPassage();
       this.attachDictation();
     }
@@ -727,6 +758,14 @@ export class Portal {
       const afterPaint = globalThis.requestAnimationFrame || (next => setTimeout(next, 0));
       afterPaint(() => setTimeout(() => void this.loadSky(), 0));
     }
+    if (!this.demoMode) {
+      if (this.todayCard) this.showToday(new Date());
+      else {
+        const afterPaint = globalThis.requestAnimationFrame || (next => setTimeout(next, 0));
+        afterPaint(() => setTimeout(() => void this.loadToday(), 0));
+      }
+      this._stopDay = watchLocalDay(date => this.showToday(date));
+    }
     // Leaving Home stopped dictation; an open request gets it back.
     if (this.state === 'ask') this.attachDictation();
   }
@@ -736,6 +775,8 @@ export class Portal {
     this._active = false;
     // Every other room — and above all the Chamber — runs without it.
     this.sky?.stop();
+    this._stopDay?.();
+    this._stopDay = null;
     this.stopDictation?.();
     this.stopDictation = null;
   }

@@ -37,7 +37,7 @@ One field, `Portal.state`: `idle | rolling | result | ask | asking`.
 
 | State | The panel |
 |---|---|
-| idle | "Every star is a text you can read." · **Roll a reading** (the one solid key) · **Ask for one** |
+| idle | "Every star is a text you can read." · **Roll a reading** (the one solid key) · **Ask for one** · today's poem card ([spec](2026-10-03-poem-of-the-day-design.md)) |
 | rolling | The control that asked is busy; the sky is told it is busy |
 | result | The mood pill · the title · "Author, from the opening section" · three parts, each with **Redraw**: *The text*, *The mood* (temper and plan words), *The passage* (the opening lines, in the reading face) · **Start reading** · **Roll again** · **Adjust first** · *Ask for something specific instead*. The chosen star flares |
 | ask, connected | "What would you like to read?" field (240 characters, microphone, help) · **Ask** · **Roll instead**. Enter asks; Shift+Enter is a new line |

@@ -16,9 +16,14 @@ minute.
 
 ## What a reader sees
 
-* **Home (idle):** one quiet link under Roll a reading and Ask for one:
-  *Read today's poem*. It is a ghost control (`data-nav="today"`); Roll a
-  reading stays the one solid key.
+* **Home (idle):** a card under Roll a reading and Ask for one (owner
+  decision, 2026-10-03: "much more prominently featured"). One button in an
+  Atlas plate: today's mark (drawn once, still; the sky stays Home's live
+  plate), *Today's poem, October 3*, the title, the poet, and the poem's first
+  line in the reading face. Roll a reading stays the one solid key and on the
+  first screen at 390×844 and 360×640. The card loads after first paint;
+  until then, or if it cannot load, a plain *Read today's poem* link stands in.
+* **The Menu:** *Today's poem*, first after Home.
 * **The Today view** (`/today`), on one vertical axis:
   1. Eyebrow: *Today's poem, Saturday 3 October* (the reader's locale, their
      local date).
@@ -89,9 +94,11 @@ again afterwards, so a reader who comes back can begin the poem again.
 | ready | Everything above; Begin enabled |
 | error | `sy-alert--danger`: *Error. Today's poem could not be loaded.* and **Try again**. The mark still draws |
 
-The view reads the date when it activates. A reader who keeps it open past
-midnight sees the new poem the next time they open the view; there is no
-timer.
+**Every day by itself.** The view and Home's card read the date when they
+show, and while shown they turn over at local midnight (one timer to the next
+midnight, `watchLocalDay` in `src/core/local-day.js`) and whenever the tab
+becomes visible again, so a laptop that slept through midnight shows the new
+poem when it wakes. Hidden views stop watching.
 
 ## Decisions
 
@@ -100,8 +107,9 @@ timer.
 | Server route | **None.** The pick is pure and runs in the browser; the text is the static, hashed payload already served |
 | Which works | **Spoon River Anthology and Lyrical Ballads**, the two released works made of short, named poems with lines kept |
 | Repeats | **None within a cycle** (275 days today) |
-| Home entry | **One ghost link** in the idle panel. Not in the Menu |
-| Title on Home | **No.** The link says *Read today's poem*, so Home does not load the pool |
+| Home entry | **A card** in the idle panel, and a Menu entry (was one ghost link) |
+| Title and first line on Home | **Yes**, from `src/content/archive/today-openings.json`: 304 first lines, titles and poets precomputed by `scripts/build-today-openings.mjs` with the reader's own `divideSections`, so Home never downloads a work (a work is about 230 KB). A test keeps it in step with the works |
+| Turning over | **At local midnight and on waking**, while shown (was: only on the next visit) |
 | Audio | **None.** Recitation packs cover the Keystones only |
 | Sharing image | **Not now.** Direction C's poster is a later, separate idea |
 
@@ -113,7 +121,11 @@ timer.
 * `src/components/today/TodayPoem.js` and `today-poem.css`: the view.
 * `src/app/route-manifest.js`, `index.html` (`view-today`) and `src/app.js`
   (`/today` in `PUBLIC_ROOM_PATHS` and the start-up path check).
-* `src/components/Portal.js`: the idle link.
+* `src/components/today/today-card.js`: Home's card; `src/core/local-day.js`:
+  the local date and `watchLocalDay`, apart from the pool so Home does not
+  import the division index.
+* `src/components/Portal.js` and `Portal.css`: the card slot, its lazy load,
+  the day watch while Home shows, and the Menu entry.
 
 ## Testing
 
@@ -125,7 +137,12 @@ timer.
 * `TodayPoem.test.js`: loading, then ready with the poem's lines; Begin hands
   `handleBeginSession` the verse flag and the continuation; a label mismatch
   shows the error and Try again recovers.
-* `Portal.test.js`: the idle panel has the link and it navigates to `today`.
+* `Portal.test.js`: the link at once, the card after Home shows (Roll still
+  the one solid key), the card turning over at midnight, the link kept when
+  the card cannot load, and the Menu entry.
+* `local-day.test.js`: midnight, the next midnight, and a tab that wakes on a
+  new day. `today-openings.test.js`: the openings file agrees with the works.
+  `today-card.test.js`: title, poet, first line, label and the still mark.
 * `today-poem.integration.test.js`: against the built content, every poem in
   the pool names a released verse division with that id and label.
 * `e2e/today.spec.js`: Home's link and the `/today` address, no sideways
