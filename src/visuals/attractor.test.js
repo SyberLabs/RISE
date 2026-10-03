@@ -245,21 +245,21 @@ describe('Attractor forms', () => {
 
   it('adapts quality to the hardware instead of asking the reader', () => {
     // The rosette draws the filament 12x per frame. Rather than make
-    // readers classify their own computer, the field measures its own
-    // cost and steps down only when it is actually missing frames.
+    // readers classify their own computer, the field measures how far
+    // apart its frames arrive and steps down only when it is missing them.
     const field = new AttractorField(makeHost(), { form: 'kaleido' });
     expect(field.quality).toBe(0);
 
     // One slow frame must never degrade anything — averaged over a window
-    field.measureQuality(30);
+    field.measureQuality(300);
     expect(field.quality).toBe(0);
 
     // Sustained slowness steps down, once per window
-    for (let i = 0; i < 45; i++) field.measureQuality(14);
+    for (let i = 0; i < 45; i++) field.measureQuality(70);
     expect(field.quality).toBe(1);
 
     // And recovery restores detail when the machine frees up
-    for (let i = 0; i < 45; i++) field.measureQuality(2);
+    for (let i = 0; i < 45; i++) field.measureQuality(1000 / 60);
     expect(field.quality).toBe(0);
 
     field.destroy();
@@ -267,14 +267,14 @@ describe('Attractor forms', () => {
 
   it('never degrades below a legible figure, and can be opted out', () => {
     const field = new AttractorField(makeHost(), { form: 'kaleido' });
-    for (let i = 0; i < 45 * 12; i++) field.measureQuality(30);
+    for (let i = 0; i < 45 * 12; i++) field.measureQuality(70);
     // Bounded: the shape must always survive
     expect(field.quality).toBe(field.maxQuality);
     expect(field.maxQuality).toBeLessThan(NB_BUCKETS - 1);
     field.destroy();
 
     const fixed = new AttractorField(makeHost(), { form: 'kaleido', adaptive: false });
-    for (let i = 0; i < 45 * 4; i++) fixed.measureQuality(40);
+    for (let i = 0; i < 45 * 4; i++) fixed.measureQuality(70);
     expect(fixed.quality).toBe(0);
     fixed.destroy();
   });
@@ -291,6 +291,101 @@ describe('Attractor forms', () => {
     field.tick(performance.now());
     expect(field.sx2.some(v => v !== 0)).toBe(true);
 
+    field.destroy();
+  });
+});
+
+describe('Attractor adaptive quality', () => {
+  // A fake clock under which the field's own drawing costs nothing. The
+  // only sign of a struggling machine is the gap between animation
+  // frames, which is how a canvas that rasterizes after the callback looks.
+  function liveField(options) {
+    let clock = 1000;
+    let next = null;
+    // Plain no-ops: a mock recording every lineTo over hundreds of frames runs out of memory.
+    vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockImplementation(() => {
+      const ctx = ctxStub();
+      for (const key of Object.keys(ctx)) if (typeof ctx[key] === 'function') ctx[key] = () => {};
+      ctx.createRadialGradient = () => ({ addColorStop() {} });
+      return ctx;
+    });
+    vi.spyOn(performance, 'now').mockImplementation(() => clock);
+    vi.spyOn(globalThis, 'requestAnimationFrame').mockImplementation(callback => { next = callback; return 1; });
+    const field = new AttractorField(makeHost(), options);
+    return {
+      field,
+      wait: ms => { clock += ms; },
+      frames(count, intervalMs) {
+        for (let i = 0; i < count; i++) {
+          clock += intervalMs;
+          const callback = next;
+          next = null;
+          callback(clock);
+        }
+      }
+    };
+  }
+
+  it('steps down when frames arrive slowly, though its own drawing is cheap', () => {
+    const { field, frames } = liveField({ form: 'kaleido' });
+    frames(46, 70);
+    expect(field.quality).toBe(1);
+    frames(45 * 4, 70);
+    expect(field.quality).toBe(field.maxQuality);
+    field.destroy();
+  });
+
+  it('keeps full detail on fast frames, and restores it when frames speed up', () => {
+    const { field, frames } = liveField({ form: 'kaleido' });
+    frames(1 + 45 * 3, 1000 / 120);
+    expect(field.quality).toBe(0);
+    frames(45 * 3, 1000 / 30);
+    expect(field.quality).toBe(0);
+    frames(45 * 2, 70);
+    expect(field.quality).toBe(2);
+    frames(45 * 2, 1000 / 60);
+    expect(field.quality).toBe(0);
+    field.destroy();
+  });
+
+  it('does not count a tab switch or a pause as a slow frame', () => {
+    const { field, frames, wait } = liveField({ form: 'kaleido' });
+    frames(30, 1000 / 60);
+    frames(1, 10_000);
+    frames(15, 1000 / 60);
+    expect(field.quality).toBe(0);
+    for (let i = 0; i < 6; i++) {
+      frames(8, 1000 / 60);
+      field.pause();
+      wait(450);
+      field.resume();
+    }
+    expect(field.quality).toBe(0);
+    field.destroy();
+  });
+
+  it('counts only the live loop, not a Page plate sampled between frames', () => {
+    vi.spyOn(HTMLCanvasElement.prototype, 'toDataURL').mockReturnValue('data:image/webp;base64,');
+    const { field, frames } = liveField({ form: 'kaleido' });
+    for (let i = 0; i < 46; i++) {
+      frames(1, 70);
+      field.sampleAt(i);
+    }
+    expect(field.quality).toBe(1);
+    field.destroy();
+  });
+
+  it('does not cycle when one step down speeds frames past where it stepped', () => {
+    const { field, frames } = liveField({ form: 'kaleido' });
+    const fps = quality => 24.5 * 1.85 ** quality;
+    frames(46, 1000 / fps(0));
+    expect(field.quality).toBe(1);
+    const seen = new Set();
+    for (let i = 0; i < 45 * 10; i++) {
+      frames(1, 1000 / fps(field.quality));
+      seen.add(field.quality);
+    }
+    expect([...seen]).toEqual([1]);
     field.destroy();
   });
 });

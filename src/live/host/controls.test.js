@@ -129,6 +129,15 @@ const $ = selector => document.querySelector(selector);
 const flush = () => new Promise(resolve => setTimeout(resolve, 0));
 
 describe('the buttons', () => {
+    it('keeps the status and controls before the forms and notices', () => {
+        const notes = [{ capability: 'reducedMotion', effect: 'Reduced motion is on. Imagery stays still.' }];
+        controls = createLiveControls({ runtime: fakeRuntime('live'), onStop: () => {}, notice: 'Reopening starts this reading from the beginning', notes });
+        expect([...$('#live-controls').children].slice(0, 2).map(child => child.className)).toEqual(['live-controls__status', 'live-controls__buttons']);
+        for (const later of ['.live-controls__notice', '.live-controls__ask', '.live-controls__visual', '.live-controls__notes']) {
+            expect($('.live-controls__buttons').compareDocumentPosition($(later)) & Node.DOCUMENT_POSITION_FOLLOWING, later).toBeTruthy();
+        }
+    });
+
     it('keeps an embedded replay notice visible alongside the controls', () => {
         controls = createLiveControls({ runtime: fakeRuntime('live'), onStop: () => {}, notice: 'Reopening starts this reading from the beginning' });
         expect($('#live-controls').textContent).toContain('Reopening starts this reading from the beginning');

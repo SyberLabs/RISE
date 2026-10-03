@@ -317,6 +317,7 @@ test('under reduced motion the imagery holds still, the reader is told so, and t
   const note = app.locator('.live-controls__notes [data-capability="reducedMotion"]');
   await expect(note).toBeVisible();
   await expect(note).toHaveText('Reduced motion is on. Imagery stays still.');
+  expect(channels(await note.evaluate(element => getComputedStyle(element).color))).toEqual([173, 174, 191]);
   await expect.poll(() => picturesOverASecond(app.locator('.chamber-attractor canvas.attractor-canvas')), { timeout: 5_000 }).toBe(1);
 
   // The second passage's own visual, not a fallback, and it is still too.
@@ -363,27 +364,62 @@ test('once the reading has ended, its field draws nothing more behind the closin
   expect(await picturesOverASecond(field)).toBeLessThanOrEqual(1);
 });
 
-test('in a short frame the reader keeps Interrupt and Stop in view, and can still reach what this device cannot do', async ({ page, baseURL }) => {
+const controlsHead = app => app.locator('#live-controls').evaluate(async panel => {
+  await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+  await Promise.allSettled(panel.getAnimations().map(animation => animation.finished));
+  const box = panel.getBoundingClientRect();
+  const top = box.top + panel.clientTop;
+  const bottom = Math.min(top + panel.clientHeight, innerHeight);
+  const shown = [panel.querySelector('.live-controls__status'), ...panel.querySelectorAll('.live-controls__buttons button:not([hidden])')]
+    .map(element => ({ name: element.matches('.live-controls__status') ? 'status' : element.textContent, top: element.getBoundingClientRect().top, bottom: element.getBoundingClientRect().bottom }));
+  const cut = shown.filter(element => element.top < top || element.bottom > bottom)
+    .map(element => `${element.name} ${element.top}-${element.bottom} outside ${top}-${bottom}`);
+  return { scrollTop: panel.scrollTop, names: shown.map(element => element.name), cut };
+});
+
+test('in a short frame the reader keeps status, Interrupt and Stop in view, and can still reach the rest', async ({ page, baseURL }) => {
   await page.emulateMedia({ reducedMotion: 'reduce' });
+  await page.setViewportSize({ width: 900, height: 420 });
   const app = await openHost(page, baseURL, { height: 420 });
   await begin(app);
   await expectShown(app, 'A black hole is a region of space');
-  // Every button in the row lies wholly inside the panel as it first opens, unscrolled, and inside the frame.
-  const row = await app.locator('#live-controls').evaluate(panel => {
-    const box = panel.getBoundingClientRect();
-    const top = box.top + panel.clientTop;
-    const bottom = Math.min(top + panel.clientHeight, innerHeight);
-    const cut = [...panel.querySelectorAll('.live-controls__buttons button:not([hidden])')]
-      .map(button => ({ name: button.textContent, top: button.getBoundingClientRect().top, bottom: button.getBoundingClientRect().bottom }))
-      .filter(button => button.top < top || button.bottom > bottom)
-      .map(button => `${button.name} ${button.top}-${button.bottom} outside ${top}-${bottom}`);
-    return { scrollTop: panel.scrollTop, cut };
-  });
-  expect(row).toEqual({ scrollTop: 0, cut: [] });
+  for (const width of [900, 600, 420]) {
+    await page.setViewportSize({ width, height: 420 });
+    await expect.poll(() => app.locator('body').evaluate(body => body.ownerDocument.defaultView.innerWidth)).toBe(width);
+    expect.soft(await controlsHead(app), `at ${width} px wide`).toEqual({ scrollTop: 0, names: expect.arrayContaining(['status', 'Interrupt', 'Stop']), cut: [] });
+  }
   const note = app.locator('.live-controls__notes [data-capability="reducedMotion"]');
-  await note.scrollIntoViewIfNeeded();
-  await expect(note).toBeInViewport({ ratio: 1 });
+  for (const selector of ['#live-controls-question', '#live-controls-visual', '.live-controls__notes [data-capability="reducedMotion"]']) {
+    const element = app.locator(selector);
+    await element.evaluate(node => node.scrollIntoView({ block: 'center' }));
+    await expect(element, selector).toBeInViewport({ ratio: 1 });
+  }
   await expect(note).toHaveText('Reduced motion is on. Imagery stays still.');
+
+  const status = app.locator('.live-controls__status');
+  const scrolledTo = async (box, label) => {
+    await box.evaluate(node => node.scrollIntoView({ block: 'center' }));
+    expect(await app.locator('#live-controls').evaluate(panel => panel.scrollTop), `${label}: panel scrolls`).toBeGreaterThan(0);
+  };
+  const question = app.locator('#live-controls-question');
+  await scrolledTo(question, 'question box');
+  await question.fill('dive on event horizon');
+  await app.getByRole('button', { name: /Dive: ask about this place/u }).click();
+  await expect(status).toContainText('The reading you left is held exactly where it was');
+  expect.soft(await controlsHead(app), 'during a Dive').toMatchObject({ names: expect.arrayContaining(['status', 'Surface', 'Stop']), cut: [] });
+  await app.getByRole('button', { name: 'Surface', exact: true }).click();
+  await app.getByRole('button', { name: 'Interrupt', exact: true }).click();
+  await expect(status).toContainText('Held where you are');
+  for (const [width, brightness] of [[600, '0.55'], [420, '0.45']]) {
+    await page.setViewportSize({ width, height: 420 });
+    await expect.poll(() => app.locator('body').evaluate(body => body.ownerDocument.defaultView.innerWidth)).toBe(width);
+    const visual = app.locator('#live-controls-visual');
+    await scrolledTo(visual, `visual box at ${width} px wide`);
+    await visual.fill('make it calmer');
+    await visual.press('Enter');
+    await expect(status).toContainText(`Visual brightness target changed to ${brightness}`);
+    expect.soft(await controlsHead(app), `after a visual change at ${width} px wide`).toMatchObject({ names: expect.arrayContaining(['status', 'Resume', 'Stop']), cut: [] });
+  }
 });
 
 test('an invalid worker result has no playable Current', async ({ page, baseURL }) => {
@@ -545,6 +581,10 @@ test('a themed answer opens on a poster in its colors, and its reading and filam
   expect((await app.locator('.chamber').first().evaluate(element => getComputedStyle(element).getPropertyValue('--reading-scrim'))).toLowerCase()).toContain('#061912');
   // The input hints are the theme's ink 60% toward its ground, not RISE's blue mist.
   expect(channels(await app.locator('#live-controls-question').evaluate(element => getComputedStyle(element, '::placeholder').color))).toEqual([142, 163, 154]);
+  const quiet = ['.live-controls__notice', '.live-controls__mic-note summary', '.live-controls__transcript summary'];
+  const quietColors = {};
+  for (const selector of quiet) quietColors[selector] = channels(await app.locator(selector).evaluate(element => getComputedStyle(element).color));
+  expect(quietColors).toEqual(Object.fromEntries(quiet.map(selector => [selector, [169, 191, 181]])));
   // The default white filament is blue-dominant; green-dominant paint is the jade palette drawing.
   await expect.poll(async () => {
     const { lit, r, g, b } = await filamentPaint(app).catch(() => ({ lit: 0, r: 0, g: 0, b: 0 }));
