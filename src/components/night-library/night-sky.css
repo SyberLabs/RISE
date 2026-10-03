@@ -1,0 +1,143 @@
+/* The night library's star map. The canvas is decoration; the buttons are the
+   stars a reader can reach. Sized by Home's container. */
+
+.night-sky {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 30% 40% at 68% 40%, rgba(154, 107, 255, 0.3), transparent 70%),
+    radial-gradient(ellipse 30% 35% at 88% 20%, rgba(255, 88, 214, 0.14), transparent 70%),
+    radial-gradient(ellipse 35% 40% at 60% 85%, rgba(0, 72, 240, 0.16), transparent 70%);
+}
+
+/* No 2D canvas: a starfield texture behind CSS star dots. */
+.night-sky--flat {
+  background:
+    radial-gradient(ellipse 30% 40% at 68% 40%, rgba(154, 107, 255, 0.3), transparent 70%),
+    radial-gradient(ellipse 30% 35% at 88% 20%, rgba(255, 88, 214, 0.14), transparent 70%),
+    radial-gradient(ellipse 35% 40% at 60% 85%, rgba(0, 72, 240, 0.16), transparent 70%),
+    var(--sy-starfield);
+  background-size: auto, auto, auto, var(--sy-starfield-size);
+}
+
+.night-sky__canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.night-sky__groups,
+.night-sky__stars {
+  position: absolute;
+  inset: 0;
+}
+
+.sky-group {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  font: 500 12px/1 var(--sy-font-sans);
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: var(--sy-text-3);
+}
+
+.sky-star {
+  position: absolute;
+  display: block;
+  width: 44px;
+  height: 44px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--sy-text);
+  cursor: pointer;
+  pointer-events: auto;
+  transform: translate(-50%, -50%);
+  -webkit-tap-highlight-color: transparent;
+}
+
+.sky-star:focus-visible {
+  outline: var(--sy-focus);
+  outline-offset: var(--sy-focus-offset);
+}
+
+.sky-star__label {
+  position: absolute;
+  top: 50%;
+  left: calc(50% + 12px);
+  transform: translateY(-50%);
+  font: 400 13px/1.2 var(--sy-font-sans);
+  white-space: nowrap;
+  color: var(--sy-text);
+  /* Keeps vellum on ink where the label crosses the cloud's glow. */
+  text-shadow: 0 0 3px var(--sy-bg), 0 0 10px var(--sy-bg);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--sy-dur-enter) var(--sy-ease);
+}
+
+.sky-star--west .sky-star__label {
+  left: auto;
+  right: calc(50% + 12px);
+}
+
+.sky-star:hover .sky-star__label,
+.sky-star:focus-visible .sky-star__label,
+.sky-star.is-flared .sky-star__label {
+  opacity: 1;
+}
+
+/* The flared star's name, in spectrum, above the rings' centre. */
+.sky-star.is-flared .sky-star__label {
+  top: auto;
+  bottom: calc(50% + 16px);
+  left: calc(50% + 22px);
+  transform: none;
+  font-weight: 600;
+  font-size: 15px;
+  background: var(--sy-spectrum);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  /* Clipped text cannot take a text-shadow; an ink halo keeps it legible on the burst. */
+  text-shadow: none;
+  filter: drop-shadow(0 0 2px var(--sy-bg)) drop-shadow(0 0 6px var(--sy-bg));
+}
+
+.sky-star--west.is-flared .sky-star__label {
+  left: auto;
+  right: calc(50% + 22px);
+}
+
+.night-sky--flat .sky-star::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 4px;
+  height: 4px;
+  margin: -2px 0 0 -2px;
+  border-radius: 50%;
+  background: var(--sy-text);
+  box-shadow: 0 0 8px 2px rgba(238, 240, 255, 0.35);
+}
+
+.night-sky--flat .sky-star.is-flared::before {
+  box-shadow:
+    0 0 0 18px rgba(144, 216, 240, 0.18),
+    0 0 0 36px rgba(154, 107, 255, 0.12),
+    0 0 30px 12px rgba(255, 88, 214, 0.45);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sky-star__label {
+    transition: none;
+  }
+}
