@@ -6,19 +6,16 @@
   inset: 0;
   overflow: hidden;
   pointer-events: none;
-  background:
+  --night-glow:
     radial-gradient(ellipse 30% 40% at 68% 40%, rgba(154, 107, 255, 0.3), transparent 70%),
     radial-gradient(ellipse 30% 35% at 88% 20%, rgba(255, 88, 214, 0.14), transparent 70%),
     radial-gradient(ellipse 35% 40% at 60% 85%, rgba(0, 72, 240, 0.16), transparent 70%);
+  background: var(--night-glow);
 }
 
 /* No 2D canvas: a starfield texture behind CSS star dots. */
 .night-sky--flat {
-  background:
-    radial-gradient(ellipse 30% 40% at 68% 40%, rgba(154, 107, 255, 0.3), transparent 70%),
-    radial-gradient(ellipse 30% 35% at 88% 20%, rgba(255, 88, 214, 0.14), transparent 70%),
-    radial-gradient(ellipse 35% 40% at 60% 85%, rgba(0, 72, 240, 0.16), transparent 70%),
-    var(--sy-starfield);
+  background: var(--night-glow), var(--sy-starfield);
   background-size: auto, auto, auto, var(--sy-starfield-size);
 }
 
