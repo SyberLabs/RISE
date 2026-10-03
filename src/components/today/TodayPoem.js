@@ -11,6 +11,7 @@ import { localDateKey, watchLocalDay } from '../../core/local-day.js';
 import { poemTitle, todayPoem } from '../../core/today-poem.js';
 import { todayDecision } from '../../core/today-reading.js';
 import { roomAlert, roomEyebrow, roomHeader } from '../room-chrome.js';
+import { mountTodayBackdrop } from './backdrop.js';
 import { drawMandala } from './mandala.js';
 import './today-poem.css';
 
@@ -24,6 +25,7 @@ export class TodayPoem {
     this.onNavigate = options.onNavigate || (() => {});
     this.onBegin = options.onBegin || (async () => false);
     this._ticket = 0;
+    this._backdropTicket = 0;
     this.show(new Date());
   }
 
@@ -31,6 +33,8 @@ export class TodayPoem {
     this._events?.abort();
     this._mark?.cancel();
     this._mark = null;
+    // A new day is a new mood: the old engine goes with the page it ran behind.
+    this.stopBackdrop();
     this._events = new AbortController();
     this.date = date;
     this.pick = todayPoem(date);
@@ -46,6 +50,7 @@ export class TodayPoem {
     const day = this.date.toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long' });
     const byline = this.work ? `${this.work.author}, from ${this.work.title}` : '';
     this.container.innerHTML = `<div class="today-room">
+      <div class="today-backdrop" aria-hidden="true"></div>
       ${roomHeader({ back: 'Home', backLabel: 'Return to Home' })}
       <main class="today" id="main-content" aria-labelledby="today-title">
         ${roomEyebrow(`Today's poem, ${escapeHtml(day)}`, 'today-eyebrow')}
@@ -147,14 +152,51 @@ export class TodayPoem {
 
   /** Draws the mark once the view is visible; while shown, turns to each new day's poem. */
   activate() {
+    this._active = true;
     const now = new Date();
     if (localDateKey(now) !== this.pick.seed) this.show(now);
     this.drawMark();
+    void this.startBackdrop();
     this._stopDay?.();
     this._stopDay = watchLocalDay(date => {
       this.show(date);
       this.drawMark();
+      void this.startBackdrop();
     });
+    this._activeEvents?.abort();
+    this._activeEvents = new AbortController();
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'hidden') this._backdrop?.pause();
+      else this._backdrop?.resume();
+    }, { signal: this._activeEvents.signal });
+  }
+
+  /** The day's engine behind the page: mounted once per day, then paused and resumed with the view. */
+  async startBackdrop() {
+    if (this._backdrop) {
+      this._backdrop.resume();
+      return;
+    }
+    const host = this.container.querySelector('.today-backdrop');
+    if (!host) return;
+    const ticket = ++this._backdropTicket;
+    try {
+      const backdrop = await mountTodayBackdrop(host, this.decision);
+      if (ticket !== this._backdropTicket || !host.isConnected) {
+        backdrop?.destroy();
+        return;
+      }
+      this._backdrop = backdrop;
+      if (!this._active) backdrop?.pause();
+    } catch (error) {
+      console.warn('[Today] the backdrop could not start; the page works without it.', error);
+    }
+  }
+
+  stopBackdrop() {
+    this._backdropTicket++;
+    this._backdrop?.destroy();
+    this._backdrop = null;
   }
 
   drawMark() {
@@ -166,12 +208,16 @@ export class TodayPoem {
   }
 
   deactivate() {
+    this._active = false;
     this._stopDay?.();
     this._stopDay = null;
+    this._activeEvents?.abort();
+    this._backdrop?.pause();
   }
 
   destroy() {
     this.deactivate();
+    this.stopBackdrop();
     this._ticket++;
     this._events?.abort();
     this._mark?.cancel();

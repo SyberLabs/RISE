@@ -9,6 +9,55 @@
   background: var(--sy-bg);
 }
 
+/* The day's engine behind the page (backdrop.js), under a scrim that keeps
+   the middle column on ink: the engine shows at the sides and through the
+   gaps, and no line of text sits on it unshaded. */
+.today-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.today-backdrop canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  pointer-events: none;
+}
+
+.today-backdrop::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background:
+    linear-gradient(90deg,
+      color-mix(in srgb, var(--sy-bg) 35%, transparent) 0%,
+      color-mix(in srgb, var(--sy-bg) 74%, transparent) 30%,
+      color-mix(in srgb, var(--sy-bg) 74%, transparent) 70%,
+      color-mix(in srgb, var(--sy-bg) 35%, transparent) 100%);
+}
+
+.today-room > .room-header,
+.today-room > .today {
+  position: relative;
+  z-index: 1;
+}
+
+/* The fractal is a still flame: it drifts, slowly, while it shows. */
+.today-backdrop-flame {
+  animation: today-drift 90s ease-in-out infinite alternate;
+}
+
+@keyframes today-drift {
+  from { transform: scale(1.04) rotate(-1.5deg); }
+  to { transform: scale(1.14) rotate(1.5deg); }
+}
+
 .today {
   --sy-plate-tick: var(--sy-accent-rise);
   box-sizing: border-box;
@@ -37,16 +86,12 @@
   gap: var(--sy-space-4);
 }
 
+/* Still once drawn, like every sigil: the backdrop is the view's one live plate. */
 .today-mandala {
   display: block;
   width: 100%;
   aspect-ratio: 1 / 1;
   background: radial-gradient(circle at 50% 50%, #9a6bff2e 0, #0048f01f 40%, transparent 70%);
-  animation: today-turn 240s linear infinite;
-}
-
-@keyframes today-turn {
-  to { transform: rotate(360deg); }
 }
 
 .today-caption {
@@ -165,5 +210,5 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .today-mandala { animation: none; }
+  .today-backdrop-flame { animation: none; }
 }
