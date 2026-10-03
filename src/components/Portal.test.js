@@ -91,7 +91,7 @@ async function roll(container) {
     await vi.waitFor(() => expect(hook(container, 'enter')).not.toBeNull(), { timeout: 3000 });
 }
 
-/** A rolled classic: every classic has more than one division, so all three parts can be redrawn. */
+/** A rolled classic. */
 const classic = (workId, temper = 'revel') => ({
     temper,
     decision: composeRoll({ temper: TEMPERS.find(t => t.id === temper), workId, section: 'first' })
@@ -270,8 +270,8 @@ describe('a roll', () => {
         portal.destroy();
     });
 
-    it('redraws one part and keeps the other two', async () => {
-        for (const [workId, temper] of [['oedipus-rex', 'revel'], ['middlemarch', 'revel'], ['middlemarch', 'vigil'], ['middlemarch', 'vigil']]) {
+    it('redraws one part and keeps the others', async () => {
+        for (const [workId, temper] of [['oedipus-rex', 'revel'], ['middlemarch', 'revel'], ['middlemarch', 'vigil']]) {
             vi.mocked(rollReading).mockImplementationOnce(() => classic(workId, temper));
         }
         const { portal, container } = makePortal();

@@ -224,7 +224,7 @@
   color: var(--sy-text-2);
 }
 
-/* Three parts, each with its own Redraw, between hairline rules. */
+/* Three parts between hairline rules; the text and the mood have a Redraw. */
 .home-parts {
   margin: 0;
   padding: 0;
