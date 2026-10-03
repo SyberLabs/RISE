@@ -240,7 +240,7 @@ describe('a reading\'s opening look', () => {
 
     it('reaches Begin untouched', () => {
         const view = mountBegin();
-        view.orbital.loadText('Waste no more time.', 'Meditations', { presentation: { ...LOOK }, origin: { view: 'portal', name: 'Home' } });
+        view.orbital.loadText('Waste no more time.', 'Meditations', { presentation: { ...LOOK }, origin: { view: 'home', name: 'Home' } });
         view.orbital.beginSession();
         expect(view.begun[0].presentation).toEqual(LOOK);
         unmount(view);

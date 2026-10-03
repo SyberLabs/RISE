@@ -2,9 +2,9 @@
  * Chamber chrome accent allowlist. A token family, not a visualMode.
  *
  * `default` is the ground state (bare :root, no data-accent); every other id
- * is a colourway that dresses the Portal cluster in a tint of its hue.
+ * is a colourway that dresses Home cluster in a tint of its hue.
  *
- *   default → slate tiles wearing ivory accents — the pairing the Portal has
+ *   default → slate tiles wearing ivory accents — the pairing Home has
  *             always worn, kept exactly as it is
  *   slate   → the same tiles wearing a real slate blue-grey instead of cream
  *   ivory   → cream outright: the one sitting whose surface IS its hue
@@ -28,8 +28,8 @@ export const CHAMBER_ACCENTS = Object.freeze([
 ]);
 
 /**
- * THE DEFAULT IS THE GROUND STATE, NOT A COLOURWAY. It is the pairing the
- * Portal has always worn — slate tiles, ivory only on the hero's edge — and
+ * THE DEFAULT IS THE GROUND STATE, NOT A COLOURWAY. It is the pairing
+ * Home has always worn — slate tiles, ivory only on the hero's edge — and
  * it is the BARE :root: choosing it stamps no `data-accent`. So it is on the
  * allowlist (a reader may pick it, and unknown ids resolve to it) but has no
  * token block below and is never written as an attribute — see

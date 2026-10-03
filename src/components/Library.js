@@ -611,7 +611,7 @@ export class Library {
     // Back button
     this.container.querySelector('.library-back[data-action="back"]')?.addEventListener('click', () => {
       this.getAudioEngine()?.playClick();
-      this.onNavigate('portal');
+      this.onNavigate('home');
     });
 
     // A program opens through the router, so it gets an address and Back.
@@ -660,7 +660,7 @@ export class Library {
       } else if (action === 'preview' && id) {
         console.log('Preview sequence:', id);
       } else if (action === 'go-home') {
-        this.onNavigate('portal');
+        this.onNavigate('home');
       } else if (action === 'select-text' && id) {
         this.handleTextSelection(id);
       } else if (action === 'open-local' || action === 'edit-local' || action === 'drop-local') {
@@ -704,7 +704,7 @@ export class Library {
 
   handleKeyboard(e) {
     if (e.key === 'Escape') {
-      this.onNavigate('portal');
+      this.onNavigate('home');
     }
   }
 

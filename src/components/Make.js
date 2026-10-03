@@ -66,7 +66,7 @@ export class Make {
         <div class="make-tabs"></div>
       </div>
     `;
-    container.querySelector('.make-back').addEventListener('click', () => this.onNavigate('portal'));
+    container.querySelector('.make-back').addEventListener('click', () => this.onNavigate('home'));
     container.querySelector('.make-nav').addEventListener('click', (event) => {
       const tab = event.target.closest('[data-tab]')?.dataset.tab;
       if (tab && tab !== this.activeTab) this.onNavigate('make', { pane: tab });

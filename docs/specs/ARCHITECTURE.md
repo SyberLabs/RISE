@@ -155,7 +155,7 @@ flowchart LR
     affect["affect<br/>experience-state evaluation<br/>29 modules"]
     app["app<br/>composition root<br/>11 modules"]
     audio["audio<br/>Web Audio, recitation<br/>10 modules"]
-    components["components<br/>routed views<br/>52 modules"]
+    components["components<br/>routed views<br/>53 modules"]
     content["content<br/>texts, imagery, journeys<br/>228 modules"]
     core["core<br/>session, player, router<br/>170 modules"]
     enterprise["enterprise<br/>talk program, speaker rail<br/>34 modules"]
@@ -326,7 +326,7 @@ outliving its room, fails a build.
 
 | Room | Module | What it is |
 |---|---|---|
-| Portal | `src/components/Portal.js` | the hub, and the first screen |
+| Home | `src/components/Home.js` | the hub, and the first screen |
 | Read | `src/components/Read.js` | reading: the reader setup, a reading in time, and the live host, as three panes |
 | Library | `src/components/Library.js` | the prepared editions, scripture, liturgies, journeys, keystones and the day's poem, with provenance on every edition |
 | Make | `src/components/Make.js` | authoring: composition, saved work, the Scriptorium, the visual lab and catalog |

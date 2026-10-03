@@ -166,7 +166,7 @@ export async function resolveJevReading(decision, exact = null) {
     audioProgram,
     verseLines: entry.verse === true,
     provenance: work.provenance,
-    origin: { view: 'portal', icon: '✧', name: 'Home', experience: 'jev' },
+    origin: { view: 'home', icon: '✧', name: 'Home', experience: 'jev' },
     ...(divisions.divided && divisions.entries.length > 1 ? { continuation: {
       kind: 'library-division',
       workId: work.workId || work.id,

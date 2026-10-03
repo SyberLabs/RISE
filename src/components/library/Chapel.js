@@ -297,7 +297,7 @@ export class Chapel {
 
     if (button.dataset.action === 'back') {
       this.getAudioEngine()?.playClick();
-      this.onNavigate('portal');
+      this.onNavigate('home');
       return;
     }
 

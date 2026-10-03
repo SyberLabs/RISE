@@ -26,18 +26,18 @@ export const LIVE_PATH = '/live';
 export const EMOTIONS_PATH = '/emotions';
 
 /**
- * Old ids stay valid forever. Each right-hand side is the id the room has
- * today; later tasks flip entries as rooms merge.
+ * Every id RISE has routed stays valid forever, mapped onto one of the five
+ * rooms: home, read, library, make, settings.
  */
 export const ROUTE_ALIASES = {
-    portal: 'portal',
+    portal: 'home',
+    home: 'home',
     keystones: 'library',
     mint: 'library',
     vault: 'make',
     chamber: 'read',
     'chamber-session': 'read',
     library: 'library',
-    make: 'make',
     journeys: 'library',
     workshop: 'make',
     settings: 'settings',
@@ -123,9 +123,9 @@ function pane(name, row, room = 'library') {
 }
 
 const ROUTES = [
-    fixed('portal', '/'),
-    { id: 'portal', pattern: '/jev-scene-demo', build: null, own: true, parse: () => ({ demoMode: true }) },
-    { id: 'portal', pattern: '/night-drive', build: null, own: true, parse: () => ({ demoMode: true }) },
+    fixed('home', '/'),
+    { id: 'home', pattern: '/jev-scene-demo', build: null, own: true, parse: () => ({ demoMode: true }) },
+    { id: 'home', pattern: '/night-drive', build: null, own: true, parse: () => ({ demoMode: true }) },
 
     pane('keystones', { pattern: TRY_RISE_PATH, build: () => TRY_RISE_PATH }),
     pane('keystones', {
@@ -236,7 +236,7 @@ export function pathForRoute(id, data = {}) {
 
 /**
  * True when the address is a parse-only alias that IS this room's own
- * threshold (the sample scene paths are the Portal), so arriving at the room
+ * threshold (the sample scene paths are Home), so arriving at the room
  * leaves it alone instead of rewriting it to the canonical path.
  */
 export function addressIsOwnTo(id, pathname) {

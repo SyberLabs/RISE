@@ -165,7 +165,7 @@ describe('Chamber accent allowlist', () => {
 
     it('marks Home with the RISE accent as a dot, not a tinted title', () => {
         const css = readFileSync(
-            join(dirname(fileURLToPath(import.meta.url)), '..', 'components', 'Portal.css'),
+            join(dirname(fileURLToPath(import.meta.url)), '..', 'components', 'Home.css'),
             'utf8'
         );
         const title = css.match(/\.portal-title\s*\{[^}]+\}/);
@@ -278,8 +278,8 @@ describe('the accent carries a legible ink for full fills', () => {
 
     it('Home carries no frozen purple', () => {
         const portal = readFileSync(
-            join(dirname(fileURLToPath(import.meta.url)), '..', 'components', 'Portal.css'), 'utf8');
-        // No lavender literal survives anywhere in the Portal's chrome.
+            join(dirname(fileURLToPath(import.meta.url)), '..', 'components', 'Home.css'), 'utf8');
+        // No lavender literal survives anywhere in Home's chrome.
         expect(portal).not.toMatch(/1(?:39|60|40|20),\s*(?:127|145|125|110),\s*(?:180|200|160)/);
     });
 });

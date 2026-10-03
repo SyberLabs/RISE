@@ -34,7 +34,7 @@ describe('Router failure containment', () => {
     router.registerView('a', { container: document.querySelector('#a'), init: () => ({}) });
     await router.navigate('a');
 
-    // Mid-transition: falling through to reset('portal') would strand
+    // Mid-transition: falling through to reset('home') would strand
     // a just-started session's audio behind the portal
     router.transitioning = true;
     document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
@@ -43,7 +43,7 @@ describe('Router failure containment', () => {
     // Settled: the fallback owns Escape again
     router.transitioning = false;
     document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
-    expect(reset).toHaveBeenCalledWith('portal');
+    expect(reset).toHaveBeenCalledWith('home');
 
     reset.mockRestore();
     router.destroy();
@@ -136,7 +136,7 @@ describe('Router stale-build recovery', () => {
   it('reloads once to recover a tab left open across a deploy', async () => {
     // The trap: a hashed chunk the new build replaced 404s forever, so
     // every retry fails identically and the reader can never leave the
-    // view they are in. A reader in the Vault could not reach the Portal.
+    // view they are in. A reader in the Vault could not reach Home.
     const router = new Router();
     router.transitionDuration = 0;
     router.registerView('a', { container: document.querySelector('#a'), init: () => ({}) });

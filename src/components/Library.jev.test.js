@@ -25,6 +25,6 @@ it('has no second request box: describing a reading happens on Home', () => {
   const link = container.querySelector('[data-action="go-home"]');
   expect(link.textContent).toBe('Describe what you want on Home');
   link.click();
-  expect(onNavigate).toHaveBeenCalledWith('portal');
+  expect(onNavigate).toHaveBeenCalledWith('home');
   expect(provider).not.toHaveBeenCalledWith('/api/jev-recommend', expect.anything());
 });

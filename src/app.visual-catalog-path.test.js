@@ -5,7 +5,7 @@ import App from './app.js';
 let app;
 
 function plantShell() {
-  for (const id of ['view-make', 'view-portal', 'view-live', 'toast-container']) {
+  for (const id of ['view-make', 'view-home', 'view-read', 'toast-container']) {
     const node = document.createElement('div');
     node.id = id;
     node.hidden = true;
@@ -107,7 +107,7 @@ describe('the Visual Catalog public path, a tab of Make', () => {
     await opening;
   });
 
-  it('queues a catalog Back destination received while leaving for the Portal', async () => {
+  it('queues a catalog Back destination received while leaving for Home', async () => {
     window.history.replaceState({}, '', '/visual-catalog?q=klee');
     app = new App();
     await app.initializeApp({});
@@ -134,14 +134,14 @@ describe('the Visual Catalog public path, a tab of Make', () => {
     window.dispatchEvent(new PopStateEvent('popstate'));
 
     releaseFadeOut();
-    await vi.waitFor(() => expect(document.querySelector('#view-portal').hidden).toBe(false));
+    await vi.waitFor(() => expect(document.querySelector('#view-home').hidden).toBe(false));
     await vi.waitFor(() => {
       expect(window.location.pathname).toBe('/visual-catalog');
       expect(window.location.search).toBe('?q=attractor');
       expect(app.router.getCurrentView()).toBe('make');
       expect(app.router.transitioning).toBe(false);
       expect(document.querySelector('#view-make').hidden).toBe(false);
-      expect(document.querySelector('#view-portal').hidden).toBe(true);
+      expect(document.querySelector('#view-home').hidden).toBe(true);
       expect([...document.querySelectorAll('[data-visual-id]')].map(card => card.dataset.visualId)).toEqual(['ostensoria', 'attractor']);
     });
     await Promise.resolve();

@@ -264,7 +264,7 @@ export class Curia {
                 </footer>
             </div>`;
         this.container.querySelector('.curia-back')
-            .addEventListener('click', () => this.onNavigate('portal'));
+            .addEventListener('click', () => this.onNavigate('home'));
         this.container.querySelector('.curia-apply')
             .addEventListener('click', () => this.applyChangeset());
         this.container.querySelector('.curia-copy')

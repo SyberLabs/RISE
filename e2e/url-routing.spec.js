@@ -55,7 +55,7 @@ test('a chapter chosen in the Chapel is part of its address, and survives reload
   await page.goBack();
   await expect.poll(() => pathOf(page)).toBe('/');
   await page.waitForFunction(() => window.__RISE_TEST__
-    && window.__RISE_TEST__.getRouterState().currentView === 'portal'
+    && window.__RISE_TEST__.getRouterState().currentView === 'home'
     && !window.__RISE_TEST__.getRouterState().transitioning);
   await openHomeRoom(page, 'chapel');
   await expect(page.locator('.chapel-book[data-book-id="matthew"]')).toBeVisible({ timeout: 15_000 });

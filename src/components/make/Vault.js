@@ -262,7 +262,7 @@ export class Vault {
     // Back button
     this.container.querySelector('[data-action="back"]')?.addEventListener('click', () => {
       this.getAudioEngine()?.playClick();
-      this.onNavigate('portal');
+      this.onNavigate('home');
     });
 
     this.container.querySelector('[data-nav="journeys"]')?.addEventListener('click', () => {
@@ -441,7 +441,7 @@ export class Vault {
 
   handleKeyboard(e) {
     if (e.key === 'Escape') {
-      this.onNavigate('portal');
+      this.onNavigate('home');
     }
   }
 

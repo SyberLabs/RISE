@@ -50,9 +50,9 @@ describe('Router addresses', () => {
   });
 
   it('opens a pane when the Library is entered through an old id', async () => {
-    register('portal', 'b');
+    register('home', 'b');
     registerLibrary();
-    await router.navigate('portal');
+    await router.navigate('home');
     await router.navigate('rosarium', { data: { door: true } });
     expect(router.currentView).toBe('library');
     expect(router.currentData).toEqual({ door: true, pane: 'rosary' });
@@ -63,13 +63,13 @@ describe('Router addresses', () => {
   });
 
   it('writes the address when the move begins, before a slow room has finished initialising', async () => {
-    register('portal', 'b');
+    register('home', 'b');
     let finish;
     router.registerView('library', {
       container: document.querySelector('#a'),
       init: () => new Promise(resolve => { finish = () => resolve({}); })
     });
-    await router.navigate('portal');
+    await router.navigate('home');
     const moving = router.navigate('library');
     await vi.waitFor(() => expect(finish).toBeTypeOf('function'));
     expect(history.pushState).toHaveBeenLastCalledWith({ id: 'library', data: {} }, '', '/library');
@@ -142,8 +142,8 @@ describe('Router addresses', () => {
 
   it('does not rewrite an address that already names the same room', async () => {
     window.history.replaceState({}, '', '/night-drive');
-    register('portal', 'a');
-    await router.navigate('portal');
+    register('home', 'a');
+    await router.navigate('home');
     expect(history.pushState).not.toHaveBeenCalled();
     router.destroy();
   });
@@ -230,15 +230,15 @@ describe('Router back and updateAddress', () => {
     const router = new Router({ history });
     router.transitionDuration = 0;
     const plain = [];
-    router.registerView('portal', {
+    router.registerView('home', {
       container: document.querySelector('#b'),
       init: () => { const room = { update: vi.fn(), destroy: vi.fn() }; plain.push(room); return room; }
     });
     const make = { showPane: vi.fn(), update: vi.fn() };
     router.registerView('make', { container: document.querySelector('#a'), init: () => make });
 
-    await router.navigate('portal');
-    expect(await router.navigate('portal', { data: { demoMode: true } })).toBe(true);
+    await router.navigate('home');
+    expect(await router.navigate('home', { data: { demoMode: true } })).toBe(true);
     expect(plain).toHaveLength(1);
     expect(plain[0].update).not.toHaveBeenCalled();
     expect(plain[0].destroy).not.toHaveBeenCalled();

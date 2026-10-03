@@ -138,7 +138,7 @@ describe('Chamber Settings door', () => {
     expect(container.querySelector('[data-setting="reducedMotion"]')).toBeTruthy();
 
     // Face and Accent are decided before a reading, in the One Type editor
-    // and the Portal; changing a typeface mid-sentence is not a rescue.
+    // and Home; changing a typeface mid-sentence is not a rescue.
     // Fit is a projection, not a scale, and stands chunking aside with it.
     expect(container.querySelector('input[name="chamber-face"]')).toBeNull();
     expect(container.querySelector('input[name="chamber-accent"]')).toBeNull();
@@ -208,7 +208,7 @@ describe('Chamber Settings door', () => {
     chamber.destroy();
   });
 
-  it('closes back to the live session without resuming or navigating to Portal', async () => {
+  it('closes back to the live session without resuming or navigating Home', async () => {
     const { chamber, container, player } = mount();
 
     await chamber.openSettings();

@@ -9,15 +9,15 @@ describe('navigation intent ownership', () => {
     const a = document.createElement('main');
     router.registerView('make', { container: a, init: () => ({}) });
     router.registerView('read', { container: document.createElement('main'), init });
-    router.registerView('portal', { container: document.createElement('main'), init: () => ({}) });
+    router.registerView('home', { container: document.createElement('main'), init: () => ({}) });
     router.fadeIn = vi.fn().mockResolvedValue();
     router.fadeOut = vi.fn().mockResolvedValue();
     await router.navigate('make');
     let release;
     router.fadeOut.mockImplementationOnce(() => new Promise(resolve => { release = resolve; }));
     const launch = router.navigate('chamber-session');
-    const leave = router.navigate('portal');
-    expect(intent).toHaveBeenLastCalledWith('portal', {});
+    const leave = router.navigate('home');
+    expect(intent).toHaveBeenLastCalledWith('home', {});
     release();
     expect(await launch).toBe(false);
     expect(await leave).toBe(true);

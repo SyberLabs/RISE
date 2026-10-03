@@ -74,7 +74,7 @@ export function chamberExitTarget(reason, session = {}, data = null) {
     }
 
     if (session?.origin?.experience === 'jev-sample') {
-        return { kind: 'navigate', view: 'portal' };
+        return { kind: 'navigate', view: 'home' };
     }
 
     // A live reading returns to where it was asked for.
@@ -84,9 +84,9 @@ export function chamberExitTarget(reason, session = {}, data = null) {
     // A reading proposed on Home and entered from there goes back to Home,
     // where the proposal still waits. One opened through Reader Setup
     // (Adjust) returns there, like any other reading.
-    if (session?.origin?.experience === 'jev' && session.origin.view === 'portal'
+    if (session?.origin?.experience === 'jev' && session.origin.view === 'home'
         && session.origin.adjusted !== true) {
-        return { kind: 'navigate', view: 'portal' };
+        return { kind: 'navigate', view: 'home' };
     }
 
     return { kind: 'navigate', view: 'chamber' };

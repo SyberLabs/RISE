@@ -896,7 +896,7 @@ export class ChamberOrbital {
   renderOriginChip() {
     const origin = this.config.origin;
     // The back button already says Home; a chip for Home would say it twice.
-    if (!origin || !origin.view || origin.view === 'portal') return '';
+    if (!origin || !origin.view || origin.view === 'home') return '';
     return `
       <button type="button" class="orbital-origin-chip" data-action="origin-return" title="Return to ${origin.name}">
         <span class="origin-chip-label">${origin.name}</span>
@@ -1365,7 +1365,7 @@ export class ChamberOrbital {
     // Back button
     this._listen(this.container.querySelector('[data-action="back"]'), 'click', () => {
       this.getAudioEngine()?.playClick();
-      this.onNavigate('portal');
+      this.onNavigate('home');
     });
 
     // Origin chip (delegated — the chip re-renders on loadText/clearText)

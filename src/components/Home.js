@@ -1,5 +1,5 @@
 /**
- * Portal Component — RISE Home: the night library.
+ * Home — the night library, and the first screen.
  *
  * Every released work is a star in a sky (src/components/night-library/),
  * and a text panel sits over it. **Roll a reading** composes one by chance
@@ -22,7 +22,7 @@
  * Every other room is one Menu away; Privacy and Terms stay posted.
  */
 
-import './Portal.css';
+import './Home.css';
 import './portal-home.css';
 import { drawRiseSigil } from './atlas.js';
 import { isJevSceneDemoPath, sceneSampleFromPath } from '../core/jev-demo-path.js';
@@ -49,7 +49,7 @@ const capital = text => text ? text[0].toLocaleUpperCase('en') + text.slice(1) :
 const button = (hook, label, variant, extra = '') =>
   `<button class="btn btn-${variant}" type="${hook === 'ask' ? 'submit' : 'button'}" data-home="${hook}"${extra}>${label}</button>`;
 
-export class Portal {
+export class Home {
   constructor(container, options = {}) {
     this.container = container;
     this.onNavigate = options.onNavigate || (() => { });
@@ -168,7 +168,7 @@ export class Portal {
         <footer class="portal-footer">
           ${this.demoMode ? '' : `<div class="portal-ai" id="portal-ai">${this.renderConnectionLine()}</div>`}
           <!-- Conspicuously posted, which is the standard CalOPPA sets and
-               the reason these sit on the Portal rather than inside a room.
+               the reason these sit on Home rather than inside a room.
                Generated from PRIVACY.md and TERMS.md by build-legal.mjs. -->
           <span class="portal-legal">
             <a href="/privacy.html" class="portal-footer-link portal-legal-link">Privacy</a>

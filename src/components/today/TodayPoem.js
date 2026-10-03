@@ -75,7 +75,7 @@ export class TodayPoem {
 
   attachEvents() {
     this.container.addEventListener('click', event => {
-      if (event.target.closest('[data-action="back"]')) this.onNavigate('portal');
+      if (event.target.closest('[data-action="back"]')) this.onNavigate('home');
       else if (event.target.closest('[data-begin]')) void this.begin();
       else if (event.target.closest('[data-retry]')) void this.load();
     }, { signal: this._events.signal });

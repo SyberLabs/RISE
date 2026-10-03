@@ -679,7 +679,7 @@ describe('reading-owned visual program persistence', () => {
 
     it('repairs a pre-program persisted Gospel reading before Gallery begins', () => {
         // This is the deployed failure captured in the live console: the
-        // reader entered Chamber directly from Portal, restoring Matthew 27
+        // reader entered Chamber directly from Home, restoring Matthew 27
         // from a record written before visualProgram persistence existed.
         // Its first sourced preference survived, but no schedule could advance.
         localStorage.setItem('rise_orbital_prefs_v1', JSON.stringify({

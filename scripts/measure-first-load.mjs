@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * What a first-time visitor downloads before the Portal can paint.
+ * What a first-time visitor downloads before Home can paint.
  *
  * THE PROJECT HAS TUNED CHUNKING THREE TIMES WITHOUT THIS NUMBER. Three
  * rounds of `manualChunks` moved three kilobytes, because the bytes are in
@@ -89,16 +89,17 @@ function textShareOfJavaScript() {
 }
 
 /**
- * The Portal is a dynamic import, so it is not in `index.html`'s request
+ * Home is a dynamic import, so it is not in `index.html`'s request
  * set — but a reader stares at nothing until it arrives. Counting only what
  * the shell asks for would flatter every delta that moves something behind
  * an `import()`. Spec 12's target is stated as "shell + router + Portal +
- * Portal.css", so that is what has to be weighed against it.
+ * Portal.css" (the room now called Home), so that is what has to be weighed
+ * against it.
  */
-function portalAssets() {
+function homeAssets() {
   return readdirSync(join(DIST, 'assets'))
-    .filter(name => /^Portal-[^/]+\.(js|css)$/.test(name))
-    .map(name => ({ kind: 'portal', href: `/assets/${name}` }));
+    .filter(name => /^Home-[^/]+\.(js|css)$/.test(name))
+    .map(name => ({ kind: 'home', href: `/assets/${name}` }));
 }
 
 /**
@@ -124,18 +125,18 @@ function weigh(assets) {
 export function measure() {
   const html = readFileSync(join(DIST, 'index.html'), 'utf8');
   const { weighed: assets, missing } = weigh(firstLoadAssets(html));
-  const { weighed: portal } = weigh(portalAssets());
+  const { weighed: home } = weigh(homeAssets());
   const shell = brotli(Buffer.from(html));
   const sum = (list, key) => list.reduce((total, item) => total + item[key], 0);
   return {
     assets,
-    portal,
+    home,
     missing,
     requests: assets.length + 1,           // index.html is a request too
     raw: sum(assets, 'raw') + Buffer.byteLength(html),
     brotli: sum(assets, 'brotli') + shell,
-    toPortalRequests: assets.length + portal.length + 1,
-    toPortalBrotli: sum(assets, 'brotli') + sum(portal, 'brotli') + shell
+    toHomeRequests: assets.length + home.length + 1,
+    toHomeBrotli: sum(assets, 'brotli') + sum(home, 'brotli') + shell
   };
 }
 
@@ -150,7 +151,7 @@ function main() {
   if (argv.includes('--json')) {
     console.log(JSON.stringify(report, null, 2));
   } else {
-    console.log('First load — what a visitor fetches before the Portal paints\n');
+    console.log('First load — what a visitor fetches before Home paints\n');
     for (const asset of report.assets) {
       console.log(
         `  ${asset.kind.padEnd(14)} ${kb(asset.brotli).padStart(10)} br  `
@@ -164,15 +165,15 @@ function main() {
     console.log(`  budget         ${kb(FIRST_LOAD_BUDGET_BYTES).padStart(10)} br`);
 
     console.log();
-    for (const asset of report.portal) {
+    for (const asset of report.home) {
       console.log(
         `  ${asset.kind.padEnd(14)} ${kb(asset.brotli).padStart(10)} br  `
         + `${kb(asset.raw).padStart(10)} raw   ${asset.href}`
       );
     }
     console.log(
-      `  ${'TO PORTAL'.padEnd(14)} ${kb(report.toPortalBrotli).padStart(10)} br`
-      + `${''.padStart(18)}${report.toPortalRequests} requests`
+      `  ${'TO HOME'.padEnd(14)} ${kb(report.toHomeBrotli).padStart(10)} br`
+      + `${''.padStart(18)}${report.toHomeRequests} requests`
     );
 
     if (argv.includes('--bundle')) {

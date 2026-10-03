@@ -245,7 +245,7 @@ describe('the Scriptorium as the reader meets it', () => {
             expect(examine).toHaveBeenCalledTimes(1);
         });
 
-        it('leaves for the Portal once', () => {
+        it('leaves for Home once', () => {
             click('back');
             expect(onNavigate).toHaveBeenCalledTimes(1);
         });

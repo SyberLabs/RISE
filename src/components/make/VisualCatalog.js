@@ -52,7 +52,7 @@ export class VisualCatalog {
       back.textContent = 'Back to RISE';
       back.addEventListener('click', event => {
         event.preventDefault();
-        this.onNavigate('portal');
+        this.onNavigate('home');
       });
       main.append(back);
     }

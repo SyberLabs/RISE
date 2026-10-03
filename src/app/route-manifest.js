@@ -6,10 +6,10 @@
 export function createRouteManifest(operations) {
   return [
     {
-      id: 'portal',
-      containerId: 'view-portal',
-      load: () => import('../components/Portal.js'),
-      create: (container, data, { Portal }) => new Portal(container, {
+      id: 'home',
+      containerId: 'view-home',
+      load: () => import('../components/Home.js'),
+      create: (container, data, { Home }) => new Home(container, {
         demoMode: data?.demoMode === true,
         onNavigate: operations.handleNavigate,
         onLaunchJevReading: operations.launchJevReading,
@@ -140,7 +140,7 @@ export function createRouteManifest(operations) {
               mode: 'route',
               onUseInReading: operations.useRecipeInReading,
               onEditInWorkshop: () => operations.handleNavigate('workshop'),
-              onClose: () => operations.handleNavigate('portal')
+              onClose: () => operations.handleNavigate('home')
             },
             'visual-catalog': {
               onNavigate: (...args) => operations.handleNavigate(...args)

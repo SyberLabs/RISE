@@ -43,7 +43,7 @@ const READING = {
   verseLines: true,
   visualConfig: { visualMode: 'interlocution' },
   soundscape: 'blues',
-  origin: { view: 'portal', icon: '✧', name: 'Home', experience: 'jev' },
+  origin: { view: 'home', icon: '✧', name: 'Home', experience: 'jev' },
   continuation: { kind: 'library-division', workId: 'spoon-river-anthology', entryId: '1', entryIndex: 1, entryCount: 2, noun: 'entry' }
 };
 vi.mock('../../app/jev-reading.js', () => ({ resolveJevReading: vi.fn(async () => READING) }));
@@ -183,7 +183,7 @@ describe('TodayPoem', () => {
     const onNavigate = vi.fn();
     const view = new TodayPoem(container, { onNavigate });
     container.querySelector('[data-action="back"]').click();
-    expect(onNavigate).toHaveBeenCalledWith('portal');
+    expect(onNavigate).toHaveBeenCalledWith('home');
     view.destroy();
   });
 

@@ -6,7 +6,7 @@ import { resolveJevChamberConfig } from '../core/jev-config.js';
 import { jevColors } from '../core/jev-palette.js';
 import { compileJevAudioProgram, compileJevVisualProgram } from '../core/jev-sequence.js';
 import { rollReading } from '../core/roll.js';
-import { Portal } from './Portal.js';
+import { Home } from './Home.js';
 import { DecisionError } from '../core/decision/call.js';
 import { acceptOpenRouterKey, resetConnectionForTests } from '../core/ai-connection.js';
 
@@ -76,7 +76,7 @@ function tokyoDecision() {
 function mount(options = {}) {
   const container = document.createElement('div');
   document.body.appendChild(container);
-  const portal = new Portal(container, options);
+  const portal = new Home(container, options);
   return { portal, container };
 }
 

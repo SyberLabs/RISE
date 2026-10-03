@@ -574,7 +574,7 @@ export class Scriptorium {
 
   bind() {
     this.container.querySelector('[data-action="back"]')
-      ?.addEventListener('click', () => this.onNavigate('portal'));
+      ?.addEventListener('click', () => this.onNavigate('home'));
 
     this.container.querySelector('#scriptorium-intent')
       ?.addEventListener('input', (event) => {

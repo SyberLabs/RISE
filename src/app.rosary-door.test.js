@@ -6,7 +6,7 @@ import { ROSARY_PRAYERS, mysterySetForDate } from './content/chapel/liturgy/rosa
 import { isRosaryDoor, rosaryDoorHref, ROSARY_DOOR_HASH } from './core/rosary-door.js';
 
 const VIEW_IDS = [
-  'view-portal', 'view-chamber', 'view-library',
+  'view-home', 'view-read', 'view-library',
   'view-make', 'view-settings'
 ];
 
@@ -86,7 +86,7 @@ describe('Chapel Rosary door (#rosary)', () => {
     expect(prayerText()).toBe(ROSARY_PRAYERS.signOfTheCross);
     expect(document.querySelector('.rosarium-panel')).toBeNull();
     expect(document.querySelector('[data-action="start"]')).toBeNull();
-    expect(document.getElementById('view-portal').hidden).toBe(true);
+    expect(document.getElementById('view-home').hidden).toBe(true);
     expect(window.location.hash).toBe(ROSARY_DOOR_HASH);
   });
 
@@ -131,17 +131,17 @@ describe('Chapel Rosary door (#rosary)', () => {
     expect(window.location.hash).toBe(ROSARY_DOOR_HASH);
   });
 
-  it('bare / opens the Portal directly, never the Rosary', async () => {
+  it('bare / opens Home directly, never the Rosary', async () => {
     window.location.hash = '';
     app = new App();
     const opened = app.initializeApp({});
 
     await opened;
 
-    expect(app.router.getCurrentView()).toBe('portal');
+    expect(app.router.getCurrentView()).toBe('home');
     expect(prayerText()).toBeNull();
     expect(rosaryPane()).toBeNull();
-    expect(document.getElementById('view-portal').hidden).toBe(false);
+    expect(document.getElementById('view-home').hidden).toBe(false);
     expect(window.location.hash).toBe('');
     expect(isRosaryDoor()).toBe(false);
   });
@@ -151,7 +151,7 @@ describe('Chapel Rosary door (#rosary)', () => {
     app = new App();
     await app.initializeApp({});
 
-    expect(app.router.getCurrentView()).toBe('portal');
+    expect(app.router.getCurrentView()).toBe('home');
     expect(prayerText()).toBeNull();
 
     const navigate = vi.spyOn(app.router, 'navigate');
@@ -163,9 +163,9 @@ describe('Chapel Rosary door (#rosary)', () => {
     });
 
     expect(navigate).toHaveBeenCalledWith('rosarium', { data: { door: true } });
-    expect(navigate).not.toHaveBeenCalledWith('portal');
-    expect(navigate).not.toHaveBeenCalledWith('portal', expect.anything());
-    expect(document.getElementById('view-portal').hidden).toBe(true);
+    expect(navigate).not.toHaveBeenCalledWith('home');
+    expect(navigate).not.toHaveBeenCalledWith('home', expect.anything());
+    expect(document.getElementById('view-home').hidden).toBe(true);
     expect(document.getElementById('view-library').hidden).toBe(false);
     expect(rosaryPane().hidden).toBe(false);
     expect(window.location.hash).toBe(ROSARY_DOOR_HASH);

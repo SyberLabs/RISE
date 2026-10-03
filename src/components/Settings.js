@@ -28,7 +28,7 @@ import {
 /**
  * A READING CANNOT BE RESUMED ONCE ABANDONED — the exit overlay says so:
  * "The current sequence will be abandoned." So the panel a reader opens from
- * inside a reading is not the panel they visit from the Portal. It carries
+ * inside a reading is not the panel they visit from Home. It carries
  * what can rescue a reading in progress — the type, the chrome, the volume,
  * the two safety switches — and none of what is meaningless or destructive
  * there: the LOBBY drone does not play during a reading, and exporting or
@@ -40,7 +40,7 @@ const SESSION_SCOPE = 'session';
 /**
  * THE BAR IS THE IN-SESSION SETTINGS; THIS DOOR ONLY WIDENS IT.
  *
- * The Chamber's door opened the Portal's panel over the whole screen, and
+ * The Chamber's door opened Home's panel over the whole screen, and
  * narrowing its CONTENTS still left a full-screen replica for a handful of
  * controls. The bar scope is the honest size: what a reader can need without
  * abandoning a reading that cannot be resumed, and nothing they could have
@@ -56,7 +56,7 @@ const SESSION_SCOPE = 'session';
  *            A reader who starts feeling unwell needs the graded switch, and
  *            needs it without ending the reading.
  *
- * Face and Accent are the One Type editor's and the Portal's: changing a
+ * Face and Accent are the One Type editor's and Home's: changing a
  * typeface mid-sentence is not a rescue, it is a decision made too late.
  */
 const BAR_SCOPE = 'bar';
@@ -413,7 +413,7 @@ export class Settings {
 
     leave() {
         if (this.onClose) this.onClose();
-        else this.onNavigate('portal');
+        else this.onNavigate('home');
     }
 
     attachEvents() {

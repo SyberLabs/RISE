@@ -60,7 +60,7 @@ describe('Connect OpenRouter (PKCE S256)', () => {
     const storage = memoryStorage();
     const taken = takeOpenRouterReturn(location, history, storage);
     expect(taken).toEqual({ callback: { code: 'abc12345', state: 's' } });
-    // The Portal claims it once.
+    // Home claims it once.
     expect(claimOpenRouterReturn()).toEqual(taken);
     expect(claimOpenRouterReturn()).toBeNull();
     expect(history.replaceState).toHaveBeenCalledWith(null, '', '/');

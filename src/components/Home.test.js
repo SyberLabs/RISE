@@ -7,7 +7,7 @@ import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { Portal } from './Portal.js';
+import { Home } from './Home.js';
 import { openingLines, validateJevRecommendation } from '../app/jev-reading.js';
 import { composeRoll, rollReading, TEMPERS } from '../core/roll.js';
 import { SECTION_WORDS } from '../core/jev-describe.js';
@@ -52,7 +52,7 @@ vi.mock('../app/jev-reading.js', async importOriginal => ({
     openingLines: vi.fn(async () => LINES)
 }));
 
-const portalCss = ['Portal.css', 'portal-home.css']
+const portalCss = ['Home.css', 'portal-home.css']
     .map(file => readFileSync(join(dirname(fileURLToPath(import.meta.url)), file), 'utf8'))
     .join('\n');
 
@@ -76,7 +76,7 @@ function makePortal(options = {}) {
     const container = document.createElement('div');
     document.body.appendChild(container);
     const onNavigate = vi.fn();
-    const portal = new Portal(container, { onNavigate, ...options });
+    const portal = new Home(container, { onNavigate, ...options });
     return { portal, container, onNavigate };
 }
 

@@ -63,7 +63,7 @@ export class Mint {
   attachEvents() {
     this.container.addEventListener('click', event => {
       const action = event.target.closest('[data-action]')?.dataset.action;
-      if (action === 'portal') this.onNavigate('portal');
+      if (action === 'portal') this.onNavigate('home');
       if (action === 'open') this.open();
     }, { signal: this._events.signal });
   }

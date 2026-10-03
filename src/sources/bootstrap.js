@@ -2,12 +2,12 @@
  * Bringing up the source system, on the first surface that browses sources.
  *
  * THIS USED TO HAPPEN AT BOOT. `initializeApp` awaited a function that
- * constructed all seven providers before the Portal could paint, and the
+ * constructed all seven providers before Home could paint, and the
  * providers are not thin: `sacred.js` carries 22 KB of verse inline,
  * `local.js` wraps the 32 KB starter set, and `archive.js` reaches
  * `content/library.js` and through it `sacred_deep.js` and
  * `literary_deep.js`. A registry needs ids; it was loading payloads.
- * Nothing the Portal shows reads any of them.
+ * Nothing Home shows reads any of them.
  *
  * There is no metadata manifest here, and that is deliberate.
  * `work-engines.js` keeps one because the curator context and diagnostics

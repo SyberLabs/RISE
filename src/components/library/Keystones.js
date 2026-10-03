@@ -160,7 +160,7 @@ export class Keystones {
   attachEvents() {
     const options = { signal: this._events.signal };
     this.container.querySelector('[data-nav="portal"]')?.addEventListener(
-      'click', () => this.onNavigate('portal'), options
+      'click', () => this.onNavigate('home'), options
     );
     this.container.querySelector('[data-enter]')?.addEventListener(
       'click', () => this.launch(), options

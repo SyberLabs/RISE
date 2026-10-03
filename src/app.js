@@ -6,7 +6,7 @@
  * - Router (view navigation)
  * - Audio Engine (binaural entrainment, layers)
  * - Settings (persistence, accessibility)
- * - Components (Portal, Chamber, Library, Workshop, Settings)
+ * - Components (Home, Read, Library, Make, Settings)
  */
 
 import { Router } from './core/router.js';
@@ -35,14 +35,14 @@ import { takeOpenRouterReturn } from './core/openrouter-callback.js';
 
 // FIRST, before any other work: an OpenRouter sign-in returns here with a
 // one-time authorization code in the URL. Lift it out of the address bar and
-// history now; the Portal exchanges it (and clears the PKCE state) when it opens.
+// history now; Home exchanges it (and clears the PKCE state) when it opens.
 // Any other page load abandons a sign-in this tab started and never finished.
 takeOpenRouterReturn();
 
 // THE SHELL'S OWN STYLES, AND ONLY THOSE. app.js used to import sixteen
-// stylesheets — every room's, not the Portal's — which is 220 KB of CSS
+// stylesheets — every room's, not Home's — which is 220 KB of CSS
 // before a reader has entered a single room. A room's stylesheet now lives
-// with the room's module and arrives with it, so the Portal's cost no
+// with the room's module and arrives with it, so Home's cost no
 // longer grows every time a room is added.
 import './design-system.css';
 import './core/visual-safety.css';
@@ -110,7 +110,7 @@ class App {
         this._historyNavigationGeneration = 0;
 
         // The two heaviest subsystems in the shell, both arriving on the
-        // first use rather than before the Portal paints. See
+        // first use rather than before Home paints. See
         // ensureAudioEngine / ensureVisualCortex.
         this._visualCortex = null;
         this._visualCortexLoad = null;
@@ -176,7 +176,7 @@ class App {
      * The Web Audio engine, on first use.
      *
      * 87 KB of source plus soundscapes and chant beds, none of which a
-     * reader who opens the Portal and leaves has asked for. Every caller
+     * reader who opens Home and leaves has asked for. Every caller
      * gets the same instance; concurrent callers share one import.
      */
     async ensureAudioEngine() {
@@ -196,7 +196,7 @@ class App {
      * The visual cortex, on first use, initialized once.
      *
      * 179 KB of engines and a stylesheet behind one singleton. Nothing on
-     * the Portal path presents a visual, so nothing on the Portal path
+     * Home path presents a visual, so nothing on Home path
      * should pay for one.
      */
     async ensureVisualCortex() {
@@ -226,7 +226,7 @@ class App {
         // The audio engine, the visual cortex and the source providers are
         // not created here. Each arrives at its first use — the engine on
         // the first interaction, the cortex when a reading opens, the
-        // providers when a surface browses sources. Nothing the Portal
+        // providers when a surface browses sources. Nothing Home
         // shows reads any of them.
 
         this.router = new Router({
@@ -244,7 +244,7 @@ class App {
         this.setupUtilityListeners();
 
         // Finish "Connect OpenRouter". The key goes to memory only; the
-        // Portal shows the outcome. A failure changes nothing else.
+        // Home shows the outcome. A failure changes nothing else.
 
         // Keystone paths are durable public entry points.  They resolve to a
         // threshold view first; admission and launch still happen through the
@@ -253,7 +253,7 @@ class App {
         // QUESTIONS, NOT ONE: whether this is a mint URL at all, and which
         // mint it names. A printed code outlives the sequence it names, so
         // a valid address naming nothing has to reach the threshold and be
-        // told — collapsing both to "no" drops that reader on the Portal
+        // told — collapsing both to "no" drops that reader on Home
         // with no idea why.
         const { houseProgram } = await import('./content/programs/index.js');
         const { programSlugShape } = await import('./core/program-paths.js');
@@ -283,7 +283,7 @@ class App {
         // launch or Reader Setup resolver. The URL carries no reading data.
         const opened = window.location.search.includes('invocation=')
             && await (await import('./app/invocation.js')).enterFromInvocation(window.location.search, {
-                home: () => this.router.navigate('portal'),
+                home: () => this.router.navigate('home'),
                 launch: decision => this.launchJevReading(decision),
                 adjust: decision => this.adjustJevReading(decision),
                 fail: message => this.showToast(message, 5000)
@@ -410,7 +410,7 @@ class App {
         // Navigation errors: return to portal
         errorBoundary.registerRecoveryHandler(ErrorCategory.NAVIGATION, (report) => {
             if (this.router) {
-                return this.router.navigate('portal');
+                return this.router.navigate('home');
             }
         });
 
@@ -421,7 +421,7 @@ class App {
                 this.currentSession = null;
             }
             if (this.router) {
-                return this.router.navigate('portal');
+                return this.router.navigate('home');
             }
         });
     }
@@ -823,7 +823,7 @@ class App {
                 sessionInput.origin = { view: 'vault' };
             } else {
                 // The project model is a room's, and nothing on the way to the
-                // Portal needs it, so it is not part of first load.
+                // Home needs it, so it is not part of first load.
                 const { isWorkshopProject, workshopProjectToSessionConfig } =
                     await import('./core/workshop-project.js');
                 if (!isCurrent()) return false;
@@ -1216,7 +1216,7 @@ class App {
             const historyGeneration = ++this._historyNavigationGeneration;
             // Hash navigation belongs to the Rosary door. Browsers may emit
             // popstate alongside hashchange, and clearing the hash must not
-            // pull an in-progress prayer back to the Portal.
+            // pull an in-progress prayer back to Home.
             if (isRosaryDoor()) return;
             this.handleNavigationIntent('history');
             const route = await this.resolveAddress();
@@ -1246,7 +1246,7 @@ class App {
      * The room the address bar names, always a room that can open.
      * Unknown addresses, rooms this build does not register, Keystone slugs
      * the manifest does not carry, and a reading address with no reading to
-     * show all land somewhere real: the Portal, or the Chamber's setup.
+     * show all land somewhere real: Home, or the Chamber's setup.
      */
     async resolveAddress() {
         const here = window.location;
@@ -1265,7 +1265,7 @@ class App {
                 ? { id: 'read', data: this.router.currentData }
                 : { id: 'read', data: { pane: 'setup' }, rewrite: true };
         }
-        if (!route || !this.router?.views?.has(route.id)) route = { id: 'portal', data: {} };
+        if (!route || !this.router?.views?.has(route.id)) route = { id: 'home', data: {} };
         return route;
     }
 

@@ -100,7 +100,7 @@ describe('Jev reading handoff', () => {
     const input = await resolveJevReading(decision());
     expect(input.text).toBe('The first source text.');
     expect(input.textSource).toBe('Middlemarch · Chapter I');
-    expect(input.origin).toEqual({ view: 'portal', icon: '✧', name: 'Home', experience: 'jev' });
+    expect(input.origin).toEqual({ view: 'home', icon: '✧', name: 'Home', experience: 'jev' });
     expect(input).toMatchObject({
       wpm: 200, curve: 'flat', chunkMode: 'phrase',
       audioPreset: 'silent', soundscape: 'aurora',

@@ -779,7 +779,7 @@ export class Workshop {
       this.sceneStackHost.className = 'scene-stack-host';
       // Scene keys and clicks are the stack's alone. The studio delegates
       // both on this container and Escape on the document sends the reader
-      // to the Portal, so nothing pressed in a sheet may reach either.
+      // to Home, so nothing pressed in a sheet may reach either.
       const contain = event => {
         const leaving = event.type === 'keydown' && event.key === 'Escape'
           && !this.sceneStack?.sheet && this.sceneStack?.view === 'stack';
@@ -802,10 +802,10 @@ export class Workshop {
     });
   }
 
-  leaveForPortal() {
+  leaveForHome() {
     this.audioPreview.stop();
     this.getAudioEngine()?.playClick();
-    this.onNavigate('portal');
+    this.onNavigate('home');
   }
 
   /** Preview compiles the draft it is given and enters the Chamber the launch path uses. */
@@ -4322,7 +4322,7 @@ export class Workshop {
     this.container.querySelector('[data-action="back"]')?.addEventListener('click', () => {
       this.audioPreview.stop();
       this.getAudioEngine()?.playClick();
-      this.onNavigate('portal');
+      this.onNavigate('home');
     });
 
     // Form submission
@@ -4959,7 +4959,7 @@ export class Workshop {
         this.cancelPendingScoreSelection();
         return;
       }
-      this.onNavigate('portal');
+      this.onNavigate('home');
     } else if (!e.repeat && e.key && e.key.length === 1) {
       // Trigger sound for alphanumeric/symbol keys
       this.getAudioEngine()?.playKeyPress(e.keyCode);

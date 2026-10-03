@@ -4,7 +4,7 @@
  *
  * Design principles (from UX spec):
  * - Transitions use crossfade (opacity), not slide
- * - Escape key returns to Portal from any view
+ * - Escape key returns to Home from any view
  * - View stack enables contextual back navigation
  */
 
@@ -16,7 +16,7 @@
  * 404s. It is NOT transient — every retry fails identically — so a tab
  * left open across a release becomes permanently unable to reach any
  * view it has not already loaded. A reader in the Vault could not get
- * back to the Portal at all.
+ * back to Home at all.
  */
 function isStaleChunkError(error) {
     const message = String(error?.message || error || '');
@@ -283,8 +283,8 @@ export class Router {
     async back() {
         const entry = this.viewStack.pop();
         if (!entry) {
-            // If no stack, go to Portal
-            await this.navigate('portal', { replace: true });
+            // If no stack, go Home
+            await this.navigate('home', { replace: true });
             return;
         }
         await this.navigate(entry.viewName, { data: entry.data, replace: true });
@@ -293,7 +293,7 @@ export class Router {
     /**
      * Clear stack and go to view
      */
-    async reset(viewName = 'portal') {
+    async reset(viewName = 'home') {
         this.viewStack = [];
         await this.navigate(viewName, { replace: true });
     }
@@ -327,7 +327,7 @@ export class Router {
      * Handle keyboard events
      */
     handleKeydown(e) {
-        if (e.key !== 'Escape' || (this.currentView === 'portal' && !this.transitioning)) return;
+        if (e.key !== 'Escape' || (this.currentView === 'home' && !this.transitioning)) return;
 
         // Mid-transition Escape has no rightful owner: the incoming
         // view's instance isn't mounted yet, so falling through would
@@ -354,7 +354,7 @@ export class Router {
         }
 
         e.preventDefault();
-        this.reset('portal');
+        this.reset('home');
     }
 
     /**

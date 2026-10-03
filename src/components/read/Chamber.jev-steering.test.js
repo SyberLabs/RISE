@@ -12,7 +12,7 @@ const atoms = [
 function session(overrides = {}) {
   return {
     title: 'A Jev reading', atoms, totalDuration: 3000, wpm: 200,
-    origin: { view: 'portal', experience: 'jev' },
+    origin: { view: 'home', experience: 'jev' },
     visualConfig: { visualMode: 'interlocution', interlocution: { presentation: 'continuous' } },
     visualProgram: buildJevVisualProgram({
       visualArc: 'dual', arcSplit: '70', visualEngine: 'klee',
@@ -146,7 +146,7 @@ describe('reader steering of a Jev visual arc', () => {
 
   it('keeps the control out of ordinary, single-scene, and safety-limited readings', () => {
     for (const reading of [
-      session({ origin: { view: 'portal' } }),
+      session({ origin: { view: 'home' } }),
       session({ visualProgram: null }),
       session({ projection: 'page' }),
       session({ visualConfig: { visualMode: 'interlocution', interlocution: { presentation: 'behind-stream' } } })

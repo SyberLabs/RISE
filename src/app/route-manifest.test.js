@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { createRouteManifest } from './route-manifest.js';
 
 const ROUTE_IDS = [
-  'portal',
+  'home',
   'read',
   'library',
   'make',
@@ -48,7 +48,7 @@ describe('createRouteManifest', () => {
     };
 
     for (const [id, exportName] of [
-      ['portal', 'Portal'],
+      ['home', 'Home'],
       ['library', 'Library']
     ]) {
       expect(roomOptions(id, exportName).getAudioEngine, `${id} audio boundary`).toBe(getAudioEngine);
@@ -61,7 +61,7 @@ describe('createRouteManifest', () => {
     const tabs = roomOptions('make', 'Make').tabCapabilities;
     expect(tabs.vault.getAudioEngine, 'vault audio boundary').toBe(getAudioEngine);
     expect(tabs.workshop.audioEngineProvider, 'workshop audio boundary').toBe(getAudioEngine);
-    expect(roomOptions('portal', 'Portal').getCurrentSession).toBe(getCurrentSession);
+    expect(roomOptions('home', 'Home').getCurrentSession).toBe(getCurrentSession);
     expect(roomOptions('settings', 'Settings').notify).toBe(notify);
   });
 
@@ -120,8 +120,8 @@ describe('createRouteManifest', () => {
     expect(tabs['visual-lab'].mode).toBe('route');
     tabs['visual-lab'].onEditInWorkshop();
     expect(operations.handleNavigate).toHaveBeenCalledWith('workshop');
-    tabs['visual-catalog'].onNavigate('portal');
-    expect(operations.handleNavigate).toHaveBeenCalledWith('portal');
+    tabs['visual-catalog'].onNavigate('home');
+    expect(operations.handleNavigate).toHaveBeenCalledWith('home');
     expect(shown).toEqual([{ pane: 'visual-catalog', search: '?q=light' }]);
   });
 

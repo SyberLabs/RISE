@@ -74,8 +74,8 @@ export async function createChamberSession(operations, container, sessionData) {
         // A reading is the first thing that needs either of
         // these, so this is where they arrive. Chamber.js
         // imports the same cortex singleton, so opening the
-        // Chamber was always going to pay for it; opening the
-        // Portal no longer is.
+        // Chamber was always going to pay for it; opening
+        // Home no longer is.
         const visualCortex = await operations.ensureVisualCortex();
         assertCurrent();
         await operations.ensureAudioEngine();

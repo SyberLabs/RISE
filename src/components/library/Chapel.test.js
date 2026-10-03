@@ -180,7 +180,7 @@ describe('Chapel view', () => {
 });
 
 describe('the doorway (seam)', () => {
-  const portalSource = readFileSync(resolve('src/components/Portal.js'), 'utf8');
+  const portalSource = readFileSync(resolve('src/components/Home.js'), 'utf8');
   const chapelCss = readFileSync(resolve('src/components/library/Chapel.css'), 'utf8');
   const appSource = readFileSync(resolve('src/app.js'), 'utf8');
   const librarySource = readFileSync(resolve('src/components/Library.js'), 'utf8');

@@ -81,7 +81,7 @@ describe('Settings display type', () => {
     // abandoned, so the door inside one carries only what can rescue it. What
     // is meaningless there (the LOBBY drone, the About plate) or destructive
     // there (export, and a clear that wipes the session and reloads) stays in
-    // the Portal, where a reader arrives on purpose and has nothing running.
+    // Home, where a reader arrives on purpose and has nothing running.
     it('withholds the between-sessions controls from the in-session panel', () => {
         const container = document.createElement('div');
         document.body.appendChild(container);
@@ -112,7 +112,7 @@ describe('Settings display type', () => {
         session.destroy();
     });
 
-    it('keeps the full panel in the Portal, where nothing is running', () => {
+    it('keeps the full panel in Home, where nothing is running', () => {
         const { container, settings } = mountSettings();
         for (const kept of [
             '[data-setting="enableAmbient"]',
@@ -304,7 +304,7 @@ describe('Settings display type', () => {
         settings.destroy();
     });
 
-    it('returns through onClose when opened from Chamber and still goes Portal from the route', () => {
+    it('returns through onClose when opened from Chamber and still goes Home from the route', () => {
         const overlay = document.createElement('div');
         document.body.appendChild(overlay);
         const onClose = vi.fn();
@@ -326,7 +326,7 @@ describe('Settings display type', () => {
         const onNavigate = vi.fn();
         const portalSettings = new Settings(route, { onNavigate });
         route.querySelector('[data-action="back"]').click();
-        expect(onNavigate).toHaveBeenCalledWith('portal');
+        expect(onNavigate).toHaveBeenCalledWith('home');
         portalSettings.destroy();
     });
 });
