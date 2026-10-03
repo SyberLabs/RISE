@@ -296,7 +296,7 @@ class App {
         } else if (isRosaryDoor()) {
             await this.router.navigate('rosarium', { data: { door: true } });
         } else if (mintedSlug) {
-            await this.router.navigate('mint', { data: { entry: houseProgram(mintedSlug) } });
+            await this.router.navigate('mint', { data: { entry: houseProgram(mintedSlug) }, keepUrl: true });
         } else {
             // Every other address is the table's to resolve (route-url.js);
             // the cases above are not addresses: a hash, a query code, a
@@ -678,7 +678,10 @@ class App {
             session.firstReadPreview = true;
         }
         // The address the reading keeps while it is open (see route-url.js).
-        if (sessionConfig.publicPath) session.publicPath = sessionConfig.publicPath;
+        // The fixed sample scenes keep their own path while they read.
+        const publicPath = sessionConfig.publicPath
+            || (sceneSampleFromPath(window.location.pathname) ? window.location.pathname : null);
+        if (publicPath) session.publicPath = publicPath;
 
         // Store and navigate to chamber-session (immersion)
         this.currentSession = session;

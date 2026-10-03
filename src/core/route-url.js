@@ -77,8 +77,8 @@ function fixed(id, path, extra = {}) {
 
 const ROUTES = [
     fixed('portal', '/'),
-    { id: 'portal', pattern: '/jev-scene-demo', build: null, parse: () => ({ demoMode: true }) },
-    { id: 'portal', pattern: '/night-drive', build: null, parse: () => ({ demoMode: true }) },
+    { id: 'portal', pattern: '/jev-scene-demo', build: null, own: true, parse: () => ({ demoMode: true }) },
+    { id: 'portal', pattern: '/night-drive', build: null, own: true, parse: () => ({ demoMode: true }) },
 
     {
         id: 'keystones',
@@ -195,6 +195,15 @@ function match(pattern, pathname) {
 export function pathForRoute(id, data = {}) {
     const row = ROUTES.find(item => item.id === id && item.build);
     return row ? row.build(data || {}) : null;
+}
+
+/**
+ * True when the address is a parse-only alias that IS this room's own
+ * threshold (the sample scene paths are the Portal), so arriving at the room
+ * leaves it alone instead of rewriting it to the canonical path.
+ */
+export function addressIsOwnTo(id, pathname) {
+    return ROUTES.some(row => row.id === id && row.own === true && match(row.pattern, String(pathname || '/')));
 }
 
 /** The room an address names, as { id, data }, or null. */

@@ -60,6 +60,14 @@ describe('Router addresses', () => {
     router.destroy();
   });
 
+  it('rewrites a Keystone reading address to the threshold when leaving the reading', async () => {
+    window.history.replaceState({}, '', '/keystone/meditations');
+    register('keystones', 'a');
+    await router.navigate('keystones', { data: { slug: 'meditations' }, replaceUrl: true });
+    expect(history.replaceState).toHaveBeenCalledWith({ id: 'keystones', data: { slug: 'meditations' } }, '', '/try-rise');
+    router.destroy();
+  });
+
   it('leaves the address alone while a hash door is open, and for keepUrl', async () => {
     window.history.replaceState({}, '', '/#rosary');
     register('library', 'a');

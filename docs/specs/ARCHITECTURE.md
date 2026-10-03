@@ -251,7 +251,9 @@ install it.
 deactivation, the back stack, and failure restoration. Routed components must
 make document-level listeners lifecycle-aware with `activate()`,
 `deactivate()`, `destroy()`. A rejected async initializer must not leave the
-transition lock held or the previous view hidden.
+transition lock held or the previous view hidden. Every route has a path,
+declared once in `src/core/route-url.js`; old route ids remain valid as
+aliases there.
 
 **`src/core/session-compiler.js`** is the only way a reading is built. Every
 launch surface calls it. Do not recreate chunk or pacing logic in a component.
@@ -642,7 +644,10 @@ of `settled`, `open`, `deferred`, or `reversed`.
   the audio and the first phrase is silent, and every safety notice is stepped
   over on the way. The button on the threshold is the gesture the audio
   lifecycle is waiting for.
-- **Status:** open.
+- **Status:** reversed. Reversed 2026-10: every room has a path in
+  `src/core/route-url.js`; a reading can be bookmarked and shared, and Back
+  works everywhere, not only on the Keystone paths. The minted `/p/<slug>`
+  threshold and the Rosary hash door keep their own cold-load handling.
 
 ### 8.13 jsdom for the suite; real browsers for what jsdom cannot see
 
@@ -1267,7 +1272,6 @@ Stated plainly so it is never rediscovered as a surprise.
   it no longer travels through the module graph. §8.2 removed the build-time
   cost; *where the bytes live* is a separate question and is still open.
 - **There is no single timeline.** §8.7.
-- **Most rooms have no address.** §8.12.
 - **Access control does not exist**, by choice. §8.1, §8.41.
 - **The public shelf serves uncertified candidates** under an override that is
   explicitly temporary and should not become permanent by neglect. §8.21.

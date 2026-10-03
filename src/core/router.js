@@ -24,7 +24,7 @@ function isStaleChunkError(error) {
         .test(message);
 }
 
-import { ROUTE_ALIASES, pathForRoute, routeFromPath } from './route-url.js';
+import { ROUTE_ALIASES, addressIsOwnTo, pathForRoute } from './route-url.js';
 
 export class Router {
     constructor(options = {}) {
@@ -222,8 +222,7 @@ export class Router {
         const here = globalThis.location;
         if (!target || !this.history || !here) return;
         if (target === here.pathname + here.search) return;
-        const current = routeFromPath(here.pathname, here.search);
-        if (current?.id === id && pathForRoute(id, current.data) === target) return;
+        if (addressIsOwnTo(id, here.pathname)) return;
         // The state is for the next reader of history, not a copy of the
         // room: data too large to be an address (a session) is left out.
         let data = {};

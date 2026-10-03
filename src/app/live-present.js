@@ -12,6 +12,8 @@ import { offerLivePlayer } from './live-handoff.js';
 
 export async function presentLive(router, session, player) {
     session.origin = { view: 'live' };
+    // The reading is the live room's, so it keeps the room's address.
+    session.publicPath = '/live';
     const mounted = offerLivePlayer(session, player);
     // The router remounts a view only when it has none: the Chamber that was
     // showing goes first, and lets go of its Player as it does.
