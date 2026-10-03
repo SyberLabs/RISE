@@ -206,9 +206,9 @@ describe('a roll', () => {
         expect(words(parts[0].querySelector('.home-part-value'))).toBe(`${portal.result.title} · ${portal.result.author}`);
         const plan = portal.result.plan.join(', ');
         expect(words(parts[1].querySelector('.home-part-value'))).toBe(`${Temper} ${plan[0].toUpperCase()}${plan.slice(1)}`);
-        expect(parts.map(part => part.querySelector('button').getAttribute('aria-label')))
-            .toEqual(['Redraw the text', 'Redraw the mood', 'Redraw the passage']);
-        expect(parts.map(part => part.querySelector('button').dataset.home)).toEqual(['redraw-text', 'redraw-mood', 'redraw-passage']);
+        expect(parts.map(part => part.querySelector('button')?.getAttribute('aria-label')))
+            .toEqual(['Redraw the text', 'Redraw the mood', undefined]);
+        expect(parts.map(part => part.querySelector('button')?.dataset.home)).toEqual(['redraw-text', 'redraw-mood', undefined]);
 
         // The passage is the opening of the division the reading will open, verse kept as lines.
         expect(openingLines).toHaveBeenCalledWith(decision);
@@ -238,7 +238,6 @@ describe('a roll', () => {
         fail(new Error('edition unavailable'));
         await vi.waitFor(() => expect(passage.querySelector('.home-passage-loading')).toBeNull());
         expect(passage.querySelector('blockquote')).toBeNull();
-        expect(hook(container, 'redraw-passage')).not.toBeNull();
         expect(container.querySelector('.home-alert').hidden).toBe(true);
         portal.destroy();
     });
@@ -279,10 +278,9 @@ describe('a roll', () => {
         await roll(container);
         const kept = previous => ({
             'redraw-text': { previous, temper: previous.temper, section: previous.decision.config.section },
-            'redraw-mood': { previous, workId: previous.decision.workId, section: previous.decision.config.section },
-            'redraw-passage': { previous, workId: previous.decision.workId, temper: previous.temper }
+            'redraw-mood': { previous, workId: previous.decision.workId, section: previous.decision.config.section }
         });
-        for (const redraw of ['redraw-text', 'redraw-mood', 'redraw-passage']) {
+        for (const redraw of ['redraw-text', 'redraw-mood']) {
             const previous = portal.result;
             hook(container, redraw).click();
             await vi.waitFor(() => expect(portal.result).not.toBe(previous), { timeout: 3000 });
@@ -290,21 +288,6 @@ describe('a roll', () => {
             expect(shown(container)).toBe('result');
             expect(document.activeElement, redraw).toBe(hook(container, redraw));
         }
-        portal.destroy();
-    });
-
-    it('offers no passage Redraw for a RISE original, which has one division', async () => {
-        vi.mocked(rollReading).mockImplementationOnce(() => ({
-            temper: 'signal',
-            decision: composeRoll({ temper: TEMPERS.find(t => t.id === 'signal'), workId: 'signal-from-the-moon', section: 'first' })
-        }));
-        const { portal, container } = makePortal();
-        await roll(container);
-        expect(portal.result.decision.author).toBe('RISE');
-        expect(container.querySelectorAll('.home-part')).toHaveLength(3);
-        expect(hook(container, 'redraw-passage')).toBeNull();
-        expect(hook(container, 'redraw-text')).not.toBeNull();
-        expect(hook(container, 'redraw-mood')).not.toBeNull();
         portal.destroy();
     });
 

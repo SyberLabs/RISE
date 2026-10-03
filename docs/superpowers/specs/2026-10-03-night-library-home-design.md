@@ -42,16 +42,17 @@ does not change until the work lands.
 | View | The panel |
 |---|---|
 | idle | "Every star is a text you can read." · **Roll a reading** (the one solid key) · **Ask for one** · today's poem card ([spec](2026-10-03-poem-of-the-day-design.md)) |
-| result | The mood pill · the title · "Author, from the opening section" · three parts, each with **Redraw**: *The text*, *The mood* (temper and plan words), *The passage* (the opening lines, in the reading face) · **Start reading** · **Roll again** · **Adjust first** · *Ask for something specific instead*. The chosen star flares |
+| result | The mood pill · the title · "Author, from the opening section" · three parts: *The text* and *The mood* (temper and plan words), each with **Redraw**, and *The passage* (the opening lines, in the reading face) · **Start reading** · **Roll again** · **Adjust first** · *Ask for something specific instead*. The chosen star flares |
 | ask, connected | "What would you like to read?" field (240 characters, microphone, help) · **Ask** · **Roll instead**. Enter asks; Shift+Enter is a new line |
 | ask, not connected | "Asking needs your own AI." · **Connect OpenRouter** · **Run RISE locally** · *Roll instead* · About your connection |
 
 * **A star** rolls for its work (`rollReading({ previous, workId })`), so
   picking the star already shown still changes its mood and passage. Picks are ignored
   while Home is rolling, asking or opening a reading.
-* **Redraw** keeps the other two parts: the text keeps the temper and section,
-  the mood keeps the work and section, the passage keeps the work and temper.
-  A RISE original has one division, so it has no passage Redraw.
+* **Redraw** keeps the other parts: the text keeps the temper and section,
+  the mood keeps the work and section. The passage has no Redraw (removed
+  2026-10-03: nobody asked for it, and the 16 RISE originals have one
+  division, so it changed nothing for half the Library).
 * **An asked result** has no temper. Its mood reads *As you asked*. A Redraw
   on it is a roll that keeps the other parts and draws a temper.
 * The status line speaks every result, as before. Errors keep their alert,
@@ -59,7 +60,7 @@ does not change until the work lands.
 * The result lives with Home while the tab is open. A fresh load starts empty.
 
 Hooks for tests: `data-home="roll | ask-open | ask | enter | adjust |
-redraw-text | redraw-mood | redraw-passage | roll-instead"`.
+redraw-text | redraw-mood | roll-instead"`.
 
 ## Decisions
 
@@ -67,7 +68,7 @@ redraw-text | redraw-mood | redraw-passage | roll-instead"`.
 |---|---|
 | The orb | **Deleted** (owner decision, 2026-10-03), with its flick and phone-shake roll, the iOS motion permission, the beige keycaps and the "MODEL J-82 · PHOSPHOR VOLUME" plate |
 | When asking is offered | **From the start**, beside Roll a reading (owner decision). It was hidden until a first roll |
-| A result's shape | **Three parts with their own Redraw**, inside the panel (from mockup B), rather than three large plates |
+| A result's shape | **Three parts, the text and the mood with their own Redraw**, inside the panel (from mockup B), rather than three large plates |
 | Loading the sky | **After first paint, lazily** (`NightSky` and `librarySky` are dynamic imports). Every word and control is in the served HTML. If either import or `librarySky()` fails, the panel works without a sky |
 | The one gradient | The ink scrim. Everything else is Atlas tokens and classes (`.btn`, `.sy-spectrum`) |
 

@@ -195,9 +195,9 @@ it('redraws one part of an asked reading as a roll, drawing a mood when it had n
   ask(container, 'tokyo drift');
   await vi.waitFor(() => expect(hook(container, 'enter')).not.toBeNull(), { timeout: 3000 });
   const asked = portal.result;
-  hook(container, 'redraw-passage').click();
+  hook(container, 'redraw-text').click();
   await vi.waitFor(() => expect(portal.result).not.toBe(asked), { timeout: 3000 });
-  expect(rollReading).toHaveBeenLastCalledWith({ previous: asked, workId: 'ulysses', temper: null });
+  expect(rollReading).toHaveBeenLastCalledWith({ previous: asked, temper: null, section: asked.decision.config.section });
   expect(portal.result.source).toBe('roll');
   expect(container.querySelector('.home-note')).toBeNull();
   portal.destroy();

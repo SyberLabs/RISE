@@ -70,15 +70,16 @@ test('on a phone the sky is a band above the panel; on a desk it fills the page 
   expect(sky.bottom).toBeGreaterThanOrEqual(panel.bottom - 1);
 });
 
-test('a star opens its work with the three parts, the opening lines, and a Redraw for each', async ({ page }) => {
+test('a star opens its work with the three parts, the opening lines, and a Redraw for the text and the mood', async ({ page }) => {
   await openHome(page);
   await star(page, 'oedipus-rex').click({ timeout: 15_000 });
   await expect(page.locator('h1')).toHaveText('Oedipus Rex', { timeout: 10_000 });
   await expect(page.locator('.home-byline')).toContainText('Sophocles, from the');
   await expect(page.locator('.home-part-label')).toHaveText(['The text', 'The mood', 'The passage']);
-  for (const part of ['text', 'mood', 'passage']) {
+  for (const part of ['text', 'mood']) {
     await expect(page.locator(`[data-home="redraw-${part}"]`)).toHaveAccessibleName(`Redraw the ${part}`);
   }
+  await expect(page.locator('[data-home="redraw-passage"]')).toHaveCount(0);
   // The opening lines, in the reading face, once they load.
   const lines = page.locator('.home-lines');
   await expect(lines).not.toBeEmpty({ timeout: 15_000 });
