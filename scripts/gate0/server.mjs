@@ -98,7 +98,7 @@ export function dispatch(message, state, widgetHtml) {
   const { id, method, params } = message;
   if (typeof method !== 'string') return empty();
   if (id === undefined) return empty();
-  if ((typeof id !== 'string' && typeof id !== 'number') || !Number.isFinite(id)) return error(null, -32600, 'Invalid request');
+  if (typeof id !== 'string' && (typeof id !== 'number' || !Number.isFinite(id))) return error(null, -32600, 'Invalid request');
   switch (method) {
     case 'initialize': {
       const asked = typeof params?.protocolVersion === 'string' ? params.protocolVersion : '';
@@ -152,10 +152,10 @@ async function readJson(request) {
   } catch { return { invalid: true }; }
 }
 
-export async function handleMcp(request, state, widgetHtml) {
+export async function handleMcp(request, state, widgetHtml, expectedOrigin) {
   const url = new URL(request.url);
   if (url.pathname !== MCP_PATH) return new Response('Not found', { status: 404 });
-  if (request.headers.get('origin') !== null && request.headers.get('origin') !== url.origin) return new Response('Origin denied', { status: 403 });
+  if (request.headers.get('origin') !== null && request.headers.get('origin') !== expectedOrigin) return new Response('Origin denied', { status: 403 });
   if (request.method !== 'POST') return new Response('Use POST', { status: 405, headers: { allow: 'POST' } });
   if (request.headers.get('content-type')?.split(';')[0].trim().toLowerCase() !== 'application/json') return new Response('Send application/json', { status: 415 });
   const body = await readJson(request);
@@ -184,6 +184,7 @@ const WIDGET_CSS = `:root{font:14px/1.45 system-ui,sans-serif;color:#eee;backgro
 export async function startGate0Server({ port = 4319, testHarnessHtml = null } = {}) {
   const widgetHtml = await buildWidgetHtml();
   const state = createRunState();
+  let allowedOrigin;
   const server = createServer(async (incoming, response) => {
     try {
       if (incoming.method === 'GET' && incoming.url === '/__gate0/widget') {
@@ -196,10 +197,10 @@ export async function startGate0Server({ port = 4319, testHarnessHtml = null } =
         response.end(testHarnessHtml);
         return;
       }
-      const url = `http://${incoming.headers.host ?? `127.0.0.1:${port}`}${incoming.url}`;
+      const url = `${allowedOrigin}${incoming.url}`;
       const init = { method: incoming.method, headers: incoming.headers, duplex: 'half' };
       if (!['GET', 'HEAD'].includes(incoming.method)) init.body = incoming;
-      const result = await handleMcp(new Request(url, init), state, widgetHtml);
+      const result = await handleMcp(new Request(url, init), state, widgetHtml, allowedOrigin);
       response.writeHead(result.status, Object.fromEntries(result.headers));
       response.end(await result.text());
     } catch {
@@ -208,7 +209,9 @@ export async function startGate0Server({ port = 4319, testHarnessHtml = null } =
     }
   });
   await new Promise((ready, reject) => { server.once('error', reject); server.listen(port, '127.0.0.1', ready); });
-  return { server, state, widgetHtml, address: server.address() };
+  const address = server.address();
+  allowedOrigin = `http://${address.address}:${address.port}`;
+  return { server, state, widgetHtml, address };
 }
 
 if (process.argv[1] && fileURLToPath(import.meta.url) === resolve(process.argv[1])) {

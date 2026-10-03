@@ -45,6 +45,12 @@ describe('Gate 0 mutation contract', () => {
     expect(content.contents[0]).toMatchObject({ uri: WIDGET_URI, mimeType: APP_MIME, text: '<html></html>' });
   });
 
+  it('preserves valid string JSON-RPC request IDs', async () => {
+    const response = await dispatch({ jsonrpc: '2.0', id: 'probe-1', method: 'initialize', params: { protocolVersion: '2025-06-18' } }, createRunState(), '<html></html>').json();
+    expect(response).toMatchObject({ jsonrpc: '2.0', id: 'probe-1', result: { protocolVersion: '2025-06-18' } });
+    expect(response.error).toBeUndefined();
+  });
+
   it('applies valid visual mutations with monotonic receipts and a bounded log', () => {
     const state = createRunState({ runId: valid().runId, logLimit: 2 });
     const a = mutateVisual(state, { visual: 'attractor' }, now());
@@ -62,12 +68,24 @@ describe('Gate 0 mutation contract', () => {
       method: 'POST', headers: { 'content-type': 'application/json', origin: 'http://evil.test' },
       body: ' '.repeat(20_000)
     });
-    expect((await handleMcp(oversized, state, '<html></html>')).status).toBe(403);
+    expect((await handleMcp(oversized, state, '<html></html>', 'http://127.0.0.1:4319')).status).toBe(403);
     const tooBig = new Request('http://127.0.0.1:4319/mcp', {
       method: 'POST', headers: { 'content-type': 'application/json', origin: 'http://127.0.0.1:4319' },
       body: ' '.repeat(20_000)
     });
-    expect((await handleMcp(tooBig, state, '<html></html>')).status).toBe(413);
+    expect((await handleMcp(tooBig, state, '<html></html>', 'http://127.0.0.1:4319')).status).toBe(413);
+    expect(state.sequence).toBe(0);
+  });
+
+  it('rejects an Origin matching forged Host when it differs from the bound loopback origin', async () => {
+    const state = createRunState({ runId: valid().runId });
+    const request = new Request('http://evil.test/mcp', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', origin: 'http://evil.test' },
+      body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'tools/call', params: { name: TOOL_NAME, arguments: { visual: 'attractor' } } })
+    });
+    const response = await handleMcp(request, state, '<html></html>', 'http://127.0.0.1:4319');
+    expect(response.status).toBe(403);
     expect(state.sequence).toBe(0);
   });
 });

@@ -4,14 +4,21 @@
 <script>
 let widget = document.querySelector('#widget');
 const calls = [];
+const deliveries = [];
 let dropNextAck = false;
+let rejectNextMessage = false;
 window.gate0Host = {
   calls,
+  deliveries,
   set dropNextAck(value) { dropNextAck = value; },
+  set rejectNextMessage(value) { rejectNextMessage = value; },
   sendResult(snapshot) {
+    deliveries.push('tool-result');
     widget.contentWindow.postMessage({ jsonrpc: '2.0', method: 'ui/notifications/tool-result', params: { structuredContent: snapshot } }, '*');
   },
   async deliverTool(arguments_) {
+    deliveries.push('tool-input');
+    widget.contentWindow.postMessage({ jsonrpc: '2.0', method: 'ui/notifications/tool-input', params: { arguments: arguments_ } }, '*');
     const response = await fetch('/mcp', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ jsonrpc: '2.0', id: 41, method: 'tools/call', params: { name: 'rise_set_visual', arguments: arguments_ } }) });
     const message = await response.json();
     const snapshot = message.result?.structuredContent;
@@ -40,6 +47,10 @@ window.addEventListener('message', event => {
   calls.push(message);
   if (message.id !== undefined) {
     if (dropNextAck) dropNextAck = false;
+    else if (message.method === 'ui/message' && rejectNextMessage) {
+      rejectNextMessage = false;
+      event.source.postMessage({ jsonrpc: '2.0', id: message.id, result: { isError: true, content: [{ type: 'text', text: 'Simulated host refusal' }] } }, '*');
+    }
     else event.source.postMessage({ jsonrpc: '2.0', id: message.id, result: {} }, '*');
   }
 });

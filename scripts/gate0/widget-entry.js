@@ -70,7 +70,7 @@ function onMessage(event) {
     if (!item) return;
     pending.delete(message.id);
     clearTimeout(item.timer);
-    if (message.error) item.reject(new Error('Host declined request'));
+    if (message.error || message.result?.isError === true) item.reject(new Error('Host rejected request'));
     else item.resolve(message.result);
     return;
   }
@@ -106,11 +106,12 @@ function marker(method, label) {
     entry.acknowledgment = 'host_rpc_acknowledged; voice receipt unverified';
     renderLog();
     document.querySelector('#reader-status').textContent = `${label}: host RPC acknowledged. This does not prove the voice model saw or answered.`;
-  }).catch(() => {
+  }).catch(error => {
     if (stopped) return;
     entry.acknowledgmentAt = new Date().toISOString();
-    entry.acknowledgment = 'host_rpc_failed_or_timed_out';
+    entry.acknowledgment = error.message === 'Host rejected request' ? 'host_rpc_rejected' : 'host_rpc_failed_or_timed_out';
     renderLog();
+    if (error.message === 'Host rejected request') document.querySelector('#reader-status').textContent = `${label}: host rejected the request.`;
   });
 }
 

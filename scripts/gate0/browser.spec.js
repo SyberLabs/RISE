@@ -24,12 +24,18 @@ test('simulation: MCP Apps host delivers results to one real renderer, records d
   await page.goto(`${base}/__gate0/host`);
   await page.waitForFunction(() => window.gate0Host.calls.some(message => message.method === 'ui/notifications/initialized'));
   const frame = page.frameLocator('#widget');
+  const forged = await page.request.post(`${base}/mcp`, {
+    headers: { host: 'evil.test', origin: 'http://evil.test', 'content-type': 'application/json' },
+    data: { jsonrpc: '2.0', id: 40, method: 'tools/call', params: { name: 'rise_set_visual', arguments: { visual: 'attractor' } } }
+  });
+  expect(forged.status()).toBe(403);
   await page.evaluate(value => window.gate0Host.sendFromOtherFrame(value), snapshot(1));
   await page.evaluate(() => new Promise(resolve => setTimeout(resolve, 40)));
   expect(await frame.locator('canvas.attractor-canvas').count()).toBe(0);
 
   const first = await page.evaluate(() => window.gate0Host.deliverTool({ visual: 'attractor' }));
   expect(first.sequence).toBe(1);
+  expect(await page.evaluate(() => window.gate0Host.deliveries.slice(0, 2))).toEqual(['tool-input', 'tool-result']);
   await expect(frame.locator('canvas.attractor-canvas')).toHaveCount(1);
   await expect.poll(async () => {
     const entry = JSON.parse(await frame.locator('#log li').first().textContent());
@@ -57,6 +63,10 @@ test('simulation: MCP Apps host delivers results to one real renderer, records d
   await frame.locator('#message').click();
   await expect(frame.locator('#reader-status')).toContainText('does not prove');
   expect(await page.evaluate(() => window.gate0Host.calls.some(message => message.method === 'ui/message' && message.params.role === 'user' && message.params.content[0].text === 'RISE GATE 0 READER MARKER'))).toBe(true);
+  await page.evaluate(() => { window.gate0Host.rejectNextMessage = true; });
+  await frame.locator('#message').click();
+  await expect(frame.locator('#reader-status')).toContainText('rejected');
+  await expect(frame.locator('#log')).toContainText('host_rpc_rejected');
   await frame.locator('#speech-start').click();
   await frame.locator('#speech-end').click();
   await frame.locator('#voice-ack').click();
