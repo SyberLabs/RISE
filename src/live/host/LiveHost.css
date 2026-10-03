@@ -62,6 +62,9 @@
 
 /* A hint in the reading's own colors: its ink 60% toward its ground (6.4:1 or better on every ground). */
 .live-controls input::placeholder { color: color-mix(in srgb, var(--color-light) 60%, var(--color-void)); }
+/* The panel's quieter words too: its ink 72% toward its ground (9.0:1 or better on every ground,
+   5.3:1 or better over white imagery under the bar), not RISE's lavender on every theme. */
+.live-controls { --color-fog: color-mix(in srgb, var(--color-light) 72%, var(--color-void)); }
 
 .live-key { display: flex; flex-direction: column; gap: 0.35rem; }
 .live-key-note { margin: 0; color: var(--color-fog); font-size: 0.8rem; line-height: 1.45; }

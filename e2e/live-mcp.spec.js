@@ -260,6 +260,8 @@ test('under reduced motion the imagery holds still, the reader is told so, and t
   const note = app.locator('.live-controls__notes [data-capability="reducedMotion"]');
   await expect(note).toBeVisible();
   await expect(note).toHaveText('Reduced motion is on. Imagery stays still.');
+  // In the reading's ink 72% toward its ground (here RISE's own), not a fixed lavender.
+  expect(channels(await note.evaluate(element => getComputedStyle(element).color))).toEqual([173, 174, 191]);
   await expect.poll(() => picturesOverASecond(app.locator('.chamber-attractor canvas.attractor-canvas')), { timeout: 5_000 }).toBe(1);
 
   // The second passage's own visual, not a fallback, and it is still too.
@@ -508,6 +510,11 @@ test('a themed answer opens on a poster in its colors, and its reading and filam
   expect((await app.locator('.chamber').first().evaluate(element => getComputedStyle(element).getPropertyValue('--reading-scrim'))).toLowerCase()).toContain('#061912');
   // The input hints are the theme's ink 60% toward its ground, not RISE's blue mist.
   expect(channels(await app.locator('#live-controls-question').evaluate(element => getComputedStyle(element, '::placeholder').color))).toEqual([142, 163, 154]);
+  // The panel's quieter words are the theme's ink 72% toward its ground, not RISE's lavender.
+  const quiet = ['.live-controls__notice', '.live-controls__mic-note summary', '.live-controls__transcript summary'];
+  const quietColors = {};
+  for (const selector of quiet) quietColors[selector] = channels(await app.locator(selector).evaluate(element => getComputedStyle(element).color));
+  expect(quietColors).toEqual(Object.fromEntries(quiet.map(selector => [selector, [169, 191, 181]])));
   // The default white filament is blue-dominant; green-dominant paint is the jade palette drawing.
   await expect.poll(async () => {
     const { lit, r, g, b } = await filamentPaint(app).catch(() => ({ lit: 0, r: 0, g: 0, b: 0 }));
