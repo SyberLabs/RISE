@@ -1,6 +1,6 @@
 # Today's poem
 
-**Date:** 2026-10-03 · **Status:** approved direction, not built ·
+**Date:** 2026-10-03 · **Status:** as built ·
 **Mockups:** [RISE Poem of the Day canvas](https://claude.ai/artifact/6WM6M9uDFsDTGEgStuWp3G)
 (direction B, "Kaleidoscope sigil", chosen by the owner)
 
@@ -29,7 +29,10 @@ minute.
      lines kept, in Crimson Pro, left-aligned in a centred block.
   5. **Begin this poem** (the one solid key), then *A new poem, and a new
      mark, at midnight.*
-* **Back:** the room's back control returns to Home, as Keystones does.
+* **The frame:** the shared room frame (`roomHeader`, `roomEyebrow`,
+  `roomAlert` from `src/components/room-chrome.js`), so the header and its
+  back control to Home match Chapel and the other quiet rooms. The app body
+  does not scroll, so the room scrolls inside itself, as Chapel does.
 
 ## Which poem
 
@@ -74,7 +77,9 @@ Begin opens the reader directly, with the same shape the Library's
 *Work · Label*, `verseLines` is `entry.verse === true`, and `continuation` is
 `{ kind: 'library-division', workId, editionId, sourceRevision, entryId,
 entryIndex, entryCount, noun }`. It goes through `app.handleBeginSession`,
-with `origin` naming the Today view so that leaving the reading returns there.
+with `origin` naming the Today view so that leaving the reading returns there
+(`src/app/chamber-exit.js`). Begin is busy while the reader opens and ready
+again afterwards, so a reader who comes back can begin the poem again.
 
 ## States
 
@@ -121,4 +126,9 @@ timer.
   `handleBeginSession` the verse flag and the continuation; a label mismatch
   shows the error and Try again recovers.
 * `Portal.test.js`: the idle panel has the link and it navigates to `today`.
+* `today-poem.integration.test.js`: against the built content, every poem in
+  the pool names a released verse division with that id and label.
+* `e2e/today.spec.js`: Home's link and the `/today` address, no sideways
+  scroll at 390 and 1280, Begin plays exactly the poem shown, and leaving the
+  reading returns to the poem with Begin ready.
 * Regenerate the architecture diagram (`npm run docs:diagram`).
