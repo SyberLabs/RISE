@@ -104,12 +104,12 @@ test('task records reject unsupported keys and malformed evidence references', (
 
 test('update refuses stale revisions without changing the task file', async (t) => {
   const root = await temporaryRoot(t);
-  const original = task('alpha');
+  const original = task('alpha', { revision: 2 });
   await writeTasks(root, [original]);
   const file = path.join(root, 'docs/product/tasks/alpha.json');
   const before = await readFile(file, 'utf8');
   await assert.rejects(updateTask(root, 'alpha', { status: 'in_progress' }, {
-    expectedRevision: 0,
+    expectedRevision: 1,
     summary: 'Started',
     now: '2026-10-03T12:00:00.000Z',
   }), /revision/i);
