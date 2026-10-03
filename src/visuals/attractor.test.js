@@ -1,6 +1,7 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
 import {
   AttractorField,
+  PALETTES,
   ATTRACTOR_PALETTES,
   ATTRACTOR_PALETTE_IDS,
   ATTRACTOR_FORMS,
@@ -45,8 +46,8 @@ afterEach(() => {
 });
 
 describe('Attractor palettes', () => {
-  it('offers exactly the six selectable filament colors', () => {
-    expect(ATTRACTOR_PALETTE_IDS).toEqual(['white', 'red', 'blue', 'gold', 'purple', 'neon']);
+  it('offers exactly the ten selectable filament colors', () => {
+    expect(ATTRACTOR_PALETTE_IDS).toEqual(['white', 'red', 'blue', 'gold', 'purple', 'neon', 'jade', 'rose', 'citrine', 'silver']);
     for (const p of ATTRACTOR_PALETTES) {
       expect(p.name).toBeTruthy();
       expect(p.swatch).toMatch(/^#[0-9a-f]{6}$/i);
@@ -77,6 +78,18 @@ describe('Attractor palettes', () => {
     field.destroy();
   });
 
+  it('takes no inherited name for a palette or a system', () => {
+    const field = new AttractorField(makeHost(), { palette: 'constructor', system: 'toString' });
+    expect(field.palette).toBe('white');
+    expect(field.system).toBe('aizawa');
+    expect(field.setPalette('constructor')).toBe(false);
+    expect(field.palette).toBe('white');
+    field.setSystem('toString');
+    expect(field.system).toBe('aizawa');
+    expect(() => field.tick(performance.now())).not.toThrow();
+    field.destroy();
+  });
+
   it('keeps every palette luminous: a wide dim halo under a bright core', () => {
     // A single-pass filament reads as a thin line, not as light. The
     // halo/core pairing is what makes it glow.
@@ -86,6 +99,41 @@ describe('Attractor palettes', () => {
       field.tick(performance.now());
     }
     field.destroy();
+  });
+
+  it('draws every offered palette, and offers every palette it draws', () => {
+    for (const id of ATTRACTOR_PALETTE_IDS) {
+      expect(Object.hasOwn(PALETTES, id), id).toBe(true);
+      const field = new AttractorField(makeHost(), { palette: id });
+      expect(field.palette).toBe(id);
+      field.destroy();
+    }
+    for (const id of Object.keys(PALETTES)) expect(ATTRACTOR_PALETTE_IDS).toContain(id);
+  });
+
+  it('keeps every palette legible: none draws more light than the default white', () => {
+    // WCAG relative luminance of an 'r,g,b' stroke colour.
+    const relLum = col => {
+      const [r, g, b] = col.split(',').map(Number).map(value => {
+        const c = value / 255;
+        return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+      });
+      return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+    };
+    const light = passes => passes.reduce((sum, pass) => sum + pass.w * pass.mul * relLum(pass.col), 0);
+    const white = PALETTES.white;
+    expect(light(white.core)).toBeCloseTo(1.633, 3);
+    expect(light(white.core) + 0.6 * light(white.twin)).toBeCloseTo(2.123, 3);
+    for (const [id, palette] of Object.entries(PALETTES)) {
+      const [halo, core] = palette.core;
+      expect(halo.w, id).toBeLessThanOrEqual(3.0);
+      expect(core.w, id).toBeLessThanOrEqual(0.8);
+      expect(halo.mul, id).toBeLessThanOrEqual(0.55);
+      expect(relLum(core.col), id).toBeGreaterThan(relLum(halo.col));
+      expect(light(palette.core), id).toBeLessThanOrEqual(light(white.core));
+      expect(light(palette.core) + 0.6 * light(palette.twin), id)
+        .toBeLessThanOrEqual(light(white.core) + 0.6 * light(white.twin));
+    }
   });
 });
 
@@ -197,21 +245,21 @@ describe('Attractor forms', () => {
 
   it('adapts quality to the hardware instead of asking the reader', () => {
     // The rosette draws the filament 12x per frame. Rather than make
-    // readers classify their own computer, the field measures its own
-    // cost and steps down only when it is actually missing frames.
+    // readers classify their own computer, the field measures how far
+    // apart its frames arrive and steps down only when it is missing them.
     const field = new AttractorField(makeHost(), { form: 'kaleido' });
     expect(field.quality).toBe(0);
 
     // One slow frame must never degrade anything — averaged over a window
-    field.measureQuality(30);
+    field.measureQuality(300);
     expect(field.quality).toBe(0);
 
     // Sustained slowness steps down, once per window
-    for (let i = 0; i < 45; i++) field.measureQuality(14);
+    for (let i = 0; i < 45; i++) field.measureQuality(70);
     expect(field.quality).toBe(1);
 
     // And recovery restores detail when the machine frees up
-    for (let i = 0; i < 45; i++) field.measureQuality(2);
+    for (let i = 0; i < 45; i++) field.measureQuality(1000 / 60);
     expect(field.quality).toBe(0);
 
     field.destroy();
@@ -219,14 +267,14 @@ describe('Attractor forms', () => {
 
   it('never degrades below a legible figure, and can be opted out', () => {
     const field = new AttractorField(makeHost(), { form: 'kaleido' });
-    for (let i = 0; i < 45 * 12; i++) field.measureQuality(30);
+    for (let i = 0; i < 45 * 12; i++) field.measureQuality(70);
     // Bounded: the shape must always survive
     expect(field.quality).toBe(field.maxQuality);
     expect(field.maxQuality).toBeLessThan(NB_BUCKETS - 1);
     field.destroy();
 
     const fixed = new AttractorField(makeHost(), { form: 'kaleido', adaptive: false });
-    for (let i = 0; i < 45 * 4; i++) fixed.measureQuality(40);
+    for (let i = 0; i < 45 * 4; i++) fixed.measureQuality(70);
     expect(fixed.quality).toBe(0);
     fixed.destroy();
   });
@@ -243,6 +291,101 @@ describe('Attractor forms', () => {
     field.tick(performance.now());
     expect(field.sx2.some(v => v !== 0)).toBe(true);
 
+    field.destroy();
+  });
+});
+
+describe('Attractor adaptive quality', () => {
+  // A fake clock under which the field's own drawing costs nothing. The
+  // only sign of a struggling machine is the gap between animation
+  // frames, which is how a canvas that rasterizes after the callback looks.
+  function liveField(options) {
+    let clock = 1000;
+    let next = null;
+    // Plain no-ops: a mock recording every lineTo over hundreds of frames runs out of memory.
+    vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockImplementation(() => {
+      const ctx = ctxStub();
+      for (const key of Object.keys(ctx)) if (typeof ctx[key] === 'function') ctx[key] = () => {};
+      ctx.createRadialGradient = () => ({ addColorStop() {} });
+      return ctx;
+    });
+    vi.spyOn(performance, 'now').mockImplementation(() => clock);
+    vi.spyOn(globalThis, 'requestAnimationFrame').mockImplementation(callback => { next = callback; return 1; });
+    const field = new AttractorField(makeHost(), options);
+    return {
+      field,
+      wait: ms => { clock += ms; },
+      frames(count, intervalMs) {
+        for (let i = 0; i < count; i++) {
+          clock += intervalMs;
+          const callback = next;
+          next = null;
+          callback(clock);
+        }
+      }
+    };
+  }
+
+  it('steps down when frames arrive slowly, though its own drawing is cheap', () => {
+    const { field, frames } = liveField({ form: 'kaleido' });
+    frames(46, 70);
+    expect(field.quality).toBe(1);
+    frames(45 * 4, 70);
+    expect(field.quality).toBe(field.maxQuality);
+    field.destroy();
+  });
+
+  it('keeps full detail on fast frames, and restores it when frames speed up', () => {
+    const { field, frames } = liveField({ form: 'kaleido' });
+    frames(1 + 45 * 3, 1000 / 120);
+    expect(field.quality).toBe(0);
+    frames(45 * 3, 1000 / 30);
+    expect(field.quality).toBe(0);
+    frames(45 * 2, 70);
+    expect(field.quality).toBe(2);
+    frames(45 * 2, 1000 / 60);
+    expect(field.quality).toBe(0);
+    field.destroy();
+  });
+
+  it('does not count a tab switch or a pause as a slow frame', () => {
+    const { field, frames, wait } = liveField({ form: 'kaleido' });
+    frames(30, 1000 / 60);
+    frames(1, 10_000);
+    frames(15, 1000 / 60);
+    expect(field.quality).toBe(0);
+    for (let i = 0; i < 6; i++) {
+      frames(8, 1000 / 60);
+      field.pause();
+      wait(450);
+      field.resume();
+    }
+    expect(field.quality).toBe(0);
+    field.destroy();
+  });
+
+  it('counts only the live loop, not a Page plate sampled between frames', () => {
+    vi.spyOn(HTMLCanvasElement.prototype, 'toDataURL').mockReturnValue('data:image/webp;base64,');
+    const { field, frames } = liveField({ form: 'kaleido' });
+    for (let i = 0; i < 46; i++) {
+      frames(1, 70);
+      field.sampleAt(i);
+    }
+    expect(field.quality).toBe(1);
+    field.destroy();
+  });
+
+  it('does not cycle when one step down speeds frames past where it stepped', () => {
+    const { field, frames } = liveField({ form: 'kaleido' });
+    const fps = quality => 24.5 * 1.85 ** quality;
+    frames(46, 1000 / fps(0));
+    expect(field.quality).toBe(1);
+    const seen = new Set();
+    for (let i = 0; i < 45 * 10; i++) {
+      frames(1, 1000 / fps(field.quality));
+      seen.add(field.quality);
+    }
+    expect([...seen]).toEqual([1]);
     field.destroy();
   });
 });
@@ -357,6 +500,50 @@ describe('Attractor visual control', () => {
 
     expect(styles.length).toBeGreaterThan(beforeCancel);
     expect(styles.slice(-authoredStyles.length)).toEqual(authoredStyles);
+    field.destroy();
+  });
+});
+
+describe('Attractor reduced motion', () => {
+  const paints = field => field.ctx.clearRect.mock.calls.length;
+
+  it('reads the system setting live, so turning it on mid-reading stills the field', () => {
+    const media = { matches: false };
+    window.matchMedia = () => media;
+    const field = new AttractorField(makeHost(), { adaptive: false });
+    field.tick(1000);
+    field.tick(1016);
+    const moving = paints(field);
+
+    media.matches = true;
+    field.tick(1032);
+    field.tick(1048);
+    field.tick(1064);
+    expect(paints(field)).toBe(moving + 1);
+    field.destroy();
+  });
+
+  it('repaints the still once when what it shows changes', () => {
+    window.matchMedia = () => ({ matches: true });
+    const field = new AttractorField(makeHost(), { adaptive: false });
+    field.tick(1000);
+    field.tick(1016);
+    const still = paints(field);
+
+    for (const change of [
+      () => field.toggleKaleidoscope(),
+      () => field.setPalette('gold'),
+      () => field.setSystem('thomas'),
+      () => field.setIntensity(0.4),
+      () => field.setSpeed(2)
+    ]) {
+      const before = paints(field);
+      change();
+      field.tick(2000);
+      field.tick(2016);
+      expect(paints(field)).toBe(before + 1);
+    }
+    expect(paints(field)).toBe(still + 5);
     field.destroy();
   });
 });

@@ -61,6 +61,22 @@ describe('detecting', () => {
         expect(detectCapabilities(env)).toMatchObject({ canvas: true, webgl2: false });
     });
 
+    it('requires a real 2D context and probes WebGL2 on a separate canvas', () => {
+        const kinds = [];
+        const canvases = [];
+        const contexts = { '2d': null, webgl2: {} };
+        const env = full();
+        env.document = { createElement: () => {
+            const canvas = { getContext: kind => { kinds.push(kind); return contexts[kind] ?? null; } };
+            canvases.push(canvas);
+            return canvas;
+        } };
+        expect(detectCapabilities(env)).toMatchObject({ canvas: false, webgl2: true });
+        expect(kinds).toEqual(['2d', 'webgl2']);
+        expect(canvases).toHaveLength(2);
+        expect(canvases[0]).not.toBe(canvases[1]);
+    });
+
     it('survives a canvas that throws', () => {
         const env = full();
         env.document = { createElement: () => { throw new Error('no'); } };
@@ -111,6 +127,13 @@ describe('what the reader is told', () => {
         expect(noVoices[0].effect).toMatch(/No voice is installed/u);
         const off = describeDegradations(all, { voice: 'paced', voices: 3 });
         expect(off[0].effect).toMatch(/Speech is off/u);
+    });
+
+    it('where the screen already says the reading is paced, says only why it is silent', () => {
+        const effects = (caps, chosen) => describeDegradations(caps, { ...chosen, pacingShown: true }).map(n => n.effect);
+        expect(effects({ ...all, speechOutput: 'none' }, { voice: 'paced' })).toEqual(['This browser cannot speak.']);
+        expect(effects(all, { voice: 'paced', voices: 0 })).toEqual(['No voice is installed for this browser.']);
+        expect(effects(all, { voice: 'paced', voices: 3 })).toEqual([]);
     });
 
     it('says what a missing canvas, WebGL2, reduced motion, or no way to speak costs', () => {

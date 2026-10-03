@@ -12,6 +12,7 @@
 import { describe, expect, it } from 'vitest';
 import { createVirtualClock } from '../clock.js';
 import { createMcpGuestPort, currentFrom, METHODS, PORT_LIMITS, PROTOCOL_VERSION } from './mcp-port.js';
+import { serializedUtf8Bytes } from './mcp-size.js';
 
 const CURRENT = { schema: 'rise.current.v1', id: 'c', title: 'T', origin: { kind: 'human', name: 'n' }, segments: [{ id: 's', text: 'Words.' }] };
 
@@ -43,9 +44,10 @@ async function connected({ sampling = true, ...options } = {}) {
 }
 
 describe('reading a Current out of what the host sends', () => {
-    it('finds one in a tool’s input and in a tool’s structured result, and nowhere else', () => {
-        expect(currentFrom(METHODS.toolInput, { arguments: { current: CURRENT } })).toEqual({ current: CURRENT });
+    it('finds a Current only in a successful tool result', () => {
+        expect(currentFrom(METHODS.toolInput, { arguments: { current: CURRENT } })).toBeNull();
         expect(currentFrom(METHODS.toolResult, { structuredContent: { current: CURRENT } })).toEqual({ current: CURRENT });
+        expect(currentFrom(METHODS.toolResult, { isError: true, structuredContent: { current: CURRENT } })).toBeNull();
         expect(currentFrom(METHODS.toolInput, { structuredContent: { current: CURRENT } })).toBeNull();
         expect(currentFrom(METHODS.toolResult, { arguments: { current: CURRENT } })).toBeNull();
         expect(currentFrom(METHODS.toolInput, { arguments: { text: CURRENT } })).toBeNull();
@@ -55,8 +57,31 @@ describe('reading a Current out of what the host sends', () => {
         }
     });
 
-    it('carries the Current and nothing else that was beside it', () => {
-        expect(currentFrom(METHODS.toolInput, { arguments: { current: CURRENT, replyTo: 'x', other: { deep: 1 } } })).toEqual({ current: CURRENT });
+    it('does not treat tool input or its argument envelope as an admitted result', () => {
+        expect(currentFrom(METHODS.toolInput, { arguments: { current: CURRENT, theme: 'jade' } })).toBeNull();
+        expect(currentFrom(METHODS.toolInput, { arguments: { current: CURRENT, replyTo: 'x', other: { deep: 1 } } })).toBeNull();
+        expect(currentFrom(METHODS.toolInput, { arguments: { current: CURRENT, other: 'host metadata' } })).toBeNull();
+        expect(currentFrom(METHODS.toolResult, { structuredContent: { current: CURRENT, other: 'host metadata' } }))
+            .toEqual({ current: CURRENT });
+    });
+
+    it('does not hand an invalid argument envelope to Begin before the Worker refusal arrives', () => {
+        const { port, hostSays } = setup();
+        const heard = [];
+        const errors = [];
+        port.onCurrent(item => heard.push(item));
+        port.onError(error => errors.push(error));
+
+        hostSays(notification(METHODS.toolInput, { arguments: { current: CURRENT, theme: 'jade' } }));
+        expect(heard).toEqual([]);
+
+        hostSays(notification(METHODS.toolResult, {
+            isError: true,
+            content: [{ type: 'text', text: 'RISE refused these arguments' }]
+        }));
+        expect(heard).toEqual([]);
+        expect(errors).toHaveLength(1);
+        expect(errors[0].message).toMatch(/refused/u);
     });
 });
 
@@ -81,8 +106,8 @@ describe('who it listens to', () => {
         const { port, from } = setup();
         const heard = [];
         port.onCurrent(item => { heard.push(item); });
-        from({ other: 'window' }, notification(METHODS.toolInput, { arguments: { current: CURRENT } }));
-        from(null, notification(METHODS.toolInput, { arguments: { current: CURRENT } }));
+        from({ other: 'window' }, notification(METHODS.toolResult, { structuredContent: { current: CURRENT } }));
+        from(null, notification(METHODS.toolResult, { structuredContent: { current: CURRENT } }));
         expect(heard).toEqual([]);
     });
 
@@ -90,33 +115,110 @@ describe('who it listens to', () => {
         const { port, hostSays } = setup();
         const heard = [];
         port.onCurrent(item => { heard.push(item); });
-        for (const data of [null, undefined, 'text', 5, [], {}, { jsonrpc: '1.0', method: METHODS.toolInput }, { jsonrpc: '2.0' }, { jsonrpc: '2.0', method: 5 },
-            notification(METHODS.toolInput, { arguments: { current: { ...CURRENT, title: 'x'.repeat(PORT_LIMITS.message) } } })]) {
+        for (const data of [null, undefined, 'text', 5, [], {}, { jsonrpc: '1.0', method: METHODS.toolResult }, { jsonrpc: '2.0' }, { jsonrpc: '2.0', method: 5 },
+            notification(METHODS.toolResult, { structuredContent: { current: { ...CURRENT, title: 'x'.repeat(PORT_LIMITS.message) } } })]) {
             hostSays(data);
         }
         expect(heard).toEqual([]);
-        hostSays(notification(METHODS.toolInput, { arguments: { current: CURRENT } }));
+        hostSays(notification(METHODS.toolResult, { structuredContent: { current: CURRENT } }));
         expect(heard).toHaveLength(1);
     });
 
     it('survives a message that cannot be measured', () => {
         const { port, hostSays } = setup();
         port.onCurrent(() => {});
-        const cyclic = notification(METHODS.toolInput, {});
+        const cyclic = notification(METHODS.toolResult, {});
         cyclic.params.self = cyclic;
         expect(() => hostSays(cyclic)).not.toThrow();
+    });
+
+    it('reports a trusted oversized Current envelope instead of silently waiting', () => {
+        const { port, hostSays } = setup();
+        const errors = [];
+        port.onError(error => errors.push(error));
+        const envelope = notification(METHODS.toolResult, { structuredContent: { current: CURRENT }, metadata: '界'.repeat(Math.floor(PORT_LIMITS.message / 3) + 100) });
+        expect(JSON.stringify(envelope).length).toBeLessThan(PORT_LIMITS.message);
+        expect(serializedUtf8Bytes(envelope)).toBeGreaterThan(PORT_LIMITS.message);
+        hostSays(envelope);
+        expect(errors).toHaveLength(1);
+        expect(errors[0].message).toContain('too large');
+    });
+
+    it('keeps a successful buffered result when an anonymous oversized envelope follows', () => {
+        const { port, hostSays } = setup();
+        const envelope = notification(METHODS.toolResult, { structuredContent: { current: CURRENT }, metadata: 'x'.repeat(PORT_LIMITS.message) });
+        hostSays(notification(METHODS.toolResult, { structuredContent: { current: CURRENT } }));
+        hostSays(envelope);
+        const heard = [];
+        port.onCurrent(item => { heard.push(item); });
+        expect(heard).toEqual([{ current: CURRENT }]);
+        hostSays(notification(METHODS.toolResult, { structuredContent: { current: CURRENT } }));
+        expect(heard).toEqual([{ current: CURRENT }]);
+    });
+
+    it('keeps successful buffered results when an anonymous error arrives', () => {
+        const { port, hostSays } = setup();
+        hostSays(notification(METHODS.toolResult, { structuredContent: { current: CURRENT } }));
+        hostSays(notification(METHODS.toolResult, { isError: true, content: [{ type: 'text', text: 'refused' }] }));
+        const heard = [];
+        port.onCurrent(item => { heard.push(item); });
+        expect(heard).toEqual([{ current: CURRENT }]);
+    });
+});
+
+describe('the MCP Current payload budget', () => {
+    it('rejects an over-budget successful result with one bounded error', () => {
+        const { port, hostSays } = setup();
+        const currents = [];
+        const errors = [];
+        port.onCurrent(item => currents.push(item));
+        port.onError(error => errors.push(error));
+        const overBudget = { ...CURRENT, segments: [{ id: 's', text: '界'.repeat(22_000) }] };
+        hostSays(notification(METHODS.toolResult, { structuredContent: { current: overBudget } }));
+        hostSays(notification(METHODS.toolResult, { structuredContent: { current: overBudget } }));
+        expect(currents).toEqual([]);
+        expect(errors).toHaveLength(1);
+        expect(errors[0].message).toContain('65,536-byte MCP limit');
+        expect(errors[0].message.length).toBeLessThanOrEqual(300);
+    });
+
+    it('measures serialized UTF-8 bytes, including non-ASCII and JSON escapes at the boundary', () => {
+        const { port, hostSays } = setup();
+        const currents = [];
+        const errors = [];
+        port.onCurrent(item => currents.push(item));
+        port.onError(error => errors.push(error));
+        const base = { ...CURRENT, segments: [{ id: 's', text: '' }] };
+        const padding = PORT_LIMITS.current - serializedUtf8Bytes(base);
+        const fitting = { ...CURRENT, segments: [{ id: 's', text: '界'.repeat(Math.floor(padding / 3)) + 'x'.repeat(padding % 3) }] };
+        const oversized = { ...fitting, segments: [{ ...fitting.segments[0], text: `${fitting.segments[0].text}"` }] };
+        expect(serializedUtf8Bytes(fitting)).toBe(PORT_LIMITS.current);
+        expect(serializedUtf8Bytes(oversized)).toBeGreaterThan(PORT_LIMITS.current);
+        hostSays(notification(METHODS.toolResult, { structuredContent: { current: fitting } }));
+        hostSays(notification(METHODS.toolResult, { structuredContent: { current: oversized } }));
+        expect(currents).toHaveLength(1);
+        expect(errors).toHaveLength(1);
     });
 });
 
 describe('handing Currents to the app', () => {
     it('keeps a few that arrive before anyone is listening, and gives them first', () => {
         const { port, hostSays } = setup();
-        for (let i = 0; i < PORT_LIMITS.buffered + 3; i += 1) hostSays(notification(METHODS.toolInput, { arguments: { current: { ...CURRENT, id: `c${i}` } } }));
+        for (let i = 0; i < PORT_LIMITS.buffered + 3; i += 1) hostSays(notification(METHODS.toolResult, { structuredContent: { current: { ...CURRENT, id: `c${i}` } } }));
         const heard = [];
         port.onCurrent(item => { heard.push(item.current.id); });
         expect(heard).toHaveLength(PORT_LIMITS.buffered);
         expect(heard[0]).toBe('c3');
         expect(heard.at(-1)).toBe(`c${PORT_LIMITS.buffered + 2}`);
+    });
+
+    it('discards buffered Currents on close and does not deliver them to a later listener', () => {
+        const { port, hostSays } = setup();
+        hostSays(notification(METHODS.toolResult, { structuredContent: { current: CURRENT } }));
+        port.close();
+        const heard = [];
+        port.onCurrent(item => { heard.push(item); });
+        expect(heard).toEqual([]);
     });
 
     it('stops handing over once a listener takes one, and stops listening when told', () => {
@@ -125,26 +227,28 @@ describe('handing Currents to the app', () => {
         const second = [];
         const offFirst = port.onCurrent(item => { first.push(item); return true; });
         port.onCurrent(item => { second.push(item); });
-        hostSays(notification(METHODS.toolInput, { arguments: { current: CURRENT } }));
+        hostSays(notification(METHODS.toolResult, { structuredContent: { current: CURRENT } }));
         expect(first).toHaveLength(1);
         expect(second).toHaveLength(0);
         offFirst();
-        hostSays(notification(METHODS.toolInput, { arguments: { current: { ...CURRENT, id: 'another' } } }));
+        hostSays(notification(METHODS.toolResult, { structuredContent: { current: { ...CURRENT, id: 'another' } } }));
         expect(second).toHaveLength(1);
     });
 });
 
 describe('the same Current, twice', () => {
-    it('hands over what arrived as a tool’s input once, though it arrives again as the tool’s result', () => {
+    it('ignores tool input and delivers only the successful result once', () => {
         const { port, hostSays } = setup();
         const heard = [];
         port.onCurrent(item => { heard.push(item); });
         hostSays(notification(METHODS.toolInput, { arguments: { current: CURRENT } }));
+        expect(heard).toEqual([]);
         hostSays(notification(METHODS.toolResult, { structuredContent: { current: CURRENT } }));
-        expect(heard).toHaveLength(1);
+        hostSays(notification(METHODS.toolResult, { structuredContent: { current: CURRENT } }));
+        expect(heard).toEqual([{ current: CURRENT }]);
     });
 
-    it('does not keep the second copy to give to whoever listens next', () => {
+    it('does not mark tool input as delivered before a later listener subscribes', () => {
         const { port, hostSays } = setup();
         const first = [];
         const off = port.onCurrent(item => { first.push(item); return true; });
@@ -153,16 +257,16 @@ describe('the same Current, twice', () => {
         hostSays(notification(METHODS.toolResult, { structuredContent: { current: CURRENT } }));
         const next = [];
         port.onCurrent(item => { next.push(item); });
-        expect(first).toHaveLength(1);
-        expect(next).toEqual([]);
+        expect(first).toEqual([]);
+        expect(next).toEqual([{ current: CURRENT }]);
     });
 
     it('forgets old ones, so the list of what was seen stays small', () => {
         const { port, hostSays } = setup();
         const heard = [];
         port.onCurrent(item => { heard.push(item.current.id); });
-        for (let i = 0; i < PORT_LIMITS.remembered + 2; i += 1) hostSays(notification(METHODS.toolInput, { arguments: { current: { ...CURRENT, id: `c${i}` } } }));
-        hostSays(notification(METHODS.toolInput, { arguments: { current: { ...CURRENT, id: 'c0' } } }));
+        for (let i = 0; i < PORT_LIMITS.remembered + 2; i += 1) hostSays(notification(METHODS.toolResult, { structuredContent: { current: { ...CURRENT, id: `c${i}` } } }));
+        hostSays(notification(METHODS.toolResult, { structuredContent: { current: { ...CURRENT, id: 'c0' } } }));
         expect(heard.at(-1)).toBe('c0');
         expect(heard).toHaveLength(PORT_LIMITS.remembered + 3);
     });

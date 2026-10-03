@@ -29,9 +29,14 @@ describe('validateVisualCommand', () => {
 });
 
 describe('interpretVisualControl', () => {
-  it('accepts only the closed more-vibrant phrase after harmless normalization', () => {
-    expect(interpretVisualControl(' Please MORE   VIBRANT! ')).toBe(true);
-    expect(interpretVisualControl('not more vibrant')).toBe(false);
-    expect(interpretVisualControl('more vibrant and stop')).toBe(false);
+  it('maps normalized closed brightness phrases to one direction', () => {
+    expect(interpretVisualControl(' Please MORE   VIBRANT! ')).toBe('more vibrant');
+    expect(interpretVisualControl('  MAKE   IT CALMER! ')).toBe('calmer');
+    expect(interpretVisualControl(' Please make it calmer? ')).toBe('calmer');
+    expect(interpretVisualControl('calmer')).toBe(null);
+    expect(interpretVisualControl('please calmer')).toBe(null);
+    expect(interpretVisualControl('not more vibrant')).toBe(null);
+    expect(interpretVisualControl('more vibrant and stop')).toBe(null);
+    expect(interpretVisualControl('make it calmer and stop')).toBe(null);
   });
 });

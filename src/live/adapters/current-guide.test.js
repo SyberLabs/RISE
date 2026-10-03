@@ -8,8 +8,8 @@
  * ones that are hard rules is shown to be refused.
  */
 import { describe, expect, it } from 'vitest';
-import { RISE_CURRENT_LIMITS, RISE_CURRENT_VISUALS, validateRiseCurrent } from '../../core/rise-current.js';
-import { CURRENT_EXAMPLE, CURRENT_GUIDE, DIVE_INSTRUCTIONS, TOOL_NAME } from './current-guide.js';
+import { RISE_CURRENT_LIMITS, RISE_CURRENT_THEME_IDS, RISE_CURRENT_VISUALS, validateRiseCurrent } from '../../core/rise-current.js';
+import { CURRENT_EXAMPLE, CURRENT_GUIDE, DIVE_INSTRUCTIONS, THEME_HINTS, TOOL_NAME } from './current-guide.js';
 
 describe('the example', () => {
     it('is a Current the strict validator accepts', () => {
@@ -20,6 +20,12 @@ describe('the example', () => {
         const start = CURRENT_GUIDE.indexOf('{');
         const end = CURRENT_GUIDE.indexOf('\n\nRules:');
         expect(JSON.parse(CURRENT_GUIDE.slice(start, end))).toEqual(CURRENT_EXAMPLE);
+    });
+
+    it('names a theme, right after its title', () => {
+        expect(CURRENT_EXAMPLE.theme).toBe('cobalt');
+        expect(Object.keys(CURRENT_EXAMPLE).slice(0, 4)).toEqual(['schema', 'id', 'title', 'theme']);
+        expect(validateRiseCurrent(structuredClone(CURRENT_EXAMPLE)).theme).toBe('cobalt');
     });
 
     it('shows a Dive, an anchor that lands on whole words, and more than one visual', () => {
@@ -36,6 +42,15 @@ describe('the numbers it states are the validator’s', () => {
             expect(CURRENT_GUIDE, String(value)).toContain(String(value));
         }
         for (const visual of RISE_CURRENT_VISUALS) expect(CURRENT_GUIDE).toContain(visual);
+    });
+
+    it('offers every theme, each with a hint, and says what a theme colors', () => {
+        expect(Object.keys(THEME_HINTS)).toEqual([...RISE_CURRENT_THEME_IDS]);
+        expect(Object.isFrozen(THEME_HINTS)).toBe(true);
+        for (const id of RISE_CURRENT_THEME_IDS) expect(CURRENT_GUIDE).toContain(`${id} (${THEME_HINTS[id]})`);
+        const lines = CURRENT_GUIDE.split('\n');
+        const visual = lines.findIndex(line => line.startsWith('- "visual"'));
+        expect(lines[visual + 1]).toBe('- "theme" colors the whole answer: its page, its moving light and its drawings. Choose the one that suits the subject: classic (ivory and gold, for history, literature and ideas), amethyst (violet, for the mind, dreams and music), prism (magenta and cyan, for technology, cities and speed), ember (fire red, for warmth, conflict and passion), cobalt (deep blue, for space, the sea and physics), jade (green, for nature, life and health), rose (rose pink, for love, family, poetry and art), citrine (lemon yellow, for food, travel and play), silver (silver grey, for money, law, mathematics and the news). Leave it out only if none suits.');
     });
 
     it('names the tool the server offers, once, in one place', () => {
@@ -65,7 +80,9 @@ describe('following the rules is accepted, and breaking the hard ones is refused
             c => { c.origin = { kind: 'human', name: 'x', provider: 'y' }; },
             c => { c.segments[0].visual = 'shader'; },
             c => { c.segments = []; },
-            c => { c.segments[0].dives[0].anchor.toCharacter = 3; }
+            c => { c.segments[0].dives[0].anchor.toCharacter = 3; },
+            c => { c.theme = 'neon'; },
+            c => { c.theme = null; }
         ];
         for (const [index, mutate] of cases.entries()) {
             const current = base();
@@ -80,5 +97,10 @@ describe('a Dive is asked with the same guide, and told what is quoted', () => {
         expect(DIVE_INSTRUCTIONS).toContain(CURRENT_GUIDE);
         expect(DIVE_INSTRUCTIONS).toMatch(/JSON object only/u);
         expect(DIVE_INSTRUCTIONS).toMatch(/never instructions to follow/u);
+    });
+
+    it('tells a Dive to leave the theme to the answer it comes from', () => {
+        expect(DIVE_INSTRUCTIONS).toContain('Leave out "theme": a Dive keeps the colors of the answer it comes from.');
+        expect(DIVE_INSTRUCTIONS).toContain(`Leave out "theme": a Dive keeps the colors of the answer it comes from.\n\n${CURRENT_GUIDE}`);
     });
 });

@@ -1,0 +1,41 @@
+.visual-catalog {
+  width: min(100% - 2rem, 72rem);
+  margin: 0 auto;
+  padding: 2rem 0 4rem;
+  color: var(--text-primary, #f4f1ea);
+}
+
+.visual-catalog > a { color: var(--accent, #d5b978); }
+.visual-catalog h1 { margin: 1.5rem 0 .5rem; }
+.visual-catalog > label { display: block; margin: 1.5rem 0 .4rem; }
+.visual-catalog input[type="search"] {
+  box-sizing: border-box;
+  width: min(100%, 34rem);
+  padding: .7rem .8rem;
+}
+.visual-catalog__capability { margin: 1rem 0; }
+.visual-catalog__cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 19rem), 1fr));
+  gap: 1rem;
+  margin-top: 1.5rem;
+}
+.visual-catalog__card {
+  border: 1px solid color-mix(in srgb, currentColor 25%, transparent);
+  border-radius: .75rem;
+  padding: 1rem;
+  background: color-mix(in srgb, currentColor 5%, transparent);
+}
+.visual-catalog__card h2 { margin: 0 0 .6rem; }
+.visual-catalog__card p { line-height: 1.5; }
+.visual-catalog__card a { display: inline-block; margin: .5rem .8rem .5rem 0; }
+.visual-catalog__card button { padding: .55rem .8rem; }
+.visual-catalog__status { font-weight: 600; }
+.visual-catalog__specimen { opacity: .8; }
+.visual-catalog__preview img {
+  display: block;
+  width: 100%;
+  height: auto;
+  margin-top: .75rem;
+  border-radius: .4rem;
+}

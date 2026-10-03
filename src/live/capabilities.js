@@ -17,8 +17,12 @@ const yes = value => value === true;
 
 function probeCanvas(document) {
     try {
-        const canvas = document?.createElement?.('canvas');
-        return { canvas: Boolean(canvas?.getContext), webgl2: Boolean(canvas?.getContext?.('webgl2')) };
+        const drawingCanvas = document?.createElement?.('canvas');
+        const webglCanvas = document?.createElement?.('canvas');
+        return {
+            canvas: Boolean(drawingCanvas?.getContext?.('2d')),
+            webgl2: Boolean(webglCanvas?.getContext?.('webgl2'))
+        };
     } catch {
         return { canvas: false, webgl2: false };
     }
@@ -63,16 +67,19 @@ export function detectCapabilities(env = globalThis) {
  * costs. Empty when everything a Current wants is present.
  *
  * @param {ReturnType<typeof detectCapabilities>} caps
- * @param {{voice?: 'browser'|'paced'|'off', voices?: number}} chosen what was actually selected
+ * @param {{voice?: 'browser'|'paced'|'off', voices?: number|null, pacingShown?: boolean}} chosen what was actually
+ *   selected; `voices` is how many the browser offered, when it was asked; `pacingShown` where the screen already
+ *   says the reading is paced (the live controls' status line), so a note says only why it is silent
  */
-export function describeDegradations(caps, { voice = 'browser', voices = 1 } = {}) {
+export function describeDegradations(caps, { voice = 'browser', voices = 1, pacingShown = false } = {}) {
     const notes = [];
+    const paced = pacingShown ? '' : ' The reading is paced as if it were spoken, in silence.';
     if (voice === 'paced' && caps.speechOutput === 'none') {
-        notes.push({ capability: 'speechOutput', effect: 'This browser cannot speak. The reading is paced as if it were spoken, in silence.' });
+        notes.push({ capability: 'speechOutput', effect: `This browser cannot speak.${paced}` });
     } else if (voice === 'paced' && voices === 0) {
-        notes.push({ capability: 'speechOutput', effect: 'No voice is installed for this browser. The reading is paced as if it were spoken, in silence.' });
-    } else if (voice === 'paced') {
-        notes.push({ capability: 'speechOutput', effect: 'Speech is off. The reading is paced as if it were spoken, in silence.' });
+        notes.push({ capability: 'speechOutput', effect: `No voice is installed for this browser.${paced}` });
+    } else if (voice === 'paced' && !pacingShown) {
+        notes.push({ capability: 'speechOutput', effect: `Speech is off.${paced}` });
     }
     if (!caps.canvas) {
         notes.push({ capability: 'canvas', effect: 'Drawing is unavailable. The words are shown without imagery.' });
