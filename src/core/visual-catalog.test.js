@@ -110,23 +110,28 @@ describe('visual catalog configuration admission', () => {
 
   it('admits configurations that validate and compile through the real score path', () => {
     const cases = [
-      ['attractor', { system: 'thomas', palette: 'gold', form: 'kaleido', intensity: 0.4, speed: 4, streaks: true }, 'attractor'],
-      ['klee', { preset: 'harmonic', glass: false }, 'genesis'],
-      ['neural', {}, null]
+      ['attractor', { system: 'thomas', palette: 'gold', form: 'kaleido', intensity: 0.4, speed: 4, streaks: true }, { renderer: 'attractor', collection: null }],
+      ['klee', { preset: 'harmonic', glass: false }, { renderer: 'genesis', collection: 'klee' }],
+      ['neural', {}, { renderer: null, collection: 'neural' }]
     ];
-    for (const [id, config, renderer] of cases) {
+    for (const [id, config, expectedMapping] of cases) {
+      const { mapping } = getCatalogVisual(id).manifest;
       const receipt = admitCatalogConfiguration(id, { context: 'score', config, capabilities: { canvas: true } });
       expect(receipt).toMatchObject({ status: 'accepted', id, context: 'score' });
-      const cue = renderer
-        ? { kind: 'field', renderer, config: receipt.config }
-        : { kind: 'procedural', collections: ['neural'] };
+      const cue = mapping.renderer
+        ? { kind: 'field', renderer: mapping.renderer, config: receipt.config }
+        : { kind: 'procedural', collections: [mapping.collection] };
       const program = scoreProgram(cue);
       expect(program.tracks.find(track => track.kind === 'visual').clips[0].cue).toEqual(cue);
       const session = compileSession({
         sources: [{ id: 'catalog-text', name: 'Catalog', data: 'A short reading.' }],
         visualConfig: { visualMode: 'off' }, experienceProgram: program
       });
-      expect(session.visualProgram.segments[0].cue).toEqual(cue);
+      const compiledCue = session.visualProgram.segments[0].cue;
+      expect(compiledCue).toMatchObject(mapping.renderer
+        ? { kind: 'field', renderer: expectedMapping.renderer }
+        : { kind: 'procedural', collections: [expectedMapping.collection] });
+      expect(compiledCue.config || {}).toEqual(receipt.config);
     }
   });
 
