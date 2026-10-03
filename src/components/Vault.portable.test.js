@@ -65,14 +65,17 @@ it('keeps the file input a reader is choosing into when the kept list refreshes'
   const container = document.createElement('div');
   document.body.append(container);
   const vault = new Vault(container, { initialSection: 'custom' });
-  const input = container.querySelector('[data-portable-file]');
   MemoryCore.saveWorkshopBlueprint(project);
-  vault.activate();
-  expect(container.querySelector('[data-portable-file]')).toBe(input);
+  // The router's order on a return visit: update() while hidden, then activate() once shown.
+  vault.update();
+  const shown = container.querySelector('[data-portable-file]');
   expect(container.querySelector('[data-action="export-portable"]')).not.toBeNull();
+  vault.activate();
+  expect(container.querySelector('[data-portable-file]')).toBe(shown);
+  // Hydration resolves after the view is shown; it redraws only the list.
   await MemoryCore.getWorkshopBlueprintsHydrated();
   await Promise.resolve();
-  expect(container.querySelector('[data-portable-file]')).toBe(input);
+  expect(container.querySelector('[data-portable-file]')).toBe(shown);
   vault.destroy();
 });
 

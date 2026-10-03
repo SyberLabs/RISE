@@ -50,6 +50,8 @@ export class Vault {
 
     this.render();
     this.attachEvents();
+    // Hydrate before the router shows the view; update() does the same for a cached Vault.
+    this.refreshBlueprints();
   }
 
   render() {
@@ -472,8 +474,7 @@ export class Vault {
       } else if (action === 'delete-custom') {
          this.getAudioEngine()?.playHiss();
          if (await MemoryCore.deleteWorkshopBlueprintAsync(target.dataset.id)) {
-           this.blueprints = MemoryCore.getWorkshopBlueprints();
-           this.updateContent();
+           this.refreshBlueprints();
          }
       } else if (action === 'route-workshop') {
          this.getAudioEngine()?.playHiss();
@@ -601,10 +602,11 @@ export class Vault {
   }
 
   /**
-   * Redraw only the kept list. A refresh lands while the reader may already
-   * be using the import controls above it (activate() runs after the view
-   * has faded in; hydration whenever it resolves). Redrawing those controls
-   * would replace the file input and silently drop a file being chosen.
+   * Redraw only the kept list. Hydration can resolve after the view has faded
+   * in, while the reader may already be using the import controls above it;
+   * redrawing those controls would replace the file input and silently drop
+   * a file being chosen. Refreshes start before the view is shown (the
+   * constructor and update()), never from activate().
    */
   updateCustomList() {
     const list = this.container.querySelector('[data-custom-list]');
@@ -614,7 +616,6 @@ export class Vault {
   activate() {
     if (this._active) return;
     this._active = true;
-    this.refreshBlueprints();
     document.addEventListener('keydown', this.boundKeyboardHandler);
   }
 
