@@ -17,8 +17,12 @@ const yes = value => value === true;
 
 function probeCanvas(document) {
     try {
-        const canvas = document?.createElement?.('canvas');
-        return { canvas: Boolean(canvas?.getContext), webgl2: Boolean(canvas?.getContext?.('webgl2')) };
+        const drawingCanvas = document?.createElement?.('canvas');
+        const webglCanvas = document?.createElement?.('canvas');
+        return {
+            canvas: Boolean(drawingCanvas?.getContext?.('2d')),
+            webgl2: Boolean(webglCanvas?.getContext?.('webgl2'))
+        };
     } catch {
         return { canvas: false, webgl2: false };
     }

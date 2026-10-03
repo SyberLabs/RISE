@@ -32,10 +32,12 @@ import { createRouteManifest } from './app/route-manifest.js';
 import { installTestBridge } from './app/test-bridge.js';
 
 const VISUAL_LAB_PATH = '/visual-lab';
+const VISUAL_CATALOG_PATH = '/visual-catalog';
 const LIVE_PATH = '/live';
 const EMOTIONS_PATH = '/emotions';
 const PUBLIC_ROOM_PATHS = Object.freeze({
     'visual-lab': VISUAL_LAB_PATH,
+    'visual-catalog': VISUAL_CATALOG_PATH,
     emotions: EMOTIONS_PATH
 });
 import { watchTabFreshness } from './core/tab-freshness.js';
@@ -115,6 +117,7 @@ class App {
         this.guideInstance = null;
         this._audioInteractionController = null;
         this._utilityController = null;
+        this._historyNavigationGeneration = 0;
 
         // The two heaviest subsystems in the shell, both arriving on the
         // first use rather than before the Portal paints. See
@@ -284,6 +287,10 @@ class App {
 
         // Register views
         this.registerViews();
+        // A direct public route is visible during the Router's fade-in. Install
+        // history listeners before entering it so Back/Forward in that window
+        // cannot be lost.
+        this.setupUtilityListeners();
 
         // Finish "Connect OpenRouter". The key goes to memory only; the
         // Portal shows the outcome. A failure changes nothing else.
@@ -351,6 +358,8 @@ class App {
             await this.router.navigate('mint', { data: { entry: houseProgram(mintedSlug) } });
         } else if (window.location.pathname === VISUAL_LAB_PATH) {
             await this.router.navigate('visual-lab');
+        } else if (window.location.pathname === VISUAL_CATALOG_PATH) {
+            await this.router.navigate('visual-catalog', { data: { search: window.location.search } });
         } else if (window.location.pathname === LIVE_PATH) {
             await this.router.navigate('live');
         } else if (window.location.pathname === EMOTIONS_PATH) {
@@ -362,7 +371,6 @@ class App {
             await this.router.navigate('portal');
         }
 
-        this.setupUtilityListeners();
         this.watchTabFreshness();
 
         // Audio interaction listener is already set up in init()
@@ -1332,14 +1340,42 @@ class App {
         // three public Keystone paths are the exception: browser Back and
         // Forward must resolve the same threshold that a cold request does.
         window.addEventListener('popstate', async () => {
+            const historyGeneration = ++this._historyNavigationGeneration;
             // Hash navigation belongs to the Rosary door. Browsers may emit
             // popstate alongside hashchange, and clearing the hash must not
             // pull an in-progress prayer back to the Portal.
             if (isRosaryDoor() || this.router?.getCurrentView() === 'rosarium') return;
             this.handleNavigationIntent('history');
             const { keystoneSlugFromPath } = await import('./content/keystones.js');
+            if (historyGeneration !== this._historyNavigationGeneration) return;
             if (window.location.pathname === VISUAL_LAB_PATH) {
                 await this.router?.navigate('visual-lab', { replace: true, skipStack: true });
+                return;
+            }
+            if (window.location.pathname === VISUAL_CATALOG_PATH) {
+                const data = { search: window.location.search };
+                const route = this.router?.views?.get('visual-catalog');
+                const catalog = this.router?.getViewInstance?.('visual-catalog');
+                const isCurrentCatalog = this.router?.getCurrentView?.() === 'visual-catalog';
+                const isEnteringCatalog = this.router?.transitioning === true
+                    && route?.container && !route.container.hidden;
+                if (catalog?.update && (isCurrentCatalog || isEnteringCatalog)) {
+                    catalog.update(data);
+                    if (isCurrentCatalog && !this.router.transitioning) return;
+                }
+                await this.router?.navigate('visual-catalog', {
+                    data, replace: true, skipStack: true
+                });
+                // Router deliberately collapses a queued same-route navigation.
+                // Apply the newest address data once the entry has settled.
+                const settledCatalog = this.router?.getViewInstance?.('visual-catalog');
+                if (historyGeneration === this._historyNavigationGeneration
+                    && window.location.pathname === VISUAL_CATALOG_PATH
+                    && window.location.search === data.search
+                    && settledCatalog?.update
+                    && this.router?.getCurrentView?.() === 'visual-catalog') {
+                    await settledCatalog.update(data);
+                }
                 return;
             }
             if (window.location.pathname === LIVE_PATH) {

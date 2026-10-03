@@ -195,13 +195,23 @@ export function createRouteManifest(operations) {
       })
     },
     {
+      id: 'visual-catalog',
+      containerId: 'view-visual-catalog',
+      load: () => import('../components/VisualCatalog.js'),
+      create: (container, data, { VisualCatalog }) => new VisualCatalog(container, {
+        search: data?.search ?? globalThis.location?.search ?? '',
+        onNavigate: (...args) => operations.handleNavigate(...args)
+      })
+    },
+    {
       // The host for a live Current: a prompt, and the controls over the Chamber.
       // Loaded whole on demand, so first load does not carry it.
       id: 'live',
       containerId: 'view-live',
       load: () => import('../live/host/LiveHost.js'),
       create: (container, _data, { LiveHost }) => new LiveHost(container, {
-        router: operations.router
+        router: operations.router,
+        onNavigate: (...args) => operations.handleNavigate(...args)
       })
     },
     {
