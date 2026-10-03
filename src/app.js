@@ -117,6 +117,7 @@ class App {
         this.guideInstance = null;
         this._audioInteractionController = null;
         this._utilityController = null;
+        this._historyNavigationGeneration = 0;
 
         // The two heaviest subsystems in the shell, both arriving on the
         // first use rather than before the Portal paints. See
@@ -1339,12 +1340,14 @@ class App {
         // three public Keystone paths are the exception: browser Back and
         // Forward must resolve the same threshold that a cold request does.
         window.addEventListener('popstate', async () => {
+            const historyGeneration = ++this._historyNavigationGeneration;
             // Hash navigation belongs to the Rosary door. Browsers may emit
             // popstate alongside hashchange, and clearing the hash must not
             // pull an in-progress prayer back to the Portal.
             if (isRosaryDoor() || this.router?.getCurrentView() === 'rosarium') return;
             this.handleNavigationIntent('history');
             const { keystoneSlugFromPath } = await import('./content/keystones.js');
+            if (historyGeneration !== this._historyNavigationGeneration) return;
             if (window.location.pathname === VISUAL_LAB_PATH) {
                 await this.router?.navigate('visual-lab', { replace: true, skipStack: true });
                 return;
@@ -1366,7 +1369,11 @@ class App {
                 // Router deliberately collapses a queued same-route navigation.
                 // Apply the newest address data once the entry has settled.
                 const settledCatalog = this.router?.getViewInstance?.('visual-catalog');
-                if (settledCatalog?.update && this.router?.getCurrentView?.() === 'visual-catalog') {
+                if (historyGeneration === this._historyNavigationGeneration
+                    && window.location.pathname === VISUAL_CATALOG_PATH
+                    && window.location.search === data.search
+                    && settledCatalog?.update
+                    && this.router?.getCurrentView?.() === 'visual-catalog') {
                     await settledCatalog.update(data);
                 }
                 return;
