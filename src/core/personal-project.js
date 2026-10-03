@@ -1,5 +1,5 @@
 import { validateWorkshopProject, workshopProjectToSessionConfig } from './workshop-project.js';
-import { validatePiece } from './personal-piece-client.js';
+import { validatePiece } from './personal-piece-contract.js';
 import { canonicalPersonal, isPersonalProject } from './personal-identity.js';
 
 export const PRESENTATION_VERSION = 'personal-neutral-v1';

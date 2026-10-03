@@ -1,0 +1,43 @@
+const intensity = Object.freeze({
+  type: 'number',
+  minimum: 0.4,
+  maximum: 0.75,
+  default: 0.65
+});
+
+export const ATTRACTOR_VISUAL_MANIFEST = Object.freeze({
+  surface: 'attractor',
+  parameters: Object.freeze({ intensity }),
+  readableOverText: true,
+  requiresCanvas: true
+});
+
+const INVALID = Object.freeze({ ok: false, code: 'INVALID_CONTROL' });
+
+/** Validate the shared visual command shape and bound its readable target. */
+export function validateVisualCommand(command) {
+  if (!command || typeof command !== 'object' || Array.isArray(command)) return INVALID;
+  const prototype = Object.getPrototypeOf(command);
+  if (prototype !== Object.prototype && prototype !== null) return INVALID;
+  const keys = Reflect.ownKeys(command);
+  if (keys.length !== 3 || !['surface', 'parameter', 'value'].every(key => keys.includes(key))) {
+    return INVALID;
+  }
+  const descriptors = Object.getOwnPropertyDescriptors(command);
+  if (keys.some(key => !Object.hasOwn(descriptors[key], 'value'))) return INVALID;
+
+  const { surface, parameter, value } = command;
+  if (surface !== ATTRACTOR_VISUAL_MANIFEST.surface || parameter !== 'intensity') {
+    return Object.freeze({ ok: false, code: 'UNSUPPORTED_SURFACE' });
+  }
+  if (typeof value !== 'number' || !Number.isFinite(value)) return INVALID;
+
+  const { minimum, maximum } = ATTRACTOR_VISUAL_MANIFEST.parameters.intensity;
+  const effective = Math.min(maximum, Math.max(minimum, value));
+  return Object.freeze({
+    ok: true,
+    command: Object.freeze({ surface, parameter, value: effective }),
+    requested: value,
+    effective
+  });
+}

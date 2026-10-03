@@ -8,6 +8,8 @@
  */
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { LiveHost, framedBy } from './LiveHost.js';
+import { createVirtualClock } from '../clock.js';
+import { createMockAdapter } from '../adapters/mock.js';
 
 const env = ({ speech = false, recognition = false, motion = false } = {}) => ({
     window: {
@@ -113,6 +115,78 @@ describe('what this device cannot do is said, and only what it cannot', () => {
 });
 
 describe('refusing, in words', () => {
+    it('refuses unknown and specimen-only catalog choices before building a runtime', async () => {
+        for (const [search, message] of [
+            ['?catalog=unknown', /not in the visual catalog/u],
+            ['?catalog=turrell', /specimen only/u]
+        ]) {
+            mount(search);
+            const build = vi.spyOn(host, 'buildRuntime');
+            await host.start();
+            expect(container.querySelector('.live-error').textContent).toMatch(message);
+            expect(build).not.toHaveBeenCalled();
+        }
+    });
+
+    it('uses an honest still opening when a known catalog choice lacks a 2D context', async () => {
+        mount('?catalog=klee', { window: {}, navigator: {}, document: { createElement: () => ({ getContext: () => null }) } });
+        const build = vi.spyOn(host, 'buildRuntime').mockRejectedValue(new Error('test stop before runtime'));
+        await host.start();
+        expect(container.querySelector('.live-catalog-note').textContent).toMatch(/drawing is unavailable.*without imagery/iu);
+        expect(host.openingVisual).toBe('still');
+        expect(build).toHaveBeenCalledTimes(1);
+    });
+
+    it('uses the resolved provider when deciding whether an offline catalog sample is allowed', () => {
+        mount('?catalog=klee&provider=GEMINI');
+        expect(host.chosenProvider()).toBe('mock');
+        const error = container.querySelector('.live-error');
+        expect(error.hidden).toBe(true);
+        expect(error.textContent).toBe('');
+        expect(host.catalogConflict).toBe(false);
+    });
+
+    it('rejects catalog choices in keyed, embed, and evaluation modes before starting them', async () => {
+        mount('?catalog=attractor&provider=openai');
+        expect(container.querySelector('.live-error').textContent).toMatch(/only available in the offline demonstration/u);
+        const start = vi.spyOn(host, 'start');
+        await host.start();
+        expect(start).toHaveBeenCalledTimes(1);
+        expect(host.runtime).toBeNull();
+        expect(host.modules).toBeUndefined();
+
+        for (const search of ['?catalog=attractor&embed=mcp', '?catalog=attractor&eval=1']) {
+            mount(search);
+            expect(container.querySelector('.live-error').textContent).toMatch(/only available in the offline demonstration/u);
+            expect(host.modules).toBeUndefined();
+            await host.start();
+            expect(host.runtime).toBeNull();
+        }
+    });
+
+    it('revalidates the sample inside the mock-adapter path and chooses genesis or still', async () => {
+        for (const [search, environment, expected] of [
+            ['?catalog=klee', env(), 'genesis'],
+            ['?catalog=attractor', { window: {}, navigator: {}, document: { createElement: () => ({ getContext: () => null }) } }, 'still']
+        ]) {
+            mount(search, environment);
+            const clock = createVirtualClock();
+            const adapter = await host.buildAdapter(clock, createMockAdapter);
+            const connection = await adapter.open({ intent: 'answer', prompt: 'Explain black holes with RISE.' });
+            const events = [];
+            const drained = (async () => { for await (const event of connection.events) events.push(event); })();
+            await clock.runAll();
+            await drained;
+            expect(events.find(event => event.type === 'segment.begin').visual).toBe(expected);
+            await connection.close();
+        }
+    });
+
+    it('links back to the searchable catalog', () => {
+        mount();
+        expect(container.querySelector('a[href="/visual-catalog"]')?.textContent).toMatch(/browse visuals/i);
+    });
+
     it('will not start on an empty prompt, and says why, and builds nothing', async () => {
         mount();
         container.querySelector('#live-prompt').value = '   ';
@@ -393,6 +467,53 @@ describe('speaking to it', () => {
         mount('', env());
         expect(notes()).toContain('speechRecognition');
         expect(document.querySelector('[data-live="listen"]')).toBeNull();
+    });
+});
+
+describe('the runtime visual bridge', () => {
+    it('only discovers and controls the mounted Chamber for the exact runtime Player', async () => {
+        mount('?voice=paced');
+        const router = {
+            current: 'live',
+            views: new Map(),
+            getCurrentView() { return this.current; },
+            getViewInstance(name) { return this.views.get(name)?.instance ?? null; },
+            async navigate(name, options = {}) {
+                this.current = name;
+                if (name === 'chamber-session') {
+                    const { takeLivePlayer } = await import('../../app/live-handoff.js');
+                    const player = takeLivePlayer(options.data);
+                    this.views.set(name, { instance: {
+                        player,
+                        discoverVisual: () => ({ manifest: { surface: 'attractor' }, current: { intensity: 0.65 }, target: { intensity: 0.65 } }),
+                        controlVisual: vi.fn(command => ({ status: 'accepted', effective: command.value }))
+                    } });
+                }
+                return true;
+            }
+        };
+        host.router = router;
+        host.buildVoices = async () => null;
+        await host.start();
+        await new Promise(resolve => setTimeout(resolve, 250));
+        const player = host.runtime.playerFor();
+        const chamber = router.getViewInstance('chamber-session');
+        expect(chamber.player).toBe(player);
+        expect(host.runtime.discoverVisual()).toMatchObject({ current: { intensity: 0.65 } });
+        expect(host.runtime.controlVisual({ surface: 'attractor', parameter: 'intensity', value: 0.7 }))
+            .toMatchObject({ status: 'accepted', requested: 0.7, effective: 0.7 });
+        expect(chamber.controlVisual).toHaveBeenCalledWith({ surface: 'attractor', parameter: 'intensity', value: 0.7 });
+
+        chamber.player = {};
+        expect(host.runtime.discoverVisual()).toBeNull();
+        expect(host.runtime.controlVisual({ surface: 'attractor', parameter: 'intensity', value: 0.7 }))
+            .toEqual({ status: 'refused', code: 'NO_ACTIVE_VISUAL' });
+        chamber.player = player;
+        router.current = 'portal';
+        expect(host.runtime.discoverVisual()).toBeNull();
+        expect(host.runtime.controlVisual({ surface: 'attractor', parameter: 'intensity', value: 0.7 }))
+            .toEqual({ status: 'refused', code: 'NO_ACTIVE_VISUAL' });
+        await host.stop();
     });
 });
 

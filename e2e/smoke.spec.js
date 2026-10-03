@@ -83,8 +83,7 @@ test('1 · Home presents one key, and every room behind Menu', async ({ page }) 
     // Menu; the Atrium and the Solarium are gone with their rooms.
     await expect(page.locator('[data-oracle="roll"]')).toBeVisible();
     const nav = page.locator('.portal-nav [data-nav]');
-    await expect(nav).toHaveCount(11);
-    await expect(page.locator('.portal-nav [data-nav="create"]')).toContainText('Create');
+    await expect(nav).toHaveCount(10);
     // The live Current is reachable from the Portal, not only by typing /live.
     await expect(page.locator('.portal-nav [data-nav="live"]')).toContainText('Live reading');
     for (const gone of ['atrium', 'sol']) {

@@ -125,3 +125,72 @@ describe('VisualFieldDirector living-flame support', () => {
     expect(log).toEqual(['destroy:a', 'destroy:b', 'destroy:c']);
   });
 });
+
+describe('VisualFieldDirector mounted visual controls', () => {
+  it('discovers and controls only the connected active capable record', () => {
+    const director = new VisualFieldDirector({
+      transitionMs: 320,
+      scheduleFrame: callback => callback(),
+      mount: cue => {
+        const mounted = record(cue.renderer, []);
+        document.body.appendChild(mounted.node);
+        if (cue.renderer === 'attractor') {
+          mounted.discoverVisual = () => ({
+            manifest: { surface: 'attractor' },
+            current: { intensity: 0.6 },
+            target: { intensity: 0.6 }
+          });
+          mounted.controlVisual = value => ({
+            status: 'accepted', surface: value.surface, parameter: value.parameter,
+            requested: value.value, effective: 0.75
+          });
+          mounted.cancelVisualControl = () => {};
+        }
+        return mounted;
+      }
+    });
+    director.applyCue({ kind: 'field', renderer: 'attractor', config: {} });
+    expect(director.discoverVisual()).toEqual({
+      manifest: { surface: 'attractor' },
+      current: { intensity: 0.6 },
+      target: { intensity: 0.6 }
+    });
+    expect(director.controlVisual({ surface: 'attractor', parameter: 'intensity', value: 8 }))
+      .toMatchObject({ status: 'accepted', requested: 8, effective: 0.75 });
+
+    const previous = director.active;
+    previous.node.remove();
+    expect(director.discoverVisual()).toBeNull();
+    expect(director.controlVisual({ surface: 'attractor', parameter: 'intensity', value: 0.7 }))
+      .toEqual({ status: 'refused', code: 'NO_ACTIVE_VISUAL' });
+    director.applyCue({ kind: 'field', renderer: 'other', config: {} });
+    expect(director.discoverVisual()).toBeNull();
+    director.destroy();
+  });
+
+  it('refuses malformed input and cancels local control when the same cue is admitted again', () => {
+    const log = [];
+    const director = new VisualFieldDirector({
+      transitionMs: 0,
+      scheduleFrame: callback => callback(),
+      mount: cue => {
+        const mounted = record(cue.renderer, log);
+        document.body.appendChild(mounted.node);
+        mounted.discoverVisual = () => ({ manifest: {}, current: {}, target: {} });
+        mounted.controlVisual = () => ({ status: 'accepted' });
+        mounted.cancelVisualControl = () => log.push('cancel-control');
+        return mounted;
+      }
+    });
+    const cue = { kind: 'field', renderer: 'attractor', config: { intensity: 0.65 } };
+    director.applyCue(cue);
+    expect(director.controlVisual({ surface: 'attractor', parameter: 'intensity', value: NaN }))
+      .toEqual({ status: 'refused', code: 'INVALID_CONTROL' });
+    director.applyCue(cue);
+    expect(log).toContain('cancel-control');
+    director.clear({ immediate: true });
+    expect(director.controlVisual({ surface: 'attractor', parameter: 'intensity', value: 0.7 }))
+      .toEqual({ status: 'refused', code: 'NO_ACTIVE_VISUAL' });
+    director.destroy();
+  });
+});

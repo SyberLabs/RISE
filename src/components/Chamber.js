@@ -362,6 +362,7 @@ export class Chamber {
     this._direction = directionStateFor(this.session);
     this._directedSchedule = null;
     this._lastDirectedCue = null;
+    this._lastDirectedCueId = null;
     this._currentVisualCue = null;
     // What the reading brings on its own: an authored schedule and the
     // Gallery pool the session installed. Hold and Off restore to these.
@@ -1901,7 +1902,8 @@ export class Chamber {
           this._renderVisualDrawer();
           return false;
         }
-        this._lastDirectedCue = null;
+      this._lastDirectedCue = null;
+      this._lastDirectedCueId = null;
         this._directedSchedule.reset();
         const atom = this._currentReadingAtom();
         if (atom) {
@@ -2240,8 +2242,11 @@ export class Chamber {
     const index = director?.program.segments.findIndex(segment => segment.id === meta.cueId) ?? -1;
     this._direction.cueSource = index >= 0 ? 'block' : 'saved';
     if (this._lastDirectedCue && index >= 0 && director.holdsPrevious(index)) return false;
-    if (this._lastDirectedCue && JSON.stringify(cue) === JSON.stringify(this._lastDirectedCue)) return false;
+    const cueId = meta.cueId ?? null;
+    if (this._lastDirectedCue && cueId === this._lastDirectedCueId
+      && JSON.stringify(cue) === JSON.stringify(this._lastDirectedCue)) return false;
     this._lastDirectedCue = cue;
+    this._lastDirectedCueId = cueId;
     const reduced = this._prefersReducedMotion()
       || document.documentElement.classList.contains('reduced-motion')
       || document.documentElement.classList.contains('photosensitivity-mode');
@@ -2382,6 +2387,7 @@ export class Chamber {
     const config = cue.config && typeof cue.config === 'object' ? cue.config : {};
     const atomDisplay = field.querySelector('#atom-display');
     let controller = null;
+    let visualControl = null;
     let destroyed = false;
     const host = document.createElement('div');
 
@@ -2417,6 +2423,13 @@ export class Chamber {
         ...(Number.isFinite(config.speed) ? { speed: config.speed } : {})
       });
       this.attractorField = attractor;
+      visualControl = {
+        discoverVisual: () => destroyed ? null : attractor.discoverVisual(),
+        controlVisual: command => destroyed
+          ? { status: 'refused', code: 'NO_ACTIVE_VISUAL' }
+          : attractor.controlVisual(command),
+        cancelVisualControl: () => attractor.cancelVisualControl()
+      };
       // What the field was actually given, where a test or an inspector can read it.
       host.dataset.attractorSpeed = String(attractor.speed);
       host.dataset.attractorIntensity = String(attractor.intensity);
@@ -2527,6 +2540,7 @@ export class Chamber {
       node: host,
       pause: () => controller?.pause?.(),
       resume: () => controller?.resume?.(),
+      ...(visualControl || {}),
       destroy: () => {
         destroyed = true;
         controller?.destroy?.();
@@ -2543,6 +2557,19 @@ export class Chamber {
         }
       }
     };
+  }
+
+  discoverVisual() {
+    if (this._destroyed || this.pageModeActive || this._temporalVisualsDeferred) return null;
+    return this._visualFieldDirector?.discoverVisual() || null;
+  }
+
+  controlVisual(command) {
+    if (this._destroyed || this.pageModeActive || this._temporalVisualsDeferred) {
+      return { status: 'refused', code: 'NO_ACTIVE_VISUAL' };
+    }
+    return this._visualFieldDirector?.controlVisual(command)
+      || { status: 'refused', code: 'NO_ACTIVE_VISUAL' };
   }
 
   /** Logical reading time for Living Flame, in milliseconds. */

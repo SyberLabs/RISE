@@ -2,7 +2,6 @@ import { describe, expect, it, vi } from 'vitest';
 import { createRouteManifest } from './route-manifest.js';
 
 const ROUTE_IDS = [
-  'create',
   'portal',
   'keystones',
   'mint',
@@ -19,6 +18,7 @@ const ROUTE_IDS = [
   'via',
   'emotions',
   'visual-lab',
+  'visual-catalog',
   'live',
   'chapel'
 ];
@@ -73,5 +73,16 @@ describe('createRouteManifest', () => {
     }
     expect(roomOptions('portal', 'Portal').getCurrentSession).toBe(getCurrentSession);
     expect(roomOptions('settings', 'Settings').notify).toBe(notify);
+  });
+
+  it('creates the catalog with the navigation callback and address search', () => {
+    const handleNavigate = vi.fn();
+    const route = createRouteManifest({ handleNavigate }).find(item => item.id === 'visual-catalog');
+    let received;
+    class VisualCatalog { constructor(_container, options) { received = options; } }
+    route.create({}, { search: '?q=light' }, { VisualCatalog });
+    received.onNavigate('portal');
+    expect(handleNavigate).toHaveBeenCalledWith('portal');
+    expect(received.search).toBe('?q=light');
   });
 });

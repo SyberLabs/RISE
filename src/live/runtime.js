@@ -31,6 +31,7 @@ import { createRealClock } from './clock.js';
 import { createSpeechGovernor } from './speech-governor.js';
 import { withExperientialState } from './state-visuals.js';
 import { createCurrentStream } from './stream.js';
+import { ATTRACTOR_VISUAL_MANIFEST, validateVisualCommand } from '../core/visual-control-contract.js';
 
 export const RUNTIME_LIMITS = Object.freeze({ reconnects: 3, backoffMs: 250, journal: 500 });
 
@@ -84,6 +85,63 @@ export function createLiveRuntime({
 
     function snapshot() {
         return Object.freeze({ status, error, main: summary(main), side: summary(side) });
+    }
+
+    function visualRun() {
+        return status === 'diving' ? side : main;
+    }
+
+    function visualRunIsActive(run) {
+        return Boolean(run && !run.closed && run.player
+            && (run.role === 'side' ? status === 'diving' : status === 'live' || status === 'interrupted')
+            && run.stream.phase !== 'failed' && !run.error);
+    }
+
+    function visualRunIsLive(run) {
+        return visualRunIsActive(run)
+            && (run.player.sessionState.state === 'playing' || run.player.sessionState.state === 'paused');
+    }
+
+    function visualRefusal(code = 'NO_ACTIVE_VISUAL') {
+        return Object.freeze({ status: 'refused', code });
+    }
+
+    function recordVisualReceipt(run, receipt) {
+        note('visual.control', { ...(run ? { role: run.role } : {}), ...receipt });
+        return receipt;
+    }
+
+    function discoverVisual() {
+        const run = visualRun();
+        if (!visualRunIsLive(run) || !run.presented || typeof host.discoverVisual !== 'function') return null;
+        try {
+            return host.discoverVisual({ role: run.role, player: run.player }) || null;
+        } catch {
+            return null;
+        }
+    }
+
+    function controlVisual(command) {
+        const run = visualRun();
+        const checked = validateVisualCommand(command);
+        if (!checked.ok) return recordVisualReceipt(run, visualRefusal(checked.code));
+        if (!visualRunIsActive(run)) return recordVisualReceipt(run, visualRefusal('NOT_LIVE'));
+        if (!run.presented) return recordVisualReceipt(run, visualRefusal());
+        if (!visualRunIsLive(run)) return recordVisualReceipt(run, visualRefusal('NOT_LIVE'));
+        if (typeof host.controlVisual !== 'function') return recordVisualReceipt(run, visualRefusal());
+        let response;
+        try {
+            response = host.controlVisual({ role: run.role, player: run.player, command: checked.command });
+        } catch {
+            response = visualRefusal();
+        }
+        const bounds = ATTRACTOR_VISUAL_MANIFEST.parameters.intensity;
+        const receipt = response?.status === 'accepted' && Number.isFinite(response.effective)
+            && response.effective >= bounds.minimum && response.effective <= bounds.maximum
+            ? Object.freeze({ status: 'accepted', surface: checked.command.surface, parameter: checked.command.parameter,
+                requested: checked.requested, effective: response.effective })
+            : visualRefusal(response?.code || 'NO_ACTIVE_VISUAL');
+        return recordVisualReceipt(run, receipt);
     }
 
     function set(nextStatus, nextError = error) {
@@ -292,6 +350,8 @@ export function createLiveRuntime({
         snapshot,
         journal: () => journal.map(entry => ({ ...entry })),
         subscribe(listener) { listeners.add(listener); return () => listeners.delete(listener); },
+        discoverVisual,
+        controlVisual,
         /** The Player of a run, for a host that wants to draw its progress. */
         playerFor(role = 'main') { return (role === 'side' ? side : main)?.player ?? null; },
         /** The reducer's view of a run: what the provider has composed so far. */

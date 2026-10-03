@@ -1,5 +1,10 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { Chamber } from './Chamber.js';
+
+afterEach(() => {
+  vi.restoreAllMocks();
+  document.body.replaceChildren();
+});
 
 function makeChamber() {
   const container = document.createElement('div');
@@ -86,5 +91,68 @@ describe('Chamber personal focal field', () => {
     expect(chamber.kleeField.paused).toBe(true);
     chamber.destroy();
     container.remove();
+  });
+});
+
+describe('Chamber mounted visual control', () => {
+  it('admits an identical authored cue again when the successor has a new identity', () => {
+    const cue = { kind: 'field', renderer: 'attractor', config: { intensity: 0.65 } };
+    const delivered = [];
+    const chamber = {
+      _direction: {
+        mode: 'follow',
+        director: { program: { segments: [{ id: 'first' }, { id: 'next' }] }, holdsPrevious: () => false }
+      },
+      _lastDirectedCue: null,
+      _lastDirectedCueId: null,
+      _prefersReducedMotion: () => false,
+      applyScheduledVisualCue: value => delivered.push(value)
+    };
+
+    Chamber.prototype._applyDirectedCue.call(chamber, cue, { cueId: 'first' });
+    Chamber.prototype._applyDirectedCue.call(chamber, cue, { cueId: 'next' });
+
+    expect(delivered).toEqual([cue, cue]);
+  });
+
+  it('discovers the mounted Attractor, bounds commands, and refuses after destroy', () => {
+    globalThis.ResizeObserver = class { observe() {} disconnect() {} };
+    window.matchMedia = () => ({ matches: false });
+    vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue({
+      setTransform() {}, clearRect() {}, save() {}, restore() {}, translate() {},
+      rotate() {}, scale() {}, beginPath() {}, moveTo() {}, lineTo() {}, stroke() {},
+      fill() {}, arc() {}, drawImage() {}, createRadialGradient: () => ({ addColorStop() {} })
+    });
+    vi.spyOn(globalThis, 'requestAnimationFrame').mockReturnValue(1);
+    vi.spyOn(globalThis, 'cancelAnimationFrame').mockImplementation(() => {});
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    const chamber = new Chamber(container, {
+      session: {
+        title: 'Visual control', atoms: [], totalDuration: 0, atomCount: 0,
+        visualConfig: { visualMode: 'attractor', attractor: { intensity: 0.65 } }
+      },
+      player: null, autoStart: false
+    });
+    const mounted = chamber.attractorField;
+
+    expect(chamber.discoverVisual()).toMatchObject({
+      manifest: { surface: 'attractor' },
+      current: { intensity: 0.65 },
+      target: { intensity: 0.65 }
+    });
+    expect(chamber.controlVisual({ surface: 'attractor', parameter: 'intensity', value: 8 }))
+      .toMatchObject({ status: 'accepted', requested: 8, effective: 0.75 });
+    expect(chamber.attractorField).toBe(mounted);
+    chamber._visualFieldDirector.applyCue({
+      kind: 'field', renderer: 'attractor', config: { intensity: 0.65 }
+    });
+    expect(chamber.attractorField).toBe(mounted);
+    expect(mounted.targetIntensity).toBe(0.65);
+
+    chamber.destroy();
+    expect(chamber.discoverVisual()).toBeNull();
+    expect(chamber.controlVisual({ surface: 'attractor', parameter: 'intensity', value: 0.7 }))
+      .toEqual({ status: 'refused', code: 'NO_ACTIVE_VISUAL' });
   });
 });

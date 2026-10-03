@@ -32,14 +32,15 @@ import { createRouteManifest } from './app/route-manifest.js';
 import { installTestBridge } from './app/test-bridge.js';
 
 const VISUAL_LAB_PATH = '/visual-lab';
+const VISUAL_CATALOG_PATH = '/visual-catalog';
 const LIVE_PATH = '/live';
 const EMOTIONS_PATH = '/emotions';
 const PUBLIC_ROOM_PATHS = Object.freeze({
     'visual-lab': VISUAL_LAB_PATH,
+    'visual-catalog': VISUAL_CATALOG_PATH,
     emotions: EMOTIONS_PATH
 });
 import { watchTabFreshness } from './core/tab-freshness.js';
-import { hasPersonalWorkInPage } from './core/personal-identity.js';
 import { takeOpenRouterReturn } from './core/openrouter-callback.js';
 
 // FIRST, before any other work: an OpenRouter sign-in returns here with a
@@ -98,9 +99,6 @@ try {
 export const STALE_BUILD_SENTINEL = 'rise_reloaded_for_stale_build';
 
 window.addEventListener('vite:preloadError', (event) => {
-    // Let the rejected import restore the previous view; a reload would erase
-    // a personal draft or the thought being composed before Keep.
-    if (hasPersonalWorkInPage()) return;
     if (sessionStorage.getItem(STALE_BUILD_SENTINEL)) return;  // not a deploy: a real failure
     sessionStorage.setItem(STALE_BUILD_SENTINEL, '1');
     event.preventDefault();
@@ -119,6 +117,7 @@ class App {
         this.guideInstance = null;
         this._audioInteractionController = null;
         this._utilityController = null;
+        this._historyNavigationGeneration = 0;
 
         // The two heaviest subsystems in the shell, both arriving on the
         // first use rather than before the Portal paints. See
@@ -283,16 +282,15 @@ class App {
             onNavigationIntent: (view, options) => this.handleNavigationIntent(view, options),
             onViewChange: (view, data) => {
                 console.log(`[RISE] View: ${view}`);
-                if (view === 'create' && window.location.pathname !== '/create') {
-                    window.history.pushState({}, '', '/create');
-                } else if (view !== 'create' && view !== 'chamber-session' && /^\/create\/?$/u.test(window.location.pathname)) {
-                    window.history.pushState({}, '', '/');
-                }
             }
         });
 
         // Register views
         this.registerViews();
+        // A direct public route is visible during the Router's fade-in. Install
+        // history listeners before entering it so Back/Forward in that window
+        // cannot be lost.
+        this.setupUtilityListeners();
 
         // Finish "Connect OpenRouter". The key goes to memory only; the
         // Portal shows the outcome. A failure changes nothing else.
@@ -350,8 +348,6 @@ class App {
             await this.router.navigate(staleTarget, { data: staleData });
         } else if (isRosaryDoor()) {
             await this.router.navigate('rosarium', { data: { door: true } });
-        } else if (/^\/create\/?$/u.test(window.location.pathname)) {
-            await this.router.navigate('create');
         } else if (directKeystone) {
             await this.router.navigate('keystones', { data: { slug: directKeystone } });
         } else if (directTryRise) {
@@ -362,6 +358,8 @@ class App {
             await this.router.navigate('mint', { data: { entry: houseProgram(mintedSlug) } });
         } else if (window.location.pathname === VISUAL_LAB_PATH) {
             await this.router.navigate('visual-lab');
+        } else if (window.location.pathname === VISUAL_CATALOG_PATH) {
+            await this.router.navigate('visual-catalog', { data: { search: window.location.search } });
         } else if (window.location.pathname === LIVE_PATH) {
             await this.router.navigate('live');
         } else if (window.location.pathname === EMOTIONS_PATH) {
@@ -373,7 +371,6 @@ class App {
             await this.router.navigate('portal');
         }
 
-        this.setupUtilityListeners();
         this.watchTabFreshness();
 
         // Audio interaction listener is already set up in init()
@@ -952,7 +949,7 @@ class App {
                 const { personalSession } = await import('./core/personal-project.js');
                 if (!isCurrent()) return false;
                 sessionInput = personalSession(sessionData);
-                sessionInput.origin = { view: this.router.getCurrentView?.() === 'vault' ? 'vault' : 'create' };
+                sessionInput.origin = { view: 'vault' };
             } else {
                 // The project model is a room's, and nothing on the way to the
                 // Portal needs it, so it is not part of first load.
@@ -1300,7 +1297,6 @@ class App {
         watchTabFreshness({
             router: this.router,
             isReading: () => {
-                if (hasPersonalWorkInPage()) return true;
                 const state = this.router?.views?.get('chamber')?.instance
                     ?.player?.sessionState?.state;
                 return state === 'playing' || state === 'interlocuting';
@@ -1344,18 +1340,42 @@ class App {
         // three public Keystone paths are the exception: browser Back and
         // Forward must resolve the same threshold that a cold request does.
         window.addEventListener('popstate', async () => {
+            const historyGeneration = ++this._historyNavigationGeneration;
             // Hash navigation belongs to the Rosary door. Browsers may emit
             // popstate alongside hashchange, and clearing the hash must not
             // pull an in-progress prayer back to the Portal.
             if (isRosaryDoor() || this.router?.getCurrentView() === 'rosarium') return;
             this.handleNavigationIntent('history');
-            if (/^\/create\/?$/u.test(window.location.pathname)) {
-                await this.router?.navigate('create', { replace: true, skipStack: true });
-                return;
-            }
             const { keystoneSlugFromPath } = await import('./content/keystones.js');
+            if (historyGeneration !== this._historyNavigationGeneration) return;
             if (window.location.pathname === VISUAL_LAB_PATH) {
                 await this.router?.navigate('visual-lab', { replace: true, skipStack: true });
+                return;
+            }
+            if (window.location.pathname === VISUAL_CATALOG_PATH) {
+                const data = { search: window.location.search };
+                const route = this.router?.views?.get('visual-catalog');
+                const catalog = this.router?.getViewInstance?.('visual-catalog');
+                const isCurrentCatalog = this.router?.getCurrentView?.() === 'visual-catalog';
+                const isEnteringCatalog = this.router?.transitioning === true
+                    && route?.container && !route.container.hidden;
+                if (catalog?.update && (isCurrentCatalog || isEnteringCatalog)) {
+                    catalog.update(data);
+                    if (isCurrentCatalog && !this.router.transitioning) return;
+                }
+                await this.router?.navigate('visual-catalog', {
+                    data, replace: true, skipStack: true
+                });
+                // Router deliberately collapses a queued same-route navigation.
+                // Apply the newest address data once the entry has settled.
+                const settledCatalog = this.router?.getViewInstance?.('visual-catalog');
+                if (historyGeneration === this._historyNavigationGeneration
+                    && window.location.pathname === VISUAL_CATALOG_PATH
+                    && window.location.search === data.search
+                    && settledCatalog?.update
+                    && this.router?.getCurrentView?.() === 'visual-catalog') {
+                    await settledCatalog.update(data);
+                }
                 return;
             }
             if (window.location.pathname === LIVE_PATH) {
