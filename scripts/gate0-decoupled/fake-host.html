@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><title>Gate 0 fake host</title></head>
+<body>
+  <h1>Fake host for the decoupled widget</h1>
+  <button id="open">Open visual surface</button>
+  <button id="model-notify">Model set 0.4 and notify</button>
+  <button id="model-withhold">Model set 0.75 without notification</button>
+  <button id="cases">Deliver sequence cases</button>
+  <button id="outsider">Create ready outsider</button>
+  <button id="foreign">Send foreign notification</button>
+  <button id="oversize">Send oversized notification</button>
+  <button id="withhold">Withhold next response</button>
+  <button id="withhold-four">Withhold next four responses</button>
+  <button id="withhold-marker">Withhold next marker response</button>
+  <button id="delay">Delay next response</button>
+  <p id="host-status" role="status">Host idle.</p>
+  <iframe id="widget" title="RISE widget" hidden></iframe>
+  <script>
+    const status = document.querySelector('#host-status');
+    const iframe = document.querySelector('#widget');
+    let nextId = 1;
+    let withholdNext = false;
+    let withholdCount = 0;
+    let withholdMarkerNext = false;
+    let delayNext = false;
+    const rpc = async (method, params) => {
+      const response = await fetch('/mcp', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ jsonrpc: '2.0', id: nextId++, method, params }) });
+      return response.status === 202 ? {} : response.json();
+    };
+    const tool = async (name, args) => (await rpc('tools/call', { name, arguments: args })).result;
+    const deliver = (snapshot, source = 'reader_mutation') => iframe.contentWindow.postMessage({ jsonrpc: '2.0', method: 'ui/notifications/tool-result', params: { structuredContent: snapshot, source } }, '*');
+    const open = async () => {
+      const result = await tool('rise_open_visual', {});
+      window.runId = result.structuredContent.runId;
+      iframe.hidden = false;
+      iframe.addEventListener('load', () => deliver(result.structuredContent, 'initial'), { once: true });
+      iframe.src = '/__gate0/widget';
+      status.textContent = `Opened run ${result.structuredContent.runId}.`;
+    };
+    const modelSet = async (intensity, notify) => {
+      const result = await tool('rise_set_visual', { runId: window.runId, visual: 'attractor', intensity });
+      if (result.isError) { status.textContent = 'Model mutation refused.'; return; }
+      if (notify) deliver(result.structuredContent);
+      status.textContent = `Server sequence ${result.structuredContent.sequence}; ${notify ? 'notification sent' : 'notification withheld'}.`;
+    };
+    window.addEventListener('message', async event => {
+      if (event.source !== iframe.contentWindow || !event.data || event.data.jsonrpc !== '2.0') return;
+      const message = event.data;
+      if (message.method === 'ui/initialize') {
+        event.source.postMessage({ jsonrpc: '2.0', id: message.id, result: { protocolVersion: '2025-11-25', hostInfo: { name: 'fake-host', version: '1' }, hostCapabilities: {} } }, '*');
+      } else if (message.method === 'ui/notifications/initialized') {
+        status.textContent = 'Widget initialized.';
+      } else if (message.method === 'tools/call') {
+        const args = message.params?.arguments;
+        if (message.params?.name === 'rise_open_visual') window.runId = (await tool('rise_open_visual', {})).structuredContent.runId;
+        if (withholdNext || withholdCount > 0) { withholdNext = false; if (withholdCount > 0) withholdCount -= 1; status.textContent = 'Widget response withheld.'; return; }
+        const result = await tool(message.params.name, args);
+        if (result.structuredContent?.runId) window.runId = result.structuredContent.runId;
+        if (result.isError) event.source.postMessage({ jsonrpc: '2.0', id: message.id, error: { code: -32000, message: 'Tool refused' } }, '*');
+        else if (delayNext) {
+          delayNext = false;
+          await new Promise(resolve => setTimeout(resolve, 500));
+          event.source.postMessage({ jsonrpc: '2.0', id: message.id, result }, '*');
+          status.textContent = 'Late response sent.';
+        } else event.source.postMessage({ jsonrpc: '2.0', id: message.id, result }, '*');
+      } else if (message.method === 'ui/update-model-context' || message.method === 'ui/message') {
+        if (withholdMarkerNext) { withholdMarkerNext = false; status.textContent = 'Marker response withheld.'; return; }
+        if (message.method === 'ui/update-model-context') event.source.postMessage({ jsonrpc: '2.0', id: message.id, result: {} }, '*');
+        else event.source.postMessage({ jsonrpc: '2.0', id: message.id, error: { code: -32601, message: 'Unsupported marker method' } }, '*');
+      }
+    });
+    document.querySelector('#open').onclick = open;
+    document.querySelector('#model-notify').onclick = () => modelSet(0.4, true);
+    document.querySelector('#model-withhold').onclick = () => modelSet(0.75, false);
+    document.querySelector('#withhold').onclick = () => { withholdNext = true; status.textContent = 'Next widget response will be withheld.'; };
+    document.querySelector('#withhold-four').onclick = () => { withholdCount = 4; status.textContent = 'Next four widget responses will be withheld.'; };
+    document.querySelector('#withhold-marker').onclick = () => { withholdMarkerNext = true; status.textContent = 'Next marker response will be withheld.'; };
+    document.querySelector('#delay').onclick = () => { delayNext = true; status.textContent = 'Next widget response will be delayed.'; };
+    document.querySelector('#outsider').onclick = () => {
+      const foreign = document.createElement('iframe');
+      foreign.id = 'outsider-frame';
+      foreign.srcdoc = '<!doctype html><title>Ready outsider</title><p>Ready</p>';
+      foreign.addEventListener('load', () => { status.textContent = 'Outsider ready.'; }, { once: true });
+      document.body.append(foreign);
+    };
+    document.querySelector('#foreign').onclick = () => {
+      const foreign = document.querySelector('#outsider-frame');
+      const payload = { jsonrpc: '2.0', method: 'ui/notifications/tool-result', params: { structuredContent: { runId: window.runId, sequence: 9, visual: 'still', intensity: null, serverReceivedAt: '2026-10-03T12:00:01.000Z', serverAppliedAt: '2026-10-03T12:00:02.000Z', observedAt: '2026-10-03T12:00:02.500Z' } } };
+      foreign.contentWindow.eval(`parent.document.querySelector('#widget').contentWindow.postMessage(${JSON.stringify(payload)}, '*')`);
+      status.textContent = 'Foreign notification sent.';
+    };
+    document.querySelector('#oversize').onclick = () => {
+      iframe.contentWindow.postMessage({ jsonrpc: '2.0', method: 'ui/notifications/tool-result', params: { structuredContent: { runId: window.runId, sequence: 9, visual: 'still', intensity: null, serverReceivedAt: '2026-10-03T12:00:01.000Z', serverAppliedAt: '2026-10-03T12:00:02.000Z', observedAt: '2026-10-03T12:00:02.500Z' }, padding: 'x'.repeat(9000) } }, '*');
+      status.textContent = 'Oversized notification sent.';
+    };
+    document.querySelector('#cases').onclick = async () => {
+      const set = await tool('rise_set_visual', { runId: window.runId, visual: 'attractor', intensity: 0.75 });
+      const value = set.structuredContent;
+      deliver(value);
+      deliver(value);
+      deliver({ ...value, sequence: 0 });
+      deliver({ ...value, runId: 'wrong-run', sequence: 2 });
+      deliver({ ...value, sequence: 2, visual: 'mystery' });
+      const refused = await tool('rise_set_visual', { runId: window.runId, visual: 'still', intensity: 0.4 });
+      status.textContent = `Sequence cases sent; refusal=${refused.isError}.`;
+    };
+  </script>
+</body>
+</html>
