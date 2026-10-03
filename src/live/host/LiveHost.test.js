@@ -678,7 +678,7 @@ describe('inside an MCP host', () => {
         const hostSays = data => { for (const fn of [...listeners]) fn({ source: host, data }); };
         return { environment, sent, listeners, hostSays };
     }
-    const answerCurrent = (hostSays, current = BLACK_HOLES_CURRENT, method = 'ui/notifications/tool-input') => hostSays({
+    const answerCurrent = (hostSays, current = BLACK_HOLES_CURRENT, method = 'ui/notifications/tool-result') => hostSays({
         jsonrpc: '2.0', method,
         params: method === 'ui/notifications/tool-input' ? { arguments: { current } } : { structuredContent: { current } }
     });
@@ -738,6 +738,11 @@ describe('inside an MCP host', () => {
         await vi.waitFor(() => expect(sent.some(message => message.method === 'ui/notifications/size-changed')).toBe(true));
         answerCurrent(hostSays);
         await vi.waitFor(() => expect(container.querySelector('.live-start')?.disabled).toBe(false));
+        answerCurrent(hostSays, { ...BLACK_HOLES_CURRENT, id: 'input-only-b' }, 'ui/notifications/tool-input');
+        hostSays({ jsonrpc: '2.0', method: 'ui/notifications/tool-result', params: { isError: true, content: [{ type: 'text', text: 'unrelated refusal' }] } });
+        expect(container.querySelector('.live-start')?.textContent).toBe('Begin');
+        expect(container.querySelector('.live-title').textContent).toBe(BLACK_HOLES_CURRENT.title);
+        expect(line().textContent).toBe('Answer ready.');
         const begin = container.querySelector('.live-start');
         expect(begin.textContent).toBe('Begin');
         expect(begin.getAttribute('type')).toBe('button');
@@ -756,6 +761,30 @@ describe('inside an MCP host', () => {
         expect(host.buildRuntime).toHaveBeenCalledTimes(1);
         expect(runtime.start).toHaveBeenCalledWith('The answer the assistant presents');
         expect(listeners.size).toBe(1);
+        await host.stop();
+    });
+
+    it('does not enable Begin from tool input while the successful result is delayed', async () => {
+        const { environment, sent, hostSays } = framed();
+        mount('?embed=mcp&voice=paced', environment);
+        await vi.waitFor(() => expect(sent).toHaveLength(1));
+        hostSays({ jsonrpc: '2.0', id: sent[0].id, result: { protocolVersion: '2026-01-26', hostCapabilities: {}, hostContext: {} } });
+        await vi.waitFor(() => expect(sent.some(message => message.method === 'ui/notifications/size-changed')).toBe(true));
+        host.buildRuntime = vi.fn();
+        host.validateEmbeddedCurrent = vi.fn(host.validateEmbeddedCurrent.bind(host));
+        answerCurrent(hostSays, BLACK_HOLES_CURRENT, 'ui/notifications/tool-input');
+        expect(host.validateEmbeddedCurrent).not.toHaveBeenCalled();
+        expect(container.querySelector('.live-start')).toBeNull();
+        expect(host.buildRuntime).not.toHaveBeenCalled();
+
+        answerCurrent(hostSays, BLACK_HOLES_CURRENT, 'ui/notifications/tool-result');
+        await vi.waitFor(() => expect(container.querySelector('.live-start')?.textContent).toBe('Begin'));
+        const runtime = { start: vi.fn(async () => {}), stop: vi.fn(async () => {}), status: 'live', snapshot: () => ({ status: 'live' }), subscribe: () => () => {}, composed: () => null };
+        host.buildRuntime.mockResolvedValue(runtime);
+        host.buildMic = async () => null;
+        container.querySelector('.live-start').click();
+        await vi.waitFor(() => expect(host.buildRuntime).toHaveBeenCalledTimes(1));
+        await vi.waitFor(() => expect(runtime.start).toHaveBeenCalledTimes(1));
         await host.stop();
     });
 
@@ -855,7 +884,7 @@ describe('inside an MCP host', () => {
         await host.stop();
     });
 
-    it('does not restore Begin when an oversized refusal wins while validation is pending', async () => {
+    it('keeps a successful result while an anonymous error arrives during client validation', async () => {
         const { environment, sent, hostSays } = framed();
         mount('?embed=mcp&voice=paced', environment);
         await vi.waitFor(() => expect(sent).toHaveLength(1));
@@ -863,36 +892,35 @@ describe('inside an MCP host', () => {
         await vi.waitFor(() => expect(sent.some(message => message.method === 'ui/notifications/size-changed')).toBe(true));
         let resolveValidation;
         host.validateEmbeddedCurrent = vi.fn(() => new Promise(resolve => { resolveValidation = resolve; }));
-        answerCurrent(hostSays);
+        answerCurrent(hostSays, { ...BLACK_HOLES_CURRENT, id: 'accepted-a', title: 'Accepted A' });
         await vi.waitFor(() => expect(host.validateEmbeddedCurrent).toHaveBeenCalledTimes(1));
-        hostSays({ jsonrpc: '2.0', method: 'ui/notifications/tool-input', params: { arguments: { current: BLACK_HOLES_CURRENT }, metadata: 'x'.repeat(262_144) } });
-        await vi.waitFor(() => expect(line().getAttribute('role')).toBe('alert'));
-        resolveValidation(null);
-        await vi.waitFor(() => expect(host.embeddedCurrentProcessing).toBe(false));
-        expect(line().textContent).toContain('too large');
-        expect(container.querySelector('.live-start')).toBeNull();
-        expect(host.embeddedEvents).toBeNull();
+        hostSays({ jsonrpc: '2.0', method: 'ui/notifications/tool-result', params: { isError: true, content: [{ type: 'text', text: 'unrelated refusal' }] } });
+        resolveValidation([{ body: { title: 'Accepted A' } }]);
+        await vi.waitFor(() => expect(container.querySelector('.live-start')?.textContent).toBe('Begin'));
+        expect(container.querySelector('.live-title').textContent).toBe('Accepted A');
+        expect(line().textContent).toBe('Answer ready.');
         await host.stop();
     });
 
-    it('discards queued unbegun proposals when a transport refusal arrives', async () => {
+    it('keeps accepted queued results when an anonymous refusal arrives', async () => {
         const { environment, sent, hostSays } = framed();
         mount('?embed=mcp&voice=paced', environment);
         await vi.waitFor(() => expect(sent).toHaveLength(1));
         hostSays({ jsonrpc: '2.0', id: sent[0].id, result: { protocolVersion: '2026-01-26', hostCapabilities: {}, hostContext: {} } });
         await vi.waitFor(() => expect(sent.some(message => message.method === 'ui/notifications/size-changed')).toBe(true));
         let resolveValidation;
-        host.validateEmbeddedCurrent = vi.fn(() => new Promise(resolve => { resolveValidation = resolve; }));
+        host.validateEmbeddedCurrent = vi.fn()
+            .mockImplementationOnce(() => new Promise(resolve => { resolveValidation = resolve; }))
+            .mockResolvedValueOnce([{ body: { title: 'Queued accepted' } }]);
         answerCurrent(hostSays);
         await vi.waitFor(() => expect(host.validateEmbeddedCurrent).toHaveBeenCalledTimes(1));
-        answerCurrent(hostSays, { ...BLACK_HOLES_CURRENT, id: 'queued' });
-        hostSays({ jsonrpc: '2.0', method: 'ui/notifications/tool-input', params: { arguments: { current: BLACK_HOLES_CURRENT }, metadata: 'x'.repeat(262_144) } });
-        await vi.waitFor(() => expect(line().getAttribute('role')).toBe('alert'));
-        resolveValidation({ stale: true });
-        await vi.waitFor(() => expect(host.embeddedCurrentProcessing).toBe(false));
-        expect(host.validateEmbeddedCurrent).toHaveBeenCalledTimes(1);
-        expect(container.querySelector('.live-start')).toBeNull();
-        expect(host.embeddedEvents).toBeNull();
+        answerCurrent(hostSays, { ...BLACK_HOLES_CURRENT, id: 'queued', title: 'queued' });
+        hostSays({ jsonrpc: '2.0', method: 'ui/notifications/tool-result', params: { isError: true, content: [{ type: 'text', text: 'unrelated refusal' }] } });
+        resolveValidation([{ body: { title: 'First accepted' } }]);
+        await vi.waitFor(() => expect(host.validateEmbeddedCurrent).toHaveBeenCalledTimes(2));
+        await vi.waitFor(() => expect(container.querySelector('.live-start')?.textContent).toBe('Begin'));
+        expect(container.querySelector('.live-title').textContent).toBe('Queued accepted');
+        expect(host.embeddedEvents).not.toBeNull();
         await host.stop();
     });
 
@@ -955,11 +983,10 @@ describe('inside an MCP host', () => {
         await vi.waitFor(() => expect(sent.some(message => message.method === 'ui/notifications/size-changed')).toBe(true));
         answerCurrent(hostSays);
         await vi.waitFor(() => expect(container.querySelector('.live-start')?.textContent).toBe('Begin'));
-        hostSays({ jsonrpc: '2.0', method: 'ui/notifications/tool-input', params: { arguments: { current: BLACK_HOLES_CURRENT }, metadata: 'x'.repeat(262_144) } });
-        await vi.waitFor(() => expect(line().getAttribute('role')).toBe('alert'));
-        expect(line().textContent).toContain('too large');
-        expect(container.querySelector('.live-start')).toBeNull();
-        expect(host.embeddedEvents).toBeNull();
+        hostSays({ jsonrpc: '2.0', method: 'ui/notifications/tool-result', params: { structuredContent: { current: BLACK_HOLES_CURRENT }, metadata: 'x'.repeat(262_144) } });
+        expect(container.querySelector('.live-start')?.textContent).toBe('Begin');
+        expect(container.querySelector('.live-title').textContent).toBe(BLACK_HOLES_CURRENT.title);
+        expect(host.embeddedEvents).not.toBeNull();
         await host.stop();
     });
 

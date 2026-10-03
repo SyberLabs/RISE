@@ -22,11 +22,10 @@
  * there is a change to METHODS and currentFrom.
  *
  * WHAT IT WILL NOT DO. It listens only to the frame's parent, ignores anything
- * that is not well-formed JSON-RPC or is larger than a limit, reads a Current
- * only from the two notifications one is expected in, and never evaluates,
- * follows or fetches anything it is sent. What it reads is then validated as
- * strictly as any Current (current-events.js). A host sends the same Current
- * twice, as a tool's input and again as its result; it is handed over once.
+ * that is not well-formed JSON-RPC or is larger than a limit, admits a Current
+ * only from a successful tool result, and never evaluates, follows or fetches
+ * anything it is sent. What it reads is then validated as strictly as any
+ * Current (current-events.js). Tool input is never an admission signal.
  * The host's own requests (`ping`, `ui/resource-teardown`) are answered, because
  * a host waits for the answer.
  */
@@ -50,13 +49,12 @@ export const PROTOCOL_VERSION = '2026-01-26';
 
 export const PORT_LIMITS = Object.freeze({ message: MCP_MESSAGE_BYTES, current: MCP_CURRENT_BYTES, buffered: 8, pending: 8, remembered: 8, answer: 100_000 });
 
-/** A Current from the two places a host puts one. Nothing else is read. */
+/** A Current from a successful tool result. Tool input never authorizes Begin. */
 export function currentFrom(method, params) {
     if (method === METHODS.toolResult && params?.isError === true) return null;
     if (!params || typeof params !== 'object' || Array.isArray(params)) return null;
-    const holder = method === METHODS.toolInput ? params.arguments : method === METHODS.toolResult ? params.structuredContent : null;
+    const holder = method === METHODS.toolResult ? params.structuredContent : null;
     if (!holder || typeof holder !== 'object' || Array.isArray(holder)) return null;
-    if (method === METHODS.toolInput && Object.keys(holder).some(key => key !== 'current')) return null;
     if (!holder.current || typeof holder.current !== 'object') return null;
     return { current: holder.current };
 }
@@ -94,13 +92,7 @@ export function createMcpGuestPort({ frame, host = frame.parent, appName = 'RISE
         }
     }
 
-    function discardBuffered() {
-        for (const item of [...buffered]) forgetCurrent(item.current);
-        buffered.length = 0;
-    }
-
     function reportError(message) {
-        discardBuffered();
         const error = new Error(String(message).slice(0, 220));
         if (errorListeners.size === 0) {
             if (bufferedErrors.length === 0) bufferedErrors.push(error);
@@ -117,9 +109,7 @@ export function createMcpGuestPort({ frame, host = frame.parent, appName = 'RISE
         try { size = serializedUtf8Bytes(data); } catch { return; }
         if (size === null) return;
         if (size > PORT_LIMITS.message) {
-            if (data.id === undefined && [METHODS.toolInput, METHODS.toolResult].includes(data.method)) {
-                const found = currentFrom(data.method, data.params);
-                if (found) forgetCurrent(found.current);
+            if (data.id === undefined && data.method === METHODS.toolResult) {
                 reportError(`The assistant's MCP message is too large for RISE (${PORT_LIMITS.message.toLocaleString('en-US')} bytes). Ask it to shorten the answer and try again.`);
             }
             return;
@@ -148,9 +138,10 @@ export function createMcpGuestPort({ frame, host = frame.parent, appName = 'RISE
             reportError('The assistant’s Current was refused. Ask it to correct the answer and try again.');
             return;
         }
+        if (data.method !== METHODS.toolResult) return;
         const found = currentFrom(data.method, data.params);
         if (!found) return;
-        // The same Current arrives as a tool's input and again as its result.
+        // Deduplicate only successful results; an earlier tool input cannot consume this key.
         const key = currentKey(found.current);
         if (key === null) return;
         if (remembered.includes(key)) return;

@@ -17,6 +17,7 @@
 import { BLACK_HOLES_CURRENT, toSealedCurrent } from '../src/test/sealed-current.js';
 import { HORIZON_DIVE } from '../src/live/fixtures/black-holes.js';
 import { relayHtml } from '../src/live/hosts/mcp-relay.js';
+import { serializedUtf8Bytes } from '../src/live/hosts/mcp-size.js';
 import { handleMcp } from '../worker/mcp-server.mjs';
 import { expect, test } from './fixtures.js';
 
@@ -103,6 +104,40 @@ function oversizedMcpCurrent() {
   };
 }
 
+function workerBoundaryCurrent() {
+  const build = unicodeWords => ({
+    ...BLACK_HOLES_CURRENT,
+    id: 'worker-port-boundary',
+    title: 'Measured Worker boundary',
+    segments: Array.from({ length: 5 }, (_, segmentIndex) => {
+      const text = Array.from({ length: 2_000 }, (_, wordIndex) => segmentIndex * 2_000 + wordIndex < unicodeWords ? '界' : 'A').join(' ');
+      return {
+        id: `boundary-${segmentIndex}`, text, visual: 'still',
+        dives: Array.from({ length: 8 }, (_, diveIndex) => ({
+          id: `d${segmentIndex}-${diveIndex}`, text: 'x',
+          anchor: { fromCharacter: 0, toCharacter: 1, quoteStart: text[0], quoteEnd: text[0] }
+        }))
+      };
+    })
+  });
+  let low = 0;
+  let high = 10_000;
+  while (low < high) {
+    const middle = Math.ceil((low + high) / 2);
+    if (serializedUtf8Bytes(build(middle)) <= 65_536) low = middle;
+    else high = middle - 1;
+  }
+  const current = build(low);
+  let remaining = 65_536 - serializedUtf8Bytes(current);
+  for (const segment of current.segments) for (const dive of segment.dives) {
+    const added = Math.min(remaining, 599);
+    dive.text += 'x'.repeat(added);
+    remaining -= added;
+  }
+  if (remaining !== 0 || serializedUtf8Bytes(current) !== 65_536) throw new Error('Could not construct exact Worker Current boundary');
+  return current;
+}
+
 
 test('a maximum valid CJK title keeps Begin reachable in phone-sized host frames', async ({ page, baseURL }) => {
   const current = { ...BLACK_HOLES_CURRENT, id: 'long-cjk-title', title: '界'.repeat(200) };
@@ -138,36 +173,58 @@ test('a maximum valid CJK title keeps Begin reachable in phone-sized host frames
   await check(app);
 });
 
-test('the reader begins the held Current once despite the matching tool result arriving later', async ({ page, baseURL }) => {
+test('tool input waits for the successful Worker result before enabling reader Begin', async ({ page, baseURL }) => {
   const errors = [];
   page.on('pageerror', error => errors.push(error.message));
   const app = await openHost(page, baseURL, { deferToolResult: true });
-  await expect(app.getByRole('button', { name: 'Begin', exact: true })).toBeVisible();
+  await expect(app.getByRole('button', { name: 'Begin', exact: true })).toHaveCount(0);
   await expect(app.locator('.atom-word')).toHaveCount(0);
   await expect(app.locator('#live-controls')).toHaveCount(0);
+  await expect.poll(() => page.evaluate(() => typeof window.__host.releaseToolResult)).toBe('function');
+  const sent = await log(page);
+  expect(sent.filter(entry => entry.method === 'ui/initialize')).toHaveLength(1);
+  expect(sent.some(entry => entry.method === 'ui/notifications/initialized')).toBe(true);
+  expect(sent.find(entry => entry.method === 'ui/notifications/size-changed').params.height).toBe(640);
+  await page.evaluate(() => window.__host.releaseToolResult());
+  await expect(app.getByRole('button', { name: 'Begin', exact: true })).toBeVisible();
   await begin(app);
   await expectShown(app, 'A black hole is a region of space');
   await expect(app.locator('.live-controls__status')).toContainText(/paced as if spoken/u);
-
-  const sent = await log(page);
-  const hello = sent.filter(entry => entry.method === 'ui/initialize');
-  expect(hello).toHaveLength(1);
-  expect(hello[0].params).toMatchObject({ appInfo: { name: 'RISE' }, protocolVersion: '2026-01-26' });
-  expect(sent.some(entry => entry.method === 'ui/notifications/initialized')).toBe(true);
-  expect(sent.find(entry => entry.method === 'ui/notifications/size-changed').params.height).toBe(640);
-  // Hold later in the Current, then release its real worker result.
   await expectShown(app, 'Its boundary is called the event horizon', 20_000);
   await app.getByRole('button', { name: 'Interrupt', exact: true }).click();
   await expect(app.locator('.live-controls__status')).toContainText('Held where you are');
   const heldAt = await shown(app);
-  await expect.poll(() => page.evaluate(() => window.__host.workerResult?.structuredContent?.current?.id ?? null)).toBe('black-holes');
-  await expect.poll(() => page.evaluate(() => typeof window.__host.releaseToolResult)).toBe('function');
-  await page.evaluate(() => window.__host.releaseToolResult());
-  await expect(app.locator('.live-controls__status')).toContainText('Held where you are');
-  expect(await shown(app)).toBe(heldAt);
   await app.getByRole('button', { name: 'Resume', exact: true }).click();
   await expectShown(app, 'It is not a surface you could touch', 20_000);
+  expect(await shown(app)).not.toBe(heldAt);
   expect(errors).toEqual([]);
+});
+
+test('the largest admitted Current crosses Worker, port and reader Begin at 65,536 UTF-8 bytes', async ({ page, baseURL }) => {
+  const current = workerBoundaryCurrent();
+  expect(serializedUtf8Bytes(current)).toBe(65_536);
+  const workerResponse = page.waitForResponse('**/api/mcp');
+  const app = await openHost(page, baseURL, { resultOnly: true, current });
+  const response = (await (await workerResponse).json()).result;
+  expect(response.isError).toBeUndefined();
+  expect(serializedUtf8Bytes(response.structuredContent.current)).toBe(65_536);
+  await expect(app.getByRole('button', { name: 'Begin', exact: true })).toBeVisible();
+  await begin(app);
+  await expect(app.locator('#atom-display')).toContainText('界');
+  await expect(app.locator('.live-controls__status')).toContainText('Reading');
+});
+
+test('a schema-valid Current at 65,537 UTF-8 bytes is refused before Begin', async ({ page, baseURL }) => {
+  const current = workerBoundaryCurrent();
+  current.segments[0].dives[0].text += 'x';
+  expect(serializedUtf8Bytes(current)).toBe(65_537);
+  const workerResponse = page.waitForResponse('**/api/mcp');
+  const app = await openHost(page, baseURL, { resultOnly: true, current });
+  const response = (await (await workerResponse).json()).result;
+  expect(response.isError).toBe(true);
+  expect(response.content[0].text).toContain('65,536-byte MCP limit');
+  await expect(app.getByRole('button', { name: 'Begin', exact: true })).toHaveCount(0);
+  await expect(app.locator('.atom-word')).toHaveCount(0);
 });
 
 test('a validated tool result alone delivers the Current for playback', async ({ page, baseURL }) => {

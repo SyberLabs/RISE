@@ -632,7 +632,8 @@ export class LiveHost {
     }
 
     refuseEmbeddedProposal(error) {
-        if (this.destroyed || this.embeddedStartupCancelled || this.embeddedBeginStarted) return;
+        if (this.destroyed || this.embeddedStartupCancelled || this.embeddedBeginStarted
+            || this.embeddedCurrentHandled || this.embeddedCurrentProcessing || this.embeddedQueuedCurrent) return;
         this.clearEmbeddedAnswerTimer();
         this.embeddedProposalRevision += 1;
         if (this.embeddedProposalCurrent) this.port?.forgetCurrent(this.embeddedProposalCurrent);
