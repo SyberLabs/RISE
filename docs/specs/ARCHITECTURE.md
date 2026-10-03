@@ -27,11 +27,11 @@ appears when.
 Around that engine sit rooms: Portal, Library, Chapel and Rosarium, Workshop,
 Vault, Scriptorium, Curia, Journeys, Via, Keystones, Settings.
 
-Cloudflare serves the app shell and same-origin decision routes. The Library's
-optional recommendation route reads a curated Standard Ebooks catalog from
-PostgreSQL, caches that public catalog and short-lived decisions in Redis,
-and asks JEV to choose one book on a decision-cache miss. The reader's
-source text, proposal validation, and reading pipeline remain in the browser.
+Cloudflare serves the app shell and the static catalog. The Library's optional
+recommendation runs in the reader's browser, on the reader's own provider: it
+reads the curated Standard Ebooks catalog (`/content/catalog.json`, §8.42) and
+asks JEV to choose one book. The reader's source text, proposal validation, and
+reading pipeline remain in the browser.
 
 ---
 
@@ -591,8 +591,7 @@ of `settled`, `open`, `deferred`, or `reversed`.
 ### 8.10 Vanilla DOM, no UI framework
 
 - **Chosen:** direct DOM construction and template strings, one bespoke module
-  per room, six production dependencies: `sql.js` for browser-local work,
-  `@neondatabase/serverless` and `@upstash/redis` for the Worker catalog path,
+  per room, four production dependencies: `sql.js` for browser-local work,
   and `@ai-ecoverse/kev.js`, `onnxruntime-web` and `@huggingface/tokenizers`
   for on-device Kev, imported only by the EnterpRise worker that runs it
   (§8.32). The tokenizer already shipped inside kev.js; it is named because
@@ -884,19 +883,17 @@ of `settled`, `open`, `deferred`, or `reversed`.
 
 ### 8.29 JEV chooses a held Standard Ebooks reading
 
-- **Chosen:** an optional Library form sends the reader's intent to the
-  same-origin Cloudflare Worker. The Worker reads an exact-edition Standard
-  Ebooks catalog from PostgreSQL, caches that public catalog in Redis
-  for 30 seconds, and asks JEV through OpenRouter to choose one work ID on a
-  decision-cache miss. Redis caches the validated decision for five minutes
-  under a keyed digest of the intent and catalog, without storing raw intent.
-  The browser opens that held edition through the existing Library path.
+- **Chosen:** an optional Library form sends the reader's intent to JEV from
+  the reader's browser, on their own account. The browser reads the
+  exact-edition catalog from the static file (§8.42) and asks JEV to choose one
+  work ID. It opens that held edition through the existing Library path. (This
+  once ran in the Worker, reading PostgreSQL through a Redis cache; §8.42
+  retired that path.)
 - **Rejected:** sending book text or personal reading history to JEV, storing
   raw intents or decisions in PostgreSQL, inventing a recommendation from local
   heuristics when JEV fails, and accepting a model-selected unheld edition.
 - **Why:** a recommendation is useful only when it leads to a book the reader
-  can actually open. PostgreSQL owns the catalog, Redis reduces repeat reads,
-  and JEV makes a bounded choice on the first matching request. Exact edition
+  can actually open. The catalog file bounds the choice, and JEV makes it. Exact edition
   and source revision checks keep the model inside the release inventory. The brief
   description shown after the decision is curated catalog copy; JEV does not
   generate prose.
@@ -1245,6 +1242,18 @@ of `settled`, `open`, `deferred`, or `reversed`.
 - **Why:** a gate that admits to being "not a security boundary" (former §7)
   costs a click and a module on every first visit and locks nothing. §2.2
   rules out the only version that would.
+- **Status:** settled.
+
+### 8.42 The catalog is a file
+
+- **Chosen:** `public/content/catalog.json`, written by the content-plane build
+  from `src/content/decision-catalog.json`.
+- **Rejected:** Neon PostgreSQL behind an Upstash Redis cache behind a rate
+  limiter, serving the same rows.
+- **Why:** §2.3. A catalog of editions that changes on an editorial act is
+  content. It needs no database, no cache, no secrets and no limiter, and
+  removing them removes the Worker's only state and two of six production
+  dependencies.
 - **Status:** settled.
 
 ---

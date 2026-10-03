@@ -37,7 +37,7 @@ What the reader is billed for: each Home request, each Scriptorium route, and, w
 
 The Worker (`worker/index.mjs`) holds no model credential and calls no model:
 
-- `GET /api/decision-catalog` publishes released books, active sounds, and active type options from Neon through a 30-second Redis cache, with public columns only. It is rate limited, and Neon and Upstash credentials never leave the Worker. Deactivating a row in Neon withdraws it from every reader within a minute.
+- `GET /content/catalog.json` is a static file the build writes from `src/content/decision-catalog.json`: released books, active sounds, and active type options, public columns only. Withdrawing a row is an editorial commit and a release.
 - `/api/jev-recommend`, `/api/jev-decision`, `/api/jev/route`, `/api/jev-visual-score`, `/api/enterprise-decision`, and `/api/personal-piece` answer `410 SHARED_INFERENCE_RETIRED` with instructions to reload and connect. Netlify previews answer the same way (`netlify/functions/retired-inference.mjs`).
 
 Features that depended on a shared model are now either on the reader's connection (recommendations, Scriptorium routing, visual direction), local only (the EnterpRise room's Kev decider; the public room keeps Local rules and on-device Kev), or explicitly unavailable: personal readings written by a hosted model were never released, and RISE no longer pays for AI writing.
@@ -46,7 +46,7 @@ Features that depended on a shared model are now either on the reader's connecti
 
 1. Merge. The frontend and Worker ship together in one production deploy, so stale tabs get a clear 410 instead of a paid call.
 2. The production workflow checks the exact release, the public catalog, and that every retired route answers 410. It no longer calls a model; the old check spent a live Jev request on every release.
-3. Only after that verification, delete the unused Worker secret `OPENROUTER_API_KEY` (`wrangler secret delete OPENROUTER_API_KEY --config wrangler.production.jsonc`), any `KEV_API_KEY`, `KEV_BASE_URL`, and `KEV_REVISION` Worker secrets, the `MODAL_TOKEN_ID` and `MODAL_TOKEN_SECRET` repository secrets, and the `KEV_PRODUCTION_VERIFIED`, `KEV_REVISION`, `KEV_MODEL`, and `DECISION_PROVIDER` repository variables. Remove the staging Worker's `OPENROUTER_API_KEY` and `KEV_API_KEY`, and the staging environment's `CF_ACCESS_CLIENT_ID` and `CF_ACCESS_CLIENT_SECRET` if nothing else uses them. Stop any `rise-kev` Modal app, and close any tunnel that exposes a local Kev. Keep `NEON_DATABASE_URL`, `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN`, `CLOUDFLARE_API_TOKEN`, and the unrelated `OPENAI_API_KEY` (advisory code review).
+3. Only after that verification, delete the unused Worker secret `OPENROUTER_API_KEY` (`wrangler secret delete OPENROUTER_API_KEY --config wrangler.production.jsonc`), any `KEV_API_KEY`, `KEV_BASE_URL`, and `KEV_REVISION` Worker secrets, the `MODAL_TOKEN_ID` and `MODAL_TOKEN_SECRET` repository secrets, and the `KEV_PRODUCTION_VERIFIED`, `KEV_REVISION`, `KEV_MODEL`, and `DECISION_PROVIDER` repository variables. Remove the staging Worker's `OPENROUTER_API_KEY` and `KEV_API_KEY`, and the staging environment's `CF_ACCESS_CLIENT_ID` and `CF_ACCESS_CLIENT_SECRET` if nothing else uses them. Stop any `rise-kev` Modal app, and close any tunnel that exposes a local Kev. Also delete the retired catalog secrets `NEON_DATABASE_URL`, `UPSTASH_REDIS_REST_URL`, and `UPSTASH_REDIS_REST_TOKEN`. Keep `CLOUDFLARE_API_TOKEN` and the unrelated `OPENAI_API_KEY` (advisory code review).
 
 ## Evaluation
 

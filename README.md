@@ -27,9 +27,9 @@ Reading runs entirely in the browser. Your files and saved work stay in browser 
 - **First load of ~59 KB (brotli, 3 requests)**, held under a 64 KB budget enforced in CI.
 - **~2,800 Vitest unit and integration tests** plus Playwright browser tests, including real `ffmpeg` encoding and live Chromium rendering.
 - **Generated architecture diagram** and tested design contracts, so documentation cannot drift from the code.
-- **Edge backend:** Cloudflare Workers serve the app and the public decision catalog (Neon PostgreSQL through Upstash Redis). The backend runs no AI model and holds no model credential; decisions run on the reader's own connection. Releases use gated GitHub Actions with artifact verification and rollback.
+- **Edge backend:** Cloudflare Workers serve the app and a static public decision catalog. The backend runs no AI model and holds no model credential; decisions run on the reader's own connection. Releases use gated GitHub Actions with artifact verification and rollback.
 
-**Stack:** JavaScript (ES modules) · Vite · Web Audio API · Canvas 2D · IndexedDB · Cloudflare Workers · PostgreSQL · Redis · Vitest · Playwright · GitHub Actions
+**Stack:** JavaScript (ES modules) · Vite · Web Audio API · Canvas 2D · IndexedDB · Cloudflare Workers · Vitest · Playwright · GitHub Actions
 
 ## Quick start
 

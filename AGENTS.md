@@ -82,7 +82,7 @@ unusual decisions live in `docs/PROJECT-KNOWLEDGE.md`.
 
 RISE is a vanilla-JS single-page app built with Vite. Reading and
 browser-local work stay client-side. Its production Cloudflare Worker serves
-the app and a public decision catalog (Neon PostgreSQL through Upstash Redis).
+the app and a static public catalog built from `src/content/decision-catalog.json`.
 RISE spends no shared inference: reader recommendations use the reader's own
 OpenRouter account or pinned Kev on the reader's computer. Former shared model
 routes return 410. Optional live Realtime and MCP integrations use the reader's
