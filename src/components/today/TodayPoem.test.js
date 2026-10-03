@@ -134,6 +134,35 @@ describe('TodayPoem', () => {
     delete document.visibilityState;
   });
 
+  it('leads with the engine: the first screen names the poem and its mood and holds Begin; the poem follows', async () => {
+    work.getDivisions.mockResolvedValue({ entries: [hill, anne] });
+    const view = new TodayPoem(container, {});
+    await flush();
+    const hero = container.querySelector('.today-hero');
+    for (const part of ['.today-mandala', '#today-title', '.today-byline', '.today-mood', '.today-mood-plan', '[data-begin]']) {
+      expect(hero.querySelector(part), part).not.toBeNull();
+    }
+    const read = container.querySelector('.today-read');
+    expect(read.id).toBe('today-poem');
+    expect(read.querySelector('[data-poem] .today-line')).not.toBeNull();
+    expect(hero.compareDocumentPosition(read) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    // One solid key on the view.
+    expect(container.querySelectorAll('.btn-primary')).toHaveLength(1);
+    view.destroy();
+  });
+
+  it('reads the poem first on request, by scrolling to it', async () => {
+    work.getDivisions.mockResolvedValue({ entries: [hill, anne] });
+    const scrollIntoView = vi.fn();
+    Element.prototype.scrollIntoView = scrollIntoView;
+    const view = new TodayPoem(container, {});
+    container.querySelector('[data-action="read"]').click();
+    expect(scrollIntoView).toHaveBeenCalledOnce();
+    expect(scrollIntoView.mock.contexts[0]).toBe(container.querySelector('.today-read'));
+    delete Element.prototype.scrollIntoView;
+    view.destroy();
+  });
+
   it('stills the mark, so the engine behind it is the one thing that moves', () => {
     work.getDivisions.mockResolvedValue({ entries: [hill, anne] });
     const css = readFileSync(join(dirname(fileURLToPath(import.meta.url)), 'today-poem.css'), 'utf8');

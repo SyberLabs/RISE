@@ -1,4 +1,5 @@
-/* Today's poem: one vertical axis, the mandala as the view's one live plate.
+/* Today's poem, Eclipse: the day's engine is the first screen; the title, the
+   mood and Begin sit across its lower edge; the poem rises over it on ink.
    Tokens: design-system.css (--sy-*). Header and alert: room-chrome.css. */
 
 /* The app body is overflow:hidden; the room scrolls inside itself, as Chapel does. */
@@ -9,9 +10,8 @@
   background: var(--sy-bg);
 }
 
-/* The day's engine behind the page (backdrop.js), under a scrim that keeps
-   the middle column on ink: the engine shows at the sides and through the
-   gaps, and no line of text sits on it unshaded. */
+/* The day's engine (backdrop.js), fixed behind the page at full strength. Only
+   its edges fall to ink, so the header and the fold read against it. */
 .today-backdrop {
   position: fixed;
   inset: 0;
@@ -35,11 +35,8 @@
   inset: 0;
   z-index: 1;
   background:
-    linear-gradient(90deg,
-      color-mix(in srgb, var(--sy-bg) 35%, transparent) 0%,
-      color-mix(in srgb, var(--sy-bg) 74%, transparent) 30%,
-      color-mix(in srgb, var(--sy-bg) 74%, transparent) 70%,
-      color-mix(in srgb, var(--sy-bg) 35%, transparent) 100%);
+    linear-gradient(180deg, color-mix(in srgb, var(--sy-bg) 70%, transparent) 0, transparent 120px),
+    radial-gradient(ellipse 75% 70% at 50% 40%, transparent 55%, color-mix(in srgb, var(--sy-bg) 60%, transparent) 85%, var(--sy-bg) 100%);
 }
 
 .today-room > .room-header,
@@ -60,115 +57,78 @@
 
 .today {
   --sy-plate-tick: var(--sy-accent-rise);
-  box-sizing: border-box;
-  max-width: 960px;
-  margin: 0 auto;
-  padding: var(--sy-space-7) clamp(16px, 4vw, 56px) var(--sy-space-9);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: var(--sy-space-6);
-  text-align: center;
   color: var(--sy-text-body);
   font-family: var(--sy-font-sans);
 }
 
-.today-eyebrow {
-  margin: 0;
-}
-
-.today-mark {
-  margin: 0;
-  width: min(100%, 600px);
+/* The first screen: the engine above, the words across its lower edge on a
+   fall to ink, so no line sits bare on the light. */
+.today-hero {
+  box-sizing: border-box;
+  min-height: calc(100dvh - var(--sy-header-height, 64px));
   display: flex;
   flex-direction: column;
+  justify-content: flex-end;
   align-items: center;
   gap: var(--sy-space-4);
+  padding: var(--sy-space-8) clamp(16px, 4vw, 56px) var(--sy-space-8);
+  text-align: center;
+  background: linear-gradient(180deg,
+    transparent 0%,
+    transparent 34%,
+    color-mix(in srgb, var(--sy-bg) 72%, transparent) 58%,
+    color-mix(in srgb, var(--sy-bg) 94%, transparent) 78%,
+    var(--sy-bg) 100%);
 }
 
-/* Still once drawn, like every sigil: the backdrop is the view's one live plate. */
-.today-mandala {
-  display: block;
-  width: 100%;
-  aspect-ratio: 1 / 1;
-  background: radial-gradient(circle at 50% 50%, #9a6bff2e 0, #0048f01f 40%, transparent 70%);
-}
-
-.today-caption {
-  margin: 0;
-  font-family: var(--sy-font-mono);
-  font-size: 12px;
-  line-height: 1.6;
-  color: var(--sy-text-2);
-}
-
-.today-head {
+/* The date on its own dark pill: it is small type, and may fall on the brightest light. */
+.today-dateline {
   display: flex;
-  flex-direction: column;
   align-items: center;
   gap: var(--sy-space-3);
+  padding: var(--sy-space-1) var(--sy-space-4) var(--sy-space-1) var(--sy-space-1);
+  border-radius: var(--sy-radius-full);
+  background: color-mix(in srgb, var(--sy-bg) 72%, transparent);
 }
 
-.today-title {
+/* The day's mark, now a seal: still once drawn, like every sigil. */
+.today-mandala {
+  display: block;
+  width: 40px;
+  height: 40px;
+  flex: none;
+}
+
+.today-eyebrow {
   margin: 0;
-  font-family: var(--sy-font-serif);
-  font-weight: 400;
-  font-size: clamp(48px, 6.4vw, 88px);
-  line-height: 0.95;
-  letter-spacing: -0.02em;
-  color: var(--sy-text);
-}
-
-.today-byline,
-.today-note {
-  margin: 0;
-  font-size: 15px;
-  line-height: 22px;
-  color: var(--sy-text-2);
-}
-
-.today-note {
-  font-size: 14px;
-  line-height: 20px;
-}
-
-.today-plate {
-  box-sizing: border-box;
-  max-width: 100%;
-  padding: var(--sy-space-7) clamp(20px, 5vw, 56px);
-  text-align: left;
-}
-
-.today-poem {
-  display: flex;
-  flex-direction: column;
-  font-family: var(--sy-font-reading);
-  font-size: clamp(18px, 1.6vw, 22px);
-  line-height: 1.6;
   color: var(--sy-text-body);
 }
 
-.today-line {
-  padding-left: 1em;
-  text-indent: -1em;
+/* Display: Instrument Serif. The glow keeps it off the light behind it. */
+.today-title {
+  margin: 0;
+  max-width: 12ch;
+  font-family: var(--sy-font-serif);
+  font-weight: 400;
+  font-size: clamp(64px, 9vw, 136px);
+  line-height: 0.88;
+  letter-spacing: -0.025em;
+  color: var(--sy-text);
+  text-shadow: 0 0 2px var(--sy-bg), 0 0 40px color-mix(in srgb, var(--sy-magenta) 45%, transparent);
+  overflow-wrap: break-word;
 }
 
-.today-gap {
-  height: 0.8em;
+.today-byline {
+  margin: 0;
+  font-size: 18px;
+  line-height: 26px;
+  color: var(--sy-text-body);
 }
 
-.today-skeleton {
-  display: block;
-  width: 22ch;
-  max-width: 100%;
-  height: 1em;
-  margin: 0.3em 0;
-  background: var(--sy-surface-2);
-}
-
-.today-actions {
+.today-mood-line {
   display: flex;
-  flex-direction: column;
+  flex-wrap: wrap;
+  justify-content: center;
   align-items: center;
   gap: var(--sy-space-3);
 }
@@ -182,6 +142,7 @@
   padding: var(--sy-space-1) var(--sy-space-3);
   border: 1px solid var(--sy-line-strong);
   border-radius: var(--sy-radius-full);
+  background: color-mix(in srgb, var(--sy-bg) 55%, transparent);
   font-size: 15px;
   line-height: 20px;
   font-weight: 500;
@@ -207,6 +168,93 @@
 
 .today-status:empty {
   display: none;
+}
+
+.today-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--sy-space-3);
+  margin-top: var(--sy-space-2);
+}
+
+/* The poem rises over the engine on ink. */
+.today-read {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--sy-space-6);
+  padding: var(--sy-space-5) clamp(16px, 4vw, 56px) var(--sy-space-10);
+  background: var(--sy-bg);
+  scroll-margin-top: var(--sy-space-5);
+}
+
+.today-poem {
+  width: 100%;
+  max-width: 620px;
+  display: flex;
+  flex-direction: column;
+  font-family: var(--sy-font-reading);
+  font-size: clamp(19px, 1.7vw, 24px);
+  line-height: 1.62;
+  color: var(--sy-text-body);
+}
+
+.today-line {
+  padding-left: 1em;
+  text-indent: -1em;
+}
+
+.today-gap {
+  height: 0.8em;
+}
+
+.today-skeleton {
+  display: block;
+  width: 22ch;
+  max-width: 100%;
+  height: 1em;
+  margin: 0.3em 0;
+  background: var(--sy-surface-2);
+}
+
+.today-note {
+  margin: 0;
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--sy-text-2);
+  text-align: center;
+}
+
+.today-caption {
+  margin: calc(-1 * var(--sy-space-4)) 0 0;
+  font-family: var(--sy-font-mono);
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--sy-text-3);
+  text-align: center;
+}
+
+@media (max-width: 640px) {
+  .today-hero {
+    gap: var(--sy-space-3);
+    padding-bottom: var(--sy-space-6);
+  }
+
+  .today-title {
+    font-size: clamp(52px, 17vw, 72px);
+  }
+
+  .today-byline {
+    font-size: 15px;
+    line-height: 22px;
+  }
+
+  .today-actions {
+    align-self: stretch;
+    flex-direction: column;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

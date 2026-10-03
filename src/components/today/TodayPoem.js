@@ -10,7 +10,7 @@ import { escapeHtml } from '../../core/sanitize.js';
 import { localDateKey, watchLocalDay } from '../../core/local-day.js';
 import { poemTitle, todayPoem } from '../../core/today-poem.js';
 import { todayDecision } from '../../core/today-reading.js';
-import { roomAlert, roomEyebrow, roomHeader } from '../room-chrome.js';
+import { roomAlert, roomHeader } from '../room-chrome.js';
 import { mountTodayBackdrop } from './backdrop.js';
 import { drawMandala } from './mandala.js';
 import './today-poem.css';
@@ -53,30 +53,38 @@ export class TodayPoem {
       <div class="today-backdrop" aria-hidden="true"></div>
       ${roomHeader({ back: 'Home', backLabel: 'Return to Home' })}
       <main class="today" id="main-content" aria-labelledby="today-title">
-        ${roomEyebrow(`Today's poem, ${escapeHtml(day)}`, 'today-eyebrow')}
-        <figure class="today-mark">
-          <canvas class="today-mandala" aria-hidden="true"></canvas>
-          <figcaption class="today-caption" data-caption>Seed ${escapeHtml(this.pick.seed)}</figcaption>
-        </figure>
-        <header class="today-head">
+        <section class="today-hero">
+          <div class="today-dateline">
+            <canvas class="today-mandala" aria-hidden="true"></canvas>
+            <p class="room-eyebrow today-eyebrow">Today's poem, ${escapeHtml(day)}</p>
+          </div>
           <h1 class="today-title" id="today-title">${escapeHtml(poemTitle(this.pick.label))}</h1>
           <p class="today-byline">${escapeHtml(byline)}</p>
-        </header>
-        <div class="today-plate sy-plate"><div class="today-poem" data-poem aria-busy="true">${SKELETON}</div></div>
-        <div class="today-actions">
-          <p class="today-mood"><span class="today-mood-dot" aria-hidden="true"></span><span class="today-mood-name">${escapeHtml(capital(this.decision.temper))}</span></p>
-          <p class="today-mood-plan">${escapeHtml(capital(summarizeJevPlan(this.decision.config).join(', ')))}</p>
-          <button type="button" class="btn btn-primary" data-begin disabled>Begin this poem</button>
+          <div class="today-mood-line">
+            <p class="today-mood"><span class="today-mood-dot" aria-hidden="true"></span><span class="today-mood-name">${escapeHtml(capital(this.decision.temper))}</span></p>
+            <p class="today-mood-plan">${escapeHtml(capital(summarizeJevPlan(this.decision.config).join(', ')))}</p>
+          </div>
+          <div class="today-actions">
+            <button type="button" class="btn btn-primary" data-begin disabled>Begin this poem</button>
+            <button type="button" class="btn btn-secondary" data-action="read">Read it first</button>
+          </div>
           <p class="today-status" data-begin-status role="status" aria-live="polite"></p>
-          <p class="today-note">A new poem, a new mark and a new mood at midnight.</p>
-        </div>
+        </section>
+        <section class="today-read" id="today-poem" aria-label="The poem">
+          <div class="today-poem" data-poem aria-busy="true">${SKELETON}</div>
+          <p class="today-note">A new poem, a new light and a new mood at midnight.</p>
+          <p class="today-caption" data-caption>Seed ${escapeHtml(this.pick.seed)}</p>
+        </section>
       </main></div>`;
   }
 
   attachEvents() {
     this.container.addEventListener('click', event => {
       if (event.target.closest('[data-action="back"]')) this.onNavigate('portal');
-      else if (event.target.closest('[data-begin]')) void this.begin();
+      else if (event.target.closest('[data-action="read"]')) {
+        const smooth = typeof matchMedia === 'function' && !matchMedia('(prefers-reduced-motion: reduce)').matches;
+        this.container.querySelector('.today-read')?.scrollIntoView({ behavior: smooth ? 'smooth' : 'auto', block: 'start' });
+      } else if (event.target.closest('[data-begin]')) void this.begin();
       else if (event.target.closest('[data-retry]')) void this.load();
     }, { signal: this._events.signal });
   }

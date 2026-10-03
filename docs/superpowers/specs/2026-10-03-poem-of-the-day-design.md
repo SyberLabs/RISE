@@ -24,20 +24,26 @@ minute.
   first screen at 390×844 and 360×640. The card loads after first paint;
   until then, or if it cannot load, a plain *Read today's poem* link stands in.
 * **The Menu:** *Today's poem*, first after Home.
-* **The Today view** (`/today`), on one vertical axis:
-  1. Eyebrow: *Today's poem, Saturday 3 October* (the reader's locale, their
-     local date).
-  2. The mandala: today's mark, folded twelve ways, still once drawn. Under it,
-     in mono: *Seed 2026-10-03 · a −2.048 · b … · 12 folds*.
-  3. The poem's title (`Instrument Serif`), then *Author, from Work*.
-  4. The poem in a plate (double rule, registration ticks in `accent-rise`),
-     lines kept, in Crimson Pro, left-aligned in a centred block.
-  5. **Begin this poem** (the one solid key), then *A new poem, and a new
-     mark, at midnight.*
-* **The frame:** the shared room frame (`roomHeader`, `roomEyebrow`,
-  `roomAlert` from `src/components/room-chrome.js`), so the header and its
-  back control to Home match Chapel and the other quiet rooms. The app body
-  does not scroll, so the room scrolls inside itself, as Chapel does.
+* **The Today view** (`/today`), *Eclipse* (round 2, direction D, built
+  2026-10-03; it replaced the centred stack of round 1). The day's engine is
+  the first screen:
+  1. **The first screen** (`.today-hero`, the height of the room): the engine
+     at full strength above, falling to ink toward the bottom, where the
+     words sit. A dark pill holds the day's mark as a 40 px seal and
+     *Today's poem, Saturday 3 October* (the reader's locale and local date).
+     Then the title (`Instrument Serif`, up to 136 px, with a glow that keeps
+     it off the light), *Author, from Work*, the mood pill and its plan
+     words, **Begin this poem** (the one solid key) and *Read it first*,
+     which scrolls to the poem.
+  2. **The poem** (`.today-read`, `#today-poem`) rises over the engine on
+     ink: lines kept, in Crimson Pro, left-aligned in a centred 620 px
+     column, then *A new poem, a new light and a new mood at midnight.* and
+     the mark's seed line in mono.
+  Begin and the first screen fit 1440×900, 390×844 and 360×640.
+* **The frame:** the shared room frame (`roomHeader`, `roomAlert` from
+  `src/components/room-chrome.js`), so the header and its back control to
+  Home match Chapel and the other quiet rooms. The app body does not scroll,
+  so the room scrolls inside itself, as Chapel does.
 
 ## Which poem
 
@@ -77,9 +83,9 @@ minute.
 ## The day's engine behind the page
 
 The Today view previews the look the poem will be read in (owner decision,
-2026-10-03): the day's own engine runs behind the page, under a scrim that
-keeps the middle column mostly ink and lets the engine show at the sides and
-between the parts. `mountTodayBackdrop(host, decision)`
+2026-10-03): the day's own engine runs behind the page, fixed, at full
+strength on the first screen (only its edges fall to ink), and the poem
+scrolls up over it on ink. `mountTodayBackdrop(host, decision)`
 (`src/components/today/backdrop.js`) chooses it from the day's roll:
 
 | Mood | Engine behind the page |
