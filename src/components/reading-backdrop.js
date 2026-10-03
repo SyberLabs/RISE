@@ -12,6 +12,8 @@
  * Resolves to { pause, resume, destroy }, or null when the reading has no
  * engine this knows (the page then stays on ink).
  */
+import './reading-backdrop.css';
+
 const FRACTAL_DWELL_MS = 18_000;
 
 const reducedMotion = () => typeof matchMedia === 'function'
@@ -38,7 +40,7 @@ export async function mountReadingBackdrop(host, decision) {
   if (engine === 'fractal') {
     const { FractalFlame } = await import('../visuals/fractal.js');
     const canvas = document.createElement('canvas');
-    canvas.className = 'today-backdrop-flame';
+    canvas.className = 'reading-backdrop-flame';
     canvas.setAttribute('aria-hidden', 'true');
     host.append(canvas);
     const flame = new FractalFlame(canvas);

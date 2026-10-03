@@ -1,17 +1,17 @@
 /**
  * A reading already under way, silent: the text arrives one unit at a time
- * (word, phrase, sentence or paragraph), cut by the Chamber's own chunker so
- * Home shows the units the reading will have. Each unit holds for its words at
- * the reading's pace, never under 300 ms; after the last the stream rests and
- * reads again from the start. It waits while the tab is hidden. Under reduced
- * motion it shows the opening still.
+ * (word, phrase, sentence or paragraph), compiled by the session compiler, so
+ * Home shows the units the reading will have, each held as long as the reading
+ * would hold it (its words, their length and punctuation, the pace curve). A
+ * silence in the reading, such as a stanza break, lengthens the unit before it.
+ * After the last unit the stream rests and reads again from the start. It
+ * waits while the tab is hidden. Under reduced motion it shows the opening still.
  *
  * Decorative: the host is aria-hidden, and Home gives the opening as real text.
  */
-import { chunkText, countWords } from '../core/chunker.js';
+import { compileSession } from '../core/session-compiler.js';
 import './reading-stream.css';
 
-const MIN_UNIT_MS = 300;
 const REST_MS = 2400;
 const STILL_CHARS = 90;
 
@@ -34,17 +34,21 @@ export class ReadingStream {
     };
   }
 
-  /** Start (or restart) showing `text`. */
-  play(text, { chunkMode, wpm }) {
+  /**
+   * Start (or restart) showing `text`. `curve` is the reading's pace curve
+   * (flat when omitted); `verse` reads a verse division one line at a time.
+   */
+  play(text, { chunkMode, wpm, curve, verse }) {
     this.stop();
-    this.units = chunkText(text, { mode: chunkMode, wpm })
-      .map(atom => atom.content)
-      .filter(Boolean);
-    this.wpm = wpm;
+    this.units = [];
+    for (const atom of compileSession({ text, chunkMode, wpm, curve, verseLines: verse === true }).atoms) {
+      if (atom.content) this.units.push({ text: atom.content, ms: atom.duration });
+      else if (this.units.length) this.units.at(-1).ms += atom.duration;
+    }
     this.host.dataset.chunkMode = chunkMode;
     if (reducedMotion()) {
-      let opening = this.units[0] || '';
-      for (const unit of this.units.slice(1)) {
+      let opening = this.units[0].text;
+      for (const { text: unit } of this.units.slice(1)) {
         if (opening.length + 1 + unit.length > STILL_CHARS) break;
         opening += ` ${unit}`;
       }
@@ -52,7 +56,6 @@ export class ReadingStream {
       this.onProgress(0);
       return;
     }
-    if (!this.units.length) return;
     this.running = true;
     document.addEventListener('visibilitychange', this.onVisibility);
     this.step(0);
@@ -74,7 +77,7 @@ export class ReadingStream {
   step(index) {
     this.index = index;
     if (index < this.units.length) {
-      this.show(this.units[index - 1] || '', this.units[index]);
+      this.show(this.units[index - 1]?.text || '', this.units[index].text);
       this.onProgress(index / this.units.length);
     } else {
       this.onProgress(1);
@@ -84,8 +87,7 @@ export class ReadingStream {
 
   schedule() {
     if (!this.running || this.timer || document.hidden) return;
-    const unit = this.units[this.index];
-    const ms = unit === undefined ? REST_MS : Math.max(MIN_UNIT_MS, countWords(unit) * 60_000 / this.wpm);
+    const ms = this.units[this.index]?.ms ?? REST_MS;
     this.timer = setTimeout(() => {
       this.timer = 0;
       this.step((this.index + 1) % (this.units.length + 1));

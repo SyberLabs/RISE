@@ -1,3 +1,6 @@
+import { readFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const made = vi.hoisted(() => ({ attractor: [], plates: [], flames: [] }));
@@ -81,6 +84,7 @@ describe('the reading backdrop', () => {
     }));
     const [flame] = made.flames;
     expect(host.contains(flame.canvas)).toBe(true);
+    expect(flame.canvas.className).toBe('reading-backdrop-flame');
     expect(flame.setColorTheme).toHaveBeenCalledWith({ background: '#08090F', text: '#F4EEE4', accent: '#C8AE83' });
     expect(flame.generate).toHaveBeenCalledTimes(1);
     await vi.advanceTimersByTimeAsync(20_000);
@@ -106,5 +110,21 @@ describe('the reading backdrop', () => {
   it('draws nothing for a reading with no engine it knows', async () => {
     expect(await mountReadingBackdrop(host, decision({ visualMode: 'off' }))).toBeNull();
     expect(host.children).toHaveLength(0);
+  });
+});
+
+describe('the reading backdrop\'s own stylesheet', () => {
+  const here = dirname(fileURLToPath(import.meta.url));
+  const css = name => readFileSync(join(here, name), 'utf8');
+
+  it('drifts the fractal slowly, and holds it still under reduced motion', () => {
+    const own = css('reading-backdrop.css');
+    expect(own).toMatch(/\.reading-backdrop-flame\s*\{[^}]*animation:\s*reading-backdrop-drift 90s ease-in-out infinite alternate/u);
+    expect(own).toMatch(/@media \(prefers-reduced-motion: reduce\)\s*\{\s*\.reading-backdrop-flame\s*\{\s*animation:\s*none/u);
+    expect(readFileSync(join(here, 'reading-backdrop.js'), 'utf8')).toContain("import './reading-backdrop.css';");
+  });
+
+  it('is the only place the drift is written, so Today and Home cannot drift apart', () => {
+    expect(css('today/today-poem.css')).not.toMatch(/flame|drift/u);
   });
 });

@@ -71,29 +71,66 @@ describe('the reading stream', () => {
   it('shows the previous unit dim above the current one', () => {
     stream.play(POEM, { chunkMode: 'phrase', wpm: 120 });
     expect(shown()).toEqual(['', 'The owners of the mine.']);
-    vi.advanceTimersByTime(2500);
+    vi.advanceTimersByTime(2750);
     expect(shown()).toEqual(['The owners of the mine.', 'I pulled the wires with judge and jury,']);
   });
 
-  it('holds each unit for its words at the pace, never under 300 ms', () => {
-    // 120 wpm is 500 ms a word: five words hold 2.5 s.
+  // The reading's own rhythm, as the session compiler paces it. At 120 wpm a
+  // word is 500 ms: "The owners of the mine." is five words and a full stop's
+  // breath (2750 ms); the line before the stanza break is 4100 ms and holds
+  // through the break's 1000 ms of silence; the last line is 2250 ms.
+  it('holds each unit as long as the reading itself would', () => {
     stream.play(POEM, { chunkMode: 'phrase', wpm: 120 });
-    vi.advanceTimersByTime(2499);
+    vi.advanceTimersByTime(2749);
     expect(shown()[1]).toBe('The owners of the mine.');
     vi.advanceTimersByTime(1);
     expect(shown()[1]).toBe('I pulled the wires with judge and jury,');
+    vi.advanceTimersByTime(5099);
+    expect(shown()[1]).toBe('I pulled the wires with judge and jury,');
+    vi.advanceTimersByTime(1);
+    expect(shown()[1]).toBe('And the upper courts.');
+  });
 
-    // 400 wpm is 150 ms a word, which the floor lifts to 300.
+  it('weighs a word by its length and its punctuation, as the Chamber does', () => {
+    // 400 wpm: "The" 128 ms, "owners" 143 ms, "mine." 218 ms.
     stream.play(POEM, { chunkMode: 'word', wpm: 400 });
-    vi.advanceTimersByTime(299);
+    vi.advanceTimersByTime(127);
     expect(shown()[1]).toBe('The');
     vi.advanceTimersByTime(1);
     expect(shown()[1]).toBe('owners');
+    vi.advanceTimersByTime(143 + 128 + 128);
+    expect(shown()[1]).toBe('mine.');
+    vi.advanceTimersByTime(217);
+    expect(shown()[1]).toBe('mine.');
+    vi.advanceTimersByTime(1);
+    expect(shown()[1]).toBe('I');
+  });
+
+  it('follows the reading\'s pace curve, flat when none is given', () => {
+    // Climax holds the opening longer than flat does: 3576 ms against 2750.
+    stream.play(POEM, { chunkMode: 'phrase', wpm: 120, curve: 'climax' });
+    vi.advanceTimersByTime(3575);
+    expect(shown()[1]).toBe('The owners of the mine.');
+    vi.advanceTimersByTime(1);
+    expect(shown()[1]).toBe('I pulled the wires with judge and jury,');
+  });
+
+  it('reads a verse division one line at a time', () => {
+    const lines = 'I am the one\nwho came home\nto the house\nof my father.';
+    expect(unitsOf(lines, 'phrase')).toEqual(['I am the one who came home', 'to the house of my father.']);
+    progress.length = 0;
+    stream.play(lines, { chunkMode: 'phrase', wpm: 6000, verse: true });
+    const units = [shown()[1]];
+    while (!progress.includes(1)) {
+      vi.advanceTimersToNextTimer();
+      if (!progress.includes(1)) units.push(shown()[1]);
+    }
+    expect(units).toEqual(['I am the one', 'who came home', 'to the house', 'of my father.']);
   });
 
   it('rests 2.4 s after the last unit, then reads again from the start, reporting progress', () => {
     stream.play(POEM, { chunkMode: 'phrase', wpm: 120 });
-    vi.advanceTimersByTime(2500 + 4000 + 2000);
+    vi.advanceTimersByTime(2750 + 5100 + 2250);
     expect(shown()[1]).toBe('And the upper courts.');
     expect(progress).toEqual([0, 1 / 3, 2 / 3, 1]);
     vi.advanceTimersByTime(2399);
@@ -120,7 +157,7 @@ describe('the reading stream', () => {
     vi.advanceTimersByTime(60_000);
     expect(shown()[1]).toBe('The owners of the mine.');
     setHidden(false);
-    vi.advanceTimersByTime(2500);
+    vi.advanceTimersByTime(2750);
     expect(shown()[1]).toBe('I pulled the wires with judge and jury,');
   });
 
@@ -133,7 +170,7 @@ describe('the reading stream', () => {
 
   it('stop keeps what is shown and leaves no timers, even when the tab comes back', () => {
     stream.play(POEM, { chunkMode: 'phrase', wpm: 120 });
-    vi.advanceTimersByTime(2500);
+    vi.advanceTimersByTime(2750);
     stream.stop();
     expect(vi.getTimerCount()).toBe(0);
     setHidden(true);
@@ -152,7 +189,7 @@ describe('the reading stream', () => {
 
   it('play again restarts with the new text and its mode', () => {
     stream.play(POEM, { chunkMode: 'phrase', wpm: 120 });
-    vi.advanceTimersByTime(2500);
+    vi.advanceTimersByTime(2750);
     stream.play('latest news', { chunkMode: 'word', wpm: 300 });
     expect(shown()).toEqual(['', 'latest']);
     expect(host.dataset.chunkMode).toBe('word');
