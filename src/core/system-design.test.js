@@ -69,6 +69,7 @@ describe('the system design document describes this tree', () => {
         'room-chrome.js',        // SyberLabs header, icons and Alert shared by the quieter rooms
         'atlas.js',              // SyberLabs atmosphere and sigil, shared by Portal and BetaGate
         'reading-backdrop.js',   // a reading's engine behind the page, shared by Today and Home
+        'reading-stream.js',     // the silent reading under way that Home opens on
         'chamber-undercurrent.js' // the panel a dive opens, inside the Chamber
     ]);
 
