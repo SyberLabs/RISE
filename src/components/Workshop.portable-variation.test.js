@@ -193,6 +193,35 @@ it('locks a variation editor until its selected parent is loaded', async () => {
   workshop.destroy();
 });
 
+it('keeps the pace slider in place when activation refreshes an unchanged inspector', async () => {
+  const parent = await importedParent();
+  const { workshop, container } = makeWorkshop();
+  workshop.update({ varyBlueprintId: parent.id });
+  await vi.waitFor(() => expect(container.querySelector('#workshop-sequence-status').textContent)
+    .toContain('Variation of an imported score'));
+  // The router activates Workshop after its fade; activation looks up the Vault again.
+  const activationLookup = deferred();
+  vi.spyOn(workshop, 'loadSavedBlueprints').mockReturnValueOnce(activationLookup.promise);
+  workshop.activate();
+  container.querySelector('[data-action="focus-reading-inspector"]').click();
+  const pace = container.querySelector('#wpm-slider');
+
+  // The lookup lands while the reader holds the slider. activate() subscribed
+  // first, so its refresh has run once this await returns.
+  activationLookup.resolve(MemoryCore.getWorkshopBlueprints());
+  await activationLookup.promise;
+  expect(container.querySelector('#wpm-slider')).toBe(pace);
+
+  pace.value = '240';
+  pace.dispatchEvent(new Event('input', { bubbles: true }));
+  const saved = await workshop.saveSequenceToVault();
+  const child = MemoryCore.getWorkshopBlueprints().map(item => item.project)
+    .find(item => item.id === saved.id);
+  const exported = await inspectPortableSequence(await exportPortableSequence(child));
+  expect(exported.project.defaults.reading.wpm).toBe(240);
+  workshop.destroy();
+});
+
 it('clears the loading state when a saved sequence lookup fails', async () => {
   const pendingLookup = deferred();
   const { workshop, container } = makeWorkshop();

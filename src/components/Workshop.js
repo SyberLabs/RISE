@@ -995,7 +995,12 @@ export class Workshop {
     if (!host) return false;
     this.withFocusPreserved(() => {
       host.dataset.inspectorKind = this.inspectorContext.kind;
-      host.innerHTML = this.renderContextualInspector();
+      // Late refreshes (a Vault lookup, a museum preview) must not swap out
+      // a control the reader is holding when nothing it shows has changed.
+      const html = this.renderContextualInspector();
+      const next = document.createElement('template');
+      next.innerHTML = html;
+      if (next.innerHTML !== host.innerHTML) host.innerHTML = html;
       const label = this.container.querySelector('.studio-inspector > .studio-pane-title strong');
       if (label) label.textContent = inspectorContextLabel(this.inspectorContext);
     });
