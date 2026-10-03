@@ -9,7 +9,7 @@ import {
   compileJevVisualProgram
 } from '../core/jev-sequence.js';
 import { resolveJevChamberConfig } from '../core/jev-config.js';
-import { resolveJevReading, selectJevDivision } from './jev-reading.js';
+import { openingLines, resolveJevReading, selectJevDivision } from './jev-reading.js';
 
 vi.mock('../content/library.js', () => ({ getTextById: vi.fn() }));
 
@@ -210,5 +210,58 @@ describe('Jev reading handoff', () => {
     expect(input.text).toBe('The longest existing passage.');
     expect(input.soundscape).toBe('scary');
     expect(input.continuation.entryId).toBe('2');
+  });
+});
+
+describe('the opening lines of a reading', () => {
+  function opening(content, verse = false) {
+    vi.mocked(getTextById).mockReturnValue({
+      ...getTextById(),
+      getDivisions: async () => ({ divided: true, noun: 'Book', entries: [
+        { id: 0, label: 'Book I', content, words: content.split(/\s+/u).length, verse }
+      ] })
+    });
+  }
+
+  it('keeps verse lines and drops leading blank lines', async () => {
+    opening('\n  \nSing, goddess, the wrath\nof Achilles, son of Peleus,\nthat brought the Greeks their woes.', true);
+    expect(await openingLines(decision())).toBe(
+      'Sing, goddess, the wrath\nof Achilles, son of Peleus,\nthat brought the Greeks their woes.');
+  });
+
+  it('cuts at the last line break or sentence end that fits, with no ellipsis', async () => {
+    opening('Line one,\nline two,\nline three.', true);
+    expect(await openingLines(decision(), { maxChars: 15 })).toBe('Line one,');
+    opening('One two. Three four five six.');
+    expect(await openingLines(decision(), { maxChars: 20 })).toBe('One two.');
+    opening('“Go home.” She went away. And then');
+    expect(await openingLines(decision(), { maxChars: 14 })).toBe('“Go home.”');
+    opening('It was so. Then Mr. Casaubon and Mrs. Cadwallader came in');
+    expect(await openingLines(decision(), { maxChars: 50 })).toBe('It was so.');
+    opening('Short and done.');
+    expect(await openingLines(decision(), { maxChars: 15 })).toBe('Short and done.');
+  });
+
+  it('cuts between words and ends with an ellipsis when no sentence or line ends in reach', async () => {
+    opening('alpha beta gamma delta');
+    expect(await openingLines(decision(), { maxChars: 12 })).toBe('alpha beta…');
+    opening('word '.repeat(200));
+    const preview = await openingLines(decision());
+    expect(preview.length).toBeLessThanOrEqual(240);
+    expect(preview).toMatch(/ word…$/u);
+  });
+
+  it('opens the same division the reading opens, for every section', async () => {
+    for (const section of ['first', 'middle', 'last', 'shortest', 'longest']) {
+      expect(await openingLines(decision({ section })))
+        .toBe((await resolveJevReading(decision({ section }))).text);
+    }
+  });
+
+  it('refuses what the reading refuses, in the same words', async () => {
+    await expect(openingLines({ ...decision(), schemaVersion: 1 }))
+      .rejects.toThrow('invalid reading plan');
+    await expect(openingLines({ ...decision(), sourceRevision: 'other' }))
+      .rejects.toThrow('not available');
   });
 });

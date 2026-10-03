@@ -43,7 +43,7 @@ test('cold sample deep link admits a preset Gallery, then returns to its thresho
   await page.goto('/jev-scene-demo');
   await expect(page.locator('#jev-scene-demo-start')).toBeVisible();
   await expect(page.locator('#portal-jev-demo')).toContainText('No live RISE request');
-  await expect(page.locator('#oracle-form')).toHaveCount(0);
+  await expect(page.locator('#home-form')).toHaveCount(0);
   await page.locator('#jev-scene-demo-start').click();
   await expect(page.locator('#chamber-display')).toBeVisible({ timeout: 20_000 });
   await expect(page.locator('#jev-next-scene')).toBeEnabled({ timeout: 20_000 });
@@ -180,12 +180,12 @@ test('spoken Jev request opens a reading whose look can be changed live', async 
   await page.goto('/');
   await connectTestOpenRouter(page);
   await openHomeAsk(page);
-  await page.locator('#oracle-form [data-jev-dictate]').click();
-  await expect(page.locator('#oracle-intent'))
+  await page.locator('#home-form [data-jev-dictate]').click();
+  await expect(page.locator('#home-intent'))
     .toHaveValue('A reflective reading with visual scenes');
-  await page.locator('[data-oracle="ask"]').click();
-  // Nothing plays on arrival; the reading starts only from Enter.
-  await page.locator('[data-oracle="enter"]').click();
+  await page.locator('[data-home="ask"]').click();
+  // Nothing plays on arrival; the reading starts only from Start reading.
+  await page.locator('[data-home="enter"]').click();
   expect(requestBody.state.reader_intent).toBe('A reflective reading with visual scenes');
   expect(requestBody.model).toBe('typesafe/jev-1.13');
   expect(requestBody.questions.book.type).toBe('choice');

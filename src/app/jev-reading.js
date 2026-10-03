@@ -114,9 +114,9 @@ export function selectJevDivision(divisions, section) {
   });
 }
 
-/** Resolve an exact released edition into the existing Chamber session input. */
-export async function resolveJevReading(decision) {
-  const { plan, resolved, visualProgram, audioProgram } = validateJevRecommendation(decision);
+/** Admit a decision, then find the exact division of the exact released edition it names. */
+async function openJevDivision(decision) {
+  const admitted = validateJevRecommendation(decision);
   const released = releaseInventory[decision.workId] || modernManifest[decision.workId];
   const work = getTextById(decision.workId);
   const admittedSource = released?.editionId?.startsWith('standard-ebooks:')
@@ -135,7 +135,13 @@ export async function resolveJevReading(decision) {
   }
 
   const divisions = await work.getDivisions();
-  const { entry, index } = selectJevDivision(divisions, plan.section);
+  return { ...admitted, work, divisions, ...selectJevDivision(divisions, admitted.plan.section) };
+}
+
+/** Resolve an exact released edition into the existing Chamber session input. */
+export async function resolveJevReading(decision) {
+  const { plan, resolved, visualProgram, audioProgram, work, divisions, entry, index } =
+    await openJevDivision(decision);
   const label = entry.title ? `${entry.label} — ${entry.title}` : entry.label;
   const input = {
     text: entry.content,
@@ -163,4 +169,26 @@ export async function resolveJevReading(decision) {
     } } : {})
   };
   return input;
+}
+
+/**
+ * The opening of the passage a reading opens, for a preview: the same
+ * division resolveJevReading opens, cut at the last line break or sentence
+ * end that fits in maxChars. Verse keeps its line breaks. When nothing ends
+ * in reach, it cuts between words and ends with an ellipsis.
+ */
+export async function openingLines(decision, { maxChars = 240 } = {}) {
+  const { entry } = await openJevDivision(decision);
+  const text = entry.content.replace(/^(?:[^\S\n]*\n)+/u, '').trimEnd();
+  if (text.length <= maxChars) return text;
+  const head = text.slice(0, maxChars + 1);
+  let end = 0;
+  // A title such as "Mr." does not end a sentence.
+  for (const match of head.matchAll(/\n|(?<!\b(?:Mr|Mrs|Ms|Dr|St))[.!?][’”"')\]]*(?=\s)/gu)) {
+    const stop = match[0] === '\n' ? match.index : match.index + match[0].length;
+    if (stop <= maxChars) end = stop;
+  }
+  if (end) return text.slice(0, end).trimEnd();
+  const space = head.search(/\s\S*$/u);
+  return `${text.slice(0, space > 0 ? space : maxChars - 1).trimEnd()}…`;
 }

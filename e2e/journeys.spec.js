@@ -9,9 +9,9 @@ test('the Portal names one act, and the Vault does not offer Journeys', async ({
   await page.goto('/');
   await expect(page.locator('[data-nav="chamber"]')).toBeAttached({ timeout: 20000 });
 
-  // Home has one visible key (ROLL; Enter appears only once a reading has
-  // risen). Journeys stay out of Home and the Vault.
-  await expect(page.locator('.portal .oracle-key:visible')).toHaveCount(1);
+  // Home has one solid key (Roll a reading; Start reading appears only once
+  // there is a reading). Journeys stay out of Home and the Vault.
+  await expect(page.locator('.portal .home .btn-primary:visible')).toHaveCount(1);
   await expect(page.locator('.portal [data-nav="journeys"]')).toHaveCount(0);
 
   await openHomeNav(page, 'vault');

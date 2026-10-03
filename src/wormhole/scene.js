@@ -1,6 +1,6 @@
 /**
- * The wormhole, in depth: a throat drawn by one fragment shader (the way the
- * Oracle's ball is), and the rocket as real geometry lit against it.
+ * The wormhole, in depth: a throat drawn by one fragment shader, and the rocket
+ * as real geometry lit against it.
  *
  * The throat is a tunnel in true perspective: depth is the inverse of the
  * distance from the gate, so rings, filaments and dust all converge on it and

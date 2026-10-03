@@ -1,9 +1,10 @@
 /* ═══════════════════════════════════════════════════════════
-   RISE Home (Portal) — the Oracle.
-   One object and one key. The object and its keycaps live in
-   oracle/oracle.css; this file is the page around them: the header and
-   its Menu sheet, the fixed demo pages, Continue, and the legal footer.
-   Tokens and the shared .sl-header live in design-system.css.
+   RISE Home (Portal) — the night library.
+   A sky of works under the header with a text panel over it (on a phone,
+   a band of sky above the panel). The sky draws itself
+   (night-library/); this file is the panel and the page around it: the
+   header and its Menu sheet, the fixed demo pages, Continue, and the
+   footer. Tokens and the shared .sl-header live in design-system.css.
    ═══════════════════════════════════════════════════════════ */
 
 .portal {
@@ -42,6 +43,7 @@
 .portal-menu-toggle,
 .portal-link,
 .portal-footer-link,
+.home-link,
 .portal-continue {
   font-family: inherit;
   background: transparent;
@@ -595,120 +597,314 @@ a.portal-nav-link {
   border-radius: var(--sy-radius-sm);
 }
 
-/* ─── The Oracle page ─── */
+/* ─── Home: the night library ─── */
 
-.portal-oracle .portal-main {
+.portal-home .portal-main {
+  display: flex;
+  max-width: none;
+  padding: 0;
+}
+
+.home {
+  flex: 1;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  justify-content: center;
+  min-width: 0;
+  overflow-x: clip;
+}
+
+/* The sky host: NightSky draws inside it. On a phone, a band above the panel. */
+.home-sky {
+  position: relative;
+  order: -1;
+  flex: none;
+  height: max(220px, 34svh);
+  overflow: hidden;
+}
+
+.home-panel {
+  display: flex;
+  flex-direction: column;
   gap: var(--sy-space-5);
-  max-width: 980px;
+  min-width: 0;
   padding: var(--sy-space-5) var(--sy-space-4) var(--sy-space-6);
+  background: var(--sy-bg);
 }
 
-.oracle-home {
+.home-view {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  width: 100%;
+  gap: var(--sy-space-4);
 }
 
-.oracle-title {
+/* Display: Instrument Serif, never below 32px. */
+.home-title {
   margin: 0;
   font-family: var(--sy-font-serif);
   font-weight: 400;
-  font-size: clamp(32px, 4.4vw, 52px);
+  font-size: clamp(40px, 5.4vw, 76px);
+  line-height: 0.95;
+  letter-spacing: -0.02em;
+  color: var(--sy-text);
+  overflow-wrap: break-word;
+}
+
+.home-title-result {
+  font-size: clamp(40px, 5vw, 72px);
+}
+
+.home-title-ask {
+  font-size: clamp(36px, 3.6vw, 52px);
   line-height: 1.05;
-  letter-spacing: -0.01em;
-  text-align: center;
+}
+
+.home-lede {
+  margin: 0;
+  max-width: 34ch;
+  font-size: clamp(17px, 1.4vw, 20px);
+  line-height: 1.5;
+  color: var(--sy-text-body);
+}
+
+.home-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sy-space-3);
+}
+
+/* The mood, as a pill with the spectrum's one dot. */
+.home-mood {
+  align-self: flex-start;
+  margin: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sy-space-2);
+  padding: var(--sy-space-1) var(--sy-space-3);
+  border: 1px solid var(--sy-line-strong);
+  border-radius: var(--sy-radius-full);
+  font-size: 15px;
+  line-height: 20px;
+  font-weight: 500;
   color: var(--sy-text);
 }
 
-.oracle {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  width: 100%;
+.home-mood-dot {
+  width: 8px;
+  height: 8px;
+  flex: none;
+  border-radius: var(--sy-radius-full);
+  background: var(--sy-spectrum);
 }
 
-/* The object takes what the page leaves it: header, title, keys and
-   footer stay on screen on a phone without scrolling. */
-.oracle-stage {
-  height: clamp(300px, calc(100svh - 400px), 700px);
-  /* No taller than the sphere needs at this width (orb.js caps its fit at
-     1.2, reached at height = 1.07 × width). */
-  max-height: calc(min(100vw - 32px, 980px) * 1.07);
-  max-width: 980px;
-}
-
-@media (min-width: 641px) {
-  .oracle-stage {
-    height: clamp(300px, calc(100svh - 480px), 620px);
-  }
-}
-
-.oracle-help,
-.oracle-note,
-.oracle-status {
-  max-width: 34rem;
-  margin: var(--sy-space-4) 0 0;
-  font-size: 14px;
-  line-height: 20px;
-  text-align: center;
+.home-byline {
+  margin: calc(-1 * var(--sy-space-2)) 0 0;
+  font-size: 18px;
+  line-height: 26px;
   color: var(--sy-text-2);
 }
 
-.oracle-help {
-  font-size: 13px;
-  color: var(--sy-text-3);
+/* Three parts, each with its own Redraw, between hairline rules. */
+.home-parts {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid var(--sy-line);
 }
 
-.oracle-note {
+.home-part {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--sy-space-3);
+  padding: var(--sy-space-3) 0;
+  border-bottom: 1px solid var(--sy-line);
+}
+
+.home-part-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.home-part-label {
+  margin: 0 0 var(--sy-space-1);
+  font-size: 13px;
+  line-height: 18px;
+  font-weight: 500;
+  color: var(--sy-text-2);
+}
+
+.home-part-value {
+  margin: 0;
+  font-size: 15px;
+  line-height: 22px;
+  color: var(--sy-text-body);
+  overflow-wrap: anywhere;
+}
+
+.home-part-name {
+  display: block;
+  font-weight: 500;
+  color: var(--sy-text);
+}
+
+.home-redraw {
+  flex: none;
+  padding: 0 var(--sy-space-3) 0 var(--sy-space-2);
+}
+
+.home-lines {
+  margin: var(--sy-space-1) 0 0;
+  font-family: var(--sy-font-reading);
+  font-style: italic;
+  font-size: 19px;
+  line-height: 1.45;
+  color: var(--sy-text);
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+}
+
+.home-passage-loading {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sy-space-2);
+  margin-top: var(--sy-space-2);
+}
+
+.home-passage-loading span {
+  height: 14px;
+  border-radius: var(--sy-radius-sm);
+  background: var(--sy-surface-2);
+  animation: home-pulse 1.4s var(--sy-ease) infinite;
+}
+
+.home-passage-loading span:nth-child(2) { width: 85%; }
+.home-passage-loading span:nth-child(3) { width: 60%; }
+
+@keyframes home-pulse {
+  50% { opacity: 0.45; }
+}
+
+.home-note {
+  margin: 0;
   padding: var(--sy-space-3) var(--sy-space-4);
   border: 1px solid var(--sy-line-strong);
   border-radius: var(--sy-radius);
-  color: var(--sy-text-body, var(--sy-text));
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--sy-text-body);
 }
 
-.oracle-help[hidden],
-.oracle-note[hidden] {
-  display: none;
+.home-link {
+  align-self: flex-start;
+  min-height: 44px;
+  font-size: 15px;
+  line-height: 20px;
+  font-weight: 500;
+  color: var(--sy-text-2);
+  text-decoration: underline;
+  text-decoration-color: var(--sy-line-strong);
+  text-underline-offset: 5px;
+  transition: color var(--sy-dur-hover) var(--sy-ease);
 }
 
-.oracle-status {
-  min-height: 20px;
-  font-family: var(--sy-font-mono);
+.home-link:hover {
+  color: var(--sy-text);
+}
+
+.home-link:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.home-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sy-space-2);
+}
+
+.home-intent {
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 96px;
+  resize: vertical;
+}
+
+.home-help {
+  margin: 0;
   font-size: 13px;
+  line-height: 20px;
+  color: var(--sy-text-2);
 }
 
-.oracle-status [data-jev-dictation-status]:not(:empty)::before {
+.home-panel .portal-ai-about {
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--sy-text-2);
+}
+
+.home-panel .portal-ai-about .home-help {
+  margin-top: var(--sy-space-2);
+}
+
+.home-status {
+  margin: 0;
+  min-height: 20px;
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--sy-text-2);
+}
+
+.home-status [data-jev-dictation-status]:not(:empty)::before {
   content: " ";
 }
 
-.oracle-alert {
-  width: 100%;
-  max-width: 34rem;
+.home-alert {
+  margin-top: 0;
 }
 
-.portal-oracle .portal-continue {
-  max-width: 34rem;
+.portal-home .portal-continue {
   padding: var(--sy-space-3) var(--sy-space-2);
 }
 
-.portal-oracle .continue-title {
-  font-size: 22px;
-  line-height: 28px;
+.portal-home .portal-footer {
+  justify-content: space-between;
 }
 
-.portal-oracle .portal-footer {
-  justify-content: center;
-  border-top: 0;
-  padding: var(--sy-space-2) 0 var(--sy-space-4);
-}
+/* A desk: the sky fills the page under the header, and the panel sits on
+   the left over an ink scrim that fades out before the stars begin. */
+@media (min-width: 900px) {
+  .home {
+    position: relative;
+    isolation: isolate;
+    flex-direction: row;
+    align-items: center;
+  }
 
-.portal-oracle .portal-legal {
-  margin-left: 0;
+  .home-sky {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    height: auto;
+  }
+
+  .home::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    pointer-events: none;
+    background: linear-gradient(90deg, color-mix(in srgb, var(--sy-bg) 94%, transparent) 0%, color-mix(in srgb, var(--sy-bg) 82%, transparent) 30%, transparent 46%);
+  }
+
+  .home-panel {
+    position: relative;
+    z-index: 2;
+    box-sizing: border-box;
+    width: min(540px, 100%);
+    padding: var(--sy-space-7) clamp(16px, 4vw, 56px);
+    background: transparent;
+  }
 }
 
 @keyframes portal-enter {
@@ -738,7 +934,8 @@ a.portal-nav-link {
 
 @media (prefers-reduced-motion: reduce) {
   .portal-alert,
-  .portal-nav {
+  .portal-nav,
+  .home-passage-loading span {
     animation: none;
   }
 
@@ -750,7 +947,7 @@ a.portal-nav-link {
 
 /* The reader's own AI connection. Quiet: reading needs none of it. */
 .portal-ai {
-  margin-top: var(--sy-space-3, 12px);
+  margin: 0;
   font-size: 0.875rem;
   line-height: 1.5;
   color: var(--sy-text-2);
@@ -764,10 +961,6 @@ a.portal-nav-link {
   font-size: inherit;
   line-height: inherit;
   text-underline-offset: 3px;
-}
-
-.portal-ai-hint {
-  opacity: 0.75;
 }
 
 .portal-ai-about summary {
