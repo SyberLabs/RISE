@@ -1,16 +1,16 @@
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
-import { MemoryCore } from '../core/memory.js';
-import { resolveLibrarySourceIds } from '../core/scriptorium-resolve.js';
-import { validateWorkshopProject, WORKSHOP_PROJECT_SCHEMA } from '../core/workshop-project.js';
-import { exportPortableSequence, inspectPortableSequence } from '../core/portable-sequence.js';
-import quietExample from '../content/portable-examples/quiet.json' with { type: 'json' };
+import { MemoryCore } from '../../core/memory.js';
+import { resolveLibrarySourceIds } from '../../core/scriptorium-resolve.js';
+import { validateWorkshopProject, WORKSHOP_PROJECT_SCHEMA } from '../../core/workshop-project.js';
+import { exportPortableSequence, inspectPortableSequence } from '../../core/portable-sequence.js';
+import quietExample from '../../content/portable-examples/quiet.json' with { type: 'json' };
 
 if (typeof globalThis.indexedDB === 'undefined') {
   globalThis.indexedDB = { open: () => ({ onsuccess: null, onerror: null, onupgradeneeded: null }) };
 }
 
 const { Workshop } = await import('./Workshop.js');
-const { WorkshopMedia } = await import('../core/workshop-media.js');
+const { WorkshopMedia } = await import('../../core/workshop-media.js');
 
 beforeEach(() => {
   vi.spyOn(WorkshopMedia, 'has').mockResolvedValue(true);

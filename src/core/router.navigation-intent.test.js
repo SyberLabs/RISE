@@ -7,12 +7,12 @@ describe('navigation intent ownership', () => {
     const router = new Router({ onNavigationIntent: intent });
     const init = vi.fn();
     const a = document.createElement('main');
-    router.registerView('vault', { container: a, init: () => ({}) });
+    router.registerView('make', { container: a, init: () => ({}) });
     router.registerView('chamber-session', { container: document.createElement('main'), init });
     router.registerView('portal', { container: document.createElement('main'), init: () => ({}) });
     router.fadeIn = vi.fn().mockResolvedValue();
     router.fadeOut = vi.fn().mockResolvedValue();
-    await router.navigate('vault');
+    await router.navigate('make');
     let release;
     router.fadeOut.mockImplementationOnce(() => new Promise(resolve => { release = resolve; }));
     const launch = router.navigate('chamber-session');

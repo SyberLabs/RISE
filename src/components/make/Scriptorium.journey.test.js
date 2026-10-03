@@ -19,15 +19,15 @@
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { Scriptorium } from './Scriptorium.js';
-import { clampTargetWords, SCRIPTORIUM_LENGTH } from '../core/scriptorium-session.js';
-import { WorkshopMedia, WorkshopMediaError } from '../core/workshop-media.js';
-import { hydrateSessionSequenceAssets } from '../core/workshop-asset-durability.js';
-import { workshopProjectToSessionConfig } from '../core/workshop-project.js';
-import { compileSession } from '../core/session-compiler.js';
-import { countWords } from '../core/chunker.js';
-import { createCuratorSourceReader } from '../core/curator-context.js';
-import { MAX_WORDS_TO_ATOMS } from '../core/reading-limits.js';
-import { ingestedArchiveTexts } from '../content/archive/index.js';
+import { clampTargetWords, SCRIPTORIUM_LENGTH } from '../../core/scriptorium-session.js';
+import { WorkshopMedia, WorkshopMediaError } from '../../core/workshop-media.js';
+import { hydrateSessionSequenceAssets } from '../../core/workshop-asset-durability.js';
+import { workshopProjectToSessionConfig } from '../../core/workshop-project.js';
+import { compileSession } from '../../core/session-compiler.js';
+import { countWords } from '../../core/chunker.js';
+import { createCuratorSourceReader } from '../../core/curator-context.js';
+import { MAX_WORDS_TO_ATOMS } from '../../core/reading-limits.js';
+import { ingestedArchiveTexts } from '../../content/archive/index.js';
 
 const PNG_BYTES = new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10, 1, 2, 3, 4]);
 

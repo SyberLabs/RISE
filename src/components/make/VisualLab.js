@@ -7,9 +7,9 @@
  * assignments belong to the Workshop, scenes belong here.
  */
 
-import { validateFlameRecipe, parseFlameRecipeJson } from '../core/flame-recipe.js';
-import { loadFlameScenes, saveFlameScene } from '../core/flame-scenes.js';
-import { escapeHtml } from '../core/sanitize.js';
+import { validateFlameRecipe, parseFlameRecipeJson } from '../../core/flame-recipe.js';
+import { loadFlameScenes, saveFlameScene } from '../../core/flame-scenes.js';
+import { escapeHtml } from '../../core/sanitize.js';
 import './VisualLab.css';
 
 const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
@@ -91,7 +91,7 @@ export class VisualLab {
   }
 
   async mount() {
-    this.module = await import('../visuals/living-flame/index.js');
+    this.module = await import('../../visuals/living-flame/index.js');
     if (this.destroyed) return;
     const { FLAME_PRESETS, RecipeHistory } = this.module;
     this.history = new RecipeHistory(20);

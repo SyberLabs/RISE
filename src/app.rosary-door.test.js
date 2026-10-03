@@ -6,8 +6,8 @@ import { ROSARY_PRAYERS, mysterySetForDate } from './content/chapel/liturgy/rosa
 import { isRosaryDoor, rosaryDoorHref, ROSARY_DOOR_HASH } from './core/rosary-door.js';
 
 const VIEW_IDS = [
-  'view-portal', 'view-vault', 'view-chamber', 'view-library',
-  'view-workshop', 'view-scriptorium', 'view-settings'
+  'view-portal', 'view-chamber', 'view-library',
+  'view-make', 'view-settings'
 ];
 
 function plantShell() {

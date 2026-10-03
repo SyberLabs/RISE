@@ -10,9 +10,9 @@
 import 'fake-indexeddb/auto';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { Scriptorium } from './Scriptorium.js';
-import { LocalWorks } from '../core/local-work-store.js';
-import { PersonalSwells } from '../core/personal-swells.js';
-import { draftLocalWork } from '../core/local-works.js';
+import { LocalWorks } from '../../core/local-work-store.js';
+import { PersonalSwells } from '../../core/personal-swells.js';
+import { draftLocalWork } from '../../core/local-works.js';
 
 const POEMS = 'Pyramid\r\na stone set on a stone\r\n\r\nSycamore\r\nthe bark peels in strips';
 

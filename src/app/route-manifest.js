@@ -20,18 +20,6 @@ export function createRouteManifest(operations) {
       })
     },
     {
-      id: 'vault',
-      containerId: 'view-vault',
-      load: () => import('../components/Vault.js'),
-      create: (container, data, { Vault }) => new Vault(container, {
-        onNavigate: operations.handleNavigate,
-        onSelectSequence: operations.handleSequenceSelection,
-        onSelectBlueprint: operations.handleCreateSession,
-        getAudioEngine: operations.getAudioEngine,
-        initialSection: data?.section
-      })
-    },
-    {
       id: 'chamber',
       containerId: 'view-chamber',
       load: () => import('../components/ChamberOrbital.js'),
@@ -116,18 +104,47 @@ export function createRouteManifest(operations) {
       }
     },
     {
-      id: 'workshop',
-      containerId: 'view-workshop',
-      load: () => import('../components/Workshop.js'),
-      create: (container, data, { Workshop }) => {
-        const workshop = new Workshop(container, {
+      id: 'make',
+      containerId: 'view-make',
+      load: () => import('../components/Make.js'),
+      // Make hosts the authoring rooms as tabs (§8.44). Each tab gets what
+      // its own room was given; the address data (a Vault section, a
+      // catalog search) reaches it through `data`.
+      create: async (container, data, { Make }) => {
+        const make = new Make(container, {
           onNavigate: operations.handleNavigate,
-          onCreateSession: operations.handleCreateSession,
-          audioEngineProvider: operations.getAudioEngine,
-          onBlueprintsChanged: operations.refreshVaultBlueprints
+          tabCapabilities: {
+            workshop: {
+              onNavigate: operations.handleNavigate,
+              onCreateSession: operations.handleCreateSession,
+              audioEngineProvider: operations.getAudioEngine,
+              onBlueprintsChanged: operations.refreshVaultBlueprints
+            },
+            vault: {
+              onNavigate: operations.handleNavigate,
+              onSelectSequence: operations.handleSequenceSelection,
+              onSelectBlueprint: operations.handleCreateSession,
+              getAudioEngine: operations.getAudioEngine
+            },
+            scriptorium: {
+              onNavigate: operations.handleNavigate,
+              onCreateSession: operations.handleCreateSession,
+              getSettings: operations.getSettings,
+              onSettingsTransaction: operations.handleSettingsTransaction
+            },
+            'visual-lab': {
+              mode: 'route',
+              onUseInReading: operations.useRecipeInReading,
+              onEditInWorkshop: () => operations.handleNavigate('workshop'),
+              onClose: () => operations.handleNavigate('portal')
+            },
+            'visual-catalog': {
+              onNavigate: (...args) => operations.handleNavigate(...args)
+            }
+          }
         });
-        if (data) workshop.update(data);
-        return workshop;
+        await make.update(data);
+        return make;
       }
     },
     {
@@ -143,47 +160,11 @@ export function createRouteManifest(operations) {
       })
     },
     {
-      id: 'scriptorium',
-      containerId: 'view-scriptorium',
-      load: () => import('../components/Scriptorium.js'),
-      create: (container, data, { Scriptorium }) => {
-        const room = new Scriptorium(container, {
-          onNavigate: operations.handleNavigate,
-          onCreateSession: operations.handleCreateSession,
-          getSettings: operations.getSettings,
-          onSettingsTransaction: operations.handleSettingsTransaction
-        });
-        room.mount();
-        return room;
-      }
-    },
-    {
       id: 'emotions',
       containerId: 'view-emotions',
       load: () => import('../components/Emotions.js'),
       create: (container, _data, { Emotions }) => new Emotions(container, {
         onNavigate: operations.handleNavigate
-      })
-    },
-    {
-      id: 'visual-lab',
-      containerId: 'view-visual-lab',
-      load: () => import('../components/VisualLab.js'),
-      create: (container, data, { VisualLab }) => new VisualLab(container, {
-        mode: 'route',
-        recipe: data?.recipe || null,
-        onUseInReading: operations.useRecipeInReading,
-        onEditInWorkshop: () => operations.handleNavigate('workshop'),
-        onClose: () => operations.handleNavigate('portal')
-      })
-    },
-    {
-      id: 'visual-catalog',
-      containerId: 'view-visual-catalog',
-      load: () => import('../components/VisualCatalog.js'),
-      create: (container, data, { VisualCatalog }) => new VisualCatalog(container, {
-        search: data?.search ?? globalThis.location?.search ?? '',
-        onNavigate: (...args) => operations.handleNavigate(...args)
       })
     },
     {

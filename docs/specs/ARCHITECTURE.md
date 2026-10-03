@@ -24,9 +24,10 @@ of sound. The same compiled session can instead be projected into **Page**, a
 spatial typographic composition. An **Experience Program** can author what
 appears when.
 
-Around that engine sit rooms: Portal, Library, Workshop, Vault, Scriptorium,
-Settings. The Library opens the scripture, the liturgies, the journeys, the
-keystones and the day's poem as panes.
+Around that engine sit rooms: Portal, Library, Make, Settings. The Library
+opens the scripture, the liturgies, the journeys, the keystones and the day's
+poem as panes; Make opens the Workshop, the Vault, the Scriptorium, the Visual
+Lab and the Visual Catalog as tabs.
 
 Cloudflare serves the app shell and the static catalog. The Library's optional
 recommendation runs in the reader's browser, on the reader's own provider: it
@@ -154,9 +155,9 @@ flowchart LR
     affect["affect<br/>experience-state evaluation<br/>29 modules"]
     app["app<br/>composition root<br/>11 modules"]
     audio["audio<br/>Web Audio, recitation<br/>10 modules"]
-    components["components<br/>routed views<br/>50 modules"]
+    components["components<br/>routed views<br/>51 modules"]
     content["content<br/>texts, imagery, journeys<br/>228 modules"]
-    core["core<br/>session, player, router<br/>169 modules"]
+    core["core<br/>session, player, router<br/>170 modules"]
     enterprise["enterprise<br/>talk program, speaker rail<br/>34 modules"]
     live["live<br/>realtime Current: events, runtime, providers<br/>39 modules"]
     page["page<br/>spatial projection<br/>4 modules"]
@@ -167,7 +168,7 @@ flowchart LR
 
     affect --> |7| core
     app -.-> |3 lazy| audio
-    app -.-> |12 lazy| components
+    app -.-> |8 lazy| components
     app --> |3| content
     app --> |38| core
     app -.-> |1 lazy| live
@@ -179,7 +180,7 @@ flowchart LR
     components --> |1| app
     components --> |3| audio
     components --> |25| content
-    components --> |180| core
+    components --> |181| core
     components -.-> |1 lazy| page
     components --> |4| sources
     components --> |1| vendor
@@ -329,11 +330,7 @@ outliving its room, fails a build.
 | Chamber | `src/components/Chamber.js` | a reading, in time |
 | ChamberOrbital | `src/components/ChamberOrbital.js` | tuning a reading before it starts |
 | Library | `src/components/Library.js` | the prepared editions, scripture, liturgies, journeys, keystones and the day's poem, with provenance on every edition |
-| Workshop | `src/components/Workshop.js` | authoring a composition |
-| Visual Lab | `src/components/VisualLab.js` | exploring, saving, and reusing Living Flame scenes |
-| Visual Catalog | `src/components/VisualCatalog.js` | searching nine procedural surfaces, requesting specimens, and opening admitted local live samples |
-| Vault | `src/components/Vault.js` | saved compositions and archetypes |
-| Scriptorium | `src/components/Scriptorium.js` | a model composes; a gate refuses |
+| Make | `src/components/Make.js` | authoring: composition, saved work, the Scriptorium, the visual lab and catalog |
 | Settings | `src/components/Settings.js` | preferences, export and erase |
 | Guide | `src/components/Guide.js` | onboarding, as an overlay rather than a route |
 
@@ -358,6 +355,13 @@ The Library's programs are panes it mounts, not rooms (§8.43):
 `src/components/library/Curia.js` (the source and rights record). Their old
 route ids and paths still work: `src/core/route-url.js` maps each to the
 Library with the pane named in `data.pane`.
+Make's tabs are panes too (§8.44): `src/components/make/Workshop.js`
+(authoring a composition), `src/components/make/Vault.js` (saved compositions
+and archetypes), `src/components/make/Scriptorium.js` (a model composes; a gate
+refuses), `src/components/make/VisualLab.js` (exploring, saving and reusing
+Living Flame scenes) and `src/components/make/VisualCatalog.js` (searching the
+procedural surfaces and opening admitted local live samples). Their old ids and
+paths map to Make the same way.
 The Navigator's columns, text material, preview, and Chapel trays live in `src/components/visual-navigator/` so the
 shell stays a mount point. Chamber mounts a Fit-mask runtime from
 `src/core/fit-mask-runtime.js` rather than owning the glyph-mask state machine.
@@ -1276,6 +1280,18 @@ of `settled`, `open`, `deferred`, or `reversed`.
 - **Why:** each was a different door onto the same engine with the same
   compiler behind it. A room costs a container, a route, a lifecycle and a
   row in this table; a program costs a line of data. §2.3.
+- **Status:** settled.
+
+### 8.44 Authoring is one room with tabs
+
+- **Chosen:** one Make room with tabs; the Workshop, the Vault, the
+  Scriptorium, the Visual Lab and the Visual Catalog each open as a tab,
+  mounted on first show and kept while the reader moves between them.
+- **Rejected:** a routed room per authoring tool, five in all.
+- **Why:** they are one activity, making a reading, split across five doors
+  with five headers and five ways home. The Library's pane host
+  (`src/components/room-panes.js`) already hosts lazy programs in one room, so
+  the tabs cost no new mechanism. §8.43.
 - **Status:** settled.
 
 ---

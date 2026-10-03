@@ -1,9 +1,9 @@
 import { afterEach, expect, it, vi } from 'vitest';
 import { Vault } from './Vault.js';
-import { MemoryCore } from '../core/memory.js';
-import { resolveLibrarySourceIds } from '../core/scriptorium-resolve.js';
-import { exportPortableSequence, inspectPortableSequence } from '../core/portable-sequence.js';
-import { validateWorkshopProject, WORKSHOP_PROJECT_SCHEMA } from '../core/workshop-project.js';
+import { MemoryCore } from '../../core/memory.js';
+import { resolveLibrarySourceIds } from '../../core/scriptorium-resolve.js';
+import { exportPortableSequence, inspectPortableSequence } from '../../core/portable-sequence.js';
+import { validateWorkshopProject, WORKSHOP_PROJECT_SCHEMA } from '../../core/workshop-project.js';
 
 afterEach(() => {
   vi.restoreAllMocks();

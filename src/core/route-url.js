@@ -33,29 +33,31 @@ export const ROUTE_ALIASES = {
     portal: 'portal',
     keystones: 'library',
     mint: 'library',
-    vault: 'vault',
+    vault: 'make',
     chamber: 'chamber',
     'chamber-session': 'chamber-session',
     library: 'library',
+    make: 'make',
     journeys: 'library',
-    workshop: 'workshop',
+    workshop: 'make',
     settings: 'settings',
     rosarium: 'library',
     curia: 'library',
-    scriptorium: 'scriptorium',
+    scriptorium: 'make',
     via: 'library',
     emotions: 'emotions',
-    'visual-lab': 'visual-lab',
-    'visual-catalog': 'visual-catalog',
+    'visual-lab': 'make',
+    'visual-catalog': 'make',
     live: 'live',
     chapel: 'library',
     today: 'library'
 };
 
 /**
- * The Library pane each old room id opens. The router merges `{ pane }` into
- * the data when it resolves one of these ids, so `navigate('chapel', data)`
- * still reaches the Chapel.
+ * The pane each old room id opens inside the room it now lives in. The router
+ * merges `{ pane }` into the data when it resolves one of these ids, so
+ * `navigate('chapel', data)` still reaches the Chapel and
+ * `navigate('vault', data)` the Vault tab of Make.
  */
 export const ROUTE_PANES = {
     chapel: 'chapel',
@@ -65,8 +67,16 @@ export const ROUTE_PANES = {
     keystones: 'keystones',
     mint: 'mint',
     today: 'today',
-    curia: 'provenance'
+    curia: 'provenance',
+    workshop: 'workshop',
+    vault: 'vault',
+    scriptorium: 'scriptorium',
+    'visual-lab': 'visual-lab',
+    'visual-catalog': 'visual-catalog'
 };
+
+/** The pane a room opens when its data names none. */
+const DEFAULT_PANES = { make: 'workshop' };
 
 const enc = encodeURIComponent;
 
@@ -92,14 +102,14 @@ function fixed(id, path, extra = {}) {
 }
 
 /**
- * A Library pane's address: the row builds only for `data.pane === pane`
- * and its parsed data names the pane.
+ * A pane's address (a Library pane, a Make tab): the row builds only for
+ * `data.pane === name` and its parsed data names the pane.
  */
-function pane(name, row) {
+function pane(name, row, room = 'library') {
     const parse = row.parse || (() => ({}));
     return {
         ...row,
-        id: 'library',
+        id: room,
         pane: name,
         parse: (found, search) => {
             const data = parse(found, search);
@@ -167,24 +177,22 @@ const ROUTES = [
     pane('today', { pattern: '/today', build: () => '/today' }),
     pane('provenance', { pattern: '/library/provenance', build: () => '/library/provenance' }),
 
-    fixed('workshop', '/make/workshop'),
-    {
-        id: 'vault',
+    pane('workshop', { pattern: '/make/workshop', build: () => '/make/workshop' }, 'make'),
+    pane('vault', {
         pattern: '/make/vault',
         build: data => `/make/vault${query({ section: data?.section })}`,
         parse: (_m, search) => (search.get('section') ? { section: search.get('section') } : {})
-    },
-    fixed('scriptorium', '/make/scriptorium'),
-
-    fixed('settings', '/settings'),
-    fixed('emotions', EMOTIONS_PATH),
-    fixed('visual-lab', VISUAL_LAB_PATH),
-    {
-        id: 'visual-catalog',
+    }, 'make'),
+    pane('scriptorium', { pattern: '/make/scriptorium', build: () => '/make/scriptorium' }, 'make'),
+    pane('visual-lab', { pattern: VISUAL_LAB_PATH, build: () => VISUAL_LAB_PATH }, 'make'),
+    pane('visual-catalog', {
         pattern: VISUAL_CATALOG_PATH,
         build: data => `${VISUAL_CATALOG_PATH}${typeof data?.search === 'string' && data.search.startsWith('?') ? data.search : ''}`,
         parse: (_m, search) => ({ search: search.toString() ? `?${search.toString()}` : '' })
-    },
+    }, 'make'),
+
+    fixed('settings', '/settings'),
+    fixed('emotions', EMOTIONS_PATH),
     fixed('live', LIVE_PATH)
 ];
 
@@ -218,8 +226,8 @@ function match(pattern, pathname) {
 
 /** The address for a room, or null when the id has none. */
 export function pathForRoute(id, data = {}) {
-    const row = ROUTES.find(item => item.id === id && item.build
-        && (id !== 'library' || item.pane === (data?.pane || undefined)));
+    const wanted = data?.pane || DEFAULT_PANES[id];
+    const row = ROUTES.find(item => item.id === id && item.build && item.pane === wanted);
     return row ? row.build(data || {}) : null;
 }
 

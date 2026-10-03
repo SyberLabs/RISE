@@ -16,20 +16,20 @@
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { Scriptorium } from './Scriptorium.js';
-import { MemoryCore } from '../core/memory.js';
-import { WorkshopMedia, WorkshopMediaError } from '../core/workshop-media.js';
-import { hydrateSessionSequenceAssets } from '../core/workshop-asset-durability.js';
-import { workshopProjectToSessionConfig } from '../core/workshop-project.js';
-import { boundarySourceId, isBoundarySource } from '../core/journey-compiler.js';
+import { MemoryCore } from '../../core/memory.js';
+import { WorkshopMedia, WorkshopMediaError } from '../../core/workshop-media.js';
+import { hydrateSessionSequenceAssets } from '../../core/workshop-asset-durability.js';
+import { workshopProjectToSessionConfig } from '../../core/workshop-project.js';
+import { boundarySourceId, isBoundarySource } from '../../core/journey-compiler.js';
 import {
     MAX_SAFE_TARGET_WORDS,
     READING_LIMITS,
     WORST_MEASURED_DIVISION
-} from '../core/reading-limits.js';
-import { clampTargetWords, SCRIPTORIUM_LENGTH } from '../core/scriptorium-session.js';
-import { resolveProgramLibrarySources } from '../core/scriptorium-resolve.js';
+} from '../../core/reading-limits.js';
+import { clampTargetWords, SCRIPTORIUM_LENGTH } from '../../core/scriptorium-session.js';
+import { resolveProgramLibrarySources } from '../../core/scriptorium-resolve.js';
 
-vi.mock('../core/scriptorium-resolve.js', async (importOriginal) => ({
+vi.mock('../../core/scriptorium-resolve.js', async (importOriginal) => ({
     ...(await importOriginal()),
     resolveProgramLibrarySources: vi.fn()
 }));
@@ -97,7 +97,7 @@ const stubResolveProgramLibrarySources = async (program) => {
 
 // jsdom decodes no video, so the one measurement an MP4 needs is stood in for.
 // Everything else in materials.js is the real thing.
-vi.mock('../core/materials.js', async (importOriginal) => ({
+vi.mock('../../core/materials.js', async (importOriginal) => ({
     ...(await importOriginal()),
     probeVideoDurationMs: vi.fn(async () => 11_000)
 }));
@@ -689,7 +689,7 @@ describe('the resolver stub names the ids the real resolver names', () => {
                 editable: true,
                 tracks
             };
-            const actual = await vi.importActual('../core/scriptorium-resolve.js');
+            const actual = await vi.importActual('../../core/scriptorium-resolve.js');
             const { sources, missing, refused } =
                 await actual.resolveProgramLibrarySources(program);
             expect(sources, 'no id here should be on any shelf').toEqual([]);

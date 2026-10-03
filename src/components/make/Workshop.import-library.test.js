@@ -20,10 +20,10 @@ if (typeof globalThis.indexedDB === 'undefined') {
 }
 
 const { Workshop } = await import('./Workshop.js');
-const { WorkshopMedia } = await import('../core/workshop-media.js');
-const { MemoryCore } = await import('../core/memory.js');
-const { ingestedArchiveTexts } = await import('../content/archive/index.js');
-const { EXTENT_OVERSHOOT_LIMIT } = await import('../core/library-extent.js');
+const { WorkshopMedia } = await import('../../core/workshop-media.js');
+const { MemoryCore } = await import('../../core/memory.js');
+const { ingestedArchiveTexts } = await import('../../content/archive/index.js');
+const { EXTENT_OVERSHOOT_LIMIT } = await import('../../core/library-extent.js');
 
 const TAO = 'sacred-tao-te-ching';
 

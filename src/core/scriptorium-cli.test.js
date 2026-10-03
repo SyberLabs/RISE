@@ -47,7 +47,7 @@ import {
 } from './scriptorium-cli.js';
 import { clampTargetWords, SCRIPTORIUM_LENGTH, createScriptoriumSession } from './scriptorium-session.js';
 import { describeImportFailure } from './experience-program-io.js';
-import { Scriptorium } from '../components/Scriptorium.js';
+import { Scriptorium } from '../components/make/Scriptorium.js';
 import { MAX_SAFE_TARGET_WORDS } from './reading-limits.js';
 import { CURATOR_CONTEXT_SCHEMA } from './curator-context.js';
 

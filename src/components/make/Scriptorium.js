@@ -21,38 +21,38 @@
  * learns a new word and the other never hears it (law 5).
  */
 
-import { MemoryCore } from '../core/memory.js';
-import { PersonalSwells } from '../core/personal-swells.js';
-import { LocalWorks } from '../core/local-work-store.js';
+import { MemoryCore } from '../../core/memory.js';
+import { PersonalSwells } from '../../core/personal-swells.js';
+import { LocalWorks } from '../../core/local-work-store.js';
 import {
   describeMaterials,
   inspectMaterial,
   MATERIAL_ACCEPT,
   probeVideoDurationMs
-} from '../core/materials.js';
+} from '../../core/materials.js';
 import {
   createSequenceVisualAsset,
   SEQUENCE_ASSET_STORAGE_IDB,
   VISUAL_SCORE_COLORS
-} from '../core/visual-score-lane.js';
-import { ensureWorkshopAssetsDurable } from '../core/workshop-asset-durability.js';
+} from '../../core/visual-score-lane.js';
+import { ensureWorkshopAssetsDurable } from '../../core/workshop-asset-durability.js';
 import {
   catalogueTextIsSafe,
   serializeCuratorContext
-} from '../core/curator-context.js';
-import { READING_LIMITS } from '../core/reading-limits.js';
-import { estimateRundownMinutes } from '../core/program-rundown.js';
+} from '../../core/curator-context.js';
+import { READING_LIMITS } from '../../core/reading-limits.js';
+import { estimateRundownMinutes } from '../../core/program-rundown.js';
 import {
   createScriptoriumSession,
   readerWpm,
   SCRIPTORIUM_LENGTH
-} from '../core/scriptorium-session.js';
+} from '../../core/scriptorium-session.js';
 import {
   downloadJsonFile,
   downloadTextFile
-} from '../core/experience-program-io.js';
-import { escapeHtml, safeUrl } from '../core/sanitize.js';
-import { roomHeader, roomEyebrow, roomAlert } from './room-chrome.js';
+} from '../../core/experience-program-io.js';
+import { escapeHtml, safeUrl } from '../../core/sanitize.js';
+import { roomHeader, roomEyebrow, roomAlert } from '../room-chrome.js';
 import './Scriptorium.css';
 
 async function copyText(text) {

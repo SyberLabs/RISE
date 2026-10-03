@@ -8,7 +8,8 @@ describe('route urls', () => {
             const path = pathForRoute(ROUTE_ALIASES[id], data);
             expect(path.startsWith('/')).toBe(true);
             expect(routeFromPath(path).id).toBe(ROUTE_ALIASES[id]);
-            expect(routeFromPath(path).data.pane).toBe(data.pane);
+            // Make with no tab named is the Workshop.
+            expect(routeFromPath(path).data.pane).toBe(data.pane ?? (id === 'make' ? 'workshop' : undefined));
         }
     });
 
@@ -23,7 +24,9 @@ describe('route urls', () => {
             today: '/today',
             provenance: '/library/provenance'
         };
-        expect(Object.values(ROUTE_PANES).sort()).toEqual(Object.keys(panes).sort());
+        const libraryPanes = Object.entries(ROUTE_PANES)
+            .filter(([id]) => ROUTE_ALIASES[id] === 'library').map(([, pane]) => pane);
+        expect(libraryPanes.sort()).toEqual(Object.keys(panes).sort());
         for (const [pane, path] of Object.entries(panes)) {
             expect(pathForRoute('library', { pane })).toBe(path);
             expect(routeFromPath(path)).toEqual({ id: 'library', data: { pane } });
@@ -31,6 +34,29 @@ describe('route urls', () => {
         expect(pathForRoute('library')).toBe('/library');
         expect(pathForRoute('library', { pane: 'no-such-pane' })).toBeNull();
         expect(routeFromPath('/library/keystones')).toEqual({ id: 'library', data: { pane: 'keystones' } });
+    });
+
+    it('gives every Make tab the path its room had, both ways', () => {
+        const tabs = {
+            workshop: '/make/workshop',
+            vault: '/make/vault',
+            scriptorium: '/make/scriptorium',
+            'visual-lab': '/visual-lab',
+            'visual-catalog': '/visual-catalog'
+        };
+        for (const [pane, path] of Object.entries(tabs)) {
+            expect(ROUTE_ALIASES[pane]).toBe('make');
+            expect(ROUTE_PANES[pane]).toBe(pane);
+            expect(pathForRoute('make', { pane })).toBe(path);
+        }
+        expect(pathForRoute('make')).toBe('/make/workshop');
+        expect(routeFromPath('/make/workshop')).toEqual({ id: 'make', data: { pane: 'workshop' } });
+        expect(routeFromPath('/make/vault', '?section=custom'))
+            .toEqual({ id: 'make', data: { pane: 'vault', section: 'custom' } });
+        expect(routeFromPath('/make/scriptorium')).toEqual({ id: 'make', data: { pane: 'scriptorium' } });
+        expect(routeFromPath('/visual-lab')).toEqual({ id: 'make', data: { pane: 'visual-lab' } });
+        expect(routeFromPath('/visual-catalog', '?q=moon'))
+            .toEqual({ id: 'make', data: { pane: 'visual-catalog', search: '?q=moon' } });
     });
 
     it('carries chapel data', () => {
@@ -47,8 +73,8 @@ describe('route urls', () => {
             .toEqual({ id: 'library', data: { pane: 'keystones', slug: 'meditations' } });
         expect(pathForRoute('library', { pane: 'keystones', slug: 'meditations' })).toBe('/try-rise');
         expect(pathForRoute('live')).toBe('/live');
-        expect(pathForRoute('visual-lab')).toBe('/visual-lab');
-        expect(pathForRoute('visual-catalog')).toBe('/visual-catalog');
+        expect(pathForRoute('make', { pane: 'visual-lab' })).toBe('/visual-lab');
+        expect(pathForRoute('make', { pane: 'visual-catalog' })).toBe('/visual-catalog');
         expect(pathForRoute('emotions')).toBe('/emotions');
         expect(routeFromPath('/night-drive').data).toEqual({ demoMode: true });
     });
@@ -63,16 +89,16 @@ describe('route urls', () => {
         expect(pathForRoute('chamber')).toBe('/read');
         expect(pathForRoute('chamber-session')).toBe('/read/session');
         expect(routeFromPath('/read/session')).toEqual({ id: 'chamber-session', data: {} });
-        expect(pathForRoute('vault')).toBe('/make/vault');
+        expect(pathForRoute('make', { pane: 'vault' })).toBe('/make/vault');
         expect(pathForRoute('settings')).toBe('/settings');
     });
 
     it('round-trips query data and ignores transient data', () => {
-        const catalog = pathForRoute('visual-catalog', { search: '?q=moon' });
+        const catalog = pathForRoute('make', { pane: 'visual-catalog', search: '?q=moon' });
         expect(catalog).toBe('/visual-catalog?q=moon');
-        expect(routeFromPath('/visual-catalog', '?q=moon').data).toEqual({ search: '?q=moon' });
-        expect(pathForRoute('vault', { section: 'blueprints' })).toBe('/make/vault?section=blueprints');
-        expect(routeFromPath('/make/vault', '?section=blueprints').data).toEqual({ section: 'blueprints' });
+        expect(routeFromPath('/visual-catalog', '?q=moon').data).toEqual({ pane: 'visual-catalog', search: '?q=moon' });
+        expect(pathForRoute('make', { pane: 'vault', section: 'blueprints' })).toBe('/make/vault?section=blueprints');
+        expect(routeFromPath('/make/vault', '?section=blueprints').data).toEqual({ pane: 'vault', section: 'blueprints' });
         expect(pathForRoute('library', { pane: 'rosary', setId: 'joyful', door: true })).toBe('/library/rosary?set=joyful');
         expect(routeFromPath('/library/rosary', '?set=joyful&icon=pieta').data)
             .toEqual({ pane: 'rosary', setId: 'joyful', iconId: 'pieta' });

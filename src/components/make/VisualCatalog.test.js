@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { VisualCatalog } from './VisualCatalog.js';
-import { stillQueue } from './visual-navigator/preview.js';
-import { visualCortex } from '../visuals/visual-cortex.js';
+import { stillQueue } from '../visual-navigator/preview.js';
+import { visualCortex } from '../../visuals/visual-cortex.js';
 
 const environment = ({ drawing = true } = {}) => ({
   window: { matchMedia: () => ({ matches: false }), self: null, top: null },

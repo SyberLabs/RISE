@@ -8,16 +8,16 @@
  * - Generous spacing, no cluttered toolbars
  */
 
-import { normalizeLivingFlameConfig } from '../core/flame-recipe.js';
-import { findFlameScene, loadFlameScenes } from '../core/flame-scenes.js';
-import { FLAME_PRESETS, flamePreset } from '../visuals/living-flame/flame-presets.js';
-import { SourceBrowser } from './SourceBrowser.js';
-import { MemoryCore } from '../core/memory.js';
-import { PersonalSwells } from '../core/personal-swells.js';
-import { namingModal } from './NamingModal.js';
-import { safeUrl } from '../core/sanitize.js';
-import { requestVisualInterlocutionConsent } from '../core/visual-safety.js';
-import { snapCharacterRangeToTokens } from '../core/source-span.js';
+import { normalizeLivingFlameConfig } from '../../core/flame-recipe.js';
+import { findFlameScene, loadFlameScenes } from '../../core/flame-scenes.js';
+import { FLAME_PRESETS, flamePreset } from '../../visuals/living-flame/flame-presets.js';
+import { SourceBrowser } from '../SourceBrowser.js';
+import { MemoryCore } from '../../core/memory.js';
+import { PersonalSwells } from '../../core/personal-swells.js';
+import { namingModal } from '../NamingModal.js';
+import { safeUrl } from '../../core/sanitize.js';
+import { requestVisualInterlocutionConsent } from '../../core/visual-safety.js';
+import { snapCharacterRangeToTokens } from '../../core/source-span.js';
 import {
   formatGalleryCadence,
   GALLERY_CADENCE_DEFAULT,
@@ -27,7 +27,7 @@ import {
   FLASHING_ENABLED,
   normalizePresentation,
   VISUAL_PRESENCE_DEFAULT_MS
-} from '../core/visual-presence.js';
+} from '../../core/visual-presence.js';
 import {
   assignVisualSpan,
   createSequenceVisualAsset,
@@ -35,21 +35,21 @@ import {
   SEQUENCE_ASSET_STORAGE_IDB,
   VISUAL_SCORE_COLORS,
   VisualScoreLaneError
-} from '../core/visual-score-lane.js';
-import { READING_LIMITS } from '../core/reading-limits.js';
-import { PACE_CURVE_IDS } from '../core/pacing.js';
+} from '../../core/visual-score-lane.js';
+import { READING_LIMITS } from '../../core/reading-limits.js';
+import { PACE_CURVE_IDS } from '../../core/pacing.js';
 import {
   dataImageUriToBlob,
   WorkshopMedia
-} from '../core/workshop-media.js';
-import { editorAssetSupports } from '../core/editor-asset.js';
+} from '../../core/workshop-media.js';
+import { editorAssetSupports } from '../../core/editor-asset.js';
 import {
   createVisualScoreHistory,
   recordVisualScoreCommand,
   redoVisualScoreCommand,
   undoVisualScoreCommand,
   visualScoreHistoryStatus
-} from '../core/visual-score-history.js';
+} from '../../core/visual-score-history.js';
 import {
   applyWorkshopAudioAsset,
   audioScoreAssetFromId,
@@ -63,28 +63,28 @@ import {
   workshopAudioAsset,
   workshopAudioEditorAsset,
   workshopAudioAssetIsCurrent
-} from '../core/workshop-audio.js';
+} from '../../core/workshop-audio.js';
 import {
   assignAudioSpan,
   AUDIO_SCORE_COLORS,
   AudioScoreLaneError,
   compileWorkshopScoreProgram,
   eraseAudioSpan
-} from '../core/audio-score-lane.js';
-import { renderWorkshopStudioShell } from './workshop/WorkshopStudioShell.js';
-import { renderCombinedPassageAssignment } from './workshop/PassageAssignmentCard.js';
-import { buildSequenceMapGroups } from './workshop/sequence-map.js';
-import { SceneStack } from './workshop/SceneStack.js';
-import { createSceneApi } from './workshop/scene-api.js';
+} from '../../core/audio-score-lane.js';
+import { renderWorkshopStudioShell } from '../workshop/WorkshopStudioShell.js';
+import { renderCombinedPassageAssignment } from '../workshop/PassageAssignmentCard.js';
+import { buildSequenceMapGroups } from '../workshop/sequence-map.js';
+import { SceneStack } from '../workshop/SceneStack.js';
+import { createSceneApi } from '../workshop/scene-api.js';
 import {
   inspectorContextLabel,
   normalizeInspectorContext
-} from './workshop/workshop-ui-state.js';
+} from '../workshop/workshop-ui-state.js';
 import {
   applyEditorAssetDefault,
   buildWorkshopVisualAssetRegistry,
   projectAssetIdFromEditorAsset
-} from './workshop/workshop-visual-assets.js';
+} from '../workshop/workshop-visual-assets.js';
 import {
   ATTRACTOR_FORMS,
   ATTRACTOR_PALETTES,
@@ -101,10 +101,10 @@ import {
   ROSE_MODES,
   visualCueIsConfigurable,
   visualCueStyleSummary
-} from '../core/visual-style-definitions.js';
+} from '../../core/visual-style-definitions.js';
 import {
   exportCuratorContext
-} from '../core/curator-context.js';
+} from '../../core/curator-context.js';
 import {
   describeImportFailure,
   downloadJsonFile,
@@ -112,23 +112,23 @@ import {
   serializeExperienceProgram,
   unloadableLibrarySourcesError,
   workshopProjectFromImportedProgram
-} from '../core/experience-program-io.js';
-import { resolveProgramLibrarySources } from '../core/scriptorium-resolve.js';
-import { remixablePassages, remixPassage } from '../core/portable-sequence.js';
-import { PROCEDURAL_PATTERNS } from '../core/visual-registry.js';
-import { SOUNDSCAPES } from '../audio/soundscapes.js';
+} from '../../core/experience-program-io.js';
+import { resolveProgramLibrarySources } from '../../core/scriptorium-resolve.js';
+import { remixablePassages, remixPassage } from '../../core/portable-sequence.js';
+import { PROCEDURAL_PATTERNS } from '../../core/visual-registry.js';
+import { SOUNDSCAPES } from '../../audio/soundscapes.js';
 import {
   EXPORT_MP4_PATH,
   kernelRequestFromWorkshopPayload,
   renderCliCommand
-} from '../core/render/kernel-request.js';
-import { visualFallbackCueFromConfig } from '../core/visual-program.js';
-import { assertQuotationAnchorsAgainstSources } from '../core/source-span.js';
-import { normalizeReaderText } from '../core/local-works.js';
-import { LocalWorks } from '../core/local-work-store.js';
-import { Admit } from './Admit.js';
-import './SourceBrowser.css';
-import { REMOTE_IMAGE_ATTRS } from '../visuals/remote-image.js';
+} from '../../core/render/kernel-request.js';
+import { visualFallbackCueFromConfig } from '../../core/visual-program.js';
+import { assertQuotationAnchorsAgainstSources } from '../../core/source-span.js';
+import { normalizeReaderText } from '../../core/local-works.js';
+import { LocalWorks } from '../../core/local-work-store.js';
+import { Admit } from '../Admit.js';
+import '../SourceBrowser.css';
+import { REMOTE_IMAGE_ATTRS } from '../../visuals/remote-image.js';
 import './Workshop.css';
 
 /** 20px stroke icons (SyberLabs system): currentColor, 1.5 stroke, round caps. */
@@ -2375,7 +2375,7 @@ export class Workshop {
       return image ? { url: image.uri, alt: image.name || 'Personal library sample' } : null;
     }
     if (!collectionRef?.startsWith('aic-')) return null;
-    const { MuseumProvider } = await import('../sources/visual/museum.js');
+    const { MuseumProvider } = await import('../../sources/visual/museum.js');
     if (signal?.aborted) return null;
     this.museumPreviewProvider ||= new MuseumProvider();
     const images = await this.museumPreviewProvider.getImagesInCategory(

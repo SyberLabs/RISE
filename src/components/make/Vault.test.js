@@ -14,11 +14,11 @@ const here = dirname(fileURLToPath(import.meta.url));
 describe('Vault room chrome', () => {
     it('loads the Library stylesheet its tabs already use', () => {
         const src = readFileSync(join(here, 'Vault.js'), 'utf8');
-        expect(src).toMatch(/import\s+['"]\.\/Library\.css['"]/);
+        expect(src).toMatch(/import\s+['"]\.\.\/Library\.css['"]/);
     });
 
     it('keeps the Library tab reset that strips native button chrome', () => {
-        const css = readFileSync(join(here, 'Library.css'), 'utf8');
+        const css = readFileSync(join(here, '..', 'Library.css'), 'utf8');
         const rule = css.match(/\.library-nav\s+\.nav-item\s*\{[^}]+\}/);
         expect(rule, '.library-nav .nav-item').toBeTruthy();
         expect(rule[0]).toMatch(/background:\s*transparent/);

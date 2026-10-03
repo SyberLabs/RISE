@@ -2067,7 +2067,7 @@ export class Chamber {
     this.container.appendChild(host);
     this._labHost = host;
     try {
-      const { VisualLab } = await import('./VisualLab.js');
+      const { VisualLab } = await import('./make/VisualLab.js');
       if (!this._labOpen || this._destroyed) return false;
       this._lab = new VisualLab(host, {
         mode: 'overlay',

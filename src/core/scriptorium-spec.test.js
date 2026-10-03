@@ -23,8 +23,8 @@ const ROOT = process.cwd();
 const SPEC = 'docs/vision/SCRIPTORIUM-SPEC.md';
 
 const CITING_FILES = Object.freeze([
-    'src/components/Scriptorium.js',
-    'src/components/Workshop.js',
+    'src/components/make/Scriptorium.js',
+    'src/components/make/Workshop.js',
     'src/core/curator-context.js',
     'src/core/curator-prompt.js',
     'src/core/scriptorium-resolve.js',

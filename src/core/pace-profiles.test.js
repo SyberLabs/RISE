@@ -13,7 +13,7 @@ import { PACE_CURVE_IDS } from './pacing.js';
 import { workshopProjectToSessionConfig } from './workshop-project.js';
 import { compileSession } from './session-compiler.js';
 import { CURVE_OPTIONS } from '../components/ChamberOrbital.js';
-import { CURVE_PATHS } from '../components/Workshop.js';
+import { CURVE_PATHS } from '../components/make/Workshop.js';
 
 const source = path => readFileSync(join(process.cwd(), path), 'utf8');
 

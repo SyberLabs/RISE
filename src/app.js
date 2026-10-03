@@ -476,7 +476,7 @@ class App {
                 }
             },
             handleTextSelection: (text, source, config) => this.handleTextSelection(text, source, config),
-            refreshVaultBlueprints: () => this.router.getViewInstance('vault')?.refreshBlueprints?.(),
+            refreshVaultBlueprints: () => this.router.getViewInstance('make')?.tabInstance('vault')?.refreshBlueprints?.(),
             handleDataCleared: this.handleDataCleared,
             launchRosary: (setId, extras) => this.router.navigate('rosarium', {
                 data: { setId, iconId: extras?.iconId ?? null }
@@ -1225,29 +1225,11 @@ class App {
                 this.router.updateAddress(route.data);
                 return;
             }
-            const catalog = route.id === 'visual-catalog'
-                ? this.router?.getViewInstance?.('visual-catalog') : null;
-            const isCurrentCatalog = this.router?.getCurrentView?.() === 'visual-catalog';
-            const isEnteringCatalog = this.router?.transitioning === true
-                && this.router.views.get('visual-catalog')?.container
-                && !this.router.views.get('visual-catalog').container.hidden;
-            if (catalog?.update && (isCurrentCatalog || isEnteringCatalog)) {
-                catalog.update(route.data);
-                if (isCurrentCatalog && !this.router.transitioning) return;
-            }
+            // A change inside a room (a catalog search, a Chapel chapter)
+            // is updated in place by the router.
             await this.router?.navigate(route.id, {
                 data: route.data, replace: true, skipStack: true, keepUrl: !route.rewrite
             });
-            // Router deliberately collapses a queued same-route navigation.
-            // Apply the newest address data once the entry has settled.
-            if (route.id === 'visual-catalog'
-                && historyGeneration === this._historyNavigationGeneration
-                && window.location.search === route.data.search) {
-                const settled = this.router?.getViewInstance?.('visual-catalog');
-                if (settled?.update && this.router?.getCurrentView?.() === 'visual-catalog') {
-                    await settled.update(route.data);
-                }
-            }
          }, options);
     }
 

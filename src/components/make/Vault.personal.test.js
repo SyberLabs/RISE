@@ -1,8 +1,8 @@
 import { afterEach, it, expect } from 'vitest';
 import { Vault } from './Vault.js';
-import { MemoryCore } from '../core/memory.js';
-import { createPersonalProject } from '../core/personal-project.js';
-import { chamberExitTarget } from '../app/chamber-exit.js';
+import { MemoryCore } from '../../core/memory.js';
+import { createPersonalProject } from '../../core/personal-project.js';
+import { chamberExitTarget } from '../../app/chamber-exit.js';
 afterEach(() => localStorage.clear());
 it('refreshes a cached Vault with newly kept work', () => {
   const container = document.createElement('div');

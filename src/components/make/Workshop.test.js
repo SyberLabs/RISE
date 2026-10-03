@@ -4,15 +4,15 @@
  * exclusive-beds behavior matching the Chamber's audio panel.
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { PROCEDURAL_PATTERNS } from '../core/visual-registry.js';
-import { WORKSHOP_AUDIO_ASSETS } from '../core/workshop-audio.js';
-import { PersonalSwells } from '../core/personal-swells.js';
-import { FLASHING_ENABLED } from '../core/visual-presence.js';
-import { PACE_CURVE_IDS } from '../core/pacing.js';
+import { PROCEDURAL_PATTERNS } from '../../core/visual-registry.js';
+import { WORKSHOP_AUDIO_ASSETS } from '../../core/workshop-audio.js';
+import { PersonalSwells } from '../../core/personal-swells.js';
+import { FLASHING_ENABLED } from '../../core/visual-presence.js';
+import { PACE_CURVE_IDS } from '../../core/pacing.js';
 import {
     endVisualInterlocutionSession,
     grantVisualInterlocutionConsent
-} from '../core/visual-safety.js';
+} from '../../core/visual-safety.js';
 
 // jsdom has no indexedDB; PersonalSwells probes it during pool render
 if (typeof globalThis.indexedDB === 'undefined') {
@@ -35,8 +35,8 @@ if (typeof URL.createObjectURL !== 'function') {
 }
 
 const { Workshop } = await import('./Workshop.js');
-const { WorkshopMedia } = await import('../core/workshop-media.js');
-const { MemoryCore } = await import('../core/memory.js');
+const { WorkshopMedia } = await import('../../core/workshop-media.js');
+const { MemoryCore } = await import('../../core/memory.js');
 
 beforeEach(() => {
     vi.spyOn(WorkshopMedia, 'put').mockImplementation(async ({ id, projectId, data, mimeType }) => ({
@@ -1885,7 +1885,7 @@ describe('Workshop Export MP4', () => {
 
 describe('Workshop asynchronous save boundaries', () => {
     it('preserves edits and pending images added while a save is underway', async () => {
-        const { MemoryCore } = await import('../core/memory.js');
+        const { MemoryCore } = await import('../../core/memory.js');
         const save = MemoryCore.saveWorkshopBlueprintAsync.bind(MemoryCore);
         let release;
         const held = new Promise(resolve => { release = resolve; });
@@ -1911,7 +1911,7 @@ describe('Workshop asynchronous save boundaries', () => {
     });
 
     it('does not clear another draft opened before a save finishes', async () => {
-        const { MemoryCore } = await import('../core/memory.js');
+        const { MemoryCore } = await import('../../core/memory.js');
         const save = MemoryCore.saveWorkshopBlueprintAsync.bind(MemoryCore);
         let release;
         const held = new Promise(resolve => { release = resolve; });
@@ -1981,7 +1981,7 @@ describe('Workshop asynchronous save boundaries', () => {
     });
 
     it('preserves a replacement pending blob added while save metadata is unchanged', async () => {
-        const { MemoryCore } = await import('../core/memory.js');
+        const { MemoryCore } = await import('../../core/memory.js');
         const save = MemoryCore.saveWorkshopBlueprintAsync.bind(MemoryCore);
         let release;
         const held = new Promise(resolve => { release = resolve; });

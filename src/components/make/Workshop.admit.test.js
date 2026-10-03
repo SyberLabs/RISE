@@ -15,8 +15,8 @@
 import 'fake-indexeddb/auto';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { Workshop } from './Workshop.js';
-import { LocalWorks } from '../core/local-work-store.js';
-import { localWorkParts } from '../core/local-works.js';
+import { LocalWorks } from '../../core/local-work-store.js';
+import { localWorkParts } from '../../core/local-works.js';
 
 const POEMS = [
     'Pyramid', 'a stone set on a stone', 'and the light going',

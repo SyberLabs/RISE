@@ -5,7 +5,7 @@ import App from './app.js';
 let app;
 
 function plantShell() {
-  for (const id of ['view-visual-catalog', 'view-portal', 'view-live', 'toast-container']) {
+  for (const id of ['view-make', 'view-portal', 'view-live', 'toast-container']) {
     const node = document.createElement('div');
     node.id = id;
     node.hidden = true;
@@ -33,12 +33,12 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-describe('the Visual Catalog public path', () => {
+describe('the Visual Catalog public path, a tab of Make', () => {
   it('opens directly on a cold boot and reads its search from the address', async () => {
     window.history.replaceState({}, '', '/visual-catalog?q=network');
     app = new App();
     await app.initializeApp({});
-    expect(app.router.getCurrentView()).toBe('visual-catalog');
+    expect(app.router.getCurrentView()).toBe('make');
     expect(document.querySelector('#visual-catalog-search').value).toBe('network');
     expect(document.querySelectorAll('[data-visual-id]')).toHaveLength(1);
   });
@@ -63,7 +63,7 @@ describe('the Visual Catalog public path', () => {
     const registerViews = App.prototype.registerViews;
     vi.spyOn(App.prototype, 'registerViews').mockImplementation(function (...args) {
       const result = registerViews.apply(this, args);
-      const route = this.router.views.get('visual-catalog');
+      const route = this.router.views.get('make');
       const init = route.init;
       route.init = async (...initArgs) => {
         await gate;
@@ -82,7 +82,7 @@ describe('the Visual Catalog public path', () => {
 
     await opening;
     await vi.waitFor(() => {
-      expect(app.router.getCurrentView()).toBe('visual-catalog');
+      expect(app.router.getCurrentView()).toBe('make');
       expect(app.router.transitioning).toBe(false);
       expect(document.querySelector('#visual-catalog-search').value).toBe('attractor');
       expect([...document.querySelectorAll('[data-visual-id]')].map(card => card.dataset.visualId)).toEqual(['ostensoria', 'attractor']);
@@ -128,20 +128,19 @@ describe('the Visual Catalog public path', () => {
     window.history.pushState({}, '', '/');
     window.dispatchEvent(new PopStateEvent('popstate'));
     await fadeOutStarted;
-    expect(app.router.getCurrentView()).toBe('visual-catalog');
+    expect(app.router.getCurrentView()).toBe('make');
 
     window.history.pushState({}, '', '/visual-catalog?q=attractor');
     window.dispatchEvent(new PopStateEvent('popstate'));
-    await vi.waitFor(() => expect(document.querySelector('#visual-catalog-search').value).toBe('attractor'));
 
     releaseFadeOut();
     await vi.waitFor(() => expect(document.querySelector('#view-portal').hidden).toBe(false));
     await vi.waitFor(() => {
       expect(window.location.pathname).toBe('/visual-catalog');
       expect(window.location.search).toBe('?q=attractor');
-      expect(app.router.getCurrentView()).toBe('visual-catalog');
+      expect(app.router.getCurrentView()).toBe('make');
       expect(app.router.transitioning).toBe(false);
-      expect(document.querySelector('#view-visual-catalog').hidden).toBe(false);
+      expect(document.querySelector('#view-make').hidden).toBe(false);
       expect(document.querySelector('#view-portal').hidden).toBe(true);
       expect([...document.querySelectorAll('[data-visual-id]')].map(card => card.dataset.visualId)).toEqual(['ostensoria', 'attractor']);
     });

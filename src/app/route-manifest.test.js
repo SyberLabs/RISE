@@ -3,16 +3,12 @@ import { createRouteManifest } from './route-manifest.js';
 
 const ROUTE_IDS = [
   'portal',
-  'vault',
   'chamber',
   'chamber-session',
   'library',
-  'workshop',
+  'make',
   'settings',
-  'scriptorium',
   'emotions',
-  'visual-lab',
-  'visual-catalog',
   'live'
 ];
 
@@ -56,7 +52,6 @@ describe('createRouteManifest', () => {
 
     for (const [id, exportName] of [
       ['portal', 'Portal'],
-      ['vault', 'Vault'],
       ['chamber', 'ChamberOrbital'],
       ['library', 'Library']
     ]) {
@@ -66,6 +61,9 @@ describe('createRouteManifest', () => {
     for (const pane of ['chapel', 'rosary', 'stations', 'journeys']) {
       expect(panes[pane].getAudioEngine, `${pane} audio boundary`).toBe(getAudioEngine);
     }
+    const tabs = roomOptions('make', 'Make').tabCapabilities;
+    expect(tabs.vault.getAudioEngine, 'vault audio boundary').toBe(getAudioEngine);
+    expect(tabs.workshop.audioEngineProvider, 'workshop audio boundary').toBe(getAudioEngine);
     expect(roomOptions('portal', 'Portal').getCurrentSession).toBe(getCurrentSession);
     expect(roomOptions('settings', 'Settings').notify).toBe(notify);
   });
@@ -99,14 +97,34 @@ describe('createRouteManifest', () => {
     expect(operations.router.updateAddress).toHaveBeenCalledWith({ bookId: 'john', chapter: 3, pane: 'chapel' });
   });
 
-  it('creates the catalog with the navigation callback and address search', () => {
-    const handleNavigate = vi.fn();
-    const route = createRouteManifest({ handleNavigate }).find(item => item.id === 'visual-catalog');
+  it('hands each Make tab what its own room was given, and opens the addressed tab', async () => {
+    const operations = {
+      handleNavigate: vi.fn(),
+      handleCreateSession: vi.fn(),
+      handleSequenceSelection: vi.fn(),
+      handleSettingsTransaction: vi.fn(),
+      useRecipeInReading: vi.fn(),
+      refreshVaultBlueprints: vi.fn(),
+      getSettings: vi.fn()
+    };
     let received;
-    class VisualCatalog { constructor(_container, options) { received = options; } }
-    route.create({}, { search: '?q=light' }, { VisualCatalog });
-    received.onNavigate('portal');
-    expect(handleNavigate).toHaveBeenCalledWith('portal');
-    expect(received.search).toBe('?q=light');
+    const shown = [];
+    class Make {
+      constructor(_container, options) { received = options; }
+      update(data) { shown.push(data); }
+    }
+    await createRouteManifest(operations).find(route => route.id === 'make')
+      .create({}, { pane: 'visual-catalog', search: '?q=light' }, { Make });
+    const tabs = received.tabCapabilities;
+    expect(Object.keys(tabs)).toEqual(['workshop', 'vault', 'scriptorium', 'visual-lab', 'visual-catalog']);
+    expect(tabs.workshop.onBlueprintsChanged).toBe(operations.refreshVaultBlueprints);
+    expect(tabs.vault.onSelectBlueprint).toBe(operations.handleCreateSession);
+    expect(tabs.scriptorium.onSettingsTransaction).toBe(operations.handleSettingsTransaction);
+    expect(tabs['visual-lab'].mode).toBe('route');
+    tabs['visual-lab'].onEditInWorkshop();
+    expect(operations.handleNavigate).toHaveBeenCalledWith('workshop');
+    tabs['visual-catalog'].onNavigate('portal');
+    expect(operations.handleNavigate).toHaveBeenCalledWith('portal');
+    expect(shown).toEqual([{ pane: 'visual-catalog', search: '?q=light' }]);
   });
 });

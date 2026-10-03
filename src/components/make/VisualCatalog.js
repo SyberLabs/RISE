@@ -1,6 +1,6 @@
-import { queryVisualCatalog, admitCatalogVisual } from '../core/visual-catalog.js';
-import { safeUrl } from '../core/sanitize.js';
-import { stillQueue } from './visual-navigator/preview.js';
+import { queryVisualCatalog, admitCatalogVisual } from '../../core/visual-catalog.js';
+import { safeUrl } from '../../core/sanitize.js';
+import { stillQueue } from '../visual-navigator/preview.js';
 import './VisualCatalog.css';
 
 const NO_DRAWING = 'Drawing is unavailable on this device. The reading can continue without imagery.';
@@ -171,7 +171,7 @@ export class VisualCatalog {
     button.textContent = 'Preparing preview…';
     const key = `catalog:specimen:${id}`;
     const url = await stillQueue.request(key, async () => {
-      const { visualCortex } = await import('../visuals/visual-cortex.js');
+      const { visualCortex } = await import('../../visuals/visual-cortex.js');
       return (await visualCortex.renderLeafStill(id))?.url;
     }, { serial: true, signal: controller.signal });
     if (this.destroyed || controller.signal.aborted || this.previewController !== controller) return;

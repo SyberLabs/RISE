@@ -1,17 +1,17 @@
-import { STARTER_SEQUENCES } from '../content/starters.js';
-import { PORTABLE_EXAMPLES } from '../content/portable-examples.js';
-import { MemoryCore } from '../core/memory.js';
-import { escapeHtml } from '../core/sanitize.js';
-import { isPersonalProject } from '../core/personal-identity.js';
-import { personalSession } from '../core/personal-project.js';
-import { compileSession } from '../core/session-compiler.js';
-import { downloadJsonFile } from '../core/experience-program-io.js';
+import { STARTER_SEQUENCES } from '../../content/starters.js';
+import { PORTABLE_EXAMPLES } from '../../content/portable-examples.js';
+import { MemoryCore } from '../../core/memory.js';
+import { escapeHtml } from '../../core/sanitize.js';
+import { isPersonalProject } from '../../core/personal-identity.js';
+import { personalSession } from '../../core/personal-project.js';
+import { compileSession } from '../../core/session-compiler.js';
+import { downloadJsonFile } from '../../core/experience-program-io.js';
 import {
   exportPortableSequence,
   inspectPortableSequence,
   PORTABLE_SEQUENCE_MAX_BYTES
-} from '../core/portable-sequence.js';
-import './Library.css';
+} from '../../core/portable-sequence.js';
+import '../Library.css';
 
 export class Vault {
   constructor(container, options = {}) {
@@ -344,7 +344,7 @@ export class Vault {
       } else if (action === 'export-personal-json' || action === 'export-personal-text') {
          const bp = this.blueprints.find(b => b.id === target.dataset.id);
          try {
-           const { exportPersonalProject } = await import('../core/personal-project.js');
+           const { exportPersonalProject } = await import('../../core/personal-project.js');
            if (bp) await exportPersonalProject(bp.project || bp, action.endsWith('text') ? 'text' : 'json');
          } catch (error) {
            const status = target.closest('.sequence-card')?.querySelector('[data-personal-status]');

@@ -24,7 +24,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { Scriptorium } from './Scriptorium.js';
 
-vi.mock('../core/materials.js', async (importOriginal) => ({
+vi.mock('../../core/materials.js', async (importOriginal) => ({
     ...(await importOriginal()),
     probeVideoDurationMs: vi.fn(async () => 11_000)
 }));
@@ -56,7 +56,7 @@ describe('the materials panel, as a reader meets it', () => {
             // so the assertion has to be about the stylesheet. jsdom applies no
             // imported CSS, which is precisely why nothing caught this.
             const css = readFileSync(
-                join(process.cwd(), 'src/components/Scriptorium.css'), 'utf8');
+                join(process.cwd(), 'src/components/make/Scriptorium.css'), 'utf8');
             const rule = css.match(/\.scriptorium-material-notice\s*\{([^}]*)\}/u);
             expect(rule, '.scriptorium-material-notice has no rule of its own').toBeTruthy();
             // Anything but the fog it used to inherit from .scriptorium-note.

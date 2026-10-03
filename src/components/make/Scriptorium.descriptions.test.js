@@ -20,8 +20,8 @@
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { Scriptorium } from './Scriptorium.js';
-import { sequenceAssetForPersistence } from '../core/visual-score-lane.js';
-import { READING_LIMITS } from '../core/reading-limits.js';
+import { sequenceAssetForPersistence } from '../../core/visual-score-lane.js';
+import { READING_LIMITS } from '../../core/reading-limits.js';
 
 const png = (name = 'cliff-at-dusk.png') =>
     new File([new Uint8Array(64)], name, { type: 'image/png' });

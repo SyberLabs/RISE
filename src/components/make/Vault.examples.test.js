@@ -1,6 +1,6 @@
 import { afterEach, expect, it, vi } from 'vitest';
 import { Vault } from './Vault.js';
-import { MemoryCore } from '../core/memory.js';
+import { MemoryCore } from '../../core/memory.js';
 
 afterEach(() => {
   vi.restoreAllMocks();

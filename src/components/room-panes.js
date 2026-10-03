@@ -55,11 +55,14 @@ export function createPaneHost({ container, loaders, factories, home = null, onK
 
     instance,
 
-    /** Show a pane, or the room's home when `name` is not a pane. */
+    /**
+     * Show a pane, or the room's home when `name` is not a pane. Resolves
+     * false when that pane already shows with that data, true otherwise.
+     */
     async show(name, data = {}) {
       if (!loaders[name]) name = null;
       const { pane: _pane, ...next } = data || {};
-      if (active === name && (!name || sameData(panes.get(name)?.data, next))) return;
+      if (active === name && (!name || sameData(panes.get(name)?.data, next))) return false;
 
       const wasActive = activated;
       host.deactivate();
@@ -71,6 +74,7 @@ export function createPaneHost({ container, loaders, factories, home = null, onK
       } finally {
         if (wasActive) host.activate();
       }
+      return true;
     },
 
     update(data) {
