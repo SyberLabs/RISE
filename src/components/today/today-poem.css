@@ -1,6 +1,14 @@
 /* Today's poem: one vertical axis, the mandala as the view's one live plate.
    Tokens: design-system.css (--sy-*). Header and alert: room-chrome.css. */
 
+/* The app body is overflow:hidden; the room scrolls inside itself, as Chapel does. */
+.today-room {
+  height: 100vh;
+  height: 100dvh;
+  overflow-y: auto;
+  background: var(--sy-bg);
+}
+
 .today {
   --sy-plate-tick: var(--sy-accent-rise);
   box-sizing: border-box;

@@ -39,7 +39,7 @@ export class TodayPoem {
   render() {
     const day = this.date.toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long' });
     const byline = this.work ? `${this.work.author}, from ${this.work.title}` : '';
-    this.container.innerHTML = `
+    this.container.innerHTML = `<div class="today-room">
       ${roomHeader({ back: 'Home', backLabel: 'Return to Home' })}
       <main class="today" id="main-content" aria-labelledby="today-title">
         ${roomEyebrow(`Today's poem, ${escapeHtml(day)}`, 'today-eyebrow')}
@@ -56,7 +56,7 @@ export class TodayPoem {
           <button type="button" class="btn btn-primary" data-begin disabled>Begin this poem</button>
           <p class="today-note">A new poem, and a new mark, at midnight.</p>
         </div>
-      </main>`;
+      </main></div>`;
   }
 
   attachEvents() {
@@ -113,7 +113,9 @@ export class TodayPoem {
     if (!entry || !button || button.disabled) return;
     button.disabled = true;
     button.setAttribute('aria-busy', 'true');
-    const opened = await this.onBegin({
+    // Busy until the reader opens (or fails to). Either way the view is
+    // where the reader comes back to, so Begin is ready again after.
+    await this.onBegin({
       text: entry.content,
       textSource: `${work.title} · ${poemTitle(entry.label)}`,
       wpm: work.defaultWpm,
@@ -131,7 +133,7 @@ export class TodayPoem {
       },
       origin: { view: 'today', name: 'Today\'s poem' }
     });
-    if (!opened && button.isConnected) {
+    if (button.isConnected) {
       button.disabled = false;
       button.removeAttribute('aria-busy');
     }

@@ -77,6 +77,9 @@ describe('TodayPoem', () => {
         entryCount: 2
       })
     }));
+    // Leaving the reading returns here; the poem can be begun again.
+    expect(container.querySelector('[data-begin]').disabled).toBe(false);
+    expect(container.querySelector('[data-begin]').hasAttribute('aria-busy')).toBe(false);
     view.destroy();
   });
 
