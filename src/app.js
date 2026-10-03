@@ -461,7 +461,6 @@ class App {
             openMintedProgram: slug => this.openMintedProgram(slug),
             handleSequenceSelection: sequenceId => this.handleSequenceSelection(sequenceId),
             handleCreateSession: this.handleCreateSession,
-            handleArchetypeLaunch: data => this.handleArchetypeLaunch(data),
             handleBeginSession: session => this.handleBeginSession(session),
             useRecipeInReading: recipe => this.useRecipeInReading(recipe),
             router: this.router,
@@ -619,37 +618,6 @@ class App {
                     audioPreset: sequence.audioPreset || 'silent',
                     soundscape: sequence.soundscape || 'none',
                     origin: { view: 'library', icon: '◇', name: 'Library' }
-                }
-            }
-        });
-    }
-
-    /**
-     * Handle archetype launch from Vault
-     * Merges archetype config with sequence content and navigates to Chamber
-     * @param {Object} data - { archetype, sequence, config }
-     */
-    handleArchetypeLaunch(data) {
-        console.log('[RISE] Archetype launch:', data.archetype.name, 'with sequence:', data.sequence.name);
-
-        const { archetype, sequence, config } = data;
-
-        // Navigate to Chamber with full archetype configuration
-        this.router.navigate('chamber', {
-            data: {
-                text: sequence.content,
-                source: `${archetype.name}: ${sequence.name}`,
-                config: {
-                    wpm: config.wpm,
-                    curve: config.curve,
-                    // A curated sequence may author its own chunking —
-                    // the reading unit is part of the curation, not a
-                    // leftover of the reader's last session
-                    ...(config.chunkMode ? { chunkMode: config.chunkMode } : {}),
-                    audioPreset: config.audioPreset || 'silent',
-                    soundscape: config.soundscape || 'none',
-                    visualConfig: config.visualConfig || { visualMode: 'off' },
-                    origin: { view: 'vault', icon: '◈', name: 'Vault' }
                 }
             }
         });

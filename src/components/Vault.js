@@ -1,7 +1,6 @@
 import { STARTER_SEQUENCES } from '../content/starters.js';
 import { PORTABLE_EXAMPLES } from '../content/portable-examples.js';
 import { MemoryCore } from '../core/memory.js';
-import { VAULT_A_SEQUENCES, VAULT_A_ARCHETYPE } from '../content/personalized/vault-a.js';
 import { escapeHtml } from '../core/sanitize.js';
 import { isPersonalProject } from '../core/personal-identity.js';
 import { personalSession } from '../core/personal-project.js';
@@ -14,31 +13,15 @@ import {
 } from '../core/portable-sequence.js';
 import './Library.css';
 
-// Personalized vault configurations
-const PERSONALIZED_VAULTS = {
-  'vault-a': {
-    name: 'Dr. Ackerman',
-    greeting: 'A vault prepared especially for you.',
-    sequences: VAULT_A_SEQUENCES,
-    archetype: VAULT_A_ARCHETYPE
-  }
-  // Add more personalized vaults here as needed
-};
-
 export class Vault {
   constructor(container, options = {}) {
     this.container = container;
     this.onNavigate = options.onNavigate || (() => {});
     this.onSelectSequence = options.onSelectSequence || (() => {});
     this.onSelectBlueprint = options.onSelectBlueprint || (() => {});
-    this.onLaunchArchetype = options.onLaunchArchetype || (() => {});
     this.getAudioEngine = options.getAudioEngine || (() => null);
 
-    // Check for personalized vault
-    this.personalizedVaultId = options.personalizedVault || null;
-    this.personalizedVault = this.personalizedVaultId ? PERSONALIZED_VAULTS[this.personalizedVaultId] : null;
-
-    this.currentSection = options.initialSection === 'custom' ? 'custom' : this.personalizedVault ? 'personalized' : 'sequences';
+    this.currentSection = options.initialSection === 'custom' ? 'custom' : 'sequences';
     this.blueprints = MemoryCore.getWorkshopBlueprints();
     this.pendingPortable = null;
     this.portableNotice = '';
@@ -53,10 +36,8 @@ export class Vault {
   }
 
   render() {
-    const isPersonalized = !!this.personalizedVault;
-
     this.container.innerHTML = `
-      <div class="library vault ${isPersonalized ? 'vault-personalized' : ''}" role="main">
+      <div class="library vault" role="main">
         <!-- Header -->
         <header class="library-header">
           <div class="library-title-section">
@@ -64,18 +45,13 @@ export class Vault {
               <span class="icon" aria-hidden="true">←</span>
               <span>Home</span>
             </button>
-            <h1>${isPersonalized ? 'Your sequences' : 'Sequences'}</h1>
+            <h1>Sequences</h1>
           </div>
 
           <!-- Section Navigation -->
           <nav class="library-nav nav" aria-label="Sequence sections">
-            ${isPersonalized ? `
-              <button class="nav-item" data-section="personalized">For You</button>
-              <button class="nav-item" data-section="custom">Custom</button>
-            ` : `
-              <button class="nav-item" data-section="sequences">All Sequences</button>
-              <button class="nav-item" data-section="custom">Custom</button>
-            `}
+            <button class="nav-item" data-section="sequences">All Sequences</button>
+            <button class="nav-item" data-section="custom">Custom</button>
           </nav>
         </header>
 
@@ -90,72 +66,9 @@ export class Vault {
   }
 
   renderSection(section) {
-    if (section === 'personalized') return this.renderPersonalizedSection();
     if (section === 'sequences') return this.renderSequencesSection();
     if (section === 'custom') return this.renderCustomSection();
     return '';
-  }
-
-  renderPersonalizedSection() {
-    if (!this.personalizedVault) return '';
-
-    const vault = this.personalizedVault;
-    const archetype = vault.archetype;
-    const sequences = vault.sequences || [];
-
-    return `
-      <div class="library-section personalized-section">
-        <!-- Individual Sequences. The heading alone carries this: the
-             invitation and the section title have already said the
-             readings were chosen for this reader. -->
-        <div class="section-header">
-          <h2 class="text-light">Curated Sequences</h2>
-        </div>
-        <div class="sequences-grid" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 1.5rem; margin-top: 1rem;">
-          ${sequences.map(seq => this.renderPersonalizedSequenceCard(seq, archetype)).join('')}
-        </div>
-      </div>
-    `;
-  }
-
-  renderPersonalizedSequenceCard(seq, archetype) {
-    const wordCount = seq.content.split(/\s+/).length;
-    // The sequence's own pace wins — it is what actually launches
-    const wpm = seq.wpm || archetype?.config?.wpm || 200;
-    const duration = Math.floor((wordCount / wpm) * 60 * 1000);
-
-    // Provenance is part of the reading, not a footnote: a vault of
-    // someone's own work must say which paper each passage came from.
-    const source = seq.source
-      ? `
-        <p class="sequence-source text-mist font-mono">
-          <span class="sequence-source-title">${escapeHtml(seq.source.title)}</span>
-          <span class="meta-separator">·</span>
-          <span>${escapeHtml(String(seq.source.venue || ''))}</span>
-          ${seq.source.year ? `<span class="meta-separator">·</span><span>${escapeHtml(String(seq.source.year))}</span>` : ''}
-        </p>`
-      : '';
-
-    return `
-      <div class="sequence-card card card-interactive" data-personalized-seq="${seq.id}">
-        <div class="sequence-header">
-          <h3 class="sequence-title text-light">${escapeHtml(seq.name)}</h3>
-          <span class="sequence-intent text-uppercase">${escapeHtml(seq.category || 'curated')}</span>
-        </div>
-        <p class="sequence-description text-fog">${escapeHtml(seq.description)}</p>
-        ${source}
-        <div class="sequence-meta text-fog font-mono" style="margin-top: 1rem; align-items: center; display: flex; gap: 0.5rem;">
-          <span>${this.formatDuration(duration)}</span>
-          <span class="meta-separator">·</span>
-          <span>${wpm} WPM</span>
-          <span class="meta-separator">·</span>
-          <span>${escapeHtml(seq.curve || archetype?.config?.curve || 'wave')}</span>
-        </div>
-        <div class="sequence-actions" style="margin-top: 1.5rem;">
-          <button class="btn-secondary" data-action="launch-personalized" data-seq-id="${seq.id}">Experience</button>
-        </div>
-      </div>
-    `;
   }
 
   renderSequencesSection() {
@@ -391,13 +304,7 @@ export class Vault {
 
       const action = target.dataset.action;
 
-      if (action === 'launch-personalized') {
-        this.getAudioEngine()?.playClick();
-        const seqId = target.dataset.seqId;
-        if (this.personalizedVault) {
-          this.launchPersonalizedSequence(seqId);
-        }
-      } else if (action === 'begin-starter') {
+      if (action === 'begin-starter') {
          this.getAudioEngine()?.playClick();
          this.onSelectSequence(target.dataset.id);
       } else if (action === 'try-example' || action === 'keep-example') {
@@ -523,37 +430,6 @@ export class Vault {
     }
     this.portableBusy = false;
     this.refreshBlueprints();
-  }
-
-  launchPersonalizedSequence(sequenceId) {
-    if (!this.personalizedVault) return;
-
-    const vault = this.personalizedVault;
-    const sequence = vault.sequences.find(s => s.id === sequenceId);
-    if (!sequence) return;
-
-    const archetype = vault.archetype;
-
-    // Merge archetype config with sequence. A personalized sequence may
-    // carry its own sensory identity — the archetype is the house style,
-    // the sequence is the specific room. Anything the sequence states
-    // explicitly wins; anything it omits inherits.
-    const mergedConfig = {
-      ...archetype.config,
-      wpm: sequence.wpm || archetype.config.wpm,
-      curve: sequence.curve || archetype.config.curve,
-      audioPreset: sequence.audioPreset || archetype.config.audioPreset,
-      ...(sequence.soundscape ? { soundscape: sequence.soundscape } : {}),
-      ...(sequence.chunkMode ? { chunkMode: sequence.chunkMode } : {}),
-      ...(sequence.visualConfig ? { visualConfig: sequence.visualConfig } : {})
-    };
-
-    // Emit combined launch
-    this.onLaunchArchetype({
-      archetype: archetype,
-      sequence: sequence,
-      config: mergedConfig
-    });
   }
 
   handleKeyboard(e) {

@@ -47,9 +47,7 @@ export function createRouteManifest(operations) {
         onNavigate: operations.handleNavigate,
         onSelectSequence: operations.handleSequenceSelection,
         onSelectBlueprint: operations.handleCreateSession,
-        onLaunchArchetype: operations.handleArchetypeLaunch,
         getAudioEngine: operations.getAudioEngine,
-        personalizedVault: data?.personalizedVault || null,
         initialSection: data?.section
       })
     },

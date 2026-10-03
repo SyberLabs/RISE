@@ -61,15 +61,5 @@ describe('Vault room chrome', () => {
 
         vault.destroy?.();
         container.remove();
-
-        const personal = document.createElement('div');
-        document.body.appendChild(personal);
-        const personalVault = new Vault(personal, { personalizedVault: 'vault-a' });
-        expect(personal.querySelector('.sequence-card'),
-            'a personalized vault must still present Sequences').toBeTruthy();
-        expect(personal.querySelector('[data-section="archetypes"]')).toBeNull();
-        expect(personal.querySelector('.archetype-card')).toBeNull();
-        personalVault.destroy?.();
-        personal.remove();
     });
 });
