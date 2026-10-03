@@ -11,6 +11,7 @@ import {
 // Brightness buckets in the renderer; quality steps consume these from
 // the dim end, so the ceiling must leave real strands to draw.
 const NB_BUCKETS = 7;
+const FRAME_60 = 1000 / 60;
 
 // The field drives a canvas on a RAF loop; stub just enough that the
 // constructor and one tick can run in jsdom.
@@ -250,16 +251,21 @@ describe('Attractor forms', () => {
     const field = new AttractorField(makeHost(), { form: 'kaleido' });
     expect(field.quality).toBe(0);
 
-    // One slow frame must never degrade anything — averaged over a window
+    // A single late frame cannot outweigh a healthy display-paced window.
     field.measureQuality(300);
+    for (let i = 0; i < 45; i++) field.measureQuality(1000 / 60);
     expect(field.quality).toBe(0);
 
-    // Sustained slowness steps down, once per window
+    // A 30fps display is still healthy; sustained intervals below 25fps
+    // are what make quality step down.
+    for (let i = 0; i < 90; i++) field.measureQuality(1000 / 30);
+    expect(field.quality).toBe(0);
     for (let i = 0; i < 45; i++) field.measureQuality(70);
-    expect(field.quality).toBe(1);
+    expect(field.quality).toBeGreaterThan(0);
 
-    // And recovery restores detail when the machine frees up
-    for (let i = 0; i < 45; i++) field.measureQuality(1000 / 60);
+    // Good frame windows restore detail, with longer recovery backoff
+    // covered separately below.
+    for (let i = 0; i < 45 * 28; i++) field.measureQuality(FRAME_60);
     expect(field.quality).toBe(0);
 
     field.destroy();
@@ -329,7 +335,7 @@ describe('Attractor adaptive quality', () => {
   it('steps down when frames arrive slowly, though its own drawing is cheap', () => {
     const { field, frames } = liveField({ form: 'kaleido' });
     frames(46, 70);
-    expect(field.quality).toBe(1);
+    expect(field.quality).toBe(field.maxQuality);
     frames(45 * 4, 70);
     expect(field.quality).toBe(field.maxQuality);
     field.destroy();
@@ -342,8 +348,39 @@ describe('Attractor adaptive quality', () => {
     frames(45 * 3, 1000 / 30);
     expect(field.quality).toBe(0);
     frames(45 * 2, 70);
-    expect(field.quality).toBe(2);
-    frames(45 * 2, 1000 / 60);
+    expect(field.quality).toBeGreaterThan(0);
+    frames(45 * 28, FRAME_60);
+    expect(field.quality).toBe(0);
+    field.destroy();
+  });
+
+  it('responds within a few actual frames when raster latency is severe', () => {
+    const { field, frames } = liveField({ form: 'kaleido' });
+    frames(4, 600);
+    expect(field.quality).toBe(1);
+    frames(6, 600);
+    expect(field.quality).toBe(field.maxQuality);
+    field.destroy();
+  });
+
+  it('waits longer each time before retrying detail that proved too slow', () => {
+    const { field } = liveField({ form: 'kaleido' });
+    const slowWindow = () => { for (let i = 0; i < 20; i++) field.measureQuality(50); };
+    const fastWindow = () => { for (let i = 0; i < 45; i++) field.measureQuality(FRAME_60); };
+
+    slowWindow();
+    expect(field.quality).toBe(1);
+    fastWindow();
+    fastWindow();
+    expect(field.quality).toBe(0);
+
+    slowWindow();
+    expect(field.quality).toBe(1);
+    fastWindow();
+    fastWindow();
+    fastWindow();
+    expect(field.quality).toBe(1);
+    fastWindow();
     expect(field.quality).toBe(0);
     field.destroy();
   });
@@ -351,6 +388,7 @@ describe('Attractor adaptive quality', () => {
   it('does not count a tab switch or a pause as a slow frame', () => {
     const { field, frames, wait } = liveField({ form: 'kaleido' });
     frames(30, 1000 / 60);
+    document.dispatchEvent(new Event('visibilitychange'));
     frames(1, 10_000);
     frames(15, 1000 / 60);
     expect(field.quality).toBe(0);
@@ -364,6 +402,18 @@ describe('Attractor adaptive quality', () => {
     field.destroy();
   });
 
+  it('caps its backing store at 1.5x on dense displays', () => {
+    const dpr = vi.spyOn(window, 'devicePixelRatio', 'get').mockReturnValue(3);
+    const field = new AttractorField(makeHost(), { form: 'kaleido' });
+    expect(field.canvas.width).toBe(800 * 1.5);
+    expect(field.canvas.height).toBe(600 * 1.5);
+    field.destroy();
+    dpr.mockReturnValue(1);
+    const plain = new AttractorField(makeHost());
+    expect(plain.canvas.width).toBe(800);
+    plain.destroy();
+  });
+
   it('counts only the live loop, not a Page plate sampled between frames', () => {
     vi.spyOn(HTMLCanvasElement.prototype, 'toDataURL').mockReturnValue('data:image/webp;base64,');
     const { field, frames } = liveField({ form: 'kaleido' });
@@ -371,7 +421,7 @@ describe('Attractor adaptive quality', () => {
       frames(1, 70);
       field.sampleAt(i);
     }
-    expect(field.quality).toBe(1);
+    expect(field.quality).toBe(field.maxQuality);
     field.destroy();
   });
 

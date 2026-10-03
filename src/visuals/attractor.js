@@ -183,17 +183,16 @@ const KALEIDO_MUL = 0.52;
  * buckets, which removes the dimmest strands first) before ever reducing
  * the symmetry, because the SHAPE is the thing worth preserving.
  */
-// Sustained frame rates below DEGRADE_BELOW_FPS step down, above
-// RESTORE_ABOVE_FPS step back up. The floor sits under 30fps, so a
-// display or power saver that caps animation at 30fps is not mistaken
-// for load. One step measured 1.78-1.85x faster on a software canvas;
-// the band is 2.2x, so a restored step does not fall straight back, and
-// a 60Hz display still restores.
-const DEGRADE_BELOW_FPS = 25;
-const RESTORE_ABOVE_FPS = 55;
+const FRAME_BUDGET_MS = 1000 / 60;
+// Keep the repair branch's healthy 30fps floor while measuring actual rAF
+// intervals. Sustained intervals above 40ms (under 25fps) step down.
+const DEGRADE_AT = 2.4;
+const RESTORE_AT = 1.15;
+// Fast windows still catch a very slow canvas promptly; isolated late frames
+// are diluted by the one-second / 45-frame averaging window.
 const QUALITY_SAMPLE_FRAMES = 45;
-// A longer gap is a hidden tab, an offscreen frame or a pause, not a frame.
-const LONG_GAP_MS = 500;
+const QUALITY_WINDOW_MS = 1000;
+const QUALITY_MIN_FRAMES = 3;
 
 const wrap01 = v => v - Math.floor(v);
 const REDUCED_STILL_SECONDS = 7.5;
@@ -266,9 +265,13 @@ export class AttractorField {
         this.quality = 0;
         this.maxQuality = 3;
         this.adaptive = options.adaptive !== false;
-        this._frameIntervalMs = 0;
+        this._intervalSumMs = 0;
         this._sampleCount = 0;
+        this._restoreWindows = 1;
+        this._goodWindows = 0;
         this._lastFrameAt = null;
+        this._forgetLastFrame = () => { this._lastFrameAt = null; };
+        document.addEventListener('visibilitychange', this._forgetLastFrame);
 
         this.tick = this.tick.bind(this);
         this.rafId = requestAnimationFrame(this.tick);
@@ -323,7 +326,7 @@ export class AttractorField {
     }
 
     resize() {
-        this.DPR = Math.min(window.devicePixelRatio || 1, 2);
+        this.DPR = Math.min(window.devicePixelRatio || 1, 1.5);
         this.W = this.host.clientWidth || window.innerWidth;
         this.H = this.host.clientHeight || window.innerHeight;
         this.canvas.width = Math.round(this.W * this.DPR);
@@ -537,10 +540,14 @@ export class AttractorField {
 
         ctx.globalCompositeOperation = 'source-over';
         this._hasPaintedFrame = true;
-        if (!oneShot && !reduced && this._sampleT == null) {
-            const last = this._lastFrameAt;
-            this._lastFrameAt = now;
-            if (last != null && now - last < LONG_GAP_MS) this.measureQuality(now - last);
+        // Only consecutive live frames measure display pace; one-shot,
+        // reduced-motion and Page Mode samples do not enter quality windows.
+        if (!oneShot && this._sampleT == null) {
+            if (reduced) this._lastFrameAt = null;
+            else {
+                if (this._lastFrameAt != null) this.measureQuality(now - this._lastFrameAt);
+                this._lastFrameAt = now;
+            }
         }
         this._syncProjection();
         if (!this.projectionHost) reportProjectionPaint(this);
@@ -689,27 +696,35 @@ export class AttractorField {
     }
 
     /**
-     * Watch how far apart this field's frames arrive and step quality to
-     * match the hardware it is actually running on.
-     *
-     * Averaged over a window so a single slow frame (a GC pause, a tab
-     * regaining focus) never degrades the field, and recovery is allowed
-     * so a machine that was briefly busy gets its detail back.
-     * @param {number} intervalMs - milliseconds since the previous frame
+     * Watch actual animation-frame intervals and adjust the filament detail.
+     * Short windows make very slow software canvases recover quickly; growing
+     * the number of good windows needed for restoration prevents flicker.
+     * @param {number} intervalMs - milliseconds since the previous live frame
      */
     measureQuality(intervalMs) {
         if (!this.adaptive) return;
-        this._frameIntervalMs += intervalMs;
-        if (++this._sampleCount < QUALITY_SAMPLE_FRAMES) return;
+        this._intervalSumMs += intervalMs;
+        const count = ++this._sampleCount;
+        if (count < QUALITY_SAMPLE_FRAMES
+            && (count < QUALITY_MIN_FRAMES || this._intervalSumMs < QUALITY_WINDOW_MS)) return;
 
-        const mean = this._frameIntervalMs / this._sampleCount;
-        this._frameIntervalMs = 0;
+        const mean = this._intervalSumMs / count;
+        this._intervalSumMs = 0;
         this._sampleCount = 0;
 
-        if (mean > 1000 / DEGRADE_BELOW_FPS && this.quality < this.maxQuality) {
-            this.quality++;
-        } else if (mean < 1000 / RESTORE_ABOVE_FPS && this.quality > 0) {
-            this.quality--;
+        if (mean > FRAME_BUDGET_MS * DEGRADE_AT) {
+            this._goodWindows = 0;
+            if (this.quality < this.maxQuality) {
+                this.quality++;
+                this._restoreWindows *= 2;
+            }
+        } else if (mean < FRAME_BUDGET_MS * RESTORE_AT && this.quality > 0) {
+            if (++this._goodWindows >= this._restoreWindows) {
+                this.quality--;
+                this._goodWindows = 0;
+            }
+        } else {
+            this._goodWindows = 0;
         }
     }
 
@@ -833,6 +848,7 @@ export class AttractorField {
         this.rafId = null;
         this.resizeObserver?.disconnect();
         window.removeEventListener('resize', this.resize);
+        document.removeEventListener('visibilitychange', this._forgetLastFrame);
         this._teardownProjection();
         this.projectionHost = null;
         this.canvas.remove();
