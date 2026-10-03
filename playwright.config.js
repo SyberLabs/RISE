@@ -7,7 +7,8 @@ import { defineConfig } from '@playwright/test';
  * ships is what gets tested.
  *
  *   npm run test:e2e         everything, in two projects, each spec once
- *   npm run test:e2e:gate    the corridor, for a fast loop before pushing
+ *   npm run test:e2e:gate    the corridor: a fast loop before pushing, and a
+ *                            required step of every pull request's CI
  */
 
 /**
@@ -35,8 +36,9 @@ import { defineConfig } from '@playwright/test';
  *   journeys          Home and the Vault offer no Journeys door
  *   curation          what the shelf is allowed to show
  *
- * Full coverage runs in four shards on main without holding the release.
- * This corridor remains the local fast check before pushing. The two
+ * Full coverage runs in sixteen shards on main without holding the release.
+ * This corridor is the local fast check before pushing and runs in every
+ * pull request's required CI job. The two
  * projects partition the suite, so `playwright test` with no argument —
  * which is what each shard invokes — runs everything exactly once.
  */

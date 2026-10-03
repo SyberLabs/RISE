@@ -70,12 +70,6 @@ jobs:
       # required check opened one. The gate is the fast browser subset.
       - name: Browser gate
         run: npm run test:e2e:gate
-      - uses: actions/upload-artifact@v4
-        if: ${{ failure() }}
-        with:
-          name: playwright-report-gate
-          path: playwright-report/
-          retention-days: 7
   production:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
