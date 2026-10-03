@@ -13,6 +13,12 @@ import { pathToFileURL } from 'node:url';
 import { divideSections } from '../src/content/archive/divisions.js';
 import { releaseArchiveMetadata } from '../src/content/archive/index.js';
 import { TODAY_WORKS } from '../src/core/today-poem.js';
+import { installContentPlaneFetch } from './lib/content-plane-fetch.mjs';
+
+// Every Node entrance to the archive installs the transport
+// (src/test/content-plane-entrances.test.js). This one reads only metadata
+// and the committed works modules, so it is never used here, and costs nothing.
+installContentPlaneFetch();
 
 const OUT = new URL('../src/content/archive/today-openings.json', import.meta.url);
 
