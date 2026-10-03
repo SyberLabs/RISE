@@ -1,12 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { Chamber } from './Chamber.js';
-import { visualCortex } from '../visuals/visual-cortex.js';
-import { ContinuousField } from '../visuals/continuous-field.js';
+import { visualCortex } from '../../visuals/visual-cortex.js';
+import { ContinuousField } from '../../visuals/continuous-field.js';
 import {
     beginNonFlashingVisualSession,
     endVisualInterlocutionSession
-} from '../core/visual-safety.js';
-import { compileSession } from '../core/session-compiler.js';
+} from '../../core/visual-safety.js';
+import { compileSession } from '../../core/session-compiler.js';
 
 const STILL = { id: 'still-1', kind: 'image', uri: 'https://example.test/still.jpg', name: 'Still' };
 const MP4 = {

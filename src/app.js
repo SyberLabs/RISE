@@ -515,7 +515,8 @@ class App {
      * Handle navigation requests from components
      */
     handleNavigationIntent(viewName, options = {}) {
-        if (viewName === 'chamber-session' && options.launchRevision === this.sessionLaunchRevision) return;
+        if (viewName === 'read' && options.data?.pane === 'chamber'
+            && options.launchRevision === this.sessionLaunchRevision) return;
         ++this.sessionLaunchRevision;
         this.router.getViewInstance(this.router.getCurrentView())?.navigationIntent?.();
     }
@@ -1031,7 +1032,7 @@ class App {
             this.audioEngine.setMasterVolume(this.settings.masterVolume);
         }
         if (keys.some(key => ['chamberFace', 'chamberMask', 'fontSize'].includes(key))) {
-            const chamber = this.router?.getViewInstance?.('chamber-session');
+            const chamber = this.router?.getViewInstance?.('read')?.paneInstance('chamber');
             chamber?.applyChamberStreamFace?.();
             chamber?.applyChamberMask?.();
             if (Object.hasOwn(next, 'fontSize')) chamber?.applyChamberTypeSize?.();
@@ -1169,7 +1170,7 @@ class App {
         watchTabFreshness({
             router: this.router,
             isReading: () => {
-                const state = this.router?.views?.get('chamber')?.instance
+                const state = this.router?.getViewInstance('read')?.paneInstance('chamber')
                     ?.player?.sessionState?.state;
                 return state === 'playing' || state === 'interlocuting';
             },
@@ -1220,8 +1221,9 @@ class App {
             this.handleNavigationIntent('history');
             const route = await this.resolveAddress();
             if (historyGeneration !== this._historyNavigationGeneration) return;
-            if (route.rewrite && this.router?.getCurrentView() === route.id && !this.router.transitioning) {
-                // Already showing the room the address should have named.
+            if (route.rewrite && this.router?.getCurrentView() === route.id && !this.router.transitioning
+                && this.router.getViewInstance(route.id)?.activePane === route.data.pane) {
+                // Already showing the room and pane the address should have named.
                 this.router.updateAddress(route.data);
                 return;
             }
@@ -1256,10 +1258,12 @@ class App {
         // History never resurrects a reading: the Chamber is only the answer
         // while it is still on screen with its session, and not while the
         // reader is already leaving it (the address changes as a move begins).
-        if (route?.id === 'chamber-session'
-            && !(this.router?.getCurrentView() === 'chamber-session' && this.currentSession
-                && !this.router.transitioning)) {
-            route = { id: 'chamber', data: {}, rewrite: true };
+        if (route?.id === 'read' && route.data.pane === 'chamber') {
+            const showing = this.router?.getCurrentView() === 'read' && this.router.currentData?.pane === 'chamber'
+                && this.currentSession && !this.router.transitioning;
+            route = showing
+                ? { id: 'read', data: this.router.currentData }
+                : { id: 'read', data: { pane: 'setup' }, rewrite: true };
         }
         if (!route || !this.router?.views?.has(route.id)) route = { id: 'portal', data: {} };
         return route;

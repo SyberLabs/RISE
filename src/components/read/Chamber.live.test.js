@@ -10,8 +10,8 @@
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { Chamber } from './Chamber.js';
-import { Player } from '../core/player.js';
-import { compileRiseCurrent } from '../core/rise-current.js';
+import { Player } from '../../core/player.js';
+import { compileRiseCurrent } from '../../core/rise-current.js';
 
 const SEGMENTS = [
     { id: 'a', text: 'A black hole is a region where gravity is strong.', visual: 'attractor' },

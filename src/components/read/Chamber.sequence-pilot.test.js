@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { Chamber } from './Chamber.js';
-import { SEQUENCE_PILOT } from '../content/sequence-pilot.js';
-import { listSequencePilotFeedback } from '../core/sequence-pilot-feedback.js';
+import { SEQUENCE_PILOT } from '../../content/sequence-pilot.js';
+import { listSequencePilotFeedback } from '../../core/sequence-pilot-feedback.js';
 
 function mount(provenance) {
   const container = document.createElement('div');

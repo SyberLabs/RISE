@@ -75,8 +75,12 @@ export class Router {
         // An old id that became a pane of a room carries the pane's name.
         const viewName = ROUTE_ALIASES[requestedView] ?? requestedView;
         if (viewName !== requestedView && ROUTE_PANES[requestedView]) {
-            options = { ...options, data: { ...options.data, pane: ROUTE_PANES[requestedView] } };
+            // A reading's session is carried whole, never copied: the shell
+            // and the live hand-off know it by identity.
+            const data = requestedView === 'chamber-session' ? { session: options.data } : options.data;
+            options = { ...options, data: { ...data, pane: ROUTE_PANES[requestedView] } };
         }
+        const launchesReading = viewName === 'read' && options.data?.pane === 'chamber';
         const revision = queuedRevision ?? ++this.navigationRevision;
         if (queuedRevision === undefined) this.onNavigationIntent(viewName, options);
         console.log(`[Router] Navigate to: ${viewName}, from: ${this.currentView}`);
@@ -114,7 +118,7 @@ export class Router {
         // the move begins, not after a slow room (a reading) has initialised.
         this.writeAddress(viewName, options);
         const assertCurrentLaunch = () => {
-            if (viewName === 'chamber-session' && revision !== this.navigationRevision) {
+            if (launchesReading && revision !== this.navigationRevision) {
                 throw new DOMException('Launch cancelled', 'AbortError');
             }
         };
@@ -167,10 +171,7 @@ export class Router {
             succeeded = true;
         } catch (error) {
             if (error?.name !== 'AbortError') console.error(`[Router] Navigation to "${viewName}" failed:`, error);
-            if (viewName === 'chamber-session') {
-                newView.instance?.destroy?.();
-                newView.instance = null;
-            }
+            if (launchesReading) newView.instance?.closePane?.('chamber');
 
             // A missing chunk cannot be recovered from in this session:
             // the shell itself is out of date. Reload once to pick up
@@ -251,10 +252,11 @@ export class Router {
         // room: data too large to be an address (a session) is left out.
         // Browsers cap serialized history state (640 KB in Firefox, less
         // elsewhere); 4000 characters stays far under any of them.
-        let data = {};
+        // A reading's session is never written, whatever its size.
+        let data = options.data?.session ? { pane: options.data.pane } : {};
         try {
-            const text = JSON.stringify(options.data ?? {});
-            if (text.length <= 4000) data = JSON.parse(text);
+            const text = options.data?.session ? '' : JSON.stringify(options.data ?? {});
+            if (text && text.length <= 4000) data = JSON.parse(text);
         } catch { /* unserializable data stays out of history */ }
         try {
             this.history[(options.replaceUrl ?? options.replace) ? 'replaceState' : 'pushState']({ id, data }, '', target);

@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { compileRiseCurrent, validateRiseCurrent } from './rise-current.js';
 import { directionEligibility } from './passage-visuals/reading-state.js';
-import { Chamber } from '../components/Chamber.js';
+import { Chamber } from '../components/read/Chamber.js';
 
 const current = (patch = {}) => ({
   schema: 'rise.current.v1',

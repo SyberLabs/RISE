@@ -3,9 +3,9 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { Chamber } from './Chamber.js';
-import { Settings } from './Settings.js';
-import { resolveChamberStreamFace } from '../core/chamber-stream-face.js';
-import { resolveChamberAccent } from '../core/chamber-accent.js';
+import { Settings } from '../Settings.js';
+import { resolveChamberStreamFace } from '../../core/chamber-stream-face.js';
+import { resolveChamberAccent } from '../../core/chamber-accent.js';
 
 function fakePlayer(initialState = 'playing') {
   const player = {

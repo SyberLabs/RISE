@@ -1,7 +1,7 @@
 import { sameData } from '../core/same-data.js';
 
 /**
- * The panes of a room (the Library, Make): each program mounts once,
+ * The panes of a room (the Library, Make, Read): each program mounts once,
  * lazily, into its own child element, and only one shows at a time.
  *
  * `loaders[name]()` imports a pane's module; `factories[name](element,
@@ -43,7 +43,8 @@ export function createPaneHost({ container, loaders, factories, home = null, onK
     }
     if (!entry.instance) {
       const module = await loaders[name]();
-      entry.instance = factories[name](entry.element, module, data);
+      // A factory may be async (a reading prepares before it shows).
+      entry.instance = await factories[name](entry.element, module, data);
     }
     entry.data = data;
   }
@@ -79,6 +80,28 @@ export function createPaneHost({ container, loaders, factories, home = null, onK
 
     update(data) {
       return host.show(data?.pane, data);
+    },
+
+    /**
+     * Destroy a pane and remove its element, as if it had never been shown.
+     * Given an instance, only while the pane still holds that one: a pane
+     * shown again since has already destroyed its old instance.
+     * `keepElement` leaves the element, and what it shows, for the pane's
+     * next instance to mount into.
+     */
+    close(name, which = instance(name), { keepElement = false } = {}) {
+      const entry = panes.get(name);
+      if (!entry || entry.instance !== which) return;
+      if (which) {
+        if (active === name && activated) which.deactivate?.();
+        which.destroy?.();
+      }
+      entry.instance = null;
+      entry.data = null;
+      if (keepElement) return;
+      entry.element.remove();
+      panes.delete(name);
+      if (active === name) active = null;
     },
 
     activate() {

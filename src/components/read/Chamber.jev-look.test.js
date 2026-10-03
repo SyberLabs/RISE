@@ -3,8 +3,8 @@ import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { Chamber } from './Chamber.js';
-import { JEV_INKS, JEV_PALETTES } from '../core/jev-palette.js';
-import { JEV_AUDIO_IDS } from '../core/jev-config.js';
+import { JEV_INKS, JEV_PALETTES } from '../../core/jev-palette.js';
+import { JEV_AUDIO_IDS } from '../../core/jev-config.js';
 
 function mount(experience = 'jev', audioEngine = null, overrides = {}) {
   const container = document.createElement('div');

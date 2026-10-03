@@ -476,18 +476,24 @@ describe('the runtime visual bridge', () => {
         // Like the real router while it fades the Chamber in: its reading has begun, but the
         // previous view is still the current one. The host must not wait for that to change.
         const router = {
-            views: new Map(),
-            getCurrentView() { return 'live'; },
-            getViewInstance(name) { return this.views.get(name)?.instance ?? null; },
+            chamber: null,
+            getCurrentView() { return 'read'; },
+            // Read, as the host sees it: the live pane's sibling chamber pane.
+            getViewInstance(name) {
+                return name === 'read' ? {
+                    paneInstance: pane => (pane === 'chamber' ? router.chamber : null),
+                    closePane: () => { router.chamber = null; }
+                } : null;
+            },
             async navigate(name, options = {}) {
                 if (name === 'chamber-session') {
                     const { takeLivePlayer } = await import('../../app/live-handoff.js');
                     const player = takeLivePlayer(options.data);
-                    this.views.set(name, { instance: {
+                    this.chamber = {
                         player,
                         discoverVisual: () => ({ manifest: { surface: 'attractor' }, current: { intensity: 0.65 }, target: { intensity: 0.65 } }),
                         controlVisual: vi.fn(command => ({ status: 'accepted', effective: command.value }))
-                    } });
+                    };
                 }
                 return true;
             }
@@ -497,7 +503,7 @@ describe('the runtime visual bridge', () => {
         await host.start();
         await new Promise(resolve => setTimeout(resolve, 250));
         const player = host.runtime.playerFor();
-        const chamber = router.getViewInstance('chamber-session');
+        const chamber = router.chamber;
         expect(chamber.player).toBe(player);
         expect(host.runtime.discoverVisual()).toMatchObject({ current: { intensity: 0.65 } });
         expect(host.runtime.controlVisual({ surface: 'attractor', parameter: 'intensity', value: 0.7 }))

@@ -14,13 +14,13 @@
  * handler and the DOM is the part jsdom is worst at.
  */
 import { describe, expect, it, vi } from 'vitest';
-import { compileJourney, boundarySourceId } from '../core/journey-compiler.js';
+import { compileJourney, boundarySourceId } from '../../core/journey-compiler.js';
 import {
     MovementScheduleController, AudioScheduleController
-} from '../core/journey-schedulers.js';
-import { VisualScheduleController } from '../core/visual-scheduler.js';
+} from '../../core/journey-schedulers.js';
+import { VisualScheduleController } from '../../core/visual-scheduler.js';
 import { Chamber } from './Chamber.js';
-import { visualCortex } from '../visuals/visual-cortex.js';
+import { visualCortex } from '../../visuals/visual-cortex.js';
 
 const MANIFEST = {
     schemaVersion: 'rise.journey.v1',

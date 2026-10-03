@@ -1,5 +1,5 @@
 /**
- * Put a live reading on screen, in the one Chamber view.
+ * Put a live reading on screen, in Read's chamber pane.
  *
  * The Player is the one the live runtime built for this Current; the factory
  * adopts it (see live-handoff.js) instead of making another. The view replaces
@@ -16,13 +16,9 @@ export async function presentLive(router, session, player) {
     // The reading is the live room's, so it keeps the room's address.
     session.publicPath = LIVE_PATH;
     const mounted = offerLivePlayer(session, player);
-    // The router remounts a view only when it has none: the Chamber that was
-    // showing goes first, and lets go of its Player as it does.
-    const showing = router.views.get('chamber-session');
-    if (showing?.instance) {
-        showing.instance.destroy?.();
-        showing.instance = null;
-    }
+    // The Chamber that was showing goes first, and lets go of its Player as
+    // it does; the live host, Read's other pane, stays.
+    router.getViewInstance('read')?.closePane('chamber');
     const navigation = router.navigate('chamber-session', {
         data: session,
         force: true,

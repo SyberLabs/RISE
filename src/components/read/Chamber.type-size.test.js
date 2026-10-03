@@ -1,8 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { Chamber } from './Chamber.js';
-import { sizeAtomScale } from '../core/recitation.js';
-import { fitWordAtomPx } from '../core/chamber-type-size.js';
-import { visualCortex } from '../visuals/visual-cortex.js';
+import { sizeAtomScale } from '../../core/recitation.js';
+import { fitWordAtomPx } from '../../core/chamber-type-size.js';
+import { visualCortex } from '../../visuals/visual-cortex.js';
 
 function makeChamber(sessionExtra = {}, settings = {}) {
     const container = document.createElement('div');

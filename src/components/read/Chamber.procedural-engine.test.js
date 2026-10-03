@@ -1,11 +1,11 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { Chamber } from './Chamber.js';
-import { visualCortex } from '../visuals/visual-cortex.js';
-import { PROCEDURAL_PATTERN_IDS } from '../core/visual-registry.js';
+import { visualCortex } from '../../visuals/visual-cortex.js';
+import { PROCEDURAL_PATTERN_IDS } from '../../core/visual-registry.js';
 import {
     beginNonFlashingVisualSession,
     endVisualInterlocutionSession
-} from '../core/visual-safety.js';
+} from '../../core/visual-safety.js';
 
 function makeChamber(sessionExtra = {}, settings = {}) {
     const container = document.createElement('div');

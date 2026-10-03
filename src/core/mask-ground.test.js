@@ -64,7 +64,7 @@ describe('source color profiles', () => {
     });
 
     it('the plate stylesheet binds named tokens, never #000 or #fff', () => {
-        const css = readFileSync(resolve('src/components/Chamber.css'), 'utf8');
+        const css = readFileSync(resolve('src/components/read/Chamber.css'), 'utf8');
         const ruleFor = (ground) => css.match(
             new RegExp(`\\.chamber-mask-ground-plate\\[data-ground="${ground}"\\]\\s*\\{([^}]*)\\}`)
         )?.[1];

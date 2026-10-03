@@ -11,7 +11,7 @@ if (typeof globalThis.indexedDB === 'undefined') {
 }
 
 const { ChamberOrbital } = await import('./ChamberOrbital.js');
-const { SEQUENCE_CAPABILITIES } = await import('../core/sequence-capabilities.js');
+const { SEQUENCE_CAPABILITIES } = await import('../../core/sequence-capabilities.js');
 
 function createOrbital(onBeginSession = vi.fn()) {
     const container = document.createElement('div');

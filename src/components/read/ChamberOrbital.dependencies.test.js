@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-vi.mock('../core/personal-swells.js', () => ({
+vi.mock('../../core/personal-swells.js', () => ({
   PersonalSwells: {
     getAll: vi.fn().mockResolvedValue([]),
     removeSwell: vi.fn().mockResolvedValue(undefined),

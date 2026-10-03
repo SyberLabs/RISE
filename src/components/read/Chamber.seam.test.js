@@ -19,9 +19,9 @@
  * shelf really produces rather than strings this file invented.
  */
 import { describe, expect, it } from 'vitest';
-import { compileSession } from '../core/session-compiler.js';
-import { extentSourceName } from '../core/library-extent.js';
-import { EXPERIENCE_PROGRAM_SCHEMA } from '../core/experience-program.js';
+import { compileSession } from '../../core/session-compiler.js';
+import { extentSourceName } from '../../core/library-extent.js';
+import { EXPERIENCE_PROGRAM_SCHEMA } from '../../core/experience-program.js';
 import { Chamber } from './Chamber.js';
 
 const EPITAPH = 'I went to the courthouse and sat all day.\n'

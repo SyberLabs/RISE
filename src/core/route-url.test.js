@@ -80,7 +80,8 @@ describe('route urls', () => {
         expect(routeFromPath('/keystone/meditations'))
             .toEqual({ id: 'library', data: { pane: 'keystones', slug: 'meditations' } });
         expect(pathForRoute('library', { pane: 'keystones', slug: 'meditations' })).toBe('/try-rise');
-        expect(pathForRoute('live')).toBe('/live');
+        expect(pathForRoute('read', { pane: 'live' })).toBe('/live');
+        expect(routeFromPath('/live', '?provider=openai')).toEqual({ id: 'read', data: { pane: 'live' } });
         expect(pathForRoute('make', { pane: 'visual-lab' })).toBe('/visual-lab');
         expect(pathForRoute('make', { pane: 'visual-catalog' })).toBe('/visual-catalog');
         expect(pathForRoute('settings', { pane: 'affect' })).toBe('/emotions');
@@ -94,9 +95,11 @@ describe('route urls', () => {
     });
 
     it('fixes the new paths', () => {
-        expect(pathForRoute('chamber')).toBe('/read');
-        expect(pathForRoute('chamber-session')).toBe('/read/session');
-        expect(routeFromPath('/read/session')).toEqual({ id: 'chamber-session', data: {} });
+        expect(pathForRoute('read')).toBe('/read');
+        expect(pathForRoute('read', { pane: 'setup' })).toBe('/read');
+        expect(routeFromPath('/read')).toEqual({ id: 'read', data: { pane: 'setup' } });
+        expect(pathForRoute('read', { pane: 'chamber' })).toBe('/read/session');
+        expect(routeFromPath('/read/session')).toEqual({ id: 'read', data: { pane: 'chamber' } });
         expect(pathForRoute('make', { pane: 'vault' })).toBe('/make/vault');
         expect(pathForRoute('settings')).toBe('/settings');
     });
@@ -110,12 +113,15 @@ describe('route urls', () => {
         expect(pathForRoute('library', { pane: 'rosary', setId: 'joyful', door: true })).toBe('/library/rosary?set=joyful');
         expect(routeFromPath('/library/rosary', '?set=joyful&icon=pieta').data)
             .toEqual({ pane: 'rosary', setId: 'joyful', iconId: 'pieta' });
-        expect(pathForRoute('chamber-session', { atoms: [1, 2, 3] })).toBe('/read/session');
+        expect(pathForRoute('read', { pane: 'chamber', session: { atoms: [1, 2, 3] } })).toBe('/read/session');
     });
 
     it('lets a reading keep the public address it was opened from', () => {
-        expect(pathForRoute('chamber-session', { publicPath: '/keystone/meditations' })).toBe('/keystone/meditations');
-        expect(pathForRoute('chamber-session', { publicPath: '//evil.example' })).toBe('/read/session');
+        const read = publicPath => pathForRoute('read', { pane: 'chamber', session: { publicPath } });
+        expect(read('/keystone/meditations')).toBe('/keystone/meditations');
+        expect(read('/p/some-sequence')).toBe('/p/some-sequence');
+        expect(read('/live')).toBe('/live');
+        expect(read('//evil.example')).toBe('/read/session');
     });
 
     it('tolerates trailing slashes and refuses bad escapes', () => {

@@ -232,9 +232,10 @@ describe('App safety orchestration', () => {
     const router = new Router();
     router.transitionDuration = 0;
     const update = vi.fn();
-    router.registerView('chamber-session', {
+    const closePane = vi.fn();
+    router.registerView('read', {
       container: chamber,
-      init: (_container, data) => ({ initialData: data, update })
+      init: (_container, data) => ({ initialData: data, update, closePane })
     });
     let release;
     const held = new Promise(resolve => { release = resolve; });
@@ -253,8 +254,9 @@ describe('App safety orchestration', () => {
 
     expect(await launchA).toBe(false);
     expect(await launchB).toBe(true);
-    expect(router.getViewInstance('chamber-session').initialData).toBe(app.currentSession);
-    expect(update).not.toHaveBeenCalled(); // The superseded instance was disposed.
+    // The superseded reading was closed, and the room shows the newer one.
+    expect(closePane).toHaveBeenCalledWith('chamber');
+    expect(update).toHaveBeenLastCalledWith({ session: app.currentSession, pane: 'chamber' });
     expect(app.currentSession.sources[0].id).toBe('B');
     router.destroy();
     chamber.remove();
@@ -323,9 +325,9 @@ describe('App safety orchestration', () => {
     const applyChamberStreamFace = vi.fn();
     const applyChamberMask = vi.fn();
     app.router = {
-      getViewInstance: (name) => name === 'chamber-session'
-        ? { applyChamberStreamFace, applyChamberMask }
-        : null
+      getViewInstance: (name) => (name === 'read'
+        ? { paneInstance: pane => (pane === 'chamber' ? { applyChamberStreamFace, applyChamberMask } : null) }
+        : null)
     };
 
     app.handleSettingsChange('chamberFace', 'jp');
@@ -351,7 +353,7 @@ describe('App safety orchestration', () => {
     const applyChamberMask = vi.fn();
     const applyChamberTypeSize = vi.fn();
     app.router = {
-      getViewInstance: () => ({ applyChamberStreamFace, applyChamberMask, applyChamberTypeSize })
+      getViewInstance: () => ({ paneInstance: () => ({ applyChamberStreamFace, applyChamberMask, applyChamberTypeSize }) })
     };
 
     app.handleSettingsTransaction({
@@ -406,9 +408,9 @@ describe('App safety orchestration', () => {
     const applyChamberMask = vi.fn();
     const applyChamberTypeSize = vi.fn();
     app.router = {
-      getViewInstance: (name) => name === 'chamber-session'
-        ? { applyChamberStreamFace, applyChamberMask, applyChamberTypeSize }
-        : null
+      getViewInstance: (name) => (name === 'read'
+        ? { paneInstance: pane => (pane === 'chamber' ? { applyChamberStreamFace, applyChamberMask, applyChamberTypeSize } : null) }
+        : null)
     };
 
     app.handleSettingsChange('fontSize', 'large');

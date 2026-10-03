@@ -4,9 +4,9 @@
  * that returns to the originating view; plain sessions show nothing.
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { compileSession } from '../core/session-compiler.js';
-import { VisualScheduleController } from '../core/visual-scheduler.js';
-import { chapelSensoryConfig } from '../content/chapel/handoff.js';
+import { compileSession } from '../../core/session-compiler.js';
+import { VisualScheduleController } from '../../core/visual-scheduler.js';
+import { chapelSensoryConfig } from '../../content/chapel/handoff.js';
 
 // jsdom has no indexedDB; PersonalSwells (unrelated to the chip) probes it
 // during orbital init. A never-settling stub keeps the run clean.

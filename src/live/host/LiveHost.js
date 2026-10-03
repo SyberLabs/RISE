@@ -1,5 +1,5 @@
 /**
- * The standalone host for a live Current, at `/live`.
+ * The host for a live Current, at `/live`: the live pane of Read.
  *
  * It is a host, not a room: a prompt, a Start, and, once the answer is being
  * presented in the Chamber, a small set of controls (interrupt, ask about this
@@ -119,7 +119,7 @@ export class LiveHost {
         // Start to the first words is the answer’s and not the network’s.
         this.modules = this.loadModules();
         this.modules.catch(() => {});
-        void import('../../components/Chamber.js').catch(() => {});
+        void import('../../components/read/Chamber.js').catch(() => {});
         this.prefetchMic();
     }
 
@@ -339,7 +339,7 @@ export class LiveHost {
         // The Chamber itself refuses while its view is hidden (Chamber.visualShown), so the host only
         // asks for the instance playing this runtime's Player.
         const mountedChamber = player => {
-            const chamber = this.router?.getViewInstance?.('chamber-session');
+            const chamber = this.router?.getViewInstance?.('read')?.paneInstance('chamber');
             return chamber?.player === player ? chamber : null;
         };
         const runtime = createLiveRuntime({

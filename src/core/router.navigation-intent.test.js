@@ -8,7 +8,7 @@ describe('navigation intent ownership', () => {
     const init = vi.fn();
     const a = document.createElement('main');
     router.registerView('make', { container: a, init: () => ({}) });
-    router.registerView('chamber-session', { container: document.createElement('main'), init });
+    router.registerView('read', { container: document.createElement('main'), init });
     router.registerView('portal', { container: document.createElement('main'), init: () => ({}) });
     router.fadeIn = vi.fn().mockResolvedValue();
     router.fadeOut = vi.fn().mockResolvedValue();

@@ -20,34 +20,38 @@ export function createRouteManifest(operations) {
       })
     },
     {
-      id: 'chamber',
-      containerId: 'view-chamber',
-      load: () => import('../components/ChamberOrbital.js'),
-      create: (container, textData, { ChamberOrbital }) => {
-        const orbital = new ChamberOrbital(container, {
-          onBeginSession: operations.handleBeginSession,
-          onNavigate: operations.handleNavigate,
-          getAudioEngine: operations.getAudioEngine,
-          getSettings: operations.getSettings,
-          onSettingChange: operations.handleSettingsChange,
-          onSettingsTransaction: operations.handleSettingsTransaction,
-          notify: operations.showToast
+      // Reading is one room (§8.45): the setup, the Chamber and the live host
+      // are its panes. The Player is still built only by the chamber-session
+      // factory, which the chamber pane calls as this table used to.
+      id: 'read',
+      containerId: 'view-read',
+      load: () => import('../components/Read.js'),
+      create: async (container, data, { Read }) => {
+        const read = new Read(container, {
+          setup: {
+            onBeginSession: operations.handleBeginSession,
+            onNavigate: operations.handleNavigate,
+            getAudioEngine: operations.getAudioEngine,
+            getSettings: operations.getSettings,
+            onSettingChange: operations.handleSettingsChange,
+            onSettingsTransaction: operations.handleSettingsTransaction,
+            notify: operations.showToast
+          },
+          chamber: operations.chamberSession,
+          // The host for a live Current: a prompt, and the controls over the
+          // Chamber. Loaded whole on demand, so first load does not carry it.
+          live: {
+            router: operations.router,
+            onNavigate: (...args) => operations.handleNavigate(...args)
+          },
+          load: {
+            chamber: () => import('./chamber-session-factory.js'),
+            live: () => import('../live/host/LiveHost.js')
+          }
         });
-        if (textData?.text) {
-          orbital.loadText(textData.text, textData.source || 'Library', textData.config);
-        }
-        return orbital;
+        await read.update(data);
+        return read;
       }
-    },
-    {
-      id: 'chamber-session',
-      containerId: 'view-chamber',
-      load: () => import('./chamber-session-factory.js'),
-      create: (container, sessionData, { createChamberSession }) => createChamberSession(
-        operations.chamberSession,
-        container,
-        sessionData
-      )
     },
     {
       id: 'library',
@@ -163,17 +167,6 @@ export function createRouteManifest(operations) {
         await settings.update(data);
         return settings;
       }
-    },
-    {
-      // The host for a live Current: a prompt, and the controls over the Chamber.
-      // Loaded whole on demand, so first load does not carry it.
-      id: 'live',
-      containerId: 'view-live',
-      load: () => import('../live/host/LiveHost.js'),
-      create: (container, _data, { LiveHost }) => new LiveHost(container, {
-        router: operations.router,
-        onNavigate: (...args) => operations.handleNavigate(...args)
-      })
     }
   ];
 }

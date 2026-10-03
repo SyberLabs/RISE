@@ -3,12 +3,10 @@ import { createRouteManifest } from './route-manifest.js';
 
 const ROUTE_IDS = [
   'portal',
-  'chamber',
-  'chamber-session',
+  'read',
   'library',
   'make',
-  'settings',
-  'live'
+  'settings'
 ];
 
 describe('createRouteManifest', () => {
@@ -51,11 +49,11 @@ describe('createRouteManifest', () => {
 
     for (const [id, exportName] of [
       ['portal', 'Portal'],
-      ['chamber', 'ChamberOrbital'],
       ['library', 'Library']
     ]) {
       expect(roomOptions(id, exportName).getAudioEngine, `${id} audio boundary`).toBe(getAudioEngine);
     }
+    expect(roomOptions('read', 'Read').setup.getAudioEngine, 'reader setup audio boundary').toBe(getAudioEngine);
     const panes = roomOptions('library', 'Library').paneCapabilities;
     for (const pane of ['chapel', 'rosary', 'stations', 'journeys']) {
       expect(panes[pane].getAudioEngine, `${pane} audio boundary`).toBe(getAudioEngine);
@@ -125,5 +123,27 @@ describe('createRouteManifest', () => {
     tabs['visual-catalog'].onNavigate('portal');
     expect(operations.handleNavigate).toHaveBeenCalledWith('portal');
     expect(shown).toEqual([{ pane: 'visual-catalog', search: '?q=light' }]);
+  });
+
+  it('hands Read its three panes, and the chamber the factory that builds the Player', async () => {
+    const operations = {
+      handleNavigate: vi.fn(),
+      handleBeginSession: vi.fn(),
+      chamberSession: { name: 'chamber session operations' },
+      router: { name: 'router' }
+    };
+    let received;
+    const shown = [];
+    class Read {
+      constructor(_container, options) { received = options; }
+      update(data) { shown.push(data); }
+    }
+    await createRouteManifest(operations).find(route => route.id === 'read')
+      .create({}, { pane: 'live' }, { Read });
+    expect(received.setup.onBeginSession).toBe(operations.handleBeginSession);
+    expect(received.chamber).toBe(operations.chamberSession);
+    expect(received.live.router).toBe(operations.router);
+    expect(await received.load.chamber()).toHaveProperty('createChamberSession');
+    expect(shown).toEqual([{ pane: 'live' }]);
   });
 });

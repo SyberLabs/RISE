@@ -298,7 +298,7 @@ exactly as it was. It measures nothing about the reader.
 
 **`src/core/player.js`** owns the authoritative reading clock and the playback
 state machine: `idle`, `playing`, `paused`, `interlocuting`, `complete`.
-`src/components/Chamber.js` renders and does not own the clock.
+`src/components/read/Chamber.js` renders and does not own the clock.
 
 **`src/visuals/visual-cortex.js`** is the only flash dispatcher. It owns active
 visual selection, decoded image pools, abort ownership on config change, the
@@ -327,8 +327,7 @@ outliving its room, fails a build.
 | Room | Module | What it is |
 |---|---|---|
 | Portal | `src/components/Portal.js` | the hub, and the first screen |
-| Chamber | `src/components/Chamber.js` | a reading, in time |
-| ChamberOrbital | `src/components/ChamberOrbital.js` | tuning a reading before it starts |
+| Read | `src/components/Read.js` | reading: the reader setup, a reading in time, and the live host, as three panes |
 | Library | `src/components/Library.js` | the prepared editions, scripture, liturgies, journeys, keystones and the day's poem, with provenance on every edition |
 | Make | `src/components/Make.js` | authoring: composition, saved work, the Scriptorium, the visual lab and catalog |
 | Settings | `src/components/Settings.js` | preferences, affect, export and erase |

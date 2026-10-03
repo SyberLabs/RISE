@@ -8,26 +8,26 @@
  * - Drag handles to rotate entire structure (aesthetic only)
  */
 
-import { VisualNavigator } from './VisualNavigator.js';
-import { PersonalSwells } from '../core/personal-swells.js';
-import { namingModal } from './NamingModal.js';
-import { escapeHtml } from '../core/sanitize.js';
-import { PACE_CURVE_IDS } from '../core/pacing.js';
+import { VisualNavigator } from '../VisualNavigator.js';
+import { PersonalSwells } from '../../core/personal-swells.js';
+import { namingModal } from '../NamingModal.js';
+import { escapeHtml } from '../../core/sanitize.js';
+import { PACE_CURVE_IDS } from '../../core/pacing.js';
 import {
   hasVisualSelectionFields,
   normalizeVisualSelection
-} from '../core/visual-selection.js';
+} from '../../core/visual-selection.js';
 import {
   GALLERY_CADENCE_DEFAULT,
   VISUAL_PRESENCE_DEFAULT_MS,
   normalizeGalleryCadence,
   normalizeVisualPresence
-} from '../core/visual-presence.js';
+} from '../../core/visual-presence.js';
 import {
   deserializeVisualProgram,
   normalizeVisualProgram,
   serializeVisualProgram
-} from '../core/visual-program.js';
+} from '../../core/visual-program.js';
 import {
   clearLaunchVisualSelection,
   createReadingVisualIdentity,
@@ -35,28 +35,28 @@ import {
   normalizeReadingVisualIdentity,
   reconcileReadingVisualIdentity,
   releaseLaunchHeldFocal
-} from '../core/visual-identity.js';
+} from '../../core/visual-identity.js';
 import {
   recoverLegacyChapelCollectionIdentity,
   recoverLegacyChapelScriptureSources,
   recoverLegacyChapelVisualProgram
-} from '../content/chapel/imagery/program-recovery.js';
+} from '../../content/chapel/imagery/program-recovery.js';
 import {
   availableVoicePacks,
   defaultVoicePackId
-} from '../audio/voice-pack.js';
+} from '../../audio/voice-pack.js';
 import {
   SEQUENCE_CAPABILITIES,
   normalizeSequenceCapabilities,
   sequenceHasCapability
-} from '../core/sequence-capabilities.js';
-import { STANCES, applyStance, matchStance } from '../core/stances.js';
+} from '../../core/sequence-capabilities.js';
+import { STANCES, applyStance, matchStance } from '../../core/stances.js';
 // One engine has a name; the taxonomy is where it is kept.
-import { leafById } from '../core/visual-taxonomy.js';
-import { USER_DATA_KEYS } from '../core/user-data-keys.js';
-import './VisualNavigator.css';
+import { leafById } from '../../core/visual-taxonomy.js';
+import { USER_DATA_KEYS } from '../../core/user-data-keys.js';
+import '../VisualNavigator.css';
 import './ChamberOrbital.css';
-import markUrl from '../content/compositions/syberlabs-mark.png';
+import markUrl from '../../content/compositions/syberlabs-mark.png';
 
 const STANCE_NOTE_SEEN_KEY = USER_DATA_KEYS.stanceNoteSeen;
 

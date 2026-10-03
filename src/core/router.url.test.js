@@ -103,11 +103,29 @@ describe('Router addresses', () => {
 
   it('replaces instead of pushing when asked, and keeps transient data out of state', async () => {
     register('library', 'a');
-    register('chamber-session', 'b');
+    register('make', 'b');
     await router.navigate('library', { replace: true });
     expect(history.replaceState).toHaveBeenCalledTimes(1);
-    await router.navigate('chamber-session', { data: { atoms: new Array(5000).fill('word') } });
-    expect(history.pushState).toHaveBeenCalledWith({ id: 'chamber-session', data: {} }, '', '/read/session');
+    await router.navigate('make', { data: { pane: 'visual-lab', recipe: { atoms: new Array(5000).fill('word') } } });
+    expect(history.pushState).toHaveBeenCalledWith({ id: 'make', data: {} }, '', '/visual-lab');
+    router.destroy();
+  });
+
+  it('does not serialise a session in data into history state, and hands the room the session itself', async () => {
+    register('library', 'a');
+    let received;
+    router.registerView('read', {
+      container: document.querySelector('#b'),
+      init: (_container, data) => { received = data; return {}; }
+    });
+    await router.navigate('library', { replace: true });
+    const session = { atoms: ['a', 'small', 'reading'], publicPath: '/keystone/meditations' };
+    await router.navigate('chamber-session', { data: session });
+    expect(received.session).toBe(session);
+    expect(received.pane).toBe('chamber');
+    expect(history.pushState).toHaveBeenLastCalledWith(
+      { id: 'read', data: { pane: 'chamber' } }, '', '/keystone/meditations'
+    );
     router.destroy();
   });
 

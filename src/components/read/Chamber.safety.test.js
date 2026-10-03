@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { Chamber } from './Chamber.js';
-import { visualCortex } from '../visuals/visual-cortex.js';
+import { visualCortex } from '../../visuals/visual-cortex.js';
 
 function rhythmicSession() {
   return {

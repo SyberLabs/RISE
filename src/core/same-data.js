@@ -1,9 +1,10 @@
 /**
  * Whether two route data objects say the same thing. Key order does not
  * count: `{ a, b }` and `{ b, a }` are one address. Missing data is `{}`.
- * Data that cannot be serialized is never the same as anything.
+ * Data that cannot be serialized is the same only as itself.
  */
 export function sameData(a, b) {
+  if (a === b) return true;
   try {
     return stable(a ?? {}) === stable(b ?? {});
   } catch {

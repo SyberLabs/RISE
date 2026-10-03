@@ -150,7 +150,7 @@ describe('The Imagistic mapping (one pinned work per mystery, or honest absence)
   });
 
   it('the retired Chamber integration stays retired', () => {
-    const chamber = readFileSync(resolve('src/components/Chamber.js'), 'utf8');
+    const chamber = readFileSync(resolve('src/components/read/Chamber.js'), 'utf8');
     expect(chamber).not.toContain('initializeLiturgy');
     expect(chamber).not.toContain('updateDecadeStill');
     const sets = MYSTERY_SETS; // (import used)

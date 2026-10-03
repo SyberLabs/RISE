@@ -12,9 +12,9 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { Chamber } from './Chamber.js';
-import { compileSession } from '../core/session-compiler.js';
-import { Player } from '../core/player.js';
-import { GLANCE_HOLD_MS } from '../core/dive.js';
+import { compileSession } from '../../core/session-compiler.js';
+import { Player } from '../../core/player.js';
+import { GLANCE_HOLD_MS } from '../../core/dive.js';
 
 const TEXT = 'The first division says one thing. It says it plainly. The last division says it again.';
 

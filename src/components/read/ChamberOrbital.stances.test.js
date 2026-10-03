@@ -16,8 +16,8 @@ if (typeof globalThis.indexedDB === 'undefined') {
 }
 
 const { ChamberOrbital, createDefaultConfig } = await import('./ChamberOrbital.js');
-const { STANCES, matchStance } = await import('../core/stances.js');
-const { default: App } = await import('../app.js');
+const { STANCES, matchStance } = await import('../../core/stances.js');
+const { default: App } = await import('../../app.js');
 
 function createOrbital(onBeginSession = vi.fn(), options = {}) {
     const container = document.createElement('div');

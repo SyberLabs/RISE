@@ -7,7 +7,7 @@
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { Chamber } from './Chamber.js';
-import { PageReader } from '../page/PageReader.js';
+import { PageReader } from '../../page/PageReader.js';
 
 function mount(head) {
     const container = document.createElement('div');

@@ -68,8 +68,7 @@ describe('the system design document describes this tree', () => {
         'jev-dictation.js',      // voice input shared by Portal and Library
         'room-chrome.js',        // SyberLabs header, icons and Alert shared by the quieter rooms
         'room-panes.js',         // the pane host shared by Library and Make
-        'atlas.js',              // SyberLabs atmosphere and sigil, shared by Portal
-        'chamber-undercurrent.js' // the panel a dive opens, inside the Chamber
+        'atlas.js'               // SyberLabs atmosphere and sigil, shared by Portal
     ]);
 
     const roomsOnDisk = () => readdirSync(join(ROOT, 'src/components'))

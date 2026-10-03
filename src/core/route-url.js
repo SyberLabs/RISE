@@ -34,8 +34,8 @@ export const ROUTE_ALIASES = {
     keystones: 'library',
     mint: 'library',
     vault: 'make',
-    chamber: 'chamber',
-    'chamber-session': 'chamber-session',
+    chamber: 'read',
+    'chamber-session': 'read',
     library: 'library',
     make: 'make',
     journeys: 'library',
@@ -48,7 +48,7 @@ export const ROUTE_ALIASES = {
     emotions: 'settings',
     'visual-lab': 'make',
     'visual-catalog': 'make',
-    live: 'live',
+    live: 'read',
     chapel: 'library',
     today: 'library'
 };
@@ -73,11 +73,14 @@ export const ROUTE_PANES = {
     scriptorium: 'scriptorium',
     'visual-lab': 'visual-lab',
     'visual-catalog': 'visual-catalog',
-    emotions: 'affect'
+    emotions: 'affect',
+    chamber: 'setup',
+    'chamber-session': 'chamber',
+    live: 'live'
 };
 
 /** The pane a room opens when its data names none. */
-const DEFAULT_PANES = { make: 'workshop' };
+const DEFAULT_PANES = { make: 'workshop', read: 'setup' };
 
 const enc = encodeURIComponent;
 
@@ -132,16 +135,16 @@ const ROUTES = [
     }),
     pane('keystones', { pattern: '/library/keystones', build: null }),
 
-    fixed('chamber', '/read'),
-    {
-        id: 'chamber-session',
+    pane('setup', { pattern: '/read', build: () => '/read' }, 'read'),
+    pane('chamber', {
         pattern: '/read/session',
         // A reading opened from a public address (a Keystone, a minted
-        // sequence) keeps that address; every other session is /read/session.
-        build: data => (typeof data?.publicPath === 'string'
-            && /^\/(?!\/)/u.test(data.publicPath) ? data.publicPath : '/read/session'),
-        parse: () => ({})
-    },
+        // sequence, the live room) keeps that address; every other session
+        // is /read/session. The session itself is never carried.
+        build: data => (typeof data?.session?.publicPath === 'string'
+            && /^\/(?!\/)/u.test(data.session.publicPath) ? data.session.publicPath : '/read/session')
+    }, 'read'),
+    pane('live', { pattern: LIVE_PATH, build: () => LIVE_PATH }, 'read'),
 
     fixed('library', '/library'),
     pane('chapel', {
@@ -193,8 +196,7 @@ const ROUTES = [
     }, 'make'),
 
     fixed('settings', '/settings'),
-    pane('affect', { pattern: EMOTIONS_PATH, build: () => EMOTIONS_PATH }, 'settings'),
-    fixed('live', LIVE_PATH)
+    pane('affect', { pattern: EMOTIONS_PATH, build: () => EMOTIONS_PATH }, 'settings')
 ];
 
 function segments(path) {

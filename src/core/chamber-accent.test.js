@@ -147,7 +147,7 @@ describe('Chamber accent allowlist', () => {
 
     it('gives the reader setup one neutral primary and the RISE marker as its only accent', () => {
         const css = readFileSync(
-            join(dirname(fileURLToPath(import.meta.url)), '..', 'components', 'ChamberOrbital.css'),
+            join(dirname(fileURLToPath(import.meta.url)), '..', 'components', 'read', 'ChamberOrbital.css'),
             'utf8'
         );
         const begin = css.match(/\.btn-large\s*\{[^}]+\}/);
@@ -182,8 +182,8 @@ describe('Chamber accent allowlist', () => {
             'design-system.css',
             'core/visual-safety.css',
             'page/page.css',
-            'components/Chamber.css',
-            'components/ChamberOrbital.css',
+            'components/read/Chamber.css',
+            'components/read/ChamberOrbital.css',
             'components/Library.css',
             'components/Guide.css',
             'components/library/Keystones.css',

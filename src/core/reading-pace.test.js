@@ -25,7 +25,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import App from '../app.js';
-import { Chamber } from '../components/Chamber.js';
+import { Chamber } from '../components/read/Chamber.js';
 import { chunkText } from './chunker.js';
 import { EXPERIENCE_PROGRAM_LIMITS } from './experience-program.js';
 import { PacingEngine } from './pacing.js';

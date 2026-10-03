@@ -3,26 +3,26 @@ import {
   clampBandFraction,
   readBandOffsetSetting,
   writeBandOffsetSetting
-} from '../core/band-offset.js';
-import { visualCortex } from '../visuals/visual-cortex.js';
-import { parsePageCollectionId, sampleWorkEngine } from '../visuals/work-engines.js';
-import { TIME_SCALE as WORK_ENGINE_TIME_SCALE } from '../visuals/work-engine-field.js';
-import { MemoryCore } from '../core/memory.js';
-import { AttractorField } from '../visuals/attractor.js';
-import { NightStreaks } from '../visuals/night-streaks.js';
-import { KleeField } from '../visuals/klee-field.js';
-import { VisualFieldDirector } from '../visuals/visual-field-director.js';
-import { escapeHtml } from '../core/sanitize.js';
-import { createDive } from '../core/dive.js';
-import { undercurrentAt } from '../core/undercurrent.js';
+} from '../../core/band-offset.js';
+import { visualCortex } from '../../visuals/visual-cortex.js';
+import { parsePageCollectionId, sampleWorkEngine } from '../../visuals/work-engines.js';
+import { TIME_SCALE as WORK_ENGINE_TIME_SCALE } from '../../visuals/work-engine-field.js';
+import { MemoryCore } from '../../core/memory.js';
+import { AttractorField } from '../../visuals/attractor.js';
+import { NightStreaks } from '../../visuals/night-streaks.js';
+import { KleeField } from '../../visuals/klee-field.js';
+import { VisualFieldDirector } from '../../visuals/visual-field-director.js';
+import { escapeHtml } from '../../core/sanitize.js';
+import { createDive } from '../../core/dive.js';
+import { undercurrentAt } from '../../core/undercurrent.js';
 import { renderUndercurrent } from './chamber-undercurrent.js';
 // The reveal and its emphasis notation are pure logic — no DOM, no
 // audio — so they live in core and are tested without a browser.
 import {
   splitWords, stripEmphasis, sizeAtomScale, revealBudget, revealSchedule
-} from '../core/recitation.js';
-import { Voice } from '../audio/voice.js';
-import { audioDiag } from '../core/audio-diagnostics.js';
+} from '../../core/recitation.js';
+import { Voice } from '../../audio/voice.js';
+import { audioDiag } from '../../core/audio-diagnostics.js';
 
 /**
  * The bar's icons, drawn rather than typed.
@@ -78,24 +78,24 @@ export const ICONS = Object.freeze({
     + '<path d="M4.5 15c2.5-2 5-2 7.5 0s5 2 7.5 0"/>')
 });
 
-import { livingTextAppearance, ensureTextContrast, scoreAtoms, planInterlocution } from '../core/conductor.js';
-import { cueForAtom, VisualScheduleController } from '../core/visual-scheduler.js';
+import { livingTextAppearance, ensureTextContrast, scoreAtoms, planInterlocution } from '../../core/conductor.js';
+import { cueForAtom, VisualScheduleController } from '../../core/visual-scheduler.js';
 import {
   authoredVisualTransition,
   isContinuousPresentation
-} from '../core/visual-presence.js';
+} from '../../core/visual-presence.js';
 import {
   MovementScheduleController,
   AudioScheduleController
-} from '../core/journey-schedulers.js';
+} from '../../core/journey-schedulers.js';
 import {
   applyVisualViewportBottom,
   clearVisualViewportBottom
-} from '../core/visual-viewport.js';
-import { hasNextLibraryDivision } from '../core/reading-continuation.js';
-import { READING_PACE } from '../core/reading-limits.js';
-import { resolveChamberStreamFace } from '../core/chamber-stream-face.js';
-import { applyChamberAccent, resolveChamberAccent } from '../core/chamber-accent.js';
+} from '../../core/visual-viewport.js';
+import { hasNextLibraryDivision } from '../../core/reading-continuation.js';
+import { READING_PACE } from '../../core/reading-limits.js';
+import { resolveChamberStreamFace } from '../../core/chamber-stream-face.js';
+import { applyChamberAccent, resolveChamberAccent } from '../../core/chamber-accent.js';
 import {
   estimateGlyphBox,
   fitWordAtomPx,
@@ -103,23 +103,23 @@ import {
   isChamberWordFit,
   resolveFontSize,
   threeStepIntent
-} from '../core/chamber-type-size.js';
-import { resolveTextMaterialCapability } from '../core/chamber-text-material.js';
-import { FitMaskRuntime } from '../core/fit-mask-runtime.js';
-import { resolveSessionWordFill } from '../core/visual-selection.js';
-import { sessionColorTheme } from '../core/session-presentation.js';
-import { SEQUENCE_PILOT, nextSequencePilot } from '../content/sequence-pilot.js';
-import { saveSequencePilotFeedback } from '../core/sequence-pilot-feedback.js';
-import { advanceJevVisualArc } from '../core/jev-sequence.js';
-import { livingFlameConfigKey, normalizeFlameRecipe, normalizeLivingFlameConfig, validateFlameRecipe } from '../core/flame-recipe.js';
-import { saveFlameScene } from '../core/flame-scenes.js';
-import { directionStateFor, ensureDirector, followProgram, permittedSourceDigests } from '../core/passage-visuals/reading-state.js';
-import { mutateRecipe } from '../visuals/living-flame/flame-math.js';
-import { FLAME_PRESET_IDS, flamePreset } from '../visuals/living-flame/flame-presets.js';
-import { JEV_INKS, JEV_PALETTES, jevColors } from '../core/jev-palette.js';
-import { JEV_AUDIO_IDS } from '../core/jev-config.js';
-import { connectionState } from '../core/ai-connection.js';
-import { CHAMBER_STREAM_FACES } from '../core/chamber-stream-face.js';
+} from '../../core/chamber-type-size.js';
+import { resolveTextMaterialCapability } from '../../core/chamber-text-material.js';
+import { FitMaskRuntime } from '../../core/fit-mask-runtime.js';
+import { resolveSessionWordFill } from '../../core/visual-selection.js';
+import { sessionColorTheme } from '../../core/session-presentation.js';
+import { SEQUENCE_PILOT, nextSequencePilot } from '../../content/sequence-pilot.js';
+import { saveSequencePilotFeedback } from '../../core/sequence-pilot-feedback.js';
+import { advanceJevVisualArc } from '../../core/jev-sequence.js';
+import { livingFlameConfigKey, normalizeFlameRecipe, normalizeLivingFlameConfig, validateFlameRecipe } from '../../core/flame-recipe.js';
+import { saveFlameScene } from '../../core/flame-scenes.js';
+import { directionStateFor, ensureDirector, followProgram, permittedSourceDigests } from '../../core/passage-visuals/reading-state.js';
+import { mutateRecipe } from '../../visuals/living-flame/flame-math.js';
+import { FLAME_PRESET_IDS, flamePreset } from '../../visuals/living-flame/flame-presets.js';
+import { JEV_INKS, JEV_PALETTES, jevColors } from '../../core/jev-palette.js';
+import { JEV_AUDIO_IDS } from '../../core/jev-config.js';
+import { connectionState } from '../../core/ai-connection.js';
+import { CHAMBER_STREAM_FACES } from '../../core/chamber-stream-face.js';
 import './Chamber.css';
 
 /**
@@ -199,7 +199,7 @@ export class Chamber {
     this.fitMask = new FitMaskRuntime(this);
     this.loadSettingsClass = typeof options.loadSettingsClass === 'function'
       ? options.loadSettingsClass
-      : async () => (await import('./Settings.js')).Settings;
+      : async () => (await import('../Settings.js')).Settings;
     this.attractorField = null;
     this.nightStreaks = null;
     this.kleeField = null;
@@ -2067,7 +2067,7 @@ export class Chamber {
     this.container.appendChild(host);
     this._labHost = host;
     try {
-      const { VisualLab } = await import('./make/VisualLab.js');
+      const { VisualLab } = await import('../make/VisualLab.js');
       if (!this._labOpen || this._destroyed) return false;
       this._lab = new VisualLab(host, {
         mode: 'overlay',
@@ -2124,7 +2124,7 @@ export class Chamber {
     const director = this._direction?.director;
     if (!director) return false;
     try {
-      const { readingToWorkshopProject } = await import('../core/passage-visuals/workshop-export.js');
+      const { readingToWorkshopProject } = await import('../../core/passage-visuals/workshop-export.js');
       const projectId = `directed-${Date.now().toString(36)}`;
       const project = readingToWorkshopProject({
         session: this.session, director, flameRecipe: flamePreset, projectId, updatedAt: Date.now()
@@ -2173,8 +2173,8 @@ export class Chamber {
     try {
       if (!state.scoring) {
         const [{ VisualScoreCoordinator, VisualScoreCache }, { verifyCatalogReading }] = await Promise.all([
-          import('../core/passage-visuals/scoring-client.js'),
-          import('../core/passage-visuals/catalog-identity.js')
+          import('../../core/passage-visuals/scoring-client.js'),
+          import('../../core/passage-visuals/catalog-identity.js')
         ]);
         if (state.scoring) return this._startVisualScoring();
         let storage = null;
@@ -2457,7 +2457,7 @@ export class Chamber {
       const reducedMotion = this._prefersReducedMotion()
         || document.documentElement.classList.contains('reduced-motion')
         || document.documentElement.classList.contains('photosensitivity-mode');
-      void import('../visuals/living-flame/index.js').then(({ createLivingFlameField }) => {
+      void import('../../visuals/living-flame/index.js').then(({ createLivingFlameField }) => {
         if (destroyed || !host.isConnected) return;
         controller = createLivingFlameField(host, {
           recipe: flame.recipe,
@@ -2562,11 +2562,13 @@ export class Chamber {
   /**
    * Whether this Chamber's visual is on screen to discover or control. The
    * router shows the view (hidden = false) before fading it in and naming it
-   * current, and the reading and its field start then, so visibility is the
-   * view's own `hidden`, not the router's current view.
+   * current, and the reading and its field start then, so visibility is
+   * `hidden` on the Chamber's pane or the Read room around it, not the
+   * router's current view.
    */
   visualShown() {
-    return !this._destroyed && !this.pageModeActive && !this._temporalVisualsDeferred && !this.container?.hidden;
+    return !this._destroyed && !this.pageModeActive && !this._temporalVisualsDeferred
+      && !this.container?.closest('[hidden]');
   }
 
   discoverVisual() {
@@ -2658,7 +2660,7 @@ export class Chamber {
    */
   async initializeRoseFocal(focalContainer, focals, { assign = true } = {}) {
     try {
-      const { RosaMystica } = await import('../visuals/rosa-mystica.js');
+      const { RosaMystica } = await import('../../visuals/rosa-mystica.js');
       if (!this.container.contains(focalContainer)) return;
       const host = document.createElement('div');
       host.className = 'focal-rose';
@@ -2686,7 +2688,7 @@ export class Chamber {
    */
   async initializeIconFocal(focalContainer, iconId) {
     try {
-      const { findChapelIcon } = await import('../content/chapel/imagery/icons.js');
+      const { findChapelIcon } = await import('../../content/chapel/imagery/icons.js');
       const icon = findChapelIcon(iconId);
       if (!icon || !this.container.contains(focalContainer)) return;
 
@@ -3882,8 +3884,8 @@ export class Chamber {
     const abort = (this._pageAbort = new AbortController());
     try {
       const [{ PageReader }, { visualCortex }] = await Promise.all([
-        import('../page/PageReader.js'),
-        import('../visuals/visual-cortex.js')
+        import('../../page/PageReader.js'),
+        import('../../visuals/visual-cortex.js')
       ]);
       // Authority check: a newer toggle (or a destroy) superseded us.
       if (generation !== this._pageGeneration || !this.container?.isConnected) {
@@ -3977,7 +3979,7 @@ export class Chamber {
       const config = this._pageFlameRecipes?.get(key)
         || (flamePreset(recipeId) ? { recipe: flamePreset(recipeId) } : null);
       if (!config) return [];
-      const { sampleLivingFlame } = await import('../visuals/living-flame/index.js');
+      const { sampleLivingFlame } = await import('../../visuals/living-flame/index.js');
       // A flame is one composition: two moments of it are enough to show
       // that it moves without making the Page wait on many renders.
       const SWEEP_SECONDS = 40;

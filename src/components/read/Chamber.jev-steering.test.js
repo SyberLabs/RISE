@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { Chamber } from './Chamber.js';
-import { buildJevVisualProgram } from '../core/jev-sequence.js';
-import { visualCortex } from '../visuals/visual-cortex.js';
+import { buildJevVisualProgram } from '../../core/jev-sequence.js';
+import { visualCortex } from '../../visuals/visual-cortex.js';
 
 const atoms = [
   { content: 'First', duration: 1000, sourceId: 'primary', sourceProgress: 0 },
