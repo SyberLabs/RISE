@@ -15,6 +15,8 @@ export function describeStatus(snapshot, { audible = true, question = '' } = {})
     const { status, error, main, side } = snapshot;
     const voiceLost = (side ?? main)?.voiceDegraded === true;
     const quiet = voiceLost ? ' The voice stopped; the reading carries on at its own pace.' : '';
+    // What arrived is still read, so a failure after some of it must be said, or the reading looks finished.
+    const early = main?.error ? ` The answer stopped early: ${String(main.error.message ?? 'the provider failed').slice(0, 200).replace(/\.+$/u, '')}.` : '';
     switch (status) {
         case 'idle':
             return '';
@@ -22,7 +24,7 @@ export function describeStatus(snapshot, { audible = true, question = '' } = {})
             return 'Asking…';
         case 'live': {
             const said = audible ? 'Speaking.' : 'Reading, paced as if spoken.';
-            return `${main?.speaking || !main?.voiceDegraded ? said : 'Reading.'}${quiet}`;
+            return `${main?.speaking || !main?.voiceDegraded ? said : 'Reading.'}${early}${quiet}`;
         }
         case 'interrupted':
             return 'Held where you are. Resume, or ask about this place.';
@@ -30,11 +32,13 @@ export function describeStatus(snapshot, { audible = true, question = '' } = {})
             const asked = question ? ` “${question.slice(0, 120)}”` : '';
             if (side?.error) return `The Dive could not be answered (${side.error.message}). Surface to go back.`;
             return side?.finished
-                ? `Dive${asked}: answered. Surface to go back to where you were.`
-                : `Diving${asked}. The reading you left is held exactly where it was.${quiet}`;
+                ? `Dive${asked}: answered. Surface to go back to where you were; you can ask about another place from there.`
+                : `Diving${asked}. The reading you left is held exactly where it was. Surface to go back, then ask again.${quiet}`;
         }
         case 'ended':
-            return 'Finished. You can still ask about any place in it.';
+            return main?.error
+                ? `Finished reading what arrived.${early} You can still ask about any place in it.`
+                : 'Finished. You can still ask about any place in it.';
         case 'failed':
             return `It could not be answered: ${error?.message ?? 'the provider failed'}.`;
         case 'stopped':

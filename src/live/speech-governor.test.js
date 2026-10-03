@@ -180,6 +180,87 @@ describe('when the voice cannot be the clock', () => {
     });
 });
 
+describe('where a phrase begins', () => {
+    const text = index => BLACK_HOLES.segments[index].text;
+    const inside = map => map.find(entry => !entry.seam && entry.start > 0);
+
+    it('says the segment, the first character, and the voice time, once the voice’s speed is known', () => {
+        const { map } = setup({ count: 1, speak: false });
+        const atom = inside(map);
+        // Heard: the voice says its marks, which are the speed it is going at.
+        governor.observe('mark', BLACK_HOLES.segments[0].id, 10, 10 * 40);
+        const point = governor.restartPoint(atom.index);
+        expect(point).toMatchObject({ segmentId: BLACK_HOLES.segments[0].id, charIndex: atom.start });
+        expect(point.tMs).toBeGreaterThan(0);
+    });
+
+    it('says the time exactly once the voice has said the segment', async () => {
+        const { map } = setup({ count: 1 });
+        const atom = inside(map);
+        player.play();
+        await tick(20_000);
+        expect(governor.restartPoint(atom.index).tMs).toBe(atom.start * MS_PER_CHAR);
+    });
+
+    it('says the time at the speed it learned from the segments before, for one it has not heard', () => {
+        const { map } = setup({ count: 2, speak: false });
+        governor.observe('end', BLACK_HOLES.segments[0].id, text(0).length * 40);
+        const atom = map.find(entry => !entry.seam && entry.segmentId === BLACK_HOLES.segments[1].id && entry.start > 0);
+        expect(governor.restartPoint(atom.index)).toEqual({ segmentId: atom.segmentId, charIndex: atom.start, tMs: atom.start * 40 });
+    });
+
+    it('says nothing while it has no idea how fast the voice goes: a guess is not a place to start a voice from', () => {
+        const { map } = setup({ count: 2, speak: false });
+        expect(governor.restartPoint(inside(map).index)).toBeNull();
+    });
+
+    it('is the segment’s start for its first atom, when the speed is known', () => {
+        const { map } = setup({ count: 2, speak: false });
+        governor.observe('end', BLACK_HOLES.segments[0].id, text(0).length * 40);
+        const first = map.find(entry => !entry.seam && entry.segmentId === BLACK_HOLES.segments[1].id);
+        expect(governor.restartPoint(first.index)).toEqual({ segmentId: first.segmentId, charIndex: 0, tMs: 0 });
+    });
+
+    it('says nothing for a seam, or once the voice has been given up on', () => {
+        const { map } = setup({ count: 2, speak: false });
+        governor.observe('end', BLACK_HOLES.segments[0].id, text(0).length * 40);
+        const seam = map.find(entry => entry.seam);
+        if (seam) expect(governor.restartPoint(seam.index)).toBeNull();
+        governor.standDown('test');
+        expect(governor.restartPoint(map.find(entry => !entry.seam).index)).toBeNull();
+    });
+});
+
+describe('learning how fast the voice goes', () => {
+    const ends = (map, index) => {
+        const last = map.filter(entry => !entry.seam && entry.segmentId === BLACK_HOLES.segments[index].id).at(-1);
+        return governor.endsAtMs(last.index);
+    };
+
+    it('expects a segment it has not heard to take as long as the segments before it did, per character', () => {
+        const { map } = setup({ count: 2, speak: false });
+        expect(ends(map, 1)).toBe(BLACK_HOLES.segments[1].text.length * 65);
+        governor.observe('end', BLACK_HOLES.segments[0].id, BLACK_HOLES.segments[0].text.length * 40);
+        expect(ends(map, 1)).toBe(BLACK_HOLES.segments[1].text.length * 40);
+    });
+
+    it('averages over every segment it has heard, by their length, not by how many there were', () => {
+        const { map } = setup({ count: 3, speak: false });
+        const [a, b] = [BLACK_HOLES.segments[0], BLACK_HOLES.segments[1]];
+        governor.observe('end', a.id, a.text.length * 30);
+        governor.observe('end', b.id, b.text.length * 50);
+        const expected = (a.text.length * 30 + b.text.length * 50) / (a.text.length + b.text.length);
+        expect(ends(map, 2)).toBeCloseTo(BLACK_HOLES.segments[2].text.length * expected, 5);
+    });
+
+    it('keeps what a segment’s own marks say about it, rather than the average', () => {
+        const { map } = setup({ count: 2, speak: false });
+        governor.observe('end', BLACK_HOLES.segments[0].id, BLACK_HOLES.segments[0].text.length * 40);
+        governor.observe('mark', BLACK_HOLES.segments[1].id, 10, 10 * 90);
+        expect(ends(map, 1)).toBe(BLACK_HOLES.segments[1].text.length * 90);
+    });
+});
+
 describe('expected times', () => {
     it('reports where an atom is expected to end, first by estimate and then exactly', async () => {
         const { map } = setup({ count: 1 });

@@ -11,7 +11,9 @@ const FAULTS = {
     'black-holes': {},
     interrupt: {},
     'transport-loss': { lossAfter: 30 },
-    'provider-failure': { failAfter: 10 }
+    'provider-failure': { failAfter: 10 },
+    // A generic provider's only way to say it stopped is an error, part way through a passage.
+    'cut-short': { failAfter: 30 }
 };
 
 describeAdapterConformance('text-stream (fake provider)', (name) => {

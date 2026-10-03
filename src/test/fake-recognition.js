@@ -3,7 +3,7 @@
  * the test: `start`, `result` (interim and final), `error`, `end`. It records
  * every instance so a test can say whether a microphone was ever left open.
  */
-export function createFakeRecognition({ throwOnStart = false, throwOnConstruct = false } = {}) {
+export function createFakeRecognition({ throwOnStart = false, throwOnConstruct = false, endsOnStop = false } = {}) {
     const instances = [];
     class Recognition {
         constructor() {
@@ -21,7 +21,11 @@ export function createFakeRecognition({ throwOnStart = false, throwOnConstruct =
             if (throwOnStart) throw new Error('already started');
             this.started = true;
         }
-        stop() { this.stopped = true; }
+        /** Like a browser, the end that follows a stop is queued, not immediate; `endsOnStop` has it come by itself. */
+        stop() {
+            this.stopped = true;
+            if (endsOnStop) queueMicrotask(() => this.end());
+        }
         abort() { this.aborted = true; }
 
         // What the test does to it.
