@@ -16,6 +16,9 @@
   height: 100vh;
   height: 100svh;
   overflow-y: auto;
+  /* Whatever scrolls into view (a focused Redraw, a found control) lands
+     below the sticky header, never under it. */
+  scroll-padding-top: var(--sy-header-height);
   background-color: var(--sy-bg);
   background-image: var(--sy-starfield);
   background-size: var(--sy-starfield-size);
@@ -622,6 +625,15 @@ a.portal-nav-link {
   overflow: hidden;
 }
 
+/* The sky's layout leaves its left 42% clear for the desk panel. On a phone
+   the panel sits below the band, so stretch the sky until its stars (x 42–97)
+   span the band edge to edge (4–96%) and their 44px targets stop overlapping. */
+.home-sky > .night-sky {
+  left: -66.3%;
+  right: auto;
+  width: 167.3%;
+}
+
 .home-panel {
   display: flex;
   flex-direction: column;
@@ -886,6 +898,12 @@ a.portal-nav-link {
     inset: 0;
     z-index: 0;
     height: auto;
+  }
+
+  .home-sky > .night-sky {
+    left: 0;
+    right: 0;
+    width: auto;
   }
 
   .home::before {
