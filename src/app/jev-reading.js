@@ -6,7 +6,7 @@ import { READING_LIMITS } from '../core/reading-limits.js';
 import { CHAMBER_STREAM_FACES } from '../core/chamber-stream-face.js';
 import { FONT_SIZE_CHIPS } from '../core/chamber-type-size.js';
 import { JEV_AUDIO_IDS, resolveJevChamberConfig } from '../core/jev-config.js';
-import { jevColors } from '../core/jev-palette.js';
+import { JEV_PALETTES, jevColors } from '../core/jev-palette.js';
 import {
   compileJevAudioProgram,
   compileJevVisualProgram
@@ -32,7 +32,7 @@ const STYLES = new Set(['quiet', 'gentle', 'immersive', 'psychedelic']);
 const SECTIONS = new Set(['first', 'middle', 'last', 'shortest', 'longest']);
 const VISUAL_ARCS = new Set(['single', 'dual', 'triple']);
 const ARC_SPLITS = new Set(['30', '50', '70']);
-const COLORS = new Set(['classic', 'amethyst', 'prism', 'ember', 'cobalt', 'jade']);
+const COLORS = new Set(Object.keys(JEV_PALETTES));
 
 function assertPlan(decision) {
   const config = decision?.config;
