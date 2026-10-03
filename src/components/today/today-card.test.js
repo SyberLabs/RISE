@@ -19,7 +19,7 @@ describe('the Home card', () => {
     expect(card.tagName).toBe('BUTTON');
     expect(host.querySelector('.home-today-title').textContent).toBe(poemTitle(pick.label));
     expect(host.querySelector('.home-today-poet').textContent).toBe(OPENINGS.works[pick.workId].author);
-    expect(host.querySelector('.home-today-line').textContent).toBe(OPENINGS.openings[pick.workId][pick.entryId]);
+    expect(host.querySelector('.home-today-line').textContent).toBe(OPENINGS.openings[pick.workId][pick.entryId].split('\n')[0]);
     expect(host.querySelector('.home-today-eyebrow').textContent).toMatch(/^Today's poem, /u);
     expect(card.getAttribute('aria-label'))
       .toBe(`Read today's poem: ${poemTitle(pick.label)}, by ${OPENINGS.works[pick.workId].author}`);

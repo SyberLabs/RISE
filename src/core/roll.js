@@ -126,6 +126,13 @@ export const TEMPERS = Object.freeze([
   }
 ].map(temper => Object.freeze(temper)));
 
+/**
+ * The vivid tempers: those whose procedural visuals are immersive or
+ * psychedelic, so a reading drawn from them is never plain black or quiet.
+ */
+export const VISUAL_TEMPERS = Object.freeze(TEMPERS.filter(temper => temper.visualMode !== 'off'
+  && ['immersive', 'psychedelic'].includes(temper.visualStyle)));
+
 const pick = (list, random) => list[Math.min(list.length - 1, Math.floor(random() * list.length))];
 
 let serial = 0;
@@ -186,16 +193,18 @@ export function composeRoll({ temper, workId, section, random = Math.random }) {
  * exactly; a part that is null or undefined is drawn by chance. Given the
  * previous roll, a drawn part never equals the previous roll's part, so Roll
  * Again always visibly changes something, and redrawing one part (keeping the
- * other two) always changes that part.
+ * other two) always changes that part. A vivid roll draws its temper from
+ * VISUAL_TEMPERS only, and refuses a given temper outside them.
  */
-export function rollReading({ random = Math.random, previous = null, workId, temper, section } = {}) {
+export function rollReading({ random = Math.random, previous = null, workId, temper, section, vivid = false } = {}) {
   if (section != null && !SECTIONS.includes(section)) {
     throw new TypeError(`${section} is not a section.`);
   }
+  const tempers = vivid ? VISUAL_TEMPERS : TEMPERS;
   const draw = (given, list, last) => given ?? pick(list.filter(item => item !== last), random);
-  const id = draw(temper, TEMPERS.map(item => item.id), previous?.temper);
-  const chosen = TEMPERS.find(item => item.id === id);
-  if (!chosen) throw new TypeError(`${temper} is not a temper.`);
+  const id = draw(temper, tempers.map(item => item.id), previous?.temper);
+  const chosen = tempers.find(item => item.id === id);
+  if (!chosen) throw new TypeError(`${temper} is not a ${vivid ? 'vivid ' : ''}temper.`);
   const decision = composeRoll({
     temper: chosen,
     workId: draw(workId, jevReleasedWorkIds(), previous?.decision?.workId),

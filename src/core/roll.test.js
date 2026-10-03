@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { TEMPERS, rollReading, composeRoll, rollTitleOf } from './roll.js';
+import { TEMPERS, VISUAL_TEMPERS, rollReading, composeRoll, rollTitleOf } from './roll.js';
 import { getTextById } from '../content/library.js';
 import { validateJevRecommendation } from '../app/jev-reading.js';
 import { jevReleasedWorkIds, summarizeJevPlan } from './jev-describe.js';
@@ -148,6 +148,34 @@ describe('a roll keeps the parts it is given', () => {
     const roll = rollReading({ random: seeded(41), previous, temper: null, workId: 'the-iliad', section: 'first' });
     expect(TEMPERS.map(item => item.id)).toContain(roll.temper);
     expect(roll.temper).not.toBe(previous.temper);
+  });
+});
+
+describe('a vivid roll', () => {
+  it('names the tempers whose visuals are immersive or psychedelic', () => {
+    expect(VISUAL_TEMPERS.map(item => item.id).sort()).toEqual(['ember', 'revel', 'signal']);
+  });
+
+  it('draws only vivid tempers, and never the previous one', () => {
+    const random = seeded(53);
+    const vivid = new Set(VISUAL_TEMPERS.map(item => item.id));
+    const seen = new Set();
+    let previous = rollReading({ random, vivid: true });
+    for (let i = 0; i < 300; i += 1) {
+      const next = rollReading({ random, previous, vivid: true });
+      expect(vivid.has(next.temper), next.temper).toBe(true);
+      expect(next.temper).not.toBe(previous.temper);
+      expect(next.decision.config.visualMode).not.toBe('off');
+      seen.add(next.temper);
+      previous = next;
+    }
+    expect([...seen].sort()).toEqual([...vivid].sort());
+  });
+
+  it('keeps a given vivid temper, and refuses a quiet one in plain words', () => {
+    expect(rollReading({ random: seeded(5), temper: 'revel', vivid: true }).temper).toBe('revel');
+    expect(() => rollReading({ temper: 'plainsong', vivid: true })).toThrow(TypeError);
+    expect(() => rollReading({ temper: 'plainsong', vivid: true })).toThrow('plainsong is not a vivid temper.');
   });
 });
 

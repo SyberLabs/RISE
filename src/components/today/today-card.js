@@ -16,7 +16,7 @@ export function todayCardMarkup(date = new Date()) {
   const pick = todayPoem(date);
   const title = poemTitle(pick.label);
   const poet = OPENINGS.works[pick.workId]?.author ?? '';
-  const line = OPENINGS.openings[pick.workId]?.[pick.entryId] ?? '';
+  const line = (OPENINGS.openings[pick.workId]?.[pick.entryId] ?? '').split('\n')[0];
   const day = date.toLocaleDateString(undefined, { day: 'numeric', month: 'long' });
   return `<button class="home-today-card sy-plate" type="button" data-home="today" data-seed="${escapeHtml(pick.seed)}"
       aria-label="${escapeHtml(`Read today's poem: ${title}, by ${poet}`)}">

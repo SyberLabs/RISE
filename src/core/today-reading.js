@@ -6,11 +6,8 @@
  * plain black, nor under a quiet light it could be mistaken for.
  * The division is not the roll's; resolveJevReading opens the day's exact one.
  */
-import { TEMPERS, composeRoll } from './roll.js';
+import { VISUAL_TEMPERS, composeRoll } from './roll.js';
 import { seededRandom } from './today-poem.js';
-
-const VISUAL_TEMPERS = TEMPERS.filter(temper => temper.visualMode !== 'off'
-  && ['immersive', 'psychedelic'].includes(temper.visualStyle));
 
 export function todayDecision(pick) {
   const random = seededRandom(`rise-today-reading:${pick.seed}`);
