@@ -150,17 +150,28 @@ const KALEIDO_MUL = 0.52;
  * is not, and a stuttering mandala is worse than a simpler smooth one.
  *
  * Rather than ask the reader to classify their own computer, the field
- * measures its own frame cost and steps quality down only when it is
- * actually missing frames — and steps back up if conditions improve.
+ * measures the interval between its animation frames and steps quality
+ * down only when frames are actually arriving late — and steps back up
+ * if conditions improve. It times frame intervals, not its own drawing
+ * code, because the canvas rasterizes strokes after that code returns:
+ * on a software canvas the script takes a few milliseconds while each
+ * frame takes hundreds.
  * Quality is reduced by drawing a coarser filament (skipping brightness
  * buckets, which removes the dimmest strands first) before ever reducing
  * the symmetry, because the SHAPE is the thing worth preserving.
  */
 const FRAME_BUDGET_MS = 1000 / 60;
-// Sustained cost above this fraction of the budget triggers a step down
-const DEGRADE_AT = 0.62;
-const RESTORE_AT = 0.34;
+// A sustained mean interval above this multiple of a 60 Hz frame (below
+// 40 fps) steps down; below RESTORE_AT (about 52 fps or better) counts
+// as keeping pace. Both sit above 1 because a healthy interval IS one
+// refresh, never a fraction of it.
+const DEGRADE_AT = 1.5;
+const RESTORE_AT = 1.15;
+// A window is 45 frames, cut short after a second of very late frames so
+// a 2 fps field does not wait most of a minute to step down.
 const QUALITY_SAMPLE_FRAMES = 45;
+const QUALITY_WINDOW_MS = 1000;
+const QUALITY_MIN_FRAMES = 3;
 
 const wrap01 = v => v - Math.floor(v);
 const REDUCED_STILL_SECONDS = 7.5;
@@ -231,8 +242,17 @@ export class AttractorField {
         this.quality = 0;
         this.maxQuality = 3;
         this.adaptive = options.adaptive !== false;
-        this._frameCostMs = 0;
+        this._intervalSumMs = 0;
         this._sampleCount = 0;
+        // Good windows needed before retrying more detail; doubles on
+        // every step down so a borderline machine stops flickering.
+        this._restoreWindows = 1;
+        this._goodWindows = 0;
+        // rAF timestamp of the last live frame; null after any gap that
+        // is not a slow frame (pause, hidden tab, reduced motion).
+        this._lastFrameAt = null;
+        this._forgetLastFrame = () => { this._lastFrameAt = null; };
+        document.addEventListener('visibilitychange', this._forgetLastFrame);
 
         this.tick = this.tick.bind(this);
         this.rafId = requestAnimationFrame(this.tick);
@@ -287,7 +307,9 @@ export class AttractorField {
     }
 
     resize() {
-        this.DPR = Math.min(window.devicePixelRatio || 1, 2);
+        // 1.5x: additive glow strokes cost per pixel, and a soft filament
+        // gains little from a full 2x backing store.
+        this.DPR = Math.min(window.devicePixelRatio || 1, 1.5);
         this.W = this.host.clientWidth || window.innerWidth;
         this.H = this.host.clientHeight || window.innerHeight;
         this.canvas.width = Math.round(this.W * this.DPR);
@@ -362,7 +384,6 @@ export class AttractorField {
             if (!this.paused && !this.destroyed && !oneShot) this.rafId = requestAnimationFrame(this.tick);
             return;
         }
-        const frameStart = performance.now();
         const N = this.N;
 
         // Respect both the OS media query (cached) and the app's own
@@ -502,7 +523,15 @@ export class AttractorField {
 
         ctx.globalCompositeOperation = 'source-over';
         this._hasPaintedFrame = true;
-        this.measureQuality(performance.now() - frameStart);
+        // Only consecutive live frames measure the display's pace; one-shot
+        // repaints and Page Mode samples run outside it.
+        if (!oneShot && this._sampleT == null) {
+            if (reduced) this._lastFrameAt = null;
+            else {
+                if (this._lastFrameAt != null) this.measureQuality(now - this._lastFrameAt);
+                this._lastFrameAt = now;
+            }
+        }
         this._syncProjection();
         if (!this.projectionHost) reportProjectionPaint(this);
         if (!this.paused && !this.destroyed && !oneShot) this.rafId = requestAnimationFrame(this.tick);
@@ -648,27 +677,41 @@ export class AttractorField {
     }
 
     /**
-     * Watch this field's own drawing cost and step quality to match the
-     * hardware it is actually running on.
+     * Watch how far apart this field's frames actually arrive and step
+     * quality to match the hardware it is running on.
      *
-     * Averaged over a window so a single slow frame (a GC pause, a tab
-     * regaining focus) never degrades the field, and recovery is allowed
-     * so a machine that was briefly busy gets its detail back.
-     * @param {number} costMs - milliseconds this frame spent drawing
+     * Averaged over a window so a single slow frame (a GC pause) never
+     * degrades the field, and recovery is allowed so a machine that was
+     * briefly busy gets its detail back. Each step down doubles the good
+     * windows a step up needs: intervals snap to the display refresh, so
+     * a level that only just keeps pace looks the same as one with room
+     * to spare, and retrying it at a fixed rate would flicker.
+     * @param {number} intervalMs - milliseconds since the previous live frame
      */
-    measureQuality(costMs) {
+    measureQuality(intervalMs) {
         if (!this.adaptive) return;
-        this._frameCostMs += costMs;
-        if (++this._sampleCount < QUALITY_SAMPLE_FRAMES) return;
+        this._intervalSumMs += intervalMs;
+        const count = ++this._sampleCount;
+        if (count < QUALITY_SAMPLE_FRAMES
+            && (count < QUALITY_MIN_FRAMES || this._intervalSumMs < QUALITY_WINDOW_MS)) return;
 
-        const mean = this._frameCostMs / this._sampleCount;
-        this._frameCostMs = 0;
+        const mean = this._intervalSumMs / count;
+        this._intervalSumMs = 0;
         this._sampleCount = 0;
 
-        if (mean > FRAME_BUDGET_MS * DEGRADE_AT && this.quality < this.maxQuality) {
-            this.quality++;
+        if (mean > FRAME_BUDGET_MS * DEGRADE_AT) {
+            this._goodWindows = 0;
+            if (this.quality < this.maxQuality) {
+                this.quality++;
+                this._restoreWindows *= 2;
+            }
         } else if (mean < FRAME_BUDGET_MS * RESTORE_AT && this.quality > 0) {
-            this.quality--;
+            if (++this._goodWindows >= this._restoreWindows) {
+                this.quality--;
+                this._goodWindows = 0;
+            }
+        } else {
+            this._goodWindows = 0;
         }
     }
 
@@ -777,6 +820,7 @@ export class AttractorField {
             this.t0 = performance.now();
         }
         this._pausedMotionTime = null;
+        this._lastFrameAt = null;            // the pause is not a slow frame
         this.paused = false;
         this.rafId = requestAnimationFrame(this.tick);
     }
@@ -788,6 +832,7 @@ export class AttractorField {
         this.rafId = null;
         this.resizeObserver?.disconnect();
         window.removeEventListener('resize', this.resize);
+        document.removeEventListener('visibilitychange', this._forgetLastFrame);
         this._teardownProjection();
         this.projectionHost = null;
         this.canvas.remove();

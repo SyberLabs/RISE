@@ -34,24 +34,10 @@
   <link rel="preload" href="/fonts/instrument-sans-normal-2ee17598.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="/fonts/instrument-serif-normal-5eb09b5a.woff2" as="font" type="font/woff2" crossorigin>
 
+  <!-- The saved colourway, before first paint. A file, not inline: the
+       policy is script-src 'self'. Must stay ahead of the stylesheet. -->
+  <script src="/accent-boot.js"></script>
   <!-- Styles imported via app.js module -->
-  <script>
-    (function () {
-      try {
-        // Colourways only. Default is the ABSENCE of the attribute (bare
-        // :root). Slate is a stamped hue. Unknown or unset removes it —
-        // this runs before the app to beat the flash. Keep in step with
-        // CHAMBER_ACCENT_TOKENS.
-        var allowed = { slate: 1, ivory: 1, purple: 1, cobalt: 1, amber: 1, sunset: 1, gecko: 1, garnet: 1, teal: 1, orchid: 1 };
-        var stored = JSON.parse(localStorage.getItem('rise-settings') || '{}');
-        var id = stored && stored.chamberAccent;
-        if (allowed[id]) document.documentElement.dataset.accent = id;
-        else document.documentElement.removeAttribute('data-accent');
-      } catch (e) {
-        document.documentElement.removeAttribute('data-accent');
-      }
-    })();
-  </script>
 </head>
 
 <body>
