@@ -4,7 +4,7 @@ import { test, expect } from './fixtures.js';
 // light streaks, a beat, readable text, and no provider call.
 test('Night Drive plays neon light, streaks and the beat without a Jev request', async ({ page }) => {
   let jevRequests = 0;
-  await page.route(/openrouter\.ai|\/api\/decision-catalog|\/api\/local\//u, route => {
+  await page.route(/openrouter\.ai|\/content\/catalog\.json|\/api\/local\//u, route => {
     jevRequests += 1;
     return route.abort();
   });

@@ -78,7 +78,7 @@ export async function answerDecisions(page, plans, { status, onRequest = () => {
   const list = Array.isArray(plans) ? plans : [plans];
   const seen = [];
   const sounds = list.flatMap(plan => [plan.config.audio, plan.config.middleAudio, plan.config.finaleAudio]);
-  await page.route('**/api/decision-catalog', route => route.fulfill({ json: catalogWith(sounds) }));
+  await page.route('**/content/catalog.json', route => route.fulfill({ json: catalogWith(sounds) }));
   await page.route(DECISIONS, route => {
     const request = route.request();
     const observation = { body: request.postDataJSON(), authorization: request.headers().authorization };

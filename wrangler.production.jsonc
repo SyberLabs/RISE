@@ -15,18 +15,5 @@
     "binding": "ASSETS",
     // The Kev worker script carries its own policy (worker/kev-worker-script.mjs).
     "run_worker_first": ["/api/*", "/assets/kev-worker-*", "/assets/embed-worker-*"]
-  },
-  // Only the public catalog reads these. Provider credentials are not required.
-  "secrets": {
-    "required": [
-      "NEON_DATABASE_URL",
-      "UPSTASH_REDIS_REST_URL",
-      "UPSTASH_REDIS_REST_TOKEN"
-    ]
-  },
-  "ratelimits": [{
-    "name": "DECISION_LIMITER",
-    "namespace_id": "2026092602",
-    "simple": { "limit": 30, "period": 60 }
-  }]
+  }
 }

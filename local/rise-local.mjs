@@ -25,7 +25,6 @@ import { homedir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { createBridge } from './bridge.mjs';
-import { seedCatalog } from './catalog.mjs';
 import { REQUIREMENTS, detectHardware, readiness } from './hardware.mjs';
 
 export const KEV_CODE_REVISION = '9c41005b2180347c3c646dfc9e50c4428483ec6b';
@@ -253,8 +252,7 @@ async function main() {
   const port = Number(arg('--port', 5780));
   const kevPort = await freePort();
   const token = randomBytes(32).toString('base64url');
-  const catalog = seedCatalog();
-  const bridge = await createBridge({ distDir: join(ROOT, 'dist'), port, catalog: () => catalog,
+  const bridge = await createBridge({ distDir: join(ROOT, 'dist'), port,
     kev: { port: kevPort, token, status: () => status.get() } });
   const url = `http://127.0.0.1:${port}/`;
   say(`RISE is running at ${url} (this computer only). Press Ctrl+C to stop.`);
