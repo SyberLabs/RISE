@@ -1,6 +1,28 @@
 /* The reading backdrop (reading-backdrop.js), wherever it runs: Today, Home.
    The page that hosts it places and shades it. */
 
+/* Each reading's engine in its own layer, faded in over the last. The stage
+   sets --reading-stage-fade, so the fade is written once, in the script. */
+.reading-stage-layer {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  transition: opacity var(--reading-stage-fade) var(--sy-ease);
+}
+
+.reading-stage-layer.is-shown {
+  opacity: 1;
+}
+
+.reading-stage-layer canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  pointer-events: none;
+}
+
 /* The fractal is a still flame: it drifts, slowly, while it shows. */
 .reading-backdrop-flame {
   animation: reading-backdrop-drift 90s ease-in-out infinite alternate;
@@ -11,6 +33,8 @@
   to { transform: scale(1.14) rotate(1.5deg); }
 }
 
+/* Under reduced motion the engine swaps without a fade, and the flame holds still. */
 @media (prefers-reduced-motion: reduce) {
   .reading-backdrop-flame { animation: none; }
+  .reading-stage-layer { transition: none; }
 }

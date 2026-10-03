@@ -28,10 +28,12 @@ vi.mock('../core/roll.js', async importOriginal => {
 });
 vi.mock('../app/jev-reading.js', async importOriginal => ({
   ...(await importOriginal()),
-  openingLines: vi.fn(async () => 'Stately, plump Buck Mulligan came from the stairhead')
+  openingLines: vi.fn(async () => ({ text: 'Stately, plump Buck Mulligan came from the stairhead', verse: false }))
 }));
 // Home's engine and stream are stood in for; this file is about asking.
-vi.mock('./reading-backdrop.js', () => ({ mountReadingBackdrop: async () => null }));
+vi.mock('./reading-backdrop.js', () => ({
+  ReadingStage: class { show() {} pause() {} resume() {} destroy() {} }
+}));
 vi.mock('./reading-stream.js', () => ({
   ReadingStream: class { play() {} stop() {} destroy() {} }
 }));
@@ -198,11 +200,12 @@ it('asks once, makes the answer Home\'s reading, says what RISE cannot do, and p
   expect(launch).toHaveBeenCalledWith(expect.anything(), { firstReadPreview: false });
   expect(() => validateJevRecommendation(launch.mock.calls[0][0])).not.toThrow();
 
-  // Another reading after an asked one rolls, and the note goes with the asked reading.
+  // Another reading after an asked one rolls from it, and the note goes with the asked reading.
+  const asked = portal.reading;
   await vi.waitFor(() => expect(hook(container, 'roll').disabled).toBe(false));
   hook(container, 'roll').click();
-  await vi.waitFor(() => expect(portal.reading.source).toBe('roll'), { timeout: 3000 });
-  expect(rollReading).toHaveBeenLastCalledWith({ previous: expect.objectContaining({ source: 'ask' }), vivid: true });
+  await vi.waitFor(() => expect(portal.reading).not.toBe(asked), { timeout: 3000 });
+  expect(rollReading).toHaveBeenLastCalledWith({ previous: { temper: null, decision: asked.decision }, vivid: true });
   expect(container.querySelector('.home-note').hidden).toBe(true);
   portal.destroy();
 });
@@ -299,7 +302,32 @@ it('loads again on the next ask when asking could not load', async () => {
   ask(container, 'tokyo drift');
   await vi.waitFor(() => expect(dialog(container).open).toBe(false), { timeout: 3000 });
   expect(askAlert(container).hidden).toBe(true);
-  expect(portal.reading.source).toBe('ask');
+  expect(container.querySelector('.home-label').textContent).toMatch(/^As you asked: /u);
+  portal.destroy();
+});
+
+it('says on Home, not in the closed dialog, when a request fails after Home was left', async () => {
+  acceptOpenRouterKey(KEY);
+  let fail;
+  vi.stubGlobal('fetch', vi.fn(() => new Promise(resolve => {
+    fail = () => resolve(Response.json({ error: { message: 'Jev timed out.' } }, { status: 504 }));
+  })));
+  const { portal, container } = mount();
+  portal.activate();
+  await openAsk(container);
+  ask(container, 'tokyo drift');
+  await vi.waitFor(() => expect(fail).toBeTypeOf('function'));
+  // Home's own keys hold while the request is in flight.
+  expect(hook(container, 'roll').disabled).toBe(true);
+  portal.deactivate();
+  expect(dialog(container).open).toBe(false);
+  fail();
+  const homeAlert = container.querySelector('.home-alert');
+  await vi.waitFor(() => expect(homeAlert.hidden).toBe(false));
+  expect(homeAlert.querySelector('.portal-alert-title').textContent).toBe('Couldn’t interpret that here. Your request is kept.');
+  expect(homeAlert.querySelector('.portal-alert-message').textContent).toBe('Jev timed out.');
+  expect(askAlert(container).hidden).toBe(true);
+  expect(hook(container, 'roll').disabled).toBe(false);
   portal.destroy();
 });
 

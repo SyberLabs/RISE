@@ -70,6 +70,7 @@ describe('the system design document describes this tree', () => {
         'atlas.js',              // SyberLabs atmosphere and sigil, shared by Portal and BetaGate
         'reading-backdrop.js',   // a reading's engine behind the page, shared by Today and Home
         'reading-stream.js',     // the silent reading under way that Home opens on
+        'home-ask.js',           // Home's Ask for a reading dialog
         'chamber-undercurrent.js' // the panel a dive opens, inside the Chamber
     ]);
 

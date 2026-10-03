@@ -10,16 +10,16 @@
  *
  *   Home proposes → Reader Setup alters → Chamber performs.
  *
- * **Ask for a reading** sits in the Menu and opens a dialog. It needs the
- * reader's own AI (their OpenRouter account, or Kev on their computer);
- * without one the dialog says so. What RISE cannot do for a request is said
- * before anything plays (src/core/jev-describe.js). An asked reading becomes
- * the one Home shows.
+ * **Ask for a reading** sits in the Menu and opens a dialog (home-ask.js).
+ * What RISE cannot do for a request is said before anything plays
+ * (src/core/jev-describe.js). An asked reading becomes the one Home shows.
+ * Today's poem and a rolled or asked reading open through the app's one
+ * launch, as the Today page's Begin does.
  *
- * Every word and control is in the first paint; the poem, the engine and the
- * stream load right after it, and Home works on ink if the engine cannot run.
- * Nothing runs while another room shows. The reading lives with Home while it
- * is open; a fresh load starts on today's poem.
+ * Every word and control is in the first paint; the poem, the engine (on the
+ * shared ReadingStage) and the stream load right after it, and Home works on
+ * ink if the engine cannot run. Nothing runs while another room shows. The
+ * reading lives with Home while it is open; a fresh load starts on today's poem.
  * Every other room is one Menu away; Privacy and Terms stay posted.
  */
 
@@ -27,40 +27,59 @@ import './Portal.css';
 import './portal-home.css';
 import { drawRiseSigil } from './atlas.js';
 import { isJevSceneDemoPath, sceneSampleFromPath } from '../core/jev-demo-path.js';
-import { attachJevDictation } from './jev-dictation.js';
-import { connectionState, detectLocalKev, disconnect, isLocalRise, subscribeConnection, takeConnectionNotice } from '../core/ai-connection.js';
+import { HomeAsk, alertMarkup, showAlert } from './home-ask.js';
 import { claimOpenRouterReturn } from '../core/openrouter-callback.js';
-import { escapeHtml } from '../core/sanitize.js';
-import { watchLocalDay } from '../core/local-day.js';
+import { localDateKey, watchLocalDay } from '../core/local-day.js';
 
 const ICON_ATTRS = 'width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"';
 const SETTINGS_PATH = '<path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path><circle cx="12" cy="12" r="3"></circle>';
-const MIC_ICON = `<svg ${ICON_ATTRS}><rect x="9" y="3" width="6" height="11" rx="3"></rect><path d="M5 11a7 7 0 0 0 14 0"></path><path d="M12 18v3"></path></svg>`;
-const ASK_HELP = 'Only your request is sent, to your connected OpenRouter account or local Kev. Your reading and saved work stay here. Voice input may use your browser’s speech service.';
-const ABOUT_CONNECTION = 'OpenRouter requests are billed to your account. The key stays in this tab’s memory and is forgotten when you disconnect, reload, or close the tab. It is never sent to SyberLabs. Browser extensions can read page memory; revoke keys in your OpenRouter settings.';
-const LOCAL_RISE = 'https://github.com/SyberLabs/RISE/blob/main/docs/LOCAL-RISE.md';
 const TODAY = 'Today’s poem';
-// How long the old engine stays while the new one fades in over it (portal-home.css).
-const CROSSFADE_MS = 900;
 const CONTINUE = `<button class="portal-continue" type="button" data-action="continue" hidden>
             <span class="continue-label">Continue reading</span>
             <span class="continue-title"></span>
             <svg class="continue-go" ${ICON_ATTRS}><path d="M5 12h14"></path><path d="m13 6 6 6-6 6"></path></svg>
           </button>`;
-const alert = className => `<div class="portal-alert ${className}" role="alert" hidden>
-          <div class="portal-alert-body">
-            <p class="portal-alert-title"></p>
-            <details class="portal-alert-details">
-              <summary>Details</summary>
-              <p class="portal-alert-message"></p>
-            </details>
-          </div>
-        </div>`;
-
 const capital = text => text ? text[0].toLocaleUpperCase('en') + text.slice(1) : '';
 const button = (hook, label, variant, extra = '') =>
-  `<button class="btn btn-${variant}" type="${hook === 'ask' ? 'submit' : 'button'}" data-home="${hook}"${extra}>${label}</button>`;
+  `<button class="btn btn-${variant}" type="button" data-home="${hook}"${extra}>${label}</button>`;
 const afterPaint = next => (globalThis.requestAnimationFrame || (run => setTimeout(run, 0)))(() => setTimeout(next, 0));
+
+/**
+ * The reading on screen, from a decision and how it came: today's poem
+ * (`today`, the day's pick, with its `title` and `author`), a roll (`temper`)
+ * or an ask (`intent`). All Home says about it and how it opens; `tools`
+ * names the work and the plan of a rolled or asked one.
+ */
+function homeReading(decision, { today, title, author, temper = null, intent = '' }, tools) {
+  if (today) {
+    const heading = [title, author].filter(Boolean).join(', by ');
+    return {
+      decision, temper: decision.temper, heading, label: TODAY, spoken: `${TODAY}: ${heading}`, note: '', link: 'library',
+      // The day's exact division, as a poem: what the Today page's Begin opens.
+      launch: { exact: { entryId: today.entryId, label: today.label }, noun: 'poem' }
+    };
+  }
+  const work = tools.getTextById(decision.workId);
+  const heading = [work?.title || decision.workId, work?.author].filter(Boolean).join(', by ');
+  // An asked reading has no temper; its mood is the reader's own words.
+  const mood = temper ? capital(temper) : 'As you asked';
+  const plan = tools.summarizeJevPlan(decision.config).join(', ');
+  let note = '';
+  if (intent) {
+    const { reference, limits } = tools.readJevRequest(intent);
+    const parts = [];
+    if (reference) parts.push(`You referenced “${reference.name}”. RISE treated it as a style (${reference.reads}), not as a ${reference.kind} to play.`);
+    if (limits.length) parts.push(`RISE can’t ${limits.join(', or ')}. It matches the mood with its own synthesized music and abstract visuals instead.`);
+    note = parts.join(' ');
+  }
+  return {
+    decision, temper, heading, note, link: 'adjust',
+    label: `${mood}: ${plan}`,
+    spoken: `${mood}. ${heading}. ${capital(plan)}.`,
+    // A rolled reading offers the first-read preview, the first time one plays.
+    launch: { firstReadPreview: !intent }
+  };
+}
 
 export class Portal {
   constructor(container, options = {}) {
@@ -70,34 +89,29 @@ export class Portal {
     this.getCurrentSession = options.getCurrentSession || (() => null);
     this.onLaunchJevReading = options.onLaunchJevReading || (async () => {});
     this.onAdjustReading = options.onAdjustReading || (async () => {});
-    this.onBeginSession = options.onBeginSession || (async () => false);
     this.onLaunchJevSample = options.onLaunchJevSample || (async () => {});
     this.demoMode = options.demoMode === true;
     this._active = false;
     // The data-home hook of the work in progress (roll, ask, enter, adjust), or null.
     this.busy = null;
-    /**
-     * The reading Home shows: { source: 'today' | 'roll' | 'ask', decision,
-     * temper, label, heading, spoken, note, text, chunkMode, wpm, curve, verse,
-     * pick }. `text` is the opening, undefined while it loads.
-     */
+    // The reading Home shows (homeReading), and its opening ({ text, verse }, null while it loads).
     this.reading = null;
-    // { decision, backdrop, layer }: the engine behind the reading.
-    this.engine = null;
-    this._engineTicket = 0;
+    this.opening = null;
+    // Whether the reader chose the reading (rolled or asked); today's poem then stays out.
+    this.chosen = false;
+    // The day whose poem Home loaded, so it loads once a day.
+    this.todayKey = null;
+    this.stage = null;
     this.stream = null;
     this.firstReadChoiceUsed = false;
-    this.draft = '';
     this.tools = null;
-    this.stopConnection = subscribeConnection(() => this.renderConnection());
-    if (isLocalRise()) void detectLocalKev();
     const returned = claimOpenRouterReturn();
     if (returned) {
       // The reader connected from the ask dialog; bring them back to it.
       void import('../core/openrouter-oauth.js')
         .then(({ finishOpenRouterReturn }) => finishOpenRouterReturn(returned))
         .then(() => {
-          if (this._active) this.openAsk();
+          if (this._active) this.asking?.open();
           else this._askOnShow = true;
         });
     }
@@ -113,13 +127,13 @@ export class Portal {
     if (demoMode !== this.demoMode) {
       const wasActive = this._active;
       this.deactivate();
-      this.stopEngine();
+      this.stage?.destroy();
       this.stream?.destroy();
-      this.stream = null;
+      this.stage = this.stream = null;
       this.demoMode = demoMode;
       this.render();
       this.attachEvents();
-      if (this.reading) this.present(this.reading);
+      if (this.reading) this.present(this.reading, this.opening);
       if (wasActive) this.activate();
     }
     // Returning from a reading is precisely when this changes.
@@ -144,8 +158,7 @@ export class Portal {
   }
 
   render() {
-    this.stopDictation?.();
-    this.stopDictation = null;
+    this.asking?.destroy();
     this.container.innerHTML = `
       <div class="portal${this.demoMode ? '' : ' portal-home'}">
         ${this.demoMode ? '' : `<div class="home-engine" aria-hidden="true"></div>
@@ -203,9 +216,15 @@ export class Portal {
             <a href="/terms.html" class="portal-footer-link portal-legal-link">Terms</a>
           </span>
         </footer>
-        ${this.demoMode ? '' : this.renderAskDialog()}
       </div>
     `;
+    this.asking = this.demoMode ? null : new HomeAsk(this.container.querySelector('.portal'), {
+      getAudioEngine: this.getAudioEngine,
+      loadTools: () => this.loadTools(),
+      onAnswer: (decision, intent) => this.answered(decision, intent),
+      onFailure: (title, details) => this.showError(title, details),
+      onBusy: pending => this.setBusy(pending ? 'ask' : null)
+    });
     this._marksDrawn = false;
     if (this._active) this.drawMarks();
   }
@@ -221,7 +240,7 @@ export class Portal {
         <div class="home-stream" aria-hidden="true"></div>
         <p class="sr-only" data-home-opening></p>
       </div>
-      ${alert('home-alert')}
+      ${alertMarkup('home-alert')}
       <div class="home-bar">
         <div class="home-caption">
           <p class="home-label">${TODAY}</p>
@@ -238,18 +257,6 @@ export class Portal {
       <div class="home-progress" aria-hidden="true"><span class="home-progress-fill"></span></div>
       <p class="sr-only" role="status" aria-live="polite"><span data-home-status></span></p>
     </section>`;
-  }
-
-  /** Asking, in a native dialog the Menu opens. Its view is drawn as it opens. */
-  renderAskDialog() {
-    return `<dialog class="home-ask" aria-labelledby="home-ask-title">
-      <form class="home-ask-form" id="home-form" novalidate>
-        <div class="home-view"></div>
-        <p class="home-ask-status" role="status" aria-live="polite"><span data-ask-status></span><span data-jev-dictation-status></span></p>
-        ${alert('home-ask-alert')}
-        <div class="portal-ai" id="portal-ai">${this.renderConnectionLine()}</div>
-      </form>
-    </dialog>`;
   }
 
   renderDemo() {
@@ -281,92 +288,21 @@ export class Portal {
     </section>`;
   }
 
-  /** What is connected, in the ask dialog. Not connected, the dialog's own words say what asking needs. */
-  renderConnectionLine() {
-    const state = connectionState();
-    const line = state.kind === 'openrouter'
-      ? `${escapeHtml('Jev through your OpenRouter account, billed to your OpenRouter account.')} <button class="portal-link" type="button" data-ai="disconnect">Disconnect</button>`
-      : state.kind === 'local' ? escapeHtml('Kev on this computer. No hosted inference bill.') : '';
-    return `<p class="portal-ai-line" id="portal-ai-status">${line}</p>
-      <p class="portal-ai-notice" role="status" hidden></p>`;
-  }
-
-  renderConnection() {
-    const current = this.container.querySelector('.portal-ai');
-    if (!current) return;
-    current.innerHTML = this.renderConnectionLine();
-    const notice = takeConnectionNotice();
-    if (notice) this.showConnectionNotice(notice.message);
-    // An open request becomes a field, or an explanation, as the connection changes.
-    if (this.askDialog()?.open) this.renderAsk();
-  }
-
-  showConnectionNotice(message) {
-    const node = this.container.querySelector('.portal-ai-notice');
-    if (node) { node.textContent = message; node.hidden = !message; }
-  }
-
-  async connectOpenRouter() {
-    try {
-      const { beginOpenRouterConnect } = await import('../core/openrouter-oauth.js');
-      await beginOpenRouterConnect();
-    } catch {
-      this.showConnectionNotice('OpenRouter could not be connected in this browser.');
-    }
-  }
-
-  askView(connected) {
-    if (!connected) {
-      return `<h2 class="home-ask-title" id="home-ask-title">Asking needs your own AI.</h2>
-      <p class="home-lede">Connect your OpenRouter account (billed to you) or run RISE on your computer with Kev. Another reading needs neither.</p>
-      <div class="home-ask-actions">
-        <button class="btn btn-primary" type="button" data-ai="connect">Connect OpenRouter</button>
-        <a class="btn btn-secondary" href="${LOCAL_RISE}" target="_blank" rel="noopener noreferrer">Run RISE locally</a>
-        ${button('ask-cancel', 'Cancel', 'ghost')}
-      </div>
-      <details class="portal-ai-about"><summary>About your connection</summary><p class="home-help">${ABOUT_CONNECTION}</p></details>`;
-    }
-    return `<h2 class="home-ask-title" id="home-ask-title"><label for="home-intent">What would you like to read?</label></h2>
-      <div class="home-field">
-        <textarea class="input home-intent" id="home-intent" name="intent" rows="3" maxlength="240" aria-describedby="home-help"></textarea>
-        <p class="home-help" id="home-help">${ASK_HELP}</p>
-      </div>
-      <div class="home-ask-actions">${button('ask', 'Ask', 'primary')}
-        <button class="btn btn-ghost btn-icon" type="button" data-jev-dictate="icon" aria-label="Speak your request" aria-pressed="false">${MIC_ICON}</button>
-        ${button('ask-cancel', 'Cancel', 'ghost')}
-      </div>`;
-  }
-
-  askDialog() {
-    return this.container.querySelector('dialog.home-ask');
-  }
-
-  /** Draw the dialog's view for the connection, keeping what was typed. */
-  renderAsk() {
-    const dialog = this.askDialog();
-    const connected = connectionState().kind !== 'none';
-    dialog.querySelector('.home-view').innerHTML = this.askView(connected);
-    const field = dialog.querySelector('#home-intent');
-    if (field) field.value = this.draft;
-    this.attachDictation();
-    this.renderBusy();
-  }
-
   /** Name the reading in the bar, speak it, and play it if Home is showing. */
-  present(reading) {
+  present(reading, opening = null) {
     this.reading = reading;
+    this.opening = opening;
     const home = this.container.querySelector('.home');
     if (!home) return;
     home.querySelector('.home-label').textContent = reading.label;
     home.querySelector('.home-title').textContent = reading.heading;
     const note = home.querySelector('.home-note');
-    note.textContent = reading.note || '';
+    note.textContent = reading.note;
     note.hidden = !reading.note;
     // Today's poem points on into the Library; a rolled or asked reading can be adjusted.
     const link = home.querySelector('.home-link');
-    const adjust = reading.source !== 'today';
-    link.dataset.home = adjust ? 'adjust' : 'library';
-    link.textContent = adjust ? 'Adjust' : 'Library';
+    link.dataset.home = reading.link;
+    link.textContent = reading.link === 'adjust' ? 'Adjust' : 'Library';
     this.setStatus(reading.spoken);
     this.renderOpening();
     this.renderBusy();
@@ -376,85 +312,54 @@ export class Portal {
   /** The opening as text for assistive technology; the stream beside it is decoration. */
   renderOpening() {
     const node = this.container.querySelector('[data-home-opening]');
-    if (node) node.textContent = this.reading?.text || '';
+    if (node) node.textContent = this.opening?.text || '';
   }
 
   /** Run the shown reading: its engine behind, its opening in the stream. */
   play() {
     if (!this.reading) return;
-    void this.showEngine(this.reading.decision);
+    void this.showEngine();
     void this.playStream();
   }
 
-  /**
-   * Mount the decision's engine in a new layer over the old one, fade it in,
-   * then destroy the old. A reading without an engine (or a device that
-   * cannot run one) fades to ink.
-   */
-  async showEngine(decision) {
-    if (this.engine?.decision === decision) {
-      this.engine.backdrop?.resume();
-      return;
-    }
-    const host = this.container.querySelector('.home-engine');
-    if (!host) return;
-    const ticket = ++this._engineTicket;
-    const layer = document.createElement('div');
-    layer.className = 'home-engine-layer';
-    host.append(layer);
-    let backdrop = null;
+  /** The reading's engine on the stage, which cross-fades it in over the last. */
+  async showEngine() {
     try {
-      const { mountReadingBackdrop } = await import('./reading-backdrop.js');
-      if (ticket === this._engineTicket) backdrop = await mountReadingBackdrop(layer, decision);
+      const { ReadingStage } = await import('./reading-backdrop.js');
+      if (!this._active) return;
+      this.stage ||= new ReadingStage(this.container.querySelector('.home-engine'));
+      void this.stage.show(this.reading.decision);
     } catch (error) {
-      console.warn('[Home] the engine could not start; the reading shows on ink.', error);
-    }
-    if (ticket !== this._engineTicket || !layer.isConnected) {
-      backdrop?.destroy();
-      layer.remove();
-      return;
-    }
-    const old = this.engine;
-    this.engine = { decision, backdrop, layer };
-    if (!this._active) backdrop?.pause();
-    afterPaint(() => layer.classList.add('is-shown'));
-    if (old) {
-      old.layer.classList.remove('is-shown');
-      setTimeout(() => {
-        old.backdrop?.destroy();
-        old.layer.remove();
-      }, CROSSFADE_MS);
+      console.warn('[Home] the engine could not load; the reading shows on ink.', error);
     }
   }
 
-  stopEngine() {
-    this._engineTicket++;
-    this.engine?.backdrop?.destroy();
-    this.engine?.layer.remove();
-    this.engine = null;
-  }
-
-  /** Stream the opening once it is here. Until then, or if it cannot stream, the stage holds still. */
+  /**
+   * Stream the opening once it is here, in the reading's own unit, pace and
+   * curve, and verse a line at a time as the Chamber reads it. Until then, or
+   * if it cannot stream, the stage holds still.
+   */
   async playStream() {
-    const reading = this.reading;
+    const { reading, opening } = this;
     const host = this.container.querySelector('.home-stream');
     if (!host) return;
     this.stream?.stop();
     this.setProgress(0);
-    if (!reading.text) {
+    if (!opening?.text) {
       host.replaceChildren();
       return;
     }
     try {
       const { ReadingStream } = await import('./reading-stream.js');
-      if (this.reading !== reading || !this._active) return;
+      if (this.opening !== opening || !this._active) return;
       this.stream ||= new ReadingStream(host, { onProgress: fraction => this.setProgress(fraction) });
-      this.stream.play(reading.text, { chunkMode: reading.chunkMode, wpm: reading.wpm, curve: reading.curve, verse: reading.verse });
+      const { chunkMode, wpm, curve } = reading.decision.config;
+      this.stream.play(opening.text, { chunkMode, wpm, curve, verse: opening.verse });
     } catch (error) {
       console.warn('[Home] the stream could not run; the opening holds still.', error);
       const still = document.createElement('p');
       still.className = 'home-still';
-      still.textContent = reading.text.split('\n')[0];
+      still.textContent = opening.text.split('\n')[0];
       host.replaceChildren(still);
     }
   }
@@ -464,8 +369,11 @@ export class Portal {
     if (fill) fill.style.transform = `scaleX(${fraction})`;
   }
 
-  /** Today's poem, the reading Home opens on. Loaded after first paint. */
+  /** Today's poem, the reading Home opens on: loaded after first paint, once a day. */
   async loadToday(date = new Date()) {
+    const key = localDateKey(date);
+    if (key === this.todayKey) return;
+    this.todayKey = key;
     try {
       const [{ todayPoem, poemTitle }, { todayDecision }, { default: openings }] = await Promise.all([
         import('../core/today-poem.js'),
@@ -474,19 +382,13 @@ export class Portal {
       ]);
       if (this._destroyed) return;
       const pick = todayPoem(date);
-      const decision = todayDecision(pick);
-      const author = openings.works[pick.workId]?.author;
-      const heading = [poemTitle(pick.label), author].filter(Boolean).join(', by ');
-      const { wpm, curve } = decision.config;
-      const poem = {
-        source: 'today', pick, decision, temper: decision.temper,
-        label: TODAY, heading, spoken: `${TODAY}: ${heading}`, note: '',
-        text: openings.openings[pick.workId]?.[pick.entryId] || '',
-        chunkMode: 'phrase', wpm, curve, verse: true
-      };
+      const poem = homeReading(todayDecision(pick), {
+        today: pick, title: poemTitle(pick.label), author: openings.works[pick.workId]?.author
+      });
       // A reading the reader chose stays; only today's poem turns over.
-      if (!this.reading || this.reading.source === 'today') this.present(poem);
+      if (!this.chosen) this.present(poem, { text: openings.openings[pick.workId]?.[pick.entryId] || '', verse: true });
     } catch (error) {
+      this.todayKey = null;
       console.warn('[Home] today\'s poem could not load.', error);
       if (!this.reading) this.showError('Today’s poem couldn’t load. Try another reading.', error?.message || '');
     }
@@ -497,25 +399,8 @@ export class Portal {
     if (status) status.textContent = text;
   }
 
-  setAskStatus(text) {
-    const status = this.container.querySelector('[data-ask-status]');
-    if (status) status.textContent = text;
-  }
-
-  /** An alert on Home, or in the ask dialog (`where`). */
-  showError(title, details = '', where = '.home-alert') {
-    const alert = this.container.querySelector(where);
-    if (!alert) return;
-    alert.hidden = !title;
-    alert.querySelector('.portal-alert-title').textContent = title;
-    const more = alert.querySelector('.portal-alert-details');
-    more.open = false;
-    more.hidden = !details;
-    alert.querySelector('.portal-alert-message').textContent = details;
-  }
-
-  showAskError(title, details = '') {
-    this.showError(title, details, '.home-ask-alert');
+  showError(title, details = '') {
+    showAlert(this.container.querySelector('.home-alert'), title, details);
   }
 
   /** Mark the control `hook` names busy; null when nothing is in progress. */
@@ -524,21 +409,13 @@ export class Portal {
     this.renderBusy();
   }
 
-  /** Every control holds while work is in progress, and the one pressed says it is busy. */
+  /** Every control holds while work is in progress, and the one pressed says it is busy. The dialog holds its own. */
   renderBusy() {
-    for (const control of this.container.querySelectorAll('[data-home], .home-ask [data-ai]')) {
+    for (const control of this.container.querySelectorAll('.home [data-home], .portal-nav [data-home]')) {
       control.disabled = !!this.busy || (control.dataset.home === 'enter' && !this.reading);
       if (control.dataset.home === this.busy) control.setAttribute('aria-busy', 'true');
       else control.removeAttribute('aria-busy');
     }
-    const field = this.container.querySelector('#home-intent');
-    if (field) field.readOnly = this.busy === 'ask';
-  }
-
-  attachDictation() {
-    this.stopDictation?.();
-    const form = this.container.querySelector('#home-form');
-    this.stopDictation = form?.querySelector('[data-jev-dictate]') ? attachJevDictation(form) : null;
   }
 
   focus(selector) {
@@ -560,37 +437,14 @@ export class Portal {
     return this.tools;
   }
 
-  /** Words for a decision, all derived from the plan and the edition. */
-  describe(tools, decision, { source, intent = '', temper = null }) {
-    const work = tools.getTextById(decision.workId);
-    let note = '';
-    if (source === 'ask') {
-      const { reference, limits } = tools.readJevRequest(intent);
-      const parts = [];
-      if (reference) parts.push(`You referenced “${reference.name}”. RISE treated it as a style (${reference.reads}), not as a ${reference.kind} to play.`);
-      if (limits.length) parts.push(`RISE can’t ${limits.join(', or ')}. It matches the mood with its own synthesized music and abstract visuals instead.`);
-      note = parts.join(' ');
-    }
-    const heading = [work?.title || decision.workId, work?.author].filter(Boolean).join(', by ');
-    // An asked reading has no temper; its mood is the reader's own words.
-    const mood = temper ? capital(temper) : 'As you asked';
-    const plan = tools.summarizeJevPlan(decision.config).join(', ');
-    const { chunkMode, wpm, curve } = decision.config;
-    return {
-      source, decision, temper, note, heading,
-      label: `${mood}: ${plan}`,
-      spoken: `${mood}. ${heading}. ${capital(plan)}.`,
-      chunkMode, wpm, curve, verse: false
-    };
-  }
-
-  /** Make a decision Home's reading, then fetch the opening it streams. */
+  /** Make a decision the reader chose Home's reading, then fetch the opening it streams. */
   showDecision(tools, decision, how) {
-    const reading = this.describe(tools, decision, how);
+    this.chosen = true;
+    const reading = homeReading(decision, how, tools);
     this.present(reading);
-    void tools.openingLines(decision).catch(() => '').then(text => {
-      reading.text = text;
-      if (this.reading !== reading) return;
+    void tools.openingLines(decision).catch(() => null).then(opening => {
+      if (this.reading !== reading || !opening) return;
+      this.opening = opening;
       this.renderOpening();
       if (this._active) void this.playStream();
     });
@@ -603,74 +457,32 @@ export class Portal {
     this.showError('');
     this.setBusy('roll');
     let tools;
-    let rolled;
     try {
       tools = await this.loadTools();
-      rolled = tools.rollReading({ previous: this.reading, vivid: true });
     } catch (error) {
-      // The roll's code did not arrive (a dropped connection), or the roll was
-      // refused; whatever was showing stays and the controls are live.
+      // The roll's code did not arrive (a dropped connection); whatever was
+      // showing stays and the controls are live.
       this.setBusy(null);
       this.showError('Couldn’t roll just now. Try again.', error?.message || '');
       return;
     }
     this.setBusy(null);
-    this.showDecision(tools, rolled.decision, { source: 'roll', temper: rolled.temper });
+    const previous = this.reading && { temper: this.reading.temper, decision: this.reading.decision };
+    const rolled = tools.rollReading({ previous, vivid: true });
+    this.showDecision(tools, rolled.decision, { temper: rolled.temper });
     // Busy, the key was disabled and lost focus; the reader stays on it.
     this.focus('[data-home="roll"]');
     // A small tick as the answer arrives, on phones that can give one.
     navigator.vibrate?.(10);
   }
 
-  openAsk() {
-    const dialog = this.askDialog();
-    if (!dialog || this.busy) return;
-    this.showAskError('');
-    this.renderAsk();
-    if (!dialog.open) dialog.showModal();
-    const connected = connectionState().kind !== 'none';
-    this.focus(connected ? '#home-intent' : '.home-ask [data-ai="connect"]');
-    this.setAskStatus(connected ? 'Ask for a mood, a style, a text, or all three.' : '');
-  }
-
-  async ask() {
-    const field = this.container.querySelector('#home-intent');
-    if (this.busy || !field) return;
-    this.draft = field.value;
-    const intent = field.value.trim();
-    if (intent.length < 3 || intent.length > 240) {
-      this.setAskStatus(intent ? 'Keep it under 240 characters.' : 'Add a few words: a mood, a style, a text, or all three.');
-      field.focus();
-      return;
-    }
-    this.showAskError('');
-    this.getAudioEngine()?.playClick();
-    this.setBusy('ask');
-    this.setAskStatus('Interpreting your request. This usually takes a few seconds.');
-    let tools;
-    let decision;
-    try {
-      // The one decision route every way in shares (src/app/invocation.js).
-      tools = await this.loadTools();
-      decision = await tools.requestComposedReading(intent, { admit: tools.validateJevRecommendation });
-    } catch (error) {
-      this.setBusy(null);
-      this.focus('#home-intent');
-      this.setAskStatus('');
-      if (error?.code === 'NOT_CONNECTED') {
-        this.showConnectionNotice('Connect OpenRouter or run RISE locally to ask for a specific reading. Another reading works without AI.');
-      }
-      this.showAskError('Couldn’t interpret that here. Your request is kept.', error?.message || '');
-      return;
-    }
-    this.setBusy(null);
-    this.setAskStatus('');
-    this.askDialog().close();
-    this.showDecision(tools, decision, { source: 'ask', intent });
+  /** An admitted answer from the ask dialog becomes Home's reading. */
+  async answered(decision, intent) {
+    this.showDecision(await this.loadTools(), decision, { intent });
     this.focus('[data-home="enter"]');
   }
 
-  /** Read it with sound plays the reading; Adjust opens it in Reader Setup. */
+  /** Read it with sound opens the reading through the app's one launch; Adjust opens it in Reader Setup. */
   async proceed(action) {
     const reading = this.reading;
     if (!reading || this.busy) return;
@@ -679,32 +491,17 @@ export class Portal {
     this.showError('');
     try {
       if (action === 'adjust') await this.onAdjustReading(reading.decision);
-      else if (reading.source === 'today') await this.beginToday(reading);
       else {
-        const firstReadPreview = reading.source === 'roll' && !this.firstReadChoiceUsed;
-        await this.onLaunchJevReading(reading.decision, { firstReadPreview });
-        if (firstReadPreview) this.firstReadChoiceUsed = true;
+        const { firstReadPreview, ...launch } = reading.launch;
+        const preview = firstReadPreview === true && !this.firstReadChoiceUsed;
+        await this.onLaunchJevReading(reading.decision, { ...launch, firstReadPreview: preview });
+        if (preview) this.firstReadChoiceUsed = true;
       }
     } catch (error) {
       this.showError('That reading couldn’t be opened. Try again, or try another reading.', error?.message || '');
     } finally {
       this.setBusy(null);
     }
-  }
-
-  /**
-   * Today's poem opens as the Today page's Begin opens it: the day's exact
-   * division, in the day's look, as a poem. Its origin is Home's, so leaving
-   * the reading comes back here.
-   */
-  async beginToday({ decision, pick }) {
-    const { resolveJevReading } = await import('../app/jev-reading.js');
-    const reading = await resolveJevReading(decision, { entryId: pick.entryId, label: pick.label });
-    const opened = await this.onBeginSession({
-      ...reading,
-      continuation: reading.continuation && { ...reading.continuation, noun: 'poem' }
-    });
-    if (opened === false) throw new Error('The poem could not be opened.');
   }
 
   /** The RISE sigil in the header lockup. */
@@ -726,47 +523,6 @@ export class Portal {
         this.onNavigate('library');
       }
     });
-
-    const form = this.container.querySelector('#home-form');
-    if (form) {
-      form.addEventListener('submit', event => {
-        event.preventDefault();
-        void this.ask();
-      });
-      form.addEventListener('click', event => {
-        if (event.target.closest('[data-home="ask-cancel"]')) this.askDialog().close();
-      });
-      form.addEventListener('input', event => {
-        if (event.target.id === 'home-intent') this.draft = event.target.value;
-      });
-      form.addEventListener('keydown', event => {
-        if (event.target.id === 'home-intent' && event.key === 'Enter' && !event.shiftKey && !event.isComposing) {
-          event.preventDefault();
-          form.requestSubmit();
-        }
-      });
-      this.askDialog().addEventListener('close', () => {
-        this.stopDictation?.();
-        this.stopDictation = null;
-      });
-      // A dialog cannot be dismissed while its request is in flight.
-      this.askDialog().addEventListener('cancel', event => {
-        if (this.busy === 'ask') event.preventDefault();
-      });
-    }
-
-    if (!this._aiEventsAttached) {
-      this._aiEventsAttached = true;
-      this.container.addEventListener('click', event => {
-        const control = event.target.closest('[data-ai]');
-        if (!control || control.disabled) return;
-        if (control.dataset.ai === 'connect') void this.connectOpenRouter();
-        else if (control.dataset.ai === 'disconnect') {
-          disconnect();
-          this.showConnectionNotice('Disconnected. RISE forgot the key.');
-        }
-      });
-    }
 
     const sample = this.container.querySelector('#jev-scene-demo-start');
     sample?.addEventListener('click', async () => {
@@ -822,7 +578,7 @@ export class Portal {
     nav.querySelector('[data-home="ask-open"]')?.addEventListener('click', () => {
       this.getAudioEngine()?.playClick();
       setMenu(false, { restoreFocus: true });
-      this.openAsk();
+      if (!this.busy) this.asking.open();
     });
 
     this.container.querySelectorAll('[data-nav]').forEach(item => {
@@ -853,17 +609,13 @@ export class Portal {
     if (!this._marksDrawn) this.drawMarks();
     if (this.demoMode) return;
     // After first paint: the bar is already there; the poem, engine and stream follow.
-    if (this.reading) this.play();
-    else afterPaint(() => void this.loadToday());
+    this.stage?.resume();
+    this.play();
+    afterPaint(() => void this.loadToday());
     this._stopDay = watchLocalDay(date => void this.loadToday(date));
-    this._visibility = new AbortController();
-    document.addEventListener('visibilitychange', () => {
-      if (document.visibilityState === 'hidden') this.engine?.backdrop?.pause();
-      else this.engine?.backdrop?.resume();
-    }, { signal: this._visibility.signal });
     if (this._askOnShow) {
       this._askOnShow = false;
-      this.openAsk();
+      this.asking.open();
     }
   }
 
@@ -871,22 +623,19 @@ export class Portal {
     if (!this._active) return;
     this._active = false;
     // Every other room — and above all the Chamber — runs without it.
-    this.engine?.backdrop?.pause();
+    this.stage?.pause();
     this.stream?.stop();
     this._stopDay?.();
     this._stopDay = null;
-    this._visibility?.abort();
-    this.stopDictation?.();
-    this.stopDictation = null;
-    if (this.askDialog()?.open) this.askDialog().close();
+    this.asking?.close();
   }
 
   destroy() {
     this.deactivate();
     this._destroyed = true;
-    this.stopConnection?.();
-    this.stopEngine();
+    this.asking?.destroy();
+    this.stage?.destroy();
     this.stream?.destroy();
-    this.stream = null;
+    this.stage = this.stream = null;
   }
 }

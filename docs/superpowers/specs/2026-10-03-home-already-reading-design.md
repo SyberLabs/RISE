@@ -23,11 +23,13 @@ Chamber         performs it, with sound (Read it with sound)
 Under a transparent header (the lockup and the one Menu):
 
 * **The engine**, full-bleed: the reading's own visual, the one the Chamber
-  will run (`mountReadingBackdrop`, `src/components/reading-backdrop.js`).
+  will run, on the `ReadingStage` the Today page also uses
+  (`src/components/reading-backdrop.js`).
 * **One ink scrim**: a radial pool under the stream and a band under the
   header and the bar, so every word keeps 4.5:1 even over a white engine.
-* **The stream**, centred: the reading's opening, unit by unit, at the
-  reading's pace (`ReadingStream`, `src/components/reading-stream.js`), silent.
+* **The stream**, centred: the reading's opening, unit by unit, in the
+  reading's own unit, pace and curve (`ReadingStream`,
+  `src/components/reading-stream.js`), silent.
 * **The bar**: on the left a caption over the reading's name; on the right
   **Read it with sound** (the one solid key), **Another reading** (a line
   key) and a text link. A 1px hairline under it follows the stream.
@@ -48,26 +50,34 @@ Under a transparent header (the lockup and the one Menu):
 
 * **On arrival** Home loads today's poem after first paint: `todayPoem(new
   Date())`, `todayDecision(pick)` (the reading the Today page uses), and the
-  opening passage and poet from `today-openings.json`. It streams phrase by
-  phrase as verse. At local midnight, while shown, it turns to the next day's
-  poem unless the reader has chosen another reading.
-* **Another reading** rolls `rollReading({ previous, vivid: true })`. The new
-  engine mounts in its own layer and fades in over the old, which is
-  destroyed once the fade ends; the stream plays `openingLines(decision)` in
-  the reading's unit, pace and curve. Pressing it again rolls again.
-* **Read it with sound**: today's poem opens exactly as the Today page's Begin
-  does (`resolveJevReading(decision, { entryId, label })` → the app's
-  `handleBeginSession`, passed in as `onBeginSession`, with the continuation's
-  noun *poem*); a rolled or asked reading goes through `onLaunchJevReading`.
-  Leaving the reading returns to Home on the same reading.
-* **Ask for a reading** is in the Menu. It opens a native `<dialog>` with the
-  ask view the night library had, moved unchanged: connected, a labelled field,
-  microphone, **Ask** and **Cancel**, and the connected account with
-  Disconnect; not connected, *Asking needs your own AI.*, **Connect
-  OpenRouter**, **Run RISE locally**, **Cancel** and *About your connection*.
-  Returning from OpenRouter reopens it. An asked reading becomes Home's.
+  opening passage and poet from `today-openings.json`, once a day however
+  often Home is left and shown meanwhile. It streams as verse, in the unit,
+  pace and curve of its own plan (`decision.config`), so a verse division
+  read by phrase goes a line at a time, as the Chamber reads it. At local
+  midnight, while shown, it turns to the next day's poem unless the reader has
+  chosen another reading (a roll that lands before the poem does is kept).
+* **Another reading** rolls `rollReading({ previous: { temper, decision },
+  vivid: true })` from the reading showing. The stage mounts the new engine in
+  its own layer and fades it in over the old, which is destroyed once the fade
+  ends; a mount a newer roll overtook is destroyed. The stream plays
+  `openingLines(decision)` (`{ text, verse }`) the same way as today's poem.
+  Pressing it again rolls again.
+* **Read it with sound** opens every reading through the app's one launch,
+  `launchJevReading(decision, options)` (passed in as `onLaunchJevReading`),
+  the one the Today page's Begin uses. Today's poem passes `exact: { entryId,
+  label }` and `noun: 'poem'`; a roll offers the first-read preview the first
+  time. Leaving the reading returns to Home on the same reading.
+* **Ask for a reading** is in the Menu. It opens a native `<dialog>`
+  (`src/components/home-ask.js`) with the ask view the night library had:
+  connected, a labelled field, microphone, **Ask** and **Cancel**, and the
+  connected account with Disconnect; not connected, *Asking needs your own
+  AI.*, **Connect OpenRouter**, **Run RISE locally**, **Cancel** and *About
+  your connection*. Returning from OpenRouter reopens it. An asked reading
+  becomes Home's. If Home is left while a request is in flight, a failure is
+  said on Home, not in the closed dialog.
 * **Nothing runs behind a reading**: leaving Home pauses the engine and stops
-  the stream; returning resumes both. A hidden tab pauses the engine too.
+  the stream; returning resumes both. Pausing finishes any cross-fade, so no
+  engine runs behind another room. A hidden tab pauses the engine too.
 * **Without an engine** (no WebGL, a refused engine, or none for the reading)
   Home reads on ink; the text and every control still work.
 
@@ -98,8 +108,11 @@ Under a transparent header (the lockup and the one Menu):
 ## Built from
 
 * `src/components/Portal.js`, `Portal.css` (the page) and `portal-home.css`
-  (the engine, scrim, stream, bar and dialog).
-* `src/app/route-manifest.js`: Home receives `onBeginSession`.
+  (the engine, scrim, stream, bar and dialog); `home-ask.js` (the dialog).
+* `src/components/reading-backdrop.js` (`ReadingStage`, shared with Today).
+* `src/app.js`: `launchJevReading(decision, { exact, noun, origin,
+  firstReadPreview })`; `src/app/route-manifest.js` gives it to Home and Today
+  as `onLaunchJevReading`.
 
 ## Removed
 
