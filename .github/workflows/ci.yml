@@ -53,6 +53,7 @@ jobs:
             src/components/Portal.test.js \
             src/components/reading-stream.test.js \
             src/components/reading-backdrop.test.js \
+            src/components/home-ask.test.js \
             src/core/roll.test.js \
             src/components/Library.jev.test.js \
             src/core/content-store.test.js \
