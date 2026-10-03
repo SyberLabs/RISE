@@ -65,6 +65,15 @@ describe('Library panes', () => {
         expect(activate).toHaveBeenCalledTimes(1);
     });
 
+    it('forwards its own deactivation to the open pane', async () => {
+        library = new Library(container, { ...options, paneCapabilities });
+        library.activate();
+        await library.showPane('stations', {});
+        const deactivate = vi.spyOn(library.paneInstance('stations'), 'deactivate');
+        library.deactivate();
+        expect(deactivate).toHaveBeenCalledTimes(1);
+    });
+
     it('destroys every mounted pane when it is destroyed', async () => {
         library = new Library(container, { ...options, paneCapabilities });
         await library.showPane('chapel', {});

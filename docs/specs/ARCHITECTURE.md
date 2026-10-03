@@ -337,12 +337,13 @@ outliving its room, fails a build.
 | Settings | `src/components/Settings.js` | preferences, export and erase |
 | Guide | `src/components/Guide.js` | onboarding, as an overlay rather than a route |
 
-Seven modules in `src/components/` are deliberately not rooms; they support
+Eight modules in `src/components/` are deliberately not rooms; they support
 routed rooms: `src/components/Admit.js`,
 `src/components/NamingModal.js`, `src/components/SourceBrowser.js` and
 `src/components/VisualNavigator.js`, plus the Jev voice input helper
 `src/components/jev-dictation.js`, the shared room frame
-`src/components/room-chrome.js` (header, icons, Alert), and the SyberLabs
+`src/components/room-chrome.js` (header, icons, Alert), the pane host
+`src/components/room-panes.js`, and the SyberLabs
 chrome helper `src/components/atlas.js`, which lazily imports the vendored
 design-system kit in `src/vendor/syber/` (the ambient atmosphere behind Home
 and the RISE sigil) so neither engine is part of first load.

@@ -149,6 +149,23 @@ describe('Router back and updateAddress', () => {
     router.destroy();
   });
 
+  it('goes back from one pane to the previous pane with its data, in place', async () => {
+    document.body.innerHTML = '<main id="a"></main>';
+    window.history.replaceState({}, '', '/');
+    const history = { pushState: vi.fn(), replaceState: vi.fn() };
+    const router = new Router({ history });
+    router.transitionDuration = 0;
+    const library = { showPane: vi.fn(), update: vi.fn() };
+    router.registerView('library', { container: document.querySelector('#a'), init: () => library });
+    await router.navigate('chapel', { data: { bookId: 'genesis', chapter: 1 } });
+    await router.navigate('via');
+    expect(library.update).toHaveBeenLastCalledWith({ pane: 'stations' });
+    await router.back();
+    expect(router.currentView).toBe('library');
+    expect(library.update).toHaveBeenLastCalledWith({ bookId: 'genesis', chapter: 1, pane: 'chapel' });
+    router.destroy();
+  });
+
   it('rewrites the address in place when the view data changes', async () => {
     document.body.innerHTML = '<main id="a"></main>';
     window.history.replaceState({}, '', '/');

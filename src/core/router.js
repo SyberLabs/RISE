@@ -25,14 +25,7 @@ function isStaleChunkError(error) {
 }
 
 import { ROUTE_ALIASES, ROUTE_PANES, addressIsOwnTo, pathForRoute } from './route-url.js';
-
-function sameData(a, b) {
-    try {
-        return JSON.stringify(a ?? {}) === JSON.stringify(b ?? {});
-    } catch {
-        return false;
-    }
-}
+import { sameData } from './same-data.js';
 
 export class Router {
     constructor(options = {}) {
@@ -98,10 +91,11 @@ export class Router {
         // A completed division may hand the same immersive surface a fresh
         // Session. Same-route navigation is normally a no-op; `force` is the
         // explicit remount contract for that bounded continuation case.
-        // A room with panes (the Library) changes pane in place: no fade,
-        // but a back-stack entry and an address like any other move.
+        // A room that takes new data through `update(data)` changes in
+        // place: no fade, but a back-stack entry and an address like any
+        // other move. Pane-hosting rooms (room-panes.js) expose it.
         const inPlace = viewName === this.currentView && options.force !== true
-            && typeof this.views.get(viewName)?.instance?.showPane === 'function';
+            && typeof this.views.get(viewName)?.instance?.update === 'function';
         if (viewName === this.currentView && options.force !== true
             && (!inPlace || sameData(options.data, this.currentData))) return true;
 

@@ -17,6 +17,7 @@ import { MemoryCore } from '../core/memory.js';
 import { LocalWorks } from '../core/local-work-store.js';
 import { localWorkRuntime } from '../core/local-works.js';
 import { Admit } from './Admit.js';
+import { createPaneHost } from './room-panes.js';
 import { drawRiseSigil } from './atlas.js';
 import './Library.css';
 
@@ -113,47 +114,34 @@ export function contentsNoun(divisions) {
  * (route-manifest.js, `paneCapabilities`); `data` is the address's data
  * (a Chapel book and chapter, a Rosary set or icon, a Keystone slug).
  */
-const PANES = {
-  chapel: {
-    load: () => import('./library/Chapel.js'),
-    create: (el, data, { Chapel }, capabilities) => new Chapel(el, {
-      ...capabilities, bookId: data?.bookId, chapter: data?.chapter
-    })
-  },
-  rosary: {
-    load: () => import('./library/Rosarium.js'),
-    create: (el, data, { Rosarium }, capabilities) => new Rosarium(el, {
-      ...capabilities, setId: data?.setId, iconId: data?.iconId, door: data?.door === true
-    })
-  },
-  stations: {
-    load: () => import('./library/Via.js'),
-    create: (el, _data, { Via }, capabilities) => new Via(el, capabilities)
-  },
-  journeys: {
-    load: () => import('./library/Journeys.js'),
-    create: (el, _data, { Journeys }, capabilities) => new Journeys(el, capabilities)
-  },
-  keystones: {
-    load: () => import('./library/Keystones.js'),
-    create: (el, data, { Keystones }, capabilities) => new Keystones(el, {
-      ...capabilities, initialSlug: data?.slug || null
-    })
-  },
-  mint: {
-    load: () => import('./library/Mint.js'),
-    create: (el, data, { Mint }, capabilities) => new Mint(el, {
-      ...capabilities, entry: data?.entry || null
-    })
-  },
-  today: {
-    load: () => import('./today/TodayPoem.js'),
-    create: (el, _data, { TodayPoem }, capabilities) => new TodayPoem(el, capabilities)
-  },
-  provenance: {
-    load: () => import('./library/Curia.js'),
-    create: (el, _data, { Curia }, capabilities) => new Curia(el, capabilities)
-  }
+const LOADERS = {
+  chapel: () => import('./library/Chapel.js'),
+  rosary: () => import('./library/Rosarium.js'),
+  stations: () => import('./library/Via.js'),
+  journeys: () => import('./library/Journeys.js'),
+  keystones: () => import('./library/Keystones.js'),
+  mint: () => import('./library/Mint.js'),
+  today: () => import('./today/TodayPoem.js'),
+  provenance: () => import('./library/Curia.js')
+};
+
+const FACTORIES = {
+  chapel: (el, { Chapel }, data, capabilities) => new Chapel(el, {
+    ...capabilities, bookId: data?.bookId, chapter: data?.chapter
+  }),
+  rosary: (el, { Rosarium }, data, capabilities) => new Rosarium(el, {
+    ...capabilities, setId: data?.setId, iconId: data?.iconId, door: data?.door === true
+  }),
+  stations: (el, { Via }, _data, capabilities) => new Via(el, capabilities),
+  journeys: (el, { Journeys }, _data, capabilities) => new Journeys(el, capabilities),
+  keystones: (el, { Keystones }, data, capabilities) => new Keystones(el, {
+    ...capabilities, initialSlug: data?.slug || null
+  }),
+  mint: (el, { Mint }, data, capabilities) => new Mint(el, {
+    ...capabilities, entry: data?.entry || null
+  }),
+  today: (el, { TodayPoem }, _data, capabilities) => new TodayPoem(el, capabilities),
+  provenance: (el, { Curia }, _data, capabilities) => new Curia(el, capabilities)
 };
 
 /**
@@ -170,28 +158,11 @@ const PROGRAMS = [
   ['provenance', 'Provenance']
 ];
 
-/** The data a pane was opened with, without the pane's own name. */
-function paneData(data) {
-  const { pane: _pane, ...rest } = data || {};
-  return rest;
-}
-
-function sameData(a, b) {
-  try {
-    return JSON.stringify(a) === JSON.stringify(b);
-  } catch {
-    return false;
-  }
-}
-
 export class Library {
   constructor(container, options = {}) {
     this.container = container;
     this.onNavigate = options.onNavigate || (() => { });
     this.paneCapabilities = options.paneCapabilities || {};
-    // name -> { element, instance, data }, mounted on first show.
-    this.panes = new Map();
-    this.activePane = null;
     this.onSelectText = options.onSelectText || (() => { });
     this.getAudioEngine = options.getAudioEngine || (() => null);
 
@@ -206,10 +177,18 @@ export class Library {
     // 'error'. Each is drawn: a tab never shows a blank where a state is.
     this.localState = 'loading';
     this.localAlert = '';
-    this._active = false;
     this.boundKeyboardHandler = this.handleKeyboard.bind(this);
 
     this.render();
+    this.panes = createPaneHost({
+      container,
+      loaders: LOADERS,
+      factories: Object.fromEntries(Object.entries(FACTORIES).map(([name, create]) => [
+        name, (el, module, data) => create(el, module, data, this.paneCapabilities[name] || {})
+      ])),
+      home: container.querySelector('.library-room'),
+      onKeyboard: on => document[on ? 'addEventListener' : 'removeEventListener']('keydown', this.boundKeyboardHandler)
+    });
     this.attachEvents();
     this.refreshLocalWorks();
   }
@@ -1087,61 +1066,24 @@ export class Library {
 
   /**
    * Open a program in its pane, or the Library's own sections when `name`
-   * is empty. A pane mounts once, lazily, into its own child element. Shown
-   * again with new data, a pane that has `update(data)` (the hook the router
-   * used to call on re-entry) receives it; one without is destroyed and
-   * built again when its data differs, so a Rosary opened through its door
-   * is a door Rosary.
+   * is empty (room-panes.js).
    */
-  async showPane(name, data = {}) {
-    if (!PANES[name]) name = null;
-    const next = paneData(data);
-    const entry = name ? this.panes.get(name) : null;
-    if (this.activePane === name && (!name || sameData(entry?.data, next))) return;
-
-    const wasActive = this._active;
-    this.deactivate();
-    if (name) await this.mountPane(name, next);
-    this.activePane = name;
-    this.container.querySelector('.library-room').hidden = Boolean(name);
-    for (const [paneName, pane] of this.panes) pane.element.hidden = paneName !== name;
-    if (wasActive) this.activate();
+  showPane(name, data = {}) {
+    return this.panes.show(name, data);
   }
 
-  async mountPane(name, data) {
-    let entry = this.panes.get(name);
-    if (!entry) {
-      const element = document.createElement('div');
-      element.className = 'library-pane';
-      element.dataset.pane = name;
-      element.hidden = true;
-      this.container.appendChild(element);
-      entry = { element, instance: null, data: null };
-      this.panes.set(name, entry);
-    }
-    if (entry.instance && !sameData(entry.data, data)) {
-      if (entry.instance.update) {
-        await entry.instance.update(data);
-      } else {
-        entry.instance.destroy?.();
-        entry.instance = null;
-      }
-    }
-    if (!entry.instance) {
-      const module = await PANES[name].load();
-      entry.instance = PANES[name].create(entry.element, data, module, this.paneCapabilities[name] || {});
-    }
-    entry.data = data;
+  get activePane() {
+    return this.panes.active;
   }
 
   /** The mounted instance of a pane, or null. */
   paneInstance(name) {
-    return this.panes.get(name)?.instance || null;
+    return this.panes.instance(name);
   }
 
   /** Router re-entry, and a navigation inside the Library. */
   update(data) {
-    return this.showPane(data?.pane, data);
+    return this.panes.update(data);
   }
 
   /** Escape belongs to the open pane first, as it did when it was a room. */
@@ -1154,22 +1096,14 @@ export class Library {
   }
 
   activate() {
-    if (this._active) return;
-    this._active = true;
-    if (this.activePane) this.paneInstance(this.activePane)?.activate?.();
-    else document.addEventListener('keydown', this.boundKeyboardHandler);
+    this.panes.activate();
   }
 
   deactivate() {
-    if (!this._active) return;
-    this._active = false;
-    if (this.activePane) this.paneInstance(this.activePane)?.deactivate?.();
-    else document.removeEventListener('keydown', this.boundKeyboardHandler);
+    this.panes.deactivate();
   }
 
   destroy() {
-    this.deactivate();
-    for (const pane of this.panes.values()) pane.instance?.destroy?.();
-    this.panes.clear();
+    this.panes.destroy();
   }
 }
