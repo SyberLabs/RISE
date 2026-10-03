@@ -202,7 +202,11 @@ export function openingOf(text, maxChars = 240) {
   return `${text.slice(0, space > 0 ? space : maxChars - 1).trimEnd()}…`;
 }
 
-/** The opening of the same division resolveJevReading opens, for a preview. */
+/**
+ * The opening of the same division resolveJevReading opens, for a preview,
+ * and whether that division is verse, so the Chamber reads it by line.
+ */
 export async function openingLines(decision) {
-  return openingOf((await openJevDivision(decision)).entry.content);
+  const { entry } = await openJevDivision(decision);
+  return { text: openingOf(entry.content, 240), verse: entry.verse === true };
 }

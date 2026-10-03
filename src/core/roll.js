@@ -189,27 +189,18 @@ export function composeRoll({ temper, workId, section, random = Math.random }) {
 }
 
 /**
- * Roll a reading. A part that is given (workId, temper id, section) is kept
- * exactly; a part that is null or undefined is drawn by chance. Given the
- * previous roll, a drawn part never equals the previous roll's part, so Roll
- * Again always visibly changes something, and redrawing one part (keeping the
- * other two) always changes that part. A vivid roll draws its temper from
- * VISUAL_TEMPERS only, and refuses a given temper outside them.
+ * Roll a reading. Given the previous roll, no part (work, temper, section)
+ * repeats, so Roll Again always visibly changes. A vivid roll draws its
+ * temper from VISUAL_TEMPERS only.
  */
-export function rollReading({ random = Math.random, previous = null, workId, temper, section, vivid = false } = {}) {
-  if (section != null && !SECTIONS.includes(section)) {
-    throw new TypeError(`${section} is not a section.`);
-  }
-  const tempers = vivid ? VISUAL_TEMPERS : TEMPERS;
-  const draw = (given, list, last) => given ?? pick(list.filter(item => item !== last), random);
-  const id = draw(temper, tempers.map(item => item.id), previous?.temper);
-  const chosen = tempers.find(item => item.id === id);
-  if (!chosen) throw new TypeError(`${temper} is not a ${vivid ? 'vivid ' : ''}temper.`);
+export function rollReading({ random = Math.random, previous = null, vivid = false } = {}) {
+  const draw = (list, last) => pick(list.filter(item => item !== last), random);
+  const temper = draw(vivid ? VISUAL_TEMPERS : TEMPERS, TEMPERS.find(item => item.id === previous?.temper));
   const decision = composeRoll({
-    temper: chosen,
-    workId: draw(workId, jevReleasedWorkIds(), previous?.decision?.workId),
-    section: draw(section, SECTIONS, previous?.decision?.config?.section),
+    temper,
+    workId: draw(jevReleasedWorkIds(), previous?.decision.workId),
+    section: draw(SECTIONS, previous?.decision.config.section),
     random
   });
-  return { temper: chosen.id, decision };
+  return { temper: temper.id, decision };
 }
