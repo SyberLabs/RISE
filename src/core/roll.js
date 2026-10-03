@@ -182,13 +182,30 @@ export function composeRoll({ temper, workId, section, random = Math.random }) {
 }
 
 /**
- * Roll a reading. Given the previous roll, never the same work or temper
- * twice running, so Roll Again always visibly changes something.
+ * Roll a reading. A part that is given (workId, temper id, section) is kept
+ * exactly; a part that is not is drawn by chance. Given the previous roll, a
+ * drawn part never equals the previous roll's part, so Roll Again always
+ * visibly changes something, and redrawing one part (keeping the other two)
+ * always changes that part.
  */
-export function rollReading({ random = Math.random, previous = null } = {}) {
-  const tempers = TEMPERS.filter(temper => temper.id !== previous?.temper);
-  const works = jevReleasedWorkIds().filter(id => id !== previous?.decision?.workId);
-  const temper = pick(tempers, random);
-  const decision = composeRoll({ temper, workId: pick(works, random), section: pick(SECTIONS, random), random });
-  return { temper: temper.id, decision };
+export function rollReading({ random = Math.random, previous = null, workId, temper, section } = {}) {
+  if (temper !== undefined && !TEMPERS.some(item => item.id === temper)) {
+    throw new TypeError(`${temper} is not a temper.`);
+  }
+  if (workId !== undefined && !jevReleasedEdition(workId)) {
+    throw new TypeError(`${workId} is not a released reading.`);
+  }
+  if (section !== undefined && !SECTIONS.includes(section)) {
+    throw new TypeError(`${section} is not a section.`);
+  }
+  const draw = (given, list, last) => given ?? pick(list.filter(item => item !== last), random);
+  const temperId = draw(temper, TEMPERS.map(item => item.id), previous?.temper);
+  const chosen = TEMPERS.find(item => item.id === temperId);
+  const decision = composeRoll({
+    temper: chosen,
+    workId: draw(workId, jevReleasedWorkIds(), previous?.decision?.workId),
+    section: draw(section, SECTIONS, previous?.decision?.config?.section),
+    random
+  });
+  return { temper: chosen.id, decision };
 }

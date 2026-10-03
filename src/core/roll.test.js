@@ -79,6 +79,71 @@ describe('a roll', () => {
   });
 });
 
+describe('a roll keeps the parts it is given', () => {
+  const sectionOf = roll => roll.decision.config.section;
+
+  it('keeps a given work, temper and section exactly', () => {
+    const random = seeded(31);
+    for (let i = 0; i < 100; i += 1) {
+      const roll = rollReading({ random, workId: 'oedipus-rex', temper: 'revel', section: 'last' });
+      expect(roll.decision.workId).toBe('oedipus-rex');
+      expect(roll.temper).toBe('revel');
+      expect(sectionOf(roll)).toBe('last');
+      expect(() => validateJevRecommendation(roll.decision)).not.toThrow();
+    }
+  });
+
+  it('picks a star: keeps the work and draws the rest', () => {
+    const random = seeded(33);
+    const tempers = new Set();
+    for (let i = 0; i < 200; i += 1) {
+      const roll = rollReading({ random, workId: 'the-iliad' });
+      expect(roll.decision.workId).toBe('the-iliad');
+      tempers.add(roll.temper);
+    }
+    expect(tempers.size).toBe(TEMPERS.length);
+  });
+
+  it('redraws one part and keeps the other two, never repeating the part it redraws', () => {
+    const random = seeded(35);
+    let previous = rollReading({ random });
+    for (let i = 0; i < 300; i += 1) {
+      const text = rollReading({ random, previous, temper: previous.temper, section: sectionOf(previous) });
+      expect(text.temper).toBe(previous.temper);
+      expect(sectionOf(text)).toBe(sectionOf(previous));
+      expect(text.decision.workId).not.toBe(previous.decision.workId);
+
+      const mood = rollReading({ random, previous: text, workId: text.decision.workId, section: sectionOf(text) });
+      expect(mood.decision.workId).toBe(text.decision.workId);
+      expect(sectionOf(mood)).toBe(sectionOf(text));
+      expect(mood.temper).not.toBe(text.temper);
+
+      const passage = rollReading({ random, previous: mood, workId: mood.decision.workId, temper: mood.temper });
+      expect(passage.decision.workId).toBe(mood.decision.workId);
+      expect(passage.temper).toBe(mood.temper);
+      expect(sectionOf(passage)).not.toBe(sectionOf(mood));
+      previous = passage;
+    }
+  });
+
+  it('never repeats the previous section when it draws one', () => {
+    const random = seeded(37);
+    let previous = rollReading({ random });
+    for (let i = 0; i < 300; i += 1) {
+      const next = rollReading({ random, previous });
+      expect(sectionOf(next)).not.toBe(sectionOf(previous));
+      previous = next;
+    }
+  });
+
+  it('refuses a part it does not know, in plain words', () => {
+    expect(() => rollReading({ temper: 'jolly' })).toThrow(TypeError);
+    expect(() => rollReading({ temper: 'jolly' })).toThrow('jolly is not a temper.');
+    expect(() => rollReading({ workId: 'a-doll-s-house' })).toThrow('a-doll-s-house is not a released reading.');
+    expect(() => rollReading({ section: 'second' })).toThrow('second is not a section.');
+  });
+});
+
 describe('a roll names its reading', () => {
   it('carries the title and author of every released work, as the Library has them', () => {
     for (const workId of jevReleasedWorkIds()) {
