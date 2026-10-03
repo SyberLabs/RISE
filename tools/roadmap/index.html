@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="en" data-tracker-mode="api">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="color-scheme" content="dark">
+    <title>RISE Roadmap</title>
+    <link rel="stylesheet" href="./styles.css">
+    <script type="module" src="./dashboard.js"></script>
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="brand">
+        <span class="brand-mark" aria-hidden="true">R</span>
+        <div>
+          <p class="eyebrow">SyberLabs · RISE</p>
+          <h1>Roadmap</h1>
+        </div>
+      </div>
+      <div class="header-status">
+        <span id="mode-badge" class="mode-badge">Local tracker</span>
+        <span class="updated-label">Snapshot <time id="snapshot-time">Not loaded</time></span>
+        <button id="refresh-button" class="refresh-button" type="button">
+          <span aria-hidden="true">↻</span> Refresh
+        </button>
+      </div>
+    </header>
+
+    <main>
+      <section class="intro" aria-labelledby="intro-title">
+        <div>
+          <p class="eyebrow">Shared view · Mateo, Seth &amp; agents</p>
+          <h2 id="intro-title">Three lanes. One evidence-backed roadmap.</h2>
+          <p class="intro-copy">Track the audiovisual Reader, Live + RiseSDK, and the foundations they share. Progress follows task evidence; a merge alone does not mean acceptance.</p>
+        </div>
+        <div id="connection-state" class="connection-state" role="status" aria-live="polite">Connecting to tracker…</div>
+      </section>
+
+      <section class="filters" aria-label="Filter roadmap tasks">
+        <label class="search-control">
+          <span>Search</span>
+          <input id="search-input" type="search" placeholder="Title, owner, summary…" autocomplete="off">
+        </label>
+        <label>
+          <span>Lane</span>
+          <select id="lane-filter">
+            <option value="">All lanes</option>
+            <option value="reader">Reader</option>
+            <option value="live-sdk">Live + RiseSDK</option>
+            <option value="shared">Shared foundation</option>
+          </select>
+        </label>
+        <label>
+          <span>Milestone</span>
+          <select id="milestone-filter"><option value="">All milestones</option></select>
+        </label>
+        <label>
+          <span>Status</span>
+          <select id="status-filter">
+            <option value="">All statuses</option>
+            <option value="planned">Planned</option>
+            <option value="in_progress">In progress</option>
+            <option value="blocked">Blocked</option>
+            <option value="in_review">In review</option>
+            <option value="done">Done</option>
+          </select>
+        </label>
+      </section>
+
+      <p id="error-message" class="error-message" role="alert" hidden></p>
+
+      <section id="readiness" class="readiness-section" aria-label="Task readiness"></section>
+      <section id="lanes" class="lane-grid" aria-label="Roadmap by lane"></section>
+
+      <section class="lower-grid">
+        <section class="panel" aria-labelledby="activity-title">
+          <div class="section-heading">
+            <div><p class="eyebrow">Task log</p><h2 id="activity-title">Recent activity</h2></div>
+          </div>
+          <div id="activity" class="activity-list"></div>
+        </section>
+        <section class="panel" aria-labelledby="commits-title">
+          <div class="section-heading">
+            <div><p class="eyebrow">Git history</p><h2 id="commits-title">Recent commits</h2></div>
+            <span class="muted-note">Mapped through task evidence</span>
+          </div>
+          <div id="commits" class="commit-list"></div>
+        </section>
+      </section>
+
+      <aside class="agent-note" aria-labelledby="agent-note-title">
+        <div class="agent-note-icon" aria-hidden="true">↗</div>
+        <div>
+          <p class="eyebrow">For contributors</p>
+          <h2 id="agent-note-title">Update the task record with the work</h2>
+          <p>Use <code>node scripts/roadmap.mjs update &lt;id&gt; --patch &lt;file&gt; --expect-revision &lt;n&gt; --summary &lt;text&gt;</code>, then include the reviewed task change with your work. Claim ownership before starting. Record evidence for completion; human acceptance requires observation evidence.</p>
+        </div>
+      </aside>
+    </main>
+    <footer><span>RISE product tracker</span><span>Read only · local repository data</span></footer>
+  </body>
+</html>
