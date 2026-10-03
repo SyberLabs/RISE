@@ -32,10 +32,12 @@ import { createRouteManifest } from './app/route-manifest.js';
 import { installTestBridge } from './app/test-bridge.js';
 
 const VISUAL_LAB_PATH = '/visual-lab';
+const VISUAL_CATALOG_PATH = '/visual-catalog';
 const LIVE_PATH = '/live';
 const EMOTIONS_PATH = '/emotions';
 const PUBLIC_ROOM_PATHS = Object.freeze({
     'visual-lab': VISUAL_LAB_PATH,
+    'visual-catalog': VISUAL_CATALOG_PATH,
     emotions: EMOTIONS_PATH
 });
 import { watchTabFreshness } from './core/tab-freshness.js';
@@ -284,6 +286,10 @@ class App {
 
         // Register views
         this.registerViews();
+        // A direct public route is visible during the Router's fade-in. Install
+        // history listeners before entering it so Back/Forward in that window
+        // cannot be lost.
+        this.setupUtilityListeners();
 
         // Finish "Connect OpenRouter". The key goes to memory only; the
         // Portal shows the outcome. A failure changes nothing else.
@@ -351,6 +357,8 @@ class App {
             await this.router.navigate('mint', { data: { entry: houseProgram(mintedSlug) } });
         } else if (window.location.pathname === VISUAL_LAB_PATH) {
             await this.router.navigate('visual-lab');
+        } else if (window.location.pathname === VISUAL_CATALOG_PATH) {
+            await this.router.navigate('visual-catalog', { data: { search: window.location.search } });
         } else if (window.location.pathname === LIVE_PATH) {
             await this.router.navigate('live');
         } else if (window.location.pathname === EMOTIONS_PATH) {
@@ -362,7 +370,6 @@ class App {
             await this.router.navigate('portal');
         }
 
-        this.setupUtilityListeners();
         this.watchTabFreshness();
 
         // Audio interaction listener is already set up in init()
@@ -1340,6 +1347,28 @@ class App {
             const { keystoneSlugFromPath } = await import('./content/keystones.js');
             if (window.location.pathname === VISUAL_LAB_PATH) {
                 await this.router?.navigate('visual-lab', { replace: true, skipStack: true });
+                return;
+            }
+            if (window.location.pathname === VISUAL_CATALOG_PATH) {
+                const data = { search: window.location.search };
+                const route = this.router?.views?.get('visual-catalog');
+                const catalog = this.router?.getViewInstance?.('visual-catalog');
+                const isCurrentCatalog = this.router?.getCurrentView?.() === 'visual-catalog';
+                const isEnteringCatalog = this.router?.transitioning === true
+                    && route?.container && !route.container.hidden;
+                if (catalog?.update && (isCurrentCatalog || isEnteringCatalog)) {
+                    catalog.update(data);
+                    if (isCurrentCatalog && !this.router.transitioning) return;
+                }
+                await this.router?.navigate('visual-catalog', {
+                    data, replace: true, skipStack: true
+                });
+                // Router deliberately collapses a queued same-route navigation.
+                // Apply the newest address data once the entry has settled.
+                const settledCatalog = this.router?.getViewInstance?.('visual-catalog');
+                if (settledCatalog?.update && this.router?.getCurrentView?.() === 'visual-catalog') {
+                    await settledCatalog.update(data);
+                }
                 return;
             }
             if (window.location.pathname === LIVE_PATH) {

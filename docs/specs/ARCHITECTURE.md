@@ -162,9 +162,9 @@ flowchart LR
     affect["affect<br/>experience-state evaluation<br/>29 modules"]
     app["app<br/>composition root<br/>11 modules"]
     audio["audio<br/>Web Audio, recitation<br/>10 modules"]
-    components["components<br/>routed views<br/>47 modules"]
+    components["components<br/>routed views<br/>48 modules"]
     content["content<br/>texts, imagery, journeys<br/>228 modules"]
-    core["core<br/>session, player, router<br/>163 modules"]
+    core["core<br/>session, player, router<br/>164 modules"]
     enterprise["enterprise<br/>talk program, speaker rail<br/>34 modules"]
     live["live<br/>realtime Current: events, runtime, providers<br/>39 modules"]
     page["page<br/>spatial projection<br/>4 modules"]
@@ -187,7 +187,7 @@ flowchart LR
     components -.-> |2 lazy| app
     components --> |3| audio
     components --> |24| content
-    components --> |170| core
+    components --> |172| core
     components -.-> |1 lazy| page
     components --> |4| sources
     components -.-> |2 lazy| vendor
@@ -202,7 +202,7 @@ flowchart LR
     core --> |20| visuals
     live -.-> |3 lazy| app
     live -.-> |1 lazy| components
-    live --> |7| core
+    live --> |8| core
     live -.-> |1 lazy| visuals
     page --> |2| core
     page --> |3| visuals
@@ -341,6 +341,7 @@ outliving its room, fails a build.
 | Via | `src/components/Via.js` | the Stations of the Cross |
 | Workshop | `src/components/Workshop.js` | authoring a composition |
 | Visual Lab | `src/components/VisualLab.js` | exploring, saving, and reusing Living Flame scenes |
+| Visual Catalog | `src/components/VisualCatalog.js` | searching nine procedural surfaces, requesting specimens, and opening admitted local live samples |
 | Vault | `src/components/Vault.js` | saved compositions and archetypes |
 | Scriptorium | `src/components/Scriptorium.js` | a model composes; a gate refuses |
 | Curia | `src/components/Curia.js` | the source and rights record |
