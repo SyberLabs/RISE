@@ -1,6 +1,6 @@
 # Isolated ChatGPT Demo Setup
 
-The demo is a separate Cloudflare Worker named `rise-chatgpt-demo`. Production `wrangler.production.jsonc` remains unchanged with MCP disabled. The demo enables the existing MCP route and permits framing only for the embedded live page. It uses the existing application and has no provider key, database secret or shared inference requirement.
+The former separate Cloudflare Worker demo, `rise-chatgpt-demo`, has been deleted and its endpoint is offline. No deployment or exposure approval has been granted. The setup commands below are historical private-demo notes; they do not identify an available endpoint. Production `wrangler.production.jsonc` remains unchanged with MCP disabled.
 
 Use Node compatible with the repository engines. Dependencies are already pinned; use `npm ci` in a fresh checkout and `npm run audio:hydrate` before full audio/browser validation.
 
@@ -56,7 +56,9 @@ Engineering readiness requires reviewed code, required CI, affected unit/browser
 
 ## Engineering evidence and remaining acceptance
 
-The baseline at `a4ece2d3` passed required CI and all 21 full-validation jobs. A later demo run at `856a0852` passed 19 jobs but failed the authored 240 WPM export and live canvas-control checks. The final fix candidate at `c320e33c` adds startup cancellation and preserves retry guidance within the runtime display limit; its focused evidence follows. Full remote validation of the candidate is still required.
+The observed production candidate is `1b519c5d`. Its evidence is: fast CI 1,372 passed and 2 configured skips across 66 files; standalone Node tests 24 passed; Python tests 12 passed; hygiene, security compatibility, high-threshold audit, build and generated-diagram checks passed; first load measured 59.2 KB brotli against a 64 KB budget; reader gate 32 passed and 3 configured skips; affected MCP, control, catalog and red-team browser checks 34/34 passed. These records do not claim a full unit-suite run.
+
+Audible Composer acceptance at `04d2b828` remains historical evidence for that commit. It does not establish acceptance on `1b519c5d` or a repaired head. Real-host, mobile, Voice and audible acceptance for a repaired head remain pending.
 
 | Area | Evidence | Status |
 |---|---|---|
@@ -67,8 +69,9 @@ The baseline at `a4ece2d3` passed required CI and all 21 full-validation jobs. A
 | Canvas response | Existing active-field readiness marker precedes actual pixel measurement; response remains below one second | Passed locally |
 | Authored pace and portable review | Captured slider/save/project/export values all 240; full clean-browser journey passed. Earlier 240-to-280 failure remains unexplained | Open concern; remote validation pending |
 | Isolated serving | Wrangler dry-run; actual local HTTP handshake, tools, resource origin, results/refusal, GET/HEAD framing and six retired routes | Passed locally |
-| Build and repository checks | Hygiene, security compatibility, unchanged diagram and build; first load 59.5 KB brotli against 64 KB | Passed |
-| Public endpoint and exact release | Explicit deployment approval, HTTPS checks and release marker | Pending |
-| Real ChatGPT model and widget | Ten-case acceptance in the signed-in host, including local reader redirection | Pending |
+| Production candidate `1b519c5d` | Fast CI 1,372 passed/2 configured skips across 66 files; standalone Node 24 passed; Python 12 passed; hygiene, security compatibility, high-threshold audit, build and diagram passed; first load 59.2 KB brotli/64 KB; reader gate 32 passed/3 configured skips; affected MCP/control/catalog/red-team browser checks 34/34 passed | Observed |
+| Repaired probe and docs | Corrected Gate 0 browser evidence and documentation repair commit are recorded in the final-fix report | New evidence; separate commit |
+| Former demo Worker endpoint | Deleted; endpoint offline. No exposure or deployment approval has been granted. | Unavailable |
+| Repaired-head real host, mobile, Voice and audible acceptance | Ten-case acceptance in an eligible signed-in host, including local reader redirection and audible checks | Pending |
 
-The audit retains two existing moderate Vitest dependency findings and no high or critical findings. Builds retain existing JSON import-attribute and large-chunk warnings. An earlier Dive phrase-timing browser retry is recorded separately; later affected browser runs passed. These results do not establish real-host rendering, audible quality or product value.
+The audit retains two existing moderate Vitest dependency findings and no high or critical findings. Builds retain existing JSON import-attribute and large-chunk warnings; the environment also reports the `NO_COLOR`/`FORCE_COLOR` warning. An earlier Dive phrase-timing browser retry is recorded separately; later affected browser runs passed. These results do not establish real-host rendering, audible quality or product value. Historical results at `a4ece2d3`, `856a0852` and `c320e33c` are not the current candidate record.

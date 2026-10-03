@@ -29,9 +29,21 @@ test('simulation: MCP Apps host delivers results to one real renderer, records d
     data: { jsonrpc: '2.0', id: 40, method: 'tools/call', params: { name: 'rise_set_visual', arguments: { visual: 'attractor' } } }
   });
   expect(forged.status()).toBe(403);
-  await page.evaluate(value => window.gate0Host.sendFromOtherFrame(value), snapshot(1));
-  await page.evaluate(() => new Promise(resolve => setTimeout(resolve, 40)));
+  await page.waitForFunction(() => window.gate0Host.outsiderReady);
+  const widgetFrame = page.frames().find(candidate => candidate.url().endsWith('/__gate0/widget'));
+  expect(widgetFrame).toBeTruthy();
+  await widgetFrame.evaluate(() => {
+    window.__gate0OutsiderSourceIsParent = null;
+    window.addEventListener('message', event => {
+      if (event.data?.method === 'ui/notifications/tool-result') window.__gate0OutsiderSourceIsParent = event.source === parent;
+    }, { capture: true });
+  });
+  const forwarded = await page.evaluate(value => window.gate0Host.sendFromOtherFrame(value), snapshot(1));
+  expect(forwarded).toEqual({ delivered: true, source: 'outsider' });
+  await widgetFrame.waitForFunction(() => window.__gate0OutsiderSourceIsParent !== null);
+  expect(await widgetFrame.evaluate(() => window.__gate0OutsiderSourceIsParent)).toBe(false);
   expect(await frame.locator('canvas.attractor-canvas').count()).toBe(0);
+  await expect(frame.locator('#status')).toHaveText('Widget status: waiting.');
 
   const first = await page.evaluate(() => window.gate0Host.deliverTool({ visual: 'attractor' }));
   expect(first.sequence).toBe(1);

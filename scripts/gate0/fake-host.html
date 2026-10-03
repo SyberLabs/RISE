@@ -1,15 +1,32 @@
 <!doctype html><html><head><meta charset="utf-8"><title>Gate 0 fake MCP host harness</title></head><body>
 <iframe id="widget" src="/__gate0/widget" title="Gate 0 widget"></iframe>
-<iframe id="outsider" srcdoc="<script>addEventListener('message',e=>{if(e.data?.gate0Forward)parent.document.querySelector('#widget').contentWindow.postMessage(e.data.message,'*')})<\/script>" title="Untrusted sender"></iframe>
+<iframe id="outsider" srcdoc="<script>addEventListener('message',e=>{if(e.source===parent&&e.data?.gate0Forward){parent.document.querySelector('#widget').contentWindow.postMessage(e.data.message,'*');parent.postMessage({gate0OutsiderForwarded:e.data.id},'*')}});parent.postMessage({gate0OutsiderReady:true},'*')</script>" title="Untrusted sender"></iframe>
 <script>
 let widget = document.querySelector('#widget');
+const outsider = document.querySelector('#outsider');
 const calls = [];
 const deliveries = [];
+const pendingOutsiderForwards = new Map();
+let nextOutsiderForwardId = 0;
+let outsiderReady = false;
 let dropNextAck = false;
 let rejectNextMessage = false;
+window.addEventListener('message', event => {
+  if (event.source !== outsider.contentWindow) return;
+  if (event.data?.gate0OutsiderReady === true) {
+    outsiderReady = true;
+    return;
+  }
+  const resolveForward = pendingOutsiderForwards.get(event.data?.gate0OutsiderForwarded);
+  if (resolveForward) {
+    pendingOutsiderForwards.delete(event.data.gate0OutsiderForwarded);
+    resolveForward({ delivered: true, source: 'outsider' });
+  }
+});
 window.gate0Host = {
   calls,
   deliveries,
+  get outsiderReady() { return outsiderReady; },
   set dropNextAck(value) { dropNextAck = value; },
   set rejectNextMessage(value) { rejectNextMessage = value; },
   sendResult(snapshot) {
@@ -37,7 +54,11 @@ window.gate0Host = {
     widget = replacement;
   },
   sendFromOtherFrame(snapshot) {
-    document.querySelector('#outsider').contentWindow.postMessage({ gate0Forward: true, message: { jsonrpc: '2.0', method: 'ui/notifications/tool-result', params: { structuredContent: snapshot } } }, '*');
+    const id = ++nextOutsiderForwardId;
+    return new Promise(resolve => {
+      pendingOutsiderForwards.set(id, resolve);
+      outsider.contentWindow.postMessage({ gate0Forward: true, id, message: { jsonrpc: '2.0', method: 'ui/notifications/tool-result', params: { structuredContent: snapshot } } }, '*');
+    });
   }
 };
 window.addEventListener('message', event => {
