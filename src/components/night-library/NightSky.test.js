@@ -201,11 +201,39 @@ describe('the night sky', () => {
     expect(requestAnimationFrame).not.toHaveBeenCalled();
   });
 
-  it('marks the busy state on the sky', () => {
+  it('ignores a flare of the star already flared, so the animation does not restart', () => {
     mount();
-    sky.setBusy(true);
-    expect(container.querySelector('.night-sky').classList.contains('is-busy')).toBe(true);
-    sky.setBusy(false);
-    expect(container.querySelector('.night-sky').classList.contains('is-busy')).toBe(false);
+    const now = vi.spyOn(performance, 'now').mockReturnValue(1000);
+    sky.flare('oedipus');
+    expect(sky.flareStart).toBe(1000);
+    now.mockReturnValue(1500);
+    sky.flare('oedipus');
+    expect(sky.flareStart).toBe(1000);
+    sky.flare('tao');
+    expect(sky.flareStart).toBe(1500);
+  });
+
+  it('holds still only after five costly frames in a row', () => {
+    mount();
+    sky.start();
+    // Each frame reads the clock twice, before and after painting.
+    const clock = [];
+    vi.spyOn(performance, 'now').mockImplementation(() => clock.shift() ?? 0);
+    let at = 1000;
+    const frameCosting = ms => { clock.push(0, ms); frames.shift()(at += 100); };
+    for (let i = 0; i < 4; i++) frameCosting(40);
+    frameCosting(5);
+    for (let i = 0; i < 4; i++) frameCosting(40);
+    expect(frames).toHaveLength(1); // still running
+    frameCosting(40);
+    expect(frames).toHaveLength(0);
+    expect(sky.still).toBe(true);
+  });
+
+  it("exposes the stars' horizontal extent to CSS", () => {
+    mount();
+    const root = container.querySelector('.night-sky');
+    expect(root.style.getPropertyValue('--sky-x0')).toBe('55');
+    expect(root.style.getPropertyValue('--sky-x1')).toBe('86');
   });
 });
