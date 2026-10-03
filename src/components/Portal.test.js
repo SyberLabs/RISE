@@ -347,6 +347,18 @@ describe('Read it with sound', () => {
         portal.destroy();
     });
 
+    it('the Menu\'s Today\'s poem begins the day\'s poem even while another reading shows', async () => {
+        const onLaunchToday = vi.fn().mockResolvedValue(undefined);
+        const onLaunchJevReading = vi.fn().mockResolvedValue(undefined);
+        const { portal, container } = makePortal({ onLaunchToday, onLaunchJevReading });
+        await arrive(portal, container);
+        await another(container, portal);
+        container.querySelector('.portal-nav [data-action="today"]').click();
+        await vi.waitFor(() => expect(onLaunchToday).toHaveBeenCalledOnce());
+        expect(onLaunchJevReading).not.toHaveBeenCalled();
+        portal.destroy();
+    });
+
     it('plays a rolled reading, and Adjust opens it to change', async () => {
         const onLaunchJevReading = vi.fn().mockResolvedValue(undefined);
         const onAdjustReading = vi.fn().mockResolvedValue(undefined);
@@ -446,7 +458,9 @@ describe('the rest of Home', () => {
         expect(items[0].getAttribute('aria-current')).toBe('page');
         expect(document.activeElement).toBe(items[0]);
         expect([...container.querySelectorAll('.portal-nav [data-nav]')].map(item => item.dataset.nav))
-            .toEqual(['today', 'library', 'vault', 'workshop', 'chamber', 'live', 'chapel', 'scriptorium', 'visual-lab', 'emotions', 'curia']);
+            .toEqual(['library', 'vault', 'workshop', 'chamber', 'live', 'chapel', 'scriptorium', 'visual-lab', 'emotions', 'curia']);
+        // Today's poem is not a room: it begins the day's exact poem through the app's launchToday.
+        expect(items[2].dataset.action).toBe('today');
 
         const last = items[items.length - 1];
         last.focus();

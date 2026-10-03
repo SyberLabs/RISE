@@ -180,7 +180,7 @@ export class Portal {
             <nav id="main-content" class="portal-nav" aria-label="Primary">
               <button class="portal-nav-link portal-nav-home" type="button" data-action="home" aria-current="page">Home</button>
               ${this.demoMode ? '' : '<button class="portal-nav-link" type="button" data-home="ask-open">Ask for a reading</button>'}
-              <button class="portal-nav-link" type="button" data-nav="today">Today's poem</button>
+              <button class="portal-nav-link" type="button" data-action="today">Today's poem</button>
               <button class="portal-nav-link" type="button" data-nav="library">Library</button>
               <button class="portal-nav-link" type="button" data-nav="vault">Sequences</button>
               <button class="portal-nav-link" type="button" data-nav="workshop">Compose</button>
@@ -484,6 +484,21 @@ export class Portal {
     this.focus('[data-home="enter"]');
   }
 
+  /** The Menu's Today's poem: the day's exact poem, straight into the reader. */
+  async beginToday() {
+    if (this.busy) return;
+    this.setBusy('today');
+    this.getAudioEngine()?.playClick();
+    this.showError('');
+    try {
+      await this.onLaunchToday();
+    } catch (error) {
+      this.showError('Today’s poem couldn’t be opened. Try again.', error?.message || '');
+    } finally {
+      this.setBusy(null);
+    }
+  }
+
   /** Read it with sound opens the reading through the app's one launch; Adjust opens it in Reader Setup. */
   async proceed(action) {
     const reading = this.reading;
@@ -595,6 +610,12 @@ export class Portal {
     this.container.querySelector('.portal-continue')?.addEventListener('click', () => {
       this.getAudioEngine()?.playClick();
       this.onNavigate('chamber-session', this.getCurrentSession());
+    });
+
+    // Today's poem from the Menu begins the day's exact poem, whatever Home is showing.
+    nav.querySelector('[data-action="today"]').addEventListener('click', () => {
+      this.closeMenu?.();
+      void this.beginToday();
     });
 
     this.container.querySelectorAll('[data-action="guide"], [data-action="settings"]').forEach(link => {

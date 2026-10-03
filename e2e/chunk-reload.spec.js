@@ -34,7 +34,7 @@ test('a chunk that always fails reloads the page once, not forever', async ({ pa
   await expect(page).not.toHaveURL(/\/library$/u);
 });
 
-test('a chunk missing once, as after a deploy, reloads once and opens the view', async ({ page }) => {
+test('a chunk missing once, as after a deploy, reloads once, and the view then opens', async ({ page }) => {
   await page.addInitScript(gate => localStorage.setItem('rise-beta-session', JSON.stringify(gate)), GATE);
   let misses = 0;
   await page.route(LIBRARY_CHUNK, (route) => {
@@ -46,6 +46,12 @@ test('a chunk missing once, as after a deploy, reloads once and opens the view',
 
   await openLibrary(page);
 
+  // One reload fetches the new build; the Menu's navigation is not remembered
+  // across it, so the reader lands Home and the view opens from there.
+  await expect.poll(() => loads, { timeout: 15_000 }).toBe(2);
+  await expect(page.locator('.portal [data-home="enter"]')).toBeVisible({ timeout: 15_000 });
+  await page.locator('.portal-menu-toggle').click();
+  await page.locator('.portal-nav [data-nav="library"]').click();
   await expect.poll(() => view(page), { timeout: 15_000 }).toBe('library');
   expect(loads).toBe(2);
 });

@@ -79,9 +79,9 @@ async function exitSession(page) {
 
 test('1 · Home presents one key, and every room behind Menu', async ({ page }) => {
     await boot(page, { text: false });
-    // Home is the night library: one solid key. The rooms you own sit behind the one
-    // Menu; the Atrium and the Solarium are gone with their rooms.
-    await expect(page.locator('[data-home="roll"]')).toBeVisible();
+    // Home is a reading already under way: one solid key. The rooms you own sit
+    // behind the one Menu; the Atrium and the Solarium are gone with their rooms.
+    await expect(page.locator('[data-home="enter"]')).toBeVisible();
     const nav = page.locator('.portal-nav [data-nav]');
     await expect(nav).toHaveCount(10);
     // Today's poem begins a reading from the Menu; it is not a room.
