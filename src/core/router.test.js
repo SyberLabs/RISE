@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { Router } from './router.js';
+import { Router, claimStaleBuildReload } from './router.js';
 
 describe('Router failure containment', () => {
   let router;
@@ -164,6 +164,34 @@ describe('Router stale-build recovery', () => {
 
     expect(reload).toHaveBeenCalledTimes(1);
     router.destroy();
+  });
+
+  it('does not reload again after the reload, when the same build still fails', async () => {
+    // A blocked chunk fails on every load. The reload builds a new Router,
+    // so a guard that lives on the instance is reset by the very reload it
+    // guards, and the page reloads forever.
+    const load = () => {
+      const r = new Router();
+      r.transitionDuration = 0;
+      r.registerView('a', { container: document.querySelector('#a'), init: () => ({}) });
+      r.registerView('b', { container: document.querySelector('#b'), init: staleError });
+      return r;
+    };
+    for (let i = 0; i < 3; i += 1) {
+      const r = load();
+      await r.navigate('a');
+      await r.navigate('b');
+      r.destroy();
+    }
+
+    expect(reload).toHaveBeenCalledTimes(1);
+  });
+
+  it('reloads once more for a later build, so a second deploy still recovers', () => {
+    expect(claimStaleBuildReload('/assets/index-A.js')).toBe(true);
+    expect(claimStaleBuildReload('/assets/index-A.js')).toBe(false);
+    expect(claimStaleBuildReload('/assets/index-B.js')).toBe(true);
+    expect(claimStaleBuildReload('/assets/index-B.js')).toBe(false);
   });
 
   it('leaves ordinary failures to the existing containment path', async () => {

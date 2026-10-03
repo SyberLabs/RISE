@@ -24,6 +24,31 @@ function isStaleChunkError(error) {
         .test(message);
 }
 
+const STALE_BUILD_SENTINEL = 'rise_reloaded_for_stale_build';
+
+/**
+ * Claim the one reload a missing chunk earns, at most once per build.
+ *
+ * The reload is the cure for a stale tab: it fetches the build that
+ * replaced this one. If the chunk still fails in the build the reload
+ * fetched — blocked by the network, say — it is not a deploy, and a
+ * second reload fails identically, forever. So the claim names the build
+ * it was spent from and survives the reload. A later deploy is a new
+ * build, and may claim again. `import.meta.url` names the build: this
+ * module ships in the hashed entry chunk, and that hash changes whenever
+ * any chunk the entry loads does. Without storage
+ * nothing could stop a loop, so nothing reloads.
+ */
+export function claimStaleBuildReload(build = import.meta.url) {
+    try {
+        if (sessionStorage.getItem(STALE_BUILD_SENTINEL) === build) return false;
+        sessionStorage.setItem(STALE_BUILD_SENTINEL, build);
+        return true;
+    } catch (e) {
+        return false;
+    }
+}
+
 export class Router {
     constructor(options = {}) {
         this.views = new Map();
@@ -147,11 +172,11 @@ export class Router {
             // A missing chunk cannot be recovered from in this session:
             // the shell itself is out of date. Reload once to pick up
             // the current build, preserving the destination so the
-            // reader lands where they were going. The guard prevents a
-            // reload loop if something else produces the same error.
-            if (isStaleChunkError(error) && !this._reloadedForStaleChunk
-                && options.data?.provenance?.kind !== 'personal-generated') {
-                this._reloadedForStaleChunk = true;
+            // reader lands where they were going. The claim prevents a
+            // reload loop when the chunk keeps failing after the reload.
+            if (isStaleChunkError(error)
+                && options.data?.provenance?.kind !== 'personal-generated'
+                && claimStaleBuildReload()) {
                 try {
                     // Carry the route DATA too, not just the view name:
                     // a Chapel book, a vault identifier, a Library
