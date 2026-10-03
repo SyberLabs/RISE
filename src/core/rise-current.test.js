@@ -1,8 +1,9 @@
 import { describe, expect, it, vi } from 'vitest';
 import {
-  compileRiseCurrent, RISE_CURRENT_THEME_IDS, RISE_CURRENT_THEMES, validateRiseCurrent
+  compileRiseCurrent, materializeRiseCurrent, RISE_CURRENT_THEME_IDS, RISE_CURRENT_THEMES, validateRiseCurrent
 } from './rise-current.js';
 import { directionEligibility } from './passage-visuals/reading-state.js';
+import { compileSession } from './session-compiler.js';
 import { JEV_COLOR_THEMES } from './jev-color-themes.js';
 import { JEV_PALETTES, jevColors } from './jev-palette.js';
 import { sessionColorTheme } from './session-presentation.js';
@@ -88,6 +89,105 @@ describe('external Current validation', () => {
     expect(() => validateRiseCurrent(current({ segments: new Array(1) }))).toThrow(expect.objectContaining({
       code: 'CURRENT_OBJECT', path: '$.segments[0]'
     }));
+  });
+});
+
+describe('external Current materialization', () => {
+  it('returns a detached JSON-safe program and source pair', () => {
+    const input = current({
+      segments: [
+        ...current().segments,
+        { id: 'literal', text: 'Read [PAUSE] as words.', visual: 'genesis', literal: true }
+      ]
+    });
+    const pair = materializeRiseCurrent(input);
+    const restored = JSON.parse(JSON.stringify(pair));
+
+    expect(restored.sources).toEqual([
+      {
+        id: 'opening', name: 'Why gravity bends light · 1', type: 'text/plain',
+        providerId: 'example-provider',
+        provenance: { origin: input.origin, currentId: input.id },
+        data: 'Gravity curves spacetime. Light follows its geometry.'
+      },
+      {
+        id: 'second', name: 'Why gravity bends light · 2', type: 'text/plain',
+        providerId: 'example-provider',
+        provenance: { origin: input.origin, currentId: input.id },
+        data: 'The bend can be measured.'
+      },
+      {
+        id: 'literal', name: 'Why gravity bends light · 3', type: 'text/plain',
+        providerId: 'example-provider',
+        provenance: { origin: input.origin, currentId: input.id },
+        data: 'Read [PAUSE] as words.', literal: true
+      }
+    ]);
+    expect(restored.program.tracks[1].clips.map(clip => clip.cue)).toEqual([
+      { kind: 'field', renderer: 'attractor', config: {} },
+      { kind: 'still' },
+      { kind: 'field', renderer: 'genesis', config: {} }
+    ]);
+    expect(restored.program.tracks[2].clips[0].anchor).toEqual({
+      sourceIds: ['opening'], fromCharacter: 15, toCharacter: 25,
+      quoteStart: 'spacetime.', quoteEnd: 'spacetime.'
+    });
+
+    input.segments[0].text = 'changed after materializing';
+    input.origin.name = 'Changed';
+    expect(pair.sources[0].data).toBe('Gravity curves spacetime. Light follows its geometry.');
+    expect(pair.sources[0].provenance.origin.name).toBe('Explainer');
+    expect(pair.program.tracks[2].clips[0].anchor.fromCharacter).toBe(15);
+  });
+
+  it('compiles the materialized pair with the same Session settings as the wrapper for every theme', () => {
+    const withoutGeneratedAtomIds = session => session.atoms.map(({ id, ...atom }) => atom);
+    for (const theme of RISE_CURRENT_THEME_IDS) {
+      const input = current({
+        theme,
+        segments: [
+          { id: 'moving', text: 'The filament moves.', visual: 'attractor' },
+          { id: 'drawn', text: 'The drawing grows.', visual: 'genesis' },
+          { id: 'quiet', text: 'The page is still.', visual: 'still' }
+        ]
+      });
+      const { program, sources } = materializeRiseCurrent(input);
+      const wrapper = compileRiseCurrent(input, { projection: 'page' });
+      const direct = compileSession({
+        title: input.title,
+        sources,
+        experienceProgram: program,
+        visualConfig: {
+          visualMode: 'interlocution',
+          interlocution: { presentation: 'continuous', procedural: [], sourced: [] }
+        },
+        provenance: { origin: input.origin, currentId: input.id },
+        chunkMode: 'sentence',
+        projection: 'page',
+        presentation: { colorTheme: theme, colors: jevColors(theme) }
+      });
+
+      expect(wrapper.name, theme).toBe(direct.name);
+      expect(wrapper.sources, theme).toEqual(direct.sources);
+      expect(withoutGeneratedAtomIds(wrapper), theme).toEqual(withoutGeneratedAtomIds(direct));
+      expect(wrapper.experienceProgram, theme).toEqual(direct.experienceProgram);
+      expect(wrapper.visualProgram, theme).toEqual(direct.visualProgram);
+      expect(wrapper.visualConfig, theme).toEqual(direct.visualConfig);
+      expect(wrapper.provenance, theme).toEqual(direct.provenance);
+      expect(wrapper.presentation, theme).toEqual(direct.presentation);
+      expect(wrapper.projection, theme).toBe(direct.projection);
+      expect(JSON.parse(JSON.stringify({ program, sources })).program.tracks[1].clips.map(clip => clip.cue), theme)
+        .toEqual([
+          { kind: 'field', renderer: 'attractor', config: { ...RISE_CURRENT_THEMES[theme].attractor } },
+          { kind: 'field', renderer: 'genesis', config: { ...RISE_CURRENT_THEMES[theme].genesis } },
+          { kind: 'still' }
+        ]);
+    }
+  });
+
+  it('validates input before materializing', () => {
+    expect(() => materializeRiseCurrent(current({ segments: [{ id: 'a', text: 'A | B.' }] })))
+      .toThrow(expect.objectContaining({ code: 'CURRENT_RESERVED_TEXT', path: '$.segments[0].text' }));
   });
 });
 

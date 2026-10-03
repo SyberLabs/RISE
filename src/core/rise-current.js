@@ -212,14 +212,9 @@ export function validateRiseCurrent(input) {
   });
 }
 
-/** Lower a sealed external answer into the existing score and Session path. */
-export function compileRiseCurrent(input, { projection = 'stream' } = {}) {
-  if (!['stream', 'page'].includes(projection)) {
-    fail('CURRENT_PROJECTION', '$.projection', 'Unknown projection');
-  }
-  const current = validateRiseCurrent(input);
+/** Map validated Current data once for the durable pair and Session wrapper. */
+function materializeValidatedRiseCurrent(current) {
   const look = current.theme === undefined ? null : RISE_CURRENT_THEMES[current.theme];
-  const sourceIds = current.segments.map(segment => segment.id);
   const program = createExperienceProgram({
     schema: EXPERIENCE_PROGRAM_SCHEMA,
     id: current.id,
@@ -254,25 +249,49 @@ export function compileRiseCurrent(input, { projection = 'stream' } = {}) {
       }
     ]
   });
-  return compileSession({
+  const sources = current.segments.map((segment, index) => ({
+    id: segment.id,
+    name: `${current.title} · ${index + 1}`,
+    type: 'text/plain',
+    providerId: current.origin.kind === 'model' ? current.origin.provider : 'local',
+    provenance: { origin: current.origin, currentId: current.id },
+    data: segment.text,
+    ...(segment.literal ? { literal: true } : {})
+  }));
+  return {
+    program,
+    sources,
     title: current.title,
-    sources: current.segments.map((segment, index) => ({
-      id: segment.id,
-      name: `${current.title} · ${index + 1}`,
-      type: 'text/plain',
-      providerId: current.origin.kind === 'model' ? current.origin.provider : 'local',
-      provenance: { origin: current.origin, currentId: current.id },
-      data: segment.text,
-      ...(segment.literal ? { literal: true } : {})
-    })),
-    experienceProgram: program,
+    provenance: { origin: current.origin, currentId: current.id },
     visualConfig: {
       visualMode: current.segments.some(segment => segment.visual !== 'still') ? 'interlocution' : 'off',
       interlocution: { presentation: 'continuous', procedural: [], sourced: [] }
     },
-    provenance: { origin: current.origin, currentId: current.id },
+    ...(look ? { presentation: { colorTheme: current.theme, colors: jevColors(current.theme) } } : {})
+  };
+}
+
+/** Materialize a validated Current as a detached, JSON-safe score and source pair. */
+export function materializeRiseCurrent(input) {
+  const { program, sources } = materializeValidatedRiseCurrent(validateRiseCurrent(input));
+  return { program, sources };
+}
+
+/** Lower a sealed external answer into the existing Session playback path. */
+export function compileRiseCurrent(input, { projection = 'stream' } = {}) {
+  if (!['stream', 'page'].includes(projection)) {
+    fail('CURRENT_PROJECTION', '$.projection', 'Unknown projection');
+  }
+  const current = validateRiseCurrent(input);
+  const { program, sources, title, provenance, visualConfig, ...presentation } = materializeValidatedRiseCurrent(current);
+  return compileSession({
+    title,
+    sources,
+    experienceProgram: program,
+    visualConfig,
+    provenance,
     chunkMode: 'sentence',
     projection,
-    ...(look ? { presentation: { colorTheme: current.theme, colors: jevColors(current.theme) } } : {})
+    ...presentation
   });
 }
