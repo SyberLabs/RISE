@@ -30,6 +30,12 @@ describe('route urls', () => {
         expect(routeFromPath('/night-drive').data).toEqual({ demoMode: true });
     });
 
+    it('gives Today the public path main shipped', () => {
+        expect(routeFromPath('/today')).toEqual({ id: 'today', data: {} });
+        expect(pathForRoute('today')).toBe('/today');
+        expect(routeFromPath('/library/today')).toBeNull();
+    });
+
     it('fixes the new paths', () => {
         expect(pathForRoute('chamber')).toBe('/read');
         expect(pathForRoute('chamber-session')).toBe('/read/session');

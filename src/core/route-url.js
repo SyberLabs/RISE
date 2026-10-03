@@ -24,6 +24,7 @@ export const VISUAL_LAB_PATH = '/visual-lab';
 export const VISUAL_CATALOG_PATH = '/visual-catalog';
 export const LIVE_PATH = '/live';
 export const EMOTIONS_PATH = '/emotions';
+export const TODAY_PATH = '/today';
 
 /**
  * Old ids stay valid forever. Each right-hand side is the id the room has
@@ -139,7 +140,7 @@ const ROUTES = [
     fixed('via', '/library/stations'),
     fixed('journeys', '/library/journeys'),
     fixed('mint', '/library/mint'),
-    fixed('today', '/library/today'),
+    fixed('today', TODAY_PATH),
     fixed('curia', '/library/provenance'),
 
     fixed('workshop', '/make/workshop'),
