@@ -10,6 +10,7 @@ import {
 // Brightness buckets in the renderer; quality steps consume these from
 // the dim end, so the ceiling must leave real strands to draw.
 const NB_BUCKETS = 7;
+const FRAME_60 = 1000 / 60;
 
 // The field drives a canvas on a RAF loop; stub just enough that the
 // constructor and one tick can run in jsdom.
@@ -197,8 +198,8 @@ describe('Attractor forms', () => {
 
   it('adapts quality to the hardware instead of asking the reader', () => {
     // The rosette draws the filament 12x per frame. Rather than make
-    // readers classify their own computer, the field measures its own
-    // cost and steps down only when it is actually missing frames.
+    // readers classify their own computer, the field watches how far
+    // apart its frames arrive and steps down only when they are late.
     const field = new AttractorField(makeHost(), { form: 'kaleido' });
     expect(field.quality).toBe(0);
 
@@ -206,12 +207,39 @@ describe('Attractor forms', () => {
     field.measureQuality(30);
     expect(field.quality).toBe(0);
 
-    // Sustained slowness steps down, once per window
-    for (let i = 0; i < 45; i++) field.measureQuality(14);
+    // Sustained late frames (20 fps) step down, once per window
+    for (let i = 0; i < 20; i++) field.measureQuality(50);
     expect(field.quality).toBe(1);
 
-    // And recovery restores detail when the machine frees up
-    for (let i = 0; i < 45; i++) field.measureQuality(2);
+    // And recovery restores detail once frames keep the display's pace
+    for (let i = 0; i < 90; i++) field.measureQuality(FRAME_60);
+    expect(field.quality).toBe(0);
+
+    field.destroy();
+  });
+
+  it('waits longer each time before retrying detail that proved too slow', () => {
+    // Frame intervals snap to the display refresh, so a field that just
+    // makes 60 fps shows no headroom. Without a growing wait it would
+    // switch the faint strands on and off every second on a borderline
+    // machine.
+    const field = new AttractorField(makeHost(), { form: 'kaleido' });
+    const slowWindow = () => { for (let i = 0; i < 20; i++) field.measureQuality(50); };
+    const fastWindow = () => { for (let i = 0; i < 45; i++) field.measureQuality(FRAME_60); };
+
+    slowWindow();
+    expect(field.quality).toBe(1);
+    fastWindow();
+    fastWindow();
+    expect(field.quality).toBe(0);
+
+    slowWindow();
+    expect(field.quality).toBe(1);
+    fastWindow();
+    fastWindow();
+    fastWindow();
+    expect(field.quality).toBe(1);
+    fastWindow();
     expect(field.quality).toBe(0);
 
     field.destroy();
@@ -219,7 +247,7 @@ describe('Attractor forms', () => {
 
   it('never degrades below a legible figure, and can be opted out', () => {
     const field = new AttractorField(makeHost(), { form: 'kaleido' });
-    for (let i = 0; i < 45 * 12; i++) field.measureQuality(30);
+    for (let i = 0; i < 45 * 12; i++) field.measureQuality(40);
     // Bounded: the shape must always survive
     expect(field.quality).toBe(field.maxQuality);
     expect(field.maxQuality).toBeLessThan(NB_BUCKETS - 1);
@@ -377,5 +405,83 @@ describe('Attractor speed', () => {
     expect(field.setSpeed(0.5)).toBe(true);
     expect(field.motionTime(3000)).toBeCloseTo(before, 6);
     expect(field.motionTime(5000)).toBeCloseTo(before + 1, 6);
+  });
+});
+
+describe('Attractor quality follows real frame timing', () => {
+  // The JavaScript that issues strokes is cheap; the raster work lands
+  // after it returns. Only the gap between animation frames shows what
+  // the reader actually sees, so these drive the loop with fake rAF
+  // timestamps. Hundreds of frames would make spies record millions of
+  // strokes, so this context's methods are plain no-ops.
+  beforeEach(() => {
+    const noop = () => {};
+    vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockImplementation(() => {
+      const ctx = { createRadialGradient: () => ({ addColorStop: noop }) };
+      for (const m of ['setTransform', 'clearRect', 'save', 'restore', 'translate', 'rotate',
+        'scale', 'beginPath', 'moveTo', 'lineTo', 'stroke', 'fill', 'arc', 'drawImage']) ctx[m] = noop;
+      return ctx;
+    });
+  });
+
+  const run = (field, from, interval, frames) => {
+    let t = from;
+    for (let i = 0; i < frames; i++) {
+      t += interval;
+      field.tick(t);
+    }
+    return t;
+  };
+
+  it('steps quality down when frames arrive late, whatever the drawing code cost', () => {
+    const field = new AttractorField(makeHost(), { form: 'kaleido' });
+    // ~2 fps: software canvas rasterizing the rosette
+    let t = run(field, 0, 600, 4);
+    expect(field.quality).toBe(1);
+    run(field, t, 600, 6);
+    expect(field.quality).toBe(field.maxQuality);
+    field.destroy();
+  });
+
+  it('keeps full detail while frames keep the display pace', () => {
+    const field = new AttractorField(makeHost(), { form: 'kaleido' });
+    const t = run(field, 0, FRAME_60, 200);
+    run(field, t, 1000 / 120, 200);
+    expect(field.quality).toBe(0);
+    field.destroy();
+  });
+
+  it('caps its backing store at 1.5x so dense screens do not multiply raster work', () => {
+    const dpr = vi.spyOn(window, 'devicePixelRatio', 'get').mockReturnValue(3);
+    const field = new AttractorField(makeHost(), { form: 'kaleido' });
+    expect(field.canvas.width).toBe(800 * 1.5);
+    expect(field.canvas.height).toBe(600 * 1.5);
+    field.destroy();
+    dpr.mockReturnValue(1);
+    const plain = new AttractorField(makeHost());
+    expect(plain.canvas.width).toBe(800);
+    plain.destroy();
+  });
+
+  it('does not read the gap across a pause and resume as a slow frame', () => {
+    const field = new AttractorField(makeHost(), { form: 'kaleido' });
+    let t = run(field, 0, FRAME_60, 30);
+    field.pause();
+    field.resume();
+    t = run(field, t, 10000, 1);
+    run(field, t, FRAME_60, 30);
+    expect(field.quality).toBe(0);
+    field.destroy();
+  });
+
+  it('does not read the gap while the tab was hidden as a slow frame', () => {
+    const field = new AttractorField(makeHost(), { form: 'kaleido' });
+    let t = run(field, 0, FRAME_60, 30);
+    // rAF stops while the tab is hidden and resumes with one long gap
+    document.dispatchEvent(new Event('visibilitychange'));
+    t = run(field, t, 10000, 1);
+    run(field, t, FRAME_60, 30);
+    expect(field.quality).toBe(0);
+    field.destroy();
   });
 });
