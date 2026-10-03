@@ -179,6 +179,13 @@ test.describe('on a phone', () => {
         const bar = await page.locator('#live-controls').boundingBox();
         expect(bar.y + bar.height).toBeLessThanOrEqual(844 + 1);
         expect(bar.height).toBeLessThan(844 / 2);
+        const controls = page.locator('#live-controls');
+        const scrollsInternally = await controls.evaluate(element => element.scrollHeight > element.clientHeight);
+        expect(scrollsInternally).toBe(true);
+        const resume = page.getByRole('button', { name: 'Resume', exact: true });
+        await resume.focus();
+        await page.keyboard.press('Enter');
+        await expect(status(page)).toContainText('paced as if spoken');
         expect(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(0);
     });
 });
