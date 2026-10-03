@@ -25,6 +25,9 @@ function random(seed) {
   };
 }
 
+/** A repeatable random sequence for a string seed. */
+export const seededRandom = text => random(hash(text));
+
 export function todayPool(index = DIVISION_INDEX) {
   const pool = [];
   for (const workId of TODAY_WORKS) {
@@ -33,7 +36,7 @@ export function todayPool(index = DIVISION_INDEX) {
       if (work.divisionWords[entryId] <= TODAY_MAX_WORDS) pool.push({ workId, entryId, label });
     });
   }
-  const next = random(hash(SHUFFLE_SEED));
+  const next = seededRandom(SHUFFLE_SEED);
   for (let i = pool.length - 1; i > 0; i--) {
     const j = Math.floor(next() * (i + 1));
     [pool[i], pool[j]] = [pool[j], pool[i]];

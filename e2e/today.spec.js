@@ -52,9 +52,16 @@ for (const viewport of [{ width: 390, height: 844 }, { width: 1280, height: 800 
       && !window.__RISE_TEST__.getRouterState().transitioning, null, { timeout: 20_000 });
     const session = await page.evaluate(() => {
       const s = window.__RISE_TEST__.getCurrentSession();
-      return { text: [...s.sourceTexts.values()].join(' '), origin: s.origin };
+      return {
+        text: [...s.sourceTexts.values()].join(' '),
+        origin: s.origin,
+        visualMode: s.visualConfig?.visualMode ?? null
+      };
     });
     expect(session.origin).toEqual({ view: 'today', name: 'Today\'s poem' });
+    // Every poem of the day is read under a procedural visual, never on plain black.
+    expect(session.visualMode).toBeTruthy();
+    expect(session.visualMode).not.toBe('off');
     expect(session.text.replace(/\s+/gu, ' ').trim()).toBe(shown.replace(/\s+/gu, ' ').trim());
 
     await page.keyboard.press('Escape');

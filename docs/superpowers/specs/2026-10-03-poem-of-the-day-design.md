@@ -77,11 +77,28 @@ minute.
 
 ## Begin this poem
 
-Begin opens the reader directly, with the same shape the Library's
-`readEntry` builds: `text` is the entry's content, `textSource` is
-*Work · Label*, `verseLines` is `entry.verse === true`, and `continuation` is
-`{ kind: 'library-division', workId, editionId, sourceRevision, entryId,
-entryIndex, entryCount, noun }`. It goes through `app.handleBeginSession`,
+**Every poem of the day is read under a procedural visual** (owner decision,
+2026-10-03: mandatory). The first build handed the reader the bare text, and
+the poem played as words on plain black.
+
+* **The day's mood:** `todayDecision(pick)` (`src/core/today-reading.js`)
+  composes a roll for the poem's work with `composeRoll`, in a temper drawn by
+  the date (`seededRandom('rise-today-reading:<date>')`) from the vivid tempers
+  only: those whose visuals are `immersive` or `psychedelic` (today *signal*,
+  *ember* and *revel*: attractor, apparitio or ostensoria, and fractal). The
+  roll fixes the visual engine, palette, sound, pace and type for the whole
+  day.
+* **The view names it** before anything plays, as Home names a roll: the mood
+  pill and `summarizeJevPlan`'s words (*Fast words, fractal light, excited,
+  large bold*).
+* **The exact poem:** `resolveJevReading(decision, { entryId, label })` opens
+  that division instead of the roll's section, under the same edition gate as
+  Home's rolls, and refuses it if its label changed. A refusal leaves the poem
+  on screen with *This poem could not be opened. Try again.*
+
+The session keeps the reader's shape: `text` is the entry's content,
+`verseLines` is `entry.verse === true`, and `continuation` is the
+`library-division` one (noun *poem*). It goes through `app.handleBeginSession`,
 with `origin` naming the Today view so that leaving the reading returns there
 (`src/app/chamber-exit.js`). Begin is busy while the reader opens and ready
 again afterwards, so a reader who comes back can begin the poem again.
