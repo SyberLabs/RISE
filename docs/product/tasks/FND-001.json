@@ -1,0 +1,46 @@
+{
+  "id": "FND-001",
+  "title": "Integrate reviewed Composer foundation",
+  "lane": "shared",
+  "milestone": "M0 foundation",
+  "status": "in_review",
+  "delivery": "branch",
+  "owner": "Codex coordinator",
+  "priority": "now",
+  "dependencies": [],
+  "acceptance": [
+    "Review exact-head CI and integrity.",
+    "Integrate through required CI and record resulting head.",
+    "Preserve Reader changes and shared Composer contract."
+  ],
+  "evidence": [
+    {
+      "kind": "pr",
+      "ref": "https://github.com/SyberLabs/RISE/pull/371",
+      "note": "Remote checked 2026-10-03: OPEN draft at 62fe11f3; CI SUCCESS, not merged.",
+      "date": "2026-10-03"
+    },
+    {
+      "kind": "commit",
+      "ref": "https://github.com/SyberLabs/RISE/commit/62fe11f384cda91cd05ea18e1c8853f64ed35b4f",
+      "note": "Reviewed candidate, not a production release.",
+      "date": "2026-10-03"
+    },
+    {
+      "kind": "test",
+      "ref": "https://github.com/SyberLabs/RISE/actions/runs/37160007847",
+      "note": "Required CI passed at this candidate. Full final unit suite was not rerun; earlier failures and targeted repairs recorded separately.",
+      "date": "2026-10-03"
+    }
+  ],
+  "activity": [
+    {
+      "date": "2026-10-03",
+      "summary": "Seeded from repository evidence and approved product direction; future acceptance is not assumed."
+    }
+  ],
+  "updatedAt": "2026-10-03T23:14:43.432Z",
+  "revision": 1,
+  "summary": "PR #371 at 62fe11f3 reconciles main and repairs admission/themes/control integration. CI evidence exists; draft is not merged or accepted. Main subsequently advanced to 8dedae8f; reconcile those Reader changes before integration.",
+  "blocker": null
+}

@@ -142,6 +142,14 @@ own key or the host's model and remain switched off by default. See
   defects. Never make a check that only runs after merge required; it blocks
   pull requests forever.
 
+## Product roadmap and task tracking
+
+- Before selecting work, read [the product library and tracker](docs/product/README.md) and the applicable Reader or Live + RiseSDK direction. Shared foundation work has its own lane.
+- Run `npm run roadmap:check`; claim one task in `docs/product/tasks/` with one owner, and honor dependencies and acceptance criteria. Coordinate before replacing another owner.
+- Update the task record in the same PR as the work, using the validated CLI described in the product library. Link exact PR/commit/test evidence and separately record human observations. Keep branch, merged, deployed and accepted distinct; a green build cannot pass human gates.
+- Review recent unmapped changes and link them to tasks when justified. Do not automatically complete tasks from PR status or copy historical test counts as current evidence.
+- The local read-only team dashboard runs with `npm run roadmap:dev`; product discussions are indexed under `docs/product/`. Hosting follows a separate content/access review.
+
 ## Parallel agent work
 
 - For independent backend and client changes, use separate worktrees and

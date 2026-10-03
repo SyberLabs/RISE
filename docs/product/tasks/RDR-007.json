@@ -1,0 +1,37 @@
+{
+  "id": "RDR-007",
+  "title": "Observe the complete Reader journey",
+  "lane": "reader",
+  "milestone": "Reader acceptance",
+  "status": "planned",
+  "delivery": "not_shipped",
+  "owner": null,
+  "priority": "now",
+  "dependencies": [
+    "RDR-001",
+    "RDR-006"
+  ],
+  "acceptance": [
+    "Record the exact release and supported browser/device.",
+    "Observe first entry, reading, interruption and return.",
+    "Turn concrete confusion or visual problems into narrow linked tasks."
+  ],
+  "evidence": [
+    {
+      "kind": "document",
+      "ref": "docs/product/READER-DIRECTION.md",
+      "note": "Current Reader scope; observations not yet recorded.",
+      "date": "2026-10-03"
+    }
+  ],
+  "activity": [
+    {
+      "date": "2026-10-03",
+      "summary": "Seeded from repository evidence and approved product direction; future acceptance is not assumed."
+    }
+  ],
+  "updatedAt": "2026-10-03T23:14:43.432Z",
+  "revision": 1,
+  "summary": "Evaluate entrance, reading orientation, controls, navigation and whether the audiovisual composition earns its place.",
+  "blocker": null
+}

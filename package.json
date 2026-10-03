@@ -56,7 +56,11 @@
     "affect:benchmark": "node scripts/affect/run-benchmark.mjs",
     "affect:export-brief": "node scripts/affect/export-brief.mjs",
     "poem:recite": "vite-node scripts/build-poem-recitation.mjs --",
-    "poem:recite:plan": "vite-node scripts/build-poem-recitation.mjs --"
+    "poem:recite:plan": "vite-node scripts/build-poem-recitation.mjs --",
+    "roadmap:check": "node scripts/roadmap.mjs validate",
+    "roadmap:dev": "node scripts/roadmap.mjs serve",
+    "roadmap:build": "node scripts/roadmap.mjs build",
+    "test:roadmap": "node --test scripts/roadmap.test.mjs tools/roadmap/dashboard.test.mjs"
   },
   "devDependencies": {
     "@huggingface/transformers": "^3.8.1",

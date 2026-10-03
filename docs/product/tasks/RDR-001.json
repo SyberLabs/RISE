@@ -1,0 +1,84 @@
+{
+  "id": "RDR-001",
+  "title": "Home and Today enter a reading",
+  "lane": "reader",
+  "milestone": "Reader entrance",
+  "status": "done",
+  "delivery": "merged",
+  "owner": "Seth Carlson",
+  "priority": "later",
+  "dependencies": [],
+  "acceptance": [
+    "Home entrance and Today navigation changes are merged."
+  ],
+  "evidence": [
+    {
+      "kind": "pr",
+      "ref": "https://github.com/SyberLabs/RISE/pull/388",
+      "note": "Home reading entrance merged in main.",
+      "date": "2026-10-03"
+    },
+    {
+      "kind": "pr",
+      "ref": "https://github.com/SyberLabs/RISE/pull/387",
+      "note": "Today reading navigation and rotation merged.",
+      "date": "2026-10-03"
+    },
+    {
+      "kind": "commit",
+      "ref": "https://github.com/SyberLabs/RISE/commit/144d5bdf",
+      "note": "Merge history inspected for title and Seth Carlson authorship.",
+      "date": "2026-10-03"
+    },
+    {
+      "kind": "pr",
+      "ref": "https://github.com/SyberLabs/RISE/pull/393",
+      "note": "Home first words loaded in one post-shell round trip.",
+      "date": "2026-10-03"
+    },
+    {
+      "kind": "commit",
+      "ref": "https://github.com/SyberLabs/RISE/commit/98df77a3",
+      "note": "Merged Reader contribution by Seth Carlson.",
+      "date": "2026-10-03"
+    },
+    {
+      "kind": "pr",
+      "ref": "https://github.com/SyberLabs/RISE/pull/394",
+      "note": "Another reading preload while Home reads.",
+      "date": "2026-10-03"
+    },
+    {
+      "kind": "commit",
+      "ref": "https://github.com/SyberLabs/RISE/commit/dcf4cc5f",
+      "note": "Merged Reader contribution by Seth Carlson.",
+      "date": "2026-10-03"
+    },
+    {
+      "kind": "pr",
+      "ref": "https://github.com/SyberLabs/RISE/pull/395",
+      "note": "Home engine/title/word polish.",
+      "date": "2026-10-03"
+    },
+    {
+      "kind": "commit",
+      "ref": "https://github.com/SyberLabs/RISE/commit/8dedae8f",
+      "note": "Merged Reader contribution by Seth Carlson.",
+      "date": "2026-10-03"
+    }
+  ],
+  "activity": [
+    {
+      "date": "2026-10-03",
+      "summary": "Seeded from repository evidence and approved product direction; future acceptance is not assumed."
+    },
+    {
+      "date": "2026-10-03",
+      "summary": "Reconciled new main through 8dedae8f: Home loading, preload and visual polish."
+    }
+  ],
+  "updatedAt": "2026-10-03T23:18:39.289Z",
+  "revision": 1,
+  "summary": "Home is already a reading; Today opens the selected work directly. Merged code, not exact-release reader acceptance.",
+  "blocker": null
+}

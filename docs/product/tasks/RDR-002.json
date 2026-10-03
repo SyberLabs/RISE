@@ -1,0 +1,38 @@
+{
+  "id": "RDR-002",
+  "title": "Prepare Today recitation at build time",
+  "lane": "reader",
+  "milestone": "Narration",
+  "status": "done",
+  "delivery": "merged",
+  "owner": "Seth Carlson",
+  "priority": "later",
+  "dependencies": [],
+  "acceptance": [
+    "Build-time recitation mechanism is merged."
+  ],
+  "evidence": [
+    {
+      "kind": "pr",
+      "ref": "https://github.com/SyberLabs/RISE/pull/390",
+      "note": "Build-time recitation machinery, not runtime shared inference.",
+      "date": "2026-10-03"
+    },
+    {
+      "kind": "commit",
+      "ref": "https://github.com/SyberLabs/RISE/commit/fa9b43c1",
+      "note": "Merged implementation inspected in Git history.",
+      "date": "2026-10-03"
+    }
+  ],
+  "activity": [
+    {
+      "date": "2026-10-03",
+      "summary": "Seeded from repository evidence and approved product direction; future acceptance is not assumed."
+    }
+  ],
+  "updatedAt": "2026-10-03T23:14:43.432Z",
+  "revision": 1,
+  "summary": "Build-time ElevenLabs recitation machinery is merged. No claim that every voice asset is produced or listening accepted.",
+  "blocker": null
+}
