@@ -242,7 +242,8 @@ export class Chamber {
     this.voice = this.recitationEnabled
       ? (options.voice || new Voice({
         audioEngine: this.audioEngine,
-        voiceId: this.session?.voiceId
+        voiceId: this.session?.voiceId,
+        packUrl: this.session?.recitation?.pack ?? null
       }))
       : null;
     this._active = false;

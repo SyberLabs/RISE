@@ -10,6 +10,7 @@
 import { speechOnsets } from '../core/recitation.js';
 import {
     DEFAULT_VOICE_ID,
+    VOICE_PACK_SCHEMA,
     getVoicePack,
     resolveVoicePackEntry,
     speakableText,
@@ -34,12 +35,16 @@ export class Voice {
         audioEngine = null,
         voiceId = null,
         manifest = voicePackManifest,
+        packUrl = null,
         fetchImpl = globalThis.fetch?.bind(globalThis)
     } = {}) {
         this.audioEngine = audioEngine;
         this.enabled = false;
         this.voiceId = voiceId || DEFAULT_VOICE_ID;
         this.manifest = manifest;
+        // A reading may bring its own pack (today's poem); it replaces the
+        // bundled one for this voice only.
+        this.packUrl = packUrl;
         this._fetch = fetchImpl;
 
         this._pack = null;
@@ -69,14 +74,16 @@ export class Voice {
     }
 
     /**
-     * Static load is manifest admission only. It intentionally performs no
-     * network request; assets are fetched only after a complete session match.
+     * Static load is manifest admission only. With the bundled pack it makes
+     * no network request; a reading's own pack (packUrl) is the one fetch,
+     * and clips are fetched only after a complete session match.
      */
     async load() {
         if (this._failed) return false;
         if (this._ready) return this._ready;
 
-        this._ready = Promise.resolve().then(() => {
+        this._ready = Promise.resolve().then(async () => {
+            if (this.packUrl) this.manifest = await this._fetchPack(this.packUrl);
             this._pack = getVoicePack(this.voiceId, this.manifest);
             const entryCount = Object.keys(this._pack?.entries || {}).length;
             if (!this._pack || entryCount === 0 || typeof this._fetch !== 'function') {
@@ -94,6 +101,23 @@ export class Voice {
             return true;
         });
         return this._ready;
+    }
+
+    /**
+     * A reading's own pack, or null. A missing file is served as the app
+     * shell with a 200, so only a JSON pack of this schema is admitted;
+     * anything else leaves the reading silent, never wrong.
+     */
+    async _fetchPack(url) {
+        if (typeof this._fetch !== 'function') return null;
+        try {
+            const response = await this._fetch(url, { cache: 'force-cache' });
+            if (!response?.ok) return null;
+            const pack = JSON.parse(await response.text());
+            return pack?.schema === VOICE_PACK_SCHEMA ? pack : null;
+        } catch {
+            return null;
+        }
     }
 
     /**
