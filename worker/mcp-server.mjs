@@ -1,7 +1,9 @@
 import { validateRiseCurrent } from '../src/core/rise-current.js';
+import { MCP_CURRENT_BYTES, serializedUtf8Bytes } from '../src/live/hosts/mcp-size.js';
 import { CURRENT_GUIDE, TOOL_NAME } from '../src/live/adapters/current-guide.js';
 import { EMBED_PATH, relayHtml } from '../src/live/hosts/mcp-relay.js';
 import { readText } from './live-realtime.mjs';
+import { callGate0, GATE0_TOOL, GATE0_TOOL_NAME } from './mcp-gate0.mjs';
 
 /**
  * RISE as an MCP server: one tool that presents a Current, and the app that shows it.
@@ -19,7 +21,8 @@ import { readText } from './live-realtime.mjs';
  * It is off unless MCP_ENABLED is 'true'. It answers only requests from no
  * browser origin or from its own (an MCP host's server has none; a page on
  * another site must not be able to make a browser talk to it), reads a bounded
- * body, and returns nothing it was sent except a validator's message, clipped.
+ * body, and returns nothing it was sent except a validator's message or an
+ * argument's name, clipped.
  *
  * CHECKED AGAINST THE REFERENCE, NOT AGAINST A PRODUCT: the shapes below were
  * compared with @modelcontextprotocol/ext-apps 2.0.3 and the SDK's own client
@@ -79,12 +82,24 @@ function call(id, params) {
   if (!args || typeof args !== 'object' || Array.isArray(args) || !args.current || typeof args.current !== 'object') {
     return result(id, { content: [{ type: 'text', text: `Call ${TOOL_NAME} with {"current": <a Current>}.` }], isError: true });
   }
+  const extra = Object.keys(args).find(key => key !== 'current');
+  if (extra !== undefined) {
+    const why = extra === 'theme' ? '"theme" belongs inside the Current, not beside it'
+      : `unknown argument "${clip(extra.replace(/[\u0000-\u001F\u007F]/gu, ''), 40)}"`;
+    return result(id, { content: [{ type: 'text', text: `RISE refused these arguments: ${why}. Call ${TOOL_NAME} with {"current": <a Current>} only.` }], isError: true });
+  }
   try {
+    if (serializedUtf8Bytes(args.current) > MCP_CURRENT_BYTES) {
+      throw new Error(`The Current exceeds the ${MCP_CURRENT_BYTES.toLocaleString('en-US')}-byte MCP limit`);
+    }
     validateRiseCurrent(args.current);
   } catch (error) {
     return result(id, { content: [{ type: 'text', text: refusal(error) }], isError: true });
   }
-  return result(id, { content: [{ type: 'text', text: 'RISE is presenting this to the reader.' }] });
+  return result(id, {
+    content: [{ type: 'text', text: 'RISE accepted this Current for presentation to the reader.' }],
+    structuredContent: { current: args.current }
+  });
 }
 
 function read(id, params, origin) {
@@ -107,7 +122,7 @@ function read(id, params, origin) {
 }
 
 /** One JSON-RPC message, answered. `null` for one that is not answered (a notification or a response). */
-export function dispatch(message, origin) {
+export function dispatch(message, origin, { gate0 = false } = {}) {
   if (!message || typeof message !== 'object' || Array.isArray(message) || message.jsonrpc !== '2.0') {
     return failure(null, -32600, 'Invalid request');
   }
@@ -127,8 +142,13 @@ export function dispatch(message, origin) {
       });
     }
     case 'ping': return result(id, {});
-    case 'tools/list': return result(id, { tools: [TOOL] });
-    case 'tools/call': return call(id, params);
+    case 'tools/list': return result(id, { tools: gate0 ? [TOOL, GATE0_TOOL] : [TOOL] });
+    case 'tools/call': {
+      if (!gate0 || params?.name !== GATE0_TOOL_NAME) return call(id, params);
+      const probe = callGate0(params.arguments, Date.now());
+      if (probe.log) console.log(probe.log);
+      return result(id, probe.result);
+    }
     case 'resources/list':
       return result(id, { resources: [{ uri: APP_URI, name: 'rise-current', title: 'RISE', description: 'Plays a Current, spoken and shown as it is spoken.', mimeType: APP_MIME }] });
     case 'resources/read': return read(id, params, origin);
@@ -161,7 +181,7 @@ export async function handleMcp(request, env) {
     return failure(null, -32700, 'Parse error');
   }
   if (Array.isArray(message)) return failure(null, -32600, 'Batches are not supported');
-  return dispatch(message, origin);
+  return dispatch(message, origin, { gate0: env.MCP_GATE0 === 'true' });
 }
 
 /**

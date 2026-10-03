@@ -11,7 +11,8 @@
  * - growth is slow and continuous — never nested inside a cut
  * - one artwork + preset locked per episode; transitions are crossfades
  * - reduced-motion / photosensitivity: no growth animation, compositions
- *   appear complete and change only by slow dissolve
+ *   appear complete; under photosensitivity they change only by slow
+ *   dissolve, and under reduced motion (which cuts the dissolve) they stay
  * - worker contours (forms) fade in late in growth, never mid-stroke
  */
 
@@ -105,9 +106,11 @@ export class KleeField {
     }
 
     _isStill() {
-        const rootClasses = document.documentElement.classList;
-        return rootClasses.contains('reduced-motion')
-            || rootClasses.contains('photosensitivity-mode')
+        return this._reducedMotion() || document.documentElement.classList.contains('photosensitivity-mode');
+    }
+
+    _reducedMotion() {
+        return document.documentElement.classList.contains('reduced-motion')
             || (typeof window.matchMedia === 'function'
                 && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
     }
@@ -213,20 +216,24 @@ export class KleeField {
             return;
         }
         const elapsed = now - this.phaseStart;
+        // Read every frame: the reader may turn reduced motion on or off mid-reading.
+        const still = this._isStill();
 
         if (this.phase === 'growing') {
             // Ease-out growth: eager start, patient resolution.
             // Render every frame — with fractional tip interpolation in the
             // engine, the pen moves continuously rather than step by step.
-            this.progress = genesisGrowProgress(elapsed);
+            this.progress = still ? 1 : genesisGrowProgress(elapsed);
             this._render();
-            if (elapsed >= GENESIS_GROW_MS) {
+            if (still || elapsed >= GENESIS_GROW_MS) {
                 this.phase = 'holding';
                 this.phaseStart = now;
             }
         } else if (this.phase === 'holding') {
-            const holdFor = this._isStill() ? HOLD_MS + GENESIS_GROW_MS * 0.5 : HOLD_MS;
-            if (elapsed >= holdFor) {
+            const holdFor = still ? HOLD_MS + GENESIS_GROW_MS * 0.5 : HOLD_MS;
+            // Under reduced motion the composition stays: the CSS that honours it
+            // cuts the dissolve to nothing, so moving on would be a blink.
+            if (elapsed >= holdFor && !this._reducedMotion()) {
                 this.phase = 'fading';
                 this.phaseStart = now;
                 this.canvas.style.opacity = '0';

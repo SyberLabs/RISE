@@ -78,6 +78,26 @@ describe('App safety orchestration', () => {
     expect(app.settings.showArtworkLabels).toBe(true);
   });
 
+  it('follows the system reduced-motion setting when the reader changes it mid-session', () => {
+    let changed = null;
+    const media = { matches: false, addEventListener: vi.fn((type, fn) => { if (type === 'change') changed = fn; }) };
+    Object.defineProperty(window, 'matchMedia', { configurable: true, value: vi.fn(() => media) });
+    const app = new App();
+    app.settings = { photosensitivityMode: false, reducedMotion: false, fontSize: 'medium', showProgress: true, showDuration: true };
+    const root = document.documentElement;
+
+    app.applyAccessibilitySettings();
+    expect(root.classList.contains('reduced-motion')).toBe(false);
+    media.matches = true;
+    changed?.();
+    expect(root.classList.contains('reduced-motion')).toBe(true);
+    media.matches = false;
+    changed?.();
+    expect(root.classList.contains('reduced-motion')).toBe(false);
+    app.applyAccessibilitySettings();
+    expect(media.addEventListener).toHaveBeenCalledTimes(1);
+  });
+
   it('defaults artwork labels on, restores an explicit opt-out, and propagates it live', async () => {
     const app = new App();
     app.loadSettings();

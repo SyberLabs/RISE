@@ -997,6 +997,7 @@ small {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }
 
@@ -1063,12 +1064,14 @@ small {
    ───────────────────────────────────────────────────────────── */
 
 /* Reduced motion class override (set by app.js) */
+.reduced-motion,
 .reduced-motion *,
 .reduced-motion *::before,
 .reduced-motion *::after {
   animation-duration: 0.01ms !important;
   animation-iteration-count: 1 !important;
   transition-duration: 0.01ms !important;
+  scroll-behavior: auto !important;
 }
 
 /* Photosensitivity mode - disables all oscillation/brightness effects */

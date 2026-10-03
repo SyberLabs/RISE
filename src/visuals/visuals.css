@@ -170,11 +170,13 @@
    The reading scrim: what keeps a word legible over imagery.
 
    Any word that sits over a picture (Gallery, behind-stream, Genesis,
-   Night Drive) stands on one flat pane of Atlas ink (--sy-bg) at 80%.
-   Measured against the worst backdrop there is, pure white, that
+   Night Drive) stands on one flat pane of the page ground (--color-void:
+   Atlas ink, or a color theme's own ground) at 80%.
+   Measured against the worst backdrop there is, pure white, the Atlas
    composite is #383748: the neutral ink reads at 9.5:1 on it and both living-text
    poles at 5.2:1 or better, so the text holds 4.5:1 whatever the
-   imagery does. The glass it replaces was 36% with a blur and three
+   imagery does. Each theme's text reads at 9.2:1 or better on its own
+   plate. The glass it replaces was 36% with a blur and three
    shadows (1.8:1 over white) and a 52% band on a phone (3.0:1).
 
    One pane, no shadow, no hairline, the Atlas panel radius. A reading
@@ -186,7 +188,7 @@
    file is next edited.
    ═══════════════════════════════════════════════════════════ */
 .chamber {
-    --reading-scrim: color-mix(in srgb, var(--sy-bg) 80%, transparent);
+    --reading-scrim: color-mix(in srgb, var(--color-void) 80%, transparent);
 }
 
 @media (min-width: 641px) {

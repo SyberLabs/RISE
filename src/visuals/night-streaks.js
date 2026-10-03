@@ -40,8 +40,10 @@ export class NightStreaks {
         this.speed = clampSpeed(options.speed);
         this.intensity = options.intensity ?? 0.8;
         this.palette = PALETTES[options.palette] ? options.palette : 'neon';
-        this.reduced = typeof window.matchMedia === 'function'
-            && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        // Kept, not read once: the reader may turn reduced motion on mid-reading.
+        this.reducedQuery = typeof window.matchMedia === 'function'
+            ? window.matchMedia('(prefers-reduced-motion: reduce)')
+            : null;
         this.canvas = document.createElement('canvas');
         this.canvas.className = 'night-streaks-canvas';
         this.canvas.setAttribute('aria-hidden', 'true');
@@ -147,7 +149,7 @@ export class NightStreaks {
     tick(now) {
         if (this._sampleT != null) { this.draw(this._sampleT); return; }
         // Reduced motion (OS or RISE setting): one still, then idle.
-        const reduced = this.reduced || document.documentElement.classList.contains('reduced-motion');
+        const reduced = this.reducedQuery?.matches === true || document.documentElement.classList.contains('reduced-motion');
         if (!reduced || !this._stillDrawn) this.draw(reduced ? REDUCED_STILL_SECONDS * this.speed : this.motionTime(now));
         this._stillDrawn = reduced;
         this.rafId = requestAnimationFrame(this.tick);

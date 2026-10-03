@@ -95,6 +95,18 @@ describe('a valid event of every type', () => {
         expect(validateEvent(base('segment.text', 2, { segmentId: 's1', offset: 25, text: 'More.' })).offset).toBe(25);
     });
 
+    it('an opening may name a shipped theme, and it is copied as named', () => {
+        for (const theme of ['classic', 'amethyst', 'prism', 'ember', 'cobalt', 'jade']) {
+            const event = base('current.open', 0, {
+                title: 'Why a black hole is black', origin: { kind: 'model', name: 'n', provider: 'p' }, theme
+            });
+            expect(validateEvent(structuredClone(event))).toEqual(event);
+        }
+        expect(Object.hasOwn(validateEvent(VALID['current.open']), 'theme')).toBe(false);
+        expect(decodeEvent('{"schema":"rise.current-events.v1","currentId":"c","seq":0,"type":"current.open","title":"Why a black hole is black","origin":{"kind":"model","name":"n","provider":"p"},"theme":"cobalt"}').theme)
+            .toBe('cobalt');
+    });
+
     it('a human origin needs no provider, and a model origin must name one', () => {
         expect(refusal(base('current.open', 0, { title: 'T', origin: { kind: 'human', name: 'Ada' } }))).toBeNull();
         expect(refusal(base('current.open', 0, { title: 'T', origin: { kind: 'model', name: 'X' } }))?.code)
@@ -175,6 +187,19 @@ describe('what an event may not carry', () => {
     it('an explicit null where a field is optional', () => {
         expect(refusal(base('segment.begin', 1, { segmentId: 's', visual: null }))?.code).toBe('EVENT_VISUAL');
         expect(refusal(base('interrupt', 1, { reason: 'user', text: null }))?.code).toBe('EVENT_TEXT');
+    });
+
+    it('a theme outside the shipped color themes, however it is spelled, and a theme anywhere but the opening', () => {
+        const opening = theme => base('current.open', 0, {
+            title: 'T', origin: { kind: 'model', name: 'n', provider: 'p' }, theme
+        });
+        for (const theme of ['neon', 'Jade', 'jade ', '', '#061912', 7, {}, ['jade'], null]) {
+            const error = refusal(opening(theme));
+            expect(error?.code, JSON.stringify(theme)).toBe('EVENT_THEME');
+            expect(error?.path).toBe('$.theme');
+            expect(error?.message).toBe('Unknown theme ($.theme)');
+        }
+        expect(refusal(base('segment.begin', 1, { segmentId: 's', theme: 'jade' }))?.code).toBe('EVENT_UNKNOWN_FIELD');
     });
 
     it('a visual outside the closed catalog, however it is spelled', () => {

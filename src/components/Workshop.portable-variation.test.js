@@ -163,7 +163,6 @@ it('locks a variation editor until its selected parent is loaded', async () => {
   expect(onCreateSession).not.toHaveBeenCalled();
   expect(MemoryCore.getWorkshopBlueprints()).toHaveLength(1);
 
-  // A late inspector redraw must inherit the same editing lock.
   workshop.refreshContextualInspector();
   const redrawnTitle = container.querySelector('#session-title');
   expect(redrawnTitle.disabled).toBe(true);
@@ -210,30 +209,55 @@ it('locks a variation editor until its selected parent is loaded', async () => {
   workshop.destroy();
 });
 
-it('keeps the phone Back control available and exposes loading while a sequence hydrates', async () => {
+it('keeps the pace slider in place when activation refreshes an unchanged inspector', async () => {
   const parent = await importedParent();
-  const pendingLookup = deferred();
-  const { workshop, container } = makeWorkshop(vi.fn(), { viewportWidth: 390 });
-  vi.spyOn(workshop, 'loadSavedBlueprints').mockReturnValue(pendingLookup.promise);
+  const { workshop, container } = makeWorkshop();
+  workshop.update({ varyBlueprintId: parent.id });
+  await vi.waitFor(() => expect(container.querySelector('#workshop-sequence-status').textContent)
+    .toContain('Variation of an imported score'));
+  // The router activates Workshop after its fade; activation looks up the Vault again.
+  const activationLookup = deferred();
+  vi.spyOn(workshop, 'loadSavedBlueprints').mockReturnValueOnce(activationLookup.promise);
+  workshop.activate();
+  container.querySelector('[data-action="focus-reading-inspector"]').click();
+  const pace = container.querySelector('#wpm-slider');
 
-  expect(container.querySelector('.workshop-studio').dataset.phoneMode).toBe('scenes');
-  workshop.update({ blueprintId: parent.id });
+  // The lookup lands while the reader holds the slider. activate() subscribed
+  // first, so its refresh has run once this await returns.
+  activationLookup.resolve(MemoryCore.getWorkshopBlueprints());
+  await activationLookup.promise;
+  expect(container.querySelector('#wpm-slider')).toBe(pace);
 
-  const phoneHost = container.querySelector('.scene-stack-host');
-  const back = phoneHost.querySelector('[data-sa="back"]');
-  expect(back.disabled).toBe(false);
-  expect(phoneHost.getAttribute('aria-busy')).toBe('true');
-  expect(phoneHost.querySelector('[data-blueprint-loading]').textContent)
-    .toContain('Loading selected sequence');
-  expect(phoneHost.querySelector('[data-scenes-status]').textContent)
-    .toContain('Loading selected sequence');
+  pace.value = '240';
+  pace.dispatchEvent(new Event('input', { bubbles: true }));
+  const saved = await workshop.saveSequenceToVault();
+  const child = MemoryCore.getWorkshopBlueprints().map(item => item.project)
+    .find(item => item.id === saved.id);
+  const exported = await inspectPortableSequence(await exportPortableSequence(child));
+  expect(exported.project.defaults.reading.wpm).toBe(240);
+  workshop.destroy();
+});
 
-  pendingLookup.resolve(MemoryCore.getWorkshopBlueprints());
-  await vi.waitFor(() => expect(workshop.blueprintLoadInProgress).toBe(false));
-  const settledPhoneHost = container.querySelector('.scene-stack-host');
-  if (settledPhoneHost) expect(settledPhoneHost.hasAttribute('aria-busy')).toBe(false);
-  else expect(container.querySelector('.workshop-studio').dataset.phoneMode).not.toBe('scenes');
-  expect(container.querySelector('[data-blueprint-loading]')).toBeNull();
+it('keeps the pace slider in step with the sequence, so a later refresh leaves it in place', async () => {
+  const parent = await importedParent();
+  const { workshop, container } = makeWorkshop();
+  workshop.update({ varyBlueprintId: parent.id });
+  await vi.waitFor(() => expect(container.querySelector('#workshop-sequence-status').textContent)
+    .toContain('Variation of an imported score'));
+  container.querySelector('[data-action="focus-reading-inspector"]').click();
+  const pace = container.querySelector('#wpm-slider');
+
+  // After the reader moves the slider, a refresh that changes nothing else keeps it.
+  pace.value = '260';
+  pace.dispatchEvent(new Event('input', { bubbles: true }));
+  workshop.refreshContextualInspector();
+  expect(container.querySelector('#wpm-slider')).toBe(pace);
+
+  // A pace set elsewhere (the phone scene stack) moves the slider the reader sees.
+  workshop.sceneApi.setPace({ wpm: 200 });
+  workshop.refreshContextualInspector();
+  expect(container.querySelector('#wpm-slider').value).toBe('200');
+  expect(workshop.sessionData.wpm).toBe(200);
   workshop.destroy();
 });
 
@@ -267,6 +291,33 @@ it('keeps the held pace slider when curve and chunk changes are followed by a la
     .find(item => item.id === saved.id);
   const exported = await inspectPortableSequence(await exportPortableSequence(child));
   expect(exported.project.defaults.reading.wpm).toBe(240);
+  workshop.destroy();
+});
+
+it('keeps the phone Back control available and exposes loading while a sequence hydrates', async () => {
+  const parent = await importedParent();
+  const pendingLookup = deferred();
+  const { workshop, container } = makeWorkshop(vi.fn(), { viewportWidth: 390 });
+  vi.spyOn(workshop, 'loadSavedBlueprints').mockReturnValue(pendingLookup.promise);
+
+  expect(container.querySelector('.workshop-studio').dataset.phoneMode).toBe('scenes');
+  workshop.update({ blueprintId: parent.id });
+
+  const phoneHost = container.querySelector('.scene-stack-host');
+  const back = phoneHost.querySelector('[data-sa="back"]');
+  expect(back.disabled).toBe(false);
+  expect(phoneHost.getAttribute('aria-busy')).toBe('true');
+  expect(phoneHost.querySelector('[data-blueprint-loading]').textContent)
+    .toContain('Loading selected sequence');
+  expect(phoneHost.querySelector('[data-scenes-status]').textContent)
+    .toContain('Loading selected sequence');
+
+  pendingLookup.resolve(MemoryCore.getWorkshopBlueprints());
+  await vi.waitFor(() => expect(workshop.blueprintLoadInProgress).toBe(false));
+  const settledPhoneHost = container.querySelector('.scene-stack-host');
+  if (settledPhoneHost) expect(settledPhoneHost.hasAttribute('aria-busy')).toBe(false);
+  else expect(container.querySelector('.workshop-studio').dataset.phoneMode).not.toBe('scenes');
+  expect(container.querySelector('[data-blueprint-loading]')).toBeNull();
   workshop.destroy();
 });
 

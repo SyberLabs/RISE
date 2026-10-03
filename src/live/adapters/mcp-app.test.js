@@ -15,6 +15,7 @@ import { createCurrentStream } from '../stream.js';
 import { createFakeMcpPort } from '../../test/fake-mcp-port.js';
 import { BLACK_HOLES_CURRENT, toSealedCurrent } from '../../test/sealed-current.js';
 import { BLACK_HOLES, HORIZON_DIVE } from '../fixtures/black-holes.js';
+import { validateRiseCurrent } from '../../core/rise-current.js';
 import { currentToEvents } from './current-events.js';
 import { createMcpAppAdapter, currentFromText, diveQuestion, TOOL_NAME } from './mcp-app.js';
 
@@ -43,6 +44,18 @@ describe('a sealed Current as events', () => {
         expect(view.segments.flatMap(s => s.dives.map(d => d.id))).toEqual(['horizon-note', 'hawking-note']);
         expect(view.segments.flatMap(s => s.evidence)).toEqual([]);
         expect(view.origin).toEqual(BLACK_HOLES_CURRENT.origin);
+    });
+
+    it('carries a theme on the opening, and lowers back to the same themed Current', () => {
+        const themed = { ...BLACK_HOLES_CURRENT, theme: 'jade' };
+        const events = currentToEvents(themed);
+        expect(events[0]).toEqual({ type: 'current.open', body: { title: themed.title, origin: themed.origin, theme: 'jade' } });
+        expect(currentToEvents(BLACK_HOLES_CURRENT)[0].body).not.toHaveProperty('theme');
+        const writer = createEventWriter(themed.id);
+        const stream = createCurrentStream();
+        for (const { type, body } of events) stream.apply(writer.next(type, body));
+        expect(stream.snapshot().refusals).toBe(0);
+        expect(stream.toCurrent()).toEqual(validateRiseCurrent(themed));
     });
 
     it('cuts long text into chunks the protocol allows, none of them blank, and the reducer refuses nothing', () => {
@@ -96,6 +109,19 @@ describe('an answer from the host’s model', () => {
         expect(clock.pending()).toBe(0);
     });
 
+    it('keeps the answer’s theme when the host’s origin replaces its own', async () => {
+        const clock = createVirtualClock();
+        const port = createFakeMcpPort({ clock });
+        port.deliver({ current: { ...BLACK_HOLES_CURRENT, theme: 'cobalt' } });
+        const connection = await createMcpAppAdapter({ port, clock }).open(ASK);
+        const { stream, seen } = await read(connection);
+        const opening = seen.find(event => event.type === 'current.open');
+        expect(opening.theme).toBe('cobalt');
+        expect(opening.origin).not.toEqual(BLACK_HOLES_CURRENT.origin);
+        expect(stream.snapshot().theme).toBe('cobalt');
+        expect(stream.toCurrent().theme).toBe('cobalt');
+    });
+
     it('takes one that was handed over before it asked, and lets go of the host when done', async () => {
         const clock = createVirtualClock();
         const port = createFakeMcpPort({ clock });
@@ -117,6 +143,7 @@ describe('an answer from the host’s model', () => {
         const view = stream.snapshot();
         expect(view.phase).toBe('failed');
         expect(view.error.code).toBe('INVALID_CURRENT');
+        expect(view.error.message).toContain('Ask the assistant again');
         expect(view.segments).toEqual([]);
         expect(seen.some(event => event.type === 'segment.text')).toBe(false);
     });
