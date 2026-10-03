@@ -15,8 +15,6 @@ export function createRouteManifest(operations) {
         onLaunchJevReading: operations.launchJevReading,
         onLaunchJevSample: operations.launchJevSample,
         onAdjustReading: operations.adjustJevReading,
-        // Today's poem opens as the Today page's Begin opens it.
-        onBeginSession: operations.handleBeginSession,
         getAudioEngine: operations.getAudioEngine,
         getCurrentSession: operations.getCurrentSession
       })
@@ -235,7 +233,7 @@ export function createRouteManifest(operations) {
       load: () => import('../components/today/TodayPoem.js'),
       create: (container, _data, { TodayPoem }) => new TodayPoem(container, {
         onNavigate: operations.handleNavigate,
-        onBegin: operations.handleBeginSession
+        onLaunchJevReading: operations.launchJevReading
       })
     }
   ];

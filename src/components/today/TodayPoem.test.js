@@ -35,29 +35,19 @@ vi.mock('../../core/today-poem.js', async importOriginal => ({
 vi.mock('./mandala.js', () => ({
   drawMandala: vi.fn(() => ({ caption: 'a 1 · b 2 · c 3 · d 4', cancel: vi.fn() }))
 }));
-// The edition gate and session shape are resolveJevReading's (tested with the
-// real content in today-poem.integration.test.js); the view is held to the call.
-const READING = {
-  text: anne.content,
-  textSource: 'Spoon River Anthology · Anne Rutledge',
-  verseLines: true,
-  visualConfig: { visualMode: 'interlocution' },
-  soundscape: 'blues',
-  origin: { view: 'portal', icon: '✧', name: 'Home', experience: 'jev' },
-  continuation: { kind: 'library-division', workId: 'spoon-river-anthology', entryId: '1', entryIndex: 1, entryCount: 2, noun: 'entry' }
-};
-vi.mock('../../app/jev-reading.js', () => ({ resolveJevReading: vi.fn(async () => READING) }));
-const backdrops = vi.hoisted(() => []);
+// The engine behind the page is the shared stage's (reading-backdrop.test.js);
+// the view is held to what it asks of it.
+const stages = vi.hoisted(() => []);
 vi.mock('../reading-backdrop.js', () => ({
-  mountReadingBackdrop: vi.fn(async (host, decision) => {
-    const backdrop = { host, decision, pause: vi.fn(), resume: vi.fn(), destroy: vi.fn() };
-    backdrops.push(backdrop);
-    return backdrop;
-  })
+  ReadingStage: class {
+    constructor(host) {
+      Object.assign(this, { host, show: vi.fn(async () => {}), pause: vi.fn(), resume: vi.fn(), destroy: vi.fn() });
+      stages.push(this);
+    }
+  }
 }));
 
 import { TodayPoem } from './TodayPoem.js';
-import { resolveJevReading } from '../../app/jev-reading.js';
 import { todayDecision } from '../../core/today-reading.js';
 
 const flush = () => new Promise(resolve => setTimeout(resolve, 0));
@@ -75,8 +65,8 @@ describe('TodayPoem', () => {
 
   it('shows today\'s poem and its mood, then begins exactly that division in the day\'s look', async () => {
     work.getDivisions.mockResolvedValue({ entries: [hill, anne] });
-    const onBegin = vi.fn(async () => true);
-    const view = new TodayPoem(container, { onBegin });
+    const onLaunchJevReading = vi.fn(async () => {});
+    const view = new TodayPoem(container, { onLaunchJevReading });
     view.activate();
     expect(container.querySelector('#today-title').textContent).toBe('Anne Rutledge');
     expect(container.querySelector('.today-byline').textContent).toBe('Edgar Lee Masters, from Spoon River Anthology');
@@ -91,47 +81,51 @@ describe('TodayPoem', () => {
     expect(container.querySelector('[data-caption]').textContent).toMatch(/^Seed \d{4}-\d\d-\d\d · a 1 · b 2 · c 3 · d 4 · 12 folds$/);
     container.querySelector('[data-begin]').click();
     await flush();
-    expect(resolveJevReading).toHaveBeenCalledWith(
-      expect.objectContaining({ workId: 'spoon-river-anthology', temper: decision.temper }),
-      { entryId: 1, label: 'Anne Rutledge' }
-    );
-    expect(onBegin).toHaveBeenCalledWith({
-      ...READING,
-      origin: { view: 'today', name: 'Today\'s poem' },
-      continuation: { ...READING.continuation, noun: 'poem' }
+    // The app's one launch: the day's exact division, as a poem, returning here.
+    expect(onLaunchJevReading).toHaveBeenCalledWith(view.decision, {
+      exact: { entryId: 1, label: 'Anne Rutledge' },
+      noun: 'poem',
+      origin: { view: 'today', name: 'Today\'s poem' }
     });
+    expect(view.decision).toMatchObject({ workId: 'spoon-river-anthology', temper: decision.temper });
     // Leaving the reading returns here; the poem can be begun again.
     expect(container.querySelector('[data-begin]').disabled).toBe(false);
     expect(container.querySelector('[data-begin]').hasAttribute('aria-busy')).toBe(false);
     view.destroy();
   });
 
-  it('runs the day\'s engine behind the page only while the page is shown', async () => {
-    backdrops.length = 0;
+  it('runs the day\'s engine behind the page only while the page is shown, on the shared stage', async () => {
+    stages.length = 0;
+    work.getDivisions.mockResolvedValue({ entries: [hill, anne] });
+    const view = new TodayPoem(container, {});
+    expect(stages).toHaveLength(1);
+    const [stage] = stages;
+    expect(stage.host).toBe(container.querySelector('.today-backdrop'));
+    expect(stage.show).not.toHaveBeenCalled();
+    view.activate();
+    expect(stage.show).toHaveBeenCalledWith(view.decision);
+    view.deactivate();
+    expect(stage.pause).toHaveBeenCalledOnce();
+    view.activate();
+    expect(stage.resume).toHaveBeenCalledTimes(2);
+    expect(stages).toHaveLength(1);
+    view.destroy();
+    expect(stage.destroy).toHaveBeenCalledOnce();
+  });
+
+  it('ends the old day\'s engine with its page, and shows the new day\'s', () => {
+    vi.useFakeTimers({ toFake: ['Date', 'setTimeout', 'clearTimeout'] });
+    vi.setSystemTime(new Date(2026, 9, 3, 23, 59, 30));
+    stages.length = 0;
     work.getDivisions.mockResolvedValue({ entries: [hill, anne] });
     const view = new TodayPoem(container, {});
     view.activate();
-    await flush();
-    expect(backdrops).toHaveLength(1);
-    const [backdrop] = backdrops;
-    expect(backdrop.host).toBe(container.querySelector('.today-backdrop'));
-    expect(backdrop.decision).toBe(view.decision);
-    view.deactivate();
-    expect(backdrop.pause).toHaveBeenCalledOnce();
-    view.activate();
-    await flush();
-    expect(backdrop.resume).toHaveBeenCalledOnce();
-    expect(backdrops).toHaveLength(1);
-    // A tab in the background spends nothing on it.
-    Object.defineProperty(document, 'visibilityState', { configurable: true, get: () => 'hidden' });
-    document.dispatchEvent(new Event('visibilitychange'));
-    expect(backdrop.pause).toHaveBeenCalledTimes(2);
-    Object.defineProperty(document, 'visibilityState', { configurable: true, get: () => 'visible' });
-    document.dispatchEvent(new Event('visibilitychange'));
-    expect(backdrop.resume).toHaveBeenCalledTimes(2);
+    vi.advanceTimersByTime(60_000);
+    expect(stages).toHaveLength(2);
+    expect(stages[0].destroy).toHaveBeenCalledOnce();
+    expect(stages[1].show).toHaveBeenCalledWith(view.decision);
+    vi.useRealTimers();
     view.destroy();
-    expect(backdrop.destroy).toHaveBeenCalledOnce();
-    delete document.visibilityState;
   });
 
   it('stills the mark, so the engine behind it is the one thing that moves', () => {
@@ -140,25 +134,12 @@ describe('TodayPoem', () => {
     expect(css).not.toMatch(/\.today-mandala\s*\{[^}]*animation/u);
   });
 
-  it('lets Begin be pressed again when the reading could not open', async () => {
+  it('says so when the poem cannot open (the edition gate refused it), keeps it on screen, and Begin can be pressed again', async () => {
     work.getDivisions.mockResolvedValue({ entries: [hill, anne] });
-    const view = new TodayPoem(container, { onBegin: vi.fn(async () => false) });
+    const view = new TodayPoem(container, { onLaunchJevReading: vi.fn(async () => { throw new TypeError('The division changed.'); }) });
     await flush();
     container.querySelector('[data-begin]').click();
     await flush();
-    expect(container.querySelector('[data-begin]').disabled).toBe(false);
-    view.destroy();
-  });
-
-  it('says so when the edition gate refuses, and keeps the poem on screen', async () => {
-    work.getDivisions.mockResolvedValue({ entries: [hill, anne] });
-    vi.mocked(resolveJevReading).mockRejectedValueOnce(new TypeError('The division changed.'));
-    const onBegin = vi.fn(async () => true);
-    const view = new TodayPoem(container, { onBegin });
-    await flush();
-    container.querySelector('[data-begin]').click();
-    await flush();
-    expect(onBegin).not.toHaveBeenCalled();
     expect(container.querySelector('[data-begin-status]').textContent).toBe('This poem could not be opened. Try again.');
     expect(container.querySelectorAll('.today-line')).toHaveLength(2);
     expect(container.querySelector('[data-begin]').disabled).toBe(false);

@@ -1,4 +1,5 @@
 import { test, expect } from './fixtures.js';
+import { openAskDialog } from './reader-connection.js';
 
 /**
  * Home is already reading: today's poem plays silently, full-screen, under
@@ -16,8 +17,9 @@ async function openHome(page) {
 }
 
 const reading = page => page.evaluate(() => {
-  const { source, decision, heading, text } = window.__RISE_TEST__.getView('portal').reading;
-  return { source, decision, heading, text };
+  const portal = window.__RISE_TEST__.getView('portal');
+  const { decision, heading } = portal.reading;
+  return { decision, heading, text: portal.opening?.text };
 });
 
 async function another(page) {
@@ -58,8 +60,7 @@ for (const viewport of [{ width: 390, height: 844 }, { width: 360, height: 640 }
     await another(page);
     expect(await bottom(page, '[data-home="enter"]')).toBeLessThanOrEqual(viewport.height);
     expect(await sideways(page)).toBeLessThanOrEqual(0);
-    await page.locator('.portal-menu-toggle').click();
-    await page.locator('.portal-nav [data-home="ask-open"]').click();
+    await openAskDialog(page);
     await expect(page.locator('dialog.home-ask h2')).toHaveText('Asking needs your own AI.');
     expect(await sideways(page)).toBeLessThanOrEqual(0);
   });
@@ -207,7 +208,7 @@ test('under reduced motion the opening holds still', async ({ page }) => {
   await page.waitForTimeout(2500);
   await expect(page.locator('.home-stream .reading-stream-current')).toHaveText(first);
   // The engine swaps without a fade.
-  expect(parseFloat(await page.locator('.home-engine-layer').first().evaluate(el => getComputedStyle(el).transitionDuration))).toBeLessThan(0.01);
+  expect(parseFloat(await page.locator('.reading-stage-layer').first().evaluate(el => getComputedStyle(el).transitionDuration))).toBeLessThan(0.01);
 });
 
 test('a reload starts on today\'s poem again', async ({ page }) => {
@@ -227,7 +228,7 @@ test('the longest titles and plans stay on a small phone with the key on screen'
       const portal = window.__RISE_TEST__.getView('portal');
       const tools = await portal.loadTools();
       const decision = tools.composeRoll({ temper: tools.TEMPERS.find(t => t.id === temper), workId: work, section });
-      portal.showDecision(tools, decision, { source: 'roll', temper });
+      portal.showDecision(tools, decision, { temper });
     }, [work, temper, section]);
     await expect(page.locator('[data-home="adjust"]')).toBeVisible();
     expect(await sideways(page), work).toBeLessThanOrEqual(0);

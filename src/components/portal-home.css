@@ -1,7 +1,7 @@
 /* ═══════════════════════════════════════════════════════════
    RISE Home — already reading.
-   The reading's engine fills the page (reading-backdrop.js draws it into
-   .home-engine), one ink scrim keeps every word on it legible, its opening
+   The reading's engine fills the page (reading-backdrop.js's stage draws it
+   into .home-engine, cross-fading one reading's into the next), one ink scrim keeps every word on it legible, its opening
    streams in the centre (reading-stream.js), and the bar below names it.
    Asking is a dialog the Menu opens. The page around it is Portal.css.
    ═══════════════════════════════════════════════════════════ */
@@ -12,8 +12,7 @@
   background-image: none;
 }
 
-/* The engine, full-bleed behind everything. Each reading's engine mounts in
-   its own layer and fades in over the last, which goes once it has. */
+/* The engine, full-bleed behind everything. */
 .home-engine,
 .home-scrim {
   position: fixed;
@@ -24,25 +23,6 @@
 
 .home-engine {
   overflow: hidden;
-}
-
-.home-engine-layer {
-  position: absolute;
-  inset: 0;
-  opacity: 0;
-  transition: opacity 900ms var(--sy-ease);
-}
-
-.home-engine-layer.is-shown {
-  opacity: 1;
-}
-
-.home-engine-layer canvas {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  display: block;
 }
 
 /* The one gradient: ink pooled under the stream, and at the top and bottom
@@ -198,10 +178,6 @@
   font-size: 14px;
   line-height: 20px;
   color: var(--sy-text-body);
-}
-
-.home-note[hidden] {
-  display: none;
 }
 
 .home-actions {
@@ -435,10 +411,6 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .home-engine-layer {
-    transition: none;
-  }
-
   .home-progress-fill {
     transition: none;
   }

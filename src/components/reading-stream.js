@@ -19,9 +19,9 @@ const reducedMotion = () => typeof matchMedia === 'function'
   && matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 export class ReadingStream {
-  constructor(host, { onProgress } = {}) {
+  constructor(host, { onProgress }) {
     this.host = host;
-    this.onProgress = onProgress || (() => {});
+    this.onProgress = onProgress;
     this.units = [];
     this.index = 0;
     this.timer = 0;
@@ -36,7 +36,9 @@ export class ReadingStream {
 
   /**
    * Start (or restart) showing `text`. `curve` is the reading's pace curve
-   * (flat when omitted); `verse` reads a verse division one line at a time.
+   * (flat when omitted). `verse` is the compiler's `verseLines`, named as
+   * openingLines names it: a verse division read by phrase is read one line
+   * at a time, as the Chamber reads it.
    */
   play(text, { chunkMode, wpm, curve, verse }) {
     this.stop();

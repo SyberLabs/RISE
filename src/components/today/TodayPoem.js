@@ -3,7 +3,6 @@
  * date. Loads only the chosen work and checks the division's label against
  * the index, so a changed edition is an error rather than a different poem.
  */
-import { resolveJevReading } from '../../app/jev-reading.js';
 import { releaseArchiveTexts } from '../../content/archive/index.js';
 import { summarizeJevPlan } from '../../core/jev-describe.js';
 import { escapeHtml } from '../../core/sanitize.js';
@@ -11,7 +10,7 @@ import { localDateKey, watchLocalDay } from '../../core/local-day.js';
 import { poemTitle, todayPoem } from '../../core/today-poem.js';
 import { todayDecision } from '../../core/today-reading.js';
 import { roomAlert, roomEyebrow, roomHeader } from '../room-chrome.js';
-import { mountReadingBackdrop } from '../reading-backdrop.js';
+import { ReadingStage } from '../reading-backdrop.js';
 import { drawMandala } from './mandala.js';
 import './today-poem.css';
 
@@ -23,9 +22,8 @@ export class TodayPoem {
   constructor(container, options = {}) {
     this.container = container;
     this.onNavigate = options.onNavigate || (() => {});
-    this.onBegin = options.onBegin || (async () => false);
+    this.onLaunchJevReading = options.onLaunchJevReading || (async () => {});
     this._ticket = 0;
-    this._backdropTicket = 0;
     this.show(new Date());
   }
 
@@ -34,7 +32,7 @@ export class TodayPoem {
     this._mark?.cancel();
     this._mark = null;
     // A new day is a new mood: the old engine goes with the page it ran behind.
-    this.stopBackdrop();
+    this.stage?.destroy();
     this._events = new AbortController();
     this.date = date;
     this.pick = todayPoem(date);
@@ -42,6 +40,7 @@ export class TodayPoem {
     this.work = releaseArchiveTexts().find(item => item.id === this.pick.workId) || null;
     this.entry = null;
     this.render();
+    this.stage = new ReadingStage(this.container.querySelector('.today-backdrop'));
     this.attachEvents();
     void this.load();
   }
@@ -122,8 +121,8 @@ export class TodayPoem {
   }
 
   /**
-   * Opens the day's exact poem in the day's look: the roll's visual, sound,
-   * pace and type, through the same edition gate as Home's rolls.
+   * Opens the day's exact poem in the day's look, as a poem, through the
+   * app's one launch (the same one Home's Read it with sound takes).
    */
   async begin() {
     const button = this.container.querySelector('[data-begin]');
@@ -133,13 +132,12 @@ export class TodayPoem {
     button.setAttribute('aria-busy', 'true');
     if (status) status.textContent = '';
     try {
-      const reading = await resolveJevReading(this.decision, { entryId: this.pick.entryId, label: this.pick.label });
       // Busy until the reader opens (or fails to). Either way the view is
       // where the reader comes back to, so Begin is ready again after.
-      await this.onBegin({
-        ...reading,
-        origin: { view: 'today', name: 'Today\'s poem' },
-        continuation: reading.continuation && { ...reading.continuation, noun: 'poem' }
+      await this.onLaunchJevReading(this.decision, {
+        exact: { entryId: this.pick.entryId, label: this.pick.label },
+        noun: 'poem',
+        origin: { view: 'today', name: 'Today\'s poem' }
       });
     } catch {
       if (status) status.textContent = 'This poem could not be opened. Try again.';
@@ -152,51 +150,18 @@ export class TodayPoem {
 
   /** Draws the mark once the view is visible; while shown, turns to each new day's poem. */
   activate() {
-    this._active = true;
     const now = new Date();
     if (localDateKey(now) !== this.pick.seed) this.show(now);
     this.drawMark();
-    void this.startBackdrop();
+    // The day's engine behind the page: mounted once per day, then paused and resumed with the view.
+    this.stage.resume();
+    void this.stage.show(this.decision);
     this._stopDay?.();
     this._stopDay = watchLocalDay(date => {
       this.show(date);
       this.drawMark();
-      void this.startBackdrop();
+      void this.stage.show(this.decision);
     });
-    this._activeEvents?.abort();
-    this._activeEvents = new AbortController();
-    document.addEventListener('visibilitychange', () => {
-      if (document.visibilityState === 'hidden') this._backdrop?.pause();
-      else this._backdrop?.resume();
-    }, { signal: this._activeEvents.signal });
-  }
-
-  /** The day's engine behind the page: mounted once per day, then paused and resumed with the view. */
-  async startBackdrop() {
-    if (this._backdrop) {
-      this._backdrop.resume();
-      return;
-    }
-    const host = this.container.querySelector('.today-backdrop');
-    if (!host) return;
-    const ticket = ++this._backdropTicket;
-    try {
-      const backdrop = await mountReadingBackdrop(host, this.decision);
-      if (ticket !== this._backdropTicket || !host.isConnected) {
-        backdrop?.destroy();
-        return;
-      }
-      this._backdrop = backdrop;
-      if (!this._active) backdrop?.pause();
-    } catch (error) {
-      console.warn('[Today] the backdrop could not start; the page works without it.', error);
-    }
-  }
-
-  stopBackdrop() {
-    this._backdropTicket++;
-    this._backdrop?.destroy();
-    this._backdrop = null;
   }
 
   drawMark() {
@@ -208,16 +173,14 @@ export class TodayPoem {
   }
 
   deactivate() {
-    this._active = false;
     this._stopDay?.();
     this._stopDay = null;
-    this._activeEvents?.abort();
-    this._backdrop?.pause();
+    this.stage.pause();
   }
 
   destroy() {
     this.deactivate();
-    this.stopBackdrop();
+    this.stage.destroy();
     this._ticket++;
     this._events?.abort();
     this._mark?.cancel();
