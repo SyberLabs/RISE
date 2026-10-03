@@ -33,16 +33,18 @@ Chamber         performs it            (Start reading, or Begin)
 
 ## States
 
-One field, `Portal.state`: `idle | rolling | result | ask | asking`.
+Two fields. `Portal.view` is what the panel shows: `idle | result | ask`.
+`Portal.busy` is the `data-home` hook of the work in progress, or null.
+While busy, every control holds, the pressed one carries `aria-busy`, the
+ask field is read-only, and the sky quickens; the view does not change until
+the work lands.
 
-| State | The panel |
+| View | The panel |
 |---|---|
 | idle | "Every star is a text you can read." · **Roll a reading** (the one solid key) · **Ask for one** |
-| rolling | The control that asked is busy; the sky is told it is busy |
 | result | The mood pill · the title · "Author, from the opening section" · three parts, each with **Redraw**: *The text*, *The mood* (temper and plan words), *The passage* (the opening lines, in the reading face) · **Start reading** · **Roll again** · **Adjust first** · *Ask for something specific instead*. The chosen star flares |
 | ask, connected | "What would you like to read?" field (240 characters, microphone, help) · **Ask** · **Roll instead**. Enter asks; Shift+Enter is a new line |
 | ask, not connected | "Asking needs your own AI." · **Connect OpenRouter** · **Run RISE locally** · *Roll instead* · About your connection |
-| asking | The field is read-only, Ask is busy, the sky is told it is busy |
 
 * **A star** rolls for its work (`rollReading({ workId })`). Picks are ignored
   while Home is rolling, asking or opening a reading.
@@ -70,7 +72,8 @@ redraw-text | redraw-mood | redraw-passage | roll-instead"`.
 
 ## Built from
 
-* `src/components/Portal.js` and `Portal.css`: the panel and the page.
+* `src/components/Portal.js`, `Portal.css` (the page) and `portal-home.css`
+  (the panel and the sky band).
 * `src/components/night-library/NightSky.js`: the sky (a canvas and one
   button per star, with group labels). Home calls `start`, `stop`, `flare`,
   `setBusy` and `destroy`.

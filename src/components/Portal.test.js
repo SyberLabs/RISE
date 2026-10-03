@@ -12,7 +12,7 @@ import { openingLines, validateJevRecommendation } from '../app/jev-reading.js';
 import { composeRoll, rollReading, TEMPERS } from '../core/roll.js';
 import { SECTION_WORDS } from '../core/jev-describe.js';
 
-// The sky and its data are built elsewhere (SKY and CORE); Home codes against
+// NightSky and librarySky are stood in for; Home codes against
 // their contracts. The stand-in records what Home asks of it.
 const sky = vi.hoisted(() => ({ instances: [], fail: false }));
 const SKY = vi.hoisted(() => Object.freeze({
@@ -31,7 +31,7 @@ vi.mock('./night-library/NightSky.js', () => ({
     }
 }));
 vi.mock('../core/library-sky.js', () => ({ librarySky: () => SKY }));
-// roll.js and jev-reading.js are real; CORE extends them. Home is held to the
+// roll.js and jev-reading.js are real. Home is held to the
 // call it makes (rollReading's kept parts) and to the lines it shows.
 vi.mock('../core/roll.js', async importOriginal => {
     const actual = await importOriginal();
@@ -192,7 +192,7 @@ describe('a roll', () => {
         portal.destroy();
     });
 
-    it('marks the roll busy, quiets the sky while it rolls, and lights the chosen star', async () => {
+    it('marks the roll busy, quickens the sky while it rolls, and lights the chosen star', async () => {
         const { portal, container } = makePortal();
         const night = await withSky(portal);
         hook(container, 'roll').click();
@@ -278,7 +278,7 @@ describe('a roll', () => {
         night.options.onPick('ulysses');
         await vi.waitFor(() => expect(shown(container)).toBe('result'), { timeout: 3000 });
         expect(rollReading).toHaveBeenCalledOnce();
-        expect(rollReading).toHaveBeenCalledWith({ workId: 'middlemarch' });
+        expect(rollReading).toHaveBeenCalledWith({ previous: null, workId: 'middlemarch' });
         expect(night.flare).toHaveBeenLastCalledWith(portal.result.decision.workId);
         portal.destroy();
     });

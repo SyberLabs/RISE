@@ -200,7 +200,15 @@ test('under reduced motion a roll is quick and the passage placeholder holds sti
   const started = Date.now();
   await roll(page);
   expect(Date.now() - started).toBeLessThan(2000);
-  const animated = await page.evaluate(() => [...document.querySelectorAll('.home-passage-loading span')]
-    .some(el => getComputedStyle(el).animationName !== 'none'));
-  expect(animated).toBe(false);
+  // The lines may already have arrived, so check the placeholder's own rule on a fresh one.
+  const animation = await page.evaluate(() => {
+    const probe = document.createElement('span');
+    probe.className = 'home-passage-loading';
+    probe.append(document.createElement('span'));
+    document.querySelector('.home-passage').append(probe);
+    const name = getComputedStyle(probe.firstChild).animationName;
+    probe.remove();
+    return name;
+  });
+  expect(animation).toBe('none');
 });

@@ -1,11 +1,10 @@
 import { getTextById } from '../content/library.js';
-import releaseInventory from '../content/archive/release-inventory.json' with { type: 'json' };
-import modernManifest from '../content/modern-readings-manifest.json' with { type: 'json' };
 import { firstBodyOrdinal } from '../content/archive/divisions.js';
 import { READING_LIMITS } from '../core/reading-limits.js';
 import { CHAMBER_STREAM_FACES } from '../core/chamber-stream-face.js';
 import { FONT_SIZE_CHIPS } from '../core/chamber-type-size.js';
 import { JEV_AUDIO_IDS, resolveJevChamberConfig } from '../core/jev-config.js';
+import { isRiseOriginal, jevReleasedEdition } from '../core/jev-describe.js';
 import { jevColors } from '../core/jev-palette.js';
 import {
   compileJevAudioProgram,
@@ -117,13 +116,10 @@ export function selectJevDivision(divisions, section) {
 /** Admit a decision, then find the exact division of the exact released edition it names. */
 async function openJevDivision(decision) {
   const admitted = validateJevRecommendation(decision);
-  const released = releaseInventory[decision.workId] || modernManifest[decision.workId];
+  // One release rule for rolls, Jev and admission (jev-describe.js).
+  const released = jevReleasedEdition(decision.workId);
   const work = getTextById(decision.workId);
-  const admittedSource = released?.editionId?.startsWith('standard-ebooks:')
-    ? released.source?.url?.startsWith('https://standardebooks.org/ebooks/')
-      && work?.provider === 'archive-ingest'
-    : released?.editionId === `rise-original:${decision.workId}`
-      && work?.provider === 'rise-original';
+  const admittedSource = work?.provider === (isRiseOriginal(decision.workId) ? 'rise-original' : 'archive-ingest');
   if (!released || !admittedSource
     || released.workId !== decision.workId
     || released.editionId !== decision.editionId

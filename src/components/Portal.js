@@ -61,7 +61,7 @@ export class Portal {
     this._active = false;
     // What the panel shows: idle | result | ask.
     this.view = 'idle';
-    // The data-home hook of the work in progress (roll, redraw-*, ask, enter, adjust), or null.
+    // The data-home hook of the work in progress (roll, roll-instead, redraw-*, ask, enter, adjust), or null.
     this.busy = null;
     // { decision, source: 'roll' | 'ask', temper, note, title, author, mood, byline, meta, plan, single, lines }
     this.result = null;
@@ -339,7 +339,7 @@ export class Portal {
 
   /**
    * Mark the work in progress without redrawing the panel: every control
-   * holds, the one pressed says it is busy, and the sky quiets. The sky
+   * holds, the one pressed says it is busy, and the sky quickens. The sky
    * lights the star a shown result names.
    */
   renderBusy() {
@@ -373,8 +373,8 @@ export class Portal {
         import('../core/library-sky.js')
       ]);
       if (this._destroyed || this.container.querySelector('.home-sky') !== host) return;
-      // A star the reader picks rolls for that work.
-      this.sky = new NightSky(host, { sky: librarySky(), onPick: workId => void this.roll({ workId }) });
+      // A star the reader picks rolls for that work; picking the shown one again still changes the reading.
+      this.sky = new NightSky(host, { sky: librarySky(), onPick: workId => void this.roll({ previous: this.result, workId }) });
       this.renderBusy();
       if (this._active) this.sky.start();
     } catch (error) {
