@@ -279,6 +279,11 @@ export class LiveHost {
         this.stopHearingExit = handoff.onLiveExit(() => { void this.ended(); });
         const clock = createRealClock();
         const voices = await this.buildVoices(clock);
+        const mountedChamber = player => {
+            if (this.router?.getCurrentView?.() !== 'chamber-session') return null;
+            const chamber = this.router.getViewInstance?.('chamber-session');
+            return chamber?.player === player ? chamber : null;
+        };
         const runtime = createLiveRuntime({
             adapter: await this.buildAdapter(clock, createMockAdapter),
             clock,
@@ -293,6 +298,9 @@ export class LiveHost {
                     }
                     return this.present.presentLive(this.router, session, player);
                 },
+                discoverVisual: ({ player }) => mountedChamber(player)?.discoverVisual?.() ?? null,
+                controlVisual: ({ player, command }) => mountedChamber(player)?.controlVisual?.(command)
+                    ?? { status: 'refused', code: 'NO_ACTIVE_VISUAL' },
                 dismiss: () => {}
             }
         });

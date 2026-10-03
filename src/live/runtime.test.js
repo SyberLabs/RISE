@@ -39,7 +39,7 @@ afterEach(async () => {
     vi.useRealTimers();
 });
 
-function build({ faults = {}, voice = true, voiceOptions = {}, graceMs, presentMs = 0 } = {}) {
+function build({ faults = {}, voice = true, voiceOptions = {}, graceMs, presentMs = 0, visualHost = {} } = {}) {
     presented = [];
     shown = { main: [], side: [] };
     runtime = createLiveRuntime({
@@ -57,7 +57,8 @@ function build({ faults = {}, voice = true, voiceOptions = {}, graceMs, presentM
                 presented.push(['present', role]);
                 return presentMs ? clock.sleep(presentMs) : undefined;
             },
-            dismiss: ({ role }) => presented.push(['dismiss', role])
+            dismiss: ({ role }) => presented.push(['dismiss', role]),
+            ...visualHost
         }
     });
     return runtime;
@@ -131,6 +132,110 @@ describe('asking', () => {
         build();
         await runtime.start(ASK);
         await expect(runtime.start(ASK)).rejects.toMatchObject({ code: 'ALREADY_STARTED' });
+    });
+});
+
+describe('local visual control', () => {
+    it('controls the presented visible run after composition seals without reopening or replacing its Player', async () => {
+        const calls = [];
+        const adapter = createMockAdapter({ clock });
+        const open = vi.spyOn(adapter, 'open');
+        const playerCreated = vi.fn(session => new Player(session));
+        runtime = createLiveRuntime({
+            adapter, clock, createPlayer: playerCreated,
+            host: {
+                present: () => {}, dismiss: () => {},
+                discoverVisual: ({ role, player }) => {
+                    calls.push(['discover', role, player]);
+                    return { manifest: { surface: 'attractor' }, current: { intensity: 0.65 }, target: { intensity: 0.65 } };
+                },
+                controlVisual: ({ role, player, command }) => {
+                    calls.push(['control', role, player, command]);
+                    return { status: 'accepted', surface: 'attractor', parameter: 'intensity', requested: 0.75, effective: 0.75 };
+                }
+            }
+        });
+        await runtime.start(ASK);
+        await tick(6_000);
+        expect(runtime.composed().phase).toBe('complete');
+        expect(runtime.status).toBe('live');
+        const player = runtime.playerFor();
+        expect(runtime.discoverVisual()).toMatchObject({ current: { intensity: 0.65 } });
+        expect(runtime.controlVisual({ surface: 'attractor', parameter: 'intensity', value: 0.75 }))
+            .toMatchObject({ status: 'accepted', effective: 0.75 });
+        expect(calls.map(call => call.slice(0, 2))).toEqual([['discover', 'main'], ['control', 'main']]);
+        expect(calls.every(call => call[2] === player)).toBe(true);
+        expect(runtime.playerFor()).toBe(player);
+        expect(playerCreated).toHaveBeenCalledTimes(1);
+        expect(open).toHaveBeenCalledTimes(1);
+        expect(runtime.status).toBe('live');
+    });
+
+    it('refuses discovery and delivery while the field presentation is pending', async () => {
+        build({ presentMs: 1_000 });
+        await runtime.start(ASK);
+        await tick(300);
+        expect(runtime.discoverVisual()).toBeNull();
+        expect(runtime.controlVisual({ surface: 'attractor', parameter: 'intensity', value: 0.7 }))
+            .toEqual({ status: 'refused', code: 'NO_ACTIVE_VISUAL' });
+    });
+
+    it('addresses the held main Player and the active side Player without replacing either', async () => {
+        const delivered = [];
+        build({ voice: false, visualHost: {
+            discoverVisual: ({ role, player }) => ({ manifest: { surface: 'attractor' }, current: { intensity: 0.65 }, target: { intensity: role === 'side' ? 0.7 : 0.65 }, role, player }),
+            controlVisual: ({ role, player, command }) => {
+                delivered.push({ role, player, command });
+                return { status: 'accepted', effective: command.value };
+            }
+        } });
+        await runtime.start(ASK);
+        await tick(800);
+        runtime.hold();
+        const mainPlayer = runtime.playerFor();
+        expect(runtime.controlVisual({ surface: 'attractor', parameter: 'intensity', value: 0.7 }).status).toBe('accepted');
+        expect(delivered[0]).toMatchObject({ role: 'main', player: mainPlayer });
+        await runtime.resume();
+        await runtime.dive({ question: 'dive on event horizon' });
+        await tick(800);
+        const sidePlayer = runtime.playerFor('side');
+        expect(runtime.controlVisual({ surface: 'attractor', parameter: 'intensity', value: 0.7 }).status).toBe('accepted');
+        expect(delivered[1]).toMatchObject({ role: 'side', player: sidePlayer });
+        expect(runtime.playerFor()).toBe(mainPlayer);
+        expect(runtime.playerFor('side')).toBe(sidePlayer);
+    });
+
+    it('refuses unavailable or late host delivery without changing playback state', async () => {
+        build({ visualHost: {
+            discoverVisual: () => ({ manifest: { surface: 'attractor' }, current: { intensity: 0.65 }, target: { intensity: 0.65 } }),
+            controlVisual: () => { throw new Error('field was replaced'); }
+        } });
+        expect(runtime.controlVisual({ surface: 'attractor', parameter: 'intensity', value: 0.7 }))
+            .toEqual({ status: 'refused', code: 'NOT_LIVE' });
+        await runtime.start(ASK);
+        await tick(800);
+        const before = runtime.status;
+        expect(runtime.discoverVisual()).not.toBeNull();
+        expect(runtime.controlVisual({ surface: 'attractor', parameter: 'intensity', value: 0.7 }))
+            .toEqual({ status: 'refused', code: 'NO_ACTIVE_VISUAL' });
+        expect(runtime.status).toBe(before);
+    });
+
+    it('refuses while starting, after reading ends, and after Stop', async () => {
+        const delivered = vi.fn(() => ({ status: 'accepted', effective: 0.7 }));
+        build({ visualHost: { controlVisual: delivered } });
+        const starting = runtime.start(ASK);
+        expect(runtime.controlVisual({ surface: 'attractor', parameter: 'intensity', value: 0.7 }))
+            .toEqual({ status: 'refused', code: 'NOT_LIVE' });
+        await starting;
+        await tick(200_000);
+        expect(runtime.status).toBe('ended');
+        expect(runtime.controlVisual({ surface: 'attractor', parameter: 'intensity', value: 0.7 }))
+            .toEqual({ status: 'refused', code: 'NOT_LIVE' });
+        await runtime.stop();
+        expect(runtime.controlVisual({ surface: 'attractor', parameter: 'intensity', value: 0.7 }))
+            .toEqual({ status: 'refused', code: 'NOT_LIVE' });
+        expect(delivered).not.toHaveBeenCalled();
     });
 });
 
