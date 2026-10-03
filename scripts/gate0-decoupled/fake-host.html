@@ -12,6 +12,7 @@
   <button id="oversize">Send oversized notification</button>
   <button id="withhold">Withhold next response</button>
   <button id="withhold-four">Withhold next four responses</button>
+  <button id="withhold-marker">Withhold next marker response</button>
   <button id="delay">Delay next response</button>
   <p id="host-status" role="status">Host idle.</p>
   <iframe id="widget" title="RISE widget" hidden></iframe>
@@ -21,6 +22,7 @@
     let nextId = 1;
     let withholdNext = false;
     let withholdCount = 0;
+    let withholdMarkerNext = false;
     let delayNext = false;
     const rpc = async (method, params) => {
       const response = await fetch('/mcp', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ jsonrpc: '2.0', id: nextId++, method, params }) });
@@ -63,7 +65,9 @@
           status.textContent = 'Late response sent.';
         } else event.source.postMessage({ jsonrpc: '2.0', id: message.id, result }, '*');
       } else if (message.method === 'ui/update-model-context' || message.method === 'ui/message') {
-        event.source.postMessage({ jsonrpc: '2.0', id: message.id, error: { code: -32601, message: 'Unsupported marker method' } }, '*');
+        if (withholdMarkerNext) { withholdMarkerNext = false; status.textContent = 'Marker response withheld.'; return; }
+        if (message.method === 'ui/update-model-context') event.source.postMessage({ jsonrpc: '2.0', id: message.id, result: {} }, '*');
+        else event.source.postMessage({ jsonrpc: '2.0', id: message.id, error: { code: -32601, message: 'Unsupported marker method' } }, '*');
       }
     });
     document.querySelector('#open').onclick = open;
@@ -71,6 +75,7 @@
     document.querySelector('#model-withhold').onclick = () => modelSet(0.75, false);
     document.querySelector('#withhold').onclick = () => { withholdNext = true; status.textContent = 'Next widget response will be withheld.'; };
     document.querySelector('#withhold-four').onclick = () => { withholdCount = 4; status.textContent = 'Next four widget responses will be withheld.'; };
+    document.querySelector('#withhold-marker').onclick = () => { withholdMarkerNext = true; status.textContent = 'Next marker response will be withheld.'; };
     document.querySelector('#delay').onclick = () => { delayNext = true; status.textContent = 'Next widget response will be delayed.'; };
     document.querySelector('#outsider').onclick = () => {
       const foreign = document.createElement('iframe');

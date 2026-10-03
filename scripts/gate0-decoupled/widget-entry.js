@@ -137,25 +137,22 @@ function addListener(target, type, listener) {
 }
 
 function marker(method, label) {
-  const entry = { type: 'reader_marker', deliverySource: 'reader_action', method, dispatchedAt: now(), acknowledgmentAt: null, acknowledgment: 'pending' };
-  controller.appendEvidence(entry);
+  const markerRecord = { markerId: crypto.randomUUID(), type: 'reader_marker', deliverySource: 'reader_action', method, dispatchedAt: now(), acknowledgment: 'pending' };
+  controller.appendEvidence(markerRecord);
   document.querySelector('#reader-status').textContent = `${label}: sent; waiting for host acknowledgment.`;
   send(method, method === 'ui/message'
     ? { role: 'user', content: [{ type: 'text', text: 'RISE GATE 0 READER MARKER' }] }
     : { content: [{ type: 'text', text: 'RISE GATE 0 READER MARKER' }] }).then(() => {
     if (stopped) return;
-    entry.acknowledgmentAt = now();
-    entry.acknowledgment = 'host_rpc_acknowledged; model receipt unverified';
-    renderLog();
+    controller.appendEvidence({ type: 'reader_marker_completion', deliverySource: 'reader_action', markerId: markerRecord.markerId, method, dispatchedAt: markerRecord.dispatchedAt, acknowledgmentAt: now(), acknowledgment: 'host_rpc_acknowledged; model receipt unverified', errorCode: null, errorCategory: 'acknowledged' });
     document.querySelector('#reader-status').textContent = `${label}: host RPC acknowledged; model receipt unverified.`;
   }).catch(error => {
     if (stopped) return;
-    entry.acknowledgmentAt = now();
-    entry.acknowledgment = Number.isSafeInteger(error.code) ? 'host_rpc_rejected' : error.category === 'timeout' ? 'host_rpc_timed_out' : 'host_rpc_failed';
-    entry.errorCode = Number.isSafeInteger(error.code) ? error.code : null;
-    entry.errorCategory = error.category ?? 'host_error';
-    renderLog();
-    document.querySelector('#reader-status').textContent = `${label}: ${entry.acknowledgment} (${entry.errorCategory}${entry.errorCode === null ? '' : ` ${entry.errorCode}`}).`;
+    const acknowledgment = Number.isSafeInteger(error.code) ? 'host_rpc_rejected' : error.category === 'timeout' ? 'host_rpc_timed_out' : 'host_rpc_failed';
+    const errorCode = Number.isSafeInteger(error.code) ? error.code : null;
+    const errorCategory = error.category ?? 'host_error';
+    controller.appendEvidence({ type: 'reader_marker_completion', deliverySource: 'reader_action', markerId: markerRecord.markerId, method, dispatchedAt: markerRecord.dispatchedAt, acknowledgmentAt: now(), acknowledgment, errorCode, errorCategory });
+    document.querySelector('#reader-status').textContent = `${label}: ${acknowledgment} (${errorCategory}${errorCode === null ? '' : ` ${errorCode}`}).`;
   });
 }
 
