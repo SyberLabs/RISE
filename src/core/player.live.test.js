@@ -280,6 +280,78 @@ describe('showing the same atom again', () => {
     });
 });
 
+describe('taking up the atom a reading was paused on from its start', () => {
+    it('shows it again, once, from its start when played, and carries on in order with no other atom repeated', async () => {
+        const session = current(3);
+        player = new Player(session);
+        watch(player);
+        player.play();
+        await tick(1_500);
+        player.pause();
+        const head = player.sessionState.currentIndex;
+        const shown = [];
+        player.on('atom', ({ index, concealed }) => { if (!concealed) shown.push(index); });
+        expect(player.restartCurrentAtom()).toBe(true);
+        expect(shown).toEqual([]);
+        player.play();
+        await tick(60_000);
+        // The atom it was on is shown once more, and then every later atom once, in order.
+        expect(shown).toEqual([head, ...session.atoms.map((_, i) => i).filter(i => i > head)]);
+    });
+
+    it('gives it all of its time again, not what remained of it', async () => {
+        const session = current(2);
+        player = new Player(session);
+        watch(player);
+        player.play();
+        await tick(1_000);
+        player.pause();
+        const head = player.sessionState.currentIndex;
+        const remaining = player.currentAtomRemainingTime;
+        const full = player._atomDisplayMs(player.sessionState.currentAtom);
+        expect(remaining).toBeLessThan(full);
+        player.restartCurrentAtom();
+        const advanced = [];
+        player.on('atom', ({ index, concealed }) => { if (!concealed) advanced.push([index, Date.now()]); });
+        player.play();
+        const began = Date.now();
+        await tick(full - 50);
+        expect(advanced.filter(([index]) => index !== head)).toEqual([]);
+        await tick(200);
+        expect(advanced.some(([index]) => index === head + 1)).toBe(true);
+        expect(Date.now() - began).toBeGreaterThanOrEqual(full - 50);
+    });
+
+    it('does nothing, and says so, unless the reading is paused on an atom', async () => {
+        player = new Player(current(2));
+        watch(player);
+        expect(player.restartCurrentAtom()).toBe(false);
+        player.play();
+        await tick(500);
+        expect(player.restartCurrentAtom()).toBe(false);
+        await tick(60_000);
+        expect(player.restartCurrentAtom()).toBe(false);
+    });
+
+    it('is taken back by a second pause: a reading paused again carries on from what remains, as it always did', async () => {
+        const session = current(3);
+        player = new Player(session);
+        watch(player);
+        player.play();
+        await tick(1_500);
+        player.pause();
+        player.restartCurrentAtom();
+        player.play();
+        await tick(400);
+        player.pause();
+        const shown = [];
+        player.on('atom', ({ index, concealed }) => { if (!concealed) shown.push(index); });
+        player.play();
+        // A plain resume does not show the atom again.
+        expect(shown).toEqual([]);
+    });
+});
+
 describe('finishing', () => {
     it('completes, once, when told there is no more, while it is waiting', async () => {
         const session = current(2);

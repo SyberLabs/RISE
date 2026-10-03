@@ -23,6 +23,7 @@
  * runtime, Chamber, controls and voice play it.
  */
 
+import { GEMINI_DEFAULT_MODEL } from '../adapters/gemini-model.js';
 import { describeDegradations, detectCapabilities } from '../capabilities.js';
 import { createLiveControls } from './controls.js';
 import { DelayedRunner, EvalRunner } from './EvalRunner.js';
@@ -33,7 +34,19 @@ const DEFAULT_PROMPT = 'Explain black holes with RISE.';
 const EMBED_HEIGHT = 640;
 const PROVIDERS = Object.freeze({
     mock: 'Deterministic demo provider (offline)',
-    openai: 'OpenAI Realtime, with your own key'
+    openai: 'OpenAI Realtime, with your own key',
+    gemini: 'Google Gemini, with your own key'
+});
+/** The providers the reader pays for with their own key: what to call it, and where the key goes. */
+const KEYED = Object.freeze({
+    openai: {
+        name: 'OpenAI',
+        note: "Held in this page's memory only: it is sent once, to this site, to open each session, and is never stored. Your prompt goes to OpenAI and is billed to your key. RISE pays for nothing."
+    },
+    gemini: {
+        name: 'Gemini',
+        note: "Held in this page's memory only: it is sent from this browser straight to Google, never to this site, and is never stored. Your prompt goes to Google and is billed to your key. RISE pays for nothing."
+    }
 });
 const VOICES = Object.freeze({ auto: 'Speak if this device can', browser: 'Speak', paced: 'Silent, paced as if spoken' });
 
@@ -73,6 +86,8 @@ export class LiveHost {
         this.atomLog = [];
         // The reader's own key, in memory and nowhere else; see forgetKey.
         this.key = '';
+        // Which Gemini model to ask, if the reader named one; not secret, and empty means the default.
+        this.model = undefined;
         this.embedded = this.params.get('embed') === 'mcp' && !this.params.has('eval');
         if (this.embedded) {
             this.modules = this.loadModules();
@@ -124,6 +139,7 @@ export class LiveHost {
         const provider = this.chosenProvider();
         const voice = this.params.get('voice');
         const chosen = Object.hasOwn(VOICES, voice) ? voice : 'auto';
+        const keyed = KEYED[provider];
         this.container.innerHTML = `
       <main class="live-host" aria-labelledby="live-title">
         <h1 class="live-title" id="live-title">Live Current</h1>
@@ -131,12 +147,16 @@ export class LiveHost {
         <form class="live-ask" novalidate>
           <label class="live-label" for="live-prompt">Prompt</label>
           <textarea id="live-prompt" name="prompt" rows="3" maxlength="2000" autocomplete="off">${DEFAULT_PROMPT}</textarea>
-          ${provider === 'openai' ? `
+          ${keyed ? `
           <div class="live-key">
-            <label class="live-label" for="live-key">Your OpenAI API key
+            <label class="live-label" for="live-key">Your ${keyed.name} API key
               <input id="live-key" name="key" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" maxlength="300">
             </label>
-            <p class="live-key-note">Held in this page's memory only: it is sent once, to this site, to open each session, and is never stored. Your prompt goes to OpenAI and is billed to your key. RISE pays for nothing.</p>
+            ${provider === 'gemini' ? `
+            <label class="live-label" for="live-model">Model
+              <input id="live-model" name="model" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" maxlength="64" value="${GEMINI_DEFAULT_MODEL}">
+            </label>` : ''}
+            <p class="live-key-note">${keyed.note}</p>
           </div>` : ''}
           <div class="live-row">
             <label class="live-label live-voice">Voice
@@ -199,15 +219,17 @@ export class LiveHost {
             this.fail('Ask something first.');
             return;
         }
-        if (this.providerName === 'openai') {
+        const keyed = KEYED[this.providerName];
+        if (keyed) {
             const typed = text(this.form.elements.key?.value).trim();
             if (typed) this.key = typed;
             if (!this.key) {
-                this.fail('Enter your OpenAI key to use this provider.');
+                this.fail(`Enter your ${keyed.name} key to use this provider.`);
                 return;
             }
             // Out of the page as soon as it is in memory: the field is not where it is kept.
             this.form.elements.key.value = '';
+            if (this.providerName === 'gemini') this.model = text(this.form.elements.model?.value).trim() || undefined;
         }
         this.starting = true;
         this.startedAt = performance.now();
@@ -304,11 +326,19 @@ export class LiveHost {
         };
     }
 
-    /** The provider's adapter. OpenAI's is loaded only if it is the one asked for, and the host's model only inside a host. */
+    /** The provider's adapter. A keyed provider's is loaded only if it is the one asked for, and the host's model only inside a host. */
     async buildAdapter(clock, createMockAdapter) {
         if (this.providerName === 'mcp') {
             const { createMcpAppAdapter } = await import('../adapters/mcp-app.js');
             return createMcpAppAdapter({ port: this.port, clock, host: framedBy(this.env.window ?? this.env) });
+        }
+        if (this.providerName === 'gemini') {
+            const [{ createGeminiAdapter }, { createGeminiFetchTransport }] = await Promise.all([
+                import('../adapters/gemini.js'),
+                import('../adapters/gemini-fetch.js')
+            ]);
+            // The key and the model are asked for at each request, so a forgotten key is not used again.
+            return createGeminiAdapter({ transport: createGeminiFetchTransport({ getKey: () => this.key, getModel: () => this.model }) });
         }
         if (this.providerName !== 'openai') return createMockAdapter({ clock });
         const [{ createOpenAIRealtimeAdapter }, { createOpenAIWebRtcTransport }] = await Promise.all([

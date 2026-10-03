@@ -15,6 +15,9 @@
  *   'interrupt'     the reader interrupts part way through
  *   'transport-loss' the connection drops once, then is resumed
  *   'provider-failure' the provider fails outright
+ *   'cut-short'     the provider stops at its length limit part way through a passage, after
+ *                   at least one whole passage, saying so in its own words (a status, a finish
+ *                   reason, an error)
  *
  * `scenario(name)` returns `{ adapter, clock, request, interruptAfterMs?, resumeFrom? }`.
  * `clock` is a virtual clock the suite advances.
@@ -24,7 +27,8 @@
  *   carries.ids   false when the provider does not name segments (it is numbered)
  *   carries.state false when the provider has no way to say what a segment is meant to be like
  *   skip          scenarios that cannot happen to this adapter, by name: 'interrupt' for a provider
- *                 whose answer arrives whole, 'transport-loss' for one with no transport to lose.
+ *                 whose answer arrives whole, 'transport-loss' for one with no transport to lose,
+ *                 'cut-short' for one that never sends part of a passage.
  *                 Each skip is stated where the adapter is described, and held by its own test.
  *   resume        'full' or 'replay'. 'replay' is a provider whose dropped stream
  *                 cannot be continued: resume replays what was received, then the
@@ -36,7 +40,7 @@ import { BLACK_HOLES } from '../live/fixtures/black-holes.js';
 import { validateEvent } from '../live/protocol.js';
 import { createCurrentStream } from '../live/stream.js';
 
-export const CONFORMANCE_SCENARIOS = Object.freeze(['black-holes', 'interrupt', 'transport-loss', 'provider-failure']);
+export const CONFORMANCE_SCENARIOS = Object.freeze(['black-holes', 'interrupt', 'transport-loss', 'provider-failure', 'cut-short']);
 
 /** Read a connection into a reducer, recording every raw event and how it ended. */
 async function consume(connection, stream, seen) {
@@ -233,6 +237,31 @@ export function describeAdapterConformance(name, scenario, { carries = {}, resum
             expect(snap.phase).toBe('failed');
             expect(snap.error).toMatchObject({ recoverable: false });
             expect(snap.error.code).toEqual(expect.any(String));
+        });
+
+        // A provider that runs out of length says so in its own words. Whatever they are, the answer is not finished:
+        // the passage being written is let go and never read as though it had ended, and every whole one stays.
+        (skip.includes('cut-short') ? it.skip : it)('ends failed, never complete, when the provider cuts the answer off part way through a passage, and keeps the whole ones', async () => {
+            const { adapter, clock, request } = scenario('cut-short');
+            const connection = await adapter.open(request);
+            const stream = createCurrentStream();
+            const seen = [];
+            const reading = consume(connection, stream, seen);
+            await clock.runAll();
+            await reading;
+            const snap = stream.snapshot();
+            expect(snap.phase).toBe('failed');
+            expect(snap.error).toMatchObject({ recoverable: false });
+            expect(snap.error.code).toEqual(expect.any(String));
+            expect(seen.some(event => event.type === 'current.complete')).toBe(false);
+            const ended = snap.segments.filter(s => s.ended);
+            expect(ended.length).toBeGreaterThan(0);
+            ended.forEach((segment, i) => expect(segment.text).toBe(BLACK_HOLES.segments[i].text));
+            // The passage being written was let go: never ended, and never part of what is lowered to be read.
+            expect(snap.segments.length - ended.length).toBeLessThanOrEqual(1);
+            expect(stream.toCurrent().segments.map(s => s.text)).toEqual(ended.map(s => s.text));
+            expect(snap.refusals).toBe(0);
+            expect(clock.pending()).toBe(0);
         });
 
         it('closes cleanly, and more than once, releasing every timer and ending the stream', async () => {
