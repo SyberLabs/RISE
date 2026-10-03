@@ -471,19 +471,18 @@ describe('speaking to it', () => {
 });
 
 describe('the runtime visual bridge', () => {
-    it('only discovers and controls the mounted Chamber for the exact runtime Player', async () => {
+    it('only discovers and controls the shown Chamber for the exact runtime Player', async () => {
         mount('?voice=paced');
+        // Like the real router: the Chamber's view is shown, and its reading begins, while the
+        // router is still fading it in and has not yet named it the current view.
         const router = {
-            current: 'live',
             views: new Map(),
-            getCurrentView() { return this.current; },
             getViewInstance(name) { return this.views.get(name)?.instance ?? null; },
             async navigate(name, options = {}) {
-                this.current = name;
                 if (name === 'chamber-session') {
                     const { takeLivePlayer } = await import('../../app/live-handoff.js');
                     const player = takeLivePlayer(options.data);
-                    this.views.set(name, { instance: {
+                    this.views.set(name, { container: { hidden: false }, instance: {
                         player,
                         discoverVisual: () => ({ manifest: { surface: 'attractor' }, current: { intensity: 0.65 }, target: { intensity: 0.65 } }),
                         controlVisual: vi.fn(command => ({ status: 'accepted', effective: command.value }))
@@ -509,7 +508,7 @@ describe('the runtime visual bridge', () => {
         expect(host.runtime.controlVisual({ surface: 'attractor', parameter: 'intensity', value: 0.7 }))
             .toEqual({ status: 'refused', code: 'NO_ACTIVE_VISUAL' });
         chamber.player = player;
-        router.current = 'portal';
+        router.views.get('chamber-session').container.hidden = true;
         expect(host.runtime.discoverVisual()).toBeNull();
         expect(host.runtime.controlVisual({ surface: 'attractor', parameter: 'intensity', value: 0.7 }))
             .toEqual({ status: 'refused', code: 'NO_ACTIVE_VISUAL' });

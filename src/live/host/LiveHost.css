@@ -146,8 +146,11 @@
 
 .live-controls__ask { display: flex; flex: 1 1 18rem; gap: 0.5rem; }
 .live-controls__ask input { flex: 1 1 auto; min-width: 0; }
-.live-controls__visual { display: flex; flex: 1 1 18rem; gap: 0.5rem; }
-.live-controls__visual input { flex: 1 1 auto; min-width: 0; }
+/* Folded by default: the bar must stay within a third of a phone's screen. */
+.live-controls__visual-change[open] { flex: 1 1 100%; }
+.live-controls__visual-change summary { cursor: pointer; font-size: 0.8rem; color: var(--color-fog); min-height: 1.75rem; display: flex; align-items: center; }
+.live-controls__visual { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.25rem; }
+.live-controls__visual input { flex: 1 1 10rem; min-width: 0; }
 
 .live-controls__buttons { display: flex; gap: 0.5rem; flex-wrap: wrap; }
 .live-controls button[aria-pressed="true"] { background: var(--color-light); color: var(--color-void); }
