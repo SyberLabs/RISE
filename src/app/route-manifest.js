@@ -226,6 +226,15 @@ export function createRouteManifest(operations) {
         onLaunchRosary: operations.launchRosary,
         onLaunchReading: operations.launchChapelReading
       })
+    },
+    {
+      id: 'today',
+      containerId: 'view-today',
+      load: () => import('../components/today/TodayPoem.js'),
+      create: (container, _data, { TodayPoem }) => new TodayPoem(container, {
+        onNavigate: operations.handleNavigate,
+        onBegin: operations.handleBeginSession
+      })
     }
   ];
 }
