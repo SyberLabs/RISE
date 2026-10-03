@@ -160,8 +160,8 @@ it, and CI fails when the committed copy is not what `src/` produces.
 ```mermaid
 flowchart LR
     affect["affect<br/>experience-state evaluation<br/>29 modules"]
-    app["app<br/>composition root<br/>12 modules"]
-    audio["audio<br/>Web Audio, recitation<br/>10 modules"]
+    app["app<br/>composition root<br/>13 modules"]
+    audio["audio<br/>Web Audio, recitation<br/>11 modules"]
     components["components<br/>routed views<br/>49 modules"]
     content["content<br/>texts, imagery, journeys<br/>228 modules"]
     core["core<br/>session, player, router<br/>167 modules"]
@@ -174,15 +174,15 @@ flowchart LR
     wormhole["wormhole<br/>7 modules"]
 
     affect --> |7| core
-    app -.-> |3 lazy| audio
+    app --> |1| audio
     app --> |1| components
     app --> |3| content
-    app --> |39| core
+    app --> |42| core
     app -.-> |1 lazy| live
     app -.-> |1 lazy| sources
     app -.-> |1 lazy| visuals
     audio --> |1| content
-    audio --> |5| core
+    audio --> |6| core
     components --> |3| affect
     components -.-> |2 lazy| app
     components --> |3| audio
@@ -196,7 +196,7 @@ flowchart LR
     content --> |15| core
     content --> |10| sources
     content --> |1| visuals
-    core --> |6| audio
+    core --> |8| audio
     core --> |15| content
     core --> |4| sources
     core --> |20| visuals
@@ -509,7 +509,10 @@ of `settled`, `open`, `deferred`, or `reversed`.
 ### 8.5 Recitation is a pre-built voice pack, not runtime TTS
 
 - **Chosen:** Kokoro runs at build time; the deployed app plays same-origin
-  audio addressed by normalized phrase text.
+  audio addressed by normalized phrase text. Today's poem uses a vendor voice
+  (ElevenLabs v4) under the same rule: rendered once by the author, cut into
+  per-line AAC `.m4a` clips, one small pack per poem named by
+  `recitation.pack`. No vendor is called at runtime.
 - **Rejected:** running the model in the reader's browser — and this one was
   *measured* before it was rejected, not assumed. The browser path was built
   and tried: `speechSynthesis` is a formant synthesiser and was never a

@@ -88,6 +88,21 @@ card shows the engine as a 480 px still (`public/engine-stills/card/`, built
 by `scripts/build-card-stills.mjs` from the shipped stills, so Home never
 downloads a full 525 KB still).
 
+## How it sounds
+
+A poem with a recitation in this release is read aloud over the day's
+soundscape (owner decision, 2026-10-03: ElevenLabs v4, rendered at build
+time; see `docs/vision/RECITATION-SPEC.md` §2, *Vendor-rendered packs*).
+
+* `poemRecitation(pick)` (`src/app/today.js`) looks the poem up in
+  `src/audio/poem-recitation.json` and honours it only if its
+  `sourceRevision` is the released edition's.
+* A recited day keeps every draw of the day's look and only reads in phrase
+  mode (`todayDecision(pick, { recited: true })`): one line at a time, words
+  revealed as they are spoken, each line held as long as its voice.
+* A poem without a recitation, or whose pack cannot load, plays exactly as
+  before, in silence over the soundscape.
+
 ## Every day by itself
 
 The card reads the date when Home shows, and while Home shows it turns over at
@@ -104,7 +119,7 @@ poem when it wakes.
 | Which works | **Spoon River Anthology and Lyrical Ballads**, taking turns day by day |
 | Home's card | The day's engine still, mood, title and first line, from `src/content/archive/today-openings.json` (built by `scripts/build-today-openings.mjs` with the reader's own `divideSections`; a test keeps it in step) |
 | Home's one gradient | **Kept.** The card is two panes (words on ink, engine beside), not a shaded image |
-| Audio | The day's soundscape; no recitation (voice packs cover the Keystones only) |
+| Audio | The day's soundscape, plus the poem read aloud where this release carries its recitation (*How it sounds*) |
 | Sharing image | **Not now.** Direction C's poster is a later, separate idea |
 
 ## Built from
@@ -138,3 +153,10 @@ poem when it wakes.
   procedural visual, Roll and (on a desk) the footer stay on the first screen,
   nothing scrolls sideways, and leaving returns Home; the Menu begins it;
   `/today` opens it and hands the address back to `/`.
+* Recitation: `poem-alignment.test.js` and its pool-wide integration test
+  (every pool poem maps; atoms are the same in every temper),
+  `voice.test.js` (a pack loads by address; the app shell, a 404 and a wrong
+  schema stay silent), `today.test.js` (recited and plain sessions, an
+  edition mismatch), and `poem-recitation.integration.test.js` (the index
+  names pool poems of the served edition; with audio hydrated, every pack is
+  the bytes its name says and covers every line a recited day reads).

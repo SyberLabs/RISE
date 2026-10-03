@@ -3,6 +3,8 @@ node_modules/
 dist/
 dist-ssr/
 public/audio/recitation/
+# Paid voice renders (scripts/build-poem-recitation.mjs): kept so no poem is paid for twice.
+.cache/
 .vite/
 coverage/
 *.local

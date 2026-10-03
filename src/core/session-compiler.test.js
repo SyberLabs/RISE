@@ -39,7 +39,26 @@ describe('session compiler', () => {
     });
 
     expect(session.capabilities).toEqual([]);
-    expect(session.recitation).toEqual({ enabled: false });
+    expect(session.recitation).toEqual({ enabled: false, pack: null });
+  });
+
+  it('carries a recitation pack only when it names a hash-named pack on this origin', () => {
+    const spoken = pack => compileSession({
+      text: 'One short phrase.',
+      chunkMode: 'phrase',
+      capabilities: [SEQUENCE_CAPABILITIES.RECITATION_AUDIO],
+      recitation: { enabled: true, pack }
+    }).recitation.pack;
+    expect(spoken('/audio/recitation/el_reader/0123456789abcdef.json')).toBe('/audio/recitation/el_reader/0123456789abcdef.json');
+    for (const bad of ['https://evil.example/p.json', '/audio/recitation/../x.json', '/audio/recitation/el_reader/x.json',
+      '/audio/recitation/El/0123456789abcdef.json', 42, null]) {
+      expect(spoken(bad), String(bad)).toBeNull();
+    }
+    // A reading that is not spoken carries no pack at all.
+    expect(compileSession({
+      text: 'One short phrase.',
+      recitation: { enabled: true, pack: '/audio/recitation/el_reader/0123456789abcdef.json' }
+    }).recitation.pack).toBeNull();
   });
 
   it('carries stable sequence assets through the canonical visual-score program', () => {
