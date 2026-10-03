@@ -264,6 +264,7 @@ describe('visual control', () => {
         expect($('.live-controls__status').textContent).not.toContain('already at its brightness limit');
         expect($('.live-controls__error').textContent).toBe('There is no adjustable visual on screen right now.');
     });
+
     it('clears only its own refusal alert when the active field changes', async () => {
         const runtime = fakeRuntime('live');
         runtime.set('live', { main: { currentId: 'main-1', segmentId: 'segment-1' } });

@@ -367,6 +367,10 @@ export class Workshop {
     this.activeDraftKind = 'new';
     this.editorDirty = false;
     this.saveInProgress = false;
+    this.blueprintLoadRequestId = 0;
+    this.blueprintLoadInProgress = false;
+    this.blueprintLoadControlStates = null;
+    this.destroyed = false;
     this.savedBlueprints = MemoryCore.getWorkshopBlueprints();
     /** @type {Map<string, Blob>} */
     this.pendingMediaBlobs = new Map();
@@ -479,6 +483,7 @@ export class Workshop {
     }
 
     if (data.text) {
+      this.cancelPendingBlueprintLoad();
       const suspended = this.suspendCurrentDraft();
       this.pendingMediaBlobs.clear();
       const blank = createDefaultSessionData();
@@ -616,6 +621,7 @@ export class Workshop {
   }
 
   startNewSequence({ preserveCurrent = true, notify = false } = {}) {
+    this.cancelPendingBlueprintLoad();
     if (preserveCurrent) this.suspendCurrentDraft();
     this.pendingMediaBlobs.clear();
     const blank = createDefaultSessionData();
@@ -631,48 +637,131 @@ export class Workshop {
   }
 
   async openSavedBlueprintAsync(blueprintId, { preserveCurrent = true, varyAsNew = false } = {}) {
-    this.savedBlueprints = await this.loadSavedBlueprints();
-    const blueprint = this.savedBlueprints.find(item => item.id === blueprintId);
-    if (!blueprint) {
-      this.showToast('That sequence is no longer in the Vault');
-      this.updateSequencePicker();
-      return false;
-    }
-    if (varyAsNew && !blueprint.provenance?.portableId) {
-      this.showToast('Only imported portable scores can start this variation');
-      return false;
-    }
+    const requestId = ++this.blueprintLoadRequestId;
+    this.setBlueprintLoadInProgress(true);
+    try {
+      const savedBlueprints = await this.loadSavedBlueprints();
+      if (!this.isCurrentBlueprintLoad(requestId)) return false;
+      this.savedBlueprints = savedBlueprints;
+      const blueprint = this.savedBlueprints.find(item => item.id === blueprintId);
+      if (!blueprint) {
+        this.showToast('That sequence is no longer in the Vault');
+        this.updateSequencePicker();
+        return false;
+      }
+      if (varyAsNew && !blueprint.provenance?.portableId) {
+        this.showToast('Only imported portable scores can start this variation');
+        return false;
+      }
 
-    if (preserveCurrent) this.suspendCurrentDraft();
-    this.pendingMediaBlobs.clear();
-    const editable = normalizeSessionData(blueprint);
-    // `schema` AND `id` LEAVE TOGETHER. A blueprint view carries
-    // `schema: rise.workshop-project.v1`, and dropping only the id leaves
-    // a payload that answers isWorkshopProject() and cannot pass
-    // validateWorkshopProject — which is what handleCreateSession calls
-    // when it sees the schema. An editor draft is a session config, not a
-    // project.
-    delete editable.schema;
-    delete editable.project;
-    delete editable.id;
-    delete editable.updatedAt;
-    if (varyAsNew) {
-      editable.provenance = {
-        kind: 'portable-sequence-variation',
-        parentPortableId: blueprint.provenance.portableId
-      };
+      if (preserveCurrent) this.suspendCurrentDraft();
+      this.pendingMediaBlobs.clear();
+      const editable = normalizeSessionData(blueprint);
+      // `schema` AND `id` LEAVE TOGETHER. A blueprint view carries
+      // `schema: rise.workshop-project.v1`, and dropping only the id leaves
+      // a payload that answers isWorkshopProject() and cannot pass
+      // validateWorkshopProject — which is what handleCreateSession calls
+      // when it sees the schema. An editor draft is a session config, not a
+      // project.
+      delete editable.schema;
+      delete editable.project;
+      delete editable.id;
+      delete editable.updatedAt;
+      if (varyAsNew) {
+        editable.provenance = {
+          kind: 'portable-sequence-variation',
+          parentPortableId: blueprint.provenance.portableId
+        };
+      }
+      this.replaceEditorData(editable, {
+        blueprintId: varyAsNew ? null : blueprintId,
+        kind: varyAsNew ? 'variation' : 'saved'
+      });
+      return true;
+    } catch (error) {
+      if (this.isCurrentBlueprintLoad(requestId)) {
+        console.warn('[Workshop] Could not load selected sequence:', error);
+        this.showToast('Could not load that sequence. Choose another sequence or retry.');
+      }
+      return false;
+    } finally {
+      if (this.isCurrentBlueprintLoad(requestId)) this.setBlueprintLoadInProgress(false);
     }
-    this.replaceEditorData(editable, {
-      blueprintId: varyAsNew ? null : blueprintId,
-      kind: varyAsNew ? 'variation' : 'saved'
+  }
+
+  isCurrentBlueprintLoad(requestId) {
+    return !this.destroyed && this.blueprintLoadRequestId === requestId;
+  }
+
+  isBlueprintLoadExemptControl(control) {
+    return control.id === 'workshop-sequence-select'
+      || control.dataset.action === 'back'
+      || control.dataset.sa === 'back';
+  }
+
+  applyBlueprintLoadLock(root = this.container) {
+    if (!this.blueprintLoadInProgress || !root) return;
+    if (!this.blueprintLoadControlStates) this.blueprintLoadControlStates = new Map();
+    const controls = [...root.querySelectorAll('input, select, textarea, button')]
+      .filter(control => !this.isBlueprintLoadExemptControl(control));
+    controls.forEach(control => {
+      if (!this.blueprintLoadControlStates.has(control)) {
+        this.blueprintLoadControlStates.set(control, control.disabled);
+      }
+      control.disabled = true;
     });
-    return true;
+  }
+
+  syncBlueprintLoadStatus() {
+    const status = this.container.querySelector('#workshop-sequence-status');
+    if (status) {
+      status.textContent = this.blueprintLoadInProgress
+        ? 'Loading selected sequence'
+        : this.getEditorStatus();
+    }
+    if (!this.sceneStackHost) return;
+    if (this.blueprintLoadInProgress) this.sceneStackHost.setAttribute('aria-busy', 'true');
+    else this.sceneStackHost.removeAttribute('aria-busy');
+    const live = this.sceneStackHost.querySelector('[data-scenes-status]');
+    if (live) live.textContent = this.blueprintLoadInProgress ? 'Loading selected sequence' : '';
+    let visible = this.sceneStackHost.querySelector('[data-blueprint-loading]');
+    if (this.blueprintLoadInProgress && !visible) {
+      visible = document.createElement('p');
+      visible.className = 'scenes-loading-note';
+      visible.dataset.blueprintLoading = '';
+      visible.textContent = 'Loading selected sequence…';
+      this.sceneStackHost.querySelector('.scenes-bar')?.after(visible);
+    } else if (!this.blueprintLoadInProgress) {
+      visible?.remove();
+    }
+  }
+
+  setBlueprintLoadInProgress(isLoading) {
+    if (isLoading) {
+      if (!this.blueprintLoadInProgress) this.blueprintLoadControlStates = new Map();
+      this.blueprintLoadInProgress = true;
+      this.applyBlueprintLoadLock();
+    } else {
+      this.blueprintLoadInProgress = false;
+      this.blueprintLoadControlStates?.forEach((wasDisabled, control) => {
+        if (control.isConnected) control.disabled = wasDisabled;
+      });
+      this.blueprintLoadControlStates = null;
+    }
+    this.syncBlueprintLoadStatus();
+  }
+
+  cancelPendingBlueprintLoad() {
+    if (!this.blueprintLoadInProgress) return;
+    this.blueprintLoadRequestId += 1;
+    this.setBlueprintLoadInProgress(false);
   }
 
   restoreSuspendedDraft(draftId) {
     const index = this.suspendedDrafts.findIndex(draft => draft.id === draftId);
     if (index < 0) return false;
 
+    this.cancelPendingBlueprintLoad();
     const [draft] = this.suspendedDrafts.splice(index, 1);
     this.suspendCurrentDraft();
     this.pendingMediaBlobs = new Map(draft.pendingMediaBlobs || []);
@@ -717,6 +806,7 @@ export class Workshop {
   }
 
   getEditorStatus() {
+    if (this.blueprintLoadInProgress) return 'Loading selected sequence';
     if (this.activeBlueprintId) {
       return this.isCurrentDraftDirty()
         ? 'Editing a saved sequence · changes remain private until saved'
@@ -790,6 +880,8 @@ export class Workshop {
     }
     if (!this.sceneStackHost.isConnected) this.container.appendChild(this.sceneStackHost);
     this.sceneStack.refresh();
+    this.applyBlueprintLoadLock(this.sceneStackHost);
+    this.syncBlueprintLoadStatus();
   }
 
   scheduleSceneRefresh() {
@@ -809,6 +901,7 @@ export class Workshop {
 
   /** Preview compiles the draft it is given and enters the Chamber the launch path uses. */
   previewSession(data = this.sessionData) {
+    if (this.blueprintLoadInProgress) return false;
     this.audioPreview.stop();
     this.getAudioEngine()?.playHiss();
     try {
@@ -829,7 +922,11 @@ export class Workshop {
   }
 
   handleSequenceSelection(value) {
-    if (!value || value === 'current') return;
+    if (!value) return;
+    if (value === 'current') {
+      this.cancelPendingBlueprintLoad();
+      return;
+    }
     if (value === 'new') {
       this.startNewSequence({ preserveCurrent: true });
       return;
@@ -842,6 +939,8 @@ export class Workshop {
       const blueprintId = value.slice('saved:'.length);
       if (blueprintId !== this.activeBlueprintId) {
         this.openSavedBlueprint(blueprintId);
+      } else {
+        this.cancelPendingBlueprintLoad();
       }
     }
   }
@@ -935,10 +1034,16 @@ export class Workshop {
     if (!host) return false;
     this.withFocusPreserved(() => {
       host.dataset.inspectorKind = this.inspectorContext.kind;
-      host.innerHTML = this.renderContextualInspector();
+      // Late refreshes must not replace a control the reader is holding when
+      // the inspector's serialized state has not actually changed.
+      const html = this.renderContextualInspector();
+      const next = document.createElement('template');
+      next.innerHTML = html;
+      if (next.innerHTML !== host.innerHTML) host.innerHTML = html;
       const label = this.container.querySelector('.studio-inspector > .studio-pane-title strong');
       if (label) label.textContent = inspectorContextLabel(this.inspectorContext);
     });
+    this.applyBlueprintLoadLock(host);
     return true;
   }
 
@@ -1014,11 +1119,11 @@ export class Workshop {
           <div class="config-notice text-fog" id="wpm-chamber-note">You can also change pacing in the Reader.</div></div>
         <div class="input-group"><span class="input-label">Pacing curve</span>
           <div class="curve-options studio-compact-options studio-choice-grid studio-choice-grid-5">
-            ${PACE_CURVE_IDS.map(curve => `<button type="button" class="curve-btn ${this.sessionData.curve === curve ? 'active' : ''}" data-action="set-reading-curve" data-curve="${curve}" aria-pressed="${this.sessionData.curve === curve}"><span class="curve-icon" aria-hidden="true">${this.getCurveIcon(curve)}</span><span class="curve-label text-capitalize">${curve}</span></button>`).join('')}
+            ${PACE_CURVE_IDS.map(curve => `<button type="button" class="curve-btn${this.sessionData.curve === curve ? ' active' : ''}" data-action="set-reading-curve" data-curve="${curve}" aria-pressed="${this.sessionData.curve === curve}"><span class="curve-icon" aria-hidden="true">${this.getCurveIcon(curve)}</span><span class="curve-label text-capitalize">${curve}</span></button>`).join('')}
           </div></div>
         <div class="input-group"><span class="input-label">Chunking</span>
           <div class="chunk-options studio-choice-grid studio-choice-grid-3">
-            ${['word', 'phrase', 'sentence'].map(mode => `<button type="button" class="chunk-btn ${this.sessionData.chunkMode === mode ? 'active' : ''}" data-action="set-reading-chunk" data-chunk="${mode}" aria-pressed="${this.sessionData.chunkMode === mode}">${mode[0].toUpperCase()}${mode.slice(1)}</button>`).join('')}
+            ${['word', 'phrase', 'sentence'].map(mode => `<button type="button" class="chunk-btn${this.sessionData.chunkMode === mode ? ' active' : ''}" data-action="set-reading-chunk" data-chunk="${mode}" aria-pressed="${this.sessionData.chunkMode === mode}">${mode[0].toUpperCase()}${mode.slice(1)}</button>`).join('')}
           </div></div>
       </div>
     </details>`;
@@ -4331,6 +4436,7 @@ export class Workshop {
       void this.createSession();
     });
     const syncSequenceManager = (event) => {
+      if (this.blueprintLoadInProgress) return;
       const ephemeral = event.target?.matches?.('#visual-asset-search');
       const clickChangesEditor = event.type === 'click' && event.target.closest(
         '[data-curve], [data-chunk], [data-mode], '
@@ -4355,6 +4461,10 @@ export class Workshop {
       this.container.removeEventListener('change', this.boundVisualAssetInputHandler);
     }
     this.boundVisualAssetInputHandler = (event) => {
+      if (this.blueprintLoadInProgress) {
+        event.preventDefault();
+        return;
+      }
       if (event.target.matches('#session-title')) {
         this.sessionData.title = event.target.value;
         this.updateCreateButton();
@@ -4518,6 +4628,10 @@ export class Workshop {
       target.closest('.studio-project-menu')?.removeAttribute('open');
 
       const action = target.dataset.action;
+      if (this.blueprintLoadInProgress && action !== 'back') {
+        e.preventDefault();
+        return;
+      }
       if (action === 'open-browser') {
         this.getAudioEngine()?.playHiss();
         this.openSourceBrowser();
@@ -4835,6 +4949,7 @@ export class Workshop {
     });
 
     dropZone.addEventListener('drop', (e) => {
+      if (this.blueprintLoadInProgress) return;
       const files = e.dataTransfer?.files;
       if (!files || files.length === 0) return;
 
@@ -4853,6 +4968,7 @@ export class Workshop {
    * Process a dropped image file
    */
   processDroppedImage(file) {
+    if (this.blueprintLoadInProgress) return;
     if (file.size > MAX_IMAGE_FILE_BYTES) {
       this.showToast('Images must be 8 MB or smaller');
       return;
@@ -4867,22 +4983,31 @@ export class Workshop {
   }
 
   async processDroppedVideo(file) {
+    if (this.blueprintLoadInProgress) return;
+    const sessionData = this.sessionData;
+    const blueprintLoadRequestId = this.blueprintLoadRequestId;
     if (file.size > MAX_VIDEO_FILE_BYTES) {
       this.showToast('MP4 files must be 96 MB or smaller');
       return;
     }
     try {
       const durationMs = await probeVideoDurationMs(file);
+      if (this.blueprintLoadInProgress
+        || this.sessionData !== sessionData
+        || this.blueprintLoadRequestId !== blueprintLoadRequestId) return;
       if (this.addSequenceVideoAssetFromBlob(file, file.name, durationMs)) {
         this.updateVisualAssetsList();
         this.updateCreateButton();
       }
     } catch {
+      if (this.sessionData !== sessionData
+        || this.blueprintLoadRequestId !== blueprintLoadRequestId) return;
       this.showToast('Could not read MP4 metadata');
     }
   }
 
   handleStudioKeydown(event) {
+    if (this.blueprintLoadInProgress) return;
     const actionTarget = event.target.closest?.('[data-action]:not(button)');
     if (actionTarget && ['Enter', ' '].includes(event.key)) {
       event.preventDefault();
@@ -4920,6 +5045,7 @@ export class Workshop {
 
   handleKeyboard(e) {
     const target = e.target;
+    if (this.blueprintLoadInProgress && e.key !== 'Escape') return;
     const editingText = target instanceof HTMLInputElement
       || target instanceof HTMLTextAreaElement
       || target instanceof HTMLSelectElement
@@ -5059,13 +5185,25 @@ export class Workshop {
         event.target.value = '';
         return;
       }
+      const sessionData = this.sessionData;
+      const blueprintLoadRequestId = this.blueprintLoadRequestId;
       try {
         const durationMs = await probeVideoDurationMs(file);
-        this.addSequenceVideoAssetFromBlob(file, file.name, durationMs);
-        this.updateVisualAssetsList();
-        this.updateCreateButton();
+        if (!this.destroyed
+          && !this.blueprintLoadInProgress
+          && this.sessionData === sessionData
+          && this.blueprintLoadRequestId === blueprintLoadRequestId) {
+          this.addSequenceVideoAssetFromBlob(file, file.name, durationMs);
+          this.updateVisualAssetsList();
+          this.updateCreateButton();
+        }
       } catch {
-        this.showToast('Could not read MP4 metadata');
+        if (!this.destroyed
+          && !this.blueprintLoadInProgress
+          && this.sessionData === sessionData
+          && this.blueprintLoadRequestId === blueprintLoadRequestId) {
+          this.showToast('Could not read MP4 metadata');
+        }
       }
       event.target.value = '';
       return;
@@ -5208,6 +5346,7 @@ export class Workshop {
   }
 
   async persistSequenceToVault(transaction = null) {
+    if (this.blueprintLoadInProgress) return null;
     const editorData = this.sessionData;
     const editorSnapshot = JSON.stringify(editorData);
     const blueprintId = this.activeBlueprintId;
@@ -5715,6 +5854,7 @@ export class Workshop {
   }
 
   async saveSequenceToVault() {
+    if (this.blueprintLoadInProgress) return null;
     if (this.saveInProgress) {
       this.showToast('A save or launch is already underway');
       return null;
@@ -5749,6 +5889,7 @@ export class Workshop {
   }
 
   async createSession() {
+    if (this.blueprintLoadInProgress) return false;
     if (this.saveInProgress) {
       this.showToast('A save or launch is already underway');
       return false;
@@ -5853,6 +5994,10 @@ export class Workshop {
   }
 
   destroy() {
+    this.destroyed = true;
+    this.blueprintLoadRequestId += 1;
+    this.blueprintLoadInProgress = false;
+    this.blueprintLoadControlStates = null;
     if (this.resetTimer) {
       clearTimeout(this.resetTimer);
       this.resetTimer = null;

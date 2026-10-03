@@ -19,6 +19,15 @@
   font-family: var(--font-primary, 'Inter', system-ui, sans-serif);
 }
 
+.scenes-loading-note {
+  margin: 0;
+  padding: 0.45rem 1rem;
+  font-size: 0.8rem;
+  line-height: 1.4;
+  color: var(--color-fog);
+  text-align: center;
+}
+
 .scenes-bar {
   position: sticky;
   top: 0;

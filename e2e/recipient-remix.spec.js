@@ -9,7 +9,7 @@ const stored = page => page.evaluate(() => JSON.parse(localStorage.getItem('rise
 async function openVault(page) {
   await page.addInitScript(gate => localStorage.setItem('rise-beta-session', JSON.stringify(gate)), GATE);
   await page.goto('/');
-  await expect(page.locator('.portal .portal-title').first()).toBeVisible({ timeout: 15_000 });
+  await expect(page.locator('.portal h1').first()).toBeVisible({ timeout: 15_000 });
   await openHomeNav(page, 'vault');
   await expect(page.locator('.vault-examples')).toBeVisible({ timeout: 15_000 });
 }
