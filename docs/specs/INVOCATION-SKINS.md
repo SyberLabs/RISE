@@ -7,10 +7,12 @@ one interaction; it is never a second reader.
 
 | Skin | Where | Invoke | Enter | Go again | Adjust |
 |---|---|---|---|---|---|
-| **Oracle** | Home, in the app (`src/components/Portal.js`, `src/components/oracle/`) | ROLL | ENTER | ROLL AGAIN | ADJUST |
+| **Night library** | Home, in the app (`src/components/Portal.js`, `src/components/night-library/`) | Roll a reading, or pick a star | Start reading | Roll again, or Redraw the text or the mood | Adjust first |
 | **Wormhole** | a page of its own, `/wormhole.html` (`src/wormhole/`), reached from Home's Menu → *Other ways in* | ENTER WORMHOLE | DOCK | JUMP AGAIN | ADJUST COURSE |
 
-See `docs/superpowers/specs/2026-09-28-oracle-home-design.md` for the Oracle.
+See `docs/superpowers/specs/2026-10-03-night-library-home-design.md` for the
+night library. It replaced the Oracle
+(`docs/superpowers/specs/2026-09-28-oracle-home-design.md`, superseded).
 
 ## One engine
 
@@ -19,7 +21,9 @@ device, by chance inside bounds (work × section × temper). It is the decision
 shape Jev returns, passes the same admission (`validateJevRecommendation`), and
 says what it is (`model: rise/roll-1`, `provider: RISE`). Nothing is sent; no
 provider is called. It never repeats the previous work or temper, so going
-again always changes something. A roll carries `title` and `author`, from a
+again always changes something. Any part it is given (the work, the temper, the
+section) is kept and the rest is drawn, which is how the night library's Redraw
+changes one part and a star rolls for its own work. A roll carries `title` and `author`, from a
 small table held to the Library by a test, so a standalone page can name a work
 without loading the Library.
 
@@ -29,8 +33,9 @@ thing about the same reading.
 
 ## One decision route, for a request in words
 
-Asking is the escape hatch from the roll. Home's *ask for something specific*
-calls `requestComposedReading` (`src/app/invocation.js`), which posts to
+Asking sits beside the roll. Home's *Ask for one* needs the reader's own AI
+(their OpenRouter account, or Kev on their computer); without one Home says so
+and sends nothing. With one, it calls `requestComposedReading` (`src/app/invocation.js`), which posts to
 `/api/jev-recommend` with schema version 3 and admits the answer before anything
 is shown. The Worker owns that recommendation: its release metadata and
 selector constraints are authoritative, and the app validates the full plan
@@ -70,7 +75,7 @@ handoff.
 
 ## The wormhole
 
-Drawn in depth, the way the Oracle's ball is, and with no dependency: `src/wormhole/scene.js` is WebGL2.
+Drawn in depth, and with no dependency: `src/wormhole/scene.js` is WebGL2.
 
 * **The throat** is one fragment shader in true perspective. Depth is the inverse
   of the distance from the gate, so rings, spiralling veins and dust all converge

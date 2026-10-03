@@ -6,8 +6,8 @@ import { compileJevAudioProgram, compileJevVisualProgram } from '../src/core/jev
 
 /**
  * The Tokyo Drift reproduction (docs: request-to-playback design, 2026-09-27),
- * through the Oracle and the reader's OpenRouter connection: a request after
- * a first roll → limits before anything plays → Enter → no auto fullscreen.
+ * through Home's Ask and the reader's OpenRouter connection: a request →
+ * limits before anything plays → Start reading → no auto fullscreen.
  */
 const releaseInventory = JSON.parse(readFileSync(
   new URL('../src/content/archive/release-inventory.json', import.meta.url), 'utf8'
@@ -34,25 +34,25 @@ const decision = {
     audioProgram: compileJevAudioProgram(selectors)
   }
 };
-test('Tokyo Drift: asked after a roll, limits before Enter, no auto fullscreen', async ({ page }) => {
+test('Tokyo Drift: asked from Home, limits before Start reading, no auto fullscreen', async ({ page }) => {
   const jevRequests = await routeTestOpenRouter(page, decision);
   // A cold first visit: no stored session and no intro screen.
   await page.goto('/');
   await expect(page.locator('#beta-enter')).toHaveCount(0);
-  await expect(page.locator('h1')).toHaveText('What will you encounter?', { timeout: 15_000 });
+  await expect(page.locator('h1')).toHaveText('Every star is a text you can read.', { timeout: 15_000 });
   // Fake an explicit reader-owned connection in this browser test; never use
   // a real key or the retired shared Worker endpoint.
   await connectTestOpenRouter(page);
 
   await openHomeAsk(page);
-  await page.locator('#oracle-intent').fill('i want something psychedelic fast tokyo drift style');
-  await page.locator('[data-oracle="ask"]').click();
-  const enter = page.locator('[data-oracle="enter"]');
+  await page.locator('#home-intent').fill('i want something psychedelic fast tokyo drift style');
+  await page.locator('[data-home="ask"]').click();
+  const enter = page.locator('[data-home="enter"]');
   await expect(enter).toBeVisible({ timeout: 15_000 });
   await expect(page.locator('#chamber-display')).toBeHidden();
-  await expect(page.locator('.oracle-answer-title')).toHaveText('Ulysses');
-  await expect(page.locator('[data-oracle-status]')).toContainText('night drive');
-  const note = page.locator('.oracle-note');
+  await expect(page.locator('h1')).toHaveText('Ulysses');
+  await expect(page.locator('[data-home-status]')).toContainText('night drive');
+  const note = page.locator('.home-note');
   await expect(note).toBeVisible();
   await expect(note).toContainText('You referenced “Tokyo Drift”');
   await expect(note).toContainText('can’t play the Tokyo Drift soundtrack');

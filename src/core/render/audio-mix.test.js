@@ -286,7 +286,13 @@ describe('named soundscape beds', () => {
     ]));
     for (const id of OFFLINE_SOUNDSCAPE_IDS) {
       expect(peakAmplitude(mixes[id].pcm), id).toBeGreaterThan(1e-4);
-      expect(mixes[id].pcm).toEqual(mixAudio(bedPlan(id), { sampleRate: 8_000 }).pcm);
+      // toEqual walks a Float32Array one element at a time through its
+      // generic deep-equality; across every bed that cost over a second and
+      // pushed this test past its five-second limit on CI. Same check, Object.is per
+      // sample, and a failure names the first sample that moved.
+      const again = mixAudio(bedPlan(id), { sampleRate: 8_000 }).pcm;
+      expect(again.length, id).toBe(mixes[id].pcm.length);
+      expect(again.findIndex((sample, i) => !Object.is(sample, mixes[id].pcm[i])), id).toBe(-1);
     }
     for (let i = 0; i < OFFLINE_SOUNDSCAPE_IDS.length; i += 1) {
       for (let j = i + 1; j < OFFLINE_SOUNDSCAPE_IDS.length; j += 1) {

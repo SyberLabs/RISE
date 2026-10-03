@@ -121,8 +121,9 @@ own key or the host's model and remain switched off by default. See
   `docs/specs/ARCHITECTURE.md` unchanged), a fixed set of fast unit tests
   including `src/core/system-design.test.js`, `npx vite build`, and
   `npm run measure:first-load`, which holds what `dist/index.html` fetches to
-  a ratcheting brotli budget declared in the script. It runs for every pull
-  request, including prose-only changes. The exact list is in
+  a ratcheting brotli budget declared in the script, then the browser gate
+  (`npm run test:e2e:gate`, a few minutes). It runs for every pull request,
+  including prose-only changes. The exact list is in
   `.github/workflows/ci.yml`.
 - After a merge, a separate `CI` job builds and deploys `main`. The full unit,
   Scriptorium, and sharded browser suites run on `main` and on manual

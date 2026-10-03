@@ -7,7 +7,7 @@ async function authorize(page) {
 test('Keystone corridor has durable cold, reload, launch, and Back behavior', async ({ page }) => {
   await authorize(page);
   await page.goto('/');
-  await expect(page.locator('[data-oracle="roll"]')).toBeVisible({ timeout: 15_000 });
+  await expect(page.locator('[data-home="roll"]')).toBeVisible({ timeout: 15_000 });
 
   // Home no longer carries a Try RISE door; the corridor is its own URL.
   await page.goto('/try-rise');

@@ -20,12 +20,12 @@
  * retrying until it cleared; `elementFromPoint` is the same test the
  * browser runs for a human, with no retry and no synthetic events.
  */
-import { test, expect } from './fixtures.js';
+import { test, expect, connectTestOpenRouter } from './fixtures.js';
 
 
 async function openPortal(page) {
     await page.goto('/');
-    await expect(page.locator('.portal .oracle-title').first()).toBeVisible({ timeout: 15_000 });
+    await expect(page.locator('.portal .home-title').first()).toBeVisible({ timeout: 15_000 });
 }
 
 /** Press at a door's centre with a real mouse, the way a hand does. */
@@ -120,27 +120,52 @@ test.describe('the Portal has no overlay between a cursor and a door', () => {
     });
 });
 
-test('ROLL, the keys that follow it, and Ask are reachable on a desk and a phone', async ({ page }) => {
+test('every star takes a press at its own centre, with a target of at least 24px, on a desk and the smallest phones', async ({ page }) => {
+    for (const viewport of [{ width: 1280, height: 800 }, { width: 390, height: 844 }, { width: 360, height: 640 }]) {
+        await page.setViewportSize(viewport);
+        await openPortal(page);
+        await page.reload();
+        await page.locator('.home-sky .sky-star').first().waitFor({ state: 'attached', timeout: 15_000 });
+        const stars = await page.evaluate(() => [...document.querySelectorAll('.home-sky .sky-star')].map(el => {
+            const box = el.getBoundingClientRect();
+            const top = document.elementFromPoint(box.left + box.width / 2, box.top + box.height / 2);
+            return { id: el.dataset.workId, size: Math.min(box.width, box.height), hit: top === el || el.contains(top), by: top?.closest('[data-work-id]')?.dataset.workId || top?.className?.toString() || 'nothing' };
+        }));
+        expect(stars.length).toBeGreaterThan(0);
+        for (const star of stars) {
+            expect(star.hit, `${star.id} is covered by ${star.by} at ${viewport.width}×${viewport.height}`).toBe(true);
+            expect(star.size, `${star.id}'s target at ${viewport.width}×${viewport.height}`).toBeGreaterThanOrEqual(24);
+        }
+    }
+});
+
+test('Roll, the controls that follow it, a star, and Ask are reachable on a desk and a phone', async ({ page }) => {
     for (const viewport of [{ width: 1280, height: 800 }, { width: 390, height: 844 }]) {
         await page.setViewportSize(viewport);
         await openPortal(page);
         await page.reload();
-        await expect(page.locator('[data-oracle="roll"]')).toBeVisible({ timeout: 15_000 });
+        await expect(page.locator('[data-home="roll"]')).toBeVisible({ timeout: 15_000 });
         const check = async selector => {
             const { reachable, hit } = await hitTest(page, selector);
             expect(reachable, `${selector} is covered by ${hit} at ${viewport.width}px`).toBe(true);
         };
-        await check('[data-oracle="roll"]');
-        await pressAt(page, '[data-oracle="roll"]');
-        await expect(page.locator('[data-oracle="enter"]')).toBeVisible({ timeout: 10_000 });
-        await page.waitForTimeout(1200);
-        for (const selector of ['[data-oracle="enter"]', '[data-oracle="roll"]', '[data-oracle="adjust"]', '[data-oracle="ask-open"]']) {
+        for (const selector of ['[data-home="roll"]', '[data-home="ask-open"]']) await check(selector);
+        // The panel and its scrim lie over the sky; a star must still take the press.
+        const star = '.home-sky .sky-star[data-work-id="middlemarch"]';
+        await page.locator(star).waitFor({ state: 'attached', timeout: 15_000 });
+        await check(star);
+        await pressAt(page, '[data-home="roll"]');
+        await expect(page.locator('[data-home="enter"]')).toBeVisible({ timeout: 10_000 });
+        for (const selector of ['[data-home="enter"]', '[data-home="roll"]', '[data-home="adjust"]', '[data-home="redraw-text"]', '[data-home="redraw-mood"]', '[data-home="ask-open"]']) {
             await check(selector);
         }
-        await pressAt(page, '[data-oracle="ask-open"]');
-        await expect(page.locator('#oracle-intent')).toBeVisible();
-        await page.waitForTimeout(1200);
-        for (const selector of ['#oracle-intent', '[data-oracle="ask"]']) await check(selector);
+        await check(star);
+        await pressAt(page, star);
+        await expect(page.locator('h1')).toHaveText('Middlemarch', { timeout: 10_000 });
+        await connectTestOpenRouter(page);
+        await pressAt(page, '[data-home="ask-open"]');
+        await expect(page.locator('#home-intent')).toBeVisible();
+        for (const selector of ['#home-intent', '[data-home="ask"]', '[data-home="roll-instead"]']) await check(selector);
     }
 });
 
@@ -152,9 +177,9 @@ const SITTINGS = ['default', 'slate', 'ivory', 'purple', 'cobalt', 'amber',
 
 test('Home text keeps AA contrast in every sitting', async ({ page }) => {
     await openPortal(page);
-    // The small text (Adjust, Ask) appears once there is a reading to speak of.
-    await page.locator('[data-oracle="roll"]').click();
-    await expect(page.locator('[data-oracle="adjust"]')).toBeVisible({ timeout: 10_000 });
+    // The quieter text (the byline, the part labels, Ask instead) appears once there is a reading.
+    await page.locator('[data-home="roll"]').click();
+    await expect(page.locator('[data-home="adjust"]')).toBeVisible({ timeout: 10_000 });
     const results = await page.evaluate((sittings) => {
         const rgb = colour => {
             const ctx = document.createElement('canvas').getContext('2d');
@@ -170,7 +195,7 @@ test('Home text keeps AA contrast in every sitting', async ({ page }) => {
         for (const id of sittings) {
             if (id === 'default') document.documentElement.removeAttribute('data-accent');
             else document.documentElement.setAttribute('data-accent', id);
-            for (const sel of ['.portal-nav-link', '.oracle-title', '.oracle-quiet', '.oracle-status', '.portal-footer-link']) {
+            for (const sel of ['.portal-nav-link', '.home-title', '.home-byline', '.home-part-label', '.home-part-value', '.home-link', '[data-home="adjust"]', '.portal-ai-line', '.portal-footer-link']) {
                 out.push({ id, sel, ratio: +ratio(rgb(getComputedStyle(document.querySelector(sel)).color), ground).toFixed(2) });
             }
         }

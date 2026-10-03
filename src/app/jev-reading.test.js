@@ -9,7 +9,7 @@ import {
   compileJevVisualProgram
 } from '../core/jev-sequence.js';
 import { resolveJevChamberConfig } from '../core/jev-config.js';
-import { resolveJevReading, selectJevDivision } from './jev-reading.js';
+import { openingLines, openingOf, resolveJevReading, selectJevDivision } from './jev-reading.js';
 
 vi.mock('../content/library.js', () => ({ getTextById: vi.fn() }));
 
@@ -210,5 +210,43 @@ describe('Jev reading handoff', () => {
     expect(input.text).toBe('The longest existing passage.');
     expect(input.soundscape).toBe('scary');
     expect(input.continuation.entryId).toBe('2');
+  });
+});
+
+describe('the opening of a passage', () => {
+  it('keeps verse lines and drops leading blank lines', () => {
+    expect(openingOf('\n  \nSing, goddess, the wrath\nof Achilles, son of Peleus,\nthat brought the Greeks their woes.')).toBe(
+      'Sing, goddess, the wrath\nof Achilles, son of Peleus,\nthat brought the Greeks their woes.');
+  });
+
+  it('cuts at the last line break or sentence end that fits, with no ellipsis', () => {
+    expect(openingOf('Line one,\nline two,\nline three.', 15)).toBe('Line one,');
+    expect(openingOf('One two. Three four five six.', 20)).toBe('One two.');
+    expect(openingOf('“Go home.” She went away. And then', 14)).toBe('“Go home.”');
+    expect(openingOf('It was so. Then Mr. Casaubon and Mrs. Cadwallader came in', 50)).toBe('It was so.');
+    expect(openingOf('Short and done.', 15)).toBe('Short and done.');
+  });
+
+  it('cuts between words and ends with an ellipsis when no sentence or line ends in reach', () => {
+    expect(openingOf('alpha beta gamma delta', 12)).toBe('alpha beta…');
+    const preview = openingOf('word '.repeat(200));
+    expect(preview.length).toBeLessThanOrEqual(240);
+    expect(preview).toMatch(/ word…$/u);
+  });
+});
+
+describe('the opening lines of a reading', () => {
+  it('opens the same division the reading opens, for every section', async () => {
+    for (const section of ['first', 'middle', 'last', 'shortest', 'longest']) {
+      expect(await openingLines(decision({ section })))
+        .toBe((await resolveJevReading(decision({ section }))).text);
+    }
+  });
+
+  it('refuses what the reading refuses, in the same words', async () => {
+    await expect(openingLines({ ...decision(), schemaVersion: 1 }))
+      .rejects.toThrow('invalid reading plan');
+    await expect(openingLines({ ...decision(), sourceRevision: 'other' }))
+      .rejects.toThrow('not available');
   });
 });

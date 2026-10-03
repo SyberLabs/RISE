@@ -79,6 +79,8 @@ export function chamberExitTarget(reason, session = {}, data = null) {
 
     // A live reading returns to where it was asked for.
     if (session?.origin?.view === 'live') return { kind: 'navigate', view: 'live' };
+    // Today's poem returns to the poem.
+    if (session?.origin?.view === 'today') return { kind: 'navigate', view: 'today' };
     // A reading proposed on Home and entered from there goes back to Home,
     // where the proposal still waits. One opened through Reader Setup
     // (Adjust) returns there, like any other reading.

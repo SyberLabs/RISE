@@ -34,10 +34,12 @@ const VISUAL_LAB_PATH = '/visual-lab';
 const VISUAL_CATALOG_PATH = '/visual-catalog';
 const LIVE_PATH = '/live';
 const EMOTIONS_PATH = '/emotions';
+const TODAY_PATH = '/today';
 const PUBLIC_ROOM_PATHS = Object.freeze({
     'visual-lab': VISUAL_LAB_PATH,
     'visual-catalog': VISUAL_CATALOG_PATH,
-    emotions: EMOTIONS_PATH
+    emotions: EMOTIONS_PATH,
+    today: TODAY_PATH
 });
 import { watchTabFreshness } from './core/tab-freshness.js';
 import { takeOpenRouterReturn } from './core/openrouter-callback.js';
@@ -324,6 +326,8 @@ class App {
             await this.router.navigate('live');
         } else if (window.location.pathname === EMOTIONS_PATH) {
             await this.router.navigate('emotions');
+        } else if (window.location.pathname === TODAY_PATH) {
+            await this.router.navigate('today');
         } else {
             await this.router.navigate('portal');
         }

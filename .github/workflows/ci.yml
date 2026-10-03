@@ -18,12 +18,15 @@ jobs:
     name: CI
     if: github.event_name != 'push'
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
       - uses: ./.github/actions/setup
+        with:
+          chromium: 'true'
+          audio: 'true'
       - name: Fast release checks
         run: |
           set -euo pipefail
@@ -48,6 +51,9 @@ jobs:
             src/core/passage-visuals/scoring-client.test.js \
             src/components/Portal.jev.test.js \
             src/components/Portal.test.js \
+            src/components/night-library \
+            src/core/roll.test.js \
+            src/core/library-sky.test.js \
             src/components/Library.jev.test.js \
             src/core/content-store.test.js \
             src/core/journey-session.test.js \
@@ -59,6 +65,11 @@ jobs:
           npm run measure:first-load
           wait "$tests"
           wait "$audit"
+      # Layout, hit-testing and the reading path only show in a browser: #373
+      # merged a phone star map whose targets covered each other because no
+      # required check opened one. The gate is the fast browser subset.
+      - name: Browser gate
+        run: npm run test:e2e:gate
   production:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
