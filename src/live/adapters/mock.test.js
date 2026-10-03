@@ -62,6 +62,30 @@ describe('the mock adapter as an adapter', () => {
 });
 
 describe('the answer', () => {
+    it('uses a catalog opening only for the first answer segment and leaves Dive scripts intact', async () => {
+        const run = await play({ options: { openingVisual: 'genesis' } });
+        await run.reader;
+        expect(run.arrivals.filter(a => a.event.type === 'segment.begin').map(a => a.event.visual)).toEqual([
+            'genesis', 'still', 'still', 'genesis', 'attractor', 'still'
+        ]);
+
+        const diveRequest = {
+            intent: 'dive', prompt: 'the event horizon',
+            parent: { currentId: 'answer-0', segmentId: 'horizon', atCharacter: 24, context: [BLACK_HOLES.segments[1].text] }
+        };
+        const dive = await play({ options: { openingVisual: 'genesis' }, request: diveRequest });
+        const defaultDive = await play({ request: diveRequest });
+        await dive.reader;
+        await defaultDive.reader;
+        expect(dive.arrivals.map(a => a.event)).toEqual(defaultDive.arrivals.map(a => a.event));
+        expect(dive.arrivals.filter(a => a.event.type === 'segment.begin').map(a => a.event.visual))
+            .toEqual(HORIZON_DIVE.segments.map(segment => segment.visual));
+    });
+
+    it('rejects opening visuals outside the closed Current vocabulary', () => {
+        expect(() => createMockAdapter({ openingVisual: 'klee' })).toThrow(/opening visual/u);
+    });
+
     it('arrives as a complete, valid Current with everything attached', async () => {
         const snap = await snapshotOf();
         expect(snap.phase).toBe('complete');
