@@ -176,8 +176,8 @@ flowchart LR
     affect --> |7| core
     app -.-> |3 lazy| audio
     app --> |1| components
-    app --> |5| content
-    app --> |36| core
+    app --> |3| content
+    app --> |37| core
     app -.-> |1 lazy| live
     app -.-> |1 lazy| sources
     app -.-> |1 lazy| visuals

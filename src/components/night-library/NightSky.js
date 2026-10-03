@@ -7,12 +7,16 @@
  *   const sky = new NightSky(container, { sky, onPick });
  *   sky.start(); sky.stop(); sky.flare(workId | null); sky.setBusy(bool); sky.destroy();
  *
+ * flare() ignores the id already flared, so it can be called on every render.
+ * setBusy(true) makes the stars twinkle faster; it changes nothing in the DOM.
+ *
  * What Home can rely on inside `container`:
  *   .night-sky                     the root; fills the container (absolute, inset 0)
  *   .night-sky--flat               no 2D canvas here: a CSS sky and CSS star dots stand in
- *   .night-sky.is-busy             setBusy(true) is in force
  *   button.sky-star[data-work-id]  one per star, in reading order (group, then top to bottom)
  *   .sky-star.is-flared            the flared star; at most one
+ *   --sky-x0, --sky-x1             on the root: the stars' least and greatest x, in
+ *                                  percent (unitless), to fit the sky to a band
  *
  * The canvas is decoration only (aria-hidden, no pointer events); the buttons
  * carry every name and action, so the page works without it. Discipline as in
@@ -109,6 +113,7 @@ export class NightSky {
     this.cloud = null;
     this.cloudSize = null;
     this.burst = null;
+    this.flaredId = null;
     this.flareIndex = -1;
     this.flareStart = 0;
     this.lastPaint = -Infinity;
@@ -119,8 +124,14 @@ export class NightSky {
     this.H = 0;
     this.dpr = 1;
 
+    const xs = this.stars.map(s => s.x);
+    const ys = this.stars.map(s => s.y);
+    this.bounds = { x0: Math.min(...xs), x1: Math.max(...xs), y0: Math.min(...ys), y1: Math.max(...ys) };
+
     this.root = document.createElement('div');
     this.root.className = 'night-sky';
+    this.root.style.setProperty('--sky-x0', String(this.bounds.x0));
+    this.root.style.setProperty('--sky-x1', String(this.bounds.x1));
 
     this.canvas = document.createElement('canvas');
     this.canvas.className = 'night-sky__canvas';
@@ -176,6 +187,12 @@ export class NightSky {
   start() {
     if (this.destroyed || this.running) return;
     this.running = true;
+    // Target sizes are layout, so they follow the size even with no canvas to paint.
+    if (typeof ResizeObserver === 'function') {
+      this.ro = new ResizeObserver(() => this.resize());
+      this.ro.observe(this.root);
+    }
+    this.resize();
     if (!this.ctx) return;
     document.addEventListener('visibilitychange', this.onVisibility);
     if (typeof IntersectionObserver === 'function') {
@@ -186,13 +203,8 @@ export class NightSky {
       });
       this.io.observe(this.root);
     }
-    if (typeof ResizeObserver === 'function') {
-      this.ro = new ResizeObserver(() => this.resize());
-      this.ro.observe(this.root);
-    }
-    this.resize();
-    if (this.still) this.paint(performance.now());
-    else this.go();
+    // resize() painted a still sky; go() animates any other.
+    this.go();
   }
 
   stop() {
@@ -208,7 +220,8 @@ export class NightSky {
   }
 
   flare(workId) {
-    if (this.destroyed) return;
+    if (this.destroyed || workId === this.flaredId) return;
+    this.flaredId = workId;
     this.flareIndex = workId == null ? -1 : this.stars.findIndex(s => s.workId === workId);
     this.flareStart = performance.now();
     for (const [id, button] of this.buttons) button.classList.toggle('is-flared', id === workId);
@@ -218,7 +231,6 @@ export class NightSky {
   setBusy(busy) {
     if (this.destroyed) return;
     this.busy = !!busy;
-    this.root.classList.toggle('is-busy', this.busy);
   }
 
   destroy() {
@@ -232,16 +244,19 @@ export class NightSky {
     this.buttons.clear();
   }
 
-  /** The canvas follows the root's size at no more than two device pixels per CSS pixel. */
+  /** Follow the root's size: fit the star targets, then (with a canvas) resize it at ≤ 2 device pixels per CSS pixel. */
   resize() {
     if (!this.running) return;
     const W = Math.max(1, this.root.clientWidth);
     const H = Math.max(1, this.root.clientHeight);
     const dpr = Math.min(2, globalThis.devicePixelRatio || 1);
-    if (W !== this.W || H !== this.H || dpr !== this.dpr) {
-      this.W = W;
-      this.H = H;
-      this.dpr = dpr;
+    const changed = W !== this.W || H !== this.H || dpr !== this.dpr;
+    this.W = W;
+    this.H = H;
+    this.dpr = dpr;
+    if (changed) this.fitTargets();
+    if (!this.ctx) return;
+    if (changed) {
       this.canvas.width = Math.round(W * dpr);
       this.canvas.height = Math.round(H * dpr);
       this.lastPaint = -Infinity;
@@ -250,13 +265,25 @@ export class NightSky {
     this.build();
   }
 
+  /**
+   * Size every star's target box so it never covers another star's centre:
+   * 44px where the stars have room, never a box under 24px in a short phone
+   * band. Targets are compared as squares, which is safe for round ones.
+   */
+  fitTargets() {
+    const at = this.stars.map(s => [s.x / 100 * this.W, s.y / 100 * this.H]);
+    let room = Infinity;
+    for (let i = 0; i < at.length; i += 1) {
+      for (let j = i + 1; j < at.length; j += 1) {
+        room = Math.min(room, Math.max(Math.abs(at[i][0] - at[j][0]), Math.abs(at[i][1] - at[j][1])));
+      }
+    }
+    this.root.style.setProperty('--star-target', `${Math.max(24, Math.min(44, Math.floor(2 * room) - 2))}px`);
+  }
+
   /** The cloud sits over the stars: centred on them, a little wider than they spread. */
   cloudBox() {
-    const xs = this.stars.map(s => s.x);
-    const ys = this.stars.map(s => s.y);
-    const [x0, x1, y0, y1] = xs.length
-      ? [Math.min(...xs), Math.max(...xs), Math.min(...ys), Math.max(...ys)]
-      : [30, 70, 30, 70];
+    const { x0, x1, y0, y1 } = this.bounds;
     return {
       cx: (x0 + x1) / 200 * this.W,
       cy: (y0 + y1) / 200 * this.H,
@@ -276,9 +303,15 @@ export class NightSky {
       const { rx, ry } = this.cloudBox();
       const near = (p, q) => Math.abs(p - q) <= q * 0.1;
       if (!this.cloudSize || !near(rx, this.cloudSize.rx) || !near(ry, this.cloudSize.ry)) {
-        this.building = { kind: 'cloud', size: { rx, ry }, job: traceCloud(rx * 2, ry * 2, CLOUD, 300000, 0.035) };
+        this.building = {
+          job: traceCloud(rx * 2, ry * 2, CLOUD, 300000, 0.035),
+          done: canvas => { this.cloud = canvas; this.cloudSize = { rx, ry }; }
+        };
       } else if (!this.burst) {
-        this.building = { kind: 'burst', job: traceCloud(BURST_RADIUS * 2, BURST_RADIUS * 2, BURST, 120000, 0.09) };
+        this.building = {
+          job: traceCloud(BURST_RADIUS * 2, BURST_RADIUS * 2, BURST, 120000, 0.09),
+          done: canvas => { this.burst = canvas; }
+        };
       } else {
         return;
       }
@@ -286,14 +319,12 @@ export class NightSky {
     this.cancelBuild = onIdle(deadline => {
       this.cancelBuild = null;
       const task = this.building;
-      if (!task) return;
       let step;
       do step = task.job.next();
       while (!step.done && deadline?.timeRemaining?.() > 4);
       if (step.done) {
         this.building = null;
-        this[task.kind] = step.value;
-        if (task.size) this.cloudSize = task.size;
+        task.done(step.value);
         if (this.still) this.paint(performance.now());
       }
       this.build();
@@ -315,8 +346,9 @@ export class NightSky {
       this.phase += dt * (this.busy ? 4 : 1);
       const began = performance.now();
       this.paint(now);
-      // A software rasteriser: five costly frames and the sky holds still.
-      if (performance.now() - began > SLOW_FRAME_MS && ++this.slowFrames >= 5) {
+      // A software rasteriser: five costly frames in a row and the sky holds still.
+      if (performance.now() - began <= SLOW_FRAME_MS) this.slowFrames = 0;
+      else if (++this.slowFrames >= 5) {
         this.still = true;
         this.paint(now);
         return;
@@ -358,11 +390,8 @@ export class NightSky {
     ctx.strokeStyle = `rgba(170,180,255,${0.34 - 0.2 * p})`;
     ctx.beginPath();
     for (const [i, j] of this.links) {
-      const a = this.stars[i];
-      const b = this.stars[j];
-      if (!a || !b) continue;
-      ctx.moveTo(...pt(a));
-      ctx.lineTo(...pt(b));
+      ctx.moveTo(...pt(this.stars[i]));
+      ctx.lineTo(...pt(this.stars[j]));
     }
     ctx.stroke();
 

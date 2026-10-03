@@ -53,6 +53,21 @@ describe('the library sky', () => {
     }));
   });
 
+  it('leaves room for a 24px target per star in the shortest phone band', () => {
+    // Home stretches the stars across a 320px-wide, 220px-tall band. NightSky
+    // sizes targets to twice the closest Chebyshev gap less 2px, so a 13px gap
+    // gives 24px targets without the 24px floor kicking in.
+    const xs = sky.stars.map(s => s.x);
+    const x0 = Math.min(...xs);
+    const width = 320 * 0.92 / ((Math.max(...xs) - x0) / 100);
+    const px = s => [(s.x - x0) / 100 * width, s.y / 100 * 220];
+    sky.stars.forEach((a, i) => sky.stars.slice(i + 1).forEach(b => {
+      const [ax, ay] = px(a);
+      const [bx, by] = px(b);
+      expect(Math.max(Math.abs(ax - bx), Math.abs(ay - by)), `${a.workId} and ${b.workId}`).toBeGreaterThanOrEqual(13);
+    }));
+  });
+
   it('draws lines only within a group, and joins each group into one constellation', () => {
     for (const [i, j] of sky.links) {
       expect(sky.stars[i].group).toBe(sky.stars[j].group);

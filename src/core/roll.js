@@ -183,24 +183,19 @@ export function composeRoll({ temper, workId, section, random = Math.random }) {
 
 /**
  * Roll a reading. A part that is given (workId, temper id, section) is kept
- * exactly; a part that is not is drawn by chance. Given the previous roll, a
- * drawn part never equals the previous roll's part, so Roll Again always
- * visibly changes something, and redrawing one part (keeping the other two)
- * always changes that part.
+ * exactly; a part that is null or undefined is drawn by chance. Given the
+ * previous roll, a drawn part never equals the previous roll's part, so Roll
+ * Again always visibly changes something, and redrawing one part (keeping the
+ * other two) always changes that part.
  */
 export function rollReading({ random = Math.random, previous = null, workId, temper, section } = {}) {
-  if (temper !== undefined && !TEMPERS.some(item => item.id === temper)) {
-    throw new TypeError(`${temper} is not a temper.`);
-  }
-  if (workId !== undefined && !jevReleasedEdition(workId)) {
-    throw new TypeError(`${workId} is not a released reading.`);
-  }
-  if (section !== undefined && !SECTIONS.includes(section)) {
+  if (section != null && !SECTIONS.includes(section)) {
     throw new TypeError(`${section} is not a section.`);
   }
   const draw = (given, list, last) => given ?? pick(list.filter(item => item !== last), random);
-  const temperId = draw(temper, TEMPERS.map(item => item.id), previous?.temper);
-  const chosen = TEMPERS.find(item => item.id === temperId);
+  const id = draw(temper, TEMPERS.map(item => item.id), previous?.temper);
+  const chosen = TEMPERS.find(item => item.id === id);
+  if (!chosen) throw new TypeError(`${temper} is not a temper.`);
   const decision = composeRoll({
     temper: chosen,
     workId: draw(workId, jevReleasedWorkIds(), previous?.decision?.workId),
