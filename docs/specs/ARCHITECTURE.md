@@ -477,7 +477,9 @@ of `settled`, `open`, `deferred`, or `reversed`.
 
 ### 8.1 No backend
 
-- **Chosen:** the browser is the entire runtime. Static files on a CDN.
+- **Chosen:** the browser is the entire reading runtime. A Cloudflare Worker
+  serves the static files and the reader's own-key integrations, and holds no
+  reader state.
 - **Rejected:** a server tier with accounts, sync, and server-side identity.
 - **Why:** the tradeoff is unusually lopsided. A backend buys cross-device sync,
   real access control, server-side rate limiting toward museum APIs, and
@@ -1348,13 +1350,16 @@ of `settled`, `open`, `deferred`, or `reversed`.
   never coexist, as when they shared a container; the live host is kept while
   its readings show. A session travels whole under `data.session` and is never
   written into history state.
-- **Rejected:** three rooms sharing one container, each a route of its own.
-- **Why:** they are one lifecycle — set up, read, come back — in one
-  container, with one address family (`/read`, `/read/session`, `/live`). One
-  room says so, and the router no longer has to special-case a route that
-  disposes another's instance. The Player is still built in one place: the
-  chamber pane calls `src/app/chamber-session-factory.js` exactly as the route
-  table did, and `src/core/current.test.js` still holds it there.
+- **Rejected:** three rooms, two of them sharing one container, each a route
+  of its own.
+- **Why:** they are one lifecycle — set up, read, come back — with one address
+  family (`/read`, `/read/session`, `/live`). One room says so, and the reading
+  closes its own pane instead of reaching into the router for another route's
+  instance. The router still marks a move to the chamber pane as a launch it
+  may cancel. A move between Read's panes is in place and has no crossfade, by
+  the same rule as the Library's and Make's. The Player is still built in one
+  place: the chamber pane calls `src/app/chamber-session-factory.js` exactly as
+  the route table did, and `src/core/current.test.js` still holds it there.
 - **Status:** settled.
 
 ---

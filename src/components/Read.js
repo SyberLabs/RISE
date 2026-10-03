@@ -57,12 +57,9 @@ export class Read {
     return this.panes.instance(name);
   }
 
-  /** The pane `data` names: by name, a live Current, a session or a work, else setup. */
+  /** The pane `data` names (the router's aliases always name one), else setup. */
   static paneFor(data = {}) {
-    if (['setup', 'chamber', 'live'].includes(data?.pane)) return data.pane;
-    if (data?.live === true) return 'live';
-    if (data?.session || data?.workId) return 'chamber';
-    return 'setup';
+    return ['setup', 'chamber', 'live'].includes(data?.pane) ? data.pane : 'setup';
   }
 
   async open(data = {}) {

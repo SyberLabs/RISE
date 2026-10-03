@@ -52,21 +52,25 @@ afterEach(() => {
 const pane = name => container.querySelector(`[data-pane="${name}"]`);
 
 describe('Read', () => {
-    it('opens on the setup pane with no work, and on the chamber with one', async () => {
+    it('opens the pane the router names, and the setup when none is named', async () => {
         const chamberModule = await capabilities.load.chamber();
         capabilities.load.chamber = async () => chamberModule;
         read = new Read(container, { ...capabilities });
         await read.open({});
         expect(read.activePane).toBe('setup');
-        await read.open({ workId: 'meditations' });
+        await read.open({ pane: 'chamber', session: { atoms: [1] } });
         expect(read.activePane).toBe('chamber');
-        expect(chamberModule.createChamberSession).toHaveBeenCalledWith(capabilities.chamber, pane('chamber'), undefined);
+        expect(chamberModule.createChamberSession)
+            .toHaveBeenCalledWith(capabilities.chamber, pane('chamber'), { atoms: [1] });
+        await read.open({ pane: 'setup' });
+        expect(read.activePane).toBe('setup');
     });
 
     it('opens the live host for a live Current', async () => {
         read = new Read(container, { ...capabilities });
-        await read.open({ live: true });
+        await read.open({ pane: 'live' });
         expect(read.activePane).toBe('live');
+        expect(read.paneInstance('live').options).toBe(capabilities.live);
         await read.open({ pane: 'setup' });
         await read.update({ pane: 'live' });
         expect(read.activePane).toBe('live');
