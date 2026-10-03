@@ -133,6 +133,7 @@ history, not a distinction; read the status column instead.
 | [affect/BENCHMARK.md](affect/BENCHMARK.md) | Record | Inspection results for the lexicon-backed text priors and offline comparison probes. |
 | [affect/RESEARCH-LOG.md](affect/RESEARCH-LOG.md) | Record | Research limitations, unavailable human judgments, and the reasons the probe is not a trained runtime. |
 | [adr/0001-affective-semantic-layer.md](adr/0001-affective-semantic-layer.md) | Record | The architecture decision and alternatives for the inspectable affect layer. |
+| [adr/0002-gate-0-realtime-host.md](adr/0002-gate-0-realtime-host.md) | Record | Gate 0 of the realtime roadmap: whether ChatGPT voice can be a Live host, what its documentation settles, the probe, a fifteen-minute run sheet, pre-registered verdicts, and the roadmap requirements it removes. |
 
 ## Reading decision service and retired gate
 
