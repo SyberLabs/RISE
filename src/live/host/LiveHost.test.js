@@ -137,15 +137,6 @@ describe('refusing, in words', () => {
         expect(build).toHaveBeenCalledTimes(1);
     });
 
-    it('uses the resolved provider when deciding whether an offline catalog sample is allowed', () => {
-        mount('?catalog=klee&provider=GEMINI');
-        expect(host.chosenProvider()).toBe('mock');
-        const error = container.querySelector('.live-error');
-        expect(error.hidden).toBe(true);
-        expect(error.textContent).toBe('');
-        expect(host.catalogConflict).toBe(false);
-    });
-
     it('rejects catalog choices in keyed, embed, and evaluation modes before starting them', async () => {
         mount('?catalog=attractor&provider=openai');
         expect(container.querySelector('.live-error').textContent).toMatch(/only available in the offline demonstration/u);
@@ -161,6 +152,16 @@ describe('refusing, in words', () => {
             expect(host.modules).toBeUndefined();
             await host.start();
             expect(host.runtime).toBeNull();
+        }
+    });
+
+    it('admits catalog choices when an unknown provider falls back to mock, including differently cased names', async () => {
+        for (const search of ['?catalog=klee&provider=GEMINI', '?catalog=klee&provider=nonsense']) {
+            mount(search);
+            expect(host.chosenProvider()).toBe('mock');
+            expect(container.querySelector('.live-error').hidden).toBe(true);
+            expect(container.querySelector('.live-catalog-note').textContent).toBe('This sample begins with klee.');
+            expect(host.catalogConflict).toBe(false);
         }
     });
 
