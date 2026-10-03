@@ -20,8 +20,7 @@ const ROUTE_IDS = [
   'visual-lab',
   'visual-catalog',
   'live',
-  'chapel',
-  'today'
+  'chapel'
 ];
 
 describe('createRouteManifest', () => {
@@ -76,19 +75,18 @@ describe('createRouteManifest', () => {
     expect(roomOptions('settings', 'Settings').notify).toBe(notify);
   });
 
-  it('creates Today with navigation and the session starter', () => {
-    const handleNavigate = vi.fn();
-    const handleBeginSession = vi.fn();
+  it('lets Home begin today\'s poem', () => {
+    const launchToday = vi.fn();
     let received;
-    class TodayPoem {
+    class Portal {
       constructor(_container, options) {
         received = options;
       }
     }
-    createRouteManifest({ handleNavigate, handleBeginSession })
-      .find(route => route.id === 'today')
-      .create({}, null, { TodayPoem });
-    expect(received).toEqual({ onNavigate: handleNavigate, onBegin: handleBeginSession });
+    createRouteManifest({ launchToday })
+      .find(route => route.id === 'portal')
+      .create({}, null, { Portal });
+    expect(received.onLaunchToday).toBe(launchToday);
   });
 
   it('creates the catalog with the navigation callback and address search', () => {

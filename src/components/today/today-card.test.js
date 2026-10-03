@@ -1,43 +1,35 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
-
-vi.mock('./mandala.js', () => ({ drawMandala: vi.fn(() => ({ caption: '', cancel: vi.fn() })) }));
-
-import { drawMandala } from './mandala.js';
-import { drawTodayCardMark, todayCardMarkup } from './today-card.js';
+import { describe, expect, it } from 'vitest';
+import { todayCardMarkup } from './today-card.js';
 import { poemTitle, todayPoem } from '../../core/today-poem.js';
+import { todayDecision } from '../../core/today-reading.js';
 import OPENINGS from '../../content/archive/today-openings.json' with { type: 'json' };
 
+const engineOf = decision => (decision.config.visualConfig.visualMode === 'attractor'
+  ? 'attractor' : decision.config.visualConfig.interlocution.procedural[0]);
+
 describe('the Home card', () => {
-  afterEach(() => vi.clearAllMocks());
-
-  it('names the day\'s poem, its poet and its first line, as one button into the Today view', () => {
-    const date = new Date(2026, 9, 3, 9);
-    const pick = todayPoem(date);
-    const host = document.createElement('div');
-    host.innerHTML = todayCardMarkup(date);
-    const card = host.querySelector('[data-home="today"]');
-    expect(card.tagName).toBe('BUTTON');
-    expect(host.querySelector('.home-today-title').textContent).toBe(poemTitle(pick.label));
-    expect(host.querySelector('.home-today-poet').textContent).toBe(OPENINGS.works[pick.workId].author);
-    expect(host.querySelector('.home-today-line').textContent).toBe(OPENINGS.openings[pick.workId][pick.entryId]);
-    expect(host.querySelector('.home-today-eyebrow').textContent).toMatch(/^Today's poem, /u);
-    expect(card.getAttribute('aria-label'))
-      .toBe(`Read today's poem: ${poemTitle(pick.label)}, by ${OPENINGS.works[pick.workId].author}`);
-    expect(card.dataset.seed).toBe('2026-10-03');
+  it('shows the day\'s engine, mood, poem and first line, as one button that begins it', () => {
+    for (const day of [3, 4, 7]) {
+      const date = new Date(2026, 9, day, 9);
+      const pick = todayPoem(date);
+      const decision = todayDecision(pick);
+      const host = document.createElement('div');
+      host.innerHTML = todayCardMarkup(date);
+      const card = host.querySelector('[data-home="today"]');
+      expect(card.tagName).toBe('BUTTON');
+      expect(card.querySelector('.home-today-still').getAttribute('src')).toBe(`/engine-stills/card/${engineOf(decision)}.webp`);
+      expect(card.querySelector('.home-today-eyebrow').textContent.toLowerCase()).toBe(`today's poem · ${decision.temper}`);
+      expect(card.querySelector('.home-today-title').textContent).toBe(poemTitle(pick.label));
+      expect(card.querySelector('.home-today-line').textContent).toBe(OPENINGS.openings[pick.workId][pick.entryId]);
+      expect(card.querySelector('.home-today-go').textContent).toBe('Begin today\'s poem');
+      expect(card.getAttribute('aria-label'))
+        .toBe(`Begin today's poem: ${poemTitle(pick.label)}, by ${OPENINGS.works[pick.workId].author}`);
+    }
   });
 
-  it('escapes what it shows', () => {
+  it('has no second solid key: the card is a line button over the image', () => {
     const host = document.createElement('div');
     host.innerHTML = todayCardMarkup(new Date(2026, 9, 3));
-    expect(host.querySelector('script')).toBeNull();
-  });
-
-  it('draws the day\'s mark still, once, into the card', () => {
-    const host = document.createElement('div');
-    host.innerHTML = todayCardMarkup(new Date(2026, 9, 3));
-    drawTodayCardMark(host);
-    expect(drawMandala).toHaveBeenCalledWith(host.querySelector('.home-today-mark'), '2026-10-03', { folds: 12, animate: false });
-    drawTodayCardMark(document.createElement('div'));
-    expect(drawMandala).toHaveBeenCalledOnce();
+    expect(host.querySelector('.btn-primary')).toBeNull();
   });
 });
