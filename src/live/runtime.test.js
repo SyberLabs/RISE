@@ -374,7 +374,7 @@ describe('diving and surfacing', () => {
         await runtime.surface();
     });
 
-    it('refuses a nested Dive, an unknown place, a blank question, and a Surface with nothing to surface from', async () => {
+    it('refuses an unknown place, a blank question, and a Surface with nothing to surface from', async () => {
         build();
         await runtime.start(ASK);
         await tick(4_000);
@@ -384,8 +384,10 @@ describe('diving and surfacing', () => {
         await expect(runtime.dive({ question: 'x', segmentId: 'what', atCharacter: 99_999 })).rejects.toMatchObject({ code: 'POSITION' });
         expect(runtime.status).toBe('live');
         await runtime.dive({ question: 'dive on event horizon' });
-        await expect(runtime.dive({ question: 'and deeper' })).rejects.toBeInstanceOf(LiveRuntimeError);
-        await expect(runtime.dive({ question: 'and deeper' })).rejects.toMatchObject({ code: 'NESTED_DIVE' });
+        // Asked inside a Dive, a question is a turn of that Dive, never a Dive inside it (runtime-undercurrent.test.js).
+        await runtime.dive({ question: 'and deeper' });
+        expect(runtime.undercurrent()).toHaveLength(1);
+        expect(runtime.undercurrent()[0].turns).toHaveLength(2);
     });
 
     it('still surfaces cleanly when the side Current is abandoned half way', async () => {

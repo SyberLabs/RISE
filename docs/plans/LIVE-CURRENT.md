@@ -115,7 +115,7 @@ An adapter is `{ open(request), events(): AsyncIterable<RiseEvent>, interrupt(),
 
 **Evidence** is a bounded record: source identity, title, an optional location or span, a URI only through a validated `https` path, the claim or segment it supports, and whether it was `supplied`, `retrieved` or `model-proposed`. A model's origin is attribution, not evidence. Absent evidence is represented as absent and shown as absent. Evidence is reachable through Dive, never forced into the primary stream.
 
-**Depth.** *Stable depth* (citations, prepared diagrams, authored notes) lowers to the existing `thread` track. *Generative depth* (the reader asks a question at a position) opens a `branch`: a child Current that records its parent, the exact atom it was invoked from, the question, inherited context and evidence, and its own identity. Nested Dive is not built. The UI marks which kind of depth it is showing.
+**Depth.** *Stable depth* (citations, prepared diagrams, authored notes) lowers to the existing `thread` track. *Generative depth* (the reader asks a question at a position) opens a `branch`: a child Current that records its parent, the exact atom it was invoked from, the question, inherited context and evidence, and its own identity. A Dive is kept, not discarded when the reader surfaces: it hangs off one place in the reading and holds every question asked inside it (the undercurrent, `docs/plans/LIVE-UNDERCURRENT.md`). A Dive inside a Dive is not built: a question asked inside one is another turn of that Dive. The UI marks which kind of depth it is showing.
 
 ## 9. Hosts
 
@@ -147,6 +147,7 @@ Budgets, all measured with the virtual clock and stated in the architecture deci
 | Player live mode | yes | yes | no | n/a | n/a |
 | Speech clock and synthetic voice renderer | yes | yes | yes (silent, paced) | yes | n/a |
 | Runtime, Dive and Surface | yes | yes | yes | yes | n/a |
+| The undercurrent: Dives kept at the place they were taken from, follow-ups in the same Dive, breadcrumb, markers and panel (`docs/plans/LIVE-UNDERCURRENT.md`) | yes | yes | yes (deterministic provider) | yes | **not verified: no real provider, and a follow-up is not told the earlier answers** |
 | Browser voice (`speechSynthesis`) | yes | yes, against a fake device | **no** (no real voice has been heard) | n/a | n/a |
 | `/live` host | yes | yes | yes | yes | n/a |
 | Capability negotiation | yes | yes | yes (each degradation observed) | yes | n/a |

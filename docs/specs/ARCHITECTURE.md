@@ -166,7 +166,7 @@ flowchart LR
     content["content<br/>texts, imagery, journeys<br/>228 modules"]
     core["core<br/>session, player, router<br/>163 modules"]
     enterprise["enterprise<br/>talk program, speaker rail<br/>34 modules"]
-    live["live<br/>realtime Current: events, runtime, providers<br/>38 modules"]
+    live["live<br/>realtime Current: events, runtime, providers<br/>40 modules"]
     page["page<br/>spatial projection<br/>4 modules"]
     sources["sources<br/>text and visual providers<br/>13 modules"]
     vendor["vendor<br/>SyberLabs design kit<br/>2 modules"]
@@ -1241,6 +1241,32 @@ of `settled`, `open`, `deferred`, or `reversed`.
   browser with Google's endpoint stubbed. Never run against Google's service,
   and the default model has not been checked against its model list
   (`docs/plans/LIVE-GEMINI.md` says how to verify both with a real key).
+
+### 8.41 A Dive is kept, at one place in the reading
+
+- **Chosen:** each Dive the reader takes is saved (`src/live/undercurrent.js`) as
+  an entry anchored to one segment and character of the main reading, with a
+  short quote of the words there, and holds every question asked inside it with
+  the model's answer as far as it got and how the turn ended. A question asked
+  inside a Dive is another turn of the same entry, answered by a Current of its
+  own in place of the last, never a second Dive. The reading left behind stays
+  held. The runtime keeps the entries and says which Dive the reader is in
+  (`snapshot().dive`); the controls draw a breadcrumb, a marker under the passage
+  each Dive was taken from, and a panel of every Dive, with `textContent` only.
+- **Rejected:** nested Dives (a tree is hard to hold in the head, and the
+  protocol has one parent); a Dive that disappears on Surface (the three things
+  a reader could not tell were where they forked from, what a second Dive does,
+  and where the answer went); saving across page loads (nothing in `src/live`
+  writes to storage and the reading itself is not saved, so a saved Dive would
+  hang off nothing); and telling the provider the earlier answers of the same
+  Dive (it changes the open request every adapter validates and puts earlier
+  model text into the next prompt, and needs its own review).
+- **Why:** the reading has a spine, and a Dive belongs to a place on it. One
+  anchor per Dive, one entry per Dive, and follow-ups inside it make the answer
+  to "what does a second Dive do" the same in every state.
+- **Status:** open. Built and tested at every layer, and in a real browser on
+  the deterministic provider. Not tried with a real provider, and a follow-up
+  is answered from the passage alone.
 
 ---
 

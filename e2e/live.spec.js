@@ -97,6 +97,50 @@ test.describe('the canonical flow', () => {
         expect(errors).toEqual([]);
     });
 
+    test('keeps every Dive: a question asked inside one is a follow-up in the same Dive, and it is still there after Surface', async ({ page }) => {
+        const errors = watchErrors(page);
+        await start(page);
+        await expectShown(page, 'that nothing, not even light');
+        await page.getByRole('button', { name: 'Interrupt', exact: true }).click();
+        const heldAt = await shown(page);
+
+        await page.locator('#live-controls-question').fill('dive on event horizon');
+        await page.getByRole('button', { name: /Dive: ask about this place/u }).click();
+        await expect(status(page)).toContainText('answered', { timeout: 20_000 });
+        // In a Dive: where the reader is, where Surface goes back to, and the Dive in the panel.
+        await expect(page.locator('.live-controls__crumb')).toContainText('Main › Dive 1: “dive on event horizon”');
+        await expect(page.locator('.live-controls__crumb')).toContainText('Surface returns to:');
+        await expect(page.locator('.live-controls__undercurrent summary').first()).toHaveText('Undercurrent (1)');
+
+        // Another question inside it is another turn of the same Dive, not a second Dive.
+        await page.locator('#live-controls-question').fill('and what is it like at the horizon?');
+        await page.getByRole('button', { name: 'Ask a follow-up in this Dive', exact: true }).click();
+        await expect(page.locator('.live-controls__crumb')).toContainText('and what is it like at the horizon?');
+        await expect(status(page)).toContainText('answered', { timeout: 20_000 });
+        await expect(page.locator('.live-controls__undercurrent summary').first()).toHaveText('Undercurrent (1)');
+        await expect(page.locator('.live-undercurrent > li')).toHaveCount(1);
+        await expect(page.locator('.live-undercurrent > li summary')).toContainText('2 questions');
+
+        await page.getByRole('button', { name: 'Surface', exact: true }).click();
+        await expect(page.locator('.live-controls__crumb')).toBeHidden();
+        expect(await shown(page)).toBe(heldAt);
+
+        // Kept after Surface, and marked where it was taken from; the marker opens it.
+        await expect(page.locator('.live-controls__undercurrent summary').first()).toHaveText('Undercurrent (1)');
+        await page.locator('.live-controls__transcript summary').click();
+        const marker = page.locator('.live-controls__forks button').first();
+        await expect(marker).toContainText('Dive 1: “dive on event horizon”');
+        await marker.click();
+        const entry = page.locator('.live-undercurrent details[data-dive="dive-1"]');
+        await expect(entry).toHaveAttribute('open', '');
+        await expect(entry).toContainText('You asked: dive on event horizon');
+        await expect(entry).toContainText('You asked: and what is it like at the horizon?');
+        await expect(entry).toContainText('The event horizon is where the speed needed to escape');
+
+        await page.getByRole('button', { name: 'Stop', exact: true }).click();
+        expect(errors).toEqual([]);
+    });
+
     test('keeps a transcript that says what has been said, without sight or sound', async ({ page }) => {
         await start(page);
         await expectShown(page, 'that nothing, not even light');

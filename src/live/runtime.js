@@ -22,7 +22,10 @@
  * finishes long before speech does, so what the reader lived through
  * (interruptions, Dives, where speech was) is kept here, in a bounded journal.
  *
- * A Dive is a Current of its own. Nested Dives are not built and are refused.
+ * A Dive is a Current of its own, and it is kept (undercurrent.js): each Dive hangs
+ * off one place in the reading and holds every question asked inside it. A question
+ * asked inside a Dive is another turn of that Dive, answered by a Current of its own
+ * in place of the last. Dives are never nested.
  */
 
 import { compileRiseCurrent } from '../core/rise-current.js';
@@ -31,6 +34,7 @@ import { createRealClock } from './clock.js';
 import { createSpeechGovernor } from './speech-governor.js';
 import { withExperientialState } from './state-visuals.js';
 import { createCurrentStream } from './stream.js';
+import { createUndercurrent, quoteOf, UNDERCURRENT_LIMITS } from './undercurrent.js';
 
 export const RUNTIME_LIMITS = Object.freeze({ reconnects: 3, backoffMs: 250, journal: 500 });
 
@@ -54,7 +58,12 @@ export function createLiveRuntime({
     let error = null;
     let main = null;
     let side = null;
+    // The Dive the reader is in, from the moment it begins to open until they surface.
+    let current = null;
+    // A Dive or a follow-up is being opened, so another cannot be.
+    let opening = false;
     let stopped = false;
+    const kept = createUndercurrent();
     const journal = [];
     const listeners = new Set();
 
@@ -83,7 +92,8 @@ export function createLiveRuntime({
     }
 
     function snapshot() {
-        return Object.freeze({ status, error, main: summary(main), side: summary(side) });
+        const dive = current ? Object.freeze({ id: current.id, turns: current.turns, opening }) : null;
+        return Object.freeze({ status, error, main: summary(main), side: summary(side), dive });
     }
 
     function set(nextStatus, nextError = error) {
@@ -96,10 +106,22 @@ export function createLiveRuntime({
 
     // ─── a run: one Current, from open to close ─────────────────────────
 
+    /** Keep a Dive's answer, and how that turn stands, in step with the Current that is writing it. */
+    function syncTurn(run) {
+        if (!run?.turn) return;
+        const paragraphs = run.stream.snapshot().segments.filter(segment => segment.ended && segment.text).map(segment => segment.text);
+        let status = 'answering';
+        if (run.error) status = 'failed';
+        else if (run.stream.phase === 'complete') status = 'answered';
+        else if (run.closed) status = 'cut-short';
+        kept.update(run.turn.id, run.turn.index, { paragraphs, status, error: run.error ? run.error.message : null });
+    }
+
     function failRun(run, caught) {
         if (run.closed) return;
         run.error = { code: caught?.code ?? 'FAILED', message: String(caught?.message ?? caught).slice(0, 300) };
         note('run.failed', { role: run.role, ...run.error });
+        syncTurn(run);
         run.player?.setLive(false);
         // What was committed is still worth reading; only a Current with nothing to show has failed.
         if (!run.player) {
@@ -130,6 +152,7 @@ export function createLiveRuntime({
         run.unspoken.push(...fresh);
         if (run.presented) speak(run);
         run.lowered = ended.length;
+        syncTurn(run);
         set(status);
 
         if (!run.player) {
@@ -226,6 +249,7 @@ export function createLiveRuntime({
                 note('connection.resumed', { role: run.role });
             }
             if (run.stream.phase === 'failed') throw new AdapterError(run.stream.snapshot().error?.code ?? 'FAILED', run.stream.snapshot().error?.message ?? 'The Current failed');
+            if (run.turn) { syncTurn(run); set(status); }
             run.player?.setLive(false);
             if (!run.player) {
                 if (run.role === 'main') set(run.stream.phase === 'cancelled' ? 'stopped' : 'failed', run.stream.phase === 'cancelled' ? null : { code: 'EMPTY_CURRENT', message: 'Nothing was said' });
@@ -242,9 +266,9 @@ export function createLiveRuntime({
      * second Dive is refused while the first is still connecting. Resolves null if it was
      * closed meanwhile; the connection that arrives too late is closed, never used.
      */
-    async function openRun(request, role) {
+    async function openRun(request, role, turn = null) {
         const run = {
-            role, request, stream: createCurrentStream(), connection: null, player: null, voice: null, governor: null,
+            role, request, turn, stream: createCurrentStream(), connection: null, player: null, voice: null, governor: null,
             lowered: 0, presenting: null, presented: false, unspoken: [], segmentId: null, closed: false, finished: false, error: null, speaking: null, abort: new AbortController(), pumping: null
         };
         if (role === 'main') main = run;
@@ -345,19 +369,38 @@ export function createLiveRuntime({
         },
 
         /**
-         * Ask a question at the reader's exact position. The parent is held
-         * where it is; the question is answered as a Current of its own.
+         * Ask a question at the reader's exact position. The parent is held where it is; the
+         * question is answered as a Current of its own, and kept as a Dive of the undercurrent.
+         * Asked inside a Dive, it is another turn of that Dive: the Current that was answering
+         * is closed (what it had written is kept) and a new one opens at the same place.
          */
         async dive({ question, segmentId, atCharacter } = {}) {
-            if (side) throw new LiveRuntimeError('NESTED_DIVE', 'A Dive inside a Dive is not built');
-            if (!main?.player || (status !== 'live' && status !== 'interrupted' && status !== 'ended')) {
+            if (opening) throw new LiveRuntimeError('DIVE_BUSY', 'A Dive is still opening');
+            const following = current !== null;
+            if (following ? status !== 'diving' : (!main?.player || (status !== 'live' && status !== 'interrupted' && status !== 'ended'))) {
                 throw new LiveRuntimeError('NOT_LIVE', 'There is nothing to dive from');
             }
             if (typeof question !== 'string' || !question.trim() || question.length > OPEN_LIMITS.prompt) {
                 throw new LiveRuntimeError('QUESTION', 'A Dive needs a question');
             }
+            const asked = question.trim();
+            if (following) return followUp(asked);
+
             const position = where(main, segmentId, atCharacter);
+            const view = main.stream.snapshot();
+            const index = view.segments.findIndex(segment => segment.id === position.segmentId);
+            let turn;
+            try {
+                const begun = kept.begin({ ...position, quote: quoteOf(view.segments[index]?.text, position.atCharacter, UNDERCURRENT_LIMITS.quote), question: asked });
+                turn = { id: begun.id, index: begun.turn };
+            } catch (caught) {
+                throw new LiveRuntimeError('UNDERCURRENT_FULL', caught.message);
+            }
             const before = status;
+            const context = view.segments.slice(Math.max(0, index - 1), index + 1)
+                .map(segment => clip(segment.text, OPEN_LIMITS.contextText));
+            current = { id: turn.id, turns: 1, parent: { currentId: main.stream.currentId, ...position, context } };
+            opening = true;
             // Where the phrase on screen begins, for a voice that will have to say it again: the screen
             // knows, and a voice with no word boundaries does not. Between two phrases (in a flash, or held
             // during one) the phrase on screen has already been said, and the Player will go past it, so there is none to say again.
@@ -369,22 +412,21 @@ export function createLiveRuntime({
             // take up at the start of the phrase is decided here, once, so that every way back (Surface, a
             // Dive that fails to open, a resume after one) shows that phrase again and times it by the voice.
             if (main.voice?.hold({ exclusive: true, ...(phrase ? { resumeAt: phrase } : {}) }) === true) main.player.restartCurrentAtom();
-            const view = main.stream.snapshot();
-            const index = view.segments.findIndex(segment => segment.id === position.segmentId);
-            const context = view.segments.slice(Math.max(0, index - 1), index + 1)
-                .map(segment => clip(segment.text, OPEN_LIMITS.contextText));
-            note('branch.open', { question: clip(question, 200), ...position });
+            note('branch.open', { question: clip(asked, 200), ...position });
             try {
-                if (!await openRun({
-                    intent: 'dive',
-                    prompt: question,
-                    parent: { currentId: main.stream.currentId, ...position, context }
-                }, 'side')) return;
+                if (!await openRun({ intent: 'dive', prompt: asked, parent: current.parent }, 'side', turn)) return;
             } catch (caught) {
                 note('branch.failed', { code: caught?.code ?? 'OPEN_FAILED' });
+                // Nothing was answered, so nothing is kept.
+                kept.drop(turn.id);
+                current = null;
+                // Whoever is watching saw the Dive begin; if nothing restarts the reading, nothing else would say it is gone.
+                set(status);
                 // Playing again releases the voice with it; a reader who had held it keeps it held.
                 if (before === 'live') main.player.play();
                 throw caught;
+            } finally {
+                opening = false;
             }
             attachVoice(side);
             set('diving');
@@ -393,17 +435,22 @@ export function createLiveRuntime({
 
         /** Come back. The parent continues from exactly where the Dive left it. */
         async surface() {
-            if (!side) throw new LiveRuntimeError('NOT_DIVING', 'There is no Dive to surface from');
+            if (!current) throw new LiveRuntimeError('NOT_DIVING', 'There is no Dive to surface from');
             const child = side;
             side = null;
+            current = null;
             await closeRun(child);
+            syncTurn(child);
             if (stopped) return;
-            note('branch.close', { currentId: child.stream.currentId });
+            note('branch.close', { currentId: child?.stream.currentId });
             await host.present?.({ role: 'main', session: main.player.sessionState.session, player: main.player, run: summary(main) });
             if (stopped) return;
             set(main.finished ? 'ended' : 'live');
             if (main.player.sessionState.state === 'paused') main.player.play();
         },
+
+        /** Every Dive the reader has taken, each at its place, with every question and what was answered. Plain data. */
+        undercurrent() { return kept.list(); },
 
         /** Everything ends and every timer, voice and connection is released. Safe more than once. */
         async stop() {
@@ -411,13 +458,54 @@ export function createLiveRuntime({
             stopped = true;
             const runs = [side, main];
             side = null;
+            current = null;
             for (const run of runs) await closeRun(run);
+            syncTurn(runs[0]);
             set('stopped', error);
             listeners.clear();
         }
     };
 
     // ─── helpers that need the runs above ───────────────────────────────
+
+    /** A question asked inside a Dive: the same Dive, at the same place, answered by a Current of its own. */
+    async function followUp(asked) {
+        let turn;
+        try {
+            turn = { id: current.id, index: kept.follow(current.id, asked) };
+        } catch (caught) {
+            throw new LiveRuntimeError('DIVE_FULL', caught.message);
+        }
+        const { parent } = current;
+        current.turns += 1;
+        opening = true;
+        set(status);
+        try {
+            const previous = side;
+            side = null;
+            await closeRun(previous);
+            syncTurn(previous);
+            // The reader surfaced, or stopped, while the last answer was being closed: nothing is opened.
+            if (stopped || !current) {
+                kept.update(turn.id, turn.index, { status: 'cut-short' });
+                return;
+            }
+            note('branch.open', { question: clip(asked, 200), segmentId: parent.segmentId, atCharacter: parent.atCharacter, turn: turn.index + 1 });
+            try {
+                if (!await openRun({ intent: 'dive', prompt: asked, parent }, 'side', turn)) return;
+            } catch (caught) {
+                note('branch.failed', { code: caught?.code ?? 'OPEN_FAILED' });
+                kept.update(turn.id, turn.index, { status: 'failed', error: String(caught?.message ?? caught) });
+                throw caught;
+            }
+            attachVoice(side);
+            set('diving');
+            startPumping(side);
+        } finally {
+            opening = false;
+            set(status);
+        }
+    }
 
     function attachVoice(run) {
         if (!run.voice) return;

@@ -15,7 +15,9 @@ import { interpret } from '../mic/interpret.js';
 import { createLiveControls, describeStatus } from './controls.js';
 
 const snapshot = (status, extra = {}) => ({
-    status, error: null, main: { voiceDegraded: false, speaking: null, ...extra.main }, side: extra.side ?? null, ...(extra.error ? { error: extra.error } : {})
+    status, error: null, main: { voiceDegraded: false, speaking: null, ...extra.main }, side: 'side' in extra ? extra.side : (status === 'diving' ? { finished: false, error: null } : null), ...(extra.error ? { error: extra.error } : {}),
+    // In a Dive, the Dive the reader is in; `extra.dive` says otherwise.
+    dive: extra.dive !== undefined ? extra.dive : (status === 'diving' ? { id: 'dive-1', turns: 1, opening: false } : null)
 });
 
 describe('the sentence for each state', () => {
@@ -46,15 +48,17 @@ describe('the sentence for each state', () => {
         expect(describeStatus(snapshot('diving'), { question: 'x'.repeat(500) }).length).toBeLessThan(260);
     });
 
-    it('says, while a Dive is open, that another question waits until the reader surfaces, both while it is being answered and once it is', () => {
+    it('says, while a Dive is open, that a follow-up can be asked here and that Surface goes back, both while it is being answered and once it is', () => {
         const writing = describeStatus(snapshot('diving'), { question: 'q' });
         const answered = describeStatus(snapshot('diving', { side: { finished: true } }), { question: 'q' });
-        for (const text of [writing, answered]) expect(text).toMatch(/Surface.*ask (again|about another place)/u);
-        expect(describeStatus(snapshot('diving', { side: { error: { message: 'no answer' } } }), { question: 'q' })).toBe('The Dive could not be answered (no answer). Surface to go back.');
+        for (const text of [writing, answered]) expect(text).toMatch(/follow-up.*Surface/u);
+        expect(describeStatus(snapshot('diving', { side: { error: { message: 'no answer' } } }), { question: 'q' })).toBe('The Dive could not be answered (no answer). Ask again, or Surface to go back.');
+        expect(describeStatus(snapshot('diving', { dive: { id: 'dive-1', turns: 2, opening: true }, side: null }), { question: 'q' })).toBe('Asking…');
+        expect(describeStatus(snapshot('diving', { side: null }), { question: 'q' })).toMatch(/could not be opened.*Ask again, or Surface/u);
     });
 
     it('says a Dive is answered when it is, and that it could not be when it could not', () => {
-        expect(describeStatus(snapshot('diving', { side: { finished: true } }), { question: 'q' })).toMatch(/answered\. Surface/u);
+        expect(describeStatus(snapshot('diving', { side: { finished: true } }), { question: 'q' })).toMatch(/answered. Ask a follow-up here, or Surface/u);
         expect(describeStatus(snapshot('diving', { side: { error: { message: 'no answer' } } }), { question: 'q' })).toMatch(/could not be answered \(no answer\)/u);
     });
 
@@ -85,7 +89,7 @@ describe('an answer that stopped early', () => {
 
     it('does not mix a Dive’s failure into the main answer’s: a Dive says its own', () => {
         const text = describeStatus(snapshot('diving', { side: { error: { message: 'no answer' } }, main: { error: cut } }), { question: 'q' });
-        expect(text).toBe('The Dive could not be answered (no answer). Surface to go back.');
+        expect(text).toBe('The Dive could not be answered (no answer). Ask again, or Surface to go back.');
     });
 
     it('is only ever words: a hostile or missing message is clipped, or replaced by a plain one', () => {
@@ -105,13 +109,17 @@ function fakeRuntime(initial = 'live') {
         get status() { return state.status; },
         snapshot: () => state,
         subscribe: fn => { listeners.add(fn); return () => listeners.delete(fn); },
-        composed: role => ({ segments: role === 'side' ? [{ text: 'a dive line', ended: true }] : [{ text: 'first line', ended: true }, { text: 'second line', ended: true }, { text: 'still being written', ended: false }] }),
+        composed: role => ({ segments: role === 'side' ? [{ id: 'd1', text: 'a dive line', ended: true }] : [{ id: 's1', text: 'first line', ended: true }, { id: 's2', text: 'second line', ended: true }, { id: 's3', text: 'still being written', ended: false }] }),
+        undercurrent: () => runtime.dives,
+        dives: [],
         interrupt: vi.fn(async body => { calls.push(['interrupt', body]); runtime.set('interrupted'); }),
         hold: vi.fn(body => { if (state.status !== 'live') throw new Error('There is nothing to hold'); calls.push(['hold', body]); runtime.set('interrupted'); }),
         resume: vi.fn(() => { calls.push(['resume']); runtime.set('live'); }),
-        dive: vi.fn(async body => { if (state.status === 'diving') throw new Error('A Dive inside a Dive is not built'); calls.push(['dive', body]); runtime.set('diving'); }),
+        dive: vi.fn(async body => { calls.push(['dive', body]); runtime.set('diving'); }),
         surface: vi.fn(async () => { calls.push(['surface']); runtime.set('live'); }),
         set(status, extra) { state = snapshot(status, extra); for (const fn of [...listeners]) fn(state); },
+        /** The undercurrent changes while the state stays as it is. */
+        setDives(dives) { runtime.dives = dives; for (const fn of [...listeners]) fn(state); },
         calls
     };
     return runtime;
@@ -137,6 +145,12 @@ describe('the buttons', () => {
         runtime.set('diving');
         expect($('[data-live="surface"]').hidden).toBe(false);
         expect($('[data-live="interrupt"]').hidden).toBe(true);
+        // Asked inside a Dive, a question is a follow-up, so it can still be asked.
+        expect($('[data-live="dive"]').disabled).toBe(false);
+        expect($('input[name="question"]').disabled).toBe(false);
+        expect($('[data-live="dive"]').textContent).toBe('Ask again');
+        expect($('[data-live="dive"]').getAttribute('aria-label')).toBe('Ask a follow-up in this Dive');
+        runtime.set('diving', { dive: { id: 'dive-1', turns: 2, opening: true }, side: { phase: 'idle' } });
         expect($('[data-live="dive"]').disabled).toBe(true);
         expect($('input[name="question"]').disabled).toBe(true);
 
@@ -198,13 +212,13 @@ describe('the buttons', () => {
 
     it('says in words what went wrong when the runtime refuses, and stays usable', async () => {
         const runtime = fakeRuntime('live');
-        runtime.dive = vi.fn(async () => { throw new Error('A Dive inside a Dive is not built'); });
+        runtime.dive = vi.fn(async () => { throw new Error('A Dive is still opening'); });
         controls = createLiveControls({ runtime, onStop: () => {} });
         $('input[name="question"]').value = 'deeper';
         $('.live-controls__ask').requestSubmit();
         await flush();
         expect($('.live-controls__error').hidden).toBe(false);
-        expect($('.live-controls__error').textContent).toBe('A Dive inside a Dive is not built');
+        expect($('.live-controls__error').textContent).toBe('A Dive is still opening');
         expect($('[data-live="dive"]').disabled).toBe(false);
     });
 });
@@ -491,12 +505,12 @@ describe('speaking to it', () => {
         expect($('input[name="question"]').value).toBe('<img src=x onerror=alert(1)> banana');
     });
 
-    it('says a Dive cannot be asked from inside a Dive, and does not lose the reader’s place', async () => {
+    it('asks what is said inside a Dive as a follow-up, and stays in the Dive', async () => {
         const runtime = withMic('diving');
         press();
         await hear('what is the shadow?');
         await flush();
-        expect($('.live-controls__error').textContent).toBe('A Dive inside a Dive is not built');
+        expect(runtime.calls.at(-1)).toEqual(['dive', { question: 'what is the shadow?' }]);
         expect(runtime.status).toBe('diving');
     });
 
@@ -597,5 +611,132 @@ describe('asking without submitting a form', () => {
         $('.live-controls__ask').requestSubmit();
         await flush();
         expect(runtime.dive).toHaveBeenCalledTimes(1);
+    });
+});
+
+describe('the undercurrent', () => {
+    const turn = (question, extra = {}) => ({ question, paragraphs: [`The answer to ${question}`], status: 'answered', error: null, ...extra });
+    const dive = (number, segmentId, atCharacter, quote, turns) => ({ id: `dive-${number}`, number, anchor: { segmentId, atCharacter, quote }, turns });
+    const DIVES = [
+        dive(1, 's1', 4, 'line, the first', [turn('what is first?'), turn('and after it?', { status: 'cut-short', paragraphs: ['Half an'] })]),
+        dive(2, 's2', 0, 'second line', [turn('why second?')])
+    ];
+    const panel = () => $('.live-controls__undercurrent');
+    const entry = id => panel().querySelector(`details[data-dive="${id}"]`);
+
+    it('is not there before any Dive, and says nothing about one', () => {
+        controls = createLiveControls({ runtime: fakeRuntime('live'), onStop: () => {} });
+        expect(panel().hidden).toBe(true);
+        expect($('.live-controls__crumb').hidden).toBe(true);
+        expect(document.querySelectorAll('.live-controls__forks').length).toBe(0);
+    });
+
+    it('draws every Dive, each question and answer as words, and how each ended, in every state the reading can be in', () => {
+        const runtime = fakeRuntime('live');
+        runtime.dives = DIVES;
+        controls = createLiveControls({ runtime, onStop: () => {} });
+        for (const status of ['live', 'interrupted', 'diving', 'ended']) {
+            runtime.set(status);
+            expect(panel().hidden, status).toBe(false);
+        }
+        expect(panel().querySelector('summary').textContent).toBe('Undercurrent (2)');
+        expect(entry('dive-1').querySelector('summary').textContent).toContain('Dive 1: “what is first?”');
+        expect(entry('dive-1').querySelector('summary').textContent).toContain('2 questions');
+        const text = entry('dive-1').textContent;
+        expect(text).toContain('You asked: what is first?');
+        expect(text).toContain('The answer to what is first?');
+        expect(text).toContain('You asked: and after it?');
+        expect(text).toContain('Cut short. What was written is kept.');
+        expect(text).toContain('Taken from “line, the first”');
+        expect(entry('dive-2').textContent).toContain('The answer to why second?');
+    });
+
+    it('draws what a question or an answer says as words, never as markup', () => {
+        const runtime = fakeRuntime('live');
+        runtime.dives = [dive(1, 's1', 0, '<b>quote</b>', [turn('<img src=x onerror=alert(1)>', { paragraphs: ['<script>alert(2)</script>'] })])];
+        controls = createLiveControls({ runtime, onStop: () => {} });
+        expect(panel().querySelector('img, script, b')).toBeNull();
+        expect(panel().textContent).toContain('<img src=x onerror=alert(1)>');
+        expect(panel().textContent).toContain('<script>alert(2)</script>');
+        expect(panel().textContent).toContain('<b>quote</b>');
+    });
+
+    it('is updated as the Dives change, without the reader’s open Dive closing', () => {
+        const runtime = fakeRuntime('live');
+        runtime.dives = [DIVES[0]];
+        controls = createLiveControls({ runtime, onStop: () => {} });
+        entry('dive-1').open = true;
+        runtime.setDives([DIVES[0], DIVES[1]]);
+        expect(panel().querySelector('summary').textContent).toBe('Undercurrent (2)');
+        expect(entry('dive-1').open).toBe(true);
+        expect(entry('dive-2').open).toBe(false);
+        const grown = { ...DIVES[0], turns: [...DIVES[0].turns, turn('and a third?')] };
+        runtime.setDives([grown, DIVES[1]]);
+        expect(entry('dive-1').open).toBe(true);
+        expect(entry('dive-1').textContent).toContain('and a third?');
+    });
+
+    it('keeps the keyboard on the Dive the reader selected when an answer grows', () => {
+        const runtime = fakeRuntime('live');
+        runtime.dives = [DIVES[0], DIVES[1]];
+        controls = createLiveControls({ runtime, onStop: () => {} });
+        entry('dive-2').open = true;
+        entry('dive-2').querySelector('summary').focus();
+        expect(document.activeElement).toBe(entry('dive-2').querySelector('summary'));
+        runtime.setDives([DIVES[0], { ...DIVES[1], turns: [turn('why second?', { paragraphs: ['one', 'two'] })] }]);
+        expect(entry('dive-2').textContent).toContain('two');
+        expect(document.activeElement).toBe(entry('dive-2').querySelector('summary'));
+    });
+
+    it('marks, under the passage a Dive was taken from, that there was one, and the marker opens that Dive', () => {
+        const runtime = fakeRuntime('live');
+        runtime.dives = DIVES;
+        controls = createLiveControls({ runtime, onStop: () => {} });
+        const lines = [...document.querySelectorAll('.live-controls__lines > li')];
+        expect(lines[0].querySelector('.live-controls__forks button').textContent).toBe('Dive 1: “what is first?”');
+        expect(lines[1].querySelector('.live-controls__forks button').textContent).toBe('Dive 2: “why second?”');
+        expect(lines[0].firstChild.textContent).toBe('first line');
+        lines[1].querySelector('.live-controls__forks button').click();
+        expect(panel().open).toBe(true);
+        expect(entry('dive-2').open).toBe(true);
+        expect(entry('dive-1').open).toBe(false);
+        expect(document.activeElement).toBe(entry('dive-2').querySelector('summary'));
+    });
+
+    it('says in the breadcrumb where the reader is and where Surface goes back to, only while in a Dive', () => {
+        const runtime = fakeRuntime('live');
+        runtime.dives = DIVES;
+        controls = createLiveControls({ runtime, onStop: () => {} });
+        expect($('.live-controls__crumb').hidden).toBe(true);
+        runtime.set('diving', { dive: { id: 'dive-1', turns: 2, opening: false } });
+        expect($('.live-controls__crumb').hidden).toBe(false);
+        expect($('.live-controls__crumb').textContent).toBe('Main › Dive 1: “and after it?” Surface returns to: “line, the first”');
+        expect(entry('dive-1').querySelector('summary').textContent).toContain('You are here');
+        expect(entry('dive-2').querySelector('summary').textContent).not.toContain('You are here');
+        runtime.set('live');
+        expect($('.live-controls__crumb').hidden).toBe(true);
+        // From the moment a Dive begins to open: the place is already the reader's.
+        runtime.set('live', { dive: { id: 'dive-2', turns: 1, opening: true } });
+        expect($('.live-controls__crumb').textContent).toBe('Main › Dive 2: “why second?” Surface returns to: “second line”');
+    });
+
+    it('asks again in the Dive the reader is in, and a Dive from the main reading otherwise', async () => {
+        const runtime = fakeRuntime('diving');
+        runtime.dives = DIVES;
+        controls = createLiveControls({ runtime, onStop: () => {} });
+        $('input[name="question"]').value = 'and then?';
+        $('[data-live="dive"]').click();
+        await flush();
+        expect(runtime.dive).toHaveBeenCalledWith({ question: 'and then?' });
+        expect($('[data-live="dive"]').textContent).toBe('Ask again');
+        runtime.set('live');
+        expect($('[data-live="dive"]').textContent).toBe('Dive');
+    });
+
+    it('is still drawn from a runtime that keeps no undercurrent', () => {
+        const runtime = fakeRuntime('live');
+        delete runtime.undercurrent;
+        controls = createLiveControls({ runtime, onStop: () => {} });
+        expect(panel().hidden).toBe(true);
     });
 });

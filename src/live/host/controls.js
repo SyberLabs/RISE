@@ -1,18 +1,20 @@
 import { describeOrigin, describePassage } from './passage.js';
+import { describeCrumb, describeDive, describeTurn, forksBySegment } from './undercurrent.js';
 
 /**
  * What the reader has in their hands while a Current is on screen.
  *
  * A small bar over the Chamber: one line saying what is happening, a way to
  * interrupt, a place to ask about where they are, Surface when they are in a
- * Dive, Stop, and the words so far as a transcript that works without sight
- * or sound. It draws no reading and keeps no time; it only asks the runtime
+ * Dive, Stop, the words so far as a transcript that works without sight or
+ * sound, and the undercurrent: every Dive taken, where from, and what was asked
+ * and answered in it. It draws no reading and keeps no time; it only asks the runtime
  * for things and shows what the runtime says.
  */
 
 /** One plain sentence for what is going on. Pure, so it can be held to what it says. */
 export function describeStatus(snapshot, { audible = true, question = '' } = {}) {
-    const { status, error, main, side } = snapshot;
+    const { status, error, main, side, dive } = snapshot;
     const voiceLost = (side ?? main)?.voiceDegraded === true;
     const quiet = voiceLost ? ' The voice stopped; the reading carries on at its own pace.' : '';
     // What arrived is still read, so a failure after some of it must be said, or the reading looks finished.
@@ -30,10 +32,12 @@ export function describeStatus(snapshot, { audible = true, question = '' } = {})
             return 'Held where you are. Resume, or ask about this place.';
         case 'diving': {
             const asked = question ? ` “${question.slice(0, 120)}”` : '';
-            if (side?.error) return `The Dive could not be answered (${side.error.message}). Surface to go back.`;
-            return side?.finished
-                ? `Dive${asked}: answered. Surface to go back to where you were; you can ask about another place from there.`
-                : `Diving${asked}. The reading you left is held exactly where it was. Surface to go back, then ask again.${quiet}`;
+            if (dive?.opening) return 'Asking…';
+            if (!side) return 'The question could not be opened. Ask again, or Surface to go back.';
+            if (side.error) return `The Dive could not be answered (${side.error.message}). Ask again, or Surface to go back.`;
+            return side.finished
+                ? `Dive${asked}: answered. Ask a follow-up here, or Surface to go back to where you were.`
+                : `Diving${asked}. The reading you left is held exactly where it was. Ask a follow-up, or Surface to go back.${quiet}`;
         }
         case 'ended':
             return main?.error
@@ -64,6 +68,7 @@ export function createLiveControls({ runtime, onStop, audible = true, mic = null
     root.setAttribute('aria-label', 'Live Current controls');
     root.innerHTML = `
       <p class="live-controls__status" role="status" aria-live="polite"></p>
+      <p class="live-controls__crumb" hidden><span class="live-controls__trail"></span> <span class="live-controls__returns"></span></p>
       <p class="live-controls__error" role="alert" hidden></p>
       <form class="live-controls__ask" novalidate>
         <label class="live-controls__sr" for="live-controls-question">Ask about this place</label>
@@ -92,6 +97,10 @@ export function createLiveControls({ runtime, onStop, audible = true, mic = null
           <ul class="live-passage__depth"></ul>
         </div>
       </details>
+      <details class="live-controls__undercurrent" hidden>
+        <summary></summary>
+        <ol class="live-undercurrent" aria-label="Every Dive you have taken"></ol>
+      </details>
       <details class="live-controls__transcript">
         <summary>Transcript</summary>
         <ol class="live-controls__lines" aria-label="What has been said so far"></ol>
@@ -110,6 +119,11 @@ export function createLiveControls({ runtime, onStop, audible = true, mic = null
     const micLine = $('.live-controls__mic');
     const micNote = $('.live-controls__mic-note');
     const lines = $('.live-controls__lines');
+    const crumb = $('.live-controls__crumb');
+    const trail = $('.live-controls__trail');
+    const returns = $('.live-controls__returns');
+    const undercurrent = $('.live-controls__undercurrent');
+    const dives = $('.live-undercurrent');
     const passageOrigin = $('.live-passage__origin');
     const passageCondition = $('.live-passage__condition');
     const passageSources = $('.live-passage__sources');
@@ -117,6 +131,9 @@ export function createLiveControls({ runtime, onStop, audible = true, mic = null
     let question = '';
     let shownLines = '';
     let shownPassage = '';
+    let shownDives = '';
+    // Dives to open the next time the panel is drawn (a marker was pressed).
+    const wanted = new Set();
     let destroyed = false;
     let listener = null;
     let heldByMic = false;
@@ -135,17 +152,108 @@ export function createLiveControls({ runtime, onStop, audible = true, mic = null
         }
     };
 
-    function transcript(snapshot) {
-        const view = runtime.composed(snapshot.status === 'diving' ? 'side' : 'main');
-        const said = view ? view.segments.filter(segment => segment.ended).map(segment => segment.text) : [];
-        const key = `${snapshot.status === 'diving' ? 's' : 'm'}:${said.length}`;
+    /** Open a Dive in the panel, and put the reader's place on it. */
+    function showDive(id) {
+        wanted.add(id);
+        undercurrent.open = true;
+        drawDives(runtime.snapshot(), true);
+        const summary = dives.querySelector(`details[data-dive="${id}"] > summary`);
+        summary?.focus();
+        summary?.scrollIntoView?.({ block: 'nearest' });
+    }
+
+    function transcript(snapshot, all) {
+        const inDive = snapshot.status === 'diving';
+        const view = runtime.composed(inDive ? 'side' : 'main');
+        const said = view ? view.segments.filter(segment => segment.ended) : [];
+        // The places the reader has dived from are marked in the reading they left, not in a Dive's own answer.
+        const forks = inDive ? new Map() : forksBySegment(all);
+        const key = `${inDive ? 's' : 'm'}:${said.length}:${JSON.stringify([...forks])}`;
         if (key === shownLines) return;
         shownLines = key;
-        lines.replaceChildren(...said.map(sentence => {
+        lines.replaceChildren(...said.map(segment => {
             const item = doc.createElement('li');
-            item.textContent = sentence;
+            item.append(segment.text);
+            const here = forks.get(segment.id);
+            if (here?.length) {
+                const list = doc.createElement('ul');
+                list.className = 'live-controls__forks';
+                for (const fork of here) {
+                    const entry = doc.createElement('li');
+                    const button = doc.createElement('button');
+                    button.type = 'button';
+                    button.textContent = fork.label;
+                    button.addEventListener('click', () => showDive(fork.id));
+                    entry.append(button);
+                    list.append(entry);
+                }
+                item.append(list);
+            }
             return item;
         }));
+    }
+
+    /** Where the reader is, in a Dive; and every Dive, wherever they are. */
+    function drawDives(snapshot, force = false) {
+        const all = runtime.undercurrent?.() ?? [];
+        const here = snapshot.dive?.id ?? null;
+        const crumbs = describeCrumb(snapshot.dive, all);
+        crumb.hidden = !crumbs;
+        trail.textContent = crumbs?.trail ?? '';
+        returns.textContent = crumbs?.returnsTo ?? '';
+
+        undercurrent.hidden = all.length === 0;
+        const key = JSON.stringify([all, here]);
+        if (!force && key === shownDives) return all;
+        shownDives = key;
+        undercurrent.querySelector('summary').textContent = `Undercurrent (${all.length})`;
+        const open = new Set([...dives.querySelectorAll('details[open]')].map(node => node.dataset.dive));
+        // A rebuilt summary is a new element: the keyboard stays on the Dive it was on.
+        const focused = doc.activeElement?.matches?.('summary') ? doc.activeElement.parentElement?.dataset?.dive : null;
+        for (const id of wanted) open.add(id);
+        wanted.clear();
+        dives.replaceChildren(...all.map(dive => {
+            const described = describeDive(dive);
+            const entry = doc.createElement('li');
+            const details = doc.createElement('details');
+            details.dataset.dive = dive.id;
+            details.open = open.has(dive.id);
+            const summary = doc.createElement('summary');
+            summary.textContent = [described.title, described.count, dive.id === here ? 'You are here' : null].filter(Boolean).join(' · ');
+            details.append(summary);
+            const place = doc.createElement('p');
+            place.className = 'live-undercurrent__place';
+            place.textContent = described.place;
+            details.append(place);
+            for (const turn of dive.turns) {
+                const block = doc.createElement('div');
+                block.className = 'live-undercurrent__turn';
+                const asked = doc.createElement('p');
+                asked.className = 'live-undercurrent__asked';
+                const label = doc.createElement('strong');
+                label.textContent = 'You asked:';
+                asked.append(label, ` ${turn.question}`);
+                block.append(asked);
+                const ended = describeTurn(turn);
+                for (const paragraph of turn.paragraphs) {
+                    const text = doc.createElement('p');
+                    text.className = 'live-undercurrent__answer';
+                    text.textContent = paragraph;
+                    block.append(text);
+                }
+                if (ended) {
+                    const how = doc.createElement('p');
+                    how.className = 'live-undercurrent__how';
+                    how.textContent = ended;
+                    block.append(how);
+                }
+                details.append(block);
+            }
+            entry.append(details);
+            return entry;
+        }));
+        if (focused) dives.querySelector(`details[data-dive="${focused}"] > summary`)?.focus();
+        return all;
     }
 
     const item = (text, className) => {
@@ -209,10 +317,12 @@ export function createLiveControls({ runtime, onStop, audible = true, mic = null
         const { status } = snapshot;
         statusLine.textContent = describeStatus(snapshot, { audible, question });
         const canAsk = status === 'live' || status === 'interrupted' || status === 'ended';
-        // A Dive that is still connecting is already the runtime's side run.
-        const canDive = canAsk && !snapshot.side;
+        // A Dive that is still connecting is already the runtime's side run. Inside a Dive, a question is a follow-up.
+        const canDive = status === 'diving' ? snapshot.dive?.opening === false : canAsk && !snapshot.side;
         input.disabled = !canDive;
         dive.disabled = !canDive;
+        dive.textContent = status === 'diving' ? 'Ask again' : 'Dive';
+        dive.setAttribute('aria-label', status === 'diving' ? 'Ask a follow-up in this Dive' : 'Dive: ask about this place');
         surface.hidden = status !== 'diving';
         interrupt.hidden = status === 'diving' || status === 'ended' || status === 'failed' || status === 'stopped' || status === 'starting';
         interrupt.textContent = status === 'interrupted' ? 'Resume' : 'Interrupt';
@@ -222,7 +332,7 @@ export function createLiveControls({ runtime, onStop, audible = true, mic = null
             if (status === 'failed' || status === 'stopped') listener.cancel();
         }
         if (status === 'failed' && snapshot.error) show(snapshot.error.message);
-        transcript(snapshot);
+        transcript(snapshot, drawDives(snapshot));
         passage(snapshot);
     }
 
