@@ -267,7 +267,8 @@ export class Portal {
   idleView() {
     return `<h1 class="home-title" id="home-title">Every <span class="sy-spectrum">star</span> is a text you can read.</h1>
       <p class="home-lede">Roll, and RISE picks one with a mood to read it in: its pace, imagery and sound. Or choose a star yourself.</p>
-      <div class="home-actions">${button('roll', 'Roll a reading', 'primary')}${button('ask-open', 'Ask for one', 'secondary')}</div>`;
+      <div class="home-actions">${button('roll', 'Roll a reading', 'primary')}${button('ask-open', 'Ask for one', 'secondary')}</div>
+      <p class="home-today">${button('today', 'Read today\'s poem', 'ghost')}</p>`;
   }
 
   askView(connected) {
@@ -601,6 +602,7 @@ export class Portal {
         else if (action.startsWith('redraw-')) this.redraw(action.slice('redraw-'.length));
         else if (action === 'ask-open') this.openAsk();
         else if (action === 'enter' || action === 'adjust') void this.proceed(action);
+        else if (action === 'today') this.onNavigate('today');
       });
       form.addEventListener('input', event => {
         if (event.target.id === 'home-intent') this.draft = event.target.value;

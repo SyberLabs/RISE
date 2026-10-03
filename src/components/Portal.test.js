@@ -108,6 +108,16 @@ describe('Home, waiting', () => {
         portal.destroy();
     });
 
+    it('offers today\'s poem as a quiet link that opens the Today view', () => {
+        const { portal, container, onNavigate } = makePortal();
+        const link = hook(container, 'today');
+        expect(words(link)).toBe('Read today\'s poem');
+        expect(link.classList.contains('btn-ghost')).toBe(true);
+        link.click();
+        expect(onNavigate).toHaveBeenCalledWith('today');
+        portal.destroy();
+    });
+
     it('lays the sky in after Home shows, and draws it only while Home is the room shown', async () => {
         const { portal, container } = makePortal();
         const night = await withSky(portal);
