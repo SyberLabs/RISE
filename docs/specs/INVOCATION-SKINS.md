@@ -23,8 +23,8 @@ device, by chance inside bounds (work × section × temper). It is the decision
 shape Jev returns, passes the same admission (`validateJevRecommendation`), and
 says what it is (`model: rise/roll-1`, `provider: RISE`). Nothing is sent; no
 provider is called. It never repeats the previous work or temper, so going
-again always changes something. Any part it is given (the work, the temper, the
-section) is kept and the rest is drawn. Home rolls vivid readings only
+again always changes something: no part (the work, the temper, the section)
+repeats the previous roll. Home rolls vivid readings only
 (`vivid: true`: the tempers whose visuals are immersive or psychedelic), as
 today's poem is read. A roll carries `title` and `author`, from a
 small table held to the Library by a test, so a standalone page can name a work
@@ -52,9 +52,10 @@ A response is a preview, never an automatically playing session. The enter and
 adjust actions are the app's own, and a skin never compiles or starts a session:
 
 * **enter** → `App.launchJevReading` → `resolveJevReading` →
-  `handleBeginSession` → `compileSession`; today's poem on Home enters as the
-  Today page's Begin does, `resolveJevReading(decision, { entryId, label })` →
-  `handleBeginSession`, so the day's exact poem opens;
+  `handleBeginSession` → `compileSession`; today's poem (Home's Read it with
+  sound, the Menu, `/today`) enters through `App.launchToday` → `todaySession`
+  → `resolveJevReading(decision, { entryId, label })` → `handleBeginSession`,
+  so the day's exact poem opens;
 * **adjust** → `App.adjustJevReading` → the existing Reader Setup (`chamber`)
   with the text, the plan and the reading's opening look (face, size, colours)
   already set. Visual Navigator stays owned by `ChamberOrbital`.

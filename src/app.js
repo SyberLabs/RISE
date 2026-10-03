@@ -818,12 +818,7 @@ class App {
         return this.router.navigate('chamber-session', { data: session });
     }
 
-    /**
-     * Resolve Jev's discrete choices against shipped text, then enter the
-     * reader: the one way Home and Today open a reading. `exact`
-     * ({ entryId, label }) opens that division (today's poem); `noun` names it
-     * in the continuation ("poem"); `origin` is where leaving it returns.
-     */
+    /** Resolve Jev's discrete choices against shipped text, then enter the reader. */
     async launchJevReading(decision, { firstReadPreview = false } = {}) {
         const { resolveJevReading } = await import('./app/jev-reading.js');
         const sessionConfig = await resolveJevReading(decision);

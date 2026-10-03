@@ -3,8 +3,8 @@ import { openAskDialog } from './reader-connection.js';
 
 /**
  * Home is already reading: today's poem plays silently, full-screen, under
- * its own engine, named in the bar below. Read it with sound opens it, as the
- * Today page's Begin does; Another reading rolls a vivid one in its place,
+ * its own engine, named in the bar below. Read it with sound opens it through
+ * the app's launchToday, as /today does; Another reading rolls a vivid one in its place,
  * which Adjust opens in Reader Setup. Leaving a reading comes back to Home
  * and the same reading.
  */

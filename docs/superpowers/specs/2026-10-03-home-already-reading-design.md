@@ -23,8 +23,7 @@ Chamber         performs it, with sound (Read it with sound)
 Under a transparent header (the lockup and the one Menu):
 
 * **The engine**, full-bleed: the reading's own visual, the one the Chamber
-  will run, on the `ReadingStage` the Today page also uses
-  (`src/components/reading-backdrop.js`).
+  will run, on the `ReadingStage` (`src/components/reading-backdrop.js`).
 * **One ink scrim**: a radial pool under the stream and a band under the
   header and the bar, so every word keeps 4.5:1 even over a white engine.
 * **The stream**, centred: the reading's opening, unit by unit, in the
@@ -49,7 +48,7 @@ Under a transparent header (the lockup and the one Menu):
 ## Behaviour
 
 * **On arrival** Home loads today's poem after first paint: `todayPoem(new
-  Date())`, `todayDecision(pick)` (the reading the Today page uses), and the
+  Date())`, `todayDecision(pick)` (the reading `launchToday` opens), and the
   opening passage and poet from `today-openings.json`, once a day however
   often Home is left and shown meanwhile. It streams as verse, in the unit,
   pace and curve of its own plan (`decision.config`), so a verse division
@@ -62,11 +61,12 @@ Under a transparent header (the lockup and the one Menu):
   ends; a mount a newer roll overtook is destroyed. The stream plays
   `openingLines(decision)` (`{ text, verse }`) the same way as today's poem.
   Pressing it again rolls again.
-* **Read it with sound** opens every reading through the app's one launch,
-  `launchJevReading(decision, options)` (passed in as `onLaunchJevReading`),
-  the one the Today page's Begin uses. Today's poem passes `exact: { entryId,
-  label }` and `noun: 'poem'`; a roll offers the first-read preview the first
-  time. Leaving the reading returns to Home on the same reading.
+* **Read it with sound** opens today's poem through the app's `launchToday`
+  (`todaySession` → `resolveJevReading(decision, { entryId, label })`, as
+  `/today` and the Menu's *Today's poem* do), and a rolled or asked reading
+  through `launchJevReading(decision, { firstReadPreview })`; a roll offers the
+  first-read preview the first time. Leaving the reading returns to Home on the
+  same reading.
 * **Ask for a reading** is in the Menu. It opens a native `<dialog>`
   (`src/components/home-ask.js`) with the ask view the night library had:
   connected, a labelled field, microphone, **Ask** and **Cancel**, and the
@@ -98,7 +98,7 @@ Under a transparent header (the lockup and the one Menu):
 
 | Question | Decision |
 |---|---|
-| What Home opens on | **Today's poem**, the same reading as the Today page, so everyone that day meets the same one. A fresh load starts there again |
+| What Home opens on | **Today's poem**, the same reading `/today` opens, so everyone that day meets the same one. A fresh load starts there again |
 | Tempers Home rolls | **Vivid only** (signal, ember, revel), so Home never goes to plain black |
 | Where asking lives | **The Menu**, in a dialog (owner-approved mockups). The footer AI line is gone; the dialog says what is connected |
 | Privacy and Terms | **A small corner link on Home**, not only the Menu, to stay conspicuously posted |
@@ -109,15 +109,16 @@ Under a transparent header (the lockup and the one Menu):
 
 * `src/components/Portal.js`, `Portal.css` (the page) and `portal-home.css`
   (the engine, scrim, stream, bar and dialog); `home-ask.js` (the dialog).
-* `src/components/reading-backdrop.js` (`ReadingStage`, shared with Today).
-* `src/app.js`: `launchJevReading(decision, { exact, noun, origin,
-  firstReadPreview })`; `src/app/route-manifest.js` gives it to Home and Today
-  as `onLaunchJevReading`.
+* `src/components/reading-backdrop.js` (`ReadingStage`).
+* `src/app.js`: `launchToday()` and `launchJevReading(decision,
+  { firstReadPreview })`; `src/app/route-manifest.js` gives them to Home as
+  `onLaunchToday` and `onLaunchJevReading`.
 
 ## Removed
 
 * `src/components/night-library/` (`NightSky.js`, its test and CSS) and
   `src/core/library-sky.js` with its test.
-* `src/components/today/today-card.js` and its test.
+* `src/components/today/today-card.js` and its test, the card's engine stills
+  (`public/engine-stills/card/*.webp`) and `scripts/build-card-stills.mjs`.
 * The result panel (three parts, Redraw), Roll a reading, picking a star,
   *Roll instead*, and the footer's AI line.

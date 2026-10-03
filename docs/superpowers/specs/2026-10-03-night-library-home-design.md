@@ -3,7 +3,7 @@
 > **Superseded (2026-10-03).** Home is now a reading already under way, and
 > the sky, the result panel and the Today card described here are deleted. See
 > [2026-10-03-home-already-reading-design.md](2026-10-03-home-already-reading-design.md).
-> The roll, its kept parts and the ask logic below still hold.
+> The roll and the ask logic below still hold.
 
 **Date:** 2026-10-03 · **Status:** superseded · **Supersedes:**
 [2026-09-28-oracle-home-design.md](2026-09-28-oracle-home-design.md)

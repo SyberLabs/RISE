@@ -1,8 +1,8 @@
 /**
  * Portal Component — RISE Home: already reading.
  *
- * Home is a reading in progress. On arrival the day's poem (the reading the
- * Today page plays) runs silently, full-screen: its own engine behind
+ * Home is a reading in progress. On arrival the day's poem (the reading
+ * launchToday opens) runs silently, full-screen: its own engine behind
  * (reading-backdrop.js), its opening streaming in the centre
  * (reading-stream.js), named in the bar below. **Read it with sound** opens
  * it; **Another reading** rolls a vivid one in its place (src/core/roll.js),
@@ -57,7 +57,7 @@ function homeReading(decision, { today, title, author, temper = null, intent = '
     return {
       decision, temper: decision.temper, heading, label: TODAY, spoken: `${TODAY}: ${heading}`, note: '', link: 'library',
       // The day's exact poem, as /today and the Menu open it.
-      launch: { today: true }
+      today: true
     };
   }
   const work = tools.getTextById(decision.workId);
@@ -78,7 +78,7 @@ function homeReading(decision, { today, title, author, temper = null, intent = '
     label: `${mood}: ${plan}`,
     spoken: `${mood}. ${heading}. ${capital(plan)}.`,
     // A rolled reading offers the first-read preview, the first time one plays.
-    launch: { firstReadPreview: !intent }
+    firstReadPreview: !intent
   };
 }
 
@@ -499,7 +499,7 @@ export class Portal {
     }
   }
 
-  /** Read it with sound opens the reading through the app's one launch; Adjust opens it in Reader Setup. */
+  /** Read it with sound opens the reading (launchToday or launchJevReading); Adjust opens it in Reader Setup. */
   async proceed(action) {
     const reading = this.reading;
     if (!reading || this.busy) return;
@@ -508,11 +508,10 @@ export class Portal {
     this.showError('');
     try {
       if (action === 'adjust') await this.onAdjustReading(reading.decision);
-      else if (reading.launch.today) await this.onLaunchToday();
+      else if (reading.today) await this.onLaunchToday();
       else {
-        const { firstReadPreview, ...launch } = reading.launch;
-        const preview = firstReadPreview === true && !this.firstReadChoiceUsed;
-        await this.onLaunchJevReading(reading.decision, { ...launch, firstReadPreview: preview });
+        const preview = reading.firstReadPreview === true && !this.firstReadChoiceUsed;
+        await this.onLaunchJevReading(reading.decision, { firstReadPreview: preview });
         if (preview) this.firstReadChoiceUsed = true;
       }
     } catch (error) {

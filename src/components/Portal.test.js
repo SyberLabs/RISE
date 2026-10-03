@@ -8,6 +8,7 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { Portal } from './Portal.js';
+import { createRouteManifest } from '../app/route-manifest.js';
 import { openingLines, validateJevRecommendation } from '../app/jev-reading.js';
 import { composeRoll, rollReading, TEMPERS } from '../core/roll.js';
 import { summarizeJevPlan } from '../core/jev-describe.js';
@@ -148,7 +149,7 @@ describe('Home on arrival', () => {
         // The unit, pace and curve the Chamber will read it at, verse a line at a time.
         const { chunkMode, wpm, curve } = decision.config;
         expect(stream.play).toHaveBeenCalledWith(passage, { chunkMode, wpm, curve, verse: true });
-        // The same reading the Today page plays: the day's work, mood and engine.
+        // The same reading launchToday opens: the day's work, mood and engine.
         await vi.waitFor(() => expect(stages.made).toHaveLength(1));
         expect(stages.made[0].host).toBe(container.querySelector('.home-engine'));
         const [engine] = shown();
@@ -461,6 +462,9 @@ describe('the rest of Home', () => {
             .toEqual(['library', 'vault', 'workshop', 'chamber', 'live', 'chapel', 'scriptorium', 'visual-lab', 'emotions', 'curia']);
         // Today's poem is not a room: it begins the day's exact poem through the app's launchToday.
         expect(items[2].dataset.action).toBe('today');
+        // Every room the Menu names is a route the app has, so no Menu button goes nowhere.
+        const routes = new Set(createRouteManifest({}).map(route => route.id));
+        for (const item of container.querySelectorAll('.portal-nav [data-nav]')) expect(routes, item.dataset.nav).toContain(item.dataset.nav);
 
         const last = items[items.length - 1];
         last.focus();

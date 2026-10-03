@@ -1,4 +1,4 @@
-import { test, expect } from './fixtures.js';
+import { test, expect, openHomeNav } from './fixtures.js';
 
 /**
  * A view's chunk that fails every time — blocked by the network, or gone
@@ -13,8 +13,7 @@ const view = page => page.evaluate(() => window.__RISE_TEST__.getRouterState().c
 
 async function openLibrary(page) {
   await page.goto('/');
-  await page.locator('.portal-menu-toggle').click();
-  await page.locator('.portal-nav [data-nav="library"]').click();
+  await openHomeNav(page, 'library');
 }
 
 test('a chunk that always fails reloads the page once, not forever', async ({ page }) => {
@@ -50,8 +49,7 @@ test('a chunk missing once, as after a deploy, reloads once, and the view then o
   // across it, so the reader lands Home and the view opens from there.
   await expect.poll(() => loads, { timeout: 15_000 }).toBe(2);
   await expect(page.locator('.portal [data-home="enter"]')).toBeVisible({ timeout: 15_000 });
-  await page.locator('.portal-menu-toggle').click();
-  await page.locator('.portal-nav [data-nav="library"]').click();
+  await openHomeNav(page, 'library');
   await expect.poll(() => view(page), { timeout: 15_000 }).toBe('library');
   expect(loads).toBe(2);
 });

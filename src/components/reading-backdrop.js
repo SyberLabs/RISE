@@ -60,9 +60,10 @@ export async function mountReadingBackdrop(host, decision) {
     }
     let timer = 0;
     const next = () => {
-      timer = setTimeout(async () => {
+      const mine = timer = setTimeout(async () => {
         await flame.fillQueue(1);
-        if (!timer) return;
+        // Paused, resumed or destroyed while the next frame loaded: this loop is over.
+        if (timer !== mine) return;
         flame.generate(null);
         next();
       }, FRACTAL_DWELL_MS);
