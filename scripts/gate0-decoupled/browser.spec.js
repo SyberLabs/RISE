@@ -153,3 +153,28 @@ test('keeps at most four matched host requests pending', async () => {
   await frame.getByRole('button', { name: 'Stop', exact: true }).click();
   await page.close();
 });
+
+test('persists marker acknowledgment, coded refusal, and timeout in the displayed and exported log', async () => {
+  const page = await browser.newPage();
+  await page.goto(`http://127.0.0.1:${server.address.port}/__gate0/host`);
+  const frame = page.frameLocator('#widget');
+  await page.getByRole('button', { name: 'Open visual surface', exact: true }).click();
+  await frame.getByRole('button', { name: 'Send marker to model context', exact: true }).click();
+  await expect(frame.locator('#log')).toContainText('host_rpc_acknowledged; model receipt unverified');
+  await frame.getByRole('button', { name: 'Send marker message', exact: true }).click();
+  await expect(frame.locator('#log')).toContainText('"errorCode":-32601');
+  await expect(frame.locator('#log')).toContainText('"errorCategory":"unsupported_method"');
+  await page.getByRole('button', { name: 'Withhold next marker response' }).click();
+  await frame.getByRole('button', { name: 'Send marker to model context', exact: true }).click();
+  await expect(frame.locator('#reader-status')).toContainText('host_rpc_timed_out', { timeout: 10_000 });
+  await expect(frame.locator('#log')).toContainText('"errorCategory":"timeout"');
+  const [download] = await Promise.all([
+    page.waitForEvent('download'),
+    frame.getByRole('button', { name: 'Export log', exact: true }).click()
+  ]);
+  const exported = JSON.parse(await readFile(await download.path(), 'utf8'));
+  expect(exported.entries.some(entry => entry.acknowledgment === 'host_rpc_acknowledged; model receipt unverified')).toBe(true);
+  expect(exported.entries.some(entry => entry.acknowledgment === 'host_rpc_rejected' && entry.errorCode === -32601 && entry.errorCategory === 'unsupported_method')).toBe(true);
+  expect(exported.entries.some(entry => entry.acknowledgment === 'host_rpc_timed_out' && entry.errorCategory === 'timeout')).toBe(true);
+  await page.close();
+});

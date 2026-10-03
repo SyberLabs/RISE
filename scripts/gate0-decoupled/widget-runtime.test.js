@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { CLIENT_LOG_LIMIT, validateSnapshot, createWidgetController } from './widget-runtime.mjs';
+import { createDecoupledRunState, dispatchDecoupled } from './server.mjs';
 
 const baseline = Object.freeze({
   runId: 'run-a', sequence: 0, visual: 'still', intensity: null,
@@ -16,6 +17,7 @@ describe('decoupled widget runtime', () => {
   it('validates and detaches the exact seven-field sequence-zero snapshot', () => {
     expect(validateSnapshot({ ...baseline })).not.toBeNull();
     expect(validateSnapshot({ ...baseline, sequence: 1 })).toBeNull();
+    expect(validateSnapshot({ ...baseline, serverReceivedAt: '2026-10-03T12:00:00.001Z', serverAppliedAt: '2026-10-03T12:00:00.002Z' })).toBeNull();
     const input = { ...baseline };
     const accepted = validateSnapshot(input);
     input.observedAt = 'mutated';
@@ -47,10 +49,26 @@ describe('decoupled widget runtime', () => {
     expect(rendered[0].destroyed).toBe(true);
   });
 
+  it('opens the current nonzero snapshot after an earlier server mutation', async () => {
+    const state = createDecoupledRunState({ runId: 'run-a', now: () => '2026-10-03T12:00:01.000Z' });
+    const mutation = await (await dispatchDecoupled({ jsonrpc: '2.0', id: 1, method: 'tools/call', params: { name: 'rise_set_visual', arguments: { runId: 'run-a', visual: 'attractor', intensity: 0.4 } } }, state, '')).json();
+    const opened = await (await dispatchDecoupled({ jsonrpc: '2.0', id: 2, method: 'tools/call', params: { name: 'rise_open_visual', arguments: {} } }, state, '')).json();
+    const current = opened.result.structuredContent;
+    expect(mutation.result.structuredContent.sequence).toBe(1);
+    expect(validateSnapshot(current)).not.toBeNull();
+    expect(current).toMatchObject({ runId: 'run-a', sequence: 1, visual: 'attractor', intensity: 0.4 });
+    const controller = createWidgetController({ mountAttractor: intensity => ({ intensity, destroy() {} }), setIntensity: () => true, showStill: () => {}, requestFrame: () => 1, cancelFrame: () => {} });
+    expect(controller.accept(current, 'initial_render').status).toBe('applied');
+    expect(controller.sequence).toBe(1);
+    expect(controller.runId).toBe('run-a');
+    expect(controller.renderer.intensity).toBe(0.4);
+    expect(state.sequence).toBe(1);
+  });
+
   it('refuses invalid, mismatched, stale, forged-source, and renderer-refused snapshots', () => {
     let mounts = 0;
     const controller = createWidgetController({ mountAttractor: () => { mounts += 1; return null; }, setIntensity: () => false, showStill: () => {}, requestFrame: () => 1, cancelFrame: () => {} });
-    expect(controller.accept(snapshot(1), 'initial_render').status).toBe('refused');
+    expect(controller.accept({ ...snapshot(1), observedAt: 'invalid-time' }, 'initial_render').status).toBe('refused');
     expect(controller.accept(baseline, 'forged-source').status).toBe('refused');
     expect(controller.sequence).toBe(0);
     expect(mounts).toBe(0);

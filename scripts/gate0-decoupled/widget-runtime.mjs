@@ -67,7 +67,7 @@ export function createWidgetController({ mountAttractor, setIntensity, showStill
       let snapshot = null;
       if (DELIVERY_SOURCES.includes(deliverySource) && envelopeSize(value) <= MAX_ENVELOPE_BYTES) {
         snapshot = validateSnapshot(value);
-        const validFirstDelivery = runId !== null || (deliverySource === 'initial_render' && snapshot?.sequence === 0);
+        const validFirstDelivery = runId !== null || deliverySource === 'initial_render';
         if (snapshot && validFirstDelivery && (runId === null || snapshot.runId === runId)) {
           if (sequence !== null && snapshot.sequence === sequence) status = 'duplicate';
           else if (sequence !== null && snapshot.sequence < sequence) status = 'stale';
