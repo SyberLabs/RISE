@@ -297,7 +297,10 @@ export class Portal {
     const home = this.container.querySelector('.home');
     if (!home) return;
     home.querySelector('.home-label').textContent = reading.label;
-    home.querySelector('.home-title').textContent = reading.heading;
+    const title = home.querySelector('.home-title');
+    title.textContent = reading.heading;
+    // A desk sets the name on one line; one too long for it is whole here.
+    title.title = reading.heading;
     const note = home.querySelector('.home-note');
     note.textContent = reading.note;
     note.hidden = !reading.note;
