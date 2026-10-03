@@ -96,8 +96,12 @@ export function jevReleasedEdition(workId) {
     return item.editionId?.startsWith('standard-ebooks:')
       && item.source?.url?.startsWith('https://standardebooks.org/ebooks/') ? item : null;
   }
-  const original = modernManifest[workId];
-  return original?.editionId === `rise-original:${workId}` ? original : null;
+  return isRiseOriginal(workId) ? modernManifest[workId] : null;
+}
+
+/** Whether a work is a RISE original, by its edition. */
+export function isRiseOriginal(workId) {
+  return modernManifest[workId]?.editionId === `rise-original:${workId}`;
 }
 
 /** The works Jev or a roll may choose: released classics and RISE originals. */

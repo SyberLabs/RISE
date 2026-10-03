@@ -172,14 +172,12 @@ export async function resolveJevReading(decision) {
 }
 
 /**
- * The opening of the passage a reading opens, for a preview: the same
- * division resolveJevReading opens, cut at the last line break or sentence
- * end that fits in maxChars. Verse keeps its line breaks. When nothing ends
- * in reach, it cuts between words and ends with an ellipsis.
+ * The opening of a passage, for a preview: cut at the last line break or
+ * sentence end that fits in maxChars. Verse keeps its line breaks. When
+ * nothing ends in reach, it cuts between words and ends with an ellipsis.
  */
-export async function openingLines(decision, { maxChars = 240 } = {}) {
-  const { entry } = await openJevDivision(decision);
-  const text = entry.content.replace(/^(?:[^\S\n]*\n)+/u, '').trimEnd();
+export function openingOf(text, maxChars = 240) {
+  text = text.replace(/^(?:[^\S\n]*\n)+/u, '').trimEnd();
   if (text.length <= maxChars) return text;
   const head = text.slice(0, maxChars + 1);
   let end = 0;
@@ -191,4 +189,9 @@ export async function openingLines(decision, { maxChars = 240 } = {}) {
   if (end) return text.slice(0, end).trimEnd();
   const space = head.search(/\s\S*$/u);
   return `${text.slice(0, space > 0 ? space : maxChars - 1).trimEnd()}…`;
+}
+
+/** The opening of the same division resolveJevReading opens, for a preview. */
+export async function openingLines(decision) {
+  return openingOf((await openJevDivision(decision)).entry.content);
 }

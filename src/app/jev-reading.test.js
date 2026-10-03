@@ -9,7 +9,7 @@ import {
   compileJevVisualProgram
 } from '../core/jev-sequence.js';
 import { resolveJevChamberConfig } from '../core/jev-config.js';
-import { openingLines, resolveJevReading, selectJevDivision } from './jev-reading.js';
+import { openingLines, openingOf, resolveJevReading, selectJevDivision } from './jev-reading.js';
 
 vi.mock('../content/library.js', () => ({ getTextById: vi.fn() }));
 
@@ -213,44 +213,29 @@ describe('Jev reading handoff', () => {
   });
 });
 
-describe('the opening lines of a reading', () => {
-  function opening(content, verse = false) {
-    vi.mocked(getTextById).mockReturnValue({
-      ...getTextById(),
-      getDivisions: async () => ({ divided: true, noun: 'Book', entries: [
-        { id: 0, label: 'Book I', content, words: content.split(/\s+/u).length, verse }
-      ] })
-    });
-  }
-
-  it('keeps verse lines and drops leading blank lines', async () => {
-    opening('\n  \nSing, goddess, the wrath\nof Achilles, son of Peleus,\nthat brought the Greeks their woes.', true);
-    expect(await openingLines(decision())).toBe(
+describe('the opening of a passage', () => {
+  it('keeps verse lines and drops leading blank lines', () => {
+    expect(openingOf('\n  \nSing, goddess, the wrath\nof Achilles, son of Peleus,\nthat brought the Greeks their woes.')).toBe(
       'Sing, goddess, the wrath\nof Achilles, son of Peleus,\nthat brought the Greeks their woes.');
   });
 
-  it('cuts at the last line break or sentence end that fits, with no ellipsis', async () => {
-    opening('Line one,\nline two,\nline three.', true);
-    expect(await openingLines(decision(), { maxChars: 15 })).toBe('Line one,');
-    opening('One two. Three four five six.');
-    expect(await openingLines(decision(), { maxChars: 20 })).toBe('One two.');
-    opening('“Go home.” She went away. And then');
-    expect(await openingLines(decision(), { maxChars: 14 })).toBe('“Go home.”');
-    opening('It was so. Then Mr. Casaubon and Mrs. Cadwallader came in');
-    expect(await openingLines(decision(), { maxChars: 50 })).toBe('It was so.');
-    opening('Short and done.');
-    expect(await openingLines(decision(), { maxChars: 15 })).toBe('Short and done.');
+  it('cuts at the last line break or sentence end that fits, with no ellipsis', () => {
+    expect(openingOf('Line one,\nline two,\nline three.', 15)).toBe('Line one,');
+    expect(openingOf('One two. Three four five six.', 20)).toBe('One two.');
+    expect(openingOf('“Go home.” She went away. And then', 14)).toBe('“Go home.”');
+    expect(openingOf('It was so. Then Mr. Casaubon and Mrs. Cadwallader came in', 50)).toBe('It was so.');
+    expect(openingOf('Short and done.', 15)).toBe('Short and done.');
   });
 
-  it('cuts between words and ends with an ellipsis when no sentence or line ends in reach', async () => {
-    opening('alpha beta gamma delta');
-    expect(await openingLines(decision(), { maxChars: 12 })).toBe('alpha beta…');
-    opening('word '.repeat(200));
-    const preview = await openingLines(decision());
+  it('cuts between words and ends with an ellipsis when no sentence or line ends in reach', () => {
+    expect(openingOf('alpha beta gamma delta', 12)).toBe('alpha beta…');
+    const preview = openingOf('word '.repeat(200));
     expect(preview.length).toBeLessThanOrEqual(240);
     expect(preview).toMatch(/ word…$/u);
   });
+});
 
+describe('the opening lines of a reading', () => {
   it('opens the same division the reading opens, for every section', async () => {
     for (const section of ['first', 'middle', 'last', 'shortest', 'longest']) {
       expect(await openingLines(decision({ section })))

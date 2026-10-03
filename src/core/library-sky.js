@@ -11,7 +11,7 @@
  * but never the Library itself.
  */
 
-import { jevReleasedWorkIds } from './jev-describe.js';
+import { isRiseOriginal, jevReleasedWorkIds } from './jev-describe.js';
 import { rollTitleOf } from './roll.js';
 
 /** The released classics, by kind. A test fails when a released classic is missing. */
@@ -50,7 +50,7 @@ export function librarySky() {
   if (sky) return sky;
   const stars = jevReleasedWorkIds().map(workId => {
     const { title, author } = rollTitleOf(workId);
-    const group = author === 'RISE' ? 'originals' : CLASSICS[workId];
+    const group = isRiseOriginal(workId) ? 'originals' : CLASSICS[workId];
     if (!group) throw new TypeError(`${title} has no place in the library sky.`);
     return { workId, title, author, group };
   });
