@@ -13,6 +13,11 @@ describe('todayDecision', () => {
       expect(decision.workId).toBe(pick.workId);
       expect(decision.config.visualMode, pick.seed).not.toBe('off');
       expect(decision.config.visualEngine, pick.seed).toBeTruthy();
+      // What the Today backdrop reads to choose its engine.
+      const visual = decision.config.visualConfig;
+      expect(visual.visualMode).toBe(decision.config.visualMode);
+      if (visual.visualMode === 'attractor') expect(visual.attractor.system, pick.seed).toBeTruthy();
+      else expect(visual.interlocution.procedural, pick.seed).toEqual([decision.config.visualEngine]);
       seen.add(decision.temper);
     }
     // The day chooses among the vivid tempers only: immersive or psychedelic visuals.

@@ -1,3 +1,6 @@
+import { readFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const hill = { id: 0, label: 'The Hill', verse: true, content: 'x' };
@@ -44,6 +47,14 @@ const READING = {
   continuation: { kind: 'library-division', workId: 'spoon-river-anthology', entryId: '1', entryIndex: 1, entryCount: 2, noun: 'entry' }
 };
 vi.mock('../../app/jev-reading.js', () => ({ resolveJevReading: vi.fn(async () => READING) }));
+const backdrops = vi.hoisted(() => []);
+vi.mock('./backdrop.js', () => ({
+  mountTodayBackdrop: vi.fn(async (host, decision) => {
+    const backdrop = { host, decision, pause: vi.fn(), resume: vi.fn(), destroy: vi.fn() };
+    backdrops.push(backdrop);
+    return backdrop;
+  })
+}));
 
 import { TodayPoem } from './TodayPoem.js';
 import { resolveJevReading } from '../../app/jev-reading.js';
@@ -93,6 +104,40 @@ describe('TodayPoem', () => {
     expect(container.querySelector('[data-begin]').disabled).toBe(false);
     expect(container.querySelector('[data-begin]').hasAttribute('aria-busy')).toBe(false);
     view.destroy();
+  });
+
+  it('runs the day\'s engine behind the page only while the page is shown', async () => {
+    backdrops.length = 0;
+    work.getDivisions.mockResolvedValue({ entries: [hill, anne] });
+    const view = new TodayPoem(container, {});
+    view.activate();
+    await flush();
+    expect(backdrops).toHaveLength(1);
+    const [backdrop] = backdrops;
+    expect(backdrop.host).toBe(container.querySelector('.today-backdrop'));
+    expect(backdrop.decision).toBe(view.decision);
+    view.deactivate();
+    expect(backdrop.pause).toHaveBeenCalledOnce();
+    view.activate();
+    await flush();
+    expect(backdrop.resume).toHaveBeenCalledOnce();
+    expect(backdrops).toHaveLength(1);
+    // A tab in the background spends nothing on it.
+    Object.defineProperty(document, 'visibilityState', { configurable: true, get: () => 'hidden' });
+    document.dispatchEvent(new Event('visibilitychange'));
+    expect(backdrop.pause).toHaveBeenCalledTimes(2);
+    Object.defineProperty(document, 'visibilityState', { configurable: true, get: () => 'visible' });
+    document.dispatchEvent(new Event('visibilitychange'));
+    expect(backdrop.resume).toHaveBeenCalledTimes(2);
+    view.destroy();
+    expect(backdrop.destroy).toHaveBeenCalledOnce();
+    delete document.visibilityState;
+  });
+
+  it('stills the mark, so the engine behind it is the one thing that moves', () => {
+    work.getDivisions.mockResolvedValue({ entries: [hill, anne] });
+    const css = readFileSync(join(dirname(fileURLToPath(import.meta.url)), 'today-poem.css'), 'utf8');
+    expect(css).not.toMatch(/\.today-mandala\s*\{[^}]*animation/u);
   });
 
   it('lets Begin be pressed again when the reading could not open', async () => {
