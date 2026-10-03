@@ -1,7 +1,6 @@
 import { test, expect, openHomeRoom } from './fixtures.js';
 import { collectAcrossPages, pageCount } from './page-helpers.js';
 
-const GATE = { code: 'rise2025', name: 'Page Harness', vault: null, timestamp: Date.now() };
 
 /**
  * Page Mode (PAGE-MODE-SPEC) — spatial projection in the browser:
@@ -9,9 +8,6 @@ const GATE = { code: 'rise2025', name: 'Page Harness', vault: null, timestamp: D
  */
 test('Page Mode typesets a Gospel chapter in space, and holds the stream', async ({ page }) => {
     await page.setViewportSize({ width: 1280, height: 900 });
-    await page.addInitScript((g) => {
-        localStorage.setItem('rise-beta-session', JSON.stringify(g.gate));
-    }, { gate: GATE });
 
     // This test is about Page COMPOSITION, pagination, figure accounting,
     // and Stream suspension — not museum-CDN availability. Make the remote

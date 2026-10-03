@@ -190,8 +190,7 @@ describe('Chamber accent allowlist', () => {
             'components/NamingModal.css',
             'components/NamingModal.js',
             'components/Settings.css',
-            'components/VisualNavigator.css',
-            'components/BetaGate.css'
+            'components/VisualNavigator.css'
         ];
         const leftover = /rgba\(\s*139,\s*127,\s*212\s*,/g;
         for (const rel of files) {

@@ -8,7 +8,6 @@ import { test, expect, openHomeNav } from './fixtures.js';
  * Every control is hit-tested, not just measured: what a thumb at its
  * centre would actually touch must be the control itself.
  */
-const GATE = { code: 'rise2025', name: 'M', vault: null, timestamp: Date.now() };
 
 const PHONES = [
     { width: 390, height: 844 },
@@ -17,7 +16,6 @@ const PHONES = [
 const COUNTS = [1, 2, 3, 5];
 
 async function openStack(page) {
-    await page.addInitScript((g) => localStorage.setItem('rise-beta-session', JSON.stringify(g)), GATE);
     await page.goto('/');
     await openHomeNav(page, 'workshop');
     await expect(page.locator('.scenes')).toBeVisible({ timeout: 30000 });

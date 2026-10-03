@@ -12,7 +12,6 @@
  */
 import { test, expect, openHomeNav } from './fixtures.js';
 
-const GATE = { code: 'rise2025', name: 'Type Pane', vault: null, timestamp: Date.now() };
 const SEED = {
     text: 'Light enters form and returns through measure. '.repeat(40).trim(),
     textSource: 'Type Pane Seed',
@@ -20,11 +19,10 @@ const SEED = {
 };
 
 async function openType(page, settings = null) {
-    await page.addInitScript(({ gate, seed, settings }) => {
-        localStorage.setItem('rise-beta-session', JSON.stringify(gate));
+    await page.addInitScript(({ seed, settings }) => {
         localStorage.setItem('rise_orbital_text_v1', JSON.stringify(seed));
         if (settings) localStorage.setItem('rise-settings', JSON.stringify(settings));
-    }, { gate: GATE, seed: SEED, settings });
+    }, { seed: SEED, settings });
     await page.goto('/');
     await openHomeNav(page, 'chamber');
     await expect(page.locator('#begin-btn')).toBeEnabled({ timeout: 20_000 });

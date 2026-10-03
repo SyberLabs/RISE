@@ -13,12 +13,6 @@
 import { test, expect, openHomeNav } from './fixtures.js';
 import { FLASHING_ENABLED } from '../src/core/visual-presence.js';
 
-const GATE_SESSION = {
-    code: 'rise2025',
-    name: 'Smoke Harness',
-    vault: null,
-    timestamp: Date.now()
-};
 
 const SEED_TEXT = {
     text: 'The pendulum draws the chord it hears. '.repeat(40).trim(),
@@ -26,13 +20,12 @@ const SEED_TEXT = {
     origin: null
 };
 
-/** Seed the gate (and optionally text/prefs) before the app boots. */
+/** Seed optional text and prefs before the app boots. */
 async function boot(page, { text = true, prefs = null } = {}) {
-    await page.addInitScript(({ gate, seedText, seedPrefs }) => {
-        localStorage.setItem('rise-beta-session', JSON.stringify(gate));
+    await page.addInitScript(({ seedText, seedPrefs }) => {
         if (seedText) localStorage.setItem('rise_orbital_text_v1', JSON.stringify(seedText));
         if (seedPrefs) localStorage.setItem('rise_orbital_prefs_v1', JSON.stringify(seedPrefs));
-    }, { gate: GATE_SESSION, seedText: text ? SEED_TEXT : null, seedPrefs: prefs });
+    }, { seedText: text ? SEED_TEXT : null, seedPrefs: prefs });
     await page.goto('/');
     await expect(page.locator('.portal .oracle-title').first()).toBeVisible({ timeout: 15_000 });
 }

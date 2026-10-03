@@ -153,7 +153,7 @@ flowchart LR
     affect["affect<br/>experience-state evaluation<br/>29 modules"]
     app["app<br/>composition root<br/>11 modules"]
     audio["audio<br/>Web Audio, recitation<br/>10 modules"]
-    components["components<br/>routed views<br/>48 modules"]
+    components["components<br/>routed views<br/>47 modules"]
     content["content<br/>texts, imagery, journeys<br/>228 modules"]
     core["core<br/>session, player, router<br/>164 modules"]
     enterprise["enterprise<br/>talk program, speaker rail<br/>34 modules"]
@@ -166,7 +166,7 @@ flowchart LR
 
     affect --> |7| core
     app -.-> |3 lazy| audio
-    app --> |1| components
+    app -.-> |19 lazy| components
     app --> |5| content
     app --> |36| core
     app -.-> |1 lazy| live
@@ -340,7 +340,6 @@ outliving its room, fails a build.
 | Journeys | `src/components/Journeys.js` | authored long-form experiences |
 | Settings | `src/components/Settings.js` | preferences, export and erase |
 | Guide | `src/components/Guide.js` | onboarding, as an overlay rather than a route |
-| BetaGate | `src/components/BetaGate.js` | invitation UX; **not** a security boundary (§7) |
 
 Seven modules in `src/components/` are deliberately not rooms; they support
 routed rooms: `src/components/Admit.js`,
@@ -412,9 +411,6 @@ shell stays a mount point. Chamber mounts a Fit-mask runtime from
 - **A new personal store is added to `src/core/user-data.js` in the same change
   that introduces it.** A store missing from that inventory is data export
   cannot carry out and erase cannot clear.
-- **The BetaGate is invitation UX, not an authorization boundary.** Invite data
-  and codes ship to the browser. Real access control would require a
-  server-side identity service, which §8.1 rejects.
 
 ---
 
@@ -436,7 +432,7 @@ of `settled`, `open`, `deferred`, or `reversed`.
   authorization and an operational budget into a project that currently has
   none of those problems. A CDN already scales to any readership without a
   design change. **The one thing genuinely lost is real access control**, and
-  that loss is accepted and named in §7 rather than hidden.
+  that loss is accepted and named in §9 rather than hidden.
 - **Status:** settled.
 
 ### 8.2 Content is data, addressed by its own hash
@@ -1242,6 +1238,15 @@ of `settled`, `open`, `deferred`, or `reversed`.
   and the default model has not been checked against its model list
   (`docs/plans/LIVE-GEMINI.md` says how to verify both with a real key).
 
+### 8.41 There is no invitation gate
+
+- **Chosen:** the first screen is the first screen.
+- **Rejected:** `BetaGate`, which shipped invite codes to the browser.
+- **Why:** a gate that admits to being "not a security boundary" (former §7)
+  costs a click and a module on every first visit and locks nothing. §2.2
+  rules out the only version that would.
+- **Status:** settled.
+
 ---
 
 ## 9. What this design costs
@@ -1257,7 +1262,7 @@ Stated plainly so it is never rediscovered as a surprise.
   single biggest remaining cost in the design.
 - **There is no single timeline.** §8.7.
 - **Most rooms have no address.** §8.12.
-- **Access control does not exist**, by choice. §8.1, §7.
+- **Access control does not exist**, by choice. §8.1, §8.41.
 - **The public shelf serves uncertified candidates** under an override that is
   explicitly temporary and should not become permanent by neglect. §8.21.
 - **The release is gated on people**, and cannot be hurried by engineering.

@@ -1,6 +1,5 @@
 import { test, expect, openHomeNav } from './fixtures.js';
 import { acceptFlashWarningIfShown, collectAcrossPages } from './page-helpers.js';
-const GATE = { code: 'rise2025', name: 'Fidelity', vault: null, timestamp: Date.now() };
 const SEED = {
   text: Array.from({ length: 14 }, (_, i) =>
     `Paragraph ${i}. The pendulum draws the chord it hears, and the room answers in kind, slowly and without hurry.`).join('\n\n'),
@@ -19,10 +18,9 @@ const PREFS = {
 test('a PROCEDURAL reading with no program typesets rendered stills', async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 900 });
   await page.addInitScript((g) => {
-    localStorage.setItem('rise-beta-session', JSON.stringify(g.gate));
     localStorage.setItem('rise_orbital_text_v1', JSON.stringify(g.seed));
     localStorage.setItem('rise_orbital_prefs_v1', JSON.stringify(g.prefs));
-  }, { gate: GATE, seed: SEED, prefs: PREFS });
+  }, { seed: SEED, prefs: PREFS });
   await page.goto('/');
   await expect(page.locator('.portal h1').first()).toBeVisible({ timeout: 15000 });
   await openHomeNav(page, 'chamber');

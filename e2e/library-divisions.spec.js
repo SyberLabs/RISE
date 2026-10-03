@@ -1,12 +1,8 @@
 import { test, expect, openHomeNav } from './fixtures.js';
 
-const GATE = { code: 'rise2025', name: 'Shelves', vault: null, timestamp: Date.now() };
 
 // Standing at the Received shelf, a reader should see forms in reading order.
 test('Received and Composed stay separate; Received forms are ordered', async ({ page }) => {
-  await page.addInitScript((g) => {
-    localStorage.setItem('rise-beta-session', JSON.stringify(g));
-  }, GATE);
   await page.goto('/');
   await openHomeNav(page, 'library');
   await expect(page.locator('[data-filter="received"]')).toBeVisible({ timeout: 15000 });
@@ -43,9 +39,6 @@ test('Received and Composed stay separate; Received forms are ordered', async ({
  * never prose snippets from the text.
  */
 async function openLibrary(page) {
-  await page.addInitScript((g) => {
-    localStorage.setItem('rise-beta-session', JSON.stringify(g));
-  }, GATE);
   await page.goto('/');
   await openHomeNav(page, 'library');
   await expect(page.locator('[data-filter="received"]')).toBeVisible({ timeout: 15000 });

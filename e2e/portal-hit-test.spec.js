@@ -22,17 +22,8 @@
  */
 import { test, expect } from './fixtures.js';
 
-const GATE_SESSION = {
-    code: 'rise2025',
-    name: 'Hit-test Harness',
-    vault: null,
-    timestamp: Date.now()
-};
 
 async function openPortal(page) {
-    await page.addInitScript((gate) => {
-        localStorage.setItem('rise-beta-session', JSON.stringify(gate));
-    }, GATE_SESSION);
     await page.goto('/');
     await expect(page.locator('.portal .oracle-title').first()).toBeVisible({ timeout: 15_000 });
 }

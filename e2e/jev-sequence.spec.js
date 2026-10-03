@@ -4,7 +4,6 @@ import { jevColors, jevPalette } from '../src/core/jev-palette.js';
 import { resolveJevChamberConfig } from '../src/core/jev-config.js';
 import { compileJevAudioProgram, compileJevVisualProgram } from '../src/core/jev-sequence.js';
 
-const GATE_SESSION = { code: 'rise2025', name: 'Jev Sequence Test', vault: null, timestamp: Date.now() };
 
 for (const identity of [{ model: 'typesafe/jev-1.13' }]) test(`one ${identity.model} plan carries a late visual and soundscape phase into the Chamber`, async ({ page }) => {
   const released = releaseInventory['literary-walden'];
@@ -30,9 +29,6 @@ for (const identity of [{ model: 'typesafe/jev-1.13' }]) test(`one ${identity.mo
   const calls = await routeTestOpenRouter(page, {
     requestId: 'decision-sequence-browser', workId: released.workId, config
   });
-  await page.addInitScript(gate => {
-    localStorage.setItem('rise-beta-session', JSON.stringify(gate));
-  }, GATE_SESSION);
   await page.goto('/');
   await askHome(page, 'Give me a visual journey through this reading.');
   await expect(page.locator('#chamber-continuous-field')).toBeVisible({ timeout: 30_000 });

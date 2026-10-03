@@ -1,16 +1,7 @@
 import { test, expect } from './fixtures.js';
 
-const GATE_SESSION = {
-  code: 'rise2025',
-  name: 'Keystone Route Harness',
-  vault: null,
-  timestamp: Date.now()
-};
 
 async function authorize(page) {
-  await page.addInitScript(gate => {
-    localStorage.setItem('rise-beta-session', JSON.stringify(gate));
-  }, GATE_SESSION);
 }
 
 test('Keystone corridor has durable cold, reload, launch, and Back behavior', async ({ page }) => {

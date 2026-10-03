@@ -9,14 +9,7 @@
  */
 import { test, expect, openHomeNav, connectTestOpenRouter } from './fixtures.js';
 
-const GATE = { code: 'rise2025', name: 'Flame', vault: null, timestamp: Date.now() };
 const EMPTY_TREATMENT = 'violet-nebula';
-
-async function gate(page) {
-  await page.addInitScript((g) => {
-    localStorage.setItem('rise-beta-session', JSON.stringify(g));
-  }, GATE);
-}
 
 /** Answer visual-score requests with a fixed, valid direction. */
 async function mockScoring(page, { delayMs = 0, treatmentId = EMPTY_TREATMENT, status = 200 } = {}) {
@@ -109,7 +102,6 @@ test.describe('passage-directed visuals', () => {
   test.setTimeout(120_000);
 
   test('a released chapter follows its text at once and adopts Jev at a later boundary', async ({ page }) => {
-    await gate(page);
     const requests = await mockScoring(page, { delayMs: 1500 });
     await beginChapter(page, { connectAI: true });
 
@@ -141,7 +133,6 @@ test.describe('passage-directed visuals', () => {
   });
 
   test('Off stays off: a pending reply never reactivates visuals', async ({ page }) => {
-    await gate(page);
     await mockScoring(page, { delayMs: 4000 });
     await beginChapter(page, { connectAI: true });
     await expect.poll(async () => (await direction(page)).flame, { timeout: 15_000 }).toBe(true);
@@ -153,7 +144,6 @@ test.describe('passage-directed visuals', () => {
   });
 
   test('manual Hold outlasts block boundaries until Follow text is chosen again', async ({ page }) => {
-    await gate(page);
     await mockScoring(page);
     await beginChapter(page, { connectAI: true });
     await expect.poll(async () => (await direction(page)).flame, { timeout: 15_000 }).toBe(true);
@@ -176,7 +166,6 @@ test.describe('passage-directed visuals', () => {
   });
 
   test('pasted text is never sent without consent, and revocation stops sending', async ({ page }) => {
-    await gate(page);
     const requests = await mockScoring(page);
     const text = Array.from({ length: 30 }, (_, i) =>
       `Paragraph ${i + 1} of a private letter about the quiet garden and the long storm that followed it through the night.`
@@ -198,7 +187,6 @@ test.describe('passage-directed visuals', () => {
   });
 
   test('Jev failure keeps local direction without interrupting the reader', async ({ page }) => {
-    await gate(page);
     await mockScoring(page, { status: 503 });
     await beginChapter(page, { connectAI: true });
     await expect.poll(async () => (await direction(page)).flame, { timeout: 15_000 }).toBe(true);
@@ -210,7 +198,6 @@ test.describe('passage-directed visuals', () => {
   });
 
   test('Escape closes the Lab over a reading and asks nothing else', async ({ page }) => {
-    await gate(page);
     await mockScoring(page);
     await beginChapter(page);
     await expect.poll(async () => (await direction(page)).flame, { timeout: 15_000 }).toBe(true);
@@ -227,7 +214,6 @@ test.describe('passage-directed visuals', () => {
   });
 
   test('Chamber to Lab to reading: the scene is held, saved, and still saved after reload', async ({ page }) => {
-    await gate(page);
     await mockScoring(page);
     await beginChapter(page);
     await expect.poll(async () => (await direction(page)).flame, { timeout: 15_000 }).toBe(true);
@@ -254,7 +240,6 @@ test.describe('passage-directed visuals', () => {
   });
 
   test('the Workshop round-trips admitted choices with full recipes', async ({ page }) => {
-    await gate(page);
     await mockScoring(page);
     await beginChapter(page);
     await expect.poll(async () => (await direction(page)).flame, { timeout: 15_000 }).toBe(true);
@@ -278,7 +263,6 @@ test.describe('passage-directed visuals', () => {
 
   test('reduced motion shows a still flame with no animation loop', async ({ page }) => {
     await page.emulateMedia({ reducedMotion: 'reduce' });
-    await gate(page);
     await mockScoring(page);
     await beginChapter(page);
     await expect.poll(async () => (await direction(page)).flame, { timeout: 15_000 }).toBe(true);
@@ -290,7 +274,6 @@ test.describe('passage-directed visuals', () => {
   });
 
   test('repeated scene changes never accumulate flame layers', async ({ page }) => {
-    await gate(page);
     await mockScoring(page);
     await beginChapter(page);
     await expect.poll(async () => (await direction(page)).flame, { timeout: 15_000 }).toBe(true);
@@ -311,7 +294,6 @@ test.describe('Visual Lab', () => {
   test.setTimeout(90_000);
 
   test('draws, moves, mutates, and refuses a bad import without losing the scene', async ({ page }) => {
-    await gate(page);
     await page.goto('/visual-lab');
     await expect(page.locator('.visual-lab .living-flame-canvas')).toBeVisible({ timeout: 20_000 });
     await page.waitForTimeout(1500);
@@ -330,7 +312,6 @@ test.describe('Visual Lab', () => {
   });
 
   test('falls back to a still when WebGL2 is unavailable', async ({ page }) => {
-    await gate(page);
     await page.addInitScript(() => {
       const original = HTMLCanvasElement.prototype.getContext;
       HTMLCanvasElement.prototype.getContext = function (type, ...rest) {
@@ -343,7 +324,6 @@ test.describe('Visual Lab', () => {
   });
 
   test('falls back when the flame shader fails to compile', async ({ page }) => {
-    await gate(page);
     await page.addInitScript(() => {
       const original = WebGL2RenderingContext.prototype.getShaderParameter;
       WebGL2RenderingContext.prototype.getShaderParameter = function (shader, name) {
@@ -355,7 +335,6 @@ test.describe('Visual Lab', () => {
   });
 
   test('recovers from a lost WebGL context', async ({ page }) => {
-    await gate(page);
     await page.goto('/visual-lab');
     await expect(page.locator('.visual-lab .living-flame-canvas')).toBeVisible({ timeout: 20_000 });
     const recovered = await page.evaluate(async () => {

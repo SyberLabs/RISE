@@ -22,7 +22,6 @@ beforeEach(() => {
     value: () => ({ matches: false, addEventListener() {}, removeEventListener() {} })
   });
   plantShell();
-  localStorage.setItem('rise-beta-session', JSON.stringify({ code: 'open', name: 'Reader', vault: null, timestamp: Date.now() }));
 });
 
 afterEach(() => {
@@ -38,7 +37,7 @@ describe('the Visual Catalog public path', () => {
   it('opens directly on a cold boot and reads its search from the address', async () => {
     window.history.replaceState({}, '', '/visual-catalog?q=network');
     app = new App();
-    await app.checkBetaAccess();
+    await app.initializeApp({});
     expect(app.router.getCurrentView()).toBe('visual-catalog');
     expect(document.querySelector('#visual-catalog-search').value).toBe('network');
     expect(document.querySelectorAll('[data-visual-id]')).toHaveLength(1);
@@ -47,7 +46,7 @@ describe('the Visual Catalog public path', () => {
   it('updates the reused catalog view when history changes its search query', async () => {
     window.history.replaceState({}, '', '/visual-catalog?q=network');
     app = new App();
-    await app.checkBetaAccess();
+    await app.initializeApp({});
     expect(document.querySelector('#visual-catalog-search').value).toBe('network');
     window.history.pushState({}, '', '/visual-catalog?q=atmosphere');
     window.dispatchEvent(new PopStateEvent('popstate'));
@@ -74,7 +73,7 @@ describe('the Visual Catalog public path', () => {
     });
     app = new App();
 
-    const opening = app.checkBetaAccess();
+    const opening = app.initializeApp({});
     await vi.waitFor(() => expect(app.router?.transitioning).toBe(true));
 
     window.history.pushState({}, '', '/visual-catalog?q=attractor');
@@ -93,7 +92,7 @@ describe('the Visual Catalog public path', () => {
   it('handles same-path history changes while a cold catalog route is entering', async () => {
     window.history.replaceState({}, '', '/visual-catalog?q=klee');
     app = new App();
-    const opening = app.checkBetaAccess();
+    const opening = app.initializeApp({});
     await vi.waitFor(() => expect(document.querySelector('#visual-catalog-search')).not.toBeNull());
     expect(document.querySelector('#visual-catalog-search').value).toBe('klee');
 
@@ -111,7 +110,7 @@ describe('the Visual Catalog public path', () => {
   it('queues a catalog Back destination received while leaving for the Portal', async () => {
     window.history.replaceState({}, '', '/visual-catalog?q=klee');
     app = new App();
-    await app.checkBetaAccess();
+    await app.initializeApp({});
 
     let releaseFadeOut;
     let announceFadeOut;

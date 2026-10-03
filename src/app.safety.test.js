@@ -517,3 +517,9 @@ describe('application boundary guards', () => {
   });
 });
 
+describe('first screen', () => {
+  it('boots with no invitation gate', () => {
+    const source = readFileSync(join(process.cwd(), 'src', 'app.js'), 'utf8');
+    expect(source).not.toMatch(/BetaGate/u);
+  });
+});

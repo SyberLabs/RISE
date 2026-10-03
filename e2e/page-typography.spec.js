@@ -5,7 +5,6 @@
 import { test, expect, openHomeNav } from './fixtures.js';
 import { acceptFlashWarningIfShown, pageCount } from './page-helpers.js';
 
-const GATE = { code: 'rise2025', name: 'Typography', vault: null, timestamp: Date.now() };
 
 /** A reading long enough to paginate, carrying inline headings. */
 const SEED = {
@@ -35,10 +34,9 @@ const PREFS = {
 
 async function openThePage(page) {
     await page.addInitScript((g) => {
-        localStorage.setItem('rise-beta-session', JSON.stringify(g.gate));
         localStorage.setItem('rise_orbital_text_v1', JSON.stringify(g.seed));
         localStorage.setItem('rise_orbital_prefs_v1', JSON.stringify(g.prefs));
-    }, { gate: GATE, seed: SEED, prefs: PREFS });
+    }, { seed: SEED, prefs: PREFS });
     await page.goto('/');
     await expect(page.locator('.portal h1').first()).toBeVisible({ timeout: 15000 });
     await openHomeNav(page, 'chamber');

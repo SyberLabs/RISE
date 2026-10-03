@@ -13,7 +13,6 @@ import { Router } from './core/router.js';
 import { compileSession } from './core/session-compiler.js';
 import { PACE_CURVE_IDS } from './core/pacing.js';
 import { resolveNextLibraryDivision } from './core/reading-continuation.js';
-import { BetaGate } from './components/BetaGate.js';
 import { isRosaryDoor } from './core/rosary-door.js';
 import { TRY_RISE_PATH, isTryRisePath } from './core/keystone-paths.js';
 import { isJevSceneDemoPath, sceneSampleFromPath } from './core/jev-demo-path.js';
@@ -142,7 +141,7 @@ class App {
         this.setupErrorRecovery();
 
         // Arm the first-interaction listener. The engine itself arrives with
-        // that interaction — the BetaGate click is still the moment audio
+        // that interaction — the first press anywhere is the moment audio
         // starts, it is simply also the moment the engine is fetched.
         this.setupAudioInteraction();
 
@@ -164,9 +163,22 @@ class App {
         // gesture reaches the context without crossing the network.
         void this.ensureAudioEngine().catch(() => { /* audio stays off */ });
 
-        // Check beta access - this will call initializeApp when access is granted
-        // (either immediately if already authenticated, or after user enters code)
-        await this.checkBetaAccess();
+        try {
+            await this.initializeApp({});
+        } catch (error) {
+            console.error('[RISE] Application initialization failed:', error);
+            const recovery = document.createElement('div');
+            recovery.id = 'boot-recovery';
+            const message = document.createElement('p');
+            message.textContent = 'RISE could not initialize in this browser session.';
+            const retry = document.createElement('button');
+            retry.className = 'btn-primary';
+            retry.textContent = 'Retry';
+            retry.addEventListener('click', () => window.location.reload(), { once: true });
+            recovery.append(message, retry);
+            document.body.appendChild(recovery);
+            this.showToast('Initialization failed. Please retry or reload.', 5000);
+        }
     }
 
     /**
@@ -208,60 +220,8 @@ class App {
     }
 
     /**
-     * Check beta access and show gate if needed
-     */
-    async checkBetaAccess() {
-        return new Promise((resolve) => {
-            const gateContainer = document.createElement('div');
-            gateContainer.id = 'beta-gate-container';
-            document.body.appendChild(gateContainer);
-
-            let accessHandled = false;
-
-            const gate = new BetaGate(gateContainer, {
-                onAccess: async (session) => {
-                    if (accessHandled) return; // Prevent double-handling
-                    accessHandled = true;
-
-                    console.log('[RISE] Beta access granted:', session.name);
-                    this.betaSession = session;
-
-                    try {
-                        await this.initializeApp({
-                            personalizedVault: session.vault || null
-                        });
-                        gateContainer.remove();
-                        resolve(true);
-                    } catch (error) {
-                        accessHandled = false;
-                        console.error('[RISE] Application initialization failed:', error);
-                        gateContainer.hidden = false;
-                        gateContainer.replaceChildren();
-                        const recovery = document.createElement('div');
-                        recovery.className = 'beta-gate beta-gate-error';
-                        const message = document.createElement('p');
-                        message.textContent = 'RISE could not initialize in this browser session.';
-                        const retry = document.createElement('button');
-                        retry.className = 'btn-primary';
-                        retry.textContent = 'Retry';
-                        retry.addEventListener('click', () => window.location.reload(), { once: true });
-                        recovery.append(message, retry);
-                        gateContainer.appendChild(recovery);
-                        this.showToast('Initialization failed. Please retry or reload.', 5000);
-                    }
-                }
-            });
-
-            // If gate rendered nothing (already authenticated via onAccess callback),
-            // the accessHandled flag will be true and we don't need to do anything else.
-            // If the gate is showing UI (waiting for user input), we just wait.
-        });
-    }
-
-    /**
-     * Full application initialization (after beta access granted)
+     * Full application initialization
      * @param {Object} options - Init options
-     * @param {string} options.personalizedVault - Vault ID to load directly (skips portal)
      */
     async initializeApp(options = {}) {
         // Load settings from localStorage. The master volume is applied by
@@ -364,9 +324,6 @@ class App {
             await this.router.navigate('live');
         } else if (window.location.pathname === EMOTIONS_PATH) {
             await this.router.navigate('emotions');
-        } else if (options.personalizedVault) {
-            console.log('[RISE] Navigating directly to personalized vault:', options.personalizedVault);
-            await this.router.navigate('vault', { data: { personalizedVault: options.personalizedVault } });
         } else {
             await this.router.navigate('portal');
         }

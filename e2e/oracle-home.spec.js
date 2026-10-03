@@ -5,10 +5,8 @@ import { test, expect } from './fixtures.js';
  * device; ENTER plays it; ADJUST opens it in Reader Setup with everything
  * already set, and Begin plays exactly what was rolled, look included.
  */
-const GATE = { code: 'rise2025', name: 'Oracle Harness', vault: null, timestamp: Date.now() };
 
 async function openHome(page) {
-  await page.addInitScript(gate => localStorage.setItem('rise-beta-session', JSON.stringify(gate)), GATE);
   await page.goto('/');
   await expect(page.locator('[data-oracle="roll"]')).toBeVisible({ timeout: 15_000 });
 }

@@ -9,11 +9,9 @@ import { readFileSync } from 'node:fs';
  * viewport simply hides everything past the fold — the verdict included,
  * which made Examine look like it did nothing.
  */
-const GATE = { code: 'rise2025', name: 'Scriptorium', vault: null, timestamp: Date.now() };
 
 async function openRoom(page, width, height) {
     await page.setViewportSize({ width, height });
-    await page.addInitScript(g => localStorage.setItem('rise-beta-session', JSON.stringify(g)), GATE);
     await page.goto('/');
     await expect(page.locator('.portal h1').first()).toBeVisible({ timeout: 15_000 });
     await openHomeRoom(page, 'scriptorium');

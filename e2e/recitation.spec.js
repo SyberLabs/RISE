@@ -1,6 +1,5 @@
 import { test, expect, openHomeNav } from './fixtures.js';
 
-const GATE = { code: 'rise2025', name: 'Recitation', vault: null, timestamp: Date.now() };
 
 // Emphasis is authored in the text, exactly as `|` phrase marks are.
 const SEED = {
@@ -66,7 +65,6 @@ async function enterChamber(page, recitation, seed = SEED) {
   await page.setViewportSize({ width: 1280, height: 900 });
   if (recitation) await installVoiceWorkerStub(page);
   await page.addInitScript((g) => {
-    localStorage.setItem('rise-beta-session', JSON.stringify(g.gate));
     localStorage.setItem('rise_orbital_text_v1', JSON.stringify({
       ...g.seed,
       recitation: { enabled: g.recitation }
@@ -74,7 +72,7 @@ async function enterChamber(page, recitation, seed = SEED) {
     localStorage.setItem('rise_orbital_prefs_v1', JSON.stringify({
       wpm: 150, chunkMode: 'phrase'
     }));
-  }, { gate: GATE, seed, recitation });
+  }, { seed, recitation });
   await page.goto('/');
   await openHomeNav(page, 'chamber');
   await expect(page.locator('#begin-btn')).toBeEnabled({ timeout: 20000 });
@@ -191,9 +189,8 @@ test('an uncovered reading is read silently rather than stalled', async ({ page 
 test('the control turns recitation on, and the choice survives a return', async ({ page }) => {
   await installVoiceWorkerStub(page);
   await page.addInitScript((g) => {
-    localStorage.setItem('rise-beta-session', JSON.stringify(g.gate));
     localStorage.setItem('rise_orbital_text_v1', JSON.stringify(g.seed));
-  }, { gate: GATE, seed: SEED });
+  }, { seed: SEED });
   await page.goto('/');
   await openHomeNav(page, 'chamber');
   { const adjust = page.locator('[data-action="toggle-adjust"]'); if (await adjust.getAttribute('aria-expanded') === 'false') await adjust.click(); }

@@ -5,10 +5,8 @@ import { test, expect } from './fixtures.js';
  * reached from Home's Menu, that composes a reading on the device and hands
  * it back to the app to play (DOCK) or to change (ADJUST COURSE).
  */
-const GATE = { code: 'rise2025', name: 'Wormhole Harness', vault: null, timestamp: Date.now() };
 
 async function authorize(page) {
-  await page.addInitScript(gate => localStorage.setItem('rise-beta-session', JSON.stringify(gate)), GATE);
 }
 
 async function openWormhole(page) {

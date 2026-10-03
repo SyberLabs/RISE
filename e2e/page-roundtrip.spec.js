@@ -14,14 +14,12 @@
  * and nothing in the suite would have noticed.
  */
 import { test, expect, openHomeNav } from './fixtures.js';
-const GATE = { code: 'rise2025', name: 'M', vault: null, timestamp: Date.now() };
 
 test.skip(true, 'JOURNEYS = []; those sits are not shipped');
 
 test('the Page keeps the reader’s place across a trip to the Stream', async ({ page }) => {
   test.setTimeout(180000);
   await page.setViewportSize({ width: 390, height: 664 });
-  await page.addInitScript((g) => localStorage.setItem('rise-beta-session', JSON.stringify(g)), GATE);
   await page.goto('/');
   await openHomeNav(page, 'library');
   await expect(page.locator('[data-text-id="middlemarch"]')).toBeVisible({ timeout: 30000 });

@@ -10,12 +10,8 @@
  */
 import { test, expect } from './fixtures.js';
 
-const GATE = { code: 'rise2025', name: 'Scriptorium', vault: null, timestamp: Date.now() };
 
 async function openScriptorium(page) {
-    await page.addInitScript((gate) => {
-        localStorage.setItem('rise-beta-session', JSON.stringify(gate));
-    }, GATE);
     await page.goto('/');
     await expect(page.locator('.portal h1').first()).toBeVisible({ timeout: 15_000 });
     await page.evaluate(() => window.__RISE_TEST__?.navigate('scriptorium'));

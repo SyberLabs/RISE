@@ -9,15 +9,11 @@ import { test, expect } from './fixtures.js';
  * reading. This does, in a real browser, against the production build.
  */
 
-const GATE = { code: 'rise2025', name: 'Mint', vault: null, timestamp: Date.now() };
 const MINT = '/p/the-uncarved-block';
 
 test.describe.configure({ timeout: 120_000 });
 
 async function arrive(page, path) {
-    await page.addInitScript(gate => {
-        localStorage.setItem('rise-beta-session', JSON.stringify(gate));
-    }, GATE);
     await page.goto(path);
 }
 

@@ -50,12 +50,7 @@ export const USER_DATA_KEYS = Object.freeze({
  * wrong, not that clearing it was forgotten, and the test prints this text
  * when a key arrives without one.
  */
-export const UNREGISTERED_LOCAL_KEYS = Object.freeze({
-    'rise-beta-session':
-        'Access state, not reader data. RISE moved from closed to open beta, '
-        + 'and clearing this would sign a reader out of a door that no longer '
-        + 'locks. Removed with the gate itself.'
-});
+export const UNREGISTERED_LOCAL_KEYS = Object.freeze({});
 
 /** Every key an erase is expected to remove. */
 export const ERASABLE_LOCAL_KEYS = Object.freeze(Object.values(USER_DATA_KEYS));

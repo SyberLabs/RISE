@@ -22,7 +22,6 @@ import { test, expect } from './fixtures.js';
  * while still on screen and stayed that way for the whole route transition.
  */
 
-const GATE = { code: 'rise2025', name: 'Fit Boundaries', vault: null, timestamp: Date.now() };
 
 /**
  * How long an opaque Fit word must be on screen before it counts as a
@@ -113,9 +112,6 @@ const describeRun = r =>
   `${r.from}-${r.until}ms (${r.frames}f, ${r.until - r.from}ms) ${r.color} ${r.fontPx}px "${r.text}"`;
 
 async function enterMeditations(page) {
-  await page.addInitScript(gate => {
-    localStorage.setItem('rise-beta-session', JSON.stringify(gate));
-  }, GATE);
   await page.goto('/keystone/meditations');
   const enter = page.locator('[data-enter]');
   await expect(enter).toBeEnabled({ timeout: 25_000 });

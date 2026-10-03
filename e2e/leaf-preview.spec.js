@@ -19,14 +19,12 @@
  */
 import { test, expect, openHomeNav } from './fixtures.js';
 
-const GATE = { code: 'rise2025', name: 'Leaf Preview', vault: null, timestamp: Date.now() };
 const SEED = { text: 'Light enters form. '.repeat(40).trim(), textSource: 'Leaf Preview', origin: null };
 
 async function openDynamic(page) {
-    await page.addInitScript(({ gate, seed }) => {
-        localStorage.setItem('rise-beta-session', JSON.stringify(gate));
+    await page.addInitScript(({ seed }) => {
         localStorage.setItem('rise_orbital_text_v1', JSON.stringify(seed));
-    }, { gate: GATE, seed: SEED });
+    }, { seed: SEED });
     await page.goto('/');
     await openHomeNav(page, 'chamber');
     await expect(page.locator('#begin-btn')).toBeEnabled({ timeout: 20_000 });

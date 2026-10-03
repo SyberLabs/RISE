@@ -4,7 +4,6 @@ import { test, expect, openHomeNav } from './fixtures.js';
  * The phone Workshop, walked with a thumb: write a scene, give it a visual,
  * add a Library chapter, reorder, play, and come back to the stack.
  */
-const GATE = { code: 'rise2025', name: 'M', vault: null, timestamp: Date.now() };
 
 const PHONES = [
     { name: 'iPhone 12 portrait', width: 390, height: 844 },
@@ -28,7 +27,6 @@ for (const phone of PHONES) {
 
         test('idea, words, visual, a second scene, order, and Play', async ({ page }) => {
             test.setTimeout(180000);
-            await page.addInitScript((g) => localStorage.setItem('rise-beta-session', JSON.stringify(g)), GATE);
             await page.goto('/');
             await openHomeNav(page, 'workshop');
             await expect(page.locator('.scenes')).toBeVisible({ timeout: 30000 });
@@ -74,7 +72,6 @@ for (const phone of PHONES) {
 
         test('Full studio is one tap away, and Scenes brings the stack back', async ({ page }) => {
             test.setTimeout(120000);
-            await page.addInitScript((g) => localStorage.setItem('rise-beta-session', JSON.stringify(g)), GATE);
             await page.goto('/');
             await openHomeNav(page, 'workshop');
             await expect(page.locator('.scenes')).toBeVisible({ timeout: 30000 });

@@ -1,13 +1,11 @@
 import { readFileSync } from 'node:fs';
 import { test, expect, openHomeNav } from './fixtures.js';
 
-const GATE = { code: 'rise2025', name: 'Recipient remix', vault: null, timestamp: Date.now() };
 // Screenshots are evidence for a human reviewer, not assertions.
 const shot = (page, name) => page.screenshot({ path: test.info().outputPath(`${name}.png`), fullPage: true });
 const stored = page => page.evaluate(() => JSON.parse(localStorage.getItem('rise_workshop_v1') || '[]'));
 
 async function openVault(page) {
-  await page.addInitScript(gate => localStorage.setItem('rise-beta-session', JSON.stringify(gate)), GATE);
   await page.goto('/');
   await expect(page.locator('.portal .portal-title').first()).toBeVisible({ timeout: 15_000 });
   await openHomeNav(page, 'vault');
