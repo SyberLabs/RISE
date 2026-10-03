@@ -555,6 +555,8 @@ export class TodayPoem {
 
 Note on the test's mandala mock: `activate()` draws, so the first test calls `view.activate()` before reading the caption.
 
+**As built:** the view uses the shared room frame from `src/components/room-chrome.js` (`roomHeader`, `roomEyebrow`, `roomAlert`) instead of its own back button and alert, so the back control is `[data-action="back"]` and the header carries the SyberLabs / RISE lockup like the other quiet rooms.
+
 - [ ] **Step 4: Write the styles** (`src/components/today/today-poem.css`)
 
 ```css
