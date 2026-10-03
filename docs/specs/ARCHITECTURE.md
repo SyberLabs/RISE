@@ -509,7 +509,10 @@ of `settled`, `open`, `deferred`, or `reversed`.
 ### 8.5 Recitation is a pre-built voice pack, not runtime TTS
 
 - **Chosen:** Kokoro runs at build time; the deployed app plays same-origin
-  audio addressed by normalized phrase text.
+  audio addressed by normalized phrase text. Today's poem uses a vendor voice
+  (ElevenLabs v4) under the same rule: rendered once by the author, cut into
+  per-line AAC `.m4a` clips, one small pack per poem named by
+  `recitation.pack`. No vendor is called at runtime.
 - **Rejected:** running the model in the reader's browser — and this one was
   *measured* before it was rejected, not assumed. The browser path was built
   and tried: `speechSynthesis` is a formant synthesiser and was never a

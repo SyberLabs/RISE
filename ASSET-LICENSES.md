@@ -94,6 +94,19 @@ trimming — is described in `docs/specs/ARCHIVE-CLEANSING-SPEC.md`. Those
 decisions are recorded as editorial acts; they do not create a new claim over a
 public-domain text.
 
+### Recitation audio
+
+The spoken audio under `public/audio/recitation/` (hydrated from the
+`rise/audio-assets` branch) is generated, not recorded:
+
+| voice | made with | terms |
+|---|---|---|
+| Heart (`af_heart`), the Keystones | Kokoro-82M, run locally | Apache 2.0 model; the output carries no third-party claim |
+| `el_*`, today's poem | ElevenLabs v4, on the owner's paid plan | the plan grants the subscriber commercial use of the audio it generates; the model, voice and date are recorded in `src/audio/poem-recitation.json` |
+
+The poems spoken are public domain (§5). The recordings are redistributed as
+part of the deployed app, not offered for reuse on their own.
+
 ## 6. Visual works — held by reference, each under its own licence
 
 **RISE holds pixels only when the institution's host will not serve them.**
