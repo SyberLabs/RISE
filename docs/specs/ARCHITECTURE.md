@@ -697,14 +697,23 @@ of `settled`, `open`, `deferred`, or `reversed`.
 ### 8.16 A deploy must not strand an open tab
 
 - **Chosen:** a `vite:preloadError` listener and a router check treat a failed
-  chunk import as a stale build and reload **once**, guarded by a sentinel;
-  `index.html` is served `must-revalidate`.
-- **Rejected:** letting the tab break, and reloading unguarded.
+  chunk import as a stale build and reload **once per build per five
+  minutes**, through one shared claim (`claimStaleBuildReload`) that records
+  the build (the entry chunk's hashed URL) and the time in `sessionStorage`. A
+  start view whose code still will not load falls back to Home. `index.html`
+  is served `must-revalidate`.
+- **Rejected:** letting the tab break; reloading unguarded; a guard released
+  at the end of every start, or held per router instance, since the reload it
+  guards resets it; a claim that never expires.
 - **Why:** `index.html` names the hashed chunks, so a tab left open across a
   release asks for a file the new deploy replaced, gets a 404, and can no longer
   reach any view it had not already loaded. A stale chunk is not a transient
-  network error and retrying cannot fix it. The sentinel exists because an
-  unguarded reload turns a real network failure into a loop.
+  network error and retrying cannot fix it. The claim exists because an
+  unguarded reload turns a real network failure into a loop: the same build
+  failing again within the window does not reload. A new build may claim at
+  once, and the same build may claim again once the window passes, so a reload
+  spent on a network blip cannot strand the tab when a deploy lands later.
+  Without session storage nothing could stop a loop, so nothing reloads.
 - **Status:** settled.
 
 ### 8.17 The catalogue is derived at build time

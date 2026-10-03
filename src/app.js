@@ -9,7 +9,7 @@
  * - Components (Portal, Chamber, Library, Workshop, Settings)
  */
 
-import { Router } from './core/router.js';
+import { Router, claimStaleBuildReload } from './core/router.js';
 import { compileSession } from './core/session-compiler.js';
 import { PACE_CURVE_IDS } from './core/pacing.js';
 import { resolveNextLibraryDivision } from './core/reading-continuation.js';
@@ -97,11 +97,8 @@ try {
     }
 } catch (e) { /* private mode: the flag lasts as long as the URL does */ }
 
-export const STALE_BUILD_SENTINEL = 'rise_reloaded_for_stale_build';
-
 window.addEventListener('vite:preloadError', (event) => {
-    if (sessionStorage.getItem(STALE_BUILD_SENTINEL)) return;  // not a deploy: a real failure
-    sessionStorage.setItem(STALE_BUILD_SENTINEL, '1');
+    if (!claimStaleBuildReload(import.meta.url)) return;  // reloaded once already: not a deploy
     event.preventDefault();
     console.warn('[RISE] Build changed underneath this tab — reloading once.');
     window.location.reload();
@@ -280,6 +277,7 @@ class App {
         // shows reads any of them.
 
         this.router = new Router({
+            build: import.meta.url,
             onNavigationIntent: (view, options) => this.handleNavigationIntent(view, options),
             onViewChange: (view, data) => {
                 console.log(`[RISE] View: ${view}`);
@@ -381,16 +379,13 @@ class App {
         } else {
             await this.router.navigate('portal');
         }
+        // A start route whose code will not load (blocked, or still
+        // missing after the one reload) leaves nothing on screen. Home.
+        if (!this.router.currentView) await this.handleNavigate('portal');
 
         this.watchTabFreshness();
 
         // Audio interaction listener is already set up in init()
-
-        // The tab is now running a build it fetched itself, so the
-        // one-reload guard is spent and may be released. Without this a
-        // reader who leaves a tab open across TWO deploys is stranded by
-        // the second one, the sentinel having been set by the first.
-        sessionStorage.removeItem(STALE_BUILD_SENTINEL);
 
         console.log('[RISE] Application initialized');
     }
