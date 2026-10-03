@@ -161,7 +161,7 @@ it, and CI fails when the committed copy is not what `src/` produces.
 flowchart LR
     affect["affect<br/>experience-state evaluation<br/>29 modules"]
     app["app<br/>composition root<br/>12 modules"]
-    audio["audio<br/>Web Audio, recitation<br/>10 modules"]
+    audio["audio<br/>Web Audio, recitation<br/>11 modules"]
     components["components<br/>routed views<br/>49 modules"]
     content["content<br/>texts, imagery, journeys<br/>228 modules"]
     core["core<br/>session, player, router<br/>167 modules"]
@@ -174,15 +174,15 @@ flowchart LR
     wormhole["wormhole<br/>7 modules"]
 
     affect --> |7| core
-    app -.-> |3 lazy| audio
+    app --> |1| audio
     app --> |1| components
     app --> |3| content
-    app --> |39| core
+    app --> |41| core
     app -.-> |1 lazy| live
     app -.-> |1 lazy| sources
     app -.-> |1 lazy| visuals
     audio --> |1| content
-    audio --> |5| core
+    audio --> |6| core
     components --> |3| affect
     components -.-> |2 lazy| app
     components --> |3| audio
@@ -196,7 +196,7 @@ flowchart LR
     content --> |15| core
     content --> |10| sources
     content --> |1| visuals
-    core --> |6| audio
+    core --> |8| audio
     core --> |15| content
     core --> |4| sources
     core --> |20| visuals
