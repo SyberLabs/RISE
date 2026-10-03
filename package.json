@@ -12,6 +12,7 @@
     "dev": "vite",
     "build": "npm run content:build && vite build",
     "audio:hydrate": "node scripts/hydrate-recitation.mjs",
+    "audio:encode": "node scripts/encode-recitation.mjs",
     "build:fonts": "node scripts/build-fonts.mjs",
     "verify:fonts": "node scripts/build-fonts.mjs --check",
     "build:legal": "node scripts/build-legal.mjs",

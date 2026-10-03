@@ -68,7 +68,7 @@ else is a recommendation.
   │                              ▼                                          │
   │   Met · AIC · NASA ─▶ *-harvest.mjs ─▶ contact sheet ─▶ HUMAN PIN        │
   │                                                                         │
-  │   Kokoro TTS ───────▶ build-voice-pack.mjs ─▶ recitation WAV + manifest  │
+  │   Kokoro TTS ───────▶ build-voice-pack.mjs ─▶ recitation Opus + manifest │
   │                                                                         │
   │   check-release-readiness.mjs  ── fails closed while any gate is open    │
   └────────────────────────────────┬────────────────────────────────────────┘
@@ -525,9 +525,10 @@ of `settled`, `open`, `deferred`, or `reversed`.
   — the acoustic ledger binds a human verdict to exact audio bytes, which
   runtime synthesis could not support. The governing rule was written as
   "treat speech as unavailable rather than choosing a backend by feature
-  detection alone," which is §7 applied to sound. **The cost is size**: the
-  packs ship uncompressed, and that is the second-largest known cost (§9).
-- **Status:** settled for the mechanism; the delivery format is **open**.
+  detection alone," which is §7 applied to sound. **The cost was size**: the
+  packs shipped as uncompressed WAV, about 239 MB; they are now Ogg Opus at
+  64 kbps, about 23 MB.
+- **Status:** reversed. Reversed 2026-10: recitation is Opus at 64 kbps; §9's largest cost is gone.
 
 ### 8.6 MP4 render is an offline Node path, not in-browser capture
 
@@ -1265,10 +1266,6 @@ Stated plainly so it is never rediscovered as a surprise.
 - **The corpus is still versioned in the application repository**, even though
   it no longer travels through the module graph. §8.2 removed the build-time
   cost; *where the bytes live* is a separate question and is still open.
-- **Recitation ships uncompressed**, and is now by a very wide margin the
-  largest thing a deploy contains — the audio is roughly seventy times the
-  size of all the JavaScript. §8.5. With the content seam cut, this is the
-  single biggest remaining cost in the design.
 - **There is no single timeline.** §8.7.
 - **Most rooms have no address.** §8.12.
 - **Access control does not exist**, by choice. §8.1, §8.41.

@@ -9,4 +9,4 @@
 *.mjs text eol=lf
 *.sh text eol=lf
 
-public/audio/recitation/**/*.wav binary
+public/audio/recitation/**/*.opus binary
