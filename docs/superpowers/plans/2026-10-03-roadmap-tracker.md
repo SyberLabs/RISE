@@ -20,24 +20,24 @@
 
 Files: `scripts/lib/roadmap.mjs`, `scripts/roadmap.mjs`, `scripts/roadmap.test.mjs`.
 Produces `validateTasks(tasks)`, `loadTasks(root)`, `updateTask(root,id,patch,{expectedRevision,summary,now})` and `/api/tracker` shape in the spec.
-- [ ] Write failing Node tests for unknown dependency, cycle, unsupported completion, stale update and preservation on invalid edit. Run `node --test scripts/roadmap.test.mjs` and observe failures.
-- [ ] Implement schema/graph validation, atomic single-file updates, allowlisted server, static snapshot generation and recent Git log with execFile (no shell).
-- [ ] Rerun tests, including real HTTP traversal/method failures and generated static assets. Commit only assigned files.
+- [x] Write failing Node tests for unknown dependency, cycle, unsupported completion, stale update and preservation on invalid edit. Run `node --test scripts/roadmap.test.mjs` and observe failures.
+- [x] Implement schema/graph validation, atomic single-file updates, allowlisted server, static snapshot generation and recent Git log with execFile (no shell).
+- [x] Rerun tests, including real HTTP traversal/method failures and generated static assets. Commit only assigned files.
 
 ### Task 2: Dashboard
 
 Files: `tools/roadmap/index.html`, `tools/roadmap/dashboard.js`, `tools/roadmap/styles.css`, `tools/roadmap/dashboard.test.mjs`.
 Consumes `{tasks,recentCommits,generatedAt}` from `/api/tracker` or static `snapshot.json` and exact task schema.
-- [ ] Write failing filter/mapping/DOM safety tests; run `node --test tools/roadmap/dashboard.test.mjs`.
-- [ ] Implement lane and milestone views, search/status filters, blocked/ready lists, recent task activity and mapped/unmapped commits. Display refresh/static/error states. Use textContent and safe URLs.
-- [ ] Rerun tests and browser-check desktop/phone. Commit only assigned files.
+- [x] Write failing filter/mapping/DOM safety tests; run `node --test tools/roadmap/dashboard.test.mjs`.
+- [x] Implement lane and milestone views, search/status filters, blocked/ready lists, recent task activity and mapped/unmapped commits. Display refresh/static/error states. Use textContent and safe URLs.
+- [x] Rerun tests and browser-check desktop/phone. Commit only assigned files.
 
 ### Task 3: Seed and integrate (coordinator)
 
 Files: `docs/product/tasks/*.json`, `docs/product/README.md`, `docs/product/discussions/*.md`, `AGENTS.md`, `docs/README.md`, `package.json`, `.gitignore`.
-- [ ] Seed Reader work and Composer milestones with dated references, unassigned owners unless already owned; preserve unknown/human acceptance gaps. Record October product decisions and roadmap with provenance.
-- [ ] Add agent workflow and npm `roadmap:check`, `roadmap:dev`, `roadmap:build`, `test:roadmap` commands and ignored static output. Add tracker validation/tests to the existing CI job after they pass locally; no new required check. Do not modify deployment files.
-- [ ] Run task validation, tracker tests, wiki, hygiene, diff checks and browser smoke. Review full change and commit reviewed work. Launch local dashboard for review.
+- [x] Seed Reader work and Composer milestones with dated references, unassigned owners unless already owned; preserve unknown/human acceptance gaps. Record October product decisions and roadmap with provenance.
+- [x] Add agent workflow and npm `roadmap:check`, `roadmap:dev`, `roadmap:build`, `test:roadmap` commands and ignored static output. Add tracker validation/tests to the existing CI job after they pass locally; no new required check. Do not modify deployment files.
+- [x] Run task validation, tracker tests, wiki, hygiene, diff checks and browser smoke. Review full change and commit reviewed work. Launch local dashboard for review.
 
 ## Preflight
 
