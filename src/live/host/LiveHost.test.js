@@ -152,6 +152,15 @@ describe('refusing, in words', () => {
         expect(build).toHaveBeenCalledTimes(1);
     });
 
+    it('uses the resolved provider when deciding whether an offline catalog sample is allowed', () => {
+        mount('?catalog=klee&provider=GEMINI');
+        expect(host.chosenProvider()).toBe('mock');
+        const error = container.querySelector('.live-error');
+        expect(error.hidden).toBe(true);
+        expect(error.textContent).toBe('');
+        expect(host.catalogConflict).toBe(false);
+    });
+
     it('rejects catalog choices in keyed, embed, and evaluation modes before starting them', async () => {
         mount('?catalog=attractor&provider=openai');
         expect(container.querySelector('.live-error').textContent).toMatch(/only available in the offline demonstration/u);

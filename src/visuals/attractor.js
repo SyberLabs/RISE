@@ -184,8 +184,8 @@ const KALEIDO_MUL = 0.52;
  * the symmetry, because the SHAPE is the thing worth preserving.
  */
 const FRAME_BUDGET_MS = 1000 / 60;
-// Keep the repair branch's healthy 30fps floor while measuring actual rAF
-// intervals. Sustained intervals above 40ms (under 25fps) step down.
+// 30fps counts as healthy. Sustained rAF intervals above 40ms (under
+// 25fps) step down; below RESTORE_AT counts as keeping pace.
 const DEGRADE_AT = 2.4;
 const RESTORE_AT = 1.15;
 // Fast windows still catch a very slow canvas promptly; isolated late frames
