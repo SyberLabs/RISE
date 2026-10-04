@@ -10,6 +10,10 @@
  * birth is visible, then the remaining dwell is travel plus a few
  * seconds of stillness. Full-frame and behind-stream keep a finished
  * still. Reduced motion holds the completed plate.
+ *
+ * With `sliceFirstPlate`, the first plate is baked the same sliced way and
+ * start() resolves once it is drawn (Home's reading backdrop). Without it,
+ * start() draws the first plate before it returns (the Chamber).
  */
 
 import { Ostensoria } from './ostensoria.js';
@@ -40,6 +44,8 @@ export class PlateField {
      *   - dwellMs / crossfadeMs
      *   - reducedMotion
      *   - getSignal
+     *   - sliceFirstPlate  bake the first plate in slices too; start()
+     *     resolves true once it is drawn, false if stopped before
      */
     constructor(host, options = {}) {
         this.host = host;
@@ -49,6 +55,7 @@ export class PlateField {
             ? options.crossfadeMs
             : fallback.crossfadeMs;
         this.reducedMotion = !!options.reducedMotion;
+        this.sliceFirstPlate = !!options.sliceFirstPlate;
         this.families = normalizeFamilies(options.families);
         this.getSignal = typeof options.getSignal === 'function'
             ? options.getSignal
@@ -72,6 +79,9 @@ export class PlateField {
         this._remainingRotateMs = 0;
         this._pending = null;
         this._hot = null;
+        // Set while the first plate is still baking in slices.
+        this._resolveFirstPlate = null;
+        this._firstPlate = Promise.resolve(false);
 
         this._tick = this._tick.bind(this);
         this._resize = this._resize.bind(this);
@@ -124,7 +134,7 @@ export class PlateField {
             this._cancel();
         } else {
             this._lastFrameAt = 0;
-            this._rafId = requestAnimationFrame(this._tick);
+            this._requestFrame();
         }
     }
 
@@ -287,8 +297,9 @@ export class PlateField {
      * reading it was begun under rather than the one it opens on.
      */
     _startBake() {
-        // Reduced motion never rotates, so there is nothing to bake ahead.
-        if (this.reducedMotion) return;
+        // Reduced motion never rotates, so there is nothing to bake ahead
+        // beyond the first plate.
+        if (this.reducedMotion && !this._resolveFirstPlate) return;
         if (this._pending || this._hot) return;
         if (!this.families.length) return;
         const cursor = this._cursor + 1;
@@ -363,6 +374,19 @@ export class PlateField {
 
         this._pumpBake();
 
+        if (this._resolveFirstPlate) {
+            if (this._hot) this._showFirstPlate();
+            if (this._resolveFirstPlate) {
+                this._requestFrame();
+                return;
+            }
+        }
+        // Reduced motion holds one still: nothing advances or rotates.
+        if (this.reducedMotion) {
+            this._rafId = null;
+            return;
+        }
+
         const plane = this._planes[this._active];
         this._advance(plane, dt);
 
@@ -370,21 +394,51 @@ export class PlateField {
             this._rotate(false);
             this._nextRotateAt = timestamp + this.dwellMs;
         }
-        this._rafId = requestAnimationFrame(this._tick);
+        this._requestFrame();
     }
 
     start() {
-        if (this.running) return;
-        if (this.families.length === 0) return;
+        if (this.running) return this._firstPlate;
+        if (this.families.length === 0) return Promise.resolve(false);
         this.running = true;
         this.paused = false;
         this._mount();
         this._cursor = 0;
+        this._lastFrameAt = 0;
+        if (this.sliceFirstPlate) {
+            this._firstPlate = new Promise((resolve) => { this._resolveFirstPlate = resolve; });
+            this._startBake();
+            this._requestFrame();
+            return this._firstPlate;
+        }
         this._rotate(true);
         this._resize();
-        if (this.reducedMotion) return;
-        this._lastFrameAt = 0;
+        this._firstPlate = Promise.resolve(!!this._planes[0]._painted);
+        if (this.reducedMotion) return this._firstPlate;
         this._nextRotateAt = performance.now() + this.dwellMs;
+        this._requestFrame();
+        return this._firstPlate;
+    }
+
+    /** The sliced first bake is done: show it, then run as start() would. */
+    _showFirstPlate() {
+        const resolve = this._resolveFirstPlate;
+        this._resolveFirstPlate = null;
+        this._rotate(true);
+        this._resize();
+        this._nextRotateAt = performance.now() + this.dwellMs;
+        resolve(!!this._planes[0]._painted);
+    }
+
+    _settleFirstPlate() {
+        const resolve = this._resolveFirstPlate;
+        this._resolveFirstPlate = null;
+        resolve?.(false);
+    }
+
+    /** One frame loop: a frame still pending (a hidden tab holds it) is replaced. */
+    _requestFrame() {
+        this._cancel();
         this._rafId = requestAnimationFrame(this._tick);
     }
 
@@ -397,6 +451,7 @@ export class PlateField {
         this.running = false;
         this.paused = false;
         this._remainingRotateMs = 0;
+        this._settleFirstPlate();
         this._abortBake();
         this._cancel();
         if (this._planes) {
@@ -423,8 +478,8 @@ export class PlateField {
         this.paused = false;
         this._lastFrameAt = 0;
         this._nextRotateAt = performance.now() + this._remainingRotateMs;
-        if (!this.reducedMotion) {
-            this._rafId = requestAnimationFrame(this._tick);
+        if (!this.reducedMotion || this._resolveFirstPlate) {
+            this._requestFrame();
         }
         return true;
     }
@@ -433,7 +488,7 @@ export class PlateField {
         this.families = normalizeFamilies(families);
         this._abortBake();
         if (this.running && this.families.length === 0) this.stop();
-        else if (this.running && !this.reducedMotion) this._startBake();
+        else if (this.running) this._startBake();
     }
 
     setCadence({ dwellMs, crossfadeMs } = {}) {
