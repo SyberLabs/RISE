@@ -1,0 +1,36 @@
+{
+  "id": "FND-004",
+  "title": "Retire the catalog secrets and the WAV audio branch",
+  "lane": "shared",
+  "milestone": "Architecture",
+  "status": "planned",
+  "delivery": "not_shipped",
+  "owner": null,
+  "priority": "next",
+  "dependencies": [
+    "FND-003"
+  ],
+  "acceptance": [
+    "NEON_DATABASE_URL, UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN are removed from the Cloudflare production Worker.",
+    "Production still serves catalog.json and recitation after removal.",
+    "The rise/audio-assets branch is retired once nothing builds from it."
+  ],
+  "evidence": [
+    {
+      "kind": "pr",
+      "ref": "https://github.com/SyberLabs/RISE/pull/377",
+      "note": "The PR names both follow-ups as owner steps after release.",
+      "date": "2026-10-04"
+    }
+  ],
+  "summary": "Dashboard and branch cleanup that follows FND-003; needs Cloudflare account access.",
+  "blocker": null,
+  "activity": [
+    {
+      "date": "2026-10-04T23:44:08.776Z",
+      "summary": "Recorded from repository and CI evidence after integration."
+    }
+  ],
+  "updatedAt": "2026-10-04T23:44:08.776Z",
+  "revision": 1
+}

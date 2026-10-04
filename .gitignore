@@ -89,3 +89,6 @@ public/content/
 
 __pycache__/
 *.pyc
+
+# Local team dashboard snapshots
+.roadmap-dashboard/

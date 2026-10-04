@@ -1,0 +1,118 @@
+{
+  "id": "FND-002",
+  "title": "Maintain roadmap tracker and product library",
+  "lane": "shared",
+  "milestone": "Team coordination",
+  "status": "in_review",
+  "delivery": "branch",
+  "owner": "Codex coordinator",
+  "priority": "now",
+  "dependencies": [],
+  "acceptance": [
+    "Validate records and stale updates.",
+    "Show both product lanes, blockers and mapped/unmapped recent work.",
+    "Pass tests and local desktop/phone dashboard review."
+  ],
+  "evidence": [
+    {
+      "kind": "document",
+      "ref": "docs/product/TRACKER-DESIGN.md",
+      "note": "Approved repository/local design.",
+      "date": "2026-10-03"
+    },
+    {
+      "kind": "commit",
+      "ref": "https://github.com/SyberLabs/RISE/commit/4b2c052d",
+      "note": "Reviewed tracker implementation, product records or corrective verification work.",
+      "date": "2026-10-04"
+    },
+    {
+      "kind": "commit",
+      "ref": "https://github.com/SyberLabs/RISE/commit/5181b593",
+      "note": "Reviewed tracker implementation, product records or corrective verification work.",
+      "date": "2026-10-04"
+    },
+    {
+      "kind": "commit",
+      "ref": "https://github.com/SyberLabs/RISE/commit/007538c6",
+      "note": "Reviewed tracker implementation, product records or corrective verification work.",
+      "date": "2026-10-04"
+    },
+    {
+      "kind": "commit",
+      "ref": "https://github.com/SyberLabs/RISE/commit/9b47abde",
+      "note": "Reviewed tracker implementation, product records or corrective verification work.",
+      "date": "2026-10-04"
+    },
+    {
+      "kind": "commit",
+      "ref": "https://github.com/SyberLabs/RISE/commit/c63ea422",
+      "note": "Reviewed tracker implementation, product records or corrective verification work.",
+      "date": "2026-10-04"
+    },
+    {
+      "kind": "commit",
+      "ref": "https://github.com/SyberLabs/RISE/commit/4876bf88",
+      "note": "Reviewed tracker implementation, product records or corrective verification work.",
+      "date": "2026-10-04"
+    },
+    {
+      "kind": "commit",
+      "ref": "https://github.com/SyberLabs/RISE/commit/42aa9568",
+      "note": "Reviewed tracker implementation, product records or corrective verification work.",
+      "date": "2026-10-04"
+    },
+    {
+      "kind": "commit",
+      "ref": "https://github.com/SyberLabs/RISE/commit/ddf647fa",
+      "note": "Reviewed tracker implementation, product records or corrective verification work.",
+      "date": "2026-10-04"
+    },
+    {
+      "kind": "document",
+      "ref": "docs/product/README.md",
+      "note": "Product library and task update workflow.",
+      "date": "2026-10-04"
+    },
+    {
+      "kind": "test",
+      "ref": "docs/superpowers/handoffs/2026-10-04-roadmap-tracker.md",
+      "note": "23 Node tests,28 validated tasks; Chromium desktop/320/375 filters,polling,error/disclosure/static checks. Phone widths are emulation, not human device acceptance.",
+      "date": "2026-10-04"
+    },
+    {
+      "kind": "pr",
+      "ref": "https://github.com/SyberLabs/RISE/pull/398",
+      "note": "OPEN draft tracker integration PR; local implementation verified, hosting deferred.",
+      "date": "2026-10-04"
+    },
+    {
+      "kind": "commit",
+      "ref": "https://github.com/SyberLabs/RISE/commit/76386dba156efced3ba9b7f7eeebdfbcd3ce1d0a",
+      "note": "Tracker merged with main through #377; every product-library link and task evidence path resolves; wiki builds 76 pages. Added FND-003/004/005 and RDR-012 for unmapped work.",
+      "date": "2026-10-04"
+    }
+  ],
+  "activity": [
+    {
+      "date": "2026-10-03",
+      "summary": "Seeded from repository evidence and approved product direction; future acceptance is not assumed."
+    },
+    {
+      "date": "2026-10-04T21:04:15.329Z",
+      "summary": "Implementation verified and moved to integration review"
+    },
+    {
+      "date": "2026-10-04T21:06:15.614Z",
+      "summary": "Published draft tracker PR398 for team integration review"
+    },
+    {
+      "date": "2026-10-04T23:44:29.571Z",
+      "summary": "Integrated with main through #377 and mapped unmapped work"
+    }
+  ],
+  "updatedAt": "2026-10-04T23:44:29.571Z",
+  "revision": 4,
+  "summary": "Repository tracker, validated agent CLI, product library and local team dashboard implemented; local tests/browser checks and code review pass. PR integration and future hosting review remain separate.",
+  "blocker": null
+}

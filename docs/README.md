@@ -181,3 +181,14 @@ Preview the generated pages without pushing:
 ```bash
 node scripts/build-wiki.mjs --out /tmp/rise-wiki
 ```
+
+## Product direction and team tracking
+
+| Document | Status | What it is |
+| --- | --- | --- |
+| [product/README.md](product/README.md) | Contract | Task update workflow and product discussion library for both directions. |
+| [product/READER-DIRECTION.md](product/READER-DIRECTION.md) | Intent | Reader scope, recent merged work and acceptance packages. |
+| [COMPOSER-FIRST-ROADMAP.md](COMPOSER-FIRST-ROADMAP.md) | Intent | Approved Composer-first delivery and independent Live research. |
+| [product/TRACKER-DESIGN.md](product/TRACKER-DESIGN.md) | Intent | Approved repository/local tracker architecture. |
+| [product/discussions/2026-10-03-direction-decisions.md](product/discussions/2026-10-03-direction-decisions.md) | Record | Available October conversation decisions and provenance. |
+| [product/discussions/2026-10-original-performance-roadmap.md](product/discussions/2026-10-original-performance-roadmap.md) | Intent | User-supplied long-range roadmap, preserved as historical direction. |

@@ -1,0 +1,48 @@
+{
+  "id": "RDR-003",
+  "title": "Adapt Attractor quality to actual frames",
+  "lane": "reader",
+  "milestone": "Visual quality",
+  "status": "done",
+  "delivery": "merged",
+  "owner": "Seth Carlson",
+  "priority": "later",
+  "dependencies": [],
+  "acceptance": [
+    "Frame-based quality adaptation is merged."
+  ],
+  "evidence": [
+    {
+      "kind": "pr",
+      "ref": "https://github.com/SyberLabs/RISE/pull/392",
+      "note": "Frame timing adaptation merged.",
+      "date": "2026-10-03"
+    },
+    {
+      "kind": "commit",
+      "ref": "https://github.com/SyberLabs/RISE/commit/0075ba9a",
+      "note": "Current tracker starting main.",
+      "date": "2026-10-03"
+    },
+    {
+      "kind": "commit",
+      "ref": "https://github.com/SyberLabs/RISE/commit/4e647ab436b71f91df0cdfb4f8668a5715330cbb",
+      "note": "#371 keeps #392's frame-interval mechanism, backoff and pause/visibility reset, but steps down below 25 fps (DEGRADE_AT 2.4) instead of below 40 fps. Recorded in docs/superpowers/handoffs/2026-10-03-composer-foundation-reconciliation.md; Seth to confirm or restore.",
+      "date": "2026-10-04"
+    }
+  ],
+  "activity": [
+    {
+      "date": "2026-10-03",
+      "summary": "Seeded from repository evidence and approved product direction; future acceptance is not assumed."
+    },
+    {
+      "date": "2026-10-04T23:44:29.420Z",
+      "summary": "Recorded #371's change to the step-down threshold"
+    }
+  ],
+  "updatedAt": "2026-10-04T23:44:29.420Z",
+  "revision": 2,
+  "summary": "Actual frame cadence drives quality adaptation; live visual/device acceptance remains separate.",
+  "blocker": null
+}

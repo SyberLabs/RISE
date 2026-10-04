@@ -1,0 +1,36 @@
+{
+  "id": "SDK-002",
+  "title": "Define scenes and portable SDK contracts",
+  "lane": "live-sdk",
+  "milestone": "RiseSDK horizon",
+  "status": "planned",
+  "delivery": "not_shipped",
+  "owner": null,
+  "priority": "later",
+  "dependencies": [
+    "SDK-001"
+  ],
+  "acceptance": [
+    "Choose one external consumer and bounded stable interfaces.",
+    "Keep model code execution outside admitted declarative runtime.",
+    "Define portability, safety and replay acceptance before expansion."
+  ],
+  "evidence": [
+    {
+      "kind": "document",
+      "ref": "docs/product/discussions/2026-10-original-performance-roadmap.md",
+      "note": "Long-range Intent, conditional on reader and integration evidence; not first-edition prerequisites.",
+      "date": "2026-10-03"
+    }
+  ],
+  "activity": [
+    {
+      "date": "2026-10-03",
+      "summary": "Preserved as a conditional horizon, not authorized implementation."
+    }
+  ],
+  "updatedAt": "2026-10-03T23:23:50.198Z",
+  "revision": 1,
+  "summary": "Scenes, renderer admission, generated renderer execution and additional hosts remain conditional on observed SDK demand. Existing renderer manifests are the starting point.",
+  "blocker": null
+}

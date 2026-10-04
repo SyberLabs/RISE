@@ -1,0 +1,38 @@
+{
+  "id": "RDR-011",
+  "title": "Build Ember first plates without freezing reading",
+  "lane": "reader",
+  "milestone": "Visual quality",
+  "status": "done",
+  "delivery": "merged",
+  "owner": "Seth Carlson",
+  "priority": "later",
+  "dependencies": [],
+  "acceptance": [
+    "First-plate bake is divided into slices instead of one blocking freeze."
+  ],
+  "evidence": [
+    {
+      "kind": "pr",
+      "ref": "https://github.com/SyberLabs/RISE/pull/396",
+      "note": "Merged first-plate scheduling repair, not device listening/visual acceptance.",
+      "date": "2026-10-04"
+    },
+    {
+      "kind": "commit",
+      "ref": "https://github.com/SyberLabs/RISE/commit/2c71cba8",
+      "note": "Current main inspected, author Seth Carlson.",
+      "date": "2026-10-04"
+    }
+  ],
+  "activity": [
+    {
+      "date": "2026-10-04",
+      "summary": "Mapped latest Reader performance work from main."
+    }
+  ],
+  "updatedAt": "2026-10-04T20:56:46.939Z",
+  "revision": 1,
+  "summary": "Ember first-plate baking runs in slices; merged implementation is recorded separately from witnessed reading acceptance.",
+  "blocker": null
+}

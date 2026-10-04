@@ -1,0 +1,38 @@
+{
+  "id": "RDR-004",
+  "title": "Load saved accent under production CSP",
+  "lane": "reader",
+  "milestone": "Reliability",
+  "status": "done",
+  "delivery": "merged",
+  "owner": "Seth Carlson",
+  "priority": "later",
+  "dependencies": [],
+  "acceptance": [
+    "Saved-accent repair is merged."
+  ],
+  "evidence": [
+    {
+      "kind": "pr",
+      "ref": "https://github.com/SyberLabs/RISE/pull/391",
+      "note": "Saved accent same-origin boot.",
+      "date": "2026-10-03"
+    },
+    {
+      "kind": "commit",
+      "ref": "https://github.com/SyberLabs/RISE/commit/c21cc0ea",
+      "note": "Merged implementation.",
+      "date": "2026-10-03"
+    }
+  ],
+  "activity": [
+    {
+      "date": "2026-10-03",
+      "summary": "Seeded from repository evidence and approved product direction; future acceptance is not assumed."
+    }
+  ],
+  "updatedAt": "2026-10-03T23:14:43.432Z",
+  "revision": 1,
+  "summary": "Same-origin accent boot repair is merged.",
+  "blocker": null
+}
