@@ -352,7 +352,9 @@ describe('Attractor adaptive quality', () => {
     frames(45 * 28, FRAME_60);
     expect(field.quality).toBe(0);
     field.destroy();
-  });
+  // Deterministic under the fake clock, but ~1,700 simulated frames exceed
+  // the 5 s default on a loaded CI shard.
+  }, 20_000);
 
   it('responds within a few actual frames when raster latency is severe', () => {
     const { field, frames } = liveField({ form: 'kaleido' });
