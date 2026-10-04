@@ -96,7 +96,7 @@ function evidenceMatchesCommit(evidence, commit) {
   }
   if (evidence.kind === 'pr') {
     const number = pullRequestNumber(evidence.ref);
-    return number && new RegExp(`(?:#|pull/)${number}(?:\b|$)`, 'i').test(commit.subject);
+    return number && new RegExp(`(?:#|pull/)${number}(?:\\b|$)`, 'i').test(commit.subject);
   }
   return false;
 }
@@ -141,11 +141,15 @@ function createTaskCard(document, task, taskMap, sourceRef) {
   card.append(top, title, meta, description);
 
   if (task.blocker) card.append(createElement(document, 'p', 'task-blocker', `Blocked: ${task.blocker}`));
+  const details = createElement(document, 'details', 'task-details');
+  details.dataset.disclosureKey = `task:${task.id}`;
+  details.append(createElement(document, 'summary', '', 'Dependencies, acceptance & evidence'));
+
   const dependencies = createElement(document, 'div', 'task-detail');
   const dependencyNames = task.dependencies.map((id) => taskMap.get(id)?.title || id);
   dependencies.append(createElement(document, 'strong', '', task.dependencies.length ? 'Depends on ' : 'Dependencies '));
   dependencies.append(createElement(document, 'span', '', dependencyNames.length ? dependencyNames.join(', ') : 'None'));
-  card.append(dependencies);
+  details.append(dependencies);
 
   if (task.acceptance.length) {
     const acceptance = createElement(document, 'div', 'task-detail acceptance-list');
@@ -153,7 +157,7 @@ function createTaskCard(document, task, taskMap, sourceRef) {
     const list = createElement(document, 'ul', '');
     for (const criterion of task.acceptance) list.append(createElement(document, 'li', '', criterion));
     acceptance.append(list);
-    card.append(acceptance);
+    details.append(acceptance);
   }
 
   if (task.evidence.length) {
@@ -166,8 +170,9 @@ function createTaskCard(document, task, taskMap, sourceRef) {
       row.append(createElement(document, 'span', 'evidence-note', item.note));
       evidence.append(row);
     }
-    card.append(evidence);
+    details.append(evidence);
   }
+  card.append(details);
 
   const updated = createElement(document, 'p', 'task-updated', `Updated ${formatDate(task.updatedAt)} · r${task.revision}`);
   card.append(updated);
@@ -190,8 +195,8 @@ function renderReadiness(document, container, tasks) {
   queuedCard.append(createElement(document, 'p', 'eyebrow', 'Future priorities'), createElement(document, 'h2', '', `Next / later · ${queued.length}`));
   queuedCard.append(createElement(document, 'p', 'readiness-copy', queued.length ? queued.map((task) => `${task.priority}: ${task.title}`).join(' · ') : 'No next or later work is queued.'));
   const blockedCard = createElement(document, 'article', 'readiness-card readiness-waiting');
-  blockedCard.append(createElement(document, 'p', 'eyebrow', 'Needs attention'), createElement(document, 'h2', '', `Blocked or waiting · ${blocked.length + waiting.length}`));
   const uniqueWaiting = new Map([...blocked, ...waiting].map((task) => [task.id, task]));
+  blockedCard.append(createElement(document, 'p', 'eyebrow', 'Needs attention'), createElement(document, 'h2', '', `Blocked or waiting · ${uniqueWaiting.size}`));
   blockedCard.append(createElement(document, 'p', 'readiness-copy', uniqueWaiting.size ? [...uniqueWaiting.values()].map((task) => task.title).join(' · ') : 'No blocked tasks or unfinished dependencies.'));
   wrap.append(readyCard, queuedCard, blockedCard);
   container.append(wrap);
@@ -210,9 +215,18 @@ function renderLanes(document, container, tasks, filters, sourceRef) {
     labelWrap.append(createElement(document, 'h3', '', lane.label), createElement(document, 'p', '', lane.note));
     heading.append(labelWrap, createElement(document, 'span', 'lane-count', String(laneTasks.length)));
 
-    const milestones = [...new Set(laneTasks.map((task) => task.milestone))].sort((a, b) => a.localeCompare(b));
+    const priorityRank = { now: 0, next: 1, later: 2 };
+    const milestones = [...new Set(laneTasks.map((task) => task.milestone))].map((milestone) => {
+      const groupTasks = laneTasks.filter((task) => task.milestone === milestone);
+      const unfinished = groupTasks.filter((task) => task.status !== 'done');
+      return {
+        milestone,
+        done: unfinished.length === 0,
+        priority: unfinished.reduce((best, task) => Math.min(best, priorityRank[task.priority] ?? 3), 3),
+      };
+    }).sort((a, b) => Number(a.done) - Number(b.done) || a.priority - b.priority || a.milestone.localeCompare(b.milestone, undefined, { numeric: true, sensitivity: 'base' }));
     if (!milestones.length) section.append(createElement(document, 'p', 'empty-state', 'No tasks match these filters.'));
-    for (const milestone of milestones) {
+    for (const { milestone } of milestones) {
       const group = createElement(document, 'div', 'milestone-group');
       group.append(createElement(document, 'h4', 'milestone-title', milestone));
       for (const task of laneTasks.filter((item) => item.milestone === milestone)) group.append(createTaskCard(document, task, taskMap, sourceRef));
@@ -225,17 +239,18 @@ function renderLanes(document, container, tasks, filters, sourceRef) {
 function renderActivity(document, container, tasks) {
   container.replaceChildren();
   const records = tasks.flatMap((task) => task.activity.map((item) => ({ ...item, taskId: task.id, taskTitle: task.title })))
-    .sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 12);
+    .sort((a, b) => new Date(b.date) - new Date(a.date));
   if (!records.length) {
     container.append(createElement(document, 'p', 'empty-state', 'No task activity recorded yet.'));
     return;
   }
-  for (const item of records) {
+  const renderRecord = (item) => {
     const row = createElement(document, 'article', 'activity-row');
     row.append(createElement(document, 'time', 'activity-date', formatDate(item.date)), createElement(document, 'p', '', item.summary));
     row.append(createElement(document, 'span', 'activity-task', `${item.taskTitle} · ${item.taskId}`));
-    container.append(row);
-  }
+    return row;
+  };
+  appendRecentPreview(document, container, records, renderRecord, 'updates');
 }
 
 function commitUrl(sha) {
@@ -248,7 +263,7 @@ function renderCommits(document, container, commits, tasks) {
     container.append(createElement(document, 'p', 'empty-state', 'No recent commits found.'));
     return;
   }
-  for (const { commit, taskIds } of mapRecentCommits(commits, tasks)) {
+  const renderRecord = ({ commit, taskIds }) => {
     const row = createElement(document, 'article', 'commit-row');
     const title = createElement(document, 'div', 'commit-title');
     const href = commitUrl(commit.sha);
@@ -277,11 +292,27 @@ function renderCommits(document, container, commits, tasks) {
       mapped.append(createElement(document, 'span', 'mapped-tag', `Linked · ${taskIds.join(', ')}`));
     }
     row.append(mapped);
-    container.append(row);
-  }
+    return row;
+  };
+  appendRecentPreview(document, container, mapRecentCommits(commits, tasks), renderRecord, 'commits');
+}
+
+const INITIAL_HISTORY_ITEMS = 5;
+
+function appendRecentPreview(document, container, records, renderRecord, noun) {
+  for (const record of records.slice(0, INITIAL_HISTORY_ITEMS)) container.append(renderRecord(record));
+  const older = records.slice(INITIAL_HISTORY_ITEMS);
+  if (!older.length) return;
+  const disclosure = createElement(document, 'details', 'history-more');
+  disclosure.dataset.disclosureKey = `history:${noun}`;
+  disclosure.append(createElement(document, 'summary', '', `Show ${older.length} older ${noun}`));
+  for (const record of older) disclosure.append(renderRecord(record));
+  container.append(disclosure);
 }
 
 export function renderDashboard(document, data, state = {}) {
+  const disclosureState = new Map([...document.querySelectorAll('details[data-disclosure-key]')]
+    .map((disclosure) => [disclosure.dataset.disclosureKey, disclosure.open]));
   const tasks = Array.isArray(data?.tasks) ? data.tasks : [];
   const commits = Array.isArray(data?.recentCommits) ? data.recentCommits : [];
   const milestoneSelect = document.querySelector('#milestone-filter');
@@ -317,6 +348,11 @@ export function renderDashboard(document, data, state = {}) {
   }
   const modeNode = document.querySelector('#mode-badge');
   if (modeNode) modeNode.textContent = state.mode === 'static' ? 'Static snapshot' : 'Local tracker';
+  for (const disclosure of document.querySelectorAll('details[data-disclosure-key]')) {
+    if (disclosureState.has(disclosure.dataset.disclosureKey)) {
+      disclosure.open = disclosureState.get(disclosure.dataset.disclosureKey);
+    }
+  }
 }
 
 function readFilters(document) {
@@ -328,22 +364,25 @@ function readFilters(document) {
   };
 }
 
-function startDashboard() {
-  const document = globalThis.document;
+export function startDashboard(document = globalThis.document, fetcher = globalThis.fetch, schedule = globalThis.setInterval) {
   const mode = document.documentElement.dataset.trackerMode === 'static' ? 'static' : 'api';
   const state = { mode, filters: {}, data: null, loadedAt: null, error: null, stale: false };
+  let latestRequest = 0;
   const refresh = async () => {
+    const requestId = ++latestRequest;
     try {
       const url = mode === 'static' ? new URL('snapshot.json', document.baseURI) : new URL('/api/tracker', document.baseURI);
-      const response = await fetch(url, { cache: 'no-store' });
+      const response = await fetcher(url, { cache: 'no-store' });
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
       const data = await response.json();
+      if (requestId !== latestRequest) return;
       state.data = data;
       state.loadedAt = data.generatedAt || new Date().toISOString();
       state.error = null;
       state.stale = false;
       renderDashboard(document, data, state);
     } catch (error) {
+      if (requestId !== latestRequest) return;
       state.error = error instanceof Error ? error.message : String(error);
       state.stale = Boolean(state.data);
       if (state.data) renderDashboard(document, state.data, state);
@@ -364,8 +403,9 @@ function startDashboard() {
       state.filters = readFilters(document);
     });
   }
-  refresh();
-  if (mode === 'api') globalThis.setInterval(refresh, 15_000);
+  const initialLoad = refresh();
+  if (mode === 'api') schedule(refresh, 15_000);
+  return { refresh, initialLoad };
 }
 
 if (typeof document !== 'undefined' && document.querySelector('#refresh-button')) startDashboard();

@@ -86,6 +86,9 @@ main { width: min(1500px, 100%); margin: 0 auto; padding: 42px clamp(20px, 4.5vw
 .task-meta, .task-updated { margin: 0 0 8px; color: var(--faint); font: 10px 'Consolas', 'Courier New', monospace; line-height: 1.55; }
 .task-summary { margin: 0 0 9px; color: #bac3bf; font-size: 11px; line-height: 1.55; overflow-wrap: anywhere; }
 .task-blocker { margin: 0 0 8px; color: var(--rose); font-size: 11px; line-height: 1.5; }
+.task-details { margin-top: 9px; color: var(--muted); font-size: 10px; line-height: 1.55; }
+.task-details > summary, .history-more > summary { color: #a8cbbb; cursor: pointer; font: 10px 'Consolas', 'Courier New', monospace; }
+.task-details[open] > summary { margin-bottom: 9px; }
 .task-detail { margin-top: 8px; color: var(--muted); font-size: 10px; line-height: 1.55; overflow-wrap: anywhere; }
 .task-detail strong { display: block; margin-bottom: 3px; color: #d0d7d3; font: 500 9px 'Consolas', 'Courier New', monospace; letter-spacing: .08em; text-transform: uppercase; }
 .acceptance-list ul { margin: 0; padding-left: 16px; }
@@ -104,6 +107,8 @@ main { width: min(1500px, 100%); margin: 0 auto; padding: 42px clamp(20px, 4.5vw
 .section-heading h2 { margin: 0; font: 600 16px 'Segoe UI', sans-serif; }
 .muted-note { color: var(--faint); font-size: 10px; line-height: 1.5; }
 .activity-row, .commit-row { padding: 10px 0; border-top: 1px solid #ffffff0b; }
+.history-more { border-top: 1px solid #ffffff0b; }
+.history-more > summary { padding: 10px 0; color: var(--mint); }
 .activity-date, .commit-date { display: block; margin-bottom: 4px; color: var(--faint); font: 9px 'Consolas', 'Courier New', monospace; }
 .activity-row p { margin: 0 0 4px; color: #d6ddd8; font-size: 11px; line-height: 1.5; overflow-wrap: anywhere; }
 .activity-task { color: var(--mint); font-size: 10px; }
