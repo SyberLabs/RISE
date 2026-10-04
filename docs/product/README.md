@@ -61,3 +61,5 @@ The collection preserves available source documents and summaries. It is not a c
 - [ChatGPT acceptance](../superpowers/handoffs/2026-10-02-rise-chatgpt-live-acceptance.md) and [reader Begin](../superpowers/handoffs/2026-10-02-rise-chatgpt-reader-begin.md): historical handoffs, not current-release acceptance.
 - [Decoupled design](../superpowers/specs/2026-10-03-gate0-decoupled-design.md) and [probe plan](../superpowers/plans/2026-10-03-gate0-decoupled.md): pending host experiment.
 - [Composer contract](../superpowers/specs/2026-10-03-composer-first-contract.md), [foundation reconciliation](../superpowers/handoffs/2026-10-03-composer-foundation-reconciliation.md) and [earlier parallel assignment](../superpowers/handoffs/2026-10-03-parallel-roadmap-assignment.md): current boundaries and superseded broader assignment.
+
+- [Tracker implementation handoff](../superpowers/handoffs/2026-10-04-roadmap-tracker.md): local verification, branch and next contributor workflow.
