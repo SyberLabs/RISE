@@ -141,6 +141,8 @@ describe('Home on arrival', () => {
         const { pick, decision, heading, passage } = today();
         expect(caption(container)).toEqual(['Today’s poem', heading]);
         expect(status(container)).toBe(`Today’s poem: ${heading}`);
+        // A name too long for the caption's one line is whole as a tooltip.
+        expect(container.querySelector('h1').title).toBe(heading);
         expect(container.querySelector('[data-home-opening]').textContent).toBe(passage);
         expect(container.querySelector('[data-home-opening]').classList.contains('sr-only')).toBe(true);
 
@@ -274,6 +276,7 @@ describe('Another reading', () => {
         expect(() => validateJevRecommendation(decision)).not.toThrow();
         const plan = summarizeJevPlan(decision.config).join(', ');
         expect(caption(container)).toEqual([`Revel: ${plan}`, 'Oedipus Rex, by Sophocles']);
+        expect(container.querySelector('h1').title).toBe('Oedipus Rex, by Sophocles');
         expect(status(container)).toBe(`Revel. Oedipus Rex, by Sophocles. ${capital(plan)}.`);
         // The link is Adjust now, and the reader stays on the key they pressed.
         expect(actions(container)).toEqual(['Read it with sound', 'Another reading', 'Adjust']);
@@ -342,6 +345,81 @@ describe('Another reading', () => {
         hook(container, 'roll').click();
         await vi.waitFor(() => expect(container.querySelector('.home-alert').hidden).toBe(false));
         expect(hook(container, 'roll').disabled).toBe(false);
+        vi.doUnmock('../content/library.js');
+        await another(container, portal);
+        expect(container.querySelector('.home-alert').hidden).toBe(true);
+        portal.destroy();
+    });
+});
+
+// On a slow phone the first press waited most of a second for the roll's
+// code; Home fetches it in idle time once the stream is showing.
+describe('Another reading, warmed while Home reads', () => {
+    let idle;
+    beforeEach(() => {
+        idle = vi.fn();
+        vi.stubGlobal('requestIdleCallback', idle);
+    });
+    afterEach(() => vi.unstubAllGlobals());
+    const runIdle = () => idle.mock.calls.forEach(([run]) => run());
+
+    it('loads the roll\'s code once in idle time after the stream shows, and the press reuses it', async () => {
+        const { portal, container } = makePortal();
+        const loadTools = vi.spyOn(portal, 'loadTools');
+        await arrive(portal, container);
+        // Home's text and engine come first: nothing is fetched until the browser is idle.
+        expect(loadTools).not.toHaveBeenCalled();
+        expect(idle).toHaveBeenCalledOnce();
+        runIdle();
+        expect(loadTools).toHaveBeenCalledOnce();
+        const warmed = portal.tools;
+        await warmed;
+        await another(container, portal);
+        expect(portal.tools).toBe(warmed);
+        // Warm already: the rolled reading's stream asks for no second warm-up.
+        expect(idle).toHaveBeenCalledOnce();
+        portal.destroy();
+    });
+
+    it('fetches nothing when Home is left before the browser is idle', async () => {
+        const { portal, container } = makePortal();
+        const loadTools = vi.spyOn(portal, 'loadTools');
+        await arrive(portal, container);
+        portal.deactivate();
+        runIdle();
+        expect(loadTools).not.toHaveBeenCalled();
+        portal.destroy();
+    });
+
+    it('fetches nothing ahead when the reader asked to save data', async () => {
+        vi.stubGlobal('navigator', { ...navigator, connection: { saveData: true } });
+        const { portal, container } = makePortal();
+        const loadTools = vi.spyOn(portal, 'loadTools');
+        await arrive(portal, container);
+        runIdle();
+        expect(idle).not.toHaveBeenCalled();
+        expect(loadTools).not.toHaveBeenCalled();
+        portal.destroy();
+    });
+
+    it('fetches nothing in the scene demo', async () => {
+        const { portal } = makePortal({ demoMode: true });
+        const loadTools = vi.spyOn(portal, 'loadTools');
+        portal.activate();
+        await new Promise(resolve => setTimeout(resolve, 50));
+        runIdle();
+        expect(loadTools).not.toHaveBeenCalled();
+        portal.destroy();
+    });
+
+    it('fails silently, and the press loads it again', async () => {
+        const { portal, container } = makePortal();
+        await arrive(portal, container);
+        vi.doMock('../content/library.js', () => { throw new Error('chunk failed'); });
+        runIdle();
+        expect(portal.tools).not.toBeNull();
+        await vi.waitFor(() => expect(portal.tools).toBeNull());
+        expect(container.querySelector('.home-alert').hidden).toBe(true);
         vi.doUnmock('../content/library.js');
         await another(container, portal);
         expect(container.querySelector('.home-alert').hidden).toBe(true);
@@ -576,9 +654,16 @@ describe('the rest of Home', () => {
     });
 
     it('styles Home from the SyberLabs tokens, with one ink scrim as its only gradient, and nothing under 12px', () => {
-        const gradients = portalCss.match(/[a-z-]*gradient\(/gu) ?? [];
-        expect(gradients).toEqual(['radial-gradient(', 'linear-gradient(']);
-        expect(portalCss).toMatch(/\.home-scrim \{[^}]*radial-gradient\([^}]*linear-gradient\(/u);
+        // The scrim lies in parts, under what it keeps legible; every gradient is its ink.
+        const gradients = portalCss.match(/^ *[a-z-]+:[^;\n]*gradient\([^;\n]*;/gmu) ?? [];
+        expect(gradients.length).toBeGreaterThan(0);
+        for (const rule of gradients) {
+            expect(rule.trim(), rule).toMatch(/^background: linear-gradient\(/u);
+            expect(rule.replace(/color-mix\(in srgb, var\(--sy-bg\) \d+%, transparent\)|var\(--home-ink-bar\)/gu, ''), rule)
+                .not.toMatch(/#[0-9a-f]{3,8}|rgb|hsl|var\(--sy-/iu);
+        }
+        expect(portalCss).toMatch(/--home-ink-stream: color-mix\(in srgb, var\(--sy-bg\) 86%, transparent\);/u);
+        expect(portalCss).toMatch(/--home-ink-bar: color-mix\(in srgb, var\(--sy-bg\) 92%, transparent\);/u);
         expect(portalCss).toMatch(/var\(--sy-accent-rise\)/);
         expect(portalCss).not.toMatch(/font-size:\s*(?:[0-9]|1[01])px/);
     });

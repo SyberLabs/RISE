@@ -40,8 +40,9 @@ export async function mountReadingBackdrop(host, decision) {
 
   if (engine === 'ostensoria' || engine === 'apparitio') {
     const { PlateField } = await import('../visuals/plate-field.js');
-    const field = new PlateField(host, { families: [engine], reducedMotion: reducedMotion() });
-    field.start();
+    const field = new PlateField(host, { families: [engine], reducedMotion: reducedMotion(), sliceFirstPlate: true });
+    // The first plate bakes in slices; the stage keeps the last engine up until it is drawn.
+    await field.start();
     return { pause: () => field.pause(), resume: () => field.resume(), destroy: () => field.destroy() };
   }
 
