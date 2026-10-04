@@ -1,0 +1,78 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Gate 0 fake MCP host harness</title></head><body>
+<iframe id="widget" src="/__gate0/widget" title="Gate 0 widget"></iframe>
+<iframe id="outsider" srcdoc="<script>addEventListener('message',e=>{if(e.source===parent&&e.data?.gate0Forward){parent.document.querySelector('#widget').contentWindow.postMessage(e.data.message,'*');parent.postMessage({gate0OutsiderForwarded:e.data.id},'*')}});parent.postMessage({gate0OutsiderReady:true},'*')</script>" title="Untrusted sender"></iframe>
+<script>
+let widget = document.querySelector('#widget');
+const outsider = document.querySelector('#outsider');
+const calls = [];
+const deliveries = [];
+const pendingOutsiderForwards = new Map();
+let nextOutsiderForwardId = 0;
+let outsiderReady = false;
+let dropNextAck = false;
+let rejectNextMessage = false;
+window.addEventListener('message', event => {
+  if (event.source !== outsider.contentWindow) return;
+  if (event.data?.gate0OutsiderReady === true) {
+    outsiderReady = true;
+    return;
+  }
+  const resolveForward = pendingOutsiderForwards.get(event.data?.gate0OutsiderForwarded);
+  if (resolveForward) {
+    pendingOutsiderForwards.delete(event.data.gate0OutsiderForwarded);
+    resolveForward({ delivered: true, source: 'outsider' });
+  }
+});
+window.gate0Host = {
+  calls,
+  deliveries,
+  get outsiderReady() { return outsiderReady; },
+  set dropNextAck(value) { dropNextAck = value; },
+  set rejectNextMessage(value) { rejectNextMessage = value; },
+  sendResult(snapshot) {
+    deliveries.push('tool-result');
+    widget.contentWindow.postMessage({ jsonrpc: '2.0', method: 'ui/notifications/tool-result', params: { structuredContent: snapshot } }, '*');
+  },
+  async deliverTool(arguments_) {
+    deliveries.push('tool-input');
+    widget.contentWindow.postMessage({ jsonrpc: '2.0', method: 'ui/notifications/tool-input', params: { arguments: arguments_ } }, '*');
+    const response = await fetch('/mcp', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ jsonrpc: '2.0', id: 41, method: 'tools/call', params: { name: 'rise_set_visual', arguments: arguments_ } }) });
+    const message = await response.json();
+    const snapshot = message.result?.structuredContent;
+    this.sendResult(snapshot);
+    return snapshot;
+  },
+  sendTeardown(id = 700) {
+    widget.contentWindow.postMessage({ jsonrpc: '2.0', id, method: 'ui/resource-teardown', params: {} }, '*');
+  },
+  replaceWidget() {
+    const replacement = document.createElement('iframe');
+    replacement.id = 'widget';
+    replacement.src = '/__gate0/widget';
+    replacement.title = 'Gate 0 widget replacement';
+    widget.replaceWith(replacement);
+    widget = replacement;
+  },
+  sendFromOtherFrame(snapshot) {
+    const id = ++nextOutsiderForwardId;
+    return new Promise(resolve => {
+      pendingOutsiderForwards.set(id, resolve);
+      outsider.contentWindow.postMessage({ gate0Forward: true, id, message: { jsonrpc: '2.0', method: 'ui/notifications/tool-result', params: { structuredContent: snapshot } } }, '*');
+    });
+  }
+};
+window.addEventListener('message', event => {
+  if (event.source !== widget.contentWindow) return;
+  const message = event.data;
+  if (!message || message.jsonrpc !== '2.0') return;
+  calls.push(message);
+  if (message.id !== undefined) {
+    if (dropNextAck) dropNextAck = false;
+    else if (message.method === 'ui/message' && rejectNextMessage) {
+      rejectNextMessage = false;
+      event.source.postMessage({ jsonrpc: '2.0', id: message.id, result: { isError: true, content: [{ type: 'text', text: 'Simulated host refusal' }] } }, '*');
+    }
+    else event.source.postMessage({ jsonrpc: '2.0', id: message.id, result: {} }, '*');
+  }
+});
+</script></body></html>

@@ -5,49 +5,26 @@ import { JEV_INKS, JEV_PALETTES, jevColors } from '../../core/jev-palette.js';
 import { JEV_AUDIO_IDS } from '../../core/jev-config.js';
 import * as jevSequence from '../../core/jev-sequence.js';
 import { validateJevRecommendation } from '../../app/jev-reading.js';
+import { JEV_COLOR_THEMES } from '../../core/jev-color-themes.js';
+import { ATTRACTOR_PALETTES } from '../../core/visual-style-definitions.js';
 
 const mocks = vi.hoisted(() => ({
   query: vi.fn(),
   optionsQuery: vi.fn(),
-  neon: vi.fn(),
   get: vi.fn(),
   set: vi.fn(),
   incr: vi.fn(),
-  expire: vi.fn(),
-  redis: vi.fn()
+  expire: vi.fn()
 }));
 
-vi.mock('@neondatabase/serverless', () => ({
-  neon: (url) => {
-    mocks.neon(url);
-    return (strings, ...values) => String(strings[0]).includes('rise_jev_options')
-      ? mocks.optionsQuery(strings, ...values) : mocks.query(strings, ...values);
-  }
-}));
-vi.mock('@upstash/redis/cloudflare', () => ({
-  Redis: class {
-    constructor(options) { mocks.redis(options); }
-    get(key) { return mocks.get(key); }
-    set(key, value, options) { return mocks.set(key, value, options); }
-    incr(key) { return mocks.incr(key); }
-    expire(key, seconds) { return mocks.expire(key, seconds); }
-  }
-}));
-
-import { handleDecisionCatalog } from '../../../worker/decision-catalog.mjs';
-import { readPublicCatalog } from './catalog.js';
-import { createRecommender } from './recommend.js';
+import { publicCatalog, validCatalog, validSoundCatalog } from './catalog.js';
+import { CHOICES, choiceMenu, createRecommender } from './recommend.js';
 import { DecisionError } from './call.js';
 import { JEV, KEV } from './providers.js';
 
 const SITE = 'https://rise.example';
-// The reader's own OpenRouter key; the catalog credentials stay in the Worker.
-const env = {
-  OPENROUTER_API_KEY: 'reader-openrouter-key',
-  NEON_DATABASE_URL: 'postgresql://private.example/rise',
-  UPSTASH_REDIS_REST_URL: 'https://redis.example',
-  UPSTASH_REDIS_REST_TOKEN: 'redis-server-secret'
-};
+// The reader's own OpenRouter key.
+const env = { OPENROUTER_API_KEY: 'reader-openrouter-key' };
 
 const STATUS = { INVALID_REQUEST: 400, NOT_CONNECTED: 503, CATALOG_UNAVAILABLE: 503, CATALOG_NOT_CONFIGURED: 503,
   OPTIONS_UNAVAILABLE: 503, TIMEOUT: 504, CANCELED: 499 };
@@ -68,13 +45,20 @@ function connectionFor(settings) {
 }
 function newSession() {
   recommend = createRecommender({
+    // The published catalog, assembled from the fixtures the tests control.
     loadCatalog: async () => {
-      const response = await handleDecisionCatalog(new Request(`${SITE}/api/decision-catalog`), currentEnv);
-      const body = await response.json();
-      if (!response.ok) throw new DecisionError(body.error.code, body.error.message);
-      const catalog = readPublicCatalog(body);
-      if (!catalog) throw new DecisionError('CATALOG_UNAVAILABLE', 'The reading catalog is unavailable.');
-      return catalog;
+      const books = validCatalog(await mocks.query(['FROM rise_books']));
+      const sounds = validSoundCatalog(await mocks.query(['FROM rise_sounds']));
+      let options;
+      try {
+        options = await mocks.optionsQuery(['rise_jev_options']);
+      } catch (cause) {
+        if (cause?.code !== '42P01') throw new DecisionError('OPTIONS_UNAVAILABLE', 'The presentation menu is unavailable.');
+        options = null;
+      }
+      if (!books || !sounds) throw new DecisionError('CATALOG_UNAVAILABLE', 'The reading catalog is unavailable.');
+      if (options !== null && !choiceMenu(options)) throw new DecisionError('OPTIONS_UNAVAILABLE', 'The presentation menu is unavailable.');
+      return publicCatalog({ books, sounds, options });
     },
     getConnection: () => connectionFor(currentEnv),
     store: {
@@ -256,7 +240,7 @@ describe('Jev reading recommendation', () => {
     expect((await handleJevRecommend(request({ intent: 'A reading.', schemaVersion: 4 }), env)).status).toBe(400);
     expect(mocks.query).not.toHaveBeenCalled();
   });
-  it('offers new text faces and extra large type when active in Postgres', async () => {
+  it('offers new text faces and extra large type when active in the catalog', async () => {
     mocks.optionsQuery.mockResolvedValue([
       ...options,
       { kind: 'chamberFace', id: 'sans', description: 'Modern sans text.' },
@@ -320,9 +304,6 @@ describe('Jev reading recommendation', () => {
     const response = await handleJevRecommend(request(), env);
 
     expect(response.status).toBe(200);
-    const soundQuery = mocks.query.mock.calls.find(([strings]) => strings.join('').includes('FROM rise_sounds'));
-    expect(soundQuery[0].join('')).toContain('LIMIT ');
-    expect(soundQuery[1]).toBe(64);
     const audio = JSON.parse(provider.mock.calls[0][1].body).questions.audio.criteria;
     expect(Object.keys(audio)).toHaveLength(10);
     expect(audio).toHaveProperty('silent', 'Silence.');
@@ -498,7 +479,7 @@ describe('Jev reading recommendation', () => {
     expect(decisionKeys[0].split(':').at(-1)).toBe(decisionKeys[8].split(':').at(-1));
   });
 
-  it('loads PostgreSQL on a Redis catalog miss and sends only admitted books to Jev', async () => {
+  it('sends only admitted books to Jev', async () => {
     const provider = vi.fn(async () => Response.json({
       id: 'gen-dec-live-1', model: 'typesafe/jev-1.13-20260917', provider: 'TypeSafe',
       answers: answers('middlemarch')
@@ -515,11 +496,10 @@ describe('Jev reading recommendation', () => {
       reason: books[0].fit_description, config: chosenConfig,
       decisionCacheStatus: 'miss'
     });
-    expect(mocks.neon).toHaveBeenCalledWith(env.NEON_DATABASE_URL);
-    expect(mocks.set).toHaveBeenCalledWith(expect.stringMatching(/^rise:books:v1:[0-9a-f]{64}$/u), books, { ex: 30 });
-    expect(mocks.set.mock.calls[0][0]).not.toContain('thoughtful novel');
     const body = JSON.parse(provider.mock.calls[0][1].body);
-    expect(new TextEncoder().encode(provider.mock.calls[0][1].body).length).toBeLessThan(13000);
+    // Nine color themes in five color questions and nine filament palettes (neon is offered only to
+    // night-drive clients): 13,738 bytes when measured; with neon offered, 13,890.
+    expect(new TextEncoder().encode(provider.mock.calls[0][1].body).length).toBeLessThan(14000);
     expect(body.model).toBe('typesafe/jev-1.13');
     expect(Object.keys(body.questions.book.criteria)).toHaveLength(15);
     expect(Object.keys(body.questions.book.criteria)).toContain('middlemarch');
@@ -538,7 +518,6 @@ describe('Jev reading recommendation', () => {
     expect(body.questions.visual.criteria.interlocution).toContain('psychedelic');
     expect(body.questions.visualEngine.criteria.fractal).toContain('psychedelic');
     expect(Object.keys(body.questions.audio.criteria)).toHaveLength(10);
-    expect(mocks.set).toHaveBeenCalledWith('rise:sounds:v1', sounds, { ex: 30 });
     expect(body.questions.chamberFace.criteria).toHaveProperty('mono');
     expect(body.questions.section.criteria).toHaveProperty('middle');
     expect(body.questions.section.criteria).toHaveProperty('last');
@@ -585,7 +564,7 @@ describe('Jev reading recommendation', () => {
     expect((await handleJevRecommend(request(), env)).status).toBe(502);
   });
 
-  it('offers every released original from PostgreSQL and admits Jev choosing one', async () => {
+  it('offers every released original from the catalog and admits Jev choosing one', async () => {
     const originalId = 'the-prompt-and-the-pencil';
     const catalog = [
       ...books,
@@ -613,22 +592,6 @@ describe('Jev reading recommendation', () => {
     const criteria = JSON.parse(provider.mock.calls[0][1].body).questions.book.criteria;
     expect(Object.keys(criteria)).toHaveLength(Object.keys(releaseInventory).length + Object.keys(modernManifest).length);
     expect(criteria[originalId]).toContain('AI');
-  });
-
-  it('uses public catalog metadata from Redis but still calls Jev for the reader intent', async () => {
-    mocks.get.mockImplementation(async key => key.startsWith('rise:jev-decision:') ? null
-      : key === 'rise:sounds:v1' ? sounds : books);
-    const provider = vi.fn(async () => Response.json({
-      id: 'gen-dec-live-2', model: 'typesafe/jev-1.13', provider: 'TypeSafe',
-      answers: answers('literary-walden')
-    }));
-    vi.stubGlobal('fetch', provider);
-
-    const response = await handleJevRecommend(request({ intent: 'Nature and quiet.' }), env);
-    expect(response.status).toBe(200);
-    expect((await response.json()).decisionCacheStatus).toBe('miss');
-    expect(mocks.query).not.toHaveBeenCalled();
-    expect(provider).toHaveBeenCalledOnce();
   });
 
   it.each(['sad', 'angry', 'happy', 'excited', 'thrilling', 'scary'])(
@@ -1055,7 +1018,9 @@ describe('Jev reading recommendation', () => {
   it('asks Jev again when the intent or admitted catalog changes', async () => {
     const cache = new Map();
     let catalog = books;
-    mocks.get.mockImplementation(async key => key.startsWith('rise:books:') ? catalog : cache.get(key));
+    mocks.query.mockImplementation(strings => Promise.resolve(
+      strings.join('').includes('FROM rise_sounds') ? sounds : catalog));
+    mocks.get.mockImplementation(async key => cache.get(key));
     mocks.set.mockImplementation(async (key, value) => { cache.set(key, value); return 'OK'; });
     const provider = vi.fn(async () => Response.json({
       id: `gen-dec-${provider.mock.calls.length}`, model: 'typesafe/jev-1.13', provider: 'TypeSafe',
@@ -1076,8 +1041,8 @@ describe('Jev reading recommendation', () => {
 
   it('offers only active approved menu IDs and keys cached decisions by that menu', async () => {
     const cache = new Map();
-    mocks.get.mockImplementation(async key => key.startsWith('rise:books:') ? books : cache.get(key));
-    mocks.set.mockImplementation(async (key, value) => { if (!key.startsWith('rise:jev-options:')) cache.set(key, value); return 'OK'; });
+    mocks.get.mockImplementation(async key => cache.get(key));
+    mocks.set.mockImplementation(async (key, value) => { cache.set(key, value); return 'OK'; });
     const provider = vi.fn(async () => Response.json({
       model: 'typesafe/jev-1.13', provider: 'TypeSafe',
       answers: answers('literary-walden')
@@ -1089,7 +1054,6 @@ describe('Jev reading recommendation', () => {
     expect((await handleJevRecommend(request({ intent: 'Quiet and reflective.' }), env)).status).toBe(200);
 
     expect(provider).toHaveBeenCalledTimes(2);
-    expect(mocks.optionsQuery.mock.calls[0][0].join('')).toContain("kind IN ('chamberFace', 'fontSize')");
     const first = JSON.parse(provider.mock.calls[0][1].body).questions;
     const second = JSON.parse(provider.mock.calls[1][1].body).questions;
     expect(first.chamberFace.criteria).toHaveProperty('mono');
@@ -1272,14 +1236,16 @@ describe('Jev reading recommendation', () => {
     expect(response.status).toBe(502);
     expect(provider).toHaveBeenCalledOnce();
   });
+});
 
-  it('fails closed when Redis or required production secrets are unavailable', async () => {
-    const provider = vi.fn();
-    vi.stubGlobal('fetch', provider);
-    mocks.get.mockRejectedValue(new Error('Redis unavailable'));
-    const cacheFailure = await handleJevRecommend(request(), env);
-    const missingSecret = await handleJevRecommend(request(), { ...env, NEON_DATABASE_URL: '' });
-    expect([cacheFailure.status, missingSecret.status]).toEqual([503, 503]);
-    expect(provider).not.toHaveBeenCalled();
+describe('the color menus Jev is offered', () => {
+  it('name every shipped color theme, in theme order, for each color question', () => {
+    for (const question of ['colorTheme', 'middleTheme', 'finaleTheme', 'textColor', 'backgroundColor']) {
+      expect(Object.keys(CHOICES[question]), question).toEqual([...JEV_COLOR_THEMES]);
+    }
+  });
+
+  it('name every filament palette the attractor draws, in its order', () => {
+    expect(Object.keys(CHOICES.visualPalette)).toEqual(ATTRACTOR_PALETTES.map(palette => palette.id));
   });
 });

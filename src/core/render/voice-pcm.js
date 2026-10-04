@@ -1,9 +1,9 @@
 /**
  * Spoken PCM for the offline mixer.
  *
- * Live Chamber recitation fetches `/audio/recitation/{voiceId}/{key}.wav`
+ * Live Chamber recitation fetches `/audio/recitation/{voiceId}/{key}.opus`
  * after a complete pack match. Export reuses that lookup: decode the same
- * WAV bytes, map phrase/word spans onto narrationRuns. Assigned voice
+ * Ogg Opus bytes (WAV for assigned voice assets), map phrase/word spans onto narrationRuns. Assigned voice
  * assets come from inventory bytes. Missing speech refuses — it does not
  * invent a bed or a sine.
  */
@@ -15,6 +15,34 @@ import { decodeWav } from './wav.js';
 function nodeModule(name) {
   const loader = globalThis.process?.getBuiltinModule;
   return typeof loader === 'function' ? loader(name) : null;
+}
+
+const OPUS_RATE = 48000;
+
+/**
+ * Ogg Opus goes through ffmpeg; anything else is WAV. Node export only: the
+ * browser decodes with decodeAudioData and never reaches this file.
+ */
+function decodePcm(bytes, assetPath) {
+  const isOgg = bytes.byteLength >= 4
+    && bytes[0] === 0x4f && bytes[1] === 0x67 && bytes[2] === 0x67 && bytes[3] === 0x53;
+  if (!isOgg) return decodeWav(bytes);
+  const childProcess = nodeModule('node:child_process');
+  if (!childProcess) throw new Error(`ffmpeg is required to decode ${assetPath}`);
+  let out;
+  try {
+    out = childProcess.execFileSync('ffmpeg', [
+      '-hide_banner', '-loglevel', 'error', '-i', 'pipe:0',
+      '-f', 'f32le', '-ac', '1', '-ar', String(OPUS_RATE), 'pipe:1'
+    ], { input: bytes, maxBuffer: 1 << 30, stdio: ['pipe', 'pipe', 'pipe'] });
+  } catch (error) {
+    if (error?.code === 'ENOENT') throw new Error(`ffmpeg is required to decode ${assetPath} but was not found`);
+    throw error;
+  }
+  const copy = new Uint8Array(out.byteLength);
+  copy.set(out);
+  const pcm = new Float32Array(copy.buffer);
+  return Object.freeze({ pcm, sampleRate: OPUS_RATE, channels: 1, frames: pcm.length });
 }
 
 function asBytes(value) {
@@ -157,7 +185,7 @@ export function resolveSpokenClips(plan, {
       }
       let decoded;
       try {
-        decoded = decodeWav(bytes);
+        decoded = decodePcm(bytes, voiceAssetId);
       } catch (error) {
         missingSpeech(
           `Spoken asset ${voiceAssetId} is not decodable PCM`,
@@ -200,7 +228,7 @@ export function resolveSpokenClips(plan, {
       }
       let decoded;
       try {
-        decoded = decodeWav(bytes);
+        decoded = decodePcm(bytes, entry.asset);
       } catch (error) {
         missingSpeech(
           `Recitation asset ${entry.asset} is not decodable PCM`,

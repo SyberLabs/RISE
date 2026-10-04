@@ -8,14 +8,12 @@
  */
 import { test, expect, openHomeNav } from './fixtures.js';
 
-const GATE = { code: 'rise2025', name: 'In Sight', vault: null, timestamp: Date.now() };
 const SEED = { text: 'Light enters form. '.repeat(30).trim(), textSource: 'In Sight', origin: null };
 
 async function openNavigator(page) {
-    await page.addInitScript(({ gate, seed }) => {
-        localStorage.setItem('rise-beta-session', JSON.stringify(gate));
+    await page.addInitScript(({ seed }) => {
         localStorage.setItem('rise_orbital_text_v1', JSON.stringify(seed));
-    }, { gate: GATE, seed: SEED });
+    }, { seed: SEED });
     await page.goto('/');
     await openHomeNav(page, 'chamber');
     await expect(page.locator('[data-action="toggle-adjust"]')).toBeVisible({ timeout: 20_000 });
@@ -74,9 +72,6 @@ test.describe('the Workshop score tabs', () => {
 
     test('stay in sight while a sequence is read down', async ({ page }) => {
         test.setTimeout(120_000);
-        await page.addInitScript((gate) => {
-            localStorage.setItem('rise-beta-session', JSON.stringify(gate));
-        }, GATE);
         await page.goto('/');
         await openHomeNav(page, 'workshop');
         // A phone opens on the Scene Stack; the score tabs are Full studio.

@@ -1,16 +1,7 @@
 import { test, expect } from './fixtures.js';
 
-const GATE_SESSION = {
-  code: 'rise2025',
-  name: 'Keystone Route Harness',
-  vault: null,
-  timestamp: Date.now()
-};
 
 async function authorize(page) {
-  await page.addInitScript(gate => {
-    localStorage.setItem('rise-beta-session', JSON.stringify(gate));
-  }, GATE_SESSION);
 }
 
 test('Keystone corridor has durable cold, reload, launch, and Back behavior', async ({ page }) => {
@@ -63,9 +54,9 @@ test('Keystone corridor has durable cold, reload, launch, and Back behavior', as
   await page.locator('#exit-btn').click();
   await page.locator('#exit-confirm').click();
   await expect(page).toHaveURL(/\/try-rise$/u);
-  await expect.poll(() => page.evaluate(() => window.__RISE_TEST__?.getRouterState().currentView), {
+  await expect.poll(() => page.evaluate(() => `${window.__RISE_TEST__?.getRouterState().currentView}/${window.__RISE_TEST__?.getView('library')?.activePane}`), {
     timeout: 15_000
-  }).toBe('keystones');
+  }).toBe('library/keystones');
   await expect(page.locator('#keystone-meditations')).toBeVisible({ timeout: 15_000 });
 
   // The closed reading is not left behind in history: Back reaches the
@@ -77,7 +68,7 @@ test('Keystone corridor has durable cold, reload, launch, and Back behavior', as
   await expect(page).toHaveURL(/\/$/u);
   await expect.poll(() => page.evaluate(() => window.__RISE_TEST__?.getRouterState().currentView), {
     timeout: 15_000
-  }).toBe('portal');
+  }).toBe('home');
 
   // Re-enter, so the Back-from-a-live-reading behaviour below is still
   // exercised from inside a reading.
@@ -90,16 +81,16 @@ test('Keystone corridor has durable cold, reload, launch, and Back behavior', as
 
   await page.goBack();
   await expect(page).toHaveURL(/\/try-rise$/u);
-  await expect.poll(() => page.evaluate(() => window.__RISE_TEST__?.getRouterState().currentView), {
+  await expect.poll(() => page.evaluate(() => `${window.__RISE_TEST__?.getRouterState().currentView}/${window.__RISE_TEST__?.getView('library')?.activePane}`), {
     timeout: 15_000
-  }).toBe('keystones');
+  }).toBe('library/keystones');
   await expect(page.locator('#keystone-meditations')).toBeVisible({ timeout: 15_000 });
 
   await page.goBack();
   await expect(page).toHaveURL(/\/$/u);
   await expect.poll(() => page.evaluate(() => window.__RISE_TEST__?.getRouterState().currentView), {
     timeout: 15_000
-  }).toBe('portal');
+  }).toBe('home');
 
   await page.goto('/try-rise');
   await expect(page.locator('#keystone-meditations')).toBeVisible({ timeout: 15_000 });
@@ -138,7 +129,7 @@ test('pilot completion offers a consented answer and one next reading', async ({
   await expect(page.locator('#chamber-display')).toBeVisible({ timeout: 20_000 });
 
   // Exercise the real completion UI without waiting for the full timed reading.
-  await page.evaluate(() => window.__RISE_TEST__.getView('chamber-session').onSessionComplete());
+  await page.evaluate(() => window.__RISE_TEST__.getView('read').paneInstance('chamber').onSessionComplete());
   const answer = page.locator('[data-pilot-feedback="yes"]');
   await expect(answer).toBeVisible();
   await expect(answer).toBeDisabled();

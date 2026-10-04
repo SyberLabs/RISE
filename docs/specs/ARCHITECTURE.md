@@ -24,39 +24,33 @@ of sound. The same compiled session can instead be projected into **Page**, a
 spatial typographic composition. An **Experience Program** can author what
 appears when.
 
-Around that engine sit rooms: Portal, Library, Chapel and Rosarium, Workshop,
-Vault, Scriptorium, Curia, Journeys, Via, Keystones, Settings.
+Around that engine sit five rooms: Home, Read, Library, Make, Settings. Read
+holds the reader setup, the Chamber and the live host as panes; the Library
+opens the scripture, the liturgies, the journeys, the keystones and the day's
+poem as panes; Make opens the Workshop, the Vault, the Scriptorium, the Visual
+Lab and the Visual Catalog as tabs. The Guide is an overlay, not a room.
 
-Cloudflare serves the app shell and same-origin decision routes. The Library's
-optional recommendation route reads a curated Standard Ebooks catalog from
-PostgreSQL, caches that public catalog and short-lived decisions in Redis,
-and asks JEV to choose one book on a decision-cache miss. The reader's
-source text, proposal validation, and reading pipeline remain in the browser.
+Cloudflare serves the app shell and the static catalog. The Library's optional
+recommendation runs in the reader's browser, on the reader's own provider: it
+reads the curated Standard Ebooks catalog (`/content/catalog.json`, §8.42) and
+asks JEV to choose one book. The reader's source text, proposal validation, and
+reading pipeline remain in the browser.
 
 ---
 
-## 2. The four constraints that decide everything else
+## 2. The three constraints that decide everything else
 
 Every decision in §8 is downstream of these. They are the axioms; everything
 else is a recommendation.
 
-1. **Reader material stays local by default.** Source text, reading history and
-   personal media stay in the browser. When the reader explicitly routes a
-   Scriptorium request with JEV, only the intent they entered and target word
-   count are sent to the RISE function and TypeSafe. The reader supplies the
-   TypeSafe key for that request; RISE does not persist it. When the reader
-   asks for a Library recommendation, only their entered intent is sent to
-   the RISE Worker and, on a decision-cache miss, OpenRouter. PostgreSQL holds
-   public catalog metadata. Redis holds that catalog and validated choices for
-   five minutes; its decision key is a keyed digest of the intent and catalog,
-   and it does not store the raw intent.
-2. **Reverent degradation.** A work, image or sound that will not resolve is
-   *absent* — never a broken frame, never a substitute. Silence outranks
-   approximation.
-3. **Provenance travels with the work.** A reader should always be able to tell
-   a received text from one written here, and every visual carries its rights.
-4. **Structure is read, never inferred.** An ingest may not destroy a
-   distinction the source made, and may not re-guess one it discarded.
+1. **No shared inference.** Every model call runs on the reader's own key or
+   on the reader's own machine. RISE never pays for a reader's thinking.
+2. **A browser, no account.** There is no identity service and no server-side
+   reader state. Nothing a reader types or reads leaves their device unless
+   they send it.
+3. **Content is static and content-addressed.** Editions, recitation, imagery
+   and programs are files named by their hash, built from a content branch
+   into `dist/`, and never part of the module graph.
 
 ---
 
@@ -77,7 +71,7 @@ else is a recommendation.
   │                              ▼                                          │
   │   Met · AIC · NASA ─▶ *-harvest.mjs ─▶ contact sheet ─▶ HUMAN PIN        │
   │                                                                         │
-  │   Kokoro TTS ───────▶ build-voice-pack.mjs ─▶ recitation WAV + manifest  │
+  │   Kokoro TTS ───────▶ build-voice-pack.mjs ─▶ recitation Opus + manifest │
   │                                                                         │
   │   check-release-readiness.mjs  ── fails closed while any gate is open    │
   └────────────────────────────────┬────────────────────────────────────────┘
@@ -112,17 +106,17 @@ else is a recommendation.
 ║       ▼              │               ▼              ▼                ▼       ║
 ║  ┌─────────────┐     │        ┌────────────────────────────────────────────┐ ║
 ║  │   ROOMS     │     │        │  SURFACES                                  │ ║
-║  │  Portal     │     └───────▶│  Chamber (stream, in time)                 │ ║
-║  │  Library    │              │  Page    (spatial, same Session)           │ ║
-║  │  Chapel/Via │              └────────────────────────────────────────────┘ ║
-║  │  Rosarium   │                                                             ║
-║  │  Workshop   │   each room is lazily imported with its own stylesheet      ║
-║  │  Vault      │                                                             ║
-║  │  Scriptorium│   ┌──────────────────────────────────────────────────────┐  ║
-║  │  Curia      │   │  SOURCES  registry + providers + IndexedDB cache      │  ║
-║  │  Journeys   │   │  archive   (failure degrades one, not the app)        │  ║
-║  │  Keystones  │   │                                                       │  ║
-║  │  Settings   │   │                                                       │  ║
+║  │  Home       │     └───────▶│  Chamber (stream, in time)                 │ ║
+║  │  Read       │              │  Page    (spatial, same Session)           │ ║
+║  │  + its panes│              └────────────────────────────────────────────┘ ║
+║  │  Library    │                                                             ║
+║  │  + its panes│   each room is lazily imported with its own stylesheet      ║
+║  │  Make       │                                                             ║
+║  │  + its tabs │   ┌──────────────────────────────────────────────────────┐  ║
+║  │  Settings   │   │  SOURCES  registry + providers + IndexedDB cache      │  ║
+║  │             │   │  archive   (failure degrades one, not the app)        │  ║
+║  │             │   │                                                       │  ║
+║  │             │   │                                                       │  ║
 ║  └─────────────┘   └──────────────────────────────────────────────────────┘  ║
 ║                                                                               ║
 ║   STORAGE  localStorage (settings, journals, blueprints, images, orbital) ·   ║
@@ -162,11 +156,11 @@ flowchart LR
     affect["affect<br/>experience-state evaluation<br/>29 modules"]
     app["app<br/>composition root<br/>13 modules"]
     audio["audio<br/>Web Audio, recitation<br/>11 modules"]
-    components["components<br/>routed views<br/>49 modules"]
+    components["components<br/>routed views<br/>51 modules"]
     content["content<br/>texts, imagery, journeys<br/>228 modules"]
-    core["core<br/>session, player, router<br/>167 modules"]
+    core["core<br/>session, player, router<br/>169 modules"]
     enterprise["enterprise<br/>talk program, speaker rail<br/>34 modules"]
-    live["live<br/>realtime Current: events, runtime, providers<br/>39 modules"]
+    live["live<br/>realtime Current: events, runtime, providers<br/>40 modules"]
     page["page<br/>spatial projection<br/>4 modules"]
     sources["sources<br/>text and visual providers<br/>13 modules"]
     vendor["vendor<br/>SyberLabs design kit<br/>2 modules"]
@@ -175,9 +169,9 @@ flowchart LR
 
     affect --> |7| core
     app --> |1| audio
-    app --> |1| components
+    app -.-> |9 lazy| components
     app --> |3| content
-    app --> |42| core
+    app --> |43| core
     app -.-> |1 lazy| live
     app -.-> |1 lazy| sources
     app -.-> |1 lazy| visuals
@@ -186,8 +180,8 @@ flowchart LR
     components --> |3| affect
     components -.-> |2 lazy| app
     components --> |3| audio
-    components --> |24| content
-    components --> |174| core
+    components --> |23| content
+    components --> |175| core
     components -.-> |1 lazy| page
     components --> |4| sources
     components -.-> |2 lazy| vendor
@@ -201,8 +195,8 @@ flowchart LR
     core --> |4| sources
     core --> |20| visuals
     live -.-> |3 lazy| app
-    live -.-> |1 lazy| components
-    live --> |8| core
+    live -.-> |2 lazy| components
+    live --> |9| core
     live -.-> |1 lazy| visuals
     page --> |2| core
     page --> |3| visuals
@@ -235,9 +229,10 @@ and it is the same set the first-load measurement prices.
 | **Data** | works, chapel books, catalogs, recitation audio, pinned imagery | an editorial act occurs | yes; currently **through** the control plane (see §8.2) |
 | **Build** | `scripts/` — ingest, harvest, audit, render, release gate | a process changes | no |
 
-The build plane is the one that enforces the §2 constraints. Its refusals —
-word-count mismatch, missing rights basis, an uncertified work on a public
-shelf — are the reason those constraints are properties rather than intentions.
+The build plane is the one that enforces the §2 constraints and the §7
+contracts. Its refusals — word-count mismatch, missing rights basis, an
+uncertified work on a public shelf — are the reason those constraints are
+properties rather than intentions.
 
 ---
 
@@ -259,7 +254,10 @@ install it.
 deactivation, the back stack, and failure restoration. Routed components must
 make document-level listeners lifecycle-aware with `activate()`,
 `deactivate()`, `destroy()`. A rejected async initializer must not leave the
-transition lock held or the previous view hidden.
+transition lock held or the previous view hidden. Every route has a path,
+declared once in `src/core/route-url.js`; old route ids remain valid as
+aliases there. Read, Library and Make host their panes through
+`src/components/room-panes.js`; the router updates such a room in place.
 
 **`src/core/session-compiler.js`** is the only way a reading is built. Every
 launch surface calls it. Do not recreate chunk or pacing logic in a component.
@@ -301,7 +299,7 @@ exactly as it was. It measures nothing about the reader.
 
 **`src/core/player.js`** owns the authoritative reading clock and the playback
 state machine: `idle`, `playing`, `paused`, `interlocuting`, `complete`.
-`src/components/Chamber.js` renders and does not own the clock.
+`src/components/read/Chamber.js` renders and does not own the clock.
 
 **`src/visuals/visual-cortex.js`** is the only flash dispatcher. It owns active
 visual selection, decoded image pools, abort ownership on config change, the
@@ -329,39 +327,87 @@ outliving its room, fails a build.
 
 | Room | Module | What it is |
 |---|---|---|
-| Portal | `src/components/Portal.js` | the hub, and the first screen |
-| Emotions | `src/components/Emotions.js` | the optional affect map and inspectable list |
-| Keystones | `src/components/Keystones.js` | the public entry corridor |
-| Mint | `src/components/Mint.js` | the door a minted sequence opens onto |
-| Chamber | `src/components/Chamber.js` | a reading, in time |
-| ChamberOrbital | `src/components/ChamberOrbital.js` | tuning a reading before it starts |
-| Library | `src/components/Library.js` | the prepared editions |
-| Chapel | `src/components/Chapel.js` | the scripture corpus |
-| Rosarium | `src/components/Rosarium.js` | the Rosary, on the liturgy engine |
-| Via | `src/components/Via.js` | the Stations of the Cross |
-| Workshop | `src/components/Workshop.js` | authoring a composition |
-| Visual Lab | `src/components/VisualLab.js` | exploring, saving, and reusing Living Flame scenes |
-| Visual Catalog | `src/components/VisualCatalog.js` | searching nine procedural surfaces, requesting specimens, and opening admitted local live samples |
-| Vault | `src/components/Vault.js` | saved compositions and archetypes |
-| Scriptorium | `src/components/Scriptorium.js` | a model composes; a gate refuses |
-| Curia | `src/components/Curia.js` | the source and rights record |
-| Journeys | `src/components/Journeys.js` | authored long-form experiences |
-| Settings | `src/components/Settings.js` | preferences, export and erase |
-| Guide | `src/components/Guide.js` | onboarding, as an overlay rather than a route |
-| BetaGate | `src/components/BetaGate.js` | invitation UX; **not** a security boundary (§7) |
+| Home | `src/components/Home.js` | the hub, and the first screen |
+| Read | `src/components/Read.js` | reading: the reader setup, a reading in time, and the live host, as three panes |
+| Library | `src/components/Library.js` | the prepared editions, scripture, liturgies, journeys, keystones and the day's poem, with provenance on every edition |
+| Make | `src/components/Make.js` | authoring: composition, saved work, the Scriptorium, the visual lab and catalog |
+| Settings | `src/components/Settings.js` | preferences, affect, export and erase |
 
-Seven modules in `src/components/` are deliberately not rooms; they support
+`src/components/Guide.js` is onboarding, opened as an overlay over any room
+rather than routed; it is listed here because it is a place a reader can be.
+
+Eight modules in `src/components/` are deliberately not rooms; they support
 routed rooms: `src/components/Admit.js`,
 `src/components/NamingModal.js`, `src/components/SourceBrowser.js` and
 `src/components/VisualNavigator.js`, plus the Jev voice input helper
 `src/components/jev-dictation.js`, the shared room frame
-`src/components/room-chrome.js` (header, icons, Alert), and the SyberLabs
+`src/components/room-chrome.js` (header, icons, Alert), the pane host
+`src/components/room-panes.js`, and the SyberLabs
 chrome helper `src/components/atlas.js`, which lazily imports the vendored
 design-system kit in `src/vendor/syber/` (the ambient atmosphere behind Home
-and the gate, and the RISE sigil) so neither engine is part of first load.
-The Navigator's columns, text material, preview, and Chapel trays live in `src/components/visual-navigator/` so the
-shell stays a mount point. Chamber mounts a Fit-mask runtime from
-`src/core/fit-mask-runtime.js` rather than owning the glyph-mask state machine.
+and the RISE sigil) so neither engine is part of first load.
+
+Everything else in `src/components/` sits in a directory, by the room it
+serves:
+
+- `src/components/read/` is Read's panes and the engine's Stream projection
+  (§8.45): `src/components/read/ChamberOrbital.js` (the reader setup),
+  `src/components/read/Chamber.js` (a reading, in time) and
+  `src/components/read/chamber-undercurrent.js` (the panel a dive opens). The
+  live host is Read's third pane but lives in `src/live/host/`, outside the
+  components, because it is a host for the live layer and not a room.
+- `src/components/library/` is the Library's programs, panes it mounts rather
+  than rooms (§8.43): `src/components/library/Chapel.js` (the scripture
+  corpus), `src/components/library/Rosarium.js` (the Rosary, on the liturgy
+  engine), `src/components/library/Via.js` (the Stations of the Cross),
+  `src/components/library/Journeys.js` (authored long-form experiences),
+  `src/components/library/Keystones.js` (the public entry corridor),
+  `src/components/library/Mint.js` (the door a minted sequence opens onto) and
+  `src/components/library/Curia.js` (the source and rights record).
+- Today's poem has no pane: Home's card, its Menu and `/today` begin the day's
+  exact poem in the reader through the app's `launchToday`, which
+  `src/app/today.js` builds from `src/core/today-poem.js` and
+  `src/core/today-reading.js`.
+- `src/components/make/` is Make's tabs (§8.44):
+  `src/components/make/Workshop.js` (authoring a composition),
+  `src/components/make/Vault.js` (saved compositions and archetypes),
+  `src/components/make/Scriptorium.js` (a model composes; a gate refuses),
+  `src/components/make/VisualLab.js` (exploring, saving and reusing Living
+  Flame scenes) and `src/components/make/VisualCatalog.js` (searching the
+  procedural surfaces and opening admitted local live samples).
+- `src/components/workshop/` is the Workshop's parts:
+  `src/components/workshop/WorkshopStudioShell.js`,
+  `src/components/workshop/StudioInspector.js`,
+  `src/components/workshop/StudioTransport.js`,
+  `src/components/workshop/ScoreCanvas.js`,
+  `src/components/workshop/SceneStack.js` and its
+  `src/components/workshop/scene-api.js`,
+  `src/components/workshop/sequence-map.js`,
+  `src/components/workshop/AssetLibrary.js`,
+  `src/components/workshop/PassageAssignmentCard.js`,
+  `src/components/workshop/workshop-ui-state.js` and
+  `src/components/workshop/workshop-visual-assets.js`.
+- `src/components/settings/` is the Emotions map
+  (`src/components/settings/Emotions.js`, the optional affect map and
+  inspectable list), the Affect section of Settings, mounted when its toggle
+  is turned on; `/emotions` opens Settings with that section open.
+- `src/components/visual-navigator/` is the Navigator's columns, text
+  material, preview and Chapel trays, so `src/components/VisualNavigator.js`
+  stays a mount point: `src/components/visual-navigator/directory.js`,
+  `src/components/visual-navigator/text.js`,
+  `src/components/visual-navigator/preview.js`,
+  `src/components/visual-navigator/chapel.js`,
+  `src/components/visual-navigator/markup.js`,
+  `src/components/visual-navigator/live-stage.js` and
+  `src/components/visual-navigator/world-stage.js`.
+- Home opens on a reading already under way: `src/components/reading-backdrop.js`
+  draws its engine, `src/components/reading-stream.js` streams its opening, and
+  `src/components/home-ask.js` is the Ask for a reading dialog.
+
+Every old route id and path still works: `src/core/route-url.js` maps each to
+one of the five rooms, with the pane it opens named in `data.pane`. The Chamber
+mounts a Fit-mask runtime from `src/core/fit-mask-runtime.js` rather than
+owning the glyph-mask state machine.
 
 ---
 
@@ -393,6 +439,18 @@ shell stays a mount point. Chamber mounts a Fit-mask runtime from
 
 ## 7. Contracts that must hold
 
+- **Reverent degradation.** A work, image or sound that will not resolve is
+  *absent* — never a broken frame, never a substitute. Silence outranks
+  approximation.
+- **Provenance travels with the work.** A reader can always tell a received
+  text from one written here, and every visual carries its rights. The build
+  scripts refuse a work without a rights basis.
+- **Structure is read, never inferred.** An ingest may not destroy a
+  distinction the source made, and may not re-guess one it discarded.
+- **A routed request carries only what the reader typed.** When the reader
+  routes a Scriptorium request with JEV, only the intent they entered and the
+  target word count are sent to the RISE function and TypeSafe; the reader
+  supplies the key for that request and RISE never persists it.
 - **Visual safety is an execution-time veto**, including when photosensitivity
   mode is enabled during a running session. Never auto-grant consent from a
   preset or a saved configuration.
@@ -408,9 +466,6 @@ shell stays a mount point. Chamber mounts a Fit-mask runtime from
 - **A new personal store is added to `src/core/user-data.js` in the same change
   that introduces it.** A store missing from that inventory is data export
   cannot carry out and erase cannot clear.
-- **The BetaGate is invitation UX, not an authorization boundary.** Invite data
-  and codes ship to the browser. Real access control would require a
-  server-side identity service, which §8.1 rejects.
 
 ---
 
@@ -422,17 +477,19 @@ of `settled`, `open`, `deferred`, or `reversed`.
 
 ### 8.1 No backend
 
-- **Chosen:** the browser is the entire runtime. Static files on a CDN.
+- **Chosen:** the browser is the entire reading runtime. A Cloudflare Worker
+  serves the static files and the reader's own-key integrations, and holds no
+  reader state.
 - **Rejected:** a server tier with accounts, sync, and server-side identity.
 - **Why:** the tradeoff is unusually lopsided. A backend buys cross-device sync,
   real access control, server-side rate limiting toward museum APIs, and
-  telemetry. It costs the §2.1 constraint outright — "nothing leaves" stops
+  telemetry. It costs the §2.2 constraint outright — "nothing leaves" stops
   being a property of the architecture and becomes a promise about conduct —
   and it imports availability, consistency, replication, authentication,
   authorization and an operational budget into a project that currently has
   none of those problems. A CDN already scales to any readership without a
   design change. **The one thing genuinely lost is real access control**, and
-  that loss is accepted and named in §7 rather than hidden.
+  that loss is accepted and named in §9 rather than hidden.
 - **Status:** settled.
 
 ### 8.2 Content is data, addressed by its own hash
@@ -457,7 +514,7 @@ of `settled`, `open`, `deferred`, or `reversed`.
   **What the old design could not buy at any price** is what this one gets for
   nothing: a payload is re-verified in the reader's browser on every read, so a
   silently corrupted object is unreadable rather than readable-and-wrong. A
-  work that will not verify is *absent*, per §2.2 — never substituted.
+  work that will not verify is *absent*, per §7 — never substituted.
 - **Status:** settled. Recorded as `open` when this register was written, and
   closed by the change that cut the seam.
 
@@ -528,9 +585,10 @@ of `settled`, `open`, `deferred`, or `reversed`.
   — the acoustic ledger binds a human verdict to exact audio bytes, which
   runtime synthesis could not support. The governing rule was written as
   "treat speech as unavailable rather than choosing a backend by feature
-  detection alone," which is §2.2 applied to sound. **The cost is size**: the
-  packs ship uncompressed, and that is the second-largest known cost (§9).
-- **Status:** settled for the mechanism; the delivery format is **open**.
+  detection alone," which is §7 applied to sound. **The cost was size**: the
+  packs shipped as uncompressed WAV, about 239 MB; they are now Ogg Opus at
+  64 kbps, about 23 MB.
+- **Status:** reversed. Reversed 2026-10: recitation is Opus at 64 kbps; §9's largest cost is gone.
 
 ### 8.6 MP4 render is an offline Node path, not in-browser capture
 
@@ -567,7 +625,7 @@ of `settled`, `open`, `deferred`, or `reversed`.
 - **Why:** live search cannot be rate-limited across readers, cannot be
   rights-checked before display, and puts a third party on the reading path.
   Harvest-and-pin means a human approved every image and its rights before a
-  reader could meet it, which §2.3 requires. Two rejections are recorded with
+  reader could meet it, which §7 requires. Two rejections are recorded with
   their evidence: the Wikimedia category registry is **empty by design** after
   an audit found a category silently returning nothing for its whole life —
   "a searched source can rot invisibly, and a pinned one cannot" — and the Met
@@ -594,8 +652,7 @@ of `settled`, `open`, `deferred`, or `reversed`.
 ### 8.10 Vanilla DOM, no UI framework
 
 - **Chosen:** direct DOM construction and template strings, one bespoke module
-  per room, six production dependencies: `sql.js` for browser-local work,
-  `@neondatabase/serverless` and `@upstash/redis` for the Worker catalog path,
+  per room, four production dependencies: `sql.js` for browser-local work,
   and `@ai-ecoverse/kev.js`, `onnxruntime-web` and `@huggingface/tokenizers`
   for on-device Kev, imported only by the EnterpRise worker that runs it
   (§8.32). The tokenizer already shipped inside kev.js; it is named because
@@ -645,7 +702,10 @@ of `settled`, `open`, `deferred`, or `reversed`.
   the audio and the first phrase is silent, and every safety notice is stepped
   over on the way. The button on the threshold is the gesture the audio
   lifecycle is waiting for.
-- **Status:** open.
+- **Status:** reversed. Reversed 2026-10: every room has a path in
+  `src/core/route-url.js`; a reading can be bookmarked and shared, and Back
+  works everywhere, not only on the Keystone paths. The minted `/p/<slug>`
+  threshold and the Rosary hash door keep their own cold-load handling.
 
 ### 8.13 jsdom for the suite; real browsers for what jsdom cannot see
 
@@ -700,23 +760,14 @@ of `settled`, `open`, `deferred`, or `reversed`.
 ### 8.16 A deploy must not strand an open tab
 
 - **Chosen:** a `vite:preloadError` listener and a router check treat a failed
-  chunk import as a stale build and reload **once per build per five
-  minutes**, through one shared claim (`claimStaleBuildReload`) that records
-  the build (the entry chunk's hashed URL) and the time in `sessionStorage`. A
-  start view whose code still will not load falls back to Home. `index.html`
-  is served `must-revalidate`.
-- **Rejected:** letting the tab break; reloading unguarded; a guard released
-  at the end of every start, or held per router instance, since the reload it
-  guards resets it; a claim that never expires.
+  chunk import as a stale build and reload **once**, guarded by a sentinel;
+  `index.html` is served `must-revalidate`.
+- **Rejected:** letting the tab break, and reloading unguarded.
 - **Why:** `index.html` names the hashed chunks, so a tab left open across a
   release asks for a file the new deploy replaced, gets a 404, and can no longer
   reach any view it had not already loaded. A stale chunk is not a transient
-  network error and retrying cannot fix it. The claim exists because an
-  unguarded reload turns a real network failure into a loop: the same build
-  failing again within the window does not reload. A new build may claim at
-  once, and the same build may claim again once the window passes, so a reload
-  spent on a network blip cannot strand the tab when a deploy lands later.
-  Without session storage nothing could stop a loop, so nothing reloads.
+  network error and retrying cannot fix it. The sentinel exists because an
+  unguarded reload turns a real network failure into a loop.
 - **Status:** settled.
 
 ### 8.17 The catalogue is derived at build time
@@ -792,8 +843,9 @@ of `settled`, `open`, `deferred`, or `reversed`.
   so it is what an unasked reader should meet, and it needs no consent prompt.
   Raising a photosensitivity warning over a surface that does not carry the
   risk asks a reader to accept a danger that is not there. A domain that
-  authors its own surface — Chapel, a Vault program — still wins, per the
-  three-layer law: content authors, the runtime follows, the cortex renders.
+  authors its own surface — a Chapel book, a program saved in Make's Vault —
+  still wins, per the three-layer law: content authors, the runtime follows,
+  the cortex renders.
 - **Status:** settled.
 
 ### 8.23 Production carries no write path
@@ -838,9 +890,10 @@ of `settled`, `open`, `deferred`, or `reversed`.
 ### 8.26 The doorway is a preset over the engine, not a second engine
 
 - **Chosen:** a stance (`src/core/stances.js`) is a named partial of the
-  configuration the Orbital already builds. It writes fields in the visual,
-  audio and temporal orbits, and what it emits takes the same road as a
-  hand-built configuration: the Orbital's persistence normalizers, then
+  configuration Read's setup pane (the Orbital) already builds. It writes
+  fields in the visual, audio and temporal orbits, and what it emits takes the
+  same road as a hand-built configuration: the Orbital's persistence
+  normalizers, then
   `normalizeVisualConfig` in the session compiler. Which stance a reader is
   standing in is derived from the configuration, never stored.
 - **Rejected:** a simplified reading mode with its own path to the cortex; and
@@ -896,24 +949,22 @@ of `settled`, `open`, `deferred`, or `reversed`.
 
 ### 8.29 JEV chooses a held Standard Ebooks reading
 
-- **Chosen:** an optional Library form sends the reader's intent to the
-  same-origin Cloudflare Worker. The Worker reads an exact-edition Standard
-  Ebooks catalog from PostgreSQL, caches that public catalog in Redis
-  for 30 seconds, and asks JEV through OpenRouter to choose one work ID on a
-  decision-cache miss. Redis caches the validated decision for five minutes
-  under a keyed digest of the intent and catalog, without storing raw intent.
-  The browser opens that held edition through the existing Library path.
+- **Chosen:** an optional Library form sends the reader's intent to JEV from
+  the reader's browser, on their own account. The browser reads the
+  exact-edition catalog from the static file (§8.42) and asks JEV to choose one
+  work ID. It opens that held edition through the existing Library path. (This
+  once ran in the Worker, reading PostgreSQL through a Redis cache; §8.42
+  retired that path.)
 - **Rejected:** sending book text or personal reading history to JEV, storing
   raw intents or decisions in PostgreSQL, inventing a recommendation from local
   heuristics when JEV fails, and accepting a model-selected unheld edition.
 - **Why:** a recommendation is useful only when it leads to a book the reader
-  can actually open. PostgreSQL owns the catalog, Redis reduces repeat reads,
-  and JEV makes a bounded choice on the first matching request. Exact edition
+  can actually open. The catalog file bounds the choice, and JEV makes it. Exact edition
   and source revision checks keep the model inside the release inventory. The brief
   description shown after the decision is curated catalog copy; JEV does not
   generate prose.
-- **Status:** open. The same-origin production request and book opening were
-  verified; the five-minute decision cache still requires production verification.
+- **Status:** settled. The recommendation runs in the reader's browser; the
+  Worker caches no decisions, and the catalog is a static file (§8.42).
 
 ### 8.30 EnterpRise is a sibling rail, not a fork of the reader
 
@@ -1022,7 +1073,7 @@ of `settled`, `open`, `deferred`, or `reversed`.
   paced, time-based reading, the Current. A room is an entrance (it chooses a
   source, a pace and layers and hands them to `compileSession`), a contributor
   (it adds a source, a layer, a projection or a pace), or a rail beside the
-  reading (Curia, Settings). The two constructors are guarded by a test, every
+  reading (the Library's provenance pane, Settings). The two constructors are guarded by a test, every
   entrance's output is checked against one contract, and the reading that follows
   a division is derived from the Current by classifying each Session field
   rather than by copying a list.
@@ -1070,9 +1121,9 @@ of `settled`, `open`, `deferred`, or `reversed`.
   parent go from the same atom. Speech belongs to the runtime, not the provider,
   and what the reader lived through is kept in the runtime's journal, because
   the reducer's stream is sealed at `current.complete`, long before speech
-  ends. A standalone host at `/live` (`src/live/host/`, deliberately not in
-  `src/components/`, because it is a host and not a room) presents the reading
-  in the one Chamber: the factory adopts the Player the runtime built
+  ends. The host at `/live` (`src/live/host/`, deliberately not in
+  `src/components/`, because it is a host and not a room; Read mounts it as its
+  live pane, §8.45) presents the reading in Read's chamber pane: the factory adopts the Player the runtime built
   (`src/app/live-handoff.js`), the Chamber follows a longer Session and lets go
   of its Player when torn down, and the Player accepts more than one governor
   of atom timing (`Player.govern`) so the speech clock and Recitation coexist.
@@ -1199,17 +1250,15 @@ of `settled`, `open`, `deferred`, or `reversed`.
   not runtime dependencies.
 - **Status:** open. The schema, evaluator, pairwise judgments, benchmark
   harness, phrase-addressed programs, optional modulation functions, and
-  Emotions room are covered by unit tests. The player does not read affect
+  the Emotions map in Settings are covered by unit tests. The player does not read affect
   programs, and the experience remains feature-gated. See
   `docs/affect/RESEARCH-LOG.md` for limitations and the record of evidence.
 
 ### 8.39 Home proposes; the reader decides where to enter
 
-- **Chosen:** Home opens on a reading already under way, silently: today's
-  poem under its own engine, begun with sound through the app's `launchToday`
-  (as `/today` is). Another reading composes a bounded, vivid reading
-  on-device by chance (`src/core/roll.js`). The reader can enter it with sound,
-  adjust it in Reader Setup, or ask (from the Menu) for a specific reading through the same reader-owned OpenRouter or local
+- **Chosen:** Home's Oracle composes a bounded reading on-device by chance
+  (`src/core/roll.js`). The reader can enter it, adjust it in Reader Setup, or
+  ask for a specific reading through the same reader-owned OpenRouter or local
   Kev connection used by the rest of the app. The standalone Wormhole is a
   second invocation skin over the same roll and app-owned launch operations.
 - **Rejected:** restoring the retired shared recommendation Worker for Home;
@@ -1220,7 +1269,7 @@ of `settled`, `open`, `deferred`, or `reversed`.
   request goes to their chosen provider; a local roll sends nothing. Home
   keeps its proposal while the Chamber is open, and returns to Reader Setup
   when the reader entered from Adjust.
-- **Status:** open. The roll, Home's silent reading, invocation handoff, and Wormhole
+- **Status:** open. The roll, Oracle object, invocation handoff, and Wormhole
   are covered by unit and browser tests. The first-read Page/Stream choice is
   preserved for the first rolled reading.
 
@@ -1252,26 +1301,93 @@ of `settled`, `open`, `deferred`, or `reversed`.
   and the default model has not been checked against its model list
   (`docs/plans/LIVE-GEMINI.md` says how to verify both with a real key).
 
+### 8.41 There is no invitation gate
+
+- **Chosen:** the first screen is the first screen.
+- **Rejected:** `BetaGate`, which shipped invite codes to the browser.
+- **Why:** a gate that admits to being "not a security boundary" (former §7)
+  costs a click and a module on every first visit and locks nothing. §2.2
+  rules out the only version that would.
+- **Status:** settled.
+
+### 8.42 The catalog is a file
+
+- **Chosen:** `public/content/catalog.json`, written by the content-plane build
+  from `src/content/decision-catalog.json`.
+- **Rejected:** Neon PostgreSQL behind an Upstash Redis cache behind a rate
+  limiter, serving the same rows.
+- **Why:** §2.3. A catalog of editions that changes on an editorial act is
+  content. It needs no database, no cache, no secrets and no limiter, and
+  removing them removes the Worker's only state and two of six production
+  dependencies.
+- **Status:** settled.
+
+### 8.43 Liturgies, journeys and keystones are programs in the Library, not rooms
+
+- **Chosen:** one Library room with panes; the Rosary, the Stations, a journey,
+  a keystone sequence and the day's poem are catalog entries that open a pane.
+- **Rejected:** a routed room per corpus, nine in all.
+- **Why:** each was a different door onto the same engine with the same
+  compiler behind it. A room costs a container, a route, a lifecycle and a
+  row in this table; a program costs a line of data. §2.3.
+- **Status:** settled.
+
+### 8.44 Authoring is one room with tabs
+
+- **Chosen:** one Make room with tabs; the Workshop, the Vault, the
+  Scriptorium, the Visual Lab and the Visual Catalog each open as a tab,
+  mounted on first show and kept while the reader moves between them.
+- **Rejected:** a routed room per authoring tool, five in all.
+- **Why:** they are one activity, making a reading, split across five doors
+  with five headers and five ways home. The Library's pane host
+  (`src/components/room-panes.js`) already hosts lazy programs in one room, so
+  the tabs cost no new mechanism. §8.43.
+- **Status:** settled.
+
+### 8.45 Reading is one room with three panes
+
+- **Chosen:** one Read room (`src/components/Read.js`) hosting three panes —
+  `setup` (the reader setup), `chamber` (a compiled session in the Chamber) and
+  `live` (the host of a live Current) — behind the old ids `chamber`,
+  `chamber-session` and `live`, which stay valid as aliases. Setup and chamber
+  never coexist, as when they shared a container; the live host is kept while
+  its readings show. A session travels whole under `data.session` and is never
+  written into history state.
+- **Rejected:** three rooms, two of them sharing one container, each a route
+  of its own.
+- **Why:** they are one lifecycle — set up, read, come back — with one address
+  family (`/read`, `/read/session`, `/live`). One room says so, and the reading
+  closes its own pane instead of reaching into the router for another route's
+  instance. The router still marks a move to the chamber pane as a launch it
+  may cancel. A move between Read's panes is in place and has no crossfade, by
+  the same rule as the Library's and Make's. The Player is still built in one
+  place: the chamber pane calls `src/app/chamber-session-factory.js` exactly as
+  the route table did, and `src/core/current.test.js` still holds it there.
+- **Status:** settled.
+
 ---
 
 ## 9. What this design costs
 
 Stated plainly so it is never rediscovered as a surprise.
 
+- **Twenty-one old route ids must stay valid forever.** Links, bookmarks,
+  printed cards and code all name rooms that are now panes, so
+  `ROUTE_ALIASES` and `ROUTE_PANES` in `src/core/route-url.js` map each of them
+  onto one of the five rooms. The table only grows; deleting an entry breaks
+  an address somebody holds.
+- **The build needs ffmpeg.** Recitation is encoded to Opus
+  (`scripts/lib/opus.mjs`), and the offline render path encodes with it too
+  (§8.5, §8.6). A machine without it cannot rebuild the voice assets.
 - **The corpus is still versioned in the application repository**, even though
   it no longer travels through the module graph. §8.2 removed the build-time
   cost; *where the bytes live* is a separate question and is still open.
-- **Recitation ships uncompressed**, and is now by a very wide margin the
-  largest thing a deploy contains — the audio is roughly seventy times the
-  size of all the JavaScript. §8.5. With the content seam cut, this is the
-  single biggest remaining cost in the design.
 - **There is no single timeline.** §8.7.
-- **Most rooms have no address.** §8.12.
-- **Access control does not exist**, by choice. §8.1, §7.
 - **The public shelf serves uncertified candidates** under an override that is
   explicitly temporary and should not become permanent by neglect. §8.21.
 - **The release is gated on people**, and cannot be hurried by engineering.
   §8.15.
+- **Access control does not exist**, by choice. §8.1, §8.41.
 
 ---
 

@@ -119,7 +119,7 @@ describe('flashing is disabled in production', () => {
     });
 
     it('offers the author no control that would select one', () => {
-        const workshop = readFileSync(join(ROOT, 'src/components/Workshop.js'), 'utf8');
+        const workshop = readFileSync(join(ROOT, 'src/components/make/Workshop.js'), 'utf8');
         const options = workshop.slice(
             workshop.indexOf('const presentations = '),
             workshop.indexOf('controls = `<label class="input-label">Presentation')

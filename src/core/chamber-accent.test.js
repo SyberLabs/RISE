@@ -147,7 +147,7 @@ describe('Chamber accent allowlist', () => {
 
     it('gives the reader setup one neutral primary and the RISE marker as its only accent', () => {
         const css = readFileSync(
-            join(dirname(fileURLToPath(import.meta.url)), '..', 'components', 'ChamberOrbital.css'),
+            join(dirname(fileURLToPath(import.meta.url)), '..', 'components', 'read', 'ChamberOrbital.css'),
             'utf8'
         );
         const begin = css.match(/\.btn-large\s*\{[^}]+\}/);
@@ -165,7 +165,7 @@ describe('Chamber accent allowlist', () => {
 
     it('marks Home with the RISE accent as a dot, not a tinted title', () => {
         const css = readFileSync(
-            join(dirname(fileURLToPath(import.meta.url)), '..', 'components', 'Portal.css'),
+            join(dirname(fileURLToPath(import.meta.url)), '..', 'components', 'Home.css'),
             'utf8'
         );
         const title = css.match(/\.portal-title\s*\{[^}]+\}/);
@@ -182,16 +182,15 @@ describe('Chamber accent allowlist', () => {
             'design-system.css',
             'core/visual-safety.css',
             'page/page.css',
-            'components/Chamber.css',
-            'components/ChamberOrbital.css',
+            'components/read/Chamber.css',
+            'components/read/ChamberOrbital.css',
             'components/Library.css',
             'components/Guide.css',
-            'components/Keystones.css',
+            'components/library/Keystones.css',
             'components/NamingModal.css',
             'components/NamingModal.js',
             'components/Settings.css',
-            'components/VisualNavigator.css',
-            'components/BetaGate.css'
+            'components/VisualNavigator.css'
         ];
         const leftover = /rgba\(\s*139,\s*127,\s*212\s*,/g;
         for (const rel of files) {
@@ -279,8 +278,8 @@ describe('the accent carries a legible ink for full fills', () => {
 
     it('Home carries no frozen purple', () => {
         const portal = readFileSync(
-            join(dirname(fileURLToPath(import.meta.url)), '..', 'components', 'Portal.css'), 'utf8');
-        // No lavender literal survives anywhere in the Portal's chrome.
+            join(dirname(fileURLToPath(import.meta.url)), '..', 'components', 'Home.css'), 'utf8');
+        // No lavender literal survives anywhere in Home's chrome.
         expect(portal).not.toMatch(/1(?:39|60|40|20),\s*(?:127|145|125|110),\s*(?:180|200|160)/);
     });
 });

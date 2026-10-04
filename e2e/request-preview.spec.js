@@ -67,6 +67,6 @@ test('Tokyo Drift: asked from Home, limits before Read it with sound, no auto fu
   await page.locator('#chamber-display').hover();
   await expect(page.locator('#page-mode-btn .control-label')).toHaveText('Page view');
   await expect(page.locator('#fullscreen-btn')).toBeVisible();
-  const played = await page.evaluate(() => window.__RISE_TEST__?.getView('chamber-session')?.session?.wpm);
+  const played = await page.evaluate(() => window.__RISE_TEST__?.getView('read')?.paneInstance('chamber')?.session?.wpm);
   if (played !== undefined) expect(played).toBe(300);
 });

@@ -1,0 +1,510 @@
+{
+  "books": [
+    {
+      "work_id": "middlemarch",
+      "title": "Middlemarch",
+      "author": "George Eliot",
+      "edition_id": "standard-ebooks:george-eliot/middlemarch",
+      "source_revision": "sha256:8fe93ecab80ada30e4d1bb77122e6033b27f802ab9e131b6d128bb82448297ba",
+      "fit_description": "A rich novel of relationships, ambition, and life in a provincial town.",
+      "decision_criterion": "Choose for a reader seeking a long, psychologically detailed social novel about relationships, choices, and community.",
+      "active": true
+    },
+    {
+      "work_id": "the-brothers-karamazov",
+      "title": "The Brothers Karamazov",
+      "author": "Fyodor Dostoevsky",
+      "edition_id": "standard-ebooks:fyodor-dostoevsky/the-brothers-karamazov_constance-garnett",
+      "source_revision": "sha256:26ecd0f8e0d6db4dffb039f0fb96cbf912f8b91b8bd6bc4a8846a1bef8da4b4f",
+      "fit_description": "A searching family novel about faith, conflict, and moral responsibility.",
+      "decision_criterion": "Choose for a reader seeking an intense, philosophical family drama about faith, guilt, and moral responsibility.",
+      "active": true
+    },
+    {
+      "work_id": "literary-meditations",
+      "title": "Meditations",
+      "author": "Marcus Aurelius",
+      "edition_id": "standard-ebooks:marcus-aurelius/meditations_george-long",
+      "source_revision": "sha256:1d5c3e8ca1cd6b9b98731ebc034a6408eea84b2642525844cd4e04f9445a2418",
+      "fit_description": "Brief Stoic reflections on attention, conduct, and inner steadiness.",
+      "decision_criterion": "Choose for a reader seeking short, reflective philosophy about discipline, conduct, or calm.",
+      "active": true
+    },
+    {
+      "work_id": "sacred-tao-te-ching",
+      "title": "Tao Te Ching",
+      "author": "Laozi",
+      "edition_id": "standard-ebooks:laozi/tao-te-ching_james-legge",
+      "source_revision": "sha256:93a404f327f00124bb7363149d5a628554b4aee72d5140d7108249398dcba7f9",
+      "fit_description": "Compact poetic sayings about balance, humility, and the way.",
+      "decision_criterion": "Choose for a reader seeking concise philosophical or spiritual sayings about balance and simplicity.",
+      "active": true
+    },
+    {
+      "work_id": "the-iliad",
+      "title": "The Iliad",
+      "author": "Homer",
+      "edition_id": "standard-ebooks:homer/the-iliad_william-cullen-bryant",
+      "source_revision": "sha256:0695d06ded3af9669b8f314f1ae76e8186b1d67e81b6a726992a8c5ed88cf143",
+      "fit_description": "A war epic about honor, anger, loss, and human limits.",
+      "decision_criterion": "Choose for a reader seeking an ancient heroic epic about war, anger, honor, and grief.",
+      "active": true
+    },
+    {
+      "work_id": "the-divine-comedy",
+      "title": "The Divine Comedy",
+      "author": "Dante Alighieri",
+      "edition_id": "standard-ebooks:dante-alighieri/the-divine-comedy_henry-wadsworth-longfellow",
+      "source_revision": "sha256:e46df1aad0df16c7632e589626b3d133cc30a32233ccb548f90eb9df1383625c",
+      "fit_description": "An imaginative verse journey through the afterlife and moral consequence.",
+      "decision_criterion": "Choose for a reader seeking allegorical epic poetry, spiritual journey, or medieval imagination.",
+      "active": true
+    },
+    {
+      "work_id": "metamorphoses",
+      "title": "Metamorphoses",
+      "author": "Ovid",
+      "edition_id": "standard-ebooks:ovid/metamorphoses_various-translators",
+      "source_revision": "sha256:6878e143e0db80039364eb328b65a33faf2c1a43a67696d74920c5a17a5bd17a",
+      "fit_description": "Mythic stories of creation, desire, and transformation.",
+      "decision_criterion": "Choose for a reader seeking classical mythology, vivid narrative poetry, or stories about transformation.",
+      "active": true
+    },
+    {
+      "work_id": "spoon-river-anthology",
+      "title": "Spoon River Anthology",
+      "author": "Edgar Lee Masters",
+      "edition_id": "standard-ebooks:edgar-lee-masters/spoon-river-anthology",
+      "source_revision": "sha256:c017904d7f16ac841dce0b600de8e8c0eb121954e3935d34c8ac44ce23b68834",
+      "fit_description": "Short first-person poems revealing the lives of an American town.",
+      "decision_criterion": "Choose for a reader seeking short poems, distinct voices, or intimate stories of ordinary lives.",
+      "active": true
+    },
+    {
+      "work_id": "oedipus-rex",
+      "title": "Oedipus Rex",
+      "author": "Sophocles",
+      "edition_id": "standard-ebooks:sophocles/oedipus-rex_francis-storr",
+      "source_revision": "sha256:eb2e082803731ad073425e03cc59d2c1ec8dbf1b257510838582136c0341e53e",
+      "fit_description": "A compact Greek tragedy about truth, fate, and self-knowledge.",
+      "decision_criterion": "Choose for a reader seeking a short dramatic tragedy about fate, truth, and self-discovery.",
+      "active": true
+    },
+    {
+      "work_id": "literary-walden",
+      "title": "Walden",
+      "author": "Henry David Thoreau",
+      "edition_id": "standard-ebooks:henry-david-thoreau/walden",
+      "source_revision": "sha256:3d8f22b6e22bbc61799a08d5d37e8a168e1ccef43f7df60b61edca53bfc90117",
+      "fit_description": "Observations on nature, solitude, and deliberate living.",
+      "decision_criterion": "Choose for a reader seeking nature writing, solitude, self-reliance, or reflective nonfiction.",
+      "active": true
+    },
+    {
+      "work_id": "ulysses",
+      "title": "Ulysses",
+      "author": "James Joyce",
+      "edition_id": "standard-ebooks:james-joyce/ulysses",
+      "source_revision": "sha256:14f18abbee5b184493bc4b4356054f1767c3904d59c1653d896f294bf0691d85",
+      "fit_description": "An experimental day-long journey through Dublin and consciousness.",
+      "decision_criterion": "Choose for a reader seeking challenging modernist fiction, language experiments, or urban interior life.",
+      "active": true
+    },
+    {
+      "work_id": "paradise-lost",
+      "title": "Paradise Lost",
+      "author": "John Milton",
+      "edition_id": "standard-ebooks:john-milton/paradise-lost",
+      "source_revision": "sha256:e1f747c0f0e2d1b13433f6b2f51c9be28e53fe496c0ebb11904b8ef0c26c467e",
+      "fit_description": "A blank-verse epic about rebellion, temptation, and the Fall.",
+      "decision_criterion": "Choose for a reader seeking English epic poetry about myth, theology, rebellion, and temptation.",
+      "active": true
+    },
+    {
+      "work_id": "literary-essays-emerson",
+      "title": "Essays",
+      "author": "Ralph Waldo Emerson",
+      "edition_id": "standard-ebooks:ralph-waldo-emerson/essays",
+      "source_revision": "sha256:54315365d0f668f414e4a115566332406e4c43b3fe9c8088931fcb629886cca3",
+      "fit_description": "Arguments for self-reliance, nature, and intellectual independence.",
+      "decision_criterion": "Choose for a reader seeking philosophical essays about self-reliance, individuality, or nature.",
+      "active": true
+    },
+    {
+      "work_id": "confucius-analects",
+      "title": "The Analects",
+      "author": "Confucius",
+      "edition_id": "standard-ebooks:confucius/analects_james-legge",
+      "source_revision": "sha256:07a1a0df72a27ea7ab2dd96072d6ac9498b01bc4b1008b02464c14395dc3dc13",
+      "fit_description": "Short teachings on learning, character, and social responsibility.",
+      "decision_criterion": "Choose for a reader seeking brief ethical teachings about learning, conduct, and community.",
+      "active": true
+    },
+    {
+      "work_id": "lyrical-ballads",
+      "title": "Lyrical Ballads",
+      "author": "William Wordsworth and Samuel Taylor Coleridge",
+      "edition_id": "standard-ebooks:william-wordsworth/samuel-taylor-coleridge_lyrical-ballads",
+      "source_revision": "sha256:24576576e9f5b402ff5c2b004c8888b5445f56e89ce9e9a52dca9c33636612d5",
+      "fit_description": "Romantic poems of landscape, memory, and everyday life.",
+      "decision_criterion": "Choose for a reader seeking Romantic lyric poetry, landscape, memory, or emotional reflection.",
+      "active": true
+    },
+    {
+      "work_id": "the-prompt-and-the-pencil",
+      "title": "The Prompt and the Pencil",
+      "author": "RISE",
+      "edition_id": "rise-original:the-prompt-and-the-pencil",
+      "source_revision": "sha256:b5f0115c45ee1f40537fe55c90f66b592784ff9f85d74d937b03db08f4e9f95c",
+      "fit_description": "A student tests what an AI answer can and cannot do for her thinking.",
+      "decision_criterion": "Choose for a reader interested in AI, school, creative work, or learning without outsourcing their judgment.",
+      "active": true
+    },
+    {
+      "work_id": "the-group-chat-went-quiet",
+      "title": "The Group Chat Went Quiet",
+      "author": "RISE",
+      "edition_id": "rise-original:the-group-chat-went-quiet",
+      "source_revision": "sha256:0105be5cf5eb4a1aa1df0041fc6a4d3e466aff90a31f9a8689d6de76c9ed32c7",
+      "fit_description": "A small story about silence, friendship, and the limits of read receipts.",
+      "decision_criterion": "Choose for a reader asking about group chats, friendship, anxiety, being left on read, or digital communication.",
+      "active": true
+    },
+    {
+      "work_id": "who-taught-the-feed",
+      "title": "Who Taught the Feed?",
+      "author": "RISE",
+      "edition_id": "rise-original:who-taught-the-feed",
+      "source_revision": "sha256:b02f7d04aeae2b8083e716bdeb3be919d2796abd30de30393cc53f171ef8df95",
+      "fit_description": "An accessible reflection on recommendation algorithms and attention.",
+      "decision_criterion": "Choose for a reader curious about algorithms, feeds, social media, attention, or why certain videos keep appearing.",
+      "active": true
+    },
+    {
+      "work_id": "the-last-save-point",
+      "title": "The Last Save Point",
+      "author": "RISE",
+      "edition_id": "rise-original:the-last-save-point",
+      "source_revision": "sha256:8afd3049196d40c696510c766a0c61d4ebc11f823421347323e33906d05677d7",
+      "fit_description": "A game player learns why retrying is different from repeating.",
+      "decision_criterion": "Choose for a reader interested in games, challenge, practice, failure, or learning through retries.",
+      "active": true
+    },
+    {
+      "work_id": "a-video-is-a-small-business",
+      "title": "A Video Is a Small Business",
+      "author": "RISE",
+      "edition_id": "rise-original:a-video-is-a-small-business",
+      "source_revision": "sha256:6d2b0546170094735ce01dd12e024c12651ab26e11e70fd5ddd43bbdc5a8edab",
+      "fit_description": "The invisible labor behind a creator’s thirty-second clip.",
+      "decision_criterion": "Choose for a reader curious about creators, making videos, online work, or the economics of attention.",
+      "active": true
+    },
+    {
+      "work_id": "the-photo-that-knew-your-street",
+      "title": "The Photo That Knew Your Street",
+      "author": "RISE",
+      "edition_id": "rise-original:the-photo-that-knew-your-street",
+      "source_revision": "sha256:323b4623027fd123dcd8300324d526456bf5bc5d13897eb7f5dbf3802621d349",
+      "fit_description": "A practical story about location clues and sharing safely.",
+      "decision_criterion": "Choose for a reader interested in online privacy, photos, location sharing, or protecting personal information.",
+      "active": true
+    },
+    {
+      "work_id": "the-repair-table",
+      "title": "The Repair Table",
+      "author": "RISE",
+      "edition_id": "rise-original:the-repair-table",
+      "source_revision": "sha256:cb72f0ba41ff08942c143ded29d758bff81b341fdfbd0c75a49ffef95738cb6d",
+      "fit_description": "Friends keep an old device useful and learn where its materials came from.",
+      "decision_criterion": "Choose for a reader interested in gadgets, repair, climate, electronics, or making technology last.",
+      "active": true
+    },
+    {
+      "work_id": "robot-in-the-hallway",
+      "title": "Robot in the Hallway",
+      "author": "RISE",
+      "edition_id": "rise-original:robot-in-the-hallway",
+      "source_revision": "sha256:5e7188d42e1a8bcb6e197729f71ccbde1da514724920f06ed47d5954df6af87b",
+      "fit_description": "A school delivery robot reveals that useful automation still needs people.",
+      "decision_criterion": "Choose for a reader interested in robots, automation, school technology, or what machines can do in the real world.",
+      "active": true
+    },
+    {
+      "work_id": "signal-from-the-moon",
+      "title": "Signal from the Moon",
+      "author": "RISE",
+      "edition_id": "rise-original:signal-from-the-moon",
+      "source_revision": "sha256:dcbd3c94d0602cca4fe0354b3cb2c604d893c1a6fcda1ec4052aaccae6c16d00",
+      "fit_description": "A young radio listener thinks about distance, delay, and space exploration.",
+      "decision_criterion": "Choose for a reader interested in space, the Moon, communications, exploration, or science wonder.",
+      "active": true
+    },
+    {
+      "work_id": "the-fan-edit",
+      "title": "The Fan Edit",
+      "author": "RISE",
+      "edition_id": "rise-original:the-fan-edit",
+      "source_revision": "sha256:4a5bc28506fd7e3c4f213b7fc277d2a8111feb6a5668590dbaeddbeca31f4336",
+      "fit_description": "An editor learns to credit collaborators and respect borrowed material.",
+      "decision_criterion": "Choose for a reader interested in fandom, remixing, edits, creative credit, or sharing art online.",
+      "active": true
+    },
+    {
+      "work_id": "the-deepfake-in-the-chat",
+      "title": "The Deepfake in the Chat",
+      "author": "RISE",
+      "edition_id": "rise-original:the-deepfake-in-the-chat",
+      "source_revision": "sha256:3db330d353bc9e40a40a508ebdd4dfc7651d8459a88d8e24c05f01025e2faf2e",
+      "fit_description": "A convincing clip prompts a class to verify before forwarding.",
+      "decision_criterion": "Choose for a reader concerned with deepfakes, misinformation, viral clips, or checking a shocking claim.",
+      "active": true
+    },
+    {
+      "work_id": "captions-on",
+      "title": "Captions On",
+      "author": "RISE",
+      "edition_id": "rise-original:captions-on",
+      "source_revision": "sha256:dfcb18a3669b0b0b02500da15bd8fce423464c08b6b574c96a496b8919b4a976",
+      "fit_description": "A film night shows how accessibility changes the experience for everyone.",
+      "decision_criterion": "Choose for a reader interested in captions, accessibility, inclusive design, video, or communication.",
+      "active": true
+    },
+    {
+      "work_id": "a-map-made-of-heat",
+      "title": "A Map Made of Heat",
+      "author": "RISE",
+      "edition_id": "rise-original:a-map-made-of-heat",
+      "source_revision": "sha256:248a57f7d6afe3b9f626f1c060aa390d71c02dae8aeea790795d375a044ee568",
+      "fit_description": "Students compare two neighborhood streets on a hot afternoon.",
+      "decision_criterion": "Choose for a reader interested in climate, city design, heat, maps, or local science.",
+      "active": true
+    },
+    {
+      "work_id": "the-smallest-app",
+      "title": "The Smallest App",
+      "author": "RISE",
+      "edition_id": "rise-original:the-smallest-app",
+      "source_revision": "sha256:26b02d6a21548ddd4f7dba7970c279ae4f1c870d630e386c03fea03969d0d96a",
+      "fit_description": "A beginner writes software to solve one real problem for a friend.",
+      "decision_criterion": "Choose for a reader interested in coding, apps, building things, or solving a small everyday problem.",
+      "active": true
+    },
+    {
+      "work_id": "the-online-friend",
+      "title": "The Online Friend",
+      "author": "RISE",
+      "edition_id": "rise-original:the-online-friend",
+      "source_revision": "sha256:7ded8bd6a104fc4a62f0d5a692a91f8b6a0eb73d9c8a1724aa08dbdac7245588",
+      "fit_description": "Two friends keep a real connection while setting clear boundaries online.",
+      "decision_criterion": "Choose for a reader interested in online friendships, gaming friends, trust, or boundaries in digital spaces.",
+      "active": true
+    },
+    {
+      "work_id": "when-the-screen-goes-dark",
+      "title": "When the Screen Goes Dark",
+      "author": "RISE",
+      "edition_id": "rise-original:when-the-screen-goes-dark",
+      "source_revision": "sha256:35adc42b471f62e51834ae95e43db2bcb45fe438cc42a9f2b272df3435366d8e",
+      "fit_description": "A power outage turns a digital project into a shared real-world plan.",
+      "decision_criterion": "Choose for a reader interested in resilience, offline life, digital tools, community, or what happens when technology fails.",
+      "active": true
+    }
+  ],
+  "sounds": [
+    {
+      "sound_id": "aurora",
+      "decision_criterion": "Soft, spacious harmonics for calm, hopeful, or reflective reading.",
+      "active": true
+    },
+    {
+      "sound_id": "faded-signal",
+      "decision_criterion": "Weathered, nostalgic ambience for memory or bittersweet reflection.",
+      "active": true
+    },
+    {
+      "sound_id": "soft-rain",
+      "decision_criterion": "Locally synthesized unpitched rain for a rainy, sheltered, or nature-focused reading.",
+      "active": true
+    },
+    {
+      "sound_id": "sad",
+      "decision_criterion": "Slow minor harmony for grief, loneliness, or melancholy.",
+      "active": true
+    },
+    {
+      "sound_id": "angry",
+      "decision_criterion": "Tense, rough harmony for anger, conflict, or defiance.",
+      "active": true
+    },
+    {
+      "sound_id": "happy",
+      "decision_criterion": "Warm major harmony for joy, ease, or celebration.",
+      "active": true
+    },
+    {
+      "sound_id": "excited",
+      "decision_criterion": "Bright sustained harmony with a quick shimmer, for anticipation. No beat.",
+      "active": true
+    },
+    {
+      "sound_id": "thrilling",
+      "decision_criterion": "Low sustained tones with a slow throb for suspense or dramatic tension. No beat.",
+      "active": true
+    },
+    {
+      "sound_id": "scary",
+      "decision_criterion": "Uneasy low dissonance for dread, fear, or ominous scenes.",
+      "active": true
+    },
+    {
+      "sound_id": "piano",
+      "decision_criterion": "Gentle piano melody for intimate, tender, or reflective reading.",
+      "active": true
+    },
+    {
+      "sound_id": "jazz",
+      "decision_criterion": "Swung jazz piano and walking bass for lively or sophisticated reading.",
+      "active": true
+    },
+    {
+      "sound_id": "lullaby",
+      "decision_criterion": "A soft, rocking keyboard lullaby for comfort, bedtime, and gentle care.",
+      "active": true
+    },
+    {
+      "sound_id": "nocturne",
+      "decision_criterion": "A quiet night piece for solitude, longing, and inward reflection.",
+      "active": true
+    },
+    {
+      "sound_id": "waltz",
+      "decision_criterion": "A lilting three-beat keyboard waltz for romance, grace, or nostalgia.",
+      "active": true
+    },
+    {
+      "sound_id": "blues",
+      "decision_criterion": "A relaxed blues keyboard groove for resilience, wit, or bittersweet warmth.",
+      "active": true
+    },
+    {
+      "sound_id": "bossa",
+      "decision_criterion": "A light syncopated bossa keyboard rhythm for warmth, travel, or ease.",
+      "active": true
+    },
+    {
+      "sound_id": "ragtime",
+      "decision_criterion": "A brisk, playful ragtime keyboard piece for mischief and buoyant energy.",
+      "active": true
+    },
+    {
+      "sound_id": "wonder",
+      "decision_criterion": "A spacious rising synth theme for discovery, awe, and possibility.",
+      "active": true
+    },
+    {
+      "sound_id": "mystery",
+      "decision_criterion": "A sparse, questioning synth theme for secrets and investigation.",
+      "active": true
+    },
+    {
+      "sound_id": "chase",
+      "decision_criterion": "A quick repeating synth figure over a low drone for pursuit and urgency. No drums.",
+      "active": true
+    },
+    {
+      "sound_id": "triumph",
+      "decision_criterion": "A bold resolving synth theme for victory and earned celebration.",
+      "active": true
+    },
+    {
+      "sound_id": "haunted",
+      "decision_criterion": "A fragile dissonant theme for eerie, ghostly, or uncanny scenes.",
+      "active": true
+    },
+    {
+      "sound_id": "starlight",
+      "decision_criterion": "A slow shimmering synth theme for cosmic calm and night skies.",
+      "active": true
+    },
+    {
+      "sound_id": "night-drive",
+      "decision_criterion": "Fast electronic beat with drums and bass for night drives, racing, neon, or high energy.",
+      "active": true
+    }
+  ],
+  "options": [
+    {
+      "kind": "chamberFace",
+      "id": "literary",
+      "description": "Literary serif letterforms for prose and classic reading.",
+      "active": true
+    },
+    {
+      "kind": "chamberFace",
+      "id": "display",
+      "description": "Display serif letterforms for a formal, monumental tone.",
+      "active": true
+    },
+    {
+      "kind": "chamberFace",
+      "id": "thick",
+      "description": "Bold geometric letterforms for strong, vivid readings.",
+      "active": true
+    },
+    {
+      "kind": "chamberFace",
+      "id": "mono",
+      "description": "Evenly spaced monospaced letterforms for technical, archival, or machine-like tone.",
+      "active": true
+    },
+    {
+      "kind": "chamberFace",
+      "id": "jp",
+      "description": "Japanese serif letterforms for Japanese-language text.",
+      "active": true
+    },
+    {
+      "kind": "chamberFace",
+      "id": "sans",
+      "description": "Clean regular sans letterforms for modern or minimal reading.",
+      "active": true
+    },
+    {
+      "kind": "chamberFace",
+      "id": "book",
+      "description": "Stronger book serif letterforms for readable emphasis.",
+      "active": true
+    },
+    {
+      "kind": "fontSize",
+      "id": "small",
+      "description": "Small text for a dense, restrained field.",
+      "active": true
+    },
+    {
+      "kind": "fontSize",
+      "id": "medium",
+      "description": "Medium text for balanced reading.",
+      "active": true
+    },
+    {
+      "kind": "fontSize",
+      "id": "large",
+      "description": "Large text for emphatic or accessible reading.",
+      "active": true
+    },
+    {
+      "kind": "fontSize",
+      "id": "xlarge",
+      "description": "Extra large text for strong emphasis or easier reading at a distance.",
+      "active": true
+    },
+    {
+      "kind": "fontSize",
+      "id": "fit",
+      "description": "Fit each word to the Chamber; choose only with one-word chunks.",
+      "active": true
+    }
+  ]
+}

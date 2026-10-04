@@ -157,7 +157,7 @@ What each feature sends, and only when you use it:
   press **Stop sending**. Text already sent cannot be recalled.
 
 RISE's server publishes the public reading catalog (released editions,
-sounds, and type options from PostgreSQL through a short Redis cache). It does
+sounds, and type options, as a static file). It does
 not receive your requests or your key. Former server-side AI routes remain
 only to tell older tabs they are retired.
 

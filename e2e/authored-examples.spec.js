@@ -1,10 +1,8 @@
 import { readFileSync } from 'node:fs';
 import { test, expect, openHomeNav } from './fixtures.js';
 
-const GATE = { code: 'rise2025', name: 'Authored examples', vault: null, timestamp: Date.now() };
 
 async function openExamples(page) {
-  await page.addInitScript(gate => localStorage.setItem('rise-beta-session', JSON.stringify(gate)), GATE);
   await page.goto('/');
   await expect(page.locator('.portal h1').first()).toBeVisible({ timeout: 15_000 });
   await openHomeNav(page, 'vault');
@@ -97,6 +95,8 @@ test('Keep reviews the exact score; a saved child exports and plays in a clean b
   const parentId = await page.evaluate(() => JSON.parse(localStorage.getItem('rise_workshop_v1'))[0].provenance.portableId);
   await parent.getByRole('button', { name: 'Vary as new' }).click();
   await expect(page.locator('.workshop-studio')).toBeVisible();
+  await expect(page.locator('#workshop-sequence-status'))
+    .toContainText('Variation of an imported score');
   await page.locator('#session-title').fill('A Palace Variation');
   await page.locator('[data-action="focus-reading-inspector"]').click();
   // fill acts on the live slider; an evaluate can land on one the Workshop

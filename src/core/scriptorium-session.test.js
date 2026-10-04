@@ -22,7 +22,7 @@ import {
   readerWpm,
   SCRIPTORIUM_LENGTH
 } from './scriptorium-session.js';
-import { Scriptorium } from '../components/Scriptorium.js';
+import { Scriptorium } from '../components/make/Scriptorium.js';
 import { MAX_SAFE_TARGET_WORDS, READING_PACE } from './reading-limits.js';
 
 const TAO = 'sacred-tao-te-ching';

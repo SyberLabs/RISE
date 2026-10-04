@@ -35,7 +35,7 @@ export async function todaySession(date = new Date(), index = POEM_RECITATIONS) 
       recitation: { enabled: true, pack: recitation.pack },
       voiceId: recitation.voiceId
     } : {}),
-    origin: { view: 'portal', icon: '✧', name: 'Home', experience: 'today' },
+    origin: { view: 'home', icon: '✧', name: 'Home', experience: 'today' },
     continuation: reading.continuation && { ...reading.continuation, noun: 'poem' }
   };
 }

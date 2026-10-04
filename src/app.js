@@ -6,18 +6,17 @@
  * - Router (view navigation)
  * - Audio Engine (binaural entrainment, layers)
  * - Settings (persistence, accessibility)
- * - Components (Portal, Chamber, Library, Workshop, Settings)
+ * - Components (Home, Read, Library, Make, Settings)
  */
 
 import { Router, claimStaleBuildReload } from './core/router.js';
 import { compileSession } from './core/session-compiler.js';
 import { PACE_CURVE_IDS } from './core/pacing.js';
 import { resolveNextLibraryDivision } from './core/reading-continuation.js';
-import { BetaGate } from './components/BetaGate.js';
 import { isRosaryDoor } from './core/rosary-door.js';
-import { KEYSTONE_ROUTE_PREFIX, TRY_RISE_PATH, isTryRisePath } from './core/keystone-paths.js';
+import { ROUTE_ALIASES, routeFromPath } from './core/route-url.js';
 import { programPath, programSlugShape } from './core/program-paths.js';
-import { isJevSceneDemoPath, sceneSampleFromPath } from './core/jev-demo-path.js';
+import { sceneSampleFromPath } from './core/jev-demo-path.js';
 import { KEYSTONE_SESSION_ORIGIN } from './app/chamber-exit.js';
 
 import { errorBoundary, ErrorCategory } from './core/error-boundary.js';
@@ -33,29 +32,21 @@ import { createRouteManifest } from './app/route-manifest.js';
 import { preloadHome } from './app/home-preload.js';
 import { installTestBridge } from './app/test-bridge.js';
 
-const VISUAL_LAB_PATH = '/visual-lab';
-const VISUAL_CATALOG_PATH = '/visual-catalog';
-const LIVE_PATH = '/live';
-const EMOTIONS_PATH = '/emotions';
+// Not a room: the address opens today's poem in the reader (launchToday).
 const TODAY_PATH = '/today';
-const PUBLIC_ROOM_PATHS = Object.freeze({
-    'visual-lab': VISUAL_LAB_PATH,
-    'visual-catalog': VISUAL_CATALOG_PATH,
-    emotions: EMOTIONS_PATH
-});
 import { watchTabFreshness } from './core/tab-freshness.js';
 import { takeOpenRouterReturn } from './core/openrouter-callback.js';
 
 // FIRST, before any other work: an OpenRouter sign-in returns here with a
 // one-time authorization code in the URL. Lift it out of the address bar and
-// history now; the Portal exchanges it (and clears the PKCE state) when it opens.
+// history now; Home exchanges it (and clears the PKCE state) when it opens.
 // Any other page load abandons a sign-in this tab started and never finished.
 takeOpenRouterReturn();
 
 // THE SHELL'S OWN STYLES, AND ONLY THOSE. app.js used to import sixteen
-// stylesheets — every room's, not the Portal's — which is 220 KB of CSS
+// stylesheets — every room's, not Home's — which is 220 KB of CSS
 // before a reader has entered a single room. A room's stylesheet now lives
-// with the room's module and arrives with it, so the Portal's cost no
+// with the room's module and arrives with it, so Home's cost no
 // longer grows every time a room is added.
 import './design-system.css';
 import './core/visual-safety.css';
@@ -120,7 +111,7 @@ class App {
         this._historyNavigationGeneration = 0;
 
         // The two heaviest subsystems in the shell, both arriving on the
-        // first use rather than before the Portal paints. See
+        // first use rather than before Home paints. See
         // ensureAudioEngine / ensureVisualCortex.
         this._visualCortex = null;
         this._visualCortexLoad = null;
@@ -142,7 +133,7 @@ class App {
         this.setupErrorRecovery();
 
         // Arm the first-interaction listener. The engine itself arrives with
-        // that interaction — the BetaGate click is still the moment audio
+        // that interaction — the first press anywhere is the moment audio
         // starts, it is simply also the moment the engine is fetched.
         this.setupAudioInteraction();
 
@@ -164,16 +155,29 @@ class App {
         // gesture reaches the context without crossing the network.
         void this.ensureAudioEngine().catch(() => { /* audio stays off */ });
 
-        // Check beta access - this will call initializeApp when access is granted
-        // (either immediately if already authenticated, or after user enters code)
-        await this.checkBetaAccess();
+        try {
+            await this.initializeApp({});
+        } catch (error) {
+            console.error('[RISE] Application initialization failed:', error);
+            const recovery = document.createElement('div');
+            recovery.id = 'boot-recovery';
+            const message = document.createElement('p');
+            message.textContent = 'RISE could not initialize in this browser session.';
+            const retry = document.createElement('button');
+            retry.className = 'btn-primary';
+            retry.textContent = 'Retry';
+            retry.addEventListener('click', () => window.location.reload(), { once: true });
+            recovery.append(message, retry);
+            document.body.appendChild(recovery);
+            this.showToast('Initialization failed. Please retry or reload.', 5000);
+        }
     }
 
     /**
      * The Web Audio engine, on first use.
      *
      * 87 KB of source plus soundscapes and chant beds, none of which a
-     * reader who opens the Portal and leaves has asked for. Every caller
+     * reader who opens Home and leaves has asked for. Every caller
      * gets the same instance; concurrent callers share one import.
      */
     async ensureAudioEngine() {
@@ -193,7 +197,7 @@ class App {
      * The visual cortex, on first use, initialized once.
      *
      * 179 KB of engines and a stylesheet behind one singleton. Nothing on
-     * the Portal path presents a visual, so nothing on the Portal path
+     * Home path presents a visual, so nothing on Home path
      * should pay for one.
      */
     async ensureVisualCortex() {
@@ -208,60 +212,8 @@ class App {
     }
 
     /**
-     * Check beta access and show gate if needed
-     */
-    async checkBetaAccess() {
-        return new Promise((resolve) => {
-            const gateContainer = document.createElement('div');
-            gateContainer.id = 'beta-gate-container';
-            document.body.appendChild(gateContainer);
-
-            let accessHandled = false;
-
-            const gate = new BetaGate(gateContainer, {
-                onAccess: async (session) => {
-                    if (accessHandled) return; // Prevent double-handling
-                    accessHandled = true;
-
-                    console.log('[RISE] Beta access granted:', session.name);
-                    this.betaSession = session;
-
-                    try {
-                        await this.initializeApp({
-                            personalizedVault: session.vault || null
-                        });
-                        gateContainer.remove();
-                        resolve(true);
-                    } catch (error) {
-                        accessHandled = false;
-                        console.error('[RISE] Application initialization failed:', error);
-                        gateContainer.hidden = false;
-                        gateContainer.replaceChildren();
-                        const recovery = document.createElement('div');
-                        recovery.className = 'beta-gate beta-gate-error';
-                        const message = document.createElement('p');
-                        message.textContent = 'RISE could not initialize in this browser session.';
-                        const retry = document.createElement('button');
-                        retry.className = 'btn-primary';
-                        retry.textContent = 'Retry';
-                        retry.addEventListener('click', () => window.location.reload(), { once: true });
-                        recovery.append(message, retry);
-                        gateContainer.appendChild(recovery);
-                        this.showToast('Initialization failed. Please retry or reload.', 5000);
-                    }
-                }
-            });
-
-            // If gate rendered nothing (already authenticated via onAccess callback),
-            // the accessHandled flag will be true and we don't need to do anything else.
-            // If the gate is showing UI (waiting for user input), we just wait.
-        });
-    }
-
-    /**
-     * Full application initialization (after beta access granted)
+     * Full application initialization
      * @param {Object} options - Init options
-     * @param {string} options.personalizedVault - Vault ID to load directly (skips portal)
      */
     async initializeApp(options = {}) {
         // Load settings from localStorage. The master volume is applied by
@@ -275,7 +227,7 @@ class App {
         // The audio engine, the visual cortex and the source providers are
         // not created here. Each arrives at its first use — the engine on
         // the first interaction, the cortex when a reading opens, the
-        // providers when a surface browses sources. Nothing the Portal
+        // providers when a surface browses sources. Nothing Home
         // shows reads any of them.
 
         this.router = new Router({
@@ -294,30 +246,19 @@ class App {
         this.setupUtilityListeners();
 
         // Finish "Connect OpenRouter". The key goes to memory only; the
-        // Portal shows the outcome. A failure changes nothing else.
+        // Home shows the outcome. A failure changes nothing else.
 
         // Keystone paths are durable public entry points.  They resolve to a
         // threshold view first; admission and launch still happen through the
         // exact manifest gate rather than from URL text alone.
-        //
-        // ASK THE PATH BEFORE FETCHING THE ANSWER. keystones.js carries the
-        // Archive, the museum pins and the voice packs (over 100 KB on the
-        // wire), and the house programs were a second round trip after it.
-        // A reader arriving at Home waited for both, in series, before the
-        // Portal's own code was even requested. Only a path under the
-        // prefix can name a Keystone or a minted sequence, so only that
-        // path pays for the manifest that confirms it.
+        // resolveAddress fetches keystones.js only for a Keystone path, so a
+        // reader arriving at Home does not wait for that manifest.
         const pathname = window.location.pathname;
-        const directKeystone = pathname.startsWith(KEYSTONE_ROUTE_PREFIX)
-            ? (await import('./content/keystones.js')).keystoneSlugFromPath(pathname)
-            : null;
-        const directTryRise = isTryRisePath(window.location.pathname);
-        const directJevSceneDemo = isJevSceneDemoPath(window.location.pathname);
         // A minted sequence is the same kind of public entry point. TWO
         // QUESTIONS, NOT ONE: whether this is a mint URL at all, and which
         // mint it names. A printed code outlives the sequence it names, so
         // a valid address naming nothing has to reach the threshold and be
-        // told — collapsing both to "no" drops that reader on the Portal
+        // told — collapsing both to "no" drops that reader on Home
         // with no idea why.
         const mintedSlug = programSlugShape(pathname);
 
@@ -345,36 +286,22 @@ class App {
         // launch or Reader Setup resolver. The URL carries no reading data.
         const opened = window.location.search.includes('invocation=')
             && await (await import('./app/invocation.js')).enterFromInvocation(window.location.search, {
-                home: () => this.router.navigate('portal'),
+                home: () => this.router.navigate('home'),
                 launch: decision => this.launchJevReading(decision),
                 adjust: decision => this.adjustJevReading(decision),
                 fail: message => this.showToast(message, 5000)
             });
         if (opened) {
             // The reading is open; nothing else to recover.
-        } else if (staleTarget && this.router.views.has(staleTarget)) {
+        } else if (staleTarget && this.router.views.has(ROUTE_ALIASES[staleTarget] ?? staleTarget)) {
             console.log('[RISE] Recovering navigation after stale build:', staleTarget);
-            await this.router.navigate(staleTarget, { data: staleData });
+            await this.router.navigate(staleTarget, { data: staleData, keepUrl: true });
         } else if (isRosaryDoor()) {
             await this.router.navigate('rosarium', { data: { door: true } });
-        } else if (directKeystone) {
-            await this.router.navigate('keystones', { data: { slug: directKeystone } });
-        } else if (directTryRise) {
-            await this.router.navigate('keystones');
-        } else if (directJevSceneDemo) {
-            await this.router.navigate('portal', { data: { demoMode: true } });
         } else if (mintedSlug) {
             const { houseProgram } = await import('./content/programs/index.js');
-            await this.router.navigate('mint', { data: { entry: houseProgram(mintedSlug) } });
-        } else if (window.location.pathname === VISUAL_LAB_PATH) {
-            await this.router.navigate('visual-lab');
-        } else if (window.location.pathname === VISUAL_CATALOG_PATH) {
-            await this.router.navigate('visual-catalog', { data: { search: window.location.search } });
-        } else if (window.location.pathname === LIVE_PATH) {
-            await this.router.navigate('live');
-        } else if (window.location.pathname === EMOTIONS_PATH) {
-            await this.router.navigate('emotions');
-        } else if (window.location.pathname === TODAY_PATH) {
+            await this.router.navigate('mint', { data: { entry: houseProgram(mintedSlug) }, keepUrl: true });
+        } else if (pathname === TODAY_PATH) {
             // The address opens the reading itself; once it is open the
             // address is Home's, so leaving it does not open it again.
             window.history.replaceState({}, '', '/');
@@ -382,21 +309,24 @@ class App {
                 await this.launchToday();
             } catch (error) {
                 this.showToast(error.message || 'Today’s poem could not be opened.', 5000);
-                await this.router.navigate('portal');
+                await this.router.navigate('home');
             }
-        } else if (options.personalizedVault) {
-            console.log('[RISE] Navigating directly to personalized vault:', options.personalizedVault);
-            await this.router.navigate('vault', { data: { personalizedVault: options.personalizedVault } });
         } else {
-            // The Portal's code is asked for first, then what Home plays
-            // with it, so neither waits on the other's round trip.
-            const shown = this.router.navigate('portal');
-            void preloadHome();
+            // Every other address is the table's to resolve (route-url.js);
+            // the cases above are not addresses: a hash, a query code, a
+            // stale-build recovery, the minted /p/ path, which opens a
+            // reading through the register rather than naming a room, and
+            // /today, which opens a reading.
+            const route = await this.resolveAddress();
+            const shown = this.router.navigate(route.id, { data: route.data, replace: true, keepUrl: !route.rewrite });
+            // Home's code is asked for first, then what Home plays with it,
+            // so neither waits on the other's round trip.
+            if (route.id === 'home') void preloadHome();
             await shown;
         }
         // A start route whose code will not load (blocked, or still
         // missing after the one reload) leaves nothing on screen. Home.
-        if (!this.router.currentView) await this.handleNavigate('portal');
+        if (!this.router.currentView) await this.handleNavigate('home');
 
         this.watchTabFreshness();
 
@@ -496,7 +426,7 @@ class App {
         // Navigation errors: return to portal
         errorBoundary.registerRecoveryHandler(ErrorCategory.NAVIGATION, (report) => {
             if (this.router) {
-                return this.router.navigate('portal');
+                return this.router.navigate('home');
             }
         });
 
@@ -507,7 +437,7 @@ class App {
                 this.currentSession = null;
             }
             if (this.router) {
-                return this.router.navigate('portal');
+                return this.router.navigate('home');
             }
         });
     }
@@ -526,7 +456,6 @@ class App {
             openMintedProgram: slug => this.openMintedProgram(slug),
             handleSequenceSelection: sequenceId => this.handleSequenceSelection(sequenceId),
             handleCreateSession: this.handleCreateSession,
-            handleArchetypeLaunch: data => this.handleArchetypeLaunch(data),
             handleBeginSession: session => this.handleBeginSession(session),
             useRecipeInReading: recipe => this.useRecipeInReading(recipe),
             router: this.router,
@@ -564,7 +493,7 @@ class App {
                 }
             },
             handleTextSelection: (text, source, config) => this.handleTextSelection(text, source, config),
-            refreshVaultBlueprints: () => this.router.getViewInstance('vault')?.refreshBlueprints?.(),
+            refreshVaultBlueprints: () => this.router.getViewInstance('make')?.tabInstance('vault')?.refreshBlueprints?.(),
             handleDataCleared: this.handleDataCleared,
             launchRosary: (setId, extras) => this.router.navigate('rosarium', {
                 data: { setId, iconId: extras?.iconId ?? null }
@@ -603,47 +532,17 @@ class App {
      * Handle navigation requests from components
      */
     handleNavigationIntent(viewName, options = {}) {
-        if (viewName === 'chamber-session' && options.launchRevision === this.sessionLaunchRevision) return;
+        if (viewName === 'read' && options.data?.pane === 'chamber'
+            && options.launchRevision === this.sessionLaunchRevision) return;
         ++this.sessionLaunchRevision;
         this.router.getViewInstance(this.router.getCurrentView())?.navigationIntent?.();
     }
 
     handleNavigate(viewName, data, { replaceUrl = false } = {}) {
-        // Keystone URLs are real entry points, not a hash painted onto an
-        // unrelated view. Leaving the release corridor explicitly returns
-        // the browser to the application root so reload and Back agree with
-        // the surface the reader can actually see.
-        //
-        // The try-rise screen is also where a keystone reading returns to,
-        // and it returns from `/keystone/<slug>` — a path this used to treat
-        // as already correct, which left the address bar naming a reading
-        // that had been closed. The test is now whether the browser is on
-        // try-rise, not whether it is somewhere in the corridor.
-        if (viewName === 'keystones' && !isTryRisePath(window.location.pathname)) {
-            window.history[replaceUrl ? 'replaceState' : 'pushState']({}, '', TRY_RISE_PATH);
-        }
-        if (viewName === 'portal'
-            && /^\/(?:try-rise|keystone(?:\/|$))/u.test(window.location.pathname)) {
-            window.history.pushState({}, '', '/');
-        }
-        if (viewName !== 'portal' && isJevSceneDemoPath(window.location.pathname)) {
-            window.history.pushState({}, '', '/');
-        }
-        const publicPath = PUBLIC_ROOM_PATHS[viewName] || null;
-        const onPublicPath = Object.values(PUBLIC_ROOM_PATHS).includes(window.location.pathname);
-        if (publicPath && window.location.pathname !== publicPath) {
-            window.history[replaceUrl ? 'replaceState' : 'pushState']({}, '', publicPath);
-        } else if (!publicPath && onPublicPath) {
-            window.history.pushState({}, '', '/');
-        }
-        if (viewName === 'live' && window.location.pathname !== LIVE_PATH) {
-            window.history[replaceUrl ? 'replaceState' : 'pushState']({}, '', LIVE_PATH);
-        } else if (viewName !== 'live' && window.location.pathname === LIVE_PATH) {
-            window.history.pushState({}, '', '/');
-        }
+        // The router writes the address (src/core/route-url.js owns it).
         // Returned so a caller can wait for the outgoing view to have
         // faded out before disposing of it. See chamber-session-factory.
-        return this.router.navigate(viewName, { data });
+        return this.router.navigate(viewName, { data, replaceUrl });
     }
 
     /**
@@ -684,37 +583,6 @@ class App {
                     audioPreset: sequence.audioPreset || 'silent',
                     soundscape: sequence.soundscape || 'none',
                     origin: { view: 'library', icon: '◇', name: 'Library' }
-                }
-            }
-        });
-    }
-
-    /**
-     * Handle archetype launch from Vault
-     * Merges archetype config with sequence content and navigates to Chamber
-     * @param {Object} data - { archetype, sequence, config }
-     */
-    handleArchetypeLaunch(data) {
-        console.log('[RISE] Archetype launch:', data.archetype.name, 'with sequence:', data.sequence.name);
-
-        const { archetype, sequence, config } = data;
-
-        // Navigate to Chamber with full archetype configuration
-        this.router.navigate('chamber', {
-            data: {
-                text: sequence.content,
-                source: `${archetype.name}: ${sequence.name}`,
-                config: {
-                    wpm: config.wpm,
-                    curve: config.curve,
-                    // A curated sequence may author its own chunking —
-                    // the reading unit is part of the curation, not a
-                    // leftover of the reader's last session
-                    ...(config.chunkMode ? { chunkMode: config.chunkMode } : {}),
-                    audioPreset: config.audioPreset || 'silent',
-                    soundscape: config.soundscape || 'none',
-                    visualConfig: config.visualConfig || { visualMode: 'off' },
-                    origin: { view: 'vault', icon: '◈', name: 'Vault' }
                 }
             }
         });
@@ -827,6 +695,11 @@ class App {
         if (sessionConfig.firstReadPreview === true) {
             session.firstReadPreview = true;
         }
+        // The address the reading keeps while it is open (see route-url.js).
+        // The fixed sample scenes keep their own path while they read.
+        const publicPath = sessionConfig.publicPath
+            || (sceneSampleFromPath(window.location.pathname) ? window.location.pathname : null);
+        if (publicPath) session.publicPath = publicPath;
 
         // Store and navigate to chamber-session (immersion)
         this.currentSession = session;
@@ -857,11 +730,13 @@ class App {
     /**
      * Today's poem goes straight into the reader: the day's exact poem in the
      * day's look. A tap on Home's card is the gesture that lets it play at
-     * once; a cold load of /today stops on the reader's Ready screen.
+     * once; a cold load of /today stops on the reader's Ready screen. The
+     * reading keeps Home's address, so a reload or Back lands Home rather
+     * than reopening the poem.
      */
     async launchToday() {
         const { todaySession } = await import('./app/today.js');
-        if (!await this.handleBeginSession(await todaySession())) {
+        if (!await this.handleBeginSession({ ...await todaySession(), publicPath: '/' })) {
             throw new Error('Today’s poem could not be opened. Please try again.');
         }
     }
@@ -900,12 +775,9 @@ class App {
                 this.showToast(reason, 5000);
                 return;
             }
-            const path = keystones.keystonePath(slug);
-            if (window.location.pathname !== path) {
-                window.history.pushState({}, '', path);
-            }
             await this.handleBeginSession({
                 ...result.sessionInput,
+                publicPath: keystones.keystonePath(slug),
                 origin: KEYSTONE_SESSION_ORIGIN,
                 firstReadPreview
             });
@@ -958,11 +830,7 @@ class App {
                 provenance: { kind: 'minted-program', slug }
             });
 
-            const path = programPath(slug);
-            if (window.location.pathname !== path) {
-                window.history.replaceState({}, '', path);
-            }
-            await this.handleCreateSession(project);
+            await this.handleCreateSession({ ...project, publicPath: programPath(slug) });
         } catch (error) {
             console.error('[RISE] Minted sequence refused:', error);
             this.showToast(error.message || 'This sequence could not be opened.', 5000);
@@ -985,7 +853,7 @@ class App {
                 sessionInput.origin = { view: 'vault' };
             } else {
                 // The project model is a room's, and nothing on the way to the
-                // Portal needs it, so it is not part of first load.
+                // Home needs it, so it is not part of first load.
                 const { isWorkshopProject, workshopProjectToSessionConfig } =
                     await import('./core/workshop-project.js');
                 if (!isCurrent()) return false;
@@ -1049,6 +917,8 @@ class App {
 
         // Route only while this preparation still owns the launch.
         if (!isCurrent()) return false;
+
+        if (sessionData?.publicPath) session.publicPath = sessionData.publicPath;
 
         // Ensure that preview mode routing flag passes correctly if requested
         if (sessionInput.isPreview) {
@@ -1192,7 +1062,7 @@ class App {
             this.audioEngine.setMasterVolume(this.settings.masterVolume);
         }
         if (keys.some(key => ['chamberFace', 'chamberMask', 'fontSize'].includes(key))) {
-            const chamber = this.router?.getViewInstance?.('chamber-session');
+            const chamber = this.router?.getViewInstance?.('read')?.paneInstance('chamber');
             chamber?.applyChamberStreamFace?.();
             chamber?.applyChamberMask?.();
             if (Object.hasOwn(next, 'fontSize')) chamber?.applyChamberTypeSize?.();
@@ -1222,7 +1092,13 @@ class App {
         const root = document.documentElement;
 
         // Check OS preference for reduced motion
-        const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        const motionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+        const prefersReducedMotion = motionQuery.matches;
+        // The reader can change it mid-session; the root class follows.
+        if (!this._followsMotionQuery) {
+            this._followsMotionQuery = true;
+            motionQuery.addEventListener?.('change', () => this.applyAccessibilitySettings());
+        }
 
         // Apply reduced motion if user or OS preference is set
         if (this.settings?.reducedMotion || prefersReducedMotion) {
@@ -1330,7 +1206,7 @@ class App {
         watchTabFreshness({
             router: this.router,
             isReading: () => {
-                const state = this.router?.views?.get('chamber')?.instance
+                const state = this.router?.getViewInstance('read')?.paneInstance('chamber')
                     ?.player?.sessionState?.state;
                 return state === 'playing' || state === 'interlocuting';
             },
@@ -1376,64 +1252,57 @@ class App {
             const historyGeneration = ++this._historyNavigationGeneration;
             // Hash navigation belongs to the Rosary door. Browsers may emit
             // popstate alongside hashchange, and clearing the hash must not
-            // pull an in-progress prayer back to the Portal.
-            if (isRosaryDoor() || this.router?.getCurrentView() === 'rosarium') return;
+            // pull an in-progress prayer back to Home.
+            if (isRosaryDoor()) return;
             this.handleNavigationIntent('history');
-            const { keystoneSlugFromPath } = await import('./content/keystones.js');
+            const route = await this.resolveAddress();
             if (historyGeneration !== this._historyNavigationGeneration) return;
-            if (window.location.pathname === VISUAL_LAB_PATH) {
-                await this.router?.navigate('visual-lab', { replace: true, skipStack: true });
+            if (route.rewrite && this.router?.getCurrentView() === route.id && !this.router.transitioning
+                && this.router.getViewInstance(route.id)?.activePane === route.data.pane) {
+                // Already showing the room and pane the address should have named.
+                this.router.updateAddress(route.data);
                 return;
             }
-            if (window.location.pathname === VISUAL_CATALOG_PATH) {
-                const data = { search: window.location.search };
-                const route = this.router?.views?.get('visual-catalog');
-                const catalog = this.router?.getViewInstance?.('visual-catalog');
-                const isCurrentCatalog = this.router?.getCurrentView?.() === 'visual-catalog';
-                const isEnteringCatalog = this.router?.transitioning === true
-                    && route?.container && !route.container.hidden;
-                if (catalog?.update && (isCurrentCatalog || isEnteringCatalog)) {
-                    catalog.update(data);
-                    if (isCurrentCatalog && !this.router.transitioning) return;
-                }
-                await this.router?.navigate('visual-catalog', {
-                    data, replace: true, skipStack: true
-                });
-                // Router deliberately collapses a queued same-route navigation.
-                // Apply the newest address data once the entry has settled.
-                const settledCatalog = this.router?.getViewInstance?.('visual-catalog');
-                if (historyGeneration === this._historyNavigationGeneration
-                    && window.location.pathname === VISUAL_CATALOG_PATH
-                    && window.location.search === data.search
-                    && settledCatalog?.update
-                    && this.router?.getCurrentView?.() === 'visual-catalog') {
-                    await settledCatalog.update(data);
-                }
-                return;
+            // A change inside a room (a catalog search, a Chapel chapter)
+            // is updated in place by the router.
+            await this.router?.navigate(route.id, {
+                data: route.data, replace: true, skipStack: true, keepUrl: !route.rewrite
+            });
+            // A move to the room already showing writes nothing, so an
+            // address that must be rewritten (a finished reading's) is
+            // rewritten here once the room has settled.
+            if (route.rewrite && historyGeneration === this._historyNavigationGeneration
+                && this.router?.getCurrentView() === route.id) {
+                this.router.updateAddress(route.data);
             }
-            if (window.location.pathname === LIVE_PATH) {
-                await this.router?.navigate('live', { replace: true, skipStack: true });
-                return;
-            }
-            if (window.location.pathname === EMOTIONS_PATH) {
-                await this.router?.navigate('emotions', { replace: true, skipStack: true });
-                return;
-            }
-            const slug = keystoneSlugFromPath(window.location.pathname);
-            if (slug || isTryRisePath(window.location.pathname)) {
-                await this.router?.navigate('keystones', {
-                    data: slug ? { slug } : undefined,
-                    replace: true,
-                    skipStack: true
-                });
-                return;
-            }
-            await this.router?.navigate('portal', {
-                data: { demoMode: isJevSceneDemoPath(window.location.pathname) },
-                replace: true,
-                skipStack: true
-             });
          }, options);
+    }
+
+    /**
+     * The room the address bar names, always a room that can open.
+     * Unknown addresses, rooms this build does not register, Keystone slugs
+     * the manifest does not carry, and a reading address with no reading to
+     * show all land somewhere real: Home, or the Chamber's setup.
+     */
+    async resolveAddress() {
+        const here = window.location;
+        let route = routeFromPath(here.pathname, here.search);
+        if (route?.data?.pane === 'keystones' && route.data.slug) {
+            const { keystoneSlugFromPath } = await import('./content/keystones.js');
+            if (!keystoneSlugFromPath(here.pathname)) route = null;
+        }
+        // History never resurrects a reading: the Chamber is only the answer
+        // while it is still on screen with its session, and not while the
+        // reader is already leaving it (the address changes as a move begins).
+        if (route?.id === 'read' && route.data.pane === 'chamber') {
+            const showing = this.router?.getCurrentView() === 'read' && this.router.currentData?.pane === 'chamber'
+                && this.currentSession && !this.router.transitioning;
+            route = showing
+                ? { id: 'read', data: this.router.currentData }
+                : { id: 'read', data: { pane: 'setup' }, rewrite: true };
+        }
+        if (!route || !this.router?.views?.has(route.id)) route = { id: 'home', data: {} };
+        return route;
     }
 
     /**
@@ -1442,8 +1311,10 @@ class App {
      */
     handleRosaryDoorHash() {
         if (!isRosaryDoor() || !this.router) return;
-        const onDoorSit = this.router.getCurrentView() === 'rosarium'
-            && this.router.getViewInstance('rosarium')?.door === true;
+        const library = this.router.getViewInstance('library');
+        const onDoorSit = this.router.getCurrentView() === 'library'
+            && library?.activePane === 'rosary'
+            && library.paneInstance('rosary')?.door === true;
         if (onDoorSit) return;
         return this.router.navigate('rosarium', { data: { door: true } });
     }

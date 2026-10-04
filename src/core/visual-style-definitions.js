@@ -12,7 +12,11 @@ export const ATTRACTOR_PALETTES = Object.freeze([
   Object.freeze({ id: 'blue', name: 'Blue', swatch: '#c6e2ff' }),
   Object.freeze({ id: 'gold', name: 'Gold', swatch: '#ffe8b0' }),
   Object.freeze({ id: 'purple', name: 'Purple', swatch: '#e0ccff' }),
-  Object.freeze({ id: 'neon', name: 'Neon', swatch: '#ff2eaa' })
+  Object.freeze({ id: 'neon', name: 'Neon', swatch: '#ff2eaa' }),
+  Object.freeze({ id: 'jade', name: 'Jade', swatch: '#ccffe4' }),
+  Object.freeze({ id: 'rose', name: 'Rose', swatch: '#ffa0c8' }),
+  Object.freeze({ id: 'citrine', name: 'Citrine', swatch: '#e8f882' }),
+  Object.freeze({ id: 'silver', name: 'Silver', swatch: '#bec8da' })
 ]);
 
 export const ATTRACTOR_FORMS = Object.freeze(['mirror', 'kaleido', 'bilateral']);

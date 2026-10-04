@@ -1,6 +1,6 @@
 /**
- * The local RISE bridge: one loopback HTTP server that serves the built app,
- * the public catalog, and exactly one model route, POST /api/local/kev/systemone,
+ * The local RISE bridge: one loopback HTTP server that serves the built app
+ * (its static catalog included) and exactly one model route, POST /api/local/kev/systemone,
  * which it forwards to the pinned Kev server on another loopback port with a
  * per-run bearer key the page never sees.
  *
@@ -14,7 +14,6 @@ import { extname, join, normalize, resolve, sep } from 'node:path';
 
 export const KEV_ROUTE = '/api/local/kev/systemone';
 export const STATUS_ROUTE = '/api/local/status';
-export const CATALOG_ROUTE = '/api/decision-catalog';
 export const MAX_BODY_BYTES = 256 * 1024;
 const UPSTREAM_TIMEOUT_MS = 30_000;
 const MAX_QUESTIONS = 64;
@@ -34,7 +33,7 @@ const TYPES = {
   '.css': 'text/css; charset=utf-8', '.json': 'application/json', '.webmanifest': 'application/manifest+json',
   '.svg': 'image/svg+xml', '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.webp': 'image/webp',
   '.gif': 'image/gif', '.ico': 'image/x-icon', '.woff2': 'font/woff2', '.wav': 'audio/wav', '.mp3': 'audio/mpeg',
-  '.ogg': 'audio/ogg', '.mp4': 'video/mp4', '.wasm': 'application/wasm', '.txt': 'text/plain; charset=utf-8'
+  '.ogg': 'audio/ogg', '.opus': 'audio/ogg; codecs=opus', '.mp4': 'video/mp4', '.wasm': 'application/wasm', '.txt': 'text/plain; charset=utf-8'
 };
 
 const BASE_HEADERS = {
@@ -177,9 +176,8 @@ export function markLocal(html) {
  * @param options.distDir built app directory
  * @param options.port the loopback port this server listens on
  * @param options.kev { port, token, status(): { state, revision, device, message } }
- * @param options.catalog () => public catalog JSON
  */
-export async function createBridge({ distDir, port, kev, catalog }) {
+export async function createBridge({ distDir, port, kev }) {
   const html = markLocal(await readFile(join(distDir, 'index.html'), 'utf8'));
   const server = createServer(async (req, res) => {
     try {
@@ -194,10 +192,6 @@ export async function createBridge({ distDir, port, kev, catalog }) {
           state: status.state, revision: status.revision || null,
           device: status.device || null, message: status.message || null
         } });
-      }
-      if (pathname === CATALOG_ROUTE) {
-        if (req.method !== 'GET') return refuse(res, 405, 'METHOD_NOT_ALLOWED', 'Use GET.');
-        return json(res, 200, catalog());
       }
       if (pathname === KEV_ROUTE) {
         if (req.method !== 'POST') return refuse(res, 405, 'METHOD_NOT_ALLOWED', 'Use POST.');

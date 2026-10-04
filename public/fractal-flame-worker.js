@@ -33,22 +33,40 @@ self.onmessage = function (e) {
         return;
     }
 
+    if (type === 'tone') {
+        try {
+            const pixels = toneFlame(e.data);
+            self.postMessage({ type: 'toned', pixels: pixels.buffer }, [pixels.buffer]);
+        } catch (error) {
+            self.postMessage({ type: 'error', error: error.message });
+        }
+        return;
+    }
+
     if (type === 'render') {
         if (!VARIATIONS) VARIATIONS = LOCAL_VARIATIONS;
 
         try {
-            // Initialize histograms
+            // Initialize histograms. Float32 holds the counts exactly (the
+            // color sums to seven digits) and halves what each worker
+            // allocates and hands back.
             const histogramSize = width * height;
-            const density = new Float64Array(histogramSize);
-            const colorR = new Float64Array(histogramSize);
-            const colorG = new Float64Array(histogramSize);
-            const colorB = new Float64Array(histogramSize);
+            const density = new Float32Array(histogramSize);
+            const colorR = new Float32Array(histogramSize);
+            const colorG = new Float32Array(histogramSize);
+            const colorB = new Float32Array(histogramSize);
 
-            // Seed random number generator for this worker
-            let randomSeed = seed || workerId;
+            // Seed random number generator for this worker (mulberry32). Its
+            // 2^32 period matters: the old generator repeated every 233,280
+            // draws, so a converged orbit replayed the same few hundred
+            // thousand points however many iterations were asked for.
+            let randomSeed = (seed || workerId) >>> 0;
             function seededRandom() {
-                randomSeed = (randomSeed * 9301 + 49297) % 233280;
-                return randomSeed / 233280;
+                randomSeed = (randomSeed + 0x6D2B79F5) >>> 0;
+                let t = randomSeed;
+                t = Math.imul(t ^ (t >>> 15), t | 1);
+                t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+                return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
             }
 
             // Iterate
@@ -158,14 +176,15 @@ function applyTransform(x, y, transform, random) {
     let resultX = 0;
     let resultY = 0;
 
-    for (const [variationName, weight] of Object.entries(transform.variations)) {
-        if (weight === 0) continue;
-
-        const variation = getVariation(variationName);
-        const varResult = variation(affineX, affineY, transform, random);
-
-        resultX += weight * varResult.x;
-        resultY += weight * varResult.y;
+    // Resolved once per transform rather than once per iteration: the same
+    // terms in the same order, about a third faster.
+    const terms = transform.terms || (transform.terms = Object.entries(transform.variations)
+        .filter(([, weight]) => weight !== 0)
+        .map(([name, weight]) => [getVariation(name), weight]));
+    for (let k = 0; k < terms.length; k++) {
+        const varResult = terms[k][0](affineX, affineY, transform, random);
+        resultX += terms[k][1] * varResult.x;
+        resultY += terms[k][1] * varResult.y;
     }
 
     // Step 3: Apply post-affine if defined
@@ -228,6 +247,153 @@ function worldToScreen(x, y, camera, width, height) {
 function getPaletteColor(colorIndex, palette) {
     const index = Math.floor(colorIndex * 255) % 256;
     return palette[index];
+}
+
+// TONE STEP. Sum the workers' histograms, smooth them, and tone-map, here
+// rather than on the page's main thread. smoothHistograms, boxBlur and
+// renderFlame are copies of smoothHistograms, boxBlur and _renderFlame in
+// src/visuals/lib/fractal-engine.js; fractal-engine.tone.test.js holds the
+// two to the same pixels.
+function toneFlame({ parts, width, height, finalWidth, finalHeight, gamma, brightness, vibrancy, oversample, backgroundColor, smooth }) {
+    const n = width * height;
+    const density = new Float64Array(n);
+    const colorR = new Float64Array(n);
+    const colorG = new Float64Array(n);
+    const colorB = new Float64Array(n);
+    for (const part of parts) {
+        const partDensity = new Float32Array(part.density);
+        const partR = new Float32Array(part.colorR);
+        const partG = new Float32Array(part.colorG);
+        const partB = new Float32Array(part.colorB);
+        for (let i = 0; i < n; i++) {
+            density[i] += partDensity[i];
+            colorR[i] += partR[i];
+            colorG[i] += partG[i];
+            colorB[i] += partB[i];
+        }
+    }
+    if (smooth) smoothHistograms(density, colorR, colorG, colorB, width, height);
+    return renderFlame(density, colorR, colorG, colorB, width, height,
+        finalWidth, finalHeight, gamma, brightness, vibrancy, oversample, backgroundColor);
+}
+
+const SMOOTH_RADIUS = 2;
+const SMOOTH_KEEP_AT = 8;
+
+function smoothHistograms(density, colorR, colorG, colorB, width, height) {
+    const n = width * height;
+    const keep = new Float64Array(n);
+    for (let i = 0; i < n; i++) keep[i] = density[i] / (density[i] + SMOOTH_KEEP_AT);
+    const spread = new Float64Array(n);
+    const scratch = new Float64Array(n);
+    for (const channel of [density, colorR, colorG, colorB]) {
+        for (let i = 0; i < n; i++) spread[i] = channel[i] * (1 - keep[i]);
+        boxBlur(spread, scratch, width, height);
+        boxBlur(spread, scratch, width, height);
+        for (let i = 0; i < n; i++) channel[i] = channel[i] * keep[i] + spread[i];
+    }
+    for (let i = 0; i < n; i++) {
+        if (density[i] < 1e-6) density[i] = colorR[i] = colorG[i] = colorB[i] = 0;
+    }
+}
+
+function boxBlur(data, scratch, width, height) {
+    const r = SMOOTH_RADIUS;
+    for (let y = 0; y < height; y++) {
+        const row = y * width;
+        let acc = 0;
+        for (let x = 0; x < r && x < width; x++) acc += data[row + x];
+        for (let x = 0; x < width; x++) {
+            if (x + r < width) acc += data[row + x + r];
+            scratch[row + x] = acc / (Math.min(x + r, width - 1) - Math.max(x - r, 0) + 1);
+            if (x - r >= 0) acc -= data[row + x - r];
+        }
+    }
+    for (let x = 0; x < width; x++) {
+        let acc = 0;
+        for (let y = 0; y < r && y < height; y++) acc += scratch[y * width + x];
+        for (let y = 0; y < height; y++) {
+            if (y + r < height) acc += scratch[(y + r) * width + x];
+            data[y * width + x] = acc / (Math.min(y + r, height - 1) - Math.max(y - r, 0) + 1);
+            if (y - r >= 0) acc -= scratch[(y - r) * width + x];
+        }
+    }
+}
+
+function renderFlame(density, colorR, colorG, colorB, renderWidth, renderHeight,
+    finalWidth, finalHeight, gamma, brightness, vibrancy, oversample, backgroundColor) {
+    let maxDensity = 0;
+    for (let i = 0; i < density.length; i++) {
+        if (density[i] > maxDensity) {
+            maxDensity = density[i];
+        }
+    }
+
+    const maxLogDensity = Math.log(maxDensity + 1);
+    const pixels = new Uint8ClampedArray(finalWidth * finalHeight * 4);
+
+    for (let y = 0; y < finalHeight; y++) {
+        for (let x = 0; x < finalWidth; x++) {
+            let totalDensity = 0;
+            let totalR = 0, totalG = 0, totalB = 0;
+
+            for (let oy = 0; oy < oversample; oy++) {
+                for (let ox = 0; ox < oversample; ox++) {
+                    const rx = x * oversample + ox;
+                    const ry = y * oversample + oy;
+                    const idx = ry * renderWidth + rx;
+
+                    totalDensity += density[idx];
+                    totalR += colorR[idx];
+                    totalG += colorG[idx];
+                    totalB += colorB[idx];
+                }
+            }
+
+            const sampleCount = oversample * oversample;
+            totalDensity /= sampleCount;
+            totalR /= sampleCount;
+            totalG /= sampleCount;
+            totalB /= sampleCount;
+
+            const logDensity = Math.log(totalDensity + 1);
+            const normalizedDensity = logDensity / maxLogDensity;
+            const alpha = Math.pow(normalizedDensity, 1 / gamma);
+
+            let r = 0, g = 0, b = 0;
+
+            if (totalDensity > 0) {
+                const avgR = totalR / totalDensity;
+                const avgG = totalG / totalDensity;
+                const avgB = totalB / totalDensity;
+
+                const intensity = Math.min(1, alpha * brightness / 6);
+                r = avgR * intensity;
+                g = avgG * intensity;
+                b = avgB * intensity;
+                const grey = (r + g + b) / 3;
+                r = grey + (r - grey) * vibrancy;
+                g = grey + (g - grey) * vibrancy;
+                b = grey + (b - grey) * vibrancy;
+            } else {
+                r = backgroundColor[0];
+                g = backgroundColor[1];
+                b = backgroundColor[2];
+            }
+
+            r = Math.min(255, Math.max(0, r));
+            g = Math.min(255, Math.max(0, g));
+            b = Math.min(255, Math.max(0, b));
+
+            const pixelIdx = (y * finalWidth + x) * 4;
+            pixels[pixelIdx] = r;
+            pixels[pixelIdx + 1] = g;
+            pixels[pixelIdx + 2] = b;
+            pixels[pixelIdx + 3] = 255;
+        }
+    }
+
+    return pixels;
 }
 
 // INLINED VARIATIONS FOR WORKER CONTEXT

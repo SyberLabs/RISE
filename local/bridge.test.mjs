@@ -5,7 +5,6 @@ import { mkdtemp, mkdir, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createBridge, systemOneBody } from './bridge.mjs';
-import { seedCatalog } from './catalog.mjs';
 
 const REVISION = '139fdd94f1b6a6ad80cc15e08fcb99cac885a101';
 const TOKEN = 'per-run-kev-token-never-shown-to-the-page';
@@ -57,7 +56,7 @@ before(async () => {
   port = probe.address().port;
   await new Promise(resolve => probe.close(resolve));
   bridge = await createBridge({
-    distDir: dist, port, catalog: seedCatalog,
+    distDir: dist, port,
     kev: { port: upstream.address().port, token: TOKEN,
       status: () => ({ state: kevState, revision: REVISION, device: 'Test GPU', message: null }) }
   });
@@ -106,12 +105,6 @@ describe('local RISE bridge', () => {
     assert.equal(res.status, 200);
     assert.deepEqual(JSON.parse(res.text), { rise: 'local', kev: { state: 'ready', revision: REVISION, device: 'Test GPU', message: null } });
     assert.doesNotMatch(res.text, new RegExp(TOKEN, 'u'));
-  });
-
-  it('serves the committed public catalog offline', async () => {
-    const res = await call('/api/decision-catalog');
-    assert.equal(res.status, 200);
-    assert.equal(JSON.parse(res.text).schemaVersion, 1);
   });
 
   it('forwards a same-origin choice request to the fixed Kev address with the per-run key', async () => {

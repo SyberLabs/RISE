@@ -116,6 +116,22 @@ describe('lowering to the sealed Current', () => {
         expect(doc.origin).toEqual({ kind: 'model', name: 'An answer', provider: 'mock' });
     });
 
+    it('carries the theme the Current opened with, and none when it named none', () => {
+        const themed = createCurrentStream();
+        const send = feed(themed);
+        send('current.open', {
+            title: 'Black holes', origin: { kind: 'model', name: 'An answer', provider: 'mock' }, theme: 'jade'
+        });
+        segment(send, 's1', 'A black hole is a region of space.');
+        expect(themed.snapshot().theme).toBe('jade');
+        expect(themed.toCurrent().theme).toBe('jade');
+
+        const { stream, send: sendPlain } = opened();
+        segment(sendPlain, 's1', 'A black hole is a region of space.');
+        expect(stream.snapshot().theme).toBeNull();
+        expect(Object.hasOwn(stream.toCurrent(), 'theme')).toBe(false);
+    });
+
     it('refuses a Dive attached after its segment has been lowered', () => {
         const { stream, send } = opened();
         segment(send, 's1', 'The event horizon marks a boundary.');

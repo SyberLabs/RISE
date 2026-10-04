@@ -7,15 +7,13 @@
  */
 import { test, expect, openHomeNav } from './fixtures.js';
 
-const GATE = { code: 'rise2025', name: 'Nav Gate', vault: null, timestamp: Date.now() };
 const SEED = { text: 'Light enters form and returns through measure. '.repeat(30).trim(), textSource: 'Gate', origin: null };
 
 async function openNavigator(page, { withText }) {
-    await page.addInitScript(({ gate, seed, withText }) => {
-        localStorage.setItem('rise-beta-session', JSON.stringify(gate));
+    await page.addInitScript(({ seed, withText }) => {
         if (withText) localStorage.setItem('rise_orbital_text_v1', JSON.stringify(seed));
         else localStorage.removeItem('rise_orbital_text_v1');
-    }, { gate: GATE, seed: SEED, withText });
+    }, { seed: SEED, withText });
     await page.goto('/');
     await openHomeNav(page, 'chamber');
     await expect(page.locator('[data-action="toggle-adjust"]')).toBeVisible({ timeout: 20_000 });

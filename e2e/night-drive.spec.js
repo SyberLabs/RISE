@@ -4,7 +4,7 @@ import { test, expect } from './fixtures.js';
 // light streaks, a beat, readable text, and no provider call.
 test('Night Drive plays neon light, streaks and the beat without a Jev request', async ({ page }) => {
   let jevRequests = 0;
-  await page.route(/openrouter\.ai|\/api\/decision-catalog|\/api\/local\//u, route => {
+  await page.route(/openrouter\.ai|\/content\/catalog\.json|\/api\/local\//u, route => {
     jevRequests += 1;
     return route.abort();
   });
@@ -23,7 +23,7 @@ test('Night Drive plays neon light, streaks and the beat without a Jev request',
   await expect.poll(() => painted('.chamber-attractor .attractor-canvas'), { timeout: 10_000 }).toBe(true);
 
   const state = await page.evaluate(() => {
-    const chamber = window.__RISE_TEST__.getView('chamber-session');
+    const chamber = window.__RISE_TEST__.getView('read')?.paneInstance('chamber');
     return {
       projection: chamber.session.projection,
       soundscape: chamber.session.soundscape,
@@ -37,7 +37,7 @@ test('Night Drive plays neon light, streaks and the beat without a Jev request',
 
   // Page plates carry both layers, as the Stream shows them.
   const plates = await page.evaluate(() => {
-    const chamber = window.__RISE_TEST__.getView('chamber-session');
+    const chamber = window.__RISE_TEST__.getView('read')?.paneInstance('chamber');
     return {
       both: chamber._sampleAttractorPlate(6)?.length || 0,
       filament: chamber.attractorField.sampleAt(6)?.length || 0

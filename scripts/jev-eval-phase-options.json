@@ -1,7 +1,7 @@
 {
   "audio": ["silent", "aurora", "faded-signal", "soft-rain", "sad", "angry", "happy", "excited", "thrilling", "scary", "piano", "jazz", "lullaby", "nocturne", "waltz", "blues", "bossa", "ragtime", "wonder", "mystery", "chase", "triumph", "haunted", "starlight"],
   "finaleAudio": ["silent", "aurora", "faded-signal", "soft-rain", "sad", "angry", "happy", "excited", "thrilling", "scary", "piano", "jazz", "lullaby", "nocturne", "waltz", "blues", "bossa", "ragtime", "wonder", "mystery", "chase", "triumph", "haunted", "starlight"],
-  "colorTheme": ["classic", "amethyst", "prism", "ember", "cobalt", "jade"],
-  "finaleTheme": ["classic", "amethyst", "prism", "ember", "cobalt", "jade"],
+  "colorTheme": ["classic", "amethyst", "prism", "ember", "cobalt", "jade", "rose", "citrine", "silver"],
+  "finaleTheme": ["classic", "amethyst", "prism", "ember", "cobalt", "jade", "rose", "citrine", "silver"],
   "visualArc": ["single", "dual", "triple"]
 }

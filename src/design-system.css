@@ -997,6 +997,7 @@ small {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }
 
@@ -1063,12 +1064,14 @@ small {
    ───────────────────────────────────────────────────────────── */
 
 /* Reduced motion class override (set by app.js) */
+.reduced-motion,
 .reduced-motion *,
 .reduced-motion *::before,
 .reduced-motion *::after {
   animation-duration: 0.01ms !important;
   animation-iteration-count: 1 !important;
   transition-duration: 0.01ms !important;
+  scroll-behavior: auto !important;
 }
 
 /* Photosensitivity mode - disables all oscillation/brightness effects */
@@ -1561,4 +1564,21 @@ textarea:focus {
 
 .card.card-interactive:hover {
   border-color: var(--sy-line-strong);
+}
+
+/* Boot failure: the one screen shown when the app could not start. */
+#boot-recovery {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-sm);
+  padding: var(--space-sm);
+  text-align: center;
+  background: var(--sy-bg);
+  color: var(--sy-text);
+  font-family: var(--sy-font-sans);
 }

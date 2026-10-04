@@ -222,7 +222,7 @@ export class SceneStack {
   renderBar() {
     const dirty = this.api.dirty();
     return `<header class="scenes-bar">
-      <button type="button" class="scenes-icon" data-sa="back" aria-label="Back to the Portal">←</button>
+      ${this.api.embedded?.() ? '<span class="scenes-icon" aria-hidden="true"></span>' : '<button type="button" class="scenes-icon" data-sa="back" aria-label="Back to Home">←</button>'}
       <button type="button" class="scenes-title" data-sa="more" aria-haspopup="dialog">
         <span>${escapeHtml(this.api.title() || 'Untitled sequence')}</span>
         ${dirty ? '<i class="scenes-dirty" aria-label="Unsaved changes"></i>' : ''}

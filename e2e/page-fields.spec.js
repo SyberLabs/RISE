@@ -1,6 +1,5 @@
 import { test, expect, openHomeNav } from './fixtures.js';
 import { collectAcrossPages } from './page-helpers.js';
-const GATE = { code: 'rise2025', name: 'Fields', vault: null, timestamp: Date.now() };
 const SEED = {
   text: Array.from({ length: 60 }, (_, i) =>
     `Paragraph ${i}. The pendulum draws the chord it hears, and the room answers in kind, slowly and without hurry at all.`).join('\n\n'),
@@ -20,10 +19,9 @@ const prefs = (visualMode, extra = {}) => ({
 async function openPage(page, mode) {
   await page.setViewportSize({ width: 1280, height: 900 });
   await page.addInitScript((g) => {
-    localStorage.setItem('rise-beta-session', JSON.stringify(g.gate));
     localStorage.setItem('rise_orbital_text_v1', JSON.stringify(g.seed));
     localStorage.setItem('rise_orbital_prefs_v1', JSON.stringify(g.prefs));
-  }, { gate: GATE, seed: SEED, prefs: prefs(mode) });
+  }, { seed: SEED, prefs: prefs(mode) });
   await page.goto('/');
   await expect(page.locator('.portal h1').first()).toBeVisible({ timeout: 15000 });
   await openHomeNav(page, 'chamber');
@@ -60,7 +58,7 @@ test('GENESIS samples itself at intervals, and pauses under the page', async ({ 
   // Paginated: figure counts belong to the reading, not to one page.
   const walked = await collectAcrossPages(page);
   const r = await page.evaluate(() => {
-    const ch = window.__RISE_TEST__.getView('chamber-session');
+    const ch = window.__RISE_TEST__.getView('read')?.paneInstance('chamber');
     const imgs = [...document.querySelectorAll('.page-figure.is-shown img')];
     return {
       distinct: new Set(imgs.map(i => i.src)).size,
@@ -86,7 +84,7 @@ test('ATTRACTOR samples itself, and its rAF is halted under the page', async ({ 
   await scrollThrough(page);
   const walked = await collectAcrossPages(page);
   const r = await page.evaluate(() => {
-    const ch = window.__RISE_TEST__.getView('chamber-session');
+    const ch = window.__RISE_TEST__.getView('read')?.paneInstance('chamber');
     const imgs = [...document.querySelectorAll('.page-figure.is-shown img')];
     return {
       distinct: new Set(imgs.map(i => i.src)).size,

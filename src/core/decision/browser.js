@@ -7,7 +7,7 @@ import { readPublicCatalog } from './catalog.js';
 import { DecisionError } from './call.js';
 import { createRecommender } from './recommend.js';
 
-export const CATALOG_PATH = '/api/decision-catalog';
+export const CATALOG_PATH = '/content/catalog.json';
 const CATALOG_TTL_MS = 60_000;
 let catalogCache = null;
 

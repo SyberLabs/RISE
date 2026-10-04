@@ -7,7 +7,6 @@ import { test, expect, openHomeNav } from './fixtures.js';
  * so a chunk that failed on every load reloaded the page forever.
  * The Library's chunk stands in for any lazily loaded view.
  */
-const GATE = { code: 'rise2025', name: 'Chunk Harness', vault: null, timestamp: Date.now() };
 const LIBRARY_CHUNK = /\/assets\/Library-[^/]+\.js$/u;
 const view = page => page.evaluate(() => window.__RISE_TEST__.getRouterState().currentView);
 
@@ -17,7 +16,6 @@ async function openLibrary(page) {
 }
 
 test('a chunk that always fails reloads the page once, not forever', async ({ page }) => {
-  await page.addInitScript(gate => localStorage.setItem('rise-beta-session', JSON.stringify(gate)), GATE);
   await page.route(LIBRARY_CHUNK, route => route.fulfill({ status: 404, body: '' }));
   let loads = 0;
   page.on('load', () => { loads += 1; });
@@ -34,7 +32,6 @@ test('a chunk that always fails reloads the page once, not forever', async ({ pa
 });
 
 test('a chunk missing once, as after a deploy, reloads once, and the view then opens', async ({ page }) => {
-  await page.addInitScript(gate => localStorage.setItem('rise-beta-session', JSON.stringify(gate)), GATE);
   let misses = 0;
   await page.route(LIBRARY_CHUNK, (route) => {
     if (misses++ === 0) return route.fulfill({ status: 404, body: '' });
@@ -45,12 +42,10 @@ test('a chunk missing once, as after a deploy, reloads once, and the view then o
 
   await openLibrary(page);
 
-  // One reload fetches the new build. Known gap (main has it too): the
-  // vite:preloadError reload does not record where the reader was going, so
-  // they land Home and open the view again from there.
+  // One reload fetches the new build. The move wrote the Library's address
+  // as it began (route-url.js), so the reload opens the Library itself.
   await expect.poll(() => loads, { timeout: 15_000 }).toBe(2);
-  await expect(page.locator('.portal [data-home="enter"]')).toBeVisible({ timeout: 15_000 });
-  await openHomeNav(page, 'library');
   await expect.poll(() => view(page), { timeout: 15_000 }).toBe('library');
+  await expect(page).toHaveURL(/\/library$/u);
   expect(loads).toBe(2);
 });

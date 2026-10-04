@@ -53,8 +53,8 @@ describe('what to do about a tab that has come back', () => {
 
 describe('whether the page is still a page', () => {
     const routerWith = container => ({
-        currentView: 'portal',
-        views: new Map([['portal', { container }]])
+        currentView: 'home',
+        views: new Map([['home', { container }]])
     });
 
     it('is false when no frame arrives', async () => {

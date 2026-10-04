@@ -15,12 +15,6 @@ import { resolve } from 'node:path';
 import { test, expect, openHomeNav } from './fixtures.js';
 import { FLASHING_ENABLED } from '../src/core/visual-presence.js';
 
-const GATE_SESSION = {
-    code: 'rise2025',
-    name: 'Smoke Harness',
-    vault: null,
-    timestamp: Date.now()
-};
 
 const SEED_TEXT = {
     text: 'The pendulum draws the chord it hears. '.repeat(40).trim(),
@@ -28,13 +22,12 @@ const SEED_TEXT = {
     origin: null
 };
 
-/** Seed the gate (and optionally text/prefs) before the app boots. */
+/** Seed optional text and prefs before the app boots. */
 async function boot(page, { text = true, prefs = null } = {}) {
-    await page.addInitScript(({ gate, seedText, seedPrefs }) => {
-        localStorage.setItem('rise-beta-session', JSON.stringify(gate));
+    await page.addInitScript(({ seedText, seedPrefs }) => {
         if (seedText) localStorage.setItem('rise_orbital_text_v1', JSON.stringify(seedText));
         if (seedPrefs) localStorage.setItem('rise_orbital_prefs_v1', JSON.stringify(seedPrefs));
-    }, { gate: GATE_SESSION, seedText: text ? SEED_TEXT : null, seedPrefs: prefs });
+    }, { seedText: text ? SEED_TEXT : null, seedPrefs: prefs });
     await page.goto('/');
     await expect(page.locator('.portal .home-title').first()).toBeVisible({ timeout: 15_000 });
 }
@@ -107,8 +100,7 @@ test('1b · a saved colourway is on <html> before the app runs, under the live s
     page.on('console', message => {
         if (/Content Security Policy/iu.test(message.text())) refused.push(message.text());
     });
-    await page.addInitScript(gate => {
-        localStorage.setItem('rise-beta-session', JSON.stringify(gate));
+    await page.addInitScript(() => {
         localStorage.setItem('rise-settings', JSON.stringify({ chamberAccent: 'cobalt', chamberAccentNamed: true }));
         // Where parsing was when the accent first landed. No <body> yet means
         // it came from <head>, before any module (the app) could run.
@@ -116,7 +108,7 @@ test('1b · a saved colourway is on <html> before the app runs, under the live s
             window.__accentFirstSet = { accent: document.documentElement.dataset.accent, inHead: !document.body };
             observer.disconnect();
         }).observe(document, { subtree: true, attributes: true, attributeFilter: ['data-accent'] });
-    }, GATE_SESSION);
+    });
     await page.goto('/');
     await expect(page.locator('.portal .home-title').first()).toBeVisible({ timeout: 15_000 });
     expect(await page.evaluate(() => window.__accentFirstSet)).toEqual({ accent: 'cobalt', inHead: true });
@@ -170,9 +162,9 @@ test('6 · text and settings survive a refresh', async ({ page }) => {
     await enterChamber(page);
     await expect(page.locator('.chamber-orbital')).toContainText('Smoke Seed');
 
+    // The address is the Chamber setup's (/read), so a reload stays there.
     await page.reload();
-    await expect(page.locator('.portal .home-title').first()).toBeVisible({ timeout: 15_000 });
-    await enterChamber(page);
+    await expect(page.locator('#begin-btn')).toBeEnabled({ timeout: 15_000 });
 
     await expect(page.locator('.chamber-orbital')).toContainText('Smoke Seed');
     const restored = await page.evaluate(() =>

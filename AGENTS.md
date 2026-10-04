@@ -82,7 +82,7 @@ unusual decisions live in `docs/PROJECT-KNOWLEDGE.md`.
 
 RISE is a vanilla-JS single-page app built with Vite. Reading and
 browser-local work stay client-side. Its production Cloudflare Worker serves
-the app and a public decision catalog (Neon PostgreSQL through Upstash Redis).
+the app and a static public catalog built from `src/content/decision-catalog.json`.
 RISE spends no shared inference: reader recommendations use the reader's own
 OpenRouter account or pinned Kev on the reader's computer. Former shared model
 routes return 410. Optional live Realtime and MCP integrations use the reader's
@@ -167,12 +167,12 @@ own key or the host's model and remain switched off by default. See
 - `npm run dev` serves on `http://localhost:5173/`. The Vite dev server also
   mounts dev-only middleware (Curia `POST /__curia/apply`, Export-MP4) that
   does not exist in the production build.
-- Quickest path through the core reading experience: Portal hub → **Try RISE**
-  → pick a canonical reading (e.g. Meditations) → **Begin**. Text then streams
-  over time with generative visuals; the **Page** control switches to a
-  paginated text view.
+- Quickest path through the core reading experience: Home → **Library** →
+  **Keystones** (or open `/try-rise`) → pick a canonical reading (e.g.
+  Meditations) → **Enter reading**. Text then streams over time with
+  generative visuals; the **Page** control switches to a paginated text view.
 - The app persists state in the browser (localStorage and IndexedDB), so a
-  reload may land directly on the Portal hub and skip the first-run intro.
+  reload may land directly on Home and skip the first-run intro.
 
 ## Cloud agent images
 

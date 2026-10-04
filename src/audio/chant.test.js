@@ -132,13 +132,13 @@ describe('Engine + policy seams', () => {
   it('the Chapel launches in its own voice; the orbital offers both families', () => {
     const handoff = readFileSync(resolve('src/content/chapel/handoff.js'), 'utf8');
     expect(handoff).toContain("soundscape: 'chant-gregorian'");
-    const orbital = readFileSync(resolve('src/components/ChamberOrbital.js'), 'utf8');
+    const orbital = readFileSync(resolve('src/components/read/ChamberOrbital.js'), 'utf8');
     expect(orbital).toContain('data-soundscape="chant-gregorian"');
     expect(orbital).toContain('data-soundscape="chant-znamenny"');
   });
 
   it('chant is Chapel-exclusive: hidden outside chapel launches, sanitized from stale prefs', () => {
-    const orbital = readFileSync(resolve('src/components/ChamberOrbital.js'), 'utf8');
+    const orbital = readFileSync(resolve('src/components/read/ChamberOrbital.js'), 'utf8');
     // the chips carry the chapel gate…
     expect(orbital).toMatch(/chant-only[^>]*\$\{this\.isChapelSession\(\) \? '' : 'hidden'\}/s);
     // …loadText re-evaluates it once provenance is known…
@@ -147,7 +147,7 @@ describe('Engine + policy seams', () => {
     expect(orbital).toContain('_sanitizeChapelExclusives');
     expect(orbital).toMatch(/startsWith\('chant-'\)\)\s*\{\s*this\.config\.soundscape = 'none'/s);
     // [hidden] must actually hide (the option's display:flex would win otherwise)
-    const css = readFileSync(resolve('src/components/ChamberOrbital.css'), 'utf8');
+    const css = readFileSync(resolve('src/components/read/ChamberOrbital.css'), 'utf8');
     expect(css).toMatch(/\.audio-preset-option\[hidden\]\s*\{[^}]*display:\s*none/);
   });
 

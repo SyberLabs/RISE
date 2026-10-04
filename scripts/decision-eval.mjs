@@ -18,7 +18,7 @@ import { createHash } from 'node:crypto';
 import { readFile, writeFile } from 'node:fs/promises';
 import { pathToFileURL } from 'node:url';
 import { scoreDecisions } from './jev-eval.mjs';
-import { seedCatalog } from '../local/catalog.mjs';
+import { committedCatalog } from '../local/catalog.mjs';
 import { buildRecommendRequest, validDecision } from '../src/core/decision/recommend.js';
 import { callDecision, DecisionError } from '../src/core/decision/call.js';
 import { JEV, KEV } from '../src/core/decision/providers.js';
@@ -170,7 +170,7 @@ async function capture(args) {
   }
   const { cases, options, casesHash, optionsHash } = await fixtures(argument(args, '--cases'), argument(args, '--options'));
   if (cases.length > MAX_BATCH) fail(`At most ${MAX_BATCH} cases per capture.`);
-  const catalog = seedCatalog();
+  const catalog = await committedCatalog();
   const connection = connectionFor(mode, { origin: argument(args, '--origin') });
   const rows = [];
   let identity = null;

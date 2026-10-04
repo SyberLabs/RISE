@@ -1,6 +1,5 @@
 import { test, expect, openHomeNav } from './fixtures.js';
 
-const GATE = { code: 'rise2025', name: 'Recitation', vault: null, timestamp: Date.now() };
 
 // Emphasis is authored in the text, exactly as `|` phrase marks are.
 const SEED = {
@@ -66,7 +65,6 @@ async function enterChamber(page, recitation, seed = SEED) {
   await page.setViewportSize({ width: 1280, height: 900 });
   if (recitation) await installVoiceWorkerStub(page);
   await page.addInitScript((g) => {
-    localStorage.setItem('rise-beta-session', JSON.stringify(g.gate));
     localStorage.setItem('rise_orbital_text_v1', JSON.stringify({
       ...g.seed,
       recitation: { enabled: g.recitation }
@@ -74,7 +72,7 @@ async function enterChamber(page, recitation, seed = SEED) {
     localStorage.setItem('rise_orbital_prefs_v1', JSON.stringify({
       wpm: 150, chunkMode: 'phrase'
     }));
-  }, { gate: GATE, seed, recitation });
+  }, { seed, recitation });
   await page.goto('/');
   await openHomeNav(page, 'chamber');
   await expect(page.locator('#begin-btn')).toBeEnabled({ timeout: 20000 });
@@ -96,7 +94,7 @@ test('emphasis is coloured, and marks never reach the reader', async ({ page }) 
       text: d.textContent,
       words: [...d.querySelectorAll('.atom-word')].map(w => w.textContent),
       emphasised: [...d.querySelectorAll('.atom-word.is-emphasised')].map(w => w.textContent),
-      recitation: window.__RISE_TEST__?.getView('chamber-session')?.recitationEnabled
+      recitation: window.__RISE_TEST__?.getView('read')?.paneInstance('chamber')?.recitationEnabled
     };
   });
   console.log('EMPHASIS ' + JSON.stringify(r));
@@ -113,7 +111,7 @@ test('an ordinary reading pays nothing — no spans, no timers', async ({ page }
 
   const r = await page.evaluate(() => {
     const d = document.querySelector('#atom-display');
-    const ch = window.__RISE_TEST__?.getView('chamber-session');
+    const ch = window.__RISE_TEST__?.getView('read')?.paneInstance('chamber');
     return {
       spans: d.querySelectorAll('.atom-word').length,
       text: d.textContent,
@@ -140,7 +138,7 @@ test('the voice never blocks the reading, and never ships unasked', async ({ pag
   await page.waitForTimeout(3000);
 
   const r = await page.evaluate(() => {
-    const ch = window.__RISE_TEST__?.getView('chamber-session');
+    const ch = window.__RISE_TEST__?.getView('read')?.paneInstance('chamber');
     return { voice: !!ch?.voice, recitation: ch?.recitationEnabled };
   });
   console.log('NO_VOICE ' + JSON.stringify(r) + ' model requests: ' + fetched.length);
@@ -157,7 +155,7 @@ test('an uncovered reading is read silently rather than stalled', async ({ page 
 
   // Atom index (empty display is a valid pause atom).
   const at = () => page.evaluate(() =>
-    window.__RISE_TEST__?.getView('chamber-session')?.player?.sessionState?.currentIndex ?? -1);
+    window.__RISE_TEST__?.getView('read')?.paneInstance('chamber')?.player?.sessionState?.currentIndex ?? -1);
   const before = await at();
 
   // Poll rAF-driven progress; wall-clock sleep is the wrong clock when frames throttle.
@@ -169,7 +167,7 @@ test('an uncovered reading is read silently rather than stalled', async ({ page 
   const after = await at();
 
   const r = await page.evaluate(() => {
-    const ch = window.__RISE_TEST__?.getView('chamber-session');
+    const ch = window.__RISE_TEST__?.getView('read')?.paneInstance('chamber');
     return {
       hasVoice: !!ch?.voice,
       failed: ch?.voice?._failed,
@@ -191,9 +189,8 @@ test('an uncovered reading is read silently rather than stalled', async ({ page 
 test('the control turns recitation on, and the choice survives a return', async ({ page }) => {
   await installVoiceWorkerStub(page);
   await page.addInitScript((g) => {
-    localStorage.setItem('rise-beta-session', JSON.stringify(g.gate));
     localStorage.setItem('rise_orbital_text_v1', JSON.stringify(g.seed));
-  }, { gate: GATE, seed: SEED });
+  }, { seed: SEED });
   await page.goto('/');
   await openHomeNav(page, 'chamber');
   { const adjust = page.locator('[data-action="toggle-adjust"]'); if (await adjust.getAttribute('aria-expanded') === 'false') await adjust.click(); }
@@ -205,7 +202,7 @@ test('the control turns recitation on, and the choice survives a return', async 
   await page.locator('[data-recitation="on"]').click();
 
   const after = await page.evaluate(() => {
-    const o = window.__RISE_TEST__?.getView('chamber');
+    const o = window.__RISE_TEST__?.getView('read')?.paneInstance('setup');
     return {
       config: o?.config?.recitation,
       noteShown: !document.querySelector('[data-recitation-note]')?.hidden,
@@ -281,7 +278,7 @@ test('the voice makes no request storm around preparation and playback', async (
   await page.waitForTimeout(9000);
 
   const state = await page.evaluate(() => {
-    const ch = window.__RISE_TEST__?.getView('chamber-session');
+    const ch = window.__RISE_TEST__?.getView('read')?.paneInstance('chamber');
     const v = ch?.voice;
     return {
       hasVoice: !!v,

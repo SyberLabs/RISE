@@ -123,11 +123,17 @@
     Cache-Control = "public, max-age=31536000, immutable"
     Content-Type = "application/json"
 
-# The manifest is the one mutable pointer in the data plane, so it is the one
-# thing that must be revalidated — the same reasoning as index.html naming the
+# The manifest and the catalog are the two mutable files in the data plane, so
+# they are the two things that must be revalidated — the same reasoning as index.html naming the
 # hashed chunks.
 [[headers]]
   for = "/content/manifest.json"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"
+    Content-Type = "application/json"
+
+[[headers]]
+  for = "/content/catalog.json"
   [headers.values]
     Cache-Control = "public, max-age=0, must-revalidate"
     Content-Type = "application/json"

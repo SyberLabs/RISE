@@ -18,7 +18,7 @@ export function takeOpenRouterReturn(location = globalThis.location, history = g
   return captured;
 }
 
-/** Hand what was found on page load to the Portal, once. */
+/** Hand what was found on page load to Home, once. */
 export function claimOpenRouterReturn() {
   const found = captured;
   captured = null;

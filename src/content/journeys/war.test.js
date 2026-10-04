@@ -20,7 +20,7 @@ import { readJourneySegments } from '../journeys/journey-segments.js';
  * these passages were written against. Every quotation anchor into them
  * refuses, which is the anchoring working. The score stays in the tree with
  * its tests so re-authoring it later starts from what it was, and nothing here
- * reaches a reader or the Scriptorium (src/components/Journeys.js).
+ * reaches a reader or the Scriptorium (src/components/library/Journeys.js).
  */
 describe.skip('the manifest states an argument, not a topic', () => {
     it('names a thesis, a transformation, and a terminal condition', () => {

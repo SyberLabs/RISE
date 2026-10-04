@@ -2,25 +2,11 @@ import { describe, expect, it, vi } from 'vitest';
 import { createRouteManifest } from './route-manifest.js';
 
 const ROUTE_IDS = [
-  'portal',
-  'keystones',
-  'mint',
-  'vault',
-  'chamber',
-  'chamber-session',
+  'home',
+  'read',
   'library',
-  'journeys',
-  'workshop',
-  'settings',
-  'rosarium',
-  'curia',
-  'scriptorium',
-  'via',
-  'emotions',
-  'visual-lab',
-  'visual-catalog',
-  'live',
-  'chapel'
+  'make',
+  'settings'
 ];
 
 describe('createRouteManifest', () => {
@@ -54,49 +40,124 @@ describe('createRouteManifest', () => {
         constructor(_container, options) {
           received = options;
         }
+
+        update() {}
       }
       routes.find(route => route.id === id).create({}, null, { [exportName]: Room });
       return received;
     };
 
     for (const [id, exportName] of [
-      ['portal', 'Portal'],
-      ['vault', 'Vault'],
-      ['chamber', 'ChamberOrbital'],
-      ['library', 'Library'],
-      ['journeys', 'Journeys'],
-      ['rosarium', 'Rosarium'],
-      ['via', 'Via'],
-      ['chapel', 'Chapel']
+      ['home', 'Home'],
+      ['library', 'Library']
     ]) {
       expect(roomOptions(id, exportName).getAudioEngine, `${id} audio boundary`).toBe(getAudioEngine);
     }
-    expect(roomOptions('portal', 'Portal').getCurrentSession).toBe(getCurrentSession);
+    expect(roomOptions('read', 'Read').setup.getAudioEngine, 'reader setup audio boundary').toBe(getAudioEngine);
+    const panes = roomOptions('library', 'Library').paneCapabilities;
+    for (const pane of ['chapel', 'rosary', 'stations', 'journeys']) {
+      expect(panes[pane].getAudioEngine, `${pane} audio boundary`).toBe(getAudioEngine);
+    }
+    const tabs = roomOptions('make', 'Make').tabCapabilities;
+    expect(tabs.vault.getAudioEngine, 'vault audio boundary').toBe(getAudioEngine);
+    expect(tabs.workshop.audioEngineProvider, 'workshop audio boundary').toBe(getAudioEngine);
+    expect(roomOptions('home', 'Home').getCurrentSession).toBe(getCurrentSession);
     expect(roomOptions('settings', 'Settings').notify).toBe(notify);
+  });
+
+  it('hands each Library pane what its own room was given', async () => {
+    const operations = {
+      handleNavigate: vi.fn(),
+      handleBeginSession: vi.fn(),
+      launchKeystone: vi.fn(),
+      openMintedProgram: vi.fn(),
+      router: { updateAddress: vi.fn() }
+    };
+    let received;
+    const shown = [];
+    class Library {
+      constructor(_container, options) { received = options; }
+      update(data) { shown.push(data); }
+    }
+    await createRouteManifest(operations).find(route => route.id === 'library')
+      .create({}, { pane: 'mint' }, { Library });
+    const panes = received.paneCapabilities;
+    // Today's poem is not a pane: Home begins it through the app's launchToday.
+    expect(Object.keys(panes).sort()).toEqual(
+      ['chapel', 'journeys', 'keystones', 'mint', 'provenance', 'rosary', 'stations']
+    );
+    expect(panes.keystones.onLaunch).toBe(operations.launchKeystone);
+    expect(panes.mint.onOpen).toBe(operations.openMintedProgram);
+    expect(shown).toEqual([{ pane: 'mint' }]);
+    // A Chapel chapter's address stays a Chapel address.
+    panes.chapel.onAddressChange({ bookId: 'john', chapter: 3 });
+    expect(operations.router.updateAddress).toHaveBeenCalledWith({ bookId: 'john', chapter: 3, pane: 'chapel' });
   });
 
   it('lets Home begin today\'s poem', () => {
     const launchToday = vi.fn();
     let received;
-    class Portal {
+    class Home {
       constructor(_container, options) {
         received = options;
       }
     }
     createRouteManifest({ launchToday })
-      .find(route => route.id === 'portal')
-      .create({}, null, { Portal });
+      .find(route => route.id === 'home')
+      .create({}, null, { Home });
     expect(received.onLaunchToday).toBe(launchToday);
   });
 
-  it('creates the catalog with the navigation callback and address search', () => {
-    const handleNavigate = vi.fn();
-    const route = createRouteManifest({ handleNavigate }).find(item => item.id === 'visual-catalog');
+  it('hands each Make tab what its own room was given, and opens the addressed tab', async () => {
+    const operations = {
+      handleNavigate: vi.fn(),
+      handleCreateSession: vi.fn(),
+      handleSequenceSelection: vi.fn(),
+      handleSettingsTransaction: vi.fn(),
+      useRecipeInReading: vi.fn(),
+      refreshVaultBlueprints: vi.fn(),
+      getSettings: vi.fn()
+    };
     let received;
-    class VisualCatalog { constructor(_container, options) { received = options; } }
-    route.create({}, { search: '?q=light' }, { VisualCatalog });
-    received.onNavigate('portal');
-    expect(handleNavigate).toHaveBeenCalledWith('portal');
-    expect(received.search).toBe('?q=light');
+    const shown = [];
+    class Make {
+      constructor(_container, options) { received = options; }
+      update(data) { shown.push(data); }
+    }
+    await createRouteManifest(operations).find(route => route.id === 'make')
+      .create({}, { pane: 'visual-catalog', search: '?q=light' }, { Make });
+    const tabs = received.tabCapabilities;
+    expect(Object.keys(tabs)).toEqual(['workshop', 'vault', 'scriptorium', 'visual-lab', 'visual-catalog']);
+    expect(tabs.workshop.onBlueprintsChanged).toBe(operations.refreshVaultBlueprints);
+    expect(tabs.vault.onSelectBlueprint).toBe(operations.handleCreateSession);
+    expect(tabs.scriptorium.onSettingsTransaction).toBe(operations.handleSettingsTransaction);
+    expect(tabs['visual-lab'].mode).toBe('route');
+    tabs['visual-lab'].onEditInWorkshop();
+    expect(operations.handleNavigate).toHaveBeenCalledWith('workshop');
+    tabs['visual-catalog'].onNavigate('home');
+    expect(operations.handleNavigate).toHaveBeenCalledWith('home');
+    expect(shown).toEqual([{ pane: 'visual-catalog', search: '?q=light' }]);
+  });
+
+  it('hands Read its three panes, and the chamber the factory that builds the Player', async () => {
+    const operations = {
+      handleNavigate: vi.fn(),
+      handleBeginSession: vi.fn(),
+      chamberSession: { name: 'chamber session operations' },
+      router: { name: 'router' }
+    };
+    let received;
+    const shown = [];
+    class Read {
+      constructor(_container, options) { received = options; }
+      update(data) { shown.push(data); }
+    }
+    await createRouteManifest(operations).find(route => route.id === 'read')
+      .create({}, { pane: 'live' }, { Read });
+    expect(received.setup.onBeginSession).toBe(operations.handleBeginSession);
+    expect(received.chamber).toBe(operations.chamberSession);
+    expect(received.live.router).toBe(operations.router);
+    expect(await received.load.chamber()).toHaveProperty('createChamberSession');
+    expect(shown).toEqual([{ pane: 'live' }]);
   });
 });

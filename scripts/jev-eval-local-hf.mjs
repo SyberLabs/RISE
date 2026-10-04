@@ -69,17 +69,24 @@ const descriptions = {
     prism: 'Neon magenta prismatic color theme.',
     ember: 'Fiery orange and dark red color theme.',
     cobalt: 'Electric blue color theme.',
-    jade: 'Luminous green jade color theme.'
+    jade: 'Luminous green jade color theme.',
+    rose: 'Hot pink and deep wine color theme.',
+    citrine: 'Lemon yellow and dark olive color theme.',
+    silver: 'Cool silver and graphite grey color theme.'
   },
   textColor: {
     classic: 'Warm ivory text color.', amethyst: 'Lilac text color.',
     prism: 'Bright rose pink text color.', ember: 'Warm gold text color.',
-    cobalt: 'Cool cyan text color.', jade: 'Fresh mint green text color.'
+    cobalt: 'Cool cyan text color.', jade: 'Fresh mint green text color.',
+    rose: 'Soft blush pink text color.', citrine: 'Bright lemon yellow text color.',
+    silver: 'Cool silver grey text color.'
   },
   backgroundColor: {
     classic: 'Near-black background color.', amethyst: 'Deep violet background color.',
     prism: 'Dark prismatic purple background color.', ember: 'Dark red-brown background color.',
-    cobalt: 'Deep navy blue background color.', jade: 'Dark forest green background color.'
+    cobalt: 'Deep navy blue background color.', jade: 'Dark forest green background color.',
+    rose: 'Dark wine background color.', citrine: 'Dark olive background color.',
+    silver: 'Neutral graphite background color.'
   }
 };
 

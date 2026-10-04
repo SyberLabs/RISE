@@ -65,13 +65,13 @@ describe('the system design document describes this tree', () => {
         'NamingModal.js',        // shared naming prompt
         'SourceBrowser.js',      // source picker, embedded in Workshop
         'VisualNavigator.js',    // visual and text controls, embedded in ChamberOrbital
-        'jev-dictation.js',      // voice input shared by Portal and Library
+        'jev-dictation.js',      // voice input shared by Home and Library
         'room-chrome.js',        // SyberLabs header, icons and Alert shared by the quieter rooms
-        'atlas.js',              // SyberLabs atmosphere and sigil, shared by Portal and BetaGate
+        'room-panes.js',         // the pane host shared by Library and Make
+        'atlas.js',              // SyberLabs atmosphere and sigil, shared by Home
         'reading-backdrop.js',   // a reading's engine behind Home
         'reading-stream.js',     // the silent reading under way that Home opens on
-        'home-ask.js',           // Home's Ask for a reading dialog
-        'chamber-undercurrent.js' // the panel a dive opens, inside the Chamber
+        'home-ask.js'            // Home's Ask for a reading dialog
     ]);
 
     const roomsOnDisk = () => readdirSync(join(ROOT, 'src/components'))
@@ -147,9 +147,22 @@ describe('the system design document describes this tree', () => {
         // sentence that argues from its smallness has to be re-argued.
         expect(production.length,
             'production dependencies changed — ARCHITECTURE.md 8.10 argues from this number')
-            .toBe(6);
-        expect(text, `${DOC} 8.10 should say "six production dependencies"`)
-            .toMatch(/six production dependencies/u);
+            .toBe(4);
+        expect(text, `${DOC} 8.10 should say "four production dependencies"`)
+            .toMatch(/four production dependencies/u);
+    });
+
+    it('states three constraints, and the four old policies live in §7', () => {
+        const section = text.split(/^## 2\. /mu)[1].split(/^## 3\. /mu)[0];
+        const items = section.match(/^\d+\. \*\*/gmu) || [];
+        expect(items.length, '§2 must list exactly three constraints').toBe(3);
+        expect(section).toMatch(/\*\*No shared inference\.\*\*/u);
+        expect(section).toMatch(/\*\*A browser, no account\.\*\*/u);
+        expect(section).toMatch(/\*\*Content is static and content-addressed\.\*\*/u);
+        const contracts = text.split(/^## 7\. /mu)[1].split(/^## 8\. /mu)[0];
+        for (const policy of ['Reverent degradation', 'Provenance travels with the work', 'Structure is read, never inferred']) {
+            expect(contracts, `${policy} belongs in §7`).toContain(policy);
+        }
     });
 });
 

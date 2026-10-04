@@ -19,7 +19,7 @@ import { boundarySourceId } from '../../core/journey-compiler.js';
  * these passages were written against. Every quotation anchor into them
  * refuses, which is the anchoring working. The score stays in the tree with
  * its tests so re-authoring it later starts from what it was, and nothing here
- * reaches a reader or the Scriptorium (src/components/Journeys.js).
+ * reaches a reader or the Scriptorium (src/components/library/Journeys.js).
  */
 describe.skip('War assembles for launch', () => {
     it('resolves every passage and hands over one payload', async () => {

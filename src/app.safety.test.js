@@ -78,6 +78,26 @@ describe('App safety orchestration', () => {
     expect(app.settings.showArtworkLabels).toBe(true);
   });
 
+  it('follows the system reduced-motion setting when the reader changes it mid-session', () => {
+    let changed = null;
+    const media = { matches: false, addEventListener: vi.fn((type, fn) => { if (type === 'change') changed = fn; }) };
+    Object.defineProperty(window, 'matchMedia', { configurable: true, value: vi.fn(() => media) });
+    const app = new App();
+    app.settings = { photosensitivityMode: false, reducedMotion: false, fontSize: 'medium', showProgress: true, showDuration: true };
+    const root = document.documentElement;
+
+    app.applyAccessibilitySettings();
+    expect(root.classList.contains('reduced-motion')).toBe(false);
+    media.matches = true;
+    changed?.();
+    expect(root.classList.contains('reduced-motion')).toBe(true);
+    media.matches = false;
+    changed?.();
+    expect(root.classList.contains('reduced-motion')).toBe(false);
+    app.applyAccessibilitySettings();
+    expect(media.addEventListener).toHaveBeenCalledTimes(1);
+  });
+
   it('defaults artwork labels on, restores an explicit opt-out, and propagates it live', async () => {
     const app = new App();
     app.loadSettings();
@@ -232,9 +252,10 @@ describe('App safety orchestration', () => {
     const router = new Router();
     router.transitionDuration = 0;
     const update = vi.fn();
-    router.registerView('chamber-session', {
+    const closePane = vi.fn();
+    router.registerView('read', {
       container: chamber,
-      init: (_container, data) => ({ initialData: data, update })
+      init: (_container, data) => ({ initialData: data, update, closePane })
     });
     let release;
     const held = new Promise(resolve => { release = resolve; });
@@ -253,8 +274,9 @@ describe('App safety orchestration', () => {
 
     expect(await launchA).toBe(false);
     expect(await launchB).toBe(true);
-    expect(router.getViewInstance('chamber-session').initialData).toBe(app.currentSession);
-    expect(update).not.toHaveBeenCalled(); // The superseded instance was disposed.
+    // The superseded reading was closed, and the room shows the newer one.
+    expect(closePane).toHaveBeenCalledWith('chamber');
+    expect(update).toHaveBeenLastCalledWith({ session: app.currentSession, pane: 'chamber' });
     expect(app.currentSession.sources[0].id).toBe('B');
     router.destroy();
     chamber.remove();
@@ -323,9 +345,9 @@ describe('App safety orchestration', () => {
     const applyChamberStreamFace = vi.fn();
     const applyChamberMask = vi.fn();
     app.router = {
-      getViewInstance: (name) => name === 'chamber-session'
-        ? { applyChamberStreamFace, applyChamberMask }
-        : null
+      getViewInstance: (name) => (name === 'read'
+        ? { paneInstance: pane => (pane === 'chamber' ? { applyChamberStreamFace, applyChamberMask } : null) }
+        : null)
     };
 
     app.handleSettingsChange('chamberFace', 'jp');
@@ -351,7 +373,7 @@ describe('App safety orchestration', () => {
     const applyChamberMask = vi.fn();
     const applyChamberTypeSize = vi.fn();
     app.router = {
-      getViewInstance: () => ({ applyChamberStreamFace, applyChamberMask, applyChamberTypeSize })
+      getViewInstance: () => ({ paneInstance: () => ({ applyChamberStreamFace, applyChamberMask, applyChamberTypeSize }) })
     };
 
     app.handleSettingsTransaction({
@@ -406,9 +428,9 @@ describe('App safety orchestration', () => {
     const applyChamberMask = vi.fn();
     const applyChamberTypeSize = vi.fn();
     app.router = {
-      getViewInstance: (name) => name === 'chamber-session'
-        ? { applyChamberStreamFace, applyChamberMask, applyChamberTypeSize }
-        : null
+      getViewInstance: (name) => (name === 'read'
+        ? { paneInstance: pane => (pane === 'chamber' ? { applyChamberStreamFace, applyChamberMask, applyChamberTypeSize } : null) }
+        : null)
     };
 
     app.handleSettingsChange('fontSize', 'large');
@@ -517,3 +539,9 @@ describe('application boundary guards', () => {
   });
 });
 
+describe('first screen', () => {
+  it('boots with no invitation gate', () => {
+    const source = readFileSync(join(process.cwd(), 'src', 'app.js'), 'utf8');
+    expect(source).not.toMatch(/BetaGate/u);
+  });
+});

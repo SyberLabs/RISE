@@ -4,7 +4,7 @@
  *
  * Design principles (from UX spec):
  * - Transitions use crossfade (opacity), not slide
- * - Escape key returns to Portal from any view
+ * - Escape key returns to Home from any view
  * - View stack enables contextual back navigation
  */
 
@@ -16,13 +16,16 @@
  * 404s. It is NOT transient — every retry fails identically — so a tab
  * left open across a release becomes permanently unable to reach any
  * view it has not already loaded. A reader in the Vault could not get
- * back to the Portal at all.
+ * back to Home at all.
  */
 function isStaleChunkError(error) {
     const message = String(error?.message || error || '');
     return /dynamically imported module|Importing a module script failed|error loading dynamically imported module/i
         .test(message);
 }
+
+import { ROUTE_ALIASES, ROUTE_PANES, addressIsOwnTo, pathForRoute } from './route-url.js';
+import { sameData } from './same-data.js';
 
 const STALE_BUILD_SENTINEL = 'rise_reloaded_for_stale_build';
 const STALE_BUILD_WINDOW_MS = 5 * 60_000;
@@ -70,6 +73,9 @@ export class Router {
         // Callbacks
         this.onNavigationIntent = options.onNavigationIntent || (() => {});
         this.onViewChange = options.onViewChange || (() => { });
+        this.history = options.history || globalThis.history;
+        this.location = options.location || globalThis.location;
+        this.currentData = undefined;
 
         this.handleKeydown = this.handleKeydown.bind(this);
         document.addEventListener('keydown', this.handleKeydown);
@@ -94,7 +100,18 @@ export class Router {
      * @param {string} viewName - Target view
      * @param {object} options - { data, replace, skipStack }
      */
-    async navigate(viewName, options = {}, queuedRevision) {
+    async navigate(requestedView, options = {}, queuedRevision) {
+        // Old ids stay valid forever: the table in route-url.js says where
+        // each one lives now.
+        // An old id that became a pane of a room carries the pane's name.
+        const viewName = ROUTE_ALIASES[requestedView] ?? requestedView;
+        if (viewName !== requestedView && ROUTE_PANES[requestedView]) {
+            // A reading's session is carried whole, never copied: the shell
+            // and the live hand-off know it by identity.
+            const data = requestedView === 'chamber-session' ? { session: options.data } : options.data;
+            options = { ...options, data: { ...data, pane: ROUTE_PANES[requestedView] } };
+        }
+        const launchesReading = viewName === 'read' && options.data?.pane === 'chamber';
         const revision = queuedRevision ?? ++this.navigationRevision;
         if (queuedRevision === undefined) this.onNavigationIntent(viewName, options);
         console.log(`[Router] Navigate to: ${viewName}, from: ${this.currentView}`);
@@ -109,7 +126,13 @@ export class Router {
         // A completed division may hand the same immersive surface a fresh
         // Session. Same-route navigation is normally a no-op; `force` is the
         // explicit remount contract for that bounded continuation case.
-        if (viewName === this.currentView && options.force !== true) return true;
+        // A room that hosts panes exposes showPane and takes new data through
+        // update; every other room ignores a move to itself. An in-place move
+        // has no fade, but a back-stack entry and an address like any other.
+        const inPlace = viewName === this.currentView && options.force !== true
+            && typeof this.views.get(viewName)?.instance?.showPane === 'function';
+        if (viewName === this.currentView && options.force !== true
+            && (!inPlace || sameData(options.data, this.currentData))) return true;
 
         const newView = this.views.get(viewName);
         if (!newView) {
@@ -120,60 +143,66 @@ export class Router {
         this.transitioning = true;
         const previousViewName = this.currentView;
         const previousView = previousViewName ? this.views.get(previousViewName) : null;
+        const previousData = this.currentData;
         let succeeded = false;
+        // The address states where the reader is going, so it is written as
+        // the move begins, not after a slow room (a reading) has initialised.
+        this.writeAddress(viewName, options);
         const assertCurrentLaunch = () => {
-            if (viewName === 'chamber-session' && revision !== this.navigationRevision) {
+            if (launchesReading && revision !== this.navigationRevision) {
                 throw new DOMException('Launch cancelled', 'AbortError');
             }
         };
 
         try {
-            previousView?.instance?.deactivate?.();
-            if (previousView?.container) {
-                await this.fadeOut(previousView.container);
-                previousView.container.hidden = true;
-            }
-
-            assertCurrentLaunch();
-
-            // Views sharing a container cannot coexist. Dispose the old owner
-            // only after it has been deactivated and visually removed.
-            for (const [viewKey, viewData] of this.views.entries()) {
-                if (viewKey !== viewName && viewData.container === newView.container && viewData.instance) {
-                    viewData.instance.destroy?.();
-                    viewData.instance = null;
-                }
-            }
-
-            if (!newView.instance) {
-                if (newView.init) {
-                    newView.instance = await newView.init(newView.container, options.data);
-                } else if (newView.component) {
-                    newView.instance = new newView.component(newView.container, options.data);
-                }
+            if (inPlace) {
+                await newView.instance.update(options.data);
             } else {
-                await newView.instance.update?.(options.data);
-            }
+                previousView?.instance?.deactivate?.();
+                if (previousView?.container) {
+                    await this.fadeOut(previousView.container);
+                    previousView.container.hidden = true;
+                }
 
-            assertCurrentLaunch();
-            newView.container.hidden = false;
-            await this.fadeIn(newView.container);
-            assertCurrentLaunch();
-            newView.instance?.activate?.();
+                assertCurrentLaunch();
+
+                // Views sharing a container cannot coexist. Dispose the old owner
+                // only after it has been deactivated and visually removed.
+                for (const [viewKey, viewData] of this.views.entries()) {
+                    if (viewKey !== viewName && viewData.container === newView.container && viewData.instance) {
+                        viewData.instance.destroy?.();
+                        viewData.instance = null;
+                    }
+                }
+
+                if (!newView.instance) {
+                    if (newView.init) {
+                        newView.instance = await newView.init(newView.container, options.data);
+                    } else if (newView.component) {
+                        newView.instance = new newView.component(newView.container, options.data);
+                    }
+                } else {
+                    await newView.instance.update?.(options.data);
+                }
+
+                assertCurrentLaunch();
+                newView.container.hidden = false;
+                await this.fadeIn(newView.container);
+                assertCurrentLaunch();
+                newView.instance?.activate?.();
+            }
 
             if (!options.replace && !options.skipStack && previousViewName
-                && previousViewName !== viewName) {
-                this.viewStack.push(previousViewName);
+                && (previousViewName !== viewName || inPlace)) {
+                this.viewStack.push({ viewName: previousViewName, data: this.currentData });
             }
             this.currentView = viewName;
+            this.currentData = options.data;
             this.onViewChange(viewName, options.data);
             succeeded = true;
         } catch (error) {
             if (error?.name !== 'AbortError') console.error(`[Router] Navigation to "${viewName}" failed:`, error);
-            if (viewName === 'chamber-session') {
-                newView.instance?.destroy?.();
-                newView.instance = null;
-            }
+            if (launchesReading) newView.instance?.closePane?.('chamber');
 
             // A missing chunk cannot be recovered from in this session:
             // the shell itself is out of date. Reload once to pick up
@@ -211,6 +240,10 @@ export class Router {
                 previousView.instance?.activate?.();
             }
             this.currentView = previousViewName;
+            // The move failed: the address goes back to where the reader is.
+            if (previousViewName) {
+                this.writeAddress(previousViewName, { data: previousData, replaceUrl: true });
+            }
         } finally {
             this.transitioning = false;
         }
@@ -218,33 +251,80 @@ export class Router {
         const pending = this._pendingNav;
         this._pendingNav = null;
         if (pending) {
-            const pendingSucceeded = pending.viewName === this.currentView
-                && pending.options.force !== true
-                ? true
-                : await this.navigate(pending.viewName, pending.options, pending.revision);
+            // A queued move to the room already showing is a no-op inside
+            // navigate(), unless it names another pane of that room.
+            const pendingSucceeded = await this.navigate(pending.viewName, pending.options, pending.revision);
             pending.resolve(pendingSucceeded === true);
         }
         return succeeded;
     }
 
     /**
-     * Go back to previous view
+     * Give the active view its address. Nothing is written when the id has
+     * none, or when the address bar already names this room, so a cold load
+     * on a public path and a Back that landed here leave history alone.
+     * `keepUrl` is for a navigation that follows the address bar (a cold load,
+     * Back): the bar is already the truth, and a slower navigation settling
+     * late must not write an older address over a newer one.
+     * `replaceUrl` overrides `replace` for the address alone, since `replace`
+     * also keeps the view out of the back stack.
+     */
+    writeAddress(id, options) {
+        if (options.keepUrl === true) return;
+        const here = this.location;
+        // A hash is a door the router does not own (`#rosary`); rewriting the
+        // path would drop it.
+        if (here?.hash) return;
+        const target = pathForRoute(id, options.data);
+        if (!target || !this.history || !here) return;
+        if (target === here.pathname + here.search) return;
+        if (addressIsOwnTo(id, here.pathname)) return;
+        // The state is for the next reader of history, not a copy of the
+        // room: data too large to be an address (a session) is left out.
+        // Browsers cap serialized history state (640 KB in Firefox, less
+        // elsewhere); 4000 characters stays far under any of them.
+        // A reading's session is never written, whatever its size.
+        let data = options.data?.session ? { pane: options.data.pane } : {};
+        try {
+            const text = options.data?.session ? '' : JSON.stringify(options.data ?? {});
+            if (text && text.length <= 4000) data = JSON.parse(text);
+        } catch { /* unserializable data stays out of history */ }
+        try {
+            this.history[(options.replaceUrl ?? options.replace) ? 'replaceState' : 'pushState']({ id, data }, '', target);
+        } catch (error) {
+            console.warn('[Router] Could not write the address:', error);
+        }
+    }
+
+    /**
+     * The active view's data changed in a way that is part of its address
+     * (a Chapel chapter): rewrite the address in place, adding no entry.
+     */
+    updateAddress(data) {
+        if (!this.currentView) return;
+        this.currentData = data;
+        this.writeAddress(this.currentView, { data, replaceUrl: true });
+    }
+
+    /**
+     * Go back to the previous view, with the data it had. The address is
+     * rewritten rather than pushed, and history.back() is not called: it
+     * would re-enter popstate and handle the same move twice.
      */
     async back() {
-        if (this.viewStack.length === 0) {
-            // If no stack, go to Portal
-            await this.navigate('portal', { skipStack: true });
+        const entry = this.viewStack.pop();
+        if (!entry) {
+            // If no stack, go Home
+            await this.navigate('home', { replace: true });
             return;
         }
-
-        const previousView = this.viewStack.pop();
-        await this.navigate(previousView, { skipStack: true });
+        await this.navigate(entry.viewName, { data: entry.data, replace: true });
     }
 
     /**
      * Clear stack and go to view
      */
-    async reset(viewName = 'portal') {
+    async reset(viewName = 'home') {
         this.viewStack = [];
         await this.navigate(viewName, { replace: true });
     }
@@ -278,7 +358,7 @@ export class Router {
      * Handle keyboard events
      */
     handleKeydown(e) {
-        if (e.key !== 'Escape' || (this.currentView === 'portal' && !this.transitioning)) return;
+        if (e.key !== 'Escape' || (this.currentView === 'home' && !this.transitioning)) return;
 
         // Mid-transition Escape has no rightful owner: the incoming
         // view's instance isn't mounted yet, so falling through would
@@ -305,7 +385,7 @@ export class Router {
         }
 
         e.preventDefault();
-        this.reset('portal');
+        this.reset('home');
     }
 
     /**

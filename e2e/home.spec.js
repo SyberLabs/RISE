@@ -8,16 +8,13 @@ import { openAskDialog } from './reader-connection.js';
  * which Adjust opens in Reader Setup. Leaving a reading comes back to Home
  * and the same reading.
  */
-const GATE = { code: 'rise2025', name: 'Home Harness', vault: null, timestamp: Date.now() };
-
 async function openHome(page) {
-  await page.addInitScript(gate => localStorage.setItem('rise-beta-session', JSON.stringify(gate)), GATE);
   await page.goto('/');
   await expect(page.locator('h1')).toContainText(', by ', { timeout: 15_000 });
 }
 
 const reading = page => page.evaluate(() => {
-  const portal = window.__RISE_TEST__.getView('portal');
+  const portal = window.__RISE_TEST__.getView('home');
   const { decision, heading } = portal.reading;
   return { decision, heading, text: portal.opening?.text };
 });
@@ -115,13 +112,14 @@ test('Read it with sound plays today\'s exact poem, and leaving it returns to Ho
   await openHome(page);
   const { heading, text } = await reading(page);
   await page.locator('[data-home="enter"]').click();
-  await page.waitForFunction(() => window.__RISE_TEST__.getRouterState().currentView === 'chamber-session'
+  await page.waitForFunction(() => window.__RISE_TEST__.getRouterState().currentView === 'read'
+    && window.__RISE_TEST__.getView('read')?.activePane === 'chamber'
     && !window.__RISE_TEST__.getRouterState().transitioning, null, { timeout: 30_000 });
   const session = await page.evaluate(() => {
     const s = window.__RISE_TEST__.getCurrentSession();
     return { text: [...s.sourceTexts.values()].join(' '), origin: s.origin?.view, visualMode: s.visualConfig?.visualMode ?? 'off' };
   });
-  expect(session.origin).toBe('portal');
+  expect(session.origin).toBe('home');
   expect(session.visualMode).not.toBe('off');
   // The poem played is the one whose opening Home was streaming.
   const flat = value => value.replace(/\s+/gu, ' ').trim();
@@ -129,7 +127,7 @@ test('Read it with sound plays today\'s exact poem, and leaving it returns to Ho
 
   await page.keyboard.press('Escape');
   await page.locator('#exit-confirm-overlay').getByRole('button', { name: 'End reading' }).click();
-  await expect.poll(() => view(page), { timeout: 15_000 }).toBe('portal');
+  await expect.poll(() => view(page), { timeout: 15_000 }).toBe('home');
   await expect(page.locator('h1')).toHaveText(heading);
   await expect(page.locator('[data-home="enter"]')).toBeEnabled();
   await streaming(page);
@@ -154,7 +152,7 @@ test('Another reading rolls a vivid one with its plan in the caption; Read it wi
   await page.locator('#chamber-display').hover();
   await page.locator('#exit-btn').click();
   await page.locator('#exit-confirm').click();
-  await expect.poll(() => view(page), { timeout: 15_000 }).toBe('portal');
+  await expect.poll(() => view(page), { timeout: 15_000 }).toBe('home');
   await expect(page.locator('h1')).toHaveText(heading);
 });
 
@@ -162,17 +160,18 @@ test('Adjust opens Reader Setup with the rolled reading set, and Begin plays it 
   await openHome(page);
   const decision = await another(page);
   await page.locator('[data-home="adjust"]').click();
-  await expect.poll(() => view(page), { timeout: 20_000 }).toBe('chamber');
+  await expect.poll(() => view(page), { timeout: 20_000 }).toBe('read');
+  await expect.poll(() => page.evaluate(() => window.__RISE_TEST__.getView('read')?.activePane)).toBe('setup');
   await expect(page.locator('#begin-btn')).toBeEnabled({ timeout: 20_000 });
   const setup = await page.evaluate(() => {
-    const c = window.__RISE_TEST__.getView('chamber').config;
+    const c = window.__RISE_TEST__.getView('read').paneInstance('setup').config;
     return { wpm: c.wpm, chunkMode: c.chunkMode, presentation: c.presentation, origin: c.origin?.view };
   });
   expect(setup).toEqual({
     wpm: decision.config.wpm,
     chunkMode: decision.config.chunkMode,
     presentation: decision.config.presentation,
-    origin: 'portal'
+    origin: 'home'
   });
   // The back button already says Home; no chip repeats it.
   await expect(page.locator('.orbital-origin-chip')).toHaveCount(0);
@@ -225,7 +224,7 @@ test('the longest titles and plans stay on a small phone with the key on screen'
   await openHome(page);
   for (const [work, temper, section] of [['lyrical-ballads', 'revel', 'shortest'], ['the-photo-that-knew-your-street', 'ember', 'longest'], ['spoon-river-anthology', 'signal', 'first']]) {
     await page.evaluate(async ([work, temper, section]) => {
-      const portal = window.__RISE_TEST__.getView('portal');
+      const portal = window.__RISE_TEST__.getView('home');
       const tools = await portal.loadTools();
       const decision = tools.composeRoll({ temper: tools.TEMPERS.find(t => t.id === temper), workId: work, section });
       portal.showDecision(tools, decision, { temper });
@@ -255,7 +254,7 @@ test('on a desk a long name stays on one line, whole for a screen reader and as 
   const before = await keyTop();
   const long = 'Animal Tranquillity and Decay, by William Wordsworth and Samuel Taylor Coleridge, a Sketch';
   await page.evaluate(long => {
-    const portal = window.__RISE_TEST__.getView('portal');
+    const portal = window.__RISE_TEST__.getView('home');
     portal.present({ ...portal.reading, heading: long }, portal.opening);
   }, long);
   const title = page.locator('h1');
@@ -273,7 +272,7 @@ test('on a desk a long name stays on one line, whole for a screen reader and as 
  */
 async function behind(page, selectors, points) {
   const boxes = await page.evaluate(selectors => {
-    window.__RISE_TEST__.getView('portal').stream.stop();
+    window.__RISE_TEST__.getView('home').stream.stop();
     const style = document.createElement('style');
     style.id = 'hide-text';
     style.textContent = `${selectors.join(', ')} { color: transparent !important; text-shadow: none !important; text-decoration-color: transparent !important; transition: none !important; animation: none !important; }`;

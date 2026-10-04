@@ -3,7 +3,7 @@
  * following, stillness policy, and teardown. Engine is injected/mocked;
  * rendering no-ops headlessly.
  */
-import { describe, it, expect, vi } from 'vitest';
+import { afterEach, describe, it, expect, vi } from 'vitest';
 import { KleeField } from './klee-field.js';
 import { KLEE_PRESET_NAMES } from './klee-enhanced.js';
 
@@ -27,6 +27,8 @@ function makeField(options = {}) {
 }
 
 describe('KleeField (Genesis)', () => {
+    afterEach(() => document.documentElement.classList.remove('reduced-motion', 'photosensitivity-mode'));
+
     it('begins an episode on construction with the configured preset', () => {
         const { field, engine, host } = makeField({ preset: 'harmonic' });
         expect(engine.generateRandomAsync).toHaveBeenCalledTimes(1);
@@ -76,6 +78,49 @@ describe('KleeField (Genesis)', () => {
         expect(field.progress).toBe(1);
         expect(field.phase).toBe('holding');
         document.documentElement.classList.remove('reduced-motion');
+        field.destroy();
+        host.remove();
+    });
+
+    it('stillness policy: under reduced motion a composition stays, and never blinks out', () => {
+        // The 1.6s dissolve is cut to nothing by the reduced-motion CSS, so a
+        // dissolve here would be the picture vanishing and another snapping in.
+        document.documentElement.classList.add('reduced-motion');
+        const { field, engine, host } = makeField({ preset: 'harmonic' });
+        field.phaseStart = 0;
+        field.tick(120000);
+        expect(field.phase).toBe('holding');
+        expect(field.canvas.style.opacity).toBe('1');
+        expect(engine.generateRandomAsync).toHaveBeenCalledTimes(1);
+
+        // With motion back on, the field moves on again.
+        document.documentElement.classList.remove('reduced-motion');
+        field.tick(120001);
+        expect(field.phase).toBe('fading');
+        field.destroy();
+        host.remove();
+    });
+
+    it('stillness policy: photosensitivity alone keeps the slow dissolve between compositions', () => {
+        document.documentElement.classList.add('photosensitivity-mode');
+        const { field, host } = makeField({ preset: 'harmonic' });
+        expect(field.phase).toBe('holding');
+        field.phaseStart = 0;
+        field.tick(120000);
+        expect(field.phase).toBe('fading');
+        field.destroy();
+        host.remove();
+    });
+
+    it('stillness policy: reduced motion turned on mid-growth completes the composition at once', () => {
+        const { field, host } = makeField({ preset: 'harmonic' });
+        field.phaseStart = 0;
+        field.tick(5000);
+        expect(field.progress).toBeLessThan(1);
+        document.documentElement.classList.add('reduced-motion');
+        field.tick(5016);
+        expect(field.progress).toBe(1);
+        expect(field.phase).toBe('holding');
         field.destroy();
         host.remove();
     });

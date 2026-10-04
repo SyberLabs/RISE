@@ -12,7 +12,7 @@ export function sceneSampleFromPath(pathname) {
   return Object.hasOwn(SAMPLE_PATHS, path) ? SAMPLE_PATHS[path] : null;
 }
 
-/** True for every fixed-sample path (they share the Portal's sample view). */
+/** True for every fixed-sample path (they share Home's sample view). */
 export function isJevSceneDemoPath(pathname) {
   return sceneSampleFromPath(pathname) !== null;
 }

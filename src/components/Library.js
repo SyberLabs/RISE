@@ -17,6 +17,7 @@ import { MemoryCore } from '../core/memory.js';
 import { LocalWorks } from '../core/local-work-store.js';
 import { localWorkRuntime } from '../core/local-works.js';
 import { Admit } from './Admit.js';
+import { createPaneHost } from './room-panes.js';
 import { drawRiseSigil } from './atlas.js';
 import './Library.css';
 
@@ -107,10 +108,58 @@ export function contentsNoun(divisions) {
     return { one: 'entry', many: 'entries', find: 'Find a title…' };
 }
 
+/**
+ * The programs the Library opens, each in a pane of its own: one lazy loader
+ * and one factory per pane. `capabilities` is what the app hands that pane
+ * (route-manifest.js, `paneCapabilities`); `data` is the address's data
+ * (a Chapel book and chapter, a Rosary set or icon, a Keystone slug).
+ */
+const LOADERS = {
+  chapel: () => import('./library/Chapel.js'),
+  rosary: () => import('./library/Rosarium.js'),
+  stations: () => import('./library/Via.js'),
+  journeys: () => import('./library/Journeys.js'),
+  keystones: () => import('./library/Keystones.js'),
+  mint: () => import('./library/Mint.js'),
+  provenance: () => import('./library/Curia.js')
+};
+
+const FACTORIES = {
+  chapel: (el, { Chapel }, data, capabilities) => new Chapel(el, {
+    ...capabilities, bookId: data?.bookId, chapter: data?.chapter
+  }),
+  rosary: (el, { Rosarium }, data, capabilities) => new Rosarium(el, {
+    ...capabilities, setId: data?.setId, iconId: data?.iconId, door: data?.door === true
+  }),
+  stations: (el, { Via }, _data, capabilities) => new Via(el, capabilities),
+  journeys: (el, { Journeys }, _data, capabilities) => new Journeys(el, capabilities),
+  keystones: (el, { Keystones }, data, capabilities) => new Keystones(el, {
+    ...capabilities, initialSlug: data?.slug || null
+  }),
+  mint: (el, { Mint }, data, capabilities) => new Mint(el, {
+    ...capabilities, entry: data?.entry || null
+  }),
+  provenance: (el, { Curia }, _data, capabilities) => new Curia(el, capabilities)
+};
+
+/**
+ * The programs the Library's head links to. A minted sequence is not here:
+ * it is reached by its own address, and without one it has nothing to show.
+ */
+const PROGRAMS = [
+  ['chapel', 'Chapel'],
+  ['rosary', 'Rosary'],
+  ['stations', 'Stations'],
+  ['journeys', 'Journeys'],
+  ['keystones', 'Keystones'],
+  ['provenance', 'Provenance']
+];
+
 export class Library {
   constructor(container, options = {}) {
     this.container = container;
     this.onNavigate = options.onNavigate || (() => { });
+    this.paneCapabilities = options.paneCapabilities || {};
     this.onSelectText = options.onSelectText || (() => { });
     this.getAudioEngine = options.getAudioEngine || (() => null);
 
@@ -125,10 +174,18 @@ export class Library {
     // 'error'. Each is drawn: a tab never shows a blank where a state is.
     this.localState = 'loading';
     this.localAlert = '';
-    this._active = false;
     this.boundKeyboardHandler = this.handleKeyboard.bind(this);
 
     this.render();
+    this.panes = createPaneHost({
+      container,
+      loaders: LOADERS,
+      factories: Object.fromEntries(Object.entries(FACTORIES).map(([name, create]) => [
+        name, (el, module, data) => create(el, module, data, this.paneCapabilities[name] || {})
+      ])),
+      home: container.querySelector('.library-room'),
+      onKeyboard: on => document[on ? 'addEventListener' : 'removeEventListener']('keydown', this.boundKeyboardHandler)
+    });
     this.attachEvents();
     this.refreshLocalWorks();
   }
@@ -156,6 +213,9 @@ export class Library {
             <p class="library-intro-panel">
               Works in named editions, texts written for RISE, and files on this device. Open a work to read it whole or choose where to begin.
             </p>
+            <nav class="library-programs" aria-label="Programs in the Library">
+              ${PROGRAMS.map(([pane, label]) => `<button type="button" data-open-pane="${pane}">${label}</button>`).join('')}
+            </nav>
             <nav class="library-nav nav" aria-label="Library sections">
               <button class="nav-item" type="button" data-section="archive">Works</button>
               <button class="nav-item" type="button" data-section="personal">Your files</button>
@@ -548,7 +608,15 @@ export class Library {
     // Back button
     this.container.querySelector('.library-back[data-action="back"]')?.addEventListener('click', () => {
       this.getAudioEngine()?.playClick();
-      this.onNavigate('portal');
+      this.onNavigate('home');
+    });
+
+    // A program opens through the router, so it gets an address and Back.
+    this.container.querySelectorAll('[data-open-pane]').forEach(item => {
+      item.addEventListener('click', () => {
+        this.getAudioEngine()?.playClick();
+        this.onNavigate('library', { pane: item.dataset.openPane });
+      });
     });
 
     // Section navigation
@@ -589,7 +657,7 @@ export class Library {
       } else if (action === 'preview' && id) {
         console.log('Preview sequence:', id);
       } else if (action === 'go-home') {
-        this.onNavigate('portal');
+        this.onNavigate('home');
       } else if (action === 'select-text' && id) {
         this.handleTextSelection(id);
       } else if (action === 'open-local' || action === 'edit-local' || action === 'drop-local') {
@@ -633,7 +701,7 @@ export class Library {
 
   handleKeyboard(e) {
     if (e.key === 'Escape') {
-      this.onNavigate('portal');
+      this.onNavigate('home');
     }
   }
 
@@ -993,19 +1061,46 @@ export class Library {
     return `${minutes}:${seconds.toString().padStart(2, '0')}`;
   }
 
+  /**
+   * Open a program in its pane, or the Library's own sections when `name`
+   * is empty (room-panes.js).
+   */
+  showPane(name, data = {}) {
+    return this.panes.show(name, data);
+  }
+
+  get activePane() {
+    return this.panes.active;
+  }
+
+  /** The mounted instance of a pane, or null. */
+  paneInstance(name) {
+    return this.panes.instance(name);
+  }
+
+  /** Router re-entry, and a navigation inside the Library. */
+  update(data) {
+    return this.panes.update(data);
+  }
+
+  /** Escape belongs to the open pane first, as it did when it was a room. */
+  handleEscape() {
+    return this.paneInstance(this.activePane)?.handleEscape?.() === true;
+  }
+
+  navigationIntent() {
+    this.paneInstance(this.activePane)?.navigationIntent?.();
+  }
+
   activate() {
-    if (this._active) return;
-    this._active = true;
-    document.addEventListener('keydown', this.boundKeyboardHandler);
+    this.panes.activate();
   }
 
   deactivate() {
-    if (!this._active) return;
-    this._active = false;
-    document.removeEventListener('keydown', this.boundKeyboardHandler);
+    this.panes.deactivate();
   }
 
   destroy() {
-    this.deactivate();
+    this.panes.destroy();
   }
 }

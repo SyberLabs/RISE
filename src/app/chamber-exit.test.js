@@ -40,7 +40,7 @@ describe('leaving a reading opened from try-rise', () => {
     });
 
     it('replaces the reading in history rather than stacking on it', () => {
-        // The reader has already left; Back should offer the Portal, not
+        // The reader has already left; Back should offer Home, not
         // the address of the thing they just closed.
         expect(chamberExitTarget('back', fromTryRise).replaceUrl).toBe(true);
     });
@@ -55,28 +55,28 @@ describe('every other surface leaves exactly as it did', () => {
     });
     it('returns today\'s poem to Home, where its card waits', () => {
         for (const reason of LEAVING) {
-            expect(chamberExitTarget(reason, { origin: { view: 'portal', name: 'Home', experience: 'today' } }), reason)
-                .toEqual({ kind: 'navigate', view: 'portal' });
+            expect(chamberExitTarget(reason, { origin: { view: 'home', name: 'Home', experience: 'today' } }), reason)
+                .toEqual({ kind: 'navigate', view: 'home' });
         }
     });
     it('returns a disclosed Jev sample to its threshold on every leave action', () => {
         for (const reason of LEAVING) {
             expect(chamberExitTarget(reason, {
-                origin: { view: 'portal', experience: 'jev-sample' }
-            })).toEqual({ kind: 'navigate', view: 'portal' });
+                origin: { view: 'home', experience: 'jev-sample' }
+            })).toEqual({ kind: 'navigate', view: 'home' });
         }
     });
     it('returns a reading entered from Home to Home, where its proposal still waits', () => {
         for (const reason of LEAVING) {
             expect(chamberExitTarget(reason, {
-                origin: { view: 'portal', experience: 'jev' }
-            }), reason).toEqual({ kind: 'navigate', view: 'portal' });
+                origin: { view: 'home', experience: 'jev' }
+            }), reason).toEqual({ kind: 'navigate', view: 'home' });
         }
     });
     it('returns a Home reading opened through Adjust to Reader Setup', () => {
         for (const reason of LEAVING) {
             expect(chamberExitTarget(reason, {
-                origin: { view: 'portal', experience: 'jev', adjusted: true }
+                origin: { view: 'home', experience: 'jev', adjusted: true }
             }), reason).toEqual({ kind: 'navigate', view: 'chamber' });
         }
     });

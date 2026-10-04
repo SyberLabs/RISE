@@ -103,7 +103,7 @@ describe('spoken PCM mix', () => {
 
   it('maps recitation pack PCM onto narration spans for af_heart', () => {
     const entry = resolveVoicePackEntry('af_heart', 'Look within.');
-    expect(entry?.asset).toBe('/audio/recitation/af_heart/c-1i1sp65.wav');
+    expect(entry?.asset).toBe('/audio/recitation/af_heart/c-1i1sp65.opus');
     const plan = spokenPlan({
       durationMs: 1600,
       toMs: 1500,
@@ -112,7 +112,7 @@ describe('spoken PCM mix', () => {
     const mixed = mixAudio(plan, { sampleRate: 8_000 });
     expect(peakAmplitude(mixed.pcm)).toBeGreaterThan(0.05);
     expect(Math.abs(sampleAt(mixed, 400))).toBeGreaterThan(0.01);
-    const disk = readFileSync(resolve(process.cwd(), 'public/audio/recitation/af_heart/c-1i1sp65.wav'));
+    const disk = readFileSync(resolve(process.cwd(), 'public/audio/recitation/af_heart/c-1i1sp65.opus'));
     expect(disk.byteLength).toBeGreaterThan(44);
   });
 

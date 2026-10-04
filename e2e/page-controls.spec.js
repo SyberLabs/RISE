@@ -1,7 +1,6 @@
 import { test, expect, openHomeNav } from './fixtures.js';
 import { acceptFlashWarningIfShown } from './page-helpers.js';
 import { FLASHING_ENABLED } from '../src/core/visual-presence.js';
-const GATE = { code: 'rise2025', name: 'Controls', vault: null, timestamp: Date.now() };
 const SEED = { text: 'The pendulum draws the chord it hears. '.repeat(60).trim(), textSource: 'Seed', origin: null };
 const PREFS = {
   visualInterlocution: {
@@ -13,10 +12,9 @@ const PREFS = {
 test('the control bar condenses in Page Mode and restores on return', async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 900 });
   await page.addInitScript((g) => {
-    localStorage.setItem('rise-beta-session', JSON.stringify(g.gate));
     localStorage.setItem('rise_orbital_text_v1', JSON.stringify(g.seed));
     localStorage.setItem('rise_orbital_prefs_v1', JSON.stringify(g.prefs));
-  }, { gate: GATE, seed: SEED, prefs: PREFS });
+  }, { seed: SEED, prefs: PREFS });
   await page.goto('/');
   await expect(page.locator('.portal h1').first()).toBeVisible({ timeout: 15000 });
   await openHomeNav(page, 'chamber');

@@ -52,7 +52,7 @@ describe('the register is the allowlist', () => {
     it('answers nothing for a slug nobody minted', () => {
         // The SHAPE is fine — this is a mint URL. The register is what
         // refuses it, and the threshold says so rather than the reader
-        // landing on the Portal wondering what their card was for.
+        // landing on Home wondering what their card was for.
         expect(programSlugShape('/p/not-a-real-mint')).toBe('not-a-real-mint');
         expect(houseProgram('not-a-real-mint')).toBeNull();
     });

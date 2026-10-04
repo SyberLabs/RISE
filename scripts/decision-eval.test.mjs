@@ -3,7 +3,8 @@ import { readFileSync } from 'node:fs';
 import { test } from 'node:test';
 import { captureCase, compareRuns, connectionFor, localOrigin } from './decision-eval.mjs';
 import { scoreDecisions } from './jev-eval.mjs';
-import { seedCatalog } from '../local/catalog.mjs';
+import { committedCatalog } from '../local/catalog.mjs';
+import { JEV_COLOR_THEMES } from '../src/core/jev-color-themes.js';
 
 const sha = '139fdd94f1b6a6ad80cc15e08fcb99cac885a101';
 const cases = [
@@ -53,7 +54,7 @@ test('the full 39-case fixture runs through the browser contract (mocked, pipeli
   const fixture = JSON.parse(readFileSync(new URL('./jev-eval-cases.json', import.meta.url), 'utf8'));
   const offered = JSON.parse(readFileSync(new URL('./jev-eval-options-candidate.json', import.meta.url), 'utf8'));
   assert.equal(fixture.length, 39);
-  const catalog = seedCatalog();
+  const catalog = await committedCatalog();
   const connection = connectionFor('mock');
   const rows = [];
   for (const item of fixture) rows.push((await captureCase(connection, catalog, item, offered)).row);
@@ -73,10 +74,21 @@ test('local mode sends the browser request to the bridge as the local page would
     return Response.json({ model: 'kev-latest', answers }, { headers: { 'x-kev-revision': sha } });
   };
   const connection = connectionFor('local', { origin: 'http://127.0.0.1:5780', fetchImpl });
-  const { row, identity } = await captureCase(connection, seedCatalog(), cases[0], options);
+  const { row, identity } = await captureCase(connection, await committedCatalog(), cases[0], options);
   assert.equal(row.status, 'ok');
   assert.deepEqual(identity, { provider: 'kev', model: 'kev-latest', revision: sha });
   assert.equal(calls[0].url, 'http://127.0.0.1:5780/api/local/kev/systemone');
   assert.equal(calls[0].init.headers.Origin, 'http://127.0.0.1:5780');
   assert.equal(calls[0].init.headers.Authorization, undefined);
+});
+
+test('the evaluation option files offer every shipped color theme, in theme order', () => {
+  for (const [file, axes] of [
+    ['jev-eval-look-options.json', ['colorTheme', 'textColor', 'backgroundColor']],
+    ['jev-eval-phase-options.json', ['colorTheme', 'finaleTheme']],
+    ['jev-eval-reference-options.json', ['colorTheme']]
+  ]) {
+    const options = JSON.parse(readFileSync(new URL(`./${file}`, import.meta.url), 'utf8'));
+    for (const axis of axes) assert.deepEqual(options[axis], [...JEV_COLOR_THEMES], `${file} ${axis}`);
+  }
 });

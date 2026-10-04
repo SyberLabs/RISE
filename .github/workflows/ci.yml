@@ -46,6 +46,9 @@ jobs:
             worker/index.test.js \
             worker/kev-worker-script.test.js \
             src/core/decision \
+            src/core/jev-palette.test.js \
+            src/components/Chamber.jev-look.test.js \
+            src/app/jev-reading.test.js \
             src/core/openrouter-oauth.test.js \
             src/core/kev-client.test.js \
             src/core/csp.test.js \
@@ -62,7 +65,16 @@ jobs:
             src/core/journey-session.test.js \
             src/audio/engine.lifecycle.test.js \
             src/content/keystones.test.js \
-            src/enterprise &
+            src/enterprise \
+            src/core/rise-current.test.js \
+            src/live/protocol.test.js \
+            src/live/stream.test.js \
+            src/live/runtime.test.js \
+            src/live/adapters \
+            src/live/host \
+            src/live/hosts \
+            src/visuals/attractor.test.js \
+            worker/mcp-server.test.js &
           tests=$!
           npx vite build
           npm run measure:first-load
@@ -111,7 +123,7 @@ jobs:
         run: |
           set -euo pipefail
           [[ "$TESTED_SHA" =~ ^[0-9a-f]{40}$ ]]
-          test "$(find dist/audio/recitation -type f -name '*.wav' | wc -l)" -eq 877
+          test "$(find dist/audio/recitation -type f -name '*.opus' | wc -l)" -eq 877
           printf '%s\n' "$TESTED_SHA" > "dist/release-$TESTED_SHA.txt"
           printf '%s\n' "$TESTED_SHA" > dist/release.txt
       - name: Deploy production
@@ -154,13 +166,13 @@ jobs:
           # No release check may spend inference: the catalog is read-only public data,
           # and every retired model route must answer 410 without calling a model.
           status=$(curl -sS --max-time 20 --retry 5 --retry-delay 3 --retry-all-errors \
-            -o "$RUNNER_TEMP/catalog-body" -w '%{http_code}' 'https://rise.syberlabs.io/api/decision-catalog')
-          test "$status" = 200 || { echo "Expected the public decision catalog; got HTTP $status"; head -c 600 "$RUNNER_TEMP/catalog-body"; exit 1; }
+            -o "$RUNNER_TEMP/catalog-body" -w '%{http_code}' 'https://rise.syberlabs.io/content/catalog.json')
+          test "$status" = 200 || { echo "Expected the public catalog file; got HTTP $status"; head -c 600 "$RUNNER_TEMP/catalog-body"; exit 1; }
           CATALOG_FILE="$RUNNER_TEMP/catalog-body" node --input-type=module -e '
             import { readFileSync } from "node:fs";
             import { readPublicCatalog } from "./src/core/decision/catalog.js";
             if (!readPublicCatalog(JSON.parse(readFileSync(process.env.CATALOG_FILE, "utf8")))) {
-              console.error("The live decision catalog does not pass the browser contract."); process.exit(1);
+              console.error("The live catalog file does not pass the browser contract."); process.exit(1);
             }'
           for path in /api/jev-recommend /api/jev-decision /api/jev/route /api/jev-visual-score /api/enterprise-decision /api/personal-piece; do
             status=$(curl -sS --max-time 20 --retry 3 --retry-delay 2 --retry-all-errors \
