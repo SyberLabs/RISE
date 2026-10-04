@@ -13,8 +13,11 @@ import { LIVE_PATH } from '../core/route-url.js';
 
 export async function presentLive(router, session, player) {
     session.origin = { view: 'live' };
-    // The reading is the live room's, so it keeps the room's address.
-    session.publicPath = LIVE_PATH;
+    // The reading is the live room's, so it keeps the room's address, query and
+    // all: the query is how the room was opened (an MCP embed, a provider, a
+    // voice), and a reload of the frame must open the same room.
+    const here = globalThis.location;
+    session.publicPath = here?.pathname === LIVE_PATH ? `${LIVE_PATH}${here.search}` : LIVE_PATH;
     const mounted = offerLivePlayer(session, player);
     // The Chamber that was showing goes first, and lets go of its Player as
     // it does; the live host, Read's other pane, stays.
@@ -34,7 +37,8 @@ export async function presentLive(router, session, player) {
 
 export async function leaveLive(router) {
     const leaving = router.getViewInstance?.('read')?.paneInstance('chamber') ?? null;
-    const left = await router.navigate('live', { replace: true, skipStack: true });
+    // The address already names the live room (see presentLive); keep it, query and all.
+    const left = await router.navigate('live', { replace: true, skipStack: true, keepUrl: true });
     // Showing the live pane hides the chamber pane but keeps it, and a Chamber kept
     // goes on drawing its imagery unseen. It goes once it is off screen, as a
     // reading's own exit lets it go (chamber-session-factory.js).

@@ -42,12 +42,10 @@ test('a chunk missing once, as after a deploy, reloads once, and the view then o
 
   await openLibrary(page);
 
-  // One reload fetches the new build. Known gap (main has it too): the
-  // vite:preloadError reload does not record where the reader was going, so
-  // they land Home and open the view again from there.
+  // One reload fetches the new build. The move wrote the Library's address
+  // as it began (route-url.js), so the reload opens the Library itself.
   await expect.poll(() => loads, { timeout: 15_000 }).toBe(2);
-  await expect(page.locator('.portal [data-home="enter"]')).toBeVisible({ timeout: 15_000 });
-  await openHomeNav(page, 'library');
   await expect.poll(() => view(page), { timeout: 15_000 }).toBe('library');
+  await expect(page).toHaveURL(/\/library$/u);
   expect(loads).toBe(2);
 });

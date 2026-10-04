@@ -730,11 +730,13 @@ class App {
     /**
      * Today's poem goes straight into the reader: the day's exact poem in the
      * day's look. A tap on Home's card is the gesture that lets it play at
-     * once; a cold load of /today stops on the reader's Ready screen.
+     * once; a cold load of /today stops on the reader's Ready screen. The
+     * reading keeps Home's address, so a reload or Back lands Home rather
+     * than reopening the poem.
      */
     async launchToday() {
         const { todaySession } = await import('./app/today.js');
-        if (!await this.handleBeginSession(await todaySession())) {
+        if (!await this.handleBeginSession({ ...await todaySession(), publicPath: '/' })) {
             throw new Error('Today’s poem could not be opened. Please try again.');
         }
     }
