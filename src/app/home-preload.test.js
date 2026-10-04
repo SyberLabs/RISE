@@ -14,16 +14,16 @@ function dynamicImports(file) {
 }
 
 describe('preloadHome', () => {
-  // A preload the Portal no longer uses is a download on every visit that
+  // A preload Home no longer uses is a download on every visit that
   // nothing reads. The two lists are written in two files; this holds them
   // together.
-  it('fetches only modules the Portal itself loads for Home', () => {
+  it('fetches only modules Home itself loads', () => {
     const preloaded = dynamicImports('app/home-preload.js');
-    const portal = new Set(dynamicImports('components/Portal.js'));
+    const home = new Set(dynamicImports('components/Home.js'));
 
     expect(preloaded.length).toBeGreaterThan(0);
     for (const module of preloaded) {
-      expect(portal, `${module} is preloaded but the Portal does not import it`).toContain(module);
+      expect(home, `${module} is preloaded but Home does not import it`).toContain(module);
     }
   });
 });

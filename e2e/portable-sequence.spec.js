@@ -1,7 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { test, expect, openHomeNav, openHomeRoom } from './fixtures.js';
 
-const GATE = { code: 'rise2025', name: 'Portable sequence', vault: null, timestamp: Date.now() };
 const SOURCE_ID = 'spoon-river-anthology#12';
 const SCORE = JSON.stringify({
   schema: 'rise.experience-program.v1', id: 'portable-light-and-sound',
@@ -18,7 +17,6 @@ const SCORE = JSON.stringify({
 });
 
 async function openHome(page) {
-  await page.addInitScript(gate => localStorage.setItem('rise-beta-session', JSON.stringify(gate)), GATE);
   await page.goto('/');
   await expect(page.locator('.portal h1').first()).toBeVisible({ timeout: 15_000 });
 }

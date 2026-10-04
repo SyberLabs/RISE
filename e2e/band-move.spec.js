@@ -7,15 +7,13 @@ import { test, expect, openHomeNav } from './fixtures.js';
  * pointer. The reading surface takes no other input, but a reader should
  * still not shift the words by brushing them.
  */
-const GATE = { code: 'rise2025', name: 'Band', vault: null, timestamp: Date.now() };
 const SEED = { text: 'The pendulum draws the chord it hears. '.repeat(60).trim(), textSource: 'Band Seed', origin: null };
 
 async function reading(page, width = 390, height = 844) {
     await page.setViewportSize({ width, height });
-    await page.addInitScript(({ g, s }) => {
-        localStorage.setItem('rise-beta-session', JSON.stringify(g));
+    await page.addInitScript(({ s }) => {
         localStorage.setItem('rise_orbital_text_v1', JSON.stringify(s));
-    }, { g: GATE, s: SEED });
+    }, { s: SEED });
     await page.goto('/');
     await openHomeNav(page, 'chamber');
     await expect(page.locator('#begin-btn')).toBeEnabled({ timeout: 15_000 });

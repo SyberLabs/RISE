@@ -22,6 +22,7 @@ import {
 import { basename, dirname, extname, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { speechOnsets } from '../src/core/recitation.js';
+import { encodeOpus } from './lib/opus.mjs';
 import {
     DEFAULT_VOICE_ID,
     VOICE_PACK_SCHEMA,
@@ -224,13 +225,13 @@ async function main() {
         label: input?.label || voiceId,
         model: MODEL_ID,
         dtype: args.dtype,
-        format: 'wav',
+        format: 'opus',
         entries: {}
     };
     pack.entries ||= {};
     pack.model = MODEL_ID;
     pack.dtype = args.dtype;
-    pack.format = 'wav';
+    pack.format = 'opus';
     pack.source = basename(args.input);
     if (Array.isArray(input?.sourceRevisions)) {
         pack.sourceRevisions = input.sourceRevisions.map(item => ({ ...item }));
@@ -251,7 +252,7 @@ async function main() {
     for (let index = 0; index < phrases.length; index++) {
         const { key, text, spokenText } = phrases[index];
         const prior = pack.entries[key];
-        const output = resolve(PUBLIC_ROOT, 'audio', 'recitation', voiceId, `${key}.wav`);
+        const output = resolve(PUBLIC_ROOT, 'audio', 'recitation', voiceId, `${key}.opus`);
         const priorSpokenText = prior?.spokenText || prior?.text;
         if (!args.force && prior?.text === text && priorSpokenText === spokenText
             && existsSync(output)) {
@@ -266,13 +267,19 @@ async function main() {
         const sampleRate = audio.sampling_rate;
         const signal = analyze(samples);
         const wav = Buffer.from(audio.toWav());
-        await atomicWrite(output, wav);
+        const wavTemp = `${output}.wav`;
+        await atomicWrite(wavTemp, wav);
+        try {
+            encodeOpus(wavTemp, output);
+        } finally {
+            await rm(wavTemp, { force: true });
+        }
 
         pack.entries[key] = {
             text,
             ...(spokenText !== text ? { spokenText } : {}),
-            asset: `/audio/recitation/${voiceId}/${key}.wav`,
-            mimeType: 'audio/wav',
+            asset: `/audio/recitation/${voiceId}/${key}.opus`,
+            mimeType: 'audio/ogg; codecs=opus',
             sampleRate,
             durationMs: Math.round((samples.length / sampleRate) * 1000),
             onsetsMs: speechOnsets(samples, sampleRate),
@@ -281,7 +288,7 @@ async function main() {
         generated++;
         // A full Keystone pack is hundreds of phrases. Persist each completed
         // asset so interruption resumes from proven work instead of leaving a
-        // directory of unindexed WAV files that must all be synthesized again.
+        // directory of unindexed audio files that must all be synthesized again.
         pack.entries = sortObject(pack.entries);
         await persistManifest(manifest);
     }

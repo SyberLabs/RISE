@@ -72,9 +72,9 @@ describe('soundscapes', () => {
     beforeEach(() => vi.useFakeTimers());
     afterEach(() => vi.useRealTimers());
 
-    it('SQL sound rows match the sounds the Chamber can actually play', () => {
-        const seed = readFileSync('scripts/seed-rise-sounds.sql', 'utf8');
-        const ids = [...seed.matchAll(/^\s*\('([^']+)',\s*'[^']+',\s*TRUE\)/gm)].map(match => match[1]);
+    it('catalog sound rows match the sounds the Chamber can actually play', () => {
+        const ids = JSON.parse(readFileSync('src/content/decision-catalog.json', 'utf8')).sounds
+            .filter(row => row.active).map(row => row.sound_id);
         expect(new Set(ids)).toEqual(new Set(JEV_AUDIO_IDS));
         ids.forEach(id => expect(SOUNDSCAPES).toHaveProperty(id));
     });

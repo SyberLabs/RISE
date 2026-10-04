@@ -1,8 +1,7 @@
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import { VAULT_A_SEQUENCES, VAULT_A_ARCHETYPE } from './vault-a.js';
 import { compileSession } from '../../core/session-compiler.js';
 import { MUSEUM_CATEGORIES } from '../../sources/visual/museum.js';
-import { Vault } from '../../components/Vault.js';
 
 /**
  * A vault presented to an author as a reading of HER OWN WORK carries a
@@ -116,83 +115,6 @@ describe('Vault A sensory design', () => {
           .toHaveProperty(id.slice(4));
       }
     }
-  });
-});
-
-describe('Vault A launch path', () => {
-  it('forwards each sequence its own pace, chunking, soundscape, and visuals', () => {
-    // The archetype is the house style; the sequence is the specific
-    // room. A merge that drops the sequence's own fields would silently
-    // give every reading the same identity.
-    const container = document.createElement('div');
-    document.body.appendChild(container);
-    const onLaunchArchetype = vi.fn();
-    const vault = new Vault(container, {
-      personalizedVault: 'vault-a',
-      onLaunchArchetype
-    });
-
-    for (const seq of VAULT_A_SEQUENCES) {
-      onLaunchArchetype.mockClear();
-      vault.launchPersonalizedSequence(seq.id);
-
-      expect(onLaunchArchetype, seq.id).toHaveBeenCalledTimes(1);
-      const { config } = onLaunchArchetype.mock.calls[0][0];
-      expect(config.wpm, seq.id).toBe(seq.wpm);
-      expect(config.curve, seq.id).toBe(seq.curve);
-      expect(config.chunkMode, seq.id).toBe('phrase');
-      expect(config.soundscape, seq.id).toBe(seq.soundscape);
-      expect(config.audioPreset, seq.id).toBe('silent');
-      expect(config.visualConfig, seq.id).toEqual(seq.visualConfig);
-    }
-
-    vault.destroy?.();
-    container.remove();
-  });
-
-  it('lets a sequence override the archetype rather than inherit it', () => {
-    // Guards the merge itself: with identical archetype and sequence
-    // values, the assertions above would pass even if the sequence's
-    // fields were dropped entirely. Here they deliberately differ.
-    const container = document.createElement('div');
-    document.body.appendChild(container);
-    const onLaunchArchetype = vi.fn();
-    const vault = new Vault(container, {
-      personalizedVault: 'vault-a',
-      onLaunchArchetype
-    });
-
-    const [first] = VAULT_A_SEQUENCES;
-    vault.personalizedVault = {
-      ...vault.personalizedVault,
-      archetype: {
-        ...VAULT_A_ARCHETYPE,
-        config: {
-          ...VAULT_A_ARCHETYPE.config,
-          wpm: 111,
-          chunkMode: 'word',
-          soundscape: 'none',
-          visualConfig: { visualMode: 'off' }
-        }
-      },
-      sequences: [{
-        ...first,
-        chunkMode: 'phrase',
-        soundscape: 'aurora',
-        wpm: 275,
-        visualConfig: { visualMode: 'genesis', genesis: { preset: 'random' } }
-      }]
-    };
-
-    vault.launchPersonalizedSequence(first.id);
-    const { config } = onLaunchArchetype.mock.calls[0][0];
-    expect(config.chunkMode).toBe('phrase');
-    expect(config.soundscape).toBe('aurora');
-    expect(config.wpm).toBe(275);
-    expect(config.visualConfig.visualMode).toBe('genesis');
-
-    vault.destroy?.();
-    container.remove();
   });
 });
 

@@ -184,32 +184,6 @@
   letter-spacing: 0.02em;
 }
 
-/* Provenance line on a personalized sequence: the paper this passage
-   was drawn from. Quiet by default, legible on hover — it is a
-   citation, not a headline. */
-.sequence-source {
-  margin: calc(-1 * var(--space-xs)) 0 0;
-  font-size: 12px;
-  line-height: 1.5;
-  letter-spacing: 0.02em;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.4em;
-  align-items: baseline;
-  padding-left: var(--space-sm);
-  border-left: 1px solid var(--color-shadow);
-  transition: border-color var(--transition-fast) var(--ease-default);
-}
-
-.sequence-card:hover .sequence-source {
-  border-left-color: var(--sy-line-strong);
-}
-
-.sequence-source-title {
-  color: var(--color-fog);
-  font-style: italic;
-}
-
 .sequence-actions {
   display: flex;
   gap: var(--space-sm);
@@ -297,6 +271,8 @@
   overflow-y: auto;
   background: var(--sy-bg);
 }
+/* A pane is open: the shelves step aside (Library.showPane). */
+.library-room[hidden] { display: none; }
 
 .library-page {
   width: 100%;
@@ -344,6 +320,26 @@
   font: 400 16px/24px var(--sy-font-sans);
   color: var(--sy-text-2);
 }
+
+.library-room .library-programs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sy-space-2) var(--sy-space-5);
+  margin-top: var(--sy-space-4);
+}
+.library-room .library-programs button {
+  min-height: var(--sy-control-height);
+  padding: 0;
+  border: 0;
+  background: none;
+  font: 400 14px/20px var(--sy-font-sans);
+  color: var(--sy-text-2);
+  text-decoration: underline;
+  text-decoration-color: var(--sy-line);
+  text-underline-offset: 4px;
+  cursor: pointer;
+}
+.library-room .library-programs button:hover { color: var(--sy-text); }
 
 .library-room .library-nav {
   gap: var(--sy-space-6);

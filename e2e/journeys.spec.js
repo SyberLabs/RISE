@@ -1,11 +1,7 @@
 import { test, expect, openHomeNav } from './fixtures.js';
 
-const GATE = { code: 'rise2025', name: 'Journeys', vault: null, timestamp: Date.now() };
 
 test('the Portal names one act, and the Vault does not offer Journeys', async ({ page }) => {
-  await page.addInitScript((g) => {
-    localStorage.setItem('rise-beta-session', JSON.stringify(g));
-  }, GATE);
   await page.goto('/');
   await expect(page.locator('[data-nav="chamber"]')).toBeAttached({ timeout: 20000 });
 

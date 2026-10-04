@@ -10,7 +10,6 @@
  */
 import { test, expect, openHomeRoom } from './fixtures.js';
 
-const GATE = { code: 'rise2025', name: 'Scriptorium', vault: null, timestamp: Date.now() };
 const SCORE = JSON.stringify({
     schema: 'rise.experience-program.v1',
     id: 'self-transformation-great-work',
@@ -35,13 +34,12 @@ const SCORE = JSON.stringify({
 test('a reading opens readable however the reader left the Chamber', async ({ page }) => {
     test.setTimeout(120_000);
     await page.setViewportSize({ width: 1280, height: 800 });
-    await page.addInitScript((gate) => {
-        localStorage.setItem('rise-beta-session', JSON.stringify(gate));
+    await page.addInitScript(() => {
         // The state a reader arrives in from a Fit mask elsewhere.
         localStorage.setItem('rise-settings', JSON.stringify({
             chamberFace: 'thick', fontSize: 'fit'
         }));
-    }, GATE);
+    });
     await page.goto('/');
     await expect(page.locator('.portal h1').first()).toBeVisible({ timeout: 15_000 });
     await openHomeRoom(page, 'scriptorium');

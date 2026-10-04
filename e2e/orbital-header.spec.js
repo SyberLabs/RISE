@@ -11,7 +11,6 @@
  */
 import { test, expect, openHomeNav } from './fixtures.js';
 
-const GATE = { code: 'rise2025', name: 'Header', vault: null, timestamp: Date.now() };
 const SEED = {
     text: 'Light enters form and returns through measure. '.repeat(30).trim(),
     textSource: 'Metamorphoses',
@@ -33,10 +32,9 @@ const intersects = (a, b) => !(
 );
 
 test('the prompt and the Library chip never occupy the same pixels', async ({ page }) => {
-    await page.addInitScript(({ gate, seed }) => {
-        localStorage.setItem('rise-beta-session', JSON.stringify(gate));
+    await page.addInitScript(({ seed }) => {
         localStorage.setItem('rise_orbital_text_v1', JSON.stringify(seed));
-    }, { gate: GATE, seed: SEED });
+    }, { seed: SEED });
     await page.goto('/');
     await openHomeNav(page, 'chamber');
     await expect(page.locator('.stance-question')).toBeVisible({ timeout: 20_000 });
@@ -78,10 +76,9 @@ test('the prompt and the Library chip never occupy the same pixels', async ({ pa
 });
 
 test('the Library chip keeps a real touch target on a phone', async ({ page }) => {
-    await page.addInitScript(({ gate, seed }) => {
-        localStorage.setItem('rise-beta-session', JSON.stringify(gate));
+    await page.addInitScript(({ seed }) => {
         localStorage.setItem('rise_orbital_text_v1', JSON.stringify(seed));
-    }, { gate: GATE, seed: SEED });
+    }, { seed: SEED });
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto('/');
     await openHomeNav(page, 'chamber');

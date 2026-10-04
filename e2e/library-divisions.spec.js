@@ -1,12 +1,8 @@
 import { test, expect, openHomeNav } from './fixtures.js';
 
-const GATE = { code: 'rise2025', name: 'Shelves', vault: null, timestamp: Date.now() };
 
 // Standing at the Received shelf, a reader should see forms in reading order.
 test('Received and Composed stay separate; Received forms are ordered', async ({ page }) => {
-  await page.addInitScript((g) => {
-    localStorage.setItem('rise-beta-session', JSON.stringify(g));
-  }, GATE);
   await page.goto('/');
   await openHomeNav(page, 'library');
   await expect(page.locator('[data-filter="received"]')).toBeVisible({ timeout: 15000 });
@@ -43,9 +39,6 @@ test('Received and Composed stay separate; Received forms are ordered', async ({
  * never prose snippets from the text.
  */
 async function openLibrary(page) {
-  await page.addInitScript((g) => {
-    localStorage.setItem('rise-beta-session', JSON.stringify(g));
-  }, GATE);
   await page.goto('/');
   await openHomeNav(page, 'library');
   await expect(page.locator('[data-filter="received"]')).toBeVisible({ timeout: 15000 });
@@ -91,13 +84,13 @@ test('choosing a chapter reads that chapter, not the book', async ({ page }) => 
   // Navigation into the orbital is async; the sheet closing is not the
   // text arriving.
   await page.waitForFunction(
-    () => !!window.__RISE_TEST__?.getView('chamber')?.config?.text,
+    () => !!window.__RISE_TEST__?.getView('read')?.paneInstance('setup')?.config?.text,
     null, { timeout: 15000 });
 
   const loaded = await page.evaluate(() => {
     // The chosen text lands on the orbital's config, which is the
     // state Begin actually reads.
-    const o = window.__RISE_TEST__?.getView('chamber');
+    const o = window.__RISE_TEST__?.getView('read')?.paneInstance('setup');
     return o?.config?.text ? {
       source: o.config.textSource,
       words: o.config.text.split(/\s+/).filter(Boolean).length
@@ -136,12 +129,12 @@ test('a short work goes straight to the Chamber, with no contents to open', asyn
   await openLibrary(page);
   await page.locator('[data-action="select-text"][data-id="oedipus-rex"]').first().click();
   await page.waitForFunction(
-    () => !!window.__RISE_TEST__?.getView('chamber')?.config?.text,
+    () => !!window.__RISE_TEST__?.getView('read')?.paneInstance('setup')?.config?.text,
     null, { timeout: 20000 });
   expect(await page.locator('.toc-sheet').count()).toBe(0);
 
   const loaded = await page.evaluate(() => {
-    const o = window.__RISE_TEST__?.getView('chamber');
+    const o = window.__RISE_TEST__?.getView('read')?.paneInstance('setup');
     return o?.config?.textSource || null;
   });
   console.log('WHOLE ' + JSON.stringify(loaded));

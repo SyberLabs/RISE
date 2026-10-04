@@ -14,14 +14,12 @@
  * and nothing in the suite would have noticed.
  */
 import { test, expect, openHomeNav } from './fixtures.js';
-const GATE = { code: 'rise2025', name: 'M', vault: null, timestamp: Date.now() };
 
 test.skip(true, 'JOURNEYS = []; those sits are not shipped');
 
 test('the Page keeps the reader’s place across a trip to the Stream', async ({ page }) => {
   test.setTimeout(180000);
   await page.setViewportSize({ width: 390, height: 664 });
-  await page.addInitScript((g) => localStorage.setItem('rise-beta-session', JSON.stringify(g)), GATE);
   await page.goto('/');
   await openHomeNav(page, 'library');
   await expect(page.locator('[data-text-id="middlemarch"]')).toBeVisible({ timeout: 30000 });
@@ -38,7 +36,7 @@ test('the Page keeps the reader’s place across a trip to the Stream', async ({
 
   const wake = async () => { await page.mouse.move(195, 620); await page.waitForTimeout(350); };
   const idx = () => page.evaluate(() =>
-    window.__RISE_TEST__?.getView('chamber-session')?.pageReader?.pageIndex ?? -1);
+    window.__RISE_TEST__?.getView('read')?.paneInstance('chamber')?.pageReader?.pageIndex ?? -1);
 
   await wake();
   await page.locator('#page-mode-btn').click({ timeout: 15000 });
@@ -47,7 +45,7 @@ test('the Page keeps the reader’s place across a trip to the Stream', async ({
 
   // Turn a few pages.
   await page.evaluate(() => {
-    const r = window.__RISE_TEST__.getView('chamber-session').pageReader;
+    const r = window.__RISE_TEST__.getView('read').paneInstance('chamber').pageReader;
     r.goToPage(3);
   });
   await page.waitForTimeout(800);

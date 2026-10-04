@@ -12,7 +12,7 @@ it('navigation intent cancels before hydration can launch or replace the committ
   app.router = { navigate: vi.fn(), getCurrentView: () => 'create', getViewInstance: () => ({ navigationIntent }) };
   const pending = app.handleCreateSession({ sources: [{ id:'text', name:'Text', data:'A few words here' }] });
   await vi.waitFor(() => expect(hydrateSessionSequenceAssets).toHaveBeenCalledOnce());
-  app.handleNavigationIntent('portal'); release();
+  app.handleNavigationIntent('home'); release();
   expect(await pending).toBe(false);
   expect(app.router.navigate).not.toHaveBeenCalled();
   expect(navigationIntent).toHaveBeenCalledOnce();

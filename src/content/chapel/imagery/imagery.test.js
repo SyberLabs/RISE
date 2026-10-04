@@ -437,7 +437,7 @@ describe('Chapel handoff imagery (seam)', () => {
   });
 
   it('icon focal renders without motion on the image: breath lives on the frame only', () => {
-    const css = readFileSync(resolve('src/components/Chamber.css'), 'utf8');
+    const css = readFileSync(resolve('src/components/read/Chamber.css'), 'utf8');
     const frameRule = css.slice(css.indexOf('.focal-icon-frame'), css.indexOf('.focal-icon-image'));
     expect(frameRule).toContain('animation: focal-icon-breath');
     const imageRule = css.slice(css.indexOf('.focal-icon-image'), css.indexOf('@keyframes focal-icon-breath'));
@@ -446,7 +446,7 @@ describe('Chapel handoff imagery (seam)', () => {
     const reduced = css.slice(css.indexOf('@keyframes focal-icon-breath'));
     expect(reduced).toMatch(/prefers-reduced-motion[\s\S]*focal-icon-frame[\s\S]*animation:\s*none/);
 
-    const chamber = readFileSync(resolve('src/components/Chamber.js'), 'utf8');
+    const chamber = readFileSync(resolve('src/components/read/Chamber.js'), 'utf8');
     expect(chamber).toContain("cue.renderer === 'focal'");
     expect(chamber).toContain("config.type === 'icon'");
     expect(chamber).toContain('initializeIconFocal');

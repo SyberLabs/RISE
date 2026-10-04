@@ -8,7 +8,6 @@
  */
 import { test, expect, openHomeNav } from './fixtures.js';
 
-const GATE = { code: 'rise2025', name: 'Align', vault: null, timestamp: Date.now() };
 const SEED = { text: 'At the treacherous dream descended upon the host. '.repeat(8).trim(), textSource: 'Iliad', origin: null };
 const PREFS = {
   wpm: 260, chunkMode: 'word', recitation: { enabled: false },
@@ -23,12 +22,11 @@ const PREFS = {
 };
 
 async function enterChamber(page) {
-  await page.addInitScript(({ g, s, p }) => {
-    localStorage.setItem('rise-beta-session', JSON.stringify(g));
+  await page.addInitScript(({ s, p }) => {
     localStorage.setItem('rise_orbital_text_v1', JSON.stringify(s));
     localStorage.setItem('rise_orbital_prefs_v1', JSON.stringify(p));
     localStorage.setItem('rise-settings', JSON.stringify({ chamberFace: 'thick', fontSize: 'fit' }));
-  }, { g: GATE, s: SEED, p: PREFS });
+  }, { s: SEED, p: PREFS });
   await page.goto('/');
   await openHomeNav(page, 'chamber');
   await expect(page.locator('#begin-btn')).toBeEnabled({ timeout: 25_000 });

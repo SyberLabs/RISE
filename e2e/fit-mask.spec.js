@@ -1,11 +1,5 @@
 import { test, expect, openHomeNav } from './fixtures.js';
 
-const GATE = {
-  code: 'rise2025',
-  name: 'Fit Mask',
-  vault: null,
-  timestamp: Date.now()
-};
 
 const SEED = {
   text: 'Light enters form and returns through measure. '.repeat(80).trim(),
@@ -60,7 +54,7 @@ test.describe.configure({ timeout: 90_000 });
 
 async function openPrep(page, viewport, prefs = PREFS) {
   await page.setViewportSize(viewport);
-  await page.addInitScript(({ gate, seed, prefs }) => {
+  await page.addInitScript(({ seed, prefs }) => {
     const reloadPrefs = sessionStorage.getItem('__fitMaskReloadPrefs');
     if (reloadPrefs) {
       localStorage.setItem('rise_orbital_prefs_v1', reloadPrefs);
@@ -68,10 +62,9 @@ async function openPrep(page, viewport, prefs = PREFS) {
     }
     if (sessionStorage.getItem('__fitMaskSeeded') === 'true') return;
     sessionStorage.setItem('__fitMaskSeeded', 'true');
-    localStorage.setItem('rise-beta-session', JSON.stringify(gate));
     localStorage.setItem('rise_orbital_text_v1', JSON.stringify(seed));
     localStorage.setItem('rise_orbital_prefs_v1', JSON.stringify(prefs));
-  }, { gate: GATE, seed: SEED, prefs });
+  }, { seed: SEED, prefs });
   await page.goto('/');
   await openHomeNav(page, 'chamber');
   await expect(page.locator('#begin-btn')).toBeEnabled({ timeout: 15_000 });
@@ -116,11 +109,9 @@ async function openRootNode(page, id) {
 
 async function hardReloadPrep(page) {
   await page.reload({ waitUntil: 'domcontentloaded' });
-  const beginButton = page.locator('#begin-btn');
-  if (!await beginButton.isVisible()) {
-    await openHomeNav(page, 'chamber');
-  }
-  await expect(beginButton).toBeEnabled({ timeout: 15_000 });
+  // Reader Setup has its own address, so the reload reopens it.
+  await expect(page).toHaveURL(/\/read$/u);
+  await expect(page.locator('#begin-btn')).toBeEnabled({ timeout: 15_000 });
 }
 
 async function chooseFit(page) {

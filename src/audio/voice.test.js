@@ -17,8 +17,8 @@ function fixtureManifest(texts, voiceId = 'af_heart') {
         const normalized = speakableText(text);
         return [voiceAssetKey(normalized), {
             text: normalized,
-            asset: `/audio/recitation/${voiceId}/${index}.wav`,
-            mimeType: 'audio/wav',
+            asset: `/audio/recitation/${voiceId}/${index}.opus`,
+            mimeType: 'audio/ogg; codecs=opus',
             sampleRate: 24000,
             durationMs: 1000 + index,
             onsetsMs: [125, 500]

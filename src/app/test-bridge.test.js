@@ -11,7 +11,7 @@ describe('installTestBridge', () => {
     const cortex = {};
     const app = {
       router: {
-        currentView: 'portal',
+        currentView: 'home',
         transitioning: false,
         navigate: vi.fn(),
         getViewInstance: vi.fn(() => chamber)
@@ -36,7 +36,7 @@ describe('installTestBridge', () => {
     ]);
     bridge.navigate('chamber', { text: 'Test' });
     expect(app.router.navigate).toHaveBeenCalledWith('chamber', { data: { text: 'Test' } });
-    expect(bridge.getRouterState()).toEqual({ currentView: 'portal', transitioning: false });
+    expect(bridge.getRouterState()).toEqual({ currentView: 'home', transitioning: false });
     expect(bridge.getView('chamber')).toBe(chamber);
     expect(bridge.getCurrentSession()).toBe(app.currentSession);
     expect(bridge.getSettings()).toBe(app.settings);

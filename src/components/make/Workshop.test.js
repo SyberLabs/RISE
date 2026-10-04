@@ -1,0 +1,2022 @@
+/**
+ * Workshop refinement tests — craft-first architecture (creator leads,
+ * shared shelves follow), the modern Atmosphere with soundscapes, and
+ * exclusive-beds behavior matching the Chamber's audio panel.
+ */
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { PROCEDURAL_PATTERNS } from '../../core/visual-registry.js';
+import { WORKSHOP_AUDIO_ASSETS } from '../../core/workshop-audio.js';
+import { PersonalSwells } from '../../core/personal-swells.js';
+import { FLASHING_ENABLED } from '../../core/visual-presence.js';
+import { PACE_CURVE_IDS } from '../../core/pacing.js';
+import {
+    endVisualInterlocutionSession,
+    grantVisualInterlocutionConsent
+} from '../../core/visual-safety.js';
+
+// jsdom has no indexedDB; PersonalSwells probes it during pool render
+if (typeof globalThis.indexedDB === 'undefined') {
+    globalThis.indexedDB = { open: () => ({ onsuccess: null, onerror: null, onupgradeneeded: null }) };
+}
+
+if (typeof URL.createObjectURL !== 'function') {
+    const objectUrls = new Map();
+    let objectUrlSeq = 0;
+    URL.createObjectURL = (blob) => {
+        // `blob:<origin>/<uuid>`, as the real API mints them — safeUrl
+        // checks the origin before letting one reach the DOM.
+        const url = `blob:${location.origin}/workshop-test-${++objectUrlSeq}`;
+        objectUrls.set(url, blob);
+        return url;
+    };
+    URL.revokeObjectURL = (url) => {
+        objectUrls.delete(url);
+    };
+}
+
+const { Workshop } = await import('./Workshop.js');
+const { WorkshopMedia } = await import('../../core/workshop-media.js');
+const { MemoryCore } = await import('../../core/memory.js');
+
+beforeEach(() => {
+    vi.spyOn(WorkshopMedia, 'put').mockImplementation(async ({ id, projectId, data, mimeType }) => ({
+        id,
+        projectId,
+        mimeType: mimeType || data.type || 'image/png',
+        byteLength: data.size,
+        createdAt: Date.now(),
+        updatedAt: Date.now()
+    }));
+    vi.spyOn(WorkshopMedia, 'has').mockResolvedValue(true);
+    vi.spyOn(WorkshopMedia, 'getAllIds').mockResolvedValue([]);
+    vi.spyOn(WorkshopMedia, 'resolveObjectUrl').mockImplementation(async (id) => `blob:hydrated-${id}`);
+    vi.spyOn(WorkshopMedia, 'delete').mockResolvedValue(undefined);
+    vi.spyOn(WorkshopMedia, 'deleteByProject').mockResolvedValue(undefined);
+    vi.spyOn(WorkshopMedia, 'revokeObjectUrl').mockImplementation(() => {});
+});
+
+afterEach(async () => {
+    for (let pass = 0; pass < 8; pass += 1) {
+        const tail = MemoryCore._workshopMutationTail;
+        await tail;
+        await Promise.resolve();
+        if (tail === MemoryCore._workshopMutationTail) break;
+    }
+    vi.restoreAllMocks();
+    localStorage.clear();
+    MemoryCore._stopWorkshopLeaseHeartbeat();
+    MemoryCore._stopWorkshopDeferredAssetRetries();
+    MemoryCore._workshopAssetReferenceProviders = new Set();
+    MemoryCore._workshopLeasePublishPending = null;
+    MemoryCore._workshopDeferredAssetDeletes = new Set();
+    MemoryCore._workshopOrphanSweepStarted = false;
+});
+
+function makeWorkshop(onCreateSession = vi.fn(), options = {}) {
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    const workshop = new Workshop(container, {
+        onNavigate: vi.fn(),
+        onCreateSession,
+        ...options
+    });
+    return { workshop, container, onCreateSession };
+}
+
+describe('Workshop Composition Studio architecture', () => {
+    it('leases media referenced by the active and suspended drafts until teardown', async () => {
+        const { workshop, container } = makeWorkshop();
+        workshop.sessionData.sequenceVisualAssets = [{
+            id: 'active-image', name: 'Active', storage: 'idb', mimeType: 'image/png'
+        }];
+        workshop.suspendedDrafts = [{
+            id: 'draft',
+            data: { sequenceVisualAssets: [{ id: 'suspended-image' }] },
+            pendingMediaBlobs: new Map([['pending-image', new Blob(['image'])]])
+        }];
+
+        expect(MemoryCore._isWorkshopAssetReferencedByDraft('active-image')).toBe(true);
+        expect(MemoryCore._isWorkshopAssetReferencedByDraft('suspended-image')).toBe(true);
+        expect(MemoryCore._isWorkshopAssetReferencedByDraft('pending-image')).toBe(true);
+
+        workshop.destroy();
+        await MemoryCore._workshopMutationTail;
+        expect(MemoryCore._isWorkshopAssetReferencedByDraft('active-image')).toBe(false);
+        container.remove();
+    });
+
+    it('uses the injected audio provider for shell feedback', () => {
+        const audioEngine = { playClick: vi.fn() };
+        const { workshop, container } = makeWorkshop(vi.fn(), {
+            audioEngineProvider: () => audioEngine
+        });
+
+        container.querySelector('[data-action="back"]').click();
+
+        expect(audioEngine.playClick).toHaveBeenCalledOnce();
+        workshop.destroy();
+        container.remove();
+    });
+
+    it('coordinates one asset library, score canvas, and contextual inspector', () => {
+        const { workshop, container } = makeWorkshop();
+
+        const form = container.querySelector('#workshop-form');
+        const panes = [...form.querySelectorAll(':scope > .studio-pane')];
+        expect(panes.map(pane => [...pane.classList].find(name => name.startsWith('studio-')
+            && name !== 'studio-pane'))).toEqual([
+            'studio-asset-library', 'studio-score-canvas', 'studio-inspector'
+        ]);
+
+        // Audio defaults and personal entry events now share the same library
+        // architecture instead of living in a subordinate settings shelf.
+        expect(container.querySelector('.studio-shared-shelves')).toBeNull();
+        expect(container.querySelector('.config-section')).toBeNull();
+        expect(container.querySelector('[data-soundscape]')).toBeNull();
+        expect(container.querySelector('#studio-audio-library-panel #personal-swell-list')).not.toBeNull();
+        expect(container.querySelector('[data-asset-lane="audio"]').disabled).toBe(false);
+        expect(container.querySelector('#visual-asset-search')).not.toBeNull();
+        expect(container.querySelector('[data-asset-group="procedural"]')).not.toBeNull();
+        expect(container.querySelector('#vi-panel-container')).toBeNull();
+
+        container.remove();
+    });
+
+    it('dismisses Project commands when the author returns to another surface', () => {
+        const { workshop, container } = makeWorkshop();
+        const menu = container.querySelector('.studio-project-menu');
+        menu.querySelector('summary').click();
+        expect(menu.open).toBe(true);
+
+        container.querySelector('#studio-score-title').click();
+        expect(menu.open).toBe(false);
+
+        workshop.destroy();
+        container.remove();
+    });
+
+    it('keeps Project commands scoped to Workshop file and release operations', () => {
+        const { workshop, container } = makeWorkshop();
+        const commands = [...container.querySelectorAll('.studio-project-menu-panel button')]
+            .map(button => ({ label: button.textContent.trim(), action: button.dataset.action }));
+
+        expect(commands).toEqual([
+            { label: 'Import JSON', action: 'import-experience-program' },
+            { label: 'Export JSON', action: 'export-experience-program' },
+            { label: 'Export MP4', action: 'export-mp4' },
+            { label: 'Reset', action: 'reset-workshop' },
+            { label: 'Details', action: 'show-project-inspector' }
+        ]);
+
+        workshop.destroy();
+        container.remove();
+    });
+
+    it('presents exact images, collections, procedural families, shared assets, and surfaces together', () => {
+        const { container } = makeWorkshop();
+        const form = container.querySelector('#workshop-form');
+        expect(form.querySelector('.studio-visual-library .studio-kicker')?.textContent).toBe('Media');
+        expect(form.textContent).toContain('Passage visuals score selected text');
+        expect(form.textContent).toContain('Old Masters');
+        expect(form.textContent).toContain('Klee Lines');
+        expect(form.textContent).toContain('Focal');
+        expect(form.querySelector('[data-preview-ref="klee"]')?.getAttribute('style'))
+            .toContain('gradient');
+        expect(form.querySelector('[data-preview-ref="aic-oldmasters"]')).not.toBeNull();
+        const registry = form.querySelector('#visual-assets-list');
+        const presentation = form.querySelector('#studio-visual-presentation');
+        expect(registry.compareDocumentPosition(presentation) & Node.DOCUMENT_POSITION_FOLLOWING)
+            .toBeTruthy();
+        expect(presentation.textContent).toContain('Presentation');
+        expect(presentation.querySelector('[data-visual-surface="scored"]')).not.toBeNull();
+        expect(registry.textContent).not.toContain('Off');
+        expect(registry.textContent).not.toContain('Scored');
+        expect(form.querySelector('#studio-project-inspector').textContent).not.toContain('Presentation');
+        container.remove();
+    });
+
+    it('uses complete Even Design option rows and exposes only Gallery cadence for Gallery', () => {
+        const { workshop, container } = makeWorkshop();
+        workshop.sessionData.visualConfig.visualMode = 'interlocution';
+        workshop.sessionData.visualConfig.interlocution.presentation = 'continuous';
+        workshop.refreshVisualLibraryAndInspector();
+        container.querySelector('[data-action="focus-reading-inspector"]')?.click();
+
+        expect(container.querySelectorAll('.studio-reading-surface-options > button')).toHaveLength(5);
+        // Only surfaces that can actually be rendered are offered. With
+        // FLASHING_ENABLED false, that is Gallery alone.
+        expect(container.querySelectorAll('.studio-presentation-options > button'))
+            .toHaveLength(FLASHING_ENABLED ? 3 : 1);
+        expect(container.querySelectorAll('.curve-options.studio-compact-options > button'))
+            .toHaveLength(PACE_CURVE_IDS.length);
+        expect(container.querySelector('#studio-visual-frequency')).toBeNull();
+
+        const cadence = container.querySelector('#studio-gallery-cadence');
+        expect(cadence).not.toBeNull();
+        expect(container.querySelector('.studio-cadence-scale').textContent).toContain('30 s');
+        expect(container.querySelector('.studio-cadence-scale').textContent).toContain('8 s');
+        cadence.value = '0.8';
+        cadence.dispatchEvent(new Event('input', { bubbles: true }));
+        expect(workshop.sessionData.visualConfig.interlocution.galleryCadence).toBe(0.8);
+        expect(container.querySelector('[data-gallery-cadence-value]').textContent).toMatch(/≈ \d+ s/);
+
+        workshop.destroy();
+        container.remove();
+    });
+
+    // The Rhythmic controls belong to the flashing surfaces, so they are only
+    // reachable while those are. This returns with FLASHING_ENABLED, and is
+    // skipped rather than deleted so it comes back with the switch.
+    it.skipIf(!FLASHING_ENABLED)('swaps Gallery cadence for the Rhythmic controls', () => {
+        const { workshop, container } = makeWorkshop();
+        workshop.sessionData.visualConfig.visualMode = 'interlocution';
+        workshop.sessionData.visualConfig.interlocution.presentation = 'continuous';
+        workshop.sessionData.visualConfig.interlocution.galleryCadence = 0.8;
+        workshop.refreshVisualLibraryAndInspector();
+        container.querySelector('[data-action="focus-reading-inspector"]')?.click();
+
+        container.querySelector('[data-presentation="full-frame"]').click();
+        expect(container.querySelector('#studio-gallery-cadence')).toBeNull();
+        expect(container.querySelector('#studio-visual-frequency')).not.toBeNull();
+        expect(workshop.sessionData.visualConfig.interlocution.galleryCadence).toBe(0.8);
+        workshop.destroy();
+        container.remove();
+    });
+
+    it('hydrates a selected collection card with the exact sampled artwork without dirtying the project', async () => {
+        const resolveCollectionPreview = vi.fn().mockResolvedValue({
+            url: 'https://images.example/old-masters.jpg',
+            alt: 'Portrait sampled from Old Masters'
+        });
+        const { workshop, container } = makeWorkshop(vi.fn(), { resolveCollectionPreview });
+        workshop.activate();
+        workshop.editorDirty = false;
+
+        workshop.selectEditorAsset('collection:aic-oldmasters');
+        const entry = workshop.selectedVisualAssetEntry();
+        await workshop.ensureCollectionPreview(entry);
+
+        expect(resolveCollectionPreview).toHaveBeenCalledTimes(1);
+        expect(resolveCollectionPreview).toHaveBeenCalledWith('aic-oldmasters', {
+            signal: expect.any(AbortSignal)
+        });
+        const previews = container.querySelectorAll(
+            '[data-preview-ref="aic-oldmasters"][data-preview-status="ready"]'
+        );
+        expect(previews.length).toBeGreaterThanOrEqual(2);
+        expect([...previews].every(preview => preview.tagName === 'IMG')).toBe(true);
+        expect(previews[0].getAttribute('src')).toBe('https://images.example/old-masters.jpg');
+        expect(workshop.editorDirty).toBe(false);
+
+        workshop.destroy();
+        container.remove();
+    });
+
+    it('filters without dirtying the project and inspects selected assets contextually', () => {
+        const { workshop, container } = makeWorkshop();
+        workshop.editorDirty = false;
+
+        container.querySelector('[data-asset-group="procedural"]').click();
+        expect(workshop.visualAssetGroup).toBe('procedural');
+        expect(workshop.editorDirty).toBe(false);
+        // Every procedural pattern gets a card. Pinned to the registry rather
+        // than to a number: the literal 6 went stale the moment Iris and
+        // Spectral joined, and a count that has to be edited by hand each time
+        // an engine ships stops asserting the relationship it was written for.
+        expect(container.querySelectorAll('.studio-asset-card'))
+            .toHaveLength(PROCEDURAL_PATTERNS.length);
+
+        container.querySelector('[data-editor-asset-id="procedural:klee"]').click();
+        expect(container.querySelector('.studio-selected-asset')?.textContent).toContain('Klee Lines');
+        expect(container.querySelector('[data-action="set-editor-asset-default"]')).not.toBeNull();
+        expect(workshop.editorDirty).toBe(false);
+
+        container.remove();
+    });
+
+    it('commits surface and procedural defaults through the contextual inspector contract', async () => {
+        const { workshop, container } = makeWorkshop();
+
+        expect(await workshop.setVisualSurface('focal')).toBe(true);
+        expect(workshop.sessionData.visualConfig.visualMode).toBe('focals');
+        expect(container.querySelector('[data-editor-asset-id="surface:focal"]')
+            .closest('.studio-asset-card').classList.contains('is-default')).toBe(true);
+
+        grantVisualInterlocutionConsent(workshop.visualConsentScope);
+        expect(await workshop.setEditorAssetDefault('procedural:klee')).toBe(true);
+        expect(workshop.sessionData.visualConfig).toMatchObject({
+            visualMode: 'interlocution',
+            interlocution: {
+                sourceFamily: 'procedural',
+                procedural: ['klee'],
+                sourced: []
+            }
+        });
+
+        endVisualInterlocutionSession();
+        workshop.destroy();
+        container.remove();
+    });
+
+    it('keeps project switching and transport actions above the score', () => {
+        const { container } = makeWorkshop();
+
+        const manager = container.querySelector('.workshop-sequence-manager');
+        expect(manager.querySelector('#workshop-sequence-select')).not.toBeNull();
+        expect(manager.textContent).toContain('Sequence');
+        expect(container.querySelector('[data-action="reset-workshop"]')).not.toBeNull();
+        expect(container.querySelector('.studio-header [data-action="preview"]')).not.toBeNull();
+        expect(container.querySelector('.studio-header #create-btn')).not.toBeNull();
+
+        container.remove();
+    });
+
+    it('keeps the library and inspector source counts synchronized with edits', () => {
+        const { workshop, container } = makeWorkshop();
+
+        expect(container.querySelector('.studio-project-health strong').textContent).toBe('Add a source to begin');
+
+        workshop.addSource({
+            id: 'counter-source',
+            name: 'Counter source',
+            type: 'text/plain',
+            data: 'A source added after the shell was rendered.'
+        }, { id: 'local' });
+
+        expect(container.querySelector('[data-studio-source-count="number"]').textContent).toBe('1');
+        expect(container.querySelector('[data-studio-source-count="label"]').textContent).toBe('1 source');
+        expect(container.querySelector('.studio-project-health strong').textContent).toBe('Ready to compose');
+        expect(container.querySelector('.studio-next-action').textContent)
+            .toContain('Highlight the source text in the Visual, Audio, or Combined tab to assign character assets.');
+
+        workshop.removeSource(0);
+        expect(container.querySelector('[data-studio-source-count="number"]').textContent).toBe('0');
+        expect(container.querySelector('[data-studio-source-count="label"]').textContent).toBe('0 sources');
+
+        container.remove();
+    });
+
+    it('renders the Inspector composition map in source and character order with bidirectional selection', async () => {
+        const { workshop, container } = makeWorkshop();
+        workshop.addSource({
+            id: 'map-first', name: 'First source', type: 'text/plain',
+            data: 'Alpha beta gamma delta epsilon zeta eta theta.'
+        }, { id: 'local' });
+        workshop.addSource({
+            id: 'map-second', name: 'Second source', type: 'text/plain',
+            data: 'Iota kappa lambda mu.'
+        }, { id: 'local' });
+        workshop.sessionData.visualScoreAssignments = [
+            { id: 'v-late', sourceId: 'map-first', assetId: 'procedural:klee', fromCharacter: 20, toCharacter: 27, quoteStart: 'epsilon', quoteEnd: 'epsilon' },
+            { id: 'v-second', sourceId: 'map-second', assetId: 'procedural:turrell', fromCharacter: 0, toCharacter: 4, quoteStart: 'Iota', quoteEnd: 'Iota' },
+            { id: 'v-early', sourceId: 'map-first', assetId: 'procedural:klee', fromCharacter: 0, toCharacter: 5, quoteStart: 'Alpha', quoteEnd: 'Alpha' }
+        ];
+        workshop.sessionData.audioScoreAssignments = [
+            { id: 'a-early', sourceId: 'map-first', assetId: 'soundscape:aurora', lane: 'bed', fromCharacter: 0, toCharacter: 5, quoteStart: 'Alpha', quoteEnd: 'Alpha', syncGroup: 'sync-v-early' }
+        ];
+        workshop.scoreView = 'combined';
+        workshop.activeScoreSourceId = 'map-first';
+        workshop.refreshVisualScoreView();
+
+        const groups = [...container.querySelectorAll('.studio-sequence-source')];
+        expect(groups.map(group => group.dataset.sequenceSourceId)).toEqual(['map-first', 'map-second']);
+        const firstEntries = [...groups[0].querySelectorAll('.studio-sequence-map-entry')];
+        expect(firstEntries.map(entry => entry.querySelector('small').textContent.split(' · ')[0]))
+            .toEqual(['0–5', '20–27']);
+        expect(firstEntries[0].classList.contains('is-synchronized')).toBe(true);
+
+        container.querySelector('[data-visual-assignment-id="v-early"][data-audio-assignment-id="a-early"]').click();
+        expect(container.querySelector('[data-sequence-visual-id="v-early"]').classList.contains('is-selected')).toBe(true);
+        expect(container.querySelector('[data-sequence-visual-id="v-early"] .studio-sequence-map-thumbnail.is-visual')).not.toBeNull();
+        expect(container.querySelector('[data-sequence-visual-id="v-early"] .studio-sequence-map-thumbnail.is-audio')).not.toBeNull();
+
+        container.querySelector('[data-sequence-visual-id="v-late"] [data-action="select-sequence-map-entry"]').click();
+        await new Promise(resolve => setTimeout(resolve, 20));
+        expect(workshop.selectedScoreAssignmentId).toBe('v-late');
+        expect(container.querySelector('#visual-score-text [data-assignment-id="v-late"]').classList.contains('active')).toBe(true);
+        expect(document.activeElement).toBe(container.querySelector('#visual-score-text'));
+        expect(container.querySelector('.visual-score-preview')).toBeNull();
+
+        workshop.destroy();
+        container.remove();
+    });
+});
+
+describe('Workshop Phase 6 audio authoring', () => {
+    it('authors, replaces, erases, and restores an audio bed transactionally', () => {
+        const { workshop, container } = makeWorkshop();
+        workshop.addSource({
+            id: 'audio-source', name: 'Audio source', type: 'text/plain',
+            data: 'Alpha beta gamma delta epsilon.'
+        }, { id: 'local', name: 'Local' });
+        workshop.selectAudioAsset('soundscape:aurora');
+        expect(workshop.scoreView).toBe('audio');
+        expect(container.querySelector('button[data-score-view="audio"]').getAttribute('aria-selected')).toBe('true');
+
+        workshop.pendingScoreSelection = {
+            sourceId: 'audio-source', fromCharacter: 0, toCharacter: 16
+        };
+        expect(workshop.assignPendingAudioScore()).toBe(true);
+        expect(workshop.sessionData.audioScoreAssignments).toHaveLength(1);
+        expect(container.querySelector('.audio-score-mark')).not.toBeNull();
+        expect(container.querySelector('.audio-score-clip').textContent).toContain('Aurora');
+
+        workshop.selectAudioAsset('tone:deep');
+        expect(workshop.replaceAudioAssignmentAsset(workshop.selectedAudioAssignmentId)).toBe(true);
+        expect(workshop.sessionData.audioScoreAssignments[0].assetId).toBe('tone:deep');
+        expect(workshop.undoAudioScore()).toBe(true);
+        expect(workshop.sessionData.audioScoreAssignments[0].assetId).toBe('soundscape:aurora');
+        expect(workshop.redoAudioScore()).toBe(true);
+        expect(workshop.sessionData.audioScoreAssignments[0].assetId).toBe('tone:deep');
+
+        workshop.eraseAudioAssignment(workshop.selectedAudioAssignmentId);
+        expect(workshop.sessionData.audioScoreAssignments).toEqual([]);
+        container.remove();
+    });
+
+    it('compiles visual, bed, and swell clips as independent synchronized tracks', () => {
+        const { workshop, container } = makeWorkshop();
+        workshop.addSource({
+            id: 'combined-source', name: 'Combined source', type: 'text/plain',
+            data: 'Alpha beta gamma delta epsilon.'
+        }, { id: 'local', name: 'Local' });
+        workshop.addSequenceVisualAsset('data:image/png;base64,Y29tYmluZWQ=', 'Combined');
+        workshop.selectedScoreAssetId = workshop.sessionData.sequenceVisualAssets[0].id;
+        workshop.pendingScoreSelection = { sourceId: 'combined-source', fromCharacter: 0, toCharacter: 16 };
+        expect(workshop.assignPendingVisualScore()).toBe(true);
+        const visual = workshop.sessionData.visualScoreAssignments[0];
+
+        workshop.personalSwells = [{ id: 'bell', name: 'Bell' }];
+        workshop.selectAudioAsset('swell:bell');
+        workshop.pendingScoreSelection = { sourceId: 'combined-source', fromCharacter: 0, toCharacter: 16 };
+        expect(workshop.assignPendingAudioScore()).toBe(true);
+        expect(workshop.sessionData.audioScoreAssignments[0].syncGroup).toBe(`sync-${visual.id}`);
+
+        const payload = workshop.prepareSessionPayload();
+        expect(payload.experienceProgram.tracks.map(track => track.kind))
+            .toEqual(['movement', 'visual', 'swell']);
+        expect(payload.soundscape).toBe('none');
+        expect(payload.audioPreset).toBe('silent');
+        container.remove();
+    });
+
+    it('offers Visual, Audio, and Combined views with unambiguous highlight treatments', () => {
+        const { workshop, container } = makeWorkshop();
+        workshop.addSource({ id: 'views', name: 'Views', type: 'text/plain', data: 'Alpha beta gamma.' },
+            { id: 'local', name: 'Local' });
+        expect([...container.querySelectorAll('[data-action="set-score-view"]')]
+            .map(button => button.textContent)).toEqual(['Visual', 'Audio', 'Combined']);
+        container.querySelector('[data-score-view="combined"]').click();
+        expect(workshop.scoreView).toBe('combined');
+        expect(container.querySelector('.audio-score-lane')).not.toBeNull();
+        expect(container.querySelector('[aria-label="Visual assignments"]')).not.toBeNull();
+        container.remove();
+    });
+
+    it('keeps visual and audio pickers together for one Combined passage selection', () => {
+        const { workshop, container } = makeWorkshop();
+        workshop.addSource({
+            id: 'combined-picker', name: 'Combined picker', type: 'text/plain',
+            data: 'Alpha beta gamma delta.'
+        }, { id: 'local', name: 'Local' });
+        container.querySelector('[data-score-view="combined"]').click();
+        workshop.selectEditorAsset('procedural:klee', { navigate: false });
+        workshop.selectPassageAudioAsset('soundscape:aurora');
+        workshop.pendingScoreSelection = {
+            sourceId: 'combined-picker', fromCharacter: 0, toCharacter: 16
+        };
+        workshop.refreshScoreSelectionUi();
+
+        const popover = container.querySelector('.combined-passage-popover');
+        expect(popover).not.toBeNull();
+        expect(popover.querySelector('[data-passage-asset-picker]')).not.toBeNull();
+        expect(popover.querySelector('[data-passage-audio-picker]')).not.toBeNull();
+        expect(popover.querySelectorAll('.studio-combined-picker')).toHaveLength(2);
+
+        popover.querySelector('[data-action="assign-score-lane"][data-score-lane="visual"]').click();
+        expect(workshop.scoreView).toBe('combined');
+        expect(workshop.sessionData.visualScoreAssignments).toHaveLength(1);
+        expect(workshop.pendingScoreSelection).toMatchObject({ fromCharacter: 0, toCharacter: 16 });
+
+        container.querySelector('.combined-passage-popover [data-action="assign-score-lane"][data-score-lane="audio"]').click();
+        expect(workshop.sessionData.audioScoreAssignments).toHaveLength(1);
+        expect(workshop.sessionData.audioScoreAssignments[0].syncGroup)
+            .toBe(`sync-${workshop.sessionData.visualScoreAssignments[0].id}`);
+        expect(container.querySelector('.combined-passage-popover').textContent).toContain('Visual assigned');
+        expect(container.querySelector('.combined-passage-popover').textContent).toContain('Audio assigned');
+
+        container.querySelector('.combined-passage-popover [data-action="cancel-score-selection"]').click();
+        expect(workshop.pendingScoreSelection).toBeNull();
+        workshop.destroy();
+        container.remove();
+    });
+
+    it('opens the requested asset lane without dropping a Combined passage selection', () => {
+        const { workshop, container } = makeWorkshop();
+        workshop.addSource({ id: 'browse-lanes', name: 'Browse lanes', type: 'text/plain', data: 'Alpha beta.' },
+            { id: 'local', name: 'Local' });
+        container.querySelector('[data-score-view="combined"]').click();
+        workshop.pendingScoreSelection = { sourceId: 'browse-lanes', fromCharacter: 0, toCharacter: 5 };
+        workshop.refreshScoreSelectionUi();
+
+        container.querySelector('.combined-passage-popover [data-action="choose-score-asset"][data-score-lane="audio"]').click();
+        expect(workshop.activeAssetLane).toBe('audio');
+        expect(workshop.scoreView).toBe('combined');
+        expect(workshop.pendingScoreSelection).toMatchObject({ fromCharacter: 0, toCharacter: 5 });
+        expect(container.querySelector('#studio-audio-library-panel').hidden).toBe(false);
+        workshop.cancelPendingScoreSelection({ announce: false });
+        workshop.destroy();
+        container.remove();
+    });
+});
+
+describe('Workshop visual score lane', () => {
+    function addScoringFixture(workshop) {
+        workshop.addSource({
+            id: 'score-source',
+            name: 'Score source',
+            type: 'text/plain',
+            data: 'Still water reflects the moon. Wind crosses the reeds.'
+        }, { id: 'local' });
+        const asset = workshop.addSequenceVisualAsset(
+            'data:image/png;base64,c2NvcmU=',
+            'Moon image'
+        );
+        workshop.updateVisualAssetsList();
+        return asset;
+    }
+
+    it('authors a stable span from a DOM text selection and compiles its exact asset cue', () => {
+        const { workshop, container } = makeWorkshop();
+        const asset = addScoringFixture(workshop);
+        const text = container.querySelector('#visual-score-text');
+        const range = document.createRange();
+        range.setStart(text.firstChild, 6);
+        range.setEnd(text.firstChild, 20);
+        const selection = window.getSelection();
+        selection.removeAllRanges();
+        selection.addRange(range);
+        text.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
+
+        container.querySelector('[data-action="assign-score-selection"]').click();
+
+        expect(workshop.sessionData.visualScoreAssignments).toHaveLength(1);
+        expect(workshop.sessionData.visualScoreAssignments[0]).toMatchObject({
+            sourceId: 'score-source',
+            assetId: asset.id,
+            fromCharacter: 6,
+            toCharacter: 20,
+            quoteStart: 'water reflects'
+        });
+        expect(container.querySelector('.visual-score-mark')?.textContent).toBe('water reflects');
+        expect(container.querySelector('.studio-sequence-map-entry.is-selected .studio-sequence-map-thumbnail img')?.getAttribute('src'))
+            .toBe(asset.uri);
+
+        const payload = workshop.prepareSessionPayload();
+        const visualClip = payload.experienceProgram.tracks
+            .find(track => track.kind === 'visual').clips[0];
+        expect(visualClip.anchor).toMatchObject({
+            sourceIds: ['score-source'],
+            fromCharacter: 6,
+            toCharacter: 20
+        });
+        expect(visualClip.cue.collections).toEqual([`sequence-asset:${asset.id}`]);
+        expect(payload.sequenceVisualAssets[0].id).toBe(asset.id);
+
+        workshop.destroy();
+        container.remove();
+    });
+
+    it('imports an MP4 as a project asset and assigns its muted cue to a passage', () => {
+        const { workshop, container } = makeWorkshop();
+        workshop.addSource({
+            id: 'video-source', name: 'Video source', type: 'text/plain',
+            data: 'Moving water reflects the night.'
+        }, { id: 'local' });
+        const blob = new Blob([new Uint8Array([0, 0, 0, 24])], { type: 'video/mp4' });
+        const asset = workshop.addSequenceVideoAssetFromBlob(blob, 'Moving water', 12500);
+        workshop.updateVisualAssetsList();
+
+        expect(asset).toMatchObject({
+            kind: 'video', mimeType: 'video/mp4', durationMs: 12500,
+            audioPolicy: 'muted', timeMode: 'loop'
+        });
+        expect(workshop.sessionData.customVisuals).toEqual([]);
+        expect(container.querySelector(`[data-editor-asset-id="project-video:${asset.id}"] video`))
+            .not.toBeNull();
+
+        workshop.pendingScoreSelection = {
+            sourceId: 'video-source', fromCharacter: 0, toCharacter: 12
+        };
+        expect(workshop.assignPendingVisualScore()).toBe(true);
+        const payload = workshop.prepareSessionPayload();
+        const cue = payload.experienceProgram.tracks
+            .find(track => track.kind === 'visual').clips[0].cue;
+        expect(cue).toEqual({
+            kind: 'video', assetId: asset.id, timeMode: 'loop',
+            audioPolicy: 'muted', reducedMotion: 'poster'
+        });
+        expect(payload.sequenceVisualAssets[0]).toMatchObject({
+            id: asset.id, kind: 'video', storage: 'idb'
+        });
+
+        workshop.destroy();
+        container.remove();
+    });
+
+    it('requires deliberate replacement for overlaps and erases assignments from the lane', () => {
+        const { workshop, container } = makeWorkshop();
+        addScoringFixture(workshop);
+        workshop.pendingScoreSelection = {
+            sourceId: 'score-source', fromCharacter: 0, toCharacter: 11
+        };
+        expect(workshop.assignPendingVisualScore()).toBe(true);
+        const originalId = workshop.sessionData.visualScoreAssignments[0].id;
+
+        workshop.pendingScoreSelection = {
+            sourceId: 'score-source', fromCharacter: 6, toCharacter: 19
+        };
+        expect(workshop.assignPendingVisualScore()).toBe(false);
+        expect(workshop.sessionData.visualScoreAssignments.map(item => item.id)).toEqual([originalId]);
+        expect(container.querySelector('#replace-score-overlap').classList.contains('hidden')).toBe(false);
+
+        container.querySelector('#replace-score-overlap').click();
+        expect(workshop.sessionData.visualScoreAssignments).toHaveLength(1);
+        expect(workshop.sessionData.visualScoreAssignments[0]).toMatchObject({
+            fromCharacter: 6,
+            toCharacter: 20
+        });
+        expect(workshop.sessionData.visualScoreAssignments[0].id).not.toBe(originalId);
+        const replacementId = workshop.sessionData.visualScoreAssignments[0].id;
+
+        container.querySelector('[data-action="undo-visual-score"]').click();
+        expect(workshop.sessionData.visualScoreAssignments.map(item => item.id)).toEqual([originalId]);
+        container.querySelector('[data-action="redo-visual-score"]').click();
+        expect(workshop.sessionData.visualScoreAssignments.map(item => item.id)).toEqual([replacementId]);
+
+        container.querySelector('[data-action="erase-score-assignment"]').click();
+        expect(workshop.sessionData.visualScoreAssignments).toEqual([]);
+        expect(container.querySelector('.visual-score-empty')).not.toBeNull();
+
+        container.querySelector('[data-action="undo-visual-score"]').click();
+        expect(workshop.sessionData.visualScoreAssignments.map(item => item.id)).toEqual([replacementId]);
+
+        workshop.destroy();
+        container.remove();
+    });
+
+    it('assigns procedural and sourced collection cards through the same score interaction', () => {
+        const { workshop, container } = makeWorkshop();
+        workshop.addSource({
+            id: 'mixed-source', name: 'Mixed source', type: 'text/plain',
+            data: 'Klee crosses the threshold. Old masters answer.'
+        }, { id: 'local' });
+
+        workshop.selectEditorAsset('procedural:klee');
+        workshop.pendingScoreSelection = {
+            sourceId: 'mixed-source', fromCharacter: 0, toCharacter: 4
+        };
+        expect(workshop.assignPendingVisualScore()).toBe(true);
+        expect(workshop.sessionData.visualScoreAssignments[0].assetId).toBe('procedural:klee');
+
+        workshop.pendingScoreSelection = {
+            sourceId: 'mixed-source', fromCharacter: 28, toCharacter: 39
+        };
+        workshop.selectEditorAsset('collection:aic-oldmasters');
+        expect(container.querySelector('#visual-score-selection').textContent).toContain('Old masters');
+        container.querySelector('[data-action="assign-score-selection"]').click();
+        expect(workshop.sessionData.visualScoreAssignments).toHaveLength(2);
+
+        const payload = workshop.prepareSessionPayload();
+        const cues = payload.experienceProgram.tracks
+            .find(track => track.kind === 'visual').clips.map(clip => clip.cue);
+        expect(cues).toEqual([
+            { kind: 'procedural', collections: ['klee'], config: { preset: 'random' } },
+            { kind: 'sourced', collections: ['aic-oldmasters'] }
+        ]);
+        expect(payload.visualConfig.interlocution.sourceFamily).toBe('blend');
+        expect(container.querySelector('[data-editor-asset-id="collection:aic-oldmasters"]')
+            .closest('.studio-asset-card').textContent).toContain('1 clip');
+
+        workshop.destroy();
+        container.remove();
+    });
+
+    it('replaces a selected clip asset as one undoable command', () => {
+        const { workshop, container } = makeWorkshop();
+        workshop.addSource({
+            id: 'replace-source', name: 'Replace source', type: 'text/plain',
+            data: 'A visual relationship can change without moving its anchor.'
+        }, { id: 'local' });
+        workshop.selectEditorAsset('procedural:klee');
+        workshop.pendingScoreSelection = {
+            sourceId: 'replace-source', fromCharacter: 2, toCharacter: 21
+        };
+        workshop.assignPendingVisualScore();
+        const assignment = workshop.sessionData.visualScoreAssignments[0];
+
+        workshop.selectEditorAsset('procedural:turrell');
+        expect(container.querySelector('[data-action="replace-score-asset"]')).not.toBeNull();
+        container.querySelector('[data-action="replace-score-asset"]').click();
+        expect(workshop.sessionData.visualScoreAssignments[0]).toMatchObject({
+            id: assignment.id, assetId: 'procedural:turrell',
+            fromCharacter: assignment.fromCharacter, toCharacter: assignment.toCharacter
+        });
+
+        workshop.undoVisualScore();
+        expect(workshop.sessionData.visualScoreAssignments[0].assetId).toBe('procedural:klee');
+
+        workshop.destroy();
+        container.remove();
+    });
+
+    it('removing a sequence image also removes every span assigned to it', () => {
+        const { workshop, container } = makeWorkshop();
+        addScoringFixture(workshop);
+        workshop.pendingScoreSelection = {
+            sourceId: 'score-source', fromCharacter: 0, toCharacter: 11
+        };
+        workshop.assignPendingVisualScore();
+
+        const remove = container.querySelector('[data-action="remove-visual"]');
+        remove.click();
+        expect(workshop.sessionData.sequenceVisualAssets).toHaveLength(1);
+        expect(remove.textContent).toContain('Confirm');
+        expect(document.activeElement).toBe(remove);
+        remove.click();
+
+        expect(workshop.sessionData.sequenceVisualAssets).toEqual([]);
+        expect(workshop.sessionData.visualScoreAssignments).toEqual([]);
+        expect(container.querySelector('.visual-score-empty')).not.toBeNull();
+
+        workshop.destroy();
+        container.remove();
+    });
+
+    it('persists stable asset and span identities with the canonical score', async () => {
+        localStorage.removeItem('rise_workshop_v1');
+        const { workshop, container } = makeWorkshop();
+        const asset = addScoringFixture(workshop);
+        workshop.sessionData.title = 'Scored sequence';
+        workshop.pendingScoreSelection = {
+            sourceId: 'score-source', fromCharacter: 0, toCharacter: 11
+        };
+        workshop.assignPendingVisualScore();
+        const assignmentId = workshop.sessionData.visualScoreAssignments[0].id;
+
+        const saved = await workshop.persistSequenceToVault();
+
+        expect(saved.sequenceVisualAssets[0].id).toBe(asset.id);
+        expect(saved.visualScoreAssignments[0]).toMatchObject({
+            id: assignmentId,
+            assetId: asset.id
+        });
+        expect(saved.experienceProgram.metadata.kind).toBe('workshop-visual-score');
+        expect(saved.experienceProgram.tracks.find(track => track.kind === 'visual').clips[0].id)
+            .toBe(assignmentId);
+
+        workshop.destroy();
+        container.remove();
+        localStorage.removeItem('rise_workshop_v1');
+    });
+});
+
+describe('Workshop personal focal media', () => {
+    it('keeps ordinary Project Media full-frame unless it is chosen through Focal', () => {
+        const { workshop, container } = makeWorkshop();
+        workshop.addSource({
+            id: 'media-source', name: 'Media source', type: 'text/plain',
+            data: 'The same image may be media or a focal.'
+        }, { id: 'local' });
+        const asset = workshop.addSequenceVisualAssetFromBlob(
+            new Blob(['landscape'], { type: 'image/png' }), 'Landscape.png'
+        );
+        workshop.pendingScoreSelection = {
+            sourceId: 'media-source', fromCharacter: 4, toCharacter: 14
+        };
+
+        expect(workshop.assignPendingVisualScore()).toBe(true);
+        const assignment = workshop.sessionData.visualScoreAssignments[0];
+        const cue = workshop.prepareSessionPayload().experienceProgram.tracks
+            .find(track => track.kind === 'visual').clips[0].cue;
+        expect(assignment.assetId).toBe(asset.id);
+        expect(cue).toEqual({
+            kind: 'sourced', collections: [`sequence-asset:${asset.id}`]
+        });
+
+        workshop.destroy();
+        container.remove();
+    });
+
+    it('offers project selection and upload as equal routes to one durable focal contract', async () => {
+        const { workshop, container } = makeWorkshop();
+        const moon = workshop.addSequenceVisualAssetFromBlob(
+            new Blob(['moon'], { type: 'image/png' }), 'Moon.png'
+        );
+        workshop.addSequenceVisualAssetFromBlob(
+            new Blob(['sun'], { type: 'image/png' }), 'Sun.png'
+        );
+        workshop.updateVisualAssetsList();
+        workshop.selectEditorAsset('surface:focal');
+
+        const form = container.querySelector('[data-visual-style-setting="focal-glyph"]');
+        form.value = 'personal';
+        form.dispatchEvent(new Event('change', { bubbles: true }));
+
+        const picker = container.querySelector('[data-personal-focal-picker="whole-reading"]');
+        expect(picker).not.toBeNull();
+        expect(picker.querySelectorAll('.studio-personal-focal-actions > button')).toHaveLength(2);
+        expect(picker.textContent).toContain('Choose Project Media');
+        expect(picker.textContent).toContain('Upload New');
+
+        picker.querySelector('[data-action="toggle-personal-focal-projects"]').click();
+        expect(container.querySelectorAll('.studio-personal-focal-option')).toHaveLength(2);
+        container.querySelector(`[data-project-asset-id="${moon.id}"]`).click();
+        await Promise.resolve();
+
+        expect(workshop.sessionData.visualConfig).toMatchObject({
+            visualMode: 'focals',
+            focals: { type: 'personal', personalAssetId: moon.id, personalImage: moon.uri }
+        });
+        expect(workshop.isVisualAssetDefault(workshop.visualAssetEntries()
+            .find(entry => entry.asset.id === `project-image:${moon.id}`))).toBe(true);
+
+        workshop.destroy();
+        container.remove();
+    });
+
+    it('ingests a direct upload into Project Media before using it for a passage', async () => {
+        const { workshop, container } = makeWorkshop();
+        workshop.addSource({
+            id: 'focal-source', name: 'Focal source', type: 'text/plain',
+            data: 'A personal image enters the scored passage.'
+        }, { id: 'local' });
+        workshop.pendingScoreSelection = {
+            sourceId: 'focal-source', fromCharacter: 2, toCharacter: 16
+        };
+        workshop.pendingPersonalFocalUploadTarget = 'passage';
+        const file = new File(['portrait'], 'portrait.png', { type: 'image/png' });
+        const input = container.querySelector('#personal-focal-import-input');
+        Object.defineProperty(input, 'files', { configurable: true, value: [file] });
+
+        expect(await workshop.handlePersonalFocalUpload({ target: input })).toBe(true);
+        const asset = workshop.sessionData.sequenceVisualAssets.at(-1);
+        expect(asset).toMatchObject({
+            name: 'portrait.png', storage: 'idb',
+            provenance: { origin: 'personal-focal-upload', provider: 'Project Media' }
+        });
+        expect(workshop.selectedScoreAssetId).toBe('surface:focal');
+        expect(workshop.pendingMediaBlobs.get(asset.id)).toBe(file);
+        expect(workshop.sessionData.visualConfig.visualMode).toBe('off');
+
+        expect(workshop.assignPendingVisualScore()).toBe(true);
+        const cue = workshop.prepareSessionPayload().experienceProgram.tracks
+            .find(track => track.kind === 'visual').clips[0].cue;
+        expect(cue).toEqual({
+            kind: 'field', renderer: 'focal',
+            config: { type: 'personal', personalAssetId: asset.id }
+        });
+        const assignment = workshop.sessionData.visualScoreAssignments[0];
+        expect(workshop.scoreAsset('surface:focal', assignment)).toMatchObject({
+            name: 'Focal · portrait.png',
+            preview: { kind: 'image', ref: asset.uri }
+        });
+
+        workshop.destroy();
+        container.remove();
+    });
+
+    it('returns to a standard focal when the active personal asset is removed', async () => {
+        const { workshop, container } = makeWorkshop();
+        const asset = workshop.addSequenceVisualAssetFromBlob(
+            new Blob(['portrait'], { type: 'image/png' }), 'Portrait'
+        );
+        workshop.updateVisualAssetsList();
+        await workshop.applyPersonalFocalAsset(asset.id, 'whole-reading');
+        workshop.removeSequenceVisualAsset(0);
+        expect(workshop.sessionData.visualConfig.focals).toMatchObject({
+            type: 'standard', standardGlyph: 'breath', personalAssetId: null, personalImage: null
+        });
+        workshop.destroy();
+        container.remove();
+    });
+});
+
+describe('Workshop visual selection repair', () => {
+    function addSelectionSource(workshop) {
+        workshop.addSource({
+            id: 'selection-source', name: 'Selection source', type: 'text/plain',
+            data: 'The selected passage opens its own visual assignment palette.'
+        }, { id: 'local' });
+    }
+
+    function selectCharacters(container, fromCharacter, toCharacter) {
+        const text = container.querySelector('#visual-score-text');
+        const range = document.createRange();
+        range.setStart(text.firstChild, fromCharacter);
+        range.setEnd(text.firstChild, toCharacter);
+        const selection = window.getSelection();
+        selection.removeAllRanges();
+        selection.addRange(range);
+        return text;
+    }
+
+    it('opens a contextual palette on pointer lift and preserves the source span while choosing a visual', async () => {
+        const { workshop, container } = makeWorkshop();
+        addSelectionSource(workshop);
+        workshop.activate();
+
+        const text = container.querySelector('#visual-score-text');
+        text.dispatchEvent(new Event('pointerdown', { bubbles: true }));
+        selectCharacters(container, 4, 20);
+        document.dispatchEvent(new Event('selectionchange'));
+        expect(workshop.pendingScoreSelection).toBeNull();
+
+        text.dispatchEvent(new Event('pointerup', { bubbles: true }));
+        await vi.waitFor(() => expect(workshop.pendingScoreSelection).toEqual({
+            sourceId: 'selection-source', fromCharacter: 4, toCharacter: 20
+        }));
+        expect(container.querySelector('.studio-passage-popover')?.getAttribute('role')).toBe('dialog');
+        expect(container.querySelector('.studio-passage-popover').textContent).toContain('selected passage');
+
+        const picker = container.querySelector('[data-passage-asset-picker]');
+        picker.value = 'procedural:klee';
+        picker.dispatchEvent(new Event('change', { bubbles: true }));
+        // Choosing a visual re-renders the score, which puts the author's
+        // selection back a frame later. Waited for rather than slept past: this
+        // is the frame that used to arrive after the test had finished and
+        // replace the NEXT test's selection with a range in a departed
+        // container, and a test that leaves its own frames in flight is how that
+        // reached across a file boundary at all.
+        await vi.waitFor(() => expect(window.getSelection().toString()).toBe('selected passage'));
+        expect(workshop.pendingScoreSelection).toEqual({
+            sourceId: 'selection-source', fromCharacter: 4, toCharacter: 20
+        });
+
+        const assign = container.querySelector('.studio-passage-popover [data-action="assign-score-selection"]');
+        expect(assign.disabled).toBe(false);
+        assign.click();
+        expect(container.querySelector('.visual-score-mark')?.textContent).toBe('selected passage');
+        expect(container.querySelector('.studio-passage-popover.is-confirmation')).not.toBeNull();
+
+        workshop.destroy();
+        container.remove();
+    });
+
+    /**
+     * WAITED FOR, NOT TIMED.
+     *
+     * These three paths debounce, and the waits here were fixed sleeps of 90 and
+     * 95 ms against a 40 ms and an 80 ms debounce. Passing because a duration is
+     * usually long enough is not the same as passing; this one failed once in two
+     * full-suite runs with `pendingScoreSelection` null where a span was
+     * expected. The cause was not the length of the sleep — it was a frame
+     * scheduled by the previous test's workshop arriving mid-test and replacing
+     * the document's selection (fixed in `restorePendingDomSelection`) — but a
+     * test that waits on a clock cannot tell the reader which of the two it
+     * caught. So it waits on the condition, and reports the timeout if the
+     * condition never arrives.
+     */
+    it('captures scoped selectionchange, touchend, and keyboard selection paths', async () => {
+        const { workshop, container } = makeWorkshop();
+        addSelectionSource(workshop);
+        workshop.activate();
+
+        selectCharacters(container, 0, 3);
+        document.dispatchEvent(new Event('selectionchange'));
+        await vi.waitFor(() => expect(workshop.pendingScoreSelection)
+            .toMatchObject({ fromCharacter: 0, toCharacter: 3 }));
+
+        workshop.cancelPendingScoreSelection({ announce: false });
+        const touchText = selectCharacters(container, 4, 12);
+        touchText.dispatchEvent(new Event('touchend', { bubbles: true }));
+        await vi.waitFor(() => expect(workshop.pendingScoreSelection)
+            .toMatchObject({ fromCharacter: 4, toCharacter: 12 }));
+
+        workshop.cancelPendingScoreSelection({ announce: false });
+        const keyboardText = selectCharacters(container, 13, 20);
+        keyboardText.dispatchEvent(new KeyboardEvent('keyup', { key: 'Shift', bubbles: true }));
+        expect(workshop.pendingScoreSelection).toMatchObject({ fromCharacter: 13, toCharacter: 20 });
+
+        workshop.destroy();
+        container.remove();
+    });
+
+    /**
+     * A ROOM THE AUTHOR HAS LEFT DOES NOT TOUCH THE DOCUMENT'S SELECTION.
+     *
+     * The frame `updateVisualScoreEditor` schedules while a passage is pending
+     * puts the author's selection back, and `window.getSelection()` belongs to
+     * the document rather than to any one Workshop. So a frame scheduled just
+     * before the author navigated away arrived after the next surface was
+     * mounted and replaced ITS selection with a range inside a container no
+     * longer in the document; the next capture found the selection outside its
+     * own text and dropped a passage the author had just made.
+     *
+     * That is what made the selectionchange test above flaky — not the length of
+     * its wait. Frames are held here rather than raced, so the ordering the
+     * full-suite run made possible once in two runs is the ordering this test
+     * always has.
+     */
+    it('does not reach into the selection after its container has gone', () => {
+        const frames = [];
+        const realRaf = globalThis.requestAnimationFrame;
+        globalThis.requestAnimationFrame = (callback) => frames.push(callback);
+        try {
+            const departing = makeWorkshop();
+            addSelectionSource(departing.workshop);
+            departing.workshop.activate();
+            selectCharacters(departing.container, 4, 20);
+            expect(departing.workshop.captureVisualScoreSelection()).toBe(true);
+            // What every picker change and every re-render does while a passage
+            // is pending: schedule the restore a frame ahead.
+            departing.workshop.updateVisualScoreEditor();
+            expect(frames.length).toBeGreaterThan(0);
+            departing.workshop.destroy();
+            departing.container.remove();
+
+            const arriving = makeWorkshop();
+            addSelectionSource(arriving.workshop);
+            arriving.workshop.activate();
+            selectCharacters(arriving.container, 0, 3);
+
+            // The departed room's frames arrive now.
+            for (const frame of frames.splice(0)) frame();
+
+            expect(window.getSelection().toString()).toBe('The');
+            expect(arriving.workshop.captureVisualScoreSelection()).toBe(true);
+            expect(arriving.workshop.pendingScoreSelection).toEqual({
+                sourceId: 'selection-source', fromCharacter: 0, toCharacter: 3
+            });
+
+            arriving.workshop.destroy();
+            arriving.container.remove();
+        } finally {
+            globalThis.requestAnimationFrame = realRaf;
+        }
+    });
+
+    it('activates Scored for the first assignment and lets the author undo only that activation', () => {
+        const { workshop, container } = makeWorkshop();
+        addSelectionSource(workshop);
+        workshop.selectEditorAsset('procedural:klee');
+        workshop.pendingScoreSelection = {
+            sourceId: 'selection-source', fromCharacter: 4, toCharacter: 20
+        };
+
+        expect(workshop.visualSurface()).toBe('off');
+        expect(workshop.assignPendingVisualScore()).toBe(true);
+        expect(workshop.visualSurface()).toBe('scored');
+        expect(workshop.sessionData.visualConfig.interlocution.fallbackCue)
+            .toEqual({ kind: 'still' });
+        expect(container.querySelector('.visual-score-activation-notice')?.textContent)
+            .toContain('Scored visuals activated');
+
+        container.querySelector('[data-action="undo-scored-activation"]').click();
+        expect(workshop.visualSurface()).toBe('off');
+        expect(workshop.sessionData.visualScoreAssignments).toHaveLength(1);
+        expect(workshop.prepareSessionPayload().visualConfig.visualMode).toBe('off');
+        expect(container.querySelector('.visual-score-activation-notice')).toBeNull();
+
+        workshop.destroy();
+        container.remove();
+    });
+
+    it('authors configured reading fields inside passages and retains the prior field as fallback', () => {
+        const { workshop, container } = makeWorkshop();
+        addSelectionSource(workshop);
+        workshop.sessionData.visualConfig = {
+            ...workshop.sessionData.visualConfig,
+            visualMode: 'genesis',
+            genesis: { preset: 'architectural', glass: false },
+            attractor: { system: 'thomas', palette: 'gold', form: 'mirror' }
+        };
+        workshop.selectEditorAsset('surface:attractor');
+        workshop.pendingScoreSelection = {
+            sourceId: 'selection-source', fromCharacter: 4, toCharacter: 20
+        };
+
+        expect(workshop.assignPendingVisualScore()).toBe(true);
+        const visualTrack = workshop.prepareSessionPayload().experienceProgram.tracks
+            .find(track => track.kind === 'visual');
+        expect(visualTrack.clips[0].cue).toEqual({
+            kind: 'field', renderer: 'attractor',
+            config: { system: 'thomas', palette: 'gold', form: 'mirror' }
+        });
+        expect(visualTrack.fallback).toEqual({
+            kind: 'field', renderer: 'genesis',
+            config: { preset: 'architectural', glass: false }
+        });
+
+        workshop.destroy();
+        container.remove();
+    });
+
+    it('authors and revises Klee passage climates as undoable clip configuration', () => {
+        const { workshop, container } = makeWorkshop();
+        addSelectionSource(workshop);
+        workshop.selectEditorAsset('procedural:klee');
+        expect(workshop.updateVisualStyleSetting('procedural:klee', 'klee-preset', 'harmonic')).toBe(true);
+        workshop.pendingScoreSelection = {
+            sourceId: 'selection-source', fromCharacter: 4, toCharacter: 20
+        };
+
+        expect(workshop.assignPendingVisualScore()).toBe(true);
+        expect(workshop.sessionData.visualScoreAssignments[0].cue).toEqual({
+            kind: 'procedural', collections: ['klee'], config: { preset: 'harmonic' }
+        });
+        expect(workshop.prepareSessionPayload().experienceProgram.tracks
+            .find(track => track.kind === 'visual').clips[0].cue).toEqual({
+                kind: 'procedural', collections: ['klee'], config: { preset: 'harmonic' }
+            });
+
+        workshop.updateVisualStyleSetting('procedural:klee', 'klee-preset', 'chaotic');
+        expect(workshop.sessionData.visualScoreAssignments[0].cue.config.preset).toBe('chaotic');
+        expect(workshop.undoVisualScore()).toBe(true);
+        expect(workshop.sessionData.visualScoreAssignments[0].cue.config.preset).toBe('harmonic');
+
+        workshop.destroy();
+        container.remove();
+    });
+
+    it('offers intentional stillness only when it can override a non-Off fallback', () => {
+        const { workshop, container } = makeWorkshop();
+        addSelectionSource(workshop);
+        workshop.pendingScoreSelection = {
+            sourceId: 'selection-source', fromCharacter: 4, toCharacter: 20
+        };
+        workshop.refreshScoreSelectionUi();
+        expect(container.querySelector('[data-action="assign-score-stillness"]')).toBeNull();
+
+        workshop.sessionData.visualConfig.visualMode = 'attractor';
+        workshop.sessionData.visualConfig.attractor = {
+            system: 'thomas', palette: 'gold', form: 'mirror'
+        };
+        workshop.refreshScoreSelectionUi();
+        expect(container.querySelector('[data-action="assign-score-stillness"]')).not.toBeNull();
+        expect(workshop.assignIntentionalStillness()).toBe(true);
+        const track = workshop.prepareSessionPayload().experienceProgram.tracks
+            .find(item => item.kind === 'visual');
+        expect(track.clips[0].cue).toEqual({ kind: 'still' });
+        expect(track.fallback).toEqual({
+            kind: 'field', renderer: 'attractor',
+            config: { system: 'thomas', palette: 'gold', form: 'mirror' }
+        });
+
+        workshop.destroy();
+        container.remove();
+    });
+
+    it('offers immediate preview, replace, and erase controls after assignment', async () => {
+        const { workshop, container } = makeWorkshop();
+        addSelectionSource(workshop);
+        workshop.selectEditorAsset('procedural:klee');
+        workshop.pendingScoreSelection = {
+            sourceId: 'selection-source', fromCharacter: 4, toCharacter: 20
+        };
+        workshop.assignPendingVisualScore();
+        const assignmentId = workshop.sessionData.visualScoreAssignments[0].id;
+
+        const picker = container.querySelector('.is-confirmation [data-passage-asset-picker]');
+        picker.value = 'procedural:turrell';
+        picker.dispatchEvent(new Event('change', { bubbles: true }));
+        container.querySelector('[data-action="replace-score-confirmation"]').click();
+        expect(workshop.sessionData.visualScoreAssignments[0]).toMatchObject({
+            id: assignmentId, assetId: 'procedural:turrell'
+        });
+
+        container.querySelector('[data-action="preview-score-assignment"]').click();
+        await new Promise(resolve => setTimeout(resolve, 20));
+        expect(document.activeElement).toBe(container.querySelector('.studio-sequence-map-entry.is-selected .studio-sequence-map-detail'));
+
+        container.querySelector('.studio-passage-popover [data-action="erase-score-assignment"]').click();
+        expect(workshop.sessionData.visualScoreAssignments).toEqual([]);
+        expect(container.querySelector('.studio-passage-popover')).toBeNull();
+
+        workshop.destroy();
+        container.remove();
+    });
+
+    it('closes the Source Library after adding a source and returns focus to the text', async () => {
+        const { workshop, container } = makeWorkshop(vi.fn(), { viewportWidth: 390 });
+        workshop.setStudioSurface('sources', { focus: false });
+        workshop.openSourceBrowser();
+        const browser = workshop.sourceBrowser;
+        browser.onSelect({
+            id: 'browser-source', name: 'Browser source', type: 'text/plain', data: 'Added once.'
+        }, { id: 'local' });
+
+        expect(browser._destroyed).toBe(true);
+        expect(workshop.sessionData.sources).toHaveLength(1);
+        expect(workshop.studioSurface).toBe('score');
+        // Closing animates first, then restores focus on the next frame.
+        await vi.waitFor(() => {
+            expect(workshop.sourceBrowser).toBeNull();
+            expect(document.activeElement).toBe(container.querySelector('#visual-score-text'));
+        }, { timeout: 2000 });
+
+        workshop.destroy();
+        container.remove();
+    });
+});
+
+describe('Workshop draft lifecycle', () => {
+    it('binds visual consent to the launched draft without persisting the scope', async () => {
+        localStorage.removeItem('rise_workshop_v1');
+        const { workshop, container, onCreateSession } = makeWorkshop();
+        workshop.sessionData.title = 'Scoped visual session';
+        workshop.addSource({
+            id: 'scope-source',
+            name: 'Scope source',
+            type: 'text/plain',
+            data: 'a bounded draft'
+        }, { id: 'local' });
+        const expectedScope = workshop.visualConsentScope;
+
+        await workshop.createSession();
+
+        expect(onCreateSession).toHaveBeenCalledWith(expect.objectContaining({
+            visualConfig: expect.objectContaining({ consentScope: expectedScope })
+        }));
+        const [saved] = JSON.parse(localStorage.getItem('rise_workshop_v1'));
+        expect(saved.defaults?.visual?.config?.consentScope).toBeUndefined();
+        expect(saved.visualConfig?.consentScope).toBeUndefined();
+
+        workshop.destroy();
+        container.remove();
+        localStorage.removeItem('rise_workshop_v1');
+    });
+
+    it('opens Recursion on a clean canvas and keeps prior unsaved work memory-only', () => {
+        localStorage.removeItem('rise_workshop_v1');
+        const { workshop, container } = makeWorkshop();
+
+        workshop.sessionData.title = 'Unfinished study';
+        workshop.addSource({
+            id: 'draft-source',
+            name: 'Draft source',
+            type: 'text/plain',
+            data: 'material still being arranged'
+        }, { id: 'local' });
+
+        workshop.update({ draftIntent: 'new-recursion', text: 'what remained after the session' });
+
+        expect(workshop.sessionData.title).toBe('');
+        expect(workshop.sessionData.sources).toHaveLength(1);
+        expect(workshop.sessionData.sources[0].metadata.source).toBe('chamber-recursion');
+        expect(workshop.suspendedDrafts).toHaveLength(1);
+        expect(localStorage.getItem('rise_workshop_v1')).toBeNull();
+
+        const draftId = workshop.suspendedDrafts[0].id;
+        const picker = container.querySelector('#workshop-sequence-select');
+        picker.value = `draft:${draftId}`;
+        picker.dispatchEvent(new Event('change', { bubbles: true }));
+
+        expect(workshop.sessionData.title).toBe('Unfinished study');
+        expect(workshop.sessionData.sources[0].name).toBe('Draft source');
+        expect(workshop.suspendedDrafts.some(draft => draft.data.sources[0]?.metadata?.source === 'chamber-recursion')).toBe(true);
+
+        workshop.destroy();
+        container.remove();
+    });
+
+    it('clears a saved sequence and reopens it for explicit editing without duplicating it', async () => {
+        localStorage.removeItem('rise_workshop_v1');
+        const { workshop, container } = makeWorkshop();
+
+        workshop.sessionData.title = 'First form';
+        workshop.addSource({
+            id: 'one',
+            name: 'Source one',
+            type: 'text/plain',
+            data: 'one two three'
+        }, { id: 'local' });
+        await workshop.saveSequenceToVault();
+
+        const [saved] = JSON.parse(localStorage.getItem('rise_workshop_v1'));
+        expect(workshop.sessionData.title).toBe('');
+        expect(workshop.sessionData.sources).toHaveLength(0);
+
+        await workshop.openSavedBlueprintAsync(saved.id, { preserveCurrent: false });
+        expect(workshop.sessionData.title).toBe('First form');
+
+        const titleInput = container.querySelector('#session-title');
+        titleInput.value = 'Revised form';
+        titleInput.dispatchEvent(new Event('input', { bubbles: true }));
+        await workshop.saveSequenceToVault();
+
+        const blueprints = JSON.parse(localStorage.getItem('rise_workshop_v1'));
+        expect(blueprints).toHaveLength(1);
+        expect(blueprints[0].id).toBe(saved.id);
+        expect(blueprints[0].title).toBe('Revised form');
+        expect(workshop.sessionData.sources).toHaveLength(0);
+
+        workshop.destroy();
+        container.remove();
+        localStorage.removeItem('rise_workshop_v1');
+    });
+
+    it('requires confirmation before Reset discards the active draft', () => {
+        const { workshop, container } = makeWorkshop();
+        const titleInput = container.querySelector('#session-title');
+        titleInput.value = 'Do not discard accidentally';
+        titleInput.dispatchEvent(new Event('input', { bubbles: true }));
+
+        const reset = container.querySelector('[data-action="reset-workshop"]');
+        reset.click();
+        expect(workshop.sessionData.title).toBe('Do not discard accidentally');
+        expect(reset.textContent).toContain('Confirm Reset');
+
+        reset.click();
+        expect(workshop.sessionData.title).toBe('');
+        expect(workshop.suspendedDrafts).toHaveLength(0);
+
+        workshop.destroy();
+        container.remove();
+    });
+});
+
+describe('Workshop atmosphere: exclusive beds', () => {
+    function chooseAudio(container, assetId) {
+        container.querySelector(`[data-audio-asset-id="${assetId}"]`).click();
+        container.querySelector('[data-action="apply-audio-default"]').click();
+    }
+
+    it('keeps selection ephemeral and commits through the Audio Inspector', () => {
+        const { workshop, container } = makeWorkshop();
+        workshop.editorDirty = false;
+
+        container.querySelector('[data-audio-asset-id="soundscape:aurora"]').click();
+        expect(workshop.sessionData.soundscape).toBe('none');
+        expect(workshop.editorDirty).toBe(false);
+        expect(container.querySelector('#studio-audio-inspector').open).toBe(true);
+
+        container.querySelector('[data-action="apply-audio-default"]').click();
+        expect(workshop.sessionData.soundscape).toBe('aurora');
+        expect(workshop.editorDirty).toBe(true);
+        expect(container.querySelector('[data-audio-bed]').textContent).toBe('Aurora');
+
+        workshop.destroy();
+        container.remove();
+    });
+
+    it('owns and stops exact audio previews without changing project defaults', async () => {
+        const audioEngine = {
+            init: vi.fn().mockResolvedValue(undefined),
+            resume: vi.fn().mockResolvedValue(undefined),
+            applyPreset: vi.fn(),
+            startSoundscape: vi.fn(),
+            stopSoundscape: vi.fn(),
+            playSwell: vi.fn().mockResolvedValue(undefined),
+            stopSwell: vi.fn()
+        };
+        const { workshop, container } = makeWorkshop(vi.fn(), {
+            audioEngineProvider: () => audioEngine,
+            audioPreviewDurationMs: 30000
+        });
+
+        workshop.selectAudioAsset('soundscape:aurora');
+        await workshop.previewSelectedAudioDefault();
+        expect(audioEngine.startSoundscape).toHaveBeenCalledWith('aurora');
+        expect(workshop.sessionData.soundscape).toBe('none');
+        expect(container.querySelector('[data-action="stop-audio-preview"]').disabled).toBe(false);
+
+        workshop.audioPreview.stop();
+        expect(audioEngine.stopSoundscape).toHaveBeenCalledWith(true);
+        expect(workshop.audioPreviewState.state).toBe('idle');
+
+        workshop.personalSwells = [{ id: 'exact-swell-id', name: 'Mine' }];
+        workshop.selectAudioAsset('swell:exact-swell-id');
+        await workshop.previewSelectedAudioDefault();
+        expect(audioEngine.playSwell).toHaveBeenCalledWith('exact-swell-id');
+        workshop.destroy();
+        expect(audioEngine.stopSwell).toHaveBeenCalledWith(true);
+        container.remove();
+    });
+
+    it('keeps conductor controls synchronized without reconstructing the score canvas', () => {
+        const { workshop, container } = makeWorkshop();
+        workshop.addSource({
+            id: 'paced-source', name: 'Paced source', type: 'text/plain',
+            data: Array.from({ length: 200 }, (_, index) => `word${index}`).join(' ')
+        }, { id: 'local' });
+        const scoreCanvas = container.querySelector('.studio-score-canvas');
+        container.querySelector('[data-action="focus-reading-inspector"]')?.click();
+        const slider = container.querySelector('#wpm-slider');
+
+        slider.value = '400';
+        slider.dispatchEvent(new Event('input', { bubbles: true }));
+
+        expect(container.querySelector('[data-reading-summary]').textContent).toContain('400 WPM');
+        expect(container.querySelector('[data-reading-duration]').textContent).toBe('30 sec');
+        expect(container.querySelector('.studio-score-canvas')).toBe(scoreCanvas);
+
+        workshop.destroy();
+        container.remove();
+    });
+
+    it('offers audio defaults in the unified library with Silence active by default', () => {
+        const { workshop, container } = makeWorkshop();
+        const cards = container.querySelectorAll('[data-audio-card-id]');
+        expect(cards).toHaveLength(WORKSHOP_AUDIO_ASSETS.length);
+        expect(container.querySelector('[data-audio-card-id="tone:silent"]')
+            .classList.contains('is-current')).toBe(true);
+        expect(workshop.sessionData.soundscape).toBe('none');
+        container.remove();
+    });
+
+    it('a soundscape rests the tones; a tone bed rests the soundscape', () => {
+        const { workshop, container } = makeWorkshop();
+
+        chooseAudio(container, 'tone:gateway');
+        expect(workshop.sessionData.audioPreset).toBe('gateway');
+
+        chooseAudio(container, 'soundscape:aurora');
+        expect(workshop.sessionData.soundscape).toBe('aurora');
+        expect(workshop.sessionData.audioPreset).toBe('silent');
+        expect(container.querySelector('[data-audio-card-id="soundscape:aurora"]')
+            .classList.contains('is-current')).toBe(true);
+
+        chooseAudio(container, 'tone:deep');
+        expect(workshop.sessionData.soundscape).toBe('none');
+        expect(container.querySelector('[data-audio-card-id="tone:deep"]')
+            .classList.contains('is-current')).toBe(true);
+
+        container.remove();
+    });
+
+    it('audioPreset only ever names a tone, so a bed and a recording cannot erase each other', () => {
+        // It used to hold both a tone and the flag `personal`, so choosing a
+        // personal recording wiped the tone bed and choosing a tone wiped the
+        // recording. One field, two meanings, mutually destructive.
+        const { workshop, container } = makeWorkshop();
+
+        chooseAudio(container, 'tone:deep');
+        expect(workshop.sessionData.audioPreset).toBe('deep');
+
+        chooseAudio(container, 'soundscape:faded-signal');
+        expect(workshop.sessionData.soundscape).toBe('faded-signal');
+        // One base layer at a time: a soundscape displaces a tone rather than
+        // sitting beside it.
+        expect(workshop.sessionData.audioPreset).toBe('silent');
+
+        container.remove();
+    });
+
+    it('rewrites a project that still carries the overloaded preset', () => {
+        const { workshop, container } = makeWorkshop();
+        workshop.replaceEditorData({
+            audioPreset: 'personal',
+            selectedSwellId: 'never-see-me-again'
+        }, { kind: 'draft' });
+
+        // A personal recording under the whole reading is the base layer now,
+        // so the pair becomes one soundscape and the dead flag is dropped.
+        expect(workshop.sessionData.soundscape).toBe('personal:never-see-me-again');
+        expect(workshop.sessionData.audioPreset).toBe('silent');
+        expect(workshop.sessionData.selectedSwellId).toBeNull();
+
+        container.remove();
+    });
+
+    it('washes the whole text while an audio bed sounds under it', () => {
+        const { workshop, container } = makeWorkshop();
+        workshop.addSource({
+            id: 'washed', name: 'Washed', type: 'text/plain',
+            data: 'Alpha beta gamma delta epsilon.'
+        }, { id: 'local', name: 'Local' });
+        workshop.scoreView = 'audio';
+        workshop.refreshVisualScoreView();
+
+        // Silence has nothing to wash.
+        expect(workshop.wholeReadingAudioWash()).toBeNull();
+        expect(container.querySelector('#visual-score-text')
+            .hasAttribute('data-whole-reading-audio')).toBe(false);
+
+        chooseAudio(container, 'soundscape:aurora');
+        workshop.refreshVisualScoreView();
+        expect(container.querySelector('#visual-score-text')
+            .getAttribute('data-whole-reading-audio')).toBe('Aurora');
+        expect(container.querySelector('.score-whole-reading-audio').textContent)
+            .toContain('Aurora');
+
+        container.remove();
+    });
+
+    it('washes the text the moment the audio is set, not at the next redraw', () => {
+        // The wash lives in the score canvas, which the Set button did not
+        // redraw — so it appeared only when something else happened to
+        // rebuild it, which in practice was assigning a passage clip.
+        const { workshop, container } = makeWorkshop();
+        workshop.addSource({
+            id: 'washed', name: 'Washed', type: 'text/plain',
+            data: 'Alpha beta gamma delta epsilon.'
+        }, { id: 'local', name: 'Local' });
+        workshop.scoreView = 'audio';
+        workshop.refreshVisualScoreView();
+
+        workshop.selectAudioAsset('soundscape:aurora');
+        expect(workshop.applySelectedAudioDefault()).toBe(true);
+
+        expect(container.querySelector('#visual-score-text')
+            .getAttribute('data-whole-reading-audio')).toBe('Aurora');
+        container.remove();
+    });
+
+    it('names a personal recording in the wash, and drops it when the file is deleted', async () => {
+        const { workshop, container } = makeWorkshop();
+        workshop.addSource({
+            id: 'washed', name: 'Washed', type: 'text/plain',
+            data: 'Alpha beta gamma delta epsilon.'
+        }, { id: 'local', name: 'Local' });
+        workshop.scoreView = 'audio';
+        workshop.personalSwells = [{ id: 'kanye', name: 'Never See Me Again' }];
+        workshop.selectAudioAsset('swell:kanye');
+        expect(workshop.applySelectedAudioDefault()).toBe(true);
+        workshop.refreshVisualScoreView();
+
+        expect(workshop.sessionData.soundscape).toBe('personal:kanye');
+        expect(container.querySelector('#visual-score-text')
+            .getAttribute('data-whole-reading-audio')).toBe('Never See Me Again');
+
+        // A recording that no longer exists cannot go on being the base layer.
+        vi.spyOn(PersonalSwells, 'removeSwell').mockResolvedValue(undefined);
+        vi.spyOn(PersonalSwells, 'getAll').mockResolvedValue([]);
+        await workshop.removePersonalSwell('kanye');
+        expect(workshop.sessionData.soundscape).toBe('none');
+
+        container.remove();
+    });
+
+    it('the soundscape rides the blueprint into the Vault', async () => {
+        localStorage.removeItem('rise_workshop_v1');
+        const onBlueprintsChanged = vi.fn();
+        const { workshop, container } = makeWorkshop(vi.fn(), { onBlueprintsChanged });
+
+        chooseAudio(container, 'soundscape:aurora');
+        workshop.sessionData.title = 'Aurora Session';
+        await workshop.saveSequenceToVault();
+
+        const [saved] = JSON.parse(localStorage.getItem('rise_workshop_v1'));
+        expect(saved.schema).toBe('rise.workshop-project.v1');
+        expect(saved.defaults.audio.soundscape).toBe('aurora');
+        expect(onBlueprintsChanged).toHaveBeenCalledOnce();
+
+        container.remove();
+        localStorage.removeItem('rise_workshop_v1');
+    });
+});
+
+describe('Workshop Phase 5 responsive and accessibility contracts', () => {
+    function addResponsiveFixture(workshop) {
+        workshop.addSource({
+            id: 'responsive-source', name: 'Responsive source', type: 'text/plain',
+            data: 'The selected passage survives every responsive surface transition.'
+        }, { id: 'local' });
+        return workshop.addSequenceVisualAsset(
+            'data:image/png;base64,cmVzcG9uc2l2ZQ==',
+            'Responsive image'
+        );
+    }
+
+    it('preserves a captured phone selection through the asset sheet and Assign', () => {
+        const { workshop, container } = makeWorkshop(vi.fn(), { viewportWidth: 390 });
+        const asset = addResponsiveFixture(workshop);
+        const scoreText = container.querySelector('#visual-score-text');
+        workshop.pendingScoreSelection = {
+            sourceId: 'responsive-source', fromCharacter: 4, toCharacter: 20
+        };
+        workshop.refreshSelectionActionBar();
+
+        container.querySelector('[data-action="choose-score-asset"]').click();
+        expect(container.querySelector('.workshop-studio').dataset.studioSurface).toBe('assets');
+        expect(workshop.pendingScoreSelection).toEqual({
+            sourceId: 'responsive-source', fromCharacter: 4, toCharacter: 20
+        });
+        expect(container.querySelector('#visual-score-text')).toBe(scoreText);
+
+        container.querySelector('#studio-selection-actions [data-action="assign-score-selection"]').click();
+        expect(workshop.sessionData.visualScoreAssignments).toHaveLength(1);
+        expect(workshop.sessionData.visualScoreAssignments[0].assetId).toBe(asset.id);
+        expect(container.querySelector('.workshop-studio').dataset.studioSurface).toBe('score');
+
+        workshop.destroy();
+        container.remove();
+    });
+
+    it('models tablet drawers without reconstructing the canvas or losing active clips', () => {
+        const { workshop, container } = makeWorkshop(vi.fn(), { viewportWidth: 900 });
+        addResponsiveFixture(workshop);
+        workshop.pendingScoreSelection = {
+            sourceId: 'responsive-source', fromCharacter: 0, toCharacter: 3
+        };
+        workshop.assignPendingVisualScore();
+        const assignmentId = workshop.sessionData.visualScoreAssignments[0].id;
+        const canvas = container.querySelector('.studio-score-canvas');
+
+        container.querySelector('[data-studio-surface-target="sources"]').click();
+        expect(container.querySelector('.workshop-studio').dataset.studioSurface).toBe('sources');
+        expect(container.querySelector('.studio-score-canvas')).toBe(canvas);
+        workshop.selectScoreAssignment(assignmentId);
+        container.querySelector('[data-studio-surface-target="inspector"]').click();
+        expect(workshop.selectedScoreAssignmentId).toBe(assignmentId);
+        expect(container.querySelector('.studio-score-canvas')).toBe(canvas);
+
+        workshop.destroy();
+        container.remove();
+    });
+
+    it('uses roving keyboard focus for asset listboxes and library tabs', () => {
+        const { workshop, container } = makeWorkshop();
+        const visualOptions = [...container.querySelectorAll('#visual-assets-list [role="option"]')];
+        visualOptions[0].focus();
+        visualOptions[0].dispatchEvent(new KeyboardEvent('keydown', {
+            key: 'ArrowDown', bubbles: true
+        }));
+        expect(document.activeElement).toBe(visualOptions[1]);
+        expect(visualOptions[1].tabIndex).toBe(0);
+
+        const visualTab = container.querySelector('[data-asset-lane="visual"]');
+        visualTab.focus();
+        visualTab.dispatchEvent(new KeyboardEvent('keydown', {
+            key: 'ArrowRight', bubbles: true
+        }));
+        expect(document.activeElement).toBe(container.querySelector('[data-asset-lane="audio"]'));
+        expect(workshop.activeAssetLane).toBe('audio');
+
+        workshop.destroy();
+        container.remove();
+    });
+
+    it('restores focus after partial registry refreshes and responsive drawer close', async () => {
+        const { workshop, container } = makeWorkshop(vi.fn(), { viewportWidth: 390 });
+        const option = container.querySelector('[data-editor-asset-id="procedural:klee"]');
+        option.focus();
+        option.click();
+        expect(document.activeElement?.dataset.focusKey).toBe('visual-asset:procedural:klee');
+
+        const assetsNav = container.querySelector('[data-studio-surface-target="assets"]');
+        assetsNav.focus();
+        assetsNav.click();
+        container.querySelector('.studio-asset-library [data-action="close-studio-surface"]').click();
+        await new Promise(resolve => setTimeout(resolve, 20));
+        expect(document.activeElement).toBe(assetsNav);
+
+        workshop.destroy();
+        container.remove();
+    });
+
+    it('traps source previews as dialogs and restores focus when they close', async () => {
+        const { workshop, container } = makeWorkshop();
+        workshop.addSource({
+            id: 'preview-source', name: 'Preview source', type: 'text/plain', data: 'Preview text.'
+        }, { id: 'local' });
+        const trigger = container.querySelector('[data-action="preview-source"]');
+        trigger.focus();
+        trigger.click();
+
+        const dialog = document.querySelector('.source-preview-modal');
+        expect(dialog.getAttribute('role')).toBe('dialog');
+        expect(dialog.getAttribute('aria-modal')).toBe('true');
+        expect(dialog.contains(document.activeElement)).toBe(true);
+        dialog.querySelector('.source-preview-close').click();
+        await new Promise(resolve => setTimeout(resolve, 220));
+        expect(document.activeElement).toBe(trigger);
+        expect(document.querySelector('.source-preview-modal')).toBeNull();
+
+        workshop.destroy();
+        container.remove();
+    });
+
+    it('makes highlights keyboard-selectable and exposes names beyond colour', () => {
+        const { workshop, container } = makeWorkshop();
+        addResponsiveFixture(workshop);
+        workshop.pendingScoreSelection = {
+            sourceId: 'responsive-source', fromCharacter: 4, toCharacter: 20
+        };
+        workshop.assignPendingVisualScore();
+        workshop.selectedScoreAssignmentId = null;
+        workshop.updateVisualScoreEditor();
+
+        const highlight = container.querySelector('.visual-score-mark');
+        expect(highlight.getAttribute('role')).toBe('button');
+        expect(highlight.getAttribute('aria-label')).toContain('Responsive image');
+        highlight.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+        expect(workshop.selectedScoreAssignmentId).not.toBeNull();
+
+        workshop.destroy();
+        container.remove();
+    });
+
+    it('bounds a 512-clip lane while retaining every source highlight', () => {
+        const { workshop, container } = makeWorkshop();
+        const sourceText = Array.from({ length: 512 }, () => 'a').join(' ');
+        workshop.sessionData.sources = Array.from({ length: 16 }, (_, index) => ({
+            id: index === 0 ? 'dense-source' : `support-${index}`,
+            name: `Dense source ${index + 1}`, type: 'text/plain',
+            data: index === 0 ? sourceText : `supporting source ${index}`,
+            words: index === 0 ? 512 : 3, providerId: 'local'
+        }));
+        const assets = Array.from({ length: 24 }, (_, index) => workshop.addSequenceVisualAsset(
+            'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==',
+            `Dense image ${index + 1}`
+        ));
+        workshop.sessionData.visualScoreAssignments = Array.from({ length: 512 }, (_, index) => ({
+            id: `dense-${index}`, sourceId: 'dense-source', assetId: assets[index % assets.length].id,
+            fromCharacter: index * 2, toCharacter: index * 2 + 1,
+            quoteStart: 'a', quoteEnd: 'a'
+        }));
+        workshop.activeScoreSourceId = 'dense-source';
+        workshop.selectedScoreAssignmentId = 'dense-511';
+        const startedAt = performance.now();
+        workshop.refreshVisualScoreView();
+        const elapsed = performance.now() - startedAt;
+
+        expect(container.querySelectorAll('.visual-score-mark')).toHaveLength(512);
+        expect(container.querySelectorAll('.visual-score-clip')).toHaveLength(161);
+        expect(container.querySelector('.visual-score-lane-limit').textContent).toContain('512 clips');
+        expect(workshop.sessionData.sources).toHaveLength(16);
+        expect(workshop.sessionData.sequenceVisualAssets).toHaveLength(24);
+        expect(elapsed).toBeLessThan(2000);
+
+        workshop.destroy();
+        container.remove();
+    });
+
+    it('keeps internal runtime terminology out of the public Studio copy', () => {
+        const { workshop, container } = makeWorkshop();
+        const copy = container.textContent.toLowerCase();
+        expect(copy).not.toContain('interlocution');
+        expect(copy).not.toContain('source family');
+        expect(copy).not.toContain('compatibility projection');
+        expect(copy).not.toContain('lowering');
+        workshop.destroy();
+        container.remove();
+    });
+
+    it('releases resize, preview, timer, and collection ownership on destroy', () => {
+        const audioEngine = {
+            stopSoundscape: vi.fn(), stopSwell: vi.fn(), applyPreset: vi.fn()
+        };
+        const { workshop, container } = makeWorkshop(vi.fn(), {
+            viewportWidth: 1280, audioEngineProvider: () => audioEngine
+        });
+        workshop.resetTimer = setTimeout(() => {}, 10000);
+        workshop.assetRemovalTimer = setTimeout(() => {}, 10000);
+        workshop.announcementTimer = setTimeout(() => {}, 10000);
+        workshop.visualSelectionCaptureTimer = setTimeout(() => {}, 10000);
+        workshop.activate();
+        const viewportBeforeDestroy = workshop.studioViewport;
+
+        workshop.destroy();
+        expect(workshop.collectionPreviewAbortController.signal.aborted).toBe(true);
+        expect(workshop.resetTimer).toBeNull();
+        expect(workshop.assetRemovalTimer).toBeNull();
+        expect(workshop.announcementTimer).toBeNull();
+        expect(workshop.visualSelectionCaptureTimer).toBeNull();
+        expect(workshop.boundContainerKeydownHandler).toBeNull();
+        window.dispatchEvent(new Event('resize'));
+        expect(workshop.studioViewport).toBe(viewportBeforeDestroy);
+
+        container.remove();
+    });
+});
+
+describe('Workshop Export MP4', () => {
+    afterEach(() => {
+        vi.unstubAllGlobals();
+    });
+
+    function scoredWorkshop() {
+        const { workshop, container } = makeWorkshop();
+        workshop.addSource({
+            id: 'score-source',
+            name: 'Score source',
+            type: 'text/plain',
+            data: 'Still water reflects the moon. Wind crosses the reeds.'
+        }, { id: 'local' });
+        workshop.addSequenceVisualAsset(
+            'data:image/png;base64,c2NvcmU=',
+            'Moon image'
+        );
+        workshop.updateVisualAssetsList();
+        const text = container.querySelector('#visual-score-text');
+        const range = document.createRange();
+        range.setStart(text.firstChild, 0);
+        range.setEnd(text.firstChild, 11);
+        const selection = window.getSelection();
+        selection.removeAllRanges();
+        selection.addRange(range);
+        text.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
+        container.querySelector('[data-action="assign-score-selection"]').click();
+        return { workshop, container };
+    }
+
+    it('shows Export MP4 beside the other project exports', () => {
+        const { workshop, container } = makeWorkshop();
+        expect(container.querySelector('[data-action="export-mp4"]')?.textContent).toBe('Export MP4');
+        workshop.destroy();
+        container.remove();
+    });
+
+    it('builds a kernel request from the current score', () => {
+        const { workshop, container } = scoredWorkshop();
+        const request = workshop.buildExportKernelRequest();
+        expect(request.schema).toBe('rise.kernel-request.v1');
+        expect(request.profileId).toBe('social-portrait-1080');
+        expect(request.painter).toBe('chamber');
+        expect(request.program.schema).toBe('rise.experience-program.v1');
+        expect(request.sources[0]).toMatchObject({
+            id: 'score-source',
+            data: 'Still water reflects the moon. Wind crosses the reeds.'
+        });
+        expect(request.program.tracks.some(track => track.kind === 'visual')).toBe(true);
+        workshop.destroy();
+        container.remove();
+    });
+
+    it('POSTs the kernel request to the local export job', async () => {
+        const fetchMock = vi.fn(async (_url, init = {}) => {
+            if (init.method === 'GET') {
+                return { ok: true, json: async () => ({ ok: true, available: true }) };
+            }
+            return {
+                ok: true,
+                json: async () => ({
+                    ok: true,
+                    mp4Path: 'D:\\out\\workshop-export\\export-1\\experience.mp4',
+                    jobHash: 'sha256:abc'
+                })
+            };
+        });
+        vi.stubGlobal('fetch', fetchMock);
+        const { workshop, container } = scoredWorkshop();
+        await workshop.exportMp4();
+        expect(fetchMock.mock.calls.some(call => call[0] === '/__rise/export-mp4'
+            && call[1]?.method === 'GET')).toBe(true);
+        const post = fetchMock.mock.calls.find(call => call[1]?.method === 'POST');
+        expect(post[0]).toBe('/__rise/export-mp4');
+        const body = JSON.parse(post[1].body);
+        expect(body.schema).toBe('rise.kernel-request.v1');
+        expect(body.program.schema).toBe('rise.experience-program.v1');
+        expect(body.profileId).toBe('social-portrait-1080');
+        workshop.destroy();
+        container.remove();
+    });
+
+    it('downloads kernel JSON for the CLI when the Node path is absent', async () => {
+        vi.stubGlobal('fetch', vi.fn(async () => {
+            throw new TypeError('Failed to fetch');
+        }));
+        const { workshop, container } = scoredWorkshop();
+        const downloaded = [];
+        workshop.downloadKernelRequest = request => {
+            downloaded.push(request);
+            return 'score-source.kernel-request.json';
+        };
+        await workshop.exportMp4();
+        expect(downloaded).toHaveLength(1);
+        expect(downloaded[0].schema).toBe('rise.kernel-request.v1');
+        expect(downloaded[0].program).toBeTruthy();
+        workshop.destroy();
+        container.remove();
+    });
+});
+
+describe('Workshop asynchronous save boundaries', () => {
+    it('preserves edits and pending images added while a save is underway', async () => {
+        const { MemoryCore } = await import('../../core/memory.js');
+        const save = MemoryCore.saveWorkshopBlueprintAsync.bind(MemoryCore);
+        let release;
+        const held = new Promise(resolve => { release = resolve; });
+        vi.spyOn(MemoryCore, 'saveWorkshopBlueprintAsync').mockImplementation(async (...args) => {
+            await held;
+            return save(...args);
+        });
+        const { workshop, container } = makeWorkshop();
+        workshop.sessionData.title = 'Original';
+        workshop.addSource({ id: 'source', name: 'Source', type: 'text/plain', data: 'one two three' }, { id: 'local' });
+        const saving = workshop.saveSequenceToVault();
+        workshop.sessionData.title = 'Later edit';
+        const laterImage = new Blob(['later'], { type: 'image/png' });
+        workshop.pendingMediaBlobs.set('later-image', laterImage);
+        release();
+        const saved = await saving;
+        expect(saved.title).toBe('Original');
+        expect(workshop.sessionData.title).toBe('Later edit');
+        expect(workshop.pendingMediaBlobs.get('later-image')).toBe(laterImage);
+        expect(workshop.activeBlueprintId).toBe(saved.id);
+        workshop.destroy();
+        container.remove();
+    });
+
+    it('does not clear another draft opened before a save finishes', async () => {
+        const { MemoryCore } = await import('../../core/memory.js');
+        const save = MemoryCore.saveWorkshopBlueprintAsync.bind(MemoryCore);
+        let release;
+        const held = new Promise(resolve => { release = resolve; });
+        vi.spyOn(MemoryCore, 'saveWorkshopBlueprintAsync').mockImplementation(async (...args) => { await held; return save(...args); });
+        const { workshop, container } = makeWorkshop();
+        workshop.addSource({ id: 'source', name: 'Source', type: 'text/plain', data: 'one two three' }, { id: 'local' });
+        const saving = workshop.saveSequenceToVault();
+        workshop.startNewSequence();
+        workshop.sessionData.title = 'Another draft';
+        release();
+        await saving;
+        expect(workshop.sessionData.title).toBe('Another draft');
+        expect(workshop.activeBlueprintId).toBeNull();
+        workshop.destroy();
+        container.remove();
+    });
+
+    it('prevents overlapping save and launch requests from creating duplicate projects', async () => {
+        const { workshop, container, onCreateSession } = makeWorkshop();
+        workshop.addSource({ id: 'source', name: 'Source', type: 'text/plain', data: 'one two three' }, { id: 'local' });
+        await Promise.all([workshop.saveSequenceToVault(), workshop.createSession()]);
+        expect(JSON.parse(localStorage.getItem('rise_workshop_v1'))).toHaveLength(1);
+        expect(onCreateSession).not.toHaveBeenCalled();
+        workshop.destroy();
+        container.remove();
+    });
+
+    it.each([false, undefined])('retains the editable draft when launch returns %s', async result => {
+        const { workshop, container } = makeWorkshop(async () => result);
+        workshop.addSource({ id: 'source', name: 'Source', type: 'text/plain', data: 'one two three' }, { id: 'local' });
+        await workshop.createSession();
+        expect(workshop.sessionData.sources).toHaveLength(1);
+        workshop.destroy();
+        container.remove();
+    });
+
+    it('waits for successful launch before clearing the editor', async () => {
+        let release;
+        const launched = new Promise(resolve => { release = resolve; });
+        const callback = vi.fn(() => launched);
+        const { workshop, container } = makeWorkshop(callback);
+        workshop.addSource({ id: 'source', name: 'Source', type: 'text/plain', data: 'one two three' }, { id: 'local' });
+        const launching = workshop.createSession();
+        await vi.waitFor(() => expect(callback).toHaveBeenCalled());
+        expect(workshop.sessionData.sources).toHaveLength(1);
+        release(true);
+        await launching;
+        expect(workshop.sessionData.sources).toHaveLength(0);
+        workshop.destroy();
+        container.remove();
+    });
+
+    it('preserves edits made while successful launch navigation is pending', async () => {
+        let release;
+        const launched = new Promise(resolve => { release = resolve; });
+        const { workshop, container } = makeWorkshop(() => launched);
+        workshop.addSource({ id: 'source', name: 'Source', type: 'text/plain', data: 'one two three' }, { id: 'local' });
+        const launching = workshop.createSession();
+        await vi.waitFor(() => expect(workshop.activeBlueprintId).not.toBeNull());
+        workshop.sessionData.title = 'Edit during navigation';
+        release(true);
+        await launching;
+        expect(workshop.sessionData.title).toBe('Edit during navigation');
+        expect(workshop.sessionData.sources).toHaveLength(1);
+        workshop.destroy();
+        container.remove();
+    });
+
+    it('preserves a replacement pending blob added while save metadata is unchanged', async () => {
+        const { MemoryCore } = await import('../../core/memory.js');
+        const save = MemoryCore.saveWorkshopBlueprintAsync.bind(MemoryCore);
+        let release;
+        const held = new Promise(resolve => { release = resolve; });
+        vi.spyOn(MemoryCore, 'saveWorkshopBlueprintAsync').mockImplementation(async (...args) => {
+            await held;
+            return save(...args);
+        });
+        const { workshop, container } = makeWorkshop();
+        workshop.addSource({ id: 'source', name: 'Source', type: 'text/plain', data: 'one two three' }, { id: 'local' });
+        const initial = new Blob(['initial'], { type: 'image/png' });
+        const replacement = new Blob(['replacement'], { type: 'image/png' });
+        workshop.pendingMediaBlobs.set('same-image', initial);
+        const saving = workshop.saveSequenceToVault();
+        workshop.pendingMediaBlobs.set('same-image', replacement);
+        release();
+        await saving;
+        expect(workshop.sessionData.sources).toHaveLength(1);
+        expect(workshop.pendingMediaBlobs.get('same-image')).toBe(replacement);
+        workshop.destroy();
+        container.remove();
+    });
+
+    it('keeps a committed save successful when the Vault refresh cannot hydrate media', async () => {
+        vi.spyOn(MemoryCore, 'getWorkshopBlueprintsHydrated')
+            .mockRejectedValue(new Error('temporary IndexedDB read failure'));
+        const { workshop, container } = makeWorkshop();
+        workshop.addSource({
+            id: 'source', name: 'Source', type: 'text/plain', data: 'one two three'
+        }, { id: 'local' });
+
+        const saved = await workshop.saveSequenceToVault();
+
+        expect(saved?.id).toBeTruthy();
+        expect(MemoryCore.getWorkshopBlueprints().map(project => project.id)).toContain(saved.id);
+        workshop.destroy();
+        container.remove();
+    });
+});

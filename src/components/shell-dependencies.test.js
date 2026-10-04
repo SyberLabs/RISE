@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { Library } from './Library.js';
-import { Vault } from './Vault.js';
+import { Vault } from './make/Vault.js';
 import { Settings } from './Settings.js';
 
 const mounted = [];

@@ -125,7 +125,7 @@ export async function completeOpenRouterConnect(taken, {
   return acceptOpenRouterKey(body?.key) ? { code: 'CONNECTED' } : { code: 'EXCHANGE_FAILED' };
 }
 
-/** Finish what takeOpenRouterReturn found on page load, and tell the Portal. */
+/** Finish what takeOpenRouterReturn found on page load, and tell Home. */
 export async function finishOpenRouterReturn(found, options) {
   const { callback, abandoned } = found || {};
   if (!callback && !abandoned) return null;

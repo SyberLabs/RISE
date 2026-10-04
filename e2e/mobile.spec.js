@@ -7,7 +7,6 @@ import { test, expect, openHomeNav } from './fixtures.js';
  * can clip sideways overflow while scrollWidth still matches the viewport.
  * Failures name the widest offender past the right edge.
  */
-const GATE = { code: 'rise2025', name: 'M', vault: null, timestamp: Date.now() };
 
 const PHONES = [
     { name: 'iPhone 12 portrait', width: 390, height: 844 },
@@ -23,7 +22,6 @@ const withdrawnJourneyTest = test.skip;
 
 async function enter(page, width, height) {
     await page.setViewportSize({ width, height });
-    await page.addInitScript((g) => localStorage.setItem('rise-beta-session', JSON.stringify(g)), GATE);
     await page.goto('/');
 }
 

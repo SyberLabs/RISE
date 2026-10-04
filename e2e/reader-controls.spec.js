@@ -7,19 +7,17 @@
  */
 import { test, expect, openHomeNav } from './fixtures.js';
 
-const GATE = { code: 'rise2025', name: 'Controls', vault: null, timestamp: Date.now() };
 const SEED = { text: 'Light enters form. '.repeat(30).trim(), textSource: 'Controls', origin: null };
 
 async function openNavigator(page) {
-    await page.addInitScript(({ gate, seed }) => {
-        localStorage.setItem('rise-beta-session', JSON.stringify(gate));
+    await page.addInitScript(({ seed }) => {
         localStorage.setItem('rise_orbital_text_v1', JSON.stringify(seed));
-    }, { gate: GATE, seed: SEED });
+    }, { seed: SEED });
     await page.goto('/');
     await openHomeNav(page, 'chamber');
     await page.waitForFunction(() => {
         const state = window.__RISE_TEST__?.getRouterState();
-        return state?.currentView === 'chamber' && state.transitioning === false;
+        return state?.currentView === 'read' && window.__RISE_TEST__.getView('read')?.activePane === 'setup' && state.transitioning === false;
     });
     await expect(page.locator('[data-action="toggle-adjust"]')).toBeVisible({ timeout: 20_000 });
     { const adjust = page.locator('[data-action="toggle-adjust"]'); if (await adjust.getAttribute('aria-expanded') === 'false') await adjust.click(); }

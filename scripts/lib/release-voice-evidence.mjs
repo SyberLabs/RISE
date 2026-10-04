@@ -21,10 +21,11 @@ function assetPath(root, asset) {
 async function readVerifiedAsset(root, key, entry, issues) {
   try {
     const bytes = await readFile(assetPath(root, entry.asset));
-    if (bytes.length <= 44
-      || bytes.subarray(0, 4).toString('ascii') !== 'RIFF'
-      || bytes.subarray(8, 12).toString('ascii') !== 'WAVE') {
-      issues.push({ key, code: 'VOICE_ASSET_INVALID_WAV', asset: entry.asset });
+    // Ogg page header, then the Opus identification header in the first page.
+    if (bytes.length <= 47
+      || bytes.subarray(0, 4).toString('ascii') !== 'OggS'
+      || bytes.subarray(28, 36).toString('ascii') !== 'OpusHead') {
+      issues.push({ key, code: 'VOICE_ASSET_INVALID_OPUS', asset: entry.asset });
       return null;
     }
     return { bytes, byteLength: bytes.length, hash: sha256(bytes) };

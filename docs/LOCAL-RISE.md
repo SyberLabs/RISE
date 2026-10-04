@@ -43,7 +43,7 @@ Options: `--port N`, `--no-open`, `--python PATH`, and `--self-test`. Once Kev i
 ## Network dependencies
 
 - **First run:** npm packages, Python packages (PyPI, the PyTorch CUDA index, and the Kev archive on GitHub), and model weights from Hugging Face.
-- **Every run:** none for decisions. The catalog comes from the committed seed files (`scripts/seed-*.sql`). After the first successful load, later runs set `HF_HUB_OFFLINE=1`.
+- **Every run:** none for decisions. The catalog is the static file the build publishes at `/content/catalog.json`. After the first successful load, later runs set `HF_HUB_OFFLINE=1`.
 - **Still online:** Library texts, museum imagery, and other content sources that RISE reads from the web, exactly as on the public site.
 
 Fully offline operation (catalog, assets, and inference with no network at all) has not yet been verified, so RISE does not claim it.

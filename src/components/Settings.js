@@ -28,7 +28,7 @@ import {
 /**
  * A READING CANNOT BE RESUMED ONCE ABANDONED — the exit overlay says so:
  * "The current sequence will be abandoned." So the panel a reader opens from
- * inside a reading is not the panel they visit from the Portal. It carries
+ * inside a reading is not the panel they visit from Home. It carries
  * what can rescue a reading in progress — the type, the chrome, the volume,
  * the two safety switches — and none of what is meaningless or destructive
  * there: the LOBBY drone does not play during a reading, and exporting or
@@ -40,7 +40,7 @@ const SESSION_SCOPE = 'session';
 /**
  * THE BAR IS THE IN-SESSION SETTINGS; THIS DOOR ONLY WIDENS IT.
  *
- * The Chamber's door opened the Portal's panel over the whole screen, and
+ * The Chamber's door opened Home's panel over the whole screen, and
  * narrowing its CONTENTS still left a full-screen replica for a handful of
  * controls. The bar scope is the honest size: what a reader can need without
  * abandoning a reading that cannot be resumed, and nothing they could have
@@ -56,7 +56,7 @@ const SESSION_SCOPE = 'session';
  *            A reader who starts feeling unwell needs the graded switch, and
  *            needs it without ending the reading.
  *
- * Face and Accent are the One Type editor's and the Portal's: changing a
+ * Face and Accent are the One Type editor's and Home's: changing a
  * typeface mid-sentence is not a rescue, it is a decision made too late.
  */
 const BAR_SCOPE = 'bar';
@@ -210,6 +210,22 @@ export class Settings {
           </section>
 
           ${this.inSession ? '' : `
+          <section class="settings-section" aria-labelledby="affect-heading">
+            <h2 id="affect-heading" class="settings-section-title">Affect</h2>
+
+            <div class="settings-row">
+              <div class="settings-label-group">
+                <label class="settings-label" for="${this.settingInputId('affect')}">Emotions map</label>
+                <p class="settings-hint">Where texts, colours and Living Flame scenes sit by valence, arousal and warmth.</p>
+              </div>
+              <label class="toggle">
+                <input id="${this.settingInputId('affect')}" type="checkbox" data-affect-toggle />
+                <span class="toggle-switch"></span>
+              </label>
+            </div>
+            <div class="settings-affect" data-section="affect" hidden></div>
+          </section>
+
           <section class="settings-section" aria-labelledby="data-heading">
             <h2 id="data-heading" class="settings-section-title">Your data</h2>
 
@@ -397,7 +413,7 @@ export class Settings {
 
     leave() {
         if (this.onClose) this.onClose();
-        else this.onNavigate('portal');
+        else this.onNavigate('home');
     }
 
     attachEvents() {
@@ -476,6 +492,10 @@ export class Settings {
             this.onChange('masterVolume', volume / 100);
         });
 
+        this.container.querySelector('[data-affect-toggle]')?.addEventListener('change', (e) => {
+            void this.showAffect(e.target.checked);
+        });
+
         // Data actions
         this.container.querySelector('[data-action="export-data"]')?.addEventListener('click', () => {
             this.exportData();
@@ -485,6 +505,58 @@ export class Settings {
             this.clearHistory();
         });
 
+    }
+
+    /**
+     * The Emotions map, below its toggle. Loaded the first time it is turned
+     * on and taken down when it is turned off. Leaving Settings takes it down
+     * too (`deactivate`), and returning brings it back while the toggle is on.
+     */
+    async showAffect(on) {
+        const section = this.container.querySelector('[data-section="affect"]');
+        const toggle = this.container.querySelector('[data-affect-toggle]');
+        if (!section || !toggle) return;
+        toggle.checked = on;
+        section.hidden = !on;
+        if (!on) {
+            this.emotions?.destroy();
+            this.emotions = null;
+            section.replaceChildren();
+            return;
+        }
+        if (this.emotions) return;
+        const { Emotions } = await import('./settings/Emotions.js');
+        if (!toggle.checked || this.emotions) return;
+        this.emotions = new Emotions(section);
+    }
+
+    /**
+     * The router's mark of a room with panes (router.js, in place): the
+     * affect section is Settings' one pane, so `/settings` and `/emotions`
+     * move within the room.
+     */
+    showPane(name, data = {}) {
+        return this.update({ ...data, pane: name });
+    }
+
+    /**
+     * Router entry and re-entry: `/emotions` names the affect section. A
+     * room entered from elsewhere is still hidden here, so the scroll waits
+     * for `activate()`.
+     */
+    async update(data) {
+        if (data?.pane !== 'affect') return;
+        await this.showAffect(true);
+        this.affectScrollPending = true;
+        this.scrollToAffect();
+    }
+
+    scrollToAffect() {
+        const section = this.container.querySelector('[data-section="affect"]');
+        if (!this.affectScrollPending || !section || section.closest('[hidden]')) return;
+        this.affectScrollPending = false;
+        // The whole section, so its heading and toggle are in view too.
+        (section.closest('.settings-section') || section).scrollIntoView?.({ block: 'start' });
     }
 
     handleKeyboard(e) {
@@ -543,16 +615,23 @@ export class Settings {
         if (this._active) return;
         this._active = true;
         document.addEventListener('keydown', this.boundKeyboardHandler);
+        if (this.container.querySelector('[data-affect-toggle]')?.checked) void this.showAffect(true);
+        this.scrollToAffect();
     }
 
     deactivate() {
         if (!this._active) return;
         this._active = false;
         document.removeEventListener('keydown', this.boundKeyboardHandler);
+        this.emotions?.destroy();
+        this.emotions = null;
+        this.container.querySelector('[data-section="affect"]')?.replaceChildren();
     }
 
     destroy() {
         this.deactivate();
+        this.emotions?.destroy();
+        this.emotions = null;
     }
 }
 

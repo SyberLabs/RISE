@@ -36,6 +36,6 @@ export function nightDriveSessionInput() {
     ...resolveJevChamberConfig(plan),
     visualProgram: compileJevVisualProgram(plan),
     audioProgram: compileJevAudioProgram(plan),
-    origin: { view: 'portal', icon: '✧', name: 'Home', experience: 'jev-sample' }
+    origin: { view: 'home', icon: '✧', name: 'Home', experience: 'jev-sample' }
   };
 }

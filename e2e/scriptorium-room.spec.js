@@ -10,12 +10,8 @@
  */
 import { test, expect } from './fixtures.js';
 
-const GATE = { code: 'rise2025', name: 'Scriptorium', vault: null, timestamp: Date.now() };
 
 async function openScriptorium(page) {
-    await page.addInitScript((gate) => {
-        localStorage.setItem('rise-beta-session', JSON.stringify(gate));
-    }, GATE);
     await page.goto('/');
     await expect(page.locator('.portal h1').first()).toBeVisible({ timeout: 15_000 });
     await page.evaluate(() => window.__RISE_TEST__?.navigate('scriptorium'));
@@ -65,7 +61,7 @@ test('an action leaves the reader where they were standing', async ({ page }) =>
         const field = document.querySelector('#scriptorium-intent');
         field.value = 'A sequence about memory and loss.';
         field.dispatchEvent(new Event('input', { bubbles: true }));
-        window.__RISE_TEST__?.getView('scriptorium')?.render?.();
+        window.__RISE_TEST__?.getView('make')?.tabInstance('scriptorium')?.render?.();
     });
     await page.waitForTimeout(300);
 

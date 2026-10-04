@@ -1,6 +1,5 @@
 import { test, expect, openHomeNav } from './fixtures.js';
 
-const GATE = { code: 'rise2025', name: 'M', vault: null, timestamp: Date.now() };
 
 test.use({
     viewport: { width: 390, height: 844 },
@@ -9,9 +8,6 @@ test.use({
 });
 
 async function openWorkshopWithSource(page) {
-    await page.addInitScript((gate) => {
-        localStorage.setItem('rise-beta-session', JSON.stringify(gate));
-    }, GATE);
     await page.goto('/');
     await openHomeNav(page, 'workshop');
     // A phone opens on the Scene Stack; passage scoring is Full studio.

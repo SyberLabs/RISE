@@ -9,7 +9,7 @@ import { JEV_PALETTES, jevColors } from './jev-palette.js';
 import { sessionColorTheme } from './session-presentation.js';
 import { normalizeFieldStyle } from './visual-style-definitions.js';
 import { PALETTES } from '../visuals/attractor.js';
-import { Chamber } from '../components/Chamber.js';
+import { Chamber } from '../components/read/Chamber.js';
 
 const current = (patch = {}) => ({
   schema: 'rise.current.v1',

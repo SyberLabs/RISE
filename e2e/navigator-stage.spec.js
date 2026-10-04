@@ -4,7 +4,6 @@ import { test, expect, openHomeNav } from './fixtures.js';
  * The phone navigator is a stage: the visual fills the screen, the rail sits
  * under the thumb, and nothing reaches the reading until Choose.
  */
-const GATE = { code: 'rise2025', name: 'M', vault: null, timestamp: Date.now() };
 
 // A phone's pointer is coarse; landscape relies on it to be told from a laptop.
 test.use({ hasTouch: true, isMobile: true });
@@ -17,7 +16,6 @@ const PHONES = [
 
 async function openStage(page, { width, height }) {
     await page.setViewportSize({ width, height });
-    await page.addInitScript((g) => localStorage.setItem('rise-beta-session', JSON.stringify(g)), GATE);
     await page.goto('/');
     await openHomeNav(page, 'library');
     await expect(page.locator('.archive-card').first()).toBeVisible({ timeout: 40000 });

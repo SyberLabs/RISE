@@ -1,5 +1,5 @@
 /**
- * The standalone host for a live Current, at `/live`.
+ * The host for a live Current, at `/live`: the live pane of Read.
  *
  * It is a host, not a room: a prompt, a Start, and, once the answer is being
  * presented in the Chamber, a small set of controls (interrupt, ask about this
@@ -120,7 +120,7 @@ export class LiveHost {
         if (this.embedded) {
             this.modules = this.loadModules();
             this.modules.catch(() => {});
-            void import('../../components/Chamber.js').catch(() => {});
+            void import('../../components/read/Chamber.js').catch(() => {});
             this.prefetchMic();
             void this.startEmbedded();
             return;
@@ -137,7 +137,7 @@ export class LiveHost {
         // Start to the first words is the answer’s and not the network’s.
         this.modules = this.loadModules();
         this.modules.catch(() => {});
-        void import('../../components/Chamber.js').catch(() => {});
+        void import('../../components/read/Chamber.js').catch(() => {});
         this.prefetchMic();
     }
 
@@ -372,9 +372,10 @@ export class LiveHost {
         // The container is shown before the router finishes its fade-in. Stop exposing controls as
         // soon as it is hidden, and resolve the instance through the router's public API.
         const mountedChamber = player => {
-            const view = this.router?.views?.get('chamber-session');
-            if (view?.container?.hidden !== false) return null;
-            const chamber = this.router?.getViewInstance?.('chamber-session');
+            // On screen only: Read's container shown and the chamber pane the one it shows.
+            const read = this.router?.getViewInstance?.('read');
+            if (this.router?.views?.get('read')?.container?.hidden !== false || read?.activePane !== 'chamber') return null;
+            const chamber = read.paneInstance('chamber');
             return chamber?.player === player ? chamber : null;
         };
         const runtime = createLiveRuntime({

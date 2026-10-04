@@ -1,8 +1,8 @@
 /**
  * The source system used to be built at boot: seven providers constructed
- * before the Portal painted, each dragging its inline data — 22 KB of verse
+ * before Home painted, each dragging its inline data — 22 KB of verse
  * in sacred.js, 32 KB of starters behind local.js, the *_deep catalogues
- * behind archive.js — into the main chunk. Nothing on the Portal path reads
+ * behind archive.js — into the main chunk. Nothing on Home path reads
  * any of it.
  */
 

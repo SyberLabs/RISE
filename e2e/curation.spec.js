@@ -1,5 +1,4 @@
 import { test, expect, openHomeNav } from './fixtures.js';
-const GATE = { code: 'rise2025', name: 'Curation', vault: null, timestamp: Date.now() };
 
 // Curation-only (SOURCE-CURATION-SPEC): the searched Wikimedia families
 // are retired, so no reading may cause a request to Commons for one.
@@ -11,12 +10,11 @@ test('no searched category is fetched', async ({ page }) => {
   });
   // Begin only enables once a text is chosen; seed one as the other
   // chamber specs do.
-  await page.addInitScript((g) => {
-    localStorage.setItem('rise-beta-session', JSON.stringify(g.gate));
+  await page.addInitScript(() => {
     localStorage.setItem('rise_orbital_text_v1', JSON.stringify({
       text: 'A short reading, held for the panel.', textSource: 'Seed', origin: null
     }));
-  }, { gate: GATE });
+  });
   await page.goto('/');
   await openHomeNav(page, 'chamber');
   await expect(page.locator('#begin-btn')).toBeEnabled({ timeout: 20000 });

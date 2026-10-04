@@ -1,0 +1,76 @@
+/* Make — one authoring room: the system header, a row of tabs, and the open
+   tab filling the rest of the window. Each tab was a whole-window room, so
+   the heights it took from the viewport are taken from the tab area here. */
+
+.make-room {
+  display: flex;
+  flex-direction: column;
+  height: 100dvh;
+  background: var(--sy-bg);
+}
+
+.make-nav {
+  display: flex;
+  flex: none;
+  gap: var(--sy-space-6);
+  overflow-x: auto;
+  padding: 0 var(--sy-space-8);
+  border-bottom: 1px solid var(--sy-line);
+}
+
+.make-nav .nav-item {
+  flex: none;
+  min-height: var(--sy-control-height);
+  margin-bottom: -1px;
+  padding: 0;
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  font: 500 14px/20px var(--sy-font-sans);
+  color: var(--sy-text-2);
+  cursor: pointer;
+  transition: color var(--sy-dur-hover) var(--sy-ease),
+    border-color var(--sy-dur-hover) var(--sy-ease);
+}
+.make-nav .nav-item:hover { color: var(--sy-text); }
+.make-nav .nav-item.active {
+  color: var(--sy-text);
+  border-bottom-color: var(--sy-brand);
+}
+.make-nav .nav-item:focus-visible {
+  outline: var(--sy-focus);
+  outline-offset: var(--sy-focus-offset);
+}
+
+.make-tabs {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+}
+
+.make-tabs > .room-pane {
+  height: 100%;
+  overflow-y: auto;
+}
+.make-tabs > .room-pane[hidden] { display: none; }
+
+/* The room's header already carries the lockup and the way home. */
+.make-tabs .room-header { display: none; }
+
+.make-tabs .workshop-studio,
+.make-tabs .scriptorium,
+.make-tabs .visual-lab {
+  height: 100%;
+  min-height: 0;
+}
+.make-tabs .workshop-studio .studio-content {
+  height: calc(100% - var(--studio-header-height));
+}
+.make-tabs .scene-stack-host,
+.make-tabs .scenes {
+  min-height: 100%;
+}
+
+@media (max-width: 640px) {
+  .make-nav { gap: var(--sy-space-5); padding: 0 var(--sy-space-4); }
+}

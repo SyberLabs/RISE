@@ -6,7 +6,7 @@
  * described the product to a stranger in terms the product no longer had.
  *
  * What is asserted here is the correspondence itself: every room the Guide
- * names must be a room the reader can reach. A door removed in Portal.js and
+ * names must be a room the reader can reach. A door removed in Home.js and
  * left standing here should fail out loud.
  */
 import { describe, it, expect } from 'vitest';

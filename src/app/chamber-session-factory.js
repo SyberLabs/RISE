@@ -74,8 +74,8 @@ export async function createChamberSession(operations, container, sessionData) {
         // A reading is the first thing that needs either of
         // these, so this is where they arrive. Chamber.js
         // imports the same cortex singleton, so opening the
-        // Chamber was always going to pay for it; opening the
-        // Portal no longer is.
+        // Chamber was always going to pay for it; opening
+        // Home no longer is.
         const visualCortex = await operations.ensureVisualCortex();
         assertCurrent();
         await operations.ensureAudioEngine();
@@ -404,7 +404,7 @@ export async function createChamberSession(operations, container, sessionData) {
 
         ui.updateLoadingStatus('Entering chamber...');
 
-        const { Chamber } = await import('../components/Chamber.js');
+        const { Chamber } = await import('../components/read/Chamber.js');
         assertCurrent();
 
         if (recitationVoice) {
@@ -480,23 +480,19 @@ export async function createChamberSession(operations, container, sessionData) {
                 // on the way back to try-rise.
                 //
                 // Disposal is still forced rather than left to the router,
-                // because the router only disposes views that share the
-                // INCOMING container, and try-rise does not share
-                // view-chamber.
-                const view = operations.router.views.get('chamber-session');
-                const dying = view?.instance || null;
+                // because the router disposes no room it leaves: the Read
+                // room keeps its panes, so the Chamber closes its own.
+                const read = operations.router.getViewInstance('read');
+                const dying = read?.paneInstance('chamber') || null;
                 const dispose = () => {
-                    if (!dying) return;
-                    dying.destroy();
-                    // Only if nothing has taken the slot in the meantime.
-                    if (view.instance === dying) view.instance = null;
+                    if (dying) read.closePane('chamber', dying);
                 };
 
                 const target = chamberExitTarget(reason, session, data);
                 if (target?.kind === 'continue') {
-                    // The container is reused immediately here, so the old
-                    // owner has to go before the new one mounts into it.
-                    dispose();
+                    // The next division mounts into this pane at once, so this
+                    // Chamber goes first, leaving what it showed until then.
+                    if (dying) read.closePane('chamber', dying, { keepElement: true });
                     void operations.continueLibraryReading(session);
                 } else if (target?.kind === 'navigate') {
                     // Through the shell rather than the router, so the rules

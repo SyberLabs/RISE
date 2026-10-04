@@ -1,5 +1,4 @@
 import { test, expect, openHomeNav } from './fixtures.js';
-const GATE = { code: 'rise2025', name: 'Suspend', vault: null, timestamp: Date.now() };
 const SEED = { text: 'The pendulum draws the chord it hears. '.repeat(60).trim(), textSource: 'Seed', origin: null };
 
 // A Gallery reading: the clearest temporal presenter to observe.
@@ -15,10 +14,9 @@ const PREFS = {
 
 async function boot(page, prefs = PREFS) {
   await page.addInitScript((g) => {
-    localStorage.setItem('rise-beta-session', JSON.stringify(g.gate));
     localStorage.setItem('rise_orbital_text_v1', JSON.stringify(g.seed));
     localStorage.setItem('rise_orbital_prefs_v1', JSON.stringify(g.prefs));
-  }, { gate: GATE, seed: SEED, prefs });
+  }, { seed: SEED, prefs });
   await page.goto('/');
   await expect(page.locator('.portal h1').first()).toBeVisible({ timeout: 15000 });
   await openHomeNav(page, 'chamber');
@@ -69,7 +67,7 @@ test('a spatial launch runs no temporal visual machinery', async ({ page }) => {
   await boot(page);
   // choose the page projection directly on the orbital config
   await page.evaluate(() => {
-    const inst = window.__RISE_TEST__.getView('chamber');
+    const inst = window.__RISE_TEST__.getView('read')?.paneInstance('setup');
     inst.config.projection = 'page';
   });
   await page.locator('#begin-btn').click();
@@ -80,7 +78,7 @@ test('a spatial launch runs no temporal visual machinery', async ({ page }) => {
   await page.waitForTimeout(2500);
 
   const state = await page.evaluate(() => {
-    const ch = window.__RISE_TEST__.getView('chamber-session');
+    const ch = window.__RISE_TEST__.getView('read')?.paneInstance('chamber');
     return {
       projection: window.__RISE_TEST__.getCurrentSession()?.projection,
       visualMode: window.__RISE_TEST__.getCurrentSession()?.visualConfig?.visualMode,
@@ -107,7 +105,7 @@ test('a focal survives a direct Page launch and renders above the reading', asyn
     }
   });
   await page.evaluate(() => {
-    window.__RISE_TEST__.getView('chamber').config.projection = 'page';
+    window.__RISE_TEST__.getView('read').paneInstance('setup').config.projection = 'page';
   });
   await page.locator('#begin-btn').click();
   await expect(page.locator('.page-article')).toBeVisible({ timeout: 20000 });

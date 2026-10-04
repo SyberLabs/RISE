@@ -70,9 +70,6 @@ test('reader shifts Jev’s next visual scene without moving the text or pace', 
   page.on('console', message => {
     if (message.text().includes('[Visual Cortex] Cue activated:')) visualCues.push(message.text());
   });
-  await page.addInitScript(() => localStorage.setItem('rise-beta-session', JSON.stringify({
-    code: 'rise2025', name: 'Jev steering harness', vault: null, timestamp: Date.now()
-  })));
   await page.goto('/');
   await askHome(page, 'A reflective reading with changing visual scenes.');
   await expect(page.locator('#chamber-display')).toBeVisible({ timeout: 20_000 });
@@ -81,7 +78,7 @@ test('reader shifts Jev’s next visual scene without moving the text or pace', 
   await expect(shift).toBeVisible();
   await expect(shift).toBeEnabled({ timeout: 20_000 });
   const before = await page.evaluate(() => {
-    const chamber = window.__RISE_TEST__.getView('chamber-session');
+    const chamber = window.__RISE_TEST__.getView('read')?.paneInstance('chamber');
     return {
       index: chamber.player.sessionState.currentIndex,
       progress: chamber._jevCurrentAtom?.sourceProgress,
@@ -98,7 +95,7 @@ test('reader shifts Jev’s next visual scene without moving the text or pace', 
 
   await page.locator('#chamber-display').hover();
   const immediate = await page.evaluate(() => {
-    const chamber = window.__RISE_TEST__.getView('chamber-session');
+    const chamber = window.__RISE_TEST__.getView('read')?.paneInstance('chamber');
     const beforeClick = {
       index: chamber.player.sessionState.currentIndex,
       progress: chamber._jevCurrentAtom?.sourceProgress,
@@ -144,7 +141,7 @@ test('reader shifts Jev’s next visual scene without moving the text or pace', 
   expect(jevRequests()).toBe(1);
 
   const after = await page.evaluate(() => {
-    const chamber = window.__RISE_TEST__.getView('chamber-session');
+    const chamber = window.__RISE_TEST__.getView('read')?.paneInstance('chamber');
     return {
       index: chamber.player.sessionState.currentIndex,
       progress: chamber._jevCurrentAtom?.sourceProgress,
@@ -162,9 +159,6 @@ test('reader shifts Jev’s next visual scene without moving the text or pace', 
 test('spoken Jev request opens a reading whose look can be changed live', async ({ page }) => {
   let requestBody;
   await page.addInitScript(() => {
-    localStorage.setItem('rise-beta-session', JSON.stringify({
-      code: 'rise2025', name: 'Jev voice harness', vault: null, timestamp: Date.now()
-    }));
     window.SpeechRecognition = class {
       start() {
         this.onresult?.({ resultIndex: 0, results: [{ isFinal: true, 0: {
@@ -225,9 +219,6 @@ test.describe('touch reader', () => {
   test.use({ hasTouch: true, viewport: { width: 390, height: 844 } });
 
   test('can reveal the Shift control by tapping the Gallery', async ({ page }) => {
-    await page.addInitScript(() => localStorage.setItem('rise-beta-session', JSON.stringify({
-      code: 'rise2025', name: 'Jev touch harness', vault: null, timestamp: Date.now()
-    })));
     await routeTestOpenRouter(page, decision);
     await page.goto('/');
     await askHome(page, 'A reading with a visual scene I can change.');

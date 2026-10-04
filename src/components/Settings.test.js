@@ -81,7 +81,7 @@ describe('Settings display type', () => {
     // abandoned, so the door inside one carries only what can rescue it. What
     // is meaningless there (the LOBBY drone, the About plate) or destructive
     // there (export, and a clear that wipes the session and reloads) stays in
-    // the Portal, where a reader arrives on purpose and has nothing running.
+    // Home, where a reader arrives on purpose and has nothing running.
     it('withholds the between-sessions controls from the in-session panel', () => {
         const container = document.createElement('div');
         document.body.appendChild(container);
@@ -112,7 +112,7 @@ describe('Settings display type', () => {
         session.destroy();
     });
 
-    it('keeps the full panel in the Portal, where nothing is running', () => {
+    it('keeps the full panel in Home, where nothing is running', () => {
         const { container, settings } = mountSettings();
         for (const kept of [
             '[data-setting="enableAmbient"]',
@@ -304,7 +304,7 @@ describe('Settings display type', () => {
         settings.destroy();
     });
 
-    it('returns through onClose when opened from Chamber and still goes Portal from the route', () => {
+    it('returns through onClose when opened from Chamber and still goes Home from the route', () => {
         const overlay = document.createElement('div');
         document.body.appendChild(overlay);
         const onClose = vi.fn();
@@ -326,8 +326,121 @@ describe('Settings display type', () => {
         const onNavigate = vi.fn();
         const portalSettings = new Settings(route, { onNavigate });
         route.querySelector('[data-action="back"]').click();
-        expect(onNavigate).toHaveBeenCalledWith('portal');
+        expect(onNavigate).toHaveBeenCalledWith('home');
         portalSettings.destroy();
     });
 });
 
+
+describe('Settings affect section', () => {
+    afterEach(() => {
+        document.body.replaceChildren();
+    });
+
+    it('mounts the Emotions map below its toggle when the toggle is turned on, and removes it when off', async () => {
+        const container = document.createElement('div');
+        document.body.appendChild(container);
+        const settings = new Settings(container);
+        const section = container.querySelector('[data-section="affect"]');
+        expect(section.hidden).toBe(true);
+        expect(section.querySelector('.emotions')).toBeNull();
+
+        const toggle = container.querySelector('[data-affect-toggle]');
+        toggle.checked = true;
+        toggle.dispatchEvent(new Event('change'));
+        await vi.waitFor(() => expect(section.querySelector('canvas.emotions-field')).not.toBeNull());
+        expect(section.hidden).toBe(false);
+
+        toggle.checked = false;
+        toggle.dispatchEvent(new Event('change'));
+        expect(section.hidden).toBe(true);
+        expect(section.querySelector('.emotions')).toBeNull();
+        settings.destroy();
+    });
+
+    it('opens the affect section when the router names it', async () => {
+        const container = document.createElement('div');
+        document.body.appendChild(container);
+        const settings = new Settings(container);
+        const section = container.querySelector('[data-section="affect"]');
+        const scroll = vi.fn();
+        section.closest('.settings-section').scrollIntoView = scroll;
+        await settings.update({ pane: 'affect' });
+        expect(container.querySelector('[data-affect-toggle]').checked).toBe(true);
+        expect(section.hidden).toBe(false);
+        expect(section.querySelector('canvas.emotions-field')).not.toBeNull();
+        expect(scroll).toHaveBeenCalled();
+        settings.destroy();
+    });
+
+    it('waits until the room is shown to scroll to the affect section', async () => {
+        const container = document.createElement('div');
+        container.hidden = true;
+        document.body.appendChild(container);
+        const settings = new Settings(container);
+        const section = container.querySelector('[data-section="affect"]');
+        const scroll = vi.fn();
+        section.closest('.settings-section').scrollIntoView = scroll;
+        await settings.update({ pane: 'affect' });
+        expect(scroll).not.toHaveBeenCalled();
+        container.hidden = false;
+        settings.activate();
+        expect(scroll).toHaveBeenCalledTimes(1);
+        settings.destroy();
+    });
+
+    it('stops the Emotions animation when Settings is left, and brings it back on return', async () => {
+        // A stub that keeps the browser's promise: a cancelled frame never runs.
+        const frames = new Map();
+        let next = 0;
+        vi.stubGlobal('requestAnimationFrame', vi.fn(callback => { frames.set(++next, callback); return next; }));
+        vi.stubGlobal('cancelAnimationFrame', vi.fn(id => frames.delete(id)));
+        const container = document.createElement('div');
+        document.body.appendChild(container);
+        const settings = new Settings(container);
+        settings.activate();
+        await settings.update({ pane: 'affect' });
+        expect(frames.size).toBeGreaterThan(0);
+
+        settings.deactivate();
+        const scheduled = requestAnimationFrame.mock.calls.length;
+        const pending = [...frames.values()];
+        frames.clear();
+        for (const frame of pending) frame(16);
+        expect(requestAnimationFrame.mock.calls.length).toBe(scheduled);
+        expect(container.querySelector('[data-section="affect"] .emotions')).toBeNull();
+
+        settings.activate();
+        await vi.waitFor(() => expect(container.querySelector('[data-section="affect"] canvas.emotions-field')).not.toBeNull());
+        settings.destroy();
+        vi.unstubAllGlobals();
+    });
+
+    it('opens the affect section in place when the router moves from Settings to Emotions', async () => {
+        document.body.innerHTML = '<main id="settings-view"></main>';
+        const { Router } = await import('../core/router.js');
+        const router = new Router({ history: { pushState: vi.fn(), replaceState: vi.fn() } });
+        router.transitionDuration = 0;
+        const made = [];
+        router.registerView('settings', {
+            container: document.querySelector('#settings-view'),
+            init: (el, data) => { const room = new Settings(el); made.push(room); return room.update(data).then(() => room); }
+        });
+        await router.navigate('settings');
+        const update = vi.spyOn(made[0], 'update');
+        await router.navigate('emotions');
+        expect(made).toHaveLength(1);
+        expect(update).toHaveBeenCalledWith({ pane: 'affect' });
+        expect(document.querySelector('[data-affect-toggle]').checked).toBe(true);
+        made[0].destroy();
+        router.destroy();
+    });
+
+    it('leaves affect out of the panel opened over a reading', () => {
+        const container = document.createElement('div');
+        document.body.appendChild(container);
+        const settings = new Settings(container, { scope: 'session' });
+        expect(container.querySelector('[data-section="affect"]')).toBeNull();
+        settings.destroy();
+    });
+});

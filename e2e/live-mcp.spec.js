@@ -325,10 +325,12 @@ test('under reduced motion the imagery holds still, the reader is told so, and t
   await expectShown(app, 'A composition grows beneath');
   await expect.poll(() => picturesOverASecond(app.locator('.chamber-genesis canvas.klee-field-canvas')), { timeout: 5_000 }).toBe(1);
 
+  const chamberPane = app.locator('#view-read .room-pane[data-pane="chamber"]');
+  await expect(chamberPane).toBeVisible();
   await app.getByRole('button', { name: 'Stop', exact: true }).click();
   await expect(app.locator('.live-embed')).toContainText('Stopped.');
   await expect(app.locator('#live-controls')).toHaveCount(0);
-  await expect(app.locator('#view-chamber')).toBeHidden();
+  await expect(chamberPane).toBeHidden();
 });
 
 const TWO_FIELDS = {
@@ -348,9 +350,11 @@ test('after Stop the hidden reading draws nothing more, a later passage’s fiel
   // The check can see drawing: while the reading plays, the field moves.
   await expect.poll(() => picturesOverASecond(field), { timeout: 5_000 }).toBeGreaterThan(1);
 
+  const chamberPane = app.locator('#view-read .room-pane[data-pane="chamber"]');
+  await expect(chamberPane).toBeVisible();
   await app.getByRole('button', { name: 'Stop', exact: true }).click();
   await expect(app.locator('.live-embed')).toContainText('Stopped.');
-  await expect(app.locator('#view-chamber')).toBeHidden();
+  await expect(chamberPane).toBeHidden();
   expect(await picturesOverASecond(field)).toBeLessThanOrEqual(1);
 });
 

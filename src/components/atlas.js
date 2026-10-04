@@ -4,8 +4,8 @@
  *
  * This file is tiny on purpose. The engines are the vendored kit files in
  * src/vendor/syber/, and both are reached by `import()` only, so neither is
- * part of what a first visit downloads before the Portal paints. Nothing here
- * runs on a reading route: the Portal destroys its atmosphere when the router
+ * part of what a first visit downloads before Home paints. Nothing here
+ * runs on a reading route: Home destroys its atmosphere when the router
  * deactivates it, and the gate destroys its own when the reader enters.
  */
 

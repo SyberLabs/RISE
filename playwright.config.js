@@ -35,6 +35,7 @@ import { defineConfig } from '@playwright/test';
  *   scriptorium       the refusal panel, whose whole job is phrasing
  *   journeys          Home and the Vault offer no Journeys door
  *   curation          what the shelf is allowed to show
+ *   url-routing       every room has an address; reload and Back keep it
  *
  * Full coverage runs in sixteen shards on main without holding the release.
  * This corridor is the local fast check before pushing and runs in every
@@ -55,7 +56,8 @@ const GATE = [
     '**/recitation.spec.js',
     '**/request-preview.spec.js',
     '**/scriptorium.spec.js',
-    '**/smoke.spec.js'
+    '**/smoke.spec.js',
+    '**/url-routing.spec.js'
 ];
 const e2ePort = Number(process.env.RISE_E2E_PORT) || 4317;
 

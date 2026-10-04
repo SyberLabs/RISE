@@ -496,127 +496,157 @@ describe('speaking to it', () => {
 });
 
 describe('the runtime visual bridge', () => {
-    it('only discovers and controls the mounted Chamber for the exact runtime Player', async () => {
-        mount('?voice=paced');
+    /**
+     * Read, as the host sees it: one room whose container the router shows and hides,
+     * with the live host and the Chamber as panes. Only the shown pane is on screen.
+     */
+    function readRouter({ onChamber = async () => {} } = {}) {
+        const read = {
+            activePane: 'live',
+            chamber: null,
+            paneInstance: pane => (pane === 'chamber' ? read.chamber : null),
+            closePane(pane, which = read.chamber) {
+                if (pane !== 'chamber' || which !== read.chamber) return;
+                read.chamber = null;
+                if (read.activePane === 'chamber') read.activePane = null;
+            }
+        };
+        const room = { container: { hidden: false }, instance: read };
         const router = {
-            current: 'live',
-            views: new Map(),
+            read,
+            room,
+            current: 'read',
+            views: new Map([['read', room]]),
             getCurrentView() { return this.current; },
             getViewInstance(name) { return this.views.get(name)?.instance ?? null; },
             async navigate(name, options = {}) {
-                this.current = name;
-                const shown = this.views.get('chamber-session');
-                if (shown) shown.container.hidden = name !== 'chamber-session';
                 if (name === 'chamber-session') {
                     const { takeLivePlayer } = await import('../../app/live-handoff.js');
-                    const player = takeLivePlayer(options.data);
-                    this.views.set(name, { container: { hidden: false }, instance: {
-                        player,
+                    read.chamber = {
+                        player: takeLivePlayer(options.data),
                         discoverVisual: () => ({ manifest: { surface: 'attractor' }, current: { intensity: 0.65 }, target: { intensity: 0.65 } }),
                         controlVisual: vi.fn(command => ({ status: 'accepted', effective: command.value }))
-                    } });
+                    };
+                    read.activePane = 'chamber';
+                    await onChamber(room);
+                    this.current = 'read';
+                } else if (name === 'live') {
+                    read.activePane = 'live';
+                } else {
+                    room.container.hidden = true;
+                    this.current = name;
                 }
                 return true;
             }
         };
+        return router;
+    }
+
+    it('only discovers and controls the shown Chamber playing the exact runtime Player', async () => {
+        mount('?voice=paced');
+        const router = readRouter();
         host.router = router;
         host.buildVoices = async () => null;
         await host.start();
         await new Promise(resolve => setTimeout(resolve, 250));
         const player = host.runtime.playerFor();
-        const chamber = router.getViewInstance('chamber-session');
+        const chamber = router.read.chamber;
+        const command = { surface: 'attractor', parameter: 'intensity', value: 0.7 };
         expect(chamber.player).toBe(player);
         expect(host.runtime.discoverVisual()).toMatchObject({ current: { intensity: 0.65 } });
-        expect(host.runtime.controlVisual({ surface: 'attractor', parameter: 'intensity', value: 0.7 }))
-            .toMatchObject({ status: 'accepted', requested: 0.7, effective: 0.7 });
-        expect(chamber.controlVisual).toHaveBeenCalledWith({ surface: 'attractor', parameter: 'intensity', value: 0.7 });
+        expect(host.runtime.controlVisual(command)).toMatchObject({ status: 'accepted', requested: 0.7, effective: 0.7 });
+        expect(chamber.controlVisual).toHaveBeenCalledWith(command);
 
         chamber.player = {};
         expect(host.runtime.discoverVisual()).toBeNull();
-        expect(host.runtime.controlVisual({ surface: 'attractor', parameter: 'intensity', value: 0.7 }))
-            .toEqual({ status: 'refused', code: 'NO_ACTIVE_VISUAL' });
+        expect(host.runtime.controlVisual(command)).toEqual({ status: 'refused', code: 'NO_ACTIVE_VISUAL' });
         chamber.player = player;
-        await router.navigate('portal');
+
+        // The live pane shown instead: the Chamber is kept, hidden, and not controlled.
+        await router.navigate('live');
+        expect(router.read.chamber).toBe(chamber);
         expect(host.runtime.discoverVisual()).toBeNull();
-        expect(host.runtime.controlVisual({ surface: 'attractor', parameter: 'intensity', value: 0.7 }))
-            .toEqual({ status: 'refused', code: 'NO_ACTIVE_VISUAL' });
+        expect(host.runtime.controlVisual(command)).toEqual({ status: 'refused', code: 'NO_ACTIVE_VISUAL' });
+        router.read.activePane = 'chamber';
+
+        // Read left for another room: off screen, so not controlled either.
+        await router.navigate('home');
+        expect(host.runtime.discoverVisual()).toBeNull();
+        expect(host.runtime.controlVisual(command)).toEqual({ status: 'refused', code: 'NO_ACTIVE_VISUAL' });
+        expect(chamber.controlVisual).toHaveBeenCalledTimes(1);
         await host.stop();
     });
 
     it('controls the Chamber from the moment the router shows it, before its fade-in ends, and not after it is left', async () => {
         mount('?voice=paced');
-        const { liveMounted, takeLivePlayer } = await import('../../app/live-handoff.js');
+        const { liveMounted } = await import('../../app/live-handoff.js');
         let fadedIn = null;
-        // Shaped like the shell's router: a view's container is shown before
-        // its fade-in, and the view is reported current only after it.
-        const router = {
-            current: 'live',
-            views: new Map([['chamber-session', { container: { hidden: true }, instance: null }]]),
-            getCurrentView() { return this.current; },
-            getViewInstance(name) { return this.views.get(name)?.instance ?? null; },
-            async navigate(name, options = {}) {
-                const chamberView = this.views.get('chamber-session');
-                if (name !== 'chamber-session') {
-                    chamberView.container.hidden = true;
-                    this.current = name;
-                    return true;
-                }
-                chamberView.instance = {
-                    player: takeLivePlayer(options.data),
-                    discoverVisual: () => ({ manifest: { surface: 'attractor' }, current: { intensity: 0.65 }, target: { intensity: 0.65 } }),
-                    controlVisual: vi.fn(command => ({ status: 'accepted', effective: command.value }))
-                };
+        // Shaped like the shell's router on a forced move within Read: the room is hidden,
+        // the chamber pane mounts, then the room is shown before its fade-in ends.
+        const router = readRouter({
+            onChamber: async room => {
+                room.container.hidden = true;
                 liveMounted();
-                chamberView.container.hidden = false;
+                room.container.hidden = false;
                 await new Promise(resolve => { fadedIn = resolve; });
-                this.current = name;
-                return true;
             }
-        };
+        });
         host.router = router;
         host.buildVoices = async () => null;
         await host.start();
         await vi.waitFor(() => expect(host.runtime.playerFor()?.sessionState.state).toBe('playing'));
         const command = { surface: 'attractor', parameter: 'intensity', value: 0.7 };
 
-        expect(router.getCurrentView()).toBe('live');
+        expect(fadedIn).toBeTypeOf('function');
         expect(host.runtime.discoverVisual()).toMatchObject({ current: { intensity: 0.65 } });
         expect(host.runtime.controlVisual(command)).toMatchObject({ status: 'accepted', effective: 0.7 });
 
         fadedIn();
-        await vi.waitFor(() => expect(router.getCurrentView()).toBe('chamber-session'));
         expect(host.runtime.controlVisual(command)).toMatchObject({ status: 'accepted' });
 
         // Left, the Chamber stays registered with the same Player but is off screen.
-        await router.navigate('portal');
-        expect(router.getViewInstance('chamber-session').player).toBe(host.runtime.playerFor());
+        await router.navigate('home');
+        expect(router.read.chamber.player).toBe(host.runtime.playerFor());
         expect(host.runtime.discoverVisual()).toBeNull();
         expect(host.runtime.controlVisual(command)).toEqual({ status: 'refused', code: 'NO_ACTIVE_VISUAL' });
-        expect(router.getViewInstance('chamber-session').controlVisual).toHaveBeenCalledTimes(2);
+        expect(router.read.chamber.controlVisual).toHaveBeenCalledTimes(2);
         await host.stop();
     });
 });
 
 /**
- * The shell's router between the live page and a real Chamber, the way the factory
- * mounts one for a live Player (src/app/chamber-session-factory.js).
+ * The shell's router with a real Read room: the live host as its live pane and a real
+ * Chamber in its chamber pane, mounted the way the factory mounts one for a live Player
+ * (src/app/chamber-session-factory.js).
  */
 async function liveRouter() {
-    const [{ Router }, { Chamber }, { takeLivePlayer, liveMounted }] = await Promise.all([
-        import('../../core/router.js'), import('../../components/Chamber.js'), import('../../app/live-handoff.js')
+    const [{ Router }, { Read }, { Chamber }, { takeLivePlayer, liveMounted }] = await Promise.all([
+        import('../../core/router.js'), import('../../components/Read.js'),
+        import('../../components/read/Chamber.js'), import('../../app/live-handoff.js')
     ]);
     const router = new Router();
     router.transitionDuration = 0;
-    const reading = document.createElement('div');
-    reading.hidden = true;
-    document.body.append(reading);
-    router.registerView('live', { container, init: () => host });
-    router.registerView('chamber-session', {
-        container: reading,
-        init: (view, session) => {
-            const chamber = new Chamber(view, { session, player: takeLivePlayer(session), hostPlays: true });
-            liveMounted();
-            return chamber;
+    const room = document.createElement('div');
+    room.hidden = true;
+    document.body.append(room);
+    router.registerView('read', {
+        container: room,
+        init: async (view, data) => {
+            const read = new Read(view, {
+                load: {
+                    // The pane hosts the host this test mounted.
+                    live: async () => ({ LiveHost: function LiveHostPane() { return host; } }),
+                    chamber: async () => ({
+                        createChamberSession: (_operations, element, session) => {
+                            const chamber = new Chamber(element, { session, player: takeLivePlayer(session), hostPlays: true });
+                            liveMounted();
+                            return chamber;
+                        }
+                    })
+                }
+            });
+            await read.update(data);
+            return read;
         }
     });
     await router.navigate('live');
@@ -624,13 +654,17 @@ async function liveRouter() {
     return router;
 }
 
+/** The Chamber in Read's chamber pane, or null. */
+const shownChamber = router => router.getViewInstance('read')?.paneInstance('chamber') ?? null;
+
 /** The field the reading has put up, once the Chamber is on screen: the first passage asks for the attractor. */
 async function fieldShown(router) {
     let field = null;
     await vi.waitFor(() => {
-        expect(router.currentView).toBe('chamber-session');
+        expect(router.currentView).toBe('read');
+        expect(router.getViewInstance('read')?.activePane).toBe('chamber');
         expect(router.transitioning).toBe(false);
-        field = router.getViewInstance('chamber-session')?.attractorField ?? null;
+        field = shownChamber(router)?.attractorField ?? null;
         expect(field).not.toBeNull();
     }, { timeout: 5_000 });
     expect(field.destroyed).toBeFalsy();
@@ -645,17 +679,18 @@ describe('letting the imagery go', () => {
         host.buildVoices = async () => null;
         await host.start();
         const field = await fieldShown(router);
-        const chamber = router.getViewInstance('chamber-session');
+        const chamber = shownChamber(router);
         const hiddenWhenLetGo = [];
         const destroy = chamber.destroy.bind(chamber);
         chamber.destroy = () => { hiddenWhenLetGo.push(chamber.container.hidden); destroy(); };
 
         await host.stop();
 
-        expect(router.currentView).toBe('live');
+        expect(router.currentView).toBe('read');
+        expect(router.getViewInstance('read').activePane).toBe('live');
         // Nothing the reader can see changes: it goes after the router has hidden it.
         expect(hiddenWhenLetGo).toEqual([true]);
-        expect(router.views.get('chamber-session').instance).toBeNull();
+        expect(shownChamber(router)).toBeNull();
         expect(field.destroyed).toBe(true);
         expect(field.rafId).toBeNull();
         router.destroy();
@@ -1049,7 +1084,7 @@ describe('inside an MCP host', () => {
 
         hostSays({ jsonrpc: '2.0', id: 'teardown-playing', method: 'ui/resource-teardown', params: {} });
 
-        await vi.waitFor(() => expect(router.views.get('chamber-session').instance).toBeNull());
+        await vi.waitFor(() => expect(shownChamber(router)).toBeNull());
         expect(field.destroyed).toBe(true);
         expect(field.rafId).toBeNull();
         router.destroy();

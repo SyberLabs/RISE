@@ -1,0 +1,409 @@
+/**
+ * The Chapel — Scripture, read as an act.
+ *
+ * Deliberately quieter than every other browse surface: no search, no
+ * view modes, no filters. The Church's own groupings ARE the browse
+ * structure — Pentateuch through Apocalypse, in canonical order. One
+ * named translation, displayed as provenance on the header and never
+ * mixed (spec non-negotiable #1).
+ *
+ * A book opens into its chapters inline (single-chapter books launch
+ * directly). Chapter is the natural session unit — it is how the
+ * Church actually reads — and it is the addressing scheme the
+ * liturgical features (Rosary, Stations) will build on.
+ *
+ * The view is metadata-only (payload-boundary rules): book text loads
+ * lazily through the handoff, which verifies its checksum before it
+ * can enter a session.
+ */
+
+import {
+  CHAPEL_TRANSLATION,
+  CHAPEL_GROUPINGS,
+  CHAPEL_BOOKS,
+  chapelBooksInGrouping,
+  findChapelBook
+} from '../../content/chapel/corpus/manifest.js';
+import { CHAPEL_ICONS } from '../../content/chapel/imagery/icons.js';
+import { REMOTE_IMAGE_ATTRS } from '../../visuals/remote-image.js';
+import { MYSTERY_SETS, mysterySetForDate } from '../../content/chapel/liturgy/rosary.js';
+import { roomHeader, roomEyebrow, roomIcon } from '../room-chrome.js';
+import './Chapel.css';
+import { USER_DATA_KEYS } from '../../core/user-data-keys.js';
+import { escapeHtml } from '../../core/sanitize.js';
+
+/** The reader's chosen icon focal, kept across visits. */
+export const CHAPEL_ICON_PREF_KEY = USER_DATA_KEYS.chapelIcon;
+
+export function loadChapelIconPref() {
+  try {
+    const stored = localStorage.getItem(CHAPEL_ICON_PREF_KEY);
+    // 'rosa-mystica' is the procedural rose window — a valid focal
+    // choice alongside the pinned icons
+    return stored && (stored === 'rosa-mystica' || Object.hasOwn(CHAPEL_ICONS, stored))
+      ? stored
+      : null;
+  } catch {
+    return null;
+  }
+}
+
+const TESTAMENT_TITLES = Object.freeze({
+  ot: 'The Old Testament',
+  nt: 'The New Testament'
+});
+
+export class Chapel {
+  constructor(container, options = {}) {
+    this.container = container;
+    this.onNavigate = options.onNavigate || (() => {});
+    this.getAudioEngine = options.getAudioEngine || (() => null);
+    this.onLaunchReading = options.onLaunchReading || options.onLaunchBook || (() => {});
+    // Return-from-Chamber wayfinding: the last reading, softly marked;
+    // its book arrives already open at its chapters
+    this.lastBookId = typeof options.bookId === 'string' ? options.bookId : null;
+    this.lastChapter = Number.isInteger(options.chapter) ? options.chapter : null;
+    // The chosen icon focal, persisted across visits
+    this.iconId = loadChapelIconPref();
+    // The chosen book and chapter are part of the room's address.
+    this.onAddressChange = options.onAddressChange || (() => {});
+    this.onLaunchRosary = options.onLaunchRosary || (() => {});
+    this.openBookId = this.lastBookId && (findChapelBook(this.lastBookId)?.chapters || 0) > 1
+      ? this.lastBookId
+      : null;
+    this._launching = false;
+    this._abortController = new AbortController();
+
+    this.render();
+    this.attachEvents();
+  }
+
+  render() {
+    const testaments = ['ot', 'nt'].map(testament => {
+      const groupings = CHAPEL_GROUPINGS
+        .filter(grouping => grouping.testament === testament)
+        .map(grouping => this.renderGrouping(grouping))
+        .join('');
+      return `
+        <section class="chapel-testament" aria-label="${TESTAMENT_TITLES[testament]}">
+          <h2 class="chapel-testament-title">${TESTAMENT_TITLES[testament]}</h2>
+          ${groupings}
+        </section>
+      `;
+    }).join('');
+
+    this.container.innerHTML = `
+      <main class="chapel" aria-labelledby="chapel-title">
+        <div class="chapel-scroll">
+          ${roomHeader({ back: 'Home', backClass: 'chapel-back' })}
+          <div class="chapel-inner">
+            <header class="chapel-header">
+              <div class="chapel-heading">
+                ${roomEyebrow(`SCRIPTURE · ${escapeHtml(CHAPEL_TRANSLATION.name.toUpperCase())} · ${escapeHtml(CHAPEL_TRANSLATION.edition.toUpperCase())}`, 'chapel-kicker')}
+                <h1 id="chapel-title" class="room-title">The Chapel</h1>
+                <p class="chapel-deck room-deck">${CHAPEL_BOOKS.length} books, read slowly. Choose one; a chapter becomes the session.</p>
+              </div>
+            </header>
+
+            ${this.renderIconSection()}
+
+            ${this.renderRosarium()}
+
+            <div class="chapel-body">
+              ${testaments}
+            </div>
+
+            <footer class="chapel-footer">
+              <p class="chapel-provenance">
+                ${escapeHtml(CHAPEL_TRANSLATION.name)} · ${escapeHtml(CHAPEL_TRANSLATION.edition)} —
+                public domain · <a href="${escapeHtml(CHAPEL_TRANSLATION.sourceUrl)}" target="_blank" rel="noopener">${escapeHtml(CHAPEL_TRANSLATION.source)}</a>
+              </p>
+            </footer>
+          </div>
+        </div>
+      </main>
+    `;
+
+    if (this.openBookId) this.mountChapterPanel(this.openBookId);
+  }
+
+  /**
+   * The Icon focal choice — the three pinned icons, or none. A chosen
+   * icon holds the Chamber's focal through every Chapel reading until
+   * released; "None" returns each book to its own imagery (the
+   * Gospels' Passion collections, stillness elsewhere).
+   */
+  renderIconSection() {
+    const options = Object.entries(CHAPEL_ICONS).map(([id, icon]) => `
+      <button
+        class="chapel-icon-option${this.iconId === id ? ' chapel-icon-selected' : ''}"
+        data-icon-id="${escapeHtml(id)}"
+        aria-pressed="${this.iconId === id ? 'true' : 'false'}"
+        title="${escapeHtml(icon.attribution)}"
+      >
+        <img class="chapel-icon-thumb" src="${escapeHtml(icon.image)}" alt="" loading="lazy" decoding="async" ${REMOTE_IMAGE_ATTRS} />
+        <span class="chapel-icon-name">${escapeHtml(icon.name)}</span>
+        <span class="chapel-icon-origin">${escapeHtml(icon.origin)} · ${escapeHtml(icon.date.split(',')[0])}</span>
+      </button>
+    `).join('');
+
+    return `
+      <section class="chapel-icon-section" aria-label="Icon focal">
+        <h2 class="chapel-section-title">The icon</h2>
+        <p class="chapel-icon-hint">A written image held at the center of the reading. Choose one, or read with each book’s own imagery.</p>
+        <div class="chapel-icon-row">
+          <button
+            class="chapel-icon-option chapel-icon-none${this.iconId === null ? ' chapel-icon-selected' : ''}"
+            data-icon-id=""
+            aria-pressed="${this.iconId === null ? 'true' : 'false'}"
+          >
+            <span class="chapel-icon-none-mark" aria-hidden="true">${roomIcon('none', 24)}</span>
+            <span class="chapel-icon-name">None</span>
+            <span class="chapel-icon-origin">Each book’s own imagery</span>
+          </button>
+          <button
+            class="chapel-icon-option chapel-icon-rose${this.iconId === 'rosa-mystica' ? ' chapel-icon-selected' : ''}"
+            data-icon-id="rosa-mystica"
+            aria-pressed="${this.iconId === 'rosa-mystica' ? 'true' : 'false'}"
+            title="A procedural Gothic rose window — backlit glass held behind the reading. The wisdom books and epistles read under it by default."
+          >
+            <span class="chapel-icon-none-mark chapel-rose-mark" aria-hidden="true">${roomIcon('rose', 32)}</span>
+            <span class="chapel-icon-name">Rosa Mystica</span>
+            <span class="chapel-icon-origin">Procedural rose window</span>
+          </button>
+          ${options}
+        </div>
+      </section>
+    `;
+  }
+
+  renderGrouping(grouping) {
+    const books = chapelBooksInGrouping(grouping.id).map(book => `
+      <button
+        class="chapel-book${book.id === this.lastBookId ? ' chapel-book-last' : ''}"
+        data-book-id="${escapeHtml(book.id)}"
+        aria-expanded="${book.id === this.openBookId ? 'true' : 'false'}"
+        aria-label="${book.chapters === 1
+          ? `Read ${escapeHtml(book.name)}`
+          : `${escapeHtml(book.name)} — choose from ${book.chapters} chapters`}"
+      >
+        <span class="chapel-book-name">${escapeHtml(book.name)}</span>
+        <span class="chapel-book-meta">${book.chapters} ch</span>
+      </button>
+    `).join('');
+
+    return `
+      <div class="chapel-grouping">
+        <h3 class="chapel-grouping-title">${escapeHtml(grouping.name)}</h3>
+        <div class="chapel-grouping-books">${books}</div>
+      </div>
+    `;
+  }
+
+  /**
+   * The door to the Rosarium — the Rosary's own room. One quiet card:
+   * the calendar's mysteries named (SOL's date-sensing raised to the
+   * liturgical week); choosing happens IN the room.
+   */
+  renderRosarium() {
+    const todaySetId = mysterySetForDate();
+    const dayName = new Date().toLocaleDateString('en-US', { weekday: 'long' });
+    return `
+      <section class="chapel-rosarium" aria-label="Devotions">
+        <h2 class="chapel-section-title">Devotions</h2>
+        <button class="chapel-rosarium-door" data-mystery-set="${escapeHtml(todaySetId)}"
+          aria-label="Enter the Rosarium — ${escapeHtml(dayName)} keeps ${escapeHtml(MYSTERY_SETS[todaySetId].name.toLowerCase())}">
+          <span class="chapel-rosarium-body">
+            <span class="chapel-rosarium-name">The Rosarium</span>
+            <span class="chapel-rosarium-detail">${escapeHtml(dayName)} keeps ${escapeHtml(MYSTERY_SETS[todaySetId].name.toLowerCase())}</span>
+          </span>
+          <span class="chapel-rosarium-enter" aria-hidden="true">${roomIcon('forward')}</span>
+        </button>
+        <button class="chapel-rosarium-door" data-via-door="true"
+          aria-label="Enter the Stations of the Cross">
+          <span class="chapel-rosarium-body">
+            <span class="chapel-rosarium-name">The Stations of the Cross</span>
+            <span class="chapel-rosarium-detail">Fourteen stations, walked as a nave is walked — Tiepolo's Via Crucis</span>
+          </span>
+          <span class="chapel-rosarium-enter" aria-hidden="true">${roomIcon('forward')}</span>
+        </button>
+      </section>
+    `;
+  }
+
+  /**
+   * The chapter panel spans the full grouping width directly below its
+   * book's row, so the list never reflows around a column-wide insert.
+   */
+  renderChapterPanel(book) {
+    const noun = book.id === 'psalms' ? 'Psalm' : 'Chapter';
+    const chapters = Array.from({ length: book.chapters }, (_, index) => {
+      const chapter = index + 1;
+      const isLast = book.id === this.lastBookId && chapter === this.lastChapter;
+      return `
+        <button
+          class="chapel-chapter${isLast ? ' chapel-chapter-last' : ''}"
+          data-book-id="${escapeHtml(book.id)}"
+          data-chapter="${chapter}"
+          aria-label="Read ${escapeHtml(book.name)}, ${noun.toLowerCase()} ${chapter}"
+        >${chapter}</button>
+      `;
+    }).join('');
+
+    return `
+      <div class="chapel-chapter-panel" data-chapter-panel="${escapeHtml(book.id)}">
+        <div class="chapel-chapter-head">
+          <span class="chapel-chapter-title">${escapeHtml(book.name)} · ${book.chapters} ${noun.toLowerCase()}${book.chapters === 1 ? '' : 's'}</span>
+          <button class="chapel-read-all" data-book-id="${escapeHtml(book.id)}" data-whole-book="true">
+            Read the whole book
+          </button>
+        </div>
+        <div class="chapel-chapter-grid">${chapters}</div>
+      </div>
+    `;
+  }
+
+  mountChapterPanel(bookId) {
+    this.unmountChapterPanel();
+    const book = findChapelBook(bookId);
+    const bookButton = this.container.querySelector(`.chapel-book[data-book-id="${bookId}"]`);
+    if (!book || !bookButton) return;
+
+    const holder = document.createElement('div');
+    holder.innerHTML = this.renderChapterPanel(book);
+    const panel = holder.firstElementChild;
+    // After the book's grid, spanning the grouping's full width
+    bookButton.closest('.chapel-grouping-books').insertAdjacentElement('afterend', panel);
+    bookButton.setAttribute('aria-expanded', 'true');
+    bookButton.classList.add('chapel-book-open');
+  }
+
+  unmountChapterPanel() {
+    this.container.querySelector('.chapel-chapter-panel')?.remove();
+    this.container.querySelectorAll('.chapel-book-open').forEach(button => {
+      button.classList.remove('chapel-book-open');
+      button.setAttribute('aria-expanded', 'false');
+    });
+  }
+
+  attachEvents() {
+    const { signal } = this._abortController;
+    this.container.addEventListener('click', event => this.handleClick(event), { signal });
+  }
+
+  handleClick(event) {
+    const button = event.target.closest('button');
+    if (!button || !this.container.contains(button)) return;
+
+    if (button.dataset.action === 'back') {
+      this.getAudioEngine()?.playClick();
+      this.onNavigate('home');
+      return;
+    }
+
+    if (button.dataset.mysterySet) {
+      // The door to the Rosarium; all choosing happens in the room
+      this.getAudioEngine()?.playClick();
+      this.onLaunchRosary(button.dataset.mysterySet, { iconId: this.iconId });
+      return;
+    }
+
+    if (button.dataset.viaDoor) {
+      this.getAudioEngine()?.playClick();
+      this.onNavigate('via');
+      return;
+    }
+
+    if (button.dataset.iconId !== undefined) {
+      this.getAudioEngine()?.playClick();
+      this.iconId = button.dataset.iconId || null;
+      try {
+        if (this.iconId) localStorage.setItem(CHAPEL_ICON_PREF_KEY, this.iconId);
+        else localStorage.removeItem(CHAPEL_ICON_PREF_KEY);
+      } catch { /* private mode — the choice still applies this visit */ }
+      this.container.querySelectorAll('[data-icon-id]').forEach(option => {
+        const selected = (option.dataset.iconId || null) === this.iconId;
+        option.classList.toggle('chapel-icon-selected', selected);
+        option.setAttribute('aria-pressed', selected ? 'true' : 'false');
+      });
+      return;
+    }
+
+    const bookId = button.dataset.bookId;
+    if (!bookId) return;
+
+    // A chapter number, or "Read the whole book" — both launch
+    const chapterAttr = button.dataset.chapter;
+    if (chapterAttr != null || button.dataset.wholeBook === 'true') {
+      this.launch(button, bookId, chapterAttr != null ? Number(chapterAttr) : null);
+      return;
+    }
+
+    // A book row: single-chapter books launch directly; the rest open
+    // (or close) their chapter panel
+    const book = findChapelBook(bookId);
+    if (!book) return;
+    this.getAudioEngine()?.playClick();
+    if (book.chapters === 1) {
+      this.launch(button, bookId, null);
+      return;
+    }
+    if (this.openBookId === bookId) {
+      this.openBookId = null;
+      this.unmountChapterPanel();
+    } else {
+      this.openBookId = bookId;
+      this.mountChapterPanel(bookId);
+    }
+  }
+
+  launch(button, bookId, chapter) {
+    if (this._launching) return;
+    this.onAddressChange(chapter == null ? { bookId } : { bookId, chapter });
+    // One launch at a time — a double-click must not race two handoffs
+    this._launching = true;
+    this.getAudioEngine()?.playClick();
+    button.classList.add('chapel-book-loading');
+    // The callback stays synchronous (launch handlers may depend on
+    // the click's user-activation), but a synchronous throw must
+    // still release the launch guard — Promise.resolve(f()) alone
+    // would throw before any finally existed
+    const release = () => {
+      this._launching = false;
+      button.classList.remove('chapel-book-loading');
+    };
+    try {
+      Promise.resolve(this.onLaunchReading(bookId, chapter, { iconId: this.iconId }))
+        .then(release, error => {
+          release();
+          console.error('[Chapel] Failed to launch reading:', error);
+        });
+    } catch (error) {
+      release();
+      throw error;
+    }
+  }
+
+  /** Router re-entry: refresh the last-read marker and reopen its book */
+  update(data) {
+    const bookId = typeof data?.bookId === 'string' ? data.bookId : null;
+    if (!bookId) return;
+    this.lastBookId = bookId;
+    this.lastChapter = Number.isInteger(data?.chapter) ? data.chapter : null;
+    this.container.querySelectorAll('.chapel-book').forEach(button => {
+      button.classList.toggle('chapel-book-last', button.dataset.bookId === this.lastBookId);
+    });
+    if ((findChapelBook(bookId)?.chapters || 0) > 1) {
+      this.openBookId = bookId;
+      this.mountChapterPanel(bookId);
+    }
+  }
+
+  activate() {}
+  deactivate() {}
+
+  destroy() {
+    this._abortController.abort();
+    this.container.innerHTML = '';
+  }
+}

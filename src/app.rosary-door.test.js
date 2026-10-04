@@ -1,16 +1,13 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import App from './app.js';
-import { BetaGate } from './components/BetaGate.js';
-import { Rosarium } from './components/Rosarium.js';
+import { Rosarium } from './components/library/Rosarium.js';
 import { ROSARY_PRAYERS, mysterySetForDate } from './content/chapel/liturgy/rosary.js';
 import { isRosaryDoor, rosaryDoorHref, ROSARY_DOOR_HASH } from './core/rosary-door.js';
 
 const VIEW_IDS = [
-  'view-portal', 'view-vault', 'view-chamber', 'view-library',
-  'view-journeys', 'view-workshop', 'view-chapel',
-  'view-rosarium', 'view-via', 'view-curia', 'view-scriptorium',
-  'view-settings'
+  'view-home', 'view-read', 'view-library',
+  'view-make', 'view-settings'
 ];
 
 function plantShell() {
@@ -26,14 +23,9 @@ function plantShell() {
   document.body.appendChild(toast);
 }
 
-function openSession() {
-  return {
-    code: 'open',
-    name: 'Reader',
-    vault: null,
-    timestamp: Date.now()
-  };
-}
+/** The Rosary is a pane of the Library. */
+const rosaryPane = () => document.querySelector('#view-library [data-pane="rosary"]');
+const rosary = app => app.router.getViewInstance('library')?.paneInstance('rosary');
 
 function prayerText() {
   return document.querySelector('.rosarium-prayer-text')?.textContent ?? null;
@@ -86,42 +78,24 @@ describe('Chapel Rosary door (#rosary)', () => {
   it('a first visit opens the Rosary directly at the Sign of the Cross, with no intro screen', async () => {
     window.location.hash = ROSARY_DOOR_HASH;
     app = new App();
-    const opened = app.checkBetaAccess();
+    const opened = app.initializeApp({});
 
-    // The open door is not a step: no "Enter the Space" click stands first.
-    expect(document.querySelector('#beta-enter')).toBeNull();
     await opened;
 
-    expect(JSON.parse(localStorage.getItem('rise-beta-session')).code).toBe('open');
-    expect(app.router.getCurrentView()).toBe('rosarium');
+    expect(app.router.getCurrentView()).toBe('library');
     expect(prayerText()).toBe(ROSARY_PRAYERS.signOfTheCross);
     expect(document.querySelector('.rosarium-panel')).toBeNull();
     expect(document.querySelector('[data-action="start"]')).toBeNull();
-    expect(document.querySelector('.beta-gate')).toBeNull();
-    expect(document.getElementById('view-portal').hidden).toBe(true);
+    expect(document.getElementById('view-home').hidden).toBe(true);
     expect(window.location.hash).toBe(ROSARY_DOOR_HASH);
   });
 
-  it('an existing session opens the first prayer locally', async () => {
-    localStorage.setItem('rise-beta-session', JSON.stringify(openSession()));
-    window.location.hash = ROSARY_DOOR_HASH;
-    app = new App();
-    await app.checkBetaAccess();
-
-    expect(document.querySelector('#beta-enter')).toBeNull();
-    expect(document.querySelector('.beta-gate')).toBeNull();
-    expect(app.router.getCurrentView()).toBe('rosarium');
-    expect(prayerText()).toBe(ROSARY_PRAYERS.signOfTheCross);
-    expect(document.querySelector('.rosarium-panel')).toBeNull();
-  });
-
   it('calendar set: the door prays mysterySetForDate(), not a URL set', async () => {
-    localStorage.setItem('rise-beta-session', JSON.stringify(openSession()));
     window.location.hash = ROSARY_DOOR_HASH;
     app = new App();
-    await app.checkBetaAccess();
+    await app.initializeApp({});
 
-    const room = app.router.getViewInstance('rosarium');
+    const room = rosary(app);
     expect(room.setId).toBe(mysterySetForDate());
     expect(room.mode).toBe('plain');
     expect(room.sound).toBe('none');
@@ -133,11 +107,10 @@ describe('Chapel Rosary door (#rosary)', () => {
   });
 
   it('hash unchanged through the sit and at complete; copy-link is the door URL', async () => {
-    localStorage.setItem('rise-beta-session', JSON.stringify(openSession()));
     window.location.hash = ROSARY_DOOR_HASH;
     app = new App();
-    await app.checkBetaAccess();
-    const room = app.router.getViewInstance('rosarium');
+    await app.initializeApp({});
+    const room = rosary(app);
     expect(room.phase).toBe('prayer');
     expect(window.location.hash).toBe(ROSARY_DOOR_HASH);
 
@@ -158,54 +131,43 @@ describe('Chapel Rosary door (#rosary)', () => {
     expect(window.location.hash).toBe(ROSARY_DOOR_HASH);
   });
 
-  it('bare / opens the Portal directly, never the Rosary', async () => {
+  it('bare / opens Home directly, never the Rosary', async () => {
     window.location.hash = '';
     app = new App();
-    const opened = app.checkBetaAccess();
+    const opened = app.initializeApp({});
 
-    expect(document.querySelector('#beta-enter')).toBeNull();
     await opened;
 
-    expect(app.router.getCurrentView()).toBe('portal');
+    expect(app.router.getCurrentView()).toBe('home');
     expect(prayerText()).toBeNull();
-    expect(document.getElementById('view-rosarium').hidden).toBe(true);
-    expect(document.getElementById('view-portal').hidden).toBe(false);
+    expect(rosaryPane()).toBeNull();
+    expect(document.getElementById('view-home').hidden).toBe(false);
     expect(window.location.hash).toBe('');
     expect(isRosaryDoor()).toBe(false);
   });
 
-  it('an open session on bare / is still the Portal', async () => {
-    localStorage.setItem('rise-beta-session', JSON.stringify(openSession()));
-    window.location.hash = '';
-    app = new App();
-    await app.checkBetaAccess();
-
-    expect(app.router.getCurrentView()).toBe('portal');
-    expect(prayerText()).toBeNull();
-  });
-
   it('open session, hashchange to #rosary: Sign of the Cross without reload', async () => {
-    localStorage.setItem('rise-beta-session', JSON.stringify(openSession()));
     window.location.hash = '';
     app = new App();
-    await app.checkBetaAccess();
+    await app.initializeApp({});
 
-    expect(app.router.getCurrentView()).toBe('portal');
+    expect(app.router.getCurrentView()).toBe('home');
     expect(prayerText()).toBeNull();
 
     const navigate = vi.spyOn(app.router, 'navigate');
     window.location.hash = ROSARY_DOOR_HASH;
     window.dispatchEvent(new HashChangeEvent('hashchange'));
     await vi.waitFor(() => {
-      expect(app.router.getCurrentView()).toBe('rosarium');
+      expect(app.router.getCurrentView()).toBe('library');
       expect(prayerText()).toBe(ROSARY_PRAYERS.signOfTheCross);
     });
 
     expect(navigate).toHaveBeenCalledWith('rosarium', { data: { door: true } });
-    expect(navigate).not.toHaveBeenCalledWith('portal');
-    expect(navigate).not.toHaveBeenCalledWith('portal', expect.anything());
-    expect(document.getElementById('view-portal').hidden).toBe(true);
-    expect(document.getElementById('view-rosarium').hidden).toBe(false);
+    expect(navigate).not.toHaveBeenCalledWith('home');
+    expect(navigate).not.toHaveBeenCalledWith('home', expect.anything());
+    expect(document.getElementById('view-home').hidden).toBe(true);
+    expect(document.getElementById('view-library').hidden).toBe(false);
+    expect(rosaryPane().hidden).toBe(false);
     expect(window.location.hash).toBe(ROSARY_DOOR_HASH);
   });
 
@@ -216,22 +178,5 @@ describe('Chapel Rosary door (#rosary)', () => {
     expect(container.querySelector('[data-action="start"]')).toBeTruthy();
     expect(container.querySelector('.rosarium-prayer-text')).toBeNull();
     room.destroy();
-  });
-});
-
-describe('BetaGate open session', () => {
-  afterEach(() => {
-    document.body.replaceChildren();
-    localStorage.clear();
-  });
-
-  it('reloads { code: "open" } as a session, not another gate', () => {
-    localStorage.setItem('rise-beta-session', JSON.stringify(openSession()));
-    const container = document.createElement('div');
-    const onAccess = vi.fn();
-    const gate = new BetaGate(container, { onAccess });
-    expect(onAccess).toHaveBeenCalledWith(expect.objectContaining({ code: 'open' }));
-    expect(container.querySelector('#beta-enter')).toBeNull();
-    gate.destroy();
   });
 });

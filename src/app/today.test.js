@@ -52,7 +52,7 @@ it('opens the day\'s exact poem as verse, in the day\'s look, returning Home', a
     expect(session.verseLines).toBe(true);
     expect(session.visualConfig.visualMode).toBe(todayDecision(pick).config.visualMode);
     expect(session.visualConfig.visualMode).not.toBe('off');
-    expect(session.origin).toEqual({ view: 'portal', icon: '✧', name: 'Home', experience: 'today' });
+    expect(session.origin).toEqual({ view: 'home', icon: '✧', name: 'Home', experience: 'today' });
     expect(session.continuation).toMatchObject({ kind: 'library-division', entryId: String(pick.entryId), noun: 'poem' });
   }
 });
