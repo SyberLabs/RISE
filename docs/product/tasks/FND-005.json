@@ -1,0 +1,39 @@
+{
+  "id": "FND-005",
+  "title": "Make post-deploy checks tolerate Cloudflare rollout",
+  "lane": "shared",
+  "milestone": "Release reliability",
+  "status": "in_review",
+  "delivery": "branch",
+  "owner": "Claude coordinator",
+  "priority": "now",
+  "dependencies": [],
+  "acceptance": [
+    "A single stale edge cannot fail the production job.",
+    "A wrong catalog or a replaced release still fails the job."
+  ],
+  "evidence": [
+    {
+      "kind": "pr",
+      "ref": "https://github.com/SyberLabs/RISE/pull/399",
+      "note": "Catalog and final marker checks retry within a bounded window; both loops and both failure paths checked against production.",
+      "date": "2026-10-04"
+    },
+    {
+      "kind": "test",
+      "ref": "https://github.com/SyberLabs/RISE/actions/runs/37244411493",
+      "note": "The #377 production job that failed on the race while production was correct.",
+      "date": "2026-10-04"
+    }
+  ],
+  "summary": "Production jobs for #396 and #377 were marked failed while production was correct.",
+  "blocker": null,
+  "activity": [
+    {
+      "date": "2026-10-04T23:44:08.776Z",
+      "summary": "Recorded from repository and CI evidence after integration."
+    }
+  ],
+  "updatedAt": "2026-10-04T23:44:08.776Z",
+  "revision": 1
+}

@@ -1,0 +1,47 @@
+{
+  "id": "FND-003",
+  "title": "Restructure RISE into five rooms over static content",
+  "lane": "shared",
+  "milestone": "Architecture",
+  "status": "done",
+  "delivery": "deployed",
+  "owner": "Seth Carlson",
+  "priority": "now",
+  "dependencies": [],
+  "acceptance": [
+    "Rooms fold into Home, Read, Library, Make and Settings; every old route id and path keeps working.",
+    "The catalog is a static file; the Worker decision route, Neon and Redis are removed.",
+    "Recitation ships as Opus.",
+    "Exact-head required CI and Full validation pass before merge."
+  ],
+  "evidence": [
+    {
+      "kind": "pr",
+      "ref": "https://github.com/SyberLabs/RISE/pull/377",
+      "note": "Merged 2026-10-04 as 76386dba after main (#371, #384-#397) was merged into it; conflicts and four merge-interaction defects resolved on the branch.",
+      "date": "2026-10-04"
+    },
+    {
+      "kind": "test",
+      "ref": "https://github.com/SyberLabs/RISE/actions/runs/37243814205",
+      "note": "Full validation (all unit and browser shards) passed at 61e817aa, the merged head.",
+      "date": "2026-10-04"
+    },
+    {
+      "kind": "commit",
+      "ref": "https://github.com/SyberLabs/RISE/commit/76386dba156efced3ba9b7f7eeebdfbcd3ce1d0a",
+      "note": "Production served this release marker; catalog.json passed the browser contract, retired routes answered 410 and Opus recitation served as audio/ogg (checked by hand after a rollout-race check failure; see FND-005).",
+      "date": "2026-10-04"
+    }
+  ],
+  "summary": "Five rooms over static, content-addressed data are in production. Retiring the old secrets and audio branch is FND-004; reader and device acceptance stay with RDR-007 and RDR-009.",
+  "blocker": null,
+  "activity": [
+    {
+      "date": "2026-10-04T23:44:08.776Z",
+      "summary": "Recorded from repository and CI evidence after integration."
+    }
+  ],
+  "updatedAt": "2026-10-04T23:44:08.776Z",
+  "revision": 1
+}

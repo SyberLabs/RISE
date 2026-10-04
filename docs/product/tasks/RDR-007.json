@@ -9,7 +9,8 @@
   "priority": "now",
   "dependencies": [
     "RDR-001",
-    "RDR-006"
+    "RDR-006",
+    "FND-003"
   ],
   "acceptance": [
     "Record the exact release and supported browser/device.",
@@ -28,10 +29,14 @@
     {
       "date": "2026-10-03",
       "summary": "Seeded from repository evidence and approved product direction; future acceptance is not assumed."
+    },
+    {
+      "date": "2026-10-04T23:44:29.480Z",
+      "summary": "Observe the journey on the five-room structure (FND-003)"
     }
   ],
-  "updatedAt": "2026-10-03T23:14:43.432Z",
-  "revision": 1,
+  "updatedAt": "2026-10-04T23:44:29.480Z",
+  "revision": 2,
   "summary": "Evaluate entrance, reading orientation, controls, navigation and whether the audiovisual composition earns its place.",
   "blocker": null
 }

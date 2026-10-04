@@ -1,0 +1,32 @@
+{
+  "id": "RDR-012",
+  "title": "Draw the fractal flame smooth and sharp, off the main thread",
+  "lane": "reader",
+  "milestone": "Visual quality",
+  "status": "done",
+  "delivery": "deployed",
+  "owner": "Seth Carlson",
+  "priority": "later",
+  "dependencies": [],
+  "acceptance": [
+    "Full-period generator, density smoothing and device-pixel sizing are merged."
+  ],
+  "evidence": [
+    {
+      "kind": "pr",
+      "ref": "https://github.com/SyberLabs/RISE/pull/397",
+      "note": "Merged 2026-10-04 as 6bf3edf3; its production deploy succeeded.",
+      "date": "2026-10-04"
+    }
+  ],
+  "summary": "Fractal flame grain fixed; real-device beauty review remains RDR-009.",
+  "blocker": null,
+  "activity": [
+    {
+      "date": "2026-10-04T23:44:08.776Z",
+      "summary": "Recorded from repository and CI evidence after integration."
+    }
+  ],
+  "updatedAt": "2026-10-04T23:44:08.776Z",
+  "revision": 1
+}

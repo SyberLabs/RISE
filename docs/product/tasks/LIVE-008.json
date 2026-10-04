@@ -21,16 +21,26 @@
       "ref": "docs/COMPOSER-FIRST-ROADMAP.md",
       "note": "Approved delivery direction; unchecked milestones do not imply missing all underlying code.",
       "date": "2026-10-03"
+    },
+    {
+      "kind": "pr",
+      "ref": "https://github.com/SyberLabs/RISE/pull/361",
+      "note": "Candidate start: a Dive kept at the place it was taken from, follow-ups joining it. Parked as draft until V1 (LIVE-006, LIVE-007); needs rebase onto main after #377.",
+      "date": "2026-10-04"
     }
   ],
   "activity": [
     {
       "date": "2026-10-03",
       "summary": "Seeded from approved Composer-first roadmap; host/release acceptance remains open."
+    },
+    {
+      "date": "2026-10-04T23:44:29.521Z",
+      "summary": "Linked the parked Undercurrent PR as a candidate"
     }
   ],
-  "updatedAt": "2026-10-03T23:14:43.432Z",
-  "revision": 1,
+  "updatedAt": "2026-10-04T23:44:29.521Z",
+  "revision": 2,
   "summary": "Pause at a boundary, admit a separate follow-up or existing Dive, and return to original score/place.",
   "blocker": null
 }

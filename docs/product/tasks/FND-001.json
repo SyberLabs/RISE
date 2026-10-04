@@ -3,8 +3,8 @@
   "title": "Integrate reviewed Composer foundation",
   "lane": "shared",
   "milestone": "M0 foundation",
-  "status": "in_review",
-  "delivery": "branch",
+  "status": "done",
+  "delivery": "deployed",
   "owner": "Codex coordinator",
   "priority": "now",
   "dependencies": [],
@@ -37,6 +37,24 @@
       "ref": "https://github.com/SyberLabs/RISE/pull/371",
       "note": "Remote checked 2026-10-04: still OPEN draft at 62fe11f3. No new integration or deployment inferred.",
       "date": "2026-10-04"
+    },
+    {
+      "kind": "pr",
+      "ref": "https://github.com/SyberLabs/RISE/pull/371",
+      "note": "Merged as 4e647ab4 after main through #397 was merged into it. Integrity fixes on the branch: restored the #365 resolved-provider catalog test the rebase dropped, regenerated the graph, gave a frame-recovery attractor test room on CI.",
+      "date": "2026-10-04"
+    },
+    {
+      "kind": "test",
+      "ref": "https://github.com/SyberLabs/RISE/actions/runs/37238912982",
+      "note": "Full validation (all unit and browser shards) passed at 0d340ce0, the merged head.",
+      "date": "2026-10-04"
+    },
+    {
+      "kind": "commit",
+      "ref": "https://github.com/SyberLabs/RISE/commit/4e647ab436b71f91df0cdfb4f8668a5715330cbb",
+      "note": "Production job succeeded and served this release marker.",
+      "date": "2026-10-04"
     }
   ],
   "activity": [
@@ -47,10 +65,14 @@
     {
       "date": "2026-10-04T20:56:47.057Z",
       "summary": "Refreshed foundation remote status and latest Reader main baseline"
+    },
+    {
+      "date": "2026-10-04T23:44:28.351Z",
+      "summary": "Merged and deployed #371 at 4e647ab4 with integrity fixes"
     }
   ],
-  "updatedAt": "2026-10-04T20:56:47.057Z",
-  "revision": 2,
-  "summary": "PR #371 at 62fe11f3 reconciles main and repairs admission/themes/control integration. CI evidence exists; draft is not merged or accepted. Main subsequently advanced to 2c71cba8; reconcile those Reader changes before integration.",
+  "updatedAt": "2026-10-04T23:44:28.351Z",
+  "revision": 3,
+  "summary": "Composer foundation merged and deployed at 4e647ab4: server-admitted Begin, nine named themes, governed visual control. Exact-head ChatGPT host acceptance is LIVE-002, not this task.",
   "blocker": null
 }
