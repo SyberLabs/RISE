@@ -19,11 +19,18 @@ a Dive:  app ─ sampling/createMessage ─▶ host ─▶ host model ─▶ its
 
 - **The server** (`worker/mcp-server.mjs`, at `/api/mcp`). MCP's Streamable HTTP in its simplest legal form: every request a POST, one JSON body back, no stream, no session, nothing kept. It says what the one tool is (`rise_present`, with the guide to writing a Current in its description), **refuses a Current that is not valid and tells the model why** so it can try again, and serves the app as the resource `ui://rise/current` (`text/html;profile=mcp-app`). It calls no model, holds no key, spends nothing. It answers only requests with no `Origin` (a host's own server sends none) or from its own origin, reads a body of at most 256 KB, and echoes back only a validator's message, clipped.
 - **The app** (`src/live/hosts/mcp-relay.js`). What the host is given is a small HTML document that does one thing: it frames RISE's own page, `/live?embed=mcp`, and passes the host's JSON-RPC messages between the two. It understands nothing it passes, sends to the page only at the page's origin, and takes from it only what that origin, from that frame, sent. This is what lets the app be the *real* shell, Player, Chamber, controls and microphone, with no second presenter and no new room, and nothing inlined or fetched cross-origin.
-- **The page** (`/live?embed=mcp`, `src/live/host/LiveHost.js`). No prompt and no provider to choose. It says hello to its parent, receives the Current, and plays it with the same runtime. Opened directly in a browser with no host, it says what it is for and does nothing.
+- **The page** (`/live?embed=mcp`, `src/live/host/LiveHost.js`). No prompt and no provider to choose. It says hello to its parent, validates and holds one Current, then presents an accessible **Begin** button. Playback starts only after the reader presses it. Opened directly in a browser with no host, it says what it is for and does nothing.
 - **The port** (`src/live/hosts/mcp-port.js`). The page's side of the host's messaging: JSON-RPC over `postMessage`, listening only to its parent, ignoring anything malformed or oversize, reading a Current only from the two notifications one arrives in and handing it over once, answering the host's own requests (`ping`, `ui/resource-teardown`), asking the host's model (`sampling/createMessage`), and telling the host its size.
-- **The adapter** (`src/live/adapters/mcp-app.js`) turns a sealed Current into the events a streaming provider would have sent, after `validateRiseCurrent`, so a hostile field, marker, anchor or oversize answer is refused before one event exists. Nothing is added: a sealed Current has no evidence and no condition, and none is invented.
+- **The adapter** (`src/live/adapters/mcp-app.js`) turns the admitted sealed Current into the events a streaming provider would have sent, after `validateRiseCurrent`, so a hostile field, marker, anchor or oversize answer is refused before one event exists. Nothing is added: a sealed Current has no evidence and no condition, and none is invented.
 - **The guide** (`src/live/adapters/current-guide.js`): what a model that has never seen RISE is told a Current is. Its numbers come from the validator's own limits, and its example is a real Current the validator accepts, held by a test.
 - The voice is **RISE's own**. A host's voice timing is not something an app can rely on, and a Dive has to hold the voice.
+
+## What the reader sees first
+
+- **A poster.** Once the page has validated the answer, the frame says "Answer ready.", shows the answer's title as its heading, and offers **Begin**. The title is set as text, never as markup. Nothing plays until the reader presses Begin.
+- **The answer's colors.** The host model may name one `theme` for the whole answer, one of the shipped color themes (`JEV_COLOR_THEMES` in `src/core/jev-color-themes.js`). RISE takes the page colors only from its own shipped palettes (`jevColors` in `src/core/jev-palette.js`), and the filament and drawings from a fixed table of its own renderer settings. The model supplies no color, number, CSS or typeface. The poster, the controls and the Chamber all take the theme's colors.
+- **No theme, RISE ink.** An answer that names no theme keeps RISE's own ink ground (`#06051A`), and so does the relay page around it.
+- **A Dive keeps the answer's theme**, whatever the Dive itself says.
 
 ## What was wrong in the first design, and is fixed
 
@@ -35,7 +42,7 @@ A test in a sandboxed frame found one more: a frame sandboxed without `allow-for
 
 ## The tool contract
 
-`rise_present` takes `{ current: <rise.current.v1> }` and nothing else. A valid Current gets `RISE is presenting this to the reader.` An invalid one gets a tool error (`isError`), not a protocol error, saying what was wrong and where, so the model can correct it. The tool is read-only and idempotent. It points at the app in the extension's key (`_meta.ui.resourceUri`) and its older flat spelling (`_meta["ui/resourceUri"]`), which the reference server helper also emits.
+`rise_present` takes `{ current: <rise.current.v1> }` and nothing else. A valid Current returns the validated object in `structuredContent.current` with text saying it was accepted for presentation. The server does not acknowledge playback. An invalid one gets a tool error (`isError`), not a protocol error, saying what was wrong and where, so the model can correct it. The tool is read-only and idempotent. It points at the app in the extension's key (`_meta.ui.resourceUri`) and its older flat spelling (`_meta["ui/resourceUri"]`), which the reference server helper also emits.
 
 ## What was verified, and how
 
@@ -57,7 +64,7 @@ The two reference checks are one-off local runs, not part of the test suite, bec
 It is **off**. `MCP_ENABLED` is `"false"` in `wrangler.production.jsonc` and absent in staging. Nothing about the deployed site changes until both of these are done:
 
 1. Set `MCP_ENABLED` to `"true"`.
-2. Add `"/live"` to `assets.run_worker_first` in that Wrangler config, so the Worker sees `/live?embed=mcp` and can serve it framable. **This is a change to the site's framing posture**: every response says `X-Frame-Options: DENY` and `frame-ancestors 'none'`, and a test holds that. With MCP on, exactly one request shape, `GET /live?embed=mcp`, is served without `X-Frame-Options` and with `frame-ancestors *`, because a host's sandbox is on an origin RISE cannot know. Every other request is the asset, untouched. What that page can do when framed by a stranger is display a Current it is handed, and offer the microphone button, which needs the reader's own press and the browser's own permission. That is a judgment for the creator, not for me.
+2. Add `"/live"` to `assets.run_worker_first` in that Wrangler config, so the Worker sees `/live?embed=mcp` and can serve it framable. **This is a change to the site's framing posture**: every response says `X-Frame-Options: DENY` and `frame-ancestors 'none'`, and a test holds that. With MCP on, exactly one request shape, `GET/HEAD /live?embed=mcp`, is served without `X-Frame-Options` and with `frame-ancestors *`, because a host's sandbox is on an origin RISE cannot know. Every other request is the asset, untouched. What that page can do when framed by a stranger is display a Current it is handed, and offer the microphone button, which needs the reader's own press and the browser's own permission. That is a judgment for the creator, not for me.
 
 Then a host adds `https://<site>/api/mcp` as a connector. How each product does that is the product's business.
 
@@ -76,3 +83,7 @@ Then a host adds `https://<site>/api/mcp` as a connector. How each product does 
 ## Where things are
 
 `worker/mcp-server.mjs` (+ test), `src/live/hosts/mcp-relay.js`, `src/live/hosts/mcp-port.js`, `src/live/adapters/mcp-app.js`, `src/live/adapters/current-guide.js`, `src/live/host/LiveHost.js` (`?embed=mcp`), tests beside them, `e2e/live-mcp.spec.js`, `src/test/fake-mcp-port.js` and `sealed-current.js`.
+
+## ChatGPT demonstration
+
+The reader-controlled demo uses a dedicated configuration; production MCP remains disabled. Setup, ten acceptance cases and the evidence requirements are in [CHATGPT-DEMO.md](CHATGPT-DEMO.md). Engineering tests and reference-host results are separate from real ChatGPT acceptance. A signed-in developer-mode account and explicit isolated deployment approval are required before the live demonstration.

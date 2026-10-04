@@ -9,7 +9,8 @@ import {
   compileJevVisualProgram
 } from '../core/jev-sequence.js';
 import { resolveJevChamberConfig } from '../core/jev-config.js';
-import { openingLines, openingOf, resolveJevReading, selectJevDivision } from './jev-reading.js';
+import { JEV_COLOR_THEMES } from '../core/jev-color-themes.js';
+import { openingLines, openingOf, resolveJevReading, selectJevDivision, validateJevRecommendation } from './jev-reading.js';
 import { divideSections } from '../content/archive/divisions.js';
 
 vi.mock('../content/library.js', () => ({ getTextById: vi.fn() }));
@@ -117,6 +118,14 @@ describe('Jev reading handoff', () => {
         entryIndex: 0, entryCount: 3, noun: 'chapter'
       }
     });
+  });
+
+  it('admits every shipped color theme in every color choice', () => {
+    for (const id of JEV_COLOR_THEMES) {
+      for (const key of ['colorTheme', 'textColor', 'backgroundColor', 'middleTheme', 'finaleTheme']) {
+        expect(() => validateJevRecommendation(decision({ [key]: id })), `${key} ${id}`).not.toThrow();
+      }
+    }
   });
 
   it('rejects unknown options and changed edition identity', async () => {

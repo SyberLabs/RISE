@@ -17,6 +17,7 @@ async function start(page) {
     await page.locator('.live-start').click();
     await expect(page.locator('#live-controls')).toBeVisible();
     await expect.poll(() => shown(page)).toContain('A black hole is a region of space');
+    await expect.poll(() => canvas(page).evaluate(element => Boolean(element.closest('.chamber-scheduled-field.is-active')))).toBe(true);
     // The visual control is folded into its own disclosure, as a reader finds it.
     await page.locator('.live-controls__visual-change summary').click();
 }

@@ -26,6 +26,7 @@
 import { GEMINI_DEFAULT_MODEL } from '../adapters/gemini-model.js';
 import { describeDegradations, detectCapabilities } from '../capabilities.js';
 import { admitCatalogVisual } from '../../core/visual-catalog.js';
+import { jevColors } from '../../core/jev-palette.js';
 import { createLiveControls } from './controls.js';
 import { DelayedRunner, EvalRunner } from './EvalRunner.js';
 import './LiveHost.css';
@@ -33,6 +34,9 @@ import './LiveHost.css';
 const DEFAULT_PROMPT = 'Explain black holes with RISE.';
 /** What an embedded app asks its host for: enough for the Chamber and the controls on a phone. */
 const EMBED_HEIGHT = 640;
+const EMBED_REPLAY_NOTICE = 'Reopening starts this reading from the beginning';
+/** The frame's colors a theme sets, and which of its shipped colors each takes. */
+const EMBED_THEME_VARS = [['--color-void', 'background'], ['--color-light', 'text'], ['--color-cloud', 'text'], ['--color-accent', 'accent']];
 const PROVIDERS = Object.freeze({
     mock: 'Deterministic demo provider (offline)',
     openai: 'OpenAI Realtime, with your own key',
@@ -81,10 +85,23 @@ export class LiveHost {
         this.caps = detectCapabilities(env);
         this.runtime = null;
         this.controls = null;
-        this.voiceKind = 'paced';
-        this.voiceCount = 0;
+        // Which voice the reading uses, and how many voices the browser offered, once each is known.
+        this.voiceKind = null;
+        this.voiceCount = null;
         this.destroyed = false;
         this.starting = false;
+        this.embeddedStartupCancelled = false;
+        this.embeddedCurrentHandled = false;
+        this.embeddedCurrentProcessing = false;
+        this.embeddedProposalRevision = 0;
+        this.embeddedProposalCurrent = null;
+        this.embeddedQueuedCurrent = null;
+        this.embeddedBeginStarted = false;
+        this.embeddedEvents = null;
+        this.stopListeningCurrent = null;
+        this.stopListeningError = null;
+        this.embeddedAnswerTimeoutMs = 60_000;
+        this.embeddedAnswerTimer = null;
         this.atomLog = [];
         // The reader's own key, in memory and nowhere else; see forgetKey.
         this.key = '';
@@ -103,6 +120,7 @@ export class LiveHost {
         if (this.embedded) {
             this.modules = this.loadModules();
             this.modules.catch(() => {});
+            void import('../../components/Chamber.js').catch(() => {});
             this.prefetchMic();
             void this.startEmbedded();
             return;
@@ -235,9 +253,14 @@ export class LiveHost {
         this.container.append(main);
     }
 
+    /** What this device cannot do: for the voice the reading uses once it is built, and the one chosen before. */
+    degradations({ pacingShown = false } = {}) {
+        return describeDegradations(this.caps, { voice: this.voiceKind ?? this.selectedVoice(), voices: this.voiceCount, pacingShown });
+    }
+
     showNotes() {
         if (!this.notes) return;
-        const notes = describeDegradations(this.caps, { voice: this.selectedVoice() === 'browser' ? 'browser' : 'paced', voices: this.voiceCount || 1 });
+        const notes = this.degradations();
         this.notes.replaceChildren(...notes.map(note => {
             const item = document.createElement('li');
             item.textContent = note.effect;
@@ -327,18 +350,30 @@ export class LiveHost {
         this.startButton.textContent = 'Start';
     }
 
+    stopHearingExitListener() {
+        this.stopHearingExit?.();
+        this.stopHearingExit = null;
+    }
+
     /** Everything the runtime needs, loaded now and not before: none of it is in the first load. */
     async buildRuntime() {
         const [{ createLiveRuntime }, { createMockAdapter }, { createSessionPlayer }, { createRealClock }, present, handoff] = await this.modules;
         this.present = present;
         // Hear when the reader leaves the Chamber by its own control.
-        this.stopHearingExit?.();
-        this.stopHearingExit = handoff.onLiveExit(() => { void this.ended(); });
+        if (this.destroyed || this.embeddedStartupCancelled) {
+            this.stopHearingExitListener();
+        } else {
+            this.stopHearingExitListener();
+            this.stopHearingExit = handoff.onLiveExit(() => { void this.ended(); });
+            if (this.destroyed || this.embeddedStartupCancelled) this.stopHearingExitListener();
+        }
         const clock = createRealClock();
         const voices = await this.buildVoices(clock);
-        // The Chamber itself refuses while its view is hidden (Chamber.visualShown), so the host only
-        // asks for the instance playing this runtime's Player.
+        // The container is shown before the router finishes its fade-in. Stop exposing controls as
+        // soon as it is hidden, and resolve the instance through the router's public API.
         const mountedChamber = player => {
+            const view = this.router?.views?.get('chamber-session');
+            if (view?.container?.hidden !== false) return null;
             const chamber = this.router?.getViewInstance?.('chamber-session');
             return chamber?.player === player ? chamber : null;
         };
@@ -396,7 +431,7 @@ export class LiveHost {
     async buildAdapter(clock, createMockAdapter) {
         if (this.providerName === 'mcp') {
             const { createMcpAppAdapter } = await import('../adapters/mcp-app.js');
-            return createMcpAppAdapter({ port: this.port, clock, host: framedBy(this.env.window ?? this.env) });
+            return createMcpAppAdapter({ port: this.port, clock, host: framedBy(this.env.window ?? this.env), admittedEvents: this.embeddedEvents });
         }
         if (this.providerName === 'gemini') {
             const [{ createGeminiAdapter }, { createGeminiFetchTransport }] = await Promise.all([
@@ -544,21 +579,25 @@ export class LiveHost {
         this.startedAt = performance.now();
         try {
             const [{ createMcpGuestPort }] = await Promise.all([import('../hosts/mcp-port.js'), this.modules]);
+            if (this.destroyed || this.embeddedStartupCancelled) return;
             this.port = createMcpGuestPort({ frame });
-            this.port.onTeardown(() => { void this.ended(); });
+            this.stopListeningError = this.port.onError(error => this.refuseEmbeddedProposal(error));
+            this.port.onTeardown(() => {
+                this.embeddedStartupCancelled = true;
+                this.cancelEmbeddedPending();
+                this.port?.close();
+                this.port = null;
+                // The host is taking the frame away, so the Chamber showing the reading goes with it.
+                void this.ended().then(() => this.present?.dismissLive(this.router));
+            });
             await this.port.connect();
-            if (this.destroyed) return;
+            if (this.destroyed || this.embeddedStartupCancelled) return;
             // The host sizes a frame from what the app says it wants; the Chamber fills what it is given.
             this.port.sizeChanged({ width: frame.innerWidth, height: EMBED_HEIGHT });
-            const runtime = await this.buildRuntime();
-            if (this.destroyed) return;
-            this.runtime = runtime;
-            const mic = await this.buildMic();
-            if (this.destroyed) return;
-            this.controls = createLiveControls({ runtime, onStop: () => this.stop(), audible: this.voiceKind === 'browser', mic });
-            await runtime.start('The answer the assistant presents');
+            this.listenEmbeddedCurrent();
+            this.armEmbeddedAnswerTimer();
         } catch (error) {
-            if (this.destroyed) return;
+            if (this.destroyed || this.embeddedStartupCancelled) return;
             this.controls?.destroy();
             this.controls = null;
             this.runtime = null;
@@ -568,8 +607,206 @@ export class LiveHost {
         }
     }
 
+    listenEmbeddedCurrent() {
+        if (!this.port || this.stopListeningCurrent || this.embeddedStartupCancelled || this.destroyed) return;
+        const stopListeningCurrent = this.port.onCurrent(({ current }) => this.admitEmbeddedCurrent(current));
+        if (this.embeddedCurrentHandled || this.destroyed || this.embeddedStartupCancelled) stopListeningCurrent();
+        else this.stopListeningCurrent = stopListeningCurrent;
+    }
+
+    clearEmbeddedAnswerTimer() {
+        if (this.embeddedAnswerTimer === null) return;
+        clearTimeout(this.embeddedAnswerTimer);
+        this.embeddedAnswerTimer = null;
+    }
+
+    armEmbeddedAnswerTimer() {
+        this.clearEmbeddedAnswerTimer();
+        if (this.destroyed || this.embeddedStartupCancelled || this.embeddedCurrentHandled
+            || this.embeddedBeginStarted || !this.port) return;
+        this.embeddedAnswerTimer = setTimeout(() => {
+            this.embeddedAnswerTimer = null;
+            if (this.destroyed || this.embeddedStartupCancelled || this.embeddedCurrentHandled
+                || this.embeddedBeginStarted) return;
+            this.say('Ask the assistant again. No Current arrived in time.', { alert: true });
+        }, this.embeddedAnswerTimeoutMs);
+    }
+
+    refuseEmbeddedProposal(error) {
+        if (this.destroyed || this.embeddedStartupCancelled || this.embeddedBeginStarted
+            || this.embeddedCurrentHandled || this.embeddedCurrentProcessing || this.embeddedQueuedCurrent) return;
+        this.clearEmbeddedAnswerTimer();
+        this.embeddedProposalRevision += 1;
+        if (this.embeddedProposalCurrent) this.port?.forgetCurrent(this.embeddedProposalCurrent);
+        if (this.embeddedQueuedCurrent) this.port?.forgetCurrent(this.embeddedQueuedCurrent);
+        this.embeddedQueuedCurrent = null;
+        this.embeddedProposalCurrent = null;
+        this.embeddedEvents = null;
+        this.embeddedCurrentHandled = false;
+        this.container.querySelector('.live-start')?.remove();
+        this.say(`Ask the assistant again. The Current was refused: ${text(error?.message, 'invalid Current').slice(0, 220)}`, { alert: true });
+        this.listenEmbeddedCurrent();
+        this.armEmbeddedAnswerTimer();
+    }
+
+    async validateEmbeddedCurrent(current) {
+        const { currentToEvents } = await import('../adapters/current-events.js');
+        return currentToEvents(current);
+    }
+
+    async processEmbeddedCurrent(current, revision) {
+        let events;
+        let failure = null;
+        try {
+            events = await this.validateEmbeddedCurrent(current);
+        } catch (error) {
+            failure = error;
+        }
+        if (this.destroyed || this.embeddedStartupCancelled) return;
+
+        if (revision !== this.embeddedProposalRevision) {
+            this.port?.forgetCurrent(current);
+            const queued = this.embeddedQueuedCurrent;
+            this.embeddedQueuedCurrent = null;
+            if (queued) {
+                this.embeddedProposalCurrent = queued;
+                void this.processEmbeddedCurrent(queued, this.embeddedProposalRevision);
+            } else {
+                this.embeddedProposalCurrent = null;
+                this.embeddedCurrentProcessing = false;
+            }
+            return;
+        }
+
+        const queued = this.embeddedQueuedCurrent;
+        if (queued) {
+            this.port?.forgetCurrent(current);
+            this.embeddedQueuedCurrent = null;
+            this.embeddedProposalCurrent = queued;
+            void this.processEmbeddedCurrent(queued, revision);
+            return;
+        }
+
+        this.embeddedCurrentProcessing = false;
+        if (failure) {
+            this.port?.forgetCurrent(current);
+            this.embeddedProposalCurrent = null;
+            this.embeddedEvents = null;
+            this.say(`Ask the assistant again. The Current was refused: ${text(failure?.message, 'invalid Current').slice(0, 220)}`, { alert: true });
+            this.armEmbeddedAnswerTimer();
+            return;
+        }
+
+        this.clearEmbeddedAnswerTimer();
+        this.embeddedEvents = events;
+        this.embeddedCurrentHandled = true;
+        this.stopListeningCurrent?.();
+        this.stopListeningCurrent = null;
+        this.say('Answer ready.');
+        this.showPoster(events[0]?.body ?? {});
+    }
+
+    /** The answer, ready: its title over Begin, in its theme's colors. The title is text, never markup. */
+    showPoster({ title, theme }) {
+        this.paintEmbedTheme(theme);
+        const main = this.container.querySelector('.live-host--embedded');
+        main.classList.add('live-host--poster');
+        const heading = document.createElement('h1');
+        heading.className = 'live-title';
+        heading.textContent = title;
+        const begin = document.createElement('button');
+        begin.type = 'button';
+        begin.className = 'live-start';
+        begin.textContent = 'Begin';
+        begin.addEventListener('click', () => { void this.beginEmbedded(); });
+        main.append(heading, begin);
+    }
+
+    /** The whole frame in a theme's shipped colors, or in RISE's own when the answer names none. */
+    paintEmbedTheme(theme) {
+        const colors = jevColors(theme);
+        const style = this.container.ownerDocument.documentElement.style;
+        for (const [name, key] of EMBED_THEME_VARS) {
+            if (colors) style.setProperty(name, colors[key]);
+            else style.removeProperty(name);
+        }
+    }
+
+    /** Validate the host's sealed answer once, then wait for the reader to begin it. */
+    admitEmbeddedCurrent(current) {
+        if (this.destroyed || this.embeddedStartupCancelled || this.embeddedCurrentHandled) return true;
+        this.clearEmbeddedAnswerTimer();
+        if (this.embeddedCurrentProcessing) {
+            // Keep the superseded queued proposal remembered by the port. Its
+            // delayed matching tool-result is a duplicate, not a new proposal.
+            this.embeddedQueuedCurrent = current;
+            return true;
+        }
+        this.embeddedProposalRevision += 1;
+        this.embeddedProposalCurrent = current;
+        this.embeddedCurrentProcessing = true;
+        void this.processEmbeddedCurrent(current, this.embeddedProposalRevision);
+        return true;
+    }
+
+    async beginEmbedded() {
+        if (!this.embeddedEvents || this.embeddedBeginStarted || this.destroyed || this.embeddedStartupCancelled) return;
+        this.embeddedBeginStarted = true;
+        this.starting = true;
+        const begin = this.container.querySelector('.live-start');
+        if (begin) {
+            begin.disabled = true;
+            begin.textContent = 'Starting…';
+        }
+        try {
+            const runtime = await this.buildRuntime();
+            if (this.destroyed || this.embeddedStartupCancelled) {
+                await runtime.stop();
+                return;
+            }
+            this.runtime = runtime;
+            const mic = await this.buildMic();
+            if (this.destroyed || this.embeddedStartupCancelled) return;
+            // The frame has no page before the reading, so what this device cannot do is said here; the
+            // status line already says a silent reading is paced.
+            this.controls = createLiveControls({ runtime, onStop: () => this.stop(), audible: this.voiceKind === 'browser', mic, notice: EMBED_REPLAY_NOTICE, notes: this.degradations({ pacingShown: true }) });
+            await runtime.start('The answer the assistant presents');
+        } catch (error) {
+            if (this.destroyed || this.embeddedStartupCancelled) return;
+            this.controls?.destroy();
+            this.controls = null;
+            this.runtime = null;
+            this.embeddedEvents = null;
+            this.say(`Could not start: ${text(error?.message, 'unknown error').slice(0, 200)}`, { alert: true });
+            this.port?.close();
+            this.port = null;
+        } finally {
+            this.starting = false;
+        }
+    }
+
+    cancelEmbeddedPending() {
+        this.clearEmbeddedAnswerTimer();
+        this.embeddedProposalRevision += 1;
+        this.stopListeningCurrent?.();
+        this.stopListeningCurrent = null;
+        this.stopListeningError?.();
+        this.stopListeningError = null;
+        this.embeddedEvents = null;
+        this.embeddedCurrentProcessing = false;
+        this.embeddedProposalCurrent = null;
+        this.embeddedQueuedCurrent = null;
+    }
+
     /** The reader pressed Stop, or asked to leave. */
     async stop() {
+        this.stopHearingExitListener();
+        if (this.embedded) {
+            this.embeddedStartupCancelled = true;
+            this.cancelEmbeddedPending();
+            this.port?.close();
+            this.port = null;
+        }
         const runtime = this.runtime;
         this.runtime = null;
         this.forgetKey();
@@ -578,11 +815,18 @@ export class LiveHost {
         await runtime?.stop();
         this.resetButton();
         await this.present?.leaveLive(this.router);
-        if (this.embedded && !this.destroyed) this.say('Stopped. Ask the assistant again to see it.');
+        if (this.embedded && !this.destroyed) this.say(`Stopped. Ask the assistant again to see it. ${EMBED_REPLAY_NOTICE}.`);
     }
 
     /** The reader left the Chamber by its own control: end what was running. */
     async ended() {
+        this.stopHearingExitListener();
+        if (this.embedded) {
+            this.embeddedStartupCancelled = true;
+            this.cancelEmbeddedPending();
+            this.port?.close();
+            this.port = null;
+        }
         const runtime = this.runtime;
         this.runtime = null;
         this.forgetKey();
@@ -590,7 +834,7 @@ export class LiveHost {
         this.controls = null;
         await runtime?.stop();
         this.resetButton();
-        if (this.embedded && !this.destroyed) this.say('Finished. Ask the assistant again to see it.');
+        if (this.embedded && !this.destroyed) this.say(`Finished. Ask the assistant again to see it. ${EMBED_REPLAY_NOTICE}.`);
     }
 
     activate() {
@@ -602,10 +846,13 @@ export class LiveHost {
     destroy() {
         if (this.destroyed) return;
         this.destroyed = true;
-        this.stopHearingExit?.();
+        this.embeddedStartupCancelled = true;
+        this.cancelEmbeddedPending();
+        this.stopHearingExitListener();
         void this.ended();
         this.port?.close();
         this.port = null;
         this.container.replaceChildren();
+        if (this.embedded) this.paintEmbedTheme();
     }
 }

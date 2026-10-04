@@ -42,4 +42,21 @@ describe('NightStreaks', () => {
     expect(f.pause()).toBe(true);
     expect(f.rafId).toBe(null);
   });
+
+  it('reads the system reduced-motion setting live, so turning it on mid-reading stills the field', () => {
+    const media = { matches: false };
+    const before = window.matchMedia;
+    window.matchMedia = () => media;
+    try {
+      const f = new NightStreaks(host());
+      f.tick(1000);
+      media.matches = true;
+      f.tick(1016);
+      strokes.length = 0;
+      f.tick(1032);
+      expect(strokes).toEqual([]);
+    } finally {
+      window.matchMedia = before;
+    }
+  });
 });

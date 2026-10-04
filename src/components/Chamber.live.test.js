@@ -78,6 +78,23 @@ describe('following an extended Player', () => {
         chamber.destroy();
     });
 
+    it('takes what the Player grew while the Chamber was still being built', () => {
+        // A sealed Current arrives whole: every segment extends the Player
+        // before the view that will show it exists, so no 'extended' is heard.
+        const container = document.createElement('div');
+        document.body.appendChild(container);
+        const first = current(1);
+        const player = new Player(first);
+        player.setLive(true);
+        const longer = current(3);
+        player.extend(longer);
+        const chamber = new Chamber(container, { session: first, player });
+        chamber.activate();
+        expect(chamber.session).toBe(longer);
+        expect(chamber._visualSchedule.program.segments).toHaveLength(3);
+        chamber.destroy();
+    });
+
     it('leaves an ordinary Session alone: nothing extends it, and the Chamber keeps its own', () => {
         const container = document.createElement('div');
         document.body.appendChild(container);
@@ -113,5 +130,23 @@ describe('letting go of the Player', () => {
         const { chamber } = mount(1);
         chamber.destroy();
         expect(() => chamber.destroy()).not.toThrow();
+    });
+});
+
+describe('when the reading is over', () => {
+    it('lets its field go once the closing screen has replaced the reading, and not before', () => {
+        const { chamber, player } = mount(1);
+        chamber._visualSchedule.observe(player.sessionState.session.atoms[0]);
+        const field = chamber.attractorField;
+        expect(field.rafId).not.toBeNull();
+
+        player.emit('complete', {});
+        // The reading fades out with its field still turning in it.
+        expect(field.destroyed).toBeFalsy();
+        vi.advanceTimersByTime(400);
+        expect(chamber.container.querySelector('#chamber-display').style.display).toBe('none');
+        expect(field.destroyed).toBe(true);
+        expect(field.rafId).toBeNull();
+        chamber.destroy();
     });
 });

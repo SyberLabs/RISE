@@ -1222,7 +1222,13 @@ class App {
         const root = document.documentElement;
 
         // Check OS preference for reduced motion
-        const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        const motionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+        const prefersReducedMotion = motionQuery.matches;
+        // The reader can change it mid-session; the root class follows.
+        if (!this._followsMotionQuery) {
+            this._followsMotionQuery = true;
+            motionQuery.addEventListener?.('change', () => this.applyAccessibilitySettings());
+        }
 
         // Apply reduced motion if user or OS preference is set
         if (this.settings?.reducedMotion || prefersReducedMotion) {

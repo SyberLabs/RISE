@@ -19,7 +19,7 @@ import { EVENT_LIMITS } from '../protocol.js';
  */
 export function currentToEvents(input) {
     const current = validateRiseCurrent(input);
-    const events = [{ type: 'current.open', body: { title: current.title, origin: current.origin } }];
+    const events = [{ type: 'current.open', body: { title: current.title, origin: current.origin, ...(current.theme ? { theme: current.theme } : {}) } }];
     for (const segment of current.segments) {
         const literal = segment.literal ? { literal: true } : {};
         events.push({ type: 'segment.begin', body: { segmentId: segment.id, visual: segment.visual, ...literal } });

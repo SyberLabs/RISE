@@ -97,6 +97,8 @@ test('Keep reviews the exact score; a saved child exports and plays in a clean b
   const parentId = await page.evaluate(() => JSON.parse(localStorage.getItem('rise_workshop_v1'))[0].provenance.portableId);
   await parent.getByRole('button', { name: 'Vary as new' }).click();
   await expect(page.locator('.workshop-studio')).toBeVisible();
+  await expect(page.locator('#workshop-sequence-status'))
+    .toContainText('Variation of an imported score');
   await page.locator('#session-title').fill('A Palace Variation');
   await page.locator('[data-action="focus-reading-inspector"]').click();
   // fill acts on the live slider; an evaluate can land on one the Workshop

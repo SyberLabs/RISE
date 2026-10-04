@@ -23,7 +23,10 @@ const COLOR_THEME_CHOICES = Object.freeze({
   prism: 'Neon magenta accent; psychedelic or prismatic mood.',
   ember: 'Fiery orange accent; warm dramatic mood.',
   cobalt: 'Electric blue accent; cool luminous mood.',
-  jade: 'Luminous jade accent; organic calm mood.'
+  jade: 'Luminous jade accent; organic calm mood.',
+  rose: 'Hot rose-pink accent; tender romantic mood.',
+  citrine: 'Lemon yellow accent; bright playful mood.',
+  silver: 'Cool silver accent; sober documentary mood.'
 });
 export const CHOICES = Object.freeze({
   section: { first: 'First section.', middle: 'Middle section.', last: 'Final section.', shortest: 'Shortest section.', longest: 'Longest section.' },
@@ -78,7 +81,11 @@ export const CHOICES = Object.freeze({
     white: 'White attractor light.', red: 'Warm red attractor light.',
     blue: 'Cool blue attractor light.', gold: 'Golden attractor light.',
     purple: 'Purple attractor light; choose for psychedelic color.',
-    neon: 'Neon magenta and cyan light at speed, with light streaks rushing past; choose for night drives, racing, drifting, neon cities, or fast energy.'
+    neon: 'Neon magenta and cyan light at speed, with light streaks rushing past; choose for night drives, racing, drifting, neon cities, or fast energy.',
+    jade: 'Green jade attractor light.',
+    rose: 'Rose pink attractor light.',
+    citrine: 'Lemon yellow attractor light.',
+    silver: 'Cool silver attractor light.'
   },
   kleePreset: {
     random: 'Varied Klee forms.', architectural: 'Structured geometry.',
@@ -110,12 +117,16 @@ export const CHOICES = Object.freeze({
   textColor: {
     classic: 'Warm ivory text.', amethyst: 'Clear lilac text.',
     prism: 'Bright rose pink text.', ember: 'Warm gold text.',
-    cobalt: 'Cool cyan text.', jade: 'Fresh mint green text.'
+    cobalt: 'Cool cyan text.', jade: 'Fresh mint green text.',
+    rose: 'Soft blush pink text.', citrine: 'Bright lemon yellow text.',
+    silver: 'Cool silver grey text.'
   },
   backgroundColor: {
     classic: 'Near-black background.', amethyst: 'Deep violet background.',
     prism: 'Dark prismatic purple background.', ember: 'Dark red-brown background.',
-    cobalt: 'Deep navy blue background.', jade: 'Dark forest green background.'
+    cobalt: 'Deep navy blue background.', jade: 'Dark forest green background.',
+    rose: 'Dark wine background.', citrine: 'Dark olive background.',
+    silver: 'Neutral graphite background.'
   },
   wordFill: {
     plain: 'Plain text ink.', accent: 'Fill text with the chosen accent color.',

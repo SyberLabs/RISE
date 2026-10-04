@@ -166,7 +166,7 @@ flowchart LR
     content["content<br/>texts, imagery, journeys<br/>228 modules"]
     core["core<br/>session, player, router<br/>167 modules"]
     enterprise["enterprise<br/>talk program, speaker rail<br/>34 modules"]
-    live["live<br/>realtime Current: events, runtime, providers<br/>39 modules"]
+    live["live<br/>realtime Current: events, runtime, providers<br/>40 modules"]
     page["page<br/>spatial projection<br/>4 modules"]
     sources["sources<br/>text and visual providers<br/>13 modules"]
     vendor["vendor<br/>SyberLabs design kit<br/>2 modules"]
@@ -201,8 +201,8 @@ flowchart LR
     core --> |4| sources
     core --> |20| visuals
     live -.-> |3 lazy| app
-    live -.-> |1 lazy| components
-    live --> |8| core
+    live -.-> |2 lazy| components
+    live --> |9| core
     live -.-> |1 lazy| visuals
     page --> |2| core
     page --> |3| visuals
@@ -700,23 +700,14 @@ of `settled`, `open`, `deferred`, or `reversed`.
 ### 8.16 A deploy must not strand an open tab
 
 - **Chosen:** a `vite:preloadError` listener and a router check treat a failed
-  chunk import as a stale build and reload **once per build per five
-  minutes**, through one shared claim (`claimStaleBuildReload`) that records
-  the build (the entry chunk's hashed URL) and the time in `sessionStorage`. A
-  start view whose code still will not load falls back to Home. `index.html`
-  is served `must-revalidate`.
-- **Rejected:** letting the tab break; reloading unguarded; a guard released
-  at the end of every start, or held per router instance, since the reload it
-  guards resets it; a claim that never expires.
+  chunk import as a stale build and reload **once**, guarded by a sentinel;
+  `index.html` is served `must-revalidate`.
+- **Rejected:** letting the tab break, and reloading unguarded.
 - **Why:** `index.html` names the hashed chunks, so a tab left open across a
   release asks for a file the new deploy replaced, gets a 404, and can no longer
   reach any view it had not already loaded. A stale chunk is not a transient
-  network error and retrying cannot fix it. The claim exists because an
-  unguarded reload turns a real network failure into a loop: the same build
-  failing again within the window does not reload. A new build may claim at
-  once, and the same build may claim again once the window passes, so a reload
-  spent on a network blip cannot strand the tab when a deploy lands later.
-  Without session storage nothing could stop a loop, so nothing reloads.
+  network error and retrying cannot fix it. The sentinel exists because an
+  unguarded reload turns a real network failure into a loop.
 - **Status:** settled.
 
 ### 8.17 The catalogue is derived at build time
@@ -1205,11 +1196,9 @@ of `settled`, `open`, `deferred`, or `reversed`.
 
 ### 8.39 Home proposes; the reader decides where to enter
 
-- **Chosen:** Home opens on a reading already under way, silently: today's
-  poem under its own engine, begun with sound through the app's `launchToday`
-  (as `/today` is). Another reading composes a bounded, vivid reading
-  on-device by chance (`src/core/roll.js`). The reader can enter it with sound,
-  adjust it in Reader Setup, or ask (from the Menu) for a specific reading through the same reader-owned OpenRouter or local
+- **Chosen:** Home's Oracle composes a bounded reading on-device by chance
+  (`src/core/roll.js`). The reader can enter it, adjust it in Reader Setup, or
+  ask for a specific reading through the same reader-owned OpenRouter or local
   Kev connection used by the rest of the app. The standalone Wormhole is a
   second invocation skin over the same roll and app-owned launch operations.
 - **Rejected:** restoring the retired shared recommendation Worker for Home;
@@ -1220,7 +1209,7 @@ of `settled`, `open`, `deferred`, or `reversed`.
   request goes to their chosen provider; a local roll sends nothing. Home
   keeps its proposal while the Chamber is open, and returns to Reader Setup
   when the reader entered from Adjust.
-- **Status:** open. The roll, Home's silent reading, invocation handoff, and Wormhole
+- **Status:** open. The roll, Oracle object, invocation handoff, and Wormhole
   are covered by unit and browser tests. The first-read Page/Stream choice is
   preserved for the first rolled reading.
 

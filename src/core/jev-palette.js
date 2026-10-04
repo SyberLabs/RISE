@@ -5,7 +5,10 @@ export const JEV_PALETTES = Object.freeze({
   prism: Object.freeze({ background: '#0A0619', text: '#F4F4FF', accent: '#E84BFF' }),
   ember: Object.freeze({ background: '#1C0B0A', text: '#FFF0E4', accent: '#FF9A5A' }),
   cobalt: Object.freeze({ background: '#071326', text: '#EDF6FF', accent: '#58B8FF' }),
-  jade: Object.freeze({ background: '#061912', text: '#E8FFF4', accent: '#4CE6A4' })
+  jade: Object.freeze({ background: '#061912', text: '#E8FFF4', accent: '#4CE6A4' }),
+  rose: Object.freeze({ background: '#1A0414', text: '#FFF0F4', accent: '#FF5C93' }),
+  citrine: Object.freeze({ background: '#101205', text: '#FAFBE6', accent: '#E4DA3C' }),
+  silver: Object.freeze({ background: '#111215', text: '#F5F6F8', accent: '#B4C3D6' })
 });
 
 /** Distinct light inks that remain readable over every offered dark ground. */
@@ -15,7 +18,23 @@ export const JEV_INKS = Object.freeze({
   prism: '#FFC4F2',
   ember: '#FFE095',
   cobalt: '#A8F1FF',
-  jade: '#AFFFCE'
+  jade: '#AFFFCE',
+  rose: '#FFB3B8',
+  citrine: '#EAF57A',
+  silver: '#C9D0DA'
+});
+
+/** What the reader's Text and Backdrop pickers call each theme's ink and ground. */
+export const JEV_COLOR_NAMES = Object.freeze({
+  classic: Object.freeze({ ink: 'Ivory', ground: 'Night' }),
+  amethyst: Object.freeze({ ink: 'Lilac', ground: 'Violet' }),
+  prism: Object.freeze({ ink: 'Rose', ground: 'Prism' }),
+  ember: Object.freeze({ ink: 'Gold', ground: 'Ember' }),
+  cobalt: Object.freeze({ ink: 'Cyan', ground: 'Cobalt' }),
+  jade: Object.freeze({ ink: 'Mint', ground: 'Jade' }),
+  rose: Object.freeze({ ink: 'Blush', ground: 'Wine' }),
+  citrine: Object.freeze({ ink: 'Lemon', ground: 'Olive' }),
+  silver: Object.freeze({ ink: 'Silver', ground: 'Graphite' })
 });
 
 export function jevPalette(id) {
