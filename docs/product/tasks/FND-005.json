@@ -3,8 +3,8 @@
   "title": "Make post-deploy checks tolerate Cloudflare rollout",
   "lane": "shared",
   "milestone": "Release reliability",
-  "status": "in_review",
-  "delivery": "branch",
+  "status": "done",
+  "delivery": "deployed",
   "owner": "Claude coordinator",
   "priority": "now",
   "dependencies": [],
@@ -24,6 +24,12 @@
       "ref": "https://github.com/SyberLabs/RISE/actions/runs/37244411493",
       "note": "The #377 production job that failed on the race while production was correct.",
       "date": "2026-10-04"
+    },
+    {
+      "kind": "commit",
+      "ref": "https://github.com/SyberLabs/RISE/commit/3da0b125060d321229f1a50aeff165363d76cada",
+      "note": "Merged as #399; its own production job passed the new checks and production served this release marker.",
+      "date": "2026-10-04"
     }
   ],
   "summary": "Production jobs for #396 and #377 were marked failed while production was correct.",
@@ -32,8 +38,12 @@
     {
       "date": "2026-10-04T23:44:08.776Z",
       "summary": "Recorded from repository and CI evidence after integration."
+    },
+    {
+      "date": "2026-10-04T23:49:49.487Z",
+      "summary": "Merged and deployed #399"
     }
   ],
-  "updatedAt": "2026-10-04T23:44:08.776Z",
-  "revision": 1
+  "updatedAt": "2026-10-04T23:49:49.487Z",
+  "revision": 2
 }
