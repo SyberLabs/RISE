@@ -36,7 +36,7 @@ Consumes `{tasks,recentCommits,generatedAt}` from `/api/tracker` or static `snap
 
 Files: `docs/product/tasks/*.json`, `docs/product/README.md`, `docs/product/discussions/*.md`, `AGENTS.md`, `docs/README.md`, `package.json`, `.gitignore`.
 - [ ] Seed Reader work and Composer milestones with dated references, unassigned owners unless already owned; preserve unknown/human acceptance gaps. Record October product decisions and roadmap with provenance.
-- [ ] Add agent workflow and npm `roadmap:check`, `roadmap:dev`, `roadmap:build`, `test:roadmap` commands and ignored static output. Do not modify CI or deployment files.
+- [ ] Add agent workflow and npm `roadmap:check`, `roadmap:dev`, `roadmap:build`, `test:roadmap` commands and ignored static output. Add tracker validation/tests to the existing CI job after they pass locally; no new required check. Do not modify deployment files.
 - [ ] Run task validation, tracker tests, wiki, hygiene, diff checks and browser smoke. Review full change and commit reviewed work. Launch local dashboard for review.
 
 ## Preflight

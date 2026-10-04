@@ -31,16 +31,26 @@
       "ref": "https://github.com/SyberLabs/RISE/actions/runs/37160007847",
       "note": "Required CI passed at this candidate. Full final unit suite was not rerun; earlier failures and targeted repairs recorded separately.",
       "date": "2026-10-03"
+    },
+    {
+      "kind": "pr",
+      "ref": "https://github.com/SyberLabs/RISE/pull/371",
+      "note": "Remote checked 2026-10-04: still OPEN draft at 62fe11f3. No new integration or deployment inferred.",
+      "date": "2026-10-04"
     }
   ],
   "activity": [
     {
       "date": "2026-10-03",
       "summary": "Seeded from repository evidence and approved product direction; future acceptance is not assumed."
+    },
+    {
+      "date": "2026-10-04T20:56:47.057Z",
+      "summary": "Refreshed foundation remote status and latest Reader main baseline"
     }
   ],
-  "updatedAt": "2026-10-03T23:14:43.432Z",
-  "revision": 1,
-  "summary": "PR #371 at 62fe11f3 reconciles main and repairs admission/themes/control integration. CI evidence exists; draft is not merged or accepted. Main subsequently advanced to 8dedae8f; reconcile those Reader changes before integration.",
+  "updatedAt": "2026-10-04T20:56:47.057Z",
+  "revision": 2,
+  "summary": "PR #371 at 62fe11f3 reconciles main and repairs admission/themes/control integration. CI evidence exists; draft is not merged or accepted. Main subsequently advanced to 2c71cba8; reconcile those Reader changes before integration.",
   "blocker": null
 }

@@ -1,6 +1,6 @@
 # RISE product library and team tracker
 
-The Reader and Live + RiseSDK are equal product directions. Shared foundations connect specific tasks; research in one lane does not automatically hold the other. Start the local team dashboard with `npm run roadmap:dev`, then open the loopback address printed by the command. The dashboard is read-only and refreshes while agents update task files. It is separate from the public reader.
+The Reader and Live + RiseSDK are equal product directions. Shared foundations connect specific tasks; research in one lane does not automatically hold the other. Start the local team dashboard with `npm run roadmap:dev`, then open the loopback address printed by the command. The dashboard is read-only and refreshes while agents update task files. It is separate from the public reader. Each dashboard reflects the checkout serving it; updates from other branches appear after their commits are integrated. Seth can run the same commands in his checkout. Git review resolves cross-branch updates.
 
 ## Current direction and truth
 
