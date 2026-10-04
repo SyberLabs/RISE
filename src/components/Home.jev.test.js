@@ -297,7 +297,8 @@ it('loads again on the next ask when asking could not load', async () => {
   const { portal, container } = mount();
   await openAsk(container);
   ask(container, 'tokyo drift');
-  await vi.waitFor(() => expect(askAlert(container).hidden).toBe(false));
+  // The failing import is a module load, which a loaded CI runner can take past the 1 s default.
+  await vi.waitFor(() => expect(askAlert(container).hidden).toBe(false), { timeout: 3000 });
   vi.doUnmock('../app/invocation.js');
   ask(container, 'tokyo drift');
   await vi.waitFor(() => expect(dialog(container).open).toBe(false), { timeout: 3000 });
