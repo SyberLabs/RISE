@@ -24,12 +24,17 @@ Under a transparent header (the lockup and the one Menu):
 
 * **The engine**, full-bleed: the reading's own visual, the one the Chamber
   will run, on the `ReadingStage` (`src/components/reading-backdrop.js`).
-* **One ink scrim**: a radial pool under the stream and a band under the
-  header and the bar, so every word keeps 4.5:1 even over a white engine.
+* **One ink scrim**, laid only under what it keeps legible, so the engine
+  shows everywhere else: a soft pool sized to the stream's lines (86% ink;
+  across the whole width on a phone), a ground under the bar that starts just
+  above whatever stands under the stage (92%), and a band under the header.
+  Every word keeps 4.5:1 even over a white engine.
 * **The stream**, centred: the reading's opening, unit by unit, in the
   reading's own unit, pace and curve (`ReadingStream`,
-  `src/components/reading-stream.js`), silent.
-* **The bar**: on the left a caption over the reading's name; on the right
+  `src/components/reading-stream.js`), silent. Each unit moves in over 120ms
+  at full strength, so a fast word is never caught half-faded.
+* **The bar**: on the left a caption over the reading's name (one line on a
+  desk; a longer name ends in an ellipsis, whole as its text and tooltip); on the right
   **Read it with sound** (the one solid key), **Another reading** (a line
   key) and a text link. A 1px hairline under it follows the stream.
 * **Continue reading**, when a session exists, as a small pill above the bar.

@@ -15,7 +15,8 @@ import { PACE_CURVE_IDS } from './core/pacing.js';
 import { resolveNextLibraryDivision } from './core/reading-continuation.js';
 import { BetaGate } from './components/BetaGate.js';
 import { isRosaryDoor } from './core/rosary-door.js';
-import { TRY_RISE_PATH, isTryRisePath } from './core/keystone-paths.js';
+import { KEYSTONE_ROUTE_PREFIX, TRY_RISE_PATH, isTryRisePath } from './core/keystone-paths.js';
+import { programPath, programSlugShape } from './core/program-paths.js';
 import { isJevSceneDemoPath, sceneSampleFromPath } from './core/jev-demo-path.js';
 import { KEYSTONE_SESSION_ORIGIN } from './app/chamber-exit.js';
 
@@ -29,6 +30,7 @@ import { DEFAULT_CHAMBER_ACCENT, applyChamberAccent, migrateChamberAccent, resol
 import { resolveFontSize } from './core/chamber-type-size.js';
 import { clampReadingWpm } from './core/reading-limits.js';
 import { createRouteManifest } from './app/route-manifest.js';
+import { preloadHome } from './app/home-preload.js';
 import { installTestBridge } from './app/test-bridge.js';
 
 const VISUAL_LAB_PATH = '/visual-lab';
@@ -297,8 +299,18 @@ class App {
         // Keystone paths are durable public entry points.  They resolve to a
         // threshold view first; admission and launch still happen through the
         // exact manifest gate rather than from URL text alone.
-        const { keystoneSlugFromPath } = await import('./content/keystones.js');
-        const directKeystone = keystoneSlugFromPath(window.location.pathname);
+        //
+        // ASK THE PATH BEFORE FETCHING THE ANSWER. keystones.js carries the
+        // Archive, the museum pins and the voice packs (over 100 KB on the
+        // wire), and the house programs were a second round trip after it.
+        // A reader arriving at Home waited for both, in series, before the
+        // Portal's own code was even requested. Only a path under the
+        // prefix can name a Keystone or a minted sequence, so only that
+        // path pays for the manifest that confirms it.
+        const pathname = window.location.pathname;
+        const directKeystone = pathname.startsWith(KEYSTONE_ROUTE_PREFIX)
+            ? (await import('./content/keystones.js')).keystoneSlugFromPath(pathname)
+            : null;
         const directTryRise = isTryRisePath(window.location.pathname);
         const directJevSceneDemo = isJevSceneDemoPath(window.location.pathname);
         // A minted sequence is the same kind of public entry point. TWO
@@ -307,9 +319,7 @@ class App {
         // a valid address naming nothing has to reach the threshold and be
         // told — collapsing both to "no" drops that reader on the Portal
         // with no idea why.
-        const { houseProgram } = await import('./content/programs/index.js');
-        const { programSlugShape } = await import('./core/program-paths.js');
-        const mintedSlug = programSlugShape(window.location.pathname);
+        const mintedSlug = programSlugShape(pathname);
 
         // A reload triggered by a stale build carries the destination
         // the reader was trying to reach, so recovery is invisible to
@@ -354,6 +364,7 @@ class App {
         } else if (directJevSceneDemo) {
             await this.router.navigate('portal', { data: { demoMode: true } });
         } else if (mintedSlug) {
+            const { houseProgram } = await import('./content/programs/index.js');
             await this.router.navigate('mint', { data: { entry: houseProgram(mintedSlug) } });
         } else if (window.location.pathname === VISUAL_LAB_PATH) {
             await this.router.navigate('visual-lab');
@@ -377,7 +388,11 @@ class App {
             console.log('[RISE] Navigating directly to personalized vault:', options.personalizedVault);
             await this.router.navigate('vault', { data: { personalizedVault: options.personalizedVault } });
         } else {
-            await this.router.navigate('portal');
+            // The Portal's code is asked for first, then what Home plays
+            // with it, so neither waits on the other's round trip.
+            const shown = this.router.navigate('portal');
+            void preloadHome();
+            await shown;
         }
         // A start route whose code will not load (blocked, or still
         // missing after the one reload) leaves nothing on screen. Home.
@@ -943,7 +958,6 @@ class App {
                 provenance: { kind: 'minted-program', slug }
             });
 
-            const { programPath } = await import('./core/program-paths.js');
             const path = programPath(slug);
             if (window.location.pathname !== path) {
                 window.history.replaceState({}, '', path);

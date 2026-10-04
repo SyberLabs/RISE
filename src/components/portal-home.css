@@ -1,12 +1,16 @@
 /* ═══════════════════════════════════════════════════════════
    RISE Home — already reading.
    The reading's engine fills the page (reading-backdrop.js's stage draws it
-   into .home-engine, cross-fading one reading's into the next), one ink scrim keeps every word on it legible, its opening
-   streams in the centre (reading-stream.js), and the bar below names it.
+   into .home-engine, cross-fading one reading's into the next), one ink scrim
+   keeps every word on it legible, its opening streams in the centre
+   (reading-stream.js), and the bar below names it.
    Asking is a dialog the Menu opens. The page around it is Portal.css.
    ═══════════════════════════════════════════════════════════ */
 
 .portal-home {
+  --home-gutter: clamp(16px, 4vw, 56px);
+  --home-ink-stream: color-mix(in srgb, var(--sy-bg) 86%, transparent);
+  --home-ink-bar: color-mix(in srgb, var(--sy-bg) 92%, transparent);
   position: relative;
   isolation: isolate;
   background-image: none;
@@ -25,16 +29,13 @@
   overflow: hidden;
 }
 
-/* The one gradient: ink pooled under the stream, and at the top and bottom
-   under the header and the bar, so text keeps 4.5:1 over any engine, even a
-   white one (86% ink under the stream, 92% under the bar). A phone moves
-   the pool and the bar's ink up with them. */
+/* The one ink scrim, laid only under what it keeps legible, so the engine
+   shows everywhere else: a band under the header (here), a pool under the
+   stream (.home-stream::before), and a ground under the bar (.home::after)
+   and the footer. Text keeps 4.5:1 over any engine, even a white one: 86%
+   ink under the stream, 92% under the bar. */
 .home-scrim {
-  --scrim-pool: ellipse 55% 42% at 50% 46%;
-  --scrim-bar: 62%;
-  background:
-    radial-gradient(var(--scrim-pool), color-mix(in srgb, var(--sy-bg) 86%, transparent), color-mix(in srgb, var(--sy-bg) 86%, transparent) 35%, color-mix(in srgb, var(--sy-bg) 40%, transparent) 75%, transparent),
-    linear-gradient(180deg, color-mix(in srgb, var(--sy-bg) 72%, transparent), transparent 18%, transparent var(--scrim-bar), color-mix(in srgb, var(--sy-bg) 92%, transparent) calc(var(--scrim-bar) + 18%));
+  background: linear-gradient(180deg, color-mix(in srgb, var(--sy-bg) 72%, transparent), transparent 18%);
 }
 
 /* The header floats over the reading. The open Menu brings its own ground. */
@@ -51,30 +52,74 @@
   flex: 1 1 auto;
   min-height: 0;
   max-width: none;
-  padding: 0 clamp(16px, 4vw, 56px);
+  padding: 0 var(--home-gutter);
+  overflow-x: clip;
 }
 
+/* The stage, then what sits under it: an alert, Continue, the bar and the
+   hairline, in rows of their own so the bar's ground can span them all. */
 .home {
   flex: 1;
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) repeat(4, auto);
+  grid-template-columns: minmax(0, 1fr);
   min-width: 0;
   min-height: 0;
 }
 
-/* The stream, centred in whatever height the bar leaves. */
+/* One column: every row's item is placed in it, under the ground. */
+.home > *,
+.home::after {
+  grid-column: 1;
+}
+
+/* The bar's ground: from a little above whatever stands under the stage down
+   to the footer, edge to edge, however tall the bar has grown. */
+.home::after {
+  content: "";
+  grid-row: 2 / -1;
+  z-index: -1;
+  margin: -96px calc(-1 * var(--home-gutter)) 0;
+  background: linear-gradient(180deg, transparent, var(--home-ink-bar) 96px);
+  pointer-events: none;
+}
+
+/* The stream, centred in whatever height the bar leaves. It clips only
+   above and below; the page clips at the screen's sides, so the pool under
+   the stream reaches them. */
 .home-stage {
-  flex: 1 1 auto;
+  grid-row: 1;
   min-height: 160px;
   display: flex;
   align-items: center;
   justify-content: center;
   overflow: hidden;
+  overflow: visible clip;
   padding: var(--sy-space-5) 0;
 }
 
 .home-stream {
+  position: relative;
   width: 100%;
+}
+
+/* The pool: ink, blurred soft, solid under the stream's lines and as wide as
+   its longest (a word is narrower); it fades out within 112px around them. */
+.home-stream::before {
+  --pool-half: 5em;
+  content: "";
+  position: absolute;
+  z-index: -1;
+  inset: -64px calc(50% - var(--pool-half) - 64px);
+  font-size: clamp(40px, 6vw, 76px);
+  border-radius: 64px;
+  background: var(--home-ink-stream);
+  filter: blur(24px);
+  pointer-events: none;
+}
+
+.home-stream[data-chunk-mode="word"]::before {
+  --pool-half: 3.5em;
 }
 
 .home-stream .reading-stream-previous {
@@ -100,14 +145,14 @@
 }
 
 .home-alert {
-  order: 1;
+  grid-row: 2;
   margin: 0 0 var(--sy-space-4);
 }
 
 /* Continue is after the keys in focus order, and drawn above the bar as a pill. */
 .portal-home .portal-continue {
-  order: 2;
-  align-self: flex-start;
+  grid-row: 3;
+  justify-self: start;
   width: auto;
   max-width: 100%;
   min-height: 44px;
@@ -137,7 +182,7 @@
 }
 
 .home-bar {
-  order: 3;
+  grid-row: 4;
   display: flex;
   flex-wrap: wrap;
   align-items: flex-end;
@@ -146,6 +191,7 @@
 }
 
 .home-caption {
+  flex: 1 1 0;
   display: flex;
   flex-direction: column;
   gap: var(--sy-space-1);
@@ -161,7 +207,9 @@
   overflow-wrap: anywhere;
 }
 
-/* The reading's name: the page's one heading, set as a caption. */
+/* The reading's name: the page's one heading, set as a caption on one line.
+   A name too long for it ends in an ellipsis; its text, and its tooltip,
+   stay whole. */
 .home-title {
   margin: 0;
   min-height: 26px;
@@ -170,7 +218,9 @@
   line-height: 26px;
   font-weight: 400;
   color: var(--sy-text);
-  overflow-wrap: anywhere;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .home-note {
@@ -220,7 +270,7 @@
 
 /* A hairline under the bar that follows the stream. */
 .home-progress {
-  order: 4;
+  grid-row: 5;
   margin-top: 20px;
   height: 1px;
   background: var(--sy-line);
@@ -239,8 +289,9 @@
   width: auto;
   max-width: none;
   margin: 0;
-  padding: 0 clamp(16px, 4vw, 56px) var(--sy-space-1);
+  padding: 0 var(--home-gutter) var(--sy-space-1);
   border-top: 0;
+  background: var(--home-ink-bar);
 }
 
 .portal-home .portal-legal-link {
@@ -359,9 +410,10 @@
 
 /* ─── A phone: the caption, then a full-width key, then a row of two ─── */
 @media (max-width: 899px) {
-  .home-scrim {
-    --scrim-pool: ellipse 80% 30% at 50% 42%;
-    --scrim-bar: 46%;
+  /* The pool spans the screen: a phone's lines do too. */
+  .home-stream::before,
+  .home-stream[data-chunk-mode="word"]::before {
+    --pool-half: calc(50vw + 64px);
   }
 
   .home-bar {
@@ -379,6 +431,11 @@
     display: inline;
     font-size: 15px;
     line-height: 22px;
+  }
+
+  .home-title {
+    white-space: normal;
+    overflow-wrap: anywhere;
   }
 
   .home-label::after {

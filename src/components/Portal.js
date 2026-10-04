@@ -44,6 +44,7 @@ const capital = text => text ? text[0].toLocaleUpperCase('en') + text.slice(1) :
 const button = (hook, label, variant, extra = '') =>
   `<button class="btn btn-${variant}" type="button" data-home="${hook}"${extra}>${label}</button>`;
 const afterPaint = next => (globalThis.requestAnimationFrame || (run => setTimeout(run, 0)))(() => setTimeout(next, 0));
+const whenIdle = run => (globalThis.requestIdleCallback ? requestIdleCallback(run, { timeout: 2000 }) : setTimeout(run, 200));
 
 /**
  * The reading on screen, from a decision and how it came: today's poem
@@ -297,7 +298,10 @@ export class Portal {
     const home = this.container.querySelector('.home');
     if (!home) return;
     home.querySelector('.home-label').textContent = reading.label;
-    home.querySelector('.home-title').textContent = reading.heading;
+    const title = home.querySelector('.home-title');
+    title.textContent = reading.heading;
+    // A desk sets the name on one line; one too long for it is whole here.
+    title.title = reading.heading;
     const note = home.querySelector('.home-note');
     note.textContent = reading.note;
     note.hidden = !reading.note;
@@ -357,6 +361,10 @@ export class Portal {
       this.stream ||= new ReadingStream(host, { onProgress: fraction => this.setProgress(fraction) });
       const { chunkMode, wpm, curve } = reading.decision.config;
       this.stream.play(opening.text, { chunkMode, wpm, curve, verse: opening.verse });
+      // The first word shows: fetch Another reading's code while the reader reads, so the press waits on nothing.
+      // A failed fetch stays silent; loadTools forgets it and the press tries again.
+      // A reader who asked to save data (Save-Data) fetches it only on the press.
+      if (!this.tools && !globalThis.navigator?.connection?.saveData) whenIdle(() => { if (this._active && !this.demoMode) this.loadTools().catch(() => {}); });
     } catch (error) {
       console.warn('[Home] the stream could not run; the opening holds still.', error);
       const still = document.createElement('p');
