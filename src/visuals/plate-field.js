@@ -134,7 +134,7 @@ export class PlateField {
             this._cancel();
         } else {
             this._lastFrameAt = 0;
-            this._rafId = requestAnimationFrame(this._tick);
+            this._requestFrame();
         }
     }
 
@@ -376,11 +376,14 @@ export class PlateField {
 
         if (this._resolveFirstPlate) {
             if (this._hot) this._showFirstPlate();
-            if (this._resolveFirstPlate || !this.reducedMotion) {
-                this._rafId = requestAnimationFrame(this._tick);
-            } else {
-                this._rafId = null;
+            if (this._resolveFirstPlate) {
+                this._requestFrame();
+                return;
             }
+        }
+        // Reduced motion holds one still: nothing advances or rotates.
+        if (this.reducedMotion) {
+            this._rafId = null;
             return;
         }
 
@@ -391,7 +394,7 @@ export class PlateField {
             this._rotate(false);
             this._nextRotateAt = timestamp + this.dwellMs;
         }
-        this._rafId = requestAnimationFrame(this._tick);
+        this._requestFrame();
     }
 
     start() {
@@ -405,7 +408,7 @@ export class PlateField {
         if (this.sliceFirstPlate) {
             this._firstPlate = new Promise((resolve) => { this._resolveFirstPlate = resolve; });
             this._startBake();
-            this._rafId = requestAnimationFrame(this._tick);
+            this._requestFrame();
             return this._firstPlate;
         }
         this._rotate(true);
@@ -413,7 +416,7 @@ export class PlateField {
         this._firstPlate = Promise.resolve(!!this._planes[0]._painted);
         if (this.reducedMotion) return this._firstPlate;
         this._nextRotateAt = performance.now() + this.dwellMs;
-        this._rafId = requestAnimationFrame(this._tick);
+        this._requestFrame();
         return this._firstPlate;
     }
 
@@ -431,6 +434,12 @@ export class PlateField {
         const resolve = this._resolveFirstPlate;
         this._resolveFirstPlate = null;
         resolve?.(false);
+    }
+
+    /** One frame loop: a frame still pending (a hidden tab holds it) is replaced. */
+    _requestFrame() {
+        this._cancel();
+        this._rafId = requestAnimationFrame(this._tick);
     }
 
     _cancel() {
@@ -470,7 +479,7 @@ export class PlateField {
         this._lastFrameAt = 0;
         this._nextRotateAt = performance.now() + this._remainingRotateMs;
         if (!this.reducedMotion || this._resolveFirstPlate) {
-            this._rafId = requestAnimationFrame(this._tick);
+            this._requestFrame();
         }
         return true;
     }

@@ -502,6 +502,68 @@ describe('PlateField, first plate baked in slices', () => {
         field.destroy();
     });
 
+    describe('mounted in a hidden tab', () => {
+        // Frames that can be cancelled, like the browser's: a hidden tab
+        // holds a requested frame until it shows again.
+        let cancelled;
+        let hidden;
+        beforeEach(() => {
+            cancelled = new Set();
+            let id = 0;
+            vi.stubGlobal('requestAnimationFrame', (cb) => {
+                const mine = ++id;
+                rafQueue.push(Object.assign((t) => { if (!cancelled.has(mine)) cb(t); }, { id: mine }));
+                return mine;
+            });
+            vi.stubGlobal('cancelAnimationFrame', id => cancelled.add(id));
+            hidden = true;
+            Object.defineProperty(document, 'hidden', { configurable: true, get: () => hidden });
+        });
+        afterEach(() => { delete document.hidden; });
+
+        const live = () => rafQueue.filter(cb => !cancelled.has(cb.id)).length;
+        const show = () => {
+            hidden = false;
+            document.dispatchEvent(new Event('visibilitychange'));
+        };
+
+        it('runs one frame loop once the tab shows', async () => {
+            const field = new PlateField(host, { families: ['apparitio'], sliceFirstPlate: true });
+            const ready = settled(field.start());
+            show();
+            expect(live()).toBe(1);
+            for (let i = 0; i < 200 && !ready.done; i++) {
+                timedFrame();
+                expect(live()).toBe(1);
+                await flush();
+            }
+            expect(ready).toEqual({ done: true, value: true });
+            expect(Math.max(...frameCosts)).toBeLessThanOrEqual(PLATE_BAKE_BUDGET_MS);
+            field.destroy();
+        });
+
+        it('holds one still under reduced motion, whichever frame arrives', async () => {
+            const field = new PlateField(host, {
+                families: ['ostensoria', 'apparitio'],
+                dwellMs: 8_000,
+                reducedMotion: true,
+                sliceFirstPlate: true
+            });
+            const ready = settled(field.start());
+            show();
+            for (let i = 0; i < 500 && rafQueue.length; i++) timedFrame();
+            clock += 20_000;
+            // A stray frame after the still is shown must not rotate it.
+            field._tick(clock);
+            await flush();
+            expect(ready).toEqual({ done: true, value: true });
+            expect(progresses).toEqual([1]);
+            const planes = [...host.querySelectorAll('.plate-plane')];
+            expect(planes.map(plane => plane.style.opacity)).toEqual(['1', '0']);
+            field.destroy();
+        });
+    });
+
     it('cancels the bake when destroyed before the first plate, and settles unready', async () => {
         const field = new PlateField(host, {
             families: ['apparitio'],
