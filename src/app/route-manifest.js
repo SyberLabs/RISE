@@ -15,6 +15,7 @@ export function createRouteManifest(operations) {
         onLaunchJevReading: operations.launchJevReading,
         onLaunchJevSample: operations.launchJevSample,
         onAdjustReading: operations.adjustJevReading,
+        onLaunchToday: operations.launchToday,
         getAudioEngine: operations.getAudioEngine,
         getCurrentSession: operations.getCurrentSession
       })
@@ -93,10 +94,6 @@ export function createRouteManifest(operations) {
             mint: {
               onNavigate: operations.handleNavigate,
               onOpen: operations.openMintedProgram
-            },
-            today: {
-              onNavigate: operations.handleNavigate,
-              onBegin: operations.handleBeginSession
             },
             provenance: {
               onNavigate: operations.handleNavigate

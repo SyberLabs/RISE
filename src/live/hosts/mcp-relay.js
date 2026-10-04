@@ -70,7 +70,7 @@ export function relayHtml({ origin, path = EMBED_PATH }) {
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>RISE</title>
-<style>html,body{margin:0;height:100%;background:#000}iframe{display:block;border:0;width:100%;height:100%}</style>
+<style>html,body{margin:0;height:100%;background:#06051A}iframe{display:block;border:0;width:100%;height:100%}</style>
 </head>
 <body>
 <iframe id="app" title="RISE" src="${origin}${path}" allow="microphone; autoplay; fullscreen"></iframe>

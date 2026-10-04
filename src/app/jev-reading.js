@@ -5,7 +5,7 @@ import { CHAMBER_STREAM_FACES } from '../core/chamber-stream-face.js';
 import { FONT_SIZE_CHIPS } from '../core/chamber-type-size.js';
 import { JEV_AUDIO_IDS, resolveJevChamberConfig } from '../core/jev-config.js';
 import { isRiseOriginal, jevReleasedEdition } from '../core/jev-describe.js';
-import { jevColors } from '../core/jev-palette.js';
+import { JEV_PALETTES, jevColors } from '../core/jev-palette.js';
 import {
   compileJevAudioProgram,
   compileJevVisualProgram
@@ -31,7 +31,7 @@ const STYLES = new Set(['quiet', 'gentle', 'immersive', 'psychedelic']);
 const SECTIONS = new Set(['first', 'middle', 'last', 'shortest', 'longest']);
 const VISUAL_ARCS = new Set(['single', 'dual', 'triple']);
 const ARC_SPLITS = new Set(['30', '50', '70']);
-const COLORS = new Set(['classic', 'amethyst', 'prism', 'ember', 'cobalt', 'jade']);
+const COLORS = new Set(Object.keys(JEV_PALETTES));
 
 function assertPlan(decision) {
   const config = decision?.config;
@@ -202,7 +202,11 @@ export function openingOf(text, maxChars = 240) {
   return `${text.slice(0, space > 0 ? space : maxChars - 1).trimEnd()}…`;
 }
 
-/** The opening of the same division resolveJevReading opens, for a preview. */
+/**
+ * The opening of the same division resolveJevReading opens, for a preview,
+ * and whether that division is verse, so the Chamber reads it by line.
+ */
 export async function openingLines(decision) {
-  return openingOf((await openJevDivision(decision)).entry.content);
+  const { entry } = await openJevDivision(decision);
+  return { text: openingOf(entry.content, 240), verse: entry.verse === true };
 }

@@ -44,6 +44,9 @@ jobs:
             worker/index.test.js \
             worker/kev-worker-script.test.js \
             src/core/decision \
+            src/core/jev-palette.test.js \
+            src/components/Chamber.jev-look.test.js \
+            src/app/jev-reading.test.js \
             src/core/openrouter-oauth.test.js \
             src/core/kev-client.test.js \
             src/core/csp.test.js \
@@ -51,15 +54,25 @@ jobs:
             src/core/passage-visuals/scoring-client.test.js \
             src/components/Portal.jev.test.js \
             src/components/Portal.test.js \
-            src/components/night-library \
+            src/components/reading-stream.test.js \
+            src/components/reading-backdrop.test.js \
+            src/components/home-ask.test.js \
             src/core/roll.test.js \
-            src/core/library-sky.test.js \
             src/components/Library.jev.test.js \
             src/core/content-store.test.js \
             src/core/journey-session.test.js \
             src/audio/engine.lifecycle.test.js \
             src/content/keystones.test.js \
-            src/enterprise &
+            src/enterprise \
+            src/core/rise-current.test.js \
+            src/live/protocol.test.js \
+            src/live/stream.test.js \
+            src/live/runtime.test.js \
+            src/live/adapters \
+            src/live/host \
+            src/live/hosts \
+            src/visuals/attractor.test.js \
+            worker/mcp-server.test.js &
           tests=$!
           npx vite build
           npm run measure:first-load

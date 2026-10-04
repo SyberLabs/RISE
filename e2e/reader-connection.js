@@ -51,6 +51,13 @@ export function answersFor(decision) {
   return answers;
 }
 
+/** Open Home's ask dialog from the Menu's "Ask for a reading". */
+export async function openAskDialog(page) {
+  await page.locator('.portal-menu-toggle').click();
+  await page.locator('.portal-nav [data-home="ask-open"]').click();
+  await page.locator('dialog.home-ask').waitFor();
+}
+
 /** Walk "Connect OpenRouter" through OAuth PKCE with OpenRouter stood in. */
 export async function connectOpenRouter(page, { key = E2E_READER_KEY } = {}) {
   const exchanges = [];
@@ -64,8 +71,10 @@ export async function connectOpenRouter(page, { key = E2E_READER_KEY } = {}) {
     exchanges.push(route.request().postDataJSON());
     return route.fulfill({ json: { key, user_id: 'e2e-reader' } });
   });
-  await page.locator('#portal-ai [data-ai="connect"]').click();
+  await openAskDialog(page);
+  await page.locator('dialog.home-ask [data-ai="connect"]').click();
   await page.waitForURL(url => new URL(url).pathname === '/');
+  // Home reopens the ask dialog on return, now with the connection in it.
   await page.locator('#portal-ai [data-ai="disconnect"]').waitFor({ timeout: 15_000 });
   return exchanges;
 }

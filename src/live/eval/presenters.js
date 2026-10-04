@@ -90,7 +90,11 @@ export function spokenPresenter({ container, done, voices, note, voiceKind, visu
         voice.attach({
             mark: () => {
                 // A generic pulse on each word: the imagery reacts to the speech and to nothing in it.
-                if (!field) return;
+                // A brightness change on every word is motion and flicker, so a reader who turned
+                // either off sees the field still.
+                const root = document.documentElement.classList;
+                if (!field || root.contains('reduced-motion') || root.contains('photosensitivity-mode')
+                    || globalThis.matchMedia?.('(prefers-reduced-motion: reduce)').matches === true) return;
                 field.setIntensity(0.85);
                 clearTimeout(decay);
                 decay = setTimeout(() => field?.setIntensity(0.5), 180);

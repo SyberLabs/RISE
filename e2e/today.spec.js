@@ -1,73 +1,64 @@
 import { test, expect } from './fixtures.js';
 
 /**
- * Today's poem: Home's quiet link and the /today address both open one poem
- * under the day's mark. Begin plays exactly the poem shown, as verse, and
- * leaving the reading comes back to the poem.
+ * Today's poem has no page: Home opens on it, already playing, and Read it
+ * with sound begins the day's exact poem in the reader under the day's
+ * procedural visual (the app's launchToday, as /today does). Leaving the
+ * reading returns Home.
  */
-// The poem is a pane of the Library: name it as `library/today`.
-const view = page => page.evaluate(() => {
-  const { currentView } = window.__RISE_TEST__.getRouterState();
-  return currentView === 'library' ? `library/${window.__RISE_TEST__.getView('library')?.activePane}` : currentView;
-});
+const view = page => page.evaluate(() => window.__RISE_TEST__.getRouterState().currentView);
 
-async function openToday(page, path) {
+async function boot(page, path = '/') {
   await page.goto(path);
 }
 
-test('Home shows today\'s poem as a card that opens it, and the address names it', async ({ page }) => {
-  await openToday(page, '/');
-  const card = page.locator('.home-today-card');
-  await expect(card).toBeVisible({ timeout: 15_000 });
-  const title = await card.locator('.home-today-title').textContent();
-  const line = await card.locator('.home-today-line').textContent();
-  await card.click();
-  await expect(page.locator('.today-line').first()).toBeVisible({ timeout: 15_000 });
-  await expect.poll(() => view(page)).toBe('library/today');
-  await expect(page).toHaveURL(/\/today$/u);
-  // The card names the poem the view opens, and quotes its first line.
-  await expect(page.locator('#today-title')).toHaveText(title);
-  await expect(page.locator('.today-line').first()).toHaveText(line);
-});
+async function reading(page) {
+  await page.waitForFunction(() => window.__RISE_TEST__.getRouterState().currentView === 'read'
+    && window.__RISE_TEST__.getView('read')?.activePane === 'chamber'
+    && !window.__RISE_TEST__.getRouterState().transitioning, null, { timeout: 20_000 });
+  return page.evaluate(() => {
+    const s = window.__RISE_TEST__.getCurrentSession();
+    return {
+      text: [...s.sourceTexts.values()].join(' '),
+      origin: s.origin,
+      visualMode: s.visualConfig?.visualMode ?? null
+    };
+  });
+}
 
-test('the Menu opens today\'s poem', async ({ page }) => {
-  await openToday(page, '/');
-  await page.locator('.portal-menu-toggle').click();
-  await page.locator('.portal-nav [data-nav="today"]').click();
-  await expect.poll(() => view(page)).toBe('library/today');
-});
+async function leave(page) {
+  await page.keyboard.press('Escape');
+  await page.locator('#exit-confirm-overlay').getByRole('button', { name: 'End reading' }).click();
+  await page.waitForFunction(() => window.__RISE_TEST__.getRouterState().currentView === 'home', null, { timeout: 10_000 });
+}
 
 for (const viewport of [{ width: 390, height: 844 }, { width: 1280, height: 800 }]) {
-  test(`at ${viewport.width}x${viewport.height} /today shows the poem, Begin plays it as verse, and leaving returns to it`, async ({ page }) => {
+  test(`at ${viewport.width}x${viewport.height} Home's Read it with sound begins today's poem under its visual, and leaving returns Home`, async ({ page }) => {
     await page.setViewportSize(viewport);
-    await openToday(page, '/today');
-    await expect(page.locator('.today-line').first()).toBeVisible({ timeout: 15_000 });
-    await expect(page.locator('.today-caption')).toContainText(/^Seed \d{4}-\d\d-\d\d · a /u);
-    expect(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth)).toBeLessThanOrEqual(0);
-    const shown = (await page.locator('.today-line').allTextContents()).join(' ');
-
-    const begin = page.locator('[data-begin]');
-    await begin.scrollIntoViewIfNeeded();
-    await begin.click();
-    await page.waitForFunction(() => window.__RISE_TEST__.getRouterState().currentView === 'read' && window.__RISE_TEST__.getView('read')?.activePane === 'chamber'
-      && !window.__RISE_TEST__.getRouterState().transitioning, null, { timeout: 20_000 });
-    const session = await page.evaluate(() => {
-      const s = window.__RISE_TEST__.getCurrentSession();
-      return {
-        text: [...s.sourceTexts.values()].join(' '),
-        origin: s.origin,
-        visualMode: s.visualConfig?.visualMode ?? null
-      };
-    });
-    expect(session.origin).toEqual({ view: 'today', name: 'Today\'s poem' });
+    await boot(page);
+    const enter = page.locator('[data-home="enter"]');
+    await expect(enter).toBeEnabled({ timeout: 15_000 });
+    const opening = page.locator('[data-home-opening]');
+    await expect(opening).not.toBeEmpty({ timeout: 15_000 });
+    const first = (await opening.textContent()).trim().split('\n')[0].trim();
+    await enter.click();
+    const session = await reading(page);
+    // Home's opening is the poem the reader plays.
+    expect(session.text.replace(/\s+/gu, ' ').trim().startsWith(first.replace(/\s+/gu, ' '))).toBe(true);
+    expect(session.origin).toMatchObject({ view: 'home', experience: 'today' });
     // Every poem of the day is read under a procedural visual, never on plain black.
     expect(session.visualMode).toBeTruthy();
     expect(session.visualMode).not.toBe('off');
-    expect(session.text.replace(/\s+/gu, ' ').trim()).toBe(shown.replace(/\s+/gu, ' ').trim());
-
-    await page.keyboard.press('Escape');
-    await page.locator('#exit-confirm-overlay').getByRole('button', { name: 'End reading' }).click();
-    await expect.poll(() => view(page), { timeout: 10_000 }).toBe('library/today');
-    await expect(begin).toBeEnabled();
+    await leave(page);
+    await expect(page.locator('[data-home="enter"]')).toBeVisible();
   });
 }
+
+test('the /today address opens today\'s poem, then hands the address back to Home', async ({ page }) => {
+  await boot(page, '/today');
+  const session = await reading(page);
+  expect(session.origin).toMatchObject({ experience: 'today' });
+  await expect(page).toHaveURL(/\/$/u);
+  await leave(page);
+  expect(await view(page)).toBe('home');
+});

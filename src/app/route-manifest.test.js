@@ -80,18 +80,32 @@ describe('createRouteManifest', () => {
       update(data) { shown.push(data); }
     }
     await createRouteManifest(operations).find(route => route.id === 'library')
-      .create({}, { pane: 'today' }, { Library });
+      .create({}, { pane: 'mint' }, { Library });
     const panes = received.paneCapabilities;
+    // Today's poem is not a pane: Home begins it through the app's launchToday.
     expect(Object.keys(panes).sort()).toEqual(
-      ['chapel', 'journeys', 'keystones', 'mint', 'provenance', 'rosary', 'stations', 'today']
+      ['chapel', 'journeys', 'keystones', 'mint', 'provenance', 'rosary', 'stations']
     );
-    expect(panes.today).toEqual({ onNavigate: operations.handleNavigate, onBegin: operations.handleBeginSession });
     expect(panes.keystones.onLaunch).toBe(operations.launchKeystone);
     expect(panes.mint.onOpen).toBe(operations.openMintedProgram);
-    expect(shown).toEqual([{ pane: 'today' }]);
+    expect(shown).toEqual([{ pane: 'mint' }]);
     // A Chapel chapter's address stays a Chapel address.
     panes.chapel.onAddressChange({ bookId: 'john', chapter: 3 });
     expect(operations.router.updateAddress).toHaveBeenCalledWith({ bookId: 'john', chapter: 3, pane: 'chapel' });
+  });
+
+  it('lets Home begin today\'s poem', () => {
+    const launchToday = vi.fn();
+    let received;
+    class Home {
+      constructor(_container, options) {
+        received = options;
+      }
+    }
+    createRouteManifest({ launchToday })
+      .find(route => route.id === 'home')
+      .create({}, null, { Home });
+    expect(received.onLaunchToday).toBe(launchToday);
   });
 
   it('hands each Make tab what its own room was given, and opens the addressed tab', async () => {

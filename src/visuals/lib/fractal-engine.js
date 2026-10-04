@@ -4,6 +4,66 @@
  * Implementation of the fractal flame algorithm (Scott Draves, 1992)
  */
 
+// Density-aware smoothing, a two-level form of flam3's density estimation.
+// Each pixel keeps the share d / (d + SMOOTH_KEEP_AT) of its d samples where
+// they landed and spreads the rest over a soft kernel: two box passes of
+// radius SMOOTH_RADIUS, a tent nine pixels wide. A lone sample becomes a soft
+// glow instead of a hard speck; a dense filament keeps its edge. Away from
+// the frame edge every sample is kept.
+const SMOOTH_RADIUS = 2;
+const SMOOTH_KEEP_AT = 8;
+
+/**
+ * Smooth flame histograms in place (see above). public/fractal-flame-worker.js
+ * carries a copy for its tone step; the tone test holds the two to the same
+ * pixels.
+ */
+export function smoothHistograms(density, colorR, colorG, colorB, width, height) {
+    const n = width * height;
+    const keep = new Float64Array(n);
+    for (let i = 0; i < n; i++) keep[i] = density[i] / (density[i] + SMOOTH_KEEP_AT);
+    const spread = new Float64Array(n);
+    const scratch = new Float64Array(n);
+    for (const channel of [density, colorR, colorG, colorB]) {
+        for (let i = 0; i < n; i++) spread[i] = channel[i] * (1 - keep[i]);
+        boxBlur(spread, scratch, width, height);
+        boxBlur(spread, scratch, width, height);
+        for (let i = 0; i < n; i++) channel[i] = channel[i] * keep[i] + spread[i];
+    }
+    // A running sum leaves rounding dust where nothing landed; dust is not
+    // light, and a pixel with none must paint the background.
+    for (let i = 0; i < n; i++) {
+        if (density[i] < 1e-6) density[i] = colorR[i] = colorG[i] = colorB[i] = 0;
+    }
+}
+
+/**
+ * One box pass of radius SMOOTH_RADIUS, rows then columns, in place. At the
+ * frame edge it averages only the pixels inside, so the edge is not darkened.
+ */
+function boxBlur(data, scratch, width, height) {
+    const r = SMOOTH_RADIUS;
+    for (let y = 0; y < height; y++) {
+        const row = y * width;
+        let acc = 0;
+        for (let x = 0; x < r && x < width; x++) acc += data[row + x];
+        for (let x = 0; x < width; x++) {
+            if (x + r < width) acc += data[row + x + r];
+            scratch[row + x] = acc / (Math.min(x + r, width - 1) - Math.max(x - r, 0) + 1);
+            if (x - r >= 0) acc -= data[row + x - r];
+        }
+    }
+    for (let x = 0; x < width; x++) {
+        let acc = 0;
+        for (let y = 0; y < r && y < height; y++) acc += scratch[y * width + x];
+        for (let y = 0; y < height; y++) {
+            if (y + r < height) acc += scratch[(y + r) * width + x];
+            data[y * width + x] = acc / (Math.min(y + r, height - 1) - Math.max(y - r, 0) + 1);
+            if (y - r >= 0) acc -= scratch[(y - r) * width + x];
+        }
+    }
+}
+
 export class FractalFlameGenerator {
     /**
      * @param {{ random?: () => number }} [options] A seeded source makes the
@@ -95,7 +155,8 @@ export class FractalFlameGenerator {
             skipIterations = 20,
             progressive = false,  // NEW: Enable progressive rendering
             progressInterval = 1000000,  // Update every 1M iterations
-            useWorkers = this.useWorkers  // NEW: Enable Web Workers
+            useWorkers = this.useWorkers,  // NEW: Enable Web Workers
+            smooth = false  // Density-aware smoothing (see smoothHistograms)
         } = options;
 
         if (this.transforms.length === 0) {
@@ -115,13 +176,13 @@ export class FractalFlameGenerator {
             return this._generateImageWithWorkers(
                 iterations, renderWidth, renderHeight,
                 width, height, gamma, brightness, vibrancy,
-                oversample, skipIterations
+                oversample, skipIterations, smooth
             );
         } else {
             return this._generateImageSingleThreaded(
                 iterations, renderWidth, renderHeight,
                 width, height, gamma, brightness, vibrancy,
-                oversample, skipIterations
+                oversample, skipIterations, smooth
             );
         }
     }
@@ -196,7 +257,7 @@ export class FractalFlameGenerator {
      */
     async _generateImageSingleThreaded(iterations, renderWidth, renderHeight,
         finalWidth, finalHeight, gamma, brightness, vibrancy,
-        oversample, skipIterations) {
+        oversample, skipIterations, smooth = false) {
         const histogramSize = renderWidth * renderHeight;
         const density = new Float64Array(histogramSize);
         const colorR = new Float64Array(histogramSize);
@@ -208,6 +269,7 @@ export class FractalFlameGenerator {
             renderWidth, renderHeight,
             iterations, skipIterations
         );
+        if (smooth) smoothHistograms(density, colorR, colorG, colorB, renderWidth, renderHeight);
 
         return this._renderFlame(
             density, colorR, colorG, colorB,
@@ -218,38 +280,74 @@ export class FractalFlameGenerator {
     }
 
     /**
-     * Multi-threaded rendering using Web Workers
+     * Multi-threaded rendering using Web Workers. The workers iterate; then
+     * one of them sums their histograms and tone-maps, so the main thread
+     * only relays buffers (transferred, not copied) and wraps the pixels.
      * @private
      */
     async _generateImageWithWorkers(iterations, renderWidth, renderHeight,
         finalWidth, finalHeight, gamma, brightness, vibrancy,
-        oversample, skipIterations) {
-        const histogramSize = renderWidth * renderHeight;
-        const density = new Float64Array(histogramSize);
-        const colorR = new Float64Array(histogramSize);
-        const colorG = new Float64Array(histogramSize);
-        const colorB = new Float64Array(histogramSize);
-
-        await this._iterateFlameWithWorkers(
-            density, colorR, colorG, colorB,
-            renderWidth, renderHeight,
-            iterations, skipIterations
-        );
-
-        return this._renderFlame(
-            density, colorR, colorG, colorB,
-            renderWidth, renderHeight,
-            finalWidth, finalHeight,
-            gamma, brightness, vibrancy, oversample
-        );
+        oversample, skipIterations, smooth = false) {
+        const parts = await this._workerHistograms(renderWidth, renderHeight, iterations, skipIterations);
+        if (!parts) {
+            return this._generateImageSingleThreaded(
+                iterations, renderWidth, renderHeight,
+                finalWidth, finalHeight, gamma, brightness, vibrancy,
+                oversample, skipIterations, smooth
+            );
+        }
+        const pixels = await this._askWorker(this.workers[0], {
+            type: 'tone',
+            parts,
+            width: renderWidth,
+            height: renderHeight,
+            finalWidth,
+            finalHeight,
+            gamma,
+            brightness,
+            vibrancy,
+            oversample,
+            backgroundColor: this.backgroundColor,
+            smooth
+        }, parts.flatMap(part => [part.density, part.colorR, part.colorG, part.colorB]), 'toned');
+        return new ImageData(new Uint8ClampedArray(pixels.pixels), finalWidth, finalHeight);
     }
 
     /**
-     * Parallel iteration using Web Workers
+     * Parallel iteration using Web Workers, summed into the given histograms
+     * on this thread (the progressive path).
      * @private
      */
     async _iterateFlameWithWorkers(density, colorR, colorG, colorB,
         width, height, iterations, skipIterations) {
+        const parts = await this._workerHistograms(width, height, iterations, skipIterations);
+        if (!parts) {
+            await this._iterateFlame(
+                density, colorR, colorG, colorB,
+                width, height, iterations, skipIterations
+            );
+            return;
+        }
+        for (const part of parts) {
+            const workerDensity = new Float32Array(part.density);
+            const workerColorR = new Float32Array(part.colorR);
+            const workerColorG = new Float32Array(part.colorG);
+            const workerColorB = new Float32Array(part.colorB);
+            for (let j = 0; j < density.length; j++) {
+                density[j] += workerDensity[j];
+                colorR[j] += workerColorR[j];
+                colorG[j] += workerColorG[j];
+                colorB[j] += workerColorB[j];
+            }
+        }
+    }
+
+    /**
+     * Split the iterations across the workers. Resolves to each worker's
+     * histograms (Float32 buffers), or null when no worker could start.
+     * @private
+     */
+    async _workerHistograms(width, height, iterations, skipIterations) {
         if (this.workers.length === 0) {
             await this._initializeWorkers();
         }
@@ -257,81 +355,66 @@ export class FractalFlameGenerator {
         const workerCount = Math.min(this.maxWorkers, this.workers.length);
         if (workerCount === 0) {
             this.useWorkers = false;
-            await this._iterateFlame(
-                density, colorR, colorG, colorB,
-                width, height, iterations, skipIterations
-            );
-            return;
+            return null;
         }
         const iterationsPerWorker = Math.floor(iterations / workerCount);
 
         const variationCode = this._serializeVariations();
 
-        // Dispatch work to workers
-        const promises = [];
+        const replies = [];
         for (let i = 0; i < workerCount; i++) {
             const workerIterations = i === workerCount - 1 ?
                 iterations - (iterationsPerWorker * (workerCount - 1)) :
                 iterationsPerWorker;
 
-            const promise = new Promise((resolve, reject) => {
-                const worker = this.workers[i];
-                const timeoutId = setTimeout(() => {
-                    reject(new Error(`Fractal worker ${i} timed out`));
-                }, 30000);
-
-                const settle = callback => value => {
-                    clearTimeout(timeoutId);
-                    worker.onerror = null;
-                    callback(value);
-                };
-                const finish = settle(resolve);
-                const fail = settle(reject);
-
-                worker.onmessage = (e) => {
-                    if (e.data.type === 'complete') {
-                        // Merge results into main histograms
-                        const workerDensity = new Float64Array(e.data.density);
-                        const workerColorR = new Float64Array(e.data.colorR);
-                        const workerColorG = new Float64Array(e.data.colorG);
-                        const workerColorB = new Float64Array(e.data.colorB);
-
-                        for (let j = 0; j < density.length; j++) {
-                            density[j] += workerDensity[j];
-                            colorR[j] += workerColorR[j];
-                            colorG[j] += workerColorG[j];
-                            colorB[j] += workerColorB[j];
-                        }
-
-                        finish();
-                    } else if (e.data.type === 'error') {
-                        fail(new Error(e.data.error));
-                    }
-                };
-                worker.onerror = event => fail(event.error || new Error(event.message || 'Fractal worker failed'));
-
-                // Send work to worker
-                worker.postMessage({
-                    type: 'render',
-                    transforms: this.transforms,
-                    finalTransform: this.finalTransform,
-                    palette: this.palette,
-                    camera: this.camera,
-                    width,
-                    height,
-                    iterations: workerIterations,
-                    skipIterations,
-                    workerId: i,
-                    seed: Date.now() + i,
-                    variations: variationCode
-                });
-            });
-
-            promises.push(promise);
+            replies.push(this._askWorker(this.workers[i], {
+                type: 'render',
+                transforms: this.transforms,
+                finalTransform: this.finalTransform,
+                palette: this.palette,
+                camera: this.camera,
+                width,
+                height,
+                iterations: workerIterations,
+                skipIterations,
+                workerId: i,
+                seed: Date.now() + i,
+                variations: variationCode
+            }, [], 'complete'));
         }
 
-        // Wait for all workers to complete
-        await Promise.all(promises);
+        return Promise.all(replies);
+    }
+
+    /**
+     * Post one message to a worker and resolve with its reply of the given type.
+     * @private
+     */
+    _askWorker(worker, message, transfer, replyType) {
+        return new Promise((resolve, reject) => {
+            const timeoutId = setTimeout(() => {
+                reject(new Error(`Fractal worker ${message.type} timed out`));
+            }, 30000);
+
+            const settle = callback => value => {
+                clearTimeout(timeoutId);
+                worker.onerror = null;
+                callback(value);
+            };
+            const finish = settle(resolve);
+            const fail = settle(reject);
+
+            worker.onmessage = (e) => {
+                if (e.data.type === replyType) {
+                    finish(e.data);
+                } else if (e.data.type === 'error') {
+                    fail(new Error(e.data.error));
+                }
+            };
+            worker.onerror = event => fail(event.error || new Error(event.message || 'Fractal worker failed'));
+
+            worker.postMessage(message, transfer);
+        });
     }
 
     /**

@@ -9,12 +9,13 @@
  * - Components (Home, Read, Library, Make, Settings)
  */
 
-import { Router } from './core/router.js';
+import { Router, claimStaleBuildReload } from './core/router.js';
 import { compileSession } from './core/session-compiler.js';
 import { PACE_CURVE_IDS } from './core/pacing.js';
 import { resolveNextLibraryDivision } from './core/reading-continuation.js';
 import { isRosaryDoor } from './core/rosary-door.js';
 import { ROUTE_ALIASES, routeFromPath } from './core/route-url.js';
+import { programPath, programSlugShape } from './core/program-paths.js';
 import { sceneSampleFromPath } from './core/jev-demo-path.js';
 import { KEYSTONE_SESSION_ORIGIN } from './app/chamber-exit.js';
 
@@ -28,8 +29,11 @@ import { DEFAULT_CHAMBER_ACCENT, applyChamberAccent, migrateChamberAccent, resol
 import { resolveFontSize } from './core/chamber-type-size.js';
 import { clampReadingWpm } from './core/reading-limits.js';
 import { createRouteManifest } from './app/route-manifest.js';
+import { preloadHome } from './app/home-preload.js';
 import { installTestBridge } from './app/test-bridge.js';
 
+// Not a room: the address opens today's poem in the reader (launchToday).
+const TODAY_PATH = '/today';
 import { watchTabFreshness } from './core/tab-freshness.js';
 import { takeOpenRouterReturn } from './core/openrouter-callback.js';
 
@@ -86,11 +90,8 @@ try {
     }
 } catch (e) { /* private mode: the flag lasts as long as the URL does */ }
 
-export const STALE_BUILD_SENTINEL = 'rise_reloaded_for_stale_build';
-
 window.addEventListener('vite:preloadError', (event) => {
-    if (sessionStorage.getItem(STALE_BUILD_SENTINEL)) return;  // not a deploy: a real failure
-    sessionStorage.setItem(STALE_BUILD_SENTINEL, '1');
+    if (!claimStaleBuildReload(import.meta.url)) return;  // reloaded once already: not a deploy
     event.preventDefault();
     console.warn('[RISE] Build changed underneath this tab — reloading once.');
     window.location.reload();
@@ -230,6 +231,7 @@ class App {
         // shows reads any of them.
 
         this.router = new Router({
+            build: import.meta.url,
             onNavigationIntent: (view, options) => this.handleNavigationIntent(view, options),
             onViewChange: (view, data) => {
                 console.log(`[RISE] View: ${view}`);
@@ -249,15 +251,16 @@ class App {
         // Keystone paths are durable public entry points.  They resolve to a
         // threshold view first; admission and launch still happen through the
         // exact manifest gate rather than from URL text alone.
+        // resolveAddress fetches keystones.js only for a Keystone path, so a
+        // reader arriving at Home does not wait for that manifest.
+        const pathname = window.location.pathname;
         // A minted sequence is the same kind of public entry point. TWO
         // QUESTIONS, NOT ONE: whether this is a mint URL at all, and which
         // mint it names. A printed code outlives the sequence it names, so
         // a valid address naming nothing has to reach the threshold and be
         // told — collapsing both to "no" drops that reader on Home
         // with no idea why.
-        const { houseProgram } = await import('./content/programs/index.js');
-        const { programSlugShape } = await import('./core/program-paths.js');
-        const mintedSlug = programSlugShape(window.location.pathname);
+        const mintedSlug = programSlugShape(pathname);
 
         // A reload triggered by a stale build carries the destination
         // the reader was trying to reach, so recovery is invisible to
@@ -296,25 +299,38 @@ class App {
         } else if (isRosaryDoor()) {
             await this.router.navigate('rosarium', { data: { door: true } });
         } else if (mintedSlug) {
+            const { houseProgram } = await import('./content/programs/index.js');
             await this.router.navigate('mint', { data: { entry: houseProgram(mintedSlug) }, keepUrl: true });
+        } else if (pathname === TODAY_PATH) {
+            // The address opens the reading itself; once it is open the
+            // address is Home's, so leaving it does not open it again.
+            window.history.replaceState({}, '', '/');
+            try {
+                await this.launchToday();
+            } catch (error) {
+                this.showToast(error.message || 'Today’s poem could not be opened.', 5000);
+                await this.router.navigate('home');
+            }
         } else {
             // Every other address is the table's to resolve (route-url.js);
             // the cases above are not addresses: a hash, a query code, a
-            // stale-build recovery, and the minted /p/ path, which opens a
-            // reading through the register rather than naming a room.
+            // stale-build recovery, the minted /p/ path, which opens a
+            // reading through the register rather than naming a room, and
+            // /today, which opens a reading.
             const route = await this.resolveAddress();
-            await this.router.navigate(route.id, { data: route.data, replace: true, keepUrl: !route.rewrite });
+            const shown = this.router.navigate(route.id, { data: route.data, replace: true, keepUrl: !route.rewrite });
+            // Home's code is asked for first, then what Home plays with it,
+            // so neither waits on the other's round trip.
+            if (route.id === 'home') void preloadHome();
+            await shown;
         }
+        // A start route whose code will not load (blocked, or still
+        // missing after the one reload) leaves nothing on screen. Home.
+        if (!this.router.currentView) await this.handleNavigate('home');
 
         this.watchTabFreshness();
 
         // Audio interaction listener is already set up in init()
-
-        // The tab is now running a build it fetched itself, so the
-        // one-reload guard is spent and may be released. Without this a
-        // reader who leaves a tab open across TWO deploys is stranded by
-        // the second one, the sentinel having been set by the first.
-        sessionStorage.removeItem(STALE_BUILD_SENTINEL);
 
         console.log('[RISE] Application initialized');
     }
@@ -436,6 +452,7 @@ class App {
             launchJevSample: () => this.launchJevSample(),
             launchKeystone: slug => this.launchKeystone(slug),
             adjustJevReading: decision => this.adjustJevReading(decision),
+            launchToday: () => this.launchToday(),
             openMintedProgram: slug => this.openMintedProgram(slug),
             handleSequenceSelection: sequenceId => this.handleSequenceSelection(sequenceId),
             handleCreateSession: this.handleCreateSession,
@@ -710,6 +727,18 @@ class App {
         return this.router.navigate('chamber', { data: { text, source: textSource, config } });
     }
 
+    /**
+     * Today's poem goes straight into the reader: the day's exact poem in the
+     * day's look. A tap on Home's card is the gesture that lets it play at
+     * once; a cold load of /today stops on the reader's Ready screen.
+     */
+    async launchToday() {
+        const { todaySession } = await import('./app/today.js');
+        if (!await this.handleBeginSession(await todaySession())) {
+            throw new Error('Today’s poem could not be opened. Please try again.');
+        }
+    }
+
     /** Launch a fixed sample through the released-edition gate, without a provider call. */
     async launchJevSample() {
         if (sceneSampleFromPath(window.location.pathname) === 'night-drive') {
@@ -799,7 +828,6 @@ class App {
                 provenance: { kind: 'minted-program', slug }
             });
 
-            const { programPath } = await import('./core/program-paths.js');
             await this.handleCreateSession({ ...project, publicPath: programPath(slug) });
         } catch (error) {
             console.error('[RISE] Minted sequence refused:', error);
@@ -1062,7 +1090,13 @@ class App {
         const root = document.documentElement;
 
         // Check OS preference for reduced motion
-        const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        const motionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+        const prefersReducedMotion = motionQuery.matches;
+        // The reader can change it mid-session; the root class follows.
+        if (!this._followsMotionQuery) {
+            this._followsMotionQuery = true;
+            motionQuery.addEventListener?.('change', () => this.applyAccessibilitySettings());
+        }
 
         // Apply reduced motion if user or OS preference is set
         if (this.settings?.reducedMotion || prefersReducedMotion) {

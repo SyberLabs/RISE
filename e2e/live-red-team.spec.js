@@ -74,7 +74,13 @@ window.addEventListener('message', event => {
   const message = event.data;
   window.__heard.push({ method: message.method, origin: event.origin, params: message.params });
   if (message.method === 'ui/initialize') say({ id: message.id, result: { protocolVersion: '2026-01-26', hostInfo: { name: 'any site', version: '1' }, hostCapabilities: { sampling: {} }, hostContext: {} } });
-  if (message.method === 'ui/notifications/initialized') say({ method: 'ui/notifications/tool-input', params: { arguments: { current: CURRENT } } });
+  if (message.method === 'ui/notifications/initialized') {
+    say({ method: 'ui/notifications/tool-input', params: { arguments: { current: CURRENT } } });
+    say({ method: 'ui/notifications/tool-result', params: {
+      content: [{ type: 'text', text: 'RISE accepted this Current for presentation to the reader.' }],
+      structuredContent: { current: CURRENT }
+    } });
+  }
   if (message.method === 'sampling/createMessage') say({ id: message.id, result: { role: 'assistant', model: 'x', content: { type: 'text', text: JSON.stringify(DIVE) } } });
 });
 </script>`;
@@ -102,6 +108,8 @@ async function framedByAnySite(page, baseURL) {
     }));
     await page.goto(`${elsewhere.origin}/__any-site`);
     const app = page.frameLocator('#app');
+    // The embedded page holds a delivered Current until the reader presses Begin (#368).
+    await app.getByRole('button', { name: 'Begin', exact: true }).click();
     await expect(app.locator('#atom-display')).toContainText('whichever page framed RISE', { timeout: 15_000 });
     await app.locator('#live-controls-question').fill('something only the reader knows');
     await app.getByRole('button', { name: /Dive: ask about this place/u }).click();

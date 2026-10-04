@@ -32,6 +32,18 @@ export async function presentLive(router, session, player) {
     if (player.sessionState.state === 'paused') player.replayCurrent();
 }
 
-export function leaveLive(router) {
-    return router.navigate('live', { replace: true, skipStack: true });
+export async function leaveLive(router) {
+    const leaving = router.getViewInstance?.('read')?.paneInstance('chamber') ?? null;
+    const left = await router.navigate('live', { replace: true, skipStack: true });
+    // Showing the live pane hides the chamber pane but keeps it, and a Chamber kept
+    // goes on drawing its imagery unseen. It goes once it is off screen, as a
+    // reading's own exit lets it go (chamber-session-factory.js).
+    dismissLive(router, leaving);
+    return left;
+}
+
+/** The reading is over: let go of the Chamber that showed it, unless another has taken its place. */
+export function dismissLive(router, chamber = router.getViewInstance?.('read')?.paneInstance('chamber') ?? null) {
+    if (!chamber) return;
+    router.getViewInstance?.('read')?.closePane('chamber', chamber);
 }

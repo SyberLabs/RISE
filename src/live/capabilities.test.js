@@ -129,6 +129,13 @@ describe('what the reader is told', () => {
         expect(off[0].effect).toMatch(/Speech is off/u);
     });
 
+    it('where the screen already says the reading is paced, says only why it is silent', () => {
+        const effects = (caps, chosen) => describeDegradations(caps, { ...chosen, pacingShown: true }).map(n => n.effect);
+        expect(effects({ ...all, speechOutput: 'none' }, { voice: 'paced' })).toEqual(['This browser cannot speak.']);
+        expect(effects(all, { voice: 'paced', voices: 0 })).toEqual(['No voice is installed for this browser.']);
+        expect(effects(all, { voice: 'paced', voices: 3 })).toEqual([]);
+    });
+
     it('says what a missing canvas, WebGL2, reduced motion, or no way to speak costs', () => {
         const notes = describeDegradations({ ...all, canvas: false, reducedMotion: true, speechRecognition: false });
         expect(notes.map(n => n.capability)).toEqual(['canvas', 'reducedMotion', 'speechRecognition']);

@@ -5,6 +5,8 @@ import { JEV_INKS, JEV_PALETTES, jevColors } from '../../core/jev-palette.js';
 import { JEV_AUDIO_IDS } from '../../core/jev-config.js';
 import * as jevSequence from '../../core/jev-sequence.js';
 import { validateJevRecommendation } from '../../app/jev-reading.js';
+import { JEV_COLOR_THEMES } from '../../core/jev-color-themes.js';
+import { ATTRACTOR_PALETTES } from '../../core/visual-style-definitions.js';
 
 const mocks = vi.hoisted(() => ({
   query: vi.fn(),
@@ -16,7 +18,7 @@ const mocks = vi.hoisted(() => ({
 }));
 
 import { publicCatalog, validCatalog, validSoundCatalog } from './catalog.js';
-import { choiceMenu, createRecommender } from './recommend.js';
+import { CHOICES, choiceMenu, createRecommender } from './recommend.js';
 import { DecisionError } from './call.js';
 import { JEV, KEV } from './providers.js';
 
@@ -495,7 +497,9 @@ describe('Jev reading recommendation', () => {
       decisionCacheStatus: 'miss'
     });
     const body = JSON.parse(provider.mock.calls[0][1].body);
-    expect(new TextEncoder().encode(provider.mock.calls[0][1].body).length).toBeLessThan(13000);
+    // Nine color themes in five color questions and nine filament palettes (neon is offered only to
+    // night-drive clients): 13,738 bytes when measured; with neon offered, 13,890.
+    expect(new TextEncoder().encode(provider.mock.calls[0][1].body).length).toBeLessThan(14000);
     expect(body.model).toBe('typesafe/jev-1.13');
     expect(Object.keys(body.questions.book.criteria)).toHaveLength(15);
     expect(Object.keys(body.questions.book.criteria)).toContain('middlemarch');
@@ -1231,5 +1235,17 @@ describe('Jev reading recommendation', () => {
     const response = await handleJevRecommend(request(), env);
     expect(response.status).toBe(502);
     expect(provider).toHaveBeenCalledOnce();
+  });
+});
+
+describe('the color menus Jev is offered', () => {
+  it('name every shipped color theme, in theme order, for each color question', () => {
+    for (const question of ['colorTheme', 'middleTheme', 'finaleTheme', 'textColor', 'backgroundColor']) {
+      expect(Object.keys(CHOICES[question]), question).toEqual([...JEV_COLOR_THEMES]);
+    }
+  });
+
+  it('name every filament palette the attractor draws, in its order', () => {
+    expect(Object.keys(CHOICES.visualPalette)).toEqual(ATTRACTOR_PALETTES.map(palette => palette.id));
   });
 });

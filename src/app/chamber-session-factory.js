@@ -146,7 +146,8 @@ export async function createChamberSession(operations, container, sessionData) {
             assertCurrent();
             recitationVoice = new Voice({
                 audioEngine,
-                voiceId: session.voiceId
+                voiceId: session.voiceId,
+                packUrl: session.recitation.pack
             });
             recitationVoice.enabled = true;
             recitationReady = recitationVoice.prepare(session.atoms, 0)

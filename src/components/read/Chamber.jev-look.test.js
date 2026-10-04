@@ -3,7 +3,8 @@ import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { Chamber } from './Chamber.js';
-import { JEV_INKS, JEV_PALETTES } from '../../core/jev-palette.js';
+import { JEV_COLOR_NAMES, JEV_INKS, JEV_PALETTES } from '../../core/jev-palette.js';
+import { JEV_COLOR_THEMES } from '../../core/jev-color-themes.js';
 import { JEV_AUDIO_IDS } from '../../core/jev-config.js';
 
 function mount(experience = 'jev', audioEngine = null, overrides = {}) {
@@ -63,6 +64,16 @@ describe('Jev in-session look control', () => {
     expect(container.style.getPropertyValue('--color-light')).toBe(JEV_INKS.jade);
     expect(container.style.getPropertyValue('--color-void')).toBe(JEV_PALETTES.ember.background);
     expect(chamber.session.presentation).toEqual(original);
+    chamber.destroy();
+  });
+
+  it('names every text and backdrop choice by its theme, in theme order', () => {
+    const { chamber, container } = mount();
+    for (const [name, key] of [['jev-text-color', 'ink'], ['jev-background-color', 'ground']]) {
+      const options = [...container.querySelectorAll(`[name="${name}"] option`)];
+      expect(options.map(option => option.value)).toEqual(['authored', ...JEV_COLOR_THEMES]);
+      expect(options.map(option => option.textContent)).toEqual(['Generated', ...JEV_COLOR_THEMES.map(id => JEV_COLOR_NAMES[id][key])]);
+    }
     chamber.destroy();
   });
 

@@ -144,6 +144,40 @@ computed once and stored in the manifest. The first admitted pack is Heart
 mode. The UI lists only installed packs and Spoken mode selects Phrase
 chunking to keep compilation and asset identity aligned.
 
+### Vendor-rendered packs (build time)
+
+> **Owner decision, 2026-10-03:** today's poem is recited by ElevenLabs v4,
+> rendered once at build time on the owner's paid plan.
+
+The rule above still holds: a reader's browser runs no model and calls no
+speech service. What changes is who renders the audio before it is
+committed. `scripts/build-poem-recitation.mjs` (`npm run poem:recite`) reads
+`ELEVENLABS_API_KEY` from the author's own environment only; the key is
+never in the repository, CI or the browser.
+
+* **One performance per poem.** Each poem is rendered whole through
+  `/with-timestamps`, so prosody runs across lines. Per-line synthesis would
+  read every line as a sentence.
+* **Cut at the reader's lines.** `src/audio/poem-alignment.js` maps the
+  character timing onto the reader's own atoms (phrase mode with verse lines:
+  one atom per line), letter by letter. A performance that skips or adds a
+  word is refused, and that poem stays silent until it is re-taken. Each
+  line is cut at the quietest 10 ms between lines, with 4 ms fades, and
+  carries one speech onset per word.
+* **One small pack per poem.** Clips are AAC `.m4a`, 64 kbps mono, named by
+  content hash. Each poem's pack is an ordinary
+  `rise.recitation-voice-pack.v1` manifest under
+  `/audio/recitation/<voice>/<sha16>.json`; `src/audio/poem-recitation.json`
+  names one pack per poem. The session carries it as `recitation.pack`
+  (validated against that path shape) and `Voice` fetches it. Anything other
+  than that manifest (a 404, the app shell, a wrong schema) leaves the reading
+  silent, exactly as an uncovered session is.
+* **Drift is caught, not heard.** The index is honoured only when its
+  `sourceRevision` matches the released edition, and
+  `poem-recitation.integration.test.js` fails if the chunker changes the
+  lines a pack covers. Responses are cached under `.cache/poem-recitation/`,
+  so a re-cut costs nothing.
+
 ### Historical browser-inference record (retired)
 
 `window.speechSynthesis` is a formant synthesiser and no setting makes

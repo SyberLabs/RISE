@@ -116,7 +116,7 @@ import { saveFlameScene } from '../../core/flame-scenes.js';
 import { directionStateFor, ensureDirector, followProgram, permittedSourceDigests } from '../../core/passage-visuals/reading-state.js';
 import { mutateRecipe } from '../../visuals/living-flame/flame-math.js';
 import { FLAME_PRESET_IDS, flamePreset } from '../../visuals/living-flame/flame-presets.js';
-import { JEV_INKS, JEV_PALETTES, jevColors } from '../../core/jev-palette.js';
+import { JEV_COLOR_NAMES, JEV_INKS, JEV_PALETTES, jevColors } from '../../core/jev-palette.js';
 import { JEV_AUDIO_IDS } from '../../core/jev-config.js';
 import { connectionState } from '../../core/ai-connection.js';
 import { CHAMBER_STREAM_FACES } from '../../core/chamber-stream-face.js';
@@ -242,7 +242,8 @@ export class Chamber {
     this.voice = this.recitationEnabled
       ? (options.voice || new Voice({
         audioEngine: this.audioEngine,
-        voiceId: this.session?.voiceId
+        voiceId: this.session?.voiceId,
+        packUrl: this.session?.recitation?.pack ?? null
       }))
       : null;
     this._active = false;
@@ -815,7 +816,7 @@ export class Chamber {
               <span class="jev-look-choice"><span class="jev-look-swatch" id="jev-text-swatch"
                 style="background: ${sessionColorTheme(session)?.text || JEV_INKS.classic}"></span>
                 <select name="jev-text-color"><option value="authored">Generated</option>
-                  ${Object.keys(JEV_INKS).map((id, index) => `<option value="${id}">${['Ivory', 'Lilac', 'Rose', 'Gold', 'Cyan', 'Mint'][index]}</option>`).join('')}
+                  ${Object.entries(JEV_COLOR_NAMES).map(([id, name]) => `<option value="${id}">${name.ink}</option>`).join('')}
                 </select>
               </span>
             </label>
@@ -823,7 +824,7 @@ export class Chamber {
               <span class="jev-look-choice"><span class="jev-look-swatch" id="jev-background-swatch"
                 style="background: ${sessionColorTheme(session)?.background || JEV_PALETTES.classic.background}"></span>
                 <select name="jev-background-color"><option value="authored">Generated</option>
-                  ${Object.keys(JEV_PALETTES).map((id, index) => `<option value="${id}">${['Night', 'Violet', 'Prism', 'Ember', 'Cobalt', 'Jade'][index]}</option>`).join('')}
+                  ${Object.entries(JEV_COLOR_NAMES).map(([id, name]) => `<option value="${id}">${name.ground}</option>`).join('')}
                 </select>
               </span>
             </label>
@@ -1335,8 +1336,10 @@ export class Chamber {
       this._onPlayer('progress', (progress) => this.updateProgress(progress));
       this._onPlayer('complete', () => this.onSessionComplete());
       this._onPlayer('state', (state) => this.onStateChange(state));
-      // A live reading is longer each time a segment arrives.
+      // A live reading is longer each time a segment arrives, and may already
+      // have grown while this view was being built (a sealed Current arrives whole).
       this._onPlayer('extended', () => this._adoptExtendedSession());
+      this._adoptExtendedSession();
       // Shuttle transitions the Player makes on its own (pause drops
       // home; rewind clamps home at atom 0) carry the same subsystem
       // contract and HUD as key-initiated steps
@@ -3367,10 +3370,12 @@ export class Chamber {
   /**
    * Reduced motion is read live rather than cached: a reader may change
    * the system setting mid-session, and the reveal should stop being
-   * animated the moment they do.
+   * animated the moment they do. RISE's own Reduced motion setting counts
+   * the same as the system's.
    */
   _prefersReducedMotion() {
-    return window.matchMedia?.('(prefers-reduced-motion: reduce)').matches === true;
+    return window.matchMedia?.('(prefers-reduced-motion: reduce)').matches === true
+      || document.documentElement.classList.contains('reduced-motion');
   }
 
   bindProgressiveRevealMotion() {
@@ -4595,6 +4600,8 @@ export class Chamber {
 
     setTimeout(() => {
       display.style.display = 'none';
+      // The field went out of sight with the reading; hidden, it would go on drawing.
+      this._visualFieldDirector?.clear({ immediate: true });
 
       // Reset nested screens
       const choiceScreen = this.container.querySelector('#post-choice-screen');

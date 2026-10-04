@@ -4,6 +4,7 @@ import { test } from 'node:test';
 import { captureCase, compareRuns, connectionFor, localOrigin } from './decision-eval.mjs';
 import { scoreDecisions } from './jev-eval.mjs';
 import { committedCatalog } from '../local/catalog.mjs';
+import { JEV_COLOR_THEMES } from '../src/core/jev-color-themes.js';
 
 const sha = '139fdd94f1b6a6ad80cc15e08fcb99cac885a101';
 const cases = [
@@ -79,4 +80,15 @@ test('local mode sends the browser request to the bridge as the local page would
   assert.equal(calls[0].url, 'http://127.0.0.1:5780/api/local/kev/systemone');
   assert.equal(calls[0].init.headers.Origin, 'http://127.0.0.1:5780');
   assert.equal(calls[0].init.headers.Authorization, undefined);
+});
+
+test('the evaluation option files offer every shipped color theme, in theme order', () => {
+  for (const [file, axes] of [
+    ['jev-eval-look-options.json', ['colorTheme', 'textColor', 'backgroundColor']],
+    ['jev-eval-phase-options.json', ['colorTheme', 'finaleTheme']],
+    ['jev-eval-reference-options.json', ['colorTheme']]
+  ]) {
+    const options = JSON.parse(readFileSync(new URL(`./${file}`, import.meta.url), 'utf8'));
+    for (const axis of axes) assert.deepEqual(options[axis], [...JEV_COLOR_THEMES], `${file} ${axis}`);
+  }
 });

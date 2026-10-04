@@ -154,13 +154,13 @@ it, and CI fails when the committed copy is not what `src/` produces.
 ```mermaid
 flowchart LR
     affect["affect<br/>experience-state evaluation<br/>29 modules"]
-    app["app<br/>composition root<br/>11 modules"]
-    audio["audio<br/>Web Audio, recitation<br/>10 modules"]
-    components["components<br/>routed views<br/>53 modules"]
+    app["app<br/>composition root<br/>13 modules"]
+    audio["audio<br/>Web Audio, recitation<br/>11 modules"]
+    components["components<br/>routed views<br/>51 modules"]
     content["content<br/>texts, imagery, journeys<br/>228 modules"]
-    core["core<br/>session, player, router<br/>170 modules"]
+    core["core<br/>session, player, router<br/>169 modules"]
     enterprise["enterprise<br/>talk program, speaker rail<br/>34 modules"]
-    live["live<br/>realtime Current: events, runtime, providers<br/>39 modules"]
+    live["live<br/>realtime Current: events, runtime, providers<br/>40 modules"]
     page["page<br/>spatial projection<br/>4 modules"]
     sources["sources<br/>text and visual providers<br/>13 modules"]
     vendor["vendor<br/>SyberLabs design kit<br/>2 modules"]
@@ -168,35 +168,35 @@ flowchart LR
     wormhole["wormhole<br/>7 modules"]
 
     affect --> |7| core
-    app -.-> |3 lazy| audio
-    app -.-> |7 lazy| components
+    app --> |1| audio
+    app -.-> |9 lazy| components
     app --> |3| content
-    app --> |38| core
+    app --> |43| core
     app -.-> |1 lazy| live
     app -.-> |1 lazy| sources
     app -.-> |1 lazy| visuals
     audio --> |1| content
-    audio --> |5| core
+    audio --> |6| core
     components --> |3| affect
-    components --> |1| app
+    components -.-> |2 lazy| app
     components --> |3| audio
-    components --> |25| content
-    components --> |181| core
+    components --> |23| content
+    components --> |175| core
     components -.-> |1 lazy| page
     components --> |4| sources
-    components --> |1| vendor
+    components -.-> |2 lazy| vendor
     components --> |19| visuals
     content --> |3| audio
     content --> |15| core
     content --> |10| sources
     content --> |1| visuals
-    core --> |6| audio
+    core --> |8| audio
     core --> |15| content
     core --> |4| sources
     core --> |20| visuals
     live -.-> |3 lazy| app
-    live -.-> |1 lazy| components
-    live --> |8| core
+    live -.-> |2 lazy| components
+    live --> |9| core
     live -.-> |1 lazy| visuals
     page --> |2| core
     page --> |3| visuals
@@ -364,11 +364,10 @@ serves:
   `src/components/library/Keystones.js` (the public entry corridor),
   `src/components/library/Mint.js` (the door a minted sequence opens onto) and
   `src/components/library/Curia.js` (the source and rights record).
-- `src/components/today/` is the day's poem, the Library's Today pane:
-  `src/components/today/TodayPoem.js`, with its card
-  `src/components/today/today-card.js`, backdrop
-  `src/components/today/backdrop.js` and mark
-  `src/components/today/mandala.js`.
+- Today's poem has no pane: Home's card, its Menu and `/today` begin the day's
+  exact poem in the reader through the app's `launchToday`, which
+  `src/app/today.js` builds from `src/core/today-poem.js` and
+  `src/core/today-reading.js`.
 - `src/components/make/` is Make's tabs (§8.44):
   `src/components/make/Workshop.js` (authoring a composition),
   `src/components/make/Vault.js` (saved compositions and archetypes),
@@ -401,8 +400,9 @@ serves:
   `src/components/visual-navigator/markup.js`,
   `src/components/visual-navigator/live-stage.js` and
   `src/components/visual-navigator/world-stage.js`.
-- `src/components/night-library/` is the star map behind Home's text:
-  `src/components/night-library/NightSky.js`.
+- Home opens on a reading already under way: `src/components/reading-backdrop.js`
+  draws its engine, `src/components/reading-stream.js` streams its opening, and
+  `src/components/home-ask.js` is the Ask for a reading dialog.
 
 Every old route id and path still works: `src/core/route-url.js` maps each to
 one of the five rooms, with the pane it opens named in `data.pane`. The Chamber
@@ -566,7 +566,10 @@ of `settled`, `open`, `deferred`, or `reversed`.
 ### 8.5 Recitation is a pre-built voice pack, not runtime TTS
 
 - **Chosen:** Kokoro runs at build time; the deployed app plays same-origin
-  audio addressed by normalized phrase text.
+  audio addressed by normalized phrase text. Today's poem uses a vendor voice
+  (ElevenLabs v4) under the same rule: rendered once by the author, cut into
+  per-line AAC `.m4a` clips, one small pack per poem named by
+  `recitation.pack`. No vendor is called at runtime.
 - **Rejected:** running the model in the reader's browser — and this one was
   *measured* before it was rejected, not assumed. The browser path was built
   and tried: `speechSynthesis` is a formant synthesiser and was never a
@@ -1254,7 +1257,7 @@ of `settled`, `open`, `deferred`, or `reversed`.
 ### 8.39 Home proposes; the reader decides where to enter
 
 - **Chosen:** Home's Oracle composes a bounded reading on-device by chance
-  chance, or for a star the reader picks (`src/core/roll.js`). The reader can enter it, adjust it in Reader Setup, or
+  (`src/core/roll.js`). The reader can enter it, adjust it in Reader Setup, or
   ask for a specific reading through the same reader-owned OpenRouter or local
   Kev connection used by the rest of the app. The standalone Wormhole is a
   second invocation skin over the same roll and app-owned launch operations.

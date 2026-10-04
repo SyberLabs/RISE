@@ -10,6 +10,8 @@
  *   4. Exiting a session resumes the lobby drone
  *   6. The loaded text and settings survive a refresh
  */
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { test, expect, openHomeNav } from './fixtures.js';
 import { FLASHING_ENABLED } from '../src/core/visual-presence.js';
 
@@ -72,18 +74,45 @@ async function exitSession(page) {
 
 test('1 · Home presents one key, and every room behind Menu', async ({ page }) => {
     await boot(page, { text: false });
-    // Home is the night library: one solid key. The rooms you own sit behind the one
-    // Menu; the Atrium and the Solarium are gone with their rooms.
-    await expect(page.locator('[data-home="roll"]')).toBeVisible();
+    // Home is a reading already under way: one solid key. The rooms you own sit
+    // behind the one Menu; the Atrium and the Solarium are gone with their rooms.
+    await expect(page.locator('[data-home="enter"]')).toBeVisible();
     const nav = page.locator('.portal-nav [data-nav]');
-    await expect(nav).toHaveCount(11);
-    // Today's poem is first after Home.
-    await expect(nav.first()).toHaveAttribute('data-nav', 'today');
+    await expect(nav).toHaveCount(10);
+    // Today's poem begins a reading from the Menu; it is not a room.
+    await expect(page.locator('.portal-nav [data-action="today"]')).toHaveText('Today\'s poem');
     // The live Current is reachable from the Portal, not only by typing /live.
     await expect(page.locator('.portal-nav [data-nav="live"]')).toContainText('Live reading');
     for (const gone of ['atrium', 'sol']) {
         await expect(page.locator(`[data-nav="${gone}"]`)).toHaveCount(0);
     }
+});
+
+test('1b · a saved colourway is on <html> before the app runs, under the live script policy', async ({ page }) => {
+    // vite preview sends no security headers, so the shell gets the live policy here.
+    const policy = readFileSync(resolve('public/_headers'), 'utf8')
+        .match(/^\s+Content-Security-Policy:\s*(.+)$/mu)[1];
+    await page.route('/', async route => {
+        const response = await route.fetch();
+        await route.fulfill({ response, headers: { ...response.headers(), 'content-security-policy': policy } });
+    });
+    const refused = [];
+    page.on('console', message => {
+        if (/Content Security Policy/iu.test(message.text())) refused.push(message.text());
+    });
+    await page.addInitScript(() => {
+        localStorage.setItem('rise-settings', JSON.stringify({ chamberAccent: 'cobalt', chamberAccentNamed: true }));
+        // Where parsing was when the accent first landed. No <body> yet means
+        // it came from <head>, before any module (the app) could run.
+        new MutationObserver((records, observer) => {
+            window.__accentFirstSet = { accent: document.documentElement.dataset.accent, inHead: !document.body };
+            observer.disconnect();
+        }).observe(document, { subtree: true, attributes: true, attributeFilter: ['data-accent'] });
+    });
+    await page.goto('/');
+    await expect(page.locator('.portal .home-title').first()).toBeVisible({ timeout: 15_000 });
+    expect(await page.evaluate(() => window.__accentFirstSet)).toEqual({ accent: 'cobalt', inHead: true });
+    expect(refused).toEqual([]);
 });
 
 test('2+3 · Aurora sounds — and sounds again the second time', async ({ page }) => {

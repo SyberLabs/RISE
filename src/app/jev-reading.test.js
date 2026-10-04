@@ -9,7 +9,9 @@ import {
   compileJevVisualProgram
 } from '../core/jev-sequence.js';
 import { resolveJevChamberConfig } from '../core/jev-config.js';
-import { openingLines, openingOf, resolveJevReading, selectJevDivision } from './jev-reading.js';
+import { JEV_COLOR_THEMES } from '../core/jev-color-themes.js';
+import { openingLines, openingOf, resolveJevReading, selectJevDivision, validateJevRecommendation } from './jev-reading.js';
+import { divideSections } from '../content/archive/divisions.js';
 
 vi.mock('../content/library.js', () => ({ getTextById: vi.fn() }));
 
@@ -116,6 +118,14 @@ describe('Jev reading handoff', () => {
         entryIndex: 0, entryCount: 3, noun: 'chapter'
       }
     });
+  });
+
+  it('admits every shipped color theme in every color choice', () => {
+    for (const id of JEV_COLOR_THEMES) {
+      for (const key of ['colorTheme', 'textColor', 'backgroundColor', 'middleTheme', 'finaleTheme']) {
+        expect(() => validateJevRecommendation(decision({ [key]: id })), `${key} ${id}`).not.toThrow();
+      }
+    }
   });
 
   it('rejects unknown options and changed edition identity', async () => {
@@ -238,9 +248,29 @@ describe('the opening of a passage', () => {
 describe('the opening lines of a reading', () => {
   it('opens the same division the reading opens, for every section', async () => {
     for (const section of ['first', 'middle', 'last', 'shortest', 'longest']) {
+      const reading = await resolveJevReading(decision({ section }));
       expect(await openingLines(decision({ section })))
-        .toBe((await resolveJevReading(decision({ section }))).text);
+        .toEqual({ text: reading.text, verse: reading.verseLines });
     }
+  });
+
+  it('says whether that division is verse, so the Chamber reads it by line', async () => {
+    const opening = async workId => {
+      const { editionId, sourceRevision } = releaseInventory[workId];
+      const module = await import(`../content/archive/works/${workId}.js`);
+      const sections = Object.values(module).find(Array.isArray);
+      vi.mocked(getTextById).mockReturnValue({
+        id: workId, workId, provider: 'archive-ingest', editionId, sourceRevision,
+        getDivisions: async () => divideSections(sections, { declared: true })
+      });
+      return openingLines({ ...decision(), workId, editionId, sourceRevision });
+    };
+    expect((await opening('spoon-river-anthology')).verse).toBe(true);
+    expect((await opening('oedipus-rex')).verse).toBe(true);
+    const prose = await opening('middlemarch');
+    expect(prose.verse).toBe(false);
+    expect(prose.text.length).toBeGreaterThan(0);
+    expect(prose.text.length).toBeLessThanOrEqual(240);
   });
 
   it('refuses what the reading refuses, in the same words', async () => {

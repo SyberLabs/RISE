@@ -22,6 +22,7 @@ import {
 import { READING_LIMITS, READING_PACE } from './reading-limits.js';
 import { ATTRACTOR_PALETTES } from './visual-style-definitions.js';
 import { parseLibraryExtent } from './library-extent.js';
+import { recitationPackUrl } from '../audio/voice-pack-key.js';
 import { compileSourceSpans, sourceSpanCutPoints } from './source-span.js';
 import {
     applyNarrationTiming,
@@ -173,11 +174,13 @@ export function normalizeSessionConfig(input = {}) {
     // Normalised here for the same reason everything else is: a
     // restored or imported session may carry anything, and there is
     // exactly one validated path to the runtime.
+    const recitationEnabled = sequenceHasCapability(
+        capabilities,
+        SEQUENCE_CAPABILITIES.RECITATION_AUDIO
+    ) && input.recitation?.enabled === true;
     const recitation = Object.freeze({
-        enabled: sequenceHasCapability(
-            capabilities,
-            SEQUENCE_CAPABILITIES.RECITATION_AUDIO
-        ) && input.recitation?.enabled === true
+        enabled: recitationEnabled,
+        pack: recitationEnabled ? recitationPackUrl(input.recitation?.pack) : null
     });
     const revealMode = input.revealMode === 'progressive' ? 'progressive' : 'instant';
 

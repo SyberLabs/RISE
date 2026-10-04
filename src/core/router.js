@@ -27,6 +27,35 @@ function isStaleChunkError(error) {
 import { ROUTE_ALIASES, ROUTE_PANES, addressIsOwnTo, pathForRoute } from './route-url.js';
 import { sameData } from './same-data.js';
 
+const STALE_BUILD_SENTINEL = 'rise_reloaded_for_stale_build';
+const STALE_BUILD_WINDOW_MS = 5 * 60_000;
+
+/**
+ * Claim the one reload a missing chunk earns: once per build, per window.
+ *
+ * The reload is the cure for a stale tab: it fetches the build that
+ * replaced this one. If the chunk still fails in the build the reload
+ * fetched — blocked by the network, say — it is not a deploy, and a
+ * second reload fails identically, forever. So the claim names the build
+ * it was spent from, and when, and survives the reload. A later deploy is
+ * a new build, and may claim again; so may the same build once the claim
+ * is old, or a reload spent on a network blip would strand the tab when a
+ * deploy lands hours later. `build` is the entry chunk's hashed URL,
+ * which changes whenever any chunk the entry loads does. Without storage
+ * nothing could stop a loop, so nothing reloads.
+ */
+export function claimStaleBuildReload(build = import.meta.url) {
+    try {
+        let last = null;
+        try { last = JSON.parse(sessionStorage.getItem(STALE_BUILD_SENTINEL)); } catch (e) { /* older form */ }
+        if (last?.build === build && Date.now() - last.at < STALE_BUILD_WINDOW_MS) return false;
+        sessionStorage.setItem(STALE_BUILD_SENTINEL, JSON.stringify({ build, at: Date.now() }));
+        return true;
+    } catch (e) {
+        return false;
+    }
+}
+
 export class Router {
     constructor(options = {}) {
         this.views = new Map();
@@ -35,6 +64,8 @@ export class Router {
         this.transitioning = false;
         this._pendingNav = null;
         this.navigationRevision = 0;
+        // The running build, named by the entry chunk. See claimStaleBuildReload.
+        this.build = options.build;
 
         // Transition timing from design system
         this.transitionDuration = 400; // ms
@@ -176,11 +207,11 @@ export class Router {
             // A missing chunk cannot be recovered from in this session:
             // the shell itself is out of date. Reload once to pick up
             // the current build, preserving the destination so the
-            // reader lands where they were going. The guard prevents a
-            // reload loop if something else produces the same error.
-            if (isStaleChunkError(error) && !this._reloadedForStaleChunk
-                && options.data?.provenance?.kind !== 'personal-generated') {
-                this._reloadedForStaleChunk = true;
+            // reader lands where they were going. The claim prevents a
+            // reload loop when the chunk keeps failing after the reload.
+            if (isStaleChunkError(error)
+                && options.data?.provenance?.kind !== 'personal-generated'
+                && claimStaleBuildReload(this.build)) {
                 try {
                     // Carry the route DATA too, not just the view name:
                     // a Chapel book, a vault identifier, a Library

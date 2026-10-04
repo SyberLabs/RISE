@@ -49,8 +49,7 @@ export const ROUTE_ALIASES = {
     'visual-lab': 'make',
     'visual-catalog': 'make',
     live: 'read',
-    chapel: 'library',
-    today: 'library'
+    chapel: 'library'
 };
 
 /**
@@ -66,7 +65,6 @@ export const ROUTE_PANES = {
     journeys: 'journeys',
     keystones: 'keystones',
     mint: 'mint',
-    today: 'today',
     curia: 'provenance',
     workshop: 'workshop',
     vault: 'vault',
@@ -178,7 +176,6 @@ const ROUTES = [
     pane('stations', { pattern: '/library/stations', build: () => '/library/stations' }),
     pane('journeys', { pattern: '/library/journeys', build: () => '/library/journeys' }),
     pane('mint', { pattern: '/library/mint', build: () => '/library/mint' }),
-    pane('today', { pattern: '/today', build: () => '/today' }),
     pane('provenance', { pattern: '/library/provenance', build: () => '/library/provenance' }),
 
     pane('workshop', { pattern: '/make/workshop', build: () => '/make/workshop' }, 'make'),

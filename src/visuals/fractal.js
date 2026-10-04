@@ -6,11 +6,42 @@
 import { FractalFlameGenerator } from './lib/fractal-engine.js';
 import { buildAccentFlamePalette, planFlame, pickNearestSignalIndex } from '../core/conductor.js';
 
+// The flame is drawn at the device's pixels, up to twice the CSS pixels,
+// within a pixel budget. The budget bounds every worker's histogram, the
+// queue's frames, and the Chamber's WebP snapshot of the canvas, which runs
+// on the main thread and grows with it. Samples scale with the pixels so each
+// pixel keeps the same share: drawn larger on the same samples, a flame only
+// gets sparser and grainier.
+export const MAX_FLAME_PIXELS = 1600 * 1000;
+const MAX_RENDER_SCALE = 2;
+const SAMPLES_PER_PIXEL = 2;
+const MIN_ITERATIONS = 2_000_000;
+// Each worker holds a whole histogram, so more workers cost memory faster
+// than they save time.
+const MAX_WORKERS = 4;
+
+/** The flame canvas's backing size for a CSS size and device pixel ratio. */
+export function flameCanvasSize(cssWidth, cssHeight, devicePixelRatio) {
+    let scale = Math.min(devicePixelRatio || 1, MAX_RENDER_SCALE);
+    const pixels = cssWidth * cssHeight * scale * scale;
+    if (pixels > MAX_FLAME_PIXELS) scale *= Math.sqrt(MAX_FLAME_PIXELS / pixels);
+    return {
+        width: Math.max(1, Math.floor(cssWidth * scale)),
+        height: Math.max(1, Math.floor(cssHeight * scale))
+    };
+}
+
+/** Samples for a flame of this many pixels. */
+export function flameIterations(width, height) {
+    return Math.max(MIN_ITERATIONS, width * height * SAMPLES_PER_PIXEL);
+}
+
 export class FractalFlame {
     constructor(canvas) {
         this.ctx = canvas.getContext('2d');
         this.canvas = canvas;
         this.generator = new FractalFlameGenerator();
+        this.generator.maxWorkers = Math.min(this.generator.maxWorkers, MAX_WORKERS);
 
         // Match chamber background: --color-void (#0A0A0C)
         this.generator.backgroundColor = [10, 10, 12];
@@ -31,32 +62,18 @@ export class FractalFlame {
         // A reading's chosen colors, when it has them (Jev readings do).
         this.accentPalette = null;
 
-        // Configuration
-        this.config = {
-            width: window.innerWidth,
-            height: window.innerHeight,
-            quality: 1,
-            iterations: 2000000
-        };
-
-        this.MAX_DIMENSION = 2048; // Hard cap
-
         this.resize();
         this._boundResize = () => this.resize();
         window.addEventListener('resize', this._boundResize);
     }
 
     resize() {
-        // Cap visual dimensions
-        const w = Math.min(window.innerWidth, this.MAX_DIMENSION);
-        const h = Math.min(window.innerHeight, this.MAX_DIMENSION);
+        const { width: w, height: h } = flameCanvasSize(window.innerWidth, window.innerHeight, window.devicePixelRatio);
 
         // Only resize if actually changed to avoid clearing canvas unnecessarily
         if (this.canvas.width !== w || this.canvas.height !== h) {
             this.canvas.width = w;
             this.canvas.height = h;
-            this.config.width = w;
-            this.config.height = h;
 
             // Invalidate stale buffers - they won't match new dimensions
             this.queue = [];
@@ -178,8 +195,9 @@ export class FractalFlame {
         const imageData = await this.generator.generateImage({
             width,
             height,
-            iterations: this.config.iterations,
+            iterations: flameIterations(width, height),
             useWorkers: true,
+            smooth: true,
             oversample: 1,
             gamma: tone.gamma,
             brightness: tone.brightness,

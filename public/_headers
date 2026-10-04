@@ -8,6 +8,9 @@
 /index.html
   Cache-Control: public, max-age=0, must-revalidate
 
+/accent-boot.js
+  Cache-Control: public, max-age=0, must-revalidate
+
 /connect/*
   Referrer-Policy: no-referrer
   Cache-Control: no-store

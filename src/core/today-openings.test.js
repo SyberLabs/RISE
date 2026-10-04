@@ -7,7 +7,7 @@ it('agrees with the works it was built from (re-run scripts/build-today-openings
   expect(OPENINGS).toEqual(await buildTodayOpenings());
 });
 
-it('gives every poem in the pool its title, poet and first line', () => {
+it('gives every poem in the pool its title, poet and opening passage', () => {
   for (const workId of TODAY_WORKS) {
     expect(OPENINGS.works[workId].title, workId).toBeTruthy();
     expect(OPENINGS.works[workId].author, workId).toBeTruthy();
@@ -15,5 +15,6 @@ it('gives every poem in the pool its title, poet and first line', () => {
   for (const { workId, entryId } of todayPool()) {
     expect(OPENINGS.openings[workId][entryId]?.trim(), `${workId} ${entryId}`).toBeTruthy();
   }
-  expect(OPENINGS.openings['spoon-river-anthology'][1]).toBe('Here I lie close to the grave');
+  expect(OPENINGS.openings['spoon-river-anthology'][1].split('\n')[0]).toBe('Here I lie close to the grave');
+  expect(OPENINGS.openings['spoon-river-anthology'][1].split('\n').length).toBeGreaterThan(1);
 });

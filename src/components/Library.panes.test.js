@@ -120,6 +120,6 @@ describe('Library panes', () => {
         container.querySelector('[data-open-pane="stations"]').click();
         expect(onNavigate).toHaveBeenCalledWith('library', { pane: 'stations' });
         const panes = [...container.querySelectorAll('[data-open-pane]')].map(b => b.dataset.openPane);
-        expect(panes).toEqual(['chapel', 'rosary', 'stations', 'journeys', 'keystones', 'today', 'provenance']);
+        expect(panes).toEqual(['chapel', 'rosary', 'stations', 'journeys', 'keystones', 'provenance']);
     });
 });

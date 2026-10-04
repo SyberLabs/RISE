@@ -121,7 +121,6 @@ const LOADERS = {
   journeys: () => import('./library/Journeys.js'),
   keystones: () => import('./library/Keystones.js'),
   mint: () => import('./library/Mint.js'),
-  today: () => import('./today/TodayPoem.js'),
   provenance: () => import('./library/Curia.js')
 };
 
@@ -140,7 +139,6 @@ const FACTORIES = {
   mint: (el, { Mint }, data, capabilities) => new Mint(el, {
     ...capabilities, entry: data?.entry || null
   }),
-  today: (el, { TodayPoem }, _data, capabilities) => new TodayPoem(el, capabilities),
   provenance: (el, { Curia }, _data, capabilities) => new Curia(el, capabilities)
 };
 
@@ -154,7 +152,6 @@ const PROGRAMS = [
   ['stations', 'Stations'],
   ['journeys', 'Journeys'],
   ['keystones', 'Keystones'],
-  ['today', 'Today\'s poem'],
   ['provenance', 'Provenance']
 ];
 

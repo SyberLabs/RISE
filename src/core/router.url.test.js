@@ -56,9 +56,9 @@ describe('Router addresses', () => {
     await router.navigate('rosarium', { data: { door: true } });
     expect(router.currentView).toBe('library');
     expect(router.currentData).toEqual({ door: true, pane: 'rosary' });
-    await router.navigate('today');
-    expect(router.currentData).toEqual({ pane: 'today' });
-    expect(history.pushState).toHaveBeenLastCalledWith({ id: 'library', data: { pane: 'today' } }, '', '/today');
+    await router.navigate('via');
+    expect(router.currentData).toEqual({ pane: 'stations' });
+    expect(history.pushState).toHaveBeenLastCalledWith({ id: 'library', data: { pane: 'stations' } }, '', '/library/stations');
     router.destroy();
   });
 

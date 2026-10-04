@@ -21,7 +21,6 @@ describe('route urls', () => {
             journeys: '/library/journeys',
             keystones: '/try-rise',
             mint: '/library/mint',
-            today: '/today',
             provenance: '/library/provenance'
         };
         const libraryPanes = Object.entries(ROUTE_PANES)
@@ -88,9 +87,8 @@ describe('route urls', () => {
         expect(routeFromPath('/night-drive').data).toEqual({ demoMode: true });
     });
 
-    it('gives Today the public path main shipped', () => {
-        expect(routeFromPath('/today')).toEqual({ id: 'library', data: { pane: 'today' } });
-        expect(pathForRoute('library', { pane: 'today' })).toBe('/today');
+    it('leaves /today to the app, which opens today\'s poem in the reader rather than a room', () => {
+        expect(routeFromPath('/today')).toBeNull();
         expect(routeFromPath('/library/today')).toBeNull();
     });
 

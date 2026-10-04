@@ -1,6 +1,18 @@
 export const VOICE_PACK_SCHEMA = 'rise.recitation-voice-pack.v1';
 export const DEFAULT_VOICE_ID = 'af_heart';
 
+const PACK_URL = /^\/audio\/recitation\/[a-z0-9_]+\/[0-9a-f]{16}\.json$/u;
+
+/**
+ * A reading's own voice pack (today's poem), named by the hash of its bytes
+ * under the same-origin recitation path. Anything else is not a pack: a
+ * restored or imported session may carry any string, and none of them may
+ * point the reader somewhere else.
+ */
+export function recitationPackUrl(value) {
+  return typeof value === 'string' && PACK_URL.test(value) ? value : null;
+}
+
 /**
  * Markup in a reading is choreography, not speech. Keep this transform shared
  * by the offline pack builder and the browser lookup: a single character of

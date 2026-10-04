@@ -21,6 +21,7 @@ history, not a distinction; read the status column instead.
 
 | Document | Status | What it is |
 | --- | --- | --- |
+| [COMPOSER-FIRST-ROADMAP.md](COMPOSER-FIRST-ROADMAP.md) | Intent | First-edition guided explanations: milestones, dependencies, parallel ownership and an independent Live research track. |
 | [VISION.md](VISION.md) | Intent | Where RISE is going: the harness a model performs in. The reader redirects the room in words while it runs, the model searches a catalog of procedural imagery and sees what the reader does, and scenes let the reader act inside the explanation. Says plainly what is built (little of it), the order to build the rest, and what we refuse. Supersedes the `vision/` folder as direction. |
 | [PROJECT-KNOWLEDGE.md](PROJECT-KNOWLEDGE.md) | Record | The handover. Recurring defect patterns and the reasoning behind decisions that look arbitrary. Read section 2 twice. |
 | [specs/ARCHITECTURE.md](specs/ARCHITECTURE.md) | Contract | The canonical, living system design: the planes, the room register, the contracts, and every significant decision with the alternative it rejected. `src/core/system-design.test.js` fails a build when it drifts from the tree. |
@@ -43,6 +44,8 @@ history, not a distinction; read the status column instead.
 | [plans/LIVE-CURRENT.md](plans/LIVE-CURRENT.md) | Intent | The plan for a live Current: an event protocol above the sealed one, one clock with speech as its authority, a runtime boundary, provider adapters, Dive and Surface as a branch, evidence, budgets, and the decisions that wait on the creator. A status table says what is built. |
 | [plans/LIVE-HANDOFF.md](plans/LIVE-HANDOFF.md) | Intent | Where the live Current stands at the end of the first build: the ten stacked pull requests, the architecture, what is implemented, tested, browser tested, tested only against fakes, and not verified; the commands run and what they said; the measurements; how to see it; whether it differs from a visualizer (unknown); the open risks; and the next smallest experiment. |
 | [plans/LIVE-MCP.md](plans/LIVE-MCP.md) | Intent | How a live Current runs inside an MCP host: the host's model as the provider, a server with one tool, an app that frames RISE's own page, and a Dive asked through sampling. Built and checked against the SDK's client and the reference package's own host class; off by default; no product host tried. |
+| [plans/CHATGPT-DEMO.md](plans/CHATGPT-DEMO.md) | Intent | Historical private-demo setup notes, ten acceptance cases, exact candidate evidence and remaining real-host checks; the former demo Worker endpoint is offline. |
+| [experiments/RISE-GATE0.md](experiments/RISE-GATE0.md) | Intent | The local persistent-widget Gate 0 probe, its browser simulation, and the real-host observations still needed. |
 | [plans/LIVE-GEMINI.md](plans/LIVE-GEMINI.md) | Intent | A live Current from Gemini with the reader's own key: streaming text generation (not the Live API) behind the existing text-stream seam, called straight from the reader's browser; what is left out, the one security-policy change, the build plan, and how to verify it with a real key. Off by default; unverified against Google. |
 | [plans/LIVE-EVALUATION.md](plans/LIVE-EVALUATION.md) | Intent | The instrument for asking whether a live Current differs from text, ordinary voice, and voice over a generic visualizer: a between-participants design, its measures, how to run it, what a record holds, and an analysis written so it cannot overclaim. The study has not been run. |
 | [plans/LIVE-RED-TEAM.md](plans/LIVE-RED-TEAM.md) | Record | An adversarial review of the live layer and its fixes: the trust boundary, twelve confirmed defects and how each was fixed, the architectural risks, what held, streaming and plugin readiness, the experiments a real provider must settle, and what still blocks switching Live or MCP on. |
@@ -132,6 +135,7 @@ history, not a distinction; read the status column instead.
 | [affect/BENCHMARK.md](affect/BENCHMARK.md) | Record | Inspection results for the lexicon-backed text priors and offline comparison probes. |
 | [affect/RESEARCH-LOG.md](affect/RESEARCH-LOG.md) | Record | Research limitations, unavailable human judgments, and the reasons the probe is not a trained runtime. |
 | [adr/0001-affective-semantic-layer.md](adr/0001-affective-semantic-layer.md) | Record | The architecture decision and alternatives for the inspectable affect layer. |
+| [adr/0002-gate-0-realtime-host.md](adr/0002-gate-0-realtime-host.md) | Record | Gate 0 of the realtime roadmap: the current local persistent-widget probe, the older Worker-only probe, and the ChatGPT lifecycle and architecture decisions that remain open. |
 
 ## Reading decision service and retired gate
 

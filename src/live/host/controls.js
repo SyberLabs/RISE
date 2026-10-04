@@ -54,17 +54,25 @@ export function describeStatus(snapshot, { audible = true, question = '' } = {})
  * @param {object} options.runtime a live runtime
  * @param {() => void} options.onStop what Stop does (the host ends the session)
  * @param {boolean} [options.audible] whether the voice makes sound; a silent one is said to be pacing
+ * @param {string} [options.notice] an optional persistent note for an embedded host
+ * @param {{capability: string, effect: string}[]} [options.notes] what this device cannot do, for an embedded host
  * @param {object} [options.mic] speaking to it, where the browser can listen: `{ createListener, interpret, describe, privacy, privacyLead }`
  *   (src/live/mic); without it there is no Speak button at all
  * @param {Document} [options.doc]
  */
-export function createLiveControls({ runtime, onStop, audible = true, mic = null, doc = document }) {
+export function createLiveControls({ runtime, onStop, audible = true, mic = null, notice = '', notes = [], doc = document }) {
     const root = doc.createElement('section');
     root.id = 'live-controls';
     root.className = 'live-controls';
     root.setAttribute('aria-label', 'Live Current controls');
     root.innerHTML = `
       <p class="live-controls__status" role="status" aria-live="polite"></p>
+      <div class="live-controls__buttons">
+        <button type="button" data-live="interrupt">Interrupt</button>
+        <button type="button" data-live="listen" aria-pressed="false" aria-describedby="live-controls-mic-privacy" hidden>Speak</button>
+        <button type="button" data-live="surface" hidden>Surface</button>
+        <button type="button" data-live="stop">Stop</button>
+      </div>
       <p class="live-controls__error" role="alert" hidden></p>
       <form class="live-controls__ask" novalidate>
         <label class="live-controls__sr" for="live-controls-question">Ask about this place</label>
@@ -72,19 +80,14 @@ export function createLiveControls({ runtime, onStop, audible = true, mic = null
                placeholder="Wait — dive on the event horizon">
         <button type="button" data-live="dive" aria-label="Dive: ask about this place">Dive</button>
       </form>
-      <div class="live-controls__buttons">
-        <button type="button" data-live="interrupt">Interrupt</button>
-        <button type="button" data-live="listen" aria-pressed="false" aria-describedby="live-controls-mic-privacy" hidden>Speak</button>
-        <button type="button" data-live="surface" hidden>Surface</button>
-        <button type="button" data-live="stop">Stop</button>
-      </div>
+
       <p class="live-controls__mic" hidden></p>
       <details class="live-controls__mic-note" hidden><summary></summary><p id="live-controls-mic-privacy"></p></details>
       <details class="live-controls__visual-change">
         <summary>Visual change</summary>
         <form class="live-controls__visual" novalidate>
           <label class="live-controls__sr" for="live-controls-visual">Visual change</label>
-          <input id="live-controls-visual" name="visual" type="text" maxlength="120" autocomplete="off" placeholder="more vibrant">
+          <input id="live-controls-visual" name="visual" type="text" maxlength="120" autocomplete="off" placeholder="more vibrant or make it calmer">
           <button type="button" data-live="visual-submit">Change visual</button>
           <button type="button" data-live="listen-visual" aria-pressed="false" aria-describedby="live-controls-mic-privacy" hidden>Listen for a visual change</button>
         </form>
@@ -106,6 +109,25 @@ export function createLiveControls({ runtime, onStop, audible = true, mic = null
         <summary>Transcript</summary>
         <ol class="live-controls__lines" aria-label="What has been said so far"></ol>
       </details>`;
+    if (notes.length) {
+        const list = doc.createElement('ul');
+        list.className = 'live-controls__notes';
+        list.setAttribute('aria-label', 'What this device cannot do');
+        list.append(...notes.map(({ capability, effect }) => {
+            const item = doc.createElement('li');
+            item.textContent = effect;
+            item.dataset.capability = capability;
+            return item;
+        }));
+        root.querySelector('.live-controls__mic-note').after(list);
+    }
+    if (notice) {
+        const note = doc.createElement('p');
+        note.className = 'live-controls__notice';
+        note.setAttribute('role', 'note');
+        note.textContent = notice;
+        root.querySelector('.live-controls__mic-note').after(note);
+    }
     doc.body.appendChild(root);
 
     const $ = selector => root.querySelector(selector);
@@ -275,19 +297,23 @@ export function createLiveControls({ runtime, onStop, audible = true, mic = null
         heldByMic = false;
     };
 
+    const showStatus = () => { root.scrollTop = 0; };
+
     const ask = async asked => {
         question = asked;
         input.value = '';
         await runtime.dive({ question: asked });
         surface.focus();
+        showStatus();
     };
 
     function heard(words) {
         if (micMode === 'visual') {
             micMode = null;
             say(`Heard “${words.slice(0, 120)}”.`);
-            if (interpretVisualControl(words)) applyVisualControl();
-            else say(`Heard “${words.slice(0, 120)}”. Only “more vibrant” is available for visual changes.`);
+            const direction = interpretVisualControl(words);
+            if (direction) applyVisualControl(direction);
+            else say(`Heard “${words.slice(0, 120)}”. Only “more vibrant” or “make it calmer” are available to change brightness.`);
             return;
         }
         const said = mic.interpret(words);
@@ -365,44 +391,52 @@ export function createLiveControls({ runtime, onStop, audible = true, mic = null
     }
 
     function visualRefusalMessage(code) {
-        if (code === 'NOT_LIVE') return 'Visual changes are available while a reading is playing.';
-        return 'There is no adjustable visual on screen right now.';
+        const reason = code === 'NOT_LIVE'
+            ? 'Visual changes are available while a reading is playing.'
+            : 'There is no adjustable visual on screen right now.';
+        return `${reason} Use “more vibrant” to brighten or “make it calmer” to lower brightness.`;
     }
 
-    function applyVisualControl() {
+    function applyVisualControl(direction) {
         const discovery = runtime.discoverVisual?.();
         const target = discovery?.target?.intensity ?? discovery?.current?.intensity;
-        if (!Number.isFinite(target)) {
+        const bounds = discovery?.manifest?.parameters?.intensity;
+        if (!Number.isFinite(target) || !Number.isFinite(bounds?.minimum) || !Number.isFinite(bounds?.maximum) || bounds.minimum > bounds.maximum) {
             visualOutcome = visualRefusalMessage('NO_ACTIVE_VISUAL');
             show(visualOutcome, true);
             render(runtime.snapshot());
+            showStatus();
             return;
         }
-        const next = Math.min(0.75, target + 0.1);
+        const step = direction === 'calmer' ? -0.1 : 0.1;
+        const next = Math.min(bounds.maximum, Math.max(bounds.minimum, target + step));
         const receipt = runtime.controlVisual?.({ surface: 'attractor', parameter: 'intensity', value: next });
         if (receipt?.status === 'accepted') {
             visualOutcome = next === target
-                ? 'The visual is already at its brightness limit.'
+                ? `Visual brightness is already at its ${direction === 'calmer' ? 'minimum' : 'maximum'}.`
                 : `Visual brightness target changed to ${receipt.effective.toFixed(2)}.`;
+            visualOutcome += ' Use “more vibrant” to brighten or “make it calmer” to lower brightness.';
             show('');
         } else {
             visualOutcome = visualRefusalMessage(receipt?.code);
             show(visualOutcome, true);
         }
         render(runtime.snapshot());
+        showStatus();
     }
 
     const submitVisual = () => {
         const words = visualInput.value;
-        if (!interpretVisualControl(words)) {
-            const message = 'Only “more vibrant” is available for visual changes.';
+        const direction = interpretVisualControl(words);
+        if (!direction) {
+            const message = 'Only “more vibrant” or “make it calmer” are available to change brightness.';
             visualOutcome = '';
             show(message, true);
             return;
         }
         visualOutcome = '';
         show('');
-        applyVisualControl();
+        applyVisualControl(direction);
     };
     visualForm.addEventListener('submit', event => {
         event.preventDefault();
@@ -452,6 +486,14 @@ export function createLiveControls({ runtime, onStop, audible = true, mic = null
     });
     $('[data-live="stop"]').addEventListener('click', () => { void attempt(async () => onStop()); });
 
+    const buttonsRow = $('.live-controls__buttons');
+    const head = typeof ResizeObserver === 'function' ? new ResizeObserver(() => {
+        const below = buttonsRow.getBoundingClientRect().bottom - root.getBoundingClientRect().top + root.scrollTop;
+        root.style.minHeight = `${below + parseFloat(getComputedStyle(root).paddingBottom)}px`;
+    }) : null;
+    head?.observe(statusLine);
+    head?.observe(buttonsRow);
+
     const off = runtime.subscribe(render);
     render(runtime.snapshot());
 
@@ -460,6 +502,7 @@ export function createLiveControls({ runtime, onStop, audible = true, mic = null
         destroy() {
             if (destroyed) return;
             destroyed = true;
+            head?.disconnect();
             listener?.destroy();
             off();
             root.remove();

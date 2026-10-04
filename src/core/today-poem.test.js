@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import DIVISION_INDEX from '../content/archive/division-index.json' with { type: 'json' };
-import { TODAY_MAX_WORDS, TODAY_WORKS, dayNumber, localDateKey, poemTitle, todayPoem, todayPool } from './today-poem.js';
+import { TODAY_MAX_WORDS, TODAY_WORKS, dayNumber, localDateKey, poemTitle, todayPoem, todayPool, todayPools } from './today-poem.js';
 
 describe('the pool', () => {
   it('holds every short division of the two works, once', () => {
@@ -15,9 +15,15 @@ describe('the pool', () => {
     expect(pool.some(p => p.label === 'The Spooniad')).toBe(false);
   });
 
-  it('is shuffled the same way every time, interleaving the works', () => {
-    expect(todayPool()).toEqual(todayPool());
-    expect(todayPool().slice(0, 40).some(p => p.workId === 'lyrical-ballads')).toBe(true);
+  it('is shuffled the same way every time, within each work', () => {
+    expect(todayPools()).toEqual(todayPools());
+    const pools = todayPools();
+    expect(Object.keys(pools)).toEqual([...TODAY_WORKS]);
+    expect(pools['spoon-river-anthology']).toHaveLength(244);
+    expect(pools['lyrical-ballads']).toHaveLength(31);
+    for (const [workId, list] of Object.entries(pools)) {
+      for (const p of list) expect(p.workId).toBe(workId);
+    }
   });
 });
 
@@ -28,23 +34,30 @@ describe('the day', () => {
     expect(dayNumber(new Date(2026, 9, 3, 0, 0))).toBe(dayNumber(new Date(2026, 9, 3, 23, 59)));
   });
 
-  it('gives everyone on one local date the same poem, and the next poem tomorrow', () => {
-    const pool = todayPool();
+  it('gives everyone on one local date the same poem', () => {
     const morning = todayPoem(new Date(2026, 9, 3, 7));
     expect(todayPoem(new Date(2026, 9, 3, 22))).toEqual(morning);
-    const next = todayPoem(new Date(2026, 9, 4, 7));
-    const at = p => pool.findIndex(q => q.workId === p.workId && q.entryId === p.entryId);
-    expect(at(next)).toBe((at(morning) + 1) % pool.length);
     expect(morning.seed).toBe('2026-10-03');
   });
 
-  it('repeats no poem within one cycle', () => {
-    const seen = new Set();
-    for (let i = 0; i < todayPool().length; i++) {
-      const p = todayPoem(new Date(2026, 0, 1 + i, 12));
-      seen.add(`${p.workId}:${p.entryId}`);
+  it('alternates the works day by day, so neither runs for weeks', () => {
+    const works = Array.from({ length: 10 }, (_, i) => todayPoem(new Date(2026, 9, 3 + i, 12)).workId);
+    for (let i = 1; i < works.length; i++) expect(works[i]).not.toBe(works[i - 1]);
+    expect(new Set(works)).toEqual(new Set(TODAY_WORKS));
+  });
+
+  it('repeats no poem of a work until that work has given every one', () => {
+    const pools = todayPools();
+    for (const workId of TODAY_WORKS) {
+      const seen = new Set();
+      for (let day = 0; seen.size < pools[workId].length && day < 2000; day++) {
+        const p = todayPoem(new Date(2026, 0, 1 + day, 12));
+        if (p.workId !== workId) continue;
+        expect(seen.has(p.entryId), `${workId} ${p.entryId} repeated`).toBe(false);
+        seen.add(p.entryId);
+      }
+      expect(seen.size).toBe(pools[workId].length);
     }
-    expect(seen.size).toBe(todayPool().length);
   });
 });
 
