@@ -109,11 +109,9 @@ async function openRootNode(page, id) {
 
 async function hardReloadPrep(page) {
   await page.reload({ waitUntil: 'domcontentloaded' });
-  const beginButton = page.locator('#begin-btn');
-  if (!await beginButton.isVisible()) {
-    await openHomeNav(page, 'chamber');
-  }
-  await expect(beginButton).toBeEnabled({ timeout: 15_000 });
+  // Reader Setup has its own address, so the reload reopens it.
+  await expect(page).toHaveURL(/\/read$/u);
+  await expect(page.locator('#begin-btn')).toBeEnabled({ timeout: 15_000 });
 }
 
 async function chooseFit(page) {
