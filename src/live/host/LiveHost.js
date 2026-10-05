@@ -32,8 +32,16 @@ import { DelayedRunner, EvalRunner } from './EvalRunner.js';
 import './LiveHost.css';
 
 const DEFAULT_PROMPT = 'Explain black holes with RISE.';
-/** What an embedded app asks its host for: enough for the Chamber and the controls on a phone. */
-const EMBED_HEIGHT = 640;
+/**
+ * The one height an embedded app asks its host for: it follows the frame's width, never below 481
+ * (a shorter, wider frame is a phone in landscape to the Chamber, which then shrinks the words and
+ * ignores the text size), never above 560, and never above the host's own cap.
+ */
+function embedHeight(width, maxHeight) {
+    const height = Math.min(560, Math.max(481, Math.round(width * 0.66)));
+    return Number.isFinite(maxHeight) ? Math.min(height, maxHeight) : height;
+}
+const SAFE_SIDES = ['top', 'right', 'bottom', 'left'];
 const EMBED_REPLAY_NOTICE = 'Reopening starts this reading from the beginning';
 /** The frame's colors a theme sets, and which of its shipped colors each takes. */
 const EMBED_THEME_VARS = [['--color-void', 'background'], ['--color-light', 'text'], ['--color-cloud', 'text'], ['--color-accent', 'accent']];
@@ -594,6 +602,7 @@ export class LiveHost {
             this.port.onTeardown(() => {
                 this.embeddedStartupCancelled = true;
                 this.cancelEmbeddedPending();
+                this.stopFittingFrame?.();
                 this.port?.close();
                 this.port = null;
                 // The host is taking the frame away, so the Chamber showing the reading goes with it.
@@ -601,8 +610,7 @@ export class LiveHost {
             });
             await this.port.connect();
             if (this.destroyed || this.embeddedStartupCancelled) return;
-            // The host sizes a frame from what the app says it wants; the Chamber fills what it is given.
-            this.port.sizeChanged({ width: frame.innerWidth, height: EMBED_HEIGHT });
+            this.fitFrame(frame);
             this.listenEmbeddedCurrent();
             this.armEmbeddedAnswerTimer();
         } catch (error) {
@@ -614,6 +622,52 @@ export class LiveHost {
             this.port = null;
             this.say(`Could not start: ${text(error?.message, 'unknown error').slice(0, 200)}`, { alert: true });
         }
+    }
+
+    /**
+     * Fit the host's frame. The root is marked as the embed, the host's safe area and sans font
+     * become variables with fallbacks, and the one height is told to the host after the handshake
+     * and whenever it changes: a resize of the frame or a change of host context, coalesced to one
+     * animation frame, sent only when the value differs. Width is never sent; the host owns it.
+     */
+    fitFrame(frame) {
+        const root = this.container.ownerDocument.documentElement;
+        root.dataset.embed = 'mcp';
+        let reported = null;
+        let pending = null;
+        const report = () => {
+            pending = null;
+            if (!this.port) return;
+            const { containerDimensions, safeAreaInsets, styles } = this.port.hostContext();
+            for (const side of SAFE_SIDES) root.style.setProperty(`--safe-${side}`, `${Number(safeAreaInsets?.[side]) || 0}px`);
+            const sans = styles?.variables?.['--font-sans'];
+            if (typeof sans === 'string' && sans) root.style.setProperty('--font-sans', sans);
+            else root.style.removeProperty('--font-sans');
+            const height = embedHeight(frame.innerWidth, containerDimensions?.maxHeight);
+            if (height === reported) return;
+            reported = height;
+            this.port.sizeChanged({ height });
+        };
+        const schedule = () => { if (pending === null) pending = frame.requestAnimationFrame(report); };
+        const stopHostContext = this.port.onHostContext(schedule);
+        const observer = new frame.ResizeObserver(schedule);
+        observer.observe(root);
+        report();
+        this.stopFittingFrame = () => {
+            this.stopFittingFrame = null;
+            stopHostContext();
+            observer.disconnect();
+            if (pending !== null) frame.cancelAnimationFrame(pending);
+            pending = null;
+        };
+    }
+
+    /** The root marks fitFrame set, taken off when the page is left. */
+    unmarkEmbedRoot() {
+        const root = this.container.ownerDocument.documentElement;
+        delete root.dataset.embed;
+        for (const side of SAFE_SIDES) root.style.removeProperty(`--safe-${side}`);
+        root.style.removeProperty('--font-sans');
     }
 
     listenEmbeddedCurrent() {
@@ -814,6 +868,7 @@ export class LiveHost {
         if (this.embedded) {
             this.embeddedStartupCancelled = true;
             this.cancelEmbeddedPending();
+            this.stopFittingFrame?.();
             this.port?.close();
             this.port = null;
         }
@@ -860,9 +915,13 @@ export class LiveHost {
         this.cancelEmbeddedPending();
         this.stopHearingExitListener();
         void this.ended();
+        this.stopFittingFrame?.();
         this.port?.close();
         this.port = null;
         this.container.replaceChildren();
-        if (this.embedded) this.paintEmbedTheme();
+        if (this.embedded) {
+            this.paintEmbedTheme();
+            this.unmarkEmbedRoot();
+        }
     }
 }
