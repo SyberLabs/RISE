@@ -720,6 +720,7 @@ export class VisualCortex {
      * identity, so returning to the same reading remains warm.
      */
     beginSessionVisualIdentity(config = {}) {
+        this._openingStillExported = false;
         this._activeVideoCue = null;
         this._sequenceVideoField?.hide();
         this._admissionGeneration += 1;
@@ -1590,9 +1591,7 @@ export class VisualCortex {
             // WebP keeps a viewport-sized procedural still compact. Browsers
             // without WebP canvas export fall back to PNG automatically.
             // toBlob captures the still now and encodes it off the main
-            // thread; a synchronous export of one took 60-159 ms. A word fill
-            // exports at once: Fit's first word waits on its mask, and a later
-            // mask lets an opaque word flash before it is dressed.
+            // thread; a synchronous export of one took 60-159 ms.
             const url = canvas.toBlob && !exportNow
                 ? await encodeCanvasDataUrl(canvas, 'image/webp', 0.9)
                 : canvas.toDataURL('image/webp', 0.9);
@@ -1777,7 +1776,15 @@ export class VisualCortex {
             rendered = !!asciiFrame && !!this.asciiRenderer?.render(asciiFrame);
             canvas = this._asciiCanvas;
         }
-        return rendered ? await this._canvasToContinuousWork(canvas, type, { exportNow: wordFill }) : null;
+        if (!rendered) return null;
+        // The opening still and every word fill export at once: a Fit word
+        // waits on its mask, and a mask that arrives later lets an opaque word
+        // flash before it is dressed. Later walls encode off the main thread.
+        const work = await this._canvasToContinuousWork(canvas, type, {
+            exportNow: wordFill || !this._openingStillExported
+        });
+        if (work) this._openingStillExported = true;
+        return work;
     }
 
     /**

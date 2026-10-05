@@ -2074,8 +2074,10 @@ describe('Continuous Field (Gallery) wiring', () => {
         cortex.destroy();
     });
 
-    it('encodes a Gallery still off the main thread when the canvas can', async () => {
-        // A synchronous WebP export of a viewport-sized still took 60-159 ms.
+    it('exports the opening still at once and encodes later walls off the main thread', async () => {
+        // A synchronous WebP export of a viewport-sized still took 60-159 ms
+        // at every wall during a reading. The opening one stays immediate,
+        // because a Fit mask projecting the Gallery waits on it.
         const cortex = new VisualCortex();
         cortex.initialized = true;
         cortex.config.renderLanguage = 'native';
@@ -2088,15 +2090,25 @@ describe('Continuous Field (Gallery) wiring', () => {
             toDataURL: vi.fn(() => 'data:image/webp;base64,flame')
         };
 
-        const work = await cortex._renderContinuousProceduralWork('fractal');
+        const opening = await cortex._renderContinuousProceduralWork('fractal');
+        expect(opening.url).toBe('data:image/webp;base64,flame');
+        expect(cortex._fractalCanvas.toBlob).not.toHaveBeenCalled();
 
+        const later = await cortex._renderContinuousProceduralWork('fractal');
         expect(cortex._fractalCanvas.toBlob).toHaveBeenCalledWith(expect.any(Function), 'image/webp', 0.9);
-        expect(cortex._fractalCanvas.toDataURL).not.toHaveBeenCalled();
-        expect(work).toEqual({
+        expect(cortex._fractalCanvas.toDataURL).toHaveBeenCalledTimes(1);
+        expect(later).toEqual({
             url: `data:image/webp;base64,${btoa('still')}`,
             title: 'Fractal Flame',
             sourceType: 'fractal'
         });
+
+        const fractal = cortex.fractal;
+        cortex.fractal = null;
+        cortex.beginSessionVisualIdentity({});
+        cortex.fractal = fractal;
+        await cortex._renderContinuousProceduralWork('fractal');
+        expect(cortex._fractalCanvas.toDataURL).toHaveBeenCalledTimes(2);
         cortex.destroy();
     });
 
