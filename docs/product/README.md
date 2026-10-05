@@ -8,6 +8,8 @@ The Reader and the ChatGPT Composer (with RiseSDK later) are equal product direc
 | --- | --- |
 | [Task records](tasks/) | Current work state, owners, dependencies and linked evidence; validated JSON, one file per task |
 | [Reader direction](READER-DIRECTION.md) | Website scope and near-term acceptance packages; Intent |
+| [Consolidated Reader](CONSOLIDATED-READER.md) | Canonical Home, four reader choices, one catalog and colour vocabulary, the plugin boundary and build order; proposed Intent awaiting six owner decisions |
+| [Reader evidence](discussions/2026-10-04-reader-evidence.md) | Production probes, capabilities and 14 days of history behind the Consolidated Reader; Record |
 | [Composer decision](discussions/2026-10-04-composer-decision.md) | Composer is the approach in ChatGPT; Dive and realtime Live out of current scope; Record |
 | [Composer-first roadmap](../COMPOSER-FIRST-ROADMAP.md) | Composer delivery sequence M0–M4 (M3 removed); Intent |
 | [October decisions](discussions/2026-10-03-direction-decisions.md) | Dated conversation summary and provenance; Record |
