@@ -13,6 +13,9 @@ import { Ostensoria } from './ostensoria.js';
 import { Apparitio } from './apparitio.js';
 import * as flameFillAdapter from './flame-fill-adapter.js';
 import { grantVisualInterlocutionConsent } from '../core/visual-safety.js';
+import { JEV_COLOR_THEMES } from '../core/jev-color-themes.js';
+import { JEV_PALETTES } from '../core/jev-palette.js';
+import { THEME_ENGINE_MAP, rockGardenInk } from '../core/theme-engine-map.js';
 
 function mockEngine(width = 800, height = 400) {
     return {
@@ -212,6 +215,82 @@ describe('VisualCortex Klee delegation', () => {
 
         cortex.updateConfig({ kleePreset: 'chaotic', semanticSignals: null });
         expect(spy).toHaveBeenCalledWith({ preset: 'chaotic', signals: null });
+    });
+
+    it.each(JEV_COLOR_THEMES)('%s: the theme answers a "random" Klee preset at the hand-off', theme => {
+        const cortex = new VisualCortex();
+        cortex.kleeFlashes = new KleeFlashes(mockEngine());
+        const configure = vi.spyOn(cortex.kleeFlashes, 'configure');
+
+        cortex.beginSessionVisualIdentity({ colorTheme: theme, kleePreset: 'random' });
+
+        // The cortex still records what was asked; only the hand-off resolves it.
+        expect(cortex.config.kleePreset).toBe('random');
+        expect(configure).toHaveBeenLastCalledWith({
+            preset: THEME_ENGINE_MAP[theme].genesis.preset, signals: null
+        });
+    });
+
+    it('an authored Klee preset wins over the theme', () => {
+        const cortex = new VisualCortex();
+        cortex.kleeFlashes = new KleeFlashes(mockEngine());
+        const configure = vi.spyOn(cortex.kleeFlashes, 'configure');
+
+        cortex.beginSessionVisualIdentity({ colorTheme: 'rose', kleePreset: 'random' });
+        cortex.applyCue({ kind: 'procedural', collections: ['klee'], config: { preset: 'chaotic' } });
+
+        expect(configure).toHaveBeenLastCalledWith({ preset: 'chaotic', signals: null });
+    });
+
+    it('without a theme "random" stays random, and both resets return to it', () => {
+        const cortex = new VisualCortex();
+        cortex.kleeFlashes = new KleeFlashes(mockEngine());
+        const configure = vi.spyOn(cortex.kleeFlashes, 'configure');
+
+        cortex.beginSessionVisualIdentity({ colorTheme: null, kleePreset: 'random' });
+        expect(configure).toHaveBeenLastCalledWith({ preset: 'random', signals: null });
+
+        cortex.beginSessionVisualIdentity({ colorTheme: 'rose', kleePreset: 'random' });
+        expect(configure).toHaveBeenLastCalledWith({ preset: 'harmonic', signals: null });
+        cortex.resetSessionVisualIdentity();
+        expect(configure).toHaveBeenLastCalledWith({ preset: 'random', signals: null });
+
+        cortex.beginSessionVisualIdentity({ colorTheme: 'rose', kleePreset: 'random' });
+        cortex.beginSessionVisualIdentity({});
+        expect(configure).toHaveBeenLastCalledWith({ preset: 'random', signals: null });
+    });
+
+    it('a phase theme arriving through updateConfig re-resolves Klee Lines beside the flame', () => {
+        const cortex = new VisualCortex();
+        cortex.kleeFlashes = new KleeFlashes(mockEngine());
+        cortex.fractal = { setColorTheme: vi.fn(), setSignalPool: vi.fn() };
+        cortex.beginSessionVisualIdentity({
+            colorTheme: 'classic', kleePreset: 'random', flameColors: JEV_PALETTES.classic
+        });
+        const configure = vi.spyOn(cortex.kleeFlashes, 'configure');
+
+        cortex.updateConfig(
+            { colorTheme: 'prism', flameColors: JEV_PALETTES.prism },
+            { preservePresentation: true }
+        );
+
+        expect(configure).toHaveBeenCalledWith({ preset: 'chaotic', signals: null });
+        expect(cortex.fractal.setColorTheme).toHaveBeenLastCalledWith(JEV_PALETTES.prism);
+    });
+
+    it('both resets clear the theme and the plate keys', () => {
+        const cortex = new VisualCortex();
+        const themed = { colorTheme: 'jade', ostensoriaPalette: 'teal', apparitioPalette: 'holo' };
+        const cleared = { colorTheme: null, ostensoriaPalette: 'auto', apparitioPalette: 'auto' };
+
+        cortex.beginSessionVisualIdentity(themed);
+        expect(cortex.config).toMatchObject(themed);
+        cortex.beginSessionVisualIdentity({});
+        expect(cortex.config).toMatchObject(cleared);
+
+        cortex.beginSessionVisualIdentity(themed);
+        cortex.resetSessionVisualIdentity();
+        expect(cortex.config).toMatchObject(cleared);
     });
 
     it('applyCue renders a generic sourced cue as the active pool (Chapel-agnostic)', () => {
@@ -2189,6 +2268,78 @@ describe('Continuous Field (Gallery) wiring', () => {
         expect(works.map(work => work.sourceType)).toEqual(types);
         expect(works.every(work => work.url.startsWith('data:image/'))).toBe(true);
         cortex.destroy();
+    });
+
+    describe('the reading\'s theme reaches the Gallery stills', () => {
+        function stubbedEngines() {
+            const cortex = new VisualCortex();
+            cortex.initialized = true;
+            cortex.config.renderLanguage = 'native';
+            cortex._resizeKleeCanvas = vi.fn();
+            const canvas = {
+                width: 1200,
+                height: 800,
+                toDataURL: vi.fn(() => 'data:image/webp;base64,procedural')
+            };
+            cortex._kleeCanvas = canvas;
+            cortex._neuralCanvas = canvas;
+            cortex.turrell = {
+                generate: vi.fn(() => ({ center: [0.5, 0.5] })),
+                render: vi.fn(() => true)
+            };
+            cortex.neural = { generate: vi.fn(() => true) };
+            cortex.rockgarden = {
+                generateRockGarden: vi.fn(),
+                renderRockGarden: vi.fn(() => true)
+            };
+            return cortex;
+        }
+
+        async function renderThree(cortex) {
+            for (const type of ['turrell', 'neural', 'rockgarden']) {
+                await cortex._renderContinuousProceduralWork(type);
+            }
+        }
+
+        it.each(JEV_COLOR_THEMES)('%s: Turrell and Neural take the mapped palette, Rock Garden the reading\'s ink', async theme => {
+            const cortex = stubbedEngines();
+            cortex.beginSessionVisualIdentity({ colorTheme: theme, flameColors: JEV_PALETTES[theme] });
+
+            await renderThree(cortex);
+
+            expect(cortex.turrell.generate).toHaveBeenCalledWith(THEME_ENGINE_MAP[theme].turrell);
+            expect(cortex.neural.generate).toHaveBeenCalledWith(THEME_ENGINE_MAP[theme].neural);
+            expect(cortex.rockgarden.renderRockGarden).toHaveBeenCalledWith(cortex._kleeCanvas, {
+                ...rockGardenInk(JEV_PALETTES[theme]), brushStroke: true
+            });
+            cortex.destroy();
+        });
+
+        it('ember: the Rock Garden draws ember ground and ember ink', async () => {
+            const cortex = stubbedEngines();
+            cortex.beginSessionVisualIdentity({ colorTheme: 'ember', flameColors: JEV_PALETTES.ember });
+
+            await renderThree(cortex);
+
+            expect(cortex.rockgarden.renderRockGarden).toHaveBeenCalledWith(cortex._kleeCanvas, {
+                backgroundColor: '#1C0B0A', strokeColor: 'rgba(255, 240, 228, 0.8)', brushStroke: true
+            });
+            cortex.destroy();
+        });
+
+        it('without a theme, no key reaches Turrell or Neural and the Rock Garden keeps today\'s ink', async () => {
+            const cortex = stubbedEngines();
+            cortex.beginSessionVisualIdentity({});
+
+            await renderThree(cortex);
+
+            expect(cortex.turrell.generate).toHaveBeenCalledWith(null);
+            expect(cortex.neural.generate).toHaveBeenCalledWith(null);
+            expect(cortex.rockgarden.renderRockGarden).toHaveBeenCalledWith(cortex._kleeCanvas, {
+                backgroundColor: '#0A0A0C', strokeColor: 'rgba(232, 232, 236, 0.8)', brushStroke: true
+            });
+            cortex.destroy();
+        });
     });
 
     it('renders a Fractal Flame Gallery through the selected ASCII language', async () => {
