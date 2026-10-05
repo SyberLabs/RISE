@@ -288,7 +288,7 @@
   margin-bottom: 8px;
 }
 
-.rise-settings__title { margin: 0; font-size: 0.95rem; font-weight: 600; }
+.rise-settings__title { margin: 0; font-family: inherit; font-size: 0.95rem; font-weight: 600; }
 
 .rise-settings__close {
   display: inline-flex;
