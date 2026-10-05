@@ -18,7 +18,7 @@ The model's part ends when its Current is admitted. Nothing it says afterwards c
 
 ## Why
 
-The host session ([record](https://github.com/SyberLabs/RISE/blob/4d407752/docs/experiments/CHATGPT-HOST-2026-10-04.md), PR #400) tested both models against the exact release `891aa878`.
+The host session ([record](../../experiments/CHATGPT-HOST-2026-10-04.md), PR #400) tested both models against the exact release `891aa878`.
 
 - **Composer works in real ChatGPT.** A plain request produced an admitted Current and a Begin card; Begin started narration the reader confirmed hearing; Interrupt, Stop, the refusal of a compound visual request and reload-without-autoplay behaved as designed.
 - **Live does not, by construction of the host.** In the decoupled probe (#372) one widget persisted and the reader's own changes applied in it at once, but four admitted model changes never reached that widget on their own: it stayed at sequence 2 until a manual read jumped it to 6. ChatGPT gives a tool call's result only to that call's widget, and offers no channel from a later call into an open one. Voice was not shown to interleave speech and tool calls.

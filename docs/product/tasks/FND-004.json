@@ -13,13 +13,20 @@
   "acceptance": [
     "NEON_DATABASE_URL, UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN are removed from the Cloudflare production Worker.",
     "Production still serves catalog.json and recitation after removal.",
-    "The rise/audio-assets branch is retired once nothing builds from it."
+    "The rise/audio-assets branch is retired once nothing builds from it.",
+    "The inert rise-chatgpt-demo Worker (no public targets, MCP gates off) is deleted from the Cloudflare account."
   ],
   "evidence": [
     {
       "kind": "pr",
       "ref": "https://github.com/SyberLabs/RISE/pull/377",
       "note": "The PR names both follow-ups as owner steps after release.",
+      "date": "2026-10-04"
+    },
+    {
+      "kind": "document",
+      "ref": "docs/experiments/CHATGPT-HOST-2026-10-04.md",
+      "note": "Wrangler could not delete the demo Worker without a broader token scope; it was redeployed with no targets.",
       "date": "2026-10-04"
     }
   ],
@@ -29,8 +36,12 @@
     {
       "date": "2026-10-04T23:44:08.776Z",
       "summary": "Recorded from repository and CI evidence after integration."
+    },
+    {
+      "date": "2026-10-05T01:46:43.333Z",
+      "summary": "Added the inert demo Worker to the cleanup"
     }
   ],
-  "updatedAt": "2026-10-04T23:44:08.776Z",
-  "revision": 1
+  "updatedAt": "2026-10-05T01:46:43.333Z",
+  "revision": 2
 }
