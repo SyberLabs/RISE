@@ -1,0 +1,43 @@
+{
+  "id": "RDR-021",
+  "title": "Rebuild Reader setup's first screen around four choices",
+  "lane": "reader",
+  "milestone": "Reader consolidation",
+  "status": "planned",
+  "delivery": "not_shipped",
+  "owner": null,
+  "priority": "next",
+  "dependencies": [
+    "RDR-020",
+    "RDR-016"
+  ],
+  "acceptance": [
+    "Eight controls on the first screen: Home, Change text, three look tiles, Customize look, Rhythm & pace, Begin.",
+    "No scrolling at 390x844 and 360x640.",
+    "The live preview's GPU cost is measured on a phone."
+  ],
+  "evidence": [
+    {
+      "kind": "document",
+      "ref": "docs/product/CONSOLIDATED-READER.md",
+      "note": "Package C2.",
+      "date": "2026-10-05"
+    },
+    {
+      "kind": "document",
+      "ref": "docs/product/discussions/2026-10-05-consolidated-reader-decisions.md",
+      "note": "Owner decisions Q1-Q6, 2026-10-05.",
+      "date": "2026-10-05"
+    }
+  ],
+  "activity": [
+    {
+      "date": "2026-10-05T08:40:23.000Z",
+      "summary": "Seeded from Package C2 after the owner decisions."
+    }
+  ],
+  "updatedAt": "2026-10-05T08:40:23.000Z",
+  "revision": 1,
+  "summary": "Text, Look, Rhythm and Pace in front; everything else behind two sheets.",
+  "blocker": null
+}

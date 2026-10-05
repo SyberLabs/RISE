@@ -1,0 +1,43 @@
+{
+  "id": "RDR-022",
+  "title": "Give every reading one Look sheet and a seven-button bar",
+  "lane": "reader",
+  "milestone": "Reader consolidation",
+  "status": "planned",
+  "delivery": "not_shipped",
+  "owner": null,
+  "priority": "next",
+  "dependencies": [
+    "RDR-020",
+    "LIVE-004"
+  ],
+  "acceptance": [
+    "The reading bar has at most seven buttons (plus Dive when the text has threads).",
+    "Live and embed origins keep the controls.js set; e2e/live-mcp.spec.js and controls.test.js stay green.",
+    "Every control is reachable by keyboard and on a phone."
+  ],
+  "evidence": [
+    {
+      "kind": "document",
+      "ref": "docs/product/CONSOLIDATED-READER.md",
+      "note": "Package C3.",
+      "date": "2026-10-05"
+    },
+    {
+      "kind": "document",
+      "ref": "docs/product/discussions/2026-10-05-consolidated-reader-decisions.md",
+      "note": "Owner decisions Q1-Q6, 2026-10-05.",
+      "date": "2026-10-05"
+    }
+  ],
+  "activity": [
+    {
+      "date": "2026-10-05T08:40:23.000Z",
+      "summary": "Seeded from Package C3 after the owner decisions."
+    }
+  ],
+  "updatedAt": "2026-10-05T08:40:23.000Z",
+  "revision": 1,
+  "summary": "The Jev look panel, the Visual direction drawer, Kaleidoscope, Next scene and the Visuals toggle become one Look sheet.",
+  "blocker": null
+}

@@ -1,0 +1,43 @@
+{
+  "id": "RDR-026",
+  "title": "Consolidate Settings",
+  "lane": "reader",
+  "milestone": "Reader consolidation",
+  "status": "planned",
+  "delivery": "not_shipped",
+  "owner": null,
+  "priority": "later",
+  "dependencies": [
+    "FND-008",
+    "RDR-024",
+    "RDR-025"
+  ],
+  "acceptance": [
+    "Settings keeps the reader's body and device: text size S/M/L, typeface override, Living Text, photosensitivity, reduced motion, volume, labels.",
+    "The accent, the imagery-through-words toggle and the ambient drone are removed."
+  ],
+  "evidence": [
+    {
+      "kind": "document",
+      "ref": "docs/product/CONSOLIDATED-READER.md",
+      "note": "Package D2.",
+      "date": "2026-10-05"
+    },
+    {
+      "kind": "document",
+      "ref": "docs/product/discussions/2026-10-05-consolidated-reader-decisions.md",
+      "note": "Owner decisions Q1-Q6, 2026-10-05.",
+      "date": "2026-10-05"
+    }
+  ],
+  "activity": [
+    {
+      "date": "2026-10-05T08:40:23.000Z",
+      "summary": "Seeded from Package D2 after the owner decisions."
+    }
+  ],
+  "updatedAt": "2026-10-05T08:40:23.000Z",
+  "revision": 1,
+  "summary": "Settings holds what is true for every reading; per-reading art stays with the reading.",
+  "blocker": null
+}
