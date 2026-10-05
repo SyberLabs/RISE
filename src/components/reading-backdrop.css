@@ -1,8 +1,9 @@
 /* The reading backdrop (reading-backdrop.js), behind Home's reading.
    The page that hosts it places and shades it. */
 
-/* Each reading's engine in its own layer, faded in over the last. The stage
-   sets --reading-stage-fade, so the fade is written once, in the script. */
+/* Each reading's engine in its own layer, faded in over the last, which stays
+   at full opacity beneath it until the stage removes it. The stage sets
+   --reading-stage-fade, so the fade is written once, in the script. */
 .reading-stage-layer {
   position: absolute;
   inset: 0;

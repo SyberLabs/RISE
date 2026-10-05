@@ -208,16 +208,23 @@ describe('the reading stage', () => {
     delete document.hidden;
   });
 
-  it('fades the new engine in over the old, then destroys the old', async () => {
+  it('fades the new engine in over the old, held at full strength beneath, then destroys the old', async () => {
     await stage.show(attractor('aizawa'));
     expect([...layers()].map(layer => layer.classList.contains('is-shown'))).toEqual([true]);
     await stage.show(attractor('lorenz'));
     const [old, next] = made.attractor;
-    expect([...layers()].map(layer => layer.classList.contains('is-shown'))).toEqual([false, true]);
+    // Both layers stay shown through the fade: the old one at full opacity
+    // beneath the new one, so brightness never dips.
+    expect([...layers()].map(layer => layer.classList.contains('is-shown'))).toEqual([true, true]);
+    expect([...layers()].map(layer => layer.contains(old.host) ? 'old' : 'next')).toEqual(['old', 'next']);
     expect(old.destroy).not.toHaveBeenCalled();
-    await vi.advanceTimersByTimeAsync(900);
+    await vi.advanceTimersByTimeAsync(899);
+    expect(layers()).toHaveLength(2);
+    expect(old.destroy).not.toHaveBeenCalled();
+    await vi.advanceTimersByTimeAsync(1);
     expect(old.destroy).toHaveBeenCalledOnce();
     expect(layers()).toHaveLength(1);
+    expect(layers()[0].contains(next.host)).toBe(true);
     expect(running()).toEqual([next]);
   });
 
