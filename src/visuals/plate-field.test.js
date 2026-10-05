@@ -193,33 +193,32 @@ describe('PlateField', () => {
         field.destroy();
     });
 
-    it('holds the reveal until the incoming plane has finished dissolving in', () => {
+    it('draws a new plate from the moment it arrives, over the plate before it', () => {
         vi.spyOn(performance, 'now').mockReturnValue(0);
+        const options = [];
+        vi.mocked(Apparitio.prototype.render).mockImplementation(function render(_canvas, opts) {
+            options.push(opts);
+            return true;
+        });
         const field = new PlateField(host, {
             families: ['apparitio'],
             dwellMs: 8_000,
             crossfadeMs: 1_200
         });
         field.start();
-        progresses.length = 0;
+        options.length = 0;
         frame(8_000);
-        expect(progresses.at(-1)).toBe(0);
-        for (let t = 8_050; t <= 9_200; t += 50) frame(t);
-        expect(progresses.at(-1)).toBe(0);
-        frame(9_250);
-        const started = progresses.at(-1);
-        expect(started).toBeGreaterThan(0);
-        expect(started).toBeLessThan(0.1);
+        expect(options.at(-1)).toEqual({ progress: 0, clearGround: true });
+        frame(8_050);
+        expect(options.at(-1).progress).toBeGreaterThan(0);
+        expect(options.at(-1).clearGround).toBe(true);
         field.destroy();
     });
 
-    it('dissolves the FIRST plate out, not just every plate after it', () => {
-        // The first plate enters with `transition: none`, because there is
-        // nothing behind it to dissolve from. That `none` stayed on the
-        // element, so when it became the outgoing plane its opacity was
-        // dropped with no transition still attached and it cut to black —
-        // the one plate in a reading that did, which is why it read as a
-        // first-impression fault rather than a rule.
+    it('holds the plate before under the new one until it is half drawn, then dissolves it', () => {
+        // The screen never passes through black: the incoming canvas carries
+        // the outgoing image beneath its own reveal, so the planes swap at
+        // once and the old plate leaves only as the new one fills in.
         vi.spyOn(performance, 'now').mockReturnValue(0);
         const field = new PlateField(host, {
             families: ['ostensoria', 'apparitio'],
@@ -227,14 +226,29 @@ describe('PlateField', () => {
             crossfadeMs: 1_200
         });
         field.start();
-        const planes = [...host.querySelectorAll('.plate-plane')];
-        expect(planes[0].style.opacity).toBe('1');
-        expect(planes[0].style.transition).toBe('none');
+        const [first, second] = field._planes;
+        expect(first.canvas.style.opacity).toBe('1');
 
         frame(8_000);
+        expect(second.underlay).toEqual({ canvas: first.canvas, alpha: 1, fadedMs: 0 });
+        expect(first.canvas.style.opacity).toBe('0');
+        expect(second.canvas.style.opacity).toBe('1');
+        expect(second.canvas.style.transition).toBe('none');
 
-        expect(planes[0].style.opacity).toBe('0');
-        expect(planes[0].style.transition).toBe('opacity 1200ms ease-in-out');
+        let t = 8_000;
+        while (field._progress(second) < 0.5) {
+            t += 50;
+            frame(t);
+            if (field._progress(second) < 0.5) expect(second.underlay.alpha).toBe(1);
+        }
+        for (let end = t + 600; t < end;) { t += 50; frame(t); }
+        expect(second.underlay.alpha).toBeGreaterThan(0);
+        expect(second.underlay.alpha).toBeLessThan(1);
+        expect(first.engine).not.toBeNull();
+
+        for (let end = t + 700; t < end;) { t += 50; frame(t); }
+        expect(second.underlay).toBeNull();
+        expect(first.engine).toBeNull();
         field.destroy();
     });
 
@@ -360,14 +374,35 @@ describe('PlateField', () => {
         projection.remove();
     });
 
-    it('finishes a late bake at rotate instead of starting a new generate', () => {
+    it('keeps the bake under way when the same families are set again', () => {
+        // The visual cortex sets the families on every sync. Restarting the
+        // bake each time meant it never finished before the seam.
         vi.spyOn(performance, 'now').mockReturnValue(0);
-        vi.spyOn(Apparitio.prototype, 'stepBake').mockImplementation(function stepBake(budget) {
-            if (budget >= 1000) {
-                this.ready = true;
-                return true;
-            }
-            return false;
+        const field = new PlateField(host, {
+            families: ['apparitio'],
+            dwellMs: 8_000,
+            crossfadeMs: 1_200
+        });
+        field.start();
+        expect(Apparitio.prototype.beginBake).toHaveBeenCalledTimes(1);
+        field.setFamilies(['apparitio']);
+        field.setFamilies(['apparitio']);
+        expect(Apparitio.prototype.beginBake).toHaveBeenCalledTimes(1);
+        field.setFamilies(['ostensoria']);
+        expect(Ostensoria.prototype.beginBake).toHaveBeenCalledTimes(1);
+        field.destroy();
+    });
+
+    it('waits for a late bake rather than finishing it in one long frame at the seam', () => {
+        // On a slow phone the slices had not finished by the seam, and
+        // finishing them there froze the reading for seconds. The plate on
+        // screen stays a little longer instead.
+        vi.spyOn(performance, 'now').mockReturnValue(0);
+        let steps = 0;
+        vi.spyOn(Apparitio.prototype, 'stepBake').mockImplementation(function stepBake() {
+            steps += 1;
+            this.ready = steps >= 10;
+            return this.ready;
         });
         const field = new PlateField(host, {
             families: ['apparitio'],
@@ -375,12 +410,14 @@ describe('PlateField', () => {
             crossfadeMs: 1_200
         });
         field.start();
-        expect(Apparitio.prototype.generate).toHaveBeenCalledTimes(1);
-        progresses.length = 0;
+        const first = field._active;
+        frame(16);
         frame(8_000);
+        expect(field._active).toBe(first);
+        for (let t = 8_016; field._active === first && t < 8_400; t += 16) frame(t);
+        expect(field._active).not.toBe(first);
+        expect(Apparitio.prototype.stepBake).not.toHaveBeenCalledWith(1e9);
         expect(Apparitio.prototype.generate).toHaveBeenCalledTimes(1);
-        expect(Apparitio.prototype.stepBake).toHaveBeenCalledWith(1e9);
-        expect(progresses.at(-1)).toBe(0);
         field.destroy();
     });
 });
