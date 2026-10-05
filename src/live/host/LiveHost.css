@@ -110,20 +110,43 @@
 
 .live-start { min-width: 7rem; }
 
-/* Inside an MCP host: every state of the frame is one centered card on the
-   answer's ground, and the ready answer is a poster (title over Begin). */
+/* Inside an MCP host: every state of the frame is one card on the answer's
+   ground, edge to edge, with nothing on it that scrolls. The ready answer is a
+   poster: the title over one Play object and no other word; the state sentence
+   is for assistive tech and the one visible sentence is a failure.
+   (docs/product/discussions/2026-10-05-embed-stage-decision.md §2, §4) */
 
 .live-host--embedded {
   width: 100%;
+  min-height: 100dvh;
+  padding: 24px 16px;
   justify-content: center;
   align-items: center;
   text-align: center;
-  background:
-    radial-gradient(60% 45% at 50% 40%, color-mix(in srgb, var(--color-accent) 22%, transparent), transparent 72%),
-    var(--color-void);
+  background: var(--color-void);
+  font-family: var(--font-sans, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif);
 }
 
 .live-host--embedded .live-embed { margin: 0; max-width: 32rem; line-height: 1.5; }
+
+.live-host--embedded .live-embed[role="status"],
+.rise-stage__sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  border: 0;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.live-host--embedded .live-embed[role="alert"] {
+  color: var(--color-light);
+  border-left: 3px solid currentColor;
+  padding: 0.25rem 0.75rem;
+  text-align: left;
+}
 
 /* The Chamber's field inside the host's frame (LiveHost marks the root): the
    centred words clear the 44 px objects along the bottom, and above the phone
@@ -136,38 +159,167 @@
   html[data-embed="mcp"] .chamber-field { padding-bottom: 64px; }
 }
 
-.live-host--poster {
-  justify-content: flex-start;
-  max-height: 100dvh;
-  overflow-y: auto;
-  overscroll-behavior: contain;
+/* The poster: the words' own face for the title, clamped to three lines (the whole title is its label). */
+.live-host--poster { gap: 24px; }
+
+.live-host--poster .live-title {
+  max-width: 32rem;
+  font-family: var(--sy-font-reading, Georgia, serif);
+  font-size: clamp(1.5rem, 4.5vw, 2.25rem);
+  line-height: 1.15;
+  text-wrap: balance;
+  overflow-wrap: anywhere;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
 }
 
-.live-host--poster .live-embed {
-  font-size: 0.8rem;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: color-mix(in srgb, var(--color-light) 72%, var(--color-void));
+/* One glass for the poster's object, the stage's objects and the sheet: no gradient, no glow. */
+.live-host--embedded .live-start,
+.rise-stage__object,
+.rise-settings {
+  box-sizing: border-box;
+  border: 1px solid rgba(232, 232, 236, 0.08);
+  background: rgba(10, 10, 12, 0.36);
+  backdrop-filter: blur(16px) saturate(1.12);
+  -webkit-backdrop-filter: blur(16px) saturate(1.12);
+  color: var(--color-light);
 }
 
-.live-host--poster .live-title { max-width: 32rem; line-height: 1.15; text-wrap: balance; overflow-wrap: anywhere; }
+.live-host--embedded .live-start,
+.rise-stage__object {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: background-color 120ms ease, transform 80ms ease;
+}
 
-.live-host--embedded .live-start {
-  min-height: 46px;
-  min-width: 9rem;
-  padding: 0 1.75rem;
+.live-host--embedded .live-start { width: 64px; height: 64px; min-width: 64px; min-height: 64px; }
+.rise-stage__object { width: 44px; height: 44px; min-width: 44px; min-height: 44px; }
+
+@media (hover: hover) {
+  .live-host--embedded .live-start:hover:not(:disabled),
+  .rise-stage__object:hover:not(:disabled) { background: rgba(10, 10, 12, 0.48); }
+}
+
+.live-host--embedded .live-start:active:not(:disabled),
+.rise-stage__object:active:not(:disabled) { transform: scale(0.96); }
+
+.live-host--embedded .live-start:focus-visible,
+.rise-stage__object:focus-visible,
+.rise-settings button:focus-visible,
+.rise-settings input:focus-visible { outline: 2px solid var(--color-light); outline-offset: 2px; }
+
+/* The stage: the two objects over the Chamber, 16 px in from the card's edges
+   (12 px on a phone) plus the host's safe area; the sheet above the right one.
+   The layer itself takes no presses, so the reading underneath keeps them. */
+
+.rise-stage {
+  position: fixed;
+  inset: 0;
+  z-index: 200000;
+  pointer-events: none;
+  color: var(--color-light);
+  font-family: var(--font-sans, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif);
+  --stage-inset: 16px;
+}
+
+@media (max-width: 560px) {
+  .rise-stage { --stage-inset: 12px; }
+}
+
+.rise-stage__object {
+  position: absolute;
+  bottom: calc(var(--stage-inset) + var(--safe-bottom, 0px));
+  pointer-events: auto;
+}
+
+.rise-stage__play { left: calc(var(--stage-inset) + var(--safe-left, 0px)); }
+.rise-stage__settings { right: calc(var(--stage-inset) + var(--safe-right, 0px)); }
+.rise-stage__object[hidden] { display: none; }
+
+/* No voice on this device: a small slashed speaker at the object's top right. */
+.rise-stage__novoice { position: absolute; top: -2px; right: -2px; }
+
+.rise-stage__alert {
+  position: absolute;
+  left: calc(var(--stage-inset) + var(--safe-left, 0px));
+  right: calc(var(--stage-inset) + var(--safe-right, 0px));
+  bottom: calc(var(--stage-inset) + var(--safe-bottom, 0px) + 56px);
+  margin: 0;
+  pointer-events: auto;
+  color: var(--color-light);
+  border-left: 3px solid currentColor;
+  padding: 0.25rem 0.75rem;
+}
+
+.rise-stage__alert[hidden] { display: none; }
+
+/* The Settings sheet: inside the stage, 8 px above the Settings object, one 44 px row per setting. */
+.rise-settings {
+  position: absolute;
+  right: calc(var(--stage-inset) + var(--safe-right, 0px));
+  bottom: calc(var(--stage-inset) + var(--safe-bottom, 0px) + 52px);
+  width: min(320px, 100% - 24px);
+  padding: 16px;
+  border-radius: var(--border-radius-md, 14px);
+  pointer-events: auto;
+  text-align: left;
+  transform-origin: bottom right;
+  animation: rise-settings-open 180ms ease-out;
+}
+
+.rise-settings[hidden] { display: none; }
+
+@keyframes rise-settings-open {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: none; }
+}
+
+.rise-settings__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 32px;
+  margin-bottom: 8px;
+}
+
+.rise-settings__title { margin: 0; font-size: 0.95rem; font-weight: 600; }
+
+.rise-settings__close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  margin: -6px -10px -6px 0;
+  padding: 0;
   border: 0;
-  border-radius: 999px;
-  background: var(--color-light);
-  color: var(--color-void);
-  font-weight: 600;
-  box-shadow: 0 10px 40px -12px var(--color-accent);
+  border-radius: 50%;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
 }
 
-/* (0,4,0): beats `.live-host button:hover:not(:disabled)`, so hover keeps the fill. */
-.live-host--embedded .live-start:hover:not(:disabled) {
-  background: var(--color-light);
-  box-shadow: 0 14px 48px -10px var(--color-accent);
+.rise-settings__row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 44px;
+}
+
+.rise-settings__row label { flex: 0 0 auto; min-width: 5.5rem; font-size: 0.9rem; }
+.rise-settings__row input[type="range"] { flex: 1 1 auto; min-width: 0; height: 44px; margin: 0; accent-color: var(--color-light); }
+.rise-settings__row input:disabled { opacity: 0.5; }
+
+@media (prefers-reduced-motion: reduce) {
+  .rise-settings { animation: none; }
+  .live-host--embedded .live-start,
+  .rise-stage__object { transition: none; }
 }
 
 .live-error,

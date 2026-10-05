@@ -87,7 +87,7 @@ async function openHost(page, baseURL, options = {}) {
 const log = page => page.evaluate(() => window.__host.log);
 const shown = async app => (await app.locator('#atom-display').innerText()).replace(/\s+/gu, ' ').trim();
 const expectShown = (app, phrase, timeout = 15_000) => expect.poll(() => shown(app).catch(() => ''), { timeout, message: `waiting to see “${phrase}”` }).toContain(phrase);
-const begin = app => app.getByRole('button', { name: 'Begin', exact: true }).click();
+const begin = app => app.getByRole('button', { name: 'Play', exact: true }).click();
 
 function oversizedMcpCurrent() {
   return {
@@ -140,28 +140,14 @@ function workerBoundaryCurrent() {
 }
 
 
-test('a maximum valid CJK title keeps Begin reachable in phone-sized host frames', async ({ page, baseURL }) => {
+test('a maximum valid CJK title keeps Play reachable in phone-sized host frames', async ({ page, baseURL }) => {
   const current = { ...BLACK_HOLES_CURRENT, id: 'long-cjk-title', title: '界'.repeat(200) };
+  // The poster never scrolls ("No nested scrolling"): the title is clamped and Play is whole in view.
   const check = async app => {
-    const button = app.getByRole('button', { name: 'Begin', exact: true });
+    const button = app.getByRole('button', { name: 'Play', exact: true });
     await expect(button).toBeVisible();
-    const poster = app.locator('.live-host--poster');
-    const geometry = await poster.evaluate(node => {
-      node.scrollTop = node.scrollHeight;
-      const frame = node.getBoundingClientRect();
-      const begin = node.querySelector('.live-start').getBoundingClientRect();
-      return {
-        scrollTop: node.scrollTop,
-        maxScroll: Math.max(0, node.scrollHeight - node.clientHeight),
-        beginTop: begin.top,
-        beginBottom: begin.bottom,
-        frameTop: frame.top,
-        frameBottom: frame.bottom
-      };
-    });
-    expect(geometry.scrollTop).toBe(geometry.maxScroll);
-    expect(geometry.beginTop).toBeGreaterThanOrEqual(geometry.frameTop);
-    expect(geometry.beginBottom).toBeLessThanOrEqual(geometry.frameBottom);
+    await expect(button).toBeInViewport({ ratio: 1 });
+    expect(await app.locator('.live-host--poster').evaluate(node => node.scrollHeight - node.clientHeight)).toBe(0);
   };
 
   await page.setViewportSize({ width: 320, height: 700 });
@@ -174,28 +160,28 @@ test('a maximum valid CJK title keeps Begin reachable in phone-sized host frames
   await check(app);
 });
 
-test('tool input waits for the successful Worker result before enabling reader Begin', async ({ page, baseURL }) => {
+test('tool input waits for the successful Worker result before enabling reader Play', async ({ page, baseURL }) => {
   const errors = [];
   page.on('pageerror', error => errors.push(error.message));
   const app = await openHost(page, baseURL, { deferToolResult: true });
-  await expect(app.getByRole('button', { name: 'Begin', exact: true })).toHaveCount(0);
+  await expect(app.getByRole('button', { name: 'Play', exact: true })).toHaveCount(0);
   await expect(app.locator('.atom-word')).toHaveCount(0);
-  await expect(app.locator('#live-controls')).toHaveCount(0);
+  await expect(app.locator('#rise-stage-controls')).toHaveCount(0);
   await expect.poll(() => page.evaluate(() => typeof window.__host.releaseToolResult)).toBe('function');
   const sent = await log(page);
   expect(sent.filter(entry => entry.method === 'ui/initialize')).toHaveLength(1);
   expect(sent.some(entry => entry.method === 'ui/notifications/initialized')).toBe(true);
   expect(sent.find(entry => entry.method === 'ui/notifications/size-changed').params).toEqual({ height: 560 });
   await page.evaluate(() => window.__host.releaseToolResult());
-  await expect(app.getByRole('button', { name: 'Begin', exact: true })).toBeVisible();
+  await expect(app.getByRole('button', { name: 'Play', exact: true })).toBeVisible();
   await begin(app);
   await expectShown(app, 'A black hole is a region of space');
-  await expect(app.locator('.live-controls__status')).toContainText(/paced as if spoken/u);
+  await expect(app.locator('.rise-stage__status')).toContainText(/paced as if spoken/u);
   await expectShown(app, 'Its boundary is called the event horizon', 20_000);
-  await app.getByRole('button', { name: 'Interrupt', exact: true }).click();
-  await expect(app.locator('.live-controls__status')).toContainText('Held where you are');
+  await app.getByRole('button', { name: 'Pause', exact: true }).click();
+  await expect(app.locator('.rise-stage__status')).toContainText('Paused.');
   const heldAt = await shown(app);
-  await app.getByRole('button', { name: 'Resume', exact: true }).click();
+  await app.getByRole('button', { name: 'Play', exact: true }).click();
   await expectShown(app, 'It is not a surface you could touch', 20_000);
   expect(await shown(app)).not.toBe(heldAt);
   expect(errors).toEqual([]);
@@ -220,28 +206,28 @@ test('without an installed browser voice the embedded reader explains silent pac
       }]
     }
   });
-  await expect(app.getByRole('button', { name: 'Begin', exact: true })).toBeVisible();
+  await expect(app.getByRole('button', { name: 'Play', exact: true })).toBeVisible();
   await begin(app);
   await expectShown(app, 'A black hole is a region of space');
-  const fallbackNote = app.locator('.live-controls__notes [data-capability="speechOutput"]');
-  await expect(fallbackNote).toBeVisible();
-  await expect(fallbackNote).toHaveText('No voice is installed for this browser.');
+  // The glyph on the object says it, not a note: the sentence is for assistive tech.
+  const object = app.locator('#rise-stage-controls [data-stage="play"][data-voice="none"]');
+  await expect(object).toBeVisible();
+  await expect(object).toHaveAttribute('aria-label', 'Pause (silent, no voice is installed)');
+  await expect(app.locator('.rise-stage__status')).toContainText('No voice is installed for this browser.');
+  await expect(app.locator('.rise-stage__status')).toContainText('paced as if spoken');
   await page.screenshot({ path: 'test-results/live-mcp-speech-unavailable.png' });
-  await expect(app.locator('.live-controls__status')).toContainText('paced as if spoken');
 
-  await app.getByRole('button', { name: 'Interrupt', exact: true }).click();
-  await expect(app.locator('.live-controls__status')).toContainText('Held where you are');
+  await object.click();
+  await expect(app.locator('.rise-stage__status')).toContainText('Paused.');
   const heldAt = await shown(app);
   await page.waitForTimeout(300);
   expect(await shown(app)).toBe(heldAt);
-  await app.getByRole('button', { name: 'Resume', exact: true }).click();
+  await app.getByRole('button', { name: 'Play (silent, no voice is installed)', exact: true }).click();
   await expectShown(app, 'nothing, not even light', 10_000);
-  await app.getByRole('button', { name: 'Stop', exact: true }).click();
-  await expect(app.locator('.live-embed')).toContainText('Stopped.');
   expect((await log(page)).filter(entry => entry.method === 'sampling/createMessage')).toHaveLength(0);
 });
 
-test('the largest admitted Current crosses Worker, port and reader Begin at 65,536 UTF-8 bytes', async ({ page, baseURL }) => {
+test('the largest admitted Current crosses Worker, port and reader Play at 65,536 UTF-8 bytes', async ({ page, baseURL }) => {
   const current = workerBoundaryCurrent();
   expect(serializedUtf8Bytes(current)).toBe(65_536);
   const workerResponse = page.waitForResponse('**/api/mcp');
@@ -249,13 +235,13 @@ test('the largest admitted Current crosses Worker, port and reader Begin at 65,5
   const response = (await (await workerResponse).json()).result;
   expect(response.isError).toBeUndefined();
   expect(serializedUtf8Bytes(response.structuredContent.current)).toBe(65_536);
-  await expect(app.getByRole('button', { name: 'Begin', exact: true })).toBeVisible();
+  await expect(app.getByRole('button', { name: 'Play', exact: true })).toBeVisible();
   await begin(app);
   await expect(app.locator('#atom-display')).toContainText('界');
-  await expect(app.locator('.live-controls__status')).toContainText('Reading');
+  await expect(app.locator('.rise-stage__status')).toContainText('Reading');
 });
 
-test('a schema-valid Current at 65,537 UTF-8 bytes is refused before Begin', async ({ page, baseURL }) => {
+test('a schema-valid Current at 65,537 UTF-8 bytes is refused before Play', async ({ page, baseURL }) => {
   const current = workerBoundaryCurrent();
   current.segments[0].dives[0].text += 'x';
   expect(serializedUtf8Bytes(current)).toBe(65_537);
@@ -264,13 +250,13 @@ test('a schema-valid Current at 65,537 UTF-8 bytes is refused before Begin', asy
   const response = (await (await workerResponse).json()).result;
   expect(response.isError).toBe(true);
   expect(response.content[0].text).toContain('65,536-byte MCP limit');
-  await expect(app.getByRole('button', { name: 'Begin', exact: true })).toHaveCount(0);
+  await expect(app.getByRole('button', { name: 'Play', exact: true })).toHaveCount(0);
   await expect(app.locator('.atom-word')).toHaveCount(0);
 });
 
 test('a validated tool result alone delivers the Current for playback', async ({ page, baseURL }) => {
   const app = await openHost(page, baseURL, { resultOnly: true });
-  await expect(app.getByRole('button', { name: 'Begin', exact: true })).toBeVisible();
+  await expect(app.getByRole('button', { name: 'Play', exact: true })).toBeVisible();
   await begin(app);
   await expectShown(app, 'A black hole is a region of space');
   await expectShown(app, 'that nothing, not even light', 20_000);
@@ -278,40 +264,39 @@ test('a validated tool result alone delivers the Current for playback', async ({
 
 test('reopening the nested frame reinitializes and plays the host result from its first passage', async ({ page, baseURL }) => {
   const app = await openHost(page, baseURL);
-  await expect(app.getByRole('button', { name: 'Begin', exact: true })).toBeVisible();
+  await expect(app.getByRole('button', { name: 'Play', exact: true })).toBeVisible();
   await begin(app);
   await expectShown(app, 'A black hole is a region of space');
-  await expect(app.locator('#live-controls')).toContainText('Reopening starts this reading from the beginning');
   await expectShown(app, 'Its boundary is called the event horizon', 20_000);
 
   await app.locator('body').evaluate(body => body.ownerDocument.defaultView.location.reload());
   const reopened = page.frameLocator('#view').frameLocator('#app');
-  await expect(reopened.getByRole('button', { name: 'Begin', exact: true })).toBeVisible();
+  // The poster again, and nothing starts by itself.
+  await expect(reopened.getByRole('button', { name: 'Play', exact: true })).toBeVisible();
+  await expect(reopened.locator('.atom-word')).toHaveCount(0);
   await begin(reopened);
   await expectShown(reopened, 'A black hole is a region of space');
-  await expect(reopened.locator('#live-controls')).toContainText('Reopening starts this reading from the beginning');
   await expect.poll(async () => (await log(page)).filter(entry => entry.method === 'ui/initialize').length).toBe(2);
   expect((await log(page)).filter(entry => entry.method === 'sampling/createMessage')).toHaveLength(0);
 });
 
 test('calmer lowers the held visual target and resumes the same atom without sampling', async ({ page, baseURL }) => {
   const app = await openHost(page, baseURL);
-  await expect(app.getByRole('button', { name: 'Begin', exact: true })).toBeVisible();
+  await expect(app.getByRole('button', { name: 'Play', exact: true })).toBeVisible();
   await begin(app);
   await expectShown(app, 'A black hole is a region of space');
-  await app.getByRole('button', { name: 'Interrupt', exact: true }).click();
-  await expect(app.locator('.live-controls__status')).toContainText('Held where you are');
+  await app.getByRole('button', { name: 'Pause', exact: true }).click();
+  await expect(app.locator('.rise-stage__status')).toContainText('Paused.');
   const heldAt = await shown(app);
   expect((await log(page)).filter(entry => entry.method === 'sampling/createMessage')).toHaveLength(0);
 
-  await app.locator('.live-controls__visual-change summary').click();
-  await app.locator('#live-controls-visual').fill('please make it calmer');
-  await app.getByRole('button', { name: 'Change visual', exact: true }).click();
-  await expect(app.locator('.live-controls__status')).toContainText('brightness target changed to 0.55');
+  await app.getByRole('button', { name: 'Settings', exact: true }).click();
+  await app.getByRole('slider', { name: 'Intensity' }).fill('0.55');
+  await expect(app.locator('#rise-stage-controls')).toHaveAttribute('data-intensity', '0.55');
   expect(await shown(app)).toBe(heldAt);
   expect((await log(page)).filter(entry => entry.method === 'sampling/createMessage')).toHaveLength(0);
 
-  await app.getByRole('button', { name: 'Resume', exact: true }).click();
+  await app.getByRole('button', { name: 'Play', exact: true }).click();
   await expect.poll(() => shown(app), { timeout: 5_000 }).not.toBe(heldAt);
   expect((await log(page)).filter(entry => entry.method === 'sampling/createMessage')).toHaveLength(0);
 });
@@ -337,7 +322,7 @@ const picturesOverASecond = canvas => canvas.evaluate(async node => {
   return lit ? pictures.size : 0;
 });
 
-test('under reduced motion the imagery holds still, the reader is told so, and the reading plays and stops', async ({ page, baseURL }) => {
+test('under reduced motion the imagery holds still, the reader is told so, and the reading plays', async ({ page, baseURL }) => {
   await page.emulateMedia({ reducedMotion: 'reduce' });
   const app = await openHost(page, baseURL, {
     current: {
@@ -349,7 +334,7 @@ test('under reduced motion the imagery holds still, the reader is told so, and t
       ]
     }
   });
-  await expect(app.getByRole('button', { name: 'Begin', exact: true })).toBeVisible();
+  await expect(app.getByRole('button', { name: 'Play', exact: true })).toBeVisible();
   // The setting reaches the app through both frames.
   expect(await app.locator('body').evaluate(body => body.ownerDocument.defaultView.matchMedia('(prefers-reduced-motion: reduce)').matches)).toBe(true);
   expect(await app.locator('html').evaluate(html => getComputedStyle(html).scrollBehavior)).toBe('auto');
@@ -359,22 +344,15 @@ test('under reduced motion the imagery holds still, the reader is told so, and t
   // Text arrives whole: no word waits to be revealed, and the passage's fade is cut to nothing.
   await expect(app.locator('#atom-display .atom-word[data-pending]')).toHaveCount(0);
   expect(await app.locator('#atom-display').evaluate(node => parseFloat(getComputedStyle(node).transitionDuration))).toBeLessThanOrEqual(0.001);
-  const note = app.locator('.live-controls__notes [data-capability="reducedMotion"]');
-  await expect(note).toBeVisible();
-  await expect(note).toHaveText('Reduced motion is on. Imagery stays still.');
-  expect(channels(await note.evaluate(element => getComputedStyle(element).color))).toEqual([173, 174, 191]);
+  // Said to assistive tech, never as a visible note.
+  await expect(app.locator('.rise-stage__status')).toContainText('Imagery stays still.');
+  await expect(app.locator('#rise-stage-controls li[data-capability]')).toHaveCount(0);
   await expect.poll(() => picturesOverASecond(app.locator('.chamber-attractor canvas.attractor-canvas')), { timeout: 5_000 }).toBe(1);
 
   // The second passage's own visual, not a fallback, and it is still too.
   await expectShown(app, 'A composition grows beneath');
   await expect.poll(() => picturesOverASecond(app.locator('.chamber-genesis canvas.klee-field-canvas')), { timeout: 5_000 }).toBe(1);
-
-  const chamberPane = app.locator('#view-read .room-pane[data-pane="chamber"]');
-  await expect(chamberPane).toBeVisible();
-  await app.getByRole('button', { name: 'Stop', exact: true }).click();
-  await expect(app.locator('.live-embed')).toContainText('Stopped.');
-  await expect(app.locator('#live-controls')).toHaveCount(0);
-  await expect(chamberPane).toBeHidden();
+  await expect(app.locator('#view-read .room-pane[data-pane="chamber"]')).toBeVisible();
 });
 
 /**
@@ -388,8 +366,8 @@ test('a resize while held keeps the attractor on screen', async ({ page, baseURL
   await begin(app);
   await expectShown(app, 'A black hole is a region of space');
   const canvas = app.locator('.chamber-attractor canvas.attractor-canvas');
-  await app.getByRole('button', { name: 'Interrupt', exact: true }).click();
-  await expect(app.locator('.live-controls__status')).toContainText('Held where you are');
+  await app.getByRole('button', { name: 'Pause', exact: true }).click();
+  await expect(app.locator('.rise-stage__status')).toContainText('Paused.');
   await expect.poll(() => picturesOverASecond(canvas), { timeout: 5_000 }).toBe(1);
 
   await page.setViewportSize({ width: 560, height: 640 });
@@ -420,7 +398,7 @@ test('framed from another site with no saved settings, the embed starts on safe 
   // A loopback frame inside a page Playwright serves itself would otherwise wait on a local-network prompt.
   await page.context().grantPermissions(['local-network-access']);
   const app = await openHost(page, baseURL, { appOrigin, current: TWO_FIELDS });
-  await expect(app.getByRole('button', { name: 'Begin', exact: true })).toBeVisible();
+  await expect(app.getByRole('button', { name: 'Play', exact: true })).toBeVisible();
   const applied = () => app.locator('html').evaluate(html => ({
     origin: location.origin,
     stored: localStorage.getItem('rise-settings'),
@@ -449,7 +427,7 @@ test('framed from another site with no saved settings, the embed starts on safe 
 });
 
 
-test('after Stop the hidden reading draws nothing more, a later passage’s field included', async ({ page, baseURL }) => {
+test('while paused the field holds one frame, a later passage’s field included', async ({ page, baseURL }) => {
   const app = await openHost(page, baseURL, { current: TWO_FIELDS });
   await begin(app);
   await expectShown(app, 'A composition grows beneath');
@@ -457,74 +435,70 @@ test('after Stop the hidden reading draws nothing more, a later passage’s fiel
   // The check can see drawing: while the reading plays, the field moves.
   await expect.poll(() => picturesOverASecond(field), { timeout: 5_000 }).toBeGreaterThan(1);
 
-  const chamberPane = app.locator('#view-read .room-pane[data-pane="chamber"]');
-  await expect(chamberPane).toBeVisible();
-  await app.getByRole('button', { name: 'Stop', exact: true }).click();
-  await expect(app.locator('.live-embed')).toContainText('Stopped.');
-  await expect(chamberPane).toBeHidden();
-  expect(await picturesOverASecond(field)).toBeLessThanOrEqual(1);
+  await app.getByRole('button', { name: 'Pause', exact: true }).click();
+  await expect(app.locator('.rise-stage__status')).toContainText('Paused.');
+  await expect(app.locator('#view-read .room-pane[data-pane="chamber"]')).toBeVisible();
+  await expect.poll(() => picturesOverASecond(field), { timeout: 5_000 }).toBe(1);
 });
 
-test('once the reading has ended, the display stays and its field holds one frame', async ({ page, baseURL }) => {
+test('once the reading has ended, the display stays, its field holds one frame, and Play again is offered', async ({ page, baseURL }) => {
   const app = await openHost(page, baseURL, { current: { ...TWO_FIELDS, id: 'one-field', segments: TWO_FIELDS.segments.slice(0, 1) } });
   await begin(app);
   const field = await app.locator('.chamber-attractor canvas.attractor-canvas').elementHandle({ timeout: 15_000 });
   await expect.poll(() => picturesOverASecond(field), { timeout: 5_000 }).toBeGreaterThan(1);
 
-  await expect(app.locator('.live-controls__status')).toContainText('Finished', { timeout: 20_000 });
+  await expect(app.locator('.rise-stage__status')).toContainText('Finished', { timeout: 20_000 });
   await expect(app.locator('#chamber-display')).toBeVisible();
   expect(await picturesOverASecond(field)).toBeLessThanOrEqual(1);
+  await expect(app.getByRole('button', { name: 'Play again', exact: true })).toBeVisible();
 });
 
-const controlsHead = app => app.locator('#live-controls').evaluate(async panel => {
-  await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
-  await Promise.allSettled(panel.getAnimations().map(animation => animation.finished));
-  const box = panel.getBoundingClientRect();
-  const top = box.top + panel.clientTop;
-  const bottom = Math.min(top + panel.clientHeight, innerHeight);
-  const shown = [panel.querySelector('.live-controls__status'), ...panel.querySelectorAll('.live-controls__buttons button:not([hidden])')]
-    .map(element => ({ name: element.matches('.live-controls__status') ? 'status' : element.textContent, top: element.getBoundingClientRect().top, bottom: element.getBoundingClientRect().bottom }));
-  const cut = shown.filter(element => element.top < top || element.bottom > bottom)
-    .map(element => `${element.name} ${element.top}-${element.bottom} outside ${top}-${bottom}`);
-  return { scrollTop: panel.scrollTop, names: shown.map(element => element.name), cut };
-});
+/** The Settings sheet's own scroll: a card scrolls nothing inside it ("No nested scrolling"). */
+const sheetScroll = app => app.locator('#rise-settings').evaluate(sheet => sheet.scrollHeight - sheet.clientHeight);
 
-test('in a short frame the reader keeps status, Interrupt and Stop in view, and can still reach the rest', async ({ page, baseURL }) => {
+test('in a short frame both objects stay whole in view, the sheet opens without scrolling, and Intensity works', async ({ page, baseURL }) => {
   await page.emulateMedia({ reducedMotion: 'reduce' });
-  await page.setViewportSize({ width: 900, height: 420 });
-  const app = await openHost(page, baseURL, { height: 420 });
+  await page.setViewportSize({ width: 900, height: 481 });
+  const app = await openHost(page, baseURL, { height: 481 });
   await begin(app);
   await expectShown(app, 'A black hole is a region of space');
+  const play = app.getByRole('button', { name: 'Pause', exact: true });
+  const settings = app.getByRole('button', { name: 'Settings', exact: true });
   for (const width of [900, 600, 420]) {
-    await page.setViewportSize({ width, height: 420 });
+    await page.setViewportSize({ width, height: 481 });
     await expect.poll(() => app.locator('body').evaluate(body => body.ownerDocument.defaultView.innerWidth)).toBe(width);
-    expect.soft(await controlsHead(app), `at ${width} px wide`).toEqual({ scrollTop: 0, names: expect.arrayContaining(['status', 'Interrupt', 'Stop']), cut: [] });
+    await expect(play, `Pause at ${width} px wide`).toBeInViewport({ ratio: 1 });
+    await expect(settings, `Settings at ${width} px wide`).toBeInViewport({ ratio: 1 });
   }
-  await app.locator('.live-controls__visual-change summary').click();
-  const note = app.locator('.live-controls__notes [data-capability="reducedMotion"]');
-  for (const selector of ['#live-controls-visual', '.live-controls__notes [data-capability="reducedMotion"]']) {
-    const element = app.locator(selector);
-    await element.evaluate(node => node.scrollIntoView({ block: 'center' }));
-    await expect(element, selector).toBeInViewport({ ratio: 1 });
-  }
-  await expect(note).toHaveText('Reduced motion is on. Imagery stays still.');
+  // The stage itself never scrolls: nothing inside it has anything to scroll.
+  expect(await app.locator('#rise-stage-controls').evaluate(stage => [stage, ...stage.querySelectorAll('*')].filter(node => node.scrollHeight > node.clientHeight + 1).length)).toBe(0);
 
-  const status = app.locator('.live-controls__status');
-  const scrolledTo = async (box, label) => {
-    await box.evaluate(node => node.scrollIntoView({ block: 'center' }));
-    expect(await app.locator('#live-controls').evaluate(panel => panel.scrollTop), `${label}: panel scrolls`).toBeGreaterThan(0);
-  };
-  await app.getByRole('button', { name: 'Interrupt', exact: true }).click();
-  await expect(status).toContainText('Held where you are');
-  for (const [width, brightness] of [[600, '0.55'], [420, '0.45']]) {
-    await page.setViewportSize({ width, height: 420 });
+  await play.click();
+  await expect(app.locator('.rise-stage__status')).toContainText('Paused.');
+  for (const [width, intensity] of [[600, '0.55'], [420, '0.45']]) {
+    await page.setViewportSize({ width, height: 481 });
     await expect.poll(() => app.locator('body').evaluate(body => body.ownerDocument.defaultView.innerWidth)).toBe(width);
-    const visual = app.locator('#live-controls-visual');
-    await scrolledTo(visual, `visual box at ${width} px wide`);
-    await visual.fill('make it calmer');
-    await visual.press('Enter');
-    await expect(status).toContainText(`Visual brightness target changed to ${brightness}`);
-    expect.soft(await controlsHead(app), `after a visual change at ${width} px wide`).toMatchObject({ names: expect.arrayContaining(['status', 'Resume', 'Stop']), cut: [] });
+    await settings.click();
+    await expect(app.locator('#rise-settings')).toBeInViewport({ ratio: 1 });
+    expect(await sheetScroll(app), `the sheet at ${width} px wide`).toBe(0);
+    await app.getByRole('slider', { name: 'Intensity' }).fill(intensity);
+    await expect(app.locator('#rise-stage-controls')).toHaveAttribute('data-intensity', intensity);
+    await app.getByRole('button', { name: 'Close settings', exact: true }).click();
+    await expect(app.locator('#rise-settings')).toBeHidden();
+  }
+});
+
+test('the stage at three widths, held with the sheet open', async ({ page, baseURL }) => {
+  for (const width of [390, 560, 760]) {
+    await page.setViewportSize({ width, height: 640 });
+    const app = await openHost(page, baseURL, { height: 560 });
+    await begin(app);
+    await expectShown(app, 'A black hole is a region of space');
+    await app.getByRole('button', { name: 'Pause', exact: true }).click();
+    await expect(app.locator('.rise-stage__status')).toContainText('Paused.');
+    await app.getByRole('button', { name: 'Settings', exact: true }).click();
+    await expect(app.locator('#rise-settings')).toBeVisible();
+    await page.screenshot({ path: `test-results/live-mcp-stage-${width}.png` });
   }
 });
 
@@ -532,7 +506,7 @@ test('an invalid worker result has no playable Current', async ({ page, baseURL 
   const serverResponse = page.waitForResponse('**/api/mcp');
   const app = await openHost(page, baseURL, { resultOnly: true, current: { ...BLACK_HOLES_CURRENT, segments: [{ id: 's1', text: 'Fine words.' }, { id: 's2', text: 'a | b' }] } });
   expect((await (await serverResponse).json()).result.isError).toBe(true);
-  await expect(app.getByRole('button', { name: 'Begin', exact: true })).toHaveCount(0);
+  await expect(app.getByRole('button', { name: 'Play', exact: true })).toHaveCount(0);
   await expect(app.locator('.atom-word')).toHaveCount(0);
 });
 
@@ -542,31 +516,31 @@ test('a valid Current over the MCP payload budget is refused by the Worker and e
   const result = (await (await serverResponse).json()).result;
   expect(result.isError).toBe(true);
   expect(result.content[0].text).toContain('65,536-byte MCP limit');
-  await expect(app.getByRole('button', { name: 'Begin', exact: true })).toHaveCount(0);
+  await expect(app.getByRole('button', { name: 'Play', exact: true })).toHaveCount(0);
   await expect(app.locator('.live-embed[role="alert"]')).toContainText('correct the answer');
   await expect(app.locator('.atom-word')).toHaveCount(0);
 });
 
 test('a Composer presentation offers no Dive, and puts no question to the host’s model even where it could', async ({ page, baseURL }) => {
   const app = await openHost(page, baseURL);
-  await expect(app.getByRole('button', { name: 'Begin', exact: true })).toBeVisible();
+  await expect(app.getByRole('button', { name: 'Play', exact: true })).toBeVisible();
   await begin(app);
   await expectShown(app, 'that nothing, not even light');
-  await expect(app.locator('.live-controls__ask')).toBeAttached();
-  await expect(app.locator('#live-controls-question')).toBeHidden();
-  await expect(app.getByRole('button', { name: /Dive/u })).toHaveCount(0);
-  await expect(app.getByRole('button', { name: 'Surface', exact: true })).toBeHidden();
-  await app.getByRole('button', { name: 'Interrupt', exact: true }).click();
-  await expect(app.locator('.live-controls__status')).toContainText('Held where you are. Resume when you are ready.');
-  await app.getByRole('button', { name: 'Resume', exact: true }).click();
-  await expect(app.locator('.live-controls__status')).toContainText(/paced as if spoken/u);
+  // No question box exists at all, and no button but the two objects.
+  await expect(app.locator('#rise-stage-controls form, #rise-stage-controls input[type="text"]')).toHaveCount(0);
+  await expect(app.getByRole('button', { name: /Dive|Look under/u })).toHaveCount(0);
+  await expect(app.getByRole('button', { name: /^(Stop|Interrupt|Surface)$/u })).toHaveCount(0);
+  await app.getByRole('button', { name: 'Pause', exact: true }).click();
+  await expect(app.locator('.rise-stage__status')).toContainText('Paused.');
+  await app.getByRole('button', { name: 'Play', exact: true }).click();
+  await expect(app.locator('.rise-stage__status')).toContainText(/paced as if spoken/u);
   expect((await log(page)).some(entry => entry.method === 'sampling/createMessage')).toBe(false);
 });
 
 test('a long invalid Current is refused whole with recovery guidance within the runtime limit', async ({ page, baseURL }) => {
   const invalid = { ...BLACK_HOLES_CURRENT, ['x'.repeat(400)]: true };
   const app = await openHost(page, baseURL, { current: invalid });
-  await expect(app.getByRole('button', { name: 'Begin', exact: true })).toHaveCount(0);
+  await expect(app.getByRole('button', { name: 'Play', exact: true })).toHaveCount(0);
   const error = app.locator('.live-embed[role="alert"]');
   await expect(error).toContainText('refused');
   await expect(error).toContainText('Ask the assistant again');
@@ -576,7 +550,7 @@ test('a long invalid Current is refused whole with recovery guidance within the 
 
 test('the host’s ping is answered, and its request to tear down is answered and ends the reading', async ({ page, baseURL }) => {
   const app = await openHost(page, baseURL);
-  await expect(app.getByRole('button', { name: 'Begin', exact: true })).toBeVisible();
+  await expect(app.getByRole('button', { name: 'Play', exact: true })).toBeVisible();
   await begin(app);
   await expectShown(app, 'A black hole is a region of space');
   const field = await app.locator('.chamber-attractor canvas.attractor-canvas').elementHandle();
@@ -585,8 +559,8 @@ test('the host’s ping is answered, and its request to tear down is answered an
   await expect.poll(async () => (await log(page)).some(entry => entry.id === 'p1' && entry.result !== undefined)).toBe(true);
   await page.evaluate(() => { window.__host.request('t1', 'ui/resource-teardown', {}); });
   await expect.poll(async () => (await log(page)).some(entry => entry.id === 't1' && entry.result !== undefined)).toBe(true);
-  await expect(app.locator('#live-controls')).toHaveCount(0);
-  await expect(app.locator('.live-embed')).toContainText('Reopening starts this reading from the beginning');
+  await expect(app.locator('#rise-stage-controls')).toHaveCount(0);
+  await expect(app.locator('.live-embed')).toContainText('Finished.');
   // The reading is over, so its imagery is too.
   expect(await picturesOverASecond(field)).toBeLessThanOrEqual(1);
 });
@@ -614,7 +588,7 @@ test('opened directly in a browser, with no host, it says what it is for and doe
   await page.goto('/live?embed=mcp&voice=paced');
   await expect(page.locator('.live-embed')).toContainText('Open it from one');
   await expect(page.locator('.live-start')).toHaveCount(0);
-  await expect(page.locator('#live-controls')).toHaveCount(0);
+  await expect(page.locator('#rise-stage-controls')).toHaveCount(0);
 });
 
 const backgroundOf = locator => locator.evaluate(element => getComputedStyle(element).backgroundColor);
@@ -651,7 +625,7 @@ test('a themed answer opens on a poster in its colors, and its reading and filam
   page.on('pageerror', error => errors.push(error.message));
   const app = await openHost(page, baseURL, { current: { ...BLACK_HOLES_CURRENT, theme: 'jade' } });
   await expect(posterTitle(app)).toHaveText(BLACK_HOLES_CURRENT.title);
-  await expect(app.getByRole('button', { name: 'Begin', exact: true })).toBeVisible();
+  await expect(app.getByRole('button', { name: 'Play', exact: true })).toBeVisible();
   await expect.poll(() => backgroundOf(app.locator('body'))).toBe('rgb(6, 25, 18)');
 
   await begin(app);
@@ -659,12 +633,10 @@ test('a themed answer opens on a poster in its colors, and its reading and filam
   await expect.poll(() => backgroundOf(app.locator('.chamber').first())).toBe('rgb(6, 25, 18)');
   // The plate behind words over imagery is the theme's ground, not RISE ink.
   expect((await app.locator('.chamber').first().evaluate(element => getComputedStyle(element).getPropertyValue('--reading-scrim'))).toLowerCase()).toContain('#061912');
-  // The input hints are the theme's ink 60% toward its ground, not RISE's blue mist.
-  expect(channels(await app.locator('#live-controls-visual').evaluate(element => getComputedStyle(element, '::placeholder').color))).toEqual([142, 163, 154]);
-  const quiet = ['.live-controls__notice', '.live-controls__mic-note summary', '.live-controls__transcript summary'];
-  const quietColors = {};
-  for (const selector of quiet) quietColors[selector] = channels(await app.locator(selector).evaluate(element => getComputedStyle(element).color));
-  expect(quietColors).toEqual(Object.fromEntries(quiet.map(selector => [selector, [169, 191, 181]])));
+  // The sheet's labels are in the theme's ink, not RISE's.
+  await app.getByRole('button', { name: 'Settings', exact: true }).click();
+  expect(channels(await app.locator('#rise-settings label').evaluate(element => getComputedStyle(element).color))).toEqual([232, 255, 244]);
+  await app.getByRole('button', { name: 'Close settings', exact: true }).click();
   // The default white filament is blue-dominant; green-dominant paint is the jade palette drawing.
   await expect.poll(async () => {
     const { lit, r, g, b } = await filamentPaint(app).catch(() => ({ lit: 0, r: 0, g: 0, b: 0 }));
@@ -675,10 +647,10 @@ test('a themed answer opens on a poster in its colors, and its reading and filam
   expect(errors).toEqual([]);
 });
 
-test('an answer without a theme keeps RISE ink and still shows its title over Begin', async ({ page, baseURL }) => {
+test('an answer without a theme keeps RISE ink and still shows its title over Play', async ({ page, baseURL }) => {
   const app = await openHost(page, baseURL);
   await expect(posterTitle(app)).toHaveText(BLACK_HOLES_CURRENT.title);
-  const beginButton = app.getByRole('button', { name: 'Begin', exact: true });
+  const beginButton = app.getByRole('button', { name: 'Play', exact: true });
   await expect(beginButton).toBeVisible();
   const [title, button] = [await posterTitle(app).boundingBox(), await beginButton.boundingBox()];
   expect(title.y + title.height).toBeLessThanOrEqual(button.y);
