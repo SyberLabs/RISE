@@ -27,6 +27,18 @@
       "ref": "docs/experiments/CHATGPT-HOST-2026-10-04.md",
       "note": "Exact candidates, partial Composer acceptance, negative automatic-delivery evidence and verified shutdown. Inert demo Worker remains without public targets.",
       "date": "2026-10-04"
+    },
+    {
+      "kind": "pr",
+      "ref": "https://github.com/SyberLabs/RISE/pull/402",
+      "note": "An Interrupt made before the Chamber is presented now holds; merged and deployed as 1dfedddc. Not yet witnessed in ChatGPT.",
+      "date": "2026-10-04"
+    },
+    {
+      "kind": "pr",
+      "ref": "https://github.com/SyberLabs/RISE/pull/403",
+      "note": "The embedded presentation offers no Dive; merged and deployed as 97ca014f. The remaining host session should use this release or a later one.",
+      "date": "2026-10-04"
     }
   ],
   "activity": [
@@ -45,10 +57,14 @@
     {
       "date": "2026-10-05T01:46:43.000Z",
       "summary": "Startup Held/complete inconsistency reproduced in a unit probe; not an external block"
+    },
+    {
+      "date": "2026-10-05T04:21:30.297Z",
+      "summary": "Startup Interrupt fixed by #402; only the host session remains"
     }
   ],
-  "updatedAt": "2026-10-05T01:46:43.000Z",
-  "revision": 4,
-  "summary": "Exact consolidated candidate has reader-confirmed audible ChatGPT narration. Full acceptance remains open for reader controls, fallback and early Interrupt during startup.",
-  "blocker": "Fix the reproduced startup defect: an Interrupt before the Chamber is presented is overridden when presentation starts playback (src/live/runtime.js), leaving Held beside a playing, then complete, reading. Then finish brightness while held, Resume and the speech-unavailable fallback in one host session."
+  "updatedAt": "2026-10-05T04:21:30.297Z",
+  "revision": 5,
+  "summary": "Exact consolidated candidate has reader-confirmed audible ChatGPT narration, and the startup Interrupt defect is fixed on main (#402). One host session remains for brightness while held, Resume and the speech-unavailable fallback.",
+  "blocker": null
 }

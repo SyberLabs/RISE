@@ -1,0 +1,40 @@
+{
+  "id": "RDR-018",
+  "title": "Name the five rooms in the Menu",
+  "lane": "reader",
+  "milestone": "Reader consolidation",
+  "status": "planned",
+  "delivery": "not_shipped",
+  "owner": null,
+  "priority": "now",
+  "dependencies": [],
+  "acceptance": [
+    "The Menu lists Home, Read, Library, Make and Settings, then Ask for a reading, Guide and Wormhole.",
+    "A browser test checks the Menu entries.",
+    "Every old route id still resolves to its room and pane."
+  ],
+  "evidence": [
+    {
+      "kind": "document",
+      "ref": "docs/product/CONSOLIDATED-READER.md",
+      "note": "Package A6. The moves already exist as routes since #377 (route-url.js).",
+      "date": "2026-10-04"
+    },
+    {
+      "kind": "document",
+      "ref": "docs/product/discussions/2026-10-04-reader-evidence.md",
+      "note": "Investigation of production 97ca014f: probe measurements, code references and the last 14 days of history.",
+      "date": "2026-10-04"
+    }
+  ],
+  "activity": [
+    {
+      "date": "2026-10-05T04:21:10.000Z",
+      "summary": "Seeded from Phase A of the Consolidated Reader proposal; needs no owner decision."
+    }
+  ],
+  "updatedAt": "2026-10-05T04:21:10.000Z",
+  "revision": 1,
+  "summary": "Home's Menu still lists 16 entries under the names from before #377; Read, Make and Today are not entries.",
+  "blocker": null
+}

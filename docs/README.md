@@ -189,8 +189,10 @@ node scripts/build-wiki.mjs --out /tmp/rise-wiki
 | --- | --- | --- |
 | [product/README.md](product/README.md) | Contract | Task update workflow and product discussion library for both directions. |
 | [product/READER-DIRECTION.md](product/READER-DIRECTION.md) | Intent | Reader scope, recent merged work and acceptance packages. |
+| [product/CONSOLIDATED-READER.md](product/CONSOLIDATED-READER.md) | Intent | Proposed, not approved: a canonical Home, four reader choices, one engine catalog and colour vocabulary, what the ChatGPT plugin holds constant, and the build order. Phase A needs no decision; the rest waits for six owner decisions. |
 | [COMPOSER-FIRST-ROADMAP.md](COMPOSER-FIRST-ROADMAP.md) | Intent | Approved Composer delivery: M0 to M2, reader sessions, then release. |
 | [product/TRACKER-DESIGN.md](product/TRACKER-DESIGN.md) | Intent | Approved repository/local tracker architecture. |
 | [product/discussions/2026-10-03-direction-decisions.md](product/discussions/2026-10-03-direction-decisions.md) | Record | Available October conversation decisions and provenance. |
 | [product/discussions/2026-10-04-composer-decision.md](product/discussions/2026-10-04-composer-decision.md) | Record | Composer is the approach in ChatGPT: a one-shot sequence creator and RISE presentation. Dive and realtime Live leave the current scope, with the host evidence. |
+| [product/discussions/2026-10-04-reader-evidence.md](product/discussions/2026-10-04-reader-evidence.md) | Record | Production probes, Reader capabilities, the stutter's causes and 14 days of history behind the Consolidated Reader proposal. |
 | [product/discussions/2026-10-original-performance-roadmap.md](product/discussions/2026-10-original-performance-roadmap.md) | Intent | User-supplied long-range roadmap, preserved as historical direction. |

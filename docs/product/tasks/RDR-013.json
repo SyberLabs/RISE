@@ -1,0 +1,40 @@
+{
+  "id": "RDR-013",
+  "title": "Keep Living Flame's image through quality changes",
+  "lane": "reader",
+  "milestone": "Reader consolidation",
+  "status": "planned",
+  "delivery": "not_shipped",
+  "owner": null,
+  "priority": "now",
+  "dependencies": [],
+  "acceptance": [
+    "A forced quality-tier change at pixel ratio 1 and 2 never clears the accumulated image (R3: no frame below 80% of the previous frame's centre brightness at a step).",
+    "A real resize carries the old image into the new buffer before the next presented frame.",
+    "nextQualityTier has unit tests."
+  ],
+  "evidence": [
+    {
+      "kind": "document",
+      "ref": "docs/product/CONSOLIDATED-READER.md",
+      "note": "Package A1; requirement R3.",
+      "date": "2026-10-04"
+    },
+    {
+      "kind": "document",
+      "ref": "docs/product/discussions/2026-10-04-reader-evidence.md",
+      "note": "Investigation of production 97ca014f: probe measurements, code references and the last 14 days of history.",
+      "date": "2026-10-04"
+    }
+  ],
+  "activity": [
+    {
+      "date": "2026-10-05T04:21:10.000Z",
+      "summary": "Seeded from Phase A of the Consolidated Reader proposal; needs no owner decision."
+    }
+  ],
+  "updatedAt": "2026-10-05T04:21:10.000Z",
+  "revision": 1,
+  "summary": "The reproduced stutter: Living Flame clears its image on every quality-tier change (field.js:224-247, gl-flame.js:358-391), so one near-black frame reaches the screen.",
+  "blocker": null
+}
