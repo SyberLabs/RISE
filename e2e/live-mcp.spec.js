@@ -470,8 +470,17 @@ test('in a short frame both objects stay whole in view, the sheet opens without 
     await expect(play, `Pause at ${width} px wide`).toBeInViewport({ ratio: 1 });
     await expect(settings, `Settings at ${width} px wide`).toBeInViewport({ ratio: 1 });
   }
-  // The stage itself never scrolls: nothing inside it has anything to scroll.
-  expect(await app.locator('#rise-stage-controls').evaluate(stage => [stage, ...stage.querySelectorAll('*')].filter(node => node.scrollHeight > node.clientHeight + 1).length)).toBe(0);
+  // The stage never scrolls: no element in it can scroll, and nothing a reader can see is taller than
+  // its box. The visually hidden regions (1 px boxes under clip-path) hold whole sentences by design.
+  expect(await app.locator('#rise-stage-controls').evaluate(stage => {
+    const all = [stage, ...stage.querySelectorAll('*')];
+    const scrollable = all.filter(node => /auto|scroll/u.test(getComputedStyle(node).overflowY));
+    const visible = all.filter(node => !node.matches('.rise-stage__sr, .rise-stage__sr *') && node.getClientRects().length > 0);
+    return {
+      scrollable: scrollable.map(node => `${node.tagName}.${node.className}`),
+      taller: visible.filter(node => node.scrollHeight > node.clientHeight + 1).map(node => `${node.tagName}.${node.className}`)
+    };
+  })).toEqual({ scrollable: [], taller: [] });
 
   await play.click();
   await expect(app.locator('.rise-stage__status')).toContainText('Paused.');

@@ -173,6 +173,8 @@
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 3;
   line-clamp: 3;
+  /* A clip, never a scroll: without it the clamp draws its ellipsis but the box keeps every line's height. */
+  overflow: hidden;
 }
 
 /* One glass for the poster's object, the stage's objects and the sheet: no gradient, no glow. */

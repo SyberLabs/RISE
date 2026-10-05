@@ -279,11 +279,12 @@ describe('the Settings sheet', () => {
 });
 
 describe('the stage as a card', () => {
-    it('nothing in it scrolls: no stage rule sets an overflow other than visible', () => {
+    it('nothing in it scrolls: no stage rule sets an overflow that can scroll', () => {
+        // A clip (the three-line title) is not a scroll; `auto` and `scroll` are what "No nested scrolling" forbids.
         const css = readFileSync(join(dirname(fileURLToPath(import.meta.url)), 'LiveHost.css'), 'utf8');
         const rules = css.match(/[^{}]*\{[^}]*\}/gu).filter(rule => /rise-stage|rise-settings|live-host--poster|live-host--embedded/u.test(rule.split('{')[0]));
         expect(rules.length).toBeGreaterThan(0);
-        for (const rule of rules) expect(rule, rule).not.toMatch(/overflow(?:-[xy])?\s*:\s*(?!visible)/u);
+        for (const rule of rules) expect(rule, rule).not.toMatch(/overflow(?:-[xy])?\s*:\s*(?:auto|scroll|overlay)/u);
     });
 
     it('binds no key handler on the document', () => {
