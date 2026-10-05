@@ -130,7 +130,7 @@ const CURRENT = currentJsonSchema();
 export const TOOL = Object.freeze({
   name: TOOL_NAME,
   title: 'Present a reading in RISE',
-  description: `Use this when the reader asked for a spoken, visual explanation or reading of the answer, or named RISE. RISE speaks the answer and shows the words as they are spoken; the reader presses Begin, can pause and resume, and can make the visual calmer or more vibrant. Call it once per answer, with the whole answer written as a Current and passed as "current". Do not use it for answers that need tables, code or live follow-up, and do not call it again for the same answer.\n\n${CURRENT_GUIDE}`,
+  description: `Use this when the reader asked for a spoken, visual explanation or reading of the answer, or named RISE. RISE speaks the answer and shows the words as they are spoken; the reader presses Play, can pause and resume, and can make the visual calmer or more vibrant. Call it once per answer, with the whole answer written as a Current and passed as "current". Do not use it for answers that need tables, code or live follow-up, and do not call it again for the same answer.\n\n${CURRENT_GUIDE}`,
   inputSchema: {
     type: 'object',
     properties: { current: CURRENT },
@@ -148,7 +148,7 @@ export const TOOL = Object.freeze({
     'ui/resourceUri': APP_URI,
     // What ChatGPT shows beside the call while it runs and once it is done; at most 64 characters each.
     'openai/toolInvocation/invoking': 'Preparing the reading',
-    'openai/toolInvocation/invoked': 'The reading is ready for Begin'
+    'openai/toolInvocation/invoked': 'The reading is ready to play'
   }
 });
 
@@ -207,7 +207,7 @@ function read(id, params, origin) {
         // Read by ChatGPT before the app loads, so that it picks the mode first; inline is the only one, and the app says the same at ui/initialize.
         'openai/ui': { availableDisplayModes: ['inline'] },
         // Read by the host's model when the app loads, so that it need not describe the app itself.
-        'openai/widgetDescription': 'A spoken reading of the answer, its words and a visual shown as they are spoken, which the reader starts with Begin and can pause and resume.'
+        'openai/widgetDescription': 'A spoken reading of the answer, its words and a visual shown as they are spoken, which the reader starts with Play and can pause and resume.'
       }
     }]
   });

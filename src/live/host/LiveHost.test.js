@@ -71,7 +71,7 @@ describe('what the reader sees first', () => {
     it('starts nothing by itself', () => {
         mount();
         expect(host.runtime).toBeNull();
-        expect(document.querySelector('#live-controls')).toBeNull();
+        expect(document.querySelector('#rise-stage-controls')).toBeNull();
     });
 });
 
@@ -813,7 +813,7 @@ describe('inside an MCP host', () => {
         expect(container.querySelector('.live-start')).toBeNull();
 
         answerCurrent(hostSays, { ...BLACK_HOLES_CURRENT, id: 'late-corrected', title: 'Late corrected answer' });
-        await vi.waitFor(() => expect(container.querySelector('.live-start')?.textContent).toBe('Begin'));
+        await vi.waitFor(() => expect(container.querySelector('.live-start')?.getAttribute('aria-label')).toBe('Play'));
         expect(container.querySelector('.live-title').textContent).toBe('Late corrected answer');
         await host.stop();
     });
@@ -853,7 +853,7 @@ describe('inside an MCP host', () => {
         expect(container.querySelector('.live-start')).toBeNull();
     });
 
-    it('keeps an admitted answer and its Begin when the host cancels after delivering it', async () => {
+    it('keeps an admitted answer and its Play when the host cancels after delivering it', async () => {
         const { environment, sent, hostSays } = framed();
         mount('?embed=mcp&voice=paced', environment);
         await vi.waitFor(() => expect(sent).toHaveLength(1));
@@ -864,12 +864,12 @@ describe('inside an MCP host', () => {
         hostSays({ jsonrpc: '2.0', method: 'ui/notifications/tool-cancelled', params: { reason: 'user action' } });
         await new Promise(resolve => setTimeout(resolve, 0));
         expect(line().textContent).toBe('Answer ready.');
-        expect(container.querySelector('.live-start')?.textContent).toBe('Begin');
+        expect(container.querySelector('.live-start')?.getAttribute('aria-label')).toBe('Play');
         expect(host.embeddedEvents).not.toBeNull();
         await host.stop();
     });
 
-    it('holds the admitted Current until Begin, then starts that answer once despite duplicate delivery and clicks', async () => {
+    it('holds the admitted Current until Play, then starts that answer once despite duplicate delivery and clicks', async () => {
         const { environment, sent, listeners, hostSays } = framed();
         mount('?embed=mcp&voice=paced', environment);
         await vi.waitFor(() => expect(sent).toHaveLength(1));
@@ -880,31 +880,40 @@ describe('inside an MCP host', () => {
         await vi.waitFor(() => expect(container.querySelector('.live-start')?.disabled).toBe(false));
         answerCurrent(hostSays, { ...BLACK_HOLES_CURRENT, id: 'input-only-b' }, 'ui/notifications/tool-input');
         hostSays({ jsonrpc: '2.0', method: 'ui/notifications/tool-result', params: { isError: true, content: [{ type: 'text', text: 'unrelated refusal' }] } });
-        expect(container.querySelector('.live-start')?.textContent).toBe('Begin');
+        expect(container.querySelector('.live-start')?.getAttribute('aria-label')).toBe('Play');
         expect(container.querySelector('.live-title').textContent).toBe(BLACK_HOLES_CURRENT.title);
         expect(line().textContent).toBe('Answer ready.');
         const begin = container.querySelector('.live-start');
-        expect(begin.textContent).toBe('Begin');
+        // A glyph, not a word: the name is for assistive tech, the object is for everyone.
+        expect(begin.textContent).toBe('');
+        expect(begin.querySelector('svg')).not.toBeNull();
         expect(begin.getAttribute('type')).toBe('button');
-        expect(begin.getAttribute('aria-label')).toBeNull();
         expect(host.runtime).toBeNull();
-        expect(document.querySelector('#live-controls')).toBeNull();
+        expect(document.querySelector('#rise-stage-controls')).toBeNull();
 
         const runtime = { start: vi.fn(async () => {}), stop: vi.fn(async () => {}), status: 'live', snapshot: () => ({ status: 'live' }), subscribe: () => () => {}, composed: () => null };
         host.buildRuntime = vi.fn(async () => runtime);
-        host.buildMic = async () => null;
         // The same sealed Current may be delivered in both MCP notifications.
         answerCurrent(hostSays, BLACK_HOLES_CURRENT, 'ui/notifications/tool-result');
         begin.click();
+        expect(begin.disabled).toBe(true);
+        expect(begin.getAttribute('aria-label')).toBe('Starting');
         begin.click();
         await vi.waitFor(() => expect(runtime.start).toHaveBeenCalledTimes(1));
         expect(host.buildRuntime).toHaveBeenCalledTimes(1);
+        // The stage took the poster's place: no microphone, no notice, no notes, no question.
+        const stage = document.querySelector('#rise-stage-controls');
+        expect(stage).not.toBeNull();
+        expect(stage.querySelectorAll('form, input[type="text"], details, [data-live]')).toHaveLength(0);
+        // This frame's browser cannot speak, and the object's name says so.
+        expect(stage.querySelector('[data-stage="play"]').getAttribute('aria-label')).toBe('Pause (silent, this browser cannot speak)');
+        expect(stage.querySelector('[data-stage="settings"]')).not.toBeNull();
         expect(runtime.start).toHaveBeenCalledWith('The answer the assistant presents');
         expect(listeners.size).toBe(1);
         await host.stop();
     });
 
-    it('does not enable Begin from tool input while the successful result is delayed', async () => {
+    it('does not enable Play from tool input while the successful result is delayed', async () => {
         const { environment, sent, hostSays } = framed();
         mount('?embed=mcp&voice=paced', environment);
         await vi.waitFor(() => expect(sent).toHaveLength(1));
@@ -918,10 +927,9 @@ describe('inside an MCP host', () => {
         expect(host.buildRuntime).not.toHaveBeenCalled();
 
         answerCurrent(hostSays, BLACK_HOLES_CURRENT, 'ui/notifications/tool-result');
-        await vi.waitFor(() => expect(container.querySelector('.live-start')?.textContent).toBe('Begin'));
+        await vi.waitFor(() => expect(container.querySelector('.live-start')?.getAttribute('aria-label')).toBe('Play'));
         const runtime = { start: vi.fn(async () => {}), stop: vi.fn(async () => {}), status: 'live', snapshot: () => ({ status: 'live' }), subscribe: () => () => {}, composed: () => null };
         host.buildRuntime.mockResolvedValue(runtime);
-        host.buildMic = async () => null;
         container.querySelector('.live-start').click();
         await vi.waitFor(() => expect(host.buildRuntime).toHaveBeenCalledTimes(1));
         await vi.waitFor(() => expect(runtime.start).toHaveBeenCalledTimes(1));
@@ -938,15 +946,13 @@ describe('inside an MCP host', () => {
         await vi.waitFor(() => expect(container.querySelector('.live-start')?.disabled).toBe(false));
         const runtime = { start: vi.fn(async () => {}), stop: vi.fn(async () => {}), status: 'live', snapshot: () => ({ status: 'live' }), subscribe: () => () => {}, composed: () => null };
         host.buildRuntime = vi.fn(async () => runtime);
-        host.buildMic = async () => null;
         container.querySelector('.live-start').click();
         await vi.waitFor(() => expect(runtime.start).toHaveBeenCalledTimes(1));
-        const said = [...document.querySelectorAll('#live-controls .live-controls__notes li')];
-        expect(said.find(item => item.dataset.capability === 'reducedMotion')?.textContent).toBe('Reduced motion is on. Imagery stays still.');
+        expect(document.querySelector('#rise-stage-controls .rise-stage__status').textContent).toContain('Imagery stays still.');
         await host.stop();
     });
 
-    /** Begin the held answer in a frame whose browser offers `voices`; only the runtime is a fake, the voice is built. */
+    /** Play the held answer in a frame whose browser offers `voices`; only the runtime is a fake, the voice is built. */
     async function beginFramed(search, voices) {
         const { environment, sent, hostSays } = framed();
         const synth = { getVoices: () => voices };
@@ -963,23 +969,67 @@ describe('inside an MCP host', () => {
             await host.buildVoices(createVirtualClock());
             return runtime;
         });
-        host.buildMic = async () => null;
         container.querySelector('.live-start').click();
         await vi.waitFor(() => expect(runtime.start).toHaveBeenCalledTimes(1));
-        return document.querySelector('#live-controls');
+        return document.querySelector('#rise-stage-controls');
     }
 
-    it('says why a browser voice fell back to pacing, and says it is paced only once', async () => {
+    it('marks the object when a browser voice fell back to pacing, says why in the hidden status, and says it is paced only once', async () => {
         const panel = await beginFramed('?embed=mcp', []);
-        expect(panel.querySelector('.live-controls__notes [data-capability="speechOutput"]')?.textContent).toBe('No voice is installed for this browser.');
-        expect(panel.textContent.match(/paced as if/gu)).toHaveLength(1);
+        expect(panel.querySelector('[data-stage="play"]').dataset.voice).toBe('none');
+        const status = panel.querySelector('.rise-stage__status').textContent;
+        expect(status).toContain('No voice is installed for this browser.');
+        expect(status.match(/paced as if/gu)).toHaveLength(1);
+        // Nothing of it is a device note the reader can see.
+        expect(panel.querySelector('li[data-capability]')).toBeNull();
         await host.stop();
     });
 
-    it('does not repeat beside the status line that a chosen silent reading is paced', async () => {
+    it('does not mark the object, or repeat that it is paced, when the silent reading was chosen', async () => {
         const panel = await beginFramed('?embed=mcp&voice=paced', [{ name: 'a' }]);
-        expect(panel.querySelector('[data-capability="speechOutput"]')).toBeNull();
-        expect(panel.textContent.match(/paced as if/gu)).toHaveLength(1);
+        expect(panel.querySelector('[data-stage="play"]').dataset.voice).toBeUndefined();
+        expect(panel.querySelector('.rise-stage__status').textContent.match(/paced as if/gu)).toHaveLength(1);
+        await host.stop();
+    });
+
+    it('on Play again, stops the finished runtime, builds a new one from the admitted answer and starts it, without closing the port', async () => {
+        const { environment, sent, listeners, hostSays } = framed();
+        mount('?embed=mcp&voice=paced', environment);
+        await vi.waitFor(() => expect(sent).toHaveLength(1));
+        hostSays({ jsonrpc: '2.0', id: sent[0].id, result: { protocolVersion: '2026-01-26', hostCapabilities: {}, hostContext: {} } });
+        await vi.waitFor(() => expect(sent.some(message => message.method === 'ui/notifications/size-changed')).toBe(true));
+        answerCurrent(hostSays);
+        await vi.waitFor(() => expect(container.querySelector('.live-start')?.disabled).toBe(false));
+        const runtimes = [];
+        const fakeRuntime = () => {
+            const subscribers = new Set();
+            const runtime = {
+                status: 'live', snapshot: () => ({ status: runtime.status, error: null, main: {}, side: null }),
+                subscribe: fn => { subscribers.add(fn); return () => subscribers.delete(fn); },
+                composed: () => null,
+                start: vi.fn(async () => {}), stop: vi.fn(async () => {}),
+                end() { runtime.status = 'ended'; for (const fn of [...subscribers]) fn(runtime.snapshot()); }
+            };
+            runtimes.push(runtime);
+            return runtime;
+        };
+        host.buildRuntime = vi.fn(async () => fakeRuntime());
+        const ended = vi.spyOn(host, 'ended');
+        container.querySelector('.live-start').click();
+        await vi.waitFor(() => expect(runtimes[0]?.start).toHaveBeenCalledTimes(1));
+        runtimes[0].end();
+        const play = document.querySelector('#rise-stage-controls [data-stage="play"]');
+        expect(play.getAttribute('aria-label')).toBe('Play again');
+
+        play.click();
+        await vi.waitFor(() => expect(runtimes).toHaveLength(2));
+        await vi.waitFor(() => expect(runtimes[1].start).toHaveBeenCalledTimes(1));
+        expect(runtimes[0].stop).toHaveBeenCalledTimes(1);
+        expect(host.runtime).toBe(runtimes[1]);
+        expect(document.querySelectorAll('#rise-stage-controls')).toHaveLength(1);
+        expect(ended).not.toHaveBeenCalled();
+        expect(host.port).not.toBeNull();
+        expect(listeners.size).toBe(1);
         await host.stop();
     });
 
@@ -990,11 +1040,11 @@ describe('inside an MCP host', () => {
         });
         mount('?embed=mcp&voice=paced', environment);
         await vi.waitFor(() => expect(sent.some(message => message.method === 'ui/notifications/initialized')).toBe(true));
-        await vi.waitFor(() => expect(container.querySelector('.live-start')?.textContent).toBe('Begin'));
+        await vi.waitFor(() => expect(container.querySelector('.live-start')?.getAttribute('aria-label')).toBe('Play'));
         expect(host.stopListeningCurrent).toBeNull();
     });
 
-    it('does not offer Begin for an invalid Current', async () => {
+    it('does not offer Play for an invalid Current', async () => {
         const { environment, sent, hostSays } = framed();
         mount('?embed=mcp&voice=paced', environment);
         await vi.waitFor(() => expect(sent).toHaveLength(1));
@@ -1019,7 +1069,7 @@ describe('inside an MCP host', () => {
         await vi.waitFor(() => expect(line().getAttribute('role')).toBe('alert'));
         expect(container.querySelector('.live-start')).toBeNull();
         answerCurrent(hostSays, { ...BLACK_HOLES_CURRENT, id: 'corrected' });
-        await vi.waitFor(() => expect(container.querySelector('.live-start')?.textContent).toBe('Begin'));
+        await vi.waitFor(() => expect(container.querySelector('.live-start')?.getAttribute('aria-label')).toBe('Play'));
         expect(host.embeddedEvents).not.toBeNull();
         await host.stop();
     });
@@ -1036,7 +1086,7 @@ describe('inside an MCP host', () => {
         await vi.waitFor(() => expect(host.validateEmbeddedCurrent).toHaveBeenCalledTimes(1));
         hostSays({ jsonrpc: '2.0', method: 'ui/notifications/tool-result', params: { isError: true, content: [{ type: 'text', text: 'unrelated refusal' }] } });
         resolveValidation([{ body: { title: 'Accepted A' } }]);
-        await vi.waitFor(() => expect(container.querySelector('.live-start')?.textContent).toBe('Begin'));
+        await vi.waitFor(() => expect(container.querySelector('.live-start')?.getAttribute('aria-label')).toBe('Play'));
         expect(container.querySelector('.live-title').textContent).toBe('Accepted A');
         expect(line().textContent).toBe('Answer ready.');
         await host.stop();
@@ -1058,7 +1108,7 @@ describe('inside an MCP host', () => {
         hostSays({ jsonrpc: '2.0', method: 'ui/notifications/tool-result', params: { isError: true, content: [{ type: 'text', text: 'unrelated refusal' }] } });
         resolveValidation([{ body: { title: 'First accepted' } }]);
         await vi.waitFor(() => expect(host.validateEmbeddedCurrent).toHaveBeenCalledTimes(2));
-        await vi.waitFor(() => expect(container.querySelector('.live-start')?.textContent).toBe('Begin'));
+        await vi.waitFor(() => expect(container.querySelector('.live-start')?.getAttribute('aria-label')).toBe('Play'));
         expect(container.querySelector('.live-title').textContent).toBe('Queued accepted');
         expect(host.embeddedEvents).not.toBeNull();
         await host.stop();
@@ -1090,7 +1140,7 @@ describe('inside an MCP host', () => {
         resolveFirst(await realValidate(first));
         await vi.waitFor(() => expect(host.validateEmbeddedCurrent).toHaveBeenCalledTimes(2));
         expect(host.validateEmbeddedCurrent.mock.calls[1][0].id).toBe('newest-queued');
-        await vi.waitFor(() => expect(container.querySelector('.live-start')?.textContent).toBe('Begin'));
+        await vi.waitFor(() => expect(container.querySelector('.live-start')?.getAttribute('aria-label')).toBe('Play'));
         expect(container.querySelector('.live-title').textContent).toBe('Newest queued');
         await host.stop();
     });
@@ -1110,34 +1160,34 @@ describe('inside an MCP host', () => {
         answerCurrent(hostSays, { ...BLACK_HOLES_CURRENT, id: 'corrected' });
         rejectFirst(new Error('refused first proposal'));
         await vi.waitFor(() => expect(host.validateEmbeddedCurrent).toHaveBeenCalledTimes(2));
-        await vi.waitFor(() => expect(container.querySelector('.live-start')?.textContent).toBe('Begin'));
+        await vi.waitFor(() => expect(container.querySelector('.live-start')?.getAttribute('aria-label')).toBe('Play'));
         expect(line().textContent).toBe('Answer ready.');
         await host.stop();
     });
 
-    it('does not let a refused oversized trusted envelope leave stale Begin content', async () => {
+    it('does not let a refused oversized trusted envelope leave stale Play content', async () => {
         const { environment, sent, hostSays } = framed();
         mount('?embed=mcp&voice=paced', environment);
         await vi.waitFor(() => expect(sent).toHaveLength(1));
         hostSays({ jsonrpc: '2.0', id: sent[0].id, result: { protocolVersion: '2026-01-26', hostCapabilities: {}, hostContext: {} } });
         await vi.waitFor(() => expect(sent.some(message => message.method === 'ui/notifications/size-changed')).toBe(true));
         answerCurrent(hostSays);
-        await vi.waitFor(() => expect(container.querySelector('.live-start')?.textContent).toBe('Begin'));
+        await vi.waitFor(() => expect(container.querySelector('.live-start')?.getAttribute('aria-label')).toBe('Play'));
         hostSays({ jsonrpc: '2.0', method: 'ui/notifications/tool-result', params: { structuredContent: { current: BLACK_HOLES_CURRENT }, metadata: 'x'.repeat(262_144) } });
-        expect(container.querySelector('.live-start')?.textContent).toBe('Begin');
+        expect(container.querySelector('.live-start')?.getAttribute('aria-label')).toBe('Play');
         expect(container.querySelector('.live-title').textContent).toBe(BLACK_HOLES_CURRENT.title);
         expect(host.embeddedEvents).not.toBeNull();
         await host.stop();
     });
 
-    it('discards a ready Current when the reader stops before Begin', async () => {
+    it('discards a ready Current when the reader stops before Play', async () => {
         const { environment, sent, listeners, hostSays } = framed();
         mount('?embed=mcp&voice=paced', environment);
         await vi.waitFor(() => expect(sent).toHaveLength(1));
         hostSays({ jsonrpc: '2.0', id: sent[0].id, result: { protocolVersion: '2026-01-26', hostCapabilities: {}, hostContext: {} } });
         await vi.waitFor(() => expect(sent.some(message => message.method === 'ui/notifications/size-changed')).toBe(true));
         answerCurrent(hostSays);
-        await vi.waitFor(() => expect(container.querySelector('.live-start')?.textContent).toBe('Begin'));
+        await vi.waitFor(() => expect(container.querySelector('.live-start')?.getAttribute('aria-label')).toBe('Play'));
 
         await host.stop();
         expect(host.embeddedEvents).toBeNull();
@@ -1147,14 +1197,14 @@ describe('inside an MCP host', () => {
         expect(host.runtime).toBeNull();
     });
 
-    it('discards a ready Current when the host tears down before Begin', async () => {
+    it('discards a ready Current when the host tears down before Play', async () => {
         const { environment, sent, listeners, hostSays } = framed();
         mount('?embed=mcp&voice=paced', environment);
         await vi.waitFor(() => expect(sent).toHaveLength(1));
         hostSays({ jsonrpc: '2.0', id: sent[0].id, result: { protocolVersion: '2026-01-26', hostCapabilities: {}, hostContext: {} } });
         await vi.waitFor(() => expect(sent.some(message => message.method === 'ui/notifications/size-changed')).toBe(true));
         answerCurrent(hostSays);
-        await vi.waitFor(() => expect(container.querySelector('.live-start')?.textContent).toBe('Begin'));
+        await vi.waitFor(() => expect(container.querySelector('.live-start')?.getAttribute('aria-label')).toBe('Play'));
 
         hostSays({ jsonrpc: '2.0', id: 'teardown-before-begin', method: 'ui/resource-teardown', params: {} });
         await vi.waitFor(() => expect(line().textContent).toContain('Finished.'));
@@ -1225,7 +1275,7 @@ describe('inside an MCP host', () => {
             answer: message => (message.method === 'ui/initialize' ? { result: { protocolVersion: '2026-01-26', hostCapabilities: {}, hostContext: {} } } : null)
         });
         mount('?embed=mcp&voice=paced', environment);
-        await vi.waitFor(() => expect(container.querySelector('.live-start')?.textContent).toBe('Begin'));
+        await vi.waitFor(() => expect(container.querySelector('.live-start')?.getAttribute('aria-label')).toBe('Play'));
 
         await host.ended();
 
@@ -1233,7 +1283,7 @@ describe('inside an MCP host', () => {
         expect(host.stopListeningCurrent).toBeNull();
         expect(host.port).toBeNull();
         expect(listeners.size).toBe(0);
-        expect(document.querySelector('#live-controls')).toBeNull();
+        expect(document.querySelector('#rise-stage-controls')).toBeNull();
         const sentAfterEnd = sent.length;
         hostSays({ jsonrpc: '2.0', id: 'after-ended-ping', method: 'ping', params: {} });
         answerCurrent(hostSays);
@@ -1267,42 +1317,8 @@ describe('inside an MCP host', () => {
         releaseRuntime();
         await new Promise(resolve => setTimeout(resolve, 0));
         expect(runtime.start).not.toHaveBeenCalled();
-        expect(document.querySelector('#live-controls')).toBeNull();
+        expect(document.querySelector('#rise-stage-controls')).toBeNull();
         expect(runtime.stop).toHaveBeenCalledTimes(1);
-        expect(host.runtime).toBeNull();
-        expect(host.port).toBeNull();
-    });
-
-    it('does not recreate controls if teardown arrives while microphone startup is delayed', async () => {
-        let releaseMic;
-        const runtime = {
-            status: 'live',
-            snapshot: () => ({ status: 'live', error: null, main: {}, side: null }),
-            subscribe: () => () => {},
-            composed: () => null,
-            start: vi.fn(async () => {}),
-            stop: vi.fn(async () => {})
-        };
-        const { environment, sent, listeners, hostSays } = framed({ answer: () => null });
-        mount('?embed=mcp&voice=paced', environment);
-        await vi.waitFor(() => expect(sent).toHaveLength(1));
-        hostSays({ jsonrpc: '2.0', id: sent[0].id, result: { protocolVersion: '2026-01-26', hostCapabilities: {}, hostContext: {} } });
-        await vi.waitFor(() => expect(sent.some(message => message.method === 'ui/notifications/size-changed')).toBe(true));
-        answerCurrent(hostSays);
-        await vi.waitFor(() => expect(container.querySelector('.live-start')?.disabled).toBe(false));
-        host.buildRuntime = async () => runtime;
-        host.buildMic = () => new Promise(resolve => { releaseMic = () => resolve(null); });
-        container.querySelector('.live-start').click();
-        await vi.waitFor(() => expect(releaseMic).toBeTypeOf('function'));
-
-        hostSays({ jsonrpc: '2.0', id: 'teardown-mic', method: 'ui/resource-teardown', params: {} });
-        expect(sent.some(message => message.id === 'teardown-mic' && message.result)).toBe(true);
-        releaseMic();
-        await new Promise(resolve => setTimeout(resolve, 0));
-
-        expect(runtime.stop).toHaveBeenCalledTimes(1);
-        expect(runtime.start).not.toHaveBeenCalled();
-        expect(document.querySelector('#live-controls')).toBeNull();
         expect(host.runtime).toBeNull();
         expect(host.port).toBeNull();
     });
@@ -1316,7 +1332,7 @@ describe('inside an MCP host', () => {
             hostSays({ jsonrpc: '2.0', id: sent[0].id, result: { protocolVersion: '2026-01-26', hostCapabilities: {}, hostContext: {} } });
             await vi.waitFor(() => expect(sent.some(message => message.method === 'ui/notifications/size-changed')).toBe(true));
             answerCurrent(hostSays);
-            await vi.waitFor(() => expect(container.querySelector('.live-start')?.textContent).toBe('Begin'));
+            await vi.waitFor(() => expect(container.querySelector('.live-start')?.getAttribute('aria-label')).toBe('Play'));
 
             const loadedModules = await host.modules;
             let releaseModules;
@@ -1367,7 +1383,7 @@ describe('inside an MCP host', () => {
         hostSays({ jsonrpc: '2.0', id: sent[0].id, result: { protocolVersion: '2026-01-26', hostCapabilities: {}, hostContext: {} } });
         await vi.waitFor(() => expect(sent.some(message => message.method === 'ui/notifications/size-changed')).toBe(true));
         answerCurrent(hostSays);
-        await vi.waitFor(() => expect(container.querySelector('.live-start')?.textContent).toBe('Begin'));
+        await vi.waitFor(() => expect(container.querySelector('.live-start')?.getAttribute('aria-label')).toBe('Play'));
 
         const loadedModules = await oldHost.modules;
         let releaseModules;
@@ -1441,7 +1457,7 @@ describe('inside an MCP host', () => {
             for (const name of THEME_VARS) document.documentElement.style.removeProperty(name);
         });
 
-        /** A framed page that has said hello and been handed one Current; resolves once Begin is offered. */
+        /** A framed page that has said hello and been handed one Current; resolves once Play is offered. */
         async function poster(current = BLACK_HOLES_CURRENT) {
             const { environment, sent, hostSays } = framed();
             mount('?embed=mcp&voice=paced', environment);
@@ -1449,20 +1465,23 @@ describe('inside an MCP host', () => {
             hostSays({ jsonrpc: '2.0', id: sent[0].id, result: { protocolVersion: '2026-01-26', hostCapabilities: {}, hostContext: {} } });
             await vi.waitFor(() => expect(sent.some(message => message.method === 'ui/notifications/size-changed')).toBe(true));
             answerCurrent(hostSays, current);
-            await vi.waitFor(() => expect(container.querySelector('.live-start')?.textContent).toBe('Begin'));
+            await vi.waitFor(() => expect(container.querySelector('.live-start')?.getAttribute('aria-label')).toBe('Play'));
             return container.querySelector('main');
         }
 
-        it('puts the answer’s title between “Answer ready.” and Begin', async () => {
+        it('puts the answer’s title over Play, after a hidden “Answer ready.”', async () => {
             const main = await poster();
             expect(main.classList.contains('live-host--poster')).toBe(true);
             expect([...main.children].map(child => [child.tagName, child.className, child.textContent])).toEqual([
                 ['P', 'live-embed', 'Answer ready.'],
                 ['H1', 'live-title', BLACK_HOLES_CURRENT.title],
-                ['BUTTON', 'live-start', 'Begin']
+                ['BUTTON', 'live-start', '']
             ]);
             expect(main.querySelector('.live-embed').getAttribute('role')).toBe('status');
             expect(main.querySelector('.live-start').getAttribute('type')).toBe('button');
+            expect(main.querySelector('.live-start').getAttribute('aria-label')).toBe('Play');
+            // The full title is the object's context, even when the heading is clamped to three lines.
+            expect(main.querySelector('.live-title').getAttribute('aria-label')).toBe(BLACK_HOLES_CURRENT.title);
         });
 
         it('sets the title as text, never as markup', async () => {

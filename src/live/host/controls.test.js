@@ -180,23 +180,6 @@ describe('the buttons', () => {
         expect($('[data-live="interrupt"]').hidden).toBe(true);
     });
 
-    it('offers no Dive in a Composer presentation, and says nothing that invites a question', () => {
-        const runtime = fakeRuntime('live');
-        controls = createLiveControls({ runtime, onStop: () => {}, dive: false });
-        expect($('.live-controls__ask').hidden).toBe(true);
-        expect($('[data-live="surface"]').hidden).toBe(true);
-        expect($('.live-passage__depth').hidden).toBe(true);
-        expect($('.live-passage__depth').textContent).toBe('');
-
-        runtime.set('interrupted');
-        expect($('.live-controls__status').textContent).toBe('Held where you are. Resume when you are ready.');
-        expect($('[data-live="resume"]').textContent).toBe('Resume');
-        runtime.set('ended');
-        expect($('.live-controls__status').textContent).toBe('Finished.');
-        expect(describeStatus(snapshot('ended', { main: { error: { message: 'cut off' } } }), { dive: false }))
-            .toBe('Finished reading what arrived. The answer stopped early: cut off.');
-    });
-
     it('cannot ask a second Dive while the first is still connecting', () => {
         const runtime = fakeRuntime('live');
         controls = createLiveControls({ runtime, onStop: () => {} });
