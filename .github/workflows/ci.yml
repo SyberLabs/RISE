@@ -56,7 +56,6 @@ jobs:
             src/core/passage-visuals/scoring-client.test.js \
             src/components/Home.jev.test.js \
             src/components/Home.test.js \
-            src/components/reading-stream.test.js \
             src/components/reading-backdrop.test.js \
             src/components/home-ask.test.js \
             src/core/roll.test.js \

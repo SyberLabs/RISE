@@ -1,7 +1,7 @@
 /* ═══════════════════════════════════════════════════════════
    RISE Home (Portal) — the page around the reading.
-   Home itself (the engine, the stream, the bar that names the reading, and
-   the ask dialog) is portal-home.css; this file is the page around it: the
+   Home itself (the engine in the window, the slot that names the reading,
+   its keys and the ask dialog) is portal-home.css; this file is the page around it: the
    header and its Menu sheet, the fixed demo pages, Continue, and the footer.
    Tokens and the shared .sl-header live in design-system.css.
    ═══════════════════════════════════════════════════════════ */

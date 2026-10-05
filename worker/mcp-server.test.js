@@ -173,7 +173,7 @@ describe('the tool', () => {
     const [tool] = result.tools;
     expect(tool.title).toBe('Present a reading in RISE');
     expect(tool.description.startsWith('Use this when ')).toBe(true);
-    expect(tool.description).toMatch(/presses Begin/u);
+    expect(tool.description).toMatch(/presses Play/u);
     expect(tool.description).toMatch(/pause and resume/u);
     expect(tool.description).toMatch(/once per answer/u);
     expect(tool.description).toMatch(/Do not use it for/u);
@@ -187,7 +187,7 @@ describe('the tool', () => {
       ui: { resourceUri: APP_URI },
       'ui/resourceUri': APP_URI,
       'openai/toolInvocation/invoking': 'Preparing the reading',
-      'openai/toolInvocation/invoked': 'The reading is ready for Begin'
+      'openai/toolInvocation/invoked': 'The reading is ready to play'
     });
     for (const key of ['openai/toolInvocation/invoking', 'openai/toolInvocation/invoked']) expect(TOOL._meta[key].length, key).toBeLessThanOrEqual(64);
     expect(APP_URI).toBe('ui://rise/current');
@@ -391,7 +391,7 @@ describe('the app', () => {
     expect(content.text.startsWith('<!doctype html>')).toBe(true);
     expect(content.text).toContain(`src="${SITE}/live?embed=mcp"`);
     expect(content._meta.ui).toEqual({ csp: { frameDomains: [SITE], connectDomains: [], resourceDomains: [] }, prefersBorder: false });
-    expect(content._meta['openai/widgetDescription']).toMatch(/^[^.]*Begin[^.]*\.$/u);
+    expect(content._meta['openai/widgetDescription']).toMatch(/^[^.]*Play[^.]*\.$/u);
   });
 
   it('tells ChatGPT on the resource that it is shown inline only, so the host picks the mode before loading it', async () => {

@@ -1,12 +1,15 @@
 /**
- * Home — RISE Home: already reading.
+ * Home — RISE Home: a home with a window.
  *
- * Home is a reading in progress. On arrival the day's poem (the reading
- * launchToday opens) runs silently, full-screen: its own engine behind
- * (reading-backdrop.js), its opening streaming in the centre
- * (reading-stream.js), named in the bar below. **Read it with sound** opens
- * it; **Another reading** rolls a vivid one in its place (src/core/roll.js),
- * which **Adjust** opens in Reader Setup with everything already set.
+ * Home names one reading and starts none. The window is the featured
+ * reading's own engine, full screen and moving (reading-backdrop.js); the slot
+ * under it names the reading (eyebrow, title, `Author · Work · N min · Look`)
+ * and sets the opening's first line still as an epigraph in the reading's own
+ * face. Nothing streams and nothing sounds before a press. **Begin** opens
+ * the reading; **Another reading** rolls a vivid one in its place
+ * (src/core/roll.js), which **Adjust** opens in Reader Setup with everything
+ * already set. docs/product/discussions/2026-10-05-canonical-home-design.md
+ * is the record.
  *
  *   Home proposes → Reader Setup alters → Chamber performs.
  *
@@ -17,11 +20,11 @@
  * as /today and the Menu open it); a rolled or asked one through
  * launchJevReading.
  *
- * Every word and control is in the first paint; the poem, the engine (on the
- * shared ReadingStage) and the stream load right after it, and Home works on
- * ink if the engine cannot run. Nothing runs while another room shows. The
- * reading lives with Home while it is open; a fresh load starts on today's poem.
- * Every other room is one Menu away; Privacy and Terms stay posted.
+ * Every word and control is in the first paint; the poem and the engine (on
+ * the shared ReadingStage) load right after it, and Home works on ink if the
+ * engine cannot run. Nothing runs while another room shows. The reading lives
+ * with Home while it is open; a fresh load starts on today's poem. Every
+ * other room is one Menu away; Privacy and Terms stay posted.
  */
 
 import './Home.css';
@@ -31,6 +34,7 @@ import { isJevSceneDemoPath, sceneSampleFromPath } from '../core/jev-demo-path.j
 import { HomeAsk, alertMarkup, showAlert } from './home-ask.js';
 import { claimOpenRouterReturn } from '../core/openrouter-callback.js';
 import { localDateKey, watchLocalDay } from '../core/local-day.js';
+import { resolveChamberStreamFace } from '../core/chamber-stream-face.js';
 
 const ICON_ATTRS = 'width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"';
 const SETTINGS_PATH = '<path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path><circle cx="12" cy="12" r="3"></circle>';
@@ -45,24 +49,33 @@ const button = (hook, label, variant, extra = '') =>
   `<button class="btn btn-${variant}" type="button" data-home="${hook}"${extra}>${label}</button>`;
 const afterPaint = next => (globalThis.requestAnimationFrame || (run => setTimeout(run, 0)))(() => setTimeout(next, 0));
 const whenIdle = run => (globalThis.requestIdleCallback ? requestIdleCallback(run, { timeout: 2000 }) : setTimeout(run, 200));
+/** How long a reading takes at its own pace, in whole minutes; 0 while its length is unknown. */
+const minutesOf = (words, wpm) => words ? Math.max(1, Math.round(words / wpm)) : 0;
+/** The first line of a verse opening; the text is already trimmed of leading blank lines. */
+const firstLine = text => text.split('\n').map(line => line.trim()).find(Boolean) || '';
 
 /**
  * The reading on screen, from a decision and how it came: today's poem
- * (`today`, the day's pick, with its `title` and `author`), a roll (`temper`)
- * or an ask (`intent`). All Home says about it and how it opens; `tools`
- * names the work and the plan of a rolled or asked one.
+ * (`today`, the day's pick, with its `title`, `author` and `work`), a roll
+ * (`temper`) or an ask (`intent`). All Home says about it and how it opens;
+ * `tools` names the work and the plan of a rolled or asked one. `words` is
+ * its length, 0 until known.
  */
-function homeReading(decision, { today, title, author, temper = null, intent = '' }, tools) {
+function homeReading(decision, { today, title, author, work, temper = null, intent = '' }, tools) {
   if (today) {
-    const heading = [title, author].filter(Boolean).join(', by ');
+    const look = capital(decision.temper);
+    const minutes = minutesOf(today.words, decision.config.wpm);
     return {
-      decision, temper: decision.temper, heading, label: TODAY, spoken: `${TODAY}: ${heading}`, note: '', link: 'library',
+      decision, temper: decision.temper, title, words: today.words, note: '', link: 'library',
+      eyebrow: TODAY, meta: { author, work, look },
+      spoken: `${TODAY}: ${title}, by ${author}. ${minutes} ${minutes === 1 ? 'minute' : 'minutes'}. ${look}.`,
       // The day's exact poem, as /today and the Menu open it.
       today: true
     };
   }
-  const work = tools.getTextById(decision.workId);
-  const heading = [work?.title || decision.workId, work?.author].filter(Boolean).join(', by ');
+  const named = tools.getTextById(decision.workId);
+  const workTitle = named?.title || decision.workId;
+  const heading = [workTitle, named?.author].filter(Boolean).join(', by ');
   // An asked reading has no temper; its mood is the reader's own words.
   const mood = temper ? capital(temper) : 'As you asked';
   const plan = tools.summarizeJevPlan(decision.config).join(', ');
@@ -75,8 +88,10 @@ function homeReading(decision, { today, title, author, temper = null, intent = '
     note = parts.join(' ');
   }
   return {
-    decision, temper, heading, note, link: 'adjust',
-    label: `${mood}: ${plan}`,
+    decision, temper, title: workTitle, words: 0, note, link: 'adjust',
+    eyebrow: temper ? 'By chance' : 'As you asked',
+    // The title is the work's, so the meta line does not repeat it.
+    meta: { author: named?.author || '', work: '', look: temper ? capital(temper) : '' },
     spoken: `${mood}. ${heading}. ${capital(plan)}.`,
     // A rolled reading offers the first-read preview, the first time one plays.
     firstReadPreview: !intent
@@ -97,7 +112,7 @@ export class Home {
     this._active = false;
     // The work in progress, or null: a data-home hook (roll, ask, enter, adjust).
     this.busy = null;
-    // The reading Home shows (homeReading), and its opening ({ text, verse }, null while it loads).
+    // The reading Home shows (homeReading), and its opening ({ text, verse, words }, null while it loads).
     this.reading = null;
     this.opening = null;
     // Whether the reader chose the reading (rolled or asked); today's poem then stays out.
@@ -105,7 +120,6 @@ export class Home {
     // The day whose poem Home loaded, so it loads once a day.
     this.todayKey = null;
     this.stage = null;
-    this.stream = null;
     this.firstReadChoiceUsed = false;
     this.tools = null;
     const returned = claimOpenRouterReturn();
@@ -131,8 +145,7 @@ export class Home {
       const wasActive = this._active;
       this.deactivate();
       this.stage?.destroy();
-      this.stream?.destroy();
-      this.stage = this.stream = null;
+      this.stage = null;
       this.demoMode = demoMode;
       this.render();
       this.attachEvents();
@@ -225,31 +238,30 @@ export class Home {
   }
 
   /**
-   * The reading under way: the stream in the centre, the bar that names it
-   * below. Every word and control is here before the poem loads. Continue is
-   * after the bar in focus order and drawn above it.
+   * The window (the engine shows through it; the opening is real text there
+   * for assistive technology), then the slot that names the reading and its
+   * keys. Every word and control is here before the poem loads. Continue is
+   * after the alert in focus order and drawn above the slot.
    */
   renderHome() {
     return `<section class="home" aria-labelledby="home-title">
-      <div class="home-stage">
-        <div class="home-stream" aria-hidden="true"></div>
+      <div class="home-window">
         <p class="sr-only" data-home-opening></p>
       </div>
       ${alertMarkup('home-alert')}
-      <div class="home-bar">
-        <div class="home-caption">
-          <p class="home-label">${TODAY}</p>
-          <h1 class="home-title" id="home-title"></h1>
-          <p class="home-note" role="note" hidden></p>
-        </div>
-        <div class="home-actions">
-          ${button('enter', 'Read it with sound', 'primary', ' disabled')}
-          ${button('roll', 'Another reading', 'secondary')}
-          <button class="home-link" type="button" data-home="library">Library</button>
-        </div>
-      </div>
       ${CONTINUE}
-      <div class="home-progress" aria-hidden="true"><span class="home-progress-fill"></span></div>
+      <div class="home-featured">
+        <p class="home-label">${TODAY}</p>
+        <h1 class="home-title" id="home-title"></h1>
+        <p class="home-meta"></p>
+        <p class="home-note" role="note" hidden></p>
+        <p class="home-epigraph" aria-hidden="true"></p>
+      </div>
+      <div class="home-actions">
+        ${button('enter', 'Begin', 'primary', ' disabled')}
+        ${button('roll', 'Another reading', 'secondary')}
+        <button class="home-link" type="button" data-home="library">Library</button>
+      </div>
       <p class="sr-only" role="status" aria-live="polite"><span data-home-status></span></p>
     </section>`;
   }
@@ -283,17 +295,18 @@ export class Home {
     </section>`;
   }
 
-  /** Name the reading in the bar, speak it, and play it if Home is showing. */
+  /** Name the reading in the slot, speak it, and show its engine if Home is showing. */
   present(reading, opening = null) {
     this.reading = reading;
     this.opening = opening;
     const home = this.container.querySelector('.home');
     if (!home) return;
-    home.querySelector('.home-label').textContent = reading.label;
+    home.querySelector('.home-label').textContent = reading.eyebrow;
     const title = home.querySelector('.home-title');
-    title.textContent = reading.heading;
+    title.textContent = reading.title;
     // A desk sets the name on one line; one too long for it is whole here.
-    title.title = reading.heading;
+    title.title = reading.title;
+    this.renderMeta();
     const note = home.querySelector('.home-note');
     note.textContent = reading.note;
     note.hidden = !reading.note;
@@ -307,17 +320,62 @@ export class Home {
     if (this._active) this.play();
   }
 
-  /** The opening as text for assistive technology; the stream beside it is decoration. */
+  /**
+   * `Author · Work · N min · Look`, each part only when known. The work sits
+   * in a span with its separator, which a phone hides.
+   */
+  renderMeta() {
+    const { meta, words, decision } = this.reading;
+    const minutes = minutesOf(words, decision.config.wpm);
+    const line = this.container.querySelector('.home-meta');
+    if (!line) return;
+    line.replaceChildren();
+    for (const part of [meta.author, meta.work, minutes && `${minutes} min`, meta.look]) {
+      if (!part) continue;
+      const text = `${line.childNodes.length ? ' · ' : ''}${part}`;
+      if (part === meta.work) line.append(Object.assign(document.createElement('span'), { className: 'home-meta-work', textContent: text }));
+      else line.append(text);
+    }
+  }
+
+  /** The opening as text for assistive technology, and its first line set still in the window's slot. */
   renderOpening() {
     const node = this.container.querySelector('[data-home-opening]');
     if (node) node.textContent = this.opening?.text || '';
+    void this.showEpigraph();
   }
 
-  /** Run the shown reading: its engine behind, its opening in the stream. */
+  /**
+   * The opening's first line (a verse's own; prose cut at 90 characters) in
+   * the reading's face. The face's font gets up to 300 ms to arrive so the
+   * line is not drawn twice; the text is set only if the reading is still
+   * this one.
+   */
+  async showEpigraph() {
+    const { reading, opening } = this;
+    const node = this.container.querySelector('.home-epigraph');
+    if (!node) return;
+    node.dataset.face = resolveChamberStreamFace(reading.decision.config.presentation?.chamberFace);
+    node.textContent = '';
+    if (!opening?.text) return;
+    // A prose opening came through the roll's tools, so they are loaded.
+    const text = opening.verse ? firstLine(opening.text) : (await this.loadTools()).openingOf(opening.text, 90);
+    if (document.fonts) {
+      const { fontWeight, fontFamily } = getComputedStyle(node);
+      await Promise.race([document.fonts.load(`${fontWeight} 1em ${fontFamily}`).catch(() => {}), new Promise(resolve => setTimeout(resolve, 300))]);
+    }
+    if (this.reading !== reading || this.opening !== opening) return;
+    node.textContent = text;
+    // The epigraph shows: fetch Another reading's code while the reader reads, so the press waits on nothing.
+    // A failed fetch stays silent; loadTools forgets it and the press tries again.
+    // A reader who asked to save data (Save-Data) fetches it only on the press.
+    if (!this.tools && !globalThis.navigator?.connection?.saveData) whenIdle(() => { if (this._active && !this.demoMode) this.loadTools().catch(() => {}); });
+  }
+
+  /** Show the featured reading's engine in the window. */
   play() {
     if (!this.reading) return;
     void this.showEngine();
-    void this.playStream();
   }
 
   /** The reading's engine on the stage, which cross-fades it in over the last. */
@@ -330,45 +388,6 @@ export class Home {
     } catch (error) {
       console.warn('[Home] the engine could not load; the reading shows on ink.', error);
     }
-  }
-
-  /**
-   * Stream the opening once it is here, in the reading's own unit, pace and
-   * curve, and verse a line at a time as the Chamber reads it. Until then, or
-   * if it cannot stream, the stage holds still.
-   */
-  async playStream() {
-    const { reading, opening } = this;
-    const host = this.container.querySelector('.home-stream');
-    if (!host) return;
-    this.stream?.stop();
-    this.setProgress(0);
-    if (!opening?.text) {
-      host.replaceChildren();
-      return;
-    }
-    try {
-      const { ReadingStream } = await import('./reading-stream.js');
-      if (this.opening !== opening || !this._active) return;
-      this.stream ||= new ReadingStream(host, { onProgress: fraction => this.setProgress(fraction) });
-      const { chunkMode, wpm, curve } = reading.decision.config;
-      this.stream.play(opening.text, { chunkMode, wpm, curve, verse: opening.verse });
-      // The first word shows: fetch Another reading's code while the reader reads, so the press waits on nothing.
-      // A failed fetch stays silent; loadTools forgets it and the press tries again.
-      // A reader who asked to save data (Save-Data) fetches it only on the press.
-      if (!this.tools && !globalThis.navigator?.connection?.saveData) whenIdle(() => { if (this._active && !this.demoMode) this.loadTools().catch(() => {}); });
-    } catch (error) {
-      console.warn('[Home] the stream could not run; the opening holds still.', error);
-      const still = document.createElement('p');
-      still.className = 'home-still';
-      still.textContent = opening.text.split('\n')[0];
-      host.replaceChildren(still);
-    }
-  }
-
-  setProgress(fraction) {
-    const fill = this.container.querySelector('.home-progress-fill');
-    if (fill) fill.style.transform = `scaleX(${fraction})`;
   }
 
   /** Today's poem, the reading Home opens on: loaded after first paint, once a day. */
@@ -384,8 +403,9 @@ export class Home {
       ]);
       if (this._destroyed) return;
       const pick = todayPoem(date);
+      const work = openings.works[pick.workId];
       const poem = homeReading(todayDecision(pick), {
-        today: pick, title: poemTitle(pick.label), author: openings.works[pick.workId]?.author
+        today: pick, title: poemTitle(pick.label), author: work?.author, work: work?.title
       });
       // A reading the reader chose stays; only today's poem turns over.
       if (!this.chosen) this.present(poem, { text: openings.openings[pick.workId]?.[pick.entryId] || '', verse: true });
@@ -439,7 +459,7 @@ export class Home {
     return this.tools;
   }
 
-  /** Make a decision the reader chose Home's reading, then fetch the opening it streams. */
+  /** Make a decision the reader chose Home's reading, then fetch the opening and length it is named by. */
   showDecision(tools, decision, how) {
     this.chosen = true;
     const reading = homeReading(decision, how, tools);
@@ -447,8 +467,9 @@ export class Home {
     void tools.openingLines(decision).catch(() => null).then(opening => {
       if (this.reading !== reading || !opening) return;
       this.opening = opening;
+      reading.words = opening.words;
+      this.renderMeta();
       this.renderOpening();
-      if (this._active) void this.playStream();
     });
   }
 
@@ -484,7 +505,7 @@ export class Home {
     this.focus('[data-home="enter"]');
   }
 
-  /** Read it with sound opens the reading (launchToday or launchJevReading); Adjust opens it in Reader Setup. */
+  /** Begin opens the reading (launchToday or launchJevReading); Adjust opens it in Reader Setup. */
   async proceed(action) {
     const reading = this.reading;
     if (!reading || this.busy) return;
@@ -610,7 +631,7 @@ export class Home {
     this._active = true;
     if (!this._marksDrawn) this.drawMarks();
     if (this.demoMode) return;
-    // After first paint: the bar is already there; the poem, engine and stream follow.
+    // After first paint: the slot is already there; the poem and the engine follow.
     this.stage?.resume();
     this.play();
     afterPaint(() => void this.loadToday());
@@ -626,7 +647,6 @@ export class Home {
     this._active = false;
     // Every other room — and above all the Chamber — runs without it.
     this.stage?.pause();
-    this.stream?.stop();
     this._stopDay?.();
     this._stopDay = null;
     this.asking?.close();
@@ -637,7 +657,6 @@ export class Home {
     this._destroyed = true;
     this.asking?.destroy();
     this.stage?.destroy();
-    this.stream?.destroy();
-    this.stage = this.stream = null;
+    this.stage = null;
   }
 }

@@ -22,13 +22,13 @@ export function describeStatus(snapshot, { audible = true, question = '', dive =
         case 'idle':
             return '';
         case 'starting':
-            return 'Asking…';
+            return dive ? 'Asking…' : 'Starting…';
         case 'live': {
             const said = audible ? 'Speaking.' : 'Reading, paced as if spoken.';
             return `${main?.speaking || !main?.voiceDegraded ? said : 'Reading.'}${early}${quiet}`;
         }
         case 'interrupted':
-            return dive ? 'Held where you are. Resume, or ask about this place.' : 'Held where you are. Resume when you are ready.';
+            return dive ? 'Held where you are. Resume, or ask about this place.' : 'Paused.';
         case 'diving': {
             const asked = question ? ` “${question.slice(0, 120)}”` : '';
             if (side?.error) return `The Dive could not be answered (${side.error.message}). Surface to go back.`;
@@ -57,7 +57,8 @@ export function describeStatus(snapshot, { audible = true, question = '', dive =
  * @param {string} [options.notice] an optional persistent note for an embedded host
  * @param {{capability: string, effect: string}[]} [options.notes] what this device cannot do, for an embedded host
  * @param {boolean} [options.dive] whether the reader can ask about a place (a Dive). Off, the bar has no
- *   question box, Surface or Speak, and no notes to go deeper; a Composer presentation turns it off
+ *   question box, Surface or Speak, and no notes to go deeper; the stage (stage-controls.js) uses the same
+ *   branch of `describeStatus` for its hidden sentences
  * @param {object} [options.mic] speaking to it, where the browser can listen: `{ createListener, interpret, describe, privacy, privacyLead }`
  *   (src/live/mic); without it there is no Speak button at all
  * @param {Document} [options.doc]

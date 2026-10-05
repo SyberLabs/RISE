@@ -28,14 +28,11 @@ vi.mock('../core/roll.js', async importOriginal => {
 });
 vi.mock('../app/jev-reading.js', async importOriginal => ({
   ...(await importOriginal()),
-  openingLines: vi.fn(async () => ({ text: 'Stately, plump Buck Mulligan came from the stairhead', verse: false }))
+  openingLines: vi.fn(async () => ({ text: 'Stately, plump Buck Mulligan came from the stairhead', verse: false, words: 900 }))
 }));
-// Home's engine and stream are stood in for; this file is about asking.
+// Home's engine is stood in for; this file is about asking.
 vi.mock('./reading-backdrop.js', () => ({
   ReadingStage: class { show() {} pause() {} resume() {} destroy() {} }
-}));
-vi.mock('./reading-stream.js', () => ({
-  ReadingStream: class { play() {} stop() {} destroy() {} }
 }));
 // jsdom has no modal dialogs; these do what the browser's do, minus the top layer.
 HTMLDialogElement.prototype.showModal ||= function showModal() { this.open = true; };
@@ -165,7 +162,7 @@ it('is a labelled request with a microphone, Ask and Cancel once connected', asy
   portal.destroy();
 });
 
-it('asks once, makes the answer Home\'s reading, says what RISE cannot do, and plays only on Read it with sound', async () => {
+it('asks once, makes the answer Home\'s reading, says what RISE cannot do, and plays only on Begin', async () => {
   acceptOpenRouterKey(KEY);
   const provider = vi.fn(async () => Response.json(tokyoDecision()));
   const launch = vi.fn(async () => {});
@@ -183,9 +180,11 @@ it('asks once, makes the answer Home\'s reading, says what RISE cannot do, and p
     body: JSON.stringify({ intent: 'i want something psychedelic fast tokyo drift style', nightDrive: true })
   }));
   expect(launch).not.toHaveBeenCalled();
-  // An asked reading has no temper: its caption is the reader's own.
-  expect(container.querySelector('h1').textContent).toBe('Ulysses, by James Joyce');
-  expect(container.querySelector('.home-label').textContent).toBe('As you asked: fast phrases, fractal light, chase, large japanese serif');
+  // An asked reading has no temper, so no look word; the plan stays in the spoken status.
+  expect(container.querySelector('h1').textContent).toBe('Ulysses');
+  expect(container.querySelector('.home-label').textContent).toBe('As you asked');
+  await vi.waitFor(() => expect(container.querySelector('.home-meta').textContent).toBe('James Joyce · 3 min'));
+  expect(container.querySelector('.home-epigraph').dataset.face).toBe('jp');
   expect(homeStatus(container)).toBe('As you asked. Ulysses, by James Joyce. Fast phrases, fractal light, chase, large japanese serif.');
   const note = container.querySelector('.home-note');
   expect(note.hidden).toBe(false);
@@ -303,7 +302,7 @@ it('loads again on the next ask when asking could not load', async () => {
   ask(container, 'tokyo drift');
   await vi.waitFor(() => expect(dialog(container).open).toBe(false), { timeout: 3000 });
   expect(askAlert(container).hidden).toBe(true);
-  expect(container.querySelector('.home-label').textContent).toMatch(/^As you asked: /u);
+  expect(container.querySelector('.home-label').textContent).toBe('As you asked');
   portal.destroy();
 });
 

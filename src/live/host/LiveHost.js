@@ -20,7 +20,8 @@
  * `?embed=mcp` is the page an MCP host's app frames (worker/mcp-server.mjs,
  * src/live/hosts/mcp-relay.js): no prompt, no provider to choose. The host's own
  * model wrote the answer and hands it over through the frame's parent; the same
- * runtime, Chamber, controls and voice play it.
+ * runtime, Chamber and voice play it, under the stage's two objects
+ * (stage-controls.js) instead of this page's bar.
  */
 
 import { GEMINI_DEFAULT_MODEL } from '../adapters/gemini-model.js';
@@ -28,6 +29,7 @@ import { describeDegradations, detectCapabilities } from '../capabilities.js';
 import { admitCatalogVisual } from '../../core/visual-catalog.js';
 import { jevColors } from '../../core/jev-palette.js';
 import { createLiveControls } from './controls.js';
+import { createStageControls } from './stage-controls.js';
 import { DelayedRunner, EvalRunner } from './EvalRunner.js';
 import './LiveHost.css';
 
@@ -42,7 +44,9 @@ function embedHeight(width, maxHeight) {
     return Number.isFinite(maxHeight) ? Math.min(height, maxHeight) : height;
 }
 const SAFE_SIDES = ['top', 'right', 'bottom', 'left'];
-const EMBED_REPLAY_NOTICE = 'Reopening starts this reading from the beginning';
+/** What the stage's hidden status says of this device; the other notes have no meaning in a card. */
+const STAGE_NOTES = ['speechOutput', 'canvas', 'reducedMotion'];
+const PLAY_GLYPH = '<svg viewBox="0 0 24 24" width="26" height="26" aria-hidden="true" focusable="false"><path d="M8 5.5v13l10-6.5z" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round"/></svg>';
 /** The frame's colors a theme sets, and which of its shipped colors each takes. */
 const EMBED_THEME_VARS = [['--color-void', 'background'], ['--color-light', 'text'], ['--color-cloud', 'text'], ['--color-accent', 'accent']];
 const PROVIDERS = Object.freeze({
@@ -129,7 +133,7 @@ export class LiveHost {
             this.modules = this.loadModules();
             this.modules.catch(() => {});
             void import('../../components/read/Chamber.js').catch(() => {});
-            this.prefetchMic();
+            // The stage takes no speech, so nothing of the microphone is fetched.
             void this.startEmbedded();
             return;
         }
@@ -769,7 +773,10 @@ export class LiveHost {
         this.showPoster(events[0]?.body ?? {});
     }
 
-    /** The answer, ready: its title over Begin, in its theme's colors. The title is text, never markup. */
+    /**
+     * The answer, ready: its title over Play, in its theme's colors, and no other word. The title is
+     * text, never markup; the heading is clamped to three lines, so the whole title is its label too.
+     */
     showPoster({ title, theme }) {
         this.paintEmbedTheme(theme);
         const main = this.container.querySelector('.live-host--embedded');
@@ -777,12 +784,14 @@ export class LiveHost {
         const heading = document.createElement('h1');
         heading.className = 'live-title';
         heading.textContent = title;
-        const begin = document.createElement('button');
-        begin.type = 'button';
-        begin.className = 'live-start';
-        begin.textContent = 'Begin';
-        begin.addEventListener('click', () => { void this.beginEmbedded(); });
-        main.append(heading, begin);
+        heading.setAttribute('aria-label', title);
+        const play = document.createElement('button');
+        play.type = 'button';
+        play.className = 'live-start';
+        play.setAttribute('aria-label', 'Play');
+        play.innerHTML = PLAY_GLYPH;
+        play.addEventListener('click', () => { void this.beginEmbedded(); });
+        main.append(heading, play);
     }
 
     /** The whole frame in a theme's shipped colors, or in RISE's own when the answer names none. */
@@ -816,10 +825,10 @@ export class LiveHost {
         if (!this.embeddedEvents || this.embeddedBeginStarted || this.destroyed || this.embeddedStartupCancelled) return;
         this.embeddedBeginStarted = true;
         this.starting = true;
-        const begin = this.container.querySelector('.live-start');
-        if (begin) {
-            begin.disabled = true;
-            begin.textContent = 'Starting…';
+        const play = this.container.querySelector('.live-start');
+        if (play) {
+            play.disabled = true;
+            play.setAttribute('aria-label', 'Starting');
         }
         try {
             const runtime = await this.buildRuntime();
@@ -828,12 +837,14 @@ export class LiveHost {
                 return;
             }
             this.runtime = runtime;
-            const mic = await this.buildMic();
-            if (this.destroyed || this.embeddedStartupCancelled) return;
-            // The frame has no page before the reading, so what this device cannot do is said here; the
-            // status line already says a silent reading is paced.
-            // A Composer presentation plays one admitted Current; it offers no Dive.
-            this.controls = createLiveControls({ runtime, onStop: () => this.stop(), audible: this.voiceKind === 'browser', dive: false, mic, notice: EMBED_REPLAY_NOTICE, notes: this.degradations({ pacingShown: true }) });
+            // The stage: Play/Pause and Settings, no microphone, no notice, no notes, no question. What
+            // this device cannot do goes into the hidden status, which already says a silent reading is paced.
+            this.controls = createStageControls({
+                runtime,
+                onPlayAgain: () => { void this.playAgainEmbedded(); },
+                audible: this.voiceKind === 'browser',
+                degradations: this.degradations({ pacingShown: true }).filter(note => STAGE_NOTES.includes(note.capability))
+            });
             await runtime.start('The answer the assistant presents');
         } catch (error) {
             if (this.destroyed || this.embeddedStartupCancelled) return;
@@ -849,6 +860,23 @@ export class LiveHost {
         }
     }
 
+    /**
+     * Play again: the finished runtime is stopped and a new one is built from the same admitted answer.
+     * A runtime carries one conversation (`runtime.start` refuses a second), so the reading is rebuilt,
+     * not resumed; and the end never goes through `ended()`, which would close the port to the host.
+     */
+    async playAgainEmbedded() {
+        if (!this.embeddedEvents || this.destroyed || this.embeddedStartupCancelled || this.starting) return;
+        const runtime = this.runtime;
+        this.runtime = null;
+        this.controls?.destroy();
+        this.controls = null;
+        await runtime?.stop();
+        if (this.destroyed || this.embeddedStartupCancelled) return;
+        this.embeddedBeginStarted = false;
+        await this.beginEmbedded();
+    }
+
     cancelEmbeddedPending() {
         this.clearEmbeddedAnswerTimer();
         this.embeddedProposalRevision += 1;
@@ -862,7 +890,7 @@ export class LiveHost {
         this.embeddedQueuedCurrent = null;
     }
 
-    /** The reader pressed Stop, or asked to leave. */
+    /** The reader pressed Stop on the standalone page, or asked to leave; the embed has no Stop. */
     async stop() {
         this.stopHearingExitListener();
         if (this.embedded) {
@@ -880,7 +908,7 @@ export class LiveHost {
         await runtime?.stop();
         this.resetButton();
         await this.present?.leaveLive(this.router);
-        if (this.embedded && !this.destroyed) this.say(`Stopped. Ask the assistant again to see it. ${EMBED_REPLAY_NOTICE}.`);
+        if (this.embedded && !this.destroyed) this.say('Stopped.');
     }
 
     /** The reader left the Chamber by its own control: end what was running. */
@@ -899,7 +927,7 @@ export class LiveHost {
         this.controls = null;
         await runtime?.stop();
         this.resetButton();
-        if (this.embedded && !this.destroyed) this.say(`Finished. Ask the assistant again to see it. ${EMBED_REPLAY_NOTICE}.`);
+        if (this.embedded && !this.destroyed) this.say('Finished.');
     }
 
     activate() {

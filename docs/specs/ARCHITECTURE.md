@@ -156,11 +156,11 @@ flowchart LR
     affect["affect<br/>experience-state evaluation<br/>29 modules"]
     app["app<br/>composition root<br/>13 modules"]
     audio["audio<br/>Web Audio, recitation<br/>11 modules"]
-    components["components<br/>routed views<br/>51 modules"]
+    components["components<br/>routed views<br/>50 modules"]
     content["content<br/>texts, imagery, journeys<br/>228 modules"]
     core["core<br/>session, player, router<br/>170 modules"]
     enterprise["enterprise<br/>talk program, speaker rail<br/>34 modules"]
-    live["live<br/>realtime Current: events, runtime, providers<br/>41 modules"]
+    live["live<br/>realtime Current: events, runtime, providers<br/>42 modules"]
     page["page<br/>spatial projection<br/>4 modules"]
     sources["sources<br/>text and visual providers<br/>13 modules"]
     vendor["vendor<br/>SyberLabs design kit<br/>2 modules"]
@@ -169,7 +169,7 @@ flowchart LR
 
     affect --> |7| core
     app --> |1| audio
-    app -.-> |9 lazy| components
+    app -.-> |8 lazy| components
     app --> |3| content
     app --> |43| core
     app -.-> |1 lazy| live
@@ -400,8 +400,8 @@ serves:
   `src/components/visual-navigator/markup.js`,
   `src/components/visual-navigator/live-stage.js` and
   `src/components/visual-navigator/world-stage.js`.
-- Home opens on a reading already under way: `src/components/reading-backdrop.js`
-  draws its engine, `src/components/reading-stream.js` streams its opening, and
+- Home is a home with a window: `src/components/reading-backdrop.js` draws the
+  featured reading's engine behind a still slot that names it, and
   `src/components/home-ask.js` is the Ask for a reading dialog.
 
 Every old route id and path still works: `src/core/route-url.js` maps each to
