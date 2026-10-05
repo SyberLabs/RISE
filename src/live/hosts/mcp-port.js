@@ -54,6 +54,16 @@ export const PORT_LIMITS = Object.freeze({ message: MCP_MESSAGE_BYTES, current: 
 
 const isPlainObject = value => Boolean(value) && typeof value === 'object' && !Array.isArray(value);
 
+/** What a witness session reads of the hello's context (the embed stage decision §10); style variables by their keys, never their values. */
+const WITNESSED_CONTEXT = ['containerDimensions', 'displayMode', 'availableDisplayModes', 'safeAreaInsets', 'theme', 'platform', 'deviceCapabilities'];
+
+function witnessed(context, fields = Object.keys(context)) {
+    const line = {};
+    for (const field of fields) if (field !== 'styles' && context[field] !== undefined) line[field] = context[field];
+    if (isPlainObject(context.styles)) line.stylesVariables = Object.keys(isPlainObject(context.styles.variables) ? context.styles.variables : {});
+    return line;
+}
+
 /** A Current from a successful tool result. Tool input never authorizes Begin. */
 export function currentFrom(method, params) {
     if (method === METHODS.toolResult && params?.isError === true) return null;
@@ -69,8 +79,9 @@ export function currentFrom(method, params) {
  * @param {Window} options.frame this page's window
  * @param {Window} [options.host] where the host is (the parent)
  * @param {string} [options.appName]
+ * @param {(line: string) => void} [options.log] a witness's log: one JSON line at hello, per context change and per size report
  */
-export function createMcpGuestPort({ frame, host = frame.parent, appName = 'RISE', clock = createRealClock(), timeoutMs = 10_000 }) {
+export function createMcpGuestPort({ frame, host = frame.parent, appName = 'RISE', clock = createRealClock(), timeoutMs = 10_000, log }) {
     const listeners = new Set();
     const errorListeners = new Set();
     const buffered = [];
@@ -87,6 +98,7 @@ export function createMcpGuestPort({ frame, host = frame.parent, appName = 'RISE
     let hostContext = {};
 
     const send = message => host.postMessage({ jsonrpc: '2.0', ...message }, '*');
+    const witness = (event, line) => { if (log) log(JSON.stringify({ 'rise-host': event, ...line })); };
 
     function currentKey(current) {
         try { return JSON.stringify({ current }); } catch { return null; }
@@ -147,6 +159,7 @@ export function createMcpGuestPort({ frame, host = frame.parent, appName = 'RISE
             // A partial update: the fields it carries replace those held, and the rest stay.
             if (!isPlainObject(data.params)) return;
             hostContext = { ...hostContext, ...data.params };
+            witness('context-changed', witnessed(data.params));
             for (const listener of [...contextListeners]) { try { listener(hostContext); } catch { /* one listener cannot block the others */ } }
             return;
         }
@@ -203,6 +216,7 @@ export function createMcpGuestPort({ frame, host = frame.parent, appName = 'RISE
             const result = await request(METHODS.initialize, { appInfo: { name: appName, version: '1' }, appCapabilities: { availableDisplayModes: ['inline'] }, protocolVersion: PROTOCOL_VERSION });
             sampling = Boolean(result?.hostCapabilities?.sampling);
             hostContext = isPlainObject(result?.hostContext) ? { ...result.hostContext } : {};
+            witness('initialize', witnessed(hostContext, WITNESSED_CONTEXT));
             send({ method: METHODS.initialized, params: {} });
             return result;
         },
@@ -256,6 +270,7 @@ export function createMcpGuestPort({ frame, host = frame.parent, appName = 'RISE
             const size = {};
             if (Number.isFinite(width)) size.width = Math.round(width);
             if (Number.isFinite(height)) size.height = Math.round(height);
+            witness('size-changed', size);
             send({ method: METHODS.sizeChanged, params: size });
         },
 
