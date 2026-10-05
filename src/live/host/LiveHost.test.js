@@ -791,6 +791,33 @@ describe('inside an MCP host', () => {
         expect(root.style.getPropertyValue('--font-sans')).toBe('');
     });
 
+    it('writes the host’s context and each size report to the console as JSON only when the page is opened with ?log=host', async () => {
+        const logged = vi.spyOn(console, 'log').mockImplementation(() => {});
+        try {
+            const first = framed();
+            mount('?embed=mcp&voice=paced&log=host', first.environment);
+            await vi.waitFor(() => expect(first.sent).toHaveLength(1));
+            first.hostSays({ jsonrpc: '2.0', id: first.sent[0].id, result: { protocolVersion: '2026-01-26', hostCapabilities: {}, hostContext: { displayMode: 'inline', theme: 'dark', styles: { variables: { '--font-sans': 'Inter' } } } } });
+            await vi.waitFor(() => expect(heights(first.sent)).toHaveLength(1));
+            expect(logged.mock.calls.map(([line]) => JSON.parse(line))).toEqual([
+                { 'rise-host': 'initialize', displayMode: 'inline', theme: 'dark', stylesVariables: ['--font-sans'] },
+                { 'rise-host': 'size-changed', height: 481 }
+            ]);
+            await host.stop();
+            logged.mockClear();
+
+            const second = framed();
+            mount('?embed=mcp&voice=paced', second.environment);
+            await vi.waitFor(() => expect(second.sent).toHaveLength(1));
+            second.hostSays({ jsonrpc: '2.0', id: second.sent[0].id, result: { protocolVersion: '2026-01-26', hostCapabilities: {}, hostContext: { theme: 'dark' } } });
+            await vi.waitFor(() => expect(heights(second.sent)).toHaveLength(1));
+            expect(logged).not.toHaveBeenCalled();
+            await host.stop();
+        } finally {
+            logged.mockRestore();
+        }
+    });
+
     it('has no prompt, no provider to choose, and waits for a reader click after the host’s answer is ready', async () => {
         const { environment } = framed();
         mount('?embed=mcp&voice=paced', environment);
