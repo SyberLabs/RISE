@@ -1,5 +1,32 @@
 import { describe, expect, it } from 'vitest';
-import { permittedSourceDigests } from './reading-state.js';
+import { flameStructureKey } from '../flame-recipe.js';
+import { jevColors } from '../jev-palette.js';
+import { compileSession } from '../session-compiler.js';
+import { themedFlameRecipe } from '../theme-engine-map.js';
+import { flamePreset } from '../../visuals/living-flame/flame-presets.js';
+import { ensureDirector, permittedSourceDigests } from './reading-state.js';
+
+describe('the director\'s flame recipes', () => {
+  const gallery = { visualMode: 'interlocution', interlocution: { sourceFamily: 'procedural', procedural: [], sourced: [], presentation: 'continuous' } };
+  const text = Array.from({ length: 12 }, () => 'The quiet garden rests in gentle peace and the still water holds the soft light of evening.').join(' ');
+  const reading = presentation => compileSession({ title: 'Directed', text, wpm: 300, chunkMode: 'phrase', visualConfig: gallery, presentation });
+
+  it('are turned to the reading\'s theme where the cue is built', () => {
+    const colors = jevColors('jade');
+    const director = ensureDirector(reading({ colorTheme: 'jade', colors }));
+    const preset = flamePreset('verdant-current');
+    const recipe = director.flameRecipe('verdant-current');
+    expect(recipe.macros.hue).toBe(themedFlameRecipe(preset, colors).macros.hue);
+    expect(recipe.macros.hue).not.toBe(preset.macros.hue);
+    expect(flameStructureKey(recipe)).toBe(flameStructureKey(preset));
+    expect([recipe.id, recipe.name]).toEqual([preset.id, preset.name]);
+  });
+
+  it('are the presets themselves without a theme', () => {
+    const director = ensureDirector(reading(undefined));
+    expect(director.flameRecipe('verdant-current')).toBe(flamePreset('verdant-current'));
+  });
+});
 
 describe('which sources may be sent to Jev', () => {
   const digests = ['a1', 'b2', 'c3'];
