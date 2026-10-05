@@ -3,6 +3,8 @@
 **Status: Intent.** Written 1 October 2026. Nothing in this document is built
 except where §3 says so, and §3 is measured against the code, not against hope.
 
+**Current scope (2026-10-04):** RISE in ChatGPT is Composer, a one-shot sequence creator and RISE presentation ([decision](product/discussions/2026-10-04-composer-decision.md)). The Live stages and Dive below are direction, not current scope.
+
 This supersedes the documents in `docs/vision/` as the statement of where RISE
 is going. Those describe the era in which RISE was a reading engine with a
 doorway in front of it; they are a record of that work and are not authority

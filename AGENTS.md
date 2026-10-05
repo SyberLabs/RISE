@@ -85,9 +85,12 @@ browser-local work stay client-side. Its production Cloudflare Worker serves
 the app and a static public catalog built from `src/content/decision-catalog.json`.
 RISE spends no shared inference: reader recommendations use the reader's own
 OpenRouter account or pinned Kev on the reader's computer. Former shared model
-routes return 410. Optional live Realtime and MCP integrations use the reader's
-own key or the host's model and remain switched off by default. See
-`docs/USER-OWNED-AI.md` and `docs/plans/LIVE-MCP.md`.
+routes return 410. RISE in ChatGPT is Composer: the host model composes one
+sealed Current in a single MCP tool call, the Worker admits it, and RISE
+presents it under the reader's control. Dive and realtime Live are out of
+current scope; the live Realtime page stays switched off by default. See
+`docs/USER-OWNED-AI.md`, `docs/plans/LIVE-MCP.md` and
+[the Composer decision](docs/product/discussions/2026-10-04-composer-decision.md).
 
 ## Environment / setup
 
@@ -144,7 +147,7 @@ own key or the host's model and remain switched off by default. See
 
 ## Product roadmap and task tracking
 
-- Before selecting work, read [the product library and tracker](docs/product/README.md) and the applicable Reader or Live + RiseSDK direction. Shared foundation work has its own lane.
+- Before selecting work, read [the product library and tracker](docs/product/README.md) and the applicable Reader or Composer + RiseSDK direction. Shared foundation work has its own lane.
 - Run `npm run roadmap:check`; claim one task in `docs/product/tasks/` with one owner, and honor dependencies and acceptance criteria. Coordinate before replacing another owner.
 - Update the task record in the same PR as the work, using the validated CLI described in the product library. Link exact PR/commit/test evidence and separately record human observations. Keep branch, merged, deployed and accepted distinct; a green build cannot pass human gates.
 - Review recent unmapped changes and link them to tasks when justified. Do not automatically complete tasks from PR status or copy historical test counts as current evidence.

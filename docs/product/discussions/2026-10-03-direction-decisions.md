@@ -1,6 +1,6 @@
 # October product-direction decisions
 
-Status: Record. Date: 2026-10-03. Provenance: Mateo's RISE development conversation and supplied October roadmap. This is a summary, not a verbatim transcript. It records available decisions; it cannot recover discussions outside that conversation or repository.
+Status: Record. Date: 2026-10-03. Followed by the [2026-10-04 Composer decision](2026-10-04-composer-decision.md). Provenance: Mateo's RISE development conversation and supplied October roadmap. This is a summary, not a verbatim transcript. It records available decisions; it cannot recover discussions outside that conversation or repository.
 
 ## Two products, one foundation
 

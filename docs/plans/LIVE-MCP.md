@@ -2,6 +2,8 @@
 
 **Status:** built and tested end to end against **fakes and against the reference package's own host class**: the MCP server, the app a host is given, the page it frames, the port, the adapter, and the runtime through them. **Not tried in any product host** (ChatGPT, Claude, VS Code, or any other). **Off by default**, and not reachable on the deployed site until the creator turns it on (see *Turning it on*).
 
+**Current scope (2026-10-04):** the MCP server, app and admitted delivery described here are the Composer transport and in scope ([decision](../product/discussions/2026-10-04-composer-decision.md)). A Dive through sampling is out of current scope.
+
 ## The idea, and why it needs so little
 
 In an MCP host the provider is the host's own model. It does not stream to RISE; it calls a tool whose argument is a sealed Current (`rise.current.v1`). That is exactly the seam RISE already has: an external declarative answer, validated, lowered, and played by the existing Player. So the host adds no runtime logic. It adds an *adapter*, a *server* that says what the tool is, and an *app* the host shows for the tool call.

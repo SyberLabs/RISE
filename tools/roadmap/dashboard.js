@@ -1,6 +1,6 @@
 const LANES = [
   { id: 'reader', label: 'Reader', note: 'Audiovisual reading experience' },
-  { id: 'live-sdk', label: 'Live + RiseSDK', note: 'Live interaction and developer tools' },
+  { id: 'live-sdk', label: 'Composer + RiseSDK', note: 'RISE inside ChatGPT, and developer tools later' },
   { id: 'shared', label: 'Shared foundation', note: 'Capabilities that support both directions' },
 ];
 const STATUS_LABELS = {
