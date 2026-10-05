@@ -3,8 +3,8 @@
   "title": "Remove small stalls in the attractor and the fractal snapshot",
   "lane": "reader",
   "milestone": "Reader consolidation",
-  "status": "in_review",
-  "delivery": "branch",
+  "status": "done",
+  "delivery": "deployed",
   "owner": "Claude coordinator",
   "priority": "now",
   "dependencies": [
@@ -40,6 +40,12 @@
       "ref": "src/visuals/visual-cortex.test.js",
       "note": "Fractal Gallery 35 s: tasks over 50 ms after 2 s were 1-2 (110-156 ms) on production, 0 in two branch runs.",
       "date": "2026-10-05"
+    },
+    {
+      "kind": "commit",
+      "ref": "https://github.com/SyberLabs/RISE/commit/9f43b33adf314982d8364f26a646d14da982dc7a",
+      "note": "Merged as #415 after full validation and Composer-owner review; deployed.",
+      "date": "2026-10-05"
     }
   ],
   "activity": [
@@ -50,10 +56,14 @@
     {
       "date": "2026-10-05T07:33:54.786Z",
       "summary": "Opened #415 for Composer-owner review"
+    },
+    {
+      "date": "2026-10-05T08:20:40.796Z",
+      "summary": "Merged and deployed as #415"
     }
   ],
-  "updatedAt": "2026-10-05T07:33:54.786Z",
-  "revision": 2,
-  "summary": "The attractor leaves an unchanged canvas size alone, and Gallery stills are encoded with toBlob instead of a synchronous toDataURL. Waiting for the Composer owner's review.",
+  "updatedAt": "2026-10-05T08:20:40.796Z",
+  "revision": 3,
+  "summary": "The attractor leaves an unchanged canvas size alone, and Gallery walls after each reading's opening still encode with toBlob instead of a synchronous toDataURL (word fills and the opening still export at once so Fit never flashes).",
   "blocker": null
 }
