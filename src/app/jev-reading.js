@@ -204,9 +204,10 @@ export function openingOf(text, maxChars = 240) {
 
 /**
  * The opening of the same division resolveJevReading opens, for a preview,
- * and whether that division is verse, so the Chamber reads it by line.
+ * whether that division is verse, so the Chamber reads it by line, and its
+ * word count, so Home can say how long it takes.
  */
 export async function openingLines(decision) {
   const { entry } = await openJevDivision(decision);
-  return { text: openingOf(entry.content, 240), verse: entry.verse === true };
+  return { text: openingOf(entry.content, 240), verse: entry.verse === true, words: Number(entry.words) || 0 };
 }
