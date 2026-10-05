@@ -15,19 +15,19 @@ and were left as written.
 | File | What it was for | Why withheld |
 | --- | --- | --- |
 | `archive-ingest.mjs` | Archive ingest: public-domain works into Library payload modules (`src/content/archive/works/*`). | Unreferenced since 2026-08-20; named only by generated-file headers and `docs/vision/LIBRARY-SPEC.md`. |
-| `legacy-ingest.mjs` | Audit and replace the 17 acquired legacy classics from SOL's 2026-07-30 review. | Unreferenced since 2026-08-20; named only by generated-file headers and `docs/README.md`. |
-| `standard-ebooks-ingest.mjs` | Acquire a work from a Standard Ebooks edition, reading its structure instead of guessing it. | Unreferenced since 2026-08-20; named only by generated-file headers. |
+| `legacy-ingest.mjs` | Audit and replace the 17 acquired legacy classics from SOL's 2026-07-30 review. | Unreferenced since 2026-08-20; named only by generated-file headers and `docs/README.md`. Restore before running: imports `../src`. |
+| `standard-ebooks-ingest.mjs` | Acquire a work from a Standard Ebooks edition, reading its structure instead of guessing it. | Unreferenced since 2026-08-20; named only by generated-file headers. Restore before running: imports `../src`. |
 | `chapel-ingest.mjs` | Chapel corpus ingestion: Gutenberg #1581 (Douay-Rheims) into 73 book payload modules. | Unreferenced since 2026-08-20; named only by generated-file headers and a comment in `src/core/chunk-profiles.js`. |
 | `met-harvest.mjs` | Met harvest into an interactive contact sheet for pinning `ATRIUM_PINNED_COLLECTIONS`. | Unreferenced since 2026-08-20; named only by a comment in `src/content/imagery/collections.js` and `docs/specs/MUSEUM-ATLAS.md`. |
 | `atrium-contact-sheet.mjs` | Atrium curation tool: resolve candidate works and build a contact sheet (the Atrium view was deleted in #7). | Unreferenced since 2026-08-20; named only by a comment in `scripts/science-contact-sheet.mjs`. |
 | `build-og-card.mjs` | Draw the 1200×630 link-preview card in product tokens. | Unreferenced since 2026-08-20; nothing names it. |
-| `corpus-cleanse.mjs` | Remove positionally proven page furniture from shelved payloads (the 2026-08 cleansing campaign). | Unreferenced since 2026-08-20; named only by a comment in `src/content/archive/furniture.js`. |
-| `corpus-review-jobs.mjs` | Build review jobs for the corpus reviewer (campaign ended; `docs/specs/CORPUS-REVIEWER-PROMPT.md`). | Unreferenced since 2026-08-20; named only by that record. |
+| `corpus-cleanse.mjs` | Remove positionally proven page furniture from shelved payloads (the 2026-08 cleansing campaign). | Unreferenced since 2026-08-20; named only by a comment in `src/content/archive/furniture.js`. Restore before running: imports `../src`. |
+| `corpus-review-jobs.mjs` | Build review jobs for the corpus reviewer (campaign ended; `docs/specs/CORPUS-REVIEWER-PROMPT.md`). | Unreferenced since 2026-08-20; named only by that record. Restore before running: imports `../src`. |
 | `corpus-review-verdicts.mjs` | Check a batch of reviewer verdicts before anything is applied. | Unreferenced since 2026-08-20; named only by `docs/specs/CORPUS-REVIEWER-PROMPT.md` and `corpus-review-apply.mjs`. |
-| `corpus-review-apply.mjs` | Apply accepted reviewer verdicts to the payloads. | Unreferenced since 2026-08-20; nothing names it. |
-| `build-modern-readings-manifest.mjs` | Write `src/content/modern-readings-manifest.json` from `MODERN_READINGS` (#241). | Unreferenced since 2026-09-27; nothing names it. |
+| `corpus-review-apply.mjs` | Apply accepted reviewer verdicts to the payloads. | Unreferenced since 2026-08-20; nothing names it. Restore before running: imports `../src`. |
+| `build-modern-readings-manifest.mjs` | Write `src/content/modern-readings-manifest.json` from `MODERN_READINGS` (#241). | Unreferenced since 2026-09-27; nothing names it. Restore before running: imports `../src`. |
 | `jev-eval-local-hf.mjs` | Exploratory local MiniLM semantic-choice baseline for Jev (not a Jev replacement). | Unreferenced since 2026-10-04; named only by `docs/jev-core/variety-evaluation.md`. Runnable from here: it has no relative imports. |
-| `jev-eval/jev-eval.test.mjs` | `node:test` scoring of Jev decisions against the fixture sets below. | Unreferenced since 2026-09-29: no runner names it (`vitest` includes `src/**` and `worker/**`; CI runs `decision-eval.test.mjs`). Kept beside the three case files only it reads. |
+| `jev-eval/jev-eval.test.mjs` | `node:test` scoring of Jev decisions against the fixture sets below. | Unreferenced since 2026-09-29: no runner names it (`vitest` includes `src/**` and `worker/**`; CI runs `decision-eval.test.mjs`). Kept beside the three case files only it reads. Restore before running: imports `./jev-eval.mjs`, `../worker`, `../src` and five staying fixtures. |
 | `jev-eval/jev-eval-look-cases.json` | Eight look prompts (ink, background, typeface, size, sound, motion). | Unreferenced since 2026-09-26; read only by `jev-eval.test.mjs`. |
 | `jev-eval/jev-eval-phase-cases.json` | Opening and finale prompts (#d0cbece). | Unreferenced since 2026-09-27; read only by `jev-eval.test.mjs`. |
 | `jev-eval/jev-eval-reference-cases.json` | Reference-reading prompts (#297). | Unreferenced since 2026-09-29; read only by `jev-eval.test.mjs`. |

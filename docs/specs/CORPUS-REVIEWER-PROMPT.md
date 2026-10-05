@@ -1,8 +1,9 @@
 # The Corpus Reviewer — prompt and contract
 
 **Status:** RECORD. Written 2026-08-04 for a campaign that has since ended
-(`ARCHIVE-CLEANSING-SPEC`). Kept because `scripts/corpus-review-jobs.mjs` and
-`corpus-review-verdicts.mjs` still speak the format defined here.
+(`ARCHIVE-CLEANSING-SPEC`). Kept because `corpus-review-jobs.mjs` and
+`corpus-review-verdicts.mjs`, withheld under `scripts/attic/`, still speak the
+format defined here.
 **Serves:** `ARCHIVE-CLEANSING-SPEC` §3 rung 3 and §4, the handoff.
 **Instrument:** a cheap, fast model (Gemini 3.6 Flash or similar), one bounded
 job at a time.
@@ -41,6 +42,11 @@ what was missing. The prompt did its job. The harness did not exist yet.
    last twenty running heads has been primed by them.
 
 ### The harness
+
+The three scripts are withheld in `scripts/attic/` (unreferenced since
+2026-08-20; `scripts/attic/README.md`). Restore them before running: `git mv
+scripts/attic/corpus-review-{jobs,verdicts,apply}.mjs scripts/`. Run from the
+attic they fail, because their `../src/...` imports resolve from `scripts/`.
 
 ```bash
 # 1. Build a batch. Positionally-proven furniture is NOT sent (§2b settles it);
