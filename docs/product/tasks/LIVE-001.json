@@ -26,6 +26,12 @@
       "ref": "src/live/current-parity.test.js",
       "note": "Branch composer/parity: 7 tests on a Current using every visual, a literal passage, non-ASCII text and a span, in all nine themes and none. Every word reaches its atoms in order; clips anchor their passage; span atoms tile their characters; compiles are deterministic and prefix-stable; every atom resolves its passage cue; the live Player presents exactly the compiled atoms. Five mutations each caught. No runtime change.",
       "date": "2026-10-05"
+    },
+    {
+      "kind": "pr",
+      "ref": "https://github.com/SyberLabs/RISE/pull/412",
+      "note": "Parity tests, open for review, not merged.",
+      "date": "2026-10-05"
     }
   ],
   "activity": [
@@ -36,10 +42,14 @@
     {
       "date": "2026-10-05T06:18:30.676Z",
       "summary": "Claimed by Cloud Composer agent; parity tests added, no defect found; in review on a branch, not merged"
+    },
+    {
+      "date": "2026-10-05T06:23:49.767Z",
+      "summary": "Linked the LIVE-001 PR (Cloud Composer agent)"
     }
   ],
-  "updatedAt": "2026-10-05T06:18:30.676Z",
-  "revision": 2,
+  "updatedAt": "2026-10-05T06:23:49.767Z",
+  "revision": 3,
   "summary": "Preserve text, source anchors, themes and supported visual intent through Current → Experience Program → Session.",
   "blocker": null
 }
