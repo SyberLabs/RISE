@@ -185,7 +185,7 @@ test('tool input waits for the successful Worker result before enabling reader B
   const sent = await log(page);
   expect(sent.filter(entry => entry.method === 'ui/initialize')).toHaveLength(1);
   expect(sent.some(entry => entry.method === 'ui/notifications/initialized')).toBe(true);
-  expect(sent.find(entry => entry.method === 'ui/notifications/size-changed').params.height).toBe(640);
+  expect(sent.find(entry => entry.method === 'ui/notifications/size-changed').params).toEqual({ height: 560 });
   await page.evaluate(() => window.__host.releaseToolResult());
   await expect(app.getByRole('button', { name: 'Begin', exact: true })).toBeVisible();
   await begin(app);
@@ -396,6 +396,8 @@ test('a resize while held keeps the attractor on screen', async ({ page, baseURL
   await expect.poll(() => app.locator('body').evaluate(body => body.ownerDocument.defaultView.innerWidth)).toBe(560);
   await expect.poll(() => picturesOverASecond(canvas), { timeout: 5_000 }).toBe(1);
   await expect(app.locator('#atom-display')).toContainText('A black hole is a region of space');
+  // The height follows the width: 760 asked for 502, and the narrower frame asks again for 481.
+  await expect.poll(async () => (await log(page)).filter(entry => entry.method === 'ui/notifications/size-changed').map(entry => entry.params.height)).toEqual([502, 481]);
 });
 
 const TWO_FIELDS = {
