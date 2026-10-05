@@ -394,6 +394,11 @@ describe('the app', () => {
     expect(content._meta['openai/widgetDescription']).toMatch(/^[^.]*Begin[^.]*\.$/u);
   });
 
+  it('tells ChatGPT on the resource that it is shown inline only, so the host picks the mode before loading it', async () => {
+    const { result } = await json(await post(rpc('resources/read', { uri: APP_URI })));
+    expect(result.contents[0]._meta['openai/ui']).toEqual({ availableDisplayModes: ['inline'] });
+  });
+
   it('follows the origin it is asked at, so a staging site frames its own page', async () => {
     const { result } = await json(await post(rpc('resources/read', { uri: APP_URI }), { url: 'https://staging.rise.example/api/mcp' }));
     expect(result.contents[0].text).toContain('src="https://staging.rise.example/live?embed=mcp"');
