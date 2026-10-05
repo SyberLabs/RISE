@@ -3,7 +3,7 @@
   "title": "Run the decoupled render/data host probe",
   "lane": "live-sdk",
   "milestone": "Independent Live research",
-  "status": "in_review",
+  "status": "done",
   "delivery": "branch",
   "owner": "Codex coordinator",
   "priority": "now",
@@ -32,6 +32,18 @@
       "ref": "docs/experiments/CHATGPT-HOST-2026-10-04.md",
       "note": "Exact candidates, partial Composer acceptance, negative automatic-delivery evidence and verified shutdown. Inert demo Worker remains without public targets.",
       "date": "2026-10-04"
+    },
+    {
+      "kind": "document",
+      "ref": "docs/product/discussions/2026-10-04-composer-decision.md",
+      "note": "Composer is the approach; Dive and realtime Live leave the current scope.",
+      "date": "2026-10-04"
+    },
+    {
+      "kind": "pr",
+      "ref": "https://github.com/SyberLabs/RISE/pull/372",
+      "note": "Closed unmerged after the host session; head f689a002 pinned in the host record.",
+      "date": "2026-10-04"
     }
   ],
   "activity": [
@@ -46,10 +58,14 @@
     {
       "date": "2026-10-05T01:08:34.192Z",
       "summary": "One decoupled host session: reader calls applied in one instance; model admissions advanced server to 6 while widget stayed at 2 until manual read. ChatGPT remains Composer."
+    },
+    {
+      "date": "2026-10-05T01:46:43.246Z",
+      "summary": "Probe answered: admitted model changes do not reach an open widget; ChatGPT is Composer"
     }
   ],
-  "updatedAt": "2026-10-05T01:08:34.192Z",
-  "revision": 3,
+  "updatedAt": "2026-10-05T01:46:43.246Z",
+  "revision": 4,
   "summary": "One decoupled host session: reader calls applied in one instance; model admissions advanced server to 6 while widget stayed at 2 until manual read. ChatGPT remains Composer.",
-  "blocker": "Voice audio and marker recognition unverified; automatic model delivery was not observed. Review bounded capability conclusion."
+  "blocker": null
 }

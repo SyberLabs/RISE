@@ -3,7 +3,7 @@
   "title": "Prove admitted Composer behavior in ChatGPT",
   "lane": "live-sdk",
   "milestone": "M1 composed explanation",
-  "status": "blocked",
+  "status": "in_progress",
   "delivery": "not_shipped",
   "owner": "Codex coordinator",
   "priority": "now",
@@ -41,10 +41,14 @@
     {
       "date": "2026-10-05T01:08:34.100Z",
       "summary": "Exact consolidated candidate has reader-confirmed audible ChatGPT narration. Full acceptance remains open for reader controls, fallback and early Interrupt during startup."
+    },
+    {
+      "date": "2026-10-05T01:46:43.000Z",
+      "summary": "Startup Held/complete inconsistency reproduced in a unit probe; not an external block"
     }
   ],
-  "updatedAt": "2026-10-05T01:08:34.100Z",
-  "revision": 3,
+  "updatedAt": "2026-10-05T01:46:43.000Z",
+  "revision": 4,
   "summary": "Exact consolidated candidate has reader-confirmed audible ChatGPT narration. Full acceptance remains open for reader controls, fallback and early Interrupt during startup.",
-  "blocker": "Reproduce the observed startup/Held/completion inconsistency; finish brightness, Resume and speech-unavailable checks."
+  "blocker": "Fix the reproduced startup defect: an Interrupt before the Chamber is presented is overridden when presentation starts playback (src/live/runtime.js), leaving Held beside a playing, then complete, reading. Then finish brightness while held, Resume and the speech-unavailable fallback in one host session."
 }
