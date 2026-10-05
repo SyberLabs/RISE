@@ -1,6 +1,6 @@
 # The Consolidated Reader and the canonical Home
 
-Status: Intent, proposed and not approved. Date: 2026-10-04. Phase A needs no decision; everything after it waits for the six owner decisions in §7. Based on `origin/main` = `97ca014f`, which is also the production release.
+Status: Intent, decided. Date: 2026-10-04. The six questions in §7 were answered on 2026-10-05 ([decision record](discussions/2026-10-05-consolidated-reader-decisions.md)). Based on `origin/main` = `97ca014f`, which is also the production release.
 
 **How to read the sources.** Facts about today's product cite the [evidence record](discussions/2026-10-04-reader-evidence.md) as "(report §n)", or code on `origin/main` as "(code: file:line)". Anything marked **Proposal** is design and is not built. Nothing here was implemented or measured. Every acceptance check below can be run, but none has been run. §8 records who drafted and reviewed it.
 

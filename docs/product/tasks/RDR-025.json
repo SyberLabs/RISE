@@ -1,0 +1,42 @@
+{
+  "id": "RDR-025",
+  "title": "Make Fill the one-tap Inlay look, phone first",
+  "lane": "reader",
+  "milestone": "Reader consolidation",
+  "status": "planned",
+  "delivery": "not_shipped",
+  "owner": null,
+  "priority": "next",
+  "dependencies": [
+    "RDR-020"
+  ],
+  "acceptance": [
+    "Choosing Inlay sets Word, a Gallery field, Thick, Fit, image ink and the look's border in one tap.",
+    "Inlay is offered only on screens 820 px wide or less until the desktop drift check passes.",
+    "e2e/fit-mask*.spec.js stays green."
+  ],
+  "evidence": [
+    {
+      "kind": "document",
+      "ref": "docs/product/CONSOLIDATED-READER.md",
+      "note": "Package C6.",
+      "date": "2026-10-05"
+    },
+    {
+      "kind": "document",
+      "ref": "docs/product/discussions/2026-10-05-consolidated-reader-decisions.md",
+      "note": "Owner decisions Q1-Q6, 2026-10-05.",
+      "date": "2026-10-05"
+    }
+  ],
+  "activity": [
+    {
+      "date": "2026-10-05T08:40:23.000Z",
+      "summary": "Seeded from Package C6 after the owner decisions."
+    }
+  ],
+  "updatedAt": "2026-10-05T08:40:23.000Z",
+  "revision": 1,
+  "summary": "Fill becomes reachable: one look that resolves its own preconditions.",
+  "blocker": null
+}
