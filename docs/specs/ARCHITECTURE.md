@@ -202,7 +202,7 @@ flowchart LR
     page --> |3| visuals
     sources --> |1| content
     visuals -.-> |4 lazy| content
-    visuals --> |22| core
+    visuals --> |23| core
     visuals --> |4| sources
     wormhole --> |1| app
     wormhole --> |2| core

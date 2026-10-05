@@ -5,6 +5,7 @@
 import { afterEach, describe, it, expect, vi } from 'vitest';
 import { Ostensoria } from './ostensoria.js';
 import { VOID_FRACTION_LIMIT } from './ostensoria-coverage.js';
+import { OSTENSORIA_PALETTES } from '../core/visual-style-definitions.js';
 
 describe('Ostensoria engine', () => {
     it('generates deterministically for a fixed seed', () => {
@@ -59,6 +60,22 @@ describe('Ostensoria engine', () => {
         expect(verdant.look.palette).toBe('verdant');
         expect(verdant.look.bands).toBe(1.3);
         expect(verdant.look.sat).toBe(0.90);
+    }, 30_000);
+
+    it('every listed Iris palette is a ramp the engine honours, rose among them', () => {
+        // The look is settled once the field is accumulated, before the
+        // plate develops: bake only that far, at the smallest quality.
+        const bakeLook = (palette) => {
+            const engine = new Ostensoria();
+            engine.beginBake(null, 'LUX-1234', { palette, quality: 1 });
+            for (let n = 0; !engine.look && n < 10_000 && !engine.stepBake(50); n++);
+            return engine.look;
+        };
+        for (const { id } of OSTENSORIA_PALETTES) {
+            if (id === 'auto') continue;
+            expect(bakeLook(id)?.palette, id).toBe(id);
+        }
+        expect(bakeLook('rose')).toMatchObject({ palette: 'rose', bands: 1.25, sat: 0.88 });
     }, 30_000);
 
     it('is silent without a 2d context or before generate', () => {
@@ -186,5 +203,35 @@ describe('Ostensoria preload queue', () => {
         engine.destroy();
         expect(engine.isReady()).toBe(false);
         expect(engine.queue).toHaveLength(0);
+    });
+
+    it('setLook bakes the queue with the look, flushes it on a change and keeps it on an equal look', async () => {
+        const options = [];
+        vi.spyOn(Ostensoria.prototype, '_bake').mockImplementation(function bake(_signal, _seed, opts) {
+            options.push(opts);
+            this.cur = { seed: 'q' };
+            this.look = { palette: opts.palette || 'ice' };
+            this.ready = true;
+            denseField(this);
+        });
+
+        const engine = new Ostensoria();
+        engine.setLook({ palette: 'teal' });
+        await engine.fillQueue(2);
+        expect(options).toEqual([{ palette: 'teal' }, { palette: 'teal' }]);
+
+        engine.setLook({ palette: 'teal' });
+        expect(engine.queue).toHaveLength(2);
+
+        engine.setLook({ palette: 'ember' });
+        expect(engine.queue).toHaveLength(0);
+        await engine.fillQueue(1);
+        expect(options.at(-1)).toEqual({ palette: 'ember' });
+
+        engine.setLook(null);
+        expect(engine.queue).toHaveLength(0);
+        await engine.fillQueue(1);
+        expect(options.at(-1)).toEqual({});
+        engine.destroy();
     });
 });

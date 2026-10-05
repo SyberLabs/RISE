@@ -100,6 +100,19 @@ describe('the reading backdrop', () => {
     expect(plates.destroy).toHaveBeenCalledOnce();
   });
 
+  it('hands the plates the theme\'s ramp, and none without a theme, so the preview matches the reading', async () => {
+    await mountReadingBackdrop(host, decision({
+      visualMode: 'interlocution', interlocution: { procedural: ['ostensoria'] }
+    }, 'ember'));
+    await mountReadingBackdrop(host, decision({
+      visualMode: 'interlocution', interlocution: { procedural: ['apparitio'] }
+    }));
+    expect(made.plates.map(plates => plates.options.look)).toEqual([
+      { ostensoria: { palette: 'ember' } },
+      { apparitio: null }
+    ]);
+  });
+
   it('resolves a plate mount only once its first plate, baked in slices, is drawn', async () => {
     let release;
     made.plateGate = new Promise(resolve => { release = resolve; });

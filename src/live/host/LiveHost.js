@@ -21,7 +21,9 @@
  * src/live/hosts/mcp-relay.js): no prompt, no provider to choose. The host's own
  * model wrote the answer and hands it over through the frame's parent; the same
  * runtime, Chamber and voice play it, under the stage's two objects
- * (stage-controls.js) instead of this page's bar.
+ * (stage-controls.js) instead of this page's bar. With `?log=host` as well, a
+ * witness session's switch, the port writes what the host says about the frame
+ * to the console as JSON lines (docs/plans/EMBED-WITNESS.md); nothing else.
  */
 
 import { GEMINI_DEFAULT_MODEL } from '../adapters/gemini-model.js';
@@ -599,7 +601,7 @@ export class LiveHost {
         try {
             const [{ createMcpGuestPort }] = await Promise.all([import('../hosts/mcp-port.js'), this.modules]);
             if (this.destroyed || this.embeddedStartupCancelled) return;
-            this.port = createMcpGuestPort({ frame });
+            this.port = createMcpGuestPort({ frame, log: this.params.get('log') === 'host' ? line => console.log(line) : undefined });
             this.stopListeningError = this.port.onError(error => this.refuseEmbeddedProposal(error));
             this.port.onToolCancelled(() => {
                 // The host withdrew the call this frame waits on: no answer will come of it. An

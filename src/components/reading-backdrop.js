@@ -46,7 +46,13 @@ export async function mountReadingBackdrop(host, decision) {
 
   if (engine === 'ostensoria' || engine === 'apparitio') {
     const { PlateField } = await import('../visuals/plate-field.js');
-    const field = new PlateField(host, { families: [engine], reducedMotion: reducedMotion(), sliceFirstPlate: true });
+    const field = new PlateField(host, {
+      families: [engine],
+      // The theme's ramp, as the Chamber will bake it; none without a theme.
+      look: { [engine]: themeEngine(decision.config.colorTheme, engine) },
+      reducedMotion: reducedMotion(),
+      sliceFirstPlate: true
+    });
     // The first plate bakes in slices; the stage keeps the last engine up until it is drawn.
     await field.start();
     return { pause: () => field.pause(), resume: () => field.resume(), destroy: () => field.destroy() };

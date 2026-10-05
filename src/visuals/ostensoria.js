@@ -49,7 +49,8 @@ const RAMPS={
   lilac:[[0,[0,0,0]],[0.16,[0.20,0.12,0.38]],[0.36,[0.45,0.35,0.80]],[0.54,[0.65,0.55,0.95]],[0.70,[0.82,0.75,1.0]],[0.86,[0.95,0.92,1.0]],[1,[0,0,0]]],
   teal:[[0,[0,0,0]],[0.16,[0.02,0.22,0.24]],[0.36,[0.05,0.55,0.55]],[0.54,[0.20,0.80,0.75]],[0.70,[0.55,0.95,0.88]],[0.86,[0.90,1.0,0.97]],[1,[0,0,0]]],
   sepia:[[0,[0,0,0]],[0.18,[0.25,0.15,0.08]],[0.40,[0.55,0.38,0.20]],[0.58,[0.80,0.62,0.40]],[0.76,[0.95,0.85,0.68]],[0.90,[1.0,0.98,0.92]],[1,[0,0,0]]],
-  peacock:[[0,[0,0,0]],[0.14,[0.05,0.20,0.15]],[0.32,[0.05,0.50,0.45]],[0.50,[0.10,0.55,0.85]],[0.66,[0.35,0.80,0.90]],[0.82,[0.75,0.95,0.85]],[0.92,[0.97,1.0,0.95]],[1,[0,0,0]]]
+  peacock:[[0,[0,0,0]],[0.14,[0.05,0.20,0.15]],[0.32,[0.05,0.50,0.45]],[0.50,[0.10,0.55,0.85]],[0.66,[0.35,0.80,0.90]],[0.82,[0.75,0.95,0.85]],[0.92,[0.97,1.0,0.95]],[1,[0,0,0]]],
+  rose:[[0,[0,0,0]],[0.16,[0.35,0.05,0.18]],[0.36,[0.80,0.15,0.40]],[0.54,[1.0,0.40,0.60]],[0.70,[1.0,0.72,0.82]],[0.86,[1.0,0.93,0.96]],[1,[0,0,0]]]
 };
 const PALETTES={
   iris:{hue:0.0,bands:1.4,sat:0.95},
@@ -61,6 +62,7 @@ const PALETTES={
   teal:{hue:0.0,bands:1.3,sat:0.88},
   sepia:{hue:0.0,bands:1.1,sat:0.80},
   peacock:{hue:0.0,bands:1.3,sat:0.90},
+  rose:{hue:0.0,bands:1.25,sat:0.88},
   custom:{hue:0.0,bands:1.6,sat:0.95}
 };
 function buildLUT(anchors, sat){
@@ -175,6 +177,7 @@ export class Ostensoria {
     this._destroyed = false;
     this._fillPromise = null;
     this._generation = 0;
+    this._look = null;
   }
 
   /**
@@ -263,6 +266,19 @@ export class Ostensoria {
     this.queue = [];
   }
 
+  /**
+   * The options every queued plate bakes with (a palette, a sat). A change
+   * flushes the queue as beginSession does, so the next still already
+   * carries it; the same look keeps the queue.
+   */
+  setLook(options) {
+    const next = options && typeof options === 'object' ? options : null;
+    if (JSON.stringify(next) === JSON.stringify(this._look)) return;
+    this._look = next;
+    this._generation++;
+    this.queue = [];
+  }
+
   async preload(count) {
     const target = Math.min(Math.max(1, count | 0), this.maxQueueSize);
     await this.fillQueue(target);
@@ -280,7 +296,7 @@ export class Ostensoria {
     this._fillPromise = (async () => {
       while (!this._destroyed && generation === this._generation && this.queue.length < target) {
         const plate = new Ostensoria();
-        plate.generate(null, undefined);
+        plate.generate(null, undefined, this._look || {});
         if (generation === this._generation && !this._destroyed) this.queue.push(plate);
         await new Promise(r => setTimeout(r, 50));
       }
