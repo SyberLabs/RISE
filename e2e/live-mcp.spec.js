@@ -355,7 +355,8 @@ test('under reduced motion the imagery holds still, the reader is told so, and t
   await expect(stillSwitch).toBeDisabled();
   await expect(stillSwitch).toHaveAccessibleDescription('Your system asks for reduced motion.');
   await expect(app.locator('#rise-settings')).toContainText('Still imagery');
-  await expect(app.locator('#rise-settings')).not.toContainText('Your system asks');
+  // The reason is in the DOM for the description, and never shown.
+  await expect(app.locator('#rise-settings-still-note')).toBeHidden();
   await app.getByRole('button', { name: 'Close settings', exact: true }).click();
 
   // The second passage's own visual, not a fallback, and it is still too.
@@ -406,7 +407,10 @@ test('framed from another site with no saved settings, the embed starts on safe 
   const appOrigin = `http://127.0.0.1:${new URL(baseURL).port}`;
   // A loopback frame inside a page Playwright serves itself would otherwise wait on a local-network prompt.
   await page.context().grantPermissions(['local-network-access']);
-  const app = await openHost(page, baseURL, { appOrigin, current: TWO_FIELDS });
+  // The first passage must outlive the switch's on and off below (the paced voice gives 62 ms a character;
+  // at the passage's end the next cue retires the attractor and removes its canvas), so it is long.
+  const longTurn = { ...TWO_FIELDS.segments[0], text: 'A strange attractor turns behind these words while they are read, and keeps turning as the reader opens the settings, holds the imagery still, lets it move again, and then asks the system itself for stillness, all before the second passage and its own composition arrive to be read in turn.' };
+  const app = await openHost(page, baseURL, { appOrigin, current: { ...TWO_FIELDS, id: 'two-fields-long', segments: [longTurn, TWO_FIELDS.segments[1]] } });
   await expect(app.getByRole('button', { name: 'Play', exact: true })).toBeVisible();
   const applied = () => app.locator('html').evaluate(html => ({
     origin: location.origin,
