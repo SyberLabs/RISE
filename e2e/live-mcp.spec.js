@@ -77,7 +77,7 @@ async function openHost(page, baseURL, options = {}) {
     await route.fulfill({ status: response.status, headers: Object.fromEntries(response.headers), body: await response.text() });
   });
   // `appOrigin` frames RISE from another site than the host page's, as a product host does.
-  const relay = relayHtml({ origin: options.appOrigin ?? origin, path: '/live?embed=mcp&voice=paced' });
+  const relay = relayHtml({ origin: options.appOrigin ?? origin, path: `/live?embed=mcp&voice=${options.voice ?? 'paced'}` });
   await page.route(`**${HOST}`, route => route.fulfill({ contentType: 'text/html', body: hostPage({ relay, current: options.current ?? BLACK_HOLES_CURRENT, sampling: options.sampling ?? true, resultOnly: options.resultOnly ?? false, deferToolResult: options.deferToolResult ?? false, height: options.height, dive: toSealedCurrent(HORIZON_DIVE, 'dive-answer') }) }));
   await page.goto(HOST);
   // The app is a page in a frame in the relay's frame.
@@ -199,6 +199,46 @@ test('tool input waits for the successful Worker result before enabling reader B
   await expectShown(app, 'It is not a surface you could touch', 20_000);
   expect(await shown(app)).not.toBe(heldAt);
   expect(errors).toEqual([]);
+});
+
+test('without an installed browser voice the embedded reader explains silent paced playback and keeps it under reader control', async ({ page, baseURL }) => {
+  await page.addInitScript(() => {
+    const synth = window.speechSynthesis ?? {};
+    Object.defineProperty(synth, 'getVoices', { configurable: true, value: () => [] });
+    if (!window.speechSynthesis) Object.defineProperty(window, 'speechSynthesis', { configurable: true, value: synth });
+  });
+  const app = await openHost(page, baseURL, {
+    sampling: false,
+    voice: 'browser',
+    current: {
+      ...BLACK_HOLES_CURRENT,
+      id: 'silent-paced-fallback',
+      segments: [{
+        id: 'paced',
+        text: 'A black hole is a region of space where gravity is so strong that nothing, not even light, can escape its boundary.',
+        visual: 'still'
+      }]
+    }
+  });
+  await expect(app.getByRole('button', { name: 'Begin', exact: true })).toBeVisible();
+  await begin(app);
+  await expectShown(app, 'A black hole is a region of space');
+  const fallbackNote = app.locator('.live-controls__notes [data-capability="speechOutput"]');
+  await expect(fallbackNote).toBeVisible();
+  await expect(fallbackNote).toHaveText('No voice is installed for this browser.');
+  await page.screenshot({ path: 'test-results/live-mcp-speech-unavailable.png' });
+  await expect(app.locator('.live-controls__status')).toContainText('paced as if spoken');
+
+  await app.getByRole('button', { name: 'Interrupt', exact: true }).click();
+  await expect(app.locator('.live-controls__status')).toContainText('Held where you are');
+  const heldAt = await shown(app);
+  await page.waitForTimeout(300);
+  expect(await shown(app)).toBe(heldAt);
+  await app.getByRole('button', { name: 'Resume', exact: true }).click();
+  await expectShown(app, 'nothing, not even light', 10_000);
+  await app.getByRole('button', { name: 'Stop', exact: true }).click();
+  await expect(app.locator('.live-embed')).toContainText('Stopped.');
+  expect((await log(page)).filter(entry => entry.method === 'sampling/createMessage')).toHaveLength(0);
 });
 
 test('the largest admitted Current crosses Worker, port and reader Begin at 65,536 UTF-8 bytes', async ({ page, baseURL }) => {
