@@ -189,7 +189,6 @@
   font-size: clamp(28px, 2.6vw, 40px);
   line-height: 1.25;
   color: var(--sy-text);
-  text-shadow: 0 0 40px var(--sy-bg);
   overflow-wrap: anywhere;
 }
 
