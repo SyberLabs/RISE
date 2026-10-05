@@ -68,7 +68,7 @@ export async function askHome(page, intent) {
   await openHomeAsk(page);
   await page.locator('#home-intent').fill(intent);
   await page.locator('[data-home="ask"]').click();
-  // Nothing plays with sound on arrival; the asked reading starts only from Read it with sound.
+  // Nothing plays with sound on arrival; the asked reading starts only from Begin.
   await expect(page.locator('dialog.home-ask')).toBeHidden({ timeout: 15_000 });
   await page.locator('[data-home="enter"]').click();
 }

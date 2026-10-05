@@ -120,17 +120,17 @@ test.describe('the Portal has no overlay between a cursor and a door', () => {
     });
 });
 
-test('Read it with sound, Another reading, the link, the legal links and Ask are reachable on a desk and a phone', async ({ page }) => {
+test('Begin, Another reading, the link, the legal links and Ask are reachable on a desk and a phone', async ({ page }) => {
     for (const viewport of [{ width: 1280, height: 800 }, { width: 390, height: 844 }]) {
         await page.setViewportSize(viewport);
         await openPortal(page);
         await page.reload();
-        await expect(page.locator('h1')).toContainText(', by ', { timeout: 15_000 });
+        await expect(page.locator('.home-title')).not.toBeEmpty({ timeout: 15_000 });
         const check = async selector => {
             const { reachable, hit } = await hitTest(page, selector);
             expect(reachable, `${selector} is covered by ${hit} at ${viewport.width}px`).toBe(true);
         };
-        // The engine and its scrim lie under the bar; every key must still take the press.
+        // The engine and its scrim lie under the slot; every key must still take the press.
         for (const selector of ['[data-home="enter"]', '[data-home="roll"]', '[data-home="library"]', '.portal-legal-link']) await check(selector);
         await pressAt(page, '[data-home="roll"]');
         await expect(page.locator('[data-home="adjust"]')).toBeVisible({ timeout: 10_000 });
@@ -152,10 +152,10 @@ const SITTINGS = ['default', 'slate', 'ivory', 'purple', 'cobalt', 'amber',
 
 test('Home text keeps AA contrast in every sitting', async ({ page }) => {
     await openPortal(page);
-    // The quieter text (the caption's plan words, Adjust) appears once there is a rolled reading.
+    // The quieter text (Adjust) appears once there is a rolled reading; its epigraph follows its opening.
     await page.locator('[data-home="roll"]').click();
     await expect(page.locator('[data-home="adjust"]')).toBeVisible({ timeout: 10_000 });
-    await expect(page.locator('.home-stream .reading-stream-current')).not.toBeEmpty({ timeout: 15_000 });
+    await expect(page.locator('.home-epigraph')).not.toBeEmpty({ timeout: 15_000 });
     const results = await page.evaluate((sittings) => {
         const rgb = colour => {
             const ctx = document.createElement('canvas').getContext('2d');
@@ -171,7 +171,7 @@ test('Home text keeps AA contrast in every sitting', async ({ page }) => {
         for (const id of sittings) {
             if (id === 'default') document.documentElement.removeAttribute('data-accent');
             else document.documentElement.setAttribute('data-accent', id);
-            for (const sel of ['.portal-nav-link', '.home-title', '.home-label', '.home-link', '[data-home="adjust"]', '.portal-footer-link', '.home-stream .reading-stream-current', '.home-stream .reading-stream-previous']) {
+            for (const sel of ['.portal-nav-link', '.home-title', '.home-label', '.home-meta', '.home-epigraph', '.home-link', '[data-home="adjust"]', '.portal-footer-link']) {
                 out.push({ id, sel, ratio: +ratio(rgb(getComputedStyle(document.querySelector(sel)).color), ground).toFixed(2) });
             }
         }

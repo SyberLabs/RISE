@@ -5,7 +5,7 @@ test('the Portal names one act, and the Vault does not offer Journeys', async ({
   await page.goto('/');
   await expect(page.locator('[data-nav="read"]')).toBeAttached({ timeout: 20000 });
 
-  // Home has one solid key (Read it with sound). Journeys stay out of Home
+  // Home has one solid key (Begin). Journeys stay out of Home
   // and the Vault.
   await expect(page.locator('.portal .home .btn-primary:visible')).toHaveCount(1);
   await expect(page.locator('.portal [data-nav="journeys"]')).toHaveCount(0);
