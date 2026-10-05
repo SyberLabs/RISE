@@ -288,8 +288,11 @@ export class Turrell {
             rgba(2, 2, 6, ${intensity.toFixed(3)}) 100%)`;
     }
 
-    generate() {
-        const paletteKey = this.choose(Object.keys(this.palettes));
+    /** A known palette key fixes the palette; anything else keeps the random pick. */
+    generate(key) {
+        const paletteKey = Object.hasOwn(this.palettes, key)
+            ? key
+            : this.choose(Object.keys(this.palettes));
         const palette = this.palettes[paletteKey];
         const shape = this.choose(APERTURES);
         // One light direction governs ground, haze, and their agreement

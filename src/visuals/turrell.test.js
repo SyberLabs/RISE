@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { Turrell } from './turrell.js';
 import { compileFieldPlanToAscii } from './ascii-engine.js';
+import { JEV_COLOR_THEMES } from '../core/jev-color-themes.js';
+import { themeEngine } from '../core/theme-engine-map.js';
 
 const makeTurrell = () => {
   const el = { style: {} };
@@ -176,5 +178,19 @@ describe('Turrell plan contract', () => {
     }
     expect(palettes.size).toBeGreaterThanOrEqual(6);
     expect(apertures.size).toBe(5);
+  });
+
+  it.each(JEV_COLOR_THEMES)('%s: a palette key fixes the palette', theme => {
+    const { turrell } = makeTurrell();
+    const key = themeEngine(theme, 'turrell');
+    for (let i = 0; i < 20; i++) expect(turrell.generate(key).palette).toBe(key);
+  });
+
+  it('still varies the palette under a key it does not know', () => {
+    const { turrell } = makeTurrell();
+    const palettes = new Set();
+    for (let i = 0; i < 300; i++) palettes.add(turrell.generate('no-such-palette').palette);
+    expect(palettes.size).toBeGreaterThanOrEqual(6);
+    expect(palettes.has('no-such-palette')).toBe(false);
   });
 });
