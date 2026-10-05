@@ -20,6 +20,7 @@
  * another room.
  */
 import './reading-backdrop.css';
+import { themeEngine } from '../core/theme-engine-map.js';
 
 const FRACTAL_DWELL_MS = 18_000;
 // The cross-fade, written once: the stage hands it to its stylesheet.
@@ -34,7 +35,11 @@ export async function mountReadingBackdrop(host, decision) {
 
   if (visual?.visualMode === 'attractor') {
     const { AttractorField } = await import('../visuals/attractor.js');
-    const { system, palette, form } = visual.attractor || {};
+    const own = visual.attractor || {};
+    // White is no choice: the theme's row mounts, as the Chamber will mount it.
+    const { system, palette, form } = !own.palette || own.palette === 'white'
+      ? { ...own, ...themeEngine(decision.config.colorTheme, 'attractor') }
+      : own;
     const field = new AttractorField(host, { system, palette, form });
     return { pause: () => field.pause(), resume: () => field.resume(), destroy: () => field.destroy() };
   }

@@ -90,7 +90,7 @@ export const TEMPERS = Object.freeze([
   },
   {
     id: 'signal', chunkMode: ['phrase'], wpm: [250, 300], curve: ['wave'],
-    visualMode: 'attractor', visualStyle: 'immersive', engines: ['apparitio'], palettes: ['blue', 'white', 'purple'],
+    visualMode: 'attractor', visualStyle: 'immersive', engines: ['apparitio'],
     galleryCadence: ['balanced'], audio: ['faded-signal', 'night-drive', 'mystery'],
     faces: ['mono', 'sans'], sizes: ['large'], colors: ['cobalt', 'prism']
   },
@@ -102,7 +102,7 @@ export const TEMPERS = Object.freeze([
   },
   {
     id: 'garden', chunkMode: ['phrase'], wpm: [150, 200], curve: ['flat'],
-    visualMode: 'genesis', visualStyle: 'gentle', engines: ['klee'], klee: ['harmonic', 'architectural', 'twittering'],
+    visualMode: 'genesis', visualStyle: 'gentle', engines: ['klee'], klee: ['random'],
     galleryCadence: ['slow'], audio: ['piano', 'lullaby', 'waltz'],
     faces: ['literary', 'book'], sizes: ['medium', 'large'], colors: ['jade', 'classic']
   },

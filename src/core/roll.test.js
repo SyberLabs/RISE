@@ -90,6 +90,21 @@ describe('a roll', () => {
   });
 });
 
+describe('the look a roll leaves to its theme', () => {
+  const temperOf = id => TEMPERS.find(temper => temper.id === id);
+  const draws = (id, random) => composeRoll({ temper: temperOf(id), workId: jevReleasedWorkIds()[0], section: 'first', random }).config;
+
+  it('signal names no filament palette: white, so the theme\'s row mounts', () => {
+    expect(temperOf('signal').palettes).toBeUndefined();
+    for (const random of [() => 0, () => 0.5, () => 0.999]) expect(draws('signal', random).visualPalette).toBe('white');
+  });
+
+  it('garden names no Genesis preset: random, so the theme\'s preset mounts', () => {
+    expect(temperOf('garden').klee).toEqual(['random']);
+    for (const random of [() => 0, () => 0.5, () => 0.999]) expect(draws('garden', random).kleePreset).toBe('random');
+  });
+});
+
 describe('the rhythm a roll reads in', () => {
   it('is never a word at a time: Word stays a choice in Reader setup', () => {
     for (const temper of TEMPERS) expect(temper.chunkMode, temper.id).not.toContain('word');
