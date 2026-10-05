@@ -15,7 +15,7 @@ Check that SHA out in its own worktree (never the main folder), `npm ci`, and ke
 
 ## 2. Deploy the demo Worker from it
 
-As LIVE-002 did ([CHATGPT-DEMO.md](CHATGPT-DEMO.md), setup). In `wrangler.demo.jsonc`, for the session only: `"workers_dev": true`, `"MCP_ENABLED": "true"`, `"MCP_GATE0": "false"` (LIVE-002 advertised `rise_present` alone). Then, from the worktree:
+As LIVE-002 did ([CHATGPT-DEMO.md](CHATGPT-DEMO.md), setup). In `wrangler.demo.jsonc`, for the session only: `"workers_dev": true`, `"MCP_ENABLED": "true"`, `"MCP_GATE0": "false"` (LIVE-002 advertised `rise_present` alone), and `"MCP_WITNESS": "true"`, which makes the Worker serve the relay with `/live?embed=mcp&log=host` so the log is on from the first hello. It is a session-only value: never in `wrangler.production.jsonc`, never committed. Then, from the worktree:
 
 ```sh
 npm run build
@@ -45,15 +45,14 @@ Type, after `@RISE Demo`:
 
 The card is the poster: the title and Play, nothing playing.
 
-## 5. Put the switch in, and open the console
+## 5. Open the console and filter `rise-host`
 
-The widget is ChatGPT's sandboxed frame holding RISE's relay, which frames `/live?embed=mcp` on the demo origin at a fixed path (`src/live/hosts/mcp-relay.js`, `EMBED_PATH`). The log switch is a query on that inner page, so it goes in by hand:
+The widget is ChatGPT's sandboxed frame holding RISE's relay, which frames RISE's page on the demo origin; with `MCP_WITNESS` set (step 2) that page is `/live?embed=mcp&log=host`, so the log is already on.
 
 1. Open DevTools (F12) on the ChatGPT tab. Console, then the context picker at the top left of the console (it says `top`).
-2. Pick the relay frame: the one whose document holds `iframe#app`. Run `document.getElementById('app').src += '&log=host'`. The inner page reloads and says hello again through the relay.
-3. Pick the inner frame: the context whose URL is `<origin>/live?embed=mcp&log=host`. Type `rise-host` in the console filter. The first line, `"rise-host":"initialize"`, is the hello's context.
+2. Pick the inner frame: the context whose URL is `<origin>/live?embed=mcp&log=host`. Type `rise-host` in the console filter. The first line, `"rise-host":"initialize"`, is the hello's context.
 
-If the poster does not come back after step 2 (ChatGPT did not answer the second hello or did not redeliver the answer), the one fallback is a witness-only change you make by hand on the worktree and do not commit: `EMBED_PATH` in `mcp-relay.js` becomes `/live?embed=mcp&log=host`, rebuild, redeploy (step 2), Refresh the plugin, new conversation. Say in the record which path was taken.
+Fallback only, if the frame's URL lacks `&log=host` (the Worker was deployed without the value): pick the relay frame, the one whose document holds `iframe#app`, run `document.getElementById('app').src += '&log=host'`, and watch whether the poster comes back (the inner page says hello again through the relay; whether ChatGPT answers a second hello is unknown). Say in the record which path was taken.
 
 ## 6. What to press and watch
 
@@ -98,7 +97,7 @@ Write `docs/experiments/EMBED-STAGE-HOST-<date>.md` in the shape of the LIVE-002
 ```markdown
 # Embed stage witness — <date>
 
-Exact candidate `<sha>`; demo Worker `rise-chatgpt-demo` version `<id>`; endpoint `https://<origin>/api/mcp`; release marker checked before and after. Desktop web ChatGPT in <browser>, developer mode; the switch put in by <step 5.2 | the EMBED_PATH fallback>.
+Exact candidate `<sha>`; demo Worker `rise-chatgpt-demo` version `<id>`; endpoint `https://<origin>/api/mcp`; release marker checked before and after. Desktop web ChatGPT in <browser>, developer mode; the log switched on by <MCP_WITNESS | the DevTools fallback>.
 
 ## Host lines
 (every rise-host line, verbatim, in order)
@@ -120,4 +119,4 @@ Add its row to `docs/README.md` beside the LIVE-002 record, then the evidence ro
 
 ## 9. Make the Worker inert
 
-As LIVE-002 did. In `wrangler.demo.jsonc`: `"workers_dev": false`, `"preview_urls": false`, `"MCP_ENABLED": "false"`, `"MCP_GATE0": "false"`; then `npx wrangler deploy --config wrangler.demo.jsonc`, which reports **No targets deployed**. Check `curl -s -o /dev/null -w '%{http_code}' -X POST https://<origin>/api/mcp` is 404 (a 405 during edge propagation is not done yet; wait and retry). Then `git checkout wrangler.demo.jsonc`. The plugin entry in ChatGPT now points at an offline endpoint; remove it or leave it. Production is untouched throughout.
+As LIVE-002 did. In `wrangler.demo.jsonc`: `"workers_dev": false`, `"preview_urls": false`, `"MCP_ENABLED": "false"`, `"MCP_GATE0": "false"`, and `MCP_WITNESS` removed; then `npx wrangler deploy --config wrangler.demo.jsonc`, which reports **No targets deployed**. Check `curl -s -o /dev/null -w '%{http_code}' -X POST https://<origin>/api/mcp` is 404 (a 405 during edge propagation is not done yet; wait and retry). Then `git checkout wrangler.demo.jsonc`. The plugin entry in ChatGPT now points at an offline endpoint; remove it or leave it. Production is untouched throughout.
