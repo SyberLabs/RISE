@@ -19,9 +19,12 @@ does not run on push. The job checks out the merged commit, rebuilds the app
 with `npm run build`, restores the recitation audio, and writes the commit into
 `dist/release.txt` and `dist/release-<sha>.txt`. Right before deploying it
 reads `main` from the GitHub API and stops if `main` no longer points at the
-commit it built. That is the only guard between the merge and the deploy:
-nothing is handed from the pull request's `CI` run to this job, and the deploy
-is a fresh build from source. It deploys with the lockfile's Wrangler:
+commit it built. So not every push to `main` deploys: when merges land faster
+than the job runs, a superseded push's job fails at this step without deploying
+or verifying anything, and the job for the newest commit deploys. That check is
+the only guard between the merge and the deploy: nothing is handed from the pull
+request's `CI` run to this job, and the deploy is a fresh build from source. It
+deploys with the lockfile's Wrangler:
 
 ```bash
 ./node_modules/.bin/wrangler deploy --config wrangler.production.jsonc --message "RISE <sha>"
