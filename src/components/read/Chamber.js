@@ -108,6 +108,7 @@ import { resolveTextMaterialCapability } from '../../core/chamber-text-material.
 import { FitMaskRuntime } from '../../core/fit-mask-runtime.js';
 import { resolveSessionWordFill } from '../../core/visual-selection.js';
 import { sessionColorTheme } from '../../core/session-presentation.js';
+import { RISE_CURRENT_THEMES } from '../../core/rise-current.js';
 import { SEQUENCE_PILOT, nextSequencePilot } from '../../content/sequence-pilot.js';
 import { saveSequencePilotFeedback } from '../../core/sequence-pilot-feedback.js';
 import { advanceJevVisualArc } from '../../core/jev-sequence.js';
@@ -180,6 +181,12 @@ export class Chamber {
     // and not gated behind Begin, but must not have the Chamber start it.
     this.hostPlays = options.hostPlays === true;
     this.autoStart = this.hostPlays || (options.autoStart !== undefined ? options.autoStart : false);
+    // A host that draws its own controls gets the field, the words and the
+    // progress hairline, and none of the Chamber's chrome: no bar, no key
+    // handler, no exit dialog, no closing screen.
+    this.chromeless = options.chrome === 'none';
+    this._colourTheme = null;
+    this._fieldOwnPalette = null;
     this.onExit = options.onExit || (() => { });
     this.onEnterStream = typeof options.onEnterStream === 'function'
       ? options.onEnterStream : async () => true;
@@ -597,6 +604,7 @@ export class Chamber {
               aria-label="Under this passage" aria-live="polite" hidden></section>
           ` : ''}
 
+          ${this.chromeless ? '' : `
           <!-- Hidden controls - appear on mouse movement -->
           <div class="chamber-controls" id="chamber-controls" style="opacity: 0;">
             <button class="control-btn" id="play-pause-btn" type="button" aria-label="Play or pause" title="Play or pause (Space)">
@@ -724,8 +732,10 @@ export class Chamber {
             </button>
             <span class="chamber-settings-fail" id="chamber-settings-fail" hidden>Settings will not open.</span>
           </div>
+          `}
         </div>
 
+        ${this.chromeless ? '' : `
         <!-- Post-Session State -->
         <div class="chamber-post-session" id="chamber-post" style="display: none;">
           <!-- Choice Screen -->
@@ -793,6 +803,7 @@ export class Chamber {
             </div>
           </div>
         </div>
+        `}
 
         <div class="chamber-settings-overlay" id="chamber-settings-overlay" hidden></div>
         <div class="visual-direction-panel" id="visual-direction-panel" role="group"
@@ -847,6 +858,7 @@ export class Chamber {
           </div>
         ` : ''}
 
+        ${this.chromeless ? '' : `
         <!-- Custom Exit Confirmation Overlay -->
         <div id="exit-confirm-overlay" class="exit-overlay hidden" style="display: none;">
           <div class="exit-modal" role="alertdialog" aria-modal="true"
@@ -859,6 +871,7 @@ export class Chamber {
             </div>
           </div>
         </div>
+        `}
       </div>
     `;
   }
@@ -879,8 +892,18 @@ export class Chamber {
     return this._jevLook?.fontSize || this.getSettings()?.fontSize;
   }
 
+  setColourTheme(theme) {
+    if (theme !== null && !Object.hasOwn(RISE_CURRENT_THEMES, theme)) return false;
+    this._colourTheme = theme;
+    // The variables applySessionColors sets; cleared so a reading with no theme of its own returns to the frame's ground.
+    for (const name of ['--color-void', '--color-light', '--color-cloud', '--color-accent', '--color-accent-rgb', '--color-threshold']) this.container.style.removeProperty(name);
+    this.applySessionColors();
+    this.attractorField?.setPalette(theme ? RISE_CURRENT_THEMES[theme].attractor.palette : this._fieldOwnPalette);
+    return true;
+  }
+
   applySessionColors() {
-    const colors = sessionColorTheme(this.session);
+    const colors = this._colourTheme ? jevColors(this._colourTheme) : sessionColorTheme(this.session);
     if (!colors && !this._jevLook?.textColor && !this._jevLook?.backgroundColor) return;
     const accent = colors?.accent || JEV_PALETTES.classic.accent;
     const hex = accent.slice(1);
@@ -2425,6 +2448,9 @@ export class Chamber {
         ...(Number.isFinite(config.intensity) ? { intensity: config.intensity } : {}),
         ...(Number.isFinite(config.speed) ? { speed: config.speed } : {})
       });
+      // The cue keeps its own palette; a theme set over the reading recolours the filament it mounts.
+      this._fieldOwnPalette = attractor.palette;
+      if (this._colourTheme) attractor.setPalette(RISE_CURRENT_THEMES[this._colourTheme].attractor.palette);
       this.attractorField = attractor;
       visualControl = {
         discoverVisual: () => destroyed ? null : attractor.discoverVisual(),
@@ -4512,6 +4538,8 @@ export class Chamber {
   }
 
   handleEscape() {
+    // Under a host's own controls the key is the host's: nothing here to close or end.
+    if (this.chromeless) return true;
     // Looking under a passage is the topmost thing a reader can be doing.
     if (this._dive.state !== 'surface') {
       this._diveApply(this._dive.surface());
@@ -4588,6 +4616,11 @@ export class Chamber {
   }
 
   onSessionComplete() {
+    if (this.chromeless) {
+      // The host shows what comes next; the field holds its last frame under the last sentence.
+      this._visualFieldDirector?.pause();
+      return;
+    }
     if (this.session?.firstReadPreview === true) this.dismissFirstReadChoice();
     const display = this.container.querySelector('#chamber-display');
     const postSession = this.container.querySelector('#chamber-post');
@@ -4734,8 +4767,10 @@ export class Chamber {
   activate() {
     if (this._active) return;
     this._active = true;
-    document.addEventListener('keydown', this.boundKeyboardHandler);
-    document.addEventListener('keyup', this.boundKeyupHandler);
+    if (!this.chromeless) {
+      document.addEventListener('keydown', this.boundKeyboardHandler);
+      document.addEventListener('keyup', this.boundKeyupHandler);
+    }
     this._onVisualVisibility ||= () => this._syncScoringActivity();
     document.addEventListener('visibilitychange', this._onVisualVisibility);
     this._syncScoringActivity();

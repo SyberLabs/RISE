@@ -448,6 +448,8 @@ export async function createChamberSession(operations, container, sessionData) {
             // A live reading is shown at once and started by its host, after this view is up.
             autoStart: !live,
             hostPlays: live !== null,
+            // A live host draws its own controls; the Chamber brings none of its own.
+            ...(live ? { chrome: 'none' } : {}),
             audioEngine,
             // A composed reading opens in the presentation it was
             // composed for; the reader's own settings answer for
