@@ -3238,29 +3238,30 @@ export class VisualCortex {
 
         const preloadPromises = [];
         let externalPreload = null;
+        const continuous = isContinuousPresentation(this.config.presentation);
+        const fractalGenerated = !!this.fractal && generationTypes.includes('fractal');
 
         // Preload fractals
-        if (this.fractal && generationTypes.includes('fractal')) {
+        if (fractalGenerated) {
             this.fractal.beginSession(this.config.semanticSignals);
             const fractalShare = 1 / Math.max(1, generationTypes.length);
             const estimatedCount = Math.ceil(flashCount * fractalShare * 1.5);
             // Gallery has no flash-frequency demand estimate, but it still
             // needs a decoded first wall at session entry. Gate on two flames:
             // one for the opening still and one while the queue replenishes.
-            const count = isContinuousPresentation(this.config.presentation)
-                ? Math.max(2, estimatedCount)
-                : estimatedCount;
+            // The rest of the queue fills after entry (in workers).
+            const count = continuous ? 2 : estimatedCount;
             preloadPromises.push(this.fractal.preload(count));
         }
 
-        if (this.ostensoria && generationTypes.includes('ostensoria')) {
+        // Gallery draws its plates in its own field (plate-field.js). This
+        // queue feeds flashes, and a Page still fills it on demand, so a
+        // Gallery does not bake plates on the main thread before it opens.
+        if (this.ostensoria && generationTypes.includes('ostensoria') && !continuous) {
             this.ostensoria.beginSession();
             const ostensoriaShare = 1 / Math.max(1, generationTypes.length);
             const estimatedCount = Math.ceil(flashCount * ostensoriaShare * 1.5);
-            const count = isContinuousPresentation(this.config.presentation)
-                ? Math.max(2, estimatedCount)
-                : Math.max(1, estimatedCount);
-            preloadPromises.push(this.ostensoria.preload(count));
+            preloadPromises.push(this.ostensoria.preload(Math.max(1, estimatedCount)));
         }
 
         // Klee artworks are prepared as complete geometry/style snapshots.
@@ -3316,6 +3317,7 @@ export class VisualCortex {
         }
 
         await Promise.all(preloadPromises);
+        if (continuous && fractalGenerated) void this.fractal.fillQueue?.(this.fractal.maxQueueSize);
         if (this.config.renderLanguage === 'ascii') {
             // Precompile raster sources before the reading clock begins. The
             // flash path only selects and paints a small immutable frame.
