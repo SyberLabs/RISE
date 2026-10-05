@@ -67,6 +67,13 @@ build/wiki/
 
 # Generated render output
 out/
+
+# Film: rendered cut and the clips added by hand (film/README.md)
+film/out/
+film/runway/
+film/supplied/
+film/music/
+film/voice/
 tools/ffmpeg/
 met-*.html
 contact-sheet*.html

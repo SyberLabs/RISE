@@ -1,0 +1,88 @@
+{
+  "title": "RISE — Through the Vortex",
+  "fps": 24,
+  "width": 1920,
+  "height": 1080,
+  "music": {
+    "file": "film/music/through-the-vortex.mp3",
+    "fallback": "temp bed synthesised by assemble.mjs when the file is missing",
+    "duckUnderVoiceDb": -18,
+    "targetLufs": -14
+  },
+  "cards": [
+    { "name": "title", "word": "RISE", "sub": "Through the Vortex", "small": "A SyberLabs film", "corners": ["SyberLabs", "2026", "Through the Vortex", "rise.syberlabs.io"] },
+    { "name": "out-1", "word": "RISE", "sub": "An audiovisual reader", "url": "rise.syberlabs.io" },
+    { "name": "out-2", "word": "", "sub": "SyberLabs", "small": "Open source · Apache 2.0 · Your data stays with you", "corners": ["SyberLabs", "2026", "github.com/SyberLabs/RISE", "rise.syberlabs.io"] }
+  ],
+  "lowerThirds": [
+    { "name": "mateo", "line1": "Mateo Robles", "line2": "Founder, SyberLabs" },
+    { "name": "url", "line1": "rise.syberlabs.io", "line2": "Open beta" },
+    { "name": "every-day", "line1": "Every day, one reading.", "line2": "" },
+    { "name": "three", "line1": "Three readings to begin with.", "line2": "" },
+    { "name": "words-in-time", "line1": "Words in time.", "line2": "Light that moves with them." },
+    { "name": "page", "line1": "Or read it as a page.", "line2": "" },
+    { "name": "make", "line1": "Make your own light.", "line2": "" }
+  ],
+  "shots": [
+    { "id": "0.1", "act": "Cold open", "source": "card", "card": "title", "seconds": 6, "fadeIn": 1.5, "fadeOut": 1.0 },
+
+    { "id": "1.1", "act": "The Vortex", "source": "runway", "clip": "film/runway/1.1-bedroom-pages.mp4", "seconds": 10,
+      "title": "A bedroom at night, books everywhere.",
+      "prompt": "Night bedroom crowded with stacked paperbacks, a young woman with dark curly hair in an amber jacket reads a small glowing book in bed, a tall man with round glasses sleeps in an armchair with headphones on, pages of every book start lifting and turning on their own, slow dolly push in toward her face as she looks up, warm lamp light turning teal." },
+    { "id": "1.2", "act": "The Vortex", "source": "runway", "clip": "film/runway/1.2-floor-vortex.mp4", "seconds": 10,
+      "title": "The floor opens into a spiral of pages.",
+      "prompt": "Camera tilts down as a bedroom floor peels away into a vast spiral whirlpool of swirling book pages, black ink lifting off the pages and turning into ribbons of teal and amber light, a young woman grabs a sleeping man's sleeve and both tumble into the vortex, wide shot, slow motion." },
+    { "id": "1.3", "act": "The Vortex", "source": "rendered", "clip": "film/out/raw/wormhole-full.webm", "in": 3.0, "seconds": 10,
+      "title": "Inside the vortex: the Wormhole transit." },
+    { "id": "1.4", "act": "The Vortex", "source": "rendered", "clip": "film/out/raw/attractor-prism.mp4", "in": 1, "seconds": 10, "glow": true, "zoom": 1.5,
+      "title": "The vortex becomes a strange attractor." },
+
+    { "id": "2.1", "act": "The Phoenix", "source": "runway", "clip": "film/runway/2.1-letters-ignite.mp4", "seconds": 10,
+      "title": "The letters catch fire.",
+      "prompt": "Thousands of drifting letters of type ignite into embers and gather into the shape of a colossal phoenix with ember-and-gold feathers, each trailing feather burning into letters as it falls, two small figures below look up in awe, low angle, volumetric fire light." },
+    { "id": "2.2", "act": "The Phoenix", "source": "runway", "clip": "film/runway/2.2-phoenix-turns.mp4", "seconds": 6,
+      "title": "It turns.",
+      "prompt": "A colossal phoenix made of embers and burning letters turns its head toward camera, eyes like two reading lamps, then banks away leaving a spiral trail of glowing type, medium shot, slow motion." },
+    { "id": "2.3", "act": "The Phoenix", "source": "runway", "clip": "film/runway/2.3-wake-to-syberlabs.mp4", "seconds": 8,
+      "title": "They ride the trail.",
+      "prompt": "Two figures carried along in the glowing wake of a phoenix, the swirling vortex thins into clear night sky, far below a vast illuminated laboratory campus of glass and steel glows teal on a dark coast, aerial wide shot, parallax clouds." },
+
+    { "id": "3.1", "act": "SyberLabs", "source": "runway", "clip": "film/runway/3.1-rooftop-landing.mp4", "seconds": 8,
+      "title": "Arrival.",
+      "prompt": "A phoenix of embers lands two figures on a rooftop landing pad of a massive laboratory at night, then dissolves into one glowing ember that drifts toward a steel service door, teal floodlights, light rain, wide shot." },
+    { "id": "3.2", "act": "SyberLabs", "source": "runway", "clip": "film/runway/3.2-freight-elevator.mp4", "seconds": 9,
+      "title": "The freight elevator.",
+      "prompt": "Inside a huge industrial freight elevator with an open cage, two figures press against the wall as floors slide past revealing vast laboratory halls full of glowing instruments and rotating glass plates, teal and amber light sweeping through the cage, medium shot." },
+    { "id": "3.3", "act": "SyberLabs", "source": "runway", "clip": "film/runway/3.3-corridor-of-doors.mp4", "seconds": 9,
+      "title": "The corridor of doors.",
+      "prompt": "A long laboratory corridor lined with mismatched doors of brass, glass and paper, a patrol drone's searchlight sweeps past, two figures duck behind a cart stacked with books, a small glowing book in the woman's hands pulses toward an unmarked wall panel, tracking shot, suspense." },
+    { "id": "3.4", "act": "SyberLabs", "source": "runway", "clip": "film/runway/3.4-hidden-door.mp4", "seconds": 6,
+      "title": "The hidden door.",
+      "prompt": "A young woman presses a small glowing book against a blank wall panel and the wall irises open like an aperture, revealing warm light behind, close up on her hands and face, shallow depth of field." },
+    { "id": "3.5", "act": "SyberLabs", "source": "runway", "clip": "film/runway/3.5-room-where-reading-moves.mp4", "seconds": 9,
+      "title": "The room where reading moves.",
+      "prompt": "A vast dim laboratory room, at the far end a lone figure in a dark lab coat stands with his back to camera at a long console, above him an enormous wall of light where single words appear one at a time with shifting colour and motion, two figures step in from the foreground, wide shot, reverent." },
+    { "id": "3.6", "act": "SyberLabs", "source": "runway", "clip": "film/runway/3.6-he-turns.mp4", "seconds": 5,
+      "title": "He turns.",
+      "prompt": "Over-the-shoulder shot of a man in a dark lab coat at a glowing console starting to turn toward camera, his face still in shadow, teal rim light, slow motion." },
+
+    { "id": "4.1", "act": "Syko, for real", "source": "supplied", "clip": "film/supplied/syko-pitch.mp4", "seconds": 60, "voice": true,
+      "title": "Syko pitches SyberLabs and RISE.",
+      "prompt": "Real footage, 60 seconds, medium shot, already facing camera on frame one, one warm key from the left and a teal edge from behind, close mic, no music under it. Three beats of about 20 seconds: who, what, why now. Drop the file at film/supplied/syko-pitch.mp4.",
+      "lowerThirds": [ { "name": "mateo", "at": 2, "for": 6 }, { "name": "url", "at": 52, "for": 6 } ] },
+
+    { "id": "5.1", "act": "RISE, read", "source": "rendered", "clip": "film/out/raw/home.webm", "in": 2.0, "seconds": 8,
+      "title": "Home: the day's reading, streaming.", "lowerThirds": [ { "name": "every-day", "at": 1.5, "for": 5 } ] },
+    { "id": "5.2", "act": "RISE, read", "source": "rendered", "clip": "film/out/raw/keystones.webm", "in": 0.5, "seconds": 8,
+      "title": "The Keystones rail.", "lowerThirds": [ { "name": "three", "at": 1.5, "for": 5 } ] },
+    { "id": "5.3", "act": "RISE, read", "source": "rendered", "clip": "film/out/raw/reading.webm", "in": 9.5, "seconds": 16,
+      "title": "The Chamber: Marcus Aurelius, one phrase at a time.", "lowerThirds": [ { "name": "words-in-time", "at": 2, "for": 6 } ] },
+    { "id": "5.4", "act": "RISE, read", "source": "rendered", "clip": "film/out/raw/reading.webm", "in": 34.0, "seconds": 8,
+      "title": "The Page.", "lowerThirds": [ { "name": "page", "at": 1, "for": 5 } ] },
+    { "id": "5.5", "act": "RISE, read", "source": "rendered", "clip": "film/out/raw/lab.webm", "in": 8.0, "seconds": 10,
+      "title": "Visual Lab: a Living Flame under the hand.", "lowerThirds": [ { "name": "make", "at": 1, "for": 5 } ] },
+
+    { "id": "6.1", "act": "Out", "source": "card", "card": "out-1", "seconds": 8, "fadeIn": 1.0, "fadeOut": 0.8 },
+    { "id": "6.2", "act": "Out", "source": "card", "card": "out-2", "seconds": 6, "fadeIn": 0.8, "fadeOut": 2.0 }
+  ]
+}
