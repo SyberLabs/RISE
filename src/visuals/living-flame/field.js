@@ -119,6 +119,7 @@ export class LivingFlameField {
     this.internalTime = 0;
     this.lastLogicalSeconds = null;
     this.morph = null;
+    this._lastFrame = null;
     this.raf = null;
     this.ready = Promise.resolve();
     this.lut = paletteLut(recipe);
@@ -243,6 +244,8 @@ export class LivingFlameField {
     this.intervals = [];
     this._report();
     if (this.paused || this.reducedMotion) this._renderStill();
+    // Resizing cleared the canvas: present the carried image before the frame is shown.
+    else if (!reset && this._lastFrame) this.gpu.present(this._lastFrame);
   }
 
   _logicalSeconds() {
@@ -306,6 +309,7 @@ export class LivingFlameField {
       this._paletteDirty = false;
     }
     this.gpu.render(frame);
+    this._lastFrame = frame;
     this._measure(delta, now);
     this._schedule();
   }
@@ -325,10 +329,10 @@ export class LivingFlameField {
     this.ceiling = next.ceiling;
     if (next.tier !== this.tier) {
       // Quality changes resolution and sample workload only: never recipe
-      // identity, never text timing.
+      // identity, never text timing, and never the image on screen.
       this.tier = next.tier;
       this.lastQualityChange = now;
-      this._applyQuality(true);
+      this._applyQuality(false);
     } else {
       this._report();
     }
