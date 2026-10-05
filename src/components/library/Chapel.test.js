@@ -186,13 +186,9 @@ describe('the doorway (seam)', () => {
   const librarySource = readFileSync(resolve('src/components/Library.js'), 'utf8');
   const indexHtml = readFileSync(resolve('index.html'), 'utf8');
 
-  it('Home keeps a labelled Chapel door among the minor rooms, never the primary ones', () => {
-    expect(portalSource).toMatch(/portal-nav-minor[^>]*data-nav="chapel"[^>]*>Chapel</s);
-    const primary = portalSource.slice(
-      portalSource.indexOf('class="portal-nav"'),
-      portalSource.indexOf('portal-nav-group')
-    );
-    expect(primary).not.toContain('chapel');
+  it('keeps the Chapel door among the Library programs, not in the Home Menu', () => {
+    expect(librarySource).toContain("['chapel', 'Chapel']");
+    expect(portalSource).not.toContain('data-nav="chapel"');
     expect(chapelCss).not.toMatch(/\.portal-chapel-lamp\s*\{/);
   });
 

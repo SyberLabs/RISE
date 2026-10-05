@@ -109,7 +109,10 @@ const SCORE = JSON.stringify({
 
 test('the room accounts for a score and reads it without the Workshop', async ({ page }) => {
     test.setTimeout(120_000);
-    await openRoom(page, 1280, 800);
+    // Opened by its address, so Make's first tab, the Workshop, is never mounted on the way.
+    await page.setViewportSize({ width: 1280, height: 800 });
+    await page.goto('/make/scriptorium');
+    await expect(page.locator('.scriptorium')).toBeVisible({ timeout: 15_000 });
 
     await page.locator('#scriptorium-paste').fill(SCORE);
     await page.getByRole('button', { name: 'Examine' }).click();
