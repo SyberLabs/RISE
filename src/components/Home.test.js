@@ -78,10 +78,13 @@ function makePortal(options = {}) {
 
 const hook = (container, name) => container.querySelector(`[data-home="${name}"]`);
 const words = node => node.textContent.replace(/\s+/gu, ' ').trim();
-const actions = container => [...container.querySelectorAll('.home-actions button')].map(words);
+/** The keys offered under the slot (Ask stays hidden until the reader's own AI is connected). */
+const actions = container => [...container.querySelectorAll('.home-actions button:not([hidden])')].map(words);
 /** The slot: eyebrow, name, meta line, epigraph. */
 const slot = container => ['.home-label', 'h1', '.home-meta', '.home-epigraph'].map(sel => words(container.querySelector(sel)));
 const epigraph = container => container.querySelector('.home-epigraph');
+/** Every control a reader can reach outside the Menu sheet and the dialog, in focus order. */
+const targets = container => [...container.querySelectorAll('button:not([hidden]), a[href]')].filter(node => !node.closest('.portal-nav, dialog'));
 const status = container => container.querySelector('[data-home-status]').textContent;
 const capital = text => text[0].toUpperCase() + text.slice(1);
 const minutes = (count, wpm) => Math.max(1, Math.round(count / wpm));
@@ -127,10 +130,10 @@ describe('Home on arrival', () => {
     it('names today\'s poem in the slot, with one solid key, before anything loads', () => {
         const { portal, container } = makePortal();
         expect(slot(container)).toEqual(['Today’s poem', '', '', '']);
-        expect(actions(container)).toEqual(['Begin', 'Another reading', 'Library']);
+        expect(actions(container)).toEqual(['Begin', 'Another reading', 'Adjust']);
         expect([...container.querySelectorAll('.home .btn-primary')]).toEqual([hook(container, 'enter')]);
         expect(hook(container, 'roll').classList.contains('btn-secondary')).toBe(true);
-        expect(hook(container, 'library').classList.contains('home-link')).toBe(true);
+        expect(hook(container, 'adjust').classList.contains('home-link')).toBe(true);
         // The window holds the engine, never words; the opening is real text beside the slot.
         expect(container.querySelector('.home-window')).not.toBeNull();
         expect(container.querySelector('.home-engine').getAttribute('aria-hidden')).toBe('true');
@@ -181,13 +184,23 @@ describe('Home on arrival', () => {
         portal.destroy();
     });
 
-    it('keeps the header, then Begin, Another reading and the link, in that order', async () => {
+    it('keeps the header rooms and the Menu, then Begin, Another reading and Adjust, in that order', async () => {
         const { portal, container } = makePortal();
         await arrive(portal, container);
-        const order = [...container.querySelectorAll('button:not([hidden]), a[href]')]
-            .filter(node => !node.closest('.portal-nav, dialog'));
-        expect(order.map(node => node.dataset.home || node.className)).toEqual(
-            ['portal-menu-toggle', 'enter', 'roll', 'library', 'portal-footer-link portal-legal-link', 'portal-footer-link portal-legal-link']);
+        expect(targets(container).map(node => node.dataset.home || node.dataset.nav || node.dataset.action || node.className)).toEqual(
+            ['library', 'make', 'settings', 'portal-menu-toggle', 'enter', 'roll', 'adjust', 'portal-footer-link portal-legal-link', 'portal-footer-link portal-legal-link']);
+        portal.destroy();
+    });
+
+    it('offers seven targets on a desk, legal links aside; Ask waits for the reader\'s own AI', async () => {
+        const { portal, container } = makePortal();
+        await arrive(portal, container);
+        const counted = () => targets(container).filter(node => !node.closest('.portal-legal'));
+        expect(counted()).toHaveLength(7);
+        // Nothing is connected here, so Ask stays in the Menu alone.
+        expect(container.querySelector('.home-actions [data-home="ask-open"]').hidden).toBe(true);
+        await another(container, portal);
+        expect(counted()).toHaveLength(7);
         portal.destroy();
     });
 
@@ -468,8 +481,20 @@ describe('Begin', () => {
         hook(container, 'enter').click();
         await vi.waitFor(() => expect(onLaunchJevReading).toHaveBeenLastCalledWith(portal.reading.decision, { firstReadPreview: false }));
         await vi.waitFor(() => expect(hook(container, 'adjust').disabled).toBe(false));
+        // A rolled reading has no exact division: setup opens the plan's section.
         hook(container, 'adjust').click();
-        await vi.waitFor(() => expect(onAdjustReading).toHaveBeenCalledWith(portal.reading.decision));
+        await vi.waitFor(() => expect(onAdjustReading).toHaveBeenCalledWith(portal.reading.decision, null));
+        portal.destroy();
+    });
+
+    it('Adjust opens today\'s exact poem in Reader Setup, not the plan\'s first section', async () => {
+        const onAdjustReading = vi.fn().mockResolvedValue(undefined);
+        const { portal, container } = makePortal({ onAdjustReading });
+        await arrive(portal, container);
+        const { pick } = today();
+        hook(container, 'adjust').click();
+        await vi.waitFor(() => expect(onAdjustReading).toHaveBeenCalledWith(portal.reading.decision, { entryId: pick.entryId, label: pick.label }));
+        await vi.waitFor(() => expect(hook(container, 'adjust').disabled).toBe(false));
         portal.destroy();
     });
 
@@ -500,11 +525,29 @@ describe('Begin', () => {
 });
 
 describe('the rest of Home', () => {
-    it('the Library link opens the Library', async () => {
+    it('opens Library, Make and Settings from the header with one press, the Menu closed and unchanged', () => {
         const { portal, container, onNavigate } = makePortal();
-        hook(container, 'library').click();
+        const rooms = container.querySelector('.sl-header .home-rooms');
+        // Beside the Menu, not a second landmark naming the same rooms.
+        expect(rooms.closest('nav')).toBeNull();
+        expect([...rooms.querySelectorAll('button')].map(words)).toEqual(['Library', 'Make', 'Settings']);
+        rooms.querySelector('[data-nav="library"]').click();
         expect(onNavigate).toHaveBeenCalledWith('library');
+        rooms.querySelector('[data-nav="make"]').click();
+        expect(onNavigate).toHaveBeenLastCalledWith('make');
+        const opened = vi.fn();
+        window.addEventListener('rise-open-settings', opened, { once: true });
+        rooms.querySelector('[data-action="settings"]').click();
+        expect(opened).toHaveBeenCalledOnce();
+        expect(container.querySelector('.sl-header').classList.contains('is-open')).toBe(false);
+        expect(container.querySelectorAll('.portal-nav button, .portal-nav a')).toHaveLength(8);
         portal.destroy();
+    });
+
+    it('shows the header rooms only at a desk, 900px and wider', () => {
+        // jsdom lays nothing out; the rule itself is held: hidden by default, a row from 900px.
+        expect(portalCss).toMatch(/\.home-rooms\s*\{[^}]*display:\s*none;/u);
+        expect(portalCss).toMatch(/@media \(min-width: 900px\)\s*\{\s*\.home-rooms\s*\{[^}]*display:\s*flex;/u);
     });
 
     it('offers Continue reading as a pill when there is a session, and reads audio from its owner', () => {

@@ -46,6 +46,7 @@
 .portal-link,
 .portal-footer-link,
 .home-link,
+.home-room,
 .portal-continue {
   font-family: inherit;
   background: transparent;
@@ -122,6 +123,35 @@
 
 .sl-header.is-open .portal-menu-toggle .icon-close {
   display: block;
+}
+
+/* ─── Header rooms: Library, Make, Settings as quiet text beside the Menu, on a desk only ─── */
+
+.home-rooms {
+  display: none;
+}
+
+@media (min-width: 900px) {
+  .home-rooms {
+    display: flex;
+    align-items: center;
+    gap: 28px;
+    margin-left: auto;
+    margin-right: 20px;
+  }
+}
+
+.home-room {
+  min-height: 44px;
+  font-size: 15px;
+  line-height: 20px;
+  font-weight: 400;
+  color: var(--sy-text-2);
+  transition: color var(--sy-dur-hover) var(--sy-ease);
+}
+
+.home-room:hover {
+  color: var(--sy-text);
 }
 
 /* ─── Menu: one button, every room, as a sheet ─── */

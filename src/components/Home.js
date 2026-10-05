@@ -7,24 +7,26 @@
  * and sets the opening's first line still as an epigraph in the reading's own
  * face. Nothing streams and nothing sounds before a press. **Begin** opens
  * the reading; **Another reading** rolls a vivid one in its place
- * (src/core/roll.js), which **Adjust** opens in Reader Setup with everything
- * already set. docs/product/discussions/2026-10-05-canonical-home-design.md
- * is the record.
+ * (src/core/roll.js); **Adjust** opens the reading showing in Reader Setup
+ * with everything already set, today's poem at its exact division.
+ * docs/product/discussions/2026-10-05-canonical-home-design.md is the record.
  *
  *   Home proposes → Reader Setup alters → Chamber performs.
  *
- * **Ask for a reading** sits in the Menu and opens a dialog (home-ask.js).
- * What RISE cannot do for a request is said before anything plays
- * (src/core/jev-describe.js). An asked reading becomes the one Home shows.
- * Today's poem opens through the app's launchToday (the day's exact poem,
- * as /today and the Menu open it); a rolled or asked one through
- * launchJevReading.
+ * **Ask for a reading** sits in the Menu and opens a dialog (home-ask.js);
+ * while the reader's own AI is connected (src/core/ai-connection.js) it is
+ * also a key under the slot. What RISE cannot do for a request is said
+ * before anything plays (src/core/jev-describe.js). An asked reading becomes
+ * the one Home shows. Today's poem opens through the app's launchToday (the
+ * day's exact poem, as /today and the Menu open it); a rolled or asked one
+ * through launchJevReading.
  *
  * Every word and control is in the first paint; the poem and the engine (on
  * the shared ReadingStage) load right after it, and Home works on ink if the
  * engine cannot run. Nothing runs while another room shows. The reading lives
- * with Home while it is open; a fresh load starts on today's poem. Every
- * other room is one Menu away; Privacy and Terms stay posted.
+ * with Home while it is open; a fresh load starts on today's poem. Library,
+ * Make and Settings are one press away in the header on a desk; every room
+ * is in the Menu at every width; Privacy and Terms stay posted.
  */
 
 import './Home.css';
@@ -32,6 +34,7 @@ import './portal-home.css';
 import { drawRiseSigil } from './atlas.js';
 import { isJevSceneDemoPath, sceneSampleFromPath } from '../core/jev-demo-path.js';
 import { HomeAsk, alertMarkup, showAlert } from './home-ask.js';
+import { connectionState, subscribeConnection } from '../core/ai-connection.js';
 import { claimOpenRouterReturn } from '../core/openrouter-callback.js';
 import { localDateKey, watchLocalDay } from '../core/local-day.js';
 import { resolveChamberStreamFace } from '../core/chamber-stream-face.js';
@@ -66,11 +69,12 @@ function homeReading(decision, { today, title, author, work, temper = null, inte
     const look = capital(decision.temper);
     const minutes = minutesOf(today.words, decision.config.wpm);
     return {
-      decision, temper: decision.temper, title, words: today.words, note: '', link: 'library',
+      decision, temper: decision.temper, title, words: today.words, note: '',
       eyebrow: TODAY, meta: { author, work, look },
       spoken: `${TODAY}: ${title}, by ${author}. ${minutes} ${minutes === 1 ? 'minute' : 'minutes'}. ${look}.`,
-      // The day's exact poem, as /today and the Menu open it.
-      today: true
+      // The day's exact poem, as /today and the Menu open it; Adjust opens
+      // that division too, not the plan's section.
+      today: true, exact: { entryId: today.entryId, label: today.label }
     };
   }
   const named = tools.getTextById(decision.workId);
@@ -88,7 +92,7 @@ function homeReading(decision, { today, title, author, work, temper = null, inte
     note = parts.join(' ');
   }
   return {
-    decision, temper, title: workTitle, words: 0, note, link: 'adjust',
+    decision, temper, title: workTitle, words: 0, note,
     eyebrow: temper ? 'By chance' : 'As you asked',
     // The title is the work's, so the meta line does not repeat it.
     meta: { author: named?.author || '', work: '', look: temper ? capital(temper) : '' },
@@ -136,6 +140,8 @@ export class Home {
     this.render();
     this.attachEvents();
     this.syncContinue();
+    this.syncAsk();
+    this.stopConnection = subscribeConnection(() => this.syncAsk());
   }
 
   /** Router re-entry hook — refresh the living entries on return */
@@ -149,11 +155,21 @@ export class Home {
       this.demoMode = demoMode;
       this.render();
       this.attachEvents();
+      this.syncAsk();
       if (this.reading) this.present(this.reading, this.opening);
       if (wasActive) this.activate();
     }
     // Returning from a reading is precisely when this changes.
     this.syncContinue();
+  }
+
+  /**
+   * Ask joins Home's keys only while the reader's own AI is connected (their
+   * OpenRouter key, or Kev on their computer); the Menu entry is always there.
+   */
+  syncAsk() {
+    const ask = this.container.querySelector('.home-actions [data-home="ask-open"]');
+    if (ask) ask.hidden = connectionState().kind === 'none';
   }
 
   /**
@@ -186,6 +202,13 @@ export class Home {
               <span class="sl-wordmark" aria-hidden="true">SYBERLABS<span class="sl-divider"> / </span>RISE</span>
               <canvas class="sl-sigil" aria-hidden="true"></canvas>
             </span>
+            <!-- A desk has the rooms one press away; a phone has the Menu alone.
+                 A div, not a second nav: the Menu already names them. -->
+            <div class="home-rooms">
+              <button class="home-room" type="button" data-nav="library">Library</button>
+              <button class="home-room" type="button" data-nav="make">Make</button>
+              <button class="home-room" type="button" data-action="settings">Settings</button>
+            </div>
             <button class="portal-menu-toggle" type="button" aria-label="Menu" aria-expanded="false" aria-controls="main-content">
               <span class="portal-menu-label" aria-hidden="true">Menu</span>
               <svg class="icon-menu" ${ICON_ATTRS}><path d="M4 8h16"></path><path d="M4 16h16"></path></svg>
@@ -260,7 +283,8 @@ export class Home {
       <div class="home-actions">
         ${button('enter', 'Begin', 'primary', ' disabled')}
         ${button('roll', 'Another reading', 'secondary')}
-        <button class="home-link" type="button" data-home="library">Library</button>
+        <button class="home-link" type="button" data-home="adjust">Adjust</button>
+        <button class="home-link" type="button" data-home="ask-open" hidden>Ask for a reading</button>
       </div>
       <p class="sr-only" role="status" aria-live="polite"><span data-home-status></span></p>
     </section>`;
@@ -310,10 +334,6 @@ export class Home {
     const note = home.querySelector('.home-note');
     note.textContent = reading.note;
     note.hidden = !reading.note;
-    // Today's poem points on into the Library; a rolled or asked reading can be adjusted.
-    const link = home.querySelector('.home-link');
-    link.dataset.home = reading.link;
-    link.textContent = reading.link === 'adjust' ? 'Adjust' : 'Library';
     this.setStatus(reading.spoken);
     this.renderOpening();
     this.renderBusy();
@@ -513,7 +533,7 @@ export class Home {
     this.getAudioEngine()?.playClick();
     this.showError('');
     try {
-      if (action === 'adjust') await this.onAdjustReading(reading.decision);
+      if (action === 'adjust') await this.onAdjustReading(reading.decision, reading.exact ?? null);
       else if (reading.today) await this.onLaunchToday();
       else {
         const preview = reading.firstReadPreview && !this.firstReadChoiceUsed;
@@ -541,9 +561,9 @@ export class Home {
       const action = control.dataset.home;
       if (action === 'roll') void this.roll();
       else if (action === 'enter' || action === 'adjust') void this.proceed(action);
-      else if (action === 'library') {
+      else if (action === 'ask-open') {
         this.getAudioEngine()?.playClick();
-        this.onNavigate('library');
+        this.asking.open();
       }
     });
 
@@ -655,6 +675,7 @@ export class Home {
   destroy() {
     this.deactivate();
     this._destroyed = true;
+    this.stopConnection?.();
     this.asking?.destroy();
     this.stage?.destroy();
     this.stage = null;
