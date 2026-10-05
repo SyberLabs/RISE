@@ -990,6 +990,36 @@ describe('VisualCortex external asset hydration', () => {
         expect(cortex.fractal.preload).toHaveBeenCalledWith(2);
     });
 
+    it('opens a fractal Gallery on two flames and fills the rest of the queue after entry', async () => {
+        // Waiting for the whole queue held the reader on "Preparing Session"
+        // for about 3 s after Home's "Read it with sound".
+        const cortex = new VisualCortex();
+        cortex.initialized = true;
+        cortex.config = { ...cortex.config, presentation: 'continuous', activeTypes: ['fractal'] };
+        const order = [];
+        cortex.fractal = {
+            maxQueueSize: 5,
+            beginSession: vi.fn(),
+            preload: vi.fn(async count => { order.push(`preload ${count}`); }),
+            fillQueue: vi.fn(count => { order.push(`fill ${count}`); return Promise.resolve(); })
+        };
+
+        await cortex.preload(12);
+
+        expect(order).toEqual(['preload 2', 'fill 5']);
+    });
+
+    it('bakes no flash plates before a Gallery opens: the plate field draws its own', async () => {
+        const cortex = new VisualCortex();
+        cortex.initialized = true;
+        cortex.config = { ...cortex.config, presentation: 'continuous', activeTypes: ['ostensoria'] };
+        cortex.ostensoria = { beginSession: vi.fn(), preload: vi.fn().mockResolvedValue(undefined) };
+
+        await cortex.preload(12);
+
+        expect(cortex.ostensoria.preload).not.toHaveBeenCalled();
+    });
+
     it('shares one bounded offline pass across many joined callers', async () => {
         const cortex = new VisualCortex();
         cortex.config.activeTypes = ['aic-oldmasters'];
