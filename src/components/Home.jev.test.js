@@ -169,6 +169,21 @@ it('Ask on Home is the eighth target on a desk and opens the request', async () 
   portal.destroy();
 });
 
+it('with a reading to resume, Continue leads, Ask keeps its place, and today\'s poem is the line after them', async () => {
+  acceptOpenRouterKey(KEY);
+  // A reading from the Library carries no presentation and no engine: the slot still names it.
+  const session = { name: 'Meditations · Book 1', wpm: 250, totalDuration: 60_000, visualConfig: null, presentation: null };
+  const { portal, container } = mount({ getCurrentSession: () => session });
+  portal.activate();
+  await vi.waitFor(() => expect(container.querySelector('.home-line')).not.toBeNull());
+  const targets = [...container.querySelectorAll('button:not([hidden]), a[href]')]
+    .filter(node => !node.closest('.portal-nav, dialog, .portal-legal'));
+  expect(targets.map(node => node.dataset.home || node.dataset.nav || node.dataset.action || node.className))
+    .toEqual(['library', 'make', 'settings', 'portal-menu-toggle', 'continue', 'roll', 'ask-open', 'enter']);
+  expect(container.querySelector('.home-meta').textContent).toBe('1 min');
+  portal.destroy();
+});
+
 it('is a labelled request with a microphone, Ask and Cancel once connected', async () => {
   acceptOpenRouterKey(KEY);
   const { portal, container } = mount();

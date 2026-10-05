@@ -11,7 +11,9 @@ import { ContinuousField } from './continuous-field.js';
 import { WorkEngineField } from './work-engine-field.js';
 import { Ostensoria } from './ostensoria.js';
 import { Apparitio } from './apparitio.js';
+import { Harmonograph } from './harmonograph.js';
 import * as flameFillAdapter from './flame-fill-adapter.js';
+import { accentFlameAnchors } from '../core/conductor.js';
 import { grantVisualInterlocutionConsent } from '../core/visual-safety.js';
 import { JEV_COLOR_THEMES } from '../core/jev-color-themes.js';
 import { JEV_PALETTES } from '../core/jev-palette.js';
@@ -2341,8 +2343,32 @@ describe('Continuous Field (Gallery) wiring', () => {
             };
             cortex.ostensoria = { generate: vi.fn(() => true), render: vi.fn(() => true), setLook: vi.fn() };
             cortex.apparitio = { generate: vi.fn(() => true), render: vi.fn(() => true) };
+            cortex.harmonograph = { generate: vi.fn(() => true), render: vi.fn(() => true) };
             return cortex;
         }
+
+        it('amethyst: the Harmonograph still draws the reading\'s anchors under the climate\'s chord', async () => {
+            const cortex = stubbedEngines();
+            cortex.beginSessionVisualIdentity({ colorTheme: 'amethyst', flameColors: JEV_PALETTES.amethyst });
+
+            await cortex._renderContinuousProceduralWork('harmonograph');
+
+            expect(cortex.harmonograph.generate.mock.calls[0][2]).toEqual({
+                climate: 'auto', anchors: accentFlameAnchors(JEV_PALETTES.amethyst)
+            });
+            cortex.destroy();
+        });
+
+        it('without a theme the Harmonograph still gets no anchors, as today', async () => {
+            const cortex = stubbedEngines();
+            cortex.beginSessionVisualIdentity({});
+
+            await cortex._renderContinuousProceduralWork('harmonograph');
+
+            expect(cortex.harmonograph.generate.mock.calls[0][2])
+                .toEqual({ climate: 'auto', anchors: null });
+            cortex.destroy();
+        });
 
         async function renderThree(cortex) {
             for (const type of ['turrell', 'neural', 'rockgarden']) {
@@ -2582,6 +2608,23 @@ describe('Continuous Field (Gallery) wiring', () => {
 
         cortex.updateConfig({ presentation: 'full-frame' });
         expect(cortex._harmonographField?.running).toBe(false);
+        cortex.destroy();
+    });
+
+    it('the Gallery Harmonograph draws each figure in the reading\'s anchors', () => {
+        const generate = vi.spyOn(Harmonograph.prototype, 'generate');
+        const { cortex } = hostedContinuousCortex();
+        cortex.beginSessionVisualIdentity({ colorTheme: 'amethyst', flameColors: JEV_PALETTES.amethyst });
+        cortex.updateConfig({
+            enabled: true,
+            presentation: 'continuous',
+            activeTypes: ['harmonograph']
+        });
+        expect(cortex._harmonographField?.running).toBe(true);
+        expect(generate.mock.calls.at(-1)[2]).toEqual({
+            climate: 'auto', anchors: accentFlameAnchors(JEV_PALETTES.amethyst)
+        });
+        generate.mockRestore();
         cortex.destroy();
     });
 
