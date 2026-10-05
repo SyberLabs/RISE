@@ -20,8 +20,8 @@
  * text the host will run.
  *
  * NOT VERIFIED IN A PRODUCT HOST. Whether a host lets a view frame another page
- * (the `frameDomains` it is asked for), and pass the microphone through, is the
- * host's policy.
+ * (the `frameDomains` it is asked for) is the host's policy. The frame asks for
+ * sound and full screen and no microphone: the embed takes no speech.
  */
 
 /** The relay's script, with the page's origin given as a JSON string. Uses nothing but the window it runs in. */
@@ -73,7 +73,7 @@ export function relayHtml({ origin, path = EMBED_PATH }) {
 <style>html,body{margin:0;height:100%;background:#06051A}iframe{display:block;border:0;width:100%;height:100%}</style>
 </head>
 <body>
-<iframe id="app" title="RISE" src="${origin}${path}" allow="microphone; autoplay; fullscreen"></iframe>
+<iframe id="app" title="RISE" src="${origin}${path}" allow="autoplay; fullscreen"></iframe>
 <script>${relayScript(origin)}</script>
 </body>
 </html>

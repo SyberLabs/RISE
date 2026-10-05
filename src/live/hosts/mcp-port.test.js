@@ -34,10 +34,10 @@ function setup(options = {}) {
 const notification = (method, params) => ({ jsonrpc: '2.0', method, params });
 
 /** A port that has said hello to a host that does, or does not, take questions for its model. */
-async function connected({ sampling = true, ...options } = {}) {
+async function connected({ sampling = true, hostContext, ...options } = {}) {
     const made = setup(options);
     const connecting = made.port.connect();
-    made.hostSays({ jsonrpc: '2.0', id: made.sent[0].message.id, result: { hostInfo: { name: 'a host' }, hostCapabilities: sampling ? { sampling: {} } : {} } });
+    made.hostSays({ jsonrpc: '2.0', id: made.sent[0].message.id, result: { hostInfo: { name: 'a host' }, hostCapabilities: sampling ? { sampling: {} } : {}, ...(hostContext === undefined ? {} : { hostContext }) } });
     await connecting;
     made.sent.length = 0;
     return made;
@@ -95,9 +95,80 @@ describe('what the reference says', () => {
             toolResult: 'ui/notifications/tool-result',
             sample: 'sampling/createMessage',
             sizeChanged: 'ui/notifications/size-changed',
+            hostContextChanged: 'ui/notifications/host-context-changed',
+            toolCancelled: 'ui/notifications/tool-cancelled',
             ping: 'ping',
             teardown: 'ui/resource-teardown'
         });
+    });
+});
+
+describe('what the host says about where the app is shown', () => {
+    it('keeps the host context given at hello, and holds none when the host gives none, or gives something that is not an object', async () => {
+        expect((await connected({ hostContext: { theme: 'dark', displayMode: 'inline' } })).port.hostContext()).toEqual({ theme: 'dark', displayMode: 'inline' });
+        expect((await connected()).port.hostContext()).toEqual({});
+        for (const given of [null, 'dark', 5, ['dark']]) expect((await connected({ hostContext: given })).port.hostContext(), String(given)).toEqual({});
+        expect(setup().port.hostContext()).toEqual({});
+    });
+
+    it('merges each change the host sends, field by field, and tells the app after each', async () => {
+        const { port, hostSays } = await connected({ hostContext: { theme: 'dark', containerDimensions: { maxHeight: 640 }, locale: 'en' } });
+        const told = [];
+        port.onHostContext(context => told.push(context));
+        hostSays(notification(METHODS.hostContextChanged, { theme: 'light' }));
+        hostSays(notification(METHODS.hostContextChanged, { containerDimensions: { width: 390 } }));
+        expect(port.hostContext()).toEqual({ theme: 'light', containerDimensions: { width: 390 }, locale: 'en' });
+        expect(told).toEqual([
+            { theme: 'light', containerDimensions: { maxHeight: 640 }, locale: 'en' },
+            { theme: 'light', containerDimensions: { width: 390 }, locale: 'en' }
+        ]);
+    });
+
+    it('ignores a change that is not an object, and stops telling the app when told and when closed', async () => {
+        const { port, hostSays } = await connected({ hostContext: { theme: 'dark' } });
+        const told = [];
+        const off = port.onHostContext(context => told.push(context));
+        for (const params of [undefined, null, 'light', 5, ['light']]) hostSays(notification(METHODS.hostContextChanged, params));
+        expect(port.hostContext()).toEqual({ theme: 'dark' });
+        expect(told).toEqual([]);
+        off();
+        hostSays(notification(METHODS.hostContextChanged, { theme: 'light' }));
+        expect(port.hostContext()).toEqual({ theme: 'light' });
+        expect(told).toEqual([]);
+        port.onHostContext(context => told.push(context));
+        port.close();
+        hostSays(notification(METHODS.hostContextChanged, { theme: 'dark' }));
+        expect(told).toEqual([]);
+    });
+});
+
+describe('when the host cancels the call', () => {
+    it('tells the app, with the host’s reason clipped to a line, or none', () => {
+        const { port, hostSays } = setup();
+        const told = [];
+        port.onToolCancelled(cancel => told.push(cancel));
+        hostSays(notification(METHODS.toolCancelled, { reason: 'user action' }));
+        hostSays(notification(METHODS.toolCancelled, { reason: 'x'.repeat(300) }));
+        hostSays(notification(METHODS.toolCancelled, {}));
+        hostSays(notification(METHODS.toolCancelled, { reason: 5 }));
+        hostSays(notification(METHODS.toolCancelled));
+        expect(told).toEqual([{ reason: 'user action' }, { reason: 'x'.repeat(200) }, { reason: null }, { reason: null }, { reason: null }]);
+    });
+
+    it('stops telling the app when told, and when closed, and survives an app that throws', () => {
+        const { port, hostSays } = setup();
+        const told = [];
+        const off = port.onToolCancelled(() => told.push(1));
+        port.onToolCancelled(() => { throw new Error('bad'); });
+        port.onToolCancelled(() => told.push(2));
+        hostSays(notification(METHODS.toolCancelled, { reason: 'r' }));
+        expect(told).toEqual([1, 2]);
+        off();
+        hostSays(notification(METHODS.toolCancelled, { reason: 'r' }));
+        expect(told).toEqual([1, 2, 2]);
+        port.close();
+        hostSays(notification(METHODS.toolCancelled, { reason: 'r' }));
+        expect(told).toEqual([1, 2, 2]);
     });
 });
 

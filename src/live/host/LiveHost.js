@@ -583,6 +583,12 @@ export class LiveHost {
             if (this.destroyed || this.embeddedStartupCancelled) return;
             this.port = createMcpGuestPort({ frame });
             this.stopListeningError = this.port.onError(error => this.refuseEmbeddedProposal(error));
+            this.port.onToolCancelled(() => {
+                // The host withdrew the call this frame waits on: no answer will come of it.
+                if (this.destroyed || this.embeddedStartupCancelled || this.embeddedBeginStarted) return;
+                this.cancelEmbeddedPending();
+                this.say('The assistant cancelled this answer.', { alert: true });
+            });
             this.port.onTeardown(() => {
                 this.embeddedStartupCancelled = true;
                 this.cancelEmbeddedPending();

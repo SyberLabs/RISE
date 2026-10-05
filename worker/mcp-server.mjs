@@ -1,4 +1,4 @@
-import { validateRiseCurrent } from '../src/core/rise-current.js';
+import { RISE_CURRENT_LIMITS as LIMITS, RISE_CURRENT_SCHEMA, RISE_CURRENT_THEME_IDS, RISE_CURRENT_VISUALS, validateRiseCurrent } from '../src/core/rise-current.js';
 import { MCP_CURRENT_BYTES, serializedUtf8Bytes } from '../src/live/hosts/mcp-size.js';
 import { CURRENT_GUIDE, TOOL_NAME } from '../src/live/adapters/current-guide.js';
 import { EMBED_PATH, relayHtml } from '../src/live/hosts/mcp-relay.js';
@@ -20,7 +20,8 @@ import { callGate0, GATE0_TOOL, GATE0_TOOL_NAME } from './mcp-gate0.mjs';
  *
  * It is off unless MCP_ENABLED is 'true'. It answers only requests from no
  * browser origin or from its own (an MCP host's server has none; a page on
- * another site must not be able to make a browser talk to it), reads a bounded
+ * another site must not be able to make a browser talk to it), refuses a
+ * protocol version it does not speak before reading anything, reads a bounded
  * body, and returns nothing it was sent except a validator's message or an
  * argument's name, clipped.
  *
@@ -48,19 +49,107 @@ const clip = (text, length) => (text.length <= length ? text : `${text.slice(0, 
 
 const INSTRUCTIONS = `RISE presents an answer to the reader as a spoken, visual reading. To answer with it, call ${TOOL_NAME} with a Current.`;
 
+const shortText = max => ({ type: 'string', minLength: 1, maxLength: max });
+
+/**
+ * A Current as JSON Schema, for a host's model. Every limit and catalog is the validator's own
+ * (src/core/rise-current.js), not a copy. Where JSON Schema cannot say what the validator checks
+ * (trimmed ids, unique ids, the total text, an anchor inside its text) the schema is looser, never
+ * stricter: the validator judges, and this is what the model is told first.
+ */
+export function currentJsonSchema() {
+  const id = shortText(LIMITS.id);
+  return {
+    type: 'object',
+    description: 'The whole answer as a Current, exactly as the guide describes.',
+    properties: {
+      schema: { const: RISE_CURRENT_SCHEMA },
+      id,
+      title: shortText(LIMITS.title),
+      theme: { type: 'string', enum: RISE_CURRENT_THEME_IDS },
+      origin: {
+        type: 'object',
+        properties: {
+          kind: { type: 'string', enum: ['model', 'human'] },
+          name: shortText(LIMITS.name),
+          provider: { ...shortText(LIMITS.name), description: 'Who runs the model; given with "kind": "model" and only then.' }
+        },
+        required: ['kind', 'name'],
+        additionalProperties: false
+      },
+      segments: {
+        type: 'array',
+        description: `Spoken in order; at most ${LIMITS.totalText} characters of text in all.`,
+        minItems: 1,
+        maxItems: LIMITS.segments,
+        items: {
+          type: 'object',
+          properties: {
+            id,
+            text: shortText(LIMITS.segmentText),
+            visual: { type: 'string', enum: RISE_CURRENT_VISUALS },
+            dives: {
+              type: 'array',
+              description: 'Side notes on the text. The presentation does not show them: leave them out.',
+              maxItems: LIMITS.dives,
+              items: {
+                type: 'object',
+                properties: {
+                  id,
+                  text: shortText(LIMITS.diveText),
+                  anchor: {
+                    type: 'object',
+                    properties: {
+                      fromCharacter: { type: 'integer', minimum: 0 },
+                      toCharacter: { type: 'integer', minimum: 1 },
+                      quoteStart: { type: 'string', minLength: 1 },
+                      quoteEnd: { type: 'string', minLength: 1 }
+                    },
+                    required: ['fromCharacter', 'toCharacter', 'quoteStart', 'quoteEnd'],
+                    additionalProperties: false
+                  }
+                },
+                required: ['id', 'text', 'anchor'],
+                additionalProperties: false
+              }
+            },
+            literal: { type: 'boolean' }
+          },
+          required: ['id', 'text'],
+          additionalProperties: false
+        }
+      }
+    },
+    required: ['schema', 'id', 'title', 'origin', 'segments'],
+    additionalProperties: false
+  };
+}
+
+const CURRENT = currentJsonSchema();
+
 export const TOOL = Object.freeze({
   name: TOOL_NAME,
-  title: 'Present a RISE Current',
-  description: `Present your answer to the reader through RISE, which speaks it and shows it as it is spoken, and lets the reader stop at any place and ask about it. Write the answer as a Current and pass it as "current".\n\n${CURRENT_GUIDE}`,
+  title: 'Present a reading in RISE',
+  description: `Use this when the reader asked for a spoken, visual explanation or reading of the answer, or named RISE. RISE speaks the answer and shows the words as they are spoken; the reader presses Begin, can pause and resume, and can make the visual calmer or more vibrant. Call it once per answer, with the whole answer written as a Current and passed as "current". Do not use it for answers that need tables, code or live follow-up, and do not call it again for the same answer.\n\n${CURRENT_GUIDE}`,
   inputSchema: {
     type: 'object',
-    properties: { current: { type: 'object', description: 'The Current, exactly as described.' } },
+    properties: { current: CURRENT },
     required: ['current'],
     additionalProperties: false
   },
+  // What structuredContent carries back: the Current, as the app admits it (src/live/hosts/mcp-port.js).
+  outputSchema: { type: 'object', properties: { current: CURRENT }, required: ['current'] },
   annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
-  // `ui` is the extension's key; the flat one is its older spelling, which some hosts still read.
-  _meta: { ui: { resourceUri: APP_URI }, 'ui/resourceUri': APP_URI }
+  // Anyone may call it: there is no account and nothing of the reader's to reach.
+  securitySchemes: [{ type: 'noauth' }],
+  _meta: {
+    // `ui` is the extension's key; the flat one is its older spelling, which some hosts still read.
+    ui: { resourceUri: APP_URI },
+    'ui/resourceUri': APP_URI,
+    // What ChatGPT shows beside the call while it runs and once it is done; at most 64 characters each.
+    'openai/toolInvocation/invoking': 'Preparing the reading',
+    'openai/toolInvocation/invoked': 'The reading is ready for Begin'
+  }
 });
 
 function http(status, body, headers = {}) {
@@ -111,11 +200,12 @@ function read(id, params, origin) {
       text: relayHtml({ origin, path: EMBED_PATH }),
       _meta: {
         ui: {
-          // The app frames RISE's own page and nothing else, fetches nothing itself, and may use the microphone.
+          // The app frames RISE's own page and nothing else, fetches nothing itself, and asks for no device.
           csp: { frameDomains: [origin], connectDomains: [], resourceDomains: [] },
-          permissions: { microphone: {} },
           prefersBorder: false
-        }
+        },
+        // Read by the host's model when the app loads, so that it need not describe the app itself.
+        'openai/widgetDescription': 'A spoken reading of the answer, its words and a visual shown as they are spoken, which the reader starts with Begin and can pause and resume.'
       }
     }]
   });
@@ -165,6 +255,11 @@ export async function handleMcp(request, env) {
   if (request.method !== 'POST') return http(405, { error: { code: 'METHOD_NOT_ALLOWED', message: 'Use POST.' } }, { Allow: 'POST' });
   if (request.headers.get('Content-Type')?.split(';')[0].trim().toLowerCase() !== 'application/json') {
     return http(415, { error: { code: 'JSON_REQUIRED', message: 'Send application/json.' } });
+  }
+  // A client names the version it negotiated; one this server does not speak is refused before anything is read.
+  const version = request.headers.get('MCP-Protocol-Version');
+  if (version !== null && !PROTOCOL_VERSIONS.includes(version)) {
+    return http(400, { error: { code: 'UNSUPPORTED_PROTOCOL_VERSION', message: `This server speaks MCP ${PROTOCOL_VERSIONS.join(', ')}.` } });
   }
   let text;
   try {
