@@ -77,7 +77,7 @@
     {
       "kind": "pr",
       "ref": "https://github.com/SyberLabs/RISE/pull/453",
-      "note": "PR 4c: Continue leads when a reading is in memory. Open.",
+      "note": "PR 4c: Continue leads when a reading is in memory. Merged.",
       "date": "2026-10-05"
     }
   ],
@@ -97,10 +97,14 @@
     {
       "date": "2026-10-05T23:10:27.769Z",
       "summary": "PR 5 (b4-frame-test): src/components/home-frame.test.js pins the order of Home's six regions and the action hooks (docs/product/discussions/2026-10-05-canonical-home-design.md §2, criterion 7); acceptance records criterion 4 under RDR-015 and FND-010 and criterion 7 under RDR-007/RDR-009; evidence lists the B4 pull requests #427, #430, #431, #433, #436, #440 (merged) and #453 (open)."
+    },
+    {
+      "date": "2026-10-05T23:23:01.857Z",
+      "summary": "PR 4c merged as #453."
     }
   ],
-  "updatedAt": "2026-10-05T23:10:27.769Z",
-  "revision": 4,
+  "updatedAt": "2026-10-05T23:23:01.857Z",
+  "revision": 5,
   "summary": "The canonical Home, 'a home with a window': the featured reading's field full screen, an epigraph set still, Begin as the only primary action, Continue when there is a reading to resume, Adjust into Read, the rooms as header links. Build authorized by Mateo on 2026-10-05 with Seth's full agreement; Seth reviews. Uses the existing backdrop renderer; D1 replaces it later.",
   "blocker": null
 }
