@@ -330,8 +330,9 @@ describe('the other three rows', () => {
         expect(status().textContent).not.toContain('stays still');
     });
 
-    it('Still imagery opens on when the reader saved it', () => {
+    it('Still imagery opens on when the reader saved it, and the status says so before the sheet is ever opened', () => {
         stage = createStageControls({ runtime: fakeRuntime('live'), onPlayAgain: () => {}, chamber: () => fakeChamber({ reducedMotion: true }) });
+        expect(status().textContent).toContain('Imagery stays still.');
         settings().click();
         expect(still().checked).toBe(true);
         expect(still().disabled).toBe(false);

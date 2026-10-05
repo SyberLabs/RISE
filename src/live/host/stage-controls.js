@@ -158,12 +158,13 @@ export function createStageControls({ runtime, onPlayAgain, chamber = () => null
         else to.onSettingsChange(key, value);
     }
 
-    /** The Chamber on screen, or null; one seen for the first time takes every choice made so far. */
+    /** The Chamber on screen, or null; one seen for the first time takes every choice made so far and gives its saved rows. */
     function reachChamber() {
         const current = chamber();
         if (current && current !== reached) {
             reached = current;
             for (const [key, value] of Object.entries(picked)) apply(current, key, value);
+            refreshSaved(current);
         }
         return current;
     }
@@ -177,8 +178,8 @@ export function createStageControls({ runtime, onPlayAgain, chamber = () => null
     }
 
     /** The two saved rows, read from the Chamber's settings; the system's reduced motion is not the reader's to change. */
-    function refreshSaved() {
-        const saved = reachChamber()?.getSettings?.();
+    function refreshSaved(from = reachChamber()) {
+        const saved = from?.getSettings?.();
         if (!saved) return;
         if (!systemStill) still.checked = picked.reducedMotion ?? (saved.reducedMotion === true);
         const size = picked.fontSize ?? resolveFontSize(saved.fontSize);
@@ -189,6 +190,7 @@ export function createStageControls({ runtime, onPlayAgain, chamber = () => null
         if (destroyed) return;
         const { status } = snapshot;
         const gone = status === 'failed' || status === 'stopped';
+        reachChamber();
         const stillNote = !systemStill && still.checked ? [STILL_NOTE] : [];
         statusLine.textContent = [describeStatus(snapshot, { audible, dive: false }), ...degradations.map(note => note.effect), ...stillNote].filter(Boolean).join(' ');
         play.hidden = gone;
@@ -206,7 +208,6 @@ export function createStageControls({ runtime, onPlayAgain, chamber = () => null
             segmentId = at;
             if (chosen !== null) sendIntensity(chosen);
         }
-        reachChamber();
         if (!sheet.hidden) refreshIntensity();
     }
 
