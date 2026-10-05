@@ -2,6 +2,8 @@
 
 **Status:** plan and decisions, 29 September 2026. Written after merged PR #300 (the sealed `rise.current.v1`) and the Phase 1 consolidation (PR #298). Nothing here is built until a row in §11 says so.
 
+**Current scope (2026-10-04):** deferred. RISE in ChatGPT is Composer, a one-shot sequence creator and RISE presentation ([decision](../product/discussions/2026-10-04-composer-decision.md)); realtime Live and Dive are out of current scope. The live page and its code remain, off by default.
+
 **The claim being tested.** A model's answer, given time, voice, visual form, depth and provenance by RISE, is a different *medium* from text chat, from ordinary AI voice, and from voice over a generic audio visualizer. If a fixed-content comparison (§10) cannot separate it from the third, that result is recorded and the architecture is not widened to protect the thesis.
 
 ## 1. What is questioned, deleted, and refused (before building)

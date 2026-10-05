@@ -12,8 +12,8 @@
     "LIVE-006"
   ],
   "acceptance": [
-    "Observe interruption and return without losing orientation.",
-    "Record scope decision and usability fixes."
+    "Observe interruption and resume without losing orientation.",
+    "Record usability fixes and the release decision."
   ],
   "evidence": [
     {
@@ -21,16 +21,26 @@
       "ref": "docs/COMPOSER-FIRST-ROADMAP.md",
       "note": "Approved delivery direction; unchecked milestones do not imply missing all underlying code.",
       "date": "2026-10-03"
+    },
+    {
+      "kind": "document",
+      "ref": "docs/product/discussions/2026-10-04-composer-decision.md",
+      "note": "Composer is the approach; Dive and realtime Live leave the current scope.",
+      "date": "2026-10-04"
     }
   ],
   "activity": [
     {
       "date": "2026-10-03",
       "summary": "Seeded from approved Composer-first roadmap; host/release acceptance remains open."
+    },
+    {
+      "date": "2026-10-05T01:38:40.465Z",
+      "summary": "Exploration is out of scope; review covers interruption and resume"
     }
   ],
-  "updatedAt": "2026-10-03T23:14:43.432Z",
-  "revision": 1,
-  "summary": "Review interruption, replay and return with M2 available, then decide whether bounded exploration earns implementation.",
+  "updatedAt": "2026-10-05T01:38:40.465Z",
+  "revision": 2,
+  "summary": "Review interruption, replay and resume with M2 available, then decide what the first release needs.",
   "blocker": null
 }

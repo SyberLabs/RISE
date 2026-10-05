@@ -2,6 +2,8 @@
 
 **Status:** the instrument is built and tested. **The study has not been run.** Nothing here says a live Current is better than anything. Running it needs people, consent, and whatever ethical review the organisation requires; none of that is something the instrument, or the agent that wrote it, can supply.
 
+**Current scope (2026-10-04):** this study targets a live Current, which is deferred ([decision](../product/discussions/2026-10-04-composer-decision.md)). The Composer edition's first reader sessions (V1) are formative and use their own protocol.
+
 ## The question, and why it may come out badly
 
 RISE claims a live Current is a response medium of its own: not text chat, not ordinary AI voice, not voice over a generic audio-reactive visualizer. If it is only prettier than the third, that is the finding, and this study is written so that it cannot say otherwise: below ten participants per compared group it says only that it cannot conclude; a difference that is not larger than chance is reported as none; and if a live Current wins only in how it was rated, the summary says it differs in *experience*, which is a preference and not evidence that it helps anyone understand.

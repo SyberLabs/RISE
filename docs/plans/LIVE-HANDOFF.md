@@ -2,6 +2,8 @@
 
 Written at the end of the first build. It says what exists, what has been shown to work and how, and, more than either, what has **not**. Nothing here is verified that was not run; each row says which of *implemented / unit tested / browser tested / tested with the deterministic provider / tested with a live provider / not yet verified* it is.
 
+**Current scope (2026-10-04):** deferred. RISE in ChatGPT is Composer ([decision](../product/discussions/2026-10-04-composer-decision.md)); the live Current and Dive described here are out of current scope. This stays the record of what was built.
+
 ## What was built
 
 RISE can now present an answer that arrives over time as a **live Current**: words shown and spoken as they are written, imagery that follows the passages, a question asked at an exact place (a **Dive**) answered as a Current of its own, and **Surface** returning to the same atom. The canonical flow (ask, hear it begin, interrupt and dive on the event horizon, Surface, carry on) runs in a real browser at `/live`, offline, on a deterministic provider.

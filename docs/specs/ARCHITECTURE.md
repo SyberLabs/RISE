@@ -1365,6 +1365,24 @@ of `settled`, `open`, `deferred`, or `reversed`.
   the route table did, and `src/core/current.test.js` still holds it there.
 - **Status:** settled.
 
+### 8.46 RISE in ChatGPT is Composer
+
+- **Chosen:** Composer, a one-shot sequence creator and RISE presentation. The
+  host model composes one sealed Current (`rise.current.v1`) in a single
+  `rise_present` call; the Worker admits it (`worker/mcp-server.mjs`); the
+  widget waits for Begin; RISE presents it through the Experience Program,
+  Session, Player and Chamber, with local reader controls.
+- **Rejected:** for the current scope, realtime Live inside ChatGPT (later tool
+  calls changing an open widget, reciprocal events) and Dive (a reader's
+  question to the model, model-authored Dive notes). The code for both stays,
+  dormant. The Reader's look beneath a passage (`src/core/dive.js`) is a
+  separate feature and unaffected.
+- **Why:** in the host session of 2026-10-04 the reader confirmed Composer
+  narration in real ChatGPT, while four admitted model changes never reached
+  an open widget without a manual read. See
+  `docs/product/discussions/2026-10-04-composer-decision.md`.
+- **Status:** settled.
+
 ---
 
 ## 9. What this design costs
