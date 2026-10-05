@@ -628,16 +628,14 @@ function buildPalette(anchors, rng) {
 }
 
 /**
- * A 256-color flame palette built from a reading's chosen colors, so the
- * flame speaks the palette the reader was promised (a Neon night reading
- * burns magenta and cyan, not the mood palette's yellow-green). Every entry
- * is a bright tone of the accent and ink: a flame lands anywhere on the
- * palette, so a dark entry is a strand nobody sees.
+ * The five anchor stops a reading's chosen colors burn as: bright tones of
+ * the accent and ink, so a flame lands anywhere on the palette and no entry
+ * is a dark strand nobody sees.
  *
  * @param {{background: string, text: string, accent: string}} colors
  * @returns {number[][]|null}
  */
-export function buildAccentFlamePalette(colors) {
+export function accentFlameAnchors(colors) {
     const hex = value => {
         const match = /^#([0-9a-f]{6})$/i.exec(String(value || ''));
         if (!match) return null;
@@ -649,13 +647,26 @@ export function buildAccentFlamePalette(colors) {
     const ink = hex(colors?.text);
     if (!ground || !accent || !ink) return null;
     const mix = (a, b, t) => a.map((channel, i) => Math.round(channel + (b[i] - channel) * t));
-    return buildPalette([
+    return [
         mix(accent, ground, 0.2),
         accent,
         mix(accent, ink, 0.5),
         ink,
         mix(accent, ink, 0.25)
-    ], () => 0.5);
+    ];
+}
+
+/**
+ * A 256-color flame palette built from a reading's chosen colors, so the
+ * flame speaks the palette the reader was promised (a Neon night reading
+ * burns magenta and cyan, not the mood palette's yellow-green).
+ *
+ * @param {{background: string, text: string, accent: string}} colors
+ * @returns {number[][]|null}
+ */
+export function buildAccentFlamePalette(colors) {
+    const anchors = accentFlameAnchors(colors);
+    return anchors ? buildPalette(anchors, () => 0.5) : null;
 }
 
 /**

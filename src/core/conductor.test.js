@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import {
+    buildAccentFlamePalette,
     ensureTextContrast,
     livingTextAppearance,
     planFlame,
@@ -10,6 +11,7 @@ import {
     scoreChunk
 } from './conductor.js';
 import { CHAMBER_ACCENT_TOKENS } from './chamber-accent.js';
+import { JEV_PALETTES } from './jev-palette.js';
 
 const mkAtoms = (...contents) => contents.map(c => ({ content: c, duration: 300 }));
 
@@ -429,5 +431,39 @@ describe('accent flame palette', () => {
         // No entry is dark enough to vanish on the ground.
         expect(Math.min(...palette.map(([pr, pg, pb]) => pr + pg + pb))).toBeGreaterThan(250);
         expect(buildAccentFlamePalette({ background: 'red' })).toBeNull();
+    });
+
+    it('draws the nine themes exactly as before the anchors were factored out', () => {
+        // Captured from buildAccentFlamePalette before accentFlameAnchors existed.
+        const before = {
+            classic: [[200, 174, 131], [211, 190, 155]],
+            amethyst: [[187, 140, 255], [202, 165, 255]],
+            prism: [[232, 75, 255], [235, 117, 255]],
+            ember: [[255, 154, 90], [255, 176, 125]],
+            cobalt: [[88, 184, 255], [125, 200, 255]],
+            jade: [[76, 230, 164], [115, 236, 184]],
+            rose: [[255, 92, 147], [255, 129, 171]],
+            citrine: [[228, 218, 60], [234, 226, 103]],
+            silver: [[180, 195, 214], [196, 208, 223]]
+        };
+        for (const [id, [at64, at255]] of Object.entries(before)) {
+            const palette = buildAccentFlamePalette(JEV_PALETTES[id]);
+            expect(palette[64], id).toEqual(at64);
+            expect(palette[255], id).toEqual(at255);
+        }
+    });
+
+    it('exposes the five anchors the palette is built from', async () => {
+        const { accentFlameAnchors } = await import('./conductor.js');
+        const anchors = accentFlameAnchors({ background: '#0A0619', text: '#A8F1FF', accent: '#E84BFF' });
+        expect(anchors).toEqual([
+            [188, 61, 209],
+            [232, 75, 255],
+            [200, 158, 255],
+            [168, 241, 255],
+            [216, 117, 255]
+        ]);
+        expect(accentFlameAnchors(null)).toBeNull();
+        expect(accentFlameAnchors({ background: 'red' })).toBeNull();
     });
 });
