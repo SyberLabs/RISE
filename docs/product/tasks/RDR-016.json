@@ -3,9 +3,9 @@
   "title": "Make Phrase the default rhythm",
   "lane": "reader",
   "milestone": "Reader consolidation",
-  "status": "planned",
-  "delivery": "not_shipped",
-  "owner": null,
+  "status": "done",
+  "delivery": "merged",
+  "owner": "Claude coordinator",
   "priority": "now",
   "dependencies": [],
   "acceptance": [
@@ -25,16 +25,32 @@
       "ref": "docs/product/discussions/2026-10-04-reader-evidence.md",
       "note": "Investigation of production 97ca014f: probe measurements, code references and the last 14 days of history.",
       "date": "2026-10-04"
+    },
+    {
+      "kind": "pr",
+      "ref": "https://github.com/SyberLabs/RISE/pull/407",
+      "note": "Phrase default, phrase tempers, one-time migration that keeps Word under Fit.",
+      "date": "2026-10-05"
+    },
+    {
+      "kind": "test",
+      "ref": "src/components/read/ChamberOrbital.rhythm.test.js",
+      "note": "Local: 17 unit files (206 tests) and the Fit, Home and Today browser specs (32) pass; Today reads in phrases on every date of the cycle. Not yet observed with readers.",
+      "date": "2026-10-05"
     }
   ],
   "activity": [
     {
       "date": "2026-10-05T04:21:10.000Z",
       "summary": "Seeded from Phase A of the Consolidated Reader proposal; needs no owner decision."
+    },
+    {
+      "date": "2026-10-05T04:58:02.675Z",
+      "summary": "Claimed and done in #407"
     }
   ],
-  "updatedAt": "2026-10-05T04:21:10.000Z",
-  "revision": 1,
-  "summary": "Reader setup defaults to word (ChamberOrbital.js:216) and Today's poem reads word by word about five days in six. Word stays available as a capability.",
+  "updatedAt": "2026-10-05T04:58:02.675Z",
+  "revision": 2,
+  "summary": "Reader setup, every temper and therefore rolls, Home and Today's poem read in phrases; Word stays a choice. A pre-change saved Word becomes Phrase once unless the reader uses Fit; the compiler default and Composer's sentences are unchanged.",
   "blocker": null
 }
