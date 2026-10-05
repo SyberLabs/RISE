@@ -47,15 +47,15 @@ jobs:
             worker/kev-worker-script.test.js \
             src/core/decision \
             src/core/jev-palette.test.js \
-            src/components/Chamber.jev-look.test.js \
+            src/components/read/Chamber.jev-look.test.js \
             src/app/jev-reading.test.js \
             src/core/openrouter-oauth.test.js \
             src/core/kev-client.test.js \
             src/core/csp.test.js \
             src/core/passage-visuals/score-provider.test.js \
             src/core/passage-visuals/scoring-client.test.js \
-            src/components/Portal.jev.test.js \
-            src/components/Portal.test.js \
+            src/components/Home.jev.test.js \
+            src/components/Home.test.js \
             src/components/reading-stream.test.js \
             src/components/reading-backdrop.test.js \
             src/components/home-ask.test.js \
