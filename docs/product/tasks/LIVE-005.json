@@ -22,16 +22,42 @@
       "ref": "docs/COMPOSER-FIRST-ROADMAP.md",
       "note": "Approved delivery direction; unchecked milestones do not imply missing all underlying code.",
       "date": "2026-10-03"
+    },
+    {
+      "kind": "document",
+      "ref": "docs/experiments/EMBED-SAFETY-2026-10-05.md",
+      "note": "Embed safety check: saved RISE settings do not reach a cross-site frame; the system reduced-motion preference does and takes hold mid-reading; nothing in a Composer presentation flashes. Gap: a RISE-only Reduced motion or Photosensitivity choice does not travel. Local fake host, not ChatGPT.",
+      "date": "2026-10-05"
+    },
+    {
+      "kind": "test",
+      "ref": "e2e/live-mcp.spec.js",
+      "note": "Branch composer/embed-safety: cross-site no-settings test and reduced-motion text-arrival assertions; live-mcp 21 passed locally in Chromium 141; each new assertion failed under a mutation. Not a host observation.",
+      "date": "2026-10-05"
+    },
+    {
+      "kind": "pr",
+      "ref": "https://github.com/SyberLabs/RISE/pull/409",
+      "note": "Embed safety check, open for review, not merged. Branch evidence only.",
+      "date": "2026-10-05"
     }
   ],
   "activity": [
     {
       "date": "2026-10-03",
       "summary": "Seeded from approved Composer-first roadmap; host/release acceptance remains open."
+    },
+    {
+      "date": "2026-10-05T05:57:38.950Z",
+      "summary": "Embed safety check recorded for the reduced-motion criterion; status unchanged (Cloud Composer agent)"
+    },
+    {
+      "date": "2026-10-05T06:03:56.211Z",
+      "summary": "Linked the embed safety PR (Cloud Composer agent)"
     }
   ],
-  "updatedAt": "2026-10-03T23:14:43.432Z",
-  "revision": 1,
+  "updatedAt": "2026-10-05T06:03:56.211Z",
+  "revision": 3,
   "summary": "Predictable Begin/pause/resume/Stop, no stale callback restart, place preservation and existing interchange/Vault replay.",
   "blocker": null
 }
