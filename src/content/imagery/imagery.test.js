@@ -245,7 +245,8 @@ describe('App forwards the authored visual fields to the cortex', () => {
     const block = source.slice(anchor - 2000, anchor + 2000);
     for (const field of [
       'harmonographClimate', 'kleePreset', 'renderLanguage',
-      'presentation', 'galleryCadence', 'activeTypes'
+      'presentation', 'galleryCadence', 'activeTypes',
+      'colorTheme', 'ostensoriaPalette', 'apparitioPalette'
     ]) {
       expect(block, `the Chamber session factory must forward ${field} to the cortex`).toContain(field);
     }

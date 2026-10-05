@@ -80,14 +80,17 @@ export class NeuralNetwork {
     }
 
     /**
-     * Generate a random neural network visualization
+     * Generate a random neural network visualization. A known palette key
+     * fixes the palette; anything else keeps the random pick.
      */
-    generate() {
+    generate(key) {
         if (!this.canvas || !this.ctx) return false;
 
-        // Select random palette and topology
+        // Select palette and random topology
         const paletteKeys = Object.keys(this.palettes);
-        const paletteKey = paletteKeys[Math.floor(Math.random() * paletteKeys.length)];
+        const paletteKey = Object.hasOwn(this.palettes, key)
+            ? key
+            : paletteKeys[Math.floor(Math.random() * paletteKeys.length)];
         this.currentPalette = this.palettes[paletteKey];
 
         const topology = this.topologies[Math.floor(Math.random() * this.topologies.length)];
