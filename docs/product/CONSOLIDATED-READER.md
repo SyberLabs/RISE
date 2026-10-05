@@ -588,7 +588,7 @@ The presentation does **not** use Reader setup, the Navigator, stances, soundsca
 | The Player API: `setLive`, `extend`, `govern`, play, pause | The Player | The presentation's runtime |
 | `RISE_CURRENT_THEMES`: what each theme draws with | `rise-current.js:122-131` | It is the look of every Composer answer |
 | The visual control contract: `ATTRACTOR_VISUAL_MANIFEST`, the intensity range, `validateVisualCommand` | `visual-control-contract.js` | The only visual control in the embed |
-| The embed's control set and the constructor guards | `controls.js`, `current.test.js` | What the reader can do inside ChatGPT |
+| The embed's control set and the constructor guards | `controls.js`, `current.test.js` | What the reader can do inside ChatGPT. Amended 2026-10-05: the owner changed the embed's control set to Play/Pause and Settings, so it is no longer fixed ([embed stage decision](discussions/2026-10-05-embed-stage-decision.md)); the constructor guards stay |
 | The admission surface | `rise_present`, `worker/mcp-server.mjs`, `worker/mcp-gate0.mjs` | What ChatGPT is allowed to send |
 
 **The consolidation only adds; it never edits these.** New colour maps sit beside `RISE_CURRENT_THEMES`. The catalog's Composer view is checked against `RISE_CURRENT_VISUALS`, never the reverse. Package A0 (FND-006) turns this rule into tests before any Reader change to shared code lands.
@@ -601,7 +601,7 @@ The presentation does **not** use Reader setup, the Navigator, stances, soundsca
 | B1: attractor frame policy | Attractor quality tiers | Fewer strands on slow devices; the visual control must still change the picture at the lowest tier | Policy unit tests; intensity test at the lowest tier; live-mcp | S+M |
 | B2: one colour vocabulary | `jev-palette.js`, `chamber-accent.js`, the new theme map | Chrome colours inside the embed. Any theme rename would break Currents | A0 snapshots | M owns the ids |
 | B3: one engine catalog | `visual-taxonomy.js` | Composer's three visuals become a declared view of the catalog | Test: the Composer view equals `RISE_CURRENT_VISUALS` | M |
-| C3: Look sheet and 7-button bar | `Chamber.js`; the embed is the reading view | The embed could gain or lose controls | Live and embed origins keep the `controls.js` set; `controls.test.js`, live-mcp | M |
+| C3: Look sheet and 7-button bar | `Chamber.js`; the embed is the reading view | The embed could gain or lose controls | Live and embed origins keep the `controls.js` set; `controls.test.js`, live-mcp. Amended 2026-10-05: the embed gets its own two controls, and `controls.js` stays for the standalone `/live` page ([embed stage decision](discussions/2026-10-05-embed-stage-decision.md)) | M |
 | D1: one renderer | Field mounting (`mountVisualFieldCue`, the Visual Field Director) | Composer's field cues mount through this path | live-mcp; the embed witnessed again before release | S+M |
 | D2: Settings | Face and size defaults read by the reading view | Settings saved in the reader's browser probably do not reach the ChatGPT frame [inferred, unchecked] | The embed safety check in step 1 (§6) | M |
 | A4: Phrase default | Setup, tempers, Today | None, as long as the compiler default stays | Test that Composer sessions still compile in sentences | — |

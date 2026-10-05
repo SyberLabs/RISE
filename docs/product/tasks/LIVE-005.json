@@ -40,6 +40,24 @@
       "ref": "https://github.com/SyberLabs/RISE/pull/409",
       "note": "Embed safety check, open for review, not merged. Branch evidence only.",
       "date": "2026-10-05"
+    },
+    {
+      "kind": "document",
+      "ref": "docs/product/discussions/2026-10-05-embed-stage-decision.md",
+      "note": "Embed stage decision: Stop folds into Pause (the voice held at once) and the host's teardown (everything cancelled), which meets the first acceptance line under a new name; the Still imagery row answers the reduced-motion gap; durable intent versus session preference answered for the embed (Still imagery and Text size saved in the frame's storage; Intensity and Theme for this reading only). Design, nothing run.",
+      "date": "2026-10-05"
+    },
+    {
+      "kind": "pr",
+      "ref": "https://github.com/SyberLabs/RISE/pull/420",
+      "note": "Merged 2026-10-05: a paused attractor presents its held frame after a resize, which the record's paused state and phone rotation rely on.",
+      "date": "2026-10-05"
+    },
+    {
+      "kind": "pr",
+      "ref": "https://github.com/SyberLabs/RISE/pull/423",
+      "note": "Open, not merged: rise_present described as the plugin docs ask, the host's tool-cancelled heard by the port and the embed, host context kept from the hello and merged on change, a cancel after delivery keeps the answer, /live in run_worker_first. Branch evidence only.",
+      "date": "2026-10-05"
     }
   ],
   "activity": [
@@ -54,10 +72,14 @@
     {
       "date": "2026-10-05T06:03:56.211Z",
       "summary": "Linked the embed safety PR (Cloud Composer agent)"
+    },
+    {
+      "date": "2026-10-05T13:19:25.034Z",
+      "summary": "Linked the embed stage decision record, #420 (held frame after resize) and #423 (tool-cancelled, host context); status unchanged (Composer lane)"
     }
   ],
-  "updatedAt": "2026-10-05T06:03:56.211Z",
-  "revision": 3,
+  "updatedAt": "2026-10-05T13:19:25.034Z",
+  "revision": 4,
   "summary": "Predictable Begin/pause/resume/Stop, no stale callback restart, place preservation and existing interchange/Vault replay.",
   "blocker": null
 }
