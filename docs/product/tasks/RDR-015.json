@@ -39,7 +39,7 @@
     },
     {
       "kind": "pr",
-      "ref": "https://github.com/SyberLabs/RISE/pull/TBD",
+      "ref": "https://github.com/SyberLabs/RISE/pull/459",
       "note": "PR 7 of the canonical Home (b4-begin-hold): the router keeps Home shown under the Read view until the reading has faded in, and the factory raises no overlay and does not settle for a reading begun from Home. CI measures Begin to first word in e2e/home-begin.spec.js, now without test.fail().",
       "date": "2026-10-05"
     }
@@ -56,10 +56,14 @@
     {
       "date": "2026-10-05T23:31:37.294Z",
       "summary": "PR 7 lands the hold (Home stays shown under the Read view until the reading has faded in) and the quiet factory (no overlay, no 300 ms settle for a reading begun from Home); CI's measurement is e2e/home-begin.spec.js, no longer an expected failure."
+    },
+    {
+      "date": "2026-10-05T23:49:39.884Z",
+      "summary": "PR 7 opened as #459."
     }
   ],
-  "updatedAt": "2026-10-05T23:31:37.294Z",
-  "revision": 3,
+  "updatedAt": "2026-10-05T23:49:39.884Z",
+  "revision": 4,
   "summary": "A Gallery reading opens on two flames instead of its whole queue (and bakes no flash plates first), cutting the preparation screen from ~3.2-3.5 s to ~1.7-2.4 s on a dev build. R2 is not yet met: the preparation screen still shows briefly and Home's visuals do not stay on screen through it.",
   "blocker": null
 }
