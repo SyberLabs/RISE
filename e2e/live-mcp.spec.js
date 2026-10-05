@@ -76,7 +76,8 @@ async function openHost(page, baseURL, options = {}) {
     const response = await handleMcp(new Request(request.url(), { method: request.method(), headers: request.headers(), body: request.postData() }), { MCP_ENABLED: 'true' });
     await route.fulfill({ status: response.status, headers: Object.fromEntries(response.headers), body: await response.text() });
   });
-  const relay = relayHtml({ origin, path: '/live?embed=mcp&voice=paced' });
+  // `appOrigin` frames RISE from another site than the host page's, as a product host does.
+  const relay = relayHtml({ origin: options.appOrigin ?? origin, path: '/live?embed=mcp&voice=paced' });
   await page.route(`**${HOST}`, route => route.fulfill({ contentType: 'text/html', body: hostPage({ relay, current: options.current ?? BLACK_HOLES_CURRENT, sampling: options.sampling ?? true, resultOnly: options.resultOnly ?? false, deferToolResult: options.deferToolResult ?? false, height: options.height, dive: toSealedCurrent(HORIZON_DIVE, 'dive-answer') }) }));
   await page.goto(HOST);
   // The app is a page in a frame in the relay's frame.
@@ -315,6 +316,9 @@ test('under reduced motion the imagery holds still, the reader is told so, and t
   await begin(app);
 
   await expectShown(app, 'A strange attractor turns');
+  // Text arrives whole: no word waits to be revealed, and the passage's fade is cut to nothing.
+  await expect(app.locator('#atom-display .atom-word[data-pending]')).toHaveCount(0);
+  expect(await app.locator('#atom-display').evaluate(node => parseFloat(getComputedStyle(node).transitionDuration))).toBeLessThanOrEqual(0.001);
   const note = app.locator('.live-controls__notes [data-capability="reducedMotion"]');
   await expect(note).toBeVisible();
   await expect(note).toHaveText('Reduced motion is on. Imagery stays still.');
@@ -341,6 +345,46 @@ const TWO_FIELDS = {
     { id: 'growing', text: 'A composition grows beneath this second passage as it is read.', visual: 'genesis' }
   ]
 };
+
+/**
+ * The ChatGPT case (docs/experiments/EMBED-SAFETY-2026-10-05.md). The app is framed from another site, so
+ * the browser gives the frame storage of its own and the settings a reader saved on RISE's own site are not
+ * there. (Playwright turns that partitioning off, so here the frame's storage is simply left empty.) The host
+ * page is on localhost and the app on 127.0.0.1: two sites.
+ */
+test('framed from another site with no saved settings, the embed starts on safe defaults: nothing flashes, and the system’s reduced motion takes hold mid-reading', async ({ page, baseURL }) => {
+  const appOrigin = `http://127.0.0.1:${new URL(baseURL).port}`;
+  // A loopback frame inside a page Playwright serves itself would otherwise wait on a local-network prompt.
+  await page.context().grantPermissions(['local-network-access']);
+  const app = await openHost(page, baseURL, { appOrigin, current: TWO_FIELDS });
+  await expect(app.getByRole('button', { name: 'Begin', exact: true })).toBeVisible();
+  const applied = () => app.locator('html').evaluate(html => ({
+    origin: location.origin,
+    stored: localStorage.getItem('rise-settings'),
+    classes: [...html.classList].filter(name => /^(reduced-motion|photosensitivity-mode)$/u.test(name)),
+    fontSize: html.dataset.fontSize,
+    chamberFace: html.dataset.chamberFace
+  }));
+  expect(await applied()).toEqual({ origin: appOrigin, stored: null, classes: [], fontSize: 'medium', chamberFace: 'literary' });
+
+  await begin(app);
+  await expectShown(app, 'A strange attractor turns');
+  // No photosensitivity notice: a Composer presentation is a continuous field, and nothing in it flashes.
+  await expect(app.locator('#photosensitivity-modal')).toBeHidden();
+  const attractor = app.locator('.chamber-attractor canvas.attractor-canvas');
+  // With no system preference the filament turns: a Reduced motion choice saved on RISE's site would not travel.
+  await expect.poll(() => picturesOverASecond(attractor), { timeout: 5_000 }).toBeGreaterThan(1);
+
+  // The system's preference does reach the cross-site frame, and takes hold mid-reading.
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await expect.poll(async () => (await applied()).classes).toEqual(['reduced-motion']);
+  await expect.poll(() => picturesOverASecond(attractor), { timeout: 5_000 }).toBe(1);
+  await expectShown(app, 'A composition grows beneath');
+  await expect.poll(() => picturesOverASecond(app.locator('.chamber-genesis canvas.klee-field-canvas')), { timeout: 5_000 }).toBe(1);
+  await expect(app.locator('#atom-display .atom-word[data-pending]')).toHaveCount(0);
+  await expect(app.locator('#photosensitivity-modal')).toBeHidden();
+});
+
 
 test('after Stop the hidden reading draws nothing more, a later passage’s field included', async ({ page, baseURL }) => {
   const app = await openHost(page, baseURL, { current: TWO_FIELDS });
