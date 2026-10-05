@@ -770,7 +770,8 @@ export class LiveHost {
             if (this.destroyed || this.embeddedStartupCancelled) return;
             // The frame has no page before the reading, so what this device cannot do is said here; the
             // status line already says a silent reading is paced.
-            this.controls = createLiveControls({ runtime, onStop: () => this.stop(), audible: this.voiceKind === 'browser', mic, notice: EMBED_REPLAY_NOTICE, notes: this.degradations({ pacingShown: true }) });
+            // A Composer presentation plays one admitted Current; it offers no Dive.
+            this.controls = createLiveControls({ runtime, onStop: () => this.stop(), audible: this.voiceKind === 'browser', dive: false, mic, notice: EMBED_REPLAY_NOTICE, notes: this.degradations({ pacingShown: true }) });
             await runtime.start('The answer the assistant presents');
         } catch (error) {
             if (this.destroyed || this.embeddedStartupCancelled) return;

@@ -28,17 +28,18 @@ describe('the example', () => {
         expect(validateRiseCurrent(structuredClone(CURRENT_EXAMPLE)).theme).toBe('cobalt');
     });
 
-    it('shows a Dive, an anchor that lands on whole words, and more than one visual', () => {
+    it('asks for no Dive notes, and shows more than one visual', () => {
+        // A Composer presentation shows no Dive notes, so the guide neither shows nor names them.
+        expect(CURRENT_EXAMPLE.segments.some(segment => 'dives' in segment)).toBe(false);
+        expect(CURRENT_GUIDE).not.toMatch(/"dives"/u);
         const current = validateRiseCurrent(structuredClone(CURRENT_EXAMPLE));
-        const dive = current.segments[0].dives[0];
-        expect(current.segments[0].text.slice(dive.anchor.fromCharacter, dive.anchor.toCharacter)).toBe('Nothing');
         expect(new Set(current.segments.map(segment => segment.visual)).size).toBeGreaterThan(1);
     });
 });
 
 describe('the numbers it states are the validator’s', () => {
     it('states every limit, and not a wrong one', () => {
-        for (const value of [RISE_CURRENT_LIMITS.title, RISE_CURRENT_LIMITS.segments, RISE_CURRENT_LIMITS.segmentText, RISE_CURRENT_LIMITS.totalText, RISE_CURRENT_LIMITS.dives, RISE_CURRENT_LIMITS.diveText]) {
+        for (const value of [RISE_CURRENT_LIMITS.title, RISE_CURRENT_LIMITS.segments, RISE_CURRENT_LIMITS.segmentText, RISE_CURRENT_LIMITS.totalText]) {
             expect(CURRENT_GUIDE, String(value)).toContain(String(value));
         }
         for (const visual of RISE_CURRENT_VISUALS) expect(CURRENT_GUIDE).toContain(visual);
@@ -80,7 +81,8 @@ describe('following the rules is accepted, and breaking the hard ones is refused
             c => { c.origin = { kind: 'human', name: 'x', provider: 'y' }; },
             c => { c.segments[0].visual = 'shader'; },
             c => { c.segments = []; },
-            c => { c.segments[0].dives[0].anchor.toCharacter = 3; },
+            // The guide asks for no Dive notes; one the validator is sent anyway must still land on whole words.
+            c => { c.segments[0].dives = [{ id: 'note', text: 'x', anchor: { fromCharacter: 0, toCharacter: 3, quoteStart: 'Not', quoteEnd: 'Not' } }]; },
             c => { c.theme = 'neon'; },
             c => { c.theme = null; }
         ];

@@ -86,7 +86,7 @@ window.addEventListener('message', event => {
 </script>`;
 }
 
-/** Frame RISE's embedded page from another origin, let it play, and ask one Dive. */
+/** Frame RISE's embedded page from another origin and let it play. */
 async function framedByAnySite(page, baseURL) {
     // The preview server listens on 127.0.0.1; the other page is answered by the test under another name.
     const rise = new URL(baseURL);
@@ -111,26 +111,21 @@ async function framedByAnySite(page, baseURL) {
     // The embedded page holds a delivered Current until the reader presses Begin (#368).
     await app.getByRole('button', { name: 'Begin', exact: true }).click();
     await expect(app.locator('#atom-display')).toContainText('whichever page framed RISE', { timeout: 15_000 });
-    await app.locator('#live-controls-question').fill('something only the reader knows');
-    await app.getByRole('button', { name: /Dive: ask about this place/u }).click();
-    await expect(app.locator('.live-passage__origin')).toHaveText(/\S/u, { timeout: 15_000 });
     return { app, rise, elsewhere };
 }
 
 test.describe('the embedded page under a parent it cannot identify', () => {
-    test('risk: any origin can frame the page, act as its host, and read the question the reader asks', async ({ page, baseURL }) => {
-        const { rise, elsewhere } = await framedByAnySite(page, baseURL);
-        const heard = await page.evaluate(() => window.__heard);
-        const asked = heard.find(entry => entry.method === 'sampling/createMessage');
+    test('risk: any origin can frame the page and act as its host, but it hears no question from the reader', async ({ page, baseURL }) => {
+        const { app, rise, elsewhere } = await framedByAnySite(page, baseURL);
         expect(new URL(page.url()).origin).toBe(elsewhere.origin);
-        expect(asked.origin).toBe(rise.origin);
-        expect(asked.params.messages[0].content.text).toContain('something only the reader knows');
-    });
-
-    test('the host’s model cannot have its Dive shown to the reader as a person’s words', async ({ page, baseURL }) => {
-        const { app, elsewhere } = await framedByAnySite(page, baseURL);
-        await expect(app.locator('.live-passage__origin')).toHaveText(/^Written when you asked, by /u, { timeout: 3_000 });
-        await expect(app.locator('.live-passage__origin')).toContainText(`MCP host at ${elsewhere.origin}`);
+        // A Composer presentation offers no Dive, so even a parent that claims sampling is asked nothing.
+        await expect(app.locator('.live-controls__ask')).toBeAttached();
+        await expect(app.locator('#live-controls-question')).toBeHidden();
+        await app.getByRole('button', { name: 'Interrupt', exact: true }).click();
+        await app.getByRole('button', { name: 'Resume', exact: true }).click();
+        const heard = await page.evaluate(() => window.__heard);
+        expect(heard.some(entry => entry.origin === rise.origin && entry.method === 'ui/initialize')).toBe(true);
+        expect(heard.some(entry => entry.method === 'sampling/createMessage')).toBe(false);
     });
 });
 

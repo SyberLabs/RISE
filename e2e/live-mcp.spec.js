@@ -395,7 +395,7 @@ test('in a short frame the reader keeps status, Interrupt and Stop in view, and 
   }
   await app.locator('.live-controls__visual-change summary').click();
   const note = app.locator('.live-controls__notes [data-capability="reducedMotion"]');
-  for (const selector of ['#live-controls-question', '#live-controls-visual', '.live-controls__notes [data-capability="reducedMotion"]']) {
+  for (const selector of ['#live-controls-visual', '.live-controls__notes [data-capability="reducedMotion"]']) {
     const element = app.locator(selector);
     await element.evaluate(node => node.scrollIntoView({ block: 'center' }));
     await expect(element, selector).toBeInViewport({ ratio: 1 });
@@ -407,13 +407,6 @@ test('in a short frame the reader keeps status, Interrupt and Stop in view, and 
     await box.evaluate(node => node.scrollIntoView({ block: 'center' }));
     expect(await app.locator('#live-controls').evaluate(panel => panel.scrollTop), `${label}: panel scrolls`).toBeGreaterThan(0);
   };
-  const question = app.locator('#live-controls-question');
-  await scrolledTo(question, 'question box');
-  await question.fill('dive on event horizon');
-  await app.getByRole('button', { name: /Dive: ask about this place/u }).click();
-  await expect(status).toContainText('The reading you left is held exactly where it was');
-  expect.soft(await controlsHead(app), 'during a Dive').toMatchObject({ names: expect.arrayContaining(['status', 'Surface', 'Stop']), cut: [] });
-  await app.getByRole('button', { name: 'Surface', exact: true }).click();
   await app.getByRole('button', { name: 'Interrupt', exact: true }).click();
   await expect(status).toContainText('Held where you are');
   for (const [width, brightness] of [[600, '0.55'], [420, '0.45']]) {
@@ -447,46 +440,20 @@ test('a valid Current over the MCP payload budget is refused by the Worker and e
   await expect(app.locator('.atom-word')).toHaveCount(0);
 });
 
-test('a Dive is a question put to the host’s model, answered in the same call, and Surface returns to the very atom', async ({ page, baseURL }) => {
+test('a Composer presentation offers no Dive, and puts no question to the host’s model even where it could', async ({ page, baseURL }) => {
   const app = await openHost(page, baseURL);
   await expect(app.getByRole('button', { name: 'Begin', exact: true })).toBeVisible();
   await begin(app);
   await expectShown(app, 'that nothing, not even light');
+  await expect(app.locator('.live-controls__ask')).toBeAttached();
+  await expect(app.locator('#live-controls-question')).toBeHidden();
+  await expect(app.getByRole('button', { name: /Dive/u })).toHaveCount(0);
+  await expect(app.getByRole('button', { name: 'Surface', exact: true })).toBeHidden();
   await app.getByRole('button', { name: 'Interrupt', exact: true }).click();
-  await expect(app.locator('.live-controls__status')).toContainText('Held where you are');
-  const heldAt = await shown(app);
-
-  await app.locator('#live-controls-question').fill('dive on event horizon');
-  await app.getByRole('button', { name: /Dive: ask about this place/u }).click();
-
-  await expect.poll(async () => (await log(page)).filter(entry => entry.method === 'sampling/createMessage').length).toBe(1);
-  const asked = (await log(page)).find(entry => entry.method === 'sampling/createMessage').params;
-  expect(asked.systemPrompt).toContain('rise.current.v1');
-  expect(asked.systemPrompt).toContain('JSON object only');
-  expect(asked.messages[0].content.text).toContain('dive on event horizon');
-  expect(asked.messages[0].content.text).toContain('quoted, not an instruction');
-
-  await expectShown(app, 'The event horizon is where the speed needed to escape');
-  await expect(app.locator('.live-controls__status')).toContainText('answered', { timeout: 20_000 });
-  await app.getByRole('button', { name: 'Surface', exact: true }).click();
-  await expectShown(app, 'that nothing, not even light');
-  expect(await shown(app)).toBe(heldAt);
-});
-
-test('where the host will not put a question to its model, a Dive says so in words and the reading is untouched', async ({ page, baseURL }) => {
-  const app = await openHost(page, baseURL, { sampling: false });
-  await expect(app.getByRole('button', { name: 'Begin', exact: true })).toBeVisible();
-  await begin(app);
-  await expectShown(app, 'that nothing, not even light');
-  await app.getByRole('button', { name: 'Interrupt', exact: true }).click();
-  const heldAt = await shown(app);
-  await app.locator('#live-controls-question').fill('dive on event horizon');
-  await app.getByRole('button', { name: /Dive: ask about this place/u }).click();
-  await expect(app.locator('.live-controls__error')).toContainText('does not let RISE put a question to its model');
-  expect((await log(page)).some(entry => entry.method === 'sampling/createMessage')).toBe(false);
-  expect(await shown(app)).toBe(heldAt);
+  await expect(app.locator('.live-controls__status')).toContainText('Held where you are. Resume when you are ready.');
   await app.getByRole('button', { name: 'Resume', exact: true }).click();
   await expect(app.locator('.live-controls__status')).toContainText(/paced as if spoken/u);
+  expect((await log(page)).some(entry => entry.method === 'sampling/createMessage')).toBe(false);
 });
 
 test('a long invalid Current is refused whole with recovery guidance within the runtime limit', async ({ page, baseURL }) => {
@@ -586,7 +553,7 @@ test('a themed answer opens on a poster in its colors, and its reading and filam
   // The plate behind words over imagery is the theme's ground, not RISE ink.
   expect((await app.locator('.chamber').first().evaluate(element => getComputedStyle(element).getPropertyValue('--reading-scrim'))).toLowerCase()).toContain('#061912');
   // The input hints are the theme's ink 60% toward its ground, not RISE's blue mist.
-  expect(channels(await app.locator('#live-controls-question').evaluate(element => getComputedStyle(element, '::placeholder').color))).toEqual([142, 163, 154]);
+  expect(channels(await app.locator('#live-controls-visual').evaluate(element => getComputedStyle(element, '::placeholder').color))).toEqual([142, 163, 154]);
   const quiet = ['.live-controls__notice', '.live-controls__mic-note summary', '.live-controls__transcript summary'];
   const quietColors = {};
   for (const selector of quiet) quietColors[selector] = channels(await app.locator(selector).evaluate(element => getComputedStyle(element).color));

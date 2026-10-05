@@ -12,7 +12,7 @@ import { interpretVisualControl } from '../visual-control.js';
  */
 
 /** One plain sentence for what is going on. Pure, so it can be held to what it says. */
-export function describeStatus(snapshot, { audible = true, question = '' } = {}) {
+export function describeStatus(snapshot, { audible = true, question = '', dive = true } = {}) {
     const { status, error, main, side } = snapshot;
     const voiceLost = (side ?? main)?.voiceDegraded === true;
     const quiet = voiceLost ? ' The voice stopped; the reading carries on at its own pace.' : '';
@@ -28,7 +28,7 @@ export function describeStatus(snapshot, { audible = true, question = '' } = {})
             return `${main?.speaking || !main?.voiceDegraded ? said : 'Reading.'}${early}${quiet}`;
         }
         case 'interrupted':
-            return 'Held where you are. Resume, or ask about this place.';
+            return dive ? 'Held where you are. Resume, or ask about this place.' : 'Held where you are. Resume when you are ready.';
         case 'diving': {
             const asked = question ? ` “${question.slice(0, 120)}”` : '';
             if (side?.error) return `The Dive could not be answered (${side.error.message}). Surface to go back.`;
@@ -36,10 +36,10 @@ export function describeStatus(snapshot, { audible = true, question = '' } = {})
                 ? `Dive${asked}: answered. Surface to go back to where you were; you can ask about another place from there.`
                 : `Diving${asked}. The reading you left is held exactly where it was. Surface to go back, then ask again.${quiet}`;
         }
-        case 'ended':
-            return main?.error
-                ? `Finished reading what arrived.${early} You can still ask about any place in it.`
-                : 'Finished. You can still ask about any place in it.';
+        case 'ended': {
+            const ask = dive ? ' You can still ask about any place in it.' : '';
+            return main?.error ? `Finished reading what arrived.${early}${ask}` : `Finished.${ask}`;
+        }
         case 'failed':
             return `It could not be answered: ${error?.message ?? 'the provider failed'}.`;
         case 'stopped':
@@ -56,11 +56,13 @@ export function describeStatus(snapshot, { audible = true, question = '' } = {})
  * @param {boolean} [options.audible] whether the voice makes sound; a silent one is said to be pacing
  * @param {string} [options.notice] an optional persistent note for an embedded host
  * @param {{capability: string, effect: string}[]} [options.notes] what this device cannot do, for an embedded host
+ * @param {boolean} [options.dive] whether the reader can ask about a place (a Dive). Off, the bar has no
+ *   question box, Surface or Speak, and no notes to go deeper; a Composer presentation turns it off
  * @param {object} [options.mic] speaking to it, where the browser can listen: `{ createListener, interpret, describe, privacy, privacyLead }`
  *   (src/live/mic); without it there is no Speak button at all
  * @param {Document} [options.doc]
  */
-export function createLiveControls({ runtime, onStop, audible = true, mic = null, notice = '', notes = [], doc = document }) {
+export function createLiveControls({ runtime, onStop, audible = true, dive: canAskAbout = true, mic = null, notice = '', notes = [], doc = document }) {
     const root = doc.createElement('section');
     root.id = 'live-controls';
     root.className = 'live-controls';
@@ -149,6 +151,11 @@ export function createLiveControls({ runtime, onStop, audible = true, mic = null
     const passageCondition = $('.live-passage__condition');
     const passageSources = $('.live-passage__sources');
     const passageDepth = $('.live-passage__depth');
+    if (!canAskAbout) {
+        form.hidden = true;
+        passageDepth.hidden = true;
+        passageDepth.previousElementSibling.hidden = true;
+    }
     let question = '';
     let shownLines = '';
     let shownPassage = '';
@@ -238,7 +245,7 @@ export function createLiveControls({ runtime, onStop, audible = true, mic = null
             })
             : [item('No source was given for this passage.', 'live-passage__none')]));
 
-        passageDepth.replaceChildren(
+        if (canAskAbout) passageDepth.replaceChildren(
             ...(described?.notes ?? []).map(note => item(`Note written with the answer${note.about ? `, about “${note.about}”` : ''}: ${note.text}`)),
             item('Ask your own question above: the answer is written now, for you, and marked as the model’s.')
         );
@@ -255,7 +262,7 @@ export function createLiveControls({ runtime, onStop, audible = true, mic = null
             visualOutcome = '';
             if (visualError) show('');
         }
-        statusLine.textContent = [describeStatus(snapshot, { audible, question }), visualOutcome].filter(Boolean).join(' ');
+        statusLine.textContent = [describeStatus(snapshot, { audible, question, dive: canAskAbout }), visualOutcome].filter(Boolean).join(' ');
         const canAsk = status === 'live' || status === 'interrupted' || status === 'ended';
         // A Dive that is still connecting is already the runtime's side run.
         const canDive = canAsk && !snapshot.side;
@@ -266,7 +273,7 @@ export function createLiveControls({ runtime, onStop, audible = true, mic = null
         interrupt.textContent = status === 'interrupted' ? 'Resume' : 'Interrupt';
         interrupt.dataset.live = status === 'interrupted' ? 'resume' : 'interrupt';
         if (listener) {
-            listen.hidden = !(canAsk || status === 'diving');
+            listen.hidden = !canAskAbout || !(canAsk || status === 'diving');
             listenVisual.hidden = !(['live', 'interrupted', 'diving'].includes(status));
             if (status === 'failed' || status === 'stopped') listener.cancel();
         }
