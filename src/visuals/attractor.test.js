@@ -69,6 +69,20 @@ describe('Attractor canvas size', () => {
     expect(sets).toBe(2);
     field.destroy();
   });
+
+  it('repaints a held frame after a resize, so a paused reading is never left blank', () => {
+    const field = new AttractorField(makeHost(), { intensity: 0.65, adaptive: false });
+    field.tick(performance.now());
+    const heldX = field.sx.slice();
+    field.pause();
+    const paintsBefore = field.ctx.clearRect.mock.calls.length;
+    Object.defineProperty(field.host, 'clientWidth', { value: 640, configurable: true });
+    field.resize();
+    expect(field.ctx.clearRect).toHaveBeenCalledTimes(paintsBefore + 1);
+    expect(Array.from(field.sx)).toEqual(Array.from(heldX));
+    expect(field.rafId).toBeNull();
+    field.destroy();
+  });
 });
 
 describe('Attractor palettes', () => {
