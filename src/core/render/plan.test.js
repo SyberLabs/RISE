@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { compileRenderPlan, hashRenderPlan, atomAt, visualRunAt } from './plan.js';
-import { buildVerticalSlice } from './vertical-slice.js';
+import { buildVerticalSlice } from '../../../tools/render/vertical-slice.js';
 
 describe('render plan', () => {
   it('compiles the vertical slice onto the session clock', async () => {

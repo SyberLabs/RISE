@@ -8,15 +8,15 @@
  * for the painter, not per frame.
  */
 
-import { presentationMs } from './clock.js';
+import { presentationMs } from '../../src/core/render/clock.js';
 import { openStageHost } from './stage-host.js';
-import { atomAt, visualRunAt } from './plan.js';
-import { fail } from './errors.js';
-import { decodeImage } from './decode.js';
-import { galleryWallAt } from '../visual-presence.js';
-import { resolveCaptionStyle } from './caption-style.js';
+import { atomAt, visualRunAt } from '../../src/core/render/plan.js';
+import { fail } from '../../src/core/render/errors.js';
+import { decodeImage } from '../../src/core/render/decode.js';
+import { galleryWallAt } from '../../src/core/visual-presence.js';
+import { resolveCaptionStyle } from '../../src/core/render/caption-style.js';
 
-const STAGE_PATH = '/src/core/render/chamber-stage.html';
+const STAGE_PATH = '/tools/render/chamber-stage.html';
 
 function bytesToDataUrl(bytes, mimeType = 'image/jpeg') {
   const view = bytes instanceof Uint8Array

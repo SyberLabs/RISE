@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { existsSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { compileRenderPlan } from './plan.js';
+import { compileRenderPlan } from '../../src/core/render/plan.js';
 import { openChamberPainter } from './chamber-paint.js';
 import { buildVerticalSlice } from './vertical-slice.js';
 

@@ -9,8 +9,8 @@ import { createServer } from 'node:http';
 import { mkdirSync, writeFileSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { randomUUID } from 'node:crypto';
-import { fail } from './errors.js';
-import { contentHashOf } from './hash.js';
+import { fail } from '../../src/core/render/errors.js';
+import { contentHashOf } from '../../src/core/render/hash.js';
 import {
   classifyRenderDocument,
   materializeExportJob

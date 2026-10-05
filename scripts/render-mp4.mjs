@@ -11,7 +11,7 @@ import {
   RENDER_CLI_USAGE,
   materializeExportJob,
   parseRenderCliArgs
-} from '../src/core/render/intake.js';
+} from '../tools/render/intake.js';
 
 const parsed = parseRenderCliArgs(process.argv);
 if (parsed.help) {

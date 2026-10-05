@@ -11,8 +11,8 @@ import { spawn, execFileSync } from 'node:child_process';
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync, existsSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
-import { fail } from './errors.js';
-import { encodeWav } from './wav.js';
+import { fail } from '../../src/core/render/errors.js';
+import { encodeWav } from '../../src/core/render/wav.js';
 
 function resolveFfmpeg(explicit = null) {
   const configured = explicit || process.env.RISE_FFMPEG_PATH;

@@ -74,7 +74,7 @@ export async function handleExportMp4(req, res, { root = process.cwd() } = {}) {
   const outDir = join(resolve(root, 'out', 'workshop-export'), `export-${Date.now()}`);
   mkdirSync(outDir, { recursive: true });
   try {
-    const { materializeExportJob } = await import('../src/core/render/intake.js');
+    const { materializeExportJob } = await import('../tools/render/intake.js');
     const artifact = await materializeExportJob({
       document,
       outDir,

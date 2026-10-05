@@ -5,7 +5,7 @@ import { join } from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { describe, expect, it } from 'vitest';
 import { encodeMp4 } from './encode-mp4.js';
-import { RENDER_SAMPLE_RATE } from './layout.js';
+import { RENDER_SAMPLE_RATE } from '../../src/core/render/layout.js';
 
 function solidFrame(width, height, color) {
   const rgba = new Uint8ClampedArray(width * height * 4);

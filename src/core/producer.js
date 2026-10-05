@@ -236,7 +236,7 @@ export async function runProducer({
   if (wantsCompile) {
     const { renderArtifact, KERNEL_REQUEST_SCHEMA } = await import(
       /* @vite-ignore */
-      new URL('./render/artifact.js', import.meta.url).href
+      new URL('../../tools/render/artifact.js', import.meta.url).href
     );
     // Compile is always the final pin (scale 1, 48 kHz). Draft is preview only.
     const compileTier = qualityTier('final');

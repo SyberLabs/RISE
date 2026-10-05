@@ -170,6 +170,6 @@ export default defineConfig({
     maxWorkers: Math.max(1, Math.min(coreCeiling, memoryCeiling)),
     minWorkers: 1,
 
-    include: ['src/**/*.{test,spec}.js', 'worker/**/*.{test,spec}.js']
+    include: ['src/**/*.{test,spec}.js', 'worker/**/*.{test,spec}.js', 'tools/**/*.{test,spec}.js']
   }
 });

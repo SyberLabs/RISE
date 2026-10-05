@@ -5,9 +5,9 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { EXPERIENCE_PROGRAM_SCHEMA } from '../experience-program.js';
-import { AGENT_OPERATION_SET_SCHEMA } from '../agent-operations.js';
-import { KERNEL_REQUEST_SCHEMA } from './kernel-request.js';
+import { EXPERIENCE_PROGRAM_SCHEMA } from '../../src/core/experience-program.js';
+import { AGENT_OPERATION_SET_SCHEMA } from '../../src/core/agent-operations.js';
+import { KERNEL_REQUEST_SCHEMA } from '../../src/core/render/kernel-request.js';
 
 vi.mock('./artifact.js', () => ({
   renderArtifact: vi.fn(async request => ({
@@ -31,7 +31,7 @@ vi.mock('./artifact.js', () => ({
   }))
 }));
 
-vi.mock('../producer.js', () => ({
+vi.mock('../../src/core/producer.js', () => ({
   runProducer: vi.fn(async ({ encode }) => ({
     stage: 'review-queued',
     job: { profile: 'social-portrait-1080' },
@@ -59,9 +59,9 @@ const {
   renderFromDocument
 } = await import('./intake.js');
 const { renderArtifact } = await import('./artifact.js');
-const { runProducer } = await import('../producer.js');
+const { runProducer } = await import('../../src/core/producer.js');
 
-const SCRIPT = join(dirname(fileURLToPath(import.meta.url)), '../../../scripts/render-mp4.mjs');
+const SCRIPT = join(dirname(fileURLToPath(import.meta.url)), '../../scripts/render-mp4.mjs');
 
 const program = {
   schema: EXPERIENCE_PROGRAM_SCHEMA,

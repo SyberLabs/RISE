@@ -7,39 +7,39 @@
  * engines — at explicit presentation time. Not a screen recording of rAF.
  */
 
-import { sizeAtomScale, stripEmphasis } from '../recitation.js';
-import { PROCEDURAL_PATTERN_IDS } from '../visual-registry.js';
-import { FOCAL_GLYPHS } from '../visual-style-definitions.js';
-import { createSeededRandom } from '../../visuals/lib/klee-core.js';
-import { KleeEngine, KLEE_CHAMBER_BACKGROUND, KLEE_PRESET_NAMES } from '../../visuals/klee-enhanced.js';
-import { genesisProgressForRun } from '../../visuals/klee-field.js';
+import { sizeAtomScale, stripEmphasis } from '../../src/core/recitation.js';
+import { PROCEDURAL_PATTERN_IDS } from '../../src/core/visual-registry.js';
+import { FOCAL_GLYPHS } from '../../src/core/visual-style-definitions.js';
+import { createSeededRandom } from '../../src/visuals/lib/klee-core.js';
+import { KleeEngine, KLEE_CHAMBER_BACKGROUND, KLEE_PRESET_NAMES } from '../../src/visuals/klee-enhanced.js';
+import { genesisProgressForRun } from '../../src/visuals/klee-field.js';
 import {
   figureEpisodeAt,
   figureEpisodeSeed,
   scoredFigureProgress
-} from '../visual-presence.js';
-import { Turrell } from '../../visuals/turrell.js';
-import { Harmonograph } from '../../visuals/harmonograph.js';
-import { Ostensoria } from '../../visuals/ostensoria.js';
-import { Apparitio } from '../../visuals/apparitio.js';
-import { RockGarden } from '../../visuals/rockgarden.js';
-import { NeuralNetwork } from '../../visuals/neural.js';
-import { FractalFlameGenerator } from '../../visuals/lib/fractal-engine.js';
-import { AttractorField } from '../../visuals/attractor.js';
-import { renderFlameImage } from '../../visuals/living-flame/cpu-fallback.js';
-import { normalizeLivingFlameConfig } from '../flame-recipe.js';
-import { RosaMystica } from '../../visuals/rosa-mystica.js';
+} from '../../src/core/visual-presence.js';
+import { Turrell } from '../../src/visuals/turrell.js';
+import { Harmonograph } from '../../src/visuals/harmonograph.js';
+import { Ostensoria } from '../../src/visuals/ostensoria.js';
+import { Apparitio } from '../../src/visuals/apparitio.js';
+import { RockGarden } from '../../src/visuals/rockgarden.js';
+import { NeuralNetwork } from '../../src/visuals/neural.js';
+import { FractalFlameGenerator } from '../../src/visuals/lib/fractal-engine.js';
+import { AttractorField } from '../../src/visuals/attractor.js';
+import { renderFlameImage } from '../../src/visuals/living-flame/cpu-fallback.js';
+import { normalizeLivingFlameConfig } from '../../src/core/flame-recipe.js';
+import { RosaMystica } from '../../src/visuals/rosa-mystica.js';
 import {
   isWorkEngineFamily,
   loadWorkEngines
-} from '../../visuals/work-engines.js';
-import { TIME_SCALE } from '../../visuals/work-engine-field.js';
+} from '../../src/visuals/work-engines.js';
+import { TIME_SCALE } from '../../src/visuals/work-engine-field.js';
 import {
   captionAllowsGlass,
   captionAnchor,
   captionCssFontSize,
   resolveCaptionStyle
-} from './caption-style.js';
+} from '../../src/core/render/caption-style.js';
 
 const VOID = KLEE_CHAMBER_BACKGROUND;
 const CAPTION_VARS = [

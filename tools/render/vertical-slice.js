@@ -6,12 +6,12 @@
 import {
   EXPERIENCE_PROGRAM_SCHEMA,
   validateExperienceProgram
-} from '../experience-program.js';
-import { compileSession } from '../session-compiler.js';
-import { SEQUENCE_ASSET_PREFIX } from '../visual-score-lane.js';
-import { contentHashOf } from './hash.js';
-import { RENDER_JOB_SCHEMA } from './environment.js';
-import { pinnedRendererForProfile } from './job.js';
+} from '../../src/core/experience-program.js';
+import { compileSession } from '../../src/core/session-compiler.js';
+import { SEQUENCE_ASSET_PREFIX } from '../../src/core/visual-score-lane.js';
+import { contentHashOf } from '../../src/core/render/hash.js';
+import { RENDER_JOB_SCHEMA } from '../../src/core/render/environment.js';
+import { pinnedRendererForProfile } from '../../src/core/render/job.js';
 
 export const SLICE_SOURCE_ID = 'source-1';
 export const SLICE_IMAGE_ID = 'asset-rain-window';
