@@ -87,15 +87,15 @@ test.describe('the Portal has no overlay between a cursor and a door', () => {
         }
     });
 
-    test('CHAMBER opens from a real mouse press, without force', async ({ page }) => {
+    test('Read opens from a real mouse press, without force', async ({ page }) => {
         await openPortal(page);
         await page.waitForTimeout(3000);
 
-        // The reader-setup door sits in the Menu.
+        // Read sits in the Menu.
         await openMenu(page);
-        const box = await page.locator('[data-nav="chamber"]').first().boundingBox();
-        expect(box, 'the Chamber button has no box to press').toBeTruthy();
-        expect(box.y + box.height / 2, 'the Chamber button centre is below the viewport')
+        const box = await page.locator('[data-nav="read"]').first().boundingBox();
+        expect(box, 'the Read button has no box to press').toBeTruthy();
+        expect(box.y + box.height / 2, 'the Read button centre is below the viewport')
             .toBeLessThan(page.viewportSize().height);
 
         // move → press → release at the coordinate, the way a hand does
@@ -115,8 +115,8 @@ test.describe('the Portal has no overlay between a cursor and a door', () => {
         await page.waitForTimeout(3000);
         await openMenu(page);
 
-        const { reachable, hit } = await hitTest(page, '[data-nav="chamber"]');
-        expect(reachable, `the Chamber entrance is covered by ${hit} at 390x844`).toBe(true);
+        const { reachable, hit } = await hitTest(page, '[data-nav="read"]');
+        expect(reachable, `the Read entrance is covered by ${hit} at 390x844`).toBe(true);
     });
 });
 

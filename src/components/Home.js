@@ -95,7 +95,7 @@ export class Home {
     this.onLaunchJevSample = options.onLaunchJevSample || (async () => {});
     this.demoMode = options.demoMode === true;
     this._active = false;
-    // The work in progress, or null: a data-home hook (roll, ask, enter, adjust), or 'today' from the Menu.
+    // The work in progress, or null: a data-home hook (roll, ask, enter, adjust).
     this.busy = null;
     // The reading Home shows (homeReading), and its opening ({ text, verse }, null while it loads).
     this.reading = null;
@@ -179,29 +179,21 @@ export class Home {
               <svg class="icon-close" ${ICON_ATTRS}><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></svg>
             </button>
             <nav id="main-content" class="portal-nav" aria-label="Primary">
+              <!-- The five rooms. Every other room is a pane inside one of them
+                   (route-url.js ROUTE_PANES): Chapel and Provenance in Library;
+                   Vault, Workshop, Scriptorium and Visual Lab in Make; Affect in Settings. -->
               <button class="portal-nav-link portal-nav-home" type="button" data-action="home" aria-current="page">Home</button>
-              ${this.demoMode ? '' : '<button class="portal-nav-link" type="button" data-home="ask-open">Ask for a reading</button>'}
-              <button class="portal-nav-link" type="button" data-action="today">Today's poem</button>
+              <button class="portal-nav-link" type="button" data-nav="read">Read</button>
               <button class="portal-nav-link" type="button" data-nav="library">Library</button>
-              <button class="portal-nav-link" type="button" data-nav="vault">Sequences</button>
-              <button class="portal-nav-link" type="button" data-nav="workshop">Compose</button>
-              <button class="portal-nav-link" type="button" data-nav="chamber">Reader setup</button>
-              <button class="portal-nav-link" type="button" data-action="guide">Guide</button>
+              <button class="portal-nav-link" type="button" data-nav="make">Make</button>
               <button class="portal-nav-settings" type="button" data-action="settings" aria-label="Settings" title="Settings">
                 <svg ${ICON_ATTRS}>${SETTINGS_PATH}</svg><span class="portal-nav-settings-label">Settings</span>
               </button>
-              <p class="portal-nav-group" aria-hidden="true">Other ways in</p>
+              <p class="portal-nav-group" aria-hidden="true">More</p>
+              ${this.demoMode ? '' : '<button class="portal-nav-link portal-nav-minor" type="button" data-home="ask-open">Ask for a reading</button>'}
+              <button class="portal-nav-link portal-nav-minor" type="button" data-action="guide">Guide</button>
               <!-- A page of its own: another skin over the same roll (src/wormhole). -->
               <a class="portal-nav-link portal-nav-minor" href="/wormhole.html">Wormhole</a>
-              <p class="portal-nav-group" aria-hidden="true">More rooms</p>
-              <!-- The live Current: a reading a reader redirects in words while it runs. A minor room
-                   until Stage 2 of docs/VISION.md is complete; promote it to the primary nav then. -->
-              <button class="portal-nav-link portal-nav-minor" type="button" data-nav="live">Live reading</button>
-              <button class="portal-nav-link portal-nav-minor" type="button" data-nav="chapel">Chapel</button>
-              <button class="portal-nav-link portal-nav-minor" type="button" data-nav="scriptorium">Scriptorium</button>
-              <button class="portal-nav-link portal-nav-minor" type="button" data-nav="visual-lab">Visual Lab</button>
-              <button class="portal-nav-link portal-nav-minor" type="button" data-nav="emotions">Emotions</button>
-              <button class="portal-nav-link portal-nav-minor" type="button" data-nav="curia">Curia</button>
             </nav>
           </div>
         </header>
@@ -492,21 +484,6 @@ export class Home {
     this.focus('[data-home="enter"]');
   }
 
-  /** The Menu's Today's poem: the day's exact poem, straight into the reader. */
-  async beginToday() {
-    if (this.busy) return;
-    this.setBusy('today');
-    this.getAudioEngine()?.playClick();
-    this.showError('');
-    try {
-      await this.onLaunchToday();
-    } catch (error) {
-      this.showError('Today’s poem couldn’t be opened. Try again.', error?.message || '');
-    } finally {
-      this.setBusy(null);
-    }
-  }
-
   /** Read it with sound opens the reading (launchToday or launchJevReading); Adjust opens it in Reader Setup. */
   async proceed(action) {
     const reading = this.reading;
@@ -617,12 +594,6 @@ export class Home {
     this.container.querySelector('.portal-continue')?.addEventListener('click', () => {
       this.getAudioEngine()?.playClick();
       this.onNavigate('chamber-session', this.getCurrentSession());
-    });
-
-    // Today's poem from the Menu begins the day's exact poem, whatever Home is showing.
-    nav.querySelector('[data-action="today"]').addEventListener('click', () => {
-      this.closeMenu?.();
-      void this.beginToday();
     });
 
     this.container.querySelectorAll('[data-action="guide"], [data-action="settings"]').forEach(link => {
