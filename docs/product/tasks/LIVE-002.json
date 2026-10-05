@@ -3,8 +3,8 @@
   "title": "Prove admitted Composer behavior in ChatGPT",
   "lane": "live-sdk",
   "milestone": "M1 composed explanation",
-  "status": "in_progress",
-  "delivery": "not_shipped",
+  "status": "done",
+  "delivery": "accepted",
   "owner": "Codex coordinator",
   "priority": "now",
   "dependencies": [
@@ -39,6 +39,18 @@
       "ref": "https://github.com/SyberLabs/RISE/pull/403",
       "note": "The embedded presentation offers no Dive; merged and deployed as 97ca014f. The remaining host session should use this release or a later one.",
       "date": "2026-10-04"
+    },
+    {
+      "kind": "observation",
+      "ref": "docs/experiments/LIVE-002-HOST-2026-10-05.md",
+      "note": "Fresh reader confirmation of audible narration on 44807f4a; real ChatGPT Begin, startup Interrupt, held brightness and refusal, Resume, Stop, reload and indirect tool selection witnessed. MCP POST and root verified 404 after shutdown.",
+      "date": "2026-10-05"
+    },
+    {
+      "kind": "test",
+      "ref": "e2e/live-mcp.spec.js",
+      "note": "22/22 MCP browser cases passed, including visible silent paced fallback with empty voice discovery, held text, Resume, Stop and zero sampling. Four affected unit files passed 217 tests; roadmap tooling passed 11.",
+      "date": "2026-10-05"
     }
   ],
   "activity": [
@@ -61,10 +73,18 @@
     {
       "date": "2026-10-05T04:21:30.297Z",
       "summary": "Startup Interrupt fixed by #402; only the host session remains"
+    },
+    {
+      "date": "2026-10-05T06:59:07.873Z",
+      "summary": "Started remaining real-host Composer acceptance on consolidated main 44807f4a."
+    },
+    {
+      "date": "2026-10-05T07:17:47.980Z",
+      "summary": "Completed exact-main Composer integration acceptance; audible host observation and controlled fallback recorded, temporary exposure shut down."
     }
   ],
-  "updatedAt": "2026-10-05T04:21:30.297Z",
-  "revision": 5,
-  "summary": "Exact consolidated candidate has reader-confirmed audible ChatGPT narration, and the startup Interrupt defect is fixed on main (#402). One host session remains for brightness while held, Resume and the speech-unavailable fallback.",
+  "updatedAt": "2026-10-05T07:17:47.980Z",
+  "revision": 7,
+  "summary": "Composer integration accepted on exact main 44807f4a: reader-confirmed ChatGPT narration and controls, plus controlled visible speech-unavailable fallback. Temporary demo endpoint verified offline; this is not public release acceptance.",
   "blocker": null
 }
