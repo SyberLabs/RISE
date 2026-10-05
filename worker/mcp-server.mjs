@@ -204,6 +204,8 @@ function read(id, params, origin) {
           csp: { frameDomains: [origin], connectDomains: [], resourceDomains: [] },
           prefersBorder: false
         },
+        // Read by ChatGPT before the app loads, so that it picks the mode first; inline is the only one, and the app says the same at ui/initialize.
+        'openai/ui': { availableDisplayModes: ['inline'] },
         // Read by the host's model when the app loads, so that it need not describe the app itself.
         'openai/widgetDescription': 'A spoken reading of the answer, its words and a visual shown as they are spoken, which the reader starts with Begin and can pause and resume.'
       }

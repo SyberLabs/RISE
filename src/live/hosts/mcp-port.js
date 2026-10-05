@@ -200,7 +200,7 @@ export function createMcpGuestPort({ frame, host = frame.parent, appName = 'RISE
     return {
         /** Say hello. Resolves with what the host says about itself, then the app is ready. */
         async connect() {
-            const result = await request(METHODS.initialize, { appInfo: { name: appName, version: '1' }, appCapabilities: {}, protocolVersion: PROTOCOL_VERSION });
+            const result = await request(METHODS.initialize, { appInfo: { name: appName, version: '1' }, appCapabilities: { availableDisplayModes: ['inline'] }, protocolVersion: PROTOCOL_VERSION });
             sampling = Boolean(result?.hostCapabilities?.sampling);
             hostContext = isPlainObject(result?.hostContext) ? { ...result.hostContext } : {};
             send({ method: METHODS.initialized, params: {} });
