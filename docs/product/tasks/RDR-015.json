@@ -36,6 +36,12 @@
       "ref": "src/visuals/visual-cortex.test.js",
       "note": "Local: Begin to reading 3,213-3,541 ms on production (75 flames requested) and 1,730-2,356 ms on the branch dev build (2 flames). Today's poem on production: preload 0.9 s to 4.2 s after the press.",
       "date": "2026-10-05"
+    },
+    {
+      "kind": "pr",
+      "ref": "https://github.com/SyberLabs/RISE/pull/TBD",
+      "note": "PR 7 of the canonical Home (b4-begin-hold): the router keeps Home shown under the Read view until the reading has faded in, and the factory raises no overlay and does not settle for a reading begun from Home. CI measures Begin to first word in e2e/home-begin.spec.js, now without test.fail().",
+      "date": "2026-10-05"
     }
   ],
   "activity": [
@@ -46,10 +52,14 @@
     {
       "date": "2026-10-05T06:24:13.111Z",
       "summary": "Preparation gate fixed in #413; holding Home's field remains"
+    },
+    {
+      "date": "2026-10-05T23:31:37.294Z",
+      "summary": "PR 7 lands the hold (Home stays shown under the Read view until the reading has faded in) and the quiet factory (no overlay, no 300 ms settle for a reading begun from Home); CI's measurement is e2e/home-begin.spec.js, no longer an expected failure."
     }
   ],
-  "updatedAt": "2026-10-05T06:24:13.111Z",
-  "revision": 2,
+  "updatedAt": "2026-10-05T23:31:37.294Z",
+  "revision": 3,
   "summary": "A Gallery reading opens on two flames instead of its whole queue (and bakes no flash plates first), cutting the preparation screen from ~3.2-3.5 s to ~1.7-2.4 s on a dev build. R2 is not yet met: the preparation screen still shows briefly and Home's visuals do not stay on screen through it.",
   "blocker": null
 }
