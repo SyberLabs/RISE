@@ -46,6 +46,31 @@ afterEach(() => {
   document.body.innerHTML = '';
 });
 
+describe('Attractor canvas size', () => {
+  it('leaves an unchanged canvas alone, because setting its size clears it', () => {
+    const field = new AttractorField(makeHost(), { system: 'aizawa' });
+    const { width, height } = field.canvas;
+    let sets = 0;
+    for (const name of ['width', 'height']) {
+      let value = field.canvas[name];
+      Object.defineProperty(field.canvas, name, {
+        configurable: true,
+        get: () => value,
+        set: next => { sets += 1; value = next; }
+      });
+    }
+    field.resize();
+    field.resize();
+    expect(sets).toBe(0);
+    expect([field.canvas.width, field.canvas.height]).toEqual([width, height]);
+
+    Object.defineProperty(field.host, 'clientWidth', { value: 640, configurable: true });
+    field.resize();
+    expect(sets).toBe(2);
+    field.destroy();
+  });
+});
+
 describe('Attractor palettes', () => {
   it('offers exactly the ten selectable filament colors', () => {
     expect(ATTRACTOR_PALETTE_IDS).toEqual(['white', 'red', 'blue', 'gold', 'purple', 'neon', 'jade', 'rose', 'citrine', 'silver']);

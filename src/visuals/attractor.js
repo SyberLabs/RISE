@@ -326,11 +326,18 @@ export class AttractorField {
     }
 
     resize() {
-        this.DPR = Math.min(window.devicePixelRatio || 1, 1.5);
-        this.W = this.host.clientWidth || window.innerWidth;
-        this.H = this.host.clientHeight || window.innerHeight;
-        this.canvas.width = Math.round(this.W * this.DPR);
-        this.canvas.height = Math.round(this.H * this.DPR);
+        const dpr = Math.min(window.devicePixelRatio || 1, 1.5);
+        const W = this.host.clientWidth || window.innerWidth;
+        const H = this.host.clientHeight || window.innerHeight;
+        const width = Math.round(W * dpr);
+        const height = Math.round(H * dpr);
+        // Setting a canvas's size clears it, so an unchanged size is left alone.
+        if (dpr === this.DPR && width === this.canvas.width && height === this.canvas.height) return;
+        this.DPR = dpr;
+        this.W = W;
+        this.H = H;
+        this.canvas.width = width;
+        this.canvas.height = height;
         this.ctx?.setTransform(this.DPR, 0, 0, this.DPR, 0, 0);
         this._stillDrawn = false;   // a resize clears the canvas
     }

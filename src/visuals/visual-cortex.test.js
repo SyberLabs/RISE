@@ -2074,6 +2074,64 @@ describe('Continuous Field (Gallery) wiring', () => {
         cortex.destroy();
     });
 
+    it('exports the opening still at once and encodes later walls off the main thread', async () => {
+        // A synchronous WebP export of a viewport-sized still took 60-159 ms
+        // at every wall during a reading. The opening one stays immediate,
+        // because a Fit mask projecting the Gallery waits on it.
+        const cortex = new VisualCortex();
+        cortex.initialized = true;
+        cortex.config.renderLanguage = 'native';
+        cortex.fractal = {
+            isReady: vi.fn(() => true),
+            generate: vi.fn(() => true)
+        };
+        cortex._fractalCanvas = {
+            toBlob: vi.fn((done, type) => done(new Blob(['still'], { type }))),
+            toDataURL: vi.fn(() => 'data:image/webp;base64,flame')
+        };
+
+        const opening = await cortex._renderContinuousProceduralWork('fractal');
+        expect(opening.url).toBe('data:image/webp;base64,flame');
+        expect(cortex._fractalCanvas.toBlob).not.toHaveBeenCalled();
+
+        const later = await cortex._renderContinuousProceduralWork('fractal');
+        expect(cortex._fractalCanvas.toBlob).toHaveBeenCalledWith(expect.any(Function), 'image/webp', 0.9);
+        expect(cortex._fractalCanvas.toDataURL).toHaveBeenCalledTimes(1);
+        expect(later).toEqual({
+            url: `data:image/webp;base64,${btoa('still')}`,
+            title: 'Fractal Flame',
+            sourceType: 'fractal'
+        });
+
+        const fractal = cortex.fractal;
+        cortex.fractal = null;
+        cortex.beginSessionVisualIdentity({});
+        cortex.fractal = fractal;
+        await cortex._renderContinuousProceduralWork('fractal');
+        expect(cortex._fractalCanvas.toDataURL).toHaveBeenCalledTimes(2);
+        cortex.destroy();
+    });
+
+    it('exports a word fill at once, so a Fit word is never shown before its mask', async () => {
+        const cortex = new VisualCortex();
+        cortex.initialized = true;
+        cortex.config.renderLanguage = 'native';
+        cortex.fractal = {
+            isReady: vi.fn(() => true),
+            generate: vi.fn(() => true)
+        };
+        cortex._fractalCanvas = {
+            toBlob: vi.fn(),
+            toDataURL: vi.fn(() => 'data:image/webp;base64,fill')
+        };
+
+        const work = await cortex._renderContinuousProceduralWork('fractal', { wordFill: true });
+
+        expect(cortex._fractalCanvas.toBlob).not.toHaveBeenCalled();
+        expect(work.url).toBe('data:image/webp;base64,fill');
+        cortex.destroy();
+    });
+
     it('adapts every Rhythmic procedural into the common Gallery work contract', async () => {
         const cortex = new VisualCortex();
         cortex.initialized = true;
