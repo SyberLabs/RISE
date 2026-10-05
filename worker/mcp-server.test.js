@@ -135,6 +135,21 @@ describe('who may ask, and how', () => {
       expect(await json(response)).toEqual({ error: { code: 'UNSUPPORTED_PROTOCOL_VERSION', message: expect.any(String) } });
     }
   });
+
+  it('is limited per client address through the limiter live answers use, before the body is read, and is as it was without one', async () => {
+    const headers = { 'CF-Connecting-IP': '192.0.2.1' };
+    const denied = { ...ON, DECISION_LIMITER: { limit: async () => ({ success: false }) } };
+    const limit = vi.fn(async () => ({ success: true }));
+    expect((await post(rpc('ping'), { headers, env: { ...ON, DECISION_LIMITER: { limit } } })).status).toBe(200);
+    expect(limit).toHaveBeenCalledWith({ key: 'mcp:192.0.2.1' });
+    const limited = await post(null, { raw: '{not json', headers, env: denied });
+    expect(limited.status).toBe(429);
+    expect(await json(limited)).toEqual({ error: { code: 'RATE_LIMITED', message: expect.any(String) } });
+    // No binding (tests, a local run), no address, or a limiter that fails: the route is unchanged.
+    expect((await post(rpc('ping'), { headers })).status).toBe(200);
+    expect((await post(rpc('ping'), { env: denied })).status).toBe(200);
+    expect((await post(rpc('ping'), { headers, env: { ...ON, DECISION_LIMITER: { limit: async () => { throw new Error('down'); } } } })).status).toBe(200);
+  });
 });
 
 describe('saying hello', () => {
