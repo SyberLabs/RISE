@@ -3,6 +3,10 @@
  *
  * A live reading is shown by a host that draws its own controls, so its Chamber
  * is built without chrome; a reading of the reader's own keeps the Chamber's.
+ *
+ * And when the factory lets go of the session: a finished reading and a launch
+ * that failed are released, so Home offers Continue only for a begun,
+ * unfinished one.
  */
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { createChamberSession } from './chamber-session-factory.js';
@@ -26,8 +30,18 @@ function operations() {
         getAudioEngine: () => audio,
         getSettings: () => ({}),
         showLoading: vi.fn(), updateLoadingStatus: vi.fn(), hideLoading: vi.fn(), showToast: vi.fn(),
-        handleSettingsChange: vi.fn(), handleDataCleared: vi.fn()
+        handleSettingsChange: vi.fn(), handleDataCleared: vi.fn(), handleNavigate: vi.fn(),
+        releaseSession: vi.fn()
     };
+}
+
+/** Mounts a reading of the reader's own and returns what the Chamber was given. */
+async function mount(op, reading) {
+    vi.useFakeTimers();
+    const pending = createChamberSession(op, document.createElement('div'), reading);
+    await vi.advanceTimersByTimeAsync(300);
+    await pending;
+    return Chamber.mock.calls[0][1];
 }
 
 afterEach(() => {
@@ -57,5 +71,40 @@ describe('the Chamber a live reading gets', () => {
         const options = Chamber.mock.calls[0][1];
         expect(options.hostPlays).toBe(false);
         expect(options).not.toHaveProperty('chrome');
+    });
+});
+
+describe('when the factory lets go of the session', () => {
+    it('releases a reading that completed, before the Player is reset by stop', async () => {
+        const op = operations();
+        const reading = session();
+        const options = await mount(op, reading);
+        options.player.sessionState.state = 'complete';
+
+        options.onExit('close');
+
+        expect(op.releaseSession).toHaveBeenCalledWith(reading);
+    });
+
+    it('keeps a reading left part-way', async () => {
+        const op = operations();
+        const options = await mount(op, session());
+        options.player.sessionState.state = 'paused';
+
+        options.onExit('close');
+
+        expect(op.releaseSession).not.toHaveBeenCalled();
+    });
+
+    it('releases a reading whose launch failed, before going back', async () => {
+        const op = operations();
+        op.ensureVisualCortex = async () => { throw new Error('media unavailable'); };
+        const reading = session();
+
+        await createChamberSession(op, document.createElement('div'), reading);
+
+        expect(op.releaseSession).toHaveBeenCalledWith(reading);
+        expect(op.releaseSession.mock.invocationCallOrder[0])
+            .toBeLessThan(op.router.back.mock.invocationCallOrder[0]);
     });
 });

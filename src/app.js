@@ -478,6 +478,11 @@ class App {
                 ensureVisualCortex: () => this.ensureVisualCortex(),
                 ensureAudioEngine: () => this.ensureAudioEngine(),
                 continueLibraryReading: session => this.continueLibraryReading(session),
+                // Home offers Continue only while a begun, unfinished reading
+                // is held here.
+                releaseSession: session => {
+                    if (this.currentSession === session) this.currentSession = null;
+                },
                 handleSettingsChange: this.handleSettingsChange,
                 handleDataCleared: this.handleDataCleared,
                 showLoading: title => this.showLoading(title),
