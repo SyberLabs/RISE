@@ -90,6 +90,12 @@ describe('a roll', () => {
   });
 });
 
+describe('the rhythm a roll reads in', () => {
+  it('is never a word at a time: Word stays a choice in Reader setup', () => {
+    for (const temper of TEMPERS) expect(temper.chunkMode, temper.id).not.toContain('word');
+  });
+});
+
 describe('a vivid roll', () => {
   it('names the tempers whose visuals are immersive or psychedelic', () => {
     expect(VISUAL_TEMPERS.map(item => item.id).sort()).toEqual(['ember', 'revel', 'signal']);

@@ -23,6 +23,13 @@ describe('todayDecision', () => {
     expect([...seen].sort()).toEqual(['ember', 'revel', 'signal']);
   });
 
+  it('reads in phrases on every date, never a word at a time', () => {
+    for (let day = 0; day < todayPool().length; day++) {
+      const pick = todayPoem(new Date(2026, 0, 1 + day, 12));
+      expect(todayDecision(pick).config.chunkMode, pick.seed).toBe('phrase');
+    }
+  });
+
   it('reads a recited day line by line, in the same light and sound', () => {
     for (const day of [3, 4, 7]) {
       const pick = todayPoem(new Date(2026, 9, day, 12));

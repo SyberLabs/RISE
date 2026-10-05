@@ -262,7 +262,7 @@ describe('choosing a stance', () => {
                 .toEqual({ mode: 'accent', border: 'cream' });
             expect(syncSnapshots).toEqual([{
                 settings: change.settings,
-                temporal: { chunkMode: 'word', recitation: { enabled: false } },
+                temporal: { chunkMode: before.config.chunkMode, recitation: { enabled: false } },
                 wordFill: { mode: 'accent', border: 'cream' }
             }]);
             expect(syncSpy).toHaveBeenCalledTimes(1);
