@@ -3,8 +3,8 @@
   "title": "Guard the contracts Composer and the Reader share",
   "lane": "shared",
   "milestone": "Reader consolidation",
-  "status": "in_progress",
-  "delivery": "not_shipped",
+  "status": "done",
+  "delivery": "merged",
   "owner": "Claude coordinator",
   "priority": "now",
   "dependencies": [],
@@ -19,16 +19,32 @@
       "ref": "docs/product/CONSOLIDATED-READER.md",
       "note": "Package A0: the contracts the consolidation adds beside and never edits.",
       "date": "2026-10-04"
+    },
+    {
+      "kind": "pr",
+      "ref": "https://github.com/SyberLabs/RISE/pull/405",
+      "note": "Pins RISE_CURRENT_VISUALS and RISE_CURRENT_LIMITS. Theme ids, RISE_CURRENT_THEMES and ATTRACTOR_VISUAL_MANIFEST were already pinned by rise-current.test.js and attractor-manifest.test.js.",
+      "date": "2026-10-05"
+    },
+    {
+      "kind": "test",
+      "ref": "src/core/rise-current.test.js",
+      "note": "Local mutation run: adding a visual, raising the segment cap, adding a theme, changing classic's palette and widening the intensity maximum each failed its guard; on main's tests the first two passed unnoticed.",
+      "date": "2026-10-05"
     }
   ],
   "activity": [
     {
       "date": "2026-10-05T04:21:10.000Z",
       "summary": "Claimed; guards in progress on branch composer-contract-guards."
+    },
+    {
+      "date": "2026-10-05T04:33:49.232Z",
+      "summary": "Guards merged with #405"
     }
   ],
-  "updatedAt": "2026-10-05T04:21:10.000Z",
-  "revision": 1,
-  "summary": "Snapshot guards hold the nine theme ids, what each theme draws, Composer's visual ids and the attractor control's range fixed while the Reader is consolidated.",
+  "updatedAt": "2026-10-05T04:33:49.232Z",
+  "revision": 2,
+  "summary": "The nine theme ids, what each theme draws, Composer's three visuals, the Current's size limits and the attractor control's range are pinned as literals; an edit to any of them fails a test.",
   "blocker": null
 }
