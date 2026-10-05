@@ -7,17 +7,9 @@ import {
   normalizeFieldStyle,
   normalizeProceduralStyle
 } from '../../core/visual-style-definitions.js';
+import { PROCEDURAL_PATTERNS } from '../../core/visual-registry.js';
 
-const PROCEDURAL = Object.freeze([
-  ['klee', 'Klee Lines', '╱'],
-  ['turrell', 'Turrell Fields', '◈'],
-  ['fractal', 'Fractal Flames', '✧'],
-  ['neural', 'Neural Networks', '◉'],
-  ['rockgarden', 'Rock Garden', '◯'],
-  ['harmonograph', 'Harmonograph', '∿'],
-  ['ostensoria', 'Iris Plates', '◍'],
-  ['apparitio', 'Spectral Plates', '☾']
-]);
+const PROCEDURAL = Object.freeze(PROCEDURAL_PATTERNS.map(pattern => [pattern.id, pattern.name, pattern.icon]));
 
 const PROCEDURAL_PREVIEWS = Object.freeze({
   klee: 'linear-gradient(145deg,#101a25 0 38%,transparent 39%),repeating-linear-gradient(25deg,#d6b56d 0 1px,transparent 1px 17px),#17222c',

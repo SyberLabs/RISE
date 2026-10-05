@@ -50,6 +50,7 @@ import {
     artworkMayBeShown
 } from './artwork-label.js';
 import { hasVisualInterlocutionConsent, VisualFlashGate } from '../core/visual-safety.js';
+import { LISTED_PROCEDURAL_PATTERNS } from '../core/visual-registry.js';
 import {
     GALLERY_CADENCE_DEFAULT,
     VISUAL_PRESENCE_DEFAULT_MS,
@@ -116,18 +117,10 @@ const GALLERY_PROCEDURAL_TYPES = Object.freeze([
     // learned a new word: the ingest taught the reader nothing about
     // titled chapters, applyCue dropped procedural cues,
     // normalizeVisualProgram rejected the source coordinate space, and
-    // here. Sourced from work-engines.js rather than typed out, so the
-    // fifth cannot be this file.
+    // here. Sourced from work-engines.js and the engine registry rather
+    // than typed out, so the fifth cannot be this file.
     ...workEngineFamilies(),
-    'klee',
-    'turrell',
-    'fractal',
-    'neural',
-    'rockgarden',
-    'harmonograph',
-    'ostensoria',
-    'apparitio',
-    'attractor'
+    ...LISTED_PROCEDURAL_PATTERNS.map(pattern => pattern.id)
 ]);
 const GALLERY_PROCEDURAL_TITLES = Object.freeze({
     klee: 'Klee Engine',
@@ -3133,7 +3126,7 @@ export class VisualCortex {
         if (type.startsWith('procedural:')) return false;
         const canonical = canonicalizeProceduralEngineId(type) || type;
         // Core types are internal or handled elsewhere
-        const coreTypes = ['klee', 'turrell', 'fractal', 'neural', 'global', 'custom', 'rockgarden', 'harmonograph', 'ostensoria', 'apparitio', 'attractor', 'diagram', 'global-pool',
+        const coreTypes = [...LISTED_PROCEDURAL_PATTERNS.map(pattern => pattern.id), 'global', 'custom', 'diagram', 'global-pool',
             // Families authored for one work. Listed so selection does
             // not filter out a type the cortex can genuinely render.
             ...workEngineFamilies()];
