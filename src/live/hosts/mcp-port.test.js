@@ -349,6 +349,8 @@ describe('saying hello', () => {
         const connecting = port.connect();
         expect(sent).toHaveLength(1);
         expect(sent[0].message).toMatchObject({ jsonrpc: '2.0', method: METHODS.initialize, params: { appInfo: { name: 'RISE' }, protocolVersion: PROTOCOL_VERSION } });
+        // "View MUST declare all display modes it supports in appCapabilities.availableDisplayModes during initialization" (apps.mdx); inline is the only one.
+        expect(sent[0].message.params.appCapabilities).toEqual({ availableDisplayModes: ['inline'] });
         hostSays({ jsonrpc: '2.0', id: sent[0].message.id, result: { hostInfo: { name: 'a host' } } });
         expect(await connecting).toEqual({ hostInfo: { name: 'a host' } });
         expect(sent[1].message).toMatchObject({ method: METHODS.initialized });
