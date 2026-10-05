@@ -125,6 +125,17 @@
 
 .live-host--embedded .live-embed { margin: 0; max-width: 32rem; line-height: 1.5; }
 
+/* The Chamber's field inside the host's frame (LiveHost marks the root): the
+   centred words clear the 44 px objects along the bottom, and above the phone
+   band the picture keeps 24 px of edge, not the Chamber's 48. */
+@media (min-width: 641px) {
+  html[data-embed="mcp"] .chamber-field { padding: 24px 24px 64px; }
+}
+
+@media (max-width: 640px) {
+  html[data-embed="mcp"] .chamber-field { padding-bottom: 64px; }
+}
+
 .live-host--poster {
   justify-content: flex-start;
   max-height: 100dvh;

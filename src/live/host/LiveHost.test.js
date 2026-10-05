@@ -713,20 +713,83 @@ describe('inside an MCP host', () => {
                 if (reply) queueMicrotask(() => { for (const fn of [...listeners]) fn({ source: host, data: { jsonrpc: '2.0', id: message.id, ...reply } }); });
             }
         };
+        // The frame's own size, as a ResizeObserver on its root would see it change.
+        const observers = new Set();
         Object.assign(environment.window, {
             parent: host,
             innerWidth: 390,
             addEventListener: (type, fn) => { if (type === 'message') listeners.add(fn); },
-            removeEventListener: (type, fn) => { if (type === 'message') listeners.delete(fn); }
+            removeEventListener: (type, fn) => { if (type === 'message') listeners.delete(fn); },
+            requestAnimationFrame: fn => setTimeout(fn, 0),
+            cancelAnimationFrame: id => clearTimeout(id),
+            ResizeObserver: class { constructor(fn) { this.fn = fn; } observe() { observers.add(this); } disconnect() { observers.delete(this); } }
         });
         const hostSays = data => { for (const fn of [...listeners]) fn({ source: host, data }); };
-        return { environment, sent, listeners, hostSays };
+        const resize = width => { environment.window.innerWidth = width; for (const observer of [...observers]) observer.fn([]); };
+        return { environment, sent, listeners, hostSays, resize };
     }
     const answerCurrent = (hostSays, current = BLACK_HOLES_CURRENT, method = 'ui/notifications/tool-result') => hostSays({
         jsonrpc: '2.0', method,
         params: method === 'ui/notifications/tool-input' ? { arguments: { current } } : { structuredContent: { current } }
     });
     const line = () => container.querySelector('.live-embed');
+    const heights = sent => sent.filter(message => message.method === 'ui/notifications/size-changed').map(message => message.params);
+    const settle = () => new Promise(resolve => setTimeout(resolve, 10));
+
+    it('asks the host for a height that follows the frame’s width, never a width, and only when the height changes', async () => {
+        const { environment, sent, hostSays, resize } = framed();
+        mount('?embed=mcp&voice=paced', environment);
+        await vi.waitFor(() => expect(sent).toHaveLength(1));
+        hostSays({ jsonrpc: '2.0', id: sent[0].id, result: { protocolVersion: '2026-01-26', hostCapabilities: {}, hostContext: {} } });
+        await vi.waitFor(() => expect(heights(sent)).toEqual([{ height: 481 }]));
+
+        resize(760);
+        await vi.waitFor(() => expect(heights(sent)).toEqual([{ height: 481 }, { height: 502 }]));
+        resize(1280);
+        resize(1280);
+        await vi.waitFor(() => expect(heights(sent)).toEqual([{ height: 481 }, { height: 502 }, { height: 560 }]));
+        resize(1280);
+        await settle();
+        expect(heights(sent)).toHaveLength(3);
+        await host.stop();
+    });
+
+    it('keeps under the host’s maxHeight, and re-reports a host-context change only when the height changes', async () => {
+        const { environment, sent, hostSays } = framed();
+        mount('?embed=mcp&voice=paced', environment);
+        await vi.waitFor(() => expect(sent).toHaveLength(1));
+        hostSays({ jsonrpc: '2.0', id: sent[0].id, result: { protocolVersion: '2026-01-26', hostCapabilities: {}, hostContext: { containerDimensions: { maxHeight: 400 } } } });
+        await vi.waitFor(() => expect(heights(sent)).toEqual([{ height: 400 }]));
+
+        hostSays({ jsonrpc: '2.0', method: 'ui/notifications/host-context-changed', params: { containerDimensions: { maxHeight: 520 } } });
+        await vi.waitFor(() => expect(heights(sent)).toEqual([{ height: 400 }, { height: 481 }]));
+        hostSays({ jsonrpc: '2.0', method: 'ui/notifications/host-context-changed', params: { theme: 'dark' } });
+        await settle();
+        expect(heights(sent)).toHaveLength(2);
+        await host.stop();
+    });
+
+    it('marks the root as the embed and carries the host’s safe area and sans font as variables, until it is destroyed', async () => {
+        const { environment, sent, hostSays } = framed();
+        mount('?embed=mcp&voice=paced', environment);
+        const root = document.documentElement;
+        await vi.waitFor(() => expect(sent).toHaveLength(1));
+        hostSays({ jsonrpc: '2.0', id: sent[0].id, result: { protocolVersion: '2026-01-26', hostCapabilities: {}, hostContext: { safeAreaInsets: { top: 0, right: 0, bottom: 34, left: 0 }, styles: { variables: { '--font-sans': 'Inter, sans-serif' } } } } });
+        await vi.waitFor(() => expect(heights(sent)).toHaveLength(1));
+        expect(root.dataset.embed).toBe('mcp');
+        expect(root.style.getPropertyValue('--safe-bottom')).toBe('34px');
+        expect(root.style.getPropertyValue('--safe-top')).toBe('0px');
+        expect(root.style.getPropertyValue('--font-sans')).toBe('Inter, sans-serif');
+
+        hostSays({ jsonrpc: '2.0', method: 'ui/notifications/host-context-changed', params: { safeAreaInsets: { top: 20, right: 0, bottom: 0, left: 0 } } });
+        await vi.waitFor(() => expect(root.style.getPropertyValue('--safe-top')).toBe('20px'));
+        expect(root.style.getPropertyValue('--safe-bottom')).toBe('0px');
+
+        host.destroy();
+        expect(root.dataset.embed).toBeUndefined();
+        expect(root.style.getPropertyValue('--safe-top')).toBe('');
+        expect(root.style.getPropertyValue('--font-sans')).toBe('');
+    });
 
     it('has no prompt, no provider to choose, and waits for a reader click after the host’s answer is ready', async () => {
         const { environment } = framed();
