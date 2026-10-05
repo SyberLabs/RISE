@@ -131,7 +131,7 @@ Retired: nothing in B2a. The second colour vocabularies a model still sees (Jev'
 
 ## 6. Contracts and tests
 
-**Fixed contracts untouched.** `rise.current.v1`, `rise.experience-program.v1`, the compiler input, `RISE_CURRENT_THEMES` and `RISE_CURRENT_VISUALS`, `ATTRACTOR_VISUAL_MANIFEST`, `validateJevRecommendation` and the admission surface: no file under `src/live/**`, `worker/**`, `src/core/rise-current.js`, `src/core/jev-palette.js`, `src/core/jev-color-themes.js`, `src/core/visual-control-contract.js`, `src/core/decision/**`, `src/app/jev-reading.js`, `src/core/roll.js` or `src/core/session-compiler.js` is edited.
+**Fixed contracts untouched.** `rise.current.v1`, `rise.experience-program.v1`, the compiler input, `RISE_CURRENT_THEMES` and `RISE_CURRENT_VISUALS`, `ATTRACTOR_VISUAL_MANIFEST`, `validateJevRecommendation` and the admission surface: no file under `src/live/**`, `worker/**`, `src/core/rise-current.js`, `src/core/jev-palette.js`, `src/core/jev-color-themes.js`, `src/core/visual-control-contract.js`, `src/core/decision/**`, `src/app/jev-reading.js`, `src/core/roll.js` (S2, answered 2026-10-05: its signal and garden temper lists are edited after all; see §8) or `src/core/session-compiler.js` is edited.
 
 **Guards that stay green, by path:**
 - `src/core/rise-current.test.js:49-62, :263-290, :336-365, :367-433` (the FND-006 table, brightness ceiling, frozenness): unchanged; the map holds the rows by identity.
