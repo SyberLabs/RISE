@@ -2100,6 +2100,26 @@ describe('Continuous Field (Gallery) wiring', () => {
         cortex.destroy();
     });
 
+    it('exports a word fill at once, so a Fit word is never shown before its mask', async () => {
+        const cortex = new VisualCortex();
+        cortex.initialized = true;
+        cortex.config.renderLanguage = 'native';
+        cortex.fractal = {
+            isReady: vi.fn(() => true),
+            generate: vi.fn(() => true)
+        };
+        cortex._fractalCanvas = {
+            toBlob: vi.fn(),
+            toDataURL: vi.fn(() => 'data:image/webp;base64,fill')
+        };
+
+        const work = await cortex._renderContinuousProceduralWork('fractal', { wordFill: true });
+
+        expect(cortex._fractalCanvas.toBlob).not.toHaveBeenCalled();
+        expect(work.url).toBe('data:image/webp;base64,fill');
+        cortex.destroy();
+    });
+
     it('adapts every Rhythmic procedural into the common Gallery work contract', async () => {
         const cortex = new VisualCortex();
         cortex.initialized = true;

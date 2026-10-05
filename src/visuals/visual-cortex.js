@@ -1584,14 +1584,16 @@ export class VisualCortex {
         return signal;
     }
 
-    async _canvasToContinuousWork(canvas, type) {
+    async _canvasToContinuousWork(canvas, type, { exportNow = false } = {}) {
         if (!canvas?.toBlob && !canvas?.toDataURL) return null;
         try {
             // WebP keeps a viewport-sized procedural still compact. Browsers
             // without WebP canvas export fall back to PNG automatically.
             // toBlob captures the still now and encodes it off the main
-            // thread; a synchronous export of one took 60-159 ms.
-            const url = canvas.toBlob
+            // thread; a synchronous export of one took 60-159 ms. A word fill
+            // exports at once: Fit's first word waits on its mask, and a later
+            // mask lets an opaque word flash before it is dressed.
+            const url = canvas.toBlob && !exportNow
                 ? await encodeCanvasDataUrl(canvas, 'image/webp', 0.9)
                 : canvas.toDataURL('image/webp', 0.9);
             if (!url || url === 'data:,') return null;
@@ -1775,7 +1777,7 @@ export class VisualCortex {
             rendered = !!asciiFrame && !!this.asciiRenderer?.render(asciiFrame);
             canvas = this._asciiCanvas;
         }
-        return rendered ? await this._canvasToContinuousWork(canvas, type) : null;
+        return rendered ? await this._canvasToContinuousWork(canvas, type, { exportNow: wordFill }) : null;
     }
 
     /**
