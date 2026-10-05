@@ -29,6 +29,20 @@ describe('Apparitio engine', () => {
             .not.toEqual([b.cur.wings, b.cur.reach, b.cur.filigree, b.cur.crown, b.cur.phase]);
     }, 30_000);
 
+    it('an explicit palette is a veto, and prism is the default', () => {
+        const bake = (options) => {
+            const engine = new Apparitio();
+            engine.beginBake(null, 'SERAPH-1234', { quality: 1, ...options });
+            for (let n = 0; !engine.look && n < 10_000 && !engine.stepBake(50); n++);
+            return engine;
+        };
+        const plain = bake({});
+        expect(plain.look.palette).toBe('prism');
+        const ember = bake({ palette: 'ember' });
+        expect(ember.look.palette).toBe('ember');
+        expect(ember.cur.wings).toBe(plain.cur.wings);
+    }, 30_000);
+
     it('is silent without a 2d context or before generate', () => {
         const engine = new Apparitio();
         expect(engine.render({ getContext: () => ({}) })).toBe(false);

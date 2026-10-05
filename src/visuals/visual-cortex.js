@@ -632,10 +632,14 @@ export class VisualCortex {
             if (cue.collections.includes('harmonograph')) {
                 proceduralConfig.harmonographClimate = cue.config?.climate || 'auto';
             }
-            const styleChanged = ('kleePreset' in proceduralConfig
-                && proceduralConfig.kleePreset !== this.config.kleePreset)
-                || ('harmonographClimate' in proceduralConfig
-                    && proceduralConfig.harmonographClimate !== this.config.harmonographClimate);
+            if (cue.collections.includes('ostensoria')) {
+                proceduralConfig.ostensoriaPalette = cue.config?.palette || 'auto';
+            }
+            if (cue.collections.includes('apparitio')) {
+                proceduralConfig.apparitioPalette = cue.config?.palette || 'auto';
+            }
+            const styleChanged = Object.keys(proceduralConfig)
+                .some(key => proceduralConfig[key] !== this.config[key]);
             const poolUnchanged = cue.collections.length === this.config.activeTypes.length
                 && cue.collections.every((collection, index) => collection === this.config.activeTypes[index]);
             this.updateConfig(
@@ -758,6 +762,16 @@ export class VisualCortex {
     _kleePreset() {
         const preset = this.config.kleePreset ?? 'random';
         return preset !== 'random' ? preset : (this._themed('genesis')?.preset ?? 'random');
+    }
+
+    /**
+     * What a plate family bakes with: an authored palette as it is, 'auto'
+     * answered by the theme's ramp, null when neither chose (the engine's
+     * own roll, as today).
+     */
+    _plateLook(family) {
+        const key = family === 'ostensoria' ? this.config.ostensoriaPalette : this.config.apparitioPalette;
+        return key && key !== 'auto' ? { palette: key } : this._themed(family);
     }
 
     _admissionKeyForCue(cue) {
@@ -1769,7 +1783,7 @@ export class VisualCortex {
             if (rendered) canvas = this._kleeCanvas;
         } else if (type === 'apparitio' && this.apparitio && this._kleeCanvas) {
             this._resizeKleeCanvas();
-            rendered = this.apparitio.generate(signal, undefined);
+            rendered = this.apparitio.generate(signal, undefined, this._plateLook('apparitio') || {});
             if (rendered) {
                 rendered = this.apparitio.render(this._kleeCanvas);
                 canvas = this._kleeCanvas;
@@ -2086,6 +2100,10 @@ export class VisualCortex {
         }
         this._plateField.reducedMotion = this._continuousReducedMotion();
         this._plateField.setFamilies(families);
+        this._plateField.setLook({
+            ostensoria: this._plateLook('ostensoria'),
+            apparitio: this._plateLook('apparitio')
+        });
         this._plateField.setProjectionHost(this._livingProjectionHost(
             roomFamilies.length > 0,
             fillFamilies.length > 0,
@@ -2348,6 +2366,10 @@ export class VisualCortex {
                 preset: this._kleePreset(),
                 signals: this.config.semanticSignals
             });
+        }
+        // The Page-still queue bakes under the Iris look; a change flushes it.
+        if (('ostensoriaPalette' in nextConfig || 'colorTheme' in nextConfig) && this.ostensoria) {
+            this.ostensoria.setLook?.(this._plateLook('ostensoria'));
         }
 
         // Forward the semantic signal pool to the flame queue (responsive
@@ -3399,7 +3421,7 @@ export class VisualCortex {
         if (this.ostensoria.takePlate?.()) {
             return this.ostensoria.render(this._kleeCanvas);
         }
-        if (!this.ostensoria.generate?.(signal, undefined)) return false;
+        if (!this.ostensoria.generate?.(signal, undefined, this._plateLook('ostensoria') || {})) return false;
         this.ostensoria.fillQueue?.(this.ostensoria.maxQueueSize ?? 3);
         return this.ostensoria.render(this._kleeCanvas);
     }
@@ -4014,7 +4036,7 @@ export class VisualCortex {
             if (rendered && kleeEl) kleeEl.hidden = false;
         } else if (selectedType === 'apparitio' && this.apparitio && this._kleeCanvas) {
             this._resizeKleeCanvas();
-            rendered = this.apparitio.generate(signal, undefined);
+            rendered = this.apparitio.generate(signal, undefined, this._plateLook('apparitio') || {});
             if (rendered) rendered = this.apparitio.render(this._kleeCanvas);
             if (rendered && kleeEl) kleeEl.hidden = false;
         } else if (selectedType === 'rockgarden' && this.rockgarden && this._kleeCanvas) {
