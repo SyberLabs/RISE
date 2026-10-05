@@ -318,6 +318,26 @@ describe('interrupting', () => {
         expect(runtime.snapshot().main.committedSegments).toBeLessThan(BLACK_HOLES.segments.length);
         expect(runtime.snapshot().main.committedSegments).toBeGreaterThanOrEqual(committed);
     });
+
+    it('keeps an Interrupt made while the Chamber is still being presented, and starts on Resume', async () => {
+        build({ presentMs: 2_000 });
+        await runtime.start(ASK);
+        await tick(400);
+        expect(runtime.status).toBe('live');
+        expect(shown.main).toHaveLength(0);
+        await runtime.interrupt({ text: 'wait' });
+        // The Chamber finishes being presented while the reader holds.
+        await tick(5_000);
+        expect(runtime.status).toBe('interrupted');
+        expect(runtime.playerFor().sessionState.state).not.toBe('playing');
+        expect(shown.main).toHaveLength(0);
+        expect(speechStarts()).toHaveLength(0);
+        runtime.resume();
+        await tick(120_000);
+        expect(runtime.status).toBe('ended');
+        expect(shown.main.length).toBeGreaterThan(0);
+        expect(orderedOnce(shown.main)).toBe(true);
+    });
 });
 
 describe('holding', () => {

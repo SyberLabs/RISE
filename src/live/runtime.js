@@ -210,7 +210,10 @@ export function createLiveRuntime({
                     if (run.closed) return;
                     run.presented = true;
                     speak(run);
-                    if (run.player.sessionState.state === 'idle') run.player.play();
+                    // A reader who interrupted while the Chamber was being presented stays held:
+                    // the reading begins on Resume, which plays an idle Player.
+                    const held = run.role === 'main' && status === 'interrupted';
+                    if (run.player.sessionState.state === 'idle' && !held) run.player.play();
                 })
                 .catch(caught => failRun(run, caught));
         } else {
@@ -389,6 +392,8 @@ export function createLiveRuntime({
         hold({ text } = {}) {
             if (!main?.player || status !== 'live') throw new LiveRuntimeError('NOT_LIVE', 'There is nothing to hold');
             main.player.pause();
+            // A Player that has not begun sends no pause, so the voice is held here too.
+            main.voice?.hold();
             note('hold', { reason: 'user', ...(text ? { text: clip(text, 200) } : {}) });
             set('interrupted');
         },
@@ -397,6 +402,8 @@ export function createLiveRuntime({
         async interrupt({ text } = {}) {
             if (!main?.player || status !== 'live') throw new LiveRuntimeError('NOT_LIVE', 'There is nothing to interrupt');
             main.player.pause();
+            // A Player that has not begun sends no pause, so the voice is held here too.
+            main.voice?.hold();
             note('interrupt', { reason: 'user', ...(text ? { text: clip(text, 200) } : {}) });
             set('interrupted');
             if (!main.stream.terminal) {
