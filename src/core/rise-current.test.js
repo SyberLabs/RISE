@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import {
-  compileRiseCurrent, materializeRiseCurrent, RISE_CURRENT_THEME_IDS, RISE_CURRENT_THEMES, validateRiseCurrent
+  compileRiseCurrent, materializeRiseCurrent, RISE_CURRENT_LIMITS, RISE_CURRENT_THEME_IDS, RISE_CURRENT_THEMES,
+  RISE_CURRENT_VISUALS, validateRiseCurrent
 } from './rise-current.js';
 import { directionEligibility } from './passage-visuals/reading-state.js';
 import { compileSession } from './session-compiler.js';
@@ -43,6 +44,22 @@ describe('external Current validation', () => {
     expect(checked.segments[0].text).toBe('Gravity curves spacetime. Light follows its geometry.');
     expect(checked.origin).toEqual({ kind: 'model', name: 'Explainer', provider: 'example-provider' });
     expect(Object.isFrozen(checked.segments[0].dives[0].anchor)).toBe(true);
+  });
+
+  it('keeps the visuals and bounds models are told, so changing either is a v2 Current', () => {
+    expect(RISE_CURRENT_VISUALS).toEqual(['still', 'attractor', 'genesis']);
+    expect(RISE_CURRENT_LIMITS).toEqual({
+      segments: 16,
+      segmentText: 4_000,
+      totalText: 20_000,
+      dives: 8,
+      diveText: 600,
+      title: 200,
+      name: 120,
+      id: 120
+    });
+    expect(Object.isFrozen(RISE_CURRENT_VISUALS)).toBe(true);
+    expect(Object.isFrozen(RISE_CURRENT_LIMITS)).toBe(true);
   });
 
   it.each([
