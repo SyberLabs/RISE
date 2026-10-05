@@ -108,8 +108,8 @@ async function framedByAnySite(page, baseURL) {
     }));
     await page.goto(`${elsewhere.origin}/__any-site`);
     const app = page.frameLocator('#app');
-    // The embedded page holds a delivered Current until the reader presses Begin (#368).
-    await app.getByRole('button', { name: 'Begin', exact: true }).click();
+    // The embedded page holds a delivered Current until the reader presses Play (#368).
+    await app.getByRole('button', { name: 'Play', exact: true }).click();
     await expect(app.locator('#atom-display')).toContainText('whichever page framed RISE', { timeout: 15_000 });
     return { app, rise, elsewhere };
 }
@@ -118,11 +118,10 @@ test.describe('the embedded page under a parent it cannot identify', () => {
     test('risk: any origin can frame the page and act as its host, but it hears no question from the reader', async ({ page, baseURL }) => {
         const { app, rise, elsewhere } = await framedByAnySite(page, baseURL);
         expect(new URL(page.url()).origin).toBe(elsewhere.origin);
-        // A Composer presentation offers no Dive, so even a parent that claims sampling is asked nothing.
-        await expect(app.locator('.live-controls__ask')).toBeAttached();
-        await expect(app.locator('#live-controls-question')).toBeHidden();
-        await app.getByRole('button', { name: 'Interrupt', exact: true }).click();
-        await app.getByRole('button', { name: 'Resume', exact: true }).click();
+        // The stage has no question box at all, so even a parent that claims sampling is asked nothing.
+        await expect(app.locator('#rise-stage-controls input[type="text"], #rise-stage-controls form')).toHaveCount(0);
+        await app.getByRole('button', { name: 'Pause', exact: true }).click();
+        await app.getByRole('button', { name: 'Play', exact: true }).click();
         const heard = await page.evaluate(() => window.__heard);
         expect(heard.some(entry => entry.origin === rise.origin && entry.method === 'ui/initialize')).toBe(true);
         expect(heard.some(entry => entry.method === 'sampling/createMessage')).toBe(false);
