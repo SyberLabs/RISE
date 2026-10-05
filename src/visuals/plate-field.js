@@ -6,9 +6,11 @@
  * generate a finished plate once per dwell; the time adapter reveals
  * it. The bake is prefetched during the previous dwell and sliced
  * across frames (~8 ms each) so the seam is a blit, not a 500–900 ms
- * freeze. After the first plate, the reveal waits out the dissolve so the
- * birth is visible, then the remaining dwell is travel plus a few
- * seconds of stillness. Full-frame and behind-stream keep a finished
+ * freeze. After the first plate, each plate is born over the one before:
+ * its reveal starts at once on top of the finished plate, which holds until
+ * the new one is half drawn and then dissolves away, so the screen never
+ * passes through the empty ground. The rest of the dwell is travel plus a
+ * few seconds of stillness. Full-frame and behind-stream keep a finished
  * still. Reduced motion holds the completed plate.
  *
  * With `sliceFirstPlate`, the first plate is baked the same sliced way and
@@ -25,9 +27,12 @@ import {
     galleryDrawProgress
 } from '../core/visual-presence.js';
 import { PLATE_BAKE_BUDGET_MS } from './plate-bake.js';
+import { PLATE_VOID } from './plate-draw.js';
 
 const MAX_DPR = 2;
 const MAX_FRAME_MS = 50;
+/** The plate before stays whole beneath the new one until it is this far drawn. */
+const UNDERLAY_HOLD_PROGRESS = 0.5;
 
 export const PLATE_FAMILIES = Object.freeze(['ostensoria', 'apparitio']);
 
@@ -97,7 +102,7 @@ export class PlateField {
             canvas.style.opacity = '0';
             canvas.style.transition = `opacity ${this.crossfadeMs}ms ease-in-out`;
             this.host.appendChild(canvas);
-            return { canvas, engine: null, elapsedMs: 0, holdPenMs: 0, drawDwellMs: 0 };
+            return { canvas, engine: null, elapsedMs: 0, drawDwellMs: 0, underlay: null };
         };
         this._planes = [make(), make()];
         this._ensureProjectionPlanes();
@@ -117,7 +122,10 @@ export class PlateField {
         const dpr = Math.min(window.devicePixelRatio || 1, MAX_DPR);
         const w = Math.max(1, Math.round((rect?.width || 0) * dpr));
         const h = Math.max(1, Math.round((rect?.height || 0) * dpr));
-        for (const plane of this._planes) {
+        // A plate laid beneath another is repainted first, so the one above
+        // never composes over a cleared canvas.
+        const ordered = [...this._planes].sort((a, b) => Number(!!a.underlay) - Number(!!b.underlay));
+        for (const plane of ordered) {
             if (plane.canvas.width === w && plane.canvas.height === h) continue;
             plane.canvas.width = w;
             plane.canvas.height = h;
@@ -140,7 +148,6 @@ export class PlateField {
 
     _progress(plane) {
         if (this.reducedMotion) return 1;
-        if ((plane.holdPenMs || 0) > 0) return 0;
         const dwell = Number.isFinite(plane.drawDwellMs) && plane.drawDwellMs > 0
             ? plane.drawDwellMs
             : this.dwellMs;
@@ -150,14 +157,32 @@ export class PlateField {
     _draw(plane) {
         if (!plane?.engine) return;
         const progress = this._progress(plane);
-        if (progress >= 1 && plane._drawnComplete) {
+        if (progress >= 1 && plane._drawnComplete && !plane.underlay) {
             this._syncProjectionFor(plane);
             return;
         }
-        const ok = plane.engine.render(plane.canvas, { progress });
+        const ok = plane.underlay
+            ? plane.engine.render(plane.canvas, { progress, clearGround: true })
+            : plane.engine.render(plane.canvas, { progress });
         plane._painted = ok !== false;
-        if (progress >= 1 && ok) plane._drawnComplete = true;
+        if (plane._painted && plane.underlay) this._drawUnderlay(plane);
+        if (progress >= 1 && ok && !plane.underlay) plane._drawnComplete = true;
         this._syncProjectionFor(plane);
+    }
+
+    /** Lay the plate before beneath this plate's reveal, on the void. */
+    _drawUnderlay(plane) {
+        const ctx = plane.canvas.getContext?.('2d');
+        if (!ctx) return;
+        const { width, height } = plane.canvas;
+        ctx.save();
+        ctx.globalCompositeOperation = 'destination-over';
+        ctx.globalAlpha = plane.underlay.alpha;
+        ctx.drawImage(plane.underlay.canvas, 0, 0, width, height);
+        ctx.globalAlpha = 1;
+        ctx.fillStyle = PLATE_VOID;
+        ctx.fillRect(0, 0, width, height);
+        ctx.restore();
     }
 
     /**
@@ -240,32 +265,27 @@ export class PlateField {
         incoming.engine = engine;
         incoming.family = id;
         incoming.elapsedMs = this.reducedMotion ? this.dwellMs : 0;
-        incoming.holdPenMs = this.reducedMotion || first ? 0 : this.crossfadeMs;
-        incoming.drawDwellMs = Math.max(1, this.dwellMs - incoming.holdPenMs);
+        incoming.drawDwellMs = this.dwellMs;
+        incoming.underlay = outgoing && !this.reducedMotion
+            ? { canvas: outgoing.canvas, alpha: 1, fadedMs: 0 }
+            : null;
         incoming._drawnComplete = false;
         this._draw(incoming);
         if (!incoming._painted) {
             incoming.canvas.style.opacity = '0';
             incoming.engine = null;
+            incoming.underlay = null;
             return;
         }
-        incoming.canvas.style.transition = this.reducedMotion || first
-            ? 'none'
-            : `opacity ${this.crossfadeMs}ms ease-in-out`;
+        // The plate before is drawn inside the incoming canvas, beneath its
+        // reveal, so the planes swap in the same frame with nothing to dissolve.
+        incoming.canvas.style.transition = 'none';
         incoming.canvas.style.opacity = '1';
         if (this.projectionHost) this._syncProjectionFor(incoming);
         else if (incoming._painted) reportProjectionPaint(this);
         if (outgoing) {
-            // NAME THE DISSOLVE AT THE MOMENT OF USING IT, rather than
-            // trusting whatever the entrance left behind. The first plate
-            // enters with `transition: none` — correctly, since there is
-            // nothing for it to dissolve from — and that `none` was still
-            // on the element when it became the outgoing plane, so the
-            // very first plate of a reading cut to black while every
-            // later one dissolved.
-            outgoing.canvas.style.transition = this.reducedMotion
-                ? 'none'
-                : `opacity ${this.crossfadeMs}ms ease-in-out`;
+            outgoing.underlay = null;
+            outgoing.canvas.style.transition = 'none';
             outgoing.canvas.style.opacity = '0';
             // The projection is told to leave too. It never was: a plane
             // only synced while it was INCOMING, so its copy stayed at
@@ -273,14 +293,6 @@ export class PlateField {
             // outgoing copy — later in the DOM, and therefore on top —
             // covered the plate that had just arrived.
             if (this.projectionHost) this._syncProjectionFor(outgoing);
-            const retire = outgoing;
-            setTimeout(() => {
-                if (retire.canvas.style.opacity === '0') {
-                    retire.engine = null;
-                    retire.elapsedMs = 0;
-                    retire.holdPenMs = 0;
-                }
-            }, this.reducedMotion ? 0 : this.crossfadeMs);
         }
         this._active = this._planes.indexOf(incoming);
         this._startBake();
@@ -352,17 +364,25 @@ export class PlateField {
 
     _advance(plane, dt) {
         if (!plane?.engine) return;
-        let remaining = dt;
-        if (plane.holdPenMs > 0) {
-            if (remaining <= plane.holdPenMs) {
-                plane.holdPenMs -= remaining;
-                return;
+        plane.elapsedMs += dt;
+        const underlay = plane.underlay;
+        if (underlay && this._progress(plane) >= UNDERLAY_HOLD_PROGRESS) {
+            underlay.fadedMs += dt;
+            underlay.alpha = Math.max(0, 1 - underlay.fadedMs / Math.max(1, this.crossfadeMs));
+            if (underlay.alpha <= 0) {
+                plane.underlay = null;
+                this._retire(underlay.canvas);
             }
-            remaining -= plane.holdPenMs;
-            plane.holdPenMs = 0;
         }
-        plane.elapsedMs += remaining;
         this._draw(plane);
+    }
+
+    /** The plate before has fully dissolved: release its engine. */
+    _retire(canvas) {
+        const retired = this._planes?.find(plane => plane.canvas === canvas);
+        if (!retired || retired.canvas.style.opacity !== '0') return;
+        retired.engine = null;
+        retired.elapsedMs = 0;
     }
 
     _tick(timestamp) {
@@ -390,7 +410,9 @@ export class PlateField {
         const plane = this._planes[this._active];
         this._advance(plane, dt);
 
-        if (timestamp >= this._nextRotateAt) {
+        // A bake still in slices is waited for, never finished here: on a
+        // slow phone that one call froze the reading for seconds.
+        if (timestamp >= this._nextRotateAt && !this._pending) {
             this._rotate(false);
             this._nextRotateAt = timestamp + this.dwellMs;
         }
@@ -459,7 +481,7 @@ export class PlateField {
                 plane.canvas.style.opacity = '0';
                 plane.engine = null;
                 plane.elapsedMs = 0;
-                plane.holdPenMs = 0;
+                plane.underlay = null;
                 plane._drawnComplete = false;
             }
         }
@@ -485,7 +507,10 @@ export class PlateField {
     }
 
     setFamilies(families) {
-        this.families = normalizeFamilies(families);
+        const next = normalizeFamilies(families);
+        // The same families again keep the bake under way.
+        if (next.length === this.families.length && next.every((id, i) => id === this.families[i])) return;
+        this.families = next;
         this._abortBake();
         if (this.running && this.families.length === 0) this.stop();
         else if (this.running) this._startBake();
