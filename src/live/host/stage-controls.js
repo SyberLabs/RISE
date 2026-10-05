@@ -1,4 +1,6 @@
 import { describeStatus } from './controls.js';
+import { JEV_COLOR_THEMES } from '../../core/jev-color-themes.js';
+import { FONT_SIZE_CHIPS, resolveFontSize } from '../../core/chamber-type-size.js';
 
 /**
  * The stage inside a ChatGPT card: the reading, and two objects over it.
@@ -12,6 +14,9 @@ import { describeStatus } from './controls.js';
  */
 
 const INTENSITY = { min: 0.4, max: 0.75, step: 0.05, initial: 0.65 };
+/** The four fixed sizes; Fit is for Word paint, which a Current never uses. */
+const SIZE_CHIPS = FONT_SIZE_CHIPS.filter(chip => chip.fontSize !== 'fit');
+const STILL_NOTE = 'Imagery stays still.';
 
 const PLAY_GLYPH = '<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false"><path d="M8 5.5v13l10-6.5z" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round"/></svg>';
 const PAUSE_GLYPH = '<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false"><path d="M8 5.5v13M16 5.5v13" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/></svg>';
@@ -23,13 +28,18 @@ const CLOSE_GLYPH = '<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden
  * @param {object} options
  * @param {object} options.runtime a live runtime
  * @param {() => void} options.onPlayAgain what Play again does (the host rebuilds the reading)
+ * @param {() => object | null} [options.chamber] the Chamber playing this reading once it is on screen,
+ *   for its colour theme and its two saved settings (reduced motion, text size)
+ * @param {(theme: string | null) => void} [options.paintTheme] paints the frame outside the Chamber in a
+ *   theme's colours; null means the reading's own
  * @param {boolean} [options.audible] whether the voice makes sound; a silent one is said to be pacing
  * @param {{capability: string, effect: string}[]} [options.degradations] what this device cannot do, for the
  *   hidden status; a `speechOutput` entry marks the object as having no voice
  * @param {Document} [options.doc]
  */
-export function createStageControls({ runtime, onPlayAgain, audible = true, degradations = [], doc = document }) {
+export function createStageControls({ runtime, onPlayAgain, chamber = () => null, paintTheme = () => {}, audible = true, degradations = [], doc = document }) {
     const noVoice = degradations.some(note => note.capability === 'speechOutput');
+    const systemStill = degradations.some(note => note.capability === 'reducedMotion');
     // Why it is silent, in the object's name: the two reasons src/live/capabilities.js gives.
     const silent = !noVoice ? '' : degradations.find(note => note.capability === 'speechOutput').effect.startsWith('No voice')
         ? ' (silent, no voice is installed)'
@@ -55,6 +65,19 @@ export function createStageControls({ runtime, onPlayAgain, audible = true, degr
           <input id="rise-settings-intensity" type="range" min="${INTENSITY.min}" max="${INTENSITY.max}" step="${INTENSITY.step}" value="${INTENSITY.initial}" aria-describedby="rise-settings-intensity-note">
           <span id="rise-settings-intensity-note" hidden>Not on this passage</span>
         </div>
+        <div class="rise-settings__row">
+          <label for="rise-settings-theme">Theme</label>
+          <select id="rise-settings-theme"><option value="">As written</option>${JEV_COLOR_THEMES.map(id => `<option value="${id}">${id[0].toUpperCase()}${id.slice(1)}</option>`).join('')}</select>
+        </div>
+        <div class="rise-settings__row rise-settings__row--switch">
+          <label for="rise-settings-still">Still imagery</label>
+          <input id="rise-settings-still" type="checkbox" role="switch"${systemStill ? ' checked disabled aria-describedby="rise-settings-still-note"' : ''}>
+          <span id="rise-settings-still-note" hidden>Your system asks for reduced motion.</span>
+        </div>
+        <div class="rise-settings__row rise-settings__row--chips">
+          <span class="rise-settings__label" id="rise-settings-size-label">Text size</span>
+          <div class="rise-settings__chips" role="radiogroup" aria-labelledby="rise-settings-size-label">${SIZE_CHIPS.map(chip => `<label class="rise-settings__chip"><input type="radio" name="rise-settings-size" value="${chip.fontSize}"${chip.fontSize === 'medium' ? ' checked' : ''}><span>${chip.label}</span></label>`).join('')}</div>
+        </div>
       </section>`;
     doc.body.appendChild(root);
 
@@ -68,11 +91,17 @@ export function createStageControls({ runtime, onPlayAgain, audible = true, degr
     const sheet = $('#rise-settings');
     const close = $('.rise-settings__close');
     const intensity = $('#rise-settings-intensity');
+    const theme = $('#rise-settings-theme');
+    const still = $('#rise-settings-still');
+    const sizes = [...$('.rise-settings__chips').querySelectorAll('input')];
     let destroyed = false;
     let listed = -1;
     let segmentId = null;
     // The reader's own intensity, kept for the reading: the director drops a control at every new cue.
     let chosen = null;
+    // The other rows' choices, kept for a Chamber that is not on screen yet (one mounts as the reading starts).
+    const picked = {};
+    let reached = null;
 
     function name(status) {
         if (status === 'ended') return 'Play again';
@@ -124,11 +153,44 @@ export function createStageControls({ runtime, onPlayAgain, audible = true, degr
         intensity.setAttribute('aria-valuetext', vividness(Number(intensity.value)));
     }
 
+    function apply(to, key, value) {
+        if (key === 'theme') to.setColourTheme(value);
+        else to.onSettingsChange(key, value);
+    }
+
+    /** The Chamber on screen, or null; one seen for the first time takes every choice made so far. */
+    function reachChamber() {
+        const current = chamber();
+        if (current && current !== reached) {
+            reached = current;
+            for (const [key, value] of Object.entries(picked)) apply(current, key, value);
+        }
+        return current;
+    }
+
+    /** A row's choice: kept for the reading, and given to the Chamber on screen once. */
+    function choose(key, value) {
+        picked[key] = value;
+        const before = reached;
+        const current = reachChamber();
+        if (current && current === before) apply(current, key, value);
+    }
+
+    /** The two saved rows, read from the Chamber's settings; the system's reduced motion is not the reader's to change. */
+    function refreshSaved() {
+        const saved = reachChamber()?.getSettings?.();
+        if (!saved) return;
+        if (!systemStill) still.checked = picked.reducedMotion ?? (saved.reducedMotion === true);
+        const size = picked.fontSize ?? resolveFontSize(saved.fontSize);
+        for (const chip of sizes) chip.checked = chip.value === size;
+    }
+
     function render(snapshot) {
         if (destroyed) return;
         const { status } = snapshot;
         const gone = status === 'failed' || status === 'stopped';
-        statusLine.textContent = [describeStatus(snapshot, { audible, dive: false }), ...degradations.map(note => note.effect)].filter(Boolean).join(' ');
+        const stillNote = !systemStill && still.checked ? [STILL_NOTE] : [];
+        statusLine.textContent = [describeStatus(snapshot, { audible, dive: false }), ...degradations.map(note => note.effect), ...stillNote].filter(Boolean).join(' ');
         play.hidden = gone;
         settings.hidden = gone;
         if (gone) closeSheet(false);
@@ -144,6 +206,7 @@ export function createStageControls({ runtime, onPlayAgain, audible = true, degr
             segmentId = at;
             if (chosen !== null) sendIntensity(chosen);
         }
+        reachChamber();
         if (!sheet.hidden) refreshIntensity();
     }
 
@@ -155,10 +218,11 @@ export function createStageControls({ runtime, onPlayAgain, audible = true, degr
 
     function openSheet() {
         refreshIntensity();
+        refreshSaved();
         sheet.hidden = false;
         settings.setAttribute('aria-expanded', 'true');
         doc.addEventListener('pointerdown', outside);
-        (intensity.disabled ? close : intensity).focus();
+        ([intensity, theme, still, ...sizes].find(control => !control.disabled) ?? close).focus();
     }
 
     function closeSheet(refocus = true) {
@@ -181,6 +245,19 @@ export function createStageControls({ runtime, onPlayAgain, audible = true, degr
         intensity.setAttribute('aria-valuetext', vividness(value));
         sendIntensity(value);
     });
+    // The frame and the Chamber take a theme in one frame; "As written" (null) gives each its own back.
+    theme.addEventListener('change', () => {
+        paintTheme(theme.value || null);
+        choose('theme', theme.value || null);
+    });
+    // The two saved rows go through the Chamber's settings path, which applies and keeps them.
+    still.addEventListener('change', () => {
+        choose('reducedMotion', still.checked);
+        render(runtime.snapshot());
+    });
+    for (const chip of sizes) {
+        chip.addEventListener('change', () => { if (chip.checked) choose('fontSize', chip.value); });
+    }
 
     play.addEventListener('click', () => {
         if (runtime.status === 'ended') { onPlayAgain(); return; }

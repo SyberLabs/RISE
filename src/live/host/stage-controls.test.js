@@ -41,6 +41,15 @@ function fakeRuntime(initial = 'live', { visual = true } = {}) {
     return runtime;
 }
 
+/** The Chamber the stage reaches for colour and the two saved settings; it records what it was told. */
+function fakeChamber(saved = {}) {
+    return {
+        setColourTheme: vi.fn(() => true),
+        onSettingsChange: vi.fn(),
+        getSettings: () => ({ reducedMotion: false, fontSize: 'medium', ...saved })
+    };
+}
+
 let stage;
 const $ = selector => document.querySelector(selector);
 const play = () => $('#rise-stage-controls [data-stage="play"]');
@@ -48,6 +57,10 @@ const settings = () => $('#rise-stage-controls [data-stage="settings"]');
 const status = () => $('#rise-stage-controls .rise-stage__status');
 const sheet = () => $('#rise-settings');
 const intensity = () => $('#rise-settings input[type="range"]');
+const theme = () => $('#rise-settings select');
+const still = () => $('#rise-settings [role="switch"]');
+const chips = () => [...$('#rise-settings [role="radiogroup"]').querySelectorAll('input[type="radio"]')];
+const change = control => control.dispatchEvent(new Event('change', { bubbles: true }));
 
 afterEach(() => {
     stage?.destroy();
@@ -189,7 +202,7 @@ describe('what a screen reader hears', () => {
 });
 
 describe('the Settings sheet', () => {
-    it('is a dialog inside the stage with one Intensity row, opened and closed by the object without pausing', () => {
+    it('is a dialog inside the stage with four rows, opened and closed by the object without pausing', () => {
         const runtime = fakeRuntime('live');
         stage = createStageControls({ runtime, onPlayAgain: () => {} });
         expect(sheet().hidden).toBe(true);
@@ -201,7 +214,7 @@ describe('the Settings sheet', () => {
         expect(sheet().getAttribute('aria-modal')).toBe('false');
         expect(sheet().getAttribute('aria-label')).toBe('Settings');
         expect(settings().getAttribute('aria-expanded')).toBe('true');
-        expect([...sheet().querySelectorAll('input, select, [role="switch"], [role="radiogroup"]')].map(control => control.type ?? control.getAttribute('role'))).toEqual(['range']);
+        expect([...sheet().querySelectorAll('.rise-settings__row')].map(row => row.firstElementChild.textContent)).toEqual(['Intensity', 'Theme', 'Still imagery', 'Text size']);
         expect(intensity().labels[0].textContent).toBe('Intensity');
         expect(intensity()).toMatchObject({ min: '0.4', max: '0.75', step: '0.05', value: '0.65' });
         expect(runtime.interrupt).not.toHaveBeenCalled();
@@ -259,8 +272,8 @@ describe('the Settings sheet', () => {
         expect(note.textContent).toBe('Not on this passage');
         expect(note.hidden).toBe(true);
         expect(intensity().getAttribute('title')).toBeNull();
-        // The sheet still opened with its first enabled control focused: the close target.
-        expect(document.activeElement).toBe(sheet().querySelector('button'));
+        // The sheet still opened with its first enabled control focused: the Theme select.
+        expect(document.activeElement).toBe(theme());
     });
 
     it('sends the chosen intensity again when the reading moves to a new passage', () => {
@@ -275,6 +288,117 @@ describe('the Settings sheet', () => {
         expect(runtime.controlVisual).toHaveBeenLastCalledWith({ surface: 'attractor', parameter: 'intensity', value: 0.5 });
         runtime.set('live', { main: { segmentId: 's2', speaking: 'x' } });
         expect(runtime.controlVisual).toHaveBeenCalledTimes(2);
+    });
+});
+
+describe('the other three rows', () => {
+    const THEMES = [['classic', 'Classic'], ['amethyst', 'Amethyst'], ['prism', 'Prism'], ['ember', 'Ember'], ['cobalt', 'Cobalt'], ['jade', 'Jade'], ['rose', 'Rose'], ['citrine', 'Citrine'], ['silver', 'Silver']];
+
+    it('Theme offers As written then the nine themes in their order, and drives the frame and the Chamber at once', () => {
+        const chamber = fakeChamber();
+        const paintTheme = vi.fn();
+        stage = createStageControls({ runtime: fakeRuntime('live'), onPlayAgain: () => {}, chamber: () => chamber, paintTheme });
+        settings().click();
+        expect(theme().labels[0].textContent).toBe('Theme');
+        expect([...theme().options].map(option => [option.value, option.textContent])).toEqual([['', 'As written'], ...THEMES]);
+        expect(theme().value).toBe('');
+        theme().value = 'jade';
+        change(theme());
+        expect(paintTheme).toHaveBeenCalledWith('jade');
+        expect(chamber.setColourTheme).toHaveBeenCalledWith('jade');
+        theme().value = '';
+        change(theme());
+        expect(paintTheme).toHaveBeenLastCalledWith(null);
+        expect(chamber.setColourTheme).toHaveBeenLastCalledWith(null);
+    });
+
+    it('Still imagery is a switch, off until the reader turns it on, saved through the Chamber, and said in the status', () => {
+        const chamber = fakeChamber();
+        stage = createStageControls({ runtime: fakeRuntime('live'), onPlayAgain: () => {}, chamber: () => chamber });
+        settings().click();
+        expect(still().labels[0].textContent).toBe('Still imagery');
+        expect(still().type).toBe('checkbox');
+        expect(still().checked).toBe(false);
+        expect(still().disabled).toBe(false);
+        expect(still().getAttribute('aria-describedby')).toBeNull();
+        expect(status().textContent).not.toContain('stays still');
+        still().click();
+        expect(chamber.onSettingsChange).toHaveBeenCalledWith('reducedMotion', true);
+        expect(status().textContent).toContain('Imagery stays still.');
+        still().click();
+        expect(chamber.onSettingsChange).toHaveBeenLastCalledWith('reducedMotion', false);
+        expect(status().textContent).not.toContain('stays still');
+    });
+
+    it('Still imagery opens on when the reader saved it', () => {
+        stage = createStageControls({ runtime: fakeRuntime('live'), onPlayAgain: () => {}, chamber: () => fakeChamber({ reducedMotion: true }) });
+        settings().click();
+        expect(still().checked).toBe(true);
+        expect(still().disabled).toBe(false);
+    });
+
+    it('Still imagery is on and disabled, with a hidden reason, while the system asks for reduced motion', () => {
+        const chamber = fakeChamber();
+        stage = createStageControls({
+            runtime: fakeRuntime('live'), onPlayAgain: () => {}, chamber: () => chamber,
+            degradations: [{ capability: 'reducedMotion', effect: 'Reduced motion is on. Imagery stays still.' }]
+        });
+        settings().click();
+        expect(still().checked).toBe(true);
+        expect(still().disabled).toBe(true);
+        const note = document.getElementById(still().getAttribute('aria-describedby'));
+        expect(note.textContent).toBe('Your system asks for reduced motion.');
+        expect(note.hidden).toBe(true);
+        expect(still().getAttribute('title')).toBeNull();
+        expect(chamber.onSettingsChange).not.toHaveBeenCalled();
+        expect(status().textContent.match(/stays still/gu)).toHaveLength(1);
+    });
+
+    it('Text size is a radiogroup of four chips, M unless a size was saved, applied through the Chamber', () => {
+        const chamber = fakeChamber();
+        stage = createStageControls({ runtime: fakeRuntime('live'), onPlayAgain: () => {}, chamber: () => chamber });
+        settings().click();
+        const group = $('#rise-settings [role="radiogroup"]');
+        expect(document.getElementById(group.getAttribute('aria-labelledby')).textContent).toBe('Text size');
+        expect(chips().map(chip => chip.value)).toEqual(['small', 'medium', 'large', 'xlarge']);
+        expect(chips().map(chip => chip.labels[0].textContent)).toEqual(['S', 'M', 'L', 'XL']);
+        expect(chips().find(chip => chip.checked).value).toBe('medium');
+        chips()[3].click();
+        expect(chamber.onSettingsChange).toHaveBeenCalledWith('fontSize', 'xlarge');
+
+        stage.destroy();
+        stage = createStageControls({ runtime: fakeRuntime('live'), onPlayAgain: () => {}, chamber: () => fakeChamber({ fontSize: 'large' }) });
+        settings().click();
+        expect(chips().find(chip => chip.checked).value).toBe('large');
+    });
+
+    it('every row is a native control the keyboard reaches', () => {
+        stage = createStageControls({ runtime: fakeRuntime('live'), onPlayAgain: () => {}, chamber: () => fakeChamber() });
+        settings().click();
+        for (const control of [intensity(), theme(), still(), chips()[0]]) {
+            control.focus();
+            expect(document.activeElement, control.id || control.value).toBe(control);
+        }
+        expect(sheet().querySelectorAll('[tabindex], div[role="radio"], div[role="switch"]')).toHaveLength(0);
+    });
+
+    it('choices made before the Chamber is on screen reach it once it is', () => {
+        const runtime = fakeRuntime('starting');
+        let chamber = null;
+        const paintTheme = vi.fn();
+        stage = createStageControls({ runtime, onPlayAgain: () => {}, chamber: () => chamber, paintTheme });
+        settings().click();
+        theme().value = 'rose';
+        change(theme());
+        still().click();
+        chips()[0].click();
+        expect(paintTheme).toHaveBeenCalledWith('rose');
+        chamber = fakeChamber();
+        runtime.set('live');
+        expect(chamber.setColourTheme).toHaveBeenCalledWith('rose');
+        expect(chamber.onSettingsChange.mock.calls).toEqual([['reducedMotion', true], ['fontSize', 'small']]);
+        runtime.set('live', { main: { speaking: 'x' } });
+        expect(chamber.setColourTheme).toHaveBeenCalledTimes(1);
     });
 });
 

@@ -348,6 +348,15 @@ test('under reduced motion the imagery holds still, the reader is told so, and t
   await expect(app.locator('.rise-stage__status')).toContainText('Imagery stays still.');
   await expect(app.locator('#rise-stage-controls li[data-capability]')).toHaveCount(0);
   await expect.poll(() => picturesOverASecond(app.locator('.chamber-attractor canvas.attractor-canvas')), { timeout: 5_000 }).toBe(1);
+  // The Still switch shows the system's choice, on and not the reader's to change, with its reason hidden.
+  await app.getByRole('button', { name: 'Settings', exact: true }).click();
+  const stillSwitch = app.getByRole('switch', { name: 'Still imagery' });
+  await expect(stillSwitch).toBeChecked();
+  await expect(stillSwitch).toBeDisabled();
+  await expect(stillSwitch).toHaveAccessibleDescription('Your system asks for reduced motion.');
+  await expect(app.locator('#rise-settings')).toContainText('Still imagery');
+  await expect(app.locator('#rise-settings')).not.toContainText('Your system asks');
+  await app.getByRole('button', { name: 'Close settings', exact: true }).click();
 
   // The second passage's own visual, not a fallback, and it is still too.
   await expectShown(app, 'A composition grows beneath');
@@ -415,6 +424,23 @@ test('framed from another site with no saved settings, the embed starts on safe 
   const attractor = app.locator('.chamber-attractor canvas.attractor-canvas');
   // With no system preference the filament turns: a Reduced motion choice saved on RISE's site would not travel.
   await expect.poll(() => picturesOverASecond(attractor), { timeout: 5_000 }).toBeGreaterThan(1);
+
+  // The Still switch is the reader's own channel: it holds the field at once and is saved in this frame's storage.
+  await app.getByRole('button', { name: 'Settings', exact: true }).click();
+  const stillSwitch = app.getByRole('switch', { name: 'Still imagery' });
+  await expect(stillSwitch).not.toBeChecked();
+  await stillSwitch.click();
+  await expect(stillSwitch).toBeChecked();
+  await expect.poll(async () => (await applied()).classes).toEqual(['reduced-motion']);
+  expect(JSON.parse((await applied()).stored).reducedMotion).toBe(true);
+  await expect(app.locator('.rise-stage__status')).toContainText('Imagery stays still.');
+  await expect.poll(() => picturesOverASecond(attractor), { timeout: 5_000 }).toBe(1);
+  await stillSwitch.click();
+  await expect.poll(async () => (await applied()).classes).toEqual([]);
+  expect(JSON.parse((await applied()).stored).reducedMotion).toBe(false);
+  await expect(app.locator('.rise-stage__status')).not.toContainText('stays still');
+  await expect.poll(() => picturesOverASecond(attractor), { timeout: 5_000 }).toBeGreaterThan(1);
+  await app.getByRole('button', { name: 'Close settings', exact: true }).click();
 
   // The system's preference does reach the cross-site frame, and takes hold mid-reading.
   await page.emulateMedia({ reducedMotion: 'reduce' });
@@ -644,13 +670,28 @@ test('a themed answer opens on a poster in its colors, and its reading and filam
   expect((await app.locator('.chamber').first().evaluate(element => getComputedStyle(element).getPropertyValue('--reading-scrim'))).toLowerCase()).toContain('#061912');
   // The sheet's labels are in the theme's ink, not RISE's.
   await app.getByRole('button', { name: 'Settings', exact: true }).click();
-  expect(channels(await app.locator('#rise-settings label').evaluate(element => getComputedStyle(element).color))).toEqual([232, 255, 244]);
-  await app.getByRole('button', { name: 'Close settings', exact: true }).click();
+  const labelInk = () => app.locator('#rise-settings label').first().evaluate(element => getComputedStyle(element).color);
+  expect(channels(await labelInk())).toEqual([232, 255, 244]);
   // The default white filament is blue-dominant; green-dominant paint is the jade palette drawing.
-  await expect.poll(async () => {
+  const filamentIs = (name, dominant) => expect.poll(async () => {
     const { lit, r, g, b } = await filamentPaint(app).catch(() => ({ lit: 0, r: 0, g: 0, b: 0 }));
-    return lit > 20 && g > b && g > r;
-  }, { timeout: 5_000, message: 'waiting for a green-dominant filament' }).toBe(true);
+    return lit > 20 && dominant({ r, g, b });
+  }, { timeout: 5_000, message: `waiting for a ${name}-dominant filament` }).toBe(true);
+  await filamentIs('green', ({ r, g, b }) => g > b && g > r);
+
+  // The Theme row recolours the frame, the reading and the live filament in place; "As written" gives jade back.
+  const themeSelect = app.getByRole('combobox', { name: 'Theme' });
+  await expect(themeSelect).toHaveValue('');
+  await themeSelect.selectOption('rose');
+  await expect.poll(() => backgroundOf(app.locator('body'))).toBe('rgb(26, 4, 20)');
+  await expect.poll(() => backgroundOf(app.locator('.chamber').first())).toBe('rgb(26, 4, 20)');
+  await expect.poll(async () => channels(await labelInk())).toEqual([255, 240, 244]);
+  await filamentIs('red', ({ r, g, b }) => r > g && r > b);
+  await themeSelect.selectOption('');
+  await expect.poll(() => backgroundOf(app.locator('body'))).toBe('rgb(6, 25, 18)');
+  await expect.poll(() => backgroundOf(app.locator('.chamber').first())).toBe('rgb(6, 25, 18)');
+  await filamentIs('green', ({ r, g, b }) => g > b && g > r);
+  await app.getByRole('button', { name: 'Close settings', exact: true }).click();
 
   expect((await log(page)).filter(entry => entry.method === 'sampling/createMessage')).toHaveLength(0);
   expect(errors).toEqual([]);

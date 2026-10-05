@@ -1512,6 +1512,51 @@ describe('inside an MCP host', () => {
             host.destroy();
             expect(painted()).toEqual(unpainted);
         });
+
+        /** Play the held answer with a fake runtime; resolves once the stage is up. */
+        async function played(runtime) {
+            host.buildRuntime = vi.fn(async () => runtime);
+            container.querySelector('.live-start').click();
+            await vi.waitFor(() => expect(runtime.start).toHaveBeenCalledTimes(1));
+            document.querySelector('#rise-stage-controls [data-stage="settings"]').click();
+        }
+        const fakeRuntime = extra => ({ start: vi.fn(async () => {}), stop: vi.fn(async () => {}), status: 'live', snapshot: () => ({ status: 'live' }), subscribe: () => () => {}, composed: () => null, ...extra });
+        const pick = (control, value) => { control.value = value; control.dispatchEvent(new Event('change', { bubbles: true })); };
+
+        it('the stage’s Theme row paints the frame, and As written returns the answer’s own theme, not RISE’s', async () => {
+            vi.spyOn(LiveHost.prototype, 'validateEmbeddedCurrent').mockResolvedValue([JADE_OPEN]);
+            await poster();
+            await played(fakeRuntime());
+            const theme = document.querySelector('#rise-settings-theme');
+            pick(theme, 'rose');
+            expect(painted()).toEqual({ '--color-void': '#1A0414', '--color-light': '#FFF0F4', '--color-cloud': '#FFF0F4', '--color-accent': '#FF5C93' });
+            pick(theme, '');
+            expect(painted()).toEqual({ '--color-void': '#061912', '--color-light': '#E8FFF4', '--color-cloud': '#E8FFF4', '--color-accent': '#4CE6A4' });
+            await host.stop();
+        });
+
+        it('the stage reaches the shown Chamber playing the runtime’s Player, for its theme and its saved settings', async () => {
+            await poster();
+            const player = {};
+            const chamber = { player, setColourTheme: vi.fn(() => true), onSettingsChange: vi.fn(), getSettings: () => ({ reducedMotion: false, fontSize: 'large' }) };
+            host.router = {
+                views: new Map([['read', { container: { hidden: false } }]]),
+                getViewInstance: name => (name === 'read' ? { activePane: 'chamber', paneInstance: pane => (pane === 'chamber' ? chamber : null) } : null)
+            };
+            await played(fakeRuntime({ playerFor: () => player }));
+            expect(document.querySelector('#rise-settings [role="radiogroup"] input:checked').value).toBe('large');
+            pick(document.querySelector('#rise-settings-theme'), 'cobalt');
+            expect(chamber.setColourTheme).toHaveBeenCalledWith('cobalt');
+            document.querySelector('#rise-settings-still').click();
+            expect(chamber.onSettingsChange).toHaveBeenCalledWith('reducedMotion', true);
+            document.querySelector('#rise-settings input[value="small"]').click();
+            expect(chamber.onSettingsChange).toHaveBeenLastCalledWith('fontSize', 'small');
+            // A Chamber playing another Player is not this reading's.
+            chamber.player = {};
+            pick(document.querySelector('#rise-settings-theme'), 'jade');
+            expect(chamber.setColourTheme).not.toHaveBeenCalledWith('jade');
+            await host.stop();
+        });
     });
 });
 
