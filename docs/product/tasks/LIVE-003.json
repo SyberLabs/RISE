@@ -31,6 +31,12 @@
       "ref": "src/live/fixtures/explanations.test.js",
       "note": "Branch composer/instruments: black holes plus FOREST_AFTER_FIRE (contemplative, still and genesis) and WEATHER_CHAOS (attractor-led) admitted by validateRiseCurrent and the Worker, compiled to continuous Sessions; Neural, Flame and Gallery refused. 1171 live/core/worker unit tests passed locally.",
       "date": "2026-10-05"
+    },
+    {
+      "kind": "pr",
+      "ref": "https://github.com/SyberLabs/RISE/pull/411",
+      "note": "Instruments page and two fixtures, open for review, not merged.",
+      "date": "2026-10-05"
     }
   ],
   "activity": [
@@ -41,10 +47,14 @@
     {
       "date": "2026-10-05T06:08:58.644Z",
       "summary": "Claimed by Cloud Composer agent; instruments documented and two fixtures added; in review on a branch, not merged"
+    },
+    {
+      "date": "2026-10-05T06:12:53.741Z",
+      "summary": "Linked the LIVE-003 PR (Cloud Composer agent)"
     }
   ],
-  "updatedAt": "2026-10-05T06:08:58.644Z",
-  "revision": 2,
+  "updatedAt": "2026-10-05T06:12:53.741Z",
+  "revision": 3,
   "summary": "Choose at most three already supported instruments and three short explanations with different presentation demands.",
   "blocker": null
 }
