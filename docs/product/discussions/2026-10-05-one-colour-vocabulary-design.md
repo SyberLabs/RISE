@@ -131,7 +131,7 @@ Retired: nothing in B2a. The second colour vocabularies a model still sees (Jev'
 
 ## 6. Contracts and tests
 
-**Fixed contracts untouched.** `rise.current.v1`, `rise.experience-program.v1`, the compiler input, `RISE_CURRENT_THEMES` and `RISE_CURRENT_VISUALS`, `ATTRACTOR_VISUAL_MANIFEST`, `validateJevRecommendation` and the admission surface: no file under `src/live/**`, `worker/**`, `src/core/rise-current.js`, `src/core/jev-palette.js`, `src/core/jev-color-themes.js`, `src/core/visual-control-contract.js`, `src/core/decision/**`, `src/app/jev-reading.js`, `src/core/roll.js` or `src/core/session-compiler.js` is edited.
+**Fixed contracts untouched.** `rise.current.v1`, `rise.experience-program.v1`, the compiler input, `RISE_CURRENT_THEMES` and `RISE_CURRENT_VISUALS`, `ATTRACTOR_VISUAL_MANIFEST`, `validateJevRecommendation` and the admission surface: no file under `src/live/**`, `worker/**`, `src/core/rise-current.js`, `src/core/jev-palette.js`, `src/core/jev-color-themes.js`, `src/core/visual-control-contract.js`, `src/core/decision/**`, `src/app/jev-reading.js`, `src/core/roll.js` (S2, answered 2026-10-05: its signal and garden temper lists are edited after all; see §8) or `src/core/session-compiler.js` is edited.
 
 **Guards that stay green, by path:**
 - `src/core/rise-current.test.js:49-62, :263-290, :336-365, :367-433` (the FND-006 table, brightness ceiling, frozenness): unchanged; the map holds the rows by identity.
@@ -192,7 +192,7 @@ Marked M (Mateo) or S (Seth). Only what changes what a reader gets or is hard to
 
 - **S1.** Under a theme, B2a treats the attractor's `white` as "no choice" and mounts the theme's full row (colour and shape, the brightness-safe pair). A signal roll draws white one time in three (`roll.js:93`) and a Jev `white` answer is possible: cobalt readings then get thomas/blue/mirror instead of aizawa/white/kaleido, prism readings halvorsen/neon/mirror without streaks (Composer's prism). Alternative: palette only, keeping the config's form, which puts neon on kaleido outside the tested ceiling. Confirm the row, or keep white explicit until C1 rewrites rolls as looks.
 
-  Answer: pending.
+  Answer (Mateo, 2026-10-05): under a theme, 'white' is no choice and the attractor takes the theme's full RISE_CURRENT_THEMES row (system, palette and form).
 - **M1.** Jev and Kev still answer `visualPalette` (ten attractor colours) and `kleePreset` (`recommend.js:80-94`) beside `colorTheme`, and admission requires both (`jev-reading.js:42-43`). B2a honours an explicit model answer (a purple filament under cobalt stays purple), so Q6 is met for those readings only when the model answers white or random. Decide whether a later M-lane change derives both from `colorTheme` inside `choiceConfig` (fields kept, so admission passes) and stops asking the model; it changes the evaluation cases and `recommend.test.js`'s menu pin.
 
   Answer: pending.
@@ -201,7 +201,7 @@ Marked M (Mateo) or S (Seth). Only what changes what a reader gets or is hard to
   Answer: pending.
 - **S2.** Rolls keep their temper lists until C1, so a signal roll's blue or purple filament and a garden roll's named preset stay under the theme. A one-line alternative in Seth's lane: delete `palettes` from the signal temper (`roll.js:93`) and set the garden temper's `klee` to `['random']` (`:105`), so rolls take the theme now, at the cost of one shift in Today's seeded sequence on the deploy day. Now, or C1?
 
-  Answer: pending.
+  Answer (Mateo, 2026-10-05): delete the signal temper's `palettes` list and set the garden temper's klee list to ['random'] in src/core/roll.js now, so rolls take the theme (one shift in Today's seeded sequence is accepted).
 - **S3.** Every nearest-native pick, the `rose` Iris ramp and the flame offsets are unrendered. Who runs the render-and-tune pass (PR7's `--themes` stills) before PR4 to PR6 merge, and is a shared pick (classic/citrine on dawn, amethyst/jade on holo, cobalt/rose on marian, four themes on organic) acceptable for engines no look depends on?
 
   Answer: pending.
