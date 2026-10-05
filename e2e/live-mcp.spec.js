@@ -463,14 +463,14 @@ test('after Stop the hidden reading draws nothing more, a later passage’s fiel
   expect(await picturesOverASecond(field)).toBeLessThanOrEqual(1);
 });
 
-test('once the reading has ended, its field draws nothing more behind the closing screen', async ({ page, baseURL }) => {
+test('once the reading has ended, the display stays and its field holds one frame', async ({ page, baseURL }) => {
   const app = await openHost(page, baseURL, { current: { ...TWO_FIELDS, id: 'one-field', segments: TWO_FIELDS.segments.slice(0, 1) } });
   await begin(app);
   const field = await app.locator('.chamber-attractor canvas.attractor-canvas').elementHandle({ timeout: 15_000 });
   await expect.poll(() => picturesOverASecond(field), { timeout: 5_000 }).toBeGreaterThan(1);
 
   await expect(app.locator('.live-controls__status')).toContainText('Finished', { timeout: 20_000 });
-  await expect(app.locator('#chamber-display')).toBeHidden();
+  await expect(app.locator('#chamber-display')).toBeVisible();
   expect(await picturesOverASecond(field)).toBeLessThanOrEqual(1);
 });
 
