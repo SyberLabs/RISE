@@ -150,3 +150,80 @@ describe('when the reading is over', () => {
         chamber.destroy();
     });
 });
+
+/**
+ * A reading that cannot go on is held, and the reader is told.
+ *
+ * The Player advances from a timer or a spoken atom's end, fire-and-forget,
+ * so a listener that threw while painting the next atom had nobody to reject
+ * to: the state stayed 'playing' and the progress clock ran on under text that
+ * would never move again. The Player now pauses where it stands and emits
+ * 'error'; the Chamber says so in the quiet place the movement title uses.
+ */
+describe('when the Player cannot go on', () => {
+    beforeEach(() => {
+        // The atom timer is an animation frame, so the frame clock must be
+        // the faked one too; the file's fake install above does not include it.
+        vi.useRealTimers();
+        vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'setInterval', 'clearInterval',
+            'Date', 'performance', 'requestAnimationFrame', 'cancelAnimationFrame'] });
+    });
+
+    function mountReading() {
+        const container = document.createElement('div');
+        document.body.appendChild(container);
+        const player = new Player(current(3));
+        const chamber = new Chamber(container, {
+            session: player.sessionState.session, player, autoStart: false
+        });
+        chamber.activate();
+        return { chamber, player, container };
+    }
+
+    it('holds the reading, stops the clock, tells the reader, and lets play clear it', async () => {
+        const { chamber, player, container } = mountReading();
+        vi.spyOn(console, 'warn').mockImplementation(() => {});
+        const paint = chamber.displayAtom.bind(chamber);
+        let painted = 0;
+        chamber.displayAtom = (...args) => {
+            painted += 1;
+            if (painted === 2) throw new Error('the second atom will not paint');
+            return paint(...args);
+        };
+        const faults = [];
+        player.on('error', fault => faults.push(fault));
+        const notice = container.querySelector('#movement-title');
+
+        player.play();
+        expect(notice.hidden).toBe(true);
+        // Past the first atom's display time: the timer fires and the advance fails.
+        await vi.advanceTimersByTimeAsync(player.currentAtomDisplayTime + 100);
+
+        expect(painted).toBe(2);
+        expect(faults).toHaveLength(1);
+        expect(faults[0].phase).toBe('playback');
+        expect(player.state).toBe('paused');
+        expect(notice.hidden).toBe(false);
+        expect(notice.textContent).toBe('The reading could not continue here. Press play to try again.');
+        expect(container.querySelector('#play-icon').classList.contains('hidden')).toBe(false);
+
+        // The clock has stopped: nothing more arrives while it is held.
+        const progress = vi.fn();
+        player.on('progress', progress);
+        await vi.advanceTimersByTimeAsync(500);
+        expect(progress).not.toHaveBeenCalled();
+
+        player.play();
+        expect(player.state).toBe('playing');
+        expect(notice.hidden).toBe(true);
+        expect(notice.textContent).toBe('');
+        chamber.destroy();
+    });
+
+    it('does not hold the reading for a presence that failed; the reading continues without it', () => {
+        const { chamber, player, container } = mountReading();
+        player.emit('error', { phase: 'interlocution', error: new Error('no presence') });
+        expect(container.querySelector('#movement-title').hidden).toBe(true);
+        chamber.destroy();
+    });
+});

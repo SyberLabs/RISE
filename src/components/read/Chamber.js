@@ -172,6 +172,9 @@ const PROGRESSIVE_GLASS_PANE = 'linear-gradient(to right, '
   + `rgb(0, 0, 0) calc(100% - ${PROGRESSIVE_GLASS_FEATHER}px), `
   + 'rgba(0, 0, 0, 0) 100%)';
 
+/** What a reader is told when the Player could not go on (onPlayerError). */
+const READING_HELD_NOTICE = 'The reading could not continue here. Press play to try again.';
+
 export class Chamber {
   constructor(container, options = {}) {
     this.container = container;
@@ -397,6 +400,7 @@ export class Chamber {
     this._movementSchedule = null;
     this._audioSchedule = null;
     this._activeMovement = null;
+    this._readingHeld = false;
 
     const movementProgram = this.session?.movementProgram;
     if (movementProgram?.movements?.length) {
@@ -1360,6 +1364,7 @@ export class Chamber {
       this._onPlayer('progress', (progress) => this.updateProgress(progress));
       this._onPlayer('complete', () => this.onSessionComplete());
       this._onPlayer('state', (state) => this.onStateChange(state));
+      this._onPlayer('error', (fault) => this.onPlayerError(fault));
       // A live reading is longer each time a segment arrives, and may already
       // have grown while this view was being built (a sealed Current arrives whole).
       this._onPlayer('extended', () => this._adoptExtendedSession());
@@ -4709,9 +4714,26 @@ export class Chamber {
     region.hidden = !title;
   }
 
+  /**
+   * The Player could not go on. A presence that failed is simply absent and
+   * the reading continues; the Player has already said so. A reading that
+   * failed is paused by the Player where it stands, and the reader is told
+   * here, in the quiet place the movement title uses — never a frozen frame
+   * under a moving clock, never nothing. Play clears it (see onStateChange).
+   */
+  onPlayerError({ phase } = {}) {
+    if (phase !== 'playback') return;
+    this._readingHeld = true;
+    this.announceMovement(READING_HELD_NOTICE);
+  }
+
   onStateChange(data) {
     const state = data.state;
     console.log('[Chamber] Player state change:', state);
+    if (state === 'playing' && this._readingHeld) {
+      this._readingHeld = false;
+      this.announceMovement(this._activeMovement?.title || null);
+    }
 
     // NO AUDIO OUTLIVES THE READING (§8.3). The engine owns its own
     // pause path for scheduled ramps; this stops the Journey's score

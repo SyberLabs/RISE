@@ -170,6 +170,20 @@ const BED_LAYERS = Object.freeze(MUSICAL_LAYERS.filter(name => name !== 'swell')
  */
 const RESUME_WAIT_MS = 250;
 
+/**
+ * A path that swallows its failure says so once. Every site below used to
+ * catch and drop: a node that would not stop, a context that would not
+ * resume or close. Those are ordinary on a torn-down context and must not
+ * halt the engine, but dropped silently they also hid a failing audio path
+ * from anyone looking at the console. One line per site, the first time.
+ */
+const warnedOnce = new Set();
+function warnOnce(site, error) {
+    if (warnedOnce.has(site)) return;
+    warnedOnce.add(site);
+    console.warn(`[AudioEngine] ${site} failed; continuing:`, error);
+}
+
 export class AudioEngine {
     constructor(options = {}) {
         this.onUnavailable = options.onUnavailable || (() => {});
@@ -621,7 +635,7 @@ export class AudioEngine {
             return { state: this.context?.state ?? 'none', audible: this.audible };
         }
         await Promise.race([
-            Promise.resolve(this.context.resume()).catch(() => {}),
+            Promise.resolve(this.context.resume()).catch(e => warnOnce('resume', e)),
             new Promise(resolve => setTimeout(resolve, RESUME_WAIT_MS))
         ]);
         void this.lifecycle?.observeStateChange();
@@ -1049,7 +1063,7 @@ export class AudioEngine {
                     if (layer.oscillators) layer.oscillators.forEach(osc => osc.stop());
                     if (layer.lfo) layer.lfo.stop();
                     if (layer.lfoOffset) layer.lfoOffset.stop();
-                } catch (e) { }
+                } catch (e) { warnOnce('stopBinaural', e); }
                 this.layers.binaural = null;
             } else {
                 setTimeout(() => {
@@ -1057,7 +1071,7 @@ export class AudioEngine {
                         if (layer.oscillators) layer.oscillators.forEach(osc => osc.stop());
                         if (layer.lfo) layer.lfo.stop();
                         if (layer.lfoOffset) layer.lfoOffset.stop();
-                    } catch (e) { }
+                    } catch (e) { warnOnce('stopBinaural:fade', e); }
                     this.layers.binaural = null;
                 }, fadeTime * 1000);
             }
@@ -1226,13 +1240,13 @@ export class AudioEngine {
             if (instant) {
                 try {
                     layers.forEach(({ osc }) => osc.stop());
-                } catch (e) { }
+                } catch (e) { warnOnce('stopHarmonics', e); }
                 this.layers.harmonics = null;
             } else {
                 setTimeout(() => {
                     try {
                         layers.forEach(({ osc }) => osc.stop());
-                    } catch (e) { }
+                    } catch (e) { warnOnce('stopHarmonics:fade', e); }
                     this.layers.harmonics = null;
                 }, fadeTime * 1000);
             }
@@ -1296,11 +1310,11 @@ export class AudioEngine {
             this.setLayerVolume('noise', 0, !instant);
 
             if (instant) {
-                try { source.stop(); } catch (e) { }
+                try { source.stop(); } catch (e) { warnOnce('stopNoise', e); }
                 this.layers.noise = null;
             } else {
                 setTimeout(() => {
-                    try { source.stop(); } catch (e) { }
+                    try { source.stop(); } catch (e) { warnOnce('stopNoise:fade', e); }
                     this.layers.noise = null;
                 }, fadeTime * 1000);
             }
@@ -1372,14 +1386,14 @@ export class AudioEngine {
                 try {
                     drone.main.stop();
                     drone.detune.stop();
-                } catch (e) { }
+                } catch (e) { warnOnce('stopDrone', e); }
                 this.layers.drone = null;
             } else {
                 setTimeout(() => {
                     try {
                         drone.main.stop();
                         drone.detune.stop();
-                    } catch (e) { }
+                    } catch (e) { warnOnce('stopDrone:fade', e); }
                     this.layers.drone = null;
                 }, fadeTime * 1000);
             }
@@ -1567,7 +1581,7 @@ export class AudioEngine {
             }
 
             if (instant) {
-                try { oldSource.stop(); } catch (e) { }
+                try { oldSource.stop(); } catch (e) { warnOnce('stopAmbient', e); }
             } else {
                 setTimeout(() => {
                     try {
@@ -1796,11 +1810,11 @@ export class AudioEngine {
             }
 
             if (instant) {
-                try { source.stop(); } catch (e) { }
+                try { source.stop(); } catch (e) { warnOnce('stopSwell', e); }
                 this.layers.swell = null;
             } else {
                 setTimeout(() => {
-                    try { source.stop(); } catch (e) { }
+                    try { source.stop(); } catch (e) { warnOnce('stopSwell:fade', e); }
                     if (this.layers.swell === source) this.layers.swell = null;
                 }, fadeTime * 1000);
             }
@@ -2521,7 +2535,7 @@ export class AudioEngine {
         this.stopAmbient(true);
         this._unbindContextLifecycle();
         if (this.context) {
-            this.context.close().catch(() => {});
+            this.context.close().catch(e => warnOnce('close', e));
             this.context = null;
         }
         this.isInitialized = false;

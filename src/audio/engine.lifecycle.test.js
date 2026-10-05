@@ -741,3 +741,41 @@ describe('the lifecycle gate goes quiet without a click', () => {
         expect(calls[2][1]).toBe(1);
     });
 });
+
+/**
+ * A swallowed failure is said once. Stopping a node that is already stopped
+ * throws, and that is ordinary on a torn-down context, so the engine carries
+ * on — but it used to carry on in silence, so a failing audio path left no
+ * trace. One console line per site, the first time only.
+ */
+describe('a swallowed failure is said once', () => {
+  it('warns the first time a node will not stop, and not the second', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const engine = new AudioEngine();
+    const stubborn = () => ({ stop() { throw new Error('already stopped'); } });
+
+    engine.layers.noise = stubborn();
+    engine.stopNoise(true);
+    expect(engine.layers.noise).toBeNull();
+    engine.layers.noise = stubborn();
+    engine.stopNoise(true);
+
+    const said = warn.mock.calls.filter(([line]) => String(line).includes('stopNoise'));
+    expect(said).toHaveLength(1);
+    expect(said[0][1].message).toBe('already stopped');
+  });
+
+  it('counts per site, so another site still gets its one line', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const engine = new AudioEngine();
+    engine.layers.noise = { stop() { throw new Error('noise'); } };
+    engine.stopNoise(true);
+    engine.layers.drone = { main: { stop() { throw new Error('drone'); } }, detune: { stop() {} } };
+    engine.stopDrone(true);
+
+    const lines = warn.mock.calls.map(([line]) => String(line));
+    expect(lines.filter(l => l.includes('stopNoise'))).toHaveLength(0);
+    expect(lines.filter(l => l.includes('stopDrone'))).toHaveLength(1);
+    expect(engine.layers.drone).toBeNull();
+  });
+});
