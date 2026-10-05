@@ -89,13 +89,13 @@ export const TEMPERS = Object.freeze([
     faces: ['book', 'literary', 'display'], sizes: ['large', 'xlarge'], colors: ['classic', 'jade']
   },
   {
-    id: 'signal', chunkMode: ['phrase', 'word'], wpm: [250, 300], curve: ['wave'],
+    id: 'signal', chunkMode: ['phrase'], wpm: [250, 300], curve: ['wave'],
     visualMode: 'attractor', visualStyle: 'immersive', engines: ['apparitio'], palettes: ['blue', 'white', 'purple'],
     galleryCadence: ['balanced'], audio: ['faded-signal', 'night-drive', 'mystery'],
     faces: ['mono', 'sans'], sizes: ['large'], colors: ['cobalt', 'prism']
   },
   {
-    id: 'ember', chunkMode: ['word'], wpm: [200, 250], curve: ['ascent', 'climax'],
+    id: 'ember', chunkMode: ['phrase'], wpm: [200, 250], curve: ['ascent', 'climax'],
     visualMode: 'interlocution', visualStyle: 'immersive', engines: ['apparitio', 'ostensoria'],
     galleryCadence: ['balanced'], audio: ['triumph', 'wonder', 'excited'],
     faces: ['display', 'thick'], sizes: ['large', 'fit'], colors: ['ember']
@@ -113,7 +113,7 @@ export const TEMPERS = Object.freeze([
     faces: ['display', 'literary'], sizes: ['large'], colors: ['amethyst', 'classic']
   },
   {
-    id: 'revel', chunkMode: ['word'], wpm: [300, 400], curve: ['climax', 'wave'],
+    id: 'revel', chunkMode: ['phrase'], wpm: [300, 400], curve: ['climax', 'wave'],
     visualMode: 'interlocution', visualStyle: 'psychedelic', engines: ['fractal'],
     galleryCadence: ['lively'], audio: ['chase', 'thrilling', 'excited'],
     faces: ['thick', 'sans'], sizes: ['fit', 'xlarge'], colors: ['prism']

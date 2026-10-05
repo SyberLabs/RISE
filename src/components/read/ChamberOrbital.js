@@ -213,7 +213,7 @@ export function createDefaultConfig() {
     // reading takes the same path it always has.
     recitation: { enabled: false },
     curve: 'flat',
-    chunkMode: 'word'
+    chunkMode: 'phrase'
   };
 }
 
@@ -283,6 +283,12 @@ export class ChamberOrbital {
     for (const key of scalarKeys) {
       if (saved[key] !== undefined) this.config[key] = saved[key];
     }
+    // RHYTHM DEFAULT MIGRATION: a Word saved without phraseDefault was the
+    // old default, not a choice, and reads in phrases from now on. A Word
+    // saved with it was chosen, and a Word under Fit is what Fit needs to
+    // paint one word at a time; both are kept.
+    if (!saved.phraseDefault && this.config.chunkMode === 'word'
+      && this.getSettings()?.fontSize !== 'fit') this.config.chunkMode = 'phrase';
 
     // Recitation is intentionally not a preference: authority belongs to a
     // particular loaded sequence and must never leak to an ordinary reading.
@@ -595,6 +601,8 @@ export class ChamberOrbital {
       // paceV2: this WPM was chosen under the honest temporal contract
       // (post-1.4375× repair) — never migrate it again
       paceV2: true,
+      // phraseDefault: this rhythm was chosen with Phrase as the default
+      phraseDefault: true,
       wpm, curve, chunkMode,
       revealMode: revealMode === 'progressive' ? 'progressive' : 'instant',
       soundscape, audioPreset, entrainmentMode,

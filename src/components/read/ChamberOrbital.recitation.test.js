@@ -79,6 +79,7 @@ describe('ChamberOrbital static Recitation controls', () => {
     it('does not let a stale Recitation preference grant capability to ordinary text', () => {
         localStorage.setItem('rise_orbital_prefs_v1', JSON.stringify({
             paceV2: true,
+            phraseDefault: true,
             chunkMode: 'word',
             voiceEnabled: true,
             voiceId: 'am_fenrir',

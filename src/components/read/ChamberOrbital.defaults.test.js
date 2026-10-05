@@ -21,6 +21,10 @@ describe('the configuration a reader meets having chosen nothing', () => {
             .toBe('continuous');
     });
 
+    it('reads in phrases, which readers preferred to single words', () => {
+        expect(createDefaultConfig().chunkMode).toBe('phrase');
+    });
+
     it('renders in the native language, ASCII having been retired', () => {
         expect(createDefaultConfig().visualInterlocution.interlocution.renderLanguage)
             .toBe('native');
