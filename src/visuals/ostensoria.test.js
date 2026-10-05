@@ -62,7 +62,7 @@ describe('Ostensoria engine', () => {
         expect(verdant.look.sat).toBe(0.90);
     }, 30_000);
 
-    it('every listed Iris palette is a ramp the engine honours, rose among them', () => {
+    it('every listed Iris palette is a ramp the engine honours, rose and citrine among them', () => {
         // The look is settled once the field is accumulated, before the
         // plate develops: bake only that far, at the smallest quality.
         const bakeLook = (palette) => {
@@ -76,6 +76,7 @@ describe('Ostensoria engine', () => {
             expect(bakeLook(id)?.palette, id).toBe(id);
         }
         expect(bakeLook('rose')).toMatchObject({ palette: 'rose', bands: 1.25, sat: 0.88 });
+        expect(bakeLook('citrine')).toMatchObject({ palette: 'citrine', bands: 1.25, sat: 0.88 });
     }, 30_000);
 
     it('is silent without a 2d context or before generate', () => {

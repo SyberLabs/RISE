@@ -56,7 +56,10 @@ const CELL = {
   neural: theme => themeEngine(theme, 'neural'),
   rockgarden: null,
   harmonograph: theme => theme,
-  apparitio: theme => JSON.stringify(themeEngine(theme, 'apparitio')),
+  // Not Spectral (apparitio): every one of its ramps opens at white and the
+  // tint lives in halos a mean colour cannot see (on CI each theme's mean sat
+  // within 3 of grey 160). Its carriage is pinned by plate-field.test.js and
+  // visual-cortex.test.js; here it is only asserted painted.
   ostensoria: theme => JSON.stringify(themeEngine(theme, 'ostensoria'))
 };
 

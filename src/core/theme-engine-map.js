@@ -29,7 +29,7 @@ export const THEME_ENGINE_MAP = Object.freeze({
   cobalt: row('cobalt', 'twilight', 'digital', { palette: 'ice' }, { palette: 'marian' }, 'glacial-silk'),
   jade: row('jade', 'ethereal', 'growth', { palette: 'teal' }, { palette: 'holo' }, 'verdant-current'),
   rose: row('rose', 'ganzfeld', 'organic', { palette: 'rose' }, { palette: 'marian' }, 'solar-bloom'),
-  citrine: row('citrine', 'dawn', 'organic', { palette: 'verdant' }, { palette: 'ember' }, 'solar-bloom'),
+  citrine: row('citrine', 'dawn', 'organic', { palette: 'citrine' }, { palette: 'ember' }, 'solar-bloom'),
   silver: row('silver', 'void', 'minimal', { palette: 'ice', sat: 0.35 }, { palette: 'prism', sat: 0.25 }, 'glacial-silk')
 });
 
