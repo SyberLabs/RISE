@@ -110,6 +110,7 @@ export class LiveHost {
         this.embeddedQueuedCurrent = null;
         this.embeddedBeginStarted = false;
         this.embeddedEvents = null;
+        this.embeddedTheme = null;
         this.stopListeningCurrent = null;
         this.stopListeningError = null;
         this.embeddedAnswerTimeoutMs = 60_000;
@@ -381,15 +382,7 @@ export class LiveHost {
         }
         const clock = createRealClock();
         const voices = await this.buildVoices(clock);
-        // The container is shown before the router finishes its fade-in. Stop exposing controls as
-        // soon as it is hidden, and resolve the instance through the router's public API.
-        const mountedChamber = player => {
-            // On screen only: Read's container shown and the chamber pane the one it shows.
-            const read = this.router?.getViewInstance?.('read');
-            if (this.router?.views?.get('read')?.container?.hidden !== false || read?.activePane !== 'chamber') return null;
-            const chamber = read.paneInstance('chamber');
-            return chamber?.player === player ? chamber : null;
-        };
+        const mountedChamber = player => this.chamberPlaying(player);
         const runtime = createLiveRuntime({
             adapter: await this.buildAdapter(clock, createMockAdapter),
             clock,
@@ -419,6 +412,19 @@ export class LiveHost {
             });
         }
         return runtime;
+    }
+
+    /**
+     * The Chamber on screen playing `player`, or null. The container is shown before the router
+     * finishes its fade-in. Stop exposing controls as soon as it is hidden, and resolve the instance
+     * through the router's public API.
+     */
+    chamberPlaying(player) {
+        // On screen only: Read's container shown and the chamber pane the one it shows.
+        const read = this.router?.getViewInstance?.('read');
+        if (this.router?.views?.get('read')?.container?.hidden !== false || read?.activePane !== 'chamber') return null;
+        const chamber = read.paneInstance('chamber');
+        return chamber?.player === player ? chamber : null;
     }
 
     /**
@@ -778,6 +784,8 @@ export class LiveHost {
      * text, never markup; the heading is clamped to three lines, so the whole title is its label too.
      */
     showPoster({ title, theme }) {
+        // The answer's own theme: what the stage's Theme row calls "As written".
+        this.embeddedTheme = theme ?? null;
         this.paintEmbedTheme(theme);
         const main = this.container.querySelector('.live-host--embedded');
         main.classList.add('live-host--poster');
@@ -842,6 +850,8 @@ export class LiveHost {
             this.controls = createStageControls({
                 runtime,
                 onPlayAgain: () => { void this.playAgainEmbedded(); },
+                chamber: () => { const player = runtime.playerFor?.(); return player ? this.chamberPlaying(player) : null; },
+                paintTheme: theme => this.paintEmbedTheme(theme ?? this.embeddedTheme),
                 audible: this.voiceKind === 'browser',
                 degradations: this.degradations({ pacingShown: true }).filter(note => STAGE_NOTES.includes(note.capability))
             });
