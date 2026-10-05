@@ -8,7 +8,9 @@ import { openAskDialog } from './reader-connection.js';
  * does; Another reading rolls a vivid one in its place; Adjust opens the
  * reading showing in Reader Setup, today's at its exact poem. On a desk
  * Library, Make and Settings sit in the header; Ask joins the keys for a
- * connected reader. Leaving a reading comes back to Home and the same reading.
+ * connected reader. A reading left unfinished comes back to Home and leads
+ * it: Continue is the one key, and today's poem waits on one line below. A
+ * reading read to its end offers no Continue.
  */
 async function openHome(page) {
   await page.goto('/');
@@ -156,7 +158,7 @@ test('on a desk Library, Make and Settings are one press away in the header, the
   }
 });
 
-test('Begin plays today\'s exact poem, and leaving it returns to Home on the same poem', async ({ page }) => {
+test('Begin plays today\'s exact poem; left unfinished, it leads Home as Continue, today\'s poem one line below', async ({ page }) => {
   await openHome(page);
   const { title, text } = await reading(page);
   await page.locator('[data-home="enter"]').click();
@@ -165,7 +167,7 @@ test('Begin plays today\'s exact poem, and leaving it returns to Home on the sam
     && !window.__RISE_TEST__.getRouterState().transitioning, null, { timeout: 30_000 });
   const session = await page.evaluate(() => {
     const s = window.__RISE_TEST__.getCurrentSession();
-    return { text: [...s.sourceTexts.values()].join(' '), origin: s.origin?.view, visualMode: s.visualConfig?.visualMode ?? 'off' };
+    return { name: s.name, text: [...s.sourceTexts.values()].join(' '), origin: s.origin?.view, visualMode: s.visualConfig?.visualMode ?? 'off' };
   });
   expect(session.origin).toBe('home');
   expect(session.visualMode).not.toBe('off');
@@ -176,19 +178,69 @@ test('Begin plays today\'s exact poem, and leaving it returns to Home on the sam
   await page.keyboard.press('Escape');
   await page.locator('#exit-confirm-overlay').getByRole('button', { name: 'End reading' }).click();
   await expect.poll(() => view(page), { timeout: 15_000 }).toBe('home');
-  await expect(page.locator('h1')).toHaveText(title);
-  await expect(page.locator('[data-home="enter"]')).toBeEnabled();
-  await epigraph(page);
+  // Left unfinished, the reading leads: Continue is the one key, the slot
+  // names the session with its whole length (no "left", no bar, no epigraph),
+  // and today's poem is one line under the keys, which Begin opens.
+  await expect(page.locator('.home-label')).toHaveText('Continue');
+  await expect(page.locator('h1')).toHaveText(session.name);
+  await expect(page.locator('.home-meta')).toHaveText(/^\d+ min$/u);
+  await expect(page.locator('.home-epigraph')).toBeEmpty();
+  await expect(page.locator('.home .btn-primary')).toHaveText('Continue');
+  await expect(page.locator('.home .btn-primary')).toHaveAttribute('data-home', 'continue');
+  await expect(page.locator('[data-home="adjust"]')).toBeHidden();
+  await expect(page.locator('.home-line')).toContainText(`Today’s poem · ${title}`);
+  await expect(page.locator('.home-line')).toHaveAttribute('data-home', 'enter');
+  await expect(page.locator('.home-line')).toBeEnabled();
+  // The same counts as with Begin: Continue in its place, the line for Adjust.
+  await page.setViewportSize({ width: 1280, height: 800 });
+  expect(await targets(page)).toBe(7);
+  await page.setViewportSize({ width: 390, height: 844 });
+  expect(await targets(page)).toBe(4);
+
+  // Continue reopens the reading held.
+  await page.locator('[data-home="continue"]').click();
+  await expect(page.locator('#chamber-display')).toBeVisible({ timeout: 30_000 });
+  expect(await page.evaluate(() => window.__RISE_TEST__.getCurrentSession().name)).toBe(session.name);
 });
 
-test('Another reading rolls a vivid one, named by chance with its look; Begin plays it, and Home holds it on return', async ({ page }) => {
+test('a reading read to its end offers no Continue; Begin leads again', async ({ page }) => {
+  await openHome(page);
+  // The shortest division at the fastest pace, so the reading ends within the test.
+  await page.evaluate(async () => {
+    const portal = window.__RISE_TEST__.getView('home');
+    const tools = await portal.loadTools();
+    const decision = tools.composeRoll({ temper: tools.TEMPERS.find(t => t.id === 'signal'), workId: 'lyrical-ballads', section: 'shortest' });
+    decision.config.wpm = 500;
+    portal.showDecision(tools, decision, { temper: 'signal' });
+  });
+  await expect(page.locator('[data-home="adjust"]')).toBeVisible();
+  await epigraph(page);
+  const heading = await page.locator('h1').textContent();
+  await page.locator('[data-home="enter"]').click();
+  await expect(page.locator('#chamber-display')).toBeVisible({ timeout: 30_000 });
+  // Ten times faster still. The Player marks the reading complete at its last word.
+  await page.evaluate(() => window.__RISE_TEST__.getView('read').paneInstance('chamber').player.setSpeedFactor(0.1));
+  await expect(page.locator('#chamber-post')).toBeVisible({ timeout: 90_000 });
+  await page.locator('#post-return-chamber').click();
+  await expect.poll(() => view(page), { timeout: 15_000 }).toBe('home');
+  // Leaving a finished reading releases it: nothing to continue, so Begin leads the reading Home had.
+  expect(await page.evaluate(() => window.__RISE_TEST__.getCurrentSession())).toBeNull();
+  await expect(page.locator('h1')).toHaveText(heading);
+  await expect(page.locator('.home-label')).toHaveText('By chance');
+  await expect(page.locator('.home .btn-primary')).toHaveText('Begin');
+  await expect(page.locator('.home .btn-primary')).toHaveAttribute('data-home', 'enter');
+  await expect(page.locator('[data-home="continue"]')).toHaveCount(0);
+  await expect(page.locator('.home-line')).toHaveCount(0);
+  await expect(page.locator('[data-home="adjust"]')).toBeVisible();
+});
+
+test('Another reading rolls a vivid one, named by chance with its look; Begin plays it, and on return it leads as Continue', async ({ page }) => {
   await openHome(page);
   const decision = await another(page);
   expect(['signal', 'ember', 'revel']).toContain(decision.temper);
   await expect(page.locator('.home-label')).toHaveText('By chance');
   await expect(page.locator('.home-meta')).toContainText(`${decision.temper[0].toUpperCase()}${decision.temper.slice(1)}`);
   await epigraph(page);
-  const heading = await page.locator('h1').textContent();
   await page.locator('[data-home="enter"]').click();
   await expect(page.locator('#chamber-display')).toBeVisible({ timeout: 30_000 });
   const session = await page.evaluate(() => {
@@ -201,7 +253,15 @@ test('Another reading rolls a vivid one, named by chance with its look; Begin pl
   await page.locator('#exit-btn').click();
   await page.locator('#exit-confirm').click();
   await expect.poll(() => view(page), { timeout: 15_000 }).toBe('home');
-  await expect(page.locator('h1')).toHaveText(heading);
+  // Left unfinished, the rolled reading leads as Continue, named by its session.
+  await expect(page.locator('.home-label')).toHaveText('Continue');
+  await expect(page.locator('.home .btn-primary')).toHaveAttribute('data-home', 'continue');
+  await expect(page.locator('.home-line')).toBeVisible();
+  // Another reading takes the slot for the visit: Begin leads it, Adjust is back, the line is gone.
+  await another(page);
+  await expect(page.locator('.home-label')).toHaveText('By chance');
+  await expect(page.locator('.home .btn-primary')).toHaveAttribute('data-home', 'enter');
+  await expect(page.locator('.home-line')).toHaveCount(0);
 });
 
 test('Adjust opens Reader Setup with the rolled reading set, and Begin plays it as rolled', async ({ page }) => {
