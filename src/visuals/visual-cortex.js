@@ -141,6 +141,22 @@ const GALLERY_PROCEDURAL_TITLES = Object.freeze({
     attractor: 'Attractor',
 });
 
+/** A canvas as a data URL, encoded by toBlob rather than on the main thread. */
+function encodeCanvasDataUrl(canvas, type, quality) {
+    return new Promise((resolve, reject) => {
+        canvas.toBlob((blob) => {
+            if (!blob) {
+                resolve(null);
+                return;
+            }
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result);
+            reader.onerror = () => reject(reader.error);
+            reader.readAsDataURL(blob);
+        }, type, quality);
+    });
+}
+
 export class VisualCortex {
     constructor() {
         this.container = null;
@@ -1568,12 +1584,16 @@ export class VisualCortex {
         return signal;
     }
 
-    _canvasToContinuousWork(canvas, type) {
-        if (!canvas?.toDataURL) return null;
+    async _canvasToContinuousWork(canvas, type) {
+        if (!canvas?.toBlob && !canvas?.toDataURL) return null;
         try {
             // WebP keeps a viewport-sized procedural still compact. Browsers
             // without WebP canvas export fall back to PNG automatically.
-            const url = canvas.toDataURL('image/webp', 0.9);
+            // toBlob captures the still now and encodes it off the main
+            // thread; a synchronous export of one took 60-159 ms.
+            const url = canvas.toBlob
+                ? await encodeCanvasDataUrl(canvas, 'image/webp', 0.9)
+                : canvas.toDataURL('image/webp', 0.9);
             if (!url || url === 'data:,') return null;
             return {
                 url,
@@ -1755,7 +1775,7 @@ export class VisualCortex {
             rendered = !!asciiFrame && !!this.asciiRenderer?.render(asciiFrame);
             canvas = this._asciiCanvas;
         }
-        return rendered ? this._canvasToContinuousWork(canvas, type) : null;
+        return rendered ? await this._canvasToContinuousWork(canvas, type) : null;
     }
 
     /**

@@ -2074,6 +2074,32 @@ describe('Continuous Field (Gallery) wiring', () => {
         cortex.destroy();
     });
 
+    it('encodes a Gallery still off the main thread when the canvas can', async () => {
+        // A synchronous WebP export of a viewport-sized still took 60-159 ms.
+        const cortex = new VisualCortex();
+        cortex.initialized = true;
+        cortex.config.renderLanguage = 'native';
+        cortex.fractal = {
+            isReady: vi.fn(() => true),
+            generate: vi.fn(() => true)
+        };
+        cortex._fractalCanvas = {
+            toBlob: vi.fn((done, type) => done(new Blob(['still'], { type }))),
+            toDataURL: vi.fn(() => 'data:image/webp;base64,flame')
+        };
+
+        const work = await cortex._renderContinuousProceduralWork('fractal');
+
+        expect(cortex._fractalCanvas.toBlob).toHaveBeenCalledWith(expect.any(Function), 'image/webp', 0.9);
+        expect(cortex._fractalCanvas.toDataURL).not.toHaveBeenCalled();
+        expect(work).toEqual({
+            url: `data:image/webp;base64,${btoa('still')}`,
+            title: 'Fractal Flame',
+            sourceType: 'fractal'
+        });
+        cortex.destroy();
+    });
+
     it('adapts every Rhythmic procedural into the common Gallery work contract', async () => {
         const cortex = new VisualCortex();
         cortex.initialized = true;
