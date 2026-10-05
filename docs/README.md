@@ -198,6 +198,10 @@ node scripts/build-wiki.mjs --out /tmp/rise-wiki
 | [product/discussions/2026-10-03-direction-decisions.md](product/discussions/2026-10-03-direction-decisions.md) | Record | Available October conversation decisions and provenance. |
 | [product/discussions/2026-10-04-composer-decision.md](product/discussions/2026-10-04-composer-decision.md) | Record | Composer is the approach in ChatGPT: a one-shot sequence creator and RISE presentation. Dive and realtime Live leave the current scope, with the host evidence. |
 | [product/discussions/2026-10-05-consolidated-reader-decisions.md](product/discussions/2026-10-05-consolidated-reader-decisions.md) | Record | The answers to the Consolidated Reader's six questions: the canonical Home, ten looks, phone-first Inlay, Follow text inside one look, the attractor frame policy and the nine themes as the one colour vocabulary. |
+<<<<<<< HEAD
 | [product/discussions/2026-10-05-embed-stage-decision.md](product/discussions/2026-10-05-embed-stage-decision.md) | Record | The ChatGPT embed is one stage with two controls, Play/Pause and Settings (intensity, theme, still imagery, text size): what is removed and where each old requirement lives, the sizing and the host contract, what #423 already did, the tests, the build plan and two open owner questions. |
+=======
+| [product/discussions/2026-10-05-one-colour-vocabulary-design.md](product/discussions/2026-10-05-one-colour-vocabulary-design.md) | Record | B2a design: the theme-to-engine map beside `RISE_CURRENT_THEMES`, how each engine takes its theme, seven pull requests and five owner questions. |
+>>>>>>> 40117a39 (Record the B2a design: one colour vocabulary, the engine side)
 | [product/discussions/2026-10-04-reader-evidence.md](product/discussions/2026-10-04-reader-evidence.md) | Record | Production probes, Reader capabilities, the stutter's causes and 14 days of history behind the Consolidated Reader proposal. |
 | [product/discussions/2026-10-original-performance-roadmap.md](product/discussions/2026-10-original-performance-roadmap.md) | Intent | User-supplied long-range roadmap, preserved as historical direction. |

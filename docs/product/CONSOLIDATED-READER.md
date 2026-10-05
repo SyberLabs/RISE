@@ -309,6 +309,8 @@ Example Living Flame mapping: ember → Ember Cathedral, amethyst → Violet Neb
 
 Name collisions to retire: "Ember" is a temper, a theme, a climate, two plate palettes and a flame composition. "Nocturne" is a temper and a soundscape. "Compose", "Composer" and the Scriptorium composer are three different things.
 
+The map was designed on 2026-10-05 ([B2a design record](discussions/2026-10-05-one-colour-vocabulary-design.md)): the engine side first, page chrome and the accent in B2b.
+
 ### One sound list
 
 Reader setup offers 3 soundscapes. Jev, rolls, Workshop and the in-reading Jev panel offer 24 (report §2).
