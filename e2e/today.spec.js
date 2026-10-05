@@ -33,7 +33,7 @@ async function leave(page) {
 }
 
 for (const viewport of [{ width: 390, height: 844 }, { width: 1280, height: 800 }]) {
-  test(`at ${viewport.width}x${viewport.height} Home's Read it with sound begins today's poem under its visual, and leaving returns Home`, async ({ page }) => {
+  test(`at ${viewport.width}x${viewport.height} Home's Begin opens today's poem under its visual, and leaving returns Home`, async ({ page }) => {
     await page.setViewportSize(viewport);
     await boot(page);
     const enter = page.locator('[data-home="enter"]');
