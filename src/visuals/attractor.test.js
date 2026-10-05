@@ -281,8 +281,8 @@ describe('Attractor forms', () => {
     for (let i = 0; i < 45; i++) field.measureQuality(1000 / 60);
     expect(field.quality).toBe(0);
 
-    // A 30fps display is still healthy; sustained intervals below 25fps
-    // are what make quality step down.
+    // A 30fps display is still healthy; a median slower than 30fps (or a
+    // slow tail past 50ms) is what makes quality step down.
     for (let i = 0; i < 90; i++) field.measureQuality(1000 / 30);
     expect(field.quality).toBe(0);
     for (let i = 0; i < 45; i++) field.measureQuality(70);
@@ -322,6 +322,55 @@ describe('Attractor forms', () => {
     field.tick(performance.now());
     expect(field.sx2.some(v => v !== 0)).toBe(true);
 
+    field.destroy();
+  });
+});
+
+describe('Attractor frame-rate policy', () => {
+  // Owner decision 2026-10-05: a window steps down when its median frame is
+  // slower than 30fps or its slow tail passes 50ms.
+  const windowOf = (field, intervals) => intervals.forEach(ms => field.measureQuality(ms));
+
+  it('holds full detail on a steady, jittery 30 Hz host', () => {
+    const field = new AttractorField(makeHost(), { form: 'kaleido' });
+    for (let w = 0; w < 6; w++) {
+      windowOf(field, Array.from({ length: 45 }, (_, i) => 1000 / 30 + [-1, 0, 1][i % 3]));
+    }
+    expect(field.quality).toBe(0);
+    field.destroy();
+  });
+
+  it('steps down at a 38 ms median with a 49 ms tail, which averages under 40 ms', () => {
+    const field = new AttractorField(makeHost(), { form: 'kaleido' });
+    windowOf(field, [...Array(40).fill(38), ...Array(5).fill(49)]);
+    expect(field.quality).toBe(1);
+    field.destroy();
+  });
+
+  it('steps down for hitches past 50 ms even when the median keeps pace', () => {
+    const field = new AttractorField(makeHost(), { form: 'kaleido' });
+    windowOf(field, [...Array(40).fill(20), ...Array(5).fill(60)]);
+    expect(field.quality).toBe(1);
+    field.destroy();
+  });
+
+  it('keeps the reader control visible at the lowest detail', () => {
+    // The ChatGPT presentation's only visual control drives intensity.
+    const alphas = [];
+    vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockImplementation(() => {
+      const ctx = ctxStub();
+      Object.defineProperty(ctx, 'strokeStyle', { set: value => alphas.push(String(value)), get: () => '' });
+      return ctx;
+    });
+    const field = new AttractorField(makeHost(), { form: 'kaleido' });
+    field.quality = field.maxQuality;
+    const drawAt = intensity => {
+      field.setIntensity(intensity);
+      alphas.length = 0;
+      field.tick(performance.now());
+      return alphas.join('|');
+    };
+    expect(drawAt(0.4)).not.toBe(drawAt(0.75));
     field.destroy();
   });
 });
@@ -455,7 +504,8 @@ describe('Attractor adaptive quality', () => {
   it('does not cycle when one step down speeds frames past where it stepped', () => {
     const { field, frames } = liveField({ form: 'kaleido' });
     const fps = quality => 24.5 * 1.85 ** quality;
-    frames(46, 1000 / fps(0));
+    // Frames run at the speed of the detail being drawn, from the step on.
+    for (let i = 0; i < 100 && field.quality === 0; i++) frames(1, 1000 / fps(0));
     expect(field.quality).toBe(1);
     const seen = new Set();
     for (let i = 0; i < 45 * 10; i++) {
