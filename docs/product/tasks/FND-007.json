@@ -1,0 +1,43 @@
+{
+  "id": "FND-007",
+  "title": "Step the attractor down on the frames a reader sees",
+  "lane": "shared",
+  "milestone": "Reader consolidation",
+  "status": "done",
+  "delivery": "merged",
+  "owner": "Claude coordinator",
+  "priority": "now",
+  "dependencies": [
+    "FND-006"
+  ],
+  "acceptance": [
+    "A window steps down when its median frame is slower than 30 fps or its slow tail passes 50 ms; a steady 30 Hz host keeps full detail.",
+    "A step never changes system, palette or form.",
+    "The reader intensity control still changes the drawing at the lowest detail.",
+    "e2e/live-mcp.spec.js stays green."
+  ],
+  "evidence": [
+    {
+      "kind": "document",
+      "ref": "docs/product/CONSOLIDATED-READER.md",
+      "note": "Package B1; question Q5. Owner decision 2026-10-05: the 25 fps threshold from #371 was not deliberate; adopt the median/p95 rule.",
+      "date": "2026-10-05"
+    },
+    {
+      "kind": "pr",
+      "ref": "https://github.com/SyberLabs/RISE/pull/417",
+      "note": "Median and p95 step-down with a 5% jitter margin; policy and control-visibility tests.",
+      "date": "2026-10-05"
+    }
+  ],
+  "activity": [
+    {
+      "date": "2026-10-05T08:20:40.000Z",
+      "summary": "Owner decided Q5; built in #417."
+    }
+  ],
+  "updatedAt": "2026-10-05T08:20:40.000Z",
+  "revision": 1,
+  "summary": "The attractor steps detail down when its median frame is slower than 30 fps or its slow tail passes 50 ms, replacing the 25 fps mean threshold.",
+  "blocker": null
+}

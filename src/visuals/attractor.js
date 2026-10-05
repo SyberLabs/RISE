@@ -184,9 +184,11 @@ const KALEIDO_MUL = 0.52;
  * the symmetry, because the SHAPE is the thing worth preserving.
  */
 const FRAME_BUDGET_MS = 1000 / 60;
-// 30fps counts as healthy. Sustained rAF intervals above 40ms (under
-// 25fps) step down; below RESTORE_AT counts as keeping pace.
-const DEGRADE_AT = 2.4;
+// 30fps counts as healthy. A window steps down when its median interval is
+// slower than 30fps (5% allowed for jitter, so a steady 30 Hz host holds) or
+// its slow tail passes 50ms; a median inside RESTORE_AT counts as keeping pace.
+const DEGRADE_MEDIAN_MS = (1000 / 30) * 1.05;
+const DEGRADE_P95_MS = 50;
 const RESTORE_AT = 1.15;
 // Fast windows still catch a very slow canvas promptly; isolated late frames
 // are diluted by the one-second / 45-frame averaging window.
@@ -267,6 +269,7 @@ export class AttractorField {
         this.adaptive = options.adaptive !== false;
         this._intervalSumMs = 0;
         this._sampleCount = 0;
+        this._intervals = [];
         this._restoreWindows = 1;
         this._goodWindows = 0;
         this._lastFrameAt = null;
@@ -711,21 +714,25 @@ export class AttractorField {
     measureQuality(intervalMs) {
         if (!this.adaptive) return;
         this._intervalSumMs += intervalMs;
+        this._intervals.push(intervalMs);
         const count = ++this._sampleCount;
         if (count < QUALITY_SAMPLE_FRAMES
             && (count < QUALITY_MIN_FRAMES || this._intervalSumMs < QUALITY_WINDOW_MS)) return;
 
-        const mean = this._intervalSumMs / count;
+        const sorted = this._intervals.sort((a, b) => a - b);
+        const median = sorted[Math.floor(count / 2)];
+        const p95 = sorted[Math.ceil(count * 0.95) - 1];
         this._intervalSumMs = 0;
         this._sampleCount = 0;
+        this._intervals = [];
 
-        if (mean > FRAME_BUDGET_MS * DEGRADE_AT) {
+        if (median > DEGRADE_MEDIAN_MS || p95 > DEGRADE_P95_MS) {
             this._goodWindows = 0;
             if (this.quality < this.maxQuality) {
                 this.quality++;
                 this._restoreWindows *= 2;
             }
-        } else if (mean < FRAME_BUDGET_MS * RESTORE_AT && this.quality > 0) {
+        } else if (median < FRAME_BUDGET_MS * RESTORE_AT && this.quality > 0) {
             if (++this._goodWindows >= this._restoreWindows) {
                 this.quality--;
                 this._goodWindows = 0;
