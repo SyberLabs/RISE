@@ -73,17 +73,18 @@ test.describe('the Portal has no overlay between a cursor and a door', () => {
         await page.waitForTimeout(3000);
         await openMenu(page);
 
+        // Library and Make sit twice on a desk: in the header's rooms and in the Menu.
         const destinations = await page.$$eval('[data-nav]', nodes => nodes
             .filter(n => n.getBoundingClientRect().width > 0
                 && getComputedStyle(n).visibility !== 'hidden'
                 && Number(getComputedStyle(n).opacity) > 0.05)
-            .map(n => n.getAttribute('data-nav')));
+            .map(n => `${n.closest('.portal-nav') ? '.portal-nav' : '.home-rooms'} [data-nav="${n.getAttribute('data-nav')}"]`));
 
         expect(destinations.length, 'the Portal presented no destinations').toBeGreaterThan(2);
 
-        for (const nav of destinations) {
-            const { reachable, hit } = await hitTest(page, `[data-nav="${nav}"]`);
-            expect(reachable, `[data-nav="${nav}"] is covered by ${hit}`).toBe(true);
+        for (const selector of destinations) {
+            const { reachable, hit } = await hitTest(page, selector);
+            expect(reachable, `${selector} is covered by ${hit}`).toBe(true);
         }
     });
 
@@ -120,7 +121,7 @@ test.describe('the Portal has no overlay between a cursor and a door', () => {
     });
 });
 
-test('Begin, Another reading, the link, the legal links and Ask are reachable on a desk and a phone', async ({ page }) => {
+test('Begin, Another reading, Adjust, the legal links and Ask are reachable on a desk and a phone', async ({ page }) => {
     for (const viewport of [{ width: 1280, height: 800 }, { width: 390, height: 844 }]) {
         await page.setViewportSize(viewport);
         await openPortal(page);
@@ -131,11 +132,13 @@ test('Begin, Another reading, the link, the legal links and Ask are reachable on
             expect(reachable, `${selector} is covered by ${hit} at ${viewport.width}px`).toBe(true);
         };
         // The engine and its scrim lie under the slot; every key must still take the press.
-        for (const selector of ['[data-home="enter"]', '[data-home="roll"]', '[data-home="library"]', '.portal-legal-link']) await check(selector);
+        for (const selector of ['[data-home="enter"]', '[data-home="roll"]', '[data-home="adjust"]', '.portal-legal-link']) await check(selector);
         await pressAt(page, '[data-home="roll"]');
-        await expect(page.locator('[data-home="adjust"]')).toBeVisible({ timeout: 10_000 });
+        await expect(page.locator('.home-label')).toHaveText('By chance', { timeout: 10_000 });
         for (const selector of ['[data-home="enter"]', '[data-home="roll"]', '[data-home="adjust"]']) await check(selector);
         await connectTestOpenRouter(page);
+        // Connected, Ask is a key on Home too.
+        await check('.home-actions [data-home="ask-open"]');
         await openMenu(page);
         await check('[data-home="ask-open"]');
         await pressAt(page, '[data-home="ask-open"]');
@@ -152,9 +155,7 @@ const SITTINGS = ['default', 'slate', 'ivory', 'purple', 'cobalt', 'amber',
 
 test('Home text keeps AA contrast in every sitting', async ({ page }) => {
     await openPortal(page);
-    // The quieter text (Adjust) appears once there is a rolled reading; its epigraph follows its opening.
-    await page.locator('[data-home="roll"]').click();
-    await expect(page.locator('[data-home="adjust"]')).toBeVisible({ timeout: 10_000 });
+    // The epigraph follows the opening.
     await expect(page.locator('.home-epigraph')).not.toBeEmpty({ timeout: 15_000 });
     const results = await page.evaluate((sittings) => {
         const rgb = colour => {
@@ -171,7 +172,7 @@ test('Home text keeps AA contrast in every sitting', async ({ page }) => {
         for (const id of sittings) {
             if (id === 'default') document.documentElement.removeAttribute('data-accent');
             else document.documentElement.setAttribute('data-accent', id);
-            for (const sel of ['.portal-nav-link', '.home-title', '.home-label', '.home-meta', '.home-epigraph', '.home-link', '[data-home="adjust"]', '.portal-footer-link']) {
+            for (const sel of ['.portal-nav-link', '.home-room', '.home-title', '.home-label', '.home-meta', '.home-epigraph', '.home-link', '[data-home="adjust"]', '.portal-footer-link']) {
                 out.push({ id, sel, ratio: +ratio(rgb(getComputedStyle(document.querySelector(sel)).color), ground).toFixed(2) });
             }
         }
