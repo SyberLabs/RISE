@@ -11,6 +11,7 @@ The Reader and the ChatGPT Composer (with RiseSDK later) are equal product direc
 | [Consolidated Reader](CONSOLIDATED-READER.md) | Canonical Home, four reader choices, one catalog and colour vocabulary, the plugin boundary and build order; Intent, decided 2026-10-05 |
 | [Consolidated Reader decisions](discussions/2026-10-05-consolidated-reader-decisions.md) | The answers to its six questions; Record |
 | [One colour vocabulary design](discussions/2026-10-05-one-colour-vocabulary-design.md) | B2a: the theme-to-engine map beside RISE_CURRENT_THEMES, seven pull requests, five owner questions; Record |
+| [Canonical Home design](discussions/2026-10-05-canonical-home-design.md) | B4: the still window over the featured reading's field, Begin the one key, eight pull requests, five owner questions; Record |
 | [Reader evidence](discussions/2026-10-04-reader-evidence.md) | Production probes, capabilities and 14 days of history behind the Consolidated Reader; Record |
 | [Composer decision](discussions/2026-10-04-composer-decision.md) | Composer is the approach in ChatGPT; Dive and realtime Live out of current scope; Record |
 | [Composer-first roadmap](../COMPOSER-FIRST-ROADMAP.md) | Composer delivery sequence M0–M4 (M3 removed); Intent |
