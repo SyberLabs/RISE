@@ -377,6 +377,27 @@ test('under reduced motion the imagery holds still, the reader is told so, and t
   await expect(chamberPane).toBeHidden();
 });
 
+/**
+ * A host resizes its frame on a phone's rotation, a window change, or a move to fullscreen. A reading
+ * held at that moment has no frame loop to repaint its field after the resize clears the canvas, so the
+ * field must present its held frame itself, or the reader is looking at nothing.
+ */
+test('a resize while held keeps the attractor on screen', async ({ page, baseURL }) => {
+  await page.setViewportSize({ width: 760, height: 640 });
+  const app = await openHost(page, baseURL, { height: 640 });
+  await begin(app);
+  await expectShown(app, 'A black hole is a region of space');
+  const canvas = app.locator('.chamber-attractor canvas.attractor-canvas');
+  await app.getByRole('button', { name: 'Interrupt', exact: true }).click();
+  await expect(app.locator('.live-controls__status')).toContainText('Held where you are');
+  await expect.poll(() => picturesOverASecond(canvas), { timeout: 5_000 }).toBe(1);
+
+  await page.setViewportSize({ width: 560, height: 640 });
+  await expect.poll(() => app.locator('body').evaluate(body => body.ownerDocument.defaultView.innerWidth)).toBe(560);
+  await expect.poll(() => picturesOverASecond(canvas), { timeout: 5_000 }).toBe(1);
+  await expect(app.locator('#atom-display')).toContainText('A black hole is a region of space');
+});
+
 const TWO_FIELDS = {
   ...BLACK_HOLES_CURRENT,
   id: 'two-fields',

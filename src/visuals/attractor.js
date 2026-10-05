@@ -343,6 +343,8 @@ export class AttractorField {
         this.canvas.height = height;
         this.ctx?.setTransform(this.DPR, 0, 0, this.DPR, 0, 0);
         this._stillDrawn = false;   // a resize clears the canvas
+        // Paused, no frame loop will repaint it: present the held frame at the new size.
+        if (this.paused && this.ctx && !this.destroyed) this.paintOnce(performance.now());
     }
 
     strokeForm(X, Y, bkts, passes, mul, flick) {
