@@ -143,6 +143,14 @@ void main() {
   o = vec4(color, max(lifted, max(color.r, max(color.g, color.b))) * uFade);
 }`;
 
+const CARRY_FS = `#version 300 es
+precision highp float;
+uniform sampler2D uFrom;
+uniform float uGain;
+in vec2 vUv;
+out vec4 o;
+void main() { o = texture(uFrom, vUv) * uGain; }`;
+
 const PROBE_FS = `#version 300 es
 precision highp float;
 out vec4 o;
@@ -301,6 +309,7 @@ export class FlameGpuRenderer {
     this.points = program(gl, POINT_VS, POINT_FS);
     this.tone = program(gl, QUAD_VS, TONE_FS);
     this.fade = program(gl, QUAD_VS, EMPTY_FS);
+    this.carry = program(gl, QUAD_VS, CARRY_FS);
     this.palette = gl.createTexture();
     gl.bindTexture(gl.TEXTURE_2D, this.palette);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
@@ -323,10 +332,14 @@ export class FlameGpuRenderer {
     return this.gl.isContextLost();
   }
 
-  /** Allocate particle buffers; changing the count resets the history. */
+  /**
+   * Allocate particle buffers. Changing the count reseeds the particles and
+   * rescales the image to the new count, so what is on screen stays the same.
+   */
   setParticleCount(count) {
     const gl = this.gl;
     if (count === this.particles && this.buffers.length) return;
+    const previous = this.buffers.length ? this.particles : 0;
     this._releaseParticles();
     this.particles = count;
     const data = new Float32Array(count * 4);
@@ -344,6 +357,7 @@ export class FlameGpuRenderer {
     gl.bindVertexArray(null);
     gl.bindBuffer(gl.ARRAY_BUFFER, null);
     this.needsReset = true;
+    if (previous && this.accTexture) this._carryHistory(this.width, this.height, count / previous);
   }
 
   _releaseParticles() {
@@ -354,18 +368,41 @@ export class FlameGpuRenderer {
     this.vaos = [];
   }
 
-  /** Resize the drawing buffer and accumulation target (clears history). */
+  /**
+   * Resize the drawing buffer and accumulation target. A resize carries the
+   * image into the new target; only the first allocation starts empty.
+   * Resizing clears the canvas, so the caller presents again before the
+   * frame is shown.
+   */
   setSize(width, height) {
-    const gl = this.gl;
     if (width === this.width && height === this.height && this.accTexture) return;
-    this.width = width;
-    this.height = height;
+    const carried = this.accTexture && this.width && this.height;
+    const gain = carried ? (this.width * this.height) / (width * height) : 0;
     this.canvas.width = width;
     this.canvas.height = height;
+    if (carried) {
+      this._carryHistory(width, height, gain);
+    } else {
+      this._replaceTarget(width, height);
+      this.clearHistory();
+    }
+    this.width = width;
+    this.height = height;
+  }
+
+  _replaceTarget(width, height) {
+    const gl = this.gl;
     if (this.accTexture) gl.deleteTexture(this.accTexture);
     if (this.accFramebuffer) gl.deleteFramebuffer(this.accFramebuffer);
-    this.accTexture = gl.createTexture();
-    gl.bindTexture(gl.TEXTURE_2D, this.accTexture);
+    const { texture, framebuffer } = this._createTarget(width, height);
+    this.accTexture = texture;
+    this.accFramebuffer = framebuffer;
+  }
+
+  _createTarget(width, height) {
+    const gl = this.gl;
+    const texture = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, texture);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
@@ -375,15 +412,47 @@ export class FlameGpuRenderer {
     } else {
       gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8, width, height, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
     }
-    this.accFramebuffer = gl.createFramebuffer();
-    gl.bindFramebuffer(gl.FRAMEBUFFER, this.accFramebuffer);
-    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, this.accTexture, 0);
+    const framebuffer = gl.createFramebuffer();
+    gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer);
+    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, texture, 0);
     const status = gl.checkFramebufferStatus(gl.FRAMEBUFFER);
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
     if (status !== gl.FRAMEBUFFER_COMPLETE && !gl.isContextLost()) {
+      gl.deleteFramebuffer(framebuffer);
+      gl.deleteTexture(texture);
       throw new FlameGpuError('FRAMEBUFFER', 'The flame accumulation target is incomplete.');
     }
-    this.clearHistory();
+    return { texture, framebuffer };
+  }
+
+  /**
+   * Copy the accumulated image into a new target, scaled by `gain`. Tone
+   * mapping normalizes density by pixels per particle, so a gain of
+   * newParticles/oldParticles or oldPixels/newPixels keeps the shown image
+   * unchanged across the step.
+   */
+  _carryHistory(width, height, gain) {
+    const gl = this.gl;
+    const from = this.accTexture;
+    const target = this._createTarget(width, height);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, target.framebuffer);
+    gl.viewport(0, 0, width, height);
+    gl.disable(gl.BLEND);
+    gl.useProgram(this.carry.prog);
+    gl.activeTexture(gl.TEXTURE0);
+    gl.bindTexture(gl.TEXTURE_2D, from);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    gl.uniform1i(this.carry.uniforms.uFrom, 0);
+    gl.uniform1f(this.carry.uniforms.uGain, gain);
+    gl.bindVertexArray(this.emptyVao);
+    gl.drawArrays(gl.TRIANGLES, 0, 3);
+    gl.bindVertexArray(null);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    gl.deleteTexture(from);
+    gl.deleteFramebuffer(this.accFramebuffer);
+    this.accTexture = target.texture;
+    this.accFramebuffer = target.framebuffer;
   }
 
   setPalette(lut) {
@@ -477,7 +546,6 @@ export class FlameGpuRenderer {
     };
 
     if (reset) {
-      this.clearHistory();
       iterate(false, true);
       for (let i = 1; i < burnIn; i += 1) iterate(false, false);
     }
@@ -550,6 +618,7 @@ export class FlameGpuRenderer {
       gl.deleteProgram(this.points?.prog);
       gl.deleteProgram(this.tone?.prog);
       gl.deleteProgram(this.fade?.prog);
+      gl.deleteProgram(this.carry?.prog);
       gl.deleteTexture(this.palette);
       gl.deleteTexture(this.accTexture);
       gl.deleteFramebuffer(this.accFramebuffer);

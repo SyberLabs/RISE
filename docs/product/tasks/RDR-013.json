@@ -3,9 +3,9 @@
   "title": "Keep Living Flame's image through quality changes",
   "lane": "reader",
   "milestone": "Reader consolidation",
-  "status": "planned",
-  "delivery": "not_shipped",
-  "owner": null,
+  "status": "done",
+  "delivery": "merged",
+  "owner": "Claude coordinator",
   "priority": "now",
   "dependencies": [],
   "acceptance": [
@@ -25,16 +25,32 @@
       "ref": "docs/product/discussions/2026-10-04-reader-evidence.md",
       "note": "Investigation of production 97ca014f: probe measurements, code references and the last 14 days of history.",
       "date": "2026-10-04"
+    },
+    {
+      "kind": "pr",
+      "ref": "https://github.com/SyberLabs/RISE/pull/406",
+      "note": "Carry and re-present on quality steps and resizes; nextQualityTier unit tests; browser regression test at pixel ratio 2.",
+      "date": "2026-10-05"
+    },
+    {
+      "kind": "test",
+      "ref": "e2e/living-flame.spec.js",
+      "note": "Local forced-step measurement of the composited canvas: worst frame against the previous rose from 0% to 99% at pixel ratio 1 and 2 (ANGLE D3D11 GPU; software WebGL at 2). Not yet witnessed on a phone or Safari.",
+      "date": "2026-10-05"
     }
   ],
   "activity": [
     {
       "date": "2026-10-05T04:21:10.000Z",
       "summary": "Seeded from Phase A of the Consolidated Reader proposal; needs no owner decision."
+    },
+    {
+      "date": "2026-10-05T04:48:28.856Z",
+      "summary": "Claimed and fixed in #406"
     }
   ],
-  "updatedAt": "2026-10-05T04:21:10.000Z",
-  "revision": 1,
-  "summary": "The reproduced stutter: Living Flame clears its image on every quality-tier change (field.js:224-247, gl-flame.js:358-391), so one near-black frame reaches the screen.",
+  "updatedAt": "2026-10-05T04:48:28.856Z",
+  "revision": 2,
+  "summary": "A quality step or resize carries Living Flame's image into the new particle count and backing size and presents it again before the frame is shown; only an explicit reset clears it.",
   "blocker": null
 }

@@ -312,6 +312,67 @@ test.describe('Visual Lab', () => {
     expect(await page.evaluate(() => window.__RISE_TEST__.getView('make').tabInstance('visual-lab').currentRecipe.id)).toBe(before);
   });
 
+  test.describe('at pixel ratio 2, where every quality step resizes the canvas', () => {
+    test.use({ deviceScaleFactor: 2 });
+
+    test('a quality step keeps the flame on screen', async ({ page }) => {
+      await page.goto('/visual-lab');
+      await page.waitForFunction(() => window.__RISE_TEST__.getView('make')?.tabInstance('visual-lab')?.field?.renderer === 'webgl2',
+        null, { timeout: 20_000 });
+      await page.waitForTimeout(1500);
+      // Each sample is the canvas as it will be composited: taken after the
+      // field's whole tick, including any quality step it applied.
+      await page.evaluate(() => {
+        const field = window.__RISE_TEST__.getView('make').tabInstance('visual-lab').field;
+        const samples = window.__flameSamples = [];
+        const scratch = document.createElement('canvas');
+        scratch.width = 96;
+        scratch.height = 60;
+        const context = scratch.getContext('2d', { willReadFrequently: true });
+        const tick = field._tick.bind(field);
+        field._tick = now => {
+          tick(now);
+          context.clearRect(0, 0, 96, 60);
+          context.drawImage(field.canvas, 0, 0, 96, 60);
+          const { data } = context.getImageData(19, 12, 58, 36);
+          let sum = 0;
+          for (let i = 0; i < data.length; i += 4) sum += 0.2126 * data[i] + 0.7152 * data[i + 1] + 0.0722 * data[i + 2];
+          samples.push({ tier: field.tier, luminance: sum / (data.length / 4) });
+        };
+      });
+      for (let step = 0; step < 3; step += 1) {
+        const from = await page.evaluate(() => {
+          const field = window.__RISE_TEST__.getView('make').tabInstance('visual-lab').field;
+          const up = field.tier === 0;
+          field.framesSinceChange = 31;
+          field.intervals = Array(89).fill(up ? 10 : 40);
+          field.lastQualityChange = -1e9;
+          field.steadyWindows = up ? 2 : 0;
+          if (up) field.ceiling = 3;
+          return field.tier;
+        });
+        await page.waitForFunction(tier => window.__RISE_TEST__.getView('make').tabInstance('visual-lab').field.tier !== tier,
+          from, { timeout: 10_000 });
+        await page.waitForTimeout(800);
+      }
+      const { steps, worst } = await page.evaluate(() => {
+        const samples = window.__flameSamples;
+        let changes = 0;
+        let lowest = Infinity;
+        for (let i = 1; i < samples.length; i += 1) {
+          if (samples[i].tier === samples[i - 1].tier) continue;
+          changes += 1;
+          for (let k = i; k < Math.min(samples.length, i + 15); k += 1) {
+            lowest = Math.min(lowest, samples[k].luminance / Math.max(1e-6, samples[k - 1].luminance));
+          }
+        }
+        return { steps: changes, worst: lowest };
+      });
+      expect(steps).toBeGreaterThanOrEqual(3);
+      expect(worst).toBeGreaterThanOrEqual(0.8);
+    });
+  });
+
   test('falls back to a still when WebGL2 is unavailable', async ({ page }) => {
     await page.addInitScript(() => {
       const original = HTMLCanvasElement.prototype.getContext;
