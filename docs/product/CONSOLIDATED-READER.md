@@ -211,6 +211,8 @@ The three extra desktop items are the doors that make Home a home. They are quie
 6. `npm run measure:first-load` holds. The field loads after first paint, as today.
 7. Five readers are observed against items 1–6 before any structural change. A structural change needs a dated decision record from both owners.
 
+Designed on 2026-10-05 ([B4 design record](discussions/2026-10-05-canonical-home-design.md)): the still window, eight pull requests, five owner questions; criterion 4 is held by RDR-015 and FND-010.
+
 ### Why this one should survive
 
 - **It answers both owners' recorded criticisms at once.** It is not busy (one primary, quiet doors). It is premium and immersive (full-bleed field). It is not a form (Home asks nothing). It is a real home (it names what is featured, offers Continue, shows the rooms, and starts nothing on its own).
