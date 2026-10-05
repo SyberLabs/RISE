@@ -8,7 +8,8 @@
  *   ostensoria/apparitio -> PlateField (ember)
  *   fractal             -> one FractalFlame at a time, the next every 18 s (revel)
  *
- * Under reduced motion each holds one still frame. Engines load on demand.
+ * Under reduced motion each holds one still frame. A resize empties the
+ * flame's canvas; it redraws soon at the new size. Engines load on demand.
  * `mountReadingBackdrop` resolves to { pause, resume, destroy }, or null when
  * the reading has no engine this knows (the page then stays on ink).
  *
@@ -23,6 +24,8 @@ import './reading-backdrop.css';
 import { themeEngine } from '../core/theme-engine-map.js';
 
 const FRACTAL_DWELL_MS = 18_000;
+// After a resize, how long the window may still be moving before the flame redraws.
+const RESIZE_MS = 250;
 // The cross-fade, written once: the stage hands it to its stylesheet.
 const FADE_MS = 900;
 
@@ -67,26 +70,40 @@ export async function mountReadingBackdrop(host, decision) {
     const flame = new FractalFlame(canvas);
     flame.setColorTheme(decision.config.colors);
     await flame.preload(1);
-    flame.generate(null);
-    if (reducedMotion()) {
-      return { pause() {}, resume() {}, destroy() { flame.destroy(); canvas.remove(); } };
-    }
+    const still = reducedMotion();
+    const size = () => ({ width: canvas.width, height: canvas.height });
+    let drawn = size();
+    let paused = false;
     let timer = 0;
-    const next = () => {
+    const draw = () => { flame.generate(null); drawn = size(); };
+    draw();
+    const stop = () => { clearTimeout(timer); timer = 0; };
+    const next = delay => {
       const mine = timer = setTimeout(async () => {
         await flame.fillQueue(1);
         // Paused, resumed or destroyed while the next frame loaded: this loop is over.
         if (timer !== mine) return;
-        flame.generate(null);
-        next();
-      }, FRACTAL_DWELL_MS);
+        draw();
+        timer = 0;
+        if (!still) next(FRACTAL_DWELL_MS);
+      }, delay);
     };
-    const stop = () => { clearTimeout(timer); timer = 0; };
-    next();
+    // The flame sizes its canvas to the window on resize (its own listener,
+    // registered first, has run by now), which empties the canvas. A frame at
+    // the new size follows soon, not after the dwell.
+    const emptied = () => canvas.width !== drawn.width || canvas.height !== drawn.height;
+    const onResize = () => { if (!paused && emptied()) { stop(); next(RESIZE_MS); } };
+    window.addEventListener('resize', onResize);
+    if (!still) next(FRACTAL_DWELL_MS);
     return {
-      pause: stop,
-      resume() { if (!timer) next(); },
-      destroy() { stop(); flame.destroy(); canvas.remove(); }
+      pause() { paused = true; stop(); },
+      resume() {
+        if (!paused) return;
+        paused = false;
+        if (emptied()) next(RESIZE_MS);
+        else if (!still) next(FRACTAL_DWELL_MS);
+      },
+      destroy() { paused = true; stop(); window.removeEventListener('resize', onResize); flame.destroy(); canvas.remove(); }
     };
   }
 

@@ -187,6 +187,60 @@ describe('the reading backdrop', () => {
     vi.useRealTimers();
   });
 
+  // The flame sizes its canvas to the window on resize, which empties it. The
+  // test plays that part: it changes the canvas size, then fires the event.
+  const resizeTo = (flame, width) => { flame.canvas.width = width; window.dispatchEvent(new Event('resize')); };
+
+  it('draws the next flame soon after a resize empties the canvas, then keeps its dwell', async () => {
+    vi.useFakeTimers();
+    await mountReadingBackdrop(host, decision({ visualMode: 'interlocution', interlocution: { procedural: ['fractal'] } }));
+    const [flame] = made.flames;
+    window.dispatchEvent(new Event('resize'));   // the same size: nothing was emptied
+    await vi.advanceTimersByTimeAsync(1_000);
+    expect(flame.generate).toHaveBeenCalledTimes(1);
+    resizeTo(flame, 500);
+    resizeTo(flame, 520);                         // a drag: one draw, not one per event
+    await vi.advanceTimersByTimeAsync(1_000);
+    expect(flame.generate).toHaveBeenCalledTimes(2);
+    await vi.advanceTimersByTimeAsync(17_000);   // 19 s: the dwell counts from the redraw at 1.25 s
+    expect(flame.generate).toHaveBeenCalledTimes(2);
+    await vi.advanceTimersByTimeAsync(500);
+    expect(flame.generate).toHaveBeenCalledTimes(3);
+    vi.useRealTimers();
+  });
+
+  it('redraws an emptied canvas on resume, never while paused, and not once destroyed', async () => {
+    vi.useFakeTimers();
+    const backdrop = await mountReadingBackdrop(host, decision({ visualMode: 'interlocution', interlocution: { procedural: ['fractal'] } }));
+    const [flame] = made.flames;
+    backdrop.pause();
+    resizeTo(flame, 500);
+    await vi.advanceTimersByTimeAsync(60_000);
+    expect(flame.generate).toHaveBeenCalledTimes(1);
+    backdrop.resume();
+    await vi.advanceTimersByTimeAsync(1_000);
+    expect(flame.generate).toHaveBeenCalledTimes(2);
+    backdrop.destroy();
+    resizeTo(flame, 700);
+    await vi.advanceTimersByTimeAsync(60_000);
+    expect(flame.fillQueue).toHaveBeenCalledTimes(1);
+    expect(flame.generate).toHaveBeenCalledTimes(2);
+    vi.useRealTimers();
+  });
+
+  it('under reduced motion, redraws the still once after a resize and holds again', async () => {
+    vi.useFakeTimers();
+    reduce(true);
+    await mountReadingBackdrop(host, decision({ visualMode: 'interlocution', interlocution: { procedural: ['fractal'] } }));
+    const [flame] = made.flames;
+    resizeTo(flame, 500);
+    await vi.advanceTimersByTimeAsync(1_000);
+    expect(flame.generate).toHaveBeenCalledTimes(2);
+    await vi.advanceTimersByTimeAsync(60_000);
+    expect(flame.generate).toHaveBeenCalledTimes(2);
+    vi.useRealTimers();
+  });
+
   it('draws nothing for a reading with no engine it knows', async () => {
     expect(await mountReadingBackdrop(host, decision({ visualMode: 'off' }))).toBeNull();
     expect(host.children).toHaveLength(0);

@@ -46,8 +46,8 @@
 .portal-link,
 .portal-footer-link,
 .home-link,
-.home-room,
-.portal-continue {
+.home-line,
+.home-room {
   font-family: inherit;
   background: transparent;
   border: 0;
@@ -526,59 +526,6 @@ a.portal-nav-link {
   color: var(--sy-text-2);
 }
 
-.portal-continue {
-  width: 100%;
-  display: grid;
-  grid-template-columns: 1fr auto;
-  grid-template-areas: "label go" "title go";
-  align-items: center;
-  row-gap: var(--sy-space-2);
-  text-align: left;
-  border-top: 1px solid var(--sy-line);
-  border-bottom: 1px solid var(--sy-line);
-  padding: var(--sy-space-5) var(--sy-space-2);
-  color: var(--sy-text);
-  transition: background-color var(--sy-dur-hover) var(--sy-ease);
-}
-
-.portal-continue[hidden] {
-  display: none;
-}
-
-.portal-continue:hover {
-  background: var(--sy-surface-2);
-}
-
-.continue-label {
-  grid-area: label;
-  font-family: var(--sy-font-mono);
-  font-weight: 500;
-  font-size: 12px;
-  line-height: 16px;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--sy-text-2);
-}
-
-.continue-title {
-  grid-area: title;
-  font-family: var(--sy-font-serif);
-  font-size: 32px;
-  line-height: 36px;
-  font-weight: 400;
-  letter-spacing: -0.01em;
-}
-
-.continue-go {
-  grid-area: go;
-  color: var(--sy-text-2);
-  transition: transform var(--sy-dur-hover) var(--sy-ease);
-}
-
-.portal-continue:hover .continue-go {
-  transform: translateX(4px);
-}
-
 /* ─── Footer ─── */
 
 .portal-footer {
@@ -660,7 +607,6 @@ a.portal-nav-link {
     animation: none;
   }
 
-  .portal-continue:hover .continue-go,
   .portal-primary:hover:not(:disabled) {
     transform: none;
   }

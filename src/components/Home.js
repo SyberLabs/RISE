@@ -8,7 +8,10 @@
  * face. Nothing streams and nothing sounds before a press. **Begin** opens
  * the reading; **Another reading** rolls a vivid one in its place
  * (src/core/roll.js); **Adjust** opens the reading showing in Reader Setup
- * with everything already set, today's poem at its exact division.
+ * with everything already set, today's poem at its exact division. A
+ * reading begun and left unfinished (the app's in-memory session) leads
+ * instead: **Continue** reopens it, its field behind, and today's poem waits
+ * on one line under the keys.
  * docs/product/discussions/2026-10-05-canonical-home-design.md is the record.
  *
  *   Home proposes → Reader Setup alters → Chamber performs.
@@ -42,11 +45,6 @@ import { resolveChamberStreamFace } from '../core/chamber-stream-face.js';
 const ICON_ATTRS = 'width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"';
 const SETTINGS_PATH = '<path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path><circle cx="12" cy="12" r="3"></circle>';
 const TODAY = 'Today’s poem';
-const CONTINUE = `<button class="portal-continue" type="button" data-action="continue" hidden>
-            <span class="continue-label">Continue reading</span>
-            <span class="continue-title"></span>
-            <svg class="continue-go" ${ICON_ATTRS}><path d="M5 12h14"></path><path d="m13 6 6 6-6 6"></path></svg>
-          </button>`;
 const capital = text => text ? text[0].toLocaleUpperCase('en') + text.slice(1) : '';
 const button = (hook, label, variant, extra = '') =>
   `<button class="btn btn-${variant}" type="button" data-home="${hook}"${extra}>${label}</button>`;
@@ -54,6 +52,8 @@ const afterPaint = next => (globalThis.requestAnimationFrame || (run => setTimeo
 const whenIdle = run => (globalThis.requestIdleCallback ? requestIdleCallback(run, { timeout: 2000 }) : setTimeout(run, 200));
 /** How long a reading takes at its own pace, in whole minutes; 0 while its length is unknown. */
 const minutesOf = (words, wpm) => words ? Math.max(1, Math.round(words / wpm)) : 0;
+/** A duration in whole minutes; 0 when there is none. */
+const minutesOfMs = ms => ms ? Math.max(1, Math.round(ms / 60_000)) : 0;
 /** The first line of a verse opening; the text is already trimmed of leading blank lines. */
 const firstLine = text => text.split('\n').map(line => line.trim()).find(Boolean) || '';
 
@@ -70,7 +70,7 @@ function homeReading(decision, { today, title, author, work, temper = null, inte
     const minutes = minutesOf(today.words, decision.config.wpm);
     return {
       decision, temper: decision.temper, title, words: today.words, note: '',
-      eyebrow: TODAY, meta: { author, work, look },
+      eyebrow: TODAY, meta: { author, work, look }, face: decision.config.presentation?.chamberFace,
       spoken: `${TODAY}: ${title}, by ${author}. ${minutes} ${minutes === 1 ? 'minute' : 'minutes'}. ${look}.`,
       // The day's exact poem, as /today and the Menu open it; Adjust opens
       // that division too, not the plan's section.
@@ -96,9 +96,28 @@ function homeReading(decision, { today, title, author, work, temper = null, inte
     eyebrow: temper ? 'By chance' : 'As you asked',
     // The title is the work's, so the meta line does not repeat it.
     meta: { author: named?.author || '', work: '', look: temper ? capital(temper) : '' },
+    face: decision.config.presentation?.chamberFace,
     spoken: `${mood}. ${heading}. ${capital(plan)}.`,
     // A rolled reading offers the first-read preview, the first time one plays.
     firstReadPreview: !intent
+  };
+}
+
+/**
+ * The reading to resume: the session the app holds (src/core/models.js),
+ * named as it is, with the length its atoms add up to. The press reopens it
+ * from its first word (the Player keeps no place), so Home says its whole
+ * length, never what is left. `engine` is what the stage mounts: the
+ * session's own visual config and colours, in a decision's shape.
+ */
+function continueReading(session) {
+  const minutes = minutesOfMs(session.totalDuration);
+  return {
+    session, title: session.name, words: 0, note: '', temper: null,
+    eyebrow: 'Continue', meta: { author: '', work: '', look: '' },
+    face: session.presentation?.chamberFace,
+    spoken: `Continue: ${session.name}.${minutes ? ` ${minutes} ${minutes === 1 ? 'minute' : 'minutes'}.` : ''}`,
+    engine: { config: { visualConfig: session.visualConfig, colorTheme: session.presentation?.colorTheme, colors: session.presentation?.colors ?? null } }
   };
 }
 
@@ -121,6 +140,8 @@ export class Home {
     this.opening = null;
     // Whether the reader chose the reading (rolled or asked); today's poem then stays out.
     this.chosen = false;
+    // Today's poem once loaded ({ reading, opening }), kept while a reading to resume leads.
+    this.poem = null;
     // The day whose poem Home loaded, so it loads once a day.
     this.todayKey = null;
     this.stage = null;
@@ -173,20 +194,21 @@ export class Home {
   }
 
   /**
-   * Show Continue only when there is genuinely something to continue
-   * (Premium_Mobile_Chamber P6). The session is in memory only, so a cold
-   * load has none.
+   * A reading begun and left unfinished leads Home, and only that. The app
+   * holds it in memory alone, so a cold load has none; one read to its end
+   * or one that failed to open is released before Home shows again.
    */
   syncContinue() {
-    const strip = this.container.querySelector('.portal-continue');
-    if (!strip) return;
     const session = this.getCurrentSession();
-    const named = session?.title || session?.name;
-    const title = typeof named === 'string' ? named.trim() : '';
-    strip.hidden = !title;
-    if (!title) return;
-    strip.querySelector('.continue-title').textContent = title;
-    strip.setAttribute('aria-label', `Continue reading — ${title}`);
+    if (session) {
+      if (this.reading?.session === session) return;
+      // Back from a visit that rolled or asked: the reading to resume leads again.
+      this.chosen = false;
+      this.present(continueReading(session));
+    } else if (this.reading?.session && this.poem) {
+      // Finished while away: today's poem takes the slot back.
+      this.present(this.poem.reading, this.poem.opening);
+    }
   }
 
   render() {
@@ -235,7 +257,7 @@ export class Home {
         </header>
 
         <main class="portal-main">
-          ${this.demoMode ? `${this.renderDemo()}${CONTINUE}` : this.renderHome()}
+          ${this.demoMode ? this.renderDemo() : this.renderHome()}
         </main>
 
         <footer class="portal-footer">
@@ -263,8 +285,7 @@ export class Home {
   /**
    * The window (the engine shows through it; the opening is real text there
    * for assistive technology), then the slot that names the reading and its
-   * keys. Every word and control is here before the poem loads. Continue is
-   * after the alert in focus order and drawn above the slot.
+   * keys. Every word and control is here before the poem loads.
    */
   renderHome() {
     return `<section class="home" aria-labelledby="home-title">
@@ -272,7 +293,6 @@ export class Home {
         <p class="sr-only" data-home-opening></p>
       </div>
       ${alertMarkup('home-alert')}
-      ${CONTINUE}
       <div class="home-featured">
         <p class="home-label">${TODAY}</p>
         <h1 class="home-title" id="home-title"></h1>
@@ -335,18 +355,50 @@ export class Home {
     note.textContent = reading.note;
     note.hidden = !reading.note;
     this.setStatus(reading.spoken);
+    this.renderActions();
     this.renderOpening();
     this.renderBusy();
     if (this._active) this.play();
   }
 
   /**
+   * The keys for the reading showing. A reading to resume leads with Continue
+   * in Begin's place and Adjust withdrawn; today's poem, once known, is one
+   * line after the keys, and Begin there opens it.
+   */
+  renderActions() {
+    const actions = this.container.querySelector('.home-actions');
+    const { session } = this.reading;
+    const primary = actions.querySelector('.btn-primary');
+    primary.dataset.home = session ? 'continue' : 'enter';
+    primary.textContent = session ? 'Continue' : 'Begin';
+    actions.querySelector('[data-home="adjust"]').hidden = !!session;
+    actions.querySelector('.home-line')?.remove();
+    if (!session || !this.poem) return;
+    const { title, meta } = this.poem.reading;
+    const line = document.createElement('button');
+    line.className = 'home-line';
+    line.type = 'button';
+    line.dataset.home = 'enter';
+    const name = document.createElement('span');
+    name.className = 'home-line-name';
+    name.textContent = `${TODAY} · ${[title, meta.author].filter(Boolean).join(', by ')}`;
+    const go = document.createElement('span');
+    go.className = 'home-line-go';
+    go.innerHTML = `Begin<svg ${ICON_ATTRS}><path d="m9 6 6 6-6 6"></path></svg>`;
+    // A space between the parts, so the key's name reads as one line.
+    line.append(name, ' ', go);
+    actions.append(line);
+  }
+
+  /**
    * `Author · Work · N min · Look`, each part only when known. The work sits
-   * in a span with its separator, which a phone hides.
+   * in a span with its separator, which a phone hides. A reading to resume
+   * has its length already: what its atoms add up to.
    */
   renderMeta() {
-    const { meta, words, decision } = this.reading;
-    const minutes = minutesOf(words, decision.config.wpm);
+    const { meta, words, decision, session } = this.reading;
+    const minutes = session ? minutesOfMs(session.totalDuration) : minutesOf(words, decision.config.wpm);
     const line = this.container.querySelector('.home-meta');
     if (!line) return;
     line.replaceChildren();
@@ -375,7 +427,7 @@ export class Home {
     const { reading, opening } = this;
     const node = this.container.querySelector('.home-epigraph');
     if (!node) return;
-    node.dataset.face = resolveChamberStreamFace(reading.decision.config.presentation?.chamberFace);
+    node.dataset.face = resolveChamberStreamFace(reading.face);
     node.textContent = '';
     if (!opening?.text) return;
     // A prose opening came through the roll's tools, so they are loaded.
@@ -404,7 +456,7 @@ export class Home {
       const { ReadingStage } = await import('./reading-backdrop.js');
       if (!this._active) return;
       this.stage ||= new ReadingStage(this.container.querySelector('.home-engine'));
-      void this.stage.show(this.reading.decision);
+      void this.stage.show(this.reading.engine ?? this.reading.decision);
     } catch (error) {
       console.warn('[Home] the engine could not load; the reading shows on ink.', error);
     }
@@ -427,8 +479,12 @@ export class Home {
       const poem = homeReading(todayDecision(pick), {
         today: pick, title: poemTitle(pick.label), author: work?.author, work: work?.title
       });
-      // A reading the reader chose stays; only today's poem turns over.
-      if (!this.chosen) this.present(poem, { text: openings.openings[pick.workId]?.[pick.entryId] || '', verse: true });
+      this.poem = { reading: poem, opening: { text: openings.openings[pick.workId]?.[pick.entryId] || '', verse: true } };
+      // A reading the reader chose, or one to resume, stays; only today's poem turns over.
+      if (this.reading?.session) {
+        this.renderActions();
+        this.renderBusy();
+      } else if (!this.chosen) this.present(poem, this.poem.opening);
     } catch (error) {
       this.todayKey = null;
       console.warn('[Home] today\'s poem could not load.', error);
@@ -510,7 +566,8 @@ export class Home {
       return;
     }
     this.setBusy(null);
-    const previous = this.reading && { temper: this.reading.temper, decision: this.reading.decision };
+    // A reading to resume is no roll to roll away from.
+    const previous = this.reading?.decision ? { temper: this.reading.temper, decision: this.reading.decision } : null;
     const rolled = tools.rollReading({ previous, vivid: true });
     this.showDecision(tools, rolled.decision, { temper: rolled.temper });
     // Busy, the key was disabled and lost focus; the reader stays on it.
@@ -525,7 +582,10 @@ export class Home {
     this.focus('[data-home="enter"]');
   }
 
-  /** Begin opens the reading (launchToday or launchJevReading); Adjust opens it in Reader Setup. */
+  /**
+   * Begin opens the reading (launchToday or launchJevReading); Continue
+   * reopens the reading to resume; Adjust opens the reading in Reader Setup.
+   */
   async proceed(action) {
     const reading = this.reading;
     if (!reading || this.busy) return;
@@ -533,8 +593,10 @@ export class Home {
     this.getAudioEngine()?.playClick();
     this.showError('');
     try {
-      if (action === 'adjust') await this.onAdjustReading(reading.decision, reading.exact ?? null);
-      else if (reading.today) await this.onLaunchToday();
+      if (action === 'continue') await this.onNavigate('chamber-session', reading.session);
+      else if (action === 'adjust') await this.onAdjustReading(reading.decision, reading.exact ?? null);
+      // Begin: today's poem, in the slot or on the line under a reading to resume.
+      else if (reading.today || reading.session) await this.onLaunchToday();
       else {
         const preview = reading.firstReadPreview && !this.firstReadChoiceUsed;
         await this.onLaunchJevReading(reading.decision, { firstReadPreview: preview });
@@ -560,7 +622,7 @@ export class Home {
       if (!control || control.disabled) return;
       const action = control.dataset.home;
       if (action === 'roll') void this.roll();
-      else if (action === 'enter' || action === 'adjust') void this.proceed(action);
+      else if (action === 'enter' || action === 'adjust' || action === 'continue') void this.proceed(action);
       else if (action === 'ask-open') {
         this.getAudioEngine()?.playClick();
         this.asking.open();
@@ -630,11 +692,6 @@ export class Home {
         this.closeMenu?.();
         this.onNavigate(item.dataset.nav);
       });
-    });
-
-    this.container.querySelector('.portal-continue')?.addEventListener('click', () => {
-      this.getAudioEngine()?.playClick();
-      this.onNavigate('chamber-session', this.getCurrentSession());
     });
 
     this.container.querySelectorAll('[data-action="guide"], [data-action="settings"]').forEach(link => {
