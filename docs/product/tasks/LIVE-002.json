@@ -3,9 +3,9 @@
   "title": "Prove admitted Composer behavior in ChatGPT",
   "lane": "live-sdk",
   "milestone": "M1 composed explanation",
-  "status": "planned",
+  "status": "blocked",
   "delivery": "not_shipped",
-  "owner": null,
+  "owner": "Codex coordinator",
   "priority": "now",
   "dependencies": [
     "FND-001"
@@ -21,16 +21,30 @@
       "ref": "docs/COMPOSER-FIRST-ROADMAP.md",
       "note": "Approved delivery direction; unchecked milestones do not imply missing all underlying code.",
       "date": "2026-10-03"
+    },
+    {
+      "kind": "document",
+      "ref": "docs/experiments/CHATGPT-HOST-2026-10-04.md",
+      "note": "Exact candidates, partial Composer acceptance, negative automatic-delivery evidence and verified shutdown. Inert demo Worker remains without public targets.",
+      "date": "2026-10-04"
     }
   ],
   "activity": [
     {
       "date": "2026-10-03",
       "summary": "Seeded from approved Composer-first roadmap; host/release acceptance remains open."
+    },
+    {
+      "date": "2026-10-05T00:43:55.949Z",
+      "summary": "Controlled exact-main ChatGPT acceptance started; isolated demo deployed, host tools refreshing."
+    },
+    {
+      "date": "2026-10-05T01:08:34.100Z",
+      "summary": "Exact consolidated candidate has reader-confirmed audible ChatGPT narration. Full acceptance remains open for reader controls, fallback and early Interrupt during startup."
     }
   ],
-  "updatedAt": "2026-10-03T23:14:43.432Z",
-  "revision": 1,
-  "summary": "Separate tool proposal, Worker admission and reader Begin. Earlier audible demo is historical; exact candidate acceptance is pending.",
-  "blocker": null
+  "updatedAt": "2026-10-05T01:08:34.100Z",
+  "revision": 3,
+  "summary": "Exact consolidated candidate has reader-confirmed audible ChatGPT narration. Full acceptance remains open for reader controls, fallback and early Interrupt during startup.",
+  "blocker": "Reproduce the observed startup/Held/completion inconsistency; finish brightness, Resume and speech-unavailable checks."
 }

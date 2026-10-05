@@ -3,9 +3,9 @@
   "title": "Run the decoupled render/data host probe",
   "lane": "live-sdk",
   "milestone": "Independent Live research",
-  "status": "planned",
+  "status": "in_review",
   "delivery": "branch",
-  "owner": null,
+  "owner": "Codex coordinator",
   "priority": "now",
   "dependencies": [],
   "acceptance": [
@@ -26,16 +26,30 @@
       "ref": "docs/COMPOSER-FIRST-ROADMAP.md",
       "note": "Approved delivery direction; unchecked milestones do not imply missing all underlying code.",
       "date": "2026-10-03"
+    },
+    {
+      "kind": "document",
+      "ref": "docs/experiments/CHATGPT-HOST-2026-10-04.md",
+      "note": "Exact candidates, partial Composer acceptance, negative automatic-delivery evidence and verified shutdown. Inert demo Worker remains without public targets.",
+      "date": "2026-10-04"
     }
   ],
   "activity": [
     {
       "date": "2026-10-03",
       "summary": "Seeded from approved Composer-first roadmap; host/release acceptance remains open."
+    },
+    {
+      "date": "2026-10-05T00:43:56.114Z",
+      "summary": "Exact #372 probe passed 11 unit/bundle and 9 browser checks; temporary RAM-only host trial started."
+    },
+    {
+      "date": "2026-10-05T01:08:34.192Z",
+      "summary": "One decoupled host session: reader calls applied in one instance; model admissions advanced server to 6 while widget stayed at 2 until manual read. ChatGPT remains Composer."
     }
   ],
-  "updatedAt": "2026-10-03T23:14:43.432Z",
-  "revision": 1,
-  "summary": "Reviewed probe separates a render-only open from data-only mutation/read. Local evidence exists; persistent host and reciprocal behavior are unproven.",
-  "blocker": null
+  "updatedAt": "2026-10-05T01:08:34.192Z",
+  "revision": 3,
+  "summary": "One decoupled host session: reader calls applied in one instance; model admissions advanced server to 6 while widget stayed at 2 until manual read. ChatGPT remains Composer.",
+  "blocker": "Voice audio and marker recognition unverified; automatic model delivery was not observed. Review bounded capability conclusion."
 }
