@@ -69,6 +69,8 @@ A second harness detail: a loopback frame inside a page that Playwright fulfils 
    - Accept the system preference as the channel, and say so where the setting is offered.
    - Add a local "still imagery" control to the embed. This changes the embed's control set, which is a held contract (`controls.js`).
    - Ask for first-party storage with the Storage Access API on a reader's press. This depends on the browser, and on ChatGPT's sandbox allowing it (`allow-storage-access-by-user-activation`). Not tried.
+
+   Answered 2026-10-05: the second way. The embed's Settings control gains a Still imagery switch, saved in the frame's own storage, and the embed's control set is no longer a held contract ([embed stage decision](../product/discussions/2026-10-05-embed-stage-decision.md) §3).
 2. **The attractor ignores photosensitivity mode**, even on RISE's own site. It holds still only under reduced motion. It does not flash, so this is about motion, not seizure risk. The fix would be in `src/visuals/attractor.js`, which belongs to the Reader lane. Reported here and not edited.
 
 ## Not verified
