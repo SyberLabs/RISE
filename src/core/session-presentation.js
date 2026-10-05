@@ -119,6 +119,11 @@ export function sessionColorTheme(session) {
   return palette;
 }
 
+/** The theme a reading carries, named only when its colors pass the gate above, so engines and chrome agree. */
+export function sessionColorThemeId(session) {
+  return sessionColorTheme(session) ? session.presentation.colorTheme : null;
+}
+
 /**
  * A settings reader that answers with the reading's presentation until
  * the reader takes a key back.

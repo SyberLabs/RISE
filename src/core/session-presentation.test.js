@@ -6,6 +6,7 @@ import {
   PRESENTATION_KEYS,
   createPresentationLens,
   sessionColorTheme,
+  sessionColorThemeId,
   sessionPresentation
 } from './session-presentation.js';
 import { JEV_INKS, jevPalette } from './jev-palette.js';
@@ -35,6 +36,16 @@ describe('what a reading may claim', () => {
     expect(sessionColorTheme({ presentation: { ...presentation,
       colors: { ...colors, text: '#000000' } } })).toBeNull();
     expect(sessionColorTheme({ presentation: { ...presentation, textColor: 'script' } })).toBeNull();
+  });
+  it('names the theme only through the same gate that admits its colors', () => {
+    const colors = jevPalette('jade');
+    expect(sessionColorThemeId({ presentation: { colorTheme: 'jade', colors } })).toBe('jade');
+    expect(sessionColorThemeId({ presentation: {
+      colorTheme: 'jade', colors: { ...colors, accent: '#000000' }
+    } })).toBeNull();
+    expect(sessionColorThemeId({ presentation: { colorTheme: 'jade' } })).toBeNull();
+    expect(sessionColorThemeId({})).toBeNull();
+    expect(sessionColorThemeId(null)).toBeNull();
   });
   it('claims nothing at all unless it says so', () => {
     expect(sessionPresentation({})).toBeNull();
