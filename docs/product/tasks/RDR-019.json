@@ -29,6 +29,12 @@
       "ref": "docs/product/discussions/2026-10-05-consolidated-reader-decisions.md",
       "note": "Owner decisions Q1-Q6, 2026-10-05.",
       "date": "2026-10-05"
+    },
+    {
+      "kind": "document",
+      "ref": "docs/product/discussions/2026-10-05-canonical-home-design.md",
+      "note": "B4 design: the still window, eight pull requests, five owner questions",
+      "date": "2026-10-05"
     }
   ],
   "activity": [
@@ -39,10 +45,14 @@
     {
       "date": "2026-10-05T10:13:30.803Z",
       "summary": "Build authorized by Mateo with Seth's full agreement (2026-10-05); map of Home today in progress, design next."
+    },
+    {
+      "date": "2026-10-05T17:55:03.092Z",
+      "summary": "B4 design recorded (docs/product/discussions/2026-10-05-canonical-home-design.md): the still window, eight pull requests, five owner questions; criterion 4 held by RDR-015 and FND-010."
     }
   ],
-  "updatedAt": "2026-10-05T10:13:30.803Z",
-  "revision": 2,
+  "updatedAt": "2026-10-05T17:55:03.092Z",
+  "revision": 3,
   "summary": "The canonical Home, 'a home with a window': the featured reading's field full screen, an epigraph set still, Begin as the only primary action, Continue when there is a reading to resume, Adjust into Read, the rooms as header links. Build authorized by Mateo on 2026-10-05 with Seth's full agreement; Seth reviews. Uses the existing backdrop renderer; D1 replaces it later.",
   "blocker": null
 }
