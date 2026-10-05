@@ -15,7 +15,8 @@
  * with a short-side inset keeps the whole plate on the glass.
  */
 
-const VOID = '#0A0A0C';
+export const PLATE_VOID = '#0A0A0C';
+const VOID = PLATE_VOID;
 
 export const OSTENSORIA_PAPER_RGB = [10, 10, 12];
 export const APPARITIO_VOID_RGB = [10, 10, 12];
@@ -76,9 +77,14 @@ export function plateFitRect(canvasWidth, canvasHeight, srcWidth, srcHeight) {
   };
 }
 
+/** A null `voidFill` leaves the canvas clear around the plate. */
 export function fitPlateBlit(ctx, canvas, src, voidFill = VOID) {
-  ctx.fillStyle = voidFill;
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  if (voidFill) {
+    ctx.fillStyle = voidFill;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+  } else {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+  }
   if (!src?.width || !src?.height) return;
   const rect = plateFitRect(canvas.width, canvas.height, src.width, src.height);
   ctx.imageSmoothingEnabled = true;
@@ -163,6 +169,8 @@ function fillGround(ctx, canvas, paperRgb) {
 /**
  * Blit the developed plate onto `canvas`, stenciled by `order` at `progress`.
  * `progress` is already eased by galleryDrawProgress; this map is linear.
+ * With `clearGround`, what is not yet revealed is left transparent instead
+ * of painted with paper, so the plate can be drawn over another image.
  *
  * @returns {boolean}
  */
@@ -175,25 +183,28 @@ export function revealPlate(canvas, spec = {}) {
     height,
     progress = 1,
     paperRgb,
-    scratch
+    scratch,
+    clearGround = false
   } = spec;
   const ctx = canvas?.getContext?.('2d');
   if (!ctx) return false;
   const t = Math.max(0, Math.min(1, Number(progress) || 0));
   const paper = paperRgb || APPARITIO_VOID_RGB;
+  const voidFill = clearGround ? null : undefined;
 
   if (t >= 1 && plate) {
-    fitPlateBlit(ctx, canvas, plate);
+    fitPlateBlit(ctx, canvas, plate, voidFill);
     return true;
   }
   if (t <= 0 || !plateData?.data || !order) {
-    fillGround(ctx, canvas, paper);
+    if (clearGround) ctx.clearRect(0, 0, canvas.width, canvas.height);
+    else fillGround(ctx, canvas, paper);
     return true;
   }
 
   const next = ensureScratch(scratch, width, height);
   if (!next) {
-    if (plate) fitPlateBlit(ctx, canvas, plate);
+    if (plate) fitPlateBlit(ctx, canvas, plate, voidFill);
     return !!plate;
   }
   const src = plateData.data;
@@ -202,6 +213,7 @@ export function revealPlate(canvas, spec = {}) {
   const pr = paper[0];
   const pg = paper[1];
   const pb = paper[2];
+  const ground = clearGround ? 0 : 255;
   for (let i = 0, p = 0; i < order.length; i++, p += 4) {
     if (order[i] > threshold) {
       out[p] = src[p];
@@ -212,12 +224,12 @@ export function revealPlate(canvas, spec = {}) {
       out[p] = pr;
       out[p + 1] = pg;
       out[p + 2] = pb;
-      out[p + 3] = 255;
+      out[p + 3] = ground;
     }
   }
   next.ctx.putImageData(next.imageData, 0, 0);
   spec.scratch = next;
-  fitPlateBlit(ctx, canvas, next.canvas);
+  fitPlateBlit(ctx, canvas, next.canvas, voidFill);
   return true;
 }
 

@@ -70,6 +70,35 @@ describe('plate-draw adapter', () => {
             expect.any(Number), expect.any(Number));
     });
 
+    it('with a clear ground, leaves what is not yet revealed transparent', () => {
+        const clearRect = vi.fn();
+        const fillRect = vi.fn();
+        const canvas = {
+            width: 2,
+            height: 1,
+            getContext: () => ({ fillStyle: '', clearRect, fillRect, drawImage: vi.fn() })
+        };
+        const plate = { width: 2, height: 1 };
+        expect(revealPlate(canvas, { plate, progress: 0, clearGround: true })).toBe(true);
+        expect(clearRect).toHaveBeenCalled();
+        expect(fillRect).not.toHaveBeenCalled();
+
+        const imageData = { data: new Uint8ClampedArray(8) };
+        const scratch = { canvas: { width: 2, height: 1 }, ctx: { putImageData: vi.fn() }, imageData };
+        expect(revealPlate(canvas, {
+            plate,
+            plateData: { data: new Uint8ClampedArray([200, 100, 50, 255, 200, 100, 50, 255]) },
+            order: new Uint8Array([255, 0]),
+            width: 2,
+            height: 1,
+            progress: 0.5,
+            clearGround: true,
+            scratch
+        })).toBe(true);
+        expect([...imageData.data]).toEqual([200, 100, 50, 255, 10, 10, 12, 0]);
+        expect(fillRect).not.toHaveBeenCalled();
+    });
+
     it('contains a square plate inside the canvas with a pad, never covering', () => {
         const rect = plateFitRect(1920, 1080, 1000, 1000);
         expect(rect.width).toBeLessThan(1080);
