@@ -3,9 +3,9 @@
   "title": "Make the nine themes the one colour vocabulary",
   "lane": "shared",
   "milestone": "Reader consolidation",
-  "status": "planned",
+  "status": "in_progress",
   "delivery": "not_shipped",
-  "owner": null,
+  "owner": "Claude coordinator",
   "priority": "now",
   "dependencies": [
     "FND-006"
@@ -27,16 +27,26 @@
       "ref": "docs/product/discussions/2026-10-05-consolidated-reader-decisions.md",
       "note": "Owner decisions Q1-Q6, 2026-10-05.",
       "date": "2026-10-05"
+    },
+    {
+      "kind": "document",
+      "ref": "docs/product/discussions/2026-10-05-one-colour-vocabulary-design.md",
+      "note": "B2a design: the map beside RISE_CURRENT_THEMES, seven pull requests, five owner questions",
+      "date": "2026-10-05"
     }
   ],
   "activity": [
     {
       "date": "2026-10-05T08:40:23.000Z",
       "summary": "Seeded from Package B2 after the owner decisions."
+    },
+    {
+      "date": "2026-10-05T13:24:00.400Z",
+      "summary": "B2a designed: the theme-to-engine map and its seven pull requests are recorded; build authorized for PR1."
     }
   ],
-  "updatedAt": "2026-10-05T08:40:23.000Z",
-  "revision": 1,
+  "updatedAt": "2026-10-05T13:24:00.400Z",
+  "revision": 2,
   "summary": "Four colour vocabularies become one: the nine themes, with every engine palette derived from them.",
   "blocker": null
 }

@@ -14,7 +14,7 @@ No public SDK, new composition schema, second player, account store, cloud sessi
 
 ## Recovery
 
-Reopening starts from the beginning when the host redelivers a valid tool result. A persistent embedded notice explains this; exact checkpoint persistence is not promised. Interrupted playback resumes the same runtime atom. Teardown ends playback and clears controls. A malformed Current shows no passage and gives a clear instruction to ask the assistant again; a corrected tool call in a fresh or reopened view can play.
+Reopening starts from the beginning when the host redelivers a valid tool result. A persistent embedded notice explains this; exact checkpoint persistence is not promised. Amended 2026-10-05: the notice leaves the embed; on a reopen the poster itself, the title over Play, carries the fact ([embed stage decision](../../product/discussions/2026-10-05-embed-stage-decision.md)). Interrupted playback resumes the same runtime atom. Teardown ends playback and clears controls. A malformed Current shows no passage and gives a clear instruction to ask the assistant again; a corrected tool call in a fresh or reopened view can play.
 
 Sampling is optional and unnecessary for the initial Current and redirection. Unsupported Dive remains explicitly refused. Host capabilities must be observed in ChatGPT, not inferred from the reference or fake host.
 
