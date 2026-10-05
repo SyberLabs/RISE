@@ -256,9 +256,11 @@ export async function handleMcp(request, env) {
   if (request.headers.get('Content-Type')?.split(';')[0].trim().toLowerCase() !== 'application/json') {
     return http(415, { error: { code: 'JSON_REQUIRED', message: 'Send application/json.' } });
   }
-  // A client names the version it negotiated; one this server does not speak is refused before anything is read.
+  // A client names the version it negotiated. A malformed one is refused before anything is read; a
+  // well-formed one this server does not list is served, because a host speaking a newer revision is
+  // answered in this server's newest at initialize and must not be shut out of the subset it uses.
   const version = request.headers.get('MCP-Protocol-Version');
-  if (version !== null && !PROTOCOL_VERSIONS.includes(version)) {
+  if (version !== null && !/^\d{4}-\d{2}-\d{2}$/u.test(version)) {
     return http(400, { error: { code: 'UNSUPPORTED_PROTOCOL_VERSION', message: `This server speaks MCP ${PROTOCOL_VERSIONS.join(', ')}.` } });
   }
   let text;

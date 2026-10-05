@@ -127,9 +127,9 @@ describe('who may ask, and how', () => {
     for (const id of [7, 0, 'abc', '']) expect((await json(await post(rpc('ping', undefined, id)))).id).toBe(id);
   });
 
-  it('takes a request in any protocol version it speaks, and refuses one in another before reading the body', async () => {
-    for (const version of PROTOCOL_VERSIONS) expect((await post(rpc('ping'), { headers: { 'MCP-Protocol-Version': version } })).status, version).toBe(200);
-    for (const version of ['2026-07-28', '1999-01-01', 'latest', '']) {
+  it('takes a request in any well-formed protocol version, newer ones included, and refuses a malformed one before reading the body', async () => {
+    for (const version of [...PROTOCOL_VERSIONS, '2026-07-28', '1999-01-01']) expect((await post(rpc('ping'), { headers: { 'MCP-Protocol-Version': version } })).status, version).toBe(200);
+    for (const version of ['latest', '', '2026-7-28', '2026-07-28; charset=x']) {
       const response = await post(null, { raw: '{not json', headers: { 'MCP-Protocol-Version': version } });
       expect(response.status, version).toBe(400);
       expect(await json(response)).toEqual({ error: { code: 'UNSUPPORTED_PROTOCOL_VERSION', message: expect.any(String) } });
