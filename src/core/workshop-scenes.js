@@ -13,6 +13,7 @@
  * snapped span, never against the raw length.
  */
 import { snapCharacterRangeToTokens } from './source-span.js';
+import { PROCEDURAL_PATTERN_IDS } from './visual-registry.js';
 import { assignVisualSpan } from './visual-score-lane.js';
 import { assignAudioSpan } from './audio-score-lane.js';
 import { normalizeReaderText } from './local-works.js';
@@ -219,7 +220,7 @@ export function sessionForScene(data, sourceId) {
 }
 
 const SURFACE_OF = Object.freeze({ off: 'off', focal: 'focal', attractor: 'attractor', klee: 'genesis' });
-const PROCEDURAL = new Set(['harmonograph', 'ostensoria', 'apparitio', 'fractal', 'turrell', 'neural', 'rockgarden']);
+const PROCEDURAL = new Set(PROCEDURAL_PATTERN_IDS.filter(id => !Object.hasOwn(SURFACE_OF, id)));
 
 /**
  * The Workshop registry id for a navigator choice, or null when the Workshop
