@@ -3,8 +3,9 @@
  *
  * In an MCP host the answer is written by the host's own model, which has never
  * seen RISE. This is the one place that tells it what to write: the MCP server
- * puts it in the tool's description, and the app puts it in front of a Dive it
- * asks the model for. The numbers come from the sealed Current's own limits, and
+ * puts it in the tool's description, and a Dive puts it in front of the
+ * question it asks the model. The guide asks for no Dive notes: a Composer
+ * presentation does not show them, though the validator still accepts them. The numbers come from the sealed Current's own limits, and
  * the example is a real Current that the strict validator accepts (held by a
  * test), so what a model is told cannot drift from what is accepted.
  */
@@ -21,12 +22,7 @@ export const CURRENT_EXAMPLE = Object.freeze({
     theme: 'cobalt',
     origin: { kind: 'model', name: 'Your name', provider: 'Who runs you' },
     segments: [
-        {
-            id: 'first',
-            text: 'Nothing that falls inside can come back out.',
-            visual: 'still',
-            dives: [{ id: 'first-note', text: 'This is the idea of an event horizon: the edge past which every path leads inward.', anchor: { fromCharacter: 0, toCharacter: 7, quoteStart: 'Nothing', quoteEnd: 'Nothing' } }]
-        },
+        { id: 'first', text: 'Nothing that falls inside can come back out.', visual: 'still' },
         { id: 'second', text: 'Not even light, which is the fastest thing there is.', visual: 'attractor' }
     ]
 });
@@ -57,7 +53,6 @@ export const CURRENT_GUIDE = [
     '- Segment text is plain words meant to be heard: no markdown, no lists, no headings, and never the character | or [PAUSE], [FLASH], [HOLD].',
     `- "visual" says what a segment is like: ${RISE_CURRENT_VISUALS.join(', ')}. It may be left out.`,
     `- "theme" colors the whole answer: its page, its moving light and its drawings. Choose the one that suits the subject: ${RISE_CURRENT_THEME_IDS.map(id => `${id} (${THEME_HINTS[id]})`).join(', ')}. Leave it out only if none suits.`,
-    `- A segment may carry up to ${LIMITS.dives} "dives": notes of at most ${LIMITS.diveText} characters, each anchored to a span of that segment's text. "fromCharacter" (included) and "toCharacter" (excluded) count characters from 0, and the span must start and end on whole words. "quoteStart" and "quoteEnd" are the exact first and last words of the span.`,
     '- Do not cite sources: a Current carries none.'
 ].join('\n');
 

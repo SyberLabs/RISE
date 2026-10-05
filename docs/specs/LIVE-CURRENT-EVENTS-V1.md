@@ -1,6 +1,6 @@
 # `rise.current-events.v1`
 
-**Status:** contract for `src/live/protocol.js` and `src/live/stream.js`. The larger plan is `docs/plans/LIVE-CURRENT.md`.
+**Status:** contract for `src/live/protocol.js` and `src/live/stream.js`. The larger plan is `docs/plans/LIVE-CURRENT.md`. The live Current, and Dive with it, are out of current scope ([Composer decision](../product/discussions/2026-10-04-composer-decision.md)); this contract still holds for the code in the tree.
 
 Changes to a Current over time. A provider, or a person's own interruption, supplies declarative events; RISE validates them, orders them, and lowers the words they commit into the sealed `rise.current.v1` (`docs/specs/RISE-CURRENT-V1-SLICE.md`), which the Session Compiler and the one Player already run. This protocol adds no second player and no second score format.
 

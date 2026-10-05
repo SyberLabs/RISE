@@ -213,7 +213,7 @@
 .live-controls__buttons { display: flex; gap: 0.5rem; flex-wrap: wrap; }
 .live-controls button[aria-pressed="true"] { background: var(--color-light); color: var(--color-void); }
 .live-controls__mic { flex: 1 1 100%; margin: 0; font-size: 0.9rem; color: var(--color-light); min-height: 1.3em; }
-.live-controls__mic[hidden], .live-controls__mic-note[hidden] { display: none; }
+.live-controls__mic[hidden], .live-controls__mic-note[hidden], .live-controls__ask[hidden] { display: none; }
 .live-controls__mic-note { flex: 1 1 100%; }
 .live-controls__visual-change summary,
 .live-controls__mic-note summary,
