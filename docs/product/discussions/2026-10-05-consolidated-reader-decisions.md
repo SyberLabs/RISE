@@ -1,6 +1,6 @@
 # Decision: the Consolidated Reader's six questions
 
-Status: Record. Date: 2026-10-05. Decided by Mateo, adopting the answers the [Consolidated Reader proposal](../CONSOLIDATED-READER.md) recommends. The proposal named Seth for Q1–Q4; Seth has not yet recorded agreement, and his review is asked for in the pull requests that build them. Q5 was decided earlier the same day.
+Status: Record. Date: 2026-10-05. Decided by Mateo, adopting the answers the [Consolidated Reader proposal](../CONSOLIDATED-READER.md) recommends. The proposal named Seth for Q1–Q4; Seth gave his full agreement on 2026-10-05, as Mateo reported, and his review is asked for in the pull requests that build them. The same day Mateo authorized the build of B4 (the canonical Home) with Seth reviewing. Q5 was decided earlier the same day.
 
 ## The answers
 

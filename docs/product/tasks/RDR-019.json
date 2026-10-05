@@ -3,9 +3,9 @@
   "title": "Build the canonical Home",
   "lane": "reader",
   "milestone": "Reader consolidation",
-  "status": "planned",
+  "status": "in_progress",
   "delivery": "not_shipped",
-  "owner": null,
+  "owner": "Claude coordinator",
   "priority": "now",
   "dependencies": [
     "RDR-018"
@@ -35,10 +35,14 @@
     {
       "date": "2026-10-05T08:40:23.000Z",
       "summary": "Seeded from Package B4 after the owner decisions."
+    },
+    {
+      "date": "2026-10-05T10:13:30.803Z",
+      "summary": "Build authorized by Mateo with Seth's full agreement (2026-10-05); map of Home today in progress, design next."
     }
   ],
-  "updatedAt": "2026-10-05T08:40:23.000Z",
-  "revision": 1,
-  "summary": "A home with a window: the featured reading's field moves behind a still epigraph, Begin, Another reading and Adjust.",
+  "updatedAt": "2026-10-05T10:13:30.803Z",
+  "revision": 2,
+  "summary": "The canonical Home, 'a home with a window': the featured reading's field full screen, an epigraph set still, Begin as the only primary action, Continue when there is a reading to resume, Adjust into Read, the rooms as header links. Build authorized by Mateo on 2026-10-05 with Seth's full agreement; Seth reviews. Uses the existing backdrop renderer; D1 replaces it later.",
   "blocker": null
 }
