@@ -943,8 +943,11 @@ export class Chamber {
       colors
     };
     this.applySessionColors();
-    // The flame follows the phase's colors, as it did at the opening.
-    visualCortex.fractal?.setColorTheme(sessionColorTheme(this.session));
+    // The engines follow the phase's theme, as they did at the opening.
+    visualCortex.updateConfig(
+      { colorTheme, flameColors: sessionColorTheme(this.session) },
+      { preservePresentation: true }
+    );
     return true;
   }
 

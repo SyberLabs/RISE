@@ -87,6 +87,49 @@ describe('planHarmonograph', () => {
             createSeededRandom('veto3'), { climate: 'neonPlaid' });
         expect(bogus.paletteName).toBe('solarFlare');
     });
+
+    describe('colour-only anchors', () => {
+        const anchors = [[1, 2, 3], [4, 5, 6], [7, 8, 9], [10, 11, 12], [13, 14, 15]];
+        const FIGURE = ['paletteName', 'ratio', 'detune', 'damping', 'rotary',
+            'rotation', 'amplitude', 'cycles'];
+
+        it('recolour the same figure: chord, ratio, rotation and cycles unchanged', () => {
+            const plain = planHarmonograph(null, createSeededRandom('anchors'));
+            const themed = planHarmonograph(null, createSeededRandom('anchors'), { anchors });
+            expect(themed.anchors).toBe(anchors);
+            expect(plain.anchors).not.toBe(anchors);
+            for (const key of FIGURE) expect(themed[key], key).toEqual(plain[key]);
+
+            const signalled = planHarmonograph({ valence: 0.7, arousal: 0.3 },
+                createSeededRandom('anchors'), { climate: 'auto', anchors });
+            expect(signalled.paletteName).toBe('emberDawn');
+            expect(signalled.anchors).toBe(anchors);
+        });
+
+        it('yield to an explicit climate, which keeps its own anchors', () => {
+            const pinned = planHarmonograph(null, createSeededRandom('veto'),
+                { climate: 'midnightWater', anchors });
+            expect(pinned.paletteName).toBe('midnightWater');
+            expect(pinned.anchors).toEqual(
+                [[8, 10, 30], [24, 34, 90], [58, 78, 140], [120, 145, 190], [205, 215, 235]]);
+        });
+
+        it('replace the climate\'s shared anchors and never mutate them', () => {
+            const shared = planHarmonograph(null, createSeededRandom('x'), { climate: 'emberDawn' }).anchors;
+            const before = JSON.parse(JSON.stringify(shared));
+            planHarmonograph(null, createSeededRandom('x'), { anchors });
+            planHarmonograph({ valence: 0.7, arousal: 0.3 }, createSeededRandom('x'), { anchors });
+            expect(planHarmonograph(null, createSeededRandom('x'), { climate: 'emberDawn' }).anchors)
+                .toBe(shared);
+            expect(shared).toEqual(before);
+        });
+
+        it('absent or null anchors leave the climate\'s, as today', () => {
+            const plain = planHarmonograph(null, createSeededRandom('none'));
+            const nulled = planHarmonograph(null, createSeededRandom('none'), { anchors: null });
+            expect(nulled.anchors).toBe(plain.anchors);
+        });
+    });
 });
 
 describe('Harmonograph engine', () => {
