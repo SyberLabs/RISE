@@ -243,11 +243,11 @@ One ChatGPT developer-mode session on the exact candidate after PR 5, desktop we
 
 1. **Public listing or developer mode?** LIVE-009 as a directory listing needs `_meta.ui.domain`, the challenge route, the privacy rewrite, the iframe justification, the ZIP, test prompts, a video, four URLs and a mobile witness; developer mode needs none. The design is the same either way; only §6's second list and the paperwork differ.
 
-   Answer: pending.
+   Answer (Mateo, 2026-10-05): developer mode for now. The listing paperwork waits until LIVE-007.
 
 2. **May PR 2 (the Chamber's `chrome: 'none'`, `setColourTheme`, the palette override) land in the Reader lane now, before LIVE-004 is witnessed, with LIVE-004 then witnessed on the result, as `CONSOLIDATED-READER.md:648` allows?** Without it the hover bar, Space, K, D, the exit dialog and the closing screen stay inside the widget, and the colour row has no path to the mounted field. Who builds it: Seth, or Mateo with Seth's review.
 
-   Answer: pending.
+   Answer (Mateo, 2026-10-05): yes. The Chamber change lands now, built by the coordinator with Seth reviewing, and LIVE-004 is witnessed on the result.
 
 Everything else is decided here: the two objects and their placement, the no-prose poster, the four rows and their live paths, the 481 floor and height-only reports, inline only, the relay kept with `allow="autoplay"`, the metadata, the test changes, and the PR order.
 
