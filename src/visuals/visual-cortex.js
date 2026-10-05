@@ -52,6 +52,7 @@ import {
 import { hasVisualInterlocutionConsent, VisualFlashGate } from '../core/visual-safety.js';
 import { LISTED_PROCEDURAL_PATTERNS } from '../core/visual-registry.js';
 import { rockGardenInk, themeEngine } from '../core/theme-engine-map.js';
+import { accentFlameAnchors } from '../core/conductor.js';
 import {
     GALLERY_CADENCE_DEFAULT,
     VISUAL_PRESENCE_DEFAULT_MS,
@@ -1770,7 +1771,8 @@ export class VisualCortex {
         } else if (type === 'harmonograph' && this.harmonograph && this._kleeCanvas) {
             this._resizeKleeCanvas();
             rendered = this.harmonograph.generate(signal, undefined, {
-                climate: this.config.harmonographClimate
+                climate: this.config.harmonographClimate,
+                anchors: accentFlameAnchors(this.config.flameColors)
             });
             if (asciiMode && rendered) asciiFrame = this._harmonographAsciiFrame(signal);
             else if (rendered) {
@@ -2055,6 +2057,7 @@ export class VisualCortex {
                 reducedMotion: this._continuousReducedMotion(),
                 getSignal: () => this._nextContinuousSignal(),
                 getClimate: () => this.config.harmonographClimate || 'auto',
+                getAnchors: () => accentFlameAnchors(this.config.flameColors),
                 onProjectionPaint: host => this._reportContinuousFieldProjectionPaint(host)
             });
         }

@@ -746,9 +746,14 @@ const HARMONOGRAPH_CLIMATES = Object.keys(HARMONOGRAPH_INTERVALS);
  * (responsive off) it varies the climate per flash rather than
  * defaulting to one eternal neutral.
  *
+ * options.anchors recolours only: it replaces the plan's palette stops
+ * and leaves the chord, the rng draws and the shared climate arrays
+ * untouched. An explicit climate ignores it (the veto covers colour).
+ *
  * @param {Object} signal - { valence, arousal } or null
  * @param {Function} [rng]
- * @param {Object} [options] - { climate: 'auto' | palette name }
+ * @param {Object} [options] - { climate: 'auto' | palette name,
+ *                               anchors: five RGB stops or null }
  * @returns {{ paletteName, anchors, ratio, detune, damping, rotary,
  *             rotation, amplitude, cycles }}
  */
@@ -775,7 +780,9 @@ export function planHarmonograph(signal, rng = Math.random, options = {}) {
 
     return {
         paletteName,
-        anchors: FLAME_PALETTES[paletteName],
+        anchors: !requested && Array.isArray(options.anchors)
+            ? options.anchors
+            : FLAME_PALETTES[paletteName],
         ratio,
         // Slight detune makes the figure precess instead of retracing
         // itself — the drone's 1.002 shimmer, drawn (livelier when intense)

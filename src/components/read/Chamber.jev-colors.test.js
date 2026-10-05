@@ -49,10 +49,13 @@ it('continues to move the whole palette for older visual programs', () => {
   expect(container.style.getPropertyValue('--color-void')).toBe(JEV_PALETTES.prism.background);
 });
 
-describe('the flame follows a scheduled color theme', () => {
-  afterEach(() => { visualCortex.fractal = null; });
+describe('the engines follow a scheduled color theme', () => {
+  afterEach(() => {
+    visualCortex.fractal = null;
+    visualCortex.updateConfig({ colorTheme: null, flameColors: null }, { preservePresentation: true });
+  });
 
-  it('repaints the flame palette when a phase changes the theme', () => {
+  it('repaints the flame palette and tells the cortex the phase\'s theme', () => {
     visualCortex.fractal = new FractalFlame(document.createElement('canvas'));
     const session = { presentation: { colorTheme: 'classic', colors: jevPalette('classic') } };
     visualCortex.fractal.setColorTheme(sessionColorTheme(session));
@@ -63,5 +66,7 @@ describe('the flame follows a scheduled color theme', () => {
     expect(Chamber.prototype.applyScheduledColorTheme.call(chamber, 'prism')).toBe(true);
     expect(visualCortex.fractal.accentPalette)
       .toEqual(buildAccentFlamePalette(jevPalette('prism')));
+    expect(visualCortex.config.colorTheme).toBe('prism');
+    expect(visualCortex.config.flameColors).toEqual(jevPalette('prism'));
   });
 });
