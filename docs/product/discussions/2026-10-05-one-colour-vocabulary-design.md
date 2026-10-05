@@ -192,7 +192,7 @@ Marked M (Mateo) or S (Seth). Only what changes what a reader gets or is hard to
 
 - **S1.** Under a theme, B2a treats the attractor's `white` as "no choice" and mounts the theme's full row (colour and shape, the brightness-safe pair). A signal roll draws white one time in three (`roll.js:93`) and a Jev `white` answer is possible: cobalt readings then get thomas/blue/mirror instead of aizawa/white/kaleido, prism readings halvorsen/neon/mirror without streaks (Composer's prism). Alternative: palette only, keeping the config's form, which puts neon on kaleido outside the tested ceiling. Confirm the row, or keep white explicit until C1 rewrites rolls as looks.
 
-  Answer: pending.
+  Answer (Mateo, 2026-10-05): under a theme, 'white' is no choice and the attractor takes the theme's full RISE_CURRENT_THEMES row (system, palette and form).
 - **M1.** Jev and Kev still answer `visualPalette` (ten attractor colours) and `kleePreset` (`recommend.js:80-94`) beside `colorTheme`, and admission requires both (`jev-reading.js:42-43`). B2a honours an explicit model answer (a purple filament under cobalt stays purple), so Q6 is met for those readings only when the model answers white or random. Decide whether a later M-lane change derives both from `colorTheme` inside `choiceConfig` (fields kept, so admission passes) and stops asking the model; it changes the evaluation cases and `recommend.test.js`'s menu pin.
 
   Answer: pending.
@@ -201,7 +201,7 @@ Marked M (Mateo) or S (Seth). Only what changes what a reader gets or is hard to
   Answer: pending.
 - **S2.** Rolls keep their temper lists until C1, so a signal roll's blue or purple filament and a garden roll's named preset stay under the theme. A one-line alternative in Seth's lane: delete `palettes` from the signal temper (`roll.js:93`) and set the garden temper's `klee` to `['random']` (`:105`), so rolls take the theme now, at the cost of one shift in Today's seeded sequence on the deploy day. Now, or C1?
 
-  Answer: pending.
+  Answer (Mateo, 2026-10-05): delete the signal temper's `palettes` list and set the garden temper's klee list to ['random'] in src/core/roll.js now, so rolls take the theme (one shift in Today's seeded sequence is accepted).
 - **S3.** Every nearest-native pick, the `rose` Iris ramp and the flame offsets are unrendered. Who runs the render-and-tune pass (PR7's `--themes` stills) before PR4 to PR6 merge, and is a shared pick (classic/citrine on dawn, amethyst/jade on holo, cobalt/rose on marian, four themes on organic) acceptable for engines no look depends on?
 
   Answer: pending.
