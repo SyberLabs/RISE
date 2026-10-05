@@ -2,24 +2,36 @@
  * What "Kev on this device" is allowed to load.
  *
  * Each model is named by its published bundle and the checkpoint its
- * manifest must report. A manifest naming any other checkpoint is refused
- * before a byte of weights is fetched. The ONNX Runtime WebAssembly binary
- * is served from this site, from the copy in the lockfile, and must hash to
- * the pinned value before the runtime sees it.
+ * manifest must report. Its files are fetched from one commit of the bundle
+ * repository, and each, the manifest included, must have the size and
+ * SHA-256 that scripts/pin-kev-weights.mjs recorded in kev-pins.js. A
+ * model without that record loads nothing. The ONNX Runtime WebAssembly
+ * binary is served from this site, from the copy in the lockfile, and must
+ * hash to the pinned value before the runtime sees it.
  */
 
+import KEV_PINS from './kev-pins.js';
+
+const REPO = 'https://huggingface.co/ai-ecoverse/kev.js/resolve';
+
+/** The model with its pin: the commit, the base every file is fetched under, and the per-file digests. Unpinned, it has no base. */
+function pinned(bundle, model) {
+    const pin = KEV_PINS[bundle];
+    return Object.freeze(pin
+        ? { ...model, bundle, revision: pin.revision, base: `${REPO}/${pin.revision}/${bundle}`, files: pin.files }
+        : { ...model, bundle });
+}
+
 export const DEVICE_MODELS = Object.freeze({
-    'kev-4b': Object.freeze({
+    'kev-4b': pinned('kev-4b', {
         label: 'Kev-4B',
-        base: 'https://huggingface.co/ai-ecoverse/kev.js/resolve/main/kev-4b',
         // The same checkpoint local RISE serves (deploy/kev/local_app.py).
         run: 'jaredpalmer/kev-4b@139fdd94f1b6a6ad80cc15e08fcb99cac885a101',
         variant: 'q8f32',
         bytes: 4_700_000_000
     }),
-    'kev-0.8b': Object.freeze({
+    'kev-0.8b': pinned('kev-0.8b', {
         label: 'Kev-0.8B',
-        base: 'https://huggingface.co/ai-ecoverse/kev.js/resolve/main/kev-0.8b',
         run: 'jaredpalmer/kev-0.8b@9a45d25eb2ab761841196625383fa1dff0e56c1e',
         variant: 'q8f32',
         bytes: 822_000_000

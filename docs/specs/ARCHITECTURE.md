@@ -1032,9 +1032,13 @@ of `settled`, `open`, `deferred`, or `reversed`.
   `@ai-ecoverse/kev.js` and `onnxruntime-web` in a dedicated worker
   (`src/enterprise/kev-worker.js`). It asks the same question and reads the
   answer the same way as the server route (`src/enterprise/rail-question.js`).
-  `src/enterprise/device-model.js` pins what may load: a manifest naming any
-  checkpoint but the pinned one is refused before weights are fetched, and the
-  runtime binary must match the digest of the lockfile's copy. The model
+  `src/enterprise/device-model.js` pins what may load: every file, the
+  manifest first, is fetched from one commit of the bundle repository and must
+  have the size and SHA-256 that `scripts/pin-kev-weights.mjs` recorded in
+  `src/enterprise/kev-pins.js`, checked as it streams in and again on each
+  reuse from the cache; a manifest naming any checkpoint but the pinned one is
+  refused before weights are fetched; a model with no record loads nothing;
+  and the runtime binary must match the digest of the lockfile's copy. The model
   downloads only when a presenter chooses it. Until it is ready, or after it
   fails, decisions hold. The worker script alone may fetch model hosts and
   compile WebAssembly: the Cloudflare Worker serves it with its own policy
