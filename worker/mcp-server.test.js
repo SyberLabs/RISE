@@ -5,14 +5,17 @@
  * site's page, and only POST; it reads a bounded, well-formed JSON-RPC message
  * and answers it in the shapes MCP's clients expect (initialize, tools, the
  * app's resource); the tool refuses a Current that is not valid and tells the
- * model why; the app's document is served with the frame and the microphone it
- * needs and nothing more; and the one page that may be framed is framed only
- * when asked for and only while switched on.
+ * model why; the app's document is served with the frame it needs and nothing
+ * more; and the one page that may be framed is framed only when asked for and
+ * only while switched on.
  */
 import { describe, expect, it, vi } from 'vitest';
+import { RISE_CURRENT_LIMITS, RISE_CURRENT_SCHEMA, RISE_CURRENT_THEME_IDS, RISE_CURRENT_VISUALS, validateRiseCurrent } from '../src/core/rise-current.js';
 import { BLACK_HOLES_CURRENT } from '../src/test/sealed-current.js';
+import { CURRENT_EXAMPLE, CURRENT_GUIDE } from '../src/live/adapters/current-guide.js';
+import { FOREST_AFTER_FIRE, WEATHER_CHAOS } from '../src/live/fixtures/explanations.js';
 import worker from './index.mjs';
-import { APP_MIME, APP_URI, handleLive, handleMcp, MCP_PATH, PROTOCOL_VERSIONS, TOOL } from './mcp-server.mjs';
+import { APP_MIME, APP_URI, currentJsonSchema, handleLive, handleMcp, MCP_PATH, PROTOCOL_VERSIONS, TOOL } from './mcp-server.mjs';
 
 const SITE = 'https://rise.example';
 const ON = { MCP_ENABLED: 'true' };
@@ -123,6 +126,15 @@ describe('who may ask, and how', () => {
   it('carries the request’s id back, a string or a number', async () => {
     for (const id of [7, 0, 'abc', '']) expect((await json(await post(rpc('ping', undefined, id)))).id).toBe(id);
   });
+
+  it('takes a request in any well-formed protocol version, newer ones included, and refuses a malformed one before reading the body', async () => {
+    for (const version of [...PROTOCOL_VERSIONS, '2026-07-28', '1999-01-01']) expect((await post(rpc('ping'), { headers: { 'MCP-Protocol-Version': version } })).status, version).toBe(200);
+    for (const version of ['latest', '', '2026-7-28', '2026-07-28; charset=x']) {
+      const response = await post(null, { raw: '{not json', headers: { 'MCP-Protocol-Version': version } });
+      expect(response.status, version).toBe(400);
+      expect(await json(response)).toEqual({ error: { code: 'UNSUPPORTED_PROTOCOL_VERSION', message: expect.any(String) } });
+    }
+  });
 });
 
 describe('saying hello', () => {
@@ -145,19 +157,39 @@ describe('saying hello', () => {
 });
 
 describe('the tool', () => {
-  it('is one tool, read-only, with a schema that asks for a Current and nothing else, and the guide to writing one', async () => {
+  it('is one tool, read-only, callable with no sign-in, with the guide to writing a Current', async () => {
     const { result } = await json(await post(rpc('tools/list')));
     expect(result.tools).toHaveLength(1);
     const [tool] = result.tools;
     expect(tool.name).toBe('rise_present');
-    expect(tool.inputSchema).toEqual({ type: 'object', properties: { current: { type: 'object', description: expect.any(String) } }, required: ['current'], additionalProperties: false });
     expect(tool.annotations).toMatchObject({ readOnlyHint: true, destructiveHint: false, openWorldHint: false });
+    expect(tool.securitySchemes).toEqual([{ type: 'noauth' }]);
     expect(tool.description).toContain('rise.current.v1');
     expect(tool.description).toContain('"segments"');
   });
 
-  it('points at the app in the extension’s key and in its older spelling, and at one resource', async () => {
-    expect(TOOL._meta).toEqual({ ui: { resourceUri: APP_URI }, 'ui/resourceUri': APP_URI });
+  it('says when to use it and when not, in words that match what the embed does, and ends with the guide', async () => {
+    const { result } = await json(await post(rpc('tools/list')));
+    const [tool] = result.tools;
+    expect(tool.title).toBe('Present a reading in RISE');
+    expect(tool.description.startsWith('Use this when ')).toBe(true);
+    expect(tool.description).toMatch(/presses Begin/u);
+    expect(tool.description).toMatch(/pause and resume/u);
+    expect(tool.description).toMatch(/once per answer/u);
+    expect(tool.description).toMatch(/Do not use it for/u);
+    // The embed takes no question, so the description promises none.
+    expect(tool.description).not.toMatch(/ask about/u);
+    expect(tool.description.endsWith(CURRENT_GUIDE)).toBe(true);
+  });
+
+  it('points at the app in the extension’s key and in its older spelling, and gives the host short words for while it runs and once it is done', async () => {
+    expect(TOOL._meta).toEqual({
+      ui: { resourceUri: APP_URI },
+      'ui/resourceUri': APP_URI,
+      'openai/toolInvocation/invoking': 'Preparing the reading',
+      'openai/toolInvocation/invoked': 'The reading is ready for Begin'
+    });
+    for (const key of ['openai/toolInvocation/invoking', 'openai/toolInvocation/invoked']) expect(TOOL._meta[key].length, key).toBeLessThanOrEqual(64);
     expect(APP_URI).toBe('ui://rise/current');
     expect(APP_MIME).toBe('text/html;profile=mcp-app');
   });
@@ -240,20 +272,126 @@ describe('the tool', () => {
   });
 });
 
+describe('the shape of a Current, as the host’s model is told it', () => {
+  /** Enough of JSON Schema for the keywords the Current’s schema uses: the problems found, in words. */
+  function conforms(schema, value, path = '$') {
+    const problems = [];
+    const type = Array.isArray(value) ? 'array' : value === null ? 'null' : typeof value;
+    if ('const' in schema && value !== schema.const) problems.push(`${path}: not ${schema.const}`);
+    if (schema.enum && !schema.enum.includes(value)) problems.push(`${path}: not one of ${schema.enum.join(', ')}`);
+    if (schema.type && !(schema.type === 'integer' ? Number.isInteger(value) : type === schema.type)) problems.push(`${path}: not ${schema.type}`);
+    if (type === 'string') {
+      if (schema.minLength !== undefined && value.length < schema.minLength) problems.push(`${path}: too short`);
+      if (schema.maxLength !== undefined && value.length > schema.maxLength) problems.push(`${path}: too long`);
+    }
+    if (type === 'number' && schema.minimum !== undefined && value < schema.minimum) problems.push(`${path}: below ${schema.minimum}`);
+    if (type === 'array') {
+      if (schema.minItems !== undefined && value.length < schema.minItems) problems.push(`${path}: too few`);
+      if (schema.maxItems !== undefined && value.length > schema.maxItems) problems.push(`${path}: too many`);
+      if (schema.items) value.forEach((item, index) => problems.push(...conforms(schema.items, item, `${path}[${index}]`)));
+    }
+    if (type === 'object') {
+      for (const key of schema.required ?? []) if (!(key in value)) problems.push(`${path}.${key}: missing`);
+      for (const [key, item] of Object.entries(value)) {
+        const property = schema.properties?.[key];
+        if (property) problems.push(...conforms(property, item, `${path}.${key}`));
+        else if (schema.additionalProperties === false) problems.push(`${path}.${key}: not allowed`);
+      }
+    }
+    return problems;
+  }
+
+  const schema = currentJsonSchema();
+
+  it('takes every limit and catalog from the validator’s own constants', () => {
+    expect(schema.properties.schema.const).toBe(RISE_CURRENT_SCHEMA);
+    expect(schema.properties.theme.enum).toBe(RISE_CURRENT_THEME_IDS);
+    expect(schema.properties.id.maxLength).toBe(RISE_CURRENT_LIMITS.id);
+    expect(schema.properties.title.maxLength).toBe(RISE_CURRENT_LIMITS.title);
+    expect(schema.properties.origin.properties.name.maxLength).toBe(RISE_CURRENT_LIMITS.name);
+    expect(schema.properties.origin.properties.provider.maxLength).toBe(RISE_CURRENT_LIMITS.name);
+    expect(schema.properties.segments.maxItems).toBe(RISE_CURRENT_LIMITS.segments);
+    const segment = schema.properties.segments.items;
+    expect(segment.properties.id.maxLength).toBe(RISE_CURRENT_LIMITS.id);
+    expect(segment.properties.text.maxLength).toBe(RISE_CURRENT_LIMITS.segmentText);
+    expect(segment.properties.visual.enum).toBe(RISE_CURRENT_VISUALS);
+    expect(segment.properties.dives.maxItems).toBe(RISE_CURRENT_LIMITS.dives);
+    const dive = segment.properties.dives.items;
+    expect(dive.properties.id.maxLength).toBe(RISE_CURRENT_LIMITS.id);
+    expect(dive.properties.text.maxLength).toBe(RISE_CURRENT_LIMITS.diveText);
+  });
+
+  it('requires what the validator requires, and allows no field it does not know', () => {
+    expect(schema).toMatchObject({ type: 'object', required: ['schema', 'id', 'title', 'origin', 'segments'], additionalProperties: false });
+    expect(Object.keys(schema.properties)).toEqual(['schema', 'id', 'title', 'theme', 'origin', 'segments']);
+    expect(schema.properties.origin).toMatchObject({ required: ['kind', 'name'], additionalProperties: false });
+    expect(Object.keys(schema.properties.origin.properties)).toEqual(['kind', 'name', 'provider']);
+    expect(schema.properties.segments.minItems).toBe(1);
+    const segment = schema.properties.segments.items;
+    expect(segment).toMatchObject({ required: ['id', 'text'], additionalProperties: false });
+    expect(Object.keys(segment.properties)).toEqual(['id', 'text', 'visual', 'dives', 'literal']);
+    const dive = segment.properties.dives.items;
+    expect(dive).toMatchObject({ required: ['id', 'text', 'anchor'], additionalProperties: false });
+    expect(Object.keys(dive.properties)).toEqual(['id', 'text', 'anchor']);
+    expect(dive.properties.anchor).toMatchObject({ required: ['fromCharacter', 'toCharacter', 'quoteStart', 'quoteEnd'], additionalProperties: false });
+  });
+
+  it('accepts every Current the validator accepts: the fixtures, and the choices they leave out', () => {
+    const { theme, ...unthemed } = FOREST_AFTER_FIRE;
+    const human = { ...WEATHER_CHAOS, origin: { kind: 'human', name: 'A reader' } };
+    const literal = { ...CURRENT_EXAMPLE, segments: [{ id: 'plain', text: 'Plain words.', literal: true }] };
+    for (const current of [BLACK_HOLES_CURRENT, CURRENT_EXAMPLE, FOREST_AFTER_FIRE, WEATHER_CHAOS, unthemed, human, literal]) {
+      expect(() => validateRiseCurrent(structuredClone(current)), current.id).not.toThrow();
+      expect(conforms(schema, current), current.id).toEqual([]);
+    }
+  });
+
+  it('refuses, as the validator does, a field it does not know, a theme or a visual off the catalog, another schema, no segments, and no origin', () => {
+    const cases = [
+      c => { c.extra = 1; },
+      c => { c.theme = 'neon'; },
+      c => { c.segments[0].visual = 'shader'; },
+      c => { c.schema = 'rise.current.v2'; },
+      c => { c.segments = []; },
+      c => { c.segments[0].text = ''; },
+      c => { delete c.origin; }
+    ];
+    for (const [index, mutate] of cases.entries()) {
+      const current = structuredClone(CURRENT_EXAMPLE);
+      mutate(current);
+      expect(() => validateRiseCurrent(current), `case ${index}`).toThrow();
+      expect(conforms(schema, current).length, `case ${index}`).toBeGreaterThan(0);
+    }
+  });
+
+  it('is what the tool asks for, as "current" and nothing beside it', async () => {
+    const { result } = await json(await post(rpc('tools/list')));
+    expect(result.tools[0].inputSchema).toEqual({ type: 'object', properties: { current: schema }, required: ['current'], additionalProperties: false });
+  });
+
+  it('is what the tool promises back, and what it gives back', async () => {
+    const { result: listed } = await json(await post(rpc('tools/list')));
+    expect(listed.tools[0].outputSchema).toEqual({ type: 'object', properties: { current: schema }, required: ['current'] });
+    const { result } = await json(await post(rpc('tools/call', { name: 'rise_present', arguments: { current: BLACK_HOLES_CURRENT } })));
+    expect(conforms(listed.tools[0].outputSchema, result.structuredContent)).toEqual([]);
+  });
+});
+
 describe('the app', () => {
   it('is listed as one resource with the extension’s type', async () => {
     const { result } = await json(await post(rpc('resources/list')));
     expect(result.resources).toEqual([expect.objectContaining({ uri: APP_URI, mimeType: APP_MIME })]);
   });
 
-  it('is served as an HTML document that frames RISE’s own page at this origin, and asks the host for that frame and the microphone only', async () => {
+  it('is served as an HTML document that frames RISE’s own page at this origin, asks the host for that frame only, and says in one sentence what it shows', async () => {
     const { result } = await json(await post(rpc('resources/read', { uri: APP_URI })));
     expect(result.contents).toHaveLength(1);
     const [content] = result.contents;
     expect(content).toMatchObject({ uri: APP_URI, mimeType: APP_MIME });
     expect(content.text.startsWith('<!doctype html>')).toBe(true);
     expect(content.text).toContain(`src="${SITE}/live?embed=mcp"`);
-    expect(content._meta.ui).toEqual({ csp: { frameDomains: [SITE], connectDomains: [], resourceDomains: [] }, permissions: { microphone: {} }, prefersBorder: false });
+    expect(content._meta.ui).toEqual({ csp: { frameDomains: [SITE], connectDomains: [], resourceDomains: [] }, prefersBorder: false });
+    expect(content._meta['openai/widgetDescription']).toMatch(/^[^.]*Begin[^.]*\.$/u);
   });
 
   it('follows the origin it is asked at, so a staging site frames its own page', async () => {

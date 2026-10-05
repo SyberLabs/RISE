@@ -773,6 +773,39 @@ describe('inside an MCP host', () => {
         await host.stop();
     });
 
+    it('stops waiting, and says so, when the host cancels the call before an answer arrives', async () => {
+        const { environment, sent, hostSays } = framed();
+        mount('?embed=mcp&voice=paced', environment);
+        host.embeddedAnswerTimeoutMs = 10;
+        await vi.waitFor(() => expect(sent).toHaveLength(1));
+        hostSays({ jsonrpc: '2.0', id: sent[0].id, result: { protocolVersion: '2026-01-26', hostCapabilities: {}, hostContext: {} } });
+        await vi.waitFor(() => expect(sent.some(message => message.method === 'ui/notifications/size-changed')).toBe(true));
+        hostSays({ jsonrpc: '2.0', method: 'ui/notifications/tool-cancelled', params: { reason: 'user action' } });
+        await vi.waitFor(() => expect(line().textContent).toBe('The assistant cancelled this answer.'));
+        expect(line().getAttribute('role')).toBe('alert');
+        expect(host.embeddedAnswerTimer).toBeNull();
+        // The wait is over: its timer must not come back with another message.
+        await new Promise(resolve => setTimeout(resolve, 30));
+        expect(line().textContent).toBe('The assistant cancelled this answer.');
+        expect(container.querySelector('.live-start')).toBeNull();
+    });
+
+    it('keeps an admitted answer and its Begin when the host cancels after delivering it', async () => {
+        const { environment, sent, hostSays } = framed();
+        mount('?embed=mcp&voice=paced', environment);
+        await vi.waitFor(() => expect(sent).toHaveLength(1));
+        hostSays({ jsonrpc: '2.0', id: sent[0].id, result: { protocolVersion: '2026-01-26', hostCapabilities: {}, hostContext: {} } });
+        await vi.waitFor(() => expect(sent.some(message => message.method === 'ui/notifications/size-changed')).toBe(true));
+        answerCurrent(hostSays);
+        await vi.waitFor(() => expect(container.querySelector('.live-start')?.disabled).toBe(false));
+        hostSays({ jsonrpc: '2.0', method: 'ui/notifications/tool-cancelled', params: { reason: 'user action' } });
+        await new Promise(resolve => setTimeout(resolve, 0));
+        expect(line().textContent).toBe('Answer ready.');
+        expect(container.querySelector('.live-start')?.textContent).toBe('Begin');
+        expect(host.embeddedEvents).not.toBeNull();
+        await host.stop();
+    });
+
     it('holds the admitted Current until Begin, then starts that answer once despite duplicate delivery and clicks', async () => {
         const { environment, sent, listeners, hostSays } = framed();
         mount('?embed=mcp&voice=paced', environment);

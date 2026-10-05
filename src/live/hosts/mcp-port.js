@@ -4,7 +4,8 @@
  * An MCP app is a page inside a sandboxed frame. The host and the page speak
  * JSON-RPC to each other with `postMessage`. This is the whole of what the page
  * knows about that: it says hello, receives the Currents the host's model hands
- * it, and can ask the host's model a question directly (sampling). Every method
+ * it, hears when the host cancels the call or changes where the app is shown,
+ * and can ask the host's model a question directly (sampling). Every method
  * name is in METHODS, so the vocabulary is one table.
  *
  * WHY NOT A MESSAGE. The extension has `ui/message`, which puts text in the
@@ -40,6 +41,8 @@ export const METHODS = Object.freeze({
     toolResult: 'ui/notifications/tool-result',
     sample: 'sampling/createMessage',
     sizeChanged: 'ui/notifications/size-changed',
+    hostContextChanged: 'ui/notifications/host-context-changed',
+    toolCancelled: 'ui/notifications/tool-cancelled',
     ping: 'ping',
     teardown: 'ui/resource-teardown'
 });
@@ -48,6 +51,8 @@ export const METHODS = Object.freeze({
 export const PROTOCOL_VERSION = '2026-01-26';
 
 export const PORT_LIMITS = Object.freeze({ message: MCP_MESSAGE_BYTES, current: MCP_CURRENT_BYTES, buffered: 8, pending: 8, remembered: 8, answer: 100_000 });
+
+const isPlainObject = value => Boolean(value) && typeof value === 'object' && !Array.isArray(value);
 
 /** A Current from a successful tool result. Tool input never authorizes Begin. */
 export function currentFrom(method, params) {
@@ -72,10 +77,14 @@ export function createMcpGuestPort({ frame, host = frame.parent, appName = 'RISE
     const bufferedErrors = [];
     const pending = new Map();
     const teardowns = new Set();
+    const contextListeners = new Set();
+    const cancelListeners = new Set();
     const remembered = [];
     let next = 1;
     let closed = false;
     let sampling = false;
+    // What the host said about where the app is shown (theme, size, display mode), as last merged.
+    let hostContext = {};
 
     const send = message => host.postMessage({ jsonrpc: '2.0', ...message }, '*');
 
@@ -134,6 +143,18 @@ export function createMcpGuestPort({ frame, host = frame.parent, appName = 'RISE
             } else send({ id: data.id, error: { code: -32601, message: 'Method not found' } });
             return;
         }
+        if (data.method === METHODS.hostContextChanged) {
+            // A partial update: the fields it carries replace those held, and the rest stay.
+            if (!isPlainObject(data.params)) return;
+            hostContext = { ...hostContext, ...data.params };
+            for (const listener of [...contextListeners]) { try { listener(hostContext); } catch { /* one listener cannot block the others */ } }
+            return;
+        }
+        if (data.method === METHODS.toolCancelled) {
+            const reason = typeof data.params?.reason === 'string' ? data.params.reason.slice(0, 200) : null;
+            for (const listener of [...cancelListeners]) { try { listener({ reason }); } catch { /* one listener cannot block the others */ } }
+            return;
+        }
         if (data.method === METHODS.toolResult && data.params?.isError === true) {
             reportError('The assistant’s Current was refused. Ask it to correct the answer and try again.');
             return;
@@ -181,8 +202,28 @@ export function createMcpGuestPort({ frame, host = frame.parent, appName = 'RISE
         async connect() {
             const result = await request(METHODS.initialize, { appInfo: { name: appName, version: '1' }, appCapabilities: {}, protocolVersion: PROTOCOL_VERSION });
             sampling = Boolean(result?.hostCapabilities?.sampling);
+            hostContext = isPlainObject(result?.hostContext) ? { ...result.hostContext } : {};
             send({ method: METHODS.initialized, params: {} });
             return result;
+        },
+
+        /** What the host last said about where the app is shown: the hello's context with every change since merged in. */
+        hostContext() {
+            return hostContext;
+        },
+
+        /** Told after each change the host sends is merged in, with the whole context. */
+        onHostContext(listener) {
+            if (closed) return () => {};
+            contextListeners.add(listener);
+            return () => contextListeners.delete(listener);
+        },
+
+        /** Told when the host cancels the call this app shows, with the host's reason in words, or null. */
+        onToolCancelled(listener) {
+            if (closed) return () => {};
+            cancelListeners.add(listener);
+            return () => cancelListeners.delete(listener);
         },
 
         /** Currents the host hands the app. Those that arrived before anyone was listening are given first. */
@@ -250,6 +291,8 @@ export function createMcpGuestPort({ frame, host = frame.parent, appName = 'RISE
             listeners.clear();
             errorListeners.clear();
             teardowns.clear();
+            contextListeners.clear();
+            cancelListeners.clear();
             buffered.length = 0;
             bufferedErrors.length = 0;
             remembered.length = 0;
