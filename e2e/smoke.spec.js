@@ -74,16 +74,15 @@ async function exitSession(page) {
 
 test('1 · Home presents one key, and every room behind Menu', async ({ page }) => {
     await boot(page, { text: false });
-    // Home is a reading already under way: one solid key. The rooms you own sit
-    // behind the one Menu; the Atrium and the Solarium are gone with their rooms.
+    // Home is a reading already under way: one solid key. The Menu names the
+    // five rooms, then Ask, Guide and the Wormhole; every other room is a tab
+    // or program inside one of the five.
     await expect(page.locator('[data-home="enter"]')).toBeVisible();
-    const nav = page.locator('.portal-nav [data-nav]');
-    await expect(nav).toHaveCount(10);
-    // Today's poem begins a reading from the Menu; it is not a room.
-    await expect(page.locator('.portal-nav [data-action="today"]')).toHaveText('Today\'s poem');
-    // The live Current is reachable from the Portal, not only by typing /live.
-    await expect(page.locator('.portal-nav [data-nav="live"]')).toContainText('Live reading');
-    for (const gone of ['atrium', 'sol']) {
+    await expect(page.locator('.portal-nav button, .portal-nav a'))
+        .toHaveText(['Home', 'Read', 'Library', 'Make', 'Settings', 'Ask for a reading', 'Guide', 'Wormhole']);
+    await expect(page.locator('.portal-nav [data-nav]')).toHaveCount(3);
+    // Realtime Live is out of current scope; the Atrium and the Solarium are gone.
+    for (const gone of ['atrium', 'sol', 'live']) {
         await expect(page.locator(`[data-nav="${gone}"]`)).toHaveCount(0);
     }
 });

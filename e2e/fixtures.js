@@ -3,15 +3,32 @@ export { expect, test } from '@playwright/test';
 import { answerDecisions, connectOpenRouter, openAskDialog } from './reader-connection.js';
 
 /**
- * Open a Home header destination (library, vault, workshop). On a phone the
- * header nav sits behind the Menu button, so a reader opens the menu first.
+ * Where each room sits now: the Menu names the five rooms, and every other
+ * room is a tab or program inside one of them (route-url.js ROUTE_PANES).
+ */
+const ROOM_PATHS = {
+  chamber: ['read'],
+  workshop: ['make', '.make-nav [data-tab="workshop"]'],
+  vault: ['make', '.make-nav [data-tab="vault"]'],
+  scriptorium: ['make', '.make-nav [data-tab="scriptorium"]'],
+  'visual-lab': ['make', '.make-nav [data-tab="visual-lab"]'],
+  chapel: ['library', '.library-programs [data-open-pane="chapel"]'],
+  curia: ['library', '.library-programs [data-open-pane="provenance"]']
+};
+
+/**
+ * Open a room the way a reader does: its Menu entry, then the tab or program
+ * inside the room when it is not one of the five. The Menu is a sheet behind
+ * the Menu button, so a reader opens it first.
  */
 export async function openHomeNav(page, destination) {
-  const link = page.locator(`.portal-nav [data-nav="${destination}"]`);
+  const [entry, inside] = ROOM_PATHS[destination] || [destination];
+  const link = page.locator(`.portal-nav [data-nav="${entry}"]`);
   await link.waitFor({ state: 'attached' });
   const toggle = page.locator('.portal-menu-toggle');
   if (!(await link.isVisible()) && await toggle.isVisible()) await toggle.click();
   await link.click();
+  if (inside) await page.locator(inside).first().click();
 }
 
 /**

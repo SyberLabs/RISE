@@ -441,18 +441,6 @@ describe('Read it with sound', () => {
         portal.destroy();
     });
 
-    it('the Menu\'s Today\'s poem begins the day\'s poem even while another reading shows', async () => {
-        const onLaunchToday = vi.fn().mockResolvedValue(undefined);
-        const onLaunchJevReading = vi.fn().mockResolvedValue(undefined);
-        const { portal, container } = makePortal({ onLaunchToday, onLaunchJevReading });
-        await arrive(portal, container);
-        await another(container, portal);
-        container.querySelector('.portal-nav [data-action="today"]').click();
-        await vi.waitFor(() => expect(onLaunchToday).toHaveBeenCalledOnce());
-        expect(onLaunchJevReading).not.toHaveBeenCalled();
-        portal.destroy();
-    });
-
     it('plays a rolled reading, and Adjust opens it to change', async () => {
         const onLaunchJevReading = vi.fn().mockResolvedValue(undefined);
         const onAdjustReading = vi.fn().mockResolvedValue(undefined);
@@ -547,14 +535,14 @@ describe('the rest of Home', () => {
         expect(toggle.getAttribute('aria-expanded')).toBe('true');
         expect(container.querySelector('.portal').classList.contains('is-menu-open')).toBe(true);
 
-        const items = [...container.querySelectorAll('.portal-nav button')];
-        expect(items.slice(0, 3).map(words)).toEqual(['Home', 'Ask for a reading', 'Today\'s poem']);
+        // The five rooms, then Ask, Guide and the Wormhole.
+        const items = [...container.querySelectorAll('.portal-nav button, .portal-nav a')];
+        expect(items.map(words))
+            .toEqual(['Home', 'Read', 'Library', 'Make', 'Settings', 'Ask for a reading', 'Guide', 'Wormhole']);
         expect(items[0].getAttribute('aria-current')).toBe('page');
         expect(document.activeElement).toBe(items[0]);
         expect([...container.querySelectorAll('.portal-nav [data-nav]')].map(item => item.dataset.nav))
-            .toEqual(['library', 'vault', 'workshop', 'chamber', 'live', 'chapel', 'scriptorium', 'visual-lab', 'emotions', 'curia']);
-        // Today's poem is not a room: it begins the day's exact poem through the app's launchToday.
-        expect(items[2].dataset.action).toBe('today');
+            .toEqual(['read', 'library', 'make']);
         // Every room the Menu names is a route the app has, directly or as an old id's alias,
         // so no Menu button goes nowhere.
         const routes = new Set(createRouteManifest({}).map(route => route.id));
@@ -573,8 +561,8 @@ describe('the rest of Home', () => {
         expect(document.activeElement).toBe(toggle);
 
         toggle.click();
-        container.querySelector('.portal-nav [data-nav="curia"]').click();
-        expect(onNavigate).toHaveBeenCalledWith('curia');
+        container.querySelector('.portal-nav [data-nav="make"]').click();
+        expect(onNavigate).toHaveBeenCalledWith('make');
         expect(header.classList.contains('is-open')).toBe(false);
         portal.destroy();
     });
@@ -583,7 +571,7 @@ describe('the rest of Home', () => {
         const { portal, container } = makePortal();
         const link = container.querySelector('.portal-nav a[href="/wormhole.html"]');
         expect(link.textContent.trim()).toBe('Wormhole');
-        expect(link.closest('.portal-nav').textContent).toContain('Other ways in');
+        expect(link.classList.contains('portal-nav-minor')).toBe(true);
         portal.destroy();
         const demo = makePortal({ demoMode: true });
         expect(demo.container.querySelector('.portal-nav a[href="/wormhole.html"]')).not.toBeNull();
@@ -637,15 +625,11 @@ describe('the rest of Home', () => {
         portal.destroy();
     });
 
-    it('opens a door onto the live Current, as a minor room until Stage 2 is complete', () => {
-        const { portal, container, onNavigate } = makePortal();
-        const door = container.querySelector('.portal-nav [data-nav="live"]');
-        expect(door, 'the live Current has no door at all').not.toBeNull();
-        // Reachable without a typed URL, but not promoted: the runtime is mid-build
-        // (docs/VISION.md Stage 2). Promote it, and flip this, when Stage 2's shown-by holds.
-        expect(door.classList.contains('portal-nav-minor'), 'the live Current is promoted before Stage 2').toBe(true);
-        door.click();
-        expect(onNavigate).toHaveBeenCalledWith('live');
+    it('offers no Menu door to realtime Live, which is out of current scope', () => {
+        // docs/product/discussions/2026-10-04-composer-decision.md. /live still routes,
+        // for the Composer embed and the catalog.
+        const { portal, container } = makePortal();
+        expect(container.querySelector('.portal-nav [data-nav="live"]')).toBeNull();
         portal.destroy();
     });
 

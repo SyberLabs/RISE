@@ -3,7 +3,7 @@ import { test, expect, openHomeNav } from './fixtures.js';
 
 test('the Portal names one act, and the Vault does not offer Journeys', async ({ page }) => {
   await page.goto('/');
-  await expect(page.locator('[data-nav="chamber"]')).toBeAttached({ timeout: 20000 });
+  await expect(page.locator('[data-nav="read"]')).toBeAttached({ timeout: 20000 });
 
   // Home has one solid key (Read it with sound). Journeys stay out of Home
   // and the Vault.

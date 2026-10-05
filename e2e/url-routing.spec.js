@@ -20,8 +20,9 @@ test('Home, Library and Chapel each have an address that survives reload and Bac
   await expect(page.locator('.chapel-book[data-book-id="matthew"]')).toBeVisible({ timeout: 15_000 });
   await expect.poll(() => pathOf(page)).toBe('/library/chapel');
 
+  // The Chapel is a program in the Library, so Back returns to the Library.
   await page.goBack();
-  await expect.poll(() => pathOf(page)).toBe('/');
+  await expect.poll(() => pathOf(page)).toBe('/library');
   await expect(page.locator('.chapel-book[data-book-id="matthew"]')).toBeHidden();
   await page.goForward();
   await expect(page.locator('.chapel-book[data-book-id="matthew"]')).toBeVisible({ timeout: 15_000 });
@@ -71,8 +72,8 @@ test('a chapter chosen in the Chapel is part of its address, and survives reload
   await page.reload();
   await expect(page.locator('.chapel-chapter-last[data-chapter="2"]')).toBeVisible({ timeout: 15_000 });
   await page.goBack();
-  await expect.poll(() => pathOf(page)).toBe('/');
-  await expect(page.locator('.portal-nav [data-nav="library"]')).toBeAttached({ timeout: 15_000 });
+  await expect.poll(() => pathOf(page)).toBe('/library');
+  await expect(page.locator('[data-filter="received"]')).toBeVisible({ timeout: 15_000 });
 });
 
 test('Back never resurrects a finished reading', async ({ page }) => {
