@@ -39,7 +39,8 @@ export function todayPools(index = DIVISION_INDEX) {
     const work = index[workId];
     const list = [];
     work?.labels.forEach((label, entryId) => {
-      if (work.divisionWords[entryId] <= TODAY_MAX_WORDS) list.push({ workId, entryId, label });
+      const words = work.divisionWords[entryId];
+      if (words <= TODAY_MAX_WORDS) list.push({ workId, entryId, label, words });
     });
     const next = seededRandom(`${SHUFFLE_SEED}:${workId}`);
     for (let i = list.length - 1; i > 0; i--) {

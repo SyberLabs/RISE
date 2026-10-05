@@ -249,9 +249,14 @@ describe('the opening lines of a reading', () => {
   it('opens the same division the reading opens, for every section', async () => {
     for (const section of ['first', 'middle', 'last', 'shortest', 'longest']) {
       const reading = await resolveJevReading(decision({ section }));
+      const { words } = divisions.entries.find(entry => entry.content === reading.text);
       expect(await openingLines(decision({ section })))
-        .toEqual({ text: reading.text, verse: reading.verseLines });
+        .toEqual({ text: reading.text, verse: reading.verseLines, words });
     }
+  });
+
+  it('counts the division’s words, so Home can say how long it takes', async () => {
+    expect((await openingLines(decision({ section: 'shortest' }))).words).toBe(3);
   });
 
   it('says whether that division is verse, so the Chamber reads it by line', async () => {
