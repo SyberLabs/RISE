@@ -3,8 +3,8 @@
   "title": "Curate three instruments and explanation fixtures",
   "lane": "live-sdk",
   "milestone": "M1 composed explanation",
-  "status": "in_review",
-  "delivery": "branch",
+  "status": "done",
+  "delivery": "deployed",
   "owner": "Cloud Composer agent",
   "priority": "now",
   "dependencies": [],
@@ -37,6 +37,12 @@
       "ref": "https://github.com/SyberLabs/RISE/pull/411",
       "note": "Instruments page and two fixtures, open for review, not merged.",
       "date": "2026-10-05"
+    },
+    {
+      "kind": "commit",
+      "ref": "https://github.com/SyberLabs/RISE/commit/2424d525682f48962ea40d857b0b4b29c82e5344",
+      "note": "Merged as #411 and deployed; full validation passed on the branch.",
+      "date": "2026-10-05"
     }
   ],
   "activity": [
@@ -51,10 +57,14 @@
     {
       "date": "2026-10-05T06:12:53.741Z",
       "summary": "Linked the LIVE-003 PR (Cloud Composer agent)"
+    },
+    {
+      "date": "2026-10-05T07:34:31.867Z",
+      "summary": "Merged and deployed as #411"
     }
   ],
-  "updatedAt": "2026-10-05T06:12:53.741Z",
-  "revision": 3,
+  "updatedAt": "2026-10-05T07:34:31.867Z",
+  "revision": 4,
   "summary": "Choose at most three already supported instruments and three short explanations with different presentation demands.",
   "blocker": null
 }

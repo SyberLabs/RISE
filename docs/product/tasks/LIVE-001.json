@@ -3,8 +3,8 @@
   "title": "Prove canonical score and playback parity",
   "lane": "live-sdk",
   "milestone": "M1 composed explanation",
-  "status": "in_review",
-  "delivery": "branch",
+  "status": "done",
+  "delivery": "deployed",
   "owner": "Cloud Composer agent",
   "priority": "now",
   "dependencies": [
@@ -32,6 +32,12 @@
       "ref": "https://github.com/SyberLabs/RISE/pull/412",
       "note": "Parity tests, open for review, not merged.",
       "date": "2026-10-05"
+    },
+    {
+      "kind": "commit",
+      "ref": "https://github.com/SyberLabs/RISE/commit/44807f4a6ea1ece4af3da76d1f022648e7c2cd38",
+      "note": "Merged as #412 and deployed; full validation passed on the branch.",
+      "date": "2026-10-05"
     }
   ],
   "activity": [
@@ -46,10 +52,14 @@
     {
       "date": "2026-10-05T06:23:49.767Z",
       "summary": "Linked the LIVE-001 PR (Cloud Composer agent)"
+    },
+    {
+      "date": "2026-10-05T07:34:31.362Z",
+      "summary": "Merged and deployed as #412"
     }
   ],
-  "updatedAt": "2026-10-05T06:23:49.767Z",
-  "revision": 3,
+  "updatedAt": "2026-10-05T07:34:31.362Z",
+  "revision": 4,
   "summary": "Preserve text, source anchors, themes and supported visual intent through Current → Experience Program → Session.",
   "blocker": null
 }
