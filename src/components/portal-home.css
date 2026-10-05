@@ -131,6 +131,13 @@
   text-shadow: 0 0 40px var(--sy-bg);
 }
 
+/* A phrase or a line keeps to two lines, so the engine still shows above and
+   below the stream; a single word keeps the full size. */
+.home-stream:not([data-chunk-mode="word"]) .reading-stream-current {
+  font-size: clamp(30px, 3.6vw, 48px);
+  max-width: 24ch;
+}
+
 /* The opening's first line, held still if the stream cannot run. */
 .home-still {
   margin: 0;
@@ -464,6 +471,10 @@
   .home-stream .reading-stream-current,
   .home-still {
     font-size: clamp(34px, 10.5vw, 42px);
+  }
+
+  .home-stream:not([data-chunk-mode="word"]) .reading-stream-current {
+    font-size: clamp(26px, 7.6vw, 30px);
   }
 }
 
