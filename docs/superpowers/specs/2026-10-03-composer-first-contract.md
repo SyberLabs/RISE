@@ -2,6 +2,8 @@
 
 Date: 2026-10-03. Scope: first-edition guided explanations. This document fixes the product boundary; it does not claim every behavior below is implemented.
 
+Updated 2026-10-04: Composer is the decided approach, a one-shot sequence creator and RISE presentation within ChatGPT ([decision](../../product/discussions/2026-10-04-composer-decision.md)). Exploration and return, and Dive with it, are out of current scope.
+
 ## Semantic boundary
 
 `rise.experience-program.v1` remains the durable score. `rise.current.v1` remains the host-facing sealed composition adapter. Use `validateRiseCurrent(input)`, `materializeRiseCurrent(input) -> { program, sources }`, and `compileRiseCurrent(input, { projection }) -> Session` in `src/core/rise-current.js`. Preserve the existing compiler/Player/Chamber path. Do not add a second score format or runtime.
@@ -28,13 +30,9 @@ Pause holds the current experience and return position. Resume continues through
 
 Reader presentation choices have reader authority. Model-authored content does not become globally reader-approved because Begin was pressed. Before persisting a control, its owner must classify it as durable score intent or a session preference. Use existing score vocabulary for representable durable choices; receipts alone cannot establish replay support.
 
-## Exploration and return
+## Exploration and return (out of scope)
 
-First-edition model interaction occurs at explicit held boundaries. Prefer the existing `dive({ question, segmentId, atCharacter })` / `surface()` path or a separate admitted Current, whichever meets the supported host contract. Preserve the original score and return position. Nested Dives and continuous model edits are outside this edition.
-
-Show loading, exploration, refusal and return distinctly. Admit follow-up content before playing it. A cancelled, repeated or stale request cannot replace the currently accepted branch. Experienced parent content is immutable. A failure returns the reader to the held parent with a usable resume/Stop path.
-
-The existing runtime has local Dive mechanics. ChatGPT initiation, delivery and return behavior require a separate implementation plan and real-host acceptance; this document does not invent a provider endpoint or claim that the host supports those mechanics.
+Removed from the current scope on 2026-10-04. One admitted Current is presented; the model does not change or extend it, and the presentation offers no Dive. The runtime's `dive()` / `surface()` mechanics stay in the tree, unused by the ChatGPT presentation. Reintroducing follow-up needs its own decision, contract and real-host acceptance.
 
 ## Replay and instrument boundaries
 
@@ -56,7 +54,7 @@ An interface change needs one owner and agreement before consumers code against 
 - [ ] Canonical fixture preserves text, themes, visual intent and source anchors across validation/materialization/compilation.
 - [ ] Begin waits for successful admission; refusal, oversized input and hostile-source messages cannot start playback.
 - [ ] Stop, navigation and teardown defeat late results/callbacks.
-- [ ] Pause/resume and exploration/return preserve orientation and the parent position.
+- [ ] Pause/resume preserves orientation and position.
 - [ ] Export plus required sources replays the promised semantics.
 - [ ] Exact-head browser checks and witnessed audible ChatGPT/device acceptance are recorded separately.
 

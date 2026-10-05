@@ -8,7 +8,7 @@
   "owner": null,
   "priority": "later",
   "dependencies": [
-    "LIVE-008"
+    "LIVE-007"
   ],
   "acceptance": [
     "Meet M0–M3 and formative decision gates.",
@@ -22,16 +22,26 @@
       "ref": "docs/COMPOSER-FIRST-ROADMAP.md",
       "note": "Approved delivery direction; unchecked milestones do not imply missing all underlying code.",
       "date": "2026-10-03"
+    },
+    {
+      "kind": "document",
+      "ref": "docs/product/discussions/2026-10-04-composer-decision.md",
+      "note": "Composer is the approach; Dive and realtime Live leave the current scope.",
+      "date": "2026-10-04"
     }
   ],
   "activity": [
     {
       "date": "2026-10-03",
       "summary": "Seeded from approved Composer-first roadmap; host/release acceptance remains open."
+    },
+    {
+      "date": "2026-10-05T01:38:40.423Z",
+      "summary": "Follows LIVE-007 now that exploration (LIVE-008) is out of scope"
     }
   ],
-  "updatedAt": "2026-10-03T23:14:43.432Z",
-  "revision": 1,
+  "updatedAt": "2026-10-05T01:38:40.423Z",
+  "revision": 2,
   "summary": "Review exact candidate, witnessed devices, reader-owned AI/CSP, onboarding, deployment and rollback.",
   "blocker": null
 }

@@ -44,9 +44,11 @@ npm run dev        # http://localhost:5173/
 
 In the app: **Try RISE** → pick a reading → **Begin**. Use **Page** to switch to the paginated view.
 
-### External Current experiment
+### RISE in ChatGPT: Composer
 
-`rise.current.v1` is an experimental, sealed input for bringing a structured answer into the existing Session Compiler. It accepts bounded segments, a closed visual selection, and exact-span Dive notes. See the [contract](docs/specs/RISE-CURRENT-V1-SLICE.md) and [sample document](docs/examples/current-v1.json). To compile the sample locally:
+In ChatGPT, RISE is a Composer: the host model composes one sealed Current in a single tool call, RISE admits it, and the reader presses Begin to see it presented. Dive and realtime Live are out of current scope ([decision](docs/product/discussions/2026-10-04-composer-decision.md)).
+
+`rise.current.v1` is that sealed input, compiled through the existing Session Compiler. It accepts bounded segments, a closed visual selection, and exact-span Dive notes, which the current product does not present. See the [contract](docs/specs/RISE-CURRENT-V1-SLICE.md) and [sample document](docs/examples/current-v1.json). To compile the sample locally:
 
 ```bash
 node --input-type=module -e "import fs from 'node:fs'; import { compileRiseCurrent } from './src/core/rise-current.js'; const input = JSON.parse(fs.readFileSync('docs/examples/current-v1.json', 'utf8')); const session = compileRiseCurrent(input); console.log(session.atoms.length, session.experienceProgram.schema);"

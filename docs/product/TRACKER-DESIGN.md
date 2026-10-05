@@ -4,7 +4,7 @@ Status: approved intent, 2026-10-03. Repository/local first; hosting follows con
 
 ## Purpose and boundaries
 
-Give Mateo, Seth and agents one evidence-backed account of two equal product directions: the audiovisual Reader and Live + RiseSDK. Shared foundations form a third lane, with dependencies rather than duplicated tasks. The tracker describes development; it does not replace runtime contracts or the human release protocol.
+Give Mateo, Seth and agents one evidence-backed account of two equal product directions: the audiovisual Reader and the ChatGPT Composer (with RiseSDK later). The second lane keeps the id `live-sdk`. Shared foundations form a third lane, with dependencies rather than duplicated tasks. The tracker describes development; it does not replace runtime contracts or the human release protocol.
 
 Delete the proposed database, hosted write service and automatic completion inference. Git already provides review, attribution and concurrency. One JSON file per task limits parallel conflicts. A local read-only dashboard watches those files; agents update files through a validated CLI or reviewed edits. No dependency or production reader route is added.
 

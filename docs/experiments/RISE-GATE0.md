@@ -1,5 +1,7 @@
 # RISE Gate 0: local host feasibility probe
 
+**Status (2026-10-04):** closed. ChatGPT is a Composer host ([decision](../product/discussions/2026-10-04-composer-decision.md)). Kept as the record of the first probe.
+
 This is a throwaway local experiment. It uses the actual `AttractorField` renderer in one self-contained MCP Apps widget and one mutating `rise_set_visual` tool. It does not change RISE production playback, keep data after process exit, accept reader text, use an inference API, sample a model, or capture microphone audio.
 
 ## Run locally

@@ -1,6 +1,6 @@
 # RISE product library and team tracker
 
-The Reader and Live + RiseSDK are equal product directions. Shared foundations connect specific tasks; research in one lane does not automatically hold the other. Start the local team dashboard with `npm run roadmap:dev`, then open the loopback address printed by the command. The dashboard is read-only and refreshes while agents update task files. It is separate from the public reader. Each dashboard reflects the checkout serving it; updates from other branches appear after their commits are integrated. Seth can run the same commands in his checkout. Git review resolves cross-branch updates.
+The Reader and the ChatGPT Composer (with RiseSDK later) are equal product directions. Shared foundations connect specific tasks; research in one lane does not automatically hold the other. Start the local team dashboard with `npm run roadmap:dev`, then open the loopback address printed by the command. The dashboard is read-only and refreshes while agents update task files. It is separate from the public reader. Each dashboard reflects the checkout serving it; updates from other branches appear after their commits are integrated. Seth can run the same commands in his checkout. Git review resolves cross-branch updates.
 
 ## Current direction and truth
 
@@ -8,7 +8,8 @@ The Reader and Live + RiseSDK are equal product directions. Shared foundations c
 | --- | --- |
 | [Task records](tasks/) | Current work state, owners, dependencies and linked evidence; validated JSON, one file per task |
 | [Reader direction](READER-DIRECTION.md) | Website scope and near-term acceptance packages; Intent |
-| [Composer-first roadmap](../COMPOSER-FIRST-ROADMAP.md) | Live/Composer delivery sequence M0–M4; Intent |
+| [Composer decision](discussions/2026-10-04-composer-decision.md) | Composer is the approach in ChatGPT; Dive and realtime Live out of current scope; Record |
+| [Composer-first roadmap](../COMPOSER-FIRST-ROADMAP.md) | Composer delivery sequence M0–M4 (M3 removed); Intent |
 | [October decisions](discussions/2026-10-03-direction-decisions.md) | Dated conversation summary and provenance; Record |
 | [Tracker design](TRACKER-DESIGN.md) | Tracker architecture and boundaries; approved Intent implemented by this tool |
 | [Experience Program](../vision/EXPERIENCE-PROGRAM-SPEC.md) | Durable score Contract |

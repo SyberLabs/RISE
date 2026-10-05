@@ -1,7 +1,7 @@
 # ADR 0002 — Gate 0: is ChatGPT a Live host?
 
 Date: 2026-10-02
-Status: **probe built; host run pending.** Default if the run has not happened by 2026-10-09: ChatGPT is a Composer host only.
+Status: **decided 2026-10-04: ChatGPT is a Composer host.** In the decoupled probe's real-host run, reader changes applied in one persistent widget, admitted model changes did not reach it without a manual read, and Voice interleaving was not shown. See the [decision](../product/discussions/2026-10-04-composer-decision.md). Originally: probe built; host run pending. The sections below are the record that led there.
 
 ## The question, narrowed
 

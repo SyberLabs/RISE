@@ -2,6 +2,8 @@
 
 **Status:** built and tested against fakes and in a real browser with Google's endpoint stubbed. **Never run against Google's service**, so treat it as unverified until the steps at the end of this page have been done with a real key. It ships **off**: the page reaches Gemini only when the address asks for `?provider=gemini`, and the reader types their own key.
 
+**Current scope (2026-10-04):** deferred with the live Current ([decision](../product/discussions/2026-10-04-composer-decision.md)).
+
 ## What it is, and what it is not
 
 RISE's live layer already has one seam for any provider that streams text (`src/live/adapters/text-stream.js`): a provider is one `connect(request, sink)` that calls `sink.delta`, `sink.done` or `sink.error`. OpenAI Realtime is one such provider. This adds a second, Google's **streaming text generation** (`models/{model}:streamGenerateContent`, server-sent events), to show that the runtime is provider-independent: the existing conformance suite must pass for it unchanged.
