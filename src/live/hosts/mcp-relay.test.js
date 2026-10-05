@@ -98,9 +98,10 @@ describe('an origin it is given', () => {
 });
 
 describe('the document', () => {
-    it('frames RISE’s own embedded page, names it, lets it play sound and fill the screen, and asks for no microphone', () => {
+    it('frames RISE’s own embedded page, names it, lets it play sound, and asks for no microphone and no full screen', () => {
         const html = relayHtml({ origin: ORIGIN });
-        expect(html).toContain(`<iframe id="app" title="RISE" src="${ORIGIN}${EMBED_PATH}" allow="autoplay; fullscreen"></iframe>`);
+        expect(html).toContain(`<iframe id="app" title="RISE" src="${ORIGIN}${EMBED_PATH}" allow="autoplay"></iframe>`);
+        expect(html).not.toContain('fullscreen');
         expect(html).not.toContain('microphone');
         expect(html.startsWith('<!doctype html>')).toBe(true);
         expect(html).toContain('lang="en"');
