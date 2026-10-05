@@ -13,12 +13,14 @@
  * the reading has no engine this knows (the page then stays on ink).
  *
  * A page shows its engine through a `ReadingStage`, which owns the rest: each
- * reading's engine in its own layer, cross-faded over the last; a mount that a
+ * reading's engine in its own layer, faded in over the last, which holds at
+ * full strength beneath it until the fade is over; a mount that a
  * newer one overtook is destroyed; a hidden tab pauses it; and pausing or
  * destroying the stage finishes any fade first, so no engine runs behind
  * another room.
  */
 import './reading-backdrop.css';
+import { themeEngine } from '../core/theme-engine-map.js';
 
 const FRACTAL_DWELL_MS = 18_000;
 // The cross-fade, written once: the stage hands it to its stylesheet.
@@ -33,7 +35,11 @@ export async function mountReadingBackdrop(host, decision) {
 
   if (visual?.visualMode === 'attractor') {
     const { AttractorField } = await import('../visuals/attractor.js');
-    const { system, palette, form } = visual.attractor || {};
+    const own = visual.attractor || {};
+    // White is no choice: the theme's row mounts, as the Chamber will mount it.
+    const { system, palette, form } = !own.palette || own.palette === 'white'
+      ? { ...own, ...themeEngine(decision.config.colorTheme, 'attractor') }
+      : own;
     const field = new AttractorField(host, { system, palette, form });
     return { pause: () => field.pause(), resume: () => field.resume(), destroy: () => field.destroy() };
   }
@@ -130,7 +136,8 @@ export class ReadingStage {
     void layer.offsetWidth;
     layer.classList.add('is-shown');
     if (!old) return;
-    old.layer.classList.remove('is-shown');
+    // The old layer keeps full opacity beneath the new one until the fade is
+    // over, so brightness never dips; removing the node ends it.
     if (this.paused || reducedMotion()) {
       end(old);
       return;

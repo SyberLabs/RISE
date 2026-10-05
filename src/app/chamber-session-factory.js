@@ -15,7 +15,7 @@ import {
 } from '../core/visual-safety.js';
 import { normalizeVisualSelection, resolveSessionWordFill } from '../core/visual-selection.js';
 import { chamberExitTarget } from './chamber-exit.js';
-import { createPresentationLens, sessionColorTheme } from '../core/session-presentation.js';
+import { createPresentationLens, sessionColorTheme, sessionColorThemeId } from '../core/session-presentation.js';
 import { sessionImageryCollections } from '../core/visual-selection.js';
 import { audioDiag } from '../core/audio-diagnostics.js';
 import { liveExited, liveMounted, takeLivePlayer } from './live-handoff.js';
@@ -318,6 +318,12 @@ export async function createChamberSession(operations, container, sessionData) {
                     // The reading's chosen colors paint the flame; readings
                     // without a declared palette keep the mood palettes.
                     flameColors: sessionColorTheme(session),
+                    // The theme answers every engine knob left at its
+                    // no-choice value; the plate keys are that value until
+                    // a cue names a palette.
+                    colorTheme: sessionColorThemeId(session),
+                    ostensoriaPalette: 'auto',
+                    apparitioPalette: 'auto',
                     presentation: normalizePresentation(interlocution.presentation),
                     activeTypes: activeTypes,
                     kleePreset: interlocution.kleePreset ?? 'random',
@@ -463,9 +469,12 @@ export async function createChamberSession(operations, container, sessionData) {
             onEnterStream: activateDeferredVisuals,
             pendingVisualRecipe: operations.takePendingVisualRecipe?.() || null,
             onExit: (reason, data) => {
+                // Read before stop(), which resets the Player's state.
+                const complete = player.sessionState?.state === 'complete';
                 // Cleanup
                 if (live) liveExited(session);
                 player.stop();
+                if (complete) operations.releaseSession?.(session);
                 endVisualInterlocutionSession();
                 visualCortex.updateConfig({ enabled: false });
                 audioEngine.stopSession();
@@ -530,6 +539,7 @@ export async function createChamberSession(operations, container, sessionData) {
         // the personal draft may not have been kept yet.
         if (session.provenance?.kind === 'personal-generated') throw new Error('Personal reading playback unavailable.');
         operations.showToast('Failed to initialize session', 3000);
+        operations.releaseSession?.(session);
         operations.router.back();
         return { destroy: () => { } };
     }

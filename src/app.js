@@ -451,7 +451,7 @@ class App {
             launchJevReading: (decision, options) => this.launchJevReading(decision, options),
             launchJevSample: () => this.launchJevSample(),
             launchKeystone: slug => this.launchKeystone(slug),
-            adjustJevReading: decision => this.adjustJevReading(decision),
+            adjustJevReading: (decision, exact) => this.adjustJevReading(decision, exact),
             launchToday: () => this.launchToday(),
             openMintedProgram: slug => this.openMintedProgram(slug),
             handleSequenceSelection: sequenceId => this.handleSequenceSelection(sequenceId),
@@ -478,6 +478,11 @@ class App {
                 ensureVisualCortex: () => this.ensureVisualCortex(),
                 ensureAudioEngine: () => this.ensureAudioEngine(),
                 continueLibraryReading: session => this.continueLibraryReading(session),
+                // Home offers Continue only while a begun, unfinished reading
+                // is held here.
+                releaseSession: session => {
+                    if (this.currentSession === session) this.currentSession = null;
+                },
                 handleSettingsChange: this.handleSettingsChange,
                 handleDataCleared: this.handleDataCleared,
                 showLoading: title => this.showLoading(title),
@@ -719,10 +724,12 @@ class App {
     /**
      * Open a proposed reading (rolled or asked) in Reader Setup with
      * everything already set, through the same edition gate as Enter.
+     * `exact` ({ entryId, label }) opens that division instead of the
+     * plan's section (today's poem).
      */
-    async adjustJevReading(decision) {
+    async adjustJevReading(decision, exact = null) {
         const { resolveJevReading } = await import('./app/jev-reading.js');
-        const { text, textSource, ...config } = await resolveJevReading(decision);
+        const { text, textSource, ...config } = await resolveJevReading(decision, exact);
         config.origin = { ...config.origin, adjusted: true };
         return this.router.navigate('chamber', { data: { text, source: textSource, config } });
     }

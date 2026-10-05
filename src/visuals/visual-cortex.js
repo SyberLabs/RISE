@@ -51,6 +51,7 @@ import {
 } from './artwork-label.js';
 import { hasVisualInterlocutionConsent, VisualFlashGate } from '../core/visual-safety.js';
 import { LISTED_PROCEDURAL_PATTERNS } from '../core/visual-registry.js';
+import { rockGardenInk, themeEngine } from '../core/theme-engine-map.js';
 import {
     GALLERY_CADENCE_DEFAULT,
     VISUAL_PRESENCE_DEFAULT_MS,
@@ -268,6 +269,11 @@ export class VisualCortex {
             activeTypes: ['klee', 'turrell'],
             kleePreset: 'random', // 'random' | 'architectural' | 'chaotic' | 'harmonic' | 'gravitational' | 'twittering'
             harmonographClimate: 'auto', // 'auto' | a climate palette name (explicit = veto)
+            // The reading's colour theme id answers every knob left at its
+            // no-choice value ('random', 'auto'); null means today's picks.
+            colorTheme: null,
+            ostensoriaPalette: 'auto', // 'auto' | an Iris palette id (explicit = veto)
+            apparitioPalette: 'auto', // 'auto' | a Spectral palette id (explicit = veto)
             // Presentation surface: 'full-frame' cuts to an opaque overlay;
             // 'behind-stream' keeps the reading text visible and presents the
             // imagery beneath it. Behind-stream never conceals text, so it
@@ -701,6 +707,9 @@ export class VisualCortex {
             globalVisuals: [],
             semanticSignals: null,
             flameColors: null,
+            colorTheme: null,
+            ostensoriaPalette: 'auto',
+            apparitioPalette: 'auto',
         });
     }
 
@@ -729,8 +738,26 @@ export class VisualCortex {
             globalVisuals: [],
             semanticSignals: null,
             flameColors: null,
+            colorTheme: null,
+            ostensoriaPalette: 'auto',
+            apparitioPalette: 'auto',
             ...config
         }, { sessionBoundary: true });
+    }
+
+    /** The theme's cell for an engine, or null without a theme. */
+    _themed(engine) {
+        return themeEngine(this.config.colorTheme, engine);
+    }
+
+    /**
+     * What Klee Lines is handed: an authored preset as it is, 'random'
+     * answered by the theme. Resolved at the hand-off, so the config still
+     * records what the cue said.
+     */
+    _kleePreset() {
+        const preset = this.config.kleePreset ?? 'random';
+        return preset !== 'random' ? preset : (this._themed('genesis')?.preset ?? 'random');
     }
 
     _admissionKeyForCue(cue) {
@@ -1005,7 +1032,7 @@ export class VisualCortex {
             if (type === 'klee' && this.kleeFlashes) {
                 if (!this.kleeFlashes.queue?.length) {
                     this.kleeFlashes.beginSession?.({
-                        preset: this.config.kleePreset ?? 'random',
+                        preset: this._kleePreset(),
                         signals: this.config.semanticSignals
                     });
                     await this.kleeFlashes.preload?.(1);
@@ -1690,7 +1717,7 @@ export class VisualCortex {
             }
         } else if (type === 'turrell' && this.turrell && this._kleeCanvas) {
             this._resizeKleeCanvas();
-            const plan = this.turrell.generate();
+            const plan = this.turrell.generate(this._themed('turrell'));
             if (asciiMode) {
                 asciiFrame = compileFieldPlanToAscii(
                     plan,
@@ -1723,7 +1750,7 @@ export class VisualCortex {
                 }
             }
         } else if (type === 'neural' && this.neural && this._neuralCanvas) {
-            rendered = this.neural.generate();
+            rendered = this.neural.generate(this._themed('neural'));
             if (asciiMode && rendered) asciiFrame = this._neuralAsciiFrame(signal);
             else canvas = this._neuralCanvas;
         } else if (type === 'harmonograph' && this.harmonograph && this._kleeCanvas) {
@@ -1756,9 +1783,12 @@ export class VisualCortex {
             if (asciiMode) {
                 asciiFrame = this._rockGardenAsciiFrame(signal);
             } else {
+                // The reading's ground and ink when it has colours, else today's.
                 rendered = this.rockgarden.renderRockGarden(this._kleeCanvas, {
-                    backgroundColor: ASCII_BACKGROUND,
-                    strokeColor: 'rgba(232, 232, 236, 0.8)',
+                    ...(rockGardenInk(this.config.flameColors) ?? {
+                        backgroundColor: ASCII_BACKGROUND,
+                        strokeColor: 'rgba(232, 232, 236, 0.8)'
+                    }),
                     brushStroke: true
                 }) !== false;
                 canvas = this._kleeCanvas;
@@ -2311,9 +2341,11 @@ export class VisualCortex {
         // Forward klee session config — the wrapper value-compares (preset
         // string, signal contents) and only flushes on real changes, so
         // identical arrays arriving under new references keep the queue.
-        if (('kleePreset' in nextConfig || 'semanticSignals' in nextConfig) && this.kleeFlashes) {
+        // A theme change re-resolves a 'random' preset.
+        if (('kleePreset' in nextConfig || 'semanticSignals' in nextConfig
+            || 'colorTheme' in nextConfig) && this.kleeFlashes) {
             this.kleeFlashes.configure({
-                preset: this.config.kleePreset ?? 'random',
+                preset: this._kleePreset(),
                 signals: this.config.semanticSignals
             });
         }
@@ -3291,7 +3323,7 @@ export class VisualCortex {
         // episode rather than by raw flash count.
         if (this.kleeFlashes && generationTypes.includes('klee')) {
             this.kleeFlashes.beginSession({
-                preset: this.config.kleePreset ?? 'random',
+                preset: this._kleePreset(),
                 signals: this.config.semanticSignals
             });
             const kleeShare = 1 / Math.max(1, generationTypes.length);
