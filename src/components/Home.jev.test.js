@@ -8,7 +8,7 @@ import { compileJevAudioProgram, compileJevVisualProgram } from '../core/jev-seq
 import { rollReading } from '../core/roll.js';
 import { Home } from './Home.js';
 import { DecisionError } from '../core/decision/call.js';
-import { acceptOpenRouterKey, resetConnectionForTests } from '../core/ai-connection.js';
+import { acceptOpenRouterKey, disconnect, resetConnectionForTests } from '../core/ai-connection.js';
 
 // The recommender runs in the page on the reader's own connection. Here a
 // stand-in connection answers with the decision each test scripts.
@@ -139,6 +139,33 @@ it('says what asking needs when there is no AI, sends nothing, and closes on Can
   hook(container, 'ask-cancel').click();
   expect(dialog(container).open).toBe(false);
   expect(provider).not.toHaveBeenCalled();
+  portal.destroy();
+});
+
+it('offers Ask among Home\'s keys only while the reader\'s own AI is connected; the Menu entry stays', () => {
+  const { portal, container } = mount();
+  const ask = () => container.querySelector('.home-actions [data-home="ask-open"]');
+  expect(ask().hidden).toBe(true);
+  acceptOpenRouterKey(KEY);
+  expect(ask().hidden).toBe(false);
+  expect(ask().textContent.trim()).toBe('Ask for a reading');
+  expect(ask().classList.contains('home-link')).toBe(true);
+  expect(container.querySelector('.portal-nav [data-home="ask-open"]')).not.toBeNull();
+  disconnect();
+  expect(ask().hidden).toBe(true);
+  portal.destroy();
+});
+
+it('Ask on Home is the eighth target on a desk and opens the request', async () => {
+  acceptOpenRouterKey(KEY);
+  const { portal, container } = mount();
+  const targets = [...container.querySelectorAll('button:not([hidden]), a[href]')]
+    .filter(node => !node.closest('.portal-nav, dialog, .portal-legal'));
+  expect(targets.map(node => node.dataset.home || node.dataset.nav || node.dataset.action || node.className))
+    .toEqual(['library', 'make', 'settings', 'portal-menu-toggle', 'enter', 'roll', 'adjust', 'ask-open']);
+  container.querySelector('.home-actions [data-home="ask-open"]').click();
+  await vi.waitFor(() => expect(dialog(container).open).toBe(true));
+  expect(document.activeElement).toBe(field(container));
   portal.destroy();
 });
 

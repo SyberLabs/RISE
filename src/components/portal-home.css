@@ -407,6 +407,11 @@
     min-height: 50px;
     font-size: 17px;
   }
+
+  /* Ask, for a connected reader, is a third row of its own under the two. */
+  .home-actions [data-home="ask-open"] {
+    grid-column: 1 / -1;
+  }
 }
 
 /* A short screen keeps two lines of the epigraph, so the window stays open. */
