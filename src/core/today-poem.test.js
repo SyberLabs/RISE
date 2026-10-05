@@ -40,6 +40,12 @@ describe('the day', () => {
     expect(morning.seed).toBe('2026-10-03');
   });
 
+  it('carries the poem’s word count, so Home can say how long it takes', () => {
+    const pick = todayPoem(new Date(2026, 9, 5));
+    expect(pick.words).toBe(DIVISION_INDEX[pick.workId].divisionWords[pick.entryId]);
+    expect(pick.words).toBeGreaterThan(0);
+  });
+
   it('alternates the works day by day, so neither runs for weeks', () => {
     const works = Array.from({ length: 10 }, (_, i) => todayPoem(new Date(2026, 9, 3 + i, 12)).workId);
     for (let i = 1; i < works.length; i++) expect(works[i]).not.toBe(works[i - 1]);
