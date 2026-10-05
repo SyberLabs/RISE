@@ -463,9 +463,12 @@ export async function createChamberSession(operations, container, sessionData) {
             onEnterStream: activateDeferredVisuals,
             pendingVisualRecipe: operations.takePendingVisualRecipe?.() || null,
             onExit: (reason, data) => {
+                // Read before stop(), which resets the Player's state.
+                const complete = player.sessionState?.state === 'complete';
                 // Cleanup
                 if (live) liveExited(session);
                 player.stop();
+                if (complete) operations.releaseSession?.(session);
                 endVisualInterlocutionSession();
                 visualCortex.updateConfig({ enabled: false });
                 audioEngine.stopSession();
@@ -530,6 +533,7 @@ export async function createChamberSession(operations, container, sessionData) {
         // the personal draft may not have been kept yet.
         if (session.provenance?.kind === 'personal-generated') throw new Error('Personal reading playback unavailable.');
         operations.showToast('Failed to initialize session', 3000);
+        operations.releaseSession?.(session);
         operations.router.back();
         return { destroy: () => { } };
     }

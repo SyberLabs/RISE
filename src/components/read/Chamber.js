@@ -107,7 +107,8 @@ import {
 import { resolveTextMaterialCapability } from '../../core/chamber-text-material.js';
 import { FitMaskRuntime } from '../../core/fit-mask-runtime.js';
 import { resolveSessionWordFill } from '../../core/visual-selection.js';
-import { sessionColorTheme } from '../../core/session-presentation.js';
+import { sessionColorTheme, sessionColorThemeId } from '../../core/session-presentation.js';
+import { themeEngine } from '../../core/theme-engine-map.js';
 import { RISE_CURRENT_THEMES } from '../../core/rise-current.js';
 import { SEQUENCE_PILOT, nextSequencePilot } from '../../content/sequence-pilot.js';
 import { saveSequencePilotFeedback } from '../../core/sequence-pilot-feedback.js';
@@ -2411,6 +2412,10 @@ export class Chamber {
     const field = this.container.querySelector('#chamber-field');
     if (!field || cue?.kind !== 'field') return null;
     const config = cue.config && typeof cue.config === 'object' ? cue.config : {};
+    // The reading's theme fills what the cue left to the engine: an absent
+    // or white palette, an absent or random preset. An explicit value wins,
+    // and the cue is never written, so a saved cue replays exactly.
+    const theme = sessionColorThemeId(this.session);
     const atomDisplay = field.querySelector('#atom-display');
     let controller = null;
     let visualControl = null;
@@ -2424,7 +2429,11 @@ export class Chamber {
         atomDisplay.classList.add('glass-tile');
       }
       this._insertBehindReading(field, host);
-      controller = new KleeField(host, { preset: config.preset || 'random' });
+      controller = new KleeField(host, {
+        preset: config.preset && config.preset !== 'random'
+          ? config.preset
+          : (themeEngine(theme, 'genesis')?.preset ?? 'random')
+      });
       this.kleeField = controller;
     } else if (cue.renderer === 'attractor') {
       host.className = 'chamber-attractor';
@@ -2441,10 +2450,15 @@ export class Chamber {
         // words readable against the brightest frame.
         if (atomDisplay && this.glassCanApply()) atomDisplay.classList.add('glass-tile');
       }
+      // White is no choice: the theme's whole row (system, palette, form) goes
+      // in, since brightness is pinned per palette-and-form pair.
+      const look = !config.palette || config.palette === 'white'
+        ? { ...config, ...themeEngine(theme, 'attractor') }
+        : config;
       const attractor = new AttractorField(host, {
-        system: config.system || 'aizawa',
-        palette: config.palette,
-        form: config.form,
+        system: look.system || 'aizawa',
+        palette: look.palette,
+        form: look.form,
         ...(Number.isFinite(config.intensity) ? { intensity: config.intensity } : {}),
         ...(Number.isFinite(config.speed) ? { speed: config.speed } : {})
       });
