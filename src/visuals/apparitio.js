@@ -533,7 +533,8 @@ export class Apparitio {
         height: this.fH,
         progress,
         paperRgb: APPARITIO_VOID_RGB,
-        scratch: this._plateScratch
+        scratch: this._plateScratch,
+        clearGround: options.clearGround === true
       };
       const ok = revealPlate(canvas, spec);
       this._plateScratch = spec.scratch;
