@@ -5,17 +5,23 @@ import { test, expect } from './fixtures.js';
  * whole way, no preparation overlay, no task that holds the main thread
  * (docs/product/discussions/2026-10-05-canonical-home-design.md §5, §7 row 4).
  *
- * Expected to fail until PR 7 (A3's remainder, RDR-015) holds Home under the
- * Read view and skips the overlay and its settle: today the router fades Home
- * out over 400 ms, the factory raises the overlay and settles 300 ms, and the
- * Chamber starts 500 ms after it mounts. The numbers are read on every CI run
- * so the gap is known, not guessed; they go in the annotation, in every
- * expect message, and on stdout, which is what the list reporter prints for
- * an expected failure. Headless Chromium draws with SwiftShader: these bound
- * CI, not a reader's machine.
+ * PR 7 (A3's remainder, RDR-015) holds Home under the Read view and skips the
+ * overlay and its settle; the Chamber still starts 500 ms after it mounts. The
+ * numbers are read on every CI run so the gap is known, not guessed; they go
+ * in the annotation, in every expect message, and on stdout, which is what the
+ * list reporter prints for a failure. Headless Chromium draws with
+ * SwiftShader: these bound CI, not a reader's machine.
+ *
+ * Criterion 4 is open (RDR-015): with the hold in place CI measured today's
+ * poem at 3.9 s, a revel roll at 4.0 s and an ember roll at 3.8 s, the overlay
+ * never shown and the field never gone; only the signal roll is within budget
+ * (1.4 s). The three red cases run under test.fail() so the number is read on
+ * every run; the next cut is the Chamber's own start (D1, C3), not Home's.
  */
 const BUDGET_MS = 1500;
 const LONG_TASK_MS = 50;
+// Cases CI measures over budget today (RDR-015); a pass here is a change to record.
+const OPEN = new Set(['today’s poem', 'a ember roll', 'a revel roll']);
 
 async function openHome(page) {
   await page.goto('/');
@@ -92,8 +98,7 @@ const cases = [['today’s poem', null], ...['signal', 'ember', 'revel'].map(tem
 
 for (const [name, temper] of cases) {
   test(`Begin on ${name}: the first word within 1.5 s over a field that never leaves, with no overlay and no long task`, async ({ page }) => {
-    // PR 7 (A3's remainder, RDR-015) makes this pass; until then it must fail.
-    test.fail();
+    test.fail(OPEN.has(name), 'criterion 4 is open in RDR-015: CI measures this case over the 1.5 s budget');
     await openHome(page);
     if (temper) {
       await page.evaluate(async temper => {
@@ -122,8 +127,8 @@ for (const [name, temper] of cases) {
     test.info().annotations.push({ type: 'begin-to-first-word', description: summary });
     console.log(`[home-begin] ${summary}`);
 
-    // Under test.fail() every failure reads as the expected one, so the line
-    // above is written before anything can throw; a missing stamp shows as NaN.
+    // The line above is written before anything can throw, so a failing run
+    // still prints its numbers; a missing stamp shows as NaN.
     expect(begin.t0, summary).not.toBeNull();
     expect(frames, summary).toBeGreaterThan(0);
     expect(firstWord, summary).toBeLessThanOrEqual(BUDGET_MS);
