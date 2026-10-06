@@ -337,7 +337,7 @@ export function livingTextAppearance(signal, intensity = 1, options = {}) {
         // NO HALO. Arousal used to widen a glow of the word's own colour
         // behind it, up to 48px at 60% alpha. A glow of the ink's own hue
         // adds no contrast, it only blurs the letterforms and lays a
-        // coloured cloud behind "Read plainly", whose promise is nothing
+        // coloured cloud behind the Plain look, whose promise is nothing
         // behind the words. The colour shift above carries the signal;
         // legibility over imagery is the scrim's job, not the glyph's.
         // Kept as zeroes so every caller still writes a well-formed value.

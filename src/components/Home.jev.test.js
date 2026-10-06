@@ -5,7 +5,7 @@ import { validateJevRecommendation } from '../app/jev-reading.js';
 import { resolveJevChamberConfig } from '../core/jev-config.js';
 import { jevColors } from '../core/jev-palette.js';
 import { compileJevAudioProgram, compileJevVisualProgram } from '../core/jev-sequence.js';
-import { rollReading } from '../core/roll.js';
+import { composeRoll, rollReading } from '../core/roll.js';
 import { Home } from './Home.js';
 import { DecisionError } from '../core/decision/call.js';
 import { acceptOpenRouterKey, disconnect, resetConnectionForTests } from '../core/ai-connection.js';
@@ -222,10 +222,10 @@ it('asks once, makes the answer Home\'s reading, says what RISE cannot do, and p
     body: JSON.stringify({ intent: 'i want something psychedelic fast tokyo drift style', nightDrive: true })
   }));
   expect(launch).not.toHaveBeenCalled();
-  // An asked reading was drawn in no look, so no look word; the plan stays in the spoken status.
+  // An asked reading is named by the look its answer lowers into, here none of them; the plan stays in the spoken status.
   expect(container.querySelector('h1').textContent).toBe('Ulysses');
   expect(container.querySelector('.home-label').textContent).toBe('As you asked');
-  await vi.waitFor(() => expect(container.querySelector('.home-meta').textContent).toBe('James Joyce · 3 min'));
+  await vi.waitFor(() => expect(container.querySelector('.home-meta').textContent).toBe('James Joyce · 3 min · Custom'));
   expect(container.querySelector('.home-epigraph').dataset.face).toBe('jp');
   expect(homeStatus(container)).toBe('As you asked. Ulysses, by James Joyce. Fast phrases, fractal light, chase, large japanese serif.');
   const note = container.querySelector('.home-note');
@@ -328,6 +328,21 @@ it('keeps what was typed while Home is open, across closing and opening again', 
   hook(container, 'ask-cancel').click();
   await openAsk(container);
   expect(field(container).value).toBe('something slow about the sea');
+  portal.destroy();
+});
+
+it('names an asked reading by the look its answer lowers into', async () => {
+  acceptOpenRouterKey(KEY);
+  // A Jev answer that lowers into exactly Nocturne's field, sound, type and colour.
+  const nocturne = composeRoll({ look: 'nocturne', workId: 'ulysses', section: 'first' });
+  const answer = { ...nocturne, model: 'typesafe/jev-1.13', provider: 'TypeSafe' };
+  vi.stubGlobal('fetch', vi.fn(async () => Response.json(answer)));
+  const { portal, container } = mount();
+  await openAsk(container);
+  ask(container, 'something slow under rain');
+  await vi.waitFor(() => expect(dialog(container).open).toBe(false), { timeout: 3000 });
+  expect(container.querySelector('.home-label').textContent).toBe('As you asked');
+  await vi.waitFor(() => expect(container.querySelector('.home-meta').textContent).toBe('James Joyce · 6 min · Nocturne'));
   portal.destroy();
 });
 

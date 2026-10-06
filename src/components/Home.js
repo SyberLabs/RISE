@@ -61,8 +61,9 @@ const firstLine = text => text.split('\n').map(line => line.trim()).find(Boolean
  * The reading on screen, from a decision and how it came: today's poem
  * (`today`, the day's pick, with its `title`, `author` and `work`), a roll
  * (`look`, the id of the look it was drawn in, whose name is the id
- * capitalised) or an ask (`intent`). All Home says about it and how it
- * opens; `tools` names the work and the plan of a rolled or asked one.
+ * capitalised) or an ask (`intent`, named by the look its answer lowers
+ * into, or Custom). All Home says about it and how it opens; `tools` names
+ * the work, the plan and the look of a rolled or asked one.
  * `words` is its length, 0 until known.
  */
 function homeReading(decision, { today, title, author, work, look = null, intent = '' }, tools) {
@@ -96,7 +97,7 @@ function homeReading(decision, { today, title, author, work, look = null, intent
     decision, look, title: workTitle, words: 0, note,
     eyebrow: look ? 'By chance' : 'As you asked',
     // The title is the work's, so the meta line does not repeat it.
-    meta: { author: named?.author || '', work: '', look: look ? capital(look) : '' },
+    meta: { author: named?.author || '', work: '', look: capital(look || tools.lookOfSession(decision.config)) },
     face: decision.config.presentation?.chamberFace,
     spoken: `${mood}. ${heading}. ${capital(plan)}.`,
     // A rolled reading offers the first-read preview, the first time one plays.
@@ -525,6 +526,7 @@ export class Home {
   async loadTools() {
     this.tools ||= Promise.all([
       import('../core/roll.js'),
+      import('../core/looks.js'),
       import('../core/jev-describe.js'),
       import('../app/jev-reading.js'),
       import('../app/invocation.js'),

@@ -13,7 +13,7 @@ import { flamePreset } from '../../visuals/living-flame/flame-presets.js';
 import { PassageDirector } from './director.js';
 
 /**
- * The Gallery shelf a "Read with imagery" stance seeds when the reader has
+ * The Gallery shelf the Gallery look seeds when the reader has
  * chosen nothing. An empty or default shelf is permission for procedural
  * visuals, not a choice of a particular one.
  */

@@ -50,7 +50,7 @@ import {
   normalizeSequenceCapabilities,
   sequenceHasCapability
 } from '../../core/sequence-capabilities.js';
-import { STANCES, applyStance, matchStance } from '../../core/stances.js';
+import { LOOKS, applyLook, lookOf } from '../../core/looks.js';
 // One engine has a name; the taxonomy is where it is kept.
 import { leafById } from '../../core/visual-taxonomy.js';
 import { USER_DATA_KEYS } from '../../core/user-data-keys.js';
@@ -59,6 +59,9 @@ import './ChamberOrbital.css';
 import markUrl from '../../content/compositions/syberlabs-mark.png';
 
 const STANCE_NOTE_SEEN_KEY = USER_DATA_KEYS.stanceNoteSeen;
+// The looks Reader setup offers, in the order a reader meets them.
+const SETUP_LOOKS = Object.freeze(['plain', 'gallery', 'vigil']
+  .map(id => LOOKS.find(look => look.id === id)));
 
 // Last-used session settings survive across chamber visits (the orbital
 // instance itself is destroyed whenever a session runs in the shared view)
@@ -673,10 +676,10 @@ export class ChamberOrbital {
 
             <div class="reader-main">
               <!-- THE DOORWAY, ABOVE THE PARAMETERS (NORTH-STAR §4).
-                   One named choice sets a coherent slice of timing, sound and
-                   visuals. The finer controls stay one disclosure away and
-                   still hold every setting a stance touched. -->
-              ${this.renderStances()}
+                   One named look sets field, sound, type and colour. The
+                   finer controls stay one disclosure away and still hold
+                   every setting a look touched. -->
+              ${this.renderLooks()}
 
               <!-- Progressive disclosure: the three settings panels -->
               <section class="orbital-stage reader-adjust">
@@ -760,9 +763,9 @@ export class ChamberOrbital {
 
   getReaderSummary() {
     if (!this.config.text) return 'Choose a text to begin.';
-    const stance = STANCES.find(s => s.id === matchStance(this.config));
+    const look = LOOKS.find(entry => entry.id === lookOf(this.config));
     const name = this.config.textSource || 'Your text';
-    return stance ? `${name} · ${stance.name}` : `${name} · Custom settings`;
+    return `${name} · ${look ? look.name : 'Custom'}`;
   }
 
   _paintSummaries() {
@@ -797,20 +800,19 @@ export class ChamberOrbital {
   }
 
   /**
-   * The stance row: intentions, above the parameters.
+   * The look row: intentions, above the parameters.
    *
-   * Which one is marked is READ OFF the configuration rather than
-   * remembered, so the row cannot go on claiming a posture the reader has
-   * already adjusted away from. That is the whole of "a stance sets, it
-   * does not lock" — made visible instead of asserted. A real radio group:
-   * when the configuration matches no stance, no radio is checked.
+   * Which one is marked is READ OFF the configuration (`lookOf`) rather than
+   * remembered, so the row cannot go on claiming a look the reader has
+   * already adjusted away from. A real radio group: when the configuration
+   * is in another look or none, no radio is checked.
    */
-  renderStances() {
-    const standing = matchStance(this.config);
+  renderLooks() {
+    const current = lookOf(this.config);
     const group = `reader-stance-${this.visualConsentScope}`;
-    const options = STANCES.map(stance => {
-      const chosen = stance.id === standing;
-      const id = escapeHtml(stance.id);
+    const options = SETUP_LOOKS.map(look => {
+      const chosen = look.id === current;
+      const id = escapeHtml(look.id);
       return `
         <label class="stance-option${chosen ? ' active' : ''}">
           <input type="radio" class="stance-input" name="${group}" value="${id}"
@@ -818,8 +820,8 @@ export class ChamberOrbital {
             aria-describedby="stance-line-${id}">
           <span class="stance-mark" aria-hidden="true"></span>
           <span class="stance-text">
-            <span class="stance-name">${escapeHtml(stance.name)}</span>
-            <span class="stance-line" id="stance-line-${id}">${escapeHtml(stance.line)}</span>
+            <span class="stance-name">${escapeHtml(look.name)}</span>
+            <span class="stance-line" id="stance-line-${id}">${escapeHtml(look.line)}</span>
           </span>
         </label>
       `;
@@ -831,7 +833,7 @@ export class ChamberOrbital {
         <p class="reader-lede">One text. Many ways to feel it.</p>
         <div class="stance-options" role="radiogroup" aria-labelledby="reader-stance-question">${options}</div>
         ${this._stanceNoteDue() ? `<p class="stance-note" data-stance-note>
-          A choice sets timing, sound and visuals. It does not lock them —
+          A look sets visuals, sound, type and colour. It does not lock them —
           adjust anything below.
         </p>` : ''}
       </section>
@@ -866,11 +868,11 @@ export class ChamberOrbital {
     }, 7000);
   }
 
-  /** Repaint which stance the configuration is standing in. */
-  _syncStanceRow() {
-    const standing = matchStance(this.config);
+  /** Repaint which look the configuration is in. */
+  _syncLookRow() {
+    const current = lookOf(this.config);
     this.container.querySelectorAll('[data-stance]').forEach(input => {
-      const chosen = input.dataset.stance === standing;
+      const chosen = input.dataset.stance === current;
       input.checked = chosen;
       input.closest('.stance-option')?.classList.toggle('active', chosen);
     });
@@ -878,12 +880,12 @@ export class ChamberOrbital {
   }
 
   /**
-   * Take a stance. The config it produces goes through exactly the paths a
+   * Choose a look. The config it produces goes through exactly the paths a
    * hand-built one goes through: this method sets no field the panels and
    * the session compiler do not already validate.
    */
-  chooseStance(id) {
-    this.config = applyStance(id, this.config);
+  chooseLook(id) {
+    this.config = applyLook(this.config, id);
     // The visual panel keeps its own copy of the visual orbit, and its
     // change event is what writes the normalized truth back here. Telling
     // it leaves one answer in the room rather than two.
@@ -1247,7 +1249,7 @@ export class ChamberOrbital {
               });
             }
             this.updateOrbitStatus('visual');
-            this._syncStanceRow();
+            this._syncLookRow();
             // Visual settings are the most-edited dials — durable immediately
             this._persistPrefs();
           }
@@ -1267,7 +1269,7 @@ export class ChamberOrbital {
     this.syncUIWithConfig();
     this.updateOrbitStatus('temporal');
     this.updateOrbitStatus('visual');
-    this._syncStanceRow();
+    this._syncLookRow();
     this._persistPrefs();
   }
 
@@ -1397,8 +1399,8 @@ export class ChamberOrbital {
     // Text source actions
     this.attachTextSourceEvents();
 
-    // Stance row (the doorway) sits above the orbits it sets
-    this.attachStanceEvents();
+    // Look row (the doorway) sits above the orbits it sets
+    this.attachLookEvents();
 
     // Orbit node clicks
     this.attachOrbitEvents();
@@ -1428,12 +1430,12 @@ export class ChamberOrbital {
     });
   }
 
-  attachStanceEvents() {
+  attachLookEvents() {
     this.container.querySelectorAll('[data-stance]').forEach(input => {
       this._listen(input, 'change', () => {
         if (!input.checked) return;
         this.getAudioEngine()?.playClick();
-        this.chooseStance(input.dataset.stance);
+        this.chooseLook(input.dataset.stance);
       });
     });
 
@@ -1595,7 +1597,7 @@ export class ChamberOrbital {
         this.updateOrbitStatus('audio');
         soundscapeOptions.forEach(o => o.classList.remove('active'));
         opt.classList.add('active');
-        this._syncStanceRow();
+        this._syncLookRow();
       });
     });
 
@@ -1611,7 +1613,7 @@ export class ChamberOrbital {
         this.updateOrbitStatus('audio');
         presetOptions.forEach(o => o.classList.remove('active'));
         opt.classList.add('active');
-        this._syncStanceRow();
+        this._syncLookRow();
       });
     });
 
@@ -1687,7 +1689,7 @@ export class ChamberOrbital {
       this.config.wpm = parseInt(wpmSlider.value, 10);
       wpmVal.textContent = `${wpmSlider.value} WPM`;
       this.updateOrbitStatus('temporal');
-      this._syncStanceRow();
+      this._syncLookRow();
     });
 
     // Curve options
@@ -1698,7 +1700,7 @@ export class ChamberOrbital {
         this.config.curve = opt.dataset.curve;
         curveOptions.forEach(o => o.classList.remove('active'));
         opt.classList.add('active');
-        this._syncStanceRow();
+        this._syncLookRow();
       });
     });
 
@@ -1890,7 +1892,7 @@ export class ChamberOrbital {
     const voiceSelect = this.container.querySelector('#voice-select');
     if (voiceSelect && this.config.voiceId) voiceSelect.value = this.config.voiceId;
     this._syncProjection();
-    this._syncStanceRow();
+    this._syncLookRow();
   }
 
   loadText(text, source, config = {}) {
