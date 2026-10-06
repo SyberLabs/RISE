@@ -281,6 +281,8 @@ A roll becomes "work × section × look × rhythm × pace". Any roll or Ask resu
 
 The catalog is `visual-taxonomy.js`, extended. It already states "every surface that shows a field reads it from here rather than re-listing it" (code: `visual-taxonomy.js:1-21`). The missing pieces are enforcement and two entries.
 
+*Amended 2026-10-06:* as built, the catalog is `visual-registry.js` (`ENGINE_CATALOG`), with the taxonomy reading from it; every entry carries `listed` (Reader setup offers it) and `composer` (the Composer may present it) flags. FND-009 part 1 (#419) and part 2.
+
 | Engine | Look(s) | Visual Lab | Visual Catalog | Workshop | Composer |
 |---|---|---|---|---|---|
 | Off / still | Plain | — | ● | ● | ● `still` |
