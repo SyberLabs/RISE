@@ -60,18 +60,19 @@ const firstLine = text => text.split('\n').map(line => line.trim()).find(Boolean
 /**
  * The reading on screen, from a decision and how it came: today's poem
  * (`today`, the day's pick, with its `title`, `author` and `work`), a roll
- * (`temper`) or an ask (`intent`). All Home says about it and how it opens;
- * `tools` names the work and the plan of a rolled or asked one. `words` is
- * its length, 0 until known.
+ * (`look`, the id of the look it was drawn in, whose name is the id
+ * capitalised) or an ask (`intent`). All Home says about it and how it
+ * opens; `tools` names the work and the plan of a rolled or asked one.
+ * `words` is its length, 0 until known.
  */
-function homeReading(decision, { today, title, author, work, temper = null, intent = '' }, tools) {
+function homeReading(decision, { today, title, author, work, look = null, intent = '' }, tools) {
   if (today) {
-    const look = capital(decision.temper);
+    const name = capital(decision.look);
     const minutes = minutesOf(today.words, decision.config.wpm);
     return {
-      decision, temper: decision.temper, title, words: today.words, note: '',
-      eyebrow: TODAY, meta: { author, work, look }, face: decision.config.presentation?.chamberFace,
-      spoken: `${TODAY}: ${title}, by ${author}. ${minutes} ${minutes === 1 ? 'minute' : 'minutes'}. ${look}.`,
+      decision, look: decision.look, title, words: today.words, note: '',
+      eyebrow: TODAY, meta: { author, work, look: name }, face: decision.config.presentation?.chamberFace,
+      spoken: `${TODAY}: ${title}, by ${author}. ${minutes} ${minutes === 1 ? 'minute' : 'minutes'}. ${name}.`,
       // The day's exact poem, as /today and the Menu open it; Adjust opens
       // that division too, not the plan's section.
       today: true, exact: { entryId: today.entryId, label: today.label }
@@ -80,8 +81,8 @@ function homeReading(decision, { today, title, author, work, temper = null, inte
   const named = tools.getTextById(decision.workId);
   const workTitle = named?.title || decision.workId;
   const heading = [workTitle, named?.author].filter(Boolean).join(', by ');
-  // An asked reading has no temper; its mood is the reader's own words.
-  const mood = temper ? capital(temper) : 'As you asked';
+  // An asked reading was drawn in no look; its mood is the reader's own words.
+  const mood = look ? capital(look) : 'As you asked';
   const plan = tools.summarizeJevPlan(decision.config).join(', ');
   let note = '';
   if (intent) {
@@ -92,10 +93,10 @@ function homeReading(decision, { today, title, author, work, temper = null, inte
     note = parts.join(' ');
   }
   return {
-    decision, temper, title: workTitle, words: 0, note,
-    eyebrow: temper ? 'By chance' : 'As you asked',
+    decision, look, title: workTitle, words: 0, note,
+    eyebrow: look ? 'By chance' : 'As you asked',
     // The title is the work's, so the meta line does not repeat it.
-    meta: { author: named?.author || '', work: '', look: temper ? capital(temper) : '' },
+    meta: { author: named?.author || '', work: '', look: look ? capital(look) : '' },
     face: decision.config.presentation?.chamberFace,
     spoken: `${mood}. ${heading}. ${capital(plan)}.`,
     // A rolled reading offers the first-read preview, the first time one plays.
@@ -113,7 +114,7 @@ function homeReading(decision, { today, title, author, work, temper = null, inte
 function continueReading(session) {
   const minutes = minutesOfMs(session.totalDuration);
   return {
-    session, title: session.name, words: 0, note: '', temper: null,
+    session, title: session.name, words: 0, note: '', look: null,
     eyebrow: 'Continue', meta: { author: '', work: '', look: '' },
     face: session.presentation?.chamberFace,
     spoken: `Continue: ${session.name}.${minutes ? ` ${minutes} ${minutes === 1 ? 'minute' : 'minutes'}.` : ''}`,
@@ -567,9 +568,9 @@ export class Home {
     }
     this.setBusy(null);
     // A reading to resume is no roll to roll away from.
-    const previous = this.reading?.decision ? { temper: this.reading.temper, decision: this.reading.decision } : null;
+    const previous = this.reading?.decision ? { look: this.reading.look, decision: this.reading.decision } : null;
     const rolled = tools.rollReading({ previous, vivid: true });
-    this.showDecision(tools, rolled.decision, { temper: rolled.temper });
+    this.showDecision(tools, rolled.decision, { look: rolled.look });
     // Busy, the key was disabled and lost focus; the reader stays on it.
     this.focus('[data-home="roll"]');
     // A small tick as the answer arrives, on phones that can give one.

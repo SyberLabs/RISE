@@ -12,7 +12,8 @@ import { Home } from './Home.js';
 import { createRouteManifest } from '../app/route-manifest.js';
 import { ROUTE_ALIASES } from '../core/route-url.js';
 import { openingLines, validateJevRecommendation } from '../app/jev-reading.js';
-import { composeRoll, rollReading, TEMPERS } from '../core/roll.js';
+import { composeRoll, rollReading } from '../core/roll.js';
+import { LOOKS } from '../core/looks.js';
 import { summarizeJevPlan } from '../core/jev-describe.js';
 import { poemTitle, todayPoem } from '../core/today-poem.js';
 import { todayDecision } from '../core/today-reading.js';
@@ -87,6 +88,8 @@ const epigraph = container => container.querySelector('.home-epigraph');
 const targets = container => [...container.querySelectorAll('button:not([hidden]), a[href]')].filter(node => !node.closest('.portal-nav, dialog'));
 const status = container => container.querySelector('[data-home-status]').textContent;
 const capital = text => text[0].toUpperCase() + text.slice(1);
+/** What a reader reads for a look: its name in the registry. */
+const lookName = id => LOOKS.find(look => look.id === id).name;
 const minutes = (count, wpm) => Math.max(1, Math.round(count / wpm));
 
 /** Today's poem, as Home names it. */
@@ -100,7 +103,7 @@ function today(date = new Date()) {
         title: poemTitle(pick.label),
         firstLine: passage.split('\n').map(line => line.trim()).find(Boolean),
         minutes: minutes(pick.words, decision.config.wpm),
-        look: capital(decision.temper)
+        look: lookName(decision.look)
     };
 }
 
@@ -112,9 +115,9 @@ async function arrive(portal, container) {
 }
 
 /** A rolled classic. */
-const classic = (workId, temper = 'revel') => ({
-    temper,
-    decision: composeRoll({ temper: TEMPERS.find(t => t.id === temper), workId, section: 'first' })
+const classic = (workId, look = 'revel') => ({
+    look,
+    decision: composeRoll({ look, workId, section: 'first' })
 });
 
 async function another(container, portal) {
@@ -123,8 +126,8 @@ async function another(container, portal) {
     await vi.waitFor(() => expect(portal.reading).not.toBe(before), { timeout: 3000 });
 }
 
-/** What Home rolls from: the reading showing, by its temper and decision. */
-const from = reading => ({ temper: reading.temper, decision: reading.decision });
+/** What Home rolls from: the reading showing, by its look and decision. */
+const from = reading => ({ look: reading.look, decision: reading.decision });
 
 describe('Home on arrival', () => {
     it('names today\'s poem in the slot, with one solid key, before anything loads', () => {
@@ -162,7 +165,7 @@ describe('Home on arrival', () => {
         expect(stages.made[0].host).toBe(container.querySelector('.home-engine'));
         const [engine] = shown();
         expect(engine.workId).toBe(pick.workId);
-        expect(engine.temper).toBe(decision.temper);
+        expect(engine.look).toBe(decision.look);
         expect(engine.config).toEqual(decision.config);
         portal.destroy();
     });
