@@ -25,8 +25,10 @@
   const ease = x => x < 0 ? 0 : x > 1 ? 1 : x * x * (3 - 2 * x);
   const clamp = (x, a = 0, b = 1) => Math.min(b, Math.max(a, x));
   const lerp = (a, b, x) => a + (b - a) * x;
-  const mix = (c1, c2, x) => { const p = h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16)); const a = p(c1), b = p(c2);
-    return `rgb(${a.map((v, i) => Math.round(lerp(v, b[i], clamp(x)))).join(',')})`; };
+  // Colours as #rrggbb in and out, so a mix can feed another mix.
+  const parse = h => h.startsWith('#') ? [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16)) : h.match(/\d+/g).slice(0, 3).map(Number);
+  const mix = (c1, c2, x) => { const a = parse(c1), b = parse(c2);
+    return '#' + a.map((v, i) => Math.round(lerp(v, b[i], clamp(x))).toString(16).padStart(2, '0')).join(''); };
 
   const MEDITATIONS = ('Begin the morning by saying to thyself I shall meet with the busybody the ungrateful arrogant deceitful envious unsocial '
     + 'All these things happen to them by reason of their ignorance of what is good and evil But I who have seen the nature of the good that it is '
