@@ -6,7 +6,7 @@
  * offer different engines.
  *
  * A list here is three or more registered engine ids written one after
- * another; data that composes an engine or two (a temper, a treatment) is
+ * another; data that composes an engine or two (a look, a treatment) is
  * not a list of engines. The files that may still hold one say why.
  */
 import { readdirSync, readFileSync, statSync } from 'node:fs';

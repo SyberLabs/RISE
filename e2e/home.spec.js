@@ -209,9 +209,9 @@ test('a reading read to its end offers no Continue; Begin leads again', async ({
   await page.evaluate(async () => {
     const portal = window.__RISE_TEST__.getView('home');
     const tools = await portal.loadTools();
-    const decision = tools.composeRoll({ temper: tools.TEMPERS.find(t => t.id === 'signal'), workId: 'lyrical-ballads', section: 'shortest' });
+    const decision = tools.composeRoll({ look: 'signal', workId: 'lyrical-ballads', section: 'shortest' });
     decision.config.wpm = 500;
-    portal.showDecision(tools, decision, { temper: 'signal' });
+    portal.showDecision(tools, decision, { look: 'signal' });
   });
   await expect(page.locator('[data-home="adjust"]')).toBeVisible();
   await epigraph(page);
@@ -237,9 +237,9 @@ test('a reading read to its end offers no Continue; Begin leads again', async ({
 test('Another reading rolls a vivid one, named by chance with its look; Begin plays it, and on return it leads as Continue', async ({ page }) => {
   await openHome(page);
   const decision = await another(page);
-  expect(['signal', 'ember', 'revel']).toContain(decision.temper);
+  expect(['signal', 'iris', 'revel']).toContain(decision.look);
   await expect(page.locator('.home-label')).toHaveText('By chance');
-  await expect(page.locator('.home-meta')).toContainText(`${decision.temper[0].toUpperCase()}${decision.temper.slice(1)}`);
+  await expect(page.locator('.home-meta')).toContainText(`${decision.look[0].toUpperCase()}${decision.look.slice(1)}`);
   await epigraph(page);
   await page.locator('[data-home="enter"]').click();
   await expect(page.locator('#chamber-display')).toBeVisible({ timeout: 30_000 });
@@ -341,13 +341,13 @@ test('a reload starts on today\'s poem again', async ({ page }) => {
 test('the longest titles and plans stay on a small phone with the key on screen', async ({ page }) => {
   await page.setViewportSize({ width: 360, height: 640 });
   await openHome(page);
-  for (const [work, temper, section] of [['lyrical-ballads', 'revel', 'shortest'], ['the-photo-that-knew-your-street', 'ember', 'longest'], ['spoon-river-anthology', 'signal', 'first']]) {
-    await page.evaluate(async ([work, temper, section]) => {
+  for (const [work, look, section] of [['lyrical-ballads', 'revel', 'shortest'], ['the-photo-that-knew-your-street', 'iris', 'longest'], ['spoon-river-anthology', 'signal', 'first']]) {
+    await page.evaluate(async ([work, look, section]) => {
       const portal = window.__RISE_TEST__.getView('home');
       const tools = await portal.loadTools();
-      const decision = tools.composeRoll({ temper: tools.TEMPERS.find(t => t.id === temper), workId: work, section });
-      portal.showDecision(tools, decision, { temper });
-    }, [work, temper, section]);
+      const decision = tools.composeRoll({ look, workId: work, section });
+      portal.showDecision(tools, decision, { look });
+    }, [work, look, section]);
     await expect(page.locator('[data-home="adjust"]')).toBeVisible();
     await epigraph(page);
     expect(await sideways(page), work).toBeLessThanOrEqual(0);

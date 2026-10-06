@@ -222,7 +222,7 @@ it('asks once, makes the answer Home\'s reading, says what RISE cannot do, and p
     body: JSON.stringify({ intent: 'i want something psychedelic fast tokyo drift style', nightDrive: true })
   }));
   expect(launch).not.toHaveBeenCalled();
-  // An asked reading has no temper, so no look word; the plan stays in the spoken status.
+  // An asked reading was drawn in no look, so no look word; the plan stays in the spoken status.
   expect(container.querySelector('h1').textContent).toBe('Ulysses');
   expect(container.querySelector('.home-label').textContent).toBe('As you asked');
   await vi.waitFor(() => expect(container.querySelector('.home-meta').textContent).toBe('James Joyce · 3 min'));
@@ -246,7 +246,7 @@ it('asks once, makes the answer Home\'s reading, says what RISE cannot do, and p
   await vi.waitFor(() => expect(hook(container, 'roll').disabled).toBe(false));
   hook(container, 'roll').click();
   await vi.waitFor(() => expect(portal.reading).not.toBe(asked), { timeout: 3000 });
-  expect(rollReading).toHaveBeenLastCalledWith({ previous: { temper: null, decision: asked.decision }, vivid: true });
+  expect(rollReading).toHaveBeenLastCalledWith({ previous: { look: null, decision: asked.decision }, vivid: true });
   expect(container.querySelector('.home-note').hidden).toBe(true);
   portal.destroy();
 });

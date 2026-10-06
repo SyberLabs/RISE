@@ -126,18 +126,6 @@ export const LOOKS = Object.freeze([
     }, ['fractal'], { maxViewportWidth: 820 })
 ]);
 
-/** The look each roll temper becomes. */
-export const TEMPER_LOOKS = Object.freeze({
-    nocturne: 'nocturne',
-    plainsong: 'plain',
-    signal: 'signal',
-    ember: 'iris',
-    garden: 'garden',
-    vigil: 'vigil',
-    revel: 'revel',
-    salon: 'garden'
-});
-
 /** The look each Reader setup stance becomes. */
 export const STANCE_LOOKS = Object.freeze({
     plainly: 'plain',

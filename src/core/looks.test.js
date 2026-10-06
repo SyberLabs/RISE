@@ -7,7 +7,8 @@
  *   what a look leaves        — a reading's own art, a held focal, Living Text,
  *                               pace and rhythm
  *   which look a config is in — derived, and distinct for every look
- *   what it replaces          — every temper and stance has a look
+ *   what it replaces          — every stance has a look, and every roll
+ *                               reopens in Reader setup as the look it drew
  */
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
@@ -17,7 +18,7 @@ if (typeof globalThis.indexedDB === 'undefined') {
     };
 }
 
-const { LOOKS, STANCE_LOOKS, TEMPER_LOOKS, applyLook, lookOf } = await import('./looks.js');
+const { LOOKS, STANCE_LOOKS, applyLook, lookOf } = await import('./looks.js');
 const { ChamberOrbital, createDefaultConfig } = await import('../components/read/ChamberOrbital.js');
 const { normalizeVisualConfig } = await import('./session-compiler.js');
 const { normalizeVisualSelection } = await import('./visual-selection.js');
@@ -26,7 +27,9 @@ const { ENGINE_CATALOG } = await import('./visual-registry.js');
 const { THEME_ENGINE_MAP } = await import('./theme-engine-map.js');
 const { SOUNDSCAPES } = await import('../audio/soundscapes.js');
 const { STANCES, applyStance } = await import('./stances.js');
-const { TEMPERS, composeRoll } = await import('./roll.js');
+const { ROLL_LOOKS, ROLL_RANGES, VIVID_LOOKS, composeRoll } = await import('./roll.js');
+const { todayDecision } = await import('./today-reading.js');
+const { todayPoem, todayPool } = await import('./today-poem.js');
 const { jevReleasedWorkIds } = await import('./jev-describe.js');
 
 const look = id => LOOKS.find(entry => entry.id === id);
@@ -243,17 +246,10 @@ describe('which look a configuration is in', () => {
 });
 
 describe('what the looks replace', () => {
-    it('gives every temper and every stance a look, named by the table', () => {
-        expect(TEMPER_LOOKS).toEqual({
-            nocturne: 'nocturne', plainsong: 'plain', signal: 'signal', ember: 'iris',
-            garden: 'garden', vigil: 'vigil', revel: 'revel', salon: 'garden'
-        });
-        expect(Object.keys(TEMPER_LOOKS).sort()).toEqual(TEMPERS.map(temper => temper.id).sort());
+    it('gives every stance a look, named by the table', () => {
         expect(STANCE_LOOKS).toEqual({ plainly: 'plain', imagery: 'gallery', contemplate: 'vigil' });
         expect(Object.keys(STANCE_LOOKS).sort()).toEqual(STANCES.map(stance => stance.id).sort());
-        for (const id of [...Object.values(TEMPER_LOOKS), ...Object.values(STANCE_LOOKS)]) {
-            expect(look(id), id).toBeTruthy();
-        }
+        for (const id of Object.values(STANCE_LOOKS)) expect(look(id), id).toBeTruthy();
     });
 
     it('reads each stance configuration as its look', () => {
@@ -262,7 +258,7 @@ describe('what the looks replace', () => {
         }
     });
 
-    describe('a temper centre reopened in Reader setup', () => {
+    describe('a roll reopened in Reader setup', () => {
         let container;
         beforeEach(() => {
             localStorage.clear();
@@ -271,42 +267,44 @@ describe('what the looks replace', () => {
         });
         afterEach(() => { document.body.innerHTML = ''; });
 
-        function centreInSetup(temperId) {
-            const temper = TEMPERS.find(item => item.id === temperId);
-            const { config } = composeRoll({
-                temper, workId: jevReleasedWorkIds()[0], section: 'first', random: () => 0
-            });
+        function inSetup(decision) {
             const orbital = new ChamberOrbital(container, {});
-            orbital.loadText('Begin the morning', 'Library', config);
+            orbital.loadText('Begin the morning', 'Library', decision.config);
             const reopened = orbital.config;
             orbital.destroy();
             return reopened;
         }
 
-        it.each(['plainsong', 'signal', 'garden'])(
-            'reads %s as its look', temperId => {
-                expect(lookOf(centreInSetup(temperId))).toBe(TEMPER_LOOKS[temperId]);
+        it('is the look it drew, at the rhythm and pace it drew, for every look and every rhythm and pace in its range', () => {
+            const workId = jevReleasedWorkIds()[0];
+            let turn = 0;
+            for (const { id } of ROLL_LOOKS) {
+                for (const rhythm of ROLL_RANGES[id].rhythms) {
+                    for (const pace of ROLL_RANGES[id].paces) {
+                        // Alternate ends of the draw, so a look with two engines opens with each.
+                        const random = turn++ % 2 ? () => 0.999 : () => 0;
+                        const reopened = inSetup(composeRoll({ look: id, workId, section: 'first', rhythm, pace, random }));
+                        expect(lookOf(reopened), `${id} × ${rhythm} × ${pace}`).toBe(id);
+                        expect([reopened.chunkMode, reopened.wpm], `${id} × ${rhythm} × ${pace}`).toEqual([rhythm, pace]);
+                    }
+                }
             }
-        );
+        }, 60_000);
 
-        it('reads nocturne as Custom: its centre is classic, and Nocturne is amethyst', () => {
-            expect(lookOf(centreInSetup('nocturne'))).toBe('custom');
-        });
-
-        it('reads ember as Custom: its centre is the ember theme, and Iris is rose', () => {
-            expect(lookOf(centreInSetup('ember'))).toBe('custom');
-        });
-
-        it('reads revel as Custom: its centre asks for Fit, which phrases read as large, and Revel is extra large', () => {
-            expect(lookOf(centreInSetup('revel'))).toBe('custom');
-        });
-
-        it('reads salon as Custom: it folds into Garden by name, and its Klee lines, jazz and cobalt are not Garden', () => {
-            expect(lookOf(centreInSetup('salon'))).toBe('custom');
-        });
-
-        it('reads vigil as Custom: Vigil keeps the Contemplate stance\'s aurora, not the temper\'s haunted bed', () => {
-            expect(lookOf(centreInSetup('vigil'))).toBe('custom');
-        });
+        it('is the day\'s look for today\'s poem, for every look, engine and pace a cycle draws', () => {
+            const drawn = new Map();
+            for (let day = 0; day < todayPool().length; day++) {
+                const decision = todayDecision(todayPoem(new Date(2026, 0, 1 + day, 12)));
+                const { visualEngine, wpm } = decision.config;
+                drawn.set(`${decision.look} ${visualEngine} ${wpm}`, decision);
+            }
+            for (const [drew, decision] of drawn) {
+                const reopened = inSetup(decision);
+                expect(lookOf(reopened), drew).toBe(decision.look);
+                expect([reopened.chunkMode, reopened.wpm], drew).toEqual(['phrase', decision.config.wpm]);
+            }
+            expect([...new Set([...drawn.values()].map(decision => decision.look))].sort())
+                .toEqual(VIVID_LOOKS.map(entry => entry.id).sort());
+        }, 60_000);
     });
 });

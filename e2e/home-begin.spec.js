@@ -14,7 +14,7 @@ import { test, expect } from './fixtures.js';
  *
  * What PR 7 made true is asserted on every case: the overlay never shows and
  * a field is visible on every frame. Criterion 4's two timing bounds are open
- * (RDR-015) and are recorded, not asserted: today's poem, revel and ember land
+ * (RDR-015) and are recorded, not asserted: today's poem, revel and iris land
  * at 3 to 4 s, and the signal roll sits on both bounds (first word 1.2 to
  * 1.43 s, longest task 0 to 61 ms), so neither a plain assertion nor
  * test.fail() would be stable. Set TIMING_ASSERTED when criterion 4 closes.
@@ -93,19 +93,19 @@ const observe = page => page.evaluate(() => {
   requestAnimationFrame(sample);
 });
 
-/** Today's poem as Home opens, then one roll per vivid temper: the same work and section, the temper's centre. */
-const cases = [['today’s poem', null], ...['signal', 'ember', 'revel'].map(temper => [`a ${temper} roll`, temper])];
+/** Today's poem as Home opens, then one roll per vivid look: the same work and section, the look's first engine. */
+const cases = [['today’s poem', null], ...['signal', 'iris', 'revel'].map(look => [`a ${look} roll`, look])];
 
-for (const [name, temper] of cases) {
+for (const [name, look] of cases) {
   test(`Begin on ${name}: a field that never leaves and no overlay, with the first word and the longest task measured`, async ({ page }) => {
     await openHome(page);
-    if (temper) {
-      await page.evaluate(async temper => {
+    if (look) {
+      await page.evaluate(async look => {
         const portal = window.__RISE_TEST__.getView('home');
         const tools = await portal.loadTools();
-        const decision = tools.composeRoll({ temper: tools.TEMPERS.find(t => t.id === temper), workId: 'spoon-river-anthology', section: 'first', random: () => 0 });
-        portal.showDecision(tools, decision, { temper });
-      }, temper);
+        const decision = tools.composeRoll({ look, workId: 'spoon-river-anthology', section: 'first', random: () => 0 });
+        portal.showDecision(tools, decision, { look });
+      }, look);
     }
     await settled(page);
     await observe(page);
