@@ -105,7 +105,7 @@
       ctx.strokeStyle = AMBER; ctx.lineWidth = 2.5; ctx.globalAlpha = alpha * (0.5 + 0.5 * lit);
       ctx.beginPath(); ctx.moveTo(-30, hy + head + 10); ctx.lineTo(-30, hy + head + 110); ctx.stroke();
       ctx.globalAlpha = alpha;
-    } else {
+    } else if (who === 'teo') {
       // Headphones round the neck, round glasses.
       ctx.strokeStyle = TEAL; ctx.lineWidth = 3;
       ctx.beginPath(); ctx.arc(hx, hy + head + 14, 22, 0.15 * Math.PI, 0.85 * Math.PI); ctx.stroke();
@@ -519,16 +519,15 @@
       srand(141); ctx.fillStyle = 'rgba(8,13,22,0.85)';
       for (let i = 0; i < 30; i += 1) { ctx.font = `${30 + rnd() * 50}px ${SERIF}`; ctx.globalAlpha = 0.35 + rnd() * 0.5; ctx.fillText(MEDITATIONS[(i * 7) % MEDITATIONS.length], cx - 500 + rnd() * 1000, cy - 400 + rnd() * 800); }
       ctx.restore();
-      // Iris blades.
-      ctx.fillStyle = '#0d151d';
-      const blades = 8;
-      for (let i = 0; i < blades; i += 1) {
-        const a = (i / blades) * TAU + open * 0.9; ctx.save(); ctx.translate(cx, cy); ctx.rotate(a);
-        ctx.beginPath(); ctx.moveTo(R * open, 0); ctx.lineTo(R * 2.2, -R * 0.9); ctx.lineTo(R * 2.2, R * 1.2); ctx.lineTo(R * open * 0.3, R * 0.45 * (1 - open * 0.6)); ctx.closePath(); ctx.fill();
-        ctx.strokeStyle = TEAL; ctx.lineWidth = 2; ctx.globalAlpha = 0.6; ctx.beginPath(); ctx.moveTo(R * open, 0); ctx.lineTo(R * 2.2, -R * 0.9); ctx.stroke(); ctx.globalAlpha = 1; ctx.restore();
-      }
-      // Wall outside the iris: a vignette of dark panel.
-      ctx.save(); ctx.globalCompositeOperation = 'destination-over'; ctx.fillStyle = '#0a1118'; ctx.fillRect(0, 0, W, H); ctx.restore();
+      // The iris: the wall is everything outside an eight-sided aperture that turns as it opens.
+      const blades = 8, ap = Math.max(2, R * open), rot = open * 0.9;
+      ctx.save(); ctx.fillStyle = '#0d151d'; ctx.beginPath(); ctx.rect(0, 0, W, H);
+      for (let i = 0; i <= blades; i += 1) { const a = rot + (i / blades) * TAU; const x = cx + Math.cos(a) * ap, y = cy + Math.sin(a) * ap; if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y); }
+      ctx.closePath(); ctx.fill('evenodd');
+      // Blade seams, from each vertex out to the wall.
+      ctx.strokeStyle = TEAL; ctx.lineWidth = 2; ctx.globalAlpha = 0.5;
+      for (let i = 0; i < blades; i += 1) { const a = rot + (i / blades) * TAU; ctx.beginPath(); ctx.moveTo(cx + Math.cos(a) * ap, cy + Math.sin(a) * ap); ctx.lineTo(cx + Math.cos(a + 0.35) * R * 2.4, cy + Math.sin(a + 0.35) * R * 2.4); ctx.stroke(); }
+      ctx.restore();
       // Close on her hands and face: Ines large at left, the book against the panel.
       figure({ x: 420, y: H + 220, h: 900, who: 'ines', dir: 1, lit: 1 });
       const bx = lerp(560, cx - R * 0.1, ease(p / 0.3)), by = lerp(760, cy + 40, ease(p / 0.3));
@@ -544,13 +543,16 @@
       // The wall of light: words, each with a colour and its own motion, arriving on the beat.
       const wallX = W / 2, wallY = H * 0.36;
       glow(wallX, wallY, 900, 'rgba(110,147,151,0.18)', 1);
+      // One word at a time: the newest large at the centre, the earlier ones settling into a loose grid as they fade.
       const cadence = 0.62; const shown = Math.floor(t / cadence);
-      for (let i = Math.max(0, shown - 7); i <= shown; i += 1) {
-        const age = t - i * cadence; const life = age / (cadence * 8); if (life > 1) continue;
+      for (let i = Math.max(0, shown - 9); i <= shown; i += 1) {
+        const age = t - i * cadence; const life = age / (cadence * 10); if (life > 1) continue;
         srand(151 + i); const col = [AMBER, TEAL, '#bad7d1', '#f2c6a0', '#9fc7c8'][i % 5];
-        const x = wallX + (rnd() - 0.5) * 1100 * life + Math.sin(age + i) * 10, y = wallY + (rnd() - 0.5) * 380 * life;
-        const size = i === shown ? lerp(140, 210, ease(age / 0.3)) : lerp(210, 60, ease(life));
-        text(MEDITATIONS[i % MEDITATIONS.length], x, y, size, col, { alpha: (i === shown ? ease(age / 0.2) : 1) * (1 - ease((life - 0.6) / 0.4)) });
+        const slotX = ((i % 5) - 2) * 330 + (rnd() - 0.5) * 60, slotY = ((Math.floor(i / 5) % 3) - 1) * 170 + (rnd() - 0.5) * 40;
+        const settle = ease(life * 3);
+        const x = wallX + slotX * settle + Math.sin(age + i) * 6, y = wallY + slotY * settle;
+        const size = i === shown ? lerp(110, 150, ease(age / 0.3)) : lerp(150, 64, settle);
+        text(MEDITATIONS[i % MEDITATIONS.length], x, y, size, col, { alpha: (i === shown ? ease(age / 0.2) : 0.9) * (1 - ease((life - 0.55) / 0.45)) });
       }
       // The console: a long bar of instruments.
       ctx.fillStyle = INK; ctx.fillRect(W * 0.15, H * 0.66, W * 0.7, 80); ctx.fillRect(W * 0.2, H * 0.66 + 80, W * 0.6, 200);
