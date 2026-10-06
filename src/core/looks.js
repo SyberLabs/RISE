@@ -1,9 +1,9 @@
 /**
  * Looks: one preset vocabulary over the parameter engine.
  *
- * A look is one named choice of field, colour, sound and typography. Like a
- * stance (ARCHITECTURE §8.26) it is a partial of the configuration the Orbital
- * already builds, and what it emits takes the same road as a hand-built
+ * A look is one named choice of field, colour, sound and typography. It is a
+ * partial of the configuration the Orbital already builds (ARCHITECTURE
+ * §8.26), and what it emits takes the same road as a hand-built
  * configuration: the Orbital's persistence normalizers, `normalizeVisualConfig`
  * in the session compiler, and the presentation gates in
  * session-presentation.js. This module is not on that road, so it holds no
@@ -17,16 +17,19 @@
  *   `wpm` and `curve`. Pace and rhythm are separate choices. Inlay alone sets
  *   `chunkMode`, because it paints one word at a time by mechanism.
  *
- *   the source selection, except through an empty shelf. `engines` names what
- *   the field draws, and only a Gallery field seeds them, only into a shelf
- *   that holds nothing, and only those the shelf admits. Living Flame is not
- *   a shelf engine: Follow text draws it over a continuous Gallery whose shelf
- *   is empty (passage-visuals/reading-state.js).
+ *   the reader's own art. `engines` names what the field draws, and only a
+ *   Gallery field writes them, only those the shelf admits: into an empty
+ *   shelf, or in place of procedural engines that are not the look's. Sourced
+ *   and personal works stay, and a shelf of only those gets no engine. Living
+ *   Flame is not a shelf engine: Follow text draws it over a continuous
+ *   Gallery whose shelf holds no engine (passage-visuals/reading-state.js).
  *
  * WHICH LOOK A CONFIGURATION IS IN is derived by `lookOf`, never stored. A look
- * holds when every field its `config` writes has that value; nothing else is
- * compared. So a reading's own collections, a held focal, pace, curve and
- * (outside Inlay) rhythm never change the answer. A configuration that claims
+ * holds when every field its `config` writes has that value and, for a Gallery
+ * field, every procedural engine on the shelf is one of the look's; nothing
+ * else is compared. A look never names a field the reading does not draw,
+ * while a reading's own collections, a held focal, pace, curve and (outside
+ * Inlay) rhythm never change the answer. A configuration that claims
  * no presentation reads in the reader's own face, size and colours, and is
  * judged by its field and sound alone.
  */
@@ -126,13 +129,6 @@ export const LOOKS = Object.freeze([
     }, ['fractal'], { maxViewportWidth: 820 })
 ]);
 
-/** The look each Reader setup stance becomes. */
-export const STANCE_LOOKS = Object.freeze({
-    plainly: 'plain',
-    imagery: 'gallery',
-    contemplate: 'vigil'
-});
-
 const asObject = value =>
     value && typeof value === 'object' && !Array.isArray(value) ? value : {};
 
@@ -167,17 +163,25 @@ export function applyLook(baseConfig, id) {
             interlocution: {
                 ...baseInterlocution,
                 ...asObject(patchVisual.interlocution),
-                ...seedEmptyShelf(found, baseInterlocution)
+                ...fillShelf(found, baseInterlocution)
             }
         }
     };
 }
 
-function seedEmptyShelf(found, interlocution) {
-    if (found.config.visualInterlocution.visualMode !== 'interlocution') return {};
+const isGallery = entry => entry.config.visualInterlocution.visualMode === 'interlocution';
+
+/** The look's engines that a shelf admits. */
+const shelfEngines = entry => normalizeVisualSelection({ procedural: [...entry.engines] }).procedural;
+
+function fillShelf(found, interlocution) {
+    if (!isGallery(found)) return {};
     const shelf = normalizeVisualSelection(interlocution);
-    if (shelf.procedural.length > 0 || shelf.sourced.length > 0) return {};
-    return normalizeVisualSelection({ sourceFamily: 'procedural', procedural: [...found.engines], sourced: [] });
+    const own = shelfEngines(found);
+    const keeps = shelf.procedural.length > 0
+        ? shelf.procedural.every(id => own.includes(id))
+        : shelf.sourced.length > 0;
+    return keeps ? {} : normalizeVisualSelection({ procedural: own, sourced: shelf.sourced });
 }
 
 /**
@@ -188,12 +192,39 @@ function seedEmptyShelf(found, interlocution) {
  */
 export function lookOf(config) {
     const base = asObject(config);
-    const found = LOOKS.find(({ config: patch }) => {
-        const { presentation: patchPresentation, ...rest } = patch;
+    const found = LOOKS.find(entry => {
+        const { presentation: patchPresentation, ...rest } = entry.config;
         return holds(rest, base)
-            && (base.presentation == null || holds(patchPresentation, base.presentation));
+            && (base.presentation == null || holds(patchPresentation, base.presentation))
+            && drawsItsEngines(entry, base);
     });
     return found ? found.id : 'custom';
+}
+
+function drawsItsEngines(entry, config) {
+    if (!isGallery(entry)) return true;
+    const drawn = normalizeVisualSelection(asObject(asObject(config.visualInterlocution).interlocution)).procedural;
+    const own = shelfEngines(entry);
+    return drawn.every(id => own.includes(id));
+}
+
+/**
+ * The look a session input is in, or 'custom': the shape Begin hands the
+ * Chamber and a decision lowers into, which carries `visualConfig` where the
+ * Orbital holds `visualInterlocution`. An unset `streamGlass` reads as set,
+ * as Reader setup's defaults and the session compiler both read it, so an
+ * Ask answer is named here as Reader setup names it when it reopens.
+ *
+ * @param {object} input
+ * @returns {string}
+ */
+export function lookOfSession(input) {
+    const { visualConfig, ...rest } = asObject(input);
+    const visual = asObject(visualConfig);
+    return lookOf({
+        ...rest,
+        visualInterlocution: { ...visual, interlocution: { streamGlass: true, ...asObject(visual.interlocution) } }
+    });
 }
 
 const holds = (patch, actual) => Object.entries(patch).every(([key, value]) =>

@@ -277,6 +277,8 @@ Sources: `stances.js:51-110` and `roll.js:78-127` (code). The temper names are a
 
 A roll becomes "work × section × look × rhythm × pace". Any roll or Ask result therefore reopens exactly in Reader setup. Today they cannot reproduce each other (report §2).
 
+*Amended 2026-10-06:* as built (RDR-020, #465, #466 and part 3), `looks.js` is the one preset module; `stances.js` and the roll tempers are deleted. Until RDR-021 lays out the look tiles, Reader setup offers Plain, Gallery and Vigil in the stance row's place and marks one only when `lookOf` derives it. A gallery look holds only when every procedural engine the reading draws is one of the look's, so no look is named for a field the reading does not draw; the reader's own works are not compared, and choosing a look writes its engines in place of another look's. Home names an Ask result by the look its decision lowers into, or "Custom", and Reader setup names it the same way when it reopens. The Workshop does not start from a look yet: its defaults double as the base every saved composition is normalized against, and it carries no type or colour.
+
 ### One engine catalog
 
 The catalog is `visual-taxonomy.js`, extended. It already states "every surface that shows a field reads it from here rather than re-listing it" (code: `visual-taxonomy.js:1-21`). The missing pieces are enforcement and two entries.

@@ -299,8 +299,8 @@
   color: var(--rs-text-3);
 }
 
-/* ─── THE STANCE ROW — intentions, above the parameters ───
-   A real radio group. The chosen posture carries the product's accent
+/* ─── THE LOOK ROW — intentions, above the parameters ───
+   A real radio group. The chosen look carries the product's accent
    dot; nothing else on the screen is lit. */
 .orbital-stances {
   display: flex;

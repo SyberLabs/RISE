@@ -1,14 +1,15 @@
 /**
- * A look is a named point in the configuration space, the stance mechanism
- * (ARCHITECTURE §8.26) widened to field, colour, sound and typography. These
+ * A look is a named point in the configuration space, the preset mechanism
+ * (ARCHITECTURE §8.26) over field, colour, sound and typography. These
  * tests hold it to four properties:
  *
  *   what a look writes        — values the engine's own gates admit unchanged
  *   what a look leaves        — a reading's own art, a held focal, Living Text,
  *                               pace and rhythm
  *   which look a config is in — derived, and distinct for every look
- *   what it replaces          — every stance has a look, and every roll
- *                               reopens in Reader setup as the look it drew
+ *   what it replaces          — every roll reopens in Reader setup as the
+ *                               look it drew, and every Ask answer as the
+ *                               look Home names it by
  */
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
@@ -18,7 +19,7 @@ if (typeof globalThis.indexedDB === 'undefined') {
     };
 }
 
-const { LOOKS, STANCE_LOOKS, applyLook, lookOf } = await import('./looks.js');
+const { LOOKS, applyLook, lookOf, lookOfSession } = await import('./looks.js');
 const { ChamberOrbital, createDefaultConfig } = await import('../components/read/ChamberOrbital.js');
 const { normalizeVisualConfig } = await import('./session-compiler.js');
 const { normalizeVisualSelection } = await import('./visual-selection.js');
@@ -26,11 +27,13 @@ const { sessionColorThemeId, sessionPresentation } = await import('./session-pre
 const { ENGINE_CATALOG } = await import('./visual-registry.js');
 const { THEME_ENGINE_MAP } = await import('./theme-engine-map.js');
 const { SOUNDSCAPES } = await import('../audio/soundscapes.js');
-const { STANCES, applyStance } = await import('./stances.js');
 const { ROLL_LOOKS, ROLL_RANGES, VIVID_LOOKS, composeRoll } = await import('./roll.js');
 const { todayDecision } = await import('./today-reading.js');
 const { todayPoem, todayPool } = await import('./today-poem.js');
-const { jevReleasedWorkIds } = await import('./jev-describe.js');
+const { jevReleasedEdition, jevReleasedWorkIds } = await import('./jev-describe.js');
+const { CHOICES, CONFIG_ANSWERS, validDecision } = await import('./decision/recommend.js');
+const { JEV } = await import('./decision/providers.js');
+const { validateJevRecommendation } = await import('../app/jev-reading.js');
 
 const look = id => LOOKS.find(entry => entry.id === id);
 
@@ -243,21 +246,78 @@ describe('which look a configuration is in', () => {
         expect(lookOf(config)).toBe('custom');
         expect(lookOf(null)).toBe('custom');
     });
+
+    /** A gallery reading drawing `procedural`, in every other respect `id`'s look. */
+    const galleryOf = (id, procedural) => {
+        const config = applyLook(createDefaultConfig(), id);
+        config.visualInterlocution.interlocution = {
+            ...config.visualInterlocution.interlocution, sourceFamily: 'procedural', procedural, sourced: []
+        };
+        return config;
+    };
+
+    it('is never Flame for a gallery that draws an engine, which is not Living Flame', () => {
+        expect(lookOf(galleryOf('flame', ['fractal']))).toBe('custom');
+        // The same, as an Ask answer lowers it: fractal flames, Wonder, Display L, ember.
+        const { visualConfig, ...asked } = composeRoll({ look: 'revel', workId: jevReleasedWorkIds()[0], section: 'first' }).config;
+        expect(lookOfSession({ ...asked, ...look('flame').config, visualConfig })).toBe('custom');
+    });
+
+    it('is Nocturne for a gallery of its own engines, and Custom for one drawing another', () => {
+        expect(lookOf(galleryOf('nocturne', ['turrell', 'harmonograph']))).toBe('nocturne');
+        expect(lookOf(galleryOf('nocturne', ['fractal']))).toBe('custom');
+    });
+
+    it('is the chosen look after choosing it over a gallery of another look\'s engines, keeping the reader\'s own art', () => {
+        const config = applyLook(galleryOf('nocturne', ['harmonograph']), 'gallery');
+        expect(config.visualInterlocution.interlocution.procedural).toEqual(['turrell']);
+        expect(lookOf(config)).toBe('gallery');
+
+        const blend = galleryOf('nocturne', ['harmonograph']);
+        blend.visualInterlocution.interlocution = {
+            ...blend.visualInterlocution.interlocution, sourceFamily: 'blend', sourced: ['dore:genesis']
+        };
+        const { interlocution } = applyLook(blend, 'revel').visualInterlocution;
+        expect([interlocution.procedural, interlocution.sourced]).toEqual([['fractal'], ['dore:genesis']]);
+    });
+
+    it('keeps a roll\'s one engine when its own look is chosen again', () => {
+        expect(applyLook(galleryOf('nocturne', ['harmonograph']), 'nocturne').visualInterlocution.interlocution.procedural)
+            .toEqual(['harmonograph']);
+    });
+
+    it('still names the look of a gallery of the reader\'s own art, whose engines are not compared', () => {
+        const base = createDefaultConfig();
+        base.visualInterlocution.interlocution = {
+            ...base.visualInterlocution.interlocution,
+            sourceFamily: 'collections', sourced: ['dore:genesis'], procedural: []
+        };
+        expect(lookOf(applyLook(base, 'nocturne'))).toBe('nocturne');
+        expect(lookOf(applyLook(base, 'flame'))).toBe('flame');
+    });
+});
+
+describe('which look a session input is in', () => {
+    it('reads a lowered decision by its visualConfig, as Begin hands it over', () => {
+        const nocturne = composeRoll({ look: 'nocturne', workId: jevReleasedWorkIds()[0], section: 'first' });
+        expect(nocturne.config).not.toHaveProperty('visualInterlocution');
+        expect(lookOfSession(nocturne.config)).toBe('nocturne');
+    });
+
+    it('reads an unset gallery glass as set, and a glass turned off as Custom', () => {
+        const visualConfig = { visualMode: 'interlocution', interlocution: { presentation: 'continuous', galleryCadence: 0.15 } };
+        const nocturne = { ...look('nocturne').config, visualConfig };
+        expect(lookOfSession(nocturne)).toBe('nocturne');
+        expect(lookOfSession({ ...nocturne, visualConfig: { ...visualConfig, interlocution: { ...visualConfig.interlocution, streamGlass: false } } }))
+            .toBe('custom');
+    });
+
+    it('is Custom for nothing at all', () => {
+        expect(lookOfSession(null)).toBe('custom');
+    });
 });
 
 describe('what the looks replace', () => {
-    it('gives every stance a look, named by the table', () => {
-        expect(STANCE_LOOKS).toEqual({ plainly: 'plain', imagery: 'gallery', contemplate: 'vigil' });
-        expect(Object.keys(STANCE_LOOKS).sort()).toEqual(STANCES.map(stance => stance.id).sort());
-        for (const id of Object.values(STANCE_LOOKS)) expect(look(id), id).toBeTruthy();
-    });
-
-    it('reads each stance configuration as its look', () => {
-        for (const { id } of STANCES) {
-            expect(lookOf(applyStance(id, createDefaultConfig())), id).toBe(STANCE_LOOKS[id]);
-        }
-    });
-
     describe('a roll reopened in Reader setup', () => {
         let container;
         beforeEach(() => {
@@ -305,6 +365,66 @@ describe('what the looks replace', () => {
             }
             expect([...new Set([...drawn.values()].map(decision => decision.look))].sort())
                 .toEqual(VIVID_LOOKS.map(entry => entry.id).sort());
+        }, 60_000);
+    });
+
+    describe('an Ask answer reopened in Reader setup', () => {
+        let container;
+        beforeEach(() => {
+            localStorage.clear();
+            container = document.createElement('div');
+            document.body.appendChild(container);
+        });
+        afterEach(() => { document.body.innerHTML = ''; });
+
+        const edition = jevReleasedEdition(jevReleasedWorkIds()[0]);
+        const book = {
+            work_id: edition.workId, edition_id: edition.editionId,
+            source_revision: edition.sourceRevision, fit_description: 'A reading.'
+        };
+        /** The plan field each question answers, where the names differ. */
+        const FIELD = { pace: 'wpm', chunk: 'chunkMode', visual: 'visualMode', reveal: 'revealMode' };
+        const answersOf = plan => Object.fromEntries(CONFIG_ANSWERS.map(question =>
+            [question, { type: 'choice', choice: String(plan[FIELD[question] ?? question]) }]));
+        /** What the model's answers become through the same admission a live Ask takes. */
+        const ask = (answers, intent) => validDecision({
+            id: 'ask-round-trip', provider: 'TypeSafe', model: 'typesafe/jev-1.13',
+            answers: { book: { type: 'choice', choice: book.work_id }, ...answers }
+        }, [book], intent, CHOICES, JEV);
+
+        it('is the look Home names it by, for every look an answer can land in and every choice of every question away from one', () => {
+            const workId = edition.workId;
+            const bases = [
+                answersOf({ ...composeRoll({ look: 'plain', workId, section: 'first' }).config, chamberFace: 'literary', fontSize: 'medium' }),
+                ...ROLL_LOOKS.map(({ id }) => answersOf(composeRoll({ look: id, workId, section: 'first' }).config))
+            ];
+            const answers = [
+                ...bases.flatMap(base => ['a reading', 'a night drive through neon tokyo'].map(intent => [base, intent])),
+                // Each choice once, away from the bases in turn, so the sweep
+                // stays a few seconds of setup rather than a minute.
+                ...CONFIG_ANSWERS.flatMap((question, row) => Object.keys(CHOICES[question]).map((choice, column) =>
+                    [{ ...bases[(row + column) % bases.length], [question]: { type: 'choice', choice } }, 'a reading']))
+            ];
+            const opened = new Map();
+            for (const [answer, intent] of answers) {
+                const decision = ask(answer, intent);
+                if (!decision) continue;
+                const { visualConfig, soundscape, audioPreset, presentation, chunkMode } = decision.config;
+                opened.set(JSON.stringify([visualConfig, soundscape, audioPreset, presentation, chunkMode]), decision);
+            }
+            const named = new Set();
+            // One setup, as a reader opens one answer after another in it.
+            const orbital = new ChamberOrbital(container, {});
+            for (const [lowered, decision] of opened) {
+                expect(() => validateJevRecommendation(decision), lowered).not.toThrow();
+                orbital.loadText('Begin the morning', 'Library', decision.config);
+                const reopened = lookOf(orbital.config);
+                expect(lookOfSession(decision.config), lowered).toBe(reopened);
+                named.add(reopened);
+            }
+            orbital.destroy();
+            // Both sides agreeing on Custom alone would prove nothing.
+            expect([...named].sort()).toEqual([...ROLL_LOOKS.map(entry => entry.id), 'custom'].sort());
         }, 60_000);
     });
 });

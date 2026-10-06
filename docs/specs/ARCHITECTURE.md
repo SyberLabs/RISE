@@ -158,7 +158,7 @@ flowchart LR
     audio["audio<br/>Web Audio, recitation<br/>11 modules"]
     components["components<br/>routed views<br/>50 modules"]
     content["content<br/>texts, imagery, journeys<br/>228 modules"]
-    core["core<br/>session, player, router<br/>171 modules"]
+    core["core<br/>session, player, router<br/>170 modules"]
     enterprise["enterprise<br/>talk program, speaker rail<br/>34 modules"]
     live["live<br/>realtime Current: events, runtime, providers<br/>42 modules"]
     page["page<br/>spatial projection<br/>4 modules"]
@@ -889,7 +889,7 @@ of `settled`, `open`, `deferred`, or `reversed`.
 
 ### 8.26 The doorway is a preset over the engine, not a second engine
 
-- **Chosen:** a stance (`src/core/stances.js`) is a named partial of the
+- **Chosen:** a stance (`stances.js`) is a named partial of the
   configuration Read's setup pane (the Orbital) already builds. It writes
   fields in the visual, audio and temporal orbits, and what it emits takes the
   same road as a hand-built configuration: the Orbital's persistence
@@ -906,6 +906,9 @@ of `settled`, `open`, `deferred`, or `reversed`.
   posture the reader had adjusted away from, so the row would lie. Deriving it
   cannot. There is no `study` stance yet; it is the entry to Page mode, which
   is sequenced after this step.
+- **Amended 2026-10-06:** the preset module is `src/core/looks.js`: ten looks
+  on this mechanism replace the stances and the roll tempers, and `lookOf`
+  derives the look a reading is in (RDR-020).
 - **Status:** settled.
 
 ### 8.27 Application capabilities are injected, not discovered

@@ -1,11 +1,12 @@
 /**
  * The doorway, from the reader's side.
  *
- * `stances.test.js` proves what a stance writes. This proves the Orbital
- * actually stands in one: that a single tap moves all three orbits, that the
- * visual panel is told rather than left disagreeing, that the choice survives
- * Begin and a rebuild, and — the rule that is easiest to claim and hardest to
- * keep — that the row stops claiming a posture the moment a dial moves.
+ * `looks.test.js` proves what a look writes. This proves the Orbital
+ * actually reads in one: that a single tap moves field, sound, type and
+ * colour, that the visual panel is told rather than left disagreeing, that
+ * the choice survives Begin and a rebuild, and — the rule that is easiest to
+ * claim and hardest to keep — that the row stops claiming a look the moment
+ * a field the look sets moves.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -16,7 +17,9 @@ if (typeof globalThis.indexedDB === 'undefined') {
 }
 
 const { ChamberOrbital, createDefaultConfig } = await import('./ChamberOrbital.js');
-const { STANCES, matchStance } = await import('../../core/stances.js');
+const { lookOf } = await import('../../core/looks.js');
+const { composeRoll } = await import('../../core/roll.js');
+const { jevReleasedWorkIds } = await import('../../core/jev-describe.js');
 const { default: App } = await import('../../app.js');
 
 function createOrbital(onBeginSession = vi.fn(), options = {}) {
@@ -30,7 +33,7 @@ const chosen = container => [...container.querySelectorAll('[data-stance]')]
     .filter(input => input.checked)
     .map(input => input.dataset.stance);
 
-describe('the stance row', () => {
+describe('the look row', () => {
     beforeEach(() => {
         localStorage.clear();
         document.body.innerHTML = '';
@@ -41,27 +44,49 @@ describe('the stance row', () => {
         vi.restoreAllMocks();
     });
 
-    it('offers every stance the registry knows, and no more', () => {
+    it('offers Plain, Gallery and Vigil, the looks the stances became, and no more', () => {
         const { container, orbital } = createOrbital();
         expect([...container.querySelectorAll('[data-stance]')].map(b => b.dataset.stance))
-            .toEqual(STANCES.map(stance => stance.id));
+            .toEqual(['plain', 'gallery', 'vigil']);
         orbital.destroy();
     });
 
-    it('names each stance and says what it feels like', () => {
+    it('names each look and says what it feels like', () => {
         const { container, orbital } = createOrbital();
-        const button = container.querySelector('[data-stance="contemplate"]').closest('label');
-        expect(button.textContent).toContain('Contemplate');
-        expect(button.textContent).toContain('One held image, an unhurried pace, a soundscape.');
+        const button = container.querySelector('[data-stance="vigil"]').closest('label');
+        expect(button.textContent).toContain('Vigil');
+        expect(button.textContent).toContain('One held image, and a soundscape beneath it.');
         orbital.destroy();
     });
 
-    it('meets a reader who has chosen nothing already standing in Read plainly', () => {
-        // The factory defaults ARE a named posture. If they drift out of one,
+    it('meets a reader who has chosen nothing already in Plain', () => {
+        // The factory defaults ARE a named look. If they drift out of one,
         // the first thing a visitor sees is a row where nothing is chosen.
-        expect(matchStance(createDefaultConfig())).toBe('plainly');
+        expect(lookOf(createDefaultConfig())).toBe('plain');
         const { container, orbital } = createOrbital();
-        expect(chosen(container)).toEqual(['plainly']);
+        expect(chosen(container)).toEqual(['plain']);
+        orbital.destroy();
+    });
+
+    it('marks none of the three for a reading in another look, and names that look', () => {
+        const { container, orbital } = createOrbital();
+        const roll = composeRoll({ look: 'nocturne', workId: jevReleasedWorkIds()[0], section: 'first' });
+        orbital.loadText('Begin the morning', 'Meditations', roll.config);
+        expect(chosen(container)).toEqual([]);
+        expect(container.querySelector('#reader-summary-text').textContent).toBe('Meditations · Nocturne');
+        orbital.destroy();
+    });
+
+    it('marks Gallery once chosen over a roll that drew another engine', () => {
+        const { container, orbital } = createOrbital();
+        const roll = composeRoll({ look: 'nocturne', workId: jevReleasedWorkIds()[0], section: 'first', random: () => 0.999 });
+        orbital.loadText('Begin the morning', 'Meditations', roll.config);
+        expect(orbital.config.visualInterlocution.interlocution.procedural).toEqual(['harmonograph']);
+
+        container.querySelector('[data-stance="gallery"]').click();
+
+        expect(chosen(container)).toEqual(['gallery']);
+        expect(container.querySelector('#reader-summary-text').textContent).toBe('Meditations · Gallery');
         orbital.destroy();
     });
 });
@@ -79,7 +104,7 @@ describe('soundscape choices', () => {
     });
 });
 
-describe('choosing a stance', () => {
+describe('choosing a look', () => {
     beforeEach(() => {
         localStorage.clear();
         document.body.innerHTML = '';
@@ -90,18 +115,22 @@ describe('choosing a stance', () => {
         vi.restoreAllMocks();
     });
 
-    it('moves all three orbits at once', () => {
+    it('moves field, sound, type and colour at once, and leaves the pace', () => {
         const { container, orbital } = createOrbital();
         orbital.loadText('Begin the morning', 'Meditations');
 
-        container.querySelector('[data-stance="imagery"]').click();
+        container.querySelector('[data-stance="gallery"]').click();
 
         expect(orbital.config.visualInterlocution.visualMode).toBe('interlocution');
         expect(orbital.config.visualInterlocution.interlocution.presentation)
             .toBe('continuous');
-        expect(orbital.config.wpm).toBe(180);
         expect(orbital.config.soundscape).toBe('aurora');
-        expect(chosen(container)).toEqual(['imagery']);
+        expect(orbital.config.presentation).toMatchObject({
+            chamberFace: 'literary', fontSize: 'medium', colorTheme: 'classic'
+        });
+        expect(orbital.config.wpm).toBe(200);
+        expect(chosen(container)).toEqual(['gallery']);
+        expect(container.querySelector('#reader-summary-text').textContent).toBe('Meditations · Gallery');
         orbital.destroy();
     });
 
@@ -109,10 +138,8 @@ describe('choosing a stance', () => {
         const { container, orbital } = createOrbital();
         orbital.loadText('Begin the morning', 'Meditations');
 
-        container.querySelector('[data-stance="contemplate"]').click();
+        container.querySelector('[data-stance="vigil"]').click();
 
-        expect(container.querySelector('.orbit-temporal .orbit-status').textContent)
-            .toContain('140');
         expect(container.querySelector('.orbit-audio .orbit-status').textContent)
             .toContain('Aurora');
         expect(container.querySelector('.orbit-visual .orbit-status').textContent)
@@ -122,37 +149,49 @@ describe('choosing a stance', () => {
 
     it('leaves the full controls agreeing with it, one level deeper', () => {
         // Progressive disclosure, not amputation: the orbits still hold every
-        // control, and they must show the stance rather than the dials it
-        // replaced. A stance that set config without syncing the panel would
+        // control, and they must show the look rather than the dials it
+        // replaced. A look that set config without syncing the panel would
         // put two answers in front of the reader.
         const { container, orbital } = createOrbital();
         orbital.loadText('Begin the morning', 'Meditations');
 
-        container.querySelector('[data-stance="contemplate"]').click();
+        container.querySelector('[data-stance="vigil"]').click();
 
-        expect(container.querySelector('#wpm-slider').value).toBe('140');
-        expect(container.querySelector('#wpm-val').textContent).toBe('140 WPM');
+        expect(container.querySelector('#wpm-slider').value).toBe('200');
         expect(container.querySelector('[data-soundscape="aurora"]').classList)
             .toContain('active');
         expect(container.querySelector('[data-audio-preset="silent"]').classList)
             .toContain('active');
-        // The Navigator holds its own mapped selection; a stance it was never
+        // The Navigator holds its own mapped selection; a look it was never
         // told about would be reverted the next time it emitted a change.
         expect(orbital.visualNavigator.getConfig().visualMode).toBe('focals');
         orbital.destroy();
     });
 
-    it('stops claiming a posture once a dial has moved', () => {
+    it('stops claiming a look once a field the look sets has moved', () => {
         const { container, orbital } = createOrbital();
         orbital.loadText('Begin the morning', 'Meditations');
-        container.querySelector('[data-stance="imagery"]').click();
+        container.querySelector('[data-stance="gallery"]').click();
+
+        container.querySelector('[data-soundscape="soft-rain"]').click();
+
+        expect(orbital.config.soundscape).toBe('soft-rain');
+        expect(chosen(container)).toEqual([]);
+        expect(container.querySelector('#reader-summary-text').textContent).toBe('Meditations · Custom');
+        orbital.destroy();
+    });
+
+    it('keeps the look when only the pace moves', () => {
+        const { container, orbital } = createOrbital();
+        orbital.loadText('Begin the morning', 'Meditations');
+        container.querySelector('[data-stance="gallery"]').click();
 
         const slider = container.querySelector('#wpm-slider');
         slider.value = '300';
         slider.dispatchEvent(new Event('input'));
 
         expect(orbital.config.wpm).toBe(300);
-        expect(chosen(container)).toEqual([]);
+        expect(chosen(container)).toEqual(['gallery']);
         orbital.destroy();
     });
 
@@ -273,37 +312,42 @@ describe('choosing a stance', () => {
         }
     });
 
-    it('carries the whole slice into the session', () => {
+    it('carries the whole look into the session', () => {
         const onBeginSession = vi.fn();
         const { container, orbital } = createOrbital(onBeginSession);
         orbital.loadText('Begin the morning', 'Meditations');
 
-        container.querySelector('[data-stance="imagery"]').click();
+        container.querySelector('[data-stance="gallery"]').click();
         orbital.beginSession();
 
         const payload = onBeginSession.mock.calls[0][0];
-        expect(payload.wpm).toBe(180);
+        expect(payload.wpm).toBe(200);
         expect(payload.soundscape).toBe('aurora');
         expect(payload.audioPreset).toBe('silent');
         expect(payload.visualConfig.visualMode).toBe('interlocution');
         expect(payload.visualConfig.interlocution.presentation).toBe('continuous');
-        // A Gallery with an empty shelf shows nothing at all, so the promise
-        // "read with imagery" has to arrive with something to draw.
+        // A Gallery with an empty shelf shows nothing at all, so the look
+        // has to arrive with something to draw.
         expect(payload.visualConfig.interlocution.procedural.length)
             .toBeGreaterThan(0);
+        expect(payload.presentation).toMatchObject({
+            chamberFace: 'literary', fontSize: 'medium', colorTheme: 'classic'
+        });
         orbital.destroy();
     });
 
-    it('is still standing there after the Chamber is rebuilt', () => {
+    it('is still in it, type and colour too, after the Chamber is rebuilt', () => {
         const first = createOrbital();
         first.orbital.loadText('Begin the morning', 'Meditations');
-        first.container.querySelector('[data-stance="contemplate"]').click();
+        first.container.querySelector('[data-stance="vigil"]').click();
         first.orbital.destroy();
         document.body.innerHTML = '';
 
         const second = createOrbital();
-        expect(chosen(second.container)).toEqual(['contemplate']);
-        expect(second.orbital.config.wpm).toBe(140);
+        expect(chosen(second.container)).toEqual(['vigil']);
+        expect(second.orbital.config.presentation).toMatchObject({
+            chamberFace: 'display', fontSize: 'large', colorTheme: 'amethyst'
+        });
         second.orbital.destroy();
     });
 
@@ -323,7 +367,7 @@ describe('choosing a stance', () => {
             }
         });
 
-        container.querySelector('[data-stance="imagery"]').click();
+        container.querySelector('[data-stance="gallery"]').click();
 
         const { interlocution } = orbital.config.visualInterlocution;
         expect(interlocution.sourced).toEqual(['dore:genesis']);
@@ -331,7 +375,7 @@ describe('choosing a stance', () => {
         orbital.destroy();
     });
 
-    it('keeps the focal the Chapel is holding when asked to contemplate', () => {
+    it('keeps the focal the Chapel is holding when asked for Vigil', () => {
         const { container, orbital } = createOrbital();
         orbital.loadText('And he was transfigured', 'Matthew', {
             origin: { view: 'chapel', name: 'The Chapel' },
@@ -342,7 +386,7 @@ describe('choosing a stance', () => {
             }
         });
 
-        container.querySelector('[data-stance="contemplate"]').click();
+        container.querySelector('[data-stance="vigil"]').click();
 
         expect(orbital.config.visualInterlocution.focals.type).toBe('icon');
         expect(orbital.config.visualInterlocution.focals.iconId)
@@ -350,14 +394,28 @@ describe('choosing a stance', () => {
         orbital.destroy();
     });
 
-    it('survives Reset by returning to the posture the defaults stand in', () => {
+    it('returns to Plain on Reset for a reading that claims no type or colour', () => {
         const { container, orbital } = createOrbital();
-        orbital.loadText('Begin the morning', 'Meditations');
-        container.querySelector('[data-stance="contemplate"]').click();
+        container.querySelector('[data-stance="vigil"]').click();
+        orbital.config.presentation = null;
 
         orbital.resetPrefs();
 
-        expect(chosen(orbital.container)).toEqual(['plainly']);
+        expect(chosen(orbital.container)).toEqual(['plain']);
+        orbital.destroy();
+    });
+
+    it('keeps type and colour on Reset, because they belong to the reading, so a look that set them reads as Custom', () => {
+        const { container, orbital } = createOrbital();
+        orbital.loadText('Begin the morning', 'Meditations');
+        container.querySelector('[data-stance="vigil"]').click();
+
+        orbital.resetPrefs();
+
+        expect(orbital.config.visualInterlocution.visualMode).toBe('off');
+        expect(orbital.config.soundscape).toBe('none');
+        expect(orbital.config.presentation.colorTheme).toBe('amethyst');
+        expect(chosen(orbital.container)).toEqual([]);
         orbital.destroy();
     });
 });
