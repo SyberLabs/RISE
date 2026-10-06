@@ -3,9 +3,9 @@
   "title": "Replace stances and tempers with ten looks",
   "lane": "reader",
   "milestone": "Reader consolidation",
-  "status": "planned",
+  "status": "in_progress",
   "delivery": "not_shipped",
-  "owner": null,
+  "owner": "Claude coordinator",
   "priority": "next",
   "dependencies": [
     "FND-008",
@@ -28,16 +28,26 @@
       "ref": "docs/product/discussions/2026-10-05-consolidated-reader-decisions.md",
       "note": "Owner decisions Q1-Q6, 2026-10-05.",
       "date": "2026-10-05"
+    },
+    {
+      "kind": "pr",
+      "ref": "https://github.com/SyberLabs/RISE/pull/465",
+      "note": "Part 1 of 3: src/core/looks.js, applyLook and lookOf, temper and stance name mapping; no caller yet.",
+      "date": "2026-10-06"
     }
   ],
   "activity": [
     {
       "date": "2026-10-05T08:40:23.000Z",
       "summary": "Seeded from Package C1 after the owner decisions."
+    },
+    {
+      "date": "2026-10-06T04:52:03.538Z",
+      "summary": "Part 1 opened as #465: the looks module and lookOf."
     }
   ],
-  "updatedAt": "2026-10-05T08:40:23.000Z",
-  "revision": 1,
+  "updatedAt": "2026-10-06T04:52:03.538Z",
+  "revision": 2,
   "summary": "Plain, Gallery, Nocturne, Garden, Flame, Signal, Iris, Revel, Vigil and Inlay as one preset vocabulary.",
   "blocker": null
 }
