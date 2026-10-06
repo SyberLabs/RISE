@@ -3,8 +3,8 @@
   "title": "Make visual-taxonomy the one engine catalog",
   "lane": "shared",
   "milestone": "Reader consolidation",
-  "status": "in_progress",
-  "delivery": "branch",
+  "status": "done",
+  "delivery": "deployed",
   "owner": "Claude coordinator",
   "priority": "now",
   "dependencies": [
@@ -41,6 +41,12 @@
       "ref": "src/core/engine-lists.test.js",
       "note": "Fails on three or more registered engine ids written as a list outside the named files.",
       "date": "2026-10-05"
+    },
+    {
+      "kind": "pr",
+      "ref": "https://github.com/SyberLabs/RISE/pull/463",
+      "note": "Part 2: ENGINE_CATALOG with Living Flame and night streaks, listed and composer flags, the one-way Composer-view test; no visible change.",
+      "date": "2026-10-06"
     }
   ],
   "activity": [
@@ -51,10 +57,14 @@
     {
       "date": "2026-10-05T09:08:26.714Z",
       "summary": "Part 1 opened as #419: Workshop and cortex read the registry; guard test added."
+    },
+    {
+      "date": "2026-10-06T04:36:58.923Z",
+      "summary": "Part 2 opened as #463; done on merge."
     }
   ],
-  "updatedAt": "2026-10-05T09:08:26.714Z",
-  "revision": 2,
-  "summary": "Part 1 of 2: the Workshop and the cortex read their engine lists from the registry, and a test fails on a new hand-made list of three or more engine ids. Part 2 adds Living Flame and night streaks with listed and composer flags.",
+  "updatedAt": "2026-10-06T04:36:58.923Z",
+  "revision": 3,
+  "summary": "Visual-registry is the one engine catalog: Workshop and cortex read it (#419), Living Flame and night streaks are entries, and every entry carries listed and composer flags; the Composer view equals RISE_CURRENT_VISUALS (#463).",
   "blocker": null
 }
