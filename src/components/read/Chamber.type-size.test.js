@@ -110,6 +110,7 @@ describe('Chamber type size (FM-RISE-36)', () => {
         restoreField?.();
         document.body.replaceChildren();
         vi.restoreAllMocks();
+        vi.unstubAllGlobals();
     });
 
     it('applies the persisted fontSize on construct and again when the session starts', () => {
@@ -296,7 +297,7 @@ describe('Chamber type size (FM-RISE-36)', () => {
     it('keeps a coarse-pointer phone in landscape on the chamber stage', () => {
         restoreField?.();
         restoreField = installField(844, 390);
-        vi.spyOn(window, 'matchMedia').mockReturnValue({ matches: true });
+        vi.stubGlobal('matchMedia', () => ({ matches: true }));
         vi.spyOn(visualCortex, 'getContinuousFieldArtworkAperture').mockReturnValue({
             width: 260,
             height: 390,
