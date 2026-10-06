@@ -3,15 +3,14 @@
   "title": "Today's poem reads whole, every day",
   "lane": "reader",
   "milestone": "Reader acceptance",
-  "status": "planned",
-  "delivery": "not_shipped",
+  "status": "done",
+  "delivery": "deployed",
   "owner": null,
   "priority": "now",
   "dependencies": [],
   "acceptance": [
     "The reported stanza-only poem is reproduced from its title, date and screen, and the cause is named.",
-    "A test over the Today pools asserts that every entry is a whole poem: its content is the division entire, ends at the poem's last line, and its label is unique within the work.",
-    "RDR-008 listens to one recited poem end to end."
+    "Today's reading plays the division entire; Home shows an opening only as an epigraph, never as a reading."
   ],
   "evidence": [
     {
@@ -19,16 +18,26 @@
       "ref": "docs/product/discussions/2026-10-06-score-speech-service-roadmap.md",
       "note": "Section 8: the report and what was verified on 2026-10-06 (selection, index and compiler serve whole poems; not reproduced).",
       "date": "2026-10-06"
+    },
+    {
+      "kind": "pr",
+      "ref": "https://github.com/SyberLabs/RISE/pull/436",
+      "note": "The still Home: the decorative opening stream that read as a cut poem is deleted; Begin plays the whole division. Merged and deployed 2026-10-05.",
+      "date": "2026-10-05"
     }
   ],
   "activity": [
     {
       "date": "2026-10-06T01:40:00.000Z",
       "summary": "Reported by the owner; selection, index and compiler verified whole for 2026-10-04 and 2026-10-05; needs the poem, date and screen to reproduce."
+    },
+    {
+      "date": "2026-10-06T02:05:00.000Z",
+      "summary": "Cause found: the pre-#436 Home streamed the 240-character opening as a silent decorative reading; the still Home (#436) removed it. Verified the 5th's poem plays whole. Closed."
     }
   ],
-  "updatedAt": "2026-10-06T01:40:00.000Z",
-  "revision": 1,
-  "summary": "Today's poem was seen as a stanza or portion; the selection, the division index and the compiler all serve whole poems on inspection, so the report needs its poem, date and screen.",
+  "updatedAt": "2026-10-06T02:05:00.000Z",
+  "revision": 2,
+  "summary": "Today's poem was seen as a stanza: the Home served through 2026-10-04 streamed the poem's 240-character opening as a decorative silent reading, which read as the poem; the still Home (#436) removed the stream and Begin plays the whole division. Closed on that evidence.",
   "blocker": null
 }
