@@ -5,7 +5,7 @@
   "milestone": "Reader acceptance",
   "status": "done",
   "delivery": "deployed",
-  "owner": null,
+  "owner": "Claude coordinator",
   "priority": "now",
   "dependencies": [],
   "acceptance": [
@@ -37,7 +37,7 @@
     }
   ],
   "updatedAt": "2026-10-06T02:05:00.000Z",
-  "revision": 2,
+  "revision": 3,
   "summary": "Today's poem was seen as a stanza: the Home served through 2026-10-04 streamed the poem's 240-character opening as a decorative silent reading, which read as the poem; the still Home (#436) removed the stream and Begin plays the whole division. Closed on that evidence.",
   "blocker": null
 }
