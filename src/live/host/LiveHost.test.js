@@ -11,6 +11,7 @@ import { LiveHost, framedBy } from './LiveHost.js';
 import { createVirtualClock } from '../clock.js';
 import { createMockAdapter } from '../adapters/mock.js';
 import { BLACK_HOLES_CURRENT } from '../../test/sealed-current.js';
+import { createFakeSpeech } from '../../test/fake-speech.js';
 
 const env = ({ speech = false, recognition = false, motion = false } = {}) => ({
     window: {
@@ -112,6 +113,49 @@ describe('choosing a voice', () => {
         mount('?voice=paced', env({ speech: true }));
         await host.buildVoices(createVirtualClock());
         expect(container.querySelector('.live-notes').textContent).toMatch(/Speech is off/u);
+    });
+});
+
+describe('the voice the browser speaks with', () => {
+    const ARIA = { name: 'Microsoft Aria Online (Natural) - English (United States)', lang: 'en-US', localService: false, default: false };
+    const EDGE = [{ name: 'Microsoft David - English (United States)', lang: 'en-US', localService: true, default: true }, ARIA];
+
+    /** A device that speaks on `clock` and offers `voices`, with the page in `language`. */
+    function speaking(clock, voices, language = 'en-US') {
+        const synth = createFakeSpeech(clock);
+        synth.getVoices = () => voices;
+        const environment = env({ speech: true });
+        Object.assign(environment.window, { speechSynthesis: synth, SpeechSynthesisUtterance: synth.Utterance });
+        Object.assign(environment, { speechSynthesis: synth, SpeechSynthesisUtterance: synth.Utterance, navigator: { language } });
+        return { environment, synth };
+    }
+
+    it('is the best installed one, and every utterance is given it', async () => {
+        const clock = createVirtualClock();
+        const { environment, synth } = speaking(clock, EDGE);
+        const given = [];
+        const speak = synth.speak.bind(synth);
+        synth.speak = utterance => { given.push([utterance.voice, utterance.lang]); speak(utterance); };
+        mount('', environment);
+        const voices = await host.buildVoices(clock);
+        voices.create().enqueue({ id: 'a', text: 'hello there' });
+        await clock.runAll();
+        expect(given).toEqual([[ARIA, 'en-US']]);
+    });
+
+    it('is named in the measuring record, by name and language and nothing else', async () => {
+        const { environment } = speaking(createVirtualClock(), EDGE);
+        mount('?measure=1', environment);
+        await host.buildRuntime();
+        expect(environment.__riseLive.voice()).toEqual({ name: ARIA.name, lang: 'en-US' });
+    });
+
+    it('is recorded as none when the browser is left to choose', async () => {
+        const safari = [{ name: 'Albert', lang: 'en-US', default: true }, { name: 'Samantha', lang: 'en-US', default: true }];
+        const { environment } = speaking(createVirtualClock(), safari);
+        mount('?measure=1', environment);
+        await host.buildRuntime();
+        expect(environment.__riseLive.voice()).toBeNull();
     });
 });
 

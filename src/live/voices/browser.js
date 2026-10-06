@@ -196,6 +196,30 @@ export function createBrowserVoice({ speech, clock = createRealClock(), lang = '
 }
 
 /**
+ * The voice to speak a page in `lang` with, from `getVoices()`, or null to leave
+ * the browser its own default. Only the page's language counts: its exact locale
+ * when any voice has it, else its base language. Among those, a natural voice
+ * ("(Natural)" in the name, as Edge and Chrome OS name them), single-language
+ * before multilingual, because Edge's multilingual voices stop at an "&"; else
+ * the one voice marked default, and none when several claim it, as every voice
+ * does in Safari. Edge's natural voices are network voices that report no word
+ * boundaries, which the speech clock tolerates. Chrome's own Google voices carry
+ * no marker, so they are never taken over the default: they stop after 14
+ * seconds without reporting an end.
+ */
+export function chooseVoice(voices, lang) {
+    const tag = value => String(value ?? '').replace(/_/gu, '-').toLowerCase();
+    const wanted = tag(lang);
+    const base = wanted.split('-')[0];
+    const exact = voices.filter(voice => tag(voice.lang) === wanted);
+    const same = exact.length > 0 ? exact : voices.filter(voice => tag(voice.lang).split('-')[0] === base);
+    const natural = same.filter(voice => /\(Natural\)/u.test(voice.name));
+    if (natural.length > 0) return natural.find(voice => !/Multilingual/u.test(voice.name)) ?? natural[0];
+    const defaults = same.filter(voice => voice.default === true);
+    return defaults.length === 1 ? defaults[0] : null;
+}
+
+/**
  * Voices load late in some browsers: `getVoices()` is empty until
  * `voiceschanged`. Resolves with the voice list once there is one, or with an
  * empty list after `timeoutMs`, so a host never waits on a browser that has none.
