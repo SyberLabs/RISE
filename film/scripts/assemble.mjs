@@ -84,8 +84,9 @@ async function segment(shot, index) {
     return file;
   }
 
-  const clip = shot.clip ? at(shot.clip) : null;
-  const present = clip && existsSync(clip);
+  // The real clip when it exists, else the drawn animatic, else the slate.
+  const clip = [shot.clip, shot.fallback].filter(Boolean).map(at).find(existsSync) || null;
+  const present = Boolean(clip);
   if (!present) {
     // The slate: a 0.4 s fade in, hard out, so missing shots still cut like shots.
     const graph = `[0:v]${size},fade=t=in:st=0:d=0.4,format=yuv420p[v]`;
@@ -132,8 +133,9 @@ console.log(`${edl.title}: ${timeline.length} shots, ${stamp(total)}`);
 const segments = [];
 for (const [i, shot] of timeline.entries()) {
   const file = await segment(shot, i);
-  const present = shot.source === 'card' || (shot.clip && existsSync(at(shot.clip)));
-  console.log(`  ${shot.id.padEnd(4)} ${fmt(shot.start).padStart(8)}  ${String(shot.seconds).padStart(3)} s  ${shot.source.padEnd(9)} ${present ? '' : 'SLATE  '}${shot.title || shot.card}`);
+  const state = shot.source === 'card' || (shot.clip && existsSync(at(shot.clip))) ? ''
+    : shot.fallback && existsSync(at(shot.fallback)) ? 'ANIMATIC  ' : 'SLATE  ';
+  console.log(`  ${shot.id.padEnd(4)} ${fmt(shot.start).padStart(8)}  ${String(shot.seconds).padStart(3)} s  ${shot.source.padEnd(9)} ${state}${shot.title || shot.card}`);
   segments.push(file);
 }
 

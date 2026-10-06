@@ -104,8 +104,10 @@ Sound: the song pulls back to pulse and footsteps. Sneaking.
 ### Act 4 — Syko, for real (1:56–2:56)
 
 **Source: supplied.** Real video of Syko pitching SyberLabs and RISE, 60 s.
-Not found in the repository, Drive or Gmail on 2026-10-05, so the review cut
-carries a slate here. When the footage exists, drop it at
+Not found in the repository, Drive or Gmail on 2026-10-05. Until it exists
+the cut plays the three beats below as words arriving in time over a slow
+harmonograph field (`prologue/scenes.js`, shot 4.1), which keeps the film's
+shape and says the same three things. When the footage exists, drop it at
 `film/supplied/syko-pitch.mp4` and re-run the assembler; nothing else
 changes.
 

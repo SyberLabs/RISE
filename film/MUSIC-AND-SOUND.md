@@ -1,11 +1,12 @@
 # Music, voice and sound for "Through the Vortex"
 
-One song carries the whole four minutes. It is made in Suno (prompts below),
-or, if the existing **RISE UP** track from Drive is preferred, that file is
-cut to the same marks. Save the chosen track as
-`film/music/through-the-vortex.mp3` and the assembler picks it up; without
-it, the assembler lays a quiet synthesised temp bed so the review cut has
-pulse and the picture can be judged.
+One song carries the whole four minutes. Today it is the score composed and
+rendered by `scripts/synth.mjs` (`film/music/through-the-vortex.wav`): the
+drone and bell, the arpeggio build, the hook at the Phoenix, the sneaking
+pulse, the bed under the pitch, the hook's return, one held chord, all on
+the marks below. A Suno take (prompts below) or the existing **RISE UP**
+track from Drive replaces it: save the chosen track over that path, or as
+`.mp3` and point `music.file` in `edl.json` at it, and re-run the assembler.
 
 ## 1. What the music has to do
 
