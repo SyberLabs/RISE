@@ -3,8 +3,8 @@
   "title": "Replace stances and tempers with ten looks",
   "lane": "reader",
   "milestone": "Reader consolidation",
-  "status": "in_progress",
-  "delivery": "not_shipped",
+  "status": "done",
+  "delivery": "deployed",
   "owner": "Claude coordinator",
   "priority": "next",
   "dependencies": [
@@ -38,7 +38,13 @@
     {
       "kind": "pr",
       "ref": "https://github.com/SyberLabs/RISE/pull/466",
-      "note": "Part 2 of 3: rolls, Today, Home and the wormhole draw a look with per-look rhythm and pace; tempers deleted; round-trip test in setup.",
+      "note": "Part 2 of 3: rolls, Today, Home and the wormhole draw a look with per-look rhythm and pace; tempers deleted; round-trip test in setup. Merged.",
+      "date": "2026-10-06"
+    },
+    {
+      "kind": "pr",
+      "ref": "https://github.com/SyberLabs/RISE/pull/467",
+      "note": "Part 3 of 3: Reader setup offers Plain, Gallery, Vigil; Ask names its look; honest engine matching; stances deleted. Rendered at three widths.",
       "date": "2026-10-06"
     }
   ],
@@ -54,10 +60,14 @@
     {
       "date": "2026-10-06T05:16:51.718Z",
       "summary": "Part 1 merged (#465); part 2 opened as #466."
+    },
+    {
+      "date": "2026-10-06T05:54:35.805Z",
+      "summary": "Part 2 merged (#466); part 3 opened as #467; done on merge."
     }
   ],
-  "updatedAt": "2026-10-06T05:16:51.718Z",
-  "revision": 3,
-  "summary": "Plain, Gallery, Nocturne, Garden, Flame, Signal, Iris, Revel, Vigil and Inlay as one preset vocabulary.",
+  "updatedAt": "2026-10-06T05:54:35.805Z",
+  "revision": 4,
+  "summary": "One looks module replaces stances and tempers: rolls, Today, Home, the wormhole, Reader setup and Ask speak looks; every roll and Ask result reopens identically in setup (tested); validateJevRecommendation unchanged. The Workshop starting look is deferred: its defaults also normalise saved compositions.",
   "blocker": null
 }
