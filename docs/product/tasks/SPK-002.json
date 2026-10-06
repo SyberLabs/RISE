@@ -1,0 +1,36 @@
+{
+  "id": "SPK-002",
+  "title": "Build the poem packs; the recited shelf waits on RDR-008",
+  "lane": "reader",
+  "milestone": "Speech",
+  "status": "planned",
+  "delivery": "not_shipped",
+  "owner": null,
+  "priority": "now",
+  "dependencies": [
+    "FND-004"
+  ],
+  "acceptance": [
+    "The ElevenLabs poem packs decided on 2026-10-03 are built with npm run poem:recite on the owner key and served; today's poem is recited.",
+    "A recited shelf is built only after RDR-008 and a storage budget set by the owners.",
+    "Packs live in the home FND-004 chooses for audio, not on the retired branch; RDR-008 listens to them."
+  ],
+  "evidence": [
+    {
+      "kind": "document",
+      "ref": "docs/product/discussions/2026-10-06-score-speech-service-roadmap.md",
+      "note": "The score, speech and service roadmap; Record.",
+      "date": "2026-10-06"
+    }
+  ],
+  "activity": [
+    {
+      "date": "2026-10-06T01:30:00.000Z",
+      "summary": "Seeded from the 2026-10-06 roadmap record."
+    }
+  ],
+  "updatedAt": "2026-10-06T01:30:00.000Z",
+  "revision": 1,
+  "summary": "Pre-rendered speech for text RISE already holds: the decided poem packs now; a recited shelf only after RDR-008 has listened and the owners set a storage budget.",
+  "blocker": null
+}
