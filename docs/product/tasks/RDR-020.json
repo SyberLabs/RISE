@@ -32,7 +32,13 @@
     {
       "kind": "pr",
       "ref": "https://github.com/SyberLabs/RISE/pull/465",
-      "note": "Part 1 of 3: src/core/looks.js, applyLook and lookOf, temper and stance name mapping; no caller yet.",
+      "note": "Part 1 of 3: src/core/looks.js, applyLook and lookOf, temper and stance name mapping; no caller yet. Merged.",
+      "date": "2026-10-06"
+    },
+    {
+      "kind": "pr",
+      "ref": "https://github.com/SyberLabs/RISE/pull/466",
+      "note": "Part 2 of 3: rolls, Today, Home and the wormhole draw a look with per-look rhythm and pace; tempers deleted; round-trip test in setup.",
       "date": "2026-10-06"
     }
   ],
@@ -44,10 +50,14 @@
     {
       "date": "2026-10-06T04:52:03.538Z",
       "summary": "Part 1 opened as #465: the looks module and lookOf."
+    },
+    {
+      "date": "2026-10-06T05:16:51.718Z",
+      "summary": "Part 1 merged (#465); part 2 opened as #466."
     }
   ],
-  "updatedAt": "2026-10-06T04:52:03.538Z",
-  "revision": 2,
+  "updatedAt": "2026-10-06T05:16:51.718Z",
+  "revision": 3,
   "summary": "Plain, Gallery, Nocturne, Garden, Flame, Signal, Iris, Revel, Vigil and Inlay as one preset vocabulary.",
   "blocker": null
 }
