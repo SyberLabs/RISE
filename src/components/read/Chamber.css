@@ -600,6 +600,7 @@
   font: 500 14px/20px var(--sy-font-sans);
   letter-spacing: 0;
   text-transform: none;
+  white-space: nowrap;
 }
 
 .jev-next-scene:disabled {
@@ -1811,7 +1812,8 @@
    a page has no playback. Keep Page toggle, music, and exit. Driven by
    the toggle's class so leave restores automatically. */
 .chamber-display.page-mode-on #play-pause-btn,
-.chamber-display.page-mode-on #time-display {
+.chamber-display.page-mode-on #time-display,
+.chamber-display.page-mode-on #pace-btn {
   display: none;
 }
 
@@ -2216,7 +2218,8 @@
    own colours. Modal and topmost: it clears the field and the bar.
    ───────────────────────────────────────────────────────────── */
 
-.look-btn[aria-expanded="true"] {
+.look-btn[aria-expanded="true"],
+.pace-btn[aria-expanded="true"] {
   color: var(--sy-text);
   background: var(--sy-surface-2);
 }
@@ -2292,6 +2295,15 @@
   font-size: 0.8rem;
   color: var(--color-fog);
 }
+
+.look-sheet-note {
+  margin: 0;
+  font-size: 0.8rem;
+  line-height: 1.45;
+  color: var(--color-fog);
+}
+
+.look-sheet-note[hidden] { display: none; }
 
 .look-sheet-label output {
   color: var(--color-light);
@@ -2466,6 +2478,16 @@
 @media (min-width: 641px) {
   .is-look-open .chamber-field {
     padding-right: calc(var(--space-xl) + min(22rem, 100vw));
+  }
+
+  /* The bar centres in the same space, so Exit is never under the sheet; its
+     labels yield to icons there, since the open sheet already names the choice. */
+  .is-look-open .chamber-controls {
+    left: calc((100% - var(--space-xl) - min(22rem, 100vw)) / 2);
+  }
+
+  .is-look-open .chamber-controls .control-label {
+    display: none;
   }
 }
 
