@@ -19,6 +19,7 @@ import { createPresentationLens, sessionColorTheme, sessionColorThemeId } from '
 import { sessionImageryCollections } from '../core/visual-selection.js';
 import { audioDiag } from '../core/audio-diagnostics.js';
 import { liveExited, liveMounted, takeLivePlayer } from './live-handoff.js';
+import { beginStep } from '../core/begin-steps.js';
 
 /**
  * The one place a Player is made. A host that needs a Player for a Session it
@@ -45,6 +46,7 @@ export async function createChamberSession(operations, container, sessionData) {
         if (revision !== operations.router.navigationRevision) throw new DOMException('Launch cancelled', 'AbortError');
     };
     let preparedPlayer = null;
+    beginStep('factory:start');
 
     if (!session || !session.atoms || session.atoms.length === 0) {
         console.error('[RISE] Cannot start chamber: no session data or atoms');
@@ -84,6 +86,7 @@ export async function createChamberSession(operations, container, sessionData) {
         await operations.ensureAudioEngine();
         assertCurrent();
         const audioEngine = operations.getAudioEngine();
+        beginStep('factory:engines');
 
         // Consent is an interaction phase, not a loading task. It
         // must resolve before the opaque preparation overlay can
@@ -198,6 +201,7 @@ export async function createChamberSession(operations, container, sessionData) {
                 }
             });
             assertCurrent();
+            beginStep('factory:audio');
         } else {
             audioEngine.stopAmbient();
             audioEngine.sessionActive = true;
@@ -391,10 +395,12 @@ export async function createChamberSession(operations, container, sessionData) {
                     return true;
                 };
             } else {
+                beginStep('factory:preload');
                 await visualCortex.preloadProgram(session.visualProgram);
                 assertCurrent();
                 await visualCortex.preload(estimatedFlashCount);
                 assertCurrent();
+                beginStep('factory:preloaded');
             }
         } else if (visualSetupMode === 'focals') {
             // Focals mode: persistent gentle focal point (handled by Chamber renderer)
@@ -415,6 +421,7 @@ export async function createChamberSession(operations, container, sessionData) {
 
         const { Chamber } = await import('../components/read/Chamber.js');
         assertCurrent();
+        beginStep('factory:chamber-module');
 
         if (recitationVoice) {
             ui.updateLoadingStatus('Building the spoken lead...');

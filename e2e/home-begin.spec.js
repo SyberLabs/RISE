@@ -50,7 +50,7 @@ async function settled(page) {
  * #view-read; one sample per frame between them says what was on screen.
  */
 const observe = page => page.evaluate(() => {
-  const begin = { t0: null, tWord: null, word: '', samples: [], longTasks: [] };
+  const begin = { t0: null, tWord: null, word: '', samples: [], longTasks: [], steps: [] };
   window.__riseBegin = begin;
   const home = document.querySelector('#view-home');
   const read = document.querySelector('#view-read');
@@ -122,7 +122,9 @@ for (const [name, look] of cases) {
       .filter(task => task.start + task.duration > begin.t0 && task.start < begin.tWord)
       .map(task => task.duration));
     const at = list => (list.length ? `, from ${list[0].t} ms to ${list[list.length - 1].t} ms` : '');
-    const summary = `${name}: first word ${firstWord} ms (“${begin.word.slice(0, 24)}”) | overlay shown in ${overlayShown.length} of ${frames} frames${at(overlayShown)} | no field in ${fieldless.length} of ${frames} frames${at(fieldless)} | longest long task ${Math.round(longest)} ms`;
+    // Where the time went: each step the factory and the Chamber stamped (src/core/begin-steps.js), from the press.
+    const steps = begin.steps.map(([step, at]) => `${step} ${Math.round(at - begin.t0)}`).join(', ');
+    const summary = `${name}: first word ${firstWord} ms (“${begin.word.slice(0, 24)}”) | overlay shown in ${overlayShown.length} of ${frames} frames${at(overlayShown)} | no field in ${fieldless.length} of ${frames} frames${at(fieldless)} | longest long task ${Math.round(longest)} ms | steps: ${steps}`;
     test.info().annotations.push({ type: 'begin-to-first-word', description: summary });
     console.log(`[home-begin] ${summary}`);
 
