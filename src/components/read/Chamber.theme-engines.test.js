@@ -5,12 +5,26 @@
  * behaves as today. The cue itself is never written: a saved cue replays
  * exactly, and the director keys its fields by the cue.
  */
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { Chamber } from './Chamber.js';
 import { JEV_COLOR_THEMES } from '../../core/jev-color-themes.js';
 import { jevColors } from '../../core/jev-palette.js';
+import { MemoryCore } from '../../core/memory.js';
+import { ensureDirector } from '../../core/passage-visuals/reading-state.js';
+import { prepareVisualSource } from '../../core/passage-visuals/segmentation.js';
 import { RISE_CURRENT_THEMES, compileRiseCurrent } from '../../core/rise-current.js';
+import { compileSession } from '../../core/session-compiler.js';
+import { themedFlameRecipe } from '../../core/theme-engine-map.js';
 import { BLACK_HOLES_CURRENT } from '../../test/sealed-current.js';
+import { flamePreset } from '../../visuals/living-flame/flame-presets.js';
+import { createLivingFlameField, sampleLivingFlame } from '../../visuals/living-flame/index.js';
+
+// The Chamber loads the flame lazily; the stubs show which recipe reaches it.
+vi.mock('../../visuals/living-flame/index.js', async importOriginal => ({
+  ...await importOriginal(),
+  sampleLivingFlame: vi.fn(async () => 'data:,flame'),
+  createLivingFlameField: vi.fn(() => ({ pause() {}, resume() {}, destroy() {} }))
+}));
 
 const mounted = [];
 
@@ -46,6 +60,7 @@ function mountGenesis(session, config) {
 afterEach(() => {
   mounted.splice(0).forEach(chamber => chamber.destroy());
   document.body.replaceChildren();
+  vi.restoreAllMocks();
 });
 
 describe('the attractor under a theme', () => {
@@ -159,5 +174,42 @@ describe('a Current mounts exactly what Composer wrote', () => {
     expect(chamber.attractorField.palette).toBe('white');
     chamber.mountVisualFieldCue(cues.find(cue => cue.renderer === 'genesis'));
     expect(chamber.kleeField.preset).toBe('random');
+  });
+});
+
+describe('the Living Flame under a theme', () => {
+  // The flame takes the theme where its cue is built, never at mount, so a
+  // saved cue draws as saved and a Page or Workshop project is exact.
+  const jade = jevColors('jade');
+  const themedPreset = id => themedFlameRecipe(flamePreset(id), jade);
+  const text = Array.from({ length: 12 }, () => 'The quiet garden rests in gentle peace and the still water holds the soft light of evening.').join(' ');
+  const gallery = { visualMode: 'interlocution', interlocution: { sourceFamily: 'procedural', procedural: [], sourced: [], presentation: 'continuous' } };
+
+  it('saves a directed reading to the Workshop with its recipes in the theme', async () => {
+    const session = compileSession({ title: 'Directed', text, wpm: 300, chunkMode: 'phrase', visualConfig: gallery, ...themed('jade') });
+    const director = ensureDirector(session);
+    director.identify('primary', (await prepareVisualSource(text)).blocks);
+    director.stage([{ blockId: director.blocks[0].id, treatmentId: 'verdant-current', intensityBand: 'balanced' }]);
+    director.admit(0);
+    const save = vi.spyOn(MemoryCore, 'saveWorkshopBlueprintAsync').mockResolvedValue(true);
+    const opened = await Chamber.prototype.editPassagesInWorkshop.call({ session, _direction: { director }, onExit() {} });
+    expect(opened).toBe(true);
+    const clips = save.mock.calls[0][0].experienceProgram.tracks.find(track => track.kind === 'visual').clips;
+    expect(clips[0].cue.config.recipe).toEqual(themedPreset('verdant-current'));
+    expect(clips[0].cue.config.recipe.macros.hue).not.toBe(0);
+  });
+
+  it('draws a Page flame the Stream never held in the theme', async () => {
+    const works = await Chamber.prototype._resolvePageCollection.call(
+      { session: themed('jade'), _effectiveFlameEnergy: () => 0.35 }, 'living-flame:verdant-current~00000000', 1, null, null);
+    expect(works).toHaveLength(1);
+    expect(sampleLivingFlame.mock.calls[0][0]).toEqual(themedPreset('verdant-current'));
+  });
+
+  it('mounts a saved cue as saved', async () => {
+    const recipe = flamePreset('verdant-current');
+    makeChamber(themed('jade')).mountVisualFieldCue({ kind: 'field', renderer: 'living-flame', config: { recipe, intensity: 0.35 } });
+    await vi.waitFor(() => expect(createLivingFlameField).toHaveBeenCalled());
+    expect(createLivingFlameField.mock.calls[0][1].recipe).toEqual(recipe);
   });
 });

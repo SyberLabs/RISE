@@ -28,6 +28,12 @@
       "ref": "docs/product/discussions/2026-10-05-embed-stage-decision.md",
       "note": "Embed stage decision: the ChatGPT embed is one stage with Play/Pause and Settings (intensity, theme, still imagery, text size), inline only, one computed height, the Chamber's chrome off under a host. Its build plan ends with LIVE-004 witnessed on the candidate after PR 5. Decided by Mateo; the Reader-lane items await Seth's review; two owner questions open.",
       "date": "2026-10-05"
+    },
+    {
+      "kind": "document",
+      "ref": "docs/plans/EMBED-WITNESS.md",
+      "note": "The witness runbook (PR 6, code and docs): the ?log=host switch writes the host's context and each size report to the console as JSON; the runbook gives the owner the exact candidate, the demo Worker deploy, the developer-mode connection per the current OpenAI page, the one conversation, the five host questions with what each answer changes, the record's template and the Worker made inert. The session itself, and the real-host acceptance it records, are still to come.",
+      "date": "2026-10-05"
     }
   ],
   "activity": [
@@ -38,10 +44,14 @@
     {
       "date": "2026-10-05T13:19:24.621Z",
       "summary": "Linked the embed stage decision record; its build plan ends with LIVE-004 witnessed on the candidate (Composer lane)"
+    },
+    {
+      "date": "2026-10-05T22:51:45.398Z",
+      "summary": "Added the witness runbook (docs/plans/EMBED-WITNESS.md) and the ?log=host switch; the ChatGPT session itself is the owner's, not yet held"
     }
   ],
-  "updatedAt": "2026-10-05T13:19:24.621Z",
-  "revision": 2,
+  "updatedAt": "2026-10-05T22:51:45.398Z",
+  "revision": 3,
   "summary": "Integrate score, admitted host behavior and fixtures into a coherent first-use experience.",
   "blocker": null
 }

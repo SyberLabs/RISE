@@ -30,7 +30,7 @@ export class HarmonographField {
      * @param {Object} options
      *   - dwellMs / crossfadeMs
      *   - reducedMotion
-     *   - getSignal / getClimate
+     *   - getSignal / getClimate / getAnchors
      */
     constructor(host, options = {}) {
         this.host = host;
@@ -46,6 +46,9 @@ export class HarmonographField {
         this.getClimate = typeof options.getClimate === 'function'
             ? options.getClimate
             : () => 'auto';
+        this.getAnchors = typeof options.getAnchors === 'function'
+            ? options.getAnchors
+            : () => null;
         this.onProjectionPaint = typeof options.onProjectionPaint === 'function'
             ? options.onProjectionPaint
             : () => {};
@@ -209,7 +212,8 @@ export class HarmonographField {
         const engine = new Harmonograph();
         this._cursor += 1;
         engine.generate(this.getSignal() || null, `gallery-hg:${this._cursor}`, {
-            climate: this.getClimate() || 'auto'
+            climate: this.getClimate() || 'auto',
+            anchors: this.getAnchors()
         });
         incoming.engine = engine;
         incoming.elapsedMs = this.reducedMotion ? this.dwellMs : 0;

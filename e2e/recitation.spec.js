@@ -193,7 +193,7 @@ test('the control turns recitation on, and the choice survives a return', async 
   }, { seed: SEED });
   await page.goto('/');
   await openHomeNav(page, 'chamber');
-  { const adjust = page.locator('[data-action="toggle-adjust"]'); if (await adjust.getAttribute('aria-expanded') === 'false') await adjust.click(); }
+  { const look = page.locator('#modal-look'); if (await look.isHidden()) await page.locator('[data-orbit="look"]').click(); }
   await page.locator('.orbit-node[data-orbit="audio"]').click();
   await expect(page.locator('[data-recitation="on"]')).toBeVisible({ timeout: 15000 });
 
@@ -235,6 +235,8 @@ test('the control turns recitation on, and the choice survives a return', async 
   // Begin persists the choice with this capable sequence, never as a
   // tab-wide preference that could grant voice to an unrelated reading.
   await page.locator('[data-close="audio"]').click();
+  // The Sound panel opens from the Customize look sheet, which stays open.
+  await page.locator('[data-close="look"]').click();
   await page.locator('#begin-btn').click();
   const warn = page.locator('#photosensitivity-modal');
   if (await warn.isVisible({ timeout: 3000 }).catch(() => false)) {

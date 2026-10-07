@@ -2,15 +2,15 @@
  * THE LIFECYCLE ROUND TRIP.
  *
  * Every identity-carrying field a reading owns must survive — or die —
- * correctly across the three seams that rebuild an orbital: persist,
- * restore, and reset. This suite exists because a whole class of bug
+ * correctly across the seams that rebuild an orbital: persist, restore,
+ * and the next text. This suite exists because a whole class of bug
  * lived in exactly that gap and none of it was caught by a unit test.
  *
  * The canonical instance is Matthew 27, which sat on `before-pilate`
  * through verse 66. It was not a race and not pool warming: the
  * `visualProgram` travelled with `loadText` but was never persisted, so
  * any path that rebuilt the Orbital from saved state — exit and return,
- * a reset, a page reload — restored the text and its first collection
+ * a page reload — restored the text and its first collection
  * and dropped the program. The second session built no visual schedule
  * and the cortex stayed on the persisted first pool. Every unit test
  * passed while the reading was visibly wrong.
@@ -19,9 +19,8 @@
  *
  *   A visual program is LOADED-TEXT IDENTITY, not a preference.
  *
- * Preferences reset. Identity travels with the text and dies with it.
- * `resetPrefs` must therefore preserve the program while resetting
- * pace and mode, and `clearText` must take it away.
+ * Preferences carry over. Identity travels with the text and dies with
+ * it: the next text loaded must take the program away.
  *
  * These tests deliberately reconstruct the component rather than
  * calling the private persistence helpers, because reconstruction is
@@ -122,48 +121,14 @@ describe('orbital lifecycle round trip', () => {
         unmount(second);
     });
 
-    it('resetPrefs resets preferences and keeps identity — a program is not a preference', () => {
-        const { orbital, container } = mount();
-        loadIdentityBearingText(orbital);
-
-        orbital.config.wpm = 430;
-        orbital.config.chunkMode = 'sentence';
-        orbital.resetPrefs();
-
-        expect(orbital.config.wpm, 'a preference survived a reset').not.toBe(430);
-        expect(orbital.config.visualProgram, 'the program was reset as if it were a preference').toBeTruthy();
-        expect(orbital.config.visualProgram.segments).toHaveLength(2);
-        expect(orbital.config.text).toBeTruthy();
-        expect(orbital.config.origin?.view).toBe('journeys');
-        expect(orbital.config.provenance?.journeyId).toBe('journey-war');
-        expect(orbital.config.projection).toBe('page');
-
-        unmount({ orbital, container });
-    });
-
-    it('a reset survives its own reconstruction', () => {
-        // resetPrefs holding the program in memory is only half of it —
-        // it must also have written it back, or the next rebuild drops it
-        // and the bug returns one navigation later.
+    it('the next text takes the identity with it, in memory and on disk', () => {
         const first = mount();
         loadIdentityBearingText(first.orbital);
-        first.orbital.resetPrefs();
-        unmount(first);
+        first.orbital.loadText('Plain pasted text, no imagery authored.', 'Pasted', {});
 
-        const second = mount();
-        expect(second.orbital.config.visualProgram,
-            'the program survived the reset in memory but not on disk').toBeTruthy();
-        unmount(second);
-    });
-
-    it('clearText takes the identity with it, in memory and on disk', () => {
-        const first = mount();
-        loadIdentityBearingText(first.orbital);
-        first.orbital.clearText();
-
-        expect(first.orbital.config.text).toBeFalsy();
         expect(first.orbital.config.visualProgram,
-            'a cleared reading kept its program — the next text would inherit it').toBeFalsy();
+            'a replaced reading kept its program — the next text inherited it').toBeFalsy();
+        expect(first.orbital.config.origin).toBeNull();
         unmount(first);
 
         // And it stays gone. A program that resurrects on the next mount
@@ -171,7 +136,7 @@ describe('orbital lifecycle round trip', () => {
         // the mirror image of the Matthew 27 fault and worse.
         const second = mount();
         expect(second.orbital.config.visualProgram).toBeFalsy();
-        expect(second.orbital.config.text).toBeFalsy();
+        expect(second.orbital.config.textSource).toBe('Pasted');
         unmount(second);
     });
 
@@ -246,11 +211,9 @@ describe('a reading\'s opening look', () => {
         unmount(view);
     });
 
-    it('survives a reconstruction and a reset, and is never a preference', () => {
+    it('survives a reconstruction, and is never a preference', () => {
         const first = mountBegin();
         first.orbital.loadText('Waste no more time.', 'Meditations', { presentation: { ...LOOK } });
-        first.orbital.resetPrefs();
-        expect(first.orbital.config.presentation).toEqual(LOOK);
         unmount(first);
         expect(localStorage.getItem(PREFS_KEY) || '').not.toContain('jade');
 
@@ -262,10 +225,8 @@ describe('a reading\'s opening look', () => {
     it('dies with its text, and a plain text never inherits it', () => {
         const view = mountBegin();
         view.orbital.loadText('Waste no more time.', 'Meditations', { presentation: { ...LOOK } });
-        view.orbital.clearText();
-        expect(view.orbital.config.presentation).toBeNull();
-        view.orbital.loadText('Waste no more time.', 'Meditations', { presentation: { ...LOOK } });
         view.orbital.loadText('A plain page.', 'Library text', {});
+        expect(view.orbital.config.presentation).toBeNull();
         view.orbital.beginSession();
         expect(view.begun[0].presentation).toBeUndefined();
         unmount(view);

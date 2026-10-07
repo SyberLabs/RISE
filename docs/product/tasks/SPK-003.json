@@ -1,0 +1,30 @@
+{
+  "id": "SPK-003",
+  "title": "Reader-owned voice key (deferred)",
+  "lane": "live-sdk",
+  "milestone": "Speech",
+  "status": "planned",
+  "delivery": "not_shipped",
+  "owner": null,
+  "priority": "later",
+  "dependencies": ["SPK-001","SPK-002"],
+  "acceptance": ["Reopened only when Trusted Types (critique B5) has landed and RDR-008 records the installed voice as insufficient, or Composer narration is observed to need it.","A second key held in page memory like the OpenRouter key, streamed per phrase into the existing Voice pipeline with onsets; never a SyberLabs credential."],
+  "evidence": [
+    {
+      "kind": "document",
+      "ref": "docs/product/discussions/2026-10-06-score-speech-service-roadmap.md",
+      "note": "The score, speech and service roadmap; Record.",
+      "date": "2026-10-06"
+    }
+  ],
+  "activity": [
+    {
+      "date": "2026-10-06T01:30:00.000Z",
+      "summary": "Seeded from the 2026-10-06 roadmap record."
+    }
+  ],
+  "updatedAt": "2026-10-06T01:30:00.000Z",
+  "revision": 1,
+  "summary": "Deferred by the owner on 2026-10-06; the trigger is recorded in the roadmap.",
+  "blocker": null
+}

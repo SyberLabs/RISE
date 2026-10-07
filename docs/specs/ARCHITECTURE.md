@@ -156,9 +156,9 @@ flowchart LR
     affect["affect<br/>experience-state evaluation<br/>29 modules"]
     app["app<br/>composition root<br/>13 modules"]
     audio["audio<br/>Web Audio, recitation<br/>11 modules"]
-    components["components<br/>routed views<br/>50 modules"]
+    components["components<br/>routed views<br/>51 modules"]
     content["content<br/>texts, imagery, journeys<br/>228 modules"]
-    core["core<br/>session, player, router<br/>170 modules"]
+    core["core<br/>session, player, router<br/>171 modules"]
     enterprise["enterprise<br/>talk program, speaker rail<br/>36 modules"]
     live["live<br/>realtime Current: events, runtime, providers<br/>42 modules"]
     page["page<br/>spatial projection<br/>4 modules"]
@@ -181,7 +181,7 @@ flowchart LR
     components -.-> |2 lazy| app
     components --> |3| audio
     components --> |23| content
-    components --> |179| core
+    components --> |184| core
     components -.-> |1 lazy| page
     components --> |4| sources
     components -.-> |2 lazy| vendor
@@ -196,13 +196,13 @@ flowchart LR
     core --> |20| visuals
     live -.-> |3 lazy| app
     live -.-> |2 lazy| components
-    live --> |9| core
+    live --> |11| core
     live -.-> |1 lazy| visuals
     page --> |2| core
     page --> |3| visuals
     sources --> |1| content
     visuals -.-> |4 lazy| content
-    visuals --> |22| core
+    visuals --> |23| core
     visuals --> |4| sources
     wormhole --> |1| app
     wormhole --> |2| core
@@ -889,7 +889,7 @@ of `settled`, `open`, `deferred`, or `reversed`.
 
 ### 8.26 The doorway is a preset over the engine, not a second engine
 
-- **Chosen:** a stance (`src/core/stances.js`) is a named partial of the
+- **Chosen:** a stance (`stances.js`) is a named partial of the
   configuration Read's setup pane (the Orbital) already builds. It writes
   fields in the visual, audio and temporal orbits, and what it emits takes the
   same road as a hand-built configuration: the Orbital's persistence
@@ -906,6 +906,9 @@ of `settled`, `open`, `deferred`, or `reversed`.
   posture the reader had adjusted away from, so the row would lie. Deriving it
   cannot. There is no `study` stance yet; it is the entry to Page mode, which
   is sequenced after this step.
+- **Amended 2026-10-06:** the preset module is `src/core/looks.js`: ten looks
+  on this mechanism replace the stances and the roll tempers, and `lookOf`
+  derives the look a reading is in (RDR-020).
 - **Status:** settled.
 
 ### 8.27 Application capabilities are injected, not discovered
@@ -1032,13 +1035,9 @@ of `settled`, `open`, `deferred`, or `reversed`.
   `@ai-ecoverse/kev.js` and `onnxruntime-web` in a dedicated worker
   (`src/enterprise/kev-worker.js`). It asks the same question and reads the
   answer the same way as the server route (`src/enterprise/rail-question.js`).
-  `src/enterprise/device-model.js` pins what may load: every file, the
-  manifest first, is fetched from one commit of the bundle repository and must
-  have the size and SHA-256 that `scripts/pin-kev-weights.mjs` recorded in
-  `src/enterprise/kev-pins.js`, checked as it streams in and again on each
-  reuse from the cache; a manifest naming any checkpoint but the pinned one is
-  refused before weights are fetched; a model with no record loads nothing;
-  and the runtime binary must match the digest of the lockfile's copy. The model
+  `src/enterprise/device-model.js` pins what may load: a manifest naming any
+  checkpoint but the pinned one is refused before weights are fetched, and the
+  runtime binary must match the digest of the lockfile's copy. The model
   downloads only when a presenter chooses it. Until it is ready, or after it
   fails, decisions hold. The worker script alone may fetch model hosts and
   compile WebAssembly: the Cloudflare Worker serves it with its own policy

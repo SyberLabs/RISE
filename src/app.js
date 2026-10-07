@@ -100,6 +100,8 @@ window.addEventListener('vite:preloadError', (event) => {
 
 class App {
     constructor() {
+        // Read-only measurement records (setup-preview.js) outlive the router's first navigation.
+        if (new URLSearchParams(window.location.search).has('measure')) document.documentElement.dataset.riseMeasure = '';
         this.router = null;
         this.audioEngine = null;
         this.settings = null;

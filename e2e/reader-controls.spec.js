@@ -19,8 +19,8 @@ async function openNavigator(page) {
         const state = window.__RISE_TEST__?.getRouterState();
         return state?.currentView === 'read' && window.__RISE_TEST__.getView('read')?.activePane === 'setup' && state.transitioning === false;
     });
-    await expect(page.locator('[data-action="toggle-adjust"]')).toBeVisible({ timeout: 20_000 });
-    { const adjust = page.locator('[data-action="toggle-adjust"]'); if (await adjust.getAttribute('aria-expanded') === 'false') await adjust.click(); }
+    await expect(page.locator('[data-orbit="look"]')).toBeVisible({ timeout: 20_000 });
+    { const look = page.locator('#modal-look'); if (await look.isHidden()) await page.locator('[data-orbit="look"]').click(); }
     await page.locator('[data-orbit="visual"]').click();
     await expect(page.locator('.vnav, .vstage').first()).toBeVisible({ timeout: 10_000 });
 }
@@ -78,7 +78,7 @@ test('the setting survives leaving the panel and coming back', async ({ page }) 
     // Out of the panel and back in: the same answer, from the same key.
     await page.keyboard.press('Escape');
     await expect(page.locator('#modal-visual')).toBeHidden();
-    { const adjust = page.locator('[data-action="toggle-adjust"]'); if (await adjust.getAttribute('aria-expanded') === 'false') await adjust.click(); }
+    { const look = page.locator('#modal-look'); if (await look.isHidden()) await page.locator('[data-orbit="look"]').click(); }
     await page.locator('[data-orbit="visual"]').click();
     await expect(page.locator('.vnav')).toBeVisible({ timeout: 10_000 });
 

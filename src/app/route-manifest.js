@@ -35,8 +35,7 @@ export function createRouteManifest(operations) {
             getAudioEngine: operations.getAudioEngine,
             getSettings: operations.getSettings,
             onSettingChange: operations.handleSettingsChange,
-            onSettingsTransaction: operations.handleSettingsTransaction,
-            notify: operations.showToast
+            onSettingsTransaction: operations.handleSettingsTransaction
           },
           chamber: operations.chamberSession,
           // The host for a live Current: a prompt, and the controls over the
